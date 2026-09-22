@@ -645,8 +645,48 @@ struct QpWalkMinorRecord {
     int add_dep_verdict = -1;
     /// The working-set member the exchange swapped out, and the dependency
     /// coefficient that chose it. `-1`/absent when no exchange was made.
+    ///
+    /// THESE TWO STAY ABSENT ON EVERY TRACE. They belong to arm b2, the
+    /// classical exchange, which settler ruling R3 made conditional and which
+    /// `qp_degeneracy_arm.h`'s ARM B2 block registers as a production design
+    /// item rather than building. A column that reads absent is the honest
+    /// record of a rule that did not run.
     Index add_exchanged_index = -1;
     double add_exchange_coefficient = kAbsent;
+
+    // ---- PER ADD: ARM B1's RATIO-ORDERED SCAN ------------------------------
+    //
+    // Filled only on a pass where arm b1 ran and its self-check passed. The
+    // verdict and residual of the candidate b1 ADMITTED are `add_dep_verdict`
+    // and `add_dep_residual` above; these columns are about the scan that
+    // reached it.
+    /// Candidates b1 put through the dependency test on this pass, and how
+    /// many of them it PASSED OVER as dependent.
+    Index add_b1_examined = -1;
+    Index add_b1_passed_over = -1;
+    /// Candidates attaining the MINIMUM ratio, signed zeros included -- the
+    /// tie set the degenerate vertex actually offered.
+    Index add_b1_tie_size = -1;
+    /// `-1` absent / `0` the arm left production's blocker alone / `1` the arm
+    /// MOVED the choice. A `0` pass is bit-identical to production.
+    int add_b1_switched = -1;
+    /// `-1` absent / `0` a blocker was admitted / `1` EVERY candidate was
+    /// dependent, so nothing joined and the walk took the full step.
+    int add_b1_no_blocker = -1;
+    /// `-1` absent / `0` / `1`: the arm's own enumeration disagreed with
+    /// production's ratio test about the blocker, so the arm refused the pass.
+    int add_b1_mismatch = -1;
+    /// Production's own blocker on a pass the arm MOVED: what it moved away
+    /// from. `-1`/absent when the arm did not run or did not switch.
+    Index add_b1_prod_index = -1;
+    int add_b1_prod_is_ineq = -1;
+    /// `me + |W|` AFTER the add the arm admitted; the hard invariant is
+    /// `add_b1_rows_after - dep_n <= 0`. Absent when no add was made.
+    Index add_b1_rows_after = -1;
+    /// The largest amount by which a constraint the arm passed over is
+    /// violated at the iterate the walk moved to. `0` when nothing was passed
+    /// over or nothing is violated.
+    double add_b1_passed_violation = kAbsent;
 };
 
 /// WHAT ONE CALL OF THE EQP CANDIDATE SITE REPORTED ABOUT ITSELF. A scratch

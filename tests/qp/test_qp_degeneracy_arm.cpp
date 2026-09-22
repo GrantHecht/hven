@@ -5,10 +5,12 @@
 // (hven/detail/qp/qp_degeneracy_arm.h), on the `HVEN_TESTING` test-seam
 // convention docs/testing.md describes.
 //
-// THIS DISPATCH COVERS ARM A AND THE DIAGNOSTIC HALF. Arm B is DESIGNED in
-// `qp_degeneracy_arm.h` and not implemented, so nothing here exercises it; the
-// columns it will fill are asserted ABSENT, which is the falsifiable form of
-// "it did not run".
+// IT COVERS ARM A, THE DIAGNOSTIC HALF, AND ARM B1 -- the
+// independence-preserving ratio test the settler's ruling R3 made arm B's
+// primary form. Arm b2, the classical exchange, is REGISTERED and not built
+// (`qp_degeneracy_arm.h`'s ARM B2 block says why), so the two columns it would
+// fill are asserted ABSENT throughout, which is the falsifiable form of "it
+// did not run".
 //
 // WHAT THIS FILE HAS TO PROVE:
 //
@@ -34,6 +36,11 @@
 //       not.
 //   (7) The switch is PER-THREAD — with two solves genuinely IN FLIGHT AT
 //       ONCE, released by a two-party barrier.
+//   (8) ARM B1 ENDS A CYCLING WALK its integer screen calls dependent, changes
+//       nothing in bits where it passes nothing over, and CARRIES A HAZARD
+//       that is asserted rather than described: a passed-over bound leaves the
+//       iterate outside its box and the engine certifies it anyway. The block
+//       above those fixtures lists all seven claims.
 //
 // THE CYCLING FIXTURE IS M4's, EXTENDED. Its three-variable cycling block is
 // `tests/qp/test_qp_anti_cycling_arm.cpp`'s period-2 problem verbatim (found
@@ -51,7 +58,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <limits>
 #include <mutex>
 #include <thread>
 #include <vector>
@@ -651,8 +657,8 @@ TEST(QpDegeneracyArm, TheDiagnosticColumnsAreFilledWhereTheirBranchRan) {
             EXPECT_GE(rec.add_dep_rows, 0);
             EXPECT_EQ(rec.add_dep_screen, rec.add_dep_rows + 1 > qp.n() ? 1 : 0);
         }
-        // ARM B HAS NOT LANDED, and the honest record of a test that did not
-        // run is an ABSENT column, not a zero.
+        // THIS FIXTURE ARMS NEITHER FORM OF ARM B, and the honest record of a
+        // test that did not run is an ABSENT column, not a zero.
         EXPECT_TRUE(std::isnan(rec.add_dep_residual));
         EXPECT_EQ(rec.add_dep_verdict, -1);
         EXPECT_EQ(rec.add_exchanged_index, -1);
@@ -753,5 +759,360 @@ TEST(QpDegeneracyArm, AnArmedSolveDoesNotReachIntoAnUnarmedOneRunningBesideIt) {
     // `ArmAScaledDropRefusesTheDropAndEndsTheRecurrence`), asserted here so a
     // drift in it is caught on this path too.
     EXPECT_EQ(static_cast<int>(loud_result.status), static_cast<int>(QpStatus::kNumericalError));
+    expect_same_solution(solo, quiet_result);
+}
+
+// ===========================================================================
+// (8) ARM B1 -- THE INDEPENDENCE-PRESERVING RATIO TEST
+// ===========================================================================
+//
+// WHAT THESE FIXTURES PROVE, AND THE ONE THEY DECLARE RATHER THAN CELEBRATE:
+//
+//   (8a) b1 TERMINATES THE CYCLING WALK. On M4's period-2 QP -- the SAME
+//        problem, without the scale carrier -- the OFF walk cycles to the
+//        iteration cap and b1 reaches the problem's own optimum, checked
+//        against the QP's KKT conditions recomputed here.
+//   (8b) b1 CHANGES NOTHING WHERE IT PASSES NOTHING OVER, in bits.
+//   (8c) THE NUMERIC TEST'S TOLERANCE SITS ON THE FLOOR IT MUST CLEAR. The
+//        residual populations separate by five orders -- R5's separation check
+//        answered YES -- but the dependent population sits AT `dual_mu`, and
+//        the pre-registered `dependency_tol = kRideNullspaceTol = 1e-8` IS
+//        `dual_mu`, so it classifies that whole population as independent and
+//        converts nothing. One order above the floor the same test converts.
+//        Asserted, not described; it is this round's one amendment candidate.
+//   (8d) THE HAZARD, DECLARED AND ASSERTED: passing over a blocking BOUND
+//        lets the walk step OUT OF ITS BOX, and the engine certifies the
+//        result `kOptimal` anyway. The arm records the violation; the engine
+//        has no guard against it. This is a FINDING about the pre-registered
+//        rule, not a bug in its implementation, and it is asserted here so it
+//        cannot quietly stop being true.
+//   (8e) THE ARM'S OWN SELF-CHECK never fires: its re-enumeration of the ratio
+//        test's candidates begins with production's blocker on every pass of
+//        every fixture here.
+//   (8f) The columns stay ABSENT when the arm is not armed.
+//   (8g) The switch is PER-THREAD, with both solves in flight.
+
+namespace {
+
+/// The largest amount by which `x` sits outside its own box.
+double box_violation(const QpProblem &qp, const Vec &x) {
+    double worst = 0.0;
+    for (Index i = 0; i < qp.n(); ++i) {
+        worst = std::max(worst, std::max(qp.lower(i) - x(i), x(i) - qp.upper(i)));
+    }
+    return worst;
+}
+
+/// Every record the arm actually ran on.
+std::vector<hven::solvers::detail::testing::QpWalkMinorRecord>
+b1_records(const std::vector<hven::solvers::detail::testing::QpWalkMinorRecord> &recs) {
+    std::vector<hven::solvers::detail::testing::QpWalkMinorRecord> out;
+    for (const auto &r : recs) {
+        if (r.add_b1_examined >= 0) {
+            out.push_back(r);
+        }
+    }
+    return out;
+}
+
+} // namespace
+
+TEST(QpDegeneracyArm, ArmB1EndsTheCyclingWalkAndReachesTheProblemsOwnOptimum) {
+    DegArmGuard guard;
+    // M4's period-2 QP ITSELF -- no scale carrier. Arm A's fixture needed the
+    // carrier to move the drop rule's SCALE; b1 acts on the working set's
+    // RANK, which the cycling block already makes degenerate on its own.
+    const QpProblem qp = period2_cycle_qp();
+    const QpOptions opts = cycling_opts();
+
+    const Walk off = observed_walk(qp, opts);
+    ASSERT_EQ(static_cast<int>(off.solution.status), static_cast<int>(QpStatus::kMaxIter))
+        << "the fixture stopped cycling: it is no longer the object of this experiment";
+    ASSERT_EQ(off.minors, opts.max_iter);
+    // The OFF walk really is M4's recurrence, not merely a slow one.
+    ASSERT_EQ(off.period, 2);
+    ASSERT_GT(off.tail, 100);
+    ASSERT_EQ(off.tail_motion, 0.0) << "the OFF tail moved the iterate; it is not a cycle";
+
+    Deg::reset();
+    Deg::arm = DegArm::kIndependentAdd;
+    const Walk on = observed_walk(qp, opts);
+
+    EXPECT_EQ(static_cast<int>(on.solution.status), static_cast<int>(QpStatus::kOptimal));
+    EXPECT_LT(on.minors, 20) << "the recurrence is gone only if the walk is short";
+    // THE ANSWER IS CHECKED AGAINST THE PROBLEM, not against what the engine
+    // says about itself: for a convex QP the KKT conditions are necessary AND
+    // sufficient for a global minimum.
+    EXPECT_TRUE(is_a_kkt_point(qp, on.solution, 1e-6));
+
+    // WHAT THE ARM DID, in its own counters.
+    EXPECT_GT(Deg::indep_passes, 0);
+    EXPECT_GT(Deg::indep_candidates_passed_over, 0) << "nothing was passed over: the arm is inert";
+    EXPECT_GT(Deg::indep_screen_dependent, 0);
+    EXPECT_GT(Deg::indep_no_blocker_passes, 0)
+        << "the conversion here is a pass on which EVERY candidate was dependent";
+    EXPECT_EQ(Deg::indep_enumeration_mismatches, 0);
+    EXPECT_EQ(Deg::indep_test_failures, 0);
+    // THE HARD INVARIANT (settler ruling R6): `me + |W| - n <= 0` after every
+    // add the arm admitted.
+    EXPECT_EQ(Deg::indep_invariant_violations, 0);
+    EXPECT_LE(Deg::indep_rows_minus_n_max, 0);
+
+    // The scan's own columns are filled on every pass the arm ran.
+    const auto recs = b1_records(on.records);
+    ASSERT_FALSE(recs.empty());
+    Index switched = 0;
+    for (const auto &r : recs) {
+        EXPECT_GE(r.add_b1_examined, 1);
+        EXPECT_GE(r.add_b1_tie_size, 1);
+        EXPECT_EQ(r.add_b1_mismatch, 0);
+        EXPECT_EQ(r.dep_n, qp.n());
+        if (r.add_b1_switched == 1) {
+            ++switched;
+            EXPECT_GE(r.add_b1_passed_over, 1);
+            EXPECT_GE(r.add_b1_prod_index, 0);
+        } else {
+            EXPECT_EQ(r.add_b1_passed_over, 0);
+        }
+    }
+    EXPECT_GT(switched, 0);
+    // b2, the exchange, is REGISTERED AND NOT BUILT: its two columns stay
+    // absent on a trace taken with arm B armed, which is the falsifiable form
+    // of "no exchange was made".
+    for (const auto &r : on.records) {
+        EXPECT_EQ(r.add_exchanged_index, -1);
+        EXPECT_TRUE(std::isnan(r.add_exchange_coefficient));
+    }
+}
+
+TEST(QpDegeneracyArm, ArmB1IsBitIdenticalWhereItPassesNothingOver) {
+    DegArmGuard guard;
+    const QpProblem qp = non_degenerate_qp();
+    const QpOptions opts = cycling_opts();
+    const QpSolution plain = plain_solve(qp, opts);
+
+    Deg::reset();
+    Deg::arm = DegArm::kIndependentAdd;
+    const QpSolution armed = plain_solve(qp, opts);
+
+    // NOTHING WAS PASSED OVER, so the caller changed nothing at all -- which
+    // is what makes this identity structural rather than arithmetical.
+    EXPECT_EQ(Deg::indep_candidates_passed_over, 0);
+    EXPECT_EQ(Deg::indep_blocker_switched, 0);
+    EXPECT_EQ(Deg::indep_enumeration_mismatches, 0);
+    // The dependency test DID run and DID cost a factorization: this is not
+    // the vacuous case where the arm never looked.
+    EXPECT_GT(Deg::indep_candidates_examined, 0);
+    EXPECT_GT(Deg::indep_factorizations, 0);
+    expect_same_solution(plain, armed);
+}
+
+TEST(QpDegeneracyArm, ArmB1sNumericToleranceSitsExactlyOnTheRegularizationFloorItMustClear) {
+    DegArmGuard guard;
+    const QpProblem qp = period2_cycle_qp();
+    const QpOptions opts = cycling_opts();
+
+    // THE SAME ARM WITH THE INTEGER SCREEN OFF. What is left is B.2's numeric
+    // test alone, at `dependency_tol = kRideNullspaceTol = 1e-8` -- the number
+    // the settler's ruling R5 pre-registered, together with the requirement
+    // that the screen-positive and screen-negative residual populations
+    // SEPARATE by at least three orders around it.
+    Deg::reset();
+    Deg::arm = DegArm::kIndependentAdd;
+    Deg::params.integer_screen = false;
+    const Walk numeric_only = observed_walk(qp, opts);
+
+    // (i) THE POPULATIONS SEPARATE, AND BY MORE THAN R5 ASKS. Every residual
+    //     is either at the regularization floor or of order one; nothing sits
+    //     in between, so the statistic is bimodal and the check R5 wanted is
+    //     answered YES on this fixture.
+    Index residuals = 0;
+    Index at_floor = 0;
+    Index order_one = 0;
+    double floor_max = 0.0;
+    for (const auto &r : numeric_only.records) {
+        if (std::isnan(r.add_dep_residual)) {
+            continue;
+        }
+        ++residuals;
+        if (r.add_dep_residual < 1e-6) {
+            ++at_floor;
+            floor_max = std::max(floor_max, r.add_dep_residual);
+        } else if (r.add_dep_residual > 1e-2) {
+            ++order_one;
+        } else {
+            ADD_FAILURE() << "a residual between the two populations: " << r.add_dep_residual
+                          << " -- the bimodality this fixture reads off has gone away";
+        }
+    }
+    EXPECT_GT(at_floor, 50);
+    EXPECT_GE(order_one, 3);
+    EXPECT_EQ(residuals, at_floor + order_one);
+
+    // (ii) AND THE TOLERANCE IS ON THE WRONG SIDE OF THE FLOOR. The lower
+    //      population sits at `dual_mu` itself -- B.2's own derivation says
+    //      the residual of a genuinely dependent row through a mu-regularized
+    //      factor is of order `mu*||v||/||a||`, and with `||v|| ~ ||a||` that
+    //      IS `dual_mu` -- so a tolerance EQUAL to `dual_mu` classifies the
+    //      dependent population as independent, by a relative hair.
+    QpOptions defaults;
+    EXPECT_NEAR(floor_max, defaults.dual_mu, 0.01 * defaults.dual_mu);
+    EXPECT_GT(floor_max, Deg::params.dependency_tol)
+        << "the floor no longer straddles the tolerance; this fixture's reading is stale";
+    EXPECT_EQ(Deg::indep_numeric_dependent, 0);
+    EXPECT_EQ(Deg::indep_candidates_passed_over, 0);
+    EXPECT_EQ(static_cast<int>(numeric_only.solution.status), static_cast<int>(QpStatus::kMaxIter))
+        << "at the pre-registered tolerance the numeric test alone converts nothing";
+
+    // (iii) MOVED ONE ORDER ABOVE THE FLOOR -- which is what
+    //       `dependency_tol` is exposed for -- THE SAME TEST CONVERTS. The
+    //       screen is still off, so this is the numeric test doing the work
+    //       and nothing else.
+    Deg::reset();
+    Deg::arm = DegArm::kIndependentAdd;
+    Deg::params.integer_screen = false;
+    Deg::params.dependency_tol = 1e-7;
+    const Walk moved = observed_walk(qp, opts);
+    EXPECT_GT(Deg::indep_numeric_dependent, 0);
+    EXPECT_GT(Deg::indep_candidates_passed_over, 0);
+    EXPECT_EQ(static_cast<int>(moved.solution.status), static_cast<int>(QpStatus::kOptimal));
+    EXPECT_LT(moved.minors, 20);
+    EXPECT_TRUE(is_a_kkt_point(qp, moved.solution, 1e-6));
+    EXPECT_EQ(Deg::indep_enumeration_mismatches, 0);
+}
+
+TEST(QpDegeneracyArm, ArmB1CanLeaveTheIterateOutsideItsBoxAndTheEngineCertifiesAnyway) {
+    DegArmGuard guard;
+    // THE HAZARD IS THE RULE'S, NOT THE IMPLEMENTATION'S. R3's rule is "if no
+    // independent blocker exists, take the full step and record every
+    // passed-over constraint's post-step violation". A passed-over BOUND is a
+    // bound the walk then steps through, and nothing downstream puts the
+    // iterate back: `refresh_shifts` is about inequality ROWS, and the
+    // certification branch reads the working set's own residual. So the walk
+    // can report `kOptimal` at a point outside its box, and the only record of
+    // it is the arm's own.
+    const QpProblem qp = scale_carrier_cycle_qp();
+    const QpOptions opts = cycling_opts();
+
+    Deg::reset();
+    Deg::arm = DegArm::kIndependentAdd;
+    const Walk on = observed_walk(qp, opts);
+
+    ASSERT_EQ(static_cast<int>(on.solution.status), static_cast<int>(QpStatus::kOptimal));
+    const double viol = box_violation(qp, on.solution.x);
+    EXPECT_GT(viol, opts.opt_tol) << "the hazard this fixture exists to hold on to has gone away";
+    // AND THE ARM SAW IT: the counter and the column both carry the number,
+    // and they agree with what the returned point actually violates.
+    EXPECT_GT(Deg::indep_max_passed_violation, 0.0);
+    EXPECT_NEAR(Deg::indep_max_passed_violation, viol, 1e-12 * std::max(1.0, viol));
+    double column_max = 0.0;
+    for (const auto &r : on.records) {
+        if (!std::isnan(r.add_b1_passed_violation)) {
+            column_max = std::max(column_max, r.add_b1_passed_violation);
+        }
+    }
+    EXPECT_EQ(column_max, Deg::indep_max_passed_violation);
+    // The engine's own certification does NOT catch it -- stated as an
+    // assertion so that a future guard which DID catch it would fail here and
+    // be noticed rather than silently changing what this arm means.
+    EXPECT_FALSE(is_a_kkt_point(qp, on.solution, 1e-6));
+}
+
+TEST(QpDegeneracyArm, ArmB1sColumnsAndCountersStayAbsentWhenItIsNotArmed) {
+    DegArmGuard guard;
+    const QpOptions opts = cycling_opts();
+    for (const QpProblem &qp :
+         {period2_cycle_qp(), non_degenerate_qp(), scale_carrier_cycle_qp()}) {
+        Deg::reset();
+        const Walk off = observed_walk(qp, opts);
+        for (const auto &r : off.records) {
+            EXPECT_EQ(r.add_b1_examined, -1);
+            EXPECT_EQ(r.add_b1_passed_over, -1);
+            EXPECT_EQ(r.add_b1_tie_size, -1);
+            EXPECT_EQ(r.add_b1_switched, -1);
+            EXPECT_EQ(r.add_b1_no_blocker, -1);
+            EXPECT_EQ(r.add_b1_mismatch, -1);
+            EXPECT_EQ(r.add_b1_rows_after, -1);
+            EXPECT_TRUE(std::isnan(r.add_b1_passed_violation));
+            EXPECT_TRUE(std::isnan(r.add_dep_residual));
+            EXPECT_EQ(r.add_dep_verdict, -1);
+        }
+        EXPECT_EQ(Deg::indep_passes, 0);
+        EXPECT_EQ(Deg::indep_candidates_examined, 0);
+        EXPECT_EQ(Deg::indep_factorizations, 0);
+        EXPECT_EQ(Deg::indep_dep_solves, 0);
+    }
+}
+
+TEST(QpDegeneracyArm, ArmB1sEnumerationAgreesWithProductionsRatioTestOnEveryPass) {
+    DegArmGuard guard;
+    const QpOptions opts = cycling_opts();
+    Index passes = 0;
+    for (const QpProblem &qp :
+         {period2_cycle_qp(), non_degenerate_qp(), scale_carrier_cycle_qp()}) {
+        Deg::reset();
+        Deg::arm = DegArm::kIndependentAdd;
+        const Walk on = observed_walk(qp, opts);
+        // THE SELF-CHECK: the arm re-enumerates the ratio test's candidates in
+        // production's scan order, and its FIRST candidate must be the blocker
+        // production just returned. A mismatch means the two enumerations
+        // disagree about the candidate SET, which would make every read-out
+        // below it meaningless -- so the arm refuses the pass and counts it,
+        // and this is where that count is asserted to be zero.
+        EXPECT_EQ(Deg::indep_enumeration_mismatches, 0);
+        for (const auto &r : on.records) {
+            if (r.add_b1_examined >= 0) {
+                ++passes;
+                EXPECT_EQ(r.add_b1_mismatch, 0);
+            }
+        }
+    }
+    EXPECT_GT(passes, 0);
+}
+
+TEST(QpDegeneracyArm, ArmB1sSwitchIsPerThreadWithBothSolvesInFlight) {
+    DegArmGuard guard;
+    const QpOptions opts = cycling_opts();
+    // The unarmed thread takes the non-degenerate QP, for the reason the
+    // arm-A cross-thread fixture above gives.
+    const QpProblem quiet = non_degenerate_qp();
+    const QpProblem loud = period2_cycle_qp();
+    const QpSolution solo = plain_solve(quiet, opts);
+
+    StartGate gate;
+    QpSolution quiet_result;
+    QpSolution loud_result;
+    Index loud_passed = 0;
+    Index quiet_passed = 0;
+    Index quiet_examined = 0;
+    bool quiet_arm_seen = true;
+
+    std::thread armed([&] {
+        Deg::reset();
+        Deg::arm = DegArm::kIndependentAdd;
+        gate.arrive_and_wait();
+        QpEngine engine{opts};
+        loud_result = engine.solve(loud);
+        loud_passed = Deg::indep_candidates_passed_over;
+        Deg::reset();
+    });
+    std::thread unarmed([&] {
+        Deg::reset();
+        quiet_arm_seen = Deg::any_on();
+        gate.arrive_and_wait();
+        QpEngine engine{opts};
+        quiet_result = engine.solve(quiet);
+        quiet_passed = Deg::indep_candidates_passed_over;
+        quiet_examined = Deg::indep_candidates_examined;
+        Deg::reset();
+    });
+    armed.join();
+    unarmed.join();
+
+    EXPECT_FALSE(quiet_arm_seen) << "the arm leaked across threads before either solve began";
+    EXPECT_GT(loud_passed, 0) << "the armed thread was supposed to pass something over";
+    EXPECT_EQ(quiet_passed, 0) << "the unarmed thread counted a pass-over it never made";
+    EXPECT_EQ(quiet_examined, 0) << "the unarmed thread ran a dependency test it never armed";
+    EXPECT_EQ(static_cast<int>(loud_result.status), static_cast<int>(QpStatus::kOptimal));
     expect_same_solution(solo, quiet_result);
 }

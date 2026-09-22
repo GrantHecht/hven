@@ -67,11 +67,20 @@
 // (degeneracy); Gill, Murray, Saunders & Wright, *Math. Prog.* 45 (1989) §2 on
 // the role of tolerances at a degenerate vertex.
 //
-// ARM B — INDEPENDENCE-PRESERVING ADD, for the first. DESIGNED IN THIS FILE
-// AND NOT YET IMPLEMENTED — see the RULE DRAFT below, which is the deliverable
-// this dispatch stops at. Nothing in this file decides anything for arm B; its
-// switch value exists so the diagnostic's columns and the arm's future hooks
-// share one enum.
+// ARM B — INDEPENDENCE-PRESERVING ADD, for the first. DESIGNED in the RULE
+// DRAFT below and BUILT, as the settler's ruling R3 scopes it, in ONE of its
+// two forms:
+//
+//   * b1, THE INDEPENDENCE-PRESERVING RATIO TEST — built. Candidates in ratio
+//     order; the first the dependency test calls INDEPENDENT blocks; every
+//     dependent candidate ahead of it is passed over and recorded; if none is
+//     independent, nothing is admitted and the walk takes the full step. See
+//     the ARM B1 block below the state for the rule, its cost and its
+//     self-check.
+//   * b2, THE CLASSICAL EXCHANGE (B.3) — NOT built, and REGISTERED as a
+//     production design item with its three reasons written out in the ARM B2
+//     block at the end of this file. R3 made it conditional on being
+//     implementable inside the arm pattern; it is not.
 //
 // NO DATA IS PERTURBED BY EITHER ARM. Arm A changes which candidates are
 // ADMISSIBLE and touches no floating-point value of the problem. Arm B, as
@@ -183,7 +192,13 @@
 // dependent and independent populations do not separate by orders of magnitude
 // at `1e-8`, the arm is not entitled to its verdict and says so.
 //
-// --- B.3  THE DEFAULT ACTION: THE CLASSICAL EXCHANGE ------------------------
+// --- B.3  THE DEFAULT ACTION AS FIRST DESIGNED: THE CLASSICAL EXCHANGE ------
+//
+// SUPERSEDED BY SETTLER RULING R3, WHICH MADE b1 THE PRIMARY ARM AND b2 THE
+// CONDITIONAL ONE. What follows is the exchange as it was designed; the ARM B2
+// block at the end of this file records why the condition does not hold and
+// what was registered instead. It is kept rather than deleted because the
+// registered design item IS this text.
 //
 // On a DEPENDENT blocker the pre-registered action is the exchange of Gill,
 // Murray & Wright, *Practical Optimization* (1981) ch. 5 (the working set is
@@ -206,9 +221,12 @@
 //
 // --- B.4  THE IMPLEMENTABILITY QUESTION THE BRIEF ASKS ----------------------
 //
-// Two things must be true for the exchange to live inside the arm pattern
-// without touching a production code path, and BOTH ARE OPEN AT THE TIME THIS
-// FILE IS WRITTEN — which is why no code below implements the arm:
+// ANSWERED, FOR BOTH ARMS. (1) is answered for b1 by NOT using the retained
+// factor at all: the dependency test runs on a LOCAL eliminated-form factor
+// built for the pass, so no algebra path's retained state is read or written,
+// at a declared cost of one assemble+factorize per pass instead of one
+// triangular solve. (2) is answered for b2 in the negative — see the ARM B2
+// block at the end of this file. The two questions as first posed:
 //
 //   1. THE EXTRA SOLVE MUST BE STATE-NEUTRAL. On the ELIMINATED path the
 //      retained factor is `kkt` and one `detail::solve_vec` through it is a
@@ -267,10 +285,17 @@
 
 #ifdef HVEN_TESTING
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
+#include <vector>
 
 #include <hven/core/types.h>
+#include <hven/detail/kkt/kkt_assembly.h>
+#include <hven/detail/kkt/kkt_calls.h>
+#include <hven/detail/qp/qp_problem.h>
+#include <hven/detail/qp/working_set.h>
+#include <hven/qp/qp_types.h>
 
 namespace hven::solvers::detail::testing {
 
@@ -285,8 +310,8 @@ enum class QpDegeneracyArm : int {
     kOff = 0,
     /// ARM A only — the scaled drop tolerance.
     kScaledDrop = 1,
-    /// ARM B only — the independence-preserving add. NOT IMPLEMENTED; the
-    /// value exists so the diagnostic and the future hooks share one enum.
+    /// ARM B only — the independence-preserving add, in its b1 form (the
+    /// ratio test). b2, the exchange, is registered and not built.
     kIndependentAdd = 2,
     /// Both arms.
     kBoth = 3,
@@ -307,6 +332,31 @@ struct QpDegeneracyParams {
     /// ARM B's integer screen, on or off, so a leg can separate the screen's
     /// effect from the numeric test's. TRUE is the briefed rule.
     bool integer_screen = true;
+
+    /// THE RATIO TEST'S OWN ELIGIBILITY CONSTANTS, so that arm b1's candidate
+    /// enumeration considers EXACTLY the constraints `QpEngine::ratio_test`
+    /// considers and no others. They are the engine's `kEngineDenomTol`,
+    /// `kEngineInfBound` and `kEngineStepTieTol`, and the literals are
+    /// repeated here rather than referenced for the same reason
+    /// `dependency_tol`'s is: `qp_engine.h` includes this file (through
+    /// `qp_walk_trace.h`) ABOVE its own declarations of them. They are TIED to
+    /// the engine's own constants by `static_assert`s in `src/qp/qp_engine.cpp`
+    /// beside M4's, where both are visible, so an edit to either one fails the
+    /// build rather than silently giving the arm a different candidate set.
+    double negligible_pivot = 1e-12;
+    double inf_bound = 1e20;
+    double step_tie_tol = 1e-9;
+
+    /// A CEILING on how many candidates ONE pass may put through the
+    /// dependency test. `0` is UNBOUNDED, and unbounded is the pre-registered
+    /// rule (settler ruling R3/R4: candidates in ratio order until an
+    /// independent one is found). The ceiling exists so a leg that meets a
+    /// vertex with thousands of tied blockers can bound its own budget
+    /// DECLAREDLY -- a truncation is counted
+    /// (`indep_budget_truncations`), recorded in the trace, and the
+    /// first unexamined candidate is then taken UNREFUSED, so truncating can
+    /// only move the arm back toward production, never further from it.
+    Index max_dep_tests_per_pass = 0;
 };
 
 /// THE SWITCH, THE SHARED SCALE AND THE ARMS' PER-SOLVE STATE. Static and
@@ -379,6 +429,52 @@ struct QpDegeneracyArmState {
     /// can never end a solve that would otherwise have finished.
     static inline thread_local Index diag_factorization_failures = 0;
 
+    // ---- ARM B1's counters, per solve -------------------------------------
+    /// Passes on which b1 examined the ratio test's candidates at all.
+    static inline thread_local Index indep_passes = 0;
+    /// Candidates put through the dependency test, summed over passes.
+    static inline thread_local Index indep_candidates_examined = 0;
+    /// Candidates the test called DEPENDENT and the arm therefore PASSED OVER.
+    static inline thread_local Index indep_candidates_passed_over = 0;
+    /// Back-solves taken (one per candidate whose numeric test ran).
+    static inline thread_local Index indep_dep_solves = 0;
+    /// Local factorizations built for the dependency test -- the cost, in the
+    /// currency CLAUDE.md section 7 asserts. At most ONE per pass, and none at
+    /// all on a pass whose candidates never reach the numeric test.
+    static inline thread_local Index indep_factorizations = 0;
+    /// Assemblies, factorizations or back-solves that THREW. Counted, never
+    /// absorbed: a candidate whose test could not be taken is left
+    /// UNREFUSED, so a backend fault can only move the arm back toward
+    /// production.
+    static inline thread_local Index indep_test_failures = 0;
+    /// Dependent verdicts by the INTEGER screen and by the NUMERIC test,
+    /// counted apart so a leg can say which one is doing the work.
+    static inline thread_local Index indep_screen_dependent = 0;
+    static inline thread_local Index indep_numeric_dependent = 0;
+    /// Passes on which the arm MOVED the blocker off production's choice.
+    static inline thread_local Index indep_blocker_switched = 0;
+    /// Passes on which EVERY candidate was dependent, so the arm admitted
+    /// nothing and the walk took the full step.
+    static inline thread_local Index indep_no_blocker_passes = 0;
+    /// Passes truncated by `max_dep_tests_per_pass`.
+    static inline thread_local Index indep_budget_truncations = 0;
+    /// THE ARM'S OWN SELF-CHECK, and a number that MUST be zero for a run's
+    /// b1 read-out to mean anything. The arm re-enumerates the ratio test's
+    /// candidates in production's own scan order and its FIRST candidate must
+    /// be the one production's `ratio_test` just picked. A mismatch means the
+    /// two enumerations disagree, so the arm REFUSES to act on that pass
+    /// (production's choice stands, bit for bit) and counts it here.
+    static inline thread_local Index indep_enumeration_mismatches = 0;
+    /// THE HARD INVARIANT (settler ruling R6): `me + |W| - n` after every add
+    /// b1 made. A POSITIVE value stops the arm. The max is kept, and
+    /// `Index` min means "no add was made under the arm".
+    static inline thread_local Index indep_rows_minus_n_max = std::numeric_limits<Index>::min();
+    /// Adds under the arm whose post-add `me + |W| - n` was positive.
+    static inline thread_local Index indep_invariant_violations = 0;
+    /// The largest post-step violation over every constraint the arm passed
+    /// over, measured at the iterate the walk actually moved to.
+    static inline thread_local double indep_max_passed_violation = 0.0;
+
     static bool scaled_drop_on() {
         return arm == QpDegeneracyArm::kScaledDrop || arm == QpDegeneracyArm::kBoth;
     }
@@ -405,6 +501,21 @@ struct QpDegeneracyArmState {
         scale_unavailable_passes = 0;
         diag_factorizations = 0;
         diag_factorization_failures = 0;
+        indep_passes = 0;
+        indep_candidates_examined = 0;
+        indep_candidates_passed_over = 0;
+        indep_dep_solves = 0;
+        indep_factorizations = 0;
+        indep_test_failures = 0;
+        indep_screen_dependent = 0;
+        indep_numeric_dependent = 0;
+        indep_blocker_switched = 0;
+        indep_no_blocker_passes = 0;
+        indep_budget_truncations = 0;
+        indep_enumeration_mismatches = 0;
+        indep_rows_minus_n_max = std::numeric_limits<Index>::min();
+        indep_invariant_violations = 0;
+        indep_max_passed_violation = 0.0;
     }
 
     /// Called once per `QpEngine::run`, before the walk loop. Clears the
@@ -457,6 +568,474 @@ struct QpDegeneracyArmState {
         return false;
     }
 };
+
+// ===========================================================================
+// ARM B1 -- THE INDEPENDENCE-PRESERVING RATIO TEST (settler ruling R3)
+// ===========================================================================
+//
+// The rule, in one sentence: take the ratio test's candidates IN RATIO ORDER
+// and admit the FIRST one the dependency test calls INDEPENDENT, passing over
+// every dependent candidate ahead of it; if no candidate is independent,
+// admit nothing and take the full step, recording what the passed-over
+// constraints are violating at the point the walk moved to.
+//
+// WHY THIS AND NOT THE EXCHANGE (B.3). See this file's B.4 and the arm-b2
+// note at the end of this block: the exchange is registered as a production
+// design item and is NOT built, because it cannot be done inside the arm
+// pattern.
+//
+// WHAT THE ARM MAY AND MAY NOT TOUCH. It re-decides WHICH constraint blocks
+// and, with it, the step. It touches no floating-point datum of the problem,
+// no working-set mutation the loop does not already perform, and no engine
+// state at all: the dependency test runs on a LOCAL `KktFactor` handed in by
+// the caller (the one the post-drop inertia diagnostic owns), never on the
+// walk's own `kkt` and never on the live Schur border stack. When the arm
+// passes nothing over, the caller leaves production's blocker and production's
+// step untouched, so ARM-ON-BUT-NOTHING-DEPENDENT IS BIT-IDENTICAL TO
+// PRODUCTION BY CONSTRUCTION rather than by arithmetic that happens to agree.
+//
+// THE COST, DECLARED (settler ruling R2). ONE assemble+factorize per pass on
+// which at least one candidate reaches the numeric test, plus ONE back-solve
+// and one sparse gather per candidate examined. That is a heavier cost class
+// than the "one triangular solve against the RETAINED factor" B.2 describes,
+// and the reason is B.4's first open question: on the SCHUR-BORDER path --
+// hven's default `ws_algebra` -- the retained object is a live, incrementally
+// updated Schur complement, and a solve through it is not a pure read. A local
+// factor is what makes the test path-independent and state-neutral on EVERY
+// algebra path. The production cost target stays the retained-factor solve and
+// is registered as a design item, not built here. Wall-clock is informational
+// (CLAUDE.md section 7); the counters above are the asserted currency.
+
+/// ONE candidate of arm b1's ratio-ordered scan, carrying its own verdict.
+struct QpB1Candidate {
+    bool is_ineq = false;
+    Index idx = -1;
+    /// The side a BOUND candidate would be pinned at; `kFree` for a row.
+    BoundState state = BoundState::kFree;
+    /// PRODUCTION'S OWN RATIO for this candidate, clamps included -- the
+    /// expression `QpEngine::ratio_test` computes, transcribed.
+    double step = 0.0;
+    /// `aᵀp`: `Ai.row(idx)·p` for a row, `p(idx)` for a bound (`a = e_i`).
+    double a_dot_p = 0.0;
+    /// `-1` not tested / `0` independent / `1` dependent.
+    int verdict = -1;
+    /// `‖a_F − C_Fᵀ v‖∞ / ‖a_F‖∞` from the back-solve (B.2). NaN when the
+    /// numeric test did not run.
+    double dep_residual = std::numeric_limits<double>::quiet_NaN();
+    /// True when the INTEGER screen fired for this candidate's set.
+    bool by_screen = false;
+};
+
+/// WHAT ONE PASS OF ARM B1 DECIDED.
+struct QpB1Outcome {
+    /// The arm ran and its self-check passed. `false` means production's
+    /// choice stands untouched.
+    bool ran = false;
+    /// The arm MOVED the choice. When this is false the caller must change
+    /// nothing at all -- that is what makes the neutral case bit-identical.
+    bool switched = false;
+    bool has_blocker = false;
+    bool is_ineq = false;
+    Index idx = -1;
+    BoundState state = BoundState::kFree;
+    /// The step the caller should take, already carrying `ratio_test`'s own
+    /// cap-at-unit convention.
+    double alpha = std::numeric_limits<double>::quiet_NaN();
+    Index examined = 0;
+    Index passed_over = 0;
+    /// Candidates attaining the MINIMUM ratio, signed zeros included.
+    Index tie_size = 0;
+    double chosen_dep_residual = std::numeric_limits<double>::quiet_NaN();
+    int chosen_verdict = -1;
+    bool truncated = false;
+    /// The self-check FAILED: the arm's enumeration and production's ratio
+    /// test do not agree on the blocker, so the arm refused to act.
+    bool mismatch = false;
+    /// Production's own choice, kept so a switched pass records what it moved
+    /// away from.
+    bool prod_is_ineq = false;
+    Index prod_idx = -1;
+    /// Every candidate passed over, for the post-step violation read-out.
+    std::vector<QpB1Candidate> passed;
+};
+
+/// THE LOCAL PER-PASS FACTOR, built at most once per pass and only if a
+/// candidate actually reaches the numeric test.
+struct QpB1Factor {
+    bool tried = false;
+    bool ok = false;
+    KktAssembly assembly;
+    /// full variable index -> free index, `-1` for a pinned variable.
+    std::vector<Index> full_to_free;
+    Index n_free = 0;
+    Index me = 0;
+    Index n_working = 0;
+};
+
+/// `me + |W|`: equality rows, working inequality rows, and one unit row per
+/// pinned variable. It is `qp_walk_trace.h`'s `qp_walk_ws_size` plus `qp.me()`
+/// and it is written out again HERE rather than called, because
+/// `qp_walk_trace.h` includes THIS file and not the other way round. The two
+/// must agree; a fixture asserts the arm's screen against the trace's.
+inline Index b1_dependency_rows(const QpProblem &qp, const WorkingSet &ws) {
+    Index rows = qp.me() + static_cast<Index>(ws.active_ineq().size());
+    for (const BoundState st : ws.bound_state()) {
+        if (st != BoundState::kFree) {
+            ++rows;
+        }
+    }
+    return rows;
+}
+
+/// EVERY CONSTRAINT `QpEngine::ratio_test` WOULD CONSIDER, in production's own
+/// scan order (inequality rows ascending, then bounds ascending), then STABLY
+/// sorted by production's own ratio.
+///
+/// STABLE, AND THAT IS THE WHOLE OF THE TIE RULE. Production keeps the FIRST
+/// candidate attaining the minimum (`ratio < best` is strict), scanning rows
+/// before bounds, so a stable sort of production's scan order reproduces
+/// production's choice exactly -- including the signed-zero case the census
+/// named, since `-0.0 < 0.0` is false and `0.0 < -0.0` is false, so the two
+/// compare EQUAL and the earlier one keeps its place.
+inline std::vector<QpB1Candidate> b1_candidates(const QpProblem &qp, const WorkingSet &ws,
+                                                const Vec &x, const Vec &Aix, const Vec &p) {
+    const QpDegeneracyParams &prm = QpDegeneracyArmState::params;
+    std::vector<QpB1Candidate> out;
+    if (qp.mi() > 0) {
+        const Vec Aip = qp.Ai * p;
+        const std::vector<Index> &aw = ws.active_ineq();
+        for (Index j = 0; j < qp.mi(); ++j) {
+            if (std::binary_search(aw.begin(), aw.end(), j) || Aip(j) <= prm.negligible_pivot) {
+                continue;
+            }
+            QpB1Candidate c;
+            c.is_ineq = true;
+            c.idx = j;
+            c.a_dot_p = Aip(j);
+            c.step = std::max(0.0, qp.bi(j) - Aix(j)) / Aip(j);
+            out.push_back(c);
+        }
+    }
+    for (Index i = 0; i < qp.n(); ++i) {
+        if (ws.bound_state()[static_cast<std::size_t>(i)] != BoundState::kFree) {
+            continue;
+        }
+        QpB1Candidate c;
+        if (p(i) > prm.negligible_pivot && qp.upper(i) < prm.inf_bound) {
+            c.state = BoundState::kAtUpper;
+            c.step = std::max(0.0, qp.upper(i) - x(i)) / p(i);
+        } else if (p(i) < -prm.negligible_pivot && qp.lower(i) > -prm.inf_bound) {
+            c.state = BoundState::kAtLower;
+            // The signed-zero site: with `x(i)` exactly on its lower bound
+            // this is `min(0, 0)/negative == -0.0`, which the stable sort
+            // above leaves where production's scan left it.
+            c.step = std::min(0.0, qp.lower(i) - x(i)) / p(i);
+        } else {
+            continue;
+        }
+        c.is_ineq = false;
+        c.idx = i;
+        c.a_dot_p = p(i);
+        out.push_back(c);
+    }
+    std::stable_sort(out.begin(), out.end(), [](const QpB1Candidate &a, const QpB1Candidate &b) {
+        return a.step < b.step;
+    });
+    return out;
+}
+
+/// Builds the pass's LOCAL eliminated-form factor, once, lazily. Returns
+/// false and counts a failure if assembly or factorization throws -- a
+/// hypothetical set is exactly where either is entitled to fail, and a
+/// diagnostic may never end a solve that would otherwise have finished.
+inline bool b1_build_factor(const QpProblem &qp, const WorkingSet &ws, const QpOptions &opts,
+                            KktFactor &kkt, QpB1Factor &fac) {
+    if (fac.tried) {
+        return fac.ok;
+    }
+    fac.tried = true;
+    try {
+        fac.assembly = assemble_kkt(qp, ws, opts);
+        (void)factorize_checked(kkt, fac.assembly.K);
+    } catch (...) {
+        ++QpDegeneracyArmState::indep_test_failures;
+        fac.ok = false;
+        return false;
+    }
+    ++QpDegeneracyArmState::indep_factorizations;
+    fac.n_free = static_cast<Index>(fac.assembly.free_of_full.size());
+    fac.me = qp.me();
+    fac.n_working = static_cast<Index>(ws.active_ineq().size());
+    fac.full_to_free.assign(static_cast<std::size_t>(qp.n()), -1);
+    for (Index k = 0; k < fac.n_free; ++k) {
+        fac.full_to_free[static_cast<std::size_t>(
+            fac.assembly.free_of_full[static_cast<std::size_t>(k)])] = k;
+    }
+    fac.ok = true;
+    return true;
+}
+
+/// THE DEPENDENCY TEST OF B.1 AND B.2, on ONE candidate.
+///
+/// THE REDUCTION THE ELIMINATED FORM MAKES, and why it is the right question.
+/// `assemble_kkt` eliminates the pinned variables, so the factored system's
+/// constraint block is `C_F` = the equality and working-inequality rows
+/// restricted to the FREE columns; the pinned variables' unit rows are gone.
+/// That is exactly right for this test: `a = A_Wᵀ y` with `A_W` including the
+/// unit rows holds iff `a_F ∈ range(C_Fᵀ)`, because the unit rows contribute
+/// nothing on free components and can match ANY values on the pinned ones.
+///
+/// ONE BACK-SOLVE with `[a_F ; 0 ; 0]` returns `[u ; v_e ; v_w]` satisfying
+/// `(H_FF + δI) u + C_Fᵀ v = a_F`, so `C_Fᵀ v` is the best representation of
+/// `a_F` the working set offers and the residual `‖a_F − C_Fᵀ v‖∞ / ‖a_F‖∞`
+/// is B.2's statistic, formed by ONE sparse gather over `Ae` and the working
+/// rows of `Ai` -- taken DIRECTLY rather than inferred from `‖u‖`.
+///
+/// THE SCREEN DOES NOT SHORT-CIRCUIT THE SOLVE, deliberately (settler ruling
+/// R5). The screen decides the VERDICT when it fires, but the numeric residual
+/// is still taken and recorded, because R5's pre-registered separation check
+/// needs the residual distribution on exactly the cells where the screen fires
+/// -- a tolerance that is never exercised cannot be checked against data. The
+/// two are reported apart (`by_screen`, and the two counters).
+inline void b1_dependency_test(const QpProblem &qp, const WorkingSet &ws, const QpOptions &opts,
+                               KktFactor &kkt, QpB1Factor &fac, QpB1Candidate &c) {
+    const QpDegeneracyParams &prm = QpDegeneracyArmState::params;
+    const bool screen = prm.integer_screen && (b1_dependency_rows(qp, ws) + 1 > qp.n());
+    c.by_screen = screen;
+    if (!b1_build_factor(qp, ws, opts, kkt, fac)) {
+        // The numeric test is unavailable. The screen still decides when it
+        // fired; otherwise the candidate is left UNREFUSED (`-1`), which the
+        // caller treats as "do not intervene".
+        c.verdict = screen ? 1 : -1;
+        if (screen) {
+            ++QpDegeneracyArmState::indep_screen_dependent;
+        }
+        return;
+    }
+    const Index dim = fac.n_free + fac.me + fac.n_working;
+    Vec a_f = Vec::Zero(dim);
+    double a_inf = 0.0;
+    if (c.is_ineq) {
+        for (SpMatRM::InnerIterator it(qp.Ai, c.idx); it; ++it) {
+            const Index k = fac.full_to_free[static_cast<std::size_t>(it.col())];
+            if (k >= 0) {
+                a_f(k) = it.value();
+                a_inf = std::max(a_inf, std::abs(it.value()));
+            }
+        }
+    } else {
+        // A bound candidate is FREE by construction (the enumeration skips
+        // every non-free variable), so its unit row has a free component.
+        const Index k = fac.full_to_free[static_cast<std::size_t>(c.idx)];
+        if (k >= 0) {
+            a_f(k) = 1.0;
+            a_inf = 1.0;
+        }
+    }
+    if (!(a_inf > 0.0)) {
+        // The row lives entirely on pinned variables, so it IS a combination
+        // of their unit rows: dependent, with no solve and no tolerance.
+        c.verdict = 1;
+        c.dep_residual = 0.0;
+        ++QpDegeneracyArmState::indep_screen_dependent;
+        return;
+    }
+    Vec y;
+    try {
+        y = solve_vec(kkt, a_f);
+    } catch (...) {
+        ++QpDegeneracyArmState::indep_test_failures;
+        c.verdict = screen ? 1 : -1;
+        if (screen) {
+            ++QpDegeneracyArmState::indep_screen_dependent;
+        }
+        return;
+    }
+    ++QpDegeneracyArmState::indep_dep_solves;
+    Vec t = Vec::Zero(qp.n());
+    for (Index r = 0; r < fac.me; ++r) {
+        const double vr = y(fac.n_free + r);
+        if (vr == 0.0) {
+            continue;
+        }
+        for (SpMatRM::InnerIterator it(qp.Ae, r); it; ++it) {
+            t(it.col()) += vr * it.value();
+        }
+    }
+    const std::vector<Index> &aw = ws.active_ineq();
+    for (Index k = 0; k < fac.n_working; ++k) {
+        const double vk = y(fac.n_free + fac.me + k);
+        if (vk == 0.0) {
+            continue;
+        }
+        for (SpMatRM::InnerIterator it(qp.Ai, aw[static_cast<std::size_t>(k)]); it; ++it) {
+            t(it.col()) += vk * it.value();
+        }
+    }
+    double res = 0.0;
+    for (Index k = 0; k < fac.n_free; ++k) {
+        const Index full = fac.assembly.free_of_full[static_cast<std::size_t>(k)];
+        res = std::max(res, std::abs(a_f(k) - t(full)));
+    }
+    c.dep_residual = res / a_inf;
+    const bool numeric_dependent = c.dep_residual <= prm.dependency_tol;
+    c.verdict = (screen || numeric_dependent) ? 1 : 0;
+    if (c.verdict == 1) {
+        if (screen) {
+            ++QpDegeneracyArmState::indep_screen_dependent;
+        } else {
+            ++QpDegeneracyArmState::indep_numeric_dependent;
+        }
+    }
+}
+
+/// ARM B1'S DECISION FOR ONE PASS.
+///
+/// `prod_is_ineq` / `prod_idx` are the blocker `QpEngine::ratio_test` just
+/// returned. THE ARM'S FIRST ACT IS TO CHECK ITSELF AGAINST THEM: its own
+/// enumeration, stably ordered, must begin with production's blocker. If it
+/// does not, the two enumerations disagree about what the ratio test even
+/// considers, the arm's read-out would be meaningless, and the arm REFUSES the
+/// pass (`ran = false`, `mismatch = true`, nothing changed).
+inline QpB1Outcome b1_select_blocker(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                                     const Vec &Aix, const Vec &p, const QpOptions &opts,
+                                     KktFactor &kkt, bool prod_is_ineq, Index prod_idx) {
+    const QpDegeneracyParams &prm = QpDegeneracyArmState::params;
+    QpB1Outcome o;
+    o.prod_is_ineq = prod_is_ineq;
+    o.prod_idx = prod_idx;
+    std::vector<QpB1Candidate> cands = b1_candidates(qp, ws, x, Aix, p);
+    if (cands.empty() || cands.front().is_ineq != prod_is_ineq || cands.front().idx != prod_idx) {
+        ++QpDegeneracyArmState::indep_enumeration_mismatches;
+        o.mismatch = true;
+        return o;
+    }
+    o.ran = true;
+    ++QpDegeneracyArmState::indep_passes;
+    const double best = cands.front().step;
+    for (const QpB1Candidate &c : cands) {
+        if (c.step == best) {
+            ++o.tie_size;
+        }
+    }
+
+    QpB1Factor fac;
+    const QpB1Candidate *pick = nullptr;
+    std::size_t next = 0;
+    for (std::size_t k = 0; k < cands.size(); ++k) {
+        if (prm.max_dep_tests_per_pass > 0 && o.examined >= prm.max_dep_tests_per_pass) {
+            o.truncated = true;
+            ++QpDegeneracyArmState::indep_budget_truncations;
+            break;
+        }
+        b1_dependency_test(qp, ws, opts, kkt, fac, cands[k]);
+        ++o.examined;
+        next = k + 1;
+        if (cands[k].verdict != 1) {
+            // INDEPENDENT (`0`) or UNTESTABLE (`-1`): admitted. An untestable
+            // candidate is admitted deliberately -- a test that could not be
+            // taken may not refuse a constraint.
+            pick = &cands[k];
+            break;
+        }
+        o.passed.push_back(cands[k]);
+        ++o.passed_over;
+    }
+    if (pick == nullptr && o.truncated && next < cands.size()) {
+        // The budget ran out. Take the first UNEXAMINED candidate unrefused,
+        // so a truncation can only move the arm back toward production.
+        pick = &cands[next];
+    }
+    QpDegeneracyArmState::indep_candidates_examined += o.examined;
+    QpDegeneracyArmState::indep_candidates_passed_over += o.passed_over;
+    if (pick == nullptr) {
+        // EVERY candidate is dependent. Admit nothing and take the full step
+        // -- `ratio_test`'s `cap_at_unit` convention with no blocker left.
+        o.has_blocker = false;
+        o.alpha = 1.0;
+        ++QpDegeneracyArmState::indep_no_blocker_passes;
+    } else {
+        o.has_blocker = true;
+        o.is_ineq = pick->is_ineq;
+        o.idx = pick->idx;
+        o.state = pick->state;
+        o.chosen_dep_residual = pick->dep_residual;
+        o.chosen_verdict = pick->verdict;
+        // `QpEngine::ratio_test`'s own cap-at-unit convention, transcribed:
+        // a blocker past the unit step means the full step is interior and
+        // nothing joins.
+        if (pick->step > 1.0 + prm.step_tie_tol) {
+            o.has_blocker = false;
+            o.alpha = 1.0;
+        } else {
+            o.alpha = std::min(1.0, pick->step);
+        }
+    }
+    // NOTHING PASSED OVER MEANS NOTHING MOVED. The pick is then production's
+    // own blocker and the caller must leave `kind`, `block_idx`,
+    // `block_state` and `alpha` exactly as they were -- which is what makes
+    // an armed run bit-identical to production wherever the arm finds nothing
+    // dependent, by construction rather than by arithmetic.
+    o.switched = o.passed_over > 0;
+    if (o.switched) {
+        ++QpDegeneracyArmState::indep_blocker_switched;
+    }
+    return o;
+}
+
+/// The largest amount by which the constraints the arm passed over are
+/// violated at the iterate the walk actually moved to. Zero when nothing was
+/// passed over, and zero when every passed-over constraint is still satisfied.
+inline double b1_passed_over_violation(const QpProblem &qp, const Vec &x_new,
+                                       const std::vector<QpB1Candidate> &passed) {
+    double worst = 0.0;
+    for (const QpB1Candidate &c : passed) {
+        const double v = c.is_ineq
+                             ? qp.Ai.row(c.idx).dot(x_new) - qp.bi(c.idx)
+                             : (c.state == BoundState::kAtUpper ? x_new(c.idx) - qp.upper(c.idx)
+                                                                : qp.lower(c.idx) - x_new(c.idx));
+        worst = std::max(worst, v);
+    }
+    return worst;
+}
+
+// ===========================================================================
+// ARM B2 -- THE CLASSICAL EXCHANGE: REGISTERED, NOT BUILT (settler ruling R3)
+// ===========================================================================
+//
+// R3 makes b2 conditional: "build it only if it is implementable within the
+// arm pattern without touching non-HVEN_TESTING code paths and without
+// breaking the one-drop-one-add invariants; otherwise register it (production
+// design item) and say so." THE CONDITION DOES NOT HOLD. Three reasons, in
+// increasing order of how hard they are to work around:
+//
+//   1. `refresh_shifts` RUNS IMMEDIATELY AFTER THE ADD AND CAN UNDO THE SWAP.
+//      Its documented job is to put every inequality row carrying a positive
+//      shift INTO the working set (`ratio_test`'s own note says so). A member
+//      the exchange releases can therefore be re-admitted one statement later,
+//      on the same pass, with no record that the exchange ever happened. An
+//      arm whose effect the next production statement may erase is not an arm.
+//   2. THE RELEASE IS NOT A DROP, AND THE LOOP'S DROP BOOKKEEPING IS WHAT
+//      MAKES A RELEASE SAFE. `DropRecord dropped` arms section 4c's
+//      negative-curvature ride on the following pass, the zero-multiplier
+//      probe's addition-sequence stamps and exemptions are keyed on how a
+//      constraint entered and left, and both were written for "at most one
+//      drop per pass, decided by `drop_worst`". Writing that bookkeeping from
+//      inside the arm means reimplementing production's release semantics in
+//      the seam, which is the "one-drop-one-add invariant" R3 forbids
+//      breaking; NOT writing it means releasing a constraint the loop does not
+//      know was released.
+//   3. RELEASING A PINNED BOUND CHANGES `num_free`, AND THE STEP ABOUT TO BE
+//      TAKEN CAME OUT OF THE OLD FACE. `p` and `alpha` were computed for the
+//      pre-swap working set; the swap's own justification (GMW ch. 5) is about
+//      which set the NEXT EQP is solved over, so the pass must either re-solve
+//      or carry a direction whose face no longer exists. Either choice is a
+//      change to the walk's pass structure, i.e. a production change.
+//
+// SO IT IS REGISTERED: the exchange is a PRODUCTION design item, alongside
+// B.2's "one triangular solve against the retained factor" cost target. b1 is
+// the minimal intervention that tests the causal claim -- that dependent adds
+// drive the drop/re-add recurrence -- and it needs none of the above.
 
 } // namespace hven::solvers::detail::testing
 

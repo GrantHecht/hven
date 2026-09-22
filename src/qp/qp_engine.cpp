@@ -1136,8 +1136,59 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         BlockKind kind = BlockKind::kNone;
         Index block_idx = -1;
         BoundState block_state = BoundState::kFree;
+#ifdef HVEN_TESTING
+        // M7 W2 M5's ARM B1 may re-decide WHICH constraint blocks, and with it
+        // the step, so the step is a MUTABLE local on this path; the `#else`
+        // arm below is production's statement, `const` and all, token for
+        // token, and the call here is the same call.
+        double alpha = ratio_test(qp, ws, x, Aix, p, kind, block_idx, block_state,
+                                  /*cap_at_unit=*/true, counters);
+        // =================================================================
+        // ARM B1 -- THE INDEPENDENCE-PRESERVING RATIO TEST
+        // (`qp_degeneracy_arm.h`'s ARM B1 block, settler ruling R3).
+        //
+        // IT RUNS HERE AND NOT INSIDE `ratio_test`, deliberately. The
+        // dependency test needs the pass's EFFECTIVE options (the `delta`/`mu`
+        // the local factor is assembled at) and a `KktFactor` to build it in,
+        // neither of which `ratio_test` is given; and the negative-curvature
+        // RIDE reaches `ratio_test` too, while the brief's minimal
+        // intervention is the ORDINARY add path alone. Placed here, the arm is
+        // asked exactly once per pass, on exactly the decision it is about.
+        //
+        // WHEN THE ARM PASSES NOTHING OVER IT CHANGES NOTHING AT ALL -- not
+        // the blocker, not the step, not a single statement below -- so an
+        // armed run on a walk with no dependent blocker is production BY
+        // CONSTRUCTION.
+        detail::testing::QpB1Outcome b1;
+        if (detail::testing::QpDegeneracyArmState::independent_add_on() &&
+            kind != BlockKind::kNone) {
+            // The LOCAL factor is the post-drop diagnostic's own, and the two
+            // can never contend for it: the drop branch `continue`s, so a pass
+            // that reaches this line took no drop. Created lazily here for the
+            // same reason it is there -- a run that arms nothing constructs no
+            // backend factor.
+            if (!diag_kkt) {
+                diag_kkt = std::make_unique<detail::KktFactor>(threads_);
+            }
+            b1 = detail::testing::b1_select_blocker(qp, ws, x, Aix, p, eff_opts, *diag_kkt,
+                                                    kind == BlockKind::kIneq, block_idx);
+            if (b1.switched) {
+                kind = !b1.has_blocker ? BlockKind::kNone
+                       : b1.is_ineq    ? BlockKind::kIneq
+                                       : BlockKind::kBound;
+                if (b1.has_blocker) {
+                    block_idx = b1.idx;
+                    if (!b1.is_ineq) {
+                        block_state = b1.state;
+                    }
+                }
+                alpha = b1.alpha;
+            }
+        }
+#else
         const double alpha = ratio_test(qp, ws, x, Aix, p, kind, block_idx, block_state,
                                         /*cap_at_unit=*/true, counters);
+#endif
 
         // Observation only (see QpCounters' own note): a blocking add
         // whose step moved the iterate by no more than the SAME step_tol
@@ -1209,6 +1260,28 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 // is the set the add would create: `me + |W| + 1 > n`.
                 r.add_dep_screen = dep_rows + 1 > qp.n() ? 1 : 0;
             }
+            // ARM B1's OWN RECORD OF THE SCAN THAT REACHED THAT BLOCKER. Only
+            // the pass the arm actually ran on fills these; `b1.ran` is false
+            // whenever the arm is unarmed, or refused the pass on its own
+            // self-check, and every column below then stays absent.
+            if (b1.mismatch) {
+                r.add_b1_mismatch = 1;
+            }
+            if (b1.ran) {
+                r.add_b1_mismatch = 0;
+                r.add_b1_examined = b1.examined;
+                r.add_b1_passed_over = b1.passed_over;
+                r.add_b1_tie_size = b1.tie_size;
+                r.add_b1_switched = b1.switched ? 1 : 0;
+                r.add_b1_no_blocker = b1.has_blocker ? 0 : 1;
+                r.add_dep_residual = b1.chosen_dep_residual;
+                r.add_dep_verdict = b1.chosen_verdict;
+                r.dep_n = qp.n();
+                if (b1.switched) {
+                    r.add_b1_prod_index = b1.prod_idx;
+                    r.add_b1_prod_is_ineq = b1.prod_is_ineq ? 1 : 0;
+                }
+            }
         }
 #endif
         if (kind != BlockKind::kNone) {
@@ -1244,6 +1317,35 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 x(block_idx) = (block_state == BoundState::kAtUpper) ? qp.upper(block_idx)
                                                                      : qp.lower(block_idx);
         }
+#ifdef HVEN_TESTING
+        // ARM B1's TWO POST-STEP READ-OUTS, taken HERE -- after the working
+        // set and the iterate have been mutated, and BEFORE `refresh_shifts`
+        // can add a row of its own -- so both describe what the ARM did and
+        // not what the pass did afterwards.
+        //
+        //   * THE HARD INVARIANT (settler ruling R6): `me + |W| - n <= 0`
+        //     after every add the arm admitted. A positive value STOPS the
+        //     arm; it is recorded and counted here, never absorbed.
+        //   * THE PASSED-OVER CONSTRAINTS' VIOLATION at the iterate the walk
+        //     actually moved to -- the price of refusing them, measured
+        //     rather than hidden.
+        if (b1.ran) {
+            using Adeg = detail::testing::QpDegeneracyArmState;
+            detail::testing::QpWalkMinorRecord &r = walk_obs.record();
+            if (kind != BlockKind::kNone) {
+                const Index rows_after = qp.me() + detail::testing::qp_walk_ws_size(ws);
+                r.add_b1_rows_after = rows_after;
+                Adeg::indep_rows_minus_n_max =
+                    std::max(Adeg::indep_rows_minus_n_max, rows_after - qp.n());
+                if (rows_after > qp.n()) {
+                    ++Adeg::indep_invariant_violations;
+                }
+            }
+            const double viol = detail::testing::b1_passed_over_violation(qp, x, b1.passed);
+            r.add_b1_passed_violation = viol;
+            Adeg::indep_max_passed_violation = std::max(Adeg::indep_max_passed_violation, viol);
+        }
+#endif
         refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen, eff_opts);
     }
 #ifdef HVEN_TESTING
@@ -2902,6 +3004,23 @@ using AcKey = detail::testing::QpAntiCycleArmState::LexKey;
 static_assert(detail::testing::QpAntiCycleParams{}.negligible_pivot == detail::kEngineDenomTol,
               "ARM E's default negligible-pivot tolerance must BE hven's own engine threshold: "
               "at the default the arms' candidate set is production's candidate set");
+
+/// AND THE SAME TIE FOR M7 W2 M5's ARM B1, for the same reason and in the same
+/// place. `qp_degeneracy_arm.h` cannot name these three constants either --
+/// `qp_engine.h` includes that file, through `qp_walk_trace.h`, ABOVE its own
+/// declarations of them -- so the literals are tied together HERE, where both
+/// are visible. b1 re-enumerates the ratio test's candidates; if its
+/// eligibility constants ever drifted from the engine's, it would be scanning
+/// a DIFFERENT candidate set than the one it claims to re-order, and its own
+/// per-pass self-check against production's blocker would start refusing
+/// passes for a reason no counter could name. A future edit to either side
+/// fails the build instead.
+static_assert(detail::testing::QpDegeneracyParams{}.negligible_pivot == detail::kEngineDenomTol,
+              "ARM B1's candidate enumeration must use hven's own ratio-test pivot threshold");
+static_assert(detail::testing::QpDegeneracyParams{}.inf_bound == detail::kEngineInfBound,
+              "ARM B1's candidate enumeration must use hven's own infinite-bound threshold");
+static_assert(detail::testing::QpDegeneracyParams{}.step_tie_tol == detail::kEngineStepTieTol,
+              "ARM B1's cap-at-unit convention must use hven's own step-tie tolerance");
 
 /// `QpEngine::BlockKind`'s three values, re-declared here because that enum is
 /// a PRIVATE nested type of `QpEngine` and these helpers are free functions.
