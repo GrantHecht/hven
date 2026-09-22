@@ -1,0 +1,1 @@
+m4_arm_probe: --delta0-factor takes a value in (0,1)
