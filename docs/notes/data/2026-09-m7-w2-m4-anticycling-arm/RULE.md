@@ -322,6 +322,42 @@ binary on the same cell at `MKL_NUM_THREADS=1` in the same process ordering
 differ in nothing, and an arm claiming to be inert where no tie occurs owes bit
 equality, not a tolerance.
 
+### 5.5a AMENDMENT 1 — the arm's OWN keys on a neutrality leg
+
+**Written before any leg of this task's chain ran, before the chain script
+existed, and for a structural reason, not a numerical one.** The smoke of §3.3
+is not a leg (§3.3 says so) and produced no row in any table; this rule is
+therefore still unrun, and an amendment made now is a pre-registration, not an
+edit to a rule that has seen its data. It is marked as an amendment so that a
+reader can see exactly what changed and when, the way M3c's `RULE-P2A.md`
+§3.3a marked its own.
+
+**The defect.** §5.1 computes the compared field set as the INTERSECTION of the
+two rows' key sets, and §5.5 requires every compared field to be `EQUAL_BYTES`
+on a neutrality leg. On a neutrality leg BOTH rows come from THIS probe, so the
+intersection includes this probe's own `arm` and `arm_*` keys — and `arm=off`
+against `arm=E` differs by construction. As written, §5.5 would fail every
+neutrality leg on the LABEL OF THE EXPERIMENT and stop all three arms for a
+reason that is not about the walk at all.
+
+**The amendment.** On a NEUTRALITY leg, and only there, fields whose name is
+`arm` or begins with `arm_` are **EXCLUDED BY NAME, and the exclusion is
+PRINTED** — exactly the treatment §5.3 already gives wall-clock fields, and for
+the same reason: they describe the LEG, not the solve. The bar on every other
+compared field is unchanged and stays `EQUAL_BYTES`.
+
+**And they are REPORTED, not discarded.** Every neutrality leg prints its arm
+counters beside its verdict. A neutrality cell on which `E`'s counters are
+NON-ZERO and every behaviour field is nevertheless bit-identical is a strong
+and reportable fact — the arm's machinery ran and changed nothing — and a rule
+that dropped those counters silently could not carry it. A cell on which they
+are all zero says something different and weaker: the arm never engaged there,
+so the leg tested that the SWITCH is inert rather than that the RULE is.
+
+**The OFF controls are untouched by this.** They compare against M3c's committed
+rows, which carry no `arm` key at all, so the arm keys fall into §5.1's "printed
+by the leg only" list and were never compared there.
+
 ### 5.6 The gate's own folds, run before it reads any leg
 
 `gate_m4.py` runs its folds on CONSTRUCTED inputs and prints the transcript:
