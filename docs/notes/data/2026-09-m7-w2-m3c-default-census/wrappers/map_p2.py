@@ -298,14 +298,20 @@ def select_solves(p1, p2, mapping, want_not_ledgered):
     else:
         notes.append("NO capped ledger record on this cell")
     if want_not_ledgered:
+        # `trace_max_iter` is the LAST captured solve's OWN cap and nothing
+        # else -- §2 declares the per-solve header ABSENT at
+        # --capture-solve -1. It is therefore applied to exactly one row, the
+        # one it belongs to, and never read as if it were every solve's cap.
         cap = int(p2["scalars"].get("trace_max_iter", "-1"))
+        last = int(p2["scalars"].get("trace_solve_index", "-1"))
         nl = mapping["not_ledgered"] or []
         hit = None
-        for k in nl:
-            row = p2["summary"][k]
-            if cap > 0 and int(row["minors"]) == cap:
-                hit = k
-                break
+        if cap > 0 and last in nl and int(p2["summary"][last]["minors"]) == cap:
+            hit = last
+            notes.append("the LAST captured solve is itself NOT-LEDGERED and "
+                         "its own header survives, so §3's predicate "
+                         "`minors == its own max_iter cap` is evaluable on it "
+                         "directly: %d == %d" % (cap, cap))
         if hit is None:
             # The per-solve max_iter cap is ABSENT from the summary (§2's
             # declared-absent list): only the LAST solve's header survives at
@@ -546,6 +552,23 @@ def selftest(out=sys.stdout):
                                    "scalars": {}}, mn, False)
     check("no capped record selects NOTHING and says so",
           (pn, any("NO capped" in n for n in nn)), ([], True))
+    p2last = {"summary": p2s["summary"] + [{"minors": "40",
+                                            "factorizations": "4"}],
+              "scalars": {"trace_max_iter": "40", "trace_solve_index": "5"}}
+    ml = map_cell(p1, p2last)
+    pl_, nl_ = select_solves(p1, p2last, ml, want_not_ledgered=True)
+    check("the LAST solve's OWN header is used only on the LAST solve",
+          ([i for k, i, _ in pl_ if k.startswith("FIRST_NOT_LEDGERED")],
+           any("evaluable on it directly" in n for n in nl_)), ([5], True))
+    p2wrong = {"summary": p2s["summary"] + [{"minors": "40",
+                                             "factorizations": "4"}],
+               "scalars": {"trace_max_iter": "100", "trace_solve_index": "5"}}
+    mw = map_cell(p1, p2wrong)
+    pw_, nw_ = select_solves(p1, p2wrong, mw, want_not_ledgered=True)
+    check("a cap that is NOT the last solve's minors falls to the substitute",
+          ([i for k, i, _ in pw_ if k.startswith("FIRST_NOT_LEDGERED")],
+           any("SUBSTITUTE APPLIED" in n for n in nw_)), ([2], True))
+
     amb = {"status": "AMBIGUOUS", "assign": None, "not_ledgered": None}
     pa, na = select_solves(p1, p2s, amb, True)
     check("an AMBIGUOUS mapping selects nothing",

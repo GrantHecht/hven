@@ -34,6 +34,8 @@ FOLD 5 -- the selection
   the NOT-LEDGERED pick is the unmatched capped-size row     PASS   got=[2] want=[2]
   one capped record selects ONE solve and says so            PASS   got=(1, True) want=(1, True)
   no capped record selects NOTHING and says so               PASS   got=([], True) want=([], True)
+  the LAST solve's OWN header is used only on the LAST solve PASS   got=([5], True) want=([5], True)
+  a cap that is NOT the last solve's minors falls to the substitute PASS   got=([2], True) want=([2], True)
   an AMBIGUOUS mapping selects nothing                       PASS   got=([], True) want=([], True)
 FOLD 6 -- the slicer
   the slice keeps only its own solve's rows                  PASS   got=[(0, 2)] want=[(0, 2)]
