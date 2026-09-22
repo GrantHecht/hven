@@ -1,0 +1,11 @@
+=== NON-DEBUG SECTION COMPARISON (Release) -- FAIL-CLOSED
+DEBUG_CLASS_PREFIXES=.debug .zdebug .rela.debug .rel.debug
+BEFORE_DIR=/home/ghecht/Projects/hven/.scratch/m7w2m5gates/gates/psym/before-obj-Release
+AFTER_DIR=/home/ghecht/Projects/hven/.scratch/m7w2m5gates/gates/psym/after-obj-Release
+DIGEST=/home/ghecht/Projects/hven/.scratch/m7w2m5gates/section_digest_fix2.py
+SECTIONS_Release_OBJECTS=42
+SECTIONS_Release_BYTE_IDENTICAL=42
+SECTIONS_Release_DEBUG_ONLY=0
+SECTIONS_Release_NON_DEBUG_MOVERS=0
+SECTIONS_Release_REFUSED=0
+SECTIONS_Release_RC=0
