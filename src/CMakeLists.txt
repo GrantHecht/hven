@@ -204,6 +204,7 @@ target_include_directories(hven PRIVATE
 target_sources(hven PRIVATE
     drivers/assembly_eval_seam.cpp
     drivers/console_trace_sink.cpp
+    drivers/equality_basis.cpp
     drivers/problem_scaling.cpp
     drivers/sqp_solver.cpp
     drivers/sqp_options.cpp
@@ -491,7 +492,13 @@ endif()
 # THIS IS THE FIRST TIME THE COUNT HAS GONE DOWN, and it goes down because the
 # engine has no printing TU left at all: there is no fmt::print anywhere in
 # src/drivers/ipm_solver.cpp.
-set(_hven_expected_source_count 42)
+#
+# 43 as of drivers/equality_basis.cpp (M7 W2 E1): the SQP driver's independent
+# equality basis. NOT a PCH source, on the same unmeasured-default footing as
+# the others outside the list: it includes its own header, Eigen's SparseQR,
+# OrderingMethods and SparseCholesky modules, fmt/format.h and four standard
+# headers, a different set from src/hven_pch.h's prefix.
+set(_hven_expected_source_count 43)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.

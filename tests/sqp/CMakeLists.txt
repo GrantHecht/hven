@@ -34,6 +34,7 @@ set(HVEN_SQP_TEST_SOURCES
     test_disproved_entry.cpp
     test_elastic_rung_vehicle.cpp
     test_eqp_refine_ab.cpp
+    test_equality_basis.cpp
     test_eqp_solve.cpp
     test_funnel.cpp
     test_hs_battery.cpp
