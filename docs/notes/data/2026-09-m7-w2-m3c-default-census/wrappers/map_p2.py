@@ -609,6 +609,15 @@ def main(argv=None):
     ap.add_argument("--p1-rows")
     ap.add_argument("--p2-rows")
     ap.add_argument("--p2-traces")
+    # The pass-2B RE-TAKE names its rows `C-<CELL>.txt` (the arm prefix the P2A
+    # chain introduced) rather than pass 2's `<CELL>.p2.txt`.  These two flags
+    # re-point the reader at those bytes and do NOTHING else: no field, no
+    # match, no gate and no selection is touched by either, and the 38 folds
+    # below are unchanged and still green.
+    ap.add_argument("--p2-row-prefix", default="",
+                    help="prefix of the pass-2 row file name (p2B: 'C-')")
+    ap.add_argument("--p2-row-suffix", default=".p2.txt",
+                    help="suffix of the pass-2 row file name (p2B: '.txt')")
     ap.add_argument("--cells")
     ap.add_argument("--not-ledgered-cells", default="",
                     help="cells whose pass-1 restoration sub-status is not "
@@ -638,7 +647,7 @@ def main(argv=None):
     selections = {}
     for cell in cells:
         p1p = os.path.join(a.p1_rows, cell + ".txt")
-        p2p = os.path.join(a.p2_rows, cell + ".p2.txt")
+        p2p = os.path.join(a.p2_rows, a.p2_row_prefix + cell + a.p2_row_suffix)
         trp = os.path.join(a.p2_traces, cell + "-all.csv")
         for p in (p1p, p2p, trp):
             if not os.path.exists(p):
