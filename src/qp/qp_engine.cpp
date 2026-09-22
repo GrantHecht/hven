@@ -987,7 +987,26 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         // counters.suspect_escalations carry the reason.
                         status = QpStatus::kNumericalError;
                     } else {
-                        status = QpStatus::kOptimal;
+                        // THE CERTIFICATE'S BOUND HALF. worst_structural_violation
+                        // reads the rows only, and nothing above reads x against
+                        // its own box -- the walk keeps it there, the certificate
+                        // must not assume so. Each bound is read as the row e_i
+                        // (norm1 = 1, multiplier z(i)) under the rows' own test,
+                        // against `qp`'s box, so the TR window is included. A
+                        // structural violation is the primal-infeasible exit.
+                        const double xmag = x.lpNorm<Eigen::Infinity>();
+                        double bound_worst = 0.0;
+                        for (Index i = 0; i < n; ++i) {
+                            const double below = qp.lower(i) - x(i);
+                            const double above = x(i) - qp.upper(i);
+                            const double v = std::max(below, above);
+                            const double bound = below >= above ? qp.lower(i) : qp.upper(i);
+                            const double row_scale = std::max({1.0, std::abs(bound), xmag});
+                            if (v > 0.0 && violation_is_structural(v, row_scale, z(i), eff_opts)) {
+                                bound_worst = std::max(bound_worst, v);
+                            }
+                        }
+                        status = bound_worst > 0.0 ? QpStatus::kInfeasible : QpStatus::kOptimal;
                     }
                 }
                 break;

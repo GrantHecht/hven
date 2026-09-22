@@ -220,10 +220,10 @@
 //        solved is a TRUSTED kWrong. ONE ESCAPE: 4b's Post-PROBE restart.
 //      - otherwise the Zero-multiplier PROBE gets a veto: a trusted kWrong there
 //        makes the drop real and RESUMES the loop without assigning a status.
-//      - kOptimal otherwise.
+//      - kOptimal otherwise, but only if x meets its own box: a bound, read as
+//        the row e_i under the rows' structural test, violated gives kInfeasible.
 //    kMaxIter once eff_max_iter major iterations have been spent. A fourth
-//    kNumericalError exit bypasses this classification entirely: 4c's ride
-//    finding no blocker.
+//    kNumericalError exit bypasses this classification: 4c's ride, no blocker.
 //
 //    ORDERING IS LOAD-BEARING: the drop rule is consulted BEFORE infeasibility
 //    may be declared, because a bound pinned by the ratio test commonly blocks a
