@@ -177,6 +177,10 @@ does not eat `trace_output`.
 
 ### 4. What `arm_lex_drop_switches` counts — and what a row gate cannot see
 
+*(The "vacuous on the drop rule" reading of the fixtures is scope-corrected in
+"Corrections — FIX ROUND 1", item I3. The counts in this section are field
+counts and are unaffected.)*
+
 On READING6 arm L reports `arm_lex_drop_switches=13` while every printed field of
 the solve is byte-identical to OFF's. The counter is not broken and the run is
 not untouched; the two facts are about different things.
@@ -260,7 +264,10 @@ Four things specific to this close-out belong beside those:
 * **Nothing here says L's mechanism is wrong**, only that L and L+ as built, at
   these parameters, damage cells hven solves. RULE.md's Task A finding that L is
   *vacuous* on hven's own drop rule (`arm_lex_drop_switches = 0` on both cycling
-  fixtures) stands separately and is not re-tested here.
+  fixtures) stands separately and is not re-tested here — **but its SCOPE is
+  the two fixture trajectories and not hven's drop rule**; see "Corrections —
+  FIX ROUND 1", item I3, and the 13 and 31 drop switches L records on READING6
+  and ZAMB2-8 in this very directory.
 * **The post-hoc read-outs of `tables/readouts-m4.md` are POST-HOC.** §6 was
   pre-registered for §1.1's ten cells, not for these three. They are labelled as
   such in the file itself and no verdict rests on them.
@@ -268,6 +275,93 @@ Four things specific to this close-out belong beside those:
   diverge, the same index is a different QP. The read-outs print the first
   diverging index per pair for exactly this reason, and only aggregate columns
   are read across arms.
+
+---
+
+## Corrections — FIX ROUND 1 (2026-09-22)
+
+The Codex review of this task returned **FIX-ROUND 1: 0 Critical, 5 Important,
+4 Minor.** Its verdict on the substance stands: *"the formal M4 STOP results
+and production-neutrality evidence stand"*, with the qualification that arm E
+be cited as **the pinned EXPAND-style implementation, not canonical EXPAND.**
+The review is `.superpowers/m7-w2-m4arm-review-sol.md`; the fix round's report
+is `.superpowers/m7-w2-m4arm-fix1-report.md`.
+
+**RULE.md IS FROZEN AND IS NOT EDITED, and neither is `wrappers/m4_arm_probe.cpp`**
+— that file is the source of the binary M4b pins by sha256 (`M4b RULE.md` §3.1),
+so a comment change in it would move a pin for a cosmetic reason. Corrections to
+text in either of those two files are recorded **here and nowhere else**.
+
+| # | what was wrong | where it is right now | does it move a number in this directory? |
+|---|---|---|---|
+| I1 | EXPAND reset **one iteration early**: the K-th minor ran at `delta_0` instead of `delta_K` | `qp_anti_cycling_arm.h`'s `begin_minor()`/`note_reset()`, with a K-boundary fixture and a nontrivial-reset fixture | **No.** All three E legs here record `arm_resets=0` (`rows/E-*.txt`), so no leg in this directory entered the reset path at all |
+| I2 | the negative-curvature **ride re-pinned** a blocking bound after an `alpha_min` floor step, undoing the move the floor exists to create | both add paths now ask one predicate, `QpAntiCycleArmState::expand_skips_exact_repin()`; new fixture on an indefinite QP | **No.** All three E legs here record `arm_min_steps == arm_unpinned_adds` (1/1, 4187/4187, 799/799), so no floor event was hidden by a ride re-pin on these rows |
+| I3 | RULE.md §2's table (line 99) calls `L+` **"Bland's rule proper — the form the classical finiteness argument actually covers"**, and the header said the same | **It is a Bland-style ANALOGUE and the theorem does not cover it.** Corrected in `qp_anti_cycling_arm.h` and at `src/qp/qp_engine.cpp`'s drop hook; RULE.md keeps its wording because RULE.md is frozen | No |
+| I4 | the replay build's **third** declared difference was never entered into RULE.md | the "Frozen-rule deviations" section below | No |
+| I5 | `--negligible-pivot` was accepted and **printed as a realized parameter that the implementation never read** | `arm_candidates` reads `params.negligible_pivot`; its default is `detail::kEngineDenomTol` by a `static_assert`, and a fixture sets a non-default value and asserts the eligible set changes | **No.** Every leg here ran the default, which is the constant the old code used unconditionally |
+| M1 | the thread fixture was sequential, not overlapping | a barrier-based fixture: two solves released together, one armed, one not | No |
+| M2 | covered by I3 | — | — |
+| M3 | RULE.md §3.1 (line 150) and the probe's header say **"the eight EXPAND/lexicographic parameters as arguments"**, and the arm's parameters were called "the paper's" | **There are SEVEN parameters and the probe exposes seven arguments** (`--delta-master`, `--delta-0-factor`, `--delta-max-factor`, `--expand-k`, `--negligible-pivot`, `--reset-nontrivial`, `--lex-full-pricing`). They are **paper-derived and ADAPTED**, not the paper's throughout: `delta_master` deliberately replaces the paper's ~1e-6 with hven's `feas_tol` default and `negligible_pivot` is hven's own engine threshold. Corrected in `qp_anti_cycling_arm.h`; RULE.md and the pinned probe keep their wording | No |
+| M4 | `tables/readouts-m4.md` cited a manifest file that does not exist | `traces-m4/SHA256-parent-traces-m4.txt`, in the table and in the generator that writes it | No |
+
+**Two scope corrections to this README's own text.**
+
+* Finding 4 above and the "What this does NOT show" list say arm L is *vacuous
+  on hven's drop rule*, citing `arm_lex_drop_switches = 0` on both cycling
+  fixtures. **That is a statement about those two fixture trajectories, not
+  about hven's drop rule.** On field cells L is not vacuous on the drop side at
+  all: it records **13** drop switches on READING6 and **31** on ZAMB2-8
+  (`rows/L-READING6.txt`, `rows/L-ZAMB2-8.txt`). The fixtures now assert
+  `lex_drop_switches == 0` and `lex_ratio_switches > 0` **separately**, with
+  that scope written beside them.
+* Arm E is **the EXPAND-style implementation pinned in this round's binary**,
+  not canonical EXPAND. The reset defect (I1) and the ride defect (I2) are the
+  two places the pinned binary and the paper part company, and both are named
+  wherever this round's E results are cited.
+
+**Registered, not done here: a measurement of the corrected arm.** Nothing in
+this directory and nothing in M4b is re-measured. The corrected arm is a
+different binary and would need its own rule; running it on either population
+is a NEW task and is registered as one. Two M4b rows would be the first to
+move if it ran: `E-SAWPATH` (`arm_resets=3`) and `E-BRITGAS` (`arm_resets=4`)
+are the only rows in either directory that entered the reset path, and they
+did so under the defect.
+
+---
+
+## Frozen-rule deviations
+
+RULE.md is frozen from before its first leg, and one difference that governed
+the build was never entered into it. It is recorded here because a reader who
+verifies the instrument against RULE.md would otherwise find the transcript
+saying something the rule does not.
+
+**RULE.md §3.2 declares `-DHVEN_TESTING=1` and nothing else, plus the PCH path
+as "the only other declared difference". The replay adds a THIRD:
+`-I<source>/include` prepended to every probe-side TU's includes.**
+
+* **What it is.** The probe's own TU and the three bridge TUs read hven's
+  headers from the INSTALL's flattened tree, and that install was taken at
+  M3c's HEAD — before this task's arm header existed. Without the prepend the
+  probe cannot see `qp_anti_cycling_arm.h` at all and cannot arm the switch it
+  exists to measure.
+* **When it was declared.** In `wrappers/replay_build_m4.py`'s
+  `check_include_equivalence`, committed at `325765d3` (2026-09-22T07:27:57-04:00),
+  and printed into the harvest — both **before** the first leg at
+  `07:28:06-04:00`. It was declared in code and in the transcript; what it was
+  not is an **amendment to RULE**, which is what AMENDMENT 1 (§5.5a) was and
+  what this should equally have been.
+* **What bounds it.** The source and installed header trees are compared file
+  by file before the flag is used, and the difference set must be EXACTLY this
+  round's own `git diff --name-only <base>..<head> -- include/`. The comparison
+  found **2 differing and 129 identical** headers, which are exactly the two
+  this round added or touched; any other differing or missing file REFUSES.
+  So the binary has ONE header view — the source tree's — rather than a mixed
+  one, which is the shape ODR violations come in.
+* **Why it is recorded here and not in RULE.md.** A rule edited after its legs
+  have run is not a pre-registration. The honest record of a rule that was
+  contradicted is the contradiction, stated, beside the rule — not a rule
+  rewritten to agree with what happened.
 
 ---
 
