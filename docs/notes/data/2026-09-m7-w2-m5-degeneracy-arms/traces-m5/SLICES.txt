@@ -1,0 +1,44 @@
+M7 W2 M5 -- THE THIRTEEN COMMITTED TRACE SLICES, WITH THEIR sha256, AND THE
+DECLARED RULE FOR WHICH SLICES ARE COMMITTED AND WHICH ARE NOT.
+
+`wrappers/slice_m5.py` (M4b's `slice_write` format, transcribed) cuts one
+solve's records, verbatim, out of a flat trace and prepends the parent's own
+header plus a `# slice_*` block naming the parent.  Nothing is recomputed.
+
+THE RULE, as M4b's was: the PARENTS are pinned by sha256 in
+`SHA256-parent-traces-m5.txt` and NOT committed -- 298 MB of arm traces plus
+M4's OFF parents, which M4 and M4b pin already.  COMMITTED here are only the
+slices the artifact's CENTRAL CLAIMS rest on, which are three:
+
+  1. A6's DYNAMIC half on YORKNET (RULE.md section 4).  `off-YORKNET-solve7`
+     is the tail the arm-A diagnosis is ABOUT -- class `a`, period 2, 2538 core
+     drop->re-add units, released identity `bound:393:lower`.
+     `a-YORKNET-solve27` is one of the six tails that survive UNDER arm a, at a
+     DIFFERENT identity (`bound:212:upper`).  A reader can check both
+     identities in the slices rather than taking the table's word.
+  2. The HARM on READING6 and ZAMB2-8 (RULE.md section 8 step 4).  Under b1
+     READING6's whole armed run is FOUR solves and EIGHT minors, so every one
+     of its solves is committed whole, beside the OFF control's first three.
+     `b1-ZAMB2-8-solve9` is b1's one recurrent tail on that cell, beside
+     `off-ZAMB2-8-solve9`.
+  3. The one place b1 STAYED ARMED for a whole solve and the causal prediction
+     could be read: `b1-STEENBRC-solve21`.
+
+NOT COMMITTED, and pinned by sha instead: every other solve of every other leg.
+The uncommitted material is 298 MB; committing it would put two orders of
+magnitude more generated CSV into this repository than the claims need, and the
+parent shas make any of it reproducible from the pinned binary and this chain.
+
+100bcbc2367740d336d11da875b42eaba6ba8d47c0191da67d01601e3c449b63  a-YORKNET-solve27.csv
+c8163a15e52de5ca6d48de9fe251d8f8a04aca14531c9383272d403c2bed0dc7  b1-READING6-solve0.csv
+626ba119fb02b4d788cf79ea0e5431475ecda521a932d128933efa7d0cf05282  b1-READING6-solve1.csv
+9dbe5039bce05a54a346eaa8489d9fc1a7813c4e98badf42451d439ecd7831df  b1-READING6-solve2.csv
+3917836bcc172cfd386fa8fba3b7c1966a605a3512d1b7f7558605f278ae96aa  b1-READING6-solve3.csv
+3d9c1b44ec782aa812e3d8089f355d24612981ebf4c929f3645e4ae88fef9607  b1-STEENBRC-solve21.csv
+c7d6b58655be7cf3c162a3bba52f395ebff61d958c2040ddf8a5ca595128b313  b1-ZAMB2-8-solve9.csv
+810067cce842b4c5450ba9973c6a50333384c56fd117a40d51e05fbaffb48f09  off-READING6-solve0.csv
+0b9784212e98ef27273cd4650a5505b3c8d8440aff7e8cbebd9f5d567a1e6fb1  off-READING6-solve1.csv
+a616325aebc74d9967513812eecfb34a29204115246cda8db64d1bd01d74e793  off-READING6-solve2.csv
+e0a78571e708351dcf78f294a2deef7df573559014c67a4b08a6bc509877f8a5  off-READING6-solve3.csv
+e209fd97ec02993b9c98bb8eced10e7f44c0d6b980009b6abbd50666eef18e66  off-YORKNET-solve7.csv
+452d5e6224634963b25bdb4bd2269d9f91c0437bf396274dd8a1cf822b5a5aa1  off-ZAMB2-8-solve9.csv
