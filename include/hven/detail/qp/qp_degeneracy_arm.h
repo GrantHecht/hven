@@ -834,6 +834,35 @@ struct QpDegeneracyArmState {
 // ARM B1 -- THE INDEPENDENCE-PRESERVING RATIO TEST (settler ruling R3)
 // ===========================================================================
 //
+// RETIRED AS AN INSTRUMENT (M7 W2 M5 fix round 1, settler adjudication on the
+// Codex review's Critical 2, 2026-09-22). The review refuted this arm's
+// no-independent-blocker full-step fallback: on `READING6` and `ZAMB2-8`,
+// where the arm held its invariant end to end, it deliberately crossed a
+// known feasible blocker whenever every candidate read dependent, took the
+// full step regardless, and broke both cells from `kOptimal` to
+// `kNumericalError` (188 and 3617 A10 leak-bound exceedances, largest
+// violations 6.24 and 4.41e+09; see `qp_degeneracy_arm.h:1629`, the
+// `indep_no_blocker_passes` branch). Three further defects, named rather
+// than silently folded into that one: initial shift additions run through
+// `refresh_shifts` BEFORE the per-solve reset in `begin_solve()`
+// (`src/qp/qp_engine.cpp:505` vs `:618`; `qp_degeneracy_arm.h:1190`'s
+// `generation`/signature cache can therefore see a preceding QP's disarm
+// state or a stale QR); seed entry repair does not decide every seed member
+// through `admit_if_independent` as this file's own site-coverage table
+// claims -- it calls `b1_projection_residual` directly
+// (`qp_degeneracy_arm.h:337` vs `:1442`); and temporary pin restoration
+// mutates the working set outside the shared predicate
+// (`src/qp/qp_engine.cpp:2530`). No redesign of arm b1 ships in this round --
+// the production design item is an independent active working set with a
+// multiplier-aware exchange (Gill & Wong, *Math. Prog. Comp.* 7 (2015) §4),
+// registered in the M5 README's item 2 and NOT this ratio-order/full-step
+// rule. Every M5 row for arm b1 and arm a+b1 is to be read as UNSUPPORTED
+// per RULE.md (already true of the verdict on independent grounds -- A9's
+// more-than-half-disarmed rule and the two HARM findings). The code below is
+// UNCHANGED by this notice: it remains exactly what M5 measured, behind the
+// same `HVEN_TESTING`-only, off-by-default switch, so the pinned M5 evidence
+// stays reproducible against it.
+//
 // The rule, in one sentence: take the ratio test's candidates IN RATIO ORDER
 // and admit the FIRST one the dependency test calls INDEPENDENT, passing over
 // every dependent candidate ahead of it; if no candidate is independent,

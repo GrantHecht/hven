@@ -20,9 +20,14 @@
 //   (2) ARM A REFUSES A DROP THE SCALE SAYS IS NOISE. On a constructed QP at
 //       a degenerate vertex whose OFF walk cycles on a wrong-sign multiplier
 //       far below `opt_tol * scale` while above `opt_tol`, the arm refuses the
-//       drop, the recurrence disappears, and the solve returns `kOptimal` at
-//       the problem's own optimum — checked against the QP's KKT conditions
-//       recomputed here, not against what the engine says about itself.
+//       drop and the recurrence disappears. THIS FIXTURE'S refused multiplier
+//       is a REAL one (0.30137), small only relative to the scale carrier's
+//       inflated scale, so the walk correctly stops at a point it cannot
+//       certify and the armed solve reports `kNumericalError`, NOT
+//       `kOptimal` — that is a property of this fixture (it needed the
+//       dropped constraint), not a defect in the arm, and no fixture here
+//       licenses the claim that arm A returns the optimum (see the test
+//       body's own comment on why one was not found).
 //   (3) ARM A CHANGES NOTHING WHERE THERE IS NOTHING TO CHANGE. On a
 //       non-degenerate QP the armed run is bit-identical to the OFF run.
 //   (4) THE ARM SHARES THE SCALE RATHER THAN DERIVING ONE. The scale the drop
