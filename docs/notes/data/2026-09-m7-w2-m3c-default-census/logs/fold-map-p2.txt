@@ -1,0 +1,44 @@
+FOLD 1 -- the near-ulp gate
+  byte-equal passes without a float conversion               PASS   got='EQUAL_BYTES' want='EQUAL_BYTES'
+  nan against a number is a BYTE mismatch                    PASS   got='NAN_BYTE_MISMATCH' want='NAN_BYTE_MISMATCH'
+  a number against nan is a BYTE mismatch                    PASS   got='NAN_BYTE_MISMATCH' want='NAN_BYTE_MISMATCH'
+  a difference inside the bar is WITHIN                      PASS   got='WITHIN' want='WITHIN'
+  a difference outside the bar EXCEEDS                       PASS   got='EXCEEDS' want='EXCEEDS'
+  a tiny absolute difference on a tiny value still EXCEEDS   PASS   got='EXCEEDS' want='EXCEEDS'
+  unparseable text REFUSES rather than comparing             PASS   got='UNPARSEABLE' want='UNPARSEABLE'
+FOLD 2 -- the whole-run gate
+  identical rows pass the gate                               PASS   got=[] want=[]
+  a moved byte field FAILS                                   PASS   got=['major_iters'] want=['major_iters']
+  a float past the near-ulp bar FAILS                        PASS   got=['f'] want=['f']
+  a field the pass-2 instrument omits is ABSENT, not a pass  PASS   got='ABSENT_IN_PASS2_INSTRUMENT' want='ABSENT_IN_PASS2_INSTRUMENT'
+  ...and it is REPORTED as absent                            PASS   got=True want=True
+  ...and it does not silently fail the cell                  PASS   got=[] want=[]
+  a field the PASS-1 row lacks FAILS (the pin must carry it) PASS   got=['status'] want=['status']
+FOLD 3 -- the mapping
+  the identity table maps uniquely                           PASS   got=('UNIQUE', [0, 1]) want=('UNIQUE', [0, 1])
+  an interleaved foreign solve is skipped                    PASS   got=('UNIQUE', [1, 3]) want=('UNIQUE', [1, 3])
+  two identical candidate rows make it AMBIGUOUS             PASS   got='AMBIGUOUS' want='AMBIGUOUS'
+  ...and AMBIGUOUS returns NO assignment                     PASS   got=None want=None
+  a repeated pair in BOTH tables is still ambiguous          PASS   got='AMBIGUOUS' want='AMBIGUOUS'
+  an unmatchable record is NONE                              PASS   got='NONE' want='NONE'
+  order is STRICT: a reversed table does not map             PASS   got='NONE' want='NONE'
+  a pair matching on minors alone does NOT map               PASS   got='NONE' want='NONE'
+  a pair matching on factorizations alone does NOT map       PASS   got='NONE' want='NONE'
+  the NOT-LEDGERED residue is the unmatched rows             PASS   got=[0] want=[0]
+FOLD 4 -- the conservation sums are NUMBERS, never a bool
+  agreeing sums report a zero DIFFERENCE                     PASS   got=0 want=0
+  a disagreement reports its size, not False                 PASS   got=(15, 14, 1) want=(15, 14, 1)
+FOLD 5 -- the selection
+  the mapping on the fixture is unique                       PASS   got='UNIQUE' want='UNIQUE'
+  FIRST and LAST capped are the mapped solves                PASS   got=[('FIRST_CAPPED', 1), ('LAST_CAPPED', 4)] want=[('FIRST_CAPPED', 1), ('LAST_CAPPED', 4)]
+  the NOT-LEDGERED pick is the unmatched capped-size row     PASS   got=[2] want=[2]
+  one capped record selects ONE solve and says so            PASS   got=(1, True) want=(1, True)
+  no capped record selects NOTHING and says so               PASS   got=([], True) want=([], True)
+  an AMBIGUOUS mapping selects nothing                       PASS   got=([], True) want=([], True)
+FOLD 6 -- the slicer
+  the slice keeps only its own solve's rows                  PASS   got=[(0, 2)] want=[(0, 2)]
+  the slice carries the column header exactly once           PASS   got='solve,minor,x' want='solve,minor,x'
+  the slice names its source                                 PASS   got=True want=True
+  a selected solve with no rows yields an EMPTY slice, not a crash PASS   got=[(9, 0)] want=[(9, 0)]
+
+SELFTEST GREEN (0 failures)
