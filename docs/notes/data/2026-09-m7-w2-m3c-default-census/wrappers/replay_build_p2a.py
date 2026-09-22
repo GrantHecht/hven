@@ -43,10 +43,13 @@ def _unfold(text):
     out = []
     pending = ""
     for raw in text.split("\n"):
-        line = pending + raw
+        # Ninja's `$`-at-end-of-line continuation removes the newline AND the
+        # continuation line's leading whitespace; whitespace BEFORE the `$` is
+        # preserved, which is how CMake's generated lines keep their separators.
+        line = (pending + raw.lstrip()) if pending else raw
         pending = ""
         if line.endswith("$") and not line.endswith("$$"):
-            pending = line[:-1].rstrip() + " "
+            pending = line[:-1]
             continue
         out.append(line)
     if pending:
@@ -70,8 +73,11 @@ def parse_ninja(path, _seen=None):
         if not line.strip() or line.lstrip().startswith("#"):
             continue
         if line[0] in " \t":
-            key, _, val = line.strip().partition("=")
-            key, val = key.strip(), val.strip()
+            key, _, val = line.lstrip().partition("=")
+            # `.lstrip()` only: Ninja PRESERVES a value's trailing whitespace, and
+            # CMake relies on it -- `LAUNCHER = /usr/bin/ccache ` is what separates
+            # the ccache launcher from the compiler in `${LAUNCHER}${CODE_CHECK}cc`.
+            key, val = key.strip(), val.lstrip()
             if cur is None:
                 continue
             if cur[0] == "rule":
@@ -126,7 +132,7 @@ def parse_ninja(path, _seen=None):
         else:
             key, sep, val = line.partition("=")
             if sep:
-                gvars[key.strip()] = val.strip()
+                gvars[key.strip()] = val.lstrip()
     return rules, edges, gvars
 
 
