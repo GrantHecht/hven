@@ -1254,3 +1254,137 @@ TEST(QpDegeneracyArm, ArmB1sSwitchIsPerThreadWithBothSolvesInFlight) {
     EXPECT_EQ(static_cast<int>(loud_result.status), static_cast<int>(QpStatus::kOptimal));
     expect_same_solution(solo, quiet_result);
 }
+
+// ===========================================================================
+// RULE.md AMENDMENT 1 (settler ruling on the C4 halt, 2026-09-22): cond(R).
+// ===========================================================================
+
+TEST(QpDegeneracyArm, CondROnTheQrIsFilledWhereADecompositionRanAndSizesTheConditioning) {
+    DegArmGuard guard;
+    namespace seam = hven::solvers::detail::testing;
+
+    // PART 1 -- THE STATISTIC ON TWO WORKING SETS WHOSE CONDITIONING IS KNOWN
+    // BY CONSTRUCTION, read off the SAME decomposition the dependency test
+    // uses. Both sets are FULL RANK at `dependency_tol`; what differs is how
+    // nearly parallel their rows are, which is exactly what cond(R) is for.
+    //
+    // WELL-CONDITIONED: the two rows are (1,0) and (0,1) -- orthonormal, so
+    // every pivot has the same magnitude and cond(R) is EXACTLY 1.
+    {
+        const QpProblem well = convex_qp(2, 2, {1.0, 0.0, 0.0, 1.0}, {-1.0, -1.0}, 2,
+                                         {1.0, 0.0, 0.0, 1.0}, {4.0, 4.0});
+        WorkingSet ws(2, 2);
+        ws.add_ineq(0);
+        ws.add_ineq(1);
+        Deg::reset();
+        Deg::arm = DegArm::kIndependentAdd;
+        seam::QpB1Rank rk;
+        ASSERT_TRUE(seam::b1_rank_refresh(well, ws, rk));
+        EXPECT_EQ(rk.rows, 2);
+        EXPECT_EQ(rk.rank, 2);
+        ASSERT_TRUE(std::isfinite(rk.cond_r));
+        EXPECT_NEAR(rk.cond_r, 1.0, 1e-12);
+        // AND THE PER-SOLVE COUNTER TOOK IT. One decomposition, so the
+        // high-water mark IS this reading.
+        EXPECT_EQ(Deg::indep_qr_builds, 1);
+        EXPECT_EQ(Deg::indep_max_cond_r, rk.cond_r);
+    }
+
+    // ILL-CONDITIONED: the rows are (1,0) and (1,1e-6) -- nearly parallel, but
+    // separated by far more than `dependency_tol = 1e-8`, so the set is still
+    // INDEPENDENT and rank 2. The trailing pivot is ~1e-6 against a leading
+    // pivot of ~1, so cond(R) lands near 1e6. THIS IS THE CASE C4 EXISTS FOR:
+    // `A_W p = mu*lambda` bounds `A_W p`, and a set like this is how `p`
+    // itself reaches a great deal further than that bound suggests.
+    {
+        const QpProblem ill = convex_qp(2, 2, {1.0, 0.0, 0.0, 1.0}, {-1.0, -1.0}, 2,
+                                        {1.0, 0.0, 1.0, 1e-6}, {4.0, 4.0});
+        WorkingSet ws(2, 2);
+        ws.add_ineq(0);
+        ws.add_ineq(1);
+        Deg::reset();
+        Deg::arm = DegArm::kIndependentAdd;
+        seam::QpB1Rank rk;
+        ASSERT_TRUE(seam::b1_rank_refresh(ill, ws, rk));
+        EXPECT_EQ(rk.rows, 2);
+        // STILL FULL RANK -- the fixture is about CONDITIONING, not about
+        // rank deficiency, and if this were rank 1 the reading below would be
+        // measuring something else.
+        EXPECT_EQ(rk.rank, 2);
+        ASSERT_TRUE(std::isfinite(rk.cond_r));
+        EXPECT_GT(rk.cond_r, 1e5);
+        EXPECT_LT(rk.cond_r, 1e7);
+        EXPECT_EQ(Deg::indep_max_cond_r, rk.cond_r);
+    }
+
+    // PART 2 -- ABSENT WHERE NO DECOMPOSITION RAN. The EMPTY working set spans
+    // nothing, so the oracle answers without arithmetic and takes no
+    // decomposition; cond(R) has nothing to be read off and is NaN, which is
+    // `kAbsent`. NaN here is NOT "well conditioned" and the fixture says so by
+    // asserting the build count is zero beside it.
+    {
+        const QpProblem qp = convex_qp(2, 2, {1.0, 0.0, 0.0, 1.0}, {-1.0, -1.0}, 2,
+                                       {1.0, 0.0, 0.0, 1.0}, {4.0, 4.0});
+        const WorkingSet empty(2, 2);
+        Deg::reset();
+        Deg::arm = DegArm::kIndependentAdd;
+        seam::QpB1Rank rk;
+        ASSERT_TRUE(seam::b1_rank_refresh(qp, empty, rk));
+        EXPECT_EQ(rk.rows, 0);
+        EXPECT_EQ(rk.rank, 0);
+        EXPECT_TRUE(std::isnan(rk.cond_r));
+        EXPECT_EQ(Deg::indep_qr_builds, 0);
+        EXPECT_TRUE(std::isnan(Deg::indep_max_cond_r));
+    }
+
+    // PART 3 -- ON A REAL ARMED WALK: the record column is filled on exactly
+    // the passes that took a decomposition with something in it, absent on
+    // every other pass, and the per-solve high-water mark bounds every
+    // reading the records carry.
+    {
+        const QpProblem qp = period2_cycle_qp();
+        const QpOptions opts = cycling_opts();
+        Deg::reset();
+        Deg::arm = DegArm::kIndependentAdd;
+        const Walk armed = observed_walk(qp, opts);
+        Index filled = 0;
+        double worst_on_a_record = 0.0;
+        for (const auto &r : armed.records) {
+            if (r.add_b1_rank > 0) {
+                ++filled;
+                ASSERT_FALSE(std::isnan(r.add_b1_cond_r));
+                // The pivoting orders the diagonal by magnitude, so the ratio
+                // is never below 1.
+                EXPECT_GE(r.add_b1_cond_r, 1.0);
+                if (std::isfinite(r.add_b1_cond_r)) {
+                    worst_on_a_record = std::max(worst_on_a_record, r.add_b1_cond_r);
+                }
+            } else {
+                // No rank reading means no decomposition on that pass --
+                // either the arm did not run or the set was empty.
+                EXPECT_TRUE(std::isnan(r.add_b1_cond_r));
+            }
+        }
+        EXPECT_GT(filled, 0);
+        ASSERT_FALSE(std::isnan(Deg::indep_max_cond_r));
+        // THE COUNTER IS A HIGH-WATER MARK OVER EVERY DECOMPOSITION THE SOLVE
+        // TOOK, and a record carries only its own pass's last one, so the
+        // counter BOUNDS the records rather than equalling them.
+        EXPECT_GE(Deg::indep_max_cond_r, worst_on_a_record);
+    }
+
+    // PART 4 -- UNARMED, THE COLUMN AND THE COUNTER STAY ABSENT. cond(R) is
+    // the arm's reading, not the engine's.
+    {
+        const QpProblem qp = period2_cycle_qp();
+        const QpOptions opts = cycling_opts();
+        Deg::reset();
+        const Walk off = observed_walk(qp, opts);
+        for (const auto &r : off.records) {
+            EXPECT_TRUE(std::isnan(r.add_b1_cond_r));
+        }
+        EXPECT_TRUE(std::isnan(Deg::indep_max_cond_r));
+        EXPECT_EQ(Deg::indep_qr_builds, 0);
+    }
+    Obs::reset();
+}

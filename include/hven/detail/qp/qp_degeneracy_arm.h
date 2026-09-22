@@ -636,6 +636,23 @@ struct QpDegeneracyArmState {
     /// The largest `me + |W| - rank(R)` the arm ever read: zero on a run that
     /// held the invariant throughout.
     static inline thread_local Index indep_rank_deficit_max = 0;
+    /// AMENDMENT 1 TO THE RULE (settler, 2026-09-22), C4's STATISTIC, PER
+    /// SOLVE: the largest `cond(R)` any decomposition this solve took
+    /// reported. `cond(R)` is the R-diagonal ratio `|R(0,0)| / |R(k-1,k-1)|`
+    /// at the decomposition's own rank `k` -- the standard rank-revealing-QR
+    /// conditioning read, free because the decomposition is already built.
+    ///
+    /// WHAT IT LICENSES, AND WHAT IT DOES NOT. It EXPLAINS an exceedance of
+    /// A10's leak bound: `A_W p = μ λ_W` bounds `A_W p`, not what `p` reaches
+    /// THROUGH an ill-conditioned `A_W`, so a large `cond(R)` beside an
+    /// exceedance says the amplification had somewhere to come from. It NEVER
+    /// EXCUSES one: an exceedance keeps that solve's b1 verdict UNSUPPORTED
+    /// whatever this number says.
+    ///
+    /// NaN means NO DECOMPOSITION WAS EVER TAKEN on this solve (an empty
+    /// working set is answered without one), which is not the same as a
+    /// well-conditioned set reporting 1.
+    static inline thread_local double indep_max_cond_r = std::numeric_limits<double>::quiet_NaN();
     /// Working sets the arm found RANK-DEFICIENT away from solve entry --
     /// amendment A9's `arm_rank_violation`. Each one DISARMS the arm for the
     /// rest of that solve (the solve continues, unarmed, and its verdict is
@@ -738,6 +755,7 @@ struct QpDegeneracyArmState {
         indep_enumeration_mismatches = 0;
         indep_rows_minus_n_max = std::numeric_limits<Index>::min();
         indep_rank_deficit_max = 0;
+        indep_max_cond_r = std::numeric_limits<double>::quiet_NaN();
         indep_rank_violations = 0;
         indep_refused_mandatory_dependent = 0;
         indep_disarmed = false;
@@ -929,6 +947,10 @@ struct QpB1Outcome {
     Index rows = 0;
     Index rank = 0;
     Index qr_builds = 0;
+    /// C4's STATISTIC for the decomposition this pass decided against, carried
+    /// onto the record as `add_b1_cond_r`. NaN when no decomposition was
+    /// taken.
+    double cond_r = std::numeric_limits<double>::quiet_NaN();
     /// A8's three-mechanism split, for THIS pass: pass-overs where the screen
     /// also fired, and pass-overs the QR reached alone. (The third mechanism,
     /// the entry repair, is per solve and is a counter only.)
@@ -1147,6 +1169,11 @@ struct QpB1Rank {
     Index rows = 0;
     Index n = 0;
     Index rank = 0;
+    /// C4's STATISTIC, at THIS decomposition: `|R(0,0)| / |R(rank-1,rank-1)|`
+    /// off `matrixQR()`'s diagonal. NaN when no decomposition was taken (the
+    /// empty working set); `+inf` when the trailing pivot is an exact zero,
+    /// which is a rank-deficient set saying so rather than a number to floor.
+    double cond_r = std::numeric_limits<double>::quiet_NaN();
     Eigen::ColPivHouseholderQR<Mat> qr;
     /// THE SIGNATURE. A cached decomposition is reused only for the EXACT
     /// working set it was taken on -- this is A11's "reuse that pass's QR"
@@ -1183,12 +1210,50 @@ inline QpB1Rank &b1_site_rank() {
 /// Builds the decomposition if the cached one is not the current set's.
 /// Returns false, counted, when it throws -- a candidate whose test could not
 /// be taken is left UNREFUSED.
+/// C4's STATISTIC (settler ruling on the halt, 2026-09-22; RULE.md AMENDMENT
+/// 1): the rank-revealing QR's own conditioning read, taken off `matrixQR()`'s
+/// diagonal as
+///
+///        cond(R)  =  |R(0,0)| / |R(k-1,k-1)| ,    k = rank(R)
+///
+/// with the diagonal already ordered by magnitude by the column pivoting, so
+/// `R(0,0)` is the largest pivot and `R(k-1,k-1)` the smallest ACCEPTED one.
+/// It is FREE: the decomposition it reads is the one the pass already built
+/// for the dependency test, and nothing here factorizes anything.
+///
+/// THREE CASES, EACH SAID RATHER THAN FLOORED:
+///   * `rank == 0` -- nothing was accepted, so there is no ratio to take: NaN.
+///   * the trailing pivot is an EXACT zero -- `+inf`, which is a
+///     rank-deficient set reporting itself, not a number to clamp.
+///   * otherwise the ratio, which is `>= 1` by the pivoting order.
+///
+/// WHAT IT LICENSES: it EXPLAINS an exceedance of A10's leak bound and NEVER
+/// EXCUSES one. The solve's b1 verdict stays UNSUPPORTED on an exceedance
+/// whatever this number is.
+inline double b1_cond_r(const Eigen::ColPivHouseholderQR<Mat> &qr, Index rank) {
+    if (rank <= 0) {
+        return std::numeric_limits<double>::quiet_NaN();
+    }
+    const auto &qr_mat = qr.matrixQR();
+    const Index k = std::min<Index>(rank, std::min<Index>(qr_mat.rows(), qr_mat.cols()));
+    if (k <= 0) {
+        return std::numeric_limits<double>::quiet_NaN();
+    }
+    const double top = std::abs(qr_mat(0, 0));
+    const double bot = std::abs(qr_mat(k - 1, k - 1));
+    if (!(bot > 0.0)) {
+        return std::numeric_limits<double>::infinity();
+    }
+    return top / bot;
+}
+
 inline bool b1_rank_refresh(const QpProblem &qp, const WorkingSet &ws, QpB1Rank &rk) {
     if (rk.matches(qp, ws)) {
         return rk.ok;
     }
     rk.built = true;
     rk.ok = false;
+    rk.cond_r = std::numeric_limits<double>::quiet_NaN();
     rk.n = qp.n();
     rk.rows = b1_dependency_rows(qp, ws);
     rk.sig_ineq = ws.active_ineq();
@@ -1210,6 +1275,13 @@ inline bool b1_rank_refresh(const QpProblem &qp, const WorkingSet &ws, QpB1Rank 
         rk.qr.compute(Rt);
         rk.qr.setThreshold(QpDegeneracyArmState::params.dependency_tol);
         rk.rank = rk.qr.rank();
+        rk.cond_r = b1_cond_r(rk.qr, rk.rank);
+        if (!std::isnan(rk.cond_r) && !(QpDegeneracyArmState::indep_max_cond_r >= rk.cond_r)) {
+            // NaN-safe max: the counter starts NaN ("no decomposition taken"),
+            // and `!(a >= b)` is true for a NaN `a`, so the first reading
+            // always lands and every later one lands only if it is larger.
+            QpDegeneracyArmState::indep_max_cond_r = rk.cond_r;
+        }
     } catch (...) {
         ++QpDegeneracyArmState::indep_test_failures;
         return false;
@@ -1500,6 +1572,7 @@ inline QpB1Outcome b1_select_blocker(const QpProblem &qp, const WorkingSet &ws, 
             o.disarmed = true;
             o.rows = rk.rows;
             o.rank = rk.rank;
+            o.cond_r = rk.cond_r;
             o.qr_builds = Adeg::indep_qr_builds - qr_before;
             o.switched = false;
             return o;
@@ -1544,6 +1617,7 @@ inline QpB1Outcome b1_select_blocker(const QpProblem &qp, const WorkingSet &ws, 
     }
     o.rows = rk.rows;
     o.rank = rk.rank;
+    o.cond_r = rk.cond_r;
     o.qr_builds = Adeg::indep_qr_builds - qr_before;
     if (pick == nullptr && o.truncated && next < cands.size()) {
         // The budget ran out. Take the first UNEXAMINED candidate unrefused,

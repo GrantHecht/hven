@@ -700,6 +700,18 @@ struct QpWalkMinorRecord {
     /// sufficient, and is kept as the free integer witness it is.
     Index add_b1_rank_rows = -1;
     Index add_b1_rank = -1;
+    /// RULE.md AMENDMENT 1 (settler, 2026-09-22), C4's STATISTIC, PER ADD:
+    /// `cond(R) = |R(0,0)| / |R(k-1,k-1)|` at rank `k`, off the SAME
+    /// rank-revealing QR the dependency test used -- free, because the
+    /// decomposition is already built. Absent (`kAbsent`) when the pass took
+    /// no decomposition, which an EMPTY working set does not need; `+inf`
+    /// when the trailing accepted pivot is an exact zero.
+    ///
+    /// WHAT IT LICENSES: read BESIDE `add_b1_leak_bound_exceeded` below, it
+    /// EXPLAINS an exceedance -- `A_W p = μ λ_W` bounds `A_W p`, not what `p`
+    /// reaches through an ill-conditioned `A_W`. It NEVER EXCUSES one: an
+    /// exceedance keeps that solve's b1 verdict UNSUPPORTED regardless.
+    double add_b1_cond_r = kAbsent;
     /// Rank-revealing QR decompositions this pass paid for -- amendment A11's
     /// declared cost, per pass rather than only per solve.
     Index add_b1_qr_builds = -1;

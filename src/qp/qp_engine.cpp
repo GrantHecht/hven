@@ -1305,6 +1305,11 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 // A11's COST, per pass.
                 r.add_b1_rank_rows = b1.rows;
                 r.add_b1_rank = b1.rank;
+                // RULE.md AMENDMENT 1, C4's statistic: the QR's own
+                // conditioning read for the decomposition this pass decided
+                // against. NaN when no decomposition was taken, which is
+                // `kAbsent`, so the assignment carries absence too.
+                r.add_b1_cond_r = b1.cond_r;
                 r.add_b1_qr_builds = b1.qr_builds;
                 r.add_b1_screen_qr_passed = b1.screen_and_qr_passed;
                 r.add_b1_qr_only_passed = b1.qr_only_passed;
