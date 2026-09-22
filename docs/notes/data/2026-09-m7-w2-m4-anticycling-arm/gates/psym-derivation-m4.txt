@@ -1,0 +1,152 @@
+M7 W2 M4 -- THE GATE EXPECTATIONS, DERIVED AND DECLARED BEFORE THE CHAIN RAN
+============================================================================
+Committed BEFORE `wrappers/chain_gates_m4.sh` was detached. `wrappers/gates-m4.sh`
+carries the same numbers in its own header; this file is the derivation behind
+them. An expectation that turns out wrong is RE-DERIVED and DECLARED AGAIN,
+never discovered: a gate whose expectation is adjusted after seeing what it
+rejected is not a gate.
+
+BASE
+----
+BEFORE = f5205770  ("docs(m7): W2 M3c CLOSED ...", M7 W2 M3c's close and this
+                    task's own base; the tree was clean and unpushed at it)
+HEAD   = 62f75073  ("feat(m7): W2 M4 Task A -- the two anti-cycling ARMS ...")
+
+THE CHANGED SURFACE, from `git diff --name-only f5205770`
+---------------------------------------------------------
+  include/hven/detail/qp/qp_anti_cycling_arm.h    NEW. Its ENTIRE body is inside
+                                                  `#ifdef HVEN_TESTING`.
+  include/hven/detail/qp/qp_walk_trace.h          One `#include` line and five
+                                                  comment lines, all added INSIDE
+                                                  that file's own
+                                                  `#ifdef HVEN_TESTING`.
+  src/qp/qp_engine.cpp                            `#ifdef HVEN_TESTING` blocks
+                                                  only, plus one re-wrapping of
+                                                  an existing statement whose
+                                                  TOKENS are unchanged. Every
+                                                  added block is BELOW that TU's
+                                                  one `assert()`, which is at
+                                                  line 447 and is the only
+                                                  `__LINE__`-bearing construct in
+                                                  the file
+                                                  (`grep -n 'assert(\|__LINE__'`
+                                                  returns exactly one hit).
+  tests/CMakeLists.txt                            One source added to the
+                                                  existing standalone
+                                                  `hven_qp_walk_seam_tests`
+                                                  target.
+  tests/qp/test_qp_anti_cycling_arm.cpp           NEW; that target only.
+
+No other file under `src/`, `include/`, `bench/`, `cmake/` or `notices/` is
+touched.
+
+1. TEST COUNTS -- 2709 Debug, 2710 Release
+------------------------------------------
+`ctest -N` on this round's own configured Debug tree
+(`.scratch/m7w2m4/dbg`, `-DHVEN_BUILD_TESTS=ON`, fully built) reports
+
+    Total Tests: 2712
+
+M2b fix round 1 derived the offset between that number and a CTest SUMMARY
+line in full: a summary counts the one SKIPPED test but not the two DISABLED
+ones, and the Debug segment additionally excludes the one >600 s test, which
+G2 runs alone. So
+
+    Release = 2712 - 2 = 2710
+    Debug   = 2712 - 3 = 2709
+
+CROSS-CHECK, from the other direction. This round adds exactly ELEVEN `TEST()`
+blocks (all of them in `tests/qp/test_qp_anti_cycling_arm.cpp`, in the existing
+`hven_qp_walk_seam_tests` executable) and changes none in place, so the base's
+numbers must be 2709 - 11 = 2698 Debug and 2710 - 11 = 2699 Release. Those are
+exactly the numbers M7 W2 M3b fix round 2 DECLARED and its own G1/G3 MET, and
+the only task between that head and f5205770 is M3c, which touched no file
+under `src/`, `include/` or `tests/` at all. The two derivations agree.
+
+2. THE P-SYM MOVER SHAPE -- ZERO, IN BOTH CONFIGURATIONS
+---------------------------------------------------------
+    Release   DIFFERING 0 = class A 0 + class B 0
+    Debug     DIFFERING 0 = class A 0 + class B 0
+
+and therefore `scripts/psym_compare.sh compare` must exit 0, not 1.
+
+P-SYM compares the production symbol digests of the captured object universe.
+Nothing this round changes can move one: the only production source it touches
+is `src/qp/qp_engine.cpp`, every added line of which the preprocessor discards
+in a build that does not define `HVEN_TESTING`, and no production translation
+unit opens either header's changed region.
+
+3. THE DECLARED DEBUG-ONLY SHAPE -- Release 0, Debug 1
+-------------------------------------------------------
+    EXPECT_DEBUG_ONLY_RELEASE = 0   (nothing may differ at all, in any section,
+                                     in any of the 42 library objects)
+    EXPECT_DEBUG_ONLY_DEBUG   = 1   (and the one is `src/qp/qp_engine.cpp.o`)
+
+WHY ONE, AND WHY NOT MORE. A Debug object's `.debug_line` programme records the
+PHYSICAL line each statement came from, so a TU whose own source lines move
+differs in bytes even when its instruction stream does not. Exactly one
+production TU's lines move here: `src/qp/qp_engine.cpp`, whose own `.cpp` gained
+`#ifdef HVEN_TESTING` blocks. Its `assert()` sits ABOVE every one of them, so no
+`__LINE__` immediate moves and the INSTRUCTION stream cannot.
+
+Nothing else can move, for a reason stronger than measurement: `qp_walk_trace.h`
+is entirely inside its own `#ifdef HVEN_TESTING`, so a production compile skips
+the whole file -- the line this round added to it, and the new header that line
+includes, are never opened at all, and the file contributes no line, no byte and
+no line-table record to any production object. `include/hven/detail/qp/qp_engine.h`,
+which three production TUs include and which is where a gained line WOULD move
+three objects (as it did in M3b fix round 1), is not touched by this round.
+
+THE SAME SHAPE WAS MEASURED, for the same two files changed the same way, by
+M7 W2 M3b FIX ROUND 2: reverting its two changed compiled files in a configured
+tree and rebuilding all 42 library objects on both arms with `CCACHE_DISABLE=1`
+gave Release 42 of 42 BYTE-IDENTICAL, and Debug 41 byte-identical with
+`qp_engine.cpp.o` DEBUG-ONLY, 0 non-debug movers, 0 refusals
+(`docs/notes/data/2026-09-m7-w2-m3b-minor-trace/gates-fix2/`). This round's
+surface is that surface plus a new header no production compile opens and a new
+test source in a test-only target, neither of which can add an object to the
+library.
+
+G5b is what TESTS this: a SECOND Debug object, ANY Release object, or a
+difference in a NON-debug section all FAIL.
+
+4. THE NON-VACUITY GUARDS
+--------------------------
+A zero declaration is stronger than a non-zero one, and the way a false zero
+could pass is a capture that compared nothing. Three guards stand against that
+and the gate asserts all three:
+
+  * both `psym_compare.sh capture` return codes, with non-empty manifests
+    (`assert_capture`);
+  * equal object counts on the before and after arms (`assert_capture_pair`);
+  * a non-zero NEGATIVE CONTROL -- objects that DO include a changed header and
+    are byte-identical anyway. Here that control is large and is the
+    derivation's own witness: EIGHT library objects name `qp_walk_trace.h` in
+    their Ninja dependency lists (`assembly_eval_seam`, `console_trace_sink`,
+    `sqp_print`, `sqp_solver`, `soc_elastic_restoration`, `ipqp_engine`,
+    `qp_engine`, `continuation`), and SEVEN of them must be byte-identical in
+    Debug regardless. `MIN_NEGATIVE_CONTROL = 1`.
+
+5. THE REPLAY
+--------------
+    EXPECT_REPLAY_CELLS   = 27
+    EXPECT_REPLAY_COLUMNS = 75
+    EXPECT_REPLAY_DIFFS   = 0
+    EXPECT_REPLAY_ENGINES = 3
+
+Unchanged from M3b fix round 2: the pin is the M6 close gate's committed
+`head-{walk,ssn,ipm}.csv`, this round changes no default and no production code
+path, and a single differing cell fails the gate.
+
+6. WHAT THIS ROUND DOES NOT RUN, AND WHY
+-----------------------------------------
+M3b's `fold_proofs_psym_fix2.sh` is NOT run. It reads M3b's OWN committed
+derivation classifications out of `.scratch/m7w2m3b/derive` and hard-codes that
+round's base commits and scratch object path; re-pointing it at a derivation
+this round has not made would be inventing a fold rather than running one. The
+property it guards -- that the P-SYM classification cannot pass vacuously -- is
+guarded inside G5 by §4's three asserts and by `classify_psym_fix1.py`'s own
+`--min-negative-control`, all of which this chain does run.
+`fold_proofs_m3b.sh`, which folds the gate-assert library itself and takes the
+build tree as its one argument, IS run. The omission is declared in
+`wrappers/chain_gates_m4.sh`'s header as well as here.

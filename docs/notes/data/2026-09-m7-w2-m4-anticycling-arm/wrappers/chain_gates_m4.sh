@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+# M7 W2 M4 -- THE DETACHED GATE CHAIN: the six gates, then the gate-assert
+# library's own fold proofs. One process, started with `setsid` and left to run;
+# its pid is recorded in `.superpowers/m7-w2-m4-STATE.md` and nothing polls it.
+#
+# IT IS M3b FIX ROUND 2's `chain_gates_fix2.sh`, copied and re-pointed. M3b's
+# own file is not edited. The process rule that file earned is carried over
+# verbatim and is why the path checks below exist: EVERY PATH A RUNNER HANDS A
+# SIBLING SCRIPT IS CHECKED TO EXIST BEFORE IT IS HANDED OVER, and a missing one
+# is a REFUSAL of the chain, not a skip inside the sibling.
+#
+# WHAT THIS CHAIN RUNS, AND THE ONE THING IT DELIBERATELY DOES NOT.
+# It runs `gates-m4.sh` (G1-G6) and `fold_proofs_m3b.sh`, which folds the
+# gate-assert LIBRARY -- the self-enforcing runner this round reuses unchanged --
+# against constructed transcripts, parameterized by the build tree it is handed.
+# It does NOT run M3b's `fold_proofs_psym_fix2.sh`. That script is specific to
+# M3b's own round: it reads THAT round's committed derivation classifications
+# out of `.scratch/m7w2m3b/derive`, and it hard-codes that round's base commits
+# (`56032eed`, `9fee5545`) and its own scratch object path. Re-pointing 699
+# lines of it at a derivation this round has not made would be inventing a fold,
+# not running one. The property it guards -- that the P-SYM classification
+# cannot pass vacuously -- is guarded INSIDE G5 by `classify_psym_fix1.py`'s
+# own `--min-negative-control 1` and by `gate_asserts_m3b.sh`'s capture,
+# capture-pair and cross-config asserts, all of which this chain does run. The
+# omission is declared here rather than left for a reader to notice.
+#
+# THE TREE MUST BE CLEAN AND MUST STAY CLEAN. `gates-m4.sh`'s G5 checks out
+# $BEFORE and back, and its G6 asserts `DIRTY_FILES=0`; the fold proofs compare
+# each wrapper's worktree digest against `git show HEAD:<path>` and FAIL if they
+# differ. So every transcript this chain writes goes to the SCRATCH tree, and
+# the artifact directory is written only afterwards, by hand, from what it left.
+#
+# WALL IS INFORMATIONAL. Nothing this chain prints is a timing claim.
+set -o pipefail
+ROOT=/home/ghecht/Projects/hven
+S=$ROOT/.scratch/m7w2m4gates
+W=$ROOT/docs/notes/data/2026-09-m7-w2-m4-anticycling-arm/wrappers
+M3B=$ROOT/docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers
+mkdir -p "$S/gates" "$S/logs"
+LOG=$S/logs/chain.log
+exec > "$LOG" 2>&1
+echo "CHAIN_START $(date -Is)"
+cd "$ROOT" || exit 90
+echo "HEAD $(git rev-parse --short HEAD)  dirty-files=$(git status --porcelain | wc -l)"
+[ -z "$(git status --porcelain)" ] || { echo "REFUSED: the tree is not clean"; exit 2; }
+
+# THE PATHS THIS CHAIN HANDS ITS SIBLINGS, CHECKED BEFORE IT STARTS.
+for pth in "$W/gates-m4.sh" "$M3B/gate_asserts_m3b.sh" "$M3B/classify_psym_fix1.py" \
+           "$M3B/check_sections_fix2.sh" "$M3B/section_digest_fix2.py" \
+           "$M3B/fold_proofs_m3b.sh" \
+           "$ROOT/scripts/psym_compare.sh" "$ROOT/scripts/compare_replay.py" \
+           "$ROOT/scripts/check_install_smoke.sh" "$ROOT/scripts/check_export_contract.sh" \
+           "$ROOT/docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt" \
+           "$ROOT/docs/notes/data/2026-09-m6-close-gate/replay"; do
+    if [ ! -e "$pth" ]; then
+        echo "REFUSED: a path this chain was about to hand a sibling does not exist: $pth"
+        exit 3
+    fi
+    echo "PATH_OK $pth"
+done
+
+bash "$W/gates-m4.sh"
+gates_rc=$?
+echo "GATES_M4_RC=$gates_rc"
+
+# The fold proofs take their own lock hold: they run `ctest --no-tests=error`
+# over a filter that matches no test, which is a ctest invocation like any
+# other, and the box protocol does not care that it is a cheap one.
+pgrep -x hven_bench_cell > /dev/null && echo "NOTE: a foreign cell binary is alive before the fold-proof lock"
+flock /tmp/box-build.lock bash -c '
+  set -o pipefail
+  ROOT=/home/ghecht/Projects/hven; S=$ROOT/.scratch/m7w2m4gates
+  M3B=$ROOT/docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers
+  echo "FOREGROUND_START fold-proofs $(date -Is)"
+  foreign=$(pgrep -x hven_bench_cell | tr "\n" " ")
+  [ -z "$foreign" ] && echo "PGREP_EMPTY fold-proofs: no foreign cell binary under my lock" \
+                    || echo "NOTE: a foreign cell binary is alive under my lock: $foreign"
+  DBG_TREE=$S/gates-dbg
+  for pth in "$M3B/fold_proofs_m3b.sh" "$DBG_TREE/CTestTestfile.cmake"; do
+      if [ ! -e "$pth" ]; then
+          echo "REFUSED: the fold-proof segment was about to hand a sibling a path that does not exist: $pth"
+          echo "FOREGROUND_END fold-proofs $(date -Is)"
+          exit 3
+      fi
+      echo "PATH_OK $pth"
+  done
+  bash "$M3B/fold_proofs_m3b.sh" "$DBG_TREE" > "$S/gates/fold-proofs.txt" 2>&1
+  a=$?
+  echo "FOLD_PROOFS_RC=$a"
+  echo "FOREGROUND_END fold-proofs $(date -Is)"
+  [ $a -eq 0 ]
+'
+fold_rc=$?
+echo "FOLD_PROOFS_AGGREGATE_RC=$fold_rc"
+tail -3 "$S/gates/fold-proofs.txt"
+
+echo "CHAIN_END $(date -Is)"
+echo "CHAIN_SUMMARY gates=$gates_rc fold_proofs=$fold_rc"
+[ "$gates_rc" -eq 0 ] && [ "$fold_rc" -eq 0 ]
+exit $?
