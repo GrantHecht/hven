@@ -1,0 +1,25 @@
+# sha256 of every FULL pass-2 flat trace produced by the stage-1 chain.
+#
+# The full traces are NOT committed: together they are 175 MB, and
+# RULE-P2.md §3 says so in advance -- only the SELECTED solves' slices
+# are committed. This manifest is what makes those slices auditable:
+# a reader with the scratch tree can check that the slice they read
+# came out of the bytes named here.
+#
+# ORIGINALS, on the box that produced them, not in git:
+#   /home/ghecht/Projects/hven/.scratch/m7w2m3c/p2/traces/<CELL>-all.csv
+#
+# sha256  bytes  file
+15ac6af93687cc00c2d74ac10c550e79804b8e5793ae4945adfd5d10308264ae  21119316  ACOPP118-all.csv
+e924d3c9ff296b57159df7b48cf0b8f65d230055090f0c024d737bb963870aea  4434866  ACOPP57-all.csv
+3d0098a2e67e79d924de00c9d8fc3db4da84fce1b5f20ebdc44c90adc90bd791  9894942  ACOPR57-all.csv
+25012bc75cd3fcfe6f45c8e30f2969bf187c3af21fe016c3a641a1a96fc7c37e  29595566  BRITGAS-all.csv
+0d9f647654d29dd874e0658c31fcc02c7ef9e04020acc5e82ab0a5cd5894e40c  6877542  DALLASM-all.csv
+5c1fb6391a73625d3b5df28d1de1f039307e1e247fb68bb847aa2f8dc16b3cdd  45686339  SAWPATH-all.csv
+a222ff332cb3522b10d68a32c983a81a6c0750c1db881c53c9189729cd48fc90  1119471  STEENBRB-all.csv
+2a5ae2cc3a4ac971b092c899eeb67a5b0bf35d78784aea7d589fedc7e4ecb48d  23334838  STEENBRC-all.csv
+3fd086cc6b81189ea7dd4a0fb6cf0d7e3a18a392e1b4f4fa4928f9884744bf10  20096342  STEENBRG-all.csv
+aadd4bf62450f07b672b228de52d4126a5ae6a87a8df0ae6f0ac5cdf28c5a8f2  20887835  YORKNET-all.csv
+#
+# the instrument that wrote them:
+48c4fdea48c43ed27982d2b55a8eadf3fe7054a9030c23c244a4d552bec23bfd  /home/ghecht/Projects/hven/.scratch/m7w2m3c/p2/probebuild/m3c_p2_probe
