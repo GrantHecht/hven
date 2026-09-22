@@ -243,29 +243,64 @@ def main():
         say(f"REFUSED: expected exactly one hven archive edge, found {len(arch)}")
         return 91
     arch = arch[0]
+    members = list(arch["ins"])
+    tu_edges = [e for e in comp if e["outs"][0] in set(members)]
+    other = [e for e in comp if e["outs"][0] not in set(members)]
     say(f"hven compile edges in the install build : {len(comp)}")
-    say(f"objects in the install archive edge     : {len(arch['ins'])}")
-    if len(comp) < 30:
+    say(f"objects in the install archive edge     : {len(members)}")
+    say(f"compile edges that are NOT archive members: {len(other)}  "
+        f"{[e['outs'][0] for e in other]}")
+    if len(tu_edges) < 30:
         say("REFUSED: fewer than 30 hven TUs -- that is not the library")
         return 91
-    if sorted(o for e in comp for o in e["outs"]) != sorted(arch["ins"]):
+    if sorted(e["outs"][0] for e in tu_edges) != sorted(members):
         say("REFUSED: the set of compiled TUs is not the set of archive members")
         return 91
     say("the set of compiled TUs IS the set of archive members (both directions)")
+    for e in other:
+        if not e["outs"][0].endswith(".pch"):
+            say(f"REFUSED: an hven compile edge that is neither an archive member nor a "
+                f"precompiled header: {e['outs'][0]}")
+            return 91
+    say()
+    say("--- THE PRECOMPILED HEADER, found by that refusal and handled explicitly")
+    say(f"    src/CMakeLists.txt:332 target_precompile_headers(hven PRIVATE hven_pch.h),")
+    say(f"    with a per-source opt-in list. In this build tree {len(other)} PCH edge(s) exist and")
+    pch_consumers = [e["outs"][0] for e in tu_edges
+                     if "include-pch" in e["vars"].get("FLAGS", "")]
+    say(f"    {len(pch_consumers)} TUs consume the PCH by ABSOLUTE path into the install tree:")
+    for c in pch_consumers:
+        say(f"      {c}")
+    rel_abs = os.path.abspath(args.rel)
+    pch_abs_install = os.path.join(rel_abs, "CMakeFiles/hven.dir/cmake_pch.hxx.pch")
+    pch_abs_arm = os.path.join(armdir, "CMakeFiles/hven.dir/cmake_pch.hxx.pch")
+    if testing:
+        say("    ARM B: clang REFUSES a TU whose macro state differs from the PCH it includes,")
+        say("    so arm B's PCH is rebuilt from the SAME command plus the SAME single define,")
+        say("    and its four consumers are pointed at arm B's own PCH. That path token is the")
+        say("    SECOND declared difference on arm B and it is declared here, before any leg;")
+        say("    it is a path, not a flag, and the PCH behind it differs from the install's by")
+        say("    exactly the one define. RULE-P2A section 3.3's 'and nothing else' is amended by")
+        say("    AMENDMENT 1 in RULE-P2A.md, committed before any leg ran.")
+    else:
+        say("    ARM A: the commands are replayed unchanged, so its four consumers read the")
+        say("    INSTALL tree's own PCH -- exactly the file the install build read.")
 
     # ---- hven's TUs -------------------------------------------------------
     define = "-DHVEN_TESTING=1"
     jobs = []
-    for e in comp:
+    for e in other + tu_edges:
         install_cmd = edge_command(rules, e)
         vars2 = dict(e["vars"])
         if testing:
             vars2["DEFINES"] = insert_define(vars2.get("DEFINES", ""), define)
+            if pch_abs_install in vars2.get("FLAGS", ""):
+                vars2["FLAGS"] = vars2["FLAGS"].replace(pch_abs_install, pch_abs_arm)
         e2 = dict(e, vars=vars2)
         replay_cmd = edge_command(rules, e2)
         jobs.append((e["outs"][0], e["ins"][0], install_cmd, replay_cmd))
 
-    drop = {define} if testing else set()
+    drop = {define, pch_abs_install, pch_abs_arm} if testing else set()
     say()
     say(f"--- THE {len(jobs)} COMPILE COMMANDS, install vs replay")
     say(f"    excluded from the comparison: {sorted(drop) if drop else '(nothing)'}")
@@ -284,18 +319,29 @@ def main():
         say("REFUSED: the replay is not the install's command line. STOP.")
         return 92
     say("    one example, in full:")
-    say(f"      SRC     {jobs[0][1]}")
-    say(f"      INSTALL {jobs[0][2]}")
-    say(f"      REPLAY  {jobs[0][3]}")
+    say(f"      SRC     {jobs[-1][1]}")
+    say(f"      INSTALL {jobs[-1][2]}")
+    say(f"      REPLAY  {jobs[-1][3]}")
 
     for out, _, _, _ in jobs:
         os.makedirs(os.path.join(armdir, os.path.dirname(out)), exist_ok=True)
 
     say()
-    say(f"--- COMPILING {len(jobs)} TUs (cwd = the arm directory)")
+    say(f"--- COMPILING: {len(other)} PCH edge(s) first, then {len(tu_edges)} TUs "
+        f"(cwd = the arm directory)")
+    for out, _, _, rcmd in jobs[:len(other)]:
+        rc, outp = run_cmd(rcmd, armdir)
+        if rc != 0:
+            say(f"REFUSED: the PCH replay failed rc={rc} for {out}\n{outp[-2000:]}")
+            return 92
+        say(f"    {out}  sha256 {sha256(os.path.join(armdir, out))}")
+        inst = os.path.join(args.rel, out)
+        if os.path.exists(inst):
+            say(f"    install's own        sha256 {sha256(inst)}   identical: "
+                f"{sha256(inst) == sha256(os.path.join(armdir, out))}")
     failures = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as ex:
-        futs = {ex.submit(run_cmd, j[3], armdir): j for j in jobs}
+        futs = {ex.submit(run_cmd, j[3], armdir): j for j in jobs[len(other):]}
         for f in concurrent.futures.as_completed(futs):
             rc, outp = f.result()
             if rc != 0:
@@ -306,7 +352,8 @@ def main():
             say(outp)
         say("REFUSED: a replayed compile failed. STOP.")
         return 92
-    say(f"    all {len(jobs)} objects produced")
+    say(f"    all {len(tu_edges)} objects produced")
+    jobs = jobs[len(other):]
 
     # ---- object identity against the install's own objects ---------------
     say()

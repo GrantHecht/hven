@@ -196,6 +196,35 @@ REFUSAL.
 If the replay cannot reproduce a command exactly, the run STOPS and the residual
 is reported. Nothing is approximated.
 
+### 3.3a AMENDMENT 1 — the precompiled header, and the second declared difference on arms B/C
+
+**Written before any leg ran, before either binary existed, and for a structural
+reason, not a numerical one.** The first run of `replay_build_p2a.py` REFUSED:
+the install build has **43** `CXX_COMPILER__hven` edges and **42** archive
+members. The forty-third is `CMakeFiles/hven.dir/cmake_pch.hxx.pch` —
+`src/CMakeLists.txt:332` gives the `hven` target a precompiled header with a
+per-source opt-in list, and **four** TUs consume it:
+`src/drivers/ipm_solver.cpp`, `src/drivers/ipm_options.cpp`,
+`src/model/non_linear_program.cpp` and `src/model/nlp_adapter.cpp` — the last two
+on the SQP path. Each names the PCH by ABSOLUTE path into the install build tree.
+The refusal is the check working: an unexamined 43rd edge would otherwise have
+been dropped or replayed blindly.
+
+* **Arm A** replays every one of the 43 commands unchanged, so its four
+  PCH-consuming TUs read the INSTALL tree's own `.pch` — the same file the
+  install build read.
+* **Arms B/C** cannot: clang rejects a TU whose macro state differs from the PCH
+  it includes, so a `-DHVEN_TESTING=1` TU may not include a PCH built without it.
+  Arm B therefore **rebuilds the PCH from the same command plus the same single
+  define**, and rewrites, in those four commands only, the one token that names
+  the `.pch` file, from the install tree's path to arm B's own.
+
+This is the **second declared difference on arms B/C**, and the only one. It is a
+PATH, not a flag; the artefact behind it differs from the install's by exactly the
+one define; it touches four of 42 TUs; and the transcript names those four and
+excludes exactly the two path tokens and the define, nothing else. §3.3's "and
+nothing else" is to be read with this amendment.
+
 ### 3.4 Three structural checks, each able to fail
 
 1. **Object identity (arm A).** Every replayed object's sha256 is compared to the
