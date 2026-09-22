@@ -120,10 +120,21 @@ CLASSIFIER=$M4W/classify_psym_m4.py
 ASSERTS=$ART/wrappers/gate_asserts_m3b.sh
 
 # ---- THIS ROUND'S EXPECTED COUNTS -------------------------------------------
-# Derived and cross-checked in `gates/psym-derivation.txt`; see the header.
+# Derived and cross-checked in `gates/psym-derivation-m5.txt`; see the header.
+#
+# RE-DECLARED FOR THE ARM B1 REDO (2026-09-22). The first declaration -- 2730
+# Debug / 2731 Release, for the head `ced56152` -- was DECLARED AND NEVER
+# MEASURED: its chain was stopped six minutes in, inside G1, when the settler's
+# amendments A1-A12 superseded the design it gated. Nothing downstream may quote
+# it. These numbers are this round's own, re-derived twice from the redo's head,
+# and the derivation file is rewritten rather than appended to, because a
+# declaration that was never run is not a pin and re-declaring it is not a pin
+# mutation. The BASE is unchanged: still this task's own base, so the claim the
+# gate carries is still "the whole M5 degeneracy experiment leaves the
+# production library byte-identical to the tree with no degeneracy arm in it".
 BEFORE=${BEFORE:-f255bae9}
-EXPECT_DEBUG_TESTS=${EXPECT_DEBUG_TESTS:-2730}
-EXPECT_RELEASE_TESTS=${EXPECT_RELEASE_TESTS:-2731}
+EXPECT_DEBUG_TESTS=${EXPECT_DEBUG_TESTS:-2731}
+EXPECT_RELEASE_TESTS=${EXPECT_RELEASE_TESTS:-2732}
 EXPECT_LONG_TESTS=1
 EXPECT_REPLAY_CELLS=27
 EXPECT_REPLAY_COLUMNS=75

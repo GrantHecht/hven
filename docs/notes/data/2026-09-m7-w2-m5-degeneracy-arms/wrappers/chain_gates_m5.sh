@@ -8,12 +8,20 @@
 # re-pointed at `gates-m5.sh` and at this round's scratch tree. M4's own files
 # are not edited -- they produced committed transcripts.
 #
-# WHAT IS BEING GATED. Two commits: M5's arm A (the scaled drop tolerance) plus
-# the diagnostic half, and M5's arm b1 (the independence-preserving ratio test).
-# Both are `HVEN_TESTING`-only and OFF by default, so the production bar is the
-# point of the round -- Release byte-identical 42/42, Debug 41/42 with only
-# debug sections moving in `qp_engine.cpp.o` -- and it is MEASURED here rather
-# than asserted from the fact that the code is guarded.
+# WHAT IS BEING GATED. Three commits: M5's arm A (the scaled drop tolerance)
+# plus the diagnostic half; M5's arm b1 as first built; and the ARM B1 REDO on
+# the settler's amendments A1-A12, which replaces that arm's oracle with a
+# rank-revealing QR of the UNREGULARIZED active rows. All three are
+# `HVEN_TESTING`-only and OFF by default, so the production bar is the point of
+# the round -- Release byte-identical 42/42, Debug 41/42 with only debug
+# sections moving in `qp_engine.cpp.o` -- and it is MEASURED here rather than
+# asserted from the fact that the code is guarded.
+#
+# THE FIRST ATTEMPT AT THIS CHAIN (pid 3024935, head `ced56152`) WAS STOPPED SIX
+# MINUTES IN, inside G1, when those amendments superseded the design it gated.
+# G5 never ran, so the tree was never detached to BEFORE. Its declared
+# expectations were never measured and nothing downstream may quote them; the
+# re-derived ones are in `gates/psym-derivation-m5.txt`.
 #
 # THE PROCESS RULE M4 fix round 1 EARNED IS CARRIED OVER VERBATIM, and is why
 # the path checks below exist: EVERY PATH A RUNNER HANDS A SIBLING SCRIPT IS
