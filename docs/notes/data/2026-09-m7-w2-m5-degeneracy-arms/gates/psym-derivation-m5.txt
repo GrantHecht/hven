@@ -1,0 +1,185 @@
+M7 W2 M5 -- THE DEGENERACY ARMS: THE GATE CHAIN'S DECLARED EXPECTATIONS
+=======================================================================
+Written and committed BEFORE the chain was detached. Everything below is a
+DECLARATION with its derivation attached; nothing here is a measurement, and
+a measured shape that is not this one is re-derived and DECLARED AGAIN, never
+discovered after the fact.
+
+Runner   docs/notes/data/2026-09-m7-w2-m5-degeneracy-arms/wrappers/gates-m5.sh
+Chain    docs/notes/data/2026-09-m7-w2-m5-degeneracy-arms/wrappers/chain_gates_m5.sh
+Scratch  .scratch/m7w2m5gates   (the round's ONE literal, in gates-m5.sh alone;
+                                 the chain asks for it with --print-scratch)
+
+0. WHAT IS BEING GATED
+----------------------
+Two commits on branch m7:
+
+  f68dbbe8  ARM A -- the scaled drop tolerance, plus the diagnostic half
+            (new trace columns; the gated post-drop inertia through a LOCAL
+            factor).
+  3899bad6  ARM B1 -- the independence-preserving ratio test on a local
+            per-pass factor, its seven fixtures, and the two findings it
+            returns.
+
+Both are HVEN_TESTING-only and OFF by default. The production bar is therefore
+the point of the round, and it is MEASURED here rather than inferred from the
+fact that the code is `#ifdef`-guarded.
+
+1. BASE
+-------
+BEFORE = f255bae9, THIS TASK'S OWN BASE. The brief asks for expectations
+declared from "THIS task's base..head", and the claim the gate then carries is
+the one worth carrying: the WHOLE M5 degeneracy experiment -- arm A, arm b1 and
+the diagnostic half together -- leaves the production library byte-identical to
+the tree that has no degeneracy arm in it.
+
+COMPARABILITY WITH M4 FIX ROUND 1, CHECKED RATHER THAN ASSUMED:
+
+    $ git diff --name-only 3935eb9d f255bae9 -- tests/ src/ include/ bench/ \
+        cmake/ CMakeLists.txt
+    (empty)
+
+3935eb9d is M4 fix round 1's last tool commit; c77ee858, 60724077 and f255bae9
+after it are data/ledger commits under docs/. So no compiled surface moved
+between M4 fix round 1's declaration and this round's base, and the two
+declarations are directly comparable object for object.
+
+2. THE CHANGED SURFACE
+----------------------
+    $ git diff --name-only f255bae9..3899bad6
+    include/hven/detail/qp/qp_degeneracy_arm.h
+    include/hven/detail/qp/qp_walk_trace.h
+    src/qp/qp_engine.cpp
+    tests/CMakeLists.txt
+    tests/qp/test_qp_degeneracy_arm.cpp
+
+  * qp_degeneracy_arm.h   NEW. Its ENTIRE body is inside `#ifdef HVEN_TESTING`.
+  * qp_walk_trace.h       New record columns and one `#include`, ALL inside
+                          that file's own `#ifdef HVEN_TESTING`, so a
+                          production compile never opens either the added lines
+                          or the header they include.
+  * qp_engine.cpp         `#ifdef HVEN_TESTING` blocks only. The TU's one
+                          `assert()` is at line 447; the EARLIEST M5 hunk is at
+                          line 622 (arm A), and every later one is below it:
+
+                            $ git diff -U0 f255bae9..3899bad6 -- src/qp/qp_engine.cpp \
+                                | sed 's/ @@.*/ @@/'
+                            @@ -621,0 +622,19 @@
+                            @@ -747,0 +767,10 @@
+                            @@ -947,0 +977,88 @@
+                            @@ -1021,0 +1139,50 @@
+                            @@ -1023,0 +1191 @@
+                            @@ -1055,0 +1224,61 @@
+                            @@ -1090,0 +1320,29 @@
+                            @@ -2313,0 +2572,25 @@
+                            @@ -2322,0 +2606,6 @@
+                            @@ -2336,0 +2626,6 @@
+                            @@ -2339,0 +2635,31 @@
+                            @@ -2462,0 +2789,6 @@
+                            @@ -2675,0 +3008,17 @@
+
+                          so no `__LINE__` immediate moves and the instruction
+                          stream cannot.
+  * tests/**              The test target only. Not in the library.
+
+3. TEST COUNTS -- DECLARED: 2730 Debug / 2731 Release
+-----------------------------------------------------
+DERIVATION 1 (this round's own tree). `ctest -N` reports 2733. M2b fix round
+1's derived offset -- a CTest summary counts the one SKIPPED test but not the
+two DISABLED ones, and Debug additionally excludes the long test -- gives
+
+    Release  2733 - 2 = 2731
+    Debug    2733 - 3 = 2730
+
+DERIVATION 2 (independent, from the previous declaration). M4 fix round 1
+declared and MET 2714 Debug / 2715 Release. No test source changed between its
+head and this round's base (section 1). M5 adds ONE new test file,
+tests/qp/test_qp_degeneracy_arm.cpp, with exactly 16 `TEST()` blocks (9 in
+f68dbbe8, 7 in 3899bad6) and changes no existing test in place:
+
+    $ grep -c '^TEST(' tests/qp/test_qp_degeneracy_arm.cpp
+    16
+
+    Debug    2714 + 16 = 2730
+    Release  2715 + 16 = 2731
+
+THE TWO DERIVATIONS AGREE.
+
+EXPECT_LONG_TESTS = 1 (Continuation.ProbeBudgetBoundsAFailingProposal, run
+ALONE in G2 because it exceeds 600 s in Debug).
+
+4. THE P-SYM MOVER SHAPE -- DECLARED: ZERO, IN BOTH CONFIGURATIONS
+------------------------------------------------------------------
+    Release   DIFFERING 0 = class A 0 + class B 0
+    Debug     DIFFERING 0 = class A 0 + class B 0
+
+and therefore `psym_compare.sh compare` must exit 0, not 1.
+
+A ZERO DECLARATION IS STRONGER, NOT WEAKER, and the thing that could make a
+false zero pass is a capture that compared nothing. Three guards, all asserted
+inside G5: both capture return codes enter the gate with non-empty manifests;
+the two arms' object counts must be equal; and the negative control must be
+non-zero -- at least one object that DOES include a changed header and is
+byte-identical anyway.
+
+5. THE DEBUG-ONLY SHAPE -- DECLARED: Release 0, Debug 1
+--------------------------------------------------------
+Release declares that NOTHING may differ at all, in any section, in any of the
+42 library objects.
+
+Debug declares EXACTLY ONE object differing in DEBUG SECTIONS ONLY, and it is
+`src/qp/qp_engine.cpp.o`. Why exactly one: no production translation unit gains
+a LINE (section 2), so only the TU whose own `.cpp` source lines moved can have
+a different DWARF line programme, and its instruction stream cannot move
+because its one `assert()` sits above every hunk.
+
+This is the shape M4 and M4 fix round 1 BOTH measured (42/42 byte-identical in
+Release; 41 byte-identical and qp_engine.cpp.o debug-only in Debug). G5b is
+what TESTS it: a SECOND Debug object, ANY Release object, or a difference in a
+NON-debug section each FAIL the gate.
+
+6. THE REPLAY -- DECLARED: 27 cells, 75 columns, 3 engines, 0 diffs
+--------------------------------------------------------------------
+The U0 27-cell three-arm replay against the M6 close pin
+(docs/notes/data/2026-09-m6-close-gate/replay). Production is byte-identical by
+sections 4 and 5, so any difference here is a contradiction with those gates
+and is treated as one.
+
+7. THE PRE-FLIGHT, RUN BEFORE THIS FILE WAS COMMITTED
+------------------------------------------------------
+`bash wrappers/gates-m5.sh --preflight-only` writes all six gate segments and
+judges all six by the VALUE each one's prologue RESOLVES -- not by grepping its
+prose -- before any leg runs. Its transcript:
+
+    === HEAD 3899bad6  dirty-files=1 ===
+    === PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+    === GATES_SCRATCH=/home/ghecht/Projects/hven/.scratch/m7w2m5gates ===
+    === BEFORE=f255bae9  EXPECT_DEBUG_TESTS=2730  EXPECT_RELEASE_TESTS=2731 ===
+    === HEAD_AT_START=3899bad630f05c527c0e74af75e7465129fec124
+    === CHANGED HEADERS: include/hven/detail/qp/qp_degeneracy_arm.h include/hven/detail/qp/qp_walk_trace.h
+    === CHANGED SOURCES: src/qp/qp_engine.cpp tests/CMakeLists.txt tests/qp/test_qp_degeneracy_arm.cpp
+    SEGMENT_OK .../g1.sh: resolves S=.../m7w2m5gates  G=.../m7w2m5gates/gates
+    SEGMENT_OK .../g2.sh: resolves S=.../m7w2m5gates  G=.../m7w2m5gates/gates
+    SEGMENT_OK .../g3.sh: resolves S=.../m7w2m5gates  G=.../m7w2m5gates/gates
+    SEGMENT_OK .../g4.sh: resolves S=.../m7w2m5gates  G=.../m7w2m5gates/gates
+    SEGMENT_OK .../g5.sh: resolves S=.../m7w2m5gates  G=.../m7w2m5gates/gates
+    SEGMENT_OK .../g6.sh: resolves S=.../m7w2m5gates  G=.../m7w2m5gates/gates
+    === PREFLIGHT_OK: 6 segments written and asserted against GATES_SCRATCH, before the first leg ===
+    PREFLIGHT_ONLY: stopping before G1. No leg was run and no build tree was touched.
+
+The `dirty-files=1` is THIS file, uncommitted at the moment the pre-flight ran;
+the real chain refuses a dirty tree and this file is committed before it starts.
+The `.../` elisions above are this document's, for width; the transcript's own
+paths are absolute and unelided.
+
+8. WHAT WAS ALREADY MEASURED BY HAND, AND IS NOT WHAT THIS CHAIN IS FOR
+------------------------------------------------------------------------
+Both M5 commits were built and run in Debug AND Release under
+`flock /tmp/box-build.lock` at MKL_NUM_THREADS=1 before either was committed:
+`hven_qp_walk_seam_tests` is 52/52 in both configurations at 3899bad6, and the
+production library builds clean in both. That is a developer check, not a gate.
+The gate is the six segments above, run on FRESH configures, and its result is
+whatever it reports.
+
+WALL IS INFORMATIONAL. Nothing in this file or in the chain it declares is a
+timing claim.
