@@ -565,7 +565,11 @@ TEST(SqpEqualityBasis, F6RestorationRunsOverTheRetainedRowsAndResumes) {
 // in hex, against goldens generated there (support/e1b_off_golden_data.h, and the
 // generator and command in docs/notes/data/2026-09-m7-w2-e1-equality-basis/
 // e1b-off-golden/). MKL only: the goldens are MKL's bytes; Accelerate's are
-// UNOBSERVED and not invented.
+// UNOBSERVED and not invented. The fingerprint runs with
+// QpOptions::independent_working_set = false: the base predates M7 W2 E2, so the
+// pin is the pre-E2 walk. With it ON (E1b x E2 merge effect, declared) kWalk's
+// qp_minor_iters reads 5 against the base's 6 in both configurations, with status,
+// the other five counters, x and lambda_e byte-identical; kSsn and kIpm unchanged.
 #if !defined(__APPLE__)
 TEST(SqpEqualityBasis, T5OffIsByteIdenticalToThePreE1BaseOnADependentQp) {
 #ifdef NDEBUG

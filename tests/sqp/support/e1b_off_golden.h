@@ -86,6 +86,8 @@ inline std::vector<std::string> off_fingerprint(QpMode mode) {
     o.common.threads = 1;
 #ifndef HVEN_E1B_GOLDEN_AT_BASE
     o.equality_basis = false;
+    // The base predates E2's independent working set: the pin is the old walk's.
+    o.qp.independent_working_set = false;
 #endif
     SqpSolver solver(o);
     const SqpResult r = solver.solve(model);
