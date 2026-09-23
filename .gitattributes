@@ -1,0 +1,4 @@
+# Raw transcripts copied verbatim from gate chains and probes: their bytes are the
+# record, trailing whitespace included (M7 W2 E1 fix round 1, M3).
+docs/notes/data/**/gates*/*.txt -whitespace
+docs/notes/data/**/logs/*.txt -whitespace
