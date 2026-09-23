@@ -296,8 +296,9 @@ arbiter. Eigen `SparseQR`, COLAMD and the pre-check are gone.
 Step 2: the lift and projection solve the quasidefinite `K = [I_B C; Cᵀ −I_D]`
 through the backend. At compute time `K` must factor on clean evidence with inertia
 exactly `(|B|, |D|, 0)` and pass a probe; every solve runs up to 2 explicit refinement
-steps and is accepted iff the a-posteriori bound `‖r̂‖₂ + γ_{w+1}‖|K||x̂| + |b|‖₂`
-(`‖K⁻¹‖₂ ≤ 1`) is `≤ 1e-8·‖b‖₂`. Any failure at compute time is `kLift` (was `kGram`);
+steps and is accepted iff the a-posteriori ESTIMATE `‖r̂‖₂ + γ_{w+1}‖|K||x̂| + |b|‖₂`
+(`‖K⁻¹‖₂ ≤ 1`), inflated outward by `1 + 4(w + n_K + 2)u` (fix round 1, F2 below), is
+`≤ 1e-8·‖b‖₂`. Any failure at compute time is `kLift` (was `kGram`);
 a failure on one call keeps E1's pending-refusal transition. Eigen `SimplicialLLT` and
 `solve_residual` are deleted. `SqpEqualityBasisReport::gram_refusals` becomes
 `lift_refusals` (a DECLARED schema move), counting compute-time `kLift` refusals and
@@ -308,14 +309,23 @@ prox failures after each major and refuses the basis at the next build).
 - **Finding at T4 (DECLARED).** The acceptance is relative to `‖b‖`. For the
   projection `b = [0; −γ]`, `‖b‖ = ‖γ‖` does not grow with `C` while the rounding
   term `γ_{w+1}‖C‖‖w‖` does, so with `‖C‖ ≈ 1e8` (T4: `C = 2²⁶[u₁, u₁ + 2⁻²⁶u₂]`) the
-  projection bound is ≈ 4e-8·‖γ‖ and the projection REFUSES. That is the declared
+  projection estimate is ≈ 4e-8·‖γ‖ and the projection REFUSES. That is the declared
   safe direction (the basis is refused mid-solve); the lift on the same `K` passes
-  with bound 4 against `1e-8·‖y‖ ≈ 4.5e7`. Whether the projection's acceptance should
-  scale with `‖|K||x̂|‖` is left to the settler.
+  with estimate 4 against `1e-8·‖y‖ ≈ 4.5e7`. **Settler ruling S5 (the coupling):** the
+  acceptance stays relative to `‖b‖` (a normalization by `‖|K||x̂|‖` would be a
+  backward-error measure and looser; the design promises a forward one). The
+  refusal is real: a projection through `K` carries a relative uncertainty of about
+  `‖C‖·u`, so at the coefficient cap `coef_cap = 1e8` it is ≈ 1e-8 = `lift_forward_tol`,
+  and T4 refuses near `‖C‖ ≈ 1e8` by construction. The two constants are coupled
+  (`equality_basis.h` states it at both). REGISTERED: lower the cap to `1e6` as a
+  declared change if any real cell refuses here (no TRAIN cell has coefficients near
+  the cap).
 
-**AMENDMENT 1 (settler S1).** A count of 0 at `t_lo` on clean evidence certifies
-`λ_min(G) ≥ t_lo` (Weyl), so the split is `kFullRank` even when the `t_hi` count is
-positive: a certificate with the narrower margin `t_lo`, not an estimate. The
+**AMENDMENT 1 (settler S1; restated at fix round 1, F1).** A count of 0 at `t_lo` on
+clean evidence gives `λ_min(G) ≥ t_lo − η` (Weyl), with η the Gram-formation plus
+factorization error (unbounded by any checkable number; the contract below), so the
+split is `kFullRank` even when the `t_hi` count is positive: the RETAINED arm with the
+narrower margin `t_lo`. The
 full-rank collocation chain measured `n_neg(G − t_hi I)` = 0/0/2/3/3 at
 400/700/1000/1500/2000 intervals (0 at `t_lo` throughout); as first designed those
 would have been undecidable, contradicting the design's "every corpus solve takes the
@@ -347,6 +357,70 @@ through the `HVEN_TESTING` seam: hand-off disabled → `max_iter` in every mode)
 prox-centre lift failure through the seam's tolerance is counted and refuses the
 basis). Accelerate: every inertia count on `G − tI` and `K` is UNOBSERVED until the
 macOS lane runs them.
+
+## E1b fix round 1 (Codex review `.superpowers/m7-w2-e1b-review-sol.md`, settler adjudication `.superpowers/m7-w2-e1b-fix1-brief.md`)
+
+**F1 — THE NUMERICAL-RANK CONTRACT (ruled option (b)).** The split decides NUMERICAL
+rank at declared thresholds, not exact rank; "never false DEPENDENT" and "exact
+certificate" are withdrawn wherever they appeared (the design note is historical and
+carries a one-line pointer). On the unit-norm rows, with `t_lo = max(20·m·u, 1e-10)·‖G‖∞`,
+`t_hi = 1e4·t_lo` and `τ_lo = 20·(|F| + me)·u`:
+DEPENDENT = counts `k > 0` at both shifts on clean evidence AND every dropped row
+reconstructs to `τ_lo(1 + ‖c̃‖₁)`: a row that close to the retained span is dependent
+BY CONTRACT whether or not it is exactly so (the QP regularizes its duals at
+`dual_mu = 1e-8 ≫ τ_lo`, so it is dependent for every subproblem hven builds);
+RETAINED = `n_neg(G − t_lo I) = 0` on clean evidence, `λ_min(G) ≥ t_lo − η`;
+UNDECIDABLE = anything else, drop nothing. The operative DEPENDENT threshold is the
+arbiter's `τ_lo` (≈ 1.8e-14 on two rows), far below the shifts' σ scale `√t_lo`
+(≈ 1.4e-5): the band between is UNDECIDABLE. A rigorous machine-checkable η for sparse
+LDLᵀ is NOT pursued: no practical NLP solver has one and its cost is unbounded; the
+probe solve, the perturbed-pivot check and the reconstruction arbiter remain the
+fail-closed evidence. Default ON stands under the declared contract. Fixture
+`EqualityBasis.T8NumericalRankContractOnTheTwoRowPair` (the reviewer's `(1,0),(1,δ)`
+pair, every δ built from the code's own `tau_lo()/tau_hi()/shift_lo()/shift_hi()`):
+`δ = τ_lo/10` DEPENDENT (one row dropped: the contract's direction, not a defect);
+`δ = √(τ_lo·τ_hi)` and `δ = 10·τ_hi` UNDECIDABLE (`kSpectrum`, counts 1/1, nothing
+dropped: the safe direction); `λ_min = √(t_lo·t_hi)` RETAINED on AMENDMENT 1 (counts
+1/0, two factorizations); `δ = 10·√(2·t_hi)` RETAINED on the fast path. NOTE: the
+brief named the DEPENDENT threshold by the shift formula; in the code the shift only
+admits a candidate and the arbiter's `τ_lo` decides, so the contract is written with
+both, as the code runs.
+
+**F2 — the lift quantity is an a-posteriori ESTIMATE, inflated outward.** The exact
+mathematics (`K² = diag(I + CCᵀ, I + CᵀC)`, `‖K⁻¹‖₂ ≤ 1`) is unchanged; the computed
+value `‖r̂‖₂ + γ_{w+1}‖|K||x̂| + |b|‖₂` is itself rounded, so it is now called an
+estimate and multiplied by `1 + 4(w + n_K + 2)u` before the comparison (`solve_k()` in
+`equality_basis.cpp` carries the standard-model derivation: the `|K||x̂| + |b|`
+evaluation, the two max-scaled norms over `n_K = |B| + |D|` entries, `γ`'s own
+formation, the comparison's products; first-order total `(w + n_K + 14)u`). NOTE: the
+ruling's factor was `1 + 4(w + 2)u`; the recursive sum inside each norm contributes
+`γ_{n_K−1}`, which `w` does not cover once `n_K > w`, so the implemented factor adds
+`n_K` (strictly more outward). The inflation is ~1e-12 relative at `n_K ~ 1e4` and moves
+no fixture: T2, T4, T7 and `LiftSystemCheckRefusesTheSplit` pass unchanged. The
+refusal semantics are unchanged; no higher-precision fixture (ruled cost > value).
+
+**F3 — the warm structural probe no longer degrades silently.** `reduce()`'s return is
+checked at the probe (`sqp_solver.cpp`, the values-only probe block); a compute-time
+`kLift` on the probe's own split or a failed projection is counted in the new
+`SqpEqualityBasisReport::warm_probe_refusals` and in `lift_refusals`. The report
+field states the degradation: the unreduced probe's structural hash cannot match a
+warm start from a reducing solve, so the level resolves below `kWarm` (`kSeeded` when
+the values are ingestible). Seam fixture
+`SqpEqualityBasisSeam.T8RefusedWarmProbeIsCountedAndDegradesTheWarmLevel` (the fifth
+seam's third knob, `warm_probe_forward_tol`; `docs/testing.md`).
+
+**F4 — S5 coupling.** Stated in `equality_basis.h` at `coef_cap` and
+`lift_forward_tol`, and in §T4 above (the "left to the settler" sentence is replaced by
+the ruling).
+
+**F6 — process (recorded, not blocking).** Per-dispatch token figures for the E1b
+dispatches of 2026-09-23, from the harness usage notifications: gates declaration
+**162.6k**; record + re-take launch **235.9k**; close **189.8k**. The pre-compaction
+implementers' figures are **UNRECORDED**: the settler's summary lists overruns of
+250k / 259k / 280k without a per-step mapping, and they stay unrecorded rather than
+being assigned. Explicit-pathspec staging is verified by the settler at every
+hand-back (`git status` plus the commit's contents); that verification IS the
+control, and it is recorded as such.
 
 ## Registered, not this task's
 

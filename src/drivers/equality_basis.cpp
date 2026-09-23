@@ -79,7 +79,7 @@ struct RowDependence {
     std::vector<Index> retained;                                // columns of M, increasing
     std::vector<Index> dropped;                                 // columns of M, increasing
     Eigen::MatrixXd coef;    // |retained| x |dropped|, equilibrated
-    double min_pivot = kInf; // sqrt(t_hi): the certified floor on retained sigma
+    double min_pivot = kInf; // sqrt(t_hi): the declared floor on retained sigma
     double max_residual = 0.0;
     double max_coef = 0.0;
     double shift_lo = kNaN;
@@ -242,13 +242,19 @@ Index certified_negatives(linear::SymmetricFactor &factor, GramOperator &gram, d
 // the hven::linear backend's; dense Eigen acts only on the m x (k + 8) blocks
 // derived from it and can only confirm k or refuse.
 //
+// THE NUMERICAL-RANK CONTRACT is the header's (settler F1): DEPENDENT means
+// dependent to within tau_lo on the unit-norm rows, RETAINED means
+// lambda_min(G) >= t_lo - eta, and anything else drops nothing. eta (Gram formation
+// plus factorization error) is not bounded by a checkable number; the steps below are
+// fail-closed evidence, not a proof.
+//
 // 1. THE CERTIFICATE. G = M^T M (unit diagonal, PSD). The backend factors
 //    G - t I on one analyze. By Sylvester's law of inertia and Weyl's
 //    inequality, n_neg(G - t I) counts the eigenvalues of G below t to within
-//    the factor's backward error eta. t_lo = max(pivot_factor m eps, 1e-10) ||G||_inf
-//    keeps t_lo above eta; t_hi = gap_ratio t_lo. n_neg = 0 at t_hi on clean
-//    evidence is the full-rank certificate and the fast path (ONE factorization);
-//    otherwise n_neg = 0 at t_lo certifies full rank with the smaller margin t_lo
+//    eta. t_lo = max(pivot_factor m eps, 1e-10) ||G||_inf is the declared margin
+//    eta is assumed to sit under; t_hi = gap_ratio t_lo. n_neg = 0 at t_hi on clean
+//    evidence is the full-rank arm and the fast path (ONE factorization);
+//    otherwise n_neg = 0 at t_lo is full rank with the smaller margin t_lo
 //    (nothing is dropped, so no gap is needed), and a count k > 0 must agree at t_lo
 //    (a gap), or the split is undecidable. G - t_lo I factors without growth although indefinite:
 //    the last pivot of a dependent group is ~ -t_lo (1 + ||c||^2), far above roundoff and the
@@ -265,7 +271,9 @@ Index certified_negatives(linear::SymmetricFactor &factor, GramOperator &gram, d
 //    steps of refinement against residuals on M.
 // 5. THE ARBITER. E1's reconstruction test on M: every dropped column must satisfy
 //    ||M_D(:,j) - M_B C~(:,j)|| <= tau_lo (1 + ||c~_j||_1) and ||c~_j||_inf <= coef_cap,
-//    all or nothing. The Gram's squared conditioning costs decidability only.
+//    all or nothing. The Gram's squared conditioning costs decidability only. A
+//    residual <= tau_lo is the contract's DEPENDENT; one in (tau_lo, ~sqrt(2 t_lo))
+//    passes the counts but fails here and reads undecidable.
 // Every doubt (backend error, unclean evidence, count mismatch, unconverged
 // subspace, a bad retained set, a dense Gram) refuses: nothing is dropped.
 RowDependence factor_row_dependence(const SpMatCM &M, double tau_lo, double coef_cap,
@@ -354,9 +362,9 @@ RowDependence factor_row_dependence(const SpMatCM &M, double tau_lo, double coef
         return refuse(EqualityBasisRefusal::kCertificate);
     }
     if (k_lo == 0) {
-        // Full rank at the lower shift: lambda_min(G) >= t_lo - eta. Nothing is dropped,
-        // so no gap is needed (E1b deviation from the cleared design, declared: a long
-        // full-rank collocation chain has eigenvalues in [t_lo, t_hi)).
+        // Full rank at the lower shift: lambda_min(G) >= t_lo - eta (AMENDMENT 1).
+        // Nothing is dropped, so no gap is needed (a long full-rank collocation chain
+        // has eigenvalues in [t_lo, t_hi)).
         out.min_pivot = std::sqrt(t_lo);
         for (Index j = 0; j < m; ++j) {
             out.retained.push_back(j);
@@ -529,10 +537,12 @@ struct EqualityBasis::Impl {
     SpMatCM C_abs;              // |C|
     // The lift and projection system K = [I_B C; C^T -I_D] (rows B then D): its
     // upper triangle for the backend, the backend's factor, gamma_{w+1} of its
-    // residual's rounding bound (w = K's largest row count), and the acceptance.
+    // residual's rounding term (w = K's largest row count), the outward inflation of
+    // the computed estimate (solve_k()), and the acceptance.
     SpMatRM k_upper;
     std::unique_ptr<linear::SymmetricFactor> k_factor;
     double k_gamma = 0.0;
+    double k_inflate = 1.0;
     double lift_forward_tol = 0.0;
     double tau_lo = 0.0;
     double tau_hi = 0.0;
@@ -597,11 +607,31 @@ struct EqualityBasis::Impl {
     }
 
     // K x = b through the backend's factor with up to kLiftRefineSteps steps of
-    // explicit refinement. K^2 = diag(I + C C^T, I + C^T C) >= I, so ||K^-1||_2 <= 1 and
-    //   ||x^ - x||_2 <= ||r^||_2 + rho,   rho = gamma_{w+1} || |K| |x^| + |b| ||_2,
-    // where r^ = fl(b - K x^) and rho bounds the rounding in forming it. Accepted iff
-    // that bound is <= lift_forward_tol ||b||_2; `bound` receives it (+inf on a
-    // backend error or a non-finite value).
+    // explicit refinement. K^2 = diag(I + C C^T, I + C^T C) >= I, so ||K^-1||_2 <= 1 and,
+    // in exact arithmetic on the computed quantities,
+    //   ||x^ - x||_2 <= ||r||_2 <= ||r^||_2 + rho,   rho = gamma_{w+1} || |K| |x^| + |b| ||_2,
+    // with r = b - K x^ and r^ = fl(r) (|r - r^| <= gamma_{w+1} (|K| |x^| + |b|), each
+    // entry a sum of at most w + 1 terms). THAT RIGHT-HAND SIDE IS ITSELF COMPUTED, so
+    // the value formed here is an a-posteriori ESTIMATE, inflated outward before the
+    // comparison (settler F2). Standard model, fl(a op b) = (a op b)(1 + d), |d| <= u,
+    // vectors of length nk = |B| + |D|:
+    //   - fl(|K| |x^| + |b|) >= (1 - gamma_{w+1}) of the exact vector, entrywise;
+    //   - scaled_norm(): the divisions by amax and the squares (2u per term), the
+    //     recursive sum of nk nonnegative terms (gamma_{nk-1}), the sqrt and the
+    //     product by amax (u each): relative error <= (nk/2 + 3) u after the sqrt
+    //     halves the sum's, to first order;
+    //   - k_gamma's own formation (3u), the product and the sum in `est` (u each);
+    //   - on the other side, fl(lift_forward_tol * ||b||) loses (nk/2 + 3) u + u.
+    // The estimate is a sum of two nonnegative terms, so its relative error is the
+    // larger term's, (w + 1 + nk/2 + 3 + 3 + 1) u, plus u for the sum; with the other
+    // side's (nk/2 + 4) u and u for the product by the factor, the first-order total
+    // is <= (w + nk + 14) u. 4 (w + nk + 2) u exceeds that by 3 (w + nk) - 6 >= 3 u
+    // (nk >= 2, w >= 1), which covers the factor's own formation and the second-order
+    // terms. Accepted iff
+    // est (1 + 4 (w + nk + 2) u) <= lift_forward_tol ||b||_2 as computed; `bound`
+    // receives the inflated estimate (+inf on a backend error or a non-finite value).
+    // The inflation is ~1e-12 relative even at nk ~ 1e4: it moves no decision away
+    // from a knife edge, it only makes the comparison honest.
     bool solve_k(const Vec &b, Vec &x, double &bound) const {
         bound = kInf;
         const double bn = scaled_norm(b);
@@ -618,7 +648,7 @@ struct EqualityBasis::Impl {
                 }
                 const Vec r = b - apply_k(x, false);
                 const Vec a = apply_k(x, true) + b.cwiseAbs();
-                const double est = scaled_norm(r) + k_gamma * scaled_norm(a);
+                const double est = (scaled_norm(r) + k_gamma * scaled_norm(a)) * k_inflate;
                 if (!std::isfinite(est)) {
                     return false;
                 }
@@ -879,7 +909,7 @@ void EqualityBasis::compute(const SpMatRM &Je, const Vec &lower, const Vec &uppe
     // K = [I_B C; C^T -I_D] through the backend: symmetric quasidefinite, so its
     // inertia is exactly (|B|, |D|, 0) and every symmetric ordering factors it
     // stably. Clean evidence (as the certificate's) and that inertia, then a
-    // probe solve through the same bound lift() and project_rhs() apply;
+    // probe solve through the same estimate lift() and project_rhs() apply;
     // anything else refuses with kLift.
     {
         const Index nk = nb + nd;
@@ -903,6 +933,7 @@ void EqualityBasis::compute(const SpMatRM &Je, const Vec &lower, const Vec &uppe
         const Index w = *std::max_element(row_count.begin(), row_count.end());
         const double nu_w = static_cast<double>(w + 1) * (0.5 * kEps);
         b.k_gamma = nu_w / (1.0 - nu_w);
+        b.k_inflate = 1.0 + 4.0 * static_cast<double>(w + nk + 2) * (0.5 * kEps);
         linear::SymmetricFactor::Options kopts;
         kopts.num_threads = 1;
         b.k_factor = std::make_unique<linear::SymmetricFactor>(kopts);
@@ -1105,7 +1136,8 @@ bool EqualityBasis::project_rhs(const Vec &gamma, Vec &t, double *forward_bound)
     return ok && t.allFinite();
 }
 
-bool EqualityBasis::reduce_rhs(const Vec &be, const SpMatRM &Ae, const Vec &lower, Vec &out) const {
+bool EqualityBasis::reduce_rhs(const Vec &be, const SpMatRM &Ae, const Vec &lower, Vec &out,
+                               double *forward_bound) const {
     const Impl &b = *impl_;
     if (be.size() != b.me || Ae.rows() != b.me || Ae.cols() != b.n || lower.size() != b.n) {
         throw std::invalid_argument(fmt::format(
@@ -1131,7 +1163,7 @@ bool EqualityBasis::reduce_rhs(const Vec &be, const SpMatRM &Ae, const Vec &lowe
         gamma(j) = g;
     }
     Vec t;
-    const bool ok = project_rhs(gamma, t);
+    const bool ok = project_rhs(gamma, t, forward_bound);
     const Index nb = static_cast<Index>(b.retained.size());
     out.resize(nb);
     for (Index k = 0; k < nb; ++k) {
@@ -1140,8 +1172,11 @@ bool EqualityBasis::reduce_rhs(const Vec &be, const SpMatRM &Ae, const Vec &lowe
     return ok && out.allFinite();
 }
 
-bool EqualityBasis::reduce(QpProblem &qp) const {
+bool EqualityBasis::reduce(QpProblem &qp, double *forward_bound) const {
     const Impl &b = *impl_;
+    if (forward_bound != nullptr) {
+        *forward_bound = 0.0;
+    }
     if (b.dropped.empty()) {
         return true;
     }
@@ -1154,7 +1189,7 @@ bool EqualityBasis::reduce(QpProblem &qp) const {
         qp.Ae.makeCompressed();
     }
     Vec be;
-    if (!reduce_rhs(qp.be, qp.Ae, qp.lower, be)) {
+    if (!reduce_rhs(qp.be, qp.Ae, qp.lower, be, forward_bound)) {
         return false;
     }
     const Index nb = static_cast<Index>(b.retained.size());

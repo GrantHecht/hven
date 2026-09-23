@@ -11,9 +11,13 @@
 //   T7  an SSN prox-centre lift that fails its bound (a seam tolerance below the
 //       bound it reports) is counted in lift_refusals and refuses the basis: the
 //       QPs carry every row thereafter.
+//   T8  a warm structural probe whose projection fails its estimate (a seam tolerance
+//       below the estimate it reports) is counted in warm_probe_refusals and
+//       lift_refusals, and the warm start resolves kSeeded instead of kWarm.
 
 #include <cmath>
 #include <limits>
+#include <utility>
 #include <vector>
 
 #include <Eigen/Dense>
@@ -184,6 +188,59 @@ TEST(SqpEqualityBasisSeam, T7FailedProxCentreLiftIsCountedAndRefusesTheBasis) {
     EXPECT_GE(res.equality_basis.lift_refusals, 1);
     EXPECT_TRUE(res.equality_basis.dropped_rows.empty());
     EXPECT_EQ(res.equality_basis.dropped_peak, 1);
+}
+
+// The two networks of test_sqp_equality_basis.cpp's F1/F2 with a 5e-9 supply error on
+// the second network's last node: the split drops one row per network and the
+// projection's rhs gamma is nonzero at the start, so its estimate is positive.
+TEST(SqpEqualityBasisSeam, T8RefusedWarmProbeIsCountedAndDegradesTheWarmLevel) {
+    const SeamReset guard;
+    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(9, 11);
+    const auto add = [&A](Index row0, Index col0,
+                          const std::vector<std::pair<Index, Index>> &arcs) {
+        for (std::size_t a = 0; a < arcs.size(); ++a) {
+            A(row0 + arcs[a].first, col0 + static_cast<Index>(a)) = 1.0;
+            A(row0 + arcs[a].second, col0 + static_cast<Index>(a)) = -1.0;
+        }
+    };
+    add(0, 0, {{0, 1}, {1, 2}, {2, 3}, {0, 2}, {1, 3}});
+    add(4, 5, {{0, 1}, {1, 2}, {2, 3}, {3, 4}, {0, 4}, {1, 3}});
+    Vec b(9);
+    b << 1.0, 0.5, -0.25, -1.25, 2.0, -0.5, 0.0, -1.0, -0.5 + 5e-9;
+    const QpAsNlpModel model(make_qp(A, b, Vec::LinSpaced(11, 1.0, 3.0),
+                                     Vec::LinSpaced(11, -1.0, 1.0), Vec::Constant(11, -50.0),
+                                     Vec::Constant(11, 50.0)),
+                             Vec::Zero(11));
+    for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpm}) {
+        SCOPED_TRACE(static_cast<int>(mode));
+        const SqpOptions o = opts_for(mode);
+        Seam::warm_probe_forward_tol = 0.0;
+        SqpSolver first(o);
+        const SqpResult cold = first.solve(model);
+        ASSERT_EQ(cold.status, SolveStatus::kOptimal);
+        ASSERT_EQ(cold.equality_basis.dropped_rows.size(), 2u);
+
+        // The control arm: the probe reduces and the warm start resolves kWarm.
+        SqpSolver control(o);
+        const SqpResult warm =
+            control.solve(model, model.start_point(), cold.warm_start, SolveBudget{});
+        ASSERT_EQ(warm.status, SolveStatus::kOptimal);
+        EXPECT_EQ(warm.counters.start_level_used, StartLevel::kWarm);
+        EXPECT_EQ(warm.equality_basis.warm_probe_refusals, 0);
+        EXPECT_EQ(warm.equality_basis.lift_refusals, 0);
+
+        // Every positive estimate now fails at the probe only: counted, and the level
+        // degrades to kSeeded. The solve's own split is untouched.
+        Seam::warm_probe_forward_tol = 1e-300;
+        SqpSolver refused(o);
+        const SqpResult seeded =
+            refused.solve(model, model.start_point(), cold.warm_start, SolveBudget{});
+        ASSERT_EQ(seeded.status, SolveStatus::kOptimal);
+        EXPECT_EQ(seeded.counters.start_level_used, StartLevel::kSeeded);
+        EXPECT_EQ(seeded.equality_basis.warm_probe_refusals, 1);
+        EXPECT_EQ(seeded.equality_basis.lift_refusals, 1);
+        EXPECT_EQ(seeded.equality_basis.dropped_rows.size(), 2u);
+    }
 }
 
 } // namespace

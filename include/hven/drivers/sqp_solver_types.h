@@ -1270,10 +1270,16 @@ struct SqpEqualityBasisReport {
     Index nonfinite_refusals = 0;
     /// Lift/projection failures: splits refused because K = [I C; C^T -I] failed
     /// its factorization checks or probe (kLift), plus every lift or projection solve
-    /// that failed its forward-error bound mid-solve (the SOC and QP projections, the
-    /// two commit lifts, the SSN prox-centre lift); after a mid-solve failure the QPs
-    /// carry every row.
+    /// that failed its forward-error estimate mid-solve (the SOC and QP projections, the
+    /// two commit lifts, the SSN prox-centre lift), plus warm_probe_refusals; after a
+    /// mid-solve failure the QPs carry every row.
     Index lift_refusals = 0;
+    /// The warm structural probe's own split refused with kLift, or its projection
+    /// failed its estimate (0 or 1; counted in lift_refusals too). THE WARM LEVEL
+    /// DEGRADES: the probe QP stays unreduced, so its structural hash cannot match a
+    /// warm start taken from a reducing solve, and the start resolves below kWarm
+    /// (kSeeded when the values are ingestible). Safe, never silent.
+    Index warm_probe_refusals = 0;
     /// Majors at which the QPs' equality rows changed; each dropped the warm state
     /// held in row coordinates (the QP seed, the IPQP carry, a staged IPQP seed).
     Index split_changes = 0;

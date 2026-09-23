@@ -9,21 +9,40 @@
 // rows on the free columns F, and splits them into a retained set B and a dropped
 // set D with a_r(F) = sum_k C(k, r) a_k(F) for r in D. The rank decision is the
 // hven::linear backend's inertia of the shifted equilibrated Gram matrix G - t I
-// at two declared shifts (a certificate up to the factor's backward error; see
-// factor_row_dependence() in the .cpp); D is chosen from a Rayleigh-Ritz null
-// basis by pivoted Gram-Schmidt with a declared tie rule, the retained set is
-// certified by a masked Gram factorization, and a split is accepted only when every
-// dropped row reconstructs from B to tau_lo with |C~| <= coef_cap, every intermediate
-// is finite, and the lift system K below factors with inertia (|B|, |D|, 0) on clean
-// evidence and passes a probe solve; otherwise nothing is dropped (kUndecidable,
-// refusal() says why). Rows empty on F are dropped with a zero coefficient column.
+// at two declared shifts (factor_row_dependence() in the .cpp); D is chosen from a
+// Rayleigh-Ritz null basis by pivoted Gram-Schmidt with a declared tie rule, the
+// retained set is checked by a masked Gram factorization, and a split is accepted
+// only when every dropped row reconstructs from B to tau_lo with |C~| <= coef_cap,
+// every intermediate is finite, and the lift system K below factors with inertia
+// (|B|, |D|, 0) on clean evidence and passes a probe solve; otherwise nothing is
+// dropped (kUndecidable, refusal() says why). Rows empty on F are dropped with a
+// zero coefficient column.
+//
+// THE NUMERICAL-RANK CONTRACT (settler F1, 2026-09-23). The split decides NUMERICAL
+// rank at declared thresholds, not exact rank. On the unit-norm rows (M, the .cpp),
+// with u the unit roundoff, m the nonempty rows, t_lo = max(pivot_factor m u, 1e-10)
+// ||G||_inf, t_hi = gap_ratio t_lo and tau_lo = pivot_factor (|F| + me) u:
+//   DEPENDENT   n_neg(G - t I) = k > 0 at both shifts on clean evidence, and every
+//               dropped row reconstructs from B to tau_lo (1 + ||c~||_1). A row that
+//               close to span(B) is dependent BY CONTRACT whether or not it is exactly
+//               so: rows (1, 0), (1, delta) with delta <= tau_lo drop one row. That is
+//               the contract's direction, not a defect: the QP regularizes its duals at
+//               dual_mu >> tau_lo, so such a row is dependent for every subproblem hven
+//               builds.
+//   RETAINED    n_neg(G - t_lo I) = 0 on clean evidence: lambda_min(G) >= t_lo - eta.
+//   UNDECIDABLE everything else (the counts disagree, a residual above tau_lo, a
+//               coefficient above the cap, unclean evidence): nothing is dropped.
+// eta is the Gram-formation plus factorization error. It is NOT bounded by a
+// machine-checkable number (no practical sparse LDL^T gives one); t_lo's floor is the
+// declared margin it is assumed to sit under, and the probe solve, the perturbed-pivot
+// check and the reconstruction arbiter are fail-closed evidence, not a proof.
 //
 // AMENDMENT 1 (settler S1, 2026-09-23). n_neg(G - t_lo I) = 0 on clean evidence
-// certifies lambda_min(G) >= t_lo (Weyl) and gives kFullRank even when the t_hi count
-// is positive: a certificate with the narrower margin t_lo, not an estimate. Measured
-// t_hi counts on the full-rank collocation chain: 0/0/2/3/3 at 400/700/1000/1500/2000
-// intervals (t_lo counts 0). A chain WITH a real dependence then reads t_hi = k + 3
-// against t_lo = k and is undecidable (registered E1b-L1; fails safe).
+// gives lambda_min(G) >= t_lo - eta (Weyl) and kFullRank even when the t_hi count is
+// positive: the RETAINED arm with the narrower margin t_lo. Measured t_hi counts on
+// the full-rank collocation chain: 0/0/2/3/3 at 400/700/1000/1500/2000 intervals
+// (t_lo counts 0). A chain WITH a real dependence then reads t_hi = k + 3 against
+// t_lo = k and is undecidable (registered E1b-L1; fails safe).
 //
 // With N = [-C; I] (rows B then D), Je(:,F)^T N = 0 and
 //   lift(lambda_B)  = the minimum-norm lambda with Je(:,F)^T lambda = Je(B,F)^T lambda_B
@@ -31,11 +50,13 @@
 //   reduce(qp)      : Ae <- Ae(B,:), be <- be(B) + t,  t = C (I + C^T C)^-1 gamma,
 //                     gamma = N^T (be - Ae d),  d = qp.lower on S and 0 elsewhere.
 // Every (I + C^T C)^-1 is a solve with the quasidefinite K = [I_B C; C^T -I_D]
-// through the hven::linear backend, with up to two steps of explicit refinement and
-// the a-posteriori forward-error bound ||x^ - x||_2 <= ||r^||_2 + gamma_{w+1}
-// || |K| |x^| + |b| ||_2 (||K^-1||_2 <= 1), accepted iff <= lift_forward_tol ||b||_2.
-// C is in the units of the Je it was computed from. With nothing dropped every
-// operation is the identity.
+// through the hven::linear backend, with up to two steps of explicit refinement. Its
+// a-posteriori forward-error ESTIMATE is ||r^||_2 + gamma_{w+1} || |K| |x^| + |b| ||_2
+// (||K^-1||_2 <= 1; exact in real arithmetic), inflated outward by
+// (1 + 4 (w + nk + 2) u) for its own evaluation and norm rounding (w = K's largest row
+// count, nk = |B| + |D|; the derivation is at solve_k() in the .cpp); a solve is
+// accepted iff the inflated estimate is <= lift_forward_tol ||b||_2. C is in the units
+// of the Je it was computed from. With nothing dropped every operation is the identity.
 
 #include <cstdint>
 #include <memory>
@@ -54,9 +75,14 @@ struct EqualityBasisTolerances {
     /// tau_hi = gap_ratio * tau_lo; a retained pivot in (tau_lo, tau_hi) is undecidable.
     double gap_ratio = 1e4;
     /// Largest accepted |C~| (equilibrated units) of a dropped row's reconstruction.
+    /// COUPLED to lift_forward_tol (settler S5): a projection through K carries a
+    /// relative uncertainty of about ||C|| u, so near the cap (||C|| ~ 1e8) it is
+    /// ~1e-8 and the projection refuses (EqualityBasis.T4). Registered: lower this to
+    /// 1e6 as a declared change if any real cell refuses there.
     double coef_cap = 1e8;
-    /// A lift or projection solve with K is accepted iff its forward-error bound is
-    /// <= this * ||rhs||_2 (the header note).
+    /// A lift or projection solve with K is accepted iff its inflated forward-error
+    /// estimate is <= this * ||rhs||_2 (the header note). Coupled to coef_cap (above):
+    /// the ratio lift_forward_tol / (coef_cap u) ~ 0.9 sets where projections refuse.
     double lift_forward_tol = 1e-8;
     /// The certificate factorizations' static pivot perturbation exponent
     /// (SymmetricFactor::Options::pivot_perturb_exp; Pardiso iparm[9]). Any perturbed
@@ -78,7 +104,7 @@ enum class EqualityBasisRefusal {
                   ///< failed its certificate, or a reconstruction or coefficient-cap failure.
     kNonFinite,   ///< A norm, scaled entry, coefficient or Gram value was not finite.
     kLift,        ///< K = [I C; C^T -I] failed to factor with inertia (|B|, |D|, 0) on
-                  ///< clean evidence, or a probe solve failed its forward-error bound.
+                  ///< clean evidence, or a probe solve failed its forward-error estimate.
     kCertificate, ///< A certificate factorization's evidence was not clean: a backend
                   ///< error, an unobserved inertia, a zero or perturbed pivot, or a
                   ///< probe solve above its backward-error bound.
@@ -123,9 +149,9 @@ class EqualityBasis {
     const Eigen::SparseMatrix<double> &coefficients() const;
     double tau_lo() const;
     double tau_hi() const;
-    /// sqrt(t_hi), or sqrt(t_lo) when full rank was certified only at t_lo: the certified
-    /// floor (to the factor's backward error) on sigma_min of the retained equilibrated
-    /// rows (+inf when no certificate was reached).
+    /// sqrt(t_hi), or sqrt(t_lo) when full rank was certified only at t_lo: the declared
+    /// floor (to within eta, the header's contract) on sigma_min of the retained
+    /// equilibrated rows (+inf when no certificate was reached).
     double min_retained_pivot() const;
     /// Numeric factorizations of the Gram matrix the last compute() ran (1 on the fast path).
     Index gram_factorizations() const;
@@ -163,17 +189,21 @@ class EqualityBasis {
     std::uint64_t group_hash(const SpMatRM &Je, Index j) const;
 
     /// @brief Restricts qp's equality block to B with the projected rhs (header).
+    /// @param forward_bound When non-null, receives the projection's inflated
+    ///        forward-error estimate (0 when nothing is dropped).
     /// @return False, with qp untouched, when the projection solve fails its check.
     /// @throws std::invalid_argument When qp.me() or qp.n() disagree with the basis.
-    bool reduce(QpProblem &qp) const;
+    bool reduce(QpProblem &qp, double *forward_bound = nullptr) const;
 
     /// @brief t = C (I + C^T C)^-1 gamma, |B|, through K.
-    /// @param forward_bound When non-null, receives the solve's forward-error bound.
-    /// @return False when the solve fails its bound or is not finite.
+    /// @param forward_bound When non-null, receives the solve's inflated a-posteriori
+    ///        forward-error estimate (the header note).
+    /// @return False when the solve fails its estimate or is not finite.
     bool project_rhs(const Vec &gamma, Vec &t, double *forward_bound = nullptr) const;
     /// @brief |B| -> me, minimum norm (header), through K; lambda(B) = lambda_B - C w.
-    /// @param forward_bound When non-null, receives the K solve's forward-error bound.
-    /// @return False when the solve fails its bound; `out` is then the zero-scatter
+    /// @param forward_bound When non-null, receives the K solve's inflated a-posteriori
+    ///        forward-error estimate.
+    /// @return False when the solve fails its estimate; `out` is then the zero-scatter
     ///         lift (lambda_B on B, 0 on D), which satisfies the same identity.
     bool lift(const Vec &lambda_B, Vec &out, double *forward_bound = nullptr) const;
     /// @brief me -> |B| (header).
@@ -181,8 +211,10 @@ class EqualityBasis {
 
     /// @brief be(B) + t for a full-size rhs `be` of the system Ae d = be whose fixed
     ///        columns sit at d = `lower` (the same map reduce() applies).
+    /// @param forward_bound When non-null, receives project_rhs()'s estimate.
     /// @return False when project_rhs() does.
-    bool reduce_rhs(const Vec &be, const SpMatRM &Ae, const Vec &lower, Vec &out) const;
+    bool reduce_rhs(const Vec &be, const SpMatRM &Ae, const Vec &lower, Vec &out,
+                    double *forward_bound = nullptr) const;
 
   private:
     struct Impl;

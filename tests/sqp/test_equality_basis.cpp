@@ -9,7 +9,8 @@
 // round 1: extreme scaling and non-finite entries, a Gram-hidden deficiency, the
 // I + C^T C solve check, and byte-identical groups; E1b (the production oracle
 // through hven::linear): t1 the adversarial Gram set, t2 the 1e10-scaled duplicate,
-// t3 the certificate's fast path and its fail-closed arm. The oracle is dense
+// t3 the certificate's fast path and its fail-closed arm, t4 the near-cap lift, t8 the
+// numerical-rank contract (fix round 1). The oracle is dense
 // (CompleteOrthogonalDecomposition / JacobiSVD) inside the test.
 
 #include <algorithm>
@@ -606,7 +607,7 @@ TEST(EqualityBasis, T4NearCapMultiColumnLiftMeetsItsForwardBound) {
     double bound = -1.0;
     ASSERT_TRUE(basis.lift(y, lam, &bound));
     ASSERT_EQ(lam.size(), 4);
-    // The reported bound is a bound on w's error and is within the acceptance.
+    // The reported (inflated) estimate bounds w's error and is within the acceptance.
     const Vec w = (Vec(2) << lam(2), lam(3)).finished();
     EXPECT_LE((w - w_star).norm(), bound);
     EXPECT_LE(bound, 1e-8 * y.norm());
@@ -635,6 +636,79 @@ TEST(EqualityBasis, T4NearCapMultiColumnLiftMeetsItsForwardBound) {
     const double det = 3.0 * k26 * k26 + 2.0;
     const Vec t_ref = (Vec(2) << k26 / det, -(2.0 * k26 * k26) / det - 1.0 / det).finished();
     EXPECT_LE((t - t_ref).norm(), C.norm() * pbound + 16.0 * kU * C.norm() * t.norm());
+}
+
+// T8 (E1b fix round 1, settler F1): THE NUMERICAL-RANK CONTRACT on the reviewer's pair,
+// rows (1, 0) and (1, delta), full row rank for every delta > 0. On unit-norm rows
+// lambda_min(G) = 1 - 1/sqrt(1 + delta^2) ~ delta^2 / 2, the retained-row residual is
+// ~delta, and every delta below is built from the thresholds the code itself reports
+// (tau_lo()/tau_hi() in sigma units, shift_lo()/shift_hi() in eigenvalue units), so the
+// fixture follows the thresholds if they move:
+//   delta = tau_lo / 10          DEPENDENT by contract (the contract's direction, not a
+//                                defect): one row dropped;
+//   delta = sqrt(tau_lo tau_hi)  and 10 tau_hi: the counts show k = 1 at both shifts but
+//                                the residual exceeds tau_lo: UNDECIDABLE, nothing dropped;
+//   delta with lambda_min = sqrt(t_lo t_hi): RETAINED on AMENDMENT 1 (n_neg 1 at t_hi,
+//                                0 at t_lo; two factorizations);
+//   delta = 10 sqrt(2 t_hi):     RETAINED on the fast path (one factorization).
+TEST(EqualityBasis, T8NumericalRankContractOnTheTwoRowPair) {
+    auto pair = [](double delta) {
+        Eigen::MatrixXd A = Eigen::MatrixXd::Zero(2, 2);
+        A(0, 0) = 1.0;
+        A(1, 0) = 1.0;
+        A(1, 1) = delta;
+        return to_sparse(A);
+    };
+    EqualityBasis probe;
+    probe.compute(pair(0.0), -free_box(2), free_box(2));
+    ASSERT_EQ(probe.verdict(), EqualityBasisVerdict::kReduced);
+    const double tau_lo = probe.tau_lo();
+    const double tau_hi = probe.tau_hi();
+    const double t_lo = probe.shift_lo();
+    const double t_hi = probe.shift_hi();
+    ASSERT_TRUE(tau_lo > 0.0 && tau_hi > tau_lo && t_lo > 0.0 && t_hi > t_lo);
+    // The ordering the regimes rely on: the residual threshold sits far below the
+    // shifts' sigma scale.
+    ASSERT_LT(10.0 * tau_hi, std::sqrt(t_lo));
+
+    {
+        const SpMatRM J = pair(tau_lo / 10.0);
+        EqualityBasis dep;
+        dep.compute(J, -free_box(2), free_box(2));
+        EXPECT_EQ(dep.verdict(), EqualityBasisVerdict::kReduced);
+        EXPECT_EQ(dep.deficiency_hi(), 1);
+        EXPECT_EQ(dep.deficiency_lo(), 1);
+        EXPECT_EQ(dep.dropped(), std::vector<Index>{1});
+        EXPECT_LE(dep.max_backward_residual(), tau_lo);
+        EXPECT_TRUE(dep.verify(J));
+    }
+    for (const double delta : {std::sqrt(tau_lo * tau_hi), 10.0 * tau_hi}) {
+        EqualityBasis und;
+        und.compute(pair(delta), -free_box(2), free_box(2));
+        EXPECT_EQ(und.verdict(), EqualityBasisVerdict::kUndecidable) << delta;
+        EXPECT_EQ(und.refusal(), EqualityBasisRefusal::kSpectrum) << delta;
+        EXPECT_EQ(und.deficiency_hi(), 1) << delta;
+        EXPECT_EQ(und.deficiency_lo(), 1) << delta;
+        EXPECT_FALSE(und.reduces()) << delta;
+        EXPECT_EQ(und.retained(), (std::vector<Index>{0, 1})) << delta;
+    }
+    {
+        EqualityBasis amend;
+        amend.compute(pair(std::sqrt(2.0 * std::sqrt(t_lo * t_hi))), -free_box(2), free_box(2));
+        EXPECT_EQ(amend.verdict(), EqualityBasisVerdict::kFullRank);
+        EXPECT_EQ(amend.deficiency_hi(), 1);
+        EXPECT_EQ(amend.deficiency_lo(), 0);
+        EXPECT_EQ(amend.gram_factorizations(), 2);
+        EXPECT_TRUE(amend.dropped().empty());
+    }
+    {
+        EqualityBasis fast;
+        fast.compute(pair(10.0 * std::sqrt(2.0 * t_hi)), -free_box(2), free_box(2));
+        EXPECT_EQ(fast.verdict(), EqualityBasisVerdict::kFullRank);
+        EXPECT_EQ(fast.deficiency_hi(), 0);
+        EXPECT_EQ(fast.gram_factorizations(), 1);
+        EXPECT_TRUE(fast.dropped().empty());
+    }
 }
 
 // Extreme row scaling (fix round 1, C1): the row norms are scaled, so rows at

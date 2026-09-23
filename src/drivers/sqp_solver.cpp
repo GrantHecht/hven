@@ -3652,8 +3652,29 @@ void SqpSolver::prepare_solve(SolveState &st, AssemblyEvalSeam &seam, const Vec 
             detail::EqualityBasis probe_basis;
             probe_basis.compute(probe_ev.Je, seam.lower(), seam.upper());
             out.equality_basis.gram_factorizations += probe_basis.gram_factorizations();
-            // A refused projection leaves the probe unreduced; its hash then degrades the level.
-            (void)probe_basis.reduce(probe);
+            // A refused split (kLift) or a refused projection leaves the probe
+            // unreduced; its hash then degrades the level. Counted, never silent
+            // (SqpEqualityBasisReport::warm_probe_refusals).
+            bool probe_reduced = probe_basis.refusal() != detail::EqualityBasisRefusal::kLift;
+            if (probe_reduced) {
+#ifdef HVEN_TESTING
+                const QpProblem probe_unreduced = probe;
+#endif
+                double probe_bound = 0.0;
+                probe_reduced = probe_basis.reduce(probe, &probe_bound);
+#ifdef HVEN_TESTING
+                const double seam_tol = detail::testing::EqualityBasisSeam::warm_probe_forward_tol;
+                if (probe_reduced && probe_basis.reduces() && seam_tol > 0.0 &&
+                    !(probe_bound <= seam_tol)) {
+                    probe_reduced = false;
+                    probe = probe_unreduced; // reduce()'s own failure contract: qp untouched
+                }
+#endif
+            }
+            if (!probe_reduced) {
+                ++out.equality_basis.warm_probe_refusals;
+                ++out.equality_basis.lift_refusals;
+            }
         }
         if (detail::structural_hash(probe) == warm.structure_hash) {
             resolved_level = warm.hot != nullptr ? StartLevel::kHot : StartLevel::kWarm;

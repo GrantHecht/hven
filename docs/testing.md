@@ -1009,7 +1009,7 @@ no session file is touched.
 
 `hven/detail/drivers/equality_basis_testing.h` declares
 `hven::solvers::detail::testing::EqualityBasisSeam`, `#ifdef HVEN_TESTING` only,
-with two knobs read at two guarded points in `src/drivers/sqp_solver.cpp` (an
+with three knobs read at three guarded points in `src/drivers/sqp_solver.cpp` (an
 Apache-2.0 file this repository wrote; no deviation):
 
 - `disable_hand_off` — the zero-step hand-off at a suspected inconsistency does
@@ -1023,6 +1023,18 @@ Apache-2.0 file this repository wrote; no deviation):
   (`SqpEqualityBasisSeam.T7FailedProxCentreLiftIsCountedAndRefusesTheBasis`). It is
   a tolerance override, not an injected result: the bound compared is the one the
   backend solve produced.
+- `warm_probe_forward_tol` (E1b fix round 1, settler F3) — when positive, the warm
+  structural probe's projection is accepted only if its REAL inflated forward-error
+  estimate is `≤` this (absolute); a rejected one restores the unreduced probe QP,
+  which is exactly `reduce()`'s own failure contract (false, `qp` untouched)
+  (`SqpEqualityBasisSeam.T8RefusedWarmProbeIsCountedAndDegradesTheWarmLevel`: the
+  refusal is counted in `warm_probe_refusals` and `lift_refusals`, and the start
+  resolves `kSeeded` where the control resolves `kWarm`, in every `qp_mode`). Like
+  `prox_lift_forward_tol` it is a tolerance override on the estimate the backend solve
+  produced, not an injected result. It costs production nothing: the copy
+  of the unreduced probe exists only under `HVEN_TESTING`. A compute-time `kLift` on
+  the probe takes the same counted path without the seam (the probe's split is
+  refused before `reduce()` runs).
 
 `sqp_solver.cpp`'s transitive closure is the whole library, so the target,
 `hven_sqp_seam_tests`, recompiles EVERY source of the `hven` target a second time

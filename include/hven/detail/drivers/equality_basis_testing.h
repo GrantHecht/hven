@@ -19,10 +19,15 @@ struct EqualityBasisSeam {
     /// bound is <= this * ||lambda_B||_2; a rejected one takes the zero-scatter lift,
     /// exactly as a lift that failed its own bound.
     static inline double prox_lift_forward_tol = 0.0;
+    /// When positive, the warm structural probe's projection is accepted only if its
+    /// forward-error estimate is <= this (absolute); a rejected one leaves the probe
+    /// unreduced, exactly as reduce() returning false does.
+    static inline double warm_probe_forward_tol = 0.0;
 
     static void reset() {
         disable_hand_off = false;
         prox_lift_forward_tol = 0.0;
+        warm_probe_forward_tol = 0.0;
     }
 };
 
