@@ -1,0 +1,26 @@
+GATES_START 2026-09-23T19:43:45-04:00
+=== HEAD 89ee3e13  dirty-files=1 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix1gates ===
+=== BEFORE=4858019e  EXPECT_DEBUG_TESTS=2807  EXPECT_RELEASE_TESTS=2808 ===
+=== HEAD_AT_START=89ee3e13290f9d4c8c64ff7c031de30f182e98da
+=== CHANGED HEADERS: include/hven/detail/drivers/equality_basis.h include/hven/detail/drivers/equality_basis_testing.h include/hven/drivers/sqp_solver_types.h 
+=== CHANGED SOURCES: src/drivers/equality_basis.cpp src/drivers/sqp_solver.cpp tests/sqp/test_equality_basis.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp 
+=== MODIFIED C++ SOURCES: src/drivers/equality_basis.cpp src/drivers/sqp_solver.cpp tests/sqp/test_equality_basis.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp 
+=== ADDED C++ SOURCES: 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): tests/sqp/test_sqp_equality_basis_seams.cpp -> tests/CMakeFiles/hven_sqp_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared class B): CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared class B): CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); differences declared 0
+=== CLASS_B_NAMES_OK: Release 46 / Debug 46 declared objects, none with a source modified in the range
+=== PREFLIGHT_VALUE_OK: class A 5 - 1 outside == declared 4/4; ADDED 0 == declared 0 (0 inside the universe == declared 0); class B library objects all unmodified; G4 gate 1e-5
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e1bfix1gates/g1.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix1gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix1gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e1bfix1gates/g2.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix1gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix1gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e1bfix1gates/g3.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix1gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix1gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e1bfix1gates/g4.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix1gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix1gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e1bfix1gates/g5.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix1gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix1gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e1bfix1gates/g6.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix1gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix1gates/gates
+=== PREFLIGHT_OK: 6 segments written and asserted against GATES_SCRATCH, before the first leg ===
+PREFLIGHT_ONLY: stopping before G1. No leg was run and no build tree was touched.
