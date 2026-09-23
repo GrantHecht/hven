@@ -1272,13 +1272,18 @@ struct SqpEqualityBasisReport {
     /// Majors at which the QPs' equality rows changed; each dropped the warm state
     /// held in row coordinates (the QP seed, the IPQP carry, a staged IPQP seed).
     Index split_changes = 0;
-    /// The row whose inconsistency was certified (the exit is kInfeasible), or -1.
+    /// A zero step at a suspected inconsistency returned every row to the QPs for
+    /// the rest of the solve.
+    bool handed_off = false;
+    /// The dropped row found inconsistent on two-iterate evidence (the exit is
+    /// kInfeasible), or -1. Evidence, not a proof: identical Jacobian values at two
+    /// iterates do not establish that the rows are linear.
     Index inconsistent_row = -1;
     /// Its combination gap, in the solver's units.
     double inconsistent_gap = 0.0;
     /// The retained rows its reconstruction uses.
     std::vector<Index> inconsistent_support;
-    /// The two majors whose evidence certified it.
+    /// The two majors whose evidence found it.
     Index evidence_major_first = -1;
     Index evidence_major_second = -1;
     /// Largest |gap| of a dropped row at any major, in the solver's units.

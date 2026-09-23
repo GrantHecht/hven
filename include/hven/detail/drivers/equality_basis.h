@@ -127,6 +127,8 @@ class EqualityBasis {
     /// @brief The row indices, column indices and value bytes of Je on dropped row j
     ///        and its support rows in B; equal bytes mean identical values.
     std::vector<unsigned char> group_bytes(const SpMatRM &Je, Index j) const;
+    /// @brief The free columns Je's dropped row j and its support rows touch, increasing.
+    std::vector<Index> group_free_columns(const SpMatRM &Je, Index j) const;
     /// @brief FNV-1a of group_bytes(Je, j).
     std::uint64_t group_hash(const SpMatRM &Je, Index j) const;
 

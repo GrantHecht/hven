@@ -14,6 +14,7 @@
 //   F6  a forced restoration runs over the retained rows and the solve resumes.
 //   F7  OFF computes nothing.
 //   F8  a same-cardinality row swap drops the row-coordinate warm state (fix round 1).
+//   F9  a zero step at a suspected inconsistency hands the rows back (fix round 1).
 //   plus the row-subset model the restoration phase wraps.
 
 #include <cmath>
@@ -485,6 +486,37 @@ TEST(SqpEqualityBasis, F8SameCardinalityRowSwapDropsTheRowCarries) {
         EXPECT_GE(res.equality_basis.recomputes, 1);
         EXPECT_GE(res.equality_basis.split_changes, 1);
         EXPECT_EQ(res.equality_basis.inconsistent_row, -1);
+    }
+}
+
+// Fix round 1, I3: c0 = x1 - 1 and c1 = x1 - 1.001 are an inconsistent duplicate
+// pair, and the start (1.0005, 0) is the reduced problem's least-squares
+// stationary point, so the first reduced step is zero and no second, distinct
+// iterate can arrive. The rows go back into the QPs and the existing ladder
+// finishes the solve kInfeasible well inside max_iter.
+TEST(SqpEqualityBasis, F9ZeroStepAtAnInconsistencyHandsOffToTheLadder) {
+    Eigen::MatrixXd A(2, 2);
+    A << 1.0, 0.0, 1.0, 0.0;
+    Vec b(2);
+    b << 1.0, 1.001;
+    Vec h(2);
+    h << 2.0, 2.0;
+    Vec g(2);
+    g << -2.0 * 1.0005, 0.0;
+    Vec x0(2);
+    x0 << 1.0005, 0.0;
+    const QpAsNlpModel model(make_qp(A, b, h, g, Vec::Constant(2, -10.0), Vec::Constant(2, 10.0)),
+                             x0);
+    for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpm}) {
+        SCOPED_TRACE(static_cast<int>(mode));
+        const SqpOptions o = opts_for(mode);
+        SqpSolver solver(o);
+        const SqpResult res = solver.solve(model);
+        EXPECT_EQ(res.status, SolveStatus::kInfeasible);
+        EXPECT_TRUE(res.equality_basis.handed_off);
+        EXPECT_EQ(res.equality_basis.inconsistent_row, -1);
+        EXPECT_GE(res.equality_basis.split_changes, 1);
+        EXPECT_LT(res.counters.major_iters, o.max_iter);
     }
 }
 

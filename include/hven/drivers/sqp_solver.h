@@ -1376,7 +1376,7 @@ class SqpSolver {
         /// A restoration exit whose requester's QP is in the original
         /// variables and still describes x unless restoration moved it.
         kFinishRestorationQp,
-        /// A redundant equality row certified inconsistent
+        /// A redundant equality row found inconsistent on two-iterate evidence
         /// (SqpOptions::equality_basis): kInfeasible at the current iterate.
         kFinishInconsistentEqualities,
     };

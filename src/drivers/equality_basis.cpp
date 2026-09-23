@@ -668,6 +668,32 @@ std::vector<unsigned char> EqualityBasis::group_bytes(const SpMatRM &Je, Index j
     return out;
 }
 
+std::vector<Index> EqualityBasis::group_free_columns(const SpMatRM &Je, Index j) const {
+    const Impl &b = *impl_;
+    if (j < 0 || j >= static_cast<Index>(b.dropped.size()) || Je.rows() != b.me ||
+        Je.cols() != b.n) {
+        throw std::invalid_argument(fmt::format(
+            "EqualityBasis::group_free_columns: dropped index {} out of range [0, {}) or Je is "
+            "{}x{} (expected {}x{})",
+            j, b.dropped.size(), Je.rows(), Je.cols(), b.me, b.n));
+    }
+    std::vector<Index> cols;
+    auto add_row = [&](Index r) {
+        for (SpMatRM::InnerIterator it(Je, r); it; ++it) {
+            if (b.is_fixed[static_cast<std::size_t>(it.col())] == 0) {
+                cols.push_back(it.col());
+            }
+        }
+    };
+    add_row(b.dropped[static_cast<std::size_t>(j)]);
+    for (SpMatCM::InnerIterator ct(b.C, j); ct; ++ct) {
+        add_row(b.retained[static_cast<std::size_t>(ct.row())]);
+    }
+    std::sort(cols.begin(), cols.end());
+    cols.erase(std::unique(cols.begin(), cols.end()), cols.end());
+    return cols;
+}
+
 std::uint64_t EqualityBasis::group_hash(const SpMatRM &Je, Index j) const {
     const std::vector<unsigned char> bytes = group_bytes(Je, j);
     std::uint64_t h = kFnvOffset;

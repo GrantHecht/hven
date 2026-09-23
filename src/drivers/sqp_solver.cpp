@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <cstring>
 #include <limits>
 #include <optional>
 #include <stdexcept>
@@ -2695,10 +2696,11 @@ struct EqualityBasisState {
         bool valid = false;
         std::uint64_t group = 0;
         std::vector<unsigned char> bytes; // the group's Jacobian values (hash = fast negative)
-        std::uint64_t x = 0;
+        Vec x;                            // the iterate it was read at
         Index major = -1;
     };
     bool on = false;
+    bool suspect = false;        // the last refresh read a kInconsistent band
     bool refuse_pending = false; // a Gram solve failed; the next build carries every row
     detail::EqualityBasis basis;
     Index streak = 0;
@@ -2730,15 +2732,17 @@ bool same_split(const EqualitySplit &a, const detail::EqualityBasis &b) {
            std::equal(a.C.valuePtr(), a.C.valuePtr() + nnz, cb.valuePtr());
 }
 
-std::uint64_t hash_values(const Vec &v) {
-    std::uint64_t h = 14695981039346656037ULL;
-    const auto *bytes = reinterpret_cast<const unsigned char *>(v.data());
-    const std::size_t len = sizeof(double) * static_cast<std::size_t>(v.size());
-    for (std::size_t i = 0; i < len; ++i) {
-        h ^= bytes[i];
-        h *= 1099511628211ULL;
+// Whether two iterates differ (bytewise) on a column of `cols`.
+bool differ_on(const Vec &a, const Vec &b, const std::vector<Index> &cols) {
+    if (a.size() != b.size()) {
+        return true;
     }
-    return h;
+    for (Index c : cols) {
+        if (std::memcmp(&a(c), &b(c), sizeof(double)) != 0) {
+            return true;
+        }
+    }
+    return false;
 }
 
 // A fresh split at `Je`; the first one of a solve is not a recompute.
@@ -2781,6 +2785,17 @@ void maybe_switch_off_equality_basis(EqualityBasisState &eb, SqpEqualityBasisRep
     rep.dropped_rows.clear();
 }
 
+// A zero step at a suspected inconsistency cannot reach a second, distinct
+// iterate: every row returns to the QPs and the existing ladder decides.
+void hand_off_equality_basis(EqualityBasisState &eb, SqpEqualityBasisReport &rep, Index me) {
+    eb.on = false;
+    eb.suspect = false;
+    eb.basis.reset(me);
+    eb.evidence.clear();
+    rep.handed_off = true;
+    rep.dropped_rows.clear();
+}
+
 // A Gram solve failed mid-solve: the QPs carry every row from here on.
 void refuse_equality_basis(EqualityBasisState &eb, SqpEqualityBasisReport &rep, Index me) {
     eb.on = false;
@@ -2793,16 +2808,19 @@ void refuse_equality_basis(EqualityBasisState &eb, SqpEqualityBasisReport &rep, 
 
 struct EqualityRefresh {
     bool split_changed = false; // the QP's equality block differs from the previous split's
-    bool certified = false;     // an inconsistency is certified (the report names it)
+    bool inconsistent = false;  // two-iterate evidence of an inconsistency (the report names it)
 };
 
 // The per-major check at a new iterate: re-verify a reducing split when Je's
 // values moved, recompute when the check fails, then read the gaps and look for
-// two-iterate evidence of an inconsistent redundant row.
+// two-iterate evidence of an inconsistent redundant row: the kInconsistent band at
+// two iterates that differ on a free column of the row's group, with the group's
+// Jacobian values byte-identical at both.
 EqualityRefresh refresh_equality_basis(EqualityBasisState &eb, SqpEqualityBasisReport &rep,
                                        const NlpEval &ev, const Vec &x, const Vec &lower,
                                        const Vec &upper, double feas_tol, Index major) {
     EqualityRefresh out;
+    eb.suspect = false;
     if (!eb.on || !eb.basis.reduces() || !ev.all_finite || !jacobian_values_finite(ev)) {
         return out;
     }
@@ -2818,7 +2836,6 @@ EqualityRefresh refresh_equality_basis(EqualityBasisState &eb, SqpEqualityBasisR
         }
     }
     eb.basis.read_gaps(ev.ce, ev.Je, x, feas_tol, eb.gap, eb.band);
-    const std::uint64_t xh = hash_values(x);
     const std::vector<Index> &dropped = eb.basis.dropped();
     for (std::size_t j = 0; j < dropped.size(); ++j) {
         const double g = eb.gap(static_cast<Index>(j));
@@ -2829,9 +2846,11 @@ EqualityRefresh refresh_equality_basis(EqualityBasisState &eb, SqpEqualityBasisR
             continue;
         }
         const std::uint64_t gh = eb.basis.group_hash(ev.Je, static_cast<Index>(j));
+        eb.suspect = true;
         const bool same_group = e.valid && e.group == gh &&
                                 e.bytes == eb.basis.group_bytes(ev.Je, static_cast<Index>(j));
-        if (same_group && e.x != xh) {
+        if (same_group &&
+            differ_on(e.x, x, eb.basis.group_free_columns(ev.Je, static_cast<Index>(j)))) {
             rep.inconsistent_row = dropped[j];
             rep.inconsistent_gap = g;
             rep.inconsistent_support.clear();
@@ -2843,11 +2862,11 @@ EqualityRefresh refresh_equality_basis(EqualityBasisState &eb, SqpEqualityBasisR
             }
             rep.evidence_major_first = e.major;
             rep.evidence_major_second = major;
-            out.certified = true;
+            out.inconsistent = true;
             return out;
         }
         if (!same_group) {
-            e = {true, gh, eb.basis.group_bytes(ev.Je, static_cast<Index>(j)), xh, major};
+            e = {true, gh, eb.basis.group_bytes(ev.Je, static_cast<Index>(j)), x, major};
         }
     }
     return out;
@@ -5970,7 +5989,7 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         if (refresh.split_changed) {
             drop_row_coordinate_carries(st);
         }
-        if (refresh.certified) {
+        if (refresh.inconsistent) {
             push_history(mj.row);
             return MajorOutcome::kFinishInconsistentEqualities;
         }
@@ -6509,6 +6528,18 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
     // radius strictly inactive.
     const double x_scale = std::max(1.0, st.x.lpNorm<Eigen::Infinity>());
     const bool zero_step = !mj.row.tr_binding && mj.row.step_norm <= kZeroStepScale * x_scale;
+
+    // A ZERO STEP AT A SUSPECTED INCONSISTENCY (SqpOptions::equality_basis) would
+    // leave x where it is, so the two-iterate evidence could never complete: the
+    // dropped rows go back into the QPs and the existing elastic/restoration ladder
+    // decides from this same iterate.
+    if (zero_step && st.eqb.on && st.eqb.suspect) {
+        hand_off_equality_basis(st.eqb, st.out.equality_basis, seam.me());
+        drop_row_coordinate_carries(st);
+        st.subproblem_is_stale = true;
+        push_history(mj.row);
+        return MajorOutcome::kContinue;
+    }
 
     StepVerdict verdict = zero_step ? StepVerdict::kAcceptF : st.strategy->judge(mj.ctx);
 
