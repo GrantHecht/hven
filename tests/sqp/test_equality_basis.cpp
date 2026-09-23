@@ -7,7 +7,9 @@
 // and the gap bands, u5 lift/fold against a dense minimum-norm oracle, u6 the rhs
 // projection against the dense range projector, u7 determinism, plus verify(); fix
 // round 1: extreme scaling and non-finite entries, a Gram-hidden deficiency, the
-// I + C^T C solve check, and byte-identical groups. The oracle is dense
+// I + C^T C solve check, and byte-identical groups; E1b (the production oracle
+// through hven::linear): t1 the adversarial Gram set, t2 the 1e10-scaled duplicate,
+// t3 the certificate's fast path and its fail-closed arm. The oracle is dense
 // (CompleteOrthogonalDecomposition / JacobiSVD) inside the test.
 
 #include <algorithm>
@@ -71,7 +73,7 @@ TEST(EqualityBasis, U1TwoNetworksDropOneRowPerComponent) {
     EqualityBasis basis;
     basis.compute(Je, -free_box(11), free_box(11));
     ASSERT_EQ(basis.verdict(), EqualityBasisVerdict::kReduced);
-    // The full-rank Cholesky pre-check cannot settle a redundant balance row.
+    // The certificate's fast path cannot settle a redundant balance row.
     EXPECT_TRUE(basis.ran_qr());
     ASSERT_EQ(basis.dropped().size(), 2u);
     EXPECT_LT(basis.dropped()[0], 4);
@@ -175,6 +177,10 @@ TEST(EqualityBasis, U3GradedNoGapSpectrumIsUndecidable) {
     EqualityBasis basis;
     basis.compute(Je, -free_box(n), free_box(n));
     EXPECT_EQ(basis.verdict(), EqualityBasisVerdict::kUndecidable);
+    // E1b (T3): a SAWPATH-like graded spectrum has eigenvalues on both sides of the
+    // shifts' band, so the counts at t_hi and t_lo differ: no gap, never dependent.
+    EXPECT_EQ(basis.refusal(), EqualityBasisRefusal::kSpectrum);
+    EXPECT_GT(basis.deficiency_hi(), basis.deficiency_lo());
     EXPECT_FALSE(basis.reduces());
     EXPECT_EQ(basis.retained().size(), static_cast<std::size_t>(me));
 
@@ -402,27 +408,9 @@ TEST(EqualityBasis, VerifyTracksTheDependencyAcrossValueChanges) {
     EXPECT_NE(basis.group_hash(to_sparse(A), 0), basis.group_hash(to_sparse(B), 0));
 }
 
-// The full-rank pre-check (E1 S1) on both sides of its line: a network whose
-// balance rows sum to zero fails it and the QR drops the row; the same network
-// with the redundant row removed passes it, and a banded collocation-shaped
-// Jacobian (a state recurrence per interval plus the initial conditions)
-// passes it at a size where the QR would cost the most.
-TEST(EqualityBasis, PreCheckFallsThroughOnARedundantRowAndSkipsTheQrWhenFullRank) {
-    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(4, 5);
-    add_network(A, 0, 0, {{0, 1}, {1, 2}, {2, 3}, {0, 2}, {1, 3}});
-    EqualityBasis net;
-    net.compute(to_sparse(A), -free_box(5), free_box(5));
-    EXPECT_TRUE(net.ran_qr());
-    ASSERT_EQ(net.verdict(), EqualityBasisVerdict::kReduced);
-    EXPECT_EQ(net.dropped().size(), 1u);
-
-    const Eigen::MatrixXd B = A.topRows(3);
-    EqualityBasis trimmed;
-    trimmed.compute(to_sparse(B), -free_box(5), free_box(5));
-    EXPECT_FALSE(trimmed.ran_qr());
-    EXPECT_EQ(trimmed.verdict(), EqualityBasisVerdict::kFullRank);
-
-    constexpr Index kIntervals = 400;
+// A banded collocation-shaped Jacobian: a state recurrence per interval plus the
+// initial conditions (full rank).
+SpMatRM collocation_chain(Index kIntervals = 400) {
     constexpr Index kStates = 3;
     constexpr Index kControls = 2;
     constexpr Index kPerNode = kStates + kControls;
@@ -447,12 +435,136 @@ TEST(EqualityBasis, PreCheckFallsThroughOnARedundantRowAndSkipsTheQrWhenFullRank
     SpMatRM Je(me, n);
     Je.setFromTriplets(trip.begin(), trip.end());
     Je.makeCompressed();
+    return Je;
+}
+
+// T3 (E1b): the certificate's fast path and its fail-closed direction. A full-rank
+// network and a banded collocation Jacobian are certified in ONE Gram factorization
+// (n_neg(G - t_hi I) = 0 on clean evidence); a network with a redundant balance row
+// takes the reducing path (t_hi, t_lo, the masked retained set at t_hi and at 0).
+TEST(EqualityBasis, T3CertificateFastPathIsOneFactorization) {
+    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(4, 5);
+    add_network(A, 0, 0, {{0, 1}, {1, 2}, {2, 3}, {0, 2}, {1, 3}});
+    EqualityBasis net;
+    net.compute(to_sparse(A), -free_box(5), free_box(5));
+    ASSERT_EQ(net.verdict(), EqualityBasisVerdict::kReduced);
+    EXPECT_EQ(net.deficiency_hi(), 1);
+    EXPECT_EQ(net.deficiency_lo(), 1);
+    EXPECT_EQ(net.gram_factorizations(), 4);
+    EXPECT_TRUE(net.ran_qr());
+    ASSERT_EQ(net.dropped().size(), 1u);
+    // The tie rule: nodes 1 and 2 have the largest degree (3); the higher index wins.
+    EXPECT_EQ(net.dropped()[0], 2);
+
+    const Eigen::MatrixXd B = A.topRows(3);
+    EqualityBasis trimmed;
+    trimmed.compute(to_sparse(B), -free_box(5), free_box(5));
+    EXPECT_EQ(trimmed.verdict(), EqualityBasisVerdict::kFullRank);
+    EXPECT_EQ(trimmed.gram_factorizations(), 1);
+    EXPECT_EQ(trimmed.deficiency_hi(), 0);
+    EXPECT_EQ(trimmed.deficiency_lo(), -1);
+    EXPECT_FALSE(trimmed.ran_qr());
+
+    const SpMatRM Je = collocation_chain();
     EqualityBasis chain;
-    chain.compute(Je, -free_box(n), free_box(n));
-    EXPECT_FALSE(chain.ran_qr());
+    chain.compute(Je, -free_box(Je.cols()), free_box(Je.cols()));
     EXPECT_EQ(chain.verdict(), EqualityBasisVerdict::kFullRank);
-    EXPECT_GE(chain.min_retained_pivot(), 1e-5);
+    EXPECT_EQ(chain.gram_factorizations(), 1);
+    EXPECT_FALSE(chain.ran_qr());
     EXPECT_TRUE(chain.dropped().empty());
+    EXPECT_EQ(chain.min_retained_pivot(), std::sqrt(chain.shift_hi()));
+    EXPECT_EQ(chain.shift_hi(), 1e4 * chain.shift_lo());
+
+    // A 2000-interval chain is full rank with eigenvalues of G in [t_lo, t_hi): n_neg
+    // is 3 at t_hi and 0 at t_lo, which certifies full rank with the margin t_lo.
+    const SpMatRM Jl = collocation_chain(2000);
+    EqualityBasis longc;
+    longc.compute(Jl, -free_box(Jl.cols()), free_box(Jl.cols()));
+    EXPECT_EQ(longc.verdict(), EqualityBasisVerdict::kFullRank);
+    EXPECT_GT(longc.deficiency_hi(), 0);
+    EXPECT_EQ(longc.deficiency_lo(), 0);
+    EXPECT_EQ(longc.gram_factorizations(), 2);
+    EXPECT_FALSE(longc.ran_qr());
+    EXPECT_EQ(longc.min_retained_pivot(), std::sqrt(longc.shift_lo()));
+}
+
+// T3 (E1b), the fail-closed arm: a perturbed pivot is never evidence. A perturbation
+// exponent of 1 (a threshold of ~1e-1 ||A||) makes Pardiso perturb pivots of the
+// certificate factorization, and the split refuses with kCertificate. MKL only:
+// Accelerate's zeroTolerance at this exponent is 1e-1 eps and perturbs nothing
+// (its fail-closed input is n_zero, which this fixture cannot provoke).
+#if !defined(__APPLE__)
+TEST(EqualityBasis, T3PerturbedPivotRefusesTheCertificate) {
+    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(4, 5);
+    add_network(A, 0, 0, {{0, 1}, {1, 2}, {2, 3}, {0, 2}, {1, 3}});
+    EqualityBasisTolerances tol;
+    tol.gram_pivot_perturb_exp = 1;
+    EqualityBasis refused;
+    refused.compute(to_sparse(A), -free_box(5), free_box(5), tol);
+    EXPECT_EQ(refused.verdict(), EqualityBasisVerdict::kUndecidable);
+    EXPECT_EQ(refused.refusal(), EqualityBasisRefusal::kCertificate);
+    EXPECT_FALSE(refused.reduces());
+    EXPECT_EQ(refused.retained().size(), 4u);
+}
+#endif
+
+// T1 (E1b), the adversarial Gram set (fix round 1, I1): rows e1, e1 + d e2, e2 with
+// d = 5e-4 are dependent (a1 = a0 + d a2 exactly), yet a Cholesky of the formed Gram
+// has every pivot above 1e-5. The eigenvalues of the equilibrated Gram are about
+// {0, 1, 2}, so the shifted inertia counts k = 1 at both shifts whatever the pivot
+// order: DEPENDENT. The null vector is ~(1, -sqrt(1 + d^2), d) in equilibrated units;
+// rows 0 and 1 tie within 1e-6 and the higher index (1) is dropped with C = (1, d).
+TEST(EqualityBasis, T1AdversarialGramSetIsDependentUnderTheCertificate) {
+    constexpr double kDelta = 5e-4;
+    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(3, 3);
+    A(0, 0) = 1.0;
+    A(1, 0) = 1.0;
+    A(1, 1) = kDelta;
+    A(2, 1) = 1.0;
+    EqualityBasis basis;
+    basis.compute(to_sparse(A), -free_box(3), free_box(3));
+    ASSERT_EQ(basis.verdict(), EqualityBasisVerdict::kReduced);
+    EXPECT_EQ(basis.deficiency_hi(), 1);
+    EXPECT_EQ(basis.deficiency_lo(), 1);
+    EXPECT_EQ(basis.gram_factorizations(), 4);
+    ASSERT_EQ(basis.dropped(), std::vector<Index>{1});
+    ASSERT_EQ(basis.retained(), (std::vector<Index>{0, 2}));
+    const Eigen::MatrixXd C(basis.coefficients());
+    EXPECT_NEAR(C(0, 0), 1.0, 1e-14);
+    EXPECT_NEAR(C(1, 0), kDelta, 1e-17);
+    EXPECT_TRUE(basis.verify(to_sparse(A)));
+    Eigen::JacobiSVD<Eigen::MatrixXd> svd(A);
+    EXPECT_LT(svd.singularValues()(2), 1e-12);
+}
+
+// T2 (E1b): a duplicate scaled by 1e10 is exact. Equilibrated, rows 1 and 3 are the
+// same unit vector: k = 1, they tie, row 3 is dropped with C~ = 1 and C = 1e10.
+TEST(EqualityBasis, T2ScaledDuplicateIsExact) {
+    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(4, 6);
+    A.row(0) << 1.0, 2.0, 0.0, 0.0, -1.0, 0.0;
+    A.row(1) << 0.0, 1.0, 3.0, 0.0, 0.0, 1.0;
+    A.row(2) << 0.5, 0.0, 0.0, 4.0, 0.0, -2.0;
+    A.row(3) = 1e10 * A.row(1);
+    const SpMatRM Je = to_sparse(A);
+    EqualityBasis basis;
+    basis.compute(Je, -free_box(6), free_box(6));
+    ASSERT_EQ(basis.verdict(), EqualityBasisVerdict::kReduced);
+    EXPECT_EQ(basis.deficiency_hi(), 1);
+    EXPECT_EQ(basis.deficiency_lo(), 1);
+    ASSERT_EQ(basis.dropped(), std::vector<Index>{3});
+    constexpr double kU = std::numeric_limits<double>::epsilon() / 2.0;
+    EXPECT_LE(std::abs(basis.max_coefficient() - 1.0), 4.0 * kU);
+    const Eigen::MatrixXd C(basis.coefficients());
+    EXPECT_LE(std::abs(C(1, 0) / 1e10 - 1.0), 4.0 * kU);
+    EXPECT_LE(std::abs(C(0, 0)), 1e-6);
+    EXPECT_LE(std::abs(C(2, 0)), 1e-6);
+    EXPECT_TRUE(basis.verify(Je));
+    const Vec y = Vec::LinSpaced(3, 1.0, -2.0);
+    const Vec lam = lifted(basis, y);
+    EXPECT_LE((basis.fold(lam) - y).lpNorm<Eigen::Infinity>(), 1e-14 * 1e10);
+    Vec t;
+    EXPECT_TRUE(basis.project_rhs(Vec::Constant(1, 0.5), t));
+    EXPECT_TRUE(t.allFinite());
 }
 
 // Extreme row scaling (fix round 1, C1): the row norms are scaled, so rows at
@@ -505,30 +617,6 @@ TEST(EqualityBasis, ExtremeScalingNeverDropsAnIndependentRow) {
         EXPECT_FALSE(refused.reduces()) << bad;
         EXPECT_EQ(refused.retained().size(), 9u) << bad;
     }
-}
-
-// The pre-check on a set the formed Gram matrix hides (fix round 1, I1): rows
-// e1, e1 + d e2, e2 with d = 5e-4 are dependent (C = (-1/d, 1/d)), yet the
-// Cholesky of the formed Gram matrix has every pivot above the 1e-5 floor and a
-// backward error at roundoff. The sigma_min estimate sends it to the QR, which
-// drops the row.
-TEST(EqualityBasis, PreCheckSendsAGramHiddenDeficiencyToTheQr) {
-    constexpr double kDelta = 5e-4;
-    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(3, 3);
-    A(0, 0) = 1.0;
-    A(1, 0) = 1.0;
-    A(1, 1) = kDelta;
-    A(2, 1) = 1.0;
-    EqualityBasis basis;
-    basis.compute(to_sparse(A), -free_box(3), free_box(3));
-    EXPECT_LE(basis.precheck_backward_error(), 1e-15);
-    EXPECT_LT(basis.precheck_sigma_estimate(), 1e-5);
-    EXPECT_TRUE(basis.ran_qr());
-    ASSERT_EQ(basis.verdict(), EqualityBasisVerdict::kReduced);
-    EXPECT_EQ(basis.dropped().size(), 1u);
-    EXPECT_TRUE(basis.verify(to_sparse(A)));
-    Eigen::JacobiSVD<Eigen::MatrixXd> svd(A);
-    EXPECT_LT(svd.singularValues()(2), 1e-12);
 }
 
 // The I + C^T C solve check (fix round 1, I2): a residual tolerance below roundoff

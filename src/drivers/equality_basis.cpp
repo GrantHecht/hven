@@ -8,10 +8,11 @@
 #include <limits>
 #include <stdexcept>
 
-#include <Eigen/OrderingMethods>
+#include <Eigen/Dense>
 #include <Eigen/SparseCholesky>
-#include <Eigen/SparseQR>
 #include <fmt/format.h>
+
+#include <hven/linear/symmetric_factor.h>
 
 namespace hven::solvers::detail {
 
@@ -20,12 +21,22 @@ namespace {
 constexpr double kEps = std::numeric_limits<double>::epsilon();
 constexpr double kInf = std::numeric_limits<double>::infinity();
 constexpr double kNaN = std::numeric_limits<double>::quiet_NaN();
-// The pre-check's pivot floor on unit-norm columns (see factor_row_dependence()).
-constexpr double kPrescreenPivot = 1e-5;
-// The pre-check's backward-error guard: max |P G P^T - L L^T| <= this * (m + 1) eps max G_ii.
-constexpr double kPrescreenBackwardFactor = 100.0;
-// Inverse-iteration steps behind the pre-check's sigma_min(M) estimate.
-constexpr int kPrescreenInverseSteps = 4;
+// The certificate's shift floor: t_lo >= this * ||G||_inf (see factor_row_dependence()).
+constexpr double kShiftFloor = 1e-10;
+// A certificate factorization's probe solve: normwise backward error <= this * m * eps.
+constexpr double kProbeBackwardFactor = 100.0;
+// The null-basis iteration: oversampling, the step range, and the largest m x width block.
+constexpr Index kOversample = 8;
+constexpr int kSubspaceMinSteps = 2;
+constexpr int kSubspaceMaxSteps = 4;
+constexpr double kSubspaceCap = 2.5e7;
+// The selection's near-tie band: candidates within (1 - this) of the largest remaining norm.
+constexpr double kTieRatio = 1e-6;
+// The fill guard: sum_f c_f (c_f + 1) / 2 <= max(this factor * nnz(M), the floor).
+constexpr double kFillFactor = 8.0;
+constexpr double kFillFloor = 1048576.0;
+// Refinement steps of the normal-equations coefficients.
+constexpr int kRefineSteps = 2;
 constexpr std::uint64_t kFnvOffset = 14695981039346656037ULL;
 constexpr std::uint64_t kFnvPrime = 1099511628211ULL;
 
@@ -63,165 +74,441 @@ template <class Values> double scaled_norm(const Values &v) {
 // The seam's answer (factor_row_dependence).
 struct RowDependence {
     bool undecidable = false;
-    bool nonfinite = false; // an intermediate was not finite (implies undecidable)
-    double precheck_backward_error = kNaN;
-    double precheck_sigma = kNaN;
-    std::vector<Index> retained; // columns of M, pivot order
-    std::vector<Index> dropped;  // columns of M
-    Eigen::MatrixXd coef;        // |retained| x |dropped|, equilibrated
-    double min_pivot = kInf;
+    EqualityBasisRefusal refusal = EqualityBasisRefusal::kNone; // why, when undecidable
+    std::vector<Index> retained;                                // columns of M, increasing
+    std::vector<Index> dropped;                                 // columns of M, increasing
+    Eigen::MatrixXd coef;    // |retained| x |dropped|, equilibrated
+    double min_pivot = kInf; // sqrt(t_hi): the certified floor on retained sigma
     double max_residual = 0.0;
     double max_coef = 0.0;
-    bool ran_qr = false;
+    double shift_lo = kNaN;
+    double shift_hi = kNaN;
+    Index k_hi = -1;
+    Index k_lo = -1;
+    Index gram_factorizations = 0;
 };
+
+// A deterministic uniform value in [-1, 1] of (i, j): splitmix64, identical on
+// every platform and standard library.
+double hash_uniform(std::uint64_t i, std::uint64_t j) {
+    std::uint64_t z = i * 0x9E3779B97F4A7C15ULL + j + 0x632BE59BD9B4E019ULL;
+    z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ULL;
+    z = (z ^ (z >> 27)) * 0x94D049BB133111EBULL;
+    z ^= z >> 31;
+    return static_cast<double>(z >> 11) * (2.0 / 9007199254740992.0) - 1.0;
+}
+
+// The equilibrated Gram G = M^T M and the shifted, optionally masked, operators
+// the backend factors on one analyzed pattern:
+//   A(t)      = G - t I
+//   A_D(t)    = G with row and column j in D replaced by e_j, minus t I on B only.
+class GramOperator {
+  public:
+    explicit GramOperator(const SpMatCM &M) : m_(M.cols()) {
+        full_ = SpMatCM(M.transpose()) * M;
+        full_.makeCompressed();
+        upper_ = full_.triangularView<Eigen::Upper>();
+        upper_.makeCompressed();
+        base_.assign(upper_.valuePtr(), upper_.valuePtr() + upper_.nonZeros());
+        row_of_.resize(static_cast<std::size_t>(upper_.nonZeros()));
+        for (Index r = 0; r < m_; ++r) {
+            for (Index e = upper_.outerIndexPtr()[r]; e < upper_.outerIndexPtr()[r + 1]; ++e) {
+                row_of_[static_cast<std::size_t>(e)] = r;
+            }
+        }
+        omega_ = 0.0;
+        Vec rs = Vec::Zero(m_);
+        for (Index c = 0; c < m_; ++c) {
+            for (SpMatCM::InnerIterator it(full_, c); it; ++it) {
+                rs(it.row()) += std::abs(it.value());
+            }
+        }
+        omega_ = m_ > 0 ? rs.maxCoeff() : 0.0;
+    }
+
+    // Every diagonal entry is in the pattern (unit-norm columns give G_jj > 0).
+    bool diagonal_present() const {
+        for (Index r = 0; r < m_; ++r) {
+            const Index e = upper_.outerIndexPtr()[r];
+            if (e >= upper_.outerIndexPtr()[r + 1] || upper_.innerIndexPtr()[e] != r) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    double omega() const { return omega_; }
+    const SpMatRM &upper() const { return upper_; }
+
+    // Writes A(t) (mask empty) or A_D(t) into upper_'s values; returns ||A||_inf.
+    double set(double t, const std::vector<char> &mask) {
+        const bool masked = !mask.empty();
+        Vec rs = Vec::Zero(m_);
+        for (Index e = 0; e < upper_.nonZeros(); ++e) {
+            const Index i = row_of_[static_cast<std::size_t>(e)];
+            const Index j = upper_.innerIndexPtr()[e];
+            double v = base_[static_cast<std::size_t>(e)];
+            if (masked && (mask[static_cast<std::size_t>(i)] != 0 ||
+                           mask[static_cast<std::size_t>(j)] != 0)) {
+                v = i == j ? 1.0 : 0.0;
+            } else if (i == j) {
+                v -= t;
+            }
+            upper_.valuePtr()[e] = v;
+            rs(i) += std::abs(v);
+            if (i != j) {
+                rs(j) += std::abs(v);
+            }
+        }
+        return m_ > 0 ? rs.maxCoeff() : 0.0;
+    }
+
+    // y = A(t) x or A_D(t) x, formed from the full Gram.
+    Vec apply(const Vec &x, double t, const std::vector<char> &mask) const {
+        if (mask.empty()) {
+            return Vec(full_ * x - t * x);
+        }
+        Vec xb = x;
+        for (Index j = 0; j < m_; ++j) {
+            if (mask[static_cast<std::size_t>(j)] != 0) {
+                xb(j) = 0.0;
+            }
+        }
+        Vec y = full_ * xb - t * xb;
+        for (Index j = 0; j < m_; ++j) {
+            if (mask[static_cast<std::size_t>(j)] != 0) {
+                y(j) = x(j);
+            }
+        }
+        return y;
+    }
+
+  private:
+    Index m_;
+    SpMatCM full_;
+    SpMatRM upper_;
+    std::vector<double> base_;
+    std::vector<Index> row_of_;
+    double omega_ = 0.0;
+};
+
+// One certificate factorization: its inertia is used only on CLEAN evidence
+// (status kOk, inertia observed, no zero pivot, no perturbed pivot where the
+// backend counts them, and a probe solve at the backward-error bound). Returns
+// n_neg, or -1 when the evidence is not clean.
+Index certified_negatives(linear::SymmetricFactor &factor, GramOperator &gram, double t,
+                          const std::vector<char> &mask, Index &factorizations) {
+    const Index m = gram.upper().rows();
+    const double anorm = gram.set(t, mask);
+    linear::FactorizeOutcome out;
+    try {
+        out = factor.factorize(gram.upper());
+    } catch (const std::runtime_error &) {
+        return -1;
+    }
+    ++factorizations;
+    const linear::InertiaEvidence &in = out.inertia;
+    if (out.status != linear::FactorizeOutcome::Status::kOk ||
+        in.state != linear::InertiaEvidence::State::kObserved || in.n_zero != 0 || in.n_pos < 0 ||
+        in.n_neg < 0 || in.n_pos + in.n_neg != m ||
+        (in.perturbed_pivots.has_value() && *in.perturbed_pivots != 0)) {
+        return -1;
+    }
+    Vec b(m);
+    for (Index i = 0; i < m; ++i) {
+        b(i) = 1.0 + 0.5 * hash_uniform(static_cast<std::uint64_t>(i), 0x5EED);
+    }
+    Vec x = Vec::Zero(m);
+    try {
+        factor.solve(b, x);
+    } catch (const std::runtime_error &) {
+        return -1;
+    }
+    const Vec r = gram.apply(x, t, mask) - b;
+    const double rn = r.lpNorm<Eigen::Infinity>();
+    const double scale = anorm * x.lpNorm<Eigen::Infinity>() + b.lpNorm<Eigen::Infinity>();
+    if (!x.allFinite() || !std::isfinite(rn) ||
+        rn > kProbeBackwardFactor * static_cast<double>(m) * kEps * scale) {
+        return -1;
+    }
+    return in.n_neg;
+}
 
 // THE FACTORIZATION SEAM: the only place the split's linear algebra lives.
 // M is n_free x m_ne with unit-norm columns (the equilibrated nonempty rows'
-// transposes). On success, M(:, dropped) = M(:, retained) coef with retained in
-// pivot order; `undecidable` means drop nothing. The Eigen factorizations here
-// are the SCAFFOLD oracle; the production oracle is registered as E1b.
-RowDependence factor_row_dependence(const SpMatCM &M, double tau_lo, double tau_hi,
-                                    double coef_cap) {
+// transposes). On success, M(:, dropped) = M(:, retained) coef; `undecidable`
+// means drop nothing. Production linear algebra: every sparse factorization is
+// the hven::linear backend's; dense Eigen acts only on the m x (k + 8) blocks
+// derived from it and can only confirm k or refuse.
+//
+// 1. THE CERTIFICATE. G = M^T M (unit diagonal, PSD). The backend factors
+//    G - t I on one analyze. By Sylvester's law of inertia and Weyl's
+//    inequality, n_neg(G - t I) counts the eigenvalues of G below t to within
+//    the factor's backward error eta. t_lo = max(pivot_factor m eps, 1e-10) ||G||_inf
+//    keeps t_lo above eta; t_hi = gap_ratio t_lo. n_neg = 0 at t_hi on clean
+//    evidence is the full-rank certificate and the fast path (ONE factorization);
+//    otherwise n_neg = 0 at t_lo certifies full rank with the smaller margin t_lo
+//    (nothing is dropped, so no gap is needed), and a count k > 0 must agree at t_lo
+//    (a gap), or the split is undecidable. G - t_lo I factors without growth although indefinite:
+//    the last pivot of a dependent group is ~ -t_lo (1 + ||c||^2), far above roundoff and the
+//    perturbation threshold, so its update is O(t_lo).
+// 2. THE NULL BASIS. Block inverse iteration with (G - t_lo I)^-1 from a
+//    hash-seeded start of width k + 8, orthonormalized each step; Rayleigh-Ritz on
+//    (MQ)^T (MQ) must show exactly k Ritz values <= 2 t_lo and the next >= t_hi / 2.
+// 3. THE CHOICE OF D. Column-pivoted Gram-Schmidt on N^T; the candidates of a step
+//    are the columns within (1 - 1e-6) of the largest remaining norm, and the
+//    HIGHEST row index wins (rotation-invariant, so independent of the basis the
+//    iteration returned and of the backend).
+// 4. THE RETAINED SET. The masked Gram A_D(t_hi) must show n_neg = 0 on clean
+//    evidence (G_BB has the gap). C~ solves G_BB C~ = M_B^T M_D on A_D(0) with two
+//    steps of refinement against residuals on M.
+// 5. THE ARBITER. E1's reconstruction test on M: every dropped column must satisfy
+//    ||M_D(:,j) - M_B C~(:,j)|| <= tau_lo (1 + ||c~_j||_1) and ||c~_j||_inf <= coef_cap,
+//    all or nothing. The Gram's squared conditioning costs decidability only.
+// Every doubt (backend error, unclean evidence, count mismatch, unconverged
+// subspace, a bad retained set, a dense Gram) refuses: nothing is dropped.
+RowDependence factor_row_dependence(const SpMatCM &M, double tau_lo, double coef_cap,
+                                    const EqualityBasisTolerances &tol) {
     RowDependence out;
     const Index n_free = M.rows();
-    const Index m_ne = M.cols();
-    // Full-rank pre-check (a heuristic, not a certificate): M^T M = R^T R, so a
-    // Cholesky factor of the formed Gram matrix whose every diagonal clears
-    // floor = max(kPrescreenPivot, 10 tau_hi), whose backward error is at the
-    // Cholesky's own resolution, and whose inverse-iteration estimate of
-    // sqrt(lambda_min) (an upper bound on the formed Gram's) clears the same floor,
-    // skips the QR. Forming G squares the conditioning, so large pivots alone do
-    // not exclude a deficient M. Any doubt falls through to the QR; the pre-check
-    // can only drop fewer rows, never more.
-    bool prescreened = false;
-    if (m_ne > 0 && n_free > 0) {
-        SpMatCM G = SpMatCM(M.transpose()) * M;
-        Eigen::SimplicialLLT<SpMatCM> chol(G);
-        if (chol.info() == Eigen::Success) {
-            const double floor = std::max(kPrescreenPivot, 10.0 * tau_hi);
-            const SpMatCM L = chol.matrixL();
-            const Vec diag = L.diagonal();
-            const double dmin = diag.allFinite() ? diag.minCoeff() : kNaN;
-            if (std::isfinite(dmin) && dmin >= floor) {
-                SpMatCM PG;
-                PG = G.selfadjointView<Eigen::Lower>().twistedBy(chol.permutationP());
-                const SpMatCM E = PG - SpMatCM(L * SpMatCM(L.transpose()));
-                const double gmax = G.diagonal().cwiseAbs().maxCoeff();
-                double emax = 0.0;
-                for (Index k = 0; k < E.outerSize(); ++k) {
-                    for (SpMatCM::InnerIterator it(E, k); it; ++it) {
-                        const double a = std::abs(it.value());
-                        emax = std::isfinite(a) ? std::max(emax, a) : kInf;
-                    }
-                }
-                out.precheck_backward_error = emax / gmax;
-                if (std::isfinite(gmax) && gmax > 0.0 &&
-                    emax <=
-                        kPrescreenBackwardFactor * static_cast<double>(m_ne + 1) * kEps * gmax) {
-                    // ||G^-1 v|| <= 1 / lambda_min for a unit v, so 1 / ||G^-1 v|| bounds
-                    // lambda_min from above; a small value is a deficiency found.
-                    Vec v(m_ne);
-                    for (Index k = 0; k < m_ne; ++k) {
-                        v(k) = 1.0 + 0.5 * std::sin(1.0 + static_cast<double>(k));
-                    }
-                    v /= scaled_norm(v);
-                    double lambda = kInf;
-                    for (int step = 0; step < kPrescreenInverseSteps; ++step) {
-                        const Vec w = chol.solve(v);
-                        const double wn = scaled_norm(w);
-                        if (!std::isfinite(wn) || wn == 0.0) {
-                            lambda = 0.0;
-                            break;
-                        }
-                        lambda = std::min(lambda, 1.0 / wn);
-                        v = w / wn;
-                    }
-                    out.precheck_sigma = std::sqrt(lambda);
-                    if (out.precheck_sigma >= floor) {
-                        prescreened = true;
-                        out.min_pivot = dmin;
-                    }
-                }
-            }
-        }
+    const Index m = M.cols();
+    auto refuse = [&](EqualityBasisRefusal why) {
+        out.undecidable = true;
+        out.refusal = why;
+        out.retained.clear();
+        out.dropped.clear();
+        out.coef.resize(0, 0);
+        out.min_pivot = kInf;
+        out.max_residual = 0.0;
+        out.max_coef = 0.0;
+        return out;
+    };
+    if (m == 0) {
+        return out;
     }
-    if (!prescreened && m_ne > 0 && n_free > 0) {
-        out.ran_qr = true;
-        Eigen::SparseQR<SpMatCM, Eigen::COLAMDOrdering<int>> qr;
-        qr.setPivotThreshold(tau_lo);
-        qr.compute(M);
-        if (qr.info() != Eigen::Success) {
-            out.undecidable = true;
-        } else {
-            const Index rank = qr.rank();
-            const auto &perm = qr.colsPermutation().indices();
-            const SpMatCM &R = qr.matrixR();
-            for (Index k = 0; k < rank; ++k) {
-                double diag = 0.0;
-                for (SpMatCM::InnerIterator it(R, k); it; ++it) {
-                    if (it.row() == k) {
-                        diag = std::abs(it.value());
-                    }
-                }
-                out.min_pivot = std::min(out.min_pivot, diag);
-                out.retained.push_back(perm(k));
-            }
-            for (Index k = rank; k < m_ne; ++k) {
-                out.dropped.push_back(perm(k));
-            }
-            if (out.min_pivot < tau_hi) {
-                out.undecidable = true;
-            }
-            if (!out.undecidable && !out.dropped.empty()) {
-                const Index nd = static_cast<Index>(out.dropped.size());
-                Eigen::MatrixXd MD(n_free, nd);
-                for (Index j = 0; j < nd; ++j) {
-                    MD.col(j) = M.col(out.dropped[static_cast<std::size_t>(j)]).toDense();
-                }
-                const Eigen::MatrixXd QtMD = qr.matrixQ().adjoint() * MD;
-                out.coef = qr.matrixR()
-                               .topLeftCorner(rank, rank)
-                               .template triangularView<Eigen::Upper>()
-                               .solve(QtMD.topRows(rank));
-                SpMatCM MB(n_free, rank);
-                {
-                    std::vector<Eigen::Triplet<double>> trip;
-                    for (Index k = 0; k < rank; ++k) {
-                        for (SpMatCM::InnerIterator it(M,
-                                                       out.retained[static_cast<std::size_t>(k)]);
-                             it; ++it) {
-                            trip.emplace_back(static_cast<int>(it.row()), static_cast<int>(k),
-                                              it.value());
-                        }
-                    }
-                    MB.setFromTriplets(trip.begin(), trip.end());
-                }
-                if (!out.coef.allFinite()) {
-                    out.undecidable = true;
-                    out.nonfinite = true;
-                }
-                for (Index j = 0; j < nd && !out.undecidable; ++j) {
-                    const Vec res = MD.col(j) - MB * out.coef.col(j);
-                    const double rn = scaled_norm(res);
-                    const double c1 = out.coef.col(j).lpNorm<1>();
-                    const double cinf = out.coef.col(j).lpNorm<Eigen::Infinity>();
-                    if (!std::isfinite(rn) || !std::isfinite(c1)) {
-                        out.undecidable = true;
-                        out.nonfinite = true;
-                    } else if (rn > tau_lo * (1.0 + c1) || cinf > coef_cap) {
-                        out.undecidable = true;
-                    }
-                    out.max_residual = std::max(out.max_residual, rn);
-                    out.max_coef = std::max(out.max_coef, cinf);
-                }
-            }
-        }
-    } else if (!prescreened && m_ne > 0) {
+    if (n_free == 0) {
         // No free column: every nonempty row is empty on F. Unreachable by
         // construction (nu > 0 needs a free entry); kept for completeness.
-        out.undecidable = true;
+        return refuse(EqualityBasisRefusal::kSpectrum);
     }
 
+    // Fill guard before any numeric work: sum_f c_f (c_f + 1) / 2 bounds nnz(triu G).
+    {
+        std::vector<Index> count(static_cast<std::size_t>(n_free), 0);
+        for (Index c = 0; c < m; ++c) {
+            for (SpMatCM::InnerIterator it(M, c); it; ++it) {
+                ++count[static_cast<std::size_t>(it.row())];
+            }
+        }
+        double bound = 0.0;
+        for (Index c : count) {
+            bound += 0.5 * static_cast<double>(c) * static_cast<double>(c + 1);
+        }
+        const double limit = std::max(kFillFactor * static_cast<double>(M.nonZeros()), kFillFloor);
+        if (bound > limit) {
+            return refuse(EqualityBasisRefusal::kFill);
+        }
+    }
+
+    GramOperator gram(M);
+    if (!std::isfinite(gram.omega()) || !(gram.omega() > 0.0)) {
+        return refuse(EqualityBasisRefusal::kNonFinite);
+    }
+    if (!gram.diagonal_present()) {
+        return refuse(EqualityBasisRefusal::kCertificate);
+    }
+    const double t_lo =
+        std::max(tol.pivot_factor * static_cast<double>(m) * kEps, kShiftFloor) * gram.omega();
+    const double t_hi = tol.gap_ratio * t_lo;
+    out.shift_lo = t_lo;
+    out.shift_hi = t_hi;
+
+    linear::SymmetricFactor::Options opts;
+    opts.num_threads = 1;
+    opts.pivot_perturb_exp = tol.gram_pivot_perturb_exp;
+    linear::SymmetricFactor factor(opts);
+    try {
+        factor.analyze(gram.upper());
+    } catch (const std::runtime_error &) {
+        return refuse(EqualityBasisRefusal::kCertificate);
+    }
+    const std::vector<char> no_mask;
+
+    // 1. The certificate.
+    const Index k_hi = certified_negatives(factor, gram, t_hi, no_mask, out.gram_factorizations);
+    out.k_hi = k_hi;
+    if (k_hi < 0) {
+        return refuse(EqualityBasisRefusal::kCertificate);
+    }
+    if (k_hi == 0) {
+        out.min_pivot = std::sqrt(t_hi);
+        for (Index j = 0; j < m; ++j) {
+            out.retained.push_back(j);
+        }
+        return out;
+    }
+    const Index k_lo = certified_negatives(factor, gram, t_lo, no_mask, out.gram_factorizations);
+    out.k_lo = k_lo;
+    if (k_lo < 0) {
+        return refuse(EqualityBasisRefusal::kCertificate);
+    }
+    if (k_lo == 0) {
+        // Full rank at the lower shift: lambda_min(G) >= t_lo - eta. Nothing is dropped,
+        // so no gap is needed (E1b deviation from the cleared design, declared: a long
+        // full-rank collocation chain has eigenvalues in [t_lo, t_hi)).
+        out.min_pivot = std::sqrt(t_lo);
+        for (Index j = 0; j < m; ++j) {
+            out.retained.push_back(j);
+        }
+        return out;
+    }
+    if (k_lo != k_hi || k_lo >= m) {
+        return refuse(EqualityBasisRefusal::kSpectrum);
+    }
+    const Index k = k_lo;
+
+    // 2. The null basis.
+    const Index width = std::min(k + kOversample, m);
+    if (static_cast<double>(m) * static_cast<double>(width) > kSubspaceCap) {
+        return refuse(EqualityBasisRefusal::kSubspace);
+    }
+    Eigen::MatrixXd Q(m, width);
+    for (Index c = 0; c < width; ++c) {
+        for (Index r = 0; r < m; ++r) {
+            Q(r, c) = hash_uniform(static_cast<std::uint64_t>(r), static_cast<std::uint64_t>(c));
+        }
+    }
+    // The factor holds G - t_lo I from the second certificate factorization.
+    Eigen::MatrixXd N;
+    bool converged = false;
+    for (int step = 1; step <= kSubspaceMaxSteps && !converged; ++step) {
+        Eigen::MatrixXd Y(m, width);
+        try {
+            factor.solve(Q, Y);
+        } catch (const std::runtime_error &) {
+            return refuse(EqualityBasisRefusal::kCertificate);
+        }
+        if (!Y.allFinite()) {
+            return refuse(EqualityBasisRefusal::kSubspace);
+        }
+        Eigen::HouseholderQR<Eigen::MatrixXd> qr(Y);
+        Q = qr.householderQ() * Eigen::MatrixXd::Identity(m, width);
+        if (step < kSubspaceMinSteps) {
+            continue;
+        }
+        const Eigen::MatrixXd MQ = M * Q;
+        const Eigen::MatrixXd H = MQ.transpose() * MQ;
+        Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eig(H);
+        if (eig.info() != Eigen::Success || !eig.eigenvalues().allFinite()) {
+            return refuse(EqualityBasisRefusal::kSubspace);
+        }
+        const Vec &theta = eig.eigenvalues(); // ascending
+        converged = theta(k - 1) <= 2.0 * t_lo && (width == k || theta(k) >= 0.5 * t_hi);
+        if (converged) {
+            N = Q * eig.eigenvectors().leftCols(k);
+        }
+    }
+    if (!converged) {
+        return refuse(EqualityBasisRefusal::kSubspace);
+    }
+
+    // 3. The choice of D: pivoted Gram-Schmidt on N^T with the declared tie rule.
+    Eigen::MatrixXd W = N.transpose(); // k x m
+    std::vector<char> is_d(static_cast<std::size_t>(m), 0);
+    for (Index step = 0; step < k; ++step) {
+        double best = 0.0;
+        Vec norms(m);
+        for (Index j = 0; j < m; ++j) {
+            norms(j) = is_d[static_cast<std::size_t>(j)] != 0 ? -1.0 : W.col(j).norm();
+            best = std::max(best, norms(j));
+        }
+        if (!std::isfinite(best) || !(best > 0.0)) {
+            return refuse(EqualityBasisRefusal::kSubspace);
+        }
+        Index pick = -1;
+        for (Index j = m - 1; j >= 0; --j) {
+            if (norms(j) >= (1.0 - kTieRatio) * best) {
+                pick = j;
+                break;
+            }
+        }
+        is_d[static_cast<std::size_t>(pick)] = 1;
+        const Vec q = W.col(pick) / norms(pick);
+        W -= q * (q.transpose() * W);
+    }
+    for (Index j = 0; j < m; ++j) {
+        (is_d[static_cast<std::size_t>(j)] != 0 ? out.dropped : out.retained).push_back(j);
+    }
+
+    // 4. The retained set's certificate, then the coefficients.
+    const Index a_hi = certified_negatives(factor, gram, t_hi, is_d, out.gram_factorizations);
+    if (a_hi < 0) {
+        return refuse(EqualityBasisRefusal::kCertificate);
+    }
+    if (a_hi != 0) {
+        return refuse(EqualityBasisRefusal::kSpectrum);
+    }
+    const Index a_0 = certified_negatives(factor, gram, 0.0, is_d, out.gram_factorizations);
+    if (a_0 < 0) {
+        return refuse(EqualityBasisRefusal::kCertificate);
+    }
+    if (a_0 != 0) {
+        return refuse(EqualityBasisRefusal::kSpectrum);
+    }
+    const Index nd = k;
+    Eigen::MatrixXd MD(n_free, nd);
+    for (Index j = 0; j < nd; ++j) {
+        MD.col(j) = M.col(out.dropped[static_cast<std::size_t>(j)]).toDense();
+    }
+    auto normal_solve = [&](const Eigen::MatrixXd &R, Eigen::MatrixXd &X) {
+        Eigen::MatrixXd rhs = M.transpose() * R;
+        for (Index d : out.dropped) {
+            rhs.row(d).setZero();
+        }
+        X.resize(m, nd);
+        factor.solve(rhs, X);
+        for (Index d : out.dropped) {
+            X.row(d).setZero();
+        }
+    };
+    Eigen::MatrixXd X;
+    Eigen::MatrixXd R = MD;
+    try {
+        normal_solve(R, X);
+        for (int step = 0; step < kRefineSteps; ++step) {
+            R = MD - M * X;
+            Eigen::MatrixXd dX;
+            normal_solve(R, dX);
+            X += dX;
+        }
+    } catch (const std::runtime_error &) {
+        return refuse(EqualityBasisRefusal::kCertificate);
+    }
+    R = MD - M * X;
+    if (!X.allFinite() || !R.allFinite()) {
+        return refuse(EqualityBasisRefusal::kNonFinite);
+    }
+
+    // 5. The arbiter.
+    const Index nb = static_cast<Index>(out.retained.size());
+    out.coef.resize(nb, nd);
+    for (Index i = 0; i < nb; ++i) {
+        out.coef.row(i) = X.row(out.retained[static_cast<std::size_t>(i)]);
+    }
+    for (Index j = 0; j < nd; ++j) {
+        const double rn = scaled_norm(R.col(j));
+        const double c1 = out.coef.col(j).lpNorm<1>();
+        const double cinf = out.coef.col(j).lpNorm<Eigen::Infinity>();
+        if (!std::isfinite(rn) || !std::isfinite(c1)) {
+            return refuse(EqualityBasisRefusal::kNonFinite);
+        }
+        out.max_residual = std::max(out.max_residual, rn);
+        out.max_coef = std::max(out.max_coef, cinf);
+        if (rn > tau_lo * (1.0 + c1) || cinf > coef_cap) {
+            return refuse(EqualityBasisRefusal::kSpectrum);
+        }
+    }
+    out.min_pivot = std::sqrt(t_hi);
     return out;
 }
 
@@ -245,9 +532,11 @@ struct EqualityBasis::Impl {
     double tau_lo = 0.0;
     double tau_hi = 0.0;
     double min_pivot = kInf;
-    bool ran_qr = false;
-    double precheck_be = kNaN;
-    double precheck_sigma = kNaN;
+    Index gram_factorizations = 0;
+    Index k_hi = -1;
+    Index k_lo = -1;
+    double shift_lo = kNaN;
+    double shift_hi = kNaN;
     double max_residual = 0.0;
     double max_coef = 0.0;
     std::uint64_t hash = 0;
@@ -320,9 +609,12 @@ const Eigen::SparseMatrix<double> &EqualityBasis::coefficients() const { return 
 double EqualityBasis::tau_lo() const { return impl_->tau_lo; }
 double EqualityBasis::tau_hi() const { return impl_->tau_hi; }
 double EqualityBasis::min_retained_pivot() const { return impl_->min_pivot; }
-bool EqualityBasis::ran_qr() const { return impl_->ran_qr; }
-double EqualityBasis::precheck_backward_error() const { return impl_->precheck_be; }
-double EqualityBasis::precheck_sigma_estimate() const { return impl_->precheck_sigma; }
+bool EqualityBasis::ran_qr() const { return impl_->k_lo > 0; }
+Index EqualityBasis::gram_factorizations() const { return impl_->gram_factorizations; }
+Index EqualityBasis::deficiency_hi() const { return impl_->k_hi; }
+Index EqualityBasis::deficiency_lo() const { return impl_->k_lo; }
+double EqualityBasis::shift_lo() const { return impl_->shift_lo; }
+double EqualityBasis::shift_hi() const { return impl_->shift_hi; }
 double EqualityBasis::max_backward_residual() const { return impl_->max_residual; }
 double EqualityBasis::max_coefficient() const { return impl_->max_coef; }
 std::uint64_t EqualityBasis::jacobian_hash() const { return impl_->hash; }
@@ -359,11 +651,13 @@ void EqualityBasis::compute(const SpMatRM &Je, const Vec &lower, const Vec &uppe
                         n, lower.size(), upper.size()));
     }
     if (!(tol.pivot_factor > 0.0) || !(tol.gap_ratio >= 1.0) || !(tol.coef_cap > 0.0) ||
-        !(tol.solve_residual > 0.0)) {
+        !(tol.solve_residual > 0.0) || tol.gram_pivot_perturb_exp < 0) {
         throw std::invalid_argument(fmt::format(
             "EqualityBasis::compute: tolerances must satisfy pivot_factor > 0, gap_ratio >= 1, "
-            "coef_cap > 0, solve_residual > 0 (got {}, {}, {}, {})",
-            tol.pivot_factor, tol.gap_ratio, tol.coef_cap, tol.solve_residual));
+            "coef_cap > 0, solve_residual > 0, gram_pivot_perturb_exp >= 0 (got {}, {}, {}, {}, "
+            "{})",
+            tol.pivot_factor, tol.gap_ratio, tol.coef_cap, tol.solve_residual,
+            tol.gram_pivot_perturb_exp));
     }
 
     auto next = std::make_unique<Impl>();
@@ -442,20 +736,21 @@ void EqualityBasis::compute(const SpMatRM &Je, const Vec &lower, const Vec &uppe
         M.makeCompressed();
     }
 
-    RowDependence dep = factor_row_dependence(M, b.tau_lo, b.tau_hi, tol.coef_cap);
-    b.ran_qr = dep.ran_qr;
-    b.precheck_be = dep.precheck_backward_error;
-    b.precheck_sigma = dep.precheck_sigma;
+    RowDependence dep = factor_row_dependence(M, b.tau_lo, tol.coef_cap, tol);
+    b.gram_factorizations = dep.gram_factorizations;
+    b.k_hi = dep.k_hi;
+    b.k_lo = dep.k_lo;
+    b.shift_lo = dep.shift_lo;
+    b.shift_hi = dep.shift_hi;
     b.min_pivot = dep.min_pivot;
     b.max_residual = dep.max_residual;
     b.max_coef = dep.max_coef;
-    const bool undecidable = dep.undecidable;
     const std::vector<Index> &dropped_ne = dep.dropped; // indices into `nonempty`
     const std::vector<Index> &retained_ne = dep.retained;
     const Eigen::MatrixXd &Ct = dep.coef;
 
-    if (undecidable) {
-        refuse(dep.nonfinite ? EqualityBasisRefusal::kNonFinite : EqualityBasisRefusal::kSpectrum);
+    if (dep.undecidable) {
+        refuse(dep.refusal);
         return;
     }
 

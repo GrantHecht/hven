@@ -7,13 +7,16 @@
 //
 // compute() eliminates the fixed columns S = {i : l_i == u_i}, equilibrates the
 // rows on the free columns F, and splits them into a retained set B and a dropped
-// set D with a_r(F) = sum_k C(k, r) a_k(F) for r in D. A split is accepted only
-// when every dropped pivot is below tau_lo, every retained pivot is at least
-// tau_hi, every dropped row reconstructs from B to tau_lo with |C~| <= coef_cap,
-// every intermediate is finite, and I + C^T C factors and passes a solve check; otherwise nothing
-// is dropped (kUndecidable, refusal() says why). Rows empty on F are dropped with a zero
-// coefficient column. The Cholesky full-rank pre-check that may skip the QR is a heuristic, not a
-// rank certificate.
+// set D with a_r(F) = sum_k C(k, r) a_k(F) for r in D. The rank decision is the
+// hven::linear backend's inertia of the shifted equilibrated Gram matrix G - t I
+// at two declared shifts (a certificate up to the factor's backward error; see
+// factor_row_dependence() in the .cpp); D is chosen from a Rayleigh-Ritz null
+// basis by pivoted Gram-Schmidt with a declared tie rule, the retained set is
+// certified by a masked Gram factorization, and a split is accepted only when every
+// dropped row reconstructs from B to tau_lo with |C~| <= coef_cap, every intermediate
+// is finite, and I + C^T C factors and passes a solve check; otherwise nothing is
+// dropped (kUndecidable, refusal() says why). Rows empty on F are dropped with a zero
+// coefficient column.
 //
 // With N = [-C; I] (rows B then D), Je(:,F)^T N = 0 and
 //   lift(lambda_B)  = the minimum-norm lambda with Je(:,F)^T lambda = Je(B,F)^T lambda_B
@@ -43,6 +46,10 @@ struct EqualityBasisTolerances {
     double coef_cap = 1e8;
     /// Largest accepted ||(I + C^T C) w - r||_inf / (||I + C^T C||_inf ||w||_inf + ||r||_inf).
     double solve_residual = 1e-10;
+    /// The certificate factorizations' static pivot perturbation exponent
+    /// (SymmetricFactor::Options::pivot_perturb_exp; Pardiso iparm[9]). Any perturbed
+    /// or zero pivot refuses the split, so this sets only how small a pivot is refused.
+    int gram_pivot_perturb_exp = 13;
 };
 
 enum class EqualityBasisVerdict {
@@ -55,9 +62,16 @@ enum class EqualityBasisVerdict {
 /// @brief Why a split is kUndecidable.
 enum class EqualityBasisRefusal {
     kNone,
-    kSpectrum,  ///< No pivot gap, or a reconstruction or coefficient-cap failure.
-    kNonFinite, ///< A norm, scaled entry, coefficient or Gram value was not finite.
-    kGram,      ///< I + C^T C failed to factor or a probe solve failed its residual check.
+    kSpectrum,    ///< No gap (the counts at the two shifts differ), the retained set
+                  ///< failed its certificate, or a reconstruction or coefficient-cap failure.
+    kNonFinite,   ///< A norm, scaled entry, coefficient or Gram value was not finite.
+    kGram,        ///< I + C^T C failed to factor or a probe solve failed its residual check.
+    kCertificate, ///< A certificate factorization's evidence was not clean: a backend
+                  ///< error, an unobserved inertia, a zero or perturbed pivot, or a
+                  ///< probe solve above its backward-error bound.
+    kSubspace,    ///< The null-basis iteration did not confirm the certified count, or
+                  ///< its dense block would exceed the size cap.
+    kFill,        ///< The Gram matrix would be too dense to form.
 };
 
 /// @brief Where a dropped row's combination gap sits.
@@ -96,15 +110,22 @@ class EqualityBasis {
     const Eigen::SparseMatrix<double> &coefficients() const;
     double tau_lo() const;
     double tau_hi() const;
-    /// Smallest retained |R_kk|, or the pre-check's smallest Cholesky pivot
-    /// (+inf when no pivot was formed).
+    /// sqrt(t_hi), or sqrt(t_lo) when full rank was certified only at t_lo: the certified
+    /// floor (to the factor's backward error) on sigma_min of the retained equilibrated
+    /// rows (+inf when no certificate was reached).
     double min_retained_pivot() const;
-    /// Whether the last compute() ran the sparse QR (the pre-check did not settle it).
+    /// Whether the last compute() entered the reducing path (n_neg(G - t_lo I) > 0 on
+    /// clean evidence; the null-basis identification runs when it agrees with t_hi's).
+    /// The name is the report's until its schema moves.
     bool ran_qr() const;
-    /// The pre-check's max |P G P^T - L L^T| / max G_ii (NaN when not formed).
-    double precheck_backward_error() const;
-    /// The pre-check's inverse-iteration upper estimate of sigma_min(M) (NaN when not formed).
-    double precheck_sigma_estimate() const;
+    /// Numeric factorizations of the Gram matrix the last compute() ran (1 on the fast path).
+    Index gram_factorizations() const;
+    /// n_neg(G - t_hi I) and n_neg(G - t_lo I) on clean evidence (-1 when not reached).
+    Index deficiency_hi() const;
+    Index deficiency_lo() const;
+    /// The certificate's shifts t_lo and t_hi, eigenvalue units of G (NaN when not formed).
+    double shift_lo() const;
+    double shift_hi() const;
     /// Largest accepted backward residual, equilibrated units.
     double max_backward_residual() const;
     /// Largest |C~| over the dropped rows, equilibrated units.
