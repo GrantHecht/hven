@@ -557,7 +557,8 @@ TEST(F7ColdScaleSmoke, EmptyWindowColdSolveAtTenThousandVariables) {
     ASSERT_EQ(model.n(), 10000);
     ASSERT_LT(kP, model.p_activation()); // the empty-window branch, by construction
 
-    const SqpOptions opts = f7_smoke_options();
+    SqpOptions opts = f7_smoke_options();
+    opts.equality_basis = true; // the pre-check assertion below; the rows are full rank
     SqpSolver driver(opts);
     Ledger ledger;
     driver.attach_ledger(&ledger, "f7_1e4_empty");

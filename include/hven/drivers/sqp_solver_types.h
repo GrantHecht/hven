@@ -876,22 +876,13 @@ struct SqpOptions {
     /// @see docs/notes/2026-09-m7-w2-m2-restoration-design.md section 3
     double restoration_proximity = 0.0;
 
-    /// AN INDEPENDENT EQUALITY BASIS (M7 W2 E1). On, the driver splits the equality
-    /// rows once per solve, at the start point, into an independent set B and a
-    /// set D dependent on it on the non-fixed columns (`detail/drivers/
-    /// equality_basis.h`), and every QP it builds -- main, SOC, elastic, and the
-    /// restoration phase's model -- carries only B with the rhs projected so the
-    /// dropped rows stay consistent. Multipliers stay full-size: the QP's are
-    /// lifted to the minimum-norm vector, external ones are folded. A redundant
-    /// row inconsistent beyond `feas_tol` at two distinct iterates with bit-
-    /// identical Jacobian values on its group exits kInfeasible. Nonlinear rows
-    /// are re-checked each major and the split is recomputed when the check or a
-    /// QP fails; three consecutive majors with a recompute switch it off for the
-    /// rest of the solve. A problem whose rows are independent (or whose spectrum
-    /// has no clear gap) drops nothing and its QPs are byte-identical to OFF.
+    /// Split the equality rows into an independent set B and a set D dependent on
+    /// it on the non-fixed columns (`detail/drivers/equality_basis.h`); every QP
+    /// then carries only B with a projected rhs, and multipliers stay full-size.
+    /// A split that drops nothing leaves every QP byte-identical to off.
     /// `SqpResult::equality_basis` reports what happened.
     /// @see docs/notes/2026-09-22-sqp-degeneracy-proposal.md
-    bool equality_basis = true;
+    bool equality_basis = false;
 
     /// The options both engines share (drivers/common_options.h), at the SQP
     /// engine's own defaults -- `threads = 0` ("leave the backend alone", which

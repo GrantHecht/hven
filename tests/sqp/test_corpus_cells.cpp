@@ -1122,12 +1122,14 @@ TEST(CorpusRunnerProcess, WallDeadlineDoesNotFireAtTheRealBudgetOnAFastCell) {
 }
 
 TEST(CorpusCellsRunner, TheFastCellsEqualitySplitNeverRunsTheSparseQr) {
-    // The in-process twin of the test above: the full-rank Cholesky pre-check
-    // settles every equality split this cell's solve computes.
+    // With the equality basis on (it is off by default), the full-rank Cholesky
+    // pre-check settles every equality split this cell's solve computes.
     const CorpusCell *cell = find_cell("f7_n5000_bound_neutral");
     ASSERT_NE(cell, nullptr);
     F7CollocationChain model = detail::make_model(*cell);
-    hven::solvers::SqpSolver driver(detail::options_for_cell(*cell));
+    hven::solvers::SqpOptions opts = detail::options_for_cell(*cell);
+    opts.equality_basis = true;
+    hven::solvers::SqpSolver driver(opts);
     const hven::solvers::SqpResult sol = detail::budgeted_solve(driver, model, model.start_point());
     ASSERT_EQ(sol.status, hven::solvers::SolveStatus::kOptimal);
     EXPECT_TRUE(sol.equality_basis.computed);

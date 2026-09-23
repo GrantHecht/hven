@@ -147,7 +147,8 @@ static_assert(sizeof(CommonOptions) == 12, "CommonOptions' layout moved on Linux
 // `ipqp_reseed_after_disproval`; 24 and 58 before M7 W2 M4 added
 // `project_start_point`; 25 and 59 before M7 W2 M1 added `qp_failure_budget`
 // and `qp_cap_retry`; 27 and 61 before M7 W2 M2b added `restoration_proximity`;
-// 28 and 62 before M7 W2 E1 added `equality_basis`.)
+// 28 and 62 before M7 W2 E1 added `equality_basis`, whose default E1 fix round 1
+// turned to false: the line count is unchanged.)
 // ---------------------------------------------------------------------------
 #ifdef USE_ACCELERATE_SPARSE
 constexpr int kIpmDumpLines = 67;
@@ -204,6 +205,11 @@ TEST(OptionsDump, SqpDumpsTheCommonDefaults) {
     const std::string text = dump_to_string(SqpOptions{});
     EXPECT_TRUE(has_line(text, "common.threads = 0")) << text;
     EXPECT_TRUE(has_line(text, "common.print_level = 3")) << text;
+}
+
+// SqpOptions::equality_basis is off by default (M7 W2 E1 fix round 1).
+TEST(OptionsDump, SqpDumpsTheEqualityBasisOff) {
+    EXPECT_TRUE(has_line(dump_to_string(SqpOptions{}), "equality_basis = false"));
 }
 
 // An enum prints its ENUMERATOR NAME, never its integer and never the display

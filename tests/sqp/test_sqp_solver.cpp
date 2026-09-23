@@ -11365,8 +11365,8 @@ TEST(SqpDriverCertifiedFallback, T3TheTierSolvedRungReachesTheSameVerdictOnTheSa
     RecordProperty("walk_factorizations", static_cast<int>(w.factorizations));
     RecordProperty("tier_factorizations", static_cast<int>(e.factorizations));
 }
-// THE PRODUCTION PATH on the movers' premise (M7 W2 E1 S3): the tests above turn the equality
-// basis OFF because their inconsistency is a dependent row pair. With it ON (the default) the
+// THE BASIS PATH on the movers' premise (M7 W2 E1 S3): the tests above turn the equality
+// basis OFF because their inconsistency is a dependent row pair. With it ON the
 // pair is split at x0, the dropped row's combination gap (4 s) is read at two distinct iterates
 // with identical Jacobian values, and the exit is the basis's certified kInfeasible -- in every
 // QP mode, without the elastic ladder the OFF path climbs.
@@ -11376,6 +11376,7 @@ TEST(SqpDriverCertifiedFallback, E1TheDependentInconsistentPairIsCertifiedByTheE
         SqpOptions opts;
         opts.qp_mode = mode;
         opts.max_iter = 60;
+        opts.equality_basis = true;
         W2T7ScaledInconsistentEqualitiesModel model(1.0e2, 2.0, 0.5);
         const SqpResult sol = SqpSolver(opts).solve(model);
         EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
