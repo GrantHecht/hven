@@ -480,10 +480,16 @@ TEST(EqualityBasis, ExtremeScalingNeverDropsAnIndependentRow) {
         ASSERT_EQ(pair.verdict(), EqualityBasisVerdict::kReduced) << scale;
         ASSERT_EQ(pair.dropped().size(), 1u) << scale;
         EXPECT_NE(pair.dropped()[0], 2) << scale;
-        for (Index k = 0; k < pair.coefficients().nonZeros(); ++k) {
-            const double c = pair.coefficients().valuePtr()[k];
-            EXPECT_TRUE(std::isfinite(c)) << scale;
-            EXPECT_NEAR(std::abs(c), pair.dropped()[0] == 1 ? 2.0 : 0.5, 1e-14) << scale;
+        // The pair's own coefficient is 2 (or 1/2); row 2's is roundoff at most.
+        for (Eigen::SparseMatrix<double>::InnerIterator it(pair.coefficients(), 0); it; ++it) {
+            const Index rk = pair.retained()[static_cast<std::size_t>(it.row())];
+            EXPECT_TRUE(std::isfinite(it.value())) << scale;
+            if (rk == 2) {
+                EXPECT_LE(std::abs(it.value()), 1e-14) << scale;
+            } else {
+                EXPECT_NEAR(std::abs(it.value()), pair.dropped()[0] == 1 ? 2.0 : 0.5, 1e-14)
+                    << scale;
+            }
         }
         EXPECT_TRUE(pair.verify(to_sparse(P))) << scale;
     }
