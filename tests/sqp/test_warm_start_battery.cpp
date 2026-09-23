@@ -1285,35 +1285,35 @@ const FamilyPin kPins[] = {
     {"F3stress",
      {{5, 33, 98, 33, 0, 0, 5, 0, 0, 0, 98, 0},
       {5, 15, 39, 11, 0, 10, 1, 4, 0, 0, 39, 0},
-      // RE-MEASURED, Phase-5 Task 0 (O-1's repair). The only row in the corpus
-      // where accepting a zero-major hand-off changes WORK and not just the
-      // level histogram: 2/3/0 -> 1/4/0, and with the reseeded working set and
-      // multipliers the step that used to re-solve cold now costs one fewer
-      // factorization (11 -> 10) and one fewer QP minor (94 -> 93, mirrored in
-      // border_refine), while full_step_majors rises 5 -> 6 because the extra
-      // warm-resolved solve arms the full-step rule for its own first major.
-      // Majors (11) and the step count are unchanged.
-      //
-      // RE-MEASURED AGAIN, Phase-5 Task 6 (the ratio-tested predictor path):
-      // 11 majors / 93 minors / 10 factorizations -> 7 / 18 / 6, with
-      // full_step_majors 6 -> 2. Same shape as the F3n1000 row above -- this
-      // family is the same ceiling crossing at n = 200 with dp pinned at 0.5,
-      // so it overshot the same way and is repaired the same way.
-      //
-      // RE-MEASURED at U0 (phase-C flag unification, 2026-08-16, declared --
-      // docs/notes/2026-08-16-m3-u0-design.md), RELEASE ONLY: 7 majors /
-      // 18 minors -> 8 / 20, full_step_majors 2 -> 3, border_refine 18 -> 20
-      // (tracking minors as everywhere). Factorizations (6), steps, the
-      // level histogram and the predictor-call count are unchanged. This is
-      // the ONLY kPins row the unified flags moved -- this family is the
-      // corpus's knife-edge (the two RE-MEASURED notes above are the same
-      // row moving under earlier perturbations). The table banner's
-      // "Release and Debug (identical)" claim is AMENDED at U0 for this one
-      // row: Debug carries no -ffast-math/-march (Release-only genexes), its
-      // arithmetic did not move, and it still measures the pre-U0 7/18 row
-      // (config-split pin per phase-C plan §6(c)1; tolerance not widened,
-      // both configs still pinned exactly). Two fresh reproductions agreed
-      // per config.
+// RE-MEASURED, Phase-5 Task 0 (O-1's repair). The only row in the corpus
+// where accepting a zero-major hand-off changes WORK and not just the
+// level histogram: 2/3/0 -> 1/4/0, and with the reseeded working set and
+// multipliers the step that used to re-solve cold now costs one fewer
+// factorization (11 -> 10) and one fewer QP minor (94 -> 93, mirrored in
+// border_refine), while full_step_majors rises 5 -> 6 because the extra
+// warm-resolved solve arms the full-step rule for its own first major.
+// Majors (11) and the step count are unchanged.
+//
+// RE-MEASURED AGAIN, Phase-5 Task 6 (the ratio-tested predictor path):
+// 11 majors / 93 minors / 10 factorizations -> 7 / 18 / 6, with
+// full_step_majors 6 -> 2. Same shape as the F3n1000 row above -- this
+// family is the same ceiling crossing at n = 200 with dp pinned at 0.5,
+// so it overshot the same way and is repaired the same way.
+//
+// RE-MEASURED at U0 (phase-C flag unification, 2026-08-16, declared --
+// docs/notes/2026-08-16-m3-u0-design.md), RELEASE ONLY: 7 majors /
+// 18 minors -> 8 / 20, full_step_majors 2 -> 3, border_refine 18 -> 20
+// (tracking minors as everywhere). Factorizations (6), steps, the
+// level histogram and the predictor-call count are unchanged. This is
+// the ONLY kPins row the unified flags moved -- this family is the
+// corpus's knife-edge (the two RE-MEASURED notes above are the same
+// row moving under earlier perturbations). The table banner's
+// "Release and Debug (identical)" claim is AMENDED at U0 for this one
+// row: Debug carries no -ffast-math/-march (Release-only genexes), its
+// arithmetic did not move, and it still measures the pre-U0 7/18 row
+// (config-split pin per phase-C plan §6(c)1; tolerance not widened,
+// both configs still pinned exactly). Two fresh reproductions agreed
+// per config.
 #ifdef NDEBUG
       {5, 8, 20, 6, 0, 3, 1, 4, 0, 4, 20, 0},
 #else
