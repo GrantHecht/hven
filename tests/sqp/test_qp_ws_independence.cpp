@@ -1,0 +1,309 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
+// M7 W2 E2 step 1: the working-set dependency test and the entry detector
+// (qp/ws_independence.h), on constructed QPs, in both ws_algebra modes.
+
+#include <optional>
+#include <vector>
+
+#include <gtest/gtest.h>
+
+#include <hven/detail/qp/eqp_solve.h>
+#include <hven/detail/qp/qp_engine.h>
+#include <hven/detail/qp/ws_independence.h>
+
+using namespace hven::solvers;
+using hven::Index;
+using hven::SpMatRM;
+using hven::Vec;
+
+namespace {
+
+SpMatRM dense_to_sparse(const Eigen::MatrixXd &m) { return m.sparseView(); }
+
+QpProblem make_qp(const Eigen::MatrixXd &H, const Vec &g, const Eigen::MatrixXd &Ae, const Vec &be,
+                  const Eigen::MatrixXd &Ai, const Vec &bi, double lo, double up) {
+    QpProblem qp;
+    const Index n = H.rows();
+    qp.H = dense_to_sparse(H.triangularView<Eigen::Upper>().toDenseMatrix());
+    qp.g = g;
+    qp.Ae = dense_to_sparse(Ae);
+    qp.be = be;
+    qp.Ai = dense_to_sparse(Ai);
+    qp.bi = bi;
+    qp.lower = Vec::Constant(n, lo);
+    qp.upper = Vec::Constant(n, up);
+    return qp;
+}
+
+QpOptions opts_for(WorkingSetLinearAlgebra alg, bool on = true) {
+    QpOptions o;
+    o.ws_algebra = alg;
+    o.independent_working_set = on;
+    return o;
+}
+
+class WsIndependence : public ::testing::TestWithParam<WorkingSetLinearAlgebra> {};
+
+// min 1/2||x||^2 - x0 - 2 x1 s.t. x0 + x1 <= 1, 2 x0 + 2 x1 <= 2 (a duplicate),
+// 0 <= x <= 10; seeded with BOTH rows active. The detector removes the
+// higher-index seed row, and the walk ends at the unique optimum (0, 1).
+TEST_P(WsIndependence, EntryDetectorRemovesDuplicatedSeedRow) {
+    Eigen::MatrixXd Ai(2, 2);
+    Ai << 1, 1, 2, 2;
+    Vec g(2);
+    g << -1, -2;
+    Vec bi(2);
+    bi << 1, 2;
+    const QpProblem qp = make_qp(Eigen::MatrixXd::Identity(2, 2), g, Eigen::MatrixXd(0, 2), Vec(0),
+                                 Ai, bi, 0.0, 10.0);
+    QpSolution seed;
+    seed.x = Vec::Zero(2);
+    seed.bound_state.assign(2, BoundState::kFree);
+    seed.ineq_active = {true, true};
+
+    const QpEngine on(opts_for(GetParam()));
+    const QpSolution s = on.solve(qp, seed);
+    ASSERT_EQ(s.status, QpStatus::kOptimal);
+    EXPECT_EQ(s.counters.entry_dependency_removals, 1);
+    EXPECT_EQ(s.counters.mandatory_dependent_entries, 0);
+    EXPECT_GE(s.counters.dep_test_solves, 4);
+    EXPECT_NEAR(s.x(0), 0.0, 1e-8);
+    EXPECT_NEAR(s.x(1), 1.0, 1e-8);
+    // Step 1 only COUNTS at the add site, so the ratio test can re-admit the
+    // removed row at alpha = 0; that add must be flagged dependent. Step 2's
+    // exchange turns this into EXPECT_FALSE(both active).
+    if (s.ineq_active[1] && s.ineq_active[0]) {
+        EXPECT_GE(s.counters.dep_dependent, 1);
+    }
+
+    const QpEngine off(opts_for(GetParam(), false));
+    const QpSolution s0 = off.solve(qp, seed);
+    EXPECT_EQ(s0.counters.dep_test_solves, 0);
+    EXPECT_EQ(s0.counters.entry_dependency_removals, 0);
+    EXPECT_EQ(s0.counters.dep_tests, 0);
+}
+
+// Three rows seeded active in R^2 (an integer over-count): removals run until
+// the set is independent.
+TEST_P(WsIndependence, EntryDetectorClearsOverCount) {
+    Eigen::MatrixXd Ai(3, 2);
+    Ai << 1, 1, 1, -1, 3, 1;
+    Vec g(2);
+    g << -1, -2;
+    Vec bi(3);
+    bi << 1, 0, 2;
+    const QpProblem qp = make_qp(Eigen::MatrixXd::Identity(2, 2), g, Eigen::MatrixXd(0, 2), Vec(0),
+                                 Ai, bi, -10.0, 10.0);
+    QpSolution seed;
+    seed.x = Vec::Constant(2, 0.5);
+    seed.bound_state.assign(2, BoundState::kFree);
+    seed.ineq_active = {true, true, true};
+
+    const QpEngine on(opts_for(GetParam()));
+    const QpSolution s = on.solve(qp, seed);
+    ASSERT_EQ(s.status, QpStatus::kOptimal);
+    EXPECT_EQ(s.counters.entry_dependency_removals, 1);
+    const QpEngine off(opts_for(GetParam(), false));
+    const QpSolution s0 = off.solve(qp, seed);
+    ASSERT_EQ(s0.status, QpStatus::kOptimal);
+    EXPECT_NEAR((s.x - s0.x).lpNorm<Eigen::Infinity>(), 0.0, 1e-7);
+}
+
+// A duplicated EQUALITY (mandatory): counted, never removed, solve proceeds.
+TEST_P(WsIndependence, MandatoryDependencyIsCountedNotRemoved) {
+    Eigen::MatrixXd Ae(2, 3);
+    Ae << 1, 1, 1, 2, 2, 2;
+    Vec be(2);
+    be << 1, 2;
+    const QpProblem qp = make_qp(Eigen::MatrixXd::Identity(3, 3), Vec::Zero(3), Ae, be,
+                                 Eigen::MatrixXd(0, 3), Vec(0), -10.0, 10.0);
+    const QpEngine on(opts_for(GetParam()));
+    const QpSolution s = on.solve(qp);
+    ASSERT_EQ(s.status, QpStatus::kOptimal);
+    EXPECT_EQ(s.counters.mandatory_dependent_entries, 1);
+    EXPECT_EQ(s.counters.entry_dependency_removals, 0);
+    for (Index i = 0; i < 3; ++i) {
+        EXPECT_NEAR(s.x(i), 1.0 / 3.0, 1e-7);
+    }
+}
+
+// A clean start: the detector runs, finds nothing, removes nothing.
+TEST_P(WsIndependence, CleanStartIsUntouched) {
+    Eigen::MatrixXd Ai(1, 2);
+    Ai << 1, 1;
+    Vec g(2);
+    g << -1, -2;
+    Vec bi(1);
+    bi << 1;
+    const QpProblem qp = make_qp(Eigen::MatrixXd::Identity(2, 2), g, Eigen::MatrixXd(0, 2), Vec(0),
+                                 Ai, bi, 0.0, 10.0);
+    const QpEngine on(opts_for(GetParam()));
+    const QpEngine off(opts_for(GetParam(), false));
+    const QpSolution s = on.solve(qp);
+    const QpSolution s0 = off.solve(qp);
+    ASSERT_EQ(s.status, QpStatus::kOptimal);
+    EXPECT_EQ(s.counters.entry_dependency_removals, 0);
+    EXPECT_EQ(s.counters.mandatory_dependent_entries, 0);
+    EXPECT_EQ(s.x, s0.x);
+    EXPECT_EQ(s.counters.minor_iters, s0.counters.minor_iters);
+}
+
+INSTANTIATE_TEST_SUITE_P(BothAlgebras, WsIndependence,
+                         ::testing::Values(WorkingSetLinearAlgebra::kSchurBorder,
+                                           WorkingSetLinearAlgebra::kRefactorize));
+
+// F7 (eliminated view): the refined statistic separates dependent from
+// independent candidates across mu and row scale, with the declared kDepTol.
+TEST(WsIndependenceCalibration, RefinedStatisticSeparates) {
+    for (const double mu : {1e-8, 1e-10, 1e-12}) {
+        for (const double scale : {1.0, 1e5}) {
+            Eigen::MatrixXd Ai(2, 3);
+            Ai << scale, scale, 0, 0, 0, 1;
+            Vec bi(2);
+            bi << scale, 1.0;
+            const QpProblem qp = make_qp(Eigen::MatrixXd::Identity(3, 3), Vec::Zero(3),
+                                         Eigen::MatrixXd(0, 3), Vec(0), Ai, bi, -10.0, 10.0);
+            QpOptions o;
+            o.dual_mu = mu;
+            WorkingSet ws(3, 2);
+            ws.add_ineq(0);
+            detail::KktFactor kkt;
+            (void)solve_eqp(qp, ws, kkt, o);
+            detail::DepFactorView v;
+            v.eliminated = &kkt;
+
+            Vec dep(3);
+            dep << 2.0, 2.0, 0.0;
+            const detail::DepTest td = detail::dependency_test(qp, ws, v, dep, o);
+            EXPECT_EQ(td.verdict, detail::DepVerdict::kDependent) << mu << " " << scale;
+            EXPECT_LT(td.rho, 1e-8) << mu << " " << scale;
+            EXPECT_NEAR(td.v_w(0) * scale, 2.0, 1e-6);
+            EXPECT_GE(td.solves, 1);
+            EXPECT_LE(td.solves, 1 + detail::kDepRefineSteps);
+
+            Vec ind(3);
+            ind << 1.0, 0.0, 0.0;
+            const detail::DepTest ti = detail::dependency_test(qp, ws, v, ind, o);
+            EXPECT_EQ(ti.verdict, detail::DepVerdict::kIndependent) << mu << " " << scale;
+            EXPECT_GT(ti.rho, 1e-2);
+        }
+    }
+}
+
+// A bordered view on min 1/2||x||^2 in R^3 with row 0 = scale*(1,1,0) bordered
+// into an empty-row K0 (the border coefficient map), for F7 and F11.
+struct BorderedView {
+    QpProblem qp;
+    QpOptions o;
+    WorkingSet ws{3, 2};
+    detail::KktFactor kkt0;
+    KktAssembly k0;
+    std::vector<Index> k0_rows;
+    std::vector<BorderLedgerEntry> ledger;
+    std::optional<SchurComplement> schur;
+
+    BorderedView(double mu, double scale) {
+        Eigen::MatrixXd Ai(2, 3);
+        Ai << scale, scale, 0, 0, 0, 1;
+        Vec bi(2);
+        bi << scale, 1.0;
+        qp = make_qp(Eigen::MatrixXd::Identity(3, 3), Vec::Zero(3), Eigen::MatrixXd(0, 3), Vec(0),
+                     Ai, bi, -10.0, 10.0);
+        o.dual_mu = mu;
+        k0 = assemble_kkt_full(qp, ws, o);
+        detail::factorize_checked(kkt0, k0.K);
+        schur.emplace(kkt0, o);
+        schur->add_border(BorderOps::add_ineq_row(qp, 0, k0.K.rows()), -o.dual_mu);
+        ledger.push_back({BorderLedgerEntry::Kind::kIneqRow, 0});
+        ws.add_ineq(0);
+    }
+
+    detail::DepFactorView view() const {
+        detail::DepFactorView v;
+        v.k0 = &k0;
+        v.k0_rows = &k0_rows;
+        v.ledger = &ledger;
+        v.schur = &*schur;
+        return v;
+    }
+};
+
+// F7 (bordered view): the same separation through the Schur border stack.
+TEST(WsIndependenceCalibration, RefinedStatisticSeparatesBordered) {
+    for (const double mu : {1e-8, 1e-10, 1e-12}) {
+        for (const double scale : {1.0, 1e5}) {
+            const BorderedView b(mu, scale);
+            Vec dep(3);
+            dep << 2.0, 2.0, 0.0;
+            const detail::DepTest td = detail::dependency_test(b.qp, b.ws, b.view(), dep, b.o);
+            EXPECT_EQ(td.verdict, detail::DepVerdict::kDependent) << mu << " " << scale;
+            EXPECT_LT(td.rho, 1e-8) << mu << " " << scale;
+            EXPECT_NEAR(td.v_w(0) * scale, 2.0, 1e-6);
+            EXPECT_LE(td.solves, 1 + detail::kDepRefineSteps);
+
+            Vec ind(3);
+            ind << 1.0, 0.0, 0.0;
+            const detail::DepTest ti = detail::dependency_test(b.qp, b.ws, b.view(), ind, b.o);
+            EXPECT_EQ(ti.verdict, detail::DepVerdict::kIndependent) << mu << " " << scale;
+            EXPECT_GT(ti.rho, 1e-2);
+        }
+    }
+}
+
+// F11: the test and the detector are read-only on both views: factor identity,
+// ledger and border dimension are unchanged.
+TEST(WsIndependenceReadOnly, TestAndDetectorWriteNothing) {
+    BorderedView b(1e-8, 1.0);
+    const auto sid = b.kkt0.factor.session_id();
+    const auto ep = b.kkt0.factor.epoch();
+    const Index dim = b.schur->dim();
+    const auto ledger = b.ledger;
+    Vec a(3);
+    a << 1.0, 1.0, 0.0;
+    (void)detail::dependency_test(b.qp, b.ws, b.view(), a, b.o);
+    (void)detail::detect_dependency(b.qp, b.ws, b.view(), b.o);
+    EXPECT_EQ(b.kkt0.factor.session_id(), sid);
+    EXPECT_EQ(b.kkt0.factor.epoch(), ep);
+    EXPECT_EQ(b.schur->dim(), dim);
+    EXPECT_EQ(b.ledger.size(), ledger.size());
+
+    detail::KktFactor kkt;
+    (void)solve_eqp(b.qp, b.ws, kkt, b.o);
+    detail::DepFactorView v;
+    v.eliminated = &kkt;
+    const auto sid2 = kkt.factor.session_id();
+    const auto ep2 = kkt.factor.epoch();
+    (void)detail::dependency_test(b.qp, b.ws, v, a, b.o);
+    (void)detail::detect_dependency(b.qp, b.ws, v, b.o);
+    EXPECT_EQ(kkt.factor.session_id(), sid2);
+    EXPECT_EQ(kkt.factor.epoch(), ep2);
+}
+
+// A shift add dependent on the set: the re-check removes it and refuses it,
+// and the walk still ends. x0 + x1 <= 1 is seeded; the start (1, 1) violates
+// the duplicate 2x0 + 2x1 <= 2, which the homotopy would admit.
+TEST_P(WsIndependence, DependentShiftAddIsRefused) {
+    Eigen::MatrixXd Ai(2, 2);
+    Ai << 1, 1, 2, 2;
+    Vec g(2);
+    g << -1, -2;
+    Vec bi(2);
+    bi << 1, 2;
+    const QpProblem qp = make_qp(Eigen::MatrixXd::Identity(2, 2), g, Eigen::MatrixXd(0, 2), Vec(0),
+                                 Ai, bi, 0.0, 10.0);
+    QpSolution seed;
+    seed.x = Vec::Constant(2, 1.0);
+    seed.bound_state.assign(2, BoundState::kFree);
+    seed.ineq_active = {true, false};
+    const QpEngine on(opts_for(GetParam()));
+    const QpSolution s = on.solve(qp, seed);
+    ASSERT_EQ(s.status, QpStatus::kOptimal);
+    EXPECT_GE(s.counters.shift_adds, 1);
+    EXPECT_GE(s.counters.entry_dependency_removals + s.counters.dep_recheck_removals, 1);
+    EXPECT_NEAR(s.x(0), 0.0, 1e-8);
+    EXPECT_NEAR(s.x(1), 1.0, 1e-8);
+}
+
+} // namespace

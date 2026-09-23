@@ -1026,8 +1026,13 @@ TEST(HsBattery, CrashBasisIsANullResultOnTheBatteryWithTwoBoundSeededExceptions)
     EXPECT_EQ(minors_off, 861);
     EXPECT_EQ(minors_on, 858);
 #else
-    EXPECT_EQ(minors_off, 862);
-    EXPECT_EQ(minors_on, 859);
+    // M7 W2 E2: HS24 spends one minor fewer in each arm (11 -> 10; answer
+    // bit-identical): a re-check after shift adds finds two shifted rows and
+    // a pin over-counted (3 > n = 2) and releases the pin. 862/859 before.
+    // UNOBSERVED on Accelerate: the arm above keeps its observed pre-E2 pin
+    // until the macOS lane reports.
+    EXPECT_EQ(minors_off, 861);
+    EXPECT_EQ(minors_on, 858);
 #endif
     EXPECT_EQ(facts_off, 320);
     EXPECT_EQ(facts_on, 323);

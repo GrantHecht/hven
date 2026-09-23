@@ -163,6 +163,10 @@ struct QpOptions {
     /// assert a Release build compiles out), never NaN (read as "disabled", a
     /// meaning only +inf has).
     double tr_radius = std::numeric_limits<double>::infinity();
+
+    /// Keep the walk's working set linearly independent (qp/ws_independence.h).
+    /// false is the pre-E2 walk.
+    bool independent_working_set = true;
 };
 
 /// @brief A field-wise hash of the options a QpEngine was built under, plus the

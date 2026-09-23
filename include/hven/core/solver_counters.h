@@ -198,6 +198,20 @@ struct QpCounters {
     /// needs a second pass over every candidate on every minor, a real cost
     /// in a loop that runs half a million times.
     Index ratio_ties = 0;
+
+    // Working-set independence (qp/ws_independence.h). Solves are triangular
+    // solves on the pass's own factor; none factorizes.
+    Index dep_test_solves = 0;
+    Index dep_tests = 0;
+    Index dep_dependent = 0; // incl. undecidable
+    Index dep_undecidable = 0;
+    Index entry_dependency_removals = 0;
+    Index mandatory_dependent_entries = 0;
+    Index dep_recheck_removals = 0; // detector re-checks after untested growth
+    Index dep_ride_declines = 0;
+    Index dep_pin_skips = 0;
+    Index ws_count_violations = 0; // passes with me + |W| > n (the integer screen)
+    Index dep_untested_growth = 0; // screen-positive checks the detector did not resolve
 };
 
 /// @brief Work counters for the semismooth-Newton kernel.

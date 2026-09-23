@@ -2697,40 +2697,52 @@ TEST(QpEngineIndefinite, T7Fix2AFailedStartRepairDoesNotRefineThroughTheProbedFa
     qp.upper = Vec(2);
     qp.upper << 1.0, 1e20;
 
-    for (const auto algebra :
-         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
-        QpOptions opts;
-        opts.ws_algebra = algebra;
-        QpEngine eng{opts};
+    // The stale-key path needs the repair to PROBE, i.e. to pin x0. x0's pin
+    // is dependent on Ae (both rows are e_0), so the independent working set
+    // (E2) skips it and never probes: the path is exercised with it off, and
+    // the on arm pins the skip.
+    for (const bool independent : {false, true})
+        for (const auto algebra :
+             {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+            SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border"
+                                                                          : "refactorize");
+            SCOPED_TRACE(independent ? "independent_working_set" : "pre-E2 walk");
+            QpOptions opts;
+            opts.ws_algebra = algebra;
+            opts.independent_working_set = independent;
+            QpEngine eng{opts};
 
-        const QpSolution cold = eng.solve(qp);
-        EXPECT_EQ(cold.status, QpStatus::kInfeasible);
+            const QpSolution cold = eng.solve(qp);
+            EXPECT_EQ(cold.status, QpStatus::kInfeasible);
 
-        // The WARM re-solve is the cell: at BASE it returned this status, and
-        // the stale-key defect turned it into a throw out of the public API.
-        QpSolution warm;
-        ASSERT_NO_THROW(warm = eng.solve(qp, cold));
-        EXPECT_EQ(warm.status, QpStatus::kInfeasible);
-        EXPECT_NEAR(warm.x(0), 0.5, 1e-9);
-        EXPECT_EQ(warm.x(1), 0.0);
-        EXPECT_EQ(warm.counters.verdict_refine_steps, 0);
+            // The WARM re-solve is the cell: at BASE it returned this status, and
+            // the stale-key defect turned it into a throw out of the public API.
+            QpSolution warm;
+            ASSERT_NO_THROW(warm = eng.solve(qp, cold));
+            EXPECT_EQ(warm.status, QpStatus::kInfeasible);
+            EXPECT_NEAR(warm.x(0), 0.5, 1e-9);
+            EXPECT_EQ(warm.x(1), 0.0);
+            EXPECT_EQ(warm.counters.verdict_refine_steps, 0);
 
-        // THE PRICE OF THE MISS (fix 1's rider 4): under kRefactorize the probes
-        // move the epoch, so the twin buys its own factorization and analysis
-        // instead of reusing a factorization of a differently-SIZED system.
-        //
-        // The 3 is candidate + ONE probe + the twin's miss, and the middle term
-        // is this fixture's: x1 is unbounded below in H and x0 is the only
-        // pinnable candidate, so the repair probes exactly once.
-        if (algebra == WorkingSetLinearAlgebra::kRefactorize) {
-            EXPECT_EQ(warm.counters.factorizations, 3);
-            EXPECT_EQ(warm.counters.symbolic_analyses, 1);
-        } else {
-            EXPECT_EQ(warm.counters.factorizations, 1);
-            EXPECT_EQ(warm.counters.symbolic_analyses, 0);
+            // THE PRICE OF THE MISS (fix 1's rider 4): under kRefactorize the probes
+            // move the epoch, so the twin buys its own factorization and analysis
+            // instead of reusing a factorization of a differently-SIZED system.
+            //
+            // The 3 is candidate + ONE probe + the twin's miss, and the middle term
+            // is this fixture's: x1 is unbounded below in H and x0 is the only
+            // pinnable candidate, so the repair probes exactly once.
+            if (independent) {
+                EXPECT_GE(warm.counters.dep_pin_skips, 1);
+                EXPECT_EQ(warm.counters.factorizations, 1);
+                EXPECT_EQ(warm.counters.symbolic_analyses, 0);
+            } else if (algebra == WorkingSetLinearAlgebra::kRefactorize) {
+                EXPECT_EQ(warm.counters.factorizations, 3);
+                EXPECT_EQ(warm.counters.symbolic_analyses, 1);
+            } else {
+                EXPECT_EQ(warm.counters.factorizations, 1);
+                EXPECT_EQ(warm.counters.symbolic_analyses, 0);
+            }
         }
-    }
 }
 
 // `dual_mu = 0` is legal (qp_types.h: 0 means no dual regularization), and with

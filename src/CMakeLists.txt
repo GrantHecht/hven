@@ -217,6 +217,7 @@ target_sources(hven PRIVATE
     qp/ipqp_kkt_layout.cpp
     qp/qp_engine.cpp
     qp/ssn_engine.cpp
+    qp/ws_independence.cpp
     warmstart/continuation.cpp
     warmstart/warm_start.cpp
 )
@@ -498,7 +499,11 @@ endif()
 # the others outside the list: it includes its own header, Eigen's SparseQR,
 # OrderingMethods and SparseCholesky modules, fmt/format.h and four standard
 # headers, a different set from src/hven_pch.h's prefix.
-set(_hven_expected_source_count 43)
+#
+# 44 as of qp/ws_independence.cpp (M7 W2 E2): the QP walk's working-set
+# dependency test and entry detector. NOT a PCH source, on the same
+# unmeasured-default footing.
+set(_hven_expected_source_count 44)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.

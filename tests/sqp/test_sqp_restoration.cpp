@@ -2014,6 +2014,10 @@ TEST(SqpDriverRestorationSeed, TheSeedIsNotGatedOnTheQpMode) {
         SCOPED_TRACE(seed_mode_name(mode));
         InfeasibleCircleLineModel model;
         SqpOptions opts;
+        // M7 W2 E2: the entry repair releases a seed pin dependent on the
+        // equalities on this knife-edge model, and the candidate premise below
+        // belongs to the pre-E2 walk's trajectory (answer unchanged either way).
+        opts.qp.independent_working_set = false;
         opts.max_iter = 200;
         opts.qp.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
         opts.qp_mode = mode;
@@ -2137,6 +2141,10 @@ TEST(SqpDriverRestorationSeed, AJacobianPoisonedCandidateIsRefusedNotTaken) {
         SCOPED_TRACE(fmt::format("k = {}", k));
         JacobianPoisonedAtOrdinalModel model(k);
         SqpOptions opts;
+        // M7 W2 E2: the entry repair releases a seed pin dependent on the
+        // equalities on this knife-edge model, and the candidate premise below
+        // belongs to the pre-E2 walk's trajectory (answer unchanged either way).
+        opts.qp.independent_working_set = false;
         opts.max_iter = 200;
         opts.qp.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
         SqpSolver driver(opts);
@@ -2234,6 +2242,10 @@ TEST(SqpDriverRestorationSeed, TheGuardAndThePhaseRunOnTheCallerScale) {
 TEST(SqpDriverRestorationSeed, TheSeedsEvaluationIsCountedExactlyOnce) {
     SeedCountingModel model(2.0, 2.0);
     SqpOptions opts;
+    // M7 W2 E2: the entry repair releases a seed pin dependent on the
+    // equalities on this knife-edge model, and the candidate premise below
+    // belongs to the pre-E2 walk's trajectory (answer unchanged either way).
+    opts.qp.independent_working_set = false;
     // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
     opts.equality_basis = false;
     opts.max_iter = 200;
@@ -2722,6 +2734,10 @@ constexpr double kCancellationKktTol = 6.3e-7;
 TEST(SqpDriverRestorationProximity, TheProxyWouldCertifyWhereTheExactResidualRefuses) {
     WatchedCircleLineModel model(2.0, 1.999999);
     SqpOptions opts;
+    // M7 W2 E2: in Debug the E2 walk's end point satisfies the exact residual
+    // (5.5e-7 < 6.3e-7) and is then rightly certified; premise 2 belongs to the
+    // pre-E2 walk's trajectory.
+    opts.qp.independent_working_set = false;
     opts.max_iter = 200;
     opts.kkt_tol = kCancellationKktTol;
     opts.restoration_proximity = kCancellationZeta;

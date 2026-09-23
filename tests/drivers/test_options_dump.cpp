@@ -71,7 +71,7 @@ constexpr std::size_t kIpmOptionsFields = 63;
 #endif
 constexpr std::size_t kSqpOptionsFields = 32;
 constexpr std::size_t kIpqpOptionsFields = 22;
-constexpr std::size_t kQpOptionsFields = 9;
+constexpr std::size_t kQpOptionsFields = 10;
 constexpr std::size_t kCommonOptionsFields = 3;
 
 static_assert(::hven::detail::kAggregateArity<IpmOptions> == kIpmOptionsFields,
@@ -109,7 +109,7 @@ static_assert(sizeof(IpmOptions) == 376, "IpmOptions' layout moved on Linux x86-
                                          "was added, axis 1 above has already told you so; if "
                                          "only a TYPE changed, this is the only axis that "
                                          "noticed. Check the dump, then re-observe this value.");
-static_assert(sizeof(SqpOptions) == 416,
+static_assert(sizeof(SqpOptions) == 424,
               "SqpOptions' layout moved on Linux x86-64 -- see the IpmOptions note directly "
               "above. 376 -> 384 at M7 W0 T3, which added the `elastic_rung_engine` enum; "
               "UNCHANGED at M7 W0 T4, whose `ipqp_reseed_after_disproval` bool fits the "
@@ -129,9 +129,11 @@ static_assert(sizeof(SqpOptions) == 416,
               "this platform, the way every value on this axis is: the design page's "
               "arithmetic said 408 and the compiler is the authority. UNCHANGED at M7 W2 E1, "
               "whose `equality_basis` bool fits the padding after `restoration_proximity` "
-              "(the size observed; the offsets not).");
+              "(the size observed; the offsets not); 416 -> 424 at M7 W2 E2, whose "
+              "QpOptions `independent_working_set` bool grows the embedded QpOptions "
+              "72 -> 80 (its 8-alignment; observed).");
 static_assert(sizeof(IpqpOptions) == 152, "IpqpOptions' layout moved on Linux x86-64.");
-static_assert(sizeof(QpOptions) == 72, "QpOptions' layout moved on Linux x86-64.");
+static_assert(sizeof(QpOptions) == 80, "QpOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(CommonOptions) == 12, "CommonOptions' layout moved on Linux x86-64.");
 #endif
 
@@ -155,7 +157,7 @@ constexpr int kIpmDumpLines = 67;
 #else
 constexpr int kIpmDumpLines = 65;
 #endif
-constexpr int kSqpDumpLines = 63;
+constexpr int kSqpDumpLines = 64;
 
 int count_lines(const std::string &text) {
     int n = 0;

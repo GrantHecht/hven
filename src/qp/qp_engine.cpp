@@ -92,6 +92,7 @@ std::uint64_t options_fingerprint(const QpOptions &opts, int threads) {
     fold_double(opts.schur_cond_max);
     fold(static_cast<std::uint64_t>(opts.ws_algebra));
     fold_double(opts.tr_radius);
+    fold(static_cast<std::uint64_t>(opts.independent_working_set));
     // And the thread count in force, which is not a QpOptions field but IS part
     // of what a factorization was built under.
     fold(static_cast<std::uint64_t>(static_cast<std::int64_t>(threads)));
@@ -500,7 +501,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     EliminatedFace face;
     QpCounters counters;
     WalkSeen seen{std::vector<std::uint8_t>(static_cast<std::size_t>(mi), 0),
-                  std::vector<std::uint8_t>(static_cast<std::size_t>(n), 0)};
+                  std::vector<std::uint8_t>(static_cast<std::size_t>(n), 0),
+                  std::vector<std::uint8_t>(
+                      eff_opts.independent_working_set ? static_cast<std::size_t>(mi) : 0, 0)};
 
     refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen, eff_opts);
 
@@ -607,6 +610,14 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     // off `qp_in` (the caller's problem, real bounds) rather than `qp`
     // (the trust-region-narrowed one), deliberately.
     const Index eff_max_iter = detail::effective_qp_max_iter(qp_in, opts_.max_iter);
+
+    // Working-set independence: the entry detector runs on the first
+    // factorization, and again after each removal it makes; `start_pass`
+    // stays true until the start repair has had its pass.
+    bool entry_check_pending = eff_opts.independent_working_set;
+    bool start_pass = true;
+    bool recheck_pending = false;
+    Index shift_adds_checked = 0;
 
     QpStatus status = crossed_bounds ? QpStatus::kInfeasible : QpStatus::kMaxIter;
 #ifdef HVEN_TESTING
@@ -739,12 +750,73 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         // iteration retried from the repaired vertex. kSuspect is
         // deliberately NOT a repair trigger, and a wrong inertia LATER is
         // section 4c's ride to handle.
-        if (iter == 0 && verdict == detail::InertiaVerdict::kWrong &&
+        // WORKING-SET INDEPENDENCE: the entry detector, and its re-check after
+        // any growth no pass factor could test (shift adds, repair pins) or an
+        // over-count me + |W| > n.
+        if (eff_opts.independent_working_set) {
+            // THE INTEGER SCREEN, before any solve: me + |W| > n proves the
+            // set dependent.
+            const Index ws_count =
+                me + static_cast<Index>(ws.active_ineq().size()) + (n - ws.num_free());
+            const bool over = ws_count > n;
+            if (over) {
+                ++counters.ws_count_violations;
+            }
+            // STEP-1 CRUTCH (S3): only untested growth licenses a removal. An
+            // over-count alone is the add site's to resolve; removing its row
+            // here re-admits it at alpha = 0 (HS10 cycled). Step 2 makes the
+            // add site act, removes this, and restores the Debug assert
+            // (over-count => the detector found the dependency).
+            const bool untested =
+                entry_check_pending || recheck_pending || counters.shift_adds != shift_adds_checked;
+            if (untested || over) {
+                shift_adds_checked = counters.shift_adds;
+                recheck_pending = false;
+                const detail::DepFactorView view = dep_factor_view(ws, kkt, face, *border_);
+                const detail::EntryDetection det =
+                    detail::detect_dependency(qp, ws, view, eff_opts);
+                counters.dep_test_solves += det.solves;
+                // A screen-positive set the detector did not resolve is never
+                // "independent": counted, and trimmed by count (R6).
+                detail::EntryDetection trim;
+                if (over && !det.found) {
+                    ++counters.dep_untested_growth;
+                    trim.found = true;
+                    for (Index r = 0; r < me; ++r) {
+                        trim.support.push_back({detail::WsMember::Kind::kEq, r});
+                    }
+                    for (const Index r : ws.active_ineq()) {
+                        trim.support.push_back({detail::WsMember::Kind::kRow, r});
+                    }
+                    for (Index i = 0; i < n; ++i) {
+                        if (ws.bound_state()[static_cast<std::size_t>(i)] != BoundState::kFree) {
+                            trim.support.push_back({detail::WsMember::Kind::kPin, i});
+                        }
+                    }
+                }
+                if ((det.found || trim.found) && untested &&
+                    remove_entry_dependency(ws, shift, det.found ? det : trim,
+                                            entry_check_pending ? nullptr : &probe,
+                                            seen.shift_refused)) {
+                    ++(entry_check_pending ? counters.entry_dependency_removals
+                                           : counters.dep_recheck_removals);
+                    continue;
+                }
+                if (det.found && entry_check_pending) {
+                    ++counters.mandatory_dependent_entries;
+                }
+                entry_check_pending = false;
+            }
+        }
+        const bool first_pass = start_pass;
+        start_pass = false;
+        if (first_pass && verdict == detail::InertiaVerdict::kWrong &&
             repair_temporary_vertex(qp, ws, x, kkt, face, *border_, counters, eff_opts)) {
 #ifdef HVEN_TESTING
             walk_obs.record().action = detail::testing::QpWalkAction::kStartRepair;
 #endif
             degenerate_run = 0; // observation only -- x moved onto bounds
+            recheck_pending = eff_opts.independent_working_set;
             // Pinning moved x onto bounds, which can violate general
             // rows; the homotopy picks them up exactly as at a start
             // point.
@@ -753,6 +825,10 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         }
 
         price(qp, ws, eqp, lambda_e, lambda_i, z);
+        // The factor this pass holds for `ws`; valid until `ws` changes.
+        const detail::DepFactorView pass_view = eff_opts.independent_working_set
+                                                    ? dep_factor_view(ws, kkt, face, *border_)
+                                                    : detail::DepFactorView{};
 
         const Vec p = eqp.x - x;
 
@@ -905,6 +981,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         repair_temporary_vertex(qp, ws, x, kkt, face, *border_, counters,
                                                 eff_opts)) {
                         post_probe_restart_spent = true;
+                        recheck_pending = eff_opts.independent_working_set;
 #ifdef HVEN_TESTING
                         walk_obs.record().action = detail::testing::QpWalkAction::kPostProbeRestart;
 #endif
@@ -933,6 +1010,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         // -- 4c's ride is vacuous for a zero-multiplier
                         // drop.
                         probe_drop_made = true;
+                        std::fill(seen.shift_refused.begin(), seen.shift_refused.end(), 0);
 #ifdef HVEN_TESTING
                         walk_obs.record().action = detail::testing::QpWalkAction::kDropZeroProbe;
 #endif
@@ -1103,6 +1181,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 }
             }
 #endif
+            std::fill(seen.shift_refused.begin(), seen.shift_refused.end(), 0);
             continue;
         }
 
@@ -1141,8 +1220,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 // which is the fact an ordinary zero-step add cannot establish.
                 walk_obs.record().curvature_fired = true;
 #endif
-                const RideOutcome outcome =
-                    ride_negative_curvature(qp, dropped, counters, seen, p, Aix, ws, x);
+                const RideOutcome outcome = ride_negative_curvature(
+                    qp, dropped, counters, seen, p, Aix, ws, x,
+                    eff_opts.independent_working_set ? &pass_view : nullptr, eff_opts);
 #ifdef HVEN_TESTING
                 if (outcome != RideOutcome::kDeclined) {
                     walk_obs.record().action = outcome == RideOutcome::kStepped
@@ -1237,11 +1317,14 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                                         /*cap_at_unit=*/true, counters);
 #endif
 
-        // Observation only (see QpCounters' own note): a blocking add
-        // whose step moved the iterate by no more than the SAME step_tol
-        // the KKT-point test above used is a degenerate pivot. Read
-        // before x is overwritten, since ||p||inf is the pre-step
-        // direction's magnitude.
+        // THE DEPENDENCY TEST on the blocker, against the factor this pass
+        // holds for `ws` (ws_independence.h).
+        // THE DEPENDENCY TEST on the blocker (counted only; step 2 acts).
+        if (eff_opts.independent_working_set && kind != BlockKind::kNone) {
+            (void)test_candidate(qp, ws, pass_view, kind == BlockKind::kIneq, block_idx, counters,
+                                 eff_opts);
+        }
+
         if (kind != BlockKind::kNone && alpha * p.lpNorm<Eigen::Infinity>() <= step_tol) {
             ++counters.degenerate_steps;
             ++degenerate_run;
@@ -1638,6 +1721,10 @@ void QpEngine::refresh_shifts(const QpProblem &qp, const Vec &x, const Vec &ai_r
         const double s = Aix(j) - qp.bi(j);
         shift(j) = (s > row_tolerance(row_scale, lambda_i(j), opts)) ? s : 0.0;
         if (shift(j) > 0.0 && !in_working(ws, j)) {
+            if (!seen.shift_refused.empty() &&
+                seen.shift_refused[static_cast<std::size_t>(j)] != 0) {
+                continue;
+            }
 #ifdef HVEN_TESTING
             // ARM B1 AT THE SHIFT ADD SITE (amendment A3, site 4 of six).
             //
@@ -2520,6 +2607,21 @@ bool QpEngine::repair_temporary_vertex(const QpProblem &qp, WorkingSet &ws, Vec 
     std::vector<Index> pinned;
     detail::InertiaVerdict verdict = detail::InertiaVerdict::kWrong;
     for (const Index i : order) {
+        // A pin dependent on the set leaves null(A_W), and so the inertia,
+        // unchanged: skip it. With no factor for `ws` the run re-checks.
+        if (opts.independent_working_set) {
+            // The integer screen first; the solve only on a screen-negative set.
+            const bool screen = qp.me() + static_cast<Index>(ws.active_ineq().size()) +
+                                    (qp.n() - ws.num_free()) + 1 >
+                                qp.n();
+            const detail::DepFactorView view = dep_factor_view(ws, kkt, face, border);
+            if (screen ||
+                (view.usable() &&
+                 test_candidate(qp, ws, view, /*is_ineq=*/false, i, counters, opts).dependent())) {
+                ++counters.dep_pin_skips;
+                continue;
+            }
+        }
         Vec grad = qp.H.selfadjointView<Eigen::Upper>() * x + qp.g;
         if (!pin_at_best_bound(qp, ws, x, grad, i, hdiag(i))) {
             continue; // unbounded both ways: nothing to pin against
@@ -2552,6 +2654,133 @@ bool QpEngine::repair_temporary_vertex(const QpProblem &qp, WorkingSet &ws, Vec 
             detail::InertiaVerdict::kOk) {
             ws.bound_state()[si] = held; // negative curvature is still there: keep the pin
         }
+    }
+    return true;
+}
+
+detail::DepFactorView QpEngine::dep_factor_view(const WorkingSet &ws, const detail::KktFactor &kkt,
+                                                const EliminatedFace &face,
+                                                const BorderState &border) {
+    detail::DepFactorView v;
+    if (face.holds(ws, kkt)) {
+        v.eliminated = &kkt;
+    } else if (border.schur.has_value() && !border.schur->needs_refactorization() &&
+               border_holds(ws, border)) {
+        v.k0 = &border.k0;
+        v.k0_rows = &border.k0_rows;
+        v.ledger = &border.ledger;
+        v.schur = &*border.schur;
+    }
+    return v;
+}
+
+bool QpEngine::border_holds(const WorkingSet &ws, const BorderState &border) {
+    const Index me = border.k0.K.rows() - ws.n() - static_cast<Index>(border.k0_rows.size());
+    std::vector<std::uint8_t> row_deleted(border.k0_rows.size(), 0);
+    std::vector<Index> rows;
+    Index pins = 0;
+    for (const BorderLedgerEntry &e : border.ledger) {
+        switch (e.kind) {
+        case BorderLedgerEntry::Kind::kVarPin:
+            if (ws.bound_state()[static_cast<std::size_t>(e.target)] == BoundState::kFree) {
+                return false;
+            }
+            ++pins;
+            break;
+        case BorderLedgerEntry::Kind::kRowDelete: {
+            const Index p = e.target - me;
+            if (p < 0 || p >= static_cast<Index>(row_deleted.size())) {
+                return false;
+            }
+            row_deleted[static_cast<std::size_t>(p)] = 1;
+            break;
+        }
+        case BorderLedgerEntry::Kind::kIneqRow:
+            rows.push_back(e.target);
+            break;
+        }
+    }
+    if (pins != ws.n() - ws.num_free()) {
+        return false;
+    }
+    for (std::size_t p = 0; p < border.k0_rows.size(); ++p) {
+        if (row_deleted[p] == 0) {
+            rows.push_back(border.k0_rows[p]);
+        }
+    }
+    std::sort(rows.begin(), rows.end());
+    return rows == ws.active_ineq();
+}
+
+detail::DepTest QpEngine::test_candidate(const QpProblem &qp, const WorkingSet &ws,
+                                         const detail::DepFactorView &view, bool is_ineq, Index idx,
+                                         QpCounters &counters, const QpOptions &opts) {
+    Vec a = Vec::Zero(qp.n());
+    if (is_ineq) {
+        a = qp.Ai.row(idx).transpose();
+    } else {
+        a(idx) = 1.0; // the side does not change dependence
+    }
+    detail::DepTest t = detail::dependency_test(qp, ws, view, a, opts);
+    ++counters.dep_tests;
+    counters.dep_test_solves += t.solves;
+    if (t.dependent()) {
+        ++counters.dep_dependent;
+    }
+    if (t.verdict == detail::DepVerdict::kUndecidable) {
+        ++counters.dep_undecidable;
+    }
+    return t;
+}
+
+bool QpEngine::remove_entry_dependency(WorkingSet &ws, const Vec &shift,
+                                       const detail::EntryDetection &det, const ProbeState *seq,
+                                       std::vector<std::uint8_t> &refused) {
+    using Kind = detail::WsMember::Kind;
+    const auto mandatory = [&](const detail::WsMember &m) {
+        return m.kind == Kind::kEq ||
+               (m.kind == Kind::kPin &&
+                ws.bound_state()[static_cast<std::size_t>(m.idx)] == BoundState::kFixed);
+    };
+    // Lower key goes first. Entry: 0 seed row, 1 seed pin, 2 shifted row.
+    // Re-check: newest first, shifted rows last -- a shifted row is violated,
+    // and refusing it would leave the walk no way to restore it (a false
+    // kInfeasible on a pinned vertex).
+    const auto key = [&](const detail::WsMember &m) -> Index {
+        const auto si = static_cast<std::size_t>(m.idx);
+        if (seq != nullptr) {
+            const bool shifted = m.kind == Kind::kRow && shift(m.idx) > 0.0;
+            constexpr Index kShiftedLast = Index{1} << 40;
+            return (shifted ? kShiftedLast : 0) -
+                   (m.kind == Kind::kPin ? seq->bound_seq[si] : seq->ineq_seq[si]);
+        }
+        if (m.kind == Kind::kPin) {
+            return 1;
+        }
+        return shift(m.idx) > 0.0 ? 2 : 0;
+    };
+    const detail::WsMember *pick = nullptr;
+    Index pick_key = 0;
+    for (const detail::WsMember &m : det.support) {
+        if (mandatory(m)) {
+            continue;
+        }
+        const Index k = key(m);
+        if (pick == nullptr || k < pick_key || (k == pick_key && m.idx > pick->idx)) {
+            pick = &m;
+            pick_key = k;
+        }
+    }
+    if (pick == nullptr) {
+        return false;
+    }
+    if (pick->kind == Kind::kRow) {
+        ws.drop_ineq(pick->idx);
+        if (!refused.empty() && shift(pick->idx) > 0.0) {
+            refused[static_cast<std::size_t>(pick->idx)] = 1;
+        }
+    } else {
+        ws.bound_state()[static_cast<std::size_t>(pick->idx)] = BoundState::kFree;
     }
     return true;
 }
@@ -3053,11 +3282,11 @@ double QpEngine::dropped_gradient_norm(const QpProblem &qp, const DropRecord &dr
     return dropped.is_ineq ? qp.Ai.row(dropped.idx).norm() : 1.0; // ||e_i|| == 1
 }
 
-QpEngine::RideOutcome QpEngine::ride_negative_curvature(const QpProblem &qp,
-                                                        const DropRecord &dropped,
-                                                        QpCounters &counters, WalkSeen &seen,
-                                                        const Vec &p, const Vec &Aix,
-                                                        WorkingSet &ws, Vec &x) const {
+QpEngine::RideOutcome
+QpEngine::ride_negative_curvature(const QpProblem &qp, const DropRecord &dropped,
+                                  QpCounters &counters, WalkSeen &seen, const Vec &p,
+                                  const Vec &Aix, WorkingSet &ws, Vec &x,
+                                  const detail::DepFactorView *dep, const QpOptions &opts) const {
     if (!ride_stays_in_working_set(qp, ws, p)) {
 #ifdef HVEN_TESTING
         // The FIRST of section 4c's three refusals: `p` leaves the RETAINED
@@ -3114,6 +3343,12 @@ QpEngine::RideOutcome QpEngine::ride_negative_curvature(const QpProblem &qp,
         }
     }
 #endif
+    if (dep != nullptr &&
+        test_candidate(qp, ws, *dep, kind == BlockKind::kIneq, block_idx, counters, opts)
+            .dependent()) {
+        ++counters.dep_ride_declines;
+        return RideOutcome::kDeclined;
+    }
 
     x += alpha * dir;
     ++counters.ws_adds; // observation only -- see QpCounters

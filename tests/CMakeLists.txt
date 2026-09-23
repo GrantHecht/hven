@@ -384,6 +384,7 @@ add_executable(hven_qp_walk_seam_tests
     ${HVEN_SRC_DIR}/kkt/kkt_calls.cpp
     ${HVEN_SRC_DIR}/linear/dense_symmetric_factor.cpp
     ${HVEN_SRC_DIR}/qp/qp_engine.cpp
+    ${HVEN_SRC_DIR}/qp/ws_independence.cpp
     qp/test_qp_walk_seam.cpp
     qp/test_qp_anti_cycling_arm.cpp
     qp/test_qp_degeneracy_arm.cpp

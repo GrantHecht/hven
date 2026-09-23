@@ -613,7 +613,11 @@ TEST(Threads, ZeroLeavesEveryFactorAtTheBackendDefault) {
     // opts_` copies `common` whole -- and what this asserts is that a solve
     // which ran the phase left MKL's state where it found it.
     InfeasibleCircleLineModel restoring;
-    SqpSolver driver(base_options(QpMode::kWalk, 0));
+    SqpOptions ropts = base_options(QpMode::kWalk, 0);
+    // M7 W2 E2: on this knife-edge model the entry repair's trajectory ends
+    // with no hot handle in Debug; the premise is the pre-E2 walk's.
+    ropts.qp.independent_working_set = false;
+    SqpSolver driver(ropts);
     const SqpResult sol = driver.solve(restoring, restoring.start_point());
     ASSERT_GE(sol.counters.restoration_iters, 1) << "fixture premise: the phase RAN";
     EXPECT_EQ(driver_k0_num_threads(sol), 0);
@@ -805,7 +809,11 @@ TEST(Threads, TheCallersThreadSettingSurvivesEveryTierAndTheRestoration) {
     // (enable_scaling, make_strategy, budget_mode, qp_mode, tr_init, tr_max,
     // max_iter) name no `common` field.
     InfeasibleCircleLineModel restoring;
-    SqpSolver driver(base_options(QpMode::kWalk, kAskedFor));
+    SqpOptions ropts = base_options(QpMode::kWalk, kAskedFor);
+    // M7 W2 E2: on this knife-edge model the entry repair's trajectory ends
+    // with no hot handle in Debug; the premise is the pre-E2 walk's.
+    ropts.qp.independent_working_set = false;
+    SqpSolver driver(ropts);
     const SqpResult sol = driver.solve(restoring, restoring.start_point());
     ASSERT_GE(sol.counters.restoration_iters, 1) << "fixture premise: the phase RAN";
     EXPECT_EQ(driver_k0_num_threads(sol), kAskedFor);

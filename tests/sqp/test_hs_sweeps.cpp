@@ -1287,7 +1287,13 @@ void check_soc_costs_what_it_costs() {
     // above -- two more routed failures, two more majors. The SOC numerator does
     // not move (23 and 4 are unchanged two blocks up), so 23/3737 = 0.62 % still
     // rounds as the note quotes it.
-    EXPECT_EQ(3737, total_minors) << corpus_table();
+    // RE-DERIVED, M7 W2 E2 (a DECLARED break): 3737 -> 3725, -12, all of it
+    // HS15: cold 1160 -> 1157 and 1154 -> 1151 (-3), warm 110 -> 101 (-9);
+    // factorizations and every other cell's row identical. The detector
+    // resolves dependent seeds and re-checks (structural pinned-row check,
+    // un-gated inverse iteration). independent_working_set = false
+    // reproduces 3737. UNOBSERVED on Accelerate (the arm above).
+    EXPECT_EQ(3725, total_minors) << corpus_table();
 #endif
 }
 

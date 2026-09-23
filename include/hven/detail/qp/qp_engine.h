@@ -332,10 +332,12 @@
 //
 // --- Degeneracy ---
 //
-// Linearly dependent working sets do not break the loop: the delta/mu
-// regularization keeps the KKT matrix factorizable, and the dependent rows split
-// the multiplier between them. No anti-cycling rule is implemented; a degenerate
-// stall is bounded by max_iter.
+// With QpOptions::independent_working_set (default) the working set is kept
+// linearly independent (qp/ws_independence.h): an entry detector runs on the
+// first factorization and removes optional members of any dependency, and each
+// ratio-test blocker is tested against the pass's factor. With it off, the
+// delta/mu regularization keeps a dependent KKT factorizable and the dependent
+// rows split the multiplier; a degenerate stall is bounded by max_iter.
 
 #include <algorithm>
 #include <cassert>
@@ -365,6 +367,7 @@
 // __LINE__ immediate cannot move -- see qp_walk_trace.h's own note.
 #include <hven/detail/qp/qp_walk_trace.h>
 #include <hven/detail/qp/working_set.h>
+#include <hven/detail/qp/ws_independence.h>
 #include <hven/linear/symmetric_factor.h>
 #include <hven/qp/qp_types.h>
 
@@ -1131,6 +1134,9 @@ class QpEngine {
     struct WalkSeen {
         std::vector<std::uint8_t> ineq;
         std::vector<std::uint8_t> bound;
+        // Rows the independence re-check removed as dependent shift adds;
+        // refresh_shifts skips them until the next drop clears the set.
+        std::vector<std::uint8_t> shift_refused;
     };
 
     static void mark_ineq_seen(WalkSeen &seen, QpCounters &counters, Index j);
@@ -1402,6 +1408,29 @@ class QpEngine {
     // assembles the same matrix) and every live border is a pin (so the
     // re-sync re-adds the same borders). Rebuilding then buys nothing and
     // costs a factorization.
+    // The factor this pass holds for exactly `ws` (read-only), or none.
+    static detail::DepFactorView dep_factor_view(const WorkingSet &ws, const detail::KktFactor &kkt,
+                                                 const EliminatedFace &face,
+                                                 const BorderState &border);
+
+    // Does the live border stack represent exactly `ws`'s members?
+    static bool border_holds(const WorkingSet &ws, const BorderState &border);
+
+    // The dependency test on one candidate (a row, or a bound of variable
+    // `idx`), counted.
+    static detail::DepTest test_candidate(const QpProblem &qp, const WorkingSet &ws,
+                                          const detail::DepFactorView &view, bool is_ineq,
+                                          Index idx, QpCounters &counters, const QpOptions &opts);
+
+    // Detector repair: drops one optional member of `det`'s support. At entry
+    // (`seq` null): seed rows, then seed pins, then shifted rows, highest
+    // index first. On a re-check: the newest member by `seq` (addition order),
+    // highest index on ties. A removed shifted row is marked refused in
+    // `refused`. False when the support is mandatory only.
+    static bool remove_entry_dependency(WorkingSet &ws, const Vec &shift,
+                                        const detail::EntryDetection &det, const ProbeState *seq,
+                                        std::vector<std::uint8_t> &refused);
+
     static bool rebuild_would_be_noop(const WorkingSet &ws, const BorderState &border);
 
     // Is the pins-only dead end still the situation we are in? EXACTLY ONE
@@ -1527,9 +1556,13 @@ class QpEngine {
     // left untouched on kUnbounded and kDeclined.
     // CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
     // the model's second derivative -- a first-order mode re-derives or re-labels it).
+    // `dep` (independent_working_set): the pass's factor; a dependent ride
+    // blocker declines.
     RideOutcome ride_negative_curvature(const QpProblem &qp, const DropRecord &dropped,
                                         QpCounters &counters, WalkSeen &seen, const Vec &p,
-                                        const Vec &Aix, WorkingSet &ws, Vec &x) const;
+                                        const Vec &Aix, WorkingSet &ws, Vec &x,
+                                        const detail::DepFactorView *dep,
+                                        const QpOptions &opts) const;
 
     // Step 3. Reports the blocking constraint and the step to it.
     //
