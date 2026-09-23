@@ -5,33 +5,23 @@
 
 // equality_basis.h — an independent row basis of the equality Jacobian.
 //
-// Given Je (me x n) and the box, the fixed columns S = {i : l_i == u_i} are
-// eliminated, the rows are equilibrated on the free columns F, and a threshold
-// sparse QR of the transpose splits the rows into a retained set B (increasing
-// model-row order) and a dropped set D with a_r(F) = sum_k C(k, r) a_k(F) for
-// r in D. A split is accepted only when (i) every dropped pivot is below
-// tau_lo, (ii) every retained pivot is at least tau_hi = gap_ratio * tau_lo,
-// and (iii) every dropped row reconstructs from B to tau_lo with a bounded
-// equilibrated coefficient; otherwise nothing is dropped (kUndecidable).
-// Rows empty on F are dropped with a zero coefficient column. A sparse Cholesky
-// of the equilibrated Gram matrix runs first: when every pivot clears
-// max(1e-5, 10 tau_hi) the rows are independent and the QR is skipped (the
-// pre-check can only drop fewer rows, never more).
+// compute() eliminates the fixed columns S = {i : l_i == u_i}, equilibrates the
+// rows on the free columns F, and splits them into a retained set B and a dropped
+// set D with a_r(F) = sum_k C(k, r) a_k(F) for r in D. A split is accepted only
+// when every dropped pivot is below tau_lo, every retained pivot is at least
+// tau_hi, every dropped row reconstructs from B to tau_lo with |C~| <= coef_cap,
+// every intermediate is finite, and I + C^T C factors and passes a solve check; otherwise nothing
+// is dropped (kUndecidable, refusal() says why). Rows empty on F are dropped with a zero
+// coefficient column. The Cholesky full-rank pre-check that may skip the QR is a heuristic, not a
+// rank certificate.
 //
-// The Eigen factorizations (SimplicialLLT, SparseQR) are the SCAFFOLD oracle,
-// behind one internal seam in equality_basis.cpp. The production oracle is
-// registered as E1b: a pivoted LDL^T of the equilibrated Gram matrix through
-// hven::linear, null vectors naming the dependent rows, verify() as the guarantee.
-//
-// C is stored in the units of the Je it was computed from. With
-// N = [-C; I] (rows B then D), Je(:,F)^T N = 0 and
+// With N = [-C; I] (rows B then D), Je(:,F)^T N = 0 and
 //   lift(lambda_B)  = the minimum-norm lambda with Je(:,F)^T lambda = Je(B,F)^T lambda_B
 //   fold(lambda)    = lambda(B) + C lambda(D)          (fold(lift(y)) == y)
 //   reduce(qp)      : Ae <- Ae(B,:), be <- be(B) + t,  t = C (I + C^T C)^-1 gamma,
-//                     gamma = N^T (be - Ae d),  d = qp.lower on S and 0 elsewhere,
-// so t is the minimum-norm rhs correction that makes the dropped rows' linearization
-// consistent with the retained rows'. With nothing dropped every operation is the
-// identity and reduce() does not touch the problem.
+//                     gamma = N^T (be - Ae d),  d = qp.lower on S and 0 elsewhere.
+// C is in the units of the Je it was computed from. With nothing dropped every
+// operation is the identity.
 
 #include <cstdint>
 #include <memory>
@@ -51,13 +41,23 @@ struct EqualityBasisTolerances {
     double gap_ratio = 1e4;
     /// Largest accepted |C~| (equilibrated units) of a dropped row's reconstruction.
     double coef_cap = 1e8;
+    /// Largest accepted ||(I + C^T C) w - r||_inf / (||I + C^T C||_inf ||w||_inf + ||r||_inf).
+    double solve_residual = 1e-10;
 };
 
 enum class EqualityBasisVerdict {
     kNotComputed, ///< compute() has not run; the basis is the identity.
     kFullRank,    ///< Nothing dropped; every retained pivot clears the gap.
     kReduced,     ///< At least one row dropped.
-    kUndecidable, ///< The spectrum has no gap or a reconstruction failed; nothing dropped.
+    kUndecidable, ///< A check failed (see EqualityBasisRefusal); nothing dropped.
+};
+
+/// @brief Why a split is kUndecidable.
+enum class EqualityBasisRefusal {
+    kNone,
+    kSpectrum,  ///< No pivot gap, or a reconstruction or coefficient-cap failure.
+    kNonFinite, ///< A norm, scaled entry, coefficient or Gram value was not finite.
+    kGram,      ///< I + C^T C failed to factor or a probe solve failed its residual check.
 };
 
 /// @brief Where a dropped row's combination gap sits.
@@ -65,6 +65,7 @@ enum class EqualityGapBand {
     kNoise,        ///< |g| <= 10 eps (|w_r| + sum |C| |w_k|).
     kFeasible,     ///< |g| <= feas_tol (1 + ||C(:,r)||_1).
     kInconsistent, ///< Neither: no point satisfies the group to feas_tol.
+    kNonFinite,    ///< The gap is not finite; it is evidence of nothing.
 };
 
 class EqualityBasis {
@@ -85,6 +86,7 @@ class EqualityBasis {
     void reset(Index me);
 
     EqualityBasisVerdict verdict() const;
+    EqualityBasisRefusal refusal() const;
     /// True iff at least one row is dropped.
     bool reduces() const;
     Index me() const;
@@ -99,6 +101,10 @@ class EqualityBasis {
     double min_retained_pivot() const;
     /// Whether the last compute() ran the sparse QR (the pre-check did not settle it).
     bool ran_qr() const;
+    /// The pre-check's max |P G P^T - L L^T| / max G_ii (NaN when not formed).
+    double precheck_backward_error() const;
+    /// The pre-check's inverse-iteration upper estimate of sigma_min(M) (NaN when not formed).
+    double precheck_sigma_estimate() const;
     /// Largest accepted backward residual, equilibrated units.
     double max_backward_residual() const;
     /// Largest |C~| over the dropped rows, equilibrated units.
@@ -118,23 +124,31 @@ class EqualityBasis {
     void read_gaps(const Vec &ce, const SpMatRM &Je, const Vec &x, double feas_tol, Vec &gap,
                    std::vector<EqualityGapBand> &band) const;
 
-    /// @brief Hash of Je's values on dropped row j and its support rows in B.
+    /// @brief The row indices, column indices and value bytes of Je on dropped row j
+    ///        and its support rows in B; equal bytes mean identical values.
+    std::vector<unsigned char> group_bytes(const SpMatRM &Je, Index j) const;
+    /// @brief FNV-1a of group_bytes(Je, j).
     std::uint64_t group_hash(const SpMatRM &Je, Index j) const;
 
     /// @brief Restricts qp's equality block to B with the projected rhs (header).
+    /// @return False, with qp untouched, when the projection solve fails its check.
     /// @throws std::invalid_argument When qp.me() or qp.n() disagree with the basis.
-    void reduce(QpProblem &qp) const;
+    bool reduce(QpProblem &qp) const;
 
     /// @brief t = C (I + C^T C)^-1 gamma, |B|.
-    Vec project_rhs(const Vec &gamma) const;
+    /// @return False when the solve fails its residual check or is not finite.
+    bool project_rhs(const Vec &gamma, Vec &t) const;
     /// @brief |B| -> me, minimum norm (header).
-    Vec lift(const Vec &lambda_B) const;
+    /// @return False when the solve fails its check; `out` is then the zero-scatter
+    ///         lift (lambda_B on B, 0 on D), which satisfies the same identity.
+    bool lift(const Vec &lambda_B, Vec &out) const;
     /// @brief me -> |B| (header).
     Vec fold(const Vec &lambda) const;
 
     /// @brief be(B) + t for a full-size rhs `be` of the system Ae d = be whose fixed
     ///        columns sit at d = `lower` (the same map reduce() applies).
-    Vec reduce_rhs(const Vec &be, const SpMatRM &Ae, const Vec &lower) const;
+    /// @return False when project_rhs() does.
+    bool reduce_rhs(const Vec &be, const SpMatRM &Ae, const Vec &lower, Vec &out) const;
 
   private:
     struct Impl;

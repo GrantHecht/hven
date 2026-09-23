@@ -2694,10 +2694,12 @@ struct EqualityBasisState {
     struct Evidence {
         bool valid = false;
         std::uint64_t group = 0;
+        std::vector<unsigned char> bytes; // the group's Jacobian values (hash = fast negative)
         std::uint64_t x = 0;
         Index major = -1;
     };
     bool on = false;
+    bool refuse_pending = false; // a Gram solve failed; the next build carries every row
     detail::EqualityBasis basis;
     Index streak = 0;
     Index last_recompute_major = -1;
@@ -2747,6 +2749,11 @@ void recompute_equality_basis(EqualityBasisState &eb, SqpEqualityBasisReport &re
     if (next.ran_qr()) {
         ++rep.qr_factorizations;
     }
+    if (next.refusal() == detail::EqualityBasisRefusal::kNonFinite) {
+        ++rep.nonfinite_refusals;
+    } else if (next.refusal() == detail::EqualityBasisRefusal::kGram) {
+        ++rep.gram_refusals;
+    }
     if (!rep.computed) {
         rep.computed = true;
         rep.undecidable = next.verdict() == detail::EqualityBasisVerdict::kUndecidable;
@@ -2771,6 +2778,16 @@ void maybe_switch_off_equality_basis(EqualityBasisState &eb, SqpEqualityBasisRep
     eb.basis.reset(me);
     eb.evidence.clear();
     rep.switched_off = true;
+    rep.dropped_rows.clear();
+}
+
+// A Gram solve failed mid-solve: the QPs carry every row from here on.
+void refuse_equality_basis(EqualityBasisState &eb, SqpEqualityBasisReport &rep, Index me) {
+    eb.on = false;
+    eb.refuse_pending = false;
+    eb.basis.reset(me);
+    eb.evidence.clear();
+    ++rep.gram_refusals;
     rep.dropped_rows.clear();
 }
 
@@ -2812,7 +2829,9 @@ EqualityRefresh refresh_equality_basis(EqualityBasisState &eb, SqpEqualityBasisR
             continue;
         }
         const std::uint64_t gh = eb.basis.group_hash(ev.Je, static_cast<Index>(j));
-        if (e.valid && e.group == gh && e.x != xh) {
+        const bool same_group = e.valid && e.group == gh &&
+                                e.bytes == eb.basis.group_bytes(ev.Je, static_cast<Index>(j));
+        if (same_group && e.x != xh) {
             rep.inconsistent_row = dropped[j];
             rep.inconsistent_gap = g;
             rep.inconsistent_support.clear();
@@ -2827,8 +2846,8 @@ EqualityRefresh refresh_equality_basis(EqualityBasisState &eb, SqpEqualityBasisR
             out.certified = true;
             return out;
         }
-        if (!e.valid || e.group != gh) {
-            e = {true, gh, xh, major};
+        if (!same_group) {
+            e = {true, gh, eb.basis.group_bytes(ev.Je, static_cast<Index>(j)), xh, major};
         }
     }
     return out;
@@ -2852,9 +2871,11 @@ bool recompute_after_qp_failure(EqualityBasisState &eb, SqpEqualityBasisReport &
 
 // The SOC subproblem over the retained rows: build_soc_subproblem's formula on
 // the full rows, then the same projection reduce() applies.
+// `ok` is false when the rhs projection failed its solve check; the rhs is then
+// the retained rows' own (no projection).
 QpProblem build_reduced_soc_subproblem(const detail::EqualityBasis &basis, const QpProblem &qp,
                                        const NlpEval &ev, const NlpEval &ev_trial, const Vec &p,
-                                       const std::vector<bool> &ineq_active) {
+                                       const std::vector<bool> &ineq_active, bool &ok) {
     NlpEval ev_b;
     NlpEval trial_b;
     ev_b.ce = Vec::Zero(qp.me());
@@ -2863,7 +2884,15 @@ QpProblem build_reduced_soc_subproblem(const detail::EqualityBasis &basis, const
     trial_b.ci = ev_trial.ci;
     QpProblem soc = build_soc_subproblem(qp, ev_b, trial_b, p, ineq_active);
     const Vec residual_e = ev_trial.ce - ev.ce - ev.Je * p;
-    soc.be = basis.reduce_rhs(-ev.ce - residual_e, ev.Je, qp.lower);
+    const Vec be_full = -ev.ce - residual_e;
+    ok = basis.reduce_rhs(be_full, ev.Je, qp.lower, soc.be);
+    if (!ok) {
+        const std::vector<Index> &rows = basis.retained();
+        soc.be.resize(static_cast<Index>(rows.size()));
+        for (std::size_t k = 0; k < rows.size(); ++k) {
+            soc.be(static_cast<Index>(k)) = be_full(rows[k]);
+        }
+    }
     return soc;
 }
 
@@ -2872,7 +2901,11 @@ Vec prox_center_lambda(const detail::EqualityBasis *basis, const Vec &lambda_e,
                        const Vec &lambda_i) {
     const bool lift = basis != nullptr && basis->reduces() &&
                       lambda_e.size() == static_cast<Index>(basis->retained().size());
-    const Vec le = lift ? basis->lift(lambda_e) : lambda_e;
+    Vec le = lambda_e;
+    if (lift) {
+        // A failed solve check leaves the zero-scatter lift, an exact representative.
+        (void)basis->lift(lambda_e, le);
+    }
     Vec out(le.size() + lambda_i.size());
     out << le, lambda_i;
     return out;
@@ -3590,7 +3623,8 @@ void SqpSolver::prepare_solve(SolveState &st, AssemblyEvalSeam &seam, const Vec 
             if (probe_basis.ran_qr()) {
                 ++out.equality_basis.qr_factorizations;
             }
-            probe_basis.reduce(probe);
+            // A refused projection leaves the probe unreduced; its hash then degrades the level.
+            (void)probe_basis.reduce(probe);
         }
         if (detail::structural_hash(probe) == warm.structure_hash) {
             resolved_level = warm.hot != nullptr ? StartLevel::kHot : StartLevel::kWarm;
@@ -5915,6 +5949,10 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
     // with the previous attempt's state and the retry charges nothing to
     // the section 6.1 ladder.
     const bool tr_shrink_retry = !st.subproblem_is_stale;
+    if (st.subproblem_is_stale && st.eqb.on && st.eqb.refuse_pending) {
+        refuse_equality_basis(st.eqb, st.out.equality_basis, seam.me());
+        st.have_seed = false; // sized to the previous split's rows
+    }
     if (st.subproblem_is_stale && st.eqb.on) {
         const EqualityRefresh refresh =
             refresh_equality_basis(st.eqb, st.out.equality_basis, st.ev, st.x, seam.lower(),
@@ -5929,7 +5967,10 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
     }
     if (st.subproblem_is_stale) {
         st.qp = seam.build_subproblem(st.ev, st.x, st.lambda_e, st.lambda_i, 1.0);
-        st.eqb.basis.reduce(st.qp);
+        if (!st.eqb.basis.reduce(st.qp)) {
+            refuse_equality_basis(st.eqb, st.out.equality_basis, seam.me());
+            st.have_seed = false; // sized to the previous split's rows
+        }
         st.subproblem_is_stale = false;
         st.qp_built = true;
     }
@@ -6476,11 +6517,15 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         // so constructing the rhs shift costs NO EXTRA MODEL
         // EVALUATION -- it is the RE-SOLVE below, on acceptance,
         // that costs one (see the header note's cost accounting).
+        bool soc_projection_ok = true;
         const QpProblem soc_qp =
             st.eqb.basis.reduces()
                 ? build_reduced_soc_subproblem(st.eqb.basis, st.qp, st.ev, mj.ev_trial, mj.qs.x,
-                                               mj.qs.ineq_active)
+                                               mj.qs.ineq_active, soc_projection_ok)
                 : build_soc_subproblem(st.qp, st.ev, mj.ev_trial, mj.qs.x, mj.qs.ineq_active);
+        if (!soc_projection_ok) {
+            st.eqb.refuse_pending = true;
+        }
 
         // Warm-started from the REJECTED solve's own activity, at the
         // SAME radius -- see the note for why this is a hot start.
@@ -6722,7 +6767,9 @@ SqpResult SqpSolver::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &b
             if (mj.soc_applied) {
                 st.x = mj.x_soc;
                 st.ev = std::move(mj.ev_soc); // already upgraded to full -- see the promotion above
-                st.lambda_e = st.eqb.basis.lift(mj.qs_soc.lambda_e);
+                if (!st.eqb.basis.lift(mj.qs_soc.lambda_e, st.lambda_e)) {
+                    st.eqb.refuse_pending = true; // st.lambda_e is the zero-scatter lift
+                }
                 st.lambda_i = mj.qs_soc.lambda_i;
                 st.duals_ingested = false; // re-priced by this solve's own QP
                 st.seed = std::move(mj.qs_soc);
@@ -6742,7 +6789,9 @@ SqpResult SqpSolver::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &b
                 seam.refresh_derivatives(mj.ev_trial, mj.x_trial);
                 ++st.out.counters.evals_full;
                 st.ev = std::move(mj.ev_trial);
-                st.lambda_e = st.eqb.basis.lift(mj.qs.lambda_e);
+                if (!st.eqb.basis.lift(mj.qs.lambda_e, st.lambda_e)) {
+                    st.eqb.refuse_pending = true; // st.lambda_e is the zero-scatter lift
+                }
                 st.lambda_i = mj.qs.lambda_i;
                 st.duals_ingested = false; // re-priced by this solve's own QP
                 st.seed = std::move(mj.qs);

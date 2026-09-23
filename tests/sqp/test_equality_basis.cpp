@@ -5,12 +5,15 @@
 // unit level: u1 two networks, u2 duplicates / zero row / scaled duplicate and the
 // coefficient-cap refusal, u3 a graded no-gap spectrum, u4 fixed-column elimination
 // and the gap bands, u5 lift/fold against a dense minimum-norm oracle, u6 the rhs
-// projection against the dense range projector, u7 determinism, plus verify().
-// The oracle is dense (CompleteOrthogonalDecomposition / JacobiSVD) inside the test.
+// projection against the dense range projector, u7 determinism, plus verify(); fix
+// round 1: extreme scaling and non-finite entries, a Gram-hidden deficiency, the
+// I + C^T C solve check, and byte-identical groups. The oracle is dense
+// (CompleteOrthogonalDecomposition / JacobiSVD) inside the test.
 
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <limits>
 #include <numeric>
 #include <random>
 #include <vector>
@@ -48,6 +51,13 @@ Eigen::MatrixXd two_networks() {
 }
 
 Vec free_box(Index n) { return Vec::Constant(n, 1e20); }
+
+// lift() whose solve check must pass.
+Vec lifted(const EqualityBasis &basis, const Vec &lambda_B) {
+    Vec out;
+    EXPECT_TRUE(basis.lift(lambda_B, out));
+    return out;
+}
 
 // Dense minimum-norm lambda with A(:,F)^T lambda = g(F).
 Vec dense_min_norm(const Eigen::MatrixXd &AF, const Vec &gF) {
@@ -179,7 +189,7 @@ TEST(EqualityBasis, U3GradedNoGapSpectrumIsUndecidable) {
     qp.lower = -free_box(n);
     qp.upper = free_box(n);
     const QpProblem before = qp;
-    basis.reduce(qp);
+    ASSERT_TRUE(basis.reduce(qp));
     ASSERT_EQ(qp.Ae.nonZeros(), before.Ae.nonZeros());
     EXPECT_EQ(std::memcmp(qp.Ae.valuePtr(), before.Ae.valuePtr(),
                           sizeof(double) * static_cast<std::size_t>(qp.Ae.nonZeros())),
@@ -270,7 +280,7 @@ TEST(EqualityBasis, U5LiftIsTheMinimumNormMultiplierAndFoldInvertsIt) {
         AB.row(k) = A.row(basis.retained()[static_cast<std::size_t>(k)]);
     }
     const Vec lambda_B = Vec::LinSpaced(nb, -2.0, 3.5);
-    const Vec lam = basis.lift(lambda_B);
+    const Vec lam = lifted(basis, lambda_B);
     ASSERT_EQ(lam.size(), 9);
     EXPECT_LE((A.transpose() * lam - AB.transpose() * lambda_B).lpNorm<Eigen::Infinity>(), 1e-14);
     const Vec oracle = dense_min_norm(A, AB.transpose() * lambda_B);
@@ -279,7 +289,7 @@ TEST(EqualityBasis, U5LiftIsTheMinimumNormMultiplierAndFoldInvertsIt) {
 
     // Permutation equivariance: lift(fold(.)) is the minimum-norm representative.
     const Vec lam_any = Vec::LinSpaced(9, 1.0, -4.0);
-    const Vec rep = basis.lift(basis.fold(lam_any));
+    const Vec rep = lifted(basis, basis.fold(lam_any));
     EXPECT_LE((rep - dense_min_norm(A, A.transpose() * lam_any)).lpNorm<Eigen::Infinity>(), 1e-12);
     std::vector<Index> perm(9);
     std::iota(perm.begin(), perm.end(), 0);
@@ -293,7 +303,7 @@ TEST(EqualityBasis, U5LiftIsTheMinimumNormMultiplierAndFoldInvertsIt) {
     }
     EqualityBasis pbasis;
     pbasis.compute(to_sparse(PA), -free_box(11), free_box(11));
-    const Vec p_rep = pbasis.lift(pbasis.fold(p_lam));
+    const Vec p_rep = lifted(pbasis, pbasis.fold(p_lam));
     for (Index i = 0; i < 9; ++i) {
         EXPECT_NEAR(p_rep(i), rep(perm[static_cast<std::size_t>(i)]), 1e-12);
     }
@@ -315,7 +325,7 @@ TEST(EqualityBasis, U6ProjectedRhsIsTheMinimumNormConsistentCorrection) {
     qp.lower = -free_box(11);
     qp.upper = free_box(11);
     const Vec be_full = qp.be;
-    basis.reduce(qp);
+    ASSERT_TRUE(basis.reduce(qp));
     ASSERT_EQ(qp.me(), 7);
     // Implied full correction delta: t on B, and on D the residual the retained
     // system forces on each dropped row.
@@ -352,7 +362,7 @@ TEST(EqualityBasis, U7DeterministicAndIdentityWhenFullRank) {
     EXPECT_FALSE(full.ran_qr());
     EXPECT_FALSE(full.reduces());
     const Vec y(Vec::LinSpaced(3, 1.0, 2.0));
-    EXPECT_EQ(full.lift(y), y);
+    EXPECT_EQ(lifted(full, y), y);
     EXPECT_EQ(full.fold(y), y);
     QpProblem qp;
     qp.H = SpMatRM(11, 11);
@@ -364,7 +374,7 @@ TEST(EqualityBasis, U7DeterministicAndIdentityWhenFullRank) {
     qp.lower = -free_box(11);
     qp.upper = free_box(11);
     const SpMatRM Ae_before = qp.Ae;
-    full.reduce(qp);
+    ASSERT_TRUE(full.reduce(qp));
     ASSERT_EQ(qp.Ae.nonZeros(), Ae_before.nonZeros());
     EXPECT_EQ(std::memcmp(qp.Ae.valuePtr(), Ae_before.valuePtr(),
                           sizeof(double) * static_cast<std::size_t>(qp.Ae.nonZeros())),
@@ -443,6 +453,121 @@ TEST(EqualityBasis, PreCheckFallsThroughOnARedundantRowAndSkipsTheQrWhenFullRank
     EXPECT_EQ(chain.verdict(), EqualityBasisVerdict::kFullRank);
     EXPECT_GE(chain.min_retained_pivot(), 1e-5);
     EXPECT_TRUE(chain.dropped().empty());
+}
+
+// Extreme row scaling (fix round 1, C1): the row norms are scaled, so rows at
+// 1e-160, 1e+160 and 1e-200 are independent and stay; a dependent pair at either
+// extreme keeps exactly one row; a non-finite entry makes the split undecidable.
+TEST(EqualityBasis, ExtremeScalingNeverDropsAnIndependentRow) {
+    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(4, 5);
+    A.row(0) << 1e-160, 2e-160, 0.0, 0.0, 0.0;
+    A.row(1) << 0.0, 1e160, 3e160, 0.0, 0.0;
+    A.row(2) << 0.0, 0.0, 1e-200, 1e-200, 0.0;
+    A.row(3) << 1e160, 0.0, 0.0, 1e-160, 5e159;
+    EqualityBasis basis;
+    basis.compute(to_sparse(A), -free_box(5), free_box(5));
+    EXPECT_EQ(basis.verdict(), EqualityBasisVerdict::kFullRank);
+    EXPECT_EQ(basis.refusal(), EqualityBasisRefusal::kNone);
+    EXPECT_TRUE(basis.dropped().empty());
+
+    for (const double scale : {1e150, 1e-170}) {
+        Eigen::MatrixXd P = Eigen::MatrixXd::Zero(3, 3);
+        P.row(0) << scale, -scale, 0.0;
+        P.row(1) = 2.0 * P.row(0);
+        P.row(2) << 0.0, scale, scale;
+        EqualityBasis pair;
+        pair.compute(to_sparse(P), -free_box(3), free_box(3));
+        ASSERT_EQ(pair.verdict(), EqualityBasisVerdict::kReduced) << scale;
+        ASSERT_EQ(pair.dropped().size(), 1u) << scale;
+        EXPECT_NE(pair.dropped()[0], 2) << scale;
+        for (Index k = 0; k < pair.coefficients().nonZeros(); ++k) {
+            const double c = pair.coefficients().valuePtr()[k];
+            EXPECT_TRUE(std::isfinite(c)) << scale;
+            EXPECT_NEAR(std::abs(c), pair.dropped()[0] == 1 ? 2.0 : 0.5, 1e-14) << scale;
+        }
+        EXPECT_TRUE(pair.verify(to_sparse(P))) << scale;
+    }
+
+    for (const double bad :
+         {std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::infinity()}) {
+        Eigen::MatrixXd B = two_networks();
+        B(3, 1) = bad;
+        EqualityBasis refused;
+        refused.compute(to_sparse(B), -free_box(11), free_box(11));
+        EXPECT_EQ(refused.verdict(), EqualityBasisVerdict::kUndecidable) << bad;
+        EXPECT_EQ(refused.refusal(), EqualityBasisRefusal::kNonFinite) << bad;
+        EXPECT_FALSE(refused.reduces()) << bad;
+        EXPECT_EQ(refused.retained().size(), 9u) << bad;
+    }
+}
+
+// The pre-check on a set the formed Gram matrix hides (fix round 1, I1): rows
+// e1, e1 + d e2, e2 with d = 5e-4 are dependent (C = (-1/d, 1/d)), yet the
+// Cholesky of the formed Gram matrix has every pivot above the 1e-5 floor and a
+// backward error at roundoff. The sigma_min estimate sends it to the QR, which
+// drops the row.
+TEST(EqualityBasis, PreCheckSendsAGramHiddenDeficiencyToTheQr) {
+    constexpr double kDelta = 5e-4;
+    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(3, 3);
+    A(0, 0) = 1.0;
+    A(1, 0) = 1.0;
+    A(1, 1) = kDelta;
+    A(2, 1) = 1.0;
+    EqualityBasis basis;
+    basis.compute(to_sparse(A), -free_box(3), free_box(3));
+    EXPECT_LE(basis.precheck_backward_error(), 1e-15);
+    EXPECT_LT(basis.precheck_sigma_estimate(), 1e-5);
+    EXPECT_TRUE(basis.ran_qr());
+    ASSERT_EQ(basis.verdict(), EqualityBasisVerdict::kReduced);
+    EXPECT_EQ(basis.dropped().size(), 1u);
+    EXPECT_TRUE(basis.verify(to_sparse(A)));
+    Eigen::JacobiSVD<Eigen::MatrixXd> svd(A);
+    EXPECT_LT(svd.singularValues()(2), 1e-12);
+}
+
+// The I + C^T C solve check (fix round 1, I2): a residual tolerance below roundoff
+// refuses the split at compute time; the default accepts it and every solve passes.
+TEST(EqualityBasis, GramSolveCheckRefusesTheSplit) {
+    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(5, 4);
+    A.row(0) << 1.0, 0.3, 0.0, 0.0;
+    A.row(1) << 0.0, 1.0, 0.7, 0.0;
+    A.row(2) << 0.0, 0.0, 1.0, 0.1;
+    A.row(3) = 0.37 * A.row(0) - 1.9 * A.row(1) + 0.11 * A.row(2);
+    A.row(4) = -2.3 * A.row(0) + 0.29 * A.row(2);
+    EqualityBasis ok;
+    ok.compute(to_sparse(A), -free_box(4), free_box(4));
+    ASSERT_EQ(ok.verdict(), EqualityBasisVerdict::kReduced);
+    ASSERT_EQ(ok.dropped().size(), 2u);
+    Vec lam;
+    EXPECT_TRUE(ok.lift(Vec::LinSpaced(3, 1.0, -1.0), lam));
+    Vec t;
+    EXPECT_TRUE(ok.project_rhs(Vec::LinSpaced(2, 0.5, -0.25), t));
+    EXPECT_TRUE(t.allFinite());
+
+    EqualityBasisTolerances strict;
+    strict.solve_residual = 1e-300;
+    EqualityBasis refused;
+    refused.compute(to_sparse(A), -free_box(4), free_box(4), strict);
+    EXPECT_EQ(refused.verdict(), EqualityBasisVerdict::kUndecidable);
+    EXPECT_EQ(refused.refusal(), EqualityBasisRefusal::kGram);
+    EXPECT_FALSE(refused.reduces());
+    Vec same;
+    EXPECT_TRUE(refused.lift(Vec::LinSpaced(5, 1.0, -1.0), same));
+    EXPECT_EQ(same, Vec::LinSpaced(5, 1.0, -1.0));
+}
+
+// Group identity is byte identity (fix round 1, M1).
+TEST(EqualityBasis, GroupBytesAreTheGroupsValues) {
+    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(2, 3);
+    A.row(0) << 1.0, -1.0, 0.0;
+    A.row(1) = 2.0 * A.row(0);
+    EqualityBasis basis;
+    basis.compute(to_sparse(A), -free_box(3), free_box(3));
+    ASSERT_EQ(basis.dropped().size(), 1u);
+    EXPECT_EQ(basis.group_bytes(to_sparse(A), 0), basis.group_bytes(to_sparse(A), 0));
+    Eigen::MatrixXd B = A;
+    B(0, 0) = std::nextafter(1.0, 2.0);
+    EXPECT_NE(basis.group_bytes(to_sparse(A), 0), basis.group_bytes(to_sparse(B), 0));
 }
 
 } // namespace

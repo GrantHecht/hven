@@ -1260,7 +1260,7 @@ struct SqpScalingReport {
 struct SqpEqualityBasisReport {
     /// A split was computed at least once.
     bool computed = false;
-    /// The first split found no gap (or a reconstruction failed) and dropped nothing.
+    /// The first split was refused (no pivot gap, a failed check) and dropped nothing.
     bool undecidable = false;
     /// Rows dropped by the split in force at exit.
     std::vector<Index> dropped_rows;
@@ -1273,6 +1273,11 @@ struct SqpEqualityBasisReport {
     Index qr_factorizations = 0;
     /// Three consecutive majors recomputed; the QPs carried every row thereafter.
     bool switched_off = false;
+    /// Splits refused because a norm, coefficient or Gram value was not finite.
+    Index nonfinite_refusals = 0;
+    /// Splits refused because I + C^T C failed its conditioning bound or a solve
+    /// failed its residual check; after a mid-solve failure the QPs carry every row.
+    Index gram_refusals = 0;
     /// The row whose inconsistency was certified (the exit is kInfeasible), or -1.
     Index inconsistent_row = -1;
     /// Its combination gap, in the solver's units.

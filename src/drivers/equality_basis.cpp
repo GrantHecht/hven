@@ -19,8 +19,13 @@ namespace {
 
 constexpr double kEps = std::numeric_limits<double>::epsilon();
 constexpr double kInf = std::numeric_limits<double>::infinity();
-// The pre-screen's pivot floor on unit-norm columns (see compute()).
+constexpr double kNaN = std::numeric_limits<double>::quiet_NaN();
+// The pre-check's pivot floor on unit-norm columns (see factor_row_dependence()).
 constexpr double kPrescreenPivot = 1e-5;
+// The pre-check's backward-error guard: max |P G P^T - L L^T| <= this * (m + 1) eps max G_ii.
+constexpr double kPrescreenBackwardFactor = 100.0;
+// Inverse-iteration steps behind the pre-check's sigma_min(M) estimate.
+constexpr int kPrescreenInverseSteps = 4;
 constexpr std::uint64_t kFnvOffset = 14695981039346656037ULL;
 constexpr std::uint64_t kFnvPrime = 1099511628211ULL;
 
@@ -34,9 +39,33 @@ void fnv_mix(std::uint64_t &h, const void *data, std::size_t len) {
 
 using SpMatCM = Eigen::SparseMatrix<double>;
 
+// sqrt(sum v_i^2) formed as amax * sqrt(sum (v_i / amax)^2): no overflow or
+// underflow for finite entries; NaN when an entry is not finite.
+template <class Values> double scaled_norm(const Values &v) {
+    double amax = 0.0;
+    for (Index i = 0; i < static_cast<Index>(v.size()); ++i) {
+        if (!std::isfinite(v(i))) {
+            return kNaN;
+        }
+        amax = std::max(amax, std::abs(v(i)));
+    }
+    if (amax == 0.0) {
+        return 0.0;
+    }
+    double s = 0.0;
+    for (Index i = 0; i < static_cast<Index>(v.size()); ++i) {
+        const double q = v(i) / amax;
+        s += q * q;
+    }
+    return amax * std::sqrt(s);
+}
+
 // The seam's answer (factor_row_dependence).
 struct RowDependence {
     bool undecidable = false;
+    bool nonfinite = false; // an intermediate was not finite (implies undecidable)
+    double precheck_backward_error = kNaN;
+    double precheck_sigma = kNaN;
     std::vector<Index> retained; // columns of M, pivot order
     std::vector<Index> dropped;  // columns of M
     Eigen::MatrixXd coef;        // |retained| x |dropped|, equilibrated
@@ -56,22 +85,63 @@ RowDependence factor_row_dependence(const SpMatCM &M, double tau_lo, double tau_
     RowDependence out;
     const Index n_free = M.rows();
     const Index m_ne = M.cols();
-    // Full-rank pre-screen: M^T M = R^T R, so a Cholesky factor whose every
-    // diagonal clears kPrescreenPivot (far above both tau_hi and the Cholesky's
-    // own resolution) proves the nonempty rows independent without the QR. A
-    // failure or a small pivot falls through to the QR; the screen can only
-    // drop fewer rows, never more.
+    // Full-rank pre-check (a heuristic, not a certificate): M^T M = R^T R, so a
+    // Cholesky factor of the formed Gram matrix whose every diagonal clears
+    // floor = max(kPrescreenPivot, 10 tau_hi), whose backward error is at the
+    // Cholesky's own resolution, and whose inverse-iteration estimate of
+    // sqrt(lambda_min) (an upper bound on the formed Gram's) clears the same floor,
+    // skips the QR. Forming G squares the conditioning, so large pivots alone do
+    // not exclude a deficient M. Any doubt falls through to the QR; the pre-check
+    // can only drop fewer rows, never more.
     bool prescreened = false;
     if (m_ne > 0 && n_free > 0) {
-        const SpMatCM G = SpMatCM(M.transpose()) * M;
+        SpMatCM G = SpMatCM(M.transpose()) * M;
         Eigen::SimplicialLLT<SpMatCM> chol(G);
         if (chol.info() == Eigen::Success) {
             const double floor = std::max(kPrescreenPivot, 10.0 * tau_hi);
-            const Vec diag = SpMatCM(chol.matrixL()).diagonal();
-            const double dmin = m_ne > 0 ? diag.minCoeff() : kInf;
+            const SpMatCM L = chol.matrixL();
+            const Vec diag = L.diagonal();
+            const double dmin = diag.allFinite() ? diag.minCoeff() : kNaN;
             if (std::isfinite(dmin) && dmin >= floor) {
-                prescreened = true;
-                out.min_pivot = dmin;
+                SpMatCM PG;
+                PG = G.selfadjointView<Eigen::Lower>().twistedBy(chol.permutationP());
+                const SpMatCM E = PG - SpMatCM(L * SpMatCM(L.transpose()));
+                const double gmax = G.diagonal().cwiseAbs().maxCoeff();
+                double emax = 0.0;
+                for (Index k = 0; k < E.outerSize(); ++k) {
+                    for (SpMatCM::InnerIterator it(E, k); it; ++it) {
+                        const double a = std::abs(it.value());
+                        emax = std::isfinite(a) ? std::max(emax, a) : kInf;
+                    }
+                }
+                out.precheck_backward_error = emax / gmax;
+                if (std::isfinite(gmax) && gmax > 0.0 &&
+                    emax <=
+                        kPrescreenBackwardFactor * static_cast<double>(m_ne + 1) * kEps * gmax) {
+                    // ||G^-1 v|| <= 1 / lambda_min for a unit v, so 1 / ||G^-1 v|| bounds
+                    // lambda_min from above; a small value is a deficiency found.
+                    Vec v(m_ne);
+                    for (Index k = 0; k < m_ne; ++k) {
+                        v(k) = 1.0 + 0.5 * std::sin(1.0 + static_cast<double>(k));
+                    }
+                    v /= scaled_norm(v);
+                    double lambda = kInf;
+                    for (int step = 0; step < kPrescreenInverseSteps; ++step) {
+                        const Vec w = chol.solve(v);
+                        const double wn = scaled_norm(w);
+                        if (!std::isfinite(wn) || wn == 0.0) {
+                            lambda = 0.0;
+                            break;
+                        }
+                        lambda = std::min(lambda, 1.0 / wn);
+                        v = w / wn;
+                    }
+                    out.precheck_sigma = std::sqrt(lambda);
+                    if (out.precheck_sigma >= floor) {
+                        prescreened = true;
+                        out.min_pivot = dmin;
+                    }
+                }
             }
         }
     }
@@ -126,13 +196,19 @@ RowDependence factor_row_dependence(const SpMatCM &M, double tau_lo, double tau_
                     }
                     MB.setFromTriplets(trip.begin(), trip.end());
                 }
+                if (!out.coef.allFinite()) {
+                    out.undecidable = true;
+                    out.nonfinite = true;
+                }
                 for (Index j = 0; j < nd && !out.undecidable; ++j) {
                     const Vec res = MD.col(j) - MB * out.coef.col(j);
-                    const double rn = res.norm();
+                    const double rn = scaled_norm(res);
                     const double c1 = out.coef.col(j).lpNorm<1>();
                     const double cinf = out.coef.col(j).lpNorm<Eigen::Infinity>();
-                    if (!std::isfinite(rn) || !std::isfinite(c1) || rn > tau_lo * (1.0 + c1) ||
-                        cinf > coef_cap) {
+                    if (!std::isfinite(rn) || !std::isfinite(c1)) {
+                        out.undecidable = true;
+                        out.nonfinite = true;
+                    } else if (rn > tau_lo * (1.0 + c1) || cinf > coef_cap) {
                         out.undecidable = true;
                     }
                     out.max_residual = std::max(out.max_residual, rn);
@@ -153,6 +229,7 @@ RowDependence factor_row_dependence(const SpMatCM &M, double tau_lo, double tau_
 
 struct EqualityBasis::Impl {
     EqualityBasisVerdict verdict = EqualityBasisVerdict::kNotComputed;
+    EqualityBasisRefusal refusal = EqualityBasisRefusal::kNone;
     Index me = 0;
     Index n = 0;
     std::vector<Index> retained;
@@ -161,11 +238,16 @@ struct EqualityBasis::Impl {
     Vec fixed_lower;                    // l on S
     std::vector<char> is_fixed;         // n
     SpMatCM C;                          // |B| x |D|
-    Eigen::SimplicialLLT<SpMatCM> gram; // I + C^T C
+    SpMatCM gram_matrix;                // I + C^T C
+    double gram_norm_inf = 0.0;         // ||I + C^T C||_inf
+    double solve_residual = 0.0;        // EqualityBasisTolerances::solve_residual
+    Eigen::SimplicialLLT<SpMatCM> gram; // its factor
     double tau_lo = 0.0;
     double tau_hi = 0.0;
     double min_pivot = kInf;
     bool ran_qr = false;
+    double precheck_be = kNaN;
+    double precheck_sigma = kNaN;
     double max_residual = 0.0;
     double max_coef = 0.0;
     std::uint64_t hash = 0;
@@ -180,14 +262,41 @@ struct EqualityBasis::Impl {
         C = SpMatCM(rows, 0);
     }
 
+    // The scaled two-norm of row r on F; NaN when an entry on F is not finite.
     double free_norm(const SpMatRM &Je, Index r) const {
+        double amax = 0.0;
+        for (SpMatRM::InnerIterator it(Je, r); it; ++it) {
+            if (is_fixed[static_cast<std::size_t>(it.col())] == 0) {
+                if (!std::isfinite(it.value())) {
+                    return kNaN;
+                }
+                amax = std::max(amax, std::abs(it.value()));
+            }
+        }
+        if (amax == 0.0) {
+            return 0.0;
+        }
         double s = 0.0;
         for (SpMatRM::InnerIterator it(Je, r); it; ++it) {
             if (is_fixed[static_cast<std::size_t>(it.col())] == 0) {
-                s += it.value() * it.value();
+                const double q = it.value() / amax;
+                s += q * q;
             }
         }
-        return std::sqrt(s);
+        return amax * std::sqrt(s);
+    }
+
+    // w = (I + C^T C)^-1 r with its normwise backward error checked.
+    bool solve_gram(const Vec &r, Vec &w) const {
+        w = gram.solve(r);
+        if (!w.allFinite()) {
+            return false;
+        }
+        const Vec res = gram_matrix * w - r;
+        const double scale =
+            gram_norm_inf * w.lpNorm<Eigen::Infinity>() + r.lpNorm<Eigen::Infinity>();
+        const double rn = res.lpNorm<Eigen::Infinity>();
+        return std::isfinite(rn) && rn <= solve_residual * scale;
     }
 };
 
@@ -202,6 +311,7 @@ void EqualityBasis::reset(Index me) {
 }
 
 EqualityBasisVerdict EqualityBasis::verdict() const { return impl_->verdict; }
+EqualityBasisRefusal EqualityBasis::refusal() const { return impl_->refusal; }
 bool EqualityBasis::reduces() const { return !impl_->dropped.empty(); }
 Index EqualityBasis::me() const { return impl_->me; }
 const std::vector<Index> &EqualityBasis::retained() const { return impl_->retained; }
@@ -211,6 +321,8 @@ double EqualityBasis::tau_lo() const { return impl_->tau_lo; }
 double EqualityBasis::tau_hi() const { return impl_->tau_hi; }
 double EqualityBasis::min_retained_pivot() const { return impl_->min_pivot; }
 bool EqualityBasis::ran_qr() const { return impl_->ran_qr; }
+double EqualityBasis::precheck_backward_error() const { return impl_->precheck_be; }
+double EqualityBasis::precheck_sigma_estimate() const { return impl_->precheck_sigma; }
 double EqualityBasis::max_backward_residual() const { return impl_->max_residual; }
 double EqualityBasis::max_coefficient() const { return impl_->max_coef; }
 std::uint64_t EqualityBasis::jacobian_hash() const { return impl_->hash; }
@@ -246,11 +358,12 @@ void EqualityBasis::compute(const SpMatRM &Je, const Vec &lower, const Vec &uppe
             fmt::format("EqualityBasis::compute: Je is {}x{} but lower/upper have sizes {}/{}", me,
                         n, lower.size(), upper.size()));
     }
-    if (!(tol.pivot_factor > 0.0) || !(tol.gap_ratio >= 1.0) || !(tol.coef_cap > 0.0)) {
-        throw std::invalid_argument(
-            fmt::format("EqualityBasis::compute: tolerances must satisfy pivot_factor > 0, "
-                        "gap_ratio >= 1, coef_cap > 0 (got {}, {}, {})",
-                        tol.pivot_factor, tol.gap_ratio, tol.coef_cap));
+    if (!(tol.pivot_factor > 0.0) || !(tol.gap_ratio >= 1.0) || !(tol.coef_cap > 0.0) ||
+        !(tol.solve_residual > 0.0)) {
+        throw std::invalid_argument(fmt::format(
+            "EqualityBasis::compute: tolerances must satisfy pivot_factor > 0, gap_ratio >= 1, "
+            "coef_cap > 0, solve_residual > 0 (got {}, {}, {}, {})",
+            tol.pivot_factor, tol.gap_ratio, tol.coef_cap, tol.solve_residual));
     }
 
     auto next = std::make_unique<Impl>();
@@ -274,7 +387,19 @@ void EqualityBasis::compute(const SpMatRM &Je, const Vec &lower, const Vec &uppe
     }
     b.tau_lo = tol.pivot_factor * static_cast<double>(n_free + me) * kEps;
     b.tau_hi = tol.gap_ratio * b.tau_lo;
+    b.solve_residual = tol.solve_residual;
     b.set_identity(me);
+
+    // Every refusal leaves the identity basis in force.
+    auto refuse = [&](EqualityBasisRefusal why) {
+        b.set_identity(me);
+        b.verdict = EqualityBasisVerdict::kUndecidable;
+        b.refusal = why;
+        b.max_coef = 0.0;
+        b.max_residual = 0.0;
+        b.gram_matrix = SpMatCM();
+        impl_ = std::move(next);
+    };
 
     // Row norms on F; empty rows are dropped outright.
     Vec nu(me);
@@ -282,6 +407,10 @@ void EqualityBasis::compute(const SpMatRM &Je, const Vec &lower, const Vec &uppe
     std::vector<Index> empty_rows;
     for (Index r = 0; r < me; ++r) {
         nu(r) = b.free_norm(Je, r);
+        if (!std::isfinite(nu(r))) {
+            refuse(EqualityBasisRefusal::kNonFinite);
+            return;
+        }
         if (nu(r) > 0.0) {
             nonempty.push_back(r);
         } else {
@@ -300,7 +429,12 @@ void EqualityBasis::compute(const SpMatRM &Je, const Vec &lower, const Vec &uppe
             for (SpMatRM::InnerIterator it(Je, r); it; ++it) {
                 const Index f = free_pos[static_cast<std::size_t>(it.col())];
                 if (f >= 0 && it.value() != 0.0) {
-                    trip.emplace_back(static_cast<int>(f), static_cast<int>(j), it.value() / nu(r));
+                    const double v = it.value() / nu(r);
+                    if (!std::isfinite(v)) {
+                        refuse(EqualityBasisRefusal::kNonFinite);
+                        return;
+                    }
+                    trip.emplace_back(static_cast<int>(f), static_cast<int>(j), v);
                 }
             }
         }
@@ -310,6 +444,8 @@ void EqualityBasis::compute(const SpMatRM &Je, const Vec &lower, const Vec &uppe
 
     RowDependence dep = factor_row_dependence(M, b.tau_lo, b.tau_hi, tol.coef_cap);
     b.ran_qr = dep.ran_qr;
+    b.precheck_be = dep.precheck_backward_error;
+    b.precheck_sigma = dep.precheck_sigma;
     b.min_pivot = dep.min_pivot;
     b.max_residual = dep.max_residual;
     b.max_coef = dep.max_coef;
@@ -319,10 +455,7 @@ void EqualityBasis::compute(const SpMatRM &Je, const Vec &lower, const Vec &uppe
     const Eigen::MatrixXd &Ct = dep.coef;
 
     if (undecidable) {
-        b.verdict = EqualityBasisVerdict::kUndecidable;
-        b.max_coef = 0.0;
-        b.max_residual = 0.0;
-        impl_ = std::move(next);
+        refuse(dep.nonfinite ? EqualityBasisRefusal::kNonFinite : EqualityBasisRefusal::kSpectrum);
         return;
     }
 
@@ -377,20 +510,48 @@ void EqualityBasis::compute(const SpMatRM &Je, const Vec &lower, const Vec &uppe
             }
             const Index rk =
                 nonempty[static_cast<std::size_t>(retained_ne[static_cast<std::size_t>(k)])];
+            const double c = ct * (nu(r) / nu(rk));
+            if (!std::isfinite(c)) {
+                refuse(EqualityBasisRefusal::kNonFinite);
+                return;
+            }
             trip.emplace_back(static_cast<int>(b_pos[static_cast<std::size_t>(rk)]),
-                              static_cast<int>(jj), ct * nu(r) / nu(rk));
+                              static_cast<int>(jj), c);
         }
     }
     b.C = SpMatCM(nb, nd);
     b.C.setFromTriplets(trip.begin(), trip.end());
     b.C.makeCompressed();
+
+    // I + C^T C, its factor, and a probe solve through the same check lift() and
+    // project_rhs() apply.
     SpMatCM G = SpMatCM(b.C.transpose()) * b.C;
     SpMatCM I(nd, nd);
     I.setIdentity();
     G += I;
+    G.makeCompressed();
+    for (Index k = 0; k < G.nonZeros(); ++k) {
+        if (!std::isfinite(G.valuePtr()[k])) {
+            refuse(EqualityBasisRefusal::kNonFinite);
+            return;
+        }
+    }
+    b.gram_norm_inf = 0.0;
+    {
+        Vec gsum = Vec::Zero(nd);
+        for (Index j = 0; j < nd; ++j) {
+            for (SpMatCM::InnerIterator it(G, j); it; ++it) {
+                gsum(it.row()) += std::abs(it.value());
+            }
+        }
+        b.gram_norm_inf = gsum.maxCoeff();
+    }
     b.gram.compute(G);
-    if (b.gram.info() != Eigen::Success) {
-        throw std::logic_error("EqualityBasis::compute: I + C^T C failed to factor");
+    b.gram_matrix = std::move(G);
+    Vec probe;
+    if (b.gram.info() != Eigen::Success || !b.solve_gram(Vec::Ones(nd), probe)) {
+        refuse(EqualityBasisRefusal::kGram);
+        return;
     }
     b.verdict = EqualityBasisVerdict::kReduced;
     impl_ = std::move(next);
@@ -423,8 +584,8 @@ bool EqualityBasis::verify(const SpMatRM &Je) const {
         for (Index s : b.fixed) {
             acc(s) = 0.0;
         }
-        const double res = acc.norm();
-        if (!std::isfinite(res) || res > b.tau_lo * bound) {
+        const double res = scaled_norm(acc);
+        if (!std::isfinite(res) || !std::isfinite(bound) || res > b.tau_lo * bound) {
             return false;
         }
     }
@@ -466,7 +627,9 @@ void EqualityBasis::read_gaps(const Vec &ce, const SpMatRM &Je, const Vec &x, do
         }
         gap(j) = g;
         const double ag = std::abs(g);
-        if (ag <= 10.0 * kEps * scale) {
+        if (!std::isfinite(ag) || !std::isfinite(scale) || !std::isfinite(c1)) {
+            band[static_cast<std::size_t>(j)] = EqualityGapBand::kNonFinite;
+        } else if (ag <= 10.0 * kEps * scale) {
             band[static_cast<std::size_t>(j)] = EqualityGapBand::kNoise;
         } else if (ag <= feas_tol * (1.0 + c1)) {
             band[static_cast<std::size_t>(j)] = EqualityGapBand::kFeasible;
@@ -476,32 +639,43 @@ void EqualityBasis::read_gaps(const Vec &ce, const SpMatRM &Je, const Vec &x, do
     }
 }
 
-std::uint64_t EqualityBasis::group_hash(const SpMatRM &Je, Index j) const {
+std::vector<unsigned char> EqualityBasis::group_bytes(const SpMatRM &Je, Index j) const {
     const Impl &b = *impl_;
     if (j < 0 || j >= static_cast<Index>(b.dropped.size()) || Je.rows() != b.me) {
         throw std::invalid_argument(
-            fmt::format("EqualityBasis::group_hash: dropped index {} out of range [0, {}) or Je "
+            fmt::format("EqualityBasis::group_bytes: dropped index {} out of range [0, {}) or Je "
                         "has {} rows (expected {})",
                         j, b.dropped.size(), Je.rows(), b.me));
     }
-    std::uint64_t h = kFnvOffset;
-    auto mix_row = [&](Index r) {
-        fnv_mix(h, &r, sizeof(r));
+    std::vector<unsigned char> out;
+    auto put = [&](const void *data, std::size_t len) {
+        const auto *p = static_cast<const unsigned char *>(data);
+        out.insert(out.end(), p, p + len);
+    };
+    auto put_row = [&](Index r) {
+        put(&r, sizeof(r));
         for (SpMatRM::InnerIterator it(Je, r); it; ++it) {
             const Index c = it.col();
             const double v = it.value();
-            fnv_mix(h, &c, sizeof(c));
-            fnv_mix(h, &v, sizeof(v));
+            put(&c, sizeof(c));
+            put(&v, sizeof(v));
         }
     };
-    mix_row(b.dropped[static_cast<std::size_t>(j)]);
+    put_row(b.dropped[static_cast<std::size_t>(j)]);
     for (SpMatCM::InnerIterator ct(b.C, j); ct; ++ct) {
-        mix_row(b.retained[static_cast<std::size_t>(ct.row())]);
+        put_row(b.retained[static_cast<std::size_t>(ct.row())]);
     }
+    return out;
+}
+
+std::uint64_t EqualityBasis::group_hash(const SpMatRM &Je, Index j) const {
+    const std::vector<unsigned char> bytes = group_bytes(Je, j);
+    std::uint64_t h = kFnvOffset;
+    fnv_mix(h, bytes.data(), bytes.size());
     return h;
 }
 
-Vec EqualityBasis::project_rhs(const Vec &gamma) const {
+bool EqualityBasis::project_rhs(const Vec &gamma, Vec &t) const {
     const Impl &b = *impl_;
     if (gamma.size() != static_cast<Index>(b.dropped.size())) {
         throw std::invalid_argument(
@@ -509,12 +683,16 @@ Vec EqualityBasis::project_rhs(const Vec &gamma) const {
                         gamma.size(), b.dropped.size()));
     }
     if (b.dropped.empty()) {
-        return Vec::Zero(static_cast<Index>(b.retained.size()));
+        t = Vec::Zero(static_cast<Index>(b.retained.size()));
+        return true;
     }
-    return b.C * Vec(b.gram.solve(gamma));
+    Vec w;
+    const bool ok = b.solve_gram(gamma, w);
+    t = b.C * w;
+    return ok && t.allFinite();
 }
 
-Vec EqualityBasis::reduce_rhs(const Vec &be, const SpMatRM &Ae, const Vec &lower) const {
+bool EqualityBasis::reduce_rhs(const Vec &be, const SpMatRM &Ae, const Vec &lower, Vec &out) const {
     const Impl &b = *impl_;
     if (be.size() != b.me || Ae.rows() != b.me || Ae.cols() != b.n || lower.size() != b.n) {
         throw std::invalid_argument(fmt::format(
@@ -539,19 +717,20 @@ Vec EqualityBasis::reduce_rhs(const Vec &be, const SpMatRM &Ae, const Vec &lower
         }
         gamma(j) = g;
     }
-    const Vec t = project_rhs(gamma);
+    Vec t;
+    const bool ok = project_rhs(gamma, t);
     const Index nb = static_cast<Index>(b.retained.size());
-    Vec out(nb);
+    out.resize(nb);
     for (Index k = 0; k < nb; ++k) {
         out(k) = be(b.retained[static_cast<std::size_t>(k)]) + t(k);
     }
-    return out;
+    return ok && out.allFinite();
 }
 
-void EqualityBasis::reduce(QpProblem &qp) const {
+bool EqualityBasis::reduce(QpProblem &qp) const {
     const Impl &b = *impl_;
     if (b.dropped.empty()) {
-        return;
+        return true;
     }
     if (qp.me() != b.me || qp.n() != b.n) {
         throw std::invalid_argument(
@@ -561,7 +740,10 @@ void EqualityBasis::reduce(QpProblem &qp) const {
     if (!qp.Ae.isCompressed()) {
         qp.Ae.makeCompressed();
     }
-    Vec be = reduce_rhs(qp.be, qp.Ae, qp.lower);
+    Vec be;
+    if (!reduce_rhs(qp.be, qp.Ae, qp.lower, be)) {
+        return false;
+    }
     const Index nb = static_cast<Index>(b.retained.size());
     SpMatRM Ae(nb, b.n);
     Index nnz = 0;
@@ -579,9 +761,10 @@ void EqualityBasis::reduce(QpProblem &qp) const {
     Ae.makeCompressed();
     qp.Ae = std::move(Ae);
     qp.be = std::move(be);
+    return true;
 }
 
-Vec EqualityBasis::lift(const Vec &lambda_B) const {
+bool EqualityBasis::lift(const Vec &lambda_B, Vec &out) const {
     const Impl &b = *impl_;
     const Index nb = static_cast<Index>(b.retained.size());
     if (lambda_B.size() != nb) {
@@ -589,18 +772,23 @@ Vec EqualityBasis::lift(const Vec &lambda_B) const {
             "EqualityBasis::lift: lambda_B has size {}, expected {} (= |B|)", lambda_B.size(), nb));
     }
     if (b.dropped.empty()) {
-        return lambda_B;
+        out = lambda_B;
+        return true;
     }
-    const Vec w = b.gram.solve(Vec(b.C.transpose() * lambda_B));
-    const Vec lb = lambda_B - b.C * w;
-    Vec out(b.me);
+    Vec w;
+    bool ok = b.solve_gram(Vec(b.C.transpose() * lambda_B), w);
+    const Vec lb = ok ? Vec(lambda_B - b.C * w) : lambda_B;
+    ok = ok && lb.allFinite();
+    out = Vec::Zero(b.me);
     for (Index k = 0; k < nb; ++k) {
-        out(b.retained[static_cast<std::size_t>(k)]) = lb(k);
+        out(b.retained[static_cast<std::size_t>(k)]) = ok ? lb(k) : lambda_B(k);
     }
-    for (std::size_t j = 0; j < b.dropped.size(); ++j) {
-        out(b.dropped[j]) = w(static_cast<Index>(j));
+    if (ok) {
+        for (std::size_t j = 0; j < b.dropped.size(); ++j) {
+            out(b.dropped[j]) = w(static_cast<Index>(j));
+        }
     }
-    return out;
+    return ok;
 }
 
 Vec EqualityBasis::fold(const Vec &lambda) const {
