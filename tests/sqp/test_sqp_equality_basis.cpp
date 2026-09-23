@@ -275,6 +275,102 @@ TEST_P(EqualityBasisModes, F3NoGapSpectrumIsUndecidableAndBitIdentical) {
     expect_bit_identical(r_on, r_off);
 }
 
+// F10 (E1b fix round 1, settler F5): the report's telemetry on constructed dependent
+// sets. The two networks drop one balance row each (the highest-degree, highest-index
+// node: rows 2 and 7); 70 copies of one row drop 69 and name the first 64; the SAWPATH
+// shape counts its refusal. MKL reports a perturbed-pivot count for every certificate
+// factorization (0 each); Accelerate's count is UNOBSERVED.
+TEST_P(EqualityBasisModes, F10ReportTelemetryOnConstructedDependentSets) {
+    const TwoNetworks net;
+    SqpSolver solver(opts_for(GetParam()));
+    const SqpResult res = solver.solve(net.model());
+    ASSERT_EQ(res.status, SolveStatus::kOptimal);
+    const SqpEqualityBasisReport &rep = res.equality_basis;
+    EXPECT_EQ(rep.split_dropped_count, 2);
+    EXPECT_EQ(rep.split_dropped_rows, (std::vector<Index>{2, 7}));
+    EXPECT_EQ(rep.split_dropped_rows, rep.dropped_rows);
+    EXPECT_EQ(rep.gram_factorizations, 4);
+    EXPECT_EQ(rep.gram_perturbed_pivots, 0);
+#if !defined(__APPLE__)
+    EXPECT_EQ(rep.gram_perturbation_unobserved, 0);
+#endif
+    EXPECT_EQ(rep.undecidable_count, 0);
+    EXPECT_EQ(rep.last_refusal, SqpEqualityBasisRefusal::kNone);
+    EXPECT_EQ(rep.recomputes, 0);
+    EXPECT_FALSE(rep.switched_off);
+    EXPECT_EQ(rep.lift_refusals, 0);
+    EXPECT_EQ(rep.warm_probe_refusals, 0);
+    const SqpEqualityBasisReport::LiftRefusalSites &sites = rep.lift_refusal_sites;
+    EXPECT_EQ(sites.compute + sites.qp_projection + sites.soc_projection + sites.commit_lift +
+                  sites.prox_centre + rep.warm_probe_refusals,
+              rep.lift_refusals);
+
+    // The warm solve adds the probe's computation to the certificate telemetry.
+    SqpSolver again(opts_for(GetParam()));
+    const SqpResult warm = again.solve(net.model(), Vec::Zero(11), res.warm_start, SolveBudget{});
+    ASSERT_EQ(warm.status, SolveStatus::kOptimal);
+    EXPECT_EQ(warm.counters.start_level_used, StartLevel::kWarm);
+    EXPECT_EQ(warm.equality_basis.gram_factorizations, 8);
+    EXPECT_EQ(warm.equality_basis.split_dropped_rows, (std::vector<Index>{2, 7}));
+
+    // 70 copies of one row: 69 dropped (the tie rule keeps row 0), 64 named.
+    const Index me = 70;
+    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(me, 2);
+    A.col(0).setOnes();
+    A.col(1).setConstant(-1.0);
+    const QpAsNlpModel copies(make_qp(A, Vec::Ones(me), Vec::Ones(2), Vec::Zero(2),
+                                      Vec::Constant(2, -10.0), Vec::Constant(2, 10.0)),
+                              Vec::Zero(2));
+    SqpSolver many(opts_for(GetParam()));
+    const SqpResult r70 = many.solve(copies);
+    ASSERT_EQ(r70.status, SolveStatus::kOptimal);
+    EXPECT_EQ(r70.equality_basis.split_dropped_count, 69);
+    ASSERT_EQ(r70.equality_basis.split_dropped_rows.size(),
+              static_cast<std::size_t>(SqpEqualityBasisReport::kSplitDroppedRowsCap));
+    for (Index k = 0; k < SqpEqualityBasisReport::kSplitDroppedRowsCap; ++k) {
+        EXPECT_EQ(r70.equality_basis.split_dropped_rows[static_cast<std::size_t>(k)], k + 1);
+    }
+    EXPECT_EQ(r70.equality_basis.dropped_rows.size(), 69u);
+    EXPECT_EQ(r70.equality_basis.gram_perturbed_pivots, 0);
+
+    // A refused computation is counted with its reason.
+    const Index mr = 12;
+    const Index nr = 16;
+    Eigen::MatrixXd U = Eigen::MatrixXd::Zero(mr, mr);
+    Eigen::MatrixXd V = Eigen::MatrixXd::Zero(nr, nr);
+    for (Index i = 0; i < mr; ++i) {
+        for (Index j = 0; j < mr; ++j) {
+            U(i, j) = std::sin(1.0 + 0.7 * static_cast<double>(i) + 1.3 * static_cast<double>(j));
+        }
+    }
+    for (Index i = 0; i < nr; ++i) {
+        for (Index j = 0; j < nr; ++j) {
+            V(i, j) = std::cos(0.3 + 1.1 * static_cast<double>(i) + 0.9 * static_cast<double>(j));
+        }
+    }
+    const Eigen::MatrixXd Q1 = Eigen::HouseholderQR<Eigen::MatrixXd>(U).householderQ();
+    const Eigen::MatrixXd Q2 = Eigen::HouseholderQR<Eigen::MatrixXd>(V).householderQ();
+    Eigen::MatrixXd S = Eigen::MatrixXd::Zero(mr, nr);
+    for (Index k = 0; k < mr; ++k) {
+        S(k, k) = std::pow(10.0, -11.0 * static_cast<double>(k) / static_cast<double>(mr - 1));
+    }
+    Eigen::MatrixXd G = Q1 * S * Q2.transpose();
+    for (Index r = 0; r < mr; ++r) {
+        G.row(r) *= std::pow(10.0, 10.0 * static_cast<double>(r) / static_cast<double>(mr - 1));
+    }
+    const QpAsNlpModel graded(make_qp(G, G * Vec::LinSpaced(nr, -0.5, 0.5), Vec::Ones(nr),
+                                      Vec::LinSpaced(nr, 0.1, -0.2), Vec::Constant(nr, -1e20),
+                                      Vec::Constant(nr, 1e20)),
+                              Vec::Zero(nr));
+    SqpSolver refused(opts_for(GetParam()));
+    const SqpResult rg = refused.solve(graded);
+    EXPECT_TRUE(rg.equality_basis.undecidable);
+    EXPECT_EQ(rg.equality_basis.undecidable_count, 1);
+    EXPECT_NE(rg.equality_basis.last_refusal, SqpEqualityBasisRefusal::kNone);
+    EXPECT_EQ(rg.equality_basis.split_dropped_count, 0);
+    EXPECT_TRUE(rg.equality_basis.split_dropped_rows.empty());
+}
+
 INSTANTIATE_TEST_SUITE_P(QpModes, EqualityBasisModes,
                          ::testing::Values(QpMode::kWalk, QpMode::kSsn, QpMode::kIpm));
 

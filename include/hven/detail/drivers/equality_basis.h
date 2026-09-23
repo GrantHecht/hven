@@ -155,6 +155,11 @@ class EqualityBasis {
     double min_retained_pivot() const;
     /// Numeric factorizations of the Gram matrix the last compute() ran (1 on the fast path).
     Index gram_factorizations() const;
+    /// Perturbed pivots the backend reported, summed over those factorizations (any
+    /// nonzero refuses the split with kCertificate).
+    Index gram_perturbed_pivots() const;
+    /// Those factorizations whose backend reported no perturbed-pivot count.
+    Index gram_perturbation_unobserved() const;
     /// n_neg(G - t_hi I) and n_neg(G - t_lo I) on clean evidence (-1 when not reached).
     Index deficiency_hi() const;
     Index deficiency_lo() const;

@@ -87,6 +87,8 @@ struct RowDependence {
     Index k_hi = -1;
     Index k_lo = -1;
     Index gram_factorizations = 0;
+    Index perturbed_pivots = 0;        // summed over the certificate factorizations
+    Index perturbation_unobserved = 0; // factorizations whose backend gave no count
 };
 
 // A deterministic uniform value in [-1, 1] of (i, j): splitmix64, identical on
@@ -198,7 +200,7 @@ class GramOperator {
 // backend counts them, and a probe solve at the backward-error bound). Returns
 // n_neg, or -1 when the evidence is not clean.
 Index certified_negatives(linear::SymmetricFactor &factor, GramOperator &gram, double t,
-                          const std::vector<char> &mask, Index &factorizations) {
+                          const std::vector<char> &mask, RowDependence &tally) {
     const Index m = gram.upper().rows();
     const double anorm = gram.set(t, mask);
     linear::FactorizeOutcome out;
@@ -207,8 +209,13 @@ Index certified_negatives(linear::SymmetricFactor &factor, GramOperator &gram, d
     } catch (const std::runtime_error &) {
         return -1;
     }
-    ++factorizations;
+    ++tally.gram_factorizations;
     const linear::InertiaEvidence &in = out.inertia;
+    if (in.perturbed_pivots.has_value()) {
+        tally.perturbed_pivots += *in.perturbed_pivots;
+    } else {
+        ++tally.perturbation_unobserved;
+    }
     if (out.status != linear::FactorizeOutcome::Status::kOk ||
         in.state != linear::InertiaEvidence::State::kObserved || in.n_zero != 0 || in.n_pos < 0 ||
         in.n_neg < 0 || in.n_pos + in.n_neg != m ||
@@ -344,7 +351,7 @@ RowDependence factor_row_dependence(const SpMatCM &M, double tau_lo, double coef
     const std::vector<char> no_mask;
 
     // 1. The certificate.
-    const Index k_hi = certified_negatives(factor, gram, t_hi, no_mask, out.gram_factorizations);
+    const Index k_hi = certified_negatives(factor, gram, t_hi, no_mask, out);
     out.k_hi = k_hi;
     if (k_hi < 0) {
         return refuse(EqualityBasisRefusal::kCertificate);
@@ -356,7 +363,7 @@ RowDependence factor_row_dependence(const SpMatCM &M, double tau_lo, double coef
         }
         return out;
     }
-    const Index k_lo = certified_negatives(factor, gram, t_lo, no_mask, out.gram_factorizations);
+    const Index k_lo = certified_negatives(factor, gram, t_lo, no_mask, out);
     out.k_lo = k_lo;
     if (k_lo < 0) {
         return refuse(EqualityBasisRefusal::kCertificate);
@@ -450,14 +457,14 @@ RowDependence factor_row_dependence(const SpMatCM &M, double tau_lo, double coef
     }
 
     // 4. The retained set's certificate, then the coefficients.
-    const Index a_hi = certified_negatives(factor, gram, t_hi, is_d, out.gram_factorizations);
+    const Index a_hi = certified_negatives(factor, gram, t_hi, is_d, out);
     if (a_hi < 0) {
         return refuse(EqualityBasisRefusal::kCertificate);
     }
     if (a_hi != 0) {
         return refuse(EqualityBasisRefusal::kSpectrum);
     }
-    const Index a_0 = certified_negatives(factor, gram, 0.0, is_d, out.gram_factorizations);
+    const Index a_0 = certified_negatives(factor, gram, 0.0, is_d, out);
     if (a_0 < 0) {
         return refuse(EqualityBasisRefusal::kCertificate);
     }
@@ -548,6 +555,8 @@ struct EqualityBasis::Impl {
     double tau_hi = 0.0;
     double min_pivot = kInf;
     Index gram_factorizations = 0;
+    Index perturbed_pivots = 0;
+    Index perturbation_unobserved = 0;
     Index k_hi = -1;
     Index k_lo = -1;
     double shift_lo = kNaN;
@@ -689,6 +698,8 @@ double EqualityBasis::tau_lo() const { return impl_->tau_lo; }
 double EqualityBasis::tau_hi() const { return impl_->tau_hi; }
 double EqualityBasis::min_retained_pivot() const { return impl_->min_pivot; }
 Index EqualityBasis::gram_factorizations() const { return impl_->gram_factorizations; }
+Index EqualityBasis::gram_perturbed_pivots() const { return impl_->perturbed_pivots; }
+Index EqualityBasis::gram_perturbation_unobserved() const { return impl_->perturbation_unobserved; }
 Index EqualityBasis::deficiency_hi() const { return impl_->k_hi; }
 Index EqualityBasis::deficiency_lo() const { return impl_->k_lo; }
 double EqualityBasis::shift_lo() const { return impl_->shift_lo; }
@@ -818,6 +829,8 @@ void EqualityBasis::compute(const SpMatRM &Je, const Vec &lower, const Vec &uppe
 
     RowDependence dep = factor_row_dependence(M, b.tau_lo, tol.coef_cap, tol);
     b.gram_factorizations = dep.gram_factorizations;
+    b.perturbed_pivots = dep.perturbed_pivots;
+    b.perturbation_unobserved = dep.perturbation_unobserved;
     b.k_hi = dep.k_hi;
     b.k_lo = dep.k_lo;
     b.shift_lo = dep.shift_lo;

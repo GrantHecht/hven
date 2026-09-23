@@ -1247,13 +1247,39 @@ struct SqpScalingReport {
     double scaled_kkt_residual = std::numeric_limits<double>::quiet_NaN();
 };
 
+/// @brief Why an equality-basis split dropped nothing although it was computed
+/// (`detail/drivers/equality_basis.h`, EqualityBasisRefusal, one for one).
+enum class SqpEqualityBasisRefusal {
+    kNone,        ///< No computation was refused.
+    kSpectrum,    ///< No gap, a failed retained-set check, reconstruction or coefficient cap.
+    kNonFinite,   ///< A norm, scaled entry, coefficient or Gram value was not finite.
+    kLift,        ///< The lift system K failed its factorization checks or probe.
+    kCertificate, ///< A certificate factorization's evidence was not clean.
+    kSubspace,    ///< The null-basis iteration did not confirm the count.
+    kFill,        ///< The Gram matrix would be too dense to form.
+};
+
 /// @brief SqpOptions::equality_basis's account of one solve (SqpResult::equality_basis).
-/// Row indices are the model's equality rows.
+/// Row indices are the model's equality rows. "Every computation" below means every
+/// split the solve computed plus the warm structural probe's own, when it ran.
 struct SqpEqualityBasisReport {
+    /// Most dropped-row identities split_dropped_rows carries.
+    static constexpr Index kSplitDroppedRowsCap = 64;
+
     /// A split was computed at least once.
     bool computed = false;
     /// The first split was refused (no pivot gap, a failed check) and dropped nothing.
     bool undecidable = false;
+    /// Computations that were refused (kUndecidable), over every computation.
+    Index undecidable_count = 0;
+    /// The reason of the last refused computation (kNone when none was).
+    SqpEqualityBasisRefusal last_refusal = SqpEqualityBasisRefusal::kNone;
+    /// |D| of the last split the solve computed (the probe's excluded), whatever
+    /// happened to it afterwards (a switch-off, hand-off or refusal clears
+    /// dropped_rows, not this).
+    Index split_dropped_count = 0;
+    /// That split's dropped rows, increasing, the first kSplitDroppedRowsCap of them.
+    std::vector<Index> split_dropped_rows;
     /// Rows dropped by the split in force at exit.
     std::vector<Index> dropped_rows;
     /// Largest number of rows any split dropped.
@@ -1264,6 +1290,13 @@ struct SqpEqualityBasisReport {
     /// computed (a warm probe's included): 1 per full-rank split on the certificate's
     /// fast path, 2 when full rank is certified at the lower shift, 4 per reducing split.
     Index gram_factorizations = 0;
+    /// Perturbed pivots the backend reported, summed over every factorization
+    /// gram_factorizations counts (a nonzero count refuses its split with
+    /// kCertificate, so 0 is the expectation and the IPARM-SURFACE evidence).
+    Index gram_perturbed_pivots = 0;
+    /// Of those factorizations, the ones whose backend reported no perturbed-pivot
+    /// count (0 on MKL; Accelerate UNOBSERVED).
+    Index gram_perturbation_unobserved = 0;
     /// Three consecutive majors recomputed; the QPs carried every row thereafter.
     bool switched_off = false;
     /// Splits refused because a norm, coefficient or Gram value was not finite.
@@ -1280,6 +1313,15 @@ struct SqpEqualityBasisReport {
     /// warm start taken from a reducing solve, and the start resolves below kWarm
     /// (kSeeded when the values are ingestible). Safe, never silent.
     Index warm_probe_refusals = 0;
+    /// lift_refusals by site; the five plus warm_probe_refusals sum to lift_refusals.
+    struct LiftRefusalSites {
+        Index compute = 0;        ///< kLift refusals of the solve's own splits.
+        Index qp_projection = 0;  ///< The QP subproblem's rhs projection.
+        Index soc_projection = 0; ///< The SOC subproblem's rhs projection.
+        Index commit_lift = 0;    ///< The two commit lifts (direct and SOC acceptance).
+        Index prox_centre = 0;    ///< The SSN prox-centre lift.
+    };
+    LiftRefusalSites lift_refusal_sites;
     /// Majors at which the QPs' equality rows changed; each dropped the warm state
     /// held in row coordinates (the QP seed, the IPQP carry, a staged IPQP seed).
     Index split_changes = 0;

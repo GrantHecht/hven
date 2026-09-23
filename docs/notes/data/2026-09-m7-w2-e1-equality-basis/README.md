@@ -413,6 +413,24 @@ seam's third knob, `warm_probe_forward_tol`; `docs/testing.md`).
 `lift_forward_tol`, and in §T4 above (the "left to the settler" sentence is replaced by
 the ruling).
 
+**F5 — report telemetry (schema event, hven side).** `SqpEqualityBasisReport` gains,
+append-only: `gram_perturbed_pivots` (the backend's perturbed-pivot count summed over
+every certificate factorization `gram_factorizations` counts; 0 expected, the
+IPARM-SURFACE evidence) and `gram_perturbation_unobserved` (factorizations with no
+count: 0 on MKL, Accelerate UNOBSERVED); `undecidable_count` and `last_refusal`
+(`SqpEqualityBasisRefusal`) over EVERY computation, the warm probe's included;
+`split_dropped_count` and `split_dropped_rows` (the last split the solve computed,
+first 64 rows, `kSplitDroppedRowsCap`) which survive a switch-off, hand-off or
+refusal; `lift_refusal_sites` (compute, QP projection, SOC projection, commit lift,
+prox centre; with `warm_probe_refusals` they sum to `lift_refusals`). Existing
+`recomputes`, `switched_off`, `gram_factorizations` unchanged. No numerics and no
+option change (the options dump and its pins are untouched). Fixture
+`QpModes/EqualityBasisModes.F10ReportTelemetryOnConstructedDependentSets` (every
+`qp_mode`): the two networks drop rows {2, 7} with 4 certificate factorizations and 0
+perturbed pivots (8 on the warm re-solve, the probe's included); 70 copies of one row
+drop 69 and name rows 1–64; the SAWPATH shape counts one refusal. The hven-bench side
+file and the partial TRAIN re-run are a separate dispatch.
+
 **F6 — process (recorded, not blocking).** Per-dispatch token figures for the E1b
 dispatches of 2026-09-23, from the harness usage notifications: gates declaration
 **162.6k**; record + re-take launch **235.9k**; close **189.8k**. The pre-compaction

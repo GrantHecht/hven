@@ -2746,16 +2746,48 @@ bool differ_on(const Vec &a, const Vec &b, const std::vector<Index> &cols) {
     return false;
 }
 
+SqpEqualityBasisRefusal public_refusal(detail::EqualityBasisRefusal r) {
+    switch (r) {
+    case detail::EqualityBasisRefusal::kNone:
+        return SqpEqualityBasisRefusal::kNone;
+    case detail::EqualityBasisRefusal::kSpectrum:
+        return SqpEqualityBasisRefusal::kSpectrum;
+    case detail::EqualityBasisRefusal::kNonFinite:
+        return SqpEqualityBasisRefusal::kNonFinite;
+    case detail::EqualityBasisRefusal::kLift:
+        return SqpEqualityBasisRefusal::kLift;
+    case detail::EqualityBasisRefusal::kCertificate:
+        return SqpEqualityBasisRefusal::kCertificate;
+    case detail::EqualityBasisRefusal::kSubspace:
+        return SqpEqualityBasisRefusal::kSubspace;
+    case detail::EqualityBasisRefusal::kFill:
+        return SqpEqualityBasisRefusal::kFill;
+    }
+    return SqpEqualityBasisRefusal::kNone;
+}
+
+// The certificate telemetry every computation feeds, the warm probe's included.
+void record_computation(SqpEqualityBasisReport &rep, const detail::EqualityBasis &b) {
+    rep.gram_factorizations += b.gram_factorizations();
+    rep.gram_perturbed_pivots += b.gram_perturbed_pivots();
+    rep.gram_perturbation_unobserved += b.gram_perturbation_unobserved();
+    if (b.verdict() == detail::EqualityBasisVerdict::kUndecidable) {
+        ++rep.undecidable_count;
+        rep.last_refusal = public_refusal(b.refusal());
+    }
+}
+
 // A fresh split at `Je`; the first one of a solve is not a recompute.
 void recompute_equality_basis(EqualityBasisState &eb, SqpEqualityBasisReport &rep,
                               const SpMatRM &Je, const Vec &lower, const Vec &upper, Index major) {
     detail::EqualityBasis next;
     next.compute(Je, lower, upper);
-    rep.gram_factorizations += next.gram_factorizations();
+    record_computation(rep, next);
     if (next.refusal() == detail::EqualityBasisRefusal::kNonFinite) {
         ++rep.nonfinite_refusals;
     } else if (next.refusal() == detail::EqualityBasisRefusal::kLift) {
         ++rep.lift_refusals;
+        ++rep.lift_refusal_sites.compute;
     }
     if (!rep.computed) {
         rep.computed = true;
@@ -2769,6 +2801,11 @@ void recompute_equality_basis(EqualityBasisState &eb, SqpEqualityBasisReport &re
     eb.evidence.assign(eb.basis.dropped().size(), EqualityBasisState::Evidence{});
     rep.dropped_rows = eb.basis.dropped();
     rep.dropped_peak = std::max(rep.dropped_peak, static_cast<Index>(rep.dropped_rows.size()));
+    rep.split_dropped_count = static_cast<Index>(rep.dropped_rows.size());
+    rep.split_dropped_rows.assign(
+        rep.dropped_rows.begin(),
+        rep.dropped_rows.begin() +
+            std::min(rep.split_dropped_count, SqpEqualityBasisReport::kSplitDroppedRowsCap));
 }
 
 // Three consecutive majors with a recompute: the QPs carry every row thereafter.
@@ -3651,7 +3688,7 @@ void SqpSolver::prepare_solve(SolveState &st, AssemblyEvalSeam &seam, const Vec 
             jacobian_values_finite(probe_ev)) {
             detail::EqualityBasis probe_basis;
             probe_basis.compute(probe_ev.Je, seam.lower(), seam.upper());
-            out.equality_basis.gram_factorizations += probe_basis.gram_factorizations();
+            record_computation(out.equality_basis, probe_basis);
             // A refused split (kLift) or a refused projection leaves the probe
             // unreduced; its hash then degrades the level. Counted, never silent
             // (SqpEqualityBasisReport::warm_probe_refusals).
@@ -6033,6 +6070,7 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         st.qp = seam.build_subproblem(st.ev, st.x, st.lambda_e, st.lambda_i, 1.0);
         if (!st.eqb.basis.reduce(st.qp)) {
             ++st.out.equality_basis.lift_refusals;
+            ++st.out.equality_basis.lift_refusal_sites.qp_projection;
             refuse_equality_basis(st.eqb, st.out.equality_basis, seam.me());
             drop_row_coordinate_carries(st);
         }
@@ -6606,6 +6644,7 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
                 : build_soc_subproblem(st.qp, st.ev, mj.ev_trial, mj.qs.x, mj.qs.ineq_active);
         if (!soc_projection_ok) {
             ++st.out.equality_basis.lift_refusals;
+            ++st.out.equality_basis.lift_refusal_sites.soc_projection;
             st.eqb.refuse_pending = true;
         }
 
@@ -6828,6 +6867,7 @@ SqpResult SqpSolver::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &b
         // lift: the next subproblem build carries every row.
         if (eq_prox_lift_failures_ > 0) {
             st.out.equality_basis.lift_refusals += eq_prox_lift_failures_;
+            st.out.equality_basis.lift_refusal_sites.prox_centre += eq_prox_lift_failures_;
             eq_prox_lift_failures_ = 0;
             if (st.eqb.on) {
                 st.eqb.refuse_pending = true;
@@ -6862,6 +6902,7 @@ SqpResult SqpSolver::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &b
                 st.ev = std::move(mj.ev_soc); // already upgraded to full -- see the promotion above
                 if (!st.eqb.basis.lift(mj.qs_soc.lambda_e, st.lambda_e)) {
                     ++st.out.equality_basis.lift_refusals;
+                    ++st.out.equality_basis.lift_refusal_sites.commit_lift;
                     st.eqb.refuse_pending = true; // st.lambda_e is the zero-scatter lift
                 }
                 st.lambda_i = mj.qs_soc.lambda_i;
@@ -6885,6 +6926,7 @@ SqpResult SqpSolver::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &b
                 st.ev = std::move(mj.ev_trial);
                 if (!st.eqb.basis.lift(mj.qs.lambda_e, st.lambda_e)) {
                     ++st.out.equality_basis.lift_refusals;
+                    ++st.out.equality_basis.lift_refusal_sites.commit_lift;
                     st.eqb.refuse_pending = true; // st.lambda_e is the zero-scatter lift
                 }
                 st.lambda_i = mj.qs.lambda_i;
