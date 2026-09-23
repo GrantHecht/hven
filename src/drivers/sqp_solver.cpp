@@ -41,6 +41,7 @@
 #include <hven/drivers/console_trace_sink.h>
 
 #include <hven/detail/drivers/equality_basis.h>
+#include <hven/detail/drivers/equality_basis_testing.h>
 
 namespace hven::solvers {
 
@@ -2701,7 +2702,7 @@ struct EqualityBasisState {
     };
     bool on = false;
     bool suspect = false;        // the last refresh read a kInconsistent band
-    bool refuse_pending = false; // a Gram solve failed; the next build carries every row
+    bool refuse_pending = false; // a lift/projection solve failed; the next build carries every row
     detail::EqualityBasis basis;
     Index streak = 0;
     Index last_recompute_major = -1;
@@ -2755,8 +2756,8 @@ void recompute_equality_basis(EqualityBasisState &eb, SqpEqualityBasisReport &re
     }
     if (next.refusal() == detail::EqualityBasisRefusal::kNonFinite) {
         ++rep.nonfinite_refusals;
-    } else if (next.refusal() == detail::EqualityBasisRefusal::kGram) {
-        ++rep.gram_refusals;
+    } else if (next.refusal() == detail::EqualityBasisRefusal::kLift) {
+        ++rep.lift_refusals;
     }
     if (!rep.computed) {
         rep.computed = true;
@@ -2796,13 +2797,13 @@ void hand_off_equality_basis(EqualityBasisState &eb, SqpEqualityBasisReport &rep
     rep.dropped_rows.clear();
 }
 
-// A Gram solve failed mid-solve: the QPs carry every row from here on.
+// A lift or projection solve failed mid-solve (counted in lift_refusals where it
+// failed): the QPs carry every row from here on.
 void refuse_equality_basis(EqualityBasisState &eb, SqpEqualityBasisReport &rep, Index me) {
     eb.on = false;
     eb.refuse_pending = false;
     eb.basis.reset(me);
     eb.evidence.clear();
-    ++rep.gram_refusals;
     rep.dropped_rows.clear();
 }
 
@@ -2915,15 +2916,28 @@ QpProblem build_reduced_soc_subproblem(const detail::EqualityBasis &basis, const
     return soc;
 }
 
-// [lambda_e lifted to me when the split reduces, lambda_i].
-Vec prox_center_lambda(const detail::EqualityBasis *basis, const Vec &lambda_e,
-                       const Vec &lambda_i) {
+// [lambda_e lifted to me when the split reduces, lambda_i]. `lift_ok` is false when
+// the lift failed its bound (the centre then carries the zero-scatter lift, an exact
+// representative); the caller counts it and the driver refuses the basis.
+Vec prox_center_lambda(const detail::EqualityBasis *basis, const Vec &lambda_e, const Vec &lambda_i,
+                       bool &lift_ok) {
     const bool lift = basis != nullptr && basis->reduces() &&
                       lambda_e.size() == static_cast<Index>(basis->retained().size());
     Vec le = lambda_e;
+    lift_ok = true;
     if (lift) {
-        // A failed solve check leaves the zero-scatter lift, an exact representative.
-        (void)basis->lift(lambda_e, le);
+        double bound = 0.0;
+        lift_ok = basis->lift(lambda_e, le, &bound);
+#ifdef HVEN_TESTING
+        const double seam_tol = detail::testing::EqualityBasisSeam::prox_lift_forward_tol;
+        if (lift_ok && seam_tol > 0.0 && !(bound <= seam_tol * lambda_e.norm())) {
+            lift_ok = false;
+            le = Vec::Zero(basis->me());
+            for (std::size_t k = 0; k < basis->retained().size(); ++k) {
+                le(basis->retained()[k]) = lambda_e(static_cast<Index>(k));
+            }
+        }
+#endif
     }
     Vec out(le.size() + lambda_i.size());
     out << le, lambda_i;
@@ -4049,8 +4063,12 @@ void SqpSolver::route_through_ssn_tier(SolveState &st, MajorState &mj) {
         if (sres.prox_sigma > ssn_prox_center_sigma_out_) {
             ssn_prox_center_sigma_out_ = sres.prox_sigma;
             ssn_prox_center_x_out_ = sres.x;
+            bool lift_ok = true;
             ssn_prox_center_lambda_out_ =
-                prox_center_lambda(eq_basis_view_, sres.lambda_e, sres.lambda_i);
+                prox_center_lambda(eq_basis_view_, sres.lambda_e, sres.lambda_i, lift_ok);
+            if (!lift_ok) {
+                ++eq_prox_lift_failures_;
+            }
         }
         qs = ssn_result_to_qp_solution(sres);
         // --- TIER 3: THE STABLE-FACE REFINEMENT ----------------
@@ -5997,6 +6015,7 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
     if (st.subproblem_is_stale) {
         st.qp = seam.build_subproblem(st.ev, st.x, st.lambda_e, st.lambda_i, 1.0);
         if (!st.eqb.basis.reduce(st.qp)) {
+            ++st.out.equality_basis.lift_refusals;
             refuse_equality_basis(st.eqb, st.out.equality_basis, seam.me());
             drop_row_coordinate_carries(st);
         }
@@ -6533,7 +6552,11 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
     // leave x where it is, so the two-iterate evidence could never complete: the
     // dropped rows go back into the QPs and the existing elastic/restoration ladder
     // decides from this same iterate.
-    if (zero_step && st.eqb.on && st.eqb.suspect) {
+    bool hand_off_enabled = true;
+#ifdef HVEN_TESTING
+    hand_off_enabled = !detail::testing::EqualityBasisSeam::disable_hand_off;
+#endif
+    if (zero_step && st.eqb.on && st.eqb.suspect && hand_off_enabled) {
         hand_off_equality_basis(st.eqb, st.out.equality_basis, seam.me());
         drop_row_coordinate_carries(st);
         st.subproblem_is_stale = true;
@@ -6565,6 +6588,7 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
                                                mj.qs.ineq_active, soc_projection_ok)
                 : build_soc_subproblem(st.qp, st.ev, mj.ev_trial, mj.qs.x, mj.qs.ineq_active);
         if (!soc_projection_ok) {
+            ++st.out.equality_basis.lift_refusals;
             st.eqb.refuse_pending = true;
         }
 
@@ -6747,6 +6771,7 @@ SqpResult SqpSolver::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &b
         ~BasisViewGuard() { self->eq_basis_view_ = nullptr; }
     };
     eq_basis_view_ = &st.eqb.basis;
+    eq_prox_lift_failures_ = 0;
     const BasisViewGuard basis_view_guard{this};
 
     for (Index iter = 0;; ++iter) {
@@ -6781,6 +6806,16 @@ SqpResult SqpSolver::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &b
         // `history` and in the stream by the time any tag below is acted on --
         // that is what `run_major` guarantees at each of its ten push sites.
         const MajorOutcome outcome = run_major(st, mj, seam, bridge, warm, budget, iter);
+        // A PROX-CENTRE LIFT THAT FAILED ITS BOUND during this major's subproblem is
+        // counted here and takes the same pending-refusal transition as a failed commit
+        // lift: the next subproblem build carries every row.
+        if (eq_prox_lift_failures_ > 0) {
+            st.out.equality_basis.lift_refusals += eq_prox_lift_failures_;
+            eq_prox_lift_failures_ = 0;
+            if (st.eqb.on) {
+                st.eqb.refuse_pending = true;
+            }
+        }
         // NO `default:` LABEL, so `-Wswitch` sees a tag added without an arm;
         // every arm either continues the loop or returns the solution.
         switch (outcome) {
@@ -6809,6 +6844,7 @@ SqpResult SqpSolver::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &b
                 st.x = mj.x_soc;
                 st.ev = std::move(mj.ev_soc); // already upgraded to full -- see the promotion above
                 if (!st.eqb.basis.lift(mj.qs_soc.lambda_e, st.lambda_e)) {
+                    ++st.out.equality_basis.lift_refusals;
                     st.eqb.refuse_pending = true; // st.lambda_e is the zero-scatter lift
                 }
                 st.lambda_i = mj.qs_soc.lambda_i;
@@ -6831,6 +6867,7 @@ SqpResult SqpSolver::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &b
                 ++st.out.counters.evals_full;
                 st.ev = std::move(mj.ev_trial);
                 if (!st.eqb.basis.lift(mj.qs.lambda_e, st.lambda_e)) {
+                    ++st.out.equality_basis.lift_refusals;
                     st.eqb.refuse_pending = true; // st.lambda_e is the zero-scatter lift
                 }
                 st.lambda_i = mj.qs.lambda_i;
@@ -7200,8 +7237,12 @@ bool SqpSolver::route_through_ssn_warm_grade(const QpProblem &qp, const IpqpResu
     if (sres.prox_sigma > ssn_prox_center_sigma_out_) {
         ssn_prox_center_sigma_out_ = sres.prox_sigma;
         ssn_prox_center_x_out_ = sres.x;
+        bool lift_ok = true;
         ssn_prox_center_lambda_out_ =
-            prox_center_lambda(eq_basis_view_, sres.lambda_e, sres.lambda_i);
+            prox_center_lambda(eq_basis_view_, sres.lambda_e, sres.lambda_i, lift_ok);
+        if (!lift_ok) {
+            ++eq_prox_lift_failures_;
+        }
     }
     qs = ssn_result_to_qp_solution(sres);
     // --- TIER 3, ON THE SSN's OWN FACE -------------------------------------

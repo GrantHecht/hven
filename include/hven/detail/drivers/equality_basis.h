@@ -14,15 +14,26 @@
 // basis by pivoted Gram-Schmidt with a declared tie rule, the retained set is
 // certified by a masked Gram factorization, and a split is accepted only when every
 // dropped row reconstructs from B to tau_lo with |C~| <= coef_cap, every intermediate
-// is finite, and I + C^T C factors and passes a solve check; otherwise nothing is
-// dropped (kUndecidable, refusal() says why). Rows empty on F are dropped with a zero
-// coefficient column.
+// is finite, and the lift system K below factors with inertia (|B|, |D|, 0) on clean
+// evidence and passes a probe solve; otherwise nothing is dropped (kUndecidable,
+// refusal() says why). Rows empty on F are dropped with a zero coefficient column.
+//
+// AMENDMENT 1 (settler S1, 2026-09-23). n_neg(G - t_lo I) = 0 on clean evidence
+// certifies lambda_min(G) >= t_lo (Weyl) and gives kFullRank even when the t_hi count
+// is positive: a certificate with the narrower margin t_lo, not an estimate. Measured
+// t_hi counts on the full-rank collocation chain: 0/0/2/3/3 at 400/700/1000/1500/2000
+// intervals (t_lo counts 0). A chain WITH a real dependence then reads t_hi = k + 3
+// against t_lo = k and is undecidable (registered E1b-L1; fails safe).
 //
 // With N = [-C; I] (rows B then D), Je(:,F)^T N = 0 and
 //   lift(lambda_B)  = the minimum-norm lambda with Je(:,F)^T lambda = Je(B,F)^T lambda_B
 //   fold(lambda)    = lambda(B) + C lambda(D)          (fold(lift(y)) == y)
 //   reduce(qp)      : Ae <- Ae(B,:), be <- be(B) + t,  t = C (I + C^T C)^-1 gamma,
 //                     gamma = N^T (be - Ae d),  d = qp.lower on S and 0 elsewhere.
+// Every (I + C^T C)^-1 is a solve with the quasidefinite K = [I_B C; C^T -I_D]
+// through the hven::linear backend, with up to two steps of explicit refinement and
+// the a-posteriori forward-error bound ||x^ - x||_2 <= ||r^||_2 + gamma_{w+1}
+// || |K| |x^| + |b| ||_2 (||K^-1||_2 <= 1), accepted iff <= lift_forward_tol ||b||_2.
 // C is in the units of the Je it was computed from. With nothing dropped every
 // operation is the identity.
 
@@ -44,8 +55,9 @@ struct EqualityBasisTolerances {
     double gap_ratio = 1e4;
     /// Largest accepted |C~| (equilibrated units) of a dropped row's reconstruction.
     double coef_cap = 1e8;
-    /// Largest accepted ||(I + C^T C) w - r||_inf / (||I + C^T C||_inf ||w||_inf + ||r||_inf).
-    double solve_residual = 1e-10;
+    /// A lift or projection solve with K is accepted iff its forward-error bound is
+    /// <= this * ||rhs||_2 (the header note).
+    double lift_forward_tol = 1e-8;
     /// The certificate factorizations' static pivot perturbation exponent
     /// (SymmetricFactor::Options::pivot_perturb_exp; Pardiso iparm[9]). Any perturbed
     /// or zero pivot refuses the split, so this sets only how small a pivot is refused.
@@ -65,7 +77,8 @@ enum class EqualityBasisRefusal {
     kSpectrum,    ///< No gap (the counts at the two shifts differ), the retained set
                   ///< failed its certificate, or a reconstruction or coefficient-cap failure.
     kNonFinite,   ///< A norm, scaled entry, coefficient or Gram value was not finite.
-    kGram,        ///< I + C^T C failed to factor or a probe solve failed its residual check.
+    kLift,        ///< K = [I C; C^T -I] failed to factor with inertia (|B|, |D|, 0) on
+                  ///< clean evidence, or a probe solve failed its forward-error bound.
     kCertificate, ///< A certificate factorization's evidence was not clean: a backend
                   ///< error, an unobserved inertia, a zero or perturbed pivot, or a
                   ///< probe solve above its backward-error bound.
@@ -158,13 +171,15 @@ class EqualityBasis {
     /// @throws std::invalid_argument When qp.me() or qp.n() disagree with the basis.
     bool reduce(QpProblem &qp) const;
 
-    /// @brief t = C (I + C^T C)^-1 gamma, |B|.
-    /// @return False when the solve fails its residual check or is not finite.
-    bool project_rhs(const Vec &gamma, Vec &t) const;
-    /// @brief |B| -> me, minimum norm (header).
-    /// @return False when the solve fails its check; `out` is then the zero-scatter
+    /// @brief t = C (I + C^T C)^-1 gamma, |B|, through K.
+    /// @param forward_bound When non-null, receives the solve's forward-error bound.
+    /// @return False when the solve fails its bound or is not finite.
+    bool project_rhs(const Vec &gamma, Vec &t, double *forward_bound = nullptr) const;
+    /// @brief |B| -> me, minimum norm (header), through K; lambda(B) = lambda_B - C w.
+    /// @param forward_bound When non-null, receives the K solve's forward-error bound.
+    /// @return False when the solve fails its bound; `out` is then the zero-scatter
     ///         lift (lambda_B on B, 0 on D), which satisfies the same identity.
-    bool lift(const Vec &lambda_B, Vec &out) const;
+    bool lift(const Vec &lambda_B, Vec &out, double *forward_bound = nullptr) const;
     /// @brief me -> |B| (header).
     Vec fold(const Vec &lambda) const;
 

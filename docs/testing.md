@@ -203,7 +203,7 @@ which is the gap, in one line.
 construction and the call. That half remains true by construction, as the block
 comment above those tests says in as many words.
 
-### One target, two, or three
+### One target, two, or three (four since M7 W2 E1b: `hven_sqp_seam_tests`, below)
 
 The sentence under "The shape" below says `HVEN_TESTING` is defined "target-wide,
 on exactly one CMake target". **That is stale, and has been since the IPQP tier
@@ -1004,6 +1004,32 @@ P-SYM 0 differing objects in both configurations, Release byte-identical, and in
 Debug only `qp_engine.cpp.o`'s debug sections move (its own `.cpp` lines below
 the hook shifted); `nm -C libhven.a` finds no seam symbol. No `notices/` entry:
 no session file is touched.
+
+## A fifth seam, in the SQP driver: the equality basis (M7 W2 E1b)
+
+`hven/detail/drivers/equality_basis_testing.h` declares
+`hven::solvers::detail::testing::EqualityBasisSeam`, `#ifdef HVEN_TESTING` only,
+with two knobs read at two guarded points in `src/drivers/sqp_solver.cpp` (an
+Apache-2.0 file this repository wrote; no deviation):
+
+- `disable_hand_off` — the zero-step hand-off at a suspected inconsistency does
+  nothing. It is `SqpEqualityBasis.F9`'s negative control
+  (`SqpEqualityBasisSeam.T6DisabledHandOffRunsF9ToMaxIter`: 100/100 majors and
+  `kMaxIter` in every `qp_mode`), so F9's `kInfeasible` is shown to be the
+  hand-off's doing.
+- `prox_lift_forward_tol` — when positive, an SSN prox-centre lift is accepted only
+  if its REAL forward-error bound is `≤` this times `‖λ_B‖₂`; a rejected one takes
+  the zero-scatter lift exactly as a lift failing its own bound does
+  (`SqpEqualityBasisSeam.T7FailedProxCentreLiftIsCountedAndRefusesTheBasis`). It is
+  a tolerance override, not an injected result: the bound compared is the one the
+  backend solve produced.
+
+`sqp_solver.cpp`'s transitive closure is the whole library, so the target,
+`hven_sqp_seam_tests`, recompiles EVERY source of the `hven` target a second time
+with `HVEN_TESTING` — the sources, include directories and compile definitions
+read off the `hven` target itself, the link line the other seam targets' own — and does not link `hven::hven`.
+That makes FOUR targets defining `HVEN_TESTING`; the property that matters, no
+`hven::hven` link, holds of all four.
 
 ## Alternatives considered and rejected
 

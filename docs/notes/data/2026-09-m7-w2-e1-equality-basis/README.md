@@ -252,6 +252,11 @@ STATE note did not record this, and the review flagged the omission (Minor 4). T
 orphaned corpus subprocess and the one-hour box-lock incident from the same
 implementer are disclosed in the E1 STATE note.
 
+**Process note, appended at E1b (Codex re-check of fix round 1, item 5).** The fix-round-1
+implementer itself retired at about **376k tokens**, again far over the ~200k rule.
+It was recorded only in the settler's session handoff, not in this README, the
+fix-round STATE or the signed report; this paragraph is the formal record.
+
 **Gates — DECLARED (before the chain ran) vs MEASURED.** Declaration:
 `gates-fix1/psym-derivation-e1fix1.txt` (base `26e5c3b2`). Runner:
 `wrappers-fix1/gates-e1fix1.sh`. Chain: `wrappers-fix1/chain_gates_e1fix1.sh`,
@@ -278,6 +283,70 @@ cites are copied alongside it (`gates-fix1/gates-e1fix1.txt`,
 No DECLARED FINDING this round: G4 held at 0 differences (the default is OFF)
 and every G5/G5b mover fell inside the declared class-A/class-B/DEBUG_ONLY
 partition.
+
+## E1b — the production oracle through `hven::linear` (brief `.superpowers/m7-w2-e1b-brief.md`, design `.superpowers/m7-w2-e1b-design.md`)
+
+Step 1 `434129d0` (IPARM-SURFACE): `factor_row_dependence` is the backend's inertia
+certificate on the shifted equilibrated Gram `G − tI` at two shifts, a block
+inverse-iteration null basis confirmed by Rayleigh–Ritz, pivoted Gram–Schmidt row
+choice with the highest-index tie rule, a masked-Gram certificate of the retained
+set, refined normal-equation coefficients, and E1's reconstruction test on M as the
+arbiter. Eigen `SparseQR`, COLAMD and the pre-check are gone.
+
+Step 2: the lift and projection solve the quasidefinite `K = [I_B C; Cᵀ −I_D]`
+through the backend. At compute time `K` must factor on clean evidence with inertia
+exactly `(|B|, |D|, 0)` and pass a probe; every solve runs up to 2 explicit refinement
+steps and is accepted iff the a-posteriori bound `‖r̂‖₂ + γ_{w+1}‖|K||x̂| + |b|‖₂`
+(`‖K⁻¹‖₂ ≤ 1`) is `≤ 1e-8·‖b‖₂`. Any failure at compute time is `kLift` (was `kGram`);
+a failure on one call keeps E1's pending-refusal transition. Eigen `SimplicialLLT` and
+`solve_residual` are deleted. `SqpEqualityBasisReport::gram_refusals` becomes
+`lift_refusals` (a DECLARED schema move), counting compute-time `kLift` refusals and
+every failed call at the five sites: the SOC and QP projections, the two commit lifts,
+and the SSN prox-centre lift (E1's "left as is" above is closed: the driver folds the
+prox failures after each major and refuses the basis at the next build).
+
+- **Finding at T4 (DECLARED).** The acceptance is relative to `‖b‖`. For the
+  projection `b = [0; −γ]`, `‖b‖ = ‖γ‖` does not grow with `C` while the rounding
+  term `γ_{w+1}‖C‖‖w‖` does, so with `‖C‖ ≈ 1e8` (T4: `C = 2²⁶[u₁, u₁ + 2⁻²⁶u₂]`) the
+  projection bound is ≈ 4e-8·‖γ‖ and the projection REFUSES. That is the declared
+  safe direction (the basis is refused mid-solve); the lift on the same `K` passes
+  with bound 4 against `1e-8·‖y‖ ≈ 4.5e7`. Whether the projection's acceptance should
+  scale with `‖|K||x̂|‖` is left to the settler.
+
+**AMENDMENT 1 (settler S1).** A count of 0 at `t_lo` on clean evidence certifies
+`λ_min(G) ≥ t_lo` (Weyl), so the split is `kFullRank` even when the `t_hi` count is
+positive: a certificate with the narrower margin `t_lo`, not an estimate. The
+full-rank collocation chain measured `n_neg(G − t_hi I)` = 0/0/2/3/3 at
+400/700/1000/1500/2000 intervals (0 at `t_lo` throughout); as first designed those
+would have been undecidable, contradicting the design's "every corpus solve takes the
+fast path". The header records it.
+
+**E1b-L1 (settler S2, REGISTERED, not built).** A long collocation chain WITH a real
+dependence reads `t_hi = k + 3` against `t_lo = k` and is undecidable. It fails safe,
+and no TRAIN cell has that shape. Candidate fixes: accept `k` when the `(k+1)`-th
+Ritz value the inverse iteration already computes exceeds a declared multiple of the
+`k`-th and of `t_lo`; or scale `t_hi` with `m`.
+
+**C2, iparm[9] (settler S3).** The installed oneMKL 2026.1 example
+`pardiso_sym.c` (mtype −2) documents `iparm[9] = 13` as "Perturb the pivot elements
+with 1E-13" and `iparm[13]` as the perturbed-pivot count. The scaling of that
+threshold by the matrix norm is not stated in anything installed, so it is
+UNVERIFIED. The certificate therefore rests on the fail-closed perturbed-pivot check
+alone, which the MKL-only exponent-1 arm (`T3PerturbedPivotRefusesTheCertificate`)
+shows fires.
+
+**Conservatism (C5, accepted).** Near-dependence in (4e-8, 1e-5) now reads
+undecidable where E1's QR would have split it: the safe direction.
+
+**Fixtures.** T1 (the adversarial Gram set is DEPENDENT), T2 (the 1e10 duplicate is
+exact; `K`'s lift and projection bounds ≤ 1e-14·‖b‖), T3 (fast path, fail-closed,
+MKL-only perturbed pivot), T4 (the multi-column near-cap lift meets its bound; the
+projection refuses as above), T5 (the OFF byte-identity pin on a dependent QP against
+goldens generated at `8fdeed3e`, `e1b-off-golden/`), T6 (F9's negative control
+through the `HVEN_TESTING` seam: hand-off disabled → `max_iter` in every mode), T7 (a
+prox-centre lift failure through the seam's tolerance is counted and refuses the
+basis). Accelerate: every inertia count on `G − tI` and `K` is UNOBSERVED until the
+macOS lane runs them.
 
 ## Registered, not this task's
 

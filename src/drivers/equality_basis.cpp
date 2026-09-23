@@ -9,7 +9,6 @@
 #include <stdexcept>
 
 #include <Eigen/Dense>
-#include <Eigen/SparseCholesky>
 #include <fmt/format.h>
 
 #include <hven/linear/symmetric_factor.h>
@@ -37,6 +36,8 @@ constexpr double kFillFactor = 8.0;
 constexpr double kFillFloor = 1048576.0;
 // Refinement steps of the normal-equations coefficients.
 constexpr int kRefineSteps = 2;
+// Explicit refinement steps of a lift or projection solve with K.
+constexpr int kLiftRefineSteps = 2;
 constexpr std::uint64_t kFnvOffset = 14695981039346656037ULL;
 constexpr std::uint64_t kFnvPrime = 1099511628211ULL;
 
@@ -521,14 +522,18 @@ struct EqualityBasis::Impl {
     Index n = 0;
     std::vector<Index> retained;
     std::vector<Index> dropped;
-    std::vector<Index> fixed;           // S, increasing
-    Vec fixed_lower;                    // l on S
-    std::vector<char> is_fixed;         // n
-    SpMatCM C;                          // |B| x |D|
-    SpMatCM gram_matrix;                // I + C^T C
-    double gram_norm_inf = 0.0;         // ||I + C^T C||_inf
-    double solve_residual = 0.0;        // EqualityBasisTolerances::solve_residual
-    Eigen::SimplicialLLT<SpMatCM> gram; // its factor
+    std::vector<Index> fixed;   // S, increasing
+    Vec fixed_lower;            // l on S
+    std::vector<char> is_fixed; // n
+    SpMatCM C;                  // |B| x |D|
+    SpMatCM C_abs;              // |C|
+    // The lift and projection system K = [I_B C; C^T -I_D] (rows B then D): its
+    // upper triangle for the backend, the backend's factor, gamma_{w+1} of its
+    // residual's rounding bound (w = K's largest row count), and the acceptance.
+    SpMatRM k_upper;
+    std::unique_ptr<linear::SymmetricFactor> k_factor;
+    double k_gamma = 0.0;
+    double lift_forward_tol = 0.0;
     double tau_lo = 0.0;
     double tau_hi = 0.0;
     double min_pivot = kInf;
@@ -575,17 +580,61 @@ struct EqualityBasis::Impl {
         return amax * std::sqrt(s);
     }
 
-    // w = (I + C^T C)^-1 r with its normwise backward error checked.
-    bool solve_gram(const Vec &r, Vec &w) const {
-        w = gram.solve(r);
-        if (!w.allFinite()) {
+    // y = K x, or |K| |x| when `absolute`.
+    Vec apply_k(const Vec &x, bool absolute) const {
+        const Index nb = static_cast<Index>(retained.size());
+        const Index nd = static_cast<Index>(dropped.size());
+        Vec y(nb + nd);
+        if (absolute) {
+            const Vec ax = x.cwiseAbs();
+            y.head(nb) = ax.head(nb) + C_abs * ax.tail(nd);
+            y.tail(nd) = C_abs.transpose() * ax.head(nb) + ax.tail(nd);
+        } else {
+            y.head(nb) = x.head(nb) + C * x.tail(nd);
+            y.tail(nd) = C.transpose() * x.head(nb) - x.tail(nd);
+        }
+        return y;
+    }
+
+    // K x = b through the backend's factor with up to kLiftRefineSteps steps of
+    // explicit refinement. K^2 = diag(I + C C^T, I + C^T C) >= I, so ||K^-1||_2 <= 1 and
+    //   ||x^ - x||_2 <= ||r^||_2 + rho,   rho = gamma_{w+1} || |K| |x^| + |b| ||_2,
+    // where r^ = fl(b - K x^) and rho bounds the rounding in forming it. Accepted iff
+    // that bound is <= lift_forward_tol ||b||_2; `bound` receives it (+inf on a
+    // backend error or a non-finite value).
+    bool solve_k(const Vec &b, Vec &x, double &bound) const {
+        bound = kInf;
+        const double bn = scaled_norm(b);
+        if (!std::isfinite(bn) || k_factor == nullptr) {
             return false;
         }
-        const Vec res = gram_matrix * w - r;
-        const double scale =
-            gram_norm_inf * w.lpNorm<Eigen::Infinity>() + r.lpNorm<Eigen::Infinity>();
-        const double rn = res.lpNorm<Eigen::Infinity>();
-        return std::isfinite(rn) && rn <= solve_residual * scale;
+        x = Vec::Zero(b.size());
+        Vec dx = Vec::Zero(b.size());
+        try {
+            k_factor->solve(b, x);
+            for (int step = 0;; ++step) {
+                if (!x.allFinite()) {
+                    return false;
+                }
+                const Vec r = b - apply_k(x, false);
+                const Vec a = apply_k(x, true) + b.cwiseAbs();
+                const double est = scaled_norm(r) + k_gamma * scaled_norm(a);
+                if (!std::isfinite(est)) {
+                    return false;
+                }
+                bound = est;
+                if (bound <= lift_forward_tol * bn || step == kLiftRefineSteps) {
+                    break;
+                }
+                dx.setZero();
+                k_factor->solve(r, dx);
+                x += dx;
+            }
+        } catch (const std::runtime_error &) {
+            bound = kInf;
+            return false;
+        }
+        return bound <= lift_forward_tol * bn;
     }
 };
 
@@ -651,12 +700,12 @@ void EqualityBasis::compute(const SpMatRM &Je, const Vec &lower, const Vec &uppe
                         n, lower.size(), upper.size()));
     }
     if (!(tol.pivot_factor > 0.0) || !(tol.gap_ratio >= 1.0) || !(tol.coef_cap > 0.0) ||
-        !(tol.solve_residual > 0.0) || tol.gram_pivot_perturb_exp < 0) {
+        !(tol.lift_forward_tol > 0.0) || tol.gram_pivot_perturb_exp < 0) {
         throw std::invalid_argument(fmt::format(
             "EqualityBasis::compute: tolerances must satisfy pivot_factor > 0, gap_ratio >= 1, "
-            "coef_cap > 0, solve_residual > 0, gram_pivot_perturb_exp >= 0 (got {}, {}, {}, {}, "
-            "{})",
-            tol.pivot_factor, tol.gap_ratio, tol.coef_cap, tol.solve_residual,
+            "coef_cap > 0, lift_forward_tol > 0, gram_pivot_perturb_exp >= 0 (got {}, {}, {}, "
+            "{}, {})",
+            tol.pivot_factor, tol.gap_ratio, tol.coef_cap, tol.lift_forward_tol,
             tol.gram_pivot_perturb_exp));
     }
 
@@ -681,7 +730,7 @@ void EqualityBasis::compute(const SpMatRM &Je, const Vec &lower, const Vec &uppe
     }
     b.tau_lo = tol.pivot_factor * static_cast<double>(n_free + me) * kEps;
     b.tau_hi = tol.gap_ratio * b.tau_lo;
-    b.solve_residual = tol.solve_residual;
+    b.lift_forward_tol = tol.lift_forward_tol;
     b.set_identity(me);
 
     // Every refusal leaves the identity basis in force.
@@ -691,7 +740,9 @@ void EqualityBasis::compute(const SpMatRM &Je, const Vec &lower, const Vec &uppe
         b.refusal = why;
         b.max_coef = 0.0;
         b.max_residual = 0.0;
-        b.gram_matrix = SpMatCM();
+        b.C_abs = SpMatCM();
+        b.k_upper = SpMatRM();
+        b.k_factor.reset();
         impl_ = std::move(next);
     };
 
@@ -818,35 +869,66 @@ void EqualityBasis::compute(const SpMatRM &Je, const Vec &lower, const Vec &uppe
     b.C.setFromTriplets(trip.begin(), trip.end());
     b.C.makeCompressed();
 
-    // I + C^T C, its factor, and a probe solve through the same check lift() and
-    // project_rhs() apply.
-    SpMatCM G = SpMatCM(b.C.transpose()) * b.C;
-    SpMatCM I(nd, nd);
-    I.setIdentity();
-    G += I;
-    G.makeCompressed();
-    for (Index k = 0; k < G.nonZeros(); ++k) {
-        if (!std::isfinite(G.valuePtr()[k])) {
+    for (Index k = 0; k < b.C.nonZeros(); ++k) {
+        if (!std::isfinite(b.C.valuePtr()[k])) {
             refuse(EqualityBasisRefusal::kNonFinite);
             return;
         }
     }
-    b.gram_norm_inf = 0.0;
+    b.C_abs = b.C.cwiseAbs();
+
+    // K = [I_B C; C^T -I_D] through the backend: symmetric quasidefinite, so its
+    // inertia is exactly (|B|, |D|, 0) and every symmetric ordering factors it
+    // stably. Clean evidence (as the certificate's) and that inertia, then a
+    // probe solve through the same bound lift() and project_rhs() apply;
+    // anything else refuses with kLift.
     {
-        Vec gsum = Vec::Zero(nd);
+        const Index nk = nb + nd;
+        std::vector<Eigen::Triplet<double>> kt;
+        kt.reserve(static_cast<std::size_t>(nk + b.C.nonZeros()));
+        std::vector<Index> row_count(static_cast<std::size_t>(nk), 1);
+        for (Index k = 0; k < nb; ++k) {
+            kt.emplace_back(static_cast<int>(k), static_cast<int>(k), 1.0);
+        }
         for (Index j = 0; j < nd; ++j) {
-            for (SpMatCM::InnerIterator it(G, j); it; ++it) {
-                gsum(it.row()) += std::abs(it.value());
+            kt.emplace_back(static_cast<int>(nb + j), static_cast<int>(nb + j), -1.0);
+            for (SpMatCM::InnerIterator it(b.C, j); it; ++it) {
+                kt.emplace_back(static_cast<int>(it.row()), static_cast<int>(nb + j), it.value());
+                ++row_count[static_cast<std::size_t>(it.row())];
+                ++row_count[static_cast<std::size_t>(nb + j)];
             }
         }
-        b.gram_norm_inf = gsum.maxCoeff();
-    }
-    b.gram.compute(G);
-    b.gram_matrix = std::move(G);
-    Vec probe;
-    if (b.gram.info() != Eigen::Success || !b.solve_gram(Vec::Ones(nd), probe)) {
-        refuse(EqualityBasisRefusal::kGram);
-        return;
+        b.k_upper = SpMatRM(nk, nk);
+        b.k_upper.setFromTriplets(kt.begin(), kt.end());
+        b.k_upper.makeCompressed();
+        const Index w = *std::max_element(row_count.begin(), row_count.end());
+        const double nu_w = static_cast<double>(w + 1) * (0.5 * kEps);
+        b.k_gamma = nu_w / (1.0 - nu_w);
+        linear::SymmetricFactor::Options kopts;
+        kopts.num_threads = 1;
+        b.k_factor = std::make_unique<linear::SymmetricFactor>(kopts);
+        bool clean = false;
+        try {
+            b.k_factor->analyze(b.k_upper);
+            const linear::FactorizeOutcome fo = b.k_factor->factorize(b.k_upper);
+            const linear::InertiaEvidence &in = fo.inertia;
+            clean = fo.status == linear::FactorizeOutcome::Status::kOk &&
+                    in.state == linear::InertiaEvidence::State::kObserved && in.n_zero == 0 &&
+                    in.n_pos == nb && in.n_neg == nd &&
+                    (!in.perturbed_pivots.has_value() || *in.perturbed_pivots == 0);
+        } catch (const std::runtime_error &) {
+            clean = false;
+        }
+        Vec probe_b(nk);
+        for (Index i = 0; i < nk; ++i) {
+            probe_b(i) = 1.0 + 0.5 * hash_uniform(static_cast<std::uint64_t>(i), 0x11F7);
+        }
+        Vec probe_x;
+        double probe_bound = kInf;
+        if (!clean || !b.solve_k(probe_b, probe_x, probe_bound)) {
+            refuse(EqualityBasisRefusal::kLift);
+            return;
+        }
     }
     b.verdict = EqualityBasisVerdict::kReduced;
     impl_ = std::move(next);
@@ -996,7 +1078,7 @@ std::uint64_t EqualityBasis::group_hash(const SpMatRM &Je, Index j) const {
     return h;
 }
 
-bool EqualityBasis::project_rhs(const Vec &gamma, Vec &t) const {
+bool EqualityBasis::project_rhs(const Vec &gamma, Vec &t, double *forward_bound) const {
     const Impl &b = *impl_;
     if (gamma.size() != static_cast<Index>(b.dropped.size())) {
         throw std::invalid_argument(
@@ -1005,11 +1087,22 @@ bool EqualityBasis::project_rhs(const Vec &gamma, Vec &t) const {
     }
     if (b.dropped.empty()) {
         t = Vec::Zero(static_cast<Index>(b.retained.size()));
+        if (forward_bound != nullptr) {
+            *forward_bound = 0.0;
+        }
         return true;
     }
-    Vec w;
-    const bool ok = b.solve_gram(gamma, w);
-    t = b.C * w;
+    const Index nb = static_cast<Index>(b.retained.size());
+    const Index nd = static_cast<Index>(b.dropped.size());
+    Vec rhs(nb + nd);
+    rhs << Vec::Zero(nb), -gamma;
+    Vec x;
+    double bound = kInf;
+    const bool ok = b.solve_k(rhs, x, bound);
+    if (forward_bound != nullptr) {
+        *forward_bound = bound;
+    }
+    t = b.C * Vec(x.tail(nd));
     return ok && t.allFinite();
 }
 
@@ -1085,7 +1178,7 @@ bool EqualityBasis::reduce(QpProblem &qp) const {
     return true;
 }
 
-bool EqualityBasis::lift(const Vec &lambda_B, Vec &out) const {
+bool EqualityBasis::lift(const Vec &lambda_B, Vec &out, double *forward_bound) const {
     const Impl &b = *impl_;
     const Index nb = static_cast<Index>(b.retained.size());
     if (lambda_B.size() != nb) {
@@ -1094,10 +1187,21 @@ bool EqualityBasis::lift(const Vec &lambda_B, Vec &out) const {
     }
     if (b.dropped.empty()) {
         out = lambda_B;
+        if (forward_bound != nullptr) {
+            *forward_bound = 0.0;
+        }
         return true;
     }
-    Vec w;
-    bool ok = b.solve_gram(Vec(b.C.transpose() * lambda_B), w);
+    const Index nd = static_cast<Index>(b.dropped.size());
+    Vec rhs(nb + nd);
+    rhs << lambda_B, Vec::Zero(nd);
+    Vec x;
+    double bound = kInf;
+    bool ok = b.solve_k(rhs, x, bound);
+    if (forward_bound != nullptr) {
+        *forward_bound = bound;
+    }
+    const Vec w = ok ? Vec(x.tail(nd)) : Vec::Zero(nd);
     const Vec lb = ok ? Vec(lambda_B - b.C * w) : lambda_B;
     ok = ok && lb.allFinite();
     out = Vec::Zero(b.me);

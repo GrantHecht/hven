@@ -241,9 +241,9 @@ endif()
 # adapter TU that guards its one call site with `#ifdef HVEN_TESTING`, to the
 # MKL session TU that records the two did-the-write-execute flags under the
 # same guard, and to this target's own test_fault_injection.cpp, which reads
-# and resets them. EXACTLY THREE TARGETS IN THIS TREE DEFINE HVEN_TESTING --
-# this one, hven_ipqp_seam_tests below and hven_qp_walk_seam_tests below it --
-# and all three are standalone executables that do not link hven::hven, which
+# and resets them. EXACTLY FOUR TARGETS IN THIS TREE DEFINE HVEN_TESTING --
+# this one, hven_ipqp_seam_tests, hven_qp_walk_seam_tests and hven_sqp_seam_tests
+# below -- and all four are standalone executables that do not link hven::hven, which
 # is what keeps the production library and every ordinary test binary untouched
 # by it. See the block comment above.
 target_compile_definitions(hven_fault_injection_tests PRIVATE HVEN_TESTING=1)
@@ -420,6 +420,38 @@ endif()
 target_compile_options(hven_qp_walk_seam_tests PRIVATE ${COMPILE_FLAGS})
 
 gtest_discover_tests(hven_qp_walk_seam_tests DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_MODE})
+
+################################################################################
+# SQP equality-basis seam tests (docs/testing.md: the same HVEN_TESTING
+# convention; M7 W2 E1b). The seam (hven/detail/drivers/equality_basis_testing.h)
+# sits in sqp_solver.cpp, whose transitive closure is the whole library, so this
+# target recompiles EVERY source of the hven target a SECOND time with
+# HVEN_TESTING defined, taking hven's own sources, include directories and compile
+# definitions from the target itself (derived, not carried; the link line is the
+# other seam targets' own), and does not link hven::hven: libhven.a's objects and these define
+# the same symbols.
+#
+# THERE ARE NOW FOUR TARGETS IN THIS TREE THAT DEFINE HVEN_TESTING -- the three
+# above and this one. The property that matters holds of all four: each is a
+# standalone executable that does not link hven::hven.
+################################################################################
+
+add_executable(hven_sqp_seam_tests
+    $<TARGET_PROPERTY:hven,SOURCES>
+    sqp/test_sqp_equality_basis_seams.cpp
+)
+target_compile_definitions(hven_sqp_seam_tests PRIVATE
+    $<TARGET_PROPERTY:hven,COMPILE_DEFINITIONS> HVEN_TESTING=1)
+target_include_directories(hven_sqp_seam_tests PRIVATE
+    $<TARGET_PROPERTY:hven,INCLUDE_DIRECTORIES>)
+target_link_libraries(hven_sqp_seam_tests PRIVATE
+    Eigen3::Eigen fmt::fmt-header-only Threads::Threads GTest::gtest_main ${LINK_LIBS})
+if(APPLE)
+    target_link_libraries(hven_sqp_seam_tests PRIVATE AccelerateSparse::AccelerateSparse)
+endif()
+target_compile_options(hven_sqp_seam_tests PRIVATE ${COMPILE_FLAGS})
+
+gtest_discover_tests(hven_sqp_seam_tests DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_MODE})
 
 ################################################################################
 # The golden-numerics rig: the harness, the seam adapters, the traces, the

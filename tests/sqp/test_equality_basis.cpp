@@ -560,11 +560,81 @@ TEST(EqualityBasis, T2ScaledDuplicateIsExact) {
     EXPECT_LE(std::abs(C(2, 0)), 1e-6);
     EXPECT_TRUE(basis.verify(Je));
     const Vec y = Vec::LinSpaced(3, 1.0, -2.0);
-    const Vec lam = lifted(basis, y);
+    Vec lam;
+    double lift_bound = -1.0;
+    ASSERT_TRUE(basis.lift(y, lam, &lift_bound));
+    EXPECT_LE(lift_bound, 1e-14 * y.norm());
     EXPECT_LE((basis.fold(lam) - y).lpNorm<Eigen::Infinity>(), 1e-14 * 1e10);
     Vec t;
-    EXPECT_TRUE(basis.project_rhs(Vec::Constant(1, 0.5), t));
+    double proj_bound = -1.0;
+    EXPECT_TRUE(basis.project_rhs(Vec::Constant(1, 0.5), t, &proj_bound));
+    EXPECT_LE(proj_bound, 1e-14 * 0.5);
     EXPECT_TRUE(t.allFinite());
+}
+
+// T4 (E1b): a multi-column lift with C = 2^26 [u1, u1 + 2^-26 u2], nearly parallel
+// columns in exactly representable powers of two. Rows b1 = e1, b2 = e2,
+// d1 = 2^26 e1, d2 = 2^26 e1 + e2: the tie rule drops rows 3 then 2 and the
+// coefficients are exact, C = [2^26 2^26; 0 1]. I + C^T C has eigenvalues ~2^53 and
+// ~1.5 (condition ~6e15); K's is sqrt(1 + ||C||^2) ~ 1e8. z = (1, -2^26) gives
+// w* = C^T z = (2^26, 0) and y = z + C w* = (1 + 2^52, -2^26), all exact.
+TEST(EqualityBasis, T4NearCapMultiColumnLiftMeetsItsForwardBound) {
+    constexpr double k26 = 67108864.0; // 2^26
+    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(4, 2);
+    A(0, 0) = 1.0;
+    A(1, 1) = 1.0;
+    A(2, 0) = k26;
+    A(3, 0) = k26;
+    A(3, 1) = 1.0;
+    const SpMatRM Je = to_sparse(A);
+    EqualityBasis basis;
+    basis.compute(Je, -free_box(2), free_box(2));
+    ASSERT_EQ(basis.verdict(), EqualityBasisVerdict::kReduced);
+    ASSERT_EQ(basis.dropped(), (std::vector<Index>{2, 3}));
+    const Eigen::MatrixXd C(basis.coefficients());
+    ASSERT_EQ(C.rows(), 2);
+    ASSERT_EQ(C.cols(), 2);
+    EXPECT_EQ(C(0, 0), k26);
+    EXPECT_EQ(C(1, 0), 0.0);
+    EXPECT_EQ(C(0, 1), k26);
+    EXPECT_EQ(C(1, 1), 1.0);
+
+    const Vec z = (Vec(2) << 1.0, -k26).finished();
+    const Vec w_star = (Vec(2) << k26, 0.0).finished();
+    const Vec y = (Vec(2) << 1.0 + k26 * k26, -k26).finished();
+    Vec lam;
+    double bound = -1.0;
+    ASSERT_TRUE(basis.lift(y, lam, &bound));
+    ASSERT_EQ(lam.size(), 4);
+    // The reported bound is a bound on w's error and is within the acceptance.
+    const Vec w = (Vec(2) << lam(2), lam(3)).finished();
+    EXPECT_LE((w - w_star).norm(), bound);
+    EXPECT_LE(bound, 1e-8 * y.norm());
+    // lambda_B = y - C w: the fold is y to the rounding of that one product.
+    constexpr double kU = std::numeric_limits<double>::epsilon() / 2.0;
+    const Vec lamB = (Vec(2) << lam(0), lam(1)).finished();
+    EXPECT_LE((basis.fold(lam) - y).norm(), 8.0 * kU * (y.norm() + C.cwiseAbs().norm() * w.norm()));
+    // Optimality of the representative: lambda_D = C^T lambda_B to roundoff scaled by ||C||.
+    EXPECT_LE((w - C.transpose() * lamB).norm(), 64.0 * kU * C.norm() * y.norm());
+    // And lambda_B is z to the bound's image through C.
+    EXPECT_LE((lamB - z).norm(), C.norm() * bound + 8.0 * kU * y.norm());
+
+    // The projection through the same K, [0; -gamma]: here ||b|| = ||gamma|| does not
+    // grow with C while |K||x^| ~ |C||w| does, so the rounding term alone,
+    // gamma_{w+1} ||C|| ||w|| ~ 4e-8, exceeds 1e-8 ||gamma||. The projection REFUSES
+    // (the pending-refusal transition in the driver) and its reported bound still
+    // bounds the error: t = C w^ is within ||C|| times it of the closed form.
+    const Vec gamma = (Vec(2) << 1.0, -1.0).finished();
+    Vec t;
+    double pbound = -1.0;
+    EXPECT_FALSE(basis.project_rhs(gamma, t, &pbound));
+    EXPECT_GT(pbound, 1e-8 * gamma.norm());
+    EXPECT_LE(pbound, 1e-7 * gamma.norm());
+    // Closed form: det(I + C^T C) = 3 2^52 + 2 (exact), w = (2^53 + 2, -(2^53 + 1)) / det,
+    // t = C w = (2^26 / det, -(2^53 + 1) / det).
+    const double det = 3.0 * k26 * k26 + 2.0;
+    const Vec t_ref = (Vec(2) << k26 / det, -(2.0 * k26 * k26) / det - 1.0 / det).finished();
+    EXPECT_LE((t - t_ref).norm(), C.norm() * pbound + 16.0 * kU * C.norm() * t.norm());
 }
 
 // Extreme row scaling (fix round 1, C1): the row norms are scaled, so rows at
@@ -619,9 +689,10 @@ TEST(EqualityBasis, ExtremeScalingNeverDropsAnIndependentRow) {
     }
 }
 
-// The I + C^T C solve check (fix round 1, I2): a residual tolerance below roundoff
-// refuses the split at compute time; the default accepts it and every solve passes.
-TEST(EqualityBasis, GramSolveCheckRefusesTheSplit) {
+// The lift system's check (fix round 1, I2; E1b: K with its forward-error bound): an
+// acceptance below roundoff refuses the split at compute time (kLift); the default
+// accepts it and every solve passes.
+TEST(EqualityBasis, LiftSystemCheckRefusesTheSplit) {
     Eigen::MatrixXd A = Eigen::MatrixXd::Zero(5, 4);
     A.row(0) << 1.0, 0.3, 0.0, 0.0;
     A.row(1) << 0.0, 1.0, 0.7, 0.0;
@@ -639,11 +710,11 @@ TEST(EqualityBasis, GramSolveCheckRefusesTheSplit) {
     EXPECT_TRUE(t.allFinite());
 
     EqualityBasisTolerances strict;
-    strict.solve_residual = 1e-300;
+    strict.lift_forward_tol = 1e-300;
     EqualityBasis refused;
     refused.compute(to_sparse(A), -free_box(4), free_box(4), strict);
     EXPECT_EQ(refused.verdict(), EqualityBasisVerdict::kUndecidable);
-    EXPECT_EQ(refused.refusal(), EqualityBasisRefusal::kGram);
+    EXPECT_EQ(refused.refusal(), EqualityBasisRefusal::kLift);
     EXPECT_FALSE(refused.reduces());
     Vec same;
     EXPECT_TRUE(refused.lift(Vec::LinSpaced(5, 1.0, -1.0), same));

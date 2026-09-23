@@ -15,11 +15,13 @@
 //   F7  OFF computes nothing.
 //   F8  a same-cardinality row swap drops the row-coordinate warm state (fix round 1).
 //   F9  a zero step at a suspected inconsistency hands the rows back (fix round 1).
+//   T5  OFF on a DEPENDENT QP is byte-identical to E1's pre-merge base (E1b).
 //   plus the row-subset model the restoration phase wraps.
 
 #include <cmath>
 #include <cstring>
 #include <memory>
+#include <string>
 #include <vector>
 
 #include <Eigen/Dense>
@@ -30,6 +32,8 @@
 #include <hven/drivers/sqp_solver.h>
 #include <hven/drivers/sqp_solver_types.h>
 
+#include "support/e1b_off_golden.h"
+#include "support/e1b_off_golden_data.h"
 #include "support/qp_as_nlp_model.h"
 
 namespace hven::solvers {
@@ -554,6 +558,32 @@ TEST(SqpEqualityBasis, F6RestorationRunsOverTheRetainedRowsAndResumes) {
     EXPECT_EQ(res.equality_basis.dropped_rows.size(), 2u);
     EXPECT_LE((res.x - x_star).lpNorm<Eigen::Infinity>(), 1e-6);
 }
+
+// T5 (E1b): with equality_basis = false, a dependent and consistent network QP (F1's
+// two networks plus a duplicate balance row) solves byte-identically to E1's
+// pre-merge base 8fdeed3e under every qp_mode: status, six counters, x and lambda_e
+// in hex, against goldens generated there (support/e1b_off_golden_data.h, and the
+// generator and command in docs/notes/data/2026-09-m7-w2-e1-equality-basis/
+// e1b-off-golden/). MKL only: the goldens are MKL's bytes; Accelerate's are
+// UNOBSERVED and not invented.
+#if !defined(__APPLE__)
+TEST(SqpEqualityBasis, T5OffIsByteIdenticalToThePreE1BaseOnADependentQp) {
+#ifdef NDEBUG
+    const std::string golden = e1b_golden::kOffGoldenRelease;
+#else
+    const std::string golden = e1b_golden::kOffGoldenDebug;
+#endif
+    std::string got;
+    const std::pair<QpMode, const char *> modes[] = {
+        {QpMode::kWalk, "kWalk"}, {QpMode::kSsn, "kSsn"}, {QpMode::kIpm, "kIpm"}};
+    for (const auto &[mode, name] : modes) {
+        for (const std::string &line : e1b_golden::off_fingerprint(mode)) {
+            got += std::string(name) + " " + line + "\n";
+        }
+    }
+    EXPECT_EQ(got, golden);
+}
+#endif
 
 TEST(SqpEqualityBasis, F7OffComputesNothing) {
     const TwoNetworks net;

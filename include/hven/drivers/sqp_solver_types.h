@@ -1266,9 +1266,12 @@ struct SqpEqualityBasisReport {
     bool switched_off = false;
     /// Splits refused because a norm, coefficient or Gram value was not finite.
     Index nonfinite_refusals = 0;
-    /// Splits refused because I + C^T C failed to factor or a solve failed its
-    /// residual check; after a mid-solve failure the QPs carry every row.
-    Index gram_refusals = 0;
+    /// Lift/projection failures: splits refused because K = [I C; C^T -I] failed
+    /// its factorization checks or probe (kLift), plus every lift or projection solve
+    /// that failed its forward-error bound mid-solve (the SOC and QP projections, the
+    /// two commit lifts, the SSN prox-centre lift); after a mid-solve failure the QPs
+    /// carry every row.
+    Index lift_refusals = 0;
     /// Majors at which the QPs' equality rows changed; each dropped the warm state
     /// held in row coordinates (the QP seed, the IPQP carry, a staged IPQP seed).
     Index split_changes = 0;
