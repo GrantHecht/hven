@@ -880,9 +880,10 @@ struct SqpOptions {
     /// it on the non-fixed columns (`detail/drivers/equality_basis.h`); every QP
     /// then carries only B with a projected rhs, and multipliers stay full-size.
     /// A split that drops nothing leaves every QP byte-identical to off.
-    /// `SqpResult::equality_basis` reports what happened.
+    /// `SqpResult::equality_basis` reports what happened. ON by default since M7 W2
+    /// E1b (the split's linear algebra is the hven::linear backend's).
     /// @see docs/notes/2026-09-22-sqp-degeneracy-proposal.md
-    bool equality_basis = false;
+    bool equality_basis = true;
 
     /// The options both engines share (drivers/common_options.h), at the SQP
     /// engine's own defaults -- `threads = 0` ("leave the backend alone", which
@@ -1259,9 +1260,10 @@ struct SqpEqualityBasisReport {
     Index dropped_peak = 0;
     /// Splits computed after the first one.
     Index recomputes = 0;
-    /// Splits (a warm probe's included) that ran the sparse QR because the
-    /// full-rank Cholesky pre-check did not settle them.
-    Index qr_factorizations = 0;
+    /// Numeric factorizations of the equilibrated Gram matrix over every split
+    /// computed (a warm probe's included): 1 per full-rank split on the certificate's
+    /// fast path, 2 when full rank is certified at the lower shift, 4 per reducing split.
+    Index gram_factorizations = 0;
     /// Three consecutive majors recomputed; the QPs carried every row thereafter.
     bool switched_off = false;
     /// Splits refused because a norm, coefficient or Gram value was not finite.

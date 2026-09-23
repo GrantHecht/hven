@@ -207,9 +207,10 @@ TEST(OptionsDump, SqpDumpsTheCommonDefaults) {
     EXPECT_TRUE(has_line(text, "common.print_level = 3")) << text;
 }
 
-// SqpOptions::equality_basis is off by default (M7 W2 E1 fix round 1).
-TEST(OptionsDump, SqpDumpsTheEqualityBasisOff) {
-    EXPECT_TRUE(has_line(dump_to_string(SqpOptions{}), "equality_basis = false"));
+// SqpOptions::equality_basis is ON by default (M7 W2 E1b; off from E1 fix round 1 until
+// E1b moved the split onto the hven::linear backend -- a DECLARED dump move).
+TEST(OptionsDump, SqpDumpsTheEqualityBasisOn) {
+    EXPECT_TRUE(has_line(dump_to_string(SqpOptions{}), "equality_basis = true"));
 }
 
 // An enum prints its ENUMERATOR NAME, never its integer and never the display

@@ -127,10 +127,6 @@ class EqualityBasis {
     /// floor (to the factor's backward error) on sigma_min of the retained equilibrated
     /// rows (+inf when no certificate was reached).
     double min_retained_pivot() const;
-    /// Whether the last compute() entered the reducing path (n_neg(G - t_lo I) > 0 on
-    /// clean evidence; the null-basis identification runs when it agrees with t_hi's).
-    /// The name is the report's until its schema moves.
-    bool ran_qr() const;
     /// Numeric factorizations of the Gram matrix the last compute() ran (1 on the fast path).
     Index gram_factorizations() const;
     /// n_neg(G - t_hi I) and n_neg(G - t_lo I) on clean evidence (-1 when not reached).

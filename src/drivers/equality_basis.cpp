@@ -658,7 +658,6 @@ const Eigen::SparseMatrix<double> &EqualityBasis::coefficients() const { return 
 double EqualityBasis::tau_lo() const { return impl_->tau_lo; }
 double EqualityBasis::tau_hi() const { return impl_->tau_hi; }
 double EqualityBasis::min_retained_pivot() const { return impl_->min_pivot; }
-bool EqualityBasis::ran_qr() const { return impl_->k_lo > 0; }
 Index EqualityBasis::gram_factorizations() const { return impl_->gram_factorizations; }
 Index EqualityBasis::deficiency_hi() const { return impl_->k_hi; }
 Index EqualityBasis::deficiency_lo() const { return impl_->k_lo; }

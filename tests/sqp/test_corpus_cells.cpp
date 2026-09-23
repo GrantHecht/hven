@@ -1122,8 +1122,10 @@ TEST(CorpusRunnerProcess, WallDeadlineDoesNotFireAtTheRealBudgetOnAFastCell) {
 }
 
 TEST(CorpusCellsRunner, TheFastCellsEqualitySplitNeverRunsTheSparseQr) {
-    // With the equality basis on (it is off by default), the full-rank Cholesky
-    // pre-check settles every equality split this cell's solve computes.
+    // With the equality basis on (the default since E1b; set explicitly), the rank
+    // certificate settles every equality split this cell's solve computes without the
+    // reducing path. E1b moved the assertion from qr_factorizations == 0 to the Gram
+    // factorization count (a DECLARED schema move).
     const CorpusCell *cell = find_cell("f7_n5000_bound_neutral");
     ASSERT_NE(cell, nullptr);
     F7CollocationChain model = detail::make_model(*cell);
@@ -1133,7 +1135,9 @@ TEST(CorpusCellsRunner, TheFastCellsEqualitySplitNeverRunsTheSparseQr) {
     const hven::solvers::SqpResult sol = detail::budgeted_solve(driver, model, model.start_point());
     ASSERT_EQ(sol.status, hven::solvers::SolveStatus::kOptimal);
     EXPECT_TRUE(sol.equality_basis.computed);
-    EXPECT_EQ(sol.equality_basis.qr_factorizations, 0);
+    // One split, full rank certified at t_lo (AMENDMENT 1: the chain has Gram
+    // eigenvalues in [t_lo, t_hi)): 2 factorizations, measured.
+    EXPECT_EQ(sol.equality_basis.gram_factorizations, 2);
     EXPECT_TRUE(sol.equality_basis.dropped_rows.empty());
 }
 

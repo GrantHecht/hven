@@ -74,7 +74,7 @@ TEST(EqualityBasis, U1TwoNetworksDropOneRowPerComponent) {
     basis.compute(Je, -free_box(11), free_box(11));
     ASSERT_EQ(basis.verdict(), EqualityBasisVerdict::kReduced);
     // The certificate's fast path cannot settle a redundant balance row.
-    EXPECT_TRUE(basis.ran_qr());
+    EXPECT_GT(basis.deficiency_lo(), 0); // the reducing path ran
     ASSERT_EQ(basis.dropped().size(), 2u);
     EXPECT_LT(basis.dropped()[0], 4);
     EXPECT_GE(basis.dropped()[1], 4);
@@ -228,7 +228,7 @@ TEST(EqualityBasis, U4FixedColumnsSplitTheNetworkIntoThreePieces) {
     EqualityBasis basis;
     basis.compute(Je, net.lower, net.upper);
     ASSERT_EQ(basis.verdict(), EqualityBasisVerdict::kReduced);
-    EXPECT_TRUE(basis.ran_qr());
+    EXPECT_GT(basis.deficiency_lo(), 0); // the reducing path ran
     ASSERT_EQ(basis.dropped().size(), 3u);
 
     // Supplies balanced per piece with the fixed flows at their values.
@@ -365,7 +365,7 @@ TEST(EqualityBasis, U7DeterministicAndIdentityWhenFullRank) {
     EqualityBasis full;
     full.compute(to_sparse(F), -free_box(11), free_box(11));
     EXPECT_EQ(full.verdict(), EqualityBasisVerdict::kFullRank);
-    EXPECT_FALSE(full.ran_qr());
+    EXPECT_LE(full.deficiency_lo(), 0); // the reducing path did not run
     EXPECT_FALSE(full.reduces());
     const Vec y(Vec::LinSpaced(3, 1.0, 2.0));
     EXPECT_EQ(lifted(full, y), y);
@@ -451,7 +451,7 @@ TEST(EqualityBasis, T3CertificateFastPathIsOneFactorization) {
     EXPECT_EQ(net.deficiency_hi(), 1);
     EXPECT_EQ(net.deficiency_lo(), 1);
     EXPECT_EQ(net.gram_factorizations(), 4);
-    EXPECT_TRUE(net.ran_qr());
+    EXPECT_GT(net.deficiency_lo(), 0); // the reducing path ran
     ASSERT_EQ(net.dropped().size(), 1u);
     // The tie rule: nodes 1 and 2 have the largest degree (3); the higher index wins.
     EXPECT_EQ(net.dropped()[0], 2);
@@ -463,14 +463,14 @@ TEST(EqualityBasis, T3CertificateFastPathIsOneFactorization) {
     EXPECT_EQ(trimmed.gram_factorizations(), 1);
     EXPECT_EQ(trimmed.deficiency_hi(), 0);
     EXPECT_EQ(trimmed.deficiency_lo(), -1);
-    EXPECT_FALSE(trimmed.ran_qr());
+    EXPECT_LE(trimmed.deficiency_lo(), 0); // the reducing path did not run
 
     const SpMatRM Je = collocation_chain();
     EqualityBasis chain;
     chain.compute(Je, -free_box(Je.cols()), free_box(Je.cols()));
     EXPECT_EQ(chain.verdict(), EqualityBasisVerdict::kFullRank);
     EXPECT_EQ(chain.gram_factorizations(), 1);
-    EXPECT_FALSE(chain.ran_qr());
+    EXPECT_LE(chain.deficiency_lo(), 0); // the reducing path did not run
     EXPECT_TRUE(chain.dropped().empty());
     EXPECT_EQ(chain.min_retained_pivot(), std::sqrt(chain.shift_hi()));
     EXPECT_EQ(chain.shift_hi(), 1e4 * chain.shift_lo());
@@ -484,7 +484,7 @@ TEST(EqualityBasis, T3CertificateFastPathIsOneFactorization) {
     EXPECT_GT(longc.deficiency_hi(), 0);
     EXPECT_EQ(longc.deficiency_lo(), 0);
     EXPECT_EQ(longc.gram_factorizations(), 2);
-    EXPECT_FALSE(longc.ran_qr());
+    EXPECT_LE(longc.deficiency_lo(), 0); // the reducing path did not run
     EXPECT_EQ(longc.min_retained_pivot(), std::sqrt(longc.shift_lo()));
 }
 

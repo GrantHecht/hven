@@ -582,9 +582,11 @@ TEST(F7ColdScaleSmoke, EmptyWindowColdSolveAtTenThousandVariables) {
     EXPECT_EQ(sol.counters.rejected_steps, 0);
     EXPECT_EQ(sol.counters.elastic_activations, 0);
     EXPECT_EQ(sol.counters.restoration_iters, 0);
-    // The equality split is settled by the full-rank Cholesky pre-check: no sparse QR.
+    // The equality split is settled by the certificate without the reducing path.
     EXPECT_TRUE(sol.equality_basis.computed);
-    EXPECT_EQ(sol.equality_basis.qr_factorizations, 0);
+    // One split, full rank certified at t_lo (AMENDMENT 1: the chain has Gram
+    // eigenvalues in [t_lo, t_hi)): 2 factorizations, measured.
+    EXPECT_EQ(sol.equality_basis.gram_factorizations, 2);
     EXPECT_TRUE(sol.equality_basis.dropped_rows.empty());
 
     RecordProperty(

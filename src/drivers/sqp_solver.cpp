@@ -2751,9 +2751,7 @@ void recompute_equality_basis(EqualityBasisState &eb, SqpEqualityBasisReport &re
                               const SpMatRM &Je, const Vec &lower, const Vec &upper, Index major) {
     detail::EqualityBasis next;
     next.compute(Je, lower, upper);
-    if (next.ran_qr()) {
-        ++rep.qr_factorizations;
-    }
+    rep.gram_factorizations += next.gram_factorizations();
     if (next.refusal() == detail::EqualityBasisRefusal::kNonFinite) {
         ++rep.nonfinite_refusals;
     } else if (next.refusal() == detail::EqualityBasisRefusal::kLift) {
@@ -3653,9 +3651,7 @@ void SqpSolver::prepare_solve(SolveState &st, AssemblyEvalSeam &seam, const Vec 
             jacobian_values_finite(probe_ev)) {
             detail::EqualityBasis probe_basis;
             probe_basis.compute(probe_ev.Je, seam.lower(), seam.upper());
-            if (probe_basis.ran_qr()) {
-                ++out.equality_basis.qr_factorizations;
-            }
+            out.equality_basis.gram_factorizations += probe_basis.gram_factorizations();
             // A refused projection leaves the probe unreduced; its hash then degrades the level.
             (void)probe_basis.reduce(probe);
         }
