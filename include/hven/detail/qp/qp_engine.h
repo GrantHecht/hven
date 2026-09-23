@@ -334,10 +334,31 @@
 //
 // With QpOptions::independent_working_set (default) the working set is kept
 // linearly independent (qp/ws_independence.h): an entry detector runs on the
-// first factorization and removes optional members of any dependency, and each
-// ratio-test blocker is tested against the pass's factor. With it off, the
-// delta/mu regularization keeps a dependent KKT factorizable and the dependent
-// rows split the multiplier; a degenerate stall is bounded by max_iter.
+// first factorization and after untested growth or an over-count (Debug
+// asserts that an over-count is always found), and each ratio-test blocker is
+// tested against the pass's factor. A dependent blocker is EXCHANGED for a
+// member (ExchangePick; Gill & Wong 2015, Result 3.4(b)); with no admissible
+// member: a verified Farkas certificate ends kInfeasible (QpSolution::farkas),
+// else the blocker is passed over when its predicted violation stays within
+// feas_tol * row_scale, else the solve ends kNumericalError at the current
+// iterate. The zero-motion re-entry rule (WalkSeen's point memory) makes a
+// constraint released and re-entered at one point drop-exempt until the
+// iterate moves; an exempt multiplier above opt_tol * stat_scale at the end
+// is kNumericalError (zero_motion_exhausted). The integer screen can call an
+// independent candidate dependent when the MANDATORY rows are dependent
+// (counted: dep_screen_under_mandatory_dependence; the safe direction). A
+// blocker the test leaves UNDECIDABLE (screen-negative; no factor for the
+// pass's set, or a stalled refinement) is admitted and the next pass's
+// detector tests the grown set (dep_deferred_adds). THE BORDER RETREAT (once
+// per solve, dep_border_retreats): when the rule would end the solve on a
+// border-stack pass, the pass is redone on the bound-eliminated path. When K0
+// is near-singular on the pinned directions its Schur complement carries O(1)
+// rounding, the border step leaves its face, and the dependency coefficients
+// are inaccurate (rho = 1.4e-3 and 0.34 measured where the exact value is 0):
+// finding E2-F1, a limit of the border path's accuracy, not of the rule. With
+// the option off, the delta/mu regularization keeps a dependent KKT
+// factorizable and the dependent rows split the multiplier; a degenerate
+// stall is bounded by max_iter.
 
 #include <algorithm>
 #include <cassert>
@@ -348,6 +369,7 @@
 #include <memory>
 #include <optional>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 #include <fmt/format.h>
@@ -1137,7 +1159,30 @@ class QpEngine {
         // Rows the independence re-check removed as dependent shift adds;
         // refresh_shifts skips them until the next drop clears the set.
         std::vector<std::uint8_t> shift_refused;
+        // THE ZERO-MOTION RE-ENTRY RULE's point memory (independent_working_set
+        // only; empty otherwise), cleared whenever the iterate moves. A
+        // constraint released here that re-enters here is drop-exempt until
+        // the iterate moves; members that entered here are not exchanged out
+        // by a step that does not move. `pt_events` counts releases and re-entries at this point,
+        // capped at 2(n + mi). `pt_touched`: row j as j, bound i as -(i + 1).
+        std::vector<std::uint8_t> pt_ineq;
+        std::vector<std::uint8_t> pt_bound;
+        std::vector<Index> pt_touched;
+        Index pt_events = 0;
     };
+
+    static constexpr std::uint8_t kPtReleased = 1;
+    static constexpr std::uint8_t kPtEntered = 2;
+    static constexpr std::uint8_t kPtExempt = 4;
+
+    static std::uint8_t pt_flags(const WalkSeen &seen, bool is_ineq, Index idx);
+    static void pt_mark(WalkSeen &seen, bool is_ineq, Index idx, std::uint8_t flag);
+    static void pt_clear(WalkSeen &seen);
+    // A release at this point (drop, probe drop, exchange, detector removal).
+    static void pt_release(WalkSeen &seen, bool is_ineq, Index idx);
+    // An admission at this point; a re-entry of a released constraint is made
+    // drop-exempt and counted. Returns true on a re-entry.
+    static bool pt_admit(WalkSeen &seen, QpCounters &counters, bool is_ineq, Index idx);
 
     static void mark_ineq_seen(WalkSeen &seen, QpCounters &counters, Index j);
 
@@ -1429,7 +1474,8 @@ class QpEngine {
     // `refused`. False when the support is mandatory only.
     static bool remove_entry_dependency(WorkingSet &ws, const Vec &shift,
                                         const detail::EntryDetection &det, const ProbeState *seq,
-                                        std::vector<std::uint8_t> &refused);
+                                        std::vector<std::uint8_t> &refused,
+                                        detail::WsMember *removed = nullptr);
 
     static bool rebuild_would_be_noop(const WorkingSet &ws, const BorderState &border);
 
@@ -1495,8 +1541,69 @@ class QpEngine {
     // the working set; false means the point is optimal. `dropped` records
     // WHAT left, which section 4c's ride needs to choose its sign; it is left
     // untouched when nothing is dropped.
+    // `pt` (independent_working_set): drop-exempt members are skipped, and the
+    // largest violation among them is reported in `exempt_worst`.
     bool drop_worst(const QpProblem &qp, const Vec &shift, const Vec &lambda_i, const Vec &z,
-                    WorkingSet &ws, DropRecord &dropped, QpCounters &counters) const;
+                    WorkingSet &ws, DropRecord &dropped, QpCounters &counters,
+                    const WalkSeen *pt = nullptr, double *exempt_worst = nullptr) const;
+
+    // THE EXCHANGE at the ordinary add site, for a blocker the dependency test
+    // found dependent (Gill & Wong 2015, Result 3.4(b)). Every sign-constrained
+    // member k is oriented c_k^T x <= d_k with m_k >= 0 at optimality, and the
+    // test's coefficients give c_r = sum_k v_k c_k + Ae^T v_e. Removable:
+    // not an equality, a kFixed pin, or -- on a step that does not move (`moves`
+    // false) -- a member that entered at this point. The lock applies ONLY on a
+    // zero-motion step: the re-entry rule guards zero-motion cycles, and a
+    // moving step changes the point and clears the point memory by
+    // construction before the exchange mutates the set. Admissible: removable with
+    // v_k ||c_k|| > kDepCoeffTol * max_l |v_l| ||c_l||. j = argmin m_k^+ / v_k
+    // (ties: most negative m_k, then largest scaled v_k, then rows before pins,
+    // ascending index); sigma = m_j^+ / v_j. New multipliers m - sigma v, and
+    // sigma on r. A shifted row is admissible only when no other member is
+    // (`j_shifted`, last resort): with v_j > 0 its value on the new face is
+    // d_j - g / v_j <= d_j, so the face satisfies it; it is marked
+    // shift-refused so the homotopy does not re-admit it. Shifted rows rank
+    // LAST: one is never chosen while an unshifted admissible member exists
+    // (Debug-asserted in select_exchange).
+    struct ExchangePick {
+        bool found = false; // an admissible member exists
+        bool cond1 = false; // every sign-constrained member's scaled v_k <= tol * max
+        bool j_is_ineq = false;
+        bool j_shifted = false; // the released member is a shift-driven row
+        Index j = -1;
+        double sigma = 0.0;
+        double sign = 1.0; // the blocker's orientation: c_r = sign * (a_r or e_r)
+        double g = 0.0;    // sum_k v_k d_k + v_e^T be - d_r
+        Vec v_e;           // oriented, per equality row
+        Vec v_w;           // oriented, per ws.active_ineq() entry
+        Vec v_pin;         // oriented by each pin's side (kFixed as +e_i)
+    };
+    static ExchangePick select_exchange(const QpProblem &qp, const WorkingSet &ws, const Vec &shift,
+                                        const WalkSeen &seen, const detail::DepTest &t,
+                                        bool is_ineq, Index idx, BoundState side,
+                                        const Vec &lambda_e, const Vec &lambda_i, const Vec &z,
+                                        bool moves);
+
+    // The no-admissible-member rule's certificate, VERIFIED: builds the
+    // certificate from `pick` (y_i = min(v, 0) on member rows, the rest in the
+    // explicit box part) and true iff its implied bound clears the blocker's
+    // limit by more than the structural margin at `row_scale`. A TOLERANCED
+    // certificate: box_part entries <= kDepTol * ||c|| on coordinates unbounded
+    // on the needed side are dropped (the dependency test's own residual) and
+    // their norm is kept in QpFarkasCertificate::residual, so the kInfeasible
+    // verdict reads "infeasible within kDepTol * ||c|| on the dropped
+    // coordinates". The certificate is copied into QpSolution::farkas on
+    // kInfeasible only.
+    bool verify_farkas(const QpProblem &qp, const WorkingSet &ws, const ExchangePick &pick,
+                       bool is_ineq, Index idx, double row_scale, const QpOptions &opts,
+                       QpFarkasCertificate &cert) const;
+
+    // Production's ratio scan with the constraints in `skip` excluded (the
+    // no-admissible rule's pass-over), capped at the unit step.
+    static double ratio_test_excluding(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                                       const Vec &Aix, const Vec &p,
+                                       const std::vector<std::pair<bool, Index>> &skip,
+                                       BlockKind &kind, Index &block_idx, BoundState &block_state);
 
     // Directional derivative of the constraint `dropped` names, along `d`.
     // Stated so that a NEGATIVE value means "d moves into that constraint's

@@ -1227,12 +1227,18 @@ const FamilyPin kPins[] = {
       {5, 7, 14, 7, 0, 6, 1, 4, 0, 4, 14, 0},
       {5, 8, 17, 8, 0, 7, 1, 4, 0, 0, 17, 0},
       {5, 8, 16, 8, 0, 0, 5, 0, 0, 0, 16, 0}}},
+    // RE-MEASURED, M7 W2 E2 step 2 (declared mover, S20): minors and
+    // border_refine only, every arm -- cold and cold@pred 158/159 -> 148/149,
+    // warm and hot 45/45 -> 43/43, warm+pred 42/42 -> 40/40. Steps, majors,
+    // factorizations, the level histogram, predictor calls and elastic
+    // activations are unchanged. Cause: the add-site exchange and the
+    // zero-motion re-entry rule shorten the QP walks.
     {"F2far",
-     {{5, 19, 158, 24, 0, 0, 5, 0, 0, 0, 159, 5},
-      {5, 10, 45, 11, 0, 7, 1, 4, 0, 0, 45, 1},
-      {5, 9, 42, 10, 0, 6, 1, 4, 0, 4, 42, 1},
-      {5, 10, 45, 11, 0, 7, 1, 4, 0, 0, 45, 1},
-      {5, 19, 158, 24, 0, 0, 5, 0, 0, 0, 159, 5}}},
+     {{5, 19, 148, 24, 0, 0, 5, 0, 0, 0, 149, 5},
+      {5, 10, 43, 11, 0, 7, 1, 4, 0, 0, 43, 1},
+      {5, 9, 40, 10, 0, 6, 1, 4, 0, 4, 40, 1},
+      {5, 10, 43, 11, 0, 7, 1, 4, 0, 0, 43, 1},
+      {5, 19, 148, 24, 0, 0, 5, 0, 0, 0, 149, 5}}},
     {"F3n50",
      {{4, 19, 38, 19, 0, 0, 4, 0, 0, 0, 38, 0},
       {4, 12, 23, 9, 0, 8, 1, 3, 0, 0, 23, 0},

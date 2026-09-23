@@ -47,6 +47,7 @@
 // here rather than passing vacuously.
 
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <cmath>
 #include <condition_variable>
@@ -461,6 +462,10 @@ struct ArmGuard {
 QpOptions capped(Index cap) {
     QpOptions opts;
     opts.max_iter = cap;
+    // The premise "the old walk cycles" belongs to the pre-E2 walk: with the
+    // independent working set (M7 W2 E2) these QPs END (the E2 fixtures at the
+    // end of test_qp_anti_cycling_arm.cpp).
+    opts.independent_working_set = false;
     return opts;
 }
 
@@ -1143,4 +1148,211 @@ TEST(QpAntiCyclingArm, AnArmedSolveDoesNotReachIntoAnUnarmedOneRunningBesideIt) 
     expect_same_answer(solo_unarmed, unarmed_out);
     EXPECT_EQ(unarmed_switches, 0)
         << "the unarmed thread recorded arm activity while an armed solve ran beside it";
+}
+
+// ===========================================================================
+// (E2) THE INDEPENDENT WORKING SET (M7 W2 E2): the exchange at the add site,
+// the no-admissible-member rule, and the border retreat. Gill & Wong 2015,
+// Results 3.3-3.5.
+// ===========================================================================
+
+namespace {
+
+QpOptions e2_opts(WorkingSetLinearAlgebra alg, Index cap = kCycleCap) {
+    QpOptions o;
+    o.max_iter = cap;
+    o.independent_working_set = true;
+    o.ws_algebra = alg;
+    return o;
+}
+
+/// `H = diag(h)`, rows `Ai x <= bi` (row-major), the box `[lo, hi]^n`.
+QpProblem e2_diag_qp(const std::vector<double> &h, const std::vector<double> &g,
+                     const std::vector<double> &a_rowmajor, const std::vector<double> &b, double lo,
+                     double hi) {
+    const auto n = static_cast<Index>(h.size());
+    const auto mi = static_cast<Index>(b.size());
+    QpProblem qp;
+    Eigen::MatrixXd Hd = Eigen::MatrixXd::Zero(n, n);
+    qp.g = Vec(n);
+    for (Index i = 0; i < n; ++i) {
+        Hd(i, i) = h[static_cast<std::size_t>(i)];
+        qp.g(i) = g[static_cast<std::size_t>(i)];
+    }
+    qp.H = Hd.sparseView();
+    qp.Ae.resize(0, n);
+    qp.be = Vec(0);
+    Eigen::MatrixXd Aid(mi, n);
+    qp.bi = Vec(mi);
+    for (Index r = 0; r < mi; ++r) {
+        for (Index c = 0; c < n; ++c) {
+            Aid(r, c) = a_rowmajor[static_cast<std::size_t>(r * n + c)];
+        }
+        qp.bi(r) = b[static_cast<std::size_t>(r)];
+    }
+    qp.Ai = Aid.sparseView();
+    qp.lower = Vec::Constant(n, lo);
+    qp.upper = Vec::Constant(n, hi);
+    return qp;
+}
+
+constexpr std::array<WorkingSetLinearAlgebra, 2> kE2Algebras = {
+    WorkingSetLinearAlgebra::kRefactorize, WorkingSetLinearAlgebra::kSchurBorder};
+
+const char *e2_name(WorkingSetLinearAlgebra alg) {
+    return alg == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize";
+}
+
+/// THE RECURRENCE ENDS: kOptimal at the brute-force optimum, promptly, with
+/// no cap and no termination. The border path retreats once on both shapes
+/// (E2-F1: its Schur complement is swamped on these K0s); refactorize never.
+void expect_e2_ends(const QpProblem &qp) {
+    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+        SCOPED_TRACE(e2_name(alg));
+        const Walk on = observed_walk(qp, e2_opts(alg));
+        const QpCounters &c = on.solution.counters;
+        EXPECT_EQ(static_cast<int>(on.solution.status), static_cast<int>(QpStatus::kOptimal));
+        EXPECT_TRUE(is_a_kkt_point(qp, on.solution, 1e-7));
+        EXPECT_NEAR(objective(qp, on.solution.x), brute_force_optimum(qp), 1e-7);
+        EXPECT_LT(on.minors * 5, kCycleCap);
+        EXPECT_LE(on.tail, 8);
+        EXPECT_EQ(c.zero_motion_cap_hits, 0);
+        EXPECT_EQ(c.zero_motion_exhausted, 0);
+        EXPECT_EQ(c.dep_blocker_terminations, 0);
+        EXPECT_EQ(c.dep_certificate_rejections, 0);
+        EXPECT_EQ(c.dep_border_retreats, alg == WorkingSetLinearAlgebra::kSchurBorder ? 1 : 0);
+    }
+}
+
+} // namespace
+
+TEST(QpE2WorkingSet, ThePeriodTwoQpEndsAtItsOptimumInBothAlgebras) {
+    ArmGuard guard;
+    expect_e2_ends(period2_cycle_qp());
+}
+
+TEST(QpE2WorkingSet, ThePeriodFourQpEndsAtItsOptimumInBothAlgebras) {
+    ArmGuard guard;
+    expect_e2_ends(period4_cycle_qp());
+}
+
+TEST(QpE2WorkingSet, ADependentBlockerIsExchangedForTheMemberItsCoefficientsName) {
+    // min 1/2|x|^2 - 3 x0 + 3 x1  s.t.  x0 + x1 >= 2,  [0,1] x [0,5]. x1's lower
+    // bound joins at alpha = 0 beside the shifted row; x0's upper bound blocks at
+    // alpha = 1/2, dependent on {row, x1} (c = e0 = -row + x1's -e1 pin, so
+    // v = (-1, +1)): the exchange releases x1's pin on that same step, and the
+    // walk ends at the optimum (1, 1).
+    const QpProblem qp = e2_diag_qp({1.0, 1.0}, {-3.0, 3.0}, {-1.0, -1.0}, {-2.0}, 0.0, 5.0);
+    QpProblem boxed = qp;
+    boxed.upper(0) = 1.0;
+    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+        SCOPED_TRACE(e2_name(alg));
+        const QpSolution s = plain_solve(boxed, e2_opts(alg, 40));
+        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+        EXPECT_NEAR(s.x(0), 1.0, 1e-9);
+        EXPECT_NEAR(s.x(1), 1.0, 1e-9);
+        EXPECT_EQ(s.counters.ws_exchanges, 1);
+        EXPECT_EQ(s.counters.ws_exchanges_bound, 1);
+        EXPECT_EQ(s.counters.ws_exchanges_shifted, 0);
+        EXPECT_EQ(s.bound_state[0], BoundState::kAtUpper);
+        EXPECT_EQ(s.bound_state[1], BoundState::kFree);
+        EXPECT_TRUE(is_a_kkt_point(boxed, s, 1e-7));
+    }
+}
+
+TEST(QpE2WorkingSet, NoAdmissibleMemberOnAnInfeasibleQpReturnsAVerifiedCertificate) {
+    // x0 + x1 >= 3 and x0 + x1 <= 1 in [0,2]^2: genuinely infeasible. The
+    // second row blocks dependent on the shifted first with a NEGATIVE
+    // coefficient, so no member is admissible and the certificate is built.
+    const QpProblem qp =
+        e2_diag_qp({1.0, 1.0}, {0.0, 0.0}, {-1.0, -1.0, 1.0, 1.0}, {-3.0, 1.0}, 0.0, 2.0);
+    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+        SCOPED_TRACE(e2_name(alg));
+        const QpSolution s = plain_solve(qp, e2_opts(alg, 40));
+        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kInfeasible));
+        EXPECT_EQ(s.counters.dep_infeasible_certificates, 1);
+        EXPECT_EQ(s.counters.dep_certificate_rejections, 0);
+        const QpFarkasCertificate &f = s.farkas;
+        ASSERT_TRUE(f.present);
+        // Re-derived here from the problem data, not read off the engine:
+        // box_part = s c - Ai^T y_i with y_i <= 0, and the implied bound.
+        Vec c = Vec::Zero(qp.n());
+        if (f.blocker_is_ineq) {
+            c = qp.Ai.row(f.blocker).transpose();
+        } else {
+            c(f.blocker) = 1.0;
+        }
+        const Vec box_part = f.sign * c - qp.Ai.transpose() * f.y_i;
+        EXPECT_LE((box_part - f.box_part).lpNorm<Eigen::Infinity>(), 1e-12);
+        EXPECT_LE(f.y_i.maxCoeff(), 0.0);
+        double implied = f.y_i.dot(qp.bi);
+        for (Index i = 0; i < qp.n(); ++i) {
+            implied += box_part(i) * (box_part(i) > 0.0 ? qp.lower(i) : qp.upper(i));
+        }
+        EXPECT_NEAR(implied, f.implied, 1e-12);
+        EXPECT_GT(implied - f.limit, f.margin);
+        EXPECT_NEAR(f.implied, 3.0, 1e-6); // coefficients from the dual_mu-regularized solve
+        EXPECT_NEAR(f.limit, 1.0, 1e-12);
+        EXPECT_EQ(f.residual, 0.0);
+    }
+}
+
+TEST(QpE2WorkingSet, NoAdmissibleMemberAndNoPassOverEndsInsideTheBox) {
+    // x0+x1+x2 <= 1 and its double 2x0+2x1+2x2 <= 2, [0,2]^3, at dual_mu =
+    // 1e-2: the double blocks dependent with no admissible member, no
+    // certificate, and a pass-over that would violate it. The walk ends
+    // kNumericalError where it stands -- inside the box, rows satisfied,
+    // never a step past the blocker. (At the default dual_mu the same QP
+    // ends kOptimal at (3/4, 0, 1/4).)
+    const QpProblem qp = e2_diag_qp({1.0, 1.0, 1.0}, {-2.0, -0.5, -1.5},
+                                    {1.0, 1.0, 1.0, 2.0, 2.0, 2.0}, {1.0, 2.0}, 0.0, 2.0);
+    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+        SCOPED_TRACE(e2_name(alg));
+        QpOptions o = e2_opts(alg, 40);
+        o.dual_mu = 1e-2;
+        const QpSolution s = plain_solve(qp, o);
+        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kNumericalError));
+        EXPECT_EQ(s.counters.dep_blocker_terminations, 1);
+        EXPECT_EQ(s.counters.dep_infeasible_certificates, 0);
+        EXPECT_FALSE(s.farkas.present);
+        EXPECT_EQ(s.counters.dep_border_retreats,
+                  alg == WorkingSetLinearAlgebra::kSchurBorder ? 1 : 0);
+        for (Index i = 0; i < qp.n(); ++i) {
+            EXPECT_GE(s.x(i), qp.lower(i));
+            EXPECT_LE(s.x(i), qp.upper(i));
+        }
+        const Vec Aix = qp.Ai * s.x;
+        for (Index r = 0; r < qp.mi(); ++r) {
+            EXPECT_LE(Aix(r) - qp.bi(r), 1e-12);
+        }
+        EXPECT_NEAR(s.x(0), 0.5, 1e-12);
+        EXPECT_NEAR(s.x(1), 0.125, 1e-12);
+        EXPECT_NEAR(s.x(2), 0.375, 1e-12);
+    }
+}
+
+TEST(QpE2WorkingSet, TheBorderRetreatsExactlyOnceAndEndsOptimal) {
+    // THE DECLARED DEVIATION (settler S11), and finding E2-F1: on the
+    // period-two QP the border pass's K0 is near-singular on the pinned
+    // directions, its Schur complement carries O(1) rounding, the EQP step
+    // leaves its face and the dependency coefficients are inaccurate; the
+    // rule would end the solve there, so the pass is redone ONCE on the
+    // bound-eliminated path and the walk ends at the optimum.
+    ArmGuard guard;
+    const QpProblem qp = period2_cycle_qp();
+    Obs::reset();
+    Obs::active = true;
+    const QpSolution s = plain_solve(qp, e2_opts(WorkingSetLinearAlgebra::kSchurBorder));
+    Index retreat_records = 0;
+    for (const auto &r : Obs::records) {
+        retreat_records +=
+            r.action == hven::solvers::detail::testing::QpWalkAction::kEliminatedRetreat ? 1 : 0;
+    }
+    Obs::active = false;
+    Obs::reset();
+    EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+    EXPECT_EQ(s.counters.dep_border_retreats, 1);
+    EXPECT_EQ(retreat_records, 1);
+    EXPECT_EQ(s.counters.dep_blocker_terminations, 0);
+    EXPECT_NEAR(objective(qp, s.x), brute_force_optimum(qp), 1e-7);
 }

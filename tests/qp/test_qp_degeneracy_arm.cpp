@@ -441,6 +441,10 @@ QpOptions cycling_opts() {
     QpOptions o;
     o.max_iter = 200;
     o.opt_tol = 1e-6;
+    // The premise "the old walk cycles" belongs to the pre-E2 walk: with the
+    // independent working set (M7 W2 E2) these QPs END (the E2 fixtures at the
+    // end of test_qp_anti_cycling_arm.cpp).
+    o.independent_working_set = false;
     return o;
 }
 

@@ -97,6 +97,30 @@ struct QpProblem {
     }
 };
 
+/// @brief A verified Farkas certificate behind a kInfeasible from the walk's
+/// no-admissible-member rule. For every x in the box [lower, upper] with
+/// Ae x = be and Ai x <= bi: s * c^T x >= implied, where c is Ai's row
+/// `blocker` (blocker_is_ineq) or e_blocker, s = sign, and
+/// c_s = Ae^T y_e + Ai^T y_i + box_part with y_i <= 0; `implied` is
+/// y_e^T be + y_i^T bi + min over the box of box_part^T x. Verified:
+/// implied - limit > margin, limit the blocker's own bound (s * c^T x <= limit).
+/// `residual`: the norm of box_part entries dropped on coordinates unbounded
+/// on the needed side, each <= kDepTol * ||c|| (the dependency test's own
+/// residual); the bound holds up to residual * |x| on those coordinates, so a
+/// kInfeasible carrying a nonzero `residual` is a TOLERANCED verdict:
+/// infeasible within kDepTol * ||c|| on the dropped coordinates.
+struct QpFarkasCertificate {
+    bool present = false;
+    bool blocker_is_ineq = false;
+    Index blocker = -1;
+    double sign = 1.0;
+    Vec y_e, y_i, box_part;
+    double implied = 0.0;
+    double limit = 0.0;
+    double margin = 0.0;
+    double residual = 0.0;
+};
+
 /// @brief The solution of one QpProblem: primal/dual vectors, working-set
 /// state, counters, and the trust-region activity flags.
 struct QpSolution {
@@ -123,6 +147,9 @@ struct QpSolution {
     /// kFree entry there means "unconstrained by any REAL bound", NOT
     /// "stationary treated as free".
     std::vector<bool> tr_active;
+
+    /// Set only on a kInfeasible the walk's no-admissible-member rule proved.
+    QpFarkasCertificate farkas;
 };
 
 } // namespace hven::solvers

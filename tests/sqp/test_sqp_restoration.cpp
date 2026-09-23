@@ -1162,6 +1162,10 @@ TEST(SqpDriverRestoration, AlgebraModeDivergenceIsANonUniqueSubproblemOptimum) {
         SqpOptions opts;
         // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
         opts.equality_basis = false;
+        // M7 W2 E2 (S7): the two algebras' different points on the face belong
+        // to the pre-E2 walk; with the independent working set both land on
+        // x0 + x1 = 2.25, the same point.
+        opts.qp.independent_working_set = false;
         opts.max_iter = 2;
         opts.qp.ws_algebra = algebra;
         SqpSolver driver(opts);
@@ -1985,6 +1989,9 @@ const char *seed_mode_name(QpMode m) {
 TEST(SqpDriverRestorationSeed, TheTakenCandidateIsRecordedOnTheRequestingRow) {
     InfeasibleCircleLineModel model(2.0, 1.999999);
     SqpOptions opts;
+    // M7 W2 E2 (S7): the taken candidate belongs to the pre-E2 walk (Release takes none with it
+    // on).
+    opts.qp.independent_working_set = false;
     opts.max_iter = 200;
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(model);
@@ -2036,6 +2043,29 @@ TEST(SqpDriverRestorationSeed, TheSeedIsNotGatedOnTheQpMode) {
     }
 }
 
+// M7 W2 E2 (settler S7): the seed fixtures on this model keep the pre-E2 walk
+// for their candidate premise; this one runs the SAME configuration with the
+// independent working set ON and asserts the ANSWER, so the on-path is
+// covered on the circle-line model too.
+TEST(SqpDriverRestorationSeed, TheIndependentWorkingSetReachesTheSameCertifiedAnswer) {
+    for (const QpMode mode : kSeedModes) {
+        SCOPED_TRACE(seed_mode_name(mode));
+        InfeasibleCircleLineModel model;
+        SqpOptions opts;
+        ASSERT_TRUE(opts.qp.independent_working_set);
+        opts.max_iter = 200;
+        opts.qp.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
+        opts.qp_mode = mode;
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(model);
+        EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
+        EXPECT_TRUE(sol.infeasibility_certified);
+        const double t = 1.0 / std::sqrt(2.0);
+        EXPECT_NEAR(sol.x(0), t, 1e-5);
+        EXPECT_NEAR(sol.x(1), t, 1e-5);
+    }
+}
+
 // THE EXHAUSTED-LADDER SITE'S OWN TAKEN PIN, site-specific and config-stable:
 // the requesting row carries the ladder's kRestore verdict, so this is the
 // elastic route's arm and not the radius floor's.
@@ -2044,6 +2074,9 @@ TEST(SqpDriverRestorationSeed, TheExhaustedLadderSiteSeedsFromItsOwnStep) {
         SCOPED_TRACE(seed_mode_name(mode));
         InfeasibleCircleLineModel model(2.0, 1.999999);
         SqpOptions opts;
+        // M7 W2 E2 (S7): the taken seed on this knife-edge model belongs to the
+        // pre-E2 walk's trajectory (the ipm mode takes none with the option on).
+        opts.qp.independent_working_set = false;
         opts.max_iter = 200;
         opts.qp_mode = mode;
         // Scaling is what makes the ROUTE config-stable on this knife-edge
@@ -2202,6 +2235,9 @@ TEST(SqpDriverRestorationSeed, TheGuardAndThePhaseRunOnTheCallerScale) {
         SqpOptions opts;
         // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
         opts.equality_basis = false;
+        // M7 W2 E2 (S7): the taken seed belongs to the pre-E2 walk's trajectory
+        // (the ipm mode takes none with the option on).
+        opts.qp.independent_working_set = false;
         opts.max_iter = 60;
         opts.qp_mode = mode;
         opts.enable_scaling = true;
@@ -2793,6 +2829,9 @@ TEST(SqpDriverRestorationProximity, TheProxyWouldCertifyWhereTheExactResidualRef
 TEST(SqpDriverRestorationProximity, TheSeedGuardFiresAndTheStartObjectiveIsHPlusP) {
     WatchedCircleLineModel model(2.0, 1.999999);
     SqpOptions opts;
+    // M7 W2 E2 (S7): the taken candidate belongs to the pre-E2 walk (Release takes none with it
+    // on).
+    opts.qp.independent_working_set = false;
     opts.max_iter = 200;
     opts.restoration_proximity = 0.25;
     SqpSolver driver(opts);

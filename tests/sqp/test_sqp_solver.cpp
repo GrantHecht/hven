@@ -3588,6 +3588,10 @@ TEST(SqpDriverQpFailure, RepeatedQpMaxIterStillPropagates) {
     SqpOptions opts;
     opts.max_iter = 60;
     opts.qp.max_iter = 3;
+    // M7 W2 E2: the "needs more than 3 minors at every radius" premise is a
+    // property of the pre-E2 walk (Debug's walk finishes a retry inside the cap
+    // with the independent working set on).
+    opts.qp.independent_working_set = false;
     // THE OLD GATE, WRITTEN OUT (M7 W2 M1). This fixture pins the
     // mechanism the ONE-retry gate has: the second consecutive failure at an
     // iterate ends the solve. The SHIPPED default is now
@@ -5549,6 +5553,9 @@ TEST(SqpDriverElastic, EarlyExitOnADegenerateRelaxationStillCertifiesCorrectly) 
     InfeasibleCircleLineModel model(1.0, 0.0);
     SqpOptions opts_off;
     opts_off.tr_min = 1e-10;
+    // M7 W2 E2 (S7): the fewer-majors premise belongs to the pre-E2 walk (Release reads 48 vs 44
+    // with it on; status and certificate hold either way).
+    opts_off.qp.independent_working_set = false;
     SqpOptions opts_on = opts_off;
     opts_on.elastic_ladder_early_exit = true;
 
@@ -7760,10 +7767,15 @@ TEST(SqpDriverSsnMode, RestorationStaysOnTheWalkUnderKSsn) {
     EXPECT_EQ(131, sol.counters.ssn.ssn_iters)
         << "OBSERVED. MKL, clang++, Release. THE PIN: this is the MAIN loop's SSN work and "
            "nothing else. A restoration sub-solve left on kSsn adds its own, reading 140.";
-    EXPECT_EQ(234, sol.counters.factorizations)
-        << "OBSERVED. MKL, clang++, Release. The other side of the same reset: the sub-solve's "
+    // M7 W2 E2 step 2 (declared mover, S20): 234 -> 218. The walk-side QPs of
+    // this solve run fewer passes under the add-site exchange and the
+    // zero-motion re-entry rule; ssn_iters (131, the pin this test exists
+    // for) does not move. The leaked-mode mutant's 247 is a pre-E2 reading
+    // and was not re-measured.
+    EXPECT_EQ(218, sol.counters.factorizations)
+        << "OBSERVED. MKL, clang++. The other side of the same reset: the sub-solve's "
            "factorizations ARE folded, so a kernel change inside it moves this too (247 with "
-           "the mode leaked in).";
+           "the mode leaked in, pre-E2).";
     EXPECT_EQ(5, sol.counters.ssn.ssn_escapes) << "OBSERVED. MKL, clang++, Release.";
     EXPECT_EQ(5, sol.counters.ssn.ssn_refinements)
         << "OBSERVED. MKL, clang++, Release. Reads 6 with the mode leaked into restoration.";
@@ -10475,9 +10487,13 @@ TEST(QpEngineStructuralViolation, T6bTheStiffWALKSOwnPathologyAboveTheShippedDua
     // over-determined and the refinement correctly declines to adopt anything. Byte-stable
     // against 23e884a in both directions, and kRefactorize walks elsewhere and says kOptimal.
     const QpProblem qp = w2_stiff_consistent_qp(1.0e3);
+    //
+    // M7 W2 E2 (declared mover): the independent working set no longer reads kInfeasible off
+    // that corner of a CONSISTENT problem; no member is admissible there and the walk ends at
+    // the declared kNumericalError (after the border retreat).
     const W2ElasticWalk bordered =
         w2_walk_elastic(qp, 1.0e6, 1.0e-5, WorkingSetLinearAlgebra::kSchurBorder);
-    EXPECT_EQ(bordered.status, QpStatus::kInfeasible);
+    EXPECT_EQ(bordered.status, QpStatus::kNumericalError);
     EXPECT_DOUBLE_EQ(bordered.worst_resid, 15.0);
     EXPECT_LE(bordered.slack_l1, SqpOptions{}.feas_tol);
     EXPECT_EQ(bordered.verdict_refine_steps, 0) << "nothing was adopted, so nothing was counted";
@@ -10569,10 +10585,15 @@ TEST(SqpDriverElasticSeed, T6bTheBandsHIGHRungsRemainAPREEXISTINGResidue) {
     //
     // UNCHANGED by this task, in both directions: the same cell reads the same way at 23e884a.
     // It is pinned so nobody reads "the band is covered" off the pin above.
+    //
+    // M7 W2 E2 (declared mover): with the independent working set the walk no longer reports
+    // the false kOptimal; it stands at a vertex whose two slack pins entered at the point, no
+    // member is admissible, and it ends at the declared kNumericalError (after the border
+    // retreat). The residue is still a residue; only its label is honest now.
     const QpProblem qp = w2_box_blocked_qp(10.0);
     const W2ElasticWalk high =
         w2_walk_elastic(qp, 1.0e8, 1.0e-4, WorkingSetLinearAlgebra::kSchurBorder);
-    EXPECT_EQ(high.status, QpStatus::kOptimal);
+    EXPECT_EQ(high.status, QpStatus::kNumericalError);
     EXPECT_LE(high.slack_l1, SqpOptions{}.feas_tol) << "the slack is shut and the row is still off";
     EXPECT_GT(high.worst_resid, 1.0) << "a residual no verdict should be read off";
     EXPECT_EQ(high.verdict_refine_steps, 0) << "the classifier never called it structural";
@@ -11091,7 +11112,9 @@ TEST(QpEngineStructuralViolation, T7TheFeasibleCensusHalfOverTheFULLDualMuSet) {
     // ASSERTED AS RESIDUE, NOT AS CLOSED (Z-4's own instruction). DECLARED BREAK, T7 item 11:
     // 13 before the eliminated twin landed, 11 after -- the two that left are stiff(4e5)'s
     // kRefactorize cells at dual_mu = 1e-6, FEASIBLE problems the oracle used to certify.
-    EXPECT_EQ(shut_slack_residue, 11);
+    // M7 W2 E2 (declared mover): 11 -> 6 -- five cells that read kInfeasible on these FEASIBLE
+    // problems no longer do under the independent working set.
+    EXPECT_EQ(shut_slack_residue, 6);
 }
 
 TEST(SqpDriverCertifiedFallback, T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnItsWorstFixture) {
@@ -11161,6 +11184,9 @@ TEST(SqpDriverCertifiedFallback, T7TheT3ARouteIsREACHABLEAtTheDriverAndCostsOneE
     SqpOptions opts;
     opts.qp_mode = QpMode::kIpm;
     opts.max_iter = 60;
+    // M7 W2 E2: the route's premise (rung B's walk certifies kInfeasible on the
+    // box-blocked relaxation) belongs to the pre-E2 walk.
+    opts.qp.independent_working_set = false;
     W2T7BoxBlockedRowModel model(1.0e8, 5.0, 0.25);
     SqpSolver driver(opts);
     W2T7FallbackSink sink;

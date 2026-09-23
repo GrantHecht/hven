@@ -1031,11 +1031,24 @@ TEST(HsBattery, CrashBasisIsANullResultOnTheBatteryWithTwoBoundSeededExceptions)
     // a pin over-counted (3 > n = 2) and releases the pin. 862/859 before.
     // UNOBSERVED on Accelerate: the arm above keeps its observed pre-E2 pin
     // until the macOS lane reports.
-    EXPECT_EQ(minors_off, 861);
-    EXPECT_EQ(minors_on, 858);
+    // M7 W2 E2 step 2 (declared mover, S20): 861/858 -> 804/801 minors and
+    // 320/323 -> 267/270 factorizations, answers unchanged. Cause: the add-site
+    // exchange (Gill & Wong 2015, Result 3.4(b)) swaps a dependent blocker for
+    // a member instead of admitting it and paying a later removal, and the
+    // zero-motion re-entry rule ends the release/re-entry churn at fixed
+    // points; both shorten the walks.
+    EXPECT_EQ(minors_off, 804);
+    EXPECT_EQ(minors_on, 801);
 #endif
+#ifdef USE_ACCELERATE_SPARSE
+    // UNOBSERVED under M7 W2 E2 on Accelerate: the pre-E2 pins stay until the
+    // macOS lane reports (CLAUDE.md section 6).
     EXPECT_EQ(facts_off, 320);
     EXPECT_EQ(facts_on, 323);
+#else
+    EXPECT_EQ(facts_off, 267);
+    EXPECT_EQ(facts_on, 270);
+#endif
 }
 
 // THE TABLE MUST COVER EVERY SHIPPED PROBLEM. Without this a problem added to

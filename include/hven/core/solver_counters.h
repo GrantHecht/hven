@@ -119,7 +119,8 @@ struct QpCounters {
 
     /// WORKING-SET REMOVALS: one per constraint released by the Dantzig drop
     /// rule (drop_worst) plus one per constraint released by the
-    /// zero-multiplier probe (probe_zero_multiplier_drops). A probe drop
+    /// zero-multiplier probe (probe_zero_multiplier_drops) plus one per
+    /// member an exchange released (ws_exchanges). A probe drop
     /// that is RESTORED because the probe declined it is not counted -- the
     /// working set is the same on both sides of it, so counting it would
     /// break the net identity above.
@@ -212,6 +213,34 @@ struct QpCounters {
     Index dep_pin_skips = 0;
     Index ws_count_violations = 0; // passes with me + |W| > n (the integer screen)
     Index dep_untested_growth = 0; // screen-positive checks the detector did not resolve
+    // The screen called a candidate dependent while the mandatory rows were
+    // themselves dependent (mandatory_dependent_entries > 0): a possible false
+    // dependent, the safe direction. With E1's basis on it cannot occur.
+    Index dep_screen_under_mandatory_dependence = 0;
+
+    // The exchange and the no-admissible-member rule at the ordinary add site
+    // (Gill & Wong 2015, Result 3.4(b)).
+    Index ws_exchanges = 0;
+    Index ws_exchanges_bound = 0;   // the blocker or the released member is a pin
+    Index ws_exchanges_shifted = 0; // the released member was a shift-driven row (last resort)
+    Index dep_infeasible_certificates = 0; // verified Farkas certificate => kInfeasible
+    Index dep_certificate_rejections = 0;  // a certificate failed verification => kNumericalError
+    Index dep_passovers = 0;
+    Index dep_blocker_terminations = 0; // no admissible member, no certificate, no pass-over
+    // An undecidable (screen-negative, unresolved) blocker admitted with the
+    // next pass's detector as its test. A deferred add that detector later
+    // finds dependent is removed and counted in dep_recheck_removals (or, if
+    // the detector does not resolve an over-count, in dep_untested_growth);
+    // this counter is not decremented.
+    Index dep_deferred_adds = 0;
+    // The rule would have ended the solve on a border-stack pass: the solve
+    // continued on the bound-eliminated path instead (once per solve).
+    Index dep_border_retreats = 0;
+
+    // The zero-motion re-entry rule (per fixed iterate).
+    Index reentry_exemptions = 0;
+    Index zero_motion_exhausted = 0; // an exempt member's multiplier is real
+    Index zero_motion_cap_hits = 0;  // > 2(n + mi) releases/re-entries at one point
 };
 
 /// @brief Work counters for the semismooth-Newton kernel.

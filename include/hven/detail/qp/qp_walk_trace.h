@@ -190,6 +190,8 @@ enum class QpWalkAction : int {
     kAdd,
     /// The ordinary step, nothing blocking: the full step to the EQP point.
     kMoveOnly,
+    /// E2's border retreat: the pass is redone on the bound-eliminated path.
+    kEliminatedRetreat,
 };
 
 /// Which block a constraint identity refers to.

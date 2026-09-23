@@ -1231,8 +1231,19 @@ void check_soc_costs_what_it_costs() {
     // rather than an accident: every SOC attempt in this corpus is on a cell
     // the repair does not touch (the cold arm) or on HS77's warm arm, which was
     // sound all along.
+#ifdef USE_ACCELERATE_SPARSE
+    // UNOBSERVED under M7 W2 E2 on Accelerate: the pre-E2 numerator stays
+    // until the macOS lane reports (CLAUDE.md section 6).
     EXPECT_EQ(23, extra_minors) << corpus_table();
     EXPECT_EQ(4, extra_factorizations) << corpus_table();
+#else
+    // M7 W2 E2 step 2 (declared mover, S20): 23 -> 22 extra minors and 4 -> 3
+    // extra factorizations. The majors stay identical in every cell (asserted
+    // above); the SOC-on walks are shorter under the add-site exchange and the
+    // zero-motion re-entry rule, so what SOC costs shrinks with them.
+    EXPECT_EQ(22, extra_minors) << corpus_table();
+    EXPECT_EQ(3, extra_factorizations) << corpus_table();
+#endif
     // The denominator the note's percentage is computed against, pinned so the
     // percentage is reproducible rather than recomputed by hand.
     //
@@ -1293,7 +1304,12 @@ void check_soc_costs_what_it_costs() {
     // resolves dependent seeds and re-checks (structural pinned-row check,
     // un-gated inverse iteration). independent_working_set = false
     // reproduces 3737. UNOBSERVED on Accelerate (the arm above).
-    EXPECT_EQ(3725, total_minors) << corpus_table();
+    // RE-DERIVED, M7 W2 E2 step 2 (declared mover, S20): 3725 -> 3371, -354.
+    // Cause: the add-site exchange replaces admit-then-remove for a dependent
+    // blocker, and the zero-motion re-entry rule stops release/re-entry churn
+    // at fixed points; the majors are unchanged in every SOC pair (asserted
+    // above) and every status holds. 22/3371 = 0.65 %.
+    EXPECT_EQ(3371, total_minors) << corpus_table();
 #endif
 }
 

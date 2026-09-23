@@ -503,7 +503,15 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     WalkSeen seen{std::vector<std::uint8_t>(static_cast<std::size_t>(mi), 0),
                   std::vector<std::uint8_t>(static_cast<std::size_t>(n), 0),
                   std::vector<std::uint8_t>(
-                      eff_opts.independent_working_set ? static_cast<std::size_t>(mi) : 0, 0)};
+                      eff_opts.independent_working_set ? static_cast<std::size_t>(mi) : 0, 0),
+                  std::vector<std::uint8_t>(
+                      eff_opts.independent_working_set ? static_cast<std::size_t>(mi) : 0, 0),
+                  std::vector<std::uint8_t>(
+                      eff_opts.independent_working_set ? static_cast<std::size_t>(n) : 0, 0),
+                  {},
+                  0};
+    // The Farkas certificate behind a kInfeasible from the add site's rule.
+    QpFarkasCertificate farkas;
 
     refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen, eff_opts);
 
@@ -618,6 +626,10 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     bool start_pass = true;
     bool recheck_pending = false;
     Index shift_adds_checked = 0;
+    // THE BORDER RETREAT: set when the add site's no-admissible rule would
+    // end the solve on a pass whose factor is the border stack; the rest of
+    // the solve runs on the bound-eliminated path (and commits no hot state).
+    bool eliminated_only = false;
 
     QpStatus status = crossed_bounds ? QpStatus::kInfeasible : QpStatus::kMaxIter;
 #ifdef HVEN_TESTING
@@ -719,6 +731,18 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         }
 #endif
 
+        // THE ZERO-MOTION CAP: at most 2(n + mi) releases and re-entries at
+        // one iterate (each constraint is released at most once there, and a
+        // re-entry is drop-exempt).
+        if (eff_opts.independent_working_set && seen.pt_events > 2 * (n + mi)) {
+            ++counters.zero_motion_cap_hits;
+            status = QpStatus::kNumericalError;
+#ifdef HVEN_TESTING
+            walk_obs.record().action = detail::testing::QpWalkAction::kTerminal;
+#endif
+            break;
+        }
+
         // Stamp addition numbers on whatever joined the working set since
         // the last iteration, BEFORE anything this iteration changes it,
         // so the record reflects the order the loop actually built the
@@ -732,7 +756,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         detail::testing::qp_walk_reset_eqp();
 #endif
         const EqpResult eqp =
-            eqp_candidate(qp, ws, kkt, face, *border_, counters, verdict, eff_opts);
+            eliminated_only
+                ? eliminated_candidate(qp, ws, kkt, face, counters, verdict, eff_opts)
+                : eqp_candidate(qp, ws, kkt, face, *border_, counters, verdict, eff_opts);
 #ifdef HVEN_TESTING
         // Snapshotted IMMEDIATELY: section 4b's zero-multiplier probe re-enters
         // the same verdict site for HYPOTHETICAL working sets later in this very
@@ -762,11 +788,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             if (over) {
                 ++counters.ws_count_violations;
             }
-            // STEP-1 CRUTCH (S3): only untested growth licenses a removal. An
-            // over-count alone is the add site's to resolve; removing its row
-            // here re-admits it at alpha = 0 (HS10 cycled). Step 2 makes the
-            // add site act, removes this, and restores the Debug assert
-            // (over-count => the detector found the dependency).
+            // The add site exchanges rather than admits a dependent blocker,
+            // so an over-count comes only from untested growth, and the
+            // detector must find it (Debug-asserted below).
             const bool untested =
                 entry_check_pending || recheck_pending || counters.shift_adds != shift_adds_checked;
             if (untested || over) {
@@ -778,6 +802,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 counters.dep_test_solves += det.solves;
                 // A screen-positive set the detector did not resolve is never
                 // "independent": counted, and trimmed by count (R6).
+                // A miss here is a FINDING (the swamped-C class), not a state
+                // to trim silently; Release counts and trims it (R6).
+                assert(!over || det.found);
                 detail::EntryDetection trim;
                 if (over && !det.found) {
                     ++counters.dep_untested_growth;
@@ -794,12 +821,14 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         }
                     }
                 }
-                if ((det.found || trim.found) && untested &&
+                detail::WsMember removed;
+                if ((det.found || trim.found) &&
                     remove_entry_dependency(ws, shift, det.found ? det : trim,
                                             entry_check_pending ? nullptr : &probe,
-                                            seen.shift_refused)) {
+                                            seen.shift_refused, &removed)) {
                     ++(entry_check_pending ? counters.entry_dependency_removals
                                            : counters.dep_recheck_removals);
+                    pt_release(seen, removed.kind == detail::WsMember::Kind::kRow, removed.idx);
                     continue;
                 }
                 if (det.found && entry_check_pending) {
@@ -817,6 +846,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
 #endif
             degenerate_run = 0; // observation only -- x moved onto bounds
             recheck_pending = eff_opts.independent_working_set;
+            pt_clear(seen);
             // Pinning moved x onto bounds, which can violate general
             // rows; the homotopy picks them up exactly as at a start
             // point.
@@ -919,7 +949,16 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             // was a KKT point of the current working set.
             walk_obs.record().action = detail::testing::QpWalkAction::kDropDantzig;
 #endif
-            if (!drop_worst(qp, shift, lambda_i, z, ws, last_drop, counters)) {
+            double exempt_worst = 0.0;
+            const bool dropped_one =
+                eff_opts.independent_working_set
+                    ? drop_worst(qp, shift, lambda_i, z, ws, last_drop, counters, &seen,
+                                 &exempt_worst)
+                    : drop_worst(qp, shift, lambda_i, z, ws, last_drop, counters);
+            if (dropped_one && eff_opts.independent_working_set) {
+                pt_release(seen, last_drop.is_ineq, last_drop.idx);
+            }
+            if (!dropped_one) {
 #ifdef HVEN_TESTING
                 walk_obs.record().action = detail::testing::QpWalkAction::kTerminal;
 #endif
@@ -982,6 +1021,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                                                 eff_opts)) {
                         post_probe_restart_spent = true;
                         recheck_pending = eff_opts.independent_working_set;
+                        pt_clear(seen);
 #ifdef HVEN_TESTING
                         walk_obs.record().action = detail::testing::QpWalkAction::kPostProbeRestart;
 #endif
@@ -1001,9 +1041,26 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     // added rows, so the addition record is brought up to
                     // date before probing (section 4b's ZERO-MULTIPLIER
                     // PROBE).
+                    // THE ZERO-MOTION EXHAUSTION TEST: every remaining drop
+                    // candidate is a constraint released and re-entered at
+                    // this point. A multiplier above opt_tol * stat_scale is
+                    // real, and its release direction re-enters: kNumericalError.
+                    if (exempt_worst > 0.0) {
+                        double ex_scale = 1.0;
+                        (void)detail::free_block_stationarity(qp, x, ws, lambda_e, lambda_i,
+                                                              ex_scale);
+                        if (exempt_worst > eff_opts.opt_tol * ex_scale) {
+                            ++counters.zero_motion_exhausted;
+                            status = QpStatus::kNumericalError;
+                            break;
+                        }
+                    }
                     probe.refresh(ws);
                     if (probe_zero_multiplier_drops(qp, shift, lambda_i, z, ws, kkt, face, *border_,
                                                     counters, probe, last_drop, eff_opts)) {
+                        if (eff_opts.independent_working_set) {
+                            pt_release(seen, last_drop.is_ineq, last_drop.idx);
+                        }
                         // Negative curvature the full labeling hid: the
                         // drop is real. It arms the POST-PROBE RESTART
                         // above, which is what actually answers this case
@@ -1247,6 +1304,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 }
                 if (outcome == RideOutcome::kStepped) {
                     degenerate_run = 0; // observation only -- the ride moved x
+                    pt_clear(seen);
                     refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen,
                                    eff_opts);
                     continue;
@@ -1313,16 +1371,143 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             }
         }
 #else
-        const double alpha = ratio_test(qp, ws, x, Aix, p, kind, block_idx, block_state,
-                                        /*cap_at_unit=*/true, counters);
+        double alpha = ratio_test(qp, ws, x, Aix, p, kind, block_idx, block_state,
+                                  /*cap_at_unit=*/true, counters);
 #endif
 
-        // THE DEPENDENCY TEST on the blocker, against the factor this pass
-        // holds for `ws` (ws_independence.h).
-        // THE DEPENDENCY TEST on the blocker (counted only; step 2 acts).
-        if (eff_opts.independent_working_set && kind != BlockKind::kNone) {
-            (void)test_candidate(qp, ws, pass_view, kind == BlockKind::kIneq, block_idx, counters,
-                                 eff_opts);
+        // THE ADD SITE (independent_working_set). The blocker is tested
+        // against the factor this pass holds for `ws`. Independent: admitted.
+        // Dependent: exchanged for a member (ExchangePick); with no admissible
+        // member, (N1) a VERIFIED Farkas certificate ends kInfeasible, else
+        // (N2) the blocker is passed over when its predicted violation at the
+        // end of the step stays within feas_tol * row_scale (the next blocker
+        // goes through this same rule), else (N3) the solve ends
+        // kNumericalError at the current iterate -- never a step past it.
+        ExchangePick xpick;
+        if (eff_opts.independent_working_set) {
+            enum class AddExit { kNone, kInfeasible, kRejected, kTerminate };
+            AddExit add_exit = AddExit::kNone;
+            std::vector<std::pair<bool, Index>> passed;
+            const double xmag = x.lpNorm<Eigen::Infinity>();
+            // The oriented blocker c^T x <= d: a row, an upper hit (e_i), or
+            // a lower hit (-e_i); its value at x, its rate along p, d, and
+            // its feasibility scale.
+            struct Oriented {
+                double cx, cp, d, scale;
+            };
+            const auto oriented = [&](bool is_ineq, Index idx, BoundState side) {
+                if (is_ineq) {
+                    return Oriented{
+                        Aix(idx), qp.Ai.row(idx).dot(p), qp.bi(idx),
+                        std::max({1.0, std::abs(qp.bi(idx)), ai_row_norm1(idx) * xmag})};
+                }
+                const double sgn = side == BoundState::kAtUpper ? 1.0 : -1.0;
+                const double bound = side == BoundState::kAtUpper ? qp.upper(idx) : qp.lower(idx);
+                return Oriented{sgn * x(idx), sgn * p(idx), sgn * bound,
+                                std::max({1.0, std::abs(bound), xmag})};
+            };
+            while (kind != BlockKind::kNone) {
+                const bool is_ineq = kind == BlockKind::kIneq;
+                const detail::DepTest t =
+                    test_candidate(qp, ws, pass_view, is_ineq, block_idx, counters, eff_opts);
+                if (!t.dependent()) {
+                    break; // the ordinary add
+                }
+                if (t.verdict == detail::DepVerdict::kUndecidable) {
+                    // Screen-negative and unresolved (no factor for this
+                    // pass's set, or a stalled refinement): nothing proves
+                    // it dependent and no coefficient can pick an exchange.
+                    // Admitted; the next pass's detector tests the grown set
+                    // on its own factor, as for a shift add. Found dependent
+                    // there, it is removed under dep_recheck_removals.
+                    ++counters.dep_deferred_adds;
+                    recheck_pending = true;
+                    break;
+                }
+                // The entered-at-point lock applies only on a zero-motion
+                // step: the re-entry rule guards zero-motion cycles, and a
+                // step that moves clears the point memory before the exchange
+                // mutates.
+                xpick = select_exchange(qp, ws, shift, seen, t, is_ineq, block_idx, block_state,
+                                        lambda_e, lambda_i, z,
+                                        alpha * p.lpNorm<Eigen::Infinity>() > step_tol);
+                if (xpick.found) {
+                    break; // the exchange
+                }
+                const Oriented o = oriented(is_ineq, block_idx, block_state);
+                // (N1) The certificate: candidate on the design's two
+                // conditions, then verified before it may be returned.
+                if (xpick.cond1 && violation_is_structural(xpick.g, o.scale, 0.0, eff_opts)) {
+                    QpFarkasCertificate cert;
+                    if (verify_farkas(qp, ws, xpick, is_ineq, block_idx, o.scale, eff_opts, cert)) {
+                        farkas = std::move(cert);
+                        add_exit = AddExit::kInfeasible;
+                    } else {
+                        add_exit = AddExit::kRejected;
+                    }
+                    break;
+                }
+                // (N2) The pass-over: the step with this blocker (and every
+                // one passed over before it) excluded, if none of them ends
+                // it violated by more than feas_tol * row_scale.
+                passed.emplace_back(is_ineq, block_idx);
+                BlockKind k2 = BlockKind::kNone;
+                Index i2 = -1;
+                BoundState s2 = BoundState::kFree;
+                const double a2 = ratio_test_excluding(qp, ws, x, Aix, p, passed, k2, i2, s2);
+                bool within = true;
+                for (const auto &[pi, pidx] : passed) {
+                    // A passed-over bound is oriented by the side it would
+                    // have been hit on.
+                    const BoundState side = pi              ? BoundState::kFree
+                                            : p(pidx) > 0.0 ? BoundState::kAtUpper
+                                                            : BoundState::kAtLower;
+                    const Oriented po = oriented(pi, pidx, side);
+                    if (std::max(0.0, po.cx - po.d + a2 * po.cp) > eff_opts.feas_tol * po.scale) {
+                        within = false;
+                    }
+                }
+                if (!within) {
+                    add_exit = AddExit::kTerminate;
+                    break;
+                }
+                ++counters.dep_passovers;
+                kind = k2;
+                block_idx = i2;
+                block_state = s2;
+                alpha = a2;
+            }
+            if ((add_exit == AddExit::kTerminate || add_exit == AddExit::kRejected) &&
+                pass_view.schur != nullptr) {
+                // THE BORDER RETREAT, once per solve. On the border path the
+                // Schur complement of an ill-conditioned K0 can be swamped by
+                // rounding: the EQP step leaves its face and the dependency
+                // coefficients are inaccurate (a screen-positive test whose
+                // residual is far above kDepTol proves it). The pass is redone
+                // on the bound-eliminated path the engine already has, before
+                // the rule may end the solve.
+                eliminated_only = true;
+                ++counters.dep_border_retreats;
+#ifdef HVEN_TESTING
+                walk_obs.record().action = detail::testing::QpWalkAction::kEliminatedRetreat;
+#endif
+                continue;
+            }
+            if (add_exit != AddExit::kNone) {
+                // The iterate the walk stands on: no step past the blocker.
+                if (add_exit == AddExit::kInfeasible) {
+                    ++counters.dep_infeasible_certificates;
+                    status = QpStatus::kInfeasible;
+                } else {
+                    ++(add_exit == AddExit::kRejected ? counters.dep_certificate_rejections
+                                                      : counters.dep_blocker_terminations);
+                    status = QpStatus::kNumericalError;
+                }
+#ifdef HVEN_TESTING
+                walk_obs.record().action = detail::testing::QpWalkAction::kTerminal;
+#endif
+                break;
+            }
         }
 
         if (kind != BlockKind::kNone && alpha * p.lpNorm<Eigen::Infinity>() <= step_tol) {
@@ -1453,6 +1638,62 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         }
 
         x = (alpha >= 1.0) ? eqp.x : Vec(x + alpha * p);
+        if (eff_opts.independent_working_set) {
+            if (alpha * p.lpNorm<Eigen::Infinity>() > step_tol) {
+                pt_clear(seen); // the iterate moved
+            }
+            if (xpick.found) {
+                // THE EXCHANGE: remove j, then the blocker joins below; no
+                // ride is armed (the null space is unchanged). Multipliers per
+                // Result 3.4(b): m - sigma v, and sigma on the blocker.
+                const std::vector<Index> &aw = ws.active_ineq();
+                for (std::size_t k = 0; k < aw.size(); ++k) {
+                    lambda_i(aw[k]) -= xpick.sigma * xpick.v_w(static_cast<Index>(k));
+                }
+                if (me > 0) {
+                    lambda_e -= xpick.sigma * xpick.v_e;
+                }
+                for (Index i = 0; i < n; ++i) {
+                    const BoundState st = ws.bound_state()[static_cast<std::size_t>(i)];
+                    if (st != BoundState::kFree) {
+                        // m = -z on an upper or fixed pin, z on a lower one.
+                        z(i) += (st == BoundState::kAtLower ? -1.0 : 1.0) * xpick.sigma *
+                                xpick.v_pin(i);
+                    }
+                }
+                if (xpick.j_is_ineq) {
+                    ws.drop_ineq(xpick.j);
+                    lambda_i(xpick.j) = 0.0;
+                    if (xpick.j_shifted) {
+                        ++counters.ws_exchanges_shifted;
+                        if (!seen.shift_refused.empty()) {
+                            seen.shift_refused[static_cast<std::size_t>(xpick.j)] = 1;
+                        }
+                    }
+                } else {
+                    ws.bound_state()[static_cast<std::size_t>(xpick.j)] = BoundState::kFree;
+                    z(xpick.j) = 0.0;
+                }
+                if (kind == BlockKind::kIneq) {
+                    lambda_i(block_idx) = xpick.sigma;
+                } else {
+                    z(block_idx) = block_state == BoundState::kAtUpper ? -xpick.sigma : xpick.sigma;
+                }
+                ++counters.ws_exchanges;
+                if (kind == BlockKind::kBound || !xpick.j_is_ineq) {
+                    ++counters.ws_exchanges_bound;
+                }
+                // The release is a drop for the net identity (QpCounters).
+                ++counters.ws_drops;
+                if (!xpick.j_is_ineq) {
+                    ++counters.ws_drops_bound;
+                }
+                pt_release(seen, xpick.j_is_ineq, xpick.j);
+            }
+            if (kind != BlockKind::kNone) {
+                (void)pt_admit(seen, counters, kind == BlockKind::kIneq, block_idx);
+            }
+        }
         if (kind == BlockKind::kIneq) {
             ws.add_ineq(block_idx);
         } else if (kind == BlockKind::kBound) {
@@ -1528,7 +1769,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     // factorization, but the working set that produced it was never
     // certified. Reuses current_structural_hash/current_values_hash
     // computed above rather than re-hashing H/Ae/Ai.
-    if (opts_.ws_algebra == WorkingSetLinearAlgebra::kSchurBorder && status == QpStatus::kOptimal) {
+    if (opts_.ws_algebra == WorkingSetLinearAlgebra::kSchurBorder && status == QpStatus::kOptimal &&
+        !eliminated_only) {
         border_structural_hash_ = current_structural_hash;
         border_values_hash_ = current_values_hash;
         // Condition (d): commit the EFFECTIVE pair this solve resolved
@@ -1617,6 +1859,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         out.ineq_active[static_cast<std::size_t>(row)] = true;
     }
     out.counters = counters;
+    if (status == QpStatus::kInfeasible) {
+        out.farkas = std::move(farkas);
+    }
 
     // Emit a record to the ledger if attached.
     if (ledger_ != nullptr) {
@@ -1750,6 +1995,9 @@ void QpEngine::refresh_shifts(const QpProblem &qp, const Vec &x, const Vec &ai_r
             ws.add_ineq(j);
             ++counters.shift_adds; // observation only -- see QpCounters
             mark_ineq_seen(seen, counters, j);
+            if (!seen.pt_ineq.empty()) {
+                (void)pt_admit(seen, counters, /*is_ineq=*/true, j);
+            }
         }
     }
 }
@@ -2615,6 +2863,9 @@ bool QpEngine::repair_temporary_vertex(const QpProblem &qp, WorkingSet &ws, Vec 
                                     (qp.n() - ws.num_free()) + 1 >
                                 qp.n();
             const detail::DepFactorView view = dep_factor_view(ws, kkt, face, border);
+            if (screen && counters.mandatory_dependent_entries > 0) {
+                ++counters.dep_screen_under_mandatory_dependence;
+            }
             if (screen ||
                 (view.usable() &&
                  test_candidate(qp, ws, view, /*is_ineq=*/false, i, counters, opts).dependent())) {
@@ -2723,6 +2974,11 @@ detail::DepTest QpEngine::test_candidate(const QpProblem &qp, const WorkingSet &
     }
     detail::DepTest t = detail::dependency_test(qp, ws, view, a, opts);
     ++counters.dep_tests;
+    // The screen alone decided, with the mandatory rows dependent: possibly a
+    // false dependent (the safe direction), counted.
+    if (t.screen && !(t.rho <= detail::kDepTol) && counters.mandatory_dependent_entries > 0) {
+        ++counters.dep_screen_under_mandatory_dependence;
+    }
     counters.dep_test_solves += t.solves;
     if (t.dependent()) {
         ++counters.dep_dependent;
@@ -2735,7 +2991,8 @@ detail::DepTest QpEngine::test_candidate(const QpProblem &qp, const WorkingSet &
 
 bool QpEngine::remove_entry_dependency(WorkingSet &ws, const Vec &shift,
                                        const detail::EntryDetection &det, const ProbeState *seq,
-                                       std::vector<std::uint8_t> &refused) {
+                                       std::vector<std::uint8_t> &refused,
+                                       detail::WsMember *removed) {
     using Kind = detail::WsMember::Kind;
     const auto mandatory = [&](const detail::WsMember &m) {
         return m.kind == Kind::kEq ||
@@ -2774,6 +3031,9 @@ bool QpEngine::remove_entry_dependency(WorkingSet &ws, const Vec &shift,
     if (pick == nullptr) {
         return false;
     }
+    if (removed != nullptr) {
+        *removed = *pick;
+    }
     if (pick->kind == Kind::kRow) {
         ws.drop_ineq(pick->idx);
         if (!refused.empty() && shift(pick->idx) > 0.0) {
@@ -2783,6 +3043,292 @@ bool QpEngine::remove_entry_dependency(WorkingSet &ws, const Vec &shift,
         ws.bound_state()[static_cast<std::size_t>(pick->idx)] = BoundState::kFree;
     }
     return true;
+}
+
+std::uint8_t QpEngine::pt_flags(const WalkSeen &seen, bool is_ineq, Index idx) {
+    const std::vector<std::uint8_t> &v = is_ineq ? seen.pt_ineq : seen.pt_bound;
+    return v.empty() ? std::uint8_t{0} : v[static_cast<std::size_t>(idx)];
+}
+
+void QpEngine::pt_mark(WalkSeen &seen, bool is_ineq, Index idx, std::uint8_t flag) {
+    std::vector<std::uint8_t> &v = is_ineq ? seen.pt_ineq : seen.pt_bound;
+    if (v.empty()) {
+        return;
+    }
+    std::uint8_t &f = v[static_cast<std::size_t>(idx)];
+    if (f == 0) {
+        seen.pt_touched.push_back(is_ineq ? idx : -(idx + 1));
+    }
+    f = static_cast<std::uint8_t>(f | flag);
+}
+
+void QpEngine::pt_clear(WalkSeen &seen) {
+    for (const Index t : seen.pt_touched) {
+        if (t >= 0) {
+            seen.pt_ineq[static_cast<std::size_t>(t)] = 0;
+        } else {
+            seen.pt_bound[static_cast<std::size_t>(-t - 1)] = 0;
+        }
+    }
+    seen.pt_touched.clear();
+    seen.pt_events = 0;
+}
+
+void QpEngine::pt_release(WalkSeen &seen, bool is_ineq, Index idx) {
+    if (seen.pt_ineq.empty() && seen.pt_bound.empty()) {
+        return;
+    }
+    pt_mark(seen, is_ineq, idx, kPtReleased);
+    ++seen.pt_events;
+}
+
+bool QpEngine::pt_admit(WalkSeen &seen, QpCounters &counters, bool is_ineq, Index idx) {
+    if (seen.pt_ineq.empty() && seen.pt_bound.empty()) {
+        return false;
+    }
+    const bool reentry = (pt_flags(seen, is_ineq, idx) & kPtReleased) != 0;
+    pt_mark(seen, is_ineq, idx, static_cast<std::uint8_t>(kPtEntered | (reentry ? kPtExempt : 0)));
+    if (reentry) {
+        ++seen.pt_events;
+        ++counters.reentry_exemptions;
+    }
+    return reentry;
+}
+
+QpEngine::ExchangePick QpEngine::select_exchange(const QpProblem &qp, const WorkingSet &ws,
+                                                 const Vec &shift, const WalkSeen &seen,
+                                                 const detail::DepTest &t, bool is_ineq, Index idx,
+                                                 BoundState side, const Vec &lambda_e,
+                                                 const Vec &lambda_i, const Vec &z, bool moves) {
+    (void)lambda_e;
+    const Index n = qp.n();
+    const std::vector<Index> &aw = ws.active_ineq();
+    const std::vector<BoundState> &bs = ws.bound_state();
+    ExchangePick pk;
+    pk.sign = (!is_ineq && side == BoundState::kAtLower) ? -1.0 : 1.0;
+    pk.v_e = pk.sign * t.v_e;
+    pk.v_w = pk.sign * t.v_w;
+    pk.v_pin = Vec::Zero(n);
+
+    // Scaled coefficients |v_k| ||c_k|| and g = sum_k v_k d_k + v_e^T be - d_r.
+    double vmax = 0.0;
+    double g = 0.0;
+    for (Index r = 0; r < qp.me(); ++r) {
+        vmax = std::max(vmax, std::abs(pk.v_e(r)) * qp.Ae.row(r).norm());
+        g += pk.v_e(r) * qp.be(r);
+    }
+    Vec row_norm(static_cast<Index>(aw.size()));
+    for (std::size_t k = 0; k < aw.size(); ++k) {
+        const auto kk = static_cast<Index>(k);
+        row_norm(kk) = qp.Ai.row(aw[k]).norm();
+        vmax = std::max(vmax, std::abs(pk.v_w(kk)) * row_norm(kk));
+        g += pk.v_w(kk) * qp.bi(aw[k]);
+    }
+    for (Index i = 0; i < n; ++i) {
+        const BoundState st = bs[static_cast<std::size_t>(i)];
+        if (st == BoundState::kFree) {
+            continue;
+        }
+        // c = -e_i on a lower pin (d = -l_i); +e_i on an upper or fixed pin.
+        const bool lower = st == BoundState::kAtLower;
+        pk.v_pin(i) = (lower ? -1.0 : 1.0) * pk.sign * t.v_pin(i);
+        vmax = std::max(vmax, std::abs(pk.v_pin(i)));
+        g += pk.v_pin(i) *
+             (lower ? -qp.lower(i) : (st == BoundState::kAtUpper ? qp.upper(i) : qp.lower(i)));
+    }
+    g -= is_ineq ? qp.bi(idx) : (side == BoundState::kAtUpper ? qp.upper(idx) : -qp.lower(idx));
+    pk.g = g;
+
+    const double tol = detail::kDepCoeffTol * vmax;
+    pk.cond1 = true;
+    double best_ratio = 0.0;
+    double best_m = 0.0;
+    double best_scaled = 0.0;
+    // The last-resort pool: admissible shift-driven rows, same rule.
+    ExchangePick sh;
+    bool unshifted_admissible = false; // S1: shifted rows rank last
+    double sh_ratio = 0.0;
+    double sh_m = 0.0;
+    double sh_scaled = 0.0;
+    const auto consider = [&](bool row, Index member, double v, double scaled, double m,
+                              bool removable, bool shifted = false) {
+        if (!(scaled > tol)) {
+            return;
+        }
+        pk.cond1 = false; // a sign-constrained member carries a positive coefficient
+        if (!removable) {
+            return;
+        }
+        const double ratio = std::max(m, 0.0) / v;
+        if (shifted) {
+            if (!sh.found || ratio < sh_ratio ||
+                (ratio == sh_ratio && (m < sh_m || (m == sh_m && scaled > sh_scaled)))) {
+                sh.found = true;
+                sh.j = member;
+                sh_ratio = ratio;
+                sh_m = m;
+                sh_scaled = scaled;
+            }
+            return;
+        }
+        unshifted_admissible = true;
+        // Candidates arrive rows first, then pins, each ascending, so a full
+        // tie keeps the earlier one.
+        const bool better =
+            !pk.found || ratio < best_ratio ||
+            (ratio == best_ratio && (m < best_m || (m == best_m && scaled > best_scaled)));
+        if (better) {
+            pk.found = true;
+            pk.j_is_ineq = row;
+            pk.j = member;
+            best_ratio = ratio;
+            best_m = m;
+            best_scaled = scaled;
+        }
+    };
+    for (std::size_t k = 0; k < aw.size(); ++k) {
+        const auto kk = static_cast<Index>(k);
+        const Index row = aw[k];
+        const bool removable = moves || (pt_flags(seen, true, row) & kPtEntered) == 0;
+        consider(true, row, pk.v_w(kk), pk.v_w(kk) * row_norm(kk), lambda_i(row), removable,
+                 shift(row) > 0.0);
+    }
+    for (Index i = 0; i < n; ++i) {
+        const BoundState st = bs[static_cast<std::size_t>(i)];
+        if (st == BoundState::kFree || st == BoundState::kFixed) {
+            continue; // kFixed is free-signed: mandatory
+        }
+        const double m = st == BoundState::kAtLower ? z(i) : -z(i);
+        const bool removable = moves || (pt_flags(seen, false, i) & kPtEntered) == 0;
+        consider(false, i, pk.v_pin(i), pk.v_pin(i), m, removable);
+    }
+    if (pk.found) {
+        pk.sigma = best_ratio;
+    } else if (sh.found) {
+        pk.found = true;
+        pk.j_is_ineq = true;
+        pk.j_shifted = true;
+        pk.j = sh.j;
+        pk.sigma = sh_ratio;
+    }
+    // A shifted row is never chosen while an unshifted admissible member exists.
+    assert(!pk.j_shifted || !unshifted_admissible);
+    (void)unshifted_admissible;
+    return pk;
+}
+
+bool QpEngine::verify_farkas(const QpProblem &qp, const WorkingSet &ws, const ExchangePick &pick,
+                             bool is_ineq, Index idx, double row_scale, const QpOptions &opts,
+                             QpFarkasCertificate &cert) const {
+    const Index n = qp.n();
+    const std::vector<Index> &aw = ws.active_ineq();
+    cert = QpFarkasCertificate{};
+    cert.present = true;
+    cert.blocker_is_ineq = is_ineq;
+    cert.blocker = idx;
+    cert.sign = pick.sign;
+    cert.y_e = pick.v_e;
+    cert.y_i = Vec::Zero(qp.mi());
+    for (std::size_t k = 0; k < aw.size(); ++k) {
+        cert.y_i(aw[k]) = std::min(pick.v_w(static_cast<Index>(k)), 0.0);
+    }
+    Vec c = Vec::Zero(n);
+    if (is_ineq) {
+        c = qp.Ai.row(idx).transpose();
+    } else {
+        c(idx) = pick.sign;
+    }
+    cert.box_part = c;
+    double implied = 0.0;
+    if (qp.me() > 0) {
+        cert.box_part -= qp.Ae.transpose() * cert.y_e;
+        implied += cert.y_e.dot(qp.be);
+    }
+    if (qp.mi() > 0) {
+        cert.box_part -= qp.Ai.transpose() * cert.y_i;
+        implied += cert.y_i.dot(qp.bi);
+    }
+    // A box_part entry on a coordinate with no finite bound on its side is
+    // the dependency residual (a dependent test accepted rho <= kDepTol): at
+    // or below kDepTol * ||c|| it is dropped and its norm kept in `residual`;
+    // above it the certificate needs an infinite bound and fails.
+    const double drop_tol = detail::kDepTol * c.norm();
+    double dropped_sq = 0.0;
+    for (Index i = 0; i < n; ++i) {
+        const double b = cert.box_part(i);
+        if (b == 0.0) {
+            continue;
+        }
+        const double bound = b > 0.0 ? qp.lower(i) : qp.upper(i);
+        if (!(std::abs(bound) < detail::kEngineInfBound)) {
+            if (std::abs(b) <= drop_tol) {
+                dropped_sq += b * b;
+                continue;
+            }
+            implied = -std::numeric_limits<double>::infinity();
+            break;
+        }
+        implied += b * bound;
+    }
+    cert.residual = std::sqrt(dropped_sq);
+    cert.implied = implied;
+    cert.limit = is_ineq ? qp.bi(idx) : (pick.sign > 0.0 ? qp.upper(idx) : -qp.lower(idx));
+    cert.margin = detail::kInfeasibilityMarginFactor * row_tolerance(row_scale, 0.0, opts);
+    const bool verified = std::isfinite(implied) && implied - cert.limit > cert.margin;
+    if (!verified) {
+        cert = QpFarkasCertificate{};
+    }
+    return verified;
+}
+
+double QpEngine::ratio_test_excluding(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                                      const Vec &Aix, const Vec &p,
+                                      const std::vector<std::pair<bool, Index>> &skip,
+                                      BlockKind &kind, Index &block_idx, BoundState &block_state) {
+    const auto skipped = [&](bool is_ineq, Index idx) {
+        return std::find(skip.begin(), skip.end(), std::make_pair(is_ineq, idx)) != skip.end();
+    };
+    double best = std::numeric_limits<double>::infinity();
+    kind = BlockKind::kNone;
+    if (qp.mi() > 0) {
+        const Vec Aip = qp.Ai * p;
+        for (Index j = 0; j < qp.mi(); ++j) {
+            if (in_working(ws, j) || Aip(j) <= detail::kEngineDenomTol || skipped(true, j)) {
+                continue;
+            }
+            const double ratio = std::max(0.0, qp.bi(j) - Aix(j)) / Aip(j);
+            if (ratio < best) {
+                best = ratio;
+                kind = BlockKind::kIneq;
+                block_idx = j;
+            }
+        }
+    }
+    for (Index i = 0; i < qp.n(); ++i) {
+        if (ws.bound_state()[static_cast<std::size_t>(i)] != BoundState::kFree ||
+            skipped(false, i)) {
+            continue;
+        }
+        double ratio = std::numeric_limits<double>::infinity();
+        BoundState hit = BoundState::kFree;
+        if (p(i) > detail::kEngineDenomTol && qp.upper(i) < detail::kEngineInfBound) {
+            ratio = std::max(0.0, qp.upper(i) - x(i)) / p(i);
+            hit = BoundState::kAtUpper;
+        } else if (p(i) < -detail::kEngineDenomTol && qp.lower(i) > -detail::kEngineInfBound) {
+            ratio = std::min(0.0, qp.lower(i) - x(i)) / p(i);
+            hit = BoundState::kAtLower;
+        }
+        if (ratio < best) {
+            best = ratio;
+            kind = BlockKind::kBound;
+            block_idx = i;
+            block_state = hit;
+        }
+    }
+    if (kind != BlockKind::kNone && best > 1.0 + detail::kEngineStepTieTol) {
+        kind = BlockKind::kNone;
+    }
+    return std::min(1.0, best);
 }
 
 bool QpEngine::rebuild_would_be_noop(const WorkingSet &ws, const BorderState &border) {
@@ -2948,7 +3494,19 @@ void QpEngine::price(const QpProblem &qp, const WorkingSet &ws, const EqpResult 
 }
 
 bool QpEngine::drop_worst(const QpProblem &qp, const Vec &shift, const Vec &lambda_i, const Vec &z,
-                          WorkingSet &ws, DropRecord &dropped, QpCounters &counters) const {
+                          WorkingSet &ws, DropRecord &dropped, QpCounters &counters,
+                          const WalkSeen *pt, double *exempt_worst) const {
+    // The zero-motion re-entry rule's filter: a drop-exempt member is no
+    // candidate; its violation is reported for the exhaustion test.
+    const auto exempt = [&](bool is_ineq, Index idx, double viol) {
+        if (pt == nullptr || (pt_flags(*pt, is_ineq, idx) & kPtExempt) == 0) {
+            return false;
+        }
+        if (exempt_worst != nullptr) {
+            *exempt_worst = std::max(*exempt_worst, viol);
+        }
+        return true;
+    };
     struct Candidate {
         bool is_ineq = false;
         Index idx = -1;
@@ -2987,7 +3545,7 @@ bool QpEngine::drop_worst(const QpProblem &qp, const Vec &shift, const Vec &lamb
             continue; // still being driven to feasibility; sign says nothing
         }
         const double viol = -lambda_i(row);
-        if (viol <= opts_.opt_tol) {
+        if (viol <= opts_.opt_tol || exempt(true, row, viol)) {
             continue;
         }
 #ifdef HVEN_TESTING
@@ -3009,7 +3567,7 @@ bool QpEngine::drop_worst(const QpProblem &qp, const Vec &shift, const Vec &lamb
         } else {
             continue; // kFree has no multiplier, kFixed is not sign-constrained
         }
-        if (viol > opts_.opt_tol) {
+        if (viol > opts_.opt_tol && !exempt(false, i, viol)) {
 #ifdef HVEN_TESTING
             if (arm_a_on && !Adeg::admits(viol, arm_a_tol, arm_a_scale)) {
                 arm_a_pass_max_ratio = std::max(arm_a_pass_max_ratio, viol / arm_a_scale);

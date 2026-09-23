@@ -1221,8 +1221,13 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
         << "Apple Accelerate (origin D19, re-adjudicated as M3-2); MKL Pardiso reads 303\n"
         << trajectory(off);
 #else
-    EXPECT_EQ(off.steps[1].counters.factorizations, 303)
-        << "MKL Pardiso; Accelerate observed 304 (origin D19, re-adjudicated as M3-2)\n"
+    // M7 W2 E2 step 2 (declared mover, S20): 303 -> 200 on MKL. The failed,
+    // cap-pinned proposal's walks are shorter under the add-site exchange and
+    // the zero-motion re-entry rule. The Accelerate arm above keeps its
+    // pre-E2 observed 304: UNOBSERVED under E2 (CLAUDE.md section 6).
+    EXPECT_EQ(off.steps[1].counters.factorizations, 200)
+        << "MKL Pardiso (303 before M7 W2 E2); Accelerate observed 304 pre-E2 (origin D19, "
+           "re-adjudicated as M3-2)\n"
         << trajectory(off);
 #endif
     EXPECT_EQ(off.steps[1].counters.probe_budget_stops, 0);
@@ -1255,13 +1260,16 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
         << trajectory(on);
     EXPECT_LT(on.steps[1].counters.major_iters, off.steps[1].counters.major_iters)
         << trajectory(on);
-    // OBSERVED: 2 majors / 502 minors / 14 factorizations against 3 / 1002 /
-    // 303 -- the budget here is the floor (continuation_detail::
+    // OBSERVED: 2 majors / 502 minors / 11 factorizations against 3 / 1002 /
+    // 200 -- the budget here is the floor (continuation_detail::
     // kProbeBudgetFloor = 200; the cold step at p = 0.3 costs 2 minors, so
     // the ratio term is 4), and the crossing major is a cap-pinned QP.
+    // M7 W2 E2 step 2 (declared mover, S20): factorizations 14 -> 11 (and the
+    // arm-A comparator 303 -> 200), same cause as arm A; majors and minors
+    // unchanged. MKL-observed; no Accelerate value exists for this line.
     EXPECT_EQ(on.steps[1].counters.major_iters, 2) << trajectory(on);
     EXPECT_EQ(on.steps[1].counters.qp_minor_iters, 502) << trajectory(on);
-    EXPECT_EQ(on.steps[1].counters.factorizations, 14) << trajectory(on);
+    EXPECT_EQ(on.steps[1].counters.factorizations, 11) << trajectory(on);
 
     // ---- ARM C: the same budget under SqpOptions::budget_mode -------------
     // THE TWO BUDGETS MUST NOT FIGHT (sqp_solver.h's PROBE BUDGET note, part

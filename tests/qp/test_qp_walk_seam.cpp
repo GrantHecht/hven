@@ -784,6 +784,7 @@ TEST(QpWalkSeam, TheWorkingSetSignatureTracksTheActionsThatChangeIt) {
                 break;
             case Action::kMoveOnly:
             case Action::kSuspectEscalation:
+            case Action::kEliminatedRetreat:
             case Action::kTerminal:
             case Action::kRideUnbounded:
                 EXPECT_EQ(base, r.ws_size_out);
