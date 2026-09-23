@@ -158,19 +158,24 @@ happened on any of these cells.
 ## Gates — DECLARED (before the chain ran) vs MEASURED
 
 Declaration: `gates/psym-derivation-e1.txt`. Runner: `wrappers/gates-e1.sh`. Chain:
-`wrappers/chain_gates_e1.sh`, detached with `setsid`, pid in
-`.superpowers/m7-w2-e1-STATE.md`.
+`wrappers/chain_gates_e1.sh`, detached with `setsid` as pid 3452015. It started
+2026-09-22T22:07:45-04:00 at HEAD `a11846b3` and ended 23:19:42 the same day with
+all six gates green. `gates/README.md` has the full declared-vs-measured detail,
+with a transcript file:line citation for every measured cell. The raw transcripts
+it cites are copied alongside it (`gates/gates-e1.txt`, `gates/chain.txt`,
+`gates/suite-*.txt`, `gates/install-smoke.txt`, `gates/export-contract.txt`,
+`gates/fold-proofs.txt`, `gates/psym-*.txt`, `gates/replay/`).
 
 | gate | DECLARED | MEASURED |
 |---|---|---|
-| G1 Debug suite | 2766 tests, 0 failed (long test excluded) | pending |
-| G2 long test alone | 1, 0 failed | pending |
-| G3 Release suite | 2767 tests, 0 failed | pending |
-| G4 U0 replay | 27 cells × 75 columns × 3 engines, **0 differences**. Any moved cell is a DECLARED FINDING and STOPS the round | pending |
-| G5 P-SYM | DIFFERING 53 = class A 8 + class B 45 in BOTH, with class B equal across configs; ONLY-AFTER = the 3 ADDED objects; negative control ≥ 1 | pending |
-| G5b sections | NON-DEBUG-MOVER = {sqp_options, sqp_solver} (derived) + {ipqp_engine, continuation} (declared class B); library ADDED = {equality_basis}; DEBUG_ONLY 0 Release / 4 Debug; REFUSED 0 | pending |
-| G6 | smoke PASSED, export contract OK (align 32), clang-format 0, diff --check 0, dirty 0 | pending |
-| fold proofs | 46 / 0 failed | pending |
+| G1 Debug suite | 2766 tests, 0 failed (long test excluded) | 2766 tests, 0 failed (`gates/gates-e1.txt:31-32`) |
+| G2 long test alone | 1, 0 failed | 1, 0 failed (`gates/gates-e1.txt:44-45`) |
+| G3 Release suite | 2767 tests, 0 failed | 2767 tests, 0 failed (`gates/gates-e1.txt:56-57`) |
+| G4 U0 replay | 27 cells × 75 columns × 3 engines, **0 differences**. Any moved cell is a DECLARED FINDING and STOPS the round | 27/75/0 on walk, ssn and ipm (`gates/gates-e1.txt:63,65,67`). No cell moved, no finding from this gate |
+| G5 P-SYM | DIFFERING 53 = class A 8 + class B 45 in BOTH, with class B equal across configs; ONLY-AFTER = the 3 ADDED objects; negative control ≥ 1 | matches exactly in both configurations (`gates/gates-e1.txt:92-106`, `:138-152`, cross-config `:171-176`). Negative control 22 Release, 14 Debug |
+| G5b sections | NON-DEBUG-MOVER = {sqp_options, sqp_solver} (derived) + {ipqp_engine, continuation} (declared class B); library ADDED = {equality_basis}; DEBUG_ONLY 0 Release / 4 Debug; REFUSED 0 | matches exactly in both configurations (`gates/gates-e1.txt:118-120`, `:168-170`). 38 of 42 objects byte-identical in Release, 34 of 42 in Debug |
+| G6 | smoke PASSED, export contract OK (align 32), clang-format 0, diff --check 0, dirty 0 | all green, all rc 0 (`gates/gates-e1.txt:183-198`) |
+| fold proofs | 46 / 0 failed | 46 / 0 failed (`gates/chain.txt:24`) |
 
 **The class-B shape was measured before it was declared.** A rehearsal of this
 round's own G5 segment ran at `c0c2f6c7` (`gates/psym-rehearsal-*.txt`). The two
