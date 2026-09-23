@@ -1,0 +1,27 @@
+M7 W2 E1c -- SMOKE IDENTITY: probe row vs the COMMITTED E1-retake harness row
+  results.csv   /home/ghecht/Projects/hven-bench/runs/2026-09-m7-w2-e1-retake/run-A/cutest/results.csv
+  counters.csv  /home/ghecht/Projects/hven-bench/runs/2026-09-m7-w2-e1-retake/run-A/cutest/counters-hven-sqp.csv
+  rows          /tmp/claude-1000/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27/scratchpad/idon
+  field map     identity_m3c.py (unmodified), 24 pairs: ['status', 'c_major_iters', 'c_qp_minor_iters', 'c_factorizations', 'f', 'c_steps_accepted', 'c_rejected_steps', 'c_soc_steps', 'c_soc_applied', 'c_elastic_activations', 'c_restoration_iters', 'c_eqp_refine_steps', 'c_border_refine_steps', 'c_verdict_refine_steps', 'c_suspect_escalations', 'c_symbolic_analyses', 'c_full_step_majors', 'c_watchdog_restores', 'c_evals_full', 'c_evals_values', 'stationarity', 'feasibility_e', 'feasibility_i', 'complementarity']
+  trace_out     a LABEL: not in the field map, never compared
+DALLASM    STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+DALLASM    24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+DALLASM FLOOR: 24 of 24 pairs compared (both sides present)
+DALLASM near-ulp acceptances (passed by tolerance, not by bytes): 0
+IDENTITY DALLASM REPRODUCES
+STEENBRB   STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+STEENBRB   24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+STEENBRB FLOOR: 24 of 24 pairs compared (both sides present)
+STEENBRB near-ulp acceptances (passed by tolerance, not by bytes): 0
+IDENTITY STEENBRB REPRODUCES
+STEENBRC   STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+STEENBRC   24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+STEENBRC FLOOR: 24 of 24 pairs compared (both sides present)
+STEENBRC near-ulp acceptances (passed by tolerance, not by bytes): 0
+IDENTITY STEENBRC REPRODUCES
+STEENBRG   STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+STEENBRG   24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+STEENBRG FLOOR: 24 of 24 pairs compared (both sides present)
+STEENBRG near-ulp acceptances (passed by tolerance, not by bytes): 0
+IDENTITY STEENBRG REPRODUCES
+IDENTITY_RC=0

@@ -1,0 +1,8 @@
+solves with a RECURRENT tail: 7
+DALLASM    s0    N=1960   p=2   |T|=1785   units=892   homo=True  b  {'b': 892}
+DALLASM    s1    N=1960   p=2   |T|=1740   units=870   homo=True  b  {'b': 870}
+DALLASM    s3    N=2150   p=2   |T|=1914   units=956   homo=True  b  {'b': 956}
+DALLASM    s7    N=1960   p=4   |T|=1830   units=915   homo=False b  {'b': 458, 'd': 457}
+DALLASM    s8    N=1960   p=2   |T|=1835   units=917   homo=True  b  {'b': 917}
+DALLASM    s9    N=1960   p=2   |T|=1853   units=926   homo=True  b  {'b': 926}
+DALLASM    s10   N=1960   p=2   |T|=1835   units=917   homo=True  b  {'b': 917}
