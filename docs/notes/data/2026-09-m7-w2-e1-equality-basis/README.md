@@ -8,6 +8,9 @@ the commit that adds `gates/psym-derivation-e1.txt`. Brief:
 
 ## What changed
 
+> Fix round 1 (2026-09-23) turned the default **OFF**; see "Fix round 1" below. The
+> text in this section describes E1 as it was gated at `a11846b3`.
+
 `SqpOptions::equality_basis` (bool, **on by default**). At the start point the SQP
 driver splits the equality rows into an independent set B and a set D that depends
 on B once the fixed columns are eliminated (`detail::EqualityBasis`,
@@ -194,9 +197,69 @@ exactly.
 3. The section check runs on objects present on both sides, and the ADDED library
    object is asserted separately.
 
+## Fix round 1 (review `.superpowers/m7-w2-e1-review-sol.md`, brief `.superpowers/m7-w2-e1-fix1-brief.md`)
+
+Base `26e5c3b2`. Every item was adjudicated ACCEPTED by the settler.
+
+| Item | Commit | What changed | Fixture |
+|---|---|---|---|
+| C1 | `2eea86dd` | Row norms (compute, verify) and the QR residual are max-scaled two-norms. Any non-finite norm, scaled entry, coefficient (QR or model units) or `I + CᵀC` entry refuses the split (`kUndecidable`, `refusal() == kNonFinite`, nothing dropped), counted in `SqpEqualityBasisReport::nonfinite_refusals`. A non-finite gap reads band `kNonFinite`, which is evidence of nothing. | `EqualityBasis.ExtremeScalingNeverDropsAnIndependentRow`: rows at 1e-160, 1e+160 and 1e-200 stay; dependent pairs at 1e150 and 1e-170 keep one row with finite C; NaN and Inf refuse. |
+| C2 | `2714dc8f` | `SqpOptions::equality_basis` defaults **false**. Options dump: 63 lines, 32 fields, `sizeof` 416, all unchanged. The dumped line now reads `equality_basis = false`. The options digest moves (DECLARED; re-pinned at E1b, below). The eleven OFF fixtures keep `= false`. The F-fixtures, the S3 test, the f7 1e4 smoke and the f7_n5000 in-process test set `= true` explicitly. | `OptionsDump.SqpDumpsTheEqualityBasisOff` |
+| I1 | `2eea86dd` | The pre-check also checks `max|PGPᵀ − LLᵀ| ≤ 100 (m+1) ε max Gᵢᵢ`. **Beyond the adjudication:** the fixture showed that the guard alone passes a deficient set. Forming G squares away what the guard would need to see. So a 4-step inverse-iteration upper estimate of σ_min is also held to the pivot floor. The header calls the pre-check a heuristic, not a certificate. E1b replaces it. | `EqualityBasis.PreCheckSendsAGramHiddenDeficiencyToTheQr`: rows e1, e1 + 5e-4 e2, e2. Every Cholesky pivot is ≥ 1e-5 and the backward error is 0, so the adjudicated guard passes it. The σ estimate (~4e-9) sends it to the QR, which drops the row. |
+| I2 | `2eea86dd` | Every `I + CᵀC` solve checks its normwise backward error against `solve_residual = 1e-10`, and finiteness. This covers the compute-time probe, `project_rhs`, `reduce_rhs`, `reduce` and `lift`. A failed probe refuses the split (`kGram`, `gram_refusals`). Mid-solve, a failed `reduce()` leaves the QP unreduced and refuses the split. A failed `lift` returns the zero-scatter lift, and a failed SOC projection returns the retained rows' own rhs. Both refuse the split at the next build. A conditioning cap `1 + ‖C‖₁‖C‖∞` was tried and removed: it refused U2's 1e10-scaled duplicate. Its `I + CᵀC` is scalar and exact, so the bound is far too pessimistic there. | `EqualityBasis.GramSolveCheckRefusesTheSplit` (`solve_residual = 1e-300` refuses; the default accepts) |
+| I3 | `9b26bac9` | The two-iterate rule stores the first iterate itself. It completes only at an iterate that differs bytewise on a **free column of the row's group**, with the group's Jacobian bytes identical at both. A refresh that reads a `kInconsistent` band marks the split suspect. A zero step under a suspect split hands off: every row returns to the QPs for the rest of the solve (`handed_off`), and the existing elastic/restoration ladder decides from the same x. The wording is now "evidence", not "certificate". | `SqpEqualityBasis.F9ZeroStepAtAnInconsistencyHandsOffToTheLadder` (3 modes: kInfeasible, well inside `max_iter`). Negative control, not committed: with the hand-off disabled, 100/100 majors and `kMaxIter` in every mode. |
+| I4 | `ac4a8c68` | Every split change (recompute, retryable-QP re-split, mid-solve refusal, hand-off) drops the QP seed, the IPQP cross-major carry and any staged IPQP seed. Each is counted in `split_changes`. | `SqpEqualityBasis.F8SameCardinalityRowSwapDropsTheRowCarries`: D goes {0} → {1} with \|B\| = 1, asserted on the component, and all 3 modes converge. The carry reset itself cannot be observed from the boundary; `split_changes` is counted at the same site. |
+| I5 | (above) | Extreme scaling (C1), an adversarial Gram (I1, constructed; see the note below), a stationary inconsistency (I3) and a dynamic row swap under IPQP (I4). | |
+| M1 | `2eea86dd` | `group_bytes()`. The rule compares bytes; the hash stays as the fast negative. | `EqualityBasis.GroupBytesAreTheGroupsValues` |
+| M2 | `2eea86dd`, `2714dc8f` | The component header and the option comment are cut to terse contract text. The history lives here. | |
+| M3 | `829ab3cb` | `.gitattributes` gives `-whitespace` to `docs/notes/data/**/gates*/*.txt` and `**/logs/*.txt`. The raw transcripts are records, so they are exempted rather than edited. `git diff --check 53676599..HEAD` is rc 0. | |
+| M4 | this commit | Process note, below. | |
+
+**How the adversarial Gram case was found.** A scratch sweep
+(`.scratch/m7w2e1fix1/adv/`, not tracked) ran rows e1, e1 + δ e2, e2 with and
+without padding by independent identity rows. With no padding, the pre-check
+without the σ estimate accepted as full rank for δ ∈ {7e-4, 5e-4, 1e-4, 1e-5}. An
+independent `SparseQR` at τ_lo found rank 2 of 3 each time. With padding, COLAMD's
+different order made the Cholesky fall through anyway. With the σ estimate, every
+case goes to the QR and is reduced.
+
+**Harness telemetry (review fix item 5): REGISTERED, not run.** Registered as a
+DECLARED hven-bench schema event: the `SqpResult::equality_basis` fields
+(`computed`, `undecidable`, `dropped_rows`, `dropped_peak`, `recomputes`,
+`qr_factorizations`, `switched_off`, `nonfinite_refusals`, `gram_refusals`,
+`split_changes`, `handed_off`, `inconsistent_row`, `max_gap`) go into the hven-sqp
+side file. This round runs no re-take. With the default OFF, the TRAIN column is
+expected to be byte-identical to the `e4-retake` column. That identity control and
+a labelled `equality-basis-on` set over the four network cells (DALLASM, STEENBRB,
+STEENBRC, STEENBRG) are **E1b's re-pin event**, together with the options-digest
+move this round declares.
+
+**E1b: REGISTERED, to land before M7 merges.** E1b is the production oracle behind
+`factor_row_dependence`: a pivoted LDLᵀ of the equilibrated Gram matrix through
+`hven::linear`, with a defensible rank certificate and checked projection/lift
+solves. It replaces the Eigen `SimplicialLLT` / `SparseQR` scaffold and the
+pre-check heuristic, and it turns `SqpOptions::equality_basis` back ON as its own
+task. The review's note (§5) holds: `SymmetricFactor` exposes neither pivots nor
+null vectors, so E1b needs a linear-layer extension or a designed solve sequence.
+
+**Left as is, stated.** The SSN proximal-centre export lifts with the zero-scatter
+fallback when a solve fails its check. It is an exact representative, but it is
+not counted: that export site holds a const view of the basis.
+
+**Process notes (M4).** The first E1 implementer ran to about **419k tokens**
+before retiring at D7 (2). The brief's retirement rule is about 200k. The E1
+STATE note did not record this, and the review flagged the omission (Minor 4). The
+orphaned corpus subprocess and the one-hour box-lock incident from the same
+implementer are disclosed in the E1 STATE note.
+
+**Gates.** Declared before the chain in `gates-fix1/psym-derivation-e1fix1.txt`
+(base `26e5c3b2`). G4 is declared at 0 differences: with the default OFF, the U0
+replay must match E4's.
+
 ## Registered, not this task's
 
-- **E1b**, the production oracle behind `factor_row_dependence` (above).
+- **E1b**, the production oracle behind `factor_row_dependence` (above), which
+  turns the default back ON before M7 merges (fix round 1).
 - Deviation 5, the unreduced zero-major warm probe.
 - The model-level linearity flag (D3): a model-contract change plus a bench bridge.
 - The `qp_degeneracy_arm.h` "§4" comments (S4, above).

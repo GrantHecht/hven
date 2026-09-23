@@ -17,6 +17,8 @@ Separately: NET3, STEENBRD, STEENBRE start at a NaN objective (`project_start_po
 | **E3 Consistent multipliers under dependence** | Minimum-norm / least-squares multiplier estimate so drop pricing is meaningful when the set is dependent; scaled drop tolerance (YORKNET) | drop-rule noise; supports E1/E2 | nothing alone | 1–2 days |
 | **E4 Certificate checks bounds** (running now) | kOptimal requires the returned iterate inside its box | a false optimality certificate (Critical) | — | in flight |
 | **E5 `project_start_point` default on** | NaN-start cells | NET3, STEENBRD, STEENBRE | — | 0.5 day + census |
+E1 fix round 1 (2026-09-23): `SqpOptions::equality_basis` defaults OFF until **E1b** lands. E1b is the production oracle through `hven::linear`: a pivoted Gram LDLᵀ with a rank certificate and checked solves. It turns the default back ON as its own task, before M7 merges (`docs/notes/data/2026-09-m7-w2-e1-equality-basis/README.md`, "Fix round 1").
+
 Order: E4 (in flight) → E1 → E3 → E2, with E5 ridden on E1's census re-take. E1+E3 first because they are cheaper, self-contained, and decide population A; E2 is the broad fix and benefits from E1's basis machinery.
 
 ## What this does not establish
