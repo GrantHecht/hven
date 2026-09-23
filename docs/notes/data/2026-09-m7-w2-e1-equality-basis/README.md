@@ -252,9 +252,32 @@ STATE note did not record this, and the review flagged the omission (Minor 4). T
 orphaned corpus subprocess and the one-hour box-lock incident from the same
 implementer are disclosed in the E1 STATE note.
 
-**Gates.** Declared before the chain in `gates-fix1/psym-derivation-e1fix1.txt`
-(base `26e5c3b2`). G4 is declared at 0 differences: with the default OFF, the U0
-replay must match E4's.
+**Gates — DECLARED (before the chain ran) vs MEASURED.** Declaration:
+`gates-fix1/psym-derivation-e1fix1.txt` (base `26e5c3b2`). Runner:
+`wrappers-fix1/gates-e1fix1.sh`. Chain: `wrappers-fix1/chain_gates_e1fix1.sh`,
+detached with `setsid` as pid 3712822. It started 2026-09-23T02:33:02-04:00 at
+HEAD `dd157ecb` and ended 03:25:45 the same night with all six gates green.
+`gates-fix1/README.md` has the full declared-vs-measured detail, with a
+transcript file:line citation for every measured cell. The raw transcripts it
+cites are copied alongside it (`gates-fix1/gates-e1fix1.txt`,
+`gates-fix1/chain.txt`, `gates-fix1/suite-*.txt`,
+`gates-fix1/install-smoke.txt`, `gates-fix1/export-contract.txt`,
+`gates-fix1/fold-proofs.txt`, `gates-fix1/psym-*.txt`, `gates-fix1/replay/`).
+
+| gate | DECLARED | MEASURED |
+|---|---|---|
+| G1 Debug suite | 2776 tests, 0 failed (long test excluded) | 2776 tests, 0 failed (`gates-fix1/gates-e1fix1.txt:31-32`) |
+| G2 long test alone | 1, 0 failed | 1, 0 failed (`gates-fix1/gates-e1fix1.txt:44-45`) |
+| G3 Release suite | 2777 tests, 0 failed | 2777 tests, 0 failed (`gates-fix1/gates-e1fix1.txt:56-57`) |
+| G4 U0 replay | 27 cells × 75 columns × 3 engines, **0 differences**. With the default OFF the U0 replay must match E1's/E4's; any moved cell is a DECLARED FINDING and STOPS the round | 27/75/0 on walk, ssn and ipm (`gates-fix1/gates-e1fix1.txt:63,65,67`). No cell moved, no finding from this gate |
+| G5 P-SYM | DIFFERING 51 = class A 8 + class B 43 in BOTH, with class B equal across configs; ONLY-AFTER = `{}` (no ADDED source this round); negative control ≥ 1 | matches exactly in both configurations (`gates-fix1/gates-e1fix1.txt:92-106`, `:139-153`, cross-config `:171-176`). Negative control 22 Release, 18 Debug |
+| G5b sections | NON-DEBUG-MOVER = {equality_basis, sqp_solver} (derived) + {sqp_options, ipqp_engine, continuation} (declared class B); no ADDED library object; DEBUG_ONLY 0 Release / 2 Debug; REFUSED 0 | matches exactly in both configurations (`gates-fix1/gates-e1fix1.txt:119-121`, `:168-170`). 38 of 43 objects byte-identical in Release, 36 of 43 in Debug |
+| G6 | smoke PASSED, export contract OK (align 32), clang-format 0, diff --check 0, dirty 0 | all green, all rc 0 (`gates-fix1/gates-e1fix1.txt:183-198`) |
+| fold proofs | 46 / 0 failed | 46 / 0 failed (`gates-fix1/chain.txt:24`) |
+
+No DECLARED FINDING this round: G4 held at 0 differences (the default is OFF)
+and every G5/G5b mover fell inside the declared class-A/class-B/DEBUG_ONLY
+partition.
 
 ## Registered, not this task's
 
