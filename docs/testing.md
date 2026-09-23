@@ -969,6 +969,42 @@ either configuration. The numbers above are the derivation in
 was written before the gate chain ran and is what that chain's declared
 expectations were transcribed from.
 
+## A fourth seam, on the active-set walk's CERTIFICATE: an injector
+
+`hven/detail/qp/qp_certificate_seam.h` (M7 W2 E4 fix round 1) is an INJECTOR on
+the same terms as the walk observer above: declared entirely under
+`#ifdef HVEN_TESTING`, included only from inside `qp_walk_trace.h`'s own
+`#ifdef HVEN_TESTING` block, per-thread, and exercised only by
+`hven_qp_walk_seam_tests`. `QpCertificateSeam` holds an `armed` switch, the
+presented `x` and `z`, a `presentations` count and the effective `dual_mu` /
+`feas_tol` the certificate ran under; `qp_certificate_present` is its one hook.
+
+**Where, and what it replaces.** One call in `src/qp/qp_engine.cpp`, on the
+would-be-`kOptimal` branch, immediately before the certificate's BOUND HALF (E4)
+reads `x` and `z`. Armed, it swaps in the fixture's pair; the bound test, the
+status it assigns and the export that follows are the production statements,
+unmodified. Unarmed it returns without touching anything.
+
+**Why it is needed.** The bound half tolerates a positive violation inside the
+rows' structural margin and refuses one outside it. The walk re-pins every bound
+it blocks on, so no natural walk ends slightly outside its box and inside the
+margin; without a seam the tolerance-preserving half had no discriminating
+fixture, and a predicate that refused ANY positive violation passed every
+existing test. The fixtures
+(`QpDegeneracyArm.Certificate*`) present the analytic optimum of a three-variable
+box QP with one bound violated by an exact `v`, and assert the verdict for `v`
+inside the margin, on it, past it, below and at the residue floor, and far
+outside, on the lower and the upper side, on both working-set algebras and at two
+`dual_mu`. Each case asserts that the seam fired exactly once.
+
+**Cost to the production build.** The hook sits below the TU's one `assert()`,
+so no `__LINE__` immediate moves; the header is never opened by a production
+compile. Measured in `docs/notes/data/2026-09-m7-w2-e4-certificate/gates-fix1/`:
+P-SYM 0 differing objects in both configurations, Release byte-identical, and in
+Debug only `qp_engine.cpp.o`'s debug sections move (its own `.cpp` lines below
+the hook shifted); `nm -C libhven.a` finds no seam symbol. No `notices/` entry:
+no session file is touched.
+
 ## Alternatives considered and rejected
 
 - **Putting the two FAULT INJECTORS inside the session files** rather than at

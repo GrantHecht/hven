@@ -28,8 +28,8 @@ counter field was added. Such a field would move every includer of
 | fixture | what |
 |---|---|
 | `ArmB1CanLeaveTheIterateOutsideItsBoxAndTheCertificateRefusesIt` | (i) M5's C7 state: box violation still 5.59e-03, the walk is unchanged, status is now kInfeasible and the multipliers are cleared |
-| `TheCertificatesBoundHalfPassesASolvedQpWithActiveBounds` | (ii) the optimum lies on both sides of the box. Both ws_algebra paths, dual_mu 1e-8 and 1e-4: kOptimal at the analytic optimum with both bounds pinned. Measured box violation: 0 |
-| every other fixture | (iii) G1/G3 below |
+| `TheCertificatesBoundHalfPassesASolvedQpWithActiveBounds` | (ii) the optimum lies on both sides of the box. Both ws_algebra paths, dual_mu 1e-8 and 1e-4: kOptimal at the analytic optimum with both bounds pinned. Measured box violation: 0 (asserted +0.0 by bit pattern since fix round 1) |
+| every other registered fixture | (iii) still passes its own expectations (G1/G3 below). That is pass/fail against each fixture's assertions, not a claim that every fixture's full state is bit-identical; the retained bitwise behavioural comparison is G4's replay corpus |
 
 Fixture (ii) certifies a point that sits exactly on its bounds (violation 0),
 which is the case the brief asked for. It does not cover the case the fix's
@@ -40,6 +40,11 @@ the walk-seam seams that can place x near-but-outside a bound (the arm b1
 family) land it strictly outside tolerance every time they were tried, not
 inside it. It has no natural fixture here and is left as a gap rather than
 forced with an artificial one.
+
+**Closed in fix round 1** (Codex E4 review, Important 1): an `HVEN_TESTING`-only
+certificate seam presents a chosen (x, z) to this predicate, and three fixtures
+cover a positive bound violation inside, on and outside the structural margin,
+on both sides of the box. See `gates-fix1/README.md`.
 
 **A FINDING THE FIX EXPOSED (test-only arm).** M5's (8a), "b1 reaches the
 problem's own optimum" on M4's period-2 fixture, stops with FREE x(2) at

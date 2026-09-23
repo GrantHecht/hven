@@ -1,0 +1,805 @@
+Test project /home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates/gates-dbg
+        Start 1201: AggregateDeclarationTest.AcceptsAnInRangeBound
+        Start 1202: AggregateDeclarationTest.RejectsAnInvertedBoundRecord
+        Start 1203: AggregateDeclarationTest.RejectsABoundHistoryWhoseIntersectionIsEmpty
+        Start 1204: AggregateDeclarationTest.AcceptsABoundHistoryThatMerelyNarrows
+  1/400 Test #1201: AggregateDeclarationTest.AcceptsAnInRangeBound .................................................................   Passed    0.01 sec
+        Start 1205: AggregateDeclarationTest.MaterializesOneRecordPerVariableTightestWins
+  2/400 Test #1202: AggregateDeclarationTest.RejectsAnInvertedBoundRecord ..........................................................   Passed    0.01 sec
+        Start 1206: AggregateDeclarationTest.MaterializationRejectsWhatValidationRejects
+  3/400 Test #1203: AggregateDeclarationTest.RejectsABoundHistoryWhoseIntersectionIsEmpty ..........................................   Passed    0.01 sec
+        Start 1207: CandidateStorageValidation.ValuesBlocksMustMatchTheirDimensions
+  4/400 Test #1204: AggregateDeclarationTest.AcceptsABoundHistoryThatMerelyNarrows .................................................   Passed    0.01 sec
+        Start 1208: CandidateStorageValidation.TheMessageNamesTheBlockAndBothNumbers
+  5/400 Test #1205: AggregateDeclarationTest.MaterializesOneRecordPerVariableTightestWins ..........................................   Passed    0.01 sec
+        Start 1209: CandidateStorageValidation.FirstOrderBlocksMustMatchTheirDimensions
+  6/400 Test #1206: AggregateDeclarationTest.MaterializationRejectsWhatValidationRejects ...........................................   Passed    0.01 sec
+        Start 1210: CandidateStorageValidation.MultiplierBlocksAreEitherEmptyOrExact
+  7/400 Test #1207: CandidateStorageValidation.ValuesBlocksMustMatchTheirDimensions ................................................   Passed    0.01 sec
+        Start 1211: CandidateStorageValidation.ThePrimalBlockIsNeverOptional
+  8/400 Test #1208: CandidateStorageValidation.TheMessageNamesTheBlockAndBothNumbers ...............................................   Passed    0.01 sec
+        Start 1212: CandidateStorageValidation.MultipliersMustBeFullLengthWhereTheyAreRead
+  9/400 Test #1209: CandidateStorageValidation.FirstOrderBlocksMustMatchTheirDimensions ............................................   Passed    0.01 sec
+        Start 1213: CandidateStorageValidation.TheFullMultiplierMessageNamesTheBlockAndBothSizes
+ 10/400 Test #1210: CandidateStorageValidation.MultiplierBlocksAreEitherEmptyOrExact ...............................................   Passed    0.01 sec
+        Start 1214: KktLocationTableTest.PublishesLocationsClashMarksAndLocksTogether
+ 11/400 Test #1211: CandidateStorageValidation.ThePrimalBlockIsNeverOptional .......................................................   Passed    0.01 sec
+        Start 1215: KktLocationTableTest.IsEmptyWhenNothingWasClaimed
+ 12/400 Test #1212: CandidateStorageValidation.MultipliersMustBeFullLengthWhereTheyAreRead .........................................   Passed    0.01 sec
+        Start 1216: KktLocationTableTest.RejectsAClashMarkOutsideTheLockVector
+ 13/400 Test #1213: CandidateStorageValidation.TheFullMultiplierMessageNamesTheBlockAndBothSizes ...................................   Passed    0.01 sec
+        Start 1217: KktLocationTableTest.RejectsAMissingIndexArray
+ 14/400 Test #1214: KktLocationTableTest.PublishesLocationsClashMarksAndLocksTogether ..............................................   Passed    0.01 sec
+        Start 1218: KktLocationTableTest.RejectsAClashMarkBelowTheSentinel
+ 15/400 Test #1215: KktLocationTableTest.IsEmptyWhenNothingWasClaimed ..............................................................   Passed    0.01 sec
+        Start 1219: RhsLocationTableTest.MapsClaimSlotsToArenaRows
+ 16/400 Test #1216: KktLocationTableTest.RejectsAClashMarkOutsideTheLockVector .....................................................   Passed    0.01 sec
+        Start 1220: RhsLocationTableTest.RejectsARowBelowTheSentinel
+ 17/400 Test #1217: KktLocationTableTest.RejectsAMissingIndexArray .................................................................   Passed    0.01 sec
+        Start 1221: RhsLocationTableTest.ADroppedRowIsSpelledAsNegativeOne
+ 18/400 Test #1218: KktLocationTableTest.RejectsAClashMarkBelowTheSentinel .........................................................   Passed    0.01 sec
+        Start 1222: ScatterViewTest.DefaultConstructedViewsAreEmpty
+ 19/400 Test #1219: RhsLocationTableTest.MapsClaimSlotsToArenaRows .................................................................   Passed    0.01 sec
+        Start 1223: AggregateAssembleContract.AnObjectiveOnlyRequestWritesOnlyTheObjectiveSlot
+ 20/400 Test #1220: RhsLocationTableTest.RejectsARowBelowTheSentinel ...............................................................   Passed    0.01 sec
+        Start 1224: AggregateAssembleContract.TheConstraintKktShapeWritesNoObjectiveOutput
+ 21/400 Test #1221: RhsLocationTableTest.ADroppedRowIsSpelledAsNegativeOne .........................................................   Passed    0.01 sec
+        Start 1225: AggregateAssembleContract.AnArenaTheRequestDoesNotNameMayBeLeftEmpty
+ 22/400 Test #1222: ScatterViewTest.DefaultConstructedViewsAreEmpty ................................................................   Passed    0.01 sec
+        Start 1226: AggregateAssembleContract.AnArenaTheRequestDoesNameMayNotBeLeftEmpty
+ 23/400 Test #1223: AggregateAssembleContract.AnObjectiveOnlyRequestWritesOnlyTheObjectiveSlot .....................................   Passed    0.01 sec
+        Start 1227: AggregateAssembleContract.AZeroLengthGradientViewIsRefusedEvenWithStorage
+ 24/400 Test #1224: AggregateAssembleContract.TheConstraintKktShapeWritesNoObjectiveOutput .........................................   Passed    0.01 sec
+        Start 1228: AggregateAssembleContract.AKktBearingRequestMayNotBeGivenAnEmptyKktView
+ 25/400 Test #1225: AggregateAssembleContract.AnArenaTheRequestDoesNotNameMayBeLeftEmpty ...........................................   Passed    0.01 sec
+        Start 1229: AggregateAssembleContract.ABoundProviderRefusesAViewNamingAnotherDestination
+ 26/400 Test #1226: AggregateAssembleContract.AnArenaTheRequestDoesNameMayNotBeLeftEmpty ...........................................   Passed    0.01 sec
+        Start 1230: AggregateAssembleContract.AnUnboundProviderAcceptsWhateverDestinationItIsGiven
+ 27/400 Test #1227: AggregateAssembleContract.AZeroLengthGradientViewIsRefusedEvenWithStorage ......................................   Passed    0.01 sec
+        Start 1231: AggregateAssembleContract.RequestMaskingMovesNeitherLayoutNorDigestNorEpoch
+ 28/400 Test #1228: AggregateAssembleContract.AKktBearingRequestMayNotBeGivenAnEmptyKktView ........................................   Passed    0.01 sec
+        Start 1232: AggregateAssembleContract.SuccessiveCallsAccumulateIntoOneDestination
+ 29/400 Test #1229: AggregateAssembleContract.ABoundProviderRefusesAViewNamingAnotherDestination ...................................   Passed    0.01 sec
+        Start 1233: AggregateAssembleContract.AnRhsArenaIsAccumulatedIntoNotAssigned
+ 30/400 Test #1230: AggregateAssembleContract.AnUnboundProviderAcceptsWhateverDestinationItIsGiven .................................   Passed    0.01 sec
+        Start 1234: AggregateAssembleContract.AKktArenaClaimIsAccumulatedIntoNotAssigned
+ 31/400 Test #1231: AggregateAssembleContract.RequestMaskingMovesNeitherLayoutNorDigestNorEpoch ....................................   Passed    0.01 sec
+        Start 1235: AggregateAssembleContract.AnUnmappedRequestIsRefusedBeforeAnythingIsWritten
+ 32/400 Test #1232: AggregateAssembleContract.SuccessiveCallsAccumulateIntoOneDestination ..........................................   Passed    0.01 sec
+        Start 1236: AggregateAssembleContract.AnAdjointRequestWithEmptyMultipliersIsRefused
+ 33/400 Test #1233: AggregateAssembleContract.AnRhsArenaIsAccumulatedIntoNotAssigned ...............................................   Passed    0.01 sec
+        Start 1237: AggregateAssembleContract.AValuesOnlyRequestStillAcceptsEmptyMultipliers
+ 34/400 Test #1234: AggregateAssembleContract.AKktArenaClaimIsAccumulatedIntoNotAssigned ...........................................   Passed    0.01 sec
+        Start 1238: AggregateCandidateContract.TheCandidateEntriesAssignRatherThanAccumulate
+ 35/400 Test #1235: AggregateAssembleContract.AnUnmappedRequestIsRefusedBeforeAnythingIsWritten ....................................   Passed    0.01 sec
+        Start 1239: AggregateCandidateContract.FirstOrderAlwaysRequiresFullMultipliers
+ 36/400 Test #1236: AggregateAssembleContract.AnAdjointRequestWithEmptyMultipliersIsRefused ........................................   Passed    0.01 sec
+        Start 1240: AggregateCandidateContract.TheValuesPathStillAcceptsEmptyMultipliers
+ 37/400 Test #1237: AggregateAssembleContract.AValuesOnlyRequestStillAcceptsEmptyMultipliers .......................................   Passed    0.01 sec
+        Start 1241: AggregateNonVirtualEntryContract.ValidationIsAPropertyOfTheTypeNotOfTheImplementation
+ 38/400 Test #1238: AggregateCandidateContract.TheCandidateEntriesAssignRatherThanAccumulate .......................................   Passed    0.01 sec
+        Start 1242: AggregateNonVirtualEntryContract.TheProbeInheritsTheValuesEntrysValidation
+ 39/400 Test #1239: AggregateCandidateContract.FirstOrderAlwaysRequiresFullMultipliers .............................................   Passed    0.01 sec
+        Start 1243: AggregateCapabilityContract.AnAggregateDeclaresNothingUnlessItSaysOtherwise
+ 40/400 Test #1240: AggregateCandidateContract.TheValuesPathStillAcceptsEmptyMultipliers ...........................................   Passed    0.01 sec
+        Start 1244: AggregateContract.TheStructureKeyIsReachableThroughTheFreeFunctionSpelling
+ 41/400 Test #1241: AggregateNonVirtualEntryContract.ValidationIsAPropertyOfTheTypeNotOfTheImplementation ..........................   Passed    0.01 sec
+        Start 1245: AggregateContract.TheAdoptedPartitionCountIsTheKeysPartitionConjunct
+ 42/400 Test #1242: AggregateNonVirtualEntryContract.TheProbeInheritsTheValuesEntrysValidation .....................................   Passed    0.01 sec
+        Start 1246: AdoptDeclaration.LaysWhatAHandAssembledProblemLays
+ 43/400 Test #1243: AggregateCapabilityContract.AnAggregateDeclaresNothingUnlessItSaysOtherwise ....................................   Passed    0.01 sec
+        Start 1247: AdoptDeclaration.RoundTripsExactlyWithFixingRowsInstalled
+ 44/400 Test #1244: AggregateContract.TheStructureKeyIsReachableThroughTheFreeFunctionSpelling .....................................   Passed    0.01 sec
+        Start 1248: AdoptDeclaration.ReportsTheAdoptedPartitionCountNotTheRequestedOne
+ 45/400 Test #1245: AggregateContract.TheAdoptedPartitionCountIsTheKeysPartitionConjunct ...........................................   Passed    0.01 sec
+        Start 1249: AdoptDeclaration.ClaimOrderIsAFunctionOfTheDeclaredThreadModes
+ 46/400 Test #1246: AdoptDeclaration.LaysWhatAHandAssembledProblemLays .............................................................   Passed    0.04 sec
+        Start 1250: AdoptDeclaration.AThreadModeWriteAfterTheLayIsRefused
+ 47/400 Test #1248: AdoptDeclaration.ReportsTheAdoptedPartitionCountNotTheRequestedOne .............................................   Passed    0.03 sec
+        Start 1251: AdoptDeclaration.ARefusedAdoptionLeavesTheProblemUnchanged
+ 48/400 Test #1250: AdoptDeclaration.AThreadModeWriteAfterTheLayIsRefused ..........................................................   Passed    0.02 sec
+        Start 1252: AdoptDeclaration.AModeSetOnTheDeclarationSurvivesTheLayAndIsFrozenAgain
+ 49/400 Test #1251: AdoptDeclaration.ARefusedAdoptionLeavesTheProblemUnchanged .....................................................   Passed    0.02 sec
+        Start 1253: AdoptDeclaration.RefusesADeclarationWithRowsAndNoPiecesToClaimThem
+ 50/400 Test #1249: AdoptDeclaration.ClaimOrderIsAFunctionOfTheDeclaredThreadModes .................................................   Passed    0.06 sec
+        Start 1254: AdoptDeclaration.RefusesAFixingRowThatWritesOutsideTheInternalBand
+ 51/400 Test #1253: AdoptDeclaration.RefusesADeclarationWithRowsAndNoPiecesToClaimThem .............................................   Passed    0.02 sec
+        Start 1255: AdoptDeclaration.TheNextTreatmentRederivesTheFixingRowsTheAdoptionCarried
+ 52/400 Test #1254: AdoptDeclaration.RefusesAFixingRowThatWritesOutsideTheInternalBand .............................................   Passed    0.02 sec
+        Start 1256: AdoptDeclaration.TheLayMarkerEntriesAreNotReachableFromOutsideTheLay
+ 53/400 Test #1252: AdoptDeclaration.AModeSetOnTheDeclarationSurvivesTheLayAndIsFrozenAgain ........................................   Passed    0.03 sec
+        Start 1257: AggregateDeclarationValidation.RefusesAFixingRowCountThatIsNotPartOfTheEqualityRows
+ 54/400 Test #1247: AdoptDeclaration.RoundTripsExactlyWithFixingRowsInstalled ......................................................   Passed    0.09 sec
+        Start 1258: AggregateDeclarationOvercount.AcceptsPiecesThatClaimMoreRowsThanDeclaredWhenTheExcessIsStated
+ 55/400 Test #1256: AdoptDeclaration.TheLayMarkerEntriesAreNotReachableFromOutsideTheLay ...........................................   Passed    0.01 sec
+        Start 1259: AggregateDeclarationOvercount.RefusesTheSameSharingWithTheExcessUnstated
+ 56/400 Test #1257: AggregateDeclarationValidation.RefusesAFixingRowCountThatIsNotPartOfTheEqualityRows ............................   Passed    0.00 sec
+        Start 1260: AggregateDeclarationOvercount.RefusesAnExcessThatIsNotACount
+ 57/400 Test #1258: AggregateDeclarationOvercount.AcceptsPiecesThatClaimMoreRowsThanDeclaredWhenTheExcessIsStated ..................   Passed    0.02 sec
+        Start 1261: AggregateDeclarationOvercount.RefusesAnExcessOnADeclarationWithNoPieces
+ 58/400 Test #1259: AggregateDeclarationOvercount.RefusesTheSameSharingWithTheExcessUnstated .......................................   Passed    0.02 sec
+        Start 1262: AggregateDeclarationOvercount.IsNotAStructuralKeyConjunct
+ 59/400 Test #1261: AggregateDeclarationOvercount.RefusesAnExcessOnADeclarationWithNoPieces ........................................   Passed    0.00 sec
+        Start 1263: AggregateDeclarationOvercount.ALayoutWithSharedRowsEmitsTheExcessItActuallyCarries
+ 60/400 Test #1260: AggregateDeclarationOvercount.RefusesAnExcessThatIsNotACount ...................................................   Passed    0.04 sec
+        Start 1264: AggregateDeclarationOvercount.SurvivesAdoptionAndComesBackOutOfTheDeclarationItEmits
+ 61/400 Test #1262: AggregateDeclarationOvercount.IsNotAStructuralKeyConjunct ......................................................   Passed    0.02 sec
+        Start 1265: AggregateDeclarationOvercount.IsZeroOnALayoutWhosePiecesClaimDisjointRows
+ 62/400 Test #1263: AggregateDeclarationOvercount.ALayoutWithSharedRowsEmitsTheExcessItActuallyCarries .............................   Passed    0.02 sec
+        Start 1266: ClaimStreamRestatement.ThePublishedStreamEqualsAnIndependentReference
+ 63/400 Test #1255: AdoptDeclaration.TheNextTreatmentRederivesTheFixingRowsTheAdoptionCarried ......................................   Passed    0.07 sec
+        Start 1267: ClaimStreamRestatement.TheThreeBlocksPartitionTheArenaInDomainOrder
+ 64/400 Test #1265: AggregateDeclarationOvercount.IsZeroOnALayoutWhosePiecesClaimDisjointRows ......................................   Passed    0.02 sec
+        Start 1268: ClaimStreamRestatement.TheOffsetTablesAreWellFormedOnEveryShape
+ 65/400 Test #1264: AggregateDeclarationOvercount.SurvivesAdoptionAndComesBackOutOfTheDeclarationItEmits ...........................   Passed    0.05 sec
+        Start 1269: ClaimStreamRestatement.TheClaimConventionHoldsSlotForSlot
+ 66/400 Test #1267: ClaimStreamRestatement.TheThreeBlocksPartitionTheArenaInDomainOrder ............................................   Passed    0.16 sec
+        Start 1270: ClaimStreamRestatement.PublishingTheStreamMovesNoRawArray
+ 67/400 Test #1268: ClaimStreamRestatement.TheOffsetTablesAreWellFormedOnEveryShape ................................................   Passed    0.16 sec
+        Start 1271: ClaimStreamRestatement.TheClaimDigestStillHashesTheRawSlotsInEmissionOrder
+ 68/400 Test #1266: ClaimStreamRestatement.ThePublishedStreamEqualsAnIndependentReference ..........................................   Passed    0.18 sec
+        Start 1272: ClaimStreamRestatement.AnEliminationOnlyRelayLeavesTheDeclarationSpaceStreamStanding
+ 69/400 Test #1272: ClaimStreamRestatement.AnEliminationOnlyRelayLeavesTheDeclarationSpaceStreamStanding ...........................   Passed    0.01 sec
+        Start 1273: ClaimStreamRestatement.AMakeConstraintSwitchRestatesAgainstTheNewRowSpace
+ 70/400 Test #1273: ClaimStreamRestatement.AMakeConstraintSwitchRestatesAgainstTheNewRowSpace ......................................   Passed    0.01 sec
+        Start 1274: ClaimStreamRestatement.APartitionRenegotiationRestatesAgainstTheNewOrder
+ 71/400 Test #1269: ClaimStreamRestatement.TheClaimConventionHoldsSlotForSlot ......................................................   Passed    0.18 sec
+        Start 1275: ClaimStreamRestatement.ARepeatedLayRestatesAgainstTheProblemAsItNowStands
+ 72/400 Test #1275: ClaimStreamRestatement.ARepeatedLayRestatesAgainstTheProblemAsItNowStands ......................................   Passed    0.01 sec
+        Start 1276: ClaimStreamState.AnEliminationOnlyRelayRetainsTheStreamAndItsEpoch
+ 73/400 Test #1276: ClaimStreamState.AnEliminationOnlyRelayRetainsTheStreamAndItsEpoch .............................................   Passed    0.00 sec
+        Start 1277: ClaimStreamState.RestoringFromAnEliminationRetainsToo
+ 74/400 Test #1277: ClaimStreamState.RestoringFromAnEliminationRetainsToo ..........................................................   Passed    0.01 sec
+        Start 1278: ClaimStreamState.APartitionRenegotiationRebuildsAndBumpsBothEpochs
+ 75/400 Test #1274: ClaimStreamRestatement.APartitionRenegotiationRestatesAgainstTheNewOrder .......................................   Passed    0.07 sec
+        Start 1279: ClaimStreamState.AMakeConstraintTreatmentRebuildsBecauseTheRowSpaceMoved
+ 76/400 Test #1279: ClaimStreamState.AMakeConstraintTreatmentRebuildsBecauseTheRowSpaceMoved .......................................   Passed    0.01 sec
+        Start 1280: ClaimStreamState.ASwitchFromMakeConstraintToMakeParameterRebuilds
+ 77/400 Test #1280: ClaimStreamState.ASwitchFromMakeConstraintToMakeParameterRebuilds ..............................................   Passed    0.01 sec
+        Start 1281: ClaimStreamState.ARepeatedLayAtIdenticalCountsStillRebuilds
+ 78/400 Test #1281: ClaimStreamState.ARepeatedLayAtIdenticalCountsStillRebuilds ....................................................   Passed    0.00 sec
+        Start 1282: ClaimStreamState.APieceSwapAtIdenticalCountsRebuildsAndMovesTheStream
+ 79/400 Test #1282: ClaimStreamState.APieceSwapAtIdenticalCountsRebuildsAndMovesTheStream ..........................................   Passed    0.00 sec
+        Start 1283: ClaimStreamState.AdoptingADeclarationWithFixingRowsRestatesOnBothRebuilds
+ 80/400 Test #1283: ClaimStreamState.AdoptingADeclarationWithFixingRowsRestatesOnBothRebuilds ......................................   Passed    0.01 sec
+        Start 1284: ClaimStreamState.AnUnlaidProblemHasNoClaimStreamAndSaysSo
+ 81/400 Test #1278: ClaimStreamState.APartitionRenegotiationRebuildsAndBumpsBothEpochs .............................................   Passed    0.06 sec
+ 82/400 Test #1284: ClaimStreamState.AnUnlaidProblemHasNoClaimStreamAndSaysSo ......................................................   Passed    0.00 sec
+        Start 1285: ClaimStreamState.AStampThatMovesWhileReducedDropsTheStreamRatherThanGuessing
+        Start 1286: ClaimStreamState.ARelayThatThrowsLeavesThePreviouslyPublishedViewsStanding
+ 83/400 Test #1286: ClaimStreamState.ARelayThatThrowsLeavesThePreviouslyPublishedViewsStanding .....................................   Passed    0.01 sec
+        Start 1287: ClaimStreamState.ThePublishedDimensionsAreTheOnesTheStreamWasBuiltAgainst
+ 84/400 Test #1287: ClaimStreamState.ThePublishedDimensionsAreTheOnesTheStreamWasBuiltAgainst ......................................   Passed    0.01 sec
+        Start 1288: ClaimStreamState.AnEqualWidthRebuildAllocatesNothing
+ 85/400 Test #1288: ClaimStreamState.AnEqualWidthRebuildAllocatesNothing ...........................................................   Passed    0.01 sec
+        Start 1289: ClaimStreamState.APieceWrittenIntoAMasterListWithoutARelayIsNotRetainedAcross
+ 86/400 Test #1289: ClaimStreamState.APieceWrittenIntoAMasterListWithoutARelayIsNotRetainedAcross ..................................   Passed    0.01 sec
+        Start 1290: ClaimStreamState.AFirstLayThatCannotRestateSaysThatAndNotSomethingAboutElimination
+ 87/400 Test #1290: ClaimStreamState.AFirstLayThatCannotRestateSaysThatAndNotSomethingAboutElimination .............................   Passed    0.00 sec
+        Start 1291: ClaimStreamState.ARefusedRelayLeavesTheLayoutReportingItselfUnanalysed
+ 88/400 Test #1291: ClaimStreamState.ARefusedRelayLeavesTheLayoutReportingItselfUnanalysed .........................................   Passed    0.00 sec
+        Start 1292: ClaimStreamRefusals.TheWellFormedFixtureRestates
+ 89/400 Test #1292: ClaimStreamRefusals.TheWellFormedFixtureRestates ...............................................................   Passed    0.00 sec
+        Start 1293: ClaimStreamRefusals.AClaimedSlackRowIsRefused
+ 90/400 Test #1293: ClaimStreamRefusals.AClaimedSlackRowIsRefused ..................................................................   Passed    0.00 sec
+        Start 1294: ClaimStreamRefusals.ANegativeCoordinateInAnUnreducedLayoutIsRefused
+ 91/400 Test #1270: ClaimStreamRestatement.PublishingTheStreamMovesNoRawArray ......................................................   Passed    0.17 sec
+        Start 1295: ClaimStreamRefusals.AGradientRowOutsideTheDeclaredVariablesIsRefused
+ 92/400 Test #1271: ClaimStreamRestatement.TheClaimDigestStillHashesTheRawSlotsInEmissionOrder .....................................   Passed    0.17 sec
+        Start 1296: ClaimStreamRefusals.AColumnOutsideTheDeclaredVariablesIsRefused
+ 93/400 Test #1294: ClaimStreamRefusals.ANegativeCoordinateInAnUnreducedLayoutIsRefused ............................................   Passed    0.00 sec
+        Start 1297: ClaimStreamRefusals.AConstraintRowOutsideItsOwnDomainBandIsRefused
+ 94/400 Test #1295: ClaimStreamRefusals.AGradientRowOutsideTheDeclaredVariablesIsRefused ...........................................   Passed    0.00 sec
+        Start 1298: ClaimStreamRefusals.MalformedMarkTablesAreRefused
+ 95/400 Test #1296: ClaimStreamRefusals.AColumnOutsideTheDeclaredVariablesIsRefused ................................................   Passed    0.00 sec
+        Start 1299: ClaimStreamRefusals.AnEmptyPartitionGivesEqualAdjacentOffsets
+ 96/400 Test #1297: ClaimStreamRefusals.AConstraintRowOutsideItsOwnDomainBandIsRefused .............................................   Passed    0.00 sec
+        Start 1300: ClaimDomainSetTest.EmptyByDefault
+ 97/400 Test #1298: ClaimStreamRefusals.MalformedMarkTablesAreRefused ..............................................................   Passed    0.00 sec
+        Start 1301: ClaimDomainSetTest.ASingleDomainConvertsToItsOwnSet
+ 98/400 Test #1299: ClaimStreamRefusals.AnEmptyPartitionGivesEqualAdjacentOffsets ..................................................   Passed    0.00 sec
+        Start 1302: ClaimDomainSetTest.UnionCollectsEveryDomain
+ 99/400 Test #1300: ClaimDomainSetTest.EmptyByDefault ..............................................................................   Passed    0.00 sec
+        Start 1303: ClaimDomainSetTest.IntersectionKeepsTheCommonDomains
+100/400 Test #1301: ClaimDomainSetTest.ASingleDomainConvertsToItsOwnSet ............................................................   Passed    0.00 sec
+        Start 1304: ClaimDomainSetTest.UnionIsIdempotentAndComparable
+101/400 Test #1302: ClaimDomainSetTest.UnionCollectsEveryDomain ....................................................................   Passed    0.00 sec
+        Start 1305: ClaimDomainSetTest.AllCarriesEveryDomain
+102/400 Test #1303: ClaimDomainSetTest.IntersectionKeepsTheCommonDomains ...........................................................   Passed    0.00 sec
+        Start 1306: KktStorageTest.AClaimSpaceResolvesStorageAtClaimTimeNotOnTheHotPath
+103/400 Test #1304: ClaimDomainSetTest.UnionIsIdempotentAndComparable ..............................................................   Passed    0.00 sec
+        Start 1307: AggregateCapabilityTest.NoneCarriesNothing
+104/400 Test #1305: ClaimDomainSetTest.AllCarriesEveryDomain .......................................................................   Passed    0.00 sec
+        Start 1308: AggregateCapabilityTest.ProbingForNothingIsVacuouslyTrue
+105/400 Test #1306: KktStorageTest.AClaimSpaceResolvesStorageAtClaimTimeNotOnTheHotPath ............................................   Passed    0.00 sec
+        Start 1309: AggregateCapabilityTest.HasCapabilityRequiresEveryProbedBit
+106/400 Test #1307: AggregateCapabilityTest.NoneCarriesNothing .....................................................................   Passed    0.00 sec
+        Start 1310: AggregateCapabilityTest.IntersectionKeepsTheCommonBits
+107/400 Test #1308: AggregateCapabilityTest.ProbingForNothingIsVacuouslyTrue .......................................................   Passed    0.00 sec
+        Start 1311: AggregateCapabilityTest.InPlaceUnionAndMaskingBothCompile
+108/400 Test #1309: AggregateCapabilityTest.HasCapabilityRequiresEveryProbedBit ....................................................   Passed    0.00 sec
+        Start 1312: EvalRequestTest.NoneNamesNoOutput
+109/400 Test #1310: AggregateCapabilityTest.IntersectionKeepsTheCommonBits .........................................................   Passed    0.00 sec
+        Start 1313: EvalRequestTest.UnionAndIntersection
+110/400 Test #1311: AggregateCapabilityTest.InPlaceUnionAndMaskingBothCompile ......................................................   Passed    0.00 sec
+        Start 1314: EvalRequestTest.HasRequestRequiresEveryProbedFlag
+111/400 Test #1312: EvalRequestTest.NoneNamesNoOutput ..............................................................................   Passed    0.00 sec
+        Start 1315: EvalRequestTest.InPlaceUnionAndMaskingBothCompile
+112/400 Test #1313: EvalRequestTest.UnionAndIntersection ...........................................................................   Passed    0.00 sec
+        Start 1316: EvalRequestTest.TheAdjointRequestsAreTheOnesThatConsumeTheMultipliers
+113/400 Test #1314: EvalRequestTest.HasRequestRequiresEveryProbedFlag ..............................................................   Passed    0.00 sec
+        Start 1317: EvalRequestMappingTable.AllMappedSetsAreDistinct
+114/400 Test #1315: EvalRequestTest.InPlaceUnionAndMaskingBothCompile ..............................................................   Passed    0.00 sec
+        Start 1318: EvalRequestMappingTable.NoMappedSetIsEmpty
+115/400 Test #1316: EvalRequestTest.TheAdjointRequestsAreTheOnesThatConsumeTheMultipliers ..........................................   Passed    0.00 sec
+        Start 1319: EvalRequestMappingTable.TheObjectiveOnlyShapeNamesNothingElse
+116/400 Test #1317: EvalRequestMappingTable.AllMappedSetsAreDistinct ...............................................................   Passed    0.00 sec
+        Start 1320: EvalRequestMappingTable.TheConstraintOnlyShapesNameNoObjectiveOutput
+117/400 Test #1318: EvalRequestMappingTable.NoMappedSetIsEmpty .....................................................................   Passed    0.00 sec
+        Start 1321: EvalRequestMappingTable.OnlyTheFullKktShapeNamesTheObjectiveHessianAmongInteriorOwnedShapes
+118/400 Test #1319: EvalRequestMappingTable.TheObjectiveOnlyShapeNamesNothingElse ..................................................   Passed    0.00 sec
+        Start 1322: EvalRequestMappingTable.EveryShapeThatNamesADerivativeAlsoNamesItsValues
+119/400 Test #1320: EvalRequestMappingTable.TheConstraintOnlyShapesNameNoObjectiveOutput ...........................................   Passed    0.00 sec
+        Start 1323: EvalRequestMappingTable.TheFullKktShapeSubsumesEveryOtherMappedShape
+120/400 Test #1321: EvalRequestMappingTable.OnlyTheFullKktShapeNamesTheObjectiveHessianAmongInteriorOwnedShapes ....................   Passed    0.00 sec
+        Start 1324: EvalRequestMappingTable.ExactlyTheMappedSetsAreLegal
+121/400 Test #1322: EvalRequestMappingTable.EveryShapeThatNamesADerivativeAlsoNamesItsValues .......................................   Passed    0.00 sec
+        Start 1325: EvalRequestMappingTable.AnUnmappedCombinationIsRefusedByName
+122/400 Test #1323: EvalRequestMappingTable.TheFullKktShapeSubsumesEveryOtherMappedShape ...........................................   Passed    0.00 sec
+        Start 1326: EvalRequestMappingTable.TheEmptyRequestIsNotLegal
+123/400 Test #1324: EvalRequestMappingTable.ExactlyTheMappedSetsAreLegal ...........................................................   Passed    0.00 sec
+        Start 1327: EvalRequestMappingTable.ShapeNineIsLegalAndConsumesMultipliers
+124/400 Test #1325: EvalRequestMappingTable.AnUnmappedCombinationIsRefusedByName ...................................................   Passed    0.00 sec
+        Start 1328: EvalRequestMappingTable.ShapeTenIsLegalAndDoesNotConsumeMultipliers
+125/400 Test #1326: EvalRequestMappingTable.TheEmptyRequestIsNotLegal ..............................................................   Passed    0.00 sec
+        Start 1329: EvalRequestMappingTable.ShapeElevenIsLegalAndDoesNotConsumeMultipliers
+126/400 Test #1327: EvalRequestMappingTable.ShapeNineIsLegalAndConsumesMultipliers .................................................   Passed    0.00 sec
+        Start 1330: EvalRequestMappingTable.TheThreeSqpOwnedSetsAreMutuallyDistinct
+127/400 Test #1328: EvalRequestMappingTable.ShapeTenIsLegalAndDoesNotConsumeMultipliers ............................................   Passed    0.00 sec
+        Start 1331: IdentityProbeTest.EqualHalvesCompareEqual
+128/400 Test #1329: EvalRequestMappingTable.ShapeElevenIsLegalAndDoesNotConsumeMultipliers .........................................   Passed    0.00 sec
+        Start 1332: IdentityProbeTest.SameDigestUnderADifferentEpochIsNotTheSameProbe
+129/400 Test #1330: EvalRequestMappingTable.TheThreeSqpOwnedSetsAreMutuallyDistinct ................................................   Passed    0.00 sec
+        Start 1333: IdentityProbeTest.SameEpochWithADifferentDigestIsNotTheSameProbe
+130/400 Test #1331: IdentityProbeTest.EqualHalvesCompareEqual ......................................................................   Passed    0.00 sec
+        Start 1334: IdentityProbeTest.DefaultsToNothingLaidAndNoValues
+131/400 Test #1332: IdentityProbeTest.SameDigestUnderADifferentEpochIsNotTheSameProbe ..............................................   Passed    0.00 sec
+        Start 1335: CandidateValueDigestTest.SameValuesHashEqual
+132/400 Test #1333: IdentityProbeTest.SameEpochWithADifferentDigestIsNotTheSameProbe ...............................................   Passed    0.00 sec
+        Start 1336: CandidateValueDigestTest.ADifferentObjectiveMovesTheDigest
+133/400 Test #1334: IdentityProbeTest.DefaultsToNothingLaidAndNoValues .............................................................   Passed    0.00 sec
+        Start 1337: CandidateValueDigestTest.ADifferentResidualMovesTheDigest
+134/400 Test #1335: CandidateValueDigestTest.SameValuesHashEqual ...................................................................   Passed    0.00 sec
+        Start 1338: CandidateValueDigestTest.TheBlockSplitIsPartOfTheStream
+135/400 Test #1336: CandidateValueDigestTest.ADifferentObjectiveMovesTheDigest .....................................................   Passed    0.00 sec
+        Start 1339: CandidateValueDigestTest.TheDigestIsBitwiseNotNumeric
+136/400 Test #1337: CandidateValueDigestTest.ADifferentResidualMovesTheDigest ......................................................   Passed    0.00 sec
+        Start 1340: AggregateProbeContract.TheProbeCarriesTheCurrentStructureEpoch
+137/400 Test #1338: CandidateValueDigestTest.TheBlockSplitIsPartOfTheStream ........................................................   Passed    0.00 sec
+        Start 1341: AggregateProbeContract.TheProbeIsAValuesEvaluationPlusAHash
+138/400 Test #1339: CandidateValueDigestTest.TheDigestIsBitwiseNotNumeric ..........................................................   Passed    0.00 sec
+        Start 1342: AggregateProbeContract.ADifferentPointMovesTheValueHalf
+139/400 Test #1340: AggregateProbeContract.TheProbeCarriesTheCurrentStructureEpoch .................................................   Passed    0.00 sec
+        Start 1343: ModelStructureKeyTest.EqualFieldsCompareEqual
+140/400 Test #1341: AggregateProbeContract.TheProbeIsAValuesEvaluationPlusAHash ....................................................   Passed    0.00 sec
+        Start 1344: ModelStructureKeyTest.DefaultsToAKeyOfNothing
+141/400 Test #1342: AggregateProbeContract.ADifferentPointMovesTheValueHalf ........................................................   Passed    0.00 sec
+        Start 1345: ModelStructureKeyTest.PartitionCountIsAConjunct
+142/400 Test #1343: ModelStructureKeyTest.EqualFieldsCompareEqual ..................................................................   Passed    0.00 sec
+        Start 1346: ModelStructureKeyTest.ClaimDigestIsAConjunct
+143/400 Test #1344: ModelStructureKeyTest.DefaultsToAKeyOfNothing ..................................................................   Passed    0.00 sec
+        Start 1347: ModelStructureKeyTest.BoundDigestIsAConjunct
+144/400 Test #1345: ModelStructureKeyTest.PartitionCountIsAConjunct ................................................................   Passed    0.00 sec
+        Start 1348: ModelStructureKeyTest.DigestIsStableAcrossCalls
+145/400 Test #1346: ModelStructureKeyTest.ClaimDigestIsAConjunct ...................................................................   Passed    0.00 sec
+        Start 1349: ModelStructureKeyTest.TheFoldedDigestIsNotAnyOneConjunct
+146/400 Test #1347: ModelStructureKeyTest.BoundDigestIsAConjunct ...................................................................   Passed    0.00 sec
+        Start 1350: ClaimStreamDigest.OrderIsSignificant
+147/400 Test #1348: ModelStructureKeyTest.DigestIsStableAcrossCalls ................................................................   Passed    0.00 sec
+        Start 1351: ClaimStreamDigest.DistinctClaimsHashDistinctly
+148/400 Test #1349: ModelStructureKeyTest.TheFoldedDigestIsNotAnyOneConjunct .......................................................   Passed    0.00 sec
+        Start 1352: ClaimStreamDigest.TheSameStreamHashesEqual
+149/400 Test #1350: ClaimStreamDigest.OrderIsSignificant ...........................................................................   Passed    0.00 sec
+        Start 1353: ClaimStreamDigest.TheDimensionPreambleIsPartOfTheStream
+150/400 Test #1351: ClaimStreamDigest.DistinctClaimsHashDistinctly .................................................................   Passed    0.00 sec
+        Start 1354: ClaimStreamDigest.EachDimensionOfThePreambleIsAConjunct
+151/400 Test #1352: ClaimStreamDigest.TheSameStreamHashesEqual .....................................................................   Passed    0.00 sec
+        Start 1355: ClaimStreamDigest.AnEmptyStreamStillCarriesItsDimensions
+152/400 Test #1353: ClaimStreamDigest.TheDimensionPreambleIsPartOfTheStream ........................................................   Passed    0.00 sec
+        Start 1356: ClaimStreamDigest.RejectsAHalfClaimStream
+153/400 Test #1354: ClaimStreamDigest.EachDimensionOfThePreambleIsAConjunct ........................................................   Passed    0.00 sec
+        Start 1357: BoundStructureDigest.IsTakenOverTheMaterializedStructure
+154/400 Test #1355: ClaimStreamDigest.AnEmptyStreamStillCarriesItsDimensions .......................................................   Passed    0.00 sec
+        Start 1358: BoundStructureDigest.AnIntersectionThatFixesAVariableRekeys
+155/400 Test #1285: ClaimStreamState.AStampThatMovesWhileReducedDropsTheStreamRatherThanGuessing ...................................   Passed    0.14 sec
+        Start 1359: BoundStructureDigest.AValueNudgeWithinOneStructureDoesNotRekey
+156/400 Test #1356: ClaimStreamDigest.RejectsAHalfClaimStream ......................................................................   Passed    0.01 sec
+        Start 1360: BoundStructureDigest.AnIntersectionThatMakesASideFiniteRekeys
+157/400 Test #1357: BoundStructureDigest.IsTakenOverTheMaterializedStructure .......................................................   Passed    0.01 sec
+        Start 1361: BoundStructureDigest.TwoHistoriesWithTheSameIntersectionKeyTheSame
+158/400 Test #1358: BoundStructureDigest.AnIntersectionThatFixesAVariableRekeys ....................................................   Passed    0.01 sec
+        Start 1362: BoundStructureDigest.WhichVariableIsBoundedIsPartOfTheStructure
+159/400 Test #1359: BoundStructureDigest.AValueNudgeWithinOneStructureDoesNotRekey .................................................   Passed    0.01 sec
+        Start 1363: BoundStructureDigest.ThePerVariableRecordCarriesSideAndFixedness
+160/400 Test #1360: BoundStructureDigest.AnIntersectionThatMakesASideFiniteRekeys ..................................................   Passed    0.01 sec
+        Start 1364: BoundStructureDigest.OrderIsSignificant
+161/400 Test #1361: BoundStructureDigest.TwoHistoriesWithTheSameIntersectionKeyTheSame .............................................   Passed    0.01 sec
+        Start 1365: ModelSurfaceKkt.KnownKktPointIsNearUlpZero
+162/400 Test #1362: BoundStructureDigest.WhichVariableIsBoundedIsPartOfTheStructure ................................................   Passed    0.01 sec
+        Start 1366: ModelSurfaceKkt.DeclaredFixedVariableGarbageRowIsExcluded
+163/400 Test #1363: BoundStructureDigest.ThePerVariableRecordCarriesSideAndFixedness ...............................................   Passed    0.01 sec
+        Start 1367: ModelSurfaceKkt.PerturbedPointResidualsMove
+164/400 Test #1364: BoundStructureDigest.OrderIsSignificant ........................................................................   Passed    0.01 sec
+        Start 1368: ModelSurfaceKkt.RunsAgainstBareNlpModelAggregateWithNoEngineInTheLink
+165/400 Test #1365: ModelSurfaceKkt.KnownKktPointIsNearUlpZero .....................................................................   Passed    0.01 sec
+        Start 1369: ModelSurfaceKkt.MismatchedZSizeThrows
+166/400 Test #1366: ModelSurfaceKkt.DeclaredFixedVariableGarbageRowIsExcluded ......................................................   Passed    0.01 sec
+        Start 1370: ModelSurfaceKkt.ANanGradientRowScoresInfiniteRatherThanPerfect
+167/400 Test #1367: ModelSurfaceKkt.PerturbedPointResidualsMove ....................................................................   Passed    0.01 sec
+        Start 1371: ModelSurfaceKkt.ANanInACallerSuppliedBlockScoresInfinite
+168/400 Test #1368: ModelSurfaceKkt.RunsAgainstBareNlpModelAggregateWithNoEngineInTheLink ..........................................   Passed    0.01 sec
+        Start 1372: ModelSurfaceKkt.AnInfiniteBoundIsNotPoison
+169/400 Test #1369: ModelSurfaceKkt.MismatchedZSizeThrows ..........................................................................   Passed    0.01 sec
+        Start 1373: NlpModelAggregateDeclaration.CarriesTheModelsDimensionsAndOnePartition
+170/400 Test #1370: ModelSurfaceKkt.ANanGradientRowScoresInfiniteRatherThanPerfect .................................................   Passed    0.01 sec
+        Start 1374: NlpModelAggregateDeclaration.RecordsOneBoundRecordPerVariableVerbatim
+171/400 Test #1371: ModelSurfaceKkt.ANanInACallerSuppliedBlockScoresInfinite .......................................................   Passed    0.01 sec
+        Start 1375: NlpModelAggregateDeclaration.CarriesNoEnginePieces
+172/400 Test #1372: ModelSurfaceKkt.AnInfiniteBoundIsNotPoison .....................................................................   Passed    0.01 sec
+        Start 1376: NlpModelAggregateDeclaration.PassesTheContractsOwnValidation
+173/400 Test #1373: NlpModelAggregateDeclaration.CarriesTheModelsDimensionsAndOnePartition .........................................   Passed    0.01 sec
+        Start 1377: NlpModelAggregateDeclaration.RefusesANullModel
+174/400 Test #1374: NlpModelAggregateDeclaration.RecordsOneBoundRecordPerVariableVerbatim ..........................................   Passed    0.01 sec
+        Start 1378: NlpModelAggregateClaims.SplitsTheModelsReturnsIntoThreeBlocks
+175/400 Test #1375: NlpModelAggregateDeclaration.CarriesNoEnginePieces .............................................................   Passed    0.01 sec
+        Start 1379: NlpModelAggregateClaims.NamesTheUpperTriangleAndTheOffsetConstraintRows
+176/400 Test #1376: NlpModelAggregateDeclaration.PassesTheContractsOwnValidation ...................................................   Passed    0.01 sec
+        Start 1380: NlpModelAggregateClaims.ArenasAreClaimedWholeInRowOrder
+177/400 Test #1377: NlpModelAggregateDeclaration.RefusesANullModel .................................................................   Passed    0.01 sec
+        Start 1381: NlpModelAggregateClaims.LayoutIsDeterministicAcrossSeparateBridges
+178/400 Test #1378: NlpModelAggregateClaims.SplitsTheModelsReturnsIntoThreeBlocks ..................................................   Passed    0.01 sec
+        Start 1382: NlpModelAggregateKey.IsTheThreeConjunctsAtOnePartition
+179/400 Test #1379: NlpModelAggregateClaims.NamesTheUpperTriangleAndTheOffsetConstraintRows ........................................   Passed    0.01 sec
+        Start 1383: NlpModelAggregateKey.DiffersFromAModelWithDifferentBoundStructure
+180/400 Test #1380: NlpModelAggregateClaims.ArenasAreClaimedWholeInRowOrder ........................................................   Passed    0.01 sec
+        Start 1384: NlpModelAggregateEpoch.TheFirstLayIsAStructuralEvent
+181/400 Test #1381: NlpModelAggregateClaims.LayoutIsDeterministicAcrossSeparateBridges .............................................   Passed    0.01 sec
+        Start 1385: NlpModelAggregateEpoch.ARenegotiationBumpsEvenAtTheCountAlreadyInForce
+182/400 Test #1382: NlpModelAggregateKey.IsTheThreeConjunctsAtOnePartition .........................................................   Passed    0.01 sec
+        Start 1386: NlpModelAggregateEpoch.EvaluationDoesNotBump
+183/400 Test #1383: NlpModelAggregateKey.DiffersFromAModelWithDifferentBoundStructure ..............................................   Passed    0.01 sec
+        Start 1387: NlpModelAggregateEpoch.ARefusedPartitionRequestNeitherLaysNorBumps
+184/400 Test #1384: NlpModelAggregateEpoch.TheFirstLayIsAStructuralEvent ...........................................................   Passed    0.01 sec
+        Start 1388: NlpModelAggregateEpoch.AFailedLayLeavesTheStructuresOnHandUntouched
+185/400 Test #1385: NlpModelAggregateEpoch.ARenegotiationBumpsEvenAtTheCountAlreadyInForce .........................................   Passed    0.01 sec
+        Start 1389: NlpModelAggregatePartitions.CapsEveryPositiveRequestToOne
+186/400 Test #1386: NlpModelAggregateEpoch.EvaluationDoesNotBump ...................................................................   Passed    0.01 sec
+        Start 1390: NlpModelAggregateThreads.ReportsOneAndRefusesANonPositiveRequest
+187/400 Test #1387: NlpModelAggregateEpoch.ARefusedPartitionRequestNeitherLaysNorBumps .............................................   Passed    0.01 sec
+        Start 1391: NlpModelAggregateCapabilities.DeclaresTheValuesFastPathAndNothingElse
+188/400 Test #1388: NlpModelAggregateEpoch.AFailedLayLeavesTheStructuresOnHandUntouched ............................................   Passed    0.01 sec
+        Start 1392: NlpModelAggregateCapabilities.BindsNoKktDestination
+189/400 Test #1389: NlpModelAggregatePartitions.CapsEveryPositiveRequestToOne ......................................................   Passed    0.01 sec
+        Start 1393: NlpModelAggregateValuesPath.ReachesEvalValuesAndNoDerivativeEvaluator
+190/400 Test #1390: NlpModelAggregateThreads.ReportsOneAndRefusesANonPositiveRequest ...............................................   Passed    0.01 sec
+        Start 1394: NlpModelAggregateValuesPath.TheProbeIsTheValuesPathPlusAHash
+191/400 Test #1391: NlpModelAggregateCapabilities.DeclaresTheValuesFastPathAndNothingElse ..........................................   Passed    0.01 sec
+        Start 1395: NlpModelAggregateValuesPath.ReportsTheModelsValuesScaledByThePointsScale
+192/400 Test #1392: NlpModelAggregateCapabilities.BindsNoKktDestination ............................................................   Passed    0.01 sec
+        Start 1396: NlpModelAggregateValuesPath.TwiceAtOnePointAssignsRatherThanDoubles
+193/400 Test #1393: NlpModelAggregateValuesPath.ReachesEvalValuesAndNoDerivativeEvaluator ..........................................   Passed    0.01 sec
+        Start 1397: NlpModelAggregateFirstOrder.TwiceAtOnePointAssignsRatherThanDoubles
+194/400 Test #1394: NlpModelAggregateValuesPath.TheProbeIsTheValuesPathPlusAHash ...................................................   Passed    0.01 sec
+        Start 1398: NlpModelAggregateFirstOrder.ComposesTheAdjointGradientFromBothJacobians
+195/400 Test #1395: NlpModelAggregateValuesPath.ReportsTheModelsValuesScaledByThePointsScale .......................................   Passed    0.01 sec
+        Start 1399: NlpModelAggregateEvaluatorSets.ObjectiveOnlyRunsEvalFAlone
+196/400 Test #1396: NlpModelAggregateValuesPath.TwiceAtOnePointAssignsRatherThanDoubles ............................................   Passed    0.01 sec
+        Start 1400: NlpModelAggregateEvaluatorSets.ObjectiveAndConstraintsRunsEvalValuesAlone
+197/400 Test #1397: NlpModelAggregateFirstOrder.TwiceAtOnePointAssignsRatherThanDoubles ............................................   Passed    0.01 sec
+        Start 1401: NlpModelAggregateEvaluatorSets.ObjectiveGradientAndConstraintsAddsEvalGrad
+198/400 Test #1398: NlpModelAggregateFirstOrder.ComposesTheAdjointGradientFromBothJacobians ........................................   Passed    0.01 sec
+        Start 1402: NlpModelAggregateEvaluatorSets.FirstOrderRhsAddsBothJacobiansAndNoHessian
+199/400 Test #1399: NlpModelAggregateEvaluatorSets.ObjectiveOnlyRunsEvalFAlone .....................................................   Passed    0.01 sec
+        Start 1403: NlpModelAggregateEvaluatorSets.ConstraintResidualsAndJacobianSkipsTheObjectiveEvaluators
+200/400 Test #1400: NlpModelAggregateEvaluatorSets.ObjectiveAndConstraintsRunsEvalValuesAlone ......................................   Passed    0.01 sec
+        Start 1404: NlpModelAggregateEvaluatorSets.FirstOrderKktRunsTheSameSetAsTheFirstOrderRhs
+201/400 Test #1401: NlpModelAggregateEvaluatorSets.ObjectiveGradientAndConstraintsAddsEvalGrad .....................................   Passed    0.01 sec
+        Start 1405: NlpModelAggregateEvaluatorSets.ConstraintKktAddsTheHessianAndStillNoObjective
+202/400 Test #1402: NlpModelAggregateEvaluatorSets.FirstOrderRhsAddsBothJacobiansAndNoHessian ......................................   Passed    0.01 sec
+        Start 1406: NlpModelAggregateEvaluatorSets.FullKktRunsEveryEvaluatorExactlyOnce
+203/400 Test #1403: NlpModelAggregateEvaluatorSets.ConstraintResidualsAndJacobianSkipsTheObjectiveEvaluators .......................   Passed    0.01 sec
+        Start 1407: NlpModelAggregateEvaluatorSets.LagrangianHessianRunsEvalHessAloneAndNothingElse
+204/400 Test #1404: NlpModelAggregateEvaluatorSets.FirstOrderKktRunsTheSameSetAsTheFirstOrderRhs ...................................   Passed    0.01 sec
+        Start 1408: NlpModelAggregateEvaluatorSets.GradientAndJacobiansRunsGradPlusBothJacobiansAndNoValues
+205/400 Test #1405: NlpModelAggregateEvaluatorSets.ConstraintKktAddsTheHessianAndStillNoObjective ..................................   Passed    0.01 sec
+        Start 1409: NlpModelAggregateEvaluatorSets.ConstraintJacobiansOnlyRunsBothJacobiansAloneAndNoGradient
+206/400 Test #1406: NlpModelAggregateEvaluatorSets.FullKktRunsEveryEvaluatorExactlyOnce ............................................   Passed    0.01 sec
+        Start 1410: NlpModelAggregateEvaluatorSets.AConstantConstraintBlockStillReachesItsJacobianEvaluator
+207/400 Test #1407: NlpModelAggregateEvaluatorSets.LagrangianHessianRunsEvalHessAloneAndNothingElse ................................   Passed    0.01 sec
+        Start 1411: NlpModelAggregateEvaluatorSets.TheConstraintOnlyKktAsksForTheHessianAtZeroObjectiveScale
+208/400 Test #1408: NlpModelAggregateEvaluatorSets.GradientAndJacobiansRunsGradPlusBothJacobiansAndNoValues ........................   Passed    0.01 sec
+        Start 1412: NlpModelAggregateEvaluatorSets.TheFullKktAsksForTheHessianAtThePointsObjectiveScale
+209/400 Test #1409: NlpModelAggregateEvaluatorSets.ConstraintJacobiansOnlyRunsBothJacobiansAloneAndNoGradient ......................   Passed    0.01 sec
+        Start 1413: NlpModelAggregateEquivalence.FullKktOnAModelWithBothConstraintKinds
+210/400 Test #1410: NlpModelAggregateEvaluatorSets.AConstantConstraintBlockStillReachesItsJacobianEvaluator ........................   Passed    0.01 sec
+        Start 1414: NlpModelAggregateEquivalence.FullKktOnAnInequalityOnlyModelAtANonUnitScale
+211/400 Test #1411: NlpModelAggregateEvaluatorSets.TheConstraintOnlyKktAsksForTheHessianAtZeroObjectiveScale .......................   Passed    0.01 sec
+        Start 1415: NlpModelAggregateEquivalence.FullKktOnAnEqualityOnlyModel
+212/400 Test #1412: NlpModelAggregateEvaluatorSets.TheFullKktAsksForTheHessianAtThePointsObjectiveScale ............................   Passed    0.01 sec
+        Start 1416: NlpModelAggregateEquivalence.ConstraintKktAssemblesTheAdjointHessianAlone
+213/400 Test #1413: NlpModelAggregateEquivalence.FullKktOnAModelWithBothConstraintKinds ............................................   Passed    0.01 sec
+        Start 1417: NlpModelAggregateEquivalence.ConstraintResidualsAndJacobianWritesNoHessianSlot
+214/400 Test #1414: NlpModelAggregateEquivalence.FullKktOnAnInequalityOnlyModelAtANonUnitScale .....................................   Passed    0.01 sec
+        Start 1418: NlpModelAggregateEquivalence.LagrangianHessianAloneMatchesEvalHessComposedLagrangian
+215/400 Test #1415: NlpModelAggregateEquivalence.FullKktOnAnEqualityOnlyModel ......................................................   Passed    0.01 sec
+        Start 1419: NlpModelAggregateEquivalence.GradientAndJacobiansFillsTheGradientArenaAndBothJacobianClaims
+216/400 Test #1416: NlpModelAggregateEquivalence.ConstraintKktAssemblesTheAdjointHessianAlone ......................................   Passed    0.01 sec
+        Start 1420: NlpModelAggregateEquivalence.ConstraintJacobiansOnlyFillsTheJacobianClaimsAndLeavesTheGradientArenaUntouched
+217/400 Test #1417: NlpModelAggregateEquivalence.ConstraintResidualsAndJacobianWritesNoHessianSlot .................................   Passed    0.01 sec
+        Start 1421: NlpModelAggregateEquivalence.ClaimsLandWhereTheTableSendsThemUnderEitherOrder
+218/400 Test #1418: NlpModelAggregateEquivalence.LagrangianHessianAloneMatchesEvalHessComposedLagrangian ...........................   Passed    0.01 sec
+        Start 1422: NlpModelAggregateEquivalence.AssembleAccumulatesRatherThanAssigns
+219/400 Test #1419: NlpModelAggregateEquivalence.GradientAndJacobiansFillsTheGradientArenaAndBothJacobianClaims ....................   Passed    0.01 sec
+        Start 1423: NlpModelAggregateBoundary.RefusesAGradientArenaSizedOtherThanTheLaidWidth
+220/400 Test #1420: NlpModelAggregateEquivalence.ConstraintJacobiansOnlyFillsTheJacobianClaimsAndLeavesTheGradientArenaUntouched ...   Passed    0.01 sec
+        Start 1424: NlpModelAggregateBoundary.RefusesAKktTableThatDoesNotCoverTheClaimStream
+221/400 Test #1421: NlpModelAggregateEquivalence.ClaimsLandWhereTheTableSendsThemUnderEitherOrder ..................................   Passed    0.01 sec
+        Start 1425: NlpModelAggregateBoundary.RefusesAModelWhoseSparsityPatternCollapses
+222/400 Test #1422: NlpModelAggregateEquivalence.AssembleAccumulatesRatherThanAssigns ..............................................   Passed    0.01 sec
+        Start 1426: NlpModelAggregateBoundary.RefusesAReturnWhosePatternMovesAtTheSameCount
+223/400 Test #1423: NlpModelAggregateBoundary.RefusesAGradientArenaSizedOtherThanTheLaidWidth ......................................   Passed    0.01 sec
+        Start 1427: NlpModelAggregateBoundary.RefusesAReturnThatPresentsItsElementsInAnotherOrder
+224/400 Test #1424: NlpModelAggregateBoundary.RefusesAKktTableThatDoesNotCoverTheClaimStream .......................................   Passed    0.01 sec
+        Start 1428: NlpModelAggregateBoundary.RefusesAModelWhoseSparseBlockIsNotTheShapeItDeclares
+225/400 Test #1425: NlpModelAggregateBoundary.RefusesAModelWhoseSparsityPatternCollapses ...........................................   Passed    0.01 sec
+        Start 1429: NlpModelAggregateBoundary.RefusesADimensionThatChangesAfterTheClaimPass
+226/400 Test #1426: NlpModelAggregateBoundary.RefusesAReturnWhosePatternMovesAtTheSameCount ........................................   Passed    0.01 sec
+        Start 1430: NlpModelAggregateBoundary.RefusesASparsityPatternThatGrowsAfterTheClaimPass
+227/400 Test #1427: NlpModelAggregateBoundary.RefusesAReturnThatPresentsItsElementsInAnotherOrder ..................................   Passed    0.01 sec
+        Start 1431: NlpModelAggregateBoundary.RefusesAHessianEntryBelowTheDiagonal
+228/400 Test #1428: NlpModelAggregateBoundary.RefusesAModelWhoseSparseBlockIsNotTheShapeItDeclares .................................   Passed    0.01 sec
+        Start 1432: NlpModelAggregateBoundary.RefusesADeclarationWhoseBoundsIntersectToNothing
+229/400 Test #1429: NlpModelAggregateBoundary.RefusesADimensionThatChangesAfterTheClaimPass ........................................   Passed    0.01 sec
+        Start 1433: StructureEpochType.DefaultsToNothingLaidYet
+230/400 Test #1430: NlpModelAggregateBoundary.RefusesASparsityPatternThatGrowsAfterTheClaimPass ....................................   Passed    0.01 sec
+        Start 1434: StructureEpochType.ComparesByValueOnly
+231/400 Test #1431: NlpModelAggregateBoundary.RefusesAHessianEntryBelowTheDiagonal .................................................   Passed    0.01 sec
+        Start 1435: StructureEpochCounterTest.StartsBeforeTheFirstLayout
+232/400 Test #1432: NlpModelAggregateBoundary.RefusesADeclarationWhoseBoundsIntersectToNothing .....................................   Passed    0.01 sec
+        Start 1436: StructureEpochCounterTest.FirstBumpLandsOnOne
+233/400 Test #1433: StructureEpochType.DefaultsToNothingLaidYet ....................................................................   Passed    0.01 sec
+        Start 1437: StructureEpochCounterTest.BumpIsMonotoneAcrossManyCalls
+234/400 Test #1434: StructureEpochType.ComparesByValueOnly .........................................................................   Passed    0.01 sec
+        Start 1438: StructureEpochCounterTest.CurrentDoesNotAdvanceTheCounter
+235/400 Test #1435: StructureEpochCounterTest.StartsBeforeTheFirstLayout ...........................................................   Passed    0.01 sec
+        Start 1439: StructureEpochCounterTest.StructuresPublishedBeforeABumpAreVisibleAfterIt
+236/400 Test #1436: StructureEpochCounterTest.FirstBumpLandsOnOne ..................................................................   Passed    0.01 sec
+        Start 1440: StructureEpochCounterTest.ConcurrentReadsNeverObserveARegression
+237/400 Test #1437: StructureEpochCounterTest.BumpIsMonotoneAcrossManyCalls ........................................................   Passed    0.01 sec
+        Start 1441: AggregateEpochContract.TheFirstLayoutLeavesTheNothingLaidYetValue
+238/400 Test #1438: StructureEpochCounterTest.CurrentDoesNotAdvanceTheCounter ......................................................   Passed    0.01 sec
+        Start 1442: AggregateEpochContract.ARelayIsVisibleBeforeAnyEvaluationOfTheNewStructures
+239/400 Test #1439: StructureEpochCounterTest.StructuresPublishedBeforeABumpAreVisibleAfterIt ......................................   Passed    0.01 sec
+        Start 1443: AggregateEpochContract.PartitionRenegotiationBumpsEvenWithUnchangedClaims
+240/400 Test #1440: StructureEpochCounterTest.ConcurrentReadsNeverObserveARegression ...............................................   Passed    0.01 sec
+        Start 1444: AggregateEpochContract.NegotiationReportsTheAdoptedCountNotTheRequest
+241/400 Test #1441: AggregateEpochContract.TheFirstLayoutLeavesTheNothingLaidYetValue ..............................................   Passed    0.01 sec
+        Start 1445: AggregateEpochContract.ANonPositiveNegotiationIsRefusedNotCorrected
+242/400 Test #1442: AggregateEpochContract.ARelayIsVisibleBeforeAnyEvaluationOfTheNewStructures ....................................   Passed    0.01 sec
+        Start 1446: AggregateEpochContract.ARejectedReconfigurationBumpsTheEpoch
+243/400 Test #1443: AggregateEpochContract.PartitionRenegotiationBumpsEvenWithUnchangedClaims ......................................   Passed    0.01 sec
+        Start 1447: AggregateEpochContract.RestoredStructuresAreVisibleUnderTheNewEpoch
+244/400 Test #1444: AggregateEpochContract.NegotiationReportsTheAdoptedCountNotTheRequest ..........................................   Passed    0.01 sec
+        Start 1448: AggregateEpochContract.ARematerializationFlippingFixednessBumpsTheEpoch
+245/400 Test #1445: AggregateEpochContract.ANonPositiveNegotiationIsRefusedNotCorrected ............................................   Passed    0.01 sec
+        Start 1449: AggregateEpochContract.ARematerializationInsideOneStructureStillBumpsButDoesNotRekey
+246/400 Test #1446: AggregateEpochContract.ARejectedReconfigurationBumpsTheEpoch ...................................................   Passed    0.01 sec
+        Start 1450: AggregateEpochContract.EveryStructuralEventAdvancesTheEpochOnceMore
+247/400 Test #1447: AggregateEpochContract.RestoredStructuresAreVisibleUnderTheNewEpoch ............................................   Passed    0.01 sec
+        Start 1451: ActivityTelemetry.TheFirstMajorCountsAgainstTheEmptySet
+248/400 Test #1448: AggregateEpochContract.ARematerializationFlippingFixednessBumpsTheEpoch ........................................   Passed    0.01 sec
+        Start 1452: ActivityTelemetry.OneRowEntersAndOneBoundSideLeavesReadsTwo
+249/400 Test #1449: AggregateEpochContract.ARematerializationInsideOneStructureStillBumpsButDoesNotRekey ...........................   Passed    0.01 sec
+        Start 1453: ActivityTelemetry.ASideThatSwapsLowerForUpperCountsOnce
+250/400 Test #1450: AggregateEpochContract.EveryStructuralEventAdvancesTheEpochOnceMore ............................................   Passed    0.01 sec
+        Start 1454: ActivityTelemetry.AFixedVariableIsBothSidesAndItsArrivalCountsOnce
+251/400 Test #1451: ActivityTelemetry.TheFirstMajorCountsAgainstTheEmptySet ........................................................   Passed    0.02 sec
+252/400 Test #1453: ActivityTelemetry.ASideThatSwapsLowerForUpperCountsOnce ........................................................   Passed    0.01 sec
+        Start 1455: ActivityTelemetry.AnUnchangedSetReadsZero
+        Start 1456: ActivityTelemetry.WeakActivityIsRelativeToTheLargestPriceAndInclusiveAtTheMargin
+253/400 Test #1452: ActivityTelemetry.OneRowEntersAndOneBoundSideLeavesReadsTwo ....................................................   Passed    0.02 sec
+254/400 Test #1454: ActivityTelemetry.AFixedVariableIsBothSidesAndItsArrivalCountsOnce .............................................   Passed    0.01 sec
+        Start 1457: ActivityTelemetry.NearActivityReadsTheNonnegativeSlackAndItsOwnScale
+        Start 1458: ActivityTelemetry.AnInconsistentQpProblemIsRefusedAtTheBoundary
+255/400 Test #1455: ActivityTelemetry.AnUnchangedSetReadsZero ......................................................................   Passed    0.01 sec
+        Start 1459: ActivityTelemetry.AMismatchedExportContributesZeroToItsOwnHalfOnly
+256/400 Test #1456: ActivityTelemetry.WeakActivityIsRelativeToTheLargestPriceAndInclusiveAtTheMargin ...............................   Passed    0.01 sec
+        Start 1460: ActivityTelemetry.NearActiveRowsIsNonVacuousOnAControlledSlack
+257/400 Test #1457: ActivityTelemetry.NearActivityReadsTheNonnegativeSlackAndItsOwnScale ...........................................   Passed    0.01 sec
+        Start 1461: ActivityTelemetry.WeakActiveRowsIsNonVacuousOnAControlledPrice
+258/400 Test #1458: ActivityTelemetry.AnInconsistentQpProblemIsRefusedAtTheBoundary ................................................   Passed    0.01 sec
+        Start 1462: ActivityTelemetry.EveryFieldIsZeroOnABoundOnlyQpNlpWithNoActiveBound
+259/400 Test #1459: ActivityTelemetry.AMismatchedExportContributesZeroToItsOwnHalfOnly .............................................   Passed    0.01 sec
+        Start 1463: ActivityTelemetry.TheCensusEqualsAHandCountOnHs35sActiveRow
+260/400 Test #1460: ActivityTelemetry.NearActiveRowsIsNonVacuousOnAControlledSlack .................................................   Passed    0.02 sec
+        Start 1464: ActivityTelemetry.TheCensusEqualsAHandCountOnHs45sVertex
+261/400 Test #1461: ActivityTelemetry.WeakActiveRowsIsNonVacuousOnAControlledPrice .................................................   Passed    0.02 sec
+        Start 1465: ActivityTelemetry.ARowWithNoAnswerOfItsOwnReportsZeroAndCarriesTheSetForward
+262/400 Test #1462: ActivityTelemetry.EveryFieldIsZeroOnABoundOnlyQpNlpWithNoActiveBound ...........................................   Passed    0.02 sec
+        Start 1466: ActivityTelemetry.TheFourFoldsAreTheRowsOwnSumAndPeaks
+263/400 Test #1463: ActivityTelemetry.TheCensusEqualsAHandCountOnHs35sActiveRow ....................................................   Passed    0.02 sec
+        Start 1467: ActivityTelemetry.TheTieFixtureIsFlaggedByBothReadingsForDifferentReasons
+264/400 Test #1464: ActivityTelemetry.TheCensusEqualsAHandCountOnHs45sVertex .......................................................   Passed    0.02 sec
+        Start 1468: AggregateEvalSeamIdentity.EvalNlpReproducesTheFreeFunction
+265/400 Test #1465: ActivityTelemetry.ARowWithNoAnswerOfItsOwnReportsZeroAndCarriesTheSetForward ...................................   Passed    0.02 sec
+        Start 1469: AggregateEvalSeamIdentity.EvalNlpValuesReproducesTheFreeFunction
+266/400 Test #1467: ActivityTelemetry.TheTieFixtureIsFlaggedByBothReadingsForDifferentReasons ......................................   Passed    0.02 sec
+        Start 1470: AggregateEvalSeamIdentity.RefreshDerivativesReproducesUpgradeToFull
+267/400 Test #1466: ActivityTelemetry.TheFourFoldsAreTheRowsOwnSumAndPeaks .........................................................   Passed    0.02 sec
+        Start 1471: AggregateEvalSeamIdentity.JacobiansOnlyReproducesTheProbeFetch
+268/400 Test #1468: AggregateEvalSeamIdentity.EvalNlpReproducesTheFreeFunction .....................................................   Passed    0.01 sec
+        Start 1472: AggregateEvalSeamIdentity.BuildSubproblemReproducesTheFreeFunction
+269/400 Test #1469: AggregateEvalSeamIdentity.EvalNlpValuesReproducesTheFreeFunction ...............................................   Passed    0.01 sec
+        Start 1473: AggregateEvalSeamIdentity.LaysTheDeclarationsDimensionsAndBounds
+270/400 Test #1470: AggregateEvalSeamIdentity.RefreshDerivativesReproducesUpgradeToFull ............................................   Passed    0.01 sec
+        Start 1474: AggregateEvalSeamIdentity.PublishesCompressedJacobiansWhereAModelReturnMayNotBe
+271/400 Test #1471: AggregateEvalSeamIdentity.JacobiansOnlyReproducesTheProbeFetch .................................................   Passed    0.01 sec
+        Start 1475: AggregateEvalSeamFalsification.ASwappedLocationBreaksTheHessianComparison
+272/400 Test #1473: AggregateEvalSeamIdentity.LaysTheDeclarationsDimensionsAndBounds ...............................................   Passed    0.01 sec
+        Start 1476: AggregateEvalSeamEpoch.ARenegotiationForcesARelayAndTheOutputsStillAgree
+273/400 Test #1472: AggregateEvalSeamIdentity.BuildSubproblemReproducesTheFreeFunction .............................................   Passed    0.01 sec
+        Start 1477: AggregateEvalSeamEpoch.ARelayPicksUpAClaimStreamThatActuallyChanged
+274/400 Test #1474: AggregateEvalSeamIdentity.PublishesCompressedJacobiansWhereAModelReturnMayNotBe ................................   Passed    0.01 sec
+        Start 1478: AggregateEvalSeamEpoch.AStaleEpochOverBrokenStructuresHealsAtTheNextMoment
+275/400 Test #1475: AggregateEvalSeamFalsification.ASwappedLocationBreaksTheHessianComparison ......................................   Passed    0.01 sec
+        Start 1479: AggregateEvalSeamArena.ConsecutiveEvaluationsDoNotAccumulate
+276/400 Test #1476: AggregateEvalSeamEpoch.ARenegotiationForcesARelayAndTheOutputsStillAgree .......................................   Passed    0.01 sec
+        Start 1480: AggregateEvalSeamBoundary.TwoClaimsOnOneCoordinateInADomainAreRefusedByName
+277/400 Test #1477: AggregateEvalSeamEpoch.ARelayPicksUpAClaimStreamThatActuallyChanged ............................................   Passed    0.01 sec
+        Start 1481: AggregateEvalSeamBoundary.AProviderThatClaimsNothingLaysAndPublishesEmptyBlocks
+278/400 Test #1478: AggregateEvalSeamEpoch.AStaleEpochOverBrokenStructuresHealsAtTheNextMoment .....................................   Passed    0.01 sec
+        Start 1482: AggregateEvalSeamBoundary.OverlappingClaimBlocksAreRefused
+279/400 Test #1479: AggregateEvalSeamArena.ConsecutiveEvaluationsDoNotAccumulate ...................................................   Passed    0.01 sec
+        Start 1483: AggregateEvalSeamBoundary.ClaimBlocksInAnyOrderAreServedFromTheirOwnStarts
+280/400 Test #1480: AggregateEvalSeamBoundary.TwoClaimsOnOneCoordinateInADomainAreRefusedByName ....................................   Passed    0.01 sec
+        Start 1484: AggregateEvalSeamBoundary.AnEmptyBlockNeedNotCarryTheCursorButANonEmptyOneStillMust
+281/400 Test #1481: AggregateEvalSeamBoundary.AProviderThatClaimsNothingLaysAndPublishesEmptyBlocks ................................   Passed    0.01 sec
+        Start 1485: AggregateEvalSeamBoundary.BlockMetadataNearTheTopOfTheTypeIsRefusedRatherThanWrapped
+282/400 Test #1482: AggregateEvalSeamBoundary.OverlappingClaimBlocksAreRefused .....................................................   Passed    0.01 sec
+        Start 1486: AggregateEvalSeamBoundary.AGradientRowPastItsArenaIsRefusedWhereTheTableIsBound
+283/400 Test #1483: AggregateEvalSeamBoundary.ClaimBlocksInAnyOrderAreServedFromTheirOwnStarts .....................................   Passed    0.01 sec
+        Start 1487: AggregateEvalSeamBoundary.ABundleTakenBeforeARowCountChangeIsRefused
+284/400 Test #1484: AggregateEvalSeamBoundary.AnEmptyBlockNeedNotCarryTheCursorButANonEmptyOneStillMust ............................   Passed    0.01 sec
+        Start 1488: SqpDriverEntryEquivalence.ColdArmAgreesOnF1AndF3n50
+285/400 Test #1485: AggregateEvalSeamBoundary.BlockMetadataNearTheTopOfTheTypeIsRefusedRatherThanWrapped ...........................   Passed    0.01 sec
+        Start 1489: SqpDriverEntryEquivalence.WarmArmAgreesOnF1AndF3n50
+286/400 Test #1486: AggregateEvalSeamBoundary.AGradientRowPastItsArenaIsRefusedWhereTheTableIsBound ................................   Passed    0.01 sec
+        Start 1490: B1Gate.TheMinimalModelMovesNoGatedQuantityWithP
+287/400 Test #1487: AggregateEvalSeamBoundary.ABundleTakenBeforeARowCountChangeIsRefused ...........................................   Passed    0.01 sec
+        Start 1491: B1Gate.MinimalReleaseNoLongerCertifiesTheOldPoint
+288/400 Test #1490: B1Gate.TheMinimalModelMovesNoGatedQuantityWithP ................................................................   Passed    0.01 sec
+        Start 1492: B1Gate.AFullyReleasedRowExitsWithAnExactlyZeroPrice
+289/400 Test #1488: SqpDriverEntryEquivalence.ColdArmAgreesOnF1AndF3n50 ............................................................   Passed    0.02 sec
+        Start 1493: B1Gate.ReviewSphereAgreesWithItsAnalyticPathAtEveryStepSize
+290/400 Test #1489: SqpDriverEntryEquivalence.WarmArmAgreesOnF1AndF3n50 ............................................................   Passed    0.02 sec
+        Start 1494: B1Gate.ReviewSphereContinuationSweepTracksTheTruePath
+291/400 Test #1491: B1Gate.MinimalReleaseNoLongerCertifiesTheOldPoint ..............................................................   Passed    0.02 sec
+        Start 1495: B1Gate.F6RelaxingStepsNoLongerFreezeTheObjective
+292/400 Test #1492: B1Gate.AFullyReleasedRowExitsWithAnExactlyZeroPrice ............................................................   Passed    0.01 sec
+        Start 1496: B1Gate.F6TighteningStepWasNeverExposedAndIsUnchanged
+293/400 Test #1493: B1Gate.ReviewSphereAgreesWithItsAnalyticPathAtEveryStepSize ....................................................   Passed    0.02 sec
+        Start 1497: B1Gate.TransferProducedWarmStartIsSeededAndTheB1ClearCarriesToIt
+294/400 Test #1496: B1Gate.F6TighteningStepWasNeverExposedAndIsUnchanged ...........................................................   Passed    0.02 sec
+        Start 1498: B1Gate.EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair
+295/400 Test #1494: B1Gate.ReviewSphereContinuationSweepTracksTheTruePath ..........................................................   Passed    0.03 sec
+        Start 1499: B1Gate.AZeroMajorWarmSolveWithALiveInequalityPriceStillCertifies
+296/400 Test #1495: B1Gate.F6RelaxingStepsNoLongerFreezeTheObjective ...............................................................   Passed    0.03 sec
+        Start 1500: B1Gate.TheActivityBoundaryIsFeasTolOnBothSides
+297/400 Test #1497: B1Gate.TransferProducedWarmStartIsSeededAndTheB1ClearCarriesToIt ...............................................   Passed    0.02 sec
+        Start 1501: B1Gate.SeededIngestCarriesTheB1Repair
+298/400 Test #1499: B1Gate.AZeroMajorWarmSolveWithALiveInequalityPriceStillCertifies ...............................................   Passed    0.02 sec
+        Start 1502: B1Gate.ASeededZeroMajorSolveWithALiveInequalityPriceStillCertifies
+299/400 Test #1500: B1Gate.TheActivityBoundaryIsFeasTolOnBothSides .................................................................   Passed    0.02 sec
+        Start 1503: B1Gate.AScaledStalePriceIsRefusedAtIngest
+300/400 Test #1498: B1Gate.EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair ....................................................   Passed    0.03 sec
+        Start 1504: B1Gate.TheReportedScaleIsRefusedEvenThoughTheSolveThenRunsOut
+301/400 Test #1502: B1Gate.ASeededZeroMajorSolveWithALiveInequalityPriceStillCertifies .............................................   Passed    0.01 sec
+        Start 1505: B1Gate.TheScaledStalePriceIsRefusedAtWarmToo
+302/400 Test #1503: B1Gate.AScaledStalePriceIsRefusedAtIngest ......................................................................   Passed    0.01 sec
+        Start 1506: B1Gate.TheComplementarityGateBoundaryIsKktTolOnBothSides
+303/400 Test #1505: B1Gate.TheScaledStalePriceIsRefusedAtWarmToo ...................................................................   Passed    0.02 sec
+        Start 1507: B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers
+304/400 Test #1501: B1Gate.SeededIngestCarriesTheB1Repair ..........................................................................   Passed    0.04 sec
+305/400 Test #1506: B1Gate.TheComplementarityGateBoundaryIsKktTolOnBothSides .......................................................   Passed    0.02 sec
+        Start 1508: B1Gate.MinimalReleaseNoLongerCertifiesTheOldPointUnderKSsn
+        Start 1509: B1Gate.AFullyReleasedRowExitsWithAnExactlyZeroPriceUnderKSsn
+306/400 Test #1504: B1Gate.TheReportedScaleIsRefusedEvenThoughTheSolveThenRunsOut ..................................................   Passed    0.03 sec
+        Start 1510: B1Gate.AScaledStalePriceIsRefusedAtIngestUnderKSsn
+307/400 Test #1509: B1Gate.AFullyReleasedRowExitsWithAnExactlyZeroPriceUnderKSsn ...................................................   Passed    0.01 sec
+        Start 1511: B1Gate.KSsnMatchesTheWalksComplementarityOnceTheFaceIsRefined
+308/400 Test #1508: B1Gate.MinimalReleaseNoLongerCertifiesTheOldPointUnderKSsn .....................................................   Passed    0.02 sec
+        Start 1512: B1Gate.ReviewSphereIsRepairedUnderKSsnToo
+309/400 Test #1510: B1Gate.AScaledStalePriceIsRefusedAtIngestUnderKSsn .............................................................   Passed    0.02 sec
+        Start 1513: BenchDump.OpenOutputThrowsWithFlagPathAndUsageFoldedIn
+310/400 Test #1507: B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers .......................................   Passed    0.02 sec
+        Start 1514: BenchDump.OpenOutputReturnsAWritableStreamOnAGoodPath
+311/400 Test #1513: BenchDump.OpenOutputThrowsWithFlagPathAndUsageFoldedIn .........................................................   Passed    0.01 sec
+        Start 1515: BenchDump.HeaderCarriesEveryKeyTheBridgeReads
+312/400 Test #1511: B1Gate.KSsnMatchesTheWalksComplementarityOnceTheFaceIsRefined ..................................................   Passed    0.02 sec
+        Start 1516: BenchDump.BodyIsOneComponentPerLineAndRoundTripsExactly
+313/400 Test #1514: BenchDump.OpenOutputReturnsAWritableStreamOnAGoodPath ..........................................................   Passed    0.01 sec
+314/400 Test #1512: B1Gate.ReviewSphereIsRepairedUnderKSsnToo ......................................................................   Passed    0.02 sec
+        Start 1517: BenchQpDumpV2.EveryBlockRoundTripsBitExactly
+        Start 1518: BenchQpDumpV2.ATruncatedDumpIsRefusedRatherThanReadAsValid
+315/400 Test #1515: BenchDump.HeaderCarriesEveryKeyTheBridgeReads ..................................................................   Passed    0.01 sec
+        Start 1519: BenchQpDumpV2.AWrongVersionBannerIsRefused
+316/400 Test #1516: BenchDump.BodyIsOneComponentPerLineAndRoundTripsExactly ........................................................   Passed    0.01 sec
+        Start 1520: BenchQpDumpV2.ACountThatDisagreesWithItsBlockIsRefused
+317/400 Test #1517: BenchQpDumpV2.EveryBlockRoundTripsBitExactly ...................................................................   Passed    0.01 sec
+        Start 1521: BenchQpDumpV2.AFractionalCoordinateIsRefusedRatherThanTruncated
+318/400 Test #1518: BenchQpDumpV2.ATruncatedDumpIsRefusedRatherThanReadAsValid .....................................................   Passed    0.01 sec
+        Start 1522: BenchQpDumpV2.ATrailingTripletTokenIsRefused
+319/400 Test #1519: BenchQpDumpV2.AWrongVersionBannerIsRefused .....................................................................   Passed    0.01 sec
+        Start 1523: BenchQpDumpV2.ADualBlockWidthThatContradictsTheHeaderIsRefused
+320/400 Test #1520: BenchQpDumpV2.ACountThatDisagreesWithItsBlockIsRefused .........................................................   Passed    0.01 sec
+        Start 1524: BenchQpDumpV2.AnOutOfRangeTripletIsRefused
+321/400 Test #1521: BenchQpDumpV2.AFractionalCoordinateIsRefusedRatherThanTruncated ................................................   Passed    0.01 sec
+        Start 1525: BorderOps.AddIneqRowMatchesDirect
+322/400 Test #1522: BenchQpDumpV2.ATrailingTripletTokenIsRefused ...................................................................   Passed    0.01 sec
+        Start 1526: BorderOps.DeleteK0RowMatchesDirect
+323/400 Test #1523: BenchQpDumpV2.ADualBlockWidthThatContradictsTheHeaderIsRefused .................................................   Passed    0.01 sec
+        Start 1527: BorderOps.DeleteK0RowRejectsEqualityRow
+324/400 Test #1524: BenchQpDumpV2.AnOutOfRangeTripletIsRefused .....................................................................   Passed    0.01 sec
+        Start 1528: BorderOps.DeleteK0RowRejectsOutOfRange
+325/400 Test #1526: BorderOps.DeleteK0RowMatchesDirect .............................................................................   Passed    0.01 sec
+        Start 1529: BorderOps.PinVariableMatchesEliminated
+326/400 Test #1525: BorderOps.AddIneqRowMatchesDirect ..............................................................................   Passed    0.02 sec
+327/400 Test #1527: BorderOps.DeleteK0RowRejectsEqualityRow ........................................................................   Passed    0.01 sec
+        Start 1530: BorderOps.AddThenDropRoundTrip
+        Start 1531: BorderOps.ComposedDeleteAndAddBorders
+328/400 Test #1528: BorderOps.DeleteK0RowRejectsOutOfRange .........................................................................   Passed    0.01 sec
+        Start 1532: Continuation.SweepF1CrossesActivationsWarm
+329/400 Test #1529: BorderOps.PinVariableMatchesEliminated .........................................................................   Passed    0.01 sec
+        Start 1533: Continuation.AdaptiveDpGrowsAndShrinks
+330/400 Test #1530: BorderOps.AddThenDropRoundTrip .................................................................................   Passed    0.01 sec
+        Start 1534: Continuation.PredictorOffCostsMore
+331/400 Test #1531: BorderOps.ComposedDeleteAndAddBorders ..........................................................................   Passed    0.01 sec
+        Start 1535: Continuation.TwoParameterSweepFollowsTheDirection
+332/400 Test #1532: Continuation.SweepF1CrossesActivationsWarm .....................................................................   Passed    0.02 sec
+        Start 1536: Continuation.DegradedPredictionsAreCountedNotHidden
+333/400 Test #1533: Continuation.AdaptiveDpGrowsAndShrinks .........................................................................   Passed    0.02 sec
+        Start 1537: Continuation.ShrinkRetriesFromTheLastGoodWarm
+334/400 Test #1534: Continuation.PredictorOffCostsMore .............................................................................   Passed    0.02 sec
+        Start 1538: Continuation.BudgetExhaustionContinuesAtTheSameParameter
+335/400 Test #1535: Continuation.TwoParameterSweepFollowsTheDirection ..............................................................   Passed    0.02 sec
+        Start 1539: Continuation.NearEndpointFailureDoesNotRepeatTheSameProposal
+336/400 Test #1536: Continuation.DegradedPredictionsAreCountedNotHidden ............................................................   Passed    0.02 sec
+        Start 1540: Continuation.BudgetContinuationCapDemotesToAShrink
+337/400 Test #1539: Continuation.NearEndpointFailureDoesNotRepeatTheSameProposal ...................................................   Passed    0.02 sec
+        Start 1541: Continuation.ZeroLengthSweepIsJustTheColdSolve
+338/400 Test #1537: Continuation.ShrinkRetriesFromTheLastGoodWarm ..................................................................   Passed    0.02 sec
+        Start 1542: Continuation.SubnormalSegmentIsRefusedRatherThanCalledZeroLength
+339/400 Test #1540: Continuation.BudgetContinuationCapDemotesToAShrink .............................................................   Passed    0.02 sec
+        Start 1543: Continuation.FailingInitialPointIsCountedAsAFailedAttempt
+340/400 Test #1538: Continuation.BudgetExhaustionContinuesAtTheSameParameter .......................................................   Passed    0.02 sec
+        Start 1544: Continuation.ColdStepFollowsTheSameBudgetRule
+341/400 Test #1541: Continuation.ZeroLengthSweepIsJustTheColdSolve .................................................................   Passed    0.02 sec
+        Start 1545: Continuation.HealthySweepIsBitIdenticalUnderTheProbeBudget
+342/400 Test #1544: Continuation.ColdStepFollowsTheSameBudgetRule ..................................................................   Passed    0.01 sec
+        Start 1546: Continuation.GrowthSuspensionSkipsTheStepAfterAFailure
+343/400 Test #1542: Continuation.SubnormalSegmentIsRefusedRatherThanCalledZeroLength ...............................................   Passed    0.02 sec
+        Start 1547: Continuation.RejectsMismatchedDimensions
+344/400 Test #1543: Continuation.FailingInitialPointIsCountedAsAFailedAttempt ......................................................   Passed    0.02 sec
+        Start 1548: Continuation.FailedRunReturnsRatherThanThrows
+345/400 Test #1547: Continuation.RejectsMismatchedDimensions .......................................................................   Passed    0.01 sec
+        Start 1549: CorpusCells.AllIdsAreUnique
+346/400 Test #1549: CorpusCells.AllIdsAreUnique ....................................................................................   Passed    0.01 sec
+        Start 1550: CorpusCells.CensusSizeIsTheDocumentedFiftySeven
+347/400 Test #1548: Continuation.FailedRunReturnsRatherThanThrows ..................................................................   Passed    0.02 sec
+        Start 1551: CorpusCells.BuildAllCellsIsIdempotentAndDoesNotGrowTheIdPool
+348/400 Test #1550: CorpusCells.CensusSizeIsTheDocumentedFiftySeven ................................................................   Passed    0.01 sec
+        Start 1552: CorpusCells.MainGridHasEveryNWindowTaxonomyCombination
+349/400 Test #1551: CorpusCells.BuildAllCellsIsIdempotentAndDoesNotGrowTheIdPool ...................................................   Passed    0.01 sec
+        Start 1553: CorpusCells.DegenerateCellsAreExactlyTheNamedTenCitizens
+350/400 Test #1552: CorpusCells.MainGridHasEveryNWindowTaxonomyCombination .........................................................   Passed    0.01 sec
+        Start 1554: CorpusCells.HealthyControlsFlankTheFrozenCell
+351/400 Test #1553: CorpusCells.DegenerateCellsAreExactlyTheNamedTenCitizens .......................................................   Passed    0.01 sec
+        Start 1555: CorpusCells.ActivityOnlyAndFullWarmCellsHaveAProducer
+352/400 Test #1554: CorpusCells.HealthyControlsFlankTheFrozenCell ..................................................................   Passed    0.01 sec
+        Start 1556: CorpusCells.NonHoppingTaxonomiesCarryP0EqualToP
+353/400 Test #1556: CorpusCells.NonHoppingTaxonomiesCarryP0EqualToP ................................................................   Passed    0.01 sec
+        Start 1557: CorpusCells.InteriorBaselineRescoresOffline
+354/400 Test #1555: CorpusCells.ActivityOnlyAndFullWarmCellsHaveAProducer ..........................................................   Passed    0.03 sec
+        Start 1558: CorpusCells.TheWarmRowsShowThePayloadAndTheSeedReachedTheSolve
+355/400 Test #1557: CorpusCells.InteriorBaselineRescoresOffline ....................................................................   Passed    0.01 sec
+        Start 1559: CorpusCells.TheTwoPartitionRowsMatchTheirOnePartitionRows
+356/400 Test #1558: CorpusCells.TheWarmRowsShowThePayloadAndTheSeedReachedTheSolve .................................................   Passed    0.01 sec
+        Start 1560: CorpusCells.TheThreeTreatmentsAgreeOnTheDeclaredDiagnostics
+357/400 Test #1559: CorpusCells.TheTwoPartitionRowsMatchTheirOnePartitionRows ......................................................   Passed    0.01 sec
+        Start 1561: CorpusCells.TheMultiPhaseRowsCarryAPerPhaseAccountThatSums
+358/400 Test #1560: CorpusCells.TheThreeTreatmentsAgreeOnTheDeclaredDiagnostics ....................................................   Passed    0.01 sec
+        Start 1562: CorpusCells.InteriorArtifactCheckRejectsAnIncompleteArtifact
+359/400 Test #1561: CorpusCells.TheMultiPhaseRowsCarryAPerPhaseAccountThatSums .....................................................   Passed    0.01 sec
+        Start 1563: CorpusCells.InteriorArtifactCheckRejectsDuplicateAndMalformedRows
+360/400 Test #1562: CorpusCells.InteriorArtifactCheckRejectsAnIncompleteArtifact ...................................................   Passed    0.01 sec
+        Start 1564: CorpusCells.TheSingleRowInteriorModeProducesTheLegsOwnRow
+361/400 Test #1563: CorpusCells.InteriorArtifactCheckRejectsDuplicateAndMalformedRows ..............................................   Passed    0.01 sec
+        Start 1565: CorpusCellsRunner.UnknownEngineNameThrows
+362/400 Test #1565: CorpusCellsRunner.UnknownEngineNameThrows ......................................................................   Passed    0.01 sec
+        Start 1566: CorpusCellsRunner.EngineSsnSelectsTheSemismoothKernelAndNothingElse
+363/400 Test #1566: CorpusCellsRunner.EngineSsnSelectsTheSemismoothKernelAndNothingElse ............................................   Passed    0.03 sec
+        Start 1567: CorpusCellsRunner.ModelSurfaceCensusHookDefaultsOff
+364/400 Test #1567: CorpusCellsRunner.ModelSurfaceCensusHookDefaultsOff ............................................................   Passed    0.02 sec
+        Start 1568: CorpusCellsRunner.ModelSurfaceCensusHookAgreesWithRecordedResidualsWhenOn
+365/400 Test #1568: CorpusCellsRunner.ModelSurfaceCensusHookAgreesWithRecordedResidualsWhenOn ......................................   Passed    0.02 sec
+        Start 1569: CorpusCellsRunner.SsnEngineIsDeterministicOnEveryTaxonomy
+366/400 Test #1569: CorpusCellsRunner.SsnEngineIsDeterministicOnEveryTaxonomy ......................................................   Passed    0.13 sec
+        Start 1570: CorpusCellsRunner.TheRefinementsOwnFactorizationCountIsBoundedByItsAttempts
+367/400 Test #1570: CorpusCellsRunner.TheRefinementsOwnFactorizationCountIsBoundedByItsAttempts ....................................   Passed    0.07 sec
+        Start 1571: CorpusCellsRunner.AnEscapeIsReportedFromTheDriversOwnCounterAndDragsTheWalkInWithIt
+368/400 Test #1571: CorpusCellsRunner.AnEscapeIsReportedFromTheDriversOwnCounterAndDragsTheWalkInWithIt ............................   Passed    0.29 sec
+        Start 1572: CorpusCellsRunner.TheKktCheckRecordsTheRowsOwnScaleDenominators
+369/400 Test #1572: CorpusCellsRunner.TheKktCheckRecordsTheRowsOwnScaleDenominators ................................................   Passed    0.01 sec
+        Start 1573: CorpusCellsRunner.EveryRowCarriesAModelLevelKktCheckUnderBothEngines
+370/400 Test #1573: CorpusCellsRunner.EveryRowCarriesAModelLevelKktCheckUnderBothEngines ...........................................   Passed    0.03 sec
+        Start 1574: CorpusCellsRunner.BothKernelsAgreeOnTheANSWEREvenWhereTheyDisagreeOnTheCOST
+371/400 Test #1574: CorpusCellsRunner.BothKernelsAgreeOnTheANSWEREvenWhereTheyDisagreeOnTheCOST ....................................   Passed    0.03 sec
+        Start 1575: CorpusCellsRunner.WalkEngineIsDeterministic
+372/400 Test #1575: CorpusCellsRunner.WalkEngineIsDeterministic ....................................................................   Passed    0.09 sec
+        Start 1576: CorpusCellsRunner.WalkEngineNeverReportsAnEscape
+373/400 Test #1545: Continuation.HealthySweepIsBitIdenticalUnderTheProbeBudget .....................................................   Passed    0.90 sec
+        Start 1577: CorpusCellsRunner.PerQpFactorizationsMatchTheIterateHistoryExactly
+374/400 Test #1576: CorpusCellsRunner.WalkEngineNeverReportsAnEscape ...............................................................   Passed    0.06 sec
+        Start 1578: CorpusCellsRunner.SetupCompleteFiresExactlyOncePerCell
+375/400 Test #1577: CorpusCellsRunner.PerQpFactorizationsMatchTheIterateHistoryExactly .............................................   Passed    0.03 sec
+        Start 1579: CorpusCellsRunner.ActivityOnlyStartsOffTheOptimumAndCarriesAnExactActivityHint
+376/400 Test #1579: CorpusCellsRunner.ActivityOnlyStartsOffTheOptimumAndCarriesAnExactActivityHint .................................   Passed    0.02 sec
+        Start 1580: CorpusCellsRunner.ActivityOnlyResolvesInFarLessWorkThanItsMatchedPhysicsControl
+377/400 Test #1578: CorpusCellsRunner.SetupCompleteFiresExactlyOncePerCell .........................................................   Passed    0.06 sec
+        Start 1581: CorpusCellsRunner.FullWarmProducerBeatsNeutralColdOnMinors
+378/400 Test #1580: CorpusCellsRunner.ActivityOnlyResolvesInFarLessWorkThanItsMatchedPhysicsControl ................................   Passed    0.03 sec
+        Start 1582: CorpusCellsRunner.CorruptedProducerStillResolvesWarmAndConverges
+379/400 Test #1581: CorpusCellsRunner.FullWarmProducerBeatsNeutralColdOnMinors .....................................................   Passed    0.03 sec
+        Start 1583: CorpusCellsRunner.KktResidualSentinelOnEmptyHistory
+380/400 Test #1582: CorpusCellsRunner.CorruptedProducerStillResolvesWarmAndConverges ...............................................   Passed    0.03 sec
+        Start 1584: CorpusCellsRunner.FirstQpForCellMatchesBuildSubproblemOnNeutralCold
+381/400 Test #1583: CorpusCellsRunner.KktResidualSentinelOnEmptyHistory ............................................................   Passed    0.01 sec
+        Start 1585: CorpusCellsRunner.FirstQpForCellUsesTheWarmHandoffsOwnDualsOnFullWarm
+382/400 Test #1584: CorpusCellsRunner.FirstQpForCellMatchesBuildSubproblemOnNeutralCold ............................................   Passed    0.01 sec
+        Start 1586: CorpusCellsRunner.FirstQpForCellFiresSetupCompleteExactlyOnceOnEveryTaxonomy
+383/400 Test #1585: CorpusCellsRunner.FirstQpForCellUsesTheWarmHandoffsOwnDualsOnFullWarm ..........................................   Passed    0.03 sec
+        Start 1587: CorpusCellsRunner.FirstQpForCellUnrecognisedTaxonomyThrows
+384/400 Test #1586: CorpusCellsRunner.FirstQpForCellFiresSetupCompleteExactlyOnceOnEveryTaxonomy ...................................   Passed    0.03 sec
+        Start 1588: CorpusCellsRunner.MinorBudgetConstantIsFiftyThousand
+385/400 Test #1587: CorpusCellsRunner.FirstQpForCellUnrecognisedTaxonomyThrows .....................................................   Passed    0.01 sec
+        Start 1589: CorpusCellsRunner.BudgetedSolveMatchesAnExplicitDriverCallAtTheSameBudget
+386/400 Test #1588: CorpusCellsRunner.MinorBudgetConstantIsFiftyThousand ...........................................................   Passed    0.01 sec
+        Start 1590: CorpusCellsRunner.BudgetedSolveTruncatesIntoADnfRowRatherThanHanging
+387/400 Test #1590: CorpusCellsRunner.BudgetedSolveTruncatesIntoADnfRowRatherThanHanging ...........................................   Passed    0.02 sec
+        Start 1591: CorpusBudget.EveryReferenceCellGetsAtLeastThreeTimesItsCommittedRuntime
+388/400 Test #1589: CorpusCellsRunner.BudgetedSolveMatchesAnExplicitDriverCallAtTheSameBudget ......................................   Passed    0.03 sec
+        Start 1592: CorpusBudget.TheLadderIsMonotoneInNx
+389/400 Test #1591: CorpusBudget.EveryReferenceCellGetsAtLeastThreeTimesItsCommittedRuntime ........................................   Passed    0.01 sec
+        Start 1593: CorpusBudget.TheLadderMatchesItsDocumentedTiersExactly
+390/400 Test #1592: CorpusBudget.TheLadderIsMonotoneInNx ...........................................................................   Passed    0.01 sec
+        Start 1594: CorpusBudget.WallBudgetForCellUsesFiveTimesNodeCountAsNx
+391/400 Test #1593: CorpusBudget.TheLadderMatchesItsDocumentedTiersExactly .........................................................   Passed    0.01 sec
+        Start 1595: CorpusBudget.BudgetTableHashPinsTheCommittedTable
+392/400 Test #1594: CorpusBudget.WallBudgetForCellUsesFiveTimesNodeCountAsNx .......................................................   Passed    0.01 sec
+        Start 1596: CorpusRunnerProcess.WallDeadlineEmitsADnfBudgetRowWhenTheSOLVEPhaseIsForcedTiny
+393/400 Test #1595: CorpusBudget.BudgetTableHashPinsTheCommittedTable ..............................................................   Passed    0.01 sec
+        Start 1597: CorpusRunnerProcess.WallDeadlineEmitsADnfSetupRowWhenTheSETUPPhaseIsForcedTiny
+394/400 Test #1564: CorpusCells.TheSingleRowInteriorModeProducesTheLegsOwnRow ......................................................   Passed    1.01 sec
+        Start 1598: CorpusRunnerProcess.WallDeadlineDoesNotFireAtTheRealBudgetOnAFastCell
+395/400 Test #1597: CorpusRunnerProcess.WallDeadlineEmitsADnfSetupRowWhenTheSETUPPhaseIsForcedTiny .................................   Passed    0.01 sec
+        Start 1599: CorpusRunnerProcess.EveryCsvCarriesAProvenanceHeader
+396/400 Test #1599: CorpusRunnerProcess.EveryCsvCarriesAProvenanceHeader ...........................................................   Passed    0.23 sec
+        Start 1600: CorpusRunnerProcess.AForcedTestBudgetIsStampedIntoTheProvenanceHeader
+397/400 Test #1600: CorpusRunnerProcess.AForcedTestBudgetIsStampedIntoTheProvenanceHeader ..........................................   Passed    0.07 sec
+398/400 Test #1596: CorpusRunnerProcess.WallDeadlineEmitsADnfBudgetRowWhenTheSOLVEPhaseIsForcedTiny ................................   Passed    0.46 sec
+399/400 Test #1598: CorpusRunnerProcess.WallDeadlineDoesNotFireAtTheRealBudgetOnAFastCell ..........................................   Passed    1.00 sec
+400/400 Test #1546: Continuation.GrowthSuspensionSkipsTheStepAfterAFailure .........................................................   Passed  290.87 sec
+
+100% tests passed, 0 tests failed out of 400
+
+Total Test time (real) = 292.07 sec

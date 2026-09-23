@@ -1,0 +1,12 @@
+=== NON-DEBUG SECTION COMPARISON (Debug) -- FAIL-CLOSED
+DEBUG_CLASS_PREFIXES=.debug .zdebug .rela.debug .rel.debug
+BEFORE_DIR=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates/gates/psym/before-obj-Debug
+AFTER_DIR=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates/gates/psym/after-obj-Debug
+DIGEST=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates/section_digest_fix2.py
+DEBUG-ONLY       CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+SECTIONS_Debug_OBJECTS=42
+SECTIONS_Debug_BYTE_IDENTICAL=41
+SECTIONS_Debug_DEBUG_ONLY=1
+SECTIONS_Debug_NON_DEBUG_MOVERS=0
+SECTIONS_Debug_REFUSED=0
+SECTIONS_Debug_RC=0
