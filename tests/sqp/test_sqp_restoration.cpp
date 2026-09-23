@@ -1160,6 +1160,8 @@ TEST(SqpDriverRestoration, AlgebraModeDivergenceIsANonUniqueSubproblemOptimum) {
          {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
         InfeasibleCircleLineModel model;
         SqpOptions opts;
+        // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
+        opts.equality_basis = false;
         opts.max_iter = 2;
         opts.qp.ws_algebra = algebra;
         SqpSolver driver(opts);
@@ -1242,6 +1244,8 @@ TEST(SqpDriverRestoration, AlgebraModeDivergenceIsANonUniqueSubproblemOptimum) {
         SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
         InfeasibleCircleLineModel model(2.0, 1.999999);
         SqpOptions opts;
+        // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
+        opts.equality_basis = false;
         opts.max_iter = 200;
         opts.qp.ws_algebra = algebra;
         SqpSolver driver(opts);
@@ -2061,6 +2065,8 @@ TEST(SqpDriverRestorationSeed, TheExhaustedLadderSiteSeedsFromItsOwnStep) {
 TEST(SqpDriverRestorationSeed, AWorseElasticCandidateIsRefusedOnTheSameModel) {
     InfeasibleCircleLineModel model;
     SqpOptions opts;
+    // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
+    opts.equality_basis = false;
     opts.max_iter = 200;
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(model);
@@ -2186,6 +2192,8 @@ TEST(SqpDriverRestorationSeed, TheGuardAndThePhaseRunOnTheCallerScale) {
         SCOPED_TRACE(seed_mode_name(mode));
         BoxWatchingSpreadModel model;
         SqpOptions opts;
+        // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
+        opts.equality_basis = false;
         opts.max_iter = 60;
         opts.qp_mode = mode;
         opts.enable_scaling = true;
@@ -2226,6 +2234,8 @@ TEST(SqpDriverRestorationSeed, TheGuardAndThePhaseRunOnTheCallerScale) {
 TEST(SqpDriverRestorationSeed, TheSeedsEvaluationIsCountedExactlyOnce) {
     SeedCountingModel model(2.0, 2.0);
     SqpOptions opts;
+    // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
+    opts.equality_basis = false;
     opts.max_iter = 200;
     opts.qp.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
     SqpSolver driver(opts);
@@ -2432,12 +2442,16 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConverg
     InfeasibleCircleLineModel model;
 
     SqpOptions roomy;
+    // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
+    roomy.equality_basis = false;
     roomy.max_iter = 200;
     const SqpResult converged = SqpSolver(roomy).solve(model);
     ASSERT_EQ(converged.status, SolveStatus::kInfeasible);
     ASSERT_EQ(converged.counters.restoration_entries, 1);
 
     SqpOptions cramped;
+    // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
+    cramped.equality_basis = false;
     cramped.max_iter = 5;
     const SqpResult cut_off = SqpSolver(cramped).solve(model);
     ASSERT_EQ(cut_off.counters.restoration_entries, 1)
@@ -2487,6 +2501,8 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatus) 
     // ARM 1 -- requested, refused for budget, NEVER RAN.
     RunawayValleyModel valley_refused;
     SqpOptions refused;
+    // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
+    refused.equality_basis = false;
     refused.tr_init = 8.0;
     refused.max_iter = 5;
     const SqpResult never_ran = SqpSolver(refused).solve(valley_refused);
@@ -2506,6 +2522,8 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatus) 
     // as arm 1.
     RunawayValleyModel valley_resumed;
     SqpOptions resumed;
+    // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
+    resumed.equality_basis = false;
     resumed.tr_init = 8.0;
     resumed.max_iter = 10;
     const SqpResult sub_optimal = SqpSolver(resumed).solve(valley_resumed);
@@ -2521,6 +2539,8 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatus) 
     // feas_tol, so the parent reports that status as its own.
     InfeasibleCircleLineModel circle;
     SqpOptions cramped;
+    // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
+    cramped.equality_basis = false;
     cramped.max_iter = 5;
     const SqpResult sub_cut_off = SqpSolver(cramped).solve(circle);
     ASSERT_EQ(sub_cut_off.status, SolveStatus::kMaxIter);
@@ -2958,6 +2978,8 @@ TEST(SqpDriverRestorationProximity, TheZeroWeightGateNeverReadsTheBundle) {
 TEST(SqpDriverRestorationProximity, TheZeroWeightCertifiesOnAScaledSolve) {
     BoxWatchingSpreadModel model;
     SqpOptions opts;
+    // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
+    opts.equality_basis = false;
     opts.max_iter = 60;
     opts.enable_scaling = true;
     opts.restoration_proximity = 0.0; // EXPLICIT: this is the field's OFF value

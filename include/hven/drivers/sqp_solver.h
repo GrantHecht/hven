@@ -54,6 +54,9 @@ namespace hven::solvers {
 /// non-copyable and non-movable, so nothing else in this header instantiates their deleters.
 class ConsoleTraceSink;
 class FanOutTraceSink;
+namespace detail {
+class EqualityBasis;
+} // namespace detail
 
 /// @brief One model evaluation at one point: the five quantities a major
 ///        iteration reads, taken together so nothing is evaluated twice.
@@ -1373,6 +1376,9 @@ class SqpSolver {
         /// A restoration exit whose requester's QP is in the original
         /// variables and still describes x unless restoration moved it.
         kFinishRestorationQp,
+        /// A redundant equality row certified inconsistent
+        /// (SqpOptions::equality_basis): kInfeasible at the current iterate.
+        kFinishInconsistentEqualities,
     };
 
     /// @brief What the restoration phase decided.
@@ -1791,6 +1797,10 @@ class SqpSolver {
     // ones.
     double ssn_prox_center_sigma_out_ = 0.0;
     Vec ssn_prox_center_x_out_, ssn_prox_center_lambda_out_;
+    // The running solve's equality basis (SqpOptions::equality_basis), for the
+    // exports that lift a QP-sized multiplier outside `SolveState`'s reach.
+    // Non-null only inside `solve_impl_body`.
+    const detail::EqualityBasis *eq_basis_view_ = nullptr;
     // False on the driver the RESTORATION PHASE constructs for itself, which
     // bounds the recursion at one level. See the private constructor.
     bool allow_restoration_ = true;

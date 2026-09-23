@@ -61,6 +61,8 @@ TEST(EqualityBasis, U1TwoNetworksDropOneRowPerComponent) {
     EqualityBasis basis;
     basis.compute(Je, -free_box(11), free_box(11));
     ASSERT_EQ(basis.verdict(), EqualityBasisVerdict::kReduced);
+    // The full-rank Cholesky pre-check cannot settle a redundant balance row.
+    EXPECT_TRUE(basis.ran_qr());
     ASSERT_EQ(basis.dropped().size(), 2u);
     EXPECT_LT(basis.dropped()[0], 4);
     EXPECT_GE(basis.dropped()[1], 4);
@@ -210,6 +212,7 @@ TEST(EqualityBasis, U4FixedColumnsSplitTheNetworkIntoThreePieces) {
     EqualityBasis basis;
     basis.compute(Je, net.lower, net.upper);
     ASSERT_EQ(basis.verdict(), EqualityBasisVerdict::kReduced);
+    EXPECT_TRUE(basis.ran_qr());
     ASSERT_EQ(basis.dropped().size(), 3u);
 
     // Supplies balanced per piece with the fixed flows at their values.
@@ -346,10 +349,27 @@ TEST(EqualityBasis, U7DeterministicAndIdentityWhenFullRank) {
     EqualityBasis full;
     full.compute(to_sparse(F), -free_box(11), free_box(11));
     EXPECT_EQ(full.verdict(), EqualityBasisVerdict::kFullRank);
+    EXPECT_FALSE(full.ran_qr());
     EXPECT_FALSE(full.reduces());
     const Vec y(Vec::LinSpaced(3, 1.0, 2.0));
     EXPECT_EQ(full.lift(y), y);
     EXPECT_EQ(full.fold(y), y);
+    QpProblem qp;
+    qp.H = SpMatRM(11, 11);
+    qp.g = Vec::Zero(11);
+    qp.Ae = to_sparse(F);
+    qp.be = y;
+    qp.Ai = SpMatRM(0, 11);
+    qp.bi = Vec(0);
+    qp.lower = -free_box(11);
+    qp.upper = free_box(11);
+    const SpMatRM Ae_before = qp.Ae;
+    full.reduce(qp);
+    ASSERT_EQ(qp.Ae.nonZeros(), Ae_before.nonZeros());
+    EXPECT_EQ(std::memcmp(qp.Ae.valuePtr(), Ae_before.valuePtr(),
+                          sizeof(double) * static_cast<std::size_t>(qp.Ae.nonZeros())),
+              0);
+    EXPECT_EQ(std::memcmp(qp.be.data(), y.data(), sizeof(double) * 3), 0);
 }
 
 TEST(EqualityBasis, VerifyTracksTheDependencyAcrossValueChanges) {
@@ -370,6 +390,59 @@ TEST(EqualityBasis, VerifyTracksTheDependencyAcrossValueChanges) {
               EqualityBasis::hash_jacobian(to_sparse(B)));
     EXPECT_EQ(basis.group_hash(to_sparse(A), 0), basis.group_hash(to_sparse(A), 0));
     EXPECT_NE(basis.group_hash(to_sparse(A), 0), basis.group_hash(to_sparse(B), 0));
+}
+
+// The full-rank pre-check (E1 S1) on both sides of its line: a network whose
+// balance rows sum to zero fails it and the QR drops the row; the same network
+// with the redundant row removed passes it, and a banded collocation-shaped
+// Jacobian (a state recurrence per interval plus the initial conditions)
+// passes it at a size where the QR would cost the most.
+TEST(EqualityBasis, PreCheckFallsThroughOnARedundantRowAndSkipsTheQrWhenFullRank) {
+    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(4, 5);
+    add_network(A, 0, 0, {{0, 1}, {1, 2}, {2, 3}, {0, 2}, {1, 3}});
+    EqualityBasis net;
+    net.compute(to_sparse(A), -free_box(5), free_box(5));
+    EXPECT_TRUE(net.ran_qr());
+    ASSERT_EQ(net.verdict(), EqualityBasisVerdict::kReduced);
+    EXPECT_EQ(net.dropped().size(), 1u);
+
+    const Eigen::MatrixXd B = A.topRows(3);
+    EqualityBasis trimmed;
+    trimmed.compute(to_sparse(B), -free_box(5), free_box(5));
+    EXPECT_FALSE(trimmed.ran_qr());
+    EXPECT_EQ(trimmed.verdict(), EqualityBasisVerdict::kFullRank);
+
+    constexpr Index kIntervals = 400;
+    constexpr Index kStates = 3;
+    constexpr Index kControls = 2;
+    constexpr Index kPerNode = kStates + kControls;
+    const Index n = (kIntervals + 1) * kPerNode;
+    const Index me = (kIntervals + 1) * kStates;
+    const double h = 1.0 / static_cast<double>(kIntervals);
+    std::vector<Eigen::Triplet<double>> trip;
+    for (Index s = 0; s < kStates; ++s) {
+        trip.emplace_back(static_cast<int>(s), static_cast<int>(s), 1.0);
+    }
+    for (Index k = 0; k < kIntervals; ++k) {
+        for (Index s = 0; s < kStates; ++s) {
+            const auto row = static_cast<int>(kStates + k * kStates + s);
+            const Index here = k * kPerNode;
+            const Index next = (k + 1) * kPerNode;
+            trip.emplace_back(row, static_cast<int>(next + s), 1.0);
+            trip.emplace_back(row, static_cast<int>(here + s), -1.0);
+            trip.emplace_back(row, static_cast<int>(here + (s + 1) % kStates), -h);
+            trip.emplace_back(row, static_cast<int>(here + kStates + s % kControls), -h);
+        }
+    }
+    SpMatRM Je(me, n);
+    Je.setFromTriplets(trip.begin(), trip.end());
+    Je.makeCompressed();
+    EqualityBasis chain;
+    chain.compute(Je, -free_box(n), free_box(n));
+    EXPECT_FALSE(chain.ran_qr());
+    EXPECT_EQ(chain.verdict(), EqualityBasisVerdict::kFullRank);
+    EXPECT_GE(chain.min_retained_pivot(), 1e-5);
+    EXPECT_TRUE(chain.dropped().empty());
 }
 
 } // namespace

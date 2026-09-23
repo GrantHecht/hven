@@ -1121,6 +1121,20 @@ TEST(CorpusRunnerProcess, WallDeadlineDoesNotFireAtTheRealBudgetOnAFastCell) {
     std::remove(csv.c_str());
 }
 
+TEST(CorpusCellsRunner, TheFastCellsEqualitySplitNeverRunsTheSparseQr) {
+    // The in-process twin of the test above: the full-rank Cholesky pre-check
+    // settles every equality split this cell's solve computes.
+    const CorpusCell *cell = find_cell("f7_n5000_bound_neutral");
+    ASSERT_NE(cell, nullptr);
+    F7CollocationChain model = detail::make_model(*cell);
+    hven::solvers::SqpSolver driver(detail::options_for_cell(*cell));
+    const hven::solvers::SqpResult sol = detail::budgeted_solve(driver, model, model.start_point());
+    ASSERT_EQ(sol.status, hven::solvers::SolveStatus::kOptimal);
+    EXPECT_TRUE(sol.equality_basis.computed);
+    EXPECT_EQ(sol.equality_basis.qr_factorizations, 0);
+    EXPECT_TRUE(sol.equality_basis.dropped_rows.empty());
+}
+
 TEST(CorpusRunnerProcess, EveryCsvCarriesAProvenanceHeader) {
     // FIX ROUND 1 (M1). The reviewer's biggest cannot-verify on the first
     // baseline was that the CSV said nothing about which binary or which

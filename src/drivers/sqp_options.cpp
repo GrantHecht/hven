@@ -563,6 +563,7 @@ void dump_options(const SqpOptions &o, std::ostream &os) {
     kv_int(os, "qp_failure_budget", static_cast<long long>(o.qp_failure_budget));
     kv_bool(os, "qp_cap_retry", o.qp_cap_retry);
     kv_dbl(os, "restoration_proximity", o.restoration_proximity);
+    kv_bool(os, "equality_basis", o.equality_basis);
     kv_int(os, "common.threads", o.common.threads);
     kv_int(os, "common.print_level", o.common.print_level);
     kv_str(os, "common.start_level", enum_name(o.common.start_level));

@@ -114,6 +114,8 @@ SqpOptions vehicle_options(ElasticRungEngine rung = ElasticRungEngine::kWalk) {
     o.elastic_rung_engine = rung;
     o.max_iter = kMaxIter;
     o.common.threads = 1;
+    // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
+    o.equality_basis = false;
     return o;
 }
 

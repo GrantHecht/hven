@@ -876,6 +876,23 @@ struct SqpOptions {
     /// @see docs/notes/2026-09-m7-w2-m2-restoration-design.md section 3
     double restoration_proximity = 0.0;
 
+    /// AN INDEPENDENT EQUALITY BASIS (M7 W2 E1). On, the driver splits the equality
+    /// rows once per solve, at the start point, into an independent set B and a
+    /// set D dependent on it on the non-fixed columns (`detail/drivers/
+    /// equality_basis.h`), and every QP it builds -- main, SOC, elastic, and the
+    /// restoration phase's model -- carries only B with the rhs projected so the
+    /// dropped rows stay consistent. Multipliers stay full-size: the QP's are
+    /// lifted to the minimum-norm vector, external ones are folded. A redundant
+    /// row inconsistent beyond `feas_tol` at two distinct iterates with bit-
+    /// identical Jacobian values on its group exits kInfeasible. Nonlinear rows
+    /// are re-checked each major and the split is recomputed when the check or a
+    /// QP fails; three consecutive majors with a recompute switch it off for the
+    /// rest of the solve. A problem whose rows are independent (or whose spectrum
+    /// has no clear gap) drops nothing and its QPs are byte-identical to OFF.
+    /// `SqpResult::equality_basis` reports what happened.
+    /// @see docs/notes/2026-09-22-sqp-degeneracy-proposal.md
+    bool equality_basis = true;
+
     /// The options both engines share (drivers/common_options.h), at the SQP
     /// engine's own defaults -- `threads = 0` ("leave the backend alone", which
     /// is what this engine has always done; the process-wide MKL_NUM_THREADS pin
@@ -1238,6 +1255,37 @@ struct SqpScalingReport {
     double scaled_kkt_residual = std::numeric_limits<double>::quiet_NaN();
 };
 
+/// @brief SqpOptions::equality_basis's account of one solve (SqpResult::equality_basis).
+/// Row indices are the model's equality rows.
+struct SqpEqualityBasisReport {
+    /// A split was computed at least once.
+    bool computed = false;
+    /// The first split found no gap (or a reconstruction failed) and dropped nothing.
+    bool undecidable = false;
+    /// Rows dropped by the split in force at exit.
+    std::vector<Index> dropped_rows;
+    /// Largest number of rows any split dropped.
+    Index dropped_peak = 0;
+    /// Splits computed after the first one.
+    Index recomputes = 0;
+    /// Splits (a warm probe's included) that ran the sparse QR because the
+    /// full-rank Cholesky pre-check did not settle them.
+    Index qr_factorizations = 0;
+    /// Three consecutive majors recomputed; the QPs carried every row thereafter.
+    bool switched_off = false;
+    /// The row whose inconsistency was certified (the exit is kInfeasible), or -1.
+    Index inconsistent_row = -1;
+    /// Its combination gap, in the solver's units.
+    double inconsistent_gap = 0.0;
+    /// The retained rows its reconstruction uses.
+    std::vector<Index> inconsistent_support;
+    /// The two majors whose evidence certified it.
+    Index evidence_major_first = -1;
+    Index evidence_major_second = -1;
+    /// Largest |gap| of a dropped row at any major, in the solver's units.
+    double max_gap = 0.0;
+};
+
 struct SqpResult : SolveResult {
     // The base carries the ANSWER -- status, x, lambda_e, lambda_i, z, f, the
     // four shared declared diagnostics, ce/ci, iterations, wall_seconds and the
@@ -1386,6 +1434,9 @@ struct SqpResult : SolveResult {
     /// from the engine-scaled bundle, which agrees with the raw frame to
     /// ROUNDING and not bit for bit.
     bool infeasibility_certified = false;
+
+    /// What SqpOptions::equality_basis did on this solve.
+    SqpEqualityBasisReport equality_basis;
 
     /// The solve's exit state in warm_start.h's shape, for a LATER solve of a
     /// nearby problem to feed back in. Populated on EVERY exit of

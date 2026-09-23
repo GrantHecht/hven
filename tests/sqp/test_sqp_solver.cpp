@@ -10726,6 +10726,8 @@ TEST(SqpDriverCertifiedFallback, T7TheEscapeBranchTernaryCONSUMESAnAttachedRepor
     // run_elastic_ladder: the two ENTERED rung As charge two, and a ternary that re-ran the
     // ladder instead of consuming the report would charge three.
     SqpOptions opts;
+    // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
+    opts.equality_basis = false;
     opts.qp_mode = QpMode::kIpm;
     opts.max_iter = 60;
     W2T7ScaledInconsistentEqualitiesModel model(1.0e8, 1.0, 2.5);
@@ -11197,6 +11199,8 @@ TEST(SqpDriverCertifiedFallback, T7TheAttachedReportsRestorationOfferIsATROUNDIN
     // take REFUSES the seed in Debug, so "no config-stable take" is 3 of 3, and the offers differ
     // between configs at the last bits (1.006140e-16 against 4.510281e-17) -- the mechanism.
     SqpOptions opts;
+    // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
+    opts.equality_basis = false;
     opts.qp_mode = QpMode::kIpm;
     opts.max_iter = 60;
     W2T7ScaledInconsistentEqualitiesModel model(1.0e8, 1.0, 2.5);
@@ -11231,6 +11235,8 @@ TEST(SqpDriverCertifiedFallback, T7F1TheSameInconsistentLinearizationInAllThreeM
         {QpMode::kWalk, "walk", {}}, {QpMode::kSsn, "ssn", {}}, {QpMode::kIpm, "ipm", {}}};
     for (Arm &arm : arms) {
         SqpOptions opts;
+        // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
+        opts.equality_basis = false;
         opts.qp_mode = arm.mode;
         opts.max_iter = 60;
         W2T7ScaledInconsistentEqualitiesModel model(1.0e2, 2.0, 0.5);
@@ -11301,6 +11307,8 @@ TEST(SqpDriverCertifiedFallback, T7F1TheSameInconsistentLinearizationInAllThreeM
 TEST(SqpDriverCertifiedFallback, T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearization) {
     auto run = [](ElasticRungEngine rung) {
         SqpOptions opts;
+        // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
+        opts.equality_basis = false;
         opts.qp_mode = QpMode::kIpm;
         opts.elastic_rung_engine = rung;
         opts.max_iter = 60;
@@ -11356,6 +11364,31 @@ TEST(SqpDriverCertifiedFallback, T3TheTierSolvedRungReachesTheSameVerdictOnTheSa
     RecordProperty("walk_rung_b_entries", static_cast<int>(w.ipqp_fallback_rung_b));
     RecordProperty("walk_factorizations", static_cast<int>(w.factorizations));
     RecordProperty("tier_factorizations", static_cast<int>(e.factorizations));
+}
+// THE PRODUCTION PATH on the movers' premise (M7 W2 E1 S3): the tests above turn the equality
+// basis OFF because their inconsistency is a dependent row pair. With it ON (the default) the
+// pair is split at x0, the dropped row's combination gap (4 s) is read at two distinct iterates
+// with identical Jacobian values, and the exit is the basis's certified kInfeasible -- in every
+// QP mode, without the elastic ladder the OFF path climbs.
+TEST(SqpDriverCertifiedFallback, E1TheDependentInconsistentPairIsCertifiedByTheEqualityBasis) {
+    for (QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpm}) {
+        SCOPED_TRACE(static_cast<int>(mode));
+        SqpOptions opts;
+        opts.qp_mode = mode;
+        opts.max_iter = 60;
+        W2T7ScaledInconsistentEqualitiesModel model(1.0e2, 2.0, 0.5);
+        const SqpResult sol = SqpSolver(opts).solve(model);
+        EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
+        const SqpEqualityBasisReport &rep = sol.equality_basis;
+        EXPECT_TRUE(rep.computed);
+        ASSERT_EQ(rep.dropped_rows.size(), 1u);
+        EXPECT_EQ(rep.inconsistent_row, rep.dropped_rows[0]);
+        EXPECT_NEAR(std::abs(rep.inconsistent_gap), 4.0e2, 1e-9);
+        EXPECT_EQ(rep.inconsistent_support.size(), 1u);
+        EXPECT_GE(rep.evidence_major_first, 0);
+        EXPECT_GT(rep.evidence_major_second, rep.evidence_major_first);
+        EXPECT_EQ(sol.counters.elastic_activations, 0);
+    }
 }
 
 HVEN_SUPPRESS_DEPRECATED_END

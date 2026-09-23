@@ -71,6 +71,7 @@ set(HVEN_SQP_TEST_SOURCES
     test_scale_problems.cpp
     test_scale_smoke.cpp
     test_schur.cpp
+    test_sqp_equality_basis.cpp
     test_sqp_solver.cpp
     test_sqp_restoration.cpp
     test_sqp_warm_currency.cpp

@@ -581,6 +581,10 @@ TEST(F7ColdScaleSmoke, EmptyWindowColdSolveAtTenThousandVariables) {
     EXPECT_EQ(sol.counters.rejected_steps, 0);
     EXPECT_EQ(sol.counters.elastic_activations, 0);
     EXPECT_EQ(sol.counters.restoration_iters, 0);
+    // The equality split is settled by the full-rank Cholesky pre-check: no sparse QR.
+    EXPECT_TRUE(sol.equality_basis.computed);
+    EXPECT_EQ(sol.equality_basis.qr_factorizations, 0);
+    EXPECT_TRUE(sol.equality_basis.dropped_rows.empty());
 
     RecordProperty(
         "wall_ms",

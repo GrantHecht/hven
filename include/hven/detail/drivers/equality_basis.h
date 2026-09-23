@@ -13,7 +13,15 @@
 // tau_lo, (ii) every retained pivot is at least tau_hi = gap_ratio * tau_lo,
 // and (iii) every dropped row reconstructs from B to tau_lo with a bounded
 // equilibrated coefficient; otherwise nothing is dropped (kUndecidable).
-// Rows empty on F are dropped with a zero coefficient column.
+// Rows empty on F are dropped with a zero coefficient column. A sparse Cholesky
+// of the equilibrated Gram matrix runs first: when every pivot clears
+// max(1e-5, 10 tau_hi) the rows are independent and the QR is skipped (the
+// pre-check can only drop fewer rows, never more).
+//
+// The Eigen factorizations (SimplicialLLT, SparseQR) are the SCAFFOLD oracle,
+// behind one internal seam in equality_basis.cpp. The production oracle is
+// registered as E1b: a pivoted LDL^T of the equilibrated Gram matrix through
+// hven::linear, null vectors naming the dependent rows, verify() as the guarantee.
 //
 // C is stored in the units of the Je it was computed from. With
 // N = [-C; I] (rows B then D), Je(:,F)^T N = 0 and
@@ -86,8 +94,11 @@ class EqualityBasis {
     const Eigen::SparseMatrix<double> &coefficients() const;
     double tau_lo() const;
     double tau_hi() const;
-    /// Smallest retained |R_kk| (+inf when no pivot was formed).
+    /// Smallest retained |R_kk|, or the pre-check's smallest Cholesky pivot
+    /// (+inf when no pivot was formed).
     double min_retained_pivot() const;
+    /// Whether the last compute() ran the sparse QR (the pre-check did not settle it).
+    bool ran_qr() const;
     /// Largest accepted backward residual, equilibrated units.
     double max_backward_residual() const;
     /// Largest |C~| over the dropped rows, equilibrated units.

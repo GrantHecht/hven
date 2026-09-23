@@ -54,7 +54,7 @@ using hven::solvers::SqpOptions;
 //
 // IpmOptions' 63 on Linux/Windows are 61 scalars/enums, plus `common` (ONE
 // initializer, the nested CommonOptions) and `phases` (the one sequence).
-// SqpOptions' 31 count `qp`, `ipqp` and `common` as one each.
+// SqpOptions' 32 count `qp`, `ipqp` and `common` as one each.
 //
 // IPMOPTIONS' FIELD COUNT IS PLATFORM-DEPENDENT and this is not a rounding
 // detail: `accel_pivot_tolerance` and `accel_zero_tolerance` are declared
@@ -69,7 +69,7 @@ constexpr std::size_t kIpmOptionsFields = 65;
 #else
 constexpr std::size_t kIpmOptionsFields = 63;
 #endif
-constexpr std::size_t kSqpOptionsFields = 31;
+constexpr std::size_t kSqpOptionsFields = 32;
 constexpr std::size_t kIpqpOptionsFields = 22;
 constexpr std::size_t kQpOptionsFields = 9;
 constexpr std::size_t kCommonOptionsFields = 3;
@@ -127,7 +127,9 @@ static_assert(sizeof(SqpOptions) == 416,
               "`qp_cap_retry` (offset 384) leaves -- it lands at 392, `common` moves to "
               "400-412, and the struct's own 8-alignment rounds 412 up. Observed here, on "
               "this platform, the way every value on this axis is: the design page's "
-              "arithmetic said 408 and the compiler is the authority.");
+              "arithmetic said 408 and the compiler is the authority. UNCHANGED at M7 W2 E1, "
+              "whose `equality_basis` bool fits the padding after `restoration_proximity` "
+              "(the size observed; the offsets not).");
 static_assert(sizeof(IpqpOptions) == 152, "IpqpOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(QpOptions) == 72, "QpOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(CommonOptions) == 12, "CommonOptions' layout moved on Linux x86-64.");
@@ -139,19 +141,20 @@ static_assert(sizeof(CommonOptions) == 12, "CommonOptions' layout moved on Linux
 // IpmOptions: 62 own lines (the 63 fields less `common`, which is nested) plus
 // CommonOptions' 3 = 65 -- and 67 on an Accelerate build, where the two
 // `accel_*` fields exist and the dump prints them.
-// SqpOptions: 28 own lines (the 31 fields less `qp`, `ipqp` and `common`) plus
-// QpOptions' 9, IpqpOptions' 22 and CommonOptions' 3 = 62. (22 own lines and 56
+// SqpOptions: 29 own lines (the 32 fields less `qp`, `ipqp` and `common`) plus
+// QpOptions' 9, IpqpOptions' 22 and CommonOptions' 3 = 63. (22 own lines and 56
 // before M7 W0 T3 added `elastic_rung_engine`; 23 and 57 before M7 W0 T4 added
 // `ipqp_reseed_after_disproval`; 24 and 58 before M7 W2 M4 added
 // `project_start_point`; 25 and 59 before M7 W2 M1 added `qp_failure_budget`
-// and `qp_cap_retry`; 27 and 61 before M7 W2 M2b added `restoration_proximity`.)
+// and `qp_cap_retry`; 27 and 61 before M7 W2 M2b added `restoration_proximity`;
+// 28 and 62 before M7 W2 E1 added `equality_basis`.)
 // ---------------------------------------------------------------------------
 #ifdef USE_ACCELERATE_SPARSE
 constexpr int kIpmDumpLines = 67;
 #else
 constexpr int kIpmDumpLines = 65;
 #endif
-constexpr int kSqpDumpLines = 62;
+constexpr int kSqpDumpLines = 63;
 
 int count_lines(const std::string &text) {
     int n = 0;

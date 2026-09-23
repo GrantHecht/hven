@@ -39,6 +39,8 @@
 // complete.
 #include <hven/drivers/console_trace_sink.h>
 
+#include <hven/detail/drivers/equality_basis.h>
+
 namespace hven::solvers {
 
 namespace {
@@ -2684,6 +2686,200 @@ SqpResult SqpSolver::solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &bridge
     return out;
 }
 
+namespace {
+
+// SqpOptions::equality_basis's per-solve state. `basis` is always sized to the
+// model's `me` (the identity when the option is off or nothing is dropped).
+struct EqualityBasisState {
+    struct Evidence {
+        bool valid = false;
+        std::uint64_t group = 0;
+        std::uint64_t x = 0;
+        Index major = -1;
+    };
+    bool on = false;
+    detail::EqualityBasis basis;
+    Index streak = 0;
+    Index last_recompute_major = -1;
+    std::vector<Evidence> evidence; // |D|, the inconsistency evidence per dropped row
+    Vec gap;
+    std::vector<detail::EqualityGapBand> band;
+};
+
+struct EqualitySplit {
+    std::vector<Index> dropped;
+    Eigen::SparseMatrix<double> C;
+};
+
+EqualitySplit snapshot_split(const detail::EqualityBasis &b) {
+    return {b.dropped(), b.coefficients()};
+}
+
+bool same_split(const EqualitySplit &a, const detail::EqualityBasis &b) {
+    const Eigen::SparseMatrix<double> &cb = b.coefficients();
+    if (a.dropped != b.dropped() || a.C.rows() != cb.rows() || a.C.cols() != cb.cols() ||
+        a.C.nonZeros() != cb.nonZeros()) {
+        return false;
+    }
+    const auto nnz = static_cast<std::size_t>(cb.nonZeros());
+    const auto cols = static_cast<std::size_t>(cb.cols()) + 1;
+    return std::equal(a.C.outerIndexPtr(), a.C.outerIndexPtr() + cols, cb.outerIndexPtr()) &&
+           std::equal(a.C.innerIndexPtr(), a.C.innerIndexPtr() + nnz, cb.innerIndexPtr()) &&
+           std::equal(a.C.valuePtr(), a.C.valuePtr() + nnz, cb.valuePtr());
+}
+
+std::uint64_t hash_values(const Vec &v) {
+    std::uint64_t h = 14695981039346656037ULL;
+    const auto *bytes = reinterpret_cast<const unsigned char *>(v.data());
+    const std::size_t len = sizeof(double) * static_cast<std::size_t>(v.size());
+    for (std::size_t i = 0; i < len; ++i) {
+        h ^= bytes[i];
+        h *= 1099511628211ULL;
+    }
+    return h;
+}
+
+// A fresh split at `Je`; the first one of a solve is not a recompute.
+void recompute_equality_basis(EqualityBasisState &eb, SqpEqualityBasisReport &rep,
+                              const SpMatRM &Je, const Vec &lower, const Vec &upper, Index major) {
+    detail::EqualityBasis next;
+    next.compute(Je, lower, upper);
+    if (next.ran_qr()) {
+        ++rep.qr_factorizations;
+    }
+    if (!rep.computed) {
+        rep.computed = true;
+        rep.undecidable = next.verdict() == detail::EqualityBasisVerdict::kUndecidable;
+    } else {
+        ++rep.recomputes;
+        eb.streak = eb.last_recompute_major == major - 1 ? eb.streak + 1 : 1;
+        eb.last_recompute_major = major;
+    }
+    eb.basis = std::move(next);
+    eb.evidence.assign(eb.basis.dropped().size(), EqualityBasisState::Evidence{});
+    rep.dropped_rows = eb.basis.dropped();
+    rep.dropped_peak = std::max(rep.dropped_peak, static_cast<Index>(rep.dropped_rows.size()));
+}
+
+// Three consecutive majors with a recompute: the QPs carry every row thereafter.
+void maybe_switch_off_equality_basis(EqualityBasisState &eb, SqpEqualityBasisReport &rep,
+                                     Index me) {
+    if (eb.streak < 3) {
+        return;
+    }
+    eb.on = false;
+    eb.basis.reset(me);
+    eb.evidence.clear();
+    rep.switched_off = true;
+    rep.dropped_rows.clear();
+}
+
+struct EqualityRefresh {
+    bool split_changed = false; // the QP's equality block differs from the previous split's
+    bool certified = false;     // an inconsistency is certified (the report names it)
+};
+
+// The per-major check at a new iterate: re-verify a reducing split when Je's
+// values moved, recompute when the check fails, then read the gaps and look for
+// two-iterate evidence of an inconsistent redundant row.
+EqualityRefresh refresh_equality_basis(EqualityBasisState &eb, SqpEqualityBasisReport &rep,
+                                       const NlpEval &ev, const Vec &x, const Vec &lower,
+                                       const Vec &upper, double feas_tol, Index major) {
+    EqualityRefresh out;
+    if (!eb.on || !eb.basis.reduces() || !ev.all_finite || !jacobian_values_finite(ev)) {
+        return out;
+    }
+    if (eb.last_recompute_major != major &&
+        detail::EqualityBasis::hash_jacobian(ev.Je) != eb.basis.jacobian_hash() &&
+        !eb.basis.verify(ev.Je)) {
+        const EqualitySplit before = snapshot_split(eb.basis);
+        recompute_equality_basis(eb, rep, ev.Je, lower, upper, major);
+        maybe_switch_off_equality_basis(eb, rep, ev.Je.rows());
+        out.split_changed = !same_split(before, eb.basis);
+        if (!eb.basis.reduces()) {
+            return out;
+        }
+    }
+    eb.basis.read_gaps(ev.ce, ev.Je, x, feas_tol, eb.gap, eb.band);
+    const std::uint64_t xh = hash_values(x);
+    const std::vector<Index> &dropped = eb.basis.dropped();
+    for (std::size_t j = 0; j < dropped.size(); ++j) {
+        const double g = eb.gap(static_cast<Index>(j));
+        rep.max_gap = std::max(rep.max_gap, std::abs(g));
+        EqualityBasisState::Evidence &e = eb.evidence[j];
+        if (eb.band[j] != detail::EqualityGapBand::kInconsistent) {
+            e.valid = false;
+            continue;
+        }
+        const std::uint64_t gh = eb.basis.group_hash(ev.Je, static_cast<Index>(j));
+        if (e.valid && e.group == gh && e.x != xh) {
+            rep.inconsistent_row = dropped[j];
+            rep.inconsistent_gap = g;
+            rep.inconsistent_support.clear();
+            const Eigen::SparseMatrix<double> &C = eb.basis.coefficients();
+            for (Eigen::SparseMatrix<double>::InnerIterator it(C, static_cast<Index>(j)); it;
+                 ++it) {
+                rep.inconsistent_support.push_back(
+                    eb.basis.retained()[static_cast<std::size_t>(it.row())]);
+            }
+            rep.evidence_major_first = e.major;
+            rep.evidence_major_second = major;
+            out.certified = true;
+            return out;
+        }
+        if (!e.valid || e.group != gh) {
+            e = {true, gh, xh, major};
+        }
+    }
+    return out;
+}
+
+// After a retryable QP failure at an iterate whose Je moved since the split was
+// taken: one fresh split. True when the QP's equality block changes.
+bool recompute_after_qp_failure(EqualityBasisState &eb, SqpEqualityBasisReport &rep,
+                                const NlpEval &ev, const Vec &lower, const Vec &upper,
+                                Index major) {
+    if (!eb.on || eb.last_recompute_major == major || !ev.all_finite ||
+        !jacobian_values_finite(ev) ||
+        detail::EqualityBasis::hash_jacobian(ev.Je) == eb.basis.jacobian_hash()) {
+        return false;
+    }
+    const EqualitySplit before = snapshot_split(eb.basis);
+    recompute_equality_basis(eb, rep, ev.Je, lower, upper, major);
+    maybe_switch_off_equality_basis(eb, rep, ev.Je.rows());
+    return !same_split(before, eb.basis);
+}
+
+// The SOC subproblem over the retained rows: build_soc_subproblem's formula on
+// the full rows, then the same projection reduce() applies.
+QpProblem build_reduced_soc_subproblem(const detail::EqualityBasis &basis, const QpProblem &qp,
+                                       const NlpEval &ev, const NlpEval &ev_trial, const Vec &p,
+                                       const std::vector<bool> &ineq_active) {
+    NlpEval ev_b;
+    NlpEval trial_b;
+    ev_b.ce = Vec::Zero(qp.me());
+    trial_b.ce = Vec::Zero(qp.me());
+    ev_b.ci = ev.ci;
+    trial_b.ci = ev_trial.ci;
+    QpProblem soc = build_soc_subproblem(qp, ev_b, trial_b, p, ineq_active);
+    const Vec residual_e = ev_trial.ce - ev.ce - ev.Je * p;
+    soc.be = basis.reduce_rhs(-ev.ce - residual_e, ev.Je, qp.lower);
+    return soc;
+}
+
+// [lambda_e lifted to me when the split reduces, lambda_i].
+Vec prox_center_lambda(const detail::EqualityBasis *basis, const Vec &lambda_e,
+                       const Vec &lambda_i) {
+    const bool lift = basis != nullptr && basis->reduces() &&
+                      lambda_e.size() == static_cast<Index>(basis->retained().size());
+    const Vec le = lift ? basis->lift(lambda_e) : lambda_e;
+    Vec out(le.size() + lambda_i.size());
+    out << le, lambda_i;
+    return out;
+}
+
+} // namespace
+
 // ---------------------------------------------------------------------------
 // THE SOLVE-SCOPE STATE (M6 W5 T6 cut (a)). ONE instance, owned by
 // `solve_impl_body`, initialised IN PLACE by `prepare_solve` -- never a
@@ -2993,6 +3189,9 @@ struct SqpSolver::SolveState {
     // new counter would move every W4 trace golden that carries the counters
     // object.
     Index events_fired = 0;
+
+    // ---- SqpOptions::equality_basis ----------------------------------------
+    EqualityBasisState eqb;
 
     // ---- the three named sub-bundles ----------------------------------------
     RestorationExit resto;
@@ -3382,8 +3581,17 @@ void SqpSolver::prepare_solve(SolveState &st, AssemblyEvalSeam &seam, const Vec 
         // jacobians_only, which leaves a block the declaration gives no rows
         // alone, precisely as the me()/mi() guards here did).
         seam.jacobians_only(probe_ev, x0);
-        const QpProblem probe =
+        QpProblem probe =
             seam.build_subproblem(probe_ev, x0, Vec::Zero(seam.me()), Vec::Zero(seam.mi()), 1.0);
+        if (opts_.equality_basis && seam.me() > 0 && probe_ev.all_finite &&
+            jacobian_values_finite(probe_ev)) {
+            detail::EqualityBasis probe_basis;
+            probe_basis.compute(probe_ev.Je, seam.lower(), seam.upper());
+            if (probe_basis.ran_qr()) {
+                ++out.equality_basis.qr_factorizations;
+            }
+            probe_basis.reduce(probe);
+        }
         if (detail::structural_hash(probe) == warm.structure_hash) {
             resolved_level = warm.hot != nullptr ? StartLevel::kHot : StartLevel::kWarm;
         }
@@ -3630,6 +3838,17 @@ void SqpSolver::prepare_solve(SolveState &st, AssemblyEvalSeam &seam, const Vec 
     // Declared AFTER the seeded clamp so a degrade-to-kCold (which has
     // already zeroed the duals and unwound the ingest) leaves it false.
     duals_ingested = warm_ingest;
+
+    st.eqb.basis.reset(seam.me());
+    st.eqb.on = opts_.equality_basis && seam.me() > 0;
+    if (st.eqb.on && ev.all_finite && jacobian_values_finite(ev)) {
+        recompute_equality_basis(st.eqb, out.equality_basis, ev.Je, seam.lower(), seam.upper(), 0);
+        if (st.eqb.basis.reduces() && ipqp_staged_seed_.has_value() &&
+            ipqp_staged_seed_->lambda_e.size() == seam.me()) {
+            ipqp_staged_seed_->lambda_e = st.eqb.basis.fold(ipqp_staged_seed_->lambda_e);
+            ipqp_staged_seed_->lambda_est_e = Vec::Zero(ipqp_staged_seed_->lambda_e.size());
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -3777,8 +3996,8 @@ void SqpSolver::route_through_ssn_tier(SolveState &st, MajorState &mj) {
         if (sres.prox_sigma > ssn_prox_center_sigma_out_) {
             ssn_prox_center_sigma_out_ = sres.prox_sigma;
             ssn_prox_center_x_out_ = sres.x;
-            ssn_prox_center_lambda_out_ = Vec(sres.lambda_e.size() + sres.lambda_i.size());
-            ssn_prox_center_lambda_out_ << sres.lambda_e, sres.lambda_i;
+            ssn_prox_center_lambda_out_ =
+                prox_center_lambda(eq_basis_view_, sres.lambda_e, sres.lambda_i);
         }
         qs = ssn_result_to_qp_solution(sres);
         // --- TIER 3: THE STABLE-FACE REFINEMENT ----------------
@@ -4428,7 +4647,17 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     // point, and `st.x` enters it only through this displacement. See
     // restoration.h's class note for what the centre costs when the guard does
     // fire.
-    const RestorationModel feasibility(bridge.model(), *x_start, resto_ev, st.x,
+    // E1-R: the phase restores the retained rows only, so its pinned end-game
+    // cannot re-create the dependence the split removed.
+    std::optional<detail::EqualityRowSubsetModel> resto_rows;
+    if (st.eqb.basis.reduces()) {
+        resto_rows.emplace(bridge.model(), st.eqb.basis.retained());
+        resto_ev.ce = resto_rows->restrict(resto_ev.ce);
+        resto_ev.Je = resto_rows->restrict(resto_ev.Je);
+    }
+    const NlpModel &resto_base =
+        resto_rows ? static_cast<const NlpModel &>(*resto_rows) : bridge.model();
+    const RestorationModel feasibility(resto_base, *x_start, resto_ev, st.x,
                                        opts_.restoration_proximity);
     SqpOptions ropts = opts_;
     // AND THE SUB-SOLVE RUNS UNSCALED, alongside the budget_mode and
@@ -4452,6 +4681,7 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     // off is what keeps rs.status below able to stay exhaustive
     // without a reachable kBudgetExhausted arm.
     ropts.budget_mode = false;
+    ropts.equality_basis = false;
     // THE RESTORATION SUB-SOLVE RUNS THE WALK, WHATEVER THE CALLER'S
     // MODE IS. Without this line the copy above would carry `qp_mode`
     // in with everything else, so a kSsn caller would silently run
@@ -4579,6 +4809,15 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     restoration_sub_ = &sub;
     const ActiveSubGuard active_sub_guard{this};
     const SqpResult rs = sub.solve(feasibility, feasibility.start_point());
+    // The phase's equality multipliers over every model row: zero on the rows it
+    // did not carry, so J^T lambda (and the certificate below) is the phase's own.
+    Vec rs_lambda_e = rs.lambda_e;
+    if (resto_rows && rs.lambda_e.size() == resto_rows->me()) {
+        rs_lambda_e = Vec::Zero(seam.me());
+        for (std::size_t k = 0; k < st.eqb.basis.retained().size(); ++k) {
+            rs_lambda_e(st.eqb.basis.retained()[k]) = rs.lambda_e(static_cast<Index>(k));
+        }
+    }
 
     // EVERY WORK counter the sub-solve moved is folded in: the
     // work was spent (the SOC/elastic convention, ported). Its
@@ -4703,12 +4942,12 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     // zero would only suggest it might not be one.
 
     const Vec x_r = feasibility.original_x(rs.x);
-    NlpEval ev_r = x_r.allFinite() ? seam.eval_nlp(x_r, rs.lambda_e, rs.lambda_i) : NlpEval{};
+    NlpEval ev_r = x_r.allFinite() ? seam.eval_nlp(x_r, rs_lambda_e, rs.lambda_i) : NlpEval{};
     if (x_r.allFinite()) {
         ++st.out.counters.evals_full;
     }
     const SqpKkt kkt_r =
-        x_r.allFinite() ? evaluate_kkt(seam, ev_r, x_r, rs.lambda_e, rs.lambda_i, opts_.feas_tol)
+        x_r.allFinite() ? evaluate_kkt(seam, ev_r, x_r, rs_lambda_e, rs.lambda_i, opts_.feas_tol)
                         : SqpKkt{};
     if (!x_r.allFinite() || !kkt_r.finite) {
         // The restoration walked somewhere the main model cannot
@@ -4800,7 +5039,7 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     // no in-loop QpSolution (qs/seed) was ever solved at -- see
     // this flag's own declaration note.
     st.resto.moved_x = true;
-    st.lambda_e = rs.lambda_e;
+    st.lambda_e = rs_lambda_e;
     st.lambda_i = rs.lambda_i;
     // AND THEY ARRIVE ALREADY IN THE CALLER'S UNITS (M6 W0.2). The
     // sub-solve above ran with `ropts.enable_scaling = false` over the
@@ -4895,7 +5134,7 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
         // which are already taken above.
         st.resto.status = SolveStatus::kInfeasible;
         st.out.infeasibility_certified =
-            feasibility_subsolve_certifies(opts_.restoration_proximity, opts_.kkt_tol, rs.lambda_e,
+            feasibility_subsolve_certifies(opts_.restoration_proximity, opts_.kkt_tol, rs_lambda_e,
                                            rs.lambda_i, st.resto.kkt.z, [&ev_r, &seam] {
                                                NlpEval certificate_ev = ev_r;
                                                seam.to_caller_scale(certificate_ev);
@@ -5676,8 +5915,21 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
     // with the previous attempt's state and the retry charges nothing to
     // the section 6.1 ladder.
     const bool tr_shrink_retry = !st.subproblem_is_stale;
+    if (st.subproblem_is_stale && st.eqb.on) {
+        const EqualityRefresh refresh =
+            refresh_equality_basis(st.eqb, st.out.equality_basis, st.ev, st.x, seam.lower(),
+                                   seam.upper(), opts_.feas_tol, iter);
+        if (refresh.split_changed) {
+            st.have_seed = false; // sized to the previous split's rows
+        }
+        if (refresh.certified) {
+            push_history(mj.row);
+            return MajorOutcome::kFinishInconsistentEqualities;
+        }
+    }
     if (st.subproblem_is_stale) {
         st.qp = seam.build_subproblem(st.ev, st.x, st.lambda_e, st.lambda_i, 1.0);
+        st.eqb.basis.reduce(st.qp);
         st.subproblem_is_stale = false;
         st.qp_built = true;
     }
@@ -6143,6 +6395,11 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
             st.seed = std::move(mj.qs);
             st.seed.x.setZero(); // never re-center the radius; see WARM SEEDING
             st.have_seed = true;
+            if (recompute_after_qp_failure(st.eqb, st.out.equality_basis, st.ev, seam.lower(),
+                                           seam.upper(), iter)) {
+                st.subproblem_is_stale = true; // the retry rebuilds over the new split
+                st.have_seed = false;
+            }
             // THE SHRINK AND THE SEED ARE THIS MAJOR'S OWN WORK and are done
             // BEFORE the outcome leaves: the caller only advances the loop.
             return MajorOutcome::kContinue;
@@ -6220,7 +6477,10 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         // EVALUATION -- it is the RE-SOLVE below, on acceptance,
         // that costs one (see the header note's cost accounting).
         const QpProblem soc_qp =
-            build_soc_subproblem(st.qp, st.ev, mj.ev_trial, mj.qs.x, mj.qs.ineq_active);
+            st.eqb.basis.reduces()
+                ? build_reduced_soc_subproblem(st.eqb.basis, st.qp, st.ev, mj.ev_trial, mj.qs.x,
+                                               mj.qs.ineq_active)
+                : build_soc_subproblem(st.qp, st.ev, mj.ev_trial, mj.qs.x, mj.qs.ineq_active);
 
         // Warm-started from the REJECTED solve's own activity, at the
         // SAME radius -- see the note for why this is a hot start.
@@ -6396,6 +6656,12 @@ SqpResult SqpSolver::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &b
                           ? std::min<Index>(budget.max_iterations, opts_.max_iter)
                           : opts_.max_iter;
     prepare_solve(st, seam, x0, warm, std::move(strategy_in));
+    struct BasisViewGuard {
+        SqpSolver *self;
+        ~BasisViewGuard() { self->eq_basis_view_ = nullptr; }
+    };
+    eq_basis_view_ = &st.eqb.basis;
+    const BasisViewGuard basis_view_guard{this};
 
     for (Index iter = 0;; ++iter) {
         if (iter > 0 && st.rows_pushed != st.rows_at_major_entry + 1) {
@@ -6456,7 +6722,7 @@ SqpResult SqpSolver::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &b
             if (mj.soc_applied) {
                 st.x = mj.x_soc;
                 st.ev = std::move(mj.ev_soc); // already upgraded to full -- see the promotion above
-                st.lambda_e = mj.qs_soc.lambda_e;
+                st.lambda_e = st.eqb.basis.lift(mj.qs_soc.lambda_e);
                 st.lambda_i = mj.qs_soc.lambda_i;
                 st.duals_ingested = false; // re-priced by this solve's own QP
                 st.seed = std::move(mj.qs_soc);
@@ -6476,7 +6742,7 @@ SqpResult SqpSolver::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &b
                 seam.refresh_derivatives(mj.ev_trial, mj.x_trial);
                 ++st.out.counters.evals_full;
                 st.ev = std::move(mj.ev_trial);
-                st.lambda_e = mj.qs.lambda_e;
+                st.lambda_e = st.eqb.basis.lift(mj.qs.lambda_e);
                 st.lambda_i = mj.qs.lambda_i;
                 st.duals_ingested = false; // re-priced by this solve's own QP
                 st.seed = std::move(mj.qs);
@@ -6512,6 +6778,16 @@ SqpResult SqpSolver::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &b
                           : mj.interrupted_exit ? SolveStatus::kInterrupted
                                                 : SolveStatus::kMaxIter,
                           st.x, st.lambda_e, st.lambda_i, mj.kkt, mj.row.f,
+                          make_warm_start(seam, st.have_seed ? &st.seed : nullptr, st.qp,
+                                          st.qp_built, &st.ev, &st.x, st.delta, st.last_dual_mu,
+                                          opts_.qp.primal_delta, st.strategy.get(),
+                                          engine_->hot_state()),
+                          stash_declared_diagnostics(st.ev, mj.kkt, st.x, st.lambda_i, seam.lower(),
+                                                     seam.upper()));
+        case MajorOutcome::kFinishInconsistentEqualities:
+            check_major_pushed_once(iter);
+            return finish(seam, std::move(st.out), SolveStatus::kInfeasible, st.x, st.lambda_e,
+                          st.lambda_i, mj.kkt, mj.row.f,
                           make_warm_start(seam, st.have_seed ? &st.seed : nullptr, st.qp,
                                           st.qp_built, &st.ev, &st.x, st.delta, st.last_dual_mu,
                                           opts_.qp.primal_delta, st.strategy.get(),
@@ -6834,8 +7110,8 @@ bool SqpSolver::route_through_ssn_warm_grade(const QpProblem &qp, const IpqpResu
     if (sres.prox_sigma > ssn_prox_center_sigma_out_) {
         ssn_prox_center_sigma_out_ = sres.prox_sigma;
         ssn_prox_center_x_out_ = sres.x;
-        ssn_prox_center_lambda_out_ = Vec(sres.lambda_e.size() + sres.lambda_i.size());
-        ssn_prox_center_lambda_out_ << sres.lambda_e, sres.lambda_i;
+        ssn_prox_center_lambda_out_ =
+            prox_center_lambda(eq_basis_view_, sres.lambda_e, sres.lambda_i);
     }
     qs = ssn_result_to_qp_solution(sres);
     // --- TIER 3, ON THE SSN's OWN FACE -------------------------------------

@@ -19,6 +19,8 @@ namespace {
 
 constexpr double kEps = std::numeric_limits<double>::epsilon();
 constexpr double kInf = std::numeric_limits<double>::infinity();
+// The pre-screen's pivot floor on unit-norm columns (see compute()).
+constexpr double kPrescreenPivot = 1e-5;
 constexpr std::uint64_t kFnvOffset = 14695981039346656037ULL;
 constexpr std::uint64_t kFnvPrime = 1099511628211ULL;
 
@@ -31,6 +33,121 @@ void fnv_mix(std::uint64_t &h, const void *data, std::size_t len) {
 }
 
 using SpMatCM = Eigen::SparseMatrix<double>;
+
+// The seam's answer (factor_row_dependence).
+struct RowDependence {
+    bool undecidable = false;
+    std::vector<Index> retained; // columns of M, pivot order
+    std::vector<Index> dropped;  // columns of M
+    Eigen::MatrixXd coef;        // |retained| x |dropped|, equilibrated
+    double min_pivot = kInf;
+    double max_residual = 0.0;
+    double max_coef = 0.0;
+    bool ran_qr = false;
+};
+
+// THE FACTORIZATION SEAM: the only place the split's linear algebra lives.
+// M is n_free x m_ne with unit-norm columns (the equilibrated nonempty rows'
+// transposes). On success, M(:, dropped) = M(:, retained) coef with retained in
+// pivot order; `undecidable` means drop nothing. The Eigen factorizations here
+// are the SCAFFOLD oracle; the production oracle is registered as E1b.
+RowDependence factor_row_dependence(const SpMatCM &M, double tau_lo, double tau_hi,
+                                    double coef_cap) {
+    RowDependence out;
+    const Index n_free = M.rows();
+    const Index m_ne = M.cols();
+    // Full-rank pre-screen: M^T M = R^T R, so a Cholesky factor whose every
+    // diagonal clears kPrescreenPivot (far above both tau_hi and the Cholesky's
+    // own resolution) proves the nonempty rows independent without the QR. A
+    // failure or a small pivot falls through to the QR; the screen can only
+    // drop fewer rows, never more.
+    bool prescreened = false;
+    if (m_ne > 0 && n_free > 0) {
+        const SpMatCM G = SpMatCM(M.transpose()) * M;
+        Eigen::SimplicialLLT<SpMatCM> chol(G);
+        if (chol.info() == Eigen::Success) {
+            const double floor = std::max(kPrescreenPivot, 10.0 * tau_hi);
+            const Vec diag = SpMatCM(chol.matrixL()).diagonal();
+            const double dmin = m_ne > 0 ? diag.minCoeff() : kInf;
+            if (std::isfinite(dmin) && dmin >= floor) {
+                prescreened = true;
+                out.min_pivot = dmin;
+            }
+        }
+    }
+    if (!prescreened && m_ne > 0 && n_free > 0) {
+        out.ran_qr = true;
+        Eigen::SparseQR<SpMatCM, Eigen::COLAMDOrdering<int>> qr;
+        qr.setPivotThreshold(tau_lo);
+        qr.compute(M);
+        if (qr.info() != Eigen::Success) {
+            out.undecidable = true;
+        } else {
+            const Index rank = qr.rank();
+            const auto &perm = qr.colsPermutation().indices();
+            const SpMatCM &R = qr.matrixR();
+            for (Index k = 0; k < rank; ++k) {
+                double diag = 0.0;
+                for (SpMatCM::InnerIterator it(R, k); it; ++it) {
+                    if (it.row() == k) {
+                        diag = std::abs(it.value());
+                    }
+                }
+                out.min_pivot = std::min(out.min_pivot, diag);
+                out.retained.push_back(perm(k));
+            }
+            for (Index k = rank; k < m_ne; ++k) {
+                out.dropped.push_back(perm(k));
+            }
+            if (out.min_pivot < tau_hi) {
+                out.undecidable = true;
+            }
+            if (!out.undecidable && !out.dropped.empty()) {
+                const Index nd = static_cast<Index>(out.dropped.size());
+                Eigen::MatrixXd MD(n_free, nd);
+                for (Index j = 0; j < nd; ++j) {
+                    MD.col(j) = M.col(out.dropped[static_cast<std::size_t>(j)]).toDense();
+                }
+                const Eigen::MatrixXd QtMD = qr.matrixQ().adjoint() * MD;
+                out.coef = qr.matrixR()
+                               .topLeftCorner(rank, rank)
+                               .template triangularView<Eigen::Upper>()
+                               .solve(QtMD.topRows(rank));
+                SpMatCM MB(n_free, rank);
+                {
+                    std::vector<Eigen::Triplet<double>> trip;
+                    for (Index k = 0; k < rank; ++k) {
+                        for (SpMatCM::InnerIterator it(M,
+                                                       out.retained[static_cast<std::size_t>(k)]);
+                             it; ++it) {
+                            trip.emplace_back(static_cast<int>(it.row()), static_cast<int>(k),
+                                              it.value());
+                        }
+                    }
+                    MB.setFromTriplets(trip.begin(), trip.end());
+                }
+                for (Index j = 0; j < nd && !out.undecidable; ++j) {
+                    const Vec res = MD.col(j) - MB * out.coef.col(j);
+                    const double rn = res.norm();
+                    const double c1 = out.coef.col(j).lpNorm<1>();
+                    const double cinf = out.coef.col(j).lpNorm<Eigen::Infinity>();
+                    if (!std::isfinite(rn) || !std::isfinite(c1) || rn > tau_lo * (1.0 + c1) ||
+                        cinf > coef_cap) {
+                        out.undecidable = true;
+                    }
+                    out.max_residual = std::max(out.max_residual, rn);
+                    out.max_coef = std::max(out.max_coef, cinf);
+                }
+            }
+        }
+    } else if (!prescreened && m_ne > 0) {
+        // No free column: every nonempty row is empty on F. Unreachable by
+        // construction (nu > 0 needs a free entry); kept for completeness.
+        out.undecidable = true;
+    }
+
+    return out;
+}
 
 } // namespace
 
@@ -48,6 +165,7 @@ struct EqualityBasis::Impl {
     double tau_lo = 0.0;
     double tau_hi = 0.0;
     double min_pivot = kInf;
+    bool ran_qr = false;
     double max_residual = 0.0;
     double max_coef = 0.0;
     std::uint64_t hash = 0;
@@ -92,6 +210,7 @@ const Eigen::SparseMatrix<double> &EqualityBasis::coefficients() const { return 
 double EqualityBasis::tau_lo() const { return impl_->tau_lo; }
 double EqualityBasis::tau_hi() const { return impl_->tau_hi; }
 double EqualityBasis::min_retained_pivot() const { return impl_->min_pivot; }
+bool EqualityBasis::ran_qr() const { return impl_->ran_qr; }
 double EqualityBasis::max_backward_residual() const { return impl_->max_residual; }
 double EqualityBasis::max_coefficient() const { return impl_->max_coef; }
 std::uint64_t EqualityBasis::jacobian_hash() const { return impl_->hash; }
@@ -189,78 +308,15 @@ void EqualityBasis::compute(const SpMatRM &Je, const Vec &lower, const Vec &uppe
         M.makeCompressed();
     }
 
-    std::vector<Index> dropped_ne; // indices into `nonempty`
-    std::vector<Index> retained_ne;
-    Eigen::MatrixXd Ct; // rank x |dropped_ne|, equilibrated, retained in pivot order
-    bool undecidable = false;
-    if (m_ne > 0 && n_free > 0) {
-        Eigen::SparseQR<SpMatCM, Eigen::COLAMDOrdering<int>> qr;
-        qr.setPivotThreshold(b.tau_lo);
-        qr.compute(M);
-        if (qr.info() != Eigen::Success) {
-            undecidable = true;
-        } else {
-            const Index rank = qr.rank();
-            const auto &perm = qr.colsPermutation().indices();
-            const SpMatCM &R = qr.matrixR();
-            for (Index k = 0; k < rank; ++k) {
-                double diag = 0.0;
-                for (SpMatCM::InnerIterator it(R, k); it; ++it) {
-                    if (it.row() == k) {
-                        diag = std::abs(it.value());
-                    }
-                }
-                b.min_pivot = std::min(b.min_pivot, diag);
-                retained_ne.push_back(perm(k));
-            }
-            for (Index k = rank; k < m_ne; ++k) {
-                dropped_ne.push_back(perm(k));
-            }
-            if (b.min_pivot < b.tau_hi) {
-                undecidable = true;
-            }
-            if (!undecidable && !dropped_ne.empty()) {
-                const Index nd = static_cast<Index>(dropped_ne.size());
-                Eigen::MatrixXd MD(n_free, nd);
-                for (Index j = 0; j < nd; ++j) {
-                    MD.col(j) = M.col(dropped_ne[static_cast<std::size_t>(j)]).toDense();
-                }
-                const Eigen::MatrixXd QtMD = qr.matrixQ().adjoint() * MD;
-                Ct = qr.matrixR()
-                         .topLeftCorner(rank, rank)
-                         .template triangularView<Eigen::Upper>()
-                         .solve(QtMD.topRows(rank));
-                SpMatCM MB(n_free, rank);
-                {
-                    std::vector<Eigen::Triplet<double>> trip;
-                    for (Index k = 0; k < rank; ++k) {
-                        for (SpMatCM::InnerIterator it(M, retained_ne[static_cast<std::size_t>(k)]);
-                             it; ++it) {
-                            trip.emplace_back(static_cast<int>(it.row()), static_cast<int>(k),
-                                              it.value());
-                        }
-                    }
-                    MB.setFromTriplets(trip.begin(), trip.end());
-                }
-                for (Index j = 0; j < nd && !undecidable; ++j) {
-                    const Vec res = MD.col(j) - MB * Ct.col(j);
-                    const double rn = res.norm();
-                    const double c1 = Ct.col(j).lpNorm<1>();
-                    const double cinf = Ct.col(j).lpNorm<Eigen::Infinity>();
-                    if (!std::isfinite(rn) || !std::isfinite(c1) || rn > b.tau_lo * (1.0 + c1) ||
-                        cinf > tol.coef_cap) {
-                        undecidable = true;
-                    }
-                    b.max_residual = std::max(b.max_residual, rn);
-                    b.max_coef = std::max(b.max_coef, cinf);
-                }
-            }
-        }
-    } else if (m_ne > 0) {
-        // No free column: every nonempty row is empty on F. Unreachable by
-        // construction (nu > 0 needs a free entry); kept for completeness.
-        undecidable = true;
-    }
+    RowDependence dep = factor_row_dependence(M, b.tau_lo, b.tau_hi, tol.coef_cap);
+    b.ran_qr = dep.ran_qr;
+    b.min_pivot = dep.min_pivot;
+    b.max_residual = dep.max_residual;
+    b.max_coef = dep.max_coef;
+    const bool undecidable = dep.undecidable;
+    const std::vector<Index> &dropped_ne = dep.dropped; // indices into `nonempty`
+    const std::vector<Index> &retained_ne = dep.retained;
+    const Eigen::MatrixXd &Ct = dep.coef;
 
     if (undecidable) {
         b.verdict = EqualityBasisVerdict::kUndecidable;
