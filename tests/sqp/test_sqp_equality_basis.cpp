@@ -13,6 +13,7 @@
 //   F5  fixed arcs split a network into three pieces.
 //   F6  a forced restoration runs over the retained rows and the solve resumes.
 //   F7  OFF computes nothing.
+//   F8  a same-cardinality row swap drops the row-coordinate warm state (fix round 1).
 //   plus the row-subset model the restoration phase wraps.
 
 #include <cmath>
@@ -409,6 +410,82 @@ TEST(SqpEqualityBasis, F5FixedArcsSplitTheNetworkIntoThreePieces) {
     ASSERT_EQ(res.status, SolveStatus::kOptimal);
     EXPECT_EQ(res.equality_basis.dropped_rows.size(), 3u);
     EXPECT_LE(res.sqp_feasibility, 1e-6);
+}
+
+// c0 = x^2 - 1, c1 = exp(x - 1) - 1 (plus a free y): at x = 0 row 0 is empty on F
+// and is dropped with a zero column; once x moves both rows are nonzero multiples
+// of e_x and the recomputed split drops row 1 instead -- the retained row changes
+// while |B| stays 1.
+class EmptyThenDependent final : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 2; }
+    Index mi() const override { return 0; }
+    double eval_f(const Vec &x) const override {
+        return (x(0) - 2.0) * (x(0) - 2.0) + (x(1) - 1.0) * (x(1) - 1.0);
+    }
+    Vec eval_grad(const Vec &x) const override {
+        Vec g(2);
+        g << 2.0 * (x(0) - 2.0), 2.0 * (x(1) - 1.0);
+        return g;
+    }
+    Vec eval_ce(const Vec &x) const override {
+        Vec c(2);
+        c << x(0) * x(0) - 1.0, std::exp(x(0) - 1.0) - 1.0;
+        return c;
+    }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &lambda_e,
+                      const Vec &) const override {
+        SpMatRM H(2, 2);
+        const double hxx = 2.0 * obj_scale + 2.0 * lambda_e(0) + std::exp(x(0) - 1.0) * lambda_e(1);
+        std::vector<Eigen::Triplet<double>> t = {{0, 0, hxx}, {0, 1, 0.0}, {1, 1, 2.0 * obj_scale}};
+        H.setFromTriplets(t.begin(), t.end());
+        H.makeCompressed();
+        return H;
+    }
+    SpMatRM eval_jac_e(const Vec &x) const override {
+        SpMatRM J(2, 2);
+        std::vector<Eigen::Triplet<double>> t = {
+            {0, 0, 2.0 * x(0)}, {0, 1, 0.0}, {1, 0, std::exp(x(0) - 1.0)}, {1, 1, 0.0}};
+        J.setFromTriplets(t.begin(), t.end());
+        J.makeCompressed();
+        return J;
+    }
+    SpMatRM eval_jac_i(const Vec &) const override { return SpMatRM(0, 2); }
+    const Vec &lower() const override { return lo_; }
+    const Vec &upper() const override { return up_; }
+    Vec start_point() const override { return Vec::Zero(2); }
+
+  private:
+    Vec lo_ = Vec::Constant(2, -1e20);
+    Vec up_ = Vec::Constant(2, 1e20);
+};
+
+// Fix round 1, I4: a same-cardinality row swap mid-solve drops the IPQP carry
+// (and every other row-coordinate warm state) and the solve still converges.
+TEST(SqpEqualityBasis, F8SameCardinalityRowSwapDropsTheRowCarries) {
+    const EmptyThenDependent model;
+    detail::EqualityBasis at_start;
+    at_start.compute(model.eval_jac_e(model.start_point()), model.lower(), model.upper());
+    ASSERT_EQ(at_start.dropped(), std::vector<Index>({0}));
+    Vec moved(2);
+    moved << 0.5, 0.0;
+    detail::EqualityBasis at_moved;
+    at_moved.compute(model.eval_jac_e(moved), model.lower(), model.upper());
+    ASSERT_EQ(at_moved.dropped(), std::vector<Index>({1}));
+
+    for (const QpMode mode : {QpMode::kIpm, QpMode::kWalk, QpMode::kSsn}) {
+        SCOPED_TRACE(static_cast<int>(mode));
+        SqpSolver solver(opts_for(mode));
+        const SqpResult res = solver.solve(model);
+        ASSERT_EQ(res.status, SolveStatus::kOptimal);
+        EXPECT_NEAR(res.x(0), 1.0, 1e-6);
+        EXPECT_NEAR(res.x(1), 1.0, 1e-6);
+        EXPECT_GE(res.equality_basis.recomputes, 1);
+        EXPECT_GE(res.equality_basis.split_changes, 1);
+        EXPECT_EQ(res.equality_basis.inconsistent_row, -1);
+    }
 }
 
 // The parent's first judgement is kRestore; everything else is the funnel's.

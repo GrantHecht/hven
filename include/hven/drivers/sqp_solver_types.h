@@ -1266,9 +1266,12 @@ struct SqpEqualityBasisReport {
     bool switched_off = false;
     /// Splits refused because a norm, coefficient or Gram value was not finite.
     Index nonfinite_refusals = 0;
-    /// Splits refused because I + C^T C failed its conditioning bound or a solve
-    /// failed its residual check; after a mid-solve failure the QPs carry every row.
+    /// Splits refused because I + C^T C failed to factor or a solve failed its
+    /// residual check; after a mid-solve failure the QPs carry every row.
     Index gram_refusals = 0;
+    /// Majors at which the QPs' equality rows changed; each dropped the warm state
+    /// held in row coordinates (the QP seed, the IPQP carry, a staged IPQP seed).
+    Index split_changes = 0;
     /// The row whose inconsistency was certified (the exit is kInfeasible), or -1.
     Index inconsistent_row = -1;
     /// Its combination gap, in the solver's units.

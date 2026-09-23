@@ -5353,6 +5353,16 @@ void SqpSolver::push_payload_to_restoration_sub() {
 SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, AssemblyEvalSeam &seam,
                                              NlpModelAssembly &bridge, const SqpWarmStart &warm,
                                              SolveBudget budget, Index iter) {
+    // The QPs' equality rows changed (a new split, a refusal, a hand-off): every
+    // warm state held in the previous rows' coordinates is dropped.
+    auto drop_row_coordinate_carries = [this](SolveState &state) {
+        state.have_seed = false;
+        if (ipqp_engine_ != nullptr) {
+            ipqp_engine_->reset_warm_carry();
+        }
+        ipqp_staged_seed_.reset();
+        ++state.out.equality_basis.split_changes;
+    };
     // RE-TAKEN, NOT FIXED: the full-step watchdog below may restore
     // an EARLIER iterate before this pass records or tests anything,
     // and the row and the convergence test must then describe the
@@ -5951,14 +5961,14 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
     const bool tr_shrink_retry = !st.subproblem_is_stale;
     if (st.subproblem_is_stale && st.eqb.on && st.eqb.refuse_pending) {
         refuse_equality_basis(st.eqb, st.out.equality_basis, seam.me());
-        st.have_seed = false; // sized to the previous split's rows
+        drop_row_coordinate_carries(st);
     }
     if (st.subproblem_is_stale && st.eqb.on) {
         const EqualityRefresh refresh =
             refresh_equality_basis(st.eqb, st.out.equality_basis, st.ev, st.x, seam.lower(),
                                    seam.upper(), opts_.feas_tol, iter);
         if (refresh.split_changed) {
-            st.have_seed = false; // sized to the previous split's rows
+            drop_row_coordinate_carries(st);
         }
         if (refresh.certified) {
             push_history(mj.row);
@@ -5969,7 +5979,7 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         st.qp = seam.build_subproblem(st.ev, st.x, st.lambda_e, st.lambda_i, 1.0);
         if (!st.eqb.basis.reduce(st.qp)) {
             refuse_equality_basis(st.eqb, st.out.equality_basis, seam.me());
-            st.have_seed = false; // sized to the previous split's rows
+            drop_row_coordinate_carries(st);
         }
         st.subproblem_is_stale = false;
         st.qp_built = true;
@@ -6439,7 +6449,7 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
             if (recompute_after_qp_failure(st.eqb, st.out.equality_basis, st.ev, seam.lower(),
                                            seam.upper(), iter)) {
                 st.subproblem_is_stale = true; // the retry rebuilds over the new split
-                st.have_seed = false;
+                drop_row_coordinate_carries(st);
             }
             // THE SHRINK AND THE SEED ARE THIS MAJOR'S OWN WORK and are done
             // BEFORE the outcome leaves: the caller only advances the loop.
