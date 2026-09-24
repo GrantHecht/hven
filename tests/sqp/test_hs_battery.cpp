@@ -1046,8 +1046,13 @@ TEST(HsBattery, CrashBasisIsANullResultOnTheBatteryWithTwoBoundSeededExceptions)
     EXPECT_EQ(facts_off, 320);
     EXPECT_EQ(facts_on, 323);
 #else
-    EXPECT_EQ(facts_off, 267);
-    EXPECT_EQ(facts_on, 270);
+    // M7 W2 E2 fix3 (declared mover, settler S29): 267/270 -> 288/289
+    // factorizations, minors and answers unchanged. Cause: the mu-free inertia
+    // re-read (R-C') of a kWrong verdict at the start repair or the terminal
+    // check costs one or two extra eliminated factorizations per read, counted
+    // in `factorizations` whether or not the read overturns the kWrong.
+    EXPECT_EQ(facts_off, 288);
+    EXPECT_EQ(facts_on, 289);
 #endif
 }
 

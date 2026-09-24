@@ -408,6 +408,11 @@ endif()
 # source, which arms and reads it.
 target_compile_definitions(hven_qp_walk_seam_tests PRIVATE HVEN_TESTING=1)
 
+# M7 W2 E2 fix3: the E2-D4 dump fixtures (tests/qp/support/qp_dump.h loads them),
+# read in place from the tree, absolute so ctest's working directory is irrelevant.
+target_compile_definitions(hven_qp_walk_seam_tests PRIVATE
+    HVEN_QP_E2D4_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/qp/fixtures/e2-d4")
+
 target_include_directories(hven_qp_walk_seam_tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../include)
 target_link_libraries(hven_qp_walk_seam_tests PRIVATE

@@ -2733,7 +2733,12 @@ TEST(QpEngineIndefinite, T7Fix2AFailedStartRepairDoesNotRefineThroughTheProbedFa
             // pinnable candidate, so the repair probes exactly once.
             if (independent) {
                 EXPECT_GE(warm.counters.dep_pin_skips, 1);
-                EXPECT_EQ(warm.counters.factorizations, 1);
+                // M7 W2 E2 fix3 (declared mover, settler S29): 1 -> 3. The kWrong
+                // start verdict is re-read mu-free and, reading kSuspect, a second
+                // time at dual_mu (R-C'): two local eliminated factorizations.
+                EXPECT_EQ(warm.counters.factorizations, 3);
+                EXPECT_EQ(warm.counters.dep_inertia_rereads, 1);
+                EXPECT_EQ(warm.counters.dep_inertia_reread_flips, 0);
                 EXPECT_EQ(warm.counters.symbolic_analyses, 0);
             } else if (algebra == WorkingSetLinearAlgebra::kRefactorize) {
                 EXPECT_EQ(warm.counters.factorizations, 3);

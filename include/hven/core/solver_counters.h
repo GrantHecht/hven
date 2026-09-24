@@ -276,6 +276,17 @@ struct QpCounters {
     Index reentry_exemptions = 0;
     Index zero_motion_exhausted = 0; // an exempt member's multiplier is real
     Index zero_motion_cap_hits = 0;  // > 2(n + mi) releases/re-entries at one point
+
+    // E2 fix3 (the E2-D4 rules; qp_engine.h, Degeneracy).
+    // R-A: a numerical "independent" candidate test overturned by an exact
+    // structural dependency, at any growth site (add, repair pin, ride add).
+    Index dep_structural_first = 0;
+    // R-C': kWrong inertia verdicts re-read on a mu-free eliminated factor (at
+    // the start repair and the terminal check), and how many replaced the
+    // kWrong (a kOk mu-free read, or a kSuspect one confirmed by a kOk read at
+    // the pass's dual_mu).
+    Index dep_inertia_rereads = 0;
+    Index dep_inertia_reread_flips = 0;
 };
 
 /// @brief Work counters for the semismooth-Newton kernel.

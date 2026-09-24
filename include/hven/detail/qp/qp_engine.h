@@ -364,7 +364,13 @@
 // is near-singular on the pinned directions its Schur complement carries O(1)
 // rounding, the border step leaves its face, and the dependency coefficients
 // are inaccurate (rho = 1.4e-3 and 0.34 measured where the exact value is 0):
-// finding E2-F1, a limit of the border path's accuracy, not of the rule. With
+// finding E2-F1, a limit of the border path's accuracy, not of the rule.
+// E2 FIX3 (the E2-D4 rules): (R-A) an exact structural dependency decides a
+// candidate before any numerical "independent" at every growth site
+// (dep_structural_first; ws_independence.h); (R-C') a kWrong
+// inertia at the start repair or the terminal check is re-read mu-free: kOk overturns it,
+// kSuspect only with a second eliminated read at dual_mu reading kOk (dep_inertia_rereads /
+// dep_inertia_reread_flips; reread_wrong_inertia). With
 // the option off, the delta/mu regularization keeps a dependent KKT
 // factorizable and the dependent rows split the multiplier; a degenerate
 // stall is bounded by max_iter.
@@ -1384,6 +1390,28 @@ class QpEngine {
                                    detail::KktFactor &kkt, EliminatedFace &face,
                                    QpCounters &counters, detail::InertiaVerdict &verdict,
                                    const QpOptions &opts) const;
+
+    // THE MU-FREE INERTIA RE-READ (R-C', E2 fix3; E2-D4 class B; settler S26).
+    // A kWrong verdict at the start repair or the terminal check is re-read on a
+    // bound-eliminated factor of the CURRENT working set assembled with
+    // dual_mu = 0, in a local KktFactor (the pass's factor and border stack are
+    // untouched; each read is one extra factorization). THE RULE: a kOk mu-free
+    // read overturns the kWrong. A kSuspect mu-free read overturns it ONLY when
+    // a second eliminated read at the pass's own dual_mu reads kOk -- a kSuspect
+    // alone (a perturbed zero pivot at mu = 0) cannot tell a PSD-singular face
+    // from an indefinite one, so only the border path's K0 verdict is overturned
+    // there; the suspect-stall gate then decides a would-be kOptimal as for any
+    // kSuspect (correctness guard: AMuFreeSuspectReadDoesNotCertifyASaddle). Any
+    // other outcome -- a kWrong mu-free read, a kSuspect with a non-kOk second
+    // read, or a backend runtime_error -- leaves the kWrong standing. Known gap
+    // (registered): a strict local minimum whose mu-free read is kSuspect and
+    // whose dual_mu read is kWrong is not certified (ACOPR57 qp4); the honest fix
+    // is the reduced Hessian's inertia on a small face, a later round.
+    // independent_working_set only (the option-off walk is unchanged). Returns
+    // true iff the verdict was replaced (dep_inertia_rereads counts the calls
+    // that read, dep_inertia_reread_flips the replacements).
+    bool reread_wrong_inertia(const QpProblem &qp, const WorkingSet &ws, QpCounters &counters,
+                              const QpOptions &opts, detail::InertiaVerdict &verdict) const;
 
     // Border-mode counterpart of eqp_candidate (header contract, step 4):
     // bring K0's border stack in line with `ws`, rebuild K0 if that stack can

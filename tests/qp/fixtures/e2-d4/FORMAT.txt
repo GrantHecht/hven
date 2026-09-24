@@ -1,0 +1,25 @@
+E2-D4 QP dump format (D4QP v1) -- written by the scratch instrumentation in src/qp/qp_engine.cpp (QpEngine::run, just before
+the ledger record) when HVEN_D4_QPDUMP=<dir> is set and the solve ends kNumericalError or kMaxIter (HVEN_D4_DUMPALL: every solve).
+One file per solve: <cell>/qp<seq>.txt, seq in solve order within the cell run; the cell's stderr D4DUMP line (in the
+transcript) names seq, the engine solve number and the outcome, and the neighbouring D3 lines give the context (major,
+depth 0 = the primary driver / 1 = the restoration sub-driver, D3QP = a primary QP, D3RUNG = an elastic rung).
+
+Text, one item per line:
+  D4QP 1
+  dims n me mi
+  opts primal_delta dual_mu feas_tol opt_tol max_iter schur_cap schur_cond_max ws_algebra tr_radius independent threads
+        (ws_algebra 0 = kRefactorize, 1 = kSchurBorder; the engine's QpOptions as constructed)
+  overrides tr_radius primal_delta dual_mu      (SolveOverrides of this solve: tr +inf / negative = use opts)
+  warm W seed S hot H k0_reused K
+  result status=.. minors=.. facts=.. blk_term=.. cert=.. cert_rej=.. zmcap=.. zmexh=.. retreats=.. exch=.. deferred=.. undec=.. maxiter=..
+        (the in-cell outcome; QpStatus 0 optimal, 1 max_iter, 2 infeasible, 3 numerical_error)
+  vectors:  "<name> k" then k lines %.17g            g be bi lower upper [seed_x] x_final
+  matrices: "<name> rows cols nnz" then nnz lines "i j v"   H (UPPER TRIANGLE only), Ae, Ai (row-major source)
+  int vecs: "<name> k" then k lines                  [seed_bound_state seed_ineq_active] final_bound_state final_active_ineq
+        (BoundState 0 free, 1 at lower, 2 at upper, 3 fixed; final_* = the engine's INTERNAL working set at exit, TR pins included;
+         final_active_ineq lists row indices)
+The QP: min g'x + 1/2 x'Hx s.t. Ae x = be, Ai x <= bi, lower <= x <= upper (+-1e20 = none), and when the effective tr_radius is
+finite the l_inf trust region |x - x0| <= tr about x0 = clamp(seed_x or 0, lower, upper).
+Loaders: tools/d4load.py (python) and tools/replay/qp_replay.cpp (C++, re-solves on a fresh QpEngine with the dumped options,
+seed and overrides; 31/31 dumps reproduce the in-cell status and minors, 30/31 the factorizations -- ACOPR57 qp3 in-cell reused
+a hot K0).

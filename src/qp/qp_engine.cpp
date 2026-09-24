@@ -793,8 +793,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 ++counters.ws_count_violations;
             }
             // The add site exchanges rather than admits a dependent blocker,
-            // so an over-count comes only from untested growth, and the
-            // detector must find it (Debug-asserted below).
+            // so an over-count comes only from untested growth, which the
+            // detector is asked to find.
             const bool untested =
                 entry_check_pending || recheck_pending || counters.shift_adds != shift_adds_checked;
             if (untested || over) {
@@ -808,9 +808,13 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 counters.dep_uncertified_fallbacks += det.uncertified_fallback ? 1 : 0;
                 // A screen-positive set the detector did not resolve is never
                 // "independent": counted, and trimmed by count (R6).
-                // A miss here is a FINDING (the swamped-C class), not a state
-                // to trim silently; Release counts and trims it (R6).
-                assert(!over || det.found);
+                // A miss here (the detector stalls on an over-counted set) is a
+                // legitimate, COUNTED outcome, not an invariant: it is counted
+                // dep_untested_growth and trimmed by count (R6). It was
+                // Debug-asserted until E2 fix3 (settler S27): E2-D4 showed the
+                // assert firing on the ACOPR57 dumps at the pre-rule walk, i.e.
+                // it asserted a property that is not one; the count is the
+                // observation.
                 detail::EntryDetection trim;
                 if (over && !det.found) {
                     ++counters.dep_untested_growth;
@@ -852,7 +856,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         }
         const bool first_pass = start_pass;
         start_pass = false;
+        // R-C': a kWrong start verdict is re-read before it may repair.
         if (first_pass && verdict == detail::InertiaVerdict::kWrong &&
+            !reread_wrong_inertia(qp, ws, counters, eff_opts, verdict) &&
             repair_temporary_vertex(qp, ws, x, kkt, face, *border_, counters, eff_opts)) {
 #ifdef HVEN_TESTING
             walk_obs.record().action = detail::testing::QpWalkAction::kStartRepair;
@@ -1013,7 +1019,10 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     status = QpStatus::kInfeasible;
                 } else if (is_runaway(qp, x, ws, eff_opts)) {
                     status = QpStatus::kNumericalError;
-                } else if (verdict == detail::InertiaVerdict::kWrong) {
+                } else if (verdict == detail::InertiaVerdict::kWrong &&
+                           // R-C': re-read; an overturned kWrong goes on to
+                           // the suspect-stall gate below.
+                           !reread_wrong_inertia(qp, ws, counters, eff_opts, verdict)) {
                     // THE POST-PROBE RESTART (section 4b). Reaching here
                     // after a probe-driven drop means the drop exposed
                     // real negative curvature but its multiplier was zero,
@@ -2911,6 +2920,43 @@ bool QpEngine::pin_at_best_bound(const QpProblem &qp, WorkingSet &ws, Vec &x, co
     return true;
 }
 
+bool QpEngine::reread_wrong_inertia(const QpProblem &qp, const WorkingSet &ws, QpCounters &counters,
+                                    const QpOptions &opts, detail::InertiaVerdict &verdict) const {
+    if (!opts.independent_working_set || verdict != detail::InertiaVerdict::kWrong) {
+        return false;
+    }
+    ++counters.dep_inertia_rereads;
+    const auto read = [&](double mu) {
+        detail::KktFactor local(threads_);
+        EliminatedFace local_face;
+        QpOptions o = opts;
+        o.dual_mu = mu;
+        detail::InertiaVerdict v = detail::InertiaVerdict::kWrong;
+        try {
+            (void)eliminated_candidate(qp, ws, local, local_face, counters, v, o);
+        } catch (const std::runtime_error &) {
+            v = detail::InertiaVerdict::kWrong; // no read: the kWrong stands
+        }
+        return v;
+    };
+    detail::InertiaVerdict reread = read(0.0);
+    // R-C' (settler S26): a kSuspect mu-free read says nothing about the sign
+    // of the curvature -- a perturbed zero pivot at mu = 0 reads kSuspect on a
+    // genuinely indefinite face too -- so it replaces the kWrong only when the
+    // eliminated factor at the pass's own mu reads kOk (the border path's K0
+    // verdict was the untrustworthy one).
+    if (reread == detail::InertiaVerdict::kSuspect &&
+        read(opts.dual_mu) != detail::InertiaVerdict::kOk) {
+        reread = detail::InertiaVerdict::kWrong;
+    }
+    if (reread == detail::InertiaVerdict::kWrong) {
+        return false;
+    }
+    ++counters.dep_inertia_reread_flips;
+    verdict = reread;
+    return true;
+}
+
 bool QpEngine::repair_temporary_vertex(const QpProblem &qp, WorkingSet &ws, Vec &x,
                                        detail::KktFactor &kkt, EliminatedFace &face,
                                        BorderState &border, QpCounters &counters,
@@ -3056,6 +3102,17 @@ detail::DepTest QpEngine::test_candidate(const QpProblem &qp, const WorkingSet &
     }
     detail::DepTest t = detail::dependency_test(qp, ws, view, a, opts);
     ++counters.dep_tests;
+    // R-A (E2 fix3): an exact structural dependency overrules a numerical
+    // "independent" at every growth site (qp_engine.h, Degeneracy).
+    if (t.verdict == detail::DepVerdict::kIndependent) {
+        const detail::StructuralDependency sd = detail::structural_dependency(qp, ws, is_ineq, idx);
+        if (sd.found) {
+            const Index solves = t.solves;
+            t = sd.test;
+            t.solves = solves;
+            ++counters.dep_structural_first;
+        }
+    }
     // The screen alone decided, with the mandatory rows dependent: possibly a
     // false dependent (the safe direction), counted.
     if (t.screen && !(t.rho <= detail::kDepTol) && counters.mandatory_dependent_entries > 0) {

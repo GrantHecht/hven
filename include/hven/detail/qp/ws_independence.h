@@ -47,7 +47,11 @@
 // STRUCTURAL DEPENDENCY OF A CANDIDATE (E2 fix1, D3). A candidate row whose nonzeros all sit at
 // pinned columns, or a candidate pin i that completes a member row (every nonzero of the row at a
 // pinned column or at i), is dependent EXACTLY, with coefficients read off the row: rho = 0, no
-// solve. The add site uses it where the numerical test is undecidable.
+// solve. It decides FIRST (R-A, E2 fix3): every growth site's candidate test (QpEngine::
+// test_candidate: the add site, the repair pins, the ride add) replaces a numerical "independent"
+// by it when it exists (dep_structural_first) -- the numerical test admitted exact structural
+// dependencies at rho 3e-6..1e18 on DALLASM/STEENBRB (E2-D4 class F1) -- and the add site still
+// uses it where the test is undecidable (dep_structural_exact).
 
 #include <cstdint>
 #include <limits>
