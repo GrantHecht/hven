@@ -208,7 +208,10 @@ struct QpCounters {
     Index dep_undecidable = 0;
     Index entry_dependency_removals = 0;
     Index mandatory_dependent_entries = 0;
-    Index dep_recheck_removals = 0; // detector re-checks after untested growth
+    // Detector re-checks after untested growth. On the eliminated path the
+    // support carries the pins' coefficients (E2 fix1), so a dependency an
+    // optional pin creates removes that pin.
+    Index dep_recheck_removals = 0;
     Index dep_ride_declines = 0;
     Index dep_pin_skips = 0;
     Index ws_count_violations = 0; // passes with me + |W| > n (the integer screen)
@@ -223,19 +226,32 @@ struct QpCounters {
     Index ws_exchanges = 0;
     Index ws_exchanges_bound = 0;   // the blocker or the released member is a pin
     Index ws_exchanges_shifted = 0; // the released member was a shift-driven row (last resort)
-    Index dep_infeasible_certificates = 0; // verified Farkas certificate => kInfeasible
-    Index dep_certificate_rejections = 0;  // a certificate failed verification => kNumericalError
+    // A verified Farkas certificate => kInfeasible; tried whenever no member
+    // is admissible (E2 fix1: not only under cond1).
+    Index dep_infeasible_certificates = 0;
+    Index dep_certificate_rejections =
+        0; // a cond1 candidate failed verification => kNumericalError
     Index dep_passovers = 0;
     Index dep_blocker_terminations = 0; // no admissible member, no certificate, no pass-over
     // An undecidable (screen-negative, unresolved) blocker admitted with the
-    // next pass's detector as its test. A deferred add that detector later
-    // finds dependent is removed and counted in dep_recheck_removals (or, if
-    // the detector does not resolve an over-count, in dep_untested_growth);
-    // this counter is not decremented.
+    // next pass's detector as its test -- on the eliminated path only, and
+    // only when no structural dependency decides it (E2 fix1). A deferred add
+    // that detector later finds dependent is removed and counted in
+    // dep_recheck_removals (or, if the detector does not resolve an
+    // over-count, in dep_untested_growth); this counter is not decremented.
     Index dep_deferred_adds = 0;
-    // The rule would have ended the solve on a border-stack pass: the solve
-    // continued on the bound-eliminated path instead (once per solve).
+    // The rule would have ended the solve on a border-stack pass, or the
+    // blocker's test there was undecidable (E2 fix1): the solve continued on
+    // the bound-eliminated path instead (once per solve).
     Index dep_border_retreats = 0;
+    // An undecidable blocker decided EXACTLY by a structural dependency (a
+    // pin completing a member row on pinned columns, or a row on pinned
+    // columns only), coefficients read off the row (E2 fix1).
+    Index dep_structural_exact = 0;
+    // A member the re-check removed as a dependent deferred add, blocking
+    // again at the same point on an undecided test: refused (no coefficients,
+    // so the pass-over or the end) instead of re-admitted (E2 fix1).
+    Index dep_known_dependent_refusals = 0;
 
     // The zero-motion re-entry rule (per fixed iterate).
     Index reentry_exemptions = 0;

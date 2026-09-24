@@ -348,10 +348,15 @@
 // independent candidate dependent when the MANDATORY rows are dependent
 // (counted: dep_screen_under_mandatory_dependence; the safe direction). A
 // blocker the test leaves UNDECIDABLE (screen-negative; no factor for the
-// pass's set, or a stalled refinement) is admitted and the next pass's
-// detector tests the grown set (dep_deferred_adds). THE BORDER RETREAT (once
-// per solve, dep_border_retreats): when the rule would end the solve on a
-// border-stack pass, the pass is redone on the bound-eliminated path. When K0
+// pass's set, or a stalled refinement) is decided exactly by a structural
+// dependency when one exists (dep_structural_exact); else, on a border-stack
+// pass, it takes the border retreat below; else it is admitted and the next
+// pass's detector tests the grown set (dep_deferred_adds). A deferred add that
+// re-check removes is known-dependent at that point and is not re-admitted
+// there on an undecided test (dep_known_dependent_refusals). THE BORDER
+// RETREAT (once per solve, dep_border_retreats): when the rule would end the
+// solve, or a blocker's test is undecidable, on a border-stack pass, the pass
+// is redone on the bound-eliminated path. When K0
 // is near-singular on the pinned directions its Schur complement carries O(1)
 // rounding, the border step leaves its face, and the dependency coefficients
 // are inaccurate (rho = 1.4e-3 and 0.34 measured where the exact value is 0):
@@ -1174,6 +1179,9 @@ class QpEngine {
     static constexpr std::uint8_t kPtReleased = 1;
     static constexpr std::uint8_t kPtEntered = 2;
     static constexpr std::uint8_t kPtExempt = 4;
+    // A deferred add the re-check removed as dependent here (E2 fix1, D3(b)):
+    // not re-admitted at this point on an undecided test.
+    static constexpr std::uint8_t kPtKnownDependent = 8;
 
     static std::uint8_t pt_flags(const WalkSeen &seen, bool is_ineq, Index idx);
     static void pt_mark(WalkSeen &seen, bool is_ineq, Index idx, std::uint8_t flag);
@@ -1584,7 +1592,10 @@ class QpEngine {
                                         const Vec &lambda_e, const Vec &lambda_i, const Vec &z,
                                         bool moves);
 
-    // The no-admissible-member rule's certificate, VERIFIED: builds the
+    // The no-admissible-member rule's certificate, VERIFIED, tried whenever no
+    // member is admissible (E2 fix1: the box-based certificate does not need
+    // cond1, and a locked positive-coefficient member leaves cond1 false on an
+    // infeasible QP; a cond1 candidate that fails is still kRejected): builds the
     // certificate from `pick` (y_i = min(v, 0) on member rows, the rest in the
     // explicit box part) and true iff its implied bound clears the blocker's
     // limit by more than the structural margin at `row_scale`. A TOLERANCED

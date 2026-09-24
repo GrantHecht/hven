@@ -362,6 +362,24 @@ EntryDetection detect_dependency(const QpProblem &qp, const WorkingSet &ws, cons
         scaled[k] = std::abs(rhs(sys.comp_pos[k])) * member_norm(qp, sys.comp[k]);
         scaled_max = std::max(scaled_max, scaled[k]);
     }
+    // THE PINS' COEFFICIENTS (E2 fix1, D2). On the eliminated path the pins
+    // are eliminated columns, not constraint components of the factor: the
+    // null vector gives A_W^T y_hat = 0 on the free columns only, and its
+    // value at a pinned column IS that pin's coefficient in the dependency
+    // (unit norm, like the pin). Without them a dependency an optional pin
+    // creates is attributed to the rows alone -- mandatory equalities, so
+    // nothing is removed and the walk runs on a dependent set with 1/mu
+    // multipliers. Same threshold as the rows. (On the border path the pins
+    // are ledger components and already in `sys.comp`.)
+    Vec pin_coef;
+    if (!sys.bordered) {
+        pin_coef = sys.at_times(qp, rhs);
+        for (Index i = 0; i < qp.n(); ++i) {
+            if (bs[static_cast<std::size_t>(i)] != BoundState::kFree) {
+                scaled_max = std::max(scaled_max, std::abs(pin_coef(i)));
+            }
+        }
+    }
     if (!(scaled_max > 0.0)) {
         return d;
     }
@@ -371,7 +389,94 @@ EntryDetection detect_dependency(const QpProblem &qp, const WorkingSet &ws, cons
             d.support.push_back(sys.comp[k]);
         }
     }
+    if (!sys.bordered) {
+        for (Index i = 0; i < qp.n(); ++i) {
+            if (bs[static_cast<std::size_t>(i)] != BoundState::kFree &&
+                std::abs(pin_coef(i)) >= kDepCoeffTol * scaled_max) {
+                d.support.push_back(WsMember{WsMember::Kind::kPin, i});
+            }
+        }
+    }
     return d;
+}
+
+StructuralDependency structural_dependency(const QpProblem &qp, const WorkingSet &ws, bool is_ineq,
+                                           Index idx) {
+    const Index n = qp.n();
+    const std::vector<Index> &aw = ws.active_ineq();
+    const std::vector<BoundState> &bs = ws.bound_state();
+    const auto pinned = [&](Index c) {
+        return bs[static_cast<std::size_t>(c)] != BoundState::kFree;
+    };
+    StructuralDependency sd;
+    DepTest &t = sd.test;
+    t.v_e = Vec::Zero(qp.me());
+    t.v_w = Vec::Zero(static_cast<Index>(aw.size()));
+    t.v_pin = Vec::Zero(n);
+    t.screen = ws_rows(qp, ws) + 1 > n;
+    const auto exact = [&]() {
+        t.rho = 0.0;
+        t.verdict = DepVerdict::kDependent;
+        sd.found = true;
+        return sd;
+    };
+    if (is_ineq) {
+        // A row on pinned columns only: c = sum_i a_i e_i over its pins.
+        for (SpMatRM::InnerIterator it(qp.Ai, idx); it; ++it) {
+            if (it.value() != 0.0 && !pinned(it.col())) {
+                return sd;
+            }
+        }
+        bool any = false;
+        for (SpMatRM::InnerIterator it(qp.Ai, idx); it; ++it) {
+            t.v_pin(it.col()) += it.value();
+            any = any || it.value() != 0.0;
+        }
+        return any ? exact() : sd;
+    }
+    if (pinned(idx)) {
+        return sd;
+    }
+    // A pin completing a member row r (every nonzero at a pinned column or at
+    // idx, a_r,idx != 0): e_idx = (a_r - sum_{j pinned} a_rj e_j) / a_r,idx.
+    // Equalities first, then working rows, each ascending.
+    const auto completes = [&](const SpMatRM &A, Index r, double &a_ri) {
+        a_ri = 0.0;
+        for (SpMatRM::InnerIterator it(A, r); it; ++it) {
+            if (it.value() == 0.0) {
+                continue;
+            }
+            if (it.col() == idx) {
+                a_ri += it.value();
+            } else if (!pinned(it.col())) {
+                return false;
+            }
+        }
+        return a_ri != 0.0;
+    };
+    const auto fill_pins = [&](const SpMatRM &A, Index r, double a_ri) {
+        for (SpMatRM::InnerIterator it(A, r); it; ++it) {
+            if (it.col() != idx) {
+                t.v_pin(it.col()) -= it.value() / a_ri;
+            }
+        }
+    };
+    double a_ri = 0.0;
+    for (Index r = 0; r < qp.me(); ++r) {
+        if (completes(qp.Ae, r, a_ri)) {
+            t.v_e(r) = 1.0 / a_ri;
+            fill_pins(qp.Ae, r, a_ri);
+            return exact();
+        }
+    }
+    for (std::size_t k = 0; k < aw.size(); ++k) {
+        if (completes(qp.Ai, aw[k], a_ri)) {
+            t.v_w(static_cast<Index>(k)) = 1.0 / a_ri;
+            fill_pins(qp.Ai, aw[k], a_ri);
+            return exact();
+        }
+    }
+    return sd;
 }
 
 } // namespace hven::solvers::detail

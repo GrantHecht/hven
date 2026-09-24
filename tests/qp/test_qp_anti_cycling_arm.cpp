@@ -1356,3 +1356,274 @@ TEST(QpE2WorkingSet, TheBorderRetreatsExactlyOnceAndEndsOptimal) {
     EXPECT_EQ(s.counters.dep_blocker_terminations, 0);
     EXPECT_NEAR(objective(qp, s.x), brute_force_optimum(qp), 1e-7);
 }
+
+// ===========================================================================
+// (E2 FIX ROUND 1) D1-D3 of the E2-D1 diagnosis
+// (docs/notes/data/2026-09-m7-w2-e2-d1-diagnosis/REPORT.md).
+// ===========================================================================
+
+namespace {
+
+/// `H = diag(h)`, equalities `Ae x = be` and rows `Ai x <= bi` (row-major), the
+/// box `[lo, hi]` per variable.
+QpProblem e2_eq_qp(const std::vector<double> &h, const std::vector<double> &g,
+                   const std::vector<double> &ae, const std::vector<double> &be,
+                   const std::vector<double> &lo, const std::vector<double> &hi) {
+    const auto n = static_cast<Index>(h.size());
+    const auto me = static_cast<Index>(be.size());
+    QpProblem qp;
+    Eigen::MatrixXd Hd = Eigen::MatrixXd::Zero(n, n);
+    qp.g = Vec(n);
+    qp.lower = Vec(n);
+    qp.upper = Vec(n);
+    for (Index i = 0; i < n; ++i) {
+        const auto si = static_cast<std::size_t>(i);
+        Hd(i, i) = h[si];
+        qp.g(i) = g[si];
+        qp.lower(i) = lo[si];
+        qp.upper(i) = hi[si];
+    }
+    qp.H = Hd.sparseView();
+    Eigen::MatrixXd Aed(me, n);
+    qp.be = Vec(me);
+    for (Index r = 0; r < me; ++r) {
+        for (Index c = 0; c < n; ++c) {
+            Aed(r, c) = ae[static_cast<std::size_t>(r * n + c)];
+        }
+        qp.be(r) = be[static_cast<std::size_t>(r)];
+    }
+    qp.Ae = Aed.sparseView();
+    qp.Ai.resize(0, n);
+    qp.bi = Vec(0);
+    return qp;
+}
+
+/// The largest first-order violation at `s`, equalities included: primal
+/// feasibility, stationarity in hven's convention (`z` on the pins), dual
+/// signs and complementarity.
+double e2_kkt_residual(const QpProblem &qp, const QpSolution &s) {
+    double v = 0.0;
+    for (Index i = 0; i < qp.n(); ++i) {
+        v = std::max({v, qp.lower(i) - s.x(i), s.x(i) - qp.upper(i)});
+        if (s.z(i) > 0.0) {
+            v = std::max(v, s.z(i) * std::abs(s.x(i) - qp.lower(i)));
+        } else if (s.z(i) < 0.0) {
+            v = std::max(v, -s.z(i) * std::abs(s.x(i) - qp.upper(i)));
+        }
+    }
+    Vec r = qp.H.selfadjointView<Eigen::Upper>() * s.x + qp.g - s.z;
+    if (qp.me() > 0) {
+        v = std::max(v, (qp.Ae * s.x - qp.be).lpNorm<Eigen::Infinity>());
+        r += qp.Ae.transpose() * s.lambda_e;
+    }
+    if (qp.mi() > 0) {
+        const Vec slack = qp.bi - qp.Ai * s.x;
+        for (Index j = 0; j < qp.mi(); ++j) {
+            v = std::max({v, -slack(j), -s.lambda_i(j), std::abs(s.lambda_i(j) * slack(j))});
+        }
+        r += qp.Ai.transpose() * s.lambda_i;
+    }
+    return std::max(v, r.lpNorm<Eigen::Infinity>());
+}
+
+/// The certificate re-derived from the problem data, independently of the
+/// engine: box_part = sign*c - Ae^T y_e - Ai^T y_i (y_i <= 0), and the implied
+/// bound y_e^T be + y_i^T bi + sum_i box_part_i * (l_i or u_i) must clear the
+/// blocker's limit by the stored margin.
+void expect_certificate_rederives(const QpProblem &qp, const QpFarkasCertificate &f) {
+    ASSERT_TRUE(f.present);
+    Vec c = Vec::Zero(qp.n());
+    if (f.blocker_is_ineq) {
+        c = qp.Ai.row(f.blocker).transpose();
+    } else {
+        c(f.blocker) = 1.0;
+    }
+    Vec box_part = f.sign * c;
+    double implied = 0.0;
+    if (qp.me() > 0) {
+        box_part -= qp.Ae.transpose() * f.y_e;
+        implied += f.y_e.dot(qp.be);
+    }
+    if (qp.mi() > 0) {
+        EXPECT_LE(f.y_i.maxCoeff(), 0.0);
+        box_part -= qp.Ai.transpose() * f.y_i;
+        implied += f.y_i.dot(qp.bi);
+    }
+    EXPECT_LE((box_part - f.box_part).lpNorm<Eigen::Infinity>(), 1e-12);
+    for (Index i = 0; i < qp.n(); ++i) {
+        if (box_part(i) != 0.0) {
+            implied += box_part(i) * (box_part(i) > 0.0 ? qp.lower(i) : qp.upper(i));
+        }
+    }
+    EXPECT_NEAR(implied, f.implied, 1e-12);
+    EXPECT_GT(implied - f.limit, f.margin);
+    EXPECT_EQ(f.residual, 0.0);
+}
+
+} // namespace
+
+TEST(QpE2WorkingSet, ALockedPositiveMemberStillGetsTheVerifiedCertificate) {
+    // D1 (E2-D1 REPORT, READING6's pass 2). -x0 + x1 + x2 = -3 with x2 FIXED
+    // at 0 forces x1 - x0 = -3, outside [-1, 1]^2: infeasible. From the seed
+    // (-1, -1) the step leaves both lower bounds at alpha = 0; x0's lower pin
+    // enters first (independent of the equality) and is LOCKED at this point.
+    // x1's lower pin then blocks at zero motion, dependent on {row, x0, x2}
+    // with -e1 = -a + (+1)(-e0) + e2: a POSITIVE coefficient on the locked x0,
+    // so no member is admissible and cond1 is false. The base (6d123e75) never
+    // tried the certificate there: N3, kNumericalError (border: a retreat, then
+    // N3). The box-based certificate does not need cond1: kInfeasible.
+    const QpProblem qp = e2_eq_qp({1.0, 1.0, 1.0}, {1.5, 4.5, 0.0}, {-1.0, 1.0, 1.0}, {-3.0},
+                                  {-1.0, -1.0, 0.0}, {1.0, 1.0, 0.0});
+    QpSolution seed;
+    seed.x = Vec(3);
+    seed.x << -1.0, -1.0, 0.0;
+    seed.bound_state = {BoundState::kFree, BoundState::kFree, BoundState::kFixed};
+    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+        SCOPED_TRACE(e2_name(alg));
+        const QpEngine engine{e2_opts(alg, 40)};
+        const QpSolution s = engine.solve(qp, seed);
+        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kInfeasible));
+        EXPECT_EQ(s.counters.dep_infeasible_certificates, 1);
+        EXPECT_EQ(s.counters.dep_blocker_terminations, 0);
+        EXPECT_EQ(s.counters.dep_certificate_rejections, 0);
+        EXPECT_EQ(s.counters.ws_exchanges, 0);
+        EXPECT_EQ(s.counters.dep_border_retreats, 0);
+        EXPECT_EQ(s.counters.minor_iters, 2);
+        // No step past the blocker: the walk stands on the seed.
+        EXPECT_EQ(s.x(0), -1.0);
+        EXPECT_EQ(s.x(1), -1.0);
+        const QpFarkasCertificate &f = s.farkas;
+        expect_certificate_rederives(qp, f);
+        EXPECT_FALSE(f.blocker_is_ineq);
+        EXPECT_EQ(f.blocker, 1);
+        EXPECT_EQ(f.sign, -1.0);
+        EXPECT_NEAR(f.implied, 2.0, 1e-6); // y_e = -1: 3 + (-1)*u0 on the box
+        EXPECT_NEAR(f.limit, 1.0, 1e-12);  // -l1
+    }
+}
+
+TEST(QpE2WorkingSet, TheUndecidableBorderPingPongRetreatsOnceAndEndsOptimal) {
+    // D3(a) (E2-D1 REPORT, STEENBRB/C). x1's lower pin blocks at zero motion,
+    // exactly dependent on the equality -x1 + x4 = 1 with x4 pinned; on the
+    // border path its test stalls at rho = 1.2e-6 (UNDECIDABLE). The base
+    // admitted it as a deferred add, the next pass's detector removed it, it
+    // re-blocked at alpha = 0: nine times, to the zero-motion cap
+    // (kNumericalError). An undecidable border test now takes the border
+    // retreat and the eliminated path decides it (dependent, exchanged): both
+    // algebras end at the same KKT point.
+    QpProblem qp;
+    Eigen::MatrixXd Hd = Eigen::MatrixXd::Zero(5, 5);
+    Hd(0, 1) = -0.25;
+    Hd(0, 3) = 0.5;
+    Hd(0, 4) = -0.5;
+    Hd(1, 1) = 0.25;
+    Hd(1, 3) = -0.5;
+    Hd(1, 4) = 0.25;
+    Hd(3, 3) = 1.0;
+    Hd(3, 4) = -0.5;
+    qp.H = Hd.sparseView(); // upper triangle
+    qp.g = Vec(5);
+    qp.g << -0.5, -1.0, 0.0, 1.5, -1.5;
+    Eigen::MatrixXd Ae = Eigen::MatrixXd::Zero(1, 5);
+    Ae(0, 1) = -1.0;
+    Ae(0, 4) = 1.0;
+    qp.Ae = Ae.sparseView();
+    qp.be = Vec::Constant(1, 1.0);
+    Eigen::MatrixXd Ai(3, 5);
+    Ai << -1, 0, 0, -1, 0, 0, -1, 0, -1, 0, 0, 1, 0, -1, 0;
+    qp.Ai = Ai.sparseView();
+    qp.bi = Vec(3);
+    qp.bi << 1.5, 1.0, 0.0;
+    qp.lower = Vec::Zero(5);
+    qp.upper = Vec::Ones(5);
+    qp.upper(0) = 0.0; // x0 fixed
+    Vec x_ref;
+    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+        SCOPED_TRACE(e2_name(alg));
+        const QpSolution s = plain_solve(qp, e2_opts(alg, 200));
+        const QpCounters &c = s.counters;
+        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+        EXPECT_LE(e2_kkt_residual(qp, s), 1e-9);
+        EXPECT_EQ(c.zero_motion_cap_hits, 0);
+        EXPECT_EQ(c.dep_deferred_adds, 0);
+        EXPECT_EQ(c.dep_recheck_removals, 0);
+        EXPECT_EQ(c.dep_known_dependent_refusals, 0);
+        EXPECT_EQ(c.ws_exchanges, 1);
+        EXPECT_LE(c.minor_iters, 8);
+        if (alg == WorkingSetLinearAlgebra::kSchurBorder) {
+            EXPECT_EQ(c.dep_undecidable, 1);
+            EXPECT_EQ(c.dep_border_retreats, 1);
+        } else {
+            EXPECT_EQ(c.dep_undecidable, 0);
+            EXPECT_EQ(c.dep_border_retreats, 0);
+        }
+        if (x_ref.size() == 0) {
+            x_ref = s.x;
+        } else {
+            EXPECT_LE((s.x - x_ref).lpNorm<Eigen::Infinity>(), 1e-12);
+        }
+    }
+    EXPECT_NEAR(x_ref(4), 1.0, 1e-12);
+}
+
+TEST(QpE2WorkingSet, AFullyPinnedRowDecidesAnUndecidablePinExactly) {
+    // D3(c) (E2-D1 REPORT, READING6-shaped). x0 - x2 = 0.5 with x0 FIXED at 0
+    // forces x2 = -0.5, below its lower bound 0: infeasible. H is indefinite;
+    // on the border path the first pass holds no usable factor, so x2's lower
+    // pin tests UNDECIDABLE -- and it completes the equality row on pinned
+    // columns, an EXACT dependency read off the row (-e2 = a - e0). The base
+    // deferred it, re-checked, retreated and ended N3 (6 minors); now the
+    // certificate verifies on the first pass. The refactorize path's test
+    // decides it numerically and reaches the same certificate.
+    QpProblem qp;
+    Eigen::MatrixXd Hd = Eigen::MatrixXd::Zero(4, 4);
+    Hd(0, 0) = 0.75;
+    Hd(0, 2) = -1.0;
+    Hd(0, 3) = 0.5;
+    Hd(2, 2) = 1.0;
+    Hd(2, 3) = -1.0;
+    qp.H = Hd.sparseView(); // upper triangle
+    qp.g = Vec(4);
+    qp.g << -0.5, -0.5, 0.0, -1.5;
+    Eigen::MatrixXd Ae = Eigen::MatrixXd::Zero(1, 4);
+    Ae(0, 0) = 1.0;
+    Ae(0, 2) = -1.0;
+    qp.Ae = Ae.sparseView();
+    qp.be = Vec::Constant(1, 0.5);
+    Eigen::MatrixXd Ai(2, 4);
+    Ai << 0, 0, -1, 1, 1, 1, 0, 0;
+    qp.Ai = Ai.sparseView();
+    qp.bi = Vec(2);
+    qp.bi << -0.0, 0.5;
+    qp.lower = Vec::Zero(4);
+    qp.upper = Vec::Ones(4);
+    qp.upper(0) = 0.0; // x0 fixed
+    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+        SCOPED_TRACE(e2_name(alg));
+        const QpSolution s = plain_solve(qp, e2_opts(alg, 40));
+        const QpCounters &c = s.counters;
+        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kInfeasible));
+        EXPECT_EQ(c.dep_infeasible_certificates, 1);
+        EXPECT_EQ(c.dep_blocker_terminations, 0);
+        EXPECT_EQ(c.dep_deferred_adds, 0);
+        EXPECT_EQ(c.dep_border_retreats, 0);
+        EXPECT_EQ(c.zero_motion_cap_hits, 0);
+        const QpFarkasCertificate &f = s.farkas;
+        expect_certificate_rederives(qp, f);
+        EXPECT_FALSE(f.blocker_is_ineq);
+        EXPECT_EQ(f.blocker, 2);
+        if (alg == WorkingSetLinearAlgebra::kSchurBorder) {
+            EXPECT_EQ(c.dep_undecidable, 1);
+            EXPECT_EQ(c.dep_structural_exact, 1);
+            EXPECT_EQ(c.minor_iters, 1);
+            // Read off the row, exactly: -e2 = a - e0, so y_e = 1 and the
+            // implied bound is be - u0 = 0.5 against -l2 = 0.
+            EXPECT_EQ(f.y_e(0), 1.0);
+            EXPECT_EQ(f.implied, 0.5);
+            EXPECT_EQ(f.limit, 0.0);
+        } else {
+            EXPECT_EQ(c.dep_undecidable, 0);
+            EXPECT_EQ(c.dep_structural_exact, 0);
+        }
+    }
+}

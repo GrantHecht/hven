@@ -150,6 +150,78 @@ TEST_P(WsIndependence, CleanStartIsUntouched) {
     EXPECT_EQ(s.counters.minor_iters, s0.counters.minor_iters);
 }
 
+// E2 fix1, D2: the equality chain x0 - x1 = 0, x1 - x2 = 0 with x0 FIXED at 0
+// and x2's lower pin (optional) is dependent: eq0 + eq1 - e0 + e2 = 0. On the
+// eliminated path the pins are not constraint components of the factor; the
+// support must still name them (their coefficient is A_W^T y_hat at the pinned
+// column), or the dependency is attributed to the two MANDATORY equalities and
+// nothing is removed. Seeded, the entry detector removes x2's pin -- the fixed
+// pin and the equalities are mandatory -- in both algebras (the border path's
+// pins were always ledger components), and the walk ends at (0, 0, 0, 1) with
+// O(1) multipliers.
+QpProblem chain_qp() {
+    Eigen::MatrixXd Ae(2, 4);
+    Ae << 1, -1, 0, 0, 0, 1, -1, 0;
+    Vec g(4);
+    g << 0, 0, 1, -1;
+    QpProblem qp = make_qp(Eigen::MatrixXd::Identity(4, 4), g, Ae, Vec::Zero(2),
+                           Eigen::MatrixXd(0, 4), Vec(0), -1.0, 1.0);
+    qp.lower(0) = 0.0;
+    qp.upper(0) = 0.0;
+    qp.lower(2) = 0.0;
+    return qp;
+}
+
+TEST_P(WsIndependence, AnOptionalPinInADependentEqualityChainIsRemoved) {
+    const QpProblem qp = chain_qp();
+    QpSolution seed;
+    seed.x = Vec::Zero(4);
+    seed.bound_state = {BoundState::kFixed, BoundState::kFree, BoundState::kAtLower,
+                        BoundState::kFree};
+    const QpEngine on(opts_for(GetParam()));
+    const QpSolution s = on.solve(qp, seed);
+    ASSERT_EQ(s.status, QpStatus::kOptimal);
+    EXPECT_EQ(s.counters.entry_dependency_removals, 1);
+    EXPECT_EQ(s.counters.mandatory_dependent_entries, 0);
+    EXPECT_EQ(s.bound_state[0], BoundState::kFixed);
+    EXPECT_EQ(s.bound_state[2], BoundState::kFree);
+    EXPECT_NEAR(s.x(0), 0.0, 1e-12);
+    EXPECT_NEAR(s.x(1), 0.0, 1e-12);
+    EXPECT_NEAR(s.x(2), 0.0, 1e-12);
+    EXPECT_NEAR(s.x(3), 1.0, 1e-12);
+    // No 1/mu growth: every multiplier is O(|g|).
+    EXPECT_LE(s.lambda_e.lpNorm<Eigen::Infinity>(), 10.0);
+    EXPECT_LE(s.z.lpNorm<Eigen::Infinity>(), 10.0);
+}
+
+TEST(WsIndependenceDetector, TheEliminatedSupportNamesThePinsTheDependencyUses) {
+    const QpProblem qp = chain_qp();
+    QpOptions o;
+    WorkingSet ws(4, 0);
+    ws.bound_state()[0] = BoundState::kFixed;
+    ws.bound_state()[2] = BoundState::kAtLower;
+    detail::KktFactor kkt;
+    (void)solve_eqp(qp, ws, kkt, o);
+    detail::DepFactorView v;
+    v.eliminated = &kkt;
+    const detail::EntryDetection d = detail::detect_dependency(qp, ws, v, o);
+    ASSERT_TRUE(d.found);
+    EXPECT_LE(d.null_residual, detail::kDepTol);
+    bool eq0 = false, eq1 = false, pin0 = false, pin2 = false, other = false;
+    for (const detail::WsMember &m : d.support) {
+        using K = detail::WsMember::Kind;
+        eq0 = eq0 || (m.kind == K::kEq && m.idx == 0);
+        eq1 = eq1 || (m.kind == K::kEq && m.idx == 1);
+        pin0 = pin0 || (m.kind == K::kPin && m.idx == 0);
+        pin2 = pin2 || (m.kind == K::kPin && m.idx == 2);
+        other = other || (m.kind == K::kPin && m.idx != 0 && m.idx != 2) || m.kind == K::kRow;
+    }
+    EXPECT_TRUE(eq0 && eq1);
+    EXPECT_TRUE(pin0) << "the fixed pin carries a coefficient";
+    EXPECT_TRUE(pin2) << "the optional pin that makes the set dependent is named";
+    EXPECT_FALSE(other);
+}
+
 INSTANTIATE_TEST_SUITE_P(BothAlgebras, WsIndependence,
                          ::testing::Values(WorkingSetLinearAlgebra::kSchurBorder,
                                            WorkingSetLinearAlgebra::kRefactorize));

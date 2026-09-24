@@ -625,6 +625,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     bool entry_check_pending = eff_opts.independent_working_set;
     bool start_pass = true;
     bool recheck_pending = false;
+    // The member the last deferred add admitted (kind kEq = none): a re-check
+    // that removes it marks it known-dependent at that point (E2 fix1, D3(b)).
+    detail::WsMember deferred_member;
     Index shift_adds_checked = 0;
     // THE BORDER RETREAT: set when the add site's no-admissible rule would
     // end the solve on a pass whose factor is the border stack; the rest of
@@ -828,9 +831,16 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                                             seen.shift_refused, &removed)) {
                     ++(entry_check_pending ? counters.entry_dependency_removals
                                            : counters.dep_recheck_removals);
-                    pt_release(seen, removed.kind == detail::WsMember::Kind::kRow, removed.idx);
+                    const bool removed_row = removed.kind == detail::WsMember::Kind::kRow;
+                    pt_release(seen, removed_row, removed.idx);
+                    if (!entry_check_pending && deferred_member.kind == removed.kind &&
+                        deferred_member.idx == removed.idx) {
+                        pt_mark(seen, removed_row, removed.idx, kPtKnownDependent);
+                    }
+                    deferred_member = detail::WsMember{};
                     continue;
                 }
+                deferred_member = detail::WsMember{};
                 if (det.found && entry_check_pending) {
                     ++counters.mandatory_dependent_entries;
                 }
@@ -1406,46 +1416,91 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 return Oriented{sgn * x(idx), sgn * p(idx), sgn * bound,
                                 std::max({1.0, std::abs(bound), xmag})};
             };
+            bool undecidable_retreat = false;
             while (kind != BlockKind::kNone) {
                 const bool is_ineq = kind == BlockKind::kIneq;
-                const detail::DepTest t =
+                const bool moves = alpha * p.lpNorm<Eigen::Infinity>() > step_tol;
+                detail::DepTest t =
                     test_candidate(qp, ws, pass_view, is_ineq, block_idx, counters, eff_opts);
-                if (!t.dependent()) {
+                // A member the previous pass's re-check removed as a dependent
+                // deferred add, blocking again at this same point (E2 fix1,
+                // D3(b)): the detector's verdict was a proof, so only a
+                // DECIDED dependent test (an exchange) may bring it back here.
+                const bool known_dependent =
+                    !moves && (pt_flags(seen, is_ineq, block_idx) & kPtKnownDependent) != 0;
+                if (!t.dependent() && !known_dependent) {
                     break; // the ordinary add
                 }
-                if (t.verdict == detail::DepVerdict::kUndecidable) {
+                bool refused = false;
+                if (t.verdict == detail::DepVerdict::kUndecidable && pass_view.schur != nullptr) {
+                    // (D3(a)) THE BORDER RETREAT for an undecidable test: a
+                    // stalled refinement on the border path is the swamped-C
+                    // class (E2-F1), so the eliminated path's test decides.
+                    undecidable_retreat = true;
+                    break;
+                }
+                if (t.verdict != detail::DepVerdict::kDependent) {
+                    // (D3(c)) An exact structural dependency -- a pin that
+                    // completes a member row on pinned columns, or a row on
+                    // pinned columns only -- decides it, coefficients read
+                    // off the row.
+                    const detail::StructuralDependency sd =
+                        detail::structural_dependency(qp, ws, is_ineq, block_idx);
+                    if (sd.found) {
+                        t = sd.test;
+                        ++counters.dep_structural_exact;
+                    }
+                }
+                if (t.verdict != detail::DepVerdict::kDependent && known_dependent) {
+                    // (D3(b)) Never re-admitted undecided at zero motion:
+                    // no coefficients, so no exchange and no certificate;
+                    // the pass-over (N2) or the end (N3) below.
+                    refused = true;
+                    ++counters.dep_known_dependent_refusals;
+                    xpick = ExchangePick{};
+                } else if (t.verdict == detail::DepVerdict::kUndecidable) {
                     // Screen-negative and unresolved (no factor for this
                     // pass's set, or a stalled refinement): nothing proves
                     // it dependent and no coefficient can pick an exchange.
                     // Admitted; the next pass's detector tests the grown set
                     // on its own factor, as for a shift add. Found dependent
-                    // there, it is removed under dep_recheck_removals.
+                    // there, it is removed under dep_recheck_removals and
+                    // marked known-dependent at that point (D3(b)).
                     ++counters.dep_deferred_adds;
                     recheck_pending = true;
+                    deferred_member = detail::WsMember{is_ineq ? detail::WsMember::Kind::kRow
+                                                               : detail::WsMember::Kind::kPin,
+                                                       block_idx};
                     break;
                 }
-                // The entered-at-point lock applies only on a zero-motion
-                // step: the re-entry rule guards zero-motion cycles, and a
-                // step that moves clears the point memory before the exchange
-                // mutates.
-                xpick = select_exchange(qp, ws, shift, seen, t, is_ineq, block_idx, block_state,
-                                        lambda_e, lambda_i, z,
-                                        alpha * p.lpNorm<Eigen::Infinity>() > step_tol);
-                if (xpick.found) {
-                    break; // the exchange
-                }
-                const Oriented o = oriented(is_ineq, block_idx, block_state);
-                // (N1) The certificate: candidate on the design's two
-                // conditions, then verified before it may be returned.
-                if (xpick.cond1 && violation_is_structural(xpick.g, o.scale, 0.0, eff_opts)) {
+                if (!refused) {
+                    const Oriented o = oriented(is_ineq, block_idx, block_state);
+                    // The entered-at-point lock applies only on a zero-motion
+                    // step: the re-entry rule guards zero-motion cycles, and a
+                    // step that moves clears the point memory before the
+                    // exchange mutates.
+                    xpick = select_exchange(qp, ws, shift, seen, t, is_ineq, block_idx, block_state,
+                                            lambda_e, lambda_i, z, moves);
+                    if (xpick.found) {
+                        break; // the exchange
+                    }
+                    // (N1) The certificate, tried whenever no member is
+                    // admissible (E2 fix1, D1: a locked positive-coefficient
+                    // member leaves cond1 false, and the box-based
+                    // certificate never needed it; design amendment in the
+                    // E2 README). Verified before it may be returned.
                     QpFarkasCertificate cert;
                     if (verify_farkas(qp, ws, xpick, is_ineq, block_idx, o.scale, eff_opts, cert)) {
                         farkas = std::move(cert);
                         add_exit = AddExit::kInfeasible;
-                    } else {
-                        add_exit = AddExit::kRejected;
+                        break;
                     }
-                    break;
+                    // The design's candidate (cond1 and a structural
+                    // violation) that failed verification.
+                    if (xpick.cond1 && violation_is_structural(xpick.g, o.scale, 0.0, eff_opts)) {
+                        add_exit = AddExit::kRejected;
+                        break;
+                    }
                 }
                 // (N2) The pass-over: the step with this blocker (and every
                 // one passed over before it) excluded, if none of them ends
@@ -1477,8 +1532,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 block_state = s2;
                 alpha = a2;
             }
-            if ((add_exit == AddExit::kTerminate || add_exit == AddExit::kRejected) &&
-                pass_view.schur != nullptr) {
+            if (undecidable_retreat ||
+                ((add_exit == AddExit::kTerminate || add_exit == AddExit::kRejected) &&
+                 pass_view.schur != nullptr)) {
                 // THE BORDER RETREAT, once per solve. On the border path the
                 // Schur complement of an ill-conditioned K0 can be swamped by
                 // rounding: the EQP step leaves its face and the dependency

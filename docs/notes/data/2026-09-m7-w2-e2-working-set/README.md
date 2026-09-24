@@ -185,3 +185,107 @@ Declared movers where the new answer is the honest one:
   (deviations 2–5 and the ws_drops accounting), then handed off at the budget with six counter
   pins still red. Implementer 7 made the re-pins, applied S15–S20 and the Debug assert, and
   verified both configurations.
+
+## Fix round 1 — D1, D2, D3 of the E2-D1 diagnosis (F1–F3)
+
+The E2 TRAIN re-take converted 0 of 10 predicted cells and broke READING6. The diagnosis is
+`docs/notes/data/2026-09-m7-w2-e2-d1-diagnosis/REPORT.md`. This round lands its fixes F1, F2 and
+F3, with the default `independent_working_set` still ON (settler ruling there): the gates and the
+re-take decide it. F4 (driver routing, D4) waits on the E2-F2 restoration diagnosis; F5 (D5) and
+F6 are separate tasks. Lines are at the fix commit.
+
+| Defect | Fix | Where | Fixture |
+|---|---|---|---|
+| D1: N1 tried the certificate only under cond1; a locked positive-coefficient member leaves cond1 false on an infeasible QP, so N3 fired | F1: when no member is admissible, `verify_farkas` is ALWAYS tried; verified ⇒ `kInfeasible`; a cond1 candidate that fails is still `kRejected`; else N2/N3 | `src/qp/qp_engine.cpp:1487` | `QpE2WorkingSet.ALockedPositiveMemberStillGetsTheVerifiedCertificate` |
+| D2: on the eliminated path the detector's support listed rows only; a dependency an optional pin creates was attributed to mandatory equalities | F2: the pins' coefficients (`A_Wᵀŷ` at the pinned columns) join the support at the same `kDepCoeffTol` threshold | `src/qp/ws_independence.cpp:365` | `WsIndependence/*.AnOptionalPinInADependentEqualityChainIsRemoved`, `WsIndependenceDetector.TheEliminatedSupportNamesThePinsTheDependencyUses` |
+| D3: an exactly dependent pin tests UNDECIDABLE on the border path, S17 admits it, the re-check removes it, it re-blocks at α = 0, to the zero-motion cap | F3(a): an undecidable test on a border-stack pass takes the border retreat (once per solve, `dep_border_retreats`) before S17 may admit it | `src/qp/qp_engine.cpp:1436`, `:1535` | `QpE2WorkingSet.TheUndecidableBorderPingPongRetreatsOnceAndEndsOptimal` |
+| | F3(c): an undecidable blocker that completes a member row on pinned columns (or a row on pinned columns only) is decided EXACTLY, coefficients read off the row, and feeds `select_exchange` / `verify_farkas` (`dep_structural_exact`) | `src/qp/qp_engine.cpp:1443`; `detail::structural_dependency`, `src/qp/ws_independence.cpp:403` | `QpE2WorkingSet.AFullyPinnedRowDecidesAnUndecidablePinExactly` |
+| | F3(b): a re-check removal of a deferred add marks it known-dependent at that point (`kPtKnownDependent`, cleared when the iterate moves); blocking again at zero motion on an undecided test it is refused (`dep_known_dependent_refusals`), N2 or N3 | `src/qp/qp_engine.cpp:838`, `:1455` | none (see below) |
+
+Order at the add site for a blocker whose test is not a decided dependent: (a) retreat if the pass
+is on the border stack; else (c) the structural dependency if one exists; else (b) refuse if known
+dependent at this zero-motion point; else defer (S17). (a) runs before (c) deliberately: in a
+20 000-solve sweep (below) the reverse order turned one optimal border solve into N3 and changed
+nothing else.
+
+**Design amendment, §2.4 (N1).** The design gated the certificate on cond1 (every
+sign-constrained member's scaled coefficient ≤ τ·max) and a structural violation. The verified
+certificate does not need either: `verify_farkas` puts every positive-coefficient row into the
+explicit box part (y_i = min(v, 0)) and checks the implied bound against the box, so a certificate
+that verifies is a proof whatever the coefficients' signs. N1 now reads: with no admissible member,
+build and verify the certificate; verified ⇒ `kInfeasible`. The design's candidate (cond1 and a
+structural violation) that fails verification still ends `kRejected`; anything else goes to N2
+and N3. The gap was in the design, not the implementation: a locked member (entered at this
+point) with a positive coefficient is not admissible, yet it makes cond1 false.
+
+**Counters.** Two new `QpCounters` fields: `dep_structural_exact` and
+`dep_known_dependent_refusals`. The comments on `dep_recheck_removals`,
+`dep_infeasible_certificates`, `dep_certificate_rejections`, `dep_deferred_adds` and
+`dep_border_retreats` now say what F1–F3 changed.
+
+**What the fixtures prove, and what the base did** (each fixture's QP was also run on a scratch
+Debug build of the base `6d123e75`):
+- F1: seed (−1, −1, 0) on −x0 + x1 + x2 = −3 with x2 fixed: x0's pin enters and is locked, x1's
+  pin blocks at zero motion with a positive coefficient on x0. Base: N3 (`kNumericalError`;
+  border: a retreat, then N3). Now: a verified `kInfeasible` in 2 minors in both algebras, the
+  certificate re-derived from the data (implied 2 > limit 1).
+- F2: the chain x0 − x1 = 0, x1 − x2 = 0, x0 fixed, x2's lower pin seeded. Base refactorize:
+  `mandatory_dependent_entries` 1, nothing removed (border: the pin removed, as always). Now:
+  the pin is removed in both algebras, `kOptimal` at (0, 0, 0, 1), multipliers O(1).
+- F3(a): a 5-variable QP from the sweep whose border pass stalls at ρ = 1.2e-6 on an exactly
+  dependent pin. Base border: 9 deferred adds, 9 re-check removals, the zero-motion cap. Now: one
+  retreat, one exchange, `kOptimal` at the refactorize path's point.
+- F3(c): a READING6-shaped QP (x0 − x2 = 0.5, x0 fixed, x2 ≥ 0) whose first border pass holds no
+  usable factor. Base border: deferred, re-checked, retreated, N3 in 6 minors. Now: the exact
+  structural dependency and a verified `kInfeasible` in 1 minor.
+
+**Not covered by a fixture: F3(b).** No constructed or sampled QP reached a refusal: after a
+re-check pass the factor is usable, so the re-blocking member's test is almost always decided,
+and (a) and (c) now take the cases that looped. `dep_known_dependent_refusals` read 0 on every
+sweep solve. It stays as the bound on the one path left (a stalled refinement on the eliminated
+path, twice at one point).
+
+**The exploratory sweep (scratch only, not a gate).** 24 000 random small QPs (n 3–6, 1–4 rows,
+1–3 equalities, ±1 two- and three-term rows, PSD rank-one or indefinite H, optionally a fixed
+variable), both algebras, base vs this round, Debug:
+| Base (6d123e75) → this round | Solves |
+|---|---|
+| `kNumericalError` → `kInfeasible`, every one a VERIFIED certificate | 755 |
+| `kNumericalError` → `kOptimal` | 14 |
+| `kInfeasible` (the walk's end classifier, not a certificate) → `kOptimal` | 20 |
+| `kMaxIter` (1/μ multipliers) → `kNumericalError` | 1 |
+| `kInfeasible` → `kNumericalError` | 7 |
+| `kOptimal` → `kNumericalError` | 8 |
+| zero-motion cap hits | 22 → 0 |
+
+Every one of the 34 new `kOptimal` answers passes an independent first-order check (equalities
+included) at ≤ 6.5e-9, most at 1e-16: the 20 base `kInfeasible` answers there were FALSE.
+The 47 950 solves ran in 24 000 trials × 2 algebras, less the asserting ones below.
+The Debug "over-count ⇒ found" assert fires on the same 34 random QPs in base and here
+(pre-existing; the swamped-C class R6 already names). The 16 regressions end `kNumericalError`,
+never a wrong verdict. The ones traced are F2 path changes: the eliminated path's re-check now
+removes the newest member of the true support, a pin, as the border path always did, and on six
+of them the refactorize walk now ends in the N3 the base's border walk already reached on the
+same QP. A pin removed
+by an over-count re-check can re-block at zero motion, dependent, with its positive-coefficient
+partner locked and no verifying certificate: that is N3 in both algebras. It is a candidate
+finding for the next round, not a defect of F2's attribution.
+
+**Re-pins: none.** No counter, status or answer assertion moved in either configuration; the
+E2-pinned fixtures (HsBattery, HsSweepCorpus, ScaleF7, WarmStartBattery, Continuation, the SSN
+restoration fixture) read their E2 values. F1–F3 act only on the no-admissible exit and on
+undecidable tests, which none of those walks reaches.
+
+**Suites (this tree, MKL, clang++, `ctest -j4` under `setsid`, the box lock per leg).**
+- Debug: 2813/2813 without `Continuation.ProbeBudgetBoundsAFailingProposal`, which passed alone
+  (1/1).
+- Release: 2814/2814.
+- By name against E1b fix1's 2807/2808: six new instances, none removed —
+  `QpE2WorkingSet.{ALockedPositiveMemberStillGetsTheVerifiedCertificate,
+  TheUndecidableBorderPingPongRetreatsOnceAndEndsOptimal,
+  AFullyPinnedRowDecidesAnUndecidablePinExactly}`,
+  `BothAlgebras/WsIndependence.AnOptionalPinInADependentEqualityChainIsRemoved/{0,1}` and
+  `WsIndependenceDetector.TheEliminatedSupportNamesThePinsTheDependencyUses`.
+- clang-format clean on every changed file.
+
+The gate declaration and chain are in `wrappers-gates-fix1/` (see the derivation file there).

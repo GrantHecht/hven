@@ -23,10 +23,17 @@
 // exact eigenvector of K_mu with eigenvalue -mu. At most kEntryDetectSolves inverse-iteration
 // solves from a fixed irrational constraint-space start; found iff ||A_W^T y_hat||_free <= kDepTol
 // * the largest member norm (a proof, whatever the amplification). The support is every member
-// whose scaled coefficient clears kDepCoeffTol of the largest. It can miss: -mu not separated from
-// the next eigenvalue (large mu), or a border path whose C is swamped by an ill-conditioned K0. A
-// miss on an over-counted set is never "independent"; the caller counts it as untested growth and
-// trims by count.
+// whose scaled coefficient clears kDepCoeffTol of the largest; on the eliminated path a pin's
+// coefficient is (A_W^T y_hat) at its column (the pins are eliminated, not in the factor), so a
+// dependency an optional pin creates names that pin (E2 fix1, D2). It can miss: -mu not separated
+// from the next eigenvalue (large mu), or a border path whose C is swamped by an ill-conditioned
+// K0. A miss on an over-counted set is never "independent"; the caller counts it as untested
+// growth and trims by count.
+//
+// STRUCTURAL DEPENDENCY OF A CANDIDATE (E2 fix1, D3). A candidate row whose nonzeros all sit at
+// pinned columns, or a candidate pin i that completes a member row (every nonzero of the row at a
+// pinned column or at i), is dependent EXACTLY, with coefficients read off the row: rho = 0, no
+// solve. The add site uses it where the numerical test is undecidable.
 
 #include <cstdint>
 #include <limits>
@@ -93,5 +100,16 @@ struct EntryDetection {
 
 EntryDetection detect_dependency(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f,
                                  const QpOptions &opts);
+
+/// The exact structural dependency of a candidate (the row `idx` of Ai when `is_ineq`, else the
+/// bound of column `idx`), in dependency_test's convention (v_e, v_w, v_pin; rho = 0,
+/// kDependent). `found` is false when no member row makes it structurally dependent.
+struct StructuralDependency {
+    bool found = false;
+    DepTest test;
+};
+
+StructuralDependency structural_dependency(const QpProblem &qp, const WorkingSet &ws, bool is_ineq,
+                                           Index idx);
 
 } // namespace hven::solvers::detail
