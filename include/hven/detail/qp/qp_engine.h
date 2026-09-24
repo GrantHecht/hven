@@ -338,8 +338,11 @@
 // asserts that an over-count is always found), and each ratio-test blocker is
 // tested against the pass's factor. A dependent blocker is EXCHANGED for a
 // member (ExchangePick; Gill & Wong 2015, Result 3.4(b)); with no admissible
-// member: a verified Farkas certificate ends kInfeasible (QpSolution::farkas),
-// else the blocker is passed over when its predicted violation stays within
+// member: a verified EXACT Farkas certificate (multipliers refined mu-free,
+// residual within the rounding floor kCertExactKappa) ends kInfeasible
+// (QpSolution::farkas), a verified TOLERANCED one (residual above the floor,
+// not a proof for this QP) ends kNumericalError with the certificate kept, else the
+// blocker is passed over when its predicted violation stays within
 // feas_tol * row_scale, else the solve ends kNumericalError at the current
 // iterate. The zero-motion re-entry rule (WalkSeen's point memory) makes a
 // constraint released and re-entered at one point drop-exempt until the
@@ -351,7 +354,8 @@
 // pass's set, or a stalled refinement) is decided exactly by a structural
 // dependency when one exists (dep_structural_exact); else, on a border-stack
 // pass, it takes the border retreat below; else it is admitted and the next
-// pass's detector tests the grown set (dep_deferred_adds). A deferred add that
+// pass's detector tests the grown set (dep_deferred_adds). A stalled test with
+// rho >= kDepUndecidable is admitted as independent (dep_stall_admits). A deferred add that
 // re-check removes is known-dependent at that point and is not re-admitted
 // there on an undecided test (dep_known_dependent_refusals). THE BORDER
 // RETREAT (once per solve, dep_border_retreats): when the rule would end the
@@ -472,6 +476,16 @@ inline double unbounded_artifact_scale(const QpOptions &opts) {
 // considered as evidence of infeasibility (condition (a); see
 // violation_is_structural).
 constexpr double kInfeasibilityMarginFactor = 10.0;
+// The Farkas certificate's rounding floor (settler S25'): its residual is EXACT
+// iff <= kCertExactTol = kCertExactKappa * (n + m) * eps * ||y||_1 * max_k ||a_k||
+// (QpFarkasCertificate::exact_tol). Standard model, fl(a op b) = (a op b)(1 + d),
+// |d| <= eps: box_part = s c - Ae^T y_e - Ai^T y_i sums at most m + 1 products
+// per entry, so its computed error is <= (m + 1) eps ||y||_1 max_k ||a_k||; y is
+// the mu-free-refined solution of the (n + m)-dimensional KKT system, whose
+// backward error is O((n + m) eps) relative to the same product. (n + m) covers
+// both; kappa = 10 is the safety factor. ||y||_1 counts the blocker's own unit
+// coefficient, max_k runs over c and the rows with y_k != 0, m = me + |W|.
+constexpr double kCertExactKappa = 10.0;
 // Fraction of the regularization footprint dual_mu*|lambda| that a violation
 // must reach before it counts as STRUCTURAL rather than solver noise
 // (condition (b); see violation_is_structural).
@@ -1596,18 +1610,29 @@ class QpEngine {
     // member is admissible (E2 fix1: the box-based certificate does not need
     // cond1, and a locked positive-coefficient member leaves cond1 false on an
     // infeasible QP; a cond1 candidate that fails is still kRejected): builds the
-    // certificate from `pick` (y_i = min(v, 0) on member rows, the rest in the
-    // explicit box part) and true iff its implied bound clears the blocker's
-    // limit by more than the structural margin at `row_scale`. A TOLERANCED
-    // certificate: box_part entries <= kDepTol * ||c|| on coordinates unbounded
-    // on the needed side are dropped (the dependency test's own residual) and
-    // their norm is kept in QpFarkasCertificate::residual, so the kInfeasible
-    // verdict reads "infeasible within kDepTol * ||c|| on the dropped
-    // coordinates". The certificate is copied into QpSolution::farkas on
-    // kInfeasible only.
-    bool verify_farkas(const QpProblem &qp, const WorkingSet &ws, const ExchangePick &pick,
-                       bool is_ineq, Index idx, double row_scale, const QpOptions &opts,
-                       QpFarkasCertificate &cert) const;
+    // certificate from the test `t` oriented by `pick.sign` (y_i = min(v, 0) on
+    // member rows, the rest in the explicit box part) and true iff its implied
+    // bound clears the blocker's limit by more than the structural margin at
+    // `row_scale`. The multipliers are first REFINED mu-free on `view`
+    // (detail::certificate_coefficients; its solves added to `solves`): t's come
+    // from the dual_mu-regularized solve and are O(mu) off, which leaves an
+    // O(mu) box_part on free coordinates of an exactly dependent blocker
+    // (settler S25'). On a single-row dependency the row's exact coefficient
+    // (c's least-squares fit on it over the free columns) replaces the refined
+    // one when it lowers the residual: the refinement contracts by ~ mu ||H|| /
+    // ||a||^2 per step, slowly on a short row. A test with rho == 0 (structural,
+    // or no free column) is exact already and is not refined. Box_part entries <= kDepTol * ||c||
+    // on coordinates unbounded on the needed side are dropped and their norm kept in
+    // QpFarkasCertificate::residual. residual <= exact_tol (kCertExactKappa, the rounding floor):
+    // EXACT, the caller ends kInfeasible. Above it: TOLERANCED, a proof only for the QP with the
+    // dropped coefficients zeroed, NOT for this one (the dropped term is unbounded on its
+    // coordinate): the caller ends kNumericalError at the current iterate (after the border retreat
+    // on a border pass) and counts dep_certificate_toleranced (S25). Either is copied into
+    // QpSolution::farkas.
+    bool verify_farkas(const QpProblem &qp, const WorkingSet &ws, const detail::DepFactorView &view,
+                       const detail::DepTest &t, const ExchangePick &pick, bool is_ineq, Index idx,
+                       double row_scale, const QpOptions &opts, QpFarkasCertificate &cert,
+                       Index &solves) const;
 
     // Production's ratio scan with the constraints in `skip` excluded (the
     // no-admissible rule's pass-over), capped at the unit step.

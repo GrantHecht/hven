@@ -336,3 +336,64 @@ none removed. No counter, status or answer assertion moved: no re-pins.
 `compare_replay.py --residual-gate 1e-5` against the M6 close replay): walk 0 differences
 (7 within the gate, residual-class last digits on the two f7 cells: their M6 values, Optimal,
 factorizations 2, minors 6/12), ssn 0, ipm 0.
+
+## Fix round 2 — the Codex full review (S23, S24, S25 + S25′)
+
+The settler's adjudication of `.superpowers/m7-w2-e2-review-sol.md` items 1–3 (S23–S25) and the
+amendment S25′ after the first fix-2 implementer's STOP (S25 as ruled turned four truly infeasible
+fixtures into kNumericalError: the certificate's multipliers come from the `dual_mu`-regularized
+solve and are O(μ) off, so on free coordinates the residual was never exactly 0).
+
+| Ruling | What landed | Where | Fixtures |
+|---|---|---|---|
+| S23 — the dependency-test contract as landed (replaces R2) | ρ = ‖(a − A_Wᵀv)_free‖/‖a‖, scale-normalized, NO row equilibration (it cannot be applied to the retained factor); converged ρ ≤ kDepTol or the screen ⇒ dependent; a stall with ρ < kDepUndecidable ⇒ undecidable (border retreat / eliminated defer); a stall with ρ ≥ kDepUndecidable ⇒ admitted as independent AND counted (`DepTest::stall_admit`, new counter `dep_stall_admits`); converged kDepTol < ρ < kDepUndecidable ⇒ independent | `include/hven/detail/qp/ws_independence.h:13` (contract block), `src/qp/ws_independence.cpp:273` (the flag), `src/qp/qp_engine.cpp:3072` (the count), `include/hven/core/solver_counters.h:273` | `WsIndependenceCalibration.{RefinedStatisticSeparatesAtARowRatioOf1e10BothAlgebras, AStalledRefinementAboveTheUndecidableBandIsAdmittedAndFlagged}`, `BothAlgebras/WsIndependence.AStalledTestAboveTheUndecidableBandIsAdmittedAndCounted/{0,1}` |
+| S24 — the removal certificate is SUFFICIENT | comments corrected: ‖A_Wᵀŷ‖/\|ŷ_k\| is an UPPER BOUND on dist(a_k, span of the others), so the ratio is a sufficient numerical certificate; kDepRemovalTol = 1e-3 is a numerical-rank POLICY, not the candidate classifier's boundary; the no-certified-member fallback is HEURISTIC and kept; `best_certified_fallback` → `uncertified_fallback`, counter `dep_certified_fallbacks` → `dep_uncertified_fallbacks` | `include/hven/detail/qp/ws_independence.h:73-79`, `src/qp/ws_independence.cpp:409`, `:463`, `src/qp/qp_engine.cpp:808`, `include/hven/core/solver_counters.h:269` | `WsIndependenceCalibration.AConvergedRhoBetweenKDepTolAndKDepUndecidableIsIndependent`, `BothAlgebras/WsIndependence.TheUncertifiedFallbackStillEndsAtAFirstOrderPoint/{0,1}` (status AND a recomputed KKT residual) |
+| S25 — the toleranced certificate is not a proof | a verified certificate whose residual (dropped box_part entries on coordinates unbounded on the needed side) is above the rounding floor ends kNumericalError at the current iterate (after the border retreat on a border pass), the certificate kept in `QpSolution::farkas`, counted `dep_certificate_toleranced` (`AddExit::kToleranced`) | `src/qp/qp_engine.cpp:1512`, `:1555`, `:1577-1580`, `include/hven/detail/qp/qp_problem.h:100-133`, `include/hven/core/solver_counters.h:237` | `QpE2WorkingSet.ATolerancedCertificateOnAnUnboundedCoordinateEndsNumericalErrorInsideTheBox` (original vs coefficient-perturbed problem checked independently; now also the refined y within the floor of −1) |
+| S25′ — refine μ-free, then a rounding floor | `verify_farkas` refines the certificate's multipliers μ-free before verification: `detail::certificate_coefficients` is the dependency test with its ≤ 3 refinement steps run to their end (target 0: until a step stops lowering the μ-free residual); on a single-row dependency the row's EXACT coefficient (c's least-squares fit on it over the free columns) replaces the refined one when it lowers the residual. EXACT iff residual ≤ `exact_tol` = kCertExactKappa·(n + m)·ε·‖y‖₁·max_k‖a_k‖ (κ = 10, m = me + \|W\|, ‖y‖₁ with c's unit coefficient; standard-model derivation in the header). Tests with ρ == 0 (structural, no free column) are exact and not refined. The refinement's solves are added to `dep_test_solves` | `include/hven/detail/qp/qp_engine.h:478-488` (κ, derivation), `src/qp/qp_engine.cpp:3305` (`verify_farkas`), `:3356` (single-row), `:3427` (floor), `src/qp/ws_independence.cpp:175`, `:285`, `include/hven/detail/qp/ws_independence.h:123`, `include/hven/detail/qp/qp_problem.h:112`, `:133` (`exact_tol`) | `QpE2WorkingSet.AnExactlyDependentBlockerOnFreeVariablesIsCertifiedInfeasibleAfterRefinement` (a two-row dependency on free variables: the refinement alone decides) |
+
+**S25′ measured (Debug, temporary stderr probe, removed before the commit; the residual is the
+norm of box_part on coordinates unbounded on the needed side):**
+
+| Fixture (QP) | unrefined | refinement only (≤ 3 steps) | as landed (+ single-row exact) | floor `exact_tol` | status |
+|---|---|---|---|---|---|
+| `objective_inflated_lambda_qp(1e-2, 3e-4)` (ObjectiveInflated…, T6b… both algebras) | 3.5e-11 | 2.5e-18 | 0 | 1.9e-16 | kInfeasible |
+| `objective_inflated_lambda_qp(3e-3, 3e-4)` (same two tests) | 1.3e-9 | 4.0e-16 (y_e = 1 − 9.5e-14: the three steps ran out, contraction ~ μ‖H‖/‖a‖² on a 4e-3 row) | 0 (y_e = 1) | 5.7e-17 | kInfeasible |
+| SsnEngineLocal walk cross-checks (`contradictory_qp`) | 3.9e-9 | 0 | 0 | 3.4e-14 | kInfeasible |
+| the second shape in `InfeasibilityIsReachedByBothRoutesAndOnBothShapes` | 0 | 0 | 0 | 4.3e-13 | kInfeasible |
+| the new two-row fixture | 8.2e-9 | 0 | 0 (single-row not applicable) | 8.2e-14 | kInfeasible |
+| the toleranced fixture (e = 2⁻²¹ on the free x1) | 4.8e-7 | 4.8e-7 | 4.8e-7 = e | 1.3e-14 | kNumericalError |
+
+The refinement alone does NOT reach the floor on the a = 3e-3 instance (4.0e-16 > 5.7e-17): the
+single-row exact coefficient is what returns it to kInfeasible. S25′ names both routes; both landed.
+
+**The four correctness fixtures are back at kInfeasible and were NOT re-pinned:**
+`QpEngine.ObjectiveInflatedMultiplierHidesASmallContradiction`,
+`QpEngine.T6bObjectiveInflatedMultiplierBehavesTheSameInBothAlgebras`,
+`SsnEngineLocal.InfeasibleQpIsSuspectedNotCertified`,
+`SsnEngineLocal.InfeasibilityIsReachedByBothRoutesAndOnBothShapes`.
+
+**The 1e10 stall-admit finding (S25′, recorded as expected).** On the 1e10 row-ratio calibration the
+independent candidate e₀ is admitted through the stall branch (the 1e10 row puts the residual's
+rounding floor above the unscaled target), so it would count `dep_stall_admits`; the verdict and ρ
+are exact. Expected under the landed rule and the counter, not a defect; the flag is not pinned (a
+backend's rounding decides it). Re-take 3 reads the counter on real cells.
+
+**Suites (this tree, MKL, clang++, `ctest -j4` under `setsid`, the box lock per leg).** Debug
+2826/2826 without the long test, the long test 1/1 (alone, detached); Release 2827/2827. By name
+against the E1b fix-round-3 gate transcripts (2817/2818): nine new instances — the eight above from
+S23/S24/S25 (three `WsIndependenceCalibration`, two parameterised over both algebras, the toleranced
+fixture) and the S25′ fixture — none removed. The HS corpus and the options-dump pins are inside the
+suites and did not move.
+
+**Re-pins: none.** No counter, status or answer assertion outside the new fixtures moved; the one
+edit to a round-2 fixture (the toleranced one: y within the floor of −1 instead of within 1e-6)
+tightens its own assertion.
+
+**Schema note (the harness follows at re-take 3).** Counter RENAMED: `dep_certified_fallbacks` →
+`dep_uncertified_fallbacks` (same event, the name corrected; the harness column
+`harness_qpsum_dep_certified_fallbacks` follows). NEW: `dep_stall_admits` (S23),
+`dep_certificate_toleranced` (S25). `dep_test_solves` now also counts the certificate's refinement
+solves (S25′). `QpFarkasCertificate` gains `exact_tol`.
+
+**Process.** The first fix-2 implementer's one direct test-binary run outside the box lock (~08:37,
+~10 ms, a Debug unit-test filter) is recorded here. Its STOP is recorded in the STATE note.

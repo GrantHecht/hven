@@ -97,18 +97,29 @@ struct QpProblem {
     }
 };
 
-/// @brief A verified Farkas certificate behind a kInfeasible from the walk's
-/// no-admissible-member rule. For every x in the box [lower, upper] with
-/// Ae x = be and Ai x <= bi: s * c^T x >= implied, where c is Ai's row
-/// `blocker` (blocker_is_ineq) or e_blocker, s = sign, and
-/// c_s = Ae^T y_e + Ai^T y_i + box_part with y_i <= 0; `implied` is
-/// y_e^T be + y_i^T bi + min over the box of box_part^T x. Verified:
-/// implied - limit > margin, limit the blocker's own bound (s * c^T x <= limit).
-/// `residual`: the norm of box_part entries dropped on coordinates unbounded
-/// on the needed side, each <= kDepTol * ||c|| (the dependency test's own
-/// residual); the bound holds up to residual * |x| on those coordinates, so a
-/// kInfeasible carrying a nonzero `residual` is a TOLERANCED verdict:
-/// infeasible within kDepTol * ||c|| on the dropped coordinates.
+/// @brief The verified certificate behind the walk's no-admissible-member rule.
+/// c is Ai's row `blocker` (blocker_is_ineq) or e_blocker, s = sign, and
+/// s * c = Ae^T y_e + Ai^T y_i + box_part with y_i <= 0; `implied` is
+/// y_e^T be + y_i^T bi + min over the box of box_part^T x, taken over the
+/// entries NOT dropped (below). Verified: implied - limit > margin, limit the
+/// blocker's own bound (s * c^T x <= limit).
+///
+/// y_e, y_i are refined mu-free before verification (the regularized solve's
+/// are O(mu) off).
+///
+/// `residual`: the norm of the box_part entries DROPPED because their
+/// coordinate is unbounded on the needed side, each <= kDepTol * ||c||.
+/// `exact_tol`: the rounding floor kCertExactKappa * (n + m) * eps * ||y||_1 *
+/// max_k ||a_k|| (standard model; derived at kCertExactKappa, qp_engine.h).
+///   - residual <= exact_tol: an exact Farkas certificate for the QP up to
+///     rounding -- every x in the box with Ae x = be, Ai x <= bi has
+///     s * c^T x >= implied > limit -- behind a kInfeasible.
+///   - residual > exact_tol: a TOLERANCED certificate. It proves infeasible only the
+///     QP with the dropped coefficients zeroed; for this QP the dropped term
+///     is unbounded on its coordinate and can outweigh any margin, so it is
+///     NOT a certificate. The walk ends kNumericalError at its current iterate
+///     (inside the box) and returns it here for the driver and telemetry
+///     (QpCounters::dep_certificate_toleranced).
 struct QpFarkasCertificate {
     bool present = false;
     bool blocker_is_ineq = false;
@@ -119,6 +130,7 @@ struct QpFarkasCertificate {
     double limit = 0.0;
     double margin = 0.0;
     double residual = 0.0;
+    double exact_tol = 0.0;
 };
 
 /// @brief The solution of one QpProblem: primal/dual vectors, working-set
@@ -148,7 +160,9 @@ struct QpSolution {
     /// "stationary treated as free".
     std::vector<bool> tr_active;
 
-    /// Set only on a kInfeasible the walk's no-admissible-member rule proved.
+    /// Set by the walk's no-admissible-member rule only: an exact certificate
+    /// (residual <= exact_tol) on a kInfeasible, a toleranced one (above it) on
+    /// a kNumericalError -- see QpFarkasCertificate.
     QpFarkasCertificate farkas;
 };
 

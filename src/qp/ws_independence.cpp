@@ -168,8 +168,12 @@ Index ws_rows(const QpProblem &qp, const WorkingSet &ws) {
 
 } // namespace
 
-DepTest dependency_test(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f,
-                        const Vec &a, const QpOptions &opts) {
+namespace {
+
+// The dependency test's body; `target` is the refinement's stopping residual
+// (<= 0: refine until a step stops lowering the residual or the steps run out).
+DepTest dependency_test_to(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f,
+                           const Vec &a, const QpOptions &opts, double target) {
     const Index n = qp.n();
     const std::vector<Index> &aw = ws.active_ineq();
     DepTest t;
@@ -207,7 +211,6 @@ DepTest dependency_test(const QpProblem &qp, const WorkingSet &ws, const DepFact
     ++t.solves;
     Vec res = sys.residual(qp, rhs, y, opts);
     double res_norm = res.lpNorm<Eigen::Infinity>();
-    const double target = 0.1 * kDepTol * a.lpNorm<Eigen::Infinity>();
     for (Index s = 0; s < kDepRefineSteps && res_norm > target; ++s) {
         const Vec cand = y + sys.solve(res);
         ++t.solves;
@@ -254,7 +257,11 @@ DepTest dependency_test(const QpProblem &qp, const WorkingSet &ws, const DepFact
         }
     }
     t.rho = std::sqrt(free_sq) / a_norm;
-    const bool converged = res_norm <= target;
+    const bool converged = res_norm <= std::max(target, 0.0);
+    // The landed contract (header, S23): a converged rho above kDepTol is
+    // independent, including kDepTol < rho < kDepUndecidable; a stall below
+    // kDepUndecidable is undecidable; a stall at or above it is admitted as
+    // independent and flagged for the caller's dep_stall_admits.
     if (t.screen || t.rho <= kDepTol) {
         t.verdict = DepVerdict::kDependent;
     } else if (!converged && t.rho < kDepUndecidable) {
@@ -263,8 +270,21 @@ DepTest dependency_test(const QpProblem &qp, const WorkingSet &ws, const DepFact
         t.verdict = DepVerdict::kUndecidable;
     } else {
         t.verdict = DepVerdict::kIndependent;
+        t.stall_admit = !converged;
     }
     return t;
+}
+
+} // namespace
+
+DepTest dependency_test(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f,
+                        const Vec &a, const QpOptions &opts) {
+    return dependency_test_to(qp, ws, f, a, opts, 0.1 * kDepTol * a.lpNorm<Eigen::Infinity>());
+}
+
+DepTest certificate_coefficients(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f,
+                                 const Vec &a, const QpOptions &opts) {
+    return dependency_test_to(qp, ws, f, a, opts, 0.0);
 }
 
 EntryDetection detect_dependency(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f,
@@ -384,17 +404,21 @@ EntryDetection detect_dependency(const QpProblem &qp, const WorkingSet &ws, cons
         return d;
     }
     d.found = true;
-    // THE REMOVAL CERTIFICATE (E2 fix1b, E2-D2). y_hat proves member k
-    // dependent on the others only to rho_k = ||A_W^T y_hat|| / (|y_k| ||a_k||)
-    // (solve y_hat's relation for a_k). A member whose rho_k exceeds
-    // kDepRemovalTol is one the candidate test's own threshold would call
-    // independent: it is in the support by a small coefficient, not proven
-    // dependent, and removing it does not remove the dependency (observed:
-    // f7_n800_path_warm, a pin at 2e-4 of the largest coefficient removed,
-    // re-blocking at zero motion). Such members are not offered for removal;
-    // mandatory members (equalities, fixed pins) are never removed and stay
-    // listed. With no removable member certified, the best-certified one
-    // (largest scaled coefficient) is offered alone.
+    // THE REMOVAL CERTIFICATE (E2 fix1b, E2-D2). From A_W^T y_hat = r,
+    // dist(a_k, span{a_i, i != k}) <= ||r|| / |y_k|: rho_k = ||r|| / (|y_k|
+    // ||a_k||) is an UPPER BOUND on member k's relative distance from the
+    // others' span, so rho_k <= kDepRemovalTol is a SUFFICIENT numerical
+    // certificate that k is dependent, and 1e-3 is a numerical-rank policy
+    // (not the candidate test's boundary: there a converged 1e-6 < rho < 1e-3
+    // is independent). A member that fails it is in the support by a small
+    // coefficient, not certified, and removing it need not remove the
+    // dependency (observed: f7_n800_path_warm, a pin at 2e-4 of the largest
+    // coefficient removed, re-blocking at zero motion). Such members are not
+    // offered for removal; mandatory members (equalities, fixed pins) are
+    // never removed and stay listed. With no removable member certified, the
+    // uncertified one with the largest scaled coefficient is offered alone:
+    // a HEURISTIC fallback, kept (settler S24), counted by the caller as
+    // dep_uncertified_fallbacks.
     const double resid = d.null_residual * row_max;
     const auto removable = [&](const WsMember &m) {
         return m.kind == WsMember::Kind::kRow ||
@@ -434,8 +458,9 @@ EntryDetection detect_dependency(const QpProblem &qp, const WorkingSet &ws, cons
         }
     }
     if (!any_certified && best_coef > 0.0) {
+        // Heuristic, uncertified (see above).
         d.support.push_back(best);
-        d.best_certified_fallback = true;
+        d.uncertified_fallback = true;
     }
     return d;
 }

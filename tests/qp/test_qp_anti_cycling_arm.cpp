@@ -1627,3 +1627,141 @@ TEST(QpE2WorkingSet, AFullyPinnedRowDecidesAnUndecidablePinExactly) {
         }
     }
 }
+
+TEST(QpE2WorkingSet, ATolerancedCertificateOnAnUnboundedCoordinateEndsNumericalErrorInsideTheBox) {
+    // E2 fix2, settler S25. Rows -x0 <= -1 and x0 + e x1 <= 0, e = 2^-21
+    // (exact), x0 in [-10, 10], x1 FREE (no finite bound on either side).
+    // From the seed (1, -2^22) with row 0 active the step runs along +e1 and
+    // row 1 blocks at alpha = 1/2, dependent on row 0 to rho = e/||c|| <
+    // kDepTol with a NEGATIVE coefficient: nothing admissible. Its certificate
+    // (y_1 = -1 on row 0) leaves box_part = (0, e): the e sits on x1, which is
+    // unbounded, so verify_farkas drops it (residual = e) and verifies. That is
+    // a proof for the PERTURBED QP (e = 0: x0 >= 1 and x0 <= 0), NOT for this
+    // one, which is feasible -- (1, -2^21) satisfies both rows exactly. The walk
+    // ends kNumericalError where it stands, the certificate returned.
+    const double e = std::ldexp(1.0, -21);
+    const double inf = std::numeric_limits<double>::infinity();
+    QpProblem qp =
+        e2_diag_qp({1.0, 1.0}, {0.0, 0.0}, {-1.0, 0.0, 1.0, e}, {-1.0, 0.0}, -10.0, 10.0);
+    qp.lower(1) = -inf;
+    qp.upper(1) = inf;
+    QpSolution seed;
+    seed.x = Vec(2);
+    seed.x << 1.0, -std::ldexp(1.0, 22);
+    seed.bound_state = {BoundState::kFree, BoundState::kFree};
+    seed.ineq_active = {true, false};
+
+    // The data, independently of the engine: the original QP is FEASIBLE.
+    Vec xf(2);
+    xf << 1.0, -std::ldexp(1.0, 21);
+    const Vec axf = qp.Ai * xf;
+    ASSERT_LE(axf(0), qp.bi(0));
+    ASSERT_LE(axf(1), qp.bi(1));
+
+    // min over the box of b^T x, with every entry of b included (no drop).
+    const auto box_min = [](const QpProblem &p, const Vec &b) {
+        double m = 0.0;
+        for (Index i = 0; i < p.n(); ++i) {
+            if (b(i) != 0.0) {
+                m += b(i) * (b(i) > 0.0 ? p.lower(i) : p.upper(i));
+            }
+        }
+        return m;
+    };
+    // The certificate's inequality s c^T x >= y^T bi + min_box(box_part), for
+    // the problem `p`, re-derived from p's own rows.
+    const auto implied_for = [&](const QpProblem &p, const QpFarkasCertificate &f) {
+        Vec c = p.Ai.row(f.blocker).transpose();
+        const Vec box_part = f.sign * c - p.Ai.transpose() * f.y_i;
+        return f.y_i.dot(p.bi) + box_min(p, box_part);
+    };
+
+    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+        SCOPED_TRACE(e2_name(alg));
+        const QpEngine engine{e2_opts(alg, 40)};
+        const QpSolution s = engine.solve(qp, seed);
+        const QpCounters &c = s.counters;
+        // (c) the verdict: kNumericalError, inside the box, rows satisfied.
+        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kNumericalError));
+        EXPECT_EQ(c.dep_certificate_toleranced, 1);
+        EXPECT_EQ(c.dep_infeasible_certificates, 0);
+        EXPECT_EQ(c.dep_blocker_terminations, 0);
+        EXPECT_EQ(c.dep_certificate_rejections, 0);
+        EXPECT_EQ(c.dep_border_retreats, alg == WorkingSetLinearAlgebra::kSchurBorder ? 1 : 0);
+        for (Index i = 0; i < qp.n(); ++i) {
+            EXPECT_GE(s.x(i), qp.lower(i));
+            EXPECT_LE(s.x(i), qp.upper(i));
+        }
+        EXPECT_LE((qp.Ai * s.x - qp.bi).maxCoeff(), 0.0);
+        EXPECT_EQ(s.x(0), 1.0);
+        EXPECT_EQ(s.x(1), -std::ldexp(1.0, 22)) << "no step past the blocker";
+
+        // (b) the toleranced certificate, returned with its residual.
+        const QpFarkasCertificate &f = s.farkas;
+        ASSERT_TRUE(f.present);
+        EXPECT_TRUE(f.blocker_is_ineq);
+        EXPECT_EQ(f.blocker, 1);
+        EXPECT_EQ(f.residual, e);
+        EXPECT_GT(f.residual, f.exact_tol) << "above the rounding floor (S25')";
+        // Refined mu-free (S25'): -1 to within the floor, not O(mu).
+        EXPECT_LE(std::abs(f.y_i(0) + 1.0), f.exact_tol);
+        EXPECT_EQ(f.y_i(1), 0.0);
+        EXPECT_EQ(f.box_part(1), e);
+
+        // (a) the ORIGINAL QP: the full box_part keeps e on the unbounded x1,
+        // so the implied bound is -inf -- no certificate.
+        EXPECT_EQ(implied_for(qp, f), -inf);
+        // The COEFFICIENT-PERTURBED QP (the dropped e zeroed): the same
+        // multipliers prove it infeasible, box_part zero on x1.
+        QpProblem perturbed = qp;
+        perturbed.Ai.coeffRef(1, 1) = 0.0;
+        perturbed.Ai.prune(0.0);
+        const double implied_p = implied_for(perturbed, f);
+        EXPECT_TRUE(std::isfinite(implied_p));
+        EXPECT_NEAR(implied_p, 1.0, 1e-6);
+        EXPECT_GT(implied_p - perturbed.bi(1), f.margin);
+        EXPECT_NEAR(implied_p, f.implied, 1e-12);
+    }
+}
+
+TEST(QpE2WorkingSet, AnExactlyDependentBlockerOnFreeVariablesIsCertifiedInfeasibleAfterRefinement) {
+    // E2 fix2, settler S25'. x in R^3, every coordinate FREE (no finite bound).
+    // Equalities x0 + x2 = 1 and x1 + x2 = 1; the row x0 + x1 + 2 x2 <= 1 is
+    // EXACTLY their sum (a two-row dependency, so the single-row exact
+    // coefficient cannot apply: the mu-free refinement alone decides), and the
+    // sum forces 2 > 1 -- infeasible. The dual_mu-regularized solve leaves the
+    // multipliers O(mu) off (measured 8.2e-9 on the free coordinates, E2 README
+    // fix-round-2): without the refinement, every such entry would sit on an
+    // unbounded coordinate and the certificate would be toleranced
+    // (kNumericalError). Refined, the residual is within the rounding floor:
+    // kInfeasible, y_e = (1, 1) to the floor.
+    const double inf = std::numeric_limits<double>::infinity();
+    QpProblem qp = e2_diag_qp({1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {1.0, 1.0, 2.0}, {1.0}, -inf, inf);
+    Eigen::MatrixXd Aed(2, 3);
+    Aed << 1.0, 0.0, 1.0, 0.0, 1.0, 1.0;
+    qp.Ae = Aed.sparseView();
+    qp.be = Vec::Constant(2, 1.0);
+
+    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+        SCOPED_TRACE(e2_name(alg));
+        const QpEngine engine{e2_opts(alg, 40)};
+        const QpSolution s = engine.solve(qp);
+        const QpCounters &c = s.counters;
+        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kInfeasible));
+        EXPECT_EQ(c.dep_infeasible_certificates, 1);
+        EXPECT_EQ(c.dep_certificate_toleranced, 0);
+        const QpFarkasCertificate &f = s.farkas;
+        ASSERT_TRUE(f.present);
+        EXPECT_TRUE(f.blocker_is_ineq);
+        EXPECT_EQ(f.blocker, 0);
+        EXPECT_GT(f.exact_tol, 0.0);
+        EXPECT_LE(f.residual, f.exact_tol);
+        ASSERT_EQ(f.y_e.size(), 2);
+        EXPECT_LE(std::abs(f.y_e(0) - 1.0), f.exact_tol);
+        EXPECT_LE(std::abs(f.y_e(1) - 1.0), f.exact_tol);
+        EXPECT_LE(f.box_part.lpNorm<Eigen::Infinity>(), f.exact_tol);
+        // The certificate's inequality, re-derived: c^T x >= y_e^T be = 2 > 1.
+        EXPECT_NEAR(f.implied, 2.0, 1e-12);
+        EXPECT_GT(f.implied - f.limit, f.margin);
+    }
+}

@@ -4,7 +4,10 @@
 // M7 W2 E2 step 1: the working-set dependency test and the entry detector
 // (qp/ws_independence.h), on constructed QPs, in both ws_algebra modes.
 
+#include <cmath>
+#include <initializer_list>
 #include <optional>
+#include <utility>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -275,7 +278,7 @@ TEST(WsIndependenceDetector, APinInTheSupportByASmallCoefficientIsNotOfferedForR
     EXPECT_TRUE(row0 && row1) << "both rows are certified (rho ~ eta)";
     EXPECT_FALSE(pin2) << "the pin clears kDepCoeffTol but not the removal certificate";
     EXPECT_TRUE(d.uncertified_dropped);
-    EXPECT_FALSE(d.best_certified_fallback);
+    EXPECT_FALSE(d.uncertified_fallback);
 }
 
 TEST(WsIndependenceDetector, WithNoRemovableMemberCertifiedTheBestCertifiedOneIsOfferedAlone) {
@@ -295,7 +298,7 @@ TEST(WsIndependenceDetector, WithNoRemovableMemberCertifiedTheBestCertifiedOneIs
     EXPECT_EQ(pins, 1);
     EXPECT_EQ(eqs, 2);
     EXPECT_TRUE(d.uncertified_dropped);
-    EXPECT_TRUE(d.best_certified_fallback);
+    EXPECT_TRUE(d.uncertified_fallback);
 }
 
 // The same rows, violated at the seed (b = -1, x = 0), so both enter as shift
@@ -314,7 +317,7 @@ TEST_P(WsIndependence, AnUncertifiedPinIsKeptAndACertifiedRowRemoved) {
     EXPECT_EQ(s.counters.shift_adds, 2);
     EXPECT_EQ(s.counters.entry_dependency_removals, 1);
     EXPECT_EQ(s.counters.dep_uncertified_trims, 1);
-    EXPECT_EQ(s.counters.dep_certified_fallbacks, 0);
+    EXPECT_EQ(s.counters.dep_uncertified_fallbacks, 0);
     EXPECT_EQ(s.bound_state[2], BoundState::kAtLower) << "the uncertified pin was not removed";
     EXPECT_NEAR(s.x(0), -1.0, 1e-12);
     EXPECT_NEAR(s.x(1), 0.0, 1e-12);
@@ -431,6 +434,239 @@ TEST(WsIndependenceCalibration, RefinedStatisticSeparatesBordered) {
             EXPECT_GT(ti.rho, 1e-2);
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// E2 fix2 (settler S23, S24): the dependency test's landed contract, on both
+// algebras. `rows_view` factors K0 over `k0_rows` and borders `border_rows`
+// onto it (the Schur path), or factors the eliminated KKT over every row.
+// ---------------------------------------------------------------------------
+
+struct RowsView {
+    QpProblem qp;
+    QpOptions o;
+    WorkingSet ws;
+    bool bordered = false;
+    detail::KktFactor kkt; // eliminated path, or K0 on the border path
+    KktAssembly k0;
+    std::vector<Index> k0_rows;
+    std::vector<BorderLedgerEntry> ledger;
+    std::optional<SchurComplement> schur;
+
+    RowsView(QpProblem problem, double mu, const std::vector<Index> &k0_in,
+             const std::vector<Index> &border_rows, bool on_border)
+        : qp(std::move(problem)), ws(qp.n(), qp.mi()), bordered(on_border) {
+        o.dual_mu = mu;
+        for (const Index r : k0_in) {
+            ws.add_ineq(r);
+        }
+        if (!bordered) {
+            for (const Index r : border_rows) {
+                ws.add_ineq(r);
+            }
+            (void)solve_eqp(qp, ws, kkt, o);
+            return;
+        }
+        k0 = assemble_kkt_full(qp, ws, o);
+        k0_rows = ws.active_ineq();
+        detail::factorize_checked(kkt, k0.K);
+        schur.emplace(kkt, o);
+        for (const Index r : border_rows) {
+            schur->add_border(BorderOps::add_ineq_row(qp, r, k0.K.rows()), -o.dual_mu);
+            ledger.push_back({BorderLedgerEntry::Kind::kIneqRow, r});
+            ws.add_ineq(r);
+        }
+    }
+
+    detail::DepFactorView view() const {
+        detail::DepFactorView v;
+        if (bordered) {
+            v.k0 = &k0;
+            v.k0_rows = &k0_rows;
+            v.ledger = &ledger;
+            v.schur = &*schur;
+        } else {
+            v.eliminated = &kkt;
+        }
+        return v;
+    }
+
+    detail::DepTest test(const Vec &a) const {
+        return detail::dependency_test(qp, ws, view(), a, o);
+    }
+};
+
+Vec vec_of(std::initializer_list<double> v) {
+    Vec out(static_cast<Index>(v.size()));
+    Index i = 0;
+    for (const double x : v) {
+        out(i++) = x;
+    }
+    return out;
+}
+
+// S23: calibration at a SAWPATH-scale row ratio, both rows IN the working set.
+// Row 0 = s (1, 1, 0, 0) with s = 1e10, row 1 = (0, 0, 1, 0), n = 4, H = I.
+// The candidates are exact combinations or exact complements, so the verdicts
+// are properties of the data, not of the factor:
+//   (2, 2, 3, 0) = (2/s) row0 + 3 row1        -> dependent, v = (2/s, 3)
+//   (s, s, 1, 0) = row0 + row1                 -> dependent, v = (1, 1)
+//   (1, 0, 0, 0): component (1/2, -1/2, 0, 0)  -> independent, rho = 1/sqrt2
+//   (0, 0, 0, 1): orthogonal to both rows      -> independent, rho = 1
+// Row 0 is in K0 or bordered onto a K0 holding row 1 (the border path), and
+// the eliminated path factors both.
+QpProblem ratio_rows_qp(double s) {
+    Eigen::MatrixXd Ai(2, 4);
+    Ai << s, s, 0, 0, 0, 0, 1, 0;
+    return make_qp(Eigen::MatrixXd::Identity(4, 4), Vec::Zero(4), Eigen::MatrixXd(0, 4), Vec(0), Ai,
+                   vec_of({s, 1.0}), -10.0, 10.0);
+}
+
+TEST(WsIndependenceCalibration, RefinedStatisticSeparatesAtARowRatioOf1e10BothAlgebras) {
+    constexpr double kS = 1e10;
+    for (const bool border : {false, true}) {
+        for (const double mu : {1e-8, 1e-10, 1e-12}) {
+            SCOPED_TRACE(::testing::Message()
+                         << (border ? "border" : "eliminated") << " mu " << mu);
+            const RowsView rv(ratio_rows_qp(kS), mu, {1}, {0}, border);
+            const detail::DepTest d1 = rv.test(vec_of({2.0, 2.0, 3.0, 0.0}));
+            EXPECT_EQ(d1.verdict, detail::DepVerdict::kDependent);
+            EXPECT_LT(d1.rho, 1e-8);
+            EXPECT_FALSE(d1.stall_admit);
+            EXPECT_NEAR(d1.v_w(0) * kS, 2.0, 1e-6);
+            EXPECT_NEAR(d1.v_w(1), 3.0, 1e-6);
+            EXPECT_LE(d1.solves, 1 + detail::kDepRefineSteps);
+
+            const detail::DepTest d2 = rv.test(vec_of({kS, kS, 1.0, 0.0}));
+            EXPECT_EQ(d2.verdict, detail::DepVerdict::kDependent);
+            EXPECT_LT(d2.rho, 1e-8);
+            EXPECT_NEAR(d2.v_w(0), 1.0, 1e-6);
+            EXPECT_NEAR(d2.v_w(1), 1.0, 1e-6);
+
+            // Observed on MKL, both algebras, every mu: this candidate's refinement
+            // stalls (the 1e10 row puts the residual's rounding floor above the
+            // unscaled target), so it is admitted through the stall branch and
+            // would count dep_stall_admits. The verdict and rho are exact either
+            // way; the flag is not pinned (a backend's rounding decides it).
+            const detail::DepTest i1 = rv.test(vec_of({1.0, 0.0, 0.0, 0.0}));
+            EXPECT_EQ(i1.verdict, detail::DepVerdict::kIndependent);
+            EXPECT_NEAR(i1.rho, std::sqrt(0.5), 1e-6);
+
+            const detail::DepTest i2 = rv.test(vec_of({0.0, 0.0, 0.0, 1.0}));
+            EXPECT_EQ(i2.verdict, detail::DepVerdict::kIndependent);
+            EXPECT_NEAR(i2.rho, 1.0, 1e-6);
+            EXPECT_FALSE(i2.stall_admit);
+        }
+    }
+}
+
+// S23: a DELIBERATELY STALLED refinement with rho > kDepUndecidable. The
+// working rows (1, 0, 0) and (1, sigma, 0), sigma = 1e-5, have sigma_min^2 ~
+// 5e-11 < mu = 1e-8, so the mu-regularized solve contracts the refinement by
+// only ~1 - sigma^2/mu per step and kDepRefineSteps steps cannot reach the
+// target. The candidate (0, 1, 1) needs the coefficient 1/sigma on the weak
+// direction; its e2 part is outside the rows' span, so rho >= 1/sqrt2 > 1e-3
+// whatever the coefficients: ADMITTED as independent, flagged stall_admit.
+QpProblem stalled_rows_qp() {
+    constexpr double kSigma = 1e-5;
+    Eigen::MatrixXd Ai(3, 3);
+    Ai << 1, 0, 0, 1, kSigma, 0, 0, 1, 1;
+    Vec g(3);
+    g << -2.0, -(1.0 + kSigma), -2.0;
+    return make_qp(Eigen::MatrixXd::Identity(3, 3), g, Eigen::MatrixXd(0, 3), Vec(0), Ai,
+                   vec_of({0.0, 0.0, 1.0}), -10.0, 10.0);
+}
+
+TEST(WsIndependenceCalibration, AStalledRefinementAboveTheUndecidableBandIsAdmittedAndFlagged) {
+    for (const bool border : {false, true}) {
+        SCOPED_TRACE(border ? "border" : "eliminated");
+        const RowsView rv(stalled_rows_qp(), 1e-8, {0}, {1}, border);
+        const detail::DepTest t = rv.test(vec_of({0.0, 1.0, 1.0}));
+        EXPECT_EQ(t.verdict, detail::DepVerdict::kIndependent);
+        EXPECT_TRUE(t.stall_admit) << "the refinement converged: the fixture no longer stalls";
+        EXPECT_GE(t.rho, detail::kDepUndecidable);
+        EXPECT_EQ(t.solves, 1 + detail::kDepRefineSteps);
+    }
+}
+
+// S23 end to end: seeded with rows 0 and 1 active at x = 0, the step on their
+// face runs along e2 and row 2 = (0, 1, 1) blocks at x2 = 1. Its test stalls
+// (above) with rho >= 1e-3: admitted and counted. The answer is the vertex
+// (0, 0, 1) with lambda = (1, 1, 1) (g was chosen for it), checked here from the
+// data.
+TEST_P(WsIndependence, AStalledTestAboveTheUndecidableBandIsAdmittedAndCounted) {
+    const QpProblem qp = stalled_rows_qp();
+    QpSolution seed;
+    seed.x = Vec::Zero(3);
+    seed.bound_state.assign(3, BoundState::kFree);
+    seed.ineq_active = {true, true, false};
+    const QpEngine on(opts_for(GetParam()));
+    const QpSolution s = on.solve(qp, seed);
+    ASSERT_EQ(s.status, QpStatus::kOptimal);
+    EXPECT_GE(s.counters.dep_stall_admits, 1);
+    EXPECT_EQ(s.counters.dep_undecidable, 0);
+    EXPECT_TRUE(s.ineq_active[2]);
+    EXPECT_NEAR(s.x(0), 0.0, 1e-9);
+    EXPECT_NEAR(s.x(1), 0.0, 1e-9);
+    EXPECT_NEAR(s.x(2), 1.0, 1e-9);
+    const Vec r = qp.H.selfadjointView<Eigen::Upper>() * s.x + qp.g +
+                  Eigen::MatrixXd(qp.Ai).transpose() * s.lambda_i;
+    EXPECT_LE(r.lpNorm<Eigen::Infinity>(), 1e-6);
+    EXPECT_GE(s.lambda_i.minCoeff(), -1e-9);
+    EXPECT_LE((Eigen::MatrixXd(qp.Ai) * s.x - qp.bi).maxCoeff(), 1e-9);
+}
+
+// S24: kDepRemovalTol is NOT the candidate test's boundary. A CONVERGED
+// candidate with kDepTol < rho < kDepUndecidable is independent. Working row
+// (1, 0, 0); candidates (1, e, 0) have rho = e / sqrt(1 + e^2) exactly.
+TEST(WsIndependenceCalibration, AConvergedRhoBetweenKDepTolAndKDepUndecidableIsIndependent) {
+    Eigen::MatrixXd Ai(2, 3);
+    Ai << 1, 0, 0, 0, 1, 0;
+    const QpProblem qp =
+        make_qp(Eigen::MatrixXd::Identity(3, 3), Vec::Zero(3), Eigen::MatrixXd(0, 3), Vec(0), Ai,
+                vec_of({1.0, 1.0}), -10.0, 10.0);
+    for (const bool border : {false, true}) {
+        const RowsView rv(qp, 1e-8, {}, {0}, border);
+        for (const double e : {1e-5, 1e-4, 5e-4}) {
+            SCOPED_TRACE(::testing::Message() << (border ? "border" : "eliminated") << " e " << e);
+            const detail::DepTest t = rv.test(vec_of({1.0, e, 0.0}));
+            EXPECT_EQ(t.verdict, detail::DepVerdict::kIndependent);
+            EXPECT_FALSE(t.stall_admit) << "converged";
+            EXPECT_GT(t.rho, detail::kDepTol);
+            EXPECT_LT(t.rho, detail::kDepUndecidable);
+            EXPECT_NEAR(t.rho, e / std::sqrt(1.0 + e * e), 1e-9);
+        }
+    }
+}
+
+// S24 end to end: THE HEURISTIC FALLBACK. near_dependent_rows_qp as mandatory
+// equalities with x2's lower pin seeded: the pin is the only removable member
+// and y_hat does not certify it, so the uncertified pin is offered alone and
+// removed (dep_uncertified_fallbacks). The QP's optimum is (1, 0, 0) with
+// lambda_e = (4, 0), z_2 = 1 + 4e-5 (x2 = 0 is optimal: x1 = 200 x2 on the
+// equalities, and d f / d x2 > 0 there). The walk must still reach it: the
+// status and the first-order residual are recomputed from the data.
+TEST_P(WsIndependence, TheUncertifiedFallbackStillEndsAtAFirstOrderPoint) {
+    const QpProblem qp = near_dependent_rows_qp(/*as_equalities=*/true);
+    QpSolution seed;
+    seed.x = Vec::Zero(3);
+    seed.bound_state = {BoundState::kFree, BoundState::kFree, BoundState::kAtLower};
+    const QpEngine on(opts_for(GetParam()));
+    const QpSolution s = on.solve(qp, seed);
+    EXPECT_GE(s.counters.dep_uncertified_fallbacks, 1);
+    ASSERT_EQ(s.status, QpStatus::kOptimal);
+    // x1 is fixed only through the 1e-7 coefficient, so it carries rounding / 1e-7.
+    EXPECT_NEAR(s.x(0), 1.0, 1e-9);
+    EXPECT_NEAR(s.x(1), 0.0, 1e-6);
+    EXPECT_NEAR(s.x(2), 0.0, 1e-9);
+    // H x + g + Ae^T lambda_e - z = 0, z_2 >= 0 at the lower bound, Ae x = be.
+    const Vec r = qp.H.selfadjointView<Eigen::Upper>() * s.x + qp.g +
+                  Eigen::MatrixXd(qp.Ae).transpose() * s.lambda_e - s.z;
+    EXPECT_LE(r.lpNorm<Eigen::Infinity>(), 1e-6);
+    EXPECT_LE((Eigen::MatrixXd(qp.Ae) * s.x - qp.be).lpNorm<Eigen::Infinity>(), 1e-9);
+    EXPECT_EQ(s.z(0), 0.0);
+    EXPECT_EQ(s.z(1), 0.0);
+    EXPECT_GE(s.z(2), 0.0);
 }
 
 // F11: the test and the detector are read-only on both views: factor identity,

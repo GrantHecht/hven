@@ -226,9 +226,15 @@ struct QpCounters {
     Index ws_exchanges = 0;
     Index ws_exchanges_bound = 0;   // the blocker or the released member is a pin
     Index ws_exchanges_shifted = 0; // the released member was a shift-driven row (last resort)
-    // A verified Farkas certificate => kInfeasible; tried whenever no member
-    // is admissible (E2 fix1: not only under cond1).
+    // A verified EXACT Farkas certificate (multipliers refined mu-free, residual
+    // within the rounding floor QpFarkasCertificate::exact_tol) => kInfeasible;
+    // tried whenever no member is admissible (E2 fix1: not only under cond1).
     Index dep_infeasible_certificates = 0;
+    // A verified TOLERANCED certificate (residual above the floor: a box_part
+    // coefficient dropped on an unbounded coordinate) is not a proof for the
+    // QP => kNumericalError at the current iterate, the certificate kept in
+    // QpSolution::farkas (E2 fix2, settler S25/S25').
+    Index dep_certificate_toleranced = 0;
     Index dep_certificate_rejections =
         0; // a cond1 candidate failed verification => kNumericalError
     Index dep_passovers = 0;
@@ -256,9 +262,15 @@ struct QpCounters {
     // y_hat does not certify: ||A_W^T y_hat|| > kDepRemovalTol * |y_k| ||a_k||
     // (E2 fix1b). A member in the support by a small coefficient only.
     Index dep_uncertified_trims = 0;
-    // ... of which no removable member was certified, so the best-certified
-    // one (largest scaled coefficient) was offered alone (E2 fix1b).
-    Index dep_certified_fallbacks = 0;
+    // ... of which no removable member was certified, so the uncertified one
+    // with the largest scaled coefficient was offered alone: a HEURISTIC
+    // fallback, not a certificate (E2 fix1b; renamed from
+    // dep_certified_fallbacks in E2 fix2, settler S24).
+    Index dep_uncertified_fallbacks = 0;
+    // Candidate tests whose refinement stalled with rho >= kDepUndecidable,
+    // admitted as independent (the landed contract, E2 fix2, settler S23; a
+    // stall below kDepUndecidable is dep_undecidable instead).
+    Index dep_stall_admits = 0;
 
     // The zero-motion re-entry rule (per fixed iterate).
     Index reentry_exemptions = 0;

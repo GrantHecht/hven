@@ -510,7 +510,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                       eff_opts.independent_working_set ? static_cast<std::size_t>(n) : 0, 0),
                   {},
                   0};
-    // The Farkas certificate behind a kInfeasible from the add site's rule.
+    // The certificate behind the add site's rule: exact (residual within the
+    // rounding floor) behind a kInfeasible, toleranced behind a kNumericalError.
     QpFarkasCertificate farkas;
 
     refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen, eff_opts);
@@ -804,7 +805,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     detail::detect_dependency(qp, ws, view, eff_opts);
                 counters.dep_test_solves += det.solves;
                 counters.dep_uncertified_trims += det.uncertified_dropped ? 1 : 0;
-                counters.dep_certified_fallbacks += det.best_certified_fallback ? 1 : 0;
+                counters.dep_uncertified_fallbacks += det.uncertified_fallback ? 1 : 0;
                 // A screen-positive set the detector did not resolve is never
                 // "independent": counted, and trimmed by count (R6).
                 // A miss here is a FINDING (the swamped-C class), not a state
@@ -1397,7 +1398,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         // kNumericalError at the current iterate -- never a step past it.
         ExchangePick xpick;
         if (eff_opts.independent_working_set) {
-            enum class AddExit { kNone, kInfeasible, kRejected, kTerminate };
+            enum class AddExit { kNone, kInfeasible, kToleranced, kRejected, kTerminate };
             AddExit add_exit = AddExit::kNone;
             std::vector<std::pair<bool, Index>> passed;
             const double xmag = x.lpNorm<Eigen::Infinity>();
@@ -1490,11 +1491,26 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     // admissible (E2 fix1, D1: a locked positive-coefficient
                     // member leaves cond1 false, and the box-based
                     // certificate never needed it; design amendment in the
-                    // E2 README). Verified before it may be returned.
+                    // E2 README). Verified before it may be returned, its
+                    // multipliers refined mu-free first (S25'). Only a
+                    // certificate within the rounding floor is a Farkas
+                    // certificate for THIS QP => kInfeasible. One above it
+                    // dropped a box_part coefficient on a coordinate unbounded
+                    // on that side, which can make the omitted term
+                    // arbitrarily large: it proves the coefficient-perturbed
+                    // QP infeasible, not this one => kNumericalError where
+                    // the walk stands, the toleranced certificate kept
+                    // (settler S25, S25').
                     QpFarkasCertificate cert;
-                    if (verify_farkas(qp, ws, xpick, is_ineq, block_idx, o.scale, eff_opts, cert)) {
+                    Index cert_solves = 0;
+                    const bool verified =
+                        verify_farkas(qp, ws, pass_view, t, xpick, is_ineq, block_idx, o.scale,
+                                      eff_opts, cert, cert_solves);
+                    counters.dep_test_solves += cert_solves;
+                    if (verified) {
+                        add_exit = cert.residual <= cert.exact_tol ? AddExit::kInfeasible
+                                                                   : AddExit::kToleranced;
                         farkas = std::move(cert);
-                        add_exit = AddExit::kInfeasible;
                         break;
                     }
                     // The design's candidate (cond1 and a structural
@@ -1535,7 +1551,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 alpha = a2;
             }
             if (undecidable_retreat ||
-                ((add_exit == AddExit::kTerminate || add_exit == AddExit::kRejected) &&
+                ((add_exit == AddExit::kTerminate || add_exit == AddExit::kRejected ||
+                  add_exit == AddExit::kToleranced) &&
                  pass_view.schur != nullptr)) {
                 // THE BORDER RETREAT, once per solve. On the border path the
                 // Schur complement of an ill-conditioned K0 can be swamped by
@@ -1546,6 +1563,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 // the rule may end the solve.
                 eliminated_only = true;
                 ++counters.dep_border_retreats;
+                farkas = QpFarkasCertificate{}; // a toleranced one is re-derived there
 #ifdef HVEN_TESTING
                 walk_obs.record().action = detail::testing::QpWalkAction::kEliminatedRetreat;
 #endif
@@ -1556,6 +1574,11 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 if (add_exit == AddExit::kInfeasible) {
                     ++counters.dep_infeasible_certificates;
                     status = QpStatus::kInfeasible;
+                } else if (add_exit == AddExit::kToleranced) {
+                    // Not a proof for this QP (above): conservative, and the
+                    // certificate goes out in QpSolution::farkas.
+                    ++counters.dep_certificate_toleranced;
+                    status = QpStatus::kNumericalError;
                 } else {
                     ++(add_exit == AddExit::kRejected ? counters.dep_certificate_rejections
                                                       : counters.dep_blocker_terminations);
@@ -1917,7 +1940,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         out.ineq_active[static_cast<std::size_t>(row)] = true;
     }
     out.counters = counters;
-    if (status == QpStatus::kInfeasible) {
+    if (farkas.present &&
+        (status == QpStatus::kInfeasible || status == QpStatus::kNumericalError)) {
         out.farkas = std::move(farkas);
     }
 
@@ -3044,6 +3068,9 @@ detail::DepTest QpEngine::test_candidate(const QpProblem &qp, const WorkingSet &
     if (t.verdict == detail::DepVerdict::kUndecidable) {
         ++counters.dep_undecidable;
     }
+    if (t.stall_admit) {
+        ++counters.dep_stall_admits;
+    }
     return t;
 }
 
@@ -3275,9 +3302,11 @@ QpEngine::ExchangePick QpEngine::select_exchange(const QpProblem &qp, const Work
     return pk;
 }
 
-bool QpEngine::verify_farkas(const QpProblem &qp, const WorkingSet &ws, const ExchangePick &pick,
-                             bool is_ineq, Index idx, double row_scale, const QpOptions &opts,
-                             QpFarkasCertificate &cert) const {
+bool QpEngine::verify_farkas(const QpProblem &qp, const WorkingSet &ws,
+                             const detail::DepFactorView &view, const detail::DepTest &t,
+                             const ExchangePick &pick, bool is_ineq, Index idx, double row_scale,
+                             const QpOptions &opts, QpFarkasCertificate &cert,
+                             Index &solves) const {
     const Index n = qp.n();
     const std::vector<Index> &aw = ws.active_ineq();
     cert = QpFarkasCertificate{};
@@ -3285,17 +3314,119 @@ bool QpEngine::verify_farkas(const QpProblem &qp, const WorkingSet &ws, const Ex
     cert.blocker_is_ineq = is_ineq;
     cert.blocker = idx;
     cert.sign = pick.sign;
-    cert.y_e = pick.v_e;
-    cert.y_i = Vec::Zero(qp.mi());
-    for (std::size_t k = 0; k < aw.size(); ++k) {
-        cert.y_i(aw[k]) = std::min(pick.v_w(static_cast<Index>(k)), 0.0);
-    }
     Vec c = Vec::Zero(n);
     if (is_ineq) {
         c = qp.Ai.row(idx).transpose();
     } else {
-        c(idx) = pick.sign;
+        c(idx) = 1.0; // unoriented, as the dependency test saw it
     }
+    // The multipliers, refined mu-free (S25'); rho == 0 is exact already.
+    const bool refine = view.usable() && t.rho > 0.0;
+    const detail::DepTest rt =
+        refine ? detail::certificate_coefficients(qp, ws, view, c, opts) : detail::DepTest{};
+    solves += refine ? rt.solves : 0;
+    Vec v_e = refine ? rt.v_e : t.v_e;
+    Vec v_w = refine ? rt.v_w : t.v_w;
+    const double sign = pick.sign;
+    const auto oriented_yi = [&](const Vec &vw) {
+        Vec yi = Vec::Zero(qp.mi());
+        for (std::size_t k = 0; k < aw.size(); ++k) {
+            yi(aw[k]) = std::min(sign * vw(static_cast<Index>(k)), 0.0);
+        }
+        return yi;
+    };
+    // sum of box_part^2 over coordinates with no finite bound on the needed side.
+    const auto open_sq = [&](const Vec &ve, const Vec &vw) {
+        Vec b = sign * c;
+        if (qp.me() > 0) {
+            b -= qp.Ae.transpose() * Vec(sign * ve);
+        }
+        if (qp.mi() > 0) {
+            b -= qp.Ai.transpose() * oriented_yi(vw);
+        }
+        double sq = 0.0;
+        for (Index i = 0; i < n; ++i) {
+            const double bound = b(i) > 0.0 ? qp.lower(i) : qp.upper(i);
+            if (b(i) != 0.0 && !(std::abs(bound) < detail::kEngineInfBound)) {
+                sq += b(i) * b(i);
+            }
+        }
+        return sq;
+    };
+    // A single-row dependency (one member's scaled coefficient above
+    // kDepCoeffTol of the largest): its EXACT coefficient, c's least-squares
+    // fit on that row over the free columns, kept when it lowers the residual
+    // (S25'; the refinement's contraction is ~ mu ||H|| / ||a||^2 per step,
+    // slow on a short row).
+    {
+        const auto &bs = ws.bound_state();
+        double smax = 0.0;
+        for (Index r = 0; r < qp.me(); ++r) {
+            smax = std::max(smax, std::abs(v_e(r)) * qp.Ae.row(r).norm());
+        }
+        for (std::size_t k = 0; k < aw.size(); ++k) {
+            smax = std::max(smax, std::abs(v_w(static_cast<Index>(k))) * qp.Ai.row(aw[k]).norm());
+        }
+        Index count = 0;
+        bool one_eq = false;
+        Index one = -1;
+        for (Index r = 0; r < qp.me(); ++r) {
+            if (std::abs(v_e(r)) * qp.Ae.row(r).norm() > detail::kDepCoeffTol * smax) {
+                ++count;
+                one_eq = true;
+                one = r;
+            }
+        }
+        for (std::size_t k = 0; k < aw.size(); ++k) {
+            const auto kk = static_cast<Index>(k);
+            if (std::abs(v_w(kk)) * qp.Ai.row(aw[k]).norm() > detail::kDepCoeffTol * smax) {
+                ++count;
+                one_eq = false;
+                one = kk;
+            }
+        }
+        if (smax > 0.0 && count == 1) {
+            const Vec row = one_eq ? Vec(qp.Ae.row(one).transpose())
+                                   : Vec(qp.Ai.row(aw[static_cast<std::size_t>(one)]).transpose());
+            double ac = 0.0;
+            double aa = 0.0;
+            for (Index i = 0; i < n; ++i) {
+                if (bs[static_cast<std::size_t>(i)] == BoundState::kFree) {
+                    ac += row(i) * c(i);
+                    aa += row(i) * row(i);
+                }
+            }
+            if (aa > 0.0) {
+                Vec e_exact = Vec::Zero(qp.me());
+                Vec w_exact = Vec::Zero(static_cast<Index>(aw.size()));
+                (one_eq ? e_exact : w_exact)(one) = ac / aa;
+                if (open_sq(e_exact, w_exact) < open_sq(v_e, v_w)) {
+                    v_e = std::move(e_exact);
+                    v_w = std::move(w_exact);
+                }
+            }
+        }
+    }
+    c *= sign;
+    cert.y_e = sign * v_e;
+    cert.y_i = oriented_yi(v_w);
+    // The rounding floor (kCertExactKappa): ||y||_1 with c's unit coefficient,
+    // max_k ||a_k|| over c and the rows the certificate uses, m = me + |W|.
+    double y1 = 1.0 + cert.y_e.lpNorm<1>() + cert.y_i.lpNorm<1>();
+    double amax = c.norm();
+    for (Index r = 0; r < qp.me(); ++r) {
+        if (cert.y_e(r) != 0.0) {
+            amax = std::max(amax, qp.Ae.row(r).norm());
+        }
+    }
+    for (const Index r : aw) {
+        if (cert.y_i(r) != 0.0) {
+            amax = std::max(amax, qp.Ai.row(r).norm());
+        }
+    }
+    cert.exact_tol = detail::kCertExactKappa *
+                     static_cast<double>(n + qp.me() + static_cast<Index>(aw.size())) *
+                     std::numeric_limits<double>::epsilon() * y1 * amax;
     cert.box_part = c;
     double implied = 0.0;
     if (qp.me() > 0) {
@@ -3309,7 +3440,10 @@ bool QpEngine::verify_farkas(const QpProblem &qp, const WorkingSet &ws, const Ex
     // A box_part entry on a coordinate with no finite bound on its side is
     // the dependency residual (a dependent test accepted rho <= kDepTol): at
     // or below kDepTol * ||c|| it is dropped and its norm kept in `residual`;
-    // above it the certificate needs an infinite bound and fails.
+    // above it the certificate needs an infinite bound and fails. A dropped
+    // entry above the rounding floor (exact_tol) makes the certificate
+    // TOLERANCED -- a proof for the QP with that coefficient zeroed, not for
+    // this one -- and the caller ends it kNumericalError, not kInfeasible.
     const double drop_tol = detail::kDepTol * c.norm();
     double dropped_sq = 0.0;
     for (Index i = 0; i < n; ++i) {
