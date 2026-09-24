@@ -1,0 +1,107 @@
+M7 W2 E1b FIX ROUND 2 -- THE REDUCED GATE'S EXPECTATIONS, DERIVED
+Written and committed BEFORE the chain was detached. RULE: nothing here may be
+adjusted after the chain's first leg. Every value is derived from the FINAL range.
+
+BASE   7ab88b81 (docs(m7): W2 E2 fix1+1b gates GREEN at 3e2bed07; branch m7)
+       92e6a12c fix(m7): W2 E1b fix2 -- the contract states eps (2u) as implemented;
+                T8 pins the threshold formulas; estimate wording
+HEAD   the commit that carries this file (docs/notes/data only). Range
+       7ab88b81..92e6a12c for every source/header derivation.
+RUNNER wrappers-e1b-fix2/gates-e1bfix2.sh + chain_gates_e1bfix2.sh: copies of the E2
+       fix-rounds-1+1b runner and chain (docs/notes/data/2026-09-m7-w2-e2-working-set/
+       wrappers-gates-fix1/), re-pointed (scratch .scratch/m7w2e1bfix2gates -- ONE
+       literal, in gates-e1bfix2.sh; the chain asks it with --print-scratch; logs
+       gates-e1bfix2.log, chain-e1bfix2.log), REDUCED and extended as the runner's
+       header lists, E1BFR2 (a)-(h).
+       Literal check before the first leg: grep 'e2', 'E2', '6d123e75', 'b2dfe97a',
+       'm7w2e2' on both copies -> provenance comments only (gates-e1bfix2.sh:6-7 and
+       chain_gates_e1bfix2.sh:8-9, the files they were copied from; the carried change
+       labels E2FR1 (d) :305, E2 CHANGE (4') :554, E2 CHANGE (5') :678; the prose at
+       :36, :39 and :53) plus ONE deliberate path (:108): NAMES_BASE_DIR, the previous round's
+       committed suite transcripts (gates-e2-fix1b/), read-only, the by-name baseline
+       of E1BFR2 (h). No sha or scratch literal of the E2 round.
+
+§1 THE CHANGED SURFACE (`git diff --name-status 7ab88b81..92e6a12c`):
+   2 headers  include/hven/detail/drivers/equality_basis.h,
+              include/hven/detail/drivers/equality_basis_testing.h  (comments only)
+   4 MODIFIED .cpp
+              src/drivers/equality_basis.cpp, src/drivers/sqp_solver.cpp
+                  (comments only -- PROVEN by value in the pre-flight: every +/- line
+                  of the range's diff over src/*.cpp and include/ is a // line)
+              tests/sqp/test_equality_basis.cpp  (T8 gains the formula pins -- the
+                  ONLY code change in the range)
+              tests/sqp/test_sqp_equality_basis_seams.cpp  (a comment; OUTSIDE the
+                  universe: hven_sqp_seam_tests, an HVEN_TESTING recompile target,
+                  not a PSYM_GROUPS entry)
+   0 ADDED .cpp; docs: docs/testing.md (fifth seam wording), the E1 README.
+
+§2 THE P-SYM MOVER SHAPE, PER CONFIGURATION -- MEASURED on the final pair
+     Release  DIFFERING 1 = class A 1 + class B 0; UNEXPLAINED 0; control 6;
+              NOISE-ONLY 3 (0 in the library): bench_corpus, bench_crossover,
+              ipqp_e1_arm (bench objects)
+     Debug    DIFFERING 1 = class A 1 + class B 0; UNEXPLAINED 0; control 3;
+              NOISE-ONLY 6 (2 in the library: src/drivers/equality_basis.cpp.o,
+              src/drivers/sqp_solver.cpp.o -- the two comment-only sources, their
+              __LINE__ values shifted; plus the three bench objects and
+              tests/sqp/test_sqp_equality_basis.cpp.o)
+     after 151 = before 151 in both; ONLY-AFTER {}.
+   Class A (1, identical in both) = the 4 MODIFIED .cpp less the 1 outside less the 2
+       comment-only library sources:
+       tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_equality_basis.cpp.o
+   Class B: EMPTY in both configurations (declared by name: the empty list); the
+   asymmetry admission list stays EMPTY.
+   THE PRODUCTION LIBRARY: Release -- all 44 library objects BYTE-IDENTICAL (sections
+   check: 44/44 identical, DEBUG_ONLY 0, NON-DEBUG-MOVERS 0). Debug -- no library
+   object is a P-SYM mover; the two comment-only sources' objects are NOISE-ONLY in
+   P-SYM and DEBUG-ONLY in the sections check (non-debug sections byte-identical);
+   NON-DEBUG-MOVERS 0.
+   MEASURED by a FRESH rehearsal at 92e6a12c against 7ab88b81, both configurations,
+   one hold of the box lock 04:27:45-04:38:01 (2026-09-24), PGREP_EMPTY
+   (rehearsal/rehearsal-e1bfix2.sh, rehearsal/rehearsal-log.txt): this runner's g5
+   segment (emitted by --preflight-only), with a HYPOTHESIS (1/1 = A 1 + B 0, no
+   non-debug mover, DEBUG_ONLY 0/0). Every P-SYM and section assertion held but one:
+   Debug DEBUG_ONLY measured 2 against the hypothesis 0 -- declared 2 below. The
+   rehearsal's classification/section files: rehearsal/rehearsal-classification-
+   {Release,Debug}.txt, rehearsal/rehearsal-sections-{Release,Debug}.txt.
+   ADDED AFTER THE REHEARSAL (g5 only, offline-tested against the rehearsal's
+   sections-Debug.txt, both the pass and a forced fail): every DEBUG-ONLY library
+   object must be a comment-only source's own object.
+
+§3 TEST COUNTS: Release 2818 (G3), Debug 2817 (G1, without the long test). No instance
+   added or removed: T8 gains EXPECT_EQ assertions inside the existing
+   EqualityBasis.T8NumericalRankContractOnTheTwoRowPair. G1/G3 ALSO assert BY NAME
+   (E1BFR2 (h)): the started-name sets (disabled tests included: 2819 Debug / 2820
+   Release) EQUAL the previous round's committed transcripts
+   docs/notes/data/2026-09-m7-w2-e2-working-set/gates-e2-fix1b/suite-{debug,release}.txt.
+   The equality-basis fixture set at 92e6a12c: 48/48 Release, 48/48 Debug
+   (EqualityBasis.*, SqpEqualityBasis*.* incl. the seam target's SqpEqualityBasisSeam.*,
+   QpModes/EqualityBasisModes.*).
+
+§4 THE SECTION SHAPE (G5b): NON-DEBUG-MOVER set EMPTY in both configurations (declared
+   by name: empty); no library ADDED; DEBUG_ONLY Release 0 / Debug 2
+   (drivers/equality_basis, drivers/sqp_solver); REFUSED 0.
+
+§5 G2 AND G4 ARE NOT RUN -- DECLARED, with the reason checked by value in the
+   pre-flight. G4 (the 27-cell three-arm replay): no numeric code changed -- the range's
+   library and header lines are comments only (proven), so every replay input is the
+   previous round's (G4 0 differences under the 1e-5 residual gate at 3e2bed07,
+   7ab88b81's record). G2 (Continuation.ProbeBudgetBoundsAFailingProposal,
+   tests/sqp/test_continuation.cpp): its source is not in the range (checked) and every
+   library line it runs is unchanged but for comments. The runner writes no g2/g4
+   segment (the pre-flight refuses if one exists) and aggregates over G1 G3 G5 G6.
+
+§6 G6: expected CLEAN -- install smoke, export contract, clang-format on the derived
+   changed include/*.h, src/*.cpp, tests/*.cpp (clean at 92e6a12c), git diff --check,
+   DIRTY_FILES 0. Fold proofs 46/0 (the gate-assert library is unchanged).
+
+§7 PRE-FLIGHT (`gates-e1bfix2.sh --preflight-only`): preflight.txt (COMMENT_ONLY_OK,
+   CLASS_B_NAMES_OK 0/0, BY-NAME BASELINES 2819/2820, PREFLIGHT_VALUE_OK, 4 SEGMENT_OK,
+   PREFLIGHT_OK). Refusals exercised against a wrong value, each rc 2 (recorded at the
+   end of preflight.txt): class A 2/2; BEFORE 6d123e75 (MODIFIED src set); the
+   code-line check itself (BEFORE 6d123e75, all four src declared comment-only); a
+   comment-only list missing a source; a class B name whose source is modified; a
+   library object declared class B; a non-library declared mover; Release 2813 against
+   Debug 2817.
+
+§8 G5 CHECKS THE MAIN TREE OUT TO 7ab88b81 while it builds its before arm, once per
+   configuration: nothing may edit or commit in the main tree until CHAIN_END.

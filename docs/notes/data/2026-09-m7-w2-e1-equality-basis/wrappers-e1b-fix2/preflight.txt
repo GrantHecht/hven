@@ -1,0 +1,37 @@
+GATES_START 2026-09-24T04:40:00-04:00
+=== HEAD 92e6a12c  dirty-files=1 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates ===
+=== BEFORE=7ab88b81  EXPECT_DEBUG_TESTS=2817  EXPECT_RELEASE_TESTS=2818 ===
+=== HEAD_AT_START=92e6a12cba4af0fb8f03f8718dd1c46a8cc53fc0
+=== CHANGED HEADERS: include/hven/detail/drivers/equality_basis.h include/hven/detail/drivers/equality_basis_testing.h 
+=== CHANGED SOURCES: src/drivers/equality_basis.cpp src/drivers/sqp_solver.cpp tests/sqp/test_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp 
+=== MODIFIED C++ SOURCES: src/drivers/equality_basis.cpp src/drivers/sqp_solver.cpp tests/sqp/test_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp 
+=== ADDED C++ SOURCES: 
+=== COMMENT_ONLY_OK: every changed line of src/*.cpp and include/ in 7ab88b81..92e6a12cba4af0fb8f03f8718dd1c46a8cc53fc0 is a // comment (sources: src/drivers/equality_basis.cpp src/drivers/sqp_solver.cpp )
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): tests/sqp/test_sqp_equality_basis_seams.cpp -> tests/CMakeFiles/hven_sqp_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (by name, each must be NOISE-ONLY): 
+=== DECLARED NON-DEBUG MOVERS Debug   (by name, each must be NOISE-ONLY): 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== BY-NAME BASELINES: /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-e2-working-set/gates-e2-fix1b/suite-{debug,release}.txt (2819 / 2820 started names)
+=== G2 NOT RUN (declared): no library code, no header code and not tests/sqp/test_continuation.cpp changed
+=== G4 NOT RUN (declared): no numeric code changed (comment-only proof above); the replay's inputs are the previous round's
+=== CLASS_B_NAMES_OK: Release 0 / Debug 0 declared objects, none with a source modified in the range
+=== PREFLIGHT_VALUE_OK: class A 4 - 1 outside == declared 1/1; ADDED 0 == declared 0 (0 inside the universe == declared 0); comment-only library sources 2; no library class B; G2/G4 not run (declared)
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates/g1.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates/g3.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates/g5.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates/g6.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates/gates
+=== PREFLIGHT_OK: 4 segments (g1 g3 g5 g6) written and asserted against GATES_SCRATCH, g2/g4 declared not run, before the first leg ===
+PREFLIGHT_ONLY: stopping before G1. No leg was run and no build tree was touched.
+PREFLIGHT_RC=0
+# Refusals exercised against a wrong value, on this final runner (each must be rc 2):
+class A 2/2: rc=2 REFUSED: 4 modified .cpp (less 1 outside the universe, less 2 comment-only library), but class A is DECLARED 2/2
+BEFORE 6d123e75 (range carries E2 code: MODIFIED src set != declared): rc=2 REFUSED: MODIFIED src/*.cpp [src/drivers/equality_basis.cpp src/drivers/sqp_solver.cpp src/qp/qp_engine.cpp src/qp/ws_independence.cpp ] != declared comment-only library sources [src/drivers/equality_basis.cpp src/drivers/sqp_solver.cpp ]
+BEFORE 6d123e75 with all four src declared comment-only (the code-line check itself): rc=2 REFUSED: a non-comment line changed in src/*.cpp or include/ -- this round declares comment-only library code:
+comment-only list missing sqp_solver.cpp: rc=2 REFUSED: MODIFIED src/*.cpp [src/drivers/equality_basis.cpp src/drivers/sqp_solver.cpp ] != declared comment-only library sources [src/drivers/equality_basis.cpp ]
+class B name whose source is modified (test_equality_basis.cpp.o, B 1/1, differing 2/2): rc=2 REFUSED: rel class B tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_equality_basis.cpp.o has its source tests/sqp/test_equality_basis.cpp MODIFIED in 7ab88b81..92e6a12cba4af0fb8f03f8718dd1c46a8cc53fc0 (it is class A)
+library object declared class B: rc=2 REFUSED: library object CMakeFiles/hven.dir/src/core/ledger.cpp.o declared class B; this round declares none
+non-library declared mover: rc=2 REFUSED: declared mover tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_equality_basis.cpp.o is not a library object
+Release 2813 against Debug 2817: rc=2 REFUSED: Debug 2817 != Release 2813 - long 1
