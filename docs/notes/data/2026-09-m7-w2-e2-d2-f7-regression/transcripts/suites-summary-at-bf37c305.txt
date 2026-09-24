@@ -1,0 +1,9 @@
+LEG_RC=dbg-build=0
+100% tests passed, 0 tests failed out of 2817
+LEG_RC=dbg-full=0
+100% tests passed, 0 tests failed out of 1
+LEG_RC=dbg-long=0
+LEG_RC=rel-build=0
+100% tests passed, 0 tests failed out of 2818
+LEG_RC=rel-full=0
+SUITES_DONE

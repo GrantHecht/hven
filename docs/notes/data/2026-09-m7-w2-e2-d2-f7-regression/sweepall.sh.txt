@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# usage: sweepall.sh <tag> <fam> [ENV=VAL...] -- every trial's line, restarting past Debug asserts; lock per run
+tag=$1; fam=$2; shift 2; skip=-1
+B=/home/ghecht/Projects/hven/.scratch/m7w2e2d2/tree/dbg/tests/hven_qp_walk_seam_tests
+O=/home/ghecht/Projects/hven/.scratch/m7w2e2d2/sw/$tag-$fam.txt; : > $O
+for k in $(seq 1 80); do
+  out=$(env "$@" ZZZ_ALL=1 ZZZ_FAM=$fam ZZZ_SKIP=$skip MKL_NUM_THREADS=1 flock /tmp/box-build.lock $B --gtest_filter='ZzzExplore.*' 2>&1)
+  echo "$out" | grep ZZZ | grep -v kktres | awk '{$NF=""; print}' | sed -E 's/ struct=[0-9]+ refuse=[0-9]+//' >> $O
+  if echo "$out" | grep -q "Assertion"; then
+    t=$(echo "$out" | grep TRIAL | tail -1); echo "ASSERT $t" >> $O
+    skip=$(echo "$t" | awk '{print $2}')
+  else
+    break
+  fi
+done

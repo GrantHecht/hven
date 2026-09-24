@@ -1,0 +1,58 @@
+#### N
+vs BASE (changed only):
+   base Num -> cand Inf 755
+   base Num -> cand Opt 14
+vs FINAL b25ab7ed (changed only):
+   final Num -> cand Inf 7
+   final Num -> cand Max 1
+   final Num -> cand Opt 8
+   final Opt -> cand Inf 20
+#### E
+vs BASE (changed only):
+   base Inf -> cand Num 8
+   base Inf -> cand Opt 20
+   base Max -> cand Num 1
+   base Num -> cand Inf 755
+   base Num -> cand Opt 14
+   base Opt -> cand Num 8
+vs FINAL b25ab7ed (changed only):
+   final Inf -> cand Num 1
+#### F
+vs BASE (changed only):
+   base Inf -> cand Num 9
+   base Inf -> cand Opt 20
+   base Max -> cand Num 1
+   base Num -> cand Inf 755
+   base Num -> cand Opt 14
+   base Opt -> cand Num 8
+vs FINAL b25ab7ed (changed only):
+   final Inf -> cand Num 2
+#### G
+vs BASE (changed only):
+   base Inf -> cand Num 8
+   base Inf -> cand Opt 20
+   base Max -> cand Num 1
+   base Num -> cand Inf 755
+   base Num -> cand Opt 14
+   base Opt -> cand Num 8
+vs FINAL b25ab7ed (changed only):
+   final Inf -> cand Num 1
+#### A
+vs BASE (changed only):
+   base Num -> cand Inf 755
+   base Num -> cand Opt 14
+vs FINAL b25ab7ed (changed only):
+   final Num -> cand Inf 7
+   final Num -> cand Max 1
+   final Num -> cand Opt 8
+   final Opt -> cand Inf 20
+#### C
+vs BASE (changed only):
+   base Inf -> cand Num 7
+   base Inf -> cand Opt 20
+   base Max -> cand Num 1
+   base Num -> cand Inf 755
+   base Num -> cand Opt 14
+   base Opt -> cand Num 6
+vs FINAL b25ab7ed (changed only):
+   final Num -> cand Opt 2

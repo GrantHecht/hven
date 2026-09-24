@@ -1,0 +1,21 @@
+import sys, numpy as np
+sys.path.insert(0, sys.path[0]); from rank import *
+D = sys.argv[1]
+qp = load_qp(D + '/qp_001.txt')
+def sv(bs, W, drop_pin=None, drop_row=None):
+    free = bs == 0
+    if drop_pin is not None: free = free.copy(); free[drop_pin] = True
+    rows = [r for r in W if r != drop_row]
+    M = np.vstack([qp['Ae'], qp['Ai'][rows]])[:, free]
+    # row-normalize
+    nr = np.linalg.norm(M, axis=1); nr[nr == 0] = 1
+    s = np.linalg.svd(M / nr[:, None], compute_uv=False)
+    return M.shape, s[-3:], s[0]
+for it in sys.argv[2:]:
+    x, bs, W = load_ws(D + '/ws_001_%04d.txt' % int(it))
+    print('iter', it, 'pins', (bs != 0).sum(), '|W|', len(W), 'P3768 state', bs[3768], '756 in W', 756 in W)
+    print('  full set: shape, 3 smallest sv (row-normalized), largest:', *sv(bs, W))
+    if bs[3768] != 0:
+        print('  without P3768 :', *sv(bs, W, drop_pin=3768))
+    if 756 in W:
+        print('  without R756  :', *sv(bs, W, drop_row=756))
