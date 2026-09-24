@@ -1,0 +1,16 @@
+D1SOLVE 0 begin n=102 me=50 mi=0 D=1.000000e+00 ind=1 warm=0 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x11caf0e0 maxit=0
+D1CNT MAIN status=kNumericalError minors=3 facts=4 adds=2 drops=1 dep_tests=104 dep_dep=53 undec=1 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=50 cnt_viol=0 untested=0 xch=1 xch_b=1 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=1 deferred=1 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kNumericalError obj=0.000000000000e+00 stat=0.000e+00(scale 1.000e+00) eqviol=1.860e+00 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=53 atup=0 |x|inf=1.000000e+00 KKT@tol1e-09=NO
+D1SOLVE 0 end
+D1SOLVE 1 begin n=102 me=50 mi=0 D=5.000000e-01 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x11caf0e0 maxit=0
+D1CNT MAIN status=kNumericalError minors=3 facts=4 adds=2 drops=1 dep_tests=104 dep_dep=53 undec=1 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=50 cnt_viol=0 untested=0 xch=1 xch_b=1 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=1 deferred=1 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kNumericalError obj=0.000000000000e+00 stat=0.000e+00(scale 1.000e+00) eqviol=2.039e+00 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=53 atup=0 |x|inf=5.000000e-01 KKT@tol1e-09=NO
+D1SOLVE 1 end
+D1SOLVE 2 begin n=102 me=50 mi=0 D=2.500000e-01 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x11caf0e0 maxit=0
+D1CNT MAIN status=kNumericalError minors=3 facts=4 adds=2 drops=1 dep_tests=104 dep_dep=53 undec=1 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=50 cnt_viol=0 untested=0 xch=1 xch_b=1 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=1 deferred=1 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kNumericalError obj=0.000000000000e+00 stat=0.000e+00(scale 1.000e+00) eqviol=2.128e+00 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=53 atup=0 |x|inf=2.500000e-01 KKT@tol1e-09=NO
+D1SOLVE 2 end
+D1SOLVE 3 begin n=102 me=50 mi=0 D=1.250000e-01 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x11caf0e0 maxit=0
+D1CNT MAIN status=kNumericalError minors=3 facts=4 adds=2 drops=1 dep_tests=104 dep_dep=53 undec=1 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=50 cnt_viol=0 untested=0 xch=1 xch_b=1 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=1 deferred=1 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kNumericalError obj=0.000000000000e+00 stat=0.000e+00(scale 1.000e+00) eqviol=2.173e+00 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=53 atup=0 |x|inf=1.250000e-01 KKT@tol1e-09=NO
+D1SOLVE 3 end

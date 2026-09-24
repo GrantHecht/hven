@@ -1,0 +1,20 @@
+D1SOLVE 0 begin n=468 me=96 mi=0 D=1.000000e+00 ind=1 warm=0 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x3d0010e0 maxit=0
+D1REPAIR s=0 it=0 attempting start repair (pin_skips before=0)
+D1CNT MAIN status=kNumericalError minors=959 facts=6 adds=489 drops=0 dep_tests=619 dep_dep=470 undec=470 entry_rm=0 mand_dep=0 recheck_rm=469 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=470 retreat=0 reentry=468 zm_exh=0 zm_cap=1
+D1KKT MAIN status=kNumericalError obj=1.036598879621e+04 stat=3.449e+03(scale 3.454e+03) eqviol=1.997e+03 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=16 atup=5 |x|inf=1.000000e+00 KKT@tol1e-09=NO
+D1SOLVE 0 end
+D1SOLVE 1 begin n=468 me=96 mi=0 D=5.000000e-01 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x3d0010e0 maxit=0
+D1REPAIR s=1 it=0 attempting start repair (pin_skips before=0)
+D1CNT MAIN status=kNumericalError minors=964 facts=8 adds=493 drops=1 dep_tests=607 dep_dep=472 undec=471 entry_rm=0 mand_dep=0 recheck_rm=470 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=1 xch_b=1 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=471 retreat=0 reentry=469 zm_exh=0 zm_cap=1
+D1KKT MAIN status=kNumericalError obj=6.311781479628e+03 stat=3.451e+03(scale 3.454e+03) eqviol=1.998e+03 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=16 atup=23 |x|inf=5.000000e-01 KKT@tol1e-09=NO
+D1SOLVE 1 end
+D1SOLVE 2 begin n=468 me=96 mi=0 D=2.500000e-01 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x3d0010e0 maxit=0
+D1REPAIR s=2 it=0 attempting start repair (pin_skips before=0)
+D1CNT MAIN status=kNumericalError minors=952 facts=9 adds=482 drops=0 dep_tests=597 dep_dep=470 undec=470 entry_rm=0 mand_dep=0 recheck_rm=469 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=470 retreat=0 reentry=468 zm_exh=0 zm_cap=1
+D1KKT MAIN status=kNumericalError obj=2.849653918929e+03 stat=3.453e+03(scale 3.454e+03) eqviol=1.999e+03 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=16 atup=14 |x|inf=2.500000e-01 KKT@tol1e-09=NO
+D1SOLVE 2 end
+D1SOLVE 3 begin n=468 me=96 mi=0 D=1.250000e-01 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x3d0010e0 maxit=0
+D1REPAIR s=3 it=0 attempting start repair (pin_skips before=0)
+D1CNT MAIN status=kNumericalError minors=952 facts=9 adds=482 drops=0 dep_tests=597 dep_dep=470 undec=470 entry_rm=0 mand_dep=0 recheck_rm=469 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=470 retreat=0 reentry=468 zm_exh=0 zm_cap=1
+D1KKT MAIN status=kNumericalError obj=1.277862168290e+03 stat=3.454e+03(scale 3.454e+03) eqviol=1.999e+03 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=16 atup=14 |x|inf=1.250000e-01 KKT@tol1e-09=NO
+D1SOLVE 3 end

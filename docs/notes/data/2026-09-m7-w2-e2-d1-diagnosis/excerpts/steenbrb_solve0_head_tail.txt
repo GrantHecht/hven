@@ -1,0 +1,71 @@
+D1SOLVE 0 begin n=468 me=96 mi=0 D=1.000000e+00 ind=1 warm=0 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x317400e0 maxit=0
+D1ENTRY it=0 over=0 untested=1 entry_pending=1 det.found=0 det.solves=4 null_res=4.200e-01 support=0 trim=0
+D1REPAIR s=0 it=0 attempting start repair (pin_skips before=0)
+D1RPIN i=106 rho=7.038e+00 verdict=0 count=96 hdiag=1.080e+02
+D1RPROBE pinned=106 npinned=1 verdict=2 count=97
+D1RPIN i=107 rho=6.106e+00 verdict=0 count=97 hdiag=1.080e+02
+D1RPROBE pinned=107 npinned=2 verdict=2 count=98
+D1RPIN i=108 rho=4.891e+00 verdict=0 count=98 hdiag=1.080e+02
+D1RPROBE pinned=108 npinned=3 verdict=2 count=99
+D1RPIN i=109 rho=8.759e+00 verdict=0 count=99 hdiag=1.080e+02
+D1RPROBE pinned=109 npinned=4 verdict=2 count=100
+D1RPIN i=110 rho=1.838e+03 verdict=0 count=100 hdiag=1.080e+02
+D1RPROBE pinned=110 npinned=5 verdict=2 count=101
+D1RPIN i=111 rho=5.341e+01 verdict=0 count=101 hdiag=1.080e+02
+D1RPROBE pinned=111 npinned=6 verdict=2 count=102
+D1RPIN i=112 rho=2.758e+01 verdict=0 count=102 hdiag=1.080e+02
+D1RPROBE pinned=112 npinned=7 verdict=2 count=103
+D1RPIN i=113 rho=3.057e+01 verdict=0 count=103 hdiag=1.080e+02
+D1RPROBE pinned=113 npinned=8 verdict=2 count=104
+D1RPIN i=114 rho=3.021e+01 verdict=0 count=104 hdiag=1.080e+02
+D1RPROBE pinned=114 npinned=9 verdict=2 count=105
+D1RPIN i=115 rho=2.389e+01 verdict=0 count=105 hdiag=1.080e+02
+D1RPROBE pinned=115 npinned=10 verdict=2 count=106
+D1RPIN i=116 rho=1.643e+01 verdict=0 count=106 hdiag=1.080e+02
+D1RPROBE pinned=116 npinned=11 verdict=2 count=107
+D1RPIN i=117 rho=1.894e+01 verdict=0 count=107 hdiag=1.080e+02
+D1RPROBE pinned=117 npinned=12 verdict=2 count=108
+D1RPIN i=118 rho=2.305e+01 verdict=0 count=108 hdiag=1.080e+02
+D1RPROBE pinned=118 npinned=13 verdict=2 count=109
+D1RPIN i=119 rho=2.221e+01 verdict=0 count=109 hdiag=1.080e+02
+...
+D1STEP it=952 kind=2 idx=323 side=2 alpha=0.000000e+00 dx=0.000e+00 xch=0 j=pin:-1
+D1ENTRY it=953 over=0 untested=1 entry_pending=0 det.found=1 det.solves=0 null_res=0.000e+00 support=9 trim=0
+D1SUPPORT kind=0(0eq,1row,2pin) idx=36 state=-1
+D1SUPPORT kind=2(0eq,1row,2pin) idx=166 state=2
+D1SUPPORT kind=2(0eq,1row,2pin) idx=167 state=1
+D1SUPPORT kind=2(0eq,1row,2pin) idx=322 state=1
+D1SUPPORT kind=2(0eq,1row,2pin) idx=323 state=2
+D1SUPPORT kind=2(0eq,1row,2pin) idx=348 state=1
+D1SUPPORT kind=2(0eq,1row,2pin) idx=349 state=2
+D1SUPPORT kind=2(0eq,1row,2pin) idx=374 state=1
+D1SUPPORT kind=2(0eq,1row,2pin) idx=375 state=1
+D1PASS s=0[main] it=954 me=96 rows=0 pins=20 n=468 |p|=1.997e+03 step_tol=1.000e-09 elim_only=0 schur=1 verdict=2 |x|=1.000000e+00 drop_prev=0:-1
+D1TEST it=954 blk=pin:323 side=2 alpha=0.000000e+00 |p|=1.997e+03 verdict=2 rho=3.901296e-05 screen=0 solves=3 me+|W|=116 n=468 usable=1 elim=0 schur=1
+D1STEP it=954 kind=2 idx=323 side=2 alpha=0.000000e+00 dx=0.000e+00 xch=0 j=pin:-1
+D1ENTRY it=955 over=0 untested=1 entry_pending=0 det.found=1 det.solves=0 null_res=0.000e+00 support=9 trim=0
+D1SUPPORT kind=0(0eq,1row,2pin) idx=36 state=-1
+D1SUPPORT kind=2(0eq,1row,2pin) idx=166 state=2
+D1SUPPORT kind=2(0eq,1row,2pin) idx=167 state=1
+D1SUPPORT kind=2(0eq,1row,2pin) idx=322 state=1
+D1SUPPORT kind=2(0eq,1row,2pin) idx=323 state=2
+D1SUPPORT kind=2(0eq,1row,2pin) idx=348 state=1
+D1SUPPORT kind=2(0eq,1row,2pin) idx=349 state=2
+D1SUPPORT kind=2(0eq,1row,2pin) idx=374 state=1
+D1SUPPORT kind=2(0eq,1row,2pin) idx=375 state=1
+D1PASS s=0[main] it=956 me=96 rows=0 pins=20 n=468 |p|=1.997e+03 step_tol=1.000e-09 elim_only=0 schur=1 verdict=2 |x|=1.000000e+00 drop_prev=0:-1
+D1TEST it=956 blk=pin:323 side=2 alpha=0.000000e+00 |p|=1.997e+03 verdict=2 rho=3.901296e-05 screen=0 solves=3 me+|W|=116 n=468 usable=1 elim=0 schur=1
+D1STEP it=956 kind=2 idx=323 side=2 alpha=0.000000e+00 dx=0.000e+00 xch=0 j=pin:-1
+D1ENTRY it=957 over=0 untested=1 entry_pending=0 det.found=1 det.solves=0 null_res=0.000e+00 support=9 trim=0
+D1SUPPORT kind=0(0eq,1row,2pin) idx=36 state=-1
+D1SUPPORT kind=2(0eq,1row,2pin) idx=166 state=2
+D1SUPPORT kind=2(0eq,1row,2pin) idx=167 state=1
+D1SUPPORT kind=2(0eq,1row,2pin) idx=322 state=1
+D1SUPPORT kind=2(0eq,1row,2pin) idx=323 state=2
+D1SUPPORT kind=2(0eq,1row,2pin) idx=348 state=1
+D1SUPPORT kind=2(0eq,1row,2pin) idx=349 state=2
+D1SUPPORT kind=2(0eq,1row,2pin) idx=374 state=1
+D1SUPPORT kind=2(0eq,1row,2pin) idx=375 state=1
+D1CNT MAIN status=kNumericalError minors=959 facts=6 adds=489 drops=0 dep_tests=619 dep_dep=470 undec=470 entry_rm=0 mand_dep=0 recheck_rm=469 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=470 retreat=0 reentry=468 zm_exh=0 zm_cap=1
+D1KKT MAIN status=kNumericalError obj=1.036598879621e+04 stat=3.449e+03(scale 3.454e+03) eqviol=1.997e+03 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=16 atup=5 |x|inf=1.000000e+00 KKT@tol1e-09=NO
+D1SOLVE 0 end
