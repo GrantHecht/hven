@@ -17,6 +17,9 @@ namespace hven::solvers::detail {
 
 namespace {
 
+// The double machine epsilon 2^-52 = 2u (u the unit roundoff). The contract's
+// thresholds are stated in it (equality_basis.h): 20 m eps and 20 (|F| + me) eps at
+// the default pivot_factor, i.e. factor 40 in unit-roundoff terms.
 constexpr double kEps = std::numeric_limits<double>::epsilon();
 constexpr double kInf = std::numeric_limits<double>::infinity();
 constexpr double kNaN = std::numeric_limits<double>::quiet_NaN();
@@ -258,7 +261,7 @@ Index certified_negatives(linear::SymmetricFactor &factor, GramOperator &gram, d
 // 1. THE CERTIFICATE. G = M^T M (unit diagonal, PSD). The backend factors
 //    G - t I on one analyze. By Sylvester's law of inertia and Weyl's
 //    inequality, n_neg(G - t I) counts the eigenvalues of G below t to within
-//    eta. t_lo = max(pivot_factor m eps, 1e-10) ||G||_inf is the declared margin
+//    eta. t_lo = max(pivot_factor m eps, 1e-10) ||G||_inf (eps = 2u) is the declared margin
 //    eta is assumed to sit under; t_hi = gap_ratio t_lo. n_neg = 0 at t_hi on clean
 //    evidence is the full-rank arm and the fast path (ONE factorization);
 //    otherwise n_neg = 0 at t_lo is full rank with the smaller margin t_lo
@@ -333,6 +336,7 @@ RowDependence factor_row_dependence(const SpMatCM &M, double tau_lo, double coef
     if (!gram.diagonal_present()) {
         return refuse(EqualityBasisRefusal::kCertificate);
     }
+    // t_lo = max(20 m eps, 1e-10) ||G||_inf at the default pivot_factor; eps = 2u.
     const double t_lo =
         std::max(tol.pivot_factor * static_cast<double>(m) * kEps, kShiftFloor) * gram.omega();
     const double t_hi = tol.gap_ratio * t_lo;
@@ -768,6 +772,7 @@ void EqualityBasis::compute(const SpMatRM &Je, const Vec &lower, const Vec &uppe
     for (std::size_t s = 0; s < b.fixed.size(); ++s) {
         b.fixed_lower(static_cast<Index>(s)) = lower(b.fixed[s]);
     }
+    // tau_lo = 20 (|F| + me) eps at the default pivot_factor; eps = 2u.
     b.tau_lo = tol.pivot_factor * static_cast<double>(n_free + me) * kEps;
     b.tau_hi = tol.gap_ratio * b.tau_lo;
     b.lift_forward_tol = tol.lift_forward_tol;

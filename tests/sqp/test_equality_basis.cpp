@@ -667,6 +667,35 @@ TEST(EqualityBasis, T8NumericalRankContractOnTheTwoRowPair) {
     const double t_lo = probe.shift_lo();
     const double t_hi = probe.shift_hi();
     ASSERT_TRUE(tau_lo > 0.0 && tau_hi > tau_lo && t_lo > 0.0 && t_hi > t_lo);
+    // The contract's formulas, pinned (fix round 2, settler G1): eps is the double
+    // machine epsilon (2^-52 = 2u), m the nonempty rows, |F| the free columns, me the
+    // equality rows and ||G||_inf the row Gram's infinity norm on the unit-norm rows,
+    // all computed here from the fixture's own data. Each side evaluates the same
+    // operations in the same order on exactly representable inputs, so the comparison
+    // is exact.
+    {
+        const Eigen::MatrixXd A0 = Eigen::MatrixXd(pair(0.0));
+        const double eps = std::numeric_limits<double>::epsilon();
+        const auto me = static_cast<double>(A0.rows());
+        const auto n_free = static_cast<double>(A0.cols()); // free_box: every column free
+        double m = 0.0;
+        Eigen::MatrixXd M = Eigen::MatrixXd::Zero(A0.rows(), A0.cols());
+        for (Index r = 0; r < A0.rows(); ++r) {
+            const double nr = A0.row(r).norm();
+            if (nr > 0.0) {
+                m += 1.0;
+                M.row(r) = A0.row(r) / nr;
+            }
+        }
+        const Eigen::MatrixXd G = M * M.transpose();
+        const double g_inf = G.cwiseAbs().rowwise().sum().maxCoeff();
+        ASSERT_EQ(m, 2.0);
+        ASSERT_EQ(g_inf, 2.0);
+        EXPECT_EQ(tau_lo, 20.0 * (n_free + me) * eps);
+        EXPECT_EQ(tau_hi, 1e4 * (20.0 * (n_free + me) * eps));
+        EXPECT_EQ(t_lo, std::max(20.0 * m * eps, 1e-10) * g_inf);
+        EXPECT_EQ(t_hi, 1e4 * (std::max(20.0 * m * eps, 1e-10) * g_inf));
+    }
     // The ordering the regimes rely on: the residual threshold sits far below the
     // shifts' sigma scale.
     ASSERT_LT(10.0 * tau_hi, std::sqrt(t_lo));
@@ -763,7 +792,7 @@ TEST(EqualityBasis, ExtremeScalingNeverDropsAnIndependentRow) {
     }
 }
 
-// The lift system's check (fix round 1, I2; E1b: K with its forward-error bound): an
+// The lift system's check (fix round 1, I2; E1b: K with its inflated a-posteriori estimate): an
 // acceptance below roundoff refuses the split at compute time (kLift); the default
 // accepts it and every solve passes.
 TEST(EqualityBasis, LiftSystemCheckRefusesTheSplit) {

@@ -349,8 +349,9 @@ shows fires.
 undecidable where E1's QR would have split it: the safe direction.
 
 **Fixtures.** T1 (the adversarial Gram set is DEPENDENT), T2 (the 1e10 duplicate is
-exact; `K`'s lift and projection bounds ≤ 1e-14·‖b‖), T3 (fast path, fail-closed,
-MKL-only perturbed pivot), T4 (the multi-column near-cap lift meets its bound; the
+exact; `K`'s lift and projection inflated a-posteriori estimates ≤ 1e-14·‖b‖), T3 (fast
+path, fail-closed, MKL-only perturbed pivot), T4 (the multi-column near-cap lift meets
+its inflated a-posteriori estimate check; the
 projection refuses as above), T5 (the OFF byte-identity pin on a dependent QP against
 goldens generated at `8fdeed3e`, `e1b-off-golden/`), T6 (F9's negative control
 through the `HVEN_TESTING` seam: hand-off disabled → `max_iter` in every mode), T7 (a
@@ -363,8 +364,10 @@ macOS lane runs them.
 **F1 — THE NUMERICAL-RANK CONTRACT (ruled option (b)).** The split decides NUMERICAL
 rank at declared thresholds, not exact rank; "never false DEPENDENT" and "exact
 certificate" are withdrawn wherever they appeared (the design note is historical and
-carries a one-line pointer). On the unit-norm rows, with `t_lo = max(20·m·u, 1e-10)·‖G‖∞`,
-`t_hi = 1e4·t_lo` and `τ_lo = 20·(|F| + me)·u`:
+carries a one-line pointer). On the unit-norm rows, with `t_lo = max(20·m·ε, 1e-10)·‖G‖∞`,
+`t_hi = 1e4·t_lo` and `τ_lo = 20·(|F| + me)·ε`, where ε is the double machine epsilon
+(2⁻⁵² = 2u, so the factor is 40 in unit-roundoff terms; fix round 2, G1: the text now
+states what the code implements, no numeric change):
 DEPENDENT = counts `k > 0` at both shifts on clean evidence AND every dropped row
 reconstructs to `τ_lo(1 + ‖c̃‖₁)`: a row that close to the retained span is dependent
 BY CONTRACT whether or not it is exactly so (the QP regularizes its duals at

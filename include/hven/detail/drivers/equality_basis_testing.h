@@ -15,9 +15,9 @@ struct EqualityBasisSeam {
     /// The zero-step hand-off at a suspected inconsistency does nothing (the
     /// negative control of SqpEqualityBasis.F9).
     static inline bool disable_hand_off = false;
-    /// When positive, an SSN prox-centre lift is accepted only if its forward-error
-    /// bound is <= this * ||lambda_B||_2; a rejected one takes the zero-scatter lift,
-    /// exactly as a lift that failed its own bound.
+    /// When positive, an SSN prox-centre lift is accepted only if its inflated
+    /// a-posteriori estimate is <= this * ||lambda_B||_2; a rejected one takes the
+    /// zero-scatter lift, exactly as a lift that failed its own estimate check.
     static inline double prox_lift_forward_tol = 0.0;
     /// When positive, the warm structural probe's projection is accepted only if its
     /// forward-error estimate is <= this (absolute); a rejected one leaves the probe

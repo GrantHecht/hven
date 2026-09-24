@@ -2952,8 +2952,9 @@ QpProblem build_reduced_soc_subproblem(const detail::EqualityBasis &basis, const
 }
 
 // [lambda_e lifted to me when the split reduces, lambda_i]. `lift_ok` is false when
-// the lift failed its bound (the centre then carries the zero-scatter lift, an exact
-// representative); the caller counts it and the driver refuses the basis.
+// the lift's inflated a-posteriori estimate failed its check (the centre then
+// carries the zero-scatter lift, an exact representative); the caller counts it and
+// the driver refuses the basis.
 Vec prox_center_lambda(const detail::EqualityBasis *basis, const Vec &lambda_e, const Vec &lambda_i,
                        bool &lift_ok) {
     const bool lift = basis != nullptr && basis->reduces() &&

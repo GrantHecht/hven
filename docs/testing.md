@@ -1018,13 +1018,13 @@ Apache-2.0 file this repository wrote; no deviation):
   `kMaxIter` in every `qp_mode`), so F9's `kInfeasible` is shown to be the
   hand-off's doing.
 - `prox_lift_forward_tol` — when positive, an SSN prox-centre lift is accepted only
-  if its REAL forward-error bound is `≤` this times `‖λ_B‖₂`; a rejected one takes
-  the zero-scatter lift exactly as a lift failing its own bound does
-  (`SqpEqualityBasisSeam.T7FailedProxCentreLiftIsCountedAndRefusesTheBasis`). It is
-  a tolerance override, not an injected result: the bound compared is the one the
-  backend solve produced.
+  if its own (not injected) inflated a-posteriori estimate is `≤` this times
+  `‖λ_B‖₂`; a rejected one takes the zero-scatter lift exactly as a lift failing its
+  own estimate check does (`SqpEqualityBasisSeam.T7FailedProxCentreLiftIsCountedAndRefusesTheBasis`). It
+  is a tolerance override, not an injected result: the estimate compared is the one
+  the backend solve produced.
 - `warm_probe_forward_tol` (E1b fix round 1, settler F3) — when positive, the warm
-  structural probe's projection is accepted only if its REAL inflated forward-error
+  structural probe's projection is accepted only if its own inflated a-posteriori
   estimate is `≤` this (absolute); a rejected one restores the unreduced probe QP,
   which is exactly `reduce()`'s own failure contract (false, `qp` untouched)
   (`SqpEqualityBasisSeam.T8RefusedWarmProbeIsCountedAndDegradesTheWarmLevel`: the

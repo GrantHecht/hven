@@ -8,9 +8,9 @@
 //   T6  F9's negative control: with the zero-step hand-off disabled, the inconsistent
 //       duplicate pair never completes its two-iterate evidence and every mode runs
 //       to max_iter -- so F9's kInfeasible is the hand-off's doing.
-//   T7  an SSN prox-centre lift that fails its bound (a seam tolerance below the
-//       bound it reports) is counted in lift_refusals and refuses the basis: the
-//       QPs carry every row thereafter.
+//   T7  an SSN prox-centre lift that fails its estimate check (a seam tolerance below
+//       the inflated a-posteriori estimate it reports) is counted in lift_refusals
+//       and refuses the basis: the QPs carry every row thereafter.
 //   T8  a warm structural probe whose projection fails its estimate (a seam tolerance
 //       below the estimate it reports) is counted in warm_probe_refusals and
 //       lift_refusals, and the warm start resolves kSeeded instead of kWarm.

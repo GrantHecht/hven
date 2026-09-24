@@ -20,8 +20,11 @@
 //
 // THE NUMERICAL-RANK CONTRACT (settler F1, 2026-09-23). The split decides NUMERICAL
 // rank at declared thresholds, not exact rank. On the unit-norm rows (M, the .cpp),
-// with u the unit roundoff, m the nonempty rows, t_lo = max(pivot_factor m u, 1e-10)
-// ||G||_inf, t_hi = gap_ratio t_lo and tau_lo = pivot_factor (|F| + me) u:
+// with eps the double machine epsilon (2^-52 = 2u, u the unit roundoff; so the
+// default pivot_factor 20 is 40 in unit-roundoff terms), m the nonempty rows,
+// t_lo = max(pivot_factor m eps, 1e-10) ||G||_inf, t_hi = gap_ratio t_lo and
+// tau_lo = pivot_factor (|F| + me) eps (settler G1, 2026-09-24: 20 m eps and
+// 20 (|F| + me) eps at the defaults, as implemented):
 //   DEPENDENT   n_neg(G - t I) = k > 0 at both shifts on clean evidence, and every
 //               dropped row reconstructs from B to tau_lo (1 + ||c~||_1). A row that
 //               close to span(B) is dependent BY CONTRACT whether or not it is exactly
@@ -37,8 +40,9 @@
 // declared margin it is assumed to sit under, and the probe solve, the perturbed-pivot
 // check and the reconstruction arbiter are fail-closed evidence, not a proof.
 //
-// AMENDMENT 1 (settler S1, 2026-09-23). n_neg(G - t_lo I) = 0 on clean evidence
-// gives lambda_min(G) >= t_lo - eta (Weyl) and kFullRank even when the t_hi count is
+// AMENDMENT 1 (settler S1, 2026-09-23). With t_lo = max(20 m eps, 1e-10) ||G||_inf
+// (eps as above), n_neg(G - t_lo I) = 0 on clean evidence gives
+// lambda_min(G) >= t_lo - eta (Weyl) and kFullRank even when the t_hi count is
 // positive: the RETAINED arm with the narrower margin t_lo. Measured t_hi counts on
 // the full-rank collocation chain: 0/0/2/3/3 at 400/700/1000/1500/2000 intervals
 // (t_lo counts 0). A chain WITH a real dependence then reads t_hi = k + 3 against
@@ -70,7 +74,8 @@ namespace hven::solvers::detail {
 
 /// @brief Acceptance thresholds of an EqualityBasis split.
 struct EqualityBasisTolerances {
-    /// tau_lo = pivot_factor * (|F| + me) * eps, on unit-norm columns.
+    /// tau_lo = pivot_factor * (|F| + me) * eps and t_lo = max(pivot_factor * m * eps,
+    /// 1e-10) * ||G||_inf, on unit-norm rows; eps = machine epsilon = 2u.
     double pivot_factor = 20.0;
     /// tau_hi = gap_ratio * tau_lo; a retained pivot in (tau_lo, tau_hi) is undecidable.
     double gap_ratio = 1e4;
@@ -80,7 +85,7 @@ struct EqualityBasisTolerances {
     /// ~1e-8 and the projection refuses (EqualityBasis.T4). Registered: lower this to
     /// 1e6 as a declared change if any real cell refuses there.
     double coef_cap = 1e8;
-    /// A lift or projection solve with K is accepted iff its inflated forward-error
+    /// A lift or projection solve with K is accepted iff its inflated a-posteriori
     /// estimate is <= this * ||rhs||_2 (the header note). Coupled to coef_cap (above):
     /// the ratio lift_forward_tol / (coef_cap u) ~ 0.9 sets where projections refuse.
     double lift_forward_tol = 1e-8;
