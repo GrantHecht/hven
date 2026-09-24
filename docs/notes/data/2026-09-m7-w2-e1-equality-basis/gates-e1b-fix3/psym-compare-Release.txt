@@ -1,0 +1,66 @@
+P-SYM tool sha256 (runner):   2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM tool sha256 (captures): 2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM maps: object-map=none symbol-map=none exceptions=none
+
+SYMBOLS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_equality_basis.cpp.o: COVERAGE FINDINGS
+              ONLY-BEFORE   hven::solvers::detail::(anonymous namespace)::EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardBound_Test::TestBody()
+              ONLY-BEFORE   testing::internal::TestFactoryImpl<hven::solvers::detail::(anonymous namespace)::EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardBound_Test>::CreateTest()
+              ONLY-BEFORE   vtable for hven::solvers::detail::(anonymous namespace)::EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardBound_Test
+              ONLY-BEFORE   hven::solvers::detail::(anonymous namespace)::EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardBound_Test::~EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardBound_Test()
+              ONLY-BEFORE   vtable for testing::internal::TestFactoryImpl<hven::solvers::detail::(anonymous namespace)::EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardBound_Test>
+              ONLY-BEFORE   typeinfo for testing::internal::TestFactoryImpl<hven::solvers::detail::(anonymous namespace)::EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardBound_Test>
+              ONLY-BEFORE   typeinfo name for testing::internal::TestFactoryImpl<hven::solvers::detail::(anonymous namespace)::EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardBound_Test>
+              ONLY-BEFORE   typeinfo name for hven::solvers::detail::(anonymous namespace)::EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardBound_Test
+              ONLY-BEFORE   hven::solvers::detail::(anonymous namespace)::EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardBound_Test::test_info_
+              ONLY-BEFORE   testing::internal::TestFactoryImpl<hven::solvers::detail::(anonymous namespace)::EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardBound_Test>::~TestFactoryImpl()
+              ONLY-BEFORE   typeinfo for hven::solvers::detail::(anonymous namespace)::EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardBound_Test
+              ONLY-AFTER    typeinfo name for hven::solvers::detail::(anonymous namespace)::EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardEstimate_Test
+              ONLY-AFTER    hven::solvers::detail::(anonymous namespace)::EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardEstimate_Test::test_info_
+              ONLY-AFTER    typeinfo for testing::internal::TestFactoryImpl<hven::solvers::detail::(anonymous namespace)::EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardEstimate_Test>
+              ONLY-AFTER    typeinfo for hven::solvers::detail::(anonymous namespace)::EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardEstimate_Test
+              ONLY-AFTER    hven::solvers::detail::(anonymous namespace)::EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardEstimate_Test::~EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardEstimate_Test()
+              ONLY-AFTER    hven::solvers::detail::(anonymous namespace)::EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardEstimate_Test::TestBody()
+              ONLY-AFTER    testing::internal::TestFactoryImpl<hven::solvers::detail::(anonymous namespace)::EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardEstimate_Test>::~TestFactoryImpl()
+              ONLY-AFTER    vtable for hven::solvers::detail::(anonymous namespace)::EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardEstimate_Test
+              ONLY-AFTER    testing::internal::TestFactoryImpl<hven::solvers::detail::(anonymous namespace)::EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardEstimate_Test>::CreateTest()
+              ONLY-AFTER    typeinfo name for testing::internal::TestFactoryImpl<hven::solvers::detail::(anonymous namespace)::EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardEstimate_Test>
+              ONLY-AFTER    vtable for testing::internal::TestFactoryImpl<hven::solvers::detail::(anonymous namespace)::EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardEstimate_Test>
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_equality_basis.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+              UNCLASSIFIED  - 000000000001f030 <_ZN7testing8internal15TestFactoryImplIN4hven7solvers6detail12_GLOBAL__N_163EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardBound_TestEED0Ev>:
+                            + 000000000001f030 <_ZN7testing8internal15TestFactoryImplIN4hven7solvers6detail12_GLOBAL__N_166EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardEstimate_TestEED0Ev>:
+              UNCLASSIFIED  - 000000000001f040 <_ZN7testing8internal15TestFactoryImplIN4hven7solvers6detail12_GLOBAL__N_163EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardBound_TestEE10CreateTestEv>:
+                            + 000000000001f040 <_ZN7testing8internal15TestFactoryImplIN4hven7solvers6detail12_GLOBAL__N_166EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardEstimate_TestEE10CreateTestEv>:
+              UNCLASSIFIED  - 000000000001f090 <_ZN4hven7solvers6detail12_GLOBAL__N_163EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardBound_TestD0Ev>:
+                            + 000000000001f090 <_ZN4hven7solvers6detail12_GLOBAL__N_166EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardEstimate_TestD0Ev>:
+              UNCLASSIFIED  - 000000000001f0b0 <_ZN4hven7solvers6detail12_GLOBAL__N_163EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardBound_Test8TestBodyEv>:
+                            + 000000000001f0b0 <_ZN4hven7solvers6detail12_GLOBAL__N_166EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardEstimate_Test8TestBodyEv>:
+            COUNTS 89847 insns; CHANGED 82; UNCLASSIFIED 4; DELTAS +1(x5) +2(x73)
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_equality_basis.cpp.o: PERSYM 259 identical, 5 noise-only, 0 differing, 4 only-before, 4 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 7809 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              ONLY-BEFORE   hven::solvers::detail::(anonymous namespace)::EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardBound_Test::TestBody()
+              ONLY-BEFORE   testing::internal::TestFactoryImpl<hven::solvers::detail::(anonymous namespace)::EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardBound_Test>::CreateTest()
+              NOISE-ONLY    hven::solvers::detail::(anonymous namespace)::EqualityBasis_ExtremeScalingNeverDropsAnIndependentRow_Test::TestBody()
+                            COUNTS 1883 insns; CHANGED 14; UNCLASSIFIED 0; DELTAS +2(x14)
+              NOISE-ONLY    hven::solvers::detail::(anonymous namespace)::EqualityBasis_GroupBytesAreTheGroupsValues_Test::TestBody()
+                            COUNTS 857 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +2(x3)
+              NOISE-ONLY    hven::solvers::detail::(anonymous namespace)::EqualityBasis_T8NumericalRankContractOnTheTwoRowPair_Test::TestBody()
+                            COUNTS 3520 insns; CHANGED 30; UNCLASSIFIED 0; DELTAS +2(x30)
+              ONLY-BEFORE   hven::solvers::detail::(anonymous namespace)::EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardBound_Test::~EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardBound_Test()
+              NOISE-ONLY    hven::solvers::detail::(anonymous namespace)::EqualityBasis_LiftSystemCheckRefusesTheSplit_Test::TestBody()
+                            COUNTS 1461 insns; CHANGED 10; UNCLASSIFIED 0; DELTAS +2(x10)
+              NOISE-ONLY    _GLOBAL__sub_I_test_equality_basis.cpp
+                            COUNTS 1397 insns; CHANGED 12; UNCLASSIFIED 0; DELTAS +2(x12)
+              ONLY-BEFORE   testing::internal::TestFactoryImpl<hven::solvers::detail::(anonymous namespace)::EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardBound_Test>::~TestFactoryImpl()
+              ONLY-AFTER    hven::solvers::detail::(anonymous namespace)::EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardEstimate_Test::~EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardEstimate_Test()
+              ONLY-AFTER    hven::solvers::detail::(anonymous namespace)::EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardEstimate_Test::TestBody()
+              ONLY-AFTER    testing::internal::TestFactoryImpl<hven::solvers::detail::(anonymous namespace)::EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardEstimate_Test>::~TestFactoryImpl()
+              ONLY-AFTER    testing::internal::TestFactoryImpl<hven::solvers::detail::(anonymous namespace)::EqualityBasis_T4NearCapMultiColumnLiftMeetsItsForwardEstimate_Test>::CreateTest()
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+            COUNTS 87923 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+            COUNTS 52415 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+            COUNTS 101430 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+
+P-SYM: 151 objects — 147 byte-identical, 3 differing within the accepted noise class, 1 with unclassified differences, 0 matched by basename after a path move, 0 missing
+P-SYM coverage: 0 objects matched through the object map, 1 compared per symbol, 0 objects passed per symbol, 0 after-arm objects unaccounted for; symbols — 70945 matched (0 through the symbol map), 11 only-before, 11 only-after, 0 excepted, 0 collisions, 46 rank-tagged, 0 stale exceptions, 0 stale map entries; compiler-local label families — 617 matched by count, 0 differing (81276 before-arm and 81276 after-arm symbols accounted by family); relocations — 7809 records compared (0 through the symbol map)
+P-SYM: FAIL — differences outside the accepted noise class
