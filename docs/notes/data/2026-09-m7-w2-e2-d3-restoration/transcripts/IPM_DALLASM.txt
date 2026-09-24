@@ -1,0 +1,11 @@
+# IPM_DALLASM -- hven 763cda00 + E2-D3 scratch instrumentation; harness ea1aa4e copy; MKL_NUM_THREADS=1, taskset -c 2, lane hven-ipm, --budget-iters 100
+status=optimal
+outcome=optimal
+iterations=20
+factorizations=24
+objective=-48198.188230512424
+kkt_stationarity=1.6591401037788954e-08
+kkt_primal_eq=9.9800178467273978e-09
+kkt_primal_ineq=2.2011999334381471e-07
+kkt_complementarity=3.9232348133533394e-05
+# --- D3 trace (stderr) ---

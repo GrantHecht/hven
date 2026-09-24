@@ -1,0 +1,9 @@
+POINT /home/ghecht/Projects/hven/.scratch/m7w2e2d3/dumps/DALLASM_f4/resto0_exit.txt
+  n=196 me=151 mi=0 h_l1=3.637877783e-13 box_viol: count=0 max=0 sum=0
+  phi(0) [h + box viol, linearized] = -2.065014826e-14
+  eps=1e-06: phi_box=0 (drop -2.065e-14, rate -2.065e-08)   phi_nobox=0 (drop 3.638e-13, rate 3.638e-07)
+  eps=0.0001: phi_box=0 (drop -2.065e-14, rate -2.065e-10)   phi_nobox=0 (drop 3.638e-13, rate 3.638e-09)
+  eps=0.01: phi_box=0 (drop -2.065e-14, rate -2.065e-12)   phi_nobox=0 (drop 3.638e-13, rate 3.638e-11)
+  eps=1: phi_box=0 (drop -2.065e-14, rate -2.065e-14)   phi_nobox=0 (drop 3.638e-13, rate 3.638e-13)
+  smallest l_inf radius with a feasible linearization (box hard): 0
+  independent feasible point (hven-ipm final x): |x_ipm - x|_inf=215.993  |x_ipm - clamp(x)|_inf=215.993  x_ipm box viol max=2.2e-07

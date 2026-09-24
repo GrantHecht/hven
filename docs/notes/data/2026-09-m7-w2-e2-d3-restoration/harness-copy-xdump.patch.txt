@@ -1,0 +1,15 @@
+205c205,216
+<     return solver.solve(model, x0, budget);
+---
+>     auto r = solver.solve(model, x0, budget);
+>     if (const char *xd = std::getenv("HVEN_D3_XDUMP"); xd != nullptr) {  // E2-D3 scratch only
+>         std::FILE *fp = std::fopen(xd, "w");
+>         if (fp != nullptr) {
+>             std::fprintf(fp, "x %ld\n", (long)r.x.size());
+>             for (Eigen::Index i = 0; i < r.x.size(); ++i) std::fprintf(fp, "%.17g\n", r.x(i));
+>             std::fprintf(fp, "x0 %ld\n", (long)x0.size());
+>             for (Eigen::Index i = 0; i < x0.size(); ++i) std::fprintf(fp, "%.17g\n", x0(i));
+>             std::fclose(fp);
+>         }
+>     }
+>     return r;
