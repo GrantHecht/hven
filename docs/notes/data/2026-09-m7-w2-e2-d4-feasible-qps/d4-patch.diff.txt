@@ -1,0 +1,711 @@
+--- a/src/drivers/sqp_solver.cpp	2026-09-24 07:57:51.000000000 -0400
++++ b/src/drivers/sqp_solver.cpp	2026-09-24 08:45:10.832746918 -0400
+@@ -32,6 +32,25 @@
+ #include <fmt/format.h>
+ 
+ #include <hven/drivers/sqp_solver.h>
++#include <cstdio>
++#include <cstdlib>
++#include <fstream>
++// ===== E2-D3 TEMPORARY DIAGNOSTIC INSTRUMENTATION (scratch only) =====
++namespace hven::solvers::d3 {
++inline bool on() { static const bool b = std::getenv("HVEN_D3") != nullptr; return b; }
++inline bool f4() { static const bool b = std::getenv("HVEN_D3_F4") != nullptr; return b; }
++inline const char *dump_dir() { return std::getenv("HVEN_D3_DUMP"); }
++inline int dump_seq = 0;
++inline void dump_vec(std::ofstream &o, const char *name, const Eigen::VectorXd &v) {
++    o << name << " " << v.size() << "\n";
++    for (Eigen::Index i = 0; i < v.size(); ++i) { char b[64]; std::snprintf(b, sizeof b, "%.17g\n", v(i)); o << b; }
++}
++template <class M> inline void dump_sp(std::ofstream &o, const char *name, const M &A) {
++    o << name << " " << A.rows() << " " << A.cols() << " " << A.nonZeros() << "\n";
++    for (int k = 0; k < A.outerSize(); ++k)
++        for (typename M::InnerIterator it(A, k); it; ++it) { char b[96]; std::snprintf(b, sizeof b, "%ld %ld %.17g\n", (long)it.row(), (long)it.col(), it.value()); o << b; }
++}
++} // namespace hven::solvers::d3
+ 
+ // THE ONE TRANSLATION UNIT THAT COMPLETES THE SINK TYPES (M6 W5 T8.7 fix1, the
+ // lane's M4). `sqp_solver.h` forward-declares `ConsoleTraceSink` and
+@@ -1224,6 +1243,14 @@
+         emit_qp_mode_line(sink, tier != nullptr ? IpqpTraceQpMode::kIpqp : IpqpTraceQpMode::kWalk,
+                           trace_outcome_of(qs_e.status), QpModeSite::kElasticRung,
+                           qs_e.counters.minor_iters);
++        if (d3::on()) {
++            const Vec v3 = qs_e.status == QpStatus::kOptimal ? elastic.slack_violations(qs_e.x) : Vec();
++            std::fprintf(stderr, "D3RUNG rho=%.6g status=%d minors=%ld facts=%ld slack_l1=%.10g slack_max=%.6g viol_l1_in=%.10g blk_term=%ld zmcap=%ld cert=%ld cert_rej=%ld\n",
++                         rho, (int)qs_e.status, (long)qs_e.counters.minor_iters, (long)qs_e.counters.factorizations,
++                         v3.size() ? v3.lpNorm<1>() : -1.0, v3.size() ? v3.maxCoeff() : -1.0, elastic.violation_l1,
++                         (long)qs_e.counters.dep_blocker_terminations, (long)qs_e.counters.zero_motion_cap_hits,
++                         (long)qs_e.counters.dep_infeasible_certificates, (long)qs_e.counters.dep_certificate_rejections);
++        }
+         if (qs_e.status != QpStatus::kOptimal) {
+             break;
+         }
+@@ -1295,6 +1322,12 @@
+     const bool promises_f =
+         qs_e.status == QpStatus::kOptimal && predicted_decrease(qp, p_elastic) > 0.0;
+     const bool usable = qs_e.status == QpStatus::kOptimal && (closed || reduced || promises_f);
++    if (d3::on()) {
++        std::fprintf(stderr, "D3LADDER rho0=%.6g final_rho=%.6g status=%d slack_l1=%.10g viol_l1_in=%.10g closed=%d reduced=%d promises_f=%d pred_dec=%.6g usable=%d step_inf=%.6g window=%.6g\n",
++                     rho_0, rho, (int)qs_e.status, slack_l1, elastic.violation_l1, (int)closed, (int)reduced, (int)promises_f,
++                     qs_e.status == QpStatus::kOptimal ? predicted_decrease(qp, p_elastic) : 0.0, (int)usable,
++                     p_elastic.size() ? p_elastic.lpNorm<Eigen::Infinity>() : 0.0, window);
++    }
+ 
+     // ONE STRUCT-FILL, NO RE-DERIVATION: each field is the expression the driver
+     // read in place. `elastic` and `qs_e` move out LAST, after p_elastic, the
+@@ -2552,7 +2585,12 @@
+     Index start_point_clamps = 0;
+     Vec x0_projected;
+     const Vec *x0_used = &x0;
+-    if (opts_.project_start_point) {
++    if (d3::on()) {
++        const Vec &lo3 = seam.lower(); const Vec &up3 = seam.upper(); long c3 = 0; double m3 = 0.0;
++        for (Index i = 0; i < n; ++i) { const double v = std::max(lo3[i] - x0[i], x0[i] - up3[i]); if (v > 0) { ++c3; m3 = std::max(m3, v); } }
++        std::fprintf(stderr, "D3START depth=%d n=%ld out_of_box=%ld max_box_viol=%.10g project=%d\n", is_restoration_sub_driver_ ? 1 : 0, (long)n, c3, m3, (int)(opts_.project_start_point || (std::getenv("HVEN_D3_PROJECT") && !is_restoration_sub_driver_)));
++    }
++    if (opts_.project_start_point || (std::getenv("HVEN_D3_PROJECT") != nullptr && !is_restoration_sub_driver_)) {
+         const Vec &lo = seam.lower();
+         const Vec &up = seam.upper();
+         if (lo.size() != n || up.size() != n) {
+@@ -2647,6 +2685,7 @@
+         ipqp_trace_->on_sqp_solve_begin(make_solve_begin_event(opts_, seam));
+     }
+     SqpResult out = solve_impl_body(seam, bridge, *x0_used, warm, budget, std::move(strategy));
++    if (d3::on()) std::fprintf(stderr, "D3END depth=%d status=%d majors=%ld resto_iters=%ld certified=%d obj=%.10g feas=%.6g stat=%.6g\n", is_restoration_sub_driver_ ? 1 : 0, (int)out.status, (long)out.counters.major_iters, (long)out.counters.restoration_iters, (int)out.infeasibility_certified, out.f, out.sqp_feasibility, out.sqp_stationarity);
+     // THE POLISH-IGNORED COUNT, BEFORE THE TRACE READS IT (M6 W5 T8.5 fix1).
+     //
+     // The count is `consume_payload`'s, taken one frame ABOVE this one, so no
+@@ -4645,6 +4684,7 @@
+     // Majors already spent, on both phases, at this point.
+     const Index spent = iter + 1 + st.out.counters.restoration_iters;
+ 
++    if (d3::on()) std::fprintf(stderr, "D3RESTO_REQ depth=%d major=%ld allow=%d used=%d h=%.10g cand=%d\n", is_restoration_sub_driver_ ? 1 : 0, (long)iter, (int)allow_restoration_, (int)st.resto.used, constraint_violation_l1(st.ev), (int)(cand.x != nullptr));
+     if (!allow_restoration_ || st.resto.used) {
+         // The nested case (a restoration solve raising its own
+         // request) and the once-per-solve cap take the SAME exit,
+@@ -4783,8 +4823,14 @@
+     }
+     const NlpModel &resto_base =
+         resto_rows ? static_cast<const NlpModel &>(*resto_rows) : bridge.model();
+-    const RestorationModel feasibility(resto_base, *x_start, resto_ev, st.x,
+-                                       opts_.restoration_proximity);
++    const double d3_prox = std::getenv("HVEN_D3_PROX") ? std::atof(std::getenv("HVEN_D3_PROX")) : opts_.restoration_proximity;
++    Vec d3_xs = *x_start, d3_xc = st.x;
++    if (std::getenv("HVEN_D3_RESTO_CLAMP")) {
++        d3_xs = d3_xs.cwiseMax(resto_base.lower()).cwiseMin(resto_base.upper());
++        d3_xc = d3_xc.cwiseMax(resto_base.lower()).cwiseMin(resto_base.upper());
++        if (d3::on()) std::fprintf(stderr, "D3RESTO_CLAMP moved=%.6g\n", (d3_xs - *x_start).lpNorm<Eigen::Infinity>());
++    }
++    const RestorationModel feasibility(resto_base, d3_xs, resto_ev, d3_xc, d3_prox);
+     SqpOptions ropts = opts_;
+     // AND THE SUB-SOLVE RUNS UNSCALED, alongside the budget_mode and
+     // qp_mode forcings just below and for the same kind of reason: the
+@@ -4808,6 +4854,7 @@
+     // without a reachable kBudgetExhausted arm.
+     ropts.budget_mode = false;
+     ropts.equality_basis = false;
++    if (std::getenv("HVEN_D3_RESTO_E2OFF")) ropts.qp.independent_working_set = false;
+     // THE RESTORATION SUB-SOLVE RUNS THE WALK, WHATEVER THE CALLER'S
+     // MODE IS. Without this line the copy above would carry `qp_mode`
+     // in with everything else, so a kSsn caller would silently run
+@@ -5096,6 +5143,31 @@
+         return RestorationOutcome::kExited;
+     }
+     const double h_r = constraint_violation_l1(ev_r);
++    if (d3::on()) {
++        std::fprintf(stderr, "D3RESTO_END sub_status=%d sub_majors=%ld sub_elastic=%ld h_in=%.10g h_r=%.10g f_r=%.10g |x_r-x|inf=%.6g seed_used=%d sub_obj=%.10g sub_kkt_stat=%.6g sub_feas=%.6g\n",
++                     (int)rs.status, (long)rs.counters.major_iters, (long)rs.counters.elastic_activations,
++                     excursion_h_in, h_r, ev_r.f, (x_r - st.x).lpNorm<Eigen::Infinity>(), (int)mj.row.restoration_seed_used,
++                     rs.f, rs.sqp_stationarity, rs.sqp_feasibility);
++    }
++    if (const char *dd = d3::dump_dir(); dd != nullptr && x_r.allFinite()) {
++        const NlpModel &m3 = bridge.model();
++        for (int which = 0; which < 2; ++which) {
++            const Vec &xx = which == 0 ? st.x : x_r;
++            std::ofstream o(std::string(dd) + "/resto" + std::to_string(d3::dump_seq) + (which == 0 ? "_entry" : "_exit") + ".txt");
++            o << "n " << m3.n() << " me " << m3.me() << " mi " << m3.mi() << "\n";
++            d3::dump_vec(o, "x", xx);
++            d3::dump_vec(o, "lower", m3.lower());
++            d3::dump_vec(o, "upper", m3.upper());
++            d3::dump_vec(o, "ce", m3.eval_ce(xx));
++            d3::dump_vec(o, "ci", m3.eval_ci(xx));
++            d3::dump_sp(o, "Je", m3.eval_jac_e(xx));
++            d3::dump_sp(o, "Ji", m3.eval_jac_i(xx));
++            d3::dump_vec(o, "lambda_e", rs_lambda_e);
++            d3::dump_vec(o, "lambda_i", rs.lambda_i);
++            if (which == 1) d3::dump_vec(o, "z", feasibility.original_x(rs.z));
++        }
++        ++d3::dump_seq;
++    }
+ 
+     if (h_r <= opts_.feas_tol) {
+         // THE EXCURSION RECORD, WRITTEN BEFORE THE MOVE BELOW takes `ev_r`
+@@ -5260,7 +5332,7 @@
+         // which are already taken above.
+         st.resto.status = SolveStatus::kInfeasible;
+         st.out.infeasibility_certified =
+-            feasibility_subsolve_certifies(opts_.restoration_proximity, opts_.kkt_tol, rs_lambda_e,
++            feasibility_subsolve_certifies(d3_prox, opts_.kkt_tol, rs_lambda_e,
+                                            rs.lambda_i, st.resto.kkt.z, [&ev_r, &seam] {
+                                                NlpEval certificate_ev = ev_r;
+                                                seam.to_caller_scale(certificate_ev);
+@@ -6341,7 +6413,20 @@
+     // ladder's counts below. `fallback_report` is engaged here iff that happened.
+     bool elastic_applied = mj.fallback_report.has_value();
+     bool rho0_ceiling_hit = mj.fallback_report && mj.fallback_report->rho0_ceiling_hit;
+-    if (mj.qs.status == QpStatus::kInfeasible) {
++    const bool d3_route_elastic =
++        d3::f4() && mj.walk_owns_this_qp && mj.qs.status == QpStatus::kNumericalError &&
++        (mj.qs.counters.dep_blocker_terminations > 0 || mj.qs.counters.zero_motion_cap_hits > 0 ||
++         mj.qs.counters.dep_certificate_rejections > 0);
++    if (d3::on()) {
++        std::fprintf(stderr, "D3QP depth=%d major=%ld delta=%.6g status=%d minors=%ld facts=%ld h=%.10g f=%.10g blk_term=%ld zmcap=%ld cert=%ld cert_rej=%ld n=%ld me=%ld mi=%ld f4route=%d resto_used=%d\n",
++                     is_restoration_sub_driver_ ? 1 : 0, (long)iter, st.delta, (int)mj.qs.status,
++                     (long)mj.qs.counters.minor_iters, (long)mj.qs.counters.factorizations,
++                     constraint_violation_l1(st.ev), st.ev.f,
++                     (long)mj.qs.counters.dep_blocker_terminations, (long)mj.qs.counters.zero_motion_cap_hits,
++                     (long)mj.qs.counters.dep_infeasible_certificates, (long)mj.qs.counters.dep_certificate_rejections,
++                     (long)st.qp.n(), (long)st.qp.me(), (long)st.qp.mi(), (int)d3_route_elastic, (int)st.resto.used);
++    }
++    if (mj.qs.status == QpStatus::kInfeasible || d3_route_elastic) {
+         // The window the ORIGINAL solve was given, folded into the
+         // elastic problem's own box: `delta` is what the driver
+         // passed through SolveOverrides, and opts_.qp.tr_radius is
+@@ -6353,7 +6438,7 @@
+         // second run on the fallback's own report would double-charge the activation.
+         const ElasticLadderReport report =
+             mj.fallback_report ? std::move(*mj.fallback_report)
+-                               : run_elastic_ladder(*engine_, st.qp, elastic_seed_source, window,
++                               : run_elastic_ladder(std::getenv("HVEN_D3_ELASTIC_E2OFF") ? *[&] { static thread_local std::unique_ptr<QpEngine> e3; QpOptions q3 = opts_.qp; q3.independent_working_set = false; e3 = std::make_unique<QpEngine>(q3, opts_.common.threads); return e3.get(); }() : *engine_, st.qp, elastic_seed_source, window,
+                                                     opts_, st.out.counters, std::nullopt,
+                                                     ipqp_trace_, elastic_rung_tier());
+         rho0_ceiling_hit = report.rho0_ceiling_hit;
+@@ -6509,6 +6594,7 @@
+             // was shrunk here and the iterate did not move", and the
+             // floor is a statement about the radius, not about which
+             // mechanism last lowered it.
++            if (d3::on()) std::fprintf(stderr, "D3ROUTE depth=%d major=%ld routed failure %ld/%ld delta=%.6g floor=%d\n", is_restoration_sub_driver_ ? 1 : 0, (long)iter, (long)st.qp_failures_in_a_row, (long)opts_.qp_failure_budget, st.delta, (int)shrink_hits_floor(st.delta));
+             if (shrink_hits_floor(st.delta)) {
+                 // PUSHED AFTER THE CALL (R9), as at every request site.
+                 const RestorationOutcome outcome = enter_restoration(st, mj, seam, bridge, iter);
+@@ -6549,6 +6635,7 @@
+             // BEFORE the outcome leaves: the caller only advances the loop.
+             return MajorOutcome::kContinue;
+         }
++        if (d3::on()) std::fprintf(stderr, "D3ROUTE depth=%d major=%ld kFinishQpFailure status=%d failures_in_a_row=%ld retryable=%d\n", is_restoration_sub_driver_ ? 1 : 0, (long)iter, (int)mj.qs.status, (long)st.qp_failures_in_a_row, (int)qp_failure_is_retryable(st.qp, mj.qs, opts_.feas_tol));
+         push_history(mj.row);
+         // No restoration was consulted on this path -- x is still
+         // the pre-trial iterate `mj.qs` was solved at, so its own
+@@ -6863,6 +6950,12 @@
+         // `history` and in the stream by the time any tag below is acted on --
+         // that is what `run_major` guarantees at each of its ten push sites.
+         const MajorOutcome outcome = run_major(st, mj, seam, bridge, warm, budget, iter);
++        if (d3::on()) {
++            std::fprintf(stderr, "D3MAJ depth=%d major=%ld outcome=%d qp_status=%d verdict=%d elastic=%d viol=%.10g f=%.10g tr=%.6g step=%.6g minors=%ld h_now=%.10g\n",
++                         is_restoration_sub_driver_ ? 1 : 0, (long)iter, (int)outcome, (int)mj.row.qp_status, (int)mj.row.verdict,
++                         (int)mj.row.elastic_applied, mj.row.violation_l1, mj.row.f, mj.row.tr_radius, mj.row.step_norm,
++                         (long)mj.row.qp_minor_iters, constraint_violation_l1(st.ev));
++        }
+         // A PROX-CENTRE LIFT WHOSE INFLATED A-POSTERIORI ESTIMATE FAILED ITS CHECK during
+         // this major's subproblem is counted here and takes the same pending-refusal
+         // transition as a failed commit lift: the next subproblem build carries every row.
+--- a/src/qp/qp_engine.cpp	2026-09-24 07:57:51.000000000 -0400
++++ b/src/qp/qp_engine.cpp	2026-09-24 11:00:44.237452762 -0400
+@@ -34,6 +34,48 @@
+ #include <bit>
+ 
+ #include <hven/detail/qp/qp_engine.h>
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++#include <fstream>
++#include <string>
++
++// ===== E2-D4 TEMPORARY DIAGNOSTIC INSTRUMENTATION (scratch only) =====
++namespace hven::solvers::d4 {
++inline bool trace() { static const bool b = std::getenv("HVEN_D4_TRACE") != nullptr; return b; }
++inline const char *dump_dir() { static const char *d = std::getenv("HVEN_D4_QPDUMP"); return d; }
++inline bool dump_all() { static const bool b = std::getenv("HVEN_D4_DUMPALL") != nullptr; return b; }
++inline bool fix(const char *name) {
++    static const char *f = std::getenv("HVEN_D4_FIX");
++    if (f == nullptr) return false;
++    const std::string all = std::string(",") + f + ",";
++    return all.find(std::string(",") + name + ",") != std::string::npos;
++}
++inline long solve_seq = 0;
++inline long n_f5_reads = 0, n_f5_flips = 0, n_grey_struct = 0, n_grey_undec = 0, n_unlock = 0, n_leakpass = 0, n_screenadmit = 0;
++inline long dump_seq = 0;
++inline void dvec(std::ofstream &o, const char *name, const Eigen::VectorXd &v) {
++    o << name << " " << v.size() << "\n";
++    char b[64];
++    for (Eigen::Index i = 0; i < v.size(); ++i) { std::snprintf(b, sizeof b, "%.17g\n", v(i)); o << b; }
++}
++template <class M> inline void dsp(std::ofstream &o, const char *name, const M &A) {
++    o << name << " " << A.rows() << " " << A.cols() << " " << A.nonZeros() << "\n";
++    char b[96];
++    for (int k = 0; k < A.outerSize(); ++k)
++        for (typename M::InnerIterator it(A, k); it; ++it) {
++            std::snprintf(b, sizeof b, "%ld %ld %.17g\n", (long)it.row(), (long)it.col(), it.value());
++            o << b;
++        }
++}
++inline void divec(std::ofstream &o, const char *name, const std::vector<long> &v) {
++    o << name << " " << v.size() << "\n";
++    for (long x : v) o << x << "\n";
++}
++inline const char *st(BoundState b) {
++    return b == BoundState::kFree ? "F" : b == BoundState::kAtLower ? "L" : b == BoundState::kAtUpper ? "U" : "X";
++}
++} // namespace hven::solvers::d4
+ 
+ namespace hven::solvers {
+ 
+@@ -683,6 +725,12 @@
+     std::unique_ptr<detail::KktFactor> diag_kkt;
+     EliminatedFace diag_face;
+ #endif
++    const long d4_solve = d4::solve_seq++;
++    if (d4::trace()) {
++        std::fprintf(stderr, "D4T solve=%ld begin n=%ld me=%ld mi=%ld warm=%d tr=%.6g mu=%.3g delta=%.3g indep=%d algebra=%d cap=%ld k0_reused=%d\n",
++                     d4_solve, (long)n, (long)me, (long)mi, (int)warm, eff_opts.tr_radius, eff_opts.dual_mu, eff_opts.primal_delta,
++                     (int)eff_opts.independent_working_set, (int)opts_.ws_algebra, (long)eff_max_iter, (int)counters.k0_reused);
++    }
+     for (Index iter = 0; !crossed_bounds && iter < eff_max_iter; ++iter) {
+         ++counters.minor_iters;
+ #ifdef HVEN_TESTING
+@@ -762,6 +810,35 @@
+             eliminated_only
+                 ? eliminated_candidate(qp, ws, kkt, face, counters, verdict, eff_opts)
+                 : eqp_candidate(qp, ws, kkt, face, *border_, counters, verdict, eff_opts);
++        if (d4::fix("f5") && verdict == detail::InertiaVerdict::kWrong) {
++            detail::KktFactor k2(threads_);
++            EliminatedFace f2;
++            detail::InertiaVerdict v2 = detail::InertiaVerdict::kSuspect;
++            QpOptions o2 = eff_opts;
++            o2.dual_mu = 0.0;
++            try {
++                (void)eliminated_candidate(qp, ws, k2, f2, counters, v2, o2);
++            } catch (...) {
++                v2 = detail::InertiaVerdict::kSuspect;
++            }
++            ++d4::n_f5_reads;
++            if (d4::trace())
++                std::fprintf(stderr, "D4T it=%ld F5 reread verdict=%d (mu-free)\n", (long)iter, (int)v2);
++            if (v2 == detail::InertiaVerdict::kOk ||
++                (v2 == detail::InertiaVerdict::kSuspect && d4::fix("f5s"))) {
++                verdict = v2;
++                ++d4::n_f5_flips;
++            }
++        }
++        if (d4::trace()) {
++            const Index d4_pins = n - ws.num_free();
++            const Vec d4_p = eqp.x - x;
++            const double d4_f = qp.g.dot(x) + 0.5 * x.dot(qp.H.selfadjointView<Eigen::Upper>() * x);
++            std::fprintf(stderr, "D4T it=%ld PASS rows=%zu pins=%ld cnt-n=%ld verdict=%d elim_only=%d pinf=%.4e f=%.12g ptevents=%ld\n",
++                         (long)iter, ws.active_ineq().size(), (long)d4_pins,
++                         (long)(me + (Index)ws.active_ineq().size() + d4_pins - n), (int)verdict, (int)eliminated_only,
++                         d4_p.lpNorm<Eigen::Infinity>(), d4_f, (long)seen.pt_events);
++        }
+ #ifdef HVEN_TESTING
+         // Snapshotted IMMEDIATELY: section 4b's zero-multiplier probe re-enters
+         // the same verdict site for HYPOTHETICAL working sets later in this very
+@@ -833,6 +910,10 @@
+                                             seen.shift_refused, &removed)) {
+                     ++(entry_check_pending ? counters.entry_dependency_removals
+                                            : counters.dep_recheck_removals);
++                    if (d4::trace())
++                        std::fprintf(stderr, "D4T it=%ld DETECT_REMOVE %s kind=%d idx=%ld found=%d trim=%d null_res=%.3e over=%d\n",
++                                     (long)iter, entry_check_pending ? "entry" : "recheck", (int)removed.kind, (long)removed.idx,
++                                     (int)det.found, (int)trim.found, det.null_residual, (int)over);
+                     const bool removed_row = removed.kind == detail::WsMember::Kind::kRow;
+                     pt_release(seen, removed_row, removed.idx);
+                     if (!entry_check_pending && deferred_member.kind == removed.kind &&
+@@ -851,8 +932,12 @@
+         }
+         const bool first_pass = start_pass;
+         start_pass = false;
++        if (d4::trace() && first_pass && verdict == detail::InertiaVerdict::kWrong)
++            std::fprintf(stderr, "D4T it=%ld START_KWRONG attempting repair\n", (long)iter);
+         if (first_pass && verdict == detail::InertiaVerdict::kWrong &&
+             repair_temporary_vertex(qp, ws, x, kkt, face, *border_, counters, eff_opts)) {
++            if (d4::trace())
++                std::fprintf(stderr, "D4T it=%ld START_REPAIR ok pins_now=%ld\n", (long)iter, (long)(n - ws.num_free()));
+ #ifdef HVEN_TESTING
+             walk_obs.record().action = detail::testing::QpWalkAction::kStartRepair;
+ #endif
+@@ -970,6 +1055,15 @@
+             if (dropped_one && eff_opts.independent_working_set) {
+                 pt_release(seen, last_drop.is_ineq, last_drop.idx);
+             }
++            if (d4::trace()) {
++                if (dropped_one) {
++                    const double m = last_drop.is_ineq ? lambda_i(last_drop.idx) : z(last_drop.idx);
++                    std::fprintf(stderr, "D4T it=%ld DROP %s %ld from=%s mult=%.4e exempt_worst=%.3e\n", (long)iter,
++                                 last_drop.is_ineq ? "row" : "pin", (long)last_drop.idx, d4::st(last_drop.from), m, exempt_worst);
++                } else {
++                    std::fprintf(stderr, "D4T it=%ld NODROP exempt_worst=%.3e\n", (long)iter, exempt_worst);
++                }
++            }
+             if (!dropped_one) {
+ #ifdef HVEN_TESTING
+                 walk_obs.record().action = detail::testing::QpWalkAction::kTerminal;
+@@ -1008,6 +1102,9 @@
+                     worst = worst_structural_violation(qp, x, Aix, ai_row_norm1, lambda_i,
+                                                        ae_row_norm1, lambda_e, eff_opts);
+                 }
++                if (d4::trace())
++                    std::fprintf(stderr, "D4T it=%ld TERMINAL worst=%.3e refined=%d runaway=%d verdict=%d probe_drop_made=%d\n", (long)iter,
++                                 worst, (int)refined, (int)(worst > 0.0 ? 0 : is_runaway(qp, x, ws, eff_opts)), (int)verdict, (int)probe_drop_made);
+                 if (worst > 0.0) {
+                     status = QpStatus::kInfeasible;
+                 } else if (is_runaway(qp, x, ws, eff_opts)) {
+@@ -1307,6 +1404,8 @@
+                 // ride_negative_curvature and ride_sign, which are the only
+                 // places the THREE refusals are distinguishable at all.
+ #endif
++                if (d4::trace())
++                    std::fprintf(stderr, "D4T it=%ld RIDE outcome=%d curvature=%.3e\n", (long)iter, (int)outcome, curvature);
+                 if (outcome == RideOutcome::kUnbounded) {
+                     // Nothing blocks: genuinely unbounded. Same verdict and
+                     // same semantics (final iterate reported, multipliers
+@@ -1424,15 +1523,96 @@
+                 const bool moves = alpha * p.lpNorm<Eigen::Infinity>() > step_tol;
+                 detail::DepTest t =
+                     test_candidate(qp, ws, pass_view, is_ineq, block_idx, counters, eff_opts);
++                if (t.verdict == detail::DepVerdict::kIndependent &&
++                    ((d4::fix("greys") && t.rho < detail::kDepUndecidable) || d4::fix("structfirst"))) {
++                    const detail::StructuralDependency sdg =
++                        detail::structural_dependency(qp, ws, is_ineq, block_idx);
++                    if (sdg.found) {
++                        t = sdg.test;
++                        ++d4::n_grey_struct;
++                        if (d4::trace()) std::fprintf(stderr, "D4T it=%ld GREY structural exact\n", (long)iter);
++                    } else if (d4::fix("greyd") && t.rho < detail::kDepUndecidable) {
++                        t.verdict = detail::DepVerdict::kDependent;
++                        ++d4::n_grey_undec;
++                        if (d4::trace()) std::fprintf(stderr, "D4T it=%ld GREY -> dependent\n", (long)iter);
++                    } else if (d4::fix("greyu") && t.rho < detail::kDepUndecidable) {
++                        t.verdict = detail::DepVerdict::kUndecidable;
++                        ++d4::n_grey_undec;
++                        if (d4::trace()) std::fprintf(stderr, "D4T it=%ld GREY -> undecidable\n", (long)iter);
++                    }
++                }
+                 // A member the previous pass's re-check removed as a dependent
+                 // deferred add, blocking again at this same point (E2 fix1,
+                 // D3(b)): the detector's verdict was a proof, so only a
+                 // DECIDED dependent test (an exchange) may bring it back here.
+                 const bool known_dependent =
+                     !moves && (pt_flags(seen, is_ineq, block_idx) & kPtKnownDependent) != 0;
++                if (d4::trace()) {
++                    const double rate = is_ineq ? qp.Ai.row(block_idx).dot(p) : p(block_idx);
++                    const double anorm = is_ineq ? qp.Ai.row(block_idx).norm() : 1.0;
++                    std::fprintf(stderr, "D4T it=%ld BLOCK %s %ld side=%s alpha=%.4e moves=%d rate=%.4e rate_rel=%.3e test=%d rho=%.3e screen=%d path=%s known_dep=%d ptflags=%d\n",
++                                 (long)iter, is_ineq ? "row" : "pin", (long)block_idx, d4::st(block_state), alpha, (int)moves, rate,
++                                 rate / (anorm * std::max(p.norm(), 1e-300)), (int)t.verdict, t.rho, (int)t.screen,
++                                 pass_view.schur != nullptr ? "border" : pass_view.eliminated != nullptr ? "elim" : "none", (int)known_dependent,
++                                 (int)pt_flags(seen, is_ineq, block_idx));
++                }
+                 if (!t.dependent() && !known_dependent) {
+                     break; // the ordinary add
+                 }
++                if (d4::fix("leakpass2") && t.verdict == detail::DepVerdict::kDependent) {
++                    const double anorm2 = is_ineq ? qp.Ai.row(block_idx).norm() : 1.0;
++                    const double rate2 = std::abs(is_ineq ? qp.Ai.row(block_idx).dot(p) : p(block_idx));
++                    if (rate2 <= 1e-6 * anorm2 * p.norm()) {
++                        std::vector<std::pair<bool, Index>> trial = passed;
++                        trial.emplace_back(is_ineq, block_idx);
++                        BlockKind k2 = BlockKind::kNone;
++                        Index i2 = -1;
++                        BoundState s2 = BoundState::kFree;
++                        const double a2 = ratio_test_excluding(qp, ws, x, Aix, p, trial, k2, i2, s2);
++                        bool within2 = true;
++                        for (const auto &[pi, pidx] : trial) {
++                            const BoundState side = pi ? BoundState::kFree : p(pidx) > 0.0 ? BoundState::kAtUpper : BoundState::kAtLower;
++                            const Oriented po = oriented(pi, pidx, side);
++                            if (std::max(0.0, po.cx - po.d + a2 * po.cp) > eff_opts.feas_tol * po.scale) within2 = false;
++                        }
++                        if (within2) {
++                            ++d4::n_leakpass;
++                            if (d4::trace()) std::fprintf(stderr, "D4T it=%ld LEAKPASS2 rate_rel=%.3e\n", (long)iter, rate2 / (anorm2 * p.norm()));
++                            passed = std::move(trial);
++                            ++counters.dep_passovers;
++                            kind = k2;
++                            block_idx = i2;
++                            block_state = s2;
++                            alpha = a2;
++                            continue;
++                        }
++                    }
++                }
++                if (d4::fix("leakpass") && t.verdict == detail::DepVerdict::kDependent) {
++                    double lam = 0.0;
++                    for (const Index r : ws.active_ineq()) lam = std::max(lam, std::abs(lambda_i(r)));
++                    for (Index i = 0; i < n; ++i)
++                        if (ws.bound_state()[static_cast<std::size_t>(i)] != BoundState::kFree) lam = std::max(lam, std::abs(z(i)));
++                    if (me > 0) lam = std::max(lam, lambda_e.lpNorm<Eigen::Infinity>());
++                    const double anorm = is_ineq ? qp.Ai.row(block_idx).norm() : 1.0;
++                    const double rate = std::abs(is_ineq ? qp.Ai.row(block_idx).dot(p) : p(block_idx));
++                    const double leak = 10.0 * eff_opts.dual_mu * lam * anorm +
++                                        64.0 * std::numeric_limits<double>::epsilon() * anorm * p.norm();
++                    if (rate <= leak) {
++                        ++d4::n_leakpass;
++                        if (d4::trace()) std::fprintf(stderr, "D4T it=%ld LEAKPASS rate=%.3e leak=%.3e\n", (long)iter, rate, leak);
++                        passed.emplace_back(is_ineq, block_idx);
++                        BlockKind k2 = BlockKind::kNone;
++                        Index i2 = -1;
++                        BoundState s2 = BoundState::kFree;
++                        const double a2 = ratio_test_excluding(qp, ws, x, Aix, p, passed, k2, i2, s2);
++                        kind = k2;
++                        block_idx = i2;
++                        block_state = s2;
++                        alpha = a2;
++                        continue;
++                    }
++                }
+                 bool refused = false;
+                 if (t.verdict == detail::DepVerdict::kUndecidable && pass_view.schur != nullptr) {
+                     // (D3(a)) THE BORDER RETREAT for an undecidable test: a
+@@ -1483,6 +1663,42 @@
+                     // exchange mutates.
+                     xpick = select_exchange(qp, ws, shift, seen, t, is_ineq, block_idx, block_state,
+                                             lambda_e, lambda_i, z, moves);
++                    if (d4::trace()) {
++                        std::fprintf(stderr, "D4T it=%ld XPICK found=%d j=%s%ld sigma=%.4e cond1=%d g=%.4e shifted=%d\n", (long)iter,
++                                     (int)xpick.found, xpick.j_is_ineq ? "row" : "pin", (long)xpick.j, xpick.sigma, (int)xpick.cond1, xpick.g,
++                                     (int)xpick.j_shifted);
++                        // every member with a positive scaled coefficient, and whether it is locked
++                        double vmax = 0.0;
++                        for (Index r = 0; r < me; ++r) vmax = std::max(vmax, std::abs(xpick.v_e(r)) * qp.Ae.row(r).norm());
++                        const auto &aw = ws.active_ineq();
++                        for (std::size_t k = 0; k < aw.size(); ++k)
++                            vmax = std::max(vmax, std::abs(xpick.v_w((Index)k)) * qp.Ai.row(aw[k]).norm());
++                        for (Index i = 0; i < n; ++i) vmax = std::max(vmax, std::abs(xpick.v_pin(i)));
++                        const double tol = detail::kDepCoeffTol * vmax;
++                        int shown = 0;
++                        for (std::size_t k = 0; k < aw.size() && shown < 40; ++k) {
++                            const double sc = xpick.v_w((Index)k) * qp.Ai.row(aw[k]).norm();
++                            if (std::abs(sc) > tol) {
++                                ++shown;
++                                std::fprintf(stderr, "D4T it=%ld   MEMBER row %ld v=%.4e scaled=%.4e m=%.4e ptflags=%d shift=%.3e\n", (long)iter,
++                                             (long)aw[k], xpick.v_w((Index)k), sc, lambda_i(aw[k]), (int)pt_flags(seen, true, aw[k]), shift(aw[k]));
++                            }
++                        }
++                        for (Index i = 0; i < n && shown < 80; ++i) {
++                            const BoundState bst = ws.bound_state()[static_cast<std::size_t>(i)];
++                            if (bst == BoundState::kFree) continue;
++                            if (std::abs(xpick.v_pin(i)) > tol) {
++                                ++shown;
++                                const double m = bst == BoundState::kAtLower ? z(i) : -z(i);
++                                std::fprintf(stderr, "D4T it=%ld   MEMBER pin %ld %s v=%.4e m=%.4e ptflags=%d\n", (long)iter, (long)i, d4::st(bst),
++                                             xpick.v_pin(i), m, (int)pt_flags(seen, false, i));
++                            }
++                        }
++                        int eqs = 0;
++                        for (Index r = 0; r < me; ++r)
++                            if (std::abs(xpick.v_e(r)) * qp.Ae.row(r).norm() > tol) ++eqs;
++                        std::fprintf(stderr, "D4T it=%ld   MEMBERS eq_support=%d vmax=%.3e\n", (long)iter, eqs, vmax);
++                    }
+                     if (xpick.found) {
+                         break; // the exchange
+                     }
+@@ -1492,11 +1708,29 @@
+                     // certificate never needed it; design amendment in the
+                     // E2 README). Verified before it may be returned.
+                     QpFarkasCertificate cert;
+-                    if (verify_farkas(qp, ws, xpick, is_ineq, block_idx, o.scale, eff_opts, cert)) {
++                    const bool d4_ver = verify_farkas(qp, ws, xpick, is_ineq, block_idx, o.scale, eff_opts, cert);
++                    if (d4::trace()) {
++                        QpFarkasCertificate c2;
++                        // re-run only to read implied/limit of a failed certificate
++                        (void)c2;
++                        std::fprintf(stderr, "D4T it=%ld FARKAS verified=%d cond1=%d g=%.4e structural_g=%d\n", (long)iter, (int)d4_ver,
++                                     (int)xpick.cond1, xpick.g, (int)violation_is_structural(xpick.g, o.scale, 0.0, eff_opts));
++                    }
++                    if (d4_ver) {
+                         farkas = std::move(cert);
+                         add_exit = AddExit::kInfeasible;
+                         break;
+                     }
++                    // E2-D4 screenadmit: dependence proved by the count alone (the test's own
++                    // residual says independent), no admissible member, no verified certificate.
++                    if (d4::fix("screenadmit") && t.screen && t.rho > detail::kDepTol) {
++                        ++d4::n_screenadmit;
++                        if (d4::trace()) std::fprintf(stderr, "D4T it=%ld SCREENADMIT rho=%.3e\n", (long)iter, t.rho);
++                        ++counters.dep_deferred_adds;
++                        recheck_pending = true;
++                        xpick = ExchangePick{};
++                        break;
++                    }
+                     // The design's candidate (cond1 and a structural
+                     // violation) that failed verification.
+                     if (xpick.cond1 && violation_is_structural(xpick.g, o.scale, 0.0, eff_opts)) {
+@@ -1524,6 +1758,16 @@
+                         within = false;
+                     }
+                 }
++                if (d4::trace()) {
++                    double worstv = 0.0;
++                    for (const auto &[pi, pidx] : passed) {
++                        const BoundState side = pi ? BoundState::kFree : p(pidx) > 0.0 ? BoundState::kAtUpper : BoundState::kAtLower;
++                        const Oriented po = oriented(pi, pidx, side);
++                        worstv = std::max(worstv, std::max(0.0, po.cx - po.d + a2 * po.cp) / (eff_opts.feas_tol * po.scale));
++                    }
++                    std::fprintf(stderr, "D4T it=%ld PASSOVER within=%d next=%s%ld a2=%.4e worst_viol/tol=%.3e\n", (long)iter, (int)within,
++                                 k2 == BlockKind::kIneq ? "row" : k2 == BlockKind::kBound ? "pin" : "none", (long)i2, a2, worstv);
++                }
+                 if (!within) {
+                     add_exit = AddExit::kTerminate;
+                     break;
+@@ -1546,11 +1790,15 @@
+                 // the rule may end the solve.
+                 eliminated_only = true;
+                 ++counters.dep_border_retreats;
++                if (d4::trace())
++                    std::fprintf(stderr, "D4T it=%ld BORDER_RETREAT undecidable=%d add_exit=%d\n", (long)iter, (int)undecidable_retreat, (int)add_exit);
+ #ifdef HVEN_TESTING
+                 walk_obs.record().action = detail::testing::QpWalkAction::kEliminatedRetreat;
+ #endif
+                 continue;
+             }
++            if (d4::trace() && add_exit != AddExit::kNone)
++                std::fprintf(stderr, "D4T it=%ld ADD_EXIT %d (1=infeasible 2=rejected 3=terminate)\n", (long)iter, (int)add_exit);
+             if (add_exit != AddExit::kNone) {
+                 // The iterate the walk stands on: no step past the blocker.
+                 if (add_exit == AddExit::kInfeasible) {
+@@ -1695,6 +1943,12 @@
+             }
+         }
+ 
++        if (d4::trace()) {
++            std::fprintf(stderr, "D4T it=%ld STEP kind=%s %ld side=%s alpha=%.4e dx=%.4e exch=%d%s%ld sigma=%.3e\n", (long)iter,
++                         kind == BlockKind::kIneq ? "row" : kind == BlockKind::kBound ? "pin" : "none", (long)block_idx, d4::st(block_state),
++                         alpha, alpha * p.lpNorm<Eigen::Infinity>(), (int)xpick.found, xpick.j_is_ineq ? " out=row" : " out=pin",
++                         (long)xpick.j, xpick.sigma);
++        }
+         x = (alpha >= 1.0) ? eqp.x : Vec(x + alpha * p);
+         if (eff_opts.independent_working_set) {
+             if (alpha * p.lpNorm<Eigen::Infinity>() > step_tol) {
+@@ -1921,6 +2175,59 @@
+         out.farkas = std::move(farkas);
+     }
+ 
++    if (d4::trace())
++        std::fprintf(stderr, "D4T solve=%ld end status=%d minors=%ld facts=%ld | f5 reads=%ld flips=%ld grey_struct=%ld grey_undec=%ld unlock=%ld leakpass=%ld screenadmit=%ld\n", d4_solve, (int)status,
++                     (long)counters.minor_iters, (long)counters.factorizations, d4::n_f5_reads, d4::n_f5_flips, d4::n_grey_struct,
++                     d4::n_grey_undec, d4::n_unlock, d4::n_leakpass, d4::n_screenadmit);
++    if (const char *dd = d4::dump_dir();
++        dd != nullptr && (d4::dump_all() || status == QpStatus::kNumericalError || status == QpStatus::kMaxIter)) {
++        const long seq = d4::dump_seq++;
++        std::ofstream o(std::string(dd) + "/qp" + std::to_string(seq) + ".txt");
++        o << "D4QP 1\n";
++        o << "dims " << n << " " << me << " " << mi << "\n";
++        char b[512];
++        std::snprintf(b, sizeof b, "opts %.17g %.17g %.17g %.17g %ld %ld %.17g %d %.17g %d %d\n", opts_.primal_delta, opts_.dual_mu,
++                      opts_.feas_tol, opts_.opt_tol, (long)opts_.max_iter, (long)opts_.schur_cap, opts_.schur_cond_max, (int)opts_.ws_algebra,
++                      opts_.tr_radius, (int)opts_.independent_working_set, threads_);
++        o << b;
++        std::snprintf(b, sizeof b, "overrides %.17g %.17g %.17g\n", overrides.tr_radius, overrides.primal_delta, overrides.dual_mu);
++        o << b;
++        o << "warm " << (int)warm << " seed " << (seed != nullptr ? 1 : 0) << " hot " << (hot != nullptr ? 1 : 0) << " k0_reused "
++          << (int)counters.k0_reused << "\n";
++        std::snprintf(b, sizeof b, "result status=%d minors=%ld facts=%ld blk_term=%ld cert=%ld cert_rej=%ld zmcap=%ld zmexh=%ld retreats=%ld exch=%ld deferred=%ld undec=%ld maxiter=%ld\n",
++                      (int)status, (long)counters.minor_iters, (long)counters.factorizations, (long)counters.dep_blocker_terminations,
++                      (long)counters.dep_infeasible_certificates, (long)counters.dep_certificate_rejections, (long)counters.zero_motion_cap_hits,
++                      (long)counters.zero_motion_exhausted, (long)counters.dep_border_retreats, (long)counters.ws_exchanges,
++                      (long)counters.dep_deferred_adds, (long)counters.dep_undecidable, (long)eff_max_iter);
++        o << b;
++        d4::dsp(o, "H", qp_in.H);
++        d4::dvec(o, "g", qp_in.g);
++        d4::dsp(o, "Ae", qp_in.Ae);
++        d4::dvec(o, "be", qp_in.be);
++        d4::dsp(o, "Ai", qp_in.Ai);
++        d4::dvec(o, "bi", qp_in.bi);
++        d4::dvec(o, "lower", qp_in.lower);
++        d4::dvec(o, "upper", qp_in.upper);
++        if (seed != nullptr) {
++            d4::dvec(o, "seed_x", seed->x);
++            std::vector<long> sb, sa;
++            for (BoundState bs : seed->bound_state) sb.push_back((long)bs);
++            for (bool a : seed->ineq_active) sa.push_back(a ? 1 : 0);
++            d4::divec(o, "seed_bound_state", sb);
++            d4::divec(o, "seed_ineq_active", sa);
++        }
++        d4::dvec(o, "x_final", out.x);
++        std::vector<long> fb, fa;
++        for (BoundState bs : ws.bound_state()) fb.push_back((long)bs);
++        for (Index r : ws.active_ineq()) fa.push_back((long)r);
++        d4::divec(o, "final_bound_state", fb);
++        d4::divec(o, "final_active_ineq", fa);
++        std::fprintf(stderr, "D4DUMP seq=%ld solve=%ld status=%d n=%ld me=%ld mi=%ld warm=%d tr=%.6g minors=%ld facts=%ld blk_term=%ld cert_rej=%ld zmcap=%ld retreats=%ld k0_reused=%d\n",
++                     seq, d4_solve, (int)status, (long)n, (long)me, (long)mi, (int)warm, eff_opts.tr_radius, (long)counters.minor_iters,
++                     (long)counters.factorizations, (long)counters.dep_blocker_terminations, (long)counters.dep_certificate_rejections,
++                     (long)counters.zero_motion_cap_hits, (long)counters.dep_border_retreats, (int)counters.k0_reused);
++    }
++
+     // Emit a record to the ledger if attached.
+     if (ledger_ != nullptr) {
+         SolveRecord rec;
+@@ -3197,7 +3504,9 @@
+     g -= is_ineq ? qp.bi(idx) : (side == BoundState::kAtUpper ? qp.upper(idx) : -qp.lower(idx));
+     pk.g = g;
+ 
+-    const double tol = detail::kDepCoeffTol * vmax;
++    const double tol = (d4::fix("coefrho") && std::isfinite(t.rho))
++                           ? std::max(detail::kDepCoeffTol, 10.0 * t.rho) * vmax
++                           : detail::kDepCoeffTol * vmax;
+     pk.cond1 = true;
+     double best_ratio = 0.0;
+     double best_m = 0.0;
+@@ -3244,21 +3553,37 @@
+             best_scaled = scaled;
+         }
+     };
+-    for (std::size_t k = 0; k < aw.size(); ++k) {
+-        const auto kk = static_cast<Index>(k);
+-        const Index row = aw[k];
+-        const bool removable = moves || (pt_flags(seen, true, row) & kPtEntered) == 0;
+-        consider(true, row, pk.v_w(kk), pk.v_w(kk) * row_norm(kk), lambda_i(row), removable,
+-                 shift(row) > 0.0);
+-    }
+-    for (Index i = 0; i < n; ++i) {
+-        const BoundState st = bs[static_cast<std::size_t>(i)];
+-        if (st == BoundState::kFree || st == BoundState::kFixed) {
+-            continue; // kFixed is free-signed: mandatory
++    const auto scan = [&](bool relax) {
++        const auto rem = [&](bool row, Index idx) {
++            const std::uint8_t f = pt_flags(seen, row, idx);
++            if (moves || (f & kPtEntered) == 0) return true;
++            return relax && ((f & kPtExempt) == 0 || d4::fix("unlockall"));
++        };
++        for (std::size_t k = 0; k < aw.size(); ++k) {
++            const auto kk = static_cast<Index>(k);
++            const Index row = aw[k];
++            consider(true, row, pk.v_w(kk), pk.v_w(kk) * row_norm(kk), lambda_i(row), rem(true, row),
++                     shift(row) > 0.0);
++        }
++        for (Index i = 0; i < n; ++i) {
++            const BoundState st = bs[static_cast<std::size_t>(i)];
++            if (st == BoundState::kFree || st == BoundState::kFixed) {
++                continue; // kFixed is free-signed: mandatory
++            }
++            const double m = st == BoundState::kAtLower ? z(i) : -z(i);
++            consider(false, i, pk.v_pin(i), pk.v_pin(i), m, rem(false, i));
++        }
++    };
++    scan(false);
++    if (!pk.found && !sh.found && !moves && d4::fix("unlock")) {
++        const bool c1 = pk.cond1;
++        pk.cond1 = true;
++        scan(true);
++        if (pk.found || sh.found) {
++            ++d4::n_unlock;
++        } else {
++            pk.cond1 = c1 && pk.cond1;
+         }
+-        const double m = st == BoundState::kAtLower ? z(i) : -z(i);
+-        const bool removable = moves || (pt_flags(seen, false, i) & kPtEntered) == 0;
+-        consider(false, i, pk.v_pin(i), pk.v_pin(i), m, removable);
+     }
+     if (pk.found) {
+         pk.sigma = best_ratio;

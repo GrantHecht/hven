@@ -1,0 +1,33 @@
+{
+ "dump": "dumps/ACOPR57_def/qp4.txt",
+ "n": 630,
+ "me": 114,
+ "mi": 274,
+ "tr": 0.25,
+ "result": {
+  "status": "3",
+  "minors": "27",
+  "facts": "126",
+  "blk_term": "1",
+  "cert": "0",
+  "cert_rej": "0",
+  "zmcap": "0",
+  "zmexh": "0",
+  "retreats": "0",
+  "exch": "6",
+  "deferred": "0",
+  "undec": "0",
+  "maxiter": "7100"
+ },
+ "phase1_status": 0,
+ "phase1_min_l1_violation": 0.0,
+ "H_eig_min": -236.20444108626273,
+ "H_eig_max": 187.6664863119061,
+ "final_ws": {
+  "rows": 57,
+  "pins": 459,
+  "rank": 626,
+  "count": 630
+ },
+ "redH_final_min": -5.659535340379284e-17
+}

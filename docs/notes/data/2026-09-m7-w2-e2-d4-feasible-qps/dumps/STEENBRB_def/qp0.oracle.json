@@ -1,0 +1,33 @@
+{
+ "dump": "dumps/STEENBRB_def/qp0.txt",
+ "n": 492,
+ "me": 96,
+ "mi": 0,
+ "tr": Infinity,
+ "result": {
+  "status": "3",
+  "minors": "908",
+  "facts": "990",
+  "blk_term": "0",
+  "cert": "0",
+  "cert_rej": "0",
+  "zmcap": "0",
+  "zmexh": "1",
+  "retreats": "0",
+  "exch": "119",
+  "deferred": "1",
+  "undec": "1",
+  "maxiter": "4920"
+ },
+ "phase1_status": 0,
+ "phase1_min_l1_violation": 0.0,
+ "H_eig_min": -0.608169832570723,
+ "H_eig_max": 112312.7024756821,
+ "final_ws": {
+  "rows": 0,
+  "pins": 360,
+  "rank": 456,
+  "count": 456
+ },
+ "redH_final_min": 15550.814145877373
+}
