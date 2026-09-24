@@ -384,18 +384,58 @@ EntryDetection detect_dependency(const QpProblem &qp, const WorkingSet &ws, cons
         return d;
     }
     d.found = true;
-    for (std::size_t k = 0; k < nc; ++k) {
-        if (scaled[k] >= kDepCoeffTol * scaled_max) {
-            d.support.push_back(sys.comp[k]);
+    // THE REMOVAL CERTIFICATE (E2 fix1b, E2-D2). y_hat proves member k
+    // dependent on the others only to rho_k = ||A_W^T y_hat|| / (|y_k| ||a_k||)
+    // (solve y_hat's relation for a_k). A member whose rho_k exceeds
+    // kDepRemovalTol is one the candidate test's own threshold would call
+    // independent: it is in the support by a small coefficient, not proven
+    // dependent, and removing it does not remove the dependency (observed:
+    // f7_n800_path_warm, a pin at 2e-4 of the largest coefficient removed,
+    // re-blocking at zero motion). Such members are not offered for removal;
+    // mandatory members (equalities, fixed pins) are never removed and stay
+    // listed. With no removable member certified, the best-certified one
+    // (largest scaled coefficient) is offered alone.
+    const double resid = d.null_residual * row_max;
+    const auto removable = [&](const WsMember &m) {
+        return m.kind == WsMember::Kind::kRow ||
+               (m.kind == WsMember::Kind::kPin &&
+                bs[static_cast<std::size_t>(m.idx)] != BoundState::kFixed);
+    };
+    WsMember best{};
+    double best_coef = 0.0;
+    bool any_certified = false;
+    const auto offer = [&](const WsMember &m, double coef) {
+        if (coef < kDepCoeffTol * scaled_max) {
+            return;
         }
+        if (!removable(m)) {
+            d.support.push_back(m);
+            return;
+        }
+        if (resid <= kDepRemovalTol * coef) {
+            d.support.push_back(m);
+            any_certified = true;
+            return;
+        }
+        d.uncertified_dropped = true;
+        if (coef > best_coef) {
+            best = m;
+            best_coef = coef;
+        }
+    };
+    for (std::size_t k = 0; k < nc; ++k) {
+        offer(sys.comp[k], scaled[k]);
     }
     if (!sys.bordered) {
         for (Index i = 0; i < qp.n(); ++i) {
-            if (bs[static_cast<std::size_t>(i)] != BoundState::kFree &&
-                std::abs(pin_coef(i)) >= kDepCoeffTol * scaled_max) {
-                d.support.push_back(WsMember{WsMember::Kind::kPin, i});
+            if (bs[static_cast<std::size_t>(i)] != BoundState::kFree) {
+                offer(WsMember{WsMember::Kind::kPin, i}, std::abs(pin_coef(i)));
             }
         }
+    }
+    if (!any_certified && best_coef > 0.0) {
+        d.support.push_back(best);
+        d.best_certified_fallback = true;
     }
     return d;
 }

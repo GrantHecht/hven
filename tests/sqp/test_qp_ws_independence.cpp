@@ -222,6 +222,115 @@ TEST(WsIndependenceDetector, TheEliminatedSupportNamesThePinsTheDependencyUses) 
     EXPECT_FALSE(other);
 }
 
+// E2 fix1b (E2-D2): THE REMOVAL CERTIFICATE. Two working rows on x0, x1 that
+// are dependent to eta = 1e-7 on the free columns, each touching the pinned
+// x2 with +-kEps = 1e-5. y_hat = (1, -1)/sqrt2 has residual ~eta/sqrt2 (a
+// found dependency) and gives x2's pin the coefficient ~sqrt2 * kEps: above
+// kDepCoeffTol of the largest, so it is in the dependency's support, but it
+// proves the pin dependent only to rho ~ eta / (2 kEps) = 5e-3 > kDepRemovalTol.
+// The f7_n800_path_warm shape: a pin in the support by a small coefficient,
+// removed newest-first, re-blocked at zero motion and ended the solve.
+QpProblem near_dependent_rows_qp(bool as_equalities, double b = 1.0) {
+    constexpr double kEps = 1e-5;
+    constexpr double kEta = 1e-7;
+    Eigen::MatrixXd A(2, 3);
+    A << 1, 0, kEps, 1, kEta, -kEps;
+    Vec g(3);
+    g << -5, 0, 1;
+    const Eigen::MatrixXd none(0, 3);
+    QpProblem qp = as_equalities ? make_qp(Eigen::MatrixXd::Identity(3, 3), g, A,
+                                           Vec::Constant(2, b), none, Vec(0), -10.0, 10.0)
+                                 : make_qp(Eigen::MatrixXd::Identity(3, 3), g, none, Vec(0), A,
+                                           Vec::Constant(2, b), -10.0, 10.0);
+    qp.lower(2) = 0.0;
+    qp.upper(2) = 1.0;
+    return qp;
+}
+
+detail::EntryDetection detect_on(const QpProblem &qp, const WorkingSet &ws) {
+    QpOptions o;
+    detail::KktFactor kkt;
+    (void)solve_eqp(qp, ws, kkt, o);
+    detail::DepFactorView v;
+    v.eliminated = &kkt;
+    return detail::detect_dependency(qp, ws, v, o);
+}
+
+TEST(WsIndependenceDetector, APinInTheSupportByASmallCoefficientIsNotOfferedForRemoval) {
+    const QpProblem qp = near_dependent_rows_qp(/*as_equalities=*/false);
+    WorkingSet ws(3, 2);
+    ws.add_ineq(0);
+    ws.add_ineq(1);
+    ws.bound_state()[2] = BoundState::kAtLower;
+    const detail::EntryDetection d = detect_on(qp, ws);
+    ASSERT_TRUE(d.found);
+    EXPECT_LE(d.null_residual, detail::kDepTol);
+    bool row0 = false, row1 = false, pin2 = false;
+    for (const detail::WsMember &m : d.support) {
+        using K = detail::WsMember::Kind;
+        row0 = row0 || (m.kind == K::kRow && m.idx == 0);
+        row1 = row1 || (m.kind == K::kRow && m.idx == 1);
+        pin2 = pin2 || (m.kind == K::kPin && m.idx == 2);
+    }
+    EXPECT_TRUE(row0 && row1) << "both rows are certified (rho ~ eta)";
+    EXPECT_FALSE(pin2) << "the pin clears kDepCoeffTol but not the removal certificate";
+    EXPECT_TRUE(d.uncertified_dropped);
+    EXPECT_FALSE(d.best_certified_fallback);
+}
+
+TEST(WsIndependenceDetector, WithNoRemovableMemberCertifiedTheBestCertifiedOneIsOfferedAlone) {
+    // The same rows as MANDATORY equalities: the pin is the only removable
+    // member and is not certified, so it is offered alone (the E2 fix1 D2
+    // behaviour: a dependency is never attributed to mandatory rows only).
+    const QpProblem qp = near_dependent_rows_qp(/*as_equalities=*/true);
+    WorkingSet ws(3, 0);
+    ws.bound_state()[2] = BoundState::kAtLower;
+    const detail::EntryDetection d = detect_on(qp, ws);
+    ASSERT_TRUE(d.found);
+    Index pins = 0, eqs = 0;
+    for (const detail::WsMember &m : d.support) {
+        pins += m.kind == detail::WsMember::Kind::kPin && m.idx == 2 ? 1 : 0;
+        eqs += m.kind == detail::WsMember::Kind::kEq ? 1 : 0;
+    }
+    EXPECT_EQ(pins, 1);
+    EXPECT_EQ(eqs, 2);
+    EXPECT_TRUE(d.uncertified_dropped);
+    EXPECT_TRUE(d.best_certified_fallback);
+}
+
+// The same rows, violated at the seed (b = -1, x = 0), so both enter as shift
+// adds (entry key 2) while x2's seeded pin has key 1: without the removal
+// certificate the entry detector removes the pin, which y_hat does not prove
+// dependent. With it a certified row goes, the pin stays, and the walk ends at
+// the optimum (-1, 0, 0) with O(1) multipliers: lambda_row = 6, z_2 = 1 + 6e-5.
+TEST_P(WsIndependence, AnUncertifiedPinIsKeptAndACertifiedRowRemoved) {
+    const QpProblem qp = near_dependent_rows_qp(/*as_equalities=*/false, -1.0);
+    QpSolution seed;
+    seed.x = Vec::Zero(3);
+    seed.bound_state = {BoundState::kFree, BoundState::kFree, BoundState::kAtLower};
+    const QpEngine on(opts_for(GetParam()));
+    const QpSolution s = on.solve(qp, seed);
+    ASSERT_EQ(s.status, QpStatus::kOptimal);
+    EXPECT_EQ(s.counters.shift_adds, 2);
+    EXPECT_EQ(s.counters.entry_dependency_removals, 1);
+    EXPECT_EQ(s.counters.dep_uncertified_trims, 1);
+    EXPECT_EQ(s.counters.dep_certified_fallbacks, 0);
+    EXPECT_EQ(s.bound_state[2], BoundState::kAtLower) << "the uncertified pin was not removed";
+    EXPECT_NEAR(s.x(0), -1.0, 1e-12);
+    EXPECT_NEAR(s.x(1), 0.0, 1e-12);
+    EXPECT_NEAR(s.x(2), 0.0, 1e-12);
+    // First order, recomputed: H x + g + Ai^T lambda_i - z e_2 = 0, lambda, z >= 0.
+    const Vec r = qp.H.selfadjointView<Eigen::Upper>() * s.x + qp.g +
+                  Eigen::MatrixXd(qp.Ai).transpose() * s.lambda_i;
+    EXPECT_NEAR(r(0), 0.0, 1e-9);
+    EXPECT_NEAR(r(1), 0.0, 1e-9);
+    EXPECT_NEAR(r(2), s.z(2), 1e-9);
+    EXPECT_GE(s.lambda_i.minCoeff(), 0.0);
+    EXPECT_GE(s.z(2), 0.0);
+    EXPECT_LE(s.lambda_i.lpNorm<Eigen::Infinity>(), 10.0);
+    EXPECT_LE(s.z.lpNorm<Eigen::Infinity>(), 10.0);
+}
+
 INSTANTIATE_TEST_SUITE_P(BothAlgebras, WsIndependence,
                          ::testing::Values(WorkingSetLinearAlgebra::kSchurBorder,
                                            WorkingSetLinearAlgebra::kRefactorize));

@@ -288,4 +288,51 @@ undecidable tests, which none of those walks reaches.
   `WsIndependenceDetector.TheEliminatedSupportNamesThePinsTheDependencyUses`.
 - clang-format clean on every changed file.
 
-The gate declaration and chain are in `wrappers-gates-fix1/` (see the derivation file there).
+Fix round 1 was not gated on its own: its offline G4 found the two f7 walk movers below before any
+declaration. The gates for fix rounds 1 and 1b together (range `6d123e75..` the fix1b commit) are
+declared in `wrappers-gates-fix1/` (see the derivation file there).
+
+## Fix round 1b — the removal certificate (E2-D2)
+
+The offline G4 at b25ab7ed moved two U0 walk cells, `f7_n800_path_warm` Optimal → NumericalError
+(factorizations 2 → 1115, minors 6 → 1627) and `f7_n1000_path_warm` (2 → 9984, 12 → 10496), F2
+alone. The trace is `docs/notes/data/2026-09-m7-w2-e2-d2-f7-regression/` (REPORT.md). In short: in
+the cell's setup solve a converged re-check null vector ŷ (residual 9.3e-7) on a working set that
+already carried seven exact dependencies (inherited from the warm seed; the entry detector stalled
+at 1.9e-6, the F6 class) listed the deferred pin P3768 at 2e-4 of the largest coefficient.
+Newest-first removed it; ŷ proves it dependent only to ρ ≈ 1.4e-2. It re-blocked at α = 0 with
+violation rate 2.75e-3 (the working set's own μλ leak: rows at 1.4e-4, |λ| ≈ 1.8e5), F3(b) refused
+it, the pass-over failed, N3. The base (F2 off) removed the newest shifted row R756 (ρ ≈ 1.7e-5)
+and reached kOptimal.
+
+| Defect | Fix | Where | Fixture |
+|---|---|---|---|
+| D2′: F2 made a support member removable on a coefficient above kDepCoeffTol alone; ŷ need not prove that member dependent | F1b: a removable member (a working row, a non-fixed pin) is offered for removal only when ŷ certifies it, ‖A_Wᵀŷ‖ ≤ kDepRemovalTol·\|ŷ_k\|‖a_k‖ (kDepRemovalTol = kDepUndecidable: the candidate test's own independent boundary); with none certified, the best-certified member alone (D2's point stands: a dependency is never attributed to mandatory rows only). Counters `dep_uncertified_trims`, `dep_certified_fallbacks` | `src/qp/ws_independence.cpp` (`detect_dependency`), `include/hven/detail/qp/ws_independence.h` | `WsIndependenceDetector.{APinInTheSupportByASmallCoefficientIsNotOfferedForRemoval, WithNoRemovableMemberCertifiedTheBestCertifiedOneIsOfferedAlone}`, `BothAlgebras/WsIndependence.AnUncertifiedPinIsKeptAndACertifiedRowRemoved/{0,1}` |
+
+On an exact dependency ‖A_Wᵀŷ‖ is at rounding level and every support member is certified: the rule
+is a no-op there (the fix1 random sweep: every solve identical in status to b25ab7ed but one, below).
+
+**Candidates rejected** (the trace's table): (A) pins only when the rows-only support has nothing
+removable — fixes f7, gives back the 20 false-kInfeasible → kOptimal gains; (B) the rows' threshold
+on the rows' own maximum — no effect (the pins did not raise the maximum); (C) prefer a row over a pin
+— no effect on n800 (the rows were shift-driven and sort after pins), n1000 ran out of budget; (D)
+skip a known-dependent zero-rate re-blocker, clear a stale mark on a nonzero rate — its premise fails
+on a leaking working set (rate 2.75e-3 on a rank-dependent pin), the stale branch re-admits it and
+the walk cycles at zero motion (unbounded; stopped at 20 min).
+
+**The sweep (scratch, 24 000 trials × 2 algebras) against b25ab7ed:** one status change,
+`t4922` family 1 border: verified kInfeasible → kNumericalError (the pin-re-block N3 class fix 1
+registered; the same QP's refactorize path already ended N3 at b25ab7ed). The 755 + 14 + 20 gains
+are all kept.
+
+**F3(b)** still has no fixture: with the certificate the f7 cells no longer reach it.
+
+**Suites (this tree, MKL, clang++, `ctest -j4` under `setsid`, the box lock per leg).** Debug
+2817/2817 without the long test, the long test 1/1; Release 2818/2818. By name against fix 1's
+2813/2814: four new instances (the three fixtures above, one parameterised over both algebras),
+none removed. No counter, status or answer assertion moved: no re-pins.
+
+**Offline G4 at the fix** (`build/` Release `hven_sqp_corpus`, the U0 replay cells, three engines,
+`compare_replay.py --residual-gate 1e-5` against the M6 close replay): walk 0 differences
+(7 within the gate, residual-class last digits on the two f7 cells: their M6 values, Optimal,
+factorizations 2, minors 6/12), ssn 0, ipm 0.

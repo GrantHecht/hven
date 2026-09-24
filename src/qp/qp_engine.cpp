@@ -803,6 +803,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 const detail::EntryDetection det =
                     detail::detect_dependency(qp, ws, view, eff_opts);
                 counters.dep_test_solves += det.solves;
+                counters.dep_uncertified_trims += det.uncertified_dropped ? 1 : 0;
+                counters.dep_certified_fallbacks += det.best_certified_fallback ? 1 : 0;
                 // A screen-positive set the detector did not resolve is never
                 // "independent": counted, and trimmed by count (R6).
                 // A miss here is a FINDING (the swamped-C class), not a state

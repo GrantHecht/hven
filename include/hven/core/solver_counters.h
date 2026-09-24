@@ -252,6 +252,13 @@ struct QpCounters {
     // again at the same point on an undecided test: refused (no coefficients,
     // so the pass-over or the end) instead of re-admitted (E2 fix1).
     Index dep_known_dependent_refusals = 0;
+    // Detections (entry or re-check) that left out a removable support member
+    // y_hat does not certify: ||A_W^T y_hat|| > kDepRemovalTol * |y_k| ||a_k||
+    // (E2 fix1b). A member in the support by a small coefficient only.
+    Index dep_uncertified_trims = 0;
+    // ... of which no removable member was certified, so the best-certified
+    // one (largest scaled coefficient) was offered alone (E2 fix1b).
+    Index dep_certified_fallbacks = 0;
 
     // The zero-motion re-entry rule (per fixed iterate).
     Index reentry_exemptions = 0;

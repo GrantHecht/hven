@@ -25,7 +25,9 @@
 // * the largest member norm (a proof, whatever the amplification). The support is every member
 // whose scaled coefficient clears kDepCoeffTol of the largest; on the eliminated path a pin's
 // coefficient is (A_W^T y_hat) at its column (the pins are eliminated, not in the factor), so a
-// dependency an optional pin creates names that pin (E2 fix1, D2). It can miss: -mu not separated
+// dependency an optional pin creates names that pin (E2 fix1, D2). A removable member is listed
+// only when y_hat certifies it (rho_k <= kDepRemovalTol, E2 fix1b), else the best-certified one
+// alone. It can miss: -mu not separated
 // from the next eigenvalue (large mu), or a border path whose C is swamped by an ill-conditioned
 // K0. A miss on an over-counted set is never "independent"; the caller counts it as untested
 // growth and trims by count.
@@ -54,6 +56,10 @@ constexpr double kDepUndecidable = 1e-3;
 constexpr Index kDepRefineSteps = 3;
 constexpr double kDepCoeffTol = 1e-6;
 constexpr Index kEntryDetectSolves = 4;
+// A detector support member is offered for removal only when the null vector certifies it:
+// ||A_W^T y_hat|| <= kDepRemovalTol * |y_k| ||a_k|| (E2 fix1b). The candidate test's own
+// dependent/independent boundary, so a member it would call independent is never removed.
+constexpr double kDepRemovalTol = kDepUndecidable;
 
 /// The factor a pass holds for its CURRENT working set; read-only. Exactly one
 /// of the two paths is set, or neither (no usable factor).
@@ -94,8 +100,13 @@ DepTest dependency_test(const QpProblem &qp, const WorkingSet &ws, const DepFact
 struct EntryDetection {
     bool found = false;
     Index solves = 0;
-    double null_residual = 0.0;    // last ||A_W^T y_hat||_free / max member norm
-    std::vector<WsMember> support; // scaled coefficient >= kDepCoeffTol * max
+    double null_residual = 0.0; // last ||A_W^T y_hat||_free / max member norm
+    // Scaled coefficient >= kDepCoeffTol * max; removable members only when certified (below).
+    std::vector<WsMember> support;
+    // A removable member cleared kDepCoeffTol but not the removal certificate and was left out.
+    bool uncertified_dropped = false;
+    // No removable member was certified: the best-certified one alone is in the support.
+    bool best_certified_fallback = false;
 };
 
 EntryDetection detect_dependency(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f,
