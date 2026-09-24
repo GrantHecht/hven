@@ -1801,8 +1801,9 @@ class SqpSolver {
     // exports that lift a QP-sized multiplier outside `SolveState`'s reach.
     // Non-null only inside `solve_impl_body`.
     const detail::EqualityBasis *eq_basis_view_ = nullptr;
-    // Prox-centre lifts through eq_basis_view_ that failed their bound since the
-    // driver last folded them into SqpEqualityBasisReport::lift_refusals.
+    // Prox-centre lifts through eq_basis_view_ whose inflated a-posteriori estimate
+    // failed its check since the driver last folded them into
+    // SqpEqualityBasisReport::lift_refusals.
     Index eq_prox_lift_failures_ = 0;
     // False on the driver the RESTORATION PHASE constructs for itself, which
     // bounds the recursion at one level. See the private constructor.

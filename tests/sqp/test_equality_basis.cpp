@@ -579,7 +579,7 @@ TEST(EqualityBasis, T2ScaledDuplicateIsExact) {
 // coefficients are exact, C = [2^26 2^26; 0 1]. I + C^T C has eigenvalues ~2^53 and
 // ~1.5 (condition ~6e15); K's is sqrt(1 + ||C||^2) ~ 1e8. z = (1, -2^26) gives
 // w* = C^T z = (2^26, 0) and y = z + C w* = (1 + 2^52, -2^26), all exact.
-TEST(EqualityBasis, T4NearCapMultiColumnLiftMeetsItsForwardBound) {
+TEST(EqualityBasis, T4NearCapMultiColumnLiftMeetsItsForwardEstimate) {
     constexpr double k26 = 67108864.0; // 2^26
     Eigen::MatrixXd A = Eigen::MatrixXd::Zero(4, 2);
     A(0, 0) = 1.0;
@@ -607,7 +607,8 @@ TEST(EqualityBasis, T4NearCapMultiColumnLiftMeetsItsForwardBound) {
     double bound = -1.0;
     ASSERT_TRUE(basis.lift(y, lam, &bound));
     ASSERT_EQ(lam.size(), 4);
-    // The reported (inflated) estimate bounds w's error and is within the acceptance.
+    // The reported inflated a-posteriori estimate covers w's error here and is within
+    // the acceptance.
     const Vec w = (Vec(2) << lam(2), lam(3)).finished();
     EXPECT_LE((w - w_star).norm(), bound);
     EXPECT_LE(bound, 1e-8 * y.norm());
@@ -617,14 +618,15 @@ TEST(EqualityBasis, T4NearCapMultiColumnLiftMeetsItsForwardBound) {
     EXPECT_LE((basis.fold(lam) - y).norm(), 8.0 * kU * (y.norm() + C.cwiseAbs().norm() * w.norm()));
     // Optimality of the representative: lambda_D = C^T lambda_B to roundoff scaled by ||C||.
     EXPECT_LE((w - C.transpose() * lamB).norm(), 64.0 * kU * C.norm() * y.norm());
-    // And lambda_B is z to the bound's image through C.
+    // And lambda_B is z to the estimate's image through C.
     EXPECT_LE((lamB - z).norm(), C.norm() * bound + 8.0 * kU * y.norm());
 
     // The projection through the same K, [0; -gamma]: here ||b|| = ||gamma|| does not
     // grow with C while |K||x^| ~ |C||w| does, so the rounding term alone,
     // gamma_{w+1} ||C|| ||w|| ~ 4e-8, exceeds 1e-8 ||gamma||. The projection REFUSES
-    // (the pending-refusal transition in the driver) and its reported bound still
-    // bounds the error: t = C w^ is within ||C|| times it of the closed form.
+    // (the pending-refusal transition in the driver) and its reported inflated
+    // a-posteriori estimate still covers the error: t = C w^ is within ||C|| times it of
+    // the closed form.
     const Vec gamma = (Vec(2) << 1.0, -1.0).finished();
     Vec t;
     double pbound = -1.0;

@@ -6863,9 +6863,9 @@ SqpResult SqpSolver::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &b
         // `history` and in the stream by the time any tag below is acted on --
         // that is what `run_major` guarantees at each of its ten push sites.
         const MajorOutcome outcome = run_major(st, mj, seam, bridge, warm, budget, iter);
-        // A PROX-CENTRE LIFT THAT FAILED ITS BOUND during this major's subproblem is
-        // counted here and takes the same pending-refusal transition as a failed commit
-        // lift: the next subproblem build carries every row.
+        // A PROX-CENTRE LIFT WHOSE INFLATED A-POSTERIORI ESTIMATE FAILED ITS CHECK during
+        // this major's subproblem is counted here and takes the same pending-refusal
+        // transition as a failed commit lift: the next subproblem build carries every row.
         if (eq_prox_lift_failures_ > 0) {
             st.out.equality_basis.lift_refusals += eq_prox_lift_failures_;
             st.out.equality_basis.lift_refusal_sites.prox_centre += eq_prox_lift_failures_;

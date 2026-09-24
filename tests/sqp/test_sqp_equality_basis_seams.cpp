@@ -180,8 +180,8 @@ TEST(SqpEqualityBasisSeam, T7FailedProxCentreLiftIsCountedAndRefusesTheBasis) {
     EXPECT_EQ(ok.equality_basis.lift_refusals, 0);
     EXPECT_EQ(ok.equality_basis.dropped_rows, std::vector<Index>{1});
 
-    // Every nonzero bound now fails at the prox-centre site only: counted, and the
-    // basis is refused at the next build (every row back in the QPs).
+    // Every nonzero estimate now fails its check at the prox-centre site only: counted,
+    // and the basis is refused at the next build (every row back in the QPs).
     Seam::prox_lift_forward_tol = 1e-300;
     SqpSolver solver(o);
     const SqpResult res = solver.solve(model);
