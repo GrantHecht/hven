@@ -776,3 +776,172 @@ pins, which would count each entry's factorization, are unchanged at 288 / 289).
 NEW `QpCounters`: `terminal_mu_refines`, `terminal_mu_refine_rescues`. `factorizations` now also
 counts the terminal μ-free re-solve's local factorization. No counter renamed or removed; not
 aggregated into `SqpCounters` (as R-C′'s counters are not).
+
+
+## Fix round 5 — the locked-vertex unlock (R-B) on the refined terminal check; R-D deferred again
+
+Settler S32: R-B exactly as saved in fix round 3 (the narrowed placement), re-applied on top of
+fix round 4's μ-free terminal refinement, with the read-only numbers of fix round 4 as its
+prediction (census 120/120 kOptimal, shut 0; ACOPR57 qp0/qp1 kOptimal on both algebras); then R-D
+(stall ⇒ undecidable) evaluated on top of R-B + fix4. Base `0447288f` (the fix4 declaration;
+`f96da576` adds the fix4 gate record, docs only).
+
+### R-B (landed)
+
+| What | Where |
+|---|---|
+| Where the rule would END the solve (no admissible member, no verified certificate, no pass-over within tolerance), on a **zero-motion** step (`!moves`), **off the border stack** (`pass_view.schur == nullptr`: on a border pass the border retreat comes first), and not on a known-dependent refusal (`!refused`: no coefficients, so no exchange): `select_exchange(..., unlock=true)` rescans with every member locked ONLY by having entered at this point (`kPtEntered` without `kPtReleased`/`kPtExempt`) made removable; j by the min-ratio rule alone, ties to the lowest index (rows before pins, ascending; Bland 1977), shifted rows still last. Found ⇒ the exchange is taken instead of `AddExit::kTerminate` | `src/qp/qp_engine.cpp:1580-1593` (call site), `:3475-3541` (`select_exchange`'s `unlock` scan) |
+| Counter `dep_unlocks` (exchanges whose member was admissible only under the unlock) | `src/qp/qp_engine.cpp:1814-1816`; `include/hven/core/solver_counters.h:284-287` |
+| The rule and the FINITENESS argument: an unlocked member is released (`kPtReleased`), so it can never be unlocked again until the point memory clears (motion, a ride step, one of the two once-per-solve repairs) — each member is unlocked at most once per point, ≤ n + mi unlocks per point, each also a release event under the zero-motion cap 2(n + mi); no extra cap. Re-entered members (`kPtExempt`) stay locked (E2-D4 `unlockall` broke ACOPR57 qp0–qp2) | `include/hven/detail/qp/qp_engine.h:1663-1679` (ExchangePick's header comment), `:373-376` (Degeneracy block), `:1685` (`ExchangePick::unlocked`), `:1698` (the `unlock` parameter) |
+
+The code is byte-for-byte the fix-round-3 R-B (`.scratch/m7w2e2fix3/fix3-uncommitted.patch`; the
+same patch fix round 4 measured read-only in `.scratch/m7w2e2fix4/src-rb`), plus comments.
+
+### Fixtures (both configurations)
+
+- `QpE2WorkingSet.TheLockedVertexUnlocksOnTheAcopr57PrimalQps`
+  (`tests/qp/test_qp_anti_cycling_arm.cpp:1841`; renamed from
+  `TheLockedVertexOnTheAcopr57PrimalQpsStillEndsN3`, flipped back): ACOPR57 qp0 / qp1 kOptimal on
+  both algebras, KKT recomputed from the dump (`expect_e2d4_kkt`), f within 1e-4 / 1e-5 of
+  Clarabel's f* and within 1e-7 of the E2-OFF walk's f, `dep_unlocks ≥ 1`,
+  `dep_blocker_terminations` 0, `zero_motion_cap_hits` 0. Measured (corpus replay): f
+  432.660942518 / 501.804578068 (E2-OFF 432.66093… / 501.80457…), 183 / 182 minors border,
+  182 / 181 refactorize, 12 / 8 unlocks.
+- The period-2 / period-4 fixtures (`expect_e2_ends`, `:1212`) now also assert
+  `dep_unlocks == 0` (`:1224`) beside `minors ≤ 5`: the lock's purpose is untouched.
+
+### The census (`T7TheFeasibleCensusHalfOverTheFULLDualMuSet`)
+
+`shut_slack_residue` stays **0** (the pin is unchanged; a comment records why,
+`tests/sqp/test_sqp_solver.cpp:11137-11139`). Census tool (`.scratch/m7w2e2fix5/rb-census.txt`,
+identical by status to fix round 4's read-only `rb-census.txt`): **120/120 kOptimal, shut 0,
+open 0** — against fix4's 99 kOptimal + 21 kNumericalError: the 21 border cells ended N3 at the
+locked vertex; R-B releases them, and the six stiff(4e5) border twins that R-B walks to the
+μ-point are rescued by fix4's refinement (12 rescues in all, against 6 at fix4). At fix round 3,
+before fix4, the same unlock sent those six to kInfeasible (6 → 12): the prediction held.
+
+### The 32-dump corpus (`.scratch/m7w2e2fix5/rb-corpus-{border,refactorize}.txt`, `corpus-table-rb.md`)
+
+OFF and ON @ 0447288f are fix round 4's columns (`.scratch/m7w2e2fix4/f4-corpus-*.txt`; the
+sources are code-identical to 0447288f). Headline: E2-OFF 10 kOptimal; ON @ 0447288f 5; **ON + R-B
+7** on both algebras (ACOPR57 qp0/qp1 convert). READING6 qp0/qp1 kNumericalError → **kInfeasible
+with a verified EXACT certificate** (`cert=1 tol=0`; HiGHS phase-1 minimum ℓ1 violation 12.04 / 1.73,
+`.scratch/m7w2e2fix3/oracle-READING6-qp{0,1}.txt`: genuinely infeasible — correct). No dump moved
+to a worse status. Minor-count movers with the status unchanged: ACOPR57 qp2 (47 → 125,
+kNumericalError), DALLASM (a few minors, kNumericalError), YORKNET qp0 (242 → 474) / qp1
+(594 → 596, kNumericalError). fix4's refinement is entered on none of the 32 (`tref 0`).
+
+| dump | OFF | ON@0447288f border | ON@0447288f refac | ON+R-B border | ON+R-B refac | R-B unlocks (border, refac) |
+|---|---|---|---|---|---|---|
+| ACOPP57_def/qp0 | kMaxIter 1795m | kOptimal 8m | kOptimal 2m | kOptimal 8m | kOptimal 2m | 0, 0 |
+| ACOPP57_def/qp1 | kMaxIter 1795m | kOptimal 8m | kOptimal 2m | kOptimal 8m | kOptimal 2m | 0, 0 |
+| ACOPP57_def/qp2 | kMaxIter 1795m | kOptimal 8m | kOptimal 2m | kOptimal 8m | kOptimal 2m | 0, 0 |
+| ACOPP57_def/qp3 | kMaxIter 1795m | kOptimal 8m | kOptimal 2m | kOptimal 8m | kOptimal 2m | 0, 0 |
+| ACOPR57_def/qp0 | kOptimal 139m | kNumericalError 51m | kNumericalError 50m | kOptimal 183m | kOptimal 182m | 12, 12 |
+| ACOPR57_def/qp1 | kOptimal 154m | kNumericalError 90m | kNumericalError 89m | kOptimal 182m | kOptimal 181m | 8, 8 |
+| ACOPR57_def/qp2 | kOptimal 145m | kNumericalError 47m | kNumericalError 46m | kNumericalError 125m | kNumericalError 124m | 5, 5 |
+| ACOPR57_def/qp3 | kOptimal 3m | kMaxIter 4360m | kMaxIter 4360m | kMaxIter 4360m | kMaxIter 4360m | 0, 0 |
+| ACOPR57_def/qp4 | kMaxIter 7100m | kNumericalError 26m | kNumericalError 26m | kNumericalError 26m | kNumericalError 26m | 0, 0 |
+| ACOPR57_def/qp5 | kMaxIter 7100m | kMaxIter 7100m | kMaxIter 7100m | kMaxIter 7100m | kMaxIter 7100m | 0, 0 |
+| ACOPR57_def/qp6 | kMaxIter 7100m | kMaxIter 7100m | kMaxIter 7100m | kMaxIter 7100m | kMaxIter 7100m | 0, 0 |
+| ACOPR57_def/qp7 | kMaxIter 7100m | kMaxIter 7100m | kMaxIter 7100m | kMaxIter 7100m | kMaxIter 7100m | 0, 0 |
+| ACOPR57_def/qp8 | kMaxIter 7100m | kNumericalError 35m | kNumericalError 35m | kNumericalError 35m | kNumericalError 35m | 0, 0 |
+| DALLASM_def/qp0 | kMaxIter 1960m | kNumericalError 347m | kNumericalError 184m | kNumericalError 356m | kNumericalError 228m | 1, 2 |
+| DALLASM_def/qp1 | kMaxIter 1960m | kNumericalError 344m | kNumericalError 126m | kNumericalError 353m | kNumericalError 150m | 1, 1 |
+| DALLASM_def/qp2 | kMaxIter 1960m | kNumericalError 345m | kNumericalError 158m | kNumericalError 349m | kNumericalError 159m | 1, 1 |
+| DALLASM_def/qp3 | kMaxIter 1960m | kNumericalError 339m | kNumericalError 158m | kNumericalError 339m | kNumericalError 159m | 0, 1 |
+| DALLASM_f4/qp0 | kMaxIter 1960m | kNumericalError 347m | kNumericalError 184m | kNumericalError 356m | kNumericalError 228m | 1, 2 |
+| DALLASM_f4/qp1 | kOptimal 161m | kNumericalError 225m | kNumericalError 225m | kNumericalError 225m | kNumericalError 225m | 0, 0 |
+| DALLASM_f4/qp2 | kMaxIter 1960m | kNumericalError 302m | kNumericalError 159m | kNumericalError 306m | kNumericalError 160m | 1, 1 |
+| DALLASM_f4/qp3 | kMaxIter 1960m | kNumericalError 302m | kNumericalError 159m | kNumericalError 306m | kNumericalError 160m | 1, 1 |
+| READING6_def/qp0 | kMaxIter 770m | kNumericalError 74m | kNumericalError 74m | kInfeasible 75m | kInfeasible 75m | 1, 1 |
+| READING6_def/qp1 | kInfeasible 69m | kNumericalError 40m | kNumericalError 40m | kInfeasible 42m | kInfeasible 42m | 1, 1 |
+| SAWPATH_def/qp0 | kOptimal 45m | kNumericalError 6m | kNumericalError 6m | kNumericalError 6m | kNumericalError 6m | 0, 0 |
+| SAWPATH_def/qp1 | kMaxIter 20350m | kMaxIter 20350m | kMaxIter 20350m | kMaxIter 20350m | kMaxIter 20350m | 0, 0 |
+| SAWPATH_def/qp2 | kOptimal 182m | kNumericalError 6m | kNumericalError 6m | kNumericalError 6m | kNumericalError 6m | 0, 0 |
+| STEENBRB_def/qp0 | kOptimal 744m | kOptimal 658m | kOptimal 749m | kOptimal 658m | kOptimal 749m | 0, 0 |
+| STEENBRB_def/qp1 | kMaxIter 4680m | kMaxIter 4680m | kMaxIter 4680m | kMaxIter 4680m | kMaxIter 4680m | 0, 0 |
+| STEENBRB_def/qp2 | kMaxIter 4680m | kMaxIter 4680m | kMaxIter 4680m | kMaxIter 4680m | kMaxIter 4680m | 0, 0 |
+| STEENBRB_def/qp3 | kMaxIter 4680m | kNumericalError 264m | kNumericalError 264m | kNumericalError 264m | kNumericalError 264m | 0, 0 |
+| YORKNET_def/qp0 | kOptimal 1030m | kNumericalError 242m | kNumericalError 242m | kNumericalError 474m | kNumericalError 474m | 17, 17 |
+| YORKNET_def/qp1 | kOptimal 971m | kNumericalError 594m | kNumericalError 594m | kNumericalError 596m | kNumericalError 596m | 1, 1 |
+| **kOptimal** | 10 | 5 | 5 | 7 | 7 | |
+
+### Offline U0 G4
+
+27 cells × 3 engines on the R-B tree (`.scratch/m7w2e2fix5/g4/comparison.txt`, scratch Release build
+of the committed sources): against the M6 close pin under the 1e-5 residual gate walk 0
+differences (7 within the gate, the known f7 warm residual digits), ssn 0, ipm 0; against fix
+round 4's head CSVs (`.scratch/m7w2e2fix4/g4/`) **EXACT: 0 differences on all 75 columns in all
+three engines**. No U0 status, objective or counter moved.
+
+### Re-pins (declared, with attribution) — all IMPROVEMENTS to the verified answer
+
+| Fixture | Was → now | Cause |
+|---|---|---|
+| `QpE2WorkingSet.TheLockedVertexOnTheAcopr57PrimalQpsStillEndsN3` → **`TheLockedVertexUnlocksOnTheAcopr57PrimalQps`** (renamed) | kNumericalError (N3) → kOptimal at f*, both algebras | R-B (the fixture's own subject; above) |
+| `QpEngineStructuralViolation.T6bTheStiffWALKSOwnPathologyAboveTheShippedDualMuIsUNCHANGED` → **`T6bTheStiffBorderWalkAboveTheShippedDualMuReachesTheOptimum`** (renamed, `tests/sqp/test_sqp_solver.cpp:10483`) | border: kNumericalError, worst 15 → kOptimal, worst 4.9e-4 (< 1e-3 asserted), x = the refactorize twin's (1e-9), (2.5, 2.5) within 1e-3, slack shut, `dep_unlocks ≥ 1` | R-B releases the locked vertex; the residual left is the regularized point's own μ·λ (λ* = −5e3), below the refinement's entry |
+| `SqpDriverElasticSeed.T6bTheBandsHIGHRungsRemainAPREEXISTINGResidue` → **`T6bTheBandsHIGHRungsReachTheOptimum`** (renamed, `:10592`) | border ρ 1e8 μ 1e-4: kNumericalError, row off by > 1 → kOptimal, worst 5.0e-8 (< 1e-6), x = (2.5, 2.5) within 1e-6, slack shut, `dep_unlocks ≥ 1` | R-B; the residue is gone, not relabelled |
+| `QpEngineStructuralViolation.E2Fix4TheTerminalMuPointIsRefinedBeforeAnInfeasibleVerdict` (border twin, `:11202-11216`) | kNumericalError (N3, refinement never entered) → kOptimal at (2.5, 2.5, 0) within 1e-9, slack shut, `dep_unlocks ≥ 1`, `terminal_mu_refines` 1 / `terminal_mu_refine_rescues` 1, KKT recomputed (row ≤ 5·feas_tol, stationarity ≤ 1e-9 rel.) | R-B walks the border algebra to the μ-point; fix4's refinement rescues it (the pair the census shows) |
+
+The T6b names asserted "UNCHANGED" / "remains a residue", which is no longer true, so they are
+renamed (by-name: 3 instances REMOVED, 3 ADDED; totals unchanged). `W2ElasticWalk` carries the new
+`unlocks` field (`:10203`). No status or answer assertion on any other fixture moved; no counter pin
+moved.
+
+### Suites (MKL, clang++, `ctest -j4` under `setsid`, the box lock per leg)
+
+Release **2833/2833**; Debug **2832/2832** without the long test, the long test **1/1** alone
+(detached, 690 s; informational) — scratch builds of the committed sources
+(`.scratch/m7w2e2fix5/rb-suite-{rel,dbg}.log`, `rb-suite-dbg-long.log`). The HS corpus
+(`HsBattery.*`, `HsSweepCorpus.*`, the HS driver cells) is inside both suites; no HS pin moved.
+
+### R-D: evaluated on top of R-B + fix4, DEFERRED again (S32)
+
+`rd-full.patch`'s R-D delta (isolated against `pre-rd.patch`; `dep_stall_admits` →
+`dep_stall_undecidable`, `DepTest::stall_admit` → `stall_undecidable`, the 1e10 calibration
+re-pinned to kUndecidable) applied to this tree in `.scratch/m7w2e2fix5/src-rd`:
+
+- Census: **120/120 kOptimal**, shut 0 (`rd-census.txt`) — the μ·λ route that took it 6 → 12 at
+  fix round 3 is gone.
+- U0 (offline, `g4-rd/comparison.txt`): 0 status / objective / counter moves; against the M6 pin
+  0 differences (7 within the gate); EXACT against fix4 6 differences, all residual-class last
+  digits on f7_n800 / f7_n1000_path_warm (the known leak-class cells), inside the gate.
+- Suites: Release **13** / Debug **10** failures (`rd-suite-{rel,dbg}.log`). STATUS / ANSWER movers
+  on non-E2 fixtures, NOT improvements, both configurations:
+  `WarmStart.FullStepModeInheritsElasticAndRestoration` (f 6.8e-19 vs the cold solve's −0.25, no
+  restoration serviced, no kRestore row); `BothAlgebras/WsIndependence.TheUncertifiedFallbackStillEndsAtAFirstOrderPoint/{0,1}`
+  (kOptimal → kNumericalError). Counter movers: `HsBattery.CrashBasis…` (minors 804/801 → 809/806,
+  facts 288/289 → 305/306), `HsSweepCorpus.Corpus` (minors 3371 → 3383),
+  `ScaleF7.WideWindowWalkIsChurnNotDegeneracy` (degenerate 0 → 4 / 11, minors 280 → 289, 526 → 573),
+  `F7ColdScaleSmoke.SchurCapExhaustion…`, `SqpDriverCertifiedFallback.T7TheVerdictRefineCost…`,
+  the long `Continuation.ProbeBudgetBoundsAFailingProposal` (Release: step-1 factorizations 200 → 965 off /
+  11 → 469 on), `QpE2WorkingSet.AFullyPinnedRowDecidesAnUndecidablePinExactly`
+  (refactorize `dep_deferred_adds` / `dep_undecidable` 0 → 1), `…SteenbrbElasticQp` (Release: R-A's
+  structural-first admission no longer taken on the border path); the fix-5 R-B re-pins read
+  `dep_unlocks` 0 under R-D (the walk reaches the same optimum another way).
+- Corpus (`rd-corpus-{border,refactorize}.txt`, `corpus-table-rd.md`): kOptimal 7 / 7, unchanged
+  from R-B; ACOPR57 qp6 / qp7 and SAWPATH qp1 kMaxIter → kNumericalError (stall-undecidable counts
+  125–3720); ACOPR57 qp8 35 → 8 minors; STEENBRB qp0 kOptimal 658 → 750 minors (border);
+  YORKNET qp0 474 → 705 minors.
+
+The three non-E2 fixtures that broke at fix round 3 (T6b stiff, `FullStepModeInheritsElasticAndRestoration`,
+`TheUncertifiedFallbackStillEndsAtAFirstOrderPoint/{0,1}`) were the test (S32). The T6b stiff cell
+no longer breaks (R-B + fix4 already reach its optimum); the other two still do, with the μ·λ
+misreading gone — so they are R-D's own effect, not the misreading's. R-D is DEFERRED; the tree
+carries S23's contract and `dep_stall_admits` unchanged. Its brief is unchanged (the 1e10
+calibration: a ρ-free rule must still admit an exactly independent candidate whose refinement
+stalls on a rounding floor) plus the two fixtures above.
+
+### Registered
+
+- ACOPR57 qp2 (and qp4, qp8) still end N3 under R-B: the unlock does not reach every locked vertex
+  (qp2: 5 unlocks, 125 minors, kNumericalError).
+- R-B is placed off the border stack by construction; the border algebra reaches the same exchanges
+  only after its once-per-solve retreat (ACOPR57 qp0/qp1 retreat 1, border minors = refactorize + 1).
+
+### Schema note (the harness follows at the next re-take)
+
+NEW `QpCounters::dep_unlocks` (R-B). No counter renamed or removed (`dep_stall_admits` kept: R-D is
+deferred); not aggregated into `SqpCounters`. No consumer note needed for hven-bench beyond the new
+field.

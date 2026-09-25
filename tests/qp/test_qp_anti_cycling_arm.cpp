@@ -1218,8 +1218,10 @@ void expect_e2_ends(const QpProblem &qp) {
         EXPECT_TRUE(is_a_kkt_point(qp, on.solution, 1e-7));
         EXPECT_NEAR(objective(qp, on.solution.x), brute_force_optimum(qp), 1e-7);
         EXPECT_LT(on.minors * 5, kCycleCap);
-        // The lock's purpose: the recurrence ends in a handful of minors.
+        // The lock's purpose (E2 fix5 R-B leaves it intact): the recurrence ends
+        // in a handful of minors, and no locked member is ever unlocked.
         EXPECT_LE(on.minors, 5);
+        EXPECT_EQ(c.dep_unlocks, 0);
         EXPECT_LE(on.tail, 8);
         EXPECT_EQ(c.zero_motion_cap_hits, 0);
         EXPECT_EQ(c.zero_motion_exhausted, 0);
@@ -1836,24 +1838,19 @@ TEST(QpE2WorkingSet, AStructuralDependencyDecidesFirstOnTheSteenbrbElasticQp) {
     }
 }
 
-TEST(QpE2WorkingSet, TheLockedVertexOnTheAcopr57PrimalQpsStillEndsN3) {
+TEST(QpE2WorkingSet, TheLockedVertexUnlocksOnTheAcopr57PrimalQps) {
     // ACOPR57's primary QPs at trust radii 1 and 0.5 (n 128, me 114, mi 274): E2-D4
-    // class A, the locked degenerate vertex, a REGISTERED GAP asserted at its CURRENT
-    // status. The shift-seeded over-count is trimmed one member per pass; the trimmed
-    // pins re-block at alpha = 0 against members that all entered at this point, the
-    // lock leaves no admissible member, and the solve ends N3 (kNumericalError,
-    // dep_blocker_terminations) on both algebras. The E2-OFF walk solves both (f* is
-    // Clarabel's on the dumped QP, E2-D4 oracle).
-    // THE DEFERRED RULE (R-B, the locked-vertex unlock; settler S28): unlocking the
-    // members locked only by having entered at this point converts both QPs, but on
-    // the elastic census (T7TheFeasibleCensusHalfOverTheFULLDualMuSet) the released
-    // border walk moves on to the dual_mu-regularized stationary point the refactorize
-    // twin already misreads as a structural violation, so six more feasible cells end
-    // kInfeasible. R-B returns in its own round, once that terminal classification no
-    // longer reads a mu*lambda equality residual as structural (E2 README, fix round 3).
-    // The entry detector stalls on the shift-seeded over-count here (dep_untested_growth,
-    // trimmed by count); the S3 Debug assert on it was downgraded to that counter
-    // (settler S27), so this runs in both configurations.
+    // class A, the locked degenerate vertex. The shift-seeded over-count is trimmed
+    // one member per pass; the trimmed pins re-block at alpha = 0 against members
+    // that all entered at this point, the lock leaves no admissible member, and
+    // without R-B the solve ends N3 (kNumericalError, dep_blocker_terminations) on
+    // both algebras. With R-B (E2 fix5, the locked-vertex unlock; ExchangePick) the
+    // locked members become admissible under the min-ratio rule and the walk reaches
+    // the optimum. f* is Clarabel's on the dumped QP (E2-D4 oracle), and the E2-OFF
+    // walk returns the same objective. The entry detector stalls on the shift-seeded
+    // over-count here (dep_untested_growth, trimmed by count); the S3 Debug assert on
+    // it was downgraded to that counter (settler S27), so this runs in both
+    // configurations.
     struct Case {
         const char *file;
         double f_star;
@@ -1869,16 +1866,18 @@ TEST(QpE2WorkingSet, TheLockedVertexOnTheAcopr57PrimalQpsStillEndsN3) {
         off.independent_working_set = false;
         const QpSolution s_off = hven::test_support::solve_qp_dump(d, off);
         ASSERT_EQ(static_cast<int>(s_off.status), static_cast<int>(QpStatus::kOptimal));
-        EXPECT_LE(std::abs(hven::test_support::qp_dump_objective(d, s_off.x) - c.f_star),
-                  c.rel_tol * std::abs(c.f_star));
+        const double f_off = hven::test_support::qp_dump_objective(d, s_off.x);
+        EXPECT_LE(std::abs(f_off - c.f_star), c.rel_tol * std::abs(c.f_star));
         for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
             SCOPED_TRACE(e2_name(alg));
             const QpSolution s = e2d4_solve(d, alg);
-            EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kNumericalError));
-            EXPECT_EQ(s.counters.dep_blocker_terminations, 1);
+            expect_e2d4_kkt(d, s);
+            const double f = hven::test_support::qp_dump_objective(d, s.x);
+            EXPECT_LE(std::abs(f - c.f_star), c.rel_tol * std::abs(c.f_star));
+            EXPECT_LE(std::abs(f - f_off), 1e-7 * std::abs(f_off));
+            EXPECT_GE(s.counters.dep_unlocks, 1);
+            EXPECT_EQ(s.counters.dep_blocker_terminations, 0);
             EXPECT_EQ(s.counters.zero_motion_cap_hits, 0);
-            EXPECT_EQ(s.counters.dep_border_retreats,
-                      alg == WorkingSetLinearAlgebra::kSchurBorder ? 1 : 0);
         }
     }
 }

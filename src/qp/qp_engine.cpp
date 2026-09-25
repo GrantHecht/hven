@@ -1519,7 +1519,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     // step that moves clears the point memory before the
                     // exchange mutates.
                     xpick = select_exchange(qp, ws, shift, seen, t, is_ineq, block_idx, block_state,
-                                            lambda_e, lambda_i, z, moves);
+                                            lambda_e, lambda_i, z, moves, /*unlock=*/false);
                     if (xpick.found) {
                         break; // the exchange
                     }
@@ -1577,6 +1577,20 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     }
                 }
                 if (!within) {
+                    // R-B: the rule would END the solve here (no admissible
+                    // member, no verified certificate, no pass-over): on a
+                    // zero-motion step off the border path (the border retreat
+                    // comes first there), unlock the members locked only by
+                    // having entered at this point (ExchangePick's header).
+                    if (!refused && !moves && pass_view.schur == nullptr) {
+                        ExchangePick u =
+                            select_exchange(qp, ws, shift, seen, t, is_ineq, block_idx, block_state,
+                                            lambda_e, lambda_i, z, moves, /*unlock=*/true);
+                        if (u.found) {
+                            xpick = std::move(u);
+                            break; // the exchange
+                        }
+                    }
                     add_exit = AddExit::kTerminate;
                     break;
                 }
@@ -1797,6 +1811,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     z(block_idx) = block_state == BoundState::kAtUpper ? -xpick.sigma : xpick.sigma;
                 }
                 ++counters.ws_exchanges;
+                if (xpick.unlocked) {
+                    ++counters.dep_unlocks;
+                }
                 if (kind == BlockKind::kBound || !xpick.j_is_ineq) {
                     ++counters.ws_exchanges_bound;
                 }
@@ -3403,7 +3420,8 @@ QpEngine::ExchangePick QpEngine::select_exchange(const QpProblem &qp, const Work
                                                  const Vec &shift, const WalkSeen &seen,
                                                  const detail::DepTest &t, bool is_ineq, Index idx,
                                                  BoundState side, const Vec &lambda_e,
-                                                 const Vec &lambda_i, const Vec &z, bool moves) {
+                                                 const Vec &lambda_i, const Vec &z, bool moves,
+                                                 bool unlock) {
     (void)lambda_e;
     const Index n = qp.n();
     const std::vector<Index> &aw = ws.active_ineq();
@@ -3454,6 +3472,9 @@ QpEngine::ExchangePick QpEngine::select_exchange(const QpProblem &qp, const Work
     double sh_ratio = 0.0;
     double sh_m = 0.0;
     double sh_scaled = 0.0;
+    // `bland`: the unlock scan's rule (R-B) -- min ratio, ties to the first
+    // candidate in scan order (the lowest index).
+    bool bland = false;
     const auto consider = [&](bool row, Index member, double v, double scaled, double m,
                               bool removable, bool shifted = false) {
         if (!(scaled > tol)) {
@@ -3466,7 +3487,7 @@ QpEngine::ExchangePick QpEngine::select_exchange(const QpProblem &qp, const Work
         const double ratio = std::max(m, 0.0) / v;
         if (shifted) {
             if (!sh.found || ratio < sh_ratio ||
-                (ratio == sh_ratio && (m < sh_m || (m == sh_m && scaled > sh_scaled)))) {
+                (!bland && ratio == sh_ratio && (m < sh_m || (m == sh_m && scaled > sh_scaled)))) {
                 sh.found = true;
                 sh.j = member;
                 sh_ratio = ratio;
@@ -3478,9 +3499,9 @@ QpEngine::ExchangePick QpEngine::select_exchange(const QpProblem &qp, const Work
         unshifted_admissible = true;
         // Candidates arrive rows first, then pins, each ascending, so a full
         // tie keeps the earlier one.
-        const bool better =
-            !pk.found || ratio < best_ratio ||
-            (ratio == best_ratio && (m < best_m || (m == best_m && scaled > best_scaled)));
+        const bool better = !pk.found || ratio < best_ratio ||
+                            (!bland && ratio == best_ratio &&
+                             (m < best_m || (m == best_m && scaled > best_scaled)));
         if (better) {
             pk.found = true;
             pk.j_is_ineq = row;
@@ -3490,22 +3511,34 @@ QpEngine::ExchangePick QpEngine::select_exchange(const QpProblem &qp, const Work
             best_scaled = scaled;
         }
     };
-    for (std::size_t k = 0; k < aw.size(); ++k) {
-        const auto kk = static_cast<Index>(k);
-        const Index row = aw[k];
-        const bool removable = moves || (pt_flags(seen, true, row) & kPtEntered) == 0;
-        consider(true, row, pk.v_w(kk), pk.v_w(kk) * row_norm(kk), lambda_i(row), removable,
-                 shift(row) > 0.0);
-    }
-    for (Index i = 0; i < n; ++i) {
-        const BoundState st = bs[static_cast<std::size_t>(i)];
-        if (st == BoundState::kFree || st == BoundState::kFixed) {
-            continue; // kFixed is free-signed: mandatory
+    const auto scan = [&](bool unlock) {
+        const auto removable = [&](bool row, Index member) {
+            const std::uint8_t f = pt_flags(seen, row, member);
+            if (moves || (f & kPtEntered) == 0) {
+                return true;
+            }
+            return unlock && (f & (kPtReleased | kPtExempt)) == 0;
+        };
+        for (std::size_t k = 0; k < aw.size(); ++k) {
+            const auto kk = static_cast<Index>(k);
+            const Index row = aw[k];
+            consider(true, row, pk.v_w(kk), pk.v_w(kk) * row_norm(kk), lambda_i(row),
+                     removable(true, row), shift(row) > 0.0);
         }
-        const double m = st == BoundState::kAtLower ? z(i) : -z(i);
-        const bool removable = moves || (pt_flags(seen, false, i) & kPtEntered) == 0;
-        consider(false, i, pk.v_pin(i), pk.v_pin(i), m, removable);
-    }
+        for (Index i = 0; i < n; ++i) {
+            const BoundState st = bs[static_cast<std::size_t>(i)];
+            if (st == BoundState::kFree || st == BoundState::kFixed) {
+                continue; // kFixed is free-signed: mandatory
+            }
+            const double m = st == BoundState::kAtLower ? z(i) : -z(i);
+            consider(false, i, pk.v_pin(i), pk.v_pin(i), m, removable(false, i));
+        }
+    };
+    // THE LOCKED-VERTEX UNLOCK (R-B; ExchangePick's header comment) scans with
+    // the locked members made removable and the Bland tie rule.
+    bland = unlock && !moves;
+    scan(bland);
+    pk.unlocked = bland && (pk.found || sh.found);
     if (pk.found) {
         pk.sigma = best_ratio;
     } else if (sh.found) {

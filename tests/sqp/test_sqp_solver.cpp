@@ -10200,6 +10200,7 @@ struct W2ElasticWalk {
     double slack_l1 = 0.0;
     Index verdict_refine_steps = 0;
     Index border_refine_steps = 0;
+    Index unlocks = 0; ///< dep_unlocks (E2 fix5 R-B)
     Vec x_orig;
 };
 
@@ -10216,6 +10217,7 @@ W2ElasticWalk w2_walk_elastic(const QpProblem &qp, double rho, double dual_mu,
     out.slack_l1 = e.ns > 0 ? e.slack_violations(s.x).lpNorm<1>() : 0.0;
     out.verdict_refine_steps = s.counters.verdict_refine_steps;
     out.border_refine_steps = s.counters.border_refine_steps;
+    out.unlocks = s.counters.dep_unlocks;
     out.x_orig = s.x.head(e.n_orig);
     if (e.qp.me() > 0) {
         out.worst_resid =
@@ -10478,27 +10480,36 @@ TEST(QpEngineStructuralViolation, T6bTheMisfireCensusOverBothPopulationsAndBothA
     EXPECT_EQ(cells, 122) << "the census population itself is the pin's other half";
 }
 
-TEST(QpEngineStructuralViolation, T6bTheStiffWALKSOwnPathologyAboveTheShippedDualMuIsUNCHANGED) {
-    // THE RESIDUE T6b DOES NOT TOUCH, disclosed so the census's population reads honestly. Above
-    // the shipped dual_mu a stiff elastic copy sends the BORDER walk to a box corner: the row is
-    // off by 15 with the slack SHUT, and kInfeasible is read off a point, not off a tolerance.
-    //
-    // It is the WALK'S trajectory, not the classification -- the face at that corner is
-    // over-determined and the refinement correctly declines to adopt anything. Byte-stable
-    // against 23e884a in both directions, and kRefactorize walks elsewhere and says kOptimal.
+TEST(QpEngineStructuralViolation, T6bTheStiffBorderWalkAboveTheShippedDualMuReachesTheOptimum) {
+    // THE RESIDUE T6b DID NOT TOUCH, disclosed so the census's population reads honestly. Above
+    // the shipped dual_mu a stiff elastic copy sent the BORDER walk to a box corner: the row was
+    // off by 15 with the slack SHUT, and kInfeasible was read off a point, not off a tolerance
+    // (byte-stable against 23e884a; kRefactorize walks elsewhere and says kOptimal).
     const QpProblem qp = w2_stiff_consistent_qp(1.0e3);
     //
-    // M7 W2 E2 (declared mover): the independent working set no longer reads kInfeasible off
-    // that corner of a CONSISTENT problem; no member is admissible there and the walk ends at
-    // the declared kNumericalError (after the border retreat).
+    // M7 W2 E2 (declared mover): the independent working set stopped reading kInfeasible off
+    // that corner of a CONSISTENT problem; no member was admissible there and the walk ended at
+    // kNumericalError (after the border retreat).
+    //
+    // M7 W2 E2 FIX5 (declared mover, an IMPROVEMENT): at that vertex the members that block are
+    // locked only by having entered at the point; R-B (the locked-vertex unlock, ExchangePick)
+    // releases one under the min-ratio rule and the walk reaches the optimum of the consistent
+    // problem, x = (2.5, 2.5) with the slack shut -- the answer the refactorize twin returns.
+    // The row residual left is the dual_mu-regularized point's own (dual_mu * |lambda|,
+    // lambda* = -5e3), below the terminal refinement's entry.
     const W2ElasticWalk bordered =
         w2_walk_elastic(qp, 1.0e6, 1.0e-5, WorkingSetLinearAlgebra::kSchurBorder);
-    EXPECT_EQ(bordered.status, QpStatus::kNumericalError);
-    EXPECT_DOUBLE_EQ(bordered.worst_resid, 15.0);
+    const W2ElasticWalk refac =
+        w2_walk_elastic(qp, 1.0e6, 1.0e-5, WorkingSetLinearAlgebra::kRefactorize);
+    EXPECT_EQ(bordered.status, QpStatus::kOptimal);
     EXPECT_LE(bordered.slack_l1, SqpOptions{}.feas_tol);
-    EXPECT_EQ(bordered.verdict_refine_steps, 0) << "nothing was adopted, so nothing was counted";
-    EXPECT_EQ(w2_walk_elastic(qp, 1.0e6, 1.0e-5, WorkingSetLinearAlgebra::kRefactorize).status,
-              QpStatus::kOptimal);
+    EXPECT_LT(bordered.worst_resid, 1.0e-3);
+    EXPECT_GE(bordered.unlocks, 1);
+    EXPECT_NEAR(bordered.x_orig(0), 2.5, 1.0e-3);
+    EXPECT_NEAR(bordered.x_orig(1), 2.5, 1.0e-3);
+    EXPECT_EQ(refac.status, QpStatus::kOptimal);
+    EXPECT_NEAR(bordered.x_orig(0), refac.x_orig(0), 1.0e-9);
+    EXPECT_NEAR(bordered.x_orig(1), refac.x_orig(1), 1.0e-9);
 }
 
 TEST(SqpDriverElasticSeed, T6bAClimbingConsistentLadderClosesAtEveryRung) {
@@ -10578,24 +10589,29 @@ TEST(SqpDriverElasticSeed, T6bCoversTheBandWhereThePlacementMarginIsUnachievable
     EXPECT_DOUBLE_EQ(w2_last_rung_rho(run.report), kElasticRhoInit);
 }
 
-TEST(SqpDriverElasticSeed, T6bTheBandsHIGHRungsRemainAPREEXISTINGResidue) {
+TEST(SqpDriverElasticSeed, T6bTheBandsHIGHRungsReachTheOptimum) {
     // THE DISCLOSURE the band pin must not swallow. At dual_mu >= 1e-4 and rho >= 1e7 the walk
-    // takes a different working set entirely and reports kOptimal on a point whose row is off by
-    // 15 with the slack SHUT -- condition (b)'s blind spot, not the misfire T6b covers.
+    // took a different working set entirely and reported kOptimal on a point whose row was off
+    // by 15 with the slack SHUT -- condition (b)'s blind spot, not the misfire T6b covers (the
+    // same cell read the same way at 23e884a).
     //
-    // UNCHANGED by this task, in both directions: the same cell reads the same way at 23e884a.
-    // It is pinned so nobody reads "the band is covered" off the pin above.
+    // M7 W2 E2 (declared mover): with the independent working set the walk stopped reporting
+    // the false kOptimal; it stood at a vertex whose two slack pins entered at the point, no
+    // member was admissible, and it ended at kNumericalError (after the border retreat).
     //
-    // M7 W2 E2 (declared mover): with the independent working set the walk no longer reports
-    // the false kOptimal; it stands at a vertex whose two slack pins entered at the point, no
-    // member is admissible, and it ends at the declared kNumericalError (after the border
-    // retreat). The residue is still a residue; only its label is honest now.
+    // M7 W2 E2 FIX5 (declared mover, an IMPROVEMENT): R-B (the locked-vertex unlock,
+    // ExchangePick) releases a pin locked only by having entered at that vertex under the
+    // min-ratio rule, and the walk reaches the optimum of the consistent problem, x = (2.5, 2.5)
+    // with the slack shut and the row satisfied. The residue is gone, not relabelled.
     const QpProblem qp = w2_box_blocked_qp(10.0);
     const W2ElasticWalk high =
         w2_walk_elastic(qp, 1.0e8, 1.0e-4, WorkingSetLinearAlgebra::kSchurBorder);
-    EXPECT_EQ(high.status, QpStatus::kNumericalError);
-    EXPECT_LE(high.slack_l1, SqpOptions{}.feas_tol) << "the slack is shut and the row is still off";
-    EXPECT_GT(high.worst_resid, 1.0) << "a residual no verdict should be read off";
+    EXPECT_EQ(high.status, QpStatus::kOptimal);
+    EXPECT_LE(high.slack_l1, SqpOptions{}.feas_tol) << "the slack is shut";
+    EXPECT_LT(high.worst_resid, 1.0e-6) << "and the row is satisfied";
+    EXPECT_GE(high.unlocks, 1);
+    EXPECT_NEAR(high.x_orig(0), 2.5, 1.0e-6);
+    EXPECT_NEAR(high.x_orig(1), 2.5, 1.0e-6);
     EXPECT_EQ(high.verdict_refine_steps, 0) << "the classifier never called it structural";
 }
 
@@ -11118,6 +11134,9 @@ TEST(QpEngineStructuralViolation, T7TheFeasibleCensusHalfOverTheFULLDualMuSet) {
     // rho 1e7/1e8, dual_mu 1e-3/1e-4/1e-5: the terminal check read the dual_mu-regularized
     // stationary point (row residual dual_mu * lambda, lambda ~ 2e6) as structural; refined
     // mu-free they are the optimum (2.5, 2.5, 0). No residue remains on the census.
+    // M7 W2 E2 fix5 (R-B, the locked-vertex unlock): unchanged at 0 -- the six kSchurBorder
+    // twins the unlock now walks on to the same mu-point are rescued by the same refinement
+    // (at fix round 3, before fix4, the unlock sent them to kInfeasible there: 6 -> 12).
     EXPECT_EQ(shut_slack_residue, 0);
 }
 
@@ -11180,12 +11199,20 @@ TEST(QpEngineStructuralViolation, E2Fix4TheTerminalMuPointIsRefinedBeforeAnInfea
     EXPECT_NEAR(refac.lambda_e(0), -2.0e6, 1.0e-3);
     EXPECT_GT(refac.z(2), 0.0) << "the shut slack's bound multiplier has the right sign";
 
-    // kSchurBorder never reaches that point without R-B (deferred): it ends at its zero-motion
-    // vertex (10, 10, 0), N3, and the terminal refinement is never entered.
+    // kSchurBorder reached that point only through R-B (E2 fix5): at fix4 it ended at its
+    // zero-motion vertex (10, 10, 0), N3, with the terminal refinement never entered. The unlock
+    // releases the vertex, the walk reaches the same mu-point, and the refinement rescues it.
     const QpSolution border = w2_fix4_solve(e.qp, 1.0e-5, WorkingSetLinearAlgebra::kSchurBorder);
-    EXPECT_EQ(border.status, QpStatus::kNumericalError);
-    EXPECT_EQ(border.counters.dep_blocker_terminations, 1);
-    EXPECT_EQ(border.counters.terminal_mu_refines, 0);
+    EXPECT_EQ(border.status, QpStatus::kOptimal);
+    EXPECT_NEAR(border.x(0), 2.5, 1.0e-9);
+    EXPECT_NEAR(border.x(1), 2.5, 1.0e-9);
+    EXPECT_EQ(border.x(2), 0.0) << "the slack stays shut";
+    EXPECT_GE(border.counters.dep_unlocks, 1);
+    EXPECT_EQ(border.counters.dep_blocker_terminations, 0);
+    EXPECT_EQ(border.counters.terminal_mu_refines, 1);
+    EXPECT_EQ(border.counters.terminal_mu_refine_rescues, 1);
+    EXPECT_LE(w2_fix4_kkt(e.qp, border).eq, feas_tol * 5.0);
+    EXPECT_LE(w2_fix4_kkt(e.qp, border).stat_rel, 1.0e-9);
 
     // THE SAME MISREADING ON BOTH ALGEBRAS: the plain stiff(4e5) QP (no slack) reaches the
     // mu-point in one step on either path at dual_mu >= 1e-5; at ef3b5225 each cell read

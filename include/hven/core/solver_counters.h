@@ -281,6 +281,10 @@ struct QpCounters {
     // R-A: a numerical "independent" candidate test overturned by an exact
     // structural dependency, at any growth site (add, repair pin, ride add).
     Index dep_structural_first = 0;
+    // R-B (E2 fix5): zero-motion exchanges that released a member locked only
+    // by having entered at this point, taken where the rule would otherwise end
+    // the solve (no admissible member, no verified certificate, no pass-over).
+    Index dep_unlocks = 0;
     // R-C': kWrong inertia verdicts re-read on a mu-free eliminated factor (at
     // the start repair and the terminal check), and how many replaced the
     // kWrong (a kOk mu-free read, or a kSuspect one confirmed by a kOk read at

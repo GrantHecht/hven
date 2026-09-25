@@ -370,7 +370,11 @@
 // (dep_structural_first; ws_independence.h); (R-C') a kWrong
 // inertia at the start repair or the terminal check is re-read mu-free: kOk overturns it,
 // kSuspect only with a second eliminated read at dual_mu reading kOk (dep_inertia_rereads /
-// dep_inertia_reread_flips; reread_wrong_inertia). E2 FIX4: a terminal point that would
+// dep_inertia_reread_flips; reread_wrong_inertia). E2 FIX5 (R-B): a zero-motion
+// blocker with no admissible member, where the rule would otherwise end the solve,
+// unlocks the members locked only by having entered at this point, min-ratio with
+// lowest-index ties (dep_unlocks; ExchangePick, where the finiteness argument is).
+// E2 FIX4: a terminal point that would
 // read kInfeasible by its structural violation is first re-solved mu-free on its face and
 // adopted when it satisfies every row and bound (terminal_mu_refines /
 // terminal_mu_refine_rescues; refine_terminal_mu_free). With
@@ -1655,11 +1659,30 @@ class QpEngine {
     // shift-refused so the homotopy does not re-admit it. Shifted rows rank
     // LAST: one is never chosen while an unshifted admissible member exists
     // (Debug-asserted in select_exchange).
+    //
+    // THE LOCKED-VERTEX UNLOCK (R-B, E2 fix5; E2-D4 class A). When a
+    // zero-motion step finds no admissible member and the rule would END the
+    // solve there (no verified certificate, no pass-over within tolerance; on a
+    // border-stack pass the border retreat comes first), the scan is repeated
+    // (`unlock`) with every member locked ONLY by having entered at this point
+    // -- flags kPtEntered without kPtReleased or kPtExempt, i.e. never
+    // released here -- made removable, and j is chosen by the min-ratio rule
+    // alone with ties to the lowest index (rows before pins, ascending; Bland
+    // 1977), shifted rows still last. It can change only a solve that would
+    // otherwise end dep_blocker_terminations (dep_unlocks counts it).
+    // FINITENESS: the unlocked member is released (kPtReleased), so it can
+    // never be unlocked again until the point memory clears (motion, a ride
+    // step, or one of the two once-per-solve repairs): each member is unlocked
+    // at most once per point, so at most n + mi unlocks per point, and each is
+    // also a release event under the zero-motion cap 2(n + mi). No extra cap is
+    // needed. Re-entered members (kPtExempt) stay locked: unlocking them too
+    // broke ACOPR57 qp0-qp2 (E2-D4 `unlockall`).
     struct ExchangePick {
         bool found = false; // an admissible member exists
         bool cond1 = false; // every sign-constrained member's scaled v_k <= tol * max
         bool j_is_ineq = false;
         bool j_shifted = false; // the released member is a shift-driven row
+        bool unlocked = false;  // j was admissible only under the unlock (R-B)
         Index j = -1;
         double sigma = 0.0;
         double sign = 1.0; // the blocker's orientation: c_r = sign * (a_r or e_r)
@@ -1672,7 +1695,7 @@ class QpEngine {
                                         const WalkSeen &seen, const detail::DepTest &t,
                                         bool is_ineq, Index idx, BoundState side,
                                         const Vec &lambda_e, const Vec &lambda_i, const Vec &z,
-                                        bool moves);
+                                        bool moves, bool unlock);
 
     // The no-admissible-member rule's certificate, VERIFIED, tried whenever no
     // member is admissible (E2 fix1: the box-based certificate does not need
