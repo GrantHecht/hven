@@ -1,0 +1,124 @@
+M7 W2 E2 FIX ROUND 6 -- THE GATE EXPECTATIONS, DERIVED
+Written and committed BEFORE the chain was detached. RULE: nothing here may be
+adjusted after the chain's first leg. Every value is derived from the FINAL range;
+nothing is carried from, or added to, an earlier round's count.
+
+BASE   e07f8173 (docs(m7): the previous round's gates GREEN record; branch m7)
+       a53dbb88 fix(m7): W2 E2 fix6 -- R-E (the grey re-read, with the rounding-floor guard);
+       R-D retired; ACOPR57 qp4 closes
+HEAD   the commit that carries this file (docs/notes/data only). Range e07f8173..a53dbb88 for
+       every source/header derivation (the declaration commit adds no source, header or test).
+RUNNER gates-e2fix6.sh + chain_gates_e2fix6.sh (this directory): copies of the previous
+       round's runner and chain, re-pointed (scratch .scratch/m7w2e2fix6gates -- ONE literal,
+       gates-e2fix6.sh; the chain and rehearse.sh ask it with --print-scratch; logs
+       gates-e2fix6.log, chain-e2fix6.log), plus FX6 (c) the outside-universe source is
+       MODIFIED (tests/qp/test_qp_anti_cycling_arm.cpp -> hven_qp_walk_seam_tests), no source
+       ADDED, (d) the by-name baseline DERIVED from git with the record glob widened to
+       gates/ as well as gates-*/, five ADDED names and one REMOVED (a rename), (e) three
+       ADDED non-.cpp test files declared by name (the E2-D4 dumps, under the fixture
+       directory named once, in the outside target's compile definitions); tests/CMakeLists.txt
+       unchanged, (f) the G4 label, (g) the class B library section movers restored to their
+       own declared slot (EXPECT_LIB_CLASS_B_*, checked unmodified and in the class B list);
+       the NOISE-ONLY library slot is empty. The emitted g1/g2/g3/g5/g6 segments are
+       byte-identical to the previous round's; g4 differs in its label string only (cmp
+       before the declaration); g5 is byte-identical to the rehearsal's g5, which rehearse.sh
+       EXTRACTS from the runner's text. Literal check before the first leg: grep 'ladder',
+       'c1f1e704', '0275d16d', 'm7w2ladder' on the three copies -> none; e07f8173 exactly
+       once, as BEFORE (gates-e2fix6.sh).
+
+§1 THE CHANGED SURFACE (`git diff --name-status e07f8173..a53dbb88 -- include src tests`):
+   3 headers  include/hven/core/solver_counters.h (two QpCounters fields: the layout change),
+              include/hven/detail/qp/qp_engine.h (contract text), include/hven/detail/qp/
+              ws_independence.h (kDepRereadKappa, dependency_rounding_floor)
+   7 MODIFIED .cpp  src/qp/qp_engine.cpp, src/qp/ws_independence.cpp,
+              tests/sqp/test_continuation.cpp, tests/sqp/test_qp_engine.cpp,
+              tests/sqp/test_qp_ws_independence.cpp, tests/sqp/test_scale_problems.cpp
+              -- inside the P-SYM universe -- and tests/qp/test_qp_anti_cycling_arm.cpp,
+              OUTSIDE it (its only object is hven_qp_walk_seam_tests's, a HVEN_TESTING
+              recompile target, not a PSYM_GROUPS entry)
+   0 ADDED .cpp
+   3 ADDED non-C++ test files: tests/qp/fixtures/e2-d4/{ACOPR57_def-qp4, DALLASM_def-qp0,
+              YORKNET_def-qp1}.txt (byte-copies of the E2-D4 corpus dumps);
+              tests/CMakeLists.txt unchanged.
+   docs: docs/notes/data/2026-09-m7-w2-e2-working-set/README.md (fix round 6; R-D retired).
+
+§2 THE P-SYM MOVER SHAPE, PER CONFIGURATION -- MEASURED on the final pair
+     Release  DIFFERING 40 = class A 6 + class B 34; UNEXPLAINED 0; control 104;
+              NOISE-ONLY 2 (0 in the library)
+     Debug    DIFFERING 39 = class A 5 + class B 34; UNEXPLAINED 0; control 70;
+              NOISE-ONLY 37 (6 in the library)
+     after 151 = before 151 in both; ONLY-AFTER {}; the MODIFIED outside object
+     tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_anti_cycling_arm.cpp.o BUILT in the
+     after arm and absent from the after manifest (both configurations).
+   MEASURED by a FRESH rehearsal at a53dbb88 against e07f8173, both configurations, one hold of
+   the box lock (rehearsal/rehearse.sh, rehearsal/rehearsal-log-summary.txt; 2026-09-25
+   07:05:58-07:33:58, PGREP_EMPTY), this runner's g5 with a HYPOTHESIS declaration (class A only:
+   6/6, class B 0, DEBUG_ONLY 0/0, NON-DEBUG movers = class A only). Both configurations were
+   REFUSED at the hypothesis (classify rc 4: "names 40 / 39 differing object(s) and this round
+   DECLARED 6", rehearsal/rehearsal-classification-{Release,Debug}-refused-at-6.txt) and
+   re-classified OFFLINE from the same compare files at 40 / 39 (rc 0 both,
+   rehearsal/rehearsal-classification-{Release,Debug}.txt). Debug: against the rehearsal's own
+   build tree (left at the before arm, as g5 classifies). Release: against a fresh Release
+   build of a53dbb88 with g5's flags (.scratch/m7w2e2fix6gates/rehearsal/rel-deps; the g5
+   Release tree was replaced by the Debug arm) -- the classifier reads only its ninja deps and
+   object list. HEAD a53dbb88 is source-identical to the declaration commit.
+   Class A, Release (6) = the 6 in-universe MODIFIED .cpp. Class A, Debug (5) = those less
+       tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_continuation.cpp.o, NOISE-ONLY in Debug: its
+       only change is re-pinned integers (200 -> 18, 11 -> 9) and comments. Declared by name
+       (EXPECT_CLASS_A_NOISE_ONLY_DEBUG), its source checked MODIFIED before the legs, its
+       NOISE-ONLY line checked in compare-Debug after G5, the measured class A compared BY SOURCE
+       with git after G5 (dry-run on the rehearsal's files: ASSERT OK both configurations).
+   CLASS B = the SAME 34 objects in both configurations (the includers of the grown QpCounters
+   layout: the library's ledger, sqp_solver, soc_elastic_restoration, ipqp_engine, four bench
+   and 26 test objects; listed by name in EXPECT_CLASS_B_NAMES_*; none has a source modified in
+   the range, checked in the pre-flight). The asymmetry admission list stays EMPTY.
+
+§3 TEST COUNTS: Release 2848 (G3), Debug 2847 (G1), G2 1. By name against the DERIVED baseline
+   (the previous round's gate record, docs/notes/data/<its dir>/gates/suite-{debug,release}.txt:
+   2843 / 2844 tests, 2845 / 2846 started names; ran at 52650ca8, the parent of e07f8173 that
+   added it; no test source differs between 52650ca8 and e07f8173, checked in the pre-flight):
+   the measured suites of the final sources (.scratch/m7w2e2fix6/logs/suite-{rel,dbg}.log,
+   scratch builds of these sources: Release 2848, Debug 2847/2847 without the long test; the
+   long test 1/1 alone, 559 s, suite-dbg-long.log) ADD five instances and REMOVE one
+   (newline-delimited in the runner):
+     ADDED   QpE2WorkingSet.AConvergedGreyPinOnDallasmIsReReadDependent
+             QpE2WorkingSet.AGreyPinOnYorknetThatIsIndependentStaysIndependent
+             QpE2WorkingSet.AGreyReReadSolvesTheAcopr57RestorationQp
+             QpEngine.ObjectiveInflatedMultiplierContradictionIsCertifiedOnTheIndependentWorkingSet
+             WsIndependenceCalibration.AGreyReReadNeverFlipsACandidateAboveKDepTol
+     REMOVED QpEngine.ObjectiveInflatedMultiplierHidesASmallContradiction (the rename)
+   The offline --check-names run passes both configurations (2849 == 2845 - 1 + 5;
+   2850 == 2846 - 1 + 5); the negative controls are refused (preflight.txt).
+
+§4 THE SECTION SHAPE (G5b), measured by the same rehearsal: NON-DEBUG-MOVER set 6 in both
+   configurations == {qp/qp_engine.cpp.o, qp/ws_independence.cpp.o} (derived, class A) +
+   {core/ledger.cpp.o, drivers/sqp_solver.cpp.o, globalization/sqp/soc_elastic_restoration.cpp.o,
+   qp/ipqp_engine.cpp.o} (declared, EXPECT_LIB_CLASS_B_*: unmodified, class B); objects 44;
+   byte-identical 38 Release / 32 Debug; no library ADDED; DEBUG_ONLY Release 0 / Debug 6
+   (drivers/console_trace_sink, drivers/ipm_solver, drivers/sqp_print, drivers/trace_writer,
+   qp/ssn_engine, warmstart/continuation); REFUSED 0.
+
+§5 G4: 27 cells x 75 columns x 3 engines, 0 differences under
+   `compare_replay.py --residual-gate 1e-5`. VERIFIED OFFLINE FIRST on these sources (scratch
+   Release build; .scratch/m7w2e2fix6/g4/final-comparison.txt): walk 0 differences (7 within
+   the gate, the known f7 warm residual digits), ssn 0, ipm 0; and EXACT against 52650ca8's head
+   CSVs (.scratch/m7w2ladder/g4/): 0 differences on all 75 columns in all three engines -- the
+   rounding-floor guard refuses the thin-margin f7 re-reads. No U0 status, objective, counter or
+   residual moved.
+
+§6 G6: expected CLEAN -- install smoke, export contract, clang-format on the derived changed
+   include/*.h, src/*.cpp, tests/*.cpp, tests/*.h (clean at a53dbb88), git diff --check,
+   DIRTY_FILES 0. Fold proofs as the previous chain (46/0).
+
+§7 PRE-FLIGHT (`gates-e2fix6.sh --preflight-only`): preflight.txt (CLASS_B_NAMES_OK 34/34,
+   BY-NAME 5 ADDED each by exactly one TEST line + 1 REMOVED by exactly one TEST line, 1 TEST
+   line removed, ADDED TEST FILES == declared, PREFLIGHT_VALUE_OK, 6 SEGMENT_OK, PREFLIGHT_OK).
+   Refusals exercised against a wrong value, each rc 2 (recorded there): a class B name whose
+   source is modified, Release 2847 against Debug 2847, BEFORE = the previous declaration, class
+   A 7/6, the outside source list emptied, the Debug NOISE-ONLY class A list emptied, a class A
+   object declared a class B library mover, a class B library mover not in the class B list, a
+   Debug NOISE-ONLY class A with an unmodified source, the ADDED non-.cpp list short one; the
+   by-name negative controls rc 2; the post-G5 checks dry-run on the rehearsal's files (ASSERT OK).
+
+§8 G5 CHECKS THE MAIN TREE OUT TO e07f8173 while it builds its before arm, once per
+   configuration: nothing may edit or commit in the main tree until CHAIN_END.

@@ -1,0 +1,53 @@
+# gates-e2fix6.sh --preflight-only at a53dbb88 (the fix-6 commit), before the declaration commit:
+GATES_START 2026-09-25T07:41:45-04:00
+=== HEAD a53dbb88  dirty-files=1 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.scratch/m7w2e2fix6gates ===
+=== BEFORE=e07f8173  EXPECT_DEBUG_TESTS=2847  EXPECT_RELEASE_TESTS=2848 ===
+=== HEAD_AT_START=a53dbb88b18603ca0125445efaac102f2134dacb
+=== CHANGED HEADERS: include/hven/core/solver_counters.h include/hven/detail/qp/qp_engine.h include/hven/detail/qp/ws_independence.h 
+=== CHANGED SOURCES: src/qp/qp_engine.cpp src/qp/ws_independence.cpp tests/qp/fixtures/e2-d4/ACOPR57_def-qp4.txt tests/qp/fixtures/e2-d4/DALLASM_def-qp0.txt tests/qp/fixtures/e2-d4/YORKNET_def-qp1.txt tests/qp/test_qp_anti_cycling_arm.cpp tests/sqp/test_continuation.cpp tests/sqp/test_qp_engine.cpp tests/sqp/test_qp_ws_independence.cpp tests/sqp/test_scale_problems.cpp 
+=== MODIFIED C++ SOURCES: src/qp/qp_engine.cpp src/qp/ws_independence.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/sqp/test_continuation.cpp tests/sqp/test_qp_engine.cpp tests/sqp/test_qp_ws_independence.cpp tests/sqp/test_scale_problems.cpp 
+=== ADDED C++ SOURCES: 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_qp_anti_cycling_arm.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir
+=== ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); differences declared 0
+=== CLASS_B_NAMES_OK: Release 34 / Debug 34 declared objects, none with a source modified in the range
+=== BY-NAME: baselines /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-ladder/gates/suite-{debug,release}.txt (2845 / 2846 started names); 5 ADDED, each added by exactly one TEST line in the range; 1 REMOVED, each removed by exactly one TEST line; 1 TEST lines removed
+=== ADDED TEST FILES (checked): non-.cpp [tests/qp/fixtures/e2-d4/ACOPR57_def-qp4.txt tests/qp/fixtures/e2-d4/DALLASM_def-qp0.txt tests/qp/fixtures/e2-d4/YORKNET_def-qp1.txt ] == declared, under the fixture directory named once in hven_qp_walk_seam_tests's compile definitions; tests/CMakeLists.txt adds exactly [] and removes no non-comment line
+=== PREFLIGHT_VALUE_OK: class A 7 - 1 outside == declared 6/5; ADDED 0 == declared 0 (0 inside the universe == declared 0); class B library objects all unmodified; G4 gate 1e-5
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2fix6gates/g1.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2fix6gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2fix6gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2fix6gates/g2.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2fix6gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2fix6gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2fix6gates/g3.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2fix6gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2fix6gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2fix6gates/g4.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2fix6gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2fix6gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2fix6gates/g5.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2fix6gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2fix6gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2fix6gates/g6.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2fix6gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2fix6gates/gates
+=== PREFLIGHT_OK: 6 segments written and asserted against GATES_SCRATCH, before the first leg ===
+PREFLIGHT_ONLY: stopping before G1. No leg was run and no build tree was touched.
+PREFLIGHT_RC=0
+
+# Offline by-name checks and refusal controls (each control must be refused, rc 2):
+ASSERT OK   offline debug by name: 2849 started names == the baseline's 2845 - the 1 declared REMOVED + the 5 declared ADDED
+check-names debug (suite-dbg.log) rc=0
+ASSERT OK   offline release by name: 2850 started names == the baseline's 2846 - the 1 declared REMOVED + the 5 declared ADDED
+check-names release (suite-rel.log) rc=0
+ASSERT FAIL offline debug by name: 2850 started vs the baseline's 2845 - 1 REMOVED + 5 ADDED; the difference (expected '<' tab-indented '>' this run):
+	Continuation.ProbeBudgetBoundsAFailingProposal
+NEGATIVE CONTROL check-names debug on the Release transcript rc=2
+ASSERT FAIL offline release by name: ADDED QpE2WorkingSet.AConvergedGreyPinOnDallasmIsReReadDependent is named 0 time(s) in the baseline (want 0) and 0 in this run (want 1)
+NEGATIVE CONTROL check-names release on the baseline itself rc=2
+CONTROL [class B name with a modified source] rc=2 :: REFUSED: rel class B tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine.cpp.o has its source tests/sqp/test_qp_engine.cpp MODIFIED in e07f8173..a53dbb88b18603ca0125445efaac102f2134dacb (it is class A)
+CONTROL [Release 2847 against Debug 2847] rc=2 :: REFUSED: Debug 2847 != Release 2847 - long 1
+CONTROL [BEFORE = the previous declaration] rc=2 :: REFUSED: 8 test file(s) changed between the by-name baseline 723712e0 and BEFORE 52650ca8
+CONTROL [class A 7/6] rc=2 :: REFUSED: 7 modified .cpp (less 1 outside the universe; Debug less 1 declared NOISE-ONLY), but class A is DECLARED 7/6
+CONTROL [the outside source list emptied] rc=2 :: REFUSED: 7 modified .cpp (less 0 outside the universe; Debug less 1 declared NOISE-ONLY), but class A is DECLARED 6/5
+CONTROL [the Debug NOISE-ONLY class A list emptied] rc=2 :: REFUSED: 7 modified .cpp (less 1 outside the universe; Debug less 0 declared NOISE-ONLY), but class A is DECLARED 6/5
+CONTROL [a class A object declared a class B library mover] rc=2 :: REFUSED: CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o is declared a class B library mover but its source src/qp/qp_engine.cpp is MODIFIED (class A)
+CONTROL [a class B library mover not in the class B list] rc=2 :: REFUSED: Debug class B library mover CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o is not in the Debug class B list
+CONTROL [a Debug NOISE-ONLY class A with an unmodified source] rc=2 :: REFUSED: declared Debug NOISE-ONLY class A tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_battery.cpp.o: its source tests/sqp/test_hs_battery.cpp is not MODIFIED in the range
+CONTROL [the ADDED non-.cpp test file list short one] rc=2 :: REFUSED: the ADDED non-.cpp test files [tests/qp/fixtures/e2-d4/ACOPR57_def-qp4.txt tests/qp/fixtures/e2-d4/DALLASM_def-qp0.txt tests/qp/fixtures/e2-d4/YORKNET_def-qp1.txt ] != declared [tests/qp/fixtures/e2-d4/ACOPR57_def-qp4.txt tests/qp/fixtures/e2-d4/DALLASM_def-qp0.txt ]
+# Post-G5 by-name/by-source/NOISE-ONLY checks dry-run on the rehearsal's classification + compare files (the runner's own post-G5 block, extracted): class B by name Release/Debug ASSERT OK (34 = the declared list), class A by source Release [6] / Debug [5] ASSERT OK, Debug NOISE-ONLY class A test_continuation.cpp.o ASSERT OK; rc5=0 (.scratch/m7w2e2fix6/logs/postg5-dry.txt).
