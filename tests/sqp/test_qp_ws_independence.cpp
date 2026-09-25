@@ -494,6 +494,11 @@ struct RowsView {
     detail::DepTest test(const Vec &a) const {
         return detail::dependency_test(qp, ws, view(), a, o);
     }
+
+    // R-E's re-read (E2 fix6): the refinement run to its end on the same factor.
+    detail::DepTest reread(const Vec &a) const {
+        return detail::certificate_coefficients(qp, ws, view(), a, o);
+    }
 };
 
 Vec vec_of(std::initializer_list<double> v) {
@@ -636,6 +641,54 @@ TEST(WsIndependenceCalibration, AConvergedRhoBetweenKDepTolAndKDepUndecidableIsI
             EXPECT_LT(t.rho, detail::kDepUndecidable);
             EXPECT_NEAR(t.rho, e / std::sqrt(1.0 + e * e), 1e-9);
         }
+    }
+}
+
+// R-E (E2 fix6, settler S33): the grey re-read never flips a candidate farther than kDepTol from
+// the span, and it certifies a grey dependent. For EVERY coefficient vector v, rho(v) = ||(a -
+// A_W^T v)_free|| / ||a|| >= the true relative distance, so the re-read rho' (plus its rounding
+// floor, kDepRereadKappa) <= kDepTol is a certificate. (i) S24's candidates (1, e, 0) at exact
+// relative distance e / sqrt(1 + e^2) >= 1e-5 re-read to that distance and stay independent.
+// (ii) A candidate that IS a multiple of the one working row, on a stiff face (H = 1e4 I,
+// mu = 1e-8): the regularized solve leaves A_W u = mu v, whose residual sits below the target
+// after the first solve, so the test "converges" at once -- but rho reads (H + delta) u ~ 1e4 mu
+// and lands in the grey band. Run to its end the refinement contracts u by ~mu per step and
+// rho' falls below 1e-12: dependent, certified.
+TEST(WsIndependenceCalibration, AGreyReReadNeverFlipsACandidateAboveKDepTol) {
+    Eigen::MatrixXd Ai(2, 3);
+    Ai << 1, 0, 0, 0, 1, 0;
+    const QpProblem qp =
+        make_qp(Eigen::MatrixXd::Identity(3, 3), Vec::Zero(3), Eigen::MatrixXd(0, 3), Vec(0), Ai,
+                vec_of({1.0, 1.0}), -10.0, 10.0);
+    Eigen::MatrixXd Ai_stiff(2, 3);
+    Ai_stiff << 1, 1, 0, 0, 0, 1;
+    const QpProblem stiff =
+        make_qp(1e4 * Eigen::MatrixXd::Identity(3, 3), Vec::Zero(3), Eigen::MatrixXd(0, 3), Vec(0),
+                Ai_stiff, vec_of({1.0, 1.0}), -10.0, 10.0);
+    for (const bool border : {false, true}) {
+        const RowsView rv(qp, 1e-8, {}, {0}, border);
+        for (const double e : {1e-5, 1e-4, 5e-4}) {
+            SCOPED_TRACE(::testing::Message() << (border ? "border" : "eliminated") << " e " << e);
+            const Vec a = vec_of({1.0, e, 0.0});
+            const detail::DepTest r = rv.reread(a);
+            const double dist = e / std::sqrt(1.0 + e * e);
+            EXPECT_GE(r.rho, dist * (1.0 - 1e-9));
+            EXPECT_GT(r.rho + detail::dependency_rounding_floor(rv.qp, rv.ws, r, a),
+                      detail::kDepTol);
+        }
+        SCOPED_TRACE(border ? "stiff border" : "stiff eliminated");
+        const RowsView sv(stiff, 1e-8, {}, {0}, border);
+        const Vec a = vec_of({3.0, 3.0, 0.0});
+        const detail::DepTest t = sv.test(a);
+        EXPECT_EQ(t.verdict, detail::DepVerdict::kIndependent);
+        EXPECT_FALSE(t.stall_admit) << "converged";
+        EXPECT_GT(t.rho, detail::kDepTol);
+        EXPECT_LT(t.rho, detail::kDepUndecidable);
+        const detail::DepTest r = sv.reread(a);
+        EXPECT_LE(r.rho, 1e-12);
+        EXPECT_LE(r.rho + detail::dependency_rounding_floor(sv.qp, sv.ws, r, a), detail::kDepTol);
+        EXPECT_NEAR(r.v_w(0), 3.0, 1e-9);
+        EXPECT_LE(r.solves, 1 + detail::kDepRefineSteps);
     }
 }
 

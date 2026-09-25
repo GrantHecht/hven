@@ -697,9 +697,11 @@ TEST(ScaleF7, WideWindowWalkIsChurnNotDegeneracy) {
     // its release counted in ws_drops per S19) and the zero-motion re-entry
     // rule. shift_adds, distinct_ineq, degeneracy, ties, the conservation
     // identity and the cost-law band are unchanged in kind and all hold.
+    // E2 fix6 (declared mover): N = 30 minors 280 -> 278 -- the grey re-read (R-E)
+    // reads a converged grey admission dependent; every other count unchanged.
     // N = 30: |W*| = 26. 80 row admissions over 28 distinct rows = 2.86x;
-    // 44 bound pins over 44 distinct bounds = 1.00x. 280 minors, 1.44/event.
-    check_wide_window_walk(30, 0.85, WalkCounts{280, 96, 98, 28, 0, 44, 44, 28, 44, 0, 0});
+    // 44 bound pins over 44 distinct bounds = 1.00x. 278 minors, 1.43/event.
+    check_wide_window_walk(30, 0.85, WalkCounts{278, 96, 98, 28, 0, 44, 44, 28, 44, 0, 0});
     // N = 50: |W*| = 44. 158 row admissions over 47 distinct rows = 3.36x;
     // 70 bound pins over 68 distinct bounds = 1.03x. 526 minors, 1.44/event.
     check_wide_window_walk(50, 0.85, WalkCounts{526, 181, 184, 47, 0, 70, 70, 47, 68, 0, 0});

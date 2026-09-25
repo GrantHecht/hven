@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <limits>
 
 #include <hven/detail/kkt/bordered_eqp.h>
 
@@ -285,6 +286,28 @@ DepTest dependency_test(const QpProblem &qp, const WorkingSet &ws, const DepFact
 DepTest certificate_coefficients(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f,
                                  const Vec &a, const QpOptions &opts) {
     return dependency_test_to(qp, ws, f, a, opts, 0.0);
+}
+
+double dependency_rounding_floor(const QpProblem &qp, const WorkingSet &ws, const DepTest &t,
+                                 const Vec &a) {
+    const double a_norm = a.norm();
+    const std::vector<Index> &aw = ws.active_ineq();
+    double v1 = 1.0; // a's own unit coefficient
+    double amax = a_norm;
+    for (Index r = 0; r < t.v_e.size(); ++r) {
+        if (t.v_e(r) != 0.0) {
+            v1 += std::abs(t.v_e(r));
+            amax = std::max(amax, qp.Ae.row(r).norm());
+        }
+    }
+    for (Index k = 0; k < t.v_w.size(); ++k) {
+        if (t.v_w(k) != 0.0) {
+            v1 += std::abs(t.v_w(k));
+            amax = std::max(amax, qp.Ai.row(aw[static_cast<std::size_t>(k)]).norm());
+        }
+    }
+    const double m = static_cast<double>(qp.n() + qp.me() + static_cast<Index>(aw.size()));
+    return kDepRereadKappa * m * std::numeric_limits<double>::epsilon() * v1 * amax / a_norm;
 }
 
 EntryDetection detect_dependency(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f,

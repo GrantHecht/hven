@@ -26,7 +26,10 @@
 //     independent AND COUNTED (DepTest::stall_admit, QpCounters::
 //     dep_stall_admits): not "stall => dependent";
 //   - otherwise (converged, rho > kDepTol) INDEPENDENT -- including
-//     kDepTol < rho < kDepUndecidable.
+//     kDepTol < rho < kDepUndecidable, where the walk's caller re-reads it
+//     (R-E, E2 fix6: QpEngine::test_candidate runs certificate_coefficients and
+//     certifies a dependent when rho' + its rounding floor <= kDepTol; see
+//     kDepRereadKappa).
 // Pins take the residual at pinned columns as their coefficients.
 //
 // ENTRY DETECTOR. First structural: a member row whose nonzeros all sit at
@@ -81,6 +84,19 @@ constexpr Index kEntryDetectSolves = 4;
 // detector falls back HEURISTICALLY to the uncertified member with the largest scaled coefficient
 // (kept, settler S24: no fallback measured worse), counted QpCounters::dep_uncertified_fallbacks.
 constexpr double kDepRemovalTol = kDepUndecidable;
+// THE GREY RE-READ'S ROUNDING FLOOR (R-E, E2 fix6; S25''s exact_tol style). The re-read rho' is
+// computed as ||fl(a - A_W^T v)_free|| / ||a||. Standard model, fl(a op b) = (a op b)(1 + d), |d|
+// <= eps: each entry of a - A_W^T v sums at most m + 1 products, so its computed error is <= (m +
+// 1) eps (1 + ||v||_1) max_k ||a_k|| (a's own unit coefficient in the 1, max_k over a and the rows
+// with v_k != 0, m = me + |W|; pins absorb the pinned columns exactly and add nothing); v is the
+// mu-free refined solution of the (n + m)-dimensional system, whose backward error is O((n + m)
+// eps) relative to the same product. The floor is
+//   kDepRereadKappa * (n + m) * eps * (1 + ||v||_1) * max_k ||a_k|| / ||a||,
+// kappa = 10 the safety factor (kCertExactKappa's). A re-read turns dependent only when
+// rho' + floor <= kDepTol: then the EXACT rho(v) is <= kDepTol, and so is the true relative
+// distance (the theorem at QpEngine::test_candidate) -- the flip is certified at the contract's own
+// tolerance, not at kDepTol plus rounding.
+constexpr double kDepRereadKappa = 10.0;
 
 /// The factor a pass holds for its CURRENT working set; read-only. Exactly one
 /// of the two paths is set, or neither (no usable factor).
@@ -126,6 +142,11 @@ DepTest dependency_test(const QpProblem &qp, const WorkingSet &ws, const DepFact
 /// rounding (settler S25'). Only the coefficients are meant to be read.
 DepTest certificate_coefficients(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f,
                                  const Vec &a, const QpOptions &opts);
+
+/// R-E's rounding floor (kDepRereadKappa): the bound on the rounding carried by a computed rho for
+/// the coefficients `t` holds (t.v_e, t.v_w) of the candidate `a`.
+double dependency_rounding_floor(const QpProblem &qp, const WorkingSet &ws, const DepTest &t,
+                                 const Vec &a);
 
 struct EntryDetection {
     bool found = false;

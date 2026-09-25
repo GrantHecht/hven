@@ -3292,6 +3292,24 @@ detail::DepTest QpEngine::test_candidate(const QpProblem &qp, const WorkingSet &
             ++counters.dep_structural_first;
         }
     }
+    // R-E (E2 fix6): a CONVERGED "independent" in the grey band is re-read with
+    // the refinement run to its end on the same factor; a certified rho' makes it
+    // dependent with the re-read's coefficients (qp_engine.h, Degeneracy).
+    if (t.verdict == detail::DepVerdict::kIndependent && !t.stall_admit &&
+        t.rho < detail::kDepUndecidable) {
+        ++counters.dep_grey_rereads;
+        detail::DepTest r = detail::certificate_coefficients(qp, ws, view, a, opts);
+        const Index solves = t.solves + r.solves;
+        const double rho_floor =
+            r.rho <= detail::kDepTol ? detail::dependency_rounding_floor(qp, ws, r, a) : 0.0;
+        if (r.rho + rho_floor <= detail::kDepTol) {
+            t = std::move(r);
+            t.verdict = detail::DepVerdict::kDependent;
+            t.stall_admit = false;
+            ++counters.dep_grey_reread_dependent;
+        }
+        t.solves = solves;
+    }
     // The screen alone decided, with the mandatory rows dependent: possibly a
     // false dependent (the safe direction), counted.
     if (t.screen && !(t.rho <= detail::kDepTol) && counters.mandatory_dependent_entries > 0) {

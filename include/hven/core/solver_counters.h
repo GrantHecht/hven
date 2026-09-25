@@ -269,7 +269,9 @@ struct QpCounters {
     Index dep_uncertified_fallbacks = 0;
     // Candidate tests whose refinement stalled with rho >= kDepUndecidable,
     // admitted as independent (the landed contract, E2 fix2, settler S23; a
-    // stall below kDepUndecidable is dep_undecidable instead).
+    // stall below kDepUndecidable is dep_undecidable instead). Telemetry: the
+    // stall class is truly independent on the measured corpus (R-D retired,
+    // settler S34).
     Index dep_stall_admits = 0;
 
     // The zero-motion re-entry rule (per fixed iterate).
@@ -291,6 +293,13 @@ struct QpCounters {
     // the pass's dual_mu).
     Index dep_inertia_rereads = 0;
     Index dep_inertia_reread_flips = 0;
+    // R-E (E2 fix6): CONVERGED candidate tests read independent in the grey
+    // band kDepTol < rho < kDepUndecidable, re-read with the refinement run to
+    // its end on the same factor (no factorization; the solves in
+    // dep_test_solves), and how many of those the re-read certified DEPENDENT
+    // (rho' + its rounding floor <= kDepTol).
+    Index dep_grey_rereads = 0;
+    Index dep_grey_reread_dependent = 0;
 
     // E2 fix4 (qp_engine.h, refine_terminal_mu_free): terminal points that
     // would read kInfeasible by a structural violation while a working row's

@@ -1225,7 +1225,10 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
     // cap-pinned proposal's walks are shorter under the add-site exchange and
     // the zero-motion re-entry rule. The Accelerate arm above keeps its
     // pre-E2 observed 304: UNOBSERVED under E2 (CLAUDE.md section 6).
-    EXPECT_EQ(off.steps[1].counters.factorizations, 200)
+    // E2 fix6 (declared mover): 200 -> 18 on MKL -- the grey re-read (R-E)
+    // reads the cap-pinned QPs' converged grey admissions dependent; majors,
+    // minors and statuses unchanged. Accelerate UNOBSERVED.
+    EXPECT_EQ(off.steps[1].counters.factorizations, 18)
         << "MKL Pardiso (303 before M7 W2 E2); Accelerate observed 304 pre-E2 (origin D19, "
            "re-adjudicated as M3-2)\n"
         << trajectory(off);
@@ -1267,9 +1270,11 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
     // M7 W2 E2 step 2 (declared mover, S20): factorizations 14 -> 11 (and the
     // arm-A comparator 303 -> 200), same cause as arm A; majors and minors
     // unchanged. MKL-observed; no Accelerate value exists for this line.
+    // E2 fix6 (declared mover): factorizations 11 -> 9 (the arm-A comparator
+    // 200 -> 18), the grey re-read (R-E); majors and minors unchanged.
     EXPECT_EQ(on.steps[1].counters.major_iters, 2) << trajectory(on);
     EXPECT_EQ(on.steps[1].counters.qp_minor_iters, 502) << trajectory(on);
-    EXPECT_EQ(on.steps[1].counters.factorizations, 11) << trajectory(on);
+    EXPECT_EQ(on.steps[1].counters.factorizations, 9) << trajectory(on);
 
     // ---- ARM C: the same budget under SqpOptions::budget_mode -------------
     // THE TWO BUDGETS MUST NOT FIGHT (sqp_solver.h's PROBE BUDGET note, part

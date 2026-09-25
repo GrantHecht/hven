@@ -241,7 +241,10 @@
 //        kStructuralResidualFrac*dual_mu*|lambda|. Tightening the fraction to
 //        catch it re-breaks (i). The SQP driver is the second detection layer;
 //        a caller using the engine alone should scale its rows or shrink
-//        dual_mu.
+//        dual_mu. On the independent working set a contradiction that rides a
+//        DEPENDENT row is read by the dependency test instead and ends
+//        kInfeasible on a Farkas certificate (E2 fix6's grey re-read closes
+//        objective_inflated_lambda_qp(1e-3, 3e-4)); (ii) stands for the rest.
 //    (iii) FALSE kNumericalError where a free variable's TRUE optimum lies
 //        beyond unbounded_artifact_scale(). Tune primal_delta rather than treat
 //        this kNumericalError as load-bearing.
@@ -374,6 +377,20 @@
 // blocker with no admissible member, where the rule would otherwise end the solve,
 // unlocks the members locked only by having entered at this point, min-ratio with
 // lowest-index ties (dep_unlocks; ExchangePick, where the finiteness argument is).
+// E2 FIX6 (R-E, the grey re-read): a candidate test that CONVERGED to "independent" with
+// kDepTol < rho < kDepUndecidable is re-read at every growth site (test_candidate, after R-A)
+// by running the refinement to its end on the same factor (certificate_coefficients: no
+// factorization, at most kDepRefineSteps steps); rho' plus its rounding floor
+// (kDepRereadKappa) <= kDepTol makes it DEPENDENT with the re-read coefficients, else the
+// "independent" stands (dep_grey_rereads / dep_grey_reread_dependent). Stall, undecidable,
+// screen and R-A verdicts are never touched. THEOREM (the safe direction): for every v,
+// rho(v) = ||(a - A_W^T v)_free|| / ||a|| >= dist(a_free, span A_W,free) / ||a||, since A_W^T v
+// is a point of that span; so a dependent verdict is CERTIFIED at the contract's own kDepTol
+// and R-E can never call dependent a candidate farther than kDepTol from the span. Why the
+// converged grey reading is not a distance: the test stops on the KKT residual, which sees the
+// mu-solve's A_W u = mu v, while rho reads (H + delta) u -- amplified by ||H|| and by a
+// rank-deficient A_W, which the residual does not see. The stall class is left alone: it is
+// truly independent on the measured corpus (R-D retired, settler S34).
 // E2 FIX4: a terminal point that would
 // read kInfeasible by its structural violation is first re-solved mu-free on its face and
 // adopted when it satisfies every row and bound (terminal_mu_refines /

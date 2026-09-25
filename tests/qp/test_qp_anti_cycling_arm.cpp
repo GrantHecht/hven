@@ -1954,3 +1954,76 @@ TEST(QpE2WorkingSet, AMuFreeSuspectReadDoesNotCertifyASaddle) {
         }
     }
 }
+
+// ===========================================================================
+// (E2 fix6) R-E, THE GREY RE-READ, ON THE DUMPED QPs (settler S33). A candidate
+// test that converged to "independent" with kDepTol < rho < kDepUndecidable is
+// re-read with the refinement run to its end on the same factor; rho' plus its
+// rounding floor <= kDepTol is a certified dependent (QpEngine::test_candidate;
+// the theorem is in qp_engine.h, Degeneracy). The F1 design note's dense check
+// (the relative distance of the candidate from the working rows' span, QR on the
+// free columns) is the truth these fixtures are read against.
+// ===========================================================================
+
+TEST(QpE2WorkingSet, AGreyReReadSolvesTheAcopr57RestorationQp) {
+    // ACOPR57's restoration QP (n 630, me 114, mi 274; nonconvex H, phase-1
+    // feasible). In the cell and until E2 fix6 the walk admitted grey
+    // dependents (dense distance ~1e-12 and below, rho 1e-6..1e-4 from a
+    // converged mu-solve), the set leaked and the solve ended N3
+    // (kNumericalError, 26 minors). R-C' could not certify it (its mu-free read
+    // is kSuspect; the gap registered at fix round 3). With R-E the grey
+    // dependents are read dependent (34 of 36 re-reads flip; the two kept
+    // re-read above kDepTol) and the walk reaches the strict local minimum
+    // f = -18.3950535 (Z'HZ min 0.73; the value R-C as first ruled reached) on
+    // both algebras, with the KKT conditions recomputed from the QP.
+    const QpDump d = e2d4_dump("ACOPR57_def-qp4.txt");
+    EXPECT_NE(d.result.find("status=3 minors=27 "), std::string::npos);
+    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+        SCOPED_TRACE(e2_name(alg));
+        const QpSolution s = e2d4_solve(d, alg);
+        expect_e2d4_kkt(d, s);
+        EXPECT_NEAR(hven::test_support::qp_dump_objective(d, s.x), -18.3950535, 1e-6);
+        EXPECT_GE(s.counters.dep_grey_reread_dependent, 1);
+        EXPECT_EQ(s.counters.dep_blocker_terminations, 0);
+    }
+}
+
+TEST(QpE2WorkingSet, AConvergedGreyPinOnDallasmIsReReadDependent) {
+    // DALLASM's primary QP at trust radius 1 (n 196, me 150; the network rows are
+    // rank-deficient). Its first grey admission until E2 fix6 was pin 98 at pass 9
+    // (border): rho 3.4e-6, "converged" at ZERO refinement steps (the mu-solve's
+    // residual 1e-8 is under the target 1e-7), dense distance ~7e-16; the re-read
+    // reads rho' 1e-17 (Release, border). Every grey re-read on this QP flips, and
+    // every flip was dense-checked dependent (the F1 design note's corpus run). The walk still ends
+    // short of the optimum (the degenerate vertex, 112 active bounds and 46 dof: E2-D4 class A, not
+    // this rule), so the status is not pinned; a kOptimal must pass the recomputed KKT check.
+    const QpDump d = e2d4_dump("DALLASM_def-qp0.txt");
+    EXPECT_NE(d.result.find("status=3 minors=64 "), std::string::npos);
+    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+        SCOPED_TRACE(e2_name(alg));
+        const QpSolution s = e2d4_solve(d, alg);
+        if (s.status == QpStatus::kOptimal) {
+            expect_e2d4_kkt(d, s); // a kOptimal here must be a true one
+        }
+        EXPECT_GE(s.counters.dep_grey_rereads, 1);
+        EXPECT_EQ(s.counters.dep_grey_reread_dependent, s.counters.dep_grey_rereads);
+    }
+}
+
+TEST(QpE2WorkingSet, AGreyPinOnYorknetThatIsIndependentStaysIndependent) {
+    // YORKNET's restoration QP (272 free columns and 256 working rows at the event). Its one grey
+    // reading is pin 36 at pass 219 (eliminated path): rho 7.669e-4 converged,
+    // and the dense distance IS 7.669e-4 -- an independent candidate that E2-D4
+    // had inferred dependent. The re-read converges to the same rho' (>= the
+    // distance for every coefficient vector), so it stays independent: R-E does
+    // not flip it, and the walk is the fix-5 walk (596 minors in Release,
+    // kNumericalError -- not this rule's class).
+    const QpDump d = e2d4_dump("YORKNET_def-qp1.txt");
+    EXPECT_NE(d.result.find("status=3 minors=594 "), std::string::npos);
+    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+        SCOPED_TRACE(e2_name(alg));
+        const QpSolution s = e2d4_solve(d, alg);
+        EXPECT_EQ(s.counters.dep_grey_rereads, 1);
+        EXPECT_EQ(s.counters.dep_grey_reread_dependent, 0);
+    }
+}

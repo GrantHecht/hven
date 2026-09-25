@@ -399,11 +399,12 @@ solves (S25′). `QpFarkasCertificate` gains `exact_tol`.
 ~10 ms, a Debug unit-test filter) is recorded here. Its STOP is recorded in the STATE note.
 
 
-## Fix round 3 — the E2-D4 rules (R-A, R-C′; R-B and R-D deferred; S26–S30)
+## Fix round 3 — the E2-D4 rules (R-A, R-C′; R-B deferred, R-D retired: S34; S26–S30)
 
 The E2-D4 read-out (`../2026-09-m7-w2-e2-d4-feasible-qps/REPORT.md`) ranked why the walk fails
-feasible QPs and proposed three rules; the settler ruled them (brief S26–S30). Two land; two are
-deferred to their own rounds with the evidence below as their briefs.
+feasible QPs and proposed three rules; the settler ruled them (brief S26–S30). Two land; R-B was deferred to its own
+round (landed at fix round 5) and R-D was not landed (retired: S34, fix round 6), with the evidence
+below as their briefs.
 
 | Rule | What landed | Where | Fixtures |
 |---|---|---|---|
@@ -411,7 +412,7 @@ deferred to their own rounds with the evidence below as their briefs.
 | R-C′ — the μ-free inertia re-read, confirmed at `dual_mu` (E2-D4 class B; S26) | a kWrong inertia verdict at the start repair or the terminal check is re-read on a bound-eliminated factor of the current working set with `dual_mu = 0` (a local `KktFactor`; the pass's factor and border stack untouched): kOk overturns the kWrong; kSuspect overturns it ONLY when a second eliminated read at the pass's own `dual_mu` reads kOk; anything else leaves the kWrong standing. Counters `dep_inertia_rereads`, `dep_inertia_reread_flips` | `src/qp/qp_engine.cpp:859-861`, `:1023-1025`, `:2923-2958` (`reread_wrong_inertia`), `include/hven/detail/qp/qp_engine.h:1394-1414`, `include/hven/core/solver_counters.h:284-290` | `QpE2WorkingSet.AMuFreeInertiaReReadCertifiesTheSingularPsdFaceOfAcopp57` (Z′HZ PSD-singular, λ_min +3.0e-12: kOptimal in ≤ 12 minors, f within 1e-2 relative of Clarabel's f*); `QpE2WorkingSet.AMuFreeSuspectReadDoesNotCertifyASaddle` (the correctness guard: a 4-variable saddle whose μ-free read is kSuspect; R-C as first ruled returned kOptimal AT the saddle, f = 0 vs −½; R-C′ reaches the minimum, f = −½, 0 flips) |
 | S27 — the S3 Debug over-count assert downgraded | `assert(!over \|\| det.found)` removed: a stalled entry detector on an over-counted set is a legitimate, counted outcome (`dep_untested_growth`), not an invariant — it fired on the ACOPR57 dumps at the pre-rule walk | `src/qp/qp_engine.cpp:808-818` | the ACOPR57 fixture below runs in Debug (it was GTEST_SKIPped there) |
 | R-B — the locked-vertex unlock (E2-D4 class A) | **DEFERRED** (S28): removed from the tree entirely — no code path, no counter | — | `QpE2WorkingSet.TheLockedVertexOnTheAcopr57PrimalQpsStillEndsN3` asserts the CURRENT status (kNumericalError, `dep_blocker_terminations` 1, both algebras; the E2-OFF walk at Clarabel's f*) and names the deferred rule |
-| R-D — a stalled dependency test is undecidable whatever its ρ (S30) | **DEFERRED**: evaluated on the full instrument set, not landed (below) | — | — |
+| R-D — a stalled dependency test is undecidable whatever its ρ (S30) | **RETIRED (S34)**: evaluated on the full instrument set, not landed (below); the stall class is truly independent on the corpus (fix round 6) | — | — |
 
 Dumps: `tests/qp/fixtures/e2-d4/` (STEENBRB_def-qp0, ACOPR57_def-qp0/qp1, ACOPP57_def-qp0 — byte-copies of
 the E2-D4 corpus files — and `FORMAT.txt`), read through `tests/qp/support/qp_dump.h` (loader, replay,
@@ -465,7 +466,7 @@ temporary env-gated prints, removed):
   refactorize residue needs it too). With that, the six census cells should end kOptimal on both
   algebras and R-B's conversions (15 census cells, ACOPR57 qp0/qp1, READING6 qp0/qp1) could stand.
 
-### R-D: evaluated, deferred (S30)
+### R-D: evaluated, not landed (S30); retired: S34
 
 R-D (a stalled refinement is kUndecidable whatever its ρ; `dep_stall_admits` renamed
 `dep_stall_undecidable`) was built and run through the round's instruments on the R-B-free tree:
@@ -485,7 +486,8 @@ R-D (a stalled refinement is kUndecidable whatever its ρ; `dep_stall_admits` re
 - Corpus: READING6 qp0/qp1 stay kNumericalError; SAWPATH qp1, STEENBRB qp2, ACOPR57 qp6/qp7 go
   kMaxIter → kNumericalError; STEENBRB qp0 stays kOptimal (658 → 750 minors).
 
-A status move on a non-E2 fixture is a STOP by the round's own rule, so R-D is DEFERRED; the tree
+A status move on a non-E2 fixture is a STOP by the round's own rule, so R-D was not landed (retired: S34,
+fix round 6 — the stall class is truly independent); the tree
 carries S23's contract and `dep_stall_admits` unchanged. Its brief: the 1e10 calibration (an exactly
 independent candidate, ρ = 1/√2, whose refinement stalls because the 1e10 row puts the residual's
 rounding floor above the unscaled target) is the case a ρ-free rule must still admit, and the census's
@@ -540,25 +542,15 @@ against E2-ON @ a47753a8.
 
 ### Registered gaps
 
-- **ACOPR57 qp4** (R-C′, S26): a genuine strict local minimum (Z′HZ min 0.73) whose μ-free read is
-  kSuspect and whose `dual_mu` read is kWrong; R-C′ does not certify it and the walk ends N3 (26
-  minors). R-C as first ruled reached kOptimal there (400 minors, f −18.395). The honest fix is the
-  reduced Hessian's inertia on the face computed directly when the face is small — a later round. The
-  fixture as it would read (not in the suite; its dump is `../2026-09-m7-w2-e2-d4-feasible-qps/dumps/ACOPR57_def/qp4.txt`):
-
-```cpp
-TEST(QpE2WorkingSet, AMuFreeInertiaReReadSolvesTheAcopr57RestorationQp) {
-    const QpDump d = e2d4_dump("ACOPR57_def-qp4.txt");
-    EXPECT_NE(d.result.find("status=3 minors=27 "), std::string::npos);
-    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
-        const QpSolution s = e2d4_solve(d, alg);
-        expect_e2d4_kkt(d, s);
-        EXPECT_GE(s.counters.dep_inertia_reread_flips, 1);
-        EXPECT_EQ(s.counters.dep_blocker_terminations, 0);
-    }
-}
-```
-- R-B (the μ-point terminal misreading first) and R-D (above) — deferred rounds.
+- **ACOPR57 qp4** (R-C′, S26) — CLOSED at fix round 6 by another route. A genuine strict local
+  minimum (Z′HZ min 0.73) whose μ-free read is kSuspect and whose `dual_mu` read is kWrong; R-C′ does
+  not certify it and the walk ended N3 (26 minors). R-C as first ruled reached kOptimal there (400
+  minors, f −18.395). What ended it was not the inertia: the walk admitted converged grey dependents
+  (F1) and leaked. Fix round 6's grey re-read (R-E) reads them dependent and the walk reaches
+  f −18.3950535 on both algebras: `QpE2WorkingSet.AGreyReReadSolvesTheAcopr57RestorationQp`
+  (`tests/qp/test_qp_anti_cycling_arm.cpp`; its dump is `tests/qp/fixtures/e2-d4/ACOPR57_def-qp4.txt`).
+- R-B (the μ-point terminal misreading first) — a deferred round (landed at fix round 5); R-D (above) —
+  retired: S34 (fix round 6).
 - R-C′ cost (S29): a second read when the face is unchanged since the last re-read could be skipped —
   a later cost round.
 
@@ -778,7 +770,7 @@ counts the terminal μ-free re-solve's local factorization. No counter renamed o
 aggregated into `SqpCounters` (as R-C′'s counters are not).
 
 
-## Fix round 5 — the locked-vertex unlock (R-B) on the refined terminal check; R-D deferred again
+## Fix round 5 — the locked-vertex unlock (R-B) on the refined terminal check; R-D not landed (retired: S34)
 
 Settler S32: R-B exactly as saved in fix round 3 (the narrowed placement), re-applied on top of
 fix round 4's μ-free terminal refinement, with the read-only numbers of fix round 4 as its
@@ -896,7 +888,7 @@ Release **2833/2833**; Debug **2832/2832** without the long test, the long test 
 (`.scratch/m7w2e2fix5/rb-suite-{rel,dbg}.log`, `rb-suite-dbg-long.log`). The HS corpus
 (`HsBattery.*`, `HsSweepCorpus.*`, the HS driver cells) is inside both suites; no HS pin moved.
 
-### R-D: evaluated on top of R-B + fix4, DEFERRED again (S32)
+### R-D: evaluated on top of R-B + fix4, not landed (S32); retired: S34
 
 `rd-full.patch`'s R-D delta (isolated against `pre-rd.patch`; `dep_stall_admits` →
 `dep_stall_undecidable`, `DepTest::stall_admit` → `stall_undecidable`, the 1e10 calibration
@@ -928,20 +920,179 @@ re-pinned to kUndecidable) applied to this tree in `.scratch/m7w2e2fix5/src-rd`:
 The three non-E2 fixtures that broke at fix round 3 (T6b stiff, `FullStepModeInheritsElasticAndRestoration`,
 `TheUncertifiedFallbackStillEndsAtAFirstOrderPoint/{0,1}`) were the test (S32). The T6b stiff cell
 no longer breaks (R-B + fix4 already reach its optimum); the other two still do, with the μ·λ
-misreading gone — so they are R-D's own effect, not the misreading's. R-D is DEFERRED; the tree
-carries S23's contract and `dep_stall_admits` unchanged. Its brief is unchanged (the 1e10
+misreading gone — so they are R-D's own effect, not the misreading's. R-D was not landed (retired: S34,
+fix round 6: both movers re-label exactly-independent stalls); the tree
+carries S23's contract and `dep_stall_admits` unchanged. Its brief was then (the 1e10
 calibration: a ρ-free rule must still admit an exactly independent candidate whose refinement
 stalls on a rounding floor) plus the two fixtures above.
 
 ### Registered
 
-- ACOPR57 qp2 (and qp4, qp8) still end N3 under R-B: the unlock does not reach every locked vertex
+- ACOPR57 qp2 (and qp8; qp4 closed at fix round 6 by R-E) still end N3 under R-B: the unlock does not reach every locked vertex
   (qp2: 5 unlocks, 125 minors, kNumericalError).
 - R-B is placed off the border stack by construction; the border algebra reaches the same exchanges
   only after its once-per-solve retreat (ACOPR57 qp0/qp1 retreat 1, border minors = refactorize + 1).
 
 ### Schema note (the harness follows at the next re-take)
 
-NEW `QpCounters::dep_unlocks` (R-B). No counter renamed or removed (`dep_stall_admits` kept: R-D is
-deferred); not aggregated into `SqpCounters`. No consumer note needed for hven-bench beyond the new
+NEW `QpCounters::dep_unlocks` (R-B). No counter renamed or removed (`dep_stall_admits` kept: R-D
+retired, S34 — telemetry); not aggregated into `SqpCounters`. No consumer note needed for hven-bench beyond the new
 field.
+
+
+## Fix round 6 — the converged grey band is re-read to its end (R-E); R-D retired (S33–S35)
+
+Settler S33 (`.superpowers/m7-w2-e2-brief.md`, the clearing of the F1 design note
+`.superpowers/m7-w2-f1-design.md`): R-E exactly as cleared, with the rounding-floor guard measured both
+ways; S34: R-D is RETIRED, not deferred; S35 registered below. Base `e07f8173` (the ladder gate record;
+the sources are `52650ca8`'s, which carry this README's fix round 5 unchanged).
+
+### R-E (landed)
+
+| What | Where |
+|---|---|
+| At every growth site's candidate test, AFTER R-A: a test that returned kIndependent from a CONVERGED refinement (`!stall_admit`) with ρ < kDepUndecidable is re-read by `detail::certificate_coefficients` on the same view and candidate (target 0: refine until a step stops lowering the μ-free residual, at most kDepRefineSteps steps; no factorization). ρ′ + its rounding floor ≤ kDepTol ⇒ kDependent with the re-read's coefficients (the exchange / N1 / N2 / N3 machinery runs on them as for any dependent test); else the kIndependent verdict and ρ stand. The re-read's solves are added to `dep_test_solves`. Stall, undecidable, screen and R-A verdicts are never touched | `src/qp/qp_engine.cpp:3295-3312` (`QpEngine::test_candidate`) |
+| The rounding floor (the guard): κ (n + m) ε (1 + ‖v‖₁) max_k ‖a_k‖ / ‖a‖, κ = `kDepRereadKappa` = 10 (S25′'s `exact_tol` derivation: each entry of a − A_Wᵀv sums ≤ m + 1 products; v's backward error O((n + m) ε) relative to the same product; pins absorb the pinned columns exactly) | `include/hven/detail/qp/ws_independence.h:87-99` (constant + derivation), `:146-149`; `src/qp/ws_independence.cpp:291-311` (`dependency_rounding_floor`) |
+| Counters `dep_grey_rereads` (entries), `dep_grey_reread_dependent` (flips) | `include/hven/core/solver_counters.h:296-302` |
+| The contract: the rule, the theorem, why the converged grey reading is not a distance, R-D retired | `include/hven/detail/qp/qp_engine.h:380-393` (Degeneracy), `include/hven/detail/qp/ws_independence.h:28-32`; TRUSTWORTHY RANGE (ii) `qp_engine.h:240-247` |
+
+**Theorem (the safe direction).** For every v, ρ(v) = ‖(a − A_Wᵀv)_free‖ / ‖a‖ ≥ dist(a_free, span
+A_W,free) / ‖a‖, since A_Wᵀv is one point of that span. With the guard, ρ′ + floor ≤ kDepTol bounds the
+EXACT ρ(v) by kDepTol, so a dependent verdict is certified at the contract's own tolerance ("DEPENDENT iff
+ρ ≤ kDepTol", S23), and R-E can never call dependent a candidate farther than kDepTol from the span.
+Why the converged grey reading lies: the test stops on the KKT residual τ = 0.1·kDepTol·‖a‖∞, which sees
+the μ-solve's A_W u = μv (1e-8 on DALLASM: "converged" at zero refinement steps), while ρ reads
+(H + δ)u, amplified by ‖H‖ and by a rank-deficient A_W.
+
+### The rounding-floor guard: measured with and without (S33)
+
+| | U0 (27 cells × 3 engines, offline) vs `52650ca8` EXACT | U0 vs the M6 close pin, 1e-5 gate | f7 re-reads flipped | corpus (both algebras) |
+|---|---|---|---|---|
+| **with the guard (landed)** | **0 differences, all three engines — byte-exact** | walk 0 (7 within the gate, the known f7 warm digits), ssn 0, ipm 0 | 0 of 3 695 re-reads: 11 thin-margin candidates (ρ′ 4.9e-7..6.4e-7, floor 6.6e-7..1.3e-6) refused | identical to without, row for row |
+| without the guard | 3 differences, all residual-class last digits on f7_n800_path_warm (kkt_residual 4.212497485e-10 → …7625e-10, stationarity, complementarity); 0 status / objective / counter moves | walk 0 (7 within the gate), ssn 0, ipm 0 | 8 of 3 752 | — |
+
+The guard makes U0 byte-exact by refusing exactly the thin-margin f7 flips, and it costs nothing on the
+corpus: every corpus flip reads ρ′ ≤ 1.1e-8 with floor ≤ 2.3e-7 (border 17 384 flips of 17 404 re-reads,
+refactorize 11 141 of 11 161; no re-read with ρ′ ≤ kDepTol refused by the guard), so it keeps every gain
+(the design's 63/64 catch). It is LANDED. Without the guard the 8 U0 flips read ρ′ 1.9e-9..9.9e-7; seven
+of them (ρ′ ≥ 4.9e-7) carry a floor above kDepTol − ρ′.
+Transcripts: `.scratch/m7w2e2fix6/g4/{guard,noguard,final}-*` (`final` = the production build, the
+toggles stripped; `guard` / `noguard` = the measurement build, `.scratch/m7w2e2fix6/measure-src.patch`).
+
+### Fixtures (both algebras; both configurations)
+
+| Fixture | Asserts | Measured (Release, MKL) |
+|---|---|---|
+| `QpE2WorkingSet.AGreyReReadSolvesTheAcopr57RestorationQp` (`tests/qp/test_qp_anti_cycling_arm.cpp:1968`; dump `tests/qp/fixtures/e2-d4/ACOPR57_def-qp4.txt`) | kOptimal with the KKT conditions recomputed from the QP (`expect_e2d4_kkt`), f = −18.3950535 within 1e-6, `dep_grey_reread_dependent ≥ 1`, `dep_blocker_terminations` 0 | kOptimal, 1 736 minors, f −18.3950535429, eq 2.7e-15, stat 4.5e-17; 36 re-reads, 34 flips (the two kept, pins 111 / 345, re-read to 8.6e-5 / 1.4e-4), both algebras. The registered gap (fix round 3) closes by another route |
+| `QpE2WorkingSet.AConvergedGreyPinOnDallasmIsReReadDependent` (`:1991`; dump `DALLASM_def-qp0.txt`) | `dep_grey_rereads ≥ 1`, `dep_grey_reread_dependent == dep_grey_rereads`; a kOptimal must pass the KKT check (status not pinned) | first re-read = pin 98 at pass 9 (border): ρ 3.4e-6 → ρ′ 9.9e-18, floor 5.2e-12 (the design's dense distance ~7e-16); 202 / 202 border, 53 / 53 refactorize; kNumericalError. The settler's "pin 55" is R-A's at this head (it completes equality row 49 structurally, D4 §F1), so the first GREY pin is 98 |
+| `QpE2WorkingSet.AGreyPinOnYorknetThatIsIndependentStaysIndependent` (`:2013`; dump `YORKNET_def-qp1.txt`) | `dep_grey_rereads == 1`, `dep_grey_reread_dependent == 0` | the one re-read is pin 36 at pass 219 (eliminated): ρ 7.669e-4 → ρ′ 7.669e-4 = the dense distance; stays independent; the walk is fix round 5's (596 minors, kNumericalError) |
+| `WsIndependenceCalibration.AGreyReReadNeverFlipsACandidateAboveKDepTol` (`tests/sqp/test_qp_ws_independence.cpp:657`) | S24's candidates (distance 1e-5 / 1e-4 / 5e-4) re-read to ≥ their distance, ρ′ + floor > kDepTol; a multiple of the working row on a stiff face (H = 1e4·I, μ = 1e-8) tests converged-grey and re-reads ≤ 1e-12 with coefficient 3 | both views |
+| `QpEngine.ObjectiveInflatedMultiplierContradictionIsCertifiedOnTheIndependentWorkingSet` (renamed from `…HidesASmallContradiction`, `tests/sqp/test_qp_engine.cpp:835`) and `QpEngine.T6bObjectiveInflatedMultiplierBehavesTheSameInBothAlgebras` (`:865`) | the a = 1e-3 cell: kOptimal → **kInfeasible with an EXACT Farkas certificate** (`farkas.present`, residual ≤ exact_tol), `dep_grey_reread_dependent ≥ 1`, both algebras; with `independent_working_set = false` it is still the footprint miss (kOptimal, TRUSTWORTHY RANGE (ii)) | an HONEST IMPROVEMENT: the old pin was documented WRONG ("KNOWN MISS"); the inequality row is an exact multiple of the equality, admitted by a grey reading inflated by λ ~ 1/(2a²). The comments are corrected; the first test is renamed because "hides" no longer holds on the default walk |
+
+### The 32-dump corpus (`.scratch/m7w2e2fix6/corpus/`, `corpus-table-fix6.md`)
+
+Replayed on a fresh engine with each dump's own options (`qp_dump.h`), the measurement build (Release,
+MKL, one thread). OFF = `independent_working_set` off; ON @ 52650ca8 = the same build with R-E switched
+off (the code path is 52650ca8's). Headline: **kOptimal 7 → 8 on both algebras** (ACOPR57 qp4); no dump to
+a worse status. READING6 qp0/qp1 stay kInfeasible with a verified EXACT certificate (`cert=1 tol=0`), 61 /
+36 minors (75 / 42). Status moves among failure statuses (predicted by the design, §6): DALLASM_def qp1 /
+qp3 and f4 qp2 / qp3 (border) and f4 qp2 / qp3 (refactorize) kNumericalError (N3) → kMaxIter at the 1960
+cap — the grey leaks removed, the walk now cycles at the degenerate vertex (E2-D4 class A) instead of
+ending N3. Minor movers with the status unchanged: DALLASM (the rest), STEENBRB qp3 (264 → 1185),
+YORKNET qp0 (474 → 482), READING6. The guard changes no row (with = without, both algebras).
+
+| dump | OFF | ON@52650ca8 border | ON@52650ca8 refac | ON+R-E border | ON+R-E refac | R-E re-reads / dependent (border; refac) | cert (R-E border) |
+|---|---|---|---|---|---|---|---|
+| ACOPP57_def/qp0 | kMaxIter 1795m | kOptimal 8m | kOptimal 2m | kOptimal 8m | kOptimal 2m | 0/0; 0/0 | 0/0 |
+| ACOPP57_def/qp1 | kMaxIter 1795m | kOptimal 8m | kOptimal 2m | kOptimal 8m | kOptimal 2m | 0/0; 0/0 | 0/0 |
+| ACOPP57_def/qp2 | kMaxIter 1795m | kOptimal 8m | kOptimal 2m | kOptimal 8m | kOptimal 2m | 0/0; 0/0 | 0/0 |
+| ACOPP57_def/qp3 | kMaxIter 1795m | kOptimal 8m | kOptimal 2m | kOptimal 8m | kOptimal 2m | 0/0; 0/0 | 0/0 |
+| ACOPR57_def/qp0 | kOptimal 139m | kOptimal 183m | kOptimal 182m | kOptimal 183m | kOptimal 182m | 1/0; 1/0 | 0/0 |
+| ACOPR57_def/qp1 | kOptimal 154m | kOptimal 182m | kOptimal 181m | kOptimal 182m | kOptimal 181m | 0/0; 0/0 | 0/0 |
+| ACOPR57_def/qp2 | kOptimal 145m | kNumericalError 125m | kNumericalError 124m | kNumericalError 125m | kNumericalError 124m | 0/0; 0/0 | 0/0 |
+| ACOPR57_def/qp3 | kOptimal 3m | kMaxIter 4360m | kMaxIter 4360m | kMaxIter 4360m | kMaxIter 4360m | 0/0; 0/0 | 0/0 |
+| ACOPR57_def/qp4 | kMaxIter 7100m | kNumericalError 26m | kNumericalError 26m | kOptimal 1736m | kOptimal 1736m | 36/34; 36/34 | 0/0 |
+| ACOPR57_def/qp5 | kMaxIter 7100m | kMaxIter 7100m | kMaxIter 7100m | kMaxIter 7100m | kMaxIter 7100m | 0/0; 0/0 | 0/0 |
+| ACOPR57_def/qp6 | kMaxIter 7100m | kMaxIter 7100m | kMaxIter 7100m | kMaxIter 7100m | kMaxIter 7100m | 0/0; 0/0 | 0/0 |
+| ACOPR57_def/qp7 | kMaxIter 7100m | kMaxIter 7100m | kMaxIter 7100m | kMaxIter 7100m | kMaxIter 7100m | 0/0; 0/0 | 0/0 |
+| ACOPR57_def/qp8 | kMaxIter 7100m | kNumericalError 35m | kNumericalError 35m | kNumericalError 35m | kNumericalError 35m | 0/0; 0/0 | 0/0 |
+| DALLASM_def/qp0 | kMaxIter 1960m | kNumericalError 356m | kNumericalError 228m | kNumericalError 215m | kNumericalError 96m | 202/202; 53/53 | 0/0 |
+| DALLASM_def/qp1 | kMaxIter 1960m | kNumericalError 353m | kNumericalError 150m | kMaxIter 1960m | kNumericalError 478m | 3039/3039; 574/574 | 0/0 |
+| DALLASM_def/qp2 | kMaxIter 1960m | kNumericalError 349m | kNumericalError 159m | kNumericalError 1657m | kNumericalError 342m | 3013/3013; 792/792 | 0/0 |
+| DALLASM_def/qp3 | kMaxIter 1960m | kNumericalError 339m | kNumericalError 159m | kMaxIter 1960m | kNumericalError 1652m | 3346/3346; 2948/2948 | 0/0 |
+| DALLASM_f4/qp0 | kMaxIter 1960m | kNumericalError 356m | kNumericalError 228m | kNumericalError 215m | kNumericalError 96m | 202/202; 53/53 | 0/0 |
+| DALLASM_f4/qp1 | kOptimal 161m | kNumericalError 225m | kNumericalError 225m | kNumericalError 261m | kNumericalError 261m | 116/116; 116/116 | 0/0 |
+| DALLASM_f4/qp2 | kMaxIter 1960m | kNumericalError 306m | kNumericalError 160m | kMaxIter 1960m | kMaxIter 1960m | 3684/3684; 3251/3251 | 0/0 |
+| DALLASM_f4/qp3 | kMaxIter 1960m | kNumericalError 306m | kNumericalError 160m | kMaxIter 1960m | kMaxIter 1960m | 3684/3684; 3251/3251 | 0/0 |
+| READING6_def/qp0 | kMaxIter 770m | kInfeasible 75m | kInfeasible 75m | kInfeasible 61m | kInfeasible 61m | 2/2; 1/1 | 1/0 |
+| READING6_def/qp1 | kInfeasible 69m | kInfeasible 42m | kInfeasible 42m | kInfeasible 36m | kInfeasible 36m | 1/1; 1/1 | 1/0 |
+| SAWPATH_def/qp0 | kOptimal 45m | kNumericalError 6m | kNumericalError 6m | kNumericalError 6m | kNumericalError 6m | 1/0; 1/0 | 0/0 |
+| SAWPATH_def/qp1 | kMaxIter 20350m | kMaxIter 20350m | kMaxIter 20350m | kMaxIter 20350m | kMaxIter 20350m | 14/0; 14/0 | 0/0 |
+| SAWPATH_def/qp2 | kOptimal 182m | kNumericalError 6m | kNumericalError 6m | kNumericalError 6m | kNumericalError 6m | 1/0; 1/0 | 0/0 |
+| STEENBRB_def/qp0 | kOptimal 744m | kOptimal 658m | kOptimal 749m | kOptimal 658m | kOptimal 749m | 0/0; 0/0 | 0/0 |
+| STEENBRB_def/qp1 | kMaxIter 4680m | kMaxIter 4680m | kMaxIter 4680m | kMaxIter 4680m | kMaxIter 4680m | 32/32; 38/38 | 0/0 |
+| STEENBRB_def/qp2 | kMaxIter 4680m | kMaxIter 4680m | kMaxIter 4680m | kMaxIter 4680m | kMaxIter 4680m | 0/0; 0/0 | 0/0 |
+| STEENBRB_def/qp3 | kMaxIter 4680m | kNumericalError 264m | kNumericalError 264m | kNumericalError 1185m | kNumericalError 1185m | 1/1; 1/1 | 0/0 |
+| YORKNET_def/qp0 | kOptimal 1030m | kNumericalError 474m | kNumericalError 474m | kNumericalError 482m | kNumericalError 482m | 28/28; 28/28 | 0/0 |
+| YORKNET_def/qp1 | kOptimal 971m | kNumericalError 596m | kNumericalError 596m | kNumericalError 596m | kNumericalError 596m | 1/0; 1/0 | 0/0 |
+| **kOptimal** | 10 | 7 | 7 | 8 | 8 | | |
+
+### Offline U0 G4
+
+Above (the guard table): the production build is byte-exact against `52650ca8` on all 75 columns of all
+27 cells in all three engines; against the M6 close pin under the 1e-5 gate walk 0 differences (7 within
+the gate), ssn 0, ipm 0. No U0 status, objective, counter or residual moved.
+
+### The census (`T7TheFeasibleCensusHalfOverTheFULLDualMuSet`)
+
+Census tool (`.scratch/m7w2e2fix6/census.txt`, the T7 FULL dual-μ cells one line each, the production
+build): **120/120 kOptimal, shut 0, open 0** — byte-identical to fix round 5's `rb-census.txt`; the
+in-suite fixture passes both configurations with `shut_slack_residue` 0 (pin unchanged).
+
+### Re-pins (declared, with attribution)
+
+| Fixture | Was → now | Cause |
+|---|---|---|
+| `QpEngine.ObjectiveInflatedMultiplierHidesASmallContradiction` → **`…ContradictionIsCertifiedOnTheIndependentWorkingSet`** (renamed) and `T6bObjectiveInflatedMultiplierBehavesTheSameInBothAlgebras` | a = 1e-3: kOptimal (documented wrong) → kInfeasible, exact certificate, both algebras | R-E (above): an improvement to the verified answer |
+| `Continuation.ProbeBudgetBoundsAFailingProposal` (the long test; MKL arms) | arm A `off.steps[1].factorizations` 200 → **18**; arm B `on.steps[1].factorizations` 11 → **9**; majors, minors, statuses unchanged | R-E: the cap-pinned proposal's QPs read their converged grey admissions dependent — cost, not correctness. Accelerate arm untouched (UNOBSERVED) |
+| `ScaleF7.WideWindowWalkIsChurnNotDegeneracy` (N 30, p 0.85) | minors 280 → **278**; every other count unchanged (N 50 unchanged) | R-E |
+
+No other status, answer or counter assertion moved. By name: 1 REMOVED
+(`QpEngine.ObjectiveInflatedMultiplierHidesASmallContradiction`), 5 ADDED (the renamed test and the four
+new fixtures).
+
+### Suites (MKL, clang++, `ctest -j4` under `setsid`, the box lock per leg)
+
+Release **2848/2848** (`.scratch/m7w2e2fix6/logs/suite-rel.log` = the first run, 2846/2848 with the two
+declared counter movers failing before their re-pins; `suite-rel-targeted.log` = the re-pinned movers and the
+new fixtures, 8/8); Debug **2847/2847** without the long test (`suite-dbg.log`), the long test **1/1**
+alone (detached, 559 s, `suite-dbg-long.log`; Debug reads the same 18 / 9) — scratch builds of these
+sources. The HS corpus (`HsBattery.*`, `HsSweepCorpus.*`, the HS driver cells) is inside both suites; no
+HS pin moved. Wall (informational): the three dump fixtures cost 6.3 / 5.2 / 0.3 s in Release and
+233 / 302 / 3.4 s in Debug (ACOPR57 qp4 / YORKNET qp1 / DALLASM qp0) — the Debug suite's wall went
+329 → 422 s.
+
+### R-D: retired (S34)
+
+R-D (a stalled refinement is undecidable whatever its ρ) is RETIRED, not deferred. The F1 design note's
+corpus truth: the stall class is 10 582 of 10 583 truly independent admissions outside SAWPATH qp1
+(dense distance ≥ 4e-4 on all, ≥ 1e-3 on 10 576; ρ ≥ 1 — a non-convergent v, not a near-dependence — on
+10 286), and the two fixtures R-D broke (`WarmStart.FullStepModeInheritsElasticAndRestoration`,
+`TheUncertifiedFallbackStillEndsAtAFirstOrderPoint/{0,1}`) moved because R-D re-labelled exactly-independent
+stalls (dense distances 0.7071 and 5.0e-3). `dep_stall_admits` stays, as telemetry. The earlier
+"deferred" text in this README now reads "retired: S34".
+
+### Registered (S35)
+
+- Where the first leak comes from: 412 of 415 truly dependent suspect admissions land on sets that are
+  ALREADY rank-deficient (the entry / seed class F6); R-E stops the walk adding to a leak, it does not
+  repair one.
+- STEENBRB qp3's end under R-E (kNumericalError at 1 185 minors).
+- The scaling class (SAWPATH qp1), where "dependent" is not well defined — class G's equilibration round.
+
+### Schema note (the harness follows at the next re-take)
+
+NEW `QpCounters::dep_grey_rereads`, `QpCounters::dep_grey_reread_dependent` (R-E). No counter renamed or
+removed (`dep_stall_admits` kept as telemetry: R-D retired, S34); not aggregated into `SqpCounters`.
+`dep_test_solves` now also counts the re-reads' solves. No consumer note needed for hven-bench beyond the
+two new fields.
