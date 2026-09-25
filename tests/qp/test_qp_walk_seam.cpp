@@ -701,7 +701,8 @@ TEST(QpWalkSeam, TheTraceAgreesWithTheCountersItMustNotHaveTouched) {
             if (r.degenerate) {
                 ++degenerate;
             }
-            if (r.action == Action::kAdd || r.action == Action::kRideStepped) {
+            if (r.action == Action::kAdd || r.action == Action::kRideStepped ||
+                r.action == Action::kRideUndone) {
                 ++adds;
                 if (r.block == Block::kBound) {
                     ++adds_bound;
@@ -772,6 +773,7 @@ TEST(QpWalkSeam, TheWorkingSetSignatureTracksTheActionsThatChangeIt) {
             switch (r.action) {
             case Action::kAdd:
             case Action::kRideStepped:
+            case Action::kRideUndone:
                 EXPECT_EQ(base + 1, r.ws_size_out) << "an addition grows the set by one";
                 EXPECT_NE(r.ws_sig_in, r.ws_sig_out);
                 EXPECT_NE(Block::kNone, r.block);
@@ -1113,6 +1115,16 @@ TEST(QpWalkSeam, APostDropPassRecordsWhatWasReleasedAndWhyTheRideDidOrDidNotRun)
                     EXPECT_TRUE(r.ride);
                     EXPECT_NE(0, r.ride_sign_chosen);
                     EXPECT_EQ(Action::kRideStepped, r.action);
+                } else if (r.ride_outcome == RideOutcome::kDependentBlocker) {
+                    // §4c's DECLINED RIDE (iii): a sign was chosen, and the add
+                    // site decided the dependent blocker -- never a fall-through
+                    // to the ordinary step, never the released constraint.
+                    EXPECT_NE(0, r.ride_sign_chosen);
+                    EXPECT_TRUE(r.action == Action::kAdd || r.action == Action::kTerminal ||
+                                r.action == Action::kEliminatedRetreat ||
+                                r.action == Action::kRideUnbounded);
+                    EXPECT_FALSE(r.action == Action::kAdd && r.block == r.released_block &&
+                                 r.block_index == r.released_index);
                 } else if (r.ride_outcome == RideOutcome::kSlopeFlatVeto ||
                            r.ride_outcome == RideOutcome::kSignDisagreementVeto) {
                     EXPECT_EQ(0, r.ride_sign_chosen);
@@ -1128,12 +1140,19 @@ TEST(QpWalkSeam, APostDropPassRecordsWhatWasReleasedAndWhyTheRideDidOrDidNotRun)
             }
 
             // THE LINK TO THE LOOP'S OWN RECORD OF THE DROP: the pass before a
-            // post-drop pass is the one whose drop rule released something.
+            // post-drop pass is the one whose drop rule released something --
+            // or a declined ride that RE-ARMED the same release (§4c, THE
+            // DECLINED RIDE: an exchange or a border retreat).
             ASSERT_GT(k, 0u);
             const Record &prev = recs[k - 1];
-            EXPECT_NE(Route::kNone, prev.drop_route)
-                << "a post-drop pass whose predecessor recorded no drop";
-            EXPECT_EQ(prev.block_index, r.released_index);
+            if (prev.ride_outcome == RideOutcome::kDependentBlocker) {
+                EXPECT_EQ(prev.released_index, r.released_index);
+                EXPECT_EQ(prev.released_block, r.released_block);
+            } else {
+                EXPECT_NE(Route::kNone, prev.drop_route)
+                    << "a post-drop pass whose predecessor recorded no drop";
+                EXPECT_EQ(prev.block_index, r.released_index);
+            }
         }
     }
     EXPECT_TRUE(saw_post_drop) << "no case exercised a post-drop pass";

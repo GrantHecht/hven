@@ -194,10 +194,39 @@
 //    inside the loop.
 //
 //    ARMING IS ONE-SHOT: the drop record is consumed on the very next iteration
-//    whether the ride fires, declines, or is never reached. THIS SECTION IS
-//    VACUOUS for a probe-driven drop, which 4b's Post-PROBE restart intercepts.
-//    4c's no-blocker branch and 4b's certification branch are mutually exclusive
-//    by construction and report the same status.
+//    whether the ride fires, is refused, or is never reached -- except where THE
+//    DECLINED RIDE below re-arms it. THIS SECTION IS VACUOUS for a probe-driven
+//    drop, which 4b's Post-PROBE restart intercepts. 4c's no-blocker branch and
+//    4b's certification branch are mutually exclusive by construction and report
+//    the same status.
+//
+//    THE DECLINED RIDE. A drop onto a negative-curvature face never falls
+//    through to a step that re-enters the released constraint. With
+//    independent_working_set, per refusal:
+//    (iii) The ride's first blocker tests DEPENDENT on the pass's factor: it
+//        takes the add site's rule (Degeneracy) along the ride direction,
+//        uncapped -- the exchange (ExchangePick), else the certificate, the
+//        pass-over (the next blocker takes the same rule) or the end. After an
+//        exchange the ride is RE-ARMED and re-taken on the exchanged set (same
+//        null space, fresh factor); an independent blocker reached by pass-over
+//        is a ride step. Finite: a ride step that moves strictly decreases f;
+//        at one point an exchange releases only a member that did not enter
+//        there (the lock) and marks the blocker entered, so at most |W| per
+//        point, inside the zero-motion cap.
+//    (ii) ride_sign's veto (flat slope, or descent against leaving): the drop
+//        is UNDONE -- the released constraint re-enters at this point,
+//        drop-exempt under the zero-motion re-entry rule -- never the ordinary
+//        step. At a KKT point of an independent set g'p = z_s * (leaving rate
+//        of p), so descent and leaving agree and only a noise-level z_s is
+//        flat; ride_sign_vetoes counts every firing.
+//    (i) The null-space veto (p off the retained set's null space): the
+//        ordinary step only when p leaves the released constraint
+//        (dropped_directional(p) < -tol, ride_sign's tolerance); else undone
+//        as in (ii). No reduced-curvature re-read is made.
+//    Counted: dep_ride_blockers, ride_exchanges, ride_declines_fallthrough_blocked,
+//    ride_sign_vetoes.
+//    With the option off, (i) and (ii) fall through to the ordinary step and
+//    (iii) cannot arise.
 //
 //    For STRICTLY CONVEX H the ride branch is UNREACHABLE and the engine is
 //    bit-for-bit unchanged. For PSD-SINGULAR H it IS reachable and behaviour is
@@ -339,8 +368,9 @@
 // linearly independent (qp/ws_independence.h): an entry detector runs on the
 // first factorization and after untested growth or an over-count (Debug
 // asserts that an over-count is always found), and each ratio-test blocker is
-// tested against the pass's factor. A dependent blocker is EXCHANGED for a
-// member (ExchangePick; Gill & Wong 2015, Result 3.4(b)); with no admissible
+// tested against the pass's factor (a ride's too: 4c, THE DECLINED RIDE). A
+// dependent blocker is EXCHANGED for a member (ExchangePick; Gill & Wong 2015,
+// Result 3.4(b)); with no admissible
 // member: a verified EXACT Farkas certificate (multipliers refined mu-free,
 // residual within the rounding floor kCertExactKappa) ends kInfeasible
 // (QpSolution::farkas), a verified TOLERANCED one (residual above the floor,
@@ -1087,10 +1117,26 @@ class QpEngine {
 
     // What one attempt at section 4c's ride did.
     enum class RideOutcome {
-        kStepped,   // moved to a blocker, which joined the working set
-        kUnbounded, // nothing blocks: the QP is unbounded along the ride
-        kDeclined,  // the direction is not ridable: see ride_stays_in_working_set
-                    // and ride_sign. The caller falls back to the ordinary step.
+        kStepped,          // moved to a blocker, which joined the working set
+        kUnbounded,        // nothing blocks: the QP is unbounded along the ride
+        kVetoed,           // the direction is not ridable: ride_stays_in_working_set
+                           // or ride_sign refused it (section 4c, THE DECLINED RIDE)
+        kDependentBlocker, // the ride's first blocker tested dependent on the
+                           // pass's factor; nothing mutated, RideBlocker says
+                           // what blocks (section 4c, THE DECLINED RIDE)
+        kDeclined,         // HVEN_TESTING arms only: the caller falls back to the
+                           // ordinary step
+    };
+
+    // The blocker section 4c's ride found and did not admit (kDependentBlocker):
+    // the add site's rule decides it along `dir`, uncapped.
+    struct RideBlocker {
+        BlockKind kind = BlockKind::kNone;
+        Index idx = -1;
+        BoundState state = BoundState::kFree;
+        double alpha = 0.0;
+        Vec dir;
+        detail::DepTest test;
     };
 
     // Per-solve bookkeeping for section 4b's ZERO-MULTIPLIER PROBE: the order
@@ -1743,11 +1789,14 @@ class QpEngine {
                        Index &solves) const;
 
     // Production's ratio scan with the constraints in `skip` excluded (the
-    // no-admissible rule's pass-over), capped at the unit step.
+    // no-admissible rule's pass-over), capped at the unit step unless
+    // `cap_at_unit` is false (a ride's pass-over: the raw ratio, infinite
+    // exactly when nothing blocks).
     static double ratio_test_excluding(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
                                        const Vec &Aix, const Vec &p,
                                        const std::vector<std::pair<bool, Index>> &skip,
-                                       BlockKind &kind, Index &block_idx, BoundState &block_state);
+                                       BlockKind &kind, Index &block_idx, BoundState &block_state,
+                                       bool cap_at_unit = true);
 
     // Directional derivative of the constraint `dropped` names, along `d`.
     // Stated so that a NEGATIVE value means "d moves into that constraint's
@@ -1766,8 +1815,8 @@ class QpEngine {
     // ride has no such cap, so any component of p out of that null space sails
     // straight through a working row nothing is watching (the HOMOTOPY, where
     // A_j p != 0 by design, and a DEGENERATE working set, where x sits off the
-    // rows by O(dual_mu * |lambda|)). Failing this DECLINES the ride, falling
-    // back to the ordinary capped step, which handles both cases correctly.
+    // rows by O(dual_mu * |lambda|)). Failing this VETOES the ride (section
+    // 4c, THE DECLINED RIDE, says what follows).
     bool ride_stays_in_working_set(const QpProblem &qp, const WorkingSet &ws, const Vec &p) const;
 
     // Which sign of `p` the ride takes, or 0 to DECLINE the ride entirely.
@@ -1787,10 +1836,10 @@ class QpEngine {
     // At a KKT point of the PRE-drop working set the two provably agree; they
     // CAN disagree on a DEGENERATE working set, where the multipliers split
     // among dependent rows and "lambda_c < 0" stops implying that moving off c
-    // improves anything. A disagreement DECLINES, falling through to the
-    // ordinary EQP step.
+    // improves anything. A disagreement VETOES the ride (section 4c, THE
+    // DECLINED RIDE).
     //
-    // A FLAT DIRECTION ALSO DECLINES, and that is load-bearing: it buys no
+    // A FLAT DIRECTION ALSO VETOES, and that is load-bearing: it buys no
     // objective decrease while still pinning a blocker into the working set,
     // which can turn a legitimate small row residual into a spurious
     // kInfeasible at step 5's classifier, and it would contradict 4c's
@@ -1804,16 +1853,16 @@ class QpEngine {
     // have non-positive curvature, so the QP is unbounded below along one of
     // +/-p inside the current working set. Steps to the nearest blocker along
     // the admissible sign and puts that blocker into `ws`. `ws` and `x` are
-    // left untouched on kUnbounded and kDeclined.
+    // left untouched on every outcome but kStepped.
     // CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
     // the model's second derivative -- a first-order mode re-derives or re-labels it).
     // `dep` (independent_working_set): the pass's factor; a dependent ride
-    // blocker declines.
+    // blocker is returned in `blocked` (kDependentBlocker), not admitted.
     RideOutcome ride_negative_curvature(const QpProblem &qp, const DropRecord &dropped,
                                         QpCounters &counters, WalkSeen &seen, const Vec &p,
                                         const Vec &Aix, WorkingSet &ws, Vec &x,
-                                        const detail::DepFactorView *dep,
-                                        const QpOptions &opts) const;
+                                        const detail::DepFactorView *dep, const QpOptions &opts,
+                                        RideBlocker &blocked) const;
 
     // Step 3. Reports the blocking constraint and the step to it.
     //

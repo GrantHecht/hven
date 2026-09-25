@@ -1309,7 +1309,14 @@ void check_soc_costs_what_it_costs() {
     // blocker, and the zero-motion re-entry rule stops release/re-entry churn
     // at fixed points; the majors are unchanged in every SOC pair (asserted
     // above) and every status holds. 22/3371 = 0.65 %.
-    EXPECT_EQ(3371, total_minors) << corpus_table();
+    // RE-DERIVED, M7 W2 NC1 (declared mover): 3371 -> 3365, -6, all of it
+    // HS15's warm arm (99 -> 93 minors, 38 -> 31 factorizations in each KD/SOC
+    // cell). Three of its QPs (n 2, two rows) take a null-space-vetoed ride
+    // whose EQP step re-enters the released constraint: the drop is now undone
+    // (qp_engine.h 4c, THE DECLINED RIDE) instead of the ordinary step, and each
+    // ends kNumericalError at 4 minors instead of 6 -- the same status. Majors,
+    // statuses and every other row identical. 22/3365 = 0.65 %.
+    EXPECT_EQ(3365, total_minors) << corpus_table();
 #endif
 }
 

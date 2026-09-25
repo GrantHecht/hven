@@ -192,6 +192,9 @@ enum class QpWalkAction : int {
     kMoveOnly,
     /// E2's border retreat: the pass is redone on the bound-eliminated path.
     kEliminatedRetreat,
+    /// §4c's DECLINED RIDE: a vetoed ride's drop undone, the released
+    /// constraint re-entering (`block`, `block_index`).
+    kRideUndone,
 };
 
 /// Which block a constraint identity refers to.
@@ -250,6 +253,9 @@ enum class QpWalkRideOutcome : int {
     kUnbounded = 4,
     /// A sign was chosen, a blocker was found, and the iterate moved.
     kStepped = 5,
+    /// A sign was chosen and the first blocker tested DEPENDENT: the add
+    /// site's rule decides it along the ride (§4c, THE DECLINED RIDE).
+    kDependentBlocker = 6,
 };
 
 /// SplitMix64's finalizer, used only to spread constraint tokens before they

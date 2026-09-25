@@ -212,7 +212,19 @@ struct QpCounters {
     // support carries the pins' coefficients (E2 fix1), so a dependency an
     // optional pin creates removes that pin.
     Index dep_recheck_removals = 0;
-    Index dep_ride_declines = 0;
+    // Negative-curvature ride blockers that tested dependent, resolved by the
+    // add site's rule along the ride (qp_engine.h 4c, THE DECLINED RIDE; M7 W2
+    // NC1 -- they declined to the ordinary step before, as dep_ride_declines).
+    Index dep_ride_blockers = 0;
+    Index ride_exchanges = 0; // ... of which exchanged; the ride is re-armed
+    // A vetoed ride (ride_sign, or the null-space veto with a p that does not
+    // leave the released constraint) whose drop was undone, the released
+    // constraint re-entering drop-exempt, instead of the ordinary step.
+    Index ride_declines_fallthrough_blocked = 0;
+    // ride_sign's veto (flat slope or sign disagreement) on the independent
+    // working set; at a KKT point of an independent set only a noise-level
+    // multiplier can produce one (qp_engine.h 4c).
+    Index ride_sign_vetoes = 0;
     Index dep_pin_skips = 0;
     Index ws_count_violations = 0; // passes with me + |W| > n (the integer screen)
     Index dep_untested_growth = 0; // screen-positive checks the detector did not resolve

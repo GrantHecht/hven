@@ -1296,6 +1296,11 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         // considers real: on a NEGLIGIBLE p (handled above) the direction
         // is rounding noise and section 4b's certification branch is the
         // right judge.
+        //
+        // `ride_blocked`: the ride's first blocker tested dependent, and the
+        // add site below decides it along `ride.dir` (THE DECLINED RIDE).
+        bool ride_blocked = false;
+        RideBlocker ride;
         if (dropped.active) {
             const double curvature =
                 p.dot(qp.H.selfadjointView<Eigen::Upper>() * p) / p.squaredNorm();
@@ -1317,8 +1322,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             if (curvature <= curvature_tol) {
                 // The EQP just solved is unbounded below along +/-p within
                 // this working set, so its "solution" is a saddle. Ride
-                // the direction instead -- unless the ride declines, in
-                // which case fall through to the ordinary step.
+                // the direction instead; a refused ride never falls through
+                // to a step that re-enters the released constraint (THE
+                // DECLINED RIDE, section 4c).
                 // p.squaredNorm() is nonzero here: the negligible case
                 // returned above.
 #ifdef HVEN_TESTING
@@ -1328,9 +1334,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
 #endif
                 const RideOutcome outcome = ride_negative_curvature(
                     qp, dropped, counters, seen, p, Aix, ws, x,
-                    eff_opts.independent_working_set ? &pass_view : nullptr, eff_opts);
+                    eff_opts.independent_working_set ? &pass_view : nullptr, eff_opts, ride);
 #ifdef HVEN_TESTING
-                if (outcome != RideOutcome::kDeclined) {
+                if (outcome == RideOutcome::kStepped || outcome == RideOutcome::kUnbounded) {
                     walk_obs.record().action = outcome == RideOutcome::kStepped
                                                    ? detail::testing::QpWalkAction::kRideStepped
                                                    : detail::testing::QpWalkAction::kRideUnbounded;
@@ -1340,9 +1346,14 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                             ? detail::testing::QpWalkRideOutcome::kStepped
                             : detail::testing::QpWalkRideOutcome::kUnbounded;
                 }
-                // kDeclined leaves the outcome to the two hooks inside
+                // A refusal leaves the outcome to the two hooks inside
                 // ride_negative_curvature and ride_sign, which are the only
-                // places the THREE refusals are distinguishable at all.
+                // places the THREE refusals are distinguishable at all; a
+                // dependent blocker is named here.
+                if (outcome == RideOutcome::kDependentBlocker) {
+                    walk_obs.record().ride_outcome =
+                        detail::testing::QpWalkRideOutcome::kDependentBlocker;
+                }
 #endif
                 if (outcome == RideOutcome::kUnbounded) {
                     // Nothing blocks: genuinely unbounded. Same verdict and
@@ -1358,19 +1369,70 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                                    eff_opts);
                     continue;
                 }
+                if (outcome == RideOutcome::kDependentBlocker) {
+                    ride_blocked = true;
+                    ++counters.dep_ride_blockers;
+                } else if (outcome == RideOutcome::kVetoed && eff_opts.independent_working_set) {
+                    // THE DECLINED RIDE, refusals (i) and (ii): the ordinary
+                    // step is taken only for a null-space veto whose p leaves
+                    // the released constraint; otherwise the drop is undone.
+                    const bool sign_veto = ride_stays_in_working_set(qp, ws, p);
+                    const double leaves_tol =
+                        detail::kEngineDenomTol * dropped_gradient_norm(qp, dropped) * p.norm();
+                    if (sign_veto) {
+                        ++counters.ride_sign_vetoes;
+                    }
+                    if (sign_veto || dropped_directional(qp, dropped, p) >= -leaves_tol) {
+                        if (dropped.is_ineq) {
+                            ws.add_ineq(dropped.idx);
+                            mark_ineq_seen(seen, counters, dropped.idx);
+                        } else {
+                            ws.bound_state()[static_cast<std::size_t>(dropped.idx)] = dropped.from;
+                            x(dropped.idx) = dropped.from == BoundState::kAtUpper
+                                                 ? qp.upper(dropped.idx)
+                                                 : qp.lower(dropped.idx);
+                            ++counters.ws_adds_bound;
+                            mark_bound_seen(seen, counters, dropped.idx);
+                        }
+                        ++counters.ws_adds;
+                        (void)pt_admit(seen, counters, dropped.is_ineq, dropped.idx);
+                        ++counters.ride_declines_fallthrough_blocked;
+#ifdef HVEN_TESTING
+                        {
+                            detail::testing::QpWalkMinorRecord &r = walk_obs.record();
+                            r.action = detail::testing::QpWalkAction::kRideUndone;
+                            r.block = dropped.is_ineq ? detail::testing::QpWalkBlock::kIneq
+                                                      : detail::testing::QpWalkBlock::kBound;
+                            r.block_index = dropped.idx;
+                            if (!dropped.is_ineq) {
+                                r.block_side = dropped.from;
+                            }
+                        }
+#endif
+                        continue;
+                    }
+                }
             }
         }
 
         BlockKind kind = BlockKind::kNone;
         Index block_idx = -1;
         BoundState block_state = BoundState::kFree;
+        // The step's direction: the EQP step, or a declined ride's (uncapped).
+        const Vec &sdir = ride_blocked ? ride.dir : p;
+        if (ride_blocked) {
+            kind = ride.kind;
+            block_idx = ride.idx;
+            block_state = ride.state;
+        }
 #ifdef HVEN_TESTING
         // M7 W2 M5's ARM B1 may re-decide WHICH constraint blocks, and with it
         // the step, so the step is a MUTABLE local on this path; the `#else`
         // arm below is production's statement, `const` and all, token for
         // token, and the call here is the same call.
-        double alpha = ratio_test(qp, ws, x, Aix, p, kind, block_idx, block_state,
-                                  /*cap_at_unit=*/true, counters);
+        double alpha = ride_blocked ? ride.alpha
+                                    : ratio_test(qp, ws, x, Aix, p, kind, block_idx, block_state,
+                                                 /*cap_at_unit=*/true, counters);
         // =================================================================
         // ARM B1 -- THE INDEPENDENCE-PRESERVING RATIO TEST
         // (`qp_degeneracy_arm.h`'s ARM B1 block, settler ruling R3).
@@ -1388,7 +1450,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         // armed run on a walk with no dependent blocker is production BY
         // CONSTRUCTION.
         detail::testing::QpB1Outcome b1;
-        if (detail::testing::QpDegeneracyArmState::independent_add_on() &&
+        if (detail::testing::QpDegeneracyArmState::independent_add_on() && !ride_blocked &&
             kind != BlockKind::kNone) {
             // THE ORACLE IS THE ARM'S OWN (amendment A1): a dense
             // rank-revealing QR of the UNREGULARIZED active rows, built inside
@@ -1420,8 +1482,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             }
         }
 #else
-        double alpha = ratio_test(qp, ws, x, Aix, p, kind, block_idx, block_state,
-                                  /*cap_at_unit=*/true, counters);
+        double alpha = ride_blocked ? ride.alpha
+                                    : ratio_test(qp, ws, x, Aix, p, kind, block_idx, block_state,
+                                                 /*cap_at_unit=*/true, counters);
 #endif
 
         // THE ADD SITE (independent_working_set). The blocker is tested
@@ -1447,20 +1510,24 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             const auto oriented = [&](bool is_ineq, Index idx, BoundState side) {
                 if (is_ineq) {
                     return Oriented{
-                        Aix(idx), qp.Ai.row(idx).dot(p), qp.bi(idx),
+                        Aix(idx), qp.Ai.row(idx).dot(sdir), qp.bi(idx),
                         std::max({1.0, std::abs(qp.bi(idx)), ai_row_norm1(idx) * xmag})};
                 }
                 const double sgn = side == BoundState::kAtUpper ? 1.0 : -1.0;
                 const double bound = side == BoundState::kAtUpper ? qp.upper(idx) : qp.lower(idx);
-                return Oriented{sgn * x(idx), sgn * p(idx), sgn * bound,
+                return Oriented{sgn * x(idx), sgn * sdir(idx), sgn * bound,
                                 std::max({1.0, std::abs(bound), xmag})};
             };
             bool undecidable_retreat = false;
+            bool ride_first = ride_blocked;
             while (kind != BlockKind::kNone) {
                 const bool is_ineq = kind == BlockKind::kIneq;
-                const bool moves = alpha * p.lpNorm<Eigen::Infinity>() > step_tol;
-                detail::DepTest t =
-                    test_candidate(qp, ws, pass_view, is_ineq, block_idx, counters, eff_opts);
+                const bool moves = alpha * sdir.lpNorm<Eigen::Infinity>() > step_tol;
+                // A declined ride's first blocker was tested inside the ride.
+                detail::DepTest t = ride_first ? std::move(ride.test)
+                                               : test_candidate(qp, ws, pass_view, is_ineq,
+                                                                block_idx, counters, eff_opts);
+                ride_first = false;
                 // A member the previous pass's re-check removed as a dependent
                 // deferred add, blocking again at this same point (E2 fix1,
                 // D3(b)): the detector's verdict was a proof, so only a
@@ -1563,14 +1630,15 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 BlockKind k2 = BlockKind::kNone;
                 Index i2 = -1;
                 BoundState s2 = BoundState::kFree;
-                const double a2 = ratio_test_excluding(qp, ws, x, Aix, p, passed, k2, i2, s2);
+                const double a2 = ratio_test_excluding(qp, ws, x, Aix, sdir, passed, k2, i2, s2,
+                                                       /*cap_at_unit=*/!ride_blocked);
                 bool within = true;
                 for (const auto &[pi, pidx] : passed) {
                     // A passed-over bound is oriented by the side it would
                     // have been hit on.
-                    const BoundState side = pi              ? BoundState::kFree
-                                            : p(pidx) > 0.0 ? BoundState::kAtUpper
-                                                            : BoundState::kAtLower;
+                    const BoundState side = pi                 ? BoundState::kFree
+                                            : sdir(pidx) > 0.0 ? BoundState::kAtUpper
+                                                               : BoundState::kAtLower;
                     const Oriented po = oriented(pi, pidx, side);
                     if (std::max(0.0, po.cx - po.d + a2 * po.cp) > eff_opts.feas_tol * po.scale) {
                         within = false;
@@ -1614,6 +1682,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 eliminated_only = true;
                 ++counters.dep_border_retreats;
                 farkas = QpFarkasCertificate{}; // a toleranced one is re-derived there
+                if (ride_blocked) {
+                    last_drop = dropped; // the ride is re-taken on the redone pass
+                }
 #ifdef HVEN_TESTING
                 walk_obs.record().action = detail::testing::QpWalkAction::kEliminatedRetreat;
 #endif
@@ -1639,9 +1710,18 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
 #endif
                 break;
             }
+            if (ride_blocked && kind == BlockKind::kNone) {
+                // Every blocker passed over and nothing else blocks the ride:
+                // unbounded, as section 4c's no-blocker branch.
+                status = QpStatus::kNumericalError;
+#ifdef HVEN_TESTING
+                walk_obs.record().action = detail::testing::QpWalkAction::kRideUnbounded;
+#endif
+                break;
+            }
         }
 
-        if (kind != BlockKind::kNone && alpha * p.lpNorm<Eigen::Infinity>() <= step_tol) {
+        if (kind != BlockKind::kNone && alpha * sdir.lpNorm<Eigen::Infinity>() <= step_tol) {
             ++counters.degenerate_steps;
             ++degenerate_run;
             counters.degenerate_run_max = std::max(counters.degenerate_run_max, degenerate_run);
@@ -1657,7 +1737,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             r.action = kind == BlockKind::kNone ? detail::testing::QpWalkAction::kMoveOnly
                                                 : detail::testing::QpWalkAction::kAdd;
             r.alpha = alpha;
-            r.dx_inf = alpha * p.lpNorm<Eigen::Infinity>();
+            r.dx_inf = alpha * sdir.lpNorm<Eigen::Infinity>();
             if (kind != BlockKind::kNone) {
                 r.block = kind == BlockKind::kBound ? detail::testing::QpWalkBlock::kBound
                                                     : detail::testing::QpWalkBlock::kIneq;
@@ -1688,7 +1768,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             // holds -- no factorization and no solve.
             if (kind != BlockKind::kNone) {
                 const double a_dot_p =
-                    kind == BlockKind::kBound ? p(block_idx) : qp.Ai.row(block_idx).dot(p);
+                    kind == BlockKind::kBound ? sdir(block_idx) : qp.Ai.row(block_idx).dot(sdir);
                 const double a_norm = kind == BlockKind::kBound ? 1.0 : qp.Ai.row(block_idx).norm();
                 double lam_inf = 0.0;
                 if (lambda_e.size() > 0) {
@@ -1700,7 +1780,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 const Index dep_rows = qp.me() + detail::testing::qp_walk_ws_size(ws);
                 r.add_a_dot_p = a_dot_p;
                 r.add_leak_bound = eff_opts.dual_mu * lam_inf;
-                r.add_round_floor = std::numeric_limits<double>::epsilon() * a_norm * p.norm();
+                r.add_round_floor = std::numeric_limits<double>::epsilon() * a_norm * sdir.norm();
                 r.add_dep_rows = dep_rows;
                 // The screen is asked of the set WITH the blocker in it, which
                 // is the set the add would create: `me + |W| + 1 > n`.
@@ -1768,14 +1848,19 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             }
         }
 
-        x = (alpha >= 1.0) ? eqp.x : Vec(x + alpha * p);
+        if (ride_blocked) {
+            x += alpha * sdir; // a ride step: no landing point, uncapped
+        } else {
+            x = (alpha >= 1.0) ? eqp.x : Vec(x + alpha * p);
+        }
         if (eff_opts.independent_working_set) {
-            if (alpha * p.lpNorm<Eigen::Infinity>() > step_tol) {
+            if (alpha * sdir.lpNorm<Eigen::Infinity>() > step_tol) {
                 pt_clear(seen); // the iterate moved
             }
             if (xpick.found) {
                 // THE EXCHANGE: remove j, then the blocker joins below; no
-                // ride is armed (the null space is unchanged). Multipliers per
+                // ride is armed (the null space is unchanged) unless the step
+                // is a declined ride's, which is re-armed. Multipliers per
                 // Result 3.4(b): m - sigma v, and sigma on the blocker.
                 const std::vector<Index> &aw = ws.active_ineq();
                 for (std::size_t k = 0; k < aw.size(); ++k) {
@@ -1823,6 +1908,13 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     ++counters.ws_drops_bound;
                 }
                 pt_release(seen, xpick.j_is_ineq, xpick.j);
+                if (ride_blocked) {
+                    // THE DECLINED RIDE (iii): the exchanged set has the same
+                    // null space, so the ride is re-armed and re-taken there
+                    // on a fresh factor.
+                    ++counters.ride_exchanges;
+                    last_drop = dropped;
+                }
             }
             if (kind != BlockKind::kNone) {
                 (void)pt_admit(seen, counters, kind == BlockKind::kIneq, block_idx);
@@ -3746,7 +3838,8 @@ bool QpEngine::verify_farkas(const QpProblem &qp, const WorkingSet &ws,
 double QpEngine::ratio_test_excluding(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
                                       const Vec &Aix, const Vec &p,
                                       const std::vector<std::pair<bool, Index>> &skip,
-                                      BlockKind &kind, Index &block_idx, BoundState &block_state) {
+                                      BlockKind &kind, Index &block_idx, BoundState &block_state,
+                                      bool cap_at_unit) {
     const auto skipped = [&](bool is_ineq, Index idx) {
         return std::find(skip.begin(), skip.end(), std::make_pair(is_ineq, idx)) != skip.end();
     };
@@ -3786,6 +3879,9 @@ double QpEngine::ratio_test_excluding(const QpProblem &qp, const WorkingSet &ws,
             block_idx = i;
             block_state = hit;
         }
+    }
+    if (!cap_at_unit) {
+        return best; // infinite exactly when kind == kNone
     }
     if (kind != BlockKind::kNone && best > 1.0 + detail::kEngineStepTieTol) {
         kind = BlockKind::kNone;
@@ -4302,11 +4398,10 @@ double QpEngine::dropped_gradient_norm(const QpProblem &qp, const DropRecord &dr
     return dropped.is_ineq ? qp.Ai.row(dropped.idx).norm() : 1.0; // ||e_i|| == 1
 }
 
-QpEngine::RideOutcome
-QpEngine::ride_negative_curvature(const QpProblem &qp, const DropRecord &dropped,
-                                  QpCounters &counters, WalkSeen &seen, const Vec &p,
-                                  const Vec &Aix, WorkingSet &ws, Vec &x,
-                                  const detail::DepFactorView *dep, const QpOptions &opts) const {
+QpEngine::RideOutcome QpEngine::ride_negative_curvature(
+    const QpProblem &qp, const DropRecord &dropped, QpCounters &counters, WalkSeen &seen,
+    const Vec &p, const Vec &Aix, WorkingSet &ws, Vec &x, const detail::DepFactorView *dep,
+    const QpOptions &opts, RideBlocker &blocked) const {
     if (!ride_stays_in_working_set(qp, ws, p)) {
 #ifdef HVEN_TESTING
         // The FIRST of section 4c's three refusals: `p` leaves the RETAINED
@@ -4316,11 +4411,11 @@ QpEngine::ride_negative_curvature(const QpProblem &qp, const DropRecord &dropped
             r.ride_outcome = detail::testing::QpWalkRideOutcome::kNullspaceVeto;
         });
 #endif
-        return RideOutcome::kDeclined;
+        return RideOutcome::kVetoed;
     }
     const int sign = ride_sign(qp, dropped, p, x);
     if (sign == 0) {
-        return RideOutcome::kDeclined;
+        return RideOutcome::kVetoed;
     }
     const Vec dir = (sign < 0) ? Vec(-p) : p;
 
@@ -4363,11 +4458,20 @@ QpEngine::ride_negative_curvature(const QpProblem &qp, const DropRecord &dropped
         }
     }
 #endif
-    if (dep != nullptr &&
-        test_candidate(qp, ws, *dep, kind == BlockKind::kIneq, block_idx, counters, opts)
-            .dependent()) {
-        ++counters.dep_ride_declines;
-        return RideOutcome::kDeclined;
+    if (dep != nullptr) {
+        detail::DepTest t =
+            test_candidate(qp, ws, *dep, kind == BlockKind::kIneq, block_idx, counters, opts);
+        if (t.dependent()) {
+            // Not admitted and nothing mutated: the caller's add-site rule
+            // decides it (section 4c, THE DECLINED RIDE).
+            blocked.kind = kind;
+            blocked.idx = block_idx;
+            blocked.state = block_state;
+            blocked.alpha = alpha;
+            blocked.dir = dir;
+            blocked.test = std::move(t);
+            return RideOutcome::kDependentBlocker;
+        }
     }
 
     x += alpha * dir;

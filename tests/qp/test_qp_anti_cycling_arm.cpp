@@ -2027,3 +2027,243 @@ TEST(QpE2WorkingSet, AGreyPinOnYorknetThatIsIndependentStaysIndependent) {
         EXPECT_EQ(s.counters.dep_grey_reread_dependent, 0);
     }
 }
+
+// ===========================================================================
+// (M7 W2 NC1) THE DECLINED RIDE (qp_engine.h section 4c). A drop onto a
+// negative-curvature face never falls through to a step that re-enters the
+// released constraint. On STEENBRB's post-restoration QPs (R1 dumps
+// Cs_STEENBRB_qp3-qp6, n 468, me 96, radius 0.1 / 0.05 / 0.025 / 0.0125) the
+// walk drops pin 312 from its upper bound (multiplier 4.99e-3) onto a face with
+// curvature -1.27e-6; the ride's first blocker is a pin at zero motion (pin 128
+// on qp3, 362 on qp4-qp6) with rate -2.5e-12 along a direction of norm 3.9e3,
+// and it tests DEPENDENT (rho 1.6e-12: e_i = e_j + an equality row). Before
+// NC1 the ride declined, the ordinary capped step re-entered pin 312 at
+// alpha = 0, and the solve ended in zero-motion exhaustion. With NC1 the
+// dependent ride blocker takes the add site's exchange and the ride is re-taken
+// on the exchanged set: kOptimal at the option-off walk's objective.
+// ===========================================================================
+
+namespace {
+
+void expect_the_declined_ride_resolves(const char *file, double f_off, Index off_minors) {
+    const QpDump d = e2d4_dump(file);
+    // The in-cell E2-on outcome (the pre-NC1 walk): stuck, zero-motion exhaustion.
+    EXPECT_NE(d.result.find("status=3"), std::string::npos);
+    EXPECT_NE(d.result.find("zmexh=1"), std::string::npos);
+#ifdef NDEBUG
+    // The option-off walk is untouched (N3): kOptimal at the R1 replay's minors
+    // (Release only: Debug's arithmetic takes a different, equally optimal walk).
+    {
+        QpOptions off = d.opts;
+        off.independent_working_set = false;
+        const QpSolution s_off = hven::test_support::solve_qp_dump(d, off);
+        ASSERT_EQ(static_cast<int>(s_off.status), static_cast<int>(QpStatus::kOptimal));
+        EXPECT_EQ(s_off.counters.minor_iters, off_minors);
+        EXPECT_LE(std::abs(hven::test_support::qp_dump_objective(d, s_off.x) - f_off),
+                  1e-9 * std::abs(f_off));
+        EXPECT_EQ(s_off.counters.dep_ride_blockers, 0);
+        EXPECT_EQ(s_off.counters.ride_declines_fallthrough_blocked, 0);
+    }
+#else
+    (void)off_minors;
+#endif
+    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+        SCOPED_TRACE(e2_name(alg));
+        const QpSolution s = e2d4_solve(d, alg);
+        expect_e2d4_kkt(d, s);
+        EXPECT_LE(std::abs(hven::test_support::qp_dump_objective(d, s.x) - f_off),
+                  1e-7 * std::abs(f_off));
+        EXPECT_EQ(s.counters.zero_motion_exhausted, 0);
+        EXPECT_EQ(s.counters.zero_motion_cap_hits, 0);
+        EXPECT_GE(s.counters.dep_ride_blockers, 1);
+        EXPECT_GE(s.counters.ride_exchanges, 1);
+        EXPECT_EQ(s.counters.ride_declines_fallthrough_blocked, 0);
+        EXPECT_EQ(s.counters.ride_sign_vetoes, 0);
+    }
+}
+
+} // namespace
+
+TEST(QpE2WorkingSet, ADeclinedRideIsExchangedOnSteenbrbRestorationQp3) {
+    expect_the_declined_ride_resolves("Cs_STEENBRB_qp3.txt", -11.5370634375, 596);
+}
+
+TEST(QpE2WorkingSet, ADeclinedRideIsExchangedOnSteenbrbRestorationQp4) {
+    expect_the_declined_ride_resolves("Cs_STEENBRB_qp4.txt", -5.76904694719, 192);
+}
+
+TEST(QpE2WorkingSet, ADeclinedRideIsExchangedOnSteenbrbRestorationQp5) {
+    expect_the_declined_ride_resolves("Cs_STEENBRB_qp5.txt", -2.88465228068, 191);
+}
+
+TEST(QpE2WorkingSet, ADeclinedRideIsExchangedOnSteenbrbRestorationQp6) {
+    expect_the_declined_ride_resolves("Cs_STEENBRB_qp6.txt", -1.44235834209, 184);
+}
+
+namespace {
+
+using RideRead = hven::solvers::detail::testing::QpWalkRideOutcome;
+
+/// min 1/2 (x0^2 + x1^2) - 1/8 x2^2 + 1/2 x0 x2 - 0.4 x1 + 2.25 x2 subject to
+/// x0 <= 0, x1 <= 0, x0 + x1 <= 0 (a DEPENDENT third row), x0, x1 in [-10, 10],
+/// x2 in [-10, 1]. Seeded at (0, 0, 1) on {row 0, row 1, x2 at upper}: the
+/// multipliers are row 0 -0.5, row 1 0.4, x2's 2 (wrong-signed, the largest), so
+/// the walk drops x2 onto the face {x2} with curvature -1/4. The ride leaves x2's
+/// upper bound downward; along it row 2 (= row 0 + row 1) carries the dual_mu
+/// footprint of the rows' multiplier change as a positive rate and blocks,
+/// DEPENDENT. The global minimum (x2 concave: an endpoint; then a convex QP in
+/// x0, x1) is f = -35 at (0, 0, -10).
+QpProblem declined_ride_qp() {
+    QpProblem qp;
+    Eigen::MatrixXd Hd = Eigen::MatrixXd::Zero(3, 3);
+    Hd(0, 0) = 1.0;
+    Hd(1, 1) = 1.0;
+    Hd(2, 2) = -0.25;
+    Hd(0, 2) = 0.5;
+    qp.H = Hd.sparseView(); // upper triangle
+    qp.g = Vec(3);
+    qp.g << 0.0, -0.4, 2.25;
+    qp.Ae.resize(0, 3);
+    qp.be = Vec(0);
+    Eigen::MatrixXd Ai(3, 3);
+    Ai << 1, 0, 0, 0, 1, 0, 1, 1, 0;
+    qp.Ai = Ai.sparseView();
+    qp.bi = Vec::Zero(3);
+    qp.lower = Vec::Constant(3, -10.0);
+    qp.upper = Vec(3);
+    qp.upper << 10.0, 10.0, 1.0;
+    return qp;
+}
+
+QpSolution declined_ride_seed() {
+    QpSolution seed;
+    seed.x = Vec(3);
+    seed.x << 0.0, 0.0, 1.0;
+    seed.bound_state = {BoundState::kFree, BoundState::kFree, BoundState::kAtUpper};
+    seed.ineq_active = {true, true, false};
+    return seed;
+}
+
+struct RideWalk {
+    QpSolution solution;
+    std::vector<hven::solvers::detail::testing::QpWalkMinorRecord> records;
+};
+
+RideWalk declined_ride_walk(const QpOptions &o) {
+    Obs::reset();
+    Obs::active = true;
+    RideWalk w;
+    const QpEngine engine{o};
+    w.solution = engine.solve(declined_ride_qp(), declined_ride_seed());
+    w.records = Obs::records;
+    Obs::active = false;
+    Obs::reset();
+    return w;
+}
+
+} // namespace
+
+TEST(QpE2WorkingSet, ADependentRideBlockerIsExchangedAndTheRideRetaken) {
+    // dual_mu = 1e-5: one refinement step leaves an O(mu^2 * dlambda) footprint on
+    // the rows, a rate far above the ratio test's 1e-12 and inside the ride's
+    // null-space tolerance. The ride's blocker is row 2 or row 0, each dependent
+    // on the working rows; each is EXCHANGED for the member with the smallest
+    // ratio, the ride re-armed and re-taken on the exchanged set (same null
+    // space), until an independent blocker -- x2's lower bound -- ends it.
+    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+        SCOPED_TRACE(e2_name(alg));
+        QpOptions o = e2_opts(alg, 40);
+        o.dual_mu = 1e-5;
+        const RideWalk w = declined_ride_walk(o);
+        const QpSolution &s = w.solution;
+        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+        EXPECT_NEAR(objective(declined_ride_qp(), s.x), -35.0, 1e-7);
+        EXPECT_NEAR(s.x(2), -10.0, 1e-12);
+        EXPECT_GE(s.counters.dep_ride_blockers, 1);
+        EXPECT_EQ(s.counters.ride_exchanges, s.counters.dep_ride_blockers);
+        EXPECT_EQ(s.counters.ride_declines_fallthrough_blocked, 0);
+        EXPECT_EQ(s.counters.ride_sign_vetoes, 0);
+        EXPECT_EQ(s.counters.zero_motion_cap_hits, 0);
+        // The seam: every dependent-blocker pass released x2 and is followed by a
+        // re-armed post-drop pass on the same release; the last ride steps.
+        Index dependent = 0;
+        bool stepped = false;
+        for (std::size_t k = 0; k < w.records.size(); ++k) {
+            const auto &r = w.records[k];
+            if (r.ride_outcome == RideRead::kDependentBlocker) {
+                ++dependent;
+                EXPECT_EQ(r.released_index, 2);
+                EXPECT_NE(r.ride_sign_chosen, 0);
+                EXPECT_EQ(r.action, hven::solvers::detail::testing::QpWalkAction::kAdd);
+                EXPECT_FALSE(r.block == hven::solvers::detail::testing::QpWalkBlock::kBound &&
+                             r.block_index == 2)
+                    << "the released bound never re-enters";
+                ASSERT_LT(k + 1, w.records.size());
+                EXPECT_TRUE(w.records[k + 1].post_drop);
+                EXPECT_EQ(w.records[k + 1].released_index, 2);
+            }
+            if (r.ride_outcome == RideRead::kStepped && r.released_index == 2) {
+                stepped = true;
+            }
+        }
+        EXPECT_EQ(dependent, s.counters.dep_ride_blockers);
+        EXPECT_TRUE(stepped);
+    }
+    // The option-off walk (no dependency test): the ride admits the dependent row
+    // and still reaches the same optimum.
+    QpOptions off = e2_opts(WorkingSetLinearAlgebra::kRefactorize, 40);
+    off.dual_mu = 1e-5;
+    off.independent_working_set = false;
+    const RideWalk w_off = declined_ride_walk(off);
+    EXPECT_EQ(static_cast<int>(w_off.solution.status), static_cast<int>(QpStatus::kOptimal));
+    EXPECT_NEAR(objective(declined_ride_qp(), w_off.solution.x), -35.0, 1e-7);
+    EXPECT_EQ(w_off.solution.counters.dep_ride_blockers, 0);
+}
+
+TEST(QpE2WorkingSet, ANullSpaceVetoedRideNeverStepsBackIntoTheReleasedBound) {
+    // The same QP at dual_mu = 1e-4: the rows' footprint after the refinement
+    // step exceeds the ride's null-space tolerance, so the ride is VETOED (i).
+    // The EQP step re-enters x2's upper bound, so the drop is undone (x2
+    // re-enters drop-exempt) and no step is taken. The option-off walk falls
+    // through instead: its ordinary step re-adds x2 at alpha = 0. Both walks then
+    // cycle WITH motion through the other faces to the iteration cap (a class
+    // registered with NC1: the null-space veto does not recompute the direction);
+    // only the rule is asserted here.
+    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+        SCOPED_TRACE(e2_name(alg));
+        QpOptions o = e2_opts(alg, 40);
+        o.dual_mu = 1e-4;
+        const RideWalk w = declined_ride_walk(o);
+        EXPECT_GE(w.solution.counters.ride_declines_fallthrough_blocked, 1);
+        EXPECT_EQ(w.solution.counters.ride_sign_vetoes, 0);
+        Index undone = 0;
+        for (const auto &r : w.records) {
+            if (!r.post_drop || r.ride_outcome != RideRead::kNullspaceVeto) {
+                continue;
+            }
+            if (r.action == hven::solvers::detail::testing::QpWalkAction::kRideUndone) {
+                ++undone;
+                EXPECT_EQ(r.block_index, r.released_index);
+                EXPECT_GE(r.released_directional, -1e-9) << "undone only when p does not leave";
+            } else {
+                // The ordinary step is taken only along a p that leaves.
+                EXPECT_LT(r.released_directional, 0.0);
+            }
+        }
+        EXPECT_EQ(undone, w.solution.counters.ride_declines_fallthrough_blocked);
+    }
+    QpOptions off = e2_opts(WorkingSetLinearAlgebra::kRefactorize, 40);
+    off.dual_mu = 1e-4;
+    off.independent_working_set = false;
+    const RideWalk w_off = declined_ride_walk(off);
+    bool fell_through = false;
+    for (const auto &r : w_off.records) {
+        if (r.post_drop && r.ride_outcome == RideRead::kNullspaceVeto &&
+            r.action == hven::solvers::detail::testing::QpWalkAction::kAdd &&
+            r.block_index == r.released_index && r.alpha == 0.0) {
+            fell_through = true;
+        }
+    }
+    EXPECT_TRUE(fell_through) << "the option-off contrast: the saddle step re-enters at alpha 0";
+    EXPECT_EQ(w_off.solution.counters.ride_declines_fallthrough_blocked, 0);
+}
