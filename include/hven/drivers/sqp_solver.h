@@ -110,6 +110,16 @@ void upgrade_to_full(const NlpModel &model, const Vec &x, NlpEval &ev);
 ///         propagate deliberately rather than being swallowed here.
 double constraint_violation_l1(const NlpEval &ev);
 
+/// @brief The box half of the violation: sum_i max(0, l_i - x_i) + max(0, x_i - u_i).
+///
+/// Added to constraint_violation_l1 wherever h DECIDES the ladder -- the
+/// restoration resume test and the E2-termination elastic guard -- and nowhere
+/// else: the funnel's iterates are x + p with p inside the QP's own box, so there
+/// the term is zero up to the rounding of x + (l - x), which it must not turn
+/// into a trajectory. 0 on an in-box point; NaN if x is NaN.
+/// @throws std::invalid_argument if the three sizes differ.
+double box_violation_l1(const Vec &x, const Vec &lo, const Vec &up);
+
 /// @brief The KKT measurement of one NLP iterate.
 struct SqpKkt {
     /// @brief inf-norm stationarity residual.

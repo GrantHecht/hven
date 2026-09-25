@@ -51,16 +51,16 @@ enum class QpStatus {
 /// lambda_i are its subgradient certificate -- see SqpResult's own note
 /// for the certificate and sqp_solver.h's RESTORATION PHASE for what
 /// "stationary" is measured as.
-/// - Not certified: restoration could not run to a verdict -- its own
-/// subproblems stalled, or the one-restoration-per-solve cap was already
-/// spent -- so the driver still reports kInfeasible because it holds a
-/// restoration request it cannot service. Then the status means "could not
-/// make progress", a statement about THIS solve and NOT about the model.
+/// - Not certified: the sub-solve converged with h above feas_tol but the
+/// certificate gate refused it (restoration_proximity > 0), or E1's
+/// inconsistent-equalities exit. NO CLAIM is made about the model.
+/// An UNSERVICEABLE restoration request (nested, or past the once-per-solve
+/// cap) is kNumericalError, never kInfeasible (M7 W2 ladder round, L1).
 ///
 /// THE ONLY FIELD DISTINGUISHING THE TWO SHAPES IS
 /// SqpResult::infeasibility_certified. counters.restoration_iters does NOT
-/// distinguish them: it is > 0 on all three exits (certified, nested-stuck,
-/// cap) because a violated entry always spends at least one major restoring.
+/// distinguish them: it is > 0 on both, because a violated entry always
+/// spends at least one major restoring.
 /// Nor does the last history row: its StepVerdict depends on which of the
 /// THREE REQUEST SOURCES raised the restoration (the funnel's signature and
 /// the elastic tier's exhaustion leave kRestore; the radius floor leaves

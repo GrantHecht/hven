@@ -42,6 +42,7 @@
 
 #include <hven/detail/drivers/equality_basis.h>
 #include <hven/detail/drivers/equality_basis_testing.h>
+#include <hven/detail/drivers/ladder_testing.h>
 
 namespace hven::solvers {
 
@@ -546,6 +547,24 @@ double constraint_violation_l1(const NlpEval &ev) {
         h += (v > 0.0 || std::isnan(v)) ? v : 0.0;
     }
     return h;
+}
+
+double box_violation_l1(const Vec &x, const Vec &lo, const Vec &up) {
+    if (lo.size() != x.size() || up.size() != x.size()) {
+        throw std::invalid_argument(
+            fmt::format("box_violation_l1: x has size {}, the box {} / {}; all three must agree",
+                        x.size(), lo.size(), up.size()));
+    }
+    double b = 0.0;
+    for (Index i = 0; i < x.size(); ++i) {
+        // Spelled out, not std::max(0.0, .), so a NaN coordinate survives (see
+        // constraint_violation_l1).
+        const double below = lo(i) - x(i);
+        const double above = x(i) - up(i);
+        b += (below > 0.0 || std::isnan(below)) ? below : 0.0;
+        b += (above > 0.0) ? above : 0.0;
+    }
+    return b;
 }
 
 namespace detail {
@@ -4652,7 +4671,13 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
         // no admissible way to service it. counters.
         // restoration_iters tells the two apart (0 for the nested
         // case, nonzero for the cap).
-        st.resto.status = SolveStatus::kInfeasible;
+        //
+        // SPELLED kNumericalError, NEVER kInfeasible (M7 W2 ladder, L1):
+        // nothing was measured about the model, and the point may well be
+        // feasible (E2-D3: DALLASM at h = 3.6e-13, SAWPATH at h = 0).
+        // kInfeasible is the certified arm's alone. kStalled is not used:
+        // the SQP engine reports it on no exit (solver_status.h).
+        st.resto.status = SolveStatus::kNumericalError;
         st.resto.kkt = mj.kkt;
         st.resto.f = st.ev.f;
         return RestorationOutcome::kRefused;
@@ -5097,7 +5122,10 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     }
     const double h_r = constraint_violation_l1(ev_r);
 
-    if (h_r <= opts_.feas_tol) {
+    // THE RESUME TEST READS THE BOX TOO (M7 W2 ladder, L2): a point inside its
+    // rows but outside its box is not feasible (E2-D3: SAWPATH resumed at h = 0,
+    // 3.56 outside). `h_r` itself stays the rows' measure for the funnel and S5.
+    if (h_r + box_violation_l1(x_r, seam.lower(), seam.upper()) <= opts_.feas_tol) {
         // THE EXCURSION RECORD, WRITTEN BEFORE THE MOVE BELOW takes `ev_r`
         // apart (M7 W2 M2, signal S5). This is the RESUME arm, so `h_out` is
         // inside `feas_tol` by the test above and `f_out` is the objective the
@@ -5268,11 +5296,11 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
                                            });
         break;
     case SolveStatus::kInfeasible:
-        // The sub-solve raised a restoration request of its own,
-        // which nothing can service (nested restoration is not
-        // allowed): the feasibility problem is itself stuck. NO
-        // CLAIM is made about the model.
-        st.resto.status = SolveStatus::kInfeasible;
+        // No sub-solve exit spells this since L1 (its refused nested
+        // request is kNumericalError); kept for exhaustiveness. The
+        // feasibility problem is stuck and NO CLAIM is made about the
+        // model, so it is never passed on as kInfeasible.
+        st.resto.status = SolveStatus::kNumericalError;
         break;
     case SolveStatus::kMaxIter:
         st.resto.status = SolveStatus::kMaxIter;
@@ -6341,7 +6369,38 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
     // ladder's counts below. `fallback_report` is engaged here iff that happened.
     bool elastic_applied = mj.fallback_report.has_value();
     bool rho0_ceiling_hit = mj.fallback_report && mj.fallback_report->rho0_ceiling_hit;
-    if (mj.qs.status == QpStatus::kInfeasible) {
+#ifdef HVEN_TESTING
+    {
+        using detail::testing::SqpLadderSeam;
+        if (SqpLadderSeam::fail_walk_qps > 0 && !is_restoration_sub_driver_ &&
+            mj.walk_owns_this_qp && mj.qs.status == QpStatus::kOptimal &&
+            (!SqpLadderSeam::only_after_resume || st.resto.used)) {
+            --SqpLadderSeam::fail_walk_qps;
+            ++SqpLadderSeam::forced;
+            mj.qs.status = QpStatus::kNumericalError;
+            mj.qs.lambda_e.setZero();
+            mj.qs.lambda_i.setZero();
+            mj.qs.z.setZero();
+            if (SqpLadderSeam::as_e2_termination) {
+                mj.qs.counters.dep_blocker_terminations = 1;
+            }
+        }
+    }
+#endif
+    // F4 WITH THE GUARD (M7 W2 ladder, L3; E2-D1 D4). A walk subproblem that ends
+    // kNumericalError THROUGH an E2 termination is a QP the working set could not
+    // finish, which at an infeasible linearization the shrink ladder cannot fix (a
+    // smaller box is a subset). It opens the elastic tier -- but only where there
+    // is violation for the slacks to carry: at h <= feas_tol the elastic QP has no
+    // slacks and IS the failed QP (E2-D3, DALLASM major 1), so the shrink ladder
+    // stays. h reads the box (L2).
+    const bool e2_termination_to_elastic =
+        mj.walk_owns_this_qp && mj.qs.status == QpStatus::kNumericalError &&
+        (mj.qs.counters.dep_blocker_terminations > 0 || mj.qs.counters.zero_motion_cap_hits > 0 ||
+         mj.qs.counters.dep_certificate_rejections > 0) &&
+        constraint_violation_l1(st.ev) + box_violation_l1(st.x, seam.lower(), seam.upper()) >
+            opts_.feas_tol;
+    if (mj.qs.status == QpStatus::kInfeasible || e2_termination_to_elastic) {
         // The window the ORIGINAL solve was given, folded into the
         // elastic problem's own box: `delta` is what the driver
         // passed through SolveOverrides, and opts_.qp.tr_radius is
@@ -6461,7 +6520,8 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         // `qp_cap_retries` is what records it. The pair is exact:
         // qp_maxiter_exits + qp_cap_retries is the number of capped subproblem
         // ATTEMPTS. kInfeasible reaches neither field: the elastic tier
-        // consumed it one block above.
+        // consumed it one block above -- as it does an E2-terminated
+        // kNumericalError at h > feas_tol (L3).
         switch (mj.qs.status) {
         case QpStatus::kMaxIter:
             ++st.out.counters.qp_maxiter_exits;

@@ -291,4 +291,39 @@ TEST(StartPointProjection, TheOptionsValidatorAcceptsBothStatesAndTheDumpCarries
     EXPECT_NE(os.str().find("project_start_point = true\n"), std::string::npos) << os.str();
 }
 
+// ---------------------------------------------------------------------------
+// THE DEFAULT (M7 W2 ladder, L2 = proposal E5): ON
+// ---------------------------------------------------------------------------
+
+TEST(StartPointProjection, TheDefaultProjectsAndSolvesTheNanStartShape) {
+    // NET3 / STEENBRD / STEENBRE's shape at default options: the OFF pin above
+    // is kNumericalError with f = nan in 0 majors; the default now solves it.
+    EXPECT_TRUE(SqpOptions{}.project_start_point);
+    OutOfBoxSqrtModel model = unit_box_model();
+    SqpOptions o;
+    o.common.print_level = 10;
+    SqpSolver driver(o);
+    const SqpResult out = driver.solve(model, vec2(-1.0, -1.0));
+
+    EXPECT_EQ(out.status, SolveStatus::kOptimal);
+    EXPECT_NEAR(out.f, -2.0 * std::sqrt(5.0), 1e-9);
+    EXPECT_EQ(out.counters.start_point_clamps, 2);
+}
+
+// ---------------------------------------------------------------------------
+// h READS THE BOX where it decides the ladder (L2): box_violation_l1
+// ---------------------------------------------------------------------------
+
+TEST(StartPointProjection, TheBoxHalfOfHIsTheL1DistanceToTheBox) {
+    const Vec lo = vec2(1.0, -kInf);
+    const Vec up = vec2(5.0, 2.0);
+    EXPECT_EQ(box_violation_l1(vec2(2.0, 0.0), lo, up), 0.0);   // inside
+    EXPECT_EQ(box_violation_l1(vec2(1.0, 2.0), lo, up), 0.0);   // on the bounds
+    EXPECT_EQ(box_violation_l1(vec2(-1.0, 3.5), lo, up), 3.5);  // 2 below + 1.5 above
+    EXPECT_EQ(box_violation_l1(vec2(7.0, -1e30), lo, up), 2.0); // an infinite bound moves nothing
+    EXPECT_TRUE(
+        std::isnan(box_violation_l1(vec2(std::numeric_limits<double>::quiet_NaN(), 0.0), lo, up)));
+    EXPECT_THROW(box_violation_l1(Vec::Zero(3), lo, up), std::invalid_argument);
+}
+
 } // namespace hven::solvers

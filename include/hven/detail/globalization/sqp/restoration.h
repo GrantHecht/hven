@@ -115,7 +115,10 @@ class RestorationModel final : public NlpModel {
   public:
     /// @param ev Must be eval_nlp(model, x_entry) -- the entry point's
     /// evaluation, already in hand, from which both the sigmas and the start
-    /// point's slacks are read without a single extra model call.
+    /// point's slacks are read without a single extra model call. The start's
+    /// x-block is x_entry CLAMPED into the model's box (M7 W2 ladder, L2); only
+    /// when that moves a component are the rows re-evaluated, once, at the
+    /// clamped point (`start_clamps()` counts the moved components).
     ///
     /// THE zeta = 0 WRAPPER, i.e. the one that ships: it delegates to the
     /// constructor below with the centre set to `x_entry`, which that overload
@@ -141,6 +144,12 @@ class RestorationModel final : public NlpModel {
 
     /// The proximity weight `zeta` this wrapper was built with; 0 == OFF.
     double proximity() const;
+
+    /// Components of `x_entry` strictly outside the box, clamped into it for
+    /// the start point. 0 on an in-box entry, and 0 when the rows are not finite
+    /// at the clamped point, where the start stays the entry (the centre, at
+    /// zeta > 0, is clamped regardless).
+    Index start_clamps() const;
 
     double eval_f(const Vec &y) const override;
 
@@ -198,6 +207,7 @@ class RestorationModel final : public NlpModel {
     Index nx_ = 0, me_ = 0, mi_ = 0, n_ = 0;
     Vec sigma_e_, sigma_i_;
     Vec lower_, upper_, start_;
+    Index start_clamps_ = 0;
     /// THE PROXIMITY TERM'S THREE PIECES, all empty/zero at the shipped OFF.
     /// `d_` is the d_i of the class note, squared nowhere: the squares are taken
     /// where they are used, so the one stored vector is the one the class note

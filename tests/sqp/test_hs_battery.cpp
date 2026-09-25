@@ -1037,8 +1037,11 @@ TEST(HsBattery, CrashBasisIsANullResultOnTheBatteryWithTwoBoundSeededExceptions)
     // a member instead of admitting it and paying a later removal, and the
     // zero-motion re-entry rule ends the release/re-entry churn at fixed
     // points; both shorten the walks.
-    EXPECT_EQ(minors_off, 804);
-    EXPECT_EQ(minors_on, 801);
+    // M7 W2 ladder round (L2, declared mover): 804/801 -> 802/799 minors. Cause:
+    // HS45's x0 lies outside its box (one component, gap 1) and is projected by
+    // default now; its answer is unchanged.
+    EXPECT_EQ(minors_off, 802);
+    EXPECT_EQ(minors_on, 799);
 #endif
 #ifdef USE_ACCELERATE_SPARSE
     // UNOBSERVED under M7 W2 E2 on Accelerate: the pre-E2 pins stay until the
@@ -1051,8 +1054,10 @@ TEST(HsBattery, CrashBasisIsANullResultOnTheBatteryWithTwoBoundSeededExceptions)
     // re-read (R-C') of a kWrong verdict at the start repair or the terminal
     // check costs one or two extra eliminated factorizations per read, counted
     // in `factorizations` whether or not the read overturns the kWrong.
-    EXPECT_EQ(facts_off, 288);
-    EXPECT_EQ(facts_on, 289);
+    // M7 W2 ladder round (L2, declared mover): 288/289 -> 287/288, HS45's projected
+    // start (above).
+    EXPECT_EQ(facts_off, 287);
+    EXPECT_EQ(facts_on, 288);
 #endif
 }
 

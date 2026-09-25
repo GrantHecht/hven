@@ -429,13 +429,15 @@ gtest_discover_tests(hven_qp_walk_seam_tests DISCOVERY_MODE ${HVEN_GTEST_DISCOVE
 
 ################################################################################
 # SQP equality-basis seam tests (docs/testing.md: the same HVEN_TESTING
-# convention; M7 W2 E1b). The seam (hven/detail/drivers/equality_basis_testing.h)
-# sits in sqp_solver.cpp, whose transitive closure is the whole library, so this
-# target recompiles EVERY source of the hven target a SECOND time with
-# HVEN_TESTING defined, taking hven's own sources, include directories and compile
-# definitions from the target itself (derived, not carried; the link line is the
-# other seam targets' own), and does not link hven::hven: libhven.a's objects and these define
-# the same symbols.
+# convention; M7 W2 E1b), and since the M7 W2 ladder round the SQP ladder seam's
+# (hven/detail/drivers/ladder_testing.h, the sixth seam). Both seams (the first
+# is hven/detail/drivers/equality_basis_testing.h) sit in sqp_solver.cpp, whose
+# transitive closure is the whole library, so this target recompiles EVERY
+# source of the hven target a SECOND time with HVEN_TESTING defined, taking
+# hven's own sources, include directories and compile definitions from the
+# target itself (derived, not carried; the link line is the other seam targets'
+# own), and does not link hven::hven: libhven.a's objects and these define the
+# same symbols.
 #
 # THERE ARE NOW FOUR TARGETS IN THIS TREE THAT DEFINE HVEN_TESTING -- the three
 # above and this one. The property that matters holds of all four: each is a
@@ -445,6 +447,7 @@ gtest_discover_tests(hven_qp_walk_seam_tests DISCOVERY_MODE ${HVEN_GTEST_DISCOVE
 add_executable(hven_sqp_seam_tests
     $<TARGET_PROPERTY:hven,SOURCES>
     sqp/test_sqp_equality_basis_seams.cpp
+    sqp/test_sqp_ladder_seams.cpp
 )
 target_compile_definitions(hven_sqp_seam_tests PRIVATE
     $<TARGET_PROPERTY:hven,COMPILE_DEFINITIONS> HVEN_TESTING=1)

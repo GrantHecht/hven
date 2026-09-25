@@ -258,7 +258,9 @@ RestorationModel::RestorationModel(const NlpModel &model, const Vec &x_entry, co
     // centre, and |x_{k,i}| == 0 takes the first branch without a division.
     if (proximity > 0.0) {
         zeta_ = proximity;
-        centre_ = x_centre;
+        // THE CENTRE IS CLAMPED INTO THE BOX (M7 W2 ladder, L2), like the start
+        // below: a term pulling x toward an out-of-box point would pull it out.
+        centre_ = x_centre.cwiseMax(model.lower()).cwiseMin(model.upper());
         d_ = Vec::Ones(nx_);
         for (Index i = 0; i < nx_; ++i) {
             const double a = std::abs(centre_(i));
@@ -289,19 +291,60 @@ RestorationModel::RestorationModel(const NlpModel &model, const Vec &x_entry, co
     upper_.head(nx_) = model.upper();
 
     // THE START POINT IS FEASIBLE FOR THIS WRAPPER BY CONSTRUCTION, with
-    // objective exactly h(x_entry): put each row's whole violation into
+    // objective exactly h(x_start): put each row's whole violation into
     // the slack that absorbs it, in that slack's own units.
+    //
+    // x_start IS x_entry CLAMPED INTO THE BOX (M7 W2 ladder, L2). An
+    // out-of-box entry (E2-D3: YORKNET's CUTEst x0, 40 components) made the
+    // sub-solve's first QP box-infeasible. Only then are the rows re-evaluated,
+    // once, at the clamped point; the sigmas stay the entry's. An in-box entry
+    // takes the original arithmetic, with no model call.
+    const Vec &lo = model.lower();
+    const Vec &up = model.upper();
+    for (Index i = 0; i < nx_; ++i) {
+        if (x_entry(i) < lo(i) || x_entry(i) > up(i)) {
+            ++start_clamps_;
+        }
+    }
     start_ = Vec::Zero(n_);
-    start_.head(nx_) = x_entry;
+    Vec ce_start, ci_start;
+    if (start_clamps_ > 0) {
+        start_.head(nx_) = x_entry.cwiseMax(lo).cwiseMin(up);
+        const Vec xs = start_.head(nx_);
+        if (me_ > 0) {
+            model.eval_ce_in_place(xs, ce_start);
+        }
+        if (mi_ > 0) {
+            model.eval_ci_in_place(xs, ci_start);
+        }
+        // A model that cannot be evaluated at its own bound keeps the entry: the
+        // sub-solve refuses a non-finite start by throwing, and the entry's rows
+        // are finite (the driver requests restoration only from a measured point).
+        if (!ce_start.allFinite() || !ci_start.allFinite()) {
+            start_clamps_ = 0;
+            start_.head(nx_) = x_entry;
+        }
+    } else {
+        start_.head(nx_) = x_entry;
+    }
+    const Vec &ce = start_clamps_ > 0 ? ce_start : ev.ce;
+    const Vec &ci = start_clamps_ > 0 ? ci_start : ev.ci;
+    if (ce.size() != me_ || ci.size() != mi_) {
+        throw std::invalid_argument(
+            fmt::format("RestorationModel: the start point's rows are {} / {}, expected {} / {}",
+                        ce.size(), ci.size(), me_, mi_));
+    }
     for (Index k = 0; k < me_; ++k) {
-        const double c = ev.ce(k);
+        const double c = ce(k);
         start_(nx_ + k) = std::max(0.0, -c) / sigma_e_(k);      // sp
         start_(nx_ + me_ + k) = std::max(0.0, c) / sigma_e_(k); // sm
     }
     for (Index j = 0; j < mi_; ++j) {
-        start_(nx_ + 2 * me_ + j) = std::max(0.0, ev.ci(j)) / sigma_i_(j); // si
+        start_(nx_ + 2 * me_ + j) = std::max(0.0, ci(j)) / sigma_i_(j); // si
     }
 }
+
+Index RestorationModel::start_clamps() const { return start_clamps_; }
 
 Index RestorationModel::n() const { return n_; }
 

@@ -1043,6 +1043,30 @@ read off the `hven` target itself, the link line the other seam targets' own —
 That makes FOUR targets defining `HVEN_TESTING`; the property that matters, no
 `hven::hven` link, holds of all four.
 
+## A sixth seam, in the SQP driver: the ladder (M7 W2 ladder round)
+
+`hven/detail/drivers/ladder_testing.h` declares
+`hven::solvers::detail::testing::SqpLadderSeam`, `#ifdef HVEN_TESTING` only, read at
+one guarded point in `src/drivers/sqp_solver.cpp`'s `run_major`, just above the
+elastic tier's entry test (an Apache-2.0 file this repository wrote; no deviation).
+It ends the TOP-LEVEL driver's next `fail_walk_qps` kOptimal walk subproblems the
+way the engine's own N3 exit ends one — `kNumericalError`, multipliers cleared, the
+iterate kept, and (by default) `dep_blocker_terminations = 1` — optionally only once
+the solve's one restoration has resumed. The restoration sub-driver is never
+touched.
+
+It is an INJECTED result, and faithful for the one question it serves: how the
+driver routes a failed QP (L1's refused-request spelling, L3's E2-termination
+routing and its `h > feas_tol` guard). The QPs it stands in for are the ones E2-D3
+dumped and the engine does not solve (DALLASM's major-1 QP at a feasible point;
+READING6's E2 terminations), which no model small enough for a unit test
+reproduces. It says nothing about the engine itself: a real N3 exit's iterate is
+wherever the walk stopped, the injected one is the solved optimum, so a fixture
+reading the iterate after a forced failure reads a better point than the engine
+would hand back. Fixtures: `tests/sqp/test_sqp_ladder_seams.cpp`
+(`SqpLadderSeam.*`), compiled into `hven_sqp_seam_tests` beside the fifth seam's.
+No new target, no `notices/` entry.
+
 ## Alternatives considered and rejected
 
 - **Putting the two FAULT INJECTORS inside the session files** rather than at

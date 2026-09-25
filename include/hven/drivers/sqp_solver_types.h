@@ -669,8 +669,12 @@ struct SqpOptions {
 
     /// THE OUT-OF-BOX START POINT: project it, or take it verbatim (M7 W2 M4).
     ///
+    /// DEFAULT TRUE since the M7 W2 ladder round (L2 = proposal E5; E2-D3 found
+    /// YORKNET's and SAWPATH's CUTEst x0 outside their own box). The dump line
+    /// moved with it -- a declared event.
+    ///
     /// `solve()` checks `x0`'s SIZE and its FINITENESS and has never checked its
-    /// BOX. FALSE -- what this engine does today -- therefore means the start
+    /// BOX. FALSE -- the default before the ladder round -- therefore means the start
     /// point is TAKEN VERBATIM: an out-of-box `x0` is not refused, it is
     /// evaluated where it stands. On a model whose objective or constraints are
     /// undefined outside the box that first evaluation is non-finite, and the
@@ -712,7 +716,7 @@ struct SqpOptions {
     /// NOT a curvature source (docs/counters.md): it selects where the solve
     /// starts, not whether or how any second-order reading is taken.
     /// @see docs/notes/2026-09-m7-w2-sqp-cutest-read.md section M4
-    bool project_start_point = false;
+    bool project_start_point = true;
 
     /// THE CONSECUTIVE-SUBPROBLEM-FAILURE BUDGET (M7 W2 M1).
     ///
@@ -1451,9 +1455,10 @@ struct SqpResult : SolveResult {
     ///
     /// False on EVERY OTHER exit, including other kInfeasible ones, and that is
     /// what this flag is for. It is NOT reliably derivable from the status or the
-    /// counters: a solve that restored once and then met a second request, and a
-    /// solve whose restoration was itself stuck, both report kInfeasible with
-    /// restoration_iters > 0. Nor is the last row's verdict a reliable
+    /// counters. (Before the M7 W2 ladder round a solve that restored once and
+    /// then met a second request, and one whose restoration was itself stuck,
+    /// both reported kInfeasible with restoration_iters > 0; both are
+    /// kNumericalError now, L1.) Nor is the last row's verdict a reliable
     /// discriminator: it is kRestore from the funnel's signature or the elastic
     /// tier's exhaustion but kReject from the radius floor, and any of the three
     /// kInfeasible outcomes can pair with either shape.

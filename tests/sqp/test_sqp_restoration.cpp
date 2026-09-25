@@ -627,8 +627,11 @@ TEST(RestorationModel, ScalesSlackColumnsToTheirJacobianRow) {
         // AND THE OBJECTIVE STILL PRICES THE ACTUAL VIOLATION, which is what
         // keeps h -- not some rescaled surrogate -- the thing being minimized:
         // the slack VARIABLE is the violation in units of sigma, the objective
-        // COEFFICIENT is sigma, so the product is the violation itself.
-        EXPECT_DOUBLE_EQ(r.eval_f(r.start_point()), constraint_violation_l1(ev));
+        // COEFFICIENT is sigma, so the product is the violation itself. Read at
+        // the START's x, which is the entry clamped into [-3, 3] (M7 W2 ladder,
+        // L2: x1 = 0.5 s is outside for s >= 1e4); the sigmas stay the entry's.
+        const Vec xs = r.original_x(r.start_point());
+        EXPECT_DOUBLE_EQ(r.eval_f(r.start_point()), constraint_violation_l1(eval_nlp(model, xs)));
     }
 }
 
@@ -679,17 +682,20 @@ TEST(RestorationModelProximity, IsTheHandComputedTermAtEveryScalingBranch) {
     }
     {
         Vec centre(2);
-        centre << 4.0, 2.0; // branch 3, twice: d = (0.25, 0.5)
+        // branch 3, twice: d = (0.4, 0.5). INSIDE the box [-3, 3]: the wrapper
+        // clamps its centre (M7 W2 ladder, L2), so an outside centre would be
+        // read at the box (RestorationModelClampedStart pins that).
+        centre << 2.5, 2.0;
         const RestorationModel r(model, x_entry, ev, centre, 2.0);
         Vec y = r.start_point();
-        y(0) = 0.0; // x - centre = (-4, -2)
+        y(0) = 0.0; // x - centre = (-2.5, -2)
         y(1) = 0.0;
-        const double d0 = 0.25, d1 = 0.5;
-        const double p_y = 0.5 * 2.0 * ((d0 * -4.0) * (d0 * -4.0) + (d1 * -2.0) * (d1 * -2.0));
-        const double p_start = 0.5 * 2.0 * ((d0 * (2.0 - 4.0)) * (d0 * (2.0 - 4.0)) + 0.0 * 0.0);
+        const double d0 = 0.4, d1 = 0.5;
+        const double p_y = 0.5 * 2.0 * ((d0 * -2.5) * (d0 * -2.5) + (d1 * -2.0) * (d1 * -2.0));
+        const double p_start = 0.5 * 2.0 * ((d0 * (2.0 - 2.5)) * (d0 * (2.0 - 2.5)) + 0.0 * 0.0);
         EXPECT_DOUBLE_EQ(r.eval_f(y) - r.eval_f(r.start_point()), p_y - p_start);
         const Vec g = r.eval_grad(y);
-        EXPECT_DOUBLE_EQ(g(0), 2.0 * d0 * d0 * (-4.0));
+        EXPECT_DOUBLE_EQ(g(0), 2.0 * d0 * d0 * (-2.5));
         EXPECT_DOUBLE_EQ(g(1), 2.0 * d1 * d1 * (-2.0));
 
         // THE CURVATURE IS THE TERM'S OWN SECOND DERIVATIVE, zeta*d_i^2 on the
@@ -1441,8 +1447,10 @@ TEST(SqpDriverRestoration, SecondRequestIsCappedAndReported) {
     EXPECT_EQ(log.resumes.size(), 1u);
     EXPECT_GE(sol.counters.restoration_iters, 1);
     EXPECT_GT(sol.counters.steps_accepted, 1) << "the resumed loop made real progress";
-    // ...and the second is reported rather than serviced.
-    EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
+    // ...and the second is reported rather than serviced -- as kNumericalError,
+    // never kInfeasible (M7 W2 ladder, L1; re-pinned from kInfeasible: this
+    // fixture's NLP is feasible, so kInfeasible was the wrong answer).
+    EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
     EXPECT_FALSE(sol.infeasibility_certified)
         << "the cap exit makes NO claim about the model -- and this fixture's NLP is in fact "
            "feasible, so a certificate here would be a wrong answer, not a conservative one";
@@ -1456,8 +1464,8 @@ TEST(SqpDriverRestoration, SecondRequestIsCappedAndReported) {
     // leaves kReject on its last row (sqp_solver.h's RESTORATION PHASE note
     // has the corrected decision table; SqpDriverRadius.
     // FloorRaisesTheRestorationRequest exercises that route). So neither
-    // field tells the three kInfeasible outcomes apart -- that is exactly why
-    // the flag exists (sqp_solver_types.h's SqpResult::infeasibility_certified).
+    // field says which exit this is -- the status and the flag do
+    // (sqp_solver_types.h's SqpResult::infeasibility_certified).
     EXPECT_GE(sol.counters.restoration_iters, 1);
     EXPECT_LT(sol.counters.major_iters, opts.max_iter)
         << "the cap must END the solve, not let it grind to the budget";
@@ -2421,14 +2429,16 @@ TEST(SqpDriverRestorationExcursion, ARefusedSecondRequestLeavesTheFirstEntrysRec
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(model);
 
-    ASSERT_EQ(sol.status, SolveStatus::kInfeasible);
+    // kNumericalError since the M7 W2 ladder round (L1): a refused request is never
+    // spelled kInfeasible.
+    ASSERT_EQ(sol.status, SolveStatus::kNumericalError);
     ASSERT_EQ(log.resumes.size(), 1u) << "fixture premise: one serviced request, one refused";
     // THE CAP EXIT RAN NO PHASE AND MEASURED NOTHING, so it moves neither the
     // count nor the four absolutes: this solve requested restoration TWICE and
     // reports ONE entry.
     EXPECT_EQ(sol.counters.restoration_entries, 1);
     // And the record is still the SERVICED entry's -- which resumed, so its
-    // h_out is inside feas_tol even though the solve ends kInfeasible. A
+    // h_out is inside feas_tol even though the solve ends unsuccessfully. A
     // reader that inferred the exit from the record alone would be wrong, and
     // that is the point of `infeasibility_certified` being the field that says
     // which exit this is.
@@ -3333,6 +3343,129 @@ TEST(SqpDriverRestorationProximity, TheProductionCentreIsTheRequestingIterateNot
                                                 "nearest_candidate={:.4e} rivals={} kkt_tol={:g}",
                                                 kCentreZeta, at_x_k, closest_rival,
                                                 nearest_candidate, rivals, opts.kkt_tol));
+}
+
+// =========================================================================
+// THE CLAMPED START (M7 W2 ladder, L2). An entry outside the box (E2-D3:
+// YORKNET's CUTEst x0, 40 components) made the sub-solve's first QP
+// box-infeasible. The wrapper's start is the entry CLAMPED into the box, with
+// the rows re-read there; an in-box entry is the wrapper that shipped.
+// =========================================================================
+namespace {
+// min 0  s.t.  x0 + x1 - 1 = 0,  x0 - x1 - 3 <= 0,  0 <= x <= 5.
+class BoxedLineModel : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 1; }
+    Index mi() const override { return 1; }
+    double eval_f(const Vec &) const override { return 0.0; }
+    Vec eval_grad(const Vec &) const override { return Vec::Zero(2); }
+    Vec eval_ce(const Vec &x) const override { return Vec::Constant(1, x(0) + x(1) - 1.0); }
+    Vec eval_ci(const Vec &x) const override { return Vec::Constant(1, x(0) - x(1) - 3.0); }
+    SpMatRM eval_hess(const Vec &, double, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.makeCompressed();
+        return h;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> j(1, 2);
+        j.insert(0, 0) = 1.0;
+        j.insert(0, 1) = 1.0;
+        j.makeCompressed();
+        return j;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> j(1, 2);
+        j.insert(0, 0) = 1.0;
+        j.insert(0, 1) = -1.0;
+        j.makeCompressed();
+        return j;
+    }
+    const Vec &lower() const override {
+        static const Vec l = Vec::Zero(2);
+        return l;
+    }
+    const Vec &upper() const override {
+        static const Vec u = Vec::Constant(2, 5.0);
+        return u;
+    }
+    Vec start_point() const override { return Vec::Ones(2); }
+};
+} // namespace
+
+TEST(RestorationModelClampedStart, AnOutOfBoxEntryStartsClampedWithItsRowsReadThere) {
+    BoxedLineModel model;
+    Vec x_entry(2);
+    x_entry << -2.0, 6.0; // both outside [0, 5]; the rows read 3 here, 4 at (0, 5)
+    const NlpEval ev = eval_nlp(model, x_entry);
+    ASSERT_DOUBLE_EQ(constraint_violation_l1(ev), 3.0);
+    const RestorationModel r(model, x_entry, ev);
+
+    EXPECT_EQ(r.start_clamps(), 2);
+    const Vec y = r.start_point();
+    ASSERT_EQ(y.size(), 5); // (x0, x1, sp, sm, si)
+    EXPECT_EQ(y(0), 0.0);
+    EXPECT_EQ(y(1), 5.0);
+    EXPECT_EQ(y(2), 0.0); // sp
+    EXPECT_EQ(y(3), 4.0); // sm: cE(0, 5) = 4, sigma 1
+    EXPECT_EQ(y(4), 0.0); // si: cI(0, 5) = -8
+    // The start is inside the wrapper's box and satisfies its rows.
+    for (Index i = 0; i < y.size(); ++i) {
+        EXPECT_GE(y(i), r.lower()(i));
+        EXPECT_LE(y(i), r.upper()(i));
+    }
+    EXPECT_DOUBLE_EQ(r.eval_ce(y)(0), 0.0);
+    EXPECT_LE(r.eval_ci(y)(0), 0.0);
+    // Its objective is h at the CLAMPED point, not at the entry.
+    EXPECT_DOUBLE_EQ(r.eval_f(y), 4.0);
+    // At zeta > 0 the centre is clamped too: the proximity gradient vanishes there.
+    const RestorationModel rp(model, x_entry, ev, x_entry, 2.0);
+    EXPECT_EQ(rp.start_clamps(), 2);
+    const Vec g = rp.eval_grad(rp.start_point());
+    EXPECT_EQ(g(0), 0.0);
+    EXPECT_EQ(g(1), 0.0);
+}
+
+// A model that cannot be evaluated AT its own bound keeps the entry: the sub-solve
+// throws on a non-finite start, and the entry's rows are finite.
+TEST(RestorationModelClampedStart, ANonFiniteClampedPointKeepsTheEntry) {
+    class SingularAtTheBoundModel : public BoxedLineModel {
+      public:
+        Vec eval_ce(const Vec &x) const override {
+            return Vec::Constant(1, x(0) == 0.0 ? std::numeric_limits<double>::quiet_NaN()
+                                                : x(0) + x(1) - 1.0);
+        }
+    };
+    SingularAtTheBoundModel model;
+    Vec x_entry(2);
+    x_entry << -2.0, 6.0;
+    const NlpEval ev = eval_nlp(model, x_entry);
+    ASSERT_TRUE(ev.all_finite);
+    const RestorationModel r(model, x_entry, ev);
+
+    EXPECT_EQ(r.start_clamps(), 0);
+    EXPECT_EQ(r.original_x(r.start_point()), x_entry);
+    EXPECT_TRUE(r.start_point().allFinite());
+    EXPECT_EQ(r.start_point()(3), 3.0); // sm from the ENTRY's cE = 3
+}
+
+TEST(RestorationModelClampedStart, AnInBoxEntryIsTheWrapperThatShipped) {
+    BoxedLineModel model;
+    Vec x_entry(2);
+    x_entry << 1.0, 2.0;
+    const NlpEval ev = eval_nlp(model, x_entry);
+    const RestorationModel r(model, x_entry, ev);
+
+    EXPECT_EQ(r.start_clamps(), 0);
+    // The pre-L2 formula, byte for byte: x_entry, then the slacks from `ev`.
+    Vec expect(5);
+    expect << x_entry(0), x_entry(1), std::max(0.0, -ev.ce(0)), std::max(0.0, ev.ce(0)),
+        std::max(0.0, ev.ci(0));
+    EXPECT_EQ(r.start_point(), expect);
+    // On a bound is not outside it.
+    Vec on_bound(2);
+    on_bound << 0.0, 5.0;
+    EXPECT_EQ(RestorationModel(model, on_bound, eval_nlp(model, on_bound)).start_clamps(), 0);
 }
 
 HVEN_SUPPRESS_DEPRECATED_END

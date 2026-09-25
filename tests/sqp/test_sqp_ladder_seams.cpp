@@ -1,0 +1,233 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
+// test_sqp_ladder_seams.cpp — the M7 W2 ladder round's driver fixtures through the
+// HVEN_TESTING ladder seam (hven/detail/drivers/ladder_testing.h; docs/testing.md,
+// the sixth seam). Compiled only into hven_sqp_seam_tests.
+//
+//   L1  DALLASM's shape: restoration succeeds, the next QP at the feasible point
+//       fails, the radius reaches the floor and the once-per-solve cap refuses the
+//       second request -- spelled kNumericalError, never kInfeasible, at h <= feas_tol.
+//   L3  READING6's shape: a QP ended by an E2 termination at h > feas_tol opens the
+//       elastic tier; at a feasible iterate the shrink ladder stays (the DALLASM
+//       major-1 guard); a plain kNumericalError keeps the shrink ladder; the guard's
+//       h reads the box (L2).
+
+#include <cmath>
+#include <utility>
+#include <vector>
+
+#include <Eigen/Dense>
+#include <gtest/gtest.h>
+
+#include <hven/detail/drivers/ladder_testing.h>
+#include <hven/drivers/sqp_solver.h>
+#include <hven/drivers/sqp_solver_types.h>
+
+#include "support/qp_as_nlp_model.h"
+
+namespace hven::solvers {
+namespace {
+
+using test_support::QpAsNlpModel;
+using Seam = detail::testing::SqpLadderSeam;
+
+struct SeamReset {
+    SeamReset() { Seam::reset(); }
+    ~SeamReset() { Seam::reset(); }
+};
+
+// test_sqp_restoration.cpp's RunawayValleyModel (SecondRequestIsCappedAndReported):
+// restoration is entered once and RESUMES at a feasible point.
+class RunawayValleyModel : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 1; }
+    Index mi() const override { return 0; }
+    double eval_f(const Vec &x) const override {
+        return -10.0 * x(1) - 0.01 * x(0) + 0.0005 * (x(0) * x(0) + x(1) * x(1));
+    }
+    Vec eval_grad(const Vec &x) const override {
+        Vec g(2);
+        g << 0.001 * x(0) - 0.01, 0.001 * x(1) - 10.0;
+        return g;
+    }
+    Vec eval_ce(const Vec &x) const override {
+        Vec c(1);
+        c << x(1) + 1000.0 * x(0) * x(0);
+        return c;
+    }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &lambda_e,
+                      const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = obj_scale * 0.001 + lambda_e(0) * 2000.0;
+        h.insert(1, 1) = obj_scale * 0.001;
+        h.makeCompressed();
+        return h;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &x) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> j(1, 2);
+        j.insert(0, 0) = 2000.0 * x(0);
+        j.insert(0, 1) = 1.0;
+        j.makeCompressed();
+        return j;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &) const override {
+        return Eigen::SparseMatrix<double, Eigen::RowMajor>(0, 2);
+    }
+    const Vec &lower() const override {
+        static const Vec l = Vec::Constant(2, -1e20);
+        return l;
+    }
+    const Vec &upper() const override {
+        static const Vec u = Vec::Constant(2, 1e20);
+        return u;
+    }
+    Vec start_point() const override {
+        Vec x(2);
+        x << 0.0, 0.5;
+        return x;
+    }
+};
+
+// min 1/2 |x|^2 - x0  s.t.  x0 + x1 = 2,  -10 <= x <= 10.  Optimum (1.5, 0.5).
+QpAsNlpModel line_model(const Vec &x0) {
+    QpProblem qp;
+    qp.H = SpMatRM(2, 2);
+    qp.H.insert(0, 0) = 1.0;
+    qp.H.insert(1, 1) = 1.0;
+    qp.g = Vec(2);
+    qp.g << -1.0, 0.0;
+    Eigen::MatrixXd A(1, 2);
+    A << 1.0, 1.0;
+    qp.Ae = A.sparseView();
+    qp.be = Vec::Constant(1, 2.0);
+    qp.Ai = SpMatRM(0, 2);
+    qp.bi = Vec(0);
+    qp.lower = Vec::Constant(2, -10.0);
+    qp.upper = Vec::Constant(2, 10.0);
+    return QpAsNlpModel(std::move(qp), x0);
+}
+
+Vec vec2(double a, double b) {
+    Vec v(2);
+    v << a, b;
+    return v;
+}
+
+SqpOptions quiet() {
+    SqpOptions o;
+    o.common.print_level = 10;
+    return o;
+}
+
+void expect_line_optimum(const SqpResult &r) {
+    ASSERT_EQ(r.status, SolveStatus::kOptimal);
+    EXPECT_NEAR(r.x(0), 1.5, 1e-6);
+    EXPECT_NEAR(r.x(1), 0.5, 1e-6);
+}
+
+} // namespace
+
+// L1: the DALLASM shape (E2-D3 Q3). Restoration resumes at a feasible point; every QP
+// after it fails; the shrink ladder reaches the radius floor; the cap refuses the
+// second request. Before the ladder round that refusal was spelled kInfeasible.
+TEST(SqpLadderSeam, L1ARefusedRequestAtAFeasiblePointIsNeverInfeasible) {
+    const SeamReset guard;
+    Seam::fail_walk_qps = 1000;
+    Seam::only_after_resume = true;
+    RunawayValleyModel model;
+    SqpOptions o = quiet();
+    o.tr_init = 8.0; // SecondRequestIsCappedAndReported's options
+    o.max_iter = 200;
+    o.qp_failure_budget = 1000; // the shrink ladder runs to the floor
+    SqpSolver driver(o);
+    const SqpResult sol = driver.solve(model);
+
+    // The premise: one restoration, serviced, resumed inside feas_tol; then failures.
+    ASSERT_EQ(sol.counters.restoration_entries, 1);
+    ASSERT_EQ(sol.counters.restoration_sub_status, RestorationSubStatus::kOptimal);
+    ASSERT_LE(sol.counters.restoration_h_out, o.feas_tol);
+    ASSERT_GE(Seam::forced, 1);
+    // The refused second request: an honest failure, no claim about the model.
+    EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
+    EXPECT_FALSE(sol.infeasibility_certified);
+    // ...at a point inside feas_tol, which is what made kInfeasible false.
+    EXPECT_LE(std::abs(model.eval_ce(sol.x)(0)), o.feas_tol);
+    // The F4 guard held: at the feasible iterate the failures took the shrink ladder.
+    EXPECT_GE(sol.counters.qp_failures_routed, 1);
+}
+
+// L3: the READING6 shape (E2-D1 Q1). QP 0 at h = 2 ends kNumericalError through an
+// E2 termination: the elastic tier opens, and the solve reaches the optimum.
+TEST(SqpLadderSeam, L3AnE2TerminationAtAnInfeasibleIterateOpensTheElasticTier) {
+    const SeamReset guard;
+    Seam::fail_walk_qps = 1;
+    QpAsNlpModel model = line_model(vec2(0.0, 0.0));
+    SqpSolver driver(quiet());
+    const SqpResult sol = driver.solve(model);
+
+    EXPECT_EQ(Seam::forced, 1);
+    EXPECT_GE(sol.counters.elastic_activations, 1);
+    EXPECT_EQ(sol.counters.qp_failures_routed, 0);
+    ASSERT_FALSE(sol.history.empty());
+    EXPECT_TRUE(sol.history.front().elastic_applied);
+    expect_line_optimum(sol);
+}
+
+// L3's control: the same failure WITHOUT an E2 counter keeps the shrink ladder. The
+// radius starts at 10 so the halved QP is still feasible and nothing else goes elastic.
+TEST(SqpLadderSeam, L3APlainNumericalErrorKeepsTheShrinkLadder) {
+    const SeamReset guard;
+    Seam::fail_walk_qps = 1;
+    Seam::as_e2_termination = false;
+    QpAsNlpModel model = line_model(vec2(0.0, 0.0));
+    SqpOptions o = quiet();
+    o.tr_init = 10.0;
+    SqpSolver driver(o);
+    const SqpResult sol = driver.solve(model);
+
+    EXPECT_EQ(Seam::forced, 1);
+    ASSERT_FALSE(sol.history.empty());
+    EXPECT_FALSE(sol.history.front().elastic_applied);
+    EXPECT_EQ(sol.counters.elastic_activations, 0);
+    EXPECT_EQ(sol.counters.qp_failures_routed, 1);
+    expect_line_optimum(sol);
+}
+
+// L3's guard: the DALLASM major-1 case. At a FEASIBLE iterate (h = 0) the elastic
+// QP would carry no slack and be the failed QP again, so the shrink ladder stays.
+TEST(SqpLadderSeam, L3AtAFeasibleIterateTheShrinkLadderStays) {
+    const SeamReset guard;
+    Seam::fail_walk_qps = 1;
+    QpAsNlpModel model = line_model(vec2(0.0, 2.0));
+    SqpSolver driver(quiet());
+    const SqpResult sol = driver.solve(model);
+
+    EXPECT_EQ(Seam::forced, 1);
+    EXPECT_EQ(sol.counters.elastic_activations, 0);
+    EXPECT_EQ(sol.counters.qp_failures_routed, 1);
+    expect_line_optimum(sol);
+}
+
+// L3 x L2: the guard's h reads the box. Rows satisfied (x0 + x1 = 2) but both
+// components outside [-10, 10] -- projection off, so the solve stands there. A
+// rows-only h is 0 and would shrink; with the box it is 6 and the tier opens.
+TEST(SqpLadderSeam, L3TheGuardReadsTheBox) {
+    const SeamReset guard;
+    Seam::fail_walk_qps = 1;
+    QpAsNlpModel model = line_model(vec2(-12.0, 14.0));
+    SqpOptions o = quiet();
+    o.project_start_point = false;
+    o.tr_init = 10.0; // the QP can reach the box: it is kOptimal before the seam
+    SqpSolver driver(o);
+    const SqpResult sol = driver.solve(model);
+
+    EXPECT_EQ(Seam::forced, 1);
+    EXPECT_GE(sol.counters.elastic_activations, 1);
+    EXPECT_EQ(sol.counters.qp_failures_routed, 0);
+    expect_line_optimum(sol);
+}
+
+} // namespace hven::solvers

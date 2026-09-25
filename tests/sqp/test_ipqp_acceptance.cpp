@@ -788,7 +788,10 @@ TEST(IpqpAcceptanceCensus, AnArmedRunIsNeverMistakenForAStallAcrossTheHsBattery)
 #else
     EXPECT_EQ(armed_peak, 79);
 #endif
-    EXPECT_EQ(rows_with_armed, 6);
+    // 6 -> 5 at the M7 W2 ladder round (L2, declared counter mover): HS45's x0 lies
+    // outside its box (one component, gap 1); projected by default, it no longer arms
+    // the ladder (hs45=33 before). Status and objective unchanged.
+    EXPECT_EQ(rows_with_armed, 5);
 #endif
 }
 

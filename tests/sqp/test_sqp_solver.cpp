@@ -10767,6 +10767,9 @@ TEST(SqpDriverCertifiedFallback, T7TheEscapeBranchTernaryCONSUMESAnAttachedRepor
     opts.equality_basis = false;
     opts.qp_mode = QpMode::kIpm;
     opts.max_iter = 60;
+    // The swept shape starts at (2.5, 2.5), OUTSIDE its unit box, by design; projection
+    // (default ON since the M7 W2 ladder round, L2) would change the fixture.
+    opts.project_start_point = false;
     W2T7ScaledInconsistentEqualitiesModel model(1.0e8, 1.0, 2.5);
     SqpSolver driver(opts);
     W2T7FallbackSink sink;
@@ -11379,6 +11382,9 @@ TEST(SqpDriverCertifiedFallback, T7TheAttachedReportsRestorationOfferIsATROUNDIN
     opts.equality_basis = false;
     opts.qp_mode = QpMode::kIpm;
     opts.max_iter = 60;
+    // The swept shape starts at (2.5, 2.5), OUTSIDE its unit box, by design; projection
+    // (default ON since the M7 W2 ladder round, L2) would change the fixture.
+    opts.project_start_point = false;
     W2T7ScaledInconsistentEqualitiesModel model(1.0e8, 1.0, 2.5);
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(model);
@@ -11421,7 +11427,16 @@ TEST(SqpDriverCertifiedFallback, T7F1TheSameInconsistentLinearizationInAllThreeM
         arm.counters = sol.counters;
         arm.status = sol.status;
         SCOPED_TRACE(arm.name);
+        // RE-PINNED AT THE M7 W2 LADDER ROUND (L1). Release certifies (kInfeasible). In
+        // Debug the restoration sub-solve sticks (34 majors) and its nested request is
+        // refused: an UNCERTIFIED kInfeasible at c1f1e704, kNumericalError now (observed).
+        EXPECT_EQ(sol.status, sol.infeasibility_certified ? SolveStatus::kInfeasible
+                                                          : SolveStatus::kNumericalError);
+#ifdef NDEBUG
         EXPECT_EQ(sol.status, SolveStatus::kInfeasible) << "the same answer in every mode";
+#else
+        EXPECT_EQ(sol.status, SolveStatus::kNumericalError) << "the same answer in every mode";
+#endif
         EXPECT_EQ(sol.counters.elastic_activations, sol.counters.major_iters)
             << "one ladder per major, whichever route reached it";
     }
@@ -11498,9 +11513,28 @@ TEST(SqpDriverCertifiedFallback, T3TheTierSolvedRungReachesTheSameVerdictOnTheSa
     const SqpCounters &e = tier_rung.counters;
 
     // -- THE VERDICT CLASS, WHICH IS THE POINT --
+    // RE-PINNED AT THE M7 W2 LADDER ROUND (L1): the tier arm's kInfeasible was the
+    // UNCERTIFIED spelling of a restoration request it could not service
+    // (`tier_certified` 0 at c1f1e704, the finding below); that spelling is
+    // kNumericalError now. The walk arm's CERTIFIED kInfeasible is unchanged, so the
+    // asymmetry this test records as a finding is now visible in the status too.
+    // DEBUG DIFFERS, AND DID BEFORE THE ROUND: there the walk arm's restoration sub-solve
+    // also sticks (34 majors, its nested request refused), so it too was an uncertified
+    // kInfeasible at c1f1e704 and is kNumericalError now (observed, scratch probe).
+    for (const SqpResult *arm : {&walk_rung, &tier_rung}) {
+        EXPECT_EQ(arm->status, arm->infeasibility_certified ? SolveStatus::kInfeasible
+                                                            : SolveStatus::kNumericalError)
+            << "kInfeasible is the certified arm's alone (L1)";
+    }
+#ifdef NDEBUG
     EXPECT_EQ(walk_rung.status, SolveStatus::kInfeasible);
-    EXPECT_EQ(tier_rung.status, SolveStatus::kInfeasible)
-        << "the same answer on the same model, whichever kernel solved rung A";
+    EXPECT_TRUE(walk_rung.infeasibility_certified);
+#else
+    EXPECT_EQ(walk_rung.status, SolveStatus::kNumericalError);
+#endif
+    EXPECT_EQ(tier_rung.status, SolveStatus::kNumericalError)
+        << "no certificate on the tier arm, so no kInfeasible (L1)";
+    EXPECT_FALSE(tier_rung.infeasibility_certified);
 
     // -- THE ROUTE STILL REACHES THE FALLBACK, on its own arm's terms. NOT compared field for
     //    field against the walk arm: a different rung solution is a different step, so the two

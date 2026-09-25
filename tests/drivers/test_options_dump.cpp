@@ -215,6 +215,13 @@ TEST(OptionsDump, SqpDumpsTheEqualityBasisOn) {
     EXPECT_TRUE(has_line(dump_to_string(SqpOptions{}), "equality_basis = true"));
 }
 
+// SqpOptions::project_start_point is ON by default (M7 W2 ladder round, L2 = proposal E5;
+// off from M7 W2 M4 until then -- a DECLARED dump move, digest in
+// docs/notes/data/2026-09-m7-w2-ladder/README.md). The line count is unchanged.
+TEST(OptionsDump, SqpDumpsTheStartPointProjectionOn) {
+    EXPECT_TRUE(has_line(dump_to_string(SqpOptions{}), "project_start_point = true"));
+}
+
 // An enum prints its ENUMERATOR NAME, never its integer and never the display
 // string to_string() spells -- `kWarm`, not `3` and not `Warm`.
 TEST(OptionsDump, EnumsPrintEnumeratorNames) {

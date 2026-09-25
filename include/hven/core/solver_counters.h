@@ -1758,8 +1758,10 @@ struct SqpCounters {
     ///                      decision rather than a structural `false`.
     ///   `kInfeasible`      the feasibility problem ITSELF raised a restoration
     ///                      request, which nothing can service (a nested
-    ///                      restoration is refused). The parent reports
-    ///                      `kInfeasible` and makes NO CLAIM about the model.
+    ///                      restoration is refused). Before the M7 W2 ladder
+    ///                      round (L1); that refusal now reads `kNumericalError`
+    ///                      here, and the parent reports `kNumericalError`
+    ///                      either way, making NO CLAIM about the model.
     ///   `kMaxIter`         the sub-solve spent the majors the parent lent it.
     ///   `kInterrupted`     the caller's callback stopped the sub-solve.
     ///   `kNumericalError`  the sub-solve failed numerically.
