@@ -1,0 +1,9 @@
+RUN CsOff_STEENBRB rc=0 status=numerical_error iterations=1 objective=2858.7861353626763 factorizations=32312 resto=4 wall_s=29.780019651
+RUN CsOff_STEENBRC rc=0 status=interrupted iterations=2 objective=646177.23799343442 factorizations=55695 resto=40 wall_s=303.559441336
+RUN CsOff_STEENBRD rc=0 status=numerical_error iterations=2 objective=2512.7536806946432 factorizations=31909 resto=4 wall_s=26.326477190
+RUN CsOff_STEENBRE rc=0 status=numerical_error iterations=1 objective=3979.0736812026425 factorizations=37423 resto=4 wall_s=50.368682059
+RUN CsOff_STEENBRG rc=0 status=numerical_error iterations=1 objective=4527.9899075966596 factorizations=37481 resto=4 wall_s=49.714058509
+RUN CsOff_YORKNET rc=0 status=numerical_error iterations=1 objective=110481.69950761796 factorizations=37527 resto=4 wall_s=34.601635877
+CHAIN_DONE /home/ghecht/Projects/hven/.scratch/m7w2r1/tools/matrix2.txt 2026-09-25T15:23:45-04:00
+
+[exited with code 0]

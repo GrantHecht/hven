@@ -1,0 +1,19 @@
+R1START depth=0 n=138 out_of_box=43 max_box_viol=2.839 project=1 tr_init=1 tr_max=1e+10
+R1QP depth=0 major=0 seq=0 post_resume_idx=-1 delta=1 status=2 minors=76 facts=1 h=26.36814583 f=-0.193022330718 gradf_inf=0.0102383 blk_term=0 zmcap=0 cert=1 cert_rej=0 n=138 me=48 mi=0 walk=1 resto_used=0
+R1MAJ depth=0 major=0 outcome=1 qp_status=0 verdict=1 elastic=1 viol=26.36814583 f=-0.193022330718 tr=1 step=1 minors=4 h_now=26.36814583 f_now=-0.193022330718
+R1QP depth=0 major=1 seq=1 post_resume_idx=-1 delta=1 status=2 minors=10 facts=1 h=12.98422237 f=-0.188968613467 gradf_inf=0.0200065 blk_term=0 zmcap=0 cert=1 cert_rej=0 n=138 me=48 mi=0 walk=1 resto_used=0
+R1MAJ depth=0 major=1 outcome=1 qp_status=0 verdict=1 elastic=1 viol=12.98422237 f=-0.188968613467 tr=1 step=1 minors=2 h_now=12.98422237 f_now=-0.188968613467
+R1QP depth=0 major=2 seq=2 post_resume_idx=-1 delta=1 status=2 minors=10 facts=1 h=8.325052036 f=-0.144444615581 gradf_inf=0.0400118 blk_term=0 zmcap=0 cert=1 cert_rej=0 n=138 me=48 mi=0 walk=1 resto_used=0
+R1MAJ depth=0 major=2 outcome=1 qp_status=0 verdict=1 elastic=1 viol=8.325052036 f=-0.144444615581 tr=1 step=1 minors=2 h_now=8.325052036 f_now=-0.144444615581
+R1QP depth=0 major=3 seq=3 post_resume_idx=-1 delta=2 status=2 minors=3 facts=1 h=6.077640964 f=-0.176233302685 gradf_inf=0.0200036 blk_term=0 zmcap=0 cert=1 cert_rej=0 n=138 me=48 mi=0 walk=1 resto_used=0
+R1MAJ depth=0 major=3 outcome=1 qp_status=0 verdict=1 elastic=1 viol=6.077640964 f=-0.176233302685 tr=2 step=2 minors=2 h_now=6.077640964 f_now=-0.176233302685
+R1QP depth=0 major=4 seq=4 post_resume_idx=-1 delta=4 status=2 minors=1 facts=1 h=4.061553476 f=-0.179493490337 gradf_inf=0.00973374 blk_term=0 zmcap=0 cert=1 cert_rej=0 n=138 me=48 mi=0 walk=1 resto_used=0
+R1MAJ depth=0 major=4 outcome=1 qp_status=0 verdict=1 elastic=1 viol=4.061553476 f=-0.179493490337 tr=4 step=4 minors=2 h_now=4.061553476 f_now=-0.179493490337
+R1QP depth=0 major=5 seq=5 post_resume_idx=-1 delta=4 status=0 minors=26 facts=1 h=0.02020205626 f=-0.151710226659 gradf_inf=0.00973381 blk_term=0 zmcap=0 cert=0 cert_rej=0 n=138 me=48 mi=0 walk=1 resto_used=0
+R1MAJ depth=0 major=5 outcome=1 qp_status=0 verdict=0 elastic=0 viol=0.02020205626 f=-0.151710226659 tr=4 step=1.45975 minors=26 h_now=0.02020205626 f_now=-0.151710226659
+R1QP depth=0 major=6 seq=6 post_resume_idx=-1 delta=4 status=0 minors=2 facts=1 h=0.0002253132705 f=-0.152933522933 gradf_inf=0.0104648 blk_term=0 zmcap=0 cert=0 cert_rej=0 n=138 me=48 mi=0 walk=1 resto_used=0
+R1MAJ depth=0 major=6 outcome=1 qp_status=0 verdict=0 elastic=0 viol=0.0002253132705 f=-0.152933522933 tr=4 step=0.0241992 minors=2 h_now=0.0002253132705 f_now=-0.152933522933
+R1QP depth=0 major=7 seq=7 post_resume_idx=-1 delta=4 status=0 minors=2 facts=1 h=3.571193891e-05 f=-0.152935649065 gradf_inf=0.0104663 blk_term=0 zmcap=0 cert=0 cert_rej=0 n=138 me=48 mi=0 walk=1 resto_used=0
+R1MAJ depth=0 major=7 outcome=1 qp_status=0 verdict=0 elastic=0 viol=3.571193891e-05 f=-0.152935649065 tr=4 step=5.98878e-05 minors=2 h_now=3.571193891e-05 f_now=-0.152935649065
+R1MAJ depth=0 major=8 outcome=3 qp_status=0 verdict=2 elastic=0 viol=2.843365725e-10 f=-0.152935928397 tr=4 step=0 minors=0 h_now=2.843365725e-10 f_now=-0.152935928397
+R1END depth=0 status=0 majors=8 resto_iters=0 certified=0 obj=-0.152935928397 feas=1.39303e-10 stat=2.29326e-13
