@@ -1096,3 +1096,18 @@ NEW `QpCounters::dep_grey_rereads`, `QpCounters::dep_grey_reread_dependent` (R-E
 removed (`dep_stall_admits` kept as telemetry: R-D retired, S34); not aggregated into `SqpCounters`.
 `dep_test_solves` now also counts the re-reads' solves. No consumer note needed for hven-bench beyond the
 two new fields.
+
+### Round notes from the re-check (S37(c))
+
+The Fable re-check (`.superpowers/m7-w2-e2-fix6-recheck-fable.md`, Verdict item (c)) flagged two
+non-gating documentation gaps this note now closes. (a) The DALLASM fixture dump substitution: the
+design note named `DALLASM_f4-qp2` for `AConvergedGreyPinOnDallasmIsReReadDependent`; the landed
+fixture uses `DALLASM_def-qp0` instead (same n/me, same pin 98 / pass 9 / ρ 3.4e-6, 202/202 flips,
+N3 at 215 minors, 0.3 s Release vs `f4-qp2`'s 1960-minor cap) — a cheaper cell the settler accepted
+in-band (recheck §3, "Pin 55 vs pin 98"; pin 55 is R-A's structural catch at equality row 49, the
+first GREY pin is 98 at pass 9). (b) The one grey MISS the re-check's coverage sweep turned up
+outside the fixture set: ACOPR57 qp0 row 268 (ρ′ 6.8e-4, dense distance 9.3e-12 on an undeficient
+set — a genuinely near-dependent row), left un-flipped by construction; qp0 is kOptimal under R-B
+regardless, so the miss changes no status (recheck §1, "What R-E does NOT cover").
+
+E2-RETAKE6 (hven-bench declaration `6cc4a6a`, close `470983d`): CLEAN both sets, 0 conversions.
