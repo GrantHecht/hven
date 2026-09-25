@@ -108,8 +108,8 @@ failed QP, and it says nothing about the engine.
 Scratch builds of the main tree at the committed sources (`.scratch/m7w2ladder/build-{rel,dbg}`):
 - **Release: 2844/2844** (`s3-suite-rel.log`).
 - **Debug: 2843/2843** without the long test (`s3-suite-dbg.log`). The long test
-  (`Continuation.ProbeBudgetBoundsAFailingProposal`) runs alone, detached; its result is in the
-  STATE note and the gate record.
+  (`Continuation.ProbeBudgetBoundsAFailingProposal`) ran alone, detached: **1/1**, 706 s
+  (informational; `s3-suite-dbg-long.log`).
 - Against the E2 fix5 gate record (2833 / 2832), **11 tests were ADDED** and none removed:
   `SqpLadderSeam.*` ×5, `RestorationModelClampedStart.*` ×3, `StartPointProjection.*` ×2 and
   `OptionsDump.SqpDumpsTheStartPointProjectionOn`.
@@ -198,3 +198,18 @@ harness on a scratch pin, and it is the re-take's first read.
 - The T3 fixture's tier arm certifies with a scratch probe program but not inside the test
   binary, at identical options. The fixture sits at a numerical knife edge that is sensitive to the
   model's compile flags. This is recorded, not chased.
+
+## Gates (declared before the chain ran)
+
+`wrappers-gates/`: the runner, the chain and the rehearsal, copied from the E2 round's last
+gates and re-pointed. `psym-derivation-ladder.txt` holds every declared value, derived from
+`c1f1e704..0275d16d` and a fresh P-SYM rehearsal on the final pair:
+- **P-SYM:** Release 8 = A 8 + B 0; Debug 7 = A 7 + B 0. `test_hs_battery.cpp.o` is NOISE-ONLY in
+  Debug.
+- **Suites:** Release 2844, Debug 2843, the long test 1.
+- **By name:** 11 ADDED, none REMOVED.
+- **Sections:** 4 non-debug movers per configuration (2 class A, plus sqp_options and ipqp_engine
+  NOISE-ONLY); DEBUG_ONLY 0 / 7.
+- **G4:** 0 differences.
+
+`preflight.txt` records the pre-flight, the by-name checks and the refusal controls.

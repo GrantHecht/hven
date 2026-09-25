@@ -1,0 +1,17 @@
+HEADER DERIVATION
+  repo : /home/ghecht/Projects/hven
+  base : c1f1e704 -> c1f1e70406cdd27cb1208f410dba399b07c6640b
+  head : 0275d16dd0240d93dc4b529a96c872716e25d603 -> 0275d16dd0240d93dc4b529a96c872716e25d603
+  cmd  : git -C /home/ghecht/Projects/hven diff --name-only c1f1e704..0275d16dd0240d93dc4b529a96c872716e25d603 -- include/
+  list : ['include/hven/core/solver_counters.h', 'include/hven/core/solver_status.h', 'include/hven/detail/drivers/ladder_testing.h', 'include/hven/detail/globalization/sqp/restoration.h', 'include/hven/drivers/sqp_solver.h', 'include/hven/drivers/sqp_solver_types.h']
+HEADER LIST ACCEPTED: ['include/hven/core/solver_counters.h', 'include/hven/core/solver_status.h', 'include/hven/detail/drivers/ladder_testing.h', 'include/hven/detail/globalization/sqp/restoration.h', 'include/hven/drivers/sqp_solver.h', 'include/hven/drivers/sqp_solver_types.h']
+P-SYM: FAIL — differences outside the accepted noise class
+DIFFERING OBJECTS: 7
+      CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+      CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options_dump.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_acceptance.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_start_point_projection.cpp.o
+REFUSED (R2): /home/ghecht/Projects/hven/.scratch/m7w2laddergates/rehearsal/gates/psym/compare-Debug.txt names 7 differing object(s) and this round DECLARED 8 -- a shape that is not the declared one is re-derived and declared again, never discovered

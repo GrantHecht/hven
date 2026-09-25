@@ -1,0 +1,124 @@
+M7 W2 LADDER ROUND -- THE GATE EXPECTATIONS, DERIVED
+Written and committed BEFORE the chain was detached. RULE: nothing here may be
+adjusted after the chain's first leg. Every value is derived from the FINAL range;
+nothing is carried from, or added to, an earlier round's count.
+
+BASE   c1f1e704 (ledger(m7): W2 E2 CLOSED; branch m7)
+       0275d16d feat(m7): W2 ladder -- f2 / f1 (E5) / F4 with the guard
+HEAD   the commit that carries this file (docs/notes/data only). Range c1f1e704..0275d16d
+       for every source/header derivation (the declaration commit adds no source, header or
+       test).
+RUNNER gates-ladder.sh + chain_gates_ladder.sh (this directory): copies of the E2 round's
+       last runner and chain, re-pointed (scratch .scratch/m7w2laddergates -- ONE literal,
+       gates-ladder.sh; the chain and rehearse.sh ask it with --print-scratch; logs
+       gates-ladder.log, chain-ladder.log), plus LDR (c) the outside-universe source is ADDED
+       (tests/sqp/test_sqp_ladder_seams.cpp -> hven_sqp_seam_tests), (d) the by-name baseline
+       DERIVED from git (the newest gates-*/suite-release.txt added at or before BEFORE, its
+       directory, and the head it ran at = the parent of the commit that added it), eleven
+       ADDED names, REMOVED empty, (e) tests/CMakeLists.txt adds exactly the seam source and
+       removes no non-comment line, (f) the G4 label, (g) class B empty, the Debug class A
+       asymmetry and the NOISE-ONLY library section movers, declared by name and checked by
+       value (below). The emitted g1/g2/g3/g5/g6 segments are byte-identical to the E2
+       round's last chain segments; g4 differs in its label string only (cmp before the
+       declaration); g5 is byte-identical to the rehearsal's g5, which rehearse.sh EXTRACTS
+       from the runner's text. Literal check before the first leg: grep 'fix5', '0447288f',
+       '34e100de', 'm7w2e2fix5' on the three copies -> none; c1f1e704 exactly once, as BEFORE
+       (gates-ladder.sh).
+
+§1 THE CHANGED SURFACE (`git diff --name-status c1f1e704..0275d16d -- include src tests`):
+   6 headers  include/hven/core/solver_counters.h (doc), include/hven/core/solver_status.h
+              (doc), include/hven/detail/drivers/ladder_testing.h (ADDED; HVEN_TESTING only),
+              include/hven/detail/globalization/sqp/restoration.h (start_clamps()),
+              include/hven/drivers/sqp_solver.h (box_violation_l1),
+              include/hven/drivers/sqp_solver_types.h (project_start_point default true)
+   8 MODIFIED .cpp  src/drivers/sqp_solver.cpp, src/globalization/sqp/soc_elastic_restoration.cpp,
+              tests/drivers/test_options_dump.cpp, tests/sqp/test_hs_battery.cpp,
+              tests/sqp/test_ipqp_acceptance.cpp, tests/sqp/test_sqp_restoration.cpp,
+              tests/sqp/test_sqp_solver.cpp, tests/sqp/test_start_point_projection.cpp
+              -- all inside the P-SYM universe
+   1 ADDED .cpp  tests/sqp/test_sqp_ladder_seams.cpp -- OUTSIDE the universe (its only object is
+              hven_sqp_seam_tests's, a HVEN_TESTING recompile target, not a PSYM_GROUPS entry)
+   0 ADDED non-C++ test files; tests/CMakeLists.txt: +1 source line (the seam fixtures, in
+              hven_sqp_seam_tests's block) and a comment rewrap.
+   docs: docs/testing.md (the sixth seam), docs/notes/data/2026-09-m7-w2-ladder/README.md.
+
+§2 THE P-SYM MOVER SHAPE, PER CONFIGURATION -- MEASURED on the final pair
+     Release  DIFFERING 8 = class A 8 + class B 0; UNEXPLAINED 0; control 107;
+              NOISE-ONLY 44 (2 in the library)
+     Debug    DIFFERING 7 = class A 7 + class B 0; UNEXPLAINED 0; control 93;
+              NOISE-ONLY 59 (9 in the library)
+     after 151 = before 151 in both; ONLY-AFTER {}; the ADDED outside object
+     tests/CMakeFiles/hven_sqp_seam_tests.dir/sqp/test_sqp_ladder_seams.cpp.o BUILT in the after
+     arm and absent from the after manifest (both configurations).
+   MEASURED by a FRESH rehearsal at 0275d16d against c1f1e704, both configurations, one hold of
+   the box lock (rehearsal/rehearse.sh, rehearsal/rehearsal-log-summary.txt; 2026-09-25
+   03:48:07-04:08:45, PGREP_EMPTY), this runner's g5 with a HYPOTHESIS declaration (8/8, class
+   B 0, DEBUG_ONLY 0/0, NON-DEBUG movers = class A only). Release matched 8/8/0 exactly (classify
+   rc 0, rehearsal/rehearsal-classification-Release.txt). Debug REFUSED at the declared 8
+   (classify rc 4: "names 7 differing object(s) and this round DECLARED 8",
+   rehearsal/rehearsal-classification-Debug-refused-at-8.txt); re-classified OFFLINE from the
+   same compare file at 7 (rc 0, rehearsal/rehearsal-classification-Debug.txt): 7 = class A 7 +
+   class B 0, UNEXPLAINED 0. HEAD 0275d16d is source-identical to the declaration commit.
+   Class A, Release (8) = the 8 MODIFIED .cpp. Class A, Debug (7) = those less
+       tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_battery.cpp.o, NOISE-ONLY in Debug: its
+       only change is re-pinned integers (804 -> 802, 801 -> 799, 288 -> 287, 289 -> 288), which
+       P-SYM's Debug reading classes as __LINE__-class immediates. Declared by name
+       (EXPECT_CLASS_A_NOISE_ONLY_DEBUG), its source checked MODIFIED before the legs, its
+       NOISE-ONLY line checked in compare-Debug after G5, and the measured class A compared BY
+       SOURCE with git in both configurations after G5. The shared cross-config assert's clause
+       (4) admits the asymmetry (a changed-source object).
+   CLASS B IS EMPTY in both configurations: every includer of a changed header that differs is
+   NOISE-ONLY. The asymmetry admission list stays EMPTY.
+
+§3 TEST COUNTS: Release 2844 (G3), Debug 2843 (G1), G2 1. By name against the DERIVED baseline
+   (docs/notes/data/2026-09-m7-w2-e2-working-set/<newest gates-* record>/suite-{debug,release}.txt,
+   2832/2833 tests, 2834/2835 started names; ran at 723712e0, the parent of the commit that added
+   it; no test source differs between 723712e0 and c1f1e704, checked in the pre-flight): the
+   measured suites of the final sources (.scratch/m7w2ladder/s3-suite-{rel,dbg}.log, scratch builds
+   of the main tree at 0275d16d's sources: Release 2844/2844, Debug 2843/2843 without the long
+   test; the long test 1/1 alone, 706 s, s3-suite-dbg-long.log) add ELEVEN instances and remove
+   none (ADDED_TEST_NAMES, newline-delimited):
+     OptionsDump.SqpDumpsTheStartPointProjectionOn
+     RestorationModelClampedStart.{ANonFiniteClampedPointKeepsTheEntry,
+       AnInBoxEntryIsTheWrapperThatShipped, AnOutOfBoxEntryStartsClampedWithItsRowsReadThere}
+     SqpLadderSeam.{L1ARefusedRequestAtAFeasiblePointIsNeverInfeasible,
+       L3APlainNumericalErrorKeepsTheShrinkLadder,
+       L3AnE2TerminationAtAnInfeasibleIterateOpensTheElasticTier,
+       L3AtAFeasibleIterateTheShrinkLadderStays, L3TheGuardReadsTheBox}
+     StartPointProjection.{TheBoxHalfOfHIsTheL1DistanceToTheBox,
+       TheDefaultProjectsAndSolvesTheNanStartShape}
+   The offline --check-names run passes both configurations (2845 == 2834 - 0 + 11;
+   2846 == 2835 - 0 + 11); the negative controls are refused (preflight.txt).
+
+§4 THE SECTION SHAPE (G5b), measured by the same rehearsal: NON-DEBUG-MOVER set 4 in both
+   configurations == {drivers/sqp_solver.cpp.o, globalization/sqp/soc_elastic_restoration.cpp.o}
+   (derived, class A) + {drivers/sqp_options.cpp.o, qp/ipqp_engine.cpp.o} (declared,
+   EXPECT_LIB_NOISE_MOVERS_*: sources unmodified, NOISE-ONLY in both compares -- a
+   __LINE__-class .text delta from the changed headers, checked after G5); objects 44;
+   byte-identical 40 Release / 33 Debug; no library ADDED; DEBUG_ONLY Release 0 / Debug 7
+   (core/ledger, drivers/console_trace_sink, drivers/ipm_solver, drivers/sqp_print,
+   drivers/trace_writer, qp/qp_engine, warmstart/continuation); REFUSED 0.
+
+§5 G4: 27 cells x 75 columns x 3 engines, 0 differences under
+   `compare_replay.py --residual-gate 1e-5`. VERIFIED OFFLINE FIRST on these sources (scratch
+   Release build; .scratch/m7w2ladder/g4/comparison.txt): walk 0 differences (7 within the gate,
+   the known f7 warm residual digits), ssn 0, ipm 0; and EXACT against c1f1e704's head CSVs (whose
+   code is E2 fix round 5's; .scratch/m7w2e2fix5/g4/): 0 differences on all 75 columns in all
+   three engines. No U0 status, objective or counter moved.
+
+§6 G6: expected CLEAN -- install smoke, export contract, clang-format on the derived changed
+   include/*.h, src/*.cpp, tests/*.cpp, tests/*.h (clean at 0275d16d), git diff --check,
+   DIRTY_FILES 0. Fold proofs as the last E2 chain (46/0).
+
+§7 PRE-FLIGHT (`gates-ladder.sh --preflight-only`): preflight.txt (CLASS_B_NAMES_OK 0/0, BY-NAME
+   11 ADDED each by exactly one TEST line + 0 REMOVED + 0 TEST lines removed, tests/CMakeLists.txt
+   adds exactly the seam source, PREFLIGHT_VALUE_OK, 6 SEGMENT_OK, PREFLIGHT_OK). Refusals
+   exercised against a wrong value, each rc 2 (recorded there): a class B name whose source is
+   modified, Release 2843 against Debug 2843, BEFORE = the previous declaration, class A 7/7, the
+   ADDED outside list emptied, the Debug NOISE-ONLY class A list emptied, a class A object
+   declared a NOISE-ONLY library mover, a Debug NOISE-ONLY class A with an unmodified source; the
+   by-name negative controls rc 2; the post-G5 checks dry-run on the rehearsal's files, with a
+   tampered NOISE-ONLY line refused.
+
+§8 G5 CHECKS THE MAIN TREE OUT TO c1f1e704 while it builds its before arm, once per
+   configuration: nothing may edit or commit in the main tree until CHAIN_END.

@@ -1,0 +1,50 @@
+# gates-ladder.sh --preflight-only at 0275d16d (the ladder commit), before the declaration commit:
+GATES_START 2026-09-25T04:12:30-04:00
+=== HEAD 0275d16d  dirty-files=1 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.scratch/m7w2laddergates ===
+=== BEFORE=c1f1e704  EXPECT_DEBUG_TESTS=2843  EXPECT_RELEASE_TESTS=2844 ===
+=== HEAD_AT_START=0275d16dd0240d93dc4b529a96c872716e25d603
+=== CHANGED HEADERS: include/hven/core/solver_counters.h include/hven/core/solver_status.h include/hven/detail/drivers/ladder_testing.h include/hven/detail/globalization/sqp/restoration.h include/hven/drivers/sqp_solver.h include/hven/drivers/sqp_solver_types.h 
+=== CHANGED SOURCES: src/drivers/sqp_solver.cpp src/globalization/sqp/soc_elastic_restoration.cpp tests/CMakeLists.txt tests/drivers/test_options_dump.cpp tests/sqp/test_hs_battery.cpp tests/sqp/test_ipqp_acceptance.cpp tests/sqp/test_sqp_ladder_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_start_point_projection.cpp 
+=== MODIFIED C++ SOURCES: src/drivers/sqp_solver.cpp src/globalization/sqp/soc_elastic_restoration.cpp tests/drivers/test_options_dump.cpp tests/sqp/test_hs_battery.cpp tests/sqp/test_ipqp_acceptance.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_start_point_projection.cpp 
+=== ADDED C++ SOURCES: tests/sqp/test_sqp_ladder_seams.cpp 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [] -> tests/CMakeFiles/hven_sqp_seam_tests.dir
+=== ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/sqp/test_sqp_ladder_seams.cpp] -> tests/CMakeFiles/hven_sqp_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared NOISE-ONLY): CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared NOISE-ONLY): CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); differences declared 0
+=== CLASS_B_NAMES_OK: Release 0 / Debug 0 declared objects, none with a source modified in the range
+=== BY-NAME: baselines /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-e2-working-set/gates-e2-fix5/suite-{debug,release}.txt (2834 / 2835 started names); 11 ADDED, each added by exactly one TEST line in the range; 0 REMOVED, each removed by exactly one TEST line; 0 TEST lines removed
+=== ADDED TEST FILES (checked): none non-.cpp; tests/CMakeLists.txt adds exactly [sqp/test_sqp_ladder_seams.cpp ] and removes no non-comment line
+=== PREFLIGHT_VALUE_OK: class A 8 - 0 outside == declared 8/7; ADDED 1 == declared 1 (0 inside the universe == declared 0); class B library objects all unmodified; G4 gate 1e-5
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2laddergates/g1.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2laddergates  G=/home/ghecht/Projects/hven/.scratch/m7w2laddergates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2laddergates/g2.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2laddergates  G=/home/ghecht/Projects/hven/.scratch/m7w2laddergates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2laddergates/g3.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2laddergates  G=/home/ghecht/Projects/hven/.scratch/m7w2laddergates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2laddergates/g4.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2laddergates  G=/home/ghecht/Projects/hven/.scratch/m7w2laddergates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2laddergates/g5.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2laddergates  G=/home/ghecht/Projects/hven/.scratch/m7w2laddergates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2laddergates/g6.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2laddergates  G=/home/ghecht/Projects/hven/.scratch/m7w2laddergates/gates
+=== PREFLIGHT_OK: 6 segments written and asserted against GATES_SCRATCH, before the first leg ===
+PREFLIGHT_ONLY: stopping before G1. No leg was run and no build tree was touched.
+
+# Offline by-name checks and refusal controls (each control must be refused, rc 2):
+ASSERT OK   offline debug by name: 2845 started names == the baseline's 2834 - the 0 declared REMOVED + the 11 declared ADDED
+check-names debug (s3-suite-dbg.log) rc=0
+ASSERT OK   offline release by name: 2846 started names == the baseline's 2835 - the 0 declared REMOVED + the 11 declared ADDED
+check-names release (s3-suite-rel.log) rc=0
+ASSERT FAIL offline debug by name: 2846 started vs the baseline's 2834 - 0 REMOVED + 11 ADDED; the difference (expected '<' tab-indented '>' this run):
+	Continuation.ProbeBudgetBoundsAFailingProposal
+NEGATIVE CONTROL check-names debug on the Release transcript rc=2
+ASSERT FAIL offline release by name: ADDED OptionsDump.SqpDumpsTheStartPointProjectionOn is named 0 time(s) in the baseline (want 0) and 0 in this run (want 1)
+NEGATIVE CONTROL check-names release on the baseline itself (none of the ADDED) rc=2
+CONTROL [class B name with a modified source] rc=2 :: REFUSED: rel class B tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o has its source tests/sqp/test_sqp_solver.cpp MODIFIED in c1f1e704..0275d16dd0240d93dc4b529a96c872716e25d603 (it is class A)
+CONTROL [Release 2843 against Debug 2843] rc=2 :: REFUSED: Debug 2843 != Release 2843 - long 1
+CONTROL [BEFORE = the previous declaration] rc=2 :: REFUSED: 2 test file(s) changed between the by-name baseline 0447288f and BEFORE 723712e0
+CONTROL [class A 7/7] rc=2 :: REFUSED: 8 modified .cpp (less 0 outside the universe; Debug less 1 declared NOISE-ONLY), but class A is DECLARED 7/7
+CONTROL [the ADDED outside list emptied] rc=2 :: REFUSED: 1 added .cpp inside the universe, but the universe's ADDED is DECLARED 0
+CONTROL [the Debug NOISE-ONLY class A list emptied] rc=2 :: REFUSED: 8 modified .cpp (less 0 outside the universe; Debug less 0 declared NOISE-ONLY), but class A is DECLARED 8/7
+CONTROL [a class A object declared a NOISE-ONLY library mover] rc=2 :: REFUSED: CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o is declared a NOISE-ONLY library mover but its source src/drivers/sqp_solver.cpp is MODIFIED (class A)
+CONTROL [a Debug NOISE-ONLY class A with an unmodified source] rc=2 :: REFUSED: declared Debug NOISE-ONLY class A tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine.cpp.o: its source tests/sqp/test_qp_engine.cpp is not MODIFIED in the range
+# Post-G5 by-name/by-source/NOISE-ONLY checks dry-run on the rehearsal's compare + classification files (Debug: the offline re-classification at 7): all ASSERT OK, rc5=0; negative control (the Debug NOISE-ONLY line of test_hs_battery.cpp.o tampered): ASSERT FAIL.
