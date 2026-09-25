@@ -1,0 +1,7 @@
+Test project /home/ghecht/Projects/hven/.scratch/m7w2e2fix6gates/gates-dbg
+    Start 1573: Continuation.ProbeBudgetBoundsAFailingProposal
+1/1 Test #1573: Continuation.ProbeBudgetBoundsAFailingProposal ...   Passed  555.56 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) = 555.61 sec
