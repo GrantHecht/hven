@@ -2736,9 +2736,16 @@ TEST(QpEngineIndefinite, T7Fix2AFailedStartRepairDoesNotRefineThroughTheProbedFa
                 // M7 W2 E2 fix3 (declared mover, settler S29): 1 -> 3. The kWrong
                 // start verdict is re-read mu-free and, reading kSuspect, a second
                 // time at dual_mu (R-C'): two local eliminated factorizations.
-                EXPECT_EQ(warm.counters.factorizations, 3);
+                // M7 W2 E2 fix4 (declared mover): 3 -> 4. The terminal x0 = 0.5 reads
+                // kInfeasible with the row footprint dual_mu * |lambda| open, so the
+                // face is re-solved mu-free once (one local factorization); the rows
+                // e_0 = 0 and e_0 = 1 are inconsistent, the refined point is not
+                // adopted, and the verdict and x stand.
+                EXPECT_EQ(warm.counters.factorizations, 4);
                 EXPECT_EQ(warm.counters.dep_inertia_rereads, 1);
                 EXPECT_EQ(warm.counters.dep_inertia_reread_flips, 0);
+                EXPECT_EQ(warm.counters.terminal_mu_refines, 1);
+                EXPECT_EQ(warm.counters.terminal_mu_refine_rescues, 0);
                 EXPECT_EQ(warm.counters.symbolic_analyses, 0);
             } else if (algebra == WorkingSetLinearAlgebra::kRefactorize) {
                 EXPECT_EQ(warm.counters.factorizations, 3);

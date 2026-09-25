@@ -592,3 +592,187 @@ AMuFreeSuspectReadDoesNotCertifyASaddle}`), none removed.
 NEW `QpCounters`: `dep_structural_first` (R-A), `dep_inertia_rereads`, `dep_inertia_reread_flips`
 (R-C′). `factorizations` now also counts R-C′'s local re-read factorizations. No counter renamed or
 removed (`dep_unlocks` and `dep_stall_undecidable` were never landed).
+
+
+## Fix round 4 — the terminal point is refined μ-free before any kInfeasible-by-violation verdict
+
+### The defect (the R-B trace, `.scratch/m7w2e2fix3s2/rb-trace/`; settler's ruling after fix round 3)
+
+At a terminal KKT point of the walk (nothing left to drop), the structural classification
+(`worst_structural_violation`, E4's companion rule on the rows) read the **dual_mu-regularized
+stationary point of the face** as a structural violation. On a working face the regularized EQP
+satisfies `A x − μ·λ = b`, so each working row's residual IS the footprint μ·λ; with λ ≈ 1e6
+(a stiff row, λ* = −2e6) that is O(1): on the census QP stiff(4e5) (x0 + x1 + 5 s = 5 in a
+[−10, 10]² box, s ∈ [0, 1], H = diag(8e5, 8e5, 0)) the terminal point is (0.9, 0.9, 0) at
+μ = 1e-5 (residual 3.2; 0.0125 / 0.120 at μ = 1e-3 / 1e-4, residual 4.975 / 4.759), and the
+walk returned **kInfeasible** 15 units from the optimum (2.5, 2.5, 0) of a FEASIBLE QP (HiGHS
+phase-1 minimum violation 0). No certificate was involved. The refactorize algebra reached that
+point in one step (the census's six "shut-slack residues"); the border algebra reached it only
+after R-B's unlock (fix round 3, deferred), which is why R-B turned the census count 6 → 12. The
+existing verdict-site face refinement (`refine_*_face_for_verdict`) cannot remove it: it refines
+toward the REGULARIZED system's own solution and adopts only a closed face.
+
+The same misreading is on the **plain** QP too (observed, `.scratch/m7w2e2fix4/probe-base.txt`
+at ef3b5225): `w2_stiff_consistent_qp(4e5)` read kInfeasible at μ ∈ {1e-2, 1e-3, 1e-4, 1e-5} on
+BOTH algebras (x = 0.00125 / 0.0125 / 0.120 / 0.9 per coordinate).
+
+### The rule (landed)
+
+| What | Where |
+|---|---|
+| At a terminal point whose classification would read kInfeasible (`worst > 0`), with `independent_working_set` on and `dual_mu > 0`, and **the cheap entry test** `mu_footprint_open` true — some working-face row (an equality or an active inequality) has `dual_mu·|λ_j| > feas_tol·row_scale_j` (row_scale as `worst_structural_violation`'s) — the face's EQP is **re-solved with dual_mu = 0** on a local bound-eliminated `KktFactor` (`eliminated_candidate` at μ = 0, R-C′'s path; the pass's factor and border stack untouched: ONE factorization, charged to `factorizations`), including `solve_eqp`'s mandatory unregularized step, then at most **k = `kTerminalMuRefineSteps` = 2** further iterative-refinement steps against the fully unregularized residual (primal_delta removed too), each kept only while that residual strictly falls | `src/qp/qp_engine.cpp:1018-1044` (call site), `:2987-3005` (`mu_footprint_open`), `:3007-3120` (`refine_terminal_mu_free`); `include/hven/detail/qp/qp_engine.h:509-515` (k), `:1368-1396` (declarations, the contract), `:373-376` (Degeneracy block) |
+| **Adoption**: the refined point is adopted only if it satisfies EVERY row of the QP (equalities `|r_j| ≤ feas_tol·row_scale_j`, inequalities `r_j ≤ feas_tol·row_scale_j`, all rows, not only the face) and EVERY bound (`≤ feas_tol·max(1, |bound|, ‖x‖∞)` outside, E4's box read), with all values finite. Adopted ⇒ x and the multipliers are replaced (λ_e, λ_w from the μ-free solve; z re-priced by `price`) | same |
+| After adoption the point meets the **existing** gates again, unchanged: `refresh_shifts`, the drop test on the refined multipliers (a member they release ⇒ the walk continues from the refined, feasible point), the re-read structural classification (now 0), the runaway test, the inertia verdict (+ R-C′), the zero-motion exhaustion test, the zero-multiplier probe, the suspect-stall gate, and **E4's certificate bound half** — so kOptimal is reached only through the same gates as any other kOptimal | same |
+| Not adopted (the μ-free point leaves the box, violates a row, or the μ = 0 factorization throws) ⇒ nothing changes: the existing terminal classification stands (kInfeasible by the structural violation) | same |
+| Counters `terminal_mu_refines` (entries), `terminal_mu_refine_rescues` (adoptions) | `include/hven/core/solver_counters.h:290-297` |
+
+**No-op where the rows are already satisfied, by construction:** the rule is entered only at
+`worst > 0` — a would-be kInfeasible — so a terminal point that already satisfies the rows (the
+kOptimal path) never reaches it, and it cannot move any status other than a kInfeasible read off a
+violation. It cannot produce a false kOptimal on an infeasible QP: adoption needs a point that
+satisfies every row and bound within feas_tol·row_scale, which an infeasible QP does not have.
+
+**Deviation from the brief, stated:** the brief's fallback reads "kInfeasible ONLY with a
+verified certificate per S25′; else kNumericalError inside the box". The terminal classification's
+kInfeasible exit has never carried a certificate (certificates are produced at blockers, N1); the
+brief also says "the existing path", so the existing exit is kept unchanged. Tightening it to
+certificate-or-kNumericalError would move statuses on INFEASIBLE fixtures (e.g. stiff(4e5) in a
+[−2, 2]² box at μ ≥ 1e-5 reads kInfeasible at the μ-point, with no certificate, where at μ ≤ 1e-6
+the walk reaches the corner and its exact N1 certificate) — registered below for the settler.
+
+### Fixtures (both configurations)
+
+- `QpEngineStructuralViolation.E2Fix4TheTerminalMuPointIsRefinedBeforeAnInfeasibleVerdict`
+  (`tests/sqp/test_sqp_solver.cpp:11157`): the census cell (elastic stiff(4e5), ρ 1e7, μ 1e-5) on
+  kRefactorize — at ef3b5225 kInfeasible at (0.9, 0.9, 0) — is kOptimal at (2.5, 2.5, 0) (1e-9),
+  slack shut, `terminal_mu_refines` 1 / `terminal_mu_refine_rescues` 1, the KKT residual
+  RECOMPUTED from the returned (x, λ, z): row ≤ 5·feas_tol, stationarity ≤ 1e-9 relative,
+  λ_e = −2e6, z(s) > 0. The border twin still ends N3 (kNumericalError, `dep_blocker_terminations`
+  1, no refinement entered): it reaches the μ-point only through R-B (deferred). The plain stiff(4e5)
+  QP on BOTH algebras at μ ∈ {1e-2, 1e-3, 1e-4, 1e-5} (ef3b5225: kInfeasible at the μ-point) is
+  kOptimal at (2.5, 2.5) with one refinement and one rescue; at μ ∈ {1e-6, 1e-8} the refinement
+  is never entered.
+- `QpEngineStructuralViolation.E2Fix4ARealTerminalViolationStillEndsInfeasible` (`:11215`), the
+  control: the same stiff row in a [−2, 2]² box is INFEASIBLE (exact Farkas certificate y = 1:
+  max over the box of x0 + x1 = 4 < 5, asserted). At μ = 1e-5 the terminal point is the same
+  μ-point, the refinement runs (1) and is NOT adopted (0: the μ-free point (2.5, 2.5) leaves the
+  box), and the verdict stays kInfeasible with a violation > 1; at μ = 1e-8 the walk ends at its
+  own verified EXACT certificate (`farkas.residual ≤ exact_tol`) with the refinement never entered.
+  Both algebras.
+
+### The census (`T7TheFeasibleCensusHalfOverTheFULLDualMuSet`) — declared honest mover
+
+`shut_slack_residue` **6 → 0** (re-pinned, attributed in the fixture): the six were stiff(4e5)'s
+kRefactorize cells at ρ 1e7/1e8, μ 1e-3/1e-4/1e-5, each now kOptimal at (2.5, 2.5, 0) with one
+refinement and one rescue; no other census cell changed (census tool,
+`.scratch/m7w2e2fix4/f4-census.txt` vs `.scratch/m7w2e2fix3s2/r4-census.txt`: kOptimal 93 → 99,
+kNumericalError 21 → 21, kInfeasible 6 → 0). The T6b stiff / HIGH-rung fixtures
+(`T6bTheStiffWALKSOwnPathologyAboveTheShippedDualMuIsUNCHANGED`,
+`T6bTheBandsHIGHRungsRemainAPREEXISTINGResidue`) are UNCHANGED: both end N3 at a zero-motion
+vertex on the border path and never reach a terminal point; they improve only with R-B.
+
+### The 32-dump corpus (`.scratch/m7w2e2fix4/f4-corpus-*.txt`, `corpus-table-fix4.md`)
+
+Replayed as fix round 3 did (each dump's own options, fresh engine, Release, MKL, one thread). The
+fix-4 lines are **byte-identical** to the ef3b5225 lines (`.scratch/m7w2e2fix3s2/r4-corpus-*.txt`)
+in all four columns (as dumped, border, refactorize, E2-OFF) apart from the two new counter
+columns — the refinement is entered on none of the 32 dumps (`tref = 0` everywhere). Headline:
+E2-OFF 10 kOptimal; E2-ON @ ef3b5225 5; E2-ON + fix4 5 (ACOPP57 qp0–qp3, STEENBRB qp0), both
+algebras. The corpus's failures are not this class.
+
+| dump | OFF | ON@ef3b5225 border | ON@ef3b5225 refac | OFF+fix4 | ON+fix4 border | ON+fix4 refac | fix4 tref/tresc (border, refac) |
+|---|---|---|---|---|---|---|---|
+| ACOPP57_def/qp0 | kMaxIter 1795m | kOptimal 8m | kOptimal 2m | kMaxIter 1795m | kOptimal 8m | kOptimal 2m | 0/0, 0/0 |
+| ACOPP57_def/qp1 | kMaxIter 1795m | kOptimal 8m | kOptimal 2m | kMaxIter 1795m | kOptimal 8m | kOptimal 2m | 0/0, 0/0 |
+| ACOPP57_def/qp2 | kMaxIter 1795m | kOptimal 8m | kOptimal 2m | kMaxIter 1795m | kOptimal 8m | kOptimal 2m | 0/0, 0/0 |
+| ACOPP57_def/qp3 | kMaxIter 1795m | kOptimal 8m | kOptimal 2m | kMaxIter 1795m | kOptimal 8m | kOptimal 2m | 0/0, 0/0 |
+| ACOPR57_def/qp0 | kOptimal 139m | kNumericalError 51m | kNumericalError 50m | kOptimal 139m | kNumericalError 51m | kNumericalError 50m | 0/0, 0/0 |
+| ACOPR57_def/qp1 | kOptimal 154m | kNumericalError 90m | kNumericalError 89m | kOptimal 154m | kNumericalError 90m | kNumericalError 89m | 0/0, 0/0 |
+| ACOPR57_def/qp2 | kOptimal 145m | kNumericalError 47m | kNumericalError 46m | kOptimal 145m | kNumericalError 47m | kNumericalError 46m | 0/0, 0/0 |
+| ACOPR57_def/qp3 | kOptimal 3m | kMaxIter 4360m | kMaxIter 4360m | kOptimal 3m | kMaxIter 4360m | kMaxIter 4360m | 0/0, 0/0 |
+| ACOPR57_def/qp4 | kMaxIter 7100m | kNumericalError 26m | kNumericalError 26m | kMaxIter 7100m | kNumericalError 26m | kNumericalError 26m | 0/0, 0/0 |
+| ACOPR57_def/qp5 | kMaxIter 7100m | kMaxIter 7100m | kMaxIter 7100m | kMaxIter 7100m | kMaxIter 7100m | kMaxIter 7100m | 0/0, 0/0 |
+| ACOPR57_def/qp6 | kMaxIter 7100m | kMaxIter 7100m | kMaxIter 7100m | kMaxIter 7100m | kMaxIter 7100m | kMaxIter 7100m | 0/0, 0/0 |
+| ACOPR57_def/qp7 | kMaxIter 7100m | kMaxIter 7100m | kMaxIter 7100m | kMaxIter 7100m | kMaxIter 7100m | kMaxIter 7100m | 0/0, 0/0 |
+| ACOPR57_def/qp8 | kMaxIter 7100m | kNumericalError 35m | kNumericalError 35m | kMaxIter 7100m | kNumericalError 35m | kNumericalError 35m | 0/0, 0/0 |
+| DALLASM_def/qp0 | kMaxIter 1960m | kNumericalError 347m | kNumericalError 184m | kMaxIter 1960m | kNumericalError 347m | kNumericalError 184m | 0/0, 0/0 |
+| DALLASM_def/qp1 | kMaxIter 1960m | kNumericalError 344m | kNumericalError 126m | kMaxIter 1960m | kNumericalError 344m | kNumericalError 126m | 0/0, 0/0 |
+| DALLASM_def/qp2 | kMaxIter 1960m | kNumericalError 345m | kNumericalError 158m | kMaxIter 1960m | kNumericalError 345m | kNumericalError 158m | 0/0, 0/0 |
+| DALLASM_def/qp3 | kMaxIter 1960m | kNumericalError 339m | kNumericalError 158m | kMaxIter 1960m | kNumericalError 339m | kNumericalError 158m | 0/0, 0/0 |
+| DALLASM_f4/qp0 | kMaxIter 1960m | kNumericalError 347m | kNumericalError 184m | kMaxIter 1960m | kNumericalError 347m | kNumericalError 184m | 0/0, 0/0 |
+| DALLASM_f4/qp1 | kOptimal 161m | kNumericalError 225m | kNumericalError 225m | kOptimal 161m | kNumericalError 225m | kNumericalError 225m | 0/0, 0/0 |
+| DALLASM_f4/qp2 | kMaxIter 1960m | kNumericalError 302m | kNumericalError 159m | kMaxIter 1960m | kNumericalError 302m | kNumericalError 159m | 0/0, 0/0 |
+| DALLASM_f4/qp3 | kMaxIter 1960m | kNumericalError 302m | kNumericalError 159m | kMaxIter 1960m | kNumericalError 302m | kNumericalError 159m | 0/0, 0/0 |
+| READING6_def/qp0 | kMaxIter 770m | kNumericalError 74m | kNumericalError 74m | kMaxIter 770m | kNumericalError 74m | kNumericalError 74m | 0/0, 0/0 |
+| READING6_def/qp1 | kInfeasible 69m | kNumericalError 40m | kNumericalError 40m | kInfeasible 69m | kNumericalError 40m | kNumericalError 40m | 0/0, 0/0 |
+| SAWPATH_def/qp0 | kOptimal 45m | kNumericalError 6m | kNumericalError 6m | kOptimal 45m | kNumericalError 6m | kNumericalError 6m | 0/0, 0/0 |
+| SAWPATH_def/qp1 | kMaxIter 20350m | kMaxIter 20350m | kMaxIter 20350m | kMaxIter 20350m | kMaxIter 20350m | kMaxIter 20350m | 0/0, 0/0 |
+| SAWPATH_def/qp2 | kOptimal 182m | kNumericalError 6m | kNumericalError 6m | kOptimal 182m | kNumericalError 6m | kNumericalError 6m | 0/0, 0/0 |
+| STEENBRB_def/qp0 | kOptimal 744m | kOptimal 658m | kOptimal 749m | kOptimal 744m | kOptimal 658m | kOptimal 749m | 0/0, 0/0 |
+| STEENBRB_def/qp1 | kMaxIter 4680m | kMaxIter 4680m | kMaxIter 4680m | kMaxIter 4680m | kMaxIter 4680m | kMaxIter 4680m | 0/0, 0/0 |
+| STEENBRB_def/qp2 | kMaxIter 4680m | kMaxIter 4680m | kMaxIter 4680m | kMaxIter 4680m | kMaxIter 4680m | kMaxIter 4680m | 0/0, 0/0 |
+| STEENBRB_def/qp3 | kMaxIter 4680m | kNumericalError 264m | kNumericalError 264m | kMaxIter 4680m | kNumericalError 264m | kNumericalError 264m | 0/0, 0/0 |
+| YORKNET_def/qp0 | kOptimal 1030m | kNumericalError 242m | kNumericalError 242m | kOptimal 1030m | kNumericalError 242m | kNumericalError 242m | 0/0, 0/0 |
+| YORKNET_def/qp1 | kOptimal 971m | kNumericalError 594m | kNumericalError 594m | kOptimal 971m | kNumericalError 594m | kNumericalError 594m | 0/0, 0/0 |
+| **kOptimal** | 10 | 5 | 5 | 10 | 5 | 5 | |
+
+### R-B with fix4 present — READ-ONLY, for the next brief (not landed, not in the tree)
+
+R-B as saved in fix round 3's STATE sections (the narrowed placement: unlock only at `kTerminate`,
+zero motion, off the border stack; Bland ties) applied on top of this tree in a scratch copy
+(`.scratch/m7w2e2fix4/src-rb`, library only): ACOPR57 qp0 / qp1 **kOptimal** on both algebras
+(183 / 182 minors border, 182 / 181 refactorize; f 432.6609425 / 501.8045781 against E2-OFF's
+432.660937 / 501.8045708), qp2–qp8 unchanged (num_error / max_iter), fix4 entered on none of them
+(`.scratch/m7w2e2fix4/rb-acopr57-*.txt`). The T7 census under R-B + fix4: **120/120 kOptimal,
+shut 0, open 0** (12 rescues: the six refactorize cells and their six border twins R-B now reaches;
+`rb-census.txt`) — against 12 shut at fix round 3's R-B measurement. The suites were NOT run on
+that variant.
+
+### Re-pins (declared, with attribution)
+
+| Fixture | Pin | Was → now | Cause |
+|---|---|---|---|
+| `QpEngineStructuralViolation.T7TheFeasibleCensusHalfOverTheFULLDualMuSet` | `shut_slack_residue` | 6 → 0 | fix4: the six refactorize residues are the μ·λ misreading; refined, each is the optimum (an IMPROVEMENT to the verified answer) |
+| `QpEngineIndefinite.T7Fix2AFailedStartRepairDoesNotRefineThroughTheProbedFactorization` (independent arm, both algebras) | `warm.counters.factorizations` | 3 → 4 | fix4: the terminal x0 = 0.5 reads kInfeasible with the footprint open; one μ-free re-solve (one local factorization), not adopted (the rows e_0 = 0 and e_0 = 1 are inconsistent). Now asserted: `terminal_mu_refines` 1, `terminal_mu_refine_rescues` 0. Status and x unchanged |
+
+No status or answer assertion outside the two new fixtures and the census moved.
+
+### Offline G4 (before the gates)
+
+U0 27 cells × 3 engines on the fix-4 tree (scratch Release build of the same sources): against the
+M6 close pin under the 1e-5 residual gate walk 0 differences (7 within the gate, the known f7 warm
+residual digits), ssn 0, ipm 0; against the ef3b5225 head CSVs (`.scratch/m7w2e2fix3s2/g4-final/`)
+EXACT: 0 differences on all 75 columns in all three engines (`.scratch/m7w2e2fix4/g4/comparison.txt`).
+No U0 status, objective or counter moved.
+
+### Suites (MKL, clang++, `ctest -j4` under `setsid`, the box lock per leg)
+
+Release 2833/2833; Debug 2832/2832 without the long test, the long test 1/1 alone (detached, 689 s;
+informational) — the main tree's `build/` and `build-debug/` at the committed sources
+(`.scratch/m7w2e2fix4/m1-suite-{rel,dbg}.log`, `m1-suite-dbg-long.log`). By name against fix round
+3's gate transcripts (`gates-e2-fix3/suite-{debug,release}.txt`, 2830/2831): two ADDED instances
+(`QpEngineStructuralViolation.{E2Fix4TheTerminalMuPointIsRefinedBeforeAnInfeasibleVerdict,
+E2Fix4ARealTerminalViolationStillEndsInfeasible}`), none removed. The HS corpus (`HsBattery.*`,
+`HsSweepCorpus.*`, the HS driver cells) is inside both suites and no HS pin moved (HsBattery's `facts_off` / `facts_on`
+pins, which would count each entry's factorization, are unchanged at 288 / 289).
+
+### Registered
+
+- The terminal classification's kInfeasible exit carries no certificate (pre-existing; above). When
+  the μ-free point satisfies the rows but leaves the box (the control), a ratio-tested step toward
+  it would reach the corner and the N1 certificate the μ ≤ 1e-6 walk already finds — a candidate
+  for a later round, not taken here ("never a blind step").
+- The refined-multiplier drop branch (a member the μ-free multipliers release ⇒ the walk continues)
+  is exercised by no fixture: no observed cell takes it.
+- Cost: each entry is one factorization; on an inconsistent face (the T7Fix2 re-pin) it is spent
+  and not adopted — the entry test cannot tell an inconsistent row (residual AT the footprint) from
+  a consistent one before the solve.
+- Accelerate: the μ = 0 local factorization of an exactly singular face (dependent rows) is
+  UNOBSERVED there; MKL perturbs and reports success, and a `std::runtime_error` is caught as
+  "no refinement".
+
+### Schema note (the harness follows at the next re-take)
+
+NEW `QpCounters`: `terminal_mu_refines`, `terminal_mu_refine_rescues`. `factorizations` now also
+counts the terminal μ-free re-solve's local factorization. No counter renamed or removed; not
+aggregated into `SqpCounters` (as R-C′'s counters are not).

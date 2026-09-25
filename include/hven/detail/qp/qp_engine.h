@@ -370,7 +370,10 @@
 // (dep_structural_first; ws_independence.h); (R-C') a kWrong
 // inertia at the start repair or the terminal check is re-read mu-free: kOk overturns it,
 // kSuspect only with a second eliminated read at dual_mu reading kOk (dep_inertia_rereads /
-// dep_inertia_reread_flips; reread_wrong_inertia). With
+// dep_inertia_reread_flips; reread_wrong_inertia). E2 FIX4: a terminal point that would
+// read kInfeasible by its structural violation is first re-solved mu-free on its face and
+// adopted when it satisfies every row and bound (terminal_mu_refines /
+// terminal_mu_refine_rescues; refine_terminal_mu_free). With
 // the option off, the delta/mu regularization keeps a dependent KKT
 // factorizable and the dependent rows split the multiplier; a degenerate
 // stall is bounded by max_iter.
@@ -503,6 +506,13 @@ constexpr double kStructuralResidualFrac = 0.1;
 // noise. It is a backstop, not the rule: at any sane feas_tol the classifier's
 // own tolerance is orders above it and is what actually ends the loop.
 constexpr double kVerdictRefineRelFloor = 1e-14;
+// THE TERMINAL MU-FREE REFINEMENT (E2 fix4; refine_terminal_mu_free): the
+// iterative-refinement steps taken on the dual_mu = 0 bound-eliminated factor
+// BEYOND solve_eqp's own mandatory one, each kept only while the unregularized
+// KKT residual strictly falls. Two: the mu-free solve is already accurate to
+// O(primal_delta) and the steps only polish that; a face they cannot close is
+// left to the existing classification.
+constexpr Index kTerminalMuRefineSteps = 2;
 
 // --- Inertia gate (see the header contract's section 4b) ---
 
@@ -1354,6 +1364,36 @@ class QpEngine {
                                             const Vec &lambda_e, const detail::KktFactor &kkt,
                                             const EliminatedFace &face, QpCounters &counters,
                                             const QpOptions &opts) const;
+
+    // THE TERMINAL MU-FREE REFINEMENT (E2 fix4). At a terminal KKT point whose
+    // structural classification would read kInfeasible, the point is the
+    // dual_mu-REGULARIZED stationary point of the working face: each working
+    // row's residual is dual_mu * lambda_j, and with |lambda| ~ 1e6 that is
+    // O(1) -- a violation of the regularized system, not of the QP. The face's
+    // EQP is re-solved with dual_mu = 0 on a local bound-eliminated factor
+    // (reread_wrong_inertia's path; the pass's factor and border stack are
+    // untouched), refined at most kTerminalMuRefineSteps further steps against
+    // the unregularized residual, and the refined point is ADOPTED -- x and
+    // the multipliers (lambda_e, lambda_i, z re-priced) -- only when it
+    // satisfies EVERY row and every bound of `qp` within feas_tol * row_scale
+    // (row_scale as worst_structural_violation's; the box as E4's). Otherwise
+    // nothing changes and the existing classification stands.
+    //
+    // mu_footprint_open is the entry test: some working-face row (an equality
+    // or an active inequality) carries dual_mu * |lambda_j| > feas_tol *
+    // row_scale_j. Below it the regularization cannot explain a residual and
+    // the refinement is skipped. The caller enters only at a would-be
+    // kInfeasible (worst > 0) with independent_working_set on and dual_mu > 0,
+    // so a terminal point that already satisfies the rows never reaches it.
+    //
+    // Counters: terminal_mu_refines (entries: one factorization each, charged
+    // to `factorizations` too), terminal_mu_refine_rescues (adoptions).
+    bool mu_footprint_open(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                           const Vec &ai_row_norm1, const Vec &lambda_i, const Vec &ae_row_norm1,
+                           const Vec &lambda_e, const QpOptions &opts) const;
+    bool refine_terminal_mu_free(const QpProblem &qp, const WorkingSet &ws, Vec &x, Vec &lambda_e,
+                                 Vec &lambda_i, Vec &z, QpCounters &counters,
+                                 const QpOptions &opts) const;
 
     // Is ||x|| large in a way that only an unbounded direction explains?
     // Bound-relative on purpose: a variable boxed by finite bounds CANNOT run

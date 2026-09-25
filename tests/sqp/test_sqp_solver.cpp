@@ -11114,7 +11114,130 @@ TEST(QpEngineStructuralViolation, T7TheFeasibleCensusHalfOverTheFULLDualMuSet) {
     // kRefactorize cells at dual_mu = 1e-6, FEASIBLE problems the oracle used to certify.
     // M7 W2 E2 (declared mover): 11 -> 6 -- five cells that read kInfeasible on these FEASIBLE
     // problems no longer do under the independent working set.
-    EXPECT_EQ(shut_slack_residue, 6);
+    // M7 W2 E2 fix4 (declared mover): 6 -> 0 -- the six were stiff(4e5)'s kRefactorize cells at
+    // rho 1e7/1e8, dual_mu 1e-3/1e-4/1e-5: the terminal check read the dual_mu-regularized
+    // stationary point (row residual dual_mu * lambda, lambda ~ 2e6) as structural; refined
+    // mu-free they are the optimum (2.5, 2.5, 0). No residue remains on the census.
+    EXPECT_EQ(shut_slack_residue, 0);
+}
+
+namespace {
+
+/// E2 fix4's KKT read-back: the stationarity residual ||H x + g + Ae^T lambda_e + Ai^T lambda_i -
+/// z||_inf recomputed from the returned (x, multipliers), relative to max(1, ||g||_inf), and the
+/// equality residual ||Ae x - be||_inf.
+struct W2Fix4Kkt {
+    double stat_rel = 0.0;
+    double eq = 0.0;
+};
+
+W2Fix4Kkt w2_fix4_kkt(const QpProblem &qp, const QpSolution &s) {
+    Vec r = qp.H.selfadjointView<Eigen::Upper>() * s.x + qp.g - s.z;
+    if (qp.me() > 0) {
+        r += qp.Ae.transpose() * s.lambda_e;
+    }
+    if (qp.mi() > 0) {
+        r += qp.Ai.transpose() * s.lambda_i;
+    }
+    W2Fix4Kkt k;
+    k.stat_rel = r.lpNorm<Eigen::Infinity>() / std::max(1.0, qp.g.lpNorm<Eigen::Infinity>());
+    k.eq = qp.me() > 0 ? (qp.Ae * s.x - qp.be).lpNorm<Eigen::Infinity>() : 0.0;
+    return k;
+}
+
+QpSolution w2_fix4_solve(const QpProblem &qp, double dual_mu, WorkingSetLinearAlgebra alg) {
+    QpOptions opts;
+    opts.dual_mu = dual_mu;
+    opts.ws_algebra = alg;
+    return QpEngine(opts).solve(qp, SolveOverrides{});
+}
+
+} // namespace
+
+TEST(QpEngineStructuralViolation, E2Fix4TheTerminalMuPointIsRefinedBeforeAnInfeasibleVerdict) {
+    // M7 W2 E2 FIX4 (the R-B trace, .superpowers/m7-w2-e2-STATE.md "Fix3 successor 2"). The walk's
+    // terminal check read the dual_mu-REGULARIZED stationary point of a face as a structural
+    // violation: its equality residual is dual_mu * lambda with lambda ~ 2e6, i.e. O(1). The
+    // QP is FEASIBLE (x0 + x1 + 5 s = 5 in a [-10, 10]^2 box: HiGHS phase-1 minimum violation 0)
+    // with optimum (2.5, 2.5, 0), lambda* = -2e6.
+    const double feas_tol = SqpOptions{}.feas_tol;
+    const ElasticQp e = build_elastic_subproblem(
+        w2_stiff_consistent_qp(4.0e5), std::numeric_limits<double>::infinity(), 1.0e7, feas_tol);
+    ASSERT_EQ(e.qp.n(), 3);
+
+    // THE CENSUS CELL (stiff(4e5), rho 1e7, dual_mu 1e-5), kRefactorize. At ef3b5225 it read
+    // kInfeasible at (0.9, 0.9, 0), worst 3.2, slack shut -- 15 units from the answer.
+    const QpSolution refac = w2_fix4_solve(e.qp, 1.0e-5, WorkingSetLinearAlgebra::kRefactorize);
+    EXPECT_EQ(refac.status, QpStatus::kOptimal);
+    EXPECT_NEAR(refac.x(0), 2.5, 1.0e-9);
+    EXPECT_NEAR(refac.x(1), 2.5, 1.0e-9);
+    EXPECT_EQ(refac.x(2), 0.0) << "the slack stays shut";
+    EXPECT_EQ(refac.counters.terminal_mu_refines, 1);
+    EXPECT_EQ(refac.counters.terminal_mu_refine_rescues, 1);
+    const W2Fix4Kkt k = w2_fix4_kkt(e.qp, refac);
+    EXPECT_LE(k.eq, feas_tol * 5.0) << "the refined point satisfies the row";
+    EXPECT_LE(k.stat_rel, 1.0e-9) << "the refined multipliers make it stationary";
+    EXPECT_NEAR(refac.lambda_e(0), -2.0e6, 1.0e-3);
+    EXPECT_GT(refac.z(2), 0.0) << "the shut slack's bound multiplier has the right sign";
+
+    // kSchurBorder never reaches that point without R-B (deferred): it ends at its zero-motion
+    // vertex (10, 10, 0), N3, and the terminal refinement is never entered.
+    const QpSolution border = w2_fix4_solve(e.qp, 1.0e-5, WorkingSetLinearAlgebra::kSchurBorder);
+    EXPECT_EQ(border.status, QpStatus::kNumericalError);
+    EXPECT_EQ(border.counters.dep_blocker_terminations, 1);
+    EXPECT_EQ(border.counters.terminal_mu_refines, 0);
+
+    // THE SAME MISREADING ON BOTH ALGEBRAS: the plain stiff(4e5) QP (no slack) reaches the
+    // mu-point in one step on either path at dual_mu >= 1e-5; at ef3b5225 each cell read
+    // kInfeasible there. Refined, each is the optimum with one mu-free factorization.
+    const QpProblem plain = w2_stiff_consistent_qp(4.0e5);
+    for (const WorkingSetLinearAlgebra alg : w2_t6b_algebras()) {
+        for (const double mu : {1.0e-2, 1.0e-3, 1.0e-4, 1.0e-5}) {
+            SCOPED_TRACE(fmt::format("{} mu={:g}", w2_t6b_mode_name(alg), mu));
+            const QpSolution s = w2_fix4_solve(plain, mu, alg);
+            EXPECT_EQ(s.status, QpStatus::kOptimal);
+            EXPECT_NEAR(s.x(0), 2.5, 1.0e-9);
+            EXPECT_NEAR(s.x(1), 2.5, 1.0e-9);
+            EXPECT_EQ(s.counters.terminal_mu_refines, 1);
+            EXPECT_EQ(s.counters.terminal_mu_refine_rescues, 1);
+            EXPECT_LE(w2_fix4_kkt(plain, s).stat_rel, 1.0e-9);
+        }
+        // Where the terminal point already satisfies the row the refinement is never entered.
+        for (const double mu : {1.0e-6, 1.0e-8}) {
+            SCOPED_TRACE(fmt::format("{} mu={:g} (no-op)", w2_t6b_mode_name(alg), mu));
+            const QpSolution s = w2_fix4_solve(plain, mu, alg);
+            EXPECT_EQ(s.status, QpStatus::kOptimal);
+            EXPECT_EQ(s.counters.terminal_mu_refines, 0);
+        }
+    }
+}
+
+TEST(QpEngineStructuralViolation, E2Fix4ARealTerminalViolationStillEndsInfeasible) {
+    // THE CONTROL: the same stiff row in a [-2, 2]^2 box is INFEASIBLE (x0 + x1 <= 4 < 5). The
+    // exact Farkas certificate, checked here in exact arithmetic: y = 1 on the row gives
+    // max over the box of y * (x0 + x1) = 4 < y * be = 5.
+    QpProblem qp = w2_stiff_consistent_qp(4.0e5);
+    qp.lower = Vec::Constant(2, -2.0);
+    qp.upper = Vec::Constant(2, 2.0);
+    ASSERT_LT(qp.upper(0) + qp.upper(1), qp.be(0));
+    for (const WorkingSetLinearAlgebra alg : w2_t6b_algebras()) {
+        SCOPED_TRACE(w2_t6b_mode_name(alg));
+        // At dual_mu = 1e-5 the terminal point is the same mu-point (0.9, 0.9); the mu-free
+        // re-solve lands at (2.5, 2.5), outside the box, and is NOT adopted: the verdict stays
+        // kInfeasible (the terminal classification's own exit, which carries no certificate).
+        const QpSolution s = w2_fix4_solve(qp, 1.0e-5, alg);
+        EXPECT_EQ(s.status, QpStatus::kInfeasible);
+        EXPECT_EQ(s.counters.terminal_mu_refines, 1);
+        EXPECT_EQ(s.counters.terminal_mu_refine_rescues, 0);
+        EXPECT_GT(std::abs(qp.Ae.row(0).dot(s.x) - qp.be(0)), 1.0) << "a real violation";
+        // At the shipped dual_mu the walk reaches the box corner and its own verified EXACT
+        // certificate; the terminal refinement is not on that path at all.
+        const QpSolution c = w2_fix4_solve(qp, 1.0e-8, alg);
+        EXPECT_EQ(c.status, QpStatus::kInfeasible);
+        ASSERT_TRUE(c.farkas.present);
+        EXPECT_LE(c.farkas.residual, c.farkas.exact_tol);
+        EXPECT_EQ(c.counters.terminal_mu_refines, 0);
+    }
 }
 
 TEST(SqpDriverCertifiedFallback, T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnItsWorstFixture) {

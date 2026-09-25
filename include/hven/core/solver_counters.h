@@ -287,6 +287,14 @@ struct QpCounters {
     // the pass's dual_mu).
     Index dep_inertia_rereads = 0;
     Index dep_inertia_reread_flips = 0;
+
+    // E2 fix4 (qp_engine.h, refine_terminal_mu_free): terminal points that
+    // would read kInfeasible by a structural violation while a working row's
+    // dual_mu * |lambda| footprint exceeds its tolerance, re-solved mu-free on
+    // the face (one factorization each, also in `factorizations`), and how many
+    // of those refined points satisfied every row and bound and were adopted.
+    Index terminal_mu_refines = 0;
+    Index terminal_mu_refine_rescues = 0;
 };
 
 /// @brief Work counters for the semismooth-Newton kernel.

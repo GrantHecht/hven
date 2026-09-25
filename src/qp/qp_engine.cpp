@@ -1015,6 +1015,33 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     worst = worst_structural_violation(qp, x, Aix, ai_row_norm1, lambda_i,
                                                        ae_row_norm1, lambda_e, eff_opts);
                 }
+                // THE TERMINAL MU-FREE REFINEMENT (E2 fix4): before any
+                // kInfeasible-by-violation verdict, a residual the dual_mu
+                // footprint can explain is re-solved mu-free on the face; an
+                // adopted point satisfies every row and bound, carries its
+                // refined multipliers, and meets the drop test and every gate
+                // below again. See refine_terminal_mu_free.
+                if (worst > 0.0 && eff_opts.independent_working_set && eff_opts.dual_mu > 0.0 &&
+                    mu_footprint_open(qp, ws, x, ai_row_norm1, lambda_i, ae_row_norm1, lambda_e,
+                                      eff_opts) &&
+                    refine_terminal_mu_free(qp, ws, x, lambda_e, lambda_i, z, counters, eff_opts)) {
+                    refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen,
+                                   eff_opts);
+                    exempt_worst = 0.0;
+                    if (drop_worst(qp, shift, lambda_i, z, ws, last_drop, counters, &seen,
+                                   &exempt_worst)) {
+                        // The mu-free multipliers release a member the
+                        // regularized ones held: the walk goes on from the
+                        // refined (feasible) point.
+                        pt_release(seen, last_drop.is_ineq, last_drop.idx);
+#ifdef HVEN_TESTING
+                        walk_obs.record().action = detail::testing::QpWalkAction::kDropDantzig;
+#endif
+                        continue;
+                    }
+                    worst = worst_structural_violation(qp, x, Aix, ai_row_norm1, lambda_i,
+                                                       ae_row_norm1, lambda_e, eff_opts);
+                }
                 if (worst > 0.0) {
                     status = QpStatus::kInfeasible;
                 } else if (is_runaway(qp, x, ws, eff_opts)) {
@@ -2954,6 +2981,141 @@ bool QpEngine::reread_wrong_inertia(const QpProblem &qp, const WorkingSet &ws, Q
     }
     ++counters.dep_inertia_reread_flips;
     verdict = reread;
+    return true;
+}
+
+bool QpEngine::mu_footprint_open(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                                 const Vec &ai_row_norm1, const Vec &lambda_i,
+                                 const Vec &ae_row_norm1, const Vec &lambda_e,
+                                 const QpOptions &opts) const {
+    const double xmag = x.lpNorm<Eigen::Infinity>();
+    for (Index j = 0; j < qp.me(); ++j) {
+        const double row_scale = std::max({1.0, std::abs(qp.be(j)), ae_row_norm1(j) * xmag});
+        if (opts.dual_mu * std::abs(lambda_e(j)) > opts.feas_tol * row_scale) {
+            return true;
+        }
+    }
+    for (const Index j : ws.active_ineq()) {
+        const double row_scale = std::max({1.0, std::abs(qp.bi(j)), ai_row_norm1(j) * xmag});
+        if (opts.dual_mu * std::abs(lambda_i(j)) > opts.feas_tol * row_scale) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool QpEngine::refine_terminal_mu_free(const QpProblem &qp, const WorkingSet &ws, Vec &x,
+                                       Vec &lambda_e, Vec &lambda_i, Vec &z, QpCounters &counters,
+                                       const QpOptions &opts) const {
+    ++counters.terminal_mu_refines;
+    const Index n = qp.n();
+    const Index me = qp.me();
+    const std::vector<Index> &aw = ws.active_ineq();
+    const Index n_working = static_cast<Index>(aw.size());
+    QpOptions o = opts;
+    o.dual_mu = 0.0;
+
+    // The mu-free EQP of the CURRENT face: one factorization (charged by
+    // eliminated_candidate) plus solve_eqp's mandatory unregularized step.
+    detail::KktFactor local(threads_);
+    EliminatedFace local_face;
+    detail::InertiaVerdict v = detail::InertiaVerdict::kWrong;
+    EqpResult r;
+    try {
+        r = eliminated_candidate(qp, ws, local, local_face, counters, v, o);
+    } catch (const std::runtime_error &) {
+        return false; // no mu-free solve: the existing classification stands
+    }
+
+    // Up to kTerminalMuRefineSteps further steps against the residual of the
+    // UNREGULARIZED system (primal_delta removed too), each kept only while
+    // that residual strictly falls.
+    if (local_face.factorized) {
+        const KktAssembly assembly = assemble_kkt(qp, ws, o);
+        const Index n_free = static_cast<Index>(assembly.free_of_full.size());
+        const Index dim = n_free + me + n_working;
+        Vec rhs(dim);
+        for (Index k = 0; k < n_free; ++k) {
+            rhs(k) =
+                -qp.g(assembly.free_of_full[static_cast<std::size_t>(k)]) - assembly.rhs_shift(k);
+        }
+        for (Index row = 0; row < me; ++row) {
+            rhs(n_free + row) = qp.be(row) - assembly.rhs_shift(n_free + row);
+        }
+        for (Index k = 0; k < n_working; ++k) {
+            rhs(n_free + me + k) =
+                qp.bi(aw[static_cast<std::size_t>(k)]) - assembly.rhs_shift(n_free + me + k);
+        }
+        Vec y(dim);
+        for (Index k = 0; k < n_free; ++k) {
+            y(k) = r.x(assembly.free_of_full[static_cast<std::size_t>(k)]);
+        }
+        y.segment(n_free, me) = r.lambda_e;
+        y.segment(n_free + me, n_working) = r.lambda_w;
+        Vec reg = Vec::Zero(dim);
+        reg.head(n_free).setConstant(o.primal_delta);
+        const auto residual_of = [&](const Vec &yy) {
+            const Vec Kyy = assembly.K.template selfadjointView<Eigen::Upper>() * yy;
+            return Vec((rhs - Kyy) + reg.cwiseProduct(yy));
+        };
+        Vec res = residual_of(y);
+        double res_inf = res.lpNorm<Eigen::Infinity>();
+        for (Index step = 0; step < detail::kTerminalMuRefineSteps; ++step) {
+            const Vec candidate = y + detail::solve_vec(local, res);
+            Vec cres = residual_of(candidate);
+            const double cres_inf = cres.lpNorm<Eigen::Infinity>();
+            if (!(cres_inf < res_inf)) {
+                break; // stagnated, diverging, or NaN -- keep the better point
+            }
+            y = candidate;
+            res = std::move(cres);
+            res_inf = cres_inf;
+        }
+        for (Index k = 0; k < n_free; ++k) {
+            r.x(assembly.free_of_full[static_cast<std::size_t>(k)]) = y(k);
+        }
+        r.lambda_e = y.segment(n_free, me);
+        r.lambda_w = y.segment(n_free + me, n_working);
+    }
+
+    // ADOPTION: every row and every bound of `qp` within feas_tol * row_scale,
+    // and nothing non-finite.
+    if (!r.x.allFinite() || !r.lambda_e.allFinite() || !r.lambda_w.allFinite()) {
+        return false;
+    }
+    const double xmag = r.x.lpNorm<Eigen::Infinity>();
+    if (me > 0) {
+        const Vec resid = qp.Ae * r.x - qp.be;
+        for (Index j = 0; j < me; ++j) {
+            const double row_scale =
+                std::max({1.0, std::abs(qp.be(j)), qp.Ae.row(j).cwiseAbs().sum() * xmag});
+            if (std::abs(resid(j)) > opts.feas_tol * row_scale) {
+                return false;
+            }
+        }
+    }
+    if (qp.mi() > 0) {
+        const Vec resid = qp.Ai * r.x - qp.bi;
+        for (Index j = 0; j < qp.mi(); ++j) {
+            const double row_scale =
+                std::max({1.0, std::abs(qp.bi(j)), qp.Ai.row(j).cwiseAbs().sum() * xmag});
+            if (resid(j) > opts.feas_tol * row_scale) {
+                return false;
+            }
+        }
+    }
+    for (Index i = 0; i < n; ++i) {
+        const double below = qp.lower(i) - r.x(i);
+        const double above = r.x(i) - qp.upper(i);
+        const double bound = below >= above ? qp.lower(i) : qp.upper(i);
+        const double row_scale = std::max({1.0, std::abs(bound), xmag});
+        if (std::max(below, above) > opts.feas_tol * row_scale) {
+            return false;
+        }
+    }
+    x = r.x;
+    price(qp, ws, r, lambda_e, lambda_i, z);
+    ++counters.terminal_mu_refine_rescues;
     return true;
 }
 
