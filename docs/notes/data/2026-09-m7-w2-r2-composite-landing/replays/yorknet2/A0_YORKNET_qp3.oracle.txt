@@ -1,0 +1,9 @@
+ORACLE /home/ghecht/Projects/hven/.scratch/m7w2r2/dumps/A0_YORKNET/qp3.txt n=824 me=256 mi=0 tr=0.5 in-cell: status=1 minors=7680 facts=7979 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=3771 deferred=0 undec=0 maxiter=7680
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=-5.0948e-01 max=3.6073e+02 n_neg=80 n_zero=653
+  Z'HZ on null(Ae): dim=568 rank(Ae)=256 eig min=-3.3570e-01
+  WALK final: f=-10552.2812457 viol eq/in/box=(0.25020345597902427, 0.0, 3.774758283725532e-15) |W| rows=0 pins=551 me+|W|=807 rank=807 n=824
+    working-set normalized singular values: min=5.339e-03 (smallest 3: [0.0053389  0.00546027 0.00579126])
+    Z'HZ on the final working set's null space: dim=17 eig min=8.6728e-30 (next 1.6705e-29) max=2.3690e-28
+  H is not PSD on null(Ae): no global oracle; only local checks
+  POINT replays/yorknet2/A0_YORKNET_qp3.on.sol: status=1 f=-10552.2812457 viol=(0.25020345597902427, 0.0, 3.774758283725532e-15)

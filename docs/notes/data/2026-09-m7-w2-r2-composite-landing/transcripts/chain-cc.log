@@ -1,0 +1,6 @@
+RUN Cc_STEENBRB rc=0 status=numerical_error iterations=2 objective=9183.4481517348777 factorizations=4105 resto=4 wall_s=17.514277065
+RUN Cc_STEENBRC rc=0 status=numerical_error iterations=4 objective=4767.4640178533018 factorizations=14829 resto=18 wall_s=163.935608488
+RUN Cc_STEENBRD rc=0 status=numerical_error iterations=1 objective=2512.7536806946432 factorizations=1816 resto=4 wall_s=23.958730091
+RUN Cc_STEENBRE rc=0 status=numerical_error iterations=1 objective=1295.9028378557321 factorizations=18496 resto=18 wall_s=146.750217618
+RUN Cc_STEENBRG rc=0 status=numerical_error iterations=1 objective=2854.584078738068 factorizations=9497 resto=6 wall_s=50.580210044
+CHAIN_DONE /home/ghecht/Projects/hven/.scratch/m7w2r2/tools/matrix-cc.txt 2026-09-25T22:55:01-04:00
