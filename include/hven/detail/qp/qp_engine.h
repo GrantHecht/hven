@@ -228,6 +228,54 @@
 //    With the option off, (i) and (ii) fall through to the ordinary step and
 //    (iii) cannot arise.
 //
+//    THE FLAT FACE (independent_working_set). On an LP (H == 0) every post-drop
+//    quotient is exactly 0 -- hessian_scale floors at 1, so curvature_tol is
+//    1e-12 and not 0, and the gate fires on every drop: the direction is a RAY
+//    and the ride is the LP's own answer. What stopped it was ride_sign. At a
+//    KKT point of an INDEPENDENT working set the slope along p is known exactly
+//    from the drop's own multiplier,
+//        s = violation * dropped_directional(p),
+//    which is g'p in exact arithmetic (the Dantzig violation is -z_s in the
+//    engine's sign convention, so the product is z_s a_s'p, and every retained
+//    row is orthogonal to p). The MEASURED g'p is that plus rho'p, rho being the
+//    point's own stationarity residual, and on the R2 restoration LPs rho'p is
+//    the larger term: measured slopes of 2.0e-7 against predicted -5.2e-8, the
+//    two DISAGREEING in sign, which is what (ii)'s feasibility half then vetoed
+//    -- 1312 undone drops on one 6600-minor solve.
+//    RULE: when |s| resolves above ride_sign's slope tolerance, s decides the
+//    sign (ride_predicted_signs); only when it does not does the measured slope
+//    decide, and a flat s leaves (ii)'s veto and its undo exactly as they were.
+//    The predicted sign is the LEAVING sign by construction (s < 0 iff p leaves
+//    the released constraint), so (ii)'s feasibility half cannot veto it.
+//    A drop undone on ride_sign's veto is marked kPtNoise: its multiplier is
+//    below the resolution of the slope it was supposed to predict, so it does
+//    not count toward zero-motion exhaustion at this point.
+//
+//    NOT the literal slope FLOOR: "take s when the measured g'p is below
+//    tolerance" cannot fire in double precision. The tolerance is
+//    kEngineDenomTol * ||g|| * ||p|| = 1e-12 ||g|| ||p||, about 4500 times the
+//    cancellation error of the dot product, so whenever |s| clears it the
+//    measured slope clears it too (it would take ||g||_1 / ||g||_2 > 1e4, i.e.
+//    n > 1e8, for both to hold). Measured: 0 firings over 51 dumps. Precedence
+//    is the same intent made reachable.
+//
+//    THE EQUALITY DRIFT (independent_working_set). Measured cause: a regularized
+//    EQP answer can miss its OWN equality rows by 1/delta-sized amounts, and a
+//    ratio-test step of alpha toward it leaves the iterate alpha * that far off
+//    rows it had already met (alpha = 4.4e-4 toward an answer 7.1e2 off the rows
+//    put YORKNET's restoration QP 3.1e-1 off them at pass 177, and the exchange
+//    cycle that followed never came back). The iterate's invariant -- no equality
+//    row carries a STRUCTURAL violation, the terminal classifier's own test
+//    (violation_is_structural, row by row, on this pass's multipliers) -- is
+//    therefore CHECKED at every pass once the walk has met the rows (a start
+//    point need not), and a miss is COUNTED (eq_drift_violations). Stated in the
+//    classifier's currency and not one digit tighter: a residual section 5 would
+//    not call a violation is not a drift either. NOTHING re-projects the iterate:
+//    see the registered items in the NC2 report for the correction that was
+//    implemented and measured (it closes the rows through the pass's own factor,
+//    converts one more restoration QP, and takes the feasible census from 120 to
+//    116 because the corrections the regularization dominates are 1/delta-sized).
+//
 //    For STRICTLY CONVEX H the ride branch is UNREACHABLE and the engine is
 //    bit-for-bit unchanged. For PSD-SINGULAR H it IS reachable and behaviour is
 //    NOT identical to the capped path: the ride takes the uncapped ratio while
@@ -1113,6 +1161,9 @@ class QpEngine {
         bool is_ineq = false;
         Index idx = -1;
         BoundState from = BoundState::kFree;
+        // The drop's own Dantzig violation (> opt_tol): the predicted slope along
+        // d is violation * dropped_directional(d) (4c, THE FLAT FACE).
+        double violation = 0.0;
     };
 
     // What one attempt at section 4c's ride did.
@@ -1279,6 +1330,10 @@ class QpEngine {
     // A deferred add the re-check removed as dependent here (E2 fix1, D3(b)):
     // not re-admitted at this point on an undecided test.
     static constexpr std::uint8_t kPtKnownDependent = 8;
+    // A drop undone on ride_sign's veto here: its multiplier is below the
+    // resolution of the slope it was supposed to predict, so it does not count
+    // as exhausted (4c, THE FLAT FACE).
+    static constexpr std::uint8_t kPtNoise = 16;
 
     static std::uint8_t pt_flags(const WalkSeen &seen, bool is_ineq, Index idx);
     static void pt_mark(WalkSeen &seen, bool is_ineq, Index idx, std::uint8_t flag);
@@ -1844,7 +1899,12 @@ class QpEngine {
     // which can turn a legitimate small row residual into a spurious
     // kInfeasible at step 5's classifier, and it would contradict 4c's
     // anti-cycling argument, which rests on the decrease being STRICT.
-    int ride_sign(const QpProblem &qp, const DropRecord &dropped, const Vec &p, const Vec &x) const;
+    //
+    // With independent_working_set the drop's own PREDICTED slope decides the
+    // sign whenever it resolves above the tolerance (4c, THE FLAT FACE);
+    // `predicted` reports that it did.
+    int ride_sign(const QpProblem &qp, const DropRecord &dropped, const Vec &p, const Vec &x,
+                  bool *predicted = nullptr) const;
 
     // 2-norm of the dropped constraint's gradient, for ride_sign's tolerance.
     static double dropped_gradient_norm(const QpProblem &qp, const DropRecord &dropped);

@@ -225,6 +225,14 @@ struct QpCounters {
     // working set; at a KKT point of an independent set only a noise-level
     // multiplier can produce one (qp_engine.h 4c).
     Index ride_sign_vetoes = 0;
+    // M7 W2 NC2, THE FLAT FACE (qp_engine.h 4c): rides whose sign the drop's own
+    // multiplier decided -- the KKT-exact predicted slope -- rather than the
+    // measured g'p.
+    Index ride_predicted_signs = 0;
+    // THE EQUALITY DRIFT's checked invariant (qp_engine.h 4c): passes at which the
+    // iterate carried a STRUCTURAL equality violation after having met the rows.
+    // Nothing re-projects it; the count is the observation.
+    Index eq_drift_violations = 0;
     Index dep_pin_skips = 0;
     Index ws_count_violations = 0; // passes with me + |W| > n (the integer screen)
     Index dep_untested_growth = 0; // screen-positive checks the detector did not resolve

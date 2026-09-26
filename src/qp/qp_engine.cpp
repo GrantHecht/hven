@@ -591,6 +591,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     // iteration's drop rule released, which arms the check.
     const double curvature_tol = detail::kCurvatureTolFactor * detail::hessian_scale(qp);
     DropRecord last_drop;
+    // THE EQUALITY DRIFT's invariant (section 4c): whether the walk has met its
+    // equality rows yet -- a start point need not.
+    bool eq_rows_met = false;
 
     // Section 4b's zero-multiplier probe: working-set addition order, and
     // the per-solve exemption set that bounds it. Both are per-SOLVE, not
@@ -874,6 +877,30 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         }
 
         price(qp, ws, eqp, lambda_e, lambda_i, z);
+
+        // THE EQUALITY DRIFT (section 4c): once the iterate has met its equality
+        // rows it keeps meeting them -- a CHECKED invariant, counted. "Met" is
+        // the terminal classifier's own test, row by row, on this pass's
+        // multipliers: a residual section 5 would not call a violation is not a
+        // drift either, and an invariant stated any tighter fires on the accuracy
+        // the regularized walk legitimately holds (ACOPR57_def qp0's own optimal
+        // iterate sits 6.1e-7 off its rows). Nothing re-projects the iterate.
+        if (eff_opts.independent_working_set && me > 0) {
+            const Vec eq_resid = qp.Ae * x - qp.be;
+            const double xmag = x.lpNorm<Eigen::Infinity>();
+            bool eq_structural = false;
+            for (Index j = 0; j < me && !eq_structural; ++j) {
+                const double v = std::abs(eq_resid(j));
+                const double row_scale =
+                    std::max({1.0, std::abs(qp.be(j)), ae_row_norm1(j) * xmag});
+                eq_structural = violation_is_structural(v, row_scale, lambda_e(j), eff_opts);
+            }
+            if (!eq_structural) {
+                eq_rows_met = true;
+            } else if (eq_rows_met) {
+                ++counters.eq_drift_violations;
+            }
+        }
         // The factor this pass holds for `ws`; valid until `ws` changes.
         const detail::DepFactorView pass_view = eff_opts.independent_working_set
                                                     ? dep_factor_view(ws, kkt, face, *border_)
@@ -1396,6 +1423,11 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         }
                         ++counters.ws_adds;
                         (void)pt_admit(seen, counters, dropped.is_ineq, dropped.idx);
+                        if (sign_veto) {
+                            // THE FLAT FACE (4c): the predicted slope did not
+                            // resolve either, so this multiplier is noise.
+                            pt_mark(seen, dropped.is_ineq, dropped.idx, kPtNoise);
+                        }
                         ++counters.ride_declines_fallthrough_blocked;
 #ifdef HVEN_TESTING
                         {
@@ -4060,7 +4092,10 @@ bool QpEngine::drop_worst(const QpProblem &qp, const Vec &shift, const Vec &lamb
         if (pt == nullptr || (pt_flags(*pt, is_ineq, idx) & kPtExempt) == 0) {
             return false;
         }
-        if (exempt_worst != nullptr) {
+        // A drop this point already undid on ride_sign's veto does not count
+        // toward exhaustion: its multiplier is below the slope's own resolution
+        // (4c, THE FLAT FACE).
+        if (exempt_worst != nullptr && (pt_flags(*pt, is_ineq, idx) & kPtNoise) == 0) {
             *exempt_worst = std::max(*exempt_worst, viol);
         }
         return true;
@@ -4300,6 +4335,7 @@ bool QpEngine::drop_worst(const QpProblem &qp, const Vec &shift, const Vec &lamb
     dropped.active = true;
     dropped.is_ineq = pick->is_ineq;
     dropped.idx = pick->idx;
+    dropped.violation = pick->violation;
     ++counters.ws_drops; // observation only -- see QpCounters
     if (!pick->is_ineq) {
         ++counters.ws_drops_bound;
@@ -4346,8 +4382,8 @@ bool QpEngine::ride_stays_in_working_set(const QpProblem &qp, const WorkingSet &
     return true;
 }
 
-int QpEngine::ride_sign(const QpProblem &qp, const DropRecord &dropped, const Vec &p,
-                        const Vec &x) const {
+int QpEngine::ride_sign(const QpProblem &qp, const DropRecord &dropped, const Vec &p, const Vec &x,
+                        bool *predicted) const {
     const Vec gx = qp.H.selfadjointView<Eigen::Upper>() * x + qp.g;
     const double slope = gx.dot(p);
     const double slope_tol = detail::kEngineDenomTol * gx.norm() * p.norm();
@@ -4356,9 +4392,21 @@ int QpEngine::ride_sign(const QpProblem &qp, const DropRecord &dropped, const Ve
         detail::kEngineDenomTol * dropped_gradient_norm(qp, dropped) * p.norm();
 
     // DESCENT picks the sign, and only strict descent qualifies -- a flat
-    // direction has no descending sign and declines.
+    // direction has no descending sign and declines. THE FLAT FACE (4c): the
+    // PREDICTED slope, which is the exact one at a KKT point of an independent
+    // set, decides whenever it resolves; the measured slope decides only when it
+    // does not, and a flat predicted slope is a noise-level multiplier whose drop
+    // (ii) undoes.
+    const double s_pred = opts_.independent_working_set
+                              ? dropped.violation * dropped_directional(qp, dropped, p)
+                              : 0.0;
     int sign = 0;
-    if (slope < -slope_tol) {
+    if (s_pred < -slope_tol || s_pred > slope_tol) {
+        sign = s_pred < 0.0 ? 1 : -1;
+        if (predicted != nullptr) {
+            *predicted = true;
+        }
+    } else if (slope < -slope_tol) {
         sign = 1;
     } else if (slope > slope_tol) {
         sign = -1;
@@ -4413,9 +4461,13 @@ QpEngine::RideOutcome QpEngine::ride_negative_curvature(
 #endif
         return RideOutcome::kVetoed;
     }
-    const int sign = ride_sign(qp, dropped, p, x);
+    bool predicted = false;
+    const int sign = ride_sign(qp, dropped, p, x, &predicted);
     if (sign == 0) {
         return RideOutcome::kVetoed;
+    }
+    if (predicted) {
+        ++counters.ride_predicted_signs;
     }
     const Vec dir = (sign < 0) ? Vec(-p) : p;
 
