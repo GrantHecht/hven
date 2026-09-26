@@ -216,9 +216,11 @@
 //    (ii) ride_sign's veto (flat slope, or descent against leaving): the drop
 //        is UNDONE -- the released constraint re-enters at this point,
 //        drop-exempt under the zero-motion re-entry rule -- never the ordinary
-//        step. At a KKT point of an independent set g'p = z_s * (leaving rate
-//        of p), so descent and leaving agree and only a noise-level z_s is
-//        flat; ride_sign_vetoes counts every firing.
+//        step. At a stationary point of an independent set g'p = z_s * (leaving
+//        rate of p) EXACTLY, so descent and leaving agree there; they disagree
+//        only by the point's own first-order residual along p, which is what
+//        THE FLAT FACE below reads the veto as. ride_sign_vetoes counts every
+//        firing.
 //    (i) The null-space veto (p off the retained set's null space): the
 //        ordinary step only when p leaves the released constraint
 //        (dropped_directional(p) < -tol, ride_sign's tolerance); else undone
@@ -228,61 +230,79 @@
 //    With the option off, (i) and (ii) fall through to the ordinary step and
 //    (iii) cannot arise.
 //
-//    THE FLAT FACE (independent_working_set). On an LP (H == 0) every post-drop
-//    quotient is exactly 0 -- hessian_scale floors at 1, so curvature_tol is
-//    1e-12 and not 0, and the gate fires on every drop: the direction is a RAY
-//    and the ride is the LP's own answer. What stopped it was ride_sign. At a
-//    KKT point of an INDEPENDENT working set the slope along p is known exactly
-//    from the drop's own multiplier,
+//    THE FLAT FACE (independent_working_set). On a face with NO curvature the
+//    post-drop quotient is 0 and the gate fires (hessian_scale floors at 1, so
+//    curvature_tol is a positive floor and not 0): the direction is a RAY and
+//    the ride along it is the problem's own answer. What stops a ride there is
+//    ride_sign, so ride_sign carries the rule.
+//    At a stationary point of an INDEPENDENT retained set the slope along p is
+//    also readable from the drop's own multiplier,
 //        s = violation * dropped_directional(p),
-//    which is g'p in exact arithmetic (the Dantzig violation is -z_s in the
-//    engine's sign convention, so the product is z_s a_s'p, and every retained
-//    row is orthogonal to p). The MEASURED g'p is that plus rho'p, rho being the
-//    point's own stationarity residual, and on the R2 restoration LPs rho'p is
-//    the larger term: measured slopes of 2.0e-7 against predicted -5.2e-8, the
-//    two DISAGREEING in sign, which is what (ii)'s feasibility half then vetoed
-//    -- 1312 undone drops on one 6600-minor solve.
-//    RULE: when |s| resolves above ride_sign's slope tolerance, s decides the
-//    sign (ride_predicted_signs); only when it does not does the measured slope
-//    decide, and a flat s leaves (ii)'s veto and its undo exactly as they were.
-//    The predicted sign is the LEAVING sign by construction (s < 0 iff p leaves
-//    the released constraint), so (ii)'s feasibility half cannot veto it.
-//    A drop undone on ride_sign's veto is marked kPtNoise: its multiplier is
-//    below the resolution of the slope it was supposed to predict, so it does
-//    not count toward zero-motion exhaustion at this point.
+//    which IS g'p in exact arithmetic on every member kind: the Dantzig
+//    violation is -lambda_s on a row, -z_s at a LOWER bound and +z_s at an
+//    UPPER one, dropped_directional carries the matching sign, and every
+//    retained row is orthogonal to p, so that one product is the whole of g'p.
+//    The two differ by rho'p, rho being the point's own first-order residual
+//    (the regularized EQP's, as its one unregularized refinement step leaves
+//    it), and on a flat face rho'p can be the LARGER term and of the opposite
+//    sign.
+//    RULE: the MEASURED g'p is the exact directional derivative of the
+//    objective, so it decides the sign WHENEVER IT RESOLVES above ride_sign's
+//    slope tolerance; s decides only below that resolution, where the measured
+//    slope says nothing (ride_predicted_signs counts those). DESCENT INVARIANT:
+//    no ride ever ascends a slope the arithmetic can read --
+//    sign * g'p <= kEngineDenomTol * ||g|| * ||p|| on every ride taken, by
+//    construction, hence f does not rise by more than alpha times that.
+//    The predicted sign IS the leaving sign by construction (violation > 0 at
+//    every drop, so s < 0 iff p leaves the released constraint), so where s
+//    decides, (ii)'s feasibility half cannot veto it.
+//    A drop undone on ride_sign's veto is marked kPtNoise -- it does not count
+//    toward zero-motion exhaustion at this point -- but ONLY when it is a NOISE
+//    drop: |s| at or below the resolution of the slope it was meant to predict,
+//    which is the larger of the dot product's own floor and |g'p - s|, the
+//    residual the two slopes disclose (ride_drop_is_noise; no extra solve).
+//    Testing |s| against an ABSOLUTE floor instead would read a resolving
+//    multiplier on a p that barely leaves the constraint as noise; testing it
+//    against the residual along the SAME p does not. pt_clear retires the mark
+//    as soon as the iterate moves.
+//    Note that a sign veto and a noise drop coincide under this rule: a veto
+//    needs the two slopes to disagree or neither to resolve, and a disagreement
+//    forces |s| < |g'p - s| by that same identity.
 //
-//    NOT the literal slope FLOOR: "take s when the measured g'p is below
-//    tolerance" cannot fire in double precision. The tolerance is
-//    kEngineDenomTol * ||g|| * ||p|| = 1e-12 ||g|| ||p||, about 4500 times the
-//    cancellation error of the dot product, so whenever |s| clears it the
-//    measured slope clears it too (it would take ||g||_1 / ||g||_2 > 1e4, i.e.
-//    n > 1e8, for both to hold). Measured: 0 firings over 51 dumps. Precedence
-//    is the same intent made reachable.
+//    THE FLOOR IS NOT A COINCIDENCE-FREE ZONE. "s decides only below the
+//    measured slope's resolution" is inert on the faces this rule exists for --
+//    where rho'p dominates, the measured slope is far ABOVE the tolerance, not
+//    below it. It is not impossible: g'p = s + rho'p cancelling to within
+//    kEngineDenomTol * ||g|| * ||p|| is a coincidence of measure ~tol/|s|, not
+//    something double precision forbids. It was simply measured never to happen
+//    on the corpus -- see
+//    docs/notes/data/2026-09-m7-w2-nc2-flat-face/REPORT.md.
 //
-//    THE EQUALITY DRIFT (independent_working_set). Measured cause: a regularized
-//    EQP answer can miss its OWN equality rows by 1/delta-sized amounts, and a
-//    ratio-test step of alpha toward it leaves the iterate alpha * that far off
-//    rows it had already met (alpha = 4.4e-4 toward an answer 7.1e2 off the rows
-//    put YORKNET's restoration QP 3.1e-1 off them at pass 177, and the exchange
-//    cycle that followed never came back). The iterate's invariant -- no equality
+//    THE EQUALITY DRIFT (independent_working_set). A regularized EQP answer can
+//    miss its OWN equality rows, and a ratio-test step toward such an answer
+//    leaves the iterate off rows it had already met. The iterate's invariant -- no equality
 //    row carries a STRUCTURAL violation, the terminal classifier's own test
 //    (violation_is_structural, row by row, on this pass's multipliers) -- is
 //    therefore CHECKED at every pass once the walk has met the rows (a start
 //    point need not), and a miss is COUNTED (eq_drift_violations). Stated in the
 //    classifier's currency and not one digit tighter: a residual section 5 would
-//    not call a violation is not a drift either. NOTHING re-projects the iterate:
-//    see the registered items in the NC2 report for the correction that was
-//    implemented and measured (it closes the rows through the pass's own factor,
-//    converts one more restoration QP, and takes the feasible census from 120 to
-//    116 because the corrections the regularization dominates are 1/delta-sized).
+//    not call a violation is not a drift either. NOTHING re-projects the
+//    iterate: the repair belongs where the miss is made, in the regularized
+//    solve, and the walk-side forms that were implemented and measured are in
+//    docs/notes/data/2026-09-m7-w2-nc2-flat-face/REPORT.md.
 //
 //    For STRICTLY CONVEX H the ride branch is UNREACHABLE and the engine is
 //    bit-for-bit unchanged. For PSD-SINGULAR H it IS reachable and behaviour is
 //    NOT identical to the capped path: the ride takes the uncapped ratio while
 //    the ordinary path clamps at alpha = 1. That is intended.
 //
-//    No anti-cycling rule is needed here: a ride's objective decrease is strict
-//    whenever alpha > 0.
+//    FINITENESS. A ride that MOVES decreases f strictly (the descent invariant
+//    above with alpha > 0), so it needs no anti-cycling rule. A ride whose
+//    uncapped ratio test answers a step within step_tol moves NOTHING and is
+//    the ZERO-MOTION EVENT it looks like: the point memory is not cleared and
+//    the ride's blocker is admitted through it -- the ordinary add path's own
+//    two rules -- so the release/re-entry cap 2(n + mi) bounds a
+//    drop -> zero-length ride -> drop cycle.
 //
 // 5. TERMINATION. The loop reaches a KKT point of its working set with nothing
 //    left to drop, and classifies it:
@@ -1179,13 +1199,18 @@ class QpEngine {
                            // ordinary step
     };
 
-    // The blocker section 4c's ride found and did not admit (kDependentBlocker):
-    // the add site's rule decides it along `dir`, uncapped.
+    // The blocker section 4c's ride found. On kDependentBlocker the ride did NOT
+    // admit it and the add site's rule decides it along `dir`, uncapped. On
+    // kStepped the ride admitted it already, and `dir` is left empty: what the
+    // caller needs there is the MOTION the ride made (4c, FINITENESS).
     struct RideBlocker {
         BlockKind kind = BlockKind::kNone;
         Index idx = -1;
         BoundState state = BoundState::kFree;
         double alpha = 0.0;
+        // alpha * ||dir||inf -- the quantity the ordinary add path tests against
+        // step_tol to decide whether the iterate moved.
+        double dx_inf = 0.0;
         Vec dir;
         detail::DepTest test;
     };
@@ -1901,10 +1926,16 @@ class QpEngine {
     // anti-cycling argument, which rests on the decrease being STRICT.
     //
     // With independent_working_set the drop's own PREDICTED slope decides the
-    // sign whenever it resolves above the tolerance (4c, THE FLAT FACE);
+    // sign only BELOW the measured slope's resolution (4c, THE FLAT FACE);
     // `predicted` reports that it did.
     int ride_sign(const QpProblem &qp, const DropRecord &dropped, const Vec &p, const Vec &x,
                   bool *predicted = nullptr) const;
+
+    // Whether a drop whose ride ride_sign vetoed is a NOISE drop: its own
+    // predicted slope is at or below the resolution of the slope it was meant to
+    // predict (4c, THE FLAT FACE). Reads g'p and s from `x` and `p`; no solve.
+    bool ride_drop_is_noise(const QpProblem &qp, const DropRecord &dropped, const Vec &p,
+                            const Vec &x) const;
 
     // 2-norm of the dropped constraint's gradient, for ride_sign's tolerance.
     static double dropped_gradient_norm(const QpProblem &qp, const DropRecord &dropped);

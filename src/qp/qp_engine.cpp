@@ -1390,8 +1390,18 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     break;
                 }
                 if (outcome == RideOutcome::kStepped) {
-                    degenerate_run = 0; // observation only -- the ride moved x
-                    pt_clear(seen);
+                    // Observation only, and broken by a ride whether or not it
+                    // moved (QpCounters::degenerate_run_max).
+                    degenerate_run = 0;
+                    // A RIDE THAT DID NOT MOVE IS A ZERO-MOTION EVENT (4c,
+                    // FINITENESS), on the ordinary add path's own test: the point
+                    // memory survives it and the blocker is admitted through it,
+                    // so the release/re-entry cap bounds a drop -> zero-length
+                    // ride -> drop cycle.
+                    if (ride.dx_inf > step_tol) {
+                        pt_clear(seen);
+                    }
+                    (void)pt_admit(seen, counters, ride.kind == BlockKind::kIneq, ride.idx);
                     refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen,
                                    eff_opts);
                     continue;
@@ -1423,9 +1433,10 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         }
                         ++counters.ws_adds;
                         (void)pt_admit(seen, counters, dropped.is_ineq, dropped.idx);
-                        if (sign_veto) {
-                            // THE FLAT FACE (4c): the predicted slope did not
-                            // resolve either, so this multiplier is noise.
+                        if (sign_veto && ride_drop_is_noise(qp, dropped, p, x)) {
+                            // THE FLAT FACE (4c): the drop's own multiplier is
+                            // below the resolution of the slope it was meant to
+                            // predict, so it does not count as exhausted here.
                             pt_mark(seen, dropped.is_ineq, dropped.idx, kPtNoise);
                         }
                         ++counters.ride_declines_fallthrough_blocked;
@@ -4393,23 +4404,23 @@ int QpEngine::ride_sign(const QpProblem &qp, const DropRecord &dropped, const Ve
 
     // DESCENT picks the sign, and only strict descent qualifies -- a flat
     // direction has no descending sign and declines. THE FLAT FACE (4c): the
-    // PREDICTED slope, which is the exact one at a KKT point of an independent
-    // set, decides whenever it resolves; the measured slope decides only when it
-    // does not, and a flat predicted slope is a noise-level multiplier whose drop
-    // (ii) undoes.
+    // MEASURED slope is the exact directional derivative of the objective and
+    // decides WHENEVER IT RESOLVES; the drop's own PREDICTED slope decides only
+    // below that resolution, where the measured one says nothing. A ride
+    // therefore never ascends a slope the arithmetic could read.
     const double s_pred = opts_.independent_working_set
                               ? dropped.violation * dropped_directional(qp, dropped, p)
                               : 0.0;
     int sign = 0;
-    if (s_pred < -slope_tol || s_pred > slope_tol) {
+    if (slope < -slope_tol) {
+        sign = 1;
+    } else if (slope > slope_tol) {
+        sign = -1;
+    } else if (s_pred < -slope_tol || s_pred > slope_tol) {
         sign = s_pred < 0.0 ? 1 : -1;
         if (predicted != nullptr) {
             *predicted = true;
         }
-    } else if (slope < -slope_tol) {
-        sign = 1;
-    } else if (slope > slope_tol) {
-        sign = -1;
     }
 #ifdef HVEN_TESTING
     // The OTHER TWO of section 4c's three refusals, and the four numbers that
@@ -4440,6 +4451,21 @@ int QpEngine::ride_sign(const QpProblem &qp, const DropRecord &dropped, const Ve
         return 0; // no admissible sign: decline
     }
     return sign;
+}
+
+bool QpEngine::ride_drop_is_noise(const QpProblem &qp, const DropRecord &dropped, const Vec &p,
+                                  const Vec &x) const {
+    // THE FLAT FACE (4c). g'p = s + rho'p with rho the point's own first-order
+    // residual, so the difference of the two slopes ride_sign already has IS
+    // that residual along p -- no extra solve, and nothing to estimate. The
+    // resolution of the slope is the larger of the dot product's own floor and
+    // that residual; a multiplier at or below it did not predict anything.
+    const Vec gx = qp.H.selfadjointView<Eigen::Upper>() * x + qp.g;
+    const double slope = gx.dot(p);
+    const double s_pred = dropped.violation * dropped_directional(qp, dropped, p);
+    const double resolution =
+        std::max(detail::kEngineDenomTol * gx.norm() * p.norm(), std::abs(slope - s_pred));
+    return std::abs(s_pred) <= resolution;
 }
 
 double QpEngine::dropped_gradient_norm(const QpProblem &qp, const DropRecord &dropped) {
@@ -4552,6 +4578,14 @@ QpEngine::RideOutcome QpEngine::ride_negative_curvature(
             x(block_idx) =
                 (block_state == BoundState::kAtUpper) ? qp.upper(block_idx) : qp.lower(block_idx);
     }
+    // WHAT THE RIDE DID, for the caller's point memory (4c, FINITENESS): the
+    // blocker it admitted and the motion it made. `dir` is deliberately not
+    // copied -- the ride has already taken it.
+    blocked.kind = kind;
+    blocked.idx = block_idx;
+    blocked.state = block_state;
+    blocked.alpha = alpha;
+    blocked.dx_inf = alpha * dir.lpNorm<Eigen::Infinity>();
 #ifdef HVEN_TESTING
     // The blocker a RIDE admitted. QpCounters folds it into ws_adds with every
     // other addition (that field's own doc says so), which is one of the six
