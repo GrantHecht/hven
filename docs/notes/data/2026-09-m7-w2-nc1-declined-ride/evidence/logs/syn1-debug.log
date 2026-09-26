@@ -1,0 +1,27 @@
+PGREP_EMPTY syn1-debug 2026-09-25T16:26:49-04:00
+FOREGROUND_START syn1-debug 2026-09-25T16:26:49-04:00
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a21a2ab349204592e/.scratch/nc1-build-debug/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = *NC1ExploreSynthetic
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from QpE2WorkingSet
+[ RUN      ] QpE2WorkingSet.NC1ExploreSynthetic
+NC1S mode=0 minor=0 action=3 post=0 fired=0 ro=0 rel=-1 blk=2:2 alpha=nan curv=nan pinf=5.000e-17
+NC1S mode=0 minor=1 action=7 post=1 fired=1 ro=5 rel=2 blk=2:2 alpha=1.375e+00 curv=-2.500e-01 pinf=8.000e+00
+NC1S mode=0 minor=2 action=6 post=0 fired=0 ro=0 rel=-1 blk=0:-1 alpha=nan curv=nan pinf=1.856e-15
+NC1SSUM mode=0 status=0 f=-35.000000000000 x=(5.000e-16,4.000e-17,-1.000e+01) minors=3 dep_ride=0 rexch=0 undo=0 exch=0 passov=0 reentry=0
+NC1S mode=1 minor=0 action=3 post=0 fired=0 ro=0 rel=-1 blk=2:2 alpha=nan curv=nan pinf=1.500e-16
+NC1S mode=1 minor=1 action=7 post=1 fired=1 ro=5 rel=2 blk=2:2 alpha=1.375e+00 curv=-2.500e-01 pinf=8.000e+00
+NC1S mode=1 minor=2 action=6 post=0 fired=0 ro=0 rel=-1 blk=0:-1 alpha=nan curv=nan pinf=1.856e-15
+NC1SSUM mode=1 status=0 f=-35.000000000000 x=(2.625e-16,4.000e-17,-1.000e+01) minors=3 dep_ride=0 rexch=0 undo=0 exch=0 passov=0 reentry=0
+NC1S mode=2 minor=0 action=3 post=0 fired=0 ro=0 rel=-1 blk=2:2 alpha=nan curv=nan pinf=5.000e-17
+NC1S mode=2 minor=1 action=7 post=1 fired=1 ro=5 rel=2 blk=2:2 alpha=1.375e+00 curv=-2.500e-01 pinf=8.000e+00
+NC1S mode=2 minor=2 action=6 post=0 fired=0 ro=0 rel=-1 blk=0:-1 alpha=nan curv=nan pinf=1.856e-15
+NC1SSUM mode=2 status=0 f=-35.000000000000 x=(5.000e-16,4.000e-17,-1.000e+01) minors=3 dep_ride=0 rexch=0 undo=0 exch=0 passov=0 reentry=0
+[       OK ] QpE2WorkingSet.NC1ExploreSynthetic (3 ms)
+[----------] 1 test from QpE2WorkingSet (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3 ms total)
+[  PASSED  ] 1 test.
+FOREGROUND_END syn1-debug 2026-09-25T16:26:49-04:00 rc=0

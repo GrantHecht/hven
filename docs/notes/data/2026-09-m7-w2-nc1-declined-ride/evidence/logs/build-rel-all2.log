@@ -1,0 +1,2 @@
+[1/2] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_anti_cycling_arm.cpp.o
+[2/2] Linking CXX executable tests/hven_qp_walk_seam_tests
