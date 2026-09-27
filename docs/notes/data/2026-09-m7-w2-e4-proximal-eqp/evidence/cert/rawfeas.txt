@@ -1,0 +1,8 @@
+DALLASM_def/qp0  TR-restricted  tr=1 phase1 status=0 min_l1_violation=0.44799999999999973
+DALLASM_def/qp0  raw bounds     tr=1 phase1 status=0 min_l1_violation=0.0
+DALLASM_def/qp1  TR-restricted  tr=0.5 phase1 status=0 min_l1_violation=2.370000000000001
+DALLASM_def/qp1  raw bounds     tr=0.5 phase1 status=0 min_l1_violation=0.0
+DALLASM_def/qp2  TR-restricted  tr=0.25 phase1 status=0 min_l1_violation=6.024000000000003
+DALLASM_def/qp2  raw bounds     tr=0.25 phase1 status=0 min_l1_violation=0.0
+DALLASM_def/qp3  TR-restricted  tr=0.125 phase1 status=0 min_l1_violation=9.073999999999945
+DALLASM_def/qp3  raw bounds     tr=0.125 phase1 status=0 min_l1_violation=0.0

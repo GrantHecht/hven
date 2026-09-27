@@ -1,0 +1,25 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-release/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpE4ProximalEqp.*
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from QpE4ProximalEqp
+[ RUN      ] QpE4ProximalEqp.TheYorknetRestorationQpIsDriftFreeAndOptimal
+[       OK ] QpE4ProximalEqp.TheYorknetRestorationQpIsDriftFreeAndOptimal (32879 ms)
+[ RUN      ] QpE4ProximalEqp.TheAcopp57PrimaryQpCostsTwoMinorsOnBothAlgebras
+[       OK ] QpE4ProximalEqp.TheAcopp57PrimaryQpCostsTwoMinorsOnBothAlgebras (7 ms)
+[ RUN      ] QpE4ProximalEqp.TheSteenbrbRestorationQp2ExitsFiniteAndSaysWhy
+[       OK ] QpE4ProximalEqp.TheSteenbrbRestorationQp2ExitsFiniteAndSaysWhy (2628 ms)
+[ RUN      ] QpE4ProximalEqp.NoOrdinaryStepAscendsItsOwnObjectiveOnTheFlatFaceCells
+[ e4 ] R2_Cs_STEENBRB_qp2.txt moved=1790 above_floor=0 ascending=0 worst_rise=0.000e+00 status=0
+[ e4 ] R2_Cs_STEENBRB_qp3.txt moved=2828 above_floor=9 ascending=0 worst_rise=1.857e-08 status=0
+[ e4 ] R2_Cs_STEENBRB_qp4.txt moved=304 above_floor=6 ascending=0 worst_rise=2.767e-08 status=0
+[       OK ] QpE4ProximalEqp.NoOrdinaryStepAscendsItsOwnObjectiveOnTheFlatFaceCells (18480 ms)
+[ RUN      ] QpE4ProximalEqp.TheSteenbrbRestorationLpQp1ReachesTheClarabelOptimum
+[ e4 ] R2_Cs_STEENBRB_qp1 refactorize status=0 minors=232 f=-1378.22320088448
+[ e4 ] R2_Cs_STEENBRB_qp1 border status=0 minors=232 f=-1378.22320088448
+[       OK ] QpE4ProximalEqp.TheSteenbrbRestorationLpQp1ReachesTheClarabelOptimum (4493 ms)
+[----------] 5 tests from QpE4ProximalEqp (58489 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (58489 ms total)
+[  PASSED  ] 5 tests.

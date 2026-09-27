@@ -1,0 +1,114 @@
+qp(m7): W2 E4 -- the proximal EQP with the step's ROW-DRIFT CHECK, the exhausted
+ladder made ADVISORY, the terminal polish's acceptance given a ROUNDING MARGIN,
+the pathology fixtures' DECLARED RENAME EVENT, and the DALLASM certificates
+VERIFIED TRUE (fix round 2)
+
+THE DALLASM VERDICT, FIRST (E4-18). The two certified kInfeasible cells are
+HONEST. Three independent readings, all on the dump's full data: the engine's own
+Farkas certificate re-derived in numpy -- box_part identical to 0.0e0, y_i <= 0,
+`implied` identical (diff 0.0e0), ZERO dropped entries so the certificate is EXACT
+(residual 0 against exact_tol 4.5e-12), and implied - limit = 0.659 (qp2) / 0.165
+(qp1) against a margin of 1e-8; a HiGHS phase-1 LP with minimum l1 violation 6.024
+(qp2) and 2.370 (qp1); and Clarabel reporting PrimalInfeasible on both. The
+infeasibility is the TRUST REGION -- all four DALLASM_def cells are TR-infeasible
+and every one is feasible with the raw bounds -- and the blocker is variable 158's
+TR-tightened upper bound. The base's kNumericalError was the weaker answer; these
+are two honest conversions. No false certificate anywhere: the only other
+certified-infeasible corpus cells, READING6_def qp0/qp1, were certified at the base.
+
+THE ENGINE, three changes on top of fix round 1.
+
+THE STEP'S ROW-DRIFT CHECK (`eqp_answer_drifts_off_met_rows`, counter
+`eqp_row_drift_refusals`). The classical active-set invariant is that a step keeps
+every working row met, because the unregularized system has Ae p = 0 there. The
+DUAL regularization breaks it by its own term -- the regularized row block reads
+Ae p = -dual_mu * lambda -- which is harmless while lambda is O(1) and is NOT once
+the proximal step's multipliers are O(1/primal_delta), as they are on a face whose
+reduced Hessian is flat. MEASURED on `indefinite_equality_qp`: lambda_e ~ 5e+07,
+the answer solved its own regularized system to 5.5e-09, and it opened the equality
+row by 0.5, after which the walk spent its whole cap on an UNCHANGING working set
+and reported kMaxIter at a point that is no local minimizer. Three qualifiers, each
+measured: the check speaks only for a CLOSED face (which keeps it off an
+inconsistent row set), only above `kEqpRowDriftFloor` = 1e-3 of the row's scale
+(the ladder it routes into is global, so firing on ordinary accuracy costs routes
+downstream), and it is ADVISORY on an exhausted ladder.
+
+THE EXHAUSTED LADDER IS ADVISORY FOR BOTH REFUSALS, terminal only for a NON-FINITE
+answer. Three decades of primal_delta that do not close the row are evidence the
+residual is IRREDUCIBLE -- an inconsistent row set, not a bad factor -- and the
+walk's own terminal site already classifies an iterate it cannot leave. An
+intermediate version classified at the refused pass instead and read SIXTEEN open
+elastic relaxations certified infeasible against the T7 census's claim of zero; a
+false certificate is not a trade any fix may make, so the classification is
+withdrawn. `QpEngineIndefinite.T7Fix2DualMuZero...` reaches kInfeasible by the
+walk's own route, cold and warm, both algebras.
+
+THE TERMINAL POLISH'S ACCEPTANCE (`kTerminalPolishWorseFactor` = 4) on the two DUAL
+residuals; the row half stays EXACT. An exact `<=` on each of three residuals made
+the adoption decidable by ONE ULP: on ACOPR57_def/qp0 the candidate improves the
+row residual seven decades (6.14e-07 -> 1.20e-14) and its stationarity lands
+1.80e-14 against 1.64e-14, and which side of that ulp the two fall on DIFFERED
+between the production library and the HVEN_TESTING recompile of the same TU (f
+432.674974173 against 432.660942514). The slack applies to "no worse" and to
+"strictly better" alike, so the decision is a margin on both sides. The row half is
+exact because the slack there is the same census break (16 against 0).
+
+THE THREE STATUS REGRESSIONS (E4-20): all fixed at the mechanism, fixtures
+unmodified. `QpEngineIndefinite.EngineLandsOnALocalMinimizer` (kMaxIter/500 at a
+point 0.5 off its equality row -> kOptimal/10 at the enumerated minimizer, both
+algebras) and `T7Fix2DualMuZero...` by the two above;
+`QpE2WorkingSet.TheLockedVertexUnlocks...` by the polish's own margin -- ACOPR57_def
+qp0 now lands on CLARABEL'S OPTIMUM to 2.2e-12 relative where it was 3.2e-05 away.
+
+THE RENAME EVENT (E4-19), and its finding: NO CELL IN THE TREE STILL CYCLES. One
+fact does it -- the E4 walk takes no noise-level drop, so there is no recurrence,
+nothing for arm A to refuse, no pass-over for arm B1, no out-of-box iterate and no
+drop pass for the diagnostic. The M4 arms STAY in the tree; 16 fixtures assert
+INERTNESS and honest absence instead, and 14 are renamed to say so (the table is in
+the report). The two remaining B1Gate cells, the QpE2WorkingSet ride/retreat cells
+and QpNc2FlatFace's noise-drop cell get the same treatment.
+
+E4-21. (a) `WarmStartBattery.Corpus`'s 13 cells ARE `kEqpPolishStepCap`, measured by
+the cap search the ruling asks for: at 1e-5 the five F3n50 cells return to their
+PINNED minors EXACTLY and ACOPR57_def/qp4 loses its base certificate on both
+algebras, so 1e-6 ships and the 13 pins are re-derived with the table as their
+attribution (bench_scale.cpp's hard-coded copy moved with them). (b) the seed route
+change is one line -- `constraint_violation_l1(probe) < h_entry` -- on margins of
+8.2e-07, 1.0e-06 and 1.5e-13 RELATIVE; six fixtures re-premised, the seventh still
+takes its candidate with its two eval counts re-derived.
+
+E4-17's accounting contract is stated at `QpCounters::factorizations`,
+`SqpCounters::factorizations`, `terminal_polish_solves` and `terminal_mu_refines`
+(the asymmetry recorded, not repaired) and in docs/trace-schema-v0.md.
+`eqp_row_drift_refusals` is a DECLARED ADDITIVE TRAILING KEY: last in the table and
+last in the struct, so no existing key's value moves.
+
+BATTERY. Release 0 failures of 2870 and Debug 0 of 2869, 2872 tests registered in
+BOTH configurations, with THREE declared GTEST_SKIPs in Debug, each carrying its
+cost in its own message and each PASSING in Release at the same engine:
+`QpE2WorkingSet.AGreyPinOnYorknetThatIsIndependentStaysIndependent` (2681.90 s
+Debug against 37.35 s Release, a pre-existing cost this round is the second to
+measure), `QpE4ProximalEqp.TheYorknetRestorationQpIsDriftFreeAndOptimal` (2414.10
+s against 0.3 s, this round's own fixture) and NC2 fix round 1's
+`QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder`.
+`Continuation.ProbeBudgetBoundsAFailingProposal` ran ALONE and detached: PASSED,
+622.29 s against 629.33 s at fix round 1, so the +1 minor fix round 1 declared is
+inside a 620 s test's noise. The 51-dump corpus both algebras: SIXTEEN conversions
+to kOptimal on each, NO base-certified cell lost, all six A0_YORKNET cells optimal
+with the equality drift gone. Census T7 120/120. U0 43 differences -- 5 integer
+qp_minors 2->3, 37 residual columns strictly better, one last-digit ipm move. HS
+pins green. The E2-OFF control lane is unchanged from fix round 1 and stays
+DECLARED MOVING with its three cells.
+
+AND ONE PIECE OF THE ROUND'S OWN BOOKKEEPING, CORRECTED. Taking the direct block
+56 -> 57 appended the history line in tests/drivers/test_{callback,threads}.cpp
+but not in the two places that state the count in PROSE -- solver_counters.h's
+"the table holds the 56 direct fields and the struct takes 58 initializers" with
+its own running history, and docs/trace-schema-v0.md section 5's "Shape: the 56
+direct fields" with its chain. Both now read 57 / 59 with this round's line
+appended. The mechanical checks were right throughout (kAggregateArity ==
+kSqpCountersFieldCount + 2 and the offsetof-monotone check), so this is comment
+and prose only, and its neutrality is PROVEN rather than presumed: after a full
+rebuild of both configurations libhven.a is BYTE-IDENTICAL, and both suites plus
+the long test were re-run at the corrected tree, the Release run agreeing with its
+predecessor on every test's outcome.

@@ -1,0 +1,79 @@
+qp(m7): W2 E4 -- the proximal EQP with the walk's tests in its currency, the EQP-site residual check, the UNREGULARIZED POLISH at both sites, and the TERMINAL POLISH at every certified exit (fix round 1)
+
+Four clauses, and a fifth the fix round added because the first four measured it
+into existence.
+
+E4-1 THE PROXIMAL PAIR. solve_eqp and solve_bordered_eqp take a REQUIRED
+proximal centre x_k and solve for the step from it: +delta*x_k on the free block
+of the rhs (unmasked on the border path, justified per variable there), +delta on
+the free block of the step, +mu dual as before, and ONE refinement step against
+the PROXIMAL system -- the primal delta is a term of the model, not an error.
+eqp_solve.h's header states the system in full.
+
+E4-2 TERMINATION IN THE EQP'S OWN CURRENCY. A pass is a KKT point of its working
+set when the free-block stationarity residual is within opt_tol of its own scale
+AND no row or bound carries a structural violation. The step-size test
+||p|| <= step_tol is kept only as the zero-motion observation it always was.
+Nothing moves on the second disjunct.
+
+E4-3 THE RUNAWAY GUARD IN THE ITERATE'S CURRENCY, asked on every pass that is
+about to move, plus a non-finite-answer refusal at the EQP site. The ridge-scale
+STEP guard the brief named was built, MEASURED and REMOVED: it fires at iter 0
+with alpha = 0 on an ordinary degenerate first step. The three named runaway
+fixtures pass UNMODIFIED.
+
+E4-4 THE EQP-SITE RESIDUAL CHECK. Per solve, on both algebras, before the
+model's step: the CONSTRAINT-ROW residual against its own scale, floored by
+mu*||lambda||; up to three extra solves while it strictly falls; then a REFUSAL
+that routes the pass to the engine's own ladder -- the border retreat, then 4b's
+suspect-stall escalation -- never to an exit of its own.
+
+E4-11 THE UNREGULARIZED POLISH AND THE TERMINAL POLISH. The proximal answer
+carries an O(delta*||x* - x_k||) bias away from the face's exact KKT point, and
+that bias is a real error even though delta is a real term. polish_eqp_core
+(eliminated) and polish_bordered_unregularized (border) take at most two further
+refinement steps against the face's OWN exact system on the factor the solve
+already paid for, each kept only while that residual STRICTLY FALLS and only
+while the step is a POLISH (kEqpPolishStepCap, calibrated on the corpus: without
+it three base-certified cells are lost, at 1e-4 one, at 1e-6 none). On a flat
+face the guard rejects the first step and the proximal answer stands. At every
+CERTIFIED exit the final point is then POLISHED on its final working set:
+stage 1 adopts the pass's own already-polished answer for free, stage 2 re-solves
+the face with the dual regularization out of the SYSTEM -- one factorization,
+charged to terminal_polish_solves and deliberately NOT to factorizations, which
+is the active-set search's cost that every budget and the hot-handle contract are
+written against. Adopted only when feasibility is kept, no KKT residual worsens
+and one strictly improves. refine_on_face needs nothing of its own: its promise
+of the face's exact answer is what the EQP-site polish now delivers.
+
+MEASURED, 51-dump corpus, both algebras, against NC2 fix1 as the base:
+FIFTEEN conversions to kOptimal on each algebra (A0_YORKNET qp2-qp6,
+Cs_STEENBRB qp1/qp3/qp5/qp6, ACOPR57_def/qp3, DALLASM_f4 qp2/qp3,
+Hj_STEENBRD/qp4, YORKNET_def qp0/qp1), NO base-certified cell lost on either
+algebra, ACOPP57_def qp0-qp3 held at kOptimal and now in 2 minors on BOTH
+algebras with the border path's terminal stationarity 1.25e-07 -> 9.69e-15,
+A0_YORKNET/qp3's eq_drift_violations 7502 -> 0 with eq 2.50e-01 -> 8.86e-14, the
+T7 feasible census 120/120, and U0's 43 differences over three engines every one
+strictly better (the walk's kkt_stationarity 6.30e-13 -> 4.16e-20 on the F7
+bound family) but for one last-digit ipm move.
+
+THE DECLARED FIXTURE EVENT (CLAUDE.md section 7): fourteen counter pins
+re-derived with an in-fixture attribution each -- HsBattery's
+border_refine_steps 10 -> 6 and crash-basis minors 802/799 -> 800/797,
+ScaleF7's 278 -> 280 and 526 -> 527, F7ColdScaleSmoke's and
+PredictorRatioTest's 2 -> 3 minors, IpqpAcceptanceCensus's armed_peak 85 -> 72,
+T7A's latched factorizations 3 -> 4, WarmStart's HS26 objective pin,
+HsSweepCorpus's total_minors 3365 -> 3340 (whose B-1 complementarity assertion
+this round CLOSES), SqpDriverWarmStart's warm-major bound 2 -> 3, the crossover
+chain's 1e-5 cold arm 49 -> 48, and the four declined-ride cells' option-off
+minors. The six-field E4 counter group is aggregated into
+SqpCounters at every fold site with both size assertions, the field table, the
+two golden trace lines and docs/trace-schema-v0.md re-derived by six keys.
+
+NOT CLOSED, with numbers, in .superpowers/m7-w2-e4-fix1-report.md: 63 of 2862
+Release tests still fail (46 inherited from c46485d8, 17 this round's own; 37 of
+c46485d8's 83 are fixed), the ~25 pathology-pinning fixtures whose premise this
+change removes still need their declared re-derivation, two DALLASM cells read a
+certified kInfeasible where the base read kNumericalError, the warm-start
+battery's 13 pinned cells read 4-50 % more minors, and the E4-7 fixtures are not
+added.

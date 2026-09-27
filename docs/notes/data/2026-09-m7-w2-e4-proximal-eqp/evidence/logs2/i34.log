@@ -1,0 +1,109 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-release/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = SqpDriverRestorationSeed.*:SqpDriverRestorationProximity.*:SqpDriverRestorationExcursion.*:SqpDriverRadius.*:SqpDriverRestoration.*
+[==========] Running 36 tests from 5 test suites.
+[----------] Global test environment set-up.
+[----------] 9 tests from SqpDriverRestoration
+[ RUN      ] SqpDriverRestoration.InfeasibleNlpCertifies
+[       OK ] SqpDriverRestoration.InfeasibleNlpCertifies (85 ms)
+[ RUN      ] SqpDriverRestoration.AlgebraModeDivergenceIsANonUniqueSubproblemOptimum
+[ e4fix2 ] algebra divergence: border=(1.125,1.125) sum=2.2499999999999964 refac sum=1.9999999999999996
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_restoration.cpp:1240: Failure
+The difference between x_border(0) + x_border(1) and 2.0 is 0.24999999999999645, which exceeds 1e-12, where
+x_border(0) + x_border(1) evaluates to 2.2499999999999964,
+2.0 evaluates to 2, and
+1e-12 evaluates to 9.9999999999999998e-13.
+
+[  FAILED  ] SqpDriverRestoration.AlgebraModeDivergenceIsANonUniqueSubproblemOptimum (103 ms)
+[ RUN      ] SqpDriverRestoration.RestorationRecoversAndResumes
+[       OK ] SqpDriverRestoration.RestorationRecoversAndResumes (5 ms)
+[ RUN      ] SqpDriverRestoration.RestorationIsIdleOnCleanProblems
+[       OK ] SqpDriverRestoration.RestorationIsIdleOnCleanProblems (8 ms)
+[ RUN      ] SqpDriverRestoration.SecondRequestIsCappedAndReported
+[       OK ] SqpDriverRestoration.SecondRequestIsCappedAndReported (8 ms)
+[ RUN      ] SqpDriverRestoration.ZeroStepIsAcceptedAsAKktPoint
+[       OK ] SqpDriverRestoration.ZeroStepIsAcceptedAsAKktPoint (0 ms)
+[ RUN      ] SqpDriverRestoration.ExhaustedElasticTierEntersRestoration
+[       OK ] SqpDriverRestoration.ExhaustedElasticTierEntersRestoration (2 ms)
+[ RUN      ] SqpDriverRestoration.TheSharedDiagnosticsOfACertifiedExitUseTheReturnedPrices
+[       OK ] SqpDriverRestoration.TheSharedDiagnosticsOfACertifiedExitUseTheReturnedPrices (2 ms)
+[ RUN      ] SqpDriverRestoration.ExhaustedElasticTierEntersRestorationUnderEveryMode
+[       OK ] SqpDriverRestoration.ExhaustedElasticTierEntersRestorationUnderEveryMode (5 ms)
+[----------] 9 tests from SqpDriverRestoration (223 ms total)
+
+[----------] 7 tests from SqpDriverRestorationProximity
+[ RUN      ] SqpDriverRestorationProximity.TheCertificateIsGatedOnTheUncorrectedResidual
+[       OK ] SqpDriverRestorationProximity.TheCertificateIsGatedOnTheUncorrectedResidual (121 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheProxyWouldCertifyWhereTheExactResidualRefuses
+[       OK ] SqpDriverRestorationProximity.TheProxyWouldCertifyWhereTheExactResidualRefuses (31 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheSeedGuardFiresAndTheStartObjectiveIsHPlusP
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_restoration.cpp:3019: Failure
+Expected: (nullptr) != (row), actual: (nullptr) vs NULL
+
+[  FAILED  ] SqpDriverRestorationProximity.TheSeedGuardFiresAndTheStartObjectiveIsHPlusP (31 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheRefusalsNameTheFieldTheValueAndTheRemedy
+[       OK ] SqpDriverRestorationProximity.TheRefusalsNameTheFieldTheValueAndTheRemedy (0 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheZeroWeightGateNeverReadsTheBundle
+[       OK ] SqpDriverRestorationProximity.TheZeroWeightGateNeverReadsTheBundle (0 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheZeroWeightCertifiesOnAScaledSolve
+[       OK ] SqpDriverRestorationProximity.TheZeroWeightCertifiesOnAScaledSolve (5 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheProductionCentreIsTheRequestingIterateNotTheSeed
+[       OK ] SqpDriverRestorationProximity.TheProductionCentreIsTheRequestingIterateNotTheSeed (0 ms)
+[----------] 7 tests from SqpDriverRestorationProximity (189 ms total)
+
+[----------] 3 tests from SqpDriverRadius
+[ RUN      ] SqpDriverRadius.TheElasticExhaustionPreemptsTheRadiusFloorOnThisModel
+[       OK ] SqpDriverRadius.TheElasticExhaustionPreemptsTheRadiusFloorOnThisModel (5 ms)
+[ RUN      ] SqpDriverRadius.InfiniteInitialRadiusShrinksToTrMax
+[       OK ] SqpDriverRadius.InfiniteInitialRadiusShrinksToTrMax (8 ms)
+[ RUN      ] SqpDriverRadius.RejectsUnusableFloors
+[       OK ] SqpDriverRadius.RejectsUnusableFloors (0 ms)
+[----------] 3 tests from SqpDriverRadius (14 ms total)
+
+[----------] 11 tests from SqpDriverRestorationSeed
+[ RUN      ] SqpDriverRestorationSeed.TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTaken
+[       OK ] SqpDriverRestorationSeed.TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTaken (31 ms)
+[ RUN      ] SqpDriverRestorationSeed.TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOne
+[       OK ] SqpDriverRestorationSeed.TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOne (116 ms)
+[ RUN      ] SqpDriverRestorationSeed.TheIndependentWorkingSetReachesTheSameCertifiedAnswer
+[       OK ] SqpDriverRestorationSeed.TheIndependentWorkingSetReachesTheSameCertifiedAnswer (116 ms)
+[ RUN      ] SqpDriverRestorationSeed.TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesIt
+[       OK ] SqpDriverRestorationSeed.TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesIt (97 ms)
+[ RUN      ] SqpDriverRestorationSeed.AWorseElasticCandidateIsRefusedOnTheSameModel
+[       OK ] SqpDriverRestorationSeed.AWorseElasticCandidateIsRefusedOnTheSameModel (17 ms)
+[ RUN      ] SqpDriverRestorationSeed.AZeroElasticStepIsNotACandidate
+[       OK ] SqpDriverRestorationSeed.AZeroElasticStepIsNotACandidate (8 ms)
+[ RUN      ] SqpDriverRestorationSeed.ANonFiniteEvaluationAtTheCandidateIsRefused
+[       OK ] SqpDriverRestorationSeed.ANonFiniteEvaluationAtTheCandidateIsRefused (40 ms)
+[ RUN      ] SqpDriverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTaken
+[       OK ] SqpDriverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTaken (875 ms)
+[ RUN      ] SqpDriverRestorationSeed.TheOffDiagonalStartOffersTheLadderStepAndTheGuardRefusesIt
+[       OK ] SqpDriverRestorationSeed.TheOffDiagonalStartOffersTheLadderStepAndTheGuardRefusesIt (2 ms)
+[ RUN      ] SqpDriverRestorationSeed.TheGuardAndThePhaseRunOnTheCallerScale
+[       OK ] SqpDriverRestorationSeed.TheGuardAndThePhaseRunOnTheCallerScale (10 ms)
+[ RUN      ] SqpDriverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce
+[       OK ] SqpDriverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce (58 ms)
+[----------] 11 tests from SqpDriverRestorationSeed (1377 ms total)
+
+[----------] 6 tests from SqpDriverRestorationExcursion
+[ RUN      ] SqpDriverRestorationExcursion.TheResumeArmRecordsTheCallersOwnExcursion
+[       OK ] SqpDriverRestorationExcursion.TheResumeArmRecordsTheCallersOwnExcursion (3 ms)
+[ RUN      ] SqpDriverRestorationExcursion.TheTerminalArmRecordsThePointItReports
+[       OK ] SqpDriverRestorationExcursion.TheTerminalArmRecordsThePointItReports (40 ms)
+[ RUN      ] SqpDriverRestorationExcursion.ARefusedSecondRequestLeavesTheFirstEntrysRecord
+[       OK ] SqpDriverRestorationExcursion.ARefusedSecondRequestLeavesTheFirstEntrysRecord (8 ms)
+[ RUN      ] SqpDriverRestorationExcursion.ACleanSolveHoldsNoReading
+[       OK ] SqpDriverRestorationExcursion.ACleanSolveHoldsNoReading (2 ms)
+[ RUN      ] SqpDriverRestorationExcursion.TheSubStatusTellsACutOffSubSolveFromAConvergedOne
+[       OK ] SqpDriverRestorationExcursion.TheSubStatusTellsACutOffSubSolveFromAConvergedOne (35 ms)
+[ RUN      ] SqpDriverRestorationExcursion.TheSubStatusDiscriminatesAtOneParentStatus
+[       OK ] SqpDriverRestorationExcursion.TheSubStatusDiscriminatesAtOneParentStatus (20 ms)
+[----------] 6 tests from SqpDriverRestorationExcursion (110 ms total)
+
+[----------] Global test environment tear-down
+[==========] 36 tests from 5 test suites ran. (1915 ms total)
+[  PASSED  ] 34 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] SqpDriverRestoration.AlgebraModeDivergenceIsANonUniqueSubproblemOptimum
+[  FAILED  ] SqpDriverRestorationProximity.TheSeedGuardFiresAndTheStartObjectiveIsHPlusP
+
+ 2 FAILED TESTS

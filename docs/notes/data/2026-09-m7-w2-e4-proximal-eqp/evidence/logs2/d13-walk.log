@@ -1,0 +1,66 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-debug/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpNc2FlatFace.TheSteenbrbRestorationLpQp4*:QpE4ProximalEqp.*
+[==========] Running 10 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 8 tests from QpE4ProximalEqp
+[ RUN      ] QpE4ProximalEqp.TheYorknetRestorationQpIsDriftFreeAndOptimal
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:2474: Skipped
+Debug costs 2414.10 s on this dump (Release 0.3 s), four times M6's 600 s per-fixture budget; asserted in Release, and the drift's synthetic coverage runs in both configurations
+
+[  SKIPPED ] QpE4ProximalEqp.TheYorknetRestorationQpIsDriftFreeAndOptimal (0 ms)
+[ RUN      ] QpE4ProximalEqp.TheAcopp57PrimaryQpCostsTwoMinorsOnBothAlgebras
+[       OK ] QpE4ProximalEqp.TheAcopp57PrimaryQpCostsTwoMinorsOnBothAlgebras (31 ms)
+[ RUN      ] QpE4ProximalEqp.TheSteenbrbRestorationQp2ExitsFiniteAndSaysWhy
+[       OK ] QpE4ProximalEqp.TheSteenbrbRestorationQp2ExitsFiniteAndSaysWhy (121885 ms)
+[ RUN      ] QpE4ProximalEqp.NoOrdinaryStepAscendsItsOwnObjectiveOnSteenbrbQp2
+[ e4 ] R2_Cs_STEENBRB_qp2.txt refactorize moved=1809 above_floor=0 ascending=0 worst_rise=0.000e+00 status=0
+[       OK ] QpE4ProximalEqp.NoOrdinaryStepAscendsItsOwnObjectiveOnSteenbrbQp2 (5107 ms)
+[ RUN      ] QpE4ProximalEqp.NoOrdinaryStepAscendsItsOwnObjectiveOnSteenbrbQp3
+[ e4 ] R2_Cs_STEENBRB_qp3.txt refactorize moved=553 above_floor=11 ascending=0 worst_rise=1.857e-08 status=0
+[       OK ] QpE4ProximalEqp.NoOrdinaryStepAscendsItsOwnObjectiveOnSteenbrbQp3 (2102 ms)
+[ RUN      ] QpE4ProximalEqp.NoOrdinaryStepAscendsItsOwnObjectiveOnSteenbrbQp4
+[ e4 ] R2_Cs_STEENBRB_qp4.txt refactorize moved=438 above_floor=12 ascending=0 worst_rise=2.404e-08 status=0
+[       OK ] QpE4ProximalEqp.NoOrdinaryStepAscendsItsOwnObjectiveOnSteenbrbQp4 (1787 ms)
+[ RUN      ] QpE4ProximalEqp.NoOrdinaryStepAscendsItsOwnObjectiveOnTheFlatRayLp
+[       OK ] QpE4ProximalEqp.NoOrdinaryStepAscendsItsOwnObjectiveOnTheFlatRayLp (1 ms)
+[ RUN      ] QpE4ProximalEqp.TheSteenbrbRestorationLpQp1ReachesTheClarabelOptimum
+[ e4 ] R2_Cs_STEENBRB_qp1 refactorize status=0 minors=225 f=-1378.22320088448
+[ e4 ] R2_Cs_STEENBRB_qp1 border status=0 minors=225 f=-1378.22320088448
+[       OK ] QpE4ProximalEqp.TheSteenbrbRestorationLpQp1ReachesTheClarabelOptimum (284861 ms)
+[----------] 8 tests from QpE4ProximalEqp (415777 ms total)
+
+[----------] 2 tests from QpNc2FlatFace
+[ RUN      ] QpNc2FlatFace.TheSteenbrbRestorationLpQp4NeverAscendsTheSlopeRefactorize
+[ nc2 ] R2_Cs_STEENBRB_qp4.txt refactorize status=0 f=-192.000158957 minors=533 rides=66 zero_length=31 predicted_signs=0 vetoes=0 undos=0 zmexh=0 zmcap=0
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_flat_face_saddle.cpp:334: Failure
+Expected equality of these values:
+  static_cast<int>(s.status)
+    Which is: 0
+  static_cast<int>(expected)
+    Which is: 1
+measured per configuration in NC2 fix round 1
+
+[  FAILED  ] QpNc2FlatFace.TheSteenbrbRestorationLpQp4NeverAscendsTheSlopeRefactorize (1806 ms)
+[ RUN      ] QpNc2FlatFace.TheSteenbrbRestorationLpQp4NeverAscendsTheSlopeBorder
+[ nc2 ] R2_Cs_STEENBRB_qp4.txt border status=0 f=-192.000158957 minors=533 rides=66 zero_length=31 predicted_signs=0 vetoes=0 undos=0 zmexh=0 zmcap=0
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_flat_face_saddle.cpp:334: Failure
+Expected equality of these values:
+  static_cast<int>(s.status)
+    Which is: 0
+  static_cast<int>(expected)
+    Which is: 1
+measured per configuration in NC2 fix round 1
+
+[  FAILED  ] QpNc2FlatFace.TheSteenbrbRestorationLpQp4NeverAscendsTheSlopeBorder (286066 ms)
+[----------] 2 tests from QpNc2FlatFace (287873 ms total)
+
+[----------] Global test environment tear-down
+[==========] 10 tests from 2 test suites ran. (703650 ms total)
+[  PASSED  ] 7 tests.
+[  SKIPPED ] 1 test, listed below:
+[  SKIPPED ] QpE4ProximalEqp.TheYorknetRestorationQpIsDriftFreeAndOptimal
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] QpNc2FlatFace.TheSteenbrbRestorationLpQp4NeverAscendsTheSlopeRefactorize
+[  FAILED  ] QpNc2FlatFace.TheSteenbrbRestorationLpQp4NeverAscendsTheSlopeBorder
+
+ 2 FAILED TESTS
