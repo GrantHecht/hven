@@ -1,0 +1,617 @@
+M7 W2 E4 (THE PROXIMAL EQP) + FIX ROUNDS 1-4b -- THE GATE EXPECTATIONS, DERIVED. RUN 2.
+Written and committed BEFORE the r2 chain was detached.
+
+A SUCCESSOR DECLARATION, NOT AN EDIT OF RUN 1'S.
+
+RUN 1 RAN AND STANDS. Declaration 13013b4c over 84ea0385..e212a308; chain from 11:16:02 to
+12:23:26. G1-G5 GREEN and the fold proofs 46/0 -- G4 measured the declared 43-difference SET
+exactly, G5 measured class A 30 + class B 39 (Release) / 40 (Debug) with UNEXPLAINED 0 in both --
+and G6 FAILED: `GATES_SUMMARY G1=0 G2=0 G3=0 G4=0 G5=0 G6=1`, `GATES_AGGREGATE rc=1 over
+[0 0 0 0 0 1]`, `CHAIN_SUMMARY gates=1 fold_proofs=0`. Inside G6 only the install smoke failed
+(INSTALL_SMOKE_RC=1) and the export contract failed as a CONSEQUENCE of the install never
+happening (EXPORT_CONTRACT_RC=1); CLANG_FORMAT_RC=0, DIFF_CHECK_RC=0, DIRTY_FILES=0.
+
+THE CAUSE WAS NOT THE E4 SOURCES, and that matters for how this declaration is read. The smoke's
+default arm uses the SYSTEM compiler -- GCC on this box and on CI's Linux runner. A GCC .gch
+records no input validation: what keeps a consuming TU from re-reading a `#pragma once` header
+already in the PCH is a table of (size, md5) pairs baked in when the .gch was built, and GCC never
+re-checks that the table still describes the files on disk. ccache's preprocessor-mode key is the
+preprocessed text, which a comment-only, line-count-preserving header edit leaves byte-identical,
+so a stale .gch is served and every consuming TU re-parses the header -- "multiple definition of
+enum class hven::solvers::QpStatus" out of src/drivers/ipm_solver.cpp, reached via
+solver_counters.h <- ledger.h <- ipm_solver.cpp and via detail/drivers/ipm_solver_fwd.h <-
+drivers/ipm_solver.h. Fix round 4 guards the PCH on Clang. Fix round 4b is test-only.
+
+RUN 1'S FILES ARE NOT TOUCHED BY THIS ROUND: gates-e4.sh, chain_gates_e4.sh,
+psym-derivation-e4.txt, preflight.txt and rehearsal/{rehearse,offline}.sh are byte-frozen as
+committed at 13013b4c, because psym-derivation-e4.txt's own RULE forbids adjusting a declaration
+after its chain's first leg. Run 1's scratch tree .scratch/m7w2e4gates is left alone too, so its
+transcripts survive for the record round to file as gates-run1/. THIS declaration is a separate
+runner over a NEW range with EVERY value re-derived; the two sit side by side and a reader can see
+which chain measured what.
+
+RULE: nothing here may be adjusted after the r2 chain's first leg. Every value is derived from the
+FINAL range 84ea0385..e212a308; nothing is CARRIED from run 1. Where a value comes out the same as
+run 1's -- and most do, because fix 4 is build-only and fix 4b is test-only -- that is recorded as
+a COMPARISON, and the comparison is never the derivation.
+
+BASE   84ea0385 (docs(m7): W2 E3 -- the flat-face factor, CLOSED as measurement ...; branch m7).
+       Its sources are NC2 fix round 1's GATED sources. OBSERVED, both checks empty:
+         git diff --stat 85dc01ac 84ea0385 -- include src tests cmake   -> EMPTY
+         git diff --stat 0fa59cdc 84ea0385 -- include src tests cmake   -> EMPTY
+       (85dc01ac is NC2's gate-record commit, 0fa59cdc its gated head; 84ea0385 is the E3 docs
+       record that follows them. No file under include/, src/, tests/ or cmake/ differs.)
+HEAD   e212a308 test(m7): W2 E4 fix round 4b -- residual_columns_agree gets the ABSOLUTE FLOOR
+                it was missing, so the shared corpus gate is the whole rule the suite and both
+                comparators already state (1e-5 relative WITH 1e-13 absolute) and not its
+                relative half
+       = the cherry-pick of 84fb520e. Its parent 5756530e is fix round 4 (the cherry-pick of
+       a8184985, the Clang-only PCH guard), whose parent is run 1's declaration commit 13013b4c,
+       whose parent is 0d519a2b (fix round 3). OBSERVED, both empty -- each cherry-pick preserved
+       every source byte:
+         git diff --stat a8184985 5756530e -- include src tests bench cmake scripts docs/build.md
+         git diff --stat 84fb520e e212a308 -- include src tests bench cmake scripts
+       So the range holds TWO code commits from before run 1 (25e11280, 0d519a2b) plus fix 4 and
+       fix 4b, and ONE docs commit of its own (13013b4c, run 1's declaration, which adds only
+       docs/notes/data and is therefore invisible to every derivation below).
+         Range 84ea0385..e212a308 for every source/header derivation. The declaration commit that
+         carries THIS file likewise adds only docs/notes/data, and the pre-flight re-derives the
+         changed surface from git at run time, so it cannot silently disagree with what is written
+         here.
+RUNNER gates-e4-r2.sh + chain_gates_e4_r2.sh (this directory): copies of RUN 1's runner and
+       chain -- themselves NC2's, re-pointed -- re-pointed again. Run 1's copies are NOT edited.
+         (a) scratch .scratch/m7w2e4gates-r2, ONE literal, in gates-e4-r2.sh only (OBSERVED:
+             `bash gates-e4-r2.sh --print-scratch` ->
+             /home/ghecht/Projects/hven/.scratch/m7w2e4gates-r2); the chain and the two rehearsal
+             scripts ask for it with --print-scratch; logs gates-e4-r2.log, chain-e4-r2.log; rc
+             variable GATES_E4_R2_RC; G4 label "M7 W2 E4 R2";
+         (b) EVERY declared value re-derived on 84ea0385..e212a308 (sections 1-6 below);
+         (c) ONE NEW FAIL-CLOSED REFUSAL, on a hazard fix round 4's own report flagged (its
+             section 6): G6 runs `clang-format --dry-run -Werror $CHANGED` over the DERIVED
+             changed C++ set, and clang-format with NO file argument READS STDIN, so a range with
+             no C++ change would make that leg HANG rather than pass or fail. The refusal is added
+             and is a refusal, never a relaxation. HONESTLY: it is UNREACHABLE through this runner
+             as it stands, and that is said rather than dressed up -- a non-empty changed-header
+             set is ITSELF in the format set, and the pre-existing "no changed header under
+             include/" refusal fires first on any build-only range (checked on 13013b4c..5756530e,
+             fix 4 alone: 0 changed headers, 0 format files, so the header refusal dominates). The
+             hazard itself is real and was confirmed directly: `clang-format --dry-run -Werror`
+             with no file and a readable stdin keeps reading (timeout rc 124). The guard's
+             predicate was checked in isolation, not end to end, because the runner gives it no
+             reachable path. It earns its place as defence in depth if the header refusal is ever
+             relaxed, and this range has 40 format files so it is inert here.
+       BEFORE appears EXACTLY ONCE in gates-e4-r2.sh, as the BEFORE assignment (`grep -c` -> 1).
+
+-----------------------------------------------------------------------------
+1  THE CHANGED SURFACE of 84ea0385..e212a308 -- ALL OBSERVED, all derived from git.
+
+   cmd: git diff --name-status 84ea0385..e212a308 | grep -v '^[AM]\tdocs/notes/data/'
+   49 paths (the filter drops run 1's own declaration, 285 files of docs/notes/data added by
+   13013b4c, which is INSIDE this range and in no derivation). Run 1's range had 44 of these
+   same paths; fix 4 and fix 4b add FIVE:
+     src/CMakeLists.txt              M  fix 4: the Clang-only PCH guard. It IS under src/, so it
+                                        enters CHANGED_SOURCES -- and it is HARMLESS there, which
+                                        is worth saying by mechanism rather than by assurance:
+                                        class A is decided by comparing an OBJECT's basename less
+                                        ".o" against each changed source's basename, and no object
+                                        is ever named CMakeLists.txt. It is not in MODIFIED_CXX
+                                        (that pathspec is 'src/*.cpp'), so it cannot be counted as
+                                        a class A candidate either.
+     docs/build.md                   M  fix 4: the disclosed-limitations text. OUTSIDE every
+                                        universe -- no derivation names docs/.
+     scripts/check_pch_neutrality.sh M  fix 4, +9 lines. OUTSIDE every universe: scripts/ is in no
+                                        derivation and this one is not run by any of the six gates.
+     scripts/compare_replay.py       M  fix 4b. OUTSIDE every universe as a FILE -- but it is the
+                                        comparator G4 RUNS, so "outside" is not enough and its
+                                        behaviour was PROVEN unchanged rather than assumed: its
+                                        AST with docstrings stripped is IDENTICAL across the edit,
+                                        and its output on all three of RUN 1'S OWN replay CSVs is
+                                        byte-identical including the exit code. The edit is inside
+                                        the module docstring and one function docstring. So the
+                                        comparator cannot have moved G4's difference set.
+                                        The runner's two carried by-value checks on this file still
+                                        hold at HEAD: the twelve-column float-measure frozenset
+                                        (`grep -c` -> 1) and `--residual-gate` (-> 2).
+     scripts/census_compare.py       M  fix 4b, the same citation repair. OUTSIDE every universe
+                                        and called by NO gate in this chain.
+   PATHS OUTSIDE include/, src/, tests/ AND bench/ IN THIS RANGE, derived: docs/build.md,
+   docs/trace-schema-v0.md, scripts/census_compare.py, scripts/check_pch_neutrality.sh,
+   scripts/compare_replay.py -- five, and the two scripts are the only ones any gate touches.
+   CHANGED_SOURCES is therefore 38 entries here against run 1's 37, the extra one being
+   src/CMakeLists.txt (OBSERVED).
+   AND THE COMPILED SURFACE IS UNMOVED: the 33 MODIFIED .cpp are THE SAME 33, path for path, as
+   run 1's. OBSERVED, not reasoned -- `diff` of the two --diff-filter=M listings is EMPTY. TWO of them are OUTSIDE include/, src/ and tests/ and both matter:
+     bench/bench_scale.cpp    MODIFIED, and its object
+                              bench/CMakeFiles/hven_sqp_bench.dir/bench_scale.cpp.o IS in the
+                              P-SYM capture universe (scripts/psym_compare.sh's PSYM_GROUPS
+                              names hven_sqp_bench -- OBSERVED). THIS IS THE ONE STRUCTURAL
+                              DIFFERENCE FROM NC2'S RUNNER: NC2 derived CHANGED_SOURCES,
+                              MODIFIED_CXX and ADDED_CXX over `src/ tests/` only, which was
+                              correct for a range that touched no bench source and is WRONG
+                              here -- the classifier keys class A on the changed-source list by
+                              basename, so bench_scale.cpp.o would have been classified as a
+                              class B includer whose source is untouched, and the pre-flight's
+                              own "no declared class B object may have a source MODIFIED in the
+                              range" check would have refused it. The derivation is now
+                              `src/ tests/ bench/`, and the clang-format set gains 'bench/*.cpp'.
+                              OBSERVED: bench_scale.cpp is named twice in the build files, once
+                              in add_executable(hven_sqp_bench bench_scale.cpp) and once in a
+                              comment (bench/CMakeLists.txt:21,23) -- it is INSIDE the universe,
+                              so the "named exactly once" check (which exists to prove an
+                              outside-universe source has no second object) does not apply to it.
+     docs/trace-schema-v0.md  MODIFIED. Documentation; in no derivation and in no gate.
+
+   6 headers. cmd: git diff --name-only 84ea0385..e212a308 -- 'include/*.h'
+     -- OBSERVED to be the SAME list as `-- include/`, which is what the runner derives
+        CHANGED_HEADERS with, so the two derivations agree:
+       include/hven/core/solver_counters.h     the QP and SQP counter surface
+       include/hven/detail/kkt/bordered_eqp.h  the border stack the EQP solves through
+       include/hven/detail/qp/eqp_solve.h      the proximal EQP itself
+       include/hven/detail/qp/qp_engine.h      the walk's contract text and declarations
+       include/hven/detail/qp/qp_walk_trace.h  the trace gains QpWalkMinorRecord::obj_in
+       include/hven/qp/qp_types.h              the PUBLIC QP type surface
+     THE P-SYM CONSEQUENCE, stated as an expectation and NOT as a number: solver_counters.h and
+     qp_types.h are included, directly or transitively, by nearly everything in the capture
+     universe, so nearly everything is expected to be a class A or class B mover. NC2's 38 = 1
+     + 37 came from a range whose only layout change was QpCounters gaining two Index fields.
+     That number is not this range's and is not carried (section 2).
+
+   33 MODIFIED .cpp. cmd: git diff --name-only --diff-filter=M 84ea0385..e212a308 --
+     'src/*.cpp' 'tests/*.cpp' 'bench/*.cpp'
+     By group (OBSERVED):
+       library, 3   src/drivers/sqp_solver.cpp, src/qp/qp_engine.cpp, src/qp/ws_independence.cpp
+       bench, 1     bench/bench_scale.cpp
+       tests, 29    tests/drivers/test_callback.cpp, tests/drivers/test_threads.cpp;
+                    tests/qp/test_qp_anti_cycling_arm.cpp, test_qp_degeneracy_arm.cpp,
+                    test_qp_flat_face_saddle.cpp; and 24 under tests/sqp/ (test_b1_gate,
+                    test_border_ops, test_corpus_cells, test_disproved_entry,
+                    test_eqp_refine_ab, test_eqp_solve, test_hs_battery, test_hs_sweeps,
+                    test_ipqp_acceptance, test_ipqp_dispatch, test_predictor, test_qp_engine,
+                    test_qp_engine_border, test_qp_engine_indefinite, test_qp_mode_sites,
+                    test_qp_ws_independence, test_scale_problems, test_scale_smoke,
+                    test_sqp_equality_basis, test_sqp_restoration, test_sqp_solver,
+                    test_trace_writer, test_warm_start, test_warm_start_battery)
+     THREE of the 33 are OUTSIDE the P-SYM universe -- the three tests/qp/*.cpp, whose only
+     objects are hven_qp_walk_seam_tests's (an HVEN_TESTING recompile target, NOT a PSYM_GROUPS
+     entry; checked by value in the pre-flight). OBSERVED: each is named EXACTLY ONCE in the
+     build files
+       (`git grep -hF <basename> -- CMakeLists.txt '*/CMakeLists.txt' '*.cmake' | wc -l` -> 1
+        for each of the three),
+     and each naming is inside add_executable(hven_qp_walk_seam_tests ...) (tests/CMakeLists.txt
+     :389, :390, :391).
+     => n_mod 33, EXPECT_CLASS_A_OUTSIDE_SRCS = those three, and the IN-UNIVERSE MODIFIED count
+        is 33 - 3 = 30 from git, before any measurement. Whether all 30 objects DIFFER is a
+        measurement (section 2), not a derivation.
+
+   0 ADDED .cpp, same cmd with --diff-filter=A. OBSERVED: the list is EMPTY.
+     => EXPECT_ADDED_CXX 0, EXPECT_PSYM_ADDED 0, EXPECT_ADDED_OUTSIDE_UNIVERSE empty. This is
+        the mirror image of NC2, which added one outside source and modified none.
+
+   1 MODIFIED tests/*.h: tests/sqp/support/border_test_utils.h. It is in the clang-format set
+     (the derivation carries 'tests/*.h', and a git pathspec's `*` crosses `/`) and in
+     CHANGED_SOURCES; it is NOT in CHANGED_HEADERS, which the classifier derives from include/
+     only, and that is the correct reading -- class B means "includes a changed PUBLIC header",
+     and a test support header is not one.
+
+   3 ADDED non-C++ test files. cmd: git diff --name-only --diff-filter=A 84ea0385..e212a308 --
+     tests/ | grep -v '\.cpp$'
+       tests/qp/fixtures/e2-d4/A0_YORKNET_qp3.txt
+       tests/qp/fixtures/e2-d4/R2_Cs_STEENBRB_qp1.txt
+       tests/qp/fixtures/e2-d4/STEENBRB_def-qp2.txt
+     (dump fixtures, byte-copies of the R2/A0 evidence's; data read at run time through
+     HVEN_QP_E2D4_FIXTURES. `STEENBRB_def-qp2.txt` carries a hyphen where the other two carry
+     an underscore -- the dump's own name, declared as it is on disk.)
+     OBSERVED: `fixtures/e2-d4` is named exactly ONCE in the build files at 25e11280
+     (tests/CMakeLists.txt:415), and that naming is in hven_qp_walk_seam_tests's
+     target_compile_definitions -- so nothing in the P-SYM universe reads them.
+
+   0 MODIFIED build files. tests/CMakeLists.txt does NOT change in this range (OBSERVED: it is
+     absent from `git diff --name-status`). The carried check therefore runs on an EMPTY derived
+     want-list: cm_add == cm_want == "" and cm_del == 0. That is the derivation NC1 ran, not a
+     weakened check -- the want-list is DERIVED from EXPECT_ADDED_OUTSIDE_UNIVERSE, which is
+     empty because nothing was added.
+
+-----------------------------------------------------------------------------
+2  THE P-SYM MOVER SHAPE, PER CONFIGURATION -- MEASURED on the final pair.
+
+     Release  DIFFERING 69 = class A 30 + class B 39; UNEXPLAINED 0; negative control 78
+              sections: 44 objects, 35 byte-identical, DEBUG_ONLY 0, NON-DEBUG MOVERS 9, REFUSED 0
+     Debug    DIFFERING 70 = class A 30 + class B 40; UNEXPLAINED 0; negative control 61
+              sections: 44 objects, 30 byte-identical, DEBUG_ONLY 5, NON-DEBUG MOVERS 9, REFUSED 0
+     after 151 = before 151 in BOTH configurations; ONLY-AFTER {} (nothing is ADDED); and the
+     THREE modified outside-universe objects
+     tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_{anti_cycling_arm,degeneracy_arm,
+     flat_face_saddle}.cpp.o were each BUILT in the after arm and the after manifest names NONE of
+     that target's objects, both configurations -- all OBSERVED.
+
+   THE SAME NUMBERS RUN 1 MEASURED -- AND THAT IS A COMPARISON, NOT THE DERIVATION. Fix round 4 is
+   build-only and fix round 4b is test-only with libhven.a byte-identical, so the shape was
+   PREDICTED to hold; it was then MEASURED to hold. OBSERVED, `cmp` on sorted lists: the two
+   rehearsals' DIFFERING sets are identical object for object in BOTH configurations (69 and 70),
+   and so are the class A and class B sets. The prediction is recorded because it checks the
+   reasoning; every number below is r2's own.
+   THE PCH GUARD DOES NOT REACH THESE BUILDS, read off the rehearsal's own logs rather than
+   argued: rehearsal/rehearsal-r2-configure-Release.txt reads "The CXX compiler identification is
+   Clang 22.1.8" and the after-build log builds `CMakeFiles/hven.dir/cmake_pch.hxx.pch`
+   (rehearsal/rehearsal-r2-pch-evidence.txt). Fix 4's guard is
+   `if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")`, so the PCH stays ON for every P-SYM build and the
+   guard cannot have moved an object this gate compares.
+
+   HOW MEASURED. A fresh rehearsal at e212a308 against BASE, both configurations, ONE hold of the
+   box lock (rehearsal/rehearse-r2.sh; transcript rehearsal/rehearsal-r2-log-summary.txt,
+   2026-09-27 14:42:09-15:15:19, PGREP_EMPTY at the hold, dirty=0 in its own START line, tree
+   restored to m7 e212a308 at END). It ran THIS runner's g5 segment, EXTRACTED from the runner's own text, with a
+   HYPOTHESIS declaration (class A only: 30/30, class B 0, DEBUG_ONLY 0/0, non-debug movers = the
+   three class A library objects). BOTH configurations were REFUSED at the hypothesis (classify
+   rc 4: "names 69 differing object(s) and this round DECLARED 30", and 70 in Debug), which is the
+   designed behaviour -- a shape that is not the declared one is re-derived and declared again,
+   never discovered. The refused classifications are kept:
+   rehearsal/rehearsal-r2-classification-{Release,Debug}-refused-at-30.txt.
+   Then rehearsal/offline-r2.sh 69 70 (15:16:14-15:24:25, its own single lock hold, PGREP_EMPTY,
+   rc 0): a fresh Release build of e212a308 with g5's flags, and the classifier re-run OFFLINE on
+   the rehearsal's OWN compare files at the measured counts -- **rc 0 in BOTH configurations**
+   (rehearsal/rehearsal-r2-classification-{Release,Debug}.txt; OFFLINE_CLASSIFY_RC_Release=0,
+   OFFLINE_CLASSIFY_RC_Debug=0 in rehearsal/rehearsal-r2-offline-log.txt). Debug was classified
+   against the rehearsal's build tree, left at the before arm exactly as g5 classifies; Release
+   against the fresh Release build, of which the classifier reads only the ninja deps and the
+   object list. BOTH CLASS B SETS ARE MEASURED, not one measured and one inferred.
+
+   CLASS A, 30 objects, IDENTICAL IN BOTH CONFIGURATIONS -- OBSERVED, `cmp` on the two sorted
+   lists returns 0. It equals the IN-UNIVERSE MODIFIED .cpp set of section 1 exactly, object for
+   object: the 33 modified sources less the 3 outside the universe. By group:
+     library (3)      src/drivers/sqp_solver.cpp.o, src/qp/qp_engine.cpp.o,
+                      src/qp/ws_independence.cpp.o
+     bench (1)        hven_sqp_bench/bench_scale.cpp.o  -- the object that made bench/ enter the
+                      derivation (section 1); it is class A because the derivation names its
+                      source, which is the whole point of that change
+     tests/drivers (2) test_callback.cpp.o, test_threads.cpp.o
+     tests/sqp (24)   test_b1_gate, test_border_ops, test_corpus_cells, test_disproved_entry,
+                      test_eqp_refine_ab, test_eqp_solve, test_hs_battery, test_hs_sweeps,
+                      test_ipqp_acceptance, test_ipqp_dispatch, test_predictor, test_qp_engine,
+                      test_qp_engine_border, test_qp_engine_indefinite, test_qp_mode_sites,
+                      test_qp_ws_independence, test_scale_problems, test_scale_smoke,
+                      test_sqp_equality_basis, test_sqp_restoration, test_sqp_solver,
+                      test_trace_writer, test_warm_start, test_warm_start_battery
+   Since the two class A sets are identical, the Debug NOISE-ONLY class A slot is EMPTY
+   (EXPECT_CLASS_A_NOISE_ONLY_DEBUG ""). The measured class A is re-checked BY SOURCE against git
+   after G5.
+
+   CLASS B = 39 objects in Release and 40 in Debug, NONE with a source modified in the range --
+   OBSERVED, checked object by object in the pre-flight (each object path mapped back to its
+   source; the one generated unity TU checked by its source directory). ONE CAUSE for all of them:
+   each includes solver_counters.h or qp_types.h, directly or transitively, and both changed --
+   the QP counter surface and the PUBLIC QP type surface. That is a much wider blast radius than
+   NC2's (whose single layout change was QpCounters gaining two Index fields, 37 class B), and it
+   is why nothing from NC2 is reused. The Release 39, by group:
+     library (6)       src/core/ledger.cpp.o, src/drivers/sqp_print.cpp.o,
+                       src/drivers/trace_writer.cpp.o,
+                       src/globalization/sqp/soc_elastic_restoration.cpp.o,
+                       src/qp/ipqp_engine.cpp.o, src/warmstart/continuation.cpp.o
+                       -- all six are NON-DEBUG section movers (section 4), which is why they are
+                          also the EXPECT_LIB_CLASS_B_* declaration
+     bench (6)         hven_sqp_corpus/bench_corpus, hven_sqp_crossover/bench_crossover,
+                       hven_sqp_f7_cold/bench_f7_cold, hven_sqp_ipqp_e1_arm/ipqp_e1_arm,
+                       hven_sqp_ssn_safeguard_probe/ssn_safeguard_probe,
+                       hven_sqp_tau_bar_sweep_probe/tau_bar_sweep_probe
+     tests/drivers (5) test_concurrency, test_console_sink, test_options, test_solve_result,
+                       test_warm_protocol
+     tests/interior (1) Unity/unity_1_cxx.cxx.o (a generated unity TU; its source DIRECTORY is
+                       checked unmodified in the pre-flight, since it has no source of its own)
+     tests/sqp (21)    test_activity_telemetry, test_assembly_eval_seam, test_continuation,
+                       test_crossover_legs, test_dense_oracle, test_elastic_rung_vehicle,
+                       test_ipqp_counters, test_ipqp_engine, test_ipqp_trace,
+                       test_ipqp_warm_restart, test_ledger, test_mesh_transfer,
+                       test_nlp_kkt_check, test_parametric_families, test_problem_scaling,
+                       test_qp_cap_levers, test_qp_engine_tr, test_qp_warm_start,
+                       test_sqp_warm_currency, test_ssn_engine, test_start_point_projection
+   (the per-object causes are INFERRED from what each object holds; the classifier's verdict --
+    class B with the source untouched, UNEXPLAINED 0 -- is the measured fact.)
+
+   THE ONE CONFIGURATION-ASYMMETRIC CLASS B OBJECT, AND THE ADMISSION IT WIDENED. Debug's class B
+   is Release's PLUS exactly one object and MINUS none (OBSERVED, `comm -13` and `comm -23` on the
+   two sorted lists):
+       tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_status.cpp.o
+   MEASURED, both halves:
+     * in RELEASE it is BYTE-IDENTICAL. It carries NO verdict line at all in
+       gates/psym/compare-Release.txt (P-SYM prints none for an identical object) and it IS named
+       in the Release NEGATIVE CONTROL -- "objects that ALSO include one of those headers and are
+       BYTE-IDENTICAL" (rehearsal-r2-classification-Release.txt).
+     * in DEBUG it DIFFERS, on exactly ONE symbol:
+       `RestorationSubStatus_TheMapIsTotalAndTheSpellingsAreSolveStatusSPlusNotRun_Test::TestBody()`,
+       STRUCTURAL, normalized listing 1363 lines before and 1370 after; PERSYM 400 identical, 1
+       differing, 0 only-before, 0 only-after.
+     INFERRED cause: that test body enumerates the SolveStatus / RestorationSubStatus spellings
+     whose surface this range changes in solver_counters.h, and at -O0 the enumeration emits seven
+     more instructions where Release folds it to identical bytes.
+   THE E2 ROUNDS' (5') ADMISSION REQUIRED "NOISE-ONLY IN RELEASE", which this object is not: it
+   did not move in Release at all, which is a STRONGER statement than moving by noise and a
+   NARROWER one than the check accepted. The carried check would therefore have REFUSED a correct
+   measurement, so it is widened in THIS copy to "NOT A MOVER in Release -- NOISE-ONLY or in the
+   NEGATIVE CONTROL -- with WHICH of the two named per object", and a new fail-closed assertion
+   requires the negative-control listing to be COMPLETE before a byte-identical verdict may be
+   read off it (the classifier prints at most 80 entries; Release's control is 78, checked by
+   value). WHAT IS NOT WEAKENED: the object is still declared BY NAME; the set difference must
+   still be EXACTLY the declared list with nothing Release-only; the object must still be
+   POSITIVELY found in one of Release's two non-mover classes, so absence never passes; the
+   cross-config copy must still remove exactly the declared lines; and UNEXPLAINED must still be 0
+   in both. The argument is the gate-assert library's own, moved from class A to class B: that
+   library already admits that "a changed source MAY compile identically in one configuration and
+   not in the other", and the same physics applies to a changed HEADER an unmodified TU includes.
+   FALSIFIED BEFORE IT WAS ACCEPTED (offline, on the rehearsal's own classifications, three runs):
+     the MEASURED declaration                                          -> rc 0, 4 asserts OK
+     declaring an object that IS a Release mover (ledger.cpp.o)        -> rc 1
+     declaring an object that is not Debug-only (test_ledger.cpp.o)    -> rc 1
+
+-----------------------------------------------------------------------------
+3  TEST COUNTS -- derived against the by-name baseline. THE FIXTURE RENAME EVENT.
+
+   THE BASELINE IS DERIVED, NOT NAMED. cmd:
+     git log -1 --format= --name-only --diff-filter=A 84ea0385 \
+       -- 'docs/notes/data/*/gates-*/suite-release.txt' 'docs/notes/data/*/gates/suite-release.txt'
+   -> docs/notes/data/2026-09-m7-w2-nc2-flat-face/gates/suite-release.txt (NC2's gate record,
+      the newest one committed at or before BEFORE).
+   The commit that ADDED it is 85dc01ac, so the head its suites ran at is 85dc01ac^ = 52b16a8e.
+   OBSERVED: `git diff --name-only 52b16a8e..84ea0385 -- tests/ | grep -c .` -> 0. No test file
+   differs between the baseline's head and BEFORE, so the baseline's names are BEFORE's names.
+
+   BASELINE, from those two transcripts (OBSERVED):
+     ctest summary total    Debug 2861   Release 2862
+     started names          Debug 2863   Release 2864
+   (the 1 that separates the two started-name counts is the long test G1 excludes by name and
+   G2 runs alone; the 2 that separates each total from its started count is that configuration's
+   two DISABLED instances, EqpRefinementAb.FootprintRuleProbe and EqpRefinementAb.FullBattery.)
+
+   RE-DERIVED ON THE FINAL RANGE, NOT ASSUMED. Fix round 4 touches no file under tests/ at all,
+   and fix round 4b touches ONE -- tests/sqp/test_corpus_cells.cpp, +61/-16, ALREADY one of the 33
+   MODIFIED sources -- changing one existing test's body and its contract test's literals.
+   OBSERVED that it moves no TEST line: over 5756530e..e212a308 the `tests/*.cpp` diff adds 0 and
+   removes 0 `TEST(`/`TEST_F(` lines. So the by-name sets could not move -- and the lists in the
+   runner were nevertheless re-derived from 84ea0385..e212a308 and compared to the runner's
+   literals with `cmp`: BOTH IDENTICAL, rc 0 with no output, 32 ADDED and 24 REMOVED on each side,
+   every one of the 56 re-checked one-line on THIS range.
+   WHAT FIX 4b COULD HAVE MOVED, AND WHAT THIS SECTION DOES NOT CLAIM. It gives the suite's own
+   C++ `residual_columns_agree` the 1e-13 ABSOLUTE FLOOR it was missing, so that gate applies the
+   whole rule instead of its relative half. That is a real change to what some tests ASSERT: the
+   fix-4 report records the cell it is the registered remedy for (CorpusRunnerProcess.ScoreModel
+   SurfaceWritesTheCensusArtifactAndLeavesTheMainCsvUnchanged, which failed 3/3 SOLO in the
+   implementer's worktree Release tree at the pre-patch commit and passed in the main tree's gates
+   build -- run 1's G3 read 0 failed of 2870 there). A VERDICT changing moves no COUNT, and counts
+   are what this section declares: only a TEST line moves 2869/2870, and none moved. G1 and G3
+   measure the verdicts; nothing here predicts them. The rule that earns this is NC2's own first
+   draft, where six of eight ADDED names had been renamed by a fix round and a carried list would
+   have passed its own arithmetic and failed the by-name gate.
+
+   REMOVED = 24, ADDED = 32, net +8. OBSERVED, counted with `grep -c` and never `grep -q`:
+     git diff 84ea0385..e212a308 -- 'tests/*.cpp' | grep -cE '^\+TEST(_P)?\('   -> 32
+     git diff 84ea0385..e212a308 -- 'tests/*.cpp' | grep -cE '^-TEST(_P)?\('    -> 24
+   and, name by name (all OBSERVED):
+     * the 32 ADDED and the 24 REMOVED lists each hold NO duplicate (32/32 and 24/24 unique);
+     * NO name is both ADDED and REMOVED (`comm -12` on the two sorted lists -> 0);
+     * every ADDED name is added by EXACTLY ONE `+TEST(` / `+TEST_F(` line in the range and
+       every REMOVED name is removed by EXACTLY ONE `-TEST(` line (checked one name at a time,
+       `grep -cF "<Suite>, <Name>)"` == 1 for all 56);
+     * every ADDED name is ABSENT from the baseline's started names (`comm -12` -> 0) and every
+       REMOVED name is PRESENT in them (`comm -12` -> 24).
+   WHAT THE EVENT IS. Twenty-four of the 32 ADDED are RENAMES of the 24 REMOVED, and the reason
+   is the round's own finding (fix-2 report section 3): after E4 no cell in this tree still
+   cycles, so the anti-cycling and degeneracy arm fixtures no longer describe cycling cells and
+   their names said something that is no longer true -- e.g.
+   QpAntiCyclingArm.ArmEEscapesThePeriodFourCycleAndReturnsTheOptimum becomes
+   QpAntiCyclingArm.ArmEIsInertOnThePeriodFourFixtureThatNoLongerCycles, and
+   QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp3 becomes
+   QpE2WorkingSet.TheDeclinedRideResolvesWithoutAnExchangeOnSteenbrbRestorationQp3. The
+   remaining EIGHT are QpE4ProximalEqp's own new cases (fix-2 report section 6: five fixtures,
+   of which the descent invariant is split into four). BOTH LISTS ARE IN THE RUNNER BY NAME.
+
+   EXPECTED SUITE COUNTS = the derived baseline - 24 REMOVED + 32 ADDED:
+     Debug   2861 - 24 + 32 = 2869   (G1, the long test excluded)
+     Release 2862 - 24 + 32 = 2870   (G3)
+     G2      1                        (Continuation.ProbeBudgetBoundsAFailingProposal, alone)
+   and the started-name sets become Debug 2871, Release 2872.
+   CORROBORATION, not the derivation -- the FIX-3 implementer's own runs on THESE EXACT sources
+   (../evidence/logs3/): Release `0 tests failed out of 2870` (ctest-release-k3.log, 113.89 s),
+   Debug `0 tests failed out of 2869` (ctest-debug-k3.log, 634.99 s, the long test excluded by
+   name) and that test ALONE `Passed 619.78 s` (ctest-debug-k3-long.log), both suites identical to
+   fix round 2's test by test. And the by-name ARITHMETIC was itself checked offline against those
+   two transcripts with this runner's own carried `--check-names` mode (preflight.txt transcript
+   D): Release 2872 started names == 2864 - 24 + 32, Debug 2871 == 2863 - 24 + 32, rc 0 each.
+   Fix round 2's runs on its own head (../evidence/logs2/) agree cell for cell.
+
+   THE THREE DECLARED DEBUG SKIPS, AND WHY THEY MOVE NO COUNT. They are
+   QpE2WorkingSet.AGreyPinOnYorknetThatIsIndependentStaysIndependent (2682 s Debug, 37 s
+   Release, pre-existing), QpE4ProximalEqp.TheYorknetRestorationQpIsDriftFreeAndOptimal (2414 s
+   Debug, 0.3 s Release, this round's) and NC2 fix round 1's
+   QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder (745 s), each over M6's
+   600 s per-fixture budget and each PASSING in Release. The accounting was CHECKED, not
+   assumed, exactly as NC2 checked its one:
+     * ctest puts a SKIPPED test INSIDE its `out of N` denominator and does not count it as a
+       failure, while listing it under "The following tests did not run". OBSERVED in the
+       BASELINE itself, which already contains two such rows.
+     * Only a DISABLED test is excluded from the denominator -- which is exactly the gap between
+       the baseline's started names and its total (2863 - 2861 = 2 = its two DISABLED instances).
+     * So `assert_ctest`'s two checks, total == declared and failed == 0, are the right ones
+       UNCHANGED. A skip satisfies both. The runner does NOT count Passed lines, so nothing here
+       could miscount a 'Skipped' or 'Not Run' line.
+     * And the by-name check counts `Start` lines, which a skipped test still gets.
+   A FOURTH Debug row does not run, FailByDesignControl.ControlsArePresentForWhicheverOldSeams
+   ThisBuildHas, which is skipped in Release too and predates the round; it is in the baseline's
+   own transcripts and moves nothing.
+
+-----------------------------------------------------------------------------
+4  THE SECTION SHAPE (G5b) -- MEASURED by the same rehearsal
+   (rehearsal/rehearsal-r2-sections-{Release,Debug}.txt), and equal to run 1's -- compared, never
+   carried.
+
+   NON-DEBUG-MOVER set 9 in BOTH configurations, and THE SAME NINE (OBSERVED, `diff` on the two
+   sorted NON_DEBUG_MOVERS_GOT lists is empty):
+       {drivers/sqp_solver.cpp.o, qp/qp_engine.cpp.o, qp/ws_independence.cpp.o}
+                                                                 derived, class A
+     + {core/ledger.cpp.o, drivers/sqp_print.cpp.o, drivers/trace_writer.cpp.o,
+        globalization/sqp/soc_elastic_restoration.cpp.o, qp/ipqp_engine.cpp.o,
+        warmstart/continuation.cpp.o}                            declared, EXPECT_LIB_CLASS_B_*
+                                                                 (unmodified, class B)
+   objects 44 in both; byte-identical 35 Release / 30 Debug; no library object ADDED; REFUSED 0 in
+   both. DEBUG_ONLY Release 0 / Debug 5, and the five are drivers/assembly_eval_seam,
+   drivers/console_trace_sink, drivers/ipm_solver, drivers/sqp_options and qp/ssn_engine.
+   INFERRED cause: the debug line tables of the six changed headers. NC2's Debug 6 is a DIFFERENT
+   set (it named drivers/sqp_print, drivers/trace_writer and warmstart/continuation, all three of
+   which are real non-debug movers here, and did not name assembly_eval_seam or sqp_options), so
+   nothing about it is carried.
+   The NOISE-ONLY library-mover slot (EXPECT_LIB_NOISE_MOVERS_*) is EMPTY in both configurations:
+   every mover in this range moved in a real section, none by __LINE__-class noise alone.
+
+-----------------------------------------------------------------------------
+5  G4: 27 cells x 75 columns x 3 engines, and **43 DECLARED DIFFERENCES, NOT 0.**
+
+   THE FIRST NON-ZERO G4 DECLARATION SINCE U0 ITSELF (settler ruling E4-25 (b)). The gate is
+   NOT a count: the MEASURED set of (engine, cell, column) triples must EQUAL the 43-entry list
+   the runner carries, compared order-free as normalized sets, and the per-engine counts must
+   match too -- walk 17, ssn 13, ipm 13. The residual gate is unchanged at 1e-5 relative with
+   the 1e-13 absolute floor (the suite's own, tests/sqp/test_corpus_cells.cpp), relaxing the
+   twelve float-measure columns ONLY, so every cell NOT in the declared list must still agree
+   inside it and strings, statuses and the 56 integer fields stay byte-exact everywhere.
+
+   A DIFFERENCE IS DECLARED BY ITS COORDINATES, NEVER BY ITS VALUE. A residual's last digits
+   are not reproducible between two processes running identical code at MKL_NUM_THREADS=1
+   (CLAUDE.md section 7), so declaring the values would declare noise.
+
+   THE 43, CLASSIFIED (fix-2 report section 5e; the classification is the report's, the
+   coordinates are this declaration's):
+     5   INTEGER   walk `qp_minors` 2 -> 3 on the five `*_bound_neutral` cells (n1000, n2000,
+                   n5000, n10000, n20000): the terminal polish's better point costs the walk one
+                   more pass. An integer column, so it is a difference by byte equality and no
+                   gate applies to it.
+     37  RESIDUAL, STRICTLY BETTER -- kkt_residual / kkt_stationarity / kkt_primal on the
+                   *_bound_neutral and *_bound_corrupted cells, e.g. f7_n10000_bound_neutral
+                   kkt_stationarity 6.300386629e-13 -> 4.157740631e-20.
+     1   RESIDUAL, WORSE -- `ipm f7_n1000_path_warm kkt_stationarity`, 3.449707634e-07 ->
+                   3.449751647e-07, 1.3e-05 relative. IT IS IN THE DECLARED LIST ON EXACTLY THE
+                   SAME TERMS AS THE OTHER 42, and the runner's pre-flight checks by value that
+                   it is (DECLARED_REPLAY_WORSE, `grep -cxF` == 1).
+   Nothing changes status, verdict or major count on any cell, on any engine.
+
+   THIS CELL IS THIN, AND THAT IS SAID HERE RATHER THAN DISCOVERED LATER. At 1.3e-05 relative
+   the WORSE ipm cell clears the 1e-5 gate by a factor of 1.3, and the ssn
+   `f7_n800_path_warm kkt_stationarity` entry clears it by about 8. Either could in principle
+   fall back INSIDE the gate on a re-run, in which case the measured set would be 42 and the
+   gate would FAIL. That failure would be a RE-DERIVATION, not a regression: the shape would be
+   re-measured and declared again. The alternative -- widening the gate or declaring the count
+   loosely -- would be the silent pin mutation CLAUDE.md section 7 forbids.
+   WHAT IS KNOWN ABOUT THAT RISK, MEASURED RATHER THAN ARGUED: the set has now been read off FIVE
+   independent replay runs of these sources -- fix round 2's (evidence/u0/comparison.txt), fix
+   round 3's (evidence/logs3/k3-u0.log), run 1's pre-chain rehearsal, run 1's own GATE leg
+   (.scratch/m7w2e4gates/gates/replay/) and this round's
+   (rehearsal/rehearsal-r2-g4-comparison.txt) -- and all five give the same 43 coordinates, with
+   the thin ipm cell a difference in every one; the last two agree on every DIGIT as well. It is
+   not a coin flip that landed the same way five times; it is stable across builds and processes.
+   The gate is still exact, and a sixth reading that disagrees is still a re-derivation.
+
+   RE-MEASURED ON THE FINAL SOURCES, FROM MY OWN BUILD, BEFORE ANY LEG. Two things in this range
+   could in principle have moved this set and neither did: fix 4b edits the COMPARATOR that
+   produces it (proven behaviourally unchanged, section 1) and fix 4 changes how the library is
+   BUILT (a PCH guard that leaves the clang PCH on, section 2). rehearsal/offline-r2.sh ran the
+   27-cell three-engine replay from a fresh Release build of e212a308 (15:16-15:24, inside the box
+   lock, MKL_NUM_THREADS=1, taskset -c 2) and compared it GATED against the M6 close pin
+   (rehearsal/rehearsal-r2-g4-comparison.txt):
+     walk 17 differences (71 within gate), ssn 13 (68), ipm 13 (72) = 43
+   and the runner's OWN `--check-g4` on that transcript returns rc 0 with all eight asserts OK --
+   "the MEASURED difference set EQUALS the DECLARED 43-entry list". So the 43 coordinates are this
+   head's own measurement, taken independently of the implementer.
+   THE SAME ARM AGAINST THE PREVIOUS ROUND'S GATE RECORD, whose sources are BEFORE's, is run EXACT
+   and shows walk 88 / ssn 81 / ipm 85 differences. That is RECORDED AND NOT ASSERTED: E4 moves
+   the replay, which is the whole content of the 43, and an EXACT comparison against BEFORE is
+   expected to be large. NC2 could assert 0 there; this round cannot, and says so rather than
+   dropping the arm.
+   AND THE STRONGEST READING AVAILABLE, WHICH RUN 1 COULD NOT MAKE: my r2 replay CSVs are
+   BYTE-EXACTLY IDENTICAL to RUN 1'S OWN GATE CSVs. `compare_replay.py` with NO gate -- exact
+   string equality on all 75 columns -- reports 0 differences on ALL THREE engines between
+   .scratch/m7w2e4gates/gates/replay/head-*.csv and this rehearsal's. Two builds, two processes,
+   two source trees on disk, and not one digit moved. That is the direct measurement of "fix 4 is
+   build-only and fix 4b is test-only" ON THE REPLAY, and it is why the 43 are not merely the same
+   count but the same cells at the same values.
+   CORROBORATION from the implementers, independent of my build -- the fix-3 run
+   (../evidence/logs3/k3-u0.log) gives the same 17/13/13 with its whole comparison block
+   BYTE-IDENTICAL to fix round 2's, and `--check-g4` on that transcript returns rc 0 against this
+   same declared list.
+   AND PROVED FALSIFIABLE (run 1's preflight.txt transcript C, on the fix-2 evidence transcript;
+   the assertion is byte-identical in this runner):
+     C1  the transcript as measured                                        -> rc 0, all 8 asserts OK
+     C2  one declared difference line removed, summary count decremented   -> rc 2
+     C3  the SAME per-engine count with ONE COORDINATE MOVED               -> rc 2
+   C3 is the case a declared COUNT cannot catch and a declared SET can, and it is why the
+   assertion was rewritten rather than the number changed.
+
+-----------------------------------------------------------------------------
+6  G6: expected CLEAN. install smoke; the export contract; clang-format over the DERIVED
+   changed set `include/*.h src/*.cpp tests/*.cpp tests/*.h bench/*.cpp` -- 40 files this range
+   (OBSERVED: `git diff --name-only 84ea0385..e212a308 -- <that set> | grep -c .` -> 40 = the 6
+   headers + the 33 .cpp + tests/sqp/support/border_test_utils.h), and note that bench and the
+   three tests/qp seam sources are in the FORMAT set even though three of them are outside the
+   P-SYM universe, because formatting is a property of the file and not of the capture. OBSERVED
+   clean at e212a308: `clang-format --dry-run -Werror` over those 40 files, rc 0.
+   `git diff --check` -- and note what the runner actually runs: a BARE `git diff --check`, which
+   checks the WORKING TREE and not the range. On a clean tree it is rc 0 by construction, and run
+   1's derivation phrase "over the range" was loose. Over THIS range the same command WOULD flag
+   whitespace inside run 1's own committed evidence (implementer logs, a .diff fixture,
+   preflight.txt's trailing spaces) -- which is exactly why the gate is a working-tree check.
+   Recorded so it is not rediscovered as a defect. DIRTY_FILES 0. Fold proofs 46/0.
+   TO BE MEASURED BY THE CHAIN; nothing in G6 is declared from an earlier round, and G6 IS THE
+   SUB-GATE THIS RUN EXISTS TO RE-RUN. What to expect of the install-smoke leg, from fix round 4's
+   own mechanism: its default GCC arm now builds hven with NO precompiled header, so that
+   transcript should show ZERO `.gch` artifacts, while the smoke's second arm
+   (`-DCMAKE_CXX_COMPILER=clang++`) keeps the PCH and so keeps that path exercised end to end. The
+   export contract is unchanged; in run 1 it failed only because the install never happened. The
+   40-file format set is clean at e212a308 (checked above) and fix round 4b reports its own file
+   clean -- two independent readings, neither of them the gate.
+
+-----------------------------------------------------------------------------
+7  PRE-FLIGHT (`gates-e4-r2.sh --preflight-only`, `--check-g4`, `--check-names`):
+   preflight-r2.txt, this directory, committed WITH this file and BEFORE the r2 chain was
+   detached. It carries the run on this committed copy at HEAD e212a308 with every slot MEASURED
+   (rc 0, ending PREFLIGHT_OK), the G4 set gate on THIS round's own offline transcript, and the
+   by-name check against the fix-3 suite transcripts. Run 1's preflight.txt sits untouched beside
+   it, with its own held-state falsification record.
+
+-----------------------------------------------------------------------------
+8  G5 CHECKS THE MAIN TREE OUT TO BEFORE while it builds its before arm, once per configuration:
+   nothing may edit or commit in the main tree from the chain's launch until CHAIN_END.
+
+-----------------------------------------------------------------------------
+9  FILE PROVENANCE (all OBSERVED). Against RUN 1's runner (gates-e4.sh, this directory) the
+   segments this runner emits differ in g4's LABEL LINE only ("M7 W2 E4" -> "M7 W2 E4 R2"); g1,
+   g2, g3, g5 and g6 are BYTE-IDENTICAL to run 1's, so run 1's widened class-B admission and every
+   other run-1 change is carried forward unaltered, and this round's one new refusal (RUNNER (c))
+   lives in the runner body rather than in a segment. Against NC2's runner, where run 1's own
+   provenance note starts:
+     g1, g2, g3, g6       BYTE-IDENTICAL
+     g5                   2 REMOVED / 19 ADDED lines: the class B asymmetry admission widened to
+                          accept a BYTE-IDENTICAL Release verdict, plus the fail-closed
+                          negative-control-completeness assertion (section 2's last paragraph and
+                          RUNNER item (k)). Fifteen of the nineteen added lines are that change's
+                          comment and its new assertion; the widened branch itself is two lines.
+     g4                   2 REMOVED / 7 ADDED lines (OBSERVED, `diff` on the two extracted
+                          segments): the comparison label (NC2 -> E4) and the rc contract, which
+                          now EXPECTS the comparator's rc 1 because this round declares
+                          differences and refuses rc 0 as an undeclared shape. Four of the seven
+                          added lines are that contract's comment.
+   And the six segments the runner EMITTED into .scratch/m7w2e4gates during the pre-flight are
+   byte-identical to the six extracted from the runner's own text (`cmp`, all six) -- so what the
+   rehearsal ran and what the chain runs are the same text, not a copy of it. NOTE THE ORDER THIS
+   ROUND ACTUALLY WENT IN: the rehearsal ran the g5 it extracted BEFORE the (5'') widening was
+   written, because the widening is a response to what that rehearsal MEASURED. The widened branch
+   was therefore falsified separately, offline, against the rehearsal's own two classification
+   files (section 2), and the chain will run the widened g5 end to end. That is stated rather than
+   glossed: the gate the chain runs is one line-range different from the gate the rehearsal ran,
+   and the difference is an ADMISSION the measurement forced, tested on its own three cases.
+   Literal check on gates-e4.sh and chain_gates_e4.sh: no `m7w2nc2gates`, no `gates-nc2.log`,
+   no `828dc917`, no NC2 fixture name, no bare `EXPECT_REPLAY_DIFFS`; ONE `.scratch/` literal in
+   code (the S assignment); BEFORE named exactly once, as the BEFORE assignment. Every remaining
+   mention of NC2 is a comment naming the previous round deliberately.
+   Declared counts are self-consistent by value and the runner refuses if they are not: the
+   declared G4 total 43 == walk 17 + ssn 13 + ipm 13 and the list holds 43 unique entries, each
+   `<engine> <cell> <column>` with the engine one of three and the cell one of the 27 U0 cells;
+   Debug 2869 == Release 2870 - 1 long test. The per-configuration DIFFERING == class A + class
+   B checks and the DEBUG_ONLY integer check are in force and are what the UNMEASURED sentinel
+   currently refuses ahead of.
+
+   WALL IS INFORMATIONAL. Nothing above is a timing claim.

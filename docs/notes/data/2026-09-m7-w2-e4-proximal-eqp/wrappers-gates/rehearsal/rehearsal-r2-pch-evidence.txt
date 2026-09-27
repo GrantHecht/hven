@@ -1,0 +1,6 @@
+.scratch/m7w2e4gates-r2/rehearsal/gates/psym/configure-Release.log:1:-- The CXX compiler identification is Clang 22.1.8
+.scratch/m7w2e4gates-r2/rehearsal/gates/psym/build-after-Release.log:20:[20/273] Building CXX object CMakeFiles/hven.dir/cmake_pch.hxx.pch
+.scratch/m7w2e4gates-r2/rehearsal/gates/psym/build-after-Release.log:94:[81/273] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/CMakeFiles/hven.dir/cmake_pch.hxx.cxx.o
+# (grep of the r2 rehearsal's own Release configure and after-build logs, showing that the
+#  P-SYM build is Clang and that fix round 4's Clang-only guard leaves the PCH ON for it,
+#  so that guard cannot have moved any object this gate compares.)
