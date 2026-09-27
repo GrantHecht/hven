@@ -891,11 +891,25 @@ TEST(QpEngine, T6bANonFiniteDualMuLeavesTheRowToleranceFinite) {
     // infinite tolerance makes kInfeasible unreachable engine-wide, silently and totally.
     QpOptions opts;
     opts.dual_mu = std::numeric_limits<double>::infinity();
-    // MEASURED, and it is kMaxIter rather than kInfeasible on both: an infinite dual_mu poisons
-    // the factorization long before the classification, so the walk exhausts its budget. What
-    // this pins is that neither problem is CERTIFIED, which an infinite tolerance would do.
-    EXPECT_EQ(QpEngine{opts}.solve(inconsistent_equalities_qp()).status, QpStatus::kMaxIter);
-    EXPECT_EQ(QpEngine{opts}.solve(infeasible_bounds_qp()).status, QpStatus::kMaxIter);
+    // MEASURED, and it is neither kInfeasible nor kOptimal on either: an infinite
+    // dual_mu poisons the factorization long before the classification. RE-DERIVED AT
+    // M7 W2 E4 FIX ROUND 2 (a declared mover): kMaxIter -> kNumericalError on both.
+    // The walk used to exhaust its budget against a poisoned factor; E4's EQP-SITE
+    // RESIDUAL CHECK sees the poisoned answer immediately -- it does not solve its own
+    // system -- escalates the suspect ladder three rungs, and a non-finite answer then
+    // ends the solve at the finite iterate it stands on. An honest early exit in place
+    // of a budget grind, and strictly the better of the two.
+    //
+    // WHAT THIS TEST PINS IS UNCHANGED AND IS ASSERTED AS SUCH: neither problem is
+    // CERTIFIED. An uncapped `dual_mu * |lambda|` absorbency would make kInfeasible
+    // unreachable engine-wide; an infinite tolerance must not turn either of these two
+    // genuinely infeasible problems into a claim.
+    const QpSolution eq = QpEngine{opts}.solve(inconsistent_equalities_qp());
+    const QpSolution bx = QpEngine{opts}.solve(infeasible_bounds_qp());
+    EXPECT_EQ(eq.status, QpStatus::kNumericalError);
+    EXPECT_EQ(bx.status, QpStatus::kNumericalError);
+    EXPECT_FALSE(eq.farkas.present) << "an infinite row tolerance must certify nothing";
+    EXPECT_FALSE(bx.farkas.present) << "an infinite row tolerance must certify nothing";
 }
 
 TEST(QpEngine, LargeButLegitimateSolutionsAreOptimalNotNumericalError) {

@@ -18,9 +18,11 @@
 //   T5  OFF on a DEPENDENT QP is byte-identical to E1's pre-merge base (E1b).
 //   plus the row-subset model the restoration phase wraps.
 
+#include <bit>
 #include <cmath>
 #include <cstring>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -681,7 +683,85 @@ TEST(SqpEqualityBasis, T5OffIsByteIdenticalToThePreE1BaseOnADependentQp) {
             got += std::string(name) + " " + line + "\n";
         }
     }
-    EXPECT_EQ(got, golden);
+    // RE-PREMISED AT M7 W2 E4 FIX ROUND 2, in the currency CLAUDE.md section 7
+    // prescribes, and the CROSS-COMMIT CLAIM IS KEPT rather than retired.
+    //
+    // WHAT MOVED AND WHAT DID NOT. M7 W2 E4 changes every QP solve -- the proximal
+    // EQP, its unregularized polish, the terminal polish -- so a BYTE compare of x and
+    // lambda_e against a golden generated at 8fdeed3e cannot survive it, and it does
+    // not: MEASURED at this tree, every one of the 42 hex words of x and lambda_e
+    // differs from the base's, in its LAST ONE OR TWO HEX DIGITS and nowhere else.
+    // The STATUS and the SIX COUNTERS are byte-identical on all three modes
+    // (`2 6 2 2 0 0`, `2 0 11 2 0 0`, `2 0 30 2 0 0`), which is the structural half of
+    // the claim and the half a defect in `equality_basis = false` would break.
+    //
+    // SO THE COMPARISON IS SPLIT THE WAY SECTION 7 SPLITS IT: counters and statuses
+    // stay EXACT, and the residual-class columns -- here the primal and dual vectors --
+    // are compared by a calibrated gate instead of by byte equality. TWO gates, because
+    // the two vectors moved by different amounts and for different reasons:
+    //
+    //   x        1e-12 RELATIVE. MEASURED: every word differs in its LAST HEX DIGIT,
+    //            i.e. ~1e-16 relative. The primal answer is the same point.
+    //   lambda_e 1e-6 ABSOLUTE. MEASURED: up to 1.268826310685256e-08 on components of
+    //            size ~0.08, i.e. O(dual_mu) at the shipped `dual_mu = 1e-08` -- which
+    //            is exactly the quantity E4's UNREGULARIZED POLISH takes back out of
+    //            the priced multipliers, so the move is the round's own mechanism
+    //            rather than drift. The gate is TWO DECADES above what was measured
+    //            and two decades above `dual_mu` itself.
+    //
+    // Both are many decades tighter than any structural move: a dropped row, a
+    // different working set or a different answer moves these by 1e-3 or more on this
+    // QP, and the counters above would move with it.
+    const auto split = [](const std::string &text) {
+        std::vector<std::string> out;
+        std::size_t a = 0;
+        while (a < text.size()) {
+            const std::size_t b = text.find('\n', a);
+            const std::size_t e = b == std::string::npos ? text.size() : b;
+            if (e > a) {
+                out.emplace_back(text.substr(a, e - a));
+            }
+            a = e + 1;
+        }
+        return out;
+    };
+    const std::vector<std::string> got_lines = split(got);
+    const std::vector<std::string> want_lines = split(golden);
+    ASSERT_EQ(got_lines.size(), want_lines.size());
+    for (std::size_t k = 0; k < got_lines.size(); ++k) {
+        SCOPED_TRACE(want_lines[k]);
+        std::istringstream gi(got_lines[k]);
+        std::istringstream wi(want_lines[k]);
+        std::string gmode, gkind, wmode, wkind;
+        gi >> gmode >> gkind;
+        wi >> wmode >> wkind;
+        ASSERT_EQ(gmode, wmode);
+        ASSERT_EQ(gkind, wkind);
+        if (gkind == "status" || gkind == "counters") {
+            EXPECT_EQ(got_lines[k], want_lines[k]) << "counters and statuses stay EXACT";
+            continue;
+        }
+        ASSERT_TRUE(gkind == "x" || gkind == "lambda_e") << gkind;
+        std::string gw;
+        std::string ww;
+        Index words = 0;
+        while ((gi >> gw) && (wi >> ww)) {
+            ++words;
+            std::uint64_t gb = 0;
+            std::uint64_t wb = 0;
+            std::istringstream(gw) >> std::hex >> gb;
+            std::istringstream(ww) >> std::hex >> wb;
+            const double gv = std::bit_cast<double>(gb);
+            const double wv = std::bit_cast<double>(wb);
+            const double bound =
+                gkind == "x" ? 1e-12 * std::max({1.0, std::abs(gv), std::abs(wv)}) : 1e-6;
+            EXPECT_LE(std::abs(gv - wv), bound)
+                << gkind << " word " << words << ": " << gw << " vs " << ww;
+        }
+        EXPECT_FALSE(static_cast<bool>(gi >> gw)) << "the got line has more words";
+        EXPECT_FALSE(static_cast<bool>(wi >> ww)) << "the golden line has more words";
+        EXPECT_GT(words, 0);
+    }
 }
 #endif
 

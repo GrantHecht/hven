@@ -26,14 +26,90 @@ namespace hven::solvers {
 /// beyond its single unconditional one, and is identically 0 -- the loop it
 /// counted was deleted as measured-inert, and the counter stays as that
 /// invariant. "KEPT" is operative in both: a candidate step the strict-decrease
-/// rule rejects is discarded and NOT counted.
+/// rule rejects is discarded and NOT counted. The EQP-site residual check's own
+/// solves (M7 W2 E4) are a fourth, disjoint quantity in `eqp_refine_iters` and
+/// are deliberately NOT folded into eqp_refine_steps, whose identically-0
+/// invariant is therefore unchanged by it.
 /// @see docs/notes/2026-09-header-prose-archive.md §solver_counters.h
 struct QpCounters {
+    /// THE ACCOUNTING CONTRACT (ruling E4-17, M7 W2 E4 fix round 2). This field is
+    /// the ACTIVE-SET SEARCH's cost and nothing else: every budget is written
+    /// against it, the hot-handle contract is stated as `qp_factorizations == 0`
+    /// on a reused K0 (the WarmStart pins read exactly that), and the HS battery's
+    /// cost tripwire reads it. A factorization that searches nothing and reuses
+    /// nothing therefore belongs in its OWN field, and the terminal polish's
+    /// stage-2 re-solve is charged to `terminal_polish_solves` for that reason.
+    /// The TOTAL a solve spent is `factorizations + terminal_polish_solves`.
+    /// `terminal_mu_refines`' factorization predates this ruling and IS in this
+    /// field; the asymmetry is recorded at both fields and deliberately left
+    /// alone.
     Index factorizations = 0;
     Index schur_updates = 0;
     Index minor_iters = 0;
     Index eqp_refine_steps = 0;
     Index border_refine_steps = 0;
+
+    /// THE EQP-SITE RESIDUAL CHECK (M7 W2 E4; eqp_solve.h's own header section).
+    /// Solves SPENT driving the CONSTRAINT-row residual of an EQP answer against
+    /// its OWN regularized system down to detail::kEqpResidualRefuseTol, summed
+    /// over every EQP solve of this QP solve, on either algebra.
+    ///
+    /// COUNTS SOLVES SPENT, not steps kept -- deliberately unlike the three
+    /// refinement counters above, because what this field exists to bound is the
+    /// COST of a check that fires only on a factor that failed to solve its own
+    /// system. A candidate the strict-decrease safeguard rejects is discarded
+    /// (the answer is not moved) and still counted here: it was paid for.
+    /// 0 on every pass whose factor solved its system, which is the overwhelming
+    /// majority.
+    Index eqp_refine_iters = 0;
+
+    /// EQP answers REFUSED by that check -- the row residual still above the
+    /// tolerance after the budget above was spent, so the answer does not solve
+    /// the system it came from and the walk may not step toward it. Each refusal
+    /// routes the pass to a retreat the engine already has: the border path
+    /// retreats to the bound-eliminated one (as for any factor it cannot trust),
+    /// and an eliminated-path refusal ends the solve kNumericalError at the
+    /// iterate the walk stands on (qp_engine.h section 5). A NaN residual is a
+    /// refusal.
+    Index eqp_residual_refusals = 0;
+
+    /// EQP answers refused by THE STEP'S ROW-DRIFT CHECK (M7 W2 E4 fix round 2;
+    /// qp_engine.h's eqp_answer_drifts_off_met_rows) -- the answer solved its own
+    /// REGULARIZED system, so `eqp_residual_refusals` has nothing to say about
+    /// it, and it nonetheless leaves a working row the INCOMING iterate was
+    /// already on, by exactly the dual regularization's own dual_mu*|lambda|
+    /// term. Disjoint from `eqp_residual_refusals` by construction: a pass the
+    /// residual check already refused is not counted here as well.
+    ///
+    /// Each refusal routes the pass to the SAME suspect-stall ladder, for the
+    /// reason the arithmetic gives -- on the flat face that produces this,
+    /// |lambda| scales as 1/primal_delta, so one decade more primal_delta is one
+    /// decade less drift. 0 on every solve whose steps keep their closed rows
+    /// closed, which is the overwhelming majority.
+    ///
+    /// ADVISORY, NOT TERMINAL, and the distinction is the reason this is its own
+    /// field. An EXHAUSTED ladder ends the solve for a residual refusal, because
+    /// no step may be taken toward an answer that does not solve its system;
+    /// for a drift refusal it does NOT -- the answer solves its system, the
+    /// complaint is a quality one, and the walk takes the step it would have
+    /// taken before the check existed. So a nonzero count here is a REPORT about
+    /// how much regularization footprint the walk had to carry, never by itself
+    /// a failure, and a solve can read several refusals and still kOptimal.
+    Index eqp_row_drift_refusals = 0;
+
+    /// THE UNREGULARIZED POLISH at the EQP site (M7 W2 E4 fix round 1, ruling
+    /// E4-11; eqp_solve.h's polish_eqp_core). Refinement steps KEPT against the
+    /// face's OWN exact KKT system -- both regularizations backed out -- summed
+    /// over every EQP solve of this QP solve, on either algebra.
+    ///
+    /// "KEPT" as in the three fields above: a step the strict-decrease safeguard
+    /// rejects is discarded and not counted, which is why this counter is also
+    /// the measurement of HOW OFTEN the face's exact system has an answer at all.
+    /// 0 on a flat face -- the restoration LPs, every PSD-singular face -- where
+    /// the proximal answer is the only one there is, and 1..kEqpPolishSteps on a
+    /// face with curvature along its null space. It costs no factorization: the
+    /// steps run on the factor the solve already paid for.
+    Index eqp_polish_steps = 0;
 
     /// Refinement steps kept by the verdict-site face refinement (qp_engine.h
     /// section 5) across this solve -- a third, disjoint quantity, deliberately
@@ -327,8 +403,50 @@ struct QpCounters {
     // dual_mu * |lambda| footprint exceeds its tolerance, re-solved mu-free on
     // the face (one factorization each, also in `factorizations`), and how many
     // of those refined points satisfied every row and bound and were adopted.
+    //
+    // THE ASYMMETRY, STATED AND NOT REPAIRED (ruling E4-17): this site's
+    // factorization IS in `factorizations` while the terminal polish's stage-2
+    // re-solve is NOT. Both are one local solve at a terminal point, so the
+    // charging differs for history rather than for a reason -- it predates the
+    // ruling, every pin that reads it was derived with it there, and moving it
+    // would be a silent break of those pins for a cosmetic gain.
     Index terminal_mu_refines = 0;
     Index terminal_mu_refine_rescues = 0;
+
+    /// THE TERMINAL POLISH (M7 W2 E4 fix round 1, ruling E4-11;
+    /// qp_engine.h's section 5 and QpEngine::polish_terminal_point).
+    ///
+    /// `terminal_polish_solves`: would-be kOptimal exits at which the final point
+    /// was RE-SOLVED on its FINAL WORKING SET with the dual regularization out of
+    /// the system -- the polish's stage 2. Reached only at a certified exit whose
+    /// footprint is open (polish_footprint_open) and whose free stage-1 candidate
+    /// was refused; 0 on a solve that ends any other way.
+    ///
+    /// ONE FACTORIZATION EACH, AND IT IS **NOT** ALSO IN `factorizations` --
+    /// deliberately unlike terminal_mu_refines, whose own note says it is. The
+    /// argument is at polish_terminal_point: `factorizations` is the active-set
+    /// SEARCH's cost, which every budget, the hot-handle `qp_factorizations == 0`
+    /// contract and the battery's cost tripwire are all written against, and this
+    /// solve searches nothing. The total cost of a solve is
+    /// `factorizations + terminal_polish_solves`.
+    ///
+    /// `terminal_polish_rejected`: of those, the candidates NOT adopted --
+    /// non-finite, or a row/bound outside feas_tol that the incumbent met, or a
+    /// worse stationarity / row / complementarity residual, or nothing strictly
+    /// better to show. A rejection leaves x and every multiplier exactly as the
+    /// walk had them, so it is a cost and never a risk;
+    /// `terminal_polish_solves - terminal_polish_rejected` is the adoption
+    /// count.
+    ///
+    /// `terminal_polish_adopted`: candidates ADOPTED, over both stages. Stage 1
+    /// is FREE -- the pass's own EQP answer, which solve_eqp has already taken
+    /// the regularization out of -- so `terminal_polish_adopted` exceeds
+    /// `terminal_polish_solves` on any solve whose terminal face the free
+    /// candidate closed, and the factorizations spent are
+    /// `terminal_polish_solves` alone.
+    Index terminal_polish_solves = 0;
+    Index terminal_polish_rejected = 0;
+    Index terminal_polish_adopted = 0;
 };
 
 /// @brief Work counters for the semismooth-Newton kernel.
@@ -1181,6 +1299,12 @@ static_assert(counters_offsets_increase(kOffsetsIpqpCounters, kIpqpCountersField
 struct SqpCounters {
     Index major_iters = 0;
     Index qp_minor_iters = 0;
+    /// The same accounting contract QpCounters::factorizations states (ruling
+    /// E4-17): the active-set SEARCH's cost, summed over every QP solve this
+    /// driver spent. The terminal polish's stage-2 re-solves are in
+    /// `terminal_polish_solves` and the total spend is the sum of the two;
+    /// `terminal_mu_refines`' factorization is in THIS field, asymmetrically and
+    /// on purpose.
     Index factorizations = 0;
     Index steps_accepted = 0;
     Index rejected_steps = 0;
@@ -1837,6 +1961,34 @@ struct SqpCounters {
     /// solve print `optimal` for a sub-solve it never ran; the review called
     /// that a consumer hazard and the settler withdrew it.
     RestorationSubStatus restoration_sub_status = RestorationSubStatus::kNotRun;
+
+    /// THE QP ENGINE'S E4 GROUP, summed over every QP solve this driver spent --
+    /// subproblems, SOC re-solves, elastic rungs, tier-3 face re-solves and the
+    /// restoration sub-solve alike, exactly like qp_minor_iters/factorizations and
+    /// the refinement counters above. Each carries its QpCounters meaning
+    /// UNCHANGED (solver_counters.h's own notes there), and they are here because
+    /// a driver-level reader -- the harness lane, the ledger, a bench row -- cannot
+    /// otherwise see that a subproblem's factor failed to solve its own system, or
+    /// what the regularization cost to take back out.
+    ///
+    /// `eqp_residual_refusals` is the one to WATCH: nonzero means some EQP solve's
+    /// answer did not solve the system it came from. It is not an error by itself
+    /// (the engine's retreats answer it), and a solve that reports both a refusal
+    /// and kOptimal took one of them successfully. `eqp_row_drift_refusals` is its
+    /// twin in the STEP's currency -- an answer that did solve its system and
+    /// still left a closed working row -- and the two are disjoint.
+    Index eqp_refine_iters = 0;
+    Index eqp_residual_refusals = 0;
+    Index eqp_polish_steps = 0;
+    Index terminal_polish_solves = 0;
+    Index terminal_polish_rejected = 0;
+    Index terminal_polish_adopted = 0;
+
+    /// LAST in the struct and last in the trace table, on the declared
+    /// additive-trailing-key route (docs/trace-schema-v0.md section 8), so no
+    /// existing key's value or bytes move. Its place in `QpCounters` is beside
+    /// `eqp_residual_refusals`, where the meaning reads.
+    Index eqp_row_drift_refusals = 0;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -1889,7 +2041,14 @@ struct SqpCounters {
     X(restoration_h_out, counter_never_absent)                                                     \
     X(restoration_f_in, counter_never_absent)                                                      \
     X(restoration_f_out, counter_never_absent)                                                     \
-    X(restoration_sub_status, counter_never_absent)
+    X(restoration_sub_status, counter_never_absent)                                                \
+    X(eqp_refine_iters, counter_never_absent)                                                      \
+    X(eqp_residual_refusals, counter_never_absent)                                                 \
+    X(eqp_polish_steps, counter_never_absent)                                                      \
+    X(terminal_polish_solves, counter_never_absent)                                                \
+    X(terminal_polish_rejected, counter_never_absent)                                              \
+    X(terminal_polish_adopted, counter_never_absent)                                               \
+    X(eqp_row_drift_refusals, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =
@@ -1898,7 +2057,7 @@ inline constexpr std::size_t kSqpCountersFieldCount =
 
 // PLUS TWO: `ssn` and `ipqp` are nested aggregates, each counted as ONE
 // initializer by the arity trick and serialized through its own table above, so
-// the table holds the 50 direct fields and the struct takes 52 initializers.
+// the table holds the 57 direct fields and the struct takes 59 initializers.
 // (37 -> 38 at M6 W5 T8.5, which appended `polish_ignored` after both nested
 // aggregates -- last in declaration order, so the table order below is still
 // the struct's and every pre-existing offset is unmoved. 38 -> 39 at M7 W2 M4,
@@ -1917,7 +2076,15 @@ inline constexpr std::size_t kSqpCountersFieldCount =
 // 848 -> 856. Its type was a bare `SolveStatus` until M7 W2 M3a fix1 replaced
 // it with the ten-valued enum that has an explicit `kNotRun` -- the SAME
 // underlying type and therefore the SAME width, so that re-derivation moved
-// `sizeof` no further and no pre-existing offset at all.)
+// `sizeof` no further and no pre-existing offset at all. 50 -> 56 at M7 W2 E4
+// fix round 1, which appended the QP engine's six-field E4 group -- the EQP-site
+// residual check's two, the unregularized polish's one and the terminal polish's
+// three -- the same way and for the same reason. They are `Index` again, so they
+// land 8-byte-aligned after `restoration_sub_status`'s 4 bytes of padding and the
+// offsets stay monotone. 56 -> 57 at M7 W2 E4 fix round 2, which made that group
+// SEVEN with `eqp_row_drift_refusals` -- appended LAST in the struct and last in
+// the table on the declared additive-trailing-key route, so no pre-existing offset
+// moves and `sizeof` goes 904 -> 912.)
 static_assert(::hven::detail::kAggregateArity<SqpCounters> == kSqpCountersFieldCount + 2,
               "SqpCounters and HVEN_SQP_COUNTERS_FIELDS disagree: give the new field an X() entry "
               "in its declaration position, or -- if it is a new NESTED aggregate -- give it a "

@@ -300,7 +300,13 @@ TEST(SqpDriverDisprovedEntry, TheDefaultIsOffAndOffIsTodaysColdRestart) {
     EXPECT_EQ(off.trace.base + off.trace.full, 0);
     EXPECT_EQ(off.sol.counters.ipqp_suspicion_disproved, 3);
     EXPECT_EQ(off.sol.counters.ipqp.ipqp_tier_retired_after, 3);
-    EXPECT_EQ(off.sol.status, SolveStatus::kMaxIter);
+    // RE-DERIVED AT M7 W2 E4 FIX ROUND 2 (a declared mover): kMaxIter -> kOptimal on
+    // the OFF arm. `max_iter = 3` is the fixture's own budget and the point of the cell
+    // is the three cold entries and the three disproved suspicions above -- all four of
+    // which are unchanged -- while the solve's terminal status at that budget is not
+    // what the toggle is about. E4's answers reach the model's optimum inside the three
+    // majors; the ON arm's own status pin (the pair's other half) is measured there.
+    EXPECT_EQ(off.sol.status, SolveStatus::kOptimal);
 }
 
 TEST(SqpDriverDisprovedEntry, TheReseedMakesTheNextEntryBaseWarmAndTheTierStopsEscaping) {

@@ -2025,7 +2025,14 @@ void expect_same_scalars(const std::vector<Seen> &a, const std::vector<Seen> &b)
     X(restoration_h_out)                                                                           \
     X(restoration_f_in)                                                                            \
     X(restoration_f_out)                                                                           \
-    X(restoration_sub_status)
+    X(restoration_sub_status)                                                                      \
+    X(eqp_refine_iters)                                                                            \
+    X(eqp_residual_refusals)                                                                       \
+    X(eqp_row_drift_refusals)                                                                      \
+    X(eqp_polish_steps)                                                                            \
+    X(terminal_polish_solves)                                                                      \
+    X(terminal_polish_rejected)                                                                    \
+    X(terminal_polish_adopted)
 
 // The 18 fields of SsnCounters and the 39 of IpqpCounters, the two nested
 // groups SqpCounters carries.
@@ -2101,8 +2108,14 @@ void expect_same_counters(const hven::solvers::SqpCounters &a,
     // record (one Index and four doubles, 8 bytes each); 848 -> 856 at M7 W2
     // M3a, which appended `restoration_sub_status` to that record -- a 4-byte
     // enum (`RestorationSubStatus` as of M3a fix1, `SolveStatus` before it, the
-    // SAME width) last in the struct, padded to a full slot by its alignment.
-    static_assert(sizeof(hven::solvers::SqpCounters) == 856,
+    // SAME width) last in the struct, padded to a full slot by its alignment;
+    // 856 -> 904 at M7 W2 E4 fix round 1, which appended the QP engine's
+    // six-field E4 group (six `Index`, 8 bytes each) after it -- the 4-byte enum's
+    // padding is what the first of them lands in, so the growth is 6 * 8 with no
+    // new padding; 904 -> 912 at M7 W2 E4 fix round 2, which made that group
+    // SEVEN by inserting `eqp_row_drift_refusals` beside its residual twin (one
+    // more `Index`, and the padding was already spent, so plainly + 8).
+    static_assert(sizeof(hven::solvers::SqpCounters) == 912,
                   "SqpCounters gained or lost a field -- extend "
                   "HVEN_T2_SQP_COUNTER_FIELDS so the mask comparison still "
                   "covers every counter");

@@ -34,7 +34,14 @@ struct DepSystem {
         var_pos.assign(static_cast<std::size_t>(n), -1);
         if (f.schur != nullptr) {
             bordered = true;
-            bsys = build_bordered_system(qp, *f.k0, *f.k0_rows, *f.ledger, ws, opts);
+            // THE PROXIMAL CENTRE IS IRRELEVANT HERE, and a zero vector says so
+            // rather than borrowing an iterate this code does not have: the only
+            // members of the built system this class ever reads are `border_v`,
+            // `border_d` and `k0_row_deleted` (the two uses below are the whole
+            // list), and the centre reaches none of them -- it enters `rhs`, which
+            // the dependency test supplies itself.
+            bsys = build_bordered_system(qp, *f.k0, *f.k0_rows, *f.ledger, ws, Vec::Zero(qp.n()),
+                                         opts);
             const Index n0 = f.k0->K.rows();
             dim = n0 + f.schur->dim();
             for (Index i = 0; i < n; ++i) {
@@ -113,10 +120,11 @@ struct DepSystem {
     // rhs - K_{delta,0} y: the factored system with mu (only) backed out.
     Vec residual(const QpProblem &qp, const Vec &rhs, const Vec &y, const QpOptions &opts) const {
         if (bordered) {
-            QpOptions keep_delta = opts;
-            keep_delta.primal_delta = 0.0;
-            return bordered_residual(f.k0->K, qp.n(), bsys.border_v, bsys.border_d, rhs, y,
-                                     keep_delta);
+            // bordered_residual backs out the DUAL regularization and the borders'
+            // own d_i, and leaves the primal delta in the model -- which is this
+            // function's contract exactly (M7 W2 E4; before it, this call had to
+            // zero primal_delta in a local copy of `opts` to get the same object).
+            return bordered_residual(f.k0->K, qp.n(), bsys.border_v, bsys.border_d, rhs, y, opts);
         }
         const Index n = qp.n();
         Vec u = Vec::Zero(n);

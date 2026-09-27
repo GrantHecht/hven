@@ -305,7 +305,46 @@
 //    drop -> zero-length ride -> drop cycle.
 //
 // 5. TERMINATION. The loop reaches a KKT point of its working set with nothing
-//    left to drop, and classifies it:
+//    left to drop, and classifies it.
+//
+//    HOW A PASS IS RECOGNISED AS A KKT POINT OF ITS WORKING SET (M7 W2 E4,
+//    ruling E4-2) -- the free-block STATIONARITY RESIDUAL, in the engine's own
+//    opt_tol currency, AND the rows:
+//        free_block_stationarity(x, price's multipliers) <= opt_tol * its scale
+//      AND no row or bound carries a STRUCTURAL violation
+//    which are the same two tests this classification itself decides kOptimal
+//    on, asked one branch earlier so the loop can recognise the point it is
+//    standing on. The zero-motion reading ||p||inf <= step_tol is kept, ahead of
+//    it, as the observation it always was -- the EQP answer IS this iterate, so
+//    snapping onto it is free -- and it alone may no longer certify convergence.
+//    WHY: since E4 the EQP is centred at the iterate (eqp_solve.h), so p is the
+//    STEP and on a flat face p = -(1/delta) P_Z (H x + g); delta*||p||, not
+//    ||p||, is the reduced gradient's size. A reduced gradient of 1e-17 makes a
+//    step of 2.8e-09 against a step_tol of 1e-09, and 300 consecutive full steps
+//    were measured around a point whose rows were met to 5e-14 and whose
+//    stationarity residual was 1.6e-15 -- a converged point the old test could
+//    not see (M7 W2 E3 §3e). The stationary branch does NOT snap x onto the EQP
+//    point: nothing has run a ratio test on a step of that size.
+//
+//    THE RUNAWAY GUARD IS ASKED ON EVERY MOVING PASS, not only here (E4-3), in
+//    two currencies: the ITERATE's -- `is_runaway`, this section's own predicate,
+//    unchanged -- at the head of the ordinary path, and the STEP's -- an answer
+//    past unbounded_artifact_scale() * max(1, ||x||inf) that the ratio test
+//    cannot take at all -- once the blocker and alpha are final. The first is
+//    what the proximal centring makes necessary (the ridge's answer is now
+//    re-proposed from every point it reaches instead of vanishing at its fixed
+//    point, so the cap would be burned rather than the artifact reported); the
+//    second covers the case the iterate's currency structurally cannot see, a
+//    step 31 decades past the ridge scale while ||x||inf never moves.
+//
+//    A pass whose EQP answer is REFUSED by the EQP-site residual check
+//    (eqp_solve.h; E4-4) -- or that is not finite -- takes 4b's SUSPECT-STALL
+//    ESCALATION instead of a step: one decade of primal_delta per rung, the
+//    border state discarded, at most kMaxSuspectEscalations rungs, and an
+//    exhausted ladder reports kNumericalError at the iterate the walk stands on.
+//    Never a step toward an answer that does not solve its own system.
+//
+//    The classification:
 //      - kInfeasible if any inequality or equality row carries a STRUCTURAL
 //        violation. Both blocks are checked; the shift machinery only watches
 //        inequalities.
@@ -633,6 +672,129 @@ constexpr double kVerdictRefineRelFloor = 1e-14;
 // left to the existing classification.
 constexpr Index kTerminalMuRefineSteps = 2;
 
+// THE TERMINAL POLISH's refinement budget (M7 W2 E4 fix1, ruling E4-11;
+// QpEngine::polish_terminal_point, and polish_eqp_unregularized which takes
+// them). Steps against the FULLY unregularized residual -- dual mu and the
+// primal delta both backed out -- on the polish's own mu-free factor, each kept
+// only while that residual strictly falls. TWO, for the same reason
+// kTerminalMuRefineSteps is two: the mu-free solve of the final face is already
+// accurate to O(primal_delta * ||x* - x_k||) and each step contracts that by
+// another factor of order primal_delta / lambda_min(Z'HZ), so two steps take a
+// 1e-08-sized bias past 1e-16 wherever they converge at all, and a face they
+// cannot close in two they will not close in ten (the guard stops them at the
+// first).
+constexpr Index kTerminalPolishSteps = 2;
+
+// THE TERMINAL POLISH's ENTRY TEST (polish_footprint_open), as a multiple of
+// feas_tol: the worst COMPLEMENTARITY PRODUCT at a would-be kOptimal point --
+// |slack|/row_scale times |multiplier|, over the working rows and the pinned
+// bounds (detail::terminal_kkt) -- that must be reached before the polish's
+// stage-2 factorization is spent.
+//
+// THE PRODUCT IS THE RIGHT QUANTITY because it is what a CONSUMER reads. The
+// regularized row identity leaves a working row slack by dual_mu*|lambda|, and a
+// driver's own KKT check prices that slack by lambda again, so what it sees is
+// dual_mu*lambda^2 -- the B-1 term. A footprint invisible in that product is
+// invisible, full stop.
+//
+// A HUNDRED, i.e. 1e-07 at the QpOptions defaults, which is ONE DECADE beneath
+// the 1e-06 kkt_tol both drivers default to (SqpOptions, IpmOptions): a product
+// below it cannot move any consumer's complementarity check even after the
+// driver's own scaling, and one above it can. MEASURED, on the 27-problem HS
+// battery at kSchurBorder, and the calibration is why the factor is not 1:
+//
+//   factor    factorizations   stage-2 solves   stage-2 adoptions
+//   1         432              145              58
+//   100       288              1                1
+//
+// -- at a factor of 1 the gate fired at nearly every certified exit for a 40 %
+// adoption rate and cost 145 factorizations against a pre-E4 baseline of 320,
+// and EVERY fixture it fixed is green at 100 as well. (288 is BELOW that 320
+// baseline, because the EQP-site polish removes the extra pass per face the
+// proximal answer's O(primal_delta) bias used to cost.)
+//
+// A THIRD DISJUNCT WAS MEASURED AND REMOVED: the DUAL FOOTPRINT
+// (mu_footprint_open: a working row whose dual_mu*|lambda| exceeds its own
+// tolerance) is this product's square root and fires two decades wider for
+// nothing a consumer sees -- at a factor of 1 with that disjunct in place the HS
+// battery spent 145 stage-2 solves for 58 adoptions.
+constexpr double kTerminalPolishComplFactor = 100.0;
+
+// THE ENTRY TEST's SECOND DISJUNCT (polish_footprint_open): the multiple of
+// opt_tol a terminal point's free-block STATIONARITY residual, relative to its own
+// scale, must reach before stage 2 is spent.
+//
+// THIS IS E4-11's U0 TARGET, and it is the one quantity the EQP-site polish
+// cannot reach on its own. The KKT-point test of section 5 stops as soon as that
+// residual is within opt_tol * scale, which is correct and is where it should
+// stop; the walk it replaced kept stepping until ||p|| fell under step_tol and on
+// the F7 bound family that was four decades further (U0's `kkt_stationarity`
+// column: 9.19e-14 at the M6-close pin against 9.20e-10 at the tolerance). One
+// mu-free re-solve of the final face reaches 1e-16 there, so the polish buys back
+// the accuracy for ONE factorization instead of the extra passes.
+//
+// 1e-3, i.e. THREE DECADES of the point's own tolerance left to gain. Below it
+// there is nothing worth a solve: a face already at 1e-6 of its tolerance is at
+// rounding or is flat, and a flat face's residual is one no re-solve removes (the
+// polish's strict-decrease guard rejects it at both sites). The COST of this
+// disjunct lands in `terminal_polish_solves` and NOT in `factorizations` -- see
+// that counter's note, which is also why this disjunct is affordable at all.
+constexpr double kTerminalPolishStatFactor = 1e-3;
+
+// THE TERMINAL POLISH'S ACCEPTANCE SLACK (M7 W2 E4 fix round 2), on each of the
+// three KKT residuals: a candidate may leave one of them up to this factor WORSE,
+// and must leave one of them better BY this factor, before it is adopted.
+//
+// WHY IT IS NOT 1 (an exact `<=`, which is what fix round 1 shipped). On
+// `ACOPR57_def`/qp0 the mu-free candidate improves the worst row residual from
+// 6.14e-07 to 1.20e-14 -- SEVEN DECADES -- and lands its stationarity at 1.80e-14
+// against the incumbent's 1.64e-14, which is one ulp of that quantity in the wrong
+// direction. Under an exact test that single ulp decides the adoption, and WHICH
+// SIDE of it the two numbers fall on is not a property of the algorithm: MEASURED,
+// the production library adopts and the HVEN_TESTING recompile of the same TU
+// (tests/CMakeLists.txt's walk-seam target) does not, and the exported objective
+// then differs by 3.2e-05 relative between two builds of one source. A factor
+// makes the decision depend on the decades and not on the ulp.
+//
+// 4, and it is a ROUNDING factor rather than a tuning knob: it is two bits, far
+// below the decade a polish that is worth its factorization moves, and far above
+// the last-digit noise two builds of the same expression can differ by. The
+// "strictly better" half is strengthened with it in the same motion -- a candidate
+// must now improve a residual by a FACTOR OF 4, where before any improvement
+// however small was enough -- so the slack does not widen adoption: it moves the
+// decision from a tie-break to a margin on both sides.
+//
+// AND IT APPLIES TO THE TWO DUAL RESIDUALS ONLY. The worst ROW/BOUND violation is
+// compared exactly, because feasibility is the one thing the polish may never
+// trade: MEASURED, with the factor on the row half as well a candidate up to 4x
+// LESS feasible than the incumbent is adoptable, and on an elastic relaxation whose
+// incumbent rows sit at 1e-3 that is enough for the exported point to read a
+// STRUCTURAL violation -- the T7 feasible census went to 16 open relaxations
+// certified infeasible against its own claim of 0.
+constexpr double kTerminalPolishWorseFactor = 4.0;
+
+// THE STEP'S ROW-DRIFT FLOOR (M7 W2 E4 fix round 2), relative to a row's own
+// scale: below it a drift off a closed working row is not refused.
+//
+// WHY THERE IS A FLOOR AT ALL. The refusal routes into the suspect-stall ladder,
+// which is GLOBAL by design -- it raises `primal_delta` for the whole remaining
+// solve and discards the border state -- so a refusal is not a cheap observation
+// and a check that fires on ordinary accuracy changes every route downstream of
+// it. MEASURED without a floor: three driver fixtures lose their premises to a
+// solve that ran at 1e-05 primal_delta after three rungs, one of them
+// (`WarmStart.FullStepModeInheritsElasticAndRestoration`) reading
+// `suspect_escalations` 3 against its pinned 0 and never reaching the restoration
+// row it exists to test.
+//
+// 1e-3 OF THE ROW'S SCALE. The pathology is a drift of ORDER ONE relative to the
+// scale -- `dual_mu * |lambda|` with `|lambda| ~ 1/primal_delta`, which is 1e-08 /
+// 1e-08 = O(1) at the defaults, and 0.5 on the fixture that found it
+// (`indefinite_equality_qp`, reduced Hessian exactly 0 on the face). Three decades
+// beneath that and two above `face_row_target`, so the check still sees anything
+// the regularization's own term can produce and says nothing about a solve that is
+// merely a few decades short of exact.
+constexpr double kEqpRowDriftFloor = 1e-3;
+
 // --- Inertia gate (see the header contract's section 4b) ---
 
 // What one factorization's reported inertia says about the system that was
@@ -750,6 +912,82 @@ inline double free_block_stationarity(const QpProblem &qp, const Vec &x, const W
 // kOptimal on a NaN.
 inline bool free_block_is_stationary(double residual, double scale, const QpOptions &opts) {
     return residual <= opts.opt_tol * scale;
+}
+
+// THE TERMINAL POLISH's three KKT residuals (M7 W2 E4 fix1, ruling E4-11), all
+// three RELATIVE to their own scales so that "worse" is a comparison between
+// two points of the same face and not between two units:
+//
+//  - `stationarity`: free_block_stationarity divided by the scale that function
+//    reports, i.e. the quantity the KKT-point test and the suspect-stall gate
+//    both read, in units of opt_tol.
+//  - `rows`: the worst row (equality, inequality) or bound violation divided by
+//    that row's own scale -- worst_structural_violation's row_scale and
+//    refine_terminal_mu_free's box rule, in units of feas_tol.
+//  - `complementarity`: the worst |slack| * |multiplier| product over the WORKING
+//    rows and the PINNED bounds, the slack relative to the row's scale. It is
+//    the quantity the regularization's footprint shows up in and the one the B-1
+//    family reads at the NLP level: a regularized row identity leaves a working
+//    row slack by dual_mu*|lambda|, so this product is dual_mu*lambda^2 there
+//    and the driver's own complementarity check sees it.
+struct TerminalKkt {
+    double stationarity = 0.0;
+    double rows = 0.0;
+    double complementarity = 0.0;
+
+    bool all_finite() const {
+        return std::isfinite(stationarity) && std::isfinite(rows) && std::isfinite(complementarity);
+    }
+};
+
+inline TerminalKkt terminal_kkt(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                                const Vec &lambda_e, const Vec &lambda_i, const Vec &z) {
+    TerminalKkt out;
+    double stat_scale = 1.0;
+    const double stat = free_block_stationarity(qp, x, ws, lambda_e, lambda_i, stat_scale);
+    out.stationarity = stat / std::max(stat_scale, 1e-300);
+
+    const double xmag = x.lpNorm<Eigen::Infinity>();
+    if (qp.me() > 0) {
+        const Vec resid = qp.Ae * x - qp.be;
+        for (Index j = 0; j < qp.me(); ++j) {
+            const double row_scale =
+                std::max({1.0, std::abs(qp.be(j)), qp.Ae.row(j).cwiseAbs().sum() * xmag});
+            const double rel = std::abs(resid(j)) / row_scale;
+            out.rows = std::max(out.rows, rel);
+            out.complementarity = std::max(out.complementarity, rel * std::abs(lambda_e(j)));
+        }
+    }
+    if (qp.mi() > 0) {
+        const Vec resid = qp.Ai * x - qp.bi;
+        for (Index j = 0; j < qp.mi(); ++j) {
+            const double row_scale =
+                std::max({1.0, std::abs(qp.bi(j)), qp.Ai.row(j).cwiseAbs().sum() * xmag});
+            out.rows = std::max(out.rows, std::max(0.0, resid(j)) / row_scale);
+            // In the working set? The list is index-ordered, and this is the same
+            // binary search QpEngine::in_working runs on the same vector (a private
+            // static this free function cannot name).
+            const auto &aw = ws.active_ineq();
+            if (std::binary_search(aw.begin(), aw.end(), j)) {
+                out.complementarity = std::max(out.complementarity, std::abs(resid(j)) / row_scale *
+                                                                        std::abs(lambda_i(j)));
+            }
+        }
+    }
+    for (Index i = 0; i < qp.n(); ++i) {
+        const double below = qp.lower(i) - x(i);
+        const double above = x(i) - qp.upper(i);
+        const double bound = below >= above ? qp.lower(i) : qp.upper(i);
+        const double row_scale = std::max({1.0, std::abs(bound), xmag});
+        out.rows = std::max(out.rows, std::max(below, above) / row_scale);
+        const BoundState st = ws.bound_state()[static_cast<std::size_t>(i)];
+        if (st != BoundState::kFree) {
+            const double at = st == BoundState::kAtUpper ? qp.upper(i) : qp.lower(i);
+            out.complementarity =
+                std::max(out.complementarity, std::abs(x(i) - at) / row_scale * std::abs(z(i)));
+        }
+    }
+    return out;
 }
 
 // --- Negative-curvature ride (see the header contract's section 4c) ---
@@ -1432,6 +1670,56 @@ class QpEngine {
                                 const Vec &ae_row_norm1, const Vec &lambda_e,
                                 const QpOptions &opts) const;
 
+    // THE STEP'S ROW-DRIFT CHECK (E4 fix round 2): does the EQP answer leave a
+    // working row the INCOMING iterate was already on?
+    //
+    // The classical active-set invariant is that a step along the EQP direction
+    // keeps every working row met, because the unregularized system has
+    // Ae p = 0 on those rows. The DUAL regularization breaks it by exactly its
+    // own term: the regularized row block reads Ae p = -dual_mu * lambda, so the
+    // step drifts off the row by dual_mu*|lambda|. That is harmless while lambda
+    // is O(1) -- it is the footprint row_tolerance() already absorbs -- and it is
+    // NOT harmless once the PROXIMAL step's multipliers are O(1/primal_delta),
+    // which is what they are on a face whose reduced Hessian is flat: the drift
+    // is then O(dual_mu/primal_delta), which is O(1) at the defaults.
+    //
+    // MEASURED (indefinite_equality_qp, 3 variables, one equality row, the
+    // reduced Hessian on the face exactly 0, lambda_e ~ 5e+07): the answer
+    // solved its own regularized system to 5.5e-09 -- so the E4-4 residual
+    // check, which reads that system, had nothing to say -- and opened the
+    // equality row by 0.5, after which the walk spent its whole iteration cap
+    // taking full steps on an UNCHANGING working set with the row open,
+    // reporting kMaxIter at a point that is no local minimizer. The base walk's
+    // absolute centring prices that face's multipliers at O(primal_delta), so
+    // it never saw this.
+    //
+    // WHAT IS CHECKED, and what makes it silent where it must be: the check
+    // speaks ONLY for a CLOSED FACE -- the incoming iterate meets EVERY working
+    // row within face_row_target (the classifier's own threshold, which already
+    // absorbs an O(1) multiplier's footprint up to kInfeasibilityAbsorbTol) --
+    // and it fires when the candidate leaves any of them. Two things follow.
+    // On every restoration cell the incoming iterate does NOT meet its rows --
+    // that is what makes it a restoration -- so the check says nothing there.
+    // And on an INCONSISTENT row set no point meets them all, so the invariant
+    // has nothing to defend and the qualifier keeps the check quiet while the
+    // walk reaches its verdict. Equality rows and the working inequality rows
+    // only, the same set working_face_measure reads, and with the CANDIDATE's
+    // own multipliers pricing the target so a stale incumbent cannot widen it.
+    //
+    // The caller's response is the suspect-stall ladder, for the reason the
+    // arithmetic gives: lambda scales as 1/primal_delta on such a face, so one
+    // decade more primal_delta is one decade less drift. AND IT IS ADVISORY: an
+    // EXHAUSTED ladder takes the step anyway, unlike the residual refusal, which
+    // ends the solve. MEASURED both ways -- terminal costs `ACOPR57_def`/qp0 its
+    // base certificate on both algebras (opt/183 -> num/162, terminal
+    // stationarity 1.24); advisory keeps it, still converges
+    // `indefinite_equality_qp`, and converts `A0_YORKNET`/qp1 (num/329 ->
+    // opt/717, a conversion fix round 1's polish step cap had given up).
+    bool eqp_answer_drifts_off_met_rows(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                                        const EqpResult &eqp, const Vec &Aix,
+                                        const Vec &ai_row_norm1, const Vec &ae_row_norm1,
+                                        const QpOptions &opts) const;
+
     // The verdict-site face refinement (section 5's dead-end classification).
     // Re-forms the live bordered system, refines it against a target expressed
     // in row units rather than the bordered loop's penalty-scaled footprint, and
@@ -1542,6 +1830,48 @@ class QpEngine {
                                  Vec &lambda_i, Vec &z, QpCounters &counters,
                                  const QpOptions &opts) const;
 
+    // THE TERMINAL POLISH (M7 W2 E4 fix round 1, ruling E4-11; section 5 states
+    // the rule and why the walk needs it). At a would-be kOptimal exit, the
+    // final point is re-solved on its FINAL WORKING SET with the regularization
+    // BACKED OUT -- dual_mu = 0 in the system, and the primal delta backed out
+    // of the refinement target by kTerminalPolishSteps steps of
+    // polish_eqp_unregularized, which is consistent precisely here because the
+    // step is going to zero. One local factorization (charged to
+    // `factorizations`, as refine_terminal_mu_free's is), the pass's own factor
+    // and border stack untouched.
+    //
+    // ADOPTED only if the candidate is finite, keeps feasibility (no row and no
+    // bound outside feas_tol * row_scale that the incumbent met, and nothing
+    // worse than the incumbent), does not WORSEN any of the three KKT residuals
+    // -- free-block stationarity, worst row/bound violation, worst
+    // complementarity product -- and strictly IMPROVES at least one of them.
+    // Otherwise x and every multiplier are left exactly as they were and the
+    // exit is unchanged: the polish can make the answer better and cannot make
+    // it worse.
+    //
+    // `polish_footprint_open` is the entry test, and it is a COST gate, not a
+    // correctness one: it asks whether this point has anything a solve could gain
+    // -- a complementarity product above kTerminalPolishComplFactor * feas_tol, or
+    // a stationarity residual above kTerminalPolishStatFactor * opt_tol. Both
+    // constants carry their own calibration; below both there is nothing worth a
+    // factorization, and stage 1 is free either way.
+    //
+    // Counters: terminal_polish_solves (entries), terminal_polish_rejected
+    // (candidates not adopted).
+    bool polish_footprint_open(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                               const Vec &lambda_e, const Vec &lambda_i, const Vec &z,
+                               const QpOptions &opts) const;
+    // The acceptance test, shared by both stages: prices `cand`, measures
+    // detail::terminal_kkt at it, and ADOPTS (x and all three multiplier blocks)
+    // only if the candidate is finite, keeps feasibility, worsens none of the
+    // three residuals and strictly improves one. Returns whether it adopted.
+    bool adopt_polished_candidate(const QpProblem &qp, const WorkingSet &ws, const EqpResult &cand,
+                                  const detail::TerminalKkt &before, const QpOptions &opts, Vec &x,
+                                  Vec &lambda_e, Vec &lambda_i, Vec &z) const;
+    bool polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
+                               const EqpResult &pass_answer, Vec &x, Vec &lambda_e, Vec &lambda_i,
+                               Vec &z, QpCounters &counters, const QpOptions &opts) const;
+
     // Is ||x|| large in a way that only an unbounded direction explains?
     // Bound-relative on purpose: a variable boxed by finite bounds CANNOT run
     // away, and one pinned at a bound demonstrably has not, so only free
@@ -1564,16 +1894,25 @@ class QpEngine {
     // ACTUALLY solved (section 4b) -- the bordered K0 or the bound-eliminated
     // K, on either mode. It is an out-parameter rather than a member so the
     // verdict can never outlive the factorization it describes.
-    EqpResult eqp_candidate(const QpProblem &qp, const WorkingSet &ws, detail::KktFactor &kkt,
-                            EliminatedFace &face, BorderState &border, QpCounters &counters,
-                            detail::InertiaVerdict &verdict, const QpOptions &opts) const;
+    //
+    // `x_k` is THE PROXIMAL CENTRE the EQP is solved from -- the pass's own
+    // iterate -- and it is threaded, explicitly, through every function on this
+    // path down to the two solves (eqp_solve.h states the system). Explicitly,
+    // because the centre is part of the system: a reader of any of these
+    // signatures can see which point the answer is a step from. The probe and
+    // inertia-read call sites pass the same iterate even though only the
+    // FACTORIZATION's inertia is read there and the rhs cannot reach it.
+    EqpResult eqp_candidate(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
+                            detail::KktFactor &kkt, EliminatedFace &face, BorderState &border,
+                            QpCounters &counters, detail::InertiaVerdict &verdict,
+                            const QpOptions &opts) const;
 
     // One solve_eqp against a freshly assembled+factorized, bound-ELIMINATED
     // KKT system. Short-circuits the empty system (every variable pinned, no
     // equalities, no working rows), which Pardiso cannot be handed -- which is
     // also why a border-mode fallback on an all-variables-pinned working set
     // costs no factorization at all.
-    EqpResult eliminated_candidate(const QpProblem &qp, const WorkingSet &ws,
+    EqpResult eliminated_candidate(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
                                    detail::KktFactor &kkt, EliminatedFace &face,
                                    QpCounters &counters, detail::InertiaVerdict &verdict,
                                    const QpOptions &opts) const;
@@ -1597,24 +1936,26 @@ class QpEngine {
     // independent_working_set only (the option-off walk is unchanged). Returns
     // true iff the verdict was replaced (dep_inertia_rereads counts the calls
     // that read, dep_inertia_reread_flips the replacements).
-    bool reread_wrong_inertia(const QpProblem &qp, const WorkingSet &ws, QpCounters &counters,
-                              const QpOptions &opts, detail::InertiaVerdict &verdict) const;
+    bool reread_wrong_inertia(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
+                              QpCounters &counters, const QpOptions &opts,
+                              detail::InertiaVerdict &verdict) const;
 
     // Border-mode counterpart of eqp_candidate (header contract, step 4):
     // bring K0's border stack in line with `ws`, rebuild K0 if that stack can
     // no longer be trusted, then solve through it. The empty-system
     // short-circuit above has no counterpart here and needs none -- K0 spans
     // all n variables whatever the working set does.
-    EqpResult border_candidate(const QpProblem &qp, const WorkingSet &ws, detail::KktFactor &kkt,
-                               EliminatedFace &face, BorderState &border, QpCounters &counters,
-                               detail::InertiaVerdict &verdict, const QpOptions &opts) const;
+    EqpResult border_candidate(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
+                               detail::KktFactor &kkt, EliminatedFace &face, BorderState &border,
+                               QpCounters &counters, detail::InertiaVerdict &verdict,
+                               const QpOptions &opts) const;
 
     // Shared tail of both entry paths above: decide whether the border stack
     // is usable, spend at most one rebuild trying to make it so, and solve --
     // falling back to the elimination path (and latching where appropriate)
     // when it is not. `opts` is the effective options this solve resolved
     // (see run()'s `eff_opts`).
-    EqpResult border_solve_or_fall_back(const QpProblem &qp, const WorkingSet &ws,
+    EqpResult border_solve_or_fall_back(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
                                         detail::KktFactor &kkt, EliminatedFace &face,
                                         BorderState &border, QpCounters &counters,
                                         detail::InertiaVerdict &verdict, bool rebuilt,
@@ -1638,7 +1979,7 @@ class QpEngine {
     // `face` is the LOOP's key, not a throwaway: this call may re-factorize
     // `kkt`, and a key that did not follow it would keep asserting a
     // factorization the probe overwrote (EliminatedFace, fix 2).
-    detail::InertiaVerdict probe_inertia(const QpProblem &qp, const WorkingSet &ws,
+    detail::InertiaVerdict probe_inertia(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
                                          detail::KktFactor &kkt, EliminatedFace &face,
                                          BorderState &border, QpCounters &counters,
                                          const QpOptions &opts) const;
@@ -1659,11 +2000,11 @@ class QpEngine {
     // algebra runs.
     // CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
     // the model's second derivative -- a first-order mode re-derives or re-labels it).
-    bool probe_zero_multiplier_drops(const QpProblem &qp, const Vec &shift, const Vec &lambda_i,
-                                     const Vec &z, WorkingSet &ws, detail::KktFactor &kkt,
-                                     EliminatedFace &face, BorderState &border,
-                                     QpCounters &counters, ProbeState &probe, DropRecord &dropped,
-                                     const QpOptions &opts) const;
+    bool probe_zero_multiplier_drops(const QpProblem &qp, const Vec &x_k, const Vec &shift,
+                                     const Vec &lambda_i, const Vec &z, WorkingSet &ws,
+                                     detail::KktFactor &kkt, EliminatedFace &face,
+                                     BorderState &border, QpCounters &counters, ProbeState &probe,
+                                     DropRecord &dropped, const QpOptions &opts) const;
 
     // H's diagonal, gathered once (qp.H stores the upper triangle, so the
     // diagonal entries are the ones with col == row).

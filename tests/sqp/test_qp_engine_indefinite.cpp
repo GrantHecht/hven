@@ -55,7 +55,7 @@ struct QpEngineTestAccess {
                                         const WorkingSet &ws, detail::KktFactor &kkt,
                                         EliminatedFace &face, BorderState &border,
                                         QpCounters &counters, const QpOptions &opts) {
-        return eng.probe_inertia(qp, ws, kkt, face, border, counters, opts);
+        return eng.probe_inertia(qp, ws, Vec::Zero(qp.n()), kkt, face, border, counters, opts);
     }
 };
 } // namespace hven::solvers

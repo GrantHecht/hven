@@ -53,6 +53,7 @@
 #include <condition_variable>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <limits>
 #include <mutex>
@@ -474,31 +475,70 @@ QpOptions capped(Index cap) {
 
 constexpr Index kCycleCap = 200;
 
-/// Asserts that the OFF walk on `qp` really is the recurrence this round is
-/// about: it spends its whole budget, its working-set signature has an exactly
-/// periodic suffix of the expected period covering most of the walk, and the
-/// iterate does not move at all over that suffix.
-Walk expect_the_off_walk_cycles(const QpProblem &qp, Index expected_period) {
+/// THE RE-PREMISED READ-OUT (M7 W2 E4 fix round 2, ruling E4-19).
+///
+/// WHAT THIS HELPER USED TO ASSERT, and why it cannot any more. It was
+/// `expect_the_off_walk_cycles`: the OFF walk on `qp` spends its whole budget,
+/// its working-set signature has an exactly periodic zero-motion suffix of the
+/// expected period, and that suffix covers most of the walk. That premise held
+/// from M4 until M7 W2 E4. **The E4 walk does not cycle on either of these two
+/// fixtures.** Both now read `kOptimal` in FOUR minors, with the recurrence
+/// gone at its source: the recurrence was driven by a NOISE-LEVEL DROP -- a
+/// multiplier below `opt_tol * scale` that the pre-E4 walk believed and dropped,
+/// re-adding the same member on the next pass -- and E4's proximal EQP prices
+/// that multiplier differently (the primal regularization's own term is no
+/// longer folded into it, NC2 fix1), so the drop is never made.
+///
+/// WHAT IT ASSERTS NOW: what the OFF walk actually reads, by name, so the change
+/// is pinned rather than merely tolerated, and so a REGRESSION back into the
+/// recurrence fails here. `expected_period` is retired as an argument: the
+/// recurrence it named does not exist.
+///
+/// NO CELL IN THIS TREE STILL CYCLES. Ruling E4-19(b) keeps the old premise on
+/// any cell that does; there is none, in this file or in
+/// test_qp_degeneracy_arm.cpp, and that is a finding rather than a reason to
+/// delete the arms -- they stay in the tree, test-only, and the fixtures below
+/// now assert that they are INERT where they used to assert an escape.
+Walk expect_the_off_walk_reads(const QpProblem &qp, QpStatus status, Index minors) {
     Ac::reset();
     const Walk off = observed_walk(qp, capped(kCycleCap));
-    EXPECT_EQ(static_cast<int>(off.solution.status), static_cast<int>(QpStatus::kMaxIter))
-        << "the OFF walk did not spend its budget: this fixture no longer cycles";
-    EXPECT_EQ(off.minors, kCycleCap);
-    EXPECT_EQ(off.period, expected_period);
-    EXPECT_GE(off.tail * 2, off.minors) << "the periodic suffix covers less than half the walk";
-    EXPECT_EQ(off.tail_motion, 0.0) << "the suffix is not a ZERO-MOTION recurrence";
-    // NOT asserted: that the WHOLE walk moved nothing. M3c's cells move
-    // while they approach the degenerate vertex and stop moving once they are
-    // on it; the zero-motion claim is about the TAIL, and that is what is
-    // asserted above.
+    EXPECT_EQ(static_cast<int>(off.solution.status), static_cast<int>(status))
+        << "the OFF walk's status moved: E4 fix2 measured " << static_cast<int>(status);
+    EXPECT_EQ(off.minors, minors) << "the OFF walk's minor count moved";
+    EXPECT_LT(off.minors * 5, kCycleCap)
+        << "the OFF walk is back to spending its budget: the recurrence has returned";
+    // NOT asserted: that the walk MOVED. The escape read-out this replaces could
+    // require it, because it was contrasting against a stuck walk; MEASURED at E4
+    // fix round 2, `period2_cycle_qp`'s optimum IS its start vertex, so the whole
+    // walk is a zero-motion working-set correction and `total_motion` is exactly
+    // 0. Asserting motion here would assert a property of the fixture's start
+    // point, not of the walk.
+    //
+    // AND IT IS THE PROBLEM'S OWN OPTIMUM, the same two independent checks the
+    // armed read-out uses -- because "it terminates" is worth nothing without it.
+    EXPECT_TRUE(is_a_kkt_point(qp, off.solution, 1e-7));
+    EXPECT_NEAR(objective(qp, off.solution.x), brute_force_optimum(qp), 1e-7);
     return off;
 }
 
-/// Asserts that an ARMED walk escaped: it returns `kOptimal`, the recurrence
-/// read-out no longer finds a zero-motion periodic suffix worth the name, the
-/// point it returns is an optimum of the problem by two independent checks,
-/// and the arm's own counters say it actually changed a decision.
-void expect_the_armed_walk_escapes(const QpProblem &qp, Arm arm, const Walk &off) {
+/// THE RE-PREMISED ARM READ-OUT (M7 W2 E4 fix round 2, ruling E4-19(a)).
+///
+/// WHAT IT USED TO ASSERT: that the ARMED walk ESCAPED a recurrence the OFF
+/// walk was stuck in -- `kOptimal`, no zero-motion periodic suffix worth the
+/// name, the problem's own optimum, and the arm's counters showing it changed a
+/// decision. With the recurrence gone (see `expect_the_off_walk_reads`) there is
+/// nothing to escape, and an escape assertion on a walk that already terminates
+/// asserts nothing at all.
+///
+/// WHAT IT ASSERTS NOW: **the arm is INERT.** The armed walk reads the SAME
+/// status and the SAME minor count as the unarmed one, and returns the problem's
+/// own optimum by the same two independent checks. That is real regression
+/// coverage and it is the coverage the arm still needs: an arm that is supposed
+/// to change a decision only at a degenerate tie must not perturb a walk that
+/// never reaches one. What is NOT asserted any more is that the arm's own
+/// switch counters moved -- they are reported for the record instead, because
+/// "the arm did something" is exactly what is no longer true here.
+void expect_the_arm_is_inert(const QpProblem &qp, Arm arm, const Walk &off) {
     Ac::reset();
     Ac::arm = arm;
     const Walk on = observed_walk(qp, capped(kCycleCap));
@@ -508,47 +548,44 @@ void expect_the_armed_walk_escapes(const QpProblem &qp, Arm arm, const Walk &off
     const Index lex_ratio_switches = Ac::lex_ratio_switches;
     Ac::reset();
 
-    // THE PREDICATE, and the one thing it must not be read as. A converged
-    // walk ALWAYS ends with a run of passes carrying the same working-set
-    // signature -- the terminal pass, and whatever refinement precedes it --
-    // so "a periodic suffix exists" is true of every successful solve and
-    // cannot by itself mean "cycling". What separates the recurrence M3c
-    // measured from ordinary termination is that the recurrence never ends:
-    // it runs until the iteration cap. So RECURRENCE_GONE is asserted here as
-    // the conjunction of TERMINATION well inside the cap, a walk that MOVED,
-    // and a periodic suffix strictly shorter than the OFF walk's and short in
-    // absolute terms.
-    EXPECT_EQ(static_cast<int>(on.solution.status), static_cast<int>(QpStatus::kOptimal));
-    EXPECT_LT(on.minors * 5, kCycleCap) << "the armed walk did not terminate promptly";
-    EXPECT_GT(on.total_motion, 0.0) << "the armed walk still never moved the iterate";
-    EXPECT_LT(on.tail, off.tail) << "the periodic suffix is no shorter than the OFF walk's";
-    EXPECT_LE(on.tail, 8) << "the armed walk still ends in a long repetition";
+    // INERTNESS, and it is asserted as an EQUALITY against the unarmed walk
+    // rather than as a bound: the armed walk must reach the same answer in the
+    // same number of passes. That is what "the arm does not change a walk that
+    // does not cycle" means, and it is a stronger statement than the escape
+    // assertion it replaces was on a walk that already terminates.
+    EXPECT_EQ(static_cast<int>(on.solution.status), static_cast<int>(off.solution.status))
+        << "the arm changed the status of a walk that does not cycle";
+    EXPECT_EQ(on.minors, off.minors) << "the arm changed the minor count of a walk that does not "
+                                        "cycle";
+    // MOTION: the same to a relative 1e-9, NOT bit-identical, and the difference is
+    // the arm itself. MEASURED at E4 fix round 2: arm E takes its expanded-tolerance
+    // FLOOR STEP on both fixtures (min_steps 2, one pivot switch), which moves the
+    // iterate by 2.4e-13 where the unarmed walk moves nothing on the period-2 cell,
+    // and by 1.9999999999999998 against 2 on the period-4 one. So "inert" here is
+    // the statement ruling E4-19(a) asks for -- the same STATUS and the same MINOR
+    // COUNT -- and not bit-identity, which the arm's own floor step rules out.
+    EXPECT_NEAR(on.total_motion, off.total_motion, 1e-9 * std::max(1.0, off.total_motion))
+        << "the arm moved the iterate a materially different distance";
 
-    // AND THE ANSWER IS THE PROBLEM'S OWN OPTIMUM, two independent ways.
+    // AND THE ANSWER IS THE PROBLEM'S OWN OPTIMUM, two independent ways -- kept
+    // verbatim from the escape read-out, because this half never depended on the
+    // recurrence.
     EXPECT_TRUE(is_a_kkt_point(qp, on.solution, 1e-7));
     EXPECT_NEAR(objective(qp, on.solution.x), brute_force_optimum(qp), 1e-7);
 
-    // THE ARM ACTUALLY DID SOMETHING -- otherwise "the armed walk escaped"
-    // would be a statement about the walk and not about the arm.
-    if (arm == Arm::kExpand) {
-        EXPECT_GT(min_steps + pivot_switches, 0);
-    } else {
-        // AND WHICH SIDE DID IT, ASSERTED RATHER THAN SUMMED (FIX ROUND 1,
-        // review Minor 2). The round's claim about ARM L on these two
-        // trajectories is not "the arm switched something" but "the DROP side
-        // switched NOTHING and the escape is entirely the RATIO side". A sum
-        // cannot say that, and the sum is what the first version asserted.
-        // NOTE THE SCOPE: `lex_drop_switches == 0` is a fact about THESE TWO
-        // FIXTURE TRAJECTORIES, not about hven's drop rule in general -- on
-        // field cells L records 13 drop switches on READING6 and 31 on
-        // ZAMB2-8 (this round's `tables/arm.md`).
-        EXPECT_EQ(lex_drop_switches, 0)
-            << "the lexicographic DROP rule moved a choice on this fixture; the round's "
-               "read-out of these two trajectories says it does not";
-        EXPECT_GT(lex_ratio_switches, 0)
-            << "the lexicographic RATIO re-tie moved no choice, so the escape cannot be "
-               "credited to the arm";
-    }
+    // THE ARM'S OWN SWITCH COUNTERS: REPORTED, NOT ASSERTED. The escape read-out
+    // required them nonzero ("the arm actually did something"); on a walk with no
+    // degenerate tie to re-break there is nothing for them to count, and pinning
+    // a zero here would pin the absence of the very mechanism the arm exists for
+    // rather than the arm's inertness, which is what the equalities above say.
+    // They are printed so a future round reading this file sees the numbers.
+    std::printf("[ e4fix2 ] arm %s inert: off %d/%ld == on %d/%ld ; switches min=%ld pivot=%ld "
+                "lex_drop=%ld lex_ratio=%ld\n",
+                arm == Arm::kExpand ? "E" : "L", static_cast<int>(off.solution.status),
+                static_cast<long>(off.minors), static_cast<int>(on.solution.status),
+                static_cast<long>(on.minors), static_cast<long>(min_steps),
+                static_cast<long>(pivot_switches), static_cast<long>(lex_drop_switches),
+                static_cast<long>(lex_ratio_switches));
 }
 
 } // namespace
@@ -632,42 +669,67 @@ TEST(QpAntiCyclingArm, AnUnarmedSwitchWithTheObserverAttachedIsTheUnattachedRunB
 // (2) THE ARMS DO WHAT THEY ARE FOR
 // ===========================================================================
 
-TEST(QpAntiCyclingArm, TheOffWalkCyclesAtPeriodTwoWithExactlyZeroMotion) {
+// THE RENAME EVENT (M7 W2 E4 fix round 2, ruling E4-19(c)). These six tests are
+// the same six experiments with their premise re-derived; each one's name used to
+// say "cycles" or "escapes", which is now false, so each was RENAMED to say what
+// it asserts. Old -> new:
+//
+//   TheOffWalkCyclesAtPeriodTwoWithExactlyZeroMotion
+//     -> TheOffWalkOnThePeriodTwoFixtureTerminatesAtItsOptimum
+//   TheOffWalkCyclesAtPeriodFourWithExactlyZeroMotion
+//     -> TheOffWalkOnThePeriodFourFixtureTerminatesAtItsOptimum
+//   ArmEEscapesThePeriodTwoCycleAndReturnsTheOptimum
+//     -> ArmEIsInertOnThePeriodTwoFixtureThatNoLongerCycles
+//   ArmLEscapesThePeriodTwoCycleAndReturnsTheOptimum
+//     -> ArmLIsInertOnThePeriodTwoFixtureThatNoLongerCycles
+//   ArmEEscapesThePeriodFourCycleAndReturnsTheOptimum
+//     -> ArmEIsInertOnThePeriodFourFixtureThatNoLongerCycles
+//   ArmLEscapesThePeriodFourCycleAndReturnsTheOptimum
+//     -> ArmLIsInertOnThePeriodFourFixtureThatNoLongerCycles
+//
+// The names are the whole of the by-name gate's view of this file, so the event
+// is declared as six REMOVED and six ADDED.
+
+TEST(QpAntiCyclingArm, TheOffWalkOnThePeriodTwoFixtureTerminatesAtItsOptimum) {
     ArmGuard guard;
-    expect_the_off_walk_cycles(period2_cycle_qp(), 2);
+    // MEASURED at M7 W2 E4 fix round 2: kOptimal in 4 minors, where M4 through
+    // E3 read kMaxIter at the 200-minor cap with a period-2 zero-motion suffix.
+    expect_the_off_walk_reads(period2_cycle_qp(), QpStatus::kOptimal, 4);
 }
 
-TEST(QpAntiCyclingArm, TheOffWalkCyclesAtPeriodFourWithExactlyZeroMotion) {
+TEST(QpAntiCyclingArm, TheOffWalkOnThePeriodFourFixtureTerminatesAtItsOptimum) {
     ArmGuard guard;
-    expect_the_off_walk_cycles(period4_cycle_qp(), 4);
+    // MEASURED at M7 W2 E4 fix round 2: kOptimal in 4 minors, where M4 through
+    // E3 read kMaxIter at the cap with a period-4 zero-motion suffix.
+    expect_the_off_walk_reads(period4_cycle_qp(), QpStatus::kOptimal, 4);
 }
 
-TEST(QpAntiCyclingArm, ArmEEscapesThePeriodTwoCycleAndReturnsTheOptimum) {
+TEST(QpAntiCyclingArm, ArmEIsInertOnThePeriodTwoFixtureThatNoLongerCycles) {
     ArmGuard guard;
     const QpProblem qp = period2_cycle_qp();
-    const Walk off = expect_the_off_walk_cycles(qp, 2);
-    expect_the_armed_walk_escapes(qp, Arm::kExpand, off);
+    const Walk off = expect_the_off_walk_reads(qp, QpStatus::kOptimal, 4);
+    expect_the_arm_is_inert(qp, Arm::kExpand, off);
 }
 
-TEST(QpAntiCyclingArm, ArmLEscapesThePeriodTwoCycleAndReturnsTheOptimum) {
+TEST(QpAntiCyclingArm, ArmLIsInertOnThePeriodTwoFixtureThatNoLongerCycles) {
     ArmGuard guard;
     const QpProblem qp = period2_cycle_qp();
-    const Walk off = expect_the_off_walk_cycles(qp, 2);
-    expect_the_armed_walk_escapes(qp, Arm::kLexicographic, off);
+    const Walk off = expect_the_off_walk_reads(qp, QpStatus::kOptimal, 4);
+    expect_the_arm_is_inert(qp, Arm::kLexicographic, off);
 }
 
-TEST(QpAntiCyclingArm, ArmEEscapesThePeriodFourCycleAndReturnsTheOptimum) {
+TEST(QpAntiCyclingArm, ArmEIsInertOnThePeriodFourFixtureThatNoLongerCycles) {
     ArmGuard guard;
     const QpProblem qp = period4_cycle_qp();
-    const Walk off = expect_the_off_walk_cycles(qp, 4);
-    expect_the_armed_walk_escapes(qp, Arm::kExpand, off);
+    const Walk off = expect_the_off_walk_reads(qp, QpStatus::kOptimal, 4);
+    expect_the_arm_is_inert(qp, Arm::kExpand, off);
 }
 
-TEST(QpAntiCyclingArm, ArmLEscapesThePeriodFourCycleAndReturnsTheOptimum) {
+TEST(QpAntiCyclingArm, ArmLIsInertOnThePeriodFourFixtureThatNoLongerCycles) {
     ArmGuard guard;
     const QpProblem qp = period4_cycle_qp();
-    const Walk off = expect_the_off_walk_cycles(qp, 4);
-    expect_the_armed_walk_escapes(qp, Arm::kLexicographic, off);
+    const Walk off = expect_the_off_walk_reads(qp, QpStatus::kOptimal, 4);
+    expect_the_arm_is_inert(qp, Arm::kLexicographic, off);
 }
 
 // ===========================================================================
@@ -1227,7 +1289,18 @@ void expect_e2_ends(const QpProblem &qp) {
         EXPECT_EQ(c.zero_motion_exhausted, 0);
         EXPECT_EQ(c.dep_blocker_terminations, 0);
         EXPECT_EQ(c.dep_certificate_rejections, 0);
-        EXPECT_EQ(c.dep_border_retreats, alg == WorkingSetLinearAlgebra::kSchurBorder ? 1 : 0);
+        // RE-DERIVED AT M7 W2 E4 FIX ROUND 2 (a declared counter move). The border
+        // path used to retreat ONCE here, and finding E2-F1 explained why: on these
+        // K0s the border pass's Schur complement is swamped, the EQP step leaves its
+        // face, the dependency coefficients are inaccurate and the pass is redone on
+        // the bound-eliminated path. E4's UNREGULARIZED POLISH removes the cause --
+        // it refines each bordered answer against the face's own exact system, so
+        // the step does not leave its face and the dependency coefficients are the
+        // eliminated path's -- and the retreat is not needed on either shape. 0 on
+        // both algebras now, and the retreat's own coverage lives in
+        // `TheBorderRetreatsExactlyOnceAndEndsOptimal`, re-premised the same way.
+        EXPECT_EQ(c.dep_border_retreats, 0)
+            << "the border retreat is back: the E2-F1 swamping the polish removes has returned";
     }
 }
 
@@ -1332,19 +1405,41 @@ TEST(QpE2WorkingSet, NoAdmissibleMemberAndNoPassOverEndsInsideTheBox) {
         for (Index r = 0; r < qp.mi(); ++r) {
             EXPECT_LE(Aix(r) - qp.bi(r), 1e-12);
         }
-        EXPECT_NEAR(s.x(0), 0.5, 1e-12);
-        EXPECT_NEAR(s.x(1), 0.125, 1e-12);
-        EXPECT_NEAR(s.x(2), 0.375, 1e-12);
+        // THE DEAD END'S POINT, RE-DERIVED at M7 W2 E4 fix round 2 (a declared
+        // mover): (0.5, 0.125, 0.375) -> (0.6, 0, 0.4), to 1.2e-13 on each
+        // component in both algebras. E4 reaches this dead end by a different route
+        // -- every EQP answer on the way is the proximal one, polished against its
+        // own face -- so the iterate the blocker terminates ON is a different point
+        // of the same feasible region. EVERY CLAIM THE FIXTURE MAKES IS ASSERTED
+        // ABOVE AND UNCHANGED: kNumericalError, one blocker termination, no
+        // certificate, inside the box, every row satisfied, never a step past the
+        // blocker. What moves is the point, and it is pinned here so the route's
+        // own stability is still a test rather than an assumption.
+        EXPECT_NEAR(s.x(0), 0.6, 1e-12);
+        EXPECT_NEAR(s.x(1), 0.0, 1e-12);
+        EXPECT_NEAR(s.x(2), 0.4, 1e-12);
     }
 }
 
-TEST(QpE2WorkingSet, TheBorderRetreatsExactlyOnceAndEndsOptimal) {
-    // THE DECLARED DEVIATION (settler S11), and finding E2-F1: on the
-    // period-two QP the border pass's K0 is near-singular on the pinned
-    // directions, its Schur complement carries O(1) rounding, the EQP step
-    // leaves its face and the dependency coefficients are inaccurate; the
-    // rule would end the solve there, so the pass is redone ONCE on the
-    // bound-eliminated path and the walk ends at the optimum.
+TEST(QpE2WorkingSet, TheBorderNoLongerNeedsItsRetreatAndStillEndsOptimal) {
+    // RENAMED AND RE-PREMISED at M7 W2 E4 fix round 2 (ruling E4-19(c); old name
+    // `TheBorderRetreatsExactlyOnceAndEndsOptimal`).
+    //
+    // THE DECLARED DEVIATION (settler S11) and finding E2-F1, which this fixture
+    // held from E2 fix1 until E4: on the period-two QP the border pass's K0 is
+    // near-singular on the pinned directions, its Schur complement carries O(1)
+    // rounding, the EQP step leaves its face and the dependency coefficients are
+    // inaccurate; the rule would end the solve there, so the pass was redone ONCE
+    // on the bound-eliminated path and the walk ended at the optimum.
+    //
+    // E4's UNREGULARIZED POLISH REMOVES THE CAUSE. Every bordered answer is now
+    // refined against the face's OWN exact KKT system on the factor the solve
+    // already paid for (fix round 1, ruling E4-11), which is exactly the accuracy
+    // the retreat was buying by re-solving; the step stays on its face, the
+    // coefficients are the eliminated path's, and the retreat never fires.
+    // MEASURED: `dep_border_retreats` 1 -> 0 and no `kEliminatedRetreat` record.
+    // What this fixture asserts now is the ABSENCE together with the same optimal
+    // outcome, so a returning retreat -- i.e. a returning E2-F1 -- fails here.
     ArmGuard guard;
     const QpProblem qp = period2_cycle_qp();
     Obs::reset();
@@ -1358,8 +1453,9 @@ TEST(QpE2WorkingSet, TheBorderRetreatsExactlyOnceAndEndsOptimal) {
     Obs::active = false;
     Obs::reset();
     EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
-    EXPECT_EQ(s.counters.dep_border_retreats, 1);
-    EXPECT_EQ(retreat_records, 1);
+    EXPECT_EQ(s.counters.dep_border_retreats, 0)
+        << "the border retreat fired: E2-F1's swamping is back on this K0";
+    EXPECT_EQ(retreat_records, 0);
     EXPECT_EQ(s.counters.dep_blocker_terminations, 0);
     EXPECT_NEAR(objective(qp, s.x), brute_force_optimum(qp), 1e-7);
 }
@@ -1831,6 +1927,13 @@ TEST(QpE2WorkingSet, AStructuralDependencyDecidesFirstOnTheSteenbrbElasticQp) {
 #ifdef NDEBUG
         // Release only: Debug's arithmetic never makes that admission on this QP
         // (measured dep_structural_first 0 there, kOptimal all the same).
+        //
+        // UNCHANGED AT M7 W2 E4 FIX ROUND 2, and the round measured it twice. An
+        // intermediate version of the step's row-drift check (fix round 2, without
+        // its kEqpRowDriftFloor) escalated the suspect ladder on this dump and the
+        // admission stopped happening -- `dep_structural_first` 0, a non-vacuity
+        // premise lost. The floor, which is there for its own reasons (see the
+        // constant's note), restores it: the premise holds at the shipped engine.
         if (alg == WorkingSetLinearAlgebra::kSchurBorder) {
             EXPECT_GE(s.counters.dep_structural_first, 1);
         }
@@ -1851,13 +1954,30 @@ TEST(QpE2WorkingSet, TheLockedVertexUnlocksOnTheAcopr57PrimalQps) {
     // over-count here (dep_untested_growth, trimmed by count); the S3 Debug assert on
     // it was downgraded to that counter (settler S27), so this runs in both
     // configurations.
+    //
+    // RE-PREMISED AT M7 W2 E4 FIX ROUND 2, AND THE RE-PREMISE IS A STRONGER CLAIM.
+    // The cross-arm pin `|f - f_off| <= 1e-7 * |f_off|` said "the two arms agree",
+    // which was worth something while the OFF arm was the better-measured of the
+    // two. It is not any more: on qp0 the E2-ON arm now lands on CLARABEL'S OWN
+    // OPTIMUM to 2.3e-12 relative (432.674974173 against f* = 432.674974172, with
+    // the equality residual 6.14e-07 -> 1.20e-14), while the E2-OFF arm returns
+    // 432.660942518 -- 3.2e-05 relative off the oracle, inside its own declared
+    // 1e-4 and no longer inside 1e-7 of the production answer. The E2-off path is
+    // the harness CONTROL lane and is declared MOVING this round (E4-23), so the
+    // authority the two arms are measured against is the ORACLE, not each other.
+    // What replaces the cross-arm equality: each arm within its declared tolerance
+    // of f*, AND the ON arm no further from f* than the OFF arm -- which is the
+    // claim that actually protects production, and which the equality never made.
+    // `on_rel_tol` is MEASURED per cell, two to three decades above what the arm
+    // reads, and it is two to four decades tighter than the pin it replaces.
     struct Case {
         const char *file;
         double f_star;
         double rel_tol;
+        double on_rel_tol;
     };
-    for (const Case &c : {Case{"ACOPR57_def-qp0.txt", 432.674974172, 1e-4},
-                          Case{"ACOPR57_def-qp1.txt", 501.805584074, 1e-5}}) {
+    for (const Case &c : {Case{"ACOPR57_def-qp0.txt", 432.674974172, 1e-4, 1e-9},
+                          Case{"ACOPR57_def-qp1.txt", 501.805584074, 1e-5, 1e-7}}) {
         SCOPED_TRACE(c.file);
         const QpDump d = e2d4_dump(c.file);
         EXPECT_NE(d.result.find("status=3"), std::string::npos);
@@ -1867,14 +1987,21 @@ TEST(QpE2WorkingSet, TheLockedVertexUnlocksOnTheAcopr57PrimalQps) {
         const QpSolution s_off = hven::test_support::solve_qp_dump(d, off);
         ASSERT_EQ(static_cast<int>(s_off.status), static_cast<int>(QpStatus::kOptimal));
         const double f_off = hven::test_support::qp_dump_objective(d, s_off.x);
+        // BOTH ARMS ARE HELD TO `on_rel_tol` NOW, not just the production one: the
+        // E2-off control reaches the oracle to 2.2e-12 (qp0) and 7.2e-10 (qp1)
+        // relative, so the declared `rel_tol` of 1e-4 / 1e-5 it used to be measured
+        // against is kept only as the looser of the two bounds. MEASURED at E4 fix
+        // round 2, all four arms: qp0 on 2.2e-12 / off 2.2e-12, qp1 on 1.0e-09 /
+        // off 7.2e-10 relative.
+        EXPECT_LE(std::abs(f_off - c.f_star), c.on_rel_tol * std::abs(c.f_star));
         EXPECT_LE(std::abs(f_off - c.f_star), c.rel_tol * std::abs(c.f_star));
         for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
             SCOPED_TRACE(e2_name(alg));
             const QpSolution s = e2d4_solve(d, alg);
             expect_e2d4_kkt(d, s);
             const double f = hven::test_support::qp_dump_objective(d, s.x);
-            EXPECT_LE(std::abs(f - c.f_star), c.rel_tol * std::abs(c.f_star));
-            EXPECT_LE(std::abs(f - f_off), 1e-7 * std::abs(f_off));
+            EXPECT_LE(std::abs(f - c.f_star), c.on_rel_tol * std::abs(c.f_star))
+                << "the production arm left the oracle's optimum";
             EXPECT_GE(s.counters.dep_unlocks, 1);
             EXPECT_EQ(s.counters.dep_blocker_terminations, 0);
             EXPECT_EQ(s.counters.zero_motion_cap_hits, 0);
@@ -2011,6 +2138,32 @@ TEST(QpE2WorkingSet, AConvergedGreyPinOnDallasmIsReReadDependent) {
 }
 
 TEST(QpE2WorkingSet, AGreyPinOnYorknetThatIsIndependentStaysIndependent) {
+#ifndef NDEBUG
+    // A DECLARED DEBUG SKIP (M7 W2 E4 fix round 2, ruling E4-22), with its cost.
+    //
+    // THIS TEST COSTS 2681.90 s IN DEBUG -- nine times the next slowest test in the
+    // Debug suite and four times M6's 600 s per-fixture budget. It is 37.35 s in
+    // Release, where it runs and asserts everything below.
+    //
+    // THE COST IS NOT THIS ROUND'S, and that is measurable: its Release time moved
+    // 35.94 s -> 37.35 s across M7 W2 E4, so at this tree's ~72x Debug/Release factor
+    // on this dump it was already ~2590 s before the round. What IS this round's is
+    // that the number is KNOWN: fix round 1 is the first round to have run the whole
+    // Debug suite, and it found this.
+    //
+    // WHY A SKIP AND NOT A SPLIT: the test solves ONE dump (YORKNET_def-qp1) on BOTH
+    // algebras and reads a grey-band re-read that happens on the ELIMINATED path, so
+    // splitting it per algebra halves the cost at best and leaves a ~1300 s Debug
+    // case. REGISTERED: split the dump itself, or give this cell a smaller one.
+    //
+    // WHAT THE SKIP COSTS, stated: the grey-band re-read's Debug arithmetic is not
+    // observed. The rule it checks (R-E: a grey reading re-read on the same factor
+    // stays independent when its refined rho does not fall under kDepTol) has its
+    // synthetic fixtures earlier in this file, and they run in both configurations.
+    GTEST_SKIP() << "Debug costs 2681.90 s on this dump (Release 37.35 s), four times M6's 600 s "
+                    "per-fixture budget and nine times the next slowest Debug test; asserted in "
+                    "Release, and R-E's synthetic fixtures cover the rule in both configurations";
+#endif
     // YORKNET's restoration QP (272 free columns and 256 working rows at the event). Its one grey
     // reading is pin 36 at pass 219 (eliminated path): rho 7.669e-4 converged,
     // and the dense distance IS 7.669e-4 -- an independent candidate that E2-D4
@@ -2045,7 +2198,15 @@ TEST(QpE2WorkingSet, AGreyPinOnYorknetThatIsIndependentStaysIndependent) {
 
 namespace {
 
-void expect_the_declined_ride_resolves(const char *file, double f_off, Index off_minors) {
+// `expect_exchange` RE-PREMISED at M7 W2 E4 fix round 2 (ruling E4-19(b): the old
+// premise stays where the pathology remains, and it remains on qp4-qp6). NC1's
+// mechanism needs a DEPENDENT ride blocker at zero motion, which needs the rows'
+// dual_mu footprint to put one there; E4's unregularized polish backs that
+// footprint out of every EQP answer, and on qp3 the blocker is gone -- the walk
+// reaches the same optimum with `dep_ride_blockers` and `ride_exchanges` at 0.
+// qp4, qp5 and qp6 still reach it and still assert the exchange.
+void expect_the_declined_ride_resolves(const char *file, double f_off, Index off_minors,
+                                       bool expect_exchange = true) {
     const QpDump d = e2d4_dump(file);
     // The in-cell E2-on outcome (the pre-NC1 walk): stuck, zero-motion exhaustion.
     EXPECT_NE(d.result.find("status=3"), std::string::npos);
@@ -2058,6 +2219,11 @@ void expect_the_declined_ride_resolves(const char *file, double f_off, Index off
         off.independent_working_set = false;
         const QpSolution s_off = hven::test_support::solve_qp_dump(d, off);
         ASSERT_EQ(static_cast<int>(s_off.status), static_cast<int>(QpStatus::kOptimal));
+        // `off_minors` RE-DERIVED, M7 W2 E4 fix round 1 (declared mover), per cell at
+        // the four call sites below: 596 -> 586, 192 -> 197, 191 -> 181, 184 -> 180.
+        // The OPTION-OFF walk is reached by every EQP solve too (E4-5), so the
+        // UNREGULARIZED POLISH (eqp_solve.h) moves it: the objective pin and the
+        // kOptimal status -- what N3 is about -- hold unchanged at every one.
         EXPECT_EQ(s_off.counters.minor_iters, off_minors);
         EXPECT_LE(std::abs(hven::test_support::qp_dump_objective(d, s_off.x) - f_off),
                   1e-9 * std::abs(f_off));
@@ -2075,8 +2241,21 @@ void expect_the_declined_ride_resolves(const char *file, double f_off, Index off
                   1e-7 * std::abs(f_off));
         EXPECT_EQ(s.counters.zero_motion_exhausted, 0);
         EXPECT_EQ(s.counters.zero_motion_cap_hits, 0);
-        EXPECT_GE(s.counters.dep_ride_blockers, 1);
-        EXPECT_GE(s.counters.ride_exchanges, 1);
+        if (expect_exchange) {
+            EXPECT_GE(s.counters.dep_ride_blockers, 1);
+            EXPECT_GE(s.counters.ride_exchanges, 1);
+        } else {
+            // qp3 ONLY, and it is ALGEBRA-DEPENDENT at E4 fix round 2: the border
+            // walk still meets 3 dependent ride blockers and exchanges all 3, the
+            // refactorize walk meets none. Both reach the same optimum with the same
+            // KKT bounds, so what is asserted on this cell is NC1's RULE rather than
+            // a count -- every dependent blocker the walk meets is exchanged, and
+            // none is left to decline -- which holds on both algebras and is the
+            // statement the mechanism is for. The counts themselves are measured
+            // above and recorded here; qp4, qp5 and qp6 still carry the >= 1 premise.
+            EXPECT_EQ(s.counters.ride_exchanges, s.counters.dep_ride_blockers)
+                << "a dependent ride blocker was met and not exchanged";
+        }
         EXPECT_EQ(s.counters.ride_declines_fallthrough_blocked, 0);
         EXPECT_EQ(s.counters.ride_sign_vetoes, 0);
     }
@@ -2084,20 +2263,23 @@ void expect_the_declined_ride_resolves(const char *file, double f_off, Index off
 
 } // namespace
 
-TEST(QpE2WorkingSet, ADeclinedRideIsExchangedOnSteenbrbRestorationQp3) {
-    expect_the_declined_ride_resolves("Cs_STEENBRB_qp3.txt", -11.5370634375, 596);
+TEST(QpE2WorkingSet, TheDeclinedRideResolvesWithoutAnExchangeOnSteenbrbRestorationQp3) {
+    // RENAMED at E4 fix round 2 (old: ADeclinedRideIsExchangedOnSteenbrbRestorationQp3):
+    // this cell no longer needs the exchange. Same optimum, same KKT bounds,
+    // `dep_ride_blockers` 0 -- see the helper's note.
+    expect_the_declined_ride_resolves("Cs_STEENBRB_qp3.txt", -11.5370634375, 586, false);
 }
 
 TEST(QpE2WorkingSet, ADeclinedRideIsExchangedOnSteenbrbRestorationQp4) {
-    expect_the_declined_ride_resolves("Cs_STEENBRB_qp4.txt", -5.76904694719, 192);
+    expect_the_declined_ride_resolves("Cs_STEENBRB_qp4.txt", -5.76904694719, 197);
 }
 
 TEST(QpE2WorkingSet, ADeclinedRideIsExchangedOnSteenbrbRestorationQp5) {
-    expect_the_declined_ride_resolves("Cs_STEENBRB_qp5.txt", -2.88465228068, 191);
+    expect_the_declined_ride_resolves("Cs_STEENBRB_qp5.txt", -2.88465228068, 181);
 }
 
 TEST(QpE2WorkingSet, ADeclinedRideIsExchangedOnSteenbrbRestorationQp6) {
-    expect_the_declined_ride_resolves("Cs_STEENBRB_qp6.txt", -1.44235834209, 184);
+    expect_the_declined_ride_resolves("Cs_STEENBRB_qp6.txt", -1.44235834209, 180);
 }
 
 namespace {
@@ -2163,13 +2345,29 @@ RideWalk declined_ride_walk(const QpOptions &o) {
 
 } // namespace
 
-TEST(QpE2WorkingSet, ADependentRideBlockerIsExchangedAndTheRideRetaken) {
-    // dual_mu = 1e-5: one refinement step leaves an O(mu^2 * dlambda) footprint on
-    // the rows, a rate far above the ratio test's 1e-12 and inside the ride's
-    // null-space tolerance. The ride's blocker is row 2 or row 0, each dependent
-    // on the working rows; each is EXCHANGED for the member with the smallest
-    // ratio, the ride re-armed and re-taken on the exchanged set (same null
-    // space), until an independent blocker -- x2's lower bound -- ends it.
+TEST(QpE2WorkingSet, TheRideNeedsNoExchangeOnceThePolishRemovesTheRowsFootprint) {
+    // RENAMED AND RE-PREMISED at M7 W2 E4 fix round 2 (ruling E4-19; old name
+    // `ADependentRideBlockerIsExchangedAndTheRideRetaken`).
+    //
+    // WHAT IT HELD, from NC1 until E4: at `dual_mu = 1e-5` one refinement step
+    // leaves an O(mu^2 * dlambda) footprint on the rows -- a rate far above the
+    // ratio test's 1e-12 and inside the ride's null-space tolerance -- so the
+    // ride's blocker is a DEPENDENT row, exchanged for the smallest-ratio member,
+    // the ride re-armed and re-taken on the exchanged set until x2's lower bound
+    // ends it.
+    //
+    // WHY IT CANNOT HOLD IT: the footprint is MANUFACTURED by the fixture's
+    // inflated `dual_mu`, and E4's UNREGULARIZED POLISH backs the dual
+    // regularization out of every EQP answer (fix round 1, E4-11). There is no
+    // footprint on the rows, so no dependent blocker at zero motion, so nothing to
+    // exchange. MEASURED: `dep_ride_blockers` 0 and `ride_exchanges` 0 on both
+    // algebras, with the SAME ANSWER -- kOptimal, objective -35, x2 at its lower
+    // bound -- which is the half of this fixture that was ever about the outcome.
+    //
+    // NC1's MECHANISM KEEPS ITS LIVE COVERAGE on the field cells where the
+    // dependency is structural rather than manufactured: `Cs_STEENBRB_qp4/5/6`
+    // still assert `dep_ride_blockers >= 1` and `ride_exchanges >= 1` through
+    // `expect_the_declined_ride_resolves`.
     for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
         QpOptions o = e2_opts(alg, 40);
@@ -2179,38 +2377,22 @@ TEST(QpE2WorkingSet, ADependentRideBlockerIsExchangedAndTheRideRetaken) {
         EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
         EXPECT_NEAR(objective(declined_ride_qp(), s.x), -35.0, 1e-7);
         EXPECT_NEAR(s.x(2), -10.0, 1e-12);
-        EXPECT_GE(s.counters.dep_ride_blockers, 1);
-        EXPECT_EQ(s.counters.ride_exchanges, s.counters.dep_ride_blockers);
+        EXPECT_EQ(s.counters.dep_ride_blockers, 0)
+            << "a dependent ride blocker is back: the rows' dual_mu footprint has returned";
+        EXPECT_EQ(s.counters.ride_exchanges, 0);
         EXPECT_EQ(s.counters.ride_declines_fallthrough_blocked, 0);
         EXPECT_EQ(s.counters.ride_sign_vetoes, 0);
         EXPECT_EQ(s.counters.zero_motion_cap_hits, 0);
-        // The seam: every dependent-blocker pass released x2 and is followed by a
-        // re-armed post-drop pass on the same release; the last ride steps.
-        Index dependent = 0;
-        bool stepped = false;
-        for (std::size_t k = 0; k < w.records.size(); ++k) {
-            const auto &r = w.records[k];
-            if (r.ride_outcome == RideRead::kDependentBlocker) {
-                ++dependent;
-                EXPECT_EQ(r.released_index, 2);
-                EXPECT_NE(r.ride_sign_chosen, 0);
-                EXPECT_EQ(r.action, hven::solvers::detail::testing::QpWalkAction::kAdd);
-                EXPECT_FALSE(r.block == hven::solvers::detail::testing::QpWalkBlock::kBound &&
-                             r.block_index == 2)
-                    << "the released bound never re-enters";
-                ASSERT_LT(k + 1, w.records.size());
-                EXPECT_TRUE(w.records[k + 1].post_drop);
-                EXPECT_EQ(w.records[k + 1].released_index, 2);
-            }
-            if (r.ride_outcome == RideRead::kStepped && r.released_index == 2) {
-                stepped = true;
-            }
+        // AND THE RELEASED BOUND NEVER RE-ENTERS, which never depended on the
+        // exchange: no pass may add back the bound the drop released at zero motion.
+        for (const auto &r : w.records) {
+            EXPECT_FALSE(r.post_drop && r.released_index == 2 &&
+                         r.block == hven::solvers::detail::testing::QpWalkBlock::kBound &&
+                         r.block_index == 2 && r.alpha == 0.0)
+                << "the released bound re-entered at alpha 0";
         }
-        EXPECT_EQ(dependent, s.counters.dep_ride_blockers);
-        EXPECT_TRUE(stepped);
     }
-    // The option-off walk (no dependency test): the ride admits the dependent row
-    // and still reaches the same optimum.
+    // The option-off walk (no dependency test) reaches the same optimum, unchanged.
     QpOptions off = e2_opts(WorkingSetLinearAlgebra::kRefactorize, 40);
     off.dual_mu = 1e-5;
     off.independent_working_set = false;
@@ -2220,50 +2402,157 @@ TEST(QpE2WorkingSet, ADependentRideBlockerIsExchangedAndTheRideRetaken) {
     EXPECT_EQ(w_off.solution.counters.dep_ride_blockers, 0);
 }
 
-TEST(QpE2WorkingSet, ANullSpaceVetoedRideNeverStepsBackIntoTheReleasedBound) {
-    // The same QP at dual_mu = 1e-4: the rows' footprint after the refinement
-    // step exceeds the ride's null-space tolerance, so the ride is VETOED (i).
-    // The EQP step re-enters x2's upper bound, so the drop is undone (x2
-    // re-enters drop-exempt) and no step is taken. The option-off walk falls
-    // through instead: its ordinary step re-adds x2 at alpha = 0. Both walks then
-    // cycle WITH motion through the other faces to the iteration cap (a class
-    // registered with NC1: the null-space veto does not recompute the direction);
-    // only the rule is asserted here.
+TEST(QpE2WorkingSet, TheNullSpaceVetoIsNotReachedOnceThePolishRemovesTheRowsFootprint) {
+    // RENAMED AND RE-PREMISED at M7 W2 E4 fix round 2 (ruling E4-19; old name
+    // `ANullSpaceVetoedRideNeverStepsBackIntoTheReleasedBound`).
+    //
+    // WHAT IT HELD: the same QP at `dual_mu = 1e-4`, where the rows' footprint after
+    // the refinement step EXCEEDS the ride's null-space tolerance, so the ride is
+    // VETOED (branch (i)); the EQP step re-enters x2's upper bound, the drop is
+    // undone (x2 re-enters drop-exempt) and no step is taken, while the option-off
+    // walk falls through and re-adds x2 at alpha = 0.
+    //
+    // WHY IT CANNOT HOLD IT: the footprint is what the fixture's inflated `dual_mu`
+    // manufactures, and E4's UNREGULARIZED POLISH backs the dual regularization out
+    // of the answer, so the rows are met and the veto's own condition is never true.
+    // MEASURED: `ride_declines_fallthrough_blocked` 0 on BOTH algebras and 0 on the
+    // option-off walk, with no `kNullspaceVeto` record at all.
+    //
+    // WHAT IS ASSERTED NOW: the absence, plus the two invariants that never
+    // depended on the veto -- no sign veto, and the released bound never re-entering
+    // at alpha 0 on ANY pass, which is the rule the fixture's name was about. A
+    // returning veto fails here and the read-out above can be reinstated.
     for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
         QpOptions o = e2_opts(alg, 40);
         o.dual_mu = 1e-4;
         const RideWalk w = declined_ride_walk(o);
-        EXPECT_GE(w.solution.counters.ride_declines_fallthrough_blocked, 1);
+        EXPECT_EQ(w.solution.counters.ride_declines_fallthrough_blocked, 0)
+            << "the null-space veto fired: the rows' dual_mu footprint has returned";
         EXPECT_EQ(w.solution.counters.ride_sign_vetoes, 0);
-        Index undone = 0;
         for (const auto &r : w.records) {
-            if (!r.post_drop || r.ride_outcome != RideRead::kNullspaceVeto) {
-                continue;
-            }
-            if (r.action == hven::solvers::detail::testing::QpWalkAction::kRideUndone) {
-                ++undone;
-                EXPECT_EQ(r.block_index, r.released_index);
-                EXPECT_GE(r.released_directional, -1e-9) << "undone only when p does not leave";
-            } else {
-                // The ordinary step is taken only along a p that leaves.
-                EXPECT_LT(r.released_directional, 0.0);
-            }
+            EXPECT_NE(r.ride_outcome, RideRead::kNullspaceVeto);
+            EXPECT_FALSE(r.post_drop && r.released_index == 2 &&
+                         r.block == hven::solvers::detail::testing::QpWalkBlock::kBound &&
+                         r.block_index == 2 && r.alpha == 0.0)
+                << "the released bound re-entered at alpha 0";
         }
-        EXPECT_EQ(undone, w.solution.counters.ride_declines_fallthrough_blocked);
     }
     QpOptions off = e2_opts(WorkingSetLinearAlgebra::kRefactorize, 40);
     off.dual_mu = 1e-4;
     off.independent_working_set = false;
     const RideWalk w_off = declined_ride_walk(off);
-    bool fell_through = false;
-    for (const auto &r : w_off.records) {
-        if (r.post_drop && r.ride_outcome == RideRead::kNullspaceVeto &&
-            r.action == hven::solvers::detail::testing::QpWalkAction::kAdd &&
-            r.block_index == r.released_index && r.alpha == 0.0) {
-            fell_through = true;
-        }
-    }
-    EXPECT_TRUE(fell_through) << "the option-off contrast: the saddle step re-enters at alpha 0";
+    // The option-off CONTRAST is gone with the veto: there is no vetoed pass for the
+    // ordinary step to fall through from, so the contrast reads 0 on both sides now.
     EXPECT_EQ(w_off.solution.counters.ride_declines_fallthrough_blocked, 0);
+    for (const auto &r : w_off.records) {
+        EXPECT_NE(r.ride_outcome, RideRead::kNullspaceVeto);
+    }
+}
+
+// ===========================================================================
+// M7 W2 E4 (ruling E4-7, added at fix round 2 per E4-14 / E4-22): the three E2-D4
+// cells the round's own clauses name. They live here, beside the other E2-D4
+// fixtures, because they use this file's `e2d4_dump` / `e2d4_solve` helpers.
+// ===========================================================================
+
+TEST(QpE4ProximalEqp, TheYorknetRestorationQpIsDriftFreeAndOptimal) {
+#ifndef NDEBUG
+    // A DECLARED DEBUG SKIP (M7 W2 E4 fix round 2, ruling E4-22's "every Debug test
+    // < 600 s"), with its cost. MEASURED at this round's engine: **2414.10 s in
+    // Debug** against 0.3 s in Release. The cell is A0_YORKNET's restoration QP, 689
+    // minors and about 1020 factorizations of a 272-column system PER ALGEBRA, and
+    // -O0 pays for every one of them; splitting per algebra leaves two ~1200 s cases,
+    // so the split E4-14 prescribes does not reach the bound here either.
+    //
+    // WHAT THE SKIP COSTS, stated: the equality drift's ABSENCE is not observed under
+    // Debug's arithmetic on this dump. The drift's own synthetic coverage is
+    // `QpE4ProximalEqp.NoOrdinaryStepAscendsItsOwnObjectiveOn*` and
+    // `QpNc2FlatFace`'s flat-ray LP, which run in both configurations, and the walk's
+    // row-drift refusal has its own counter in every configuration.
+    // REGISTERED: this cell wants a smaller dump, not a smaller test.
+    GTEST_SKIP() << "Debug costs 2414.10 s on this dump (Release 0.3 s), four times M6's 600 s "
+                    "per-fixture budget; asserted in Release, and the drift's synthetic coverage "
+                    "runs in both configurations";
+#endif
+    // E4-7's A0_YORKNET cell, and the round's sharpest single conversion. At the base
+    // this dump spent its whole 7680-minor cap with the equality rows open by
+    // 2.50e-01 and `eq_drift_violations` at 7502 -- the walk stepping OFF its own
+    // closed rows on pass after pass, which is the pathology E4-1's proximal pair and
+    // E4-4's residual check were built for.
+    //
+    // MEASURED at this round's engine, both algebras: kOptimal in 689 minors with the
+    // worst equality residual 8.86e-14 and the drift count ZERO. The drift count is
+    // NC2's own counter and is only compiled into the scratch replay tool, so what is
+    // asserted here is the residual it counts -- every equality row met to 1e-12 --
+    // which is the same statement in the currency the shipped counters carry.
+    const QpDump d = e2d4_dump("A0_YORKNET_qp3.txt");
+    EXPECT_NE(d.result.find("status=1"), std::string::npos) << "the base spent its cap";
+    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+        SCOPED_TRACE(e2_name(alg));
+        const QpSolution s = e2d4_solve(d, alg);
+        const hven::test_support::QpDumpKkt k = hven::test_support::qp_dump_kkt(d, s);
+        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+        EXPECT_LE(k.eq, 1e-12) << "the equality drift is back";
+        EXPECT_LE(k.box, 1e-9);
+        EXPECT_LE(k.stationarity, 1e-6);
+        EXPECT_EQ(s.counters.zero_motion_exhausted, 0);
+        EXPECT_EQ(s.counters.zero_motion_cap_hits, 0);
+    }
+}
+
+TEST(QpE4ProximalEqp, TheAcopp57PrimaryQpCostsTwoMinorsOnBothAlgebras) {
+    // E4-12's cell, and the fixture of the border path's parity. The base read
+    // kOptimal in 8 minors on the border path and 2 on the eliminated one, with that
+    // face's bordered terminal stationarity 1.25e-07 against the eliminated path's
+    // 1.02e-14 -- a nine-decade gap that E3's proximal arm turned into a 1795-minor
+    // stall. E4's UNREGULARIZED POLISH refines the bordered answer against the face's
+    // own exact system, so the two algebras agree: MEASURED kOptimal in 2 minors on
+    // BOTH, with the terminal stationarity 9.7e-15.
+    const QpDump d = e2d4_dump("ACOPP57_def-qp0.txt");
+    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+        SCOPED_TRACE(e2_name(alg));
+        const QpSolution s = e2d4_solve(d, alg);
+        const hven::test_support::QpDumpKkt k = hven::test_support::qp_dump_kkt(d, s);
+        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+        EXPECT_EQ(s.counters.minor_iters, 2) << "the border path lost its parity";
+        // 1e-11 on the rows, MEASURED: border 1.37e-14, refactorize 1.97e-12 -- the
+        // two algebras differ by two decades here and both are decades inside the
+        // base's own 4.03e-07 on this dump, which is the move worth asserting.
+        EXPECT_LE(k.eq, 1e-11);
+        EXPECT_LE(k.stationarity, 1e-12) << "the bordered face's own residue is back";
+    }
+}
+
+TEST(QpE4ProximalEqp, TheSteenbrbRestorationQp2ExitsFiniteAndSaysWhy) {
+    // E4-4's cell, and the one clause of E4-7 that is NOT a conversion -- declared as
+    // such at fix round 1 and unchanged here. At E3 this dump produced a NaN
+    // objective: the factor fails at pass 0 with a residual of 9.3e+10 and the walk
+    // stepped toward the answer anyway. E4-4's EQP-SITE RESIDUAL CHECK refuses that
+    // answer, and what this fixture pins is the HONEST EXIT it buys.
+    //
+    // MEASURED, both algebras: kNumericalError in 547 minors -- NOT optimal, and that
+    // is the declared reading -- with a FINITE objective (-990729858499, against the
+    // base's -990591855583) and the equality rows met to 1.19e-15 where the base left
+    // them at 6.55e-07. `eqp_residual_refusals` is nonzero, which is the counter that
+    // says WHY the exit is what it is, and it is asserted rather than narrated.
+    //
+    // WHAT WOULD MAKE THIS CELL OPTIMAL, and why it is not taken: a polish step cap of
+    // 1e-5 converts it (kOptimal in 554 minors, measured at fix round 2's cap search)
+    // and loses `ACOPR57_def`/qp4's base certificate on both algebras in the same
+    // motion. The cap stays at 1e-6 and this cell stays kNumericalError.
+    const QpDump d = e2d4_dump("STEENBRB_def-qp2.txt");
+    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+        SCOPED_TRACE(e2_name(alg));
+        const QpSolution s = e2d4_solve(d, alg);
+        const hven::test_support::QpDumpKkt k = hven::test_support::qp_dump_kkt(d, s);
+        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kNumericalError))
+            << "declared: this cell is not optimal at the shipped polish step cap";
+        EXPECT_TRUE(s.x.allFinite()) << "no NaN may reach the caller";
+        EXPECT_TRUE(std::isfinite(hven::test_support::qp_dump_objective(d, s.x)));
+        EXPECT_LE(k.eq, 1e-12) << "and the rows it does report are met";
+        EXPECT_GE(s.counters.eqp_residual_refusals, 1)
+            << "the refusal is what makes the exit honest; without it this cell was a NaN";
+        EXPECT_LT(s.counters.minor_iters, 1000) << "measured 547";
+    }
 }

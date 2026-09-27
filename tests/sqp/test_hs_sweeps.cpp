@@ -1112,8 +1112,23 @@ void check_full_step_lever_on_the_sound_warm_arms() {
     // Task-7b values, and every cold arm is untouched.
     EXPECT_EQ(23, problem("HS15").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(30, problem("HS15").cell[kArmWarm][kOn][kOn].majors);
+    // HS26's TWO COLUMNS ARE CONFIG-SPLIT SINCE M7 W2 E4 FIX ROUND 2 (declared).
+    // MEASURED: Release holds at 12 / 29 and Debug reads 13 / 30 -- one more major, a
+    // full step, on the warm arm. This problem is rank-deficient at its solution
+    // (`WarmStart.BudgetModeOffMatchesMaxIterExactly`'s own note says so and its `f`
+    // pin moved at fix round 1 for the same reason), so which side of the KKT test the
+    // last pass falls on is exactly the kind of thing -O0 against -O3 under
+    // `-ffast-math` decides differently. Every other problem in this read-out --
+    // HS15, HS33, HS40, HS77 and all five cold arms -- holds in BOTH configurations,
+    // which is the control that says this is one cell's rounding and not a routing
+    // change.
+#ifdef NDEBUG
     EXPECT_EQ(12, problem("HS26").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(29, problem("HS26").cell[kArmWarm][kOn][kOn].majors);
+#else
+    EXPECT_EQ(13, problem("HS26").cell[kArmWarm][kOn][kOn].full_step_majors);
+    EXPECT_EQ(30, problem("HS26").cell[kArmWarm][kOn][kOn].majors);
+#endif
     EXPECT_EQ(12, problem("HS33").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(16, problem("HS33").cell[kArmWarm][kOn][kOn].majors);
     EXPECT_EQ(12, problem("HS40").cell[kArmWarm][kOn][kOn].full_step_majors);
@@ -1316,7 +1331,15 @@ void check_soc_costs_what_it_costs() {
     // (qp_engine.h 4c, THE DECLINED RIDE) instead of the ordinary step, and each
     // ends kNumericalError at 4 minors instead of 6 -- the same status. Majors,
     // statuses and every other row identical. 22/3365 = 0.65 %.
-    EXPECT_EQ(3365, total_minors) << corpus_table();
+    // RE-DERIVED, M7 W2 E4 fix round 1 (declared mover): 3365 -> 3340, -25, and it
+    // is the same event that CLOSED this test's B-1 assertion at line 938 (the
+    // complementarity term read 0.177 under c46485d8 and reads beneath 1e-6 here).
+    // Cause: the UNREGULARIZED POLISH (eqp_solve.h's polish_eqp_core) takes the
+    // proximal answer's O(primal_delta) bias out of every EQP answer, so the extra
+    // pass per face it used to cost is gone, and the TERMINAL POLISH (qp_engine.h
+    // section 5) re-solves a certified point mu-free on its final face. Majors,
+    // statuses and every KKT column hold. 22/3340 = 0.66 %.
+    EXPECT_EQ(3340, total_minors) << corpus_table();
 #endif
 }
 

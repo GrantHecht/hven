@@ -618,11 +618,18 @@ struct ExpectedCounts {
 };
 
 // tests/test_warm_start_battery.cpp, kPins[] "F3n1000" row, arm[kArmWarm]
-// (index 1), cell[0] (warm_full_step ON): {6, 30, 84, 25, 0, 22, 1, 5, 0, 0,
-// 84, 0}.
+// (index 1), cell[0] (warm_full_step ON): {6, 30, 89, 25, 0, 22, 1, 5, 0, 0,
+// 89, 0}.
+// RE-MEASURED AT M7 W2 E4 FIX ROUND 2 (a declared event, and the grep-sweep
+// convention's own instance: this row is a HARD-CODED COPY of
+// tests/sqp/test_warm_start_battery.cpp's `F3n1000` warm-arm pin, and that file's
+// THE E4 RE-MEASUREMENT OF THE THREE F3 FAMILIES note carries the measurement, the
+// cause and the cap search). `minors` 84 -> 89, and `border_refine` with it in the
+// test's own copy; MAJORS, steps, factorizations, fact_saved, full_step_majors and
+// the level histogram are UNCHANGED, which is why only this one field moves here.
 constexpr ExpectedCounts kF3n1000WarmPin{/*steps=*/6,
                                          /*majors=*/30,
-                                         /*minors=*/84,
+                                         /*minors=*/89,
                                          /*factorizations=*/25,
                                          /*fact_saved=*/0,
                                          /*full_step_majors=*/22,

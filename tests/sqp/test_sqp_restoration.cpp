@@ -33,6 +33,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <functional>
 #include <limits>
 #include <memory>
@@ -1233,8 +1234,20 @@ TEST(SqpDriverRestoration, AlgebraModeDivergenceIsANonUniqueSubproblemOptimum) {
         << "the two modes no longer diverge on this fixture; the mechanism "
            "this test documents (as adapted for Accelerate, D14) has changed";
 #else
+    // RE-DERIVED AT M7 W2 E4 FIX ROUND 2 (a declared mover), and the reading is now
+    // the one the Accelerate arm above already carried (origin divergence D14): at
+    // the cap the BORDER mode's iterate is MID-RESTORATION -- x = (1.125, 1.125),
+    // sum 2.2499999999999964 -- rather than on the open-relaxation LP face
+    // x0 + x1 == 2, which refactorize mode still reaches (1.9999999999999996).
+    // That is a different reason for the same divergence, and the fixture's claim --
+    // the two modes land on materially different points, which is a choice among
+    // answers and not a disagreement about one -- is asserted unchanged below.
+    // The border point is a symmetric interior point of the restoration's own path,
+    // so nothing about it is out of the box or off a row.
     // BOTH ITERATES SIT ON THE SAME OPTIMAL FACE x0 + x1 = 2 ...
-    EXPECT_NEAR(x_border(0) + x_border(1), 2.0, 1e-12);
+    EXPECT_NEAR(x_border(0), 1.125, 1e-12);
+    EXPECT_NEAR(x_border(1), 1.125, 1e-12);
+    EXPECT_NEAR(x_border(0) + x_border(1), 2.25, 1e-12) << "mid-restoration point, not the LP face";
     EXPECT_NEAR(x_refac(0) + x_refac(1), 2.0, 1e-12);
     // ... and they are DIFFERENT points of it. This is the divergence, stated
     // as what it is: a choice among equally optimal answers, not a
@@ -1634,7 +1647,29 @@ TEST(SqpDriverRestoration, ExhaustedElasticTierEntersRestorationUnderEveryMode) 
 //       value above it, so the floor was reached exactly and not overshot;
 //   (3) tr_min is a REAL KNOB: raising it by six orders of magnitude reaches
 //       the same verdict at the same point in 20 fewer majors.
-TEST(SqpDriverRadius, FloorRaisesTheRestorationRequest) {
+// RE-PREMISED AND RENAMED AT M7 W2 E4 FIX ROUND 2 (ruling E4-19's class; old name
+// `FloorRaisesTheRestorationRequest`), and this is the SECOND time this fixture's
+// trigger has moved out from under it -- the U0 note below records the first.
+//
+// WHAT HAPPENS NOW, MEASURED: on this model the E4 driver's first step is ACCEPTED
+// (verdict kAccept at tr_radius 1, h 1) and the elastic tier's exhaustion raises
+// the restoration request on the very next major (kRestore, tr_radius still 1). The
+// radius NEVER SHRINKS, so no floor value can be reached, and route (3) -- the
+// floor as a trigger -- is not exercised on this model at all. The U0 remedy (move
+// the floor above the radius at which route (2) fires) has no analogue here: there
+// is no grind to place a floor inside.
+//
+// WHAT IS ASSERTED NOW: that the solve reaches the SAME verdict, the same
+// certificate and the same point by route (2), that the funnel still never asks,
+// and that the radius never crosses the floor -- plus, explicitly, that the floor
+// was NOT the trigger, so a return of the grind fails this test and route (3)'s
+// read-out can be reinstated from the history above.
+//
+// REGISTERED (E4 fix round 2): route (3) -- the radius floor as a restoration
+// trigger -- has NO fixture on the E4 engine. It needs a model whose trial is
+// rejected often enough to grind the radius down; this one no longer is. The rule
+// itself is unchanged code.
+TEST(SqpDriverRadius, TheElasticExhaustionPreemptsTheRadiusFloorOnThisModel) {
     struct Run {
         double tr_min;
         Index majors = 0;
@@ -1671,7 +1706,10 @@ TEST(SqpDriverRadius, FloorRaisesTheRestorationRequest) {
         EXPECT_EQ(std::count(log.verdict.begin(), log.verdict.end(), StepVerdict::kRestore), 0)
             << "if the signature fires here this test is measuring the wrong trigger";
         ASSERT_FALSE(log.verdict.empty());
-        EXPECT_EQ(log.verdict.back(), StepVerdict::kReject);
+        // RE-DERIVED: kReject -> kAcceptH. The strategy's last verdict is an h-type ACCEPT
+        // now, because the step is taken and route (2) raises the request on the
+        // next major; the floor never escalates an ordinary rejection here.
+        EXPECT_EQ(log.verdict.back(), StepVerdict::kAcceptH);
         EXPECT_TRUE(log.resumes.empty()) << "this fixture is infeasible; there is nothing to "
                                             "resume to";
 
@@ -1681,8 +1719,13 @@ TEST(SqpDriverRadius, FloorRaisesTheRestorationRequest) {
         for (const SqpIterate &h : sol.history) {
             EXPECT_GE(h.tr_radius, opts.tr_min) << "trial " << h.trial;
         }
-        EXPECT_LT(run.last_radius * 0.5, opts.tr_min)
-            << "the request must be raised AT the floor, not somewhere above it";
+        // RE-DERIVED, AND THE SENSE IS REVERSED: the request is raised WELL ABOVE the
+        // floor, because it is route (2)'s and not route (3)'s. Asserted as the
+        // negation so that a grind back down to the floor fails here.
+        EXPECT_GE(run.last_radius * 0.5, opts.tr_min)
+            << "the radius reached the floor again: route (3) is back and this fixture's "
+               "original read-out can be reinstated";
+        EXPECT_EQ(run.last_radius, 1.0) << "the radius never shrank at all";
 
         // And the phase ran, and produced the same verdict and the same
         // certificate as the elastic tier's route does (InfeasibleNlpCertifies).
@@ -1695,11 +1738,14 @@ TEST(SqpDriverRadius, FloorRaisesTheRestorationRequest) {
         EXPECT_LE(c.selector, 1e-9);
     }
 
-    // (3) tr_min IS THE KNOB. Observed: 60 majors at 1e-10, 40 at 1e-4 -- the
-    // difference is exactly the log2(1e6)/1 = 20 halvings that the higher
-    // floor does not spend.
-    EXPECT_LT(runs[1].majors, runs[0].majors);
-    EXPECT_GT(runs[1].last_radius, runs[0].last_radius);
+    // (3) tr_min IS INERT ON THIS MODEL NOW, which is the same statement as "the
+    // floor is not the trigger" read from the knob's end: three orders of magnitude
+    // of tr_min buy nothing because no halving ever happens. RE-DERIVED from
+    // `LT`/`GT` (20 majors saved at the higher floor) to equality, so that a knob
+    // that starts biting again fails here.
+    EXPECT_EQ(runs[1].majors, runs[0].majors) << "tr_min moved the trajectory: the floor is a "
+                                                 "trigger again on this model";
+    EXPECT_EQ(runs[1].last_radius, runs[0].last_radius);
     ::testing::Test::RecordProperty(
         "floor_knob",
         fmt::format("tr_min=1e-10 -> {} majors (last delta {:.3g}); tr_min=1e-4 -> "
@@ -1991,10 +2037,58 @@ const char *seed_mode_name(QpMode m) {
 }
 } // namespace
 
+// ===========================================================================
+// THE SEED FAMILY'S RE-PREMISE (M7 W2 E4 fix round 2, ruling E4-21(b))
+// ===========================================================================
+//
+// SEVEN fixtures in this file and one in the proximity group read
+// `seeded_rows(sol) == 0` where they pinned 1. It is ONE ROUTE CHANGE, at one
+// line of `src/drivers/sqp_solver.cpp`: the seed guard takes an offered candidate
+// only when it MEASURES BETTER,
+//
+//     if (constraint_violation_l1(probe) < h_entry) { ... take = true; }
+//
+// and the margin it decides on is a KNIFE EDGE on every one of these fixtures.
+// Their own comments record it: `TheTakenCandidateIsRecordedOnTheRequestingRow`
+// measured h = 1.00143238 for the candidate against 1.00143320 for the entry
+// (8.2e-07 RELATIVE), `TheRadiusFloorSeedsFromTheRejectedTrial` 1.00053814
+// against 1.00053914 (1.0e-06), and `TheGuardAndThePhaseRunOnTheCallerScale`
+// 49999.999999992513 against 50000 (1.5e-13). M7 W2 E4 changes every QP answer in
+// the solve -- the proximal EQP, its unregularized polish, the terminal polish --
+// so the trial and ladder steps these candidates ARE differ, and on margins that
+// small the comparison goes the other way.
+//
+// THE GUARD IS NOT AT FAULT AND NOTHING IS LOST: the request is still raised, the
+// restoration phase still RUNS from the requesting iterate
+// (`restoration_iters >= 1`, asserted below where the fixture asserted it before),
+// and every one of these fixtures still reaches ITS OWN ANSWER -- kInfeasible,
+// certified, at the analytic point -- which is what the driver is judged on. What
+// is gone is a candidate measuring better on a knife edge, and a fixture cannot
+// hold a premise the arithmetic no longer supports.
+//
+// SO EACH IS RE-PREMISED AS A DECLARED EVENT, with the seed's own coverage kept
+// wherever it does not need a TAKEN candidate: the guard's refusal arms
+// (`ANonFiniteEvaluationAtTheCandidateIsRefused`, and the Jacobian screen's
+// M7-kill half) are unmoved, and the tests that needed a take are RENAMED to say
+// that the candidate is offered and refused.
+//   TheTakenCandidateIsRecordedOnTheRequestingRow
+//     -> TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTaken
+//   TheSeedIsNotGatedOnTheQpMode
+//     -> TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOne
+//   TheExhaustedLadderSiteSeedsFromItsOwnStep
+//     -> TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesIt
+//   TheRadiusFloorSeedsFromTheRejectedTrial
+//     -> TheRadiusFloorOffersTheRejectedTrialAndTheGuardRefusesIt
+//   TheGuardAndThePhaseRunOnTheCallerScale  (name unchanged: it still does)
+//   TheSeedsEvaluationIsCountedExactlyOnce  (name unchanged: counts re-derived)
+//   AJacobianPoisonedCandidateIsRefusedNotTaken (name unchanged: still true, and
+//     now at the h screen rather than at the Jacobian one)
+//   SqpDriverRestorationProximity.TheSeedGuardFiresAndTheStartObjectiveIsHPlusP
+
 // A CANDIDATE THAT MEASURES BETTER IS TAKEN, and the row that RAISED the
 // request records it. Measured at the exhaustion (Release, MKL, clang++): the
 // ladder's own step reads h = 1.00143238 against the entry's 1.00143320.
-TEST(SqpDriverRestorationSeed, TheTakenCandidateIsRecordedOnTheRequestingRow) {
+TEST(SqpDriverRestorationSeed, TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTaken) {
     InfeasibleCircleLineModel model(2.0, 1.999999);
     SqpOptions opts;
     // M7 W2 E2 (S7): the taken candidate belongs to the pre-E2 walk (Release takes none with it
@@ -2004,11 +2098,12 @@ TEST(SqpDriverRestorationSeed, TheTakenCandidateIsRecordedOnTheRequestingRow) {
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(model);
 
-    ASSERT_EQ(1, seeded_rows(sol)) << "one request, and it took the candidate";
-    const SqpIterate *row = seeded_row(sol);
-    ASSERT_NE(nullptr, row);
-    EXPECT_TRUE(row->elastic_applied) << "an elastic solve supplied this major either way";
-    EXPECT_GE(sol.counters.restoration_iters, 1) << "and the phase RAN from the taken candidate";
+    // RE-PREMISED (see the family note above): 1 -> 0, the candidate is offered and
+    // the guard refuses it because it no longer measures better.
+    ASSERT_EQ(0, seeded_rows(sol)) << "the candidate measures better again: the guard took it";
+    EXPECT_EQ(nullptr, seeded_row(sol));
+    EXPECT_GE(sol.counters.restoration_iters, 1)
+        << "the phase RAN from the requesting iterate -- the half that never needed the seed";
     // WHICH SITE offered it is build-arithmetic-dependent on this knife-edge
     // fixture -- Release reaches the ladder's exhaustion, Debug the radius floor
     // -- so the site is pinned elsewhere, on fixtures that agree in both.
@@ -2024,7 +2119,7 @@ TEST(SqpDriverRestorationSeed, TheTakenCandidateIsRecordedOnTheRequestingRow) {
 // AND THE SEED IS NOT GATED ON THE KERNEL (owner ruling Q-O3). The fixture is
 // the refactorize arm of InfeasibleNlpCertifies, MEASURED to take a trial-site
 // candidate in all three modes in BOTH configs -- so EQ(1) is falsifiable.
-TEST(SqpDriverRestorationSeed, TheSeedIsNotGatedOnTheQpMode) {
+TEST(SqpDriverRestorationSeed, TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOne) {
     for (const QpMode mode : kSeedModes) {
         SCOPED_TRACE(seed_mode_name(mode));
         InfeasibleCircleLineModel model;
@@ -2039,10 +2134,14 @@ TEST(SqpDriverRestorationSeed, TheSeedIsNotGatedOnTheQpMode) {
         SqpSolver driver(opts);
         const SqpResult sol = driver.solve(model);
 
-        // EQ, NOT LE: a `qp_mode == kWalk` gate on the candidate block leaves
-        // this at 0 on the other two kernels, in both configs (mutation-run
-        // evidence in docs/notes/data/2026-09-m6-w2-t4-r4/).
-        EXPECT_EQ(1, seeded_rows(sol)) << "the seed is taken in EVERY mode on this fixture";
+        // RE-PREMISED (the family note): 1 -> 0 in all three modes. The mutation
+        // evidence this pin rested on (a `qp_mode == kWalk` gate leaves the OTHER
+        // two kernels at 0, docs/notes/data/2026-09-m6-w2-t4-r4/) is no longer
+        // distinguishable here, because no mode takes a candidate. What IS still
+        // asserted per mode, and is the claim that matters for the ruling behind
+        // it (owner Q-O3), is that the OFFER and the ANSWER are mode-independent:
+        // every mode reaches the same certified point below.
+        EXPECT_EQ(0, seeded_rows(sol)) << "a mode took the seed: the margins have moved back";
         EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
         EXPECT_TRUE(sol.infeasibility_certified);
         const double t = 1.0 / std::sqrt(2.0);
@@ -2077,7 +2176,7 @@ TEST(SqpDriverRestorationSeed, TheIndependentWorkingSetReachesTheSameCertifiedAn
 // THE EXHAUSTED-LADDER SITE'S OWN TAKEN PIN, site-specific and config-stable:
 // the requesting row carries the ladder's kRestore verdict, so this is the
 // elastic route's arm and not the radius floor's.
-TEST(SqpDriverRestorationSeed, TheExhaustedLadderSiteSeedsFromItsOwnStep) {
+TEST(SqpDriverRestorationSeed, TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesIt) {
     for (const QpMode mode : kSeedModes) {
         SCOPED_TRACE(seed_mode_name(mode));
         InfeasibleCircleLineModel model(2.0, 1.999999);
@@ -2094,11 +2193,16 @@ TEST(SqpDriverRestorationSeed, TheExhaustedLadderSiteSeedsFromItsOwnStep) {
         SqpSolver driver(opts);
         const SqpResult sol = driver.solve(model);
 
-        ASSERT_EQ(1, seeded_rows(sol));
-        const SqpIterate *row = seeded_row(sol);
-        ASSERT_NE(nullptr, row);
-        EXPECT_EQ(StepVerdict::kRestore, row->verdict) << "the ladder's exhaustion, not the floor";
-        EXPECT_TRUE(row->elastic_applied);
+        // RE-PREMISED (the family note): 1 -> 0. THE SITE IS STILL THE LADDER'S
+        // EXHAUSTION, which is this fixture's actual subject, and it is asserted
+        // directly off the history instead of through the seeded row.
+        ASSERT_EQ(0, seeded_rows(sol));
+        EXPECT_EQ(nullptr, seeded_row(sol));
+        bool saw_restore = false;
+        for (const SqpIterate &r : sol.history) {
+            saw_restore = saw_restore || r.verdict == StepVerdict::kRestore;
+        }
+        EXPECT_TRUE(saw_restore) << "the ladder's exhaustion, not the floor";
         EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
         EXPECT_TRUE(sol.infeasibility_certified);
     }
@@ -2206,29 +2310,58 @@ TEST(SqpDriverRestorationSeed, AJacobianPoisonedCandidateIsRefusedNotTaken) {
             refused_at_k = k;
         }
     }
-    EXPECT_TRUE(found_refused_signature)
-        << "no k in [1, 40) produced the refused-candidate signature";
-    // NAMED so a re-derive has a number to check, not only the existential
-    // claim: measured k = 20 in BOTH configs on this fixture.
-    EXPECT_EQ(20, refused_at_k);
+    // RE-PREMISED (the family note). The refused-candidate signature required
+    // `model.poisoned == 1`, i.e. that the candidate's DERIVATIVES were fetched and
+    // the Jacobian screen then refused it. With the h comparison refusing the
+    // candidate first, no k in [1, 40) reaches the poisoned ordinal at all, so the
+    // existential premise is unreachable and is re-derived as its absence.
+    //
+    // THE SAFETY HALF IS UNCHANGED AND IS WHAT THIS TEST IS FOR: `m7_signature` is
+    // asserted FALSE at every k inside the loop, so mutant M7 (the
+    // `jacobian_values_finite` screen dropped) is still killed here -- a poisoned
+    // candidate taken, the sub-solve dying on it, seeded_rows 1 and
+    // restoration_iters 0 -- and the screen's own arm keeps that coverage. What the
+    // change costs is the demonstration that the screen is REACHED on this model,
+    // and that is stated rather than hidden.
+    EXPECT_FALSE(found_refused_signature)
+        << "a k in [1, 40) reached the Jacobian screen again (k = " << refused_at_k
+        << "): the h guard no longer refuses the candidate first, and the existential "
+           "premise above can be reinstated";
+    EXPECT_EQ(-1, refused_at_k);
 }
 
 // THE RADIUS FLOOR'S SITE, whose candidate is the REJECTED TRIAL and whose
 // violation is already judged (so the guard is free). Measured at the floor
 // (Release): the trial reads h = 1.00053814 against the entry's 1.00053914.
-TEST(SqpDriverRestorationSeed, TheRadiusFloorSeedsFromTheRejectedTrial) {
+TEST(SqpDriverRestorationSeed, TheOffDiagonalStartOffersTheLadderStepAndTheGuardRefusesIt) {
     InfeasibleCircleLineModel model(1.0, 0.0);
     SqpOptions opts;
     opts.tr_min = 1e-5;
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(model);
 
-    ASSERT_EQ(1, seeded_rows(sol));
-    const SqpIterate *row = seeded_row(sol);
-    ASSERT_NE(nullptr, row);
-    EXPECT_EQ(StepVerdict::kReject, row->verdict)
-        << "kReject on the REQUESTING row is the floor's own signature: the ladder's exhaustion "
-           "writes kRestore, and the funnel's signature never fires on this fixture";
+    // RE-PREMISED (the family note): 1 -> 0. The FLOOR'S OWN SIGNATURE -- a
+    // kReject verdict on the requesting row, where the ladder's exhaustion writes
+    // kRestore -- is this fixture's subject and is asserted off the history.
+    ASSERT_EQ(0, seeded_rows(sol));
+    EXPECT_EQ(nullptr, seeded_row(sol));
+    // RE-DERIVED WITH THE SITE (E4 fix round 2, and see
+    // `TheElasticExhaustionPreemptsTheRadiusFloorOnThisModel` for the measurement):
+    // on this model the radius never shrinks, so the floor is not the site any more.
+    // The request is raised by the elastic tier's exhaustion, whose signature on the
+    // requesting row is kRestore where the floor's is kReject, and the seed offered
+    // there is the LADDER's own step rather than a rejected trial. MEASURED: the
+    // whole history is kAccept then kRestore, with tr_radius 1 on both rows.
+    bool saw_restore_row = false;
+    bool saw_reject_row = false;
+    for (const SqpIterate &r : sol.history) {
+        saw_restore_row = saw_restore_row || r.verdict == StepVerdict::kRestore;
+        saw_reject_row = saw_reject_row || r.verdict == StepVerdict::kReject;
+    }
+    EXPECT_TRUE(saw_restore_row) << "the ladder's exhaustion is the site now";
+    EXPECT_FALSE(saw_reject_row)
+        << "a kReject row is back: the radius floor is the site again and this fixture's "
+           "original read-out can be reinstated";
     EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
     EXPECT_TRUE(sol.infeasibility_certified);
 }
@@ -2258,10 +2391,21 @@ TEST(SqpDriverRestorationSeed, TheGuardAndThePhaseRunOnTheCallerScale) {
         EXPECT_NEAR(sol.scaling.row_min, 0.01, 1e-12);
         EXPECT_NEAR(sol.scaling.row_max, 1.0, 1e-12);
 
-        ASSERT_EQ(1, seeded_rows(sol));
-        const SqpIterate *row = seeded_row(sol);
-        ASSERT_NE(nullptr, row);
-        EXPECT_EQ(StepVerdict::kRestore, row->verdict);
+        // RE-PREMISED (the family note): 1 -> 0. The two scales' OPPOSITE ordering
+        // of the offer was a 1.5e-13 relative margin (50000 -> 49999.999999992513
+        // taken on the caller scale, 500 -> 500.00000000006105 refused on the
+        // engine's), which is the thinnest of the family's edges; E4's answers put
+        // both sides of it on the refusing side. What this fixture still asserts,
+        // and it is the ruling's own subject, is that the guard and the phase read
+        // the CALLER's scale: the phase minimizes the caller-scale h and lands at
+        // x0 = 1 where the engine-scale measure would have stopped at x0 = 0.
+        ASSERT_EQ(0, seeded_rows(sol));
+        EXPECT_EQ(nullptr, seeded_row(sol));
+        bool saw_restore_row = false;
+        for (const SqpIterate &r : sol.history) {
+            saw_restore_row = saw_restore_row || r.verdict == StepVerdict::kRestore;
+        }
+        EXPECT_TRUE(saw_restore_row);
         // AND THE TWO SCALES ORDER THE OFFER OPPOSITELY, which is what makes
         // this pin bite: measured caller 50000 -> 49999.999999992513 (taken) and
         // engine 500 -> 500.00000000006105 (refused), on a tiny x0 displacement.
@@ -2297,16 +2441,24 @@ TEST(SqpDriverRestorationSeed, TheSeedsEvaluationIsCountedExactlyOnce) {
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(model);
 
+    // THE TAKE SURVIVES HERE -- this is the one fixture of the family whose
+    // candidate still measures better -- so the in-place upgrade still happens and
+    // the claim is unchanged. Only the two COUNTS are re-derived at M7 W2 E4 fix
+    // round 2 (a declared counter move, the trajectory being a different one):
+    // `evals_full` 27 -> 28 and `evals_values` 40/41 -> 36, with the PARTITION
+    // below -- the independent cross-check that no query is double-counted or lost
+    // -- unchanged and still asserted.
     ASSERT_EQ(1, seeded_rows(sol)) << "fixture premise: a candidate was TAKEN";
-    // FULL IS EXACT AND CONFIG-STABLE (measured 27 in both): dropping the
-    // reclassification leaves 26, and the seeded trial then stays counted as a
-    // values-only query it no longer is.
-    EXPECT_EQ(27, sol.counters.evals_full);
-    // VALUES IS THE OTHER HALF, one lower than the un-upgraded count would be.
-    // The trajectory's length differs by one rejected trial between the configs
-    // (measured 41 Debug / 40 Release), so both observations are named here.
-    EXPECT_TRUE(sol.counters.evals_values == 41 || sol.counters.evals_values == 40)
-        << "evals_values was " << sol.counters.evals_values;
+    // `evals_values` is CONFIG-SPLIT (measured 36 Release / 35 Debug at E4 fix round 2;
+    // the trajectory's length differs by one rejected trial between the configs, which
+    // is what the pin this replaces already recorded as 41/40). `evals_full` is 28 in
+    // both, and the PARTITION below is what the test is for.
+    EXPECT_EQ(28, sol.counters.evals_full);
+#ifdef NDEBUG
+    EXPECT_EQ(36, sol.counters.evals_values) << "evals_values was " << sol.counters.evals_values;
+#else
+    EXPECT_EQ(35, sol.counters.evals_values) << "evals_values was " << sol.counters.evals_values;
+#endif
     // n_grad and n_jac_e do NOT equal evals_full (the wrapper's gradient is
     // constant, so a sub-solve's full query never reaches the inner one), which
     // is why the PARTITION is the independent cross-check.
@@ -2510,7 +2662,15 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConverg
     SqpOptions cramped;
     // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
     cramped.equality_basis = false;
+    // CONFIG-SPLIT SINCE M7 W2 E4 FIX ROUND 2, for the reason
+    // `TheSubStatusDiscriminatesAtOneParentStatus` states in full: at 5 majors Debug
+    // never reaches the request (`restoration_entries` 0), so there is no cut-off
+    // sub-solve to tell from a converged one; one more major reaches it.
+#ifdef NDEBUG
     cramped.max_iter = 5;
+#else
+    cramped.max_iter = 6;
+#endif
     const SqpResult cut_off = SqpSolver(cramped).solve(model);
     ASSERT_EQ(cut_off.counters.restoration_entries, 1)
         << "fixture premise: the phase RAN and was measured on this budget too";
@@ -2533,7 +2693,14 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConverg
     EXPECT_GT(cut_off.counters.restoration_h_out, cramped.feas_tol);
     // The sub-solve did real work before the budget ended it -- a phase that
     // returned at once would make the pin above a statement about nothing.
-    EXPECT_GT(cut_off.counters.restoration_iters, 1);
+    // RE-DERIVED AT M7 W2 E4 FIX ROUND 2 (a declared counter move): `> 1` -> `== 1`.
+    // The cut-off arm's budget is `max_iter = 5` for the WHOLE solve, and E4's QP
+    // answers reach the request one major earlier, so the sub-solve gets one
+    // iteration of it instead of two before the budget ends. One iteration is still
+    // real work -- `restoration_sub_status` reads kMaxIter rather than kNotRun, which
+    // is the discrimination this test exists for and is asserted above -- and the
+    // pin is kept as an equality so the margin cannot quietly go to zero.
+    EXPECT_EQ(cut_off.counters.restoration_iters, 1);
 }
 
 // M7 W2 M3a fix1. THE PARENT'S STATUS DISCRIMINATES NONE OF THE THREE, and this
@@ -2599,7 +2766,19 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatus) 
     SqpOptions cramped;
     // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
     cramped.equality_basis = false;
+    // THE BUDGET IS CONFIG-SPLIT SINCE M7 W2 E4 FIX ROUND 2 (declared), so that the
+    // CLAIM survives in BOTH configurations rather than only in Release. MEASURED: at
+    // 5 majors Debug's trajectory never reaches the request at all
+    // (`restoration_entries` 0, `restoration_sub_status` kNotRun), so arm 3 collapses
+    // into arm 1 and the three-record read-out becomes a two-record one. One more
+    // major reaches it. E4's QP answers changed where on this trajectory the request
+    // falls, and Debug's arithmetic puts it one major later than Release's; the ARM is
+    // the same arm -- a phase that RAN and was CUT OFF -- and that is what is asserted.
+#ifdef NDEBUG
     cramped.max_iter = 5;
+#else
+    cramped.max_iter = 6;
+#endif
     const SqpResult sub_cut_off = SqpSolver(cramped).solve(circle);
     ASSERT_EQ(sub_cut_off.status, SolveStatus::kMaxIter);
     ASSERT_EQ(sub_cut_off.counters.restoration_entries, 1);
@@ -2753,7 +2932,42 @@ const Vec *recover_requesting_iterate(const std::vector<Vec> &pts, double h_in, 
 // below, so a fixture that drifts out of its window FAILS here instead of
 // silently testing nothing.
 constexpr double kCancellationZeta = 1.5e-6;
-constexpr double kCancellationKktTol = 6.3e-7;
+// RE-CALIBRATED AT M7 W2 E4 FIX ROUND 2 (a declared re-derivation of the
+// threshold, not of the claim). The window is the same two quantities and it is
+// still OPEN; E4 moved the exact residual down into it, so the midpoint moved with
+// it. MEASURED at this round's engine, Release:
+//
+//     ||grad P||_inf   = 4.3934000928e-07   (the OLD gate's quantity)
+//     ||J^T l - z||    = 5.3620559926e-07   (the exact residual)
+//
+// against 4.5482e-07 / 8.1287e-07 before. `kkt_tol` is placed at the midpoint
+// again, 4.88e-07, which leaves each premise a margin of 11 % where it had 28 %
+// and 29 %. The window NARROWED because the exact residual improved, which is the
+// round's own doing (the terminal polish reaches the face's mu-free answer), and
+// the fixture keeps its power exactly: both premises are asserted below, so a
+// fixture that drifts out of this narrower window fails here rather than testing
+// nothing. REGISTERED: at 11 % this is the thinnest the window has been, and a
+// future round that moves the residual another 20 % closes it -- the fixture then
+// needs a new point rather than a new threshold.
+// AND IT IS CONFIG-SPLIT since the same round, because the two configurations' windows
+// no longer overlap usefully. MEASURED:
+//
+//              proxy                exact residual        midpoint    margin
+//   Release    4.3933982708e-07*    5.3620559926e-07      4.88e-07    11 %
+//   Debug      4.3933982708e-07     4.5566300666e-07      4.475e-07   1.9 %
+//   (*Release's proxy is 4.3934000928e-07; the two agree to 4e-13.)
+//
+// Debug's exact residual is 15 % lower than Release's, so its window is 3.7 % wide and
+// any single threshold inside it has at most 1.9 % of margin on each premise. That is
+// thin, it is DECLARED thin, and it is still a pin rather than a skip: both values are
+// deterministic per build, and a drift of 2 % fails this test -- which is exactly what
+// the fixture is for. REGISTERED: Debug's window is the narrowest of the two and will
+// close first.
+#ifdef NDEBUG
+constexpr double kCancellationKktTol = 4.88e-7;
+#else
+constexpr double kCancellationKktTol = 4.475e-7;
+#endif
 
 } // namespace
 
@@ -2848,10 +3062,17 @@ TEST(SqpDriverRestorationProximity, TheSeedGuardFiresAndTheStartObjectiveIsHPlus
     const SqpResult sol = driver.solve(model);
 
     // END TO END: the REAL guard fired, on the row that raised the request.
-    ASSERT_EQ(1, seeded_rows(sol)) << "the fixture's premise: one request, and it took a candidate";
-    const SqpIterate *row = seeded_row(sol);
-    ASSERT_NE(nullptr, row);
-    ASSERT_GE(sol.counters.restoration_iters, 1) << "and the phase RAN from the taken candidate";
+    // RE-PREMISED (M7 W2 E4 fix round 2, ruling E4-21(b); see the seed family's note
+    // above): 1 -> 0. The offered candidate no longer measures better than the
+    // requesting iterate, so the guard refuses it and the phase starts where the
+    // request was raised. THE CLAIM THIS FIXTURE IS NAMED FOR IS UNCHANGED and is
+    // asserted below: the restoration objective the phase minimizes is h PLUS the
+    // proximity term P, centred on the REQUESTING iterate -- which is the same
+    // point either way, and is in fact easier to read now that the guard has not
+    // moved the start.
+    ASSERT_EQ(0, seeded_rows(sol)) << "the candidate measures better again: the guard took it";
+    EXPECT_EQ(nullptr, seeded_row(sol));
+    ASSERT_GE(sol.counters.restoration_iters, 1) << "the phase RAN from the requesting iterate";
     ASSERT_EQ(1, sol.counters.restoration_entries);
 
     const Vec *x_k = recover_requesting_iterate(model.points, sol.counters.restoration_h_in,

@@ -784,9 +784,18 @@ TEST(IpqpAcceptanceCensus, AnArmedRunIsNeverMistakenForAStallAcrossTheHsBattery)
     EXPECT_EQ(stall_detail, fmt::format(" hs{}=1", kStallRow));
     // T10b re-derivation (65 at the 0.1 placeholder), and no longer build-invariant.
 #ifdef NDEBUG
-    EXPECT_EQ(armed_peak, 85);
+    // M7 W2 E4 fix round 1 (declared mover): 85 -> 72. The UNREGULARIZED POLISH
+    // (eqp_solve.h) shortens the walks this peak is taken over, so the largest
+    // per-solve minor count on the battery falls; the claim -- that an armed run is
+    // never mistaken for a stall -- is the comparison below, not the peak's value.
+    EXPECT_EQ(armed_peak, 72);
 #else
-    EXPECT_EQ(armed_peak, 79);
+    // M7 W2 E4 fix round 2 (declared): 79 -> 72, so the two configurations now AGREE
+    // on this peak. Debug's walks were the longer ones before; the polish shortens
+    // them to the same length here. The split is kept rather than collapsed, because
+    // the value is build-arithmetic-dependent by the note above and a future
+    // divergence should have a place to land.
+    EXPECT_EQ(armed_peak, 72);
 #endif
     // 6 -> 5 at the M7 W2 ladder round (L2, declared counter mover): HS45's x0 lies
     // outside its box (one component, gap 1); projected by default, it no longer arms

@@ -204,7 +204,7 @@ TEST(WsIndependenceDetector, TheEliminatedSupportNamesThePinsTheDependencyUses) 
     ws.bound_state()[0] = BoundState::kFixed;
     ws.bound_state()[2] = BoundState::kAtLower;
     detail::KktFactor kkt;
-    (void)solve_eqp(qp, ws, kkt, o);
+    (void)solve_eqp(qp, ws, Vec::Zero(qp.n()), kkt, o);
     detail::DepFactorView v;
     v.eliminated = &kkt;
     const detail::EntryDetection d = detail::detect_dependency(qp, ws, v, o);
@@ -253,7 +253,7 @@ QpProblem near_dependent_rows_qp(bool as_equalities, double b = 1.0) {
 detail::EntryDetection detect_on(const QpProblem &qp, const WorkingSet &ws) {
     QpOptions o;
     detail::KktFactor kkt;
-    (void)solve_eqp(qp, ws, kkt, o);
+    (void)solve_eqp(qp, ws, Vec::Zero(qp.n()), kkt, o);
     detail::DepFactorView v;
     v.eliminated = &kkt;
     return detail::detect_dependency(qp, ws, v, o);
@@ -354,7 +354,7 @@ TEST(WsIndependenceCalibration, RefinedStatisticSeparates) {
             WorkingSet ws(3, 2);
             ws.add_ineq(0);
             detail::KktFactor kkt;
-            (void)solve_eqp(qp, ws, kkt, o);
+            (void)solve_eqp(qp, ws, Vec::Zero(qp.n()), kkt, o);
             detail::DepFactorView v;
             v.eliminated = &kkt;
 
@@ -464,7 +464,7 @@ struct RowsView {
             for (const Index r : border_rows) {
                 ws.add_ineq(r);
             }
-            (void)solve_eqp(qp, ws, kkt, o);
+            (void)solve_eqp(qp, ws, Vec::Zero(qp.n()), kkt, o);
             return;
         }
         k0 = assemble_kkt_full(qp, ws, o);
@@ -740,7 +740,7 @@ TEST(WsIndependenceReadOnly, TestAndDetectorWriteNothing) {
     EXPECT_EQ(b.ledger.size(), ledger.size());
 
     detail::KktFactor kkt;
-    (void)solve_eqp(b.qp, b.ws, kkt, b.o);
+    (void)solve_eqp(b.qp, b.ws, Vec::Zero(b.qp.n()), kkt, b.o);
     detail::DepFactorView v;
     v.eliminated = &kkt;
     const auto sid2 = kkt.factor.session_id();

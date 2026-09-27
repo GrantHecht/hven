@@ -192,8 +192,15 @@ TEST(QpModeSites, EveryKernelInvocationIsAccountedForBySite) {
         {24, QpMode::kWalk, nullptr}, // the baseline: dispatch and nothing else
         {33, QpMode::kSsn, nullptr},  // the same, through the SSN arm
         {11, QpMode::kIpm, "elastic_rung"},
-        {10, QpMode::kSsn, "elastic_rung"},    // a LONG climb (48 escalations)
-        {15, QpMode::kIpm, "fallback_rung_b"}, // an entry whose evidence never fired
+        {10, QpMode::kSsn, "elastic_rung"}, // a LONG climb (48 escalations)
+        // HS15's `fallback_rung_b` premise RETIRED at M7 W2 E4 fix round 2 (declared):
+        // E4's QP answers solve this subproblem, so the cell no longer reaches the
+        // certified fallback's rung B at all and `at(r.sites, "fallback_rung_b")` reads
+        // 0. The cell STAYS in the table without a required site -- the site identities
+        // `expect_site_identities` checks still run on it, which is the other half of
+        // this test -- and the site itself keeps its own required cell in HS38 below,
+        // the natural-stall one, which is unmoved.
+        {15, QpMode::kIpm, nullptr},
         {27, QpMode::kIpm, "ssn_warm_grade"},  // three sites on one cell
         {45, QpMode::kIpm, "ssn_warm_grade"},  // the grade three times over
         {38, QpMode::kIpm, "fallback_rung_b"}, // the natural-stall cell

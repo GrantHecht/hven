@@ -579,7 +579,13 @@ TEST(HsBattery, RefinementStepCountersOnBorderRepro) {
     // solves means a baseline of 4 mandatory steps, so SIX of the ten are
     // extra steps the iterated loop earned -- and the loop's per-solve budget
     // is 10, so no single solve is anywhere near exhausting it.
-    EXPECT_EQ(bor.counters.border_refine_steps, 10);
+    // M7 W2 E4 (declared mover): 10 -> 6. `bordered_regularization` no longer
+    // reports the primal delta (bordered_eqp.h), so the iterated loop's footprint
+    // stopping rule reads a different threshold and earns four fewer extra steps on
+    // this stack; the answer, the status and `minor_iters` are unchanged, and the
+    // inequality below -- the whole content of the Task 11b fix -- still holds at 6
+    // against 4.
+    EXPECT_EQ(bor.counters.border_refine_steps, 6);
     EXPECT_GT(bor.counters.border_refine_steps, bor.counters.minor_iters)
         << "at least one bordered solve must have taken more than the single mandatory step -- "
            "that is the whole content of the Task 11b fix";
@@ -1040,8 +1046,16 @@ TEST(HsBattery, CrashBasisIsANullResultOnTheBatteryWithTwoBoundSeededExceptions)
     // M7 W2 ladder round (L2, declared mover): 804/801 -> 802/799 minors. Cause:
     // HS45's x0 lies outside its box (one component, gap 1) and is projected by
     // default now; its answer is unchanged.
-    EXPECT_EQ(minors_off, 802);
-    EXPECT_EQ(minors_on, 799);
+    // M7 W2 E4 fix round 1 (declared mover): 802/799 -> 800/797, answers and
+    // statuses unchanged. Cause: the UNREGULARIZED POLISH at the EQP site
+    // (eqp_solve.h's polish_eqp_core) takes the proximal answer's O(primal_delta)
+    // bias back out wherever the face's own exact system has an answer, so the
+    // extra pass per face that bias used to cost is no longer spent. Two cells of
+    // the battery each save one minor. `facts_off`/`facts_on` below are UNMOVED --
+    // the terminal polish's own factorization is charged to
+    // `terminal_polish_solves`, not to `factorizations` (solver_counters.h).
+    EXPECT_EQ(minors_off, 800);
+    EXPECT_EQ(minors_on, 797);
 #endif
 #ifdef USE_ACCELERATE_SPARSE
     // UNOBSERVED under M7 W2 E2 on Accelerate: the pre-E2 pins stay until the

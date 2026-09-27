@@ -549,7 +549,7 @@ TEST(EqpRefinementAb, DISABLED_FootprintRuleProbe) {
     const auto probe = [](const std::string &name, const QpProblem &qp, const WorkingSet &ws) {
         QpOptions on;
         detail::KktFactor kkt;
-        const EqpResult r = solve_eqp(qp, ws, kkt, on);
+        const EqpResult r = solve_eqp(qp, ws, Vec::Zero(qp.n()), kkt, on);
 
         Vec stat = qp.H.selfadjointView<Eigen::Upper>() * r.x + qp.g;
         if (qp.me() > 0) {
@@ -757,9 +757,20 @@ TEST(EqpRefinementAb, SecondCeilingFixtureReproducesTheAdaptiveMuRuling) {
             EXPECT_EQ(sol.status, SolveStatus::kOptimal);
             EXPECT_LT(err, 1e-10) << "observed 5.9218e-12";
         } else {
-            EXPECT_EQ(sol.status, SolveStatus::kMaxIter)
-                << "the fixed-mu ceiling must still block certification";
-            EXPECT_GT(err, 1e-8) << "observed 4.4062e-06 -- the ceiling itself";
+            // RE-PREMISED AT M7 W2 E4 FIX ROUND 2, AND THE CEILING IS GONE. This arm
+            // pinned the FIXED-mu accuracy ceiling -- kMaxIter and a relative error of
+            // 4.4062e-06 -- which is the dual regularization's own footprint on the
+            // subproblem answers. E4's UNREGULARIZED POLISH (fix round 1, E4-11) backs
+            // that footprint out of every EQP answer, so the fixed-mu arm now certifies
+            // at the SAME accuracy as the adaptive one. MEASURED: kOptimal with
+            // err 9.7980412186621743e-16. The A/B this test runs still runs, and what it
+            // now reports is that the `adaptive_mu` axis makes no difference on this
+            // fixture -- which is a finding, and the same one
+            // `SqpDriverAdaptiveMu.AdaptiveMuRecoversTailAccuracy` records.
+            EXPECT_EQ(sol.status, SolveStatus::kOptimal)
+                << "the fixed-mu ceiling is back: the polish has stopped removing the dual "
+                   "regularization's footprint, and this arm's original read-out applies again";
+            EXPECT_LT(err, 1e-10) << "the fixed-mu arm meets the adaptive arm's own bar";
         }
         RecordProperty(fmt::format("rel_x_err[{}]", c.name()), fmt::format("{:.4e}", err));
     }

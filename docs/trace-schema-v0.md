@@ -607,13 +607,16 @@ order, which `static_assert`s hold equal to the struct's declaration order** (an
 aggregate-arity count plus an `offsetof`-monotone check, not a `sizeof`). The
 tables are therefore the authoritative field list and are not duplicated here.
 
-Shape: the 50 direct fields, then `"ssn": { 18 fields }`, then
+Shape: the 57 direct fields, then `"ssn": { 18 fields }`, then
 `"ipqp": { 39 fields }`. **The direct block was 37 until M6 W5 T8.5** appended
 `polish_ignored` (below), 38 until **M7 W2 M4** appended `start_point_clamps`
 (below), 39 until **M7 W2 M1** appended the five-field subproblem-exit group
 (below), 44 until **M7 W2 M2** appended the five-field restoration excursion
-record (below) and 49 until **M7 W2 M3a** appended `restoration_sub_status` to
-that record (below); this section carried the 37 until W5 T9 fix2.
+record (below), 49 until **M7 W2 M3a** appended `restoration_sub_status` to
+that record (below) and 50 until **M7 W2 E4 fix round 1** appended the QP
+engine's six-field E4 GROUP (below) and 56 until **M7 W2 E4 fix round 2** made
+that group SEVEN with `eqp_row_drift_refusals` (below); this section carried the
+37 until W5 T9 fix2.
 
 **TWO of the direct fields are enums, written as strings.** `start_level_used`
 is written `cold\|seeded\|warm\|hot`, and `restoration_sub_status` takes
@@ -728,11 +731,42 @@ ENUM.**
 |---|---|---|---|
 | `restoration_sub_status` | string | `SqpCounters::restoration_sub_status` | the feasibility SUB-SOLVE's own terminal status at the last measured entry, read before the parent decides how its own exit is spelled — or `not_run`, which is the DEFAULT and says no restoration sub-solve was measured on this solve. The readings: `optimal` (the sub-solve converged — the only value a CERTIFIED infeasibility exit is reachable from), `infeasible` (the feasibility problem itself raised a restoration request nothing can service, so the parent makes no claim about the model), `max_iter`, `interrupted` or `numerical_error`. **A RESUME is not reachable from `optimal` alone**: the parent resumes on `restoration_h_out <= feas_tol` and nothing else, before it inspects this status at all, so a sub-solve that returned a feasible enough point with `max_iter` or `interrupted` resumes exactly as an `optimal` one does. The other four `SolveStatus` spellings (`acceptable`, `stalled`, `diverging`, `budget_exhausted`) exist in the alphabet so the map into it is total, and have never been observed here |
 
-It is **LAST in the table and last in the struct**, appended after
-`restoration_f_out` for that group's own reason — so the counters object gains
-exactly one key, between `restoration_f_out` and the `ssn` object, and nothing
-else moves. It is written through a `key_value(…, RestorationSubStatus, …)`
+It is **last in its group**, appended after
+`restoration_f_out` for that group's own reason — so the counters object gained
+exactly one key, between `restoration_f_out` and what follows it, and nothing
+else moved. It is written through a `key_value(…, RestorationSubStatus, …)`
 overload added beside the `StartLevel` one, so no other key's bytes move.
+
+**THE QP ENGINE'S E4 GROUP (M7 W2 E4 fix round 1), six `Index` keys, LAST in the
+table and last in the struct**, appended after `restoration_sub_status` — so the
+counters object gains exactly six keys, between `restoration_sub_status` and the
+`ssn` object, and nothing else moves. **SEVEN since fix round 2**, which appended
+`eqp_row_drift_refusals` on the same route, again last in the table and last in
+the struct; in `SqpCounters`/`QpCounters` prose it reads beside
+`eqp_residual_refusals`, because that is where its meaning sits, but its TABLE
+position is the trailing one and no existing key's value moves. Every one is a QP-level counter summed over
+every QP solve the driver spent, exactly like `qp_minor_iters` and
+`eqp_refine_steps`, and `solver_counters.h` carries each one's full note.
+
+| counter | type | source | meaning |
+|---|---|---|---|
+| `eqp_refine_iters` | integer | `SqpCounters::eqp_refine_iters` | solves SPENT by the EQP-site residual check driving an answer's constraint-row residual against its OWN regularized system down to tolerance. Counts solves spent, not steps kept. 0 on every pass whose factor solved its system |
+| `eqp_residual_refusals` | integer | `SqpCounters::eqp_residual_refusals` | EQP answers REFUSED by that check — the answer does not solve the system it came from, so the pass took a retreat instead of stepping. **The one to watch**: nonzero is a finding, though not by itself an error |
+| `eqp_polish_steps` | integer | `SqpCounters::eqp_polish_steps` | refinement steps KEPT by the unregularized polish against the face's own exact KKT system, both regularizations backed out. 0 on a flat face, where the proximal answer is the only one there is. Costs no factorization |
+| `terminal_polish_solves` | integer | `SqpCounters::terminal_polish_solves` | certified QP exits at which the final point was re-solved mu-free on its final working set — the terminal polish's stage 2, **one factorization each and NOT counted in `factorizations`**, which is the active-set search's cost. The total is `factorizations + terminal_polish_solves` |
+| `terminal_polish_rejected` | integer | `SqpCounters::terminal_polish_rejected` | of those, the candidates not adopted: a rejection leaves the point exactly as the walk had it |
+| `terminal_polish_adopted` | integer | `SqpCounters::terminal_polish_adopted` | candidates ADOPTED, over both stages. Stage 1 is free, so this can exceed `terminal_polish_solves` |
+| `eqp_row_drift_refusals` | integer | `SqpCounters::eqp_row_drift_refusals` | EQP answers refused by the STEP's ROW-DRIFT CHECK — the answer solved its own regularized system and still left a working row the incoming iterate was already on, by the dual regularization's own `dual_mu * |lambda|` term. Disjoint from `eqp_residual_refusals`; each refusal routes the pass to the suspect-stall ladder, and is ADVISORY where that one is terminal — an exhausted ladder takes the step anyway. 0 on the overwhelming majority, and never by itself a failure |
+
+**THE ACCOUNTING CONTRACT ON `factorizations` (ruling E4-17).** `factorizations`
+is the ACTIVE-SET SEARCH's cost and nothing else: every budget is written against
+it, the hot-handle contract is stated as `qp_factorizations == 0` on a reused
+`K0`, and the HS battery's cost tripwire reads it. The terminal polish's stage-2
+re-solve searches nothing and reuses nothing, so its one factorization is charged
+to `terminal_polish_solves` and **NOT** to `factorizations`; a reader who wants
+the total spend adds the two. `terminal_mu_refines` predates this and keeps its
+own charging — its factorization IS in `factorizations` — so the two fields are
+asymmetric on purpose; that asymmetry is recorded, not repaired, here.
 
 **RE-DERIVED ONCE AT M7 W2 M3a fix1, AND DECLARED.** The key shipped carrying a
 bare `SolveStatus` whose zero — `optimal` — was also its default, so a solve

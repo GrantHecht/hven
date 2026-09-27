@@ -409,6 +409,17 @@ struct QpWalkMinorRecord {
     /// in", which is what a recurrence has to match for CYCLING PROPER.
     double x_inf = kAbsent;
     double x_l1 = kAbsent;
+    /// THE OBJECTIVE AT THE PASS'S INCOMING ITERATE, `g'x + 1/2 x'Hx` (M7 W2 E4 fix
+    /// round 2). Recorded so that the ORDINARY STEP'S DESCENT INVARIANT is decidable
+    /// from the trace: without it the trace carries `alpha`, `p_inf` and `dx_inf` but
+    /// nothing about the model the step is supposed to reduce, and E4-7's invariant
+    /// ("no ordinary step ascends f on a flat face") could only be argued.
+    ///
+    /// ONE MAT-VEC PER PASS, into storage the loop never reads, which is exactly the
+    /// allowance this header's IT IS RECORD-ONLY paragraph states: no decision, no
+    /// counter, no factorization and no linear solve. `kAbsent` on a pass whose hook
+    /// did not run.
+    double obj_in = kAbsent;
 
     // =====================================================================
     // FIX-ROUND 1 (M7 W2 M3b): THE DISCRIMINATING FIELDS.
@@ -547,9 +558,20 @@ struct QpWalkMinorRecord {
     /// `detail::free_block_stationarity` at the pass's STARTING iterate `x`
     /// with the multipliers `price` just produced: the UNREGULARIZED first-order
     /// residual `Hx + g + Aeᵀλe + Aiᵀλi` over the free block, and the largest
-    /// term that went into it (its scale).
+    /// term that went into it (its scale). Since M7 W2 E4 these are the walk's
+    /// OWN KKT-point test (qp_engine.h §5) rather than a seam-only reading, so
+    /// the columns report the quantity the loop branched on, not a recomputation.
     double stat_free_inf = kAbsent;
     double stat_scale = kAbsent;
+    /// THE EQP-SITE RESIDUAL CHECK (M7 W2 E4; `eqp_solve.h`), per pass: the
+    /// accepted answer's own miss against the REGULARIZED system it came out of
+    /// over the CONSTRAINT rows, the extra solves the check spent, and whether it
+    /// REFUSED (1) the answer — a refusal that reaches the walk ends the solve
+    /// `kNumericalError`, so the column is how a trace names that exit.
+    double eqp_row_residual = kAbsent;
+    double eqp_residual_ratio = kAbsent;
+    Index eqp_residual_iters = 0;
+    Index eqp_residual_refused = 0;
     /// `max` over the EQUALITY rows of `|Ae·x − be|`, over the WORKING
     /// inequality rows of `|Ai·x − bi|` (read off the maintained `Aix`), and
     /// over the PINNED variables of `|x_i − bound_i|`: how far the iterate sits

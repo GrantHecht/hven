@@ -628,6 +628,13 @@ TEST(QpEngineBorder, BorderPinEquivalence) {
     std::vector<double> border_d{-opts.dual_mu};
     sol = test_support::refine_bordered_solve(full.K, qp.n(), border_v, border_d, schur, rhs, sol,
                                               opts);
+    // AND THE UNREGULARIZED POLISH, which is what takes the primal delta back out
+    // since M7 W2 E4 -- the step above targets the proximal system. Same call, same
+    // budget and same strict-decrease guard as solve_bordered_eqp's, with x_k = 0:
+    // the centre solve_eqp is given below. See border_test_utils.h.
+    (void)test_support::polish_bordered_unregularized(full.K, qp.n(), border_v, border_d, schur,
+                                                      rhs, Vec::Zero(qp.n()), opts,
+                                                      detail::kEqpPolishSteps, sol);
     Vec x_border = sol.head(qp.n());
 
     // --- Elimination path: the Phase-1 assemble_kkt/solve_eqp path, with
@@ -635,7 +642,7 @@ TEST(QpEngineBorder, BorderPinEquivalence) {
     WorkingSet ws_pin(qp.n(), qp.mi());
     ws_pin.bound_state()[0] = BoundState::kAtLower;
     detail::KktFactor kkt1;
-    EqpResult eqp = solve_eqp(qp, ws_pin, kkt1, opts);
+    EqpResult eqp = solve_eqp(qp, ws_pin, Vec::Zero(qp.n()), kkt1, opts);
 
     ASSERT_EQ(x_border.size(), eqp.x.size());
     EXPECT_LT((x_border - eqp.x).norm(), 1e-9);

@@ -812,6 +812,13 @@ void charge_refused_face_refinement(SqpCounters &total, const QpSolution &refine
                                     Index &ssn_budget_charge) {
     total.factorizations += refined.counters.factorizations;
     total.eqp_refine_steps += refined.counters.eqp_refine_steps;
+    // THE E4 GROUP a refine_on_face call can spend (solver_counters.h): the
+    // EQP-site residual check's cost and verdict, and the unregularized polish's
+    // steps. The terminal-polish fields are structurally 0 here -- no walk runs.
+    total.eqp_refine_iters += refined.counters.eqp_refine_iters;
+    total.eqp_residual_refusals += refined.counters.eqp_residual_refusals;
+    total.eqp_row_drift_refusals += refined.counters.eqp_row_drift_refusals;
+    total.eqp_polish_steps += refined.counters.eqp_polish_steps;
     total.ssn.ssn_refine_factorizations += refined.counters.factorizations;
     ++total.ssn.ssn_refine_refused;
     ssn_budget_charge += refined.counters.factorizations;
@@ -1233,6 +1240,13 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
         out.factorizations += qs_e.counters.factorizations;
         out.eqp_refine_steps += qs_e.counters.eqp_refine_steps;
         out.border_refine_steps += qs_e.counters.border_refine_steps;
+        out.eqp_refine_iters += qs_e.counters.eqp_refine_iters;
+        out.eqp_residual_refusals += qs_e.counters.eqp_residual_refusals;
+        out.eqp_row_drift_refusals += qs_e.counters.eqp_row_drift_refusals;
+        out.eqp_polish_steps += qs_e.counters.eqp_polish_steps;
+        out.terminal_polish_solves += qs_e.counters.terminal_polish_solves;
+        out.terminal_polish_rejected += qs_e.counters.terminal_polish_rejected;
+        out.terminal_polish_adopted += qs_e.counters.terminal_polish_adopted;
         out.verdict_refine_steps += qs_e.counters.verdict_refine_steps;
         out.suspect_escalations += qs_e.counters.suspect_escalations;
         out.symbolic_analyses += qs_e.counters.symbolic_analyses;
@@ -4180,6 +4194,13 @@ void SqpSolver::route_through_ssn_tier(SolveState &st, MajorState &mj) {
         }
         const Index refine_facts = refined.counters.factorizations;
         const Index refine_steps = refined.counters.eqp_refine_steps;
+        // The same read, for the E4 group this call can also have spent
+        // (solver_counters.h): read BEFORE the swap below overwrites
+        // `refined.counters`, charged after it, exactly as the two above.
+        const Index refine_res_iters = refined.counters.eqp_refine_iters;
+        const Index refine_refusals = refined.counters.eqp_residual_refusals;
+        const Index refine_drift_refusals = refined.counters.eqp_row_drift_refusals;
+        const Index refine_polish = refined.counters.eqp_polish_steps;
         if (took) {
             // TASK-6 INSTRUMENT (re-review NF-1), and it is counted
             // HERE, before the move, because `refined` is the only
@@ -4207,6 +4228,10 @@ void SqpSolver::route_through_ssn_tier(SolveState &st, MajorState &mj) {
         out.counters.ssn.ssn_refine_factorizations += refine_facts;
         qs.counters.factorizations += refine_facts;
         qs.counters.eqp_refine_steps += refine_steps;
+        qs.counters.eqp_refine_iters += refine_res_iters;
+        qs.counters.eqp_residual_refusals += refine_refusals;
+        qs.counters.eqp_row_drift_refusals += refine_drift_refusals;
+        qs.counters.eqp_polish_steps += refine_polish;
         ssn_budget_charge += refine_facts;
     } else {
         // THE HAND-OFF. Every escape, and the driver's own
@@ -4472,6 +4497,13 @@ void SqpSolver::route_through_ipqp_tier(SolveState &st, MajorState &mj, Assembly
         const bool took = engine_->refine_on_face(qp, face, ipqp_overrides, refined);
         const Index refine_facts = refined.counters.factorizations;
         const Index refine_steps = refined.counters.eqp_refine_steps;
+        // The same read, for the E4 group this call can also have spent
+        // (solver_counters.h): read BEFORE the swap below overwrites
+        // `refined.counters`, charged after it, exactly as the two above.
+        const Index refine_res_iters = refined.counters.eqp_refine_iters;
+        const Index refine_refusals = refined.counters.eqp_residual_refusals;
+        const Index refine_drift_refusals = refined.counters.eqp_row_drift_refusals;
+        const Index refine_polish = refined.counters.eqp_polish_steps;
         if (took) {
             ++out.counters.ipqp.ipqp_refine_accepted;
             ipqp_chain_owns_the_step = true;
@@ -4482,6 +4514,10 @@ void SqpSolver::route_through_ipqp_tier(SolveState &st, MajorState &mj, Assembly
             qs = std::move(refined);
             qs.counters.factorizations += refine_facts;
             qs.counters.eqp_refine_steps += refine_steps;
+            qs.counters.eqp_refine_iters += refine_res_iters;
+            qs.counters.eqp_residual_refusals += refine_refusals;
+            qs.counters.eqp_row_drift_refusals += refine_drift_refusals;
+            qs.counters.eqp_polish_steps += refine_polish;
             ipqp_budget_charge += refine_facts;
             emit_ipqp_route_and_mode(IpqpTraceRouteTo::kRefine, IpqpTraceOutcome::kOptimal);
         } else {
@@ -4492,6 +4528,10 @@ void SqpSolver::route_through_ipqp_tier(SolveState &st, MajorState &mj, Assembly
             // inside `qs`, so this is charged exactly once.
             out.counters.factorizations += refine_facts;
             out.counters.eqp_refine_steps += refine_steps;
+            out.counters.eqp_refine_iters += refine_res_iters;
+            out.counters.eqp_residual_refusals += refine_refusals;
+            out.counters.eqp_row_drift_refusals += refine_drift_refusals;
+            out.counters.eqp_polish_steps += refine_polish;
             ipqp_budget_charge += refine_facts;
             charge_ipqp_subproblem_cost(out.counters, ires);
             walk_owns_this_qp = route_through_ssn_warm_grade(qp, ires, delta, ssn_prox_ingested,
@@ -4989,6 +5029,13 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     st.out.counters.factorizations += rs.counters.factorizations;
     st.out.counters.eqp_refine_steps += rs.counters.eqp_refine_steps;
     st.out.counters.border_refine_steps += rs.counters.border_refine_steps;
+    st.out.counters.eqp_refine_iters += rs.counters.eqp_refine_iters;
+    st.out.counters.eqp_residual_refusals += rs.counters.eqp_residual_refusals;
+    st.out.counters.eqp_row_drift_refusals += rs.counters.eqp_row_drift_refusals;
+    st.out.counters.eqp_polish_steps += rs.counters.eqp_polish_steps;
+    st.out.counters.terminal_polish_solves += rs.counters.terminal_polish_solves;
+    st.out.counters.terminal_polish_rejected += rs.counters.terminal_polish_rejected;
+    st.out.counters.terminal_polish_adopted += rs.counters.terminal_polish_adopted;
     st.out.counters.verdict_refine_steps += rs.counters.verdict_refine_steps;
     st.out.counters.suspect_escalations += rs.counters.suspect_escalations;
     st.out.counters.symbolic_analyses += rs.counters.symbolic_analyses;
@@ -6272,6 +6319,13 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
     st.out.counters.factorizations += mj.qs.counters.factorizations;
     st.out.counters.eqp_refine_steps += mj.qs.counters.eqp_refine_steps;
     st.out.counters.border_refine_steps += mj.qs.counters.border_refine_steps;
+    st.out.counters.eqp_refine_iters += mj.qs.counters.eqp_refine_iters;
+    st.out.counters.eqp_residual_refusals += mj.qs.counters.eqp_residual_refusals;
+    st.out.counters.eqp_row_drift_refusals += mj.qs.counters.eqp_row_drift_refusals;
+    st.out.counters.eqp_polish_steps += mj.qs.counters.eqp_polish_steps;
+    st.out.counters.terminal_polish_solves += mj.qs.counters.terminal_polish_solves;
+    st.out.counters.terminal_polish_rejected += mj.qs.counters.terminal_polish_rejected;
+    st.out.counters.terminal_polish_adopted += mj.qs.counters.terminal_polish_adopted;
     st.out.counters.verdict_refine_steps += mj.qs.counters.verdict_refine_steps;
     st.out.counters.suspect_escalations += mj.qs.counters.suspect_escalations;
     st.out.counters.symbolic_analyses += mj.qs.counters.symbolic_analyses;
@@ -6352,6 +6406,13 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         st.out.counters.factorizations += retried.counters.factorizations;
         st.out.counters.eqp_refine_steps += retried.counters.eqp_refine_steps;
         st.out.counters.border_refine_steps += retried.counters.border_refine_steps;
+        st.out.counters.eqp_refine_iters += retried.counters.eqp_refine_iters;
+        st.out.counters.eqp_residual_refusals += retried.counters.eqp_residual_refusals;
+        st.out.counters.eqp_row_drift_refusals += retried.counters.eqp_row_drift_refusals;
+        st.out.counters.eqp_polish_steps += retried.counters.eqp_polish_steps;
+        st.out.counters.terminal_polish_solves += retried.counters.terminal_polish_solves;
+        st.out.counters.terminal_polish_rejected += retried.counters.terminal_polish_rejected;
+        st.out.counters.terminal_polish_adopted += retried.counters.terminal_polish_adopted;
         st.out.counters.verdict_refine_steps += retried.counters.verdict_refine_steps;
         st.out.counters.suspect_escalations += retried.counters.suspect_escalations;
         st.out.counters.symbolic_analyses += retried.counters.symbolic_analyses;
@@ -6732,6 +6793,13 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         st.out.counters.factorizations += mj.qs_soc.counters.factorizations;
         st.out.counters.eqp_refine_steps += mj.qs_soc.counters.eqp_refine_steps;
         st.out.counters.border_refine_steps += mj.qs_soc.counters.border_refine_steps;
+        st.out.counters.eqp_refine_iters += mj.qs_soc.counters.eqp_refine_iters;
+        st.out.counters.eqp_residual_refusals += mj.qs_soc.counters.eqp_residual_refusals;
+        st.out.counters.eqp_row_drift_refusals += mj.qs_soc.counters.eqp_row_drift_refusals;
+        st.out.counters.eqp_polish_steps += mj.qs_soc.counters.eqp_polish_steps;
+        st.out.counters.terminal_polish_solves += mj.qs_soc.counters.terminal_polish_solves;
+        st.out.counters.terminal_polish_rejected += mj.qs_soc.counters.terminal_polish_rejected;
+        st.out.counters.terminal_polish_adopted += mj.qs_soc.counters.terminal_polish_adopted;
         st.out.counters.verdict_refine_steps += mj.qs_soc.counters.verdict_refine_steps;
         st.out.counters.suspect_escalations += mj.qs_soc.counters.suspect_escalations;
         st.out.counters.symbolic_analyses += mj.qs_soc.counters.symbolic_analyses;
@@ -7375,6 +7443,13 @@ bool SqpSolver::route_through_ssn_warm_grade(const QpProblem &qp, const IpqpResu
     const bool took = engine_->refine_on_face(qp, qs, ssn_overrides, refined);
     const Index refine_facts = refined.counters.factorizations;
     const Index refine_steps = refined.counters.eqp_refine_steps;
+    // The same read, for the E4 group this call can also have spent
+    // (solver_counters.h): read BEFORE the swap below overwrites
+    // `refined.counters`, charged after it, exactly as the two above.
+    const Index refine_res_iters = refined.counters.eqp_refine_iters;
+    const Index refine_refusals = refined.counters.eqp_residual_refusals;
+    const Index refine_drift_refusals = refined.counters.eqp_row_drift_refusals;
+    const Index refine_polish = refined.counters.eqp_polish_steps;
     if (took) {
         for (Index j = 0; j < refined.lambda_i.size(); ++j) {
             if (refined.lambda_i(j) < 0.0) {
@@ -7390,6 +7465,10 @@ bool SqpSolver::route_through_ssn_warm_grade(const QpProblem &qp, const IpqpResu
     counters.ssn.ssn_refine_factorizations += refine_facts;
     qs.counters.factorizations += refine_facts;
     qs.counters.eqp_refine_steps += refine_steps;
+    qs.counters.eqp_refine_iters += refine_res_iters;
+    qs.counters.eqp_residual_refusals += refine_refusals;
+    qs.counters.eqp_row_drift_refusals += refine_drift_refusals;
+    qs.counters.eqp_polish_steps += refine_polish;
     ssn_budget_charge += refine_facts;
     return false;
 }

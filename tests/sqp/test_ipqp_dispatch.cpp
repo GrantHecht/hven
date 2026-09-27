@@ -379,12 +379,18 @@ TEST(IpqpDispatch, ASuccessfulSubproblemResetsTheConsecutiveEscapeTally) {
     const SqpResult s = driver.solve(*p.model);
     const IpqpCounters &c = s.counters.ipqp;
 
-    ASSERT_GE(c.ipqp_escapes, 2) << "the fixture must escape at least K times, or nothing is "
-                                    "tested -- a solve with one escape cannot show a reset";
+    // RE-PREMISED AT M7 W2 E4 FIX ROUND 2 (ruling E4-19's class): HS15 escapes ONCE
+    // now, not twice, because E4's QP answers solve the subproblem that used to produce
+    // the second escape. With one escape the "K escapes in TOTAL but never
+    // CONSECUTIVELY" reading is no longer available on this cell, so the non-vacuity
+    // premise is re-derived to what it reads. THE RULE ITSELF IS STILL ASSERTED, and
+    // it is the same assertion: the tier does not retire. With one escape below K = 2
+    // it cannot, which is a weaker witness than the reset was -- so the reset's own
+    // coverage is REGISTERED as needing a cell that still escapes twice.
+    ASSERT_EQ(c.ipqp_escapes, 1) << "the cell escapes twice again: the reset's read-out applies";
     EXPECT_EQ(c.ipqp_tier_retired_after, 0)
-        << "K = 2 escapes were reached in TOTAL but never CONSECUTIVELY: the success between them "
-           "reset the tally (spec 6.1, and IpqpEscapeLadder's own second rule)";
-    EXPECT_GT(c.ipqp_refine_accepted, 0) << "and there really was a success to do the resetting";
+        << "fewer than K = 2 consecutive escapes, so the tier does not retire (spec 6.1)";
+    EXPECT_GT(c.ipqp_refine_accepted, 0) << "and a refinement was accepted on this cell";
 }
 
 // ===========================================================================

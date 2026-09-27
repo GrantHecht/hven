@@ -96,9 +96,19 @@ struct QpOptions {
     /// ("no regularization on this block"), not a sentinel.
     ///
     /// Not free: its price is a footprint on what the solve can claim
-    /// (~|g|/primal_delta bounds how far a free variable can run before it
-    /// reads as an unbounded artifact — see qp_engine.h's
+    /// (~|g|/primal_delta bounds how far a free variable can run in ONE STEP
+    /// before it reads as an unbounded artifact — see qp_engine.h's
     /// unbounded_artifact_threshold, written in terms of this field).
+    ///
+    /// SINCE M7 W2 E4 THE TERM IS CENTRED AT THE ITERATE, not at the origin:
+    /// the EQP minimises (primal_delta/2)||x_F - x_k,F||^2 rather than
+    /// (primal_delta/2)||x_F||^2 (eqp_solve.h states the system and why). So the
+    /// bound above is on the STEP, and the engine's runaway guard is asked in
+    /// both currencies -- the iterate's and the step's -- on every moving pass
+    /// (qp_engine.h section 5). What the centring at 0 bought, a bound on the
+    /// absolute size of a free variable on a flat face, it charged for by making
+    /// the ordinary step ASCEND the objective there on every pass of a measured
+    /// cycle; the guard in two currencies buys the bound without the ascent.
     ///
     /// Validated at solve start (QpEngine::solve throws std::invalid_argument
     /// otherwise): a NaN burned the entire minor budget returning a NaN

@@ -477,30 +477,84 @@ TEST(QpDegeneracyArm, TheSwitchIsOffByDefaultAndOffIsProduction) {
 }
 
 // ===========================================================================
+// THE RE-PREMISE (M7 W2 E4 fix round 2, ruling E4-19) -- READ THIS FIRST
+// ===========================================================================
+//
+// EVERY FIXTURE BELOW THAT NEEDED A CYCLING WALK HAS LOST ITS PREMISE, and it is
+// ONE fact that took them all: **the E4 walk does not take the noise-level drop
+// that drove the recurrence.** The recurrence these arms were built for is a drop
+// of a multiplier below `opt_tol * scale` -- believed by the pre-E4 walk, dropped,
+// and the same member re-added on the next pass -- and M7 W2 E4's proximal EQP
+// prices that multiplier differently: the primal regularization's own term is no
+// longer folded into it (NC2 fix round 1's `ride_sign` ruling), so the drop is
+// never made. With no drop there is no recurrence, nothing for arm A to refuse,
+// no pass-over for arm B1 to make, no out-of-box iterate for the certificate to
+// read, and no drop pass for the post-drop inertia diagnostic to run on.
+//
+// MEASURED at fix round 2 on `scale_carrier_cycle_qp()` and `period2_cycle_qp()`
+// under `cycling_opts()` (the pre-E2 walk, cap 200): both read **kOptimal**, the
+// periodic tail is 2 with period 1 -- ordinary termination -- and the walk
+// records NO Dantzig drop at all.
+//
+// **NO CELL IN THIS TREE STILL CYCLES.** Ruling E4-19(b) keeps the old premise
+// wherever one does; there is none, here or in test_qp_anti_cycling_arm.cpp. That
+// is a finding for the ledger and NOT a reason to delete the arms: they stay in
+// the tree, test-only, and what the fixtures assert now is that they are INERT
+// and that their columns stay honestly ABSENT. A regression that brings the
+// recurrence back fails these tests, which is the coverage that matters.
+//
+// THE RENAMES (E4-19(c)), old -> new:
+//   TheOffWalkOnTheScaleCarrierFixtureReallyDoesCycle
+//     -> TheOffWalkOnTheScaleCarrierFixtureTakesNoNoiseDropAndTerminates
+//   ArmAScaledDropRefusesTheDropAndEndsTheRecurrence
+//     -> ArmAHasNoNoiseDropToRefuseAndIsInert
+//   TheDropScaleIsTheSameNumberFreeBlockStationarityComputed
+//     -> TheDropScaleColumnHasNoDropPassToCheck
+//   ThePostDropInertiaDiagnosticMovesNoCounterAndNoAnswer
+//     -> ThePostDropInertiaDiagnosticHasNoDropPassToRunOnAndMovesNothing
+//   TheDiagnosticColumnsAreFilledWhereTheirBranchRan
+//     -> TheDiagnosticColumnsStayAbsentBecauseNoDropPassRuns
+//   ArmB1EndsTheCyclingWalkNearTheOptimumButOutsideItsBox
+//     -> ArmB1IsInertOnTheFixtureThatNoLongerCycles
+//   ArmB1CanLeaveTheIterateOutsideItsBoxAndTheCertificateRefusesIt
+//     -> ArmB1HasNoPassOverToLeaveTheBoxWithAndTheCertificateIsNotReached
+//   ArmB1sLeakRatioUnderTheMuSweepAmendmentA5Asks
+//     -> ArmB1sMuSweepFindsNoPassOverToLeakAtAnyMu
+// Two tests keep their names because the names are still what they assert -- the
+// per-thread isolation claims (`AnArmedSolveDoesNotReachIntoAnUnarmedOneRunning-
+// BesideIt`, `ArmB1sSwitchIsPerThreadWithBothSolvesInFlight`) -- and only their
+// armed-side premise is re-derived inside.
+
+// ===========================================================================
 // (2) ARM A REFUSES A DROP THE SCALE SAYS IS NOISE
 // ===========================================================================
 
-TEST(QpDegeneracyArm, TheOffWalkOnTheScaleCarrierFixtureReallyDoesCycle) {
+TEST(QpDegeneracyArm, TheOffWalkOnTheScaleCarrierFixtureTakesNoNoiseDropAndTerminates) {
     DegArmGuard guard;
     const QpProblem qp = scale_carrier_cycle_qp();
     const Walk off = observed_walk(qp, cycling_opts());
 
-    // A fixture that stopped cycling fails here rather than passing
-    // vacuously downstream.
-    EXPECT_EQ(static_cast<int>(off.solution.status), static_cast<int>(QpStatus::kMaxIter))
-        << "the OFF walk is supposed to spend its whole cap in the recurrence";
-    EXPECT_GT(off.tail, 8) << "no periodic tail: period " << off.period;
-    EXPECT_GT(off.period, 0);
-    EXPECT_DOUBLE_EQ(off.tail_motion, 0.0) << "the tail is supposed to move the iterate by nothing";
+    // RE-PREMISED (see the note above). This test used to assert the recurrence:
+    // kMaxIter at the cap, a periodic tail longer than 8, and zero motion over
+    // it. MEASURED at E4 fix round 2: kOptimal, tail 2, period 1 -- ordinary
+    // termination -- because the noise-level drop that drove the recurrence is
+    // never made. What is asserted now is exactly that, so a regression back into
+    // the recurrence fails here.
+    EXPECT_EQ(static_cast<int>(off.solution.status), static_cast<int>(QpStatus::kOptimal))
+        << "the OFF walk no longer cycles on this fixture; a kMaxIter here is a regression";
+    EXPECT_LE(off.tail, 8) << "a long periodic tail is back: period " << off.period;
 
-    // AND THE NUMBERS ARM A READS. The drop that drives the recurrence clears
-    // the ABSOLUTE bar and fails the SCALED one; that gap is the fixture.
-    bool saw_a_drop = false;
+    // AND THE DROP IS GONE AT ITS SOURCE. The fixture's whole mechanism was a
+    // Dantzig drop whose multiplier clears the ABSOLUTE bar and fails the SCALED
+    // one; the walk now records no Dantzig drop at all. Asserted as an absence,
+    // with the old per-drop checks kept INSIDE the loop so that a returning drop
+    // is measured against the same three facts rather than silently tolerated.
+    Index drops = 0;
     for (const auto &rec : off.records) {
         if (rec.drop_route != hven::solvers::detail::testing::QpWalkDropRoute::kDantzig) {
             continue;
         }
-        saw_a_drop = true;
+        ++drops;
         EXPECT_GT(rec.decision_multiplier, rec.decision_tol);
         EXPECT_DOUBLE_EQ(rec.drop_scale, kScaleCarrier);
         EXPECT_LT(rec.decision_multiplier, rec.drop_scaled_tol)
@@ -508,51 +562,50 @@ TEST(QpDegeneracyArm, TheOffWalkOnTheScaleCarrierFixtureReallyDoesCycle) {
             << " vs " << rec.drop_scaled_tol;
         EXPECT_EQ(rec.drop_refused_by_scale, 0) << "nothing may be refused with the arm OFF";
     }
-    EXPECT_TRUE(saw_a_drop);
+    EXPECT_EQ(drops, 0) << "the noise-level drop is back: " << drops << " Dantzig drops";
 }
 
-TEST(QpDegeneracyArm, ArmAScaledDropRefusesTheDropAndEndsTheRecurrence) {
+TEST(QpDegeneracyArm, ArmAHasNoNoiseDropToRefuseAndIsInert) {
     DegArmGuard guard;
     const QpProblem qp = scale_carrier_cycle_qp();
     const QpOptions opts = cycling_opts();
 
     const Walk off = observed_walk(qp, opts);
-    ASSERT_EQ(static_cast<int>(off.solution.status), static_cast<int>(QpStatus::kMaxIter));
+    ASSERT_EQ(static_cast<int>(off.solution.status), static_cast<int>(QpStatus::kOptimal));
 
     Deg::reset();
     Deg::arm = DegArm::kScaledDrop;
     const Walk on = observed_walk(qp, opts);
 
-    // THE RECURRENCE IS GONE, and gone because the DROP WAS NOT MADE.
-    EXPECT_NE(static_cast<int>(on.solution.status), static_cast<int>(QpStatus::kMaxIter));
-    EXPECT_LT(on.minors, off.minors);
-    EXPECT_LT(on.tail, off.tail);
+    // RE-PREMISED (E4-19(a)). This test used to assert that arm A ENDED the
+    // recurrence -- fewer minors, a shorter tail, a nonzero refusal account, and
+    // the honest kNumericalError that refusing a needed drop leaves. There is no
+    // recurrence and no drop to refuse, so the claim it can still make is
+    // INERTNESS, and it is made as an equality rather than a bound.
+    EXPECT_EQ(static_cast<int>(on.solution.status), static_cast<int>(off.solution.status))
+        << "arm A changed the status of a walk with no noise-level drop in it";
+    EXPECT_EQ(on.minors, off.minors) << "arm A changed the minor count of such a walk";
+    EXPECT_EQ(on.tail, off.tail);
 
-    // The arm's own account of what it did, and the account must be nonempty:
-    // a pass that refused nothing cannot have ended the recurrence.
-    EXPECT_GT(Deg::scaled_candidates_refused, 0);
-    EXPECT_GT(Deg::scaled_drops_prevented, 0);
-    EXPECT_GT(Deg::scaled_max_refused_ratio, 0.0);
-    EXPECT_LT(Deg::scaled_max_refused_ratio, opts.opt_tol)
-        << "a refused candidate is by definition at or below opt_tol of the scale";
+    // THE ARM'S ACCOUNT IS EMPTY, and that is the statement: it refused nothing
+    // because there was nothing below opt_tol*scale to refuse. `scale_unavailable`
+    // stays 0 either way -- every armed pass still published a scale, which is
+    // the one part of the old read-out that never depended on the drop.
+    EXPECT_EQ(Deg::scaled_candidates_refused, 0)
+        << "arm A refused a candidate: the noise-level drop is back";
+    EXPECT_EQ(Deg::scaled_drops_prevented, 0);
     EXPECT_EQ(Deg::scale_unavailable_passes, 0)
         << "every armed pass must have had a published scale";
 
-    // AND WHAT IT DOES NOT BUY, ASSERTED RATHER THAN OMITTED. The armed solve
-    // reports `kNumericalError`, NOT `kOptimal`. That is the honest outcome on
-    // THIS fixture and it is a property of the fixture, not a defect in the
-    // arm: the refused multiplier here is a REAL multiplier (0.30137) that is
-    // small only relative to a scale the carrier inflated, so the drop it
-    // refuses is a drop the walk genuinely needed, and the walk stops at a
-    // point it cannot certify. YORKNET's refused multiplier is CANCELLATION
-    // RESIDUE — 8.3e-04 ulps of the scale — where the drop is spurious and
-    // refusing it is the whole point. THE FIXTURE THAT WOULD SHOW "terminates
-    // optimal under a" THEREFORE HAS TO PRODUCE RESIDUE RATHER THAN SIMULATE
-    // IT, and this dispatch did not find one (a large-objective QP whose
-    // degenerate optimum has exactly-zero multipliers was tried and solved in
-    // three minors with no drop at all). It is REGISTERED, not papered over:
-    // nothing here licenses the claim that arm A returns the optimum.
-    EXPECT_EQ(static_cast<int>(on.solution.status), static_cast<int>(QpStatus::kNumericalError));
+    // WHAT IS NO LONGER CLAIMED, AND WHAT THAT COSTS THE ROUND. The old fixture
+    // recorded, at length, that arm A's honest outcome on THIS problem was
+    // kNumericalError rather than kOptimal, because the multiplier it refuses here
+    // is a REAL multiplier (0.30137) that is small only against a scale the
+    // carrier inflated -- and that the fixture which would show "terminates
+    // optimal under a" has to produce cancellation RESIDUE rather than simulate
+    // it, which no dispatch has found. That remains true and remains REGISTERED;
+    // this fixture can no longer witness it, because the walk it witnessed it on
+    // does not reach the drop any more.
 }
 
 // ===========================================================================
@@ -582,7 +635,7 @@ TEST(QpDegeneracyArm, ArmAIsBitIdenticalOnANonDegenerateQp) {
 // (4) THE ARM SHARES THE SCALE RATHER THAN DERIVING ONE
 // ===========================================================================
 
-TEST(QpDegeneracyArm, TheDropScaleIsTheSameNumberFreeBlockStationarityComputed) {
+TEST(QpDegeneracyArm, TheDropScaleColumnHasNoDropPassToCheck) {
     DegArmGuard guard;
     const QpProblem qp = scale_carrier_cycle_qp();
     const Walk off = observed_walk(qp, cycling_opts());
@@ -602,14 +655,20 @@ TEST(QpDegeneracyArm, TheDropScaleIsTheSameNumberFreeBlockStationarityComputed) 
                   std::bit_cast<std::uint64_t>(rec.decision_tol * rec.stat_scale));
         ++checked;
     }
-    EXPECT_GT(checked, 0);
+    // RE-PREMISED (E4-19). The old assertion was `checked > 0` -- a non-vacuity
+    // premise, and a correct one while the walk took the noise-level drop. It
+    // takes none now, so there is no drop pass whose `drop_scale` column can be
+    // compared with `stat_scale`. The bit-equality checks above are KEPT inside
+    // the loop: the moment a drop pass returns, its column is checked the same
+    // way. The absence is asserted, so the change is pinned.
+    EXPECT_EQ(checked, 0) << "a Dantzig drop pass is back on this fixture: " << checked;
 }
 
 // ===========================================================================
 // (5) THE DIAGNOSTIC IS BIT-NEUTRAL
 // ===========================================================================
 
-TEST(QpDegeneracyArm, ThePostDropInertiaDiagnosticMovesNoCounterAndNoAnswer) {
+TEST(QpDegeneracyArm, ThePostDropInertiaDiagnosticHasNoDropPassToRunOnAndMovesNothing) {
     DegArmGuard guard;
     const QpOptions opts = cycling_opts();
     Index total_diag = 0;
@@ -629,17 +688,25 @@ TEST(QpDegeneracyArm, ThePostDropInertiaDiagnosticMovesNoCounterAndNoAnswer) {
         EXPECT_EQ(without.solution.counters.factorizations, with.solution.counters.factorizations);
         total_diag += Deg::diag_factorizations;
     }
-    // ACROSS the three fixtures, not on each: a walk with no Dantzig drop has
-    // no drop pass for the diagnostic to run on, and asserting otherwise would
-    // be asserting a property of the fixture rather than of the diagnostic.
-    EXPECT_GT(total_diag, 0);
+    // RE-PREMISED (E4-19). The old assertion was `total_diag > 0` ACROSS the three
+    // fixtures -- the diagnostic had to run somewhere or the bit-neutrality claim
+    // above would be vacuous. None of the three takes a Dantzig drop under the E4
+    // walk, so the diagnostic has no pass to run on anywhere in this test, and the
+    // count is 0. WHAT SURVIVES IS THE CLAIM THIS TEST IS NAMED FOR, and it is the
+    // part that matters: with the diagnostic switched ON the solution and the
+    // engine's own `factorizations` are unchanged on all three problems
+    // (`expect_same_solution` above), so the diagnostic is bit-neutral. That is
+    // asserted against a real walk on each fixture; only the "it ran somewhere"
+    // premise is gone, and it is pinned as an absence rather than dropped.
+    EXPECT_EQ(total_diag, 0) << "a drop pass is back: the diagnostic ran " << total_diag
+                             << " factorizations";
 }
 
 // ===========================================================================
 // (6) THE DIAGNOSTIC'S COLUMNS ARE REAL
 // ===========================================================================
 
-TEST(QpDegeneracyArm, TheDiagnosticColumnsAreFilledWhereTheirBranchRan) {
+TEST(QpDegeneracyArm, TheDiagnosticColumnsStayAbsentBecauseNoDropPassRuns) {
     DegArmGuard guard;
     Deg::diag_post_drop_inertia = true;
     const QpProblem qp = scale_carrier_cycle_qp();
@@ -677,7 +744,13 @@ TEST(QpDegeneracyArm, TheDiagnosticColumnsAreFilledWhereTheirBranchRan) {
         EXPECT_EQ(rec.add_exchanged_index, -1);
         EXPECT_TRUE(std::isnan(rec.add_exchange_coefficient));
     }
-    EXPECT_GT(drops, 0);
+    // RE-PREMISED (E4-19). `drops > 0` was the non-vacuity premise for the
+    // post-drop half of this read-out; with no Dantzig drop under the E4 walk the
+    // half has no pass to inspect, and the honest record of a branch that did not
+    // run is an ABSENT column -- which is what the per-record assertions above
+    // already check, and what this test is now named for. The ADD half is
+    // untouched: it never depended on the drop, and `adds > 0` still holds.
+    EXPECT_EQ(drops, 0) << "a drop pass is back on this fixture: " << drops;
     EXPECT_GT(adds, 0);
 }
 
@@ -766,12 +839,14 @@ TEST(QpDegeneracyArm, AnArmedSolveDoesNotReachIntoAnUnarmedOneRunningBesideIt) {
     unarmed.join();
 
     EXPECT_FALSE(quiet_arm_seen) << "the arm leaked across threads before either solve began";
-    EXPECT_GT(loud_refused, 0) << "the armed thread was supposed to refuse something";
+    // RE-PREMISED (E4-19), NAME UNCHANGED: the claim is per-thread isolation and it
+    // is asserted in full. The armed side used to be required to refuse something
+    // and to end kNumericalError (`ArmAScaledDropRefusesTheDropAndEndsTheRecurrence`
+    // then, `ArmAHasNoNoiseDropToRefuseAndIsInert` now); with no noise-level drop on
+    // the fixture there is nothing to refuse and the armed walk ends kOptimal.
+    EXPECT_EQ(loud_refused, 0) << "the armed thread refused a candidate: the drop is back";
     EXPECT_EQ(quiet_refused, 0) << "the unarmed thread counted a refusal it never made";
-    // The armed side's own status is the fixture's declared outcome (see
-    // `ArmAScaledDropRefusesTheDropAndEndsTheRecurrence`), asserted here so a
-    // drift in it is caught on this path too.
-    EXPECT_EQ(static_cast<int>(loud_result.status), static_cast<int>(QpStatus::kNumericalError));
+    EXPECT_EQ(static_cast<int>(loud_result.status), static_cast<int>(QpStatus::kOptimal));
     expect_same_solution(solo, quiet_result);
 }
 
@@ -834,7 +909,7 @@ b1_records(const std::vector<hven::solvers::detail::testing::QpWalkMinorRecord> 
 
 } // namespace
 
-TEST(QpDegeneracyArm, ArmB1EndsTheCyclingWalkNearTheOptimumButOutsideItsBox) {
+TEST(QpDegeneracyArm, ArmB1IsInertOnTheFixtureThatNoLongerCycles) {
     DegArmGuard guard;
     // M4's period-2 QP ITSELF -- no scale carrier. Arm A's fixture needed the
     // carrier to move the drop rule's SCALE; b1 acts on the working set's
@@ -842,104 +917,57 @@ TEST(QpDegeneracyArm, ArmB1EndsTheCyclingWalkNearTheOptimumButOutsideItsBox) {
     const QpProblem qp = period2_cycle_qp();
     const QpOptions opts = cycling_opts();
 
+    // RE-PREMISED (E4-19; see the note at the head of the arms section). This
+    // test used to open by ASSERTING M4's recurrence -- kMaxIter at the cap,
+    // period 2, a tail longer than 100, zero motion over it -- and then that arm
+    // B1 ENDED it. The E4 walk does not cycle here: the OFF walk reads kOptimal
+    // and the pass-over the arm's conversion rested on is never reached. What is
+    // asserted now is INERTNESS, as an equality against the unarmed walk.
     const Walk off = observed_walk(qp, opts);
-    ASSERT_EQ(static_cast<int>(off.solution.status), static_cast<int>(QpStatus::kMaxIter))
-        << "the fixture stopped cycling: it is no longer the object of this experiment";
-    ASSERT_EQ(off.minors, opts.max_iter);
-    // The OFF walk really is M4's recurrence, not merely a slow one.
-    ASSERT_EQ(off.period, 2);
-    ASSERT_GT(off.tail, 100);
-    ASSERT_EQ(off.tail_motion, 0.0) << "the OFF tail moved the iterate; it is not a cycle";
+    ASSERT_EQ(static_cast<int>(off.solution.status), static_cast<int>(QpStatus::kOptimal))
+        << "the OFF walk cycles again on this fixture: the E4 reading has changed";
+    ASSERT_LT(off.minors, 20);
 
     Deg::reset();
     Deg::arm = DegArm::kIndependentAdd;
     const Walk on = observed_walk(qp, opts);
 
-    EXPECT_LT(on.minors, 20) << "the recurrence is gone only if the walk is short";
-    // THE END POINT, READ AGAINST THE PROBLEM (M7 W2 E4). Until E4 this walk
-    // was certified kOptimal and passed the KKT check below at 1e-6. The
-    // pass-over leaks x(2) -- FREE, so z(2) = 0 and no regularization owns the
-    // residue -- to 9.33e-08 below its lower bound, which is two orders past
-    // the engine's own feas_tol = 1e-9. The certificate's bound half now reads
-    // that and exits kInfeasible, with the iterate returned and the
-    // multipliers cleared; the point itself is unchanged and still lies within
-    // 1e-6 of the box, which is how the looser check here used to pass it.
-    EXPECT_EQ(static_cast<int>(on.solution.status), static_cast<int>(QpStatus::kInfeasible));
-    const double leak = box_violation(qp, on.solution.x);
-    EXPECT_GT(leak, 10.0 * opts.feas_tol) << "the leak is inside feas_tol; the finding has changed";
-    EXPECT_LT(leak, 1e-6);
-    EXPECT_EQ(on.solution.bound_state[2], BoundState::kFree);
-    EXPECT_NEAR(qp.lower(2) - on.solution.x(2), leak, 0.0) << "the leak moved to another bound";
+    EXPECT_EQ(static_cast<int>(on.solution.status), static_cast<int>(off.solution.status))
+        << "arm B1 changed the status of a walk it passes nothing over on";
+    EXPECT_EQ(on.minors, off.minors) << "arm B1 changed the minor count of such a walk";
+    // AND THE END POINT IS INSIDE ITS BOX. Until E4 this walk's pass-over leaked
+    // x(2) to 9.33e-08 below its lower bound -- 100x feas_tol, which is why the
+    // certificate's bound half exited kInfeasible there (M7 W2 E4's own finding).
+    // With no pass-over there is no leak, and the absence is asserted: a returning
+    // leak fails here rather than passing as "kInfeasible, as documented".
+    EXPECT_LE(box_violation(qp, on.solution.x), opts.feas_tol)
+        << "the iterate is outside its box again: the pass-over leak is back";
 
-    // WHAT THE ARM DID, in its own counters, AND BY WHICH OF AMENDMENT A8's
-    // THREE MECHANISMS. A8 predicted that under the amended design the
-    // conversion would move from the pass-over to the ENTRY REPAIR; the three
-    // counters below are what decides that, and they are asserted rather than
-    // narrated so the answer cannot quietly change.
-    EXPECT_GT(Deg::indep_passes, 0);
+    // WHAT THE ARM DID: NOTHING, and every one of amendment A8's three
+    // mechanisms is asserted to be idle rather than merely unmentioned. The old
+    // read-out asserted the opposite of each: `acted > 0`,
+    // `indep_screen_and_qr_dependent > 0`, `indep_candidates_passed_over > 0`,
+    // `indep_no_blocker_passes > 0`, `indep_qr_builds > 0`, and a nonempty B1
+    // record scan with at least one switched pass. All of them rested on the
+    // recurrence's degenerate tie, which the E4 walk does not reach.
+    //
+    // WHAT SURVIVES, and it is the half worth keeping: the arm's INVARIANTS still
+    // have to hold on a walk it decides nothing on. A mismatch, a test failure, a
+    // rank violation, a refused mandatory member, a rank deficit or an exceeded
+    // leak bound would each be a defect whether or not the arm acted.
     EXPECT_EQ(Deg::indep_enumeration_mismatches, 0);
     EXPECT_EQ(Deg::indep_test_failures, 0);
-    const Index acted = Deg::indep_entry_members_removed + Deg::indep_screen_and_qr_dependent +
-                        Deg::indep_qr_only_dependent;
-    EXPECT_GT(acted, 0) << "no mechanism acted: the arm is inert on the fixture it converts";
-    // THE INVARIANT, AS AMENDMENT A2 REDEFINES IT: rank, not row count. Zero
-    // violations means the entry repair held the invariant across the whole
-    // walk and the arm never had to disarm.
     EXPECT_EQ(Deg::indep_rank_violations, 0);
     EXPECT_EQ(Deg::indep_refused_mandatory_dependent, 0);
     EXPECT_EQ(Deg::indep_rank_deficit_max, 0);
-    // AMENDMENT A10's BOUND held on every pass-over this walk made.
     EXPECT_EQ(Deg::indep_leak_bound_exceeded, 0);
-    EXPECT_GT(Deg::indep_qr_builds, 0) << "the oracle never ran";
-    // AND WHICH MECHANISM ACTED, MEASURED RATHER THAN PREDICTED. Amendment A8
-    // expected the conversion to MOVE from the pass-over to the ENTRY REPAIR,
-    // on the reasoning that the predecessor's screen-positive candidates with
-    // residual 0.667-1.0 proved a rank-deficient incoming set. IT DID NOT
-    // MOVE, and the reason is visible in the same counters: the entry repair
-    // removes NOTHING here and `indep_rank_deficit_max` is 0 over the whole
-    // walk, so no incoming set was ever deficient. The predecessor's
-    // disagreement was an artifact of the REGULARIZED oracle alone -- with
-    // the unregularized QR those same candidates project with residual 0 and
-    // the screen and the oracle agree, exactly as A8 argued they must under
-    // the invariant. Measured on this fixture: 3 pass-overs, all
-    // screen-and-QR, 0 QR-only, 0 entry removals, 3 decompositions, 5 minors.
-    EXPECT_EQ(Deg::indep_entry_members_removed, 0)
-        << "the seed set was dependent here: this fixture's reading has changed";
-    EXPECT_GT(Deg::indep_screen_and_qr_dependent, 0)
-        << "the conversion is the pass-over's, and the pass-over is gone";
-    EXPECT_EQ(Deg::indep_qr_only_dependent, 0);
-    EXPECT_GT(Deg::indep_candidates_passed_over, 0);
-    EXPECT_GT(Deg::indep_no_blocker_passes, 0)
-        << "the conversion here is a pass on which EVERY candidate was dependent";
+    EXPECT_EQ(Deg::indep_candidates_passed_over, 0)
+        << "arm B1 passed a candidate over: the degenerate tie is back";
+    EXPECT_EQ(Deg::indep_entry_members_removed, 0);
 
-    // The scan's own columns are filled on every pass the arm ran.
-    const auto recs = b1_records(on.records);
-    ASSERT_FALSE(recs.empty());
-    Index switched = 0;
-    for (const auto &r : recs) {
-        EXPECT_GE(r.add_b1_examined, 1);
-        EXPECT_GE(r.add_b1_tie_size, 1);
-        EXPECT_EQ(r.add_b1_mismatch, 0);
-        EXPECT_EQ(r.dep_n, qp.n());
-        // A2's READING, per pass: the rank IS the row count and the rows fit
-        // in R^n. This is the invariant itself, asserted on every pass the arm
-        // decided, not only in the summary counter.
-        EXPECT_EQ(r.add_b1_rank, r.add_b1_rank_rows);
-        EXPECT_LE(r.add_b1_rank_rows, qp.n());
-        EXPECT_GE(r.add_b1_qr_builds, 0);
-        EXPECT_EQ(r.add_b1_disarmed, 0);
-        if (r.add_b1_switched == 1) {
-            ++switched;
-            EXPECT_GE(r.add_b1_passed_over, 1);
-            EXPECT_GE(r.add_b1_prod_index, 0);
-        } else {
-            EXPECT_EQ(r.add_b1_passed_over, 0);
-        }
-    }
-    EXPECT_GT(switched, 0);
-    // b2, the exchange, is REGISTERED AND NOT BUILT: its two columns stay
-    // absent on a trace taken with arm B armed, which is the falsifiable form
-    // of "no exchange was made".
+    // AND b2, THE EXCHANGE, IS STILL REGISTERED AND NOT BUILT: its two columns
+    // stay absent on a trace taken with arm B armed, which never depended on the
+    // recurrence and is asserted unchanged.
     for (const auto &r : on.records) {
         EXPECT_EQ(r.add_exchanged_index, -1);
         EXPECT_TRUE(std::isnan(r.add_exchange_coefficient));
@@ -978,18 +1006,33 @@ TEST(QpDegeneracyArm, ArmB1IsBitIdenticalWhereItPassesNothingOver) {
     expect_same_solution(plain, armed);
 }
 
-TEST(QpDegeneracyArm, ArmB1CanLeaveTheIterateOutsideItsBoxAndTheCertificateRefusesIt) {
+TEST(QpDegeneracyArm, ArmB1HasNoPassOverToLeaveTheBoxWithAndTheCertificateIsNotReached) {
     DegArmGuard guard;
-    // THE HAZARD IS THE RULE'S, NOT THE IMPLEMENTATION'S. R3's rule is "if no
-    // independent blocker exists, take the full step and record every
-    // passed-over constraint's post-step violation". A passed-over BOUND is a
-    // bound the walk then steps through, and nothing downstream puts the
-    // iterate back: `refresh_shifts` is about inequality ROWS. Before M7 W2 E4
-    // the certification branch read only the rows, so this walk reported
-    // `kOptimal` at a point outside its box (M5's C7, Codex M5 review Critical
-    // 1). THE CERTIFICATE NOW READS THE BOX: the same walk, unchanged step for
-    // step, ends `kInfeasible`, and the returned x -- the kInfeasible exit's
-    // evidence -- carries the violation.
+    // RE-PREMISED (E4-19; the note at the head of the arms section). WHAT THIS
+    // FIXTURE HELD, from M5 through E3: R3's rule ("if no independent blocker
+    // exists, take the full step and record every passed-over constraint's
+    // post-step violation") lets the walk step THROUGH a passed-over BOUND, and
+    // nothing downstream puts the iterate back, because `refresh_shifts` is about
+    // inequality ROWS. Before M7 W2 E4 the certification branch read only the
+    // rows and reported kOptimal at a point 5.59e-03 outside its box (M5's C7,
+    // Codex M5 review Critical 1); E4's certificate reads the box and exits
+    // kInfeasible there. It also held amendment A10's own finding: that ONE
+    // pass-over exceeded A10's pre-registered leak bound on an ill-conditioned
+    // working set, so the b1 verdict is UNSUPPORTED on a cell like this one.
+    //
+    // WHY IT CANNOT HOLD IT ANY MORE: the pass-over is never made. The E4 walk
+    // takes no noise-level drop on this fixture, so the degenerate tie the
+    // pass-over needs is never reached, the iterate never leaves its box, and the
+    // certificate's bound half is never the thing that decides the exit.
+    //
+    // WHAT IS ASSERTED NOW: the ABSENCE, every piece of it, so the hazard's return
+    // fails here. The hazard and A10's finding are NOT retracted -- they are
+    // statements about R3's rule that this walk can no longer exhibit, and the
+    // certificate's bound half keeps its own direct coverage in
+    // `TheCertificatesBoundHalfPassesASolvedQpWithActiveBounds`,
+    // `CertificateToleratesABoundViolationInsideAndOnTheStructuralMargin` and
+    // `CertificateRefusesABoundViolationOutsideTheStructuralMargin`, none of which
+    // needs a cycling walk.
     const QpProblem qp = scale_carrier_cycle_qp();
     const QpOptions opts = cycling_opts();
 
@@ -997,53 +1040,41 @@ TEST(QpDegeneracyArm, ArmB1CanLeaveTheIterateOutsideItsBoxAndTheCertificateRefus
     Deg::arm = DegArm::kIndependentAdd;
     const Walk on = observed_walk(qp, opts);
 
-    EXPECT_EQ(static_cast<int>(on.solution.status), static_cast<int>(QpStatus::kInfeasible))
-        << "the certificate passed a point outside its own box";
-    // THE kInfeasible SHAPE: the final iterate is returned and every multiplier
-    // is cleared, exactly as on the row-infeasible exit.
-    EXPECT_EQ(on.solution.lambda_i.lpNorm<Eigen::Infinity>(), 0.0);
-    EXPECT_EQ(on.solution.z.lpNorm<Eigen::Infinity>(), 0.0);
-    // THE WALK ITSELF DID NOT MOVE: the certificate is a pure predicate on the
-    // returned point, so the step that left the box is the M5-measured one.
-    const double viol = box_violation(qp, on.solution.x);
-    EXPECT_NEAR(viol, 5.59e-3, 5e-6) << "the excursion is not the one M5 measured";
-    EXPECT_GT(viol, opts.opt_tol) << "the hazard this fixture exists to hold on to has gone away";
-    // AND THE ARM SAW IT: the counter and the column both carry the number,
-    // and they agree with what the returned point actually violates.
-    EXPECT_GT(Deg::indep_max_passed_violation, 0.0);
-    EXPECT_NEAR(Deg::indep_max_passed_violation, viol, 1e-12 * std::max(1.0, viol));
-    double column_max = 0.0;
+    EXPECT_EQ(static_cast<int>(on.solution.status), static_cast<int>(QpStatus::kOptimal))
+        << "the walk no longer leaves its box here; a kInfeasible means the pass-over is back";
+    EXPECT_LE(box_violation(qp, on.solution.x), opts.feas_tol)
+        << "the iterate is outside its box again: the M5 excursion has returned";
+    EXPECT_EQ(Deg::indep_candidates_passed_over, 0)
+        << "arm B1 passed a candidate over: the degenerate tie is back";
+    EXPECT_EQ(Deg::indep_max_passed_violation, 0.0);
+    // The per-pass column is filled wherever the arm EXAMINED a tie and recorded a
+    // candidate's post-step violation, which it still does on this fixture (two
+    // passes, MEASURED) -- it is not a pass-over record, and the assertion that
+    // belongs here is that every violation it recorded is inside feas_tol, i.e.
+    // nothing the arm looked at would have left the box had it been passed over.
     for (const auto &r : on.records) {
         if (!std::isnan(r.add_b1_passed_violation)) {
-            column_max = std::max(column_max, r.add_b1_passed_violation);
+            EXPECT_LE(r.add_b1_passed_violation, opts.feas_tol)
+                << "a recorded post-step violation is outside feas_tol: the excursion is back";
         }
     }
-    EXPECT_EQ(column_max, Deg::indep_max_passed_violation);
-    // AMENDMENT A10's PRE-REGISTERED BOUND, AND IT FAILS HERE -- WHICH IS THE
-    // POINT. A10 declared: a passed-over constraint's post-step violation is
-    // bounded by `(mu*||lambda_W||_inf + eps*||a||*||p||) * alpha * 10`, or
-    // the pass-over was WRONG. Measured on this fixture: ONE pass-over
-    // exceeds that bound, at a violation of 5.59e-03. A10 also predicted the
-    // REASON would be a rank-deficient incoming set; it is not. The counters
-    // say `indep_rank_violations == 0` and `indep_rank_deficit_max == 0`, so
-    // the set was independent, the candidate was genuinely dependent on it
-    // (screen and QR agreeing), and the direction still leaked through it by
-    // far more than `mu*||lambda_W||` can account for -- because this
-    // fixture's working set is ILL-CONDITIONED BY CONSTRUCTION (the scale
-    // carrier), and `A_W p = mu*lambda` bounds `A_W p`, not what `p` itself
-    // can reach through a badly conditioned `A_W`.
-    //
-    // SO THE FINDING IS A10's OWN: on a cell like this one the b1 verdict is
-    // UNSUPPORTED, and the INFEASIBLE-EXIT category the rule proposes is what
-    // the result has to be reported under.
+    // A10's BOUND IS NOT EXCEEDED BECAUSE NOTHING WAS PASSED OVER -- asserted so
+    // that a returning excursion is caught by this counter as well as by the two
+    // above, and so that the 1 this fixture used to pin is visibly a 0 now.
+    EXPECT_EQ(Deg::indep_leak_bound_exceeded, 0);
+    // The invariants still have to hold on a walk the arm decides nothing on.
     EXPECT_EQ(Deg::indep_rank_violations, 0);
     EXPECT_EQ(Deg::indep_rank_deficit_max, 0);
     EXPECT_EQ(Deg::indep_refused_mandatory_dependent, 0);
-    EXPECT_EQ(Deg::indep_leak_bound_exceeded, 1)
-        << "A10's bound no longer flags this excursion; the finding has changed";
-    // And the point is not a KKT point of the problem, recomputed here: the
-    // refusal is correct, not merely conservative.
-    EXPECT_FALSE(is_a_kkt_point(qp, on.solution, 1e-6));
+    // AND THE POINT IS A KKT POINT of the problem, recomputed here -- the opposite
+    // of what this fixture used to assert, and the reason the exit is kOptimal.
+    // THE TOLERANCE IS SCALED BY THE CARRIER, and that is not a loosening: this
+    // fixture's objective carries a 1e+06 coefficient by construction
+    // (`kScaleCarrier`), the engine's own stationarity test is relative to the
+    // gradient's scale, and an ABSOLUTE 1e-06 on a problem whose gradient reaches
+    // 1e+06 is a 1e-12 relative demand that no double-precision solve of it can
+    // meet. MEASURED: absolute stationarity 0.333, i.e. 3.3e-07 relative.
+    EXPECT_TRUE(is_a_kkt_point(qp, on.solution, 1e-6 * kScaleCarrier));
 }
 
 TEST(QpDegeneracyArm, TheCertificatesBoundHalfPassesASolvedQpWithActiveBounds) {
@@ -1447,72 +1478,43 @@ TEST(QpDegeneracyArm, ArmB1sEntryRepairRemovesDependentSeedMembersAndHoldsTheInv
     Obs::reset();
 }
 
-TEST(QpDegeneracyArm, ArmB1sLeakRatioUnderTheMuSweepAmendmentA5Asks) {
+TEST(QpDegeneracyArm, ArmB1sMuSweepFindsNoPassOverToLeakAtAnyMu) {
     DegArmGuard guard;
-    // AMENDMENT A5's mu SWEEP, and what it licenses. §B.0 derives the leak
-    // `a^T p = mu * y^T lambda_W` for a dependent candidate, and a SINGLE
-    // observation of `a^T p` cannot establish an order in mu (the Codex
-    // review's item 6). So the same fixture is run at
-    // `dual_mu \in {1e-6, 1e-8, 1e-10}` and the RATIO
-    // `a^T p / (mu ||lambda_W||_inf)` is read off each run.
+    // RE-PREMISED (E4-19). WHAT AMENDMENT A5's mu SWEEP ESTABLISHED, and it
+    // stands as a finding: §B.0 derives the leak `a^T p = mu * y^T lambda_W` for a
+    // dependent candidate, a single observation of `a^T p` cannot establish an
+    // order in mu, so the fixture was run at `dual_mu \in {1e-6, 1e-8, 1e-10}` and
+    // the ratio `a^T p / (mu ||lambda_W||_inf)` read off each run. Measured then:
+    // -0.486, -3.11, -310.9 -- inside the band declared before the numbers, and
+    // REFUTING the unqualified "the leak is O(mu)" reading below `dual_mu = 1e-8`,
+    // where the leak saturated on the rounding floor (9.3276692556e-08 at 1e-8
+    // against 9.3277051744e-08 at 1e-10) instead of tracking mu. The consequence
+    // for the rule -- "the observed blocking is the leak" must be checked per cell
+    // against these columns rather than asserted from the derivation -- is
+    // unchanged and is recorded in the M4 ledger.
     //
-    // THE BAND IS DECLARED HERE, BEFORE THE NUMBERS: if the leak really is
-    // O(mu), the ratio is scale-free and must stay inside
-    // [1e-3, 1e+3] across three orders of mu -- three orders of slack against
-    // four orders of sweep. A ratio that tracks 1/mu instead REFUTES the O(mu)
-    // reading on this fixture, and that is reported as a finding rather than
-    // retuned.
+    // WHY THE SWEEP CANNOT BE RE-RUN HERE: it needs a PASS-OVER to read a leak
+    // ratio off, and the E4 walk makes none on this fixture at any mu in the
+    // sweep, because it never reaches the degenerate tie (no noise-level drop).
+    // So the honest assertion is the absence, at every mu, which is also the
+    // falsifiable form of "the pass-over is gone": if one returns at any mu this
+    // test fails and the sweep can be reinstated from the history above.
     const QpProblem qp = period2_cycle_qp();
-    std::vector<double> ratios;
-    std::vector<double> leaks;
     for (const double mu : {1e-6, 1e-8, 1e-10}) {
         QpOptions opts = cycling_opts();
         opts.dual_mu = mu;
         Deg::reset();
         Deg::arm = DegArm::kIndependentAdd;
         const Walk on = observed_walk(qp, opts);
-        double ratio = std::numeric_limits<double>::quiet_NaN();
-        double leak = std::numeric_limits<double>::quiet_NaN();
+        EXPECT_EQ(static_cast<int>(on.solution.status), static_cast<int>(QpStatus::kOptimal))
+            << "the walk no longer terminates at dual_mu = " << mu;
+        EXPECT_EQ(Deg::indep_candidates_passed_over, 0)
+            << "a pass-over is back at dual_mu = " << mu << ": the sweep can be reinstated";
         for (const auto &r : on.records) {
-            if (!std::isnan(r.add_b1_passed_leak_ratio)) {
-                ratio = r.add_b1_passed_leak_ratio;
-                leak = r.add_b1_passed_a_dot_p;
-                break;
-            }
+            EXPECT_TRUE(std::isnan(r.add_b1_passed_leak_ratio))
+                << "a leak-ratio column is filled at dual_mu = " << mu;
         }
-        ASSERT_FALSE(std::isnan(ratio))
-            << "no pass-over at dual_mu = " << mu << ": the sweep has nothing to read";
-        ratios.push_back(ratio);
-        leaks.push_back(leak);
     }
-    ASSERT_EQ(ratios.size(), 3u);
-
-    // (i) THE DECLARED BAND HOLDS. Measured: -0.486 at mu = 1e-6, -3.11 at
-    //     1e-8, -310.9 at 1e-10, all inside [1e-3, 1e+3] in magnitude.
-    for (std::size_t k = 0; k < ratios.size(); ++k) {
-        EXPECT_GT(std::abs(ratios[k]), 1e-3) << "ratio " << k << " left the declared band";
-        EXPECT_LT(std::abs(ratios[k]), 1e+3) << "ratio " << k << " left the declared band";
-    }
-
-    // (ii) AND THE SWEEP REFUTES THE UNQUALIFIED "O(mu)" READING, WHICH IS
-    //      WHY A5 ASKED FOR IT. Above the floor the leak DOES move with mu:
-    //      1.46e-06 at mu = 1e-6 against 9.33e-08 at 1e-8. Below it the leak
-    //      does not move at all -- 9.3276692556e-08 at mu = 1e-8 and
-    //      9.3277051744e-08 at 1e-10, agreeing to five figures across a
-    //      hundredfold change in mu. So at small mu the blocking is NOT the
-    //      regularization leak of §B.0(i); it is §B.0(ii) and (iii), the
-    //      iterate's own residual against its working set and the rounding
-    //      floor of the dot product, neither of which mu touches.
-    //
-    //      THE CONSEQUENCE FOR THE RULE: "the observed blocking is the leak"
-    //      is a statement that has to be checked per cell against these
-    //      columns, not asserted from the regularization's derivation. The
-    //      ratio to `mu*||lambda||` is only meaningful where the leak still
-    //      tracks mu.
-    EXPECT_GT(std::abs(leaks[0]), 5.0 * std::abs(leaks[1]))
-        << "the leak no longer moves with mu above the floor";
-    EXPECT_LT(std::abs(leaks[1] - leaks[2]), 1e-2 * std::abs(leaks[1]))
-        << "the leak no longer saturates below the floor; the finding has changed";
 }
 
 TEST(QpDegeneracyArm, ArmB1sSwitchIsPerThreadWithBothSolvesInFlight) {
@@ -1555,12 +1557,19 @@ TEST(QpDegeneracyArm, ArmB1sSwitchIsPerThreadWithBothSolvesInFlight) {
     unarmed.join();
 
     EXPECT_FALSE(quiet_arm_seen) << "the arm leaked across threads before either solve began";
-    EXPECT_GT(loud_passed, 0) << "the armed thread was supposed to pass something over";
+    // RE-PREMISED (E4-19), and the NAME STAYS because the claim does: this test is
+    // about the switch being PER-THREAD, and that is asserted in full below. Only
+    // the armed side's expected activity is re-derived. It used to require
+    // `loud_passed > 0` ("the armed thread was supposed to pass something over")
+    // and `kInfeasible` on the armed walk; the E4 walk makes no pass-over on
+    // `period2_cycle_qp()` -- no noise-level drop, no degenerate tie -- so it ends
+    // kOptimal inside its box. The ISOLATION claim is untouched and is the whole
+    // point: the unarmed thread must count nothing and must return, bit for bit,
+    // what it returns alone.
+    EXPECT_EQ(loud_passed, 0) << "a pass-over is back on the armed thread";
     EXPECT_EQ(quiet_passed, 0) << "the unarmed thread counted a pass-over it never made";
     EXPECT_EQ(quiet_examined, 0) << "the unarmed thread ran a dependency test it never armed";
-    // The armed thread's walk is (8a)'s, so it ends where (8a) ends: outside
-    // its box by the pass-over's leak, refused by the certificate (M7 W2 E4).
-    EXPECT_EQ(static_cast<int>(loud_result.status), static_cast<int>(QpStatus::kInfeasible));
+    EXPECT_EQ(static_cast<int>(loud_result.status), static_cast<int>(QpStatus::kOptimal));
     expect_same_solution(solo, quiet_result);
 }
 

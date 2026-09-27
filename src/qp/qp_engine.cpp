@@ -197,8 +197,26 @@ bool QpEngine::refine_on_face(const QpProblem &qp_in, const QpSolution &face,
     // what covers it is the CONSTRUCTION RULE (kkt_calls.h) plus this line.
     detail::KktFactor kkt(threads_);
     ++out.counters.factorizations;
-    const EqpResult eqp = solve_eqp(qp, ws, kkt, eff_opts);
+    // THE PROXIMAL CENTRE for a re-solve OF THE CALLER'S OWN FACE is the point
+    // the caller stopped at: this function re-solves the same subproblem from
+    // there (eqp_solve.h states the system).
+    // WHAT THIS CALL PROMISES IS THE FACE'S EXACT ANSWER, and since M7 W2 E4 fix
+    // round 1 solve_eqp delivers it: its UNREGULARIZED POLISH (ruling E4-11,
+    // eqp_solve.h's polish_eqp_core) takes the regularization back out of the
+    // answer wherever the face's own exact system has one, which is why this
+    // function needs nothing of its own for it. `out.counters.eqp_polish_steps`
+    // reports how many steps that took -- 0 on a flat face, where the proximal
+    // answer is the only answer there is.
+    const EqpResult eqp = solve_eqp(qp, ws, face.x, kkt, eff_opts);
     out.counters.eqp_refine_steps += eqp.refine_steps; // identically 0; see eqp_solve.h
+    out.counters.eqp_refine_iters += eqp.residual_refine_iters;
+    out.counters.eqp_polish_steps += eqp.polish_steps;
+    if (eqp.residual_refused) {
+        // THE EQP-SITE RESIDUAL CHECK (E4-4): the face's own solve does not solve
+        // its own system, so there is no refined point to offer the caller.
+        ++out.counters.eqp_residual_refusals;
+        return false;
+    }
     if (detail::inertia_verdict(kkt.factor.inertia(), ws.num_free(), me + n_working) !=
         detail::InertiaVerdict::kOk) {
         return false;
@@ -695,6 +713,13 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         // the fall-through all record, and a path added later cannot silently
         // stop recording.
         detail::testing::QpWalkMinorScope walk_obs(ws, x, counters, iter);
+#ifdef HVEN_TESTING
+        // THE OBJECTIVE AT THIS PASS'S INCOMING ITERATE (qp_walk_trace.h's obj_in),
+        // so the ordinary step's DESCENT INVARIANT is decidable from the trace. One
+        // mat-vec into storage the loop never reads; nothing here is a decision.
+        walk_obs.record().obj_in =
+            qp.g.dot(x) + 0.5 * x.dot(qp.H.selfadjointView<Eigen::Upper>() * x);
+#endif
 
         // ARM E, EXPAND §4.2: `delta_k <- delta_{k-1} + tau` ((4.2)) at the
         // START of every minor, and §4.3's RESET once the expanding sequence
@@ -764,8 +789,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
 #endif
         const EqpResult eqp =
             eliminated_only
-                ? eliminated_candidate(qp, ws, kkt, face, counters, verdict, eff_opts)
-                : eqp_candidate(qp, ws, kkt, face, *border_, counters, verdict, eff_opts);
+                ? eliminated_candidate(qp, ws, x, kkt, face, counters, verdict, eff_opts)
+                : eqp_candidate(qp, ws, x, kkt, face, *border_, counters, verdict, eff_opts);
 #ifdef HVEN_TESTING
         // Snapshotted IMMEDIATELY: section 4b's zero-multiplier probe re-enters
         // the same verdict site for HYPOTHETICAL working sets later in this very
@@ -774,7 +799,107 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         walk_obs.record().inertia_verdict = static_cast<int>(verdict);
         walk_obs.record().primal_delta = eff_opts.primal_delta;
         walk_obs.record().dual_mu = eff_opts.dual_mu;
+        walk_obs.record().eqp_row_residual = eqp.row_residual;
+        walk_obs.record().eqp_residual_ratio = eqp.residual_ratio;
+        walk_obs.record().eqp_residual_iters = eqp.residual_refine_iters;
+        walk_obs.record().eqp_residual_refused = eqp.residual_refused ? 1 : 0;
 #endif
+
+        // THE EQP-SITE RESIDUAL CHECK's REFUSAL (section 5; eqp_solve.h states the
+        // check), and a NON-FINITE answer, which is the same statement at its limit.
+        // The answer this pass was handed does not solve the system it came out of;
+        // the border path's own retreat to the bound-eliminated form has already been
+        // spent inside the call, and E4-4's rule is that no step may be taken toward
+        // such an answer.
+        //
+        // THE RETREAT IS THE ENGINE'S OWN LADDER, not a new exit: an untrustworthy
+        // factorization is exactly what section 4b's SUSPECT-STALL escalation
+        // answers, and it answers it by CHANGING THE SYSTEM -- one decade of
+        // primal_delta per rung, at most kMaxSuspectEscalations rungs, the border
+        // state discarded so the new delta reaches K0. That is the right response
+        // here for the reason the check itself gives: the residual is large because
+        // the free block along a flat face IS delta*I, and a decade more delta is a
+        // decade less of that. Measured: without the ladder the same refusal ends
+        // five A0_YORKNET cells and two certified Cs_STEENBRB cells at their first
+        // refused pass. Only an EXHAUSTED ladder reports kNumericalError, at the
+        // iterate the walk stands on -- finite, and where the caller's evidence is.
+        // `counters.eqp_residual_refusals` carries the reason.
+        //
+        // THE STEP'S ROW-DRIFT CHECK (fix round 2) rides the SAME refusal, for
+        // the same reason and into the same ladder: an answer that leaves a
+        // working row the iterate was already on is an answer no step may be
+        // taken toward, and lambda -- the size of the drift -- scales as
+        // 1/primal_delta on the flat face that produces it. See
+        // eqp_answer_drifts_off_met_rows for the measurement.
+        const bool eqp_not_finite = !eqp.x.allFinite();
+        const bool eqp_drifted =
+            !eqp_not_finite && eqp_answer_drifts_off_met_rows(qp, ws, x, eqp, Aix, ai_row_norm1,
+                                                              ae_row_norm1, eff_opts);
+        const bool drift_only = eqp_drifted && !eqp.residual_refused && !eqp_not_finite;
+        if (eqp.residual_refused || eqp_not_finite || eqp_drifted) {
+            if (drift_only) {
+                ++counters.eqp_row_drift_refusals;
+            }
+            if (counters.suspect_escalations < detail::kMaxSuspectEscalations) {
+                ++counters.suspect_escalations;
+#ifdef HVEN_TESTING
+                walk_obs.record().action = detail::testing::QpWalkAction::kSuspectEscalation;
+#endif
+                eff_opts.primal_delta *= detail::kSuspectDeltaFactor;
+                if (border_.use_count() > 1) {
+                    border_ = std::make_shared<BorderState>();
+                } else {
+                    border_->schur.reset();
+                    border_->latched = false;
+                    border_->k0_rows.clear();
+                    border_->ledger.clear();
+                }
+                continue;
+            }
+            // THE EXHAUSTED LADDER IS ADVISORY FOR BOTH REFUSALS (fix round 2), and
+            // TERMINAL ONLY FOR A NON-FINITE ANSWER.
+            //
+            // The ladder is the remedy both refusals ask for, and its exhaustion is
+            // itself evidence: three decades of primal_delta have not brought the
+            // row residual down, so the residual is IRREDUCIBLE -- which is what an
+            // INCONSISTENT row set looks like (the canonical pair e_0 = 0 beside
+            // e_0 = 1 at dual_mu = 0), not what an untrustworthy factor looks like.
+            // Ending the solve kNumericalError there answers the wrong question:
+            // the walk's own terminal site already classifies an iterate it cannot
+            // leave, and on an inconsistent set it classifies it kInfeasible, which
+            // is the answer the base walk gave and the answer the caller needs.
+            //
+            // MEASURED, and this is why the classification this replaced is gone:
+            // reporting kInfeasible HERE, from worst_structural_violation at the
+            // refused pass, is a claim about an iterate the walk has not finished
+            // with. On an ELASTIC RELAXATION -- feasible by construction -- a
+            // mid-walk iterate violates rows it has not reached yet, and the T7
+            // feasible census read 16 open relaxations certified infeasible against
+            // its own claim of 0. A FALSE CERTIFICATE is not a trade any fix may
+            // make, so the classification is withdrawn and the pass falls through
+            // to the walk instead: the step is taken, the refusals are counted, and
+            // the terminal site decides with the evidence it has always used.
+            //
+            // AND THE SAME MEASUREMENT SETTLES THE DRIFT HALF: made terminal, it
+            // costs `ACOPR57_def`/qp0 its BASE CERTIFICATE on both algebras
+            // (opt/183 -> num/162, terminal stationarity 1.24). Advisory, that cell
+            // keeps it (opt/191, f at Clarabel's optimum to 2.2e-12 relative),
+            // `indefinite_equality_qp` converges on the rungs, and
+            // `A0_YORKNET`/qp1 converts (num/329 -> opt/717, equality residual
+            // 4.37e-01 -> 1.97e-13).
+            //
+            // A NON-FINITE ANSWER STAYS TERMINAL. There the complaint is not about
+            // accuracy at all: there is no step to take, and kNumericalError at the
+            // finite iterate the walk stands on is the honest exit (E4-4's two NaN
+            // cells).
+            if (eqp_not_finite) {
+                status = QpStatus::kNumericalError;
+#ifdef HVEN_TESTING
+                walk_obs.record().action = detail::testing::QpWalkAction::kTerminal;
+#endif
+                break;
+            }
+        }
 
         // INERTIA GATE / TEMPORARY-VERTEX START REPAIR (section 4b). Only
         // at the start: a trustworthy wrong inertia here means the seed
@@ -861,7 +986,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         start_pass = false;
         // R-C': a kWrong start verdict is re-read before it may repair.
         if (first_pass && verdict == detail::InertiaVerdict::kWrong &&
-            !reread_wrong_inertia(qp, ws, counters, eff_opts, verdict) &&
+            !reread_wrong_inertia(qp, ws, x, counters, eff_opts, verdict) &&
             repair_temporary_vertex(qp, ws, x, kkt, face, *border_, counters, eff_opts)) {
 #ifdef HVEN_TESTING
             walk_obs.record().action = detail::testing::QpWalkAction::kStartRepair;
@@ -914,7 +1039,19 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         const DropRecord dropped = last_drop;
         last_drop = DropRecord{};
 
-        const double step_tol = eff_opts.feas_tol * std::max(1.0, x.lpNorm<Eigen::Infinity>());
+        const double x_inf = x.lpNorm<Eigen::Infinity>();
+        const double step_tol = eff_opts.feas_tol * std::max(1.0, x_inf);
+        const double p_inf = p.lpNorm<Eigen::Infinity>();
+
+        // THE FREE-BLOCK STATIONARITY RESIDUAL at the iterate this pass started
+        // from, with the multipliers `price` just produced, and the largest term
+        // that went into it. PRODUCTION since M7 W2 E4: this is the walk's KKT-point
+        // test (section 5), not a diagnostic -- the seam below reports these two
+        // values rather than recomputing them, so the trace and the branch cannot
+        // disagree.
+        double stat_scale = 1.0;
+        const double stat_free_inf =
+            detail::free_block_stationarity(qp, x, ws, lambda_e, lambda_i, stat_scale);
 #ifdef HVEN_TESTING
         walk_obs.record().step_tol = step_tol;
         walk_obs.record().p_inf = p.lpNorm<Eigen::Infinity>();
@@ -927,12 +1064,10 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             detail::testing::QpWalkMinorRecord &r = walk_obs.record();
             r.p_sq = p.squaredNorm();
 
-            // The UNREGULARIZED first-order residual over the free block, at
-            // the iterate this pass started from, with the multipliers `price`
-            // just produced. `stat_scale` is the largest term that went into it.
-            double stat_scale = 1.0;
-            r.stat_free_inf =
-                detail::free_block_stationarity(qp, x, ws, lambda_e, lambda_i, stat_scale);
+            // The UNREGULARIZED first-order residual over the free block and its
+            // scale, as computed ABOVE, in production, for the KKT-point test.
+            // Reported, not recomputed (M7 W2 E4).
+            r.stat_free_inf = stat_free_inf;
             r.stat_scale = stat_scale;
             // M7 W2 M5, ARM A: the SAME scale, published for the drop rule.
             // `drop_worst` multiplies `opt_tol` by this rather than deriving a
@@ -984,11 +1119,52 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             }
         }
 #endif
-        if (p.lpNorm<Eigen::Infinity>() <= step_tol) {
-            // A KKT point of the current working set: snap onto it, then
-            // let the multipliers decide.
-            x = eqp.x;
-            refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen, eff_opts);
+        // ==================================================================
+        // THE KKT-POINT TEST (section 5, M7 W2 E4 ruling E4-2). Two disjuncts,
+        // and the SECOND is the test:
+        //
+        //   ZERO MOTION: ||p||inf <= step_tol. Kept exactly as it was, and kept
+        //     for exactly what it always was -- the observation that the EQP
+        //     answer IS this iterate, so snapping onto it is free. It is no
+        //     longer asked to certify convergence on its own, because under the
+        //     proximal centring it cannot: on a flat face p = -(1/delta) P_Z g,
+        //     so a reduced gradient of 1e-17 produces a step of 2.8e-09 against
+        //     a step_tol of 1e-09, and 300 consecutive full steps were measured
+        //     around a point whose rows were met to 5e-14 (E3 §3e). delta*||p||
+        //     is the reduced gradient's size; ||p|| is not.
+        //
+        //   STATIONARY ON THE WORKING SET: the free-block stationarity residual
+        //     is within opt_tol of its own scale AND no row or bound carries a
+        //     STRUCTURAL violation -- the engine's two existing tests, the same
+        //     two the terminal classification below decides kOptimal on, asked
+        //     here so the loop can RECOGNISE the point it is standing on. Both
+        //     halves are needed: the residual alone says the multipliers price
+        //     the gradient, and the rows say the iterate is actually ON the face
+        //     it priced them over (under the proximal centring a row residual r
+        //     contributes a step of order r/delta, so a point off its rows is
+        //     exactly the case ||p|| would have caught and no longer does).
+        //
+        // NOTHING MOVES ON THE SECOND DISJUNCT. The snap `x = eqp.x` is taken
+        // only for zero motion, where it moves the iterate by at most step_tol;
+        // a stationary point is already the answer, and stepping to the proximal
+        // minimiser from it would move x by up to opt_tol*scale/delta with no
+        // ratio test having been run. `Aix` and the shifts are therefore still
+        // exactly as the previous pass's refresh_shifts left them for this x,
+        // which is why no refresh is needed (or taken) on that path.
+        // ==================================================================
+        const bool zero_motion = p_inf <= step_tol;
+        const bool stationary_on_ws =
+            !zero_motion && detail::free_block_is_stationary(stat_free_inf, stat_scale, eff_opts) &&
+            worst_structural_violation(qp, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1, lambda_e,
+                                       eff_opts) == 0.0;
+        if (zero_motion || stationary_on_ws) {
+            // A KKT point of the current working set: snap onto it (zero motion
+            // only -- see above), then let the multipliers decide.
+            if (zero_motion) {
+                x = eqp.x;
+                refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen,
+                               eff_opts);
+            }
 #ifdef HVEN_TESTING
             // Claimed here and overridden below by whichever branch of the
             // classification actually runs: reaching this line means the pass
@@ -1076,7 +1252,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 } else if (verdict == detail::InertiaVerdict::kWrong &&
                            // R-C': re-read; an overturned kWrong goes on to
                            // the suspect-stall gate below.
-                           !reread_wrong_inertia(qp, ws, counters, eff_opts, verdict)) {
+                           !reread_wrong_inertia(qp, ws, x, counters, eff_opts, verdict)) {
                     // THE POST-PROBE RESTART (section 4b). Reaching here
                     // after a probe-driven drop means the drop exposed
                     // real negative curvature but its multiplier was zero,
@@ -1132,8 +1308,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         }
                     }
                     probe.refresh(ws);
-                    if (probe_zero_multiplier_drops(qp, shift, lambda_i, z, ws, kkt, face, *border_,
-                                                    counters, probe, last_drop, eff_opts)) {
+                    if (probe_zero_multiplier_drops(qp, x, shift, lambda_i, z, ws, kkt, face,
+                                                    *border_, counters, probe, last_drop,
+                                                    eff_opts)) {
                         if (eff_opts.independent_working_set) {
                             pt_release(seen, last_drop.is_ineq, last_drop.idx);
                         }
@@ -1198,6 +1375,47 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         // counters.suspect_escalations carry the reason.
                         status = QpStatus::kNumericalError;
                     } else {
+                        // THE TERMINAL POLISH (M7 W2 E4 fix1, ruling E4-11). This
+                        // is the walk's ONE certified exit -- the 4b ladder's
+                        // certified rung reaches it too, by falling through the
+                        // stationarity gate above -- and it is where the final
+                        // point gets the regularization taken back OUT of it.
+                        //
+                        // WHY IT IS NEEDED AND WHY IT IS HERE. The KKT-point test
+                        // of section 5 stops as soon as the free-block
+                        // stationarity residual is within opt_tol of its scale;
+                        // the walk it replaced kept stepping until ||p|| fell
+                        // under step_tol, which on these faces meant grinding
+                        // several decades past that tolerance. Stopping at the
+                        // tolerance is correct and it leaves the regularization's
+                        // O(primal_delta) and O(dual_mu*|lambda|) footprint in the
+                        // terminal point -- and dual_mu*|lambda| left in a working
+                        // row's slack is dual_mu*lambda^2 in the complementarity a
+                        // consumer measures, which is the B-1 term. So the point
+                        // is re-solved on THIS face with the regularization backed
+                        // out, and the answer is adopted only if it is better by
+                        // every one of the three KKT residuals and feasible
+                        // (polish_terminal_point states the rule).
+                        //
+                        // PLACED BEFORE THE CERTIFICATE, so the bound half below
+                        // and the certificate seam read the point that is actually
+                        // exported. It cannot manufacture a certificate: the
+                        // acceptance test refuses any candidate whose rows or
+                        // bounds are worse than the incumbent's, or outside
+                        // feas_tol where the incumbent met it.
+                        //
+                        // NOTHING ABOVE IS RE-DECIDED. The polish moves x by at
+                        // most the bias it removes, does not touch the working set,
+                        // and runs after every drop, probe and gate has had its
+                        // say, so no branch of the walk can be reached differently
+                        // because of it -- which is also why it moves no minor
+                        // count.
+                        if (eff_opts.dual_mu > 0.0 || eff_opts.primal_delta > 0.0) {
+                            if (polish_footprint_open(qp, ws, x, lambda_e, lambda_i, z, eff_opts)) {
+                                (void)polish_terminal_point(qp, ws, eqp, x, lambda_e, lambda_i, z,
+                                                            counters, eff_opts);
+                            }
+                        }
                         // THE CERTIFICATE'S BOUND HALF. worst_structural_violation
                         // reads the rows only, and nothing above reads x against
                         // its own box -- the walk keeps it there, the certificate
@@ -1282,7 +1500,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     detail::InertiaVerdict diag_verdict = detail::InertiaVerdict::kOk;
                     bool diag_ok = true;
                     try {
-                        (void)eliminated_candidate(qp, ws, *diag_kkt, diag_face, counters,
+                        (void)eliminated_candidate(qp, ws, x, *diag_kkt, diag_face, counters,
                                                    diag_verdict, eff_opts);
                     } catch (...) {
                         // SWALLOWED AND COUNTED. A diagnostic may not end a
@@ -1316,6 +1534,36 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
 #endif
             std::fill(seen.shift_refused.begin(), seen.shift_refused.end(), 0);
             continue;
+        }
+
+        // ==================================================================
+        // THE RUNAWAY GUARD, IN THE ITERATE'S CURRENCY, ON A MOVING PASS
+        // (section 5, M7 W2 E4 ruling E4-3). `is_runaway` is the SAME predicate
+        // the terminal classification asks -- a free component past
+        // detail::unbounded_artifact_scale() on a side it is unbounded on -- and
+        // what E4 adds is asking it HERE, on a pass that is about to take
+        // another step.
+        //
+        // WHY IT HAS TO BE ASKED HERE. Under the absolute centring the artifact
+        // was self-limiting: the regularized answer at the ridge IS the ridge's
+        // fixed point, so the next pass's p vanished, the KKT-point test fired,
+        // and the classification below read the runaway off the iterate. Under
+        // the proximal centring p is the STEP, so the same 1e+08-sized answer is
+        // proposed again from the point it just reached, and again, and the walk
+        // burns its cap instead of reporting the artifact (E3 §3h: all three
+        // runaway fixtures fail). Asked here, the fixtures' own sequence is
+        // restored exactly: the first pass takes the ridge step, and the pass
+        // that would take a SECOND one reports kNumericalError at an iterate
+        // that has genuinely run away -- which is what those fixtures assert
+        // (|x(0)| > 1e7 AND the status), and why the guard is placed after the
+        // step rather than before it.
+        // ==================================================================
+        if (is_runaway(qp, x, ws, eff_opts)) {
+            status = QpStatus::kNumericalError;
+#ifdef HVEN_TESTING
+            walk_obs.record().action = detail::testing::QpWalkAction::kTerminal;
+#endif
+            break;
         }
 
         // NEGATIVE-CURVATURE RIDE (section 4c). Armed only on the
@@ -2312,6 +2560,74 @@ double QpEngine::worst_structural_violation(const QpProblem &qp, const Vec &x, c
     return worst;
 }
 
+// See the declaration for what this is for and why it is silent on a
+// restoration pass. The lambdas priced here are the CANDIDATE's own
+// (eqp.lambda_e / eqp.lambda_w), because the drift being measured is the one
+// THOSE multipliers produce.
+bool QpEngine::eqp_answer_drifts_off_met_rows(const QpProblem &qp, const WorkingSet &ws,
+                                              const Vec &x, const EqpResult &eqp, const Vec &Aix,
+                                              const Vec &ai_row_norm1, const Vec &ae_row_norm1,
+                                              const QpOptions &opts) const {
+    const double xmag = std::max(x.lpNorm<Eigen::Infinity>(), eqp.x.lpNorm<Eigen::Infinity>());
+    const auto &aw = ws.active_ineq();
+    const Vec r_in_e = qp.me() > 0 ? Vec(qp.Ae * x - qp.be) : Vec();
+    const Vec r_out_e = qp.me() > 0 ? Vec(qp.Ae * eqp.x - qp.be) : Vec();
+    // THE CLOSED-FACE QUALIFIER, and it is what keeps the check off an
+    // INCONSISTENT row set. The invariant being defended is "a step keeps the
+    // rows the iterate already met"; it is only defensible when a point meeting
+    // ALL of them exists, and the walk's own evidence for that is that the
+    // incoming iterate meets all of them. On the canonical inconsistent pair
+    // (e_0 = 0 beside e_0 = 1) the incoming iterate meets one row and cannot
+    // meet the other, the step MUST leave the one it is on, and the walk's job
+    // there is to reach its verdict rather than to hold a row closed. MEASURED:
+    // without this qualifier the pre-E2 arm of
+    // T7Fix2AFailedStartRepairDoesNotRefineThroughTheProbedFactorization exits
+    // the ladder at x0 = 0 instead of walking to the least-squares x0 = 0.5, and
+    // ObjectiveInflatedMultiplier's option-off arm loses its point too. Both
+    // rows still read kInfeasible, so nothing was wrong -- but a check that
+    // speaks where it has nothing to defend is a check that costs answers.
+    bool face_closed = true;
+    for (Index j = 0; j < qp.me() && face_closed; ++j) {
+        const double row_scale = std::max({1.0, std::abs(qp.be(j)), ae_row_norm1(j) * xmag});
+        face_closed = std::abs(r_in_e(j)) <= face_row_target(row_scale, eqp.lambda_e(j), opts);
+    }
+    for (std::size_t k = 0; k < aw.size() && face_closed; ++k) {
+        const Index j = aw[k];
+        const double row_scale = std::max({1.0, std::abs(qp.bi(j)), ai_row_norm1(j) * xmag});
+        face_closed = std::abs(Aix(j) - qp.bi(j)) <=
+                      face_row_target(row_scale, eqp.lambda_w(static_cast<Index>(k)), opts);
+    }
+    if (!face_closed) {
+        return false;
+    }
+    // THE TRIGGER IS A GROSS ONE, and deliberately: `face_row_target` is the
+    // classifier's threshold (~1e-05 of a row's scale) and a drift that merely
+    // clears it is the ordinary accuracy of a regularized solve, not the pathology
+    // this check exists for. What it exists for is a drift of ORDER ONE relative to
+    // the row's scale -- dual_mu * |lambda| with |lambda| ~ 1/primal_delta -- and
+    // firing on anything less buys nothing and costs the whole rest of the solve a
+    // raised primal_delta, because the ladder it routes into is global by design.
+    // kEqpRowDriftFloor is that floor, MEASURED: see its own note.
+    const double gross = detail::kEqpRowDriftFloor;
+    for (Index j = 0; j < qp.me(); ++j) {
+        const double row_scale = std::max({1.0, std::abs(qp.be(j)), ae_row_norm1(j) * xmag});
+        if (std::abs(r_out_e(j)) >
+            std::max(face_row_target(row_scale, eqp.lambda_e(j), opts), gross * row_scale)) {
+            return true;
+        }
+    }
+    for (std::size_t k = 0; k < aw.size(); ++k) {
+        const Index j = aw[k];
+        const double row_scale = std::max({1.0, std::abs(qp.bi(j)), ai_row_norm1(j) * xmag});
+        if (std::abs(qp.Ai.row(j).dot(eqp.x) - qp.bi(j)) >
+            std::max(face_row_target(row_scale, eqp.lambda_w(static_cast<Index>(k)), opts),
+                     gross * row_scale)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 double QpEngine::face_row_target(double row_scale, double lambda, const QpOptions &opts) const {
     return std::max(detail::kInfeasibilityMarginFactor * row_tolerance(row_scale, lambda, opts),
                     detail::kVerdictRefineRelFloor * row_scale);
@@ -2351,8 +2667,14 @@ bool QpEngine::refine_face_for_verdict(const QpProblem &qp, const WorkingSet &ws
         return false; // nothing trustworthy to re-form -- see the declaration
     }
     const Index n = qp.n();
+    // THE PROXIMAL CENTRE at the verdict site is the point the walk is standing
+    // on RIGHT NOW (the terminal branch has already snapped `x` onto the EQP
+    // answer), because what this refinement is asked for is the nearest point of
+    // the same face that closes its rows -- and because the declaration's rule is
+    // that this site re-forms THE SAME system the pass's own solve posed, which is
+    // a system centred at the iterate.
     const BorderedSystem sys =
-        build_bordered_system(qp, border.k0, border.k0_rows, border.ledger, ws, opts);
+        build_bordered_system(qp, border.k0, border.k0_rows, border.ledger, ws, x, opts);
 
     // solve_bordered_eqp's own scatter, and where the residue enters: the
     // exact bound is written over a pin the solve satisfies only to
@@ -2462,9 +2784,13 @@ bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const Wor
             x_fixed(i) = pinned_value(qp, st, i);
         }
     }
+    // THE SAME rhs solve_eqp SOLVED, proximal term included -- this site's own
+    // declaration says the two must stay in step, and the centre is the iterate
+    // the walk stands on (the border twin's note above states why).
     Vec rhs(dim);
     for (Index k = 0; k < n_free; ++k) {
-        rhs(k) = -qp.g(assembly.free_of_full[static_cast<std::size_t>(k)]) - assembly.rhs_shift(k);
+        const Index i = assembly.free_of_full[static_cast<std::size_t>(k)];
+        rhs(k) = -qp.g(i) - assembly.rhs_shift(k) + opts.primal_delta * x(i);
     }
     for (Index r = 0; r < me; ++r) {
         rhs(n_free + r) = qp.be(r) - assembly.rhs_shift(n_free + r);
@@ -2474,8 +2800,9 @@ bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const Wor
             qp.bi(aw[static_cast<std::size_t>(k)]) - assembly.rhs_shift(n_free + me + k);
     }
 
+    // The DUAL regularization only: the primal delta is the proximal term of the
+    // model on this path too (eqp_solve.h's Iterative refinement section).
     Vec reg = Vec::Zero(dim);
-    reg.head(n_free).setConstant(opts.primal_delta);
     reg.segment(n_free, me + n_working).setConstant(-opts.dual_mu);
     const auto residual_of = [&](const Vec &yy) {
         const Vec Kyy = assembly.K.template selfadjointView<Eigen::Upper>() * yy;
@@ -2569,20 +2896,21 @@ bool QpEngine::in_working(const WorkingSet &ws, Index row) {
     return std::binary_search(aw.begin(), aw.end(), row);
 }
 
-EqpResult QpEngine::eqp_candidate(const QpProblem &qp, const WorkingSet &ws, detail::KktFactor &kkt,
-                                  EliminatedFace &face, BorderState &border, QpCounters &counters,
-                                  detail::InertiaVerdict &verdict, const QpOptions &opts) const {
+EqpResult QpEngine::eqp_candidate(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
+                                  detail::KktFactor &kkt, EliminatedFace &face, BorderState &border,
+                                  QpCounters &counters, detail::InertiaVerdict &verdict,
+                                  const QpOptions &opts) const {
     // Invalidated HERE, so only the path that actually factorizes `kkt` this
     // iteration re-arms it: the verdict site refuses to reuse a factorization
     // no call of this iteration produced.
     face.factorized = false;
     if (opts_.ws_algebra == WorkingSetLinearAlgebra::kSchurBorder) {
-        return border_candidate(qp, ws, kkt, face, border, counters, verdict, opts);
+        return border_candidate(qp, ws, x_k, kkt, face, border, counters, verdict, opts);
     }
-    return eliminated_candidate(qp, ws, kkt, face, counters, verdict, opts);
+    return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
 }
 
-EqpResult QpEngine::eliminated_candidate(const QpProblem &qp, const WorkingSet &ws,
+EqpResult QpEngine::eliminated_candidate(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
                                          detail::KktFactor &kkt, EliminatedFace &face,
                                          QpCounters &counters, detail::InertiaVerdict &verdict,
                                          const QpOptions &opts) const {
@@ -2612,13 +2940,22 @@ EqpResult QpEngine::eliminated_candidate(const QpProblem &qp, const WorkingSet &
         return EqpResult{std::move(xf), Vec::Zero(0), Vec::Zero(0)};
     }
     ++counters.factorizations;
-    EqpResult res = solve_eqp(qp, ws, kkt, opts);
+    EqpResult res = solve_eqp(qp, ws, x_k, kkt, opts);
     // Armed only now: solve_eqp has returned, so `kkt` really does hold this
     // face's factorization and the verdict site may solve through it.
     face.capture(ws, kkt);
     // EXTRA steps only, i.e. identically 0 (solver_counters.h): the eliminated path
     // takes its one mandatory step and has no iterated loop.
     counters.eqp_refine_steps += res.refine_steps;
+    // THE EQP-SITE RESIDUAL CHECK's cost and verdict (E4-4). A refusal here is
+    // terminal for the pass -- the eliminated path IS the retreat the border path
+    // falls back to, so there is nothing further to fall back to -- and the walk
+    // reads it off the returned result (section 5).
+    counters.eqp_refine_iters += res.residual_refine_iters;
+    counters.eqp_polish_steps += res.polish_steps;
+    if (res.residual_refused) {
+        ++counters.eqp_residual_refusals;
+    }
     // solve_eqp leaves `kkt` holding the factorization of the
     // bound-ELIMINATED K, whose expected inertia is (n_free, me +
     // n_working, 0) -- the reduced form of the gate in section 4b.
@@ -2656,7 +2993,7 @@ EqpResult QpEngine::eliminated_candidate(const QpProblem &qp, const WorkingSet &
     return res;
 }
 
-EqpResult QpEngine::border_candidate(const QpProblem &qp, const WorkingSet &ws,
+EqpResult QpEngine::border_candidate(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
                                      detail::KktFactor &kkt, EliminatedFace &face,
                                      BorderState &border, QpCounters &counters,
                                      detail::InertiaVerdict &verdict, const QpOptions &opts) const {
@@ -2679,7 +3016,7 @@ EqpResult QpEngine::border_candidate(const QpProblem &qp, const WorkingSet &ws,
     // work the dominant cost.
     if (border.latched) {
         if (latch_still_holds(ws)) {
-            return eliminated_candidate(qp, ws, kkt, face, counters, verdict, opts);
+            return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
         }
         // The pin count fell back to schur_cap or below, so bordering is
         // possible again. The stale stack cannot be incrementally repaired
@@ -2689,7 +3026,7 @@ EqpResult QpEngine::border_candidate(const QpProblem &qp, const WorkingSet &ws,
         border.latched = false;
         rebuild_k0(qp, ws, border, counters, opts);
         sync_borders(qp, ws, border, counters, opts);
-        return border_solve_or_fall_back(qp, ws, kkt, face, border, counters, verdict,
+        return border_solve_or_fall_back(qp, ws, x_k, kkt, face, border, counters, verdict,
                                          /*rebuilt=*/true, opts);
     }
 
@@ -2715,14 +3052,15 @@ EqpResult QpEngine::border_candidate(const QpProblem &qp, const WorkingSet &ws,
         rebuilt = true;
     }
     sync_borders(qp, ws, border, counters, opts);
-    return border_solve_or_fall_back(qp, ws, kkt, face, border, counters, verdict, rebuilt, opts);
+    return border_solve_or_fall_back(qp, ws, x_k, kkt, face, border, counters, verdict, rebuilt,
+                                     opts);
 }
 
 EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const WorkingSet &ws,
-                                              detail::KktFactor &kkt, EliminatedFace &face,
-                                              BorderState &border, QpCounters &counters,
-                                              detail::InertiaVerdict &verdict, bool rebuilt,
-                                              const QpOptions &opts) const {
+                                              const Vec &x_k, detail::KktFactor &kkt,
+                                              EliminatedFace &face, BorderState &border,
+                                              QpCounters &counters, detail::InertiaVerdict &verdict,
+                                              bool rebuilt, const QpOptions &opts) const {
 #ifdef HVEN_TESTING
     // The seam's record of the border stack as this call FOUND it: "marked for
     // rebuild" is the fact the review asked for, and it is only observable
@@ -2746,19 +3084,19 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
         // eliminable, and stop maintaining a border stack nothing reads.
         if (rebuild_would_be_noop(ws, border)) {
             border.latched = true;
-            return eliminated_candidate(qp, ws, kkt, face, counters, verdict, opts);
+            return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
         }
         // A rebuild that has already been spent this iteration, or one
         // that did not clear the flag, also falls back -- but only latches
         // if the state it left behind is the pins-only dead end.
         if (rebuilt) {
-            return eliminated_candidate(qp, ws, kkt, face, counters, verdict, opts);
+            return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
         }
         rebuild_k0(qp, ws, border, counters, opts);
         sync_borders(qp, ws, border, counters, opts);
         if (border.schur->needs_refactorization()) {
             border.latched = rebuild_would_be_noop(ws, border);
-            return eliminated_candidate(qp, ws, kkt, face, counters, verdict, opts);
+            return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
         }
     }
 
@@ -2783,9 +3121,21 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
         // verdict describing a system that was never solved.
         verdict = border_inertia_verdict(qp, border);
         EqpResult res = solve_bordered_eqp(qp, border.k0, border.k0_rows, *border.schur,
-                                           border.ledger, ws, opts);
+                                           border.ledger, ws, x_k, opts);
         // TOTAL steps, mandatory first one included (solver_counters.h).
         counters.border_refine_steps += res.refine_steps;
+        counters.eqp_refine_iters += res.residual_refine_iters;
+        counters.eqp_polish_steps += res.polish_steps;
+        if (res.residual_refused) {
+            // THE EQP-SITE RESIDUAL CHECK REFUSED the bordered answer (E4-4): it
+            // does not solve the system the Schur stack was handed. That is the
+            // same class of failure -- a factor whose answer cannot be trusted --
+            // this path already answers by degrading to the bound-eliminated form,
+            // so it takes THAT retreat rather than inventing one, and the
+            // eliminated twin gets its own residual check on its own factor.
+            ++counters.eqp_residual_refusals;
+            return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
+        }
 #ifdef HVEN_TESTING
         // The seam's record that the direction THIS pass used came through the
         // BORDER/SCHUR path, with the live stack's dimension and this call's
@@ -2807,7 +3157,7 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
         if (!border.schur->needs_refactorization()) {
             throw;
         }
-        return eliminated_candidate(qp, ws, kkt, face, counters, verdict, opts);
+        return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
     }
 }
 
@@ -2866,18 +3216,18 @@ detail::InertiaVerdict QpEngine::border_inertia_verdict(const QpProblem &qp,
 }
 
 detail::InertiaVerdict QpEngine::probe_inertia(const QpProblem &qp, const WorkingSet &ws,
-                                               detail::KktFactor &kkt, EliminatedFace &face,
-                                               BorderState &border, QpCounters &counters,
-                                               const QpOptions &opts) const {
+                                               const Vec &x_k, detail::KktFactor &kkt,
+                                               EliminatedFace &face, BorderState &border,
+                                               QpCounters &counters, const QpOptions &opts) const {
     detail::InertiaVerdict verdict = detail::InertiaVerdict::kOk;
     // THE LOOP'S OWN KEY, not a throwaway: this call re-factorizes `kkt` for a
     // HYPOTHETICAL working set, so the key must follow it there -- disarmed on
     // the border path, re-armed on the PROBED set otherwise. See EliminatedFace.
-    (void)eqp_candidate(qp, ws, kkt, face, border, counters, verdict, opts);
+    (void)eqp_candidate(qp, ws, x_k, kkt, face, border, counters, verdict, opts);
     return verdict;
 }
 
-bool QpEngine::probe_zero_multiplier_drops(const QpProblem &qp, const Vec &shift,
+bool QpEngine::probe_zero_multiplier_drops(const QpProblem &qp, const Vec &x_k, const Vec &shift,
                                            const Vec &lambda_i, const Vec &z, WorkingSet &ws,
                                            detail::KktFactor &kkt, EliminatedFace &face,
                                            BorderState &border, QpCounters &counters,
@@ -2936,7 +3286,7 @@ bool QpEngine::probe_zero_multiplier_drops(const QpProblem &qp, const Vec &shift
         }
 
         const detail::InertiaVerdict verdict =
-            probe_inertia(qp, ws, kkt, face, border, counters, opts);
+            probe_inertia(qp, ws, x_k, kkt, face, border, counters, opts);
         if (verdict == detail::InertiaVerdict::kWrong) {
 #ifdef HVEN_TESTING
             // The seam's per-minor record of the OTHER drop route -- the one
@@ -3099,8 +3449,9 @@ bool QpEngine::pin_at_best_bound(const QpProblem &qp, WorkingSet &ws, Vec &x, co
     return true;
 }
 
-bool QpEngine::reread_wrong_inertia(const QpProblem &qp, const WorkingSet &ws, QpCounters &counters,
-                                    const QpOptions &opts, detail::InertiaVerdict &verdict) const {
+bool QpEngine::reread_wrong_inertia(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
+                                    QpCounters &counters, const QpOptions &opts,
+                                    detail::InertiaVerdict &verdict) const {
     if (!opts.independent_working_set || verdict != detail::InertiaVerdict::kWrong) {
         return false;
     }
@@ -3112,7 +3463,7 @@ bool QpEngine::reread_wrong_inertia(const QpProblem &qp, const WorkingSet &ws, Q
         o.dual_mu = mu;
         detail::InertiaVerdict v = detail::InertiaVerdict::kWrong;
         try {
-            (void)eliminated_candidate(qp, ws, local, local_face, counters, v, o);
+            (void)eliminated_candidate(qp, ws, x_k, local, local_face, counters, v, o);
         } catch (const std::runtime_error &) {
             v = detail::InertiaVerdict::kWrong; // no read: the kWrong stands
         }
@@ -3162,8 +3513,6 @@ bool QpEngine::refine_terminal_mu_free(const QpProblem &qp, const WorkingSet &ws
     ++counters.terminal_mu_refines;
     const Index n = qp.n();
     const Index me = qp.me();
-    const std::vector<Index> &aw = ws.active_ineq();
-    const Index n_working = static_cast<Index>(aw.size());
     QpOptions o = opts;
     o.dual_mu = 0.0;
 
@@ -3174,60 +3523,20 @@ bool QpEngine::refine_terminal_mu_free(const QpProblem &qp, const WorkingSet &ws
     detail::InertiaVerdict v = detail::InertiaVerdict::kWrong;
     EqpResult r;
     try {
-        r = eliminated_candidate(qp, ws, local, local_face, counters, v, o);
+        r = eliminated_candidate(qp, ws, x, local, local_face, counters, v, o);
     } catch (const std::runtime_error &) {
         return false; // no mu-free solve: the existing classification stands
     }
 
     // Up to kTerminalMuRefineSteps further steps against the residual of the
     // UNREGULARIZED system (primal_delta removed too), each kept only while
-    // that residual strictly falls.
+    // that residual strictly falls. THE SHARED PRIMITIVE (M7 W2 E4 fix1):
+    // eqp_solve.h's polish_eqp_unregularized, which this block was factored
+    // into when the terminal polish needed the identical loop -- `o` already
+    // carries dual_mu = 0, so what it backs out here is the primal delta, as
+    // before, on the same factor and with the same strict-decrease safeguard.
     if (local_face.factorized) {
-        const KktAssembly assembly = assemble_kkt(qp, ws, o);
-        const Index n_free = static_cast<Index>(assembly.free_of_full.size());
-        const Index dim = n_free + me + n_working;
-        Vec rhs(dim);
-        for (Index k = 0; k < n_free; ++k) {
-            rhs(k) =
-                -qp.g(assembly.free_of_full[static_cast<std::size_t>(k)]) - assembly.rhs_shift(k);
-        }
-        for (Index row = 0; row < me; ++row) {
-            rhs(n_free + row) = qp.be(row) - assembly.rhs_shift(n_free + row);
-        }
-        for (Index k = 0; k < n_working; ++k) {
-            rhs(n_free + me + k) =
-                qp.bi(aw[static_cast<std::size_t>(k)]) - assembly.rhs_shift(n_free + me + k);
-        }
-        Vec y(dim);
-        for (Index k = 0; k < n_free; ++k) {
-            y(k) = r.x(assembly.free_of_full[static_cast<std::size_t>(k)]);
-        }
-        y.segment(n_free, me) = r.lambda_e;
-        y.segment(n_free + me, n_working) = r.lambda_w;
-        Vec reg = Vec::Zero(dim);
-        reg.head(n_free).setConstant(o.primal_delta);
-        const auto residual_of = [&](const Vec &yy) {
-            const Vec Kyy = assembly.K.template selfadjointView<Eigen::Upper>() * yy;
-            return Vec((rhs - Kyy) + reg.cwiseProduct(yy));
-        };
-        Vec res = residual_of(y);
-        double res_inf = res.lpNorm<Eigen::Infinity>();
-        for (Index step = 0; step < detail::kTerminalMuRefineSteps; ++step) {
-            const Vec candidate = y + detail::solve_vec(local, res);
-            Vec cres = residual_of(candidate);
-            const double cres_inf = cres.lpNorm<Eigen::Infinity>();
-            if (!(cres_inf < res_inf)) {
-                break; // stagnated, diverging, or NaN -- keep the better point
-            }
-            y = candidate;
-            res = std::move(cres);
-            res_inf = cres_inf;
-        }
-        for (Index k = 0; k < n_free; ++k) {
-            r.x(assembly.free_of_full[static_cast<std::size_t>(k)]) = y(k);
-        }
-        r.lambda_e = y.segment(n_free, me);
-        r.lambda_w = y.segment(n_free + me, n_working);
+        (void)polish_eqp_unregularized(qp, ws, local, o, detail::kTerminalMuRefineSteps, r);
     }
 
     // ADOPTION: every row and every bound of `qp` within feas_tol * row_scale,
@@ -3268,6 +3577,177 @@ bool QpEngine::refine_terminal_mu_free(const QpProblem &qp, const WorkingSet &ws
     x = r.x;
     price(qp, ws, r, lambda_e, lambda_i, z);
     ++counters.terminal_mu_refine_rescues;
+    return true;
+}
+
+bool QpEngine::adopt_polished_candidate(const QpProblem &qp, const WorkingSet &ws,
+                                        const EqpResult &cand, const detail::TerminalKkt &before,
+                                        const QpOptions &opts, Vec &x, Vec &lambda_e, Vec &lambda_i,
+                                        Vec &z) const {
+    if (cand.x.size() != qp.n() || !cand.x.allFinite() || !cand.lambda_e.allFinite() ||
+        !cand.lambda_w.allFinite()) {
+        return false;
+    }
+    Vec cand_le = Vec::Zero(qp.me());
+    Vec cand_li = Vec::Zero(qp.mi());
+    Vec cand_z = Vec::Zero(qp.n());
+    price(qp, ws, cand, cand_le, cand_li, cand_z);
+    const detail::TerminalKkt after =
+        detail::terminal_kkt(qp, ws, cand.x, cand_le, cand_li, cand_z);
+
+    // ACCEPTANCE, written as a chain of !(good) tests so a NaN anywhere rejects.
+    // FEASIBILITY IS KEPT: no row and no bound outside feas_tol that the incumbent
+    // met, and nothing worse than the incumbent either way. Then no residual may
+    // worsen and at least one must strictly improve -- so a candidate that is
+    // merely different is refused, and `terminal_polish_rejected` counts a cost
+    // and never a risk.
+    //
+    // THE SLACK ON BOTH HALVES (fix round 2): kTerminalPolishWorseFactor, whose own
+    // note carries the measurement. "No worse" means no worse by more than that
+    // factor and "strictly better" means better BY that factor, so the decision is
+    // a margin on each side instead of a tie-break that one ulp of one residual can
+    // settle differently in two builds of the same expression.
+    //
+    // THE SLACK IS ON THE DUAL RESIDUALS ONLY, AND THE ROWS STAY EXACT. MEASURED:
+    // with the slack on the row half as well, a candidate may be up to 4x LESS
+    // feasible than the incumbent, and on an elastic relaxation whose incumbent
+    // rows sit at 1e-3 that is enough to make the exported point read a structural
+    // violation -- the T7 feasible census went to 16 open relaxations certified
+    // infeasible against its own claim of 0. Feasibility is the one thing the
+    // polish may never trade, so `after.rows` is compared exactly on both halves.
+    const double slack = detail::kTerminalPolishWorseFactor;
+    const bool feasible = after.rows <= std::max(opts.feas_tol, before.rows);
+    const bool no_worse = after.stationarity <= slack * before.stationarity &&
+                          after.rows <= before.rows &&
+                          after.complementarity <= slack * before.complementarity;
+    const bool strictly_better = slack * after.stationarity < before.stationarity ||
+                                 after.rows < before.rows ||
+                                 slack * after.complementarity < before.complementarity;
+    if (!after.all_finite() || !feasible || !no_worse || !strictly_better) {
+        return false;
+    }
+    x = cand.x;
+    lambda_e = std::move(cand_le);
+    lambda_i = std::move(cand_li);
+    z = std::move(cand_z);
+    return true;
+}
+
+bool QpEngine::polish_footprint_open(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                                     const Vec &lambda_e, const Vec &lambda_i, const Vec &z,
+                                     const QpOptions &opts) const {
+    // TWO DISJUNCTS, both on quantities detail::terminal_kkt reports at THIS point,
+    // both written as !(v <= t) so a NaN is "open" -- the acceptance test refuses a
+    // non-finite candidate anyway, so the cost of being wrong here is one
+    // factorization and never an answer.
+    const detail::TerminalKkt now = detail::terminal_kkt(qp, ws, x, lambda_e, lambda_i, z);
+    // (a) THE COMPLEMENTARITY PRODUCT, which is what a consumer reads; the
+    // threshold's own note calibrates it.
+    if (!(now.complementarity <= detail::kTerminalPolishComplFactor * opts.feas_tol)) {
+        return true;
+    }
+    // (b) THE STATIONARITY RESIDUAL, relative to its own scale. The KKT-point test
+    // (section 5) admits a point at opt_tol * scale and stops there, by design;
+    // where the walk it replaced kept stepping until the answer stopped moving it
+    // reached several decades further. That difference is real and it is visible at
+    // the driver's own KKT columns, so a point with decades left to gain gets the
+    // polish -- which reaches them in ONE solve instead of the extra passes the old
+    // walk spent.
+    return !(now.stationarity <= detail::kTerminalPolishStatFactor * opts.opt_tol);
+}
+
+bool QpEngine::polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
+                                     const EqpResult &pass_answer, Vec &x, Vec &lambda_e,
+                                     Vec &lambda_i, Vec &z, QpCounters &counters,
+                                     const QpOptions &opts) const {
+    const detail::TerminalKkt before = detail::terminal_kkt(qp, ws, x, lambda_e, lambda_i, z);
+
+    // STAGE 1, FREE: the pass's OWN EQP answer, which solve_eqp has already taken
+    // the regularization back out of (eqp_solve.h's UNREGULARIZED POLISH). On a
+    // face with curvature along its null space that answer IS the face's exact KKT
+    // point, and the terminal iterate is not: on the stationary-on-working-set
+    // disjunct of the KKT-point test nothing moved, deliberately, so the point the
+    // walk stands on still carries whatever the previous step left. Adopting the
+    // answer here costs NO factorization and no solve -- and it is admissible here
+    // and not in the loop because the acceptance test below reads every row and
+    // every bound of the problem, which is what the ratio test the walk skips
+    // would have protected, and because nothing happens afterwards.
+    if (adopt_polished_candidate(qp, ws, pass_answer, before, opts, x, lambda_e, lambda_i, z)) {
+        ++counters.terminal_polish_adopted;
+        return true;
+    }
+
+    // STAGE 2, ONE FACTORIZATION: the face re-solved with the DUAL regularization
+    // out of the SYSTEM rather than only out of the refinement target. What stage 1
+    // cannot reach is a point whose working-row slack is dual_mu*|lambda| because
+    // the system that produced it had -dual_mu on those rows -- the answer is then
+    // the right answer to the wrong system, and no refinement of it against the
+    // right one converges from a factor whose pivots came from the other. That
+    // slack is what the NLP-level complementarity check squares (the B-1 term), so
+    // it is worth a factorization at a point the walk has certified.
+    ++counters.terminal_polish_solves;
+    QpOptions o = opts;
+    o.dual_mu = 0.0;
+
+    // The mu-free EQP of the FINAL face, in a LOCAL factor and a LOCAL face:
+    // the pass's own factor and border stack are untouched, and the answer is
+    // the bound-ELIMINATED one on both algebras, so the polished point a border
+    // solve reports and the one a refactorize solve reports come out of the same
+    // system.
+    //
+    // ITS FACTORIZATION IS CHARGED TO `terminal_polish_solves` AND NOT TO
+    // `factorizations`, which is the one place this function departs from
+    // refine_terminal_mu_free's accounting, and the reason is what
+    // `factorizations` MEANS to its consumers. It is the cost of the active-set
+    // SEARCH: every budget is written against it, the hot-handle contract is
+    // stated as `qp_factorizations == 0` on a reused K0 (WarmStart's own pins),
+    // and the battery's cost tripwire reads it. This solve searches nothing and
+    // reuses nothing -- it re-solves a face the walk has already finished with,
+    // after the answer is fixed -- so charging it there would make a
+    // zero-factorization hot reuse report one factorization and destroy the pin's
+    // ability to see a LOST hot reuse at all. Nothing is hidden: the count is
+    // `terminal_polish_solves`, one per solve entered, asserted and aggregated
+    // into SqpCounters like every other counter, and a consumer that wants the
+    // total forms `factorizations + terminal_polish_solves`. REGISTERED for the
+    // settler as an accounting choice, with this as the argument.
+    //
+    // The EQP-level fields the local solve moves ARE folded back below: they
+    // describe the solve's own arithmetic, which no other counter reports.
+    detail::KktFactor local(threads_);
+    EliminatedFace local_face;
+    detail::InertiaVerdict v = detail::InertiaVerdict::kWrong;
+    QpCounters local_counters;
+    EqpResult r;
+    try {
+        r = eliminated_candidate(qp, ws, x, local, local_face, local_counters, v, o);
+    } catch (const std::runtime_error &) {
+        counters.eqp_refine_iters += local_counters.eqp_refine_iters;
+        counters.eqp_residual_refusals += local_counters.eqp_residual_refusals;
+        counters.eqp_polish_steps += local_counters.eqp_polish_steps;
+        ++counters.terminal_polish_rejected;
+        return false; // no mu-free solve: the walk's own point stands
+    }
+    counters.eqp_refine_iters += local_counters.eqp_refine_iters;
+    counters.eqp_residual_refusals += local_counters.eqp_residual_refusals;
+    counters.eqp_polish_steps += local_counters.eqp_polish_steps;
+    // AND THE PRIMAL DELTA BACKED OUT OF THE ANSWER, which is consistent exactly
+    // here: at a terminal point the step is going to zero, so the proximal
+    // penalty's own term delta*(x - x_k) is going to zero with it and the face's
+    // unregularized KKT system is the one the point should satisfy.
+    if (local_face.factorized) {
+        (void)polish_eqp_unregularized(qp, ws, local, o, detail::kTerminalPolishSteps, r);
+    }
+    if (r.x.size() != qp.n() || !r.x.allFinite() || !r.lambda_e.allFinite() ||
+        !r.lambda_w.allFinite()) {
+        ++counters.terminal_polish_rejected;
+        return false;
+    }
+
+    if (!adopt_polished_candidate(qp, ws, r, before, opts, x, lambda_e, lambda_i, z)) {
+        ++counters.terminal_polish_rejected;
+        return false;
+    }
+    ++counters.terminal_polish_adopted;
     return true;
 }
 
@@ -3320,7 +3800,7 @@ bool QpEngine::repair_temporary_vertex(const QpProblem &qp, WorkingSet &ws, Vec 
             continue; // unbounded both ways: nothing to pin against
         }
         pinned.push_back(i);
-        verdict = probe_inertia(qp, ws, kkt, face, border, counters, opts);
+        verdict = probe_inertia(qp, ws, x, kkt, face, border, counters, opts);
         if (verdict != detail::InertiaVerdict::kWrong) {
             break; // repaired, or no longer verifiable
         }
@@ -3343,7 +3823,7 @@ bool QpEngine::repair_temporary_vertex(const QpProblem &qp, WorkingSet &ws, Vec 
         const auto si = static_cast<std::size_t>(*it);
         const BoundState held = ws.bound_state()[si];
         ws.bound_state()[si] = BoundState::kFree;
-        if (probe_inertia(qp, ws, kkt, face, border, counters, opts) !=
+        if (probe_inertia(qp, ws, x, kkt, face, border, counters, opts) !=
             detail::InertiaVerdict::kOk) {
             ws.bound_state()[si] = held; // negative curvature is still there: keep the pin
         }

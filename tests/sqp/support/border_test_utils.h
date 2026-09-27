@@ -43,11 +43,27 @@
 // K0_true = K0 - diag(reg) implies r = rhs - K0_true*sol = (rhs - K0*sol) +
 // diag(reg)*sol -- refines toward the same target solve_eqp's own
 // refinement step converges to.
+//
+// --- AND THE UNREGULARIZED POLISH (M7 W2 E4 fix round 1) ---
+//
+// As of E4 that refinement step targets the PROXIMAL system: the primal delta is
+// a term of the model there, not an error, so `bordered_regularization` no longer
+// reports it and `refine_bordered_solve` no longer backs it out (bordered_eqp.h
+// states why). What takes it back out, on BOTH paths and at the same point in
+// each solve, is the UNREGULARIZED POLISH -- solve_eqp's own
+// `polish_eqp_core` and `solve_bordered_eqp`'s `polish_bordered_unregularized`,
+// each guarded by strict decrease of the FACE'S OWN exact residual. So a test
+// that hand-rolls the border path and compares against solve_eqp must apply the
+// border polish too, or it compares a delta-free answer against one that still
+// carries O(primal_delta) ~ 1e-8 and the 1e-9 assertion cannot hold. Both call
+// sites do, through the second alias below, with x_k = 0 -- the centre those two
+// tests pass to solve_eqp.
 
 #include <hven/detail/kkt/bordered_eqp.h>
 
 namespace hven::solvers::test_support {
 
+using hven::solvers::polish_bordered_unregularized;
 using hven::solvers::refine_bordered_solve;
 
 } // namespace hven::solvers::test_support

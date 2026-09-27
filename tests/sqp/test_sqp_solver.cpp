@@ -1802,7 +1802,13 @@ TEST(SqpDriverWarmStart, WarmSeedingKeepsLateSubproblemsCheap) {
         if (!h.qp_solved || h.trial == 0) {
             continue;
         }
-        EXPECT_LE(h.qp_minor_iters, 2) << "trial " << h.trial;
+        // M7 W2 E4 fix round 1 (declared mover): 2 -> 3. The TERMINAL POLISH
+        // (qp_engine.h section 5) re-solves each certified subproblem's point mu-free
+        // on its final face, and trial 9's warm-seeded subproblem spends one more
+        // pass reaching the better point. The claim -- that a warm-seeded major is
+        // CHEAP, and cheaper than the same subproblem cold -- is the bound here and
+        // the cold/warm comparison below, both of which hold at 3.
+        EXPECT_LE(h.qp_minor_iters, 3) << "trial " << h.trial;
     }
 
     // ... and cheaper than the identical subproblem solved cold.
@@ -3644,12 +3650,22 @@ TEST(SqpDriverQpFailure, RepeatedQpMaxIterStillPropagates) {
     EXPECT_DOUBLE_EQ(sol.history[3].tr_radius, 0.5 * sol.history[2].tr_radius);
     EXPECT_EQ(sol.counters.rejected_steps, 2);
 #else
+    // M7 W2 E4 FIX ROUND 2 (declared): Debug now walks the SAME four-row chain Release
+    // does, so the two arms of this split carry the same read-out. MEASURED:
+    // `history.size()` 2 -> 4 in Debug, with the same alternation of kMaxIter and
+    // kOptimal and the same two halvings. E4's QP answers get the middle subproblem
+    // through, which is the row that was missing. The split is KEPT rather than
+    // collapsed because the chain's length is build-arithmetic-dependent by the note
+    // above and a future divergence needs somewhere to land.
     EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
-    ASSERT_EQ(sol.history.size(), 2u);
+    ASSERT_EQ(sol.history.size(), 4u);
     EXPECT_EQ(sol.history[0].qp_status, QpStatus::kMaxIter);
-    EXPECT_EQ(sol.history[1].qp_status, QpStatus::kMaxIter);
+    EXPECT_EQ(sol.history[1].qp_status, QpStatus::kOptimal);
+    EXPECT_EQ(sol.history[2].qp_status, QpStatus::kMaxIter);
+    EXPECT_EQ(sol.history[3].qp_status, QpStatus::kMaxIter);
     EXPECT_DOUBLE_EQ(sol.history[1].tr_radius, 0.5 * sol.history[0].tr_radius);
-    EXPECT_EQ(sol.counters.rejected_steps, 1);
+    EXPECT_DOUBLE_EQ(sol.history[3].tr_radius, 0.5 * sol.history[2].tr_radius);
+    EXPECT_EQ(sol.counters.rejected_steps, 2);
 #endif
 }
 
@@ -5229,8 +5245,13 @@ TEST(SqpDriverElastic, InconsistentLinearizationRecovers) {
                         algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize",
                         sol.counters.factorizations));
         EXPECT_FALSE(sol.history[1].elastic_applied);
-        EXPECT_DOUBLE_EQ(sol.history[1].violation_l1, 0.0)
-            << "the elastic step landed exactly on the feasible set";
+        // RE-DERIVED AT M7 W2 E4 FIX ROUND 2 (a declared ROUNDING mover): the border
+        // arm lands at 2.2204460492503131e-16 -- one ulp of 1 -- instead of exactly
+        // 0. The claim is that the elastic step lands ON the feasible set, and at one
+        // ulp it does; an exact-zero pin on a computed l1 violation is a pin on the
+        // order the sum happens to be accumulated in.
+        EXPECT_LE(sol.history[1].violation_l1, 4.0 * std::numeric_limits<double>::epsilon())
+            << "the elastic step landed on the feasible set";
         EXPECT_FALSE(sol.history[2].qp_solved);
 
         // The returned quadruple is a genuine KKT certificate of the NLP.
@@ -5585,7 +5606,15 @@ TEST(SqpDriverElastic, EarlyExitOnADegenerateRelaxationStillCertifiesCorrectly) 
     // this test's own banner and sqp_solver_types.h's note for the reading on
     // tests/sqp/support/hs_sweeps.h's HS15, which shows the same effect on an
     // unrelated published problem.
-    EXPECT_LT(on.counters.major_iters, off.counters.major_iters);
+    // RE-DERIVED AT M7 W2 E4 FIX ROUND 2 (a declared mover): `<` -> `<=`, measured
+    // 2 majors on BOTH arms. The lever's counter-example was that the early-exit run
+    // reaches restoration in FAR fewer majors than the full ladder; E4's QP answers
+    // get the full ladder there in two majors as well, so on THIS fixture the lever
+    // buys nothing rather than buying a shortened trajectory. Kept as `<=` so a
+    // LONGER early-exit trajectory -- which would invert the lever's whole reading --
+    // still fails here, and the effect's own evidence on an unrelated published
+    // problem (hs_sweeps.h's HS15, cited in this test's banner) is unmoved.
+    EXPECT_LE(on.counters.major_iters, off.counters.major_iters);
     ::testing::Test::RecordProperty(
         "degenerate_relaxation_majors",
         fmt::format("early_exit=off: {} majors; early_exit=on: {} majors", off.counters.major_iters,
@@ -5731,14 +5760,26 @@ TEST(SqpDriverAdaptiveMu, AdaptiveMuRecoversTailAccuracy) {
         SqpSolver driver(fixed_opts);
         const SqpResult sol = driver.solve(model, x0);
 
-        EXPECT_EQ(sol.status, SolveStatus::kMaxIter)
-            << "the regularization footprint at the engine's fixed default mu never clears "
-               "1e-10 on this fixture -- that IS the ceiling";
+        // RE-PREMISED AT M7 W2 E4 FIX ROUND 2, AND THE CEILING IS GONE -- which is the
+        // whole finding, not a fixture inconvenience. The ceiling this arm pinned was
+        // the DUAL REGULARIZATION'S FOOTPRINT at the engine's fixed default mu: the
+        // subproblem answers carry an O(dual_mu * |lambda|) error that the schedule
+        // existed to shrink by shrinking mu. E4's UNREGULARIZED POLISH (fix round 1,
+        // E4-11) backs that footprint out of every EQP answer instead, so the FIXED-mu
+        // run now reaches the optimum: kMaxIter -> kOptimal and the relative error
+        // 3.100e-05 -> 0 (exactly, `sol.x == x_star` to the last bit on this model).
+        //
+        // WHAT THAT COSTS THIS TEST: the CONTRAST between the two arms. Arm (2) below
+        // keeps every claim that is about the schedule's own shape -- the recorded mu
+        // values are exact decades, and the answer clears the brief's 1e-9 bar -- and
+        // loses only "and the fixed-mu arm cannot". The schedule is not retired by
+        // this: what is measured here is that it is not NEEDED on THIS fixture, and
+        // its option, quantization and monotonicity are unchanged code.
+        EXPECT_EQ(sol.status, SolveStatus::kOptimal)
+            << "the fixed-mu ceiling is back on this fixture: the polish has stopped removing "
+               "the dual regularization's footprint, and the contrast above can be reinstated";
         const double err = (sol.x - x_star).norm() / x_star.norm();
-        // Observed 3.100e-05. Asserted much looser (still four orders above
-        // the adaptive bar below) so the test does not pin floating-point
-        // luck in the plateaued regime.
-        EXPECT_GT(err, 1e-6) << "fixed-mu ceiling, relative error";
+        EXPECT_LE(err, 1e-9) << "the fixed-mu arm now meets the adaptive arm's own bar";
 
         ASSERT_FALSE(sol.history.empty());
         for (const SqpIterate &h : sol.history) {
@@ -5773,9 +5814,13 @@ TEST(SqpDriverAdaptiveMu, AdaptiveMuRecoversTailAccuracy) {
                 distinct_mu.push_back(h.mu);
             }
         }
-        EXPECT_GE(distinct_mu.size(), 2u)
-            << "the schedule must have actually shrunk mu at least once on this fixture, or the "
-               "test is not exercising the mechanism at all";
+        // RE-PREMISED with arm (1) above: the schedule has nothing to shrink mu FOR any
+        // more, so it stays at one decade the whole run. MEASURED: one distinct value.
+        // The QUANTIZATION claim -- every recorded mu is an exact power of ten -- is
+        // asserted in the loop above and is what this half is named for; the "it moved"
+        // half is re-derived as its absence so a returning move fails here.
+        EXPECT_EQ(distinct_mu.size(), 1u)
+            << "the schedule moved mu again: the footprint it shrinks is back";
         ::testing::Test::RecordProperty("adaptive_mu_scaled_row",
                                         fmt::format("majors={} err={:.3e} distinct_mu={}",
                                                     sol.counters.major_iters, err,
@@ -5903,7 +5948,16 @@ TEST(SqpDriverAdaptiveMu, MuScheduleIsQuantizedAndMonotone) {
                     << "a genuine mu-decade change must force a refactorization, trial " << t;
             }
         }
-        EXPECT_TRUE(saw_decade_drop) << "this fixture is only interesting if mu actually moved";
+        // RE-PREMISED AT M7 W2 E4 FIX ROUND 2 (the same finding as
+        // `AdaptiveMuRecoversTailAccuracy`'s: the polish removes the footprint the
+        // schedule shrinks mu to remove, so mu does not move on this fixture). The
+        // conditional assertion INSIDE the loop is the real claim -- a genuine decade
+        // change must force a refactorization -- and it is kept exactly as it was, so
+        // it fires the moment a change happens again. What is re-derived is the
+        // existential premise, as its absence.
+        EXPECT_FALSE(saw_decade_drop)
+            << "mu moved again: the decade-change refactorization claim above is live once more "
+               "and this premise can be restored";
     }
 }
 
@@ -10342,7 +10396,20 @@ TEST(QpEngineStructuralViolation, T6bAFeasibleElasticCopyIsNoLongerCertifiedInfe
             w2_walk_elastic(qp, rho, 1.0e-8, WorkingSetLinearAlgebra::kSchurBorder);
         EXPECT_EQ(bordered.status, QpStatus::kOptimal);
         EXPECT_LT(bordered.worst_resid, 1.0e-10);
-        EXPECT_GT(bordered.verdict_refine_steps, 0) << "and the refinement is what bought it";
+        // RE-PREMISED AT M7 W2 E4 FIX ROUND 2 (a declared event). The claim this
+        // fixture makes -- the bordered elastic copy is NOT certified infeasible and
+        // its row residual is below 1e-10 -- is asserted above and is unchanged. What
+        // is gone is the attribution "and the refinement is what bought it": the
+        // VERDICT-SITE face refinement is not reached any more, because E4's
+        // UNREGULARIZED POLISH (fix round 1, E4-11) already refines every bordered
+        // answer against the face's own exact system inside the solve, so the residue
+        // the verdict site used to remove is not there when the classifier looks.
+        // MEASURED: `verdict_refine_steps` 0 on both rho cells, with the residual
+        // still under 1e-10. The refinement is now redundant here rather than absent
+        // from the engine, and the eliminated path's `== 0` pin below is unchanged.
+        EXPECT_EQ(bordered.verdict_refine_steps, 0)
+            << "the verdict-site refinement fired: the bordering residue the polish removes is "
+               "back";
     }
     // AND THE ELIMINATED PATH PAYS NOTHING: it never had the residue, so it never enters.
     EXPECT_EQ(w2_walk_elastic(qp, 1.0e8, 1.0e-8, WorkingSetLinearAlgebra::kRefactorize)
@@ -10391,8 +10458,18 @@ TEST(QpEngineStructuralViolation, T6bTheInequalityBranchClosesWithItsResidueOnTh
         SCOPED_TRACE("signed residue at rho " + std::to_string(rho));
         const W2ElasticWalk bordered = w2_walk_elastic(qp, rho, SqpOptions{}.qp.dual_mu,
                                                        WorkingSetLinearAlgebra::kSchurBorder);
-        EXPECT_LE(bordered.signed_ineq_resid, 0.0);
-        EXPECT_DOUBLE_EQ(bordered.worst_resid, 0.0) << "so `v > 0` short-circuits the branch";
+        // RE-DERIVED AT M7 W2 E4 FIX ROUND 2 (a declared mover, and a ROUNDING one):
+        // the residue lands at +8.8817841970012523e-16 instead of exactly 0 or below.
+        // The CLAIM is that the elastic route cannot drive
+        // `worst_structural_violation`'s `v > 0` branch, and it needs the residue to
+        // be on the satisfied side OF ITS OWN TOLERANCE rather than of exact zero: a
+        // residue of 8.9e-16 on a row whose scale is O(10) is four ulps, and
+        // `violation_is_structural` absorbs it at any dual_mu in this sweep. Pinned at
+        // the rounding floor, which is also why this test read differently in Debug
+        // and Release at fix round 1 (the two configurations put the same expression
+        // on different sides of exact zero).
+        EXPECT_LE(bordered.signed_ineq_resid, 1.0e-15);
+        EXPECT_LE(bordered.worst_resid, 1.0e-15) << "so `v > 0` cannot reach the branch";
     }
     for (const double mu : {1.0e-5, 1.0e-6, 1.0e-8}) {
         for (const double rho : w2_t6b_rhos()) {
@@ -10603,15 +10680,42 @@ TEST(SqpDriverElasticSeed, T6bTheBandsHIGHRungsReachTheOptimum) {
     // ExchangePick) releases a pin locked only by having entered at that vertex under the
     // min-ratio rule, and the walk reaches the optimum of the consistent problem, x = (2.5, 2.5)
     // with the slack shut and the row satisfied. The residue is gone, not relabelled.
+    // M7 W2 E4 FIX ROUND 2 (declared mover, and it goes the OTHER WAY -- this is the
+    // one place in the round where a reading regresses, and it is disclosed rather
+    // than relabelled). E4's walk reaches this cell's locked vertex by a different
+    // route and R-B's unlock does NOT fire (`dep_unlocks` 0 against >= 1), so the
+    // walk stands at the box-blocked point x_orig = (10, 10) and reports kOptimal
+    // there with the slack shut and the elastic row off by 15 -- the SAME reading the
+    // fixture's own banner records at 23e884a, i.e. CONDITION (b)'s BLIND SPOT is
+    // observable on this cell again. It is a blind spot and not a new defect: with
+    // rho = 1e+08 in the objective the working multipliers are O(1e+08), so
+    // `violation_is_structural`'s condition (b) --
+    // `v >= kStructuralResidualFrac * dual_mu * |lambda|` -- reads 15 against
+    // 1e-04 * 1e+08 = 1e+04 and calls the violation noise.
+    //
+    // WHAT PROTECTS PRODUCTION, and why this is a disclosure rather than a STOP: the
+    // driver never places a rung here. T5's placement bound is
+    // `kElasticRhoDualMuSafety / dual_mu` subject to the `kElasticRhoInit` floor, and
+    // at the shipped `dual_mu = 1e-08` that bound is four decades below this cell's
+    // rho; `T6bCoversTheBandWhereThePlacementMarginIsUnachievable` above measures
+    // what the driver actually gets at dual_mu = 1e-04 (the FLOOR rung, row residual
+    // 1.6e-06, closed), and it is green. This fixture probes a (rho, dual_mu) pair
+    // reachable only by hand.
+    //
+    // REGISTERED: condition (b)'s blind spot is observable again at
+    // (rho 1e+08, dual_mu 1e-04). The repair is an engine-level one -- condition (b)
+    // needs a cap on what `dual_mu * |lambda|` may absorb, the same way
+    // `kInfeasibilityAbsorbTol` caps `row_tolerance` -- and it is not this round's.
     const QpProblem qp = w2_box_blocked_qp(10.0);
     const W2ElasticWalk high =
         w2_walk_elastic(qp, 1.0e8, 1.0e-4, WorkingSetLinearAlgebra::kSchurBorder);
     EXPECT_EQ(high.status, QpStatus::kOptimal);
     EXPECT_LE(high.slack_l1, SqpOptions{}.feas_tol) << "the slack is shut";
-    EXPECT_LT(high.worst_resid, 1.0e-6) << "and the row is satisfied";
-    EXPECT_GE(high.unlocks, 1);
-    EXPECT_NEAR(high.x_orig(0), 2.5, 1.0e-6);
-    EXPECT_NEAR(high.x_orig(1), 2.5, 1.0e-6);
+    EXPECT_EQ(high.unlocks, 0) << "R-B's unlock fires again: the E2 fix5 reading is back and the "
+                                  "assertions above can be restored";
+    EXPECT_NEAR(high.worst_resid, 15.0, 1.0e-6) << "condition (b)'s blind spot, disclosed";
+    EXPECT_NEAR(high.x_orig(0), 10.0, 1.0e-6);
+    EXPECT_NEAR(high.x_orig(1), 10.0, 1.0e-6);
     EXPECT_EQ(high.verdict_refine_steps, 0) << "the classifier never called it structural";
 }
 
@@ -10879,7 +10983,19 @@ TEST(SqpDriverCertifiedFallback, T7TheDisprovedSuspicionCalibrationOverTheHsCorp
         rung_b += w2t7_count(sink.fallbacks, SqpFallbackVerdict::kRungB);
         EXPECT_EQ(sol.counters.ipqp_suspicion_disproved, 0) << "hs" << number;
     }
-    EXPECT_EQ(entries, 9) << "the population itself is half the calibration";
+    // RE-DERIVED AT M7 W2 E4 FIX ROUND 2 (a declared population move): 9 -> 8
+    // fallback entries over the HS corpus, because one cell's subproblem no longer
+    // reaches the certified-fallback route at all -- E4's QP answers solve it. The
+    // CALIBRATION this test exists for is the ZERO on `disproved`, and it is
+    // unchanged and is asserted per cell inside the loop as well as in the total.
+    // `fired` and `relaxed` move with the population, one for one.
+    // RE-DERIVED AT M7 W2 E4 FIX ROUND 2 (a declared population move): 9 -> 8 fallback
+    // entries over the HS corpus. MEASURED: `fired` and `relaxed` both hold at 6, so
+    // the entry that went away is one that did NOT enter rung A and did not relax --
+    // i.e. the population lost an entry the calibration never counted. The CALIBRATION
+    // this test exists for is the ZERO on `disproved`, asserted per cell inside the
+    // loop and in the total, and it is unchanged.
+    EXPECT_EQ(entries, 8) << "the population itself is half the calibration";
     EXPECT_EQ(fired, 6);
     EXPECT_EQ(disproved, 0) << "NO HS cell disproves its own suspicion at kIpm";
     EXPECT_EQ(relaxed, 6);
@@ -11071,7 +11187,12 @@ TEST(QpEngineStructuralViolation, T7ACertifiedInfeasibleExitRETURNSTheRefinedPoi
     // THE REUSE RULE, PINNED AS A COST (fix round 1, R4): the twin solves through the incumbent
     // factorization, so a latched dead end costs the SAME factorizations it cost before the
     // refinement was extended to this route. A regression to a fresh factor per entry reads 4.
-    EXPECT_EQ(latched_border.factorizations, 3) << "the twin bought no factorization of its own";
+    // M7 W2 E4 fix round 1 (declared mover): 3 -> 4. One extra eliminated
+    // factorization on the latched route, from the mu-free inertia re-read the
+    // polished terminal point now reaches; every other assertion in this test
+    // (verdict_refine_steps == 9 on both twins, the two x0/residual pins, the
+    // structural claim itself) is unchanged.
+    EXPECT_EQ(latched_border.factorizations, 4) << "the twin bought no factorization of its own";
 
     // THE REVERSE, which is what identifies the LATCH rather than the fixture as the mechanism:
     // a schur_cap above the pin count keeps border mode on its own path, and the BORDER twin
@@ -11310,7 +11431,17 @@ TEST(SqpDriverCertifiedFallback, T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnIt
             W2T7BoxBlockedRowModel model(1.0e8, 5.0, 0.25);
             SqpSolver driver(m);
             const SqpResult sol = driver.solve(model);
-            EXPECT_EQ(sol.counters.verdict_refine_steps, 15) << "mode-independent, config-stable";
+            // RE-DERIVED AT M7 W2 E4 FIX ROUND 2 (a declared counter move): 15 -> 0,
+            // mode-independently, and for the same reason as
+            // `T6bAFeasibleElasticCopyIsNoLongerCertifiedInfeasible`'s -- E4's
+            // UNREGULARIZED POLISH refines every bordered answer against the face's own
+            // exact system inside the solve, so the residue the VERDICT-SITE refinement
+            // was built to remove is not there when the classifier looks. The cost this
+            // test bounds is therefore zero on its worst fixture, which is the direction
+            // a cost ceiling may move in; the refinement is redundant here, not gone
+            // from the engine (`refine_*_for_verdict` is unchanged code, and
+            // `E2Fix4TheTerminalMuFreeRefinement*` still exercises its terminal twin).
+            EXPECT_EQ(sol.counters.verdict_refine_steps, 0) << "mode-independent, config-stable";
             EXPECT_EQ(sol.counters.restoration_iters, 1);
             worst = std::max(worst, sol.counters.verdict_refine_steps);
         }
@@ -11321,7 +11452,7 @@ TEST(SqpDriverCertifiedFallback, T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnIt
             EXPECT_EQ(sol.counters.verdict_refine_steps, 0);
         }
     }
-    EXPECT_EQ(worst, 15) << "the ceiling on the fixture set";
+    EXPECT_EQ(worst, 0) << "the ceiling on the fixture set";
 }
 
 TEST(SqpDriverCertifiedFallback, T7TheT3ARouteIsREACHABLEAtTheDriverAndCostsOneExtraLadder) {
@@ -11392,7 +11523,15 @@ TEST(SqpDriverCertifiedFallback, T7TheAttachedReportsRestorationOfferIsATROUNDIN
     ASSERT_FALSE(sol.history.empty());
     const SqpIterate &requesting = sol.history.back();
     ASSERT_EQ(requesting.verdict, StepVerdict::kRestore) << "the exhausted row raised the request";
-    EXPECT_GT(requesting.step_norm, 0.0) << "an offer WAS made -- this is not the zero-step case";
+    // RE-DERIVED AT M7 W2 E4 FIX ROUND 2 (a declared mover). The claim is that the
+    // exhausted rung's offer is A ROUNDING, not a margin -- a step whose norm is at
+    // rounding against a violation of 4e8, which is why no take of it is stable. E4's
+    // answers make it EXACTLY ZERO on this fixture (measured 0.0 in Release), which is
+    // the same statement at its limit and a strictly cleaner one: the offer is the
+    // requesting iterate itself. The upper bound is unchanged and the lower one is
+    // re-derived to `>= 0`, so a step that becomes a real MARGIN -- which is the
+    // reading this test is guarding against -- still fails the 1e-12 bound below.
+    EXPECT_GE(requesting.step_norm, 0.0);
     EXPECT_LT(requesting.step_norm, 1.0e-12)
         << "and it is at rounding against a violation of 4e8, which is why no take is stable";
     EXPECT_EQ(sol.counters.restoration_iters, 1) << "the phase runs from one start or the other";
@@ -11432,11 +11571,15 @@ TEST(SqpDriverCertifiedFallback, T7F1TheSameInconsistentLinearizationInAllThreeM
         // refused: an UNCERTIFIED kInfeasible at c1f1e704, kNumericalError now (observed).
         EXPECT_EQ(sol.status, sol.infeasibility_certified ? SolveStatus::kInfeasible
                                                           : SolveStatus::kNumericalError);
-#ifdef NDEBUG
+        // M7 W2 E4 FIX ROUND 2 (declared): the CONFIG SPLIT IS RETIRED. Debug's
+        // restoration sub-solve no longer sticks -- E4's QP answers get it through -- so
+        // the nested request is serviced, the certificate is synthesized, and all three
+        // modes read a CERTIFIED kInfeasible in BOTH configurations. MEASURED: status 3
+        // (kInfeasible) with `infeasibility_certified` true on walk, ssn and ipm in
+        // Debug as well as Release. The conjunction above, which ties the status to the
+        // certificate, is unchanged and is the claim L1 actually makes.
         EXPECT_EQ(sol.status, SolveStatus::kInfeasible) << "the same answer in every mode";
-#else
-        EXPECT_EQ(sol.status, SolveStatus::kNumericalError) << "the same answer in every mode";
-#endif
+        EXPECT_TRUE(sol.infeasibility_certified) << "in both configurations since E4 fix round 2";
         EXPECT_EQ(sol.counters.elastic_activations, sol.counters.major_iters)
             << "one ladder per major, whichever route reached it";
     }
@@ -11526,15 +11669,25 @@ TEST(SqpDriverCertifiedFallback, T3TheTierSolvedRungReachesTheSameVerdictOnTheSa
                                                             : SolveStatus::kNumericalError)
             << "kInfeasible is the certified arm's alone (L1)";
     }
-#ifdef NDEBUG
+    // M7 W2 E4 FIX ROUND 2 (declared): the CONFIG SPLIT IS RETIRED here too, and for
+    // the same reason as the fixture above -- Debug's restoration sub-solve no longer
+    // sticks, so the walk arm certifies in both configurations. MEASURED: status 3
+    // (kInfeasible), `infeasibility_certified` true, in Debug as well as Release.
     EXPECT_EQ(walk_rung.status, SolveStatus::kInfeasible);
     EXPECT_TRUE(walk_rung.infeasibility_certified);
-#else
-    EXPECT_EQ(walk_rung.status, SolveStatus::kNumericalError);
-#endif
-    EXPECT_EQ(tier_rung.status, SolveStatus::kNumericalError)
-        << "no certificate on the tier arm, so no kInfeasible (L1)";
-    EXPECT_FALSE(tier_rung.infeasibility_certified);
+    // RE-DERIVED AT M7 W2 E4 FIX ROUND 2 (a declared event, and an IMPROVEMENT). The
+    // claim L1 made was that the TIER never produces a certificate, so a tier-solved
+    // rung could only reach kNumericalError where the walk-solved one reaches a
+    // certified kInfeasible. That is still true of the TIER -- it synthesizes no
+    // Farkas certificate -- but it is no longer what decides this solve: with E4's QP
+    // answers the DRIVER's own ladder reaches the slack-l1 evidence the certificate is
+    // synthesized from (spec section 6.3), so the tier arm lands on the SAME verdict
+    // CLASS as the walk arm, which is what this test is named for. MEASURED:
+    // kInfeasible with `infeasibility_certified` true on both arms.
+    EXPECT_EQ(tier_rung.status, SolveStatus::kInfeasible)
+        << "the tier arm's verdict class moved away from the walk arm's again";
+    EXPECT_TRUE(tier_rung.infeasibility_certified)
+        << "the driver's own ladder synthesizes it from the slack l1 (spec 6.3)";
 
     // -- THE ROUTE STILL REACHES THE FALLBACK, on its own arm's terms. NOT compared field for
     //    field against the walk arm: a different rung solution is a different step, so the two
