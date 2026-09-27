@@ -1,0 +1,86 @@
+=== M6 CLOSE HEAD-walk vs M7 W2 NC2 HEAD-walk (GATED 1e-5) === cells compared: 27  columns compared: 75  differences: 56  within gate: 27
+    f7_n10000_bound_activity         kkt_residual                       A=1.016559106e-15  B=9.999902125e-12
+    f7_n10000_bound_activity         kkt_stationarity                   A=1.016559106e-15  B=9.999902125e-12
+    f7_n10000_bound_corrupted        kkt_residual                       A=9.189172314e-14  B=1.207195544e-09
+    f7_n10000_bound_corrupted        kkt_stationarity                   A=9.189172314e-14  B=1.207195544e-09
+    f7_n10000_bound_neutral          kkt_residual                       A=6.300386629e-13  B=4.999693639e-09
+    f7_n10000_bound_neutral          kkt_stationarity                   A=6.300386629e-13  B=4.999693639e-09
+    f7_n10000_bound_neutral          kkt_primal                         A=1.938683814e-13  B=2.577803373e-16
+    f7_n10000_bound_physics          kkt_residual                       A=1.016559106e-15  B=9.999902125e-12
+    f7_n10000_bound_physics          kkt_stationarity                   A=1.016559106e-15  B=9.999902125e-12
+    f7_n10000_bound_warm             kkt_residual                       A=4.196022966e-14  B=7.072306241e-10
+    f7_n10000_bound_warm             kkt_stationarity                   A=4.196022966e-14  B=7.072306241e-10
+    f7_n1000_bound_activity          kkt_residual                       A=1.168049964e-16  B=9.999902240e-12
+    f7_n1000_bound_activity          kkt_stationarity                   A=1.168049964e-16  B=9.999902240e-12
+    f7_n1000_bound_corrupted         kkt_residual                       A=9.157873527e-15  B=1.206152080e-09
+    f7_n1000_bound_corrupted         kkt_stationarity                   A=9.157873527e-15  B=1.206152080e-09
+    f7_n1000_bound_neutral           kkt_residual                       A=6.295832335e-14  B=4.999959731e-09
+    f7_n1000_bound_neutral           kkt_stationarity                   A=6.295832335e-14  B=4.999959731e-09
+    f7_n1000_bound_physics           kkt_residual                       A=1.168049964e-16  B=9.999902240e-12
+    f7_n1000_bound_physics           kkt_stationarity                   A=1.168049964e-16  B=9.999902240e-12
+    f7_n1000_bound_warm              kkt_residual                       A=4.198558725e-15  B=7.071187248e-10
+    f7_n1000_bound_warm              kkt_stationarity                   A=4.198558725e-15  B=7.071187248e-10
+    f7_n1000_path_warm               kkt_residual                       A=3.364060441e-10  B=3.363047664e-10
+    f7_n1000_path_warm               kkt_stationarity                   A=3.364060441e-10  B=3.363047664e-10
+    f7_n20000_bound_activity         kkt_residual                       A=2.015847636e-15  B=9.999902111e-12
+    f7_n20000_bound_activity         kkt_stationarity                   A=2.015847636e-15  B=9.999902111e-12
+    f7_n20000_bound_corrupted        kkt_residual                       A=1.838068087e-13  B=1.207264557e-09
+    f7_n20000_bound_corrupted        kkt_stationarity                   A=1.838068087e-13  B=1.207264557e-09
+    f7_n20000_bound_neutral          kkt_residual                       A=1.259925399e-12  B=4.999387730e-09
+    f7_n20000_bound_neutral          kkt_stationarity                   A=1.259925399e-12  B=4.999387730e-09
+    f7_n20000_bound_neutral          kkt_primal                         A=3.876288913e-13  B=2.654245493e-16
+    f7_n20000_bound_physics          kkt_residual                       A=2.015847636e-15  B=9.999902111e-12
+    f7_n20000_bound_physics          kkt_stationarity                   A=2.015847636e-15  B=9.999902111e-12
+    f7_n20000_bound_warm             kkt_residual                       A=8.390643067e-14  B=7.073544366e-10
+    f7_n20000_bound_warm             kkt_stationarity                   A=8.390643067e-14  B=7.073544366e-10
+    f7_n2000_bound_activity          kkt_residual                       A=2.168216410e-16  B=9.999902120e-12
+    f7_n2000_bound_activity          kkt_stationarity                   A=2.168216410e-16  B=9.999902120e-12
+    f7_n2000_bound_corrupted         kkt_residual                       A=1.834292390e-14  B=1.206266345e-09
+    f7_n2000_bound_corrupted         kkt_stationarity                   A=1.834292390e-14  B=1.206266345e-09
+    f7_n2000_bound_neutral           kkt_residual                       A=1.259764344e-13  B=4.999932629e-09
+    f7_n2000_bound_neutral           kkt_stationarity                   A=1.259764344e-13  B=4.999932629e-09
+    f7_n2000_bound_physics           kkt_residual                       A=2.168216410e-16  B=9.999902120e-12
+    f7_n2000_bound_physics           kkt_stationarity                   A=2.168216410e-16  B=9.999902120e-12
+    f7_n2000_bound_warm              kkt_residual                       A=8.394924906e-15  B=7.071314398e-10
+    f7_n2000_bound_warm              kkt_stationarity                   A=8.394924906e-15  B=7.071314398e-10
+    f7_n5000_bound_activity          kkt_residual                       A=5.167818090e-16  B=9.999902109e-12
+    f7_n5000_bound_activity          kkt_stationarity                   A=5.167818090e-16  B=9.999902109e-12
+    f7_n5000_bound_corrupted         kkt_residual                       A=4.592198241e-14  B=1.207078954e-09
+    f7_n5000_bound_corrupted         kkt_stationarity                   A=4.592198241e-14  B=1.207078954e-09
+    f7_n5000_bound_neutral           kkt_residual                       A=3.150169743e-13  B=4.999845968e-09
+    f7_n5000_bound_neutral           kkt_stationarity                   A=3.150169743e-13  B=4.999845968e-09
+    f7_n5000_bound_physics           kkt_residual                       A=5.167818090e-16  B=9.999902109e-12
+    f7_n5000_bound_physics           kkt_stationarity                   A=5.167818090e-16  B=9.999902109e-12
+    f7_n5000_bound_warm              kkt_residual                       A=2.098298050e-14  B=7.071686897e-10
+    f7_n5000_bound_warm              kkt_stationarity                   A=2.098298050e-14  B=7.071686897e-10
+    f7_n800_path_warm                kkt_residual                       A=4.212497650e-10  B=4.211460413e-10
+    f7_n800_path_warm                kkt_stationarity                   A=4.212497650e-10  B=4.211460413e-10
+    WITHIN-GATE f7_n10000_bound_activity kkt_primal A=1.151644575e-16  B=1.467876083e-16
+    WITHIN-GATE f7_n10000_bound_corrupted kkt_primal A=2.698456180e-14  B=1.785314208e-16
+    WITHIN-GATE f7_n10000_bound_physics kkt_primal A=1.151644575e-16  B=1.467876083e-16
+    WITHIN-GATE f7_n10000_bound_warm kkt_primal A=2.701549016e-14  B=1.612434652e-16
+    WITHIN-GATE f7_n1000_bound_activity kkt_primal A=1.079633839e-16  B=1.085259744e-16
+    WITHIN-GATE f7_n1000_bound_corrupted kkt_primal A=2.734932492e-15  B=1.599236948e-16
+    WITHIN-GATE f7_n1000_bound_neutral kkt_primal A=1.937883159e-14  B=2.356090292e-16
+    WITHIN-GATE f7_n1000_bound_physics kkt_primal A=1.079633839e-16  B=1.085259744e-16
+    WITHIN-GATE f7_n1000_bound_warm kkt_primal A=2.759659681e-15  B=1.547009608e-16
+    WITHIN-GATE f7_n1000_path_warm kkt_primal A=4.445677160e-11  B=4.444522528e-11
+    WITHIN-GATE f7_n1000_path_warm kkt_complementarity A=1.081515277e-15  B=1.081344571e-15
+    WITHIN-GATE f7_n20000_bound_activity kkt_primal A=1.365272909e-16  B=1.429331247e-16
+    WITHIN-GATE f7_n20000_bound_corrupted kkt_primal A=5.392944711e-14  B=1.888257151e-16
+    WITHIN-GATE f7_n20000_bound_physics kkt_primal A=1.365272909e-16  B=1.429331247e-16
+    WITHIN-GATE f7_n20000_bound_warm kkt_primal A=5.394909349e-14  B=1.689989270e-16
+    WITHIN-GATE f7_n2000_bound_activity kkt_primal A=1.105729050e-16  B=1.119655175e-16
+    WITHIN-GATE f7_n2000_bound_corrupted kkt_primal A=5.425851090e-15  B=1.756464040e-16
+    WITHIN-GATE f7_n2000_bound_neutral kkt_primal A=3.878155499e-14  B=2.500616457e-16
+    WITHIN-GATE f7_n2000_bound_physics kkt_primal A=1.105729050e-16  B=1.119655175e-16
+    WITHIN-GATE f7_n2000_bound_warm kkt_primal A=5.419408507e-15  B=1.690169737e-16
+    WITHIN-GATE f7_n5000_bound_activity kkt_primal A=1.110891234e-16  B=1.580603570e-16
+    WITHIN-GATE f7_n5000_bound_corrupted kkt_primal A=1.351772635e-14  B=1.735734450e-16
+    WITHIN-GATE f7_n5000_bound_neutral kkt_primal A=9.692247005e-14  B=2.627975884e-16
+    WITHIN-GATE f7_n5000_bound_physics kkt_primal A=1.110891234e-16  B=1.580603570e-16
+    WITHIN-GATE f7_n5000_bound_warm kkt_primal A=1.353613753e-14  B=1.627551614e-16
+    WITHIN-GATE f7_n800_path_warm kkt_primal A=4.285150013e-11  B=4.284250732e-11
+    WITHIN-GATE f7_n800_path_warm kkt_complementarity A=1.295715293e-15  B=1.295550365e-15
+=== M6 CLOSE HEAD-ssn vs M7 W2 NC2 HEAD-ssn (GATED 1e-5) === cells compared: 27  columns compared: 75  differences: 0  within gate: 0
+=== M6 CLOSE HEAD-ipm vs M7 W2 NC2 HEAD-ipm (GATED 1e-5) === cells compared: 27  columns compared: 75  differences: 0  within gate: 0

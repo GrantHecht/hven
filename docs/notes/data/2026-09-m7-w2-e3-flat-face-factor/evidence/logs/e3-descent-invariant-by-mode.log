@@ -1,0 +1,11 @@
+Cs_STEENBRB qp1, border, Release. ORDINARY passes split by whether the working rows are MET
+mode | ordinary | rows MET (active_res<=1e-6) | ascending among MET | worst df among MET | ascending among NOT met | status
+  0  |     2247 |                       2156 |                2142 |       2.569043e-04 |                     14 | status=1 minors=6600
+       ASC among MET: minor 95 alpha=1 gp=6.43458e-06 centre=1.30701e-05 active_res=3e-14 df=6.43458e-06
+       ASC among MET: minor 112 alpha=1 gp=1.08002e-05 centre=2.21094e-05 active_res=9.67e-13 df=1.08002e-05
+       ASC among MET: minor 115 alpha=1 gp=4.75845e-05 centre=8.29407e-05 active_res=3.71e-14 df=4.75845e-05
+       ASC among MET: minor 118 alpha=1 gp=3.58026e-07 centre=5.35975e-07 active_res=5.33e-14 df=3.58026e-07
+  1  |      102 |                          0 |                   0 |       0.000000e+00 |                     21 | status=0 minors=199
+  2  |      115 |                         20 |                   0 |       0.000000e+00 |                     19 | status=0 minors=232
+  3  |       98 |                          1 |                   1 |       4.928477e-05 |                     23 | status=0 minors=326
+       ASC among MET: minor 228 alpha=1 gp=4.92848e-05 centre=0.000271066 active_res=1.42e-14 df=4.92848e-05

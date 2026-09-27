@@ -1,0 +1,80 @@
+PGREP_EMPTY e3-phase3 2026-09-26T19:34:33-04:00
+FOREGROUND_START e3-phase3 2026-09-26T19:34:33-04:00
+=== STEP diag-acopp57 2026-09-26T19:34:33-04:00
+ord release ACOPP57_def_qp0 border [E3_PROX=0] rc=0
+[E3] dump=/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/docs/notes/data/2026-09-m7-w2-e2-d4-feasible-qps/dumps/ACOPP57_def/qp0.txt alg=border status=0 minors=8 f=0.242644830751 records=8
+[E3] ordinary=4 ascending=1 df_sum=2.426448e-01 df_up=2.426448e-01   tail=400 tail_ordinary=4 tail_ascending=1 tail_ascending_unrefined=0
+[E3] tail median: g'p=-2.127653e-13 centre=1.797560e-14 g'p/centre=-1.183634e+01   g'p_unref=nan
+[E3] tail rho: median unref=nan ref=nan contraction(free)=nan contraction(full)=nan   max ref=0.000000e+00
+[E3] tail rows: median ||row resid||inf(ref)=nan   median ||rhs-Ky||inf/||rhs||inf(ref)=nan max=0.000000e+00
+[E3] counters: eqviol=0 ws_adds=0 ws_drops=0 exch=0 zmexh=0 predsign=0 signv=0
+[E3] truncated=0 allocation_failed=0
+ord release ACOPP57_def_qp0 refactorize [E3_PROX=0] rc=0
+[E3] dump=/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/docs/notes/data/2026-09-m7-w2-e2-d4-feasible-qps/dumps/ACOPP57_def/qp0.txt alg=refactorize status=0 minors=2 f=0.242680612831 records=2
+[E3] ordinary=1 ascending=1 df_sum=2.426806e-01 df_up=2.426806e-01   tail=400 tail_ordinary=1 tail_ascending=1 tail_ascending_unrefined=0
+[E3] tail median: g'p=2.426796e-01 centre=-9.900503e-17 g'p/centre=-2.451185e+15   g'p_unref=-1.089322e+01
+[E3] tail rho: median unref=5.359794e-11 ref=3.765498e-11 contraction(free)=7.025454e-01 contraction(full)=2.309222e-04   max ref=3.765498e-11
+[E3] tail rows: median ||row resid||inf(ref)=1.116988e-08   median ||rhs-Ky||inf/||rhs||inf(ref)=1.116490e-08 max=1.116490e-08
+[E3] counters: eqviol=0 ws_adds=0 ws_drops=0 exch=0 zmexh=0 predsign=0 signv=0
+[E3] truncated=0 allocation_failed=0
+ord release ACOPP57_def_qp0 border [E3_PROX=2] rc=0
+[E3] dump=/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/docs/notes/data/2026-09-m7-w2-e2-d4-feasible-qps/dumps/ACOPP57_def/qp0.txt alg=border status=1 minors=1795 f=0.242644830788 records=1795
+[E3] ordinary=1794 ascending=898 df_sum=2.426448e-01 df_up=2.426448e-01   tail=400 tail_ordinary=399 tail_ascending=194 tail_ascending_unrefined=0
+[E3] tail median: g'p=-1.369519e-15 centre=-1.379631e-18 g'p/centre=1.457966e+01   g'p_unref=nan
+[E3] tail rho: median unref=nan ref=nan contraction(free)=nan contraction(full)=nan   max ref=0.000000e+00
+[E3] tail rows: median ||row resid||inf(ref)=nan   median ||rhs-Ky||inf/||rhs||inf(ref)=nan max=0.000000e+00
+[E3] counters: eqviol=0 ws_adds=0 ws_drops=0 exch=0 zmexh=0 predsign=0 signv=0
+[E3] truncated=0 allocation_failed=0
+ord release ACOPP57_def_qp0 refactorize [E3_PROX=2] rc=0
+[E3] dump=/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/docs/notes/data/2026-09-m7-w2-e2-d4-feasible-qps/dumps/ACOPP57_def/qp0.txt alg=refactorize status=1 minors=1795 f=0.242680612831 records=1795
+[E3] ordinary=1795 ascending=911 df_sum=2.426806e-01 df_up=2.426806e-01   tail=400 tail_ordinary=400 tail_ascending=192 tail_ascending_unrefined=0
+[E3] tail median: g'p=-4.882110e-16 centre=-9.490164e-20 g'p/centre=-1.208583e+03   g'p_unref=-1.113590e+01
+[E3] tail rho: median unref=1.204596e-10 ref=5.688937e-11 contraction(free)=4.693297e-01 contraction(full)=2.309222e-04   max ref=2.561660e-10
+[E3] tail rows: median ||row resid||inf(ref)=1.116988e-08   median ||rhs-Ky||inf/||rhs||inf(ref)=1.116490e-08 max=1.116490e-08
+[E3] counters: eqviol=0 ws_adds=0 ws_drops=0 exch=0 zmexh=0 predsign=0 signv=0
+[E3] truncated=0 allocation_failed=0
+=== STEP diag-steenbrb_def-nan 2026-09-26T19:34:34-04:00
+ord release STEENBRB_def_qp2 border [E3_PROX=0] rc=0
+[E3] dump=/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/docs/notes/data/2026-09-m7-w2-e2-d4-feasible-qps/dumps/STEENBRB_def/qp2.txt alg=border status=1 minors=4680 f=-990591855583 records=4680
+[E3] ordinary=2915 ascending=1751 df_sum=-9.903033e+11 df_up=1.520055e+08   tail=400 tail_ordinary=240 tail_ascending=160 tail_ascending_unrefined=0
+[E3] tail median: g'p=5.600533e+01 centre=-4.001289e-16 g'p/centre=-1.399682e+17   g'p_unref=-1.142184e+10
+[E3] tail rho: median unref=4.882809e-04 ref=1.953125e-03 contraction(free)=4.000002e+00 contraction(full)=4.696650e-04   max ref=1.953125e-03
+[E3] tail rows: median ||row resid||inf(ref)=6.550809e-07   median ||rhs-Ky||inf/||rhs||inf(ref)=2.413631e-13 max=2.413631e-13
+[E3] counters: eqviol=0 ws_adds=2940 ws_drops=2860 exch=1978 zmexh=0 predsign=0 signv=0
+[E3] truncated=0 allocation_failed=0
+ord release STEENBRB_def_qp2 border [E3_PROX=2] rc=0
+[E3] dump=/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/docs/notes/data/2026-09-m7-w2-e2-d4-feasible-qps/dumps/STEENBRB_def/qp2.txt alg=border status=3 minors=559 f=-nan records=559
+[E3] ordinary=390 ascending=103 df_sum=-9.902627e+11 df_up=1.626877e+08   tail=400 tail_ordinary=234 tail_ascending=49 tail_ascending_unrefined=180
+[E3] tail median: g'p=1.339117e+22 centre=-2.853747e+20 g'p/centre=-2.557350e+01   g'p_unref=1.339066e+22
+[E3] tail rho: median unref=1.218481e+08 ref=1.152262e+08 contraction(free)=1.000000e+00 contraction(full)=9.855148e-01   max ref=5.836604e+13
+[E3] tail rows: median ||row resid||inf(ref)=1.250000e-02   median ||rhs-Ky||inf/||rhs||inf(ref)=6.685798e-06 max=3.386587e+00
+[E3] counters: eqviol=0 ws_adds=455 ws_drops=378 exch=293 zmexh=0 predsign=0 signv=0
+[E3] truncated=0 allocation_failed=0
+=== STEP diag-sawpath 2026-09-26T19:34:38-04:00
+ord release SAWPATH_def_qp1 border [E3_PROX=0] rc=0
+[E3] dump=/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/docs/notes/data/2026-09-m7-w2-e2-d4-feasible-qps/dumps/SAWPATH_def/qp1.txt alg=border status=1 minors=20350 f=176.466989234 records=20350
+[E3] ordinary=8612 ascending=4182 df_sum=2.277652e+03 df_up=4.235098e+03   tail=400 tail_ordinary=160 tail_ascending=80 tail_ascending_unrefined=120
+[E3] tail median: g'p=1.001047e+00 centre=-8.234774e-08 g'p/centre=-5.668432e+04   g'p_unref=1.000946e+00
+[E3] tail rho: median unref=1.678918e-03 ref=4.806543e-04 contraction(free)=3.753058e-01 contraction(full)=3.753058e-01   max ref=1.000000e+00
+[E3] tail rows: median ||row resid||inf(ref)=1.903506e-14   median ||rhs-Ky||inf/||rhs||inf(ref)=7.985523e-15 max=1.661386e-11
+[E3] counters: eqviol=5775 ws_adds=12554 ws_drops=12064 exch=6195 zmexh=0 predsign=0 signv=3863
+[E3] truncated=0 allocation_failed=0
+ord release SAWPATH_def_qp1 border [E3_PROX=2] rc=0
+[E3] dump=/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/docs/notes/data/2026-09-m7-w2-e2-d4-feasible-qps/dumps/SAWPATH_def/qp1.txt alg=border status=1 minors=20350 f=1269.19179959 records=20350
+[E3] ordinary=10599 ascending=10019 df_sum=2.354450e+06 df_up=2.354453e+06   tail=400 tail_ordinary=200 tail_ascending=200 tail_ascending_unrefined=200
+[E3] tail median: g'p=8.397812e+05 centre=-1.660486e-02 g'p/centre=-5.055989e+07   g'p_unref=4.194061e+05
+[E3] tail rho: median unref=9.391090e+09 ref=9.296526e+09 contraction(free)=1.114631e+00 contraction(full)=1.114631e+00   max ref=9.296526e+09
+[E3] tail rows: median ||row resid||inf(ref)=2.015406e-10   median ||rhs-Ky||inf/||rhs||inf(ref)=1.544512e-01 max=1.544512e-01
+[E3] counters: eqviol=0 ws_adds=10602 ws_drops=5241 exch=365 zmexh=0 predsign=0 signv=2
+[E3] truncated=0 allocation_failed=0
+=== STEP corpus-m1-m3 2026-09-26T19:38:56-04:00
+corpus m1-border-old36 [E3_PROX=1] rc=0 secs=206
+corpus m1-border-new15 [E3_PROX=1] rc=0 secs=71
+corpus m1-refactorize-old36 [E3_PROX=1] rc=0 secs=49
+corpus m1-refactorize-new15 [E3_PROX=1] rc=0 secs=13
+corpus m3-border-old36 [E3_PROX=3] rc=0 secs=215
+corpus m3-border-new15 [E3_PROX=3] rc=0 secs=71
+corpus m3-refactorize-old36 [E3_PROX=3] rc=0 secs=62
+corpus m3-refactorize-new15 [E3_PROX=3] rc=0 secs=22
+PHASE3_OK
+FOREGROUND_END e3-phase3 2026-09-26T19:50:45-04:00 rc=0

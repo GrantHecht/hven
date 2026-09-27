@@ -1,0 +1,15 @@
+THE ORDINARY-STEP DESCENT INVARIANT, Cs_STEENBRB, Release, mode 2 vs mode 0.
+Restricted to ordinary passes whose WORKING ROWS ARE MET (active_res <= 1e-6).
+  cell          alg | mode0 met  m0 ASC  m0 worst df | mode2 met  m2 ASC  m2 worst df
+   qp1       border |      2156    2142   2.5690e-04 |        20       0   0.0000e+00
+   qp1  refactorize |      2156    2142   2.5690e-04 |        20       0   0.0000e+00
+   qp2       border | [('-', '-', '-'), (441, 14, 2.309173220787213e-05)]
+   qp2  refactorize | [('-', '-', '-'), (441, 14, 2.309173220787213e-05)]
+   qp3       border |      1361    1299   1.5459e-05 |      2784     119   7.1325e-06
+   qp3  refactorize | [('-', '-', '-'), (2784, 119, 7.132461003667676e-06)]
+   qp4       border | [('-', '-', '-'), (1328, 7, 3.766425504297081e-09)]
+   qp4  refactorize | [('-', '-', '-'), (1328, 7, 3.766425504297081e-09)]
+   qp5       border |      2230    2151   2.2505e-06 |      5052      29   2.6451e-06
+   qp5  refactorize | [('-', '-', '-'), (5052, 29, 2.6450913920508965e-06)]
+   qp6       border | [('-', '-', '-'), (6088, 15, 5.542332345676818e-07)]
+   qp6  refactorize | [('-', '-', '-'), (6088, 15, 5.542332345676818e-07)]

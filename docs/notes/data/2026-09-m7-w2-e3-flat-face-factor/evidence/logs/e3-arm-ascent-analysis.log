@@ -1,0 +1,39 @@
+=== mode 1: 21 ascending of 102 ordinary passes; total ascent 6.008738e-02; total descent -7.683151e+02
+  minor   35 act=9 alpha=8.67117e-05 p_inf=1.202e+05 gp=22.42 df=0.00194408 centre=-522.957 active_res=101.4 rho_ref=0.001929 res_reg_unref=0.002357 row_ref=1.458e-11 d=1e-08
+  minor   36 act=9 alpha=0.000240927 p_inf=1.249e+05 gp=7.912 df=0.00190621 centre=-502.846 active_res=101.4 rho_ref=0.001556 res_reg_unref=0.00415 row_ref=1.455e-11 d=1e-08
+  minor   81 act=9 alpha=0.00420218 p_inf=1615 gp=0.00205847 df=8.65004e-06 centre=-0.0783302 active_res=93.93 rho_ref=1.078e-05 res_reg_unref=1.401e-05 row_ref=1.456e-13 d=1e-08
+  minor   82 act=9 alpha=0.00946646 p_inf=1448 gp=0.0056056 df=5.30652e-05 centre=-0.0636879 active_res=93.54 rho_ref=1.533e-05 res_reg_unref=1.555e-05 row_ref=1.705e-13 d=1e-08
+  minor   83 act=9 alpha=0.0170409 p_inf=1163 gp=0.00982822 df=0.000167482 centre=-0.060363 active_res=92.65 rho_ref=6.439e-06 res_reg_unref=4.518e-06 row_ref=1.137e-13 d=1e-08
+  minor   84 act=9 alpha=0.00567952 p_inf=855.4 gp=0.027647 df=0.000157022 centre=-0.0366152 active_res=91.07 rho_ref=6.376e-06 res_reg_unref=1.225e-05 row_ref=1.137e-13 d=1e-08
+  minor   85 act=9 alpha=0.0278391 p_inf=571.2 gp=0.0402765 df=0.00112126 centre=-0.0205748 active_res=90.56 rho_ref=8.047e-06 res_reg_unref=9.571e-06 row_ref=1.137e-13 d=1e-08
+  minor   86 act=9 alpha=0.00308944 p_inf=587.2 gp=0.0439845 df=0.000135887 centre=-0.0142466 active_res=88.04 rho_ref=1.338e-05 res_reg_unref=6.185e-06 row_ref=5.684e-14 d=1e-08
+  minor   87 act=9 alpha=0.0605434 p_inf=589 gp=0.0480947 df=0.00291182 centre=-0.0111269 active_res=87.76 rho_ref=3.858e-06 res_reg_unref=1.486e-06 row_ref=5.684e-14 d=1e-08
+  minor   88 act=9 alpha=0.0207821 p_inf=624.6 gp=0.0488266 df=0.00101472 centre=-0.00608918 active_res=82.45 rho_ref=3.698e-06 res_reg_unref=1.321e-06 row_ref=5.522e-14 d=1e-08
+  median active_res  asc=80.74  desc=101.3
+  median rho_ref     asc=3.493e-06  desc=0.0006747
+=== mode 2: 19 ascending of 115 ordinary passes; total ascent 1.292644e-01; total descent -7.682961e+02
+  minor   33 act=9 alpha=0.000235686 p_inf=5.382e+05 gp=154.485 df=0.0364099 centre=-8915.48 active_res=101.6 rho_ref=0.02113 res_reg_unref=0.002484 row_ref=5.281e-11 d=1e-08
+  minor   36 act=9 alpha=6.19008e-05 p_inf=1.435e+06 gp=229.554 df=0.0142095 centre=-29047.2 active_res=101.6 rho_ref=0.03302 res_reg_unref=0.001247 row_ref=2.315e-10 d=1e-08
+  minor   37 act=9 alpha=7.16002e-05 p_inf=1.162e+06 gp=230.084 df=0.0164741 centre=-17976.8 active_res=101.6 rho_ref=0.0523 res_reg_unref=0.003262 row_ref=1.752e-10 d=1e-08
+  minor   39 act=9 alpha=0.00026408 p_inf=4.241e+05 gp=26.0803 df=0.00688728 centre=-2419.19 active_res=101.5 rho_ref=0.01265 res_reg_unref=0.0009803 row_ref=5.275e-11 d=1e-08
+  minor   41 act=9 alpha=8.37453e-18 p_inf=6.662e+05 gp=93.7776 df=7.85343e-16 centre=-5846.24 active_res=101.3 rho_ref=0.03558 res_reg_unref=0.00108 row_ref=1.509e-10 d=1e-08
+  minor   55 act=9 alpha=2.74973e-05 p_inf=3.406e+06 gp=559.975 df=0.0153978 centre=-165229 active_res=100.2 rho_ref=0.05374 res_reg_unref=0.003169 row_ref=2.627e-10 d=1e-08
+  minor   60 act=9 alpha=0.00025756 p_inf=2.083e+04 gp=0.66244 df=0.000170618 centre=-10.6088 active_res=99.71 rho_ref=0.001184 res_reg_unref=0.0003166 row_ref=6.764e-12 d=1e-08
+  minor   62 act=9 alpha=0.00105463 p_inf=2.067e+04 gp=2.38828 df=0.00251874 centre=-9.62585 active_res=99.44 rho_ref=0.0009407 res_reg_unref=0.0004553 row_ref=6.764e-12 d=1e-08
+  minor   70 act=9 alpha=0.000318127 p_inf=5.193e+04 gp=0.289242 df=9.20159e-05 centre=-48.6303 active_res=95.92 rho_ref=0.001389 res_reg_unref=8.116e-05 row_ref=1.523e-11 d=1e-08
+  minor   85 act=9 alpha=0.0146372 p_inf=747 gp=0.00257521 df=3.7694e-05 centre=-0.0241324 active_res=86.79 rho_ref=6.281e-06 res_reg_unref=2.461e-05 row_ref=1.421e-13 d=1e-08
+  median active_res  asc=86.79  desc=100.4
+  median rho_ref     asc=7.619e-06  desc=0.001021
+=== mode 3: 24 ascending of 98 ordinary passes; total ascent 1.527544e-01; total descent -7.683286e+02
+  minor   33 act=9 alpha=0.000235702 p_inf=5.382e+05 gp=154.513 df=0.0364189 centre=-8923.15 active_res=101.6 rho_ref=0.02793 res_reg_unref=0.001686 row_ref=1.091e-10 d=1e-08
+  minor   36 act=9 alpha=8.10378e-05 p_inf=1.503e+06 gp=295.94 df=0.0239823 centre=-35565.9 active_res=101.6 rho_ref=0.02073 res_reg_unref=0.001816 row_ref=8.73e-11 d=1e-08
+  minor   37 act=9 alpha=3.69906e-05 p_inf=1.434e+06 gp=473.151 df=0.0175021 centre=-44843.4 active_res=101.6 rho_ref=0.04469 res_reg_unref=0.003792 row_ref=1.461e-10 d=1e-08
+  minor   39 act=9 alpha=2.20216e-05 p_inf=1.817e+06 gp=738.535 df=0.0162637 centre=-81401.4 active_res=101.6 rho_ref=0.09466 res_reg_unref=0.003103 row_ref=4.664e-10 d=1e-08
+  minor   42 act=9 alpha=2.58692e-05 p_inf=1.435e+06 gp=206.114 df=0.00533198 centre=-28459.9 active_res=101.4 rho_ref=0.03264 res_reg_unref=0.001521 row_ref=9.271e-11 d=1e-08
+  minor   44 act=9 alpha=7.39189e-18 p_inf=5.864e+05 gp=137.039 df=1.01298e-15 centre=-5962.31 active_res=101.3 rho_ref=0.01844 res_reg_unref=0.002343 row_ref=1.016e-10 d=1e-08
+  minor   45 act=9 alpha=3.87689e-05 p_inf=5.866e+05 gp=151.112 df=0.00585847 centre=-5941.09 active_res=101.3 rho_ref=0.01978 res_reg_unref=0.001367 row_ref=1.307e-10 d=1e-08
+  minor   49 act=9 alpha=4.16805e-05 p_inf=1.143e+05 gp=14.4607 df=0.000602732 centre=-256.829 active_res=101 rho_ref=0.002237 res_reg_unref=0.001199 row_ref=1.558e-11 d=1e-08
+  minor   50 act=9 alpha=0.000435668 p_inf=1.143e+05 gp=21.0421 df=0.00916738 centre=-316.933 active_res=101 rho_ref=0.005704 res_reg_unref=0.0006544 row_ref=2.91e-11 d=1e-08
+  minor   80 act=9 alpha=4.61603e-05 p_inf=3.863e+04 gp=0.493366 df=2.27739e-05 centre=-37.3146 active_res=89.55 rho_ref=0.001054 res_reg_unref=0.0001064 row_ref=8.223e-12 d=1e-08
+  median active_res  asc=84.35  desc=101.5
+  median rho_ref     asc=4.041e-06  desc=0.004214

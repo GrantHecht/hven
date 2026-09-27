@@ -1,0 +1,19 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-release/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = E3.MeasureOrdinaryStep
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from E3
+[ RUN      ] E3.MeasureOrdinaryStep
+[E3] dump=/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/docs/notes/data/2026-09-m7-w2-r2-composite-landing/dumps/Cs_STEENBRB/qp3.txt alg=border status=1 minors=6600 f=-384.000271723 records=6600
+[E3] ordinary=1361 ascending=1299 df_sum=-3.839984e+02 df_up=1.714481e-03   tail=400 tail_ordinary=80 tail_ascending=80 tail_ascending_unrefined=80
+[E3] tail median: g'p=1.405018e-06 centre=1.094359e-05 g'p/centre=4.056518e-01   g'p_unref=1.151029e-05
+[E3] tail rho: median unref=5.492737e-07 ref=2.361017e-07 contraction(free)=4.307901e-01 contraction(full)=4.307901e-01   max ref=2.361017e-07
+[E3] tail rows: median ||row resid||inf(ref)=1.062158e-14   median ||rhs-Ky||inf/||rhs||inf(ref)=1.000070e-08 max=1.000070e-08
+[E3] counters: eqviol=0 ws_adds=2672 ws_drops=2621 exch=1 zmexh=0 predsign=0 signv=1312
+[E3] truncated=0 allocation_failed=0
+[       OK ] E3.MeasureOrdinaryStep (8051 ms)
+[----------] 1 test from E3 (8051 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (8051 ms total)
+[  PASSED  ] 1 test.
