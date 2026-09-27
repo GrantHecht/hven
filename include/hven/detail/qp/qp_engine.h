@@ -326,23 +326,36 @@
 //    not see (M7 W2 E3 §3e). The stationary branch does NOT snap x onto the EQP
 //    point: nothing has run a ratio test on a step of that size.
 //
-//    THE RUNAWAY GUARD IS ASKED ON EVERY MOVING PASS, not only here (E4-3), in
-//    two currencies: the ITERATE's -- `is_runaway`, this section's own predicate,
-//    unchanged -- at the head of the ordinary path, and the STEP's -- an answer
-//    past unbounded_artifact_scale() * max(1, ||x||inf) that the ratio test
-//    cannot take at all -- once the blocker and alpha are final. The first is
-//    what the proximal centring makes necessary (the ridge's answer is now
-//    re-proposed from every point it reaches instead of vanishing at its fixed
-//    point, so the cap would be burned rather than the artifact reported); the
-//    second covers the case the iterate's currency structurally cannot see, a
-//    step 31 decades past the ridge scale while ||x||inf never moves.
+//    THE RUNAWAY GUARD IS ASKED ON EVERY MOVING PASS, not only here (E4-3), and
+//    in the ITERATE's currency: `is_runaway`, this section's own predicate,
+//    unchanged, at the head of the ordinary path. That is what the proximal
+//    centring makes necessary -- the ridge's answer is now re-proposed from every
+//    point it reaches instead of vanishing at its fixed point, so the cap would
+//    be burned rather than the artifact reported. A SECOND guard in the STEP's
+//    currency was built, MEASURED and REMOVED: at the scale the three runaway
+//    fixtures need it fired on 10 HS cells that are not runaways and cost HS10
+//    and HS27, so the iterate and the ridge scale are the only currencies the
+//    guard is asked in (eqp_solve.h says the same, and says why ||p|| cannot
+//    carry it).
 //
-//    A pass whose EQP answer is REFUSED by the EQP-site residual check
-//    (eqp_solve.h; E4-4) -- or that is not finite -- takes 4b's SUSPECT-STALL
-//    ESCALATION instead of a step: one decade of primal_delta per rung, the
-//    border state discarded, at most kMaxSuspectEscalations rungs, and an
-//    exhausted ladder reports kNumericalError at the iterate the walk stands on.
-//    Never a step toward an answer that does not solve its own system.
+//    A pass whose EQP answer is REFUSED -- by the EQP-site residual check
+//    (eqp_solve.h; E4-4) or by the step's ROW-DRIFT CHECK
+//    (eqp_answer_drifts_off_met_rows) -- or that is not finite takes 4b's
+//    SUSPECT-STALL ESCALATION instead of a step: one decade of primal_delta per
+//    rung, the border state discarded, at most kMaxSuspectEscalations rungs.
+//
+//    THE RULE, E4-4 AS AMENDED (ruling E4-27; the other sites point here): no
+//    step is taken toward a refused answer WHILE THE LADDER HAS RUNGS; an
+//    EXHAUSTED ladder is ADVISORY for BOTH refusals -- the walk steps and this
+//    section's TERMINAL SITE decides, because exhaustion says the residual is
+//    IRREDUCIBLE (what an inconsistent row set looks like) rather than
+//    untrustworthy, and the certificate is a claim about the point the walk stops
+//    at and never about the refused pass -- and only a NON-FINITE answer is
+//    TERMINAL (kNumericalError at the finite iterate the walk stands on).
+//    MEASURED both ways: the terminal form cost an inconsistent pair its
+//    certified kInfeasible, and classifying AT the refused pass produced 16 false
+//    census certificates. `eqp_residual_refusals` and `eqp_row_drift_refusals`
+//    carry the reason.
 //
 //    The classification:
 //      - kInfeasible if any inequality or equality row carries a STRUCTURAL
@@ -1708,9 +1721,9 @@ class QpEngine {
     //
     // The caller's response is the suspect-stall ladder, for the reason the
     // arithmetic gives: lambda scales as 1/primal_delta on such a face, so one
-    // decade more primal_delta is one decade less drift. AND IT IS ADVISORY: an
-    // EXHAUSTED ladder takes the step anyway, unlike the residual refusal, which
-    // ends the solve. MEASURED both ways -- terminal costs `ACOPR57_def`/qp0 its
+    // decade more primal_delta is one decade less drift. AND AN EXHAUSTED LADDER
+    // IS ADVISORY, exactly as it is for the residual refusal -- section 5 states
+    // the rule. MEASURED both ways -- terminal costs `ACOPR57_def`/qp0 its
     // base certificate on both algebras (opt/183 -> num/162, terminal
     // stationarity 1.24); advisory keeps it, still converges
     // `indefinite_equality_qp`, and converts `A0_YORKNET`/qp1 (num/329 ->
@@ -1836,18 +1849,22 @@ class QpEngine {
     // BACKED OUT -- dual_mu = 0 in the system, and the primal delta backed out
     // of the refinement target by kTerminalPolishSteps steps of
     // polish_eqp_unregularized, which is consistent precisely here because the
-    // step is going to zero. One local factorization (charged to
-    // `factorizations`, as refine_terminal_mu_free's is), the pass's own factor
-    // and border stack untouched.
+    // step is going to zero. One local factorization, charged to
+    // `terminal_polish_solves` and NOT to `factorizations` (ruling E4-17;
+    // solver_counters.h states the contract at both fields, and the asymmetry
+    // with refine_terminal_mu_free, whose factorization IS in `factorizations`),
+    // the pass's own factor and border stack untouched.
     //
     // ADOPTED only if the candidate is finite, keeps feasibility (no row and no
     // bound outside feas_tol * row_scale that the incumbent met, and nothing
     // worse than the incumbent), does not WORSEN any of the three KKT residuals
     // -- free-block stationarity, worst row/bound violation, worst
-    // complementarity product -- and strictly IMPROVES at least one of them.
-    // Otherwise x and every multiplier are left exactly as they were and the
-    // exit is unchanged: the polish can make the answer better and cannot make
-    // it worse.
+    // complementarity product -- and strictly IMPROVES at least one of them, and
+    // if it PASSES THE WALK'S OWN KKT-POINT TEST (section 5) -- its relative
+    // stationarity within opt_tol, so the exported point is one the walk itself
+    // would certify. Otherwise x and every multiplier are left exactly as they
+    // were and the exit is unchanged: the polish can make the answer better and
+    // cannot make it worse.
     //
     // `polish_footprint_open` is the entry test, and it is a COST gate, not a
     // correctness one: it asks whether this point has anything a solve could gain

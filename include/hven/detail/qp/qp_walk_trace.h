@@ -566,8 +566,11 @@ struct QpWalkMinorRecord {
     /// THE EQP-SITE RESIDUAL CHECK (M7 W2 E4; `eqp_solve.h`), per pass: the
     /// accepted answer's own miss against the REGULARIZED system it came out of
     /// over the CONSTRAINT rows, the extra solves the check spent, and whether it
-    /// REFUSED (1) the answer — a refusal that reaches the walk ends the solve
-    /// `kNumericalError`, so the column is how a trace names that exit.
+    /// REFUSED (1) the answer — a refusal that reaches the walk rides the
+    /// suspect-stall ladder, and an EXHAUSTED ladder is ADVISORY (qp_engine.h
+    /// section 5 states the rule; only a non-finite answer is terminal), so the
+    /// column names a pass whose answer the check would not stand behind, not an
+    /// exit.
     double eqp_row_residual = kAbsent;
     double eqp_residual_ratio = kAbsent;
     Index eqp_residual_iters = 0;

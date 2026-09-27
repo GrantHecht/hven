@@ -103,12 +103,14 @@ struct QpOptions {
     /// SINCE M7 W2 E4 THE TERM IS CENTRED AT THE ITERATE, not at the origin:
     /// the EQP minimises (primal_delta/2)||x_F - x_k,F||^2 rather than
     /// (primal_delta/2)||x_F||^2 (eqp_solve.h states the system and why). So the
-    /// bound above is on the STEP, and the engine's runaway guard is asked in
-    /// both currencies -- the iterate's and the step's -- on every moving pass
-    /// (qp_engine.h section 5). What the centring at 0 bought, a bound on the
-    /// absolute size of a free variable on a flat face, it charged for by making
-    /// the ordinary step ASCEND the objective there on every pass of a measured
-    /// cycle; the guard in two currencies buys the bound without the ascent.
+    /// bound above is on the STEP, and the engine's runaway guard is asked on the
+    /// ITERATE and on the ridge scale -- NOT on the step, where a guard was built,
+    /// measured and removed -- on every moving pass (qp_engine.h section 5). What
+    /// the centring at 0 bought, a bound on the absolute size of a free variable
+    /// on a flat face, it charged for by making the ordinary step ASCEND the
+    /// objective there on every pass of a measured cycle, which is why the
+    /// centring moved; what ||p|| used to say is now said by the walk's own
+    /// KKT-point test and that iterate-currency guard.
     ///
     /// Validated at solve start (QpEngine::solve throws std::invalid_argument
     /// otherwise): a NaN burned the entire minor budget returning a NaN

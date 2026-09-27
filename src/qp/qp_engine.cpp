@@ -809,8 +809,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         // check), and a NON-FINITE answer, which is the same statement at its limit.
         // The answer this pass was handed does not solve the system it came out of;
         // the border path's own retreat to the bound-eliminated form has already been
-        // spent inside the call, and E4-4's rule is that no step may be taken toward
-        // such an answer.
+        // spent inside the call.
         //
         // THE RETREAT IS THE ENGINE'S OWN LADDER, not a new exit: an untrustworthy
         // factorization is exactly what section 4b's SUSPECT-STALL escalation
@@ -821,15 +820,14 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         // the free block along a flat face IS delta*I, and a decade more delta is a
         // decade less of that. Measured: without the ladder the same refusal ends
         // five A0_YORKNET cells and two certified Cs_STEENBRB cells at their first
-        // refused pass. Only an EXHAUSTED ladder reports kNumericalError, at the
-        // iterate the walk stands on -- finite, and where the caller's evidence is.
-        // `counters.eqp_residual_refusals` carries the reason.
+        // refused pass. NO STEP IS TAKEN TOWARD A REFUSED ANSWER WHILE THE LADDER
+        // HAS RUNGS; what an EXHAUSTED ladder does is below, and section 5 states
+        // the rule (E4-4 as amended). `counters.eqp_residual_refusals` carries the
+        // reason.
         //
         // THE STEP'S ROW-DRIFT CHECK (fix round 2) rides the SAME refusal, for
-        // the same reason and into the same ladder: an answer that leaves a
-        // working row the iterate was already on is an answer no step may be
-        // taken toward, and lambda -- the size of the drift -- scales as
-        // 1/primal_delta on the flat face that produces it. See
+        // the same reason and into the same ladder: lambda -- the size of the
+        // drift -- scales as 1/primal_delta on the flat face that produces it. See
         // eqp_answer_drifts_off_met_rows for the measurement.
         const bool eqp_not_finite = !eqp.x.allFinite();
         const bool eqp_drifted =
@@ -856,37 +854,24 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 }
                 continue;
             }
-            // THE EXHAUSTED LADDER IS ADVISORY FOR BOTH REFUSALS (fix round 2), and
-            // TERMINAL ONLY FOR A NON-FINITE ANSWER.
+            // THE EXHAUSTED LADDER IS ADVISORY FOR BOTH REFUSALS, and TERMINAL ONLY
+            // FOR A NON-FINITE ANSWER (E4-4 as amended, ruling E4-27; section 5
+            // states the rule).
             //
-            // The ladder is the remedy both refusals ask for, and its exhaustion is
-            // itself evidence: three decades of primal_delta have not brought the
-            // row residual down, so the residual is IRREDUCIBLE -- which is what an
-            // INCONSISTENT row set looks like (the canonical pair e_0 = 0 beside
-            // e_0 = 1 at dual_mu = 0), not what an untrustworthy factor looks like.
-            // Ending the solve kNumericalError there answers the wrong question:
-            // the walk's own terminal site already classifies an iterate it cannot
-            // leave, and on an inconsistent set it classifies it kInfeasible, which
-            // is the answer the base walk gave and the answer the caller needs.
-            //
-            // MEASURED, and this is why the classification this replaced is gone:
-            // reporting kInfeasible HERE, from worst_structural_violation at the
-            // refused pass, is a claim about an iterate the walk has not finished
-            // with. On an ELASTIC RELAXATION -- feasible by construction -- a
-            // mid-walk iterate violates rows it has not reached yet, and the T7
-            // feasible census read 16 open relaxations certified infeasible against
-            // its own claim of 0. A FALSE CERTIFICATE is not a trade any fix may
-            // make, so the classification is withdrawn and the pass falls through
-            // to the walk instead: the step is taken, the refusals are counted, and
-            // the terminal site decides with the evidence it has always used.
-            //
-            // AND THE SAME MEASUREMENT SETTLES THE DRIFT HALF: made terminal, it
-            // costs `ACOPR57_def`/qp0 its BASE CERTIFICATE on both algebras
-            // (opt/183 -> num/162, terminal stationarity 1.24). Advisory, that cell
-            // keeps it (opt/191, f at Clarabel's optimum to 2.2e-12 relative),
-            // `indefinite_equality_qp` converges on the rungs, and
-            // `A0_YORKNET`/qp1 converts (num/329 -> opt/717, equality residual
-            // 4.37e-01 -> 1.97e-13).
+            // The exhaustion is itself evidence: three decades of primal_delta have
+            // not brought the row residual down, so the residual is IRREDUCIBLE --
+            // which is what an INCONSISTENT row set looks like (the canonical pair
+            // e_0 = 0 beside e_0 = 1 at dual_mu = 0), not what an untrustworthy
+            // factor looks like -- and the walk's own terminal site already
+            // classifies an iterate it cannot leave, kInfeasible on such a set.
+            // Classifying HERE instead makes a claim about an iterate the walk has
+            // not finished with, and on an ELASTIC RELAXATION (feasible by
+            // construction) a mid-walk iterate violates rows it has not reached
+            // yet: both alternatives were measured, one costing a certified status
+            // and the other producing false census certificates, so the step is
+            // taken, the refusals are counted, and the terminal site decides with
+            // the evidence it has always used. The cells and the numbers are in
+            // docs/notes/data/2026-09-m7-w2-e4-proximal-eqp/REPORT-fix2.md.
             //
             // A NON-FINITE ANSWER STAYS TERMINAL. There the complaint is not about
             // accuracy at all: there is no step to take, and kNumericalError at the
@@ -3602,28 +3587,37 @@ bool QpEngine::adopt_polished_candidate(const QpProblem &qp, const WorkingSet &w
     // merely different is refused, and `terminal_polish_rejected` counts a cost
     // and never a risk.
     //
-    // THE SLACK ON BOTH HALVES (fix round 2): kTerminalPolishWorseFactor, whose own
-    // note carries the measurement. "No worse" means no worse by more than that
-    // factor and "strictly better" means better BY that factor, so the decision is
-    // a margin on each side instead of a tie-break that one ulp of one residual can
-    // settle differently in two builds of the same expression.
+    // AND THE CANDIDATE MUST PASS THE WALK'S OWN KKT-POINT TEST (fix round 3): its
+    // relative stationarity within opt_tol, which IS free_block_is_stationary on
+    // the candidate -- terminal_kkt has already divided that residual by the same
+    // scale (qp_engine.h's TerminalKkt), so the test needs no second stationarity
+    // and keeps the NaN convention above. WHY: the rounding margin below is for ulp
+    // ties and may not be spent as HEADROOM ABOVE THE TOLERANCE. Without this test
+    // a walk that certified at 0.9 * opt_tol could export a candidate at
+    // 3.6 * opt_tol -- a point its own test would have refused -- because the
+    // candidate improved complementarity instead. A rejection leaves the walk's own
+    // point exactly as it was, which is the conservative side.
     //
-    // THE SLACK IS ON THE DUAL RESIDUALS ONLY, AND THE ROWS STAY EXACT. MEASURED:
-    // with the slack on the row half as well, a candidate may be up to 4x LESS
-    // feasible than the incumbent, and on an elastic relaxation whose incumbent
-    // rows sit at 1e-3 that is enough to make the exported point read a structural
-    // violation -- the T7 feasible census went to 16 open relaxations certified
-    // infeasible against its own claim of 0. Feasibility is the one thing the
-    // polish may never trade, so `after.rows` is compared exactly on both halves.
+    // THE SLACK ON BOTH HALVES (fix round 2): kTerminalPolishWorseFactor, whose own
+    // note carries the measurement and the argument. "No worse" means no worse by
+    // more than that factor and "strictly better" means better BY that factor, so
+    // the decision is a margin on each side instead of a tie-break that one ulp of
+    // one residual can settle differently in two builds of the same expression.
+    //
+    // THE SLACK IS ON THE DUAL RESIDUALS ONLY, AND THE ROWS STAY EXACT: feasibility
+    // is the one thing the polish may never trade, so `after.rows` is compared
+    // exactly on both halves (the constant's note carries the measured cost of
+    // trading it).
     const double slack = detail::kTerminalPolishWorseFactor;
     const bool feasible = after.rows <= std::max(opts.feas_tol, before.rows);
+    const bool kkt_point = after.stationarity <= opts.opt_tol;
     const bool no_worse = after.stationarity <= slack * before.stationarity &&
                           after.rows <= before.rows &&
                           after.complementarity <= slack * before.complementarity;
     const bool strictly_better = slack * after.stationarity < before.stationarity ||
                                  after.rows < before.rows ||
                                  slack * after.complementarity < before.complementarity;
-    if (!after.all_finite() || !feasible || !no_worse || !strictly_better) {
+    if (!after.all_finite() || !feasible || !kkt_point || !no_worse || !strictly_better) {
         return false;
     }
     x = cand.x;
@@ -3708,8 +3702,8 @@ bool QpEngine::polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
     // ability to see a LOST hot reuse at all. Nothing is hidden: the count is
     // `terminal_polish_solves`, one per solve entered, asserted and aggregated
     // into SqpCounters like every other counter, and a consumer that wants the
-    // total forms `factorizations + terminal_polish_solves`. REGISTERED for the
-    // settler as an accounting choice, with this as the argument.
+    // total forms `factorizations + terminal_polish_solves` (ruling E4-17;
+    // solver_counters.h and docs/trace-schema-v0.md state the contract).
     //
     // The EQP-level fields the local solve moves ARE folded back below: they
     // describe the solve's own arithmetic, which no other counter reports.

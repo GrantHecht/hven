@@ -65,12 +65,14 @@ struct QpCounters {
 
     /// EQP answers REFUSED by that check -- the row residual still above the
     /// tolerance after the budget above was spent, so the answer does not solve
-    /// the system it came from and the walk may not step toward it. Each refusal
-    /// routes the pass to a retreat the engine already has: the border path
-    /// retreats to the bound-eliminated one (as for any factor it cannot trust),
-    /// and an eliminated-path refusal ends the solve kNumericalError at the
-    /// iterate the walk stands on (qp_engine.h section 5). A NaN residual is a
-    /// refusal.
+    /// the system it came from. Each refusal routes the pass to a retreat the
+    /// engine already has: the border path retreats to the bound-eliminated one
+    /// (as for any factor it cannot trust), and an eliminated-path refusal rides
+    /// the suspect-stall ladder -- no step toward the answer WHILE THE LADDER HAS
+    /// RUNGS, and an EXHAUSTED ladder is ADVISORY: the walk steps and the terminal
+    /// site classifies the point it stops at, only a NON-FINITE answer being
+    /// terminal (qp_engine.h section 5 states the rule). So a solve can read many
+    /// refusals and still kOptimal. A NaN residual is a refusal.
     Index eqp_residual_refusals = 0;
 
     /// EQP answers refused by THE STEP'S ROW-DRIFT CHECK (M7 W2 E4 fix round 2;
@@ -87,12 +89,12 @@ struct QpCounters {
     /// decade less drift. 0 on every solve whose steps keep their closed rows
     /// closed, which is the overwhelming majority.
     ///
-    /// ADVISORY, NOT TERMINAL, and the distinction is the reason this is its own
-    /// field. An EXHAUSTED ladder ends the solve for a residual refusal, because
-    /// no step may be taken toward an answer that does not solve its system;
-    /// for a drift refusal it does NOT -- the answer solves its system, the
-    /// complaint is a quality one, and the walk takes the step it would have
-    /// taken before the check existed. So a nonzero count here is a REPORT about
+    /// ADVISORY ONCE THE LADDER IS EXHAUSTED -- as the residual refusal is, on
+    /// the same rule (qp_engine.h section 5): the walk takes the step it would
+    /// have taken before the check existed and the terminal site classifies the
+    /// point it stops at. This is its OWN field because the CAUSE differs, not
+    /// the response: the answer counted here DOES solve its system and the
+    /// complaint is a quality one. So a nonzero count here is a REPORT about
     /// how much regularization footprint the walk had to carry, never by itself
     /// a failure, and a solve can read several refusals and still kOptimal.
     Index eqp_row_drift_refusals = 0;
