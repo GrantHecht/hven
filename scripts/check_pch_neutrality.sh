@@ -40,6 +40,15 @@
 # conda-toolchain compiler), and Intel MKL on Linux/Windows or Apple
 # Accelerate on macOS, same as any hven build.
 #
+# CLANG ONLY, and it will say so by failing (M7 W2 E4 fix round 4).
+# src/CMakeLists.txt now guards target_precompile_headers() on the compiler id,
+# so a caller who passes -DCMAKE_CXX_COMPILER=g++ gets a build with no PCH in
+# it and this script's engagement assertion (step 3) fails on a missing PCH
+# artifact. That is the correct answer, not a bug in either place: under GCC
+# there is no PCH, so there is no byte-identity question to settle. The reason
+# the guard exists -- a GCC .gch carries no input validation and is therefore
+# unsafe to cache -- is at the guard and in docs/build.md.
+#
 # Optional environment:
 #   HVEN_PCH_NEUTRALITY_JOBS      Build parallelism (default 2, which suits
 #                                   the memory-constrained boxes this is

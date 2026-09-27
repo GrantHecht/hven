@@ -331,7 +331,50 @@ set(_hven_pch_sources
     model/nlp_adapter.cpp
 )
 
-target_precompile_headers(hven PRIVATE hven_pch.h)
+# THE PCH IS CLANG-ONLY (M7 W2 E4 fix round 4). Under any other front end this
+# target configures with NO precompiled header, and the reason is a correctness
+# one on top of the measurement one this file and docs/build.md already carry.
+#
+# The measurement one: the per-TU table above is a clang measurement throughout,
+# and docs/build.md's disclosed limitations record that bar 2 below -- the
+# object stays byte-identical to the non-PCH build -- does NOT hold under GCC,
+# where three of the opted-in TUs emit a different object with the PCH than
+# without it. A bar a front end cannot clear is not a bar it should be admitted
+# under.
+#
+# The correctness one, which is what this guard was added for. A GCC .gch does
+# not record its inputs for validation. What keeps a consuming TU from re-reading
+# a `#pragma once` header already in the PCH is a table of (file size, content
+# md5) pairs baked into the .gch when it was built, and GCC never re-checks that
+# those pairs still describe the files on disk. So a .gch stale for ONE header --
+# even one whose only staleness is a comment -- silently makes every consuming TU
+# re-parse it, and the TU dies on "multiple definition of 'enum class ...'".
+# ccache serves exactly that .gch: its preprocessor-mode key is the preprocessed
+# text, which a comment-only, line-count-preserving header edit leaves
+# byte-identical, so a .gch built before such an edit is replayed while the file
+# on disk no longer matches the table inside it. MEASURED here on GCC 16.2.1
+# with ccache 4.12.3: such an edit to include/hven/core/solver_status.h gets a
+# `preprocessed_cache_hit` and a served .gch byte-identical to the pre-edit one,
+# and compiling src/drivers/ipm_solver.cpp against that .gch fails on every enum
+# in that header. That -- not the sources -- is what failed M7 W2 E4's install
+# smoke, whose default arm is the system compiler, i.e. GCC on this box and on
+# CI's Linux runner.
+#
+# Clang keeps the PCH and is not exposed to this: it records each input's size
+# and modification time in the AST file and REFUSES one whose inputs moved
+# ("file ... has been modified since the precompiled header was built"), so the
+# same stale artifact is a loud refusal rather than a silent re-parse. Clang is
+# also the toolchain CLAUDE.md documents, every preset selects and every CI lane
+# uses -- including the install smoke's second, `-DCMAKE_CXX_COMPILER=clang++`
+# arm, so the PCH path stays exercised end to end by the gate that broke.
+#
+# The membership machinery below is deliberately NOT guarded with this: its
+# opt-out loop and its three postconditions are what stop a new TU from quietly
+# joining the PCH, and they are worth running on every configure whatever the
+# front end is. With no PCH in the target the opt-out is inert, not wrong.
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_precompile_headers(hven PRIVATE hven_pch.h)
+endif()
 
 # Omit the embedded timestamp from the generated PCH. Under Clang this is a
 # REQUIREMENT for using ccache at all, not a tuning knob: clang stamps a
