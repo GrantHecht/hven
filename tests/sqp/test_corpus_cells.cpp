@@ -928,10 +928,10 @@ std::vector<std::string> split_all(const std::string &s) {
 //
 // Counters and statuses stay EXACT: no floating-point arithmetic produces them,
 // so a single-bit move in one is a real regression. The headroom costs nothing
-// in discrimination -- these measures span 1e-14 to 1e-7 across cells and move
-// by whole orders of magnitude when a solve actually changes, and anything that
-// large also moves a counter. Byte equality is checked first and remains the
-// common outcome; the gate engages only on the digits that provably vary.
+// in discrimination -- these measures move by orders of magnitude when a solve
+// really changes, and anything that large also moves a counter. Byte equality is
+// checked first; the gate engages only on digits that provably vary, AND ONLY
+// WITH THE ABSOLUTE FLOOR BELOW -- the class reaches 1e-19, where rel is noise.
 constexpr double kResidualRelativeGate = 1.0e-5;
 
 // The corpus schema's floating-point measure columns, by index. The schema is 76 columns wide
@@ -1006,9 +1006,34 @@ bool residual_columns_agree(const std::string &a, const std::string &b) {
         return false;
     }
     const double scale = std::max(std::abs(va), std::abs(vb));
-    // scale == 0 means both are zero, which the byte comparison above already
-    // settled; anything else is a genuine divergence from an exact zero.
-    return std::abs(va - vb) <= kResidualRelativeGate * scale;
+    // ... WITH THE ABSOLUTE FLOOR (M7 W2 E4 fix round 4). The rule the suite
+    // states is byte equality first, then kResidualRelativeGate RELATIVE *with a
+    // 1e-13 absolute floor*, and this comparator carried only the relative half.
+    // The floor is not a knob and not new: it is the same constant this file's
+    // CorpusTask6bRepair.TheKSsnArmMovesTheFourCrashingCellsAndNothingElse
+    // derives -- residual norms formed by cancellation from O(1) data are
+    // accurate to a few ulps of 1.0 however small the norm is, so a purely
+    // relative test below ~1e-15 measures noise against noise -- which
+    // CorpusTask6bPhaseB applies at three more sites, and which
+    // scripts/compare_replay.py and scripts/census_compare.py already implement
+    // as max(rel * scale, RESIDUAL_ABS_FLOOR). Cited by TEST NAME rather than by
+    // line number on purpose: the :NNN cites into this file have drifted before
+    // and have drifted again.
+    //
+    // WHAT THE MISSING HALF COST. This comparator reads columns produced by two
+    // INDEPENDENT PROCESSES, and the class includes cells whose residuals
+    // converge to nothing, where the relative arm alone asserts agreement on
+    // digits the two processes provably do not share. Measured on
+    // f7_n1000_bound_neutral: kkt_dual_sign 3.806354307e-19 vs 3.604125191e-19,
+    // a 2e-20 ABSOLUTE move the relative arm scores at 5e-2 and fails; and
+    // 1.957054230e-16 vs 1.957609898e-16, 5.6e-22 absolute, scored 2.8e-4.
+    // Nothing real hides under the floor: 1e-13 is six orders below the smallest
+    // genuine movement this file records (kkt_stationarity, ~1e-7), and a move
+    // that large also shifts a counter, which stays byte-exact.
+    //
+    // scale == 0 is still settled by the byte comparison above.
+    constexpr double kResidualAbsFloor = 1e-13;
+    return std::abs(va - vb) <= std::max(kResidualRelativeGate * scale, kResidualAbsFloor);
 }
 
 std::string slurp(const std::string &path) {
@@ -1276,21 +1301,41 @@ TEST(CorpusResidualGate, AcceptsEveryRecordedSpreadAndRefusesARealMove) {
     // Byte equality stays the common outcome and stays free.
     EXPECT_TRUE(runner_test::residual_columns_agree("1.234567890e-09", "1.234567890e-09"));
 
-    // REFUSES: a move an order of magnitude past the gate, and one three
-    // orders past it. The gate is 1e-5; nothing near a real regression
-    // survives it.
-    EXPECT_FALSE(runner_test::residual_columns_agree("1.000000000e-09",
-                                                     "1.000100000e-09")); // 1e-4
+    // AND accepts the NEAR-ZERO readings the ABSOLUTE FLOOR exists for, which
+    // the relative arm alone refused until M7 W2 E4 fix round 4 (both pairs
+    // measured, f7_n1000_bound_neutral, the same cell read by two processes).
+    // These are the cases that made the CLI-inertness pin above fail on noise.
+    EXPECT_TRUE(runner_test::residual_columns_agree("3.806354307e-19",
+                                                    "3.604125191e-19")); // 2e-20 absolute
+    EXPECT_TRUE(runner_test::residual_columns_agree("1.957054230e-16",
+                                                    "1.957609898e-16")); // 5.6e-22 absolute
+
+    // REFUSES: a move past BOTH arms. The first is 1e-4 relative at a scale
+    // where the relative arm is the live one -- 1e-10 absolute, three orders
+    // ABOVE the floor -- and it replaces the 1e-9-scale pair this case used
+    // before the floor existed, whose absolute move was exactly 1e-13 and so sat
+    // ON the boundary rather than past it. The gate is 1e-5 relative WITH a
+    // 1e-13 absolute floor; nothing near a real regression survives either arm.
+    EXPECT_FALSE(runner_test::residual_columns_agree("1.000000000e-06",
+                                                     "1.000100000e-06")); // 1e-4
     EXPECT_FALSE(runner_test::residual_columns_agree("1.000000000e-09",
                                                      "1.001000000e-09")); // 1e-3
     // An order-of-magnitude move is what a real regression in these measures
     // actually looks like.
     EXPECT_FALSE(runner_test::residual_columns_agree("1.000000000e-14", "1.000000000e-11"));
+    // THE FLOOR IS A BOUNDARY, NOT AN AMNESTY: down where the relative arm is
+    // dead, a move just past 1e-13 is still refused.
+    EXPECT_FALSE(runner_test::residual_columns_agree("1.000000000e-13",
+                                                     "3.000000000e-13")); // 2e-13 absolute
 
-    // Both exactly zero agree; an exact zero against a nonzero never does,
-    // however small the nonzero is.
+    // Both exactly zero agree. An exact zero against a nonzero agrees only while
+    // the nonzero is UNDER the floor, and that is the floor's own claim rather
+    // than a leak: at these columns' absolute accuracy -- a few ulps of 1.0,
+    // whatever the norm -- a value that small is not distinguishable from zero.
+    // Above the floor it is refused, as it was before.
     EXPECT_TRUE(runner_test::residual_columns_agree("0.000000000e+00", "0.000000000e+00"));
-    EXPECT_FALSE(runner_test::residual_columns_agree("0.000000000e+00", "1.000000000e-30"));
+    EXPECT_TRUE(runner_test::residual_columns_agree("0.000000000e+00", "1.000000000e-30"));
+    EXPECT_FALSE(runner_test::residual_columns_agree("0.000000000e+00", "1.000000000e-12"));
 
     // Non-finite is never waved through, and identical spellings agree only
     // through byte equality.
