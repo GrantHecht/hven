@@ -1,0 +1,132 @@
+== hven install smoke: workdir /home/ghecht/Projects/hven/.scratch/m7w2e4gates/smoke-work
+== configuring hven (Release) into /home/ghecht/Projects/hven/.scratch/m7w2e4gates/smoke-work/hven-build
+-- The CXX compiler identification is GNU 16.2.1
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- ccache found: /usr/bin/ccache
+-- Floating-point mode: SAFER_FAST
+-- IEEE 754 compliance: SAFER_FAST (fast-math except finite-math-only)
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- libiomp5.so
+-- MKL_INTERFACE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a
+-- MKL_SEQTHR_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a
+-- MKL_CORE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a
+-- MKL_TBB_LIBRARY = 
+-- MKL_OMP_LIBRARY = /opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- Found MKL: /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_core.a;/opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- hven: EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+-- SNOPT found at /home/ghecht/Software/snopt7 (/home/ghecht/Software/snopt7/lib/libsnopt7_cpp.so); SNOPT bench + gate test enabled
+-- Configuring done (1.8s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/ghecht/Projects/hven/.scratch/m7w2e4gates/smoke-work/hven-build
+== building hven
+[1/46] Building CXX object CMakeFiles/hven.dir/src/core/version.cpp.o
+[2/46] Building CXX object CMakeFiles/hven.dir/src/core/pattern_hash.cpp.o
+[3/46] Building CXX object CMakeFiles/hven.dir/src/core/enum_names.cpp.o
+[4/46] Building CXX object CMakeFiles/hven.dir/src/linear/dense_symmetric_factor.cpp.o
+[5/46] Building CXX object CMakeFiles/hven.dir/src/linear/pardiso_session.cpp.o
+[6/46] Building CXX object CMakeFiles/hven.dir/src/linear/symmetric_factor_mkl.cpp.o
+[7/46] Building CXX object CMakeFiles/hven.dir/src/model/assembly_declaration.cpp.o
+In file included from /home/ghecht/Projects/hven/include/hven/detail/interior/indexing_data.h:41,
+                 from /home/ghecht/Projects/hven/include/hven/detail/interior/solver_function_base.h:26,
+                 from /home/ghecht/Projects/hven/include/hven/detail/interior/constraint_function.h:21,
+                 from /home/ghecht/Projects/hven/src/model/assembly_declaration.cpp:22:
+/home/ghecht/Projects/hven/include/hven/detail/interior/utils/thread_pool.h:339:14: warning: use of ‘std::hardware_destructive_interference_size’ [-Winterference-size]
+  339 |         std::hardware_destructive_interference_size;
+      |         ~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/ghecht/Projects/hven/include/hven/detail/interior/utils/thread_pool.h:339:14: note: its value can vary between compiler versions or with different ‘-mtune’ or ‘-mcpu’ flags
+/home/ghecht/Projects/hven/include/hven/detail/interior/utils/thread_pool.h:339:14: note: if this use is part of a public ABI, change it to instead use a constant variable you define
+/home/ghecht/Projects/hven/include/hven/detail/interior/utils/thread_pool.h:339:14: note: the default value for the current CPU tuning is 64 bytes
+/home/ghecht/Projects/hven/include/hven/detail/interior/utils/thread_pool.h:339:14: note: you can stabilize this value with ‘--param hardware_destructive_interference_size=64’, or disable this warning with ‘-Wno-interference-size’
+[8/46] Building CXX object CMakeFiles/hven.dir/src/drivers/solve_status.cpp.o
+[9/46] Building CXX object CMakeFiles/hven.dir/src/drivers/solve_result.cpp.o
+[10/46] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver_globalization.cpp.o
+In file included from /home/ghecht/Projects/hven/include/hven/detail/interior/indexing_data.h:41,
+                 from /home/ghecht/Projects/hven/include/hven/detail/interior/solver_function_base.h:26,
+                 from /home/ghecht/Projects/hven/include/hven/detail/interior/constraint_function.h:21,
+                 from /home/ghecht/Projects/hven/include/hven/model/non_linear_program.h:34,
+                 from /home/ghecht/Projects/hven/include/hven/drivers/ipm_solver_types.h:52,
+                 from /home/ghecht/Projects/hven/include/hven/drivers/ipm_solver.h:37,
+                 from /home/ghecht/Projects/hven/include/hven/detail/globalization/acceptance_strategy.h:18,
+                 from /home/ghecht/Projects/hven/include/hven/detail/globalization/backtracking_line_search.h:12,
+                 from /home/ghecht/Projects/hven/src/drivers/ipm_solver_globalization.cpp:42:
+/home/ghecht/Projects/hven/include/hven/detail/interior/utils/thread_pool.h:339:14: warning: use of ‘std::hardware_destructive_interference_size’ [-Winterference-size]
+  339 |         std::hardware_destructive_interference_size;
+      |         ~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/ghecht/Projects/hven/include/hven/detail/interior/utils/thread_pool.h:339:14: note: its value can vary between compiler versions or with different ‘-mtune’ or ‘-mcpu’ flags
+/home/ghecht/Projects/hven/include/hven/detail/interior/utils/thread_pool.h:339:14: note: if this use is part of a public ABI, change it to instead use a constant variable you define
+/home/ghecht/Projects/hven/include/hven/detail/interior/utils/thread_pool.h:339:14: note: the default value for the current CPU tuning is 64 bytes
+/home/ghecht/Projects/hven/include/hven/detail/interior/utils/thread_pool.h:339:14: note: you can stabilize this value with ‘--param hardware_destructive_interference_size=64’, or disable this warning with ‘-Wno-interference-size’
+[11/46] Building CXX object CMakeFiles/hven.dir/src/drivers/solver_init.cpp.o
+[12/46] Building CXX object CMakeFiles/hven.dir/src/interior/kkt_factorization.cpp.o
+[13/46] Building CXX object CMakeFiles/hven.dir/src/interior/utils/color_text.cpp.o
+[14/46] Building CXX object CMakeFiles/hven.dir/src/interior/utils/get_core_count.cpp.o
+[15/46] Building CXX object CMakeFiles/hven.dir/src/interior/utils/memory_management.cpp.o
+[16/46] Building CXX object CMakeFiles/hven.dir/src/interior/utils/thread_pool.cpp.o
+In file included from /home/ghecht/Projects/hven/src/interior/utils/thread_pool.cpp:4:
+/home/ghecht/Projects/hven/include/hven/detail/interior/utils/thread_pool.h:339:14: warning: use of ‘std::hardware_destructive_interference_size’ [-Winterference-size]
+  339 |         std::hardware_destructive_interference_size;
+      |         ~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/ghecht/Projects/hven/include/hven/detail/interior/utils/thread_pool.h:339:14: note: its value can vary between compiler versions or with different ‘-mtune’ or ‘-mcpu’ flags
+/home/ghecht/Projects/hven/include/hven/detail/interior/utils/thread_pool.h:339:14: note: if this use is part of a public ABI, change it to instead use a constant variable you define
+/home/ghecht/Projects/hven/include/hven/detail/interior/utils/thread_pool.h:339:14: note: the default value for the current CPU tuning is 64 bytes
+/home/ghecht/Projects/hven/include/hven/detail/interior/utils/thread_pool.h:339:14: note: you can stabilize this value with ‘--param hardware_destructive_interference_size=64’, or disable this warning with ‘-Wno-interference-size’
+[17/46] Building CXX object CMakeFiles/hven.dir/cmake_pch.hxx.gch
+[18/46] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+FAILED: [code=1] CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o 
+/usr/bin/ccache /usr/bin/c++ -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO -DEIGEN_MAX_ALIGN_BYTES=32 -DFMT_HEADER_ONLY -DFMT_USE_LOCALE=0 -DHVEN_DEFAULT_ARENA_SIZE=256 -DHVEN_DEFAULT_QP_THREADS=8 -DHVEN_VERSION_STRING=\"0.1.0\" -I/home/ghecht/Projects/hven/include -I/opt/intel/oneapi/mkl/latest/include -I/home/ghecht/Projects/hven/src/interior/utils -isystem /home/ghecht/Projects/hven/dep/eigen -isystem /home/ghecht/Projects/hven/dep/fmt/include -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 -fPIC -pthread -O3 -fomit-frame-pointer -fno-stack-protector -fno-asynchronous-unwind-tables -falign-loops=32 -march=native -mtune=native -ffast-math -fno-finite-math-only -fopenmp -Winvalid-pch -include /home/ghecht/Projects/hven/.scratch/m7w2e4gates/smoke-work/hven-build/CMakeFiles/hven.dir/cmake_pch.hxx -MD -MT CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o -MF CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o.d -o CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o -c /home/ghecht/Projects/hven/src/drivers/ipm_solver.cpp
+In file included from /home/ghecht/Projects/hven/include/hven/core/solver_counters.h:16,
+                 from /home/ghecht/Projects/hven/include/hven/core/ledger.h:17,
+                 from /home/ghecht/Projects/hven/src/drivers/ipm_solver.cpp:31:
+/home/ghecht/Projects/hven/include/hven/core/solver_status.h:23:12: error: multiple definition of ‘enum class hven::solvers::QpStatus’
+   23 | enum class QpStatus {
+      |            ^~~~~~~~
+In file included from /home/ghecht/Projects/hven/include/hven/detail/drivers/ipm_solver_fwd.h:11,
+                 from /home/ghecht/Projects/hven/include/hven/drivers/ipm_solver.h:29,
+                 from /home/ghecht/Projects/hven/src/hven_pch.h:49,
+                 from /home/ghecht/Projects/hven/.scratch/m7w2e4gates/smoke-work/hven-build/CMakeFiles/hven.dir/cmake_pch.hxx:5,
+                 from <command-line>:
+/home/ghecht/Projects/hven/include/hven/core/solver_status.h:23:12: note: previous definition here
+   23 | enum class QpStatus {
+      |            ^~~~~~~~
+/home/ghecht/Projects/hven/include/hven/core/solver_status.h:82:12: error: multiple definition of ‘enum class hven::solvers::SolveStatus’
+   82 | enum class SolveStatus {
+      |            ^~~~~~~~~~~
+/home/ghecht/Projects/hven/include/hven/core/solver_status.h:82:12: note: previous definition here
+   82 | enum class SolveStatus {
+      |            ^~~~~~~~~~~
+/home/ghecht/Projects/hven/include/hven/core/solver_status.h:118:12: error: multiple definition of ‘enum class hven::solvers::RestorationSubStatus’
+  118 | enum class RestorationSubStatus : std::underlying_type_t<SolveStatus> {
+      |            ^~~~~~~~~~~~~~~~~~~~
+/home/ghecht/Projects/hven/include/hven/core/solver_status.h:118:12: note: previous definition here
+  118 | enum class RestorationSubStatus : std::underlying_type_t<SolveStatus> {
+      |            ^~~~~~~~~~~~~~~~~~~~
+/home/ghecht/Projects/hven/include/hven/core/solver_status.h:140:12: error: multiple definition of ‘enum class hven::solvers::IpmStopReason’
+  140 | enum class IpmStopReason {
+      |            ^~~~~~~~~~~~~
+/home/ghecht/Projects/hven/include/hven/core/solver_status.h:140:12: note: previous definition here
+  140 | enum class IpmStopReason {
+      |            ^~~~~~~~~~~~~
+/home/ghecht/Projects/hven/include/hven/core/solver_status.h:168:12: error: multiple definition of ‘enum class hven::solvers::IpmMessageKind’
+  168 | enum class IpmMessageKind {
+      |            ^~~~~~~~~~~~~~
+/home/ghecht/Projects/hven/include/hven/core/solver_status.h:168:12: note: previous definition here
+  168 | enum class IpmMessageKind {
+      |            ^~~~~~~~~~~~~~
+/home/ghecht/Projects/hven/include/hven/core/solver_status.h:211:12: error: multiple definition of ‘enum class hven::solvers::IpmKktFactorStatus’
+  211 | enum class IpmKktFactorStatus {
+      |            ^~~~~~~~~~~~~~~~~~
+/home/ghecht/Projects/hven/include/hven/core/solver_status.h:211:12: note: previous definition here
+  211 | enum class IpmKktFactorStatus {
+      |            ^~~~~~~~~~~~~~~~~~
+[19/46] Building CXX object CMakeFiles/hven.dir/src/core/ledger.cpp.o
+[20/46] Building CXX object CMakeFiles/hven.dir/src/kkt/kkt_calls.cpp.o
+[21/46] Building CXX object CMakeFiles/hven.dir/src/model/nlp_model_assembly.cpp.o
+[22/46] Building CXX object CMakeFiles/hven.dir/src/model/nlp_problem_model.cpp.o
+[23/46] Building CXX object CMakeFiles/hven.dir/src/drivers/assembly_eval_seam.cpp.o
+ninja: build stopped: subcommand failed.
