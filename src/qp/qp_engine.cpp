@@ -1841,9 +1841,12 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     ++counters.dep_known_dependent_refusals;
                     xpick = ExchangePick{};
                 } else if (t.verdict == detail::DepVerdict::kUndecidable) {
-                    // Screen-negative and unresolved (no factor for this
-                    // pass's set, or a stalled refinement): nothing proves
-                    // it dependent and no coefficient can pick an exchange.
+                    // Screen-negative and unresolved -- a refinement that
+                    // STALLED below kDepUndecidable. (A test with no factor
+                    // for this pass's set never reaches here: it did not run,
+                    // and E2 fix7 makes it the screen's verdict alone.)
+                    // Nothing proves it dependent and no coefficient can pick
+                    // an exchange.
                     // Admitted; the next pass's detector tests the grown set
                     // on its own factor, as for a shift add. Found dependent
                     // there, it is removed under dep_recheck_removals and
@@ -3933,6 +3936,13 @@ detail::DepTest QpEngine::test_candidate(const QpProblem &qp, const WorkingSet &
     }
     if (t.stall_admit) {
         ++counters.dep_stall_admits;
+    }
+    // E2 fix7: the test did not run (no factor held this pass's set), so the
+    // verdict above is the integer screen's alone. Counted after R-A, which
+    // may have replaced it by an exact structural dependency -- that one DID
+    // decide, so it is not an un-run test.
+    if (t.unrun) {
+        ++counters.dep_unrun_tests;
     }
     return t;
 }

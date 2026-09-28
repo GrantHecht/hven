@@ -204,7 +204,18 @@ DepTest dependency_test_to(const QpProblem &qp, const WorkingSet &ws, const DepF
         return t;
     }
     if (!f.usable()) {
-        t.verdict = t.screen ? DepVerdict::kDependent : DepVerdict::kUndecidable;
+        // AN UN-RUN TEST IS NOT A VERDICT OF DEPENDENCE (E2 fix7, settler
+        // E4-37(b)). There is no factor for this pass's set, so nothing was
+        // computed: rho stays at its NaN default and `solves` at 0. The
+        // integer screen is the only statement available, and it is exact --
+        // positive it PROVES dependence; negative it proves nothing, and the
+        // candidate is admitted as the pre-E2 walk admits it (S17). `unrun`
+        // says the verdict rests on the screen alone so the caller can count
+        // it (QpCounters::dep_unrun_tests) and so no reader mistakes the NaN
+        // rho for a measurement. R-A still runs at every growth site: an
+        // exact structural dependency needs no factor and overrules this.
+        t.verdict = t.screen ? DepVerdict::kDependent : DepVerdict::kIndependent;
+        t.unrun = true;
         return t;
     }
 

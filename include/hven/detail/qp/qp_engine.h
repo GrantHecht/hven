@@ -503,11 +503,22 @@
 // is kNumericalError (zero_motion_exhausted). The integer screen can call an
 // independent candidate dependent when the MANDATORY rows are dependent
 // (counted: dep_screen_under_mandatory_dependence; the safe direction). A
-// blocker the test leaves UNDECIDABLE (screen-negative; no factor for the
-// pass's set, or a stalled refinement) is decided exactly by a structural
+// blocker the test leaves UNDECIDABLE (screen-negative, a stalled refinement)
+// is decided exactly by a structural
 // dependency when one exists (dep_structural_exact); else, on a border-stack
 // pass, it takes the border retreat below; else it is admitted and the next
-// pass's detector tests the grown set (dep_deferred_adds). A stalled test with
+// pass's detector tests the grown set (dep_deferred_adds). E2 FIX7 (settler
+// E4-37(b)): a test that did not RUN is not one of those. With no factor for
+// this pass's set nothing is computed -- rho is the NaN default and solves is
+// 0 -- so the verdict is the integer screen's alone: positive it is an exact
+// proof of dependence, negative the blocker is an ORDINARY ADD, the pre-E2
+// admission (S17), counted dep_unrun_tests. It is never a deferred add: that
+// path charges the next pass to a re-check and marks the member
+// known-dependent if the re-check removes it, on the strength of a rho that
+// was never computed. A pass can reach the add site with no factor after
+// repair_temporary_vertex FAILS -- it restores ws and x but leaves `face` and
+// the border stack describing the last set it probed, and the walk falls
+// through into the same pass. A stalled test with
 // rho >= kDepUndecidable is admitted as independent (dep_stall_admits). A deferred add that
 // re-check removes is known-dependent at that point and is not re-admitted
 // there on an undecided test (dep_known_dependent_refusals). THE BORDER

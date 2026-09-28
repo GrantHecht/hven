@@ -1673,11 +1673,24 @@ TEST(QpE2WorkingSet, AFullyPinnedRowDecidesAnUndecidablePinExactly) {
     // D3(c) (E2-D1 REPORT, READING6-shaped). x0 - x2 = 0.5 with x0 FIXED at 0
     // forces x2 = -0.5, below its lower bound 0: infeasible. H is indefinite;
     // on the border path the first pass holds no usable factor, so x2's lower
-    // pin tests UNDECIDABLE -- and it completes the equality row on pinned
+    // pin's test DOES NOT RUN -- and it completes the equality row on pinned
     // columns, an EXACT dependency read off the row (-e2 = a - e0). The base
     // deferred it, re-checked, retreated and ended N3 (6 minors); now the
     // certificate verifies on the first pass. The refactorize path's test
     // decides it numerically and reaches the same certificate.
+    //
+    // COUNTER PINS RE-DERIVED, M7 W2 E2 FIX ROUND 7 (a declared mover;
+    // settler E4-37(b)): on the BORDER arm `dep_undecidable` 1 -> 0 and
+    // `dep_structural_exact` 1 -> 0, replaced by `dep_structural_first` 0 -> 1.
+    // `dep_unrun_tests` stays 0 in BOTH arms: it is counted after R-A, and R-A did
+    // decide this one.
+    // An un-run test is no longer a verdict of dependence, so the pin reaches
+    // R-A INSIDE test_candidate -- which applies the same exact row reading one
+    // step earlier -- instead of the add site's own D3(c) branch. EVERY
+    // CORRECTNESS STATEMENT OF THIS FIXTURE IS UNCHANGED and is asserted
+    // unchanged below: kInfeasible, one verified certificate, blocker 2,
+    // y_e(0) = 1, implied 0.5, limit 0, ONE minor, no deferral, no retreat.
+    // Only which counter records the exact decision moved.
     QpProblem qp;
     Eigen::MatrixXd Hd = Eigen::MatrixXd::Zero(4, 4);
     Hd(0, 0) = 0.75;
@@ -1715,9 +1728,15 @@ TEST(QpE2WorkingSet, AFullyPinnedRowDecidesAnUndecidablePinExactly) {
         expect_certificate_rederives(qp, f);
         EXPECT_FALSE(f.blocker_is_ineq);
         EXPECT_EQ(f.blocker, 2);
+        EXPECT_EQ(c.dep_undecidable, 0);
+        EXPECT_EQ(c.dep_structural_exact, 0);
+        // NOT dep_unrun_tests: that counter is read AFTER R-A, and R-A decided this
+        // candidate EXACTLY off the row, so the admission rests on no uncomputed rho
+        // (QpEngine::test_candidate). It is the count of verdicts the screen alone
+        // carries, not of passes that held no factor.
+        EXPECT_EQ(c.dep_unrun_tests, 0);
         if (alg == WorkingSetLinearAlgebra::kSchurBorder) {
-            EXPECT_EQ(c.dep_undecidable, 1);
-            EXPECT_EQ(c.dep_structural_exact, 1);
+            EXPECT_EQ(c.dep_structural_first, 1);
             EXPECT_EQ(c.minor_iters, 1);
             // Read off the row, exactly: -e2 = a - e0, so y_e = 1 and the
             // implied bound is be - u0 = 0.5 against -l2 = 0.
@@ -1725,8 +1744,7 @@ TEST(QpE2WorkingSet, AFullyPinnedRowDecidesAnUndecidablePinExactly) {
             EXPECT_EQ(f.implied, 0.5);
             EXPECT_EQ(f.limit, 0.0);
         } else {
-            EXPECT_EQ(c.dep_undecidable, 0);
-            EXPECT_EQ(c.dep_structural_exact, 0);
+            EXPECT_EQ(c.dep_structural_first, 0);
         }
     }
 }

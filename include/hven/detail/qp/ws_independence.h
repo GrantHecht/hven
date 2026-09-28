@@ -22,6 +22,18 @@
 //     rho < kDepUndecidable is UNDECIDABLE: the border path retreats to the
 //     eliminated path, the eliminated path defers the add to the next pass's
 //     detector (qp_engine.h, Degeneracy);
+//   - WITH NO USABLE FACTOR the test does not run at all, and an un-run test is
+//     not a verdict of dependence (E2 fix7, settler E4-37(b)): the integer
+//     screen is the only statement available and it is exact, so a POSITIVE
+//     screen is kDependent and a NEGATIVE one is kIndependent -- the pre-E2
+//     admission (settler S17), DepTest::unrun true, rho left at its NaN
+//     default and solves at 0 so nothing reads a measurement that was never
+//     taken. It is counted QpCounters::dep_unrun_tests, and R-A (the exact
+//     structural dependency, which needs no factor) still overrules it at
+//     every growth site. Before fix7 this case returned kUndecidable, which
+//     DepTest::dependent() reads as dependent: a blocker was then charged the
+//     deferred-add path (qp_engine.h, Degeneracy) on the strength of a rho
+//     that had never been computed;
 //   - a STALLED refinement with rho >= kDepUndecidable is ADMITTED as
 //     independent AND COUNTED (DepTest::stall_admit, QpCounters::
 //     dep_stall_admits): not "stall => dependent";
@@ -122,6 +134,10 @@ struct DepTest {
     DepVerdict verdict = DepVerdict::kUndecidable;
     double rho = std::numeric_limits<double>::quiet_NaN();
     bool screen = false;
+    // No usable factor: nothing was computed and the verdict is the integer
+    // screen's alone (E2 fix7; the caller counts it, QpCounters::
+    // dep_unrun_tests). `rho` is then the NaN default and `solves` is 0.
+    bool unrun = false;
     // The refinement stalled and rho >= kDepUndecidable: admitted as independent
     // (the caller counts it, QpCounters::dep_stall_admits).
     bool stall_admit = false;

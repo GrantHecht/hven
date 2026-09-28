@@ -776,4 +776,110 @@ TEST_P(WsIndependence, DependentShiftAddIsRefused) {
     EXPECT_NEAR(s.x(1), 1.0, 1e-8);
 }
 
+// ===========================================================================
+// M7 W2 E2 FIX ROUND 7 (settler E4-37(b)): AN UN-RUN TEST IS NOT A VERDICT OF
+// DEPENDENCE. A pass whose factor does not hold its working set gives the test
+// nothing to solve with -- no factor, no solve, rho at its NaN default -- and
+// the verdict is then the integer screen's alone. `DepTest::unrun` says so, and
+// `QpCounters::dep_unrun_tests` counts it at every growth site.
+//
+// Before this round the screen-negative half returned kUndecidable, which
+// `DepTest::dependent()` reads as dependent, so a blocker was charged the
+// deferred-add path (a re-check pass, and a known-dependent mark if that
+// re-check removed it) on the strength of a rho that had never been computed.
+// The walk-level consequence is the ACOPR118 fixture in
+// tests/qp/test_qp_unrun_dependency_test.cpp.
+// ===========================================================================
+
+// 4 variables, one working row, nothing pinned: me + |W| + 1 = 2 <= n = 4, so the
+// screen proves nothing, and with no usable factor NOTHING IS COMPUTED.
+TEST(WsIndependenceUnrun, NoFactorAndASilentScreenIsINDEPENDENT) {
+    Eigen::MatrixXd Ai(1, 4);
+    Ai << 1, 1, 0, 0;
+    Vec bi(1);
+    bi << 1.0;
+    const QpProblem qp = make_qp(Eigen::MatrixXd::Identity(4, 4), Vec::Zero(4),
+                                 Eigen::MatrixXd(0, 4), Vec(0), Ai, bi, -10.0, 10.0);
+    QpOptions o;
+    WorkingSet ws(4, 1);
+    ws.add_ineq(0);
+    const detail::DepFactorView none; // the pass holds no factor for `ws`
+    ASSERT_FALSE(none.usable());
+
+    // The candidate is EXACTLY the working row -- truly dependent, and the test still may not
+    // say so, because it did not look. A verdict this test cannot support is not the safe
+    // direction here: it is a fabricated one.
+    Vec a(4);
+    a << 1.0, 1.0, 0.0, 0.0;
+    const detail::DepTest t = detail::dependency_test(qp, ws, none, a, o);
+    EXPECT_EQ(t.verdict, detail::DepVerdict::kIndependent);
+    EXPECT_FALSE(t.dependent());
+    EXPECT_TRUE(t.unrun);
+    EXPECT_FALSE(t.screen);
+    EXPECT_TRUE(std::isnan(t.rho)) << "rho is ABSENT, never a substituted zero";
+    EXPECT_EQ(t.solves, 0);
+    EXPECT_FALSE(t.stall_admit);
+    // certificate_coefficients is the same body with the refinement run out: same answer.
+    const detail::DepTest c = detail::certificate_coefficients(qp, ws, none, a, o);
+    EXPECT_EQ(c.verdict, detail::DepVerdict::kIndependent);
+    EXPECT_TRUE(c.unrun);
+    EXPECT_EQ(c.solves, 0);
+}
+
+// The same, with the screen POSITIVE: me + |W| + 1 = 2 + 2 + 1 = 5 > n = 4 is an exact
+// integer proof, so it decides even though nothing was solved. `unrun` is still true -- it
+// records that no ARITHMETIC ran, not that no verdict was reached.
+TEST(WsIndependenceUnrun, NoFactorAndAFiringScreenIsSTILLDEPENDENT) {
+    Eigen::MatrixXd Ae(2, 4);
+    Ae << 1, 0, 0, 0, 0, 1, 0, 0;
+    Vec be(2);
+    be << 0.0, 0.0;
+    Eigen::MatrixXd Ai(2, 4);
+    Ai << 0, 0, 1, 0, 0, 0, 0, 1;
+    Vec bi(2);
+    bi << 1.0, 1.0;
+    const QpProblem qp =
+        make_qp(Eigen::MatrixXd::Identity(4, 4), Vec::Zero(4), Ae, be, Ai, bi, -10.0, 10.0);
+    QpOptions o;
+    WorkingSet ws(4, 2);
+    ws.add_ineq(0);
+    ws.add_ineq(1);
+    ASSERT_EQ(ws.num_free(), 4) << "no pin, so the no-free-column branch above is not the one";
+    const detail::DepFactorView none;
+    Vec a(4);
+    a << 0.0, 0.0, 0.0, 1.0;
+    const detail::DepTest t = detail::dependency_test(qp, ws, none, a, o);
+    EXPECT_EQ(t.verdict, detail::DepVerdict::kDependent);
+    EXPECT_TRUE(t.dependent());
+    EXPECT_TRUE(t.screen);
+    EXPECT_TRUE(t.unrun);
+    EXPECT_TRUE(std::isnan(t.rho));
+    EXPECT_EQ(t.solves, 0);
+}
+
+// With a factor, nothing about this changes: `unrun` is false and rho is a measurement. The
+// guard against a flag that leaks into the ordinary path.
+TEST_P(WsIndependence, AUsableFactorIsNeverAnUnrunTest) {
+    Eigen::MatrixXd Ai(2, 3);
+    Ai << 1, 1, 0, 0, 0, 1;
+    Vec bi(2);
+    bi << 1.0, 1.0;
+    const QpProblem qp = make_qp(Eigen::MatrixXd::Identity(3, 3), Vec::Zero(3),
+                                 Eigen::MatrixXd(0, 3), Vec(0), Ai, bi, -10.0, 10.0);
+    const QpOptions o = opts_for(GetParam());
+    WorkingSet ws(3, 2);
+    ws.add_ineq(0);
+    detail::KktFactor kkt;
+    (void)solve_eqp(qp, ws, Vec::Zero(qp.n()), kkt, o);
+    detail::DepFactorView v;
+    v.eliminated = &kkt;
+    Vec a(3);
+    a << 1.0, 1.0, 0.0;
+    const detail::DepTest t = detail::dependency_test(qp, ws, v, a, o);
+    EXPECT_FALSE(t.unrun);
+    EXPECT_GE(t.solves, 1);
+    EXPECT_FALSE(std::isnan(t.rho));
+    EXPECT_EQ(t.verdict, detail::DepVerdict::kDependent);
+}
+
 } // namespace

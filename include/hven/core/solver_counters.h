@@ -372,6 +372,14 @@ struct QpCounters {
     // stall class is truly independent on the measured corpus (R-D retired,
     // settler S34).
     Index dep_stall_admits = 0;
+    // Candidate tests that DID NOT RUN -- no factor held this pass's working
+    // set, so no solve was made (E2 fix7, settler E4-37(b)). Their verdict is
+    // the integer screen's alone: positive it is an exact proof of dependence,
+    // negative the candidate is admitted as the pre-E2 walk admits it, and
+    // never on the strength of an uncomputed rho. Telemetry, and the count of
+    // the growth this walk could not test numerically; the screen-positive
+    // half is also counted dep_dependent as any other dependent verdict is.
+    Index dep_unrun_tests = 0;
 
     // The zero-motion re-entry rule (per fixed iterate).
     Index reentry_exemptions = 0;
