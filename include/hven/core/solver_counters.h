@@ -380,6 +380,30 @@ struct QpCounters {
     // the growth this walk could not test numerically; the screen-positive
     // half is also counted dep_dependent as any other dependent verdict is.
     Index dep_unrun_tests = 0;
+    // E2 fix8, THE BOUNDED REPAIR (qp_engine.h, the repair's BUDGET). Candidate pins
+    // `repair_temporary_vertex` TRIED although the integer screen had fired. The screen
+    // proves {A_W, e_i} dependent as a family, not e_i in span(A_W): equal only for an
+    // independent A_W, which a rank-deficient equality Jacobian denies. Skipping such a
+    // pin is the UNSAFE direction there -- it can abort the repair short of the pin that
+    // cuts the negative curvature (ACOPR118's majors 17-20: aborted at 70, repairs at 75)
+    // -- so only a test that decided THIS candidate skips, and these are the pins the old
+    // rule would have skipped on the count.
+    Index dep_repair_screen_pins = 0;
+    // Repairs that stopped on the pin budget (qp_engine.h, repair_pin_budget) rather than
+    // on a verdict or on running out of candidates. Such a repair FAILS (it undoes itself),
+    // which is the same outcome the screen's accidental bound produced. 0 over every repair
+    // the budget was derived from (838 replayed from dumps, 20 in-cell).
+    Index dep_repair_budget_stops = 0;
+    // Passes SPENT after a start repair that undid itself (E2 fix8, F7-1). The repair
+    // restores `ws` and `x` but leaves `face` and the border stack describing the last set
+    // it probed, so the pass it was called from would run its add site's dependency tests
+    // with no factor that holds its working set. When the pass HELD a usable factor view
+    // before the repair and does not after it, the walk spends the pass instead, and the
+    // next one re-establishes the factor by the ordinary route (a fresh factorization on
+    // the eliminated path; sync_borders on the border path). independent_working_set only:
+    // a stale `face` costs a DEPENDENCY TEST with nothing to test against, and only that
+    // walk takes one.
+    Index dep_repair_restarts = 0;
 
     // The zero-motion re-entry rule (per fixed iterate).
     Index reentry_exemptions = 0;

@@ -170,6 +170,11 @@ enum class QpWalkAction : int {
     kUnset = 0,
     /// §4b's temporary-vertex START REPAIR at `iter == 0`.
     kStartRepair,
+    /// The same repair, having pinned and UNDONE itself (E2 fix8, F7-1): the pass is SPENT
+    /// rather than run on the `face`/border state the repair's probes left behind, and the
+    /// next pass re-establishes a factor for the restored set. A pass with this action
+    /// PRICED nothing and STEPPED nowhere.
+    kStartRepairRefused,
     /// §4b's POST-PROBE RESTART, the same repair spent once later in the solve.
     kPostProbeRestart,
     /// A KKT point of the working set, and the Dantzig rule released something.

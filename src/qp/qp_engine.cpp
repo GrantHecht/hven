@@ -971,19 +971,60 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         start_pass = false;
         // R-C': a kWrong start verdict is re-read before it may repair.
         if (first_pass && verdict == detail::InertiaVerdict::kWrong &&
-            !reread_wrong_inertia(qp, ws, x, counters, eff_opts, verdict) &&
-            repair_temporary_vertex(qp, ws, x, kkt, face, *border_, counters, eff_opts)) {
+            !reread_wrong_inertia(qp, ws, x, counters, eff_opts, verdict)) {
+            // Whether this pass holds a factor for `ws` BEFORE the repair probes (E2 fix8,
+            // F7-1 below); read only by the independent-working-set walk.
+            const bool view_before_repair = eff_opts.independent_working_set &&
+                                            dep_factor_view(ws, kkt, face, *border_).usable();
+            if (repair_temporary_vertex(qp, ws, x, kkt, face, *border_, counters, eff_opts)) {
 #ifdef HVEN_TESTING
-            walk_obs.record().action = detail::testing::QpWalkAction::kStartRepair;
+                walk_obs.record().action = detail::testing::QpWalkAction::kStartRepair;
 #endif
-            degenerate_run = 0; // observation only -- x moved onto bounds
-            recheck_pending = eff_opts.independent_working_set;
-            pt_clear(seen);
-            // Pinning moved x onto bounds, which can violate general
-            // rows; the homotopy picks them up exactly as at a start
-            // point.
-            refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen, eff_opts);
-            continue;
+                degenerate_run = 0; // observation only -- x moved onto bounds
+                recheck_pending = eff_opts.independent_working_set;
+                pt_clear(seen);
+                // Pinning moved x onto bounds, which can violate general
+                // rows; the homotopy picks them up exactly as at a start
+                // point.
+                refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen,
+                               eff_opts);
+                continue;
+            }
+            // E2 FIX8, F7-1: THE REPAIR UNDID ITSELF, AND THE PASS MAY NOT RUN ON WHAT IT
+            // LEFT BEHIND. `ws` and `x` are restored, but when the repair PROBED, `face` and
+            // the border stack describe the last set it probed -- so this pass would run
+            // every dependency test at its add site with no factor that holds its working
+            // set (which is how E2 fix7's un-run test was reached in the first place). Such
+            // a pass is SPENT instead: the next one re-establishes the factor by the
+            // ordinary route -- a fresh factorization on the eliminated path, sync_borders
+            // on the border path -- and `first_pass` is already false, so the repair cannot
+            // be re-attempted and this cannot loop. Nothing is lost: the repair moved
+            // neither `ws` nor `x`, so the pass had made no progress to keep.
+            //
+            // ONLY WHEN THE REPAIR TOOK THE PASS'S FACTOR AWAY. The test is the one the add
+            // site itself reads (dep_factor_view), before and after: a repair that failed
+            // WITHOUT probing (every candidate certified dependent or unpinnable) left the
+            // factor alone, and a pass that held no testable factor before the repair (the
+            // border path with no Schur complement yet) loses nothing to it -- spending
+            // either would buy a pass, and on the eliminated path a factorization, for
+            // nothing. Its dependency tests then run on what they would have run on anyway,
+            // and a test with no factor is fix7's un-run verdict, not a stale one.
+            //
+            // GATED ON independent_working_set, and the gate is the point. What a stale
+            // `face` costs is a DEPENDENCY TEST with nothing to test against, and only the
+            // independent-working-set walk takes one: with the option off the only reader is
+            // the next pass's own `face.holds` reuse check, which would fail on that state
+            // anyway, so the option-off walk loses nothing by falling through and its every
+            // counter stays byte-identical. That matters beyond tidiness -- the
+            // `independent-working-set-off` label is the declared CONTROL arm of every E2
+            // re-take, and a fix that moves the control is a fix that cannot be read.
+            if (view_before_repair && !dep_factor_view(ws, kkt, face, *border_).usable()) {
+                ++counters.dep_repair_restarts;
+#ifdef HVEN_TESTING
+                walk_obs.record().action = detail::testing::QpWalkAction::kStartRepairRefused;
+#endif
+                continue;
+            }
         }
 
         price(qp, ws, eqp, lambda_e, lambda_i, z);
@@ -3771,13 +3812,36 @@ bool QpEngine::repair_temporary_vertex(const QpProblem &qp, WorkingSet &ws, Vec 
     const std::vector<BoundState> saved_state = ws.bound_state();
     const Vec saved_x = x;
 
+    // THE REPAIR'S BUDGET (E2 fix8; the measured distribution and the constant are in
+    // qp_engine.h). The integer screen used to bound this loop by accident and at the wrong
+    // place; this bounds it on purpose. It is a ceiling, not a cost: the pins a SUCCESSFUL
+    // repair tries are p50 1, p90 1, p95 2 over the 838 measured repairs. It bounds the probe
+    // factorizations too, by construction: one probe per pin below, and at most one per pin
+    // in the release pass, so a repair probes at most twice its pin budget.
+    //
+    // WITH independent_working_set OFF THERE IS NO BUDGET, and that is deliberate. The
+    // option-off walk has neither screen nor dependency test, so it never had the accidental
+    // bound this budget replaces -- bounding it now would be a NEW restriction on a path this
+    // round is not about, and that path is the declared CONTROL arm of every E2 re-take. Its
+    // repair stays exactly as unbounded as it has always been; that it is unbounded at all is
+    // registered, not fixed here.
+    const bool bounded = opts.independent_working_set;
+    const Index pin_budget = detail::repair_pin_budget(n);
+    bool budget_stopped = false;
+
     std::vector<Index> pinned;
     detail::InertiaVerdict verdict = detail::InertiaVerdict::kWrong;
     for (const Index i : order) {
-        // A pin dependent on the set leaves null(A_W), and so the inertia,
-        // unchanged: skip it. With no factor for `ws` the run re-checks.
+        if (bounded && static_cast<Index>(pinned.size()) >= pin_budget) {
+            budget_stopped = true;
+            break;
+        }
+        // A pin CERTIFIED dependent on the set leaves null(A_W), and so the inertia,
+        // unchanged: skip it. With no factor for `ws` nothing is certified and the pin is
+        // tried (E2 fix7's rule, here); the run re-checks.
         if (opts.independent_working_set) {
-            // The integer screen first; the solve only on a screen-negative set.
+            // The integer screen, read for its telemetry and for the mandatory-dependence
+            // count only -- see E2 FIX8 below for why it does not decide here.
             const bool screen = qp.me() + static_cast<Index>(ws.active_ineq().size()) +
                                     (qp.n() - ws.num_free()) + 1 >
                                 qp.n();
@@ -3785,9 +3849,33 @@ bool QpEngine::repair_temporary_vertex(const QpProblem &qp, WorkingSet &ws, Vec 
             if (screen && counters.mandatory_dependent_entries > 0) {
                 ++counters.dep_screen_under_mandatory_dependence;
             }
-            if (screen ||
-                (view.usable() &&
-                 test_candidate(qp, ws, view, /*is_ineq=*/false, i, counters, opts).dependent())) {
+            // E2 FIX8, THE SCREEN MAY NOT SKIP A REPAIR PIN. It proves the FAMILY
+            // {A_W, e_i} dependent, not that e_i lies in span(A_W) -- which is what "a
+            // dependent pin leaves the inertia unchanged" needs -- and those coincide only
+            // when A_W is itself independent, which a rank-deficient equality Jacobian
+            // denies (M5's Q1). At the ADD site the screen's reading is the SAFE
+            // direction: do not grow a set that cannot be independent. HERE it is the
+            // unsafe one, because a skipped pin that would have cut the negative curvature
+            // costs the solve. So a screen-positive candidate is decided by the EXACT
+            // structural dependency alone -- e_i's pinned-only row completion, which needs
+            // neither a factor nor the screen -- and is otherwise TRIED, counted
+            // dep_repair_screen_pins. A screen-NEGATIVE candidate keeps the numerical test
+            // unchanged (its own `screen` flag is false there, so its verdict is the
+            // measured rho's). MEASURED on ACOPR118's majors 17-20: the screen fired after
+            // 70 pins and skipped the remaining 245, where pin 75 -- on a set with
+            // me + |W| = 349 > n = 344, so necessarily rank-deficient -- reads kOk and the
+            // walk then certifies in both algebras. The loop's own bound is the budget
+            // above, not this.
+            bool certified_dependent = false;
+            if (screen) {
+                ++counters.dep_repair_screen_pins;
+                certified_dependent = detail::structural_dependency(qp, ws, /*is_ineq=*/false, i)
+                                          .found; // exact, no factor, no screen
+            } else if (view.usable()) {
+                certified_dependent =
+                    test_candidate(qp, ws, view, /*is_ineq=*/false, i, counters, opts).dependent();
+            }
+            if (certified_dependent) {
                 ++counters.dep_pin_skips;
                 continue;
             }
@@ -3801,6 +3889,9 @@ bool QpEngine::repair_temporary_vertex(const QpProblem &qp, WorkingSet &ws, Vec 
         if (verdict != detail::InertiaVerdict::kWrong) {
             break; // repaired, or no longer verifiable
         }
+    }
+    if (budget_stopped) {
+        ++counters.dep_repair_budget_stops;
     }
     if (verdict != detail::InertiaVerdict::kOk) {
         // Either we ran out of variables to pin, or the gate stopped being

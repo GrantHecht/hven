@@ -1339,7 +1339,23 @@ void check_soc_costs_what_it_costs() {
     // pass per face it used to cost is gone, and the TERMINAL POLISH (qp_engine.h
     // section 5) re-solves a certified point mu-free on its final face. Majors,
     // statuses and every KKT column hold. 22/3340 = 0.66 %.
-    EXPECT_EQ(3340, total_minors) << corpus_table();
+    // RE-DERIVED, M7 W2 E2 FIX ROUND 8 (declared mover; settler S40, THE BOUNDED REPAIR):
+    // 3340 -> 3342, +2, ALL OF IT HS15's COLD ARM (1067 -> 1069 in each of the four KD/SOC
+    // cells; every other problem/arm row is byte-identical, and on HS15 cold the majors 86,
+    // factorizations 185, acc/rej 70/16, SOC 0/0/2/2, elastic 48/288, restoration 0,
+    // watchdog 0, levels 7/0/0 and fail 0 all hold).
+    // CAUSE, measured to the mechanism: HS15's sub-QPs have n = 2, so the integer screen
+    // (me + |W| + 1 > n) fires on the FIRST repair candidate -- and until fix8 it skipped
+    // BOTH of them, so the temporary-vertex repair pinned NOTHING and failed. The screen
+    // proves the family {A_W, e_i} dependent, not e_i in span(A_W), and at n = 2 that
+    // distinction is the whole of it. Now the first candidate is TRIED (inside the repair's
+    // budget, max(kRepairPinFloor, ceil(n/2)) = 8 pins there), ONE pin repairs the inertia,
+    // and the walk spends two more minors on the face it can now certify. Six such repairs
+    // over the sweep, all HS15, all n = 2: base FAIL tried=0 screen_pins=2, fix8 OK tried=1
+    // screen_pins=1 (the RPX measurement, .scratch/e2fix8/rpx/). The other rule of the
+    // round, fix7's un-run verdict, moves NO cell of this corpus at all -- measured by
+    // running each rule off on its own. 22/3342 = 0.66 %.
+    EXPECT_EQ(3342, total_minors) << corpus_table();
 #endif
 }
 

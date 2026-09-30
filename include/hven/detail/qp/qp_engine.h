@@ -516,9 +516,8 @@
 // path charges the next pass to a re-check and marks the member
 // known-dependent if the re-check removes it, on the strength of a rho that
 // was never computed. A pass can reach the add site with no factor after
-// repair_temporary_vertex FAILS -- it restores ws and x but leaves `face` and
-// the border stack describing the last set it probed, and the walk falls
-// through into the same pass. A stalled test with
+// repair_temporary_vertex FAILS -- see E2 FIX8 below, which stops the walk
+// running such a pass at all. A stalled test with
 // rho >= kDepUndecidable is admitted as independent (dep_stall_admits). A deferred add that
 // re-check removes is known-dependent at that point and is not re-admitted
 // there on an undecided test (dep_known_dependent_refusals). THE BORDER
@@ -552,6 +551,32 @@
 // mu-solve's A_W u = mu v, while rho reads (H + delta) u -- amplified by ||H|| and by a
 // rank-deficient A_W, which the residual does not see. The stall class is left alone: it is
 // truly independent on the measured corpus (R-D retired, settler S34).
+// E2 FIX8, THE BOUNDED REPAIR (two rules; settler S40).
+// (i) THE INTEGER SCREEN MAY NOT SKIP A REPAIR PIN. me + |W| + 1 > n proves the FAMILY
+// {A_W, e_i} dependent; it proves e_i in span(A_W) -- which is what "a dependent pin leaves
+// null(A_W), and so the inertia, unchanged" needs -- only when A_W is itself independent,
+// which a rank-deficient equality Jacobian denies (M5's Q1). At the add site the screen's
+// reading is the SAFE direction; in the repair it is the unsafe one, because a skipped pin
+// that would have cut the negative curvature costs the solve. So a screen-positive candidate
+// is decided by the EXACT structural dependency alone and is otherwise TRIED
+// (dep_repair_screen_pins), under a MEASURED BUDGET on its pins, which bounds its probe
+// factorizations at twice that (repair_pin_budget below, with the distribution the bound
+// comes from); a repair that stops on the budget fails, counted dep_repair_budget_stops. Measured
+// on ACOPR118's majors 17-20: the screen fired after 70 pins and skipped the remaining 245, where
+// pin 75 reads kOk and both algebras then certify at the objective the option-off walk reaches.
+// (ii) F7-1, A FAILED REPAIR DOES NOT LEAVE A PASS RUNNING ON WHAT IT LEFT BEHIND. The
+// repair restores ws and x but not `face` and the border stack, which describe the last set
+// it PROBED; the walk used to fall through into the same pass and run every dependency test
+// at its add site with no factor that holds its working set -- which is how fix7's un-run
+// test was reached. When the repair took away a factor view the pass HELD (dep_factor_view
+// usable before the repair, unusable after), that pass is now SPENT (dep_repair_restarts),
+// and the next one re-establishes the factor by the ordinary route: a fresh factorization on
+// the eliminated path, sync_borders on the border path. Nothing is lost, because a failed
+// repair moved neither ws nor x; a repair that never probed, or a pass that had no view to
+// lose, runs on as before. GATED on
+// independent_working_set: what a stale `face` costs is a dependency test with nothing to
+// test against, and only this walk takes one, so the option-off walk stays byte-identical --
+// which its role as the declared CONTROL arm of every E2 re-take requires.
 // E2 FIX4: a terminal point that would
 // read kInfeasible by its structural violation is first re-solved mu-free on its face and
 // adopted when it satisfies every row and bound (terminal_mu_refines /
@@ -869,6 +894,51 @@ inline InertiaVerdict inertia_verdict(const hven::linear::InertiaEvidence &e, In
 // RUNGS, i.e. delta 1e-8 -> 1e-5 at the defaults. Per-SOLVE.
 constexpr double kSuspectDeltaFactor = 10.0;
 constexpr Index kMaxSuspectEscalations = 3;
+
+// --- The temporary-vertex repair's BUDGET (E2 fix8, settler S40) -----------
+//
+// `repair_temporary_vertex` pins free variables one at a time, probing the inertia after
+// each, until the gate reads kOk or the candidates run out. Until E2 fix8 the INTEGER
+// SCREEN (me + |W| + 1 > n) skipped every candidate once it fired, which bounded the loop
+// by accident and at the wrong place: the screen proves the FAMILY {A_W, e_i} dependent,
+// not e_i in span(A_W), and those differ exactly when A_W is rank-deficient -- which a
+// rank-deficient equality Jacobian makes routine. Removing that accident needs a REAL
+// bound, and this is it:
+//   pin budget = max(kRepairPinFloor, ceil(n / kRepairPinDivisor))
+// It bounds the PROBE FACTORIZATIONS as well, by construction: the pin loop probes once per
+// pin and the release pass at most once per pin, so a repair probes at most twice its pin
+// budget, and never more than 2n.
+//
+// MEASURED, two populations. (a) 838 repairs replayed from dumps -- the 51-dump E2-D4 corpus
+// on both algebras, the whole HS sweep, and ACOPR118's majors 17-20 on both algebras: 832
+// succeed, and the pins a SUCCESSFUL repair tries are p50 1, p90 1, p95 2, p99 134, max 161;
+// the largest fraction of n any of them used is 75/344 = 0.218, then 161/824 = 0.195. (b) The
+// repairs IN-CELL on the hven-sqp lane's `default` ACOPR118 and ACOPP118 cells, with the
+// repair unbounded (scratch instrumentation): 20 repairs, all succeed, the largest 118 pins at
+// n = 344 = 0.343 -- each cell's first, cold subproblem -- the next 99. Pins scale with n, so
+// the bound is a fraction of n: 1/2 clears the largest measured fraction by 1.46x (an
+// earlier 1/3, derived from (a) alone, cut that 118-pin repair in both cells and moved both
+// trajectories). Below n = 16 the floor governs; there the largest measured is 4 pins at
+// n = 5, which the floor of 8 clears by 2x (n = 2's one pin by 8x). NOTHING MEASURED IS CUT:
+// the budget exists to bound the pathology the screen used to bound by accident (an unbounded
+// repair can spend n probe factorizations, and n more releasing, on one attempt). A repair
+// that stops on it is counted QpCounters::dep_repair_budget_stops and FAILS, with every
+// consequence a failed start repair has -- on a truly indefinite face the walk has no way
+// off it and ends kNumericalError, which is what the screen produced whenever it aborted a
+// repair. THE COST WHEN IT BINDS is therefore real, and pinned
+// (QpE2Fix8Budget in tests/qp/test_qp_unrun_dependency_test.cpp): a fraction of n cannot see
+// the INERTIA DEFICIT, so a QP needing more pins than the budget -- H = -I on n = 12 needs
+// all twelve, its budget is 8 -- is cut where the unbounded repair would have succeeded. None of
+// the measured repairs is; a deficit-aware budget is registered. THE BUDGET IS
+// independent_working_set ONLY: the option-off walk has neither screen nor dependency test, so it
+// never had the accidental bound this replaces, and bounding it now would restrict the declared
+// CONTROL arm of every E2 re-take. That its repair is unbounded is registered.
+constexpr Index kRepairPinFloor = 8;
+constexpr Index kRepairPinDivisor = 2;
+inline Index repair_pin_budget(Index n) {
+    const Index fraction = (n + kRepairPinDivisor - 1) / kRepairPinDivisor; // ceil(n / 2)
+    return fraction > kRepairPinFloor ? fraction : kRepairPinFloor;
+}
 
 // Section 4b's SUSPECT-STALL GATE, invariant half (ii). The QP MODEL's
 // stationarity residual r = H x + g + Ae^T lambda_e + Ai^T lambda_i,

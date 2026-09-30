@@ -1737,7 +1737,15 @@ TEST(QpE2WorkingSet, AFullyPinnedRowDecidesAnUndecidablePinExactly) {
         EXPECT_EQ(c.dep_unrun_tests, 0);
         if (alg == WorkingSetLinearAlgebra::kSchurBorder) {
             EXPECT_EQ(c.dep_structural_first, 1);
-            EXPECT_EQ(c.minor_iters, 1);
+            // RE-DERIVED AGAIN, M7 W2 E2 FIX ROUND 8 (F7-1): 1 -> 2 minors. The first pass's
+            // repair pins and undoes itself, and that pass is now SPENT rather than run on
+            // the `face`/border state its probes left behind (dep_repair_restarts 1); the
+            // certificate is reached on the pass after it. Every other statement here --
+            // kInfeasible, ONE verified certificate, the blocker, y_e, implied, limit -- is
+            // unchanged, which is the point: the walk takes one more pass to say the same
+            // thing, on a factor it can actually test against.
+            EXPECT_EQ(c.dep_repair_restarts, 1);
+            EXPECT_EQ(c.minor_iters, 2);
             // Read off the row, exactly: -e2 = a - e0, so y_e = 1 and the
             // implied bound is be - u0 = 0.5 against -l2 = 0.
             EXPECT_EQ(f.y_e(0), 1.0);
