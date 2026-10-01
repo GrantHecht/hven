@@ -791,6 +791,11 @@ TEST(QpWalkSeam, TheWorkingSetSignatureTracksTheActionsThatChangeIt) {
             case Action::kRideUnbounded:
                 EXPECT_EQ(base, r.ws_size_out);
                 break;
+            case Action::kStartRepairRefused:
+                // The pass priced nothing and stepped nowhere: the failed repair restored ws.
+                EXPECT_EQ(base, r.ws_size_out);
+                EXPECT_EQ(Block::kNone, r.block);
+                break;
             case Action::kStartRepair:
             case Action::kPostProbeRestart:
                 // The repair pins as many variables as it needs to reach a

@@ -349,6 +349,11 @@ struct QpCounters {
     // blocker's test there was undecidable (E2 fix1): the solve continued on
     // the bound-eliminated path instead (once per solve).
     Index dep_border_retreats = 0;
+    // THE STANDSTILL RETREAT (qp_engine.h): border-stack passes that stood still (zero
+    // motion, or a second consecutive full step) off a structurally violated equality row
+    // with the inertia reading kWrong, and moved the rest of the solve to the
+    // bound-eliminated path with a re-check armed. Not counted in dep_border_retreats.
+    Index standstill_retreats = 0;
     // An undecidable blocker decided EXACTLY by a structural dependency (a
     // pin completing a member row on pinned columns, or a row on pinned
     // columns only), coefficients read off the row (E2 fix1).

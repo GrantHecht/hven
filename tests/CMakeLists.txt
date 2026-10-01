@@ -390,6 +390,7 @@ add_executable(hven_qp_walk_seam_tests
     qp/test_qp_degeneracy_arm.cpp
     qp/test_qp_flat_face_saddle.cpp
     qp/test_qp_unrun_dependency_test.cpp
+    qp/test_qp_standstill_retreat.cpp
 )
 
 if(NOT APPLE)

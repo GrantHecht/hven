@@ -577,6 +577,14 @@
 // independent_working_set: what a stale `face` costs is a dependency test with nothing to
 // test against, and only this walk takes one, so the option-off walk stays byte-identical --
 // which its role as the declared CONTROL arm of every E2 re-take requires.
+// THE STANDSTILL RETREAT (E2 fix9; standstill_retreats). On a border-stack pass of the
+// independent walk whose inertia reads kWrong while the iterate carries a structural
+// equality violation, a zero-motion pass -- or the second of two consecutive full steps (no
+// blocker, alpha >= 1, no ride) -- takes THE BORDER RETREAT and arms the re-check. Such a
+// walk cannot reach a KKT point of its face: the rows it stands off are the face's own, and
+// kWrong on the border path is that factor's failure signature (exactly rank-deficient
+// faces measured with a positive-definite reduced Hessian). A kOk standstill is left alone;
+// any non-qualifying pass resets the full-step run. Once per solve, like every retreat.
 // E2 FIX4: a terminal point that would
 // read kInfeasible by its structural violation is first re-solved mu-free on its face and
 // adopted when it satisfies every row and bound (terminal_mu_refines /

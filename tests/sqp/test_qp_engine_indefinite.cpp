@@ -2741,7 +2741,13 @@ TEST(QpEngineIndefinite, T7Fix2AFailedStartRepairDoesNotRefineThroughTheProbedFa
                 // face is re-solved mu-free once (one local factorization); the rows
                 // e_0 = 0 and e_0 = 1 are inconsistent, the refined point is not
                 // adopted, and the verdict and x stand.
-                EXPECT_EQ(warm.counters.factorizations, 4);
+                // M7 W2 E2 fix9 (declared counter mover): border 4 -> 5. The rows are
+                // inconsistent, so the walk stands still off them on a kWrong border face and
+                // takes THE STANDSTILL RETREAT; the redone pass factorizes once on the
+                // eliminated path. Status and x above are unchanged.
+                const bool border = algebra == WorkingSetLinearAlgebra::kSchurBorder;
+                EXPECT_EQ(warm.counters.factorizations, border ? 5 : 4);
+                EXPECT_EQ(warm.counters.standstill_retreats, border ? 1 : 0);
                 EXPECT_EQ(warm.counters.dep_inertia_rereads, 1);
                 EXPECT_EQ(warm.counters.dep_inertia_reread_flips, 0);
                 EXPECT_EQ(warm.counters.terminal_mu_refines, 1);

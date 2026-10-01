@@ -655,6 +655,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     // end the solve on a pass whose factor is the border stack; the rest of
     // the solve runs on the bound-eliminated path (and commits no hot state).
     bool eliminated_only = false;
+    // THE STANDSTILL RETREAT's run of qualifying full steps; every pass that does not
+    // extend it, by whatever exit, leaves it at zero.
+    Index standstill_steps = 0;
 
     QpStatus status = crossed_bounds ? QpStatus::kInfeasible : QpStatus::kMaxIter;
 #ifdef HVEN_TESTING
@@ -707,6 +710,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
 #endif
     for (Index iter = 0; !crossed_bounds && iter < eff_max_iter; ++iter) {
         ++counters.minor_iters;
+        const Index standstill_steps_in = standstill_steps;
+        standstill_steps = 0;
 #ifdef HVEN_TESTING
         // One declaration covers every exit this loop body has: the record is
         // emitted by this object's DESTRUCTOR, so a `continue`, a `break` and
@@ -1036,6 +1041,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         // drift either, and an invariant stated any tighter fires on the accuracy
         // the regularized walk legitimately holds (ACOPR57_def qp0's own optimal
         // iterate sits 6.1e-7 off its rows). Nothing re-projects the iterate.
+        bool eq_rows_violated = false;
         if (eff_opts.independent_working_set && me > 0) {
             const Vec eq_resid = qp.Ae * x - qp.be;
             const double xmag = x.lpNorm<Eigen::Infinity>();
@@ -1046,6 +1052,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     std::max({1.0, std::abs(qp.be(j)), ae_row_norm1(j) * xmag});
                 eq_structural = violation_is_structural(v, row_scale, lambda_e(j), eff_opts);
             }
+            eq_rows_violated = eq_structural;
             if (!eq_structural) {
                 eq_rows_met = true;
             } else if (eq_rows_met) {
@@ -1179,6 +1186,21 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         // which is why no refresh is needed (or taken) on that path.
         // ==================================================================
         const bool zero_motion = p_inf <= step_tol;
+        // THE STANDSTILL RETREAT (qp_engine.h): a border-stack pass whose inertia reads kWrong
+        // while the iterate carries a structural equality violation qualifies; zero motion on
+        // it, or a second consecutive full step (end of pass), retreats.
+        const bool standstill_face = eq_rows_violated && !eliminated_only &&
+                                     opts_.ws_algebra == WorkingSetLinearAlgebra::kSchurBorder &&
+                                     verdict == detail::InertiaVerdict::kWrong;
+        if (zero_motion && standstill_face) {
+            eliminated_only = true;
+            ++counters.standstill_retreats;
+            recheck_pending = true;
+#ifdef HVEN_TESTING
+            walk_obs.record().action = detail::testing::QpWalkAction::kEliminatedRetreat;
+#endif
+            continue;
+        }
         const bool stationary_on_ws =
             !zero_motion && detail::free_block_is_stationary(stat_free_inf, stat_scale, eff_opts) &&
             worst_structural_violation(qp, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1, lambda_e,
@@ -2304,6 +2326,14 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         }
 #endif
         refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen, eff_opts);
+        if (standstill_face && kind == BlockKind::kNone && !ride_blocked && alpha >= 1.0) {
+            standstill_steps = standstill_steps_in + 1;
+            if (standstill_steps >= 2) {
+                eliminated_only = true;
+                ++counters.standstill_retreats;
+                recheck_pending = true;
+            }
+        }
     }
 #ifdef HVEN_TESTING
     detail::testing::QpWalkObserver::end_solve(static_cast<int>(status));

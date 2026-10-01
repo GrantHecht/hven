@@ -1340,10 +1340,11 @@ void check_soc_costs_what_it_costs() {
     // section 5) re-solves a certified point mu-free on its final face. Majors,
     // statuses and every KKT column hold. 22/3340 = 0.66 %.
     // RE-DERIVED, M7 W2 E2 FIX ROUND 8 (declared mover; settler S40, THE BOUNDED REPAIR):
-    // 3340 -> 3342, +2, ALL OF IT HS15's COLD ARM (1067 -> 1069 in each of the four KD/SOC
-    // cells; every other problem/arm row is byte-identical, and on HS15 cold the majors 86,
-    // factorizations 185, acc/rej 70/16, SOC 0/0/2/2, elastic 48/288, restoration 0,
-    // watchdog 0, levels 7/0/0 and fail 0 all hold).
+    // 3340 -> 3342, +2, ALL OF IT HS15's COLD ARM (1067 -> 1069 in the two SOC-on KD/SOC
+    // cells, 1062 -> 1064 in the two SOC-off cells; every other problem/arm row is
+    // byte-identical, and on HS15 cold the majors 86, factorizations 185, acc/rej 70/16,
+    // SOC 0/0/2/2, elastic 48/288, restoration 0, watchdog 0, levels 7/0/0 and fail 0 all
+    // hold).
     // CAUSE, measured to the mechanism: HS15's sub-QPs have n = 2, so the integer screen
     // (me + |W| + 1 > n) fires on the FIRST repair candidate -- and until fix8 it skipped
     // BOTH of them, so the temporary-vertex repair pinned NOTHING and failed. The screen
