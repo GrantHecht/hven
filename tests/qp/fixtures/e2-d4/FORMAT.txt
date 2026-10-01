@@ -23,3 +23,6 @@ finite the l_inf trust region |x - x0| <= tr about x0 = clamp(seed_x or 0, lower
 Loaders: tools/d4load.py (python) and tools/replay/qp_replay.cpp (C++, re-solves on a fresh QpEngine with the dumped options,
 seed and overrides; 31/31 dumps reproduce the in-cell status and minors, 30/31 the factorizations -- ACOPR57 qp3 in-cell reused
 a hot K0).
+The C10_* dumps (M7 W2 C10 census, scratch diagnostic build at m7 1f8d3118) carry two more tokens on the result line:
+`site=` the source line of qp_engine.cpp (at 1f8d3118) that set the in-cell status (1335 = the trusted-kWrong dead end),
+and `solve=` the engine solve number within the cell run.

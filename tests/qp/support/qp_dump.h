@@ -41,6 +41,7 @@ struct QpDump {
     bool has_seed = false;
     solvers::QpSolution seed;
     std::string result; // the in-cell outcome line, verbatim
+    Vec x_final;        // the in-cell solve's final iterate
 };
 
 inline QpDump load_qp_dump(const std::string &path) {
@@ -157,6 +158,7 @@ inline QpDump load_qp_dump(const std::string &path) {
     d.qp.bi = vec["bi"];
     d.qp.lower = vec["lower"];
     d.qp.upper = vec["upper"];
+    d.x_final = vec["x_final"];
     if (d.qp.Ae.rows() != me) {
         d.qp.Ae.resize(me, n);
     }

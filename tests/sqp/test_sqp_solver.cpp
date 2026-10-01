@@ -3075,9 +3075,21 @@ TEST(SqpDriverTrustRegion, RejectedMultipliersAreDiscarded) {
 // certify -- a kNumericalError with a finite, bound-feasible iterate,
 // reproducibly, in both ws_algebra modes and both with and without that
 // engine feature. See the fixture comment for the hand algebra.
+//
+// THE PREMISE'S WALK (M7 W2 NC3). These fixtures need a subproblem that FAILS
+// at the larger radius. With independent_working_set on (the default), the
+// engine's SADDLE EXIT (qp_engine.h 4c) now leaves every copy's saddle and the
+// subproblem no longer fails. The failure is therefore taken from the walk
+// that keeps the trusted-kWrong dead end, the option-OFF walk
+// (twin_saddle_premise below), where it is still a genuine kNumericalError.
+// MEASURED before NC3: the ON and OFF walks gave identical driver trajectories
+// on all four fixtures, both algebras, so every pinned value is unchanged.
 // =========================================================================
 
 namespace {
+
+// The premise of every TwinSaddleModel fixture: the walk with no saddle exit.
+void twin_saddle_premise(SqpOptions &opts) { opts.qp.independent_working_set = false; }
 
 // k INDEPENDENT COPIES of test_qp_engine_indefinite.cpp's weakly-active-bound
 // fixture, wrapped as an NLP. Per block b (variables 3b, 3b+1, 3b+2):
@@ -3346,6 +3358,7 @@ TEST(SqpDriverQpFailure, QpNumericalErrorShrinksInsteadOfAborting) {
         opts.tr_max = 100.0;
         opts.max_iter = 40;
         opts.qp.ws_algebra = algebra;
+        twin_saddle_premise(opts);
         SqpSolver driver(opts);
         const SqpResult sol = driver.solve(model);
 
@@ -3469,6 +3482,7 @@ TEST(SqpDriverQpFailure, RepeatedQpNumericalErrorStillPropagates) {
         opts.tr_max = 100.0;
         opts.max_iter = 40;
         opts.qp.ws_algebra = algebra;
+        twin_saddle_premise(opts);
         // THE OLD GATE, WRITTEN OUT (M7 W2 M1). This fixture pins the
         // mechanism the ONE-retry gate has: the second consecutive failure at an
         // iterate ends the solve. The SHIPPED default is now
@@ -3516,6 +3530,7 @@ TEST(SqpDriverQpFailure, TheShippedBudgetRoutesMoreAndThisFixtureThenSolves) {
     opts.tr_init = 4.0;
     opts.tr_max = 100.0;
     opts.max_iter = 40;
+    twin_saddle_premise(opts);
     ASSERT_EQ(opts.qp_failure_budget, 3) << "the shipped default this test exists to pin";
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(model);
@@ -4315,6 +4330,7 @@ TEST(SqpDriverSoc, SocIsSkippedOnRoutedFailures) {
         opts.tr_max = 100.0;
         opts.max_iter = 40;
         opts.enable_soc = true;
+        twin_saddle_premise(opts);
         SqpSolver driver(opts);
         const SqpResult sol = driver.solve(model);
 
