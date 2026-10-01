@@ -32,6 +32,7 @@
 // re-derivation.
 
 #include <bit>
+#include <exception>
 
 #include <hven/detail/qp/qp_engine.h>
 
@@ -4626,46 +4627,73 @@ void QpEngine::sync_borders(const QpProblem &qp, const WorkingSet &ws, BorderSta
         }
     }
 
-    for (Index i = 0; i < n; ++i) {
-        if (bs[static_cast<std::size_t>(i)] == BoundState::kFree ||
-            has_border(ledger, BorderLedgerEntry::Kind::kVarPin, i)) {
-            continue;
+    // THE ADDS ARE ONE BATCH: C is extended per add and factorized once at the
+    // end (SchurComplement::begin_batch). Nothing reads the stack's evidence
+    // between two adds of this sync -- needs_refactorization() and the inertia
+    // are read by border_solve_or_fall_back after it returns -- so the one
+    // factorization is the state the per-add ones would have left. A throw is
+    // answered as the per-add path answers it (end_batch's replay), and the
+    // ledger is trimmed to the stack that survives: it is the stack's prefix.
+    SchurComplement &schur = *border.schur;
+    schur.begin_batch();
+    const auto close_batch = [&]() {
+        try {
+            schur.end_batch();
+        } catch (...) {
+            const auto kept = static_cast<std::size_t>(schur.dim());
+            counters.schur_updates -=
+                static_cast<decltype(counters.schur_updates)>(ledger.size() - kept);
+            ledger.erase(ledger.begin() + static_cast<std::ptrdiff_t>(kept), ledger.end());
+            throw;
         }
-        // RESERVE BEFORE THE SCHUR MUTATION, in all three add loops. The
-        // ledger and the border stack are one structure kept in two
-        // places, matched by add-order POSITION, so an add_border() that
-        // succeeds followed by a ledger.push_back() that throws on its
-        // growth allocation leaves a border the ledger cannot name --
-        // undroppable forever, and shifting every later drop by one.
-        // Reserving here puts the only throw AHEAD of the border stack
-        // mutation. (The add_border side is closed in
-        // schur_complement.h: a throwing add leaves the stack as it was.)
-        ledger.reserve(ledger.size() + 1);
-        border.schur->add_border(BorderOps::pin_variable(i, n0), -opts.dual_mu);
-        ledger.push_back({BorderLedgerEntry::Kind::kVarPin, i});
-        ++counters.schur_updates;
-    }
-    for (std::size_t p = 0; p < border.k0_rows.size(); ++p) {
-        const Index k = me + static_cast<Index>(p); // K0 constraint-row index
-        if (in_working(ws, border.k0_rows[p]) ||
-            has_border(ledger, BorderLedgerEntry::Kind::kRowDelete, k)) {
-            continue;
+    };
+    try {
+        for (Index i = 0; i < n; ++i) {
+            if (bs[static_cast<std::size_t>(i)] == BoundState::kFree ||
+                has_border(ledger, BorderLedgerEntry::Kind::kVarPin, i)) {
+                continue;
+            }
+            // RESERVE BEFORE THE SCHUR MUTATION, in all three add loops. The
+            // ledger and the border stack are one structure kept in two
+            // places, matched by add-order POSITION, so an add_border() that
+            // succeeds followed by a ledger.push_back() that throws on its
+            // growth allocation leaves a border the ledger cannot name --
+            // undroppable forever, and shifting every later drop by one.
+            // Reserving here puts the only throw AHEAD of the border stack
+            // mutation. (The add_border side is closed in
+            // schur_complement.h: a throwing add leaves the stack as it was.)
+            ledger.reserve(ledger.size() + 1);
+            border.schur->add_border(BorderOps::pin_variable(i, n0), -opts.dual_mu);
+            ledger.push_back({BorderLedgerEntry::Kind::kVarPin, i});
+            ++counters.schur_updates;
         }
-        ledger.reserve(ledger.size() + 1); // see the pin loop above
-        border.schur->add_border(BorderOps::delete_k0_row(k, me, n, n0), 0.0);
-        ledger.push_back({BorderLedgerEntry::Kind::kRowDelete, k});
-        ++counters.schur_updates;
-    }
-    for (const Index row : ws.active_ineq()) {
-        if (std::binary_search(border.k0_rows.begin(), border.k0_rows.end(), row) ||
-            has_border(ledger, BorderLedgerEntry::Kind::kIneqRow, row)) {
-            continue;
+        for (std::size_t p = 0; p < border.k0_rows.size(); ++p) {
+            const Index k = me + static_cast<Index>(p); // K0 constraint-row index
+            if (in_working(ws, border.k0_rows[p]) ||
+                has_border(ledger, BorderLedgerEntry::Kind::kRowDelete, k)) {
+                continue;
+            }
+            ledger.reserve(ledger.size() + 1); // see the pin loop above
+            border.schur->add_border(BorderOps::delete_k0_row(k, me, n, n0), 0.0);
+            ledger.push_back({BorderLedgerEntry::Kind::kRowDelete, k});
+            ++counters.schur_updates;
         }
-        ledger.reserve(ledger.size() + 1); // see the pin loop above
-        border.schur->add_border(BorderOps::add_ineq_row(qp, row, n0), -opts.dual_mu);
-        ledger.push_back({BorderLedgerEntry::Kind::kIneqRow, row});
-        ++counters.schur_updates;
+        for (const Index row : ws.active_ineq()) {
+            if (std::binary_search(border.k0_rows.begin(), border.k0_rows.end(), row) ||
+                has_border(ledger, BorderLedgerEntry::Kind::kIneqRow, row)) {
+                continue;
+            }
+            ledger.reserve(ledger.size() + 1); // see the pin loop above
+            border.schur->add_border(BorderOps::add_ineq_row(qp, row, n0), -opts.dual_mu);
+            ledger.push_back({BorderLedgerEntry::Kind::kIneqRow, row});
+            ++counters.schur_updates;
+        }
+    } catch (...) {
+        const std::exception_ptr failure = std::current_exception();
+        close_batch(); // its own throw, if any, is the one the per-add path raised first
+        std::rethrow_exception(failure);
     }
+    close_batch();
 }
 
 bool QpEngine::has_border(const std::vector<BorderLedgerEntry> &ledger,
