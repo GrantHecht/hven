@@ -1,0 +1,26 @@
+START 2026-10-01T07:36:05-04:00 HEAD 1f8d3118f236027617e9a297746d7b355e20ac58 BEFORE bffd2ea2 dirty=0
+FOREGROUND_START R-offline-e2f9 2026-10-01T07:36:19-04:00
+PGREP_EMPTY R-offline-e2f9: no foreign cell binary under my lock
+OFFLINE_CLASSIFY_RC_Release=0
+OFFLINE_CLASSIFY_RC_Debug=0
+ran head-walk rc=0
+ran head-ssn rc=0
+ran head-ipm rc=0
+CMP_PIN_walk=1
+CMP_PREV_walk=0
+CMP_PREV_NOTE_walk=0 (RECORDED, not asserted: the previous record is the e2f8 gates at the BEFORE sources)
+CMP_PIN_ssn=1
+CMP_PREV_ssn=0
+CMP_PREV_NOTE_ssn=0 (RECORDED, not asserted: the previous record is the e2f8 gates at the BEFORE sources)
+CMP_PIN_ipm=1
+CMP_PREV_ipm=0
+CMP_PREV_NOTE_ipm=0 (RECORDED, not asserted: the previous record is the e2f8 gates at the BEFORE sources)
+=== M6 CLOSE HEAD-walk vs M7 W2 E2 F9 HEAD-walk (GATED 1e-5) === cells compared: 27  columns compared: 75  differences: 17  within gate: 71
+=== PREVIOUS GATE RECORD HEAD-walk vs M7 W2 E2 F9 HEAD-walk (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+=== M6 CLOSE HEAD-ssn vs M7 W2 E2 F9 HEAD-ssn (GATED 1e-5) === cells compared: 27  columns compared: 75  differences: 13  within gate: 68
+=== PREVIOUS GATE RECORD HEAD-ssn vs M7 W2 E2 F9 HEAD-ssn (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+=== M6 CLOSE HEAD-ipm vs M7 W2 E2 F9 HEAD-ipm (GATED 1e-5) === cells compared: 27  columns compared: 75  differences: 13  within gate: 72
+=== PREVIOUS GATE RECORD HEAD-ipm vs M7 W2 E2 F9 HEAD-ipm (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+FOREGROUND_END R-offline-e2f9 2026-10-01T07:44:36-04:00 rc=0
+LEG_RC R-offline-e2f9 rc=0
+END 2026-10-01T07:44:36-04:00 tree=m7 1f8d3118 dirty=0
