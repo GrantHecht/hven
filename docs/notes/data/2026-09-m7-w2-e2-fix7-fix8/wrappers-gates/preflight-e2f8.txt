@@ -1,0 +1,71 @@
+# THE e2f8 PRE-FLIGHT. Run on THIS copy of gates-e2f8.sh at HEAD 212886d5, before the declaration
+# commit, and pasted verbatim. THREE transcripts:
+#
+#   A  `gates-e2f8.sh --preflight-only`, every slot MEASURED on 2b4c9fa8..212886d5. rc 0, ending
+#      PREFLIGHT_OK. `dirty-files=1` is this task directory itself, untracked at the moment of the
+#      run; the mode does not apply the clean-tree refusal, the chain does.
+#   B  `--check-g4` on THIS declaration's own offline replay transcript (the M6-pin arm of
+#      rehearsal/rehearsal-e2f8-g4-comparison.txt). rc 0.
+#   C  `--check-names debug|release` against the fix-8 implementer's final suite transcripts
+#      (worktree agent-a69f46e11796560b9, .scratch/e2fix8/logs/ctest-{debug,release}-H2.log,
+#      tree 35986d1f, source-identical to 212886d5). rc 0 each.
+#
+# ============================================================================
+# TRANSCRIPT A -- the pre-flight in full. rc 0.
+# ============================================================================
+
+GATES_START 2026-09-30T23:43:23-04:00
+=== HEAD 212886d5  dirty-files=1 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.scratch/m7w2e2f8gates ===
+=== BEFORE=2b4c9fa8  EXPECT_DEBUG_TESTS=2881  EXPECT_RELEASE_TESTS=2882 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=212886d503acfb6502af830e3006c4dab162594a
+=== CHANGED HEADERS: include/hven/core/solver_counters.h include/hven/detail/qp/qp_engine.h include/hven/detail/qp/qp_walk_trace.h include/hven/detail/qp/ws_independence.h 
+=== CHANGED SOURCES: src/qp/qp_engine.cpp src/qp/ws_independence.cpp tests/CMakeLists.txt tests/qp/fixtures/e2-d4/ACOPR118_e4_qp5.txt tests/qp/fixtures/e2-d4/ACOPR118_e4_qp6.txt tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_unrun_dependency_test.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_ws_independence.cpp 
+=== MODIFIED C++ SOURCES: src/qp/qp_engine.cpp src/qp/ws_independence.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_ws_independence.cpp 
+=== ADDED C++ SOURCES: tests/qp/test_qp_unrun_dependency_test.cpp 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_qp_anti_cycling_arm.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir
+=== ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_qp_unrun_dependency_test.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); 43 DIFFERENCES DECLARED as a SET (walk 17 / ssn 13 / ipm 13), every cell a U0 cell, the one declared WORSE cell [ipm f7_n1000_path_warm kkt_stationarity] among them
+=== CLASS_B_NAMES_OK: Release 35 / Debug 35 declared objects, none with a source modified in the range
+=== BY-NAME: baselines /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-e4-proximal-eqp/gates/suite-{debug,release}.txt (2871 / 2872 started names); 12 ADDED, each added by exactly one TEST line in the range; 0 REMOVED, each removed by exactly one TEST line; 0 TEST lines removed
+=== ADDED TEST FILES (checked): non-.cpp [tests/qp/fixtures/e2-d4/ACOPR118_e4_qp5.txt tests/qp/fixtures/e2-d4/ACOPR118_e4_qp6.txt ] == declared, under the fixture directory named once in hven_qp_walk_seam_tests's compile definitions; tests/CMakeLists.txt adds exactly [qp/test_qp_unrun_dependency_test.cpp ] and removes no non-comment line
+=== CLANG_FORMAT SET (derived, non-empty): 10 file(s) ===
+=== PREFLIGHT_VALUE_OK: class A 5 - 1 outside == declared 4/4; ADDED 1 == declared 1 (0 inside the universe == declared 0); class B library objects all unmodified; G4 gate 1e-5
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2f8gates/g1.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2f8gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2f8gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2f8gates/g2.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2f8gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2f8gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2f8gates/g3.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2f8gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2f8gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2f8gates/g4.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2f8gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2f8gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2f8gates/g5.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2f8gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2f8gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2f8gates/g6.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2f8gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2f8gates/gates
+=== PREFLIGHT_OK: 6 segments written and asserted against GATES_SCRATCH, before the first leg ===
+PREFLIGHT_ONLY: stopping before G1. No leg was run and no build tree was touched.
+PREFLIGHT_RC=0
+
+# ============================================================================
+# TRANSCRIPT B -- the G4 set gate on this declaration's own replay. rc 0.
+# ============================================================================
+
+ASSERT OK   replay header lines = 3
+ASSERT OK   replay walk shape 27/75/17 declared = 1
+ASSERT OK   replay walk difference lines listed = 17
+ASSERT OK   replay ssn shape 27/75/13 declared = 1
+ASSERT OK   replay ssn difference lines listed = 13
+ASSERT OK   replay ipm shape 27/75/13 declared = 1
+ASSERT OK   replay ipm difference lines listed = 13
+ASSERT OK   replay: the MEASURED difference set EQUALS the DECLARED 43-entry list
+CHECK_G4_RC=0
+
+# ============================================================================
+# TRANSCRIPT C -- the by-name suites against the fix-8 implementer's final transcripts. rc 0 each.
+# ============================================================================
+
+ASSERT OK   offline debug by name: 2883 started names == the baseline's 2871 - the 0 declared REMOVED + the 12 declared ADDED
+CHECK_NAMES_debug_RC=0
+ASSERT OK   offline release by name: 2884 started names == the baseline's 2872 - the 0 declared REMOVED + the 12 declared ADDED
+CHECK_NAMES_release_RC=0
