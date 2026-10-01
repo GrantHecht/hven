@@ -312,6 +312,13 @@ struct QpCounters {
     // EVERY later pass: this is a count of PASSES off the rows, not of drift
     // EVENTS. Nothing re-projects the iterate; the count is the observation.
     Index eq_drift_violations = 0;
+    // THE SADDLE EXIT (qp_engine.h 4c, M7 W2 NC3): trusted-kWrong dead ends that took a
+    // VERIFIED negative-curvature direction of the face; dead ends where none was found and
+    // the kNumericalError exit stood; and the triangular solves the search cost (its one
+    // factorization per dead end is counted in `factorizations`).
+    Index saddle_exits = 0;
+    Index saddle_exit_misses = 0;
+    Index saddle_direction_solves = 0;
     Index dep_pin_skips = 0;
     Index ws_count_violations = 0; // passes with me + |W| > n (the integer screen)
     Index dep_untested_growth = 0; // screen-positive checks the detector did not resolve

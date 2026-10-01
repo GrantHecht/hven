@@ -304,6 +304,40 @@
 //    two rules -- so the release/re-entry cap 2(n + mi) bounds a
 //    drop -> zero-length ride -> drop cycle.
 //
+//    THE SADDLE EXIT (independent_working_set). At the certification branch's
+//    trusted-kWrong arm (4b; after R-C''s re-read and the post-probe restart) the
+//    point is a stationary point of an INDEFINITE face, however the face was
+//    reached -- an add as well as a drop. Before the kNumericalError exit the
+//    face is searched for a direction of negative curvature: ONE factorization
+//    of the current face at dual_mu = 0 (the bound-eliminated K R-C' reads), and
+//    detail::face_negative_curvature on it -- Lanczos on the inverse reduced
+//    Hessian through that factor (papers: Forsgren, Gill & Murray 1991; Gill,
+//    Murray, Saunders & Wright 1991). A direction is used only when VERIFIED:
+//    d'Hd <= -curvature_tol * d'd on H itself, and d in the working set's null
+//    space (ride_stays_in_working_set). SIGN: the descent sign when g'd resolves;
+//    on a flat slope (the stationary point's own case, where both signs descend)
+//    the sign with the larger decrease to its first blocker, a tie preferring the
+//    sign that leaves the constraint the previous pass released -- and a ride
+//    that would re-enter that constraint at zero length is not a direction (it
+//    undoes the drop: the zero-multiplier probe's, whose point would then be
+//    re-certified). Then it is ridden as 4c's
+//    ride is: the uncapped ratio test to the first blocker; an independent
+//    blocker joins; a dependent one takes the add site's rule along d (THE
+//    DECLINED RIDE (iii)) on that same mu-free factor, and nothing is re-armed;
+//    no blocker is kNumericalError (unbounded along d, multipliers cleared). No
+//    verified direction: the kNumericalError exit stands. NOTHING IS CERTIFIED
+//    HERE -- every later exit is the ordinary walk's, its inertia gate included.
+//    DESCENT: f(x + alpha d) - f(x) = alpha g'd + alpha^2 d'Hd / 2 with
+//    d'Hd < 0 and g'd at most its own resolution (kEngineDenomTol ||g|| ||d||):
+//    no ride ascends a slope the arithmetic can read, and the curvature term
+//    makes it a decrease for every alpha above 2 g'd / |d'Hd|, a rounding-sized
+//    threshold. BOUNDED: one search per dead end (one factorization, at most
+//    kSaddleLanczosSteps operator applications); a ride that moves decreases f
+//    strictly; a zero-length one is a zero-motion event (the point memory kept,
+//    its blocker admitted through it), inside the zero-motion cap; all of it
+//    inside the minor cap. Counted: saddle_exits, saddle_exit_misses,
+//    saddle_direction_solves. With the option off the exit is unchanged.
+//
 // 5. TERMINATION. The loop reaches a KKT point of its working set with nothing
 //    left to drop, and classifies it.
 //
@@ -2401,6 +2435,32 @@ class QpEngine {
                                         const Vec &Aix, WorkingSet &ws, Vec &x,
                                         const detail::DepFactorView *dep, const QpOptions &opts,
                                         RideBlocker &blocked) const;
+
+    // The ride itself, along a direction already chosen: section 4c's ride after its
+    // sign, and THE SADDLE EXIT's. Same outcomes and contract as ride_negative_curvature
+    // past its two vetoes.
+    RideOutcome ride_direction(QpCounters &counters, WalkSeen &seen, const QpProblem &qp,
+                               const Vec &dir, const Vec &Aix, WorkingSet &ws, Vec &x,
+                               const detail::DepFactorView *dep, const QpOptions &opts,
+                               RideBlocker &blocked) const;
+
+    // THE SADDLE EXIT's direction (section 4c): `ws`'s face factorized at dual_mu = 0 into
+    // the caller's `kkt`/`face` (`view` names that factor on return, for the add site),
+    // then detail::face_negative_curvature on it. Empty when no VERIFIED direction exists
+    // (including a failed factorization).
+    Vec saddle_direction(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                         detail::KktFactor &kkt, EliminatedFace &face, QpCounters &counters,
+                         const QpOptions &opts, double curvature_tol,
+                         detail::DepFactorView &view) const;
+
+    // THE SADDLE EXIT's sign (section 4c), at `x`: the descent sign when g'd resolves; on a
+    // flat slope the sign with the larger decrease to its first blocker, a tie preferring the
+    // sign that leaves `released` (the previous pass's drop, if any). Empty when the chosen
+    // ride would re-enter `released` at zero length (it would undo the drop, not leave the
+    // saddle).
+    Vec orient_saddle_direction(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                                const Vec &Aix, Vec d, const DropRecord *released,
+                                double step_tol) const;
 
     // Step 3. Reports the blocking constraint and the step to it.
     //

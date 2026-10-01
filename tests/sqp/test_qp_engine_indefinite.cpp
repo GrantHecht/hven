@@ -2511,13 +2511,17 @@ TEST(QpEngineIndefinite, WeaklyActiveGeneralRowIsNotCertifiedEither) {
 // already spent and falls through to the certification branch. MEASURED: block
 // 1 (the one the restart repaired) lands on its minimizer while block 0 is left
 // at its saddle, and the solve exits kNumericalError with the multipliers
-// cleared, in both algebra modes.
+// cleared, in both algebra modes -- on the walk WITHOUT section 4c's SADDLE
+// EXIT (independent_working_set off). With it (the default, M7 W2 NC3), the
+// second dead end is ridden off along negative curvature instead, so the solve
+// reaches both minimizers: the restart is still spent exactly once, and
+// saddle_exits == 1 is what says the second dead end was not a second restart.
 //
 // This is also the shape SqpDriverQpFailure's fixtures are built on: a
 // reproducible kNumericalError WITH a finite, bound-feasible iterate is
 // precisely what the driver's shrink-retry routing needs to be exercised
-// against, and replication is the only way to get one now that a single copy
-// recovers.
+// against -- now from the option-off walk (test_sqp_solver.cpp,
+// twin_saddle_premise).
 TEST(QpEngineIndefinite, PostProbeRestartIsOneShotPerSolve) {
     // Two copies of indefinite_equality_and_row_qp (row tightened to -2) on
     // variables 0..2 and 3..5.
@@ -2551,8 +2555,27 @@ TEST(QpEngineIndefinite, PostProbeRestartIsOneShotPerSolve) {
          {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
         QpOptions opts;
         opts.ws_algebra = algebra;
-        const QpSolution sol = QpEngine{opts}.solve(qp);
         SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+
+        // THE DEFAULT WALK: the one restart repairs one block and the saddle exit
+        // leaves the other block's saddle -- both minimizers, certified.
+        {
+            const QpSolution on = QpEngine{opts}.solve(qp);
+            EXPECT_EQ(on.status, QpStatus::kOptimal);
+            EXPECT_EQ(on.counters.saddle_exits, 1)
+                << "the second dead end was answered by the saddle exit, not a second restart";
+            EXPECT_LT((on.x.segment(0, 3) - minimizer).lpNorm<Eigen::Infinity>(), 1e-8)
+                << "block 0 = " << on.x.segment(0, 3).transpose();
+            EXPECT_LT((on.x.segment(3, 3) - minimizer).lpNorm<Eigen::Infinity>(), 1e-8)
+                << "block 1 = " << on.x.segment(3, 3).transpose();
+            EXPECT_NEAR(objective(qp, on.x), -0.75, 1e-9);
+            expect_multipliers_consistent(qp, on, 1e-6);
+        }
+
+        // THE WALK WITHOUT THE SADDLE EXIT: the budget is directly observable.
+        opts.independent_working_set = false;
+        const QpSolution sol = QpEngine{opts}.solve(qp);
+        EXPECT_EQ(sol.counters.saddle_exits + sol.counters.saddle_exit_misses, 0);
 
         // The budget: one block repaired, one block not, so no certificate.
         EXPECT_EQ(sol.status, QpStatus::kNumericalError);

@@ -285,15 +285,16 @@ TEST(QpE2Fix7Acopr118, Major18SubproblemCertifiesBorder) {
 // [-1, 1]^12, no rows: every free variable carries negative curvature, so the
 // temporary-vertex repair needs ALL TWELVE pins to read kOk -- more than its budget
 // max(kRepairPinFloor, ceil(12/2)) = 8. With independent_working_set on, the repair stops on
-// the budget and undoes itself, the pass it ran in is spent (F7-1: the probes took the
-// pass's factor), and the walk then has no way off the indefinite face: kNumericalError --
-// the outcome of EVERY failed start repair on a truly indefinite face, which is what the
-// screen used to produce when it aborted one. Off, the repair is unbounded, as it always
-// was, pins all twelve, and the walk certifies a vertex (every vertex of this box is a strict
-// local minimizer). THIS IS THE BOUND'S DECLARED COST, pinned so it cannot move silently: a
-// fraction-of-n budget cannot see the inertia deficit, and a QP whose deficit exceeds it is
-// cut. None of the 838 measured repairs is (qp_engine.h); a deficit-aware budget is
-// registered (E2 fix8 report, F8-2).
+// the budget and undoes itself, and the pass it ran in is spent (F7-1: the probes took the
+// pass's factor). Until M7 W2 NC3 the walk then had no way off the indefinite face and ended
+// kNumericalError -- THE BOUND'S DECLARED COST, pinned here so it could not move silently.
+// NC3 moved it, declared: the walk reaches the face's stationary point, a trusted-kWrong dead
+// end, and section 4c's SADDLE EXIT rides off it along negative curvature until every
+// coordinate sits at a bound, a vertex the ordinary walk certifies. The budget still binds
+// (budget_stops, the spent pass): what it no longer costs is the solve. Off, the repair is
+// unbounded, as it always was, pins all twelve, and the walk certifies a vertex (every vertex
+// of this box is a strict local minimizer). A deficit-aware budget stays registered (E2 fix8
+// report, F8-2).
 // ===========================================================================
 
 namespace {
@@ -349,10 +350,15 @@ TEST_P(QpE2Fix8Budget, ARepairThatNeedsMorePinsThanItsBudgetStopsAndTheWalkFails
         ASSERT_FALSE(records.empty());
         if (independent) {
             // The budget stopped the repair, the probes had taken the pass's factor, so the
-            // pass was spent -- and the walk ends where a failed repair leaves it.
+            // pass was spent -- and the saddle exit, not the repair, takes the walk off the
+            // indefinite face.
             EXPECT_EQ(records[0].action, Action::kStartRepairRefused);
             EXPECT_EQ(s.counters.dep_repair_restarts, 1);
-            EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kNumericalError));
+            EXPECT_GE(s.counters.saddle_exits, 1);
+            ASSERT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+            for (Index i = 0; i < kN; ++i) {
+                EXPECT_NEAR(std::abs(s.x(i)), 1.0, 1e-9) << "coordinate " << i << " is at a bound";
+            }
             continue;
         }
         EXPECT_EQ(records[0].action, Action::kStartRepair) << "unbounded, it succeeds";

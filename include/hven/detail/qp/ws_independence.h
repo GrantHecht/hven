@@ -191,4 +191,24 @@ struct StructuralDependency {
 StructuralDependency structural_dependency(const QpProblem &qp, const WorkingSet &ws, bool is_ineq,
                                            Index idx);
 
+/// The face's inverse reduced Hessian applied to `u` (full-variable space): the variable part of
+/// K^-1 [u_free; 0] on `f`, refined (at most kDepRefineSteps steps, each kept only if it lowers
+/// the residual) against the factored system with dual_mu backed out, zero at pinned columns.
+/// With A_W exact this is Z (Z'(H + delta I) Z)^-1 Z' u. `solves` counts the triangular solves;
+/// an unusable factor or a face with no free column returns an empty vector.
+Vec face_solve(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f, const Vec &u,
+               const QpOptions &opts, Index &solves);
+
+/// Lanczos budget of face_negative_curvature (steps, one face_solve each).
+constexpr Index kSaddleLanczosSteps = 24;
+
+/// THE SADDLE EXIT's direction (qp_engine.h 4c): Lanczos with full reorthogonalisation on
+/// face_solve's operator, from a fixed start, at most kSaddleLanczosSteps steps. Of the Ritz
+/// vectors of its NEGATIVE Ritz values, the one with the most negative Rayleigh quotient on H
+/// itself is returned (unit 2-norm) when it is VERIFIED: d'Hd <= -curvature_tol * d'd. Empty when
+/// none is. Nothing here is a statement about H beyond that one verified quotient: an empty
+/// answer is "no direction found", never "the face is convex". The caller also checks A_W d ~ 0.
+Vec face_negative_curvature(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f,
+                            const QpOptions &opts, double curvature_tol, Index &solves);
+
 } // namespace hven::solvers::detail

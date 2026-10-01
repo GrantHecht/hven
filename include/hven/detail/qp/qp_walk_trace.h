@@ -529,6 +529,16 @@ struct QpWalkMinorRecord {
     double ride_leaves = kAbsent;
     double ride_leaves_tol = kAbsent;
 
+    // ---- §4c's SADDLE EXIT, at a trusted-kWrong dead end ---------------------
+    /// True iff this pass reached the saddle exit (the direction search ran).
+    bool saddle_exit = false;
+    /// `d'Hd` (unit `d`) and `g'd` at the pass's iterate for the VERIFIED
+    /// direction ridden, and the slope's resolution `kEngineDenomTol * ||g|| *
+    /// ||d||`; ABSENT when the search found none.
+    double saddle_curvature = kAbsent;
+    double saddle_slope = kAbsent;
+    double saddle_slope_tol = kAbsent;
+
     // ---- the constraint the PREVIOUS pass released -------------------------
     //
     // Present on every post-drop pass, whether or not the ride fired: it is

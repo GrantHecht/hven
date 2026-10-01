@@ -8,6 +8,8 @@
 #include <cstddef>
 #include <limits>
 
+#include <Eigen/Eigenvalues>
+
 #include <hven/detail/kkt/bordered_eqp.h>
 
 namespace hven::solvers::detail {
@@ -584,6 +586,136 @@ StructuralDependency structural_dependency(const QpProblem &qp, const WorkingSet
         }
     }
     return sd;
+}
+
+Vec face_solve(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f, const Vec &u,
+               const QpOptions &opts, Index &solves) {
+    if (!f.usable() || ws.num_free() == 0) {
+        return Vec();
+    }
+    const Index n = qp.n();
+    const DepSystem sys(qp, ws, f, opts);
+    const auto is_free = [&](Index i) {
+        return ws.bound_state()[static_cast<std::size_t>(i)] == BoundState::kFree;
+    };
+    Vec rhs = Vec::Zero(sys.dim);
+    for (Index i = 0; i < n; ++i) {
+        const Index p = sys.var_pos[static_cast<std::size_t>(i)];
+        if (p >= 0 && is_free(i)) {
+            rhs(p) = u(i);
+        }
+    }
+    Vec y = sys.solve(rhs);
+    ++solves;
+    Vec res = sys.residual(qp, rhs, y, opts);
+    double res_norm = res.lpNorm<Eigen::Infinity>();
+    const double target = 1e-14 * std::max(1.0, rhs.lpNorm<Eigen::Infinity>());
+    for (Index s = 0; s < kDepRefineSteps && res_norm > target; ++s) {
+        const Vec cand = y + sys.solve(res);
+        ++solves;
+        Vec cres = sys.residual(qp, rhs, cand, opts);
+        const double cn = cres.lpNorm<Eigen::Infinity>();
+        if (!(cn < res_norm)) {
+            break;
+        }
+        y = cand;
+        res = std::move(cres);
+        res_norm = cn;
+    }
+    Vec out = Vec::Zero(n);
+    for (Index i = 0; i < n; ++i) {
+        const Index p = sys.var_pos[static_cast<std::size_t>(i)];
+        if (p >= 0 && is_free(i)) {
+            out(i) = y(p);
+        }
+    }
+    return out;
+}
+
+Vec face_negative_curvature(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f,
+                            const QpOptions &opts, double curvature_tol, Index &solves) {
+    const Index n = qp.n();
+    if (!f.usable() || ws.num_free() == 0) {
+        return Vec();
+    }
+    // A fixed, sign-varied start on the free columns (deterministic), carried
+    // into the face by one application of the operator.
+    Vec u0 = Vec::Zero(n);
+    for (Index i = 0; i < n; ++i) {
+        if (ws.bound_state()[static_cast<std::size_t>(i)] == BoundState::kFree) {
+            u0(i) = (1.0 + static_cast<double>(i % 7) / 7.0) * ((i % 2 == 1) ? -1.0 : 1.0);
+        }
+    }
+    Vec v = face_solve(qp, ws, f, u0, opts, solves);
+    const double v_norm = v.size() > 0 ? v.norm() : 0.0;
+    if (!(v_norm > 0.0) || !std::isfinite(v_norm)) {
+        return Vec();
+    }
+    v /= v_norm;
+    std::vector<Vec> basis;
+    std::vector<double> alpha;
+    std::vector<double> beta;
+    for (Index k = 0; k < kSaddleLanczosSteps; ++k) {
+        basis.push_back(v);
+        Vec w = face_solve(qp, ws, f, v, opts, solves);
+        if (w.size() == 0 || !std::isfinite(w.norm())) {
+            basis.pop_back();
+            break;
+        }
+        const double a = v.dot(w);
+        alpha.push_back(a);
+        // Full reorthogonalisation against every basis vector, twice.
+        for (int pass = 0; pass < 2; ++pass) {
+            for (const Vec &b : basis) {
+                w -= b.dot(w) * b;
+            }
+        }
+        const double b = w.norm();
+        if (!(b > 1e-12 * std::max(1.0, std::abs(a)))) {
+            break; // an invariant subspace: the Krylov space is exhausted
+        }
+        if (k + 1 < kSaddleLanczosSteps) {
+            beta.push_back(b);
+            v = w / b;
+        }
+    }
+    const auto m = static_cast<Index>(alpha.size());
+    if (m == 0) {
+        return Vec();
+    }
+    Eigen::MatrixXd tri = Eigen::MatrixXd::Zero(m, m);
+    for (Index k = 0; k < m; ++k) {
+        tri(k, k) = alpha[static_cast<std::size_t>(k)];
+        if (k + 1 < m) {
+            tri(k, k + 1) = beta[static_cast<std::size_t>(k)];
+            tri(k + 1, k) = beta[static_cast<std::size_t>(k)];
+        }
+    }
+    const Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(tri);
+    if (es.info() != Eigen::Success) {
+        return Vec();
+    }
+    // Every NEGATIVE Ritz value is a candidate (the operator is the INVERSE, so
+    // its most negative end is the negative eigenvalue nearest zero, which can be
+    // a rounding-level one); the verified quotient on H itself decides.
+    Vec best;
+    double best_q = 0.0;
+    for (Index j = 0; j < m && es.eigenvalues()(j) < 0.0; ++j) {
+        Vec d = Vec::Zero(n);
+        for (Index k = 0; k < m; ++k) {
+            d += es.eigenvectors()(k, j) * basis[static_cast<std::size_t>(k)];
+        }
+        const double dd = d.squaredNorm();
+        if (!(dd > 0.0)) {
+            continue;
+        }
+        const double q = d.dot(qp.H.selfadjointView<Eigen::Upper>() * d) / dd;
+        if (q <= -curvature_tol && (best.size() == 0 || q < best_q)) {
+            best = d / std::sqrt(dd);
+            best_q = q;
+        }
+    }
+    return best;
 }
 
 } // namespace hven::solvers::detail

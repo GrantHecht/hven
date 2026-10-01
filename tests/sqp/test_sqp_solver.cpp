@@ -3390,6 +3390,40 @@ TEST(SqpDriverQpFailure, QpNumericalErrorShrinksInsteadOfAborting) {
     }
 }
 
+// THE SAME MODEL ON THE DEFAULT WALK (M7 W2 NC3): the saddle exit leaves every
+// copy's saddle inside the first subproblem, so no subproblem fails and the
+// first step lands on the minimizer -- for two copies and for three (three is
+// the copy count whose border walk once returned to a probed saddle vertex
+// through a zero-length ride; the exit's sign rule is what keeps it off it).
+TEST(SqpDriverQpFailure, TheSaddleExitLeavesTheTwinSaddleWithoutAFailure) {
+    for (const Index blocks : {2, 3}) {
+        TwinSaddleModel model(blocks);
+        for (const auto algebra :
+             {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+            SCOPED_TRACE(
+                ::testing::Message()
+                << blocks << " copies, "
+                << (algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize"));
+            SqpOptions opts;
+            opts.tr_init = blocks == 2 ? 3.0 : 4.0;
+            opts.tr_max = 100.0;
+            opts.max_iter = 40;
+            opts.qp.ws_algebra = algebra;
+            ASSERT_TRUE(opts.qp.independent_working_set) << "the default walk";
+            SqpSolver driver(opts);
+            const SqpResult sol = driver.solve(model);
+
+            EXPECT_EQ(sol.status, SolveStatus::kOptimal);
+            EXPECT_NEAR(sol.f, model.f_star(), 1e-9);
+            EXPECT_LT((sol.x - model.minimizer()).lpNorm<Eigen::Infinity>(), 1e-8);
+            ASSERT_FALSE(sol.history.empty());
+            EXPECT_EQ(sol.history[0].qp_status, QpStatus::kOptimal);
+            EXPECT_EQ(sol.counters.qp_numerical_exits, 0);
+            EXPECT_EQ(sol.counters.rejected_steps, 0);
+        }
+    }
+}
+
 // AGGREGATION OF THE ENGINE'S SUSPECT-STALL LADDER (Task 3b fix round 1).
 //
 // QpCounters::suspect_escalations is the exhaustion diagnostic for the QP

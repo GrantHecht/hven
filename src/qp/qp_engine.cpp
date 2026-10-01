@@ -613,6 +613,10 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     // THE EQUALITY DRIFT's invariant (section 4c): whether the walk has met its
     // equality rows yet -- a start point need not.
     bool eq_rows_met = false;
+    // THE SADDLE EXIT's mu-free factor of the dead end's face (section 4c), created
+    // at the first dead end only; the add site decides a dependent blocker on it.
+    std::unique_ptr<detail::KktFactor> saddle_kkt;
+    EliminatedFace saddle_face;
 
     // Section 4b's zero-multiplier probe: working-set addition order, and
     // the per-solve exemption set that bounds it. Both are per-SOLVE, not
@@ -1060,10 +1064,11 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 ++counters.eq_drift_violations;
             }
         }
-        // The factor this pass holds for `ws`; valid until `ws` changes.
-        const detail::DepFactorView pass_view = eff_opts.independent_working_set
-                                                    ? dep_factor_view(ws, kkt, face, *border_)
-                                                    : detail::DepFactorView{};
+        // The factor this pass holds for `ws`; valid until `ws` changes. THE SADDLE
+        // EXIT replaces it with its own mu-free factor of the dead end's face.
+        detail::DepFactorView pass_view = eff_opts.independent_working_set
+                                              ? dep_factor_view(ws, kkt, face, *border_)
+                                              : detail::DepFactorView{};
 
         const Vec p = eqp.x - x;
 
@@ -1206,6 +1211,12 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             !zero_motion && detail::free_block_is_stationary(stat_free_inf, stat_scale, eff_opts) &&
             worst_structural_violation(qp, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1, lambda_e,
                                        eff_opts) == 0.0;
+        // `ride_blocked`: a ride's first blocker tested dependent, and the add site
+        // below decides it along `ride.dir` (THE DECLINED RIDE, section 4c; or THE
+        // SADDLE EXIT's ride, `saddle_blocked`, which re-arms nothing).
+        bool ride_blocked = false;
+        bool saddle_blocked = false;
+        RideBlocker ride;
         if (zero_motion || stationary_on_ws) {
             // A KKT point of the current working set: snap onto it (zero motion
             // only -- see above), then let the multipliers decide.
@@ -1333,7 +1344,86 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                                        seen, eff_opts);
                         continue;
                     }
-                    status = QpStatus::kNumericalError;
+                    // THE SADDLE EXIT (section 4c): a VERIFIED negative-curvature
+                    // direction of this face, ridden off the dead end; none
+                    // found, the exit stands.
+                    Vec saddle_d;
+                    if (eff_opts.independent_working_set) {
+                        if (!saddle_kkt) {
+                            saddle_kkt = std::make_unique<detail::KktFactor>(threads_);
+                        }
+                        saddle_d = saddle_direction(qp, ws, x, *saddle_kkt, saddle_face, counters,
+                                                    eff_opts, curvature_tol, pass_view);
+                        if (saddle_d.size() > 0) {
+                            saddle_d = orient_saddle_direction(qp, ws, x, Aix, std::move(saddle_d),
+                                                               dropped.active ? &dropped : nullptr,
+                                                               step_tol);
+                        }
+#ifdef HVEN_TESTING
+                        walk_obs.record().saddle_exit = true;
+#endif
+                    }
+                    if (saddle_d.size() == 0) {
+                        if (eff_opts.independent_working_set) {
+                            ++counters.saddle_exit_misses;
+                        }
+                        status = QpStatus::kNumericalError;
+                    } else {
+                        ++counters.saddle_exits;
+#ifdef HVEN_TESTING
+                        {
+                            detail::testing::QpWalkMinorRecord &r = walk_obs.record();
+                            const Vec gx = qp.H.selfadjointView<Eigen::Upper>() * x + qp.g;
+                            r.saddle_curvature =
+                                saddle_d.dot(qp.H.selfadjointView<Eigen::Upper>() * saddle_d);
+                            r.saddle_slope = gx.dot(saddle_d);
+                            r.saddle_slope_tol =
+                                detail::kEngineDenomTol * gx.norm() * saddle_d.norm();
+                        }
+#endif
+                        const RideOutcome so = ride_direction(counters, seen, qp, saddle_d, Aix, ws,
+                                                              x, &pass_view, eff_opts, ride);
+                        if (so == RideOutcome::kStepped) {
+                            // As 4c's ride: a ride that did not move is a
+                            // zero-motion event (FINITENESS).
+                            degenerate_run = 0;
+                            if (ride.dx_inf > step_tol) {
+                                pt_clear(seen);
+                            }
+                            (void)pt_admit(seen, counters, ride.kind == BlockKind::kIneq, ride.idx);
+                            refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters,
+                                           seen, eff_opts);
+#ifdef HVEN_TESTING
+                            walk_obs.record().action = detail::testing::QpWalkAction::kRideStepped;
+                            walk_obs.record().ride = true;
+                            walk_obs.record().ride_outcome =
+                                detail::testing::QpWalkRideOutcome::kStepped;
+#endif
+                            continue;
+                        }
+                        if (so == RideOutcome::kDependentBlocker) {
+                            // The add site below decides it along the ride, on
+                            // the exit's own factor (pass_view).
+                            ride_blocked = true;
+                            saddle_blocked = true;
+                            ++counters.dep_ride_blockers;
+#ifdef HVEN_TESTING
+                            walk_obs.record().ride_outcome =
+                                detail::testing::QpWalkRideOutcome::kDependentBlocker;
+#endif
+                        } else {
+                            // Nothing blocks along d (or a testing arm declined).
+                            status = QpStatus::kNumericalError;
+#ifdef HVEN_TESTING
+                            if (so == RideOutcome::kUnbounded) {
+                                walk_obs.record().action =
+                                    detail::testing::QpWalkAction::kRideUnbounded;
+                                walk_obs.record().ride_outcome =
+                                    detail::testing::QpWalkRideOutcome::kUnbounded;
+                            }
+#endif
+                        }
+                    }
                 } else {
                     // Everything above passed, so this is a would-be
                     // kOptimal exit -- the last place a WEAKLY ACTIVE
@@ -1491,7 +1581,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         status = bound_worst > 0.0 ? QpStatus::kInfeasible : QpStatus::kOptimal;
                     }
                 }
-                break;
+                if (!saddle_blocked) {
+                    break;
+                }
             }
 #ifdef HVEN_TESTING
             // =================================================================
@@ -1501,7 +1593,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             // just opened, which is the object M4c §6 items 1 and 2 say the
             // existing columns cannot reach.
             // =================================================================
-            {
+            if (dropped_one) {
                 using Adeg = detail::testing::QpDegeneracyArmState;
                 // (1) THE INTEGER DEPENDENCY SCREEN (§B.1), free. Equality
                 // rows are always in the KKT and each pinned bound removes one
@@ -1581,8 +1673,11 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 }
             }
 #endif
-            std::fill(seen.shift_refused.begin(), seen.shift_refused.end(), 0);
-            continue;
+            if (dropped_one) {
+                std::fill(seen.shift_refused.begin(), seen.shift_refused.end(), 0);
+                continue;
+            }
+            // THE SADDLE EXIT's dependent blocker: on to the add site.
         }
 
         // ==================================================================
@@ -1619,13 +1714,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         // iteration that follows a drop, and only for a step the loop
         // considers real: on a NEGLIGIBLE p (handled above) the direction
         // is rounding noise and section 4b's certification branch is the
-        // right judge.
-        //
-        // `ride_blocked`: the ride's first blocker tested dependent, and the
-        // add site below decides it along `ride.dir` (THE DECLINED RIDE).
-        bool ride_blocked = false;
-        RideBlocker ride;
-        if (dropped.active) {
+        // right judge. Not after THE SADDLE EXIT's dependent blocker, whose
+        // ride the add site already has.
+        if (dropped.active && !ride_blocked) {
             const double curvature =
                 p.dot(qp.H.selfadjointView<Eigen::Upper>() * p) / p.squaredNorm();
 #ifdef HVEN_TESTING
@@ -2025,7 +2116,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 eliminated_only = true;
                 ++counters.dep_border_retreats;
                 farkas = QpFarkasCertificate{}; // a toleranced one is re-derived there
-                if (ride_blocked) {
+                if (ride_blocked && !saddle_blocked) {
                     last_drop = dropped; // the ride is re-taken on the redone pass
                 }
 #ifdef HVEN_TESTING
@@ -2254,9 +2345,12 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 if (ride_blocked) {
                     // THE DECLINED RIDE (iii): the exchanged set has the same
                     // null space, so the ride is re-armed and re-taken there
-                    // on a fresh factor.
+                    // on a fresh factor. THE SADDLE EXIT's is not: the next
+                    // dead end, if any, reads its own face.
                     ++counters.ride_exchanges;
-                    last_drop = dropped;
+                    if (!saddle_blocked) {
+                        last_drop = dropped;
+                    }
                 }
             }
             if (kind != BlockKind::kNone) {
@@ -5129,7 +5223,97 @@ QpEngine::RideOutcome QpEngine::ride_negative_curvature(
         ++counters.ride_predicted_signs;
     }
     const Vec dir = (sign < 0) ? Vec(-p) : p;
+    return ride_direction(counters, seen, qp, dir, Aix, ws, x, dep, opts, blocked);
+}
 
+Vec QpEngine::saddle_direction(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                               detail::KktFactor &kkt, EliminatedFace &face, QpCounters &counters,
+                               const QpOptions &opts, double curvature_tol,
+                               detail::DepFactorView &view) const {
+    view = detail::DepFactorView{};
+    QpOptions o = opts;
+    o.dual_mu = 0.0;
+    detail::InertiaVerdict v = detail::InertiaVerdict::kWrong;
+    try {
+        (void)eliminated_candidate(qp, ws, x, kkt, face, counters, v, o);
+    } catch (const std::runtime_error &) {
+        return Vec(); // no factor: no direction, and the exit stands
+    }
+    if (!face.holds(ws, kkt)) {
+        return Vec(); // the empty system: no free direction at all
+    }
+    view.eliminated = &kkt;
+    Index solves = 0;
+    Vec d = detail::face_negative_curvature(qp, ws, view, o, curvature_tol, solves);
+    counters.saddle_direction_solves += solves;
+    if (d.size() == 0 || !ride_stays_in_working_set(qp, ws, d)) {
+        return Vec();
+    }
+    return d;
+}
+
+Vec QpEngine::orient_saddle_direction(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                                      const Vec &Aix, Vec d, const DropRecord *released,
+                                      double step_tol) const {
+    const Vec gx = qp.H.selfadjointView<Eigen::Upper>() * x + qp.g;
+    const double slope = gx.dot(d);
+    const double slope_tol = detail::kEngineDenomTol * gx.norm() * d.norm();
+    const double dhd = d.dot(qp.H.selfadjointView<Eigen::Upper>() * d);
+    // The comparisons below are read-only ratio tests; their tie counts are not this
+    // pass's (the ride's own ratio test counts).
+    QpCounters scratch;
+    const auto first_blocker = [&](const Vec &dir, BlockKind &kind, Index &idx) {
+        BoundState side = BoundState::kFree;
+        return ratio_test(qp, ws, x, Aix, dir, kind, idx, side, /*cap_at_unit=*/false, scratch);
+    };
+    int sign = 1;
+    if (slope > slope_tol) {
+        sign = -1;
+    } else if (slope >= -slope_tol) {
+        // A FLAT slope -- the stationary point's own case: both signs descend
+        // (d'Hd < 0), and the one with the larger decrease to its first blocker
+        // is taken; a tie prefers the sign that leaves the released constraint.
+        BlockKind kp = BlockKind::kNone;
+        BlockKind km = BlockKind::kNone;
+        Index ip = -1;
+        Index im = -1;
+        const double ap = first_blocker(d, kp, ip);
+        const double am = first_blocker(Vec(-d), km, im);
+        const auto decrease = [&](BlockKind kind, double a, double s) {
+            return kind == BlockKind::kNone ? -std::numeric_limits<double>::infinity()
+                                            : a * s + 0.5 * a * a * dhd;
+        };
+        const double dp = decrease(kp, ap, slope);
+        const double dm = decrease(km, am, -slope);
+        if (dm < dp) {
+            sign = -1;
+        } else if (!(dp < dm) && released != nullptr &&
+                   dropped_directional(qp, *released, d) > 0.0) {
+            sign = -1;
+        }
+    }
+    if (sign < 0) {
+        d = -d;
+    }
+    // A ride that would re-enter, at zero length, the constraint the previous pass
+    // released undoes that drop instead of leaving the saddle: not a direction.
+    if (released != nullptr) {
+        BlockKind kind = BlockKind::kNone;
+        Index idx = -1;
+        const double a = first_blocker(d, kind, idx);
+        if (kind != BlockKind::kNone && (kind == BlockKind::kIneq) == released->is_ineq &&
+            idx == released->idx && a * d.lpNorm<Eigen::Infinity>() <= step_tol) {
+            return Vec();
+        }
+    }
+    return d;
+}
+
+QpEngine::RideOutcome QpEngine::ride_direction(QpCounters &counters, WalkSeen &seen,
+                                               const QpProblem &qp, const Vec &dir, const Vec &Aix,
+                                               WorkingSet &ws, Vec &x,
+                                               const detail::DepFactorView *dep,
+                                               const QpOptions &opts, RideBlocker &blocked) const {
     BlockKind kind = BlockKind::kNone;
     Index block_idx = -1;
     BoundState block_state = BoundState::kFree;
