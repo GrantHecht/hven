@@ -795,7 +795,7 @@ both carry a "RE-DERIVED AT M7 W2 M3a" note.
 |---|---|---|---|
 | `qp_failure_steps_judged` | integer | `SqpCounters::qp_failure_steps_judged` | failed walk subproblems whose own step was offered to the globalization strategy under `SqpOptions::qp_failure_step` — a usable `p != 0` whose model predicts a decrease, or whose trial at least halves a violation above `feas_tol`. 0 with the option off. Folded from the restoration sub-solve |
 | `qp_failure_steps_accepted` | integer | `SqpCounters::qp_failure_steps_accepted` | of those, the steps the strategy accepted and the driver took (multipliers kept, no radius growth). `judged - accepted` were ordinary rejections, routed WITHOUT charging `qp_failure_budget`. Folded likewise |
-| `nonfinite_subproblems` | integer | `SqpCounters::nonfinite_subproblems` | subproblems built with a non-finite `H`, `g`, `A` or `b` entry — the model's derivatives are not finite at the iterate. No kernel is called and the solve ends `numerical_error` there; 0 or 1 per solve, folded from the restoration sub-solve |
+| `nonfinite_subproblems` | integer | `SqpCounters::nonfinite_subproblems` | subproblems built with a non-finite `H`, `g`, `A` or `b` entry — the model's derivatives are not finite at the iterate. No kernel is called and the solve ends `numerical_error` there — the third source of that status beside `qp_maxiter_exits` and `qp_numerical_exits`. At most one per driver, folded from the restoration sub-solve |
 
 All three are **LAST in the table and last in the struct**, after
 `eqp_row_drift_refusals`, so the counters object gains exactly three keys between

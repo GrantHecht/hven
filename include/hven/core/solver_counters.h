@@ -2055,8 +2055,10 @@ struct SqpCounters {
     Index qp_failure_steps_accepted = 0;
     /// @brief Subproblems built with a non-finite H, g, A or b entry (a model
     ///        whose derivatives are not finite at the iterate). No kernel is
-    ///        called; the solve ends `kNumericalError` at that iterate. 0 or 1
-    ///        per solve; FOLDED from the restoration sub-solve.
+    ///        called; the solve ends `kNumericalError` at that iterate -- the
+    ///        third source of that status beside `qp_maxiter_exits` and
+    ///        `qp_numerical_exits`. At most one per driver, FOLDED from the
+    ///        restoration sub-solve (so up to two in a solve that restored).
     Index nonfinite_subproblems = 0;
 };
 

@@ -1578,19 +1578,23 @@ IpqpSeed build_ipqp_disproval_seed(const QpSolution &certified, Index n, Index m
     return seed;
 }
 
+// Every STORED value of a sparse matrix is finite (compressed or not).
+bool stored_values_finite(const SpMatRM &m) {
+    for (Eigen::Index r = 0; r < m.outerSize(); ++r) {
+        for (SpMatRM::InnerIterator it(m, r); it; ++it) {
+            if (!std::isfinite(it.value())) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 // NlpEval::all_finite screens f/grad/cE/cI and NOT the Jacobians (sqp_solver.h's
 // NlpEval), which RestorationModel reads for its slack sigmas -- so a restoration
 // start candidate's STORED Je/Ji values are screened by this instead.
 bool jacobian_values_finite(const NlpEval &ev) {
-    const auto stored_finite = [](const Eigen::SparseMatrix<double, Eigen::RowMajor> &m) {
-        for (Eigen::Index k = 0; k < m.nonZeros(); ++k) {
-            if (!std::isfinite(m.valuePtr()[k])) {
-                return false;
-            }
-        }
-        return true;
-    };
-    return stored_finite(ev.Je) && stored_finite(ev.Ji);
+    return stored_values_finite(ev.Je) && stored_values_finite(ev.Ji);
 }
 
 // THE SUBPROBLEM'S DATA, screened before any kernel sees it (M7 W2 R2): H, g, the
@@ -1599,18 +1603,8 @@ bool jacobian_values_finite(const NlpEval &ev) {
 // c are finite (a |t|^p term with 1 < p < 2 at t = 0) passes every value-level
 // check the driver makes and would otherwise reach the walk's dense factor.
 bool subproblem_data_finite(const QpProblem &qp) {
-    const auto stored_finite = [](const SpMatRM &m) {
-        for (Eigen::Index r = 0; r < m.outerSize(); ++r) {
-            for (SpMatRM::InnerIterator it(m, r); it; ++it) {
-                if (!std::isfinite(it.value())) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    };
-    return qp.g.allFinite() && qp.be.allFinite() && qp.bi.allFinite() && stored_finite(qp.H) &&
-           stored_finite(qp.Ae) && stored_finite(qp.Ai);
+    return qp.g.allFinite() && qp.be.allFinite() && qp.bi.allFinite() &&
+           stored_values_finite(qp.H) && stored_values_finite(qp.Ae) && stored_values_finite(qp.Ai);
 }
 
 } // namespace
@@ -3113,6 +3107,7 @@ struct SqpSolver::SolveState {
         // multipliers back. Without it a solve refused at iter 0 could certify
         // the identical (x, lambda) at iter k.
         bool best_duals_ingested = false;
+        bool best_duals_carried = false; // its sibling, for the same reason
         // Consecutive majors whose residual GREW, and majors since the last
         // new best -- the two watchdog signals. `prev_residual` is the
         // previous major's reading, +inf before the first (so the first can
@@ -3291,6 +3286,10 @@ struct SqpSolver::SolveState {
 
     // ---- ingest and funnel state ------------------------------------------
     bool duals_ingested = false;
+    // TRUE while the multipliers in hand were CARRIED across a failed subproblem's own
+    // step (M7 W2 R2 fix 1): priced at an earlier x, not re-priced at this one. Arms the
+    // complementarity conjunct exactly as `duals_ingested` does, for the same reason.
+    bool duals_carried = false;
     bool funnel_started = false;
 
     // ---- push accounting: the exactly-once invariant itself ----------------
@@ -5224,6 +5223,7 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
         // harmless, which is the same doc-vs-code discipline every
         // declared invariant here is held to.
         st.duals_ingested = false;
+        st.duals_carried = false;
         // KLV Algorithm 2's re-basing, NOT reset() -- see
         // globalization.h::resume_from_restoration. It also CLEARS
         // the full-step mode on the strategy, so the driver's own
@@ -5280,6 +5280,7 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     // sub-solve's own subgradient selectors -- so the ingest-scoped
     // complementarity gate disarms with them.
     st.duals_ingested = false;
+    st.duals_carried = false;
     st.resto.kkt = kkt_r;
     // THE BOUND PRICE MUST COME FROM THE RESTORATION PROBLEM, not
     // from kkt_r. evaluate_kkt reports z = grad L at an active
@@ -5934,7 +5935,8 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
             st.fs.best_lambda_e = st.lambda_e;
             st.fs.best_lambda_i = st.lambda_i;
             st.fs.best_duals_ingested = st.duals_ingested; // see its note above
-            st.fs.best_ev = st.ev;                         // a COPY; no model evaluation
+            st.fs.best_duals_carried = st.duals_carried;
+            st.fs.best_ev = st.ev; // a COPY; no model evaluation
             st.fs.majors_since_best = 0;
             st.fs.growth_in_a_row = 0;
         } else {
@@ -5957,6 +5959,7 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
             st.lambda_e = std::move(st.fs.best_lambda_e);
             st.lambda_i = std::move(st.fs.best_lambda_i);
             st.duals_ingested = st.fs.best_duals_ingested; // see its note above
+            st.duals_carried = st.fs.best_duals_carried;
             st.ev = std::move(st.fs.best_ev);
             mj.kkt = evaluate_kkt(seam, st.ev, st.x, st.lambda_e, st.lambda_i, opts_.feas_tol);
             measure_iterate();
@@ -6079,14 +6082,18 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
     // BOTH, so majors already spent restoring are not available here.
     //
     // THE THIRD CONJUNCT IS ARMED ONLY WHILE THE MULTIPLIERS ARE
-    // THE INGESTED ONES. Once a subproblem or a restoration of this
-    // problem has re-priced them, `duals_ingested` is false and the
-    // test reduces to the plain two-conjunct form. The tolerance
+    // THE INGESTED ONES, OR CARRIED ACROSS A FAILED SUBPROBLEM'S OWN
+    // STEP (`duals_carried`, M7 W2 R2 fix 1) -- either way priced
+    // somewhere other than at this x by this problem's own QP. Once a
+    // subproblem or a restoration of this problem has re-priced them,
+    // both flags are false and the test reduces to the plain
+    // two-conjunct form. The tolerance
     // is kkt_tol, absolute; see this header's THE INGESTED CERTIFICATE
     // IS GATED ON COMPLEMENTARITY note for that derivation, for why no
     // ||lambda_i||-relative form can do the job, and for the scope.
-    mj.converged = mj.kkt.stationarity <= opts_.kkt_tol && mj.kkt.feasibility <= opts_.feas_tol &&
-                   (!st.duals_ingested || mj.kkt.complementarity <= opts_.kkt_tol);
+    mj.converged =
+        mj.kkt.stationarity <= opts_.kkt_tol && mj.kkt.feasibility <= opts_.feas_tol &&
+        (!(st.duals_ingested || st.duals_carried) || mj.kkt.complementarity <= opts_.kkt_tol);
     // THE CALLER'S PROBE BUDGET (the 4-argument solve()'s own note
     // has the contract). Evaluated HERE, beside the max_iter test and
     // after `converged` is already known, which is what gives the
@@ -6188,22 +6195,23 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
     // ordinary subproblem-failure exit -- its activity is the seed's.
     if (!subproblem_data_finite(st.qp)) {
         ++st.out.counters.nonfinite_subproblems;
+        // FRESH, not a copy of the seed: only its activity is carried (its counters
+        // were folded when it was solved).
         QpSolution failed;
-        if (st.have_seed) {
-            failed = st.seed;
-        }
         failed.status = QpStatus::kNumericalError;
         failed.x = Vec::Zero(st.n);
         failed.lambda_e = Vec::Zero(st.qp.me());
         failed.lambda_i = Vec::Zero(st.qp.mi());
         failed.z = Vec::Zero(st.n);
-        if (failed.bound_state.size() != static_cast<std::size_t>(st.n)) {
-            failed.bound_state.assign(static_cast<std::size_t>(st.n), BoundState::kFree);
-        }
-        if (failed.ineq_active.size() != static_cast<std::size_t>(st.qp.mi())) {
-            failed.ineq_active.assign(static_cast<std::size_t>(st.qp.mi()), false);
-        }
-        failed.tr_active.assign(static_cast<std::size_t>(st.n), false);
+        const auto un = static_cast<std::size_t>(st.n);
+        const auto umi = static_cast<std::size_t>(st.qp.mi());
+        failed.bound_state = st.have_seed && st.seed.bound_state.size() == un
+                                 ? st.seed.bound_state
+                                 : std::vector<BoundState>(un, BoundState::kFree);
+        failed.ineq_active = st.have_seed && st.seed.ineq_active.size() == umi
+                                 ? st.seed.ineq_active
+                                 : std::vector<bool>(umi, false);
+        failed.tr_active.assign(un, false);
         mj.qs = std::move(failed);
         mj.row.qp_solved = false;
         push_history(mj.row);
@@ -6489,11 +6497,19 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
 #ifdef HVEN_TESTING
     {
         using detail::testing::SqpLadderSeam;
-        if (SqpLadderSeam::fail_walk_qps > 0 && !is_restoration_sub_driver_ &&
-            mj.walk_owns_this_qp && mj.qs.status == QpStatus::kOptimal &&
-            (!SqpLadderSeam::only_after_resume || st.resto.used)) {
+        const bool eligible = SqpLadderSeam::fail_walk_qps > 0 && !is_restoration_sub_driver_ &&
+                              mj.walk_owns_this_qp && mj.qs.status == QpStatus::kOptimal &&
+                              (!SqpLadderSeam::only_after_resume || st.resto.used);
+        if (eligible && SqpLadderSeam::pass_walk_qps > 0) {
+            --SqpLadderSeam::pass_walk_qps;
+        } else if (eligible) {
             --SqpLadderSeam::fail_walk_qps;
             ++SqpLadderSeam::forced;
+            const std::vector<double> &target = SqpLadderSeam::forced_point;
+            if (!target.empty()) {
+                mj.qs.x =
+                    Eigen::Map<const Vec>(target.data(), static_cast<Index>(target.size())) - st.x;
+            }
             mj.qs.status = QpStatus::kNumericalError;
             mj.qs.lambda_e.setZero();
             mj.qs.lambda_i.setZero();
@@ -6638,7 +6654,10 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         // qp_maxiter_exits + qp_cap_retries is the number of capped subproblem
         // ATTEMPTS. kInfeasible reaches neither field: the elastic tier
         // consumed it one block above -- as it does an E2-terminated
-        // kNumericalError at h > feas_tol (L3).
+        // kNumericalError at h > feas_tol (L3). A NON-FINITE subproblem
+        // reaches neither either: it ends the solve numerical_error before any
+        // kernel runs, counted by `nonfinite_subproblems` -- the THIRD source
+        // of that status (M7 W2 R2).
         switch (mj.qs.status) {
         case QpStatus::kMaxIter:
             ++st.out.counters.qp_maxiter_exits;
@@ -6662,12 +6681,16 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         //     feas_tol -- a step with neither is not one an SQP major would
         //     propose;
         //   - accepted: x + p is committed through the ordinary accept arm with
-        //     the multipliers KEPT (the failed solve's are cleared), no radius
-        //     growth and no SOC;
+        //     the multipliers KEPT (the failed solve's are not trusted) and
+        //     marked `duals_carried`, no radius growth and no SOC;
         //   - rejected: an ordinary rejection, so the routing below shrinks and
         //     reseeds as before but does NOT charge `qp_failure_budget`, which
         //     bounds majors that produced no judgeable step. The radius floor
         //     bounds the rejections, as it bounds every other run of them.
+        //     A kRestore verdict is DELIBERATELY a rejection here, not a
+        //     restoration request: the step is the failed subproblem's, not a
+        //     solved one, so a failed trial is no evidence the linearization is
+        //     inconsistent; the routing (and its radius floor) decides instead.
         // Nothing is certified here: the loop's KKT test is the only certificate.
         bool failure_step_rejected = false;
         if (opts_.qp_failure_step && mj.walk_owns_this_qp && st.full_step_funnel == nullptr &&
@@ -7149,6 +7172,7 @@ SqpResult SqpSolver::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &b
                 }
                 st.lambda_i = mj.qs_soc.lambda_i;
                 st.duals_ingested = false; // re-priced by this solve's own QP
+                st.duals_carried = false;
                 st.seed = std::move(mj.qs_soc);
             } else {
                 // UPGRADE TO FULL: a DIRECT acceptance (no SOC, or
@@ -7167,8 +7191,13 @@ SqpResult SqpSolver::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &b
                 ++st.out.counters.evals_full;
                 st.ev = std::move(mj.ev_trial);
                 // A FAILED SUBPROBLEM'S OWN STEP (M7 W2 R2) KEEPS the multipliers:
-                // the failed solve's were cleared, so there is no new price.
-                if (!mj.failure_step) {
+                // the failed solve's are not trusted, so there is no new price. The
+                // kept ones were priced at the OLD x, so they are no certificate at
+                // the new one: `duals_carried` arms complementarity until a QP
+                // re-prices them (R2 fix 1).
+                if (mj.failure_step) {
+                    st.duals_carried = true;
+                } else {
                     if (!st.eqb.basis.lift(mj.qs.lambda_e, st.lambda_e)) {
                         ++st.out.equality_basis.lift_refusals;
                         ++st.out.equality_basis.lift_refusal_sites.commit_lift;
@@ -7176,6 +7205,7 @@ SqpResult SqpSolver::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &b
                     }
                     st.lambda_i = mj.qs.lambda_i;
                     st.duals_ingested = false; // re-priced by this solve's own QP
+                    st.duals_carried = false;
                 }
                 st.seed = std::move(mj.qs);
             }

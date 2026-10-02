@@ -9,6 +9,8 @@
 
 #ifdef HVEN_TESTING
 
+#include <vector>
+
 namespace hven::solvers::detail::testing {
 
 /// Ends the TOP-LEVEL driver's next `fail_walk_qps` kOptimal walk subproblems as
@@ -19,6 +21,12 @@ namespace hven::solvers::detail::testing {
 struct SqpLadderSeam {
     /// How many walk subproblems to end kNumericalError; 0 = off.
     static inline int fail_walk_qps = 0;
+    /// How many kOptimal walk subproblems to let through before the first forced exit.
+    static inline int pass_walk_qps = 0;
+    /// Non-empty: the forced exit's iterate is the step to THIS point (engine variables), a walk
+    /// that stopped somewhere other than the optimum (M7 W2 R2 fix 1). Empty: the solved
+    /// optimum is kept, as before.
+    static inline std::vector<double> forced_point;
     /// Only once the solve's one restoration has resumed (the DALLASM shape).
     static inline bool only_after_resume = false;
     /// Stamp the exit as an E2 termination (`dep_blocker_terminations` = 1).
@@ -28,6 +36,8 @@ struct SqpLadderSeam {
 
     static void reset() {
         fail_walk_qps = 0;
+        pass_walk_qps = 0;
+        forced_point.clear();
         only_after_resume = false;
         as_e2_termination = true;
         forced = 0;

@@ -3648,8 +3648,9 @@ TEST(SqpDriverQpFailure, QpMaxIterTakesTheSameShrinkRetryPath) {
 // THE FAILED SUBPROBLEM'S OWN STEP (M7 W2 R2), on the fixture above with the
 // shipped default. The capped walk stands on a point of its box; the strategy
 // judges it like any trial and the driver takes it, KEEPING the multipliers (the
-// capped solve cleared its own) and NOT growing the radius. The solve reaches the
-// same answer the routing reached.
+// capped solve's are not trusted) and NOT growing the radius. The solve reaches the
+// same answer the routing reached. The multipliers are read off the iteration
+// events: the major after a taken step starts with exactly the prices it ended on.
 TEST(SqpDriverQpFailure, TheCappedSubproblemsOwnStepIsTakenAndKeepsTheMultipliers) {
     for (const auto algebra :
          {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
@@ -3661,10 +3662,18 @@ TEST(SqpDriverQpFailure, TheCappedSubproblemsOwnStepIsTakenAndKeepsTheMultiplier
         opts.qp.ws_algebra = algebra;
         ASSERT_TRUE(opts.qp_failure_step) << "the shipped default this test exists to pin";
         SqpSolver driver(opts);
+        std::vector<Vec> lambda_e_at;
+        driver.set_iteration_callback([&lambda_e_at](const IterationEvent &e) {
+            if (e.depth.value_or(0) == 0) {
+                lambda_e_at.emplace_back(e.lambda_e);
+            }
+            return CallbackAction::kContinue;
+        });
         const SqpResult sol = driver.solve(*hs.model);
 
         EXPECT_EQ(sol.status, SolveStatus::kOptimal);
         EXPECT_NEAR(sol.f, hs.f_star, 1e-9);
+        ASSERT_EQ(lambda_e_at.size(), sol.history.size());
 
         EXPECT_GE(sol.counters.qp_failure_steps_judged, 1);
         EXPECT_GE(sol.counters.qp_failure_steps_accepted, 1);
@@ -3687,6 +3696,9 @@ TEST(SqpDriverQpFailure, TheCappedSubproblemsOwnStepIsTakenAndKeepsTheMultiplier
             SCOPED_TRACE("taken row " + std::to_string(k));
             EXPECT_DOUBLE_EQ(sol.history[k + 1].tr_radius, row.tr_radius) << "no growth";
             EXPECT_NE(sol.history[k + 1].f, row.f) << "the iterate moved";
+            // THE MULTIPLIERS ARE KEPT: a nonzero price carried across, not zeroed.
+            EXPECT_GT(lambda_e_at[k].lpNorm<Eigen::Infinity>(), 0.0);
+            EXPECT_EQ(lambda_e_at[k + 1], lambda_e_at[k]) << "kept, not re-priced";
         }
         EXPECT_EQ(taken, sol.counters.qp_failure_steps_accepted);
     }

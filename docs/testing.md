@@ -1053,7 +1053,12 @@ It ends the TOP-LEVEL driver's next `fail_walk_qps` kOptimal walk subproblems th
 way the engine's own N3 exit ends one — `kNumericalError`, multipliers cleared, the
 iterate kept, and (by default) `dep_blocker_terminations = 1` — optionally only once
 the solve's one restoration has resumed. The restoration sub-driver is never
-touched.
+touched. Two knobs added at M7 W2 R2 fix 1: `pass_walk_qps` lets that many kOptimal
+walk subproblems through before the first forced exit, and a non-empty
+`forced_point` makes the forced exit's iterate the step to that point (in the
+engine's variables, so its fixtures turn scaling off) -- a walk that stopped
+somewhere other than the optimum, which is what the failed subproblem's own step
+(`SqpOptions::qp_failure_step`) judges.
 
 It is an INJECTED result, and faithful for the one question it serves: how the
 driver routes a failed QP (L1's refused-request spelling, L3's E2-termination

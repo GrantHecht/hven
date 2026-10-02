@@ -234,4 +234,155 @@ TEST(SqpLadderSeam, L3TheGuardReadsTheBox) {
     expect_line_optimum(sol);
 }
 
+// ---------------------------------------------------------------------------
+// M7 W2 R2 fix 1 -- the failed subproblem's own step through the seam
+// ---------------------------------------------------------------------------
+
+namespace {
+
+// min x0 + 1/2 x1^2  s.t.  -x0 <= 0.  Optimum (0, 0), f* = 0, lambda* = 1. On every
+// point with x1 = 0 the price lambda = 1 makes the gradient of the Lagrangian vanish,
+// so stationarity alone cannot tell (0.3, 0) from the optimum; complementarity can.
+class CarriedPriceModel : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 0; }
+    Index mi() const override { return 1; }
+    double eval_f(const Vec &x) const override { return x(0) + 0.5 * x(1) * x(1); }
+    Vec eval_grad(const Vec &x) const override { return vec2(1.0, x(1)); }
+    Vec eval_ce(const Vec &) const override { return Vec(0); }
+    Vec eval_ci(const Vec &x) const override { return Vec::Constant(1, -x(0)); }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(1, 1) = obj_scale;
+        h.makeCompressed();
+        return h;
+    }
+    SpMatRM eval_jac_e(const Vec &) const override { return SpMatRM(0, 2); }
+    SpMatRM eval_jac_i(const Vec &) const override {
+        SpMatRM j(1, 2);
+        j.insert(0, 0) = -1.0;
+        j.makeCompressed();
+        return j;
+    }
+    const Vec &lower() const override { return lo_; }
+    const Vec &upper() const override { return up_; }
+    Vec start_point() const override { return vec2(0.0, 2.0); }
+
+  private:
+    Vec lo_ = Vec::Constant(2, -10.0);
+    Vec up_ = Vec::Constant(2, 10.0);
+};
+
+// min -x + 10 x^3 on [0, 10] from x = 0: the model at 0 is linear (f'' = 0), so a
+// step p > 0 predicts a decrease of p, while f rises for p > 1/sqrt(10).
+class CubicRiseModel : public NlpModel {
+  public:
+    Index n() const override { return 1; }
+    Index me() const override { return 0; }
+    Index mi() const override { return 0; }
+    double eval_f(const Vec &x) const override { return -x(0) + 10.0 * x(0) * x(0) * x(0); }
+    Vec eval_grad(const Vec &x) const override {
+        return Vec::Constant(1, -1.0 + 30.0 * x(0) * x(0));
+    }
+    Vec eval_ce(const Vec &) const override { return Vec(0); }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(1, 1);
+        h.insert(0, 0) = obj_scale * 60.0 * x(0);
+        h.makeCompressed();
+        return h;
+    }
+    SpMatRM eval_jac_e(const Vec &) const override { return SpMatRM(0, 1); }
+    SpMatRM eval_jac_i(const Vec &) const override { return SpMatRM(0, 1); }
+    const Vec &lower() const override { return lo_; }
+    const Vec &upper() const override { return up_; }
+    Vec start_point() const override { return Vec::Zero(1); }
+
+  private:
+    Vec lo_ = Vec::Zero(1);
+    Vec up_ = Vec::Constant(1, 10.0);
+};
+
+SqpOptions failure_step_options() {
+    SqpOptions o;
+    o.common.print_level = 10;
+    o.enable_scaling = false; // the seam's forced point is in the engine's variables
+    o.tr_init = 1.0;
+    o.max_iter = 50;
+    EXPECT_TRUE(o.qp_failure_step) << "the shipped default these fixtures exercise";
+    return o;
+}
+
+} // namespace
+
+// THE CARRIED PRICE IS NOT A CERTIFICATE (R2 review, BLOCKING-1). Major 0 prices
+// lambda = 1 at (0, 2) and steps to (0, 1). Major 1's walk fails standing on (0.3, 0):
+// pred = 0.2 > 0, f 0.5 -> 0.3, h stays 0, so the strategy takes it, keeping lambda = 1
+// -- priced at a point where the row was active, carried to one where it is not. There
+// stationarity and feasibility are exactly 0 and complementarity is 0.3. Before fix 1
+// the test skipped that conjunct and certified kOptimal at f = 0.3; it is now armed for
+// carried multipliers, the next major re-prices them, and the solve reaches f* = 0.
+TEST(SqpLadderSeam, R2ACarriedPriceIsNotACertificate) {
+    const SeamReset guard;
+    Seam::pass_walk_qps = 1;
+    Seam::fail_walk_qps = 1;
+    Seam::as_e2_termination = false;
+    Seam::forced_point = {0.3, 0.0};
+    CarriedPriceModel model;
+    const SqpOptions o = failure_step_options();
+    SqpSolver driver(o);
+    const SqpResult sol = driver.solve(model);
+
+    // The premise: one forced failure, at major 1, whose own step was judged and taken.
+    ASSERT_EQ(Seam::forced, 1);
+    ASSERT_GE(sol.history.size(), 3u);
+    EXPECT_EQ(sol.history[1].qp_status, QpStatus::kNumericalError);
+    EXPECT_EQ(sol.history[1].verdict, StepVerdict::kAcceptF);
+    EXPECT_EQ(sol.counters.qp_failure_steps_judged, 1);
+    EXPECT_EQ(sol.counters.qp_failure_steps_accepted, 1);
+    EXPECT_DOUBLE_EQ(sol.history[2].f, 0.3) << "the failed walk's point was taken";
+    // The carried price is not a certificate: major 2 is not the last.
+    EXPECT_GT(sol.history.size(), 3u) << "converged at (0.3, 0) on a carried multiplier";
+
+    EXPECT_EQ(sol.status, SolveStatus::kOptimal);
+    EXPECT_NEAR(sol.f, 0.0, 1e-9);
+    EXPECT_NEAR(sol.x(0), 0.0, 1e-9);
+    EXPECT_NEAR(sol.x(1), 0.0, 1e-9);
+    ASSERT_EQ(sol.lambda_i.size(), 1);
+    EXPECT_LE(std::abs(sol.lambda_i(0) * model.eval_ci(sol.x)(0)), o.kkt_tol);
+}
+
+// A JUDGED, REJECTED FAILURE STEP IS NOT CHARGED TO THE BUDGET (R2 review, RIDER-5).
+// Three forced failures keep the walk's solved step p = Delta at x = 0: at Delta = 1
+// and 0.5 the trial raises f (rejected, routed, uncharged); at 0.25 it lowers f and is
+// taken. With the step off the same three failures are a charged run of three.
+TEST(SqpLadderSeam, R2AJudgedRejectedStepIsNotChargedToTheBudget) {
+    for (const bool on : {true, false}) {
+        SCOPED_TRACE(on ? "qp_failure_step on" : "qp_failure_step off");
+        const SeamReset guard;
+        Seam::fail_walk_qps = 3;
+        Seam::as_e2_termination = false;
+        CubicRiseModel model;
+        SqpOptions o = failure_step_options();
+        o.qp_failure_step = on;
+        SqpSolver driver(o);
+        const SqpResult sol = driver.solve(model);
+
+        ASSERT_EQ(Seam::forced, 3);
+        EXPECT_EQ(sol.status, SolveStatus::kOptimal);
+        EXPECT_NEAR(sol.x(0), 1.0 / std::sqrt(30.0), 1e-6);
+        if (on) {
+            EXPECT_EQ(sol.counters.qp_failure_steps_judged, 3);
+            EXPECT_EQ(sol.counters.qp_failure_steps_accepted, 1);
+            EXPECT_EQ(sol.counters.qp_failures_routed, 2) << "the two rejections are routed";
+            EXPECT_EQ(sol.counters.qp_failures_in_a_row_peak, 0) << "and never charged";
+        } else {
+            EXPECT_EQ(sol.counters.qp_failure_steps_judged, 0);
+            EXPECT_EQ(sol.counters.qp_failures_routed, 3);
+            EXPECT_EQ(sol.counters.qp_failures_in_a_row_peak, 3);
+        }
+    }
+}
+
 } // namespace hven::solvers

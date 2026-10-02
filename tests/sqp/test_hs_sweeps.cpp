@@ -433,7 +433,8 @@ void fold(SweepCell &c, const SqpSolveRecord &r) {
 // measured as tolerance-limited at 1e-6 already; asking for 1e-8 would be
 // asking the corpus to spend its majors on a convergence tail rather than on
 // the globalization behaviour the adjudications are about.
-SqpOptions sweep_options(StartLevel level, bool full_step, bool enable_soc, Index max_iter) {
+SqpOptions sweep_options(StartLevel level, bool full_step, bool enable_soc, Index max_iter,
+                         bool failure_step = false) {
     SqpOptions opts;
     opts.kkt_tol = 1e-6;
     opts.feas_tol = 1e-6;
@@ -449,7 +450,8 @@ SqpOptions sweep_options(StartLevel level, bool full_step, bool enable_soc, Inde
     // (the one failing subproblem chain in the corpus): 30 -> 34 majors, 91 -> 99
     // minors, 31 -> 39 factorizations, 3 -> 7 rejections, the same answers and the
     // same status counts. Every other cell, and every KD-on cell, is unchanged.
-    opts.qp_failure_step = false;
+    // That reading is pinned by HsSweepCorpus.Hs15WarmKdOffWithTheFailedSubproblemStep.
+    opts.qp_failure_step = failure_step;
     return opts;
 }
 
@@ -485,9 +487,11 @@ std::vector<double> spec_grid(const HsSweepSpec &spec) {
 
 // The warm arm: one run_continuation sweep on one driver, so the hand-off
 // chain is the thing under test.
-SweepCell run_warm_sweep(const HsSweepSpec &spec, bool full_step, bool enable_soc) {
+SweepCell run_warm_sweep(const HsSweepSpec &spec, bool full_step, bool enable_soc,
+                         bool failure_step = false) {
     auto model = make_hs_sweep(spec.number);
-    SqpSolver driver(sweep_options(StartLevel::kWarm, full_step, enable_soc, spec.max_iter));
+    SqpSolver driver(
+        sweep_options(StartLevel::kWarm, full_step, enable_soc, spec.max_iter, failure_step));
     Ledger ledger;
     driver.attach_ledger(&ledger, "sweep");
     const auto t0 = std::chrono::steady_clock::now();
@@ -1513,6 +1517,39 @@ TEST(HsSweepCorpus, Corpus) {
     check_soc_costs_what_it_costs();
     check_soc_trigger_ratios();
     std::cout << corpus_table() << std::endl;
+}
+
+// THE HOLD-OFF ABOVE, MEASURED (M7 W2 R2 fix 1, RIDER-6): HS15's warm KD-off arm
+// with the shipped `qp_failure_step = true`, beside the corpus's held-off cell. The
+// failed subproblems' own steps cost majors here and change neither the answers nor
+// the status count.
+TEST(HsSweepCorpus, Hs15WarmKdOffWithTheFailedSubproblemStep) {
+    ASSERT_TRUE(SqpOptions{}.qp_failure_step) << "the shipped default this row pins";
+    const HsSweepSpec *spec = nullptr;
+    for (const HsSweepSpec &sp : hs_sweep_specs()) {
+        if (sp.name == std::string("HS15")) {
+            spec = &sp;
+        }
+    }
+    ASSERT_NE(spec, nullptr);
+    const SweepCell off = run_warm_sweep(*spec, /*full_step=*/false, /*soc=*/true);
+    const SweepCell on = run_warm_sweep(*spec, false, true, /*failure_step=*/true);
+    const auto row = [](const SweepCell &c) {
+        return fmt::format("majors {} minors {} fact {} rej {} fail {}", c.majors, c.minors,
+                           c.factorizations, c.rejected, c.status_failures);
+    };
+    SCOPED_TRACE("held off: " + row(off) + " | default: " + row(on));
+    // MEASURED (Release, MKL, clang++): held off 30 / 91 / 31 / 3, default 34 / 99 / 39 / 7.
+    EXPECT_EQ(off.majors, 30);
+    EXPECT_EQ(on.majors, 34);
+    EXPECT_EQ(on.minors, 99);
+    EXPECT_EQ(on.factorizations, 39);
+    EXPECT_EQ(on.rejected, 7);
+    EXPECT_EQ(on.status_failures, off.status_failures);
+    EXPECT_EQ(on.fvals.size(), off.fvals.size());
+    for (std::size_t i = 0; i < std::min(on.fvals.size(), off.fvals.size()); ++i) {
+        EXPECT_NEAR(on.fvals[i], off.fvals[i], 1e-6 * std::max(1.0, std::abs(off.fvals[i])));
+    }
 }
 
 // ---------------------------------------------------------------------

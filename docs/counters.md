@@ -202,7 +202,10 @@ one of those three therefore cannot silently miss the trace.
   moving -- and do NOT fold, on `rejected_steps`' own argument, which is the
   counter they are a subset of. A consumer summing "exits" against "routed"
   across a solve that restored will therefore find more exits than routings, and
-  the difference is the sub-solve's own.
+  the difference is the sub-solve's own. A solve that ends `numerical_error` with
+  `qp_maxiter_exits + qp_numerical_exits == 0` ended on the THIRD source,
+  `nonfinite_subproblems` (M7 W2 R2): a subproblem whose data was not finite,
+  refused before any kernel ran.
 
   **THE FAILED-SUBPROBLEM STEP GROUP FOLDS WHOLE** (M7 W2 R2).
   `qp_failure_steps_judged`, `qp_failure_steps_accepted` and
@@ -211,6 +214,8 @@ one of those three therefore cannot silently miss the trace.
   `steps_accepted` (it commits through the ordinary accept arm) and is never a
   `qp_failures_routed`; a judged, rejected one IS routed but does not move
   `qp_failures_in_a_row_peak`'s run, because it is not charged to the budget.
+  `nonfinite_subproblems` is at most one per driver, so a solve that restored
+  can fold up to two.
 
   **THE RESTORATION EXCURSION RECORD IS A PER-ENTRY READING, OVERWRITTEN, AND
   ITS ABSENCE IS READ OFF ITS OWN COUNT** (M7 W2 M2, the A0 signals page's S5).
