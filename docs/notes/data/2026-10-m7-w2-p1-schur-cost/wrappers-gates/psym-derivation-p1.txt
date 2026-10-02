@@ -1,0 +1,218 @@
+M7 W2 ROUND P1 (THE INCREMENTAL SCHUR COMPLEMENT) -- THE GATE EXPECTATIONS, DERIVED.
+Written and committed BEFORE the chain was detached.
+
+RULE: nothing here, and no declared value in gates-p1.sh, may be adjusted after the chain's first
+leg. Every value is derived from the FINAL range baddb728..1f46e34d or measured on that pair by this
+declaration's own rehearsal. Where a value equals the e2f9 round's (the G4 set), that is a
+COMPARISON, never the derivation.
+
+BASE   baddb728 docs(m7): ledger -- W2 E2 F8-1 + fix round 9 LANDED and GATED GREEN (the ledger commit on
+       top of the e2f9 gate record 88b5b7f0). Its sources ARE e2f9's last GATED head's (1f8d3118).
+       OBSERVED, empty:
+         git diff --stat 1f8d3118 baddb728 -- include src tests bench cmake scripts
+HEAD   1f46e34d kkt(m7): W2 P1 -- the Schur C is incremental, and sync_borders factorizes it once per
+       batch; parent baddb728. ONE code commit, THREE files. The declaration commit (docs only) goes
+       on top; every derivation below is over include/ src/ tests/ bench/ and cannot see it.
+       The P1 implementer's worktree (agent-a9f44008cb25541ea, head 904350e2) is source-identical to
+       1f46e34d (OBSERVED, empty: git diff --stat 1f46e34d 904350e2 -- include src tests bench cmake
+       scripts), so the implementer's suite transcripts ran these exact sources.
+RUNNER gates-p1.sh + chain_gates_p1.sh (this directory): copies of the e2f9 round's gates-e2f9.sh /
+       chain_gates_e2f9.sh, re-pointed; the e2f9 files are NOT edited.
+         (a) scratch .scratch/m7w2p1gates, ONE literal in code, in gates-p1.sh only
+             (`bash gates-p1.sh --print-scratch` -> /home/ghecht/Projects/hven/.scratch/m7w2p1gates);
+             the chain and both rehearsal scripts ask for it with --print-scratch; logs gates-p1.log,
+             chain-p1.log; rc variable GATES_P1_RC; G4 label "M7 W2 P1";
+         (b) every declared value re-derived on baddb728..1f46e34d (sections 1-6);
+         (c) ONE structural touch to the runner BODY, fail-closed-neutral: the added-fixture-directory
+             check (`n_out_fx`) filters the blank line that an EMPTY declared added-file list prints
+             through `printf '%s\n'`; without it the empty list counted as one file outside
+             tests/qp/fixtures/e2-d4/ and the pre-flight refused a correct range. This range adds no
+             non-C++ test file, so the list is empty. No emitted segment changed: g1, g2, g3, g5, g6
+             are byte-identical to e2f9's and g4 differs by its label line only (OBSERVED, `diff` of
+             the segments the two runners emit).
+
+-----------------------------------------------------------------------------
+1  THE CHANGED SURFACE of baddb728..1f46e34d -- ALL OBSERVED, derived from git.
+
+   cmd: git diff --name-status baddb728 1f46e34d  -> 3 paths (none under docs/, bench/, cmake/, scripts/)
+     M include/hven/detail/kkt/schur_complement.h    (the incremental C; begin_batch/end_batch)
+     M src/qp/qp_engine.cpp                          (sync_borders batches its three add loops)
+     M tests/sqp/test_schur.cpp                      (+244 lines; three new TESTs)
+   COUNTERS AND TRACE. No counter struct, trace writer, ledger column or golden file is in the range
+   (solver_counters.h and every printing/trace TU are untouched). The change is claimed
+   behaviour-neutral (the P1 report: corpus 0 rows changed in both algebras, E2 on and off; U0
+   byte-identical to the gated replay) and section 5 MEASURES it: all 75 columns of all three U0
+   engines are EXACTLY identical to the e2f9 gate replay.
+
+   1 header (`-- include/`): schur_complement.h.
+   2 MODIFIED .cpp (--diff-filter=M over 'src/*.cpp' 'tests/*.cpp' 'bench/*.cpp'): src/qp/qp_engine.cpp
+     (the production library) and tests/sqp/test_schur.cpp (named EXACTLY ONCE in the build files,
+     tests/sqp/CMakeLists.txt:74, a source of hven_sqp_tests, a P-SYM group). BOTH are inside the
+     P-SYM universe. => EXPECT_CLASS_A_OUTSIDE_SRCS = {} (empty); class A = 2 - 0 = 2.
+   0 ADDED .cpp => EXPECT_ADDED_CXX 0, EXPECT_ADDED_OUTSIDE_UNIVERSE {}, EXPECT_PSYM_ADDED 0
+     (so after == before and ONLY-AFTER {}). tests/CMakeLists.txt is untouched.
+   0 ADDED non-C++ test files => ADDED_TEST_FILES {}.
+   clang-format set (include/*.h src/*.cpp tests/*.cpp tests/*.h bench/*.cpp): 3 files -- non-empty;
+     OBSERVED clean now (`clang-format --dry-run -Werror` rc 0).
+
+-----------------------------------------------------------------------------
+2  THE P-SYM MOVER SHAPE, PER CONFIGURATION -- MEASURED on the final pair baddb728/1f46e34d.
+
+     Release  DIFFERING 25 = class A 2 + class B 23; UNEXPLAINED 0; negative control 67
+              sections: 44 objects, 40 byte-identical, DEBUG_ONLY 0, NON-DEBUG MOVERS 4, REFUSED 0
+     Debug    DIFFERING 25 = class A 2 + class B 23; UNEXPLAINED 0; negative control 30
+              sections: 44 objects, 37 byte-identical, DEBUG_ONLY 3, NON-DEBUG MOVERS 4, REFUSED 0
+     after == before == 151 in both configurations (nothing ADDED inside the universe; ONLY-AFTER {}).
+
+   HOW MEASURED. rehearsal/rehearse-p1.sh ran THIS runner's g5 segment, EXTRACTED from the runner's
+   own text (byte-identical, `cmp`, to the g5 the pre-flight emits), at 1f46e34d against baddb728,
+   both configurations, ONE hold of the box lock: 2026-10-01 19:45:54-20:11:31, PGREP_EMPTY under the
+   hold, dirty=0 at START, tree restored to m7 1f46e34d at END (rehearsal/rehearsal-p1-log.txt).
+   Its HYPOTHESIS declaration (class A only, 2/2, class B 0, DEBUG_ONLY 0/0) was REFUSED in both
+   configurations by design (classify rc 4: "names 25 differing object(s) and this round DECLARED
+   2"; rehearsal/rehearsal-p1-classification-{Release,Debug}-refused-at-2.txt). Then
+   rehearsal/offline-p1.sh 25 25 (20:16:16-20:24:28, its own hold, PGREP_EMPTY): a fresh Release
+   build of 1f46e34d with g5's flags and the classifier re-run on the rehearsal's own compare files
+   at the measured counts -- OFFLINE_CLASSIFY_RC 0 in BOTH configurations
+   (rehearsal/rehearsal-p1-classification-{Release,Debug}.txt). The scripts ran from a copy of
+   this directory held outside the tree (W=... override), because g5 refuses a dirty tree; the
+   copies are byte-for-byte the committed ones.
+
+   THE CONFIGURATIONS ARE SYMMETRIC. The class A sets and the class B sets are each IDENTICAL object
+   for object across Release and Debug (OBSERVED, `cmp` on sorted lists). So
+   EXPECT_CLASS_A_NOISE_ONLY_DEBUG and EXPECT_PSYM_B_DEBUG_ONLY are EMPTY and g5's (5'') asymmetry
+   block does not run; the cross-config assert runs over the original Debug classification.
+
+   CLASS A, 2 = the in-universe MODIFIED .cpp of section 1 exactly:
+       CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+       tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_schur.cpp.o
+
+   CLASS B, 23, identical in both configurations, NONE with a source modified in the range (each
+   object mapped back to its source and checked by the pre-flight, test sources included). They are
+   the INCLUDERS of schur_complement.h (directly or transitively). THEY ARE DERIVED, NOT GUESSED, and
+   cross-checked independently of the classifier: `ninja -t deps` over the offline Release build tree
+   lists 94 objects that depend on schur_complement.h (a header is class B for its includers), and
+   that set EQUALS, object for object (`diff` empty), the classification's class A (2) + class B
+   (23) + NOISE-ONLY (2: bench_corpus, bench_crossover) + NEGATIVE CONTROL (67) = 94. So every
+   includer is accounted for as a mover, noise-only or byte-identical, none unclassified.
+   (Debug: NOISE-ONLY 39, three of them library objects -- assembly_eval_seam, soc_elastic_restoration,
+   ipqp_engine -- which are the three DEBUG_ONLY section objects below.) The list (the runner's
+   EXPECT_CLASS_B_NAMES_{RELEASE,DEBUG}, the same string):
+       CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+       CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o
+       CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+       bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+       bench/CMakeFiles/hven_sqp_ssn_safeguard_probe.dir/ssn_safeguard_probe.cpp.o
+       tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o
+       tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_border_ops.cpp.o
+       tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_battery.cpp.o
+       tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_acceptance.cpp.o
+       tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_dispatch.cpp.o
+       tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_engine.cpp.o
+       tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ledger.cpp.o
+       tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_predictor.cpp.o
+       tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine.cpp.o
+       tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine_border.cpp.o
+       tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine_indefinite.cpp.o
+       tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine_tr.cpp.o
+       tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_warm_start.cpp.o
+       tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_ws_independence.cpp.o
+       tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_scale_smoke.cpp.o
+       tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+       tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ssn_engine.cpp.o
+       tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_trace_writer.cpp.o
+   PRE-FLIGHT REFUSAL, FALSIFIED: the runner refuses any declared class B object whose source --
+   tests included -- is in the range (preflight-p1.txt transcript E: test_schur.cpp.o substituted
+   into the class B lists -> "REFUSED: ... MODIFIED ... (it is class A)", rc 2).
+
+-----------------------------------------------------------------------------
+3  TEST COUNTS -- derived against the by-name baseline.
+
+   THE BASELINE IS DERIVED, NOT NAMED, AND THEN CHECKED AGAINST ITS DECLARATION (runner P1 (f)):
+     git log -1 --format= --name-only --diff-filter=A baddb728 -- \
+       'docs/notes/data/*/gates-*/suite-release.txt' 'docs/notes/data/*/gates/suite-release.txt'
+   -> ONE path, added by 88b5b7f0: docs/notes/data/2026-10-m7-w2-e2-fix9-standstill/gates/
+      suite-release.txt == the declared EXPECT_NAMES_BASE_REL. Head = 88b5b7f0^ = f74c8872.
+      OBSERVED: `git diff --name-only f74c8872..baddb728 -- tests/` -> 0 files, so the baseline's
+      names are BEFORE's names.
+   BASELINE (OBSERVED): ctest total Debug 2890 / Release 2891; started names 2892 / 2893 (the two
+   DISABLED EqpRefinementAb instances are started but outside the denominator). Skipped: Debug 7,
+   Release 1.
+
+   ADDED = 3 instances, REMOVED = 0. OBSERVED with `grep -c` (never `grep -q`):
+     git diff baddb728 1f46e34d -- 'tests/*.cpp' | grep -cE '^\+TEST(_P)?\('   -> 3 TEST lines
+     git diff baddb728 1f46e34d -- 'tests/*.cpp' | grep -cE '^-TEST(_P)?\('    -> 0
+     git diff baddb728 1f46e34d -- tests | grep -cE '^[-+](TEST_F|TYPED_TEST|TEST_P|INSTANTIATE)'  -> 0
+     All 3 are plain TEST in suite Schur, tests/sqp/test_schur.cpp, so one ctest instance each:
+       Schur.IncrementalCMatchesFromScratchAfterAddsAndDrops
+       Schur.BatchedAddsLeaveTheStatePerAddWouldHave
+       Schur.BatchThatThrowsLeavesThePerAddStack
+     Each is added by exactly ONE +TEST line (pre-flight) and is absent from the baseline.
+   NONE is Release-only: `git diff baddb728 1f46e34d -- tests | grep -c GTEST_SKIP` -> 0. So the
+   DEBUG_ONLY_SKIPS_ADDED list is EMPTY and the SKIPPED set (F9 (g), carried) must equal the
+   baseline's exactly: Debug 7, Release 1.
+
+   EXPECTED SUITE COUNTS: Debug 2890 + 3 = 2893 (G1, the long test excluded); Release 2891 + 3 =
+   2894 (G3); G2 1. RECONCILED BY NAME against the P1 report (Release 2894/2894, Debug 1448 + 1445 =
+   2893, "2891 + 3 new" / "2890 + 3"): the report's +3 is exactly the 3 names above in both
+   configurations. OBSERVED on the implementer's transcripts (worktree .scratch/p1/logs/
+   ctest-{debug1,debug2,release}-B1.log, tree 904350e2 == 1f46e34d; the two Debug legs
+   concatenated): `--check-names` rc 0 on both (Debug 2895 started == 2892 - 0 + 3, Release 2896
+   started == 2893 - 0 + 3) and `--check-skips` rc 0 on both (preflight-p1.txt C, D).
+
+-----------------------------------------------------------------------------
+4  THE SECTION SHAPE (G5b) -- MEASURED by the same rehearsal
+   (rehearsal/rehearsal-p1-sections-{Release,Debug}.txt).
+   NON-DEBUG-MOVER set 4 in BOTH configurations, the same four:
+       {qp/qp_engine.cpp.o}                                                  derived, class A
+     + {drivers/sqp_solver.cpp.o, qp/ws_independence.cpp.o, warmstart/continuation.cpp.o}
+                                              declared, EXPECT_LIB_CLASS_B_* (unmodified, class B)
+   objects 44; byte-identical 40 Release / 37 Debug; no library object ADDED; REFUSED 0.
+   DEBUG_ONLY Release 0 / Debug 3: drivers/assembly_eval_seam, globalization/sqp/soc_elastic_restoration,
+   qp/ipqp_engine. INFERRED cause: the debug line tables of the changed header.
+   The NOISE-ONLY library-mover slots are EMPTY in both configurations.
+
+-----------------------------------------------------------------------------
+5  G4: 27 cells x 75 columns x 3 engines, the 43 DECLARED DIFFERENCES (walk 17 / ssn 13 / ipm 13).
+
+   The declared list is E4's, e2f8's and e2f9's, declared again here because it was RE-MEASURED, not
+   carried: rehearsal/offline-p1.sh ran the U0 replay from its own fresh Release build of 1f46e34d
+   (inside the box lock, MKL_NUM_THREADS=1, taskset -c 2) and compared it GATED (1e-5 relative, 1e-13
+   absolute floor) against the M6 close pin:
+     walk 17 differences (71 within gate), ssn 13 (68), ipm 13 (72) = 43
+   and the runner's own `--check-g4` on that pin arm returns rc 0 with all eight asserts OK -- the
+   MEASURED set EQUALS the DECLARED 43-entry list (preflight-p1.txt B).
+   STRONGER, AND MEASURED: the EXACT arm against the e2f9 gate record (docs/notes/data/
+   2026-10-m7-w2-e2-fix9-standstill/gates/replay, BEFORE's sources) shows 0 differences on ALL THREE
+   engines, all 75 columns -- P1 does not move one compared digit of the U0 replay, counters
+   included. The P1 report's "U0 byte-identical to the gated replay" is confirmed independently.
+
+-----------------------------------------------------------------------------
+6  G6: expected CLEAN. install smoke; the export contract; clang-format over the DERIVED set
+   (3 files) -- OBSERVED clean at 1f46e34d now, `clang-format --dry-run -Werror` rc 0;
+   `git diff --check` (rc 0 on a clean tree by construction); DIRTY_FILES 0.
+   Fold proofs 46/0 expected (the gate-assert library and its proofs are unchanged).
+
+-----------------------------------------------------------------------------
+7  PRE-FLIGHT: preflight-p1.txt (this directory), committed WITH this file and BEFORE the chain was
+   detached: A the full pre-flight, rc 0, PREFLIGHT_OK; B --check-g4, rc 0; C --check-names, rc 0
+   both; D --check-skips, rc 0 both + two falsifiers rc 2; E the class B modified-source refusal,
+   falsified (rc 2); F the P1 (f) declared-baseline refusal, falsified with BEFORE=bffd2ea2 (rc 2);
+   G the UNMEASURED-sentinel refusal observed on a runner with the measured slots unfilled (rc 2).
+
+-----------------------------------------------------------------------------
+8  G5 CHECKS THE MAIN TREE OUT TO BEFORE while it builds its before arm, once per configuration:
+   nothing may edit or commit in the main tree from the chain's launch until CHAIN_END.
+
+-----------------------------------------------------------------------------
+9  FILE PROVENANCE (OBSERVED). Against the e2f9 runner the six segments the runner EMITS are
+   BYTE-IDENTICAL for g1, g2, g3, g5 and g6; g4 differs in its LABEL LINE only ("M7 W2 E2 F9" ->
+   "M7 W2 P1"). The emitted g5 equals the g5 the rehearsal ran (`cmp`). The runner body differs from
+   e2f9's in the header, the declared values above, the blocks naming the added tests / files /
+   skips / outside-universe sources (now small or empty), and the one n_out_fx filter (runner item (c)).
+   The sha baddb728 appears exactly once in code, as the BEFORE assignment (g5 takes BEFORE as an
+   argument); ONE .scratch/ literal in code.
+   Self-consistency is checked by the runner itself before any leg: Debug 2893 == Release 2894 - 1;
+   DIFFERING 25 == 2 + 23 per configuration; G4 43 == 17 + 13 + 13, 43 unique U0 entries.
+
+   WALL IS INFORMATIONAL. Nothing above is a timing claim.
