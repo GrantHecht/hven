@@ -1593,6 +1593,26 @@ bool jacobian_values_finite(const NlpEval &ev) {
     return stored_finite(ev.Je) && stored_finite(ev.Ji);
 }
 
+// THE SUBPROBLEM'S DATA, screened before any kernel sees it (M7 W2 R2): H, g, the
+// two Jacobian blocks and both right-hand sides. The box is not screened -- its
+// infinities are legal. A model whose Hessian is infinite at a point where f and
+// c are finite (a |t|^p term with 1 < p < 2 at t = 0) passes every value-level
+// check the driver makes and would otherwise reach the walk's dense factor.
+bool subproblem_data_finite(const QpProblem &qp) {
+    const auto stored_finite = [](const SpMatRM &m) {
+        for (Eigen::Index r = 0; r < m.outerSize(); ++r) {
+            for (SpMatRM::InnerIterator it(m, r); it; ++it) {
+                if (!std::isfinite(it.value())) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    };
+    return qp.g.allFinite() && qp.be.allFinite() && qp.bi.allFinite() && stored_finite(qp.H) &&
+           stored_finite(qp.Ae) && stored_finite(qp.Ai);
+}
+
 } // namespace
 
 // SIZE-GUARDED RATHER THAN ASSERTED, one predicate per half: an export whose
@@ -3455,6 +3475,10 @@ struct SqpSolver::MajorState {
     NlpEval ev_soc;
     QpSolution qs_soc;
     Vec x_soc;
+
+    // THE ACCEPTED TRIAL IS A FAILED SUBPROBLEM'S OWN STEP (M7 W2 R2): the
+    // commit keeps the multipliers and does not grow the radius.
+    bool failure_step = false;
 };
 
 // ---------------------------------------------------------------------------
@@ -5049,6 +5073,9 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     st.out.counters.qp_maxiter_exits += rs.counters.qp_maxiter_exits;
     st.out.counters.qp_numerical_exits += rs.counters.qp_numerical_exits;
     st.out.counters.qp_cap_retries += rs.counters.qp_cap_retries;
+    st.out.counters.qp_failure_steps_judged += rs.counters.qp_failure_steps_judged;
+    st.out.counters.qp_failure_steps_accepted += rs.counters.qp_failure_steps_accepted;
+    st.out.counters.nonfinite_subproblems += rs.counters.nonfinite_subproblems;
     // THE EXCURSION RECORD DOES NOT FOLD AND CANNOT (M7 W2 M2): this sub-solve
     // runs with `allow_restoration_` false, so its own `restoration_entries` is
     // structurally 0 and its four absolutes are untouched defaults. Folding a
@@ -6154,6 +6181,35 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         st.qp_built = true;
     }
 
+    // A NON-FINITE SUBPROBLEM (M7 W2 R2): no kernel is called on it. The model's
+    // derivatives are not finite at this iterate, a smaller radius cannot change
+    // that, and the walk's dense factor would refuse the data by throwing. The
+    // solve ends kNumericalError here, at the last point it reached, through the
+    // ordinary subproblem-failure exit -- its activity is the seed's.
+    if (!subproblem_data_finite(st.qp)) {
+        ++st.out.counters.nonfinite_subproblems;
+        QpSolution failed;
+        if (st.have_seed) {
+            failed = st.seed;
+        }
+        failed.status = QpStatus::kNumericalError;
+        failed.x = Vec::Zero(st.n);
+        failed.lambda_e = Vec::Zero(st.qp.me());
+        failed.lambda_i = Vec::Zero(st.qp.mi());
+        failed.z = Vec::Zero(st.n);
+        if (failed.bound_state.size() != static_cast<std::size_t>(st.n)) {
+            failed.bound_state.assign(static_cast<std::size_t>(st.n), BoundState::kFree);
+        }
+        if (failed.ineq_active.size() != static_cast<std::size_t>(st.qp.mi())) {
+            failed.ineq_active.assign(static_cast<std::size_t>(st.qp.mi()), false);
+        }
+        failed.tr_active.assign(static_cast<std::size_t>(st.n), false);
+        mj.qs = std::move(failed);
+        mj.row.qp_solved = false;
+        push_history(mj.row);
+        return MajorOutcome::kFinishQpFailure;
+    }
+
     SolveOverrides overrides;
     overrides.tr_radius = st.delta;
     // ADAPTIVE DUAL REGULARIZATION (see the header note above).
@@ -6594,6 +6650,58 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         case QpStatus::kInfeasible:
             break;
         }
+        // THE FAILED SUBPROBLEM'S OWN STEP (M7 W2 R2, SqpOptions::qp_failure_step).
+        // A walk that failed at a dead end, a zero-motion exhaustion or its minor
+        // cap still stands on a point of the subproblem's box, and on the CUTEst
+        // TRAIN census that point is often a good step (a first-order point of a
+        // face the walk could not certify, or a capped walk well under way). It
+        // is offered to the UNCHANGED strategy as a trial, on the published
+        // practice of using an unfinished QP iterate as the search direction:
+        //   - gate: a usable p != 0, outside the full-step mode, whose model
+        //     predicts a decrease or whose trial at least halves an h above
+        //     feas_tol -- a step with neither is not one an SQP major would
+        //     propose;
+        //   - accepted: x + p is committed through the ordinary accept arm with
+        //     the multipliers KEPT (the failed solve's are cleared), no radius
+        //     growth and no SOC;
+        //   - rejected: an ordinary rejection, so the routing below shrinks and
+        //     reseeds as before but does NOT charge `qp_failure_budget`, which
+        //     bounds majors that produced no judgeable step. The radius floor
+        //     bounds the rejections, as it bounds every other run of them.
+        // Nothing is certified here: the loop's KKT test is the only certificate.
+        bool failure_step_rejected = false;
+        if (opts_.qp_failure_step && mj.walk_owns_this_qp && st.full_step_funnel == nullptr &&
+            qp_failure_is_retryable(st.qp, mj.qs, opts_.feas_tol) &&
+            mj.qs.x.lpNorm<Eigen::Infinity>() > 0.0) {
+            const double pred = predicted_decrease(st.qp, mj.qs.x);
+            mj.x_trial = st.x + mj.qs.x;
+            mj.ev_trial = seam.eval_nlp_values(mj.x_trial);
+            const double h_trial = constraint_violation_l1(mj.ev_trial);
+            // The violation arm needs a violation to reduce: at h <= feas_tol it
+            // would admit any step that stays feasible, an ascent step included.
+            if (pred > 0.0 || (mj.row.violation_l1 > opts_.feas_tol &&
+                               h_trial <= kFailureStepViolationFactor * mj.row.violation_l1)) {
+                mj.ctx.f_old = st.ev.f;
+                mj.ctx.f_new = mj.ev_trial.f;
+                mj.ctx.h_old = mj.row.violation_l1;
+                mj.ctx.h_new = h_trial;
+                mj.ctx.pred_df = pred;
+                mj.ctx.tr_active = mj.row.tr_binding;
+                mj.ctx.rejections_at_iterate = st.rejections_at_iterate;
+                ++st.out.counters.qp_failure_steps_judged;
+                const StepVerdict verdict = st.strategy->judge(mj.ctx);
+                if (verdict == StepVerdict::kAcceptF || verdict == StepVerdict::kAcceptH) {
+                    ++st.out.counters.qp_failure_steps_accepted;
+                    mj.row.verdict = verdict;
+                    mj.failure_step = true;
+                    st.qp_failures_in_a_row = 0;
+                    push_history(mj.row);
+                    return MajorOutcome::kCommitAccepted;
+                }
+                failure_step_rejected = true;
+            }
+            ++st.out.counters.evals_values; // the trial was evaluated and not taken
+        }
         // SUBPROBLEM FAILURE ROUTING (see this header's note). A
         // failure that still handed back a usable iterate is a
         // property of THIS SUBPROBLEM AT THIS RADIUS, and the loop
@@ -6615,7 +6723,9 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         // `tr_min` into a restoration request, at every budget.
         if (st.qp_failures_in_a_row < opts_.qp_failure_budget &&
             qp_failure_is_retryable(st.qp, mj.qs, opts_.feas_tol)) {
-            ++st.qp_failures_in_a_row;
+            if (!failure_step_rejected) {
+                ++st.qp_failures_in_a_row;
+            }
             // S3, the two halves: the routed failures summed, and the longest
             // run of them this solve reached. The peak is folded with max like
             // active_set_delta_peak, and counts ADMITTED failures only -- the
@@ -7020,9 +7130,12 @@ SqpResult SqpSolver::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &b
             // region" setting min(+inf * 2, tr_max) is tr_max, so an unguarded
             // growth rule would SHRINK the radius the one time it is not
             // supposed to touch it (see the constructor's tr_max note).
+            //
+            // A FAILED SUBPROBLEM'S OWN STEP (M7 W2 R2) earns no growth: the
+            // radius it was taken under is the one its subproblem failed at.
             const double actual_df = st.ev.f - mj.ctx.f_new;
-            if (mj.row.tr_binding && std::isfinite(st.delta) && mj.ctx.pred_df > 0.0 &&
-                actual_df >= kTrGrowThreshold * mj.ctx.pred_df) {
+            if (!mj.failure_step && mj.row.tr_binding && std::isfinite(st.delta) &&
+                mj.ctx.pred_df > 0.0 && actual_df >= kTrGrowThreshold * mj.ctx.pred_df) {
                 st.delta = std::min(st.delta * kTrGrowFactor, opts_.tr_max);
             }
 
@@ -7053,13 +7166,17 @@ SqpResult SqpSolver::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &b
                 seam.refresh_derivatives(mj.ev_trial, mj.x_trial);
                 ++st.out.counters.evals_full;
                 st.ev = std::move(mj.ev_trial);
-                if (!st.eqb.basis.lift(mj.qs.lambda_e, st.lambda_e)) {
-                    ++st.out.equality_basis.lift_refusals;
-                    ++st.out.equality_basis.lift_refusal_sites.commit_lift;
-                    st.eqb.refuse_pending = true; // st.lambda_e is the zero-scatter lift
+                // A FAILED SUBPROBLEM'S OWN STEP (M7 W2 R2) KEEPS the multipliers:
+                // the failed solve's were cleared, so there is no new price.
+                if (!mj.failure_step) {
+                    if (!st.eqb.basis.lift(mj.qs.lambda_e, st.lambda_e)) {
+                        ++st.out.equality_basis.lift_refusals;
+                        ++st.out.equality_basis.lift_refusal_sites.commit_lift;
+                        st.eqb.refuse_pending = true; // st.lambda_e is the zero-scatter lift
+                    }
+                    st.lambda_i = mj.qs.lambda_i;
+                    st.duals_ingested = false; // re-priced by this solve's own QP
                 }
-                st.lambda_i = mj.qs.lambda_i;
-                st.duals_ingested = false; // re-priced by this solve's own QP
                 st.seed = std::move(mj.qs);
             }
             ++st.out.counters.steps_accepted;

@@ -822,6 +822,26 @@ struct SqpOptions {
     /// @see docs/notes/2026-09-m7-w2-sqp-cutest-read.md section M1
     bool qp_cap_retry = false;
 
+    /// THE FAILED SUBPROBLEM'S OWN STEP (M7 W2 R2).
+    ///
+    /// At true, a WALK subproblem that fails (`kNumericalError` or `kMaxIter`)
+    /// and hands back a usable iterate p (`qp_failure_is_retryable`, p != 0) has
+    /// p judged as a trial step before the failure is routed, provided the model
+    /// predicts a decrease (`predicted_decrease(qp, p) > 0`) or p at least halves
+    /// a violation h above `feas_tol`. The unchanged globalization strategy decides:
+    ///   - accepted: x + p is taken, the multipliers are KEPT (the failed solve's
+    ///     are cleared), the radius does not grow, and SOC is not attempted;
+    ///   - rejected: the failure is routed as today (shrink, reseed) but is NOT
+    ///     charged to `qp_failure_budget` -- a judged, rejected step is an
+    ///     ordinary rejection, bounded by the radius floor like any other.
+    /// Nothing is certified by the step: convergence is still the loop's own KKT
+    /// test. Not consulted in the full-step mode.
+    ///
+    /// DEFAULT TRUE, on the M7 W2 R2 CUTEst TRAIN reading. Off is the driver
+    /// before this field existed, byte for byte. Counted by
+    /// `SqpCounters::qp_failure_steps_judged` / `qp_failure_steps_accepted`.
+    bool qp_failure_step = true;
+
     /// THE RESTORATION PROXIMITY WEIGHT (M7 W2 M2b), `zeta` -- the coefficient
     /// on the `1/2 zeta ||D (x - x_k)||^2` term the restoration phase's
     /// feasibility wrapper carries in its OBJECTIVE, with `D = diag(d_i)`,

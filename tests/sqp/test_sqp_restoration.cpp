@@ -1175,6 +1175,10 @@ TEST(SqpDriverRestoration, AlgebraModeDivergenceIsANonUniqueSubproblemOptimum) {
         opts.qp.independent_working_set = false;
         opts.max_iter = 2;
         opts.qp.ws_algebra = algebra;
+        // M7 W2 R2: the restoration-route fixtures on this family pin the
+        // pre-R2 ROUTE, so the failed-subproblem step is off (see
+        // SqpDriverRestorationSeed.TheFailedStepKeepsTheCertifiedAnswer for the default).
+        opts.qp_failure_step = false;
         SqpSolver driver(opts);
         const SqpResult sol = driver.solve(model);
 #ifdef USE_ACCELERATE_SPARSE
@@ -2084,6 +2088,36 @@ const char *seed_mode_name(QpMode m) {
 //   AJacobianPoisonedCandidateIsRefusedNotTaken (name unchanged: still true, and
 //     now at the h screen rather than at the Jacobian one)
 //   SqpDriverRestorationProximity.TheSeedGuardFiresAndTheStartObjectiveIsHPlusP
+//
+// M7 W2 R2, THE ROUTE WRITTEN OUT. On this model the walk fails on the way to the
+// request (kMaxIter / kNumericalError), and the R2 default judges the failed
+// subproblem's own step and often takes it, which moves WHERE the request is
+// raised and what the knife-edge candidate measures. The fixtures above pin the
+// ROUTE, so each sets `qp_failure_step = false` and keeps every pinned value; the
+// default's own reading on the same model is
+// SqpDriverRestorationSeed.TheFailedStepKeepsTheCertifiedAnswer (the same certified
+// kInfeasible at the same analytic point).
+
+// THE R2 DEFAULT ON THE FAMILY'S KNIFE-EDGE MODEL: whatever route the failed
+// subproblems' own steps take it by, the answer is the one the family pins --
+// kInfeasible, certified, at the analytic point -- on both walks.
+TEST(SqpDriverRestorationSeed, TheFailedStepKeepsTheCertifiedAnswer) {
+    for (const bool independent : {false, true}) {
+        SCOPED_TRACE(independent ? "independent working set" : "pre-E2 walk");
+        InfeasibleCircleLineModel model(2.0, 1.999999);
+        SqpOptions opts;
+        opts.qp.independent_working_set = independent;
+        opts.max_iter = 200;
+        ASSERT_TRUE(opts.qp_failure_step);
+        const SqpResult sol = SqpSolver(opts).solve(model);
+        EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
+        EXPECT_TRUE(sol.infeasibility_certified);
+        const double t = 1.0 / std::sqrt(2.0);
+        EXPECT_NEAR(sol.x(0), t, 1e-5);
+        EXPECT_NEAR(sol.x(1), t, 1e-5);
+        EXPECT_EQ(sol.counters.nonfinite_subproblems, 0);
+    }
+}
 
 // A CANDIDATE THAT MEASURES BETTER IS TAKEN, and the row that RAISED the
 // request records it. Measured at the exhaustion (Release, MKL, clang++): the
@@ -2095,6 +2129,7 @@ TEST(SqpDriverRestorationSeed, TheOfferedCandidateNoLongerMeasuresBetterAndIsNot
     // on).
     opts.qp.independent_working_set = false;
     opts.max_iter = 200;
+    opts.qp_failure_step = false; // M7 W2 R2: the pre-R2 route (see the family's note)
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(model);
 
@@ -2190,6 +2225,7 @@ TEST(SqpDriverRestorationSeed, TheExhaustedLadderSiteOffersItsOwnStepAndTheGuard
         // fixture (measured: kRestore in both configs with it, kReject in Debug
         // without); the seeding rule itself is the same at either site.
         opts.enable_scaling = true;
+        opts.qp_failure_step = false; // M7 W2 R2: the pre-R2 route (see the family's note)
         SqpSolver driver(opts);
         const SqpResult sol = driver.solve(model);
 
@@ -2217,6 +2253,7 @@ TEST(SqpDriverRestorationSeed, AWorseElasticCandidateIsRefusedOnTheSameModel) {
     // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
     opts.equality_basis = false;
     opts.max_iter = 200;
+    opts.qp_failure_step = false; // M7 W2 R2: the pre-R2 route (see the family's note)
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(model);
 
@@ -2655,6 +2692,7 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConverg
     // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
     roomy.equality_basis = false;
     roomy.max_iter = 200;
+    roomy.qp_failure_step = false; // M7 W2 R2: the pre-R2 route (see the seed family's note)
     const SqpResult converged = SqpSolver(roomy).solve(model);
     ASSERT_EQ(converged.status, SolveStatus::kInfeasible);
     ASSERT_EQ(converged.counters.restoration_entries, 1);
@@ -2671,6 +2709,7 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConverg
 #else
     cramped.max_iter = 6;
 #endif
+    cramped.qp_failure_step = false; // M7 W2 R2: the pre-R2 route, as `roomy`
     const SqpResult cut_off = SqpSolver(cramped).solve(model);
     ASSERT_EQ(cut_off.counters.restoration_entries, 1)
         << "fixture premise: the phase RAN and was measured on this budget too";
@@ -2779,6 +2818,9 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatus) 
 #else
     cramped.max_iter = 6;
 #endif
+    // M7 W2 R2: the pre-R2 route (see the seed family's note) -- with the
+    // failed-subproblem step this budget ends before the request is raised.
+    cramped.qp_failure_step = false;
     const SqpResult sub_cut_off = SqpSolver(cramped).solve(circle);
     ASSERT_EQ(sub_cut_off.status, SolveStatus::kMaxIter);
     ASSERT_EQ(sub_cut_off.counters.restoration_entries, 1);
@@ -3058,6 +3100,7 @@ TEST(SqpDriverRestorationProximity, TheSeedGuardFiresAndTheStartObjectiveIsHPlus
     opts.qp.independent_working_set = false;
     opts.max_iter = 200;
     opts.restoration_proximity = 0.25;
+    opts.qp_failure_step = false; // M7 W2 R2: the pre-R2 route (see the seed family's note)
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(model);
 

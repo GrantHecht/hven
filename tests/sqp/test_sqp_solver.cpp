@@ -3088,8 +3088,14 @@ TEST(SqpDriverTrustRegion, RejectedMultipliersAreDiscarded) {
 
 namespace {
 
-// The premise of every TwinSaddleModel fixture: the walk with no saddle exit.
-void twin_saddle_premise(SqpOptions &opts) { opts.qp.independent_working_set = false; }
+// The premise of every TwinSaddleModel fixture: the walk with no saddle exit,
+// and (M7 W2 R2) no failed-subproblem step -- these fixtures pin the ROUTING of a
+// failure, and the saddle step halves h from the start point, so the R2 default
+// would judge and take it (SqpDriverQpFailure.TheFailedSaddleStepIsTakenAsAnHStep).
+void twin_saddle_premise(SqpOptions &opts) {
+    opts.qp.independent_working_set = false;
+    opts.qp_failure_step = false;
+}
 
 // k INDEPENDENT COPIES of test_qp_engine_indefinite.cpp's weakly-active-bound
 // fixture, wrapped as an NLP. Per block b (variables 3b, 3b+1, 3b+2):
@@ -3612,6 +3618,11 @@ TEST(SqpDriverQpFailure, QpMaxIterTakesTheSameShrinkRetryPath) {
         opts.max_iter = 60;
         opts.qp.max_iter = 3;
         opts.qp.ws_algebra = algebra;
+        // THE ROUTING, WRITTEN OUT (M7 W2 R2): this fixture pins what the driver
+        // does with a capped subproblem it does NOT take a step from, so the R2
+        // failed-subproblem step is off here; its own row is
+        // TheCappedSubproblemsOwnStepIsTakenAndKeepsTheMultipliers below.
+        opts.qp_failure_step = false;
         SqpSolver driver(opts);
         const SqpResult sol = driver.solve(*hs.model);
 
@@ -3632,6 +3643,140 @@ TEST(SqpDriverQpFailure, QpMaxIterTakesTheSameShrinkRetryPath) {
         EXPECT_EQ(capped_rows, 1);
         EXPECT_EQ(sol.counters.rejected_steps, 1);
     }
+}
+
+// THE FAILED SUBPROBLEM'S OWN STEP (M7 W2 R2), on the fixture above with the
+// shipped default. The capped walk stands on a point of its box; the strategy
+// judges it like any trial and the driver takes it, KEEPING the multipliers (the
+// capped solve cleared its own) and NOT growing the radius. The solve reaches the
+// same answer the routing reached.
+TEST(SqpDriverQpFailure, TheCappedSubproblemsOwnStepIsTakenAndKeepsTheMultipliers) {
+    for (const auto algebra :
+         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        const HsProblem hs = make_hs(6);
+        SqpOptions opts;
+        opts.max_iter = 60;
+        opts.qp.max_iter = 3;
+        opts.qp.ws_algebra = algebra;
+        ASSERT_TRUE(opts.qp_failure_step) << "the shipped default this test exists to pin";
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(*hs.model);
+
+        EXPECT_EQ(sol.status, SolveStatus::kOptimal);
+        EXPECT_NEAR(sol.f, hs.f_star, 1e-9);
+
+        EXPECT_GE(sol.counters.qp_failure_steps_judged, 1);
+        EXPECT_GE(sol.counters.qp_failure_steps_accepted, 1);
+        EXPECT_LE(sol.counters.qp_failure_steps_accepted, sol.counters.qp_failure_steps_judged);
+        EXPECT_EQ(sol.counters.nonfinite_subproblems, 0);
+        // Every capped exit was either TAKEN as a step or ROUTED; none ended the solve.
+        EXPECT_EQ(sol.counters.qp_maxiter_exits,
+                  sol.counters.qp_failure_steps_accepted + sol.counters.qp_failures_routed);
+        // An accepted step is an accepted step, never a routed failure.
+        EXPECT_GE(sol.counters.steps_accepted, sol.counters.qp_failure_steps_accepted);
+
+        int taken = 0;
+        for (std::size_t k = 0; k + 1 < sol.history.size(); ++k) {
+            const SqpIterate &row = sol.history[k];
+            if (row.qp_status != QpStatus::kMaxIter ||
+                (row.verdict != StepVerdict::kAcceptF && row.verdict != StepVerdict::kAcceptH)) {
+                continue;
+            }
+            ++taken;
+            SCOPED_TRACE("taken row " + std::to_string(k));
+            EXPECT_DOUBLE_EQ(sol.history[k + 1].tr_radius, row.tr_radius) << "no growth";
+            EXPECT_NE(sol.history[k + 1].f, row.f) << "the iterate moved";
+        }
+        EXPECT_EQ(taken, sol.counters.qp_failure_steps_accepted);
+    }
+}
+
+// THE TWIN SADDLE WITH THE R2 DEFAULT (the walk with no saddle exit, as in the
+// fixtures above): the failed subproblem's point is the saddle, an ASCENT in the
+// model (pred < 0) that zeroes the violation of the start point. The violation arm
+// of the gate admits it, the funnel takes it as an h-type step, and the solve
+// still reaches the minimizer -- with no budget-charged failure run at all.
+TEST(SqpDriverQpFailure, TheFailedSaddleStepIsTakenAsAnHStep) {
+    TwinSaddleModel model(2);
+    for (const auto algebra :
+         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        SqpOptions opts;
+        opts.tr_init = 3.0;
+        opts.tr_max = 100.0;
+        opts.max_iter = 40;
+        opts.qp.ws_algebra = algebra;
+        opts.qp.independent_working_set = false;
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(model);
+
+        EXPECT_EQ(sol.status, SolveStatus::kOptimal);
+        EXPECT_NEAR(sol.f, model.f_star(), 1e-9);
+        ASSERT_FALSE(sol.history.empty());
+        EXPECT_EQ(sol.history[0].qp_status, QpStatus::kNumericalError);
+        EXPECT_EQ(sol.history[0].verdict, StepVerdict::kAcceptH);
+        EXPECT_EQ(sol.counters.qp_failure_steps_judged, 1);
+        EXPECT_EQ(sol.counters.qp_failure_steps_accepted, 1);
+        EXPECT_EQ(sol.counters.qp_failures_routed, 0);
+        ASSERT_GE(sol.history.size(), 2u);
+        EXPECT_DOUBLE_EQ(sol.history[1].tr_radius, sol.history[0].tr_radius) << "no growth";
+    }
+}
+
+// A NON-FINITE SUBPROBLEM (M7 W2 R2). f = |x0|^1.5 + (x1 - 1)^2 is finite with a
+// finite gradient at x0 = 0, and its Hessian entry 0.75 |x0|^-0.5 is +inf there.
+// No kernel sees that subproblem: the solve ends kNumericalError at the start
+// point, counted, without a throw.
+namespace {
+class InfiniteCurvatureModel : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 0; }
+    Index mi() const override { return 0; }
+    double eval_f(const Vec &x) const override {
+        return std::pow(std::abs(x(0)), 1.5) + (x(1) - 1.0) * (x(1) - 1.0);
+    }
+    Vec eval_grad(const Vec &x) const override {
+        Vec g(2);
+        g << 1.5 * std::sqrt(std::abs(x(0))) * (x(0) < 0.0 ? -1.0 : 1.0), 2.0 * (x(1) - 1.0);
+        return g;
+    }
+    Vec eval_ce(const Vec &) const override { return Vec(0); }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &x, double s, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = s * 0.75 / std::sqrt(std::abs(x(0))); // +inf at x0 = 0
+        h.insert(1, 1) = s * 2.0;
+        h.makeCompressed();
+        return h;
+    }
+    SpMatRM eval_jac_e(const Vec &) const override { return SpMatRM(0, 2); }
+    SpMatRM eval_jac_i(const Vec &) const override { return SpMatRM(0, 2); }
+    const Vec &lower() const override { return lo_; }
+    const Vec &upper() const override { return up_; }
+    Vec start_point() const override { return Vec::Zero(2); }
+
+  private:
+    Vec lo_ = Vec::Constant(2, -10.0);
+    Vec up_ = Vec::Constant(2, 10.0);
+};
+} // namespace
+
+TEST(SqpDriverQpFailure, ANonFiniteSubproblemEndsTheSolveWithoutAKernelCall) {
+    InfiniteCurvatureModel model;
+    SqpOptions opts;
+    opts.enable_scaling = false;
+    SqpSolver driver(opts);
+    SqpResult sol;
+    ASSERT_NO_THROW(sol = driver.solve(model));
+    EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
+    EXPECT_EQ(sol.counters.nonfinite_subproblems, 1);
+    EXPECT_EQ(sol.counters.qp_minor_iters, 0);
+    EXPECT_EQ(sol.counters.factorizations, 0);
+    ASSERT_EQ(sol.history.size(), 1u);
+    EXPECT_FALSE(sol.history[0].qp_solved);
+    EXPECT_EQ(sol.x.lpNorm<Eigen::Infinity>(), 0.0) << "the point it reached: the start";
 }
 
 // ... AND kMaxIter STILL PROPAGATES WHEN THE RETRY FAILS TOO. HS76 is a
@@ -3655,6 +3800,8 @@ TEST(SqpDriverQpFailure, RepeatedQpMaxIterStillPropagates) {
     // the budget is written out here rather than defaulted -- the pins below
     // are unchanged and are still the statement about the mechanism.
     opts.qp_failure_budget = 1;
+    // ... and the routing written out likewise (M7 W2 R2): no failed-subproblem step.
+    opts.qp_failure_step = false;
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(*hs.model);
 
@@ -3795,6 +3942,10 @@ TEST(SqpDriverQpFailure, RoutedFailuresCountTowardTheRestorationGate) {
         // the budget is written out here rather than defaulted -- the pins below
         // are unchanged and are still the statement about the mechanism.
         opts.qp_failure_budget = 1;
+        // ... and the routing written out likewise (M7 W2 R2): no failed-subproblem
+        // step, so trials 1 and 3 stay UNJUDGED routed failures, which is what the
+        // gate's arithmetic below is about.
+        opts.qp_failure_step = false;
         SqpSolver driver(opts);
         const SqpResult sol = driver.solve(*hs.model);
 
@@ -4385,6 +4536,7 @@ TEST(SqpDriverSoc, SocIsSkippedOnRoutedFailures) {
         opts.max_iter = 60;
         opts.qp.max_iter = 3;
         opts.enable_soc = true;
+        opts.qp_failure_step = false; // that setup's premise, as there (M7 W2 R2)
         SqpSolver driver(opts);
         const SqpResult sol = driver.solve(*hs.model);
 

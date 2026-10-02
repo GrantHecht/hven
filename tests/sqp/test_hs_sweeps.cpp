@@ -442,6 +442,14 @@ SqpOptions sweep_options(StartLevel level, bool full_step, bool enable_soc, Inde
     opts.common.start_level = level;
     opts.warm_full_step = full_step;
     opts.enable_soc = enable_soc;
+    // THE FAILED-SUBPROBLEM STEP IS OFF (M7 W2 R2, declared). It is gated off in
+    // the full-step mode by design -- the full-step funnel accepts every trial
+    // unjudged -- so with it on the KD lever would differ in TWO things, not one.
+    // MEASURED with it on: the only cell that moves is HS15's warm KD-off arm
+    // (the one failing subproblem chain in the corpus): 30 -> 34 majors, 91 -> 99
+    // minors, 31 -> 39 factorizations, 3 -> 7 rejections, the same answers and the
+    // same status counts. Every other cell, and every KD-on cell, is unchanged.
+    opts.qp_failure_step = false;
     return opts;
 }
 

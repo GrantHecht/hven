@@ -204,6 +204,14 @@ one of those three therefore cannot silently miss the trace.
   across a solve that restored will therefore find more exits than routings, and
   the difference is the sub-solve's own.
 
+  **THE FAILED-SUBPROBLEM STEP GROUP FOLDS WHOLE** (M7 W2 R2).
+  `qp_failure_steps_judged`, `qp_failure_steps_accepted` and
+  `nonfinite_subproblems` count work and events of the sub-solve's own majors, on
+  `soc_steps`' argument, so all three fold. An accepted failure step is ALSO a
+  `steps_accepted` (it commits through the ordinary accept arm) and is never a
+  `qp_failures_routed`; a judged, rejected one IS routed but does not move
+  `qp_failures_in_a_row_peak`'s run, because it is not charged to the budget.
+
   **THE RESTORATION EXCURSION RECORD IS A PER-ENTRY READING, OVERWRITTEN, AND
   ITS ABSENCE IS READ OFF ITS OWN COUNT** (M7 W2 M2, the A0 signals page's S5).
   `restoration_entries` counts the restoration phases that RAN and were

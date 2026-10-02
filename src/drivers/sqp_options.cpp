@@ -327,6 +327,9 @@ void validate(const SqpOptions &opts) {
     // refusable value and no companion field it can contradict, so its entry is
     // this stated line rather than an always-true predicate.
 
+    // THE FAILED SUBPROBLEM'S OWN STEP (M7 W2 R2): `qp_failure_step` is a BOOL
+    // on the same terms -- no refusable value, no companion it can contradict.
+
     // THE RESTORATION PROXIMITY WEIGHT (M7 W2 M2b), in declaration position and
     // in this file's negation-of-acceptance idiom, which here does two jobs:
     // `!(w >= 0.0)` refuses a negative AND a NaN, and the finiteness test
@@ -563,6 +566,7 @@ void dump_options(const SqpOptions &o, std::ostream &os) {
     kv_bool(os, "project_start_point", o.project_start_point);
     kv_int(os, "qp_failure_budget", static_cast<long long>(o.qp_failure_budget));
     kv_bool(os, "qp_cap_retry", o.qp_cap_retry);
+    kv_bool(os, "qp_failure_step", o.qp_failure_step);
     kv_dbl(os, "restoration_proximity", o.restoration_proximity);
     kv_bool(os, "equality_basis", o.equality_basis);
     kv_int(os, "common.threads", o.common.threads);

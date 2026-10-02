@@ -2041,6 +2041,23 @@ struct SqpCounters {
     /// existing key's value or bytes move. Its place in `QpCounters` is beside
     /// `eqp_residual_refusals`, where the meaning reads.
     Index eqp_row_drift_refusals = 0;
+
+    // THE FAILED-SUBPROBLEM STEP GROUP (M7 W2 R2, `SqpOptions::qp_failure_step`).
+    // Appended last, on the additive-trailing-key route.
+
+    /// @brief Failed walk subproblems whose own step was JUDGED by the
+    ///        globalization strategy (the gate passed: usable p != 0, and a
+    ///        predicted decrease or a halved violation). 0 with the option off.
+    ///        FOLDED from the restoration sub-solve, like `soc_steps`.
+    Index qp_failure_steps_judged = 0;
+    /// @brief Of those, the steps the strategy ACCEPTED and the driver took.
+    ///        `judged - accepted` were ordinary rejections. FOLDED likewise.
+    Index qp_failure_steps_accepted = 0;
+    /// @brief Subproblems built with a non-finite H, g, A or b entry (a model
+    ///        whose derivatives are not finite at the iterate). No kernel is
+    ///        called; the solve ends `kNumericalError` at that iterate. 0 or 1
+    ///        per solve; FOLDED from the restoration sub-solve.
+    Index nonfinite_subproblems = 0;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -2100,7 +2117,10 @@ struct SqpCounters {
     X(terminal_polish_solves, counter_never_absent)                                                \
     X(terminal_polish_rejected, counter_never_absent)                                              \
     X(terminal_polish_adopted, counter_never_absent)                                               \
-    X(eqp_row_drift_refusals, counter_never_absent)
+    X(eqp_row_drift_refusals, counter_never_absent)                                                \
+    X(qp_failure_steps_judged, counter_never_absent)                                               \
+    X(qp_failure_steps_accepted, counter_never_absent)                                             \
+    X(nonfinite_subproblems, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =
@@ -2109,7 +2129,7 @@ inline constexpr std::size_t kSqpCountersFieldCount =
 
 // PLUS TWO: `ssn` and `ipqp` are nested aggregates, each counted as ONE
 // initializer by the arity trick and serialized through its own table above, so
-// the table holds the 57 direct fields and the struct takes 59 initializers.
+// the table holds the 60 direct fields and the struct takes 62 initializers.
 // (37 -> 38 at M6 W5 T8.5, which appended `polish_ignored` after both nested
 // aggregates -- last in declaration order, so the table order below is still
 // the struct's and every pre-existing offset is unmoved. 38 -> 39 at M7 W2 M4,
@@ -2136,7 +2156,9 @@ inline constexpr std::size_t kSqpCountersFieldCount =
 // offsets stay monotone. 56 -> 57 at M7 W2 E4 fix round 2, which made that group
 // SEVEN with `eqp_row_drift_refusals` -- appended LAST in the struct and last in
 // the table on the declared additive-trailing-key route, so no pre-existing offset
-// moves and `sizeof` goes 904 -> 912.)
+// moves and `sizeof` goes 904 -> 912. 57 -> 60 at M7 W2 R2, which appended the
+// failed-subproblem step group and `nonfinite_subproblems` the same way and for the
+// same reason: three `Index` fields last, `sizeof` 912 -> 936.)
 static_assert(::hven::detail::kAggregateArity<SqpCounters> == kSqpCountersFieldCount + 2,
               "SqpCounters and HVEN_SQP_COUNTERS_FIELDS disagree: give the new field an X() entry "
               "in its declaration position, or -- if it is a new NESTED aggregate -- give it a "

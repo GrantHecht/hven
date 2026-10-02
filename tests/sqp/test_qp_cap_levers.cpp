@@ -118,6 +118,11 @@ class BoxPullModel : public NlpModel {
 SqpOptions base_options() {
     SqpOptions o;
     o.common.print_level = 10; // silent
+    // THE ROUTING, WRITTEN OUT (M7 W2 R2): every lever here is about what the
+    // driver does with a capped subproblem it takes NO step from, so the R2
+    // failed-subproblem step is off; its own row on this fixture is
+    // QpFailureStep.TheCappedFixtureConvergesOnItsOwnSteps.
+    o.qp_failure_step = false;
     return o;
 }
 
@@ -465,6 +470,57 @@ TEST(QpCapValidation, TheDumpCarriesBothLinesInDeclarationPosition) {
     EXPECT_LT(text.find("project_start_point"), text.find("qp_failure_budget"));
     EXPECT_LT(text.find("qp_failure_budget"), text.find("qp_cap_retry"));
     EXPECT_LT(text.find("qp_cap_retry"), text.find("common.threads"));
+}
+
+// ---------------------------------------------------------------------------
+// M7 W2 R2 -- the failed subproblem's own step, on the same capped fixture
+// ---------------------------------------------------------------------------
+
+TEST(QpFailureStep, TheCappedFixtureConvergesOnItsOwnSteps) {
+    // THE SHIPPED DEFAULT on the fixture every lever above reads with it off.
+    // At a one-minor cap every subproblem fails, and every failed walk still
+    // stands on a point of its box with a predicted decrease: the strategy takes
+    // those points, and the solve reaches the answer the UNCAPPED solve reaches
+    // instead of the kNumericalError the routing alone ends on.
+    EXPECT_TRUE(SqpOptions{}.qp_failure_step);
+    BoxPullModel model;
+    const SqpResult reference = SqpSolver(base_options()).solve(model, cold_start());
+    ASSERT_EQ(reference.status, SolveStatus::kOptimal);
+
+    SqpOptions o = base_options();
+    o.qp_failure_step = true;
+    o.qp.max_iter = 1;
+    SqpSolver driver(o);
+    const SqpResult out = driver.solve(model, cold_start());
+
+    EXPECT_EQ(out.status, SolveStatus::kOptimal);
+    EXPECT_NEAR(out.f, reference.f, 1e-9);
+    EXPECT_GE(out.counters.qp_failure_steps_accepted, 1);
+    EXPECT_LE(out.counters.qp_failure_steps_accepted, out.counters.qp_failure_steps_judged);
+    // Each capped exit was taken or routed -- none ended the solve -- and the
+    // budget's run never reached its limit.
+    EXPECT_EQ(out.counters.qp_maxiter_exits,
+              out.counters.qp_failure_steps_accepted + out.counters.qp_failures_routed);
+    EXPECT_LT(out.counters.qp_failures_in_a_row_peak, o.qp_failure_budget);
+
+    // AND OFF IS THE ROUTING EXACTLY: `base_options()` is the off state.
+    SqpOptions off = o;
+    off.qp_failure_step = false;
+    const SqpResult routed = SqpSolver(off).solve(model, cold_start());
+    EXPECT_EQ(routed.status, SolveStatus::kNumericalError);
+    EXPECT_EQ(routed.counters.qp_failure_steps_judged, 0);
+    EXPECT_EQ(routed.counters.qp_failure_steps_accepted, 0);
+}
+
+TEST(QpFailureStep, TheDumpCarriesTheLineAfterTheCapRetry) {
+    SqpOptions o = base_options();
+    o.qp_failure_step = true;
+    std::ostringstream os;
+    dump_options(o, os);
+    const std::string text = os.str();
+    EXPECT_NE(text.find("qp_failure_step = true\n"), std::string::npos) << text;
+    EXPECT_LT(text.find("qp_cap_retry"), text.find("qp_failure_step"));
+    EXPECT_LT(text.find("qp_failure_step"), text.find("restoration_proximity"));
 }
 
 } // namespace hven::solvers

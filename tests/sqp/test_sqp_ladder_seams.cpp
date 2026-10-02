@@ -119,6 +119,10 @@ Vec vec2(double a, double b) {
 SqpOptions quiet() {
     SqpOptions o;
     o.common.print_level = 10;
+    // THE SEAM'S FORCED FAILURE KEEPS THE OPTIMAL STEP in `qs.x` -- a failure no
+    // real walk hands back -- so the M7 W2 R2 failed-subproblem step would simply
+    // take it. These fixtures pin the ladder's ROUTING of a failure: it is off here.
+    o.qp_failure_step = false;
     return o;
 }
 

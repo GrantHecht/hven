@@ -2032,7 +2032,10 @@ void expect_same_scalars(const std::vector<Seen> &a, const std::vector<Seen> &b)
     X(eqp_polish_steps)                                                                            \
     X(terminal_polish_solves)                                                                      \
     X(terminal_polish_rejected)                                                                    \
-    X(terminal_polish_adopted)
+    X(terminal_polish_adopted)                                                                     \
+    X(qp_failure_steps_judged)                                                                     \
+    X(qp_failure_steps_accepted)                                                                   \
+    X(nonfinite_subproblems)
 
 // The 18 fields of SsnCounters and the 39 of IpqpCounters, the two nested
 // groups SqpCounters carries.
@@ -2114,8 +2117,10 @@ void expect_same_counters(const hven::solvers::SqpCounters &a,
     // padding is what the first of them lands in, so the growth is 6 * 8 with no
     // new padding; 904 -> 912 at M7 W2 E4 fix round 2, which made that group
     // SEVEN by inserting `eqp_row_drift_refusals` beside its residual twin (one
-    // more `Index`, and the padding was already spent, so plainly + 8).
-    static_assert(sizeof(hven::solvers::SqpCounters) == 912,
+    // more `Index`, and the padding was already spent, so plainly + 8); 912 ->
+    // 936 at M7 W2 R2, which appended three `Index` (the failed-subproblem step
+    // pair and `nonfinite_subproblems`).
+    static_assert(sizeof(hven::solvers::SqpCounters) == 936,
                   "SqpCounters gained or lost a field -- extend "
                   "HVEN_T2_SQP_COUNTER_FIELDS so the mask comparison still "
                   "covers every counter");
