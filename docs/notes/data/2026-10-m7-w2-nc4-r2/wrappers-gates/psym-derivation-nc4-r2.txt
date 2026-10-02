@@ -1,0 +1,212 @@
+M7 W2 ROUND NC4 + R2 (+ R2 FIX 1) -- THE GATE EXPECTATIONS, DERIVED.
+Written and committed BEFORE the chain was detached.
+
+RULE: nothing here, and no declared value in gates-nc4-r2.sh, may be adjusted after the chain's first leg.
+Every value is derived from the FINAL range 79775010..21369067 or measured on that pair by this declaration's own
+rehearsal (rehearsal/). No value is carried from NC3's declaration or by adding a delta to a prior count: where a
+number equals NC3 run 2's it is a COMPARISON, stated as such. The previous gate run (NC3 run 2, record in
+docs/notes/data/2026-10-m7-w2-nc3-saddle-exit/gates-r2/, declaration c9a87f0f, record 79775010) is frozen and untouched.
+
+BASE   79775010 (the NC3 run-2 record's commit; its sources EQUAL NC3 fix 1's gated head b7993013).
+HEAD   21369067 sqp(m7): W2 R2 fix 1 -- HS15 warm KD-off failure-step row config-split (test-only).
+       Commits in the range: 37864475 (NC4 fixtures), eb710598 (NC4: the convex certificate), 726a52a2 (R2: the failed
+       subproblem's own step + the non-finite guard), 92d13c4e (ledger, docs only), 98a5bec1 (R2 fix 1: a carried
+       price is not a certificate), 21369067 (R2 fix 1: HS15 row config-split, test-only). The declaration commit sits on
+       top of 21369067 and is docs only, so every derivation sees 21369067's sources.
+RUNNER gates-nc4-r2.sh + chain_gates_nc4_r2.sh (this directory): copies of NC3 run 2's gates-nc3-r2.sh /
+       chain_gates_nc3_r2.sh, re-pointed (NOT edited in place). Changes against the NC3 run-2 runner, and nothing else:
+         (a) scratch .scratch/m7w2nc4r2gates (ONE literal in code, in gates-nc4-r2.sh only; the chain and the rehearsal
+             scripts ask for it with --print-scratch), log gates-nc4-r2.log, chain-nc4-r2.log, rc variable
+             GATES_NC4_R2_RC, G4 label "M7 W2 NC4 R2", BEFORE 79775010, by-name baseline pinned to NC3 r2's gates-r2/;
+         (b) ROOT is derived from the file's own location (git rev-parse --show-toplevel), exported to the chain's
+             fold-proof inner shell; the six emitted segments receive it by substituting the @ROOT@ placeholder on their
+             prologue line. This run executes in its own worktree, never in the settler's tree;
+         (c) TWO outside-universe targets (section 1): OUTSIDE_TARGETS / OUTSIDE_DIRS are lists; g5's outside-universe
+             asserts are per source "compiled in exactly one listed outside target" and "no listed target's object in the
+             after manifest"; the pre-flight requires each outside source be a source of exactly ONE listed target and
+             named once in the build files (falsified in preflight-nc4-r2.txt K1/K2);
+         (d) ONE fail-closed relaxation, with its reason (section 2, "the class B asymmetry"): the Release NEGATIVE
+             CONTROL listing is capped at 80 by the classifier and this range's has 81, so the carried "listing is COMPLETE"
+             assertion cannot hold; a PRESENT object is a positive reading under any cap, and an ABSENT one is still refused;
+         (e) suites, class A/B, sections, ADDED names and fixtures: re-derived (sections 1-5).
+
+-----------------------------------------------------------------------------
+1  THE CHANGED SURFACE of 79775010..21369067 -- ALL OBSERVED, derived from git.
+
+   5 headers under include/ (git diff --name-only 79775010 21369067 -- include/):
+     include/hven/core/solver_counters.h                    (+1 QpCounters field, +3 SqpCounters fields)
+     include/hven/detail/drivers/ladder_testing.h           (HVEN_TESTING test seam, see below)
+     include/hven/detail/globalization/sqp/trust_region.h   (+ kFailureStepViolationFactor)
+     include/hven/detail/qp/qp_engine.h
+     include/hven/drivers/sqp_solver_types.h                (+ SqpOptions::qp_failure_step)
+   13 MODIFIED .cpp (--diff-filter=M over 'src/*.cpp' 'tests/*.cpp' 'bench/*.cpp'):
+     library (inside the P-SYM universe, 3): src/drivers/sqp_options.cpp, src/drivers/sqp_solver.cpp, src/qp/qp_engine.cpp
+     hven_drivers_tests (inside, 3): tests/drivers/test_callback.cpp, test_options_dump.cpp, test_threads.cpp
+     hven_sqp_tests (inside, 5): tests/sqp/test_hs_sweeps.cpp, test_qp_cap_levers.cpp, test_sqp_restoration.cpp,
+       test_sqp_solver.cpp, test_trace_writer.cpp
+     OUTSIDE the universe (2): tests/qp/test_qp_saddle_exit.cpp (hven_qp_walk_seam_tests),
+       tests/sqp/test_sqp_ladder_seams.cpp (hven_sqp_seam_tests)
+   1 ADDED .cpp: tests/qp/test_qp_convex_certificate.cpp (hven_qp_walk_seam_tests: OUTSIDE).
+   tests/CMakeLists.txt adds exactly one non-comment line, `qp/test_qp_convex_certificate.cpp`, removes none (checked by
+   the runner). Each outside source is a source of exactly ONE of the two listed targets and is named once in the build
+   files; neither target is a P-SYM group (PSYM_GROUPS read from scripts/psym_compare.sh). class A = 13 - 2 = 11;
+   EXPECT_ADDED_CXX 1, EXPECT_PSYM_ADDED 0.
+   8 ADDED non-C++ test files, all tests/qp/fixtures/e2-d4/: C10_BRITGAS_qp{2,3,4}.txt and C10_STEENBRB_qp{4,5,6,7,8}.txt.
+   No bench/, cmake/ or scripts/ change; no golden, CSV or JSON in the range outside docs/notes/data.
+   clang-format set (include/*.h src/*.cpp tests/*.cpp tests/*.h bench/*.cpp): 19 files, non-empty (the runner prints it).
+
+   THE LADDER SEAM HEADER. include/hven/detail/drivers/ladder_testing.h changed (+ #include <vector>, two new members
+   of the HVEN_TESTING-only struct SqpLadderSeam, reset() extended). Its WHOLE body is inside `#ifdef HVEN_TESTING` (line
+   10 to line 49, OBSERVED), and its one production includer is src/drivers/sqp_solver.cpp, itself modified in this range
+   (class A). A production build therefore preprocesses the header to nothing; the seam-bearing objects live in
+   hven_sqp_seam_tests (a second recompile of the library sources with HVEN_TESTING=1, NOT a P-SYM group), which is why
+   test_sqp_ladder_seams.cpp is declared an outside source. The header is in the DERIVED changed-header list that the
+   classifier reads; it contributes to no other mover (`ninja -t deps` lists exactly three objects that include it:
+   CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o, a class A object, and the two hven_sqp_seam_tests objects
+   test_sqp_ladder_seams.cpp.o and __/src/drivers/sqp_solver.cpp.o, outside the universe).
+
+   COUNTERS / SEAM EFFECT (the declared record). `git diff 79775010 21369067 -- include/hven/core/solver_counters.h`:
+   QpCounters +1 field (convex_certificates, NC4); SqpCounters +3 fields (qp_failure_steps_judged,
+   qp_failure_steps_accepted, nonfinite_subproblems; R2; the X-macro table 57 -> 60, the arity static_assert 59 -> 62
+   initializers, sizeof 912 -> 936 per the header's own record). A struct-body count of `<type> name = <init>;` members
+   gives QpCounters 77 -> 78 and SqpCounters 57 -> 60 (the regex counts the same members both sides, so the deltas +1/+3 are
+   the derivation; absolute QpCounters counts differ by one between conventions and are not asserted). The new names are
+   additive trailing keys; the U0 replay (section 5) is measured exact against the previous gate record, so no compared
+   column moved.
+
+-----------------------------------------------------------------------------
+2  THE P-SYM MOVER SHAPE, PER CONFIGURATION -- MEASURED on the final pair 79775010/21369067 by a FRESH rehearsal.
+
+     Release  DIFFERING 70 = class A 11 + class B 59; UNEXPLAINED 0; NOISE-ONLY 0; negative control 81;
+              sections: 44 objects, 35 byte-identical, DEBUG_ONLY 0, NON-DEBUG MOVERS 9, REFUSED 0
+     Debug    DIFFERING 71 = class A 11 + class B 60; UNEXPLAINED 0; NOISE-ONLY 7 (3 in the library, all three DEBUG_ONLY
+              below); negative control 72; sections: 44 objects, 32 byte-identical, DEBUG_ONLY 3, NON-DEBUG MOVERS 9,
+              REFUSED 0
+     after == before == 151 in both configurations (nothing ADDED inside the universe; ONLY-AFTER []).
+     The outside-universe asserts held in both: test_qp_saddle_exit.cpp.o, test_qp_convex_certificate.cpp.o (in
+     hven_qp_walk_seam_tests) and test_sqp_ladder_seams.cpp.o (in hven_sqp_seam_tests) were each BUILT in the after arm in
+     exactly one listed target, and no object of either target's directory is in either after manifest.
+
+   HOW MEASURED. rehearsal/rehearse-nc4-r2.sh ran THIS runner's g5 segment (EXTRACTED from the runner's own text, @ROOT@
+   substituted) at the declaration-prep HEAD (docs-only above 21369067) against 79775010, both configurations, ONE hold of
+   the box lock: 2026-10-02 18:56:43-19:29:18, PGREP_EMPTY under the hold, dirty=0 at START, tree restored to the worktree
+   branch at END (rehearsal/rehearsal-nc4-log.txt). Its HYPOTHESIS declaration (class A only, 11/11, class B 0) was REFUSED
+   in both configurations by design (classify rc 4; rehearsal/rehearsal-nc4-classification-{Release,Debug}-refused-at-11.txt),
+   printing the measured shape. Then rehearsal/offline-nc4-r2.sh 70 71 (its own hold, PGREP_EMPTY, 19:29:42-19:37:54): a
+   fresh Release build with g5's flags and the classifier re-run on the rehearsal's own compare files at the measured counts
+   -- OFFLINE_CLASSIFY_RC 0 in BOTH configurations (rehearsal/rehearsal-nc4-classification-{Release,Debug}.txt). The
+   rehearsal ran with the declaration's files COMMITTED on a temporary prep commit (g5 refuses a dirty tree); that commit was
+   then reset away and the declaration is ONE commit whose sources are the same 21369067's.
+   ORDER OF EVENTS, stated plainly: the rehearsal ran against the g5 segment as it stood BEFORE relaxation (d) and before
+   the measured slots were filled in (they were UNMEASURED sentinels then). Relaxation (d) edits only the class B
+   asymmetry block, which the rehearsal could not execute (it passes an empty EXPECT_PSYM_B_DEBUG_ONLY); the block is
+   exercised for the first time by the chain's own G5. The slots were then filled from the rehearsal's measurements.
+
+   CLASS A, 11 = the in-universe MODIFIED .cpp of section 1 exactly, IDENTICAL object for object in both configurations
+   (OBSERVED): library sqp_options, sqp_solver, qp_engine; hven_drivers_tests test_callback, test_options_dump,
+   test_threads; hven_sqp_tests test_hs_sweeps, test_qp_cap_levers, test_sqp_restoration, test_sqp_solver,
+   test_trace_writer. So EXPECT_CLASS_A_NOISE_ONLY_DEBUG is EMPTY.
+
+   CLASS B, 59 Release / 60 Debug = the includers of the five changed headers whose source is NOT modified in the range,
+   taken from the classifier's class B listing of each configuration and written into EXPECT_CLASS_B_NAMES_{RELEASE,DEBUG}:
+   6 library (core/ledger, drivers/sqp_print, drivers/trace_writer, globalization/sqp/soc_elastic_restoration,
+   qp/ipqp_engine, warmstart/continuation), 7 bench, 5 hven_drivers_tests (6 in Debug), the interior Unity object, and 40
+   hven_sqp_tests objects (6+7+5+1+40 = 59 Release; 6+7+6+1+40 = 60 Debug).
+   The pre-flight refuses any declared class B object whose source is in the range (falsified, preflight E).
+
+   THE CLASS B ASYMMETRY (declared, by name). Debug's class B has ONE object Release's lacks:
+   tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_status.cpp.o. In Release it is BYTE-IDENTICAL: it is named in
+   the Release NEGATIVE CONTROL listing (rehearsal-nc4-classification-Release.txt). EXPECT_PSYM_B_DEBUG_ONLY declares it; g5
+   asserts (i) Debug-only B minus Release B is EXACTLY this list and Release-only is empty, (ii) the object is NOISE-ONLY or
+   in the Release negative control, and (iii) the Debug copy handed to the cross-config assert differs by exactly that line.
+   RELAXATION (d) of the runner header: the classifier prints at most 80 of the negative control (classify_psym_m4.py,
+   `sorted(control)[:80]`) and Release's has 81, so the carried "listing COMPLETE" assertion (printed == stated) cannot hold.
+   The relaxed check still requires the printed count to be a number <= the stated total, notes a capped listing, and still
+   REFUSES any declared object that is neither in the NOISE-ONLY listing nor printed in the control listing: a present object
+   is a positive reading whatever the cap, and the cap can only hide an object, never invent one.
+
+   CROSS-CHECK, independent of the classifier. `ninja -t deps` over the offline Release tree lists 151 objects that depend
+   on at least one of the five changed headers (rehearsal/ninja-deps-includers-of-the-five-headers-Release.txt). The
+   classification tally for Release is class A 11 + class B 59 + NOISE-ONLY 0 + NEGATIVE CONTROL 81 = 151, equal; every one of
+   the 70 class A/B objects and every one of the 80 printed control objects is in the ninja list (0 missing); the 81st control
+   object is the one the cap hides. The Debug tally was not independently cross-checked.
+
+   COMPARISON WITH NC3 RUN 2 (a comparison, not the derivation): NC3 r2 measured 39 = A 4 + B 35 on four headers; this
+   range changes five headers (solver_counters.h again, plus sqp_solver_types.h, which most of the driver and SQP tests
+   include), so the class B set is a different, larger set and was DERIVED afresh.
+
+-----------------------------------------------------------------------------
+3  TEST COUNTS -- derived against the by-name baseline.
+
+   THE BASELINE IS DERIVED, NOT NAMED, AND CHECKED AGAINST ITS DECLARATION (runner NC3 (f), re-pointed):
+     git log -1 --format= --name-only --diff-filter=A 79775010 -- \
+       'docs/notes/data/*/gates-*/suite-release.txt' 'docs/notes/data/*/gates/suite-release.txt'
+   -> ONE path: docs/notes/data/2026-10-m7-w2-nc3-saddle-exit/gates-r2/suite-release.txt == the declared
+   EXPECT_NAMES_BASE_REL (the runner REFUSES otherwise; falsified with BEFORE=bffd2ea2, preflight F). The derivation is
+   BOUNDED AT BEFORE, so no record committed after 79775010 -- this run's own -- can be seen (transcript J). NC3 run 2 is
+   the previous gate run, its suites ran at b7993013, whose test sources equal 79775010's (the runner checks no tests/ file
+   changed between the baseline's head and BEFORE: 0).
+   BASELINE (the NC3 r2 gate record): ctest total Debug 2904 / Release 2905; started names 2906 / 2907. Skipped: Debug 7,
+   Release 1.
+
+   ADDED = 21 instances, REMOVED = 0. OBSERVED with `git diff 79775010 21369067 -- 'tests/*.cpp'`: 21 `+TEST(` lines, 0
+   `-TEST(` lines, 0 added TEST_F / TEST_P / TYPED_TEST / INSTANTIATE_TEST_SUITE_P / GTEST_SKIP lines, so each is a plain
+   TEST and one ctest instance:
+     QpNc4ConvexCertificate x12 (TheStructuralTestIsExactAndConservative, NoSaddleDumpQualifies, TheOptionOffWalkTakesNoCertificate,
+       SteenbrbRestorationLpQp{3,4,5,6,7,8}, BritgasRestorationLpQp{2,3,4})
+     HsSweepCorpus.Hs15WarmKdOffWithTheFailedSubproblemStep
+     QpFailureStep x2 (TheCappedFixtureConvergesOnItsOwnSteps, TheDumpCarriesTheLineAfterTheCapRetry)
+     SqpLadderSeam x2 (R2ACarriedPriceIsNotACertificate, R2AJudgedRejectedStepIsNotChargedToTheBudget)
+     SqpDriverRestorationSeed.TheFailedStepKeepsTheCertifiedAnswer
+     SqpDriverQpFailure x3 (TheCappedSubproblemsOwnStepIsTakenAndKeepsTheMultipliers, TheFailedSaddleStepIsTakenAsAnHStep,
+       ANonFiniteSubproblemEndsTheSolveWithoutAKernelCall)
+   Each is added by exactly ONE +TEST line (checked by the pre-flight) and absent from the baseline. The by-name assert
+   refuses unless the started-name set equals baseline - 0 + exactly those 21.
+   NONE is Release-only: no GTEST_SKIP line is added, so DEBUG_ONLY_SKIPS_ADDED is EMPTY and the SKIPPED set must equal the
+   baseline's by name (Debug 7, Release 1; preflight D).
+   EXPECTED SUITE COUNTS: Debug 2904 + 21 = 2925 (G1, the long test excluded); Release 2905 + 21 = 2926 (G3); G2 1.
+   Started names Debug 2906 + 21 = 2927, Release 2907 + 21 = 2928.
+
+-----------------------------------------------------------------------------
+4  THE SECTION SHAPE (G5b) -- MEASURED by this run's rehearsal (rehearsal/rehearsal-nc4-sections-{Release,Debug}.txt).
+   NON-DEBUG-MOVER set 9 in BOTH configurations, the same nine: {drivers/sqp_options.cpp.o, drivers/sqp_solver.cpp.o,
+   qp/qp_engine.cpp.o} (derived, class A) + {core/ledger.cpp.o, drivers/sqp_print.cpp.o, drivers/trace_writer.cpp.o,
+   globalization/sqp/soc_elastic_restoration.cpp.o, qp/ipqp_engine.cpp.o, warmstart/continuation.cpp.o} (declared,
+   EXPECT_LIB_CLASS_B_*, unmodified, class B). objects 44; byte-identical 35 Release / 32 Debug; no library object ADDED;
+   REFUSED 0. DEBUG_ONLY Release 0 / Debug 3: drivers/console_trace_sink, drivers/ipm_solver, qp/ssn_engine. The
+   NOISE-ONLY library-mover slots are EMPTY (those three are DEBUG_ONLY objects, not non-debug movers).
+
+-----------------------------------------------------------------------------
+5  G4: 27 cells x 75 columns x 3 engines, the 43 DECLARED DIFFERENCES (walk 17 / ssn 13 / ipm 13).
+
+   RE-MEASURED, not carried: rehearsal/offline-nc4-r2.sh ran the U0 replay from its own fresh Release build of this
+   range's sources (inside the box lock, MKL_NUM_THREADS=1, taskset -c 2), compared GATED (1e-5 relative, 1e-13 floor)
+   against the M6 close pin: walk 17 differences (71 within gate), ssn 13 (68), ipm 13 (72) = 43; the runner's own
+   `--check-g4` on that pin arm returns rc 0, all eight asserts OK (MEASURED set EQUALS the DECLARED 43-entry list;
+   preflight-nc4-r2.txt B). The EXACT arm against NC3 r2's gate replay (the BEFORE sources) AND against NC3 run 1's shows 0
+   differences on all three engines, all 75 columns (RECORDED, not asserted): this range moves not one compared digit of
+   the U0 replay, counters included. IF THE CHAIN'S OWN REPLAY MOVES, G4 fails and is reported, never re-declared.
+
+-----------------------------------------------------------------------------
+6  G6: expected CLEAN. install smoke; the export contract; clang-format over the DERIVED set (19 files; asserted clean by
+   the gate itself); `git diff --check`; DIRTY_FILES 0. Fold proofs 46/0 expected (the gate-assert library is unchanged).
+
+-----------------------------------------------------------------------------
+7  PRE-FLIGHT: preflight-nc4-r2.txt (this directory), committed WITH this file and BEFORE the chain was detached: A the full
+   pre-flight rc 0 PREFLIGHT_OK; B --check-g4 rc 0; C the added names enforced (the baseline's and NC3 run 1's suites
+   refused, rc 2); D skipped sets (rc 0; falsifiers rc 2); E class B modified-source refusal falsified; F declared-baseline
+   refusal falsified; G UNMEASURED sentinel; H outside-universe ADDED; I ADDED fixtures; J the baseline narrowing shown;
+   K the two-outside-target declaration falsified.
+
+-----------------------------------------------------------------------------
+8  G5 CHECKS THE WORKTREE OUT TO BEFORE while it builds its before arm, once per configuration: nothing may edit or commit
+   in this worktree from the chain's launch until CHAIN_END. (It runs in its own worktree, not the settler's tree.)
+
+-----------------------------------------------------------------------------
+9  FILE PROVENANCE. Against NC3 run 2's runner the emitted segments differ in the @ROOT@ placeholder and the g4 label
+   ("M7 W2 NC4 R2"), and g5's outside-universe block (relaxation (c)) and the class B asymmetry block (relaxation (d));
+   g1, g2, g3, g6 are otherwise identical. The sha 79775010 appears once in code, as the BEFORE assignment. ONE .scratch/
+   literal in code. Self-consistency is checked by the runner before any leg: Debug 2925 == Release 2926 - 1; DIFFERING
+   70 == 11 + 59 and 71 == 11 + 60; G4 43 == 17 + 13 + 13, 43 unique U0 entries.
+
+   WALL IS INFORMATIONAL. Nothing above is a timing claim.
