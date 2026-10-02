@@ -214,9 +214,6 @@ void expect_saddle_left(const char *file, WorkingSetLinearAlgebra alg) {
 }
 
 // THE MISSES, which must stay misses: no ride without a VERIFIED direction.
-//   STEENBRB qp3 is a restoration LP (H == 0) whose walk stops AT its optimum and still reads
-//   kWrong there -- a false kWrong on a zero-curvature face (registered, not this round's): there
-//   is no curvature to find, and the exit must not ride.
 //   STEENBRE qp2's final face carries Z'HZ = -249.9 against a Hessian of norm 6.2e15: -4e-14 of
 //   hessian_scale, below curvature_tol, so not a negative curvature the engine can resolve.
 void expect_no_ride(const char *file, WorkingSetLinearAlgebra alg) {
@@ -327,9 +324,29 @@ TEST(QpNc3SaddleExit, SteenbreElasticQp1Refactorize) {
     expect_saddle_left("C10_STEENBRE_qp1.txt", kRefactorize);
 }
 
+// THE ZERO-CURVATURE DEAD END IS NEVER RIDDEN. STEENBRB qp3 is a restoration LP (H == 0) whose
+// walk stops AT its optimum (oracle f* = -48) and reads a FALSE kWrong there. There is no
+// curvature to find, so the exit must not ride. Since M7 W2 NC4 the point does not even reach the
+// search: THE CONVEX CERTIFICATE (section 4c) overrules the misread first, and the walk's own
+// first-order tests certify it (test_qp_convex_certificate.cpp holds the full battery). Until NC4
+// this test pinned the search's miss and the kNumericalError that followed it.
 TEST(QpNc3SaddleExit, AZeroCurvatureDeadEndIsNotRiddenSteenbrbRestorationLpQp3) {
-    expect_no_ride("C10_STEENBRB_qp3.txt", kBorder);
-    expect_no_ride("C10_STEENBRB_qp3.txt", kRefactorize);
+    const QpDump d = hven::test_support::load_qp_dump(std::string(HVEN_QP_E2D4_FIXTURES) +
+                                                      "/C10_STEENBRB_qp3.txt");
+    ASSERT_NE(d.result.find("site=1335"), std::string::npos) << d.result;
+    for (const auto alg : {kBorder, kRefactorize}) {
+        SCOPED_TRACE(alg_name(alg));
+        QpOptions o = d.opts;
+        o.ws_algebra = alg;
+        const Walk w = observed([&] { return hven::test_support::solve_qp_dump(d, o); });
+        const QpSolution &s = w.solution;
+        EXPECT_EQ(s.counters.saddle_exits, 0);
+        EXPECT_EQ(s.counters.saddle_exit_misses, 0);
+        EXPECT_GE(s.counters.convex_certificates, 1);
+        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+        EXPECT_NEAR(objective(d.qp, s.x), -48.0, 1e-8 * 48.0);
+        expect_saddle_passes_descend(w.records, s.counters);
+    }
 }
 TEST(QpNc3SaddleExit, ACurvatureBelowResolutionIsNotRiddenSteenbreQp2) {
     expect_no_ride("C10_STEENBRE_qp2.txt", kBorder);

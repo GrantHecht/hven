@@ -340,6 +340,35 @@
 //    inside the minor cap. Counted: saddle_exits, saddle_exit_misses,
 //    saddle_direction_solves. With the option off the exit is unchanged.
 //
+//    THE CONVEX CERTIFICATE (independent_working_set; M7 W2 NC4). Taken at the
+//    same arm, after R-C''s re-read and after the post-probe restart (an armed
+//    restart is spent first, as before; a failed one falls through to this), in
+//    place of the saddle search:
+//    when every stored entry of H is exactly 0 off the diagonal and >= 0 on it
+//    (detail::hessian_is_nonneg_diagonal; an LP is H == 0), H is PSD on all of
+//    R^n, so every K the walk factorizes, [H_F + delta I, A'; A, -mu I], is
+//    quasi-definite and its TRUE inertia IS the expectation: a trusted kWrong
+//    read is a misread (a flat face's delta-sized null-space pivots signed by
+//    rounding), not a saddle -- and the saddle exit could only miss there (no
+//    d'Hd < 0 exists, in exact or floating-point arithmetic). If the free block
+//    is stationary in the suspect-stall gate's own opt_tol currency, the read is
+//    replaced by kSuspect and the point goes to the would-be-kOptimal branch --
+//    the ordinary walk's tests, unchanged: the zero-motion exhaustion test, the
+//    suspect-stall gate (which the precondition passes, so the escalation
+//    ladder is never entered from here), the terminal polish, the certificate's
+//    bound half. Not stationary: the kNumericalError exit stands, as before.
+//    The zero-multiplier PROBE is skipped on this path: on a convex QP no
+//    weakly active constraint can hide negative curvature, and its inertia
+//    reads are the same misreads. SOUNDNESS: for a convex QP a first-order
+//    point is a global minimizer; nothing is certified on the exemption of a
+//    probe or of the point memory alone -- the exhaustion test still reads
+//    every exempted multiplier. A face with no verified negative curvature that
+//    is NOT provably PSD this way stays on the saddle exit's path (a miss is
+//    kNumericalError), and a true saddle never qualifies (a nonnegative
+//    diagonal H has no negative curvature anywhere). The only outcomes it can
+//    change are the ones that were kNumericalError at this exit. Counted:
+//    convex_certificates. With the option off nothing changes.
+//
 // 5. TERMINATION. The loop reaches a KKT point of its working set with nothing
 //    left to drop, and classifies it.
 //
@@ -925,6 +954,21 @@ inline InertiaVerdict inertia_verdict(const hven::linear::InertiaEvidence &e, In
     }
     return (pos == expected_pos && neg == expected_neg) ? InertiaVerdict::kOk
                                                         : InertiaVerdict::kWrong;
+}
+
+// THE CONVEX CERTIFICATE's structural test (M7 W2 NC4; section 4c). True iff every
+// STORED entry of H is exactly 0.0 off the diagonal and >= 0 on it: an exact proof,
+// with no tolerance and no factorization, that H is positive semidefinite on all of
+// R^n -- an LP is the case H == 0. A NaN entry fails. O(nnz(H)).
+inline bool hessian_is_nonneg_diagonal(const SpMatRM &H) {
+    for (Index r = 0; r < H.outerSize(); ++r) {
+        for (SpMatRM::InnerIterator it(H, r); it; ++it) {
+            if (it.row() == it.col() ? !(it.value() >= 0.0) : it.value() != 0.0) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 // --- Suspect-stall escalation ladder (section 4b's SUSPECT-STALL GATE) ---
@@ -2081,6 +2125,20 @@ class QpEngine {
     bool reread_wrong_inertia(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
                               QpCounters &counters, const QpOptions &opts,
                               detail::InertiaVerdict &verdict) const;
+
+    // THE CONVEX CERTIFICATE (M7 W2 NC4; section 4c). At the certification
+    // branch's trusted-kWrong arm, after R-C''s re-read has left the kWrong
+    // standing and the post-probe restart has not been taken: a STRUCTURALLY
+    // convex H (detail::hessian_is_nonneg_diagonal) at a point whose free block
+    // is stationary in opt_tol currency (free_block_is_stationary) replaces the
+    // kWrong by kSuspect -- the read is a misread, not evidence -- and counts it
+    // (convex_certificates). independent_working_set only. Returns true iff the
+    // verdict was replaced.
+    static bool convex_overrules_wrong_inertia(const QpProblem &qp, const WorkingSet &ws,
+                                               const Vec &x, const Vec &lambda_e,
+                                               const Vec &lambda_i, QpCounters &counters,
+                                               const QpOptions &opts,
+                                               detail::InertiaVerdict &verdict);
 
     // Border-mode counterpart of eqp_candidate (header contract, step 4):
     // bring K0's border stack in line with `ws`, rebuild K0 if that stack can

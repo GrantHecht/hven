@@ -321,6 +321,10 @@ struct QpCounters {
     Index saddle_exits = 0;
     Index saddle_exit_misses = 0;
     Index saddle_direction_solves = 0;
+    // THE CONVEX CERTIFICATE (qp_engine.h 4c, M7 W2 NC4): trusted-kWrong dead ends whose
+    // kWrong was overruled because H is structurally convex (nonnegative diagonal, LP
+    // included); the point then faces the ordinary walk's first-order tests.
+    Index convex_certificates = 0;
     Index dep_pin_skips = 0;
     Index ws_count_violations = 0; // passes with me + |W| > n (the integer screen)
     Index dep_untested_growth = 0; // screen-positive checks the detector did not resolve

@@ -1305,6 +1305,11 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     worst = worst_structural_violation(qp, x, Aix, ai_row_norm1, lambda_i,
                                                        ae_row_norm1, lambda_e, eff_opts);
                 }
+                // THE CONVEX CERTIFICATE (section 4c): set iff the trusted kWrong
+                // below was overruled by a structurally convex H; the point then
+                // takes the would-be-kOptimal branch, without the probe.
+                bool convex_overruled = false;
+                bool would_certify = false;
                 if (worst > 0.0) {
                     status = QpStatus::kInfeasible;
                 } else if (is_runaway(qp, x, ws, eff_opts)) {
@@ -1344,11 +1349,16 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                                        seen, eff_opts);
                         continue;
                     }
+                    // THE CONVEX CERTIFICATE (section 4c), after the restart and
+                    // in place of the saddle search, which cannot find negative
+                    // curvature on such an H.
+                    convex_overruled = convex_overrules_wrong_inertia(qp, ws, x, lambda_e, lambda_i,
+                                                                      counters, eff_opts, verdict);
                     // THE SADDLE EXIT (section 4c): a VERIFIED negative-curvature
                     // direction of this face, ridden off the dead end; none
                     // found, the exit stands.
                     Vec saddle_d;
-                    if (eff_opts.independent_working_set) {
+                    if (eff_opts.independent_working_set && !convex_overruled) {
                         if (!saddle_kkt) {
                             saddle_kkt = std::make_unique<detail::KktFactor>(threads_);
                         }
@@ -1363,7 +1373,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         walk_obs.record().saddle_exit = true;
 #endif
                     }
-                    if (saddle_d.size() == 0) {
+                    if (convex_overruled) {
+                        // The would-be-kOptimal branch below classifies the point.
+                    } else if (saddle_d.size() == 0) {
                         if (eff_opts.independent_working_set) {
                             ++counters.saddle_exit_misses;
                         }
@@ -1425,6 +1437,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         }
                     }
                 } else {
+                    would_certify = true;
+                }
+                if (would_certify || convex_overruled) {
                     // Everything above passed, so this is a would-be
                     // kOptimal exit -- the last place a WEAKLY ACTIVE
                     // constraint can still be hiding the critical cone
@@ -1447,9 +1462,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         }
                     }
                     probe.refresh(ws);
-                    if (probe_zero_multiplier_drops(qp, x, shift, lambda_i, z, ws, kkt, face,
-                                                    *border_, counters, probe, last_drop,
-                                                    eff_opts)) {
+                    if (!convex_overruled && probe_zero_multiplier_drops(
+                                                 qp, x, shift, lambda_i, z, ws, kkt, face, *border_,
+                                                 counters, probe, last_drop, eff_opts)) {
                         if (eff_opts.independent_working_set) {
                             pt_release(seen, last_drop.is_ineq, last_drop.idx);
                         }
@@ -3638,6 +3653,28 @@ bool QpEngine::reread_wrong_inertia(const QpProblem &qp, const WorkingSet &ws, c
     }
     ++counters.dep_inertia_reread_flips;
     verdict = reread;
+    return true;
+}
+
+bool QpEngine::convex_overrules_wrong_inertia(const QpProblem &qp, const WorkingSet &ws,
+                                              const Vec &x, const Vec &lambda_e,
+                                              const Vec &lambda_i, QpCounters &counters,
+                                              const QpOptions &opts,
+                                              detail::InertiaVerdict &verdict) {
+    if (!opts.independent_working_set || verdict != detail::InertiaVerdict::kWrong ||
+        !detail::hessian_is_nonneg_diagonal(qp.H)) {
+        return false;
+    }
+    // FIRST ORDER, in the suspect-stall gate's own currency, BEFORE anything
+    // changes: a point the gate would refuse keeps the pre-NC4 path, so the
+    // certificate never sends a point to the escalation ladder.
+    double scale = 1.0;
+    const double stat = detail::free_block_stationarity(qp, x, ws, lambda_e, lambda_i, scale);
+    if (!detail::free_block_is_stationary(stat, scale, opts)) {
+        return false;
+    }
+    ++counters.convex_certificates;
+    verdict = detail::InertiaVerdict::kSuspect;
     return true;
 }
 
