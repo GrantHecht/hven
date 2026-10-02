@@ -1539,12 +1539,21 @@ TEST(HsSweepCorpus, Hs15WarmKdOffWithTheFailedSubproblemStep) {
                            c.factorizations, c.rejected, c.status_failures);
     };
     SCOPED_TRACE("held off: " + row(off) + " | default: " + row(on));
-    // MEASURED (Release, MKL, clang++): held off 30 / 91 / 31 / 3, default 34 / 99 / 39 / 7.
+    // MEASURED (MKL, clang++), majors / minors / factorizations / rejections. CONFIG-SPLIT
+    // like HS26's pin above: Release holds off at 30 / 91 / 31 / 3 and reads 34 / 99 / 39 / 7
+    // with the step; Debug holds off at 30 / 89 / 32 / 3 and reads 33 / 95 / 38 / 6.
     EXPECT_EQ(off.majors, 30);
+#ifdef NDEBUG
     EXPECT_EQ(on.majors, 34);
     EXPECT_EQ(on.minors, 99);
     EXPECT_EQ(on.factorizations, 39);
     EXPECT_EQ(on.rejected, 7);
+#else
+    EXPECT_EQ(on.majors, 33);
+    EXPECT_EQ(on.minors, 95);
+    EXPECT_EQ(on.factorizations, 38);
+    EXPECT_EQ(on.rejected, 6);
+#endif
     EXPECT_EQ(on.status_failures, off.status_failures);
     EXPECT_EQ(on.fvals.size(), off.fvals.size());
     for (std::size_t i = 0; i < std::min(on.fvals.size(), off.fvals.size()); ++i) {
