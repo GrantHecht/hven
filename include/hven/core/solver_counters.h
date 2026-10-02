@@ -315,7 +315,9 @@ struct QpCounters {
     // THE SADDLE EXIT (qp_engine.h 4c, M7 W2 NC3): trusted-kWrong dead ends that took a
     // VERIFIED negative-curvature direction of the face; dead ends where none was found and
     // the kNumericalError exit stood; and the triangular solves the search cost (its one
-    // factorization per dead end is counted in `factorizations`).
+    // factorization per dead end is counted in `factorizations`). The search's face solves
+    // also side-charge the solve_eqp counters (`eqp_polish_steps`, `eqp_refine_*`), so a
+    // miss moves those by the search's own steps.
     Index saddle_exits = 0;
     Index saddle_exit_misses = 0;
     Index saddle_direction_solves = 0;

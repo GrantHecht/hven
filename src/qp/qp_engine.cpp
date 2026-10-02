@@ -1357,7 +1357,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         if (saddle_d.size() > 0) {
                             saddle_d = orient_saddle_direction(qp, ws, x, Aix, std::move(saddle_d),
                                                                dropped.active ? &dropped : nullptr,
-                                                               step_tol);
+                                                               probe, seen, step_tol);
                         }
 #ifdef HVEN_TESTING
                         walk_obs.record().saddle_exit = true;
@@ -5254,6 +5254,7 @@ Vec QpEngine::saddle_direction(const QpProblem &qp, const WorkingSet &ws, const 
 
 Vec QpEngine::orient_saddle_direction(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
                                       const Vec &Aix, Vec d, const DropRecord *released,
+                                      const ProbeState &probe, const WalkSeen &seen,
                                       double step_tol) const {
     const Vec gx = qp.H.selfadjointView<Eigen::Upper>() * x + qp.g;
     const double slope = gx.dot(d);
@@ -5295,14 +5296,18 @@ Vec QpEngine::orient_saddle_direction(const QpProblem &qp, const WorkingSet &ws,
     if (sign < 0) {
         d = -d;
     }
-    // A ride that would re-enter, at zero length, the constraint the previous pass
-    // released undoes that drop instead of leaving the saddle: not a direction.
-    if (released != nullptr) {
-        BlockKind kind = BlockKind::kNone;
-        Index idx = -1;
-        const double a = first_blocker(d, kind, idx);
-        if (kind != BlockKind::kNone && (kind == BlockKind::kIneq) == released->is_ineq &&
-            idx == released->idx && a * d.lpNorm<Eigen::Infinity>() <= step_tol) {
+    // A zero-length ride into the constraint the previous pass released, into any
+    // probe-exempt member, or into any member the point memory holds released here,
+    // undoes a drop instead of leaving the saddle: not a direction.
+    BlockKind kind = BlockKind::kNone;
+    Index idx = -1;
+    const double a = first_blocker(d, kind, idx);
+    if (kind != BlockKind::kNone && a * d.lpNorm<Eigen::Infinity>() <= step_tol) {
+        const bool is_ineq = kind == BlockKind::kIneq;
+        const auto si = static_cast<std::size_t>(idx);
+        if ((released != nullptr && is_ineq == released->is_ineq && idx == released->idx) ||
+            (is_ineq ? probe.ineq_exempt[si] : probe.bound_exempt[si]) ||
+            (pt_flags(seen, is_ineq, idx) & kPtReleased) != 0) {
             return Vec();
         }
     }

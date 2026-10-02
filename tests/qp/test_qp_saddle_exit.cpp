@@ -10,11 +10,11 @@
 // The dumps are the C10 census's (tests/qp/fixtures/e2-d4/C10_*, the E2-D4 format; the
 // `result` line is the in-cell outcome at m7 1f8d3118, `site=1335` the dead end's exit). The
 // elastic QPs of STEENBRB/D/E are feasible and their final face carries negative curvature
-// (dense oracle in the NC3 report: Z'HZ minima -12.3 / -250 / -250); the walk now leaves
-// each saddle and ends at a lower objective on a face whose reduced Hessian is POSITIVE
-// DEFINITE, which this file checks itself (a dense QR of the final working set). No global
-// oracle exists for these nonconvex QPs, so no objective is pinned: the assertions are the
-// second-order point, the KKT battery and the decrease.
+// (dense oracle in docs/notes/data/2026-10-m7-w2-nc3-saddle-exit/REPORT.md: Z'HZ minima -12.3 /
+// -250 / -250); the walk now leaves each saddle and ends at a lower objective on a face whose
+// reduced Hessian is POSITIVE DEFINITE, which this file checks itself (a dense QR of the final
+// working set). No global oracle exists for these nonconvex QPs, so no objective is pinned: the
+// assertions are the second-order point, the KKT battery and the decrease.
 //
 // MINOR AND FACTORIZATION COUNTS ARE PRINTED, NEVER ASSERTED (Release and Debug round these
 // subproblems differently; see test_qp_standstill_retreat.cpp).
@@ -333,4 +333,94 @@ TEST(QpNc3SaddleExit, AZeroCurvatureDeadEndIsNotRiddenSteenbrbRestorationLpQp3) 
 }
 TEST(QpNc3SaddleExit, ACurvatureBelowResolutionIsNotRiddenSteenbreQp2) {
     expect_no_ride("C10_STEENBRE_qp2.txt", kBorder);
+}
+
+// ---------------------------------------------------------------------------
+// A DEGENERATE SADDLE VERTEX (the anti-return rule's whole reach). Every row of Ai passes
+// through the origin (bi == 0), g == 0, H has one negative eigenvalue, and the walk is seeded AT
+// the origin with rows 2 and 3 active (zero multipliers). Two zero-multiplier probe drops and
+// two zero-length saddle rides can then hand the walk back to a face of the same vertex that
+// reads positive definite and certifies kOptimal, although the origin is NOT a local minimizer:
+// a feasible direction of negative curvature leaves it. The rule: a zero-length ride whose
+// blocker is a probe-exempt member or a point-memory-released member is a miss, so the walk
+// ends kNumericalError there. Observed WITHOUT the rule (this problem, both algebras):
+// kOptimal at x == 0, f == 0.
+// (The data are a recorded draw, printed to 17 digits; the problem is a fixed literal.)
+// ---------------------------------------------------------------------------
+namespace {
+
+QpProblem degenerate_saddle_vertex() {
+    QpProblem qp;
+    Eigen::MatrixXd H(3, 3);
+    H << 0.30226923593257826, 0.53251471702583564, 0.16886458312426544, //
+        0.53251471702583564, -1.1986954044847826, -0.2976696275313821,  //
+        0.16886458312426544, -0.2976696275313821, 0.62069704799338077;
+    qp.H = Eigen::MatrixXd(H.triangularView<Eigen::Upper>()).sparseView();
+    qp.g = Vec::Zero(3);
+    qp.Ae.resize(0, 3);
+    qp.be = Vec(0);
+    Eigen::MatrixXd Ai(4, 3);
+    Ai << -0.12748230327411805, -1.3665169201962073, 1.2997569419341088, //
+        0.23202475082164539, 0.022947721982513866, 0.83477674979876804,  //
+        1.2842766057491886, -2.2559937294793873, -1.0941887368356464,    //
+        0.64268818717359244, -0.11870522125915574, -1.403639491669143;
+    qp.Ai = Ai.sparseView();
+    qp.bi = Vec::Zero(4);
+    qp.lower = Vec::Constant(3, -10.0);
+    qp.upper = Vec::Constant(3, 10.0);
+    return qp;
+}
+
+// Whether the cone {Ai d <= 0} of the vertex holds a direction of negative curvature (a grid
+// over the unit sphere): then the vertex is not a local minimizer, since g == 0.
+bool vertex_has_feasible_descent(const QpProblem &qp) {
+    const Eigen::MatrixXd Ai = Eigen::MatrixXd(qp.Ai);
+    const Eigen::MatrixXd Hu = Eigen::MatrixXd(qp.H);
+    const Eigen::MatrixXd H = Hu.selfadjointView<Eigen::Upper>();
+    constexpr double kPi = 3.14159265358979323846;
+    for (int a = 0; a < 400; ++a) {
+        for (int b = 0; b < 400; ++b) {
+            const double th = kPi * (a + 0.5) / 400.0;
+            const double ph = 2.0 * kPi * (b + 0.5) / 400.0;
+            Vec d(3);
+            d << std::sin(th) * std::cos(ph), std::sin(th) * std::sin(ph), std::cos(th);
+            if ((Ai * d).maxCoeff() <= 0.0 && d.dot(H * d) < -1e-3) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+} // namespace
+
+TEST(QpNc3SaddleExit, ADegenerateSaddleVertexIsNeverCertifiedThroughTwoZeroLengthRides) {
+    const QpProblem qp = degenerate_saddle_vertex();
+    ASSERT_TRUE(vertex_has_feasible_descent(qp)) << "the premise: the origin is not a minimizer";
+    QpSolution seed;
+    seed.x = Vec::Zero(3);
+    seed.bound_state.assign(3, BoundState::kFree);
+    seed.ineq_active = {false, false, true, true};
+    for (const auto alg : {kRefactorize, kBorder}) {
+        SCOPED_TRACE(alg_name(alg));
+        QpOptions o;
+        o.max_iter = 100;
+        o.ws_algebra = alg;
+        o.independent_working_set = true;
+        const Walk w = observed([&] { return QpEngine{o}.solve(qp, seed); });
+        const QpSolution &s = w.solution;
+        const bool at_vertex = s.x.norm() < 1e-6;
+        std::printf("[ nc3fix1 ] %s status=%d |x|=%.3g f=%.6g saddle_exits=%ld misses=%ld\n",
+                    alg_name(alg), static_cast<int>(s.status), s.x.norm(), objective(qp, s.x),
+                    static_cast<long>(s.counters.saddle_exits),
+                    static_cast<long>(s.counters.saddle_exit_misses));
+        if (s.status == QpStatus::kOptimal) {
+            // Optimal only where the face is second-order: a certificate at the vertex would
+            // be a certificate at a saddle.
+            EXPECT_FALSE(at_vertex) << "kOptimal AT the saddle vertex";
+            EXPECT_GT(reduced_hessian_min(qp, s), 0.0);
+        }
+        EXPECT_GE(s.counters.saddle_exit_misses, 1) << "the rule never fired";
+        expect_saddle_passes_descend(w.records, s.counters);
+    }
 }

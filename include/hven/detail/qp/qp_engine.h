@@ -320,8 +320,10 @@
 //    sign that leaves the constraint the previous pass released -- and a ride
 //    that would re-enter that constraint at zero length is not a direction (it
 //    undoes the drop: the zero-multiplier probe's, whose point would then be
-//    re-certified). Then it is ridden as 4c's
-//    ride is: the uncapped ratio test to the first blocker; an independent
+//    re-certified); the same for a zero-length re-entry of ANY probe-exempt member
+//    or any member the point memory holds released at this point (two such rides
+//    would otherwise re-certify the saddle through a degenerate vertex). Then it
+//    is ridden as 4c's ride is: the uncapped ratio test to the first blocker; an independent
 //    blocker joins; a dependent one takes the add site's rule along d (THE
 //    DECLINED RIDE (iii)) on that same mu-free factor, and nothing is re-armed;
 //    no blocker is kNumericalError (unbounded along d, multipliers cleared). No
@@ -2457,9 +2459,11 @@ class QpEngine {
     // flat slope the sign with the larger decrease to its first blocker, a tie preferring the
     // sign that leaves `released` (the previous pass's drop, if any). Empty when the chosen
     // ride would re-enter `released` at zero length (it would undo the drop, not leave the
-    // saddle).
+    // saddle). The same holds for a zero-length re-entry of ANY probe-exempt member or
+    // any member the point memory `seen` marks released at this point.
     Vec orient_saddle_direction(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
                                 const Vec &Aix, Vec d, const DropRecord *released,
+                                const ProbeState &probe, const WalkSeen &seen,
                                 double step_tol) const;
 
     // Step 3. Reports the blocking constraint and the step to it.
