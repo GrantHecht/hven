@@ -1,0 +1,78 @@
+HEADER DERIVATION
+  repo : /home/ghecht/Projects/hven/.claude/worktrees/agent-a21119447c8eb6f78
+  base : 2d2f92b1 -> 2d2f92b1879f82fc82a0fb5ad0e79dc24b631367
+  head : d70cd8af0387c8b3d391c44a17f20b06062d6809 -> d70cd8af0387c8b3d391c44a17f20b06062d6809
+  cmd  : git -C /home/ghecht/Projects/hven/.claude/worktrees/agent-a21119447c8eb6f78 diff --name-only 2d2f92b1..d70cd8af0387c8b3d391c44a17f20b06062d6809 -- include/
+  list : ['include/hven/core/solver_counters.h', 'include/hven/detail/qp/qp_engine.h', 'include/hven/detail/qp/qp_walk_trace.h', 'include/hven/drivers/sqp_solver_types.h']
+HEADER LIST ACCEPTED: ['include/hven/core/solver_counters.h', 'include/hven/detail/qp/qp_engine.h', 'include/hven/detail/qp/qp_walk_trace.h', 'include/hven/drivers/sqp_solver_types.h']
+P-SYM: FAIL — differences outside the accepted noise class
+DIFFERING OBJECTS: 68
+      CMakeFiles/hven.dir/src/core/ledger.cpp.o
+      CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o
+      CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+      CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o
+      CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o
+      CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o
+      CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+      CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+      bench/CMakeFiles/hven_sqp_bench.dir/bench_scale.cpp.o
+      bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+      bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+      bench/CMakeFiles/hven_sqp_f7_cold.dir/bench_f7_cold.cpp.o
+      bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+      bench/CMakeFiles/hven_sqp_ssn_safeguard_probe.dir/ssn_safeguard_probe.cpp.o
+      bench/CMakeFiles/hven_sqp_tau_bar_sweep_probe.dir/tau_bar_sweep_probe.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_concurrency.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_console_sink.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_result.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_status.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_warm_protocol.cpp.o
+      tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_activity_telemetry.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_assembly_eval_seam.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_b1_gate.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_continuation.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_corpus_cells.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_dense_oracle.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_disproved_entry.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_elastic_rung_vehicle.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_eqp_refine_ab.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_eqp_solve.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_battery.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_sweeps.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_acceptance.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_counters.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_dispatch.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_engine.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_trace.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_warm_restart.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ledger.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_mesh_transfer.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_nlp_kkt_check.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_parametric_families.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_predictor.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_problem_scaling.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_cap_levers.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine_border.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine_indefinite.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine_tr.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_mode_sites.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_warm_start.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_ws_independence.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_scale_problems.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_scale_smoke.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_equality_basis.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_warm_currency.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ssn_engine.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_start_point_projection.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_trace_writer.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_warm_start.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_warm_start_battery.cpp.o
+REFUSED (R2): /home/ghecht/Projects/hven/.claude/worktrees/agent-a21119447c8eb6f78/.scratch/m7w2w1cert1gates/rehearsal/gates/psym/compare-Debug.txt names 68 differing object(s) and this round DECLARED 6 -- a shape that is not the declared one is re-derived and declared again, never discovered
