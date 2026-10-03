@@ -2230,8 +2230,7 @@ namespace {
 // dual_mu footprint to put one there; E4's unregularized polish backs that
 // footprint out of every EQP answer, and on qp3 the blocker is gone -- the walk
 // reaches the same optimum with `dep_ride_blockers` and `ride_exchanges` at 0.
-// qp5 still reaches it and still asserts the exchange (qp4 and qp6 lost it to THE ASCENT
-// GUARD at M7 W2 W1; see their tests).
+// qp4, qp5 and qp6 still reach it and still assert the exchange.
 void expect_the_declined_ride_resolves(const char *file, double f_off, Index off_minors,
                                        bool expect_exchange = true) {
     const QpDump d = e2d4_dump(file);
@@ -2272,14 +2271,14 @@ void expect_the_declined_ride_resolves(const char *file, double f_off, Index off
             EXPECT_GE(s.counters.dep_ride_blockers, 1);
             EXPECT_GE(s.counters.ride_exchanges, 1);
         } else {
-            // qp3 (and qp4, qp6 since M7 W2 W1), ALGEBRA-DEPENDENT at E4 fix round 2: the border
+            // qp3 ONLY, and it is ALGEBRA-DEPENDENT at E4 fix round 2: the border
             // walk still meets 3 dependent ride blockers and exchanges all 3, the
             // refactorize walk meets none. Both reach the same optimum with the same
             // KKT bounds, so what is asserted on this cell is NC1's RULE rather than
             // a count -- every dependent blocker the walk meets is exchanged, and
             // none is left to decline -- which holds on both algebras and is the
             // statement the mechanism is for. The counts themselves are measured
-            // above and recorded here; qp5 still carries the >= 1 premise.
+            // above and recorded here; qp4, qp5 and qp6 still carry the >= 1 premise.
             EXPECT_EQ(s.counters.ride_exchanges, s.counters.dep_ride_blockers)
                 << "a dependent ride blocker was met and not exchanged";
         }
@@ -2297,21 +2296,16 @@ TEST(QpE2WorkingSet, TheDeclinedRideResolvesWithoutAnExchangeOnSteenbrbRestorati
     expect_the_declined_ride_resolves("Cs_STEENBRB_qp3.txt", -11.5370634375, 586, false);
 }
 
-// RENAMED and RE-PREMISED at M7 W2 W1 (old: ADeclinedRideIsExchangedOnSteenbrbRestorationQp4,
-// and Qp6 below): THE ASCENT GUARD (4c) rides these walks off their indefinite faces before a
-// post-drop ride meets a dependent blocker, so `dep_ride_blockers` is 0 at the same optimum and
-// KKT bounds; NC1's rule is asserted as on qp3. qp5 and the synthetic below still carry the
-// exchange premise.
-TEST(QpE2WorkingSet, TheDeclinedRideResolvesWithoutAnExchangeOnSteenbrbRestorationQp4) {
-    expect_the_declined_ride_resolves("Cs_STEENBRB_qp4.txt", -5.76904694719, 197, false);
+TEST(QpE2WorkingSet, ADeclinedRideIsExchangedOnSteenbrbRestorationQp4) {
+    expect_the_declined_ride_resolves("Cs_STEENBRB_qp4.txt", -5.76904694719, 197);
 }
 
 TEST(QpE2WorkingSet, ADeclinedRideIsExchangedOnSteenbrbRestorationQp5) {
     expect_the_declined_ride_resolves("Cs_STEENBRB_qp5.txt", -2.88465228068, 181);
 }
 
-TEST(QpE2WorkingSet, TheDeclinedRideResolvesWithoutAnExchangeOnSteenbrbRestorationQp6) {
-    expect_the_declined_ride_resolves("Cs_STEENBRB_qp6.txt", -1.44235834209, 180, false);
+TEST(QpE2WorkingSet, ADeclinedRideIsExchangedOnSteenbrbRestorationQp6) {
+    expect_the_declined_ride_resolves("Cs_STEENBRB_qp6.txt", -1.44235834209, 180);
 }
 
 namespace {

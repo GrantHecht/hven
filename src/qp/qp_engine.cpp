@@ -1873,16 +1873,33 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         // resolution and verified negative curvature, heads for an INDEFINITE face's
         // stationary point -- a saddle, where f(x + alpha p) rises for every alpha in
         // (0, 1] -- so the walk rides -p (descent, negative curvature) to its first blocker
-        // instead, as the saddle exit rides d.
+        // instead, as the saddle exit rides d. A pass at which neither the step along p
+        // nor the ride along -p would move x is a degenerate pivot, not an ascent: it is
+        // left to the ordinary add.
         if (eff_opts.independent_working_set && !ride_blocked) {
             const Vec gx = qp.H.selfadjointView<Eigen::Upper>() * x + qp.g;
             const double slope = gx.dot(p);
+            const auto either_moves = [&] {
+                QpCounters scratch; // read-only ratio tests: their ties are not this pass's
+                BlockKind k = BlockKind::kNone;
+                Index i = -1;
+                BoundState st = BoundState::kFree;
+                if (ratio_test(qp, ws, x, Aix, p, k, i, st, /*cap_at_unit=*/true, scratch) * p_inf >
+                    step_tol) {
+                    return true;
+                }
+                k = BlockKind::kNone;
+                const double a_ride =
+                    ratio_test(qp, ws, x, Aix, Vec(-p), k, i, st, /*cap_at_unit=*/false, scratch);
+                return k == BlockKind::kNone || a_ride * p_inf > step_tol;
+            };
             if (slope > detail::kEngineDenomTol * gx.norm() * p.norm() &&
                 p.dot(qp.H.selfadjointView<Eigen::Upper>() * p) <=
                     -curvature_tol * p.squaredNorm() &&
                 ride_stays_in_working_set(qp, ws, p) &&
                 iterate_meets_working_face(qp, ws, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1,
-                                           lambda_e, eff_opts)) {
+                                           lambda_e, eff_opts) &&
+                either_moves()) {
                 ++counters.ascent_rides;
 #ifdef HVEN_TESTING
                 walk_obs.record().ascent_ride = true;

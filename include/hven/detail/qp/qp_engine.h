@@ -383,9 +383,13 @@
 //    its minor cap). RULE: on any pass about to take the ordinary step (no ride
 //    pending), when s > kEngineDenomTol ||Hx + g|| ||p||, p'Hp <= -curvature_tol p'p
 //    (VERIFIED negative curvature, the saddle exit's test), p holds the working set
-//    (ride_stays_in_working_set) and x meets every equality and working row within
+//    (ride_stays_in_working_set), x meets every equality and working row within
 //    row_tolerance (iterate_meets_working_face: no row-restoring part, which a
-//    phase-1 step may legitimately pay for in f), the walk rides -p instead -- a
+//    phase-1 step may legitimately pay for in f), and the capped step along p or the
+//    ride along -p would move x (a pass where both are zero-length is a degenerate
+//    pivot, not an ascent, and keeps the ordinary add: measured, guard rides at such
+//    vertices only re-ordered the pivots and sent a Debug walk to a blocker
+//    termination), the walk rides -p instead -- a
 //    direction of negative curvature taken with its descent sign to the nearest
 //    blocking constraint (Gill, Murray, Saunders & Wright 1991; Fletcher, Practical
 //    Methods of Optimization, ch. 10), never the indefinite face's stationary point.

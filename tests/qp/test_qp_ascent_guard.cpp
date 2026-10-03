@@ -211,8 +211,12 @@ void expect_britgas_qp1(WorkingSetLinearAlgebra alg) {
     EXPECT_LE(k.sign, 1e-9);
     EXPECT_LE(k.complementarity, 1e-8);
     // NaN is a VERTEX (no free direction on the final face), where second order is vacuous.
-    EXPECT_TRUE(std::isnan(rh) || rh > 0.0)
-        << "the final face is not second-order: reduced Hessian min " << rh;
+    // MEASURED: Release ends at a vertex, Debug on a face whose least reduced eigenvalue is
+    // -8e-32 -- zero to rounding -- so the assertion is no NEGATIVE curvature the curvature
+    // gate could resolve (curvature_tol = kCurvatureTolFactor * hessian_scale).
+    const double neg_floor = -detail::kCurvatureTolFactor * detail::hessian_scale(d.qp);
+    EXPECT_TRUE(std::isnan(rh) || rh >= neg_floor)
+        << "the final face carries negative curvature: reduced Hessian min " << rh;
 }
 
 } // namespace
