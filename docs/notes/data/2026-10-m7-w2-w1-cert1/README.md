@@ -30,3 +30,24 @@ Re-pointed names / scratch / label / BEFORE; the by-name baseline pinned to NC4 
 two `[:80]` slices; the shared file is untouched) and NC4 r2's relaxation of the class B asymmetry check is therefore reverted --
 the completeness assertion (printed == stated) is back; the outside-universe declaration is three modified + one added source
 (the two outside targets and the per-source assertions are NC4 r2's). Details: runner header and section 0 / 2 of the derivation.
+
+## Gates (chain pid 1403841, worktree `agent-a21119447c8eb6f78`, declaration `e044952b`, 2026-10-03, `gates/chain-w1-cert1.txt`)
+
+`GATES_SUMMARY G1=0 G2=0 G3=0 G4=0 G5=0 G6=0`, fold proofs **46 / 0**. **GREEN.**
+
+| gate | result |
+|---|---|
+| G1 Debug suite | 2930 / 2930 (= NC4 r2's 2925 + 5 by name; 2932 started names = baseline 2927 + 5; skipped set = baseline's by name, 7) |
+| G2 long test | 1 / 1 |
+| G3 Release suite | 2931 / 2931 (= NC4 r2's 2926 + 5 by name; 2933 started names = baseline 2928 + 5; skipped set = baseline's by name, 1) |
+| G4 U0 replay vs the M6 pin | the declared **43**-difference set (walk 17 / ssn 13 / ipm 13), measured set EQUALS the declared list; the chain's CSVs compared EXACT against NC4 r2's `gates/replay` by hand afterwards: 0 differences on 75 columns x 3 engines (`gates/replay/exact-vs-nc4-r2-record.txt`) |
+| G5 P-SYM | Release DIFFERING **67** = class A 6 + class B 61; Debug **68** = class A 6 + class B 62 (one declared Debug-only class B, `test_solve_status.cpp.o`, asserted byte-identical in Release); UNEXPLAINED **0** both configs; non-debug section movers 8 = the declared set both configs; DEBUG_ONLY 0 / 3; the outside-universe asserts held for all four outside objects |
+| G6 | install smoke, export contract, clang-format (14 files), `git diff --check`, `DIRTY_FILES=0` |
+
+Observations, not deviations:
+- The Release negative-control listing was **complete** in the chain (84 of 84 printed); the offline rehearsal classification had 85 (the offline
+  tree is at the AFTER state and holds the added outside object `test_qp_ascent_guard.cpp.o`, the chain's classifier tree is at the BEFORE
+  arm), the same one-object difference NC4 r2 saw. With the cap lifted the restored completeness assertion held; the shared classifier
+  would have printed 80 of 84.
+- Leg wall (informational): G1 6.7 min, G2 2.6, G3 5.0, G4 5.6, G5 32.5 (four builds, two configurations, inherent to the segment), G6 1.1.
+- `gates/psym-sections-{Release,Debug}.txt` keep the section checker's summary lines only (`SECTIONS_*`, `NON-DEBUG-MOVER`, `DEBUG-ONLY`, `REFUSED`).
