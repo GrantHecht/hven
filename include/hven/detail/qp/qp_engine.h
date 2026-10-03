@@ -369,6 +369,34 @@
 //    change are the ones that were kNumericalError at this exit. Counted:
 //    convex_certificates. With the option off nothing changes.
 //
+//    THE ASCENT GUARD (independent_working_set; M7 W2 W1). Interlacing makes a drop
+//    the only way INTO an indefinite face, but nothing makes a ride's add the way
+//    OUT: on the reduced space of W - s + r the Hessian is A + (gamma/beta^2) c c'
+//    (A the PD reduced Hessian of W, gamma = p'Hp < 0, beta = a_r'p, c = Z_W'a_r), which
+//    can stay indefinite. The next pass follows no drop, the curvature gate is
+//    unarmed, and the EQP step heads for the face's stationary point -- a saddle.
+//    With p'(H + delta I)p = -(Hx + g)'p on the face, a slope s > 0 gives
+//    f(x + alpha p) - f(x) = s (alpha - alpha^2/2) - delta alpha^2 |p|^2 / 2, positive
+//    at every alpha in (0, 1] once s > delta |p|^2: an ascent (BRITGAS: s = 0.181,
+//    delta |p|^2 = 8e-8), and a dependent blocker then exchanges
+//    without changing the face, so it repeats (BRITGAS's elastic qp1 cycled so to
+//    its minor cap). RULE: on any pass about to take the ordinary step (no ride
+//    pending), when s > kEngineDenomTol ||Hx + g|| ||p||, p'Hp <= -curvature_tol p'p
+//    (VERIFIED negative curvature, the saddle exit's test), p holds the working set
+//    (ride_stays_in_working_set) and x meets every equality and working row within
+//    row_tolerance (iterate_meets_working_face: no row-restoring part, which a
+//    phase-1 step may legitimately pay for in f), the walk rides -p instead -- a
+//    direction of negative curvature taken with its descent sign to the nearest
+//    blocking constraint (Gill, Murray, Saunders & Wright 1991; Fletcher, Practical
+//    Methods of Optimization, ch. 10), never the indefinite face's stationary point.
+//    It is ridden as the saddle exit's d: the uncapped ratio test; an independent
+//    blocker joins; a dependent one takes the add site's rule along -p and nothing
+//    is re-armed (not counted in dep_ride_blockers / ride_exchanges, which stay 4c's
+//    and the exit's); no blocker is kNumericalError. DESCENT: g'(-p) = -s < 0 and
+//    p'Hp < 0, so f falls strictly for every alpha > 0 -- a ride that moves cannot
+//    cycle, a zero-length one is a zero-motion event inside the zero-motion cap.
+//    Counted: ascent_rides. With the option off nothing changes.
+//
 // 5. TERMINATION. The loop reaches a KKT point of its working set with nothing
 //    left to drop, and classifies it.
 //
@@ -1803,6 +1831,14 @@ class QpEngine {
     // footprint -- the latter capped at kInfeasibilityAbsorbTol * row_scale
     // so a contradiction cannot fund its own tolerance.
     double row_tolerance(double row_scale, double lambda, const QpOptions &opts) const;
+
+    // THE ASCENT GUARD's precondition (4c): every equality row and every working
+    // inequality row met at x within row_tolerance -- the iterate stands ON its face, so
+    // the EQP step has no row-restoring part to excuse an ascent.
+    bool iterate_meets_working_face(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                                    const Vec &Aix, const Vec &ai_row_norm1, const Vec &lambda_i,
+                                    const Vec &ae_row_norm1, const Vec &lambda_e,
+                                    const QpOptions &opts) const;
 
     // Is a single row's violation genuine evidence of infeasibility, rather
     // than the regularized solve's own noise? Both conditions must hold.

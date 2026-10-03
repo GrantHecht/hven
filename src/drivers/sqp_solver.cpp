@@ -1607,6 +1607,31 @@ bool subproblem_data_finite(const QpProblem &qp) {
            stored_values_finite(qp.H) && stored_values_finite(qp.Ae) && stored_values_finite(qp.Ai);
 }
 
+// THE BOX-ROUNDING PROJECTION's test (M7 W2 W1): at least one component outside
+// [lo, up], and none by more than kBoxRoundingUlps * eps * max(1, |bound|, ||x||inf)
+// -- the rounding of a step onto a bound, x + (lo - x) landing one ulp past lo. A
+// larger violation is not rounding and is left to the guard.
+constexpr double kBoxRoundingUlps = 16.0;
+bool outside_box_by_rounding(const Vec &x, const Vec &lo, const Vec &up) {
+    const double xmag = std::max(1.0, x.lpNorm<Eigen::Infinity>());
+    bool outside = false;
+    for (Index i = 0; i < x.size(); ++i) {
+        const double below = lo(i) - x(i);
+        const double above = x(i) - up(i);
+        const double v = std::max(below, above);
+        if (!(v > 0.0)) {
+            continue;
+        }
+        const double bound = below > above ? lo(i) : up(i);
+        if (v > kBoxRoundingUlps * std::numeric_limits<double>::epsilon() *
+                    std::max(xmag, std::abs(bound))) {
+            return false;
+        }
+        outside = true;
+    }
+    return outside;
+}
+
 } // namespace
 
 // SIZE-GUARDED RATHER THAN ASSERTED, one predicate per half: an export whose
@@ -5075,6 +5100,7 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     st.out.counters.qp_failure_steps_judged += rs.counters.qp_failure_steps_judged;
     st.out.counters.qp_failure_steps_accepted += rs.counters.qp_failure_steps_accepted;
     st.out.counters.nonfinite_subproblems += rs.counters.nonfinite_subproblems;
+    st.out.counters.nonfinite_box_projections += rs.counters.nonfinite_box_projections;
     // THE EXCURSION RECORD DOES NOT FOLD AND CANNOT (M7 W2 M2): this sub-solve
     // runs with `allow_restoration_` false, so its own `restoration_entries` is
     // structurally 0 and its four absolutes are untouched defaults. Folding a
@@ -6203,6 +6229,30 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         }
         st.subproblem_is_stale = false;
         st.qp_built = true;
+    }
+
+    // THE BOX-ROUNDING PROJECTION (M7 W2 W1). A step onto a bound can land one ulp
+    // outside it (x + (lo - x) rounding below lo), and a model whose derivatives are
+    // infinite just past the bound (|t|^p with 1 < p < 2 at t = 0) is then non-finite
+    // at a point the walk never chose. Only then -- non-finite data at an iterate
+    // outside its box by rounding alone -- x is projected into the box, re-evaluated
+    // and the subproblem rebuilt there; the guard below reads the rebuilt data.
+    if (!subproblem_data_finite(st.qp) &&
+        outside_box_by_rounding(st.x, seam.lower(), seam.upper())) {
+        ++st.out.counters.nonfinite_box_projections;
+        const Vec xc = st.x.cwiseMax(seam.lower()).cwiseMin(seam.upper());
+        NlpEval evc = seam.eval_nlp_values(xc);
+        seam.refresh_derivatives(evc, xc);
+        ++st.out.counters.evals_full;
+        st.x = xc;
+        st.ev = std::move(evc);
+        st.qp = seam.build_subproblem(st.ev, st.x, st.lambda_e, st.lambda_i, 1.0);
+        if (!st.eqb.basis.reduce(st.qp)) {
+            ++st.out.equality_basis.lift_refusals;
+            ++st.out.equality_basis.lift_refusal_sites.qp_projection;
+            refuse_equality_basis(st.eqb, st.out.equality_basis, seam.me());
+            drop_row_coordinate_carries(st);
+        }
     }
 
     // A NON-FINITE SUBPROBLEM (M7 W2 R2): no kernel is called on it. The model's

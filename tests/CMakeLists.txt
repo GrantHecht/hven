@@ -393,6 +393,7 @@ add_executable(hven_qp_walk_seam_tests
     qp/test_qp_standstill_retreat.cpp
     qp/test_qp_saddle_exit.cpp
     qp/test_qp_convex_certificate.cpp
+    qp/test_qp_ascent_guard.cpp
 )
 
 if(NOT APPLE)

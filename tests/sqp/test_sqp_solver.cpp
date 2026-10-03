@@ -3789,6 +3789,77 @@ TEST(SqpDriverQpFailure, ANonFiniteSubproblemEndsTheSolveWithoutAKernelCall) {
     ASSERT_EQ(sol.history.size(), 1u);
     EXPECT_FALSE(sol.history[0].qp_solved);
     EXPECT_EQ(sol.x.lpNorm<Eigen::Infinity>(), 0.0) << "the point it reached: the start";
+    // x0 = 0 is INSIDE [-10, 10]: an interior |t|^p point, not a box rounding (M7 W2 W1).
+    EXPECT_EQ(sol.counters.nonfinite_box_projections, 0);
+}
+
+// THE BOX-ROUNDING PROJECTION (M7 W2 W1). f = |x0|^1.5 + (x1 - 1)^4 with x0 >= 1e-16, from
+// (3, 0). The first subproblem pins x0's step at its bound, lo - x = 1e-16 - 3, which ROUNDS to
+// -3, so the accepted iterate has x0 = 0 -- one rounding below lo, where the Hessian entry
+// 0.75 |x0|^-0.5 is +inf. The iterate is projected onto lo and re-evaluated (the entry is then
+// 7.5e7), and the solve goes on to the minimizer instead of ending on the non-finite guard.
+namespace {
+class BoundRoundingModel : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 0; }
+    Index mi() const override { return 0; }
+    double eval_f(const Vec &x) const override {
+        return std::pow(std::abs(x(0)), 1.5) + std::pow(x(1) - 1.0, 4);
+    }
+    Vec eval_grad(const Vec &x) const override {
+        Vec g(2);
+        g << 1.5 * std::sqrt(std::abs(x(0))) * (x(0) < 0.0 ? -1.0 : 1.0),
+            4.0 * std::pow(x(1) - 1.0, 3);
+        return g;
+    }
+    Vec eval_ce(const Vec &) const override { return Vec(0); }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &x, double s, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = s * 0.75 / std::sqrt(std::abs(x(0))); // +inf at x0 = 0
+        h.insert(1, 1) = s * 12.0 * (x(1) - 1.0) * (x(1) - 1.0);
+        h.makeCompressed();
+        return h;
+    }
+    SpMatRM eval_jac_e(const Vec &) const override { return SpMatRM(0, 2); }
+    SpMatRM eval_jac_i(const Vec &) const override { return SpMatRM(0, 2); }
+    const Vec &lower() const override { return lo_; }
+    const Vec &upper() const override { return up_; }
+    Vec start_point() const override {
+        Vec x0(2);
+        x0 << 3.0, 0.0;
+        return x0;
+    }
+
+  private:
+    Vec lo_ = (Vec(2) << 1e-16, -10.0).finished();
+    Vec up_ = Vec::Constant(2, 10.0);
+};
+} // namespace
+
+TEST(SqpDriverQpFailure, AnIterateOutsideItsBoxByRoundingIsProjectedNotEnded) {
+    BoundRoundingModel model;
+    // The premise, in floating point: the step onto the bound lands below it.
+    ASSERT_EQ(3.0 + (1e-16 - 3.0), 0.0);
+    SqpOptions opts;
+    opts.enable_scaling = false;
+    opts.tr_init = 10.0;
+    opts.tr_max = 100.0;
+    opts.max_iter = 100;
+    SqpSolver driver(opts);
+    SqpResult sol;
+    ASSERT_NO_THROW(sol = driver.solve(model));
+    std::printf("[ w1 ] bound rounding status=%d majors=%zu x0=%.3g x1=%.12g projections=%ld "
+                "nonfinite=%ld\n",
+                static_cast<int>(sol.status), sol.history.size(), sol.x(0), sol.x(1),
+                static_cast<long>(sol.counters.nonfinite_box_projections),
+                static_cast<long>(sol.counters.nonfinite_subproblems));
+    EXPECT_EQ(sol.counters.nonfinite_box_projections, 1);
+    EXPECT_EQ(sol.counters.nonfinite_subproblems, 0);
+    EXPECT_EQ(sol.status, SolveStatus::kOptimal);
+    EXPECT_EQ(sol.x(0), 1e-16) << "on its bound, not below it";
+    EXPECT_NEAR(sol.x(1), 1.0, 1e-2);
 }
 
 // ... AND kMaxIter STILL PROPAGATES WHEN THE RETRY FAILS TOO. HS76 is a

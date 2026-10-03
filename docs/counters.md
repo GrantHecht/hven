@@ -216,6 +216,11 @@ one of those three therefore cannot silently miss the trace.
   `qp_failures_in_a_row_peak`'s run, because it is not charged to the budget.
   `nonfinite_subproblems` is at most one per driver, so a solve that restored
   can fold up to two.
+  `nonfinite_box_projections` (M7 W2 W1) folds with them: a projection is an
+  event of the sub-solve's own major. It counts projections TAKEN -- an iterate
+  outside its box only by rounding, at which the subproblem was non-finite -- so
+  a projection after which the data is still non-finite is counted here AND in
+  `nonfinite_subproblems`.
 
   **THE RESTORATION EXCURSION RECORD IS A PER-ENTRY READING, OVERWRITTEN, AND
   ITS ABSENCE IS READ OFF ITS OWN COUNT** (M7 W2 M2, the A0 signals page's S5).

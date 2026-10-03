@@ -325,6 +325,10 @@ struct QpCounters {
     // kWrong was overruled because H is structurally convex (nonnegative diagonal, LP
     // included); the point then faces the ordinary walk's first-order tests.
     Index convex_certificates = 0;
+    // THE ASCENT GUARD (qp_engine.h 4c, M7 W2 W1): passes whose EQP direction held the
+    // working set and ascended with nonpositive curvature (an indefinite face's saddle),
+    // ridden along -p instead of stepped along p.
+    Index ascent_rides = 0;
     Index dep_pin_skips = 0;
     Index ws_count_violations = 0; // passes with me + |W| > n (the integer screen)
     Index dep_untested_growth = 0; // screen-positive checks the detector did not resolve
@@ -2060,6 +2064,11 @@ struct SqpCounters {
     ///        `qp_numerical_exits`. At most one per driver, FOLDED from the
     ///        restoration sub-solve (so up to two in a solve that restored).
     Index nonfinite_subproblems = 0;
+    /// @brief THE BOX-ROUNDING PROJECTION (M7 W2 W1): non-finite subproblems built at
+    ///        an iterate outside its box only by the rounding of a step onto a bound,
+    ///        re-evaluated at the box projection before the guard above reads them.
+    ///        Appended last; FOLDED from the restoration sub-solve.
+    Index nonfinite_box_projections = 0;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -2122,7 +2131,8 @@ struct SqpCounters {
     X(eqp_row_drift_refusals, counter_never_absent)                                                \
     X(qp_failure_steps_judged, counter_never_absent)                                               \
     X(qp_failure_steps_accepted, counter_never_absent)                                             \
-    X(nonfinite_subproblems, counter_never_absent)
+    X(nonfinite_subproblems, counter_never_absent)                                                 \
+    X(nonfinite_box_projections, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =
@@ -2131,7 +2141,7 @@ inline constexpr std::size_t kSqpCountersFieldCount =
 
 // PLUS TWO: `ssn` and `ipqp` are nested aggregates, each counted as ONE
 // initializer by the arity trick and serialized through its own table above, so
-// the table holds the 60 direct fields and the struct takes 62 initializers.
+// the table holds the 61 direct fields and the struct takes 63 initializers.
 // (37 -> 38 at M6 W5 T8.5, which appended `polish_ignored` after both nested
 // aggregates -- last in declaration order, so the table order below is still
 // the struct's and every pre-existing offset is unmoved. 38 -> 39 at M7 W2 M4,
@@ -2160,7 +2170,8 @@ inline constexpr std::size_t kSqpCountersFieldCount =
 // the table on the declared additive-trailing-key route, so no pre-existing offset
 // moves and `sizeof` goes 904 -> 912. 57 -> 60 at M7 W2 R2, which appended the
 // failed-subproblem step group and `nonfinite_subproblems` the same way and for the
-// same reason: three `Index` fields last, `sizeof` 912 -> 936.)
+// same reason: three `Index` fields last, `sizeof` 912 -> 936. 60 -> 61 at M7 W2 W1,
+// `nonfinite_box_projections`, the same way: `sizeof` 936 -> 944.)
 static_assert(::hven::detail::kAggregateArity<SqpCounters> == kSqpCountersFieldCount + 2,
               "SqpCounters and HVEN_SQP_COUNTERS_FIELDS disagree: give the new field an X() entry "
               "in its declaration position, or -- if it is a new NESTED aggregate -- give it a "

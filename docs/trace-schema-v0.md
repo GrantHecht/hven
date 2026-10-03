@@ -804,6 +804,18 @@ values shift up by three; nothing else moves. None carries a sentinel. The two
 golden lines are re-derived ONCE for the three, and both carry a "RE-DERIVED AT
 M7 W2 R2" note.
 
+**THE DIRECT COUNTER M7 W2 W1 APPENDED — ONE.**
+
+| counter | type | source | meaning |
+|---|---|---|---|
+| `nonfinite_box_projections` | integer | `SqpCounters::nonfinite_box_projections` | non-finite subproblems built at an iterate outside its box only by the rounding of a step onto a bound (`x + (lo − x)` landing one ulp below `lo`); the iterate is projected into the box and re-evaluated, and the subproblem rebuilt there, before `nonfinite_subproblems`' guard reads it. A projection that leaves the data non-finite still ends the solve through that guard. Folded from the restoration sub-solve |
+
+LAST in the table and last in the struct, after `nonfinite_subproblems`, so the
+counters object gains exactly one key between `nonfinite_subproblems` and the
+`ssn` object and the two nested tables' distinct values shift up by one; nothing
+else moves. No sentinel. The two golden lines are re-derived ONCE for it, and
+both carry a "RE-DERIVED AT M7 W2 W1" note.
+
 ## 6. The mode-selection telemetry on `sqp.major`
 
 **(a) `active_set_delta`** — the symmetric-difference count between this major's

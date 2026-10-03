@@ -122,14 +122,21 @@ TEST_P(QpE2Fix7Unrun, AMovingBlockerWithNoFactorIsAnOrdinaryAdd) {
     EXPECT_EQ(s.counters.dep_deferred_adds, 0) << "an uncomputed rho may not buy a deferred add";
     EXPECT_EQ(s.counters.dep_undecidable, 0);
 
-    // Pass 0 is the spent one, and it PRICED nothing and STEPPED nowhere. Pass 1 is the
-    // ordinary add of row 0 at a full unit of motion.
+    // Pass 0 is the spent one, and it PRICED nothing and STEPPED nowhere. Pass 1 adds a row at
+    // a full unit of motion on the factor that holds its set.
+    //
+    // DECLARED MOVE (M7 W2 W1). Pass 1 was the ordinary add of row 0 -- a step along
+    // p = (-1/2, -1/2, -1/2, 2) that ASCENDS ((Hx + g)'p = +3.25, p'Hp = -3.25: f rises by 1.22
+    // over its alpha = 1/2) toward the indefinite face's saddle. THE ASCENT GUARD (4c) rides -p
+    // instead, to row 1 (x3 = -1); the optimum below is unchanged.
     ASSERT_GE(records.size(), 3U);
     EXPECT_EQ(records[0].action, Action::kStartRepairRefused);
-    EXPECT_EQ(records[1].action, Action::kAdd);
+    EXPECT_EQ(records[1].action, Action::kRideStepped);
+    EXPECT_TRUE(records[1].ascent_ride);
     EXPECT_EQ(records[1].block, Block::kIneq);
-    EXPECT_EQ(records[1].block_index, 0);
+    EXPECT_EQ(records[1].block_index, 1);
     EXPECT_GT(records[1].dx_inf, records[1].step_tol) << "a MOVING step, not a degenerate one";
+    EXPECT_LT(records[2].obj_in, records[1].obj_in) << "the ride descends";
     EXPECT_FALSE(records[1].degenerate);
 
     // And the walk certifies the exact optimum.
@@ -291,7 +298,9 @@ TEST(QpE2Fix7Acopr118, Major18SubproblemCertifiesBorder) {
 // NC3 moved it, declared: the walk reaches the face's stationary point, a trusted-kWrong dead
 // end, and section 4c's SADDLE EXIT rides off it along negative curvature until every
 // coordinate sits at a bound, a vertex the ordinary walk certifies. The budget still binds
-// (budget_stops, the spent pass): what it no longer costs is the solve. Off, the repair is
+// (budget_stops, the spent pass): what it no longer costs is the solve. Since M7 W2 W1 the
+// ascending step to that stationary point is not taken: THE ASCENT GUARD rides -p off the
+// face from the first priced pass, and no saddle is reached. Off, the repair is
 // unbounded, as it always was, pins all twelve, and the walk certifies a vertex (every vertex
 // of this box is a strict local minimizer). A deficit-aware budget stays registered (E2 fix8
 // report, F8-2).
@@ -350,11 +359,15 @@ TEST_P(QpE2Fix8Budget, ARepairThatNeedsMorePinsThanItsBudgetStopsAndTheWalkFails
         ASSERT_FALSE(records.empty());
         if (independent) {
             // The budget stopped the repair, the probes had taken the pass's factor, so the
-            // pass was spent -- and the saddle exit, not the repair, takes the walk off the
-            // indefinite face.
+            // pass was spent -- and a negative-curvature ride, not the repair, takes the walk
+            // off the indefinite face. DECLARED MOVE (M7 W2 W1): that was the saddle exit, at
+            // the face's stationary point -- its maximizer (H = -I), reached by an ordinary
+            // step that ASCENDED. THE ASCENT GUARD (4c) rides -p from the first priced pass
+            // instead, so no saddle is reached.
             EXPECT_EQ(records[0].action, Action::kStartRepairRefused);
             EXPECT_EQ(s.counters.dep_repair_restarts, 1);
-            EXPECT_GE(s.counters.saddle_exits, 1);
+            EXPECT_GE(s.counters.ascent_rides, 1);
+            EXPECT_EQ(s.counters.saddle_exits + s.counters.saddle_exit_misses, 0);
             ASSERT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
             for (Index i = 0; i < kN; ++i) {
                 EXPECT_NEAR(std::abs(s.x(i)), 1.0, 1e-9) << "coordinate " << i << " is at a bound";

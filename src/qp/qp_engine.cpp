@@ -1102,6 +1102,12 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             // counter, and nothing below reads any of it.
             detail::testing::QpWalkMinorRecord &r = walk_obs.record();
             r.p_sq = p.squaredNorm();
+            {
+                const Vec hp = qp.H.selfadjointView<Eigen::Upper>() * p;
+                r.step_php = p.dot(hp);
+                r.step_slope = (qp.H.selfadjointView<Eigen::Upper>() * x + qp.g).dot(p);
+                r.step_in_face = ride_stays_in_working_set(qp, ws, p) ? 1 : 0;
+            }
 
             // The UNREGULARIZED first-order residual over the free block and its
             // scale, as computed ABOVE, in production, for the KKT-point test.
@@ -1216,6 +1222,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         // SADDLE EXIT's ride, `saddle_blocked`, which re-arms nothing).
         bool ride_blocked = false;
         bool saddle_blocked = false;
+        bool ascent_blocked = false; // THE ASCENT GUARD's (4c), a subset of saddle_blocked
         RideBlocker ride;
         if (zero_motion || stationary_on_ws) {
             // A KKT point of the current working set: snap onto it (zero motion
@@ -1861,6 +1868,66 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             }
         }
 
+        // THE ASCENT GUARD (section 4c): no ordinary step ascends its own face. A p that
+        // holds the working set from an iterate on its rows, with (Hx + g)'p above its
+        // resolution and verified negative curvature, heads for an INDEFINITE face's
+        // stationary point -- a saddle, where f(x + alpha p) rises for every alpha in
+        // (0, 1] -- so the walk rides -p (descent, negative curvature) to its first blocker
+        // instead, as the saddle exit rides d.
+        if (eff_opts.independent_working_set && !ride_blocked) {
+            const Vec gx = qp.H.selfadjointView<Eigen::Upper>() * x + qp.g;
+            const double slope = gx.dot(p);
+            if (slope > detail::kEngineDenomTol * gx.norm() * p.norm() &&
+                p.dot(qp.H.selfadjointView<Eigen::Upper>() * p) <=
+                    -curvature_tol * p.squaredNorm() &&
+                ride_stays_in_working_set(qp, ws, p) &&
+                iterate_meets_working_face(qp, ws, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1,
+                                           lambda_e, eff_opts)) {
+                ++counters.ascent_rides;
+#ifdef HVEN_TESTING
+                walk_obs.record().ascent_ride = true;
+#endif
+                const RideOutcome ao = ride_direction(counters, seen, qp, Vec(-p), Aix, ws, x,
+                                                      &pass_view, eff_opts, ride);
+                if (ao == RideOutcome::kStepped) {
+                    degenerate_run = 0;
+                    if (ride.dx_inf > step_tol) {
+                        pt_clear(seen);
+                    }
+                    (void)pt_admit(seen, counters, ride.kind == BlockKind::kIneq, ride.idx);
+                    refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen,
+                                   eff_opts);
+#ifdef HVEN_TESTING
+                    walk_obs.record().action = detail::testing::QpWalkAction::kRideStepped;
+                    walk_obs.record().ride = true;
+                    walk_obs.record().ride_outcome = detail::testing::QpWalkRideOutcome::kStepped;
+#endif
+                    continue;
+                }
+                if (ao == RideOutcome::kUnbounded) {
+                    status = QpStatus::kNumericalError;
+#ifdef HVEN_TESTING
+                    walk_obs.record().action = detail::testing::QpWalkAction::kRideUnbounded;
+                    walk_obs.record().ride_outcome = detail::testing::QpWalkRideOutcome::kUnbounded;
+#endif
+                    break;
+                }
+                if (ao == RideOutcome::kDependentBlocker) {
+                    // The add site decides it along -p; nothing is re-armed (as the
+                    // saddle exit's). Not a 4c ride blocker: dep_ride_blockers and
+                    // ride_exchanges stay 4c's and the saddle exit's.
+                    ride_blocked = true;
+                    saddle_blocked = true;
+                    ascent_blocked = true;
+#ifdef HVEN_TESTING
+                    walk_obs.record().ride_outcome =
+                        detail::testing::QpWalkRideOutcome::kDependentBlocker;
+#endif
+                }
+                // kDeclined (a testing arm only): the ordinary step.
+            }
+        }
+
         BlockKind kind = BlockKind::kNone;
         Index block_idx = -1;
         BoundState block_state = BoundState::kFree;
@@ -2357,7 +2424,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     ++counters.ws_drops_bound;
                 }
                 pt_release(seen, xpick.j_is_ineq, xpick.j);
-                if (ride_blocked) {
+                if (ride_blocked && !ascent_blocked) {
                     // THE DECLINED RIDE (iii): the exchanged set has the same
                     // null space, so the ride is re-armed and re-taken there
                     // on a fresh factor. THE SADDLE EXIT's is not: the next
@@ -2687,6 +2754,28 @@ void QpEngine::refresh_shifts(const QpProblem &qp, const Vec &x, const Vec &ai_r
             }
         }
     }
+}
+
+bool QpEngine::iterate_meets_working_face(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                                          const Vec &Aix, const Vec &ai_row_norm1,
+                                          const Vec &lambda_i, const Vec &ae_row_norm1,
+                                          const Vec &lambda_e, const QpOptions &opts) const {
+    const double xmag = x.lpNorm<Eigen::Infinity>();
+    for (Index j = 0; j < qp.me(); ++j) {
+        const double r = std::abs(qp.Ae.row(j).dot(x) - qp.be(j));
+        const double row_scale = std::max({1.0, std::abs(qp.be(j)), ae_row_norm1(j) * xmag});
+        if (r > row_tolerance(row_scale, lambda_e(j), opts)) {
+            return false;
+        }
+    }
+    for (const Index j : ws.active_ineq()) {
+        const double r = std::abs(Aix(j) - qp.bi(j));
+        const double row_scale = std::max({1.0, std::abs(qp.bi(j)), ai_row_norm1(j) * xmag});
+        if (r > row_tolerance(row_scale, lambda_i(j), opts)) {
+            return false;
+        }
+    }
+    return true; // pinned columns sit on their bounds exactly
 }
 
 double QpEngine::row_tolerance(double row_scale, double lambda, const QpOptions &opts) const {

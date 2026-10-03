@@ -239,10 +239,14 @@ void expect_no_ride(const char *file, WorkingSetLinearAlgebra alg) {
 // ---------------------------------------------------------------------------
 // A SYNTHETIC SADDLE REACHED WITHOUT A DROP. min -x0^2 + x1^2 - 0.1 x0 subject to the two rows
 // x0 <= 1 and -x0 <= 1, x unbounded: the start face (no row active) is indefinite and has no
-// finite bound to pin, so the start repair cannot fix it; the EQP walks to the face's only
-// stationary point (-0.05, 0), a saddle, where nothing can be dropped. The two local
-// minimizers are (1, 0) at f = -1.1 and (-1, 0) at f = -0.9; the exit's direction is +/-e0
-// and either is a correct answer.
+// finite bound to pin, so the start repair cannot fix it. The face's only stationary point is
+// (-0.05, 0), a saddle, where nothing can be dropped. The two local minimizers are (1, 0) at
+// f = -1.1 and (-1, 0) at f = -0.9; the exit's direction is +/-e0 and either is a correct answer.
+//
+// PREMISE WRITTEN OUT (M7 W2 W1). From x = 0 the EQP step to the saddle ASCENDS
+// ((Hx + g)'p = +0.005, p'Hp = -0.005) and THE ASCENT GUARD (4c) now rides -p instead, so that
+// walk never reaches the saddle; the solve SEEDED AT the saddle is the dead end this test is
+// about, and is what it now solves. The unseeded walk's reading is the guard's, asserted below.
 // ---------------------------------------------------------------------------
 QpProblem row_bounded_saddle() {
     QpProblem qp;
@@ -278,11 +282,25 @@ TEST(QpNc3SaddleExit, ASyntheticSaddleReachedWithoutADropIsLeftForALocalMinimize
         const QpSolution off = QpEngine{o}.solve(qp);
         EXPECT_EQ(static_cast<int>(off.status), static_cast<int>(QpStatus::kNumericalError));
         EXPECT_EQ(off.counters.saddle_exits + off.counters.saddle_exit_misses, 0);
+        EXPECT_EQ(off.counters.ascent_rides, 0);
         EXPECT_NEAR(off.x(0), -0.05, 1e-8);
         EXPECT_NEAR(off.x(1), 0.0, 1e-8);
 
         o.independent_working_set = true;
-        const Walk w = observed([&] { return QpEngine{o}.solve(qp); });
+        // From x = 0: the guard rides -p off the indefinite face, and the saddle is never
+        // reached.
+        {
+            const QpSolution g = QpEngine{o}.solve(qp);
+            EXPECT_EQ(static_cast<int>(g.status), static_cast<int>(QpStatus::kOptimal));
+            EXPECT_GE(g.counters.ascent_rides, 1);
+            EXPECT_EQ(g.counters.saddle_exits + g.counters.saddle_exit_misses, 0);
+            EXPECT_NEAR(g.x(0), 1.0, 1e-9) << "-p = +e0 * 0.05 descends toward x0 = 1";
+            EXPECT_NEAR(objective(qp, g.x), -1.1, 1e-9);
+        }
+        QpSolution at_saddle;
+        at_saddle.x = Vec(2);
+        at_saddle.x << -0.05, 0.0;
+        const Walk w = observed([&] { return QpEngine{o}.solve(qp, at_saddle); });
         const QpSolution &s = w.solution;
         EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
         EXPECT_EQ(s.counters.saddle_exits, 1);

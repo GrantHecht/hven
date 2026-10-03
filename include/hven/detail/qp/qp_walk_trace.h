@@ -425,6 +425,16 @@ struct QpWalkMinorRecord {
     /// counter, no factorization and no linear solve. `kAbsent` on a pass whose hook
     /// did not run.
     double obj_in = kAbsent;
+    /// THE EQP DIRECTION'S SLOPE AND CURVATURE on EVERY pass (M7 W2 W1): `(Hx + g)ᵀp` at
+    /// the incoming iterate and `pᵀHp`, `p = eqp.x - x`. Together they decide whether the
+    /// ordinary step along `p` descends (`α·slope + α²/2·pᵀHp`). Record-only mat-vecs.
+    double step_slope = kAbsent;
+    double step_php = kAbsent;
+    /// `ride_stays_in_working_set(p)`: `p` holds every working constraint (no row-restoring
+    /// component), so its slope is the face's own. `-1` when not computed.
+    int step_in_face = -1;
+    /// True iff THE ASCENT GUARD (4c) fired on this pass: `-p` was ridden instead of `p`.
+    bool ascent_ride = false;
 
     // =====================================================================
     // FIX-ROUND 1 (M7 W2 M3b): THE DISCRIMINATING FIELDS.
