@@ -32,3 +32,25 @@ targets (`hven_qp_walk_seam_tests`, `hven_sqp_seam_tests`) handled as a list wit
 fail-closed relaxation of the class B asymmetry check (the classifier caps the negative-control listing at 80 and
 this range's Release control has 81, so a present object is read positively and an absent one is still refused).
 Details: runner header and section 2 of the derivation.
+
+## Gates (chain pid 981730, worktree `agent-aa9e8a31dc2220053`, declaration `e7e9bf69`, 2026-10-02, `gates/chain-nc4-r2.txt`)
+
+`GATES_SUMMARY G1=0 G2=0 G3=0 G4=0 G5=0 G6=0`, fold proofs **46 / 0**. **GREEN.**
+
+| gate | result |
+|---|---|
+| G1 Debug suite | 2925 / 2925 (= NC3 r2's 2904 + 21 by name; 2927 started names = baseline 2906 + 21; skipped set = baseline's by name, 7) |
+| G2 long test | 1 / 1 |
+| G3 Release suite | 2926 / 2926 (= NC3 r2's 2905 + 21 by name; 2928 started names = baseline 2907 + 21; skipped set = baseline's by name, 1) |
+| G4 U0 replay vs the M6 pin | the declared **43**-difference set (walk 17 / ssn 13 / ipm 13), measured set EQUALS the declared list; exact-identical to NC3 r2's replay (re-measured in the rehearsal, 0 differences on 75 columns x 3 engines) |
+| G5 P-SYM | Release DIFFERING **70** = class A 11 + class B 59; Debug **71** = class A 11 + class B 60 (one declared Debug-only class B, `test_solve_status.cpp.o`, asserted byte-identical in Release); UNEXPLAINED **0** both configs; non-debug section movers 9 = the declared set both configs; DEBUG_ONLY 0 / 3; the outside-universe asserts held for all three outside objects |
+| G6 | install smoke, export contract, clang-format (19 files), `git diff --check`, `DIRTY_FILES=0` |
+
+Observations, not deviations:
+- The Release negative-control count is 81 in the rehearsal's offline classification and 80 in the chain's. The
+  difference is exactly one object, `tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_convex_certificate.cpp.o`:
+  the offline tree is at the AFTER state (the added outside source exists), while g5 leaves its classifier tree at
+  the BEFORE arm. Class A / B / UNEXPLAINED are identical, and in the chain the capped-listing relaxation was not
+  needed (the check read "COMPLETE, 80 of 80").
+- `gates/psym-sections-{Release,Debug}.txt` keep the section checker's summary lines only (`SECTIONS_*`,
+  `NON-DEBUG-MOVER`, `DEBUG-ONLY`, `REFUSED`); the per-object listings stay in the scratch tree.
