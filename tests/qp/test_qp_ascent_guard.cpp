@@ -198,6 +198,7 @@ void expect_britgas_qp1(WorkingSetLinearAlgebra alg) {
     EXPECT_EQ(t.ordinary_rose, 0) << "an in-face ordinary step ascended, by up to " << t.worst_rise;
     EXPECT_EQ(t.rides_not_down, 0) << "a guard ride that moved did not descend";
     EXPECT_GE(s.counters.ascent_rides, 1);
+    EXPECT_EQ(s.counters.eq_drift_violations, 0);
     Index flagged = 0;
     for (const Record &r : w.records) {
         flagged += r.ascent_ride ? 1 : 0;

@@ -6232,11 +6232,13 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
     }
 
     // THE BOX-ROUNDING PROJECTION (M7 W2 W1). A step onto a bound can land one ulp
-    // outside it (x + (lo - x) rounding below lo), and a model whose derivatives are
+    // outside it (x + (lo - x) rounding below lo), and a model whose Hessian/Jacobian is
     // infinite just past the bound (|t|^p with 1 < p < 2 at t = 0) is then non-finite
-    // at a point the walk never chose. Only then -- non-finite data at an iterate
-    // outside its box by rounding alone -- x is projected into the box, re-evaluated
-    // and the subproblem rebuilt there; the guard below reads the rebuilt data.
+    // at a point the walk never chose. Only then -- a non-finite Hessian/Jacobian
+    // subproblem at an iterate outside its box by rounding alone -- x is projected into
+    // the box, re-evaluated and the subproblem rebuilt there; the guard below reads the
+    // rebuilt data. An infinite gradient past the bound is caught earlier by the iterate
+    // measurement and still ends numerical_error.
     if (!subproblem_data_finite(st.qp) &&
         outside_box_by_rounding(st.x, seam.lower(), seam.upper())) {
         ++st.out.counters.nonfinite_box_projections;
