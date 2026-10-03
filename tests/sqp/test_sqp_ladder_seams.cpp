@@ -12,6 +12,8 @@
 //       elastic tier; at a feasible iterate the shrink ladder stays (the DALLASM
 //       major-1 guard); a plain kNumericalError keeps the shrink ladder; the guard's
 //       h reads the box (L2).
+//   CERT-1 (M7 W2 C12) a restoration that converges where every row is inside
+//       feas_tol but their l1 sum is not certifies nothing (BRITGAS under W1).
 
 #include <cmath>
 #include <utility>
@@ -383,6 +385,90 @@ TEST(SqpLadderSeam, R2AJudgedRejectedStepIsNotChargedToTheBudget) {
             EXPECT_EQ(sol.counters.qp_failures_in_a_row_peak, 3);
         }
     }
+}
+
+namespace {
+
+// CERT-1 (M7 W2 C12): K rows that each miss feasibility by kMiss < feas_tol,
+//
+//     min x1^2  s.t.  cE_k(x) = x0^2 + kMiss = 0 (k < K),  -3 <= x <= 3,
+//
+// so the l1 violation is at least K*kMiss = 3e-6 > feas_tol everywhere while the
+// inf-norm reading kMiss passes feas_tol at x0 = 0 -- and there the rows'
+// gradients vanish, BRITGAS's shape under the W1 guard (flows at their bounds,
+// the pipe rows' Jacobian zero, l1 4.49e-6, inf 4.23e-7, certified).
+class SpreadMissModel : public NlpModel {
+  public:
+    static constexpr Index kRows = 10;
+    static constexpr double kMiss = 3e-7;
+    Index n() const override { return 2; }
+    Index me() const override { return kRows; }
+    Index mi() const override { return 0; }
+    double eval_f(const Vec &x) const override { return x(1) * x(1); }
+    Vec eval_grad(const Vec &x) const override {
+        Vec g(2);
+        g << 0.0, 2.0 * x(1);
+        return g;
+    }
+    Vec eval_ce(const Vec &x) const override { return Vec::Constant(kRows, x(0) * x(0) + kMiss); }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &lambda_e,
+                      const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = 2.0 * lambda_e.sum();
+        h.insert(1, 1) = 2.0 * obj_scale;
+        h.makeCompressed();
+        return h;
+    }
+    SpMatRM eval_jac_e(const Vec &x) const override {
+        SpMatRM j(kRows, 2);
+        for (Index k = 0; k < kRows; ++k) {
+            j.insert(k, 0) = 2.0 * x(0);
+        }
+        j.makeCompressed();
+        return j;
+    }
+    SpMatRM eval_jac_i(const Vec &) const override { return SpMatRM(0, 2); }
+    const Vec &lower() const override {
+        static const Vec l = Vec::Constant(2, -3.0);
+        return l;
+    }
+    const Vec &upper() const override {
+        static const Vec u = Vec::Constant(2, 3.0);
+        return u;
+    }
+    Vec start_point() const override { return vec2(1.0, 1.0); }
+};
+
+} // namespace
+
+// Every walk QP of the top-level driver fails (a plain kNumericalError, the shrink
+// ladder), so the radius floor sends the solve to restoration, whose own walk is
+// untouched; the feasibility problem converges toward x0 = 0 and stops there.
+TEST(SqpLadderSeam, CertOneAPointTheConvergenceTestCallsFeasibleIsNoCertificate) {
+    const SeamReset guard;
+    Seam::fail_walk_qps = 1000;
+    Seam::as_e2_termination = false;
+    SpreadMissModel model;
+    SqpOptions o = quiet();
+    o.max_iter = 200;
+    o.qp_failure_budget = 1000; // the shrink ladder runs to the floor
+    SqpSolver driver(o);
+    const SqpResult sol = driver.solve(model);
+
+    // THE PREMISE: one restoration, its sub-solve converged, not resumed (l1), at a
+    // point whose rows are each inside feas_tol (inf).
+    ASSERT_EQ(sol.counters.restoration_entries, 1);
+    ASSERT_EQ(sol.counters.restoration_sub_status, RestorationSubStatus::kOptimal);
+    ASSERT_GT(sol.counters.restoration_h_out, o.feas_tol);
+    const Vec ce = model.eval_ce(sol.x);
+    ASSERT_LE(ce.lpNorm<Eigen::Infinity>(), o.feas_tol);
+    ASSERT_GT(ce.lpNorm<1>(), o.feas_tol);
+
+    // THE CLAIM IS WITHHELD: no certificate and no kInfeasible at a point this
+    // solve's own convergence test calls feasible.
+    EXPECT_FALSE(sol.infeasibility_certified);
+    EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
 }
 
 } // namespace hven::solvers

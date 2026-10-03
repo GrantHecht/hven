@@ -5361,6 +5361,23 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
         // COPY: `ev_r` itself is engine-unit BY CONTRACT for
         // `st.resto.f`, `h_r` and the S5 excursion record, all of
         // which are already taken above.
+        //
+        // AND THE CLAIM IS STATED IN THE CONVERGENCE TEST'S OWN FEASIBILITY
+        // MEASURE (M7 W2 C12, CERT-1). The resume test above reads the l1 sum
+        // `h_r + box`, the convergence test the inf-norm `kkt_r.feasibility`,
+        // and with many rows the two disagree: a restored point can fail the
+        // first and pass the second -- every row inside `feas_tol`, their sum
+        // outside it (MEASURED: BRITGAS under the W1 guard, l1 4.49e-6, inf
+        // 4.23e-7, certified after 53 restoration iterations; the problem is
+        // feasible). A point this solve's own convergence test calls feasible
+        // is no certificate of infeasibility, so the exit makes NO claim there:
+        // the same spelling as the sub-solve's other uncertified exits. The
+        // resume test is unchanged, so `restoration_h_out <= feas_tol` still
+        // says the entry resumed.
+        if (kkt_r.feasibility <= opts_.feas_tol) {
+            st.resto.status = SolveStatus::kNumericalError;
+            break;
+        }
         st.resto.status = SolveStatus::kInfeasible;
         st.out.infeasibility_certified =
             feasibility_subsolve_certifies(opts_.restoration_proximity, opts_.kkt_tol, rs_lambda_e,

@@ -1460,9 +1460,13 @@ struct SqpResult : SolveResult {
     SqpScalingReport scaling;
 
     /// True ONLY on the certified infeasibility exit: the restoration phase ran to
-    /// its own KKT test, that test passed, and h at the returned point is still
-    /// above feas_tol -- so (x, lambda_e, lambda_i, z) is the subgradient
-    /// certificate documented above.
+    /// its own KKT test, that test passed, and the returned point fails BOTH
+    /// feasibility readings -- the resume test's l1 `h + box` and the
+    /// convergence test's inf-norm `SqpKkt::feasibility` -- against feas_tol, so
+    /// (x, lambda_e, lambda_i, z) is the subgradient certificate documented
+    /// above. A point inside the inf-norm reading but not the l1 one is one this
+    /// solve's convergence test calls feasible; that exit is kNumericalError with
+    /// no claim (M7 W2 C12, CERT-1).
     ///
     /// False on EVERY OTHER exit, including other kInfeasible ones, and that is
     /// what this flag is for. It is NOT reliably derivable from the status or the
