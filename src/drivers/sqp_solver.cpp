@@ -1212,6 +1212,11 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
         seed.evidence != nullptr
             ? elastic_evidence_seed(elastic, qp, *seed.evidence, opts)
             : elastic_seed(elastic, seed.failed != nullptr ? *seed.failed : QpSolution{});
+    // THE WITNESS START (elastic.h): the walk rung starts feasible instead of at (0, 0). The
+    // window is in the box and the solve's own radius is +inf, so x is no window centre here.
+    if (opts.elastic_witness_start && tier == nullptr) {
+        place_elastic_seed_at_witness(elastic, qp, seed_elastic);
+    }
 
     QpSolution qs_e;
     // THE STALL EARLY-EXIT's own state: the PREVIOUS rung's
@@ -1258,6 +1263,13 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
                           trace_outcome_of(qs_e.status), QpModeSite::kElasticRung,
                           qs_e.counters.minor_iters);
         if (qs_e.status != QpStatus::kOptimal) {
+            // THE LAST OPTIMAL RUNG (SqpOptions::elastic_last_optimal_rung): a rung failing
+            // above a solved one hands back the solved rung -- an optimal l1-penalty step at
+            // the lower rho -- instead of the failure. Its cost is already folded above.
+            if (opts.elastic_last_optimal_rung && has_prev_rung) {
+                qs_e = std::move(qs_e_prev);
+                ++out.elastic_last_rung_fallbacks;
+            }
             break;
         }
         // MATERIALLY NONZERO IS MEASURED ON THE VIOLATION, not on
@@ -1298,13 +1310,17 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
         // Measured: one K0 rebuild per rung (7 factorizations for
         // the ladder) against 1 with the chain. seed.x is zeroed
         // for the standing reason (see WARM SEEDING): it is the
-        // engine's window CENTER.
+        // engine's window CENTER -- except under the witness start,
+        // which keeps it: only g moves, so rung k's solution is
+        // feasible for rung k+1, and the elastic solve has no window.
         // THE WALK'S CHAIN. The tier's own chain is its `warm_carry()`, taken
         // inside `solve_elastic_rung_on_tier` from the second rung on, so these
-        // two lines are the walk arm's and are simply inert on the tier arm --
+        // lines are the walk arm's and are simply inert on the tier arm --
         // `seed_elastic` is not read there.
         seed_elastic = qs_e;
-        seed_elastic.x.setZero();
+        if (!opts.elastic_witness_start) {
+            seed_elastic.x.setZero();
+        }
     }
 
     // THE EXHAUSTION SIGNATURE (see the note): the ladder is
@@ -5101,6 +5117,7 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     st.out.counters.qp_failure_steps_accepted += rs.counters.qp_failure_steps_accepted;
     st.out.counters.nonfinite_subproblems += rs.counters.nonfinite_subproblems;
     st.out.counters.nonfinite_box_projections += rs.counters.nonfinite_box_projections;
+    st.out.counters.elastic_last_rung_fallbacks += rs.counters.elastic_last_rung_fallbacks;
     // THE EXCURSION RECORD DOES NOT FOLD AND CANNOT (M7 W2 M2): this sub-solve
     // runs with `allow_restoration_` false, so its own `restoration_entries` is
     // structurally 0 and its four absolutes are untouched defaults. Folding a
@@ -5224,10 +5241,29 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     // THE RESUME TEST READS THE BOX TOO (M7 W2 ladder, L2): a point inside its
     // rows but outside its box is not feasible (E2-D3: SAWPATH resumed at h = 0,
     // 3.56 outside). `h_r` itself stays the rows' measure for the funnel and S5.
-    if (h_r + box_violation_l1(x_r, seam.lower(), seam.upper()) <= opts_.feas_tol) {
+    //
+    // THE SUFFICIENT-REDUCTION RESUME (M7 W2 P1E; SqpOptions::
+    // restoration_resume_reduction): the phase also hands back a point whose
+    // violation it cut to that fraction of the entry's -- the funnel/filter
+    // restoration exit (KLV Sec. 3; Waechter-Biegler 2006 Sec. 3.3), not
+    // feasibility. Only from a sub-solve that certifies nothing: a certifying
+    // kOptimal keeps its certificate, and a stopped or budget-spent sub-solve
+    // its own exit. The box must hold as it does for the feasible resume.
+    const double box_r = box_violation_l1(x_r, seam.lower(), seam.upper());
+    const double resume_measure = h_r + box_r;
+    const bool reduction_resume =
+        opts_.restoration_resume_reduction > 0.0 && resume_measure > opts_.feas_tol &&
+        box_r <= opts_.feas_tol && h_r <= opts_.restoration_resume_reduction * excursion_h_in &&
+        (rs.status == SolveStatus::kNumericalError ||
+         (rs.status == SolveStatus::kOptimal && kkt_r.feasibility <= opts_.feas_tol));
+    if (resume_measure <= opts_.feas_tol || reduction_resume) {
+        if (reduction_resume) {
+            ++st.out.counters.restoration_reduction_resumes;
+        }
         // THE EXCURSION RECORD, WRITTEN BEFORE THE MOVE BELOW takes `ev_r`
         // apart (M7 W2 M2, signal S5). This is the RESUME arm, so `h_out` is
-        // inside `feas_tol` by the test above and `f_out` is the objective the
+        // inside `feas_tol` by the test above -- or the entry is counted in
+        // `restoration_reduction_resumes` -- and `f_out` is the objective the
         // solve now carries forward.
         record_restoration_excursion(st.out.counters, excursion_h_in, h_r, excursion_f_in, ev_r.f,
                                      rs.status);

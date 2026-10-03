@@ -1912,8 +1912,9 @@ struct SqpCounters {
     /// `h_out` of the record: the same quantity as `restoration_h_in`, at the
     /// restored point, and the exact value the resume test compares against
     /// `SqpOptions::feas_tol`. So `restoration_h_out <= feas_tol` iff that
-    /// entry took the RESUME arm, and a reader can tell the two arms apart
-    /// without a second field.
+    /// entry took the RESUME arm -- at `SqpOptions::restoration_resume_reduction
+    /// > 0` an entry that `restoration_reduction_resumes` counted resumed too
+    /// (M7 W2 P1E), so a reader needs that second field only then.
     ///
     /// Same overwrite rule, same units, same non-fold as `restoration_h_in`.
     double restoration_h_out = 0.0;
@@ -1985,7 +1986,9 @@ struct SqpCounters {
     /// WHAT IT DOES NOT SAY IS WHETHER THE PARENT RESUMED (M7 W2 M3a fix1).
     /// The resume decision is `restoration_h_out <= SqpOptions::feas_tol` and
     /// NOTHING ELSE -- `enter_restoration` takes it before it looks at the
-    /// sub-solve's status at all -- so a sub-solve that returned a feasible
+    /// sub-solve's status at all (the M7 W2 P1E sufficient-reduction resume, off
+    /// by default, is the one exception: it reads the status, see
+    /// `restoration_reduction_resumes`) -- so a sub-solve that returned a feasible
     /// enough point with `kMaxIter` or `kInterrupted` resumes exactly as a
     /// `kOptimal` one does. It is CERTIFICATION that requires `kOptimal`. An
     /// earlier draft of this note said the resume was reachable from `kOptimal`
@@ -2069,6 +2072,15 @@ struct SqpCounters {
     ///        re-evaluated at the box projection before the guard above reads them.
     ///        Appended last; FOLDED from the restoration sub-solve.
     Index nonfinite_box_projections = 0;
+    /// @brief THE LAST OPTIMAL RUNG (M7 W2 P1E, `SqpOptions::elastic_last_optimal_rung`):
+    ///        ladders whose failing rung was replaced by the last solved one. 0 with the
+    ///        option off. Appended last; FOLDED from the restoration sub-solve.
+    Index elastic_last_rung_fallbacks = 0;
+    /// @brief THE SUFFICIENT-REDUCTION RESUME (M7 W2 P1E,
+    ///        `SqpOptions::restoration_resume_reduction`): restoration entries that
+    ///        resumed with `restoration_h_out > feas_tol`. 0 with the option off. Not
+    ///        folded: the sub-solve never restores.
+    Index restoration_reduction_resumes = 0;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -2132,7 +2144,9 @@ struct SqpCounters {
     X(qp_failure_steps_judged, counter_never_absent)                                               \
     X(qp_failure_steps_accepted, counter_never_absent)                                             \
     X(nonfinite_subproblems, counter_never_absent)                                                 \
-    X(nonfinite_box_projections, counter_never_absent)
+    X(nonfinite_box_projections, counter_never_absent)                                             \
+    X(elastic_last_rung_fallbacks, counter_never_absent)                                           \
+    X(restoration_reduction_resumes, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =
@@ -2141,7 +2155,7 @@ inline constexpr std::size_t kSqpCountersFieldCount =
 
 // PLUS TWO: `ssn` and `ipqp` are nested aggregates, each counted as ONE
 // initializer by the arity trick and serialized through its own table above, so
-// the table holds the 61 direct fields and the struct takes 63 initializers.
+// the table holds the 63 direct fields and the struct takes 65 initializers.
 // (37 -> 38 at M6 W5 T8.5, which appended `polish_ignored` after both nested
 // aggregates -- last in declaration order, so the table order below is still
 // the struct's and every pre-existing offset is unmoved. 38 -> 39 at M7 W2 M4,
@@ -2171,7 +2185,9 @@ inline constexpr std::size_t kSqpCountersFieldCount =
 // moves and `sizeof` goes 904 -> 912. 57 -> 60 at M7 W2 R2, which appended the
 // failed-subproblem step group and `nonfinite_subproblems` the same way and for the
 // same reason: three `Index` fields last, `sizeof` 912 -> 936. 60 -> 61 at M7 W2 W1,
-// `nonfinite_box_projections`, the same way: `sizeof` 936 -> 944.)
+// `nonfinite_box_projections`, the same way: `sizeof` 936 -> 944. 61 -> 63 at M7 W2
+// P1E, `elastic_last_rung_fallbacks` and `restoration_reduction_resumes`, the same way:
+// `sizeof` 944 -> 960.)
 static_assert(::hven::detail::kAggregateArity<SqpCounters> == kSqpCountersFieldCount + 2,
               "SqpCounters and HVEN_SQP_COUNTERS_FIELDS disagree: give the new field an X() entry "
               "in its declaration position, or -- if it is a new NESTED aggregate -- give it a "

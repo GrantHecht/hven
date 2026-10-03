@@ -707,7 +707,7 @@ FIRST `double`s IN THE DIRECT BLOCK.**
 |---|---|---|---|
 | `restoration_entries` | integer | `SqpCounters::restoration_entries` | restoration phases that RAN and were MEASURED — the resume arm and the not-feasible-enough arm. NOT `restoration_iters`, which counts the sub-solve's majors: one entry of sixteen iterations reads `1` here and `16` there. The three refusals (nested, the once-per-solve cap, no budget) and the non-finite exit move nothing |
 | `restoration_h_in` | number | `SqpCounters::restoration_h_in` | the l1 constraint violation `sum \|c_e\| + sum max(0, c_i)` at the iterate that REQUESTED the last measured entry — not at the seed the phase may have started from |
-| `restoration_h_out` | number | `SqpCounters::restoration_h_out` | the same quantity at the point that entry RETURNED, and the exact value the resume test compares against `SqpOptions::feas_tol`. So `restoration_h_out <= feas_tol` iff that entry resumed |
+| `restoration_h_out` | number | `SqpCounters::restoration_h_out` | the same quantity at the point that entry RETURNED, and the exact value the resume test compares against `SqpOptions::feas_tol`. So `restoration_h_out <= feas_tol` iff that entry resumed -- unless `SqpOptions::restoration_resume_reduction > 0`, when an entry counted in `restoration_reduction_resumes` also resumed (M7 W2 P1E) |
 | `restoration_f_in` | number | `SqpCounters::restoration_f_in` | the objective at the requesting iterate. An ABSOLUTE, never a ratio: a ratio is undefined near `f_in = 0` and meaningless across a sign change |
 | `restoration_f_out` | number | `SqpCounters::restoration_f_out` | the objective at the returned point — with `restoration_f_in`, the excursion the phase made. On the resume arm it is the `f` the solve carries forward, so the next `sqp.major` line's `f` is this value |
 
@@ -815,6 +815,19 @@ counters object gains exactly one key between `nonfinite_subproblems` and the
 `ssn` object and the two nested tables' distinct values shift up by one; nothing
 else moves. No sentinel. The two golden lines are re-derived ONCE for it, and
 both carry a "RE-DERIVED AT M7 W2 W1" note.
+
+**THE DIRECT COUNTERS M7 W2 P1E APPENDED — TWO.**
+
+| counter | type | source | meaning |
+|---|---|---|---|
+| `elastic_last_rung_fallbacks` | integer | `SqpCounters::elastic_last_rung_fallbacks` | elastic ladders whose failing rung was replaced by the last solved rung (`SqpOptions::elastic_last_optimal_rung`); 0 with the option off. Folded from the restoration sub-solve |
+| `restoration_reduction_resumes` | integer | `SqpCounters::restoration_reduction_resumes` | restoration entries that RESUMED at `restoration_h_out > feas_tol`, by the sufficient-reduction rule (`SqpOptions::restoration_resume_reduction`); 0 with the option off. Not folded (the sub-solve never restores) |
+
+LAST in the table and last in the struct, after `nonfinite_box_projections`, so
+the counters object gains exactly two keys between `nonfinite_box_projections`
+and the `ssn` object and the two nested tables' distinct values shift up by two;
+nothing else moves. No sentinel. The two golden lines are re-derived ONCE for
+them, and both carry a "RE-DERIVED AT M7 W2 P1E" note.
 
 ## 6. The mode-selection telemetry on `sqp.major`
 

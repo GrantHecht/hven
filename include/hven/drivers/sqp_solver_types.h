@@ -900,6 +900,28 @@ struct SqpOptions {
     /// @see docs/notes/2026-09-22-sqp-degeneracy-proposal.md
     bool equality_basis = true;
 
+    /// THE ELASTIC WALK'S FEASIBLE START (M7 W2 P1E). True starts each elastic walk
+    /// ladder at the witness point (p_ref, |r| / sigma), feasible by construction
+    /// (`place_elastic_seed_at_witness`, elastic.h), and keeps rung k's x as rung k+1's
+    /// start (only g moves, so it stays feasible). False starts every rung at (0, 0),
+    /// off its own relaxed rows. Walk rungs only; the tier rung keeps its own chain.
+    /// @see docs/counters.md (elastic tier)
+    bool elastic_witness_start = false;
+
+    /// THE LAST OPTIMAL RUNG (M7 W2 P1E). True: a ladder rung that fails above a
+    /// solved rung reports the solved rung (an optimal l1-penalty step at the lower
+    /// rho) instead of the failure; `SqpCounters::elastic_last_rung_fallbacks`.
+    bool elastic_last_optimal_rung = false;
+
+    /// THE SUFFICIENT-REDUCTION RESUME (M7 W2 P1E), a fraction in [0, 1); 0 = OFF.
+    /// At k > 0 the restoration phase also resumes at a point with
+    /// `h_r <= k * restoration_h_in` and its box held, when the sub-solve certified
+    /// nothing (kNumericalError, or a kOptimal the convergence test calls feasible).
+    /// The funnel restoration exit (KLV Sec. 3) rather than feasibility; such an
+    /// entry is counted in `SqpCounters::restoration_reduction_resumes`. `validate()`
+    /// refuses a value outside [0, 1) and a NaN.
+    double restoration_resume_reduction = 0.0;
+
     /// The options both engines share (drivers/common_options.h), at the SQP
     /// engine's own defaults -- `threads = 0` ("leave the backend alone", which
     /// is what this engine has always done; the process-wide MKL_NUM_THREADS pin
@@ -944,7 +966,8 @@ struct SqpOptions {
 ///         scaling fields, since `qp_mode` is a value a caller may change later.
 ///         `QpMode::kQpModeCount` names no kernel and is refused -- plus a
 ///         negative `common.threads` or `common.print_level`, or a negative,
-///         NaN or infinite `restoration_proximity`.
+///         NaN or infinite `restoration_proximity`, or a `restoration_resume_reduction`
+///         outside [0, 1) or NaN.
 void validate(const SqpOptions &opts);
 
 /// @brief Returns a full SqpOptions value for a named preset.

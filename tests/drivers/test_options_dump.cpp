@@ -54,8 +54,9 @@ using hven::solvers::SqpOptions;
 //
 // IpmOptions' 63 on Linux/Windows are 61 scalars/enums, plus `common` (ONE
 // initializer, the nested CommonOptions) and `phases` (the one sequence).
-// SqpOptions' 33 count `qp`, `ipqp` and `common` as one each (32 before M7 W2 R2
-// added `qp_failure_step`).
+// SqpOptions' 36 count `qp`, `ipqp` and `common` as one each (32 before M7 W2 R2
+// added `qp_failure_step`; 33 before M7 W2 P1E added `elastic_witness_start`,
+// `elastic_last_optimal_rung` and `restoration_resume_reduction`).
 //
 // IPMOPTIONS' FIELD COUNT IS PLATFORM-DEPENDENT and this is not a rounding
 // detail: `accel_pivot_tolerance` and `accel_zero_tolerance` are declared
@@ -70,7 +71,7 @@ constexpr std::size_t kIpmOptionsFields = 65;
 #else
 constexpr std::size_t kIpmOptionsFields = 63;
 #endif
-constexpr std::size_t kSqpOptionsFields = 33;
+constexpr std::size_t kSqpOptionsFields = 36;
 constexpr std::size_t kIpqpOptionsFields = 22;
 constexpr std::size_t kQpOptionsFields = 10;
 constexpr std::size_t kCommonOptionsFields = 3;
@@ -110,7 +111,7 @@ static_assert(sizeof(IpmOptions) == 376, "IpmOptions' layout moved on Linux x86-
                                          "was added, axis 1 above has already told you so; if "
                                          "only a TYPE changed, this is the only axis that "
                                          "noticed. Check the dump, then re-observe this value.");
-static_assert(sizeof(SqpOptions) == 424,
+static_assert(sizeof(SqpOptions) == 440,
               "SqpOptions' layout moved on Linux x86-64 -- see the IpmOptions note directly "
               "above. 376 -> 384 at M7 W0 T3, which added the `elastic_rung_engine` enum; "
               "UNCHANGED at M7 W0 T4, whose `ipqp_reseed_after_disproval` bool fits the "
@@ -132,7 +133,10 @@ static_assert(sizeof(SqpOptions) == 424,
               "whose `equality_basis` bool fits the padding after `restoration_proximity` "
               "(the size observed; the offsets not); 416 -> 424 at M7 W2 E2, whose "
               "QpOptions `independent_working_set` bool grows the embedded QpOptions "
-              "72 -> 80 (its 8-alignment; observed).");
+              "72 -> 80 (its 8-alignment; observed); 424 -> 440 at M7 W2 P1E, whose two "
+              "elastic bools fit the padding after `equality_basis` and whose "
+              "`restoration_resume_reduction` double adds eight bytes and moves `common` "
+              "(observed).");
 static_assert(sizeof(IpqpOptions) == 152, "IpqpOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(QpOptions) == 80, "QpOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(CommonOptions) == 12, "CommonOptions' layout moved on Linux x86-64.");
@@ -144,8 +148,9 @@ static_assert(sizeof(CommonOptions) == 12, "CommonOptions' layout moved on Linux
 // IpmOptions: 62 own lines (the 63 fields less `common`, which is nested) plus
 // CommonOptions' 3 = 65 -- and 67 on an Accelerate build, where the two
 // `accel_*` fields exist and the dump prints them.
-// SqpOptions: 30 own lines (the 33 fields less `qp`, `ipqp` and `common`) plus
-// QpOptions' 10, IpqpOptions' 22 and CommonOptions' 3 = 65. (29 own lines and 64
+// SqpOptions: 33 own lines (the 36 fields less `qp`, `ipqp` and `common`) plus
+// QpOptions' 10, IpqpOptions' 22 and CommonOptions' 3 = 68. (30 and 65 before M7 W2
+// P1E added its three fields; 29 own lines and 64
 // before M7 W2 R2 added `qp_failure_step`; 22 own lines and 56
 // before M7 W0 T3 added `elastic_rung_engine`; 23 and 57 before M7 W0 T4 added
 // `ipqp_reseed_after_disproval`; 24 and 58 before M7 W2 M4 added
@@ -159,7 +164,7 @@ constexpr int kIpmDumpLines = 67;
 #else
 constexpr int kIpmDumpLines = 65;
 #endif
-constexpr int kSqpDumpLines = 65;
+constexpr int kSqpDumpLines = 68;
 
 int count_lines(const std::string &text) {
     int n = 0;

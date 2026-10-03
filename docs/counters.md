@@ -244,7 +244,9 @@ one of those three therefore cannot silently miss the trace.
     resume test compares against `feas_tol`, and a record with one half in each
     space would report a scale factor as an excursion. `restoration_h_out <=
     feas_tol` therefore says the entry RESUMED, and nothing else has to be read
-    to tell the two arms apart.
+    to tell the two arms apart -- except at `SqpOptions::
+    restoration_resume_reduction > 0` (M7 W2 P1E), where an entry counted in
+    `restoration_reduction_resumes` resumed above `feas_tol`.
   * **Absolutes, never ratios.** An objective ratio is undefined at `f_in` near
     zero and meaningless across a sign change, and the TRAIN cells in
     restoration's neighbourhood include negative objectives.
@@ -267,9 +269,22 @@ one of those three therefore cannot silently miss the trace.
   both are read off `restoration_h_out` instead: whether the entry RESUMED (the
   parent takes that decision on `h_out <= feas_tol` alone, before it inspects
   the sub-status at all, so a feasible enough point returned with `max_iter` or
-  `interrupted` resumes exactly as an `optimal` one does), and whether the
+  `interrupted` resumes exactly as an `optimal` one does; the one exception is
+  the sufficient-reduction resume below, which reads it), and whether the
   solve holds a CERTIFICATE (that one does require the sub-solve's `kOptimal`,
   and `SqpResult::infeasibility_certified` is what reports it).
+
+  **THE SUFFICIENT-REDUCTION RESUME** (M7 W2 P1E,
+  `SqpOptions::restoration_resume_reduction = k`, default 0 = off). At `k > 0`
+  an entry also RESUMES at `h_out <= k * h_in` with its box held, when the
+  sub-solve certified nothing (`numerical_error`, or an `optimal` whose point
+  the convergence test calls feasible -- CERT-1's no-claim case);
+  `restoration_reduction_resumes` counts those entries, so with it on the resume
+  reading is `h_out <= feas_tol || restoration_reduction_resumes moved`. A
+  certifying `optimal`, `max_iter` and `interrupted` never take it.
+  `elastic_last_rung_fallbacks` (the same round) counts elastic ladders that
+  handed back their last solved rung (`SqpOptions::elastic_last_optimal_rung`);
+  it folds from the restoration sub-solve like `elastic_escalations`.
 
   THE THREE REFUSALS AND THE NON-FINITE EXIT WRITE NOTHING. A nested
   restoration, the once-per-solve cap and a spent budget never enter the phase;

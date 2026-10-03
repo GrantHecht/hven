@@ -33,6 +33,7 @@ set(HVEN_SQP_TEST_SOURCES
     test_dense_oracle.cpp
     test_disproved_entry.cpp
     test_elastic_rung_vehicle.cpp
+    test_elastic_witness_start.cpp
     test_eqp_refine_ab.cpp
     test_equality_basis.cpp
     test_eqp_solve.cpp
@@ -116,6 +117,11 @@ target_include_directories(hven_sqp_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 # and absolute so the test does not depend on ctest's working directory; the
 # test asserts the file exists and contains the invocations it expects, so a
 # wrong path fails loudly rather than scanning nothing.
+# M7 W2 P1E: the E2-D4 dump fixtures (tests/qp/support/qp_dump.h loads them) for
+# test_elastic_witness_start.cpp, read in place, absolute as for the walk seam target.
+target_compile_definitions(hven_sqp_tests PRIVATE
+    HVEN_QP_E2D4_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/../qp/fixtures/e2-d4")
+
 target_compile_definitions(hven_sqp_tests
     PRIVATE HVEN_SQP_SOLVER_SOURCE="${CMAKE_CURRENT_SOURCE_DIR}/../../src/drivers/sqp_solver.cpp")
 

@@ -178,6 +178,39 @@ QpSolution elastic_seed(const ElasticQp &e, const QpSolution &failed) {
     return s;
 }
 
+void place_elastic_seed_at_witness(const ElasticQp &e, const QpProblem &qp, QpSolution &seed) {
+    const Index n = e.n_orig;
+    const Index n2 = e.qp.n();
+    if (seed.x.size() != n2 || static_cast<Index>(seed.bound_state.size()) != n2 || qp.n() != n) {
+        return;
+    }
+    // The residuals build_elastic_subproblem relaxed, re-measured at the same point.
+    const Vec eq_res = qp.me() > 0 ? Vec(qp.be - qp.Ae * e.p_ref) : Vec(0);
+    const Vec in_res = qp.mi() > 0 ? Vec(qp.Ai * e.p_ref - qp.bi) : Vec(0);
+    seed.x.head(n) = e.p_ref;
+    seed.x.tail(n2 - n).setZero();
+    for (Index k = 0; k < qp.me(); ++k) {
+        const Index col = e.eq_slack[static_cast<std::size_t>(k)];
+        if (col != kNoSlack) {
+            seed.x(col) = std::abs(eq_res(k)) / e.slack_scale(col - n);
+        }
+    }
+    for (Index j = 0; j < qp.mi(); ++j) {
+        const Index col = e.ineq_slack[static_cast<std::size_t>(j)];
+        if (col != kNoSlack) {
+            seed.x(col) = in_res(j) / e.slack_scale(col - n);
+        }
+    }
+    for (Index i = 0; i < n2; ++i) {
+        BoundState &bs = seed.bound_state[static_cast<std::size_t>(i)];
+        const bool keep = (bs == BoundState::kAtLower && e.qp.lower(i) == seed.x(i)) ||
+                          (bs == BoundState::kAtUpper && e.qp.upper(i) == seed.x(i));
+        if ((bs == BoundState::kAtLower || bs == BoundState::kAtUpper) && !keep) {
+            bs = BoundState::kFree;
+        }
+    }
+}
+
 QpSolution elastic_project(const ElasticQp &e, const QpProblem &qp, const QpSolution &aug,
                            bool carry_multipliers) {
     const Index n = e.n_orig;

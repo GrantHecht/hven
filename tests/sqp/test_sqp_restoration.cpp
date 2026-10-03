@@ -2885,6 +2885,47 @@ TEST(RestorationProximityOption, ShipsAtZeroAndCarriesADumpLineInDeclarationPosi
     EXPECT_LT(text.find("restoration_proximity"), text.find("common.threads"));
 }
 
+// M7 W2 P1E -- the sufficient-reduction resume's boundary and its certificate guard.
+TEST(RestorationResumeReductionOption, RefusesAFractionOutsideTheUnitIntervalByNameAndValue) {
+    SqpOptions o;
+    EXPECT_DOUBLE_EQ(o.restoration_resume_reduction, 0.0) << "OFF by default";
+    for (const double bad : {-0.5, 1.0, 2.0, std::numeric_limits<double>::infinity(),
+                             std::numeric_limits<double>::quiet_NaN()}) {
+        o.restoration_resume_reduction = bad;
+        try {
+            SqpSolver driver(o);
+            FAIL() << "accepted " << bad;
+        } catch (const std::invalid_argument &e) {
+            EXPECT_NE(std::string(e.what()).find("restoration_resume_reduction"), std::string::npos)
+                << e.what();
+        }
+    }
+    for (const double good : {0.0, 1e-3, 0.999}) {
+        o.restoration_resume_reduction = good;
+        EXPECT_NO_THROW(SqpSolver{o}) << good;
+    }
+    o.restoration_resume_reduction = 0.25;
+    std::ostringstream os;
+    dump_options(o, os);
+    EXPECT_NE(os.str().find("restoration_resume_reduction = 0.25\n"), std::string::npos);
+}
+
+// A CERTIFYING kOptimal never resumes by reduction, however far it cut h.
+TEST(RestorationResumeReductionOption, ACertifyingSubSolveKeepsItsCertificate) {
+    InfeasibleCircleLineModel model;
+    SqpOptions opts;
+    opts.max_iter = 200;
+    opts.restoration_resume_reduction = 0.999;
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
+    ASSERT_EQ(sol.counters.restoration_entries, 1);
+    // THE PREMISE: the entry cut h below the fraction, so only the guard refuses it.
+    ASSERT_LE(sol.counters.restoration_h_out, 0.999 * sol.counters.restoration_h_in);
+    EXPECT_EQ(sol.counters.restoration_reduction_resumes, 0);
+    EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
+    EXPECT_TRUE(sol.infeasibility_certified);
+}
+
 // =========================================================================
 // FIX ROUND 1 (M7 W2 M2b) -- the certificate's finite-tolerance boundary, the
 // seed guard driven end to end, and the refusals' message content.

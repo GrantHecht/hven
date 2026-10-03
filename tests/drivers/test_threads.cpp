@@ -459,9 +459,11 @@ void expect_ipqp_counters_identical(const IpqpCounters &a, const IpqpCounters &b
 // six `Index` whose first lands in that enum's padding; 63 and 61 until fix
 // round 2 made that group SEVEN with `eqp_row_drift_refusals`; 66 and 64 until M7 W2
 // R2 appended `qp_failure_steps_judged`, `qp_failure_steps_accepted` and
-// `nonfinite_subproblems`; 67 and 65 until M7 W2 W1 appended `nonfinite_box_projections`.)
+// `nonfinite_subproblems`; 67 and 65 until M7 W2 W1 appended `nonfinite_box_projections`;
+// 68 and 66 until M7 W2 P1E appended `elastic_last_rung_fallbacks` and
+// `restoration_reduction_resumes`.)
 void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
-    static_assert(sizeof(SqpCounters) == 61 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
+    static_assert(sizeof(SqpCounters) == 63 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
                   "SqpCounters changed size: add the new field to expect_counters_identical "
                   "and update this assertion.");
     HVEN_EXPECT_SAME(a, b, major_iters);
@@ -525,6 +527,8 @@ void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
     HVEN_EXPECT_SAME(a, b, qp_failure_steps_accepted);
     HVEN_EXPECT_SAME(a, b, nonfinite_subproblems);
     HVEN_EXPECT_SAME(a, b, nonfinite_box_projections);
+    HVEN_EXPECT_SAME(a, b, elastic_last_rung_fallbacks);
+    HVEN_EXPECT_SAME(a, b, restoration_reduction_resumes);
     expect_ssn_counters_identical(a.ssn, b.ssn);
     expect_ipqp_counters_identical(a.ipqp, b.ipqp);
 }

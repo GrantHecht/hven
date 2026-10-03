@@ -206,6 +206,16 @@ inline void set_elastic_penalty(ElasticQp &e, double rho) {
 /// never a correctness input.
 QpSolution elastic_seed(const ElasticQp &e, const QpSolution &failed);
 
+/// @brief THE WITNESS START (M7 W2 P1E; `SqpOptions::elastic_witness_start`): moves `seed.x`
+/// to the witness (p_ref, |r_j| / sigma_j), which satisfies every row and bound of `e.qp`, and
+/// frees every seeded bound pin whose bound is not the witness's own coordinate -- the engine
+/// moves a pinned x to its bound, which would leave the witness. Seeded rows are kept: a working
+/// row is enforced by the step, not at the start. Without it the walk starts at (0, 0), off every
+/// relaxed equality row, and spends its minors on phase-1 work (C11-4: YORKNET's elastic QP
+/// rose 43 669 -> 53 337 and stopped 1333 off its rows). `qp` is the subproblem `e` was built
+/// from. A seed of the wrong size is left unchanged.
+void place_elastic_seed_at_witness(const ElasticQp &e, const QpProblem &qp, QpSolution &seed);
+
 /// @brief Reads an augmented solution back in the ORIGINAL variables, so every
 /// consumer downstream of the elastic tier (funnel judgment, warm seed, history
 /// row, accepted step) sees exactly the shape a plain subproblem would have

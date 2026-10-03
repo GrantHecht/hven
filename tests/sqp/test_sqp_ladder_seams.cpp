@@ -16,6 +16,7 @@
 //       feas_tol but their l1 sum is not certifies nothing (BRITGAS under W1).
 
 #include <cmath>
+#include <cstdio>
 #include <utility>
 #include <vector>
 
@@ -469,6 +470,58 @@ TEST(SqpLadderSeam, CertOneAPointTheConvergenceTestCallsFeasibleIsNoCertificate)
     // solve's own convergence test calls feasible.
     EXPECT_FALSE(sol.infeasibility_certified);
     EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
+    EXPECT_EQ(sol.counters.restoration_reduction_resumes, 0) << "the option is off";
+}
+
+// M7 W2 P1E -- THE SUFFICIENT-REDUCTION RESUME. The model above, entered at x0 = (1, 1)
+// (h_in = 10): the first walk QP is forced to fail, and tr_min sits just under tr_init so the
+// first shrink hits the floor. The sub-solve converges to x0 ~ 0, CERT-1's no-claim point (l1
+// above feas_tol, every row inside it). Off: that exit makes no claim and ends the solve there.
+// At k = 0.5 it RESUMES, above feas_tol, and is counted.
+namespace {
+SqpResult reduction_resume_solve(double k) {
+    const SeamReset guard;
+    Seam::fail_walk_qps = 1000;
+    Seam::as_e2_termination = false;
+    Seam::forced_point = {1.0, 1.0};
+    SpreadMissModel model;
+    SqpOptions o = quiet();
+    o.max_iter = 200;
+    o.tr_init = 1.0;
+    o.tr_min = 0.75;
+    o.restoration_resume_reduction = k;
+    SqpSolver driver(o);
+    return driver.solve(model);
+}
+} // namespace
+
+TEST(SqpLadderSeam, TheReductionResumeTakesTheNoClaimPointAndCountsIt) {
+    const double feas_tol = SqpOptions{}.feas_tol;
+    const SqpResult off = reduction_resume_solve(0.0);
+    const SqpResult on = reduction_resume_solve(0.5);
+    for (const SqpResult *r : {&off, &on}) {
+        // THE PREMISE, both arms: one measured entry at h_in = 10, its sub-solve converged
+        // to a point inside half of it but outside feas_tol (l1).
+        ASSERT_EQ(r->counters.restoration_entries, 1);
+        ASSERT_EQ(r->counters.restoration_sub_status, RestorationSubStatus::kOptimal);
+        ASSERT_NEAR(r->counters.restoration_h_in, 10.0, 1e-5);
+        ASSERT_GT(r->counters.restoration_h_out, feas_tol);
+        ASSERT_LE(r->counters.restoration_h_out, 0.5 * r->counters.restoration_h_in);
+        EXPECT_FALSE(r->infeasibility_certified);
+    }
+    for (const SqpResult *r : {&off, &on}) {
+        std::printf("[ p1e ] reduction resume k=%s: h_in=%.6g h_out=%.6g status=%d majors=%ld "
+                    "resumes=%ld\n",
+                    r == &off ? "0" : "0.5", r->counters.restoration_h_in,
+                    r->counters.restoration_h_out, static_cast<int>(r->status),
+                    static_cast<long>(r->counters.major_iters),
+                    static_cast<long>(r->counters.restoration_reduction_resumes));
+    }
+    EXPECT_EQ(off.counters.restoration_reduction_resumes, 0);
+    EXPECT_EQ(off.status, SolveStatus::kNumericalError) << "CERT-1's no-claim exit";
+    EXPECT_EQ(on.counters.restoration_reduction_resumes, 1);
+    EXPECT_GT(on.counters.major_iters, off.counters.major_iters) << "the solve went on";
+    EXPECT_NE(on.status, SolveStatus::kInfeasible);
 }
 
 } // namespace hven::solvers

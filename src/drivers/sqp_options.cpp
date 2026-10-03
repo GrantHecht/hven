@@ -348,6 +348,16 @@ void validate(const SqpOptions &opts) {
             opts.restoration_proximity));
     }
 
+    // THE SUFFICIENT-REDUCTION RESUME (M7 W2 P1E): a fraction of the entry's
+    // violation, so [0, 1); 0 is OFF. `!(k >= 0) || !(k < 1)` refuses NaN too.
+    if (!(opts.restoration_resume_reduction >= 0.0) || !(opts.restoration_resume_reduction < 1.0)) {
+        throw std::invalid_argument(
+            fmt::format("SqpSolver: restoration_resume_reduction ({}) must be in [0, 1); it is the "
+                        "fraction of the restoration entry's violation at which the phase also "
+                        "resumes, and 0 is OFF",
+                        opts.restoration_resume_reduction));
+    }
+
     // The two CommonOptions fields (M6 W5 T8.3). Neither is read by this engine
     // yet -- T8.7 reads print_level, T8.8 reads threads -- but both are part of
     // the value a caller hands over and both are checked here, so an
@@ -569,6 +579,9 @@ void dump_options(const SqpOptions &o, std::ostream &os) {
     kv_bool(os, "qp_failure_step", o.qp_failure_step);
     kv_dbl(os, "restoration_proximity", o.restoration_proximity);
     kv_bool(os, "equality_basis", o.equality_basis);
+    kv_bool(os, "elastic_witness_start", o.elastic_witness_start);
+    kv_bool(os, "elastic_last_optimal_rung", o.elastic_last_optimal_rung);
+    kv_dbl(os, "restoration_resume_reduction", o.restoration_resume_reduction);
     kv_int(os, "common.threads", o.common.threads);
     kv_int(os, "common.print_level", o.common.print_level);
     kv_str(os, "common.start_level", enum_name(o.common.start_level));
