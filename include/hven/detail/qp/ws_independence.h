@@ -70,6 +70,7 @@
 
 #include <cstdint>
 #include <limits>
+#include <utility>
 #include <vector>
 
 #include <hven/detail/kkt/border_ops.h>
@@ -109,6 +110,57 @@ constexpr double kDepRemovalTol = kDepUndecidable;
 // distance (the theorem at QpEngine::test_candidate) -- the flip is certified at the contract's own
 // tolerance, not at kDepTol plus rounding.
 constexpr double kDepRereadKappa = 10.0;
+
+/// THE WORKING ROWS OF A ROW-MAJOR A, GATHERED ONCE (M7 W2 C13). The dependency
+/// test and the Farkas verification form A_i u and A_i^T lam with lam supported on
+/// the working rows; over the full matrix each costs O(nnz(A_i)) whatever |W| is,
+/// which on a problem with mi >> n (TAX: mi = 32 221 / 570 781, n = 360 / 1 512) is
+/// the walk's dominant cost at a degenerate vertex, where every passed-over blocker
+/// pays several of them. Here each costs O(nnz(A_W)).
+///
+/// SAME VALUES. `times` runs Eigen's own row-major kernel on the gathered rows, the
+/// computation the full product does for each of them (each row is reduced
+/// independently). `add_t` runs Eigen's own transposed kernel over the same rows in
+/// the same ascending order; the full product differs only by the rows it skips,
+/// whose lam is zero, so their contributions are +-0: they can change nothing but
+/// the sign of an exact zero, which the build's -ffast-math (-fno-signed-zeros)
+/// already declares insignificant. Measured: every TRAIN cell field-identical.
+class RowSubset {
+  public:
+    /// @param rows ascending, unique row indices of A.
+    RowSubset(const SpMatRM &A, std::vector<Index> rows) : rows_(std::move(rows)) {
+        std::vector<int> outer;
+        std::vector<int> inner;
+        std::vector<double> vals;
+        outer.reserve(rows_.size() + 1);
+        outer.push_back(0);
+        for (const Index r : rows_) {
+            for (SpMatRM::InnerIterator it(A, r); it; ++it) {
+                inner.push_back(static_cast<int>(it.col()));
+                vals.push_back(it.value());
+            }
+            outer.push_back(static_cast<int>(inner.size()));
+        }
+        sub_ = Eigen::Map<const SpMatRM>(static_cast<Index>(rows_.size()), A.cols(),
+                                         static_cast<Index>(inner.size()), outer.data(),
+                                         inner.data(), vals.data());
+    }
+    const std::vector<Index> &rows() const { return rows_; }
+    /// Entry k = (A u)(rows[k]).
+    Vec times(const Vec &u) const { return Vec(sub_ * u); }
+    /// out += A^T lam (or -=), lam(rows[k]) = vals(k), zero elsewhere.
+    void add_t(Vec &out, const Vec &vals, bool subtract) const {
+        if (subtract) {
+            out -= sub_.transpose() * vals;
+        } else {
+            out += sub_.transpose() * vals;
+        }
+    }
+
+  private:
+    std::vector<Index> rows_;
+    SpMatRM sub_;
+};
 
 /// The factor a pass holds for its CURRENT working set; read-only. Exactly one
 /// of the two paths is set, or neither (no usable factor).

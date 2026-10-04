@@ -36,6 +36,8 @@
 
 #include <hven/detail/qp/qp_engine.h>
 
+#include <optional>
+
 namespace hven::solvers {
 
 void QpEngine::attach_ledger(Ledger *ledger, std::string label_prefix) {
@@ -2030,6 +2032,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             enum class AddExit { kNone, kInfeasible, kToleranced, kRejected, kTerminate };
             AddExit add_exit = AddExit::kNone;
             std::vector<std::pair<bool, Index>> passed;
+            std::optional<PassOverScan> pass_scan; // built at the sequence's first pass-over
             const double xmag = x.lpNorm<Eigen::Infinity>();
             // The oriented blocker c^T x <= d: a row, an upper hit (e_i), or
             // a lower hit (-e_i); its value at x, its rate along p, d, and
@@ -2160,11 +2163,14 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 // one passed over before it) excluded, if none of them ends
                 // it violated by more than feas_tol * row_scale.
                 passed.emplace_back(is_ineq, block_idx);
+                if (!pass_scan.has_value()) {
+                    pass_scan.emplace(qp, ws, x, Aix, sdir);
+                }
+                pass_scan->pass(is_ineq, block_idx);
                 BlockKind k2 = BlockKind::kNone;
                 Index i2 = -1;
                 BoundState s2 = BoundState::kFree;
-                const double a2 = ratio_test_excluding(qp, ws, x, Aix, sdir, passed, k2, i2, s2,
-                                                       /*cap_at_unit=*/!ride_blocked);
+                const double a2 = pass_scan->next(sdir, k2, i2, s2, /*cap_at_unit=*/!ride_blocked);
                 bool within = true;
                 for (const auto &[pi, pidx] : passed) {
                     // A passed-over bound is oriented by the side it would
@@ -4583,6 +4589,15 @@ bool QpEngine::verify_farkas(const QpProblem &qp, const WorkingSet &ws,
         }
         return yi;
     };
+    // The same values on aw's positions (detail::RowSubset: A_W^T at O(nnz(A_W))).
+    const auto oriented_yw = [&](const Vec &vw) {
+        Vec yw(static_cast<Index>(aw.size()));
+        for (std::size_t k = 0; k < aw.size(); ++k) {
+            yw(static_cast<Index>(k)) = std::min(sign * vw(static_cast<Index>(k)), 0.0);
+        }
+        return yw;
+    };
+    const detail::RowSubset rows_w(qp.Ai, aw);
     // sum of box_part^2 over coordinates with no finite bound on the needed side.
     const auto open_sq = [&](const Vec &ve, const Vec &vw) {
         Vec b = sign * c;
@@ -4590,7 +4605,7 @@ bool QpEngine::verify_farkas(const QpProblem &qp, const WorkingSet &ws,
             b -= qp.Ae.transpose() * Vec(sign * ve);
         }
         if (qp.mi() > 0) {
-            b -= qp.Ai.transpose() * oriented_yi(vw);
+            rows_w.add_t(b, oriented_yw(vw), /*subtract=*/true);
         }
         double sq = 0.0;
         for (Index i = 0; i < n; ++i) {
@@ -4682,7 +4697,7 @@ bool QpEngine::verify_farkas(const QpProblem &qp, const WorkingSet &ws,
         implied += cert.y_e.dot(qp.be);
     }
     if (qp.mi() > 0) {
-        cert.box_part -= qp.Ai.transpose() * cert.y_i;
+        rows_w.add_t(cert.box_part, oriented_yw(v_w), /*subtract=*/true);
         implied += cert.y_i.dot(qp.bi);
     }
     // A box_part entry on a coordinate with no finite bound on its side is
@@ -4721,49 +4736,71 @@ bool QpEngine::verify_farkas(const QpProblem &qp, const WorkingSet &ws,
     return verified;
 }
 
-double QpEngine::ratio_test_excluding(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
-                                      const Vec &Aix, const Vec &p,
-                                      const std::vector<std::pair<bool, Index>> &skip,
-                                      BlockKind &kind, Index &block_idx, BoundState &block_state,
-                                      bool cap_at_unit) {
-    const auto skipped = [&](bool is_ineq, Index idx) {
-        return std::find(skip.begin(), skip.end(), std::make_pair(is_ineq, idx)) != skip.end();
-    };
-    double best = std::numeric_limits<double>::infinity();
-    kind = BlockKind::kNone;
+QpEngine::PassOverScan::PassOverScan(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                                     const Vec &Aix, const Vec &p)
+    : passed_ineq_(static_cast<std::size_t>(qp.mi()), 0),
+      passed_bound_(static_cast<std::size_t>(qp.n()), 0) {
+    constexpr double kInf = std::numeric_limits<double>::infinity();
     if (qp.mi() > 0) {
         const Vec Aip = qp.Ai * p;
         for (Index j = 0; j < qp.mi(); ++j) {
-            if (in_working(ws, j) || Aip(j) <= detail::kEngineDenomTol || skipped(true, j)) {
+            if (in_working(ws, j) || Aip(j) <= detail::kEngineDenomTol) {
                 continue;
             }
             const double ratio = std::max(0.0, qp.bi(j) - Aix(j)) / Aip(j);
-            if (ratio < best) {
-                best = ratio;
-                kind = BlockKind::kIneq;
-                block_idx = j;
+            if (ratio < kInf) { // the full scan's `ratio < best` never keeps an inf or NaN
+                cands_.push_back({ratio, false, j});
             }
         }
     }
     for (Index i = 0; i < qp.n(); ++i) {
-        if (ws.bound_state()[static_cast<std::size_t>(i)] != BoundState::kFree ||
-            skipped(false, i)) {
+        if (ws.bound_state()[static_cast<std::size_t>(i)] != BoundState::kFree) {
             continue;
         }
-        double ratio = std::numeric_limits<double>::infinity();
-        BoundState hit = BoundState::kFree;
+        double ratio = kInf;
         if (p(i) > detail::kEngineDenomTol && qp.upper(i) < detail::kEngineInfBound) {
             ratio = std::max(0.0, qp.upper(i) - x(i)) / p(i);
-            hit = BoundState::kAtUpper;
         } else if (p(i) < -detail::kEngineDenomTol && qp.lower(i) > -detail::kEngineInfBound) {
             ratio = std::min(0.0, qp.lower(i) - x(i)) / p(i);
-            hit = BoundState::kAtLower;
         }
-        if (ratio < best) {
-            best = ratio;
+        if (ratio < kInf) {
+            cands_.push_back({ratio, true, i});
+        }
+    }
+    // (ratio, rows before bounds, index): the full scan visits rows then bounds,
+    // each ascending, and keeps the first strict minimum it meets.
+    std::sort(cands_.begin(), cands_.end(), [](const Candidate &a, const Candidate &b) {
+        if (a.ratio != b.ratio) {
+            return a.ratio < b.ratio;
+        }
+        if (a.bound != b.bound) {
+            return !a.bound;
+        }
+        return a.idx < b.idx;
+    });
+}
+
+void QpEngine::PassOverScan::pass(bool is_ineq, Index idx) {
+    (is_ineq ? passed_ineq_ : passed_bound_)[static_cast<std::size_t>(idx)] = 1;
+}
+
+double QpEngine::PassOverScan::next(const Vec &p, BlockKind &kind, Index &block_idx,
+                                    BoundState &block_state, bool cap_at_unit) {
+    while (cur_ < cands_.size() && passed(cands_[cur_])) {
+        ++cur_;
+    }
+    double best = std::numeric_limits<double>::infinity();
+    kind = BlockKind::kNone;
+    if (cur_ < cands_.size()) {
+        const Candidate &c = cands_[cur_];
+        best = c.ratio;
+        block_idx = c.idx;
+        if (c.bound) {
             kind = BlockKind::kBound;
-            block_idx = i;
-            block_state = hit;
+            block_state =
+                p(c.idx) > detail::kEngineDenomTol ? BoundState::kAtUpper : BoundState::kAtLower;
+        } else {
+            kind = BlockKind::kIneq;
         }
     }
     if (!cap_at_unit) {

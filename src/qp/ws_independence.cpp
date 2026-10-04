@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cstddef>
 #include <limits>
+#include <optional>
 
 #include <Eigen/Eigenvalues>
 
@@ -26,6 +27,28 @@ struct DepSystem {
     std::vector<Index> comp_pos;
     std::vector<WsMember> comp;
     BorderedSystem bsys; // border path only
+    // The kRow members' rows, ascending, gathered once (RowSubset), and each
+    // kRow member's position in it (-1 for other kinds).
+    std::optional<RowSubset> rows_w;
+    std::vector<Index> comp_row_pos;
+
+    void gather_rows(const QpProblem &qp) {
+        std::vector<Index> rows;
+        for (const WsMember &m : comp) {
+            if (m.kind == WsMember::Kind::kRow) {
+                rows.push_back(m.idx);
+            }
+        }
+        std::sort(rows.begin(), rows.end());
+        comp_row_pos.assign(comp.size(), -1);
+        for (std::size_t k = 0; k < comp.size(); ++k) {
+            if (comp[k].kind == WsMember::Kind::kRow) {
+                comp_row_pos[k] = static_cast<Index>(
+                    std::lower_bound(rows.begin(), rows.end(), comp[k].idx) - rows.begin());
+            }
+        }
+        rows_w.emplace(qp.Ai, std::move(rows));
+    }
 
     DepSystem(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &fv,
               const QpOptions &opts)
@@ -65,6 +88,7 @@ struct DepSystem {
                     push(n0 + static_cast<Index>(b), WsMember::Kind::kRow, e.target);
                 }
             }
+            gather_rows(qp);
             return;
         }
         Index nf = 0;
@@ -80,6 +104,7 @@ struct DepSystem {
         for (std::size_t k = 0; k < aw.size(); ++k) {
             push(nf + me + static_cast<Index>(k), WsMember::Kind::kRow, aw[k]);
         }
+        gather_rows(qp);
     }
 
     void push(Index pos, WsMember::Kind kind, Index idx) {
@@ -94,7 +119,7 @@ struct DepSystem {
     // A_W^T y in full-variable space, from y's constraint components.
     Vec at_times(const QpProblem &qp, const Vec &y) const {
         Vec lam_e = Vec::Zero(qp.me());
-        Vec lam_i = Vec::Zero(qp.mi());
+        Vec lam_i = Vec::Zero(static_cast<Index>(rows_w->rows().size()));
         Vec out = Vec::Zero(qp.n());
         for (std::size_t k = 0; k < comp.size(); ++k) {
             const double yk = y(comp_pos[k]);
@@ -103,7 +128,7 @@ struct DepSystem {
                 lam_e(comp[k].idx) += yk;
                 break;
             case WsMember::Kind::kRow:
-                lam_i(comp[k].idx) += yk;
+                lam_i(comp_row_pos[k]) += yk;
                 break;
             case WsMember::Kind::kPin:
                 out(comp[k].idx) += yk;
@@ -114,7 +139,7 @@ struct DepSystem {
             out += qp.Ae.transpose() * lam_e;
         }
         if (qp.mi() > 0) {
-            out += qp.Ai.transpose() * lam_i;
+            rows_w->add_t(out, lam_i, /*subtract=*/false);
         }
         return out;
     }
@@ -139,7 +164,7 @@ struct DepSystem {
         const Vec top =
             Vec(qp.H.selfadjointView<Eigen::Upper>() * u) + opts.primal_delta * u + at_times(qp, y);
         const Vec ae_u = qp.me() > 0 ? Vec(qp.Ae * u) : Vec::Zero(0);
-        const Vec ai_u = qp.mi() > 0 ? Vec(qp.Ai * u) : Vec::Zero(0);
+        const Vec ai_u = qp.mi() > 0 ? rows_w->times(u) : Vec::Zero(0);
         Vec r = rhs;
         for (Index i = 0; i < n; ++i) {
             const Index p = var_pos[static_cast<std::size_t>(i)];
@@ -152,7 +177,7 @@ struct DepSystem {
             if (m.kind == WsMember::Kind::kEq) {
                 r(comp_pos[k]) -= ae_u(m.idx);
             } else if (m.kind == WsMember::Kind::kRow) {
-                r(comp_pos[k]) -= ai_u(m.idx);
+                r(comp_pos[k]) -= ai_u(comp_row_pos[k]);
             } else {
                 r(comp_pos[k]) -= u(m.idx);
             }
@@ -264,11 +289,12 @@ DepTest dependency_test_to(const QpProblem &qp, const WorkingSet &ws, const DepF
         w -= qp.Ae.transpose() * t.v_e;
     }
     if (qp.mi() > 0) {
-        Vec lam_i = Vec::Zero(qp.mi());
-        for (std::size_t k = 0; k < aw.size(); ++k) {
-            lam_i(aw[k]) = t.v_w(static_cast<Index>(k));
+        // t.v_w is indexed by aw's (ascending) positions already.
+        if (sys.rows_w->rows() == aw) {
+            sys.rows_w->add_t(w, t.v_w, /*subtract=*/true);
+        } else {
+            RowSubset(qp.Ai, aw).add_t(w, t.v_w, /*subtract=*/true);
         }
-        w -= qp.Ai.transpose() * lam_i;
     }
     double free_sq = 0.0;
     for (Index i = 0; i < n; ++i) {

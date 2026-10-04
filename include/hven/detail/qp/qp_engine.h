@@ -2449,15 +2449,42 @@ class QpEngine {
                        double row_scale, const QpOptions &opts, QpFarkasCertificate &cert,
                        Index &solves) const;
 
-    // Production's ratio scan with the constraints in `skip` excluded (the
-    // no-admissible rule's pass-over), capped at the unit step unless
-    // `cap_at_unit` is false (a ride's pass-over: the raw ratio, infinite
-    // exactly when nothing blocks).
-    static double ratio_test_excluding(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
-                                       const Vec &Aix, const Vec &p,
-                                       const std::vector<std::pair<bool, Index>> &skip,
-                                       BlockKind &kind, Index &block_idx, BoundState &block_state,
-                                       bool cap_at_unit = true);
+    // THE PASS-OVER SCAN: production's ratio scan with the passed-over
+    // constraints excluded (the no-admissible rule's pass-over, N2), for ONE
+    // pass-over sequence -- p, x and the working set do not change inside it.
+    // The candidates (non-working rows with a.p > kEngineDenomTol, free
+    // variables moving toward a finite bound, finite ratio) are scored and
+    // sorted ONCE, by (ratio, rows before bounds, index): exactly the order in
+    // which the full scan's strict `<` keeps the first minimum it meets, so
+    // `next` returns the full scan's pick. Each pass-over is then O(1)
+    // amortized instead of O(mi + n) -- M7 W2 C13 measured a degenerate vertex
+    // of TAX53322 (mi = 32 221) passing over ~4 000-8 000 blockers per minor.
+    class PassOverScan {
+      public:
+        PassOverScan(const QpProblem &qp, const WorkingSet &ws, const Vec &x, const Vec &Aix,
+                     const Vec &p);
+        // Excludes a constraint from every later `next`.
+        void pass(bool is_ineq, Index idx);
+        // The smallest unpassed ratio and its constraint, capped at the unit
+        // step unless `cap_at_unit` is false (a ride's pass-over: the raw
+        // ratio, infinite exactly when nothing blocks).
+        double next(const Vec &p, BlockKind &kind, Index &block_idx, BoundState &block_state,
+                    bool cap_at_unit);
+
+      private:
+        struct Candidate {
+            double ratio;
+            bool bound;
+            Index idx;
+        };
+        bool passed(const Candidate &c) const {
+            return (c.bound ? passed_bound_ : passed_ineq_)[static_cast<std::size_t>(c.idx)] != 0;
+        }
+        std::vector<Candidate> cands_;
+        std::size_t cur_ = 0;
+        std::vector<char> passed_ineq_;
+        std::vector<char> passed_bound_;
+    };
 
     // Directional derivative of the constraint `dropped` names, along `d`.
     // Stated so that a NEGATIVE value means "d moves into that constraint's
