@@ -73,7 +73,7 @@ constexpr std::size_t kIpmOptionsFields = 63;
 #endif
 constexpr std::size_t kSqpOptionsFields = 36;
 constexpr std::size_t kIpqpOptionsFields = 22;
-constexpr std::size_t kQpOptionsFields = 10;
+constexpr std::size_t kQpOptionsFields = 11;
 constexpr std::size_t kCommonOptionsFields = 3;
 
 static_assert(::hven::detail::kAggregateArity<IpmOptions> == kIpmOptionsFields,
@@ -149,7 +149,8 @@ static_assert(sizeof(CommonOptions) == 12, "CommonOptions' layout moved on Linux
 // CommonOptions' 3 = 65 -- and 67 on an Accelerate build, where the two
 // `accel_*` fields exist and the dump prints them.
 // SqpOptions: 33 own lines (the 36 fields less `qp`, `ipqp` and `common`) plus
-// QpOptions' 10, IpqpOptions' 22 and CommonOptions' 3 = 68. (30 and 65 before M7 W2
+// QpOptions' 11, IpqpOptions' 22 and CommonOptions' 3 = 69. (10 and 68 before M7 QN
+// stage 2 added QpOptions::`hessian_known_convex`; 30 and 65 before M7 W2
 // P1E added its three fields; 29 own lines and 64
 // before M7 W2 R2 added `qp_failure_step`; 22 own lines and 56
 // before M7 W0 T3 added `elastic_rung_engine`; 23 and 57 before M7 W0 T4 added
@@ -164,7 +165,7 @@ constexpr int kIpmDumpLines = 67;
 #else
 constexpr int kIpmDumpLines = 65;
 #endif
-constexpr int kSqpDumpLines = 68;
+constexpr int kSqpDumpLines = 69;
 
 int count_lines(const std::string &text) {
     int n = 0;

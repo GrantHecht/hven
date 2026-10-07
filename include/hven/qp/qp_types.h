@@ -179,6 +179,16 @@ struct QpOptions {
     /// Keep the walk's working set linearly independent (qp/ws_independence.h).
     /// false is the pre-E2 walk.
     bool independent_working_set = true;
+
+    /// CALLER-ASSERTED CONVEXITY (M7 QN stage 2). True says "H is positive semidefinite on all
+    /// of R^n", asserted by a caller that built H that way (the quasi-Newton mixed lift, whose
+    /// Hessian is PD by construction but not diagonal). The walk's convex certificate
+    /// (qp_engine.h section 4c) accepts it in place of its own structural test
+    /// (detail::hessian_is_nonneg_diagonal); that is the ONE read of this field, and only with
+    /// independent_working_set on. Never verified: a false assertion on an indefinite H lets a
+    /// first-order point stand where the saddle exit would have searched. The default keeps the
+    /// structural test alone, so default-constructed options behave exactly as before.
+    bool hessian_known_convex = false;
 };
 
 /// @brief A field-wise hash of the options a QpEngine was built under, plus the
@@ -195,9 +205,11 @@ struct QpOptions {
 /// for other settings. This value closes that gap: `hot_state()` stamps it and
 /// `run()` adopts only a handle whose stamp equals the adopting engine's own.
 ///
-/// EVERY FIELD OF QpOptions IS COVERED -- all nine (primal_delta, dual_mu,
+/// EVERY FIELD OF QpOptions IS COVERED -- all eleven (primal_delta, dual_mu,
 /// feas_tol, opt_tol, max_iter, schur_cap, schur_cond_max, ws_algebra,
-/// tr_radius) -- because a field left out is a hole of exactly the kind above.
+/// tr_radius, independent_working_set, hessian_known_convex; the last is folded
+/// only when set, so a default value hashes as it did before the field existed)
+/// -- because a field left out is a hole of exactly the kind above.
 /// Add a field to QpOptions and you add it here; the field-coverage test in
 /// tests/drivers/test_options.cpp flips each one alone and requires the hash to
 /// move.

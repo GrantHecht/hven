@@ -533,6 +533,7 @@ void dump_options(const SqpOptions &o, std::ostream &os) {
     kv_str(os, "qp.ws_algebra", enum_name(o.qp.ws_algebra));
     kv_dbl(os, "qp.tr_radius", o.qp.tr_radius);
     kv_bool(os, "qp.independent_working_set", o.qp.independent_working_set);
+    kv_bool(os, "qp.hessian_known_convex", o.qp.hessian_known_convex);
     // A CALLABLE, not a configuration: see the declaration's note.
     kv_str(os, "make_strategy", o.make_strategy ? "set" : "unset");
     kv_bool(os, "warm_full_step", o.warm_full_step);

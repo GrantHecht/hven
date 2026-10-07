@@ -96,6 +96,11 @@ std::uint64_t options_fingerprint(const QpOptions &opts, int threads) {
     fold(static_cast<std::uint64_t>(opts.ws_algebra));
     fold_double(opts.tr_radius);
     fold(static_cast<std::uint64_t>(opts.independent_working_set));
+    // Folded ONLY when set, so every default-constructed options value hashes exactly as it did
+    // before the field existed.
+    if (opts.hessian_known_convex) {
+        fold(1);
+    }
     // And the thread count in force, which is not a QpOptions field but IS part
     // of what a factorization was built under.
     fold(static_cast<std::uint64_t>(static_cast<std::int64_t>(threads)));
@@ -3774,7 +3779,7 @@ bool QpEngine::convex_overrules_wrong_inertia(const QpProblem &qp, const Working
                                               const QpOptions &opts,
                                               detail::InertiaVerdict &verdict) {
     if (!opts.independent_working_set || verdict != detail::InertiaVerdict::kWrong ||
-        !detail::hessian_is_nonneg_diagonal(qp.H)) {
+        !(opts.hessian_known_convex || detail::hessian_is_nonneg_diagonal(qp.H))) {
         return false;
     }
     // FIRST ORDER, in the suspect-stall gate's own currency, BEFORE anything

@@ -345,7 +345,8 @@
 //    restart is spent first, as before; a failed one falls through to this), in
 //    place of the saddle search:
 //    when every stored entry of H is exactly 0 off the diagonal and >= 0 on it
-//    (detail::hessian_is_nonneg_diagonal; an LP is H == 0), H is PSD on all of
+//    (detail::hessian_is_nonneg_diagonal; an LP is H == 0) or the caller asserts
+//    it (QpOptions::hessian_known_convex, default false), H is PSD on all of
 //    R^n, so every K the walk factorizes, [H_F + delta I, A'; A, -mu I], is
 //    quasi-definite and its TRUE inertia IS the expectation: a trusted kWrong
 //    read is a misread (a flat face's delta-sized null-space pivots signed by
@@ -2173,7 +2174,8 @@ class QpEngine {
     // is stationary in opt_tol currency (free_block_is_stationary) replaces the
     // kWrong by kSuspect -- the read is a misread, not evidence -- and counts it
     // (convex_certificates). independent_working_set only. Returns true iff the
-    // verdict was replaced.
+    // verdict was replaced. QpOptions::hessian_known_convex stands in for the
+    // structural test (a caller's assertion, never verified here).
     static bool convex_overrules_wrong_inertia(const QpProblem &qp, const WorkingSet &ws,
                                                const Vec &x, const Vec &lambda_e,
                                                const Vec &lambda_i, QpCounters &counters,

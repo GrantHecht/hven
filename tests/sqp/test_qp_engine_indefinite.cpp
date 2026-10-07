@@ -57,6 +57,13 @@ struct QpEngineTestAccess {
                                         QpCounters &counters, const QpOptions &opts) {
         return eng.probe_inertia(qp, ws, Vec::Zero(qp.n()), kkt, face, border, counters, opts);
     }
+    // M7 QN stage 2: the convex certificate's gate, read directly (the flag's one consumer).
+    static bool convex_overrules(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                                 const Vec &lambda_e, const Vec &lambda_i, QpCounters &counters,
+                                 const QpOptions &opts, detail::InertiaVerdict &verdict) {
+        return QpEngine::convex_overrules_wrong_inertia(qp, ws, x, lambda_e, lambda_i, counters,
+                                                        opts, verdict);
+    }
 };
 } // namespace hven::solvers
 
@@ -2823,5 +2830,82 @@ TEST(QpEngineIndefinite, T7Fix2DualMuZeroOnARankDeficientFaceDoesNotEscapeSolve)
         ASSERT_NO_THROW(warm = eng.solve(qp, cold));
         EXPECT_EQ(warm.status, QpStatus::kInfeasible);
         EXPECT_TRUE(warm.x.allFinite());
+    }
+}
+
+// M7 QN stage 2: QpOptions::hessian_known_convex is the ONE caller assertion the walk's convex
+// certificate (section 4c) accepts in place of its structural test (a nonnegative DIAGONAL H).
+// The quasi-Newton lift's H is positive definite but not diagonal. The gate is read directly:
+// a trusted kWrong at a first-order point of a QP whose H = [[1,1],[1,1]] (PSD, off-diagonal).
+namespace {
+struct ConvexGateFixture {
+    QpProblem qp;
+    WorkingSet ws{2, 0};
+    Vec x{{1.0, 0.0}};
+    Vec none = Vec::Zero(0);
+    explicit ConvexGateFixture(double h01) {
+        qp.H = SpMatRM(2, 2);
+        qp.H.insert(0, 0) = 1.0;
+        qp.H.insert(0, 1) = h01;
+        qp.H.insert(1, 1) = 1.0;
+        qp.H.makeCompressed();
+        qp.g = Vec{{-1.0, -h01}}; // grad = H x + g = 0 at x = (1, 0): a first-order point
+        qp.Ae = Eigen::SparseMatrix<double, Eigen::RowMajor>(0, 2);
+        qp.Ai = Eigen::SparseMatrix<double, Eigen::RowMajor>(0, 2);
+        qp.be = Vec(0);
+        qp.bi = Vec(0);
+        qp.lower = Vec::Constant(2, -10.0);
+        qp.upper = Vec::Constant(2, 10.0);
+    }
+    bool gate(const QpOptions &o, QpCounters &c, detail::InertiaVerdict &v) const {
+        return QpEngineTestAccess::convex_overrules(qp, ws, x, none, none, c, o, v);
+    }
+};
+} // namespace
+
+TEST(QpEngineIndefinite, KnownConvexFlagStandsInForTheStructuralConvexTest) {
+    const ConvexGateFixture off_diag(1.0);
+    ASSERT_FALSE(detail::hessian_is_nonneg_diagonal(off_diag.qp.H));
+    for (const bool flag : {false, true}) {
+        QpOptions o;
+        o.hessian_known_convex = flag;
+        QpCounters c;
+        detail::InertiaVerdict v = detail::InertiaVerdict::kWrong;
+        const bool taken = off_diag.gate(o, c, v);
+        EXPECT_EQ(taken, flag) << "flag " << flag;
+        EXPECT_EQ(v == detail::InertiaVerdict::kSuspect, flag);
+        EXPECT_EQ(c.convex_certificates, flag ? 1 : 0);
+    }
+    // The flag is not a bypass: the first-order test still gates, the option-off walk is
+    // untouched, and a verdict other than kWrong is not rewritten.
+    {
+        QpOptions o;
+        o.hessian_known_convex = true;
+        ConvexGateFixture moved(1.0);
+        moved.x = Vec{{0.0, 0.0}}; // grad = g != 0: not a first-order point
+        QpCounters c;
+        detail::InertiaVerdict v = detail::InertiaVerdict::kWrong;
+        EXPECT_FALSE(moved.gate(o, c, v));
+        EXPECT_EQ(v, detail::InertiaVerdict::kWrong);
+        EXPECT_EQ(c.convex_certificates, 0);
+
+        o.independent_working_set = false;
+        v = detail::InertiaVerdict::kWrong;
+        EXPECT_FALSE(off_diag.gate(o, c, v));
+        o.independent_working_set = true;
+        v = detail::InertiaVerdict::kOk;
+        EXPECT_FALSE(off_diag.gate(o, c, v));
+        EXPECT_EQ(v, detail::InertiaVerdict::kOk);
+    }
+    // On a structurally convex (diagonal) H the flag changes nothing: taken either way.
+    const ConvexGateFixture diag(0.0);
+    ASSERT_TRUE(detail::hessian_is_nonneg_diagonal(diag.qp.H));
+    for (const bool flag : {false, true}) {
+        QpOptions o;
+        o.hessian_known_convex = flag;
+        QpCounters c;
+        detail::InertiaVerdict v = detail::InertiaVerdict::kWrong;
+        EXPECT_TRUE(diag.gate(o, c, v));
+        EXPECT_EQ(c.convex_certificates, 1);
     }
 }
