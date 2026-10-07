@@ -212,6 +212,7 @@ target_sources(hven PRIVATE
     drivers/trace.cpp
     drivers/trace_writer.cpp
     globalization/sqp/funnel.cpp
+    globalization/sqp/lbfgs_damped.cpp
     globalization/sqp/soc_elastic_restoration.cpp
     qp/ipqp_engine.cpp
     qp/ipqp_kkt_layout.cpp
@@ -546,7 +547,12 @@ endif()
 # 44 as of qp/ws_independence.cpp (M7 W2 E2): the QP walk's working-set
 # dependency test and entry detector. NOT a PCH source, on the same
 # unmeasured-default footing.
-set(_hven_expected_source_count 44)
+#
+# 45 as of globalization/sqp/lbfgs_damped.cpp (M7 QN stage 1): the damped compact
+# L-BFGS math class. NOT a PCH source, on the same unmeasured-default footing: it
+# includes its own header (Eigen/Dense), fmt/format.h and standard headers, a
+# different set from src/hven_pch.h's prefix.
+set(_hven_expected_source_count 45)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.
