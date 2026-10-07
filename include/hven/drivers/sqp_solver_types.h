@@ -911,6 +911,9 @@ struct SqpOptions {
     /// THE LAST OPTIMAL RUNG (M7 W2 P1E). True: a ladder rung that fails above a
     /// solved rung reports the solved rung (an optimal l1-penalty step at the lower
     /// rho) instead of the failure; `SqpCounters::elastic_last_rung_fallbacks`.
+    /// Under the fallback the report's qp_minor_iters / qp_factorizations are the solved
+    /// rung's while the counters also fold the failing rung's cost; the fallback counter
+    /// reconciles them.
     bool elastic_last_optimal_rung = false;
 
     /// THE SUFFICIENT-REDUCTION RESUME (M7 W2 P1E), a fraction in [0, 1); 0 = OFF.

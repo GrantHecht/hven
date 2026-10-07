@@ -127,7 +127,7 @@ constexpr double kDepRereadKappa = 10.0;
 /// already declares insignificant. Measured: every TRAIN cell field-identical.
 class RowSubset {
   public:
-    /// @param rows ascending, unique row indices of A.
+    /// @param rows ascending row indices of A.
     RowSubset(const SpMatRM &A, std::vector<Index> rows) : rows_(std::move(rows)) {
         std::vector<int> outer;
         std::vector<int> inner;

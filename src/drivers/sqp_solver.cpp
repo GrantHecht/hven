@@ -5435,7 +5435,8 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
         // is no certificate of infeasibility, so the exit makes NO claim there:
         // the same spelling as the sub-solve's other uncertified exits. The
         // resume test is unchanged, so `restoration_h_out <= feas_tol` still
-        // says the entry resumed.
+        // says the entry resumed, unless restoration_resume_reduction > 0 (see
+        // restoration_reduction_resumes).
         if (kkt_r.feasibility <= opts_.feas_tol) {
             st.resto.status = SolveStatus::kNumericalError;
             break;
