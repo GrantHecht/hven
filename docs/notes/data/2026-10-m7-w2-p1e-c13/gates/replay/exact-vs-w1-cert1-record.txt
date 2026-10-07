@@ -1,0 +1,3 @@
+=== W1 + CERT-1 RECORD (d495e15a) HEAD-walk vs P1E + C13 CHAIN HEAD-walk (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+=== W1 + CERT-1 RECORD (d495e15a) HEAD-ssn vs P1E + C13 CHAIN HEAD-ssn (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+=== W1 + CERT-1 RECORD (d495e15a) HEAD-ipm vs P1E + C13 CHAIN HEAD-ipm (EXACT) === cells compared: 27  columns compared: 75  differences: 0

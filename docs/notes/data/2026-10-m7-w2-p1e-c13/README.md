@@ -32,3 +32,25 @@ byte-identical copy; outside-universe declaration is one modified source and no 
 fixture-directory check changed from "named once" to "named twice, once in each of the two reader targets' compile definitions";
 the offline rehearsal script's EXACT arm names the previous GREEN record (W1 + CERT-1's `gates/replay`). Details: runner header and
 sections 0 / 2 of the derivation.
+
+## Gates (chain pid 3187409, worktree `agent-ab4a6adaeff5494bc`, declaration `dc589eef`, 2026-10-07, `gates/chain-p1e-c13.txt`)
+
+`GATES_SUMMARY G1=0 G2=0 G3=0 G4=0 G5=0 G6=0`, fold proofs **46 / 0**. **GREEN.**
+
+| gate | result |
+|---|---|
+| G1 Debug suite | 2937 / 2937 (= W1 + CERT-1's 2930 + 7 by name; 2939 started names = baseline 2932 + 7; skipped set = baseline's by name, 7) |
+| G2 long test | 1 / 1 |
+| G3 Release suite | 2938 / 2938 (= W1 + CERT-1's 2931 + 7 by name; 2940 started names = baseline 2933 + 7; skipped set = baseline's by name, 1) |
+| G4 U0 replay vs the M6 pin | the declared **43**-difference set (walk 17 / ssn 13 / ipm 13), measured set EQUALS the declared list; the chain's CSVs compared EXACT against W1 + CERT-1's `gates/replay`: 0 differences on 75 columns x 3 engines (`gates/replay/exact-vs-w1-cert1-record.txt`) |
+| G5 P-SYM | Release DIFFERING **62** = class A 10 + class B 52; Debug **63** = class A 10 + class B 53 (one declared Debug-only class B, `test_solve_status.cpp.o`, asserted byte-identical in Release); UNEXPLAINED **0** both configs; non-debug section movers 10 = the declared set both configs; DEBUG_ONLY 0 / 3; manifests 151 -> 152 with ONLY-AFTER = `test_elastic_witness_start.cpp.o` in both; the outside-universe asserts held |
+| G6 | install smoke, export contract, clang-format (17 files), `git diff --check`, `DIRTY_FILES=0` |
+
+Observations, not deviations:
+- The Release negative-control listing was **complete** in the chain (90 of 90 printed); the offline rehearsal classification had 91 (the offline tree
+  is at the AFTER state and holds the added in-universe object, the chain's classifier tree is at the BEFORE arm), the same one-object difference
+  the two previous rounds saw; the completeness assertion is on printed == stated and held.
+- Leg wall (informational): G1 6.9 min, G2 2.6, G3 5.0, G4 5.6, G5 30.9 (four builds, two configurations, inherent to the segment), G6 1.2.
+- `gates/psym-sections-{Release,Debug}.txt` keep the section checker's summary lines only (`SECTIONS_*`, `NON-DEBUG-MOVER`, `DEBUG-ONLY`, `REFUSED`).
+- The rehearsal's first attempt died at configure (rc 91) because the fresh worktree's `dep/` submodules were not initialised; they were
+  initialised (`git submodule update --init`) and the rehearsal re-run from scratch. The failed attempt left no evidence file.
