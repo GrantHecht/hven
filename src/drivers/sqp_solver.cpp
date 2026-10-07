@@ -1140,7 +1140,8 @@ void emit_qp_mode_line(TraceSink *sink, IpqpTraceQpMode mode, IpqpTraceOutcome o
 // interior-point step, not an active-set exchange), and the budget's question is "is this
 // probe spending iterations without converging?", which both answer.
 QpSolution solve_elastic_rung_on_tier(IpqpEngine &tier, const ElasticQp &elastic,
-                                      const SqpOptions &opts, bool chain_from_carry) {
+                                      const SqpOptions &opts, bool chain_from_carry,
+                                      detail::QnLiftBridge *qn) {
     // THE OVERRIDE IS LEFT AT ITS SENTINEL AND THE ENGINE CARRIES `tr_radius = +inf`
     // (see SqpSolver::elastic_ipqp_engine): together those make the tier's window INERT
     // for this rung, which is the walk rung's own contract at this call site.
@@ -1155,7 +1156,9 @@ QpSolution solve_elastic_rung_on_tier(IpqpEngine &tier, const ElasticQp &elastic
     // would double-count a tier-solved ladder's rungs against the counters that price it
     // (`elastic_activations + elastic_escalations`).
     // trace: qp.mode silent -- the ladder emits this rung's line itself, naming this kernel
-    const IpqpResult ires = tier.solve(elastic.qp, seed, opts.ipqp, elastic_overrides);
+    const IpqpResult ires = qn != nullptr
+                                ? qn->solve(tier, elastic.qp, seed, opts.ipqp, elastic_overrides)
+                                : tier.solve(elastic.qp, seed, opts.ipqp, elastic_overrides);
 
     QpSolution qs;
     qs.status = ipqp_exit_is_a_usable_step(ires, opts.qp, opts.ipqp) ? QpStatus::kOptimal
@@ -1179,7 +1182,7 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
                                        const ElasticSeedSource &seed, double window,
                                        const SqpOptions &opts, SqpCounters &out,
                                        std::optional<double> rho_0_override, TraceSink *sink,
-                                       IpqpEngine *tier) {
+                                       IpqpEngine *tier, detail::QnLiftBridge *qn) {
     // VALIDATED AT THE BOUNDARY (CLAUDE.md section 4): a negative or NaN window crosses the
     // elastic box silently -- `build_elastic_subproblem` clamps lo/up against it with no check.
     if (!(window >= 0.0)) {
@@ -1239,7 +1242,8 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
         // thing and cannot get it from the sentinel, which it resolves to its own
         // radius; its engine is constructed with `tr_radius = +inf` instead.)
         const SolveOverrides elastic_overrides;
-        qs_e = tier != nullptr ? solve_elastic_rung_on_tier(*tier, elastic, opts, has_prev_rung)
+        qs_e = tier != nullptr ? solve_elastic_rung_on_tier(*tier, elastic, opts, has_prev_rung, qn)
+               : qn != nullptr ? qn->solve(engine, elastic.qp, seed_elastic, elastic_overrides)
                                : engine.solve(elastic.qp, seed_elastic, elastic_overrides);
         out.qp_minor_iters += qs_e.counters.minor_iters;
         out.factorizations += qs_e.counters.factorizations;
@@ -1341,8 +1345,9 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
         qs_e.status == QpStatus::kOptimal && slack_l1 <= elastic.violation_l1 - opts.feas_tol;
     // EXACT ZERO, DELIBERATELY: see THE KNIFE-EDGE RULING above
     // for why a tolerance was considered and not added here.
-    const bool promises_f =
-        qs_e.status == QpStatus::kOptimal && predicted_decrease(qp, p_elastic) > 0.0;
+    const bool promises_f = qs_e.status == QpStatus::kOptimal &&
+                            (qn != nullptr ? qn->predicted_decrease(qp, p_elastic)
+                                           : predicted_decrease(qp, p_elastic)) > 0.0;
     const bool usable = qs_e.status == QpStatus::kOptimal && (closed || reduced || promises_f);
 
     // ONE STRUCT-FILL, NO RE-DERIVATION: each field is the expression the driver
@@ -1373,7 +1378,7 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
                                           double window, SqpCounters &out, SqpIterate &row,
                                           std::optional<ElasticLadderReport> &fallback_report,
                                           SqpFallbackVerdictTraceEvent &verdict, TraceSink *sink,
-                                          IpqpEngine *tier) {
+                                          IpqpEngine *tier, detail::QnLiftBridge *qn) {
     // VALIDATED AT THE BOUNDARY, on the same terms as the ladder's own (CLAUDE.md section 4).
     // P6's "no evidence CONTENT throws" is untouched: this is the window, not the block.
     if (!(window >= 0.0)) {
@@ -1394,7 +1399,8 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
     // evidence, so a caller carrying none gets W1's body exactly -- one cold walk, no
     // activation charged and NO counter in the partition (pin P5).
     if (!evidence.fired) {
-        QpSolution cold = engine.solve(qp, overrides);
+        QpSolution cold =
+            qn != nullptr ? qn->solve(engine, qp, overrides) : engine.solve(qp, overrides);
         emit_qp_mode_line(sink, IpqpTraceQpMode::kWalk, trace_outcome_of(cold.status),
                           QpModeSite::kFallbackRungB, cold.counters.minor_iters);
         return cold;
@@ -1409,7 +1415,7 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
     // below charges its own -- `elastic_activations == walk-route + elastic_from_ipqp_escape`.
     ++out.elastic_from_ipqp_escape;
     ElasticLadderReport report = run_elastic_ladder(engine, qp, elastic_seed_source, window, opts,
-                                                    out, std::nullopt, sink, tier);
+                                                    out, std::nullopt, sink, tier, qn);
     // THE ENTRY'S CLAMP, kept across the retry below: an OVERRIDE placement reads UNCLAMPED, and
     // a clamp the engine then declined is the most interesting row this telemetry has.
     const bool entry_ceiling_hit = report.rho0_ceiling_hit;
@@ -1421,7 +1427,7 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
         ++out.elastic_from_ipqp_escape;
         verdict.floor_retry = true;
         report = run_elastic_ladder(engine, qp, elastic_seed_source, window, opts, out,
-                                    kElasticRhoInit, sink, tier);
+                                    kElasticRhoInit, sink, tier, qn);
     }
     // ONE BOOL ACROSS THE RETRY, so the row, the event and `elastic_rho0_ceiling_hits` all read
     // THIS ENTRY's placement rather than the surviving ladder's.
@@ -1437,7 +1443,8 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
     if (report.qp_status != QpStatus::kOptimal) {
         ++out.ipqp_fallback_rung_b;
         verdict.verdict = SqpFallbackVerdict::kRungB;
-        QpSolution cold = engine.solve(qp, overrides);
+        QpSolution cold =
+            qn != nullptr ? qn->solve(engine, qp, overrides) : engine.solve(qp, overrides);
         emit_qp_mode_line(sink, IpqpTraceQpMode::kWalk, trace_outcome_of(cold.status),
                           QpModeSite::kFallbackRungB, cold.counters.minor_iters);
         return cold;
@@ -1469,6 +1476,16 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
 }
 
 namespace {
+
+// The QpOptions every engine of a solve is built with: the caller's, with the lifted QP's
+// convexity asserted under kLbfgsDamped (ruling C30 AMEND-6). A copy of `o.qp` under kExact.
+QpOptions engine_qp_options(const SqpOptions &o) {
+    QpOptions q = o.qp;
+    if (o.hessian_mode == SqpHessianMode::kLbfgsDamped) {
+        q.hessian_known_convex = true;
+    }
+    return q;
+}
 
 /// @brief The CONFIGURED mode, in the trace's own alphabet.
 ///
@@ -1808,7 +1825,7 @@ void SqpSolver::set_options(SqpOptions o) {
     // (2) BUILD THE REPLACEMENT INTO A TEMPORARY. A throw here -- QpEngine's
     // constructor allocates a BorderState -- leaves the live engine and the live
     // options exactly as they were.
-    auto fresh = std::make_unique<QpEngine>(o.qp, o.common.threads);
+    auto fresh = std::make_unique<QpEngine>(engine_qp_options(o), o.common.threads);
     if (ledger_ != nullptr) {
         fresh->attach_ledger(ledger_, label_prefix_ + "_qp");
         // The record labels are a per-DRIVER sequence. Carrying the counter is
@@ -1870,10 +1887,12 @@ const SqpOptions &SqpSolver::validated(const SqpOptions &opts) {
 }
 
 SqpSolver::SqpSolver(const SqpOptions &opts)
-    : opts_(validated(opts)), engine_(std::make_unique<QpEngine>(opts.qp, opts.common.threads)) {}
+    : opts_(validated(opts)),
+      engine_(std::make_unique<QpEngine>(engine_qp_options(opts), opts.common.threads)) {}
 
 SqpSolver::SqpSolver(const SqpOptions &opts, RestorationSubDriverTag)
-    : opts_(validated(opts)), engine_(std::make_unique<QpEngine>(opts.qp, opts.common.threads)),
+    : opts_(validated(opts)),
+      engine_(std::make_unique<QpEngine>(engine_qp_options(opts), opts.common.threads)),
       allow_restoration_(false), is_restoration_sub_driver_(true) {}
 
 // OUT OF LINE FOR THE FORWARD-DECLARED SINKS (M6 W5 T8.7 fix1). Defaulted, and
@@ -3068,6 +3087,92 @@ Vec prox_center_lambda(const detail::EqualityBasis *basis, const Vec &lambda_e, 
     return out;
 }
 
+// ---- SqpOptions::hessian_mode == kLbfgsDamped (M7 QN stage 3) ---------------
+
+// The instance's own counters moved by one call, folded into the solve's.
+void fold_qn_delta(const detail::LbfgsDampedCounters &before,
+                   const detail::LbfgsDampedCounters &after, SqpCounters &c) {
+    using detail::ResetReason;
+    using detail::SkipReason;
+    const auto skip = [&](SkipReason r) {
+        const auto k = static_cast<std::size_t>(r);
+        return after.skipped[k] - before.skipped[k];
+    };
+    const auto reset = [&](ResetReason r) {
+        const auto k = static_cast<std::size_t>(r);
+        return after.resets[k] - before.resets[k];
+    };
+    c.qn_updates += after.updates - before.updates;
+    c.qn_damped += after.damped - before.damped;
+    c.qn_skipped_nonfinite += skip(SkipReason::kNonFinite);
+    c.qn_skipped_zero_step += skip(SkipReason::kZeroStep);
+    c.qn_skipped_curvature += skip(SkipReason::kCurvature);
+    c.qn_skipped_conditioning += skip(SkipReason::kConditioning);
+    c.qn_rank_dropped += after.rank_dropped - before.rank_dropped;
+    c.qn_resets_consecutive_skips += reset(ResetReason::kConsecutiveSkips);
+    c.qn_resets_radius_floor += reset(ResetReason::kRadiusFloor);
+    c.qn_resets_restoration_resume += reset(ResetReason::kRestorationResume);
+}
+
+// Clears the window (counted by reason) and drops the cached lifts.
+void qn_reset(detail::LbfgsDamped &qn, detail::QnLiftBridge &bridge, Index &skip_streak,
+              detail::ResetReason reason, SqpCounters &c) {
+    const detail::LbfgsDampedCounters before = qn.counters();
+    qn.reset(reason);
+    skip_streak = 0;
+    bridge.invalidate();
+    fold_qn_delta(before, qn.counters(), c);
+}
+
+// grad_x L(x, lambda) = grad f + Je^T lambda_e + Ji^T lambda_i, evaluate_kkt's convention.
+Vec lagrangian_gradient(const NlpEval &ev, const Vec &lambda_e, const Vec &lambda_i) {
+    Vec g = ev.grad;
+    if (lambda_e.size() > 0) {
+        g += ev.Je.transpose() * lambda_e;
+    }
+    if (lambda_i.size() > 0) {
+        g += ev.Ji.transpose() * lambda_i;
+    }
+    return g;
+}
+
+// Offers the pair (s, y) on the structural block, applies the consecutive-skip reset and folds
+// the bill. B moves (or may), so the cached lifts are dropped.
+void qn_offer_pair(detail::LbfgsDamped &qn, detail::QnLiftBridge &bridge, Index &skip_streak,
+                   const Vec &s, const Vec &y, double x_inf, SqpCounters &c) {
+    const detail::LbfgsDampedCounters before = qn.counters();
+    (void)detail::offer_pair_with_skip_reset(qn, skip_streak, s, y, x_inf);
+    bridge.invalidate();
+    fold_qn_delta(before, qn.counters(), c);
+    c.qn_pairs_peak = std::max(c.qn_pairs_peak, static_cast<Index>(qn.pairs()));
+}
+
+// The lifted solves' tally, folded (peak with max).
+void fold_qn_tally(detail::QnLiftBridge &bridge, SqpCounters &c) {
+    const detail::QnLiftBridge::Tally t = bridge.take_tally();
+    c.qn_lift_rank_peak = std::max(c.qn_lift_rank_peak, t.lift_rank_peak);
+    c.qn_kwrong_seen += t.kwrong_seen;
+}
+
+// A restoration sub-solve's curvature-source group, folded into its parent's: sums summed,
+// peaks max-folded.
+void fold_restoration_qn_counters(SqpCounters &into, const SqpCounters &from) {
+    into.eval_hess_calls += from.eval_hess_calls;
+    into.qn_updates += from.qn_updates;
+    into.qn_damped += from.qn_damped;
+    into.qn_skipped_nonfinite += from.qn_skipped_nonfinite;
+    into.qn_skipped_zero_step += from.qn_skipped_zero_step;
+    into.qn_skipped_curvature += from.qn_skipped_curvature;
+    into.qn_skipped_conditioning += from.qn_skipped_conditioning;
+    into.qn_rank_dropped += from.qn_rank_dropped;
+    into.qn_resets_consecutive_skips += from.qn_resets_consecutive_skips;
+    into.qn_resets_radius_floor += from.qn_resets_radius_floor;
+    into.qn_resets_restoration_resume += from.qn_resets_restoration_resume;
+    into.qn_pairs_peak = std::max(into.qn_pairs_peak, from.qn_pairs_peak);
+    into.qn_lift_rank_peak = std::max(into.qn_lift_rank_peak, from.qn_lift_rank_peak);
+    into.qn_kwrong_seen += from.qn_kwrong_seen;
+}
+
 } // namespace
 
 // ---------------------------------------------------------------------------
@@ -3392,6 +3497,13 @@ struct SqpSolver::SolveState {
     RestorationExit resto;
     FullStepWatchdog fs;
     BudgetBest mb;
+
+    // ---- SqpOptions::hessian_mode == kLbfgsDamped (M7 QN stage 3) -------------
+    // Both engaged at the first subproblem build and never under kExact; `qn_bridge`
+    // borrows `qn`. `qn_skip_streak` counts consecutive non-zero-step skips.
+    std::optional<detail::LbfgsDamped> qn;
+    std::optional<detail::QnLiftBridge> qn_bridge;
+    Index qn_skip_streak = 0;
 };
 
 // ---------------------------------------------------------------------------
@@ -3780,8 +3892,17 @@ void SqpSolver::prepare_solve(SolveState &st, AssemblyEvalSeam &seam, const Vec 
         // jacobians_only, which leaves a block the declaration gives no rows
         // alone, precisely as the me()/mi() guards here did).
         seam.jacobians_only(probe_ev, x0);
-        QpProblem probe =
-            seam.build_subproblem(probe_ev, x0, Vec::Zero(seam.me()), Vec::Zero(seam.mi()), 1.0);
+        // THE CURVATURE SOURCE (ruling C30 AMEND-5): under kLbfgsDamped the probe makes no
+        // Hessian call and hashes the UNLIFTED QN structure the solve's subproblems carry.
+        QpProblem probe;
+        if (opts_.hessian_mode == SqpHessianMode::kLbfgsDamped) {
+            probe =
+                seam.build_subproblem_without_hessian(probe_ev, x0, 1.0, qn_probe_struct(n), 1.0);
+        } else {
+            probe = seam.build_subproblem(probe_ev, x0, Vec::Zero(seam.me()), Vec::Zero(seam.mi()),
+                                          1.0);
+            ++out.counters.eval_hess_calls;
+        }
         if (opts_.equality_basis && seam.me() > 0 && probe_ev.all_finite &&
             jacobian_values_finite(probe_ev)) {
             detail::EqualityBasis probe_basis;
@@ -4117,10 +4238,12 @@ void SqpSolver::route_through_ssn_tier(SolveState &st, MajorState &mj) {
     // its sentinel too and the two kernels would agree even if this
     // line forwarded it.
     SsnResult sres;
+    detail::QnLiftBridge *const qn = st.qn_bridge ? &*st.qn_bridge : nullptr;
+    const SsnStart ssn_start = ssn_start_from_qp_seed(have_seed ? &seed : nullptr);
     // THIS ARM'S `qp.mode` line is written at the END of the arm, not
     // here: it reports the ARM's outcome, which the branches below decide.
-    ssn_engine().solve(qp, ssn_start_from_qp_seed(have_seed ? &seed : nullptr), sopts,
-                       ssn_overrides, &sres);
+    qn != nullptr ? qn->solve(ssn_engine(), qp, ssn_start, sopts, ssn_overrides, &sres)
+                  : ssn_engine().solve(qp, ssn_start, sopts, ssn_overrides, &sres);
     // GOULD'S LEMMA (R5).
     //
     // INERT AND STRUCTURALLY SO at the shipped default:
@@ -4162,7 +4285,9 @@ void SqpSolver::route_through_ssn_tier(SolveState &st, MajorState &mj) {
             const QpSolution r5_face = ssn_result_to_qp_solution(sres);
             // trace: qp.mode silent -- the tier-3 face EQP on a face the SSN
             // already produced, not a kernel the dispatch chooses between.
-            r5_took = engine_->refine_on_face(qp, r5_face, ssn_overrides, r5_refined);
+            r5_took = qn != nullptr
+                          ? qn->refine_on_face(*engine_, qp, r5_face, ssn_overrides, r5_refined)
+                          : engine_->refine_on_face(qp, r5_face, ssn_overrides, r5_refined);
             r5_have = true;
             if (r5_took) {
                 // GOULD'S LEMMA, SPENT. The face EQP's own KKT
@@ -4254,7 +4379,8 @@ void SqpSolver::route_through_ssn_tier(SolveState &st, MajorState &mj) {
         } else {
             // trace: qp.mode silent -- the tier-3 face EQP on the certifying
             // SSN exit's face; excluded by kind (QpModeTraceEvent).
-            took = engine_->refine_on_face(qp, qs, ssn_overrides, refined);
+            took = qn != nullptr ? qn->refine_on_face(*engine_, qp, qs, ssn_overrides, refined)
+                                 : engine_->refine_on_face(qp, qs, ssn_overrides, refined);
         }
         const Index refine_facts = refined.counters.factorizations;
         const Index refine_steps = refined.counters.eqp_refine_steps;
@@ -4467,9 +4593,13 @@ void SqpSolver::route_through_ipqp_tier(SolveState &st, MajorState &mj, Assembly
             ipqp_seed = &ipqp_carry_across_majors;
         }
     }
+    detail::QnLiftBridge *const qn = st.qn_bridge ? &*st.qn_bridge : nullptr;
+    // Under the lift the tier's own carry is in an earlier lift's coordinates; the bridge
+    // re-lifts it (qn_lift_bridge.h).
     if (ipqp_seed != nullptr &&
-        (ipqp_seed->x.size() != qp.n() || ipqp_seed->lambda_e.size() != qp.me() ||
-         ipqp_seed->lambda_i.size() != qp.mi())) {
+        (qn != nullptr ? !qn->ipqp_seed_usable(*ipqp_seed, qp)
+                       : (ipqp_seed->x.size() != qp.n() || ipqp_seed->lambda_e.size() != qp.me() ||
+                          ipqp_seed->lambda_i.size() != qp.mi()))) {
         ipqp_seed = nullptr;
     }
     // task 8: the trace `major` field -- the one fact the engine
@@ -4477,7 +4607,9 @@ void SqpSolver::route_through_ipqp_tier(SolveState &st, MajorState &mj, Assembly
     ipqp_engine().set_trace_major(iter + 1);
     // THIS CHAIN'S `qp.mode` line comes from emit_ipqp_route_and_mode
     // below -- one per routing destination, which is what it decides.
-    const IpqpResult ires = ipqp_engine().solve(qp, ipqp_seed, iopts, ipqp_overrides);
+    const IpqpResult ires = qn != nullptr
+                                ? qn->solve(ipqp_engine(), qp, ipqp_seed, iopts, ipqp_overrides)
+                                : ipqp_engine().solve(qp, ipqp_seed, iopts, ipqp_overrides);
     ipqp_staged_seed_.reset();
     ipqp_analysis_epoch = seam.epoch();
     accumulate_ipqp_counters(out.counters.ipqp, ires.counters);
@@ -4558,7 +4690,9 @@ void SqpSolver::route_through_ipqp_tier(SolveState &st, MajorState &mj, Assembly
         QpSolution refined;
         // trace: qp.mode silent -- the tier-3 face EQP on the IPQP tier's own
         // face; excluded by kind, and it reports no minor count for `iters`.
-        const bool took = engine_->refine_on_face(qp, face, ipqp_overrides, refined);
+        const bool took = qn != nullptr
+                              ? qn->refine_on_face(*engine_, qp, face, ipqp_overrides, refined)
+                              : engine_->refine_on_face(qp, face, ipqp_overrides, refined);
         const Index refine_facts = refined.counters.factorizations;
         const Index refine_steps = refined.counters.eqp_refine_steps;
         // The same read, for the E4 group this call can also have spent
@@ -4598,8 +4732,8 @@ void SqpSolver::route_through_ipqp_tier(SolveState &st, MajorState &mj, Assembly
             out.counters.eqp_polish_steps += refine_polish;
             ipqp_budget_charge += refine_facts;
             charge_ipqp_subproblem_cost(out.counters, ires);
-            walk_owns_this_qp = route_through_ssn_warm_grade(qp, ires, delta, ssn_prox_ingested,
-                                                             ssn_budget_charge, out.counters, qs);
+            walk_owns_this_qp = route_through_ssn_warm_grade(
+                qp, ires, delta, ssn_prox_ingested, ssn_budget_charge, out.counters, qs, qn);
             ipqp_chain_owns_the_step = !walk_owns_this_qp;
             mj.row_qp_mode = IpqpTraceQpMode::kSsn;
             emit_ipqp_route_and_mode(IpqpTraceRouteTo::kSsn, IpqpTraceOutcome::kRouted);
@@ -4611,7 +4745,7 @@ void SqpSolver::route_through_ipqp_tier(SolveState &st, MajorState &mj, Assembly
         // implied active set at once; the walk would only re-derive the same face.
         charge_ipqp_subproblem_cost(out.counters, ires);
         walk_owns_this_qp = route_through_ssn_warm_grade(qp, ires, delta, ssn_prox_ingested,
-                                                         ssn_budget_charge, out.counters, qs);
+                                                         ssn_budget_charge, out.counters, qs, qn);
         ipqp_chain_owns_the_step = !walk_owns_this_qp;
         mj.row_qp_mode = IpqpTraceQpMode::kSsn;
         emit_ipqp_route_and_mode(IpqpTraceRouteTo::kSsn, IpqpTraceOutcome::kRouted);
@@ -4632,7 +4766,7 @@ void SqpSolver::route_through_ipqp_tier(SolveState &st, MajorState &mj, Assembly
         qs = certified_feasibility_fallback(
             *engine_, qp, ev, have_seed ? &seed : nullptr, ires.infeasibility_evidence, overrides,
             opts_, std::min(delta, opts_.qp.tr_radius), out.counters, mj.row, fallback_report,
-            fallback_verdict, ipqp_trace_, elastic_rung_tier());
+            fallback_verdict, ipqp_trace_, elastic_rung_tier(), qn);
         emit_trace_fallback_verdict(fallback_verdict);
         // --- 5b. THE DISPROVED ENTRY'S RECOVERABLE STATE (M7 W0 T4) ---
         // The escape above dropped the carry; a DISPROVAL then says the relaxation
@@ -4674,10 +4808,15 @@ void SqpSolver::solve_with_walk(SolveState &st, MajorState &mj, const SqpWarmSta
     QpSolution &crash_seed = st.crash_seed;
     QpSolution &qs = mj.qs;
     mj.row_qp_mode = IpqpTraceQpMode::kWalk;
-    qs = offer_hot   ? engine_->solve(qp, seed, overrides, warm.hot)
-         : have_seed ? engine_->solve(qp, seed, overrides)
-         : use_crash ? engine_->solve(qp, crash_seed, overrides)
-                     : engine_->solve(qp, overrides);
+    detail::QnLiftBridge *const qn = st.qn_bridge ? &*st.qn_bridge : nullptr;
+    qs = qn != nullptr ? (offer_hot   ? qn->solve(*engine_, qp, seed, overrides, warm.hot)
+                          : have_seed ? qn->solve(*engine_, qp, seed, overrides)
+                          : use_crash ? qn->solve(*engine_, qp, crash_seed, overrides)
+                                      : qn->solve(*engine_, qp, overrides))
+         : offer_hot   ? engine_->solve(qp, seed, overrides, warm.hot)
+         : have_seed   ? engine_->solve(qp, seed, overrides)
+         : use_crash   ? engine_->solve(qp, crash_seed, overrides)
+                       : engine_->solve(qp, overrides);
     // THE WALK'S OWN LINE, at the invocation and not at the `kWalk`
     // dispatch arm: this is where the kernel has actually run, so the
     // status and the minor count are the ones it produced.
@@ -4689,6 +4828,38 @@ void SqpSolver::solve_with_walk(SolveState &st, MajorState &mj, const SqpWarmSta
         mev.site = QpModeSite::kDispatch;
         emit_trace_qp_mode(mev);
     }
+}
+
+QpProblem SqpSolver::build_qn_subproblem(SolveState &st, const SqpKkt &kkt,
+                                         AssemblyEvalSeam &seam) {
+    if (!st.qn) {
+        const Index ns = qn_struct_vars_ >= 0 ? std::min(qn_struct_vars_, st.n) : st.n;
+        // sigma_0 in the space the solve runs in (design section 3): the gradient scale over
+        // the first radius, never below 1. A +inf radius gives 1.
+        const double g_inf = kkt.grad_lag.head(ns).lpNorm<Eigen::Infinity>();
+        const double sigma0 = std::isfinite(st.delta) && st.delta > 0.0 && std::isfinite(g_inf)
+                                  ? std::max(1.0, g_inf / st.delta)
+                                  : 1.0;
+        detail::LbfgsDampedOptions qo;
+        qo.memory = static_cast<int>(opts_.qn_memory);
+        qo.zero_step_scale = kZeroStepScale;
+        st.qn.emplace(static_cast<int>(ns), sigma0, qo);
+        st.qn_bridge.emplace(*st.qn, ns);
+    }
+    return seam.build_subproblem_without_hessian(st.ev, st.x, 1.0, st.qn_bridge->n_struct(),
+                                                 st.qn->sigma());
+}
+
+void SqpSolver::qn_offer_committed_pair(SolveState &st, const Vec &x_old, const NlpEval &ev_old) {
+    if (!st.qn) {
+        return;
+    }
+    const Index ns = st.qn_bridge->n_struct();
+    const Vec s = st.x - x_old;
+    const Vec y = lagrangian_gradient(st.ev, st.lambda_e, st.lambda_i) -
+                  lagrangian_gradient(ev_old, st.lambda_e, st.lambda_i);
+    qn_offer_pair(*st.qn, *st.qn_bridge, st.qn_skip_streak, s, y,
+                  x_old.head(ns).lpNorm<Eigen::Infinity>(), st.out.counters);
 }
 
 // ---------------------------------------------------------------------------
@@ -4993,6 +5164,11 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     // of this engine's own option.
     ropts.max_iter = static_cast<int>(st.eff_max_iter - spent);
     SqpSolver sub(ropts, SqpSolver::RestorationSubDriverTag{});
+    // THE SUB-SOLVE'S OWN QN INSTANCE (ruling C30 AMEND-7) acts on the wrapper's x-block only:
+    // its slack columns carry no curvature.
+    if (opts_.hessian_mode == SqpHessianMode::kLbfgsDamped) {
+        sub.qn_struct_vars_ = resto_base.n();
+    }
     // THE ONE SINK, SHARED SEQUENTIALLY (plan amendment A): the
     // sub-solve's own `sqp.solve` pair, rows and tier events land in the
     // same stream, told apart by the sink-owned `depth`.
@@ -5201,6 +5377,9 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     // MEASUREMENT: it is only with the fold present that letting the
     // mode leak back in would move the tier's counters.
     accumulate_ipqp_counters(st.out.counters.ipqp, rs.counters.ipqp);
+    // THE CURVATURE-SOURCE GROUP (M7 QN stage 3) folds: eval_hess calls are work this solve
+    // caused, and the QN events are the sub-solve's own instance's.
+    fold_restoration_qn_counters(st.out.counters, rs.counters);
     // The full-step-mode counters are deliberately absent from this
     // fold, and they are absent because they are IDENTICALLY ZERO
     // on the sub-solve: it runs the 2-arg solve() on a fresh
@@ -5302,6 +5481,12 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
         // ABANDONED iterate; the sub-solve ran on its own engine
         // and its working set is a different problem's.
         st.have_seed = false;
+        // THE MAIN QN WINDOW RESTARTS (ruling C30 AMEND-7): its pairs describe the curvature
+        // around the abandoned iterate.
+        if (st.qn) {
+            qn_reset(*st.qn, *st.qn_bridge, st.qn_skip_streak,
+                     detail::ResetReason::kRestorationResume, st.out.counters);
+        }
         return RestorationOutcome::kResumed;
     }
 
@@ -6256,8 +6441,16 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
             return MajorOutcome::kFinishInconsistentEqualities;
         }
     }
+    // THE CURVATURE SOURCE (M7 QN stage 3): every subproblem build below is the model's
+    // eval_hess under kExact and build_qn_subproblem under kLbfgsDamped.
+    const bool qn_mode = opts_.hessian_mode == SqpHessianMode::kLbfgsDamped;
     if (st.subproblem_is_stale) {
-        st.qp = seam.build_subproblem(st.ev, st.x, st.lambda_e, st.lambda_i, 1.0);
+        if (qn_mode) {
+            st.qp = build_qn_subproblem(st, mj.kkt, seam);
+        } else {
+            st.qp = seam.build_subproblem(st.ev, st.x, st.lambda_e, st.lambda_i, 1.0);
+            ++st.out.counters.eval_hess_calls;
+        }
         if (!st.eqb.basis.reduce(st.qp)) {
             ++st.out.equality_basis.lift_refusals;
             ++st.out.equality_basis.lift_refusal_sites.qp_projection;
@@ -6285,7 +6478,12 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         ++st.out.counters.evals_full;
         st.x = xc;
         st.ev = std::move(evc);
-        st.qp = seam.build_subproblem(st.ev, st.x, st.lambda_e, st.lambda_i, 1.0);
+        if (qn_mode) {
+            st.qp = build_qn_subproblem(st, mj.kkt, seam);
+        } else {
+            st.qp = seam.build_subproblem(st.ev, st.x, st.lambda_e, st.lambda_i, 1.0);
+            ++st.out.counters.eval_hess_calls;
+        }
         if (!st.eqb.basis.reduce(st.qp)) {
             ++st.out.equality_basis.lift_refusals;
             ++st.out.equality_basis.lift_refusal_sites.qp_projection;
@@ -6549,10 +6747,15 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         // max(kQpMaxIterFloor, kQpMaxIterCoeff * (n + mi + #bounded)) and a
         // caller's positive value wins outright, so doubling the resolved value
         // means "twice what this solve was actually given" under either.
-        const Index cap = detail::effective_qp_max_iter(st.qp, opts_.qp.max_iter);
+        // Under the lift the cap is the LIFTED problem's, which is what the walk was given.
+        const Index cap = detail::effective_qp_max_iter(
+            st.qn_bridge ? st.qn_bridge->lift_of(st.qp) : st.qp, opts_.qp.max_iter);
         QpSolution retry_seed = mj.qs;
         retry_seed.x.setZero(); // never re-center the radius; see WARM SEEDING
-        QpSolution retried = cap_retry_engine(2 * cap).solve(st.qp, retry_seed, overrides);
+        QpEngine &retry_engine = cap_retry_engine(2 * cap);
+        QpSolution retried = st.qn_bridge
+                                 ? st.qn_bridge->solve(retry_engine, st.qp, retry_seed, overrides)
+                                 : retry_engine.solve(st.qp, retry_seed, overrides);
         // THE RETRY ANNOUNCES ITSELF, like every other kernel invocation in
         // this driver (M6 W4 T5's contract, held in place by the source scan in
         // tests/sqp/test_qp_mode_sites.cpp). Its own site, on `kSocResolve`'s
@@ -6650,10 +6853,11 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         // CONSUMED, NEVER RE-RUN: `++elastic_activations` lives inside the ladder, so a
         // second run on the fallback's own report would double-charge the activation.
         const ElasticLadderReport report =
-            mj.fallback_report ? std::move(*mj.fallback_report)
-                               : run_elastic_ladder(*engine_, st.qp, elastic_seed_source, window,
-                                                    opts_, st.out.counters, std::nullopt,
-                                                    ipqp_trace_, elastic_rung_tier());
+            mj.fallback_report
+                ? std::move(*mj.fallback_report)
+                : run_elastic_ladder(*engine_, st.qp, elastic_seed_source, window, opts_,
+                                     st.out.counters, std::nullopt, ipqp_trace_,
+                                     elastic_rung_tier(), st.qn_bridge ? &*st.qn_bridge : nullptr);
         rho0_ceiling_hit = report.rho0_ceiling_hit;
 
         if (!report.usable) {
@@ -6802,7 +7006,8 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         if (opts_.qp_failure_step && mj.walk_owns_this_qp && st.full_step_funnel == nullptr &&
             qp_failure_is_retryable(st.qp, mj.qs, opts_.feas_tol) &&
             mj.qs.x.lpNorm<Eigen::Infinity>() > 0.0) {
-            const double pred = predicted_decrease(st.qp, mj.qs.x);
+            const double pred = st.qn_bridge ? st.qn_bridge->predicted_decrease(st.qp, mj.qs.x)
+                                             : predicted_decrease(st.qp, mj.qs.x);
             mj.x_trial = st.x + mj.qs.x;
             mj.ev_trial = seam.eval_nlp_values(mj.x_trial);
             const double h_trial = constraint_violation_l1(mj.ev_trial);
@@ -6870,6 +7075,10 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
             // floor is a statement about the radius, not about which
             // mechanism last lowered it.
             if (shrink_hits_floor(st.delta)) {
+                if (st.qn) {
+                    qn_reset(*st.qn, *st.qn_bridge, st.qn_skip_streak,
+                             detail::ResetReason::kRadiusFloor, st.out.counters);
+                }
                 // PUSHED AFTER THE CALL (R9), as at every request site.
                 const RestorationOutcome outcome = enter_restoration(st, mj, seam, bridge, iter);
                 // The parent's latch, read before this row's own event fires;
@@ -6949,7 +7158,8 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
     mj.ctx.f_new = mj.ev_trial.f;
     mj.ctx.h_old = mj.row.violation_l1;
     mj.ctx.h_new = constraint_violation_l1(mj.ev_trial);
-    mj.ctx.pred_df = predicted_decrease(st.qp, mj.qs.x);
+    mj.ctx.pred_df = st.qn_bridge ? st.qn_bridge->predicted_decrease(st.qp, mj.qs.x)
+                                  : predicted_decrease(st.qp, mj.qs.x);
     mj.ctx.tr_active = mj.row.tr_binding;
     mj.ctx.rejections_at_iterate = st.rejections_at_iterate;
 
@@ -7015,7 +7225,8 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         seed_soc.x.setZero();
         SolveOverrides soc_overrides;
         soc_overrides.tr_radius = st.delta;
-        mj.qs_soc = engine_->solve(soc_qp, seed_soc, soc_overrides);
+        mj.qs_soc = st.qn_bridge ? st.qn_bridge->solve(*engine_, soc_qp, seed_soc, soc_overrides)
+                                 : engine_->solve(soc_qp, seed_soc, soc_overrides);
         // ONE LINE FOR THE CORRECTION'S OWN WALK (M6 W4 T5), at `site`
         // `soc_resolve`: it runs INSIDE a major whose dispatch line is
         // already written, so it is priced by `soc_steps`, not by majors.
@@ -7117,11 +7328,29 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         // attempted above -- see the note.
         ++st.rejections_at_iterate;
         ++st.out.counters.rejected_steps;
+        // THE UPDATE-ON-REJECT ABLATION (SqpOptions::qn_update_on_reject, off by default): the
+        // rejected trial's pair, priced at this QP's own multipliers, for one derivative query.
+        if (st.qn && opts_.qn_update_on_reject && mj.ev_trial.all_finite) {
+            NlpEval ev_t = mj.ev_trial;
+            seam.refresh_derivatives(ev_t, mj.x_trial);
+            ++st.out.counters.evals_full;
+            Vec le_qp;
+            (void)st.eqb.basis.lift(mj.qs.lambda_e, le_qp);
+            const Index ns = st.qn_bridge->n_struct();
+            qn_offer_pair(*st.qn, *st.qn_bridge, st.qn_skip_streak, mj.x_trial - st.x,
+                          lagrangian_gradient(ev_t, le_qp, mj.qs.lambda_i) -
+                              lagrangian_gradient(st.ev, le_qp, mj.qs.lambda_i),
+                          st.x.head(ns).lpNorm<Eigen::Infinity>(), st.out.counters);
+        }
         // THE RADIUS FLOOR -- KLV Algorithm 4's alpha_min
         // trigger in trust-region form. The shrink is NOT taken and
         // NOT clamped: crossing the floor IS the request. See RADIUS
         // MANAGEMENT.
         if (shrink_hits_floor(st.delta)) {
+            if (st.qn) {
+                qn_reset(*st.qn, *st.qn_bridge, st.qn_skip_streak,
+                         detail::ResetReason::kRadiusFloor, st.out.counters);
+            }
             // THE REJECTED TRIAL IS THE OFFER, and its own values bundle is the
             // measurement -- the ORIGINAL trial's, since a PROMOTED SOC
             // correction would have left `verdict` an accept.
@@ -7230,6 +7459,10 @@ SqpResult SqpSolver::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &b
         // `history` and in the stream by the time any tag below is acted on --
         // that is what `run_major` guarantees at each of its ten push sites.
         const MajorOutcome outcome = run_major(st, mj, seam, bridge, warm, budget, iter);
+        // THE LIFTED SOLVES' TALLY, folded once per major, before any exit reads the counters.
+        if (st.qn_bridge) {
+            fold_qn_tally(*st.qn_bridge, st.out.counters);
+        }
         // A PROX-CENTRE LIFT WHOSE INFLATED A-POSTERIORI ESTIMATE FAILED ITS CHECK during
         // this major's subproblem is counted here and takes the same pending-refusal
         // transition as a failed commit lift: the next subproblem build carries every row.
@@ -7266,6 +7499,13 @@ SqpResult SqpSolver::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &b
             if (!mj.failure_step && mj.row.tr_binding && std::isfinite(st.delta) &&
                 mj.ctx.pred_df > 0.0 && actual_df >= kTrGrowThreshold * mj.ctx.pred_df) {
                 st.delta = std::min(st.delta * kTrGrowFactor, opts_.tr_max);
+            }
+            // THE QN PAIR'S OLD HALF (M7 QN stage 3), taken before the commit moves the iterate.
+            Vec qn_x_old;
+            NlpEval qn_ev_old;
+            if (st.qn) {
+                qn_x_old = st.x;
+                qn_ev_old = st.ev;
             }
 
             if (mj.soc_applied) {
@@ -7316,6 +7556,11 @@ SqpResult SqpSolver::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &b
                 st.seed = std::move(mj.qs);
             }
             ++st.out.counters.steps_accepted;
+            // THE ACCEPTED-ONLY UPDATE (ruling C30 AMEND-4): the step just taken -- the SOC
+            // correction when it was promoted -- priced at the committed multipliers.
+            if (st.qn) {
+                qn_offer_committed_pair(st, qn_x_old, qn_ev_old);
+            }
             st.rejections_at_iterate = 0;
             st.subproblem_is_stale = true;
             // Active set only -- never the previous step. See this header's
@@ -7492,7 +7737,7 @@ SsnEngine &SqpSolver::ssn_engine() {
         // one persistent factor, configured once at construction, and
         // set_options() drops both tiers so a changed count is picked up by the
         // next first use.
-        ssn_engine_ = std::make_unique<SsnEngine>(opts_.qp, opts_.common.threads);
+        ssn_engine_ = std::make_unique<SsnEngine>(engine_qp_options(opts_), opts_.common.threads);
     }
     return *ssn_engine_;
 }
@@ -7514,7 +7759,7 @@ SsnOptions SqpSolver::ssn_options(double prox_sigma_init) const {
 IpqpEngine &SqpSolver::ipqp_engine() {
     if (ipqp_engine_ == nullptr) {
         // The thread count reaches this tier too; see ssn_engine() above.
-        ipqp_engine_ = std::make_unique<IpqpEngine>(opts_.qp, opts_.common.threads);
+        ipqp_engine_ = std::make_unique<IpqpEngine>(engine_qp_options(opts_), opts_.common.threads);
         // task 8: apply the standing trace attachment (a no-op when unset)
         // now that the engine exists -- `attach_trace` cannot reach an engine
         // that has not been constructed yet.
@@ -7537,7 +7782,7 @@ IpqpEngine &SqpSolver::elastic_ipqp_engine() {
         //
         // Every OTHER field is `opts_.qp` verbatim, so this tier reads the same tolerance pair
         // and the same regularization pair as the walk, the SSN tier and the primary IPQP tier.
-        QpOptions elastic_qp = opts_.qp;
+        QpOptions elastic_qp = engine_qp_options(opts_);
         elastic_qp.tr_radius = std::numeric_limits<double>::infinity();
         elastic_ipqp_engine_ = std::make_unique<IpqpEngine>(elastic_qp, opts_.common.threads);
         // NO TRACE ATTACHMENT, deliberately. The elastic rungs announce themselves through the
@@ -7563,7 +7808,7 @@ QpEngine &SqpSolver::cap_retry_engine(Index cap) {
         // field changed instead of that one's `tr_radius`. A POSITIVE value is
         // an EXPLICIT ABSOLUTE cap by QpOptions::max_iter's own precedence rule,
         // so it wins outright over the size-derived sentinel.
-        QpOptions retry_qp = opts_.qp;
+        QpOptions retry_qp = engine_qp_options(opts_);
         retry_qp.max_iter = cap;
         cap_retry_engine_ = std::make_unique<QpEngine>(retry_qp, opts_.common.threads);
         cap_retry_engine_cap_ = cap;
@@ -7610,7 +7855,7 @@ IpqpOptions SqpSolver::ipqp_options(bool structure_epoch_moved) const {
 bool SqpSolver::route_through_ssn_warm_grade(const QpProblem &qp, const IpqpResult &ires,
                                              double delta, double &ssn_prox_ingested,
                                              Index &ssn_budget_charge, SqpCounters &counters,
-                                             QpSolution &qs) {
+                                             QpSolution &qs, detail::QnLiftBridge *qn) {
     ++counters.ipqp.ipqp_to_ssn;
     // THE PROXIMAL CARRY PARTICIPATES (settler ruling, fix round 1): `warm_start.h`'s
     // `prox_sigma` is the maximum over ANY SSN subproblem of the solve, and one reached
@@ -7640,7 +7885,8 @@ bool SqpSolver::route_through_ssn_warm_grade(const QpProblem &qp, const IpqpResu
     assert_ssn_warm_grade_window(ires, start, ssn_overrides, opts_.qp);
     SsnResult sres;
     // THE GRADE'S `qp.mode` line is written below, once its usability verdict is in.
-    ssn_engine().solve(qp, start, sopts, ssn_overrides, &sres);
+    qn != nullptr ? qn->solve(ssn_engine(), qp, start, sopts, ssn_overrides, &sres)
+                  : ssn_engine().solve(qp, start, sopts, ssn_overrides, &sres);
     accumulate_ssn_counters(counters.ssn, sres.counters);
     ssn_budget_charge += sres.factorizations;
     // THE EXPORT SIDE OF THE CARRY, over EVERY subproblem including escaped ones, and the
@@ -7693,7 +7939,8 @@ bool SqpSolver::route_through_ssn_warm_grade(const QpProblem &qp, const IpqpResu
     QpSolution refined;
     // trace: qp.mode silent -- the tier-3 face EQP on the warm grade's face; excluded
     // by kind (QpModeTraceEvent), on the same terms as the kSsn arm's own.
-    const bool took = engine_->refine_on_face(qp, qs, ssn_overrides, refined);
+    const bool took = qn != nullptr ? qn->refine_on_face(*engine_, qp, qs, ssn_overrides, refined)
+                                    : engine_->refine_on_face(qp, qs, ssn_overrides, refined);
     const Index refine_facts = refined.counters.factorizations;
     const Index refine_steps = refined.counters.eqp_refine_steps;
     // The same read, for the E4 group this call can also have spent
@@ -7788,9 +8035,15 @@ SqpWarmStart SqpSolver::make_warm_start(AssemblyEvalSeam &seam, const QpSolution
     if (qp_built) {
         w.structure_hash = detail::structural_hash(qp);
     } else if (probe_ev != nullptr) {
-        const QpProblem probe = seam.build_subproblem(*probe_ev, *probe_x, Vec::Zero(seam.me()),
-                                                      Vec::Zero(seam.mi()), /*obj_scale=*/1.0);
-        w.structure_hash = detail::structural_hash(probe);
+        if (opts_.hessian_mode == SqpHessianMode::kLbfgsDamped) {
+            w.structure_hash = detail::structural_hash(seam.build_subproblem_without_hessian(
+                *probe_ev, *probe_x, 1.0, qn_probe_struct(n), 1.0));
+        } else {
+            const QpProblem probe = seam.build_subproblem(*probe_ev, *probe_x, Vec::Zero(seam.me()),
+                                                          Vec::Zero(seam.mi()), /*obj_scale=*/1.0);
+            ++exit_probe_hess_calls_;
+            w.structure_hash = detail::structural_hash(probe);
+        }
     }
     return w;
 }
@@ -7808,6 +8061,8 @@ SqpResult SqpSolver::finish(AssemblyEvalSeam &seam, SqpResult out, SolveStatus s
     // blocks are then empty.
     const detail::ProblemScaling sc = seam.scaling();
     out.status = status;
+    out.counters.eval_hess_calls += exit_probe_hess_calls_;
+    exit_probe_hess_calls_ = 0;
     out.x = x;
     out.lambda_e = lambda_e;
     out.lambda_i = lambda_i;

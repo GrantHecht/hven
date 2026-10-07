@@ -829,6 +829,32 @@ and the `ssn` object and the two nested tables' distinct values shift up by two;
 nothing else moves. No sentinel. The two golden lines are re-derived ONCE for
 them, and both carry a "RE-DERIVED AT M7 W2 P1E" note.
 
+**THE DIRECT COUNTERS M7 QN STAGE 3 APPENDED — FOURTEEN** (the curvature-source
+group; `SqpOptions::hessian_mode`).
+
+| counter | type | source | meaning |
+|---|---|---|---|
+| `eval_hess_calls` | integer | `SqpCounters::eval_hess_calls` | Lagrangian-Hessian evaluations (subproblem builds and warm-start structure probes) under `kExact`; 0 under `kLbfgsDamped`. Folded |
+| `qn_updates` | integer | `SqpCounters::qn_updates` | pairs accepted into the L-BFGS window. Folded |
+| `qn_damped` | integer | `SqpCounters::qn_damped` | of those, Powell-damped. Folded |
+| `qn_skipped_nonfinite` | integer | `SqpCounters::qn_skipped_nonfinite` | pairs skipped: non-finite data. Folded |
+| `qn_skipped_zero_step` | integer | `SqpCounters::qn_skipped_zero_step` | pairs skipped: zero step. Folded |
+| `qn_skipped_curvature` | integer | `SqpCounters::qn_skipped_curvature` | pairs skipped: rounding-level curvature. Folded |
+| `qn_skipped_conditioning` | integer | `SqpCounters::qn_skipped_conditioning` | pairs skipped: conditioning after damping. Folded |
+| `qn_rank_dropped` | integer | `SqpCounters::qn_rank_dropped` | pairs evicted early by the rank test. Folded |
+| `qn_resets_consecutive_skips` | integer | `SqpCounters::qn_resets_consecutive_skips` | window resets after consecutive non-zero-step skips. Folded |
+| `qn_resets_radius_floor` | integer | `SqpCounters::qn_resets_radius_floor` | window resets at a shrink below `tr_min`. Folded |
+| `qn_resets_restoration_resume` | integer | `SqpCounters::qn_resets_restoration_resume` | window resets at a restoration resume. Folded |
+| `qn_pairs_peak` | integer | `SqpCounters::qn_pairs_peak` | most pairs the window held. Max-folded |
+| `qn_lift_rank_peak` | integer | `SqpCounters::qn_lift_rank_peak` | widest mixed lift (`r+ + r-`) any subproblem carried. Max-folded |
+| `qn_kwrong_seen` | integer | `SqpCounters::qn_kwrong_seen` | lifted subproblem solves whose engine reported a wrong-inertia reading (a bug flag under a PD B). Folded |
+
+LAST in the table and last in the struct, after `restoration_reduction_resumes`, so
+the counters object gains exactly fourteen keys before the `ssn` object and the two
+nested tables' distinct values shift up by fourteen; nothing else moves. No sentinel.
+The two golden lines are re-derived ONCE for them, and both carry a "RE-DERIVED AT M7
+QN stage 3" note.
+
 ## 6. The mode-selection telemetry on `sqp.major`
 
 **(a) `active_set_delta`** — the symmetric-difference count between this major's

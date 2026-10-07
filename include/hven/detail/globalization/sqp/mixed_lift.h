@@ -99,9 +99,16 @@ class MixedLift {
     Vec unlift_primal(const Vec &x_lifted) const;
     Vec unlift_equality_multipliers(const Vec &lambda_e_lifted) const;
 
+    /// The lifted problem of `variant`, a QP that shares this lift's input in n, me, mi,
+    /// bounds and both Jacobian blocks and differs at most in g, be and bi (an SOC re-solve, a
+    /// later elastic rung). Byte-identical to MixedLift(variant, n_struct, data).problem()
+    /// without the rebuild. The CALLER checks the shared blocks; sizes are checked here.
+    QpProblem lift_variant(const QpProblem &variant) const;
+
   private:
     QpProblem lifted_;
     Vec p_ref_;
+    Vec va_; // V^T p_ref pushed back through V: the g-shift of the r- block
     Eigen::MatrixXd u_plus_, v_;
     Vec kappa_plus_, kappa_v_;
     Index n_orig_ = 0, n_struct_ = 0, me_orig_ = 0, r_plus_ = 0, r_minus_ = 0;

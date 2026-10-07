@@ -1974,7 +1974,7 @@ void expect_same_scalars(const std::vector<Seen> &a, const std::vector<Seen> &b)
     EXPECT_EQ(std::bit_cast<std::uint64_t>(a.field), std::bit_cast<std::uint64_t>(b.field))        \
         << #field
 
-// The 50 direct fields of SqpCounters, in declaration order.
+// The direct fields of SqpCounters, in declaration order.
 #define HVEN_T2_SQP_COUNTER_FIELDS(X)                                                              \
     X(major_iters)                                                                                 \
     X(qp_minor_iters)                                                                              \
@@ -2038,7 +2038,21 @@ void expect_same_scalars(const std::vector<Seen> &a, const std::vector<Seen> &b)
     X(nonfinite_subproblems)                                                                       \
     X(nonfinite_box_projections)                                                                   \
     X(elastic_last_rung_fallbacks)                                                                 \
-    X(restoration_reduction_resumes)
+    X(restoration_reduction_resumes)                                                               \
+    X(eval_hess_calls)                                                                             \
+    X(qn_updates)                                                                                  \
+    X(qn_damped)                                                                                   \
+    X(qn_skipped_nonfinite)                                                                        \
+    X(qn_skipped_zero_step)                                                                        \
+    X(qn_skipped_curvature)                                                                        \
+    X(qn_skipped_conditioning)                                                                     \
+    X(qn_rank_dropped)                                                                             \
+    X(qn_resets_consecutive_skips)                                                                 \
+    X(qn_resets_radius_floor)                                                                      \
+    X(qn_resets_restoration_resume)                                                                \
+    X(qn_pairs_peak)                                                                               \
+    X(qn_lift_rank_peak)                                                                           \
+    X(qn_kwrong_seen)
 
 // The 18 fields of SsnCounters and the 39 of IpqpCounters, the two nested
 // groups SqpCounters carries.
@@ -2124,8 +2138,9 @@ void expect_same_counters(const hven::solvers::SqpCounters &a,
     // 936 at M7 W2 R2, which appended three `Index` (the failed-subproblem step
     // pair and `nonfinite_subproblems`); 936 -> 944 at M7 W2 W1
     // (`nonfinite_box_projections`); 944 -> 960 at M7 W2 P1E
-    // (`elastic_last_rung_fallbacks`, `restoration_reduction_resumes`).
-    static_assert(sizeof(hven::solvers::SqpCounters) == 960,
+    // (`elastic_last_rung_fallbacks`, `restoration_reduction_resumes`); 960 -> 1072 at
+    // M7 QN stage 3 (`eval_hess_calls` and the thirteen `qn_*` Index).
+    static_assert(sizeof(hven::solvers::SqpCounters) == 1072,
                   "SqpCounters gained or lost a field -- extend "
                   "HVEN_T2_SQP_COUNTER_FIELDS so the mask comparison still "
                   "covers every counter");

@@ -461,9 +461,10 @@ void expect_ipqp_counters_identical(const IpqpCounters &a, const IpqpCounters &b
 // R2 appended `qp_failure_steps_judged`, `qp_failure_steps_accepted` and
 // `nonfinite_subproblems`; 67 and 65 until M7 W2 W1 appended `nonfinite_box_projections`;
 // 68 and 66 until M7 W2 P1E appended `elastic_last_rung_fallbacks` and
-// `restoration_reduction_resumes`.)
+// `restoration_reduction_resumes`; 70 and 68 until M7 QN stage 3 appended
+// `eval_hess_calls` and the thirteen-field quasi-Newton group.)
 void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
-    static_assert(sizeof(SqpCounters) == 63 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
+    static_assert(sizeof(SqpCounters) == 77 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
                   "SqpCounters changed size: add the new field to expect_counters_identical "
                   "and update this assertion.");
     HVEN_EXPECT_SAME(a, b, major_iters);
@@ -529,6 +530,20 @@ void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
     HVEN_EXPECT_SAME(a, b, nonfinite_box_projections);
     HVEN_EXPECT_SAME(a, b, elastic_last_rung_fallbacks);
     HVEN_EXPECT_SAME(a, b, restoration_reduction_resumes);
+    HVEN_EXPECT_SAME(a, b, eval_hess_calls);
+    HVEN_EXPECT_SAME(a, b, qn_updates);
+    HVEN_EXPECT_SAME(a, b, qn_damped);
+    HVEN_EXPECT_SAME(a, b, qn_skipped_nonfinite);
+    HVEN_EXPECT_SAME(a, b, qn_skipped_zero_step);
+    HVEN_EXPECT_SAME(a, b, qn_skipped_curvature);
+    HVEN_EXPECT_SAME(a, b, qn_skipped_conditioning);
+    HVEN_EXPECT_SAME(a, b, qn_rank_dropped);
+    HVEN_EXPECT_SAME(a, b, qn_resets_consecutive_skips);
+    HVEN_EXPECT_SAME(a, b, qn_resets_radius_floor);
+    HVEN_EXPECT_SAME(a, b, qn_resets_restoration_resume);
+    HVEN_EXPECT_SAME(a, b, qn_pairs_peak);
+    HVEN_EXPECT_SAME(a, b, qn_lift_rank_peak);
+    HVEN_EXPECT_SAME(a, b, qn_kwrong_seen);
     expect_ssn_counters_identical(a.ssn, b.ssn);
     expect_ipqp_counters_identical(a.ipqp, b.ipqp);
 }

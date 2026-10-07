@@ -54,9 +54,10 @@ using hven::solvers::SqpOptions;
 //
 // IpmOptions' 63 on Linux/Windows are 61 scalars/enums, plus `common` (ONE
 // initializer, the nested CommonOptions) and `phases` (the one sequence).
-// SqpOptions' 36 count `qp`, `ipqp` and `common` as one each (32 before M7 W2 R2
+// SqpOptions' 39 count `qp`, `ipqp` and `common` as one each (32 before M7 W2 R2
 // added `qp_failure_step`; 33 before M7 W2 P1E added `elastic_witness_start`,
-// `elastic_last_optimal_rung` and `restoration_resume_reduction`).
+// `elastic_last_optimal_rung` and `restoration_resume_reduction`; 36 before M7 QN
+// stage 3 added `hessian_mode`, `qn_memory` and `qn_update_on_reject`).
 //
 // IPMOPTIONS' FIELD COUNT IS PLATFORM-DEPENDENT and this is not a rounding
 // detail: `accel_pivot_tolerance` and `accel_zero_tolerance` are declared
@@ -71,7 +72,7 @@ constexpr std::size_t kIpmOptionsFields = 65;
 #else
 constexpr std::size_t kIpmOptionsFields = 63;
 #endif
-constexpr std::size_t kSqpOptionsFields = 36;
+constexpr std::size_t kSqpOptionsFields = 39;
 constexpr std::size_t kIpqpOptionsFields = 22;
 constexpr std::size_t kQpOptionsFields = 11;
 constexpr std::size_t kCommonOptionsFields = 3;
@@ -111,7 +112,7 @@ static_assert(sizeof(IpmOptions) == 376, "IpmOptions' layout moved on Linux x86-
                                          "was added, axis 1 above has already told you so; if "
                                          "only a TYPE changed, this is the only axis that "
                                          "noticed. Check the dump, then re-observe this value.");
-static_assert(sizeof(SqpOptions) == 440,
+static_assert(sizeof(SqpOptions) == 456,
               "SqpOptions' layout moved on Linux x86-64 -- see the IpmOptions note directly "
               "above. 376 -> 384 at M7 W0 T3, which added the `elastic_rung_engine` enum; "
               "UNCHANGED at M7 W0 T4, whose `ipqp_reseed_after_disproval` bool fits the "
@@ -136,7 +137,8 @@ static_assert(sizeof(SqpOptions) == 440,
               "72 -> 80 (its 8-alignment; observed); 424 -> 440 at M7 W2 P1E, whose two "
               "elastic bools fit the padding after `equality_basis` and whose "
               "`restoration_resume_reduction` double adds eight bytes and moves `common` "
-              "(observed).");
+              "(observed); 440 -> 456 at M7 QN stage 3, whose `hessian_mode` enum, "
+              "`qn_memory` Index and `qn_update_on_reject` bool precede `common` (observed).");
 static_assert(sizeof(IpqpOptions) == 152, "IpqpOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(QpOptions) == 80, "QpOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(CommonOptions) == 12, "CommonOptions' layout moved on Linux x86-64.");
@@ -148,8 +150,9 @@ static_assert(sizeof(CommonOptions) == 12, "CommonOptions' layout moved on Linux
 // IpmOptions: 62 own lines (the 63 fields less `common`, which is nested) plus
 // CommonOptions' 3 = 65 -- and 67 on an Accelerate build, where the two
 // `accel_*` fields exist and the dump prints them.
-// SqpOptions: 33 own lines (the 36 fields less `qp`, `ipqp` and `common`) plus
-// QpOptions' 11, IpqpOptions' 22 and CommonOptions' 3 = 69. (10 and 68 before M7 QN
+// SqpOptions: 36 own lines (the 39 fields less `qp`, `ipqp` and `common`) plus
+// QpOptions' 11, IpqpOptions' 22 and CommonOptions' 3 = 72. (33 and 69 before M7 QN
+// stage 3 added its three fields; 10 and 68 before M7 QN
 // stage 2 added QpOptions::`hessian_known_convex`; 30 and 65 before M7 W2
 // P1E added its three fields; 29 own lines and 64
 // before M7 W2 R2 added `qp_failure_step`; 22 own lines and 56
@@ -165,7 +168,7 @@ constexpr int kIpmDumpLines = 67;
 #else
 constexpr int kIpmDumpLines = 65;
 #endif
-constexpr int kSqpDumpLines = 69;
+constexpr int kSqpDumpLines = 72;
 
 int count_lines(const std::string &text) {
     int n = 0;
@@ -236,6 +239,9 @@ TEST(OptionsDump, EnumsPrintEnumeratorNames) {
     const std::string sqp = dump_to_string(SqpOptions{});
     EXPECT_TRUE(has_line(sqp, "qp_mode = kWalk")) << sqp;
     EXPECT_TRUE(has_line(sqp, "elastic_rung_engine = kWalk")) << sqp;
+    EXPECT_TRUE(has_line(sqp, "hessian_mode = kExact")) << sqp;
+    EXPECT_TRUE(has_line(sqp, "qn_memory = 10")) << sqp;
+    EXPECT_TRUE(has_line(sqp, "qn_update_on_reject = false")) << sqp;
     EXPECT_TRUE(has_line(sqp, "common.start_level = kWarm")) << sqp;
     EXPECT_TRUE(has_line(sqp, "qp.ws_algebra = kSchurBorder")) << sqp;
 

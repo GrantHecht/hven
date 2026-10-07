@@ -830,4 +830,40 @@ QpProblem AssemblyEvalSeam::build_subproblem(const NlpEval &ev, const Vec &x, co
     return qp;
 }
 
+QpProblem AssemblyEvalSeam::build_subproblem_without_hessian(const NlpEval &ev, const Vec &x,
+                                                             double obj_scale, Index n_struct,
+                                                             double sigma) {
+    this->relay_if_stale();
+    this->require_bundle_matches_layout(ev, "build_subproblem_without_hessian");
+    if (n_struct < 0 || n_struct > primal_vars_) {
+        throw std::invalid_argument(
+            fmt::format("AssemblyEvalSeam::build_subproblem_without_hessian: n_struct = {} "
+                        "outside [0, {}]",
+                        n_struct, primal_vars_));
+    }
+    QpProblem qp;
+    std::vector<Eigen::Triplet<double>> t;
+    t.reserve(static_cast<std::size_t>(n_struct));
+    for (Index i = 0; i < n_struct; ++i) {
+        t.emplace_back(i, i, sigma);
+    }
+    qp.H = SpMatRM(primal_vars_, primal_vars_);
+    qp.H.setFromTriplets(t.begin(), t.end());
+    qp.H.makeCompressed();
+    // The remaining blocks are build_subproblem's, line for line.
+    qp.g = obj_scale * ev.grad;
+
+    qp.Ae = ev.Je;
+    qp.Ae.makeCompressed();
+    qp.be = -ev.ce;
+
+    qp.Ai = ev.Ji;
+    qp.Ai.makeCompressed();
+    qp.bi = -ev.ci;
+
+    qp.lower = lower_ - x;
+    qp.upper = upper_ - x;
+    return qp;
+}
+
 } // namespace hven::solvers

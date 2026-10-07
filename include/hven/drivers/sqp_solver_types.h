@@ -275,8 +275,8 @@ struct IpqpOptions {
     /// reporting `kOptimal`. Default true. FALSE means every certificate is
     /// downgraded unconditionally -- an explicit, documented weakening for a
     /// caller who wants to skip the extra factorization, never a silent one.
-    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
-    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
+    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian under kExact; under
+    /// SqpHessianMode::kLbfgsDamped the PD quasi-Newton B, so this certifies B, not the NLP.
     bool ipqp_require_final_inertia = true;
 };
 
@@ -326,6 +326,17 @@ inline constexpr double kWeakActivityMargin = 1e-6;
 /// `QpMode::kQpModeCount`'s discipline: it is not an engine, and `SqpSolver`'s
 /// validation refuses it.
 enum class ElasticRungEngine { kWalk, kTier, kElasticRungEngineCount };
+
+/// @brief The curvature source of the SQP subproblems (M7 QN stage 3).
+///
+/// `kExact` evaluates the model's Lagrangian Hessian at every subproblem build.
+/// `kLbfgsDamped` never calls eval_hess: the subproblem curvature is a damped
+/// compact L-BFGS approximation B (detail/globalization/sqp/lbfgs_damped.h),
+/// positive definite by construction, carried into every QP engine call through
+/// the mixed lift (mixed_lift.h). The trailing enumerator is the COUNT SENTINEL,
+/// refused by validation.
+/// @see .superpowers/m7-qn-design.md sections 2-3
+enum class SqpHessianMode { kExact, kLbfgsDamped, kSqpHessianModeCount };
 
 /// @brief Driver options for the whole SQP solve.
 ///
@@ -614,8 +625,8 @@ struct SqpOptions {
     /// The saving is predictable to the unit: total factorizations drop by
     /// `SqpCounters::ssn.ssn_refinements` plus the driver's own trust-region gate
     /// refusals, and nothing else moves. Inert in both directions at kWalk.
-    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
-    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
+    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian under kExact; under
+    /// SqpHessianMode::kLbfgsDamped the PD quasi-Newton B, so this certifies B, not the NLP.
     bool ssn_certify_from_face = false;
 
     /// The three SSN rule levers. Forwarded verbatim onto the SsnOptions every
@@ -925,6 +936,23 @@ struct SqpOptions {
     /// refuses a value outside [0, 1) and a NaN.
     double restoration_resume_reduction = 0.0;
 
+    /// THE CURVATURE SOURCE (M7 QN stage 3); see SqpHessianMode. Under
+    /// kLbfgsDamped the model's eval_hess is never called
+    /// (`SqpCounters::eval_hess_calls == 0`), `predicted_decrease` reads B, and every
+    /// second-order reading an engine takes certifies the model B, not the NLP.
+    /// `validate()` refuses the count sentinel, and kLbfgsDamped with
+    /// `restoration_proximity > 0` (the exact zeta D^2 + QN split is not shipped).
+    SqpHessianMode hessian_mode = SqpHessianMode::kExact;
+
+    /// The L-BFGS window length m (pairs kept) under kLbfgsDamped; read in no other
+    /// mode. `validate()` refuses a value below 1.
+    Index qn_memory = 10;
+
+    /// Under kLbfgsDamped, also offer the pair of a REJECTED trial (one extra
+    /// gradient/Jacobian evaluation per rejection). False is the shipped
+    /// accepted-only rule (ruling C30 AMEND-4); true is the ablation.
+    bool qn_update_on_reject = false;
+
     /// The options both engines share (drivers/common_options.h), at the SQP
     /// engine's own defaults -- `threads = 0` ("leave the backend alone", which
     /// is what this engine has always done; the process-wide MKL_NUM_THREADS pin
@@ -970,7 +998,8 @@ struct SqpOptions {
 ///         `QpMode::kQpModeCount` names no kernel and is refused -- plus a
 ///         negative `common.threads` or `common.print_level`, or a negative,
 ///         NaN or infinite `restoration_proximity`, or a `restoration_resume_reduction`
-///         outside [0, 1) or NaN.
+///         outside [0, 1) or NaN, or the `hessian_mode` count sentinel, a `qn_memory`
+///         below 1, or kLbfgsDamped with `restoration_proximity > 0`.
 void validate(const SqpOptions &opts);
 
 /// @brief Returns a full SqpOptions value for a named preset.

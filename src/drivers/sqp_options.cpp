@@ -358,6 +358,27 @@ void validate(const SqpOptions &opts) {
                         opts.restoration_resume_reduction));
     }
 
+    // THE CURVATURE SOURCE (M7 QN stage 3): the count sentinel names no mode; the
+    // window must hold a pair; and the restoration wrapper's exact zeta D^2 term has
+    // no QN split shipped (ruling C30 AMEND-7), so the combination is refused.
+    if (opts.hessian_mode == SqpHessianMode::kSqpHessianModeCount) {
+        throw std::invalid_argument(
+            "SqpSolver: hessian_mode == SqpHessianMode::kSqpHessianModeCount is the "
+            "enumerator-count sentinel, not a mode. Use kExact or kLbfgsDamped");
+    }
+    if (!(opts.qn_memory >= 1)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpSolver: qn_memory ({}) must be >= 1 (the L-BFGS window length)", opts.qn_memory));
+    }
+    if (opts.hessian_mode == SqpHessianMode::kLbfgsDamped && opts.restoration_proximity > 0.0) {
+        throw std::invalid_argument(fmt::format(
+            "SqpSolver: hessian_mode == kLbfgsDamped with restoration_proximity ({}) > 0 is not "
+            "supported: the restoration wrapper's exact zeta D^2 term has no quasi-Newton split; "
+            "use restoration_proximity = 0",
+            opts.restoration_proximity));
+    }
+    // `qn_update_on_reject` is a BOOL with no refusable value.
+
     // The two CommonOptions fields (M6 W5 T8.3). Neither is read by this engine
     // yet -- T8.7 reads print_level, T8.8 reads threads -- but both are part of
     // the value a caller hands over and both are checked here, so an
@@ -457,6 +478,17 @@ const char *enum_name(ElasticRungEngine v) {
         // NOT an engine; validate() refuses it. Named rather than "unknown",
         // exactly as kQpModeCount is.
         return "kElasticRungEngineCount";
+    }
+    return "unknown";
+}
+const char *enum_name(SqpHessianMode v) {
+    switch (v) {
+    case SqpHessianMode::kExact:
+        return "kExact";
+    case SqpHessianMode::kLbfgsDamped:
+        return "kLbfgsDamped";
+    case SqpHessianMode::kSqpHessianModeCount:
+        return "kSqpHessianModeCount";
     }
     return "unknown";
 }
@@ -583,6 +615,9 @@ void dump_options(const SqpOptions &o, std::ostream &os) {
     kv_bool(os, "elastic_witness_start", o.elastic_witness_start);
     kv_bool(os, "elastic_last_optimal_rung", o.elastic_last_optimal_rung);
     kv_dbl(os, "restoration_resume_reduction", o.restoration_resume_reduction);
+    kv_str(os, "hessian_mode", enum_name(o.hessian_mode));
+    kv_int(os, "qn_memory", static_cast<long long>(o.qn_memory));
+    kv_bool(os, "qn_update_on_reject", o.qn_update_on_reject);
     kv_int(os, "common.threads", o.common.threads);
     kv_int(os, "common.print_level", o.common.print_level);
     kv_str(os, "common.start_level", enum_name(o.common.start_level));

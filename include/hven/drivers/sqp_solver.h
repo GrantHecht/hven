@@ -24,6 +24,7 @@
 
 #include <hven/core/ledger.h>
 #include <hven/detail/globalization/sqp/globalization.h>
+#include <hven/detail/globalization/sqp/qn_lift_bridge.h>
 #include <hven/detail/globalization/sqp/trust_region.h>
 #include <hven/detail/qp/ipqp_engine.h>
 #include <hven/detail/qp/qp_engine.h>
@@ -446,8 +447,8 @@ void accumulate_ipqp_counters(IpqpCounters &total, const IpqpCounters &one);
 /// @param opts  The QpOptions the tier ran under -- its tolerances.
 /// @param iopts The IpqpOptions it ran under; `ipqp_converge_slack` is read.
 ///
-/// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
-/// the model's second derivative -- a first-order mode re-derives or re-labels it).
+/// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian under kExact; under
+/// SqpHessianMode::kLbfgsDamped the PD quasi-Newton B, so this certifies B, not the NLP.
 bool ipqp_exit_is_a_usable_step(const IpqpResult &res, const QpOptions &opts,
                                 const IpqpOptions &iopts);
 
@@ -537,11 +538,16 @@ struct ElasticSeedSource {
 ///               carry `tr_radius = +inf` in its own QpOptions: the tier
 ///               resolves the override sentinel to that field and would
 ///               otherwise window the slack columns a second time.
+/// @param qn     Non-null under `SqpHessianMode::kLbfgsDamped`: every rung (walk or tier) is
+///               solved through the mixed lift, after the elastic augmentation (the slack
+///               columns carry no curvature), and the exhaustion test's predicted decrease
+///               reads B. NULL -- the default -- is the exact-Hessian ladder, unchanged.
 ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
                                        const ElasticSeedSource &seed, double window,
                                        const SqpOptions &opts, SqpCounters &out,
                                        std::optional<double> rho_0_override = std::nullopt,
-                                       TraceSink *sink = nullptr, IpqpEngine *tier = nullptr);
+                                       TraceSink *sink = nullptr, IpqpEngine *tier = nullptr,
+                                       detail::QnLiftBridge *qn = nullptr);
 
 /// @brief The escape branch's single entry: a bounded two-rung ladder. Rung A is
 ///        the elastic QP at the evidence's own rho_0; rung B is a cold walk,
@@ -570,17 +576,17 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
 /// @param tier      Forwarded to rung A's ladder; see `run_elastic_ladder`.
 ///                  RUNG B IS THE WALK WHATEVER THIS IS: it is the engine's
 ///                  refusal path, and W1's body is what carries that refusal.
+/// @param qn        Forwarded to rung A's ladder, and rung B's cold walk goes through it;
+///                  see `run_elastic_ladder`.
 /// @return Rung A's step in the original variables, or rung B's walk solution
 ///         unchanged.
 /// @throws std::invalid_argument if `window` is negative or NaN.
-QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp, const NlpEval &ev,
-                                          const QpSolution *seed,
-                                          const IpqpInfeasibilityEvidence &evidence,
-                                          const SolveOverrides &overrides, const SqpOptions &opts,
-                                          double window, SqpCounters &out, SqpIterate &row,
-                                          std::optional<ElasticLadderReport> &fallback_report,
-                                          SqpFallbackVerdictTraceEvent &verdict,
-                                          TraceSink *sink = nullptr, IpqpEngine *tier = nullptr);
+QpSolution certified_feasibility_fallback(
+    QpEngine &engine, const QpProblem &qp, const NlpEval &ev, const QpSolution *seed,
+    const IpqpInfeasibilityEvidence &evidence, const SolveOverrides &overrides,
+    const SqpOptions &opts, double window, SqpCounters &out, SqpIterate &row,
+    std::optional<ElasticLadderReport> &fallback_report, SqpFallbackVerdictTraceEvent &verdict,
+    TraceSink *sink = nullptr, IpqpEngine *tier = nullptr, detail::QnLiftBridge *qn = nullptr);
 
 // --- Adaptive dual regularization -------------------------------------------
 //
@@ -1354,6 +1360,17 @@ class SqpSolver {
     void solve_with_walk(SolveState &st, MajorState &mj, const SqpWarmStart &warm,
                          const SolveOverrides &overrides, bool offer_hot, bool use_crash);
 
+    /// @brief The subproblem at the current iterate under SqpHessianMode::kLbfgsDamped (M7
+    ///        QN stage 3): no eval_hess; H = sigma I on the structural block, the rest of B
+    ///        entering through the lift. Engages the QN instance at the first call, with
+    ///        sigma_0 = max(1, ||grad_x L||inf / Delta) on the structural block of @p kkt.
+    QpProblem build_qn_subproblem(SolveState &st, const SqpKkt &kkt, AssemblyEvalSeam &seam);
+
+    /// @brief Offers the step the major just committed to the QN window (accepted-only rule):
+    ///        s = x_new - x_old, y = grad_x L(x_new, lambda+) - grad_x L(x_old, lambda+) with
+    ///        lambda+ the committed multipliers. No-op under kExact.
+    void qn_offer_committed_pair(SolveState &st, const Vec &x_old, const NlpEval &ev_old);
+
     /// @brief What ONE MAJOR decided, and the only thing that crosses back out of
     ///        `run_major`.
     ///
@@ -1639,11 +1656,13 @@ class SqpSolver {
     /// @param ssn_budget_charge the probe budget's SSN accumulator, charged.
     /// @param counters the solve's running counters, updated.
     /// @param qs       written with the SSN's step iff one was usable.
+    /// @param qn       the quasi-Newton lift (SqpHessianMode::kLbfgsDamped), or nullptr.
     /// @return true iff the walk owns this subproblem after all (the SSN exit
     ///         was not usable), i.e. `walk_owns_this_qp`.
     bool route_through_ssn_warm_grade(const QpProblem &qp, const IpqpResult &ires, double delta,
                                       double &ssn_prox_ingested, Index &ssn_budget_charge,
-                                      SqpCounters &counters, QpSolution &qs);
+                                      SqpCounters &counters, QpSolution &qs,
+                                      detail::QnLiftBridge *qn);
 
     /// @brief Builds the SqpWarmStart every exit of solve_impl attaches to
     ///        SqpResult::warm_start.
@@ -1664,17 +1683,22 @@ class SqpSolver {
     /// @param strategy          The globalization strategy, read for its state.
     /// @param hot               The hot handle to carry, if any.
     ///
-    /// EXACT-HESSIAN-SPECIFIC (M9 label): this identity counts eval_hess calls and is zero under
-    /// a first-order mode; do not budget curvature from it there.
+    /// CURVATURE SOURCE (M7 QN stage 3): the probe calls eval_hess under kExact (counted in
+    /// `SqpCounters::eval_hess_calls`, folded at `finish`) and NOT under kLbfgsDamped, where it
+    /// hashes the unlifted QN structure (ruling C30 AMEND-5).
     ///
     /// @return The warm start to attach to `SqpResult::warm_start`.
     /// @see docs/notes/2026-09-header-prose-archive.md §sqp_solver.h
-    static SqpWarmStart make_warm_start(AssemblyEvalSeam &seam, const QpSolution *activity,
-                                        const QpProblem &qp, bool qp_built, const NlpEval *probe_ev,
-                                        const Vec *probe_x, double delta, double dual_mu_eff,
-                                        double primal_delta_eff,
-                                        const GlobalizationStrategy *strategy,
-                                        std::shared_ptr<const HotState> hot);
+    SqpWarmStart make_warm_start(AssemblyEvalSeam &seam, const QpSolution *activity,
+                                 const QpProblem &qp, bool qp_built, const NlpEval *probe_ev,
+                                 const Vec *probe_x, double delta, double dual_mu_eff,
+                                 double primal_delta_eff, const GlobalizationStrategy *strategy,
+                                 std::shared_ptr<const HotState> hot);
+
+    /// The QN structural block for a problem of @p n variables (qn_struct_vars_).
+    Index qn_probe_struct(Index n) const {
+        return qn_struct_vars_ >= 0 ? std::min(qn_struct_vars_, n) : n;
+    }
 
     /// @brief Assembles the final SqpResult at an exit -- status, x,
     ///        multipliers, KKT record, f, warm start -- and maps every exported
@@ -1825,6 +1849,15 @@ class SqpSolver {
     // Every other driver -- restoration allowed or not -- builds its console at
     // the tiers the print level names.
     bool is_restoration_sub_driver_ = false;
+
+    // THE QUASI-NEWTON STRUCTURAL BLOCK (M7 QN stage 3): the leading variables B acts on
+    // under SqpHessianMode::kLbfgsDamped, or -1 for all of them. Set only by the restoration
+    // phase on its sub-driver -- the wrapper's x-block, its slack columns carrying no
+    // curvature (ruling C30 AMEND-7).
+    Index qn_struct_vars_ = -1;
+    // eval_hess calls make_warm_start's exit probe made, folded by `finish` (whose arguments
+    // include that call, so the probe cannot write the result it is evaluated beside).
+    Index exit_probe_hess_calls_ = 0;
 
     // Is a public solve on THIS driver currently running? Set by an RAII guard
     // at solve_impl()'s entry -- the ONE place all four public solve() overloads

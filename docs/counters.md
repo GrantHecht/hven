@@ -47,6 +47,14 @@ bridge-lay `+1 eval_hess` identity is tagged exact-Hessian-specific".
   so the ladder counters and `rho` demanded read zero for a reason that is not the
   problem's. M9a has not chosen the family -- an indefinite SR1 would arm the
   ladder -- so that is an illustration, not a premise.
+
+  RELABELLED AT M7 QN STAGE 3 on the SQP side (the interior-point tags are
+  unchanged): `SqpOptions::hessian_mode = kLbfgsDamped` makes the subproblem
+  Hessian the damped L-BFGS B (positive definite), and every SQP-side tag now
+  reads `CURVATURE SOURCE: the subproblem Hessian -- ... the PD quasi-Newton B, so
+  this certifies B, not the NLP`. The quantities are still REPORTED in that mode --
+  a second-order verdict there is a statement about the model B, and the
+  certificate the driver reports remains first-order.
 - `EXACT-HESSIAN-SPECIFIC (M9 label): ...` marks telemetry keyed on the bridge-lay
   `+1 eval_hess` identity -- the relation `SqpCounters` states between
   `steps_accepted` and the optimality phase's `eval_hess` calls, and the three
@@ -285,6 +293,20 @@ one of those three therefore cannot silently miss the trace.
   `elastic_last_rung_fallbacks` (the same round) counts elastic ladders that
   handed back their last solved rung (`SqpOptions::elastic_last_optimal_rung`);
   it folds from the restoration sub-solve like `elastic_escalations`.
+
+  **THE CURVATURE-SOURCE GROUP** (M7 QN stage 3, appended last: `eval_hess_calls`
+  and thirteen `qn_*` fields). `eval_hess_calls` counts every Lagrangian-Hessian
+  evaluation the solve made -- each subproblem build and each warm-start structure
+  probe under `SqpOptions::hessian_mode = kExact` -- and is 0 under `kLbfgsDamped`
+  by construction. The `qn_*` fields are all 0 under `kExact`: `qn_updates` /
+  `qn_damped` (pairs accepted, of those Powell-damped), `qn_skipped_*` by reason
+  (non-finite, zero step, curvature, conditioning), `qn_rank_dropped`,
+  `qn_resets_*` by reason (consecutive non-zero-step skips, the radius floor, a
+  restoration resume), the two PEAKS `qn_pairs_peak` and `qn_lift_rank_peak`
+  (max-folded), and `qn_kwrong_seen` -- lifted subproblem solves whose engine
+  reported a wrong-inertia reading, a bug flag under a positive-definite B, counted
+  and never acted on. The whole group FOLDS from the restoration sub-solve, which
+  runs its own QN instance on the wrapper's x-block.
 
   THE THREE REFUSALS AND THE NON-FINITE EXIT WRITE NOTHING. A nested
   restoration, the once-per-solve cap and a spent budget never enter the phase;

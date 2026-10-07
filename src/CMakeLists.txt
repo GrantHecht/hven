@@ -214,6 +214,7 @@ target_sources(hven PRIVATE
     globalization/sqp/funnel.cpp
     globalization/sqp/lbfgs_damped.cpp
     globalization/sqp/mixed_lift.cpp
+    globalization/sqp/qn_lift_bridge.cpp
     globalization/sqp/soc_elastic_restoration.cpp
     qp/ipqp_engine.cpp
     qp/ipqp_kkt_layout.cpp
@@ -557,7 +558,10 @@ endif()
 # 46 as of globalization/sqp/mixed_lift.cpp (M7 QN stage 2): the quasi-Newton mixed-lift QP
 # adapter. NOT a PCH source, on the same unmeasured-default footing: it includes its own
 # header, fmt/format.h and standard headers, a different set from src/hven_pch.h's prefix.
-set(_hven_expected_source_count 46)
+#
+# 47 as of globalization/sqp/qn_lift_bridge.cpp (M7 QN stage 3): the quasi-Newton engine-call
+# decorator. NOT a PCH source, on the same unmeasured-default footing.
+set(_hven_expected_source_count 47)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.

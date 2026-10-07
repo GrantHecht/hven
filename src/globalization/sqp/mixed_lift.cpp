@@ -110,7 +110,8 @@ MixedLift::MixedLift(const QpProblem &qp, Index n_struct, const MixedLiftData &d
     lifted_.g = Vec::Zero(nl);
     lifted_.g.head(n) = qp.g;
     if (r_minus_ > 0) {
-        lifted_.g.head(n_struct) -= v_ * a;
+        va_ = v_ * a;
+        lifted_.g.head(n_struct) -= va_;
         lifted_.g.tail(r_minus_) = kappa_v_.cwiseProduct(a);
     }
     for (Index k = 0; k < r_plus_; ++k) {
@@ -246,6 +247,23 @@ Vec MixedLift::unlift_primal(const Vec &x) const {
         bad(fmt::format("unlift_primal: size {}, expected {}", x.size(), n_lifted()));
     }
     return x.head(n_orig_);
+}
+
+QpProblem MixedLift::lift_variant(const QpProblem &variant) const {
+    if (variant.n() != n_orig_ || variant.me() != me_orig_ || variant.mi() != lifted_.mi() ||
+        variant.g.size() != n_orig_ || variant.be.size() != me_orig_ ||
+        variant.bi.size() != lifted_.mi()) {
+        bad(fmt::format("lift_variant: variant is {}x({}, {}), the lift's input is {}x({}, {})",
+                        variant.n(), variant.me(), variant.mi(), n_orig_, me_orig_, lifted_.mi()));
+    }
+    QpProblem out = lifted_;
+    out.g.head(n_orig_) = variant.g;
+    if (r_minus_ > 0) {
+        out.g.head(n_struct_) -= va_;
+    }
+    out.be.head(me_orig_) = variant.be;
+    out.bi = variant.bi;
+    return out;
 }
 
 Vec MixedLift::unlift_equality_multipliers(const Vec &lambda_e) const {
