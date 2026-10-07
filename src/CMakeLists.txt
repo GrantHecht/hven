@@ -213,6 +213,7 @@ target_sources(hven PRIVATE
     drivers/trace_writer.cpp
     globalization/sqp/funnel.cpp
     globalization/sqp/lbfgs_damped.cpp
+    globalization/sqp/mixed_lift.cpp
     globalization/sqp/soc_elastic_restoration.cpp
     qp/ipqp_engine.cpp
     qp/ipqp_kkt_layout.cpp
@@ -552,7 +553,11 @@ endif()
 # L-BFGS math class. NOT a PCH source, on the same unmeasured-default footing: it
 # includes its own header (Eigen/Dense), fmt/format.h and standard headers, a
 # different set from src/hven_pch.h's prefix.
-set(_hven_expected_source_count 45)
+#
+# 46 as of globalization/sqp/mixed_lift.cpp (M7 QN stage 2): the quasi-Newton mixed-lift QP
+# adapter. NOT a PCH source, on the same unmeasured-default footing: it includes its own
+# header, fmt/format.h and standard headers, a different set from src/hven_pch.h's prefix.
+set(_hven_expected_source_count 46)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.
