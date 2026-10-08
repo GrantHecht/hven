@@ -97,6 +97,12 @@ TEST(QpBpsBorderCertificate, Acopr118Qp26Refactorize) {
 TEST(QpBpsBorderCertificate, Acopr118Entry9Border) {
     QpDump d;
     const QpSolution s = solve_fixture("BPS_ACOPR118_entry9.txt", kBorder, d);
+    // The mechanism pinned: STEP RESOLVED (refinement past the footprint), not the fallback.
+    // Measured: 0 fallbacks both configs; refine steps 638 Release / 641 Debug over 384 / 386
+    // minors (ratio 1.66), so the config-stable pin is the inequality, at 3/2 of the minors:
+    // with STEP RESOLVED always true the ratio is 1.03.
+    EXPECT_EQ(s.counters.border_uncertified_fallbacks, 0);
+    EXPECT_GT(2 * s.counters.border_refine_steps, 3 * s.counters.minor_iters);
     expect_certified_at(d, s, 75.2165872705);
 }
 TEST(QpBpsBorderCertificate, Acopr118Entry9Refactorize) {

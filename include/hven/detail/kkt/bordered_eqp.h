@@ -280,7 +280,10 @@ inline Vec refine_bordered_solve(const SpMatRM &K0, Index var_count,
 //     was measured, and it hands the pass to the eliminated twin's own
 //     one-step row miss, which then cycles with the border). Only steps within
 //     e of step_tol are undecided, so it is inert away from the zero-motion
-//     scale.
+//     scale. STEP RESOLVED classifies the refinement's answer BEFORE
+//     polish_bordered_unregularized runs, and that polish can move the answer by up
+//     to kEqpPolishStepCap * max(1, |sol|), so the bracket is on the refined answer,
+//     not on the returned step.
 struct BorderedResolution {
     const Vec *x_k = nullptr;                             // the proximal centre (the iterate)
     const std::vector<BoundState> *bound_state = nullptr; // which variables are free

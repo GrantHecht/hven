@@ -649,7 +649,15 @@ constexpr ExpectedCounts kF3n1000WarmPin{/*steps=*/6,
                                          /*n_warm=*/5,
                                          /*n_hot=*/0,
                                          /*predictor_calls=*/0,
-                                         /*border_refine=*/84,
+// 84 -> 89 (E4 fix round 2, stale by then) -> 91 Release /
+// 93 Debug (M7 W2 BPS: the bordered certificate's extra
+// refinement; follows tests/sqp/test_warm_start_battery.cpp's
+// F3n1000 warm-arm pin).
+#ifdef NDEBUG
+                                         /*border_refine=*/91,
+#else
+                                         /*border_refine=*/93,
+#endif
                                          /*elastic_activations=*/0};
 
 bool run_self_check() {
