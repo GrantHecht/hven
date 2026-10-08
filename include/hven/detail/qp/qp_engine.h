@@ -603,7 +603,15 @@
 // not a proof for this QP) ends kNumericalError with the certificate kept, else the
 // blocker is passed over when its predicted violation stays within
 // feas_tol * row_scale, else the solve ends kNumericalError at the current
-// iterate. The zero-motion re-entry rule (WalkSeen's point memory) makes a
+// iterate. Before any exchange, on an ordinary step, THE IMPLIED BLOCKER (M7
+// W2 QC-8; QpEngine::blocker_implied_by_face): a blocker PROVED dependent
+// (rho <= kDepTol, no shift-driven row involved) whose face value satisfies it
+// (g + rho ||a|| ||x_face,free|| <= feas_tol * row_scale) cannot be crossed by
+// the exact step, so its computed rate is the step's leak off the members; it
+// is passed over while its predicted violation stays within the members'
+// leak allowance (dep_implied_passovers), and otherwise falls back to the
+// exchange it set aside, the unlock, then the end -- never a new end.
+// The zero-motion re-entry rule (WalkSeen's point memory) makes a
 // constraint released and re-entered at one point drop-exempt until the
 // iterate moves; an exempt multiplier above opt_tol * stat_scale at the end
 // is kNumericalError (zero_motion_exhausted). The integer screen can call an
@@ -2417,7 +2425,7 @@ class QpEngine {
         bool j_is_ineq = false;
         bool j_shifted = false; // the released member is a shift-driven row
         bool unlocked = false;  // j was admissible only under the unlock (R-B)
-        // A shift-driven member row carries a coefficient above tol (either sign): `g`
+        // A shift-driven member row carries a nonzero coefficient (either sign): `g`
         // reads unshifted right-hand sides, so it does not describe the face.
         bool shifted_coeff = false;
         Index j = -1;
@@ -2444,21 +2452,42 @@ class QpEngine {
     // (1 - alpha) c_r^T x + alpha (d_r + g + r^T x_face): the blocker's value
     // is a convex combination of its value at x and at the face. When
     // g + rho ||a_r|| ||x_face,free|| <= feas_tol * row_scale the face meets
-    // it, so the step cannot carry it past max(its violation at x, feas_tol *
-    // row_scale) -- it is not a blocker, and its computed rate along p is the
-    // step's own leak off the members (A_W p = O(mu lambda)), which at a tied
-    // vertex makes every member of a dependent cycle block in turn at zero
-    // motion (DALLASM QN QP 6: an exchange keeps the span and so the step, the
-    // released member blocks next, and the lock ends the solve). It is passed
-    // over (QpCounters::dep_implied_passovers; exempt from N2's violation
-    // check), never exchanged. False for a shift-driven member or blocker
-    // (`g` reads unshifted right-hand sides), an unproved dependency (the
-    // integer screen alone, a stalled or un-run test), and on a ride, whose
-    // direction is not the step onto the face.
+    // it, so the EXACT step cannot carry it past max(its violation at x,
+    // feas_tol * row_scale) -- it is not a blocker, and its computed rate along
+    // p is the step's own leak off the members (A_W p = O(mu lambda)), which at
+    // a tied vertex makes every member of a dependent cycle block in turn at
+    // zero motion (DALLASM QN QP 6: an exchange keeps the span and so the step,
+    // the released member blocks next, and the lock ends the solve). False for
+    // a shift-driven blocker or a member row carrying ANY nonzero coefficient
+    // while shifted (`g` reads unshifted right-hand sides), an unproved
+    // dependency (the integer screen alone, a stalled or un-run test), and on a
+    // ride, whose direction is not the step onto the face.
+    //
+    // THE LEAK BUDGET (QC-8 R1). The COMPUTED step leaks off each member by at
+    // most what the member's own row tolerance absorbs, so the blocker's leak
+    // is bounded by implied_leak_allowance = max(feas_tol * row_scale,
+    // sum_k |v_k| row_tolerance(scale_k, lambda_k)) over the equality and
+    // working inequality rows (pins are exact: 0). An implied blocker is passed
+    // over only while its predicted violation at the end of the step,
+    // max(0, c^T x - d + alpha c^T p), stays within that allowance -- N2's
+    // check with the members' absorbency as the allowance, not an exemption
+    // (QpCounters::dep_implied_passovers counts the pass-overs taken).
+    //
+    // A PREFERENCE, NOT A ROUTE (QC-8 R3). When a step with an implied
+    // blocker passed over fails N2's check -- its own leak above the budget, or
+    // any passed-over blocker's violation at the longer step -- the rule falls
+    // back to what the walk would have done without it: the exchange pick the
+    // sequence's first implied blocker set aside, taken at the step that
+    // reached that blocker; else the locked-vertex unlock (R-B); only then the
+    // end (N3). The implied pass-over never makes a new N3 end.
     static bool blocker_implied_by_face(const QpProblem &qp, const WorkingSet &ws, const Vec &shift,
                                         const Vec &x, const Vec &p, const detail::DepTest &t,
                                         const ExchangePick &pick, bool is_ineq, Index idx,
                                         double row_scale, const QpOptions &opts);
+    double implied_leak_allowance(const QpProblem &qp, const WorkingSet &ws,
+                                  const ExchangePick &pick, const Vec &x, const Vec &ai_row_norm1,
+                                  const Vec &ae_row_norm1, const Vec &lambda_e, const Vec &lambda_i,
+                                  double row_scale, const QpOptions &opts) const;
 
     // The no-admissible-member rule's certificate, VERIFIED, tried whenever no
     // member is admissible (E2 fix1: the box-based certificate does not need

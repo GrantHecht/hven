@@ -12,9 +12,11 @@
 // (1e-7..1e-5, mu * lambda); the exchange keeps the span and so the step, the member it releases
 // blocks next, and the entered-at-point lock ends the solve. The implied blocker passes such a
 // blocker over before any exchange: the face satisfies it, so the ordinary step cannot.
-//   * QC8_DALLASM_entry6 (solve 6 at entry; major 2, Delta 0.1): strictly convex (B positive
-//     definite, eigenvalues 160..1089). In-cell (and replayed) border 54 minors / refactorize 44
-//     minors, f 417 above the optimum.
+//   * QC8_DALLASM_entry6 (solve 6; major 2, Delta 0.1): strictly convex (B positive
+//     definite, eigenvalues 160..1089). The in-cell dump (its QP and warm seed byte-identical to
+//     the entry dump of the same solve; `result` carries the in-cell outcome, kNumericalError in
+//     54 minors on the border path); replayed: border 54 minors / refactorize 44 minors, f 417
+//     above the optimum.
 //   * QC8_DALLASM_qp1 (solve 1, the elastic rung of major 0; in-cell kNumericalError, 9 minors).
 //   * QC8_DALLASM_qp7 (solve 7, the elastic rung of major 2; in-cell kNumericalError, 73 minors).
 // The references are the oracle's (Clarabel) optima. MINOR AND FACTORIZATION COUNTS ARE PRINTED,
@@ -81,6 +83,8 @@ constexpr double kQp7Oracle = -92397.2698484735;
 TEST(QpQc8ImpliedBlocker, DallasmEntry6Border) {
     QpDump d;
     const QpSolution s = solve_fixture("QC8_DALLASM_entry6.txt", kBorder, d);
+    // The premise: in-cell, this strictly convex feasible subproblem ended kNumericalError.
+    EXPECT_NE(d.result.find("status=3 minors=54"), std::string::npos) << d.result;
     expect_optimal_at(d, s, kEntry6Oracle);
 }
 TEST(QpQc8ImpliedBlocker, DallasmEntry6Refactorize) {

@@ -2026,8 +2026,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
 
         // THE ADD SITE (independent_working_set). The blocker is tested
         // against the factor this pass holds for `ws`. Independent: admitted.
-        // Dependent and implied by the face on an ordinary step: passed over
-        // (blocker_implied_by_face). Dependent: exchanged for a member (ExchangePick); with no
+        // Dependent and implied by the face on an ordinary step: passed over within its members'
+        // leak allowance, else the exchange it set aside (blocker_implied_by_face; QC-8 R1/R3).
+        // Dependent: exchanged for a member (ExchangePick); with no
         // admissible member, (N1) a VERIFIED Farkas certificate ends kInfeasible, else (N2) the
         // blocker is passed over when its predicted violation at the end of the step stays within
         // feas_tol * row_scale (the next blocker goes through this same rule), else (N3) the solve
@@ -2037,7 +2038,19 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             enum class AddExit { kNone, kInfeasible, kToleranced, kRejected, kTerminate };
             AddExit add_exit = AddExit::kNone;
             std::vector<std::pair<bool, Index>> passed;
-            std::vector<char> passed_implied;      // parallel to `passed`: THE IMPLIED BLOCKER
+            // Parallel to `passed`: an implied blocker's leak allowance (QC-8 R1), else -1
+            // (N2's feas_tol * row_scale).
+            std::vector<double> passed_allow;
+            // QC-8 R3: the sequence's first implied blocker whose exchange pick was set aside,
+            // with the step that reached it -- restored if a later N2 check fails.
+            struct SetAside {
+                BlockKind kind;
+                Index idx;
+                BoundState state;
+                double alpha;
+                ExchangePick pick;
+            };
+            std::optional<SetAside> set_aside;
             std::optional<PassOverScan> pass_scan; // built at the sequence's first pass-over
             const double xmag = x.lpNorm<Eigen::Infinity>();
             // The oriented blocker c^T x <= d: a row, an upper hit (e_i), or
@@ -2078,6 +2091,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 }
                 bool refused = false;
                 bool implied = false;
+                double implied_allow = -1.0;
                 if (t.verdict == detail::DepVerdict::kUndecidable && pass_view.schur != nullptr) {
                     // (D3(a)) THE BORDER RETREAT for an undecidable test: a
                     // stalled refinement on the border path is the swamped-C
@@ -2137,8 +2151,14 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                               blocker_implied_by_face(qp, ws, shift, x, p, t, xpick, is_ineq,
                                                       block_idx, o.scale, eff_opts);
                     if (implied) {
+                        implied_allow =
+                            implied_leak_allowance(qp, ws, xpick, x, ai_row_norm1, ae_row_norm1,
+                                                   lambda_e, lambda_i, o.scale, eff_opts);
+                        if (xpick.found && !set_aside.has_value()) {
+                            set_aside =
+                                SetAside{kind, block_idx, block_state, alpha, std::move(xpick)};
+                        }
                         xpick = ExchangePick{};
-                        ++counters.dep_implied_passovers;
                     } else if (xpick.found) {
                         break; // the exchange
                     } else {
@@ -2179,9 +2199,10 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 }
                 // (N2) The pass-over: the step with this blocker (and every
                 // one passed over before it) excluded, if none of them ends
-                // it violated by more than feas_tol * row_scale.
+                // it violated by more than feas_tol * row_scale (an implied
+                // blocker: its members' leak allowance, QC-8 R1).
                 passed.emplace_back(is_ineq, block_idx);
-                passed_implied.push_back(implied ? 1 : 0);
+                passed_allow.push_back(implied_allow);
                 if (!pass_scan.has_value()) {
                     pass_scan.emplace(qp, ws, x, Aix, sdir);
                 }
@@ -2192,9 +2213,6 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 const double a2 = pass_scan->next(sdir, k2, i2, s2, /*cap_at_unit=*/!ride_blocked);
                 bool within = true;
                 for (std::size_t q = 0; q < passed.size(); ++q) {
-                    if (passed_implied[q] != 0) {
-                        continue; // the face satisfies it: the step cannot violate it
-                    }
                     const auto &[pi, pidx] = passed[q];
                     // A passed-over bound is oriented by the side it would
                     // have been hit on.
@@ -2202,7 +2220,10 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                                             : sdir(pidx) > 0.0 ? BoundState::kAtUpper
                                                                : BoundState::kAtLower;
                     const Oriented po = oriented(pi, pidx, side);
-                    if (std::max(0.0, po.cx - po.d + a2 * po.cp) > eff_opts.feas_tol * po.scale) {
+                    // An implied blocker's allowance is its members' absorbency (R1).
+                    const double allow =
+                        passed_allow[q] >= 0.0 ? passed_allow[q] : eff_opts.feas_tol * po.scale;
+                    if (std::max(0.0, po.cx - po.d + a2 * po.cp) > allow) {
                         within = false;
                     }
                 }
@@ -2212,7 +2233,18 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     // zero-motion step off the border path (the border retreat
                     // comes first there), unlock the members locked only by
                     // having entered at this point (ExchangePick's header).
-                    if (!refused && !implied && !moves && pass_view.schur == nullptr) {
+                    // QC-8 R3: an implied pass-over is a preference, never a new end -- the
+                    // exchange it set aside comes back, at the step that reached it, before
+                    // the unlock.
+                    if (set_aside.has_value()) {
+                        kind = set_aside->kind;
+                        block_idx = set_aside->idx;
+                        block_state = set_aside->state;
+                        alpha = set_aside->alpha;
+                        xpick = std::move(set_aside->pick);
+                        break; // the exchange
+                    }
+                    if (!refused && !moves && pass_view.schur == nullptr) {
                         ExchangePick u =
                             select_exchange(qp, ws, shift, seen, t, is_ineq, block_idx, block_state,
                                             lambda_e, lambda_i, z, moves, /*unlock=*/true);
@@ -2224,7 +2256,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     add_exit = AddExit::kTerminate;
                     break;
                 }
-                if (!implied) {
+                if (implied) {
+                    ++counters.dep_implied_passovers;
+                } else {
                     ++counters.dep_passovers;
                 }
                 kind = k2;
@@ -4498,9 +4532,8 @@ QpEngine::ExchangePick QpEngine::select_exchange(const QpProblem &qp, const Work
 
     const double tol = detail::kDepCoeffTol * vmax;
     for (std::size_t k = 0; k < aw.size(); ++k) {
-        if (shift(aw[k]) > 0.0 &&
-            std::abs(pk.v_w(static_cast<Index>(k))) * row_norm(static_cast<Index>(k)) > tol) {
-            pk.shifted_coeff = true;
+        if (shift(aw[k]) > 0.0 && pk.v_w(static_cast<Index>(k)) != 0.0) {
+            pk.shifted_coeff = true; // QC-8 R2: any nonzero coefficient disqualifies
         }
     }
     pk.cond1 = true;
@@ -4614,6 +4647,31 @@ bool QpEngine::blocker_implied_by_face(const QpProblem &qp, const WorkingSet &ws
     }
     const double a_norm = is_ineq ? qp.Ai.row(idx).norm() : 1.0;
     return pick.g + t.rho * a_norm * std::sqrt(free_sq) <= opts.feas_tol * row_scale;
+}
+
+double QpEngine::implied_leak_allowance(const QpProblem &qp, const WorkingSet &ws,
+                                        const ExchangePick &pick, const Vec &x,
+                                        const Vec &ai_row_norm1, const Vec &ae_row_norm1,
+                                        const Vec &lambda_e, const Vec &lambda_i, double row_scale,
+                                        const QpOptions &opts) const {
+    const double xmag = x.lpNorm<Eigen::Infinity>();
+    double leak = 0.0; // pins sit on their bounds exactly: no leak
+    for (Index j = 0; j < qp.me(); ++j) {
+        if (pick.v_e(j) != 0.0) {
+            const double scale = std::max({1.0, std::abs(qp.be(j)), ae_row_norm1(j) * xmag});
+            leak += std::abs(pick.v_e(j)) * row_tolerance(scale, lambda_e(j), opts);
+        }
+    }
+    const std::vector<Index> &aw = ws.active_ineq();
+    for (std::size_t k = 0; k < aw.size(); ++k) {
+        const double v = pick.v_w(static_cast<Index>(k));
+        if (v != 0.0) {
+            const Index j = aw[k];
+            const double scale = std::max({1.0, std::abs(qp.bi(j)), ai_row_norm1(j) * xmag});
+            leak += std::abs(v) * row_tolerance(scale, lambda_i(j), opts);
+        }
+    }
+    return std::max(opts.feas_tol * row_scale, leak);
 }
 
 bool QpEngine::verify_farkas(const QpProblem &qp, const WorkingSet &ws,
