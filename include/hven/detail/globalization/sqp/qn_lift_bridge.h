@@ -20,7 +20,7 @@ namespace hven::solvers::detail {
 
 /// Consecutive non-zero-step skips that reset the window (design m7-qn-design.md section 3). A
 /// zero-step skip neither advances nor clears the streak: near a solution every step is zero,
-/// and those skips say nothing about the pairs (ruling C30 AMEND-7's rate limit).
+/// and those skips say nothing about the pairs (design m7-qn-design.md section 3, the skip rule).
 inline constexpr Index kQnSkipResetStreak = 5;
 
 /// Offers (s, y) on the leading qn.dimension() entries; the kQnSkipResetStreak-th consecutive
@@ -81,14 +81,20 @@ class QnLiftBridge {
                      const IpqpOptions &iopts, const SolveOverrides &o);
 
     /// Whether `seed` can seed `qp` through the lift: its blocks are the unlifted sizes, or
-    /// a lifted carry's (x at least n, lambda_e at least me, lambda_i exactly mi).
+    /// a lifted carry's -- accepted only when `qp` has exactly the (n, me) of the last lift an
+    /// interior-tier solve ran on and the carry has exactly that lift's sizes (a change in the
+    /// equality-basis reduction between the two would otherwise misalign the lambda_e seed);
+    /// lambda_i exactly mi either way.
     bool ipqp_seed_usable(const IpqpSeed &seed, const QpProblem &qp) const;
 
     /// What the lifted solves reported since the last take_tally(): the widest lift built
-    /// (r+ + r-) and the solves whose engine reported a wrong-inertia reading.
+    /// (r+ + r-), the solves whose engine reported a wrong-inertia reading, and the lifts built
+    /// while the model did not read positive definite (rounding can push the eigen form's
+    /// smallest eigenvalue to or below zero) -- both bug flags.
     struct Tally {
         Index lift_rank_peak = 0;
         Index kwrong_seen = 0;
+        Index nonpd_seen = 0;
     };
     Tally take_tally();
 
@@ -107,6 +113,9 @@ class QnLiftBridge {
 
     const LbfgsDamped *qn_;
     Index n_struct_;
+    // The last interior-tier lift: the unlifted (n, me) it was built for and its lifted
+    // (n, me). -1 until the first one.
+    Index ipqp_n_ = -1, ipqp_me_ = -1, ipqp_n_lifted_ = -1, ipqp_me_lifted_ = -1;
     std::array<Slot, 2> slots_;
     std::uint64_t clock_ = 0;
     Tally tally_;

@@ -562,14 +562,14 @@ struct SsnCounters {
 
     /// Exact face re-solves whose refined point was used as the step; see
     /// the tier-3 note above for the sum's meaning under both lever states.
-    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian under kExact; under
-    /// SqpHessianMode::kLbfgsDamped the PD quasi-Newton B, so this certifies B, not the NLP.
+    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian, or a caller-asserted
+    /// convex B, in which case this certifies B, not the NLP.
     Index ssn_refinements = 0;
 
     /// Certifying exits where the face re-solve was REFUSED; see the tier-3
     /// note above. Driver-scale only (no SsnResult ever writes it).
-    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian under kExact; under
-    /// SqpHessianMode::kLbfgsDamped the PD quasi-Newton B, so this certifies B, not the NLP.
+    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian, or a caller-asserted
+    /// convex B, in which case this certifies B, not the NLP.
     Index ssn_refine_refused = 0;
 
     // INSTRUMENT ONLY, both driver-scale (no SsnResult writes either), and
@@ -586,15 +586,15 @@ struct SsnCounters {
 
     /// Factorizations refine_on_face itself paid, accepted or refused; see
     /// the instrument-only note above for why it is not the pair sum.
-    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian under kExact; under
-    /// SqpHessianMode::kLbfgsDamped the PD quasi-Newton B, so this certifies B, not the NLP.
+    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian, or a caller-asserted
+    /// convex B, in which case this certifies B, not the NLP.
     Index ssn_refine_factorizations = 0;
 
     /// Strictly negative multipliers adopted from accepted refinements,
     /// summed over rows and refinements; NO TOLERANCE (`< 0.0`); see the
     /// instrument-only note above.
-    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian under kExact; under
-    /// SqpHessianMode::kLbfgsDamped the PD quasi-Newton B, so this certifies B, not the NLP.
+    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian, or a caller-asserted
+    /// convex B, in which case this certifies B, not the NLP.
     Index ssn_refine_neg_duals = 0;
 
     // The sign sweep repairs rather than instruments: it is the one pair here
@@ -647,8 +647,8 @@ struct SsnCounters {
     Index ssn_escape_infeasible_suspect = 0;
     // `ssn_escape_indefinite` below is a curvature reading: the kernel's second-order
     // verification was taken at the converged point and disagreed.
-    // CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian under kExact; under
-    // SqpHessianMode::kLbfgsDamped the PD quasi-Newton B, so this certifies B, not the NLP.
+    // CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian, or a caller-asserted
+    // convex B, in which case this certifies B, not the NLP.
     Index ssn_escape_indefinite = 0;
     Index ssn_escape_gate_refused = 0;
 };
@@ -822,8 +822,8 @@ struct IpqpCounters {
     /// A high-water mark is NOT the level the solve ended at: the ladder retries a
     /// smaller shift at every iteration, so a solve routinely settles below its own
     /// peak. Structurally `0.0` on a convex subproblem, where the ladder never arms.
-    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian under kExact; under
-    /// SqpHessianMode::kLbfgsDamped the PD quasi-Newton B, so this certifies B, not the NLP.
+    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian, or a caller-asserted
+    /// convex B, in which case this certifies B, not the NLP.
     double ipqp_rho_demanded_max = 0.0;
 
     /// The inertia-demanded modification at the LAST ladder rung this subproblem
@@ -834,8 +834,8 @@ struct IpqpCounters {
     /// categorical reading, and summing many subproblems' "last rho" would report
     /// a quantity with no meaning. Excludes `delta`'s own last value, which carries
     /// no field.
-    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian under kExact; under
-    /// SqpHessianMode::kLbfgsDamped the PD quasi-Newton B, so this certifies B, not the NLP.
+    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian, or a caller-asserted
+    /// convex B, in which case this certifies B, not the NLP.
     double ipqp_rho_demanded_last = 0.0;
 
     /// Factorizations REJECTED on wrong OR evidence-invalid inertia (the section
@@ -846,8 +846,8 @@ struct IpqpCounters {
     /// ceiling-terminated factorization counts too. Excludes the required final
     /// read, whose outcome is `ipqp_final_inertia_read`, even when that read comes
     /// back wrong.
-    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian under kExact; under
-    /// SqpHessianMode::kLbfgsDamped the PD quasi-Newton B, so this certifies B, not the NLP.
+    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian, or a caller-asserted
+    /// convex B, in which case this certifies B, not the NLP.
     Index ipqp_inertia_retries = 0;
 
     /// Iterations whose step was TAKEN with a nonzero inertia-demanded
@@ -855,8 +855,8 @@ struct IpqpCounters {
     /// ladder settles, so the iteration in which the ladder first demands a
     /// modification is counted. Excludes iterations whose step ran on the
     /// unmodified system, which is every iteration of every convex subproblem.
-    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian under kExact; under
-    /// SqpHessianMode::kLbfgsDamped the PD quasi-Newton B, so this certifies B, not the NLP.
+    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian, or a caller-asserted
+    /// convex B, in which case this certifies B, not the NLP.
     Index ipqp_iters_at_elevated_rho = 0;
 
     /// LADDER RECLIMBS: iterations on which a `rho_dem_last / kIpqpLadderDown`
@@ -877,8 +877,8 @@ struct IpqpCounters {
     /// every inertia-demanded increase as such, and a PERTURBED-DRIVEN escalation
     /// -- which is not a statement about curvature and is visible instead through
     /// `ipqp_pivot_reroute_primal`.
-    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian under kExact; under
-    /// SqpHessianMode::kLbfgsDamped the PD quasi-Newton B, so this certifies B, not the NLP.
+    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian, or a caller-asserted
+    /// convex B, in which case this certifies B, not the NLP.
     Index ipqp_ladder_reclimbs = 0;
 
     /// Ladder rungs taken because a PERTURBED-PIVOT report arrived while the
@@ -895,8 +895,8 @@ struct IpqpCounters {
     /// that never reports a perturbed pivot. Excludes a perturbed report received
     /// at `rho_dem == 0` (the ordinary dual route, counted nowhere), the rungs the
     /// fallback then takes, and every wrong-inertia rung.
-    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian under kExact; under
-    /// SqpHessianMode::kLbfgsDamped the PD quasi-Newton B, so this certifies B, not the NLP.
+    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian, or a caller-asserted
+    /// convex B, in which case this certifies B, not the NLP.
     Index ipqp_pivot_reroute_primal = 0;
 
     /// Times the bounded primal re-route above GAVE UP and fell back to escalating
@@ -911,8 +911,8 @@ struct IpqpCounters {
     /// re-routes says the heuristic is guessing wrong often enough to replace.
     ///
     /// Structurally 0 wherever `ipqp_pivot_reroute_primal` is 0.
-    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian under kExact; under
-    /// SqpHessianMode::kLbfgsDamped the PD quasi-Newton B, so this certifies B, not the NLP.
+    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian, or a caller-asserted
+    /// convex B, in which case this certifies B, not the NLP.
     Index ipqp_pivot_reroute_dual_fallback = 0;
 
     /// Iterations that ARMED the ladder (`rho_dem > 0` at the settled reading,
@@ -925,8 +925,8 @@ struct IpqpCounters {
     /// Structurally 0 on a convex subproblem. Excludes an armed iteration on which
     /// the gate did advance, an unarmed iteration either way, and any iteration
     /// whose step was not taken.
-    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian under kExact; under
-    /// SqpHessianMode::kLbfgsDamped the PD quasi-Newton B, so this certifies B, not the NLP.
+    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian, or a caller-asserted
+    /// convex B, in which case this certifies B, not the NLP.
     Index ipqp_iters_ladder_armed_no_advance = 0;
 
     /// Outcome of the REQUIRED final unregularized inertia read on a certifying
@@ -958,8 +958,8 @@ struct IpqpCounters {
     /// solve when any earlier factorization could not report usable evidence, so
     /// `0` can pair with `certificate_downgraded == true`. The certificate is read
     /// off `certificate_downgraded`, never off this field alone.
-    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian under kExact; under
-    /// SqpHessianMode::kLbfgsDamped the PD quasi-Newton B, so this certifies B, not the NLP.
+    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian, or a caller-asserted
+    /// convex B, in which case this certifies B, not the NLP.
     Index ipqp_final_inertia_read = 0;
 
     /// `(rho, delta)` schedule GATED decreases actually applied: +1 per gated
@@ -977,8 +977,8 @@ struct IpqpCounters {
     /// `(rho, delta)` schedule inertia-demanded increases. Excludes the
     /// initial `rho_0`/`delta_0` assignment at subproblem start (section
     /// 3.2), which is not an increase.
-    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian under kExact; under
-    /// SqpHessianMode::kLbfgsDamped the PD quasi-Newton B, so this certifies B, not the NLP.
+    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian, or a caller-asserted
+    /// convex B, in which case this certifies B, not the NLP.
     Index ipqp_reg_increases = 0;
 
     /// Proximal-estimate (`zeta`/`lambda_est`) advances. Excludes the
@@ -1153,8 +1153,8 @@ struct IpqpCounters {
     /// the SSN warm grade. Excludes an inertia-gate failure mid-ladder
     /// (`ipqp_inertia_retries`, which retries rather than escaping) and an
     /// UNREADABLE reading, which is `ipqp_escape_numerical`.
-    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian under kExact; under
-    /// SqpHessianMode::kLbfgsDamped the PD quasi-Newton B, so this certifies B, not the NLP.
+    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian, or a caller-asserted
+    /// convex B, in which case this certifies B, not the NLP.
     Index ipqp_escape_indefinite = 0;
 
     /// Escapes that stop the tier for a non-convergence reason other than budget,
@@ -1164,8 +1164,8 @@ struct IpqpCounters {
     /// "the reading was inertia-related": indefinite means a reading was taken and
     /// disagreed, numerical means no reading could be taken at all or the failure
     /// was not an inertia reading. Excludes an indefinite-certificate escape.
-    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian under kExact; under
-    /// SqpHessianMode::kLbfgsDamped the PD quasi-Newton B, so this certifies B, not the NLP.
+    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian, or a caller-asserted
+    /// convex B, in which case this certifies B, not the NLP.
     Index ipqp_escape_numerical = 0;
 
     /// Escapes via `IpqpEscape::kInfeasibleSuspect` (section 6.3's
@@ -1404,8 +1404,8 @@ struct SqpCounters {
     /// EXCLUDES the other three arms of the partition above -- in particular a rung B that
     /// disproves the suspicion on its own (its walk solves the original QP and returns
     /// kOptimal), which this counter cannot see and `ipqp_fallback_rung_b` counts instead.
-    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian under kExact; under
-    /// SqpHessianMode::kLbfgsDamped the PD quasi-Newton B, so this certifies B, not the NLP.
+    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian, or a caller-asserted
+    /// convex B, in which case this certifies B, not the NLP.
     Index ipqp_suspicion_disproved = 0;
 
     /// Fallback entries that fell through to RUNG B, the cold walk: rung A was DECLINED by the
@@ -2085,7 +2085,10 @@ struct SqpCounters {
     ///        evaluations this solve made -- one per subproblem build and one per
     ///        warm-start structure probe under `SqpHessianMode::kExact`, and 0 under
     ///        kLbfgsDamped by construction. Appended last; FOLDED from the
-    ///        restoration sub-solve.
+    ///        restoration sub-solve. NOT COUNTED, in either mode: the assembly
+    ///        bridge's lay-time pattern walk, which reads the Hessian's structure
+    ///        through one eval_hess per lay -- so one call per solve and one per
+    ///        restoration entry still reaches the model under kLbfgsDamped.
     Index eval_hess_calls = 0;
     /// @brief THE QUASI-NEWTON GROUP (M7 QN stage 3; all 0 under kExact). Pairs
     ///        accepted into the L-BFGS window, and of those the Powell-damped ones.
@@ -2115,6 +2118,10 @@ struct SqpCounters {
     ///        retry; SSN: an indefinite escape). A PD B makes these a bug flag: counted,
     ///        never acted on (ruling C30 NOTE: no reset on kWrong). FOLDED.
     Index qn_kwrong_seen = 0;
+    /// @brief Lifts built while the quasi-Newton model did not read positive definite
+    ///        (rounding can push the eigen form's smallest eigenvalue to or below zero).
+    ///        The second bug flag beside qn_kwrong_seen: counted, never acted on. FOLDED.
+    Index qn_nonpd_seen = 0;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -2194,7 +2201,8 @@ struct SqpCounters {
     X(qn_resets_restoration_resume, counter_never_absent)                                          \
     X(qn_pairs_peak, counter_never_absent)                                                         \
     X(qn_lift_rank_peak, counter_never_absent)                                                     \
-    X(qn_kwrong_seen, counter_never_absent)
+    X(qn_kwrong_seen, counter_never_absent)                                                        \
+    X(qn_nonpd_seen, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =

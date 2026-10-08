@@ -436,8 +436,8 @@ enum class SsnSafeguards {
 struct SsnOptions {
     // Which iteration to run. kFull is the shipped default; kBare is the
     // positive control (see SsnSafeguards).
-    // CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian under kExact; under
-    // SqpHessianMode::kLbfgsDamped the PD quasi-Newton B, so this certifies B, not the NLP.
+    // CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian, or a caller-asserted
+    // convex B, in which case this certifies B, not the NLP.
     SsnSafeguards safeguards = SsnSafeguards::kFull;
 
     // The escalation threshold, on ATTEMPTS rather than on accepted steps -- an
@@ -506,8 +506,8 @@ struct SsnOptions {
     // identified face -- and they can disagree. Nothing is weakened when the face
     // solve is refused: finish_deferred_certification() then returns exactly the
     // shipped verdict at exactly the shipped cost.
-    // CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian under kExact; under
-    // SqpHessianMode::kLbfgsDamped the PD quasi-Newton B, so this certifies B, not the NLP.
+    // CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian, or a caller-asserted
+    // convex B, in which case this certifies B, not the NLP.
     bool defer_certification = false;
 
     // HOW sigma IS SIZED. kLadder (the default) is the failure-reactive ladder
@@ -774,8 +774,8 @@ class SsnEngine {
     // way. `out` MUST be the SsnResult the deferring solve wrote.
     //
     // Returns true iff the certificate stands.
-    // CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian under kExact; under
-    // SqpHessianMode::kLbfgsDamped the PD quasi-Newton B, so this certifies B, not the NLP.
+    // CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian, or a caller-asserted
+    // convex B, in which case this certifies B, not the NLP.
     bool finish_deferred_certification(SsnResult *out);
 
     // DROPS THE PENDING EVIDENCE UNREAD. Legitimate on exactly one path: the

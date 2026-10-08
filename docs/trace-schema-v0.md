@@ -848,12 +848,19 @@ group; `SqpOptions::hessian_mode`).
 | `qn_pairs_peak` | integer | `SqpCounters::qn_pairs_peak` | most pairs the window held. Max-folded |
 | `qn_lift_rank_peak` | integer | `SqpCounters::qn_lift_rank_peak` | widest mixed lift (`r+ + r-`) any subproblem carried. Max-folded |
 | `qn_kwrong_seen` | integer | `SqpCounters::qn_kwrong_seen` | lifted subproblem solves whose engine reported a wrong-inertia reading (a bug flag under a PD B). Folded |
+| `qn_nonpd_seen` | integer | `SqpCounters::qn_nonpd_seen` | lifts built while the quasi-Newton model did not read positive definite (a bug flag). Folded |
 
 LAST in the table and last in the struct, after `restoration_reduction_resumes`, so
 the counters object gains exactly fourteen keys before the `ssn` object and the two
 nested tables' distinct values shift up by fourteen; nothing else moves. No sentinel.
 The two golden lines are re-derived ONCE for them, and both carry a "RE-DERIVED AT M7
 QN stage 3" note.
+
+**THE DIRECT COUNTER THE QN STAGES 1-3 REVIEW APPENDED — ONE** (`qn_nonpd_seen`, the
+table row above). LAST in the struct, after `qn_kwrong_seen`, so the counters object
+gains exactly one key before the `ssn` object and the two nested tables' distinct
+values shift up by one; nothing else moves. No sentinel. The two golden lines are
+re-derived ONCE for it, and both carry a "RE-DERIVED AT the QN stages 1-3 review" note.
 
 ## 6. The mode-selection telemetry on `sqp.major`
 

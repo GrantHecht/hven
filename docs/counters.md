@@ -295,18 +295,24 @@ one of those three therefore cannot silently miss the trace.
   it folds from the restoration sub-solve like `elastic_escalations`.
 
   **THE CURVATURE-SOURCE GROUP** (M7 QN stage 3, appended last: `eval_hess_calls`
-  and thirteen `qn_*` fields). `eval_hess_calls` counts every Lagrangian-Hessian
+  and thirteen `qn_*` fields; `qn_nonpd_seen` appended after them at the QN
+  stages 1-3 review). `eval_hess_calls` counts every Lagrangian-Hessian
   evaluation the solve made -- each subproblem build and each warm-start structure
   probe under `SqpOptions::hessian_mode = kExact` -- and is 0 under `kLbfgsDamped`
-  by construction. The `qn_*` fields are all 0 under `kExact`: `qn_updates` /
-  `qn_damped` (pairs accepted, of those Powell-damped), `qn_skipped_*` by reason
-  (non-finite, zero step, curvature, conditioning), `qn_rank_dropped`,
-  `qn_resets_*` by reason (consecutive non-zero-step skips, the radius floor, a
-  restoration resume), the two PEAKS `qn_pairs_peak` and `qn_lift_rank_peak`
-  (max-folded), and `qn_kwrong_seen` -- lifted subproblem solves whose engine
-  reported a wrong-inertia reading, a bug flag under a positive-definite B, counted
-  and never acted on. The whole group FOLDS from the restoration sub-solve, which
-  runs its own QN instance on the wrapper's x-block.
+  by construction. It does NOT count the assembly bridge's lay-time pattern walk:
+  laying the structures reads the Hessian's pattern through one `eval_hess` per
+  lay, so under `kLbfgsDamped` one call per solve and one per restoration entry
+  still reaches the model, uncounted here. The `qn_*` fields are all 0 under
+  `kExact`: `qn_updates` / `qn_damped` (pairs accepted, of those Powell-damped),
+  `qn_skipped_*` by reason (non-finite, zero step, curvature, conditioning),
+  `qn_rank_dropped`, `qn_resets_*` by reason (consecutive non-zero-step skips, the
+  radius floor, a restoration resume), the two PEAKS `qn_pairs_peak` and
+  `qn_lift_rank_peak` (max-folded), and two BUG FLAGS under a positive-definite B,
+  counted and never acted on: `qn_kwrong_seen` -- lifted subproblem solves whose
+  engine reported a wrong-inertia reading -- and `qn_nonpd_seen` -- lifts built
+  while the model did not read positive definite (rounding can push the eigen
+  form's smallest eigenvalue to or below zero). The whole group FOLDS from the
+  restoration sub-solve, which runs its own QN instance on the wrapper's x-block.
 
   THE THREE REFUSALS AND THE NON-FINITE EXIT WRITE NOTHING. A nested
   restoration, the once-per-solve cap and a spent budget never enter the phase;

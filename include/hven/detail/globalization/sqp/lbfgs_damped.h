@@ -42,7 +42,9 @@ enum class SkipReason : int {
 };
 inline constexpr std::size_t kSkipReasonCount = 4;
 
-/// Why the window was cleared.
+/// Why the window was cleared. The SQP driver raises kRestorationResume, kConsecutiveSkips and
+/// kRadiusFloor only; kRestorationEntry and kExplicit are never raised by it (a restoration
+/// sub-solve starts a fresh instance instead) and exist for direct callers.
 enum class ResetReason : int {
     kRestorationEntry = 0,
     kRestorationResume,

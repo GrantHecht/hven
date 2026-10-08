@@ -164,6 +164,7 @@ const QpProblem &QnLiftBridge::lifted(const QpProblem &qp, const MixedLift **lif
     Slot &s = slots_[0].used <= slots_[1].used ? slots_[0] : slots_[1];
     s = Slot{};
     s.lift.emplace(qp, n_struct_, qn_->mixed_lift());
+    tally_.nonpd_seen += qn_->min_eigenvalue() > 0.0 ? 0 : 1;
     s.source = qp;
     s.source.H = SpMatRM();
     s.used = clock_;
@@ -314,7 +315,8 @@ void QnLiftBridge::solve(SsnEngine &engine, const QpProblem &qp, const SsnStart 
 
 bool QnLiftBridge::ipqp_seed_usable(const IpqpSeed &seed, const QpProblem &qp) const {
     const bool unlifted = seed.x.size() == qp.n() && seed.lambda_e.size() == qp.me();
-    const bool carry = seed.x.size() > qp.n() && seed.lambda_e.size() >= qp.me();
+    const bool carry = qp.n() == ipqp_n_ && qp.me() == ipqp_me_ &&
+                       seed.x.size() == ipqp_n_lifted_ && seed.lambda_e.size() == ipqp_me_lifted_;
     return (unlifted || carry) && seed.lambda_i.size() == qp.mi();
 }
 
@@ -357,6 +359,11 @@ IpqpResult QnLiftBridge::solve(IpqpEngine &engine, const QpProblem &qp, const Ip
         sp = &ls;
     }
     IpqpResult res = engine.solve(lp, sp, iopts, o);
+    // The tier's own carry now has this lift's sizes (ipqp_seed_usable).
+    ipqp_n_ = n;
+    ipqp_me_ = me;
+    ipqp_n_lifted_ = nl;
+    ipqp_me_lifted_ = mel;
     head_if(res.x, nl, n);
     head_if(res.lambda_e, mel, me);
     head_if(res.z, nl, n);

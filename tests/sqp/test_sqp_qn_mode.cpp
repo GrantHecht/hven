@@ -274,6 +274,7 @@ TEST_P(SqpQnHs, ConvergesWithoutAHessianCall) {
     EXPECT_GE(sol.counters.qn_pairs_peak, sol.counters.qn_updates > 0 ? 1 : 0);
     EXPECT_LE(sol.counters.qn_pairs_peak, 10);
     EXPECT_EQ(sol.counters.qn_kwrong_seen, 0) << "a PD B never reads a wrong inertia";
+    EXPECT_EQ(sol.counters.qn_nonpd_seen, 0) << "B reads positive definite at every lift";
     ::testing::Test::RecordProperty("qn",
                                     fmt::format("HS{} majors={} updates={} damped={}", hc.number,
                                                 sol.counters.major_iters, sol.counters.qn_updates,
@@ -299,7 +300,8 @@ TEST(SqpQnExact, TheCounterIsTheDriversShareOfTheModelsCalls) {
         EXPECT_EQ(qn_offers(sol.counters), 0);
         EXPECT_EQ(sol.counters.qn_resets_consecutive_skips + sol.counters.qn_resets_radius_floor +
                       sol.counters.qn_resets_restoration_resume + sol.counters.qn_pairs_peak +
-                      sol.counters.qn_lift_rank_peak + sol.counters.qn_kwrong_seen,
+                      sol.counters.qn_lift_rank_peak + sol.counters.qn_kwrong_seen +
+                      sol.counters.qn_nonpd_seen,
                   0);
     }
 }
@@ -319,8 +321,78 @@ TEST(SqpQnModes, EveryQpModeConvergesWithoutAHessianCall) {
             EXPECT_NEAR(sol.f, p.f_star, 1e-5 * std::max(1.0, std::abs(p.f_star)));
             EXPECT_EQ(sol.counters.eval_hess_calls, 0);
             EXPECT_EQ(model.n_hess, 1);
+            // THE TIER ACTUALLY RAN on the lifted subproblems (review LOW-4): a mode that
+            // silently fell back to the walk would pass every line above.
+            if (mode == QpMode::kSsn) {
+                EXPECT_GT(sol.counters.ssn.ssn_iters, 0);
+            } else if (mode == QpMode::kIpm) {
+                EXPECT_GT(sol.counters.ipqp.ipqp_iters, 0);
+            }
         }
     }
+}
+
+// min x0 + x1 s.t. x0^2 + x1^2 = 1 from (0.1, 0): the first linearization asks for a step of
+// 4.95 along x0 inside a radius of 1, so the first QP is infeasible and the ELASTIC tier opens
+// (review LOW-4). x* = -(1, 1)/sqrt 2, f* = -sqrt 2.
+class CircleFromInsideModel : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 1; }
+    Index mi() const override { return 0; }
+    double eval_f(const Vec &x) const override { return x(0) + x(1); }
+    Vec eval_grad(const Vec &) const override { return Vec::Ones(2); }
+    Vec eval_ce(const Vec &x) const override {
+        Vec c(1);
+        c << x(0) * x(0) + x(1) * x(1) - 1.0;
+        return c;
+    }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &, double, const Vec &le, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = 2.0 * le(0);
+        h.insert(1, 1) = 2.0 * le(0);
+        h.makeCompressed();
+        return h;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &x) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> j(1, 2);
+        j.insert(0, 0) = 2.0 * x(0);
+        j.insert(0, 1) = 2.0 * x(1);
+        j.makeCompressed();
+        return j;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &) const override {
+        return Eigen::SparseMatrix<double, Eigen::RowMajor>(0, 2);
+    }
+    const Vec &lower() const override {
+        static const Vec l = Vec::Constant(2, -kInfBound);
+        return l;
+    }
+    const Vec &upper() const override {
+        static const Vec u = Vec::Constant(2, kInfBound);
+        return u;
+    }
+    Vec start_point() const override {
+        Vec x(2);
+        x << 0.1, 0.0;
+        return x;
+    }
+};
+
+TEST(SqpQnModes, AnElasticActivatingSolveConvergesWithoutAHessianCall) {
+    CircleFromInsideModel inner;
+    HessCountingModel model(&inner);
+    SqpSolver driver(qn_options());
+    const SqpResult sol = driver.solve(model);
+    ASSERT_EQ(sol.status, SolveStatus::kOptimal);
+    EXPECT_GE(sol.counters.elastic_activations, 1);
+    ASSERT_FALSE(sol.history.empty());
+    EXPECT_TRUE(sol.history.front().elastic_applied);
+    EXPECT_NEAR(sol.f, -std::sqrt(2.0), 1e-6);
+    EXPECT_EQ(sol.counters.eval_hess_calls, 0);
+    EXPECT_EQ(sol.counters.qn_kwrong_seen, 0);
+    EXPECT_EQ(sol.counters.qn_nonpd_seen, 0);
 }
 
 TEST(SqpQnModes, BothWorkingSetAlgebrasAndTheScaledSolveConverge) {

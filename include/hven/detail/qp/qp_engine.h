@@ -2240,8 +2240,8 @@ class QpEngine {
     // none), leaving `ws` exactly as it found it. COST WHEN NOTHING IS WEAKLY
     // ACTIVE IS ZERO: an empty candidate list returns before any linear
     // algebra runs.
-    // CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian under kExact; under
-    // SqpHessianMode::kLbfgsDamped the PD quasi-Newton B, so this certifies B, not the NLP.
+    // CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian, or a caller-asserted
+    // convex B, in which case this certifies B, not the NLP.
     bool probe_zero_multiplier_drops(const QpProblem &qp, const Vec &x_k, const Vec &shift,
                                      const Vec &lambda_i, const Vec &z, WorkingSet &ws,
                                      detail::KktFactor &kkt, EliminatedFace &face,
@@ -2555,8 +2555,8 @@ class QpEngine {
     // +/-p inside the current working set. Steps to the nearest blocker along
     // the admissible sign and puts that blocker into `ws`. `ws` and `x` are
     // left untouched on every outcome but kStepped.
-    // CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian under kExact; under
-    // SqpHessianMode::kLbfgsDamped the PD quasi-Newton B, so this certifies B, not the NLP.
+    // CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian, or a caller-asserted
+    // convex B, in which case this certifies B, not the NLP.
     // `dep` (independent_working_set): the pass's factor; a dependent ride
     // blocker is returned in `blocked` (kDependentBlocker), not admitted.
     RideOutcome ride_negative_curvature(const QpProblem &qp, const DropRecord &dropped,
