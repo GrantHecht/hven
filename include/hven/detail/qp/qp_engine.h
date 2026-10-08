@@ -2417,6 +2417,9 @@ class QpEngine {
         bool j_is_ineq = false;
         bool j_shifted = false; // the released member is a shift-driven row
         bool unlocked = false;  // j was admissible only under the unlock (R-B)
+        // A shift-driven member row carries a coefficient above tol (either sign): `g`
+        // reads unshifted right-hand sides, so it does not describe the face.
+        bool shifted_coeff = false;
         Index j = -1;
         double sigma = 0.0;
         double sign = 1.0; // the blocker's orientation: c_r = sign * (a_r or e_r)
@@ -2430,6 +2433,32 @@ class QpEngine {
                                         bool is_ineq, Index idx, BoundState side,
                                         const Vec &lambda_e, const Vec &lambda_i, const Vec &z,
                                         bool moves, bool unlock);
+
+    // THE IMPLIED BLOCKER (M7 W2 QC-8), asked at the add site before the
+    // exchange, on an ORDINARY step only (x_face = x + p, alpha <= 1). The
+    // test proves c_r = sum_k v_k c_k + Ae^T v_e + r (verdict kDependent with
+    // rho <= kDepTol, so ||r|| = rho ||a_r|| on free columns; structural:
+    // r = 0). Every point meeting the members exactly gives c_r^T y = d_r + g
+    // + r^T y (g as select_exchange's), and along the exact ordinary step every
+    // member moves linearly onto its own constraint, so c_r^T (x + alpha p) =
+    // (1 - alpha) c_r^T x + alpha (d_r + g + r^T x_face): the blocker's value
+    // is a convex combination of its value at x and at the face. When
+    // g + rho ||a_r|| ||x_face,free|| <= feas_tol * row_scale the face meets
+    // it, so the step cannot carry it past max(its violation at x, feas_tol *
+    // row_scale) -- it is not a blocker, and its computed rate along p is the
+    // step's own leak off the members (A_W p = O(mu lambda)), which at a tied
+    // vertex makes every member of a dependent cycle block in turn at zero
+    // motion (DALLASM QN QP 6: an exchange keeps the span and so the step, the
+    // released member blocks next, and the lock ends the solve). It is passed
+    // over (QpCounters::dep_implied_passovers; exempt from N2's violation
+    // check), never exchanged. False for a shift-driven member or blocker
+    // (`g` reads unshifted right-hand sides), an unproved dependency (the
+    // integer screen alone, a stalled or un-run test), and on a ride, whose
+    // direction is not the step onto the face.
+    static bool blocker_implied_by_face(const QpProblem &qp, const WorkingSet &ws, const Vec &shift,
+                                        const Vec &x, const Vec &p, const detail::DepTest &t,
+                                        const ExchangePick &pick, bool is_ineq, Index idx,
+                                        double row_scale, const QpOptions &opts);
 
     // The no-admissible-member rule's certificate, VERIFIED, tried whenever no
     // member is admissible (E2 fix1: the box-based certificate does not need

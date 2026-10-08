@@ -2026,17 +2026,18 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
 
         // THE ADD SITE (independent_working_set). The blocker is tested
         // against the factor this pass holds for `ws`. Independent: admitted.
-        // Dependent: exchanged for a member (ExchangePick); with no admissible
-        // member, (N1) a VERIFIED Farkas certificate ends kInfeasible, else
-        // (N2) the blocker is passed over when its predicted violation at the
-        // end of the step stays within feas_tol * row_scale (the next blocker
-        // goes through this same rule), else (N3) the solve ends
-        // kNumericalError at the current iterate -- never a step past it.
+        // Dependent and implied by the face on an ordinary step: passed over
+        // (blocker_implied_by_face). Dependent: exchanged for a member (ExchangePick); with no
+        // admissible member, (N1) a VERIFIED Farkas certificate ends kInfeasible, else (N2) the
+        // blocker is passed over when its predicted violation at the end of the step stays within
+        // feas_tol * row_scale (the next blocker goes through this same rule), else (N3) the solve
+        // ends kNumericalError at the current iterate -- never a step past it.
         ExchangePick xpick;
         if (eff_opts.independent_working_set) {
             enum class AddExit { kNone, kInfeasible, kToleranced, kRejected, kTerminate };
             AddExit add_exit = AddExit::kNone;
             std::vector<std::pair<bool, Index>> passed;
+            std::vector<char> passed_implied;      // parallel to `passed`: THE IMPLIED BLOCKER
             std::optional<PassOverScan> pass_scan; // built at the sequence's first pass-over
             const double xmag = x.lpNorm<Eigen::Infinity>();
             // The oriented blocker c^T x <= d: a row, an upper hit (e_i), or
@@ -2076,6 +2077,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     break; // the ordinary add
                 }
                 bool refused = false;
+                bool implied = false;
                 if (t.verdict == detail::DepVerdict::kUndecidable && pass_view.schur != nullptr) {
                     // (D3(a)) THE BORDER RETREAT for an undecidable test: a
                     // stalled refinement on the border path is the swamped-C
@@ -2128,46 +2130,58 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     // exchange mutates.
                     xpick = select_exchange(qp, ws, shift, seen, t, is_ineq, block_idx, block_state,
                                             lambda_e, lambda_i, z, moves, /*unlock=*/false);
-                    if (xpick.found) {
+                    // THE IMPLIED BLOCKER (ExchangePick's header), before any
+                    // exchange: on an ordinary step a proved dependent blocker
+                    // the face satisfies is passed over, its rate the leak.
+                    implied = !ride_blocked &&
+                              blocker_implied_by_face(qp, ws, shift, x, p, t, xpick, is_ineq,
+                                                      block_idx, o.scale, eff_opts);
+                    if (implied) {
+                        xpick = ExchangePick{};
+                        ++counters.dep_implied_passovers;
+                    } else if (xpick.found) {
                         break; // the exchange
-                    }
-                    // (N1) The certificate, tried whenever no member is
-                    // admissible (E2 fix1, D1: a locked positive-coefficient
-                    // member leaves cond1 false, and the box-based
-                    // certificate never needed it; design amendment in the
-                    // E2 README). Verified before it may be returned, its
-                    // multipliers refined mu-free first (S25'). Only a
-                    // certificate within the rounding floor is a Farkas
-                    // certificate for THIS QP => kInfeasible. One above it
-                    // dropped a box_part coefficient on a coordinate unbounded
-                    // on that side, which can make the omitted term
-                    // arbitrarily large: it proves the coefficient-perturbed
-                    // QP infeasible, not this one => kNumericalError where
-                    // the walk stands, the toleranced certificate kept
-                    // (settler S25, S25').
-                    QpFarkasCertificate cert;
-                    Index cert_solves = 0;
-                    const bool verified =
-                        verify_farkas(qp, ws, pass_view, t, xpick, is_ineq, block_idx, o.scale,
-                                      eff_opts, cert, cert_solves);
-                    counters.dep_test_solves += cert_solves;
-                    if (verified) {
-                        add_exit = cert.residual <= cert.exact_tol ? AddExit::kInfeasible
-                                                                   : AddExit::kToleranced;
-                        farkas = std::move(cert);
-                        break;
-                    }
-                    // The design's candidate (cond1 and a structural
-                    // violation) that failed verification.
-                    if (xpick.cond1 && violation_is_structural(xpick.g, o.scale, 0.0, eff_opts)) {
-                        add_exit = AddExit::kRejected;
-                        break;
+                    } else {
+                        // (N1) The certificate, tried whenever no member is
+                        // admissible (E2 fix1, D1: a locked positive-coefficient
+                        // member leaves cond1 false, and the box-based
+                        // certificate never needed it; design amendment in the
+                        // E2 README). Verified before it may be returned, its
+                        // multipliers refined mu-free first (S25'). Only a
+                        // certificate within the rounding floor is a Farkas
+                        // certificate for THIS QP => kInfeasible. One above it
+                        // dropped a box_part coefficient on a coordinate
+                        // unbounded on that side, which can make the omitted
+                        // term arbitrarily large: it proves the
+                        // coefficient-perturbed QP infeasible, not this one =>
+                        // kNumericalError where the walk stands, the toleranced
+                        // certificate kept (settler S25, S25').
+                        QpFarkasCertificate cert;
+                        Index cert_solves = 0;
+                        const bool verified =
+                            verify_farkas(qp, ws, pass_view, t, xpick, is_ineq, block_idx, o.scale,
+                                          eff_opts, cert, cert_solves);
+                        counters.dep_test_solves += cert_solves;
+                        if (verified) {
+                            add_exit = cert.residual <= cert.exact_tol ? AddExit::kInfeasible
+                                                                       : AddExit::kToleranced;
+                            farkas = std::move(cert);
+                            break;
+                        }
+                        // The design's candidate (cond1 and a structural
+                        // violation) that failed verification.
+                        if (xpick.cond1 &&
+                            violation_is_structural(xpick.g, o.scale, 0.0, eff_opts)) {
+                            add_exit = AddExit::kRejected;
+                            break;
+                        }
                     }
                 }
                 // (N2) The pass-over: the step with this blocker (and every
                 // one passed over before it) excluded, if none of them ends
                 // it violated by more than feas_tol * row_scale.
                 passed.emplace_back(is_ineq, block_idx);
+                passed_implied.push_back(implied ? 1 : 0);
                 if (!pass_scan.has_value()) {
                     pass_scan.emplace(qp, ws, x, Aix, sdir);
                 }
@@ -2177,7 +2191,11 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 BoundState s2 = BoundState::kFree;
                 const double a2 = pass_scan->next(sdir, k2, i2, s2, /*cap_at_unit=*/!ride_blocked);
                 bool within = true;
-                for (const auto &[pi, pidx] : passed) {
+                for (std::size_t q = 0; q < passed.size(); ++q) {
+                    if (passed_implied[q] != 0) {
+                        continue; // the face satisfies it: the step cannot violate it
+                    }
+                    const auto &[pi, pidx] = passed[q];
                     // A passed-over bound is oriented by the side it would
                     // have been hit on.
                     const BoundState side = pi                 ? BoundState::kFree
@@ -2194,7 +2212,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     // zero-motion step off the border path (the border retreat
                     // comes first there), unlock the members locked only by
                     // having entered at this point (ExchangePick's header).
-                    if (!refused && !moves && pass_view.schur == nullptr) {
+                    if (!refused && !implied && !moves && pass_view.schur == nullptr) {
                         ExchangePick u =
                             select_exchange(qp, ws, shift, seen, t, is_ineq, block_idx, block_state,
                                             lambda_e, lambda_i, z, moves, /*unlock=*/true);
@@ -2206,7 +2224,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     add_exit = AddExit::kTerminate;
                     break;
                 }
-                ++counters.dep_passovers;
+                if (!implied) {
+                    ++counters.dep_passovers;
+                }
                 kind = k2;
                 block_idx = i2;
                 block_state = s2;
@@ -4477,6 +4497,12 @@ QpEngine::ExchangePick QpEngine::select_exchange(const QpProblem &qp, const Work
     pk.g = g;
 
     const double tol = detail::kDepCoeffTol * vmax;
+    for (std::size_t k = 0; k < aw.size(); ++k) {
+        if (shift(aw[k]) > 0.0 &&
+            std::abs(pk.v_w(static_cast<Index>(k))) * row_norm(static_cast<Index>(k)) > tol) {
+            pk.shifted_coeff = true;
+        }
+    }
     pk.cond1 = true;
     double best_ratio = 0.0;
     double best_m = 0.0;
@@ -4567,6 +4593,27 @@ QpEngine::ExchangePick QpEngine::select_exchange(const QpProblem &qp, const Work
     assert(!pk.j_shifted || !unshifted_admissible);
     (void)unshifted_admissible;
     return pk;
+}
+
+bool QpEngine::blocker_implied_by_face(const QpProblem &qp, const WorkingSet &ws, const Vec &shift,
+                                       const Vec &x, const Vec &p, const detail::DepTest &t,
+                                       const ExchangePick &pick, bool is_ineq, Index idx,
+                                       double row_scale, const QpOptions &opts) {
+    if (t.verdict != detail::DepVerdict::kDependent || !(t.rho <= detail::kDepTol) ||
+        pick.shifted_coeff || (is_ineq && shift(idx) > 0.0)) {
+        return false;
+    }
+    // The representation's residual r (||r|| = rho ||a||, on free columns)
+    // moves the face value by r^T (x + p).
+    double free_sq = 0.0;
+    for (Index i = 0; i < qp.n(); ++i) {
+        if (ws.bound_state()[static_cast<std::size_t>(i)] == BoundState::kFree) {
+            const double xf = x(i) + p(i); // the face point x + p
+            free_sq += xf * xf;
+        }
+    }
+    const double a_norm = is_ineq ? qp.Ai.row(idx).norm() : 1.0;
+    return pick.g + t.rho * a_norm * std::sqrt(free_sq) <= opts.feas_tol * row_scale;
 }
 
 bool QpEngine::verify_farkas(const QpProblem &qp, const WorkingSet &ws,

@@ -354,6 +354,11 @@ struct QpCounters {
     Index dep_certificate_rejections =
         0; // a cond1 candidate failed verification => kNumericalError
     Index dep_passovers = 0;
+    // THE IMPLIED BLOCKER (M7 W2 QC-8): a dependent blocker of an ordinary step that the
+    // working set's face satisfies to feas_tol (its oriented gap g <= feas_tol * row_scale)
+    // passed over before any exchange -- its rate along p is the step's leak, not motion.
+    // Not counted in dep_passovers.
+    Index dep_implied_passovers = 0;
     Index dep_blocker_terminations = 0; // no admissible member, no certificate, no pass-over
     // An undecidable (screen-negative, unresolved) blocker admitted with the
     // next pass's detector as its test -- on the eliminated path only, and
