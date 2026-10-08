@@ -1418,6 +1418,67 @@ TEST(QpE2WorkingSet, NoAdmissibleMemberAndNoPassOverEndsInsideTheBox) {
         EXPECT_NEAR(s.x(0), 0.6, 1e-12);
         EXPECT_NEAR(s.x(1), 0.0, 1e-12);
         EXPECT_NEAR(s.x(2), 0.4, 1e-12);
+        // M7 W2 QC-8 (the implied blocker): this dead end's blocker IS one the face satisfies
+        // (the double of a member, g ~ 0), and without the rule's leak budget the walk passed
+        // it over and reached the optimum (0.75, 0, 0.25) (measured on 7540d6c1). With R1 it
+        // is refused: at dual_mu = 1e-2 its rate along p (the step's leak, 3.9e-6) is above
+        // what the members' row tolerances absorb, and R3 finds no exchange to fall back to,
+        // so the fixture's N3 stands as pinned above. One implied pass-over IS taken earlier
+        // on the walk (within its allowance); pinned so a change to the budget is seen here.
+        // `AFaceThatViolatesItsDependentBlockerEndsWhereItStands` below is the dead end the
+        // rule cannot reach at all (g > tol).
+        EXPECT_EQ(s.counters.dep_implied_passovers, 1);
+    }
+}
+
+TEST(QpE2WorkingSet, AFaceThatViolatesItsDependentBlockerEndsWhereItStands) {
+    // THE N3 DEAD END WITH THE FACE ON THE WRONG SIDE (M7 W2 QC-8, settler C50(1)). THE
+    // IMPLIED BLOCKER (qp_engine.h, blocker_implied_by_face) passes a proved-dependent blocker
+    // over only when its working set's face satisfies it (g <= feas_tol * row_scale); this is
+    // the other side of that test. x0 + x1 <= 1 and x0 + x1 >= 1 + eta, eta = 1e-8, pulled
+    // toward large sums, x0 in [1.2, 2], x1 in [-2, 2]: the start (1.2, 0) violates the first
+    // row (it enters shift-driven) and meets the second. The second blocks the step onto the
+    // first's face, PROVED dependent on it (rho ~ 1e-8 <= kDepTol, coefficient -1: not
+    // admissible), and that face violates it by g = eta: above feas_tol * row_scale (2.4e-9),
+    // so the face does not imply it -- and below the certificate's margin
+    // (kInfeasibilityMarginFactor * feas_tol * row_scale, 2.4e-8), so the contradiction is
+    // not provable at the resolution the walk works at and no certificate is returned. The
+    // pass-over would cross it by eta. The walk ends kNumericalError where it stands -- inside
+    // the box, the blocker met, never a step past it. (A pair inconsistent by more than the
+    // margin, eta = 1e-7, ends kInfeasible with the certificate.) Why the instance is
+    // infeasible: on a FEASIBLE QP a blocker the iterate meets while standing on its working
+    // face has c^T x = d + g + r^T x, so g > tol would mean the blocker is already crossed --
+    // the face can be on the wrong side only when the iterate is off it, here by the first
+    // row's shift. Measured (trace build, both algebras): g = 8e-9, cond1, no certificate.
+    QpProblem qp = e2_diag_qp({1.0, 1.0}, {-2.0, -2.0}, {1.0, 1.0, -1.0, -1.0},
+                              {1.0, -(1.0 + 1e-8)}, 0.0, 2.0);
+    qp.lower(0) = 1.2;
+    qp.lower(1) = -2.0;
+    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+        SCOPED_TRACE(e2_name(alg));
+        const QpSolution s = plain_solve(qp, e2_opts(alg, 40));
+        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kNumericalError));
+        EXPECT_EQ(s.counters.dep_blocker_terminations, 1);
+        EXPECT_EQ(s.counters.dep_infeasible_certificates, 0);
+        EXPECT_EQ(s.counters.dep_certificate_rejections, 0);
+        EXPECT_EQ(s.counters.dep_implied_passovers, 0);
+        EXPECT_EQ(s.counters.dep_passovers, 0);
+        EXPECT_FALSE(s.farkas.present);
+        EXPECT_EQ(s.counters.dep_border_retreats,
+                  alg == WorkingSetLinearAlgebra::kSchurBorder ? 1 : 0);
+        // Where it stands: the start, the blocker met with its eta margin, inside the box.
+        EXPECT_NEAR(s.x(0), 1.2, 1e-12);
+        EXPECT_NEAR(s.x(1), 0.0, 1e-12);
+        EXPECT_LE((qp.Ai * s.x)(1) - qp.bi(1), 0.0);
+    }
+    // The control: inconsistent by more than the margin, the same walk certifies it.
+    qp.bi(1) = -(1.0 + 1e-7);
+    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+        SCOPED_TRACE(e2_name(alg));
+        const QpSolution s = plain_solve(qp, e2_opts(alg, 40));
+        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kInfeasible));
+        EXPECT_EQ(s.counters.dep_infeasible_certificates, 1);
+        EXPECT_TRUE(s.farkas.present);
     }
 }
 

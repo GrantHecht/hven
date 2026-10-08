@@ -55,7 +55,10 @@ QpDump load(const char *file) {
 // THE RESTORATION LPs. Premise (the dump's own result line and its H): in-cell kNumericalError
 // at the trusted-kWrong dead end, on a QP whose H is identically zero. Expected: kOptimal at the
 // oracle objective, the KKT battery, the certificate taken, no saddle search or ride.
-void expect_certified(const char *file, double f_star, WorkingSetLinearAlgebra alg) {
+// `route_certificates` / `route_rereads` >= 0 pin a fixture's measured route instead of the
+// "a kWrong read => the certificate" implication (BRITGAS qp4 since M7 W2 QC-8).
+void expect_certified(const char *file, double f_star, WorkingSetLinearAlgebra alg,
+                      Index route_certificates = -1, Index route_rereads = -1) {
     const QpDump d = load(file);
     ASSERT_NE(d.result.find("status=3"), std::string::npos) << d.result;
     ASSERT_NE(d.result.find("site=1335"), std::string::npos) << d.result;
@@ -86,7 +89,10 @@ void expect_certified(const char *file, double f_star, WorkingSetLinearAlgebra a
     // trusted kWrong before the certificate is consulted). MEASURED: under Debug's rounding
     // BRITGAS qp2's walk takes another path to the same optimum and reads no kWrong (rereads 0);
     // the outcome below is the contract on every build.
-    if (s.counters.dep_inertia_rereads > 0) {
+    if (route_certificates >= 0) {
+        EXPECT_EQ(s.counters.convex_certificates, route_certificates);
+        EXPECT_EQ(s.counters.dep_inertia_rereads, route_rereads);
+    } else if (s.counters.dep_inertia_rereads > 0) {
         EXPECT_GE(s.counters.convex_certificates, 1);
     }
     EXPECT_EQ(s.counters.saddle_exits, 0);
@@ -190,6 +196,17 @@ TEST(QpNc4ConvexCertificate, BritgasRestorationLpQp3) {
     expect_certified("C10_BRITGAS_qp3.txt", -35.4063659176, kRefactorize);
 }
 TEST(QpNc4ConvexCertificate, BritgasRestorationLpQp4) {
-    expect_certified("C10_BRITGAS_qp4.txt", -19.1894367779, kBorder);
-    expect_certified("C10_BRITGAS_qp4.txt", -19.1894367779, kRefactorize);
+    // M7 W2 QC-8 (declared route mover; the outcome holds): the implied blocker passes over
+    // dependent blockers this walk used to exchange, and it reaches the optimum by another
+    // route -- Release border 950 minors / 968 factorizations / 3 kWrong re-reads / 1 convex
+    // certificate -> 969 / 1080 / 1 / 0 (Debug 985 / 1096 / 1 / 0), the one kWrong it still
+    // reads resolved by the re-read without the certificate. The route is pinned here in
+    // place of "a re-read => a certificate"; the NC4 certificate stays exercised by
+    // SteenbrbRestorationLpQp3..8 and BritgasRestorationLpQp3 (one certificate each, both
+    // algebras, both configs) and BritgasRestorationLpQp2 (Release; Debug reads no kWrong
+    // there, as its own note above says).
+    expect_certified("C10_BRITGAS_qp4.txt", -19.1894367779, kBorder, /*route_certificates=*/0,
+                     /*route_rereads=*/1);
+    expect_certified("C10_BRITGAS_qp4.txt", -19.1894367779, kRefactorize,
+                     /*route_certificates=*/0, /*route_rereads=*/1);
 }

@@ -10539,7 +10539,8 @@ struct W2ElasticWalk {
     double slack_l1 = 0.0;
     Index verdict_refine_steps = 0;
     Index border_refine_steps = 0;
-    Index unlocks = 0; ///< dep_unlocks (E2 fix5 R-B)
+    Index unlocks = 0;           ///< dep_unlocks (E2 fix5 R-B)
+    Index implied_passovers = 0; ///< dep_implied_passovers (M7 W2 QC-8)
     Vec x_orig;
 };
 
@@ -10557,6 +10558,7 @@ W2ElasticWalk w2_walk_elastic(const QpProblem &qp, double rho, double dual_mu,
     out.verdict_refine_steps = s.counters.verdict_refine_steps;
     out.border_refine_steps = s.counters.border_refine_steps;
     out.unlocks = s.counters.dep_unlocks;
+    out.implied_passovers = s.counters.dep_implied_passovers;
     out.x_orig = s.x.head(e.n_orig);
     if (e.qp.me() > 0) {
         out.worst_resid =
@@ -11002,6 +11004,15 @@ TEST(SqpDriverElasticSeed, T6bTheBandsHIGHRungsReachTheOptimum) {
     EXPECT_NEAR(high.x_orig(0), 10.0, 1.0e-6);
     EXPECT_NEAR(high.x_orig(1), 10.0, 1.0e-6);
     EXPECT_EQ(high.verdict_refine_steps, 0) << "the classifier never called it structural";
+    // M7 W2 QC-8 (the implied blocker), pinned per the Fable review: the rule does NOT act
+    // on this cell. Without its leak budget it did -- a dependent slack pin whose face
+    // satisfies it by 15 was passed over on a rate of 1.3e3, which is the mu * lambda leak at
+    // dual_mu 1e-04 and lambda ~ 1e8, and the walk ended at (10, -5) with the row met and
+    // three refinement steps (measured on 7540d6c1; still not (2.5, 2.5)). With R1 the pass
+    // is refused (the predicted violation is above the members' allowance) and R3 returns the
+    // exchange, so the disclosure above reads exactly as before. Measured 0 in both configs.
+    EXPECT_EQ(high.implied_passovers, 0)
+        << "the implied blocker passes over on this cell again: the disclosure above moves";
 }
 
 // ===========================================================================

@@ -2430,7 +2430,18 @@ TEST(SqpDriverRestorationSeed, AWorseElasticCandidateIsRefusedOnTheSameModel) {
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(model);
 
+    // M7 W2 QC-8 (declared mover, Debug only): 0 -> 1. The implied blocker changes one of
+    // this model's walk QPs under Debug's rounding, and Debug's trajectory then reaches the
+    // ladder's exhaustion only at major 39 (40 rows, against Release's 4) from an iterate
+    // where the elastic candidate measures BETTER (h = 1.0000382 at the entry), so the guard
+    // takes it. The site is still reached with an offer under kRestore and the solve still
+    // ends certified kInfeasible (asserted below in both configs); the WORSE-candidate
+    // refusal this fixture is named for is Release's reading. Release unchanged.
+#ifdef NDEBUG
     EXPECT_EQ(0, seeded_rows(sol)) << "h(x + p_elastic) = 3 > 1 = h(x): refused";
+#else
+    EXPECT_EQ(1, seeded_rows(sol)) << "Debug: the candidate at major 39 measures better";
+#endif
     ASSERT_FALSE(sol.history.empty());
     EXPECT_TRUE(sol.history.back().elastic_applied) << "and the site was REACHED with an offer";
     EXPECT_EQ(StepVerdict::kRestore, sol.history.back().verdict);
@@ -2877,10 +2888,14 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConverg
     // `TheSubStatusDiscriminatesAtOneParentStatus` states in full: at 5 majors Debug
     // never reaches the request (`restoration_entries` 0), so there is no cut-off
     // sub-solve to tell from a converged one; one more major reaches it.
+    // M7 W2 QC-8 (declared, Debug only): 6 -> 43. Debug's trajectory now raises the
+    // request at major 40 (`AWorseElasticCandidateIsRefusedOnTheSameModel`'s note); the
+    // cut-off window measured at budgets 41-44 (sub kMaxIter, 1-4 sub-iterations), 45 on
+    // converges. 43 keeps the sub-solve's three iterations pinned below. Release unchanged.
 #ifdef NDEBUG
     cramped.max_iter = 5;
 #else
-    cramped.max_iter = 6;
+    cramped.max_iter = 43;
 #endif
     cramped.qp_failure_step = false; // M7 W2 R2: the pre-R2 route, as `roomy`
     const SqpResult cut_off = SqpSolver(cramped).solve(model);
@@ -2993,10 +3008,12 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatus) 
     // major reaches it. E4's QP answers changed where on this trajectory the request
     // falls, and Debug's arithmetic puts it one major later than Release's; the ARM is
     // the same arm -- a phase that RAN and was CUT OFF -- and that is what is asserted.
+    // M7 W2 QC-8 (declared, Debug only): 6 -> 43, as `TheSubStatusTellsACutOffSubSolve
+    // FromAConvergedOne` re-derives it (Debug's request now falls at major 40).
 #ifdef NDEBUG
     cramped.max_iter = 5;
 #else
-    cramped.max_iter = 6;
+    cramped.max_iter = 43;
 #endif
     // M7 W2 R2: the pre-R2 route (see the seed family's note) -- with the
     // failed-subproblem step this budget ends before the request is raised.
