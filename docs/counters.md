@@ -280,7 +280,12 @@ one of those three therefore cannot silently miss the trace.
   `interrupted` resumes exactly as an `optimal` one does; the one exception is
   the sufficient-reduction resume below, which reads it), and whether the
   solve holds a CERTIFICATE (that one does require the sub-solve's `kOptimal`,
-  and `SqpResult::infeasibility_certified` is what reports it).
+  and `SqpResult::infeasibility_certified` is what reports it). The certificate
+  also requires the restoration point's inf-norm violation to exceed
+  `kCertificateViolationMargin * feas_tol` (= 2 * feas_tol,
+  `detail/globalization/sqp/restoration.h`): a `kOptimal` sub-solve at inf-norm
+  <= 2 * feas_tol takes the no-claim exit, or the reduction resume below when
+  `restoration_resume_reduction > 0`.
 
   **THE SUFFICIENT-REDUCTION RESUME** (M7 W2 P1E,
   `SqpOptions::restoration_resume_reduction = k`, default 0 = off). At `k > 0`

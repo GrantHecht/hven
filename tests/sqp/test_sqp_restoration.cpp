@@ -728,6 +728,87 @@ TEST(RestorationModel, BoundActivityIsTheViolationToleranceInEachSlacksUnits) {
                  std::invalid_argument);
 }
 
+// A model with BOTH row kinds and different row scales: cE = 10 x0 - 1 (sigma_e = 10),
+// cI = 3 x1 - 1 (sigma_i = 3), n = 2, me = mi = 1, wide box.
+class MixedScaleRowsModel final : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 1; }
+    Index mi() const override { return 1; }
+    double eval_f(const Vec &x) const override { return x.squaredNorm(); }
+    Vec eval_grad(const Vec &x) const override { return 2.0 * x; }
+    Vec eval_ce(const Vec &x) const override {
+        Vec c(1);
+        c << 10.0 * x(0) - 1.0;
+        return c;
+    }
+    Vec eval_ci(const Vec &x) const override {
+        Vec c(1);
+        c << 3.0 * x(1) - 1.0;
+        return c;
+    }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = 2.0 * obj_scale;
+        h.insert(1, 1) = 2.0 * obj_scale;
+        h.makeCompressed();
+        return h;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> j(1, 2);
+        j.insert(0, 0) = 10.0;
+        j.makeCompressed();
+        return j;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> j(1, 2);
+        j.insert(0, 1) = 3.0;
+        j.makeCompressed();
+        return j;
+    }
+    const Vec &lower() const override {
+        static const Vec l = Vec::Constant(2, -10.0);
+        return l;
+    }
+    const Vec &upper() const override {
+        static const Vec u = Vec::Constant(2, 10.0);
+        return u;
+    }
+    Vec start_point() const override { return Vec::Zero(2); }
+};
+
+// THE MIXED CASE (me >= 1 AND mi >= 1): every sp, sm and si slot carries tol over ITS row's
+// sigma, at the indices the wrapper's layout (x, sp, sm, si) gives. With sigma_e != sigma_i an
+// index slip anywhere in bound_activity_tolerance (e.g. si written at nx + me + j, which is the
+// sm block) puts the wrong sigma in a slot and fails here.
+TEST(RestorationModel, BoundActivityToleranceReachesEverySlackSlotWithBothRowKinds) {
+    constexpr double kTol = 1e-6;
+    MixedScaleRowsModel model;
+    Vec x(2);
+    x << 0.0, 0.0;
+    const RestorationModel r(model, x, eval_nlp(model, x));
+    ASSERT_EQ(r.me(), 1);
+    ASSERT_EQ(r.mi(), 1);
+    ASSERT_EQ(r.n(), 5); // (x0, x1, sp, sm, si)
+    const double se = r.slack_scale_e()(0);
+    const double si_scale = r.slack_scale_i()(0);
+    ASSERT_EQ(se, 10.0);
+    ASSERT_EQ(si_scale, 3.0);
+
+    const Index nx = model.n();
+    const Index sp = nx, sm = nx + r.me(), si = nx + 2 * r.me();
+    ASSERT_EQ(r.original_x(r.start_point()).size(), nx);
+    ASSERT_EQ(r.start_point().size(), r.n());
+
+    const Vec t = r.bound_activity_tolerance(kTol);
+    ASSERT_EQ(t.size(), r.n());
+    EXPECT_EQ(t(0), kTol);
+    EXPECT_EQ(t(1), kTol);
+    EXPECT_EQ(t(sp), kTol / se);
+    EXPECT_EQ(t(sm), kTol / se);
+    EXPECT_EQ(t(si), kTol / si_scale);
+}
+
 // =========================================================================
 // THE PROXIMITY TERM (M7 W2 M2b) -- the wrapper's half.
 //

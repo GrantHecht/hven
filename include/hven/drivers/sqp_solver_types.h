@@ -1540,6 +1540,13 @@ struct SqpResult : SolveResult {
     /// solve's convergence test calls feasible; that exit is kNumericalError with
     /// no claim (M7 W2 C12, CERT-1).
     ///
+    /// THE CERTIFICATE PREDICATE, STATED WITH ITS MARGIN (QC-1): the certificate
+    /// requires the restoration point's inf-norm violation to exceed
+    /// `kCertificateViolationMargin * feas_tol` (= 2 * feas_tol,
+    /// detail/globalization/sqp/restoration.h). A kOptimal sub-solve whose point
+    /// sits at inf-norm <= 2 * feas_tol takes the no-claim exit (kNumericalError),
+    /// or the sufficient-reduction resume when `restoration_resume_reduction > 0`.
+    ///
     /// False on EVERY OTHER exit, including other kInfeasible ones, and that is
     /// what this flag is for. It is NOT reliably derivable from the status or the
     /// counters. (Before the M7 W2 ladder round a solve that restored once and

@@ -1712,7 +1712,10 @@ class SqpSolver {
     }
 
     /// The major loop's KKT measurement: evaluate_kkt at `feas_tol`, or at the per-variable
-    /// tolerance `kkt_bound_tol_` on the restoration sub-driver (QC-1).
+    /// tolerance `kkt_bound_tol_` on the restoration sub-driver (QC-1). That per-variable
+    /// tolerance applies to this convergence measurement only: the QP-side seeds
+    /// (crash_basis_seed, the elastic rung seeds) and qp_failure_is_retryable still read slacks
+    /// at feas_tol by design -- they are seeds and retry tests the QP re-prices, not verdicts.
     SqpKkt measure_kkt(const AssemblyEvalSeam &seam, const NlpEval &ev, const Vec &x,
                        const Vec &lambda_e, const Vec &lambda_i) const;
 
