@@ -70,6 +70,7 @@ set(HVEN_SQP_TEST_SOURCES
     test_qp_engine_tr.cpp
     test_qp_lift_oracle.cpp
     test_qp_mode_sites.cpp
+    test_qn_models.cpp
     test_qp_warm_start.cpp
     test_scaffold.cpp
     test_scale_problems.cpp

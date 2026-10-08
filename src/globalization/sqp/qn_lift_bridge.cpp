@@ -86,7 +86,7 @@ bool walk_read_wrong_inertia(const QpCounters &c) {
 
 } // namespace
 
-UpdateOutcome offer_pair_with_skip_reset(LbfgsDamped &qn, Index &skip_streak, const Vec &s,
+UpdateOutcome offer_pair_with_skip_reset(QnModel &qn, Index &skip_streak, const Vec &s,
                                          const Vec &y, double x_inf) {
     const Index ns = qn.dimension();
     if (s.size() < ns || y.size() < ns) {
@@ -104,7 +104,7 @@ UpdateOutcome offer_pair_with_skip_reset(LbfgsDamped &qn, Index &skip_streak, co
     return o;
 }
 
-QnLiftBridge::QnLiftBridge(const LbfgsDamped &qn, Index n_struct) : qn_(&qn), n_struct_(n_struct) {
+QnLiftBridge::QnLiftBridge(const QnModel &qn, Index n_struct) : qn_(&qn), n_struct_(n_struct) {
     if (n_struct < 1 || n_struct > qn.dimension()) {
         throw std::invalid_argument(
             fmt::format("QnLiftBridge: n_struct = {} outside [1, {}]", n_struct, qn.dimension()));
@@ -164,7 +164,7 @@ const QpProblem &QnLiftBridge::lifted(const QpProblem &qp, const MixedLift **lif
     Slot &s = slots_[0].used <= slots_[1].used ? slots_[0] : slots_[1];
     s = Slot{};
     s.lift.emplace(qp, n_struct_, qn_->mixed_lift());
-    tally_.nonpd_seen += qn_->min_eigenvalue() > 0.0 ? 0 : 1;
+    tally_.nonpd_seen += qn_->positive_definite() ? 0 : 1;
     s.source = qp;
     s.source.H = SpMatRM();
     s.used = clock_;

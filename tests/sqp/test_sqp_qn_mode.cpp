@@ -50,6 +50,9 @@ SqpOptions qn_options() {
     SqpOptions o;
     o.hessian_mode = SqpHessianMode::kLbfgsDamped;
     o.max_iter = 300;
+    // The L-BFGS window and its lift, which these stage-3 tests pin; the shipped full-memory
+    // default is the `shipped` row of the variant battery below.
+    o.qn_full_memory_max = 0;
     return o;
 }
 
@@ -200,6 +203,8 @@ TEST(SqpQnOptions, DefaultsAreTheExactMode) {
     EXPECT_EQ(o.hessian_mode, SqpHessianMode::kExact);
     EXPECT_EQ(o.qn_memory, 10);
     EXPECT_FALSE(o.qn_update_on_reject);
+    EXPECT_FALSE(o.qn_nonlinear_only);
+    EXPECT_EQ(o.qn_full_memory_max, 400);
 }
 
 TEST(SqpQnOptions, ValidationRefusesTheIllFormedSettings) {
@@ -213,6 +218,11 @@ TEST(SqpQnOptions, ValidationRefusesTheIllFormedSettings) {
     o.qn_memory = -3;
     EXPECT_THROW(validate(o), std::invalid_argument);
     o = qn_options();
+    o.qn_full_memory_max = -1;
+    EXPECT_THROW(validate(o), std::invalid_argument);
+    o.qn_full_memory_max = 0; // never
+    EXPECT_NO_THROW(validate(o));
+    o = qn_options();
     o.restoration_proximity = 1e-3; // the exact zeta D^2 split is not shipped under QN
     EXPECT_THROW(validate(o), std::invalid_argument);
     o.hessian_mode = SqpHessianMode::kExact; // ... and is fine under the exact mode
@@ -225,16 +235,20 @@ TEST(SqpQnOptions, ValidationRefusesTheIllFormedSettings) {
                  std::invalid_argument);
 }
 
-TEST(SqpQnOptions, DumpNamesTheThreeFields) {
+TEST(SqpQnOptions, DumpNamesTheFiveFields) {
     SqpOptions o = qn_options();
     o.qn_memory = 7;
     o.qn_update_on_reject = true;
+    o.qn_nonlinear_only = true;
+    o.qn_full_memory_max = 250;
     std::ostringstream os;
     dump_options(o, os);
     const std::string text = os.str();
     EXPECT_NE(text.find("\nhessian_mode = kLbfgsDamped\n"), std::string::npos) << text;
     EXPECT_NE(text.find("\nqn_memory = 7\n"), std::string::npos) << text;
     EXPECT_NE(text.find("\nqn_update_on_reject = true\n"), std::string::npos) << text;
+    EXPECT_NE(text.find("\nqn_nonlinear_only = true\n"), std::string::npos) << text;
+    EXPECT_NE(text.find("\nqn_full_memory_max = 250\n"), std::string::npos) << text;
 }
 
 // ===========================================================================
@@ -284,6 +298,51 @@ TEST_P(SqpQnHs, ConvergesWithoutAHessianCall) {
 INSTANTIATE_TEST_SUITE_P(Battery, SqpQnHs, ::testing::ValuesIn(kHsCases),
                          [](const ::testing::TestParamInfo<HsCase> &i) {
                              return fmt::format("HS{}", i.param.number);
+                         });
+
+// THE MODEL VARIANTS (M7 QN quality): the nonlinear-variables-only restriction, the full-memory
+// BFGS, and both, on the same battery. HS6's x2 enters only its linear-in-x2 constraint, so the
+// restriction is live there. Full memory carries no lift (rank 0) and keeps every pair.
+struct QnVariant {
+    const char *name;
+    bool nonlinear_only;
+    Index full_memory_max;
+};
+const QnVariant kQnVariants[] = {
+    {"nl", true, 0}, {"full", false, 1000}, {"nl_full", true, 1000}, {"shipped", false, 400}};
+
+class SqpQnVariantHs : public ::testing::TestWithParam<std::tuple<HsCase, QnVariant>> {};
+
+TEST_P(SqpQnVariantHs, ConvergesWithoutAHessianCall) {
+    const auto [hc, v] = GetParam();
+    test_support::HsProblem p = make_hs(hc.number);
+    HessCountingModel model(p.model.get());
+    SqpOptions o = qn_options();
+    o.qn_nonlinear_only = v.nonlinear_only;
+    o.qn_full_memory_max = v.full_memory_max;
+    SqpSolver driver(o);
+    const SqpResult sol = driver.solve(model);
+    SCOPED_TRACE(fmt::format("HS{} {}: status {} majors {} f {:.12g} f* {:.12g}", hc.number, v.name,
+                             to_string(sol.status), sol.counters.major_iters, sol.f, p.f_star));
+    ASSERT_EQ(sol.status, SolveStatus::kOptimal);
+    EXPECT_NEAR(sol.f, p.f_star, 1e-5 * std::max(1.0, std::abs(p.f_star)));
+    EXPECT_EQ(sol.counters.eval_hess_calls, 0);
+    EXPECT_EQ(model.n_hess, 1);
+    EXPECT_EQ(sol.counters.qn_kwrong_seen, 0);
+    EXPECT_EQ(sol.counters.qn_nonpd_seen, 0);
+    EXPECT_EQ(qn_offers(sol.counters), sol.counters.steps_accepted);
+    if (v.full_memory_max > 0) {
+        EXPECT_EQ(sol.counters.qn_lift_rank_peak, 0) << "a full-memory B rides in H, unlifted";
+        EXPECT_EQ(sol.counters.qn_pairs_peak, sol.counters.qn_updates) << "no window";
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(Battery, SqpQnVariantHs,
+                         ::testing::Combine(::testing::ValuesIn(kHsCases),
+                                            ::testing::ValuesIn(kQnVariants)),
+                         [](const auto &i) {
+                             return fmt::format("HS{}_{}", std::get<0>(i.param).number,
+                                                std::get<1>(i.param).name);
                          });
 
 // Under kExact the counter is exactly the driver's share of the model's calls.

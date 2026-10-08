@@ -3115,7 +3115,7 @@ void fold_qn_delta(const detail::LbfgsDampedCounters &before,
 }
 
 // Clears the window (counted by reason) and drops the cached lifts.
-void qn_reset(detail::LbfgsDamped &qn, detail::QnLiftBridge &bridge, Index &skip_streak,
+void qn_reset(detail::QnModel &qn, detail::QnLiftBridge &bridge, Index &skip_streak,
               detail::ResetReason reason, SqpCounters &c) {
     const detail::LbfgsDampedCounters before = qn.counters();
     qn.reset(reason);
@@ -3138,7 +3138,7 @@ Vec lagrangian_gradient(const NlpEval &ev, const Vec &lambda_e, const Vec &lambd
 
 // Offers the pair (s, y) on the structural block, applies the consecutive-skip reset and folds
 // the bill. B moves (or may), so the cached lifts are dropped.
-void qn_offer_pair(detail::LbfgsDamped &qn, detail::QnLiftBridge &bridge, Index &skip_streak,
+void qn_offer_pair(detail::QnModel &qn, detail::QnLiftBridge &bridge, Index &skip_streak,
                    const Vec &s, const Vec &y, double x_inf, SqpCounters &c) {
     const detail::LbfgsDampedCounters before = qn.counters();
     (void)detail::offer_pair_with_skip_reset(qn, skip_streak, s, y, x_inf);
@@ -3503,7 +3503,7 @@ struct SqpSolver::SolveState {
     // ---- SqpOptions::hessian_mode == kLbfgsDamped (M7 QN stage 3) -------------
     // Both engaged at the first subproblem build and never under kExact; `qn_bridge`
     // borrows `qn`. `qn_skip_streak` counts consecutive non-zero-step skips.
-    std::optional<detail::LbfgsDamped> qn;
+    std::unique_ptr<detail::QnModel> qn;
     std::optional<detail::QnLiftBridge> qn_bridge;
     Index qn_skip_streak = 0;
 };
@@ -4845,7 +4845,37 @@ QpProblem SqpSolver::build_qn_subproblem(SolveState &st, const SqpKkt &kkt,
         detail::LbfgsDampedOptions qo;
         qo.memory = static_cast<int>(opts_.qn_memory);
         qo.zero_step_scale = kZeroStepScale;
-        st.qn.emplace(static_cast<int>(ns), sigma0, qo);
+        // THE MODEL (M7 QN quality). The variables B acts on: every structural one, or under
+        // qn_nonlinear_only those the laid Hessian pattern touches (the rest carry zero
+        // curvature, as in every Lagrangian Hessian). The carrier: a full-memory damped BFGS
+        // with self-scaling when that dimension is at most qn_full_memory_max, else the
+        // L-BFGS window through the mixed lift.
+        std::vector<Eigen::Index> vars;
+        if (opts_.qn_nonlinear_only) {
+            const std::vector<char> nl = seam.nonlinear_variables();
+            for (Index i = 0; i < ns; ++i) {
+                if (nl[static_cast<std::size_t>(i)] != 0) {
+                    vars.push_back(i);
+                }
+            }
+            if (static_cast<Index>(vars.size()) == ns) {
+                vars.clear(); // every variable is nonlinear: no restriction
+            }
+        }
+        const Index d = vars.empty() ? ns : static_cast<Index>(vars.size());
+        std::unique_ptr<detail::QnModel> inner;
+        if (d <= opts_.qn_full_memory_max) {
+            qo.self_scaling = true;
+            inner = std::make_unique<detail::DenseDampedBfgs>(static_cast<int>(d), sigma0, qo);
+        } else {
+            inner = std::make_unique<detail::LbfgsDamped>(static_cast<int>(d), sigma0, qo);
+        }
+        if (vars.empty()) {
+            st.qn = std::move(inner);
+        } else {
+            st.qn = std::make_unique<detail::MaskedQnModel>(static_cast<int>(ns), std::move(vars),
+                                                            std::move(inner));
+        }
         st.qn_bridge.emplace(*st.qn, ns);
     }
     return seam.build_subproblem_without_hessian(st.ev, st.x, 1.0, st.qn_bridge->n_struct(),

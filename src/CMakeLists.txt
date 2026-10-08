@@ -215,6 +215,7 @@ target_sources(hven PRIVATE
     globalization/sqp/lbfgs_damped.cpp
     globalization/sqp/mixed_lift.cpp
     globalization/sqp/qn_lift_bridge.cpp
+    globalization/sqp/qn_models.cpp
     globalization/sqp/soc_elastic_restoration.cpp
     qp/ipqp_engine.cpp
     qp/ipqp_kkt_layout.cpp
@@ -561,7 +562,10 @@ endif()
 #
 # 47 as of globalization/sqp/qn_lift_bridge.cpp (M7 QN stage 3): the quasi-Newton engine-call
 # decorator. NOT a PCH source, on the same unmeasured-default footing.
-set(_hven_expected_source_count 47)
+# 48 as of globalization/sqp/qn_models.cpp (M7 QN quality): the full-memory damped BFGS and
+# the nonlinear-variables-only restriction. NOT a PCH source, on the same unmeasured-default
+# footing.
+set(_hven_expected_source_count 48)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.

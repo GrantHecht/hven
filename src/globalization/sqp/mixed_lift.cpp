@@ -69,6 +69,57 @@ MixedLift::MixedLift(const QpProblem &qp, Index n_struct, const MixedLiftData &d
     if (n_struct == 0 && (d.u_plus.cols() > 0 || d.v.cols() > 0)) {
         bad("auxiliary columns with n_struct = 0");
     }
+    // THE SCALAR PART'S REPLACEMENTS (lbfgs_damped.h MixedLiftData).
+    const bool has_diag = d.diag.size() > 0;
+    const bool has_base = d.base.rows() > 0 || d.base.cols() > 0;
+    if (has_diag && (d.diag.size() != n_struct || !d.diag.allFinite() || d.diag.minCoeff() < 0.0)) {
+        bad(fmt::format("diag has size {} (expected n_struct = {}) or a negative / non-finite "
+                        "entry",
+                        d.diag.size(), n_struct));
+    }
+    if (has_base) {
+        if (!has_diag) {
+            bad("base without diag");
+        }
+        if (d.base.rows() != n_struct || d.base.cols() != n_struct) {
+            bad(fmt::format("base is {}x{}, expected {}x{}", d.base.rows(), d.base.cols(), n_struct,
+                            n_struct));
+        }
+        for (Index r = 0; r < d.base.outerSize(); ++r) {
+            for (SpMatRM::InnerIterator e(d.base, r); e; ++e) {
+                if (e.col() < e.row() || !std::isfinite(e.value())) {
+                    bad(fmt::format("base entry ({}, {}) is below the diagonal or non-finite",
+                                    e.row(), e.col()));
+                }
+            }
+        }
+    }
+    std::vector<Index> rows;
+    if (d.support.empty()) {
+        rows.resize(static_cast<std::size_t>(n_struct));
+        for (Index i = 0; i < n_struct; ++i) {
+            rows[static_cast<std::size_t>(i)] = i;
+        }
+    } else {
+        std::vector<char> in(static_cast<std::size_t>(n_struct), 0);
+        for (std::size_t k = 0; k < d.support.size(); ++k) {
+            const Index i = d.support[k];
+            if (i < 0 || i >= n_struct || (k > 0 && i <= d.support[k - 1])) {
+                bad(fmt::format("support entry {} = {} is out of [0, {}) or not ascending", k, i,
+                                n_struct));
+            }
+            in[static_cast<std::size_t>(i)] = 1;
+        }
+        // Rows outside the support must be zero in u_plus and v: they are never emitted.
+        for (Index i = 0; i < n_struct; ++i) {
+            if (in[static_cast<std::size_t>(i)] == 0 &&
+                ((d.u_plus.cols() > 0 && d.u_plus.row(i).cwiseAbs().maxCoeff() != 0.0) ||
+                 (d.v.cols() > 0 && d.v.row(i).cwiseAbs().maxCoeff() != 0.0))) {
+                bad(fmt::format("row {} is outside the support but nonzero in u_plus or v", i));
+            }
+        }
+        rows = d.support;
+    }
 
     u_plus_ = d.u_plus;
     v_ = d.v;
@@ -89,9 +140,21 @@ MixedLift::MixedLift(const QpProblem &qp, Index n_struct, const MixedLiftData &d
     const Vec a = (r_minus_ > 0) ? Vec(v_.transpose() * p_ref_s) : Vec(0);
 
     std::vector<Triplet> t;
-    t.reserve(static_cast<std::size_t>(n_struct + r_plus_ + r_minus_ + n_struct * r_minus_));
+    const auto n_rows = static_cast<Index>(rows.size());
+    t.reserve(static_cast<std::size_t>(n_struct + d.base.nonZeros() + r_plus_ + r_minus_ +
+                                       n_rows * r_minus_));
     for (Index i = 0; i < n_struct; ++i) {
-        t.emplace_back(i, i, d.sigma);
+        const double s_i = has_diag ? d.diag(i) : d.sigma;
+        if (s_i != 0.0) {
+            t.emplace_back(i, i, s_i);
+        }
+    }
+    if (has_base) {
+        for (Index r = 0; r < d.base.outerSize(); ++r) {
+            for (SpMatRM::InnerIterator e(d.base, r); e; ++e) {
+                t.emplace_back(e.row(), e.col(), e.value());
+            }
+        }
     }
     for (Index k = 0; k < r_plus_; ++k) {
         t.emplace_back(n + k, n + k, d.theta_plus(k) * kappa_plus_(k) * kappa_plus_(k));
@@ -99,7 +162,7 @@ MixedLift::MixedLift(const QpProblem &qp, Index n_struct, const MixedLiftData &d
     for (Index j = 0; j < r_minus_; ++j) {
         const Index col = n + r_plus_ + j;
         t.emplace_back(col, col, kappa_v_(j) * kappa_v_(j));
-        for (Index i = 0; i < n_struct; ++i) { // structurally dense (AMEND-8)
+        for (const Index i : rows) { // structurally dense on the support (AMEND-8)
             t.emplace_back(i, col, -kappa_v_(j) * v_(i, j));
         }
     }
@@ -125,7 +188,7 @@ MixedLift::MixedLift(const QpProblem &qp, Index n_struct, const MixedLiftData &d
         }
     }
     for (Index k = 0; k < r_plus_; ++k) {
-        for (Index i = 0; i < n_struct; ++i) { // structurally dense
+        for (const Index i : rows) { // structurally dense on the support
             t.emplace_back(me + k, i, -u_plus_(i, k));
         }
         t.emplace_back(me + k, n + k, kappa_plus_(k));

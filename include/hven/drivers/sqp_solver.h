@@ -25,6 +25,7 @@
 #include <hven/core/ledger.h>
 #include <hven/detail/globalization/sqp/globalization.h>
 #include <hven/detail/globalization/sqp/qn_lift_bridge.h>
+#include <hven/detail/globalization/sqp/qn_models.h>
 #include <hven/detail/globalization/sqp/trust_region.h>
 #include <hven/detail/qp/ipqp_engine.h>
 #include <hven/detail/qp/qp_engine.h>

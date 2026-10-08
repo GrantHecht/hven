@@ -830,6 +830,18 @@ QpProblem AssemblyEvalSeam::build_subproblem(const NlpEval &ev, const Vec &x, co
     return qp;
 }
 
+std::vector<char> AssemblyEvalSeam::nonlinear_variables() {
+    this->relay_if_stale();
+    std::vector<char> out(static_cast<std::size_t>(primal_vars_), 0);
+    for (Index r = 0; r < hessian_pattern_.outerSize(); ++r) {
+        for (SpMatRM::InnerIterator it(hessian_pattern_, r); it; ++it) {
+            out[static_cast<std::size_t>(it.row())] = 1;
+            out[static_cast<std::size_t>(it.col())] = 1;
+        }
+    }
+    return out;
+}
+
 QpProblem AssemblyEvalSeam::build_subproblem_without_hessian(const NlpEval &ev, const Vec &x,
                                                              double obj_scale, Index n_struct,
                                                              double sigma) {

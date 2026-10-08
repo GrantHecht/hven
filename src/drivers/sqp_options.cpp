@@ -377,7 +377,12 @@ void validate(const SqpOptions &opts) {
             "use restoration_proximity = 0",
             opts.restoration_proximity));
     }
-    // `qn_update_on_reject` is a BOOL with no refusable value.
+    if (!(opts.qn_full_memory_max >= 0)) {
+        throw std::invalid_argument(
+            fmt::format("SqpSolver: qn_full_memory_max ({}) must be >= 0 (0 = never full memory)",
+                        opts.qn_full_memory_max));
+    }
+    // `qn_update_on_reject` and `qn_nonlinear_only` are BOOLs with no refusable value.
 
     // The two CommonOptions fields (M6 W5 T8.3). Neither is read by this engine
     // yet -- T8.7 reads print_level, T8.8 reads threads -- but both are part of
@@ -618,6 +623,8 @@ void dump_options(const SqpOptions &o, std::ostream &os) {
     kv_str(os, "hessian_mode", enum_name(o.hessian_mode));
     kv_int(os, "qn_memory", static_cast<long long>(o.qn_memory));
     kv_bool(os, "qn_update_on_reject", o.qn_update_on_reject);
+    kv_bool(os, "qn_nonlinear_only", o.qn_nonlinear_only);
+    kv_int(os, "qn_full_memory_max", static_cast<long long>(o.qn_full_memory_max));
     kv_int(os, "common.threads", o.common.threads);
     kv_int(os, "common.print_level", o.common.print_level);
     kv_str(os, "common.start_level", enum_name(o.common.start_level));

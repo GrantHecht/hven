@@ -193,6 +193,13 @@ class AssemblyEvalSeam {
     QpProblem build_subproblem(const NlpEval &ev, const Vec &x, const Vec &lambda_e,
                                const Vec &lambda_i, double obj_scale = 1.0);
 
+    /// @brief The variables the laid Lagrangian-Hessian PATTERN touches -- a row or a
+    ///        column of a structural entry -- read from the pattern alone, values unread.
+    ///        Entry i is 1 when variable i can carry curvature in some Lagrangian, 0 when
+    ///        every Lagrangian is linear in it (M7 QN quality: the quasi-Newton model's
+    ///        nonlinear-variables-only restriction). Size n().
+    std::vector<char> nonlinear_variables();
+
     /// @brief build_subproblem WITHOUT the Lagrangian Hessian (M7 QN stage 3): no
     ///        eval_hess is made, and H is `sigma` on the first @p n_struct diagonal
     ///        entries (the quasi-Newton model's scalar part; its low-rank part enters

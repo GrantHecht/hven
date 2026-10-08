@@ -25,7 +25,7 @@ inline constexpr Index kQnSkipResetStreak = 5;
 
 /// Offers (s, y) on the leading qn.dimension() entries; the kQnSkipResetStreak-th consecutive
 /// non-zero-step skip resets the window (ResetReason::kConsecutiveSkips) and clears the streak.
-UpdateOutcome offer_pair_with_skip_reset(LbfgsDamped &qn, Index &skip_streak, const Vec &s,
+UpdateOutcome offer_pair_with_skip_reset(QnModel &qn, Index &skip_streak, const Vec &s,
                                          const Vec &y, double x_inf);
 
 // THE ENGINE-SIGNATURE DECORATOR of ruling C30 AMEND-3 (M7 QN stage 3). Under
@@ -49,9 +49,9 @@ class QnLiftBridge {
   public:
     /// @param qn       the B every lift reads (borrowed; must outlive this object).
     /// @param n_struct the leading variables B acts on (1 <= n_struct <= qn.dimension()).
-    QnLiftBridge(const LbfgsDamped &qn, Index n_struct);
+    QnLiftBridge(const QnModel &qn, Index n_struct);
 
-    const LbfgsDamped &model() const { return *qn_; }
+    const QnModel &model() const { return *qn_; }
     Index n_struct() const { return n_struct_; }
 
     /// Drop the cached lifts: B has moved.
@@ -89,8 +89,8 @@ class QnLiftBridge {
 
     /// What the lifted solves reported since the last take_tally(): the widest lift built
     /// (r+ + r-), the solves whose engine reported a wrong-inertia reading, and the lifts built
-    /// while the model did not read positive definite (rounding can push the eigen form's
-    /// smallest eigenvalue to or below zero) -- both bug flags.
+    /// while the model did not read positive definite (QnModel::positive_definite(): rounding
+    /// can push the eigen form's smallest eigenvalue to or below zero) -- both bug flags.
     struct Tally {
         Index lift_rank_peak = 0;
         Index kwrong_seen = 0;
@@ -111,7 +111,7 @@ class QnLiftBridge {
     /// The lifted problem of `qp` and its lift, served from the cache or built.
     const QpProblem &lifted(const QpProblem &qp, const MixedLift **lift);
 
-    const LbfgsDamped *qn_;
+    const QnModel *qn_;
     Index n_struct_;
     // The last interior-tier lift: the unlifted (n, me) it was built for and its lifted
     // (n, me). -1 until the first one.

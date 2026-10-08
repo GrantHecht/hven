@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <Eigen/Dense>
+#include <Eigen/SparseCore>
 
 namespace hven::solvers::detail {
 
@@ -73,6 +74,9 @@ struct LbfgsDampedOptions {
     double powell_target = 0.8;
     double curvature_floor = 1e-8; // s^T r >= floor*||s||^2
     double conditioning_cap = 1e8; // ||r||^2 / s^T r <= cap
+    // DenseDampedBfgs only: Oren-Luenberger self-scaling, restricted to scaling DOWN -- before
+    // each update after the first, B <- tau B with tau = s^T y / s^T B s when 0 < tau < 1.
+    bool self_scaling = false;
 };
 
 /// Aggregate (bare snake_case members).
@@ -85,36 +89,60 @@ struct LbfgsDampedCounters {
     long pairs_in_memory = 0;
 };
 
-/// The mixed-lift data: B = sigma I + u_plus diag(theta_plus) u_plus^T - v v^T.
+/// The mixed-lift data: B = S + u_plus diag(theta_plus) u_plus^T - v v^T, where the SCALAR
+/// PART S is sigma I unless `diag` is set, and then diag(diag) + base (M7 QN quality: the
+/// nonlinear-variables-only restriction puts zeros on `diag`; a full-memory B rides in `base`).
 struct MixedLiftData {
     double sigma = 1.0;
-    Eigen::MatrixXd u_plus;     // n x p, orthonormal columns, theta > 0
-    Eigen::VectorXd theta_plus; // p, ascending
-    Eigen::MatrixXd v;          // n x q, columns U_i*sqrt(-theta_i), theta < 0
-    Eigen::VectorXd kappa_plus; // p, 2*||u_plus_i||_1
-    Eigen::VectorXd kappa_v;    // q, 2*||v_i||_1
+    Eigen::VectorXd diag;                              // empty, or one entry >= 0 per row
+    Eigen::SparseMatrix<double, Eigen::RowMajor> base; // 0x0, or n x n upper triangle (needs diag)
+    std::vector<Eigen::Index> support; // ascending rows u_plus / v may be nonzero on; empty = all
+    Eigen::MatrixXd u_plus;            // n x p, orthonormal columns, theta > 0
+    Eigen::VectorXd theta_plus;        // p, ascending
+    Eigen::MatrixXd v;                 // n x q, columns U_i*sqrt(-theta_i), theta < 0
+    Eigen::VectorXd kappa_plus;        // p, 2*||u_plus_i||_1
+    Eigen::VectorXd kappa_v;           // q, 2*||v_i||_1
 };
 
-class LbfgsDamped {
+/// The quasi-Newton model the driver and the lift bridge read (M7 QN quality): the damped
+/// compact L-BFGS below, the full-memory damped BFGS and the nonlinear-variables-only
+/// restriction (qn_models.h). Every model is positive definite on the variables it acts on.
+class QnModel {
+  public:
+    virtual ~QnModel() = default;
+    virtual int dimension() const = 0;
+    virtual int pairs() const = 0;
+    virtual double sigma() const = 0;
+    virtual const LbfgsDampedCounters &counters() const = 0;
+    virtual UpdateOutcome update(const Eigen::VectorXd &s, const Eigen::VectorXd &y,
+                                 double x_inf) = 0;
+    virtual Eigen::VectorXd apply(const Eigen::VectorXd &v) const = 0;
+    virtual void reset(ResetReason reason) = 0;
+    /// The positive-definiteness the model promises, as last computed (a bug flag when false).
+    virtual bool positive_definite() const = 0;
+    virtual const MixedLiftData &mixed_lift() const = 0;
+};
+
+class LbfgsDamped final : public QnModel {
   public:
     /// n >= 1, sigma0 finite > 0 (the scale used until the first pair is accepted and after a
     /// reset). Throws std::invalid_argument on a bad field.
     LbfgsDamped(int n, double sigma0, LbfgsDampedOptions options = {});
 
-    int dimension() const { return n_; }
-    int pairs() const { return static_cast<int>(s_.size()); }
-    double sigma() const { return sigma_; }
-    const LbfgsDampedCounters &counters() const { return counters_; }
+    int dimension() const override { return n_; }
+    int pairs() const override { return static_cast<int>(s_.size()); }
+    double sigma() const override { return sigma_; }
+    const LbfgsDampedCounters &counters() const override { return counters_; }
 
     /// Offer the step s = x+ - x and the gradient difference y; x_inf is ||x||_inf of the
     /// iterate the step started from. Size mismatch throws; non-finite data is a counted skip.
-    UpdateOutcome update(const Eigen::VectorXd &s, const Eigen::VectorXd &y, double x_inf);
+    UpdateOutcome update(const Eigen::VectorXd &s, const Eigen::VectorXd &y, double x_inf) override;
 
     /// B*v (the truncated operational form). Size mismatch / non-finite v throws.
-    Eigen::VectorXd apply(const Eigen::VectorXd &v) const;
+    Eigen::VectorXd apply(const Eigen::VectorXd &v) const override;
 
     /// Clear the window, sigma <- sigma0 (counted by reason).
-    void reset(ResetReason reason);
+    void reset(ResetReason reason) override;
     /// Replace sigma0 (finite > 0); takes effect at once if the window is empty.
     void set_sigma0(double sigma0);
 
@@ -124,7 +152,8 @@ class LbfgsDamped {
     /// Smallest / largest eigenvalue of B, read from Theta (sigma on the complement of U).
     double min_eigenvalue() const;
     double max_eigenvalue() const;
-    const MixedLiftData &mixed_lift() const { return lift_; }
+    bool positive_definite() const override { return min_eigenvalue() > 0.0; }
+    const MixedLiftData &mixed_lift() const override { return lift_; }
 
     /// Stored pairs, oldest first (the damped r, not y).
     const std::vector<Eigen::VectorXd> &stored_s() const { return s_; }

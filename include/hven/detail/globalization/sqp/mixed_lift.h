@@ -55,6 +55,13 @@ namespace hven::solvers::detail {
 // leading columns, so the lifted pattern depends only on (n, me, mi, n_struct, r+, r-), never on
 // the values of the current B.
 //
+// THE SCALAR PART'S REPLACEMENTS (M7 QN quality; MixedLiftData::diag / base / support). With
+// `diag` set, the structural block carries diag(diag) + base (upper triangle) in place of
+// sigma I -- zeros on the variables a nonlinear-variables-only B leaves without curvature,
+// and a full-memory B whole in `base` with no auxiliaries. With `support` set, the u_plus / V
+// entries are emitted on those rows only (the others must be zero); the pattern still depends
+// only on the sizes and the support, never on values (AMEND-8).
+//
 // ORDER: the lift is the LAST transform before the engine call -- after elastic augmentation
 // and after the equality-basis reduction. Un-lift drops the auxiliaries and the r+ lift-row
 // multipliers.

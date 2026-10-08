@@ -953,6 +953,22 @@ struct SqpOptions {
     /// accepted-only rule (ruling C30 AMEND-4); true is the ablation.
     bool qn_update_on_reject = false;
 
+    /// Under kLbfgsDamped, let B act on the NONLINEAR variables only -- those the model's
+    /// declared Lagrangian-Hessian pattern touches -- with zero curvature on the rest, as
+    /// every Lagrangian Hessian has there (Gill, Murray & Saunders, SIAM Review 47 (2005),
+    /// section 2). Falls back to every variable when the pattern touches all of them or
+    /// none. Read in no other mode.
+    bool qn_nonlinear_only = false;
+
+    /// Under kLbfgsDamped, a FULL-MEMORY damped BFGS B (dense, every pair kept) replaces
+    /// the L-BFGS window whenever the quasi-Newton dimension -- the nonlinear variables
+    /// under `qn_nonlinear_only`, else every structural variable -- is at most this; it
+    /// enters the QP as a dense block of H, with no lift, and is Oren-Luenberger
+    /// self-scaled (qn_models.h). 0 = never. 400 (the M7 QN quality round's measured
+    /// cut: the dense block won on TRAIN up to n = 344 and cost more than it gained at
+    /// 450-540). Read in no other mode. `validate()` refuses a negative value.
+    Index qn_full_memory_max = 400;
+
     /// The options both engines share (drivers/common_options.h), at the SQP
     /// engine's own defaults -- `threads = 0` ("leave the backend alone", which
     /// is what this engine has always done; the process-wide MKL_NUM_THREADS pin
@@ -999,7 +1015,8 @@ struct SqpOptions {
 ///         negative `common.threads` or `common.print_level`, or a negative,
 ///         NaN or infinite `restoration_proximity`, or a `restoration_resume_reduction`
 ///         outside [0, 1) or NaN, or the `hessian_mode` count sentinel, a `qn_memory`
-///         below 1, or kLbfgsDamped with `restoration_proximity > 0`.
+///         below 1, a negative `qn_full_memory_max`, or kLbfgsDamped with
+///         `restoration_proximity > 0`.
 void validate(const SqpOptions &opts);
 
 /// @brief Returns a full SqpOptions value for a named preset.
