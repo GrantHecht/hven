@@ -636,6 +636,98 @@ TEST(RestorationModel, ScalesSlackColumnsToTheirJacobianRow) {
     }
 }
 
+// QC-1 -- A SLACK'S BOUND ACTIVITY IS READ IN ITS OWN UNITS. One steep linear row,
+// c(x) = 100 (x0 - x1), entered at x = (2.5e-7, 0): the row misses by 2.5e-5, sigma = 100,
+// and the wrapper's start puts sm = 2.5e-7 -- inside feas_tol of its zero bound but outside
+// feas_tol / sigma. The scalar tolerance reads that slack as bound-active, `z` absorbs its
+// objective coefficient and the wrapper's stationarity is 0 at zero multipliers: the
+// sub-solve's major-0 "convergence" behind ACOPR57's false certificate. The per-variable
+// tolerance the driver hands its sub-driver reads it free, and the unpriced coefficient
+// sigma is the stationarity.
+class SteepRowModel final : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 1; }
+    Index mi() const override { return 0; }
+    double eval_f(const Vec &x) const override { return x(0) * x(0) + x(1) * x(1); }
+    Vec eval_grad(const Vec &x) const override { return 2.0 * x; }
+    Vec eval_ce(const Vec &x) const override { return Vec::Constant(1, 100.0 * (x(0) - x(1))); }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = 2.0 * obj_scale;
+        h.insert(1, 1) = 2.0 * obj_scale;
+        h.makeCompressed();
+        return h;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> j(1, 2);
+        j.insert(0, 0) = 100.0;
+        j.insert(0, 1) = -100.0;
+        j.makeCompressed();
+        return j;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &) const override {
+        return Eigen::SparseMatrix<double, Eigen::RowMajor>(0, 2);
+    }
+    const Vec &lower() const override {
+        static const Vec l = Vec::Constant(2, -10.0);
+        return l;
+    }
+    const Vec &upper() const override {
+        static const Vec u = Vec::Constant(2, 10.0);
+        return u;
+    }
+    Vec start_point() const override { return Vec::Zero(2); }
+};
+
+TEST(RestorationModel, BoundActivityIsTheViolationToleranceInEachSlacksUnits) {
+    constexpr double kTol = 1e-6;
+    SteepRowModel model;
+    Vec x(2);
+    x << 2.5e-7, 0.0;
+    const RestorationModel r(model, x, eval_nlp(model, x));
+    ASSERT_EQ(r.n(), 4); // (x0, x1, sp, sm)
+    ASSERT_DOUBLE_EQ(r.slack_scale_e()(0), 100.0);
+
+    const Vec t = r.bound_activity_tolerance(kTol);
+    ASSERT_EQ(t.size(), r.n());
+    EXPECT_EQ(t(0), kTol);
+    EXPECT_EQ(t(1), kTol);
+    EXPECT_EQ(t(2), kTol / 100.0);
+    EXPECT_EQ(t(3), kTol / 100.0);
+
+    const Vec y = r.start_point();
+    ASSERT_EQ(y(2), 0.0);
+    ASSERT_NEAR(y(3), 2.5e-7, 1e-20);
+    const NlpEval ev = eval_nlp(r, y);
+    const Vec le = Vec::Zero(1);
+    const Vec li = Vec(0);
+    const SqpKkt scalar =
+        detail::evaluate_kkt_over(r.n(), r.me(), r.mi(), r.lower(), r.upper(), ev, y, le, li, kTol);
+    const SqpKkt per =
+        detail::evaluate_kkt_over(r.n(), r.me(), r.mi(), r.lower(), r.upper(), ev, y, le, li, t);
+    EXPECT_EQ(scalar.stationarity, 0.0) << "the defect: sm reads bound-active, z absorbs sigma";
+    EXPECT_EQ(scalar.z(3), 100.0);
+    EXPECT_EQ(per.stationarity, 100.0) << "sm is free, so its coefficient sigma is unpriced";
+    EXPECT_EQ(per.z(3), 0.0);
+    EXPECT_EQ(per.z(2), 100.0) << "sp, at its bound exactly, is active under both";
+
+    // AT A CONSTANT VECTOR THE TWO OVERLOADS ARE ONE MEASUREMENT, field for field.
+    const SqpKkt same = detail::evaluate_kkt_over(r.n(), r.me(), r.mi(), r.lower(), r.upper(), ev,
+                                                  y, le, li, Vec::Constant(r.n(), kTol));
+    EXPECT_EQ(same.stationarity, scalar.stationarity);
+    EXPECT_EQ(same.feasibility, scalar.feasibility);
+    EXPECT_EQ(same.complementarity, scalar.complementarity);
+    EXPECT_EQ(same.z, scalar.z);
+    EXPECT_EQ(same.grad_lag, scalar.grad_lag);
+
+    // A MIS-SIZED TOLERANCE IS REFUSED AT THE BOUNDARY, not read past its end.
+    EXPECT_THROW(detail::evaluate_kkt_over(r.n(), r.me(), r.mi(), r.lower(), r.upper(), ev, y, le,
+                                           li, Vec::Constant(r.n() - 1, kTol)),
+                 std::invalid_argument);
+}
+
 // =========================================================================
 // THE PROXIMITY TERM (M7 W2 M2b) -- the wrapper's half.
 //

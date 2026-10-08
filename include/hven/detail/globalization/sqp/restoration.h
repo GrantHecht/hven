@@ -44,6 +44,13 @@ inline constexpr double kRestoreRadiusFactor = 0.1;
 /// ordinary floating point.
 inline constexpr double kRestorationSlackBound = 1e20;
 
+/// The restored point's violation (the convergence test's inf-norm) must exceed this
+/// multiple of `feas_tol` before a kOptimal restoration sub-solve is read as a certificate
+/// of infeasibility (QC-1). 2 = the sub-solve's own row tolerance plus its slack-activity
+/// tolerance, the most violation a converged sub-solve can leave unpriced; the driver's
+/// CERT-1 arm states the argument.
+inline constexpr double kCertificateViolationMargin = 2.0;
+
 /// @brief The l1 FEASIBILITY PROBLEM of the restoration phase, as an NlpModel
 /// wrapping the caller's own model:
 ///
@@ -141,6 +148,17 @@ class RestorationModel final : public NlpModel {
     Vec original_x(const Vec &y) const;
     const Vec &slack_scale_e() const;
     const Vec &slack_scale_i() const;
+
+    /// THE BOUND-ACTIVITY TOLERANCE OF EACH WRAPPER VARIABLE (QC-1), for a violation
+    /// tolerance @p tol: @p tol on the x-block, `tol / sigma` on every slack column. A slack
+    /// carries its row's violation in units of `1/sigma` (`sigma * s` is the violation it
+    /// absorbs), so it is at its zero bound exactly when that violation is inside @p tol.
+    /// A bare @p tol on a slack reads a row missing by up to `sigma * tol` as bound-active,
+    /// and the wrapper's KKT test then lets `z` absorb the slack's whole objective
+    /// coefficient: a sub-solve converged at its major 0 with zero multipliers, at a point
+    /// whose violation exceeds @p tol (ACOPR57 under a QN arm, certified kInfeasible). The
+    /// driver hands this to its restoration sub-driver's convergence measurement.
+    Vec bound_activity_tolerance(double tol) const;
 
     /// The proximity weight `zeta` this wrapper was built with; 0 == OFF.
     double proximity() const;

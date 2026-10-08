@@ -569,9 +569,15 @@ double box_violation_l1(const Vec &x, const Vec &lo, const Vec &up) {
 
 namespace detail {
 
-SqpKkt evaluate_kkt_over(Index n, Index me, Index mi, const Vec &lo, const Vec &up,
-                         const NlpEval &ev, const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
-                         double bound_tol) {
+namespace {
+
+// The one body of both evaluate_kkt_over overloads; `tol_of(i)` is variable i's activity
+// tolerance. The scalar overload's lambda returns its argument, so its arithmetic is the
+// pre-QC-1 function's exactly.
+template <typename TolOf>
+SqpKkt evaluate_kkt_over_impl(Index n, Index me, Index mi, const Vec &lo, const Vec &up,
+                              const NlpEval &ev, const Vec &x, const Vec &lambda_e,
+                              const Vec &lambda_i, const TolOf &tol_of) {
     if (x.size() != n) {
         throw std::invalid_argument(
             fmt::format("evaluate_kkt: x has size {}, expected {} (= model.n())", x.size(), n));
@@ -602,6 +608,7 @@ SqpKkt evaluate_kkt_over(Index n, Index me, Index mi, const Vec &lo, const Vec &
     }
 
     for (Index i = 0; i < n; ++i) {
+        const double bound_tol = tol_of(i);
         const bool at_lower = (x(i) - lo(i)) <= bound_tol;
         const bool at_upper = (up(i) - x(i)) <= bound_tol;
         const double g = out.grad_lag(i);
@@ -639,6 +646,26 @@ SqpKkt evaluate_kkt_over(Index n, Index me, Index mi, const Vec &lo, const Vec &
         out.feasibility = std::max(out.feasibility, std::max(0.0, x(i) - up(i)));
     }
     return out;
+}
+
+} // namespace
+
+SqpKkt evaluate_kkt_over(Index n, Index me, Index mi, const Vec &lo, const Vec &up,
+                         const NlpEval &ev, const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
+                         double bound_tol) {
+    return evaluate_kkt_over_impl(n, me, mi, lo, up, ev, x, lambda_e, lambda_i,
+                                  [bound_tol](Index) { return bound_tol; });
+}
+
+SqpKkt evaluate_kkt_over(Index n, Index me, Index mi, const Vec &lo, const Vec &up,
+                         const NlpEval &ev, const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
+                         const Vec &bound_tol) {
+    if (bound_tol.size() != n) {
+        throw std::invalid_argument(fmt::format(
+            "evaluate_kkt: bound_tol has size {}, expected {} (= model.n())", bound_tol.size(), n));
+    }
+    return evaluate_kkt_over_impl(n, me, mi, lo, up, ev, x, lambda_e, lambda_i,
+                                  [&bound_tol](Index i) { return bound_tol(i); });
 }
 
 } // namespace detail
@@ -729,6 +756,15 @@ SqpKkt evaluate_kkt(const AssemblyEvalSeam &seam, const NlpEval &ev, const Vec &
                     const Vec &lambda_e, const Vec &lambda_i, double bound_tol) {
     return detail::evaluate_kkt_over(seam.n(), seam.me(), seam.mi(), seam.lower(), seam.upper(), ev,
                                      x, lambda_e, lambda_i, bound_tol);
+}
+
+SqpKkt SqpSolver::measure_kkt(const AssemblyEvalSeam &seam, const NlpEval &ev, const Vec &x,
+                              const Vec &lambda_e, const Vec &lambda_i) const {
+    if (kkt_bound_tol_.size() == 0) {
+        return evaluate_kkt(seam, ev, x, lambda_e, lambda_i, opts_.feas_tol);
+    }
+    return detail::evaluate_kkt_over(seam.n(), seam.me(), seam.mi(), seam.lower(), seam.upper(), ev,
+                                     x, lambda_e, lambda_i, kkt_bound_tol_);
 }
 
 bool qp_failure_is_retryable(const QpProblem &qp, const QpSolution &qs, double bound_tol) {
@@ -5203,6 +5239,18 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     if (opts_.hessian_mode == SqpHessianMode::kLbfgsDamped) {
         sub.qn_struct_vars_ = resto_base.n();
     }
+    // A SLACK IS AT ITS BOUND ONLY WHILE ITS ROW IS INSIDE feas_tol (QC-1). The sub-driver's
+    // convergence test reads bound activity per variable: feas_tol on the x-block, feas_tol /
+    // sigma on each slack column, whose units are violation / sigma. With the bare feas_tol a
+    // row missing by up to sigma * feas_tol read as bound-active, `z` absorbed the slack's
+    // objective coefficient, and the sub-solve converged at its major 0 with zero multipliers
+    // -- a "stationary point of h" at which h's own descent direction was untouched (ACOPR57
+    // under a QN arm, h_inf 7.3e-6, certified kInfeasible on a feasible problem). Now a row
+    // violated beyond feas_tol keeps its slack free, so a converged sub-solve prices it with
+    // the full subgradient selector (|lambda| = 1 to within kkt_tol / sigma). The x-block's
+    // tolerance is unchanged, so a sub-solve whose slacks never sit in (feas_tol / sigma,
+    // feas_tol] measures exactly what it measured before.
+    sub.kkt_bound_tol_ = feasibility.bound_activity_tolerance(opts_.feas_tol);
     // THE ONE SINK, SHARED SEQUENTIALLY (plan amendment A): the
     // sub-solve's own `sqp.solve` pair, rows and tier events land in the
     // same stream, told apart by the sink-owned `depth`.
@@ -5464,11 +5512,15 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     // its own exit. The box must hold as it does for the feasible resume.
     const double box_r = box_violation_l1(x_r, seam.lower(), seam.upper());
     const double resume_measure = h_r + box_r;
-    const bool reduction_resume =
-        opts_.restoration_resume_reduction > 0.0 && resume_measure > opts_.feas_tol &&
-        box_r <= opts_.feas_tol && h_r <= opts_.restoration_resume_reduction * excursion_h_in &&
-        (rs.status == SolveStatus::kNumericalError ||
-         (rs.status == SolveStatus::kOptimal && kkt_r.feasibility <= opts_.feas_tol));
+    // A kOptimal SUB-SOLVE CLAIMS INFEASIBILITY ONLY BEYOND 2 * feas_tol (QC-1; the CERT-1
+    // arm of the switch below has the argument). Read here too, so "certifies nothing" means
+    // one thing in both places.
+    const bool optimal_claims = kkt_r.feasibility > kCertificateViolationMargin * opts_.feas_tol;
+    const bool reduction_resume = opts_.restoration_resume_reduction > 0.0 &&
+                                  resume_measure > opts_.feas_tol && box_r <= opts_.feas_tol &&
+                                  h_r <= opts_.restoration_resume_reduction * excursion_h_in &&
+                                  (rs.status == SolveStatus::kNumericalError ||
+                                   (rs.status == SolveStatus::kOptimal && !optimal_claims));
     if (resume_measure <= opts_.feas_tol || reduction_resume) {
         if (reduction_resume) {
             ++st.out.counters.restoration_reduction_resumes;
@@ -5656,7 +5708,19 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
         // resume test is unchanged, so `restoration_h_out <= feas_tol` still
         // says the entry resumed, unless restoration_resume_reduction > 0 (see
         // restoration_reduction_resumes).
-        if (kkt_r.feasibility <= opts_.feas_tol) {
+        //
+        // AND NOT NEAR IT EITHER (QC-1): the claim needs `kkt_r.feasibility > 2 *
+        // feas_tol`. A converged sub-solve leaves each wrapper row within feas_tol and
+        // reads a slack as bound-active while the violation it carries is within feas_tol
+        // (`kkt_bound_tol_`), so a row whose slacks are both read active -- and whose
+        // multiplier is therefore unconstrained, zero at a major-0 exit -- misses by at
+        // most 2 * feas_tol. Beyond that margin at least one row's slack is free, and the
+        // sub-solve's stationarity prices it with the full subgradient selector
+        // (|lambda| = 1 to within kkt_tol / sigma): the certificate then rests on a
+        // violation the phase actually priced. Inside it the exit is CERT-1's no-claim
+        // spelling. Exact in the raw frame the sub-solve ran in; on a scaled solve the
+        // measure is the convergence test's own, as CERT-1's is.
+        if (!optimal_claims) {
             st.resto.status = SolveStatus::kNumericalError;
             break;
         }
@@ -5863,7 +5927,7 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
     // point the driver is actually standing on. Re-measuring is free
     // -- this overload of evaluate_kkt reads an NlpEval already in
     // hand and calls the model not at all.
-    mj.kkt = evaluate_kkt(seam, st.ev, st.x, st.lambda_e, st.lambda_i, opts_.feas_tol);
+    mj.kkt = measure_kkt(seam, st.ev, st.x, st.lambda_e, st.lambda_i);
 
     mj.row.trial = iter;
     // THE ARM THAT OWNS THIS ROW'S QP, for `sqp.major` alone. Starts at the
@@ -6260,7 +6324,7 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
             st.duals_ingested = st.fs.best_duals_ingested; // see its note above
             st.duals_carried = st.fs.best_duals_carried;
             st.ev = std::move(st.fs.best_ev);
-            mj.kkt = evaluate_kkt(seam, st.ev, st.x, st.lambda_e, st.lambda_i, opts_.feas_tol);
+            mj.kkt = measure_kkt(seam, st.ev, st.x, st.lambda_e, st.lambda_i);
             measure_iterate();
             // KLV Eq. (13) re-basing, which ALSO clears the strategy's
             // own mode flag (globalization.h). Both flags fall

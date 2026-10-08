@@ -222,6 +222,16 @@ SqpKkt evaluate_kkt_over(Index n, Index me, Index mi, const Vec &lo, const Vec &
                          const NlpEval &ev, const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
                          double bound_tol);
 
+/// @brief The same measurement with a PER-VARIABLE activity tolerance (QC-1): variable i
+///        is bound-active within `bound_tol(i)`. The restoration sub-driver's entry, where
+///        a slack's tolerance is the violation tolerance in that slack's own units
+///        (RestorationModel::bound_activity_tolerance). At a constant vector it is the
+///        scalar overload's arithmetic exactly.
+/// @throws std::invalid_argument when @p bound_tol does not have @p n entries.
+SqpKkt evaluate_kkt_over(Index n, Index me, Index mi, const Vec &lo, const Vec &up,
+                         const NlpEval &ev, const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
+                         const Vec &bound_tol);
+
 } // namespace detail
 
 /// @brief Measures (x, lambda_e, lambda_i) against the model, reusing an
@@ -1701,6 +1711,11 @@ class SqpSolver {
         return qn_struct_vars_ >= 0 ? std::min(qn_struct_vars_, n) : n;
     }
 
+    /// The major loop's KKT measurement: evaluate_kkt at `feas_tol`, or at the per-variable
+    /// tolerance `kkt_bound_tol_` on the restoration sub-driver (QC-1).
+    SqpKkt measure_kkt(const AssemblyEvalSeam &seam, const NlpEval &ev, const Vec &x,
+                       const Vec &lambda_e, const Vec &lambda_i) const;
+
     /// @brief Assembles the final SqpResult at an exit -- status, x,
     ///        multipliers, KKT record, f, warm start -- and maps every exported
     ///        quantity back to the caller's units when the solve ran scaled.
@@ -1850,6 +1865,13 @@ class SqpSolver {
     // Every other driver -- restoration allowed or not -- builds its console at
     // the tiers the print level names.
     bool is_restoration_sub_driver_ = false;
+
+    // THE PER-VARIABLE BOUND-ACTIVITY TOLERANCE OF THE CONVERGENCE MEASUREMENT (QC-1), or
+    // empty for the scalar `feas_tol` every other driver uses. Set only by the restoration
+    // phase on its sub-driver: RestorationModel::bound_activity_tolerance, so a slack is
+    // bound-active only while the violation it carries is inside feas_tol. See
+    // `measure_kkt`.
+    Vec kkt_bound_tol_;
 
     // THE QUASI-NEWTON STRUCTURAL BLOCK (M7 QN stage 3): the leading variables B acts on
     // under SqpHessianMode::kLbfgsDamped, or -1 for all of them. Set only by the restoration

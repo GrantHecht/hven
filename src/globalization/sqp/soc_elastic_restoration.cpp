@@ -393,6 +393,18 @@ const Vec &RestorationModel::slack_scale_e() const { return sigma_e_; }
 
 const Vec &RestorationModel::slack_scale_i() const { return sigma_i_; }
 
+Vec RestorationModel::bound_activity_tolerance(double tol) const {
+    Vec t = Vec::Constant(n_, tol);
+    for (Index k = 0; k < me_; ++k) {
+        t(nx_ + k) = tol / sigma_e_(k);       // sp
+        t(nx_ + me_ + k) = tol / sigma_e_(k); // sm
+    }
+    for (Index j = 0; j < mi_; ++j) {
+        t(nx_ + 2 * me_ + j) = tol / sigma_i_(j); // si
+    }
+    return t;
+}
+
 double RestorationModel::proximity() const { return zeta_; }
 
 double RestorationModel::eval_f(const Vec &y) const {

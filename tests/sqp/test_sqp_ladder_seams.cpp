@@ -524,4 +524,75 @@ TEST(SqpLadderSeam, TheReductionResumeTakesTheNoClaimPointAndCountsIt) {
     EXPECT_NE(on.status, SolveStatus::kInfeasible);
 }
 
+// QC-1 -- NO CERTIFICATE FROM A NEAR-FEASIBLE ENTRY WHOSE SLACKS SIT INSIDE feas_tol.
+//
+//     min (x0 - 3)^2 + (x1 - 2)^2  s.t.  cE(x) = 100 (x0 - x1) = 0,  -10 <= x <= 10,
+//
+// feasible, optimum (2.5, 2.5). Entered at x = (1.5 + kOff, 1.5): the row misses by
+// 100 kOff = 2.5e-5 > feas_tol, but the wrapper's slack column is sigma = 100 wide, so the
+// slack sits at 2.5e-7 -- INSIDE feas_tol of its zero bound. ACOPR57's shape under a QN arm
+// (nonlinear-only, m = 50): the sub-solve read every slack as bound-active, converged at its
+// major 0 with zero multipliers, and the parent certified kInfeasible on a feasible problem.
+// The first kFails walk QPs are forced to fail and every failure halves the radius, so the
+// last one crosses tr_min and restoration is entered at the start point; the restart radius
+// (0.1) leaves the resumed solve room above the floor. Both curvature sources.
+namespace {
+QpAsNlpModel steep_line_model(const Vec &x0) {
+    QpProblem qp;
+    qp.H = SpMatRM(2, 2);
+    qp.H.insert(0, 0) = 2.0;
+    qp.H.insert(1, 1) = 2.0;
+    qp.g = Vec(2);
+    qp.g << -6.0, -4.0;
+    Eigen::MatrixXd A(1, 2);
+    A << 100.0, -100.0;
+    qp.Ae = A.sparseView();
+    qp.be = Vec::Zero(1);
+    qp.Ai = SpMatRM(0, 2);
+    qp.bi = Vec(0);
+    qp.lower = Vec::Constant(2, -10.0);
+    qp.upper = Vec::Constant(2, 10.0);
+    return QpAsNlpModel(std::move(qp), x0);
+}
+} // namespace
+
+TEST(SqpLadderSeam, QcOneASlackInsideFeasTolIsNotABoundAtAViolatedRow) {
+    constexpr double kOff = 2.5e-7;
+    constexpr double kSigma = 100.0; // max(1, ||grad cE||inf) at the entry
+    constexpr int kFails = 7;        // 1 / 2^7 < tr_min = 0.01 <= 1 / 2^6
+    for (const SqpHessianMode mode : {SqpHessianMode::kExact, SqpHessianMode::kLbfgsDamped}) {
+        SCOPED_TRACE(mode == SqpHessianMode::kExact ? "exact" : "lbfgs");
+        const SeamReset guard;
+        Seam::fail_walk_qps = kFails;
+        Seam::as_e2_termination = false;
+        QpAsNlpModel model = steep_line_model(vec2(1.5 + kOff, 1.5));
+        SqpOptions o = quiet();
+        o.hessian_mode = mode;
+        o.tr_init = 1.0;
+        o.tr_min = 0.01;
+        o.qp_failure_budget = 1000; // the shrink ladder runs to the floor
+        SqpSolver driver(o);
+        const SqpResult sol = driver.solve(model);
+
+        // THE PREMISE: one restoration, entered at the start point, whose row misses by more
+        // than feas_tol while its sigma-scaled slack sits inside feas_tol of zero.
+        ASSERT_EQ(Seam::forced, kFails);
+        ASSERT_EQ(sol.counters.restoration_entries, 1);
+        ASSERT_NEAR(sol.counters.restoration_h_in, kSigma * kOff, 1e-12);
+        ASSERT_GT(sol.counters.restoration_h_in, o.feas_tol);
+        ASSERT_LT(sol.counters.restoration_h_in / kSigma, o.feas_tol);
+
+        // THE CLAIM IS NEVER MADE, and the phase did real work: a slack whose row is violated
+        // beyond feas_tol is not at its bound, so the sub-solve cannot stop at its major 0.
+        EXPECT_FALSE(sol.infeasibility_certified);
+        EXPECT_NE(sol.status, SolveStatus::kInfeasible);
+        EXPECT_GE(sol.counters.restoration_iters, 1);
+        EXPECT_LE(sol.counters.restoration_h_out, o.feas_tol) << "the phase restores and resumes";
+        // AND THE SOLVE GOES ON TO THE OPTIMUM of the feasible problem.
+        EXPECT_EQ(sol.status, SolveStatus::kOptimal);
+        EXPECT_NEAR(sol.x(0), 2.5, 1e-6);
+        EXPECT_NEAR(sol.x(1), 2.5, 1e-6);
+    }
+}
+
 } // namespace hven::solvers
