@@ -1,0 +1,3 @@
+=== PREVIOUS (P1E + C13 record 7c24a78b) GATE RECORD HEAD-walk vs M7 QN QC1 HEAD-walk (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+=== PREVIOUS (P1E + C13 record 7c24a78b) GATE RECORD HEAD-ssn vs M7 QN QC1 HEAD-ssn (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+=== PREVIOUS (P1E + C13 record 7c24a78b) GATE RECORD HEAD-ipm vs M7 QN QC1 HEAD-ipm (EXACT) === cells compared: 27  columns compared: 75  differences: 0

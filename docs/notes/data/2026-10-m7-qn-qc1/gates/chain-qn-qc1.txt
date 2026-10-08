@@ -1,0 +1,27 @@
+CHAIN_START 2026-10-08T12:17:34-04:00
+HEAD 0a3496a1  dirty-files=0
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a696fc244b020507c/docs/notes/data/2026-10-m7-qn-qc1/wrappers-gates/gates-qn-qc1.sh
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a696fc244b020507c/docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers/gate_asserts_m3b.sh
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a696fc244b020507c/docs/notes/data/2026-10-m7-qn-qc1/wrappers-gates/classify_psym_m4_uncapped.py
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a696fc244b020507c/docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers/check_sections_fix2.sh
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a696fc244b020507c/docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers/section_digest_fix2.py
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a696fc244b020507c/docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers/fold_proofs_m3b.sh
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a696fc244b020507c/scripts/psym_compare.sh
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a696fc244b020507c/scripts/compare_replay.py
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a696fc244b020507c/scripts/check_install_smoke.sh
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a696fc244b020507c/scripts/check_export_contract.sh
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a696fc244b020507c/docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a696fc244b020507c/docs/notes/data/2026-09-m6-close-gate/replay
+GATES_QN_QC1_RC=0
+FOREGROUND_START fold-proofs 2026-10-08T13:23:16-04:00
+PGREP_EMPTY fold-proofs: no foreign cell binary under my lock
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a696fc244b020507c/docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers/fold_proofs_m3b.sh
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a696fc244b020507c/.scratch/m7qnqc1gates/gates-dbg/CTestTestfile.cmake
+FOLD_PROOFS_RC=0
+FOREGROUND_END fold-proofs 2026-10-08T13:23:17-04:00
+FOLD_PROOFS_AGGREGATE_RC=0
+
+FOLD_PROOFS_TOTAL=46  FOLD_PROOFS_FAILED=0
+FOLD_PROOFS_END 2026-10-08T13:23:17-04:00
+CHAIN_END 2026-10-08T13:23:17-04:00
+CHAIN_SUMMARY gates=0 fold_proofs=0

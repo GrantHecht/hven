@@ -31,3 +31,29 @@ byte-identical copy; the changed surface re-derived (8 added in-universe sources
 `src/CMakeLists.txt`'s added and removed lines; the sentinel loop covers every measured slot; the name reader folds the two
 address-bearing parameterised suites to stem + ordinal; G4 records an exact comparison against the previous record's replay. Details:
 runner header and sections 0 / 1 / 3 of the derivation.
+
+## Gates (chain pid 207373, worktree `agent-a696fc244b020507c`, declaration `0a3496a1`, 2026-10-08, `gates/chain-qn-qc1.txt`)
+
+`GATES_SUMMARY G1=0 G2=0 G3=0 G4=0 G5=0 G6=0`, fold proofs **46 / 0**. **GREEN.**
+
+| gate | result |
+|---|---|
+| G1 Debug suite | 3033 / 3033 (= P1E + C13's 2937 + 96 by name; 3035 started names = baseline 2939 + 96; skipped set = baseline's by name, 7) |
+| G2 long test | 1 / 1 |
+| G3 Release suite | 3034 / 3034 (= P1E + C13's 2938 + 96 by name; 3036 started names = baseline 2940 + 96; skipped set = baseline's by name, 1) |
+| G4 U0 replay vs the M6 pin | the declared **43**-difference set (walk 17 / ssn 13 / ipm 13), measured set EQUALS the declared list; the chain's CSVs compared EXACT against P1E + C13's `gates/replay`: **0 differences** on 75 columns x 27 cells x 3 engines (`gates/replay/exact-vs-p1e-c13-record.txt`, recorded, not asserted) -- no G4 mover |
+| G5 P-SYM | Release DIFFERING **76** = class A 13 + class B 63; Debug **77** = class A 13 + class B 64 (one declared Debug-only class B, `test_solve_status.cpp.o`, asserted byte-identical in Release); UNEXPLAINED **0** both configs; non-debug section movers 10 = the declared set both configs; DEBUG_ONLY 0 / 4; manifests 152 -> 160 with ONLY-AFTER = the eight added sources' objects in both; library ADDED = the four new library objects; the outside-universe asserts held |
+| G6 | install smoke, export contract (EIGEN_MAX_ALIGN_BYTES 32), clang-format (35 files), `git diff --check`, `DIRTY_FILES=0` |
+
+Observations, not deviations:
+- The Release negative-control listing was **complete** in the chain (77 of 77 printed); the offline rehearsal classification had 89. The 12 extra
+  are exactly the AFTER-state-only objects: the eight added in-universe objects plus the four `hven_sqp_seam_tests` recompiles of the new
+  library sources (`tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/globalization/sqp/*.cpp.o`), none of which exists in g5's BEFORE-arm
+  classifier tree. The completeness assertion is on printed == stated and held.
+- The two value-parameterised QN suites (`SqpQnHs`, 6 instances; `SqpQnVariantHs`, 24) are registered by ctest under names that embed the
+  raw bytes of their parameter, which holds a `const char*` -- a link-layout address (Debug and Release differ). They were read by stem +
+  ordinal (runner header (d)). A name generator on the two suites would make the names stable at the source.
+- Leg wall (informational): G1 7.0 min, G2 2.6, G3 5.2, G4 5.6, G5 35.7 (four builds, two configurations, inherent to the segment), G6 1.3.
+- `gates/psym-sections-{Release,Debug}.txt` keep the section checker's summary lines only (`SECTIONS_*`, `NON-DEBUG-MOVER`, `DEBUG-ONLY`, `REFUSED`).
+- A foreign benchmark cell binary was alive when the chain was launched; every leg of the chain, and the fold proofs, printed `PGREP_EMPTY`
+  under the lock hold (the other agent's work queued behind the lock).
