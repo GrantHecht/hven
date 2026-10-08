@@ -94,8 +94,12 @@ UpdateOutcome DenseDampedBfgs::update(const Eigen::VectorXd &s, const Eigen::Vec
     } else if (opt_.self_scaling && pairs_ > 0 && sy > 0.0) {
         const double sBs0 = s.dot(b * s);
         const double tau = sBs0 > 0.0 ? sy / sBs0 : 1.0;
-        if (tau > 0.0 && tau < 1.0) {
-            b *= tau;
+        // THE FLOOR: a pair with s^T y ~ 0+ would scale all of B to ~0. tau_eff keeps the mean
+        // diagonal of the scaled B at or above sigma_min; a floor at or above 1 skips the scaling.
+        const double floor = opt_.sigma_min * static_cast<double>(d_) / b.trace();
+        const double tau_eff = std::max(tau, floor);
+        if (tau > 0.0 && tau_eff < 1.0) {
+            b *= tau_eff;
         }
     }
     const Eigen::VectorXd Bs = b * s;
@@ -120,12 +124,14 @@ UpdateOutcome DenseDampedBfgs::update(const Eigen::VectorXd &s, const Eigen::Vec
     b.noalias() -= (Bs / sBs) * Bs.transpose();
     b.noalias() += (r / sr) * r.transpose();
     b = 0.5 * (b + b.transpose()).eval();
-    if (!b.allFinite() || Eigen::LLT<Eigen::MatrixXd>(b).info() != Eigen::Success) {
+    // The Cholesky test is the positive-definiteness verdict of the B this update installs.
+    const bool pd = b.allFinite() && Eigen::LLT<Eigen::MatrixXd>(b).info() == Eigen::Success;
+    if (!pd) {
         return skip(SkipReason::kConditioning, UpdateOutcome::kSkippedConditioning);
     }
     b_ = std::move(b);
     sigma_ = sigma;
-    pd_ = true;
+    pd_ = pd;
     ++pairs_;
     ++counters_.updates;
     if (theta < 1.0) {

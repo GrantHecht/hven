@@ -90,11 +90,13 @@ class QnLiftBridge {
     /// What the lifted solves reported since the last take_tally(): the widest lift built
     /// (r+ + r-), the solves whose engine reported a wrong-inertia reading, and the lifts built
     /// while the model did not read positive definite (QnModel::positive_definite(): rounding
-    /// can push the eigen form's smallest eigenvalue to or below zero) -- both bug flags.
+    /// can push the eigen form's smallest eigenvalue to or below zero) -- both bug flags; and the
+    /// number of variables the model carries (QnModel::carried_dimension(), set by take_tally()).
     struct Tally {
         Index lift_rank_peak = 0;
         Index kwrong_seen = 0;
         Index nonpd_seen = 0;
+        Index dimension = 0;
     };
     Tally take_tally();
 

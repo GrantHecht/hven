@@ -123,7 +123,8 @@ const QpProblem &QnLiftBridge::lift_of(const QpProblem &qp) {
 }
 
 QnLiftBridge::Tally QnLiftBridge::take_tally() {
-    const Tally t = tally_;
+    Tally t = tally_;
+    t.dimension = qn_->carried_dimension();
     tally_ = Tally{};
     return t;
 }

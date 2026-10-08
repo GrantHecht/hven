@@ -296,7 +296,7 @@ one of those three therefore cannot silently miss the trace.
 
   **THE CURVATURE-SOURCE GROUP** (M7 QN stage 3, appended last: `eval_hess_calls`
   and thirteen `qn_*` fields; `qn_nonpd_seen` appended after them at the QN
-  stages 1-3 review). `eval_hess_calls` counts every Lagrangian-Hessian
+  stages 1-3 review, `qn_dimension` at the QN-quality riders). `eval_hess_calls` counts every Lagrangian-Hessian
   evaluation the solve made -- each subproblem build and each warm-start structure
   probe under `SqpOptions::hessian_mode = kExact` -- and is 0 under `kLbfgsDamped`
   by construction. It does NOT count the assembly bridge's lay-time pattern walk:
@@ -311,7 +311,13 @@ one of those three therefore cannot silently miss the trace.
   counted and never acted on: `qn_kwrong_seen` -- lifted subproblem solves whose
   engine reported a wrong-inertia reading -- and `qn_nonpd_seen` -- lifts built
   while the model did not read positive definite (rounding can push the eigen
-  form's smallest eigenvalue to or below zero). The whole group FOLDS from the
+  form's smallest eigenvalue to or below zero). `qn_dimension` is the number of
+  variables the model carries curvature for (max-folded): the structural count,
+  or the nonlinear variables only under `SqpOptions::qn_nonlinear_only` (default
+  off). Under the shipped default -- carried dimension at most
+  `SqpOptions::qn_full_memory_max` (400) -- the carrier is a full-memory dense
+  BFGS with no window, and `qn_pairs_peak` is the pair count since the last reset;
+  above that cap it is the L-BFGS window's depth. The whole group FOLDS from the
   restoration sub-solve, which runs its own QN instance on the wrapper's x-block.
 
   THE THREE REFUSALS AND THE NON-FINITE EXIT WRITE NOTHING. A nested

@@ -29,7 +29,13 @@ namespace hven::solvers::detail {
 /// (the window's) are unused. With options.self_scaling (Oren & Luenberger, Management
 /// Science 20 (1974), restricted to scaling down), every pair after the first first scales B
 /// by tau = s^T y / s^T B s when 0 < tau < 1 -- the correction for a B0 that overestimates
-/// the curvature, which full memory otherwise unlearns one direction at a time.
+/// the curvature, which full memory otherwise unlearns one direction at a time. tau is floored
+/// at sigma_min * d / trace(B) so the scaled B's mean diagonal stays >= sigma_min (a floor at
+/// or above 1 skips the scaling). sigma() is the initial / re-base scale only: scaling does
+/// not update it, and nothing reads it under this carrier.
+///
+/// positive_definite() is the Cholesky verdict of the current B: true for B0 and after every
+/// accepted update; a rejected update keeps the old B and its verdict.
 ///
 /// MIXED-LIFT DATA: no low-rank part; diag = 0 and base = the upper triangle of B (all
 /// d(d+1)/2 entries, so the pattern depends on d only). The lift is then the plain QP with H
@@ -78,6 +84,7 @@ class MaskedQnModel final : public QnModel {
     MaskedQnModel(int n, std::vector<Eigen::Index> vars, std::unique_ptr<QnModel> inner);
 
     int dimension() const override { return n_; }
+    int carried_dimension() const override { return inner_->dimension(); }
     int pairs() const override { return inner_->pairs(); }
     double sigma() const override { return inner_->sigma(); }
     const LbfgsDampedCounters &counters() const override { return inner_->counters(); }

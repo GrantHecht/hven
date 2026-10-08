@@ -2122,6 +2122,10 @@ struct SqpCounters {
     ///        (rounding can push the eigen form's smallest eigenvalue to or below zero).
     ///        The second bug flag beside qn_kwrong_seen: counted, never acted on. FOLDED.
     Index qn_nonpd_seen = 0;
+    /// @brief The number of variables the quasi-Newton model carries curvature for: the
+    ///        structural count, or the nonlinear variables only under
+    ///        SqpOptions::qn_nonlinear_only. A level, not a sum: max-folded; 0 under kExact.
+    Index qn_dimension = 0;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -2202,7 +2206,8 @@ struct SqpCounters {
     X(qn_pairs_peak, counter_never_absent)                                                         \
     X(qn_lift_rank_peak, counter_never_absent)                                                     \
     X(qn_kwrong_seen, counter_never_absent)                                                        \
-    X(qn_nonpd_seen, counter_never_absent)
+    X(qn_nonpd_seen, counter_never_absent)                                                         \
+    X(qn_dimension, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =

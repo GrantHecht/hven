@@ -199,6 +199,131 @@ TEST(DenseDampedBfgs, SkipRulesKeepBAndCountByReason) {
     EXPECT_EQ(q.sigma(), 2.0) << "a skipped first pair does not re-base B0";
 }
 
+constexpr std::size_t kCurv = static_cast<std::size_t>(SkipReason::kCurvature);
+constexpr std::size_t kCond = static_cast<std::size_t>(SkipReason::kConditioning);
+
+// The curvature skip, reached through the stale sigma: the first pair re-bases sigma to 9e7,
+// and a near-zero s^T y then scales B down to the sigma_min floor (1e-8), where
+// s^T B s = 1e-8 is at or below eps * s^T s * sigma = 2e-8. The skip keeps the unscaled B.
+TEST(DenseDampedBfgs, CurvatureSkipKeepsBAndCounts) {
+    LbfgsDampedOptions o;
+    o.self_scaling = true;
+    DenseDampedBfgs q(1, 1.0, o);
+    VectorXd s(1), y(1);
+    s << 1.0;
+    y << 9e7;
+    ASSERT_EQ(q.update(s, y, 1.0), UpdateOutcome::kUpdated);
+    ASSERT_EQ(q.sigma(), 9e7);
+    const MatrixXd before = dense_of(q);
+    y << 1e-9;
+    EXPECT_EQ(q.update(s, y, 1.0), UpdateOutcome::kSkippedCurvature);
+    EXPECT_EQ(dense_of(q), before) << "a skipped pair keeps B (the scaling was local)";
+    EXPECT_EQ(q.counters().skipped[kCurv], 1);
+    EXPECT_EQ(q.pairs(), 1);
+    EXPECT_EQ(q.counters().updates, 1);
+    EXPECT_TRUE(q.positive_definite());
+}
+
+// A Cholesky failure of the updated B is a counted conditioning skip and keeps the old B and
+// its verdict. After B = I, the pair s = (1e-9, 1), y = (3e8, 0) is undamped (s^T y = 0.3), and
+// s^T B s = 1 + 1e-18 rounds to 1, so the (2,2) entry of the updated B is 1 - 1 = 0 where the
+// exact value is 1e-18: the factorization fails. The conditioning cap is lifted to let the
+// pair reach the test.
+TEST(DenseDampedBfgs, CholeskyFailureSkipKeepsBAndCounts) {
+    LbfgsDampedOptions o;
+    o.conditioning_cap = 1e300;
+    DenseDampedBfgs q(2, 1.0, o);
+    VectorXd s(2), y(2);
+    s << 1.0, 0.0;
+    y << 1.0, 0.0;
+    ASSERT_EQ(q.update(s, y, 1.0), UpdateOutcome::kUpdated);
+    const MatrixXd before = dense_of(q);
+    ASSERT_EQ(before, MatrixXd(MatrixXd::Identity(2, 2)));
+    s << 1e-9, 1.0;
+    y << 3e8, 0.0;
+    EXPECT_EQ(q.update(s, y, 1.0), UpdateOutcome::kSkippedConditioning);
+    EXPECT_EQ(dense_of(q), before);
+    EXPECT_EQ(q.counters().skipped[kCond], 1);
+    EXPECT_EQ(q.pairs(), 1);
+    EXPECT_EQ(q.counters().updates, 1);
+    EXPECT_TRUE(q.positive_definite()) << "the verdict of the B that was kept";
+    // And the model still takes the next ordinary pair.
+    s << 1.0, 0.0;
+    y << 2.0, 0.0;
+    EXPECT_EQ(q.update(s, y, 1.0), UpdateOutcome::kUpdated);
+}
+
+// Under self-scaling a pair with s^T y > 0 scales B so that s^T B s <= s^T y before the
+// damping test: the Powell threshold (0.2 s^T B s) is never crossed, so damping fires only
+// when s^T y <= 0. Without scaling the same positive-curvature sequence damps.
+TEST(DenseDampedBfgs, UnderSelfScalingDampingFiresOnlyWhenCurvatureIsNotPositive) {
+    std::mt19937 g(52);
+    const int n = 5;
+    const MatrixXd Hbig = random_symmetric(g, n, 50.0, 80.0);
+    const MatrixXd Hsmall = random_symmetric(g, n, 0.5, 2.0);
+    LbfgsDampedOptions scaled;
+    scaled.self_scaling = true;
+    DenseDampedBfgs a(n, 1.0, scaled);
+    DenseDampedBfgs b(n, 1.0);
+    for (int k = 0; k < 10; ++k) {
+        const VectorXd s = random_vec(g, n);
+        const VectorXd y = (k == 0 ? Hbig : Hsmall) * s;
+        ASSERT_GT(s.dot(y), 0.0);
+        ASSERT_EQ(a.update(s, y, 1.0), UpdateOutcome::kUpdated) << k;
+        ASSERT_EQ(b.update(s, y, 1.0), UpdateOutcome::kUpdated) << k;
+    }
+    EXPECT_EQ(a.counters().damped, 0) << "positive curvature: scaling pre-empts the damping";
+    EXPECT_GT(b.counters().damped, 0) << "the fixture damps without the scaling";
+    // A non-positive s^T y is not scaled, and is damped.
+    const VectorXd s = random_vec(g, n);
+    const VectorXd y = -(Hsmall * s);
+    ASSERT_LT(s.dot(y), 0.0);
+    ASSERT_EQ(a.update(s, y, 1.0), UpdateOutcome::kUpdated);
+    EXPECT_EQ(a.counters().damped, 1);
+}
+
+// THE FLOOR: a tiny s^T y > 0 would scale all of B to ~1e-30; tau is floored so the scaled B's
+// mean diagonal stays >= sigma_min (the update that follows then moves the s direction to
+// 0.2 s^T B s, so the mean diagonal of the new B is checked at half of sigma_min).
+TEST(DenseDampedBfgs, SelfScalingIsFlooredAtSigmaMin) {
+    const int n = 3;
+    LbfgsDampedOptions o;
+    o.self_scaling = true;
+    o.curvature_floor = 1e-12; // the damped pair's s^T r is 0.2 s^T B s ~ 2e-9 ||s||^2
+    DenseDampedBfgs q(n, 1.0, o);
+    VectorXd s0 = VectorXd::Unit(n, 0);
+    ASSERT_EQ(q.update(s0, s0, 1.0), UpdateOutcome::kUpdated); // B = I
+    VectorXd s(n);
+    s << 1.0, 1.0, 1.0;
+    const VectorXd y = 1e-30 * s;
+    ASSERT_EQ(q.update(s, y, 1.0), UpdateOutcome::kUpdated);
+    const MatrixXd b = dense_of(q);
+    EXPECT_GE(b.trace() / n, 0.5 * o.sigma_min) << "without the floor this is ~1e-30";
+    EXPECT_GT(Eigen::SelfAdjointEigenSolver<MatrixXd>(b).eigenvalues()(0), 0.0);
+    EXPECT_TRUE(q.positive_definite());
+}
+
+// A floor at or above 1 skips the scaling. d = 1, sigma_min = sigma_max = 5: the first pair
+// gives B = 5, so the floor is 5 * 1 / 5 = 1; the pair (s, y) = (1, 0.5) has tau = 0.1 and
+// would scale B to 0.5 (undamped, B+ = 0.5), while the unscaled path damps it (theta = 8/9,
+// s^T r = 1) to B+ = 1.
+TEST(DenseDampedBfgs, AFloorAtOrAboveOneSkipsTheScaling) {
+    LbfgsDampedOptions o;
+    o.sigma_min = 5.0;
+    o.sigma_max = 5.0;
+    o.self_scaling = true;
+    DenseDampedBfgs q(1, 5.0, o);
+    VectorXd s(1), y(1);
+    s << 1.0;
+    y << 5.0;
+    ASSERT_EQ(q.update(s, y, 1.0), UpdateOutcome::kUpdated);
+    ASSERT_EQ(q.matrix()(0, 0), 5.0);
+    y << 0.5;
+    ASSERT_EQ(q.update(s, y, 1.0), UpdateOutcome::kUpdated);
+    EXPECT_EQ(q.counters().damped, 1) << "unscaled: the damping fired";
+    EXPECT_NEAR(q.matrix()(0, 0), 1.0, 1e-12);
+}
+
 TEST(DenseDampedBfgs, ResetRestoresSigma0IdentityAndCounts) {
     std::mt19937 g(44);
     DenseDampedBfgs q(4, 2.5);

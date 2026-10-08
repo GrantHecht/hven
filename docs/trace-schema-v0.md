@@ -845,10 +845,11 @@ group; `SqpOptions::hessian_mode`).
 | `qn_resets_consecutive_skips` | integer | `SqpCounters::qn_resets_consecutive_skips` | window resets after consecutive non-zero-step skips. Folded |
 | `qn_resets_radius_floor` | integer | `SqpCounters::qn_resets_radius_floor` | window resets at a shrink below `tr_min`. Folded |
 | `qn_resets_restoration_resume` | integer | `SqpCounters::qn_resets_restoration_resume` | window resets at a restoration resume. Folded |
-| `qn_pairs_peak` | integer | `SqpCounters::qn_pairs_peak` | most pairs the window held. Max-folded |
+| `qn_pairs_peak` | integer | `SqpCounters::qn_pairs_peak` | most pairs the model held: under the shipped default (carried dimension at most `SqpOptions::qn_full_memory_max`, 400) the carrier is full-memory dense BFGS with no window and this is the pair count since the last reset; above it, the L-BFGS window's depth. Max-folded |
 | `qn_lift_rank_peak` | integer | `SqpCounters::qn_lift_rank_peak` | widest mixed lift (`r+ + r-`) any subproblem carried. Max-folded |
 | `qn_kwrong_seen` | integer | `SqpCounters::qn_kwrong_seen` | lifted subproblem solves whose engine reported a wrong-inertia reading (a bug flag under a PD B). Folded |
 | `qn_nonpd_seen` | integer | `SqpCounters::qn_nonpd_seen` | lifts built while the quasi-Newton model did not read positive definite (a bug flag). Folded |
+| `qn_dimension` | integer | `SqpCounters::qn_dimension` | variables the quasi-Newton model carries curvature for: the structural count, or the nonlinear variables only under `SqpOptions::qn_nonlinear_only` (default off). Max-folded |
 
 LAST in the table and last in the struct, after `restoration_reduction_resumes`, so
 the counters object gains exactly fourteen keys before the `ssn` object and the two
@@ -861,6 +862,11 @@ table row above). LAST in the struct, after `qn_kwrong_seen`, so the counters ob
 gains exactly one key before the `ssn` object and the two nested tables' distinct
 values shift up by one; nothing else moves. No sentinel. The two golden lines are
 re-derived ONCE for it, and both carry a "RE-DERIVED AT the QN stages 1-3 review" note.
+
+**THE DIRECT COUNTER THE QN-QUALITY RIDERS APPENDED — ONE** (`qn_dimension`, the table
+row above). LAST in the struct, after `qn_nonpd_seen`, same route: one key before the
+`ssn` object, the nested tables' distinct values up by one, no sentinel, both golden
+lines re-derived ONCE with a "RE-DERIVED AT the QN-quality riders" note.
 
 ## 6. The mode-selection telemetry on `sqp.major`
 

@@ -75,7 +75,8 @@ struct LbfgsDampedOptions {
     double curvature_floor = 1e-8; // s^T r >= floor*||s||^2
     double conditioning_cap = 1e8; // ||r||^2 / s^T r <= cap
     // DenseDampedBfgs only: Oren-Luenberger self-scaling, restricted to scaling DOWN -- before
-    // each update after the first, B <- tau B with tau = s^T y / s^T B s when 0 < tau < 1.
+    // each update after the first, B <- tau B with tau = s^T y / s^T B s when 0 < tau < 1
+    // (tau floored at sigma_min * d / trace(B); see DenseDampedBfgs).
     bool self_scaling = false;
 };
 
@@ -111,6 +112,9 @@ class QnModel {
   public:
     virtual ~QnModel() = default;
     virtual int dimension() const = 0;
+    /// The number of variables the model carries curvature for: dimension() unless a mask
+    /// restricts it to a subset.
+    virtual int carried_dimension() const { return dimension(); }
     virtual int pairs() const = 0;
     virtual double sigma() const = 0;
     virtual const LbfgsDampedCounters &counters() const = 0;

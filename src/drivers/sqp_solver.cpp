@@ -3153,6 +3153,7 @@ void fold_qn_tally(detail::QnLiftBridge &bridge, SqpCounters &c) {
     c.qn_lift_rank_peak = std::max(c.qn_lift_rank_peak, t.lift_rank_peak);
     c.qn_kwrong_seen += t.kwrong_seen;
     c.qn_nonpd_seen += t.nonpd_seen;
+    c.qn_dimension = std::max(c.qn_dimension, t.dimension);
 }
 
 // A restoration sub-solve's curvature-source group, folded into its parent's: sums summed,
@@ -3173,6 +3174,7 @@ void fold_restoration_qn_counters(SqpCounters &into, const SqpCounters &from) {
     into.qn_lift_rank_peak = std::max(into.qn_lift_rank_peak, from.qn_lift_rank_peak);
     into.qn_kwrong_seen += from.qn_kwrong_seen;
     into.qn_nonpd_seen += from.qn_nonpd_seen;
+    into.qn_dimension = std::max(into.qn_dimension, from.qn_dimension);
 }
 
 } // namespace

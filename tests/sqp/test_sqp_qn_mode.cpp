@@ -301,8 +301,9 @@ INSTANTIATE_TEST_SUITE_P(Battery, SqpQnHs, ::testing::ValuesIn(kHsCases),
                          });
 
 // THE MODEL VARIANTS (M7 QN quality): the nonlinear-variables-only restriction, the full-memory
-// BFGS, and both, on the same battery. HS6's x2 enters only its linear-in-x2 constraint, so the
-// restriction is live there. Full memory carries no lift (rank 0) and keeps every pair.
+// BFGS, and both, on the same battery. The stock HS6 model declares a structural zero at
+// (x2, x2), so the restriction is a no-op on this battery (the live case is
+// Hs6LinearX2Model below). Full memory carries no lift (rank 0) and keeps every pair.
 struct QnVariant {
     const char *name;
     bool nonlinear_only;
@@ -344,6 +345,45 @@ INSTANTIATE_TEST_SUITE_P(Battery, SqpQnVariantHs,
                              return fmt::format("HS{}_{}", std::get<0>(i.param).number,
                                                 std::get<1>(i.param).name);
                          });
+
+// R3: the masked carrier is pinned at the driver. The fixture is HS6 with a Hessian that declares
+// only the (x1, x1) entry (x2 enters linearly, so the pattern is exact; the stock HS6 model
+// declares a structural zero at (x2, x2), which puts x2 in the pattern and leaves the
+// restriction a no-op there). qn_nonlinear_only then builds MaskedQnModel over x1 alone
+// (carried dimension 1); the default carries both. kExact reports 0.
+class Hs6LinearX2Model : public HessCountingModel {
+  public:
+    explicit Hs6LinearX2Model(NlpModel *hs6) : HessCountingModel(hs6) {}
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &lambda_e,
+                      const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = obj_scale * 2.0 + lambda_e(0) * -20.0;
+        h.makeCompressed();
+        return h;
+    }
+};
+
+TEST(SqpQnVariants, TheNonlinearOnlyRestrictionBuildsTheMaskedCarrierAtTheExpectedDimension) {
+    auto run = [](bool nonlinear_only, Index full_memory_max) {
+        test_support::HsProblem p = make_hs(6);
+        Hs6LinearX2Model model(p.model.get());
+        SqpOptions o = qn_options();
+        o.qn_nonlinear_only = nonlinear_only;
+        o.qn_full_memory_max = full_memory_max;
+        SqpSolver driver(o);
+        const SqpResult sol = driver.solve(model);
+        EXPECT_EQ(sol.status, SolveStatus::kOptimal);
+        EXPECT_NEAR(sol.f, p.f_star, 1e-5);
+        return sol.counters.qn_dimension;
+    };
+    EXPECT_EQ(run(false, 400), 2) << "default: every structural variable";
+    EXPECT_EQ(run(true, 400), 1) << "nonlinear only, dense carrier: x1";
+    EXPECT_EQ(run(true, 0), 1) << "nonlinear only, L-BFGS window inside the mask: x1";
+    test_support::HsProblem p = make_hs(6);
+    Hs6LinearX2Model model(p.model.get());
+    SqpSolver exact{SqpOptions{}};
+    EXPECT_EQ(exact.solve(model).counters.qn_dimension, 0) << "kExact";
+}
 
 // Under kExact the counter is exactly the driver's share of the model's calls.
 TEST(SqpQnExact, TheCounterIsTheDriversShareOfTheModelsCalls) {
