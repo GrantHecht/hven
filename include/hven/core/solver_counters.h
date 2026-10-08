@@ -371,6 +371,10 @@ struct QpCounters {
     // with the inertia reading kWrong, and moved the rest of the solve to the
     // bound-eliminated path with a re-check armed. Not counted in dep_border_retreats.
     Index standstill_retreats = 0;
+    // THE BORDERED ANSWER'S CERTIFICATE (bordered_eqp.h, M7 W2 BPS): border-stack passes
+    // whose refinement stopped above its own target, and took the bound-eliminated twin
+    // for that pass.
+    Index border_uncertified_fallbacks = 0;
     // An undecidable blocker decided EXACTLY by a structural dependency (a
     // pin completing a member row on pinned columns, or a row on pinned
     // columns only), coefficients read off the row (E2 fix1).

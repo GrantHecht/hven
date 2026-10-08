@@ -1368,7 +1368,15 @@ void check_soc_costs_what_it_costs() {
     // screen_pins=1 (the RPX measurement, .scratch/e2fix8/rpx/). The other rule of the
     // round, fix7's un-run verdict, moves NO cell of this corpus at all -- measured by
     // running each rule off on its own. 22/3342 = 0.66 %.
+    // M7 W2 BPS (declared mover): 3342 -> 3340 (Release). The bordered answer's certificate
+    // (bordered_eqp.h) refines answers whose step is undecided at the zero-motion scale; the
+    // corpus total moves by 2 minors and every status in the table is unchanged.
+    // Debug's corpus does not move: CONFIG-SPLIT from here.
+#ifdef NDEBUG
+    EXPECT_EQ(3340, total_minors) << corpus_table();
+#else
     EXPECT_EQ(3342, total_minors) << corpus_table();
+#endif
 #endif
 }
 
@@ -1542,12 +1550,14 @@ TEST(HsSweepCorpus, Hs15WarmKdOffWithTheFailedSubproblemStep) {
     // MEASURED (MKL, clang++), majors / minors / factorizations / rejections. CONFIG-SPLIT
     // like HS26's pin above: Release holds off at 30 / 91 / 31 / 3 and reads 34 / 99 / 39 / 7
     // with the step; Debug holds off at 30 / 89 / 32 / 3 and reads 33 / 95 / 38 / 6.
+    // M7 W2 BPS (declared mover): Release's step arm 34 / 99 / 39 / 7 -> 33 / 95 / 38 / 6, now
+    // Debug's own reading; the held-off arm, the failure count and every objective unchanged.
     EXPECT_EQ(off.majors, 30);
 #ifdef NDEBUG
-    EXPECT_EQ(on.majors, 34);
-    EXPECT_EQ(on.minors, 99);
-    EXPECT_EQ(on.factorizations, 39);
-    EXPECT_EQ(on.rejected, 7);
+    EXPECT_EQ(on.majors, 33);
+    EXPECT_EQ(on.minors, 95);
+    EXPECT_EQ(on.factorizations, 38);
+    EXPECT_EQ(on.rejected, 6);
 #else
     EXPECT_EQ(on.majors, 33);
     EXPECT_EQ(on.minors, 95);

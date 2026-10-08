@@ -2912,7 +2912,14 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConverg
     // real work -- `restoration_sub_status` reads kMaxIter rather than kNotRun, which
     // is the discrimination this test exists for and is asserted above -- and the
     // pin is kept as an equality so the margin cannot quietly go to zero.
+    // M7 W2 BPS (declared mover, Debug only): 1 -> 3 on Debug's 6-major budget -- the
+    // bordered answer's certificate (bordered_eqp.h) brings the request forward there, so
+    // the sub-solve gets more of the budget; Release unchanged.
+#ifdef NDEBUG
     EXPECT_EQ(cut_off.counters.restoration_iters, 1);
+#else
+    EXPECT_EQ(cut_off.counters.restoration_iters, 3);
+#endif
 }
 
 // M7 W2 M3a fix1. THE PARENT'S STATUS DISCRIMINATES NONE OF THE THREE, and this

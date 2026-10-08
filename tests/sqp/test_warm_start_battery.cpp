@@ -1209,24 +1209,32 @@ struct FamilyPin {
 // (cold/warm/hot), predictor calls, border refinement steps, and elastic
 // activations. Row order matches ArmIdx: cold, warm, warm+pred, hot,
 // cold@pred.
+//
+// RE-MEASURED, M7 W2 BPS (declared mover): the `border_refine` column ONLY, 23 cells across
+// F1/F2/F2far/F3n50/F3n1000/F3stress, every move upward (F2far cold 149 -> 184 the largest).
+// Steps, majors, minors, factorizations and every other column hold on every row, in both
+// configs. Cause: the bordered answer's certificate (bordered_eqp.h) refines an answer whose
+// step is undecided at the zero-motion scale past the footprint while the refinement
+// contracts; those steps are counted here. Release and Debug round those extra steps
+// differently on eleven rows, which are config-split below (F3stress warm+pred already was).
 const FamilyPin kPins[] = {
     {"F1",
      {{5, 5, 13, 5, 0, 0, 5, 0, 0, 0, 17, 0},
-      {5, 5, 16, 1, 0, 4, 1, 4, 0, 0, 20, 0},
+      {5, 5, 16, 1, 0, 4, 1, 4, 0, 0, 22, 0},
       // RE-MEASURED, Phase-5 Task 0 (O-1's repair): the level histogram moved
       // 4/1/0 -> 1/4/0. Nothing else in this row did -- the three zero-major
       // steps were already converging at zero majors, so accepting their
       // hand-off changes which LEVEL they resolve at and no count downstream
       // of it.
       {5, 1, 3, 1, 0, 0, 1, 4, 0, 4, 4, 0},
-      {5, 5, 16, 1, 4, 4, 1, 0, 4, 0, 20, 0},
+      {5, 5, 16, 1, 4, 4, 1, 0, 4, 0, 22, 0},
       {5, 5, 13, 5, 0, 0, 5, 0, 0, 0, 17, 0}}},
     {"F2",
-     {{5, 8, 16, 8, 0, 0, 5, 0, 0, 0, 16, 0},
+     {{5, 8, 16, 8, 0, 0, 5, 0, 0, 0, 17, 0},
       {5, 8, 17, 8, 0, 7, 1, 4, 0, 0, 17, 0},
       {5, 7, 14, 7, 0, 6, 1, 4, 0, 4, 14, 0},
       {5, 8, 17, 8, 0, 7, 1, 4, 0, 0, 17, 0},
-      {5, 8, 16, 8, 0, 0, 5, 0, 0, 0, 16, 0}}},
+      {5, 8, 16, 8, 0, 0, 5, 0, 0, 0, 17, 0}}},
     // RE-MEASURED, M7 W2 E2 step 2 (declared mover, S20): minors and
     // border_refine only, every arm -- cold and cold@pred 158/159 -> 148/149,
     // warm and hot 45/45 -> 43/43, warm+pred 42/42 -> 40/40. Steps, majors,
@@ -1234,11 +1242,11 @@ const FamilyPin kPins[] = {
     // activations are unchanged. Cause: the add-site exchange and the
     // zero-motion re-entry rule shorten the QP walks.
     {"F2far",
-     {{5, 19, 148, 24, 0, 0, 5, 0, 0, 0, 149, 5},
-      {5, 10, 43, 11, 0, 7, 1, 4, 0, 0, 43, 1},
-      {5, 9, 40, 10, 0, 6, 1, 4, 0, 4, 40, 1},
-      {5, 10, 43, 11, 0, 7, 1, 4, 0, 0, 43, 1},
-      {5, 19, 148, 24, 0, 0, 5, 0, 0, 0, 149, 5}}},
+     {{5, 19, 148, 24, 0, 0, 5, 0, 0, 0, 184, 5},
+      {5, 10, 43, 11, 0, 7, 1, 4, 0, 0, 51, 1},
+      {5, 9, 40, 10, 0, 6, 1, 4, 0, 4, 48, 1},
+      {5, 10, 43, 11, 0, 7, 1, 4, 0, 0, 51, 1},
+      {5, 19, 148, 24, 0, 0, 5, 0, 0, 0, 184, 5}}},
     // ===========================================================================
     // THE E4 RE-MEASUREMENT OF THE THREE F3 FAMILIES (M7 W2 E4 fix round 2, ruling
     // E4-21(a)) -- A DECLARED COST, WITH ITS CAUSE MEASURED AND A CAP SEARCH BEHIND IT
@@ -1296,51 +1304,90 @@ const FamilyPin kPins[] = {
     // and the same +1 appears on five U0 walk cells and on
     // `F7ColdScaleSmoke`/`PredictorRatioTest`, re-derived at fix round 1.
     {"F3n50",
-     {{4, 19, 57, 19, 0, 0, 4, 0, 0, 0, 57, 0},
-      {4, 12, 34, 9, 0, 8, 1, 3, 0, 0, 34, 0},
-      // RE-MEASURED, Phase-5 Task 6 (the ratio-tested predictor path,
-      // predictor.h): 7/23/6 majors/minors/factorizations -> 6/12/5, and
-      // full_step_majors 3 -> 2 because there is one fewer major to arm the
-      // rule on. Steps, the level histogram and the predictor-call count are
-      // unchanged -- the predictor is called the same number of times and the
-      // dp schedule it drives is the same; only what each prediction hands the
-      // QP changed. border_refine tracks minors here as it does everywhere
-      // (open item O-6).
-      {4, 6, 16, 5, 0, 2, 1, 3, 0, 3, 16, 0},
-      {4, 12, 34, 9, 3, 8, 1, 0, 3, 0, 34, 0},
-      {4, 19, 57, 19, 0, 0, 4, 0, 0, 0, 57, 0}}},
+     {
+#ifdef NDEBUG
+         {4, 19, 57, 19, 0, 0, 4, 0, 0, 0, 58, 0},
+#else
+         {4, 19, 57, 19, 0, 0, 4, 0, 0, 0, 57, 0},
+#endif
+         {4, 12, 34, 9, 0, 8, 1, 3, 0, 0, 35, 0},
+         // RE-MEASURED, Phase-5 Task 6 (the ratio-tested predictor path,
+         // predictor.h): 7/23/6 majors/minors/factorizations -> 6/12/5, and
+         // full_step_majors 3 -> 2 because there is one fewer major to arm the
+         // rule on. Steps, the level histogram and the predictor-call count are
+         // unchanged -- the predictor is called the same number of times and the
+         // dp schedule it drives is the same; only what each prediction hands the
+         // QP changed. border_refine tracks minors here as it does everywhere
+         // (open item O-6).
+         {4, 6, 16, 5, 0, 2, 1, 3, 0, 3, 16, 0},
+         {4, 12, 34, 9, 3, 8, 1, 0, 3, 0, 35, 0},
+#ifdef NDEBUG
+         {4, 19, 57, 19, 0, 0, 4, 0, 0, 0, 58, 0}}},
+#else
+         {4, 19, 57, 19, 0, 0, 4, 0, 0, 0, 57, 0}}},
+#endif
     {"F3n1000",
-     {{6, 53, 162, 53, 0, 0, 6, 0, 0, 0, 162, 0},
-      // PHASE-5 TASK 2's bench harness HARD-CODES A COPY of this exact
-      // warm-arm (kArmWarm) row as its --self-check correctness gate --
-      // bench/bench_scale.cpp's kF3n1000WarmPin (~line 356) and
-      // run_self_check() (~line 369). If this row is ever re-measured/re-
-      // pinned, the bench copy MUST be updated to match and --self-check
-      // re-run (both builds) before that lands -- this is the grep-sweep
-      // convention's own "the duplicate is discoverable from the side where
-      // re-pins happen" instance.
-      {6, 30, 89, 25, 0, 22, 1, 5, 0, 0, 89, 0},
-      // RE-MEASURED, Phase-5 Task 6 -- THE O-2 CELL, and the headline of that
-      // task: 15 majors / 220 minors / 14 factorizations -> 10 / 27 / 9, with
-      // full_step_majors 7 -> 2 and wall time 0.306 s -> 0.021 s. The
-      // pre-Task-6 predictor pinned NINETY variables on the ceiling at the one
-      // step crossing p_act = 0.5, where the true far-side active set is
-      // exactly ONE; the ratio-tested path pins the one. Steps (4), the level
-      // histogram and the predictor-call count are unchanged: the same four
-      // predictions are made at the same four parameter values.
-      {4, 10, 32, 9, 0, 2, 1, 3, 0, 3, 32, 0},
-      {6, 30, 89, 25, 5, 22, 1, 0, 5, 0, 89, 0},
-      // THE MATCHED BASELINE, and the number fix round 1 turns on: solving the
-      // predictor's OWN four parameter values from scratch costs 35 majors /
-      // 103 minors / 35 factorizations, against the predictor's 10 / 27 / 9
-      // (Phase-5 Task 6; it was 15 / 220 / 14, which is where the 2.14x minor
-      // TAX the results note reported came from -- it is now a 0.26x saving).
-      // The six-point cold arm's 53 / 156 / 53 in the row above is a LONGER
-      // TRAVERSAL and is not the per-solve comparator.
-      {4, 35, 107, 35, 0, 0, 4, 0, 0, 0, 107, 0}}},
+     {
+#ifdef NDEBUG
+         {6, 53, 162, 53, 0, 0, 6, 0, 0, 0, 162, 0},
+#else
+         {6, 53, 162, 53, 0, 0, 6, 0, 0, 0, 164, 0},
+#endif
+// PHASE-5 TASK 2's bench harness HARD-CODES A COPY of this exact
+// warm-arm (kArmWarm) row as its --self-check correctness gate --
+// bench/bench_scale.cpp's kF3n1000WarmPin (~line 356) and
+// run_self_check() (~line 369). If this row is ever re-measured/re-
+// pinned, the bench copy MUST be updated to match and --self-check
+// re-run (both builds) before that lands -- this is the grep-sweep
+// convention's own "the duplicate is discoverable from the side where
+// re-pins happen" instance.
+#ifdef NDEBUG
+         {6, 30, 89, 25, 0, 22, 1, 5, 0, 0, 91, 0},
+#else
+         {6, 30, 89, 25, 0, 22, 1, 5, 0, 0, 93, 0},
+#endif
+// RE-MEASURED, Phase-5 Task 6 -- THE O-2 CELL, and the headline of that
+// task: 15 majors / 220 minors / 14 factorizations -> 10 / 27 / 9, with
+// full_step_majors 7 -> 2 and wall time 0.306 s -> 0.021 s. The
+// pre-Task-6 predictor pinned NINETY variables on the ceiling at the one
+// step crossing p_act = 0.5, where the true far-side active set is
+// exactly ONE; the ratio-tested path pins the one. Steps (4), the level
+// histogram and the predictor-call count are unchanged: the same four
+// predictions are made at the same four parameter values.
+#ifdef NDEBUG
+         {4, 10, 32, 9, 0, 2, 1, 3, 0, 3, 32, 0},
+#else
+         {4, 10, 32, 9, 0, 2, 1, 3, 0, 3, 34, 0},
+#endif
+#ifdef NDEBUG
+         {6, 30, 89, 25, 5, 22, 1, 0, 5, 0, 91, 0},
+#else
+         {6, 30, 89, 25, 5, 22, 1, 0, 5, 0, 93, 0},
+#endif
+// THE MATCHED BASELINE, and the number fix round 1 turns on: solving the
+// predictor's OWN four parameter values from scratch costs 35 majors /
+// 103 minors / 35 factorizations, against the predictor's 10 / 27 / 9
+// (Phase-5 Task 6; it was 15 / 220 / 14, which is where the 2.14x minor
+// TAX the results note reported came from -- it is now a 0.26x saving).
+// The six-point cold arm's 53 / 156 / 53 in the row above is a LONGER
+// TRAVERSAL and is not the per-solve comparator.
+#ifdef NDEBUG
+         {4, 35, 107, 35, 0, 0, 4, 0, 0, 0, 107, 0}}},
+#else
+         {4, 35, 107, 35, 0, 0, 4, 0, 0, 0, 109, 0}}},
+#endif
     {"F3stress",
-     {{5, 33, 99, 33, 0, 0, 5, 0, 0, 0, 99, 0},
-      {5, 15, 39, 11, 0, 10, 1, 4, 0, 0, 39, 0},
+     {
+#ifdef NDEBUG
+         {5, 33, 99, 33, 0, 0, 5, 0, 0, 0, 99, 0},
+#else
+         {5, 33, 99, 33, 0, 0, 5, 0, 0, 0, 102, 0},
+#endif
+#ifdef NDEBUG
+         {5, 15, 39, 11, 0, 10, 1, 4, 0, 0, 42, 0},
+#else
+         {5, 15, 39, 11, 0, 10, 1, 4, 0, 0, 43, 0},
+#endif
 // RE-MEASURED, Phase-5 Task 0 (O-1's repair). The only row in the corpus
 // where accepting a zero-major hand-off changes WORK and not just the
 // level histogram: 2/3/0 -> 1/4/0, and with the reseeded working set and
@@ -1371,15 +1418,23 @@ const FamilyPin kPins[] = {
 // both configs still pinned exactly). Two fresh reproductions agreed
 // per config.
 #ifdef NDEBUG
-      {5, 8, 21, 6, 0, 3, 1, 4, 0, 4, 21, 0},
+         {5, 8, 21, 6, 0, 3, 1, 4, 0, 4, 23, 0},
 #else
-      // E4 fix round 2 (declared, the SAME event the note above describes): this
-      // config-split row's minors and border_refine move 18 -> 19, one minor where
-      // Release's moved one too. Majors (7) and every other column hold.
-      {5, 7, 19, 6, 0, 2, 1, 4, 0, 4, 19, 0},
+         // E4 fix round 2 (declared, the SAME event the note above describes): this
+         // config-split row's minors and border_refine move 18 -> 19, one minor where
+         // Release's moved one too. Majors (7) and every other column hold.
+         {5, 7, 19, 6, 0, 2, 1, 4, 0, 4, 20, 0},
 #endif
-      {5, 15, 39, 11, 4, 10, 1, 0, 4, 0, 39, 0},
-      {5, 33, 99, 33, 0, 0, 5, 0, 0, 0, 99, 0}}},
+#ifdef NDEBUG
+         {5, 15, 39, 11, 4, 10, 1, 0, 4, 0, 42, 0},
+#else
+         {5, 15, 39, 11, 4, 10, 1, 0, 4, 0, 43, 0},
+#endif
+#ifdef NDEBUG
+         {5, 33, 99, 33, 0, 0, 5, 0, 0, 0, 99, 0}}},
+#else
+         {5, 33, 99, 33, 0, 0, 5, 0, 0, 0, 102, 0}}},
+#endif
 };
 
 // Shared by check_pinned_corpus_totals() (below) and the F7 scale cell's own

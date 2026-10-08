@@ -322,6 +322,13 @@ struct EqpResult {
     /// already exact -- and is the value on every face whose null space carries no
     /// curvature. Counted into QpCounters::eqp_polish_steps by the callers.
     Index polish_steps = 0;
+
+    /// THE BORDERED ANSWER'S CERTIFICATE failed (bordered_eqp.h,
+    /// refine_bordered_solve_iterated; M7 W2 BPS): the refinement ended above its
+    /// own target. Set by solve_bordered_eqp on the independent working set's walk
+    /// only; the caller takes the eliminated twin for the pass. Always false from
+    /// solve_eqp.
+    bool border_uncertified = false;
 };
 
 // THE UNREGULARIZED POLISH (M7 W2 E4 fix round 1, ruling E4-11): the loop, and

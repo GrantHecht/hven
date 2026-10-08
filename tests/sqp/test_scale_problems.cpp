@@ -711,7 +711,10 @@ TEST(ScaleF7, WideWindowWalkIsChurnNotDegeneracy) {
     // 70 bound pins over 68 distinct bounds = 1.03x. 526 minors, 1.44/event.
     // M7 W2 E4 fix round 1 (declared mover): 526 -> 527 minors, every other column
     // unmoved; same cause as the N = 30 row above.
-    check_wide_window_walk(50, 0.85, WalkCounts{527, 181, 184, 47, 0, 70, 70, 47, 68, 0, 0});
+    // M7 W2 BPS (declared mover): 527 -> 528 minors, both configs, every other column
+    // unmoved -- one pass's bordered answer is refined to a decided step (bordered_eqp.h,
+    // the bordered answer's certificate) and the walk takes one more minor.
+    check_wide_window_walk(50, 0.85, WalkCounts{528, 181, 184, 47, 0, 70, 70, 47, 68, 0, 0});
 }
 
 // =====================================================================

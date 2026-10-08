@@ -243,12 +243,59 @@ inline Vec refine_bordered_solve(const SpMatRM &K0, Index var_count,
 // the accounting kMaxBorderRefineSteps itself uses. A candidate rejected by
 // the strict-decrease rule is discarded and not counted. This feeds
 // QpCounters::border_refine_steps.
-inline Vec refine_bordered_solve_iterated(const SpMatRM &K0, Index var_count,
-                                          const std::vector<Vec> &border_v,
-                                          const std::vector<double> &border_d,
-                                          const SchurComplement &schur, const Vec &rhs,
-                                          const Vec &sol, const QpOptions &opts,
-                                          Index *steps_out = nullptr) {
+//
+// THE BORDERED ANSWER'S CERTIFICATE (M7 W2 BPS), two readings the loop makes
+// of its own refinement (iterative refinement's a-posteriori quantities;
+// Higham, Accuracy and Stability of Numerical Algorithms, ch. 12), both on the
+// independent working set's walk only and from an iterate that meets its
+// equality rows (solve_bordered_eqp passes `outcome` and `resolution` there and
+// nowhere else, iterate_meets_equality_rows below; null, the loop is exactly the
+// footprint rule above). The footprint rule's premise -- below the footprint, what is
+// left is the face's own conditioning, which the eliminated path carries
+// identically -- is not a theorem: K0 is assembled bound-free, so on a face
+// whose curvature is definite only once its pins are applied ||K0^-1|| ~
+// 1/primal_delta (above), and the bordered answer can be wrong far beyond what
+// the eliminated path leaves. Measured on two ACOPR118 sub-QPs (the BPS
+// fixtures), each a full-step standstill to the minor cap on a face the
+// eliminated path certifies in a handful of minors:
+//   * TARGET MET (`outcome`). One face's refinement DIVERGES along its soft
+//     direction (contraction ~1.14 per step): the loop stops on stagnation
+//     ABOVE its own target max(footprint, rel_floor), with the answer 0.83 off
+//     the eliminated one and proposing ASCENDING full steps. An answer whose
+//     loop did not reach its own target is uncertified, and the caller
+//     (border_solve_or_fall_back) takes the eliminated twin for that pass.
+//   * STEP RESOLVED (`resolution`). On the other face the loop meets its
+//     target after one step with the answer still 3.3e-9 off -- exactly the
+//     step it proposes, back and forth, while one more step would bring it to
+//     5.7e-12, below step_tol (1e-9) and so to zero motion. The walk's
+//     KKT-point test compares ||p||inf with step_tol; with e the last kept
+//     correction's free-variable part (under a contracting refinement, a bound
+//     on the answer's remaining error), that comparison is decided when
+//     ||p_F||inf - e > step_tol or ||p_F||inf + e <= step_tol. An undecided
+//     answer takes further steps past the footprint, each kept only if it CONTRACTS
+//     (residual and correction both at most half of the previous; strict
+//     decrease alone would accept a drift along the soft direction). This is
+//     best effort, NOT a certificate: where the bordered form's own rounding
+//     floor sits above step_tol the answer stays as it was (a fallback there
+//     was measured, and it hands the pass to the eliminated twin's own
+//     one-step row miss, which then cycles with the border). Only steps within
+//     e of step_tol are undecided, so it is inert away from the zero-motion
+//     scale.
+struct BorderedResolution {
+    const Vec *x_k = nullptr;                             // the proximal centre (the iterate)
+    const std::vector<BoundState> *bound_state = nullptr; // which variables are free
+    double step_tol = 0.0;                                // the walk's zero-motion scale
+};
+
+struct BorderedRefineOutcome {
+    bool target_met = true;
+};
+
+inline Vec refine_bordered_solve_iterated(
+    const SpMatRM &K0, Index var_count, const std::vector<Vec> &border_v,
+    const std::vector<double> &border_d, const SchurComplement &schur, const Vec &rhs,
+    const Vec &sol, const QpOptions &opts, Index *steps_out = nullptr,
+    const BorderedResolution *resolution = nullptr, BorderedRefineOutcome *outcome = nullptr) {
     const auto residual_of = [&](const Vec &s) {
         return bordered_residual(K0, var_count, border_v, border_d, rhs, s, opts);
     };
@@ -265,6 +312,30 @@ inline Vec refine_bordered_solve_iterated(const SpMatRM &K0, Index var_count,
         return best; // not bordered: solve_eqp's arithmetic, and its budget
     }
 
+    // STEP RESOLVED's quantities (NaN-sticky: a NaN entry makes the norm NaN, and a
+    // NaN reads undecided, which the strict-decrease rule then stops).
+    const auto free_inf = [&](const Vec &v) {
+        double m = 0.0;
+        for (Index i = 0; i < var_count; ++i) {
+            if ((*resolution->bound_state)[static_cast<std::size_t>(i)] == BoundState::kFree) {
+                const double a = std::abs(v(i));
+                if (!(a <= m)) {
+                    m = a;
+                }
+            }
+        }
+        return m;
+    };
+    double last_correction = resolution != nullptr ? free_inf(Vec(best - sol)) : 0.0;
+    const auto step_resolved = [&]() {
+        if (resolution == nullptr) {
+            return true;
+        }
+        const double p = free_inf(Vec(best.head(var_count) - *resolution->x_k));
+        const double tol = resolution->step_tol;
+        return p - last_correction > tol || p + last_correction <= tol;
+    };
+
     const Vec reg = bordered_regularization(K0.rows(), var_count, border_d, opts);
     const double rel_floor =
         detail::kBorderRefineRelFloor * std::max(1.0, rhs.lpNorm<Eigen::Infinity>());
@@ -273,22 +344,34 @@ inline Vec refine_bordered_solve_iterated(const SpMatRM &K0, Index var_count,
     double best_norm = best_residual.lpNorm<Eigen::Infinity>();
     for (Index step = 1; step < detail::kMaxBorderRefineSteps; ++step) {
         const double footprint = reg.cwiseProduct(best).lpNorm<Eigen::Infinity>();
-        if (!(best_norm > std::max(footprint, rel_floor))) {
+        const bool on_target = !(best_norm > std::max(footprint, rel_floor));
+        if (on_target && step_resolved()) {
             break; // the first step did its job (or NaN, which no step can mend)
         }
-        const Vec candidate = best + schur.solve(best_residual);
+        const Vec correction = schur.solve(best_residual);
+        const Vec candidate = best + correction;
         Vec candidate_residual = residual_of(candidate);
         const double candidate_norm = candidate_residual.lpNorm<Eigen::Infinity>();
         if (!(candidate_norm < best_norm)) {
             break; // stagnated or diverging -- keep the better iterate
         }
+        const double correction_free = resolution != nullptr ? free_inf(correction) : 0.0;
+        if (on_target &&
+            !(candidate_norm <= 0.5 * best_norm && correction_free <= 0.5 * last_correction)) {
+            break; // resolving past the footprint: contracting steps only
+        }
         best = candidate;
         best_residual = std::move(candidate_residual);
         best_norm = candidate_norm;
+        last_correction = correction_free;
         ++steps;
     }
     if (steps_out != nullptr) {
         *steps_out = steps;
+    }
+    if (outcome != nullptr) {
+        const double footprint = reg.cwiseProduct(best).lpNorm<Eigen::Infinity>();
+        outcome->target_met = !(best_norm > std::max(footprint, rel_floor));
     }
     return best;
 }
@@ -453,6 +536,36 @@ inline BorderedSystem build_bordered_system(const QpProblem &qp, const KktAssemb
     return sys;
 }
 
+// WHERE THE CERTIFICATE IS ASKED (refine_bordered_solve_iterated, both readings):
+// on an iterate that meets every equality row to feas_tol in the walk's own row
+// scale, max(1, |be_j|, ||Ae_j||_1 ||x||inf). There the face's rows are met, the
+// exact answer is a pure stationarity correction, and an answer the factor cannot
+// vouch for is what turns a resolved face into a standstill. Off the rows the step
+// carries a row-restoring part and the walk is still restoring; that is exactly
+// where E2 F8-1's candidate S fired (its trigger required a structurally violated
+// equality row) and where it cost ACOPP57 (a 569-pass jitter at a 9.87e-6 row
+// residual that the walk leaves by itself), so the certificate and S's trigger are
+// disjoint by construction. Measured both ways: asked on every pass, the
+// target-met fallback fired 25 times in ACOPP118 qp0's row-restoring opening
+// (fix 9's fixture) and sent it to a cap; asked on the rows only, it fires there 0
+// times and that walk is unchanged.
+inline bool iterate_meets_equality_rows(const QpProblem &qp, const Vec &x, const QpOptions &opts) {
+    const double xmag = x.lpNorm<Eigen::Infinity>();
+    for (Index j = 0; j < qp.me(); ++j) {
+        double row_norm1 = 0.0;
+        double ax = 0.0;
+        for (SpMatRM::InnerIterator it(qp.Ae, j); it; ++it) {
+            row_norm1 += std::abs(it.value());
+            ax += it.value() * x(it.col());
+        }
+        const double row_scale = std::max({1.0, std::abs(qp.be(j)), row_norm1 * xmag});
+        if (!(std::abs(ax - qp.be(j)) <= opts.feas_tol * row_scale)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 // Solves the EQP for `ws`'s working set through the bordered K0 described
 // above. `k0` is assemble_kkt_full's output for the working set K0 was built
 // from, `k0_rows` that working set's active_ineq() (sorted), `schur` the live
@@ -519,8 +632,18 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
     const double row_residual = nc > 0 ? r_reg.segment(n, nc).lpNorm<Eigen::Infinity>() : 0.0;
 
     Index refine_steps = 0;
+    // THE BORDERED ANSWER'S CERTIFICATE (refine_bordered_solve_iterated) -- on the
+    // independent working set's walk only, so the option-off walk, the declared
+    // control arm of every E2 re-take, keeps the footprint rule unchanged.
+    BorderedResolution resolution;
+    resolution.x_k = &x_k;
+    resolution.bound_state = &bound_state;
+    resolution.step_tol = opts.feas_tol * std::max(1.0, x_k.lpNorm<Eigen::Infinity>());
+    BorderedRefineOutcome outcome;
+    const bool certify = opts.independent_working_set && iterate_meets_equality_rows(qp, x_k, opts);
     sol = refine_bordered_solve_iterated(k0.K, n, sys.border_v, sys.border_d, schur, sys.rhs, sol,
-                                         opts, &refine_steps);
+                                         opts, &refine_steps, certify ? &resolution : nullptr,
+                                         certify ? &outcome : nullptr);
     // AND THE UNREGULARIZED POLISH (E4-11), the same rule the eliminated path takes
     // at the same point in its own solve: see polish_bordered_unregularized.
     const Index polish_kept =
@@ -530,6 +653,7 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
     EqpResult res;
     res.polish_steps = polish_kept;
     res.refine_steps = refine_steps;
+    res.border_uncertified = !outcome.target_met;
     res.row_residual = row_residual;
     res.residual_ratio = ratio;
     res.residual_refine_iters = res_iters;

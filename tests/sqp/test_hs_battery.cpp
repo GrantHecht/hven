@@ -585,7 +585,10 @@ TEST(HsBattery, RefinementStepCountersOnBorderRepro) {
     // this stack; the answer, the status and `minor_iters` are unchanged, and the
     // inequality below -- the whole content of the Task 11b fix -- still holds at 6
     // against 4.
-    EXPECT_EQ(bor.counters.border_refine_steps, 6);
+    // M7 W2 BPS (declared mover): 6 -> 8, both configs. The bordered answer's certificate
+    // (bordered_eqp.h) refines answers whose step is undecided at the zero-motion scale past
+    // the footprint while the refinement contracts; status and minor_iters are unchanged.
+    EXPECT_EQ(bor.counters.border_refine_steps, 8);
     EXPECT_GT(bor.counters.border_refine_steps, bor.counters.minor_iters)
         << "at least one bordered solve must have taken more than the single mandatory step -- "
            "that is the whole content of the Task 11b fix";

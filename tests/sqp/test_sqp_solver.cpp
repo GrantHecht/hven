@@ -11485,7 +11485,11 @@ TEST(QpEngineStructuralViolation, T7ACertifiedInfeasibleExitRETURNSTheRefinedPoi
     const W2T7PlainWalk uncapped =
         w2t7_plain_walk(padded, 1.0e-8, WorkingSetLinearAlgebra::kSchurBorder, 1000);
     EXPECT_EQ(uncapped.status, QpStatus::kOptimal);
-    EXPECT_EQ(uncapped.verdict_refine_steps, 9);
+    // M7 W2 BPS (declared mover): 9 -> 0. The border twin's own pass now refines its answer to
+    // a decided step (bordered_eqp.h, the bordered answer's certificate), so the walk reaches
+    // the optimum without the dead end the verdict-site refinement used to close; the point,
+    // the status and the single factorization below are unchanged.
+    EXPECT_EQ(uncapped.verdict_refine_steps, 0);
     EXPECT_NEAR(uncapped.x0, latched_border.x0, 1.0e-10);
     EXPECT_EQ(uncapped.factorizations, 1) << "one K0, no fallback: the border twin's own route";
 }

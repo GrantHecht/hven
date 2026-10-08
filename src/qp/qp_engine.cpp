@@ -3422,6 +3422,14 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
             ++counters.eqp_residual_refusals;
             return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
         }
+        if (res.border_uncertified) {
+            // THE BORDERED ANSWER'S CERTIFICATE FAILED (bordered_eqp.h; M7 W2 BPS): the
+            // refinement stopped above its own target. The same retreat as the refusal
+            // above, for the same reason -- an answer this factor cannot vouch for -- for
+            // this pass only.
+            ++counters.border_uncertified_fallbacks;
+            return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
+        }
 #ifdef HVEN_TESTING
         // The seam's record that the direction THIS pass used came through the
         // BORDER/SCHUR path, with the live stack's dimension and this call's

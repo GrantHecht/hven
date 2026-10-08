@@ -69,6 +69,14 @@
 //    needed a perturbed pivot; iterations where a rebuild cannot help fall back
 //    to the elimination path.
 //
+//    THE BORDERED ANSWER'S CERTIFICATE (independent_working_set; M7 W2 BPS;
+//    bordered_eqp.h states it), from an iterate that meets its equality rows: a
+//    pass whose bordered refinement stops above its own target takes the
+//    eliminated twin for that pass (border_uncertified_fallbacks); an answer
+//    whose step is undecided at the zero-motion scale is refined past the
+//    footprint while the refinement contracts. With the option off nothing
+//    changes.
+//
 //    The two modes are OBSERVATIONALLY EQUIVALENT for a CONVEX H, with the
 //    refactorize path as the oracle. They are NOT equivalent for an indefinite
 //    H: the bound-eliminated K and the full-variable K0 can have different
