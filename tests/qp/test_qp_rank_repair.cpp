@@ -134,6 +134,10 @@ void expect_repaired(const QpDump &d, const QpSolution &s, double stationarity_t
     EXPECT_EQ(s.counters.dep_certificate_rejections, 0);
     EXPECT_TRUE(s.status == QpStatus::kOptimal || s.status == QpStatus::kMaxIter)
         << static_cast<int>(s.status);
+#ifdef NDEBUG
+    // Release: the repaired walk REACHES its KKT point (the Debug caveat above does not apply).
+    EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+#endif
     if (s.status == QpStatus::kOptimal) {
         expect_certified_kkt(d, s, stationarity_tol);
     }
@@ -158,6 +162,11 @@ void expect_yorknet_qp5(WorkingSetLinearAlgebra alg) {
     const QpSolution s = solve_fixture("RDV_YORKNET_qp5.txt", alg, d);
     EXPECT_NE(d.result.find("status=3 minors=546"), std::string::npos) << d.result;
     expect_repaired(d, s, 1e-8);
+#ifdef NDEBUG
+    // Release reaches the KKT point f = -1078.49 (RDV measurement; no oracle optimum: a nonconvex
+    // restoration sub-solve, so the value is pinned as the walk's own certified point).
+    EXPECT_NEAR(hven::test_support::qp_dump_objective(d, s.x), -1078.49, 5e-3);
+#endif
 }
 
 } // namespace
@@ -168,3 +177,30 @@ TEST(QpRdvRankRepair, SawpathQp1Border) { expect_sawpath_qp1(kBorder); }
 TEST(QpRdvRankRepair, SawpathQp1Refactorize) { expect_sawpath_qp1(kRefactorize); }
 TEST(QpRdvRankRepair, YorknetQp5Border) { expect_yorknet_qp5(kBorder); }
 TEST(QpRdvRankRepair, YorknetQp5Refactorize) { expect_yorknet_qp5(kRefactorize); }
+
+// THE SEAM DROP IDENTITY of a repair: with the walk observer attached, every kRankRepair record's
+// working set shrinks by exactly the members it released, so the records' total equals the
+// rank_repair_releases counter, and their number equals rank_repairs. (YORKNET qp5's repair is
+// the cheapest of the three to reach.)
+TEST(QpRdvRankRepair, TheSeamRecordsARepairWithItsDropIdentity) {
+    using Obs = hven::solvers::detail::testing::QpWalkObserver;
+    using Action = hven::solvers::detail::testing::QpWalkAction;
+    Obs::reset();
+    Obs::active = true;
+    QpDump d;
+    const QpSolution s = solve_fixture("RDV_YORKNET_qp5.txt", kBorder, d);
+    Obs::active = false;
+    ASSERT_FALSE(Obs::truncated);
+    ASSERT_GE(s.counters.rank_repairs, 1);
+    Index repairs = 0;
+    Index shrunk = 0;
+    for (const auto &r : Obs::records) {
+        if (r.action == Action::kRankRepair) {
+            ++repairs;
+            shrunk += r.ws_size_in + r.shift_adds - r.ws_size_out;
+        }
+    }
+    EXPECT_EQ(repairs, s.counters.rank_repairs);
+    EXPECT_EQ(shrunk, s.counters.rank_repair_releases);
+    Obs::reset();
+}

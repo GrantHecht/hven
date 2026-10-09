@@ -796,6 +796,14 @@ TEST(QpWalkSeam, TheWorkingSetSignatureTracksTheActionsThatChangeIt) {
                 EXPECT_EQ(base, r.ws_size_out);
                 EXPECT_EQ(Block::kNone, r.block);
                 break;
+            case Action::kRankRepair:
+                // The dead-end rank repair released at least one member (the set shrank by
+                // exactly the releases, checked against the counter by the repair's own seam
+                // case) and stepped nowhere.
+                EXPECT_LT(r.ws_size_out, base);
+                EXPECT_NE(r.ws_sig_in, r.ws_sig_out);
+                EXPECT_EQ(Block::kNone, r.block);
+                break;
             case Action::kStartRepair:
             case Action::kPostProbeRestart:
                 // The repair pins as many variables as it needs to reach a
