@@ -1,0 +1,105 @@
+# THE BPS + QC-8 GATES-RUN PRE-FLIGHT. Run at the declaration state (HEAD f58d01dc sources + the declaration files), every slot DERIVED or MEASURED on 4a0da559..f58d01dc. Transcripts verbatim.
+#  A --preflight-only; B --check-g4 on the rehearsal pin arms; C --check-names on the rehearsal ctest -N listing (+ falsifiers); D --check-skips (+ falsifier); E sentinel / re-declared / class A noise falsifiers; F classifier cmp
+
+=== A: --preflight-only
+GATES_START 2026-10-09T00:55:26-04:00
+=== HEAD 28e312dc  dirty-files=11 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/agent-a8738dd7f8e3c1176/.scratch/m7bpsqc8gates ===
+=== BEFORE=4a0da559  EXPECT_DEBUG_TESTS=3045  EXPECT_RELEASE_TESTS=3046 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=28e312dce86c3d83061683cc33d8dd33740e6d9b
+=== CHANGED HEADERS: include/hven/core/solver_counters.h include/hven/detail/kkt/bordered_eqp.h include/hven/detail/qp/eqp_solve.h include/hven/detail/qp/qp_engine.h 
+=== CHANGED SOURCES: bench/bench_scale.cpp src/qp/qp_engine.cpp tests/CMakeLists.txt tests/qp/fixtures/e2-d4/BPS_ACOPP57_entry1.txt tests/qp/fixtures/e2-d4/BPS_ACOPR118_entry9.txt tests/qp/fixtures/e2-d4/BPS_ACOPR118_qp26.txt tests/qp/fixtures/e2-d4/QC8_DALLASM_entry6.txt tests/qp/fixtures/e2-d4/QC8
+=== MODIFIED C++ SOURCES: bench/bench_scale.cpp src/qp/qp_engine.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_convex_certificate.cpp tests/sqp/test_hs_battery.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_scale_problems.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver
+=== ADDED C++ SOURCES: tests/qp/test_qp_border_certificate.cpp tests/qp/test_qp_implied_blocker.cpp 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_convex_certificate.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir
+=== ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_qp_border_certificate.cpp tests/qp/test_qp_implied_blocker.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/mixed_lift.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/qn_lift_br
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/mixed_lift.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/qn_lift_br
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); 43 DIFFERENCES DECLARED as a SET (walk 17 / ssn 13 / ipm 13), every cell a U0 cell, the one declared WORSE cell [ipm f7_n1000_path_warm kkt_stationarity] among them
+=== CLASS_B_NAMES_OK: Release 38 / Debug 38 declared objects, none with a source modified in the range
+=== RELEASE-ONLY (Debug GTEST_SKIP) DECLARED: 0 name(s), each a declared ADDED name ===
+=== RE-DECLARED (TEST line removed and re-added under the same name): 1 name(s), each removed once and added once, net unchanged by name ===
+=== BY-NAME: baselines /home/ghecht/Projects/hven/.claude/worktrees/agent-a8738dd7f8e3c1176/docs/notes/data/2026-10-m7-qn-qc1/gates/suite-{debug,release}.txt (3035 / 3036 started names); 12 ADDED, each added by exactly one TEST line in the range; 0 REMOVED, each removed by exactly one TEST line; 1 T
+=== tests/sqp/CMakeLists.txt (checked): adds exactly the declared 0 non-comment line(s), removes none
+=== src/CMakeLists.txt (checked): adds exactly the declared 0 non-comment line(s), removes exactly the declared 0
+=== ADDED TEST FILES (checked): non-.cpp [tests/qp/fixtures/e2-d4/BPS_ACOPP57_entry1.txt tests/qp/fixtures/e2-d4/BPS_ACOPR118_entry9.txt tests/qp/fixtures/e2-d4/BPS_ACOPR118_qp26.txt tests/qp/fixtures/e2-d4/QC8_DALLASM_entry6.txt tests/qp/fixtures/e2-d4/QC8_DALLASM_qp1.txt tests/qp/fixtures/e2-d4/QC
+=== CLANG_FORMAT SET (derived, non-empty): 16 file(s) ===
+=== PREFLIGHT_VALUE_OK: class A 10 - 2 outside == declared 7/8; ADDED 2 == declared 2 (0 inside the universe == declared 0); class B library objects all unmodified; G4 gate 1e-5
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a8738dd7f8e3c1176/.scratch/m7bpsqc8gates/g1.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/agent-a8738dd7f8e3c1176/.scratch/m7bpsqc8gates  G=/home/ghecht/Projects/hven/.claude/worktrees/agent-a8738dd7f8e3c1176/.scratch/m7bpsq
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a8738dd7f8e3c1176/.scratch/m7bpsqc8gates/g2.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/agent-a8738dd7f8e3c1176/.scratch/m7bpsqc8gates  G=/home/ghecht/Projects/hven/.claude/worktrees/agent-a8738dd7f8e3c1176/.scratch/m7bpsq
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a8738dd7f8e3c1176/.scratch/m7bpsqc8gates/g3.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/agent-a8738dd7f8e3c1176/.scratch/m7bpsqc8gates  G=/home/ghecht/Projects/hven/.claude/worktrees/agent-a8738dd7f8e3c1176/.scratch/m7bpsq
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a8738dd7f8e3c1176/.scratch/m7bpsqc8gates/g4.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/agent-a8738dd7f8e3c1176/.scratch/m7bpsqc8gates  G=/home/ghecht/Projects/hven/.claude/worktrees/agent-a8738dd7f8e3c1176/.scratch/m7bpsq
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a8738dd7f8e3c1176/.scratch/m7bpsqc8gates/g5.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/agent-a8738dd7f8e3c1176/.scratch/m7bpsqc8gates  G=/home/ghecht/Projects/hven/.claude/worktrees/agent-a8738dd7f8e3c1176/.scratch/m7bpsq
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a8738dd7f8e3c1176/.scratch/m7bpsqc8gates/g6.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/agent-a8738dd7f8e3c1176/.scratch/m7bpsqc8gates  G=/home/ghecht/Projects/hven/.claude/worktrees/agent-a8738dd7f8e3c1176/.scratch/m7bpsq
+=== PREFLIGHT_OK: 6 segments written and asserted against GATES_SCRATCH, before the first leg ===
+PREFLIGHT_ONLY: stopping before G1. No leg was run and no build tree was touched.
+rc=0
+
+=== B: --check-g4 (pin arms of the rehearsal comparison)
+ASSERT OK   replay header lines = 3
+ASSERT OK   replay walk shape 27/75/17 declared = 1
+ASSERT OK   replay walk difference lines listed = 17
+ASSERT OK   replay ssn shape 27/75/13 declared = 1
+ASSERT OK   replay ssn difference lines listed = 13
+ASSERT OK   replay ipm shape 27/75/13 declared = 1
+ASSERT OK   replay ipm difference lines listed = 13
+ASSERT OK   replay: the MEASURED difference set EQUALS the DECLARED 43-entry list
+rc=0
+
+=== C: --check-names release on the rehearsal listing
+ASSERT OK   offline release by name: 3048 started names == the baseline's 3036 - the 0 declared REMOVED + the 12 declared ADDED
+rc=0
+=== C2: --check-names debug on the listing less the long test (G1 excludes it by -E)
+ASSERT OK   offline debug by name: 3047 started names == the baseline's 3035 - the 0 declared REMOVED + the 12 declared ADDED
+rc=0
+=== C3 falsifier: listing short one added test
+ASSERT FAIL offline release by name: ADDED QpE2WorkingSet.TheDoubledRowIsImpliedByItsFaceAndTheWalkReachesTheOptimum is named 0 time(s) in the baseline (want 0) and 0 in this run (want 1)
+rc=2
+=== C4 falsifier: the QN record's own suite (the baseline) is refused
+ASSERT FAIL offline release by name: ADDED QpBpsBorderCertificate.Acopp57Entry1BorderUntouched is named 0 time(s) in the baseline (want 0) and 0 in this run (want 1)
+rc=2
+
+=== D: --check-skips baseline vs baseline
+ASSERT OK   offline debug skips by name: 7 Skipped == the baseline's 7 + the 0 declared Release-only
+rc=0
+ASSERT OK   offline release skips by name: 1 Skipped == the baseline's 1 + the 0 declared Release-only
+rc=0
+=== D2 falsifier: release listing vs debug expectation
+ASSERT FAIL offline debug skips by name: 1 Skipped vs the baseline's 7 + 0 declared; the difference (expected '<' tab-indented '>' this run):
+QpE2Fix9StandstillRetreat.Acopp118Qp0Border
+QpE2Fix9StandstillRetreat.Acopp118Qp1Border
+QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize
+QpE2WorkingSet.AGreyPinOnYorknetThatIsIndependentStaysIndependent
+QpE4ProximalEqp.TheYorknetRestorationQpIsDriftFreeAndOptimal
+QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder
+rc=2
+
+=== E1 falsifier: wrong BEFORE (the by-name baseline must resolve to the declared record)
+REFUSED: the by-name baseline resolved to [docs/notes/data/2026-10-m7-w2-p1e-c13/gates/suite-release.txt], declared [docs/notes/data/2026-10-m7-qn-qc1/gates/suite-release.txt]
+rc=2
+=== E2 falsifier: UNMEASURED sentinel in a class A slot
+REFUSED: EXPECT_PSYM_CLASS_A still carries the UNMEASURED sentinel -- the FINAL pair has not been
+rc=2
+=== E3 falsifier: class A declared 8/8 (ignores the Release noise-only declaration)
+REFUSED: 10 modified .cpp (less 2 outside the universe; Release less 1 and Debug less 0 declared NOISE-ONLY), but class A is DECLARED 8/8
+rc=2
+=== E4 falsifier: the re-declared name dropped (the removed-line count must refuse)
+REFUSED: 1 TEST line(s) removed in the range; this round declares 0 REMOVED + 0 RE-DECLARED
+rc=2
+=== E5 falsifier: the re-declared name also listed ADDED
+REFUSED: RE-DECLARED QpE2WorkingSet.TheDoubledRowIsImpliedByItsFaceAndTheWalkReachesTheOptimum: removed 0 / added 1 TEST line(s) (want 1 / 1), in ADDED 1 / REMOVED 0 (want 0 / 0), in the baseline 0 time(s) (want 1)
+rc=2
+=== E6 falsifier: ADDED fixture list short one file
+REFUSED: the ADDED non-.cpp test files [tests/qp/fixtures/e2-d4/BPS_ACOPP57_entry1.txt tests/qp/fixtures/e2-d4/BPS_ACOPR118_entry9.txt tests/qp/fixtures/e2-d4/BPS_ACOPR118_qp26.txt tests/qp/fixtures/e2-d4/QC8_DALLASM_entry6.txt tests/qp/fixtures/e2-d
+rc=2
+=== E7 falsifier: outside list drops an added source
+REFUSED: 1 added .cpp inside the universe, but the universe's ADDED is DECLARED 0
+rc=2
+
+=== F: the uncapped classifier is byte-identical to P1E + C13's (and to the QN + QC-1 copy)
+cmp P1E+C13: IDENTICAL
+cmp QN+QC1: IDENTICAL
