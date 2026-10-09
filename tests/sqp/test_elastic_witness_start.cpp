@@ -102,7 +102,8 @@ void expect_premise(const Pair &p) {
 /// `f_star` / `rel`: an independent convex-QP oracle's optimum (Clarabel, scratch venv, never
 /// vendored) and the relative band the walk's KKT point must land in. Both rungs are convex (H
 /// PSD), so a KKT point is a global minimizer.
-void expect_rung_before_after(const char *cell, double f_star, double rel) {
+void expect_rung_before_after(const char *cell, double f_star, double rel,
+                              bool seed_optimal_in_debug) {
     const Pair p = load_pair(cell);
     expect_premise(p);
     if (::testing::Test::HasFatalFailure()) {
@@ -142,9 +143,25 @@ void expect_rung_before_after(const char *cell, double f_star, double rel) {
                 static_cast<long>(after.counters.factorizations), f, slack_l1, p.e.violation_l1,
                 k.eq, k.box, k.stationarity, k.sign, k.complementarity);
 
-    // BEFORE: the dumped seed still ends off its own rows at this head.
-    EXPECT_NE(before.status, QpStatus::kOptimal);
-    EXPECT_GT(before_off, 1e-3);
+    // BEFORE: the dumped seed now solves. DECLARED CORRECTNESS MOVE (commit 77dbf843, the
+    // dead-end rank repair, ruling C58): this premise used to assert the defect -- the shipped
+    // seed ended status != kOptimal, off its own rows by > 1e-3. The repair removed it: the seed
+    // is repaired (no dead-end exit, no false certificate) and ends on its rows to ~1e-13.
+    // What the walk reaches after the repair is configuration-dependent for SAWPATH (see
+    // `seed_optimal_in_debug`); the witness arm below is unchanged.
+    EXPECT_LE(before_off, 1e-9 * std::max(1.0, p.e.violation_l1));
+    EXPECT_GE(before.counters.rank_repairs, 1);
+    EXPECT_EQ(before.counters.dep_blocker_terminations, 0);
+    EXPECT_EQ(before.counters.dep_certificate_rejections, 0);
+    EXPECT_NE(before.status, QpStatus::kInfeasible);
+    EXPECT_NE(before.status, QpStatus::kNumericalError);
+#ifdef NDEBUG
+    EXPECT_EQ(before.status, QpStatus::kOptimal);
+#else
+    if (seed_optimal_in_debug) {
+        EXPECT_EQ(before.status, QpStatus::kOptimal);
+    }
+#endif
     // THE WITNESS: feasible for every row and bound, to rounding.
     const double scale = std::max(1.0, p.e.violation_l1);
     EXPECT_LE(start_off, 1e-12 * scale);
@@ -202,19 +219,36 @@ LadderArms run_ladder_arms(const char *cell) {
 
 TEST(SqpElasticWitnessStart, YorknetMajor0RungSolvesFromItsWitness) {
     // Oracle: Clarabel Solved, f* = 1696529.72937, rows to 9e-13.
-    expect_rung_before_after("YORKNET", 1696529.72937, 1e-9);
+    // Re-premised (declared correctness move, 77dbf843 dead-end rank repair, ruling C58): the
+    // shipped seed used to end status != kOptimal, off its rows by > 1e-3. Now kOptimal with
+    // off_rows 4.68e-13 (minors 614 / facts 668 Release, 605 / 659 Debug): identical in both
+    // configs, so the seed is asserted kOptimal in Debug too.
+    expect_rung_before_after("YORKNET", 1696529.72937, 1e-9, true);
 }
 
 TEST(SqpElasticWitnessStart, SawpathMajor0RungSolvesFromItsWitness) {
     // Oracle (the C11 census): Clarabel AlmostSolved, f* = -376.225617384 at a point 8e-4 off
     // its rows -- a looser reading, so the band is 1e-3.
-    expect_rung_before_after("SAWPATH", -376.225617384, 1e-3);
+    // Re-premised (declared correctness move, 77dbf843 dead-end rank repair, ruling C58): the
+    // shipped seed used to end status != kOptimal, off its rows by > 1e-3. Now, Release: kOptimal,
+    // off_rows 2.41e-13 (43 minors). Debug: the repair is taken but rounding leads the walk into
+    // the known downstream two-pass cycle and the minor cap ends it (kMaxIter, 6830 minors,
+    // off_rows 7.6e-13) -- so Debug asserts only "repaired, no dead-end exit, no false
+    // certificate", as tests/qp/test_qp_rank_repair.cpp does for this fixture's sister.
+    expect_rung_before_after("SAWPATH", -376.225617384, 1e-3, false);
 }
 
-// YORKNET: every rung of the witness ladder solves; the last-rung option never fires.
-TEST(SqpElasticWitnessStart, YorknetMajor0LadderIsUsableOnlyFromTheWitness) {
+// YORKNET: every rung of the ladder solves from the shipped start and from the witness; the
+// last-rung option never fires. Re-premised (declared correctness move, 77dbf843 dead-end rank
+// repair, ruling C58): the shipped (0, 0) start's ladder used to be unusable (usable == false);
+// it is now usable, status kOptimal, reduced, 7 rungs, slack_l1 17032 -- the same as the witness
+// arms, in Release (678 minors) and Debug (685 minors) alike.
+TEST(SqpElasticWitnessStart, YorknetMajor0LadderIsUsableFromTheShippedStartAndTheWitness) {
     const LadderArms a = run_ladder_arms("YORKNET");
-    EXPECT_FALSE(a.rep[0].usable) << "the shipped (0, 0) start";
+    EXPECT_TRUE(a.rep[0].usable) << "the shipped (0, 0) start";
+    EXPECT_EQ(a.rep[0].qp_status, QpStatus::kOptimal) << "the shipped (0, 0) start";
+    EXPECT_TRUE(a.rep[0].reduced) << "the shipped (0, 0) start";
+    EXPECT_EQ(a.out[0].elastic_last_rung_fallbacks, 0) << "the shipped (0, 0) start";
     for (int arm = 1; arm < 3; ++arm) {
         EXPECT_TRUE(a.rep[arm].usable) << arm;
         EXPECT_EQ(a.rep[arm].qp_status, QpStatus::kOptimal) << arm;
