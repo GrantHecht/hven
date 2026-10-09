@@ -2326,6 +2326,12 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         ++counters.ws_drops;
                         ++counters.rank_repair_releases;
                         pt_release(seen, row, m.idx);
+                        // A consistent-case release is implied by the rest of the set: the
+                        // regularized test's undecided answer must not re-admit it at this point
+                        // (D3(b) refuses it).
+                        if (rr.release_consistent[&m - rr.release.data()] != 0) {
+                            pt_mark(seen, row, m.idx, kPtKnownDependent);
+                        }
                     }
                     farkas = QpFarkasCertificate{};
 #ifdef HVEN_TESTING

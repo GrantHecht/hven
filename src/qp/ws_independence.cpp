@@ -765,7 +765,7 @@ Eigen::MatrixXd thin_q(const Eigen::MatrixXd &X) {
 } // namespace
 
 RankRepair rank_repair(const QpProblem &qp, const WorkingSet &ws, const Vec &shift,
-                       const QpOptions &opts, int threads) {
+                       const QpOptions &opts, int threads, double block_cap) {
     RankRepair out;
     const Index n = qp.n();
     const Index me = qp.me();
@@ -865,7 +865,7 @@ RankRepair rank_repair(const QpProblem &qp, const WorkingSet &ws, const Vec &shi
                 }
                 break;
             }
-            if (static_cast<double>(mr) * static_cast<double>(b) > kRankBlockCap) {
+            if (static_cast<double>(mr) * static_cast<double>(b) > block_cap) {
                 out.outcome = RankRepair::Outcome::kRefused;
                 return out;
             }
@@ -972,18 +972,23 @@ RankRepair rank_repair(const QpProblem &qp, const WorkingSet &ws, const Vec &shi
         rf(mr + q) = st == BoundState::kAtUpper ? qp.upper(i) : qp.lower(i);
         orient(mr + q) = st == BoundState::kAtUpper ? 1.0 : st == BoundState::kAtLower ? -1.0 : 0.0;
     }
-    const double ctol =
-        kRankConsistencyFactor * opts.feas_tol * std::max(1.0, rf.lpNorm<Eigen::Infinity>());
     std::vector<char> used(static_cast<std::size_t>(nm), 0);
     std::vector<WsMember> chosen;
+    std::vector<char> chosen_consistent;
     while (Z.cols() > 0) {
         const Vec c = Z.transpose() * rf;
         const double gamma = c.norm();
-        const bool incons = gamma > ctol;
+        // The consistency tolerance is scaled by the members that PARTICIPATE in the direction
+        // (the unit rows' rhs and the pins' raw bounds alike): sum_i |y*_i| |r_i| >= gamma, so a
+        // large pinned bound elsewhere cannot inflate it.
         Vec ystar;
-        if (incons) {
+        double rscale = 0.0;
+        if (gamma > 0.0) {
             ystar = Z * c / gamma;
+            rscale = ystar.cwiseAbs().dot(rf.cwiseAbs());
         }
+        const double ctol = kRankConsistencyFactor * opts.feas_tol * std::max(1.0, rscale);
+        const bool incons = gamma > ctol;
         Index best = -1;
         double bv = 0.0;
         for (Index j = 0; j < nm; ++j) {
@@ -1008,6 +1013,7 @@ RankRepair rank_repair(const QpProblem &qp, const WorkingSet &ws, const Vec &shi
             ++out.inconsistent_steps;
         }
         used[static_cast<std::size_t>(best)] = 1;
+        chosen_consistent.push_back(incons ? 0 : 1);
         chosen.push_back(
             best < mr ? WsMember{WsMember::Kind::kRow, aw[static_cast<std::size_t>(best - me)]}
                       : WsMember{WsMember::Kind::kPin, pins[static_cast<std::size_t>(best - mr)]});
@@ -1023,6 +1029,7 @@ RankRepair rank_repair(const QpProblem &qp, const WorkingSet &ws, const Vec &shi
     if (!chosen.empty()) {
         out.outcome = RankRepair::Outcome::kRelease;
         out.release = std::move(chosen);
+        out.release_consistent = std::move(chosen_consistent);
     }
     return out;
 }

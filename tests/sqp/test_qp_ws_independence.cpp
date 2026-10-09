@@ -916,6 +916,98 @@ TEST(WsRankRepair, InconsistentRowIsReleasedByItsOrientation) {
     EXPECT_EQ(r.inconsistent_steps, 1);
     ASSERT_EQ(r.release.size(), 1u);
     EXPECT_TRUE(released(r, detail::WsMember::Kind::kRow, 0));
+    ASSERT_EQ(r.release_consistent.size(), 1u);
+    EXPECT_EQ(r.release_consistent[0], 0);
+}
+
+// The consistency tolerance is scaled by the members that PARTICIPATE in the direction: x2 pinned
+// at the raw bound 1e4 takes no part in the dependence x0 + x1 = 1 vs x0 + x1 <= 1.1 (gamma =
+// 0.05), so it cannot inflate the tolerance (scaled by ||rhs||_inf it was 10 * 1e-5 * 1e4 = 1:
+// the inconsistent direction read consistent).
+TEST(WsRankRepair, ALargePinnedBoundElsewhereDoesNotInflateTheConsistencyScale) {
+    Eigen::MatrixXd Ae(1, 3);
+    Ae << 1, 1, 0;
+    Eigen::MatrixXd Ai(1, 3);
+    Ai << 1, 1, 0;
+    QpProblem qp = make_qp(Eigen::MatrixXd::Identity(3, 3), Vec::Zero(3), Ae, Vec::Constant(1, 1.0),
+                           Ai, Vec::Constant(1, 1.1), -10.0, 10.0);
+    qp.lower(2) = 1e4;
+    qp.upper(2) = 2e4;
+    QpOptions o;
+    o.feas_tol = 1e-5;
+    WorkingSet ws(3, 1);
+    ws.add_ineq(0);
+    ws.bound_state()[2] = BoundState::kAtLower;
+    const detail::RankRepair r = detail::rank_repair(qp, ws, Vec::Zero(1), o, 0);
+    EXPECT_EQ(r.outcome, RankOutcome::kRelease);
+    EXPECT_EQ(r.deficiency, 1);
+    EXPECT_EQ(r.inconsistent_steps, 1) << "gamma = 0.05 reads inconsistent";
+    ASSERT_EQ(r.release.size(), 1u);
+    EXPECT_TRUE(released(r, detail::WsMember::Kind::kRow, 0));
+}
+
+// 1050 disjoint equality rows x_2i + x_2i+1 = 1 plus nine working rows x_2c + x_2c+1 <= 2
+// (c < 9), each duplicating an equality row inconsistently: nine null directions on the block
+// path (1059 > kRankDenseRows rows).
+QpProblem nine_null_directions(WorkingSet &ws) {
+    const Index me = 1050;
+    const Index n = 2 * me;
+    std::vector<Eigen::Triplet<double>> te;
+    for (Index i = 0; i < me; ++i) {
+        te.emplace_back(i, 2 * i, 1.0);
+        te.emplace_back(i, 2 * i + 1, 1.0);
+    }
+    std::vector<Eigen::Triplet<double>> ti;
+    for (Index c = 0; c < 9; ++c) {
+        ti.emplace_back(c, 2 * c, 1.0);
+        ti.emplace_back(c, 2 * c + 1, 1.0);
+    }
+    QpProblem qp;
+    qp.H.resize(n, n);
+    qp.H.setIdentity();
+    qp.g = Vec::Zero(n);
+    qp.Ae.resize(me, n);
+    qp.Ae.setFromTriplets(te.begin(), te.end());
+    qp.be = Vec::Ones(me);
+    qp.Ai.resize(9, n);
+    qp.Ai.setFromTriplets(ti.begin(), ti.end());
+    qp.bi = Vec::Constant(9, 2.0);
+    qp.lower = Vec::Zero(n);
+    qp.upper = Vec::Constant(n, 10.0);
+    ws = WorkingSet(n, 9);
+    for (Index c = 0; c < 9; ++c) {
+        ws.add_ineq(c);
+    }
+    return qp;
+}
+
+// Nine null directions: the first block (kRankBlockStart = 8 columns) cannot hold them all, so
+// the block DOUBLES before every direction is resolved.
+TEST(WsRankRepair, NineNullDirectionsDoubleTheBlock) {
+    static_assert(9 > detail::kRankBlockStart);
+    WorkingSet ws(1, 0);
+    const QpProblem qp = nine_null_directions(ws);
+    ASSERT_GT(qp.me() + 9, detail::kRankDenseRows);
+    const detail::RankRepair r = detail::rank_repair(qp, ws, Vec::Zero(9), QpOptions{}, 0);
+    EXPECT_EQ(r.outcome, RankOutcome::kRelease);
+    EXPECT_EQ(r.deficiency, 9);
+    EXPECT_EQ(r.inconsistent_steps, 9);
+    ASSERT_EQ(r.release.size(), 9u);
+    for (Index c = 0; c < 9; ++c) {
+        EXPECT_TRUE(released(r, detail::WsMember::Kind::kRow, c)) << c;
+    }
+}
+
+// A block past the cap REFUSES and releases nothing. The cap is a parameter only so the refusal
+// need not allocate a multi-gigabyte block: here the doubled block (16 columns) exceeds it.
+TEST(WsRankRepair, ABlockPastTheCapRefuses) {
+    WorkingSet ws(1, 0);
+    const QpProblem qp = nine_null_directions(ws);
+    const double rows = static_cast<double>(qp.me() + 9);
+    const detail::RankRepair r =
+        detail::rank_repair(qp, ws, Vec::Zero(9), QpOptions{}, 0, rows * 12.0);
+    EXPECT_EQ(r.outcome, RankOutcome::kRefused);
+    EXPECT_TRUE(r.release.empty());
 }
 
 // The same pair with the row x0 + x1 <= 1/2: the face without it violates it, and no other member
@@ -949,6 +1041,8 @@ TEST(WsRankRepair, ConsistentRowIsReleasedUnlessShiftDriven) {
     EXPECT_EQ(r.outcome, RankOutcome::kRelease);
     EXPECT_EQ(r.inconsistent_steps, 0);
     EXPECT_TRUE(released(r, detail::WsMember::Kind::kRow, 0));
+    ASSERT_EQ(r.release_consistent.size(), 1u);
+    EXPECT_EQ(r.release_consistent[0], 1) << "a consistent-case release is marked as such";
     const detail::RankRepair s = detail::rank_repair(qp, ws, Vec::Constant(1, 0.5), QpOptions{}, 0);
     EXPECT_EQ(s.outcome, RankOutcome::kFullRank);
     EXPECT_EQ(s.deficiency, 1);

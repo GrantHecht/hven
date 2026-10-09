@@ -276,34 +276,39 @@ Vec face_negative_curvature(const QpProblem &qp, const WorkingSet &ws, const Dep
 // LINEAR ALGEBRA (production through hven::linear). G = M_F M_F^T + t I, t = kRankGramShift *
 // ||M_F M_F^T||_inf, is symmetric positive definite with every pivot >= t, so the backend factors
 // it with the KKT factors' own configuration (sqp_kkt_options) and no pivot is perturbed (a
-// perturbed one refuses). Block inverse iteration on G (kRankIterations steps, deterministic
-// start) from a block of kRankBlockStart columns, doubled until the block's largest Ritz value
-// clears kRankBlockEdge * t (the block then holds every direction G's shift cannot separate), and
-// the Ritz pairs read from the b x b B'B, B = M_F^T X formed from M_F itself (not from the shifted
-// factor): a singular-value resolution of about sqrt(eps) ||M_F||, beneath kRankNullTol * ||M_F||.
-// A null direction is one whose Ritz singular value is <= kRankNullTol * sqrt(||G||_inf) (an upper
-// bound on ||M_F||_2). Dense Eigen acts only on the thin blocks -- except that a set of at most
-// kRankDenseRows rows takes G's own dense eigenpairs instead (the same squared resolution, one
-// O(rows^3) eigensolve; MEASURED: SAWPATH's graded equality block fills the block to every row,
-// where the iteration's multi-right-hand-side solves cost 2..7 s a repair). A block that would
-// exceed kRankBlockCap entries refuses. MEASURED (RDV battery, dense-SVD scratch twin): every
-// outcome is the same for any null tolerance in [1e-12, 3e-7]; at 1e-6 the SAWPATH equality block's
+// perturbed one refuses -- on MKL; Accelerate reports no perturbed-pivot count (UNOBSERVED,
+// absent), so there the refusal does not fire and the SPD shift alone carries the guarantee). Block
+// inverse iteration on G (kRankIterations steps, deterministic start) from a block of
+// kRankBlockStart columns, doubled until the block's largest Ritz value clears kRankBlockEdge * t
+// (the block then holds every direction G's shift cannot separate), and the Ritz pairs read from
+// the b x b B'B, B = M_F^T X formed from M_F itself (not from the shifted factor): a singular-value
+// resolution of about sqrt(eps) ||M_F||, beneath kRankNullTol * ||M_F||. A null direction is one
+// whose Ritz singular value is <= kRankNullTol * sqrt(||G||_inf) (an upper bound on ||M_F||_2).
+// Dense Eigen acts only on the thin blocks -- except that a set of at most kRankDenseRows rows
+// takes G's own dense eigenpairs instead (the same squared resolution, one O(rows^3) eigensolve;
+// MEASURED: SAWPATH's graded equality block fills the block to every row, where the iteration's
+// multi-right-hand-side solves cost 2..7 s a repair). A block that would exceed kRankBlockCap
+// entries refuses. MEASURED (RDV battery, dense-SVD scratch twin): every outcome is the same for
+// any null tolerance in [1e-12, 3e-7]; the SHIPPED Gram path resolves singular values only down to
+// about sqrt(eps) ||M_F||, so its window is about [3e-8, 3e-7] *
+// ||M_F|| (the twin's lower end is not reachable); at 1e-6 the SAWPATH equality block's
 // graded spectrum (1e-11 .. 1e-5) reads as inconsistent and its dead end stands.
 //
 // THE RELEASE SET. With Z the null space extended to every member (rows, then pins), a member is
 // RELEASABLE when it is a working inequality row that no shift drives or a pin that is not kFixed;
 // its orientation is +1 for a row (a'x <= b) and an upper pin, -1 for a lower pin. Repeated until Z
 // is empty: c = Z' r; gamma = ||c||. If gamma > kRankConsistencyFactor * feas_tol * max(1,
-// ||r||_inf) (the factor is the classifier's kInfeasibilityMarginFactor) the face is INCONSISTENT
-// along y* = Z c / gamma, and the released member j maximizes orient_j * y*_j > kRankReleaseTol: on
-// the face without j, c_j' x = d_j - gamma / y*_j, strictly inside its own constraint (the released
-// member does not block the step onto the new face). Otherwise the direction is consistent, the
-// member with the largest participation ||Z_j|| is released, and the face does not change (the
-// member is implied by the others on it). Z is then restricted to y_j = 0. A consistent remainder
-// carried by MANDATORY members only (the equality rows' own dependence, which the dual
-// regularization absorbs) ends the set; an inconsistent direction with no releasable member of the
-// right orientation is STUCK (the set is discarded: nothing is released). Ties: the first member in
-// (rows ascending, pins ascending) order.
+// sum_i |y*_i||r_i|) (y* = Z c / gamma, so the scale reads only the members that participate in
+// the direction; the factor is the classifier's kInfeasibilityMarginFactor) the face is
+// INCONSISTENT along y* = Z c / gamma, and the released member j maximizes orient_j * y*_j >
+// kRankReleaseTol: on the face without j, c_j' x = d_j - gamma / y*_j, strictly inside its own
+// constraint (the released member does not block the step onto the new face). Otherwise the
+// direction is consistent, the member with the largest participation ||Z_j|| is released, and the
+// face does not change (the member is implied by the others on it). Z is then restricted to y_j =
+// 0. A consistent remainder carried by MANDATORY members only (the equality rows' own dependence,
+// which the dual regularization absorbs) ends the set; an inconsistent direction with no releasable
+// member of the right orientation is STUCK (the set is discarded: nothing is released). Ties: the
+// first member in (rows ascending, pins ascending) order.
 constexpr double kRankNullTol = 1e-7;
 constexpr double kRankGramShift = 1e-6;
 constexpr double kRankBlockEdge = 16.0;
@@ -323,13 +328,18 @@ struct RankRepair {
     };
     Outcome outcome = Outcome::kFullRank;
     std::vector<WsMember> release; // kRow / kPin members, in the order chosen
-    Index deficiency = 0;          // null directions found (mandatory ones included)
-    Index inconsistent_steps = 0;  // releases chosen by the inconsistency's orientation
+    // Parallel to `release`: 1 when the member was released on a CONSISTENT direction (implied by
+    // the others on its face), 0 on an inconsistent one.
+    std::vector<char> release_consistent;
+    Index deficiency = 0;         // null directions found (mandatory ones included)
+    Index inconsistent_steps = 0; // releases chosen by the inconsistency's orientation
 };
 
 /// The dead-end rank repair's analysis of `ws` (above); reads `opts.feas_tol` only. `threads` is
-/// the owning engine's (sqp_kkt_options). Writes nothing.
+/// the owning engine's (sqp_kkt_options). `block_cap` is the block-entry cap above which the
+/// analysis refuses (production: kRankBlockCap; a parameter so a test can reach the refusal
+/// without a multi-gigabyte block). Writes nothing.
 RankRepair rank_repair(const QpProblem &qp, const WorkingSet &ws, const Vec &shift,
-                       const QpOptions &opts, int threads);
+                       const QpOptions &opts, int threads, double block_cap = kRankBlockCap);
 
 } // namespace hven::solvers::detail
