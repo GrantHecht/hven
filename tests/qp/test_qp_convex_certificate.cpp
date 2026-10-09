@@ -56,7 +56,8 @@ QpDump load(const char *file) {
 // at the trusted-kWrong dead end, on a QP whose H is identically zero. Expected: kOptimal at the
 // oracle objective, the KKT battery, the certificate taken, no saddle search or ride.
 // `route_certificates` / `route_rereads` >= 0 pin a fixture's measured route instead of the
-// "a kWrong read => the certificate" implication (BRITGAS qp4 since M7 W2 QC-8).
+// "a kWrong read => the certificate" implication (BRITGAS qp4 since M7 W2 QC-8; STEENBRB qp3
+// pins certificates == 1 unconditionally, QC-8 rider 8).
 void expect_certified(const char *file, double f_star, WorkingSetLinearAlgebra alg,
                       Index route_certificates = -1, Index route_rereads = -1) {
     const QpDump d = load(file);
@@ -91,7 +92,9 @@ void expect_certified(const char *file, double f_star, WorkingSetLinearAlgebra a
     // the outcome below is the contract on every build.
     if (route_certificates >= 0) {
         EXPECT_EQ(s.counters.convex_certificates, route_certificates);
-        EXPECT_EQ(s.counters.dep_inertia_rereads, route_rereads);
+        if (route_rereads >= 0) {
+            EXPECT_EQ(s.counters.dep_inertia_rereads, route_rereads);
+        }
     } else if (s.counters.dep_inertia_rereads > 0) {
         EXPECT_GE(s.counters.convex_certificates, 1);
     }
@@ -163,8 +166,10 @@ TEST(QpNc4ConvexCertificate, TheOptionOffWalkTakesNoCertificate) {
 }
 
 TEST(QpNc4ConvexCertificate, SteenbrbRestorationLpQp3) {
-    expect_certified("C10_STEENBRB_qp3.txt", -48.0, kBorder);
-    expect_certified("C10_STEENBRB_qp3.txt", -48.0, kRefactorize);
+    // The route certificate, pinned unconditionally (not behind "a kWrong was read"): the NC4
+    // certificate fires exactly once on this walk on both algebras.
+    expect_certified("C10_STEENBRB_qp3.txt", -48.0, kBorder, /*route_certificates=*/1);
+    expect_certified("C10_STEENBRB_qp3.txt", -48.0, kRefactorize, /*route_certificates=*/1);
 }
 TEST(QpNc4ConvexCertificate, SteenbrbRestorationLpQp4) {
     expect_certified("C10_STEENBRB_qp4.txt", -24.0, kBorder);

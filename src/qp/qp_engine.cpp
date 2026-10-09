@@ -2049,6 +2049,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 BoundState state;
                 double alpha;
                 ExchangePick pick;
+                Index passovers;         // the counters before this sequence's pass-overs
+                Index implied_passovers; // that the restore puts back
             };
             std::optional<SetAside> set_aside;
             std::optional<PassOverScan> pass_scan; // built at the sequence's first pass-over
@@ -2151,12 +2153,17 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                               blocker_implied_by_face(qp, ws, shift, x, p, t, xpick, is_ineq,
                                                       block_idx, o.scale, eff_opts);
                     if (implied) {
-                        implied_allow =
-                            implied_leak_allowance(qp, ws, xpick, x, ai_row_norm1, ae_row_norm1,
-                                                   lambda_e, lambda_i, o.scale, eff_opts);
+                        implied_allow = implied_leak_allowance(
+                            qp, ws, xpick, x, ai_row_norm1, ae_row_norm1, lambda_e, lambda_i, z,
+                            pass_view.schur != nullptr, o.scale, eff_opts);
                         if (xpick.found && !set_aside.has_value()) {
-                            set_aside =
-                                SetAside{kind, block_idx, block_state, alpha, std::move(xpick)};
+                            set_aside = SetAside{kind,
+                                                 block_idx,
+                                                 block_state,
+                                                 alpha,
+                                                 std::move(xpick),
+                                                 counters.dep_passovers,
+                                                 counters.dep_implied_passovers};
                         }
                         xpick = ExchangePick{};
                     } else if (xpick.found) {
@@ -2242,6 +2249,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         block_state = set_aside->state;
                         alpha = set_aside->alpha;
                         xpick = std::move(set_aside->pick);
+                        // The pass-overs taken since the set-aside are undone with it.
+                        counters.dep_passovers = set_aside->passovers;
+                        counters.dep_implied_passovers = set_aside->implied_passovers;
                         break; // the exchange
                     }
                     if (!refused && !moves && pass_view.schur == nullptr) {
@@ -4652,19 +4662,37 @@ bool QpEngine::blocker_implied_by_face(const QpProblem &qp, const WorkingSet &ws
 double QpEngine::implied_leak_allowance(const QpProblem &qp, const WorkingSet &ws,
                                         const ExchangePick &pick, const Vec &x,
                                         const Vec &ai_row_norm1, const Vec &ae_row_norm1,
-                                        const Vec &lambda_e, const Vec &lambda_i, double row_scale,
-                                        const QpOptions &opts) {
-    // Each member's absorbency is its OWN footprint, max(feas_tol * scale_k, dual_mu * |lambda_k|),
-    // UNCAPPED: row_tolerance() caps the footprint at kInfeasibilityAbsorbTol * scale so that a
-    // contradiction cannot fund its own tolerance, and the face test (g <= feas_tol * row_scale)
-    // has already ruled a contradiction out here (qp_engine.h, THE LEAK BUDGET).
+                                        const Vec &lambda_e, const Vec &lambda_i, const Vec &z,
+                                        bool border_path, double row_scale, const QpOptions &opts) {
+    // Each member's absorbency is its OWN footprint, min(dual_mu * |lambda_k|,
+    // kInfeasibilityMarginFactor * kInfeasibilityAbsorbTol * scale_k), floored at
+    // feas_tol * scale_k: the regularization leak, capped at the exit's structural band
+    // (qp_engine.h, THE LEAK BUDGET). row_tolerance()'s own cap is the absorb tolerance
+    // alone; the band is the margin factor above it.
     const double xmag = x.lpNorm<Eigen::Infinity>();
-    double leak = 0.0; // pins sit on their bounds exactly: no leak
+    const auto footprint = [&](double scale, double lambda) {
+        return std::max(
+            opts.feas_tol * scale,
+            std::min(opts.dual_mu * std::abs(lambda),
+                     detail::kInfeasibilityMarginFactor * detail::kInfeasibilityAbsorbTol * scale));
+    };
+    double leak = 0.0;
+    if (border_path) {
+        // The border path's pin border carries -dual_mu (add_border(pin_variable, -dual_mu)),
+        // so a pin leaks dual_mu |z_i| there; the eliminated path holds pins exactly. Capped
+        // like the rows' (a pin's scale is max(1, ||x||inf)): left uncapped, a slack pin's
+        // O(1e8) multiplier at dual_mu 1e-4 would absorb a violation of 15 (T6b HIGH).
+        const double pin_scale = std::max(1.0, xmag);
+        for (Index i = 0; i < qp.n(); ++i) {
+            if (pick.v_pin(i) != 0.0) {
+                leak += std::abs(pick.v_pin(i)) * footprint(pin_scale, z(i));
+            }
+        }
+    }
     for (Index j = 0; j < qp.me(); ++j) {
         if (pick.v_e(j) != 0.0) {
             const double scale = std::max({1.0, std::abs(qp.be(j)), ae_row_norm1(j) * xmag});
-            leak += std::abs(pick.v_e(j)) *
-                    std::max(opts.feas_tol * scale, opts.dual_mu * std::abs(lambda_e(j)));
+            leak += std::abs(pick.v_e(j)) * footprint(scale, lambda_e(j));
         }
     }
     const std::vector<Index> &aw = ws.active_ineq();
@@ -4673,8 +4701,7 @@ double QpEngine::implied_leak_allowance(const QpProblem &qp, const WorkingSet &w
         if (v != 0.0) {
             const Index j = aw[k];
             const double scale = std::max({1.0, std::abs(qp.bi(j)), ai_row_norm1(j) * xmag});
-            leak +=
-                std::abs(v) * std::max(opts.feas_tol * scale, opts.dual_mu * std::abs(lambda_i(j)));
+            leak += std::abs(v) * footprint(scale, lambda_i(j));
         }
     }
     return std::max(opts.feas_tol * row_scale, leak);

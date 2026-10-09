@@ -1423,23 +1423,29 @@ TEST(QpE2WorkingSet, NoAdmissibleMemberAndNoPassOverEndsInsideTheBox) {
     // THE N3 DEAD END WITH THE FACE ON THE WRONG SIDE. THE
     // IMPLIED BLOCKER (qp_engine.h, blocker_implied_by_face) passes a proved-dependent blocker
     // over only when its working set's face satisfies it (g <= feas_tol * row_scale); this is
-    // the other side of that test. x0 + x1 <= 1 and x0 + x1 >= 1 + eta, eta = 1e-8, pulled
-    // toward large sums, x0 in [1.2, 2], x1 in [-2, 2]: the start (1.2, 0) violates the first
-    // row (it enters shift-driven) and meets the second. The second blocks the step onto the
-    // first's face, PROVED dependent on it (rho ~ 1e-8 <= kDepTol, coefficient -1: not
-    // admissible), and that face violates it by g = eta: above feas_tol * row_scale (2.4e-9),
-    // so the face does not imply it -- and below the certificate's margin
-    // (kInfeasibilityMarginFactor * feas_tol * row_scale, 2.4e-8), so the contradiction is
-    // not provable at the resolution the walk works at and no certificate is returned. The
-    // pass-over would cross it by eta. The walk ends kNumericalError where it stands -- inside
-    // the box, the blocker met, never a step past it. (A pair inconsistent by more than the
-    // margin, eta = 1e-7, ends kInfeasible with the certificate.) Why the instance is
-    // infeasible: on a FEASIBLE QP a blocker the iterate meets while standing on its working
-    // face has c^T x = d + g + r^T x, so g > tol would mean the blocker is already crossed --
-    // the face can be on the wrong side only when the iterate is off it, here by the first
-    // row's shift. Measured (trace build, both algebras): g = 8e-9, cond1, no certificate.
-    QpProblem qp = e2_diag_qp({1.0, 1.0}, {-2.0, -2.0}, {1.0, 1.0, -1.0, -1.0},
-                              {1.0, -(1.0 + 1e-8)}, 0.0, 2.0);
+    // the other side of that test. x0 + x1 = 1 (an EQUALITY, so nothing is shifted and the
+    // face test's g side alone decides, not the shifted-row gate) and x0 + x1 >= 1 + eta,
+    // eta = 1e-8, pulled toward large sums, x0 in [1.2, 2], x1 in [-2, 2]: the start
+    // (1.2, 0) meets the inequality and is off the equality by 0.2. The inequality blocks the
+    // step onto the equality's face, PROVED dependent on it (rho ~ 1e-8 <= kDepTol,
+    // coefficient -1: not admissible), and that face violates it by g = eta: above
+    // feas_tol * row_scale (2.4e-9), so the face does not imply it -- and below the
+    // certificate's margin (kInfeasibilityMarginFactor * feas_tol * row_scale, 2.4e-8), so the
+    // contradiction is not provable at the resolution the walk works at and no certificate is
+    // returned. The pass-over would cross it by eta. The walk ends kNumericalError where it
+    // stands -- inside the box, the blocker met, never a step past it. (A pair inconsistent by
+    // more than the margin, eta = 1e-7, ends kInfeasible with the certificate.) Why the
+    // instance is infeasible: on a FEASIBLE QP a blocker the iterate meets while standing on
+    // its working face has c^T x = d + g + r^T x, so g > tol would mean the blocker is
+    // already crossed -- the face can be on the wrong side only when the iterate is off it,
+    // here by the equality's residual. Measured (trace build, both algebras): the blocker is the
+    // inequality, kDependent with rho 7e-9, no shifted coefficient (shc=0: the shifted-row gate
+    // is not what refuses), g = 8e-9, cond1, no certificate -- the face test's g side decides.
+    QpProblem qp = e2_diag_qp({1.0, 1.0}, {-2.0, -2.0}, {-1.0, -1.0}, {-(1.0 + 1e-8)}, 0.0, 2.0);
+    qp.Ae.resize(1, 2);
+    qp.Ae.insert(0, 0) = 1.0;
+    qp.Ae.insert(0, 1) = 1.0;
+    qp.be = Vec::Constant(1, 1.0);
     qp.lower(0) = 1.2;
     qp.lower(1) = -2.0;
     for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
@@ -1457,10 +1463,10 @@ TEST(QpE2WorkingSet, NoAdmissibleMemberAndNoPassOverEndsInsideTheBox) {
         // Where it stands: the start, the blocker met with its eta margin, inside the box.
         EXPECT_NEAR(s.x(0), 1.2, 1e-12);
         EXPECT_NEAR(s.x(1), 0.0, 1e-12);
-        EXPECT_LE((qp.Ai * s.x)(1) - qp.bi(1), 0.0);
+        EXPECT_LE((qp.Ai * s.x)(0) - qp.bi(0), 0.0);
     }
     // The control: inconsistent by more than the margin, the same walk certifies it.
-    qp.bi(1) = -(1.0 + 1e-7);
+    qp.bi(0) = -(1.0 + 1e-7);
     for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
         const QpSolution s = plain_solve(qp, e2_opts(alg, 40));

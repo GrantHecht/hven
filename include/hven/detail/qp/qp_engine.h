@@ -2470,18 +2470,21 @@ class QpEngine {
     // rows (pins are exact: 0). An implied blocker is passed over only while its predicted
     // violation at the end of the step, max(0, c^T x - d + alpha c^T p), stays within that
     // allowance -- N2's check with the members' absorbency as the allowance, not an exemption
-    // (QpCounters::dep_implied_passovers counts the pass-overs taken). The footprint is
-    // UNCAPPED, unlike row_tolerance(): its kInfeasibilityAbsorbTol cap keeps a contradiction
-    // from funding its own tolerance, and g <= tol has already excluded one. MEASURED (QC-8
-    // riders): with the cap, DALLASM QN's tenth subproblem -- the QP variable a step, so its
-    // equality rows' scale is 1 and the cap 1e-6 -- refused predicted violations of 1.01e-6 ..
-    // 1.4e-6 against mu lambda just above it, and the fall-back ended zero-motion-exhausted.
+    // (QpCounters::dep_implied_passovers counts the pass-overs that survive). Each member's
+    // footprint is min(dual_mu |lambda_k|, kInfeasibilityMarginFactor *
+    // kInfeasibilityAbsorbTol * scale_k), floored at feas_tol * scale_k: capped at the exit's
+    // structural band, a factor above row_tolerance()'s own cap (which keeps a contradiction
+    // from funding its own tolerance; g <= tol has already excluded one here). On the border
+    // path the pins' footprints, capped alike, join the sum (their border carries -dual_mu);
+    // the eliminated path holds pins exactly. MEASURED (QC-8 riders): row_tolerance()'s own cap
+    // refused DALLASM QN's tenth subproblem -- the QP variable a step, so the equality rows'
+    // scale is 1 and the cap 1e-6 -- at predicted violations of 1.01e-6 .. 1.4e-6.
     //
     // A PREFERENCE, NOT A ROUTE (QC-8 R3). When a step with an implied
     // blocker passed over fails N2's check -- its own leak above the budget, or
     // any passed-over blocker's violation at the longer step -- the rule falls
-    // back to what the walk would have done without it: the exchange pick the
-    // sequence's first implied blocker set aside, taken at the step that
+    // back to what the walk would have done without it: the exchange pick of the
+    // sequence's first implied blocker with a pick set aside, taken at the step that
     // reached that blocker; else the locked-vertex unlock (R-B); only then the
     // end (N3). The implied pass-over never makes a new N3 end.
     static bool blocker_implied_by_face(const QpProblem &qp, const WorkingSet &ws, const Vec &shift,
@@ -2491,8 +2494,8 @@ class QpEngine {
     static double implied_leak_allowance(const QpProblem &qp, const WorkingSet &ws,
                                          const ExchangePick &pick, const Vec &x,
                                          const Vec &ai_row_norm1, const Vec &ae_row_norm1,
-                                         const Vec &lambda_e, const Vec &lambda_i, double row_scale,
-                                         const QpOptions &opts);
+                                         const Vec &lambda_e, const Vec &lambda_i, const Vec &z,
+                                         bool border_path, double row_scale, const QpOptions &opts);
 
     // The no-admissible-member rule's certificate, VERIFIED, tried whenever no
     // member is admissible (E2 fix1: the box-based certificate does not need

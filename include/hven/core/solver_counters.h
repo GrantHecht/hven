@@ -431,11 +431,13 @@ struct QpCounters {
     // walk takes one.
     Index dep_repair_restarts = 0;
     // THE IMPLIED BLOCKER (M7 W2 QC-8; qp_engine.h, blocker_implied_by_face): pass-overs
-    // TAKEN of a blocker of an ordinary step proved dependent on the working set whose face
-    // satisfies it (g + rho ||a|| ||x_face,free|| <= feas_tol * row_scale) -- its rate along
-    // p is the step's leak, not motion -- each within its members' leak allowance (R1). Not
-    // counted in dep_passovers. Appended at the end of the add-site group (the layout tests
-    // derive their ranges with offsetof).
+    // that SURVIVE their sequence -- of a blocker of an ordinary step proved dependent on the
+    // working set whose face satisfies it (g + rho ||a|| ||x_face,free|| <= feas_tol *
+    // row_scale), its rate along p the step's leak, not motion -- each within its members'
+    // leak allowance (R1). A sequence that falls back to the exchange it set aside (R3) undoes
+    // the pass-overs it had taken, and they are not counted. Not counted in dep_passovers.
+    // Appended at the end of the add-site group (the layout tests derive their ranges with
+    // offsetof).
     Index dep_implied_passovers = 0;
 
     // The zero-motion re-entry rule (per fixed iterate).
