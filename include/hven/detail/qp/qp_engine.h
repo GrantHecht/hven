@@ -2463,15 +2463,19 @@ class QpEngine {
     // dependency (the integer screen alone, a stalled or un-run test), and on a
     // ride, whose direction is not the step onto the face.
     //
-    // THE LEAK BUDGET (QC-8 R1). The COMPUTED step leaks off each member by at
-    // most what the member's own row tolerance absorbs, so the blocker's leak
-    // is bounded by implied_leak_allowance = max(feas_tol * row_scale,
-    // sum_k |v_k| row_tolerance(scale_k, lambda_k)) over the equality and
-    // working inequality rows (pins are exact: 0). An implied blocker is passed
-    // over only while its predicted violation at the end of the step,
-    // max(0, c^T x - d + alpha c^T p), stays within that allowance -- N2's
-    // check with the members' absorbency as the allowance, not an exemption
-    // (QpCounters::dep_implied_passovers counts the pass-overs taken).
+    // THE LEAK BUDGET (QC-8 R1). The computed step leaks off each member by its
+    // regularization footprint (A_W p = mu lambda on the face), so the blocker's leak is
+    // bounded by implied_leak_allowance = max(feas_tol * row_scale, sum_k |v_k|
+    // max(feas_tol * scale_k, dual_mu |lambda_k|)) over the equality and working inequality
+    // rows (pins are exact: 0). An implied blocker is passed over only while its predicted
+    // violation at the end of the step, max(0, c^T x - d + alpha c^T p), stays within that
+    // allowance -- N2's check with the members' absorbency as the allowance, not an exemption
+    // (QpCounters::dep_implied_passovers counts the pass-overs taken). The footprint is
+    // UNCAPPED, unlike row_tolerance(): its kInfeasibilityAbsorbTol cap keeps a contradiction
+    // from funding its own tolerance, and g <= tol has already excluded one. MEASURED (QC-8
+    // riders): with the cap, DALLASM QN's tenth subproblem -- the QP variable a step, so its
+    // equality rows' scale is 1 and the cap 1e-6 -- refused predicted violations of 1.01e-6 ..
+    // 1.4e-6 against mu lambda just above it, and the fall-back ended zero-motion-exhausted.
     //
     // A PREFERENCE, NOT A ROUTE (QC-8 R3). When a step with an implied
     // blocker passed over fails N2's check -- its own leak above the budget, or
@@ -2484,10 +2488,11 @@ class QpEngine {
                                         const Vec &x, const Vec &p, const detail::DepTest &t,
                                         const ExchangePick &pick, bool is_ineq, Index idx,
                                         double row_scale, const QpOptions &opts);
-    double implied_leak_allowance(const QpProblem &qp, const WorkingSet &ws,
-                                  const ExchangePick &pick, const Vec &x, const Vec &ai_row_norm1,
-                                  const Vec &ae_row_norm1, const Vec &lambda_e, const Vec &lambda_i,
-                                  double row_scale, const QpOptions &opts) const;
+    static double implied_leak_allowance(const QpProblem &qp, const WorkingSet &ws,
+                                         const ExchangePick &pick, const Vec &x,
+                                         const Vec &ai_row_norm1, const Vec &ae_row_norm1,
+                                         const Vec &lambda_e, const Vec &lambda_i, double row_scale,
+                                         const QpOptions &opts);
 
     // The no-admissible-member rule's certificate, VERIFIED, tried whenever no
     // member is admissible (E2 fix1: the box-based certificate does not need

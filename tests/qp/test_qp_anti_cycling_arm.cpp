@@ -1377,13 +1377,21 @@ TEST(QpE2WorkingSet, NoAdmissibleMemberOnAnInfeasibleQpReturnsAVerifiedCertifica
     }
 }
 
-TEST(QpE2WorkingSet, NoAdmissibleMemberAndNoPassOverEndsInsideTheBox) {
-    // x0+x1+x2 <= 1 and its double 2x0+2x1+2x2 <= 2, [0,2]^3, at dual_mu =
-    // 1e-2: the double blocks dependent with no admissible member, no
-    // certificate, and a pass-over that would violate it. The walk ends
-    // kNumericalError where it stands -- inside the box, rows satisfied,
-    // never a step past the blocker. (At the default dual_mu the same QP
-    // ends kOptimal at (3/4, 0, 1/4).)
+TEST(QpE2WorkingSet, TheDoubledRowIsImpliedByItsFaceAndTheWalkReachesTheOptimum) {
+    // RENAMED AND RE-PINNED at M7 W2 QC-8 (settler C50(1); a DECLARED CORRECTNESS MOVE toward
+    // the verified optimum; old name `NoAdmissibleMemberAndNoPassOverEndsInsideTheBox`, now the
+    // re-premised N3 fixture below). x0+x1+x2 <= 1 and its double 2x0+2x1+2x2 <= 2, [0,2]^3,
+    // at dual_mu = 1e-2. The double blocks dependent on the single row with no admissible
+    // member, and until QC-8 the walk ended there kNumericalError (N3) -- at (0.5, 0.125,
+    // 0.375), then (0.6, 0, 0.4) from E4 fix round 2 -- because a pass-over's predicted
+    // violation (the step's dual_mu * lambda leak off the member, 1e-2 here) exceeded
+    // feas_tol * row_scale. That blocker is IMPLIED by its face (g = 2 * 1 - 2 = 0): the exact
+    // step cannot cross it, its rate is the leak, and the leak stays within the member's own
+    // footprint dual_mu * |lambda| (THE LEAK BUDGET, qp_engine.h). The walk now passes it over
+    // and ends kOptimal at the QP's optimum (3/4, 0, 1/4), the same point the default dual_mu
+    // reaches; no blocker termination. (On the R1 form whose footprint was capped at
+    // kInfeasibilityAbsorbTol * scale -- QC-8 riders, 5a118ad4 -- the pass was refused and the
+    // N3 reading held.)
     const QpProblem qp = e2_diag_qp({1.0, 1.0, 1.0}, {-2.0, -0.5, -1.5},
                                     {1.0, 1.0, 1.0, 2.0, 2.0, 2.0}, {1.0, 2.0}, 0.0, 2.0);
     for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
@@ -1391,48 +1399,28 @@ TEST(QpE2WorkingSet, NoAdmissibleMemberAndNoPassOverEndsInsideTheBox) {
         QpOptions o = e2_opts(alg, 40);
         o.dual_mu = 1e-2;
         const QpSolution s = plain_solve(qp, o);
-        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kNumericalError));
-        EXPECT_EQ(s.counters.dep_blocker_terminations, 1);
-        EXPECT_EQ(s.counters.dep_infeasible_certificates, 0);
+        std::printf("[ qc8 ] doubled-row %s status=%d x=(%.15g, %.15g, %.15g) implied=%ld "
+                    "minors=%ld\n",
+                    e2_name(alg), static_cast<int>(s.status), s.x(0), s.x(1), s.x(2),
+                    static_cast<long>(s.counters.dep_implied_passovers),
+                    static_cast<long>(s.counters.minor_iters));
+        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+        EXPECT_EQ(s.counters.dep_blocker_terminations, 0);
+        EXPECT_EQ(s.counters.dep_implied_passovers, 1); // measured, both algebras and configs
         EXPECT_FALSE(s.farkas.present);
-        EXPECT_EQ(s.counters.dep_border_retreats,
-                  alg == WorkingSetLinearAlgebra::kSchurBorder ? 1 : 0);
-        for (Index i = 0; i < qp.n(); ++i) {
-            EXPECT_GE(s.x(i), qp.lower(i));
-            EXPECT_LE(s.x(i), qp.upper(i));
-        }
-        const Vec Aix = qp.Ai * s.x;
-        for (Index r = 0; r < qp.mi(); ++r) {
-            EXPECT_LE(Aix(r) - qp.bi(r), 1e-12);
-        }
-        // THE DEAD END'S POINT, RE-DERIVED at M7 W2 E4 fix round 2 (a declared
-        // mover): (0.5, 0.125, 0.375) -> (0.6, 0, 0.4), to 1.2e-13 on each
-        // component in both algebras. E4 reaches this dead end by a different route
-        // -- every EQP answer on the way is the proximal one, polished against its
-        // own face -- so the iterate the blocker terminates ON is a different point
-        // of the same feasible region. EVERY CLAIM THE FIXTURE MAKES IS ASSERTED
-        // ABOVE AND UNCHANGED: kNumericalError, one blocker termination, no
-        // certificate, inside the box, every row satisfied, never a step past the
-        // blocker. What moves is the point, and it is pinned here so the route's
-        // own stability is still a test rather than an assumption.
-        EXPECT_NEAR(s.x(0), 0.6, 1e-12);
-        EXPECT_NEAR(s.x(1), 0.0, 1e-12);
-        EXPECT_NEAR(s.x(2), 0.4, 1e-12);
-        // M7 W2 QC-8 (the implied blocker): this dead end's blocker IS one the face satisfies
-        // (the double of a member, g ~ 0), and without the rule's leak budget the walk passed
-        // it over and reached the optimum (0.75, 0, 0.25) (measured on 7540d6c1). With R1 it
-        // is refused: at dual_mu = 1e-2 its rate along p (the step's leak, 3.9e-6) is above
-        // what the members' row tolerances absorb, and R3 finds no exchange to fall back to,
-        // so the fixture's N3 stands as pinned above. One implied pass-over IS taken earlier
-        // on the walk (within its allowance); pinned so a change to the budget is seen here.
-        // `AFaceThatViolatesItsDependentBlockerEndsWhereItStands` below is the dead end the
-        // rule cannot reach at all (g > tol).
-        EXPECT_EQ(s.counters.dep_implied_passovers, 1);
+        EXPECT_NEAR(s.x(0), 0.75, 1e-9);
+        EXPECT_NEAR(s.x(1), 0.0, 1e-9);
+        EXPECT_NEAR(s.x(2), 0.25, 1e-9);
+        EXPECT_NEAR(objective(qp, s.x), brute_force_optimum(qp), 1e-9);
     }
 }
 
-TEST(QpE2WorkingSet, AFaceThatViolatesItsDependentBlockerEndsWhereItStands) {
-    // THE N3 DEAD END WITH THE FACE ON THE WRONG SIDE (M7 W2 QC-8, settler C50(1)). THE
+TEST(QpE2WorkingSet, NoAdmissibleMemberAndNoPassOverEndsInsideTheBox) {
+    // RE-PREMISED at M7 W2 QC-8 (settler C50(1)): its old instance -- a doubled row -- is
+    // an implied blocker the walk now passes over to the optimum
+    // (`TheDoubledRowIsImpliedByItsFaceAndTheWalkReachesTheOptimum` above).
+    //
+    // THE N3 DEAD END WITH THE FACE ON THE WRONG SIDE. THE
     // IMPLIED BLOCKER (qp_engine.h, blocker_implied_by_face) passes a proved-dependent blocker
     // over only when its working set's face satisfies it (g <= feas_tol * row_scale); this is
     // the other side of that test. x0 + x1 <= 1 and x0 + x1 >= 1 + eta, eta = 1e-8, pulled

@@ -4653,13 +4653,18 @@ double QpEngine::implied_leak_allowance(const QpProblem &qp, const WorkingSet &w
                                         const ExchangePick &pick, const Vec &x,
                                         const Vec &ai_row_norm1, const Vec &ae_row_norm1,
                                         const Vec &lambda_e, const Vec &lambda_i, double row_scale,
-                                        const QpOptions &opts) const {
+                                        const QpOptions &opts) {
+    // Each member's absorbency is its OWN footprint, max(feas_tol * scale_k, dual_mu * |lambda_k|),
+    // UNCAPPED: row_tolerance() caps the footprint at kInfeasibilityAbsorbTol * scale so that a
+    // contradiction cannot fund its own tolerance, and the face test (g <= feas_tol * row_scale)
+    // has already ruled a contradiction out here (qp_engine.h, THE LEAK BUDGET).
     const double xmag = x.lpNorm<Eigen::Infinity>();
     double leak = 0.0; // pins sit on their bounds exactly: no leak
     for (Index j = 0; j < qp.me(); ++j) {
         if (pick.v_e(j) != 0.0) {
             const double scale = std::max({1.0, std::abs(qp.be(j)), ae_row_norm1(j) * xmag});
-            leak += std::abs(pick.v_e(j)) * row_tolerance(scale, lambda_e(j), opts);
+            leak += std::abs(pick.v_e(j)) *
+                    std::max(opts.feas_tol * scale, opts.dual_mu * std::abs(lambda_e(j)));
         }
     }
     const std::vector<Index> &aw = ws.active_ineq();
@@ -4668,7 +4673,8 @@ double QpEngine::implied_leak_allowance(const QpProblem &qp, const WorkingSet &w
         if (v != 0.0) {
             const Index j = aw[k];
             const double scale = std::max({1.0, std::abs(qp.bi(j)), ai_row_norm1(j) * xmag});
-            leak += std::abs(v) * row_tolerance(scale, lambda_i(j), opts);
+            leak +=
+                std::abs(v) * std::max(opts.feas_tol * scale, opts.dual_mu * std::abs(lambda_i(j)));
         }
     }
     return std::max(opts.feas_tol * row_scale, leak);
