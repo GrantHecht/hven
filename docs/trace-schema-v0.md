@@ -795,7 +795,7 @@ both carry a "RE-DERIVED AT M7 W2 M3a" note.
 |---|---|---|---|
 | `qp_failure_steps_judged` | integer | `SqpCounters::qp_failure_steps_judged` | failed walk subproblems whose own step was offered to the globalization strategy under `SqpOptions::qp_failure_step` — a usable `p != 0` whose model predicts a decrease, or whose trial at least halves a violation above `feas_tol`. 0 with the option off. Folded from the restoration sub-solve |
 | `qp_failure_steps_accepted` | integer | `SqpCounters::qp_failure_steps_accepted` | of those, the steps the strategy accepted and the driver took (multipliers kept, no radius growth). `judged - accepted` were ordinary rejections, routed WITHOUT charging `qp_failure_budget`. Folded likewise |
-| `nonfinite_subproblems` | integer | `SqpCounters::nonfinite_subproblems` | subproblems built with a non-finite `H`, `g`, `A` or `b` entry — the model's derivatives are not finite at the iterate. No kernel is called and the solve ends `numerical_error` there — the third source of that status beside `qp_maxiter_exits` and `qp_numerical_exits`. At most one per driver, folded from the restoration sub-solve |
+| `nonfinite_subproblems` | integer | `SqpCounters::nonfinite_subproblems` | subproblems built with a non-finite `H`, `g`, `A` or `b` entry — the model's derivatives are not finite at the iterate. No kernel is called and the solve ends `numerical_error` there (unless the point is the one the last commit made: `nonfinite_step_rollbacks`) — the third source of that status beside `qp_maxiter_exits` and `qp_numerical_exits`. At most one per driver, folded from the restoration sub-solve |
 
 All three are **LAST in the table and last in the struct**, after
 `eqp_row_drift_refusals`, so the counters object gains exactly three keys between
@@ -850,6 +850,7 @@ group; `SqpOptions::hessian_mode`).
 | `qn_kwrong_seen` | integer | `SqpCounters::qn_kwrong_seen` | lifted subproblem solves whose engine reported a wrong-inertia reading (a bug flag under a PD B). Folded |
 | `qn_nonpd_seen` | integer | `SqpCounters::qn_nonpd_seen` | lifts built while the quasi-Newton model did not read positive definite (a bug flag). Folded |
 | `qn_dimension` | integer | `SqpCounters::qn_dimension` | variables the quasi-Newton model carries curvature for: the structural count, or the nonlinear variables only under `SqpOptions::qn_nonlinear_only` (default off). Max-folded |
+| `nonfinite_step_rollbacks` | integer | `SqpCounters::nonfinite_step_rollbacks` | accepted steps rejected after the fact (M7 W2 R2-1): the first major after a commit found the committed point's gradient, `H`, `A` or `g` non-finite, restored the previous iterate (its evaluation and prices) and the funnel width, and shrank the radius the step was taken under; that major's row describes the abandoned point, `qp_solved` false. A rolled-back step stays in `steps_accepted`. Not taken across the radius floor, in the full-step mode, or at a point no commit reached -- those end through `nonfinite_subproblems` as before. Folded from the restoration sub-solve |
 
 LAST in the table and last in the struct, after `restoration_reduction_resumes`, so
 the counters object gains exactly fourteen keys before the `ssn` object and the two
@@ -867,6 +868,11 @@ re-derived ONCE for it, and both carry a "RE-DERIVED AT the QN stages 1-3 review
 row above). LAST in the struct, after `qn_nonpd_seen`, same route: one key before the
 `ssn` object, the nested tables' distinct values up by one, no sentinel, both golden
 lines re-derived ONCE with a "RE-DERIVED AT the QN-quality riders" note.
+
+**THE DIRECT COUNTER M7 W2 R2-1 APPENDED — ONE** (`nonfinite_step_rollbacks`, the table
+row above). LAST in the struct, after `qn_dimension`, same route: one key before the
+`ssn` object, the nested tables' distinct values up by one, no sentinel, both golden
+lines re-derived ONCE with a "RE-DERIVED AT M7 W2 R2-1" note.
 
 ## 6. The mode-selection telemetry on `sqp.major`
 

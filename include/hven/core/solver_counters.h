@@ -2150,6 +2150,14 @@ struct SqpCounters {
     ///        structural count, or the nonlinear variables only under
     ///        SqpOptions::qn_nonlinear_only. A level, not a sum: max-folded; 0 under kExact.
     Index qn_dimension = 0;
+    /// @brief THE NON-FINITE STEP ROLLBACK (M7 W2 R2-1): accepted steps rejected after
+    ///        the fact because the committed point's gradient, Jacobian or Hessian was
+    ///        not finite. The previous iterate is restored at a shrunk radius instead of
+    ///        the solve ending; a rolled-back step stays counted in `steps_accepted`.
+    ///        `nonfinite_subproblems` counts only the guard's exits, which this leaves
+    ///        to the radius floor and the full-step mode. Appended last; FOLDED from
+    ///        the restoration sub-solve.
+    Index nonfinite_step_rollbacks = 0;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -2231,7 +2239,8 @@ struct SqpCounters {
     X(qn_lift_rank_peak, counter_never_absent)                                                     \
     X(qn_kwrong_seen, counter_never_absent)                                                        \
     X(qn_nonpd_seen, counter_never_absent)                                                         \
-    X(qn_dimension, counter_never_absent)
+    X(qn_dimension, counter_never_absent)                                                          \
+    X(nonfinite_step_rollbacks, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =
@@ -2273,7 +2282,9 @@ inline constexpr std::size_t kSqpCountersFieldCount =
 // `nonfinite_box_projections`, the same way: `sizeof` 936 -> 944. 61 -> 63 at M7 W2
 // P1E, `elastic_last_rung_fallbacks` and `restoration_reduction_resumes`, the same way:
 // `sizeof` 944 -> 960. 63 -> 77 at M7 QN stage 3, `eval_hess_calls` and the thirteen-field
-// quasi-Newton group, the same way: `sizeof` 960 -> 1072.)
+// quasi-Newton group, the same way: `sizeof` 960 -> 1072. 77 -> 79 at the QN review and
+// riders, `qn_nonpd_seen` and `qn_dimension`; 79 -> 80 at M7 W2 R2-1,
+// `nonfinite_step_rollbacks`, the same way: `sizeof` 1088 -> 1096.)
 static_assert(::hven::detail::kAggregateArity<SqpCounters> == kSqpCountersFieldCount + 2,
               "SqpCounters and HVEN_SQP_COUNTERS_FIELDS disagree: give the new field an X() entry "
               "in its declaration position, or -- if it is a new NESTED aggregate -- give it a "

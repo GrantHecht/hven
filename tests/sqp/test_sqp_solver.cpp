@@ -3862,6 +3862,146 @@ TEST(SqpDriverQpFailure, AnIterateOutsideItsBoxByRoundingIsProjectedNotEnded) {
     EXPECT_NEAR(sol.x(1), 1.0, 1e-2);
 }
 
+// THE NON-FINITE STEP ROLLBACK (M7 W2 R2-1). f = x0^1.5 - 1.5 x0 + c x0^0.75 + (x1 - 1)^2
+// on x0 in [0, 10], from (9, 0). At x0 = 9 the model's curvature 0.75/sqrt(x0) is
+// small, so the Newton step overshoots the bound and the first subproblem pins x0 at 0
+// -- exactly 0, since 9 + (0 - 9) rounds to nothing. f(0) < f(9), so the funnel
+// ACCEPTS that step on values alone, and only the next major finds the committed
+// point's Hessian entry +inf (c = 0) or its gradient +inf as well (c > 0). Before
+// R2-1 the solve ended numerical_error at x0 = 0, which is no KKT point (c = 0: the
+// gradient -1.5 points into the box). The rollback rejects the step after the fact,
+// restores x0 = 9 at half the radius, and the radius the next accepted step is taken
+// under keeps it off 0: the solve reaches the interior minimizer
+// 1.5 sqrt(x0) + 0.75 c x0^-0.25 = 1.5.
+namespace {
+class NonfiniteAtTheBoundModel : public NlpModel {
+  public:
+    explicit NonfiniteAtTheBoundModel(double c) : c_(c) {}
+    Index n() const override { return 2; }
+    Index me() const override { return 0; }
+    Index mi() const override { return 0; }
+    double eval_f(const Vec &x) const override {
+        const double t = std::abs(x(0));
+        return std::pow(t, 1.5) - 1.5 * x(0) + c_ * std::pow(t, 0.75) + (x(1) - 1.0) * (x(1) - 1.0);
+    }
+    Vec eval_grad(const Vec &x) const override {
+        const double t = std::abs(x(0));
+        Vec g(2);
+        // c x0^0.75's derivative 0.75 c x0^-0.25 is +inf at 0 for c > 0; 0 * inf is
+        // kept out of the c = 0 model.
+        g << 1.5 * std::sqrt(t) - 1.5 + (c_ > 0.0 ? 0.75 * c_ / std::pow(t, 0.25) : 0.0),
+            2.0 * (x(1) - 1.0);
+        return g;
+    }
+    Vec eval_ce(const Vec &) const override { return Vec(0); }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &x, double s, const Vec &, const Vec &) const override {
+        const double t = std::abs(x(0));
+        SpMatRM h(2, 2);
+        double h00 = 0.75 / std::sqrt(t); // +inf at x0 = 0
+        if (c_ > 0.0) {
+            h00 -= 0.1875 * c_ / std::pow(t, 1.25);
+        }
+        h.insert(0, 0) = s * h00;
+        h.insert(1, 1) = s * 2.0;
+        h.makeCompressed();
+        return h;
+    }
+    SpMatRM eval_jac_e(const Vec &) const override { return SpMatRM(0, 2); }
+    SpMatRM eval_jac_i(const Vec &) const override { return SpMatRM(0, 2); }
+    const Vec &lower() const override { return lo_; }
+    const Vec &upper() const override { return up_; }
+    Vec start_point() const override {
+        Vec x0(2);
+        x0 << 9.0, 0.0;
+        return x0;
+    }
+
+  private:
+    double c_;
+    Vec lo_ = (Vec(2) << 0.0, -10.0).finished();
+    Vec up_ = Vec::Constant(2, 10.0);
+};
+
+SqpOptions nonfinite_rollback_options() {
+    SqpOptions opts;
+    opts.enable_scaling = false;
+    opts.tr_init = 100.0;
+    opts.tr_max = 100.0;
+    opts.max_iter = 100;
+    return opts;
+}
+} // namespace
+
+TEST(SqpDriverNonfiniteRollback, AnAcceptedStepOntoAnInfiniteHessianIsRolledBack) {
+    // The premise, in floating point: the pinned step lands on 0 exactly.
+    ASSERT_EQ(9.0 + (0.0 - 9.0), 0.0);
+    NonfiniteAtTheBoundModel model(0.0);
+    SqpSolver driver(nonfinite_rollback_options());
+    SqpResult sol;
+    ASSERT_NO_THROW(sol = driver.solve(model));
+    std::printf("[ r2-1 ] hessian status=%d majors=%zu x0=%.12g rollbacks=%ld nonfinite=%ld\n",
+                static_cast<int>(sol.status), sol.history.size(), sol.x(0),
+                static_cast<long>(sol.counters.nonfinite_step_rollbacks),
+                static_cast<long>(sol.counters.nonfinite_subproblems));
+    EXPECT_EQ(sol.status, SolveStatus::kOptimal);
+    EXPECT_NEAR(sol.x(0), 1.0, 1e-6);
+    EXPECT_NEAR(sol.x(1), 1.0, 1e-6);
+    EXPECT_NEAR(sol.f, -0.5, 1e-9);
+    EXPECT_GE(sol.counters.nonfinite_step_rollbacks, 1);
+    EXPECT_EQ(sol.counters.nonfinite_subproblems, 0);
+    EXPECT_EQ(sol.counters.nonfinite_box_projections, 0) << "x0 = 0 is in the box";
+    // THE FIRST ROLLBACK, row by row: major 0 solves at x0 = 9 and is accepted onto x0 = 0;
+    // major 1 stands on x0 = 0, solves nothing and is rolled back; major 2 is x0 = 9 again,
+    // at half the radius.
+    ASSERT_GE(sol.history.size(), 3u);
+    EXPECT_TRUE(sol.history[0].qp_solved);
+    EXPECT_TRUE(sol.history[0].verdict == StepVerdict::kAcceptF ||
+                sol.history[0].verdict == StepVerdict::kAcceptH);
+    EXPECT_FALSE(sol.history[1].qp_solved);
+    EXPECT_EQ(sol.history[1].f, 0.0) << "the abandoned point x0 = 0";
+    EXPECT_EQ(sol.history[2].f, sol.history[0].f) << "the restored iterate";
+    EXPECT_EQ(sol.history[2].tr_radius, 0.5 * sol.history[0].tr_radius);
+    // NO ROW AFTER THE LAST ROLLBACK STANDS ON A NON-FINITE POINT: every later row is
+    // measured, and the returned point is interior.
+    EXPECT_GT(sol.x(0), 0.0);
+}
+
+TEST(SqpDriverNonfiniteRollback, AnAcceptedStepOntoAnInfiniteGradientIsRolledBack) {
+    NonfiniteAtTheBoundModel model(0.01);
+    SqpSolver driver(nonfinite_rollback_options());
+    SqpResult sol;
+    ASSERT_NO_THROW(sol = driver.solve(model));
+    std::printf("[ r2-1 ] gradient status=%d majors=%zu x0=%.12g rollbacks=%ld\n",
+                static_cast<int>(sol.status), sol.history.size(), sol.x(0),
+                static_cast<long>(sol.counters.nonfinite_step_rollbacks));
+    EXPECT_EQ(sol.status, SolveStatus::kOptimal);
+    EXPECT_GT(sol.x(0), 0.5);
+    EXPECT_NEAR(1.5 * std::sqrt(sol.x(0)) + 0.0075 / std::pow(sol.x(0), 0.25), 1.5, 1e-6)
+        << "stationary in x0";
+    EXPECT_GE(sol.counters.nonfinite_step_rollbacks, 1);
+    EXPECT_EQ(sol.counters.nonfinite_subproblems, 0);
+    ASSERT_GE(sol.history.size(), 2u);
+    EXPECT_FALSE(sol.history[1].qp_solved);
+    EXPECT_TRUE(std::isnan(sol.history[1].stationarity)) << "the abandoned point's gradient";
+}
+
+// BOUNDED: no rollback is taken where the shrink would cross the radius floor -- there
+// the guard's exit stands, at the point the commit reached, exactly as before R2-1.
+TEST(SqpDriverNonfiniteRollback, NoRollbackIsTakenAcrossTheRadiusFloor) {
+    NonfiniteAtTheBoundModel model(0.0);
+    SqpOptions opts = nonfinite_rollback_options();
+    opts.tr_min = 60.0; // 100 * 0.5 < 60: the first shrink crosses the floor
+    SqpSolver driver(opts);
+    SqpResult sol;
+    ASSERT_NO_THROW(sol = driver.solve(model));
+    EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
+    EXPECT_EQ(sol.counters.nonfinite_step_rollbacks, 0);
+    EXPECT_EQ(sol.counters.nonfinite_subproblems, 1);
+    EXPECT_EQ(sol.x(0), 0.0);
+    ASSERT_EQ(sol.history.size(), 2u);
+}
+
 // ... AND kMaxIter STILL PROPAGATES WHEN THE RETRY FAILS TOO. HS76 is a
 // convex QP whose FIRST subproblem needs more than 3 minor iterations at
 // every radius the loop tries, so the retry hits the same cap and the interim

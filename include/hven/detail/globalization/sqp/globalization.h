@@ -156,10 +156,10 @@ inline constexpr Index kRestoreMinRejections = 4;
 /// h is the KLV infeasibility measure (see the generalization note at
 /// GlobalizationStrategy); sqp_solver.h's constraint_violation_l1 computes it.
 struct StepContext {
-    double f_old = 0.0;   ///< f(x_k)
-    double f_new = 0.0;   ///< f(x_k + d)
-    double h_old = 0.0;   ///< h(x_k)
-    double h_new = 0.0;   ///< h(x_k + d)
+    double f_old = 0.0; ///< f(x_k)
+    double f_new = 0.0; ///< f(x_k + d)
+    double h_old = 0.0; ///< h(x_k)
+    double h_new = 0.0; ///< h(x_k + d)
     /// delta_m_f(d) of KLV Eq. (6b): predicted objective DECREASE from the QP
     /// model, POSITIVE for a model promising progress.
     ///
@@ -170,7 +170,7 @@ struct StepContext {
     /// Only at h = 0 is pred_df >= 0 guaranteed — which is why the restoration
     /// signature cannot rest on pred_df alone: it is a WEAK signal in exactly
     /// the regime conjunct (b) selects for.
-    double pred_df = 0.0; 
+    double pred_df = 0.0;
     /// Whether the trust region is active at d. Carried for the DRIVER's
     /// radius update (KLV Algorithm 3); the acceptance test never reads it,
     /// by design (a unit test pins that).
@@ -436,6 +436,16 @@ class FunnelStrategy final : public GlobalizationStrategy {
     /// the +inf sentinel — until the first reset().
     double width() const { return width_; }
 
+    /// @brief Puts the width back where the most recent judge() call found it
+    /// (M7 W2 R2-1). The driver's non-finite step rollback rejects, after the fact,
+    /// a step that call accepted -- the committed point's derivatives were not
+    /// finite -- and a rejected step never moves the width. Valid only while no
+    /// judge() has run since the one being retracted, which the driver guarantees
+    /// (it retracts in the first major after the commit, before any trial). After
+    /// reset() or resume_from_restoration() and before the next judge() it is a
+    /// no-op.
+    void retract_last_judgement() { width_ = width_at_last_judge_; }
+
     /// False until reset() succeeds; a judge() call before then throws.
     bool initialized() const { return initialized_; }
 
@@ -444,6 +454,8 @@ class FunnelStrategy final : public GlobalizationStrategy {
 
   private:
     double width_ = std::numeric_limits<double>::infinity();
+    /// The width the most recent judge() call started from (retract_last_judgement).
+    double width_at_last_judge_ = std::numeric_limits<double>::infinity();
     bool initialized_ = false;
     /// Full-step-mode flag; false is the mode-less class, exactly.
     bool full_step_ = false;

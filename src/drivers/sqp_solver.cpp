@@ -3478,6 +3478,25 @@ struct SqpSolver::SolveState {
     bool duals_carried = false;
     bool funnel_started = false;
 
+    // ---- the non-finite step rollback (M7 W2 R2-1) --------------------------
+    // THE ITERATE THE LAST COMMIT LEFT, kept until the first subproblem built at the
+    // committed point passes the finiteness guard. A model can be finite in f, c and
+    // the gradient at a trial point and still have a non-finite Hessian or Jacobian
+    // there (a |t|^p term, 1 < p < 2, at t = 0 exactly: YORKNET's pipe flows); the
+    // strategy judged the trial on values alone, so that is first seen here. Moved,
+    // not copied, at the commit; `valid` only between that commit and the guard.
+    struct NonfiniteRollback {
+        bool valid = false;
+        Vec x, lambda_e, lambda_i;
+        NlpEval ev;
+        bool duals_ingested = false;
+        bool duals_carried = false;
+        // The radius the committed step was taken under, BEFORE any growth.
+        double delta = 0.0;
+        Index rejections_at_iterate = 0;
+    };
+    NonfiniteRollback rollback;
+
     // ---- push accounting: the exactly-once invariant itself ----------------
     // THE PUSH INVARIANT, GUARDED (fix round 2, F1). R9 moved the verdict
     // block's single push into its branches, so "exactly one row per major" is
@@ -5375,6 +5394,7 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     st.out.counters.qp_failure_steps_accepted += rs.counters.qp_failure_steps_accepted;
     st.out.counters.nonfinite_subproblems += rs.counters.nonfinite_subproblems;
     st.out.counters.nonfinite_box_projections += rs.counters.nonfinite_box_projections;
+    st.out.counters.nonfinite_step_rollbacks += rs.counters.nonfinite_step_rollbacks;
     st.out.counters.elastic_last_rung_fallbacks += rs.counters.elastic_last_rung_fallbacks;
     // THE EXCURSION RECORD DOES NOT FOLD AND CANNOT (M7 W2 M2): this sub-solve
     // runs with `allow_restoration_` false, so its own `restoration_entries` is
@@ -6138,6 +6158,51 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
                 st.events_fired, st.rows_pushed));
         }
     };
+    // THE NON-FINITE STEP ROLLBACK (M7 W2 R2-1). The strategy judges a trial on f and
+    // c alone, so a point whose gradient, Jacobian or Hessian is not finite can be
+    // ACCEPTED and committed (YORKNET: free pipe flows landing on q = 0 exactly, where
+    // the |q|^1.852 element's second derivative is infinite). Reached from the two
+    // places that first see such a point -- the iterate measurement (a non-finite
+    // gradient) and the subproblem guard (a non-finite H, A or g) -- and only in the
+    // first major after the commit, while the snapshot it took is valid. The step is
+    // then treated as REJECTED after the fact, the trust-region response to a trial the
+    // model cannot be evaluated at: the previous iterate, its evaluation and its prices
+    // are restored, so is the funnel width the acceptance moved, the radius the step was
+    // taken under is shrunk, and the subproblem is rebuilt there. That iterate's own
+    // subproblem was finite (it was solved), so nothing non-finite is ever stepped
+    // from. The row this major pushes describes the abandoned point, with no subproblem
+    // solved. BOUNDED: each rollback halves the radius and none is taken across the
+    // floor; outside the full-step mode only. Otherwise -- no valid snapshot, the
+    // floor, the mode -- the caller's exit stands.
+    auto roll_back_nonfinite_step = [&]() -> bool {
+        if (!st.rollback.valid || st.full_step_funnel != nullptr ||
+            shrink_hits_floor(st.rollback.delta)) {
+            st.rollback.valid = false;
+            return false;
+        }
+        ++st.out.counters.nonfinite_step_rollbacks;
+        mj.row.qp_solved = false;
+        push_history(mj.row);
+        st.x.swap(st.rollback.x);
+        std::swap(st.ev, st.rollback.ev);
+        st.lambda_e = st.rollback.lambda_e;
+        st.lambda_i = st.rollback.lambda_i;
+        st.duals_ingested = st.rollback.duals_ingested;
+        st.duals_carried = st.rollback.duals_carried;
+        st.delta = shrunk_radius(st.rollback.delta);
+        st.rejections_at_iterate = st.rollback.rejections_at_iterate + 1;
+        st.subproblem_is_stale = true;
+        st.rollback.valid = false;
+        // A REJECTED STEP NEVER MOVES THE FUNNEL: the width an h-type acceptance of the
+        // abandoned step tightened is put back (no judge() has run since). A strategy
+        // this driver cannot see into keeps whatever its acceptance did.
+        if (auto *funnel = dynamic_cast<FunnelStrategy *>(st.strategy.get())) {
+            funnel->retract_last_judgement();
+        }
+        // THE SEED IS KEPT: the commit made it the restored iterate's own subproblem
+        // solution (x zeroed), exactly what a rejection at that iterate re-seeds from.
+        return true;
+    };
     measure_iterate();
 
     // NON-FINITE ITERATE. The model cannot be evaluated at x (or
@@ -6154,8 +6219,13 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
     // up front, so the driver shrinks the radius and stays where it is
     // instead of moving onto the NaN. Only an x0 the model cannot
     // evaluate (x0 itself is validated finite by the caller check
-    // above) reaches here.
+    // above) reaches here -- or an ACCEPTED trial whose GRADIENT is not
+    // finite (judged on f and c alone), which the non-finite step
+    // rollback above turns back into a rejection when it can (M7 W2 R2-1).
     if (!mj.kkt.finite) {
+        if (roll_back_nonfinite_step()) {
+            return MajorOutcome::kContinue;
+        }
         push_history(mj.row);
         st.out.status = SolveStatus::kNumericalError;
         st.out.x = st.x;
@@ -6324,6 +6394,7 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
             st.duals_ingested = st.fs.best_duals_ingested; // see its note above
             st.duals_carried = st.fs.best_duals_carried;
             st.ev = std::move(st.fs.best_ev);
+            st.rollback.valid = false; // the iterate moved by other means than a commit
             mj.kkt = measure_kkt(seam, st.ev, st.x, st.lambda_e, st.lambda_i);
             measure_iterate();
             // KLV Eq. (13) re-basing, which ALSO clears the strategy's
@@ -6595,7 +6666,15 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
     // that, and the walk's dense factor would refuse the data by throwing. The
     // solve ends kNumericalError here, at the last point it reached, through the
     // ordinary subproblem-failure exit -- its activity is the seed's.
+    //
+    // UNLESS the iterate is the one the last commit just made (M7 W2 R2-1): the step
+    // that led here is then rejected after the fact and the previous iterate, whose
+    // own subproblem was finite, is restored at a shrunk radius (see
+    // roll_back_nonfinite_step). The exit below is what is left when it cannot be.
     if (!subproblem_data_finite(st.qp)) {
+        if (roll_back_nonfinite_step()) {
+            return MajorOutcome::kContinue;
+        }
         ++st.out.counters.nonfinite_subproblems;
         // FRESH, not a copy of the seed: only its activity is carried (its counters
         // were folded when it was solved).
@@ -6619,6 +6698,8 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         push_history(mj.row);
         return MajorOutcome::kFinishQpFailure;
     }
+    // The committed point's subproblem is finite: its snapshot is no longer needed.
+    st.rollback.valid = false;
 
     SolveOverrides overrides;
     overrides.tr_radius = st.delta;
@@ -7578,6 +7659,18 @@ SqpResult SqpSolver::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &b
         case MajorOutcome::kContinue:
             continue;
         case MajorOutcome::kCommitAccepted: {
+            // THE NON-FINITE STEP ROLLBACK'S SNAPSHOT (M7 W2 R2-1), taken before the
+            // radius grows and before the commit below moves the iterate: the point,
+            // its evaluation and prices, the radius the step was taken under and the
+            // rejection count at it. The point and its evaluation are SWAPPED into the
+            // snapshot further below rather than copied (the commit overwrites both).
+            st.rollback.delta = st.delta;
+            st.rollback.rejections_at_iterate = st.rejections_at_iterate;
+            st.rollback.lambda_e = st.lambda_e;
+            st.rollback.lambda_i = st.lambda_i;
+            st.rollback.duals_ingested = st.duals_ingested;
+            st.rollback.duals_carried = st.duals_carried;
+
             // ACCEPTED (kAcceptF or kAcceptH), possibly via SOC. The radius
             // grows only on the evidence described in RADIUS MANAGEMENT, and
             // it is computed BEFORE the move so `ev` is still the old
@@ -7605,6 +7698,10 @@ SqpResult SqpSolver::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &b
                 qn_x_old = st.x;
                 qn_ev_old = st.ev;
             }
+            // Both branches below overwrite `st.x` and `st.ev` whole.
+            st.rollback.x.swap(st.x);
+            std::swap(st.rollback.ev, st.ev);
+            st.rollback.valid = true;
 
             if (mj.soc_applied) {
                 st.x = mj.x_soc;

@@ -464,9 +464,9 @@ void expect_ipqp_counters_identical(const IpqpCounters &a, const IpqpCounters &b
 // `restoration_reduction_resumes`; 70 and 68 until M7 QN stage 3 appended
 // `eval_hess_calls` and the thirteen-field quasi-Newton group; 77 and 75 until the QN
 // stages 1-3 review appended `qn_nonpd_seen`; 78 and 76 until the QN-quality riders
-// appended `qn_dimension`.)
+// appended `qn_dimension`; 79 and 77 until M7 W2 R2-1 appended `nonfinite_step_rollbacks`.)
 void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
-    static_assert(sizeof(SqpCounters) == 79 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
+    static_assert(sizeof(SqpCounters) == 80 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
                   "SqpCounters changed size: add the new field to expect_counters_identical "
                   "and update this assertion.");
     HVEN_EXPECT_SAME(a, b, major_iters);
@@ -548,6 +548,7 @@ void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
     HVEN_EXPECT_SAME(a, b, qn_kwrong_seen);
     HVEN_EXPECT_SAME(a, b, qn_nonpd_seen);
     HVEN_EXPECT_SAME(a, b, qn_dimension);
+    HVEN_EXPECT_SAME(a, b, nonfinite_step_rollbacks);
     expect_ssn_counters_identical(a.ssn, b.ssn);
     expect_ipqp_counters_identical(a.ipqp, b.ipqp);
 }

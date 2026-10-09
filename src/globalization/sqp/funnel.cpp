@@ -23,6 +23,7 @@ void FunnelStrategy::reset(double h0) {
                         h0));
     }
     width_ = std::max(kFunnelTauBar, kFunnelKappaBar * h0);
+    width_at_last_judge_ = width_;
     initialized_ = true;
 }
 
@@ -31,6 +32,7 @@ StepVerdict FunnelStrategy::judge(const StepContext &ctx) {
         throw std::logic_error("FunnelStrategy::judge: called before reset(h0); the funnel "
                                "width is undefined until a solve has been started");
     }
+    width_at_last_judge_ = width_;
 
     // Wrong-answer guard, not a robustness nicety: every comparison against a
     // NaN is false, so an unguarded NaN would be classified by accident of
@@ -112,6 +114,7 @@ void FunnelStrategy::resume_from_restoration(double h_restored) {
                         h_restored));
     }
     width_ = (1.0 - detail::kFunnelKappa) * h_restored + detail::kFunnelKappa * width_;
+    width_at_last_judge_ = width_;
     full_step_ = false;
 }
 

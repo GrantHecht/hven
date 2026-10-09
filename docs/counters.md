@@ -229,6 +229,22 @@ one of those three therefore cannot silently miss the trace.
   outside its box only by rounding, at which the subproblem was non-finite -- so
   a projection after which the data is still non-finite is counted here AND in
   `nonfinite_subproblems`.
+  `nonfinite_step_rollbacks` (M7 W2 R2-1, appended last after `qn_dimension`)
+  folds with them too. It counts ACCEPTED steps rejected after the fact: the
+  strategy judges a trial on f and c alone, so the first major after a commit can
+  find the new point's gradient (the iterate measurement) or its H, A or g (the
+  subproblem guard) non-finite -- YORKNET's free pipe flows landing on q = 0
+  exactly, where the |q|^1.852 element's second derivative is infinite. The
+  previous iterate, its evaluation and its prices are restored, the funnel width
+  an h-type acceptance of the step tightened is put back
+  (`FunnelStrategy::retract_last_judgement`), the radius the step was taken
+  under is shrunk, and that major's row describes the abandoned
+  point with no subproblem solved. A rolled-back step stays counted in
+  `steps_accepted` (and in `qp_failure_steps_accepted` when it was one); it is
+  not a `rejected_steps`. Bounded by the radius floor: no rollback is taken where
+  the shrink would cross `tr_min`, nor in the full-step mode, nor where the point
+  was not reached by a commit -- those still end through `nonfinite_subproblems`
+  (or the non-finite-iterate exit), which therefore counts only exits.
 
   **THE RESTORATION EXCURSION RECORD IS A PER-ENTRY READING, OVERWRITTEN, AND
   ITS ABSENCE IS READ OFF ITS OWN COUNT** (M7 W2 M2, the A0 signals page's S5).
