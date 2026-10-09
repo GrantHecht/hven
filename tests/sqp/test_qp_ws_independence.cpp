@@ -882,4 +882,150 @@ TEST_P(WsIndependence, AUsableFactorIsNeverAnUnrunTest) {
     EXPECT_EQ(t.verdict, detail::DepVerdict::kDependent);
 }
 
+// ===========================================================================
+// THE DEAD-END RANK REPAIR's analysis (M7 W2 RDV; ws_independence.h, rank_repair), on constructed
+// working sets: the release set, its orientation on an inconsistent face, the mandatory rows'
+// own dependence, the stuck case, and the block path past kRankDenseRows rows.
+// ===========================================================================
+
+using RankOutcome = detail::RankRepair::Outcome;
+
+bool released(const detail::RankRepair &r, detail::WsMember::Kind kind, Index idx) {
+    for (const detail::WsMember &m : r.release) {
+        if (m.kind == kind && m.idx == idx) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// x0 + x1 = 1 (equality) beside the working row x0 + x1 <= 2: dependent and INCONSISTENT; on
+// the face without the row x0 + x1 = 1 < 2, so the row is released.
+TEST(WsRankRepair, InconsistentRowIsReleasedByItsOrientation) {
+    Eigen::MatrixXd Ae(1, 2);
+    Ae << 1, 1;
+    Eigen::MatrixXd Ai(1, 2);
+    Ai << 1, 1;
+    const QpProblem qp = make_qp(Eigen::MatrixXd::Identity(2, 2), Vec::Zero(2), Ae,
+                                 Vec::Constant(1, 1.0), Ai, Vec::Constant(1, 2.0), -10.0, 10.0);
+    WorkingSet ws(2, 1);
+    ws.add_ineq(0);
+    const detail::RankRepair r = detail::rank_repair(qp, ws, Vec::Zero(1), QpOptions{}, 0);
+    EXPECT_EQ(r.outcome, RankOutcome::kRelease);
+    EXPECT_EQ(r.deficiency, 1);
+    EXPECT_EQ(r.inconsistent_steps, 1);
+    ASSERT_EQ(r.release.size(), 1u);
+    EXPECT_TRUE(released(r, detail::WsMember::Kind::kRow, 0));
+}
+
+// The same pair with the row x0 + x1 <= 1/2: the face without it violates it, and no other member
+// is releasable -- STUCK, nothing released (the QP is infeasible).
+TEST(WsRankRepair, InconsistentWithNoAdmissibleMemberIsStuck) {
+    Eigen::MatrixXd Ae(1, 2);
+    Ae << 1, 1;
+    Eigen::MatrixXd Ai(1, 2);
+    Ai << 1, 1;
+    const QpProblem qp = make_qp(Eigen::MatrixXd::Identity(2, 2), Vec::Zero(2), Ae,
+                                 Vec::Constant(1, 1.0), Ai, Vec::Constant(1, 0.5), -10.0, 10.0);
+    WorkingSet ws(2, 1);
+    ws.add_ineq(0);
+    const detail::RankRepair r = detail::rank_repair(qp, ws, Vec::Zero(1), QpOptions{}, 0);
+    EXPECT_EQ(r.outcome, RankOutcome::kStuck);
+    EXPECT_TRUE(r.release.empty());
+}
+
+// A consistent duplicate row is released and the face does not change; a shift-driven one is
+// mandatory (not releasable), leaving only the rows' own dependence.
+TEST(WsRankRepair, ConsistentRowIsReleasedUnlessShiftDriven) {
+    Eigen::MatrixXd Ae(1, 2);
+    Ae << 1, 1;
+    Eigen::MatrixXd Ai(1, 2);
+    Ai << 2, 2;
+    const QpProblem qp = make_qp(Eigen::MatrixXd::Identity(2, 2), Vec::Zero(2), Ae,
+                                 Vec::Constant(1, 1.0), Ai, Vec::Constant(1, 2.0), -10.0, 10.0);
+    WorkingSet ws(2, 1);
+    ws.add_ineq(0);
+    const detail::RankRepair r = detail::rank_repair(qp, ws, Vec::Zero(1), QpOptions{}, 0);
+    EXPECT_EQ(r.outcome, RankOutcome::kRelease);
+    EXPECT_EQ(r.inconsistent_steps, 0);
+    EXPECT_TRUE(released(r, detail::WsMember::Kind::kRow, 0));
+    const detail::RankRepair s = detail::rank_repair(qp, ws, Vec::Constant(1, 0.5), QpOptions{}, 0);
+    EXPECT_EQ(s.outcome, RankOutcome::kFullRank);
+    EXPECT_EQ(s.deficiency, 1);
+    EXPECT_TRUE(s.release.empty());
+}
+
+// x0 - x1 = 0 with x0 pinned at its lower bound 0 and x1 at its upper bound 1: no free column, the
+// row empty on F, inconsistent. Both pins have the right orientation (releasing either moves its
+// variable strictly inside its box on the new face); the tie goes to the first, x0.
+TEST(WsRankRepair, PinsCarryTheRowsDependencyAndItsOrientation) {
+    Eigen::MatrixXd Ae(1, 2);
+    Ae << 1, -1;
+    const QpProblem qp = make_qp(Eigen::MatrixXd::Identity(2, 2), Vec::Zero(2), Ae, Vec::Zero(1),
+                                 Eigen::MatrixXd(0, 2), Vec(0), 0.0, 1.0);
+    WorkingSet ws(2, 0);
+    ws.bound_state()[0] = BoundState::kAtLower;
+    ws.bound_state()[1] = BoundState::kAtUpper;
+    const detail::RankRepair r = detail::rank_repair(qp, ws, Vec(0), QpOptions{}, 0);
+    EXPECT_EQ(r.outcome, RankOutcome::kRelease);
+    EXPECT_EQ(r.inconsistent_steps, 1);
+    ASSERT_EQ(r.release.size(), 1u);
+    EXPECT_TRUE(released(r, detail::WsMember::Kind::kPin, 0));
+}
+
+// The equality rows' own consistent dependence (x0 + x1 = 1 twice over) is left to the dual
+// regularization: full rank as far as the repair is concerned.
+TEST(WsRankRepair, MandatoryOnlyDependenceReleasesNothing) {
+    Eigen::MatrixXd Ae(2, 2);
+    Ae << 1, 1, 2, 2;
+    Vec be(2);
+    be << 1, 2;
+    const QpProblem qp = make_qp(Eigen::MatrixXd::Identity(2, 2), Vec::Zero(2), Ae, be,
+                                 Eigen::MatrixXd(0, 2), Vec(0), -10.0, 10.0);
+    WorkingSet ws(2, 0);
+    const detail::RankRepair r = detail::rank_repair(qp, ws, Vec(0), QpOptions{}, 0);
+    EXPECT_EQ(r.outcome, RankOutcome::kFullRank);
+    EXPECT_EQ(r.deficiency, 1);
+}
+
+// Past kRankDenseRows rows the block inverse iteration decides. 1050 disjoint equality rows
+// x_2i + x_2i+1 = 1, a working row x0 + x1 <= 2 (inconsistent with row 0) and both variables of
+// row 1 pinned at their lower bound 0 (row 1 empty on the free columns, inconsistent): two null
+// directions, each released by its orientation.
+TEST(WsRankRepair, BlockPathFindsTwoInconsistentDirections) {
+    const Index me = 1050;
+    const Index n = 2 * me;
+    ASSERT_GT(me + 1, detail::kRankDenseRows);
+    std::vector<Eigen::Triplet<double>> te;
+    for (Index i = 0; i < me; ++i) {
+        te.emplace_back(i, 2 * i, 1.0);
+        te.emplace_back(i, 2 * i + 1, 1.0);
+    }
+    QpProblem qp;
+    qp.H.resize(n, n);
+    qp.H.setIdentity();
+    qp.g = Vec::Zero(n);
+    qp.Ae.resize(me, n);
+    qp.Ae.setFromTriplets(te.begin(), te.end());
+    qp.be = Vec::Ones(me);
+    std::vector<Eigen::Triplet<double>> ti{{0, 0, 1.0}, {0, 1, 1.0}};
+    qp.Ai.resize(1, n);
+    qp.Ai.setFromTriplets(ti.begin(), ti.end());
+    qp.bi = Vec::Constant(1, 2.0);
+    qp.lower = Vec::Zero(n);
+    qp.upper = Vec::Constant(n, 10.0);
+    WorkingSet ws(n, 1);
+    ws.add_ineq(0);
+    ws.bound_state()[2] = BoundState::kAtLower;
+    ws.bound_state()[3] = BoundState::kAtLower;
+    const detail::RankRepair r = detail::rank_repair(qp, ws, Vec::Zero(1), QpOptions{}, 0);
+    EXPECT_EQ(r.outcome, RankOutcome::kRelease);
+    EXPECT_EQ(r.deficiency, 2);
+    EXPECT_EQ(r.inconsistent_steps, 2);
+    ASSERT_EQ(r.release.size(), 2u);
+    EXPECT_TRUE(released(r, detail::WsMember::Kind::kRow, 0));
+    EXPECT_TRUE(released(r, detail::WsMember::Kind::kPin, 2) ||
+                released(r, detail::WsMember::Kind::kPin, 3));
+}
+
 } // namespace

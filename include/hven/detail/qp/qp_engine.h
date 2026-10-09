@@ -699,6 +699,30 @@
 // kWrong on the border path is that factor's failure signature (exactly rank-deficient
 // faces measured with a positive-definite reduced Hessian). A kOk standstill is left alone;
 // any non-qualifying pass resets the full-step run. Once per solve, like every retreat.
+// THE DEAD-END RANK REPAIR (M7 W2 RDV; ws_independence.h, rank_repair). Where the add-site rule
+// would END the solve -- no admissible member and no verified certificate (kRejected) or no
+// pass-over within tolerance (N3) -- on an ordinary step, after the border retreat, the WORKING
+// SET ITSELF is read for numerical rank: its rows on the free columns, without the walk's
+// regularized factor. The regularized dependency test cannot see a dependency whose singular
+// value sits below what dual_mu and primal_delta resolve -- with H singular on most of the face
+// the delta pivots are the backend's to perturb -- so a STALLED test admits an exactly dependent
+// pin and a CONVERGED one carries coefficients polluted by residual / sigma_min into an exchange
+// that keeps the wrong member (MEASURED, M7 W2 M1 / RDV: YORKNET's and BRITGAS's elastic rungs,
+// sigma_min 1e-16 against a next singular value of 1e-5). The face such a set describes can be
+// INCONSISTENT (no point meets every member): the walk then steps toward a point that does not
+// exist, every blocker is "dependent" by the integer screen, and the rule ends the solve on a
+// feasible QP. When the set is rank-deficient the members on its null directions are released
+// until it is full rank: on an inconsistent direction the member whose constraint the face
+// without it satisfies STRICTLY (Farkas' orientation), on a consistent one the member with the
+// largest share of the direction, the face unchanged. A consistent dependence of the mandatory
+// rows alone is left to the dual regularization; an inconsistent direction with no member of the
+// right orientation releases nothing. The released members are marked released at this point
+// (WalkSeen), their multipliers cleared, and the walk resumes from the same iterate. NOTHING IS
+// CERTIFIED HERE: every later exit is the ordinary walk's, so the repair can change only a solve
+// that would otherwise have ended dep_blocker_terminations or dep_certificate_rejections, and it
+// can neither certify an infeasible QP nor certify a point the classifier would not. FINITE:
+// kRankRepairBudget analyses per solve. Counted rank_repairs, rank_repair_releases (also in
+// ws_drops), rank_repair_misses.
 // E2 FIX4: a terminal point that would
 // read kInfeasible by its structural violation is first re-solved mu-free on its face and
 // adopted when it satisfies every row and bound (terminal_mu_refines /
@@ -1076,6 +1100,12 @@ inline Index repair_pin_budget(Index n) {
     const Index fraction = (n + kRepairPinDivisor - 1) / kRepairPinDivisor; // ceil(n / 2)
     return fraction > kRepairPinFloor ? fraction : kRepairPinFloor;
 }
+
+// THE DEAD-END RANK REPAIR's analyses per solve (Degeneracy; ws_independence.h, rank_repair). The
+// finiteness of the walk across repairs rests on this cap alone: a repair moves neither x nor the
+// minor cap, and the walk between repairs keeps its own arguments. MEASURED on the RDV battery: at
+// most 2 repairs per solve (SAWPATH elastic qp1), 1 elsewhere.
+constexpr Index kRankRepairBudget = 8;
 
 // Section 4b's SUSPECT-STALL GATE, invariant half (ii). The QP MODEL's
 // stationarity residual r = H x + g + Ae^T lambda_e + Ai^T lambda_i,

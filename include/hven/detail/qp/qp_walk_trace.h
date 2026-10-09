@@ -200,6 +200,9 @@ enum class QpWalkAction : int {
     /// §4c's DECLINED RIDE: a vetoed ride's drop undone, the released
     /// constraint re-entering (`block`, `block_index`).
     kRideUndone,
+    /// THE DEAD-END RANK REPAIR (qp_engine.h, Degeneracy): an add-site dead end at a
+    /// rank-deficient working set released the members on its null directions.
+    kRankRepair,
 };
 
 /// Which block a constraint identity refers to.

@@ -10,6 +10,7 @@
 #include <optional>
 
 #include <Eigen/Eigenvalues>
+#include <Eigen/QR>
 
 #include <hven/detail/kkt/bordered_eqp.h>
 
@@ -742,6 +743,288 @@ Vec face_negative_curvature(const QpProblem &qp, const WorkingSet &ws, const Dep
         }
     }
     return best;
+}
+
+namespace {
+
+// A deterministic value in [-1, 1] of (i, j): splitmix64, identical on every platform.
+double rank_start_value(std::uint64_t i, std::uint64_t j) {
+    std::uint64_t z = i * 0x9E3779B97F4A7C15ULL + j + 0x632BE59BD9B4E019ULL;
+    z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ULL;
+    z = (z ^ (z >> 27)) * 0x94D049BB133111EBULL;
+    z ^= z >> 31;
+    return static_cast<double>(z >> 11) * (2.0 / 9007199254740992.0) - 1.0;
+}
+
+// The thin orthonormal basis of X's range (Householder; X has at least as many rows as columns).
+Eigen::MatrixXd thin_q(const Eigen::MatrixXd &X) {
+    Eigen::HouseholderQR<Eigen::MatrixXd> qr(X);
+    return qr.householderQ() * Eigen::MatrixXd::Identity(X.rows(), X.cols());
+}
+
+} // namespace
+
+RankRepair rank_repair(const QpProblem &qp, const WorkingSet &ws, const Vec &shift,
+                       const QpOptions &opts, int threads) {
+    RankRepair out;
+    const Index n = qp.n();
+    const Index me = qp.me();
+    const std::vector<Index> &aw = ws.active_ineq();
+    const std::vector<BoundState> &bs = ws.bound_state();
+    const Index mr = me + static_cast<Index>(aw.size());
+    if (mr == 0) {
+        return out; // no rows: the pins alone are independent
+    }
+    std::vector<Index> fpos(static_cast<std::size_t>(n), -1);
+    std::vector<Index> pins;
+    Index nf = 0;
+    for (Index i = 0; i < n; ++i) {
+        if (bs[static_cast<std::size_t>(i)] == BoundState::kFree) {
+            fpos[static_cast<std::size_t>(i)] = nf++;
+        } else {
+            pins.push_back(i);
+        }
+    }
+    // The rows, each divided by its 2-norm (an empty row by 1): M on every column, M_F on the free
+    // columns, and their right-hand sides.
+    std::vector<Eigen::Triplet<double>> tf;
+    std::vector<Eigen::Triplet<double>> tm;
+    Vec rhs(mr);
+    const auto row_of = [&](Index k, const SpMatRM *&A, Index &r) {
+        A = k < me ? &qp.Ae : &qp.Ai;
+        r = k < me ? k : aw[static_cast<std::size_t>(k - me)];
+    };
+    for (Index k = 0; k < mr; ++k) {
+        const SpMatRM *A = nullptr;
+        Index r = 0;
+        row_of(k, A, r);
+        double s = 0.0;
+        for (SpMatRM::InnerIterator it(*A, r); it; ++it) {
+            s += it.value() * it.value();
+        }
+        s = std::sqrt(s);
+        if (!(s > 0.0) || !std::isfinite(s)) {
+            if (!std::isfinite(s)) {
+                out.outcome = RankRepair::Outcome::kRefused;
+                return out;
+            }
+            s = 1.0;
+        }
+        for (SpMatRM::InnerIterator it(*A, r); it; ++it) {
+            tm.emplace_back(k, it.col(), it.value() / s);
+            const Index f = fpos[static_cast<std::size_t>(it.col())];
+            if (f >= 0) {
+                tf.emplace_back(k, f, it.value() / s);
+            }
+        }
+        rhs(k) = (k < me ? qp.be(r) : qp.bi(r)) / s;
+    }
+    SpMatRM M(mr, n);
+    M.setFromTriplets(tm.begin(), tm.end());
+    SpMatRM MF(mr, std::max<Index>(nf, 1));
+    MF.setFromTriplets(tf.begin(), tf.end());
+
+    // The numerical left null space Y of M_F (mr x k, orthonormal columns).
+    Eigen::MatrixXd Y;
+    SpMatRM G = SpMatRM(MF * SpMatRM(MF.transpose()));
+    double omega = 0.0;
+    for (Index r = 0; r < G.outerSize(); ++r) {
+        double s = 0.0;
+        for (SpMatRM::InnerIterator it(G, r); it; ++it) {
+            s += std::abs(it.value());
+        }
+        omega = std::max(omega, s);
+    }
+    if (nf == 0 || !(omega > 0.0)) {
+        Y = Eigen::MatrixXd::Identity(mr, mr); // every row is empty on the free columns
+    } else {
+        const double t = kRankGramShift * omega;
+        hven::linear::SymmetricFactor factor(sqp_kkt_options(threads));
+        bool factored = false;
+        const double mnorm = std::sqrt(omega); // >= ||M_F||_2
+        Index b = std::min<Index>(mr, kRankBlockStart);
+        for (;;) {
+            if (mr <= kRankDenseRows) {
+                // Few rows: the Gram's own dense eigenpairs, the same squared resolution as B'B
+                // below.
+                const Eigen::MatrixXd Gd = Eigen::MatrixXd(G);
+                const Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(Gd);
+                if (es.info() != Eigen::Success) {
+                    out.outcome = RankRepair::Outcome::kRefused;
+                    return out;
+                }
+                std::vector<Index> nulls;
+                for (Index j = 0; j < mr; ++j) {
+                    if (std::sqrt(std::max(0.0, es.eigenvalues()(j))) <= kRankNullTol * mnorm) {
+                        nulls.push_back(j);
+                    }
+                }
+                Y.resize(mr, static_cast<Index>(nulls.size()));
+                for (std::size_t q = 0; q < nulls.size(); ++q) {
+                    Y.col(static_cast<Index>(q)) = es.eigenvectors().col(nulls[q]);
+                }
+                break;
+            }
+            if (static_cast<double>(mr) * static_cast<double>(b) > kRankBlockCap) {
+                out.outcome = RankRepair::Outcome::kRefused;
+                return out;
+            }
+            if (!factored) {
+                SpMatRM shiftI(mr, mr);
+                shiftI.setIdentity();
+                SpMatRM A = SpMatRM(G + t * shiftI).triangularView<Eigen::Upper>();
+                A.makeCompressed();
+                try {
+                    factor.analyze(A);
+                    const hven::linear::FactorizeOutcome fo = factor.factorize(A);
+                    if (fo.status != hven::linear::FactorizeOutcome::Status::kOk ||
+                        (fo.inertia.perturbed_pivots.has_value() &&
+                         *fo.inertia.perturbed_pivots != 0)) {
+                        out.outcome = RankRepair::Outcome::kRefused;
+                        return out;
+                    }
+                } catch (const std::exception &) {
+                    out.outcome = RankRepair::Outcome::kRefused;
+                    return out;
+                }
+                factored = true;
+            }
+            Eigen::MatrixXd X(mr, b);
+            for (Index i = 0; i < mr; ++i) {
+                for (Index j = 0; j < b; ++j) {
+                    X(i, j) = rank_start_value(static_cast<std::uint64_t>(i),
+                                               static_cast<std::uint64_t>(j));
+                }
+            }
+            X = thin_q(X);
+            Eigen::MatrixXd Xn(mr, b);
+            try {
+                for (int it = 0; it < kRankIterations; ++it) {
+                    factor.solve(X, Xn);
+                    if (!Xn.allFinite()) {
+                        out.outcome = RankRepair::Outcome::kRefused;
+                        return out;
+                    }
+                    X = thin_q(Xn);
+                }
+            } catch (const std::exception &) {
+                out.outcome = RankRepair::Outcome::kRefused;
+                return out;
+            }
+            // Ritz pairs of G on span(X) from the thin B = M_F^T X: B'B = X'(M_F M_F^T)X, so its
+            // eigenpairs are the Ritz pairs and the square roots of its eigenvalues the Ritz
+            // singular values of M_F^T. B'B is b x b; its rounding is eps ||B||^2, i.e. a
+            // singular-value resolution of about sqrt(eps) ||M_F||, beneath kRankNullTol.
+            const Eigen::MatrixXd B = SpMatRM(MF.transpose()) * X; // nf x b
+            const Eigen::MatrixXd C = B.transpose() * B;
+            const Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(C);
+            if (es.info() != Eigen::Success) {
+                out.outcome = RankRepair::Outcome::kRefused;
+                return out;
+            }
+            const Eigen::MatrixXd V = es.eigenvectors();
+            Vec sv(b);
+            for (Index j = 0; j < b; ++j) {
+                sv(j) = std::sqrt(std::max(0.0, es.eigenvalues()(j)));
+            }
+            // The block is adequate once its largest Ritz value clears the shift's band.
+            const double smax = sv.size() > 0 ? sv.maxCoeff() : 0.0;
+            if (b < mr && !(smax * smax >= kRankBlockEdge * t)) {
+                b = std::min<Index>(mr, 2 * b);
+                continue;
+            }
+            std::vector<Index> nulls;
+            for (Index j = 0; j < b; ++j) {
+                if (sv(j) <= kRankNullTol * mnorm) {
+                    nulls.push_back(j);
+                }
+            }
+            Y.resize(mr, static_cast<Index>(nulls.size()));
+            for (std::size_t q = 0; q < nulls.size(); ++q) {
+                Y.col(static_cast<Index>(q)) = X * V.col(nulls[q]);
+            }
+            break;
+        }
+    }
+    const Index k0 = Y.cols();
+    out.deficiency = k0;
+    if (k0 == 0) {
+        return out;
+    }
+
+    // Z: the null space extended to every member, rows then pins (pin i carries -(M^T y)_i).
+    const auto np = static_cast<Index>(pins.size());
+    const Index nm = mr + np;
+    Eigen::MatrixXd Z(nm, k0);
+    Z.topRows(mr) = Y;
+    const Eigen::MatrixXd MtY = SpMatRM(M.transpose()) * Y; // n x k0
+    Vec rf(nm);
+    Vec orient = Vec::Zero(nm); // 0: mandatory
+    rf.head(mr) = rhs;
+    for (Index k = me; k < mr; ++k) {
+        const Index r = aw[static_cast<std::size_t>(k - me)];
+        orient(k) = shift.size() > r && shift(r) > 0.0 ? 0.0 : 1.0;
+    }
+    for (Index q = 0; q < np; ++q) {
+        const Index i = pins[static_cast<std::size_t>(q)];
+        Z.row(mr + q) = -MtY.row(i);
+        const BoundState st = bs[static_cast<std::size_t>(i)];
+        rf(mr + q) = st == BoundState::kAtUpper ? qp.upper(i) : qp.lower(i);
+        orient(mr + q) = st == BoundState::kAtUpper ? 1.0 : st == BoundState::kAtLower ? -1.0 : 0.0;
+    }
+    const double ctol =
+        kRankConsistencyFactor * opts.feas_tol * std::max(1.0, rf.lpNorm<Eigen::Infinity>());
+    std::vector<char> used(static_cast<std::size_t>(nm), 0);
+    std::vector<WsMember> chosen;
+    while (Z.cols() > 0) {
+        const Vec c = Z.transpose() * rf;
+        const double gamma = c.norm();
+        const bool incons = gamma > ctol;
+        Vec ystar;
+        if (incons) {
+            ystar = Z * c / gamma;
+        }
+        Index best = -1;
+        double bv = 0.0;
+        for (Index j = 0; j < nm; ++j) {
+            if (orient(j) == 0.0 || used[static_cast<std::size_t>(j)] != 0) {
+                continue;
+            }
+            const double v = incons ? orient(j) * ystar(j) : Z.row(j).norm();
+            if (v > bv) {
+                bv = v;
+                best = j;
+            }
+        }
+        if (best < 0 || !(bv > kRankReleaseTol)) {
+            if (incons) {
+                out.outcome = RankRepair::Outcome::kStuck;
+                out.release.clear();
+                return out;
+            }
+            break; // the mandatory rows' own consistent dependence
+        }
+        if (incons) {
+            ++out.inconsistent_steps;
+        }
+        used[static_cast<std::size_t>(best)] = 1;
+        chosen.push_back(
+            best < mr ? WsMember{WsMember::Kind::kRow, aw[static_cast<std::size_t>(best - me)]}
+                      : WsMember{WsMember::Kind::kPin, pins[static_cast<std::size_t>(best - mr)]});
+        // Restrict Z to y_best = 0: the orthogonal complement of its row in coefficient space.
+        if (Z.cols() == 1) {
+            break;
+        }
+        const Vec zr = Z.row(best).transpose();
+        Eigen::HouseholderQR<Eigen::MatrixXd> hq(zr);
+        const Eigen::MatrixXd Q = hq.householderQ();
+        Z = (Z * Q.rightCols(Z.cols() - 1)).eval();
+    }
+    if (!chosen.empty()) {
+        out.outcome = RankRepair::Outcome::kRelease;
+        out.release = std::move(chosen);
+    }
+    return out;
 }
 
 } // namespace hven::solvers::detail

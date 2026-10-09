@@ -439,6 +439,17 @@ struct QpCounters {
     // Appended at the end of the add-site group (the layout tests derive their ranges with
     // offsetof).
     Index dep_implied_passovers = 0;
+    // THE DEAD-END RANK REPAIR (M7 W2 RDV; qp_engine.h, Degeneracy; ws_independence.h,
+    // rank_repair): add-site dead ends (no admissible member, no verified certificate, no
+    // pass-over) at which the working set itself was numerically rank-deficient and the members
+    // on its null directions were released (rank_repairs), the members so released, counted
+    // also in ws_drops (rank_repair_releases), and the analyses that released nothing -- a full
+    // rank set, the mandatory rows' own consistent dependence, an inconsistent direction with no
+    // member of the right orientation, or the linear algebra declining (rank_repair_misses).
+    // Appended at the end of the add-site group.
+    Index rank_repairs = 0;
+    Index rank_repair_releases = 0;
+    Index rank_repair_misses = 0;
 
     // The zero-motion re-entry rule (per fixed iterate).
     Index reentry_exemptions = 0;

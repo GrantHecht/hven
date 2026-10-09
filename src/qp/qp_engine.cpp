@@ -670,6 +670,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     // THE STANDSTILL RETREAT's run of qualifying full steps; every pass that does not
     // extend it, by whatever exit, leaves it at zero.
     Index standstill_steps = 0;
+    // THE DEAD-END RANK REPAIR's remaining analyses this solve (qp_engine.h, Degeneracy).
+    Index rank_repairs_left = detail::kRankRepairBudget;
 
     QpStatus status = crossed_bounds ? QpStatus::kInfeasible : QpStatus::kMaxIter;
 #ifdef HVEN_TESTING
@@ -2297,6 +2299,41 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 walk_obs.record().action = detail::testing::QpWalkAction::kEliminatedRetreat;
 #endif
                 continue;
+            }
+            if ((add_exit == AddExit::kTerminate || add_exit == AddExit::kRejected) &&
+                !ride_blocked && rank_repairs_left > 0) {
+                // THE DEAD-END RANK REPAIR (qp_engine.h, Degeneracy): a working set that is
+                // itself rank-deficient is restored to full rank -- the members on its null
+                // directions released, an inconsistent direction's by the orientation that
+                // leaves the released constraint satisfied on the new face -- and the walk
+                // goes on from where it stands. Nothing is certified here.
+                --rank_repairs_left;
+                const detail::RankRepair rr =
+                    detail::rank_repair(qp, ws, shift, eff_opts, threads_);
+                if (rr.outcome == detail::RankRepair::Outcome::kRelease) {
+                    ++counters.rank_repairs;
+                    for (const detail::WsMember &m : rr.release) {
+                        const bool row = m.kind == detail::WsMember::Kind::kRow;
+                        if (row) {
+                            ws.drop_ineq(m.idx);
+                            lambda_i(m.idx) = 0.0;
+                        } else {
+                            ws.bound_state()[static_cast<std::size_t>(m.idx)] = BoundState::kFree;
+                            z(m.idx) = 0.0;
+                            ++counters.ws_drops_bound;
+                        }
+                        // A release is a drop for the net identity (QpCounters).
+                        ++counters.ws_drops;
+                        ++counters.rank_repair_releases;
+                        pt_release(seen, row, m.idx);
+                    }
+                    farkas = QpFarkasCertificate{};
+#ifdef HVEN_TESTING
+                    walk_obs.record().action = detail::testing::QpWalkAction::kRankRepair;
+#endif
+                    continue;
+                }
+                ++counters.rank_repair_misses;
             }
             if (add_exit != AddExit::kNone) {
                 // The iterate the walk stands on: no step past the blocker.
