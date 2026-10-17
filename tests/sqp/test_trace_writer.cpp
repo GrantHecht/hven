@@ -2177,6 +2177,7 @@ SqpIterate golden_major_d() {
     r.active_rows = 18;
     r.active_lower_sides = 19;
     r.active_upper_sides = 20;
+    r.rolled_back = true;
     return r;
 }
 
@@ -2198,7 +2199,7 @@ TEST(JsonLinesTraceSink, GoldenLineSqpMajorFirstBoolSignatureAndTheWalkMode) {
               "true,\"elastic_applied\":false,\"elastic_rho0_ceiling_hit\":true,\"restoration_seed_"
               "used\":false,\"watchdog_restored\":true,\"active_set_delta\":17,\"weak_active_"
               "rows\":1,\"near_active_rows\":2,\"active_rows\":3,\"active_lower_sides\":5,\"active_"
-              "upper_sides\":8,\"major\":4,\"mode\":\"walk\"}\n");
+              "upper_sides\":8,\"rolled_back\":false,\"major\":4,\"mode\":\"walk\"}\n");
 }
 
 TEST(JsonLinesTraceSink, GoldenLineSqpMajorSecondBoolSignatureTheHardDoublesAndTheSsnMode) {
@@ -2213,7 +2214,7 @@ TEST(JsonLinesTraceSink, GoldenLineSqpMajorSecondBoolSignatureTheHardDoublesAndT
         "applied\":true,\"elastic_applied\":false,\"elastic_rho0_ceiling_hit\":false,\"restoration_"
         "seed_used\":true,\"watchdog_restored\":true,\"active_set_delta\":6,\"weak_active_rows\":5,"
         "\"near_active_rows\":4,\"active_rows\":3,\"active_lower_sides\":2,\"active_upper_sides\":"
-        "1,\"major\":0,\"mode\":\"ssn\"}\n");
+        "1,\"rolled_back\":false,\"major\":0,\"mode\":\"ssn\"}\n");
 }
 
 TEST(JsonLinesTraceSink, GoldenLineSqpMajorThirdBoolSignatureAndTheIpqpMode) {
@@ -2227,7 +2228,8 @@ TEST(JsonLinesTraceSink, GoldenLineSqpMajorThirdBoolSignatureAndTheIpqpMode) {
         "factorizations\":13,\"tr_binding\":false,\"verdict\":\"accept_h\",\"soc_applied\":false,"
         "\"elastic_applied\":true,\"elastic_rho0_ceiling_hit\":true,\"restoration_seed_used\":true,"
         "\"watchdog_restored\":true,\"active_set_delta\":101,\"weak_active_rows\":0,\"near_active_"
-        "rows\":7,\"active_rows\":0,\"active_lower_sides\":9,\"active_upper_sides\":0,\"major\":11,"
+        "rows\":7,\"active_rows\":0,\"active_lower_sides\":9,\"active_upper_sides\":0,\"rolled_"
+        "back\":false,\"major\":11,"
         "\"mode\":\"ipqp\"}\n");
 }
 
@@ -2242,7 +2244,7 @@ TEST(JsonLinesTraceSink, GoldenLineSqpMajorEveryBoolTrue) {
         "\"elastic_applied\":true,\"elastic_rho0_ceiling_hit\":true,\"restoration_seed_used\":true,"
         "\"watchdog_restored\":true,\"active_set_delta\":15,\"weak_active_rows\":16,\"near_active_"
         "rows\":17,\"active_rows\":18,\"active_lower_sides\":19,\"active_upper_sides\":20,"
-        "\"major\":2,\"mode\":\"walk\"}\n");
+        "\"rolled_back\":true,\"major\":2,\"mode\":\"walk\"}\n");
 }
 
 // ===========================================================================
@@ -2256,7 +2258,7 @@ TEST(JsonLinesTraceSink, GoldenLineSqpMajorEveryBoolTrue) {
 /// well as at the writer, so the pin cannot silently stop covering the row.
 void expect_major_line_is_row(const std::string &line, const SqpIterate &r, Index major,
                               IpqpTraceQpMode mode) {
-    static_assert(::hven::detail::kAggregateArity<SqpIterate> == 29,
+    static_assert(::hven::detail::kAggregateArity<SqpIterate> == 30,
                   "SqpIterate gained a field: compare it below, and in the writer's own key list.");
     EXPECT_EQ(raw_field(line, "trial"), std::to_string(r.trial)) << line;
     expect_double_field(line, "f", r.f);
@@ -2289,6 +2291,7 @@ void expect_major_line_is_row(const std::string &line, const SqpIterate &r, Inde
     EXPECT_EQ(raw_field(line, "active_rows"), std::to_string(r.active_rows));
     EXPECT_EQ(raw_field(line, "active_lower_sides"), std::to_string(r.active_lower_sides));
     EXPECT_EQ(raw_field(line, "active_upper_sides"), std::to_string(r.active_upper_sides));
+    EXPECT_EQ(raw_field(line, "rolled_back"), r.rolled_back ? "true" : "false");
     EXPECT_EQ(raw_field(line, "major"), std::to_string(major));
     EXPECT_EQ(raw_field(line, "mode"), spec_spelling(mode));
 }

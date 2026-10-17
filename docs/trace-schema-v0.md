@@ -194,6 +194,7 @@ two trailing keys.
 | `active_set_delta` | integer | §6 (a) |
 | `weak_active_rows`, `near_active_rows` | integer | §6 (b) |
 | `active_rows`, `active_lower_sides`, `active_upper_sides` | integer | §6 (c) |
+| `rolled_back` | bool | **M7 W2 R2-1.** The row is a non-finite step rollback: an iterate the solve stood on and left without a subproblem (`qp_solved` false); may appear mid-history, several per solve; its residual columns may be `"nan"`. Appended after the census, ahead of `major`, per `watchdog_restored`'s precedent |
 | `major` | integer | this row's index in `SqpResult::history` — the stream and the vector share one numbering |
 | `mode` | string `ipqp\|walk\|ssn` | **THE DISPATCH ARM that produced this row's step** |
 
@@ -208,7 +209,9 @@ reads `ssn` while the major's DISPATCH `qp.mode` line reads `ipqp` with
 `outcome` `routed`. A kernel that runs INSIDE the kIpm arm — the fallback's rung
 B, either elastic ladder, the SOC re-solve — leaves the row at `ipqp`. On a row
 with `qp_solved == false` no kernel ran and `mode` reports the solve's
-CONFIGURED mode; the same line's `qp_solved` tells the two apart.
+CONFIGURED mode; the same line's `qp_solved` tells the two apart. Such a row is
+the solve's stopped-AT row or a `rolled_back` row (mid-history, possibly several
+per solve).
 
 **A restoration-requesting row's `sqp.major` line FOLLOWS the nested solve** it
 asked for. The row is pushed with its FINAL values, and `restoration_seed_used`

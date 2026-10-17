@@ -3556,6 +3556,11 @@ struct SqpSolver::SolveState {
     RestorationExit resto;
     FullStepWatchdog fs;
     BudgetBest mb;
+    // THE BEST AS IT STOOD BEFORE THE PASS THAT IMPROVED IT (M7 W2 R2-1 rider R1).
+    // `mb` and this swap on every improving pass, so a rollback of the point that
+    // pass recorded (roll_back_nonfinite_step) puts the previous best back. Valid
+    // only while the major's `mb_improved` flag (MajorState) is set.
+    BudgetBest mb_before;
 
     // ---- SqpOptions::hessian_mode == kLbfgsDamped (M7 QN stage 3) -------------
     // Both engaged at the first subproblem build and never under kExact; `qn_bridge`
@@ -3644,6 +3649,10 @@ struct SqpSolver::MajorState {
     // own: it goes round the loop and the NEXT major's exit conjunction reads
     // the same latch.
     bool interrupted_exit = false;
+    // THIS MAJOR'S BUDGET BLOCK RECORDED ITS POINT as the new best, and swapped the
+    // previous best into `SolveState::mb_before` (M7 W2 R2-1 rider R1). Per major, so
+    // a rollback that fires before the block ran (the gradient route) sees false.
+    bool mb_improved = false;
     // THE WHOLE OF WHAT THE EVENT REPORTS, snapshotted by `measure_iterate`
     // ONLY when a callback is installed (M6 W5 T8.6; widened from the two
     // price blocks to the complete measurement at fix1).
@@ -6182,6 +6191,7 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         }
         ++st.out.counters.nonfinite_step_rollbacks;
         mj.row.qp_solved = false;
+        mj.row.rolled_back = true;
         push_history(mj.row);
         st.x.swap(st.rollback.x);
         std::swap(st.ev, st.rollback.ev);
@@ -6193,6 +6203,13 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         st.rejections_at_iterate = st.rollback.rejections_at_iterate + 1;
         st.subproblem_is_stale = true;
         st.rollback.valid = false;
+        // THE BUDGET-BEST THIS PASS RECORDED IS THE ABANDONED POINT (the budget block runs
+        // before the subproblem guard): the best that stood before it is put back, so
+        // kFinishBudgetBest can never hand back a point whose subproblem was refused.
+        if (mj.mb_improved) {
+            std::swap(st.mb, st.mb_before);
+            mj.mb_improved = false;
+        }
         // A REJECTED STEP NEVER MOVES THE FUNNEL: the width an h-type acceptance of the
         // abandoned step tightened is put back (no judge() has run since). A strategy
         // this driver cannot see into keeps whatever its acceptance did.
@@ -6495,6 +6512,9 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         const bool better =
             mj.row.violation_l1 < st.mb.h || (mj.row.violation_l1 == st.mb.h && mj.row.f < st.mb.f);
         if (better) {
+            // The pre-update best is kept (swap), every field of `mb` is rewritten below.
+            std::swap(st.mb, st.mb_before);
+            mj.mb_improved = true;
             st.mb.h = mj.row.violation_l1;
             st.mb.f = mj.row.f;
             st.mb.x = st.x;
@@ -7370,6 +7390,13 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
     }
 
     StepVerdict verdict = zero_step ? StepVerdict::kAcceptF : st.strategy->judge(mj.ctx);
+    // A ZERO-STEP COMMIT HAS NO JUDGEMENT (M7 W2 R2-1 rider R2): a non-finite step
+    // rollback of this commit must not retract the funnel move of an EARLIER major.
+    if (zero_step) {
+        if (auto *funnel = dynamic_cast<FunnelStrategy *>(st.strategy.get())) {
+            funnel->note_unjudged_commit();
+        }
+    }
 
     // SECOND-ORDER CORRECTION. See this header's note for
     // the derivation and every design choice below; only the

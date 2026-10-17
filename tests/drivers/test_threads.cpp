@@ -338,9 +338,9 @@ void expect_vectors_identical(const Vec &a, const Vec &b, const char *name) {
     }
 }
 
-// EVERY field of one history row -- all 29.
+// EVERY field of one history row -- all 30.
 void expect_rows_identical(const SqpIterate &a, const SqpIterate &b, int i) {
-    static_assert(sizeof(SqpIterate) == 184,
+    static_assert(sizeof(SqpIterate) == 192,
                   "SqpIterate changed size: add the new field to expect_rows_identical "
                   "(this pin's claim is EVERY deterministic field) and update this assertion.");
     SCOPED_TRACE(::testing::Message() << "history row " << i);
@@ -367,6 +367,7 @@ void expect_rows_identical(const SqpIterate &a, const SqpIterate &b, int i) {
     HVEN_EXPECT_SAME(a, b, elastic_rho0_ceiling_hit);
     HVEN_EXPECT_SAME(a, b, restoration_seed_used);
     HVEN_EXPECT_SAME(a, b, watchdog_restored);
+    HVEN_EXPECT_SAME(a, b, rolled_back);
     HVEN_EXPECT_SAME(a, b, active_set_delta);
     HVEN_EXPECT_SAME(a, b, weak_active_rows);
     HVEN_EXPECT_SAME(a, b, near_active_rows);

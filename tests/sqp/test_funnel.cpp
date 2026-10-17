@@ -233,9 +233,24 @@ TEST(FunnelHType, RetractionUndoesOnlyTheLastJudgement) {
     ASSERT_DOUBLE_EQ(s.width(), 425.0);
     s.retract_last_judgement();
     EXPECT_DOUBLE_EQ(s.width(), 750.0);
-    s.resume_from_restoration(50.0); // (13): 0.5·50 + 0.5·750 = 400
+    // A COMMIT WITHOUT A JUDGEMENT (the driver's zero-step accept) has nothing to
+    // retract: the retraction after it must not undo the PREVIOUS major's move.
     s.retract_last_judgement();
-    EXPECT_DOUBLE_EQ(s.width(), 400.0) << "a re-base is not a judgement";
+    EXPECT_DOUBLE_EQ(s.width(), 750.0) << "already retracted; a second retraction is a no-op";
+    ASSERT_EQ(s.judge(ctx(10.0, 10.0, 500.0, 100.0, 0.0)), StepVerdict::kAcceptH);
+    ASSERT_DOUBLE_EQ(s.width(), 425.0);
+    // The next major commits judge-less (the zero-step accept); the major after it
+    // retracts. It must NOT undo the 750 -> 425 move above, which was a legitimate
+    // earlier acceptance.
+    s.note_unjudged_commit();
+    s.retract_last_judgement();
+    EXPECT_DOUBLE_EQ(s.width(), 425.0) << "a judge-less commit has no judgement to retract";
+    ASSERT_EQ(s.judge(ctx(10.0, 10.0, 300.0, 50.0, 0.0)), StepVerdict::kAcceptH);
+    s.retract_last_judgement();
+    EXPECT_DOUBLE_EQ(s.width(), 425.0) << "a judged commit still retracts exactly its own move";
+    s.resume_from_restoration(50.0); // (13): 0.5·50 + 0.5·425 = 237.5
+    s.retract_last_judgement();
+    EXPECT_DOUBLE_EQ(s.width(), 237.5) << "a re-base is not a judgement";
 }
 
 // Eq. (12) is a non-strict "<=": h = β·τ exactly is accepted, and the tiniest

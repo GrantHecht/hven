@@ -3876,9 +3876,13 @@ TEST(SqpDriverQpFailure, AnIterateOutsideItsBoxByRoundingIsProjectedNotEnded) {
 namespace {
 class NonfiniteAtTheBoundModel : public NlpModel {
   public:
-    explicit NonfiniteAtTheBoundModel(double c) : c_(c) {}
+    // `eq_scale` > 0 adds ONE equality, eq_scale * (x1 - 1) = 0, which the start point
+    // violates by eq_scale: an h-type first step (the funnel width moves) for a large
+    // enough scale (the switching test is pred_df >= 0.999 h^2).
+    explicit NonfiniteAtTheBoundModel(double c, double eq_scale = 0.0)
+        : c_(c), eq_scale_(eq_scale) {}
     Index n() const override { return 2; }
-    Index me() const override { return 0; }
+    Index me() const override { return eq_scale_ > 0.0 ? 1 : 0; }
     Index mi() const override { return 0; }
     double eval_f(const Vec &x) const override {
         const double t = std::abs(x(0));
@@ -3893,7 +3897,13 @@ class NonfiniteAtTheBoundModel : public NlpModel {
             2.0 * (x(1) - 1.0);
         return g;
     }
-    Vec eval_ce(const Vec &) const override { return Vec(0); }
+    Vec eval_ce(const Vec &x) const override {
+        Vec c(me());
+        if (me() == 1) {
+            c(0) = eq_scale_ * (x(1) - 1.0);
+        }
+        return c;
+    }
     Vec eval_ci(const Vec &) const override { return Vec(0); }
     SpMatRM eval_hess(const Vec &x, double s, const Vec &, const Vec &) const override {
         const double t = std::abs(x(0));
@@ -3907,7 +3917,14 @@ class NonfiniteAtTheBoundModel : public NlpModel {
         h.makeCompressed();
         return h;
     }
-    SpMatRM eval_jac_e(const Vec &) const override { return SpMatRM(0, 2); }
+    SpMatRM eval_jac_e(const Vec &) const override {
+        SpMatRM j(me(), 2);
+        if (me() == 1) {
+            j.insert(0, 1) = eq_scale_;
+        }
+        j.makeCompressed();
+        return j;
+    }
     SpMatRM eval_jac_i(const Vec &) const override { return SpMatRM(0, 2); }
     const Vec &lower() const override { return lo_; }
     const Vec &upper() const override { return up_; }
@@ -3919,6 +3936,7 @@ class NonfiniteAtTheBoundModel : public NlpModel {
 
   private:
     double c_;
+    double eq_scale_;
     Vec lo_ = (Vec(2) << 0.0, -10.0).finished();
     Vec up_ = Vec::Constant(2, 10.0);
 };
@@ -4000,6 +4018,157 @@ TEST(SqpDriverNonfiniteRollback, NoRollbackIsTakenAcrossTheRadiusFloor) {
     EXPECT_EQ(sol.counters.nonfinite_subproblems, 1);
     EXPECT_EQ(sol.x(0), 0.0);
     ASSERT_EQ(sol.history.size(), 2u);
+}
+
+// THE FUNNEL IS PUT BACK (R2-1 rider R4). With one equality violated by 100 at the start
+// the first step is h-TYPE (pred_df < 0.999 h^2): the funnel width goes 125 -> 62.5 when it
+// is accepted onto x0 = 0, and the rollback must restore 125 -- a rejected step never moves
+// the funnel. max_iter = 2 ends the solve on the first pass after the rollback, so the width
+// the solve hands back (SqpWarmStart::funnel_width) is the width at the restored iterate.
+TEST(SqpDriverNonfiniteRollback, TheFunnelWidthIsPutBackAfterAnHTypeRollback) {
+    NonfiniteAtTheBoundModel model(0.0, 100.0);
+    SqpOptions opts = nonfinite_rollback_options();
+    opts.max_iter = 2;
+    SqpSolver driver(opts);
+    SqpResult sol;
+    ASSERT_NO_THROW(sol = driver.solve(model));
+    ASSERT_GE(sol.counters.nonfinite_step_rollbacks, 1);
+    ASSERT_GE(sol.history.size(), 3u);
+    EXPECT_EQ(sol.history[0].verdict, StepVerdict::kAcceptH) << "the premise: an h-type step";
+    EXPECT_TRUE(sol.history[1].rolled_back);
+    EXPECT_EQ(sol.status, SolveStatus::kMaxIter);
+    EXPECT_EQ(sol.f, sol.history[0].f) << "the solve stopped at the restored iterate";
+    EXPECT_DOUBLE_EQ(sol.warm_start.funnel_width, 125.0)
+        << "the pre-commit width: max(100, 1.25 * 100); the tightened one was 62.5";
+    // And the whole solve still reaches the minimizer from there.
+    NonfiniteAtTheBoundModel model2(0.0, 100.0);
+    SqpSolver full(nonfinite_rollback_options());
+    const SqpResult done = full.solve(model2);
+    EXPECT_EQ(done.status, SolveStatus::kOptimal);
+    EXPECT_NEAR(done.x(0), 1.0, 1e-6);
+    EXPECT_GE(done.counters.nonfinite_step_rollbacks, 1);
+}
+
+// ROW FLAGS (R2-1 rider R3): a rollback row is flagged, and only a rollback row.
+TEST(SqpDriverNonfiniteRollback, RollbackRowsCarryTheFlagAndNoOtherRowDoes) {
+    NonfiniteAtTheBoundModel model(0.0);
+    SqpSolver driver(nonfinite_rollback_options());
+    const SqpResult sol = driver.solve(model);
+    ASSERT_EQ(sol.status, SolveStatus::kOptimal);
+    Index flagged = 0;
+    for (const SqpIterate &row : sol.history) {
+        if (row.rolled_back) {
+            ++flagged;
+            EXPECT_FALSE(row.qp_solved);
+        }
+    }
+    EXPECT_EQ(flagged, sol.counters.nonfinite_step_rollbacks);
+    EXPECT_FALSE(sol.history.front().rolled_back);
+}
+
+// THE BUDGET-BEST NEVER HOLDS A ROLLED-BACK POINT (R2-1 rider R1). The budget block runs
+// before the subproblem guard, so the pass that measures the committed x0 = 0 records it as
+// the best (h = 0 for both, f(0) = 0 < f(9)) and only then is the step rolled back. The
+// best that stood before is put back: a budget exit on the pass after hands back (9, 0),
+// the iterate the solve really stood on, not the point whose subproblem was refused.
+TEST(SqpDriverNonfiniteRollback, TheBudgetBestIsNotARolledBackPoint) {
+    NonfiniteAtTheBoundModel model(0.0);
+    SqpOptions opts = nonfinite_rollback_options();
+    opts.budget_mode = true;
+    opts.max_iter = 2;
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
+    ASSERT_GE(sol.counters.nonfinite_step_rollbacks, 1);
+    EXPECT_EQ(sol.status, SolveStatus::kBudgetExhausted);
+    EXPECT_EQ(sol.x(0), 9.0) << "the rolled-back point x0 = 0 is not the best";
+    EXPECT_GT(sol.f, 0.0);
+}
+
+// THE FULL-STEP MODE IS OFF-LIMITS (R2-1 rider R4): a warm solve begins in the full-step
+// mode, which accepts every step and has no funnel move to undo, and the rollback is not
+// taken there -- the old exit stands, at the point the commit reached.
+TEST(SqpDriverNonfiniteRollback, NoRollbackIsTakenInTheFullStepMode) {
+    NonfiniteAtTheBoundModel seed_model(0.0);
+    SqpSolver seed_driver(nonfinite_rollback_options());
+    const SqpResult seed = seed_driver.solve(seed_model);
+    ASSERT_EQ(seed.status, SolveStatus::kOptimal);
+    ASSERT_TRUE(seed.warm_start.valid);
+
+    NonfiniteAtTheBoundModel model(0.0);
+    SqpWarmStart warm = seed.warm_start;
+    warm.x = model.start_point(); // the warm object's point IS the start: back at (9, 0)
+    SqpSolver driver(nonfinite_rollback_options());
+    const SqpResult sol = driver.solve(model, model.start_point(), warm);
+    EXPECT_EQ(sol.counters.start_level_used, StartLevel::kWarm);
+    EXPECT_GE(sol.counters.full_step_majors, 1) << "the premise: the mode ran";
+    EXPECT_EQ(sol.counters.nonfinite_step_rollbacks, 0);
+    EXPECT_EQ(sol.status, SolveStatus::kNumericalError) << "the old exit stands";
+    EXPECT_EQ(sol.counters.nonfinite_subproblems, 1);
+    EXPECT_EQ(sol.x(0), 0.0);
+}
+
+// THE WATCHDOG'S RESTORE IS NOT A COMMIT (R2-1 rider R4). Newton on f' = atan(x) diverges
+// from x = 2 (|f'| grows 1.107, 1.295, 1.499 along 2, -3.53, 13.9), so the full-step mode's
+// watchdog restores the warm point on the pass that measures x = 13.9 -- the point whose
+// Hessian this model makes +inf (|x| > 10). The restore moved the iterate by other means
+// than a commit, so the commit's snapshot is invalid: no rollback is counted for it, and
+// the solve carries on from the restored point, never stepping from the infinite Hessian.
+namespace {
+class AtanDivergenceModel : public NlpModel {
+  public:
+    Index n() const override { return 1; }
+    Index me() const override { return 0; }
+    Index mi() const override { return 0; }
+    double eval_f(const Vec &x) const override {
+        return x(0) * std::atan(x(0)) - 0.5 * std::log1p(x(0) * x(0));
+    }
+    Vec eval_grad(const Vec &x) const override {
+        Vec g(1);
+        g << std::atan(x(0));
+        return g;
+    }
+    Vec eval_ce(const Vec &) const override { return Vec(0); }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &x, double s, const Vec &, const Vec &) const override {
+        SpMatRM h(1, 1);
+        h.insert(0, 0) = std::abs(x(0)) > 10.0 ? std::numeric_limits<double>::infinity()
+                                               : s / (1.0 + x(0) * x(0));
+        h.makeCompressed();
+        return h;
+    }
+    SpMatRM eval_jac_e(const Vec &) const override { return SpMatRM(0, 1); }
+    SpMatRM eval_jac_i(const Vec &) const override { return SpMatRM(0, 1); }
+    const Vec &lower() const override { return lo_; }
+    const Vec &upper() const override { return up_; }
+    Vec start_point() const override { return Vec::Constant(1, 2.0); }
+
+  private:
+    Vec lo_ = Vec::Constant(1, -1e3);
+    Vec up_ = Vec::Constant(1, 1e3);
+};
+} // namespace
+
+TEST(SqpDriverNonfiniteRollback, AWatchdogRestoreInvalidatesTheSnapshot) {
+    SqpOptions opts = nonfinite_rollback_options();
+    opts.tr_init = 1e3;
+    opts.tr_max = 1e3;
+    AtanDivergenceModel seed_model;
+    // A warm object for this model: one solve, then its export.
+    SqpSolver seed_driver(opts);
+    const SqpResult seed = seed_driver.solve(seed_model);
+    ASSERT_TRUE(seed.warm_start.valid);
+
+    AtanDivergenceModel model;
+    SqpWarmStart warm = seed.warm_start;
+    warm.x = model.start_point(); // the warm object's point IS the start: x = 2
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model, model.start_point(), warm);
+    EXPECT_EQ(sol.counters.start_level_used, StartLevel::kWarm);
+    EXPECT_EQ(sol.counters.watchdog_restores, 1) << "the premise: the watchdog fired";
+    EXPECT_EQ(sol.counters.nonfinite_step_rollbacks, 0);
+    EXPECT_EQ(sol.counters.nonfinite_subproblems, 0);
+    EXPECT_EQ(sol.status, SolveStatus::kOptimal);
+    EXPECT_NEAR(sol.x(0), 0.0, 1e-6);
 }
 
 // ... AND kMaxIter STILL PROPAGATES WHEN THE RETRY FAILS TOO. HS76 is a

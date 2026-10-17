@@ -269,7 +269,9 @@ struct SqpMajorTraceEvent {
     ///
     /// On a row with `qp_solved == false` no kernel ran and this reports the
     /// solve's CONFIGURED mode; the same line's `qp_solved` tells the two
-    /// apart.
+    /// apart. Such a row is the solve's stopped-AT row or a `rolled_back` row
+    /// (an iterate the solve stood on and left without a subproblem); the
+    /// latter may appear mid-history, several per solve.
     IpqpTraceQpMode mode = IpqpTraceQpMode::kWalk;
 };
 

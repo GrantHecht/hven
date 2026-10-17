@@ -441,10 +441,22 @@ class FunnelStrategy final : public GlobalizationStrategy {
     /// a step that call accepted -- the committed point's derivatives were not
     /// finite -- and a rejected step never moves the width. Valid only while no
     /// judge() has run since the one being retracted, which the driver guarantees
-    /// (it retracts in the first major after the commit, before any trial). After
-    /// reset() or resume_from_restoration() and before the next judge() it is a
-    /// no-op.
-    void retract_last_judgement() { width_ = width_at_last_judge_; }
+    /// (it retracts in the first major after the commit, before any trial). A
+    /// no-op unless a judge() has run since the last retraction, reset(),
+    /// resume_from_restoration() or note_unjudged_commit(): a commit that was never
+    /// judged (the driver's zero-step accept) has no judgement to undo, and must not
+    /// undo the previous major's.
+    void retract_last_judgement() {
+        if (judged_since_) {
+            width_ = width_at_last_judge_;
+            judged_since_ = false;
+        }
+    }
+
+    /// @brief The driver committed a step WITHOUT calling judge() (the zero-step
+    /// accept): the judgement before it is no longer the commit's, so a retraction
+    /// after this is a no-op until the next judge().
+    void note_unjudged_commit() { judged_since_ = false; }
 
     /// False until reset() succeeds; a judge() call before then throws.
     bool initialized() const { return initialized_; }
@@ -456,6 +468,8 @@ class FunnelStrategy final : public GlobalizationStrategy {
     double width_ = std::numeric_limits<double>::infinity();
     /// The width the most recent judge() call started from (retract_last_judgement).
     double width_at_last_judge_ = std::numeric_limits<double>::infinity();
+    /// True from a judge() call until the next retraction, reset() or resume.
+    bool judged_since_ = false;
     bool initialized_ = false;
     /// Full-step-mode flag; false is the mode-less class, exactly.
     bool full_step_ = false;

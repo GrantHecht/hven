@@ -2516,9 +2516,10 @@ TEST(SqpDriverRestorationSeed, AJacobianPoisonedCandidateIsRefusedNotTaken) {
         SqpSolver driver(opts);
         const SqpResult sol = driver.solve(model);
 
-        const bool refused_signature = sol.status == SolveStatus::kInfeasible &&
-                                       sol.infeasibility_certified && seeded_rows(sol) == 0 &&
-                                       sol.counters.restoration_iters >= 1 && model.poisoned == 1;
+        const bool refused_signature =
+            sol.status == SolveStatus::kInfeasible && sol.infeasibility_certified &&
+            seeded_rows(sol) == 0 && sol.counters.restoration_iters >= 1 &&
+            sol.counters.nonfinite_step_rollbacks == 0 && model.poisoned == 1;
         // THE KILL: mutant M7 (jacobian_values_finite dropped) reaches this
         // signature at the candidate's own k -- taken, poisoned, sub-solve dies.
         const bool m7_signature = seeded_rows(sol) == 1 && model.poisoned >= 1 &&
@@ -2526,11 +2527,33 @@ TEST(SqpDriverRestorationSeed, AJacobianPoisonedCandidateIsRefusedNotTaken) {
                                   sol.counters.restoration_iters == 0;
         EXPECT_FALSE(m7_signature) << "the Jacobian screen let a poisoned candidate through and "
                                       "the sub-solve died on it (M7's signature)";
+        // RE-PREMISED (M7 W2 R2-1, 0a83158e; rulings C60/C61). BASE: k = 2..8 ended
+        // numerical_error at (1.118, 1.118) -- the poisoned point was stepped from.
+        // HEAD: the first major after the commit finds the poisoned Jacobian non-finite
+        // and rolls the step back (nonfinite_step_rollbacks >= 1); the solve then reaches
+        // the CORRECT certified kInfeasible at the analytic point (0.7071, 0.7071)
+        // without a non-finite subproblem. The poisoned ordinal is still fetched
+        // (poisoned >= 1), and the kill half above holds at every k.
+        if (k >= 2 && k <= 8) {
+            EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
+            EXPECT_TRUE(sol.infeasibility_certified);
+            EXPECT_NEAR(sol.x(0), std::sqrt(0.5), 1e-3);
+            EXPECT_NEAR(sol.x(1), std::sqrt(0.5), 1e-3);
+            EXPECT_EQ(sol.counters.nonfinite_subproblems, 0);
+            EXPECT_GE(model.poisoned, 1);
+            EXPECT_GE(sol.counters.nonfinite_step_rollbacks, 1);
+        }
         if (refused_signature) {
             found_refused_signature = true;
             refused_at_k = k;
         }
     }
+    // THE NAME IS KEPT (it appears in frozen inventories and mutant records): the Jacobian
+    // screen still refuses any poisoned candidate it is shown, and no k takes one.
+    // RE-PREMISED AGAIN (M7 W2 R2-1): the screen's refused-candidate signature is keyed on
+    // `nonfinite_step_rollbacks == 0` too -- a poisoned ordinal that the step rollback
+    // handles (k = 2..8, asserted in the loop) is not the screen refusing a candidate.
+    //
     // RE-PREMISED (the family note). The refused-candidate signature required
     // `model.poisoned == 1`, i.e. that the candidate's DERIVATIVES were fetched and
     // the Jacobian screen then refused it. With the h comparison refusing the

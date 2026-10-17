@@ -2011,7 +2011,10 @@ std::string format_iteration_table(const SqpResult &sol);
 std::string sqp_iteration_table_head();
 
 /// @brief One table row, newline-terminated. A row with `qp_solved == false`
-///        renders "-" in the verdict and the two QP columns.
+///        renders "-" in the verdict and the two QP columns -- the solve's
+///        stopped-AT row, or a non-finite step rollback row (`rolled_back`: the
+///        WD column then reads "r"; "*" is a watchdog restore). Rollback rows
+///        may sit mid-history and a solve may carry several.
 /// @param row The history row.
 std::string sqp_iteration_table_row(const SqpIterate &row);
 

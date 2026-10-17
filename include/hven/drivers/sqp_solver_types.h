@@ -1054,13 +1054,19 @@ void dump_options(const SqpOptions &o, std::ostream &os);
 /// This field set is the FORMAL CONTRACT and is additive-only: a field may be
 /// appended, but none below may change meaning.
 ///
-/// qp_solved == false marks an iterate the solve stopped AT without building a
-/// subproblem from it. Its qp_* fields are meaningless and left at their
-/// defaults. There is AT MOST ONE such row and it is always the last; a solve
-/// that stopped ON a failing subproblem has none.
+/// qp_solved == false marks an iterate the solve stood on and left (or stopped AT)
+/// without a subproblem solved from it. Its qp_* fields are meaningless and left at
+/// their defaults. Such a row is either the last row (the solve stopped AT it; a
+/// solve that stopped ON a failing subproblem has none) or a ROLLBACK row
+/// (`rolled_back`, below): an iterate the solve stood on and left without a
+/// subproblem, because its committed point's derivatives were not finite and the
+/// step that reached it was rejected after the fact (M7 W2 R2-1). Rollback rows may
+/// appear MID-HISTORY and SEVERAL PER SOLVE (SqpCounters::nonfinite_step_rollbacks
+/// counts them); the stopped-AT row is still at most one and last.
 ///
-/// NaN IS A LEGAL VALUE for the four residual fields, on exactly the
-/// non-finite-iterate row, so a consumer aggregating them must expect it.
+/// NaN IS A LEGAL VALUE for the four residual fields, on the non-finite-iterate
+/// row and on a rollback row whose abandoned point had a non-finite gradient, so a
+/// consumer aggregating them must expect it -- mid-history as well as last.
 ///
 /// ONE ROW IS ONE TRIAL, Not one iterate -- which is why the index field is named
 /// `trial`. A rejected step leaves the iterate where it was and the driver
@@ -1270,6 +1276,14 @@ struct SqpIterate {
     Index active_lower_sides = 0;
     /// Variables at their real UPPER bound (`kAtUpper`, plus `kFixed`).
     Index active_upper_sides = 0;
+
+    /// True iff THIS row is a NON-FINITE STEP ROLLBACK (M7 W2 R2-1): it describes the
+    /// committed point the first major after a commit found non-finite (a gradient,
+    /// or an `H`, `A` or `g`) and abandoned -- `qp_solved` is false, and the next
+    /// row is the restored previous iterate at a shrunk radius. The abandoned point's
+    /// residual columns may be NaN. False on every other row. Appended per
+    /// `watchdog_restored`'s precedent; several rows per solve may carry it.
+    bool rolled_back = false;
 };
 
 /// @brief Result of a whole SQP solve.

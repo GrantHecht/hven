@@ -531,10 +531,10 @@ std::string evidence_object(const IpqpTraceEscapeEvidence &e) {
 // keeps the two in step: `SqpIterate` gaining a field stops the build here
 // until the field gets a key below.
 //
-// 29 is a COUNT OF INITIALIZERS, not a sizeof (plan amendment E). W4 T3 added
+// 30 is a COUNT OF INITIALIZERS, not a sizeof (plan amendment E). W4 T3 added
 // the six telemetry fields, and this number and the four golden lines moved
 // with them as a declared additive re-derivation (plan section 2 rule 6).
-constexpr std::size_t kSqpIterateFieldCount = 29;
+constexpr std::size_t kSqpIterateFieldCount = 30;
 static_assert(::hven::detail::kAggregateArity<SqpIterate> == kSqpIterateFieldCount,
               "SqpIterate's field count moved: give the new field a key in "
               "JsonLinesTraceSink::on_sqp_major (in DECLARATION order, ahead of `major`), "
@@ -895,6 +895,7 @@ void JsonLinesTraceSink::on_sqp_major(const SqpMajorTraceEvent &event) {
     key_index(b, first, "active_rows", r.active_rows);
     key_index(b, first, "active_lower_sides", r.active_lower_sides);
     key_index(b, first, "active_upper_sides", r.active_upper_sides);
+    key_bool(b, first, "rolled_back", r.rolled_back);
     key_index(b, first, "major", event.major);
     key_enum(b, first, "mode", to_json(event.mode));
     write_line("sqp.major", b);
