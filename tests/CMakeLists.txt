@@ -397,6 +397,7 @@ add_executable(hven_qp_walk_seam_tests
     qp/test_qp_border_certificate.cpp
     qp/test_qp_implied_blocker.cpp
     qp/test_qp_rank_repair.cpp
+    qp/test_qp_refused_exchange.cpp
 )
 
 if(NOT APPLE)

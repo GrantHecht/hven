@@ -450,6 +450,11 @@ struct QpCounters {
     Index rank_repairs = 0;
     Index rank_repair_releases = 0;
     Index rank_repair_misses = 0;
+    // THE REFUSED-BLOCKER EXCHANGE (M7 W2 YRK; qp_engine.h, Degeneracy): exchanges taken where
+    // the add-site rule would end the solve (N3, after the rank repair) for the pass-over
+    // sequence's first blocker, refused by D3(b), on coefficients derived mu-free for it.
+    // Appended at the end of the add-site group.
+    Index dep_refused_exchanges = 0;
 
     // The zero-motion re-entry rule (per fixed iterate).
     Index reentry_exemptions = 0;

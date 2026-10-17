@@ -723,6 +723,18 @@
 // can neither certify an infeasible QP nor certify a point the classifier would not. FINITE:
 // kRankRepairBudget analyses per solve. Counted rank_repairs, rank_repair_releases (also in
 // ws_drops), rank_repair_misses.
+// THE REFUSED-BLOCKER EXCHANGE (M7 W2 YRK). D3(b) refuses a known-dependent blocker whose
+// regularized test is undecided at zero motion: it has no coefficients, so no exchange. On a
+// FULL-RANK set the rank repair then misses and N3 ends the solve on a feasible QP (MEASURED:
+// YORKNET's restoration subproblems -- a slack bound at relative distance 2.8e-5 from the
+// working set's span, admitted undecided, removed by the re-check detector, whose threshold
+// scales with the largest member norm, then refused). Where N3 would end the solve, after the
+// rank repair, on an ordinary eliminated pass, and the pass-over sequence's FIRST blocker was so
+// refused, its coefficients are derived mu-free (certificate_coefficients) and the ordinary
+// exchange, then the R-B unlock, is offered for it at the step that reached it (no later
+// passed-over blocker lies before it). None admissible: N3 as before. NOTHING IS CERTIFIED
+// HERE: it can change only a solve that would otherwise end dep_blocker_terminations.
+// Counted dep_refused_exchanges.
 // E2 FIX4: a terminal point that would
 // read kInfeasible by its structural violation is first re-solved mu-free on its face and
 // adopted when it satisfies every row and bound (terminal_mu_refines /

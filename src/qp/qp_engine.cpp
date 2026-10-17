@@ -2076,6 +2076,14 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             };
             bool undecidable_retreat = false;
             bool ride_first = ride_blocked;
+            // The sequence's first blocker when D3(b) refused it (THE REFUSED-BLOCKER EXCHANGE).
+            struct RefusedBlocker {
+                BlockKind kind;
+                Index idx;
+                BoundState state;
+                double alpha;
+            };
+            std::optional<RefusedBlocker> first_refused;
             while (kind != BlockKind::kNone) {
                 const bool is_ineq = kind == BlockKind::kIneq;
                 const bool moves = alpha * sdir.lpNorm<Eigen::Infinity>() > step_tol;
@@ -2118,10 +2126,14 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 if (t.verdict != detail::DepVerdict::kDependent && known_dependent) {
                     // (D3(b)) Never re-admitted undecided at zero motion:
                     // no coefficients, so no exchange and no certificate;
-                    // the pass-over (N2) or the end (N3) below.
+                    // the pass-over (N2), or at the end (N3) the refused-
+                    // blocker exchange below.
                     refused = true;
                     ++counters.dep_known_dependent_refusals;
                     xpick = ExchangePick{};
+                    if (passed.empty() && !ride_blocked) {
+                        first_refused = RefusedBlocker{kind, block_idx, block_state, alpha};
+                    }
                 } else if (t.verdict == detail::DepVerdict::kUndecidable) {
                     // Screen-negative and unresolved -- a refinement that
                     // STALLED below kDepUndecidable. (A test with no factor
@@ -2340,6 +2352,43 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     continue;
                 }
                 ++counters.rank_repair_misses;
+            }
+            if (add_exit == AddExit::kTerminate && first_refused.has_value() &&
+                pass_view.schur == nullptr) {
+                // THE REFUSED-BLOCKER EXCHANGE (qp_engine.h, Degeneracy): the sequence's first
+                // blocker was refused by D3(b) -- known dependent at this point, its regularized
+                // test undecided, so it carried no coefficients. They are derived mu-free on this
+                // pass's factor and the ordinary exchange (then the R-B unlock) is offered for it,
+                // at the step that reached it. None admissible: the end below, as before. Nothing
+                // is certified here.
+                const bool fr_ineq = first_refused->kind == BlockKind::kIneq;
+                Vec a_r = Vec::Zero(n);
+                if (fr_ineq) {
+                    a_r = qp.Ai.row(first_refused->idx).transpose();
+                } else {
+                    a_r(first_refused->idx) = 1.0;
+                }
+                const detail::DepTest ct =
+                    detail::certificate_coefficients(qp, ws, pass_view, a_r, eff_opts);
+                counters.dep_test_solves += ct.solves;
+                ExchangePick fx =
+                    select_exchange(qp, ws, shift, seen, ct, fr_ineq, first_refused->idx,
+                                    first_refused->state, lambda_e, lambda_i, z, /*moves=*/false,
+                                    /*unlock=*/false);
+                if (!fx.found) {
+                    fx = select_exchange(qp, ws, shift, seen, ct, fr_ineq, first_refused->idx,
+                                         first_refused->state, lambda_e, lambda_i, z,
+                                         /*moves=*/false, /*unlock=*/true);
+                }
+                if (fx.found) {
+                    kind = first_refused->kind;
+                    block_idx = first_refused->idx;
+                    block_state = first_refused->state;
+                    alpha = first_refused->alpha;
+                    xpick = std::move(fx);
+                    add_exit = AddExit::kNone;
+                    ++counters.dep_refused_exchanges;
+                }
             }
             if (add_exit != AddExit::kNone) {
                 // The iterate the walk stands on: no step past the blocker.
