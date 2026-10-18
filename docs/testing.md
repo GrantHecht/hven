@@ -996,6 +996,10 @@ box QP with one bound violated by an exact `v`, and assert the verdict for `v`
 inside the margin, on it, past it, below and at the residue floor, and far
 outside, on the lower and the upper side, on both working-set algebras and at two
 `dual_mu`. Each case asserts that the seam fired exactly once.
+The sign half (M7 W2 SDL, RDV-5) is asserted through the same hook
+(`QpCertificateSign.*`): a lower pin presented at `z = -1.25e12`, an upper pin
+wrong-signed, a NaN, and both sides of the `opt_tol * scale` tolerance; with the
+sign half removed, every refusal case comes back `kOptimal` with the presented `z`.
 
 **Cost to the production build.** The hook sits below the TU's one `assert()`,
 so no `__LINE__` immediate moves; the header is never opened by a production

@@ -532,6 +532,18 @@ struct QpCounters {
     Index terminal_polish_solves = 0;
     Index terminal_polish_rejected = 0;
     Index terminal_polish_adopted = 0;
+
+    // M7 W2 SDL (qp_engine.h, section 5 and THE SADDLE EXIT). Appended.
+    // `certificate_sign_refusals`: would-be kOptimal exits whose exported multipliers carried a
+    // wrong sign past the KKT-point test's relative tolerance (the certificate's SIGN HALF);
+    // each ends kNumericalError.
+    // `saddle_shifted_searches`: saddle-exit searches that found nothing on the face's own
+    // factor and were repeated on the face shifted by kSaddleShiftFactor * hessian_scale (one
+    // factorization each, also in `factorizations`); `saddle_shifted_directions`: of those, the
+    // ones that returned a verified direction.
+    Index certificate_sign_refusals = 0;
+    Index saddle_shifted_searches = 0;
+    Index saddle_shifted_directions = 0;
 };
 
 /// @brief Work counters for the semismooth-Newton kernel.

@@ -341,12 +341,19 @@
 //    d'Hd < 0 and g'd at most its own resolution (kEngineDenomTol ||g|| ||d||):
 //    no ride ascends a slope the arithmetic can read, and the curvature term
 //    makes it a decrease for every alpha above 2 g'd / |d'Hd|, a rounding-sized
-//    threshold. BOUNDED: one search per dead end (one factorization, at most
-//    kSaddleLanczosSteps operator applications); a ride that moves decreases f
+//    threshold. THE SHIFTED SEARCH (M7 W2 SDL): a face with a cluster of
+//    zero-curvature directions factors with perturbed pivots there and the
+//    inverse operator sees only them, so a search that finds nothing is repeated
+//    once on the face shifted by kSaddleShiftFactor * hessian_scale (a local
+//    factor; the add site keeps reading the unshifted one); its direction is
+//    verified on H as above, and it certifies nothing.
+//    BOUNDED: one search per dead end (at most two factorizations, at most
+//    kSaddleLanczosSteps operator applications each); a ride that moves decreases f
 //    strictly; a zero-length one is a zero-motion event (the point memory kept,
 //    its blocker admitted through it), inside the zero-motion cap; all of it
 //    inside the minor cap. Counted: saddle_exits, saddle_exit_misses,
-//    saddle_direction_solves. With the option off the exit is unchanged.
+//    saddle_direction_solves, saddle_shifted_searches, saddle_shifted_directions.
+//    With the option off the exit is unchanged.
 //
 //    THE CONVEX CERTIFICATE (independent_working_set; M7 W2 NC4). Taken at the
 //    same arm, after R-C''s re-read and after the post-probe restart (an armed
@@ -412,6 +419,14 @@
 //
 // 5. TERMINATION. The loop reaches a KKT point of its working set with nothing
 //    left to drop, and classifies it.
+//
+//    THE CERTIFICATE'S SIGN HALF (M7 W2 SDL; RDV-5). After the polish and beside
+//    the bound half, the EXPORTED multipliers are read once more:
+//    dual_signs_hold(worst_wrong_sign(pins, unshifted working rows), the
+//    stationarity scale) -- opt_tol * scale, the KKT-point test's own relative
+//    tolerance; a NaN refuses. A refusal is kNumericalError
+//    (certificate_sign_refusals). The drop rule's own sign test is not enough:
+//    it exempts re-entered members, and the polish re-prices the face after it.
 //
 //    HOW A PASS IS RECOGNISED AS A KKT POINT OF ITS WORKING SET (M7 W2 E4,
 //    ruling E4-2) -- the free-block STATIONARITY RESIDUAL, in the engine's own
@@ -1187,6 +1202,43 @@ inline bool free_block_is_stationary(double residual, double scale, const QpOpti
     return residual <= opts.opt_tol * scale;
 }
 
+// THE DUAL SIGN READ (M7 W2 SDL; RDV-5): the largest WRONG-SIGNED multiplier of
+// the working set -- -z(i) at a lower pin, +z(i) at an upper pin, -lambda_i(r)
+// on a working row whose shift is 0 (`shift` null: every working row) -- or 0.
+// kFixed pins and equality rows are not sign-constrained. NaN-STICKY, like
+// free_block_stationarity: a NaN multiplier returns NaN.
+inline double worst_wrong_sign(const QpProblem &qp, const WorkingSet &ws, const Vec &lambda_i,
+                               const Vec &z, const Vec *shift) {
+    double worst = 0.0;
+    const auto take = [&worst](double v) {
+        if (std::isnan(v) || std::isnan(worst)) {
+            worst = std::numeric_limits<double>::quiet_NaN();
+        } else if (v > worst) {
+            worst = v;
+        }
+    };
+    for (Index row : ws.active_ineq()) {
+        if (shift == nullptr || !((*shift)(row) > 0.0)) {
+            take(-lambda_i(row));
+        }
+    }
+    for (Index i = 0; i < qp.n(); ++i) {
+        const BoundState st = ws.bound_state()[static_cast<std::size_t>(i)];
+        if (st == BoundState::kAtLower) {
+            take(-z(i));
+        } else if (st == BoundState::kAtUpper) {
+            take(z(i));
+        }
+    }
+    return worst;
+}
+
+// The certificate's SIGN HALF decision: dual feasible within the KKT-point
+// test's own relative tolerance. Written as `<=` so a NaN refuses.
+inline bool dual_signs_hold(double wrong_sign, double scale, const QpOptions &opts) {
+    return wrong_sign <= opts.opt_tol * scale;
+}
+
 // THE TERMINAL POLISH's three KKT residuals (M7 W2 E4 fix1, ruling E4-11), all
 // three RELATIVE to their own scales so that "worse" is a comparison between
 // two points of the same face and not between two units:
@@ -1203,10 +1255,14 @@ inline bool free_block_is_stationary(double residual, double scale, const QpOpti
 //    family reads at the NLP level: a regularized row identity leaves a working
 //    row slack by dual_mu*|lambda|, so this product is dual_mu*lambda^2 there
 //    and the driver's own complementarity check sees it.
+//  - `sign` (not a residual the polish improves; it may not WORSEN it -- RDV-5):
+//    worst_wrong_sign over every working row and pin, divided by the
+//    stationarity scale, in units of opt_tol.
 struct TerminalKkt {
     double stationarity = 0.0;
     double rows = 0.0;
     double complementarity = 0.0;
+    double sign = 0.0;
 
     bool all_finite() const {
         return std::isfinite(stationarity) && std::isfinite(rows) && std::isfinite(complementarity);
@@ -1219,6 +1275,7 @@ inline TerminalKkt terminal_kkt(const QpProblem &qp, const WorkingSet &ws, const
     double stat_scale = 1.0;
     const double stat = free_block_stationarity(qp, x, ws, lambda_e, lambda_i, stat_scale);
     out.stationarity = stat / std::max(stat_scale, 1e-300);
+    out.sign = worst_wrong_sign(qp, ws, lambda_i, z, nullptr) / std::max(stat_scale, 1e-300);
 
     const double xmag = x.lpNorm<Eigen::Infinity>();
     if (qp.me() > 0) {
@@ -1270,6 +1327,14 @@ inline TerminalKkt terminal_kkt(const QpProblem &qp, const WorkingSet &ws, const
 // own eigenvalue scale -- so the threshold must be relative to that scale
 // too, or it would classify H and 1000*H differently.
 constexpr double kCurvatureTolFactor = 1e-12;
+
+// THE SADDLE EXIT's SHIFTED SEARCH (section 4c): the primal shift, relative to
+// hessian_scale, of the face re-factorized when the face's own factor yields no
+// verified direction. A face with a cluster of zero-curvature directions factors
+// at primal_delta with perturbed pivots, and the inverse operator's Lanczos then
+// sees only them; shifted, that cluster maps to 1/sigma and a curvature below
+// -sigma stays negative. A direction is still verified on H itself.
+constexpr double kSaddleShiftFactor = 1e-6;
 
 // Relative tolerance on "the ride direction lies in the null space of the
 // working constraints" (ride_stays_in_working_set), stated relative to
@@ -2691,8 +2756,10 @@ class QpEngine {
 
     // THE SADDLE EXIT's direction (section 4c): `ws`'s face factorized at dual_mu = 0 into
     // the caller's `kkt`/`face` (`view` names that factor on return, for the add site),
-    // then detail::face_negative_curvature on it. Empty when no VERIFIED direction exists
-    // (including a failed factorization).
+    // then detail::face_negative_curvature on it. Found nothing there, the search is repeated
+    // once on the face shifted by kSaddleShiftFactor * hessian_scale (a local factor; `view`
+    // still names the unshifted one). Empty when no VERIFIED direction exists (including a
+    // failed factorization).
     Vec saddle_direction(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
                          detail::KktFactor &kkt, EliminatedFace &face, QpCounters &counters,
                          const QpOptions &opts, double curvature_tol,

@@ -1572,7 +1572,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         // exported. It cannot manufacture a certificate: the
                         // acceptance test refuses any candidate whose rows or
                         // bounds are worse than the incumbent's, or outside
-                        // feas_tol where the incumbent met it.
+                        // feas_tol where the incumbent met it, or whose dual
+                        // signs are worse (RDV-5); the sign half re-reads them.
                         //
                         // NOTHING ABOVE IS RE-DECIDED. The polish moves x by at
                         // most the bias it removes, does not touch the working set,
@@ -1609,7 +1610,24 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                                 bound_worst = std::max(bound_worst, v);
                             }
                         }
-                        status = bound_worst > 0.0 ? QpStatus::kInfeasible : QpStatus::kOptimal;
+                        // THE CERTIFICATE'S SIGN HALF (RDV-5). The drop rule reads the
+                        // signs before the polish and exempts re-entered members, so the
+                        // exported multipliers are read again here: a wrong-signed one past
+                        // the KKT-point test's own relative tolerance is no certificate.
+                        double sign_scale = 1.0;
+                        (void)detail::free_block_stationarity(qp, x, ws, lambda_e, lambda_i,
+                                                              sign_scale);
+                        const bool signs_hold = detail::dual_signs_hold(
+                            detail::worst_wrong_sign(qp, ws, lambda_i, z, &shift), sign_scale,
+                            eff_opts);
+                        if (bound_worst > 0.0) {
+                            status = QpStatus::kInfeasible;
+                        } else if (!signs_hold) {
+                            ++counters.certificate_sign_refusals;
+                            status = QpStatus::kNumericalError;
+                        } else {
+                            status = QpStatus::kOptimal;
+                        }
                     }
                 }
                 if (!saddle_blocked) {
@@ -4100,6 +4118,11 @@ bool QpEngine::adopt_polished_candidate(const QpProblem &qp, const WorkingSet &w
     // candidate improved complementarity instead. A rejection leaves the walk's own
     // point exactly as it was, which is the conservative side.
     //
+    // AND NO WORSE DUAL SIGNS (RDV-5): a mu-free re-solve of a face whose
+    // multipliers are not unique can return wrong-signed ones; the candidate's
+    // worst wrong sign may not exceed max(opt_tol, the incumbent's), in the same
+    // relative units.
+    //
     // THE SLACK ON BOTH HALVES (fix round 2): kTerminalPolishWorseFactor, whose own
     // note carries the measurement and the argument. "No worse" means no worse by
     // more than that factor and "strictly better" means better BY that factor, so
@@ -4112,7 +4135,8 @@ bool QpEngine::adopt_polished_candidate(const QpProblem &qp, const WorkingSet &w
     // trading it).
     const double slack = detail::kTerminalPolishWorseFactor;
     const bool feasible = after.rows <= std::max(opts.feas_tol, before.rows);
-    const bool kkt_point = after.stationarity <= opts.opt_tol;
+    const bool kkt_point =
+        after.stationarity <= opts.opt_tol && after.sign <= std::max(opts.opt_tol, before.sign);
     const bool no_worse = after.stationarity <= slack * before.stationarity &&
                           after.rows <= before.rows &&
                           after.complementarity <= slack * before.complementarity;
@@ -5684,9 +5708,34 @@ Vec QpEngine::saddle_direction(const QpProblem &qp, const WorkingSet &ws, const 
     Index solves = 0;
     Vec d = detail::face_negative_curvature(qp, ws, view, o, curvature_tol, solves);
     counters.saddle_direction_solves += solves;
+    if (d.size() > 0 && ride_stays_in_working_set(qp, ws, d)) {
+        return d;
+    }
+    // THE SHIFTED SEARCH (qp_engine.h, kSaddleShiftFactor): once, on a local factor of the
+    // same face with H + sigma I; `view` keeps naming the unshifted factor the add site reads.
+    ++counters.saddle_shifted_searches;
+    QpOptions os = o;
+    os.primal_delta =
+        std::max(o.primal_delta, detail::kSaddleShiftFactor * detail::hessian_scale(qp));
+    detail::KktFactor shifted(threads_);
+    EliminatedFace shifted_face;
+    try {
+        (void)eliminated_candidate(qp, ws, x, shifted, shifted_face, counters, v, os);
+    } catch (const std::runtime_error &) {
+        return Vec();
+    }
+    if (!shifted_face.holds(ws, shifted)) {
+        return Vec();
+    }
+    detail::DepFactorView shifted_view;
+    shifted_view.eliminated = &shifted;
+    solves = 0;
+    d = detail::face_negative_curvature(qp, ws, shifted_view, os, curvature_tol, solves);
+    counters.saddle_direction_solves += solves;
     if (d.size() == 0 || !ride_stays_in_working_set(qp, ws, d)) {
         return Vec();
     }
+    ++counters.saddle_shifted_directions;
     return d;
 }
 
