@@ -7038,17 +7038,21 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
     // is violation for the slacks to carry: at h <= feas_tol the elastic QP has no
     // slacks and IS the failed QP (E2-D3, DALLASM major 1), so the shrink ladder
     // stays. h reads the box (L2).
+    const bool linearization_violated =
+        constraint_violation_l1(st.ev) + box_violation_l1(st.x, seam.lower(), seam.upper()) >
+        opts_.feas_tol;
     const bool e2_termination_to_elastic =
         mj.walk_owns_this_qp && mj.qs.status == QpStatus::kNumericalError &&
         (mj.qs.counters.dep_blocker_terminations > 0 || mj.qs.counters.zero_motion_cap_hits > 0 ||
          mj.qs.counters.dep_certificate_rejections > 0) &&
-        constraint_violation_l1(st.ev) + box_violation_l1(st.x, seam.lower(), seam.upper()) >
-            opts_.feas_tol;
-    // A certificate BOUND-HALF refusal (SDL-4) stands off its box, so neither the shrink ladder
-    // nor the failure step can take it (qp_failure_is_retryable): it keeps the elastic route
-    // its former kInfeasible had, at every h.
+        linearization_violated;
+    // A certificate BOUND-HALF refusal (SDL-4, formerly kInfeasible) is a QP the working set could
+    // not finish, routed as an E2 termination -- and at any h when its iterate stands too far off
+    // its box for the shrink ladder (qp_failure_is_retryable), which would otherwise end the solve.
     const bool bound_refusal_to_elastic =
-        mj.qs.status == QpStatus::kNumericalError && mj.qs.counters.certificate_bound_refusals > 0;
+        mj.qs.status == QpStatus::kNumericalError &&
+        mj.qs.counters.certificate_bound_refusals > 0 &&
+        (linearization_violated || !qp_failure_is_retryable(st.qp, mj.qs, opts_.feas_tol));
     if (mj.qs.status == QpStatus::kInfeasible || e2_termination_to_elastic ||
         bound_refusal_to_elastic) {
         // The window the ORIGINAL solve was given, folded into the

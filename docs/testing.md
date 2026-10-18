@@ -1068,7 +1068,8 @@ somewhere other than the optimum, which is what the failed subproblem's own step
 (`SqpOptions::qp_failure_step`) judges. One knob added at SDL-4: `as_bound_refusal`
 stamps the exit `certificate_bound_refusals = 1`, the certificate's bound-half refusal,
 whose iterate stands off its box; with an off-box `forced_point` it pins that exit's
-elastic route at every `h`.
+elastic route at every `h`, without one its E2-termination routing (the shrink ladder at a
+feasible iterate).
 
 It is an INJECTED result, and faithful for the one question it serves: how the
 driver routes a failed QP (L1's refused-request spelling, L3's E2-termination

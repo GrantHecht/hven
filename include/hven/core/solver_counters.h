@@ -550,7 +550,8 @@ struct QpCounters {
     Index terminal_polish_sign_reverts = 0;
     // M7 W2 SDL-4. Appended. `certificate_bound_refusals`: would-be kOptimal exits whose point
     // violated its own box structurally (the certificate's BOUND HALF); each ends
-    // kNumericalError, never kInfeasible. The SQP driver routes such a solve to the elastic tier.
+    // kNumericalError, never kInfeasible. The SQP driver routes it as an E2 termination, and to
+    // the elastic tier at any h when its iterate is past the shrink ladder's box tolerance.
     // `terminal_polish_bound_reverts`: adopted terminal polishes undone because the polished
     // point failed the bound half; the incumbent is then read by both halves. Counts
     // RESTORATIONS, as terminal_polish_sign_reverts (which a bound failure takes precedence over).

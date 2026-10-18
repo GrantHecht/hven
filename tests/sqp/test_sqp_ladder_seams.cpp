@@ -237,10 +237,10 @@ TEST(SqpLadderSeam, L3TheGuardReadsTheBox) {
     expect_line_optimum(sol);
 }
 
-// SDL-4: a certificate bound-half refusal (kNumericalError, formerly kInfeasible) stands off its
-// box, which neither the shrink ladder nor the failure step accepts; it keeps the elastic route
-// at every h -- here at a FEASIBLE iterate, where an E2 termination would shrink. Without the
-// route the solve ends kNumericalError at the first major.
+// SDL-4: a certificate bound-half refusal (kNumericalError, formerly kInfeasible) whose iterate
+// stands off its box past feas_tol is no step the shrink ladder can retry; it opens the elastic
+// tier at every h -- here also at a FEASIBLE iterate, where an E2 termination would shrink.
+// Without the route the solve ends kNumericalError at the first major.
 TEST(SqpLadderSeam, Sdl4ABoundRefusalOffItsBoxTakesTheElasticTierAtEveryH) {
     for (const Vec &x0 : {vec2(0.0, 2.0), vec2(0.0, 0.0)}) {
         const SeamReset guard;
@@ -260,6 +260,23 @@ TEST(SqpLadderSeam, Sdl4ABoundRefusalOffItsBoxTakesTheElasticTierAtEveryH) {
         EXPECT_TRUE(sol.history.front().elastic_applied);
         expect_line_optimum(sol);
     }
+}
+
+// SDL-4's E2 guard: a bound refusal whose iterate the shrink ladder can retry (here the solved
+// step, in its box) is routed as an E2 termination -- at a feasible iterate the ladder stays.
+TEST(SqpLadderSeam, Sdl4ARetryableBoundRefusalAtAFeasibleIterateKeepsTheShrinkLadder) {
+    const SeamReset guard;
+    Seam::fail_walk_qps = 1;
+    Seam::as_e2_termination = false;
+    Seam::as_bound_refusal = true;
+    QpAsNlpModel model = line_model(vec2(0.0, 2.0));
+    SqpSolver driver(quiet());
+    const SqpResult sol = driver.solve(model);
+
+    EXPECT_EQ(Seam::forced, 1);
+    EXPECT_EQ(sol.counters.elastic_activations, 0);
+    EXPECT_EQ(sol.counters.qp_failures_routed, 1);
+    expect_line_optimum(sol);
 }
 
 // ---------------------------------------------------------------------------
