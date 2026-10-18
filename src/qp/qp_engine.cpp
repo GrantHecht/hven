@@ -2082,6 +2082,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 Index idx;
                 BoundState state;
                 double alpha;
+                Index passovers;         // the counters before this sequence's pass-overs
+                Index implied_passovers; // that the exchange puts back
             };
             std::optional<RefusedBlocker> first_refused;
             while (kind != BlockKind::kNone) {
@@ -2132,7 +2134,12 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     ++counters.dep_known_dependent_refusals;
                     xpick = ExchangePick{};
                     if (passed.empty() && !ride_blocked) {
-                        first_refused = RefusedBlocker{kind, block_idx, block_state, alpha};
+                        first_refused = RefusedBlocker{kind,
+                                                       block_idx,
+                                                       block_state,
+                                                       alpha,
+                                                       counters.dep_passovers,
+                                                       counters.dep_implied_passovers};
                     }
                 } else if (t.verdict == detail::DepVerdict::kUndecidable) {
                     // Screen-negative and unresolved -- a refinement that
@@ -2354,7 +2361,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 ++counters.rank_repair_misses;
             }
             if (add_exit == AddExit::kTerminate && first_refused.has_value() &&
-                pass_view.schur == nullptr) {
+                pass_view.eliminated != nullptr) {
                 // THE REFUSED-BLOCKER EXCHANGE (qp_engine.h, Degeneracy): the sequence's first
                 // blocker was refused by D3(b) -- known dependent at this point, its regularized
                 // test undecided, so it carried no coefficients. They are derived mu-free on this
@@ -2371,20 +2378,28 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 const detail::DepTest ct =
                     detail::certificate_coefficients(qp, ws, pass_view, a_r, eff_opts);
                 counters.dep_test_solves += ct.solves;
-                ExchangePick fx =
-                    select_exchange(qp, ws, shift, seen, ct, fr_ineq, first_refused->idx,
-                                    first_refused->state, lambda_e, lambda_i, z, /*moves=*/false,
-                                    /*unlock=*/false);
-                if (!fx.found) {
+                ExchangePick fx;
+                // A coefficient fit is offered only when decided (a NaN rho fails the comparison).
+                if (ct.rho < detail::kDepUndecidable) {
                     fx = select_exchange(qp, ws, shift, seen, ct, fr_ineq, first_refused->idx,
                                          first_refused->state, lambda_e, lambda_i, z,
-                                         /*moves=*/false, /*unlock=*/true);
+                                         /*moves=*/false, /*unlock=*/false);
+                    if (!fx.found) {
+                        fx = select_exchange(qp, ws, shift, seen, ct, fr_ineq, first_refused->idx,
+                                             first_refused->state, lambda_e, lambda_i, z,
+                                             /*moves=*/false, /*unlock=*/true);
+                    }
                 }
                 if (fx.found) {
                     kind = first_refused->kind;
                     block_idx = first_refused->idx;
                     block_state = first_refused->state;
                     alpha = first_refused->alpha;
+                    // The pass-overs taken since the refusal are undone with it, as SetAside; the
+                    // step is the refused blocker's own, at zero motion (D3(b)).
+                    assert(first_refused->alpha * sdir.lpNorm<Eigen::Infinity>() <= step_tol);
+                    counters.dep_passovers = first_refused->passovers;
+                    counters.dep_implied_passovers = first_refused->implied_passovers;
                     xpick = std::move(fx);
                     add_exit = AddExit::kNone;
                     ++counters.dep_refused_exchanges;

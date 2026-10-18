@@ -20,6 +20,10 @@
 // complementarity, and the reduced Hessian on the final face's null space (the inertia the
 // walk's own exit asserts). No oracle optimum (nonconvex). MINOR AND FACTORIZATION COUNTS ARE
 // PRINTED, NEVER ASSERTED.
+// KNOWN STRUCTURAL SURVIVOR: dropping the alpha reset at the exchange site (the walk would step
+// to a later blocker's alpha and pin the refused row with a projection) is not killed here --
+// every blocker of these fixtures' pass-over sequences is at zero motion, so the alphas agree.
+// The reset is guarded by an assert in the engine instead.
 
 #include <algorithm>
 #include <cmath>
@@ -118,6 +122,9 @@ void expect_exchanged_to_kkt(const char *file, const char *premise, WorkingSetLi
     const QpSolution s = solve_fixture(file, alg, d);
     // The premise: in-cell, this feasible subproblem ended kNumericalError at the dead end.
     EXPECT_NE(d.result.find(premise), std::string::npos) << d.result;
+    // The premise, live: the refusal and the rank repair's miss both happened in this run.
+    EXPECT_GE(s.counters.dep_known_dependent_refusals, 1);
+    EXPECT_GE(s.counters.rank_repair_misses, 1);
     ASSERT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
     EXPECT_GE(s.counters.dep_refused_exchanges, 1);
     EXPECT_EQ(s.counters.dep_blocker_terminations, 0);
