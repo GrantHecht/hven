@@ -301,6 +301,26 @@ TEST(SqpLadderSeam, Sdl4ARetryableBoundRefusalAtAnInfeasibleIterateTakesTheElast
     expect_line_optimum(sol);
 }
 
+// SDL-6: a certificate ROW-HALF refusal (kNumericalError, formerly kInfeasible without a verified
+// certificate) keeps its former route at an infeasible iterate: the elastic tier opens.
+// Without the route the plain kNumericalError takes the shrink ladder (L3's control).
+TEST(SqpLadderSeam, Sdl6ARowRefusalAtAnInfeasibleIterateOpensTheElasticTier) {
+    const SeamReset guard;
+    Seam::fail_walk_qps = 1;
+    Seam::as_e2_termination = false;
+    Seam::as_row_refusal = true;
+    QpAsNlpModel model = line_model(vec2(0.0, 0.0));
+    SqpSolver driver(quiet());
+    const SqpResult sol = driver.solve(model);
+
+    EXPECT_EQ(Seam::forced, 1);
+    EXPECT_GE(sol.counters.elastic_activations, 1);
+    EXPECT_EQ(sol.counters.qp_failures_routed, 0);
+    ASSERT_FALSE(sol.history.empty());
+    EXPECT_TRUE(sol.history.front().elastic_applied);
+    expect_line_optimum(sol);
+}
+
 // SDL-4 x R2: a retryable bound refusal at a feasible iterate is a step known past the
 // trust-region window; it is not offered as the failed subproblem's step (qp_failure_step ON),
 // so the shrink ladder routes it and nothing is judged.
@@ -317,6 +337,23 @@ TEST(SqpLadderSeam, Sdl4ABoundRefusalIsNotOfferedAsAFailureStep) {
 
     EXPECT_EQ(Seam::forced, 1);
     EXPECT_EQ(sol.counters.qp_failure_steps_judged, 0);
+    EXPECT_EQ(sol.counters.elastic_activations, 0);
+    EXPECT_EQ(sol.counters.qp_failures_routed, 1);
+    expect_line_optimum(sol);
+}
+
+// SDL-6's guard: at a FEASIBLE iterate the QP is feasible (d = 0), so a row refusal there is the
+// walk's, and the shrink ladder stays.
+TEST(SqpLadderSeam, Sdl6ARowRefusalAtAFeasibleIterateKeepsTheShrinkLadder) {
+    const SeamReset guard;
+    Seam::fail_walk_qps = 1;
+    Seam::as_e2_termination = false;
+    Seam::as_row_refusal = true;
+    QpAsNlpModel model = line_model(vec2(0.0, 2.0));
+    SqpSolver driver(quiet());
+    const SqpResult sol = driver.solve(model);
+
+    EXPECT_EQ(Seam::forced, 1);
     EXPECT_EQ(sol.counters.elastic_activations, 0);
     EXPECT_EQ(sol.counters.qp_failures_routed, 1);
     expect_line_optimum(sol);

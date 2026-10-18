@@ -7028,6 +7028,9 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
             if (SqpLadderSeam::as_bound_refusal) {
                 mj.qs.counters.certificate_bound_refusals = 1;
             }
+            if (SqpLadderSeam::as_row_refusal) {
+                mj.qs.counters.certificate_row_refusals = 1;
+            }
         }
     }
 #endif
@@ -7050,10 +7053,12 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
     // not finish, routed as an E2 termination -- and at any h when its iterate stands too far off
     // its box for the shrink ladder (qp_failure_is_retryable), which would otherwise end the solve.
     // A retryable bound refusal is a trust-region-window-only leak (the model box met within
-    // feas_tol): the certificate's box includes the window, the ladder's does not.
+    // feas_tol): the certificate's box includes the window, the ladder's does not. A ROW-HALF
+    // refusal (SDL-6, formerly kInfeasible without a verified certificate) likewise.
     const bool bound_refusal_to_elastic =
         mj.walk_owns_this_qp && mj.qs.status == QpStatus::kNumericalError &&
-        mj.qs.counters.certificate_bound_refusals > 0 &&
+        (mj.qs.counters.certificate_bound_refusals > 0 ||
+         mj.qs.counters.certificate_row_refusals > 0) &&
         (linearization_violated || !qp_failure_is_retryable(st.qp, mj.qs, opts_.feas_tol));
     if (mj.qs.status == QpStatus::kInfeasible || e2_termination_to_elastic ||
         bound_refusal_to_elastic) {

@@ -33,6 +33,8 @@ struct SqpLadderSeam {
     static inline bool as_e2_termination = true;
     /// Stamp the exit as a certificate bound-half refusal (`certificate_bound_refusals` = 1).
     static inline bool as_bound_refusal = false;
+    /// Stamp the exit as a certificate row-half refusal (`certificate_row_refusals` = 1).
+    static inline bool as_row_refusal = false;
     /// How many exits were forced (read by the test).
     static inline int forced = 0;
 
@@ -43,6 +45,7 @@ struct SqpLadderSeam {
         only_after_resume = false;
         as_e2_termination = true;
         as_bound_refusal = false;
+        as_row_refusal = false;
         forced = 0;
     }
 };

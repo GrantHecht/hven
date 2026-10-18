@@ -69,6 +69,7 @@
 // uses it where the test is undecidable (dep_structural_exact).
 
 #include <cstdint>
+#include <functional>
 #include <limits>
 #include <utility>
 #include <vector>
@@ -250,6 +251,24 @@ StructuralDependency structural_dependency(const QpProblem &qp, const WorkingSet
 /// an unusable factor or a face with no free column returns an empty vector.
 Vec face_solve(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f, const Vec &u,
                const QpOptions &opts, Index &solves);
+
+/// THE TERMINAL NULL DIRECTION (M7 W2 SDL-6): inverse iteration on `f`, in correction form, from
+/// the working rows' residual r at `x` (Ae x - be; Ai x - bi on W; 0 on pins). [0; y] with
+/// A_W^T y = 0 on the free columns is K_mu's eigenvector at -mu, so each step keeps r's component
+/// there and contracts the rest by mu / (lambda + mu): the Farkas direction of an inconsistent
+/// working set. A step is y <- y - v, K [u; v] = [A_W^T y; 0] (A_W^T y formed from A): its error
+/// scales with the correction, so A_W^T y reaches rounding, which an unbounded column needs. Each
+/// iterate (r itself first), unit 2-norm and oriented y'r >= 0, is offered to `accept` as
+/// (y_e, y_i) (y_i size mi, zero off W, unclamped); the steps stop when the free-column null
+/// residual fails to contract by kTerminalNullContraction, at most kTerminalNullSolves solves
+/// (counted in `solves`). A candidate generator only -- the caller verifies. Returns whether
+/// `accept` returned true; false with no usable factor.
+constexpr Index kTerminalNullSolves = 32;
+constexpr double kTerminalNullContraction = 0.9;
+bool terminal_null_direction(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f,
+                             const Vec &x, const QpOptions &opts,
+                             const std::function<bool(const Vec &, const Vec &)> &accept,
+                             Index &solves);
 
 /// Lanczos budget of face_negative_curvature (steps, one face_solve each).
 constexpr Index kSaddleLanczosSteps = 24;

@@ -615,6 +615,86 @@ StructuralDependency structural_dependency(const QpProblem &qp, const WorkingSet
     return sd;
 }
 
+bool terminal_null_direction(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f,
+                             const Vec &x, const QpOptions &opts,
+                             const std::function<bool(const Vec &, const Vec &)> &accept,
+                             Index &solves) {
+    if (!f.usable()) {
+        return false;
+    }
+    const DepSystem sys(qp, ws, f, opts);
+    const std::size_t nc = sys.comp.size();
+    if (nc == 0) {
+        return false;
+    }
+    const Vec re = qp.me() > 0 ? Vec(qp.Ae * x - qp.be) : Vec::Zero(0);
+    Vec r = Vec::Zero(static_cast<Index>(nc));
+    for (std::size_t k = 0; k < nc; ++k) {
+        const WsMember &m = sys.comp[k];
+        if (m.kind == WsMember::Kind::kEq) {
+            r(static_cast<Index>(k)) = re(m.idx);
+        } else if (m.kind == WsMember::Kind::kRow) {
+            r(static_cast<Index>(k)) = qp.Ai.row(m.idx).dot(x) - qp.bi(m.idx);
+        }
+    }
+    const double rn = r.norm();
+    if (!(rn > 0.0) || !std::isfinite(rn)) {
+        return false;
+    }
+    // THE CORRECTION FORM: rho = A_W^T y on the free columns, formed from A itself; K [u; v] =
+    // [rho; 0]; y <- y - v. The same operator as solving K [0; y] (y' ~ mu (M + mu)^-1 y), but its
+    // error scales with the shrinking correction, so A_W^T y reaches rounding (an unbounded column
+    // needs it there) rather than eps * cond(K).
+    Vec y = r / rn;
+    double prev = std::numeric_limits<double>::infinity();
+    for (Index pass = 0;; ++pass) {
+        Vec y_pos = Vec::Zero(sys.dim);
+        Vec y_e = Vec::Zero(qp.me());
+        Vec y_i = Vec::Zero(qp.mi());
+        const double orient = y.dot(r) < 0.0 ? -1.0 : 1.0;
+        for (std::size_t k = 0; k < nc; ++k) {
+            const WsMember &m = sys.comp[k];
+            const double yk = y(static_cast<Index>(k));
+            y_pos(sys.comp_pos[k]) = yk;
+            if (m.kind == WsMember::Kind::kEq) {
+                y_e(m.idx) = orient * yk;
+            } else if (m.kind == WsMember::Kind::kRow) {
+                y_i(m.idx) = orient * yk;
+            }
+        }
+        if (accept(y_e, y_i)) {
+            return true;
+        }
+        const Vec aty = sys.at_times(qp, y_pos);
+        Vec rhs = Vec::Zero(sys.dim);
+        double res_sq = 0.0;
+        for (Index i = 0; i < qp.n(); ++i) {
+            const Index p = sys.var_pos[static_cast<std::size_t>(i)];
+            if (p >= 0 && (sys.bordered ||
+                           ws.bound_state()[static_cast<std::size_t>(i)] == BoundState::kFree)) {
+                rhs(p) = aty(i);
+                res_sq += aty(i) * aty(i);
+            }
+        }
+        const double res = std::sqrt(res_sq);
+        if (pass == kTerminalNullSolves || !(res > 0.0) ||
+            !(res <= kTerminalNullContraction * prev)) {
+            return false; // the budget, or a stall: no further separation of the null space
+        }
+        prev = res;
+        const Vec z = sys.solve(rhs);
+        ++solves;
+        for (std::size_t k = 0; k < nc; ++k) {
+            y(static_cast<Index>(k)) -= z(sys.comp_pos[k]);
+        }
+        const double yn = y.norm();
+        if (!(yn > 0.0) || !std::isfinite(yn)) {
+            return false;
+        }
+        y /= yn;
+    }
+}
+
 Vec face_solve(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f, const Vec &u,
                const QpOptions &opts, Index &solves) {
     if (!f.usable() || ws.num_free() == 0) {

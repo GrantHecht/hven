@@ -1069,7 +1069,9 @@ somewhere other than the optimum, which is what the failed subproblem's own step
 stamps the exit `certificate_bound_refusals = 1`, the certificate's bound-half refusal,
 whose iterate stands off its box; with an off-box `forced_point` it pins that exit's
 elastic route at every `h`, without one its E2-termination routing (the shrink ladder at a
-feasible iterate).
+feasible iterate). One knob added at SDL-6: `as_row_refusal` stamps the exit
+`certificate_row_refusals = 1`, the certificate's row-half refusal (a structural row
+violation with no verified Farkas certificate), routed the same way.
 
 It is an INJECTED result, and faithful for the one question it serves: how the
 driver routes a failed QP (L1's refused-request spelling, L3's E2-termination

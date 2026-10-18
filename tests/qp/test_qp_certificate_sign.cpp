@@ -26,6 +26,10 @@
 // (a pass-over leak); it is refused kNumericalError (certificate_bound_refusals), never
 // kInfeasible. Seam fixtures on a feasible QP, and BRITGAS's QN subproblem 5 (natural, false
 // kInfeasible at e9cb2472).
+//
+// THE ROW HALF (SDL-6): a structural row violation is kInfeasible only on a verified Farkas
+// certificate, else kNumericalError (certificate_row_refusals). Natural fixtures NET3/MSS2 (false
+// kInfeasible at e9cb2472) and DALLASM (a true one, still certified).
 
 #include <algorithm>
 #include <cmath>
@@ -479,4 +483,106 @@ TEST(QpCertificateSign, BritgasQnSubproblemOffBoxLeakIsNotInfeasible) {
         EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kNumericalError));
         EXPECT_EQ(s.counters.certificate_bound_refusals, 1);
     }
+}
+
+// THE ROW HALF (SDL-6): a terminal structural row violation is kInfeasible only on a VERIFIED
+// Farkas certificate (verify_terminal_farkas), else kNumericalError (certificate_row_refusals).
+// Natural fixtures from the QN label at e9cb2472, each read kInfeasible there (site 1331):
+//   NET3 solve 98: feasible (HiGHS phase 1 at 0; Clarabel f* = -683.26); the walk dead-ends on an
+//     exactly rank-deficient working set with an inconsistent rhs, working rows violated by 0.108.
+//   MSS2 solve 58: feasible (phase 1 at 0), equality rows only; a consistent, numerically
+//     rank-deficient Ae (694 of 703) leaves a dual_mu footprint of 3.4e-6 the mu-free refinement
+//     does not remove.
+//   DALLASM solve 0: infeasible (phase 1 min l1 violation 0.448; Clarabel PrimalInfeasible); the
+//     certificate needs the box (7 pins) and comes from the inverse-iteration candidate.
+namespace {
+
+struct RowHalfRun {
+    QpSolution s;
+    double eq_res = 0.0;
+    double row_res = 0.0;
+};
+
+RowHalfRun run_row_half(const hven::test_support::QpDump &d, WorkingSetLinearAlgebra alg) {
+    QpOptions o = d.opts;
+    o.ws_algebra = alg;
+    RowHalfRun r;
+    r.s = hven::test_support::solve_qp_dump(d, o);
+    if (d.qp.me() > 0) {
+        r.eq_res = (d.qp.Ae * r.s.x - d.qp.be).lpNorm<Eigen::Infinity>();
+    }
+    for (Index j = 0; j < d.qp.mi(); ++j) {
+        r.row_res = std::max(r.row_res, d.qp.Ai.row(j).dot(r.s.x) - d.qp.bi(j));
+    }
+    return r;
+}
+
+void print_row_half(const char *name, WorkingSetLinearAlgebra alg, const RowHalfRun &r) {
+    std::printf("[ sdl6 ] %s alg=%d status=%d minors=%ld row_refusals=%ld tfc=%ld eq_res=%.3e "
+                "row_res=%.3e\n",
+                name, static_cast<int>(alg), static_cast<int>(r.s.status),
+                static_cast<long>(r.s.counters.minor_iters),
+                static_cast<long>(r.s.counters.certificate_row_refusals),
+                static_cast<long>(r.s.counters.terminal_farkas_certificates), r.eq_res, r.row_res);
+}
+
+hven::test_support::QpDump row_half_fixture(const char *name) {
+    return hven::test_support::load_qp_dump(std::string(HVEN_QP_E2D4_FIXTURES) + "/" + name);
+}
+
+} // namespace
+
+TEST(QpCertificateSign, Net3QnSubproblemInconsistentFaceIsNotInfeasible) {
+    SignSeamGuard guard;
+    const auto d = row_half_fixture("SDL6_NET3_QN_qp98.txt");
+    for (const auto alg : kAlgebras) {
+        SCOPED_TRACE(static_cast<int>(alg));
+        const RowHalfRun r = run_row_half(d, alg);
+        print_row_half("NET3_QN_qp98", alg, r);
+        EXPECT_NE(static_cast<int>(r.s.status), static_cast<int>(QpStatus::kInfeasible));
+        EXPECT_EQ(r.s.counters.terminal_farkas_certificates, 0);
+    }
+    // The in-cell path, live: the walk's own point violates its rows.
+    const RowHalfRun r = run_row_half(d, d.opts.ws_algebra);
+    EXPECT_GT(r.row_res, 1e-2);
+    EXPECT_EQ(static_cast<int>(r.s.status), static_cast<int>(QpStatus::kNumericalError));
+    EXPECT_EQ(r.s.counters.certificate_row_refusals, 1);
+}
+
+TEST(QpCertificateSign, Mss2QnSubproblemMuFootprintIsNotInfeasible) {
+    SignSeamGuard guard;
+    const auto d = row_half_fixture("SDL6_MSS2_QN_qp58.txt");
+    for (const auto alg : kAlgebras) {
+        SCOPED_TRACE(static_cast<int>(alg));
+        const RowHalfRun r = run_row_half(d, alg);
+        print_row_half("MSS2_QN_qp58", alg, r);
+        EXPECT_NE(static_cast<int>(r.s.status), static_cast<int>(QpStatus::kInfeasible));
+        EXPECT_EQ(r.s.counters.terminal_farkas_certificates, 0);
+    }
+    const RowHalfRun r = run_row_half(d, d.opts.ws_algebra);
+    EXPECT_GT(r.eq_res, 1e-6);
+    EXPECT_EQ(r.s.counters.terminal_mu_refines, 1);
+    EXPECT_EQ(static_cast<int>(r.s.status), static_cast<int>(QpStatus::kNumericalError));
+    EXPECT_EQ(r.s.counters.certificate_row_refusals, 1);
+}
+
+TEST(QpCertificateSign, DallasmQnInfeasibleSubproblemKeepsAVerifiedVerdict) {
+    SignSeamGuard guard;
+    const auto d = row_half_fixture("SDL6_DALLASM_QN_qp0.txt");
+    for (const auto alg : kAlgebras) {
+        SCOPED_TRACE(static_cast<int>(alg));
+        const RowHalfRun r = run_row_half(d, alg);
+        print_row_half("DALLASM_QN_qp0", alg, r);
+        if (r.s.status == QpStatus::kInfeasible) {
+            EXPECT_GE(r.s.counters.terminal_farkas_certificates +
+                          r.s.counters.dep_infeasible_certificates,
+                      1);
+        }
+    }
+    const RowHalfRun r = run_row_half(d, d.opts.ws_algebra);
+    EXPECT_GT(r.eq_res, 1e-1);
+    EXPECT_EQ(static_cast<int>(r.s.status), static_cast<int>(QpStatus::kInfeasible));
+    EXPECT_EQ(r.s.counters.terminal_farkas_certificates, 1);
+    EXPECT_EQ(r.s.counters.certificate_row_refusals, 0);
+    EXPECT_FALSE(r.s.farkas.present); // the terminal certificate is not blocker-shaped
 }

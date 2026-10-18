@@ -487,9 +487,14 @@
 //    carry the reason.
 //
 //    The classification:
-//      - kInfeasible if any inequality or equality row carries a STRUCTURAL
-//        violation. Both blocks are checked; the shift machinery only watches
-//        inequalities.
+//      - if any inequality or equality row carries a STRUCTURAL violation (both
+//        blocks are checked; the shift machinery only watches inequalities):
+//        kInfeasible iff verify_terminal_farkas VERIFIES a Farkas certificate
+//        for the QP (terminal_farkas_certificates), else kNumericalError
+//        (certificate_row_refusals) -- the violation is evidence, not a proof:
+//        a consistent ill-conditioned row block leaves a dual_mu footprint above
+//        the absorb cap, and a rank-deficient working set can end with
+//        non-working rows violated (SDL-6).
 //      - kNumericalError if the point is feasible but some free component
 //        unbounded on the side it grew toward exceeds
 //        detail::unbounded_artifact_scale() -- the answer is the regularization
@@ -2637,6 +2642,23 @@ class QpEngine {
                        const detail::DepTest &t, const ExchangePick &pick, bool is_ineq, Index idx,
                        double row_scale, const QpOptions &opts, QpFarkasCertificate &cert,
                        Index &solves) const;
+
+    // THE ROW HALF'S CERTIFICATE (M7 W2 SDL-6), at a terminal point whose rows carry a
+    // structural violation. True iff some y (y_e free, y_i >= 0) is VERIFIED to prove this QP
+    // (box = qp's, TR included) infeasible beyond its tolerance:
+    //   min_{l<=x<=u} w'x - y'b > floor + kInfeasibilityMarginFactor * sum_j |y_j| tol_j,
+    // w = Ae'y_e + Ai'y_i, each w_i widened by its rounding bound before the box minimum (a
+    // needed infinite bound fails), floor the sum's own rounding (kCertExactKappa), tol_j =
+    // row_tolerance(row_scale_j, 0) at worst_structural_violation's row scale. Then every box
+    // point violates some row j by more than kInfeasibilityMarginFactor * tol_j. Candidates: the
+    // residual at x (no solve), then detail::terminal_null_direction on `view` -- or, when the
+    // pass's factor no longer holds for `ws` (a verdict refinement moved it), on a local
+    // eliminated factor of `ws` (one factorization, charged as eliminated_candidate charges it);
+    // its solves go to dep_test_solves. QpSolution::farkas is left absent (it is blocker-shaped).
+    bool verify_terminal_farkas(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                                const Vec &ai_row_norm1, const Vec &ae_row_norm1,
+                                const detail::DepFactorView &view, QpCounters &counters,
+                                const QpOptions &opts) const;
 
     // THE PASS-OVER SCAN: production's ratio scan with the passed-over
     // constraints excluded (the no-admissible rule's pass-over, N2), for ONE

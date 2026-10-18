@@ -556,6 +556,12 @@ struct QpCounters {
     // RESTORATIONS, as terminal_polish_sign_reverts (which a bound failure takes precedence over).
     Index certificate_bound_refusals = 0;
     Index terminal_polish_bound_reverts = 0;
+    // M7 W2 SDL-6. Appended. The certificate's ROW HALF (a terminal point with a structural row
+    // violation): `terminal_farkas_certificates` exits kInfeasible on a VERIFIED Farkas
+    // certificate (QpEngine::verify_terminal_farkas); `certificate_row_refusals` exits
+    // kNumericalError without one, routed by the SQP driver as certificate_bound_refusals.
+    Index terminal_farkas_certificates = 0;
+    Index certificate_row_refusals = 0;
 };
 
 /// @brief Work counters for the semismooth-Newton kernel.

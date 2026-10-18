@@ -4,6 +4,7 @@
 #include <cmath>
 #include <random>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -767,6 +768,31 @@ TEST(QpEngine, EqualityOutsideTheBoxIsInfeasible) {
 
     EXPECT_EQ(sol.status, QpStatus::kInfeasible);
     EXPECT_GT((qp.Ae * sol.x - qp.be).lpNorm<Eigen::Infinity>(), 1e-3);
+}
+
+// SDL-6: each kInfeasible above carries exactly one VERIFIED Farkas certificate -- the add site's
+// or the row half's. The two inconsistent pairs (interior least-squares point, no blocker) end
+// at the row half; the unbounded variant: A'y cancels to rounding on columns with no finite bound.
+TEST(QpEngine, RowHalfInfeasibleVerdictsCarryAVerifiedCertificate) {
+    QpProblem unbounded = inconsistent_equalities_qp();
+    unbounded.lower = Vec::Constant(2, -1e20);
+    unbounded.upper = Vec::Constant(2, 1e20);
+    const std::vector<std::pair<QpProblem, bool>> cases = {{infeasible_bounds_qp(), false},
+                                                           {infeasible_with_equality_qp(), false},
+                                                           {inconsistent_equalities_qp(), true},
+                                                           {equality_outside_box_qp(), false},
+                                                           {unbounded, true}};
+    for (const auto &[qp, terminal] : cases) {
+        const auto sol = QpEngine{QpOptions{}}.solve(qp);
+        EXPECT_EQ(sol.status, QpStatus::kInfeasible);
+        EXPECT_EQ(sol.counters.terminal_farkas_certificates +
+                      sol.counters.dep_infeasible_certificates,
+                  1);
+        if (terminal) {
+            EXPECT_EQ(sol.counters.terminal_farkas_certificates, 1);
+        }
+        EXPECT_EQ(sol.counters.certificate_row_refusals, 0);
+    }
 }
 
 TEST(QpEngine, UnboundedProblemIsReportedAsNumericalErrorNotOptimal) {

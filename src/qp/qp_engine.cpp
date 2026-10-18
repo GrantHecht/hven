@@ -1328,7 +1328,17 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 bool convex_overruled = false;
                 bool would_certify = false;
                 if (worst > 0.0) {
-                    status = QpStatus::kInfeasible;
+                    // THE ROW HALF (SDL-6): a structural violation is the walk's evidence,
+                    // not a proof -- kInfeasible only on a VERIFIED Farkas certificate.
+                    if (verify_terminal_farkas(qp, ws, x, ai_row_norm1, ae_row_norm1,
+                                               dep_factor_view(ws, kkt, face, *border_), counters,
+                                               eff_opts)) {
+                        ++counters.terminal_farkas_certificates;
+                        status = QpStatus::kInfeasible;
+                    } else {
+                        ++counters.certificate_row_refusals;
+                        status = QpStatus::kNumericalError;
+                    }
                 } else if (is_runaway(qp, x, ws, eff_opts)) {
                     status = QpStatus::kNumericalError;
                 } else if (verdict == detail::InertiaVerdict::kWrong &&
@@ -5051,6 +5061,114 @@ bool QpEngine::verify_farkas(const QpProblem &qp, const WorkingSet &ws,
         cert = QpFarkasCertificate{};
     }
     return verified;
+}
+
+bool QpEngine::verify_terminal_farkas(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                                      const Vec &ai_row_norm1, const Vec &ae_row_norm1,
+                                      const detail::DepFactorView &view, QpCounters &counters,
+                                      const QpOptions &opts) const {
+    constexpr double kInf = std::numeric_limits<double>::infinity();
+    const Index n = qp.n();
+    const double gamma = detail::kCertExactKappa * static_cast<double>(n + qp.me() + qp.mi()) *
+                         std::numeric_limits<double>::epsilon();
+    const double xmag = x.lpNorm<Eigen::Infinity>();
+    const auto certifies = [&](const Vec &y_e, const Vec &y_i_raw) {
+        const Vec y_i = y_i_raw.cwiseMax(0.0);
+        Vec w = Vec::Zero(n);
+        Vec w_abs = Vec::Zero(n);
+        double yb = 0.0;
+        double yb_abs = 0.0;
+        double margin = 0.0;
+        if (qp.me() > 0) {
+            w += qp.Ae.transpose() * y_e;
+            w_abs += qp.Ae.cwiseAbs().transpose() * y_e.cwiseAbs();
+            yb += y_e.dot(qp.be);
+            yb_abs += y_e.cwiseAbs().dot(qp.be.cwiseAbs());
+            for (Index j = 0; j < qp.me(); ++j) {
+                const double rs = std::max({1.0, std::abs(qp.be(j)), ae_row_norm1(j) * xmag});
+                margin += std::abs(y_e(j)) * row_tolerance(rs, 0.0, opts);
+            }
+        }
+        if (qp.mi() > 0) {
+            w += qp.Ai.transpose() * y_i;
+            w_abs += qp.Ai.cwiseAbs().transpose() * y_i;
+            yb += y_i.dot(qp.bi);
+            yb_abs += y_i.dot(qp.bi.cwiseAbs());
+            for (Index j = 0; j < qp.mi(); ++j) {
+                if (y_i(j) != 0.0) {
+                    const double rs = std::max({1.0, std::abs(qp.bi(j)), ai_row_norm1(j) * xmag});
+                    margin += y_i(j) * row_tolerance(rs, 0.0, opts);
+                }
+            }
+        }
+        if (!(margin < kInf)) {
+            return false;
+        }
+        // min of w_i x_i over w_i in [w - e, w + e] and x_i in the box: the corners. On a column
+        // unbounded on a side, |w_i| <= e reads as zero (the rounding floor's convention,
+        // verify_farkas's exact_tol); a larger w_i needing the infinite side fails.
+        double box_min = 0.0;
+        double box_abs = 0.0;
+        for (Index i = 0; i < n; ++i) {
+            const double e = gamma * w_abs(i);
+            const double lo = qp.lower(i);
+            const double up = qp.upper(i);
+            const bool lo_inf = !(std::abs(lo) < detail::kEngineInfBound);
+            const bool up_inf = !(std::abs(up) < detail::kEngineInfBound);
+            if ((lo_inf || up_inf) && std::abs(w(i)) <= e) {
+                continue;
+            }
+            const auto corner = [](double wv, double b, bool b_inf, double b_sign) {
+                if (wv == 0.0) {
+                    return 0.0;
+                }
+                if (b_inf) {
+                    return (wv > 0.0) == (b_sign > 0.0) ? kInf : -kInf;
+                }
+                return wv * b;
+            };
+            const double t =
+                std::min({corner(w(i) - e, lo, lo_inf, -1.0), corner(w(i) - e, up, up_inf, 1.0),
+                          corner(w(i) + e, lo, lo_inf, -1.0), corner(w(i) + e, up, up_inf, 1.0)});
+            if (!(t > -kInf)) {
+                return false;
+            }
+            box_min += t;
+            box_abs += std::abs(t);
+        }
+        const double floor = gamma * (box_abs + yb_abs);
+        return std::isfinite(box_min) &&
+               box_min - yb > floor + detail::kInfeasibilityMarginFactor * margin;
+    };
+    // The residual at x: a min-violation point's own certificate (gap ||r||^2).
+    {
+        const Vec y_e = qp.me() > 0 ? Vec(qp.Ae * x - qp.be) : Vec::Zero(0);
+        const Vec y_i = qp.mi() > 0 ? Vec((qp.Ai * x - qp.bi).cwiseMax(0.0)) : Vec::Zero(0);
+        if (y_e.allFinite() && y_i.allFinite() && certifies(y_e, y_i)) {
+            return true;
+        }
+    }
+    if (view.usable()) {
+        return detail::terminal_null_direction(qp, ws, view, x, opts, certifies,
+                                               counters.dep_test_solves);
+    }
+    // The pass's factor no longer holds for ws: a local eliminated factor of it (the saddle
+    // exit's pattern).
+    detail::KktFactor own(threads_);
+    EliminatedFace own_face;
+    detail::InertiaVerdict v = detail::InertiaVerdict::kWrong;
+    try {
+        (void)eliminated_candidate(qp, ws, x, own, own_face, counters, v, opts);
+    } catch (const std::runtime_error &) {
+        return false;
+    }
+    if (!own_face.holds(ws, own)) {
+        return false;
+    }
+    detail::DepFactorView own_view;
+    own_view.eliminated = &own;
+    return detail::terminal_null_direction(qp, ws, own_view, x, opts, certifies,
+                                           counters.dep_test_solves);
 }
 
 QpEngine::PassOverScan::PassOverScan(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
