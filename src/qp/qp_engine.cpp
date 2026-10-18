@@ -1572,8 +1572,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         // exported. It cannot manufacture a certificate: the
                         // acceptance test refuses any candidate whose rows or
                         // bounds are worse than the incumbent's, or outside
-                        // feas_tol where the incumbent met it, or whose dual
-                        // signs are worse (RDV-5); the sign half re-reads them.
+                        // feas_tol where the incumbent met it. It does not read
+                        // signs: the sign half below does (RDV-5).
                         //
                         // NOTHING ABOVE IS RE-DECIDED. The polish moves x by at
                         // most the bias it removes, does not touch the working set,
@@ -4118,11 +4118,6 @@ bool QpEngine::adopt_polished_candidate(const QpProblem &qp, const WorkingSet &w
     // candidate improved complementarity instead. A rejection leaves the walk's own
     // point exactly as it was, which is the conservative side.
     //
-    // AND NO WORSE DUAL SIGNS (RDV-5): a mu-free re-solve of a face whose
-    // multipliers are not unique can return wrong-signed ones; the candidate's
-    // worst wrong sign may not exceed max(opt_tol, the incumbent's), in the same
-    // relative units.
-    //
     // THE SLACK ON BOTH HALVES (fix round 2): kTerminalPolishWorseFactor, whose own
     // note carries the measurement and the argument. "No worse" means no worse by
     // more than that factor and "strictly better" means better BY that factor, so
@@ -4135,8 +4130,7 @@ bool QpEngine::adopt_polished_candidate(const QpProblem &qp, const WorkingSet &w
     // trading it).
     const double slack = detail::kTerminalPolishWorseFactor;
     const bool feasible = after.rows <= std::max(opts.feas_tol, before.rows);
-    const bool kkt_point =
-        after.stationarity <= opts.opt_tol && after.sign <= std::max(opts.opt_tol, before.sign);
+    const bool kkt_point = after.stationarity <= opts.opt_tol;
     const bool no_worse = after.stationarity <= slack * before.stationarity &&
                           after.rows <= before.rows &&
                           after.complementarity <= slack * before.complementarity;

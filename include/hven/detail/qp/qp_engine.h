@@ -426,7 +426,8 @@
 //    stationarity scale) -- opt_tol * scale, the KKT-point test's own relative
 //    tolerance; a NaN refuses. A refusal is kNumericalError
 //    (certificate_sign_refusals). The drop rule's own sign test is not enough:
-//    it exempts re-entered members, and the polish re-prices the face after it.
+//    it exempts re-entered members, and the polish re-prices the face mu-free
+//    after it, where a regularized multiplier's sign can flip.
 //
 //    HOW A PASS IS RECOGNISED AS A KKT POINT OF ITS WORKING SET (M7 W2 E4,
 //    ruling E4-2) -- the free-block STATIONARITY RESIDUAL, in the engine's own
@@ -1255,14 +1256,10 @@ inline bool dual_signs_hold(double wrong_sign, double scale, const QpOptions &op
 //    family reads at the NLP level: a regularized row identity leaves a working
 //    row slack by dual_mu*|lambda|, so this product is dual_mu*lambda^2 there
 //    and the driver's own complementarity check sees it.
-//  - `sign` (not a residual the polish improves; it may not WORSEN it -- RDV-5):
-//    worst_wrong_sign over every working row and pin, divided by the
-//    stationarity scale, in units of opt_tol.
 struct TerminalKkt {
     double stationarity = 0.0;
     double rows = 0.0;
     double complementarity = 0.0;
-    double sign = 0.0;
 
     bool all_finite() const {
         return std::isfinite(stationarity) && std::isfinite(rows) && std::isfinite(complementarity);
@@ -1275,7 +1272,6 @@ inline TerminalKkt terminal_kkt(const QpProblem &qp, const WorkingSet &ws, const
     double stat_scale = 1.0;
     const double stat = free_block_stationarity(qp, x, ws, lambda_e, lambda_i, stat_scale);
     out.stationarity = stat / std::max(stat_scale, 1e-300);
-    out.sign = worst_wrong_sign(qp, ws, lambda_i, z, nullptr) / std::max(stat_scale, 1e-300);
 
     const double xmag = x.lpNorm<Eigen::Infinity>();
     if (qp.me() > 0) {
