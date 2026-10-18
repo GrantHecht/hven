@@ -7049,8 +7049,10 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
     // A certificate BOUND-HALF refusal (SDL-4, formerly kInfeasible) is a QP the working set could
     // not finish, routed as an E2 termination -- and at any h when its iterate stands too far off
     // its box for the shrink ladder (qp_failure_is_retryable), which would otherwise end the solve.
+    // A retryable bound refusal is a trust-region-window-only leak (the model box met within
+    // feas_tol): the certificate's box includes the window, the ladder's does not.
     const bool bound_refusal_to_elastic =
-        mj.qs.status == QpStatus::kNumericalError &&
+        mj.walk_owns_this_qp && mj.qs.status == QpStatus::kNumericalError &&
         mj.qs.counters.certificate_bound_refusals > 0 &&
         (linearization_violated || !qp_failure_is_retryable(st.qp, mj.qs, opts_.feas_tol));
     if (mj.qs.status == QpStatus::kInfeasible || e2_termination_to_elastic ||
@@ -7213,9 +7215,12 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         //     restoration request: the step is the failed subproblem's, not a
         //     solved one, so a failed trial is no evidence the linearization is
         //     inconsistent; the routing (and its radius floor) decides instead.
+        // A bound refusal (certificate_bound_refusals > 0) is never offered: its step is known
+        // past the trust-region window, and a trial would not enforce it.
         // Nothing is certified here: the loop's KKT test is the only certificate.
         bool failure_step_rejected = false;
         if (opts_.qp_failure_step && mj.walk_owns_this_qp && st.full_step_funnel == nullptr &&
+            mj.qs.counters.certificate_bound_refusals == 0 &&
             qp_failure_is_retryable(st.qp, mj.qs, opts_.feas_tol) &&
             mj.qs.x.lpNorm<Eigen::Infinity>() > 0.0) {
             const double pred = st.qn_bridge ? st.qn_bridge->predicted_decrease(st.qp, mj.qs.x)

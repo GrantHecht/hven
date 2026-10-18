@@ -12,6 +12,8 @@
 //       elastic tier; at a feasible iterate the shrink ladder stays (the DALLASM
 //       major-1 guard); a plain kNumericalError keeps the shrink ladder; the guard's
 //       h reads the box (L2).
+//   SDL-4 a certificate bound-half refusal is routed as an E2 termination, and to the elastic
+//       tier at any h when its iterate is past the shrink ladder's box tolerance.
 //   CERT-1 (M7 W2 C12) a restoration that converges where every row is inside
 //       feas_tol but their l1 sum is not certifies nothing (BRITGAS under W1).
 
@@ -274,6 +276,47 @@ TEST(SqpLadderSeam, Sdl4ARetryableBoundRefusalAtAFeasibleIterateKeepsTheShrinkLa
     const SqpResult sol = driver.solve(model);
 
     EXPECT_EQ(Seam::forced, 1);
+    EXPECT_EQ(sol.counters.elastic_activations, 0);
+    EXPECT_EQ(sol.counters.qp_failures_routed, 1);
+    expect_line_optimum(sol);
+}
+
+// SDL-4's `linearization_violated ||` disjunct: a bound refusal whose iterate the shrink ladder
+// can retry, at h = 2 > feas_tol, opens the elastic tier (a smaller box cannot cure a violated
+// linearization). Without the disjunct only the retryability test routes, and this one shrinks.
+TEST(SqpLadderSeam, Sdl4ARetryableBoundRefusalAtAnInfeasibleIterateTakesTheElasticTier) {
+    const SeamReset guard;
+    Seam::fail_walk_qps = 1;
+    Seam::as_e2_termination = false;
+    Seam::as_bound_refusal = true;
+    QpAsNlpModel model = line_model(vec2(0.0, 0.0));
+    SqpSolver driver(quiet());
+    const SqpResult sol = driver.solve(model);
+
+    EXPECT_EQ(Seam::forced, 1);
+    EXPECT_GE(sol.counters.elastic_activations, 1);
+    EXPECT_EQ(sol.counters.qp_failures_routed, 0);
+    ASSERT_FALSE(sol.history.empty());
+    EXPECT_TRUE(sol.history.front().elastic_applied);
+    expect_line_optimum(sol);
+}
+
+// SDL-4 x R2: a retryable bound refusal at a feasible iterate is a step known past the
+// trust-region window; it is not offered as the failed subproblem's step (qp_failure_step ON),
+// so the shrink ladder routes it and nothing is judged.
+TEST(SqpLadderSeam, Sdl4ABoundRefusalIsNotOfferedAsAFailureStep) {
+    const SeamReset guard;
+    Seam::fail_walk_qps = 1;
+    Seam::as_e2_termination = false;
+    Seam::as_bound_refusal = true;
+    QpAsNlpModel model = line_model(vec2(0.0, 2.0));
+    SqpOptions o = quiet();
+    o.qp_failure_step = true;
+    SqpSolver driver(o);
+    const SqpResult sol = driver.solve(model);
+
+    EXPECT_EQ(Seam::forced, 1);
+    EXPECT_EQ(sol.counters.qp_failure_steps_judged, 0);
     EXPECT_EQ(sol.counters.elastic_activations, 0);
     EXPECT_EQ(sol.counters.qp_failures_routed, 1);
     expect_line_optimum(sol);

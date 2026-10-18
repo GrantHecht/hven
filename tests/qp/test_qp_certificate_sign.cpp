@@ -248,11 +248,14 @@ TEST(QpCertificateSign, BoundHalfOnTheUnpolishedPathIsNumericalErrorNotInfeasibl
 // Inside the structural margin the bound half still tolerates the point (E4).
 TEST(QpCertificateSign, BoundHalfInsideTheMarginStillCertifies) {
     SignSeamGuard guard;
-    const QpOptions o = sign_opts(WorkingSetLinearAlgebra::kRefactorize);
-    const QpSolution s = present_off_box(o, -0.5 * o.feas_tol);
-    ASSERT_EQ(Cert::presentations, 1);
-    EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
-    EXPECT_EQ(s.counters.certificate_bound_refusals, 0);
+    for (const auto alg : kAlgebras) {
+        SCOPED_TRACE(static_cast<int>(alg));
+        const QpOptions o = sign_opts(alg);
+        const QpSolution s = present_off_box(o, -0.5 * o.feas_tol);
+        ASSERT_EQ(Cert::presentations, 1);
+        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+        EXPECT_EQ(s.counters.certificate_bound_refusals, 0);
+    }
 }
 
 // A QP whose terminal polish is adopted: an active inequality row under a large dual_mu leaves a
