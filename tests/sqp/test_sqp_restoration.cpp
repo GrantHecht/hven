@@ -2658,7 +2658,13 @@ TEST(SqpDriverRestorationSeed, TheGuardAndThePhaseRunOnTheCallerScale) {
         // the engine-scale measure would have stopped at x0 = 0.
         EXPECT_TRUE(sol.infeasibility_certified);
         EXPECT_NEAR(sol.x(0), 1.0, 1e-9);
-        EXPECT_NEAR(sol.x(1), 0.0, 1e-9);
+        // RE-PINNED (M7 W2 SDL, declared): x(1) was pinned at 0. On the box the
+        // caller-scale h is flat in x(1) wherever x(0) >= 0.001 x(1) (the two kFlat rows'
+        // x(1) terms cancel), so x(1) is any point of that face; walk and ssn reached 0
+        // through a restoration QP certified kOptimal with a lower pin priced -1e10, which
+        // the certificate's sign half now refuses, and they land at 0.5. Asserted: on the box.
+        EXPECT_GE(sol.x(1), 0.0);
+        EXPECT_LE(sol.x(1), 1.0);
 
         // AND NO POINT THE SOLVE EVALUATED LEFT THE BOX, the seeded start
         // included. The QP carries the box (build_subproblem), so the clamp on
