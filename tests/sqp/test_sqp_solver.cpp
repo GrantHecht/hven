@@ -11723,6 +11723,8 @@ struct W2T7PlainWalk {
     double x0 = 0.0;
     Index verdict_refine_steps = 0;
     Index factorizations = 0;
+    Index terminal_farkas_certificates = 0;
+    Index dep_test_solves = 0;
 };
 
 W2T7PlainWalk w2t7_plain_walk(const QpProblem &qp, double dual_mu, WorkingSetLinearAlgebra alg,
@@ -11737,6 +11739,8 @@ W2T7PlainWalk w2t7_plain_walk(const QpProblem &qp, double dual_mu, WorkingSetLin
     out.x0 = s.x(0);
     out.verdict_refine_steps = s.counters.verdict_refine_steps;
     out.factorizations = s.counters.factorizations;
+    out.terminal_farkas_certificates = s.counters.terminal_farkas_certificates;
+    out.dep_test_solves = s.counters.dep_test_solves;
     if (qp.me() > 0) {
         out.worst_resid =
             std::max(out.worst_resid, (qp.Ae * s.x - qp.be).lpNorm<Eigen::Infinity>());
@@ -11765,6 +11769,13 @@ TEST(QpEngineStructuralViolation, T7ACertifiedInfeasibleExitRETURNSTheRefinedPoi
 
     EXPECT_EQ(bordered.status, QpStatus::kInfeasible);
     EXPECT_EQ(eliminated.status, QpStatus::kInfeasible) << "the VERDICT is still mode-paired";
+    // The verdict is a VERIFIED Farkas certificate (SDL-6), in both algebras. The refined
+    // verdict moves the working set off the pass's factor, so the certificate's null-direction
+    // candidate runs on the local eliminated-factor fallback (verify_terminal_farkas).
+    EXPECT_EQ(bordered.terminal_farkas_certificates, 1);
+    EXPECT_EQ(eliminated.terminal_farkas_certificates, 1);
+    EXPECT_GT(bordered.dep_test_solves, 0);
+    EXPECT_GT(eliminated.dep_test_solves, 0);
     EXPECT_EQ(bordered.verdict_refine_steps, 9) << "the loop ran and adopted";
     EXPECT_EQ(eliminated.verdict_refine_steps, 9) << "and so did its twin -- T7 item 11";
     EXPECT_NEAR(bordered.worst_resid, 2.943550e-4, 1.0e-9) << "the REFINED point came back";

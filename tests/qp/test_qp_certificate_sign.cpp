@@ -573,11 +573,11 @@ TEST(QpCertificateSign, DallasmQnInfeasibleSubproblemKeepsAVerifiedVerdict) {
         SCOPED_TRACE(static_cast<int>(alg));
         const RowHalfRun r = run_row_half(d, alg);
         print_row_half("DALLASM_QN_qp0", alg, r);
-        if (r.s.status == QpStatus::kInfeasible) {
-            EXPECT_GE(r.s.counters.terminal_farkas_certificates +
-                          r.s.counters.dep_infeasible_certificates,
-                      1);
-        }
+        EXPECT_EQ(static_cast<int>(r.s.status), static_cast<int>(QpStatus::kInfeasible));
+        EXPECT_GE(r.s.counters.terminal_farkas_certificates +
+                      r.s.counters.dep_infeasible_certificates,
+                  1);
+        EXPECT_EQ(r.s.counters.certificate_row_refusals, 0);
     }
     const RowHalfRun r = run_row_half(d, d.opts.ws_algebra);
     EXPECT_GT(r.eq_res, 1e-1);

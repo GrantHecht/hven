@@ -5105,8 +5105,9 @@ bool QpEngine::verify_terminal_farkas(const QpProblem &qp, const WorkingSet &ws,
             return false;
         }
         // min of w_i x_i over w_i in [w - e, w + e] and x_i in the box: the corners. On a column
-        // unbounded on a side, |w_i| <= e reads as zero (the rounding floor's convention,
-        // verify_farkas's exact_tol); a larger w_i needing the infinite side fails.
+        // unbounded on the side w_i's sign needs, |w_i| <= e reads as zero (the rounding floor's
+        // convention, verify_farkas's exact_tol); a larger w_i needing the infinite side fails,
+        // and a finite needed side contributes its corner.
         double box_min = 0.0;
         double box_abs = 0.0;
         for (Index i = 0; i < n; ++i) {
@@ -5115,7 +5116,9 @@ bool QpEngine::verify_terminal_farkas(const QpProblem &qp, const WorkingSet &ws,
             const double up = qp.upper(i);
             const bool lo_inf = !(std::abs(lo) < detail::kEngineInfBound);
             const bool up_inf = !(std::abs(up) < detail::kEngineInfBound);
-            if ((lo_inf || up_inf) && std::abs(w(i)) <= e) {
+            const bool needed_inf =
+                w(i) > 0.0 ? lo_inf : (w(i) < 0.0 ? up_inf : (lo_inf || up_inf));
+            if (needed_inf && std::abs(w(i)) <= e) {
                 continue;
             }
             const auto corner = [](double wv, double b, bool b_inf, double b_sign) {

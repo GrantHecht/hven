@@ -279,7 +279,9 @@ struct QpCounters {
     Index ratio_ties = 0;
 
     // Working-set independence (qp/ws_independence.h). Solves are triangular
-    // solves on the pass's own factor; none factorizes.
+    // solves on the pass's own factor; none factorizes. The terminal certificate's solves (the
+    // pass's factor, or a local eliminated factor whose factorization lands in `factorizations`)
+    // also land here.
     Index dep_test_solves = 0;
     Index dep_tests = 0;
     Index dep_dependent = 0; // incl. undecidable
@@ -559,7 +561,7 @@ struct QpCounters {
     // M7 W2 SDL-6. Appended. The certificate's ROW HALF (a terminal point with a structural row
     // violation): `terminal_farkas_certificates` exits kInfeasible on a VERIFIED Farkas
     // certificate (QpEngine::verify_terminal_farkas); `certificate_row_refusals` exits
-    // kNumericalError without one, routed by the SQP driver as certificate_bound_refusals.
+    // kNumericalError without one (routing: see sqp_solver.cpp).
     Index terminal_farkas_certificates = 0;
     Index certificate_row_refusals = 0;
 };

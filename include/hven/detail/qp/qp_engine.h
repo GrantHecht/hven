@@ -2654,7 +2654,9 @@ class QpEngine {
     // residual at x (no solve), then detail::terminal_null_direction on `view` -- or, when the
     // pass's factor no longer holds for `ws` (a verdict refinement moved it), on a local
     // eliminated factor of `ws` (one factorization, charged as eliminated_candidate charges it);
-    // its solves go to dep_test_solves. QpSolution::farkas is left absent (it is blocker-shaped).
+    // its solves go to dep_test_solves. The local-factor fallback runs a full eliminated EQP
+    // solve and charges its eqp_* counters. QpSolution::farkas is left absent (it is
+    // blocker-shaped).
     bool verify_terminal_farkas(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
                                 const Vec &ai_row_norm1, const Vec &ae_row_norm1,
                                 const detail::DepFactorView &view, QpCounters &counters,

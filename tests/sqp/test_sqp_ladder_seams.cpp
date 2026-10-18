@@ -359,6 +359,27 @@ TEST(SqpLadderSeam, Sdl6ARowRefusalAtAFeasibleIterateKeepsTheShrinkLadder) {
     expect_line_optimum(sol);
 }
 
+// SDL-6 x R2: a row refusal at a feasible iterate is not a point of the subproblem's feasible
+// set; it is not offered as the failed subproblem's step (qp_failure_step ON), so the shrink
+// ladder routes it and nothing is judged.
+TEST(SqpLadderSeam, Sdl6ARowRefusalIsNotOfferedAsAFailureStep) {
+    const SeamReset guard;
+    Seam::fail_walk_qps = 1;
+    Seam::as_e2_termination = false;
+    Seam::as_row_refusal = true;
+    QpAsNlpModel model = line_model(vec2(0.0, 2.0));
+    SqpOptions o = quiet();
+    o.qp_failure_step = true;
+    SqpSolver driver(o);
+    const SqpResult sol = driver.solve(model);
+
+    EXPECT_EQ(Seam::forced, 1);
+    EXPECT_EQ(sol.counters.qp_failure_steps_judged, 0);
+    EXPECT_EQ(sol.counters.elastic_activations, 0);
+    EXPECT_EQ(sol.counters.qp_failures_routed, 1);
+    expect_line_optimum(sol);
+}
+
 // ---------------------------------------------------------------------------
 // M7 W2 R2 fix 1 -- the failed subproblem's own step through the seam
 // ---------------------------------------------------------------------------

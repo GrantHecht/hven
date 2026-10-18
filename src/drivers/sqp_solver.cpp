@@ -7221,11 +7221,13 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         //     solved one, so a failed trial is no evidence the linearization is
         //     inconsistent; the routing (and its radius floor) decides instead.
         // A bound refusal (certificate_bound_refusals > 0) is never offered: its step is known
-        // past the trust-region window, and a trial would not enforce it.
+        // past the trust-region window, and a trial would not enforce it. A row refusal
+        // (certificate_row_refusals > 0) is not a point of the subproblem's feasible set.
         // Nothing is certified here: the loop's KKT test is the only certificate.
         bool failure_step_rejected = false;
         if (opts_.qp_failure_step && mj.walk_owns_this_qp && st.full_step_funnel == nullptr &&
             mj.qs.counters.certificate_bound_refusals == 0 &&
+            mj.qs.counters.certificate_row_refusals == 0 &&
             qp_failure_is_retryable(st.qp, mj.qs, opts_.feas_tol) &&
             mj.qs.x.lpNorm<Eigen::Infinity>() > 0.0) {
             const double pred = st.qn_bridge ? st.qn_bridge->predicted_decrease(st.qp, mj.qs.x)
