@@ -2471,8 +2471,16 @@ TEST(SsnEngineLocal, FeasibleButBadlyScaledIsNeverReportedInfeasible) {
 TEST(SsnEngineLocal, StallWindowGuardsKeepABrutallyScaledFeasibleQpHonest) {
     const QpProblem qp = brutally_scaled_feasible_qp();
 
-    const QpSolution walk = walk_solution(qp);
-    ASSERT_EQ(walk.status, QpStatus::kOptimal) << "the fixture must be FEASIBLE";
+    // FEASIBLE by construction: (3, -1.8) meets both rows and the box. The walk no longer
+    // certifies it kOptimal (it ends kNumericalError: the SDL sign half reads the row it used to
+    // exempt at the false point (2.083, 3), where the multiplier is -2.4e9), and may not call it
+    // infeasible either.
+    Vec feasible(2);
+    feasible << 3.0, -1.8;
+    ASSERT_TRUE(((qp.Ai * feasible - qp.bi).array() <= 0.0).all());
+    ASSERT_TRUE(((feasible - qp.upper).array() <= 0.0).all() &&
+                ((qp.lower - feasible).array() <= 0.0).all());
+    EXPECT_NE(walk_solution(qp).status, QpStatus::kInfeasible);
 
     SsnEngine engine(default_opts());
     SsnResult res;

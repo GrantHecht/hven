@@ -37,6 +37,7 @@
 #include <hven/detail/qp/qp_engine.h>
 
 #include <optional>
+#include <utility>
 
 namespace hven::solvers {
 
@@ -1581,10 +1582,18 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         // say, so no branch of the walk can be reached differently
                         // because of it -- which is also why it moves no minor
                         // count.
+                        // The incumbent is kept: an adopted polish that fails the sign half
+                        // below is undone (terminal_polish_sign_reverts).
+                        Vec x_inc, lambda_e_inc, lambda_i_inc, z_inc;
+                        bool polish_adopted = false;
                         if (eff_opts.dual_mu > 0.0 || eff_opts.primal_delta > 0.0) {
                             if (polish_footprint_open(qp, ws, x, lambda_e, lambda_i, z, eff_opts)) {
-                                (void)polish_terminal_point(qp, ws, eqp, x, lambda_e, lambda_i, z,
-                                                            counters, eff_opts);
+                                x_inc = x;
+                                lambda_e_inc = lambda_e;
+                                lambda_i_inc = lambda_i;
+                                z_inc = z;
+                                polish_adopted = polish_terminal_point(
+                                    qp, ws, eqp, x, lambda_e, lambda_i, z, counters, eff_opts);
                             }
                         }
                         // THE CERTIFICATE'S BOUND HALF. worst_structural_violation
@@ -1594,33 +1603,59 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         // (norm1 = 1, multiplier z(i)) under the rows' own test,
                         // against `qp`'s box, so the TR window is included. A
                         // structural violation is the primal-infeasible exit.
+                        //
+                        // THE SIGN HALF (RDV-5). The drop rule reads the signs before the
+                        // polish and exempts re-entered members, so the exported
+                        // multipliers are read again here: a wrong-signed one past the
+                        // KKT-point test's own relative tolerance is no certificate. Every
+                        // working row is read. Both halves are one lambda so the incumbent
+                        // is held to exactly the same reading.
+                        const auto read_certificate = [&]() {
 #ifdef HVEN_TESTING
-                        // Certificate seam: an armed fixture presents (x, z).
-                        detail::testing::qp_certificate_present(x, z, eff_opts);
+                            // Certificate seam: an armed fixture presents (x, z).
+                            detail::testing::qp_certificate_present(x, z, eff_opts);
 #endif
-                        const double xmag = x.lpNorm<Eigen::Infinity>();
-                        double bound_worst = 0.0;
-                        for (Index i = 0; i < n; ++i) {
-                            const double below = qp.lower(i) - x(i);
-                            const double above = x(i) - qp.upper(i);
-                            const double v = std::max(below, above);
-                            const double bound = below >= above ? qp.lower(i) : qp.upper(i);
-                            const double row_scale = std::max({1.0, std::abs(bound), xmag});
-                            if (v > 0.0 && violation_is_structural(v, row_scale, z(i), eff_opts)) {
-                                bound_worst = std::max(bound_worst, v);
+                            const double xmag = x.lpNorm<Eigen::Infinity>();
+                            double bound_worst = 0.0;
+                            for (Index i = 0; i < n; ++i) {
+                                const double below = qp.lower(i) - x(i);
+                                const double above = x(i) - qp.upper(i);
+                                const double v = std::max(below, above);
+                                const double bound = below >= above ? qp.lower(i) : qp.upper(i);
+                                const double row_scale = std::max({1.0, std::abs(bound), xmag});
+                                if (v > 0.0 &&
+                                    violation_is_structural(v, row_scale, z(i), eff_opts)) {
+                                    bound_worst = std::max(bound_worst, v);
+                                }
                             }
+                            double sign_scale = 1.0;
+                            (void)detail::free_block_stationarity(qp, x, ws, lambda_e, lambda_i,
+                                                                  sign_scale);
+                            const bool signs_hold = detail::dual_signs_hold(
+                                detail::worst_wrong_sign(qp, ws, lambda_i, z, nullptr), sign_scale,
+                                eff_opts);
+                            return std::make_pair(bound_worst, signs_hold);
+                        };
+                        auto cert = read_certificate();
+                        double &bound_worst = cert.first;
+                        bool &signs_hold = cert.second;
+                        bool incumbent = false;
+                        if (polish_adopted && !signs_hold && bound_worst <= 0.0) {
+                            // The polish re-priced a non-unique multiplier set onto a wrong
+                            // sign: that says nothing about optimality. Certify the incumbent
+                            // or nothing -- never kInfeasible, the incumbent is not the QP's
+                            // verdict.
+                            ++counters.terminal_polish_sign_reverts;
+                            x = x_inc;
+                            lambda_e = lambda_e_inc;
+                            lambda_i = lambda_i_inc;
+                            z = z_inc;
+                            cert = read_certificate();
+                            incumbent = true;
                         }
-                        // THE CERTIFICATE'S SIGN HALF (RDV-5). The drop rule reads the
-                        // signs before the polish and exempts re-entered members, so the
-                        // exported multipliers are read again here: a wrong-signed one past
-                        // the KKT-point test's own relative tolerance is no certificate.
-                        double sign_scale = 1.0;
-                        (void)detail::free_block_stationarity(qp, x, ws, lambda_e, lambda_i,
-                                                              sign_scale);
-                        const bool signs_hold = detail::dual_signs_hold(
-                            detail::worst_wrong_sign(qp, ws, lambda_i, z, &shift), sign_scale,
-                            eff_opts);
-                        if (bound_worst > 0.0) {
+                        if (incumbent && bound_worst > 0.0) {
+                            status = QpStatus::kNumericalError;
+                        } else if (bound_worst > 0.0) {
                             status = QpStatus::kInfeasible;
                         } else if (!signs_hold) {
                             ++counters.certificate_sign_refusals;
@@ -5709,8 +5744,7 @@ Vec QpEngine::saddle_direction(const QpProblem &qp, const WorkingSet &ws, const 
     // same face with H + sigma I; `view` keeps naming the unshifted factor the add site reads.
     ++counters.saddle_shifted_searches;
     QpOptions os = o;
-    os.primal_delta =
-        std::max(o.primal_delta, detail::kSaddleShiftFactor * detail::hessian_scale(qp));
+    os.primal_delta = o.primal_delta + detail::kSaddleShiftFactor * detail::hessian_scale(qp);
     detail::KktFactor shifted(threads_);
     EliminatedFace shifted_face;
     try {

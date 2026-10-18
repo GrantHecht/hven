@@ -544,6 +544,10 @@ struct QpCounters {
     Index certificate_sign_refusals = 0;
     Index saddle_shifted_searches = 0;
     Index saddle_shifted_directions = 0;
+    // `terminal_polish_sign_reverts`: adopted terminal polishes undone because the polished
+    // multipliers failed the sign half; the incumbent (pre-polish x and multipliers) is then
+    // read by both halves again. Counts RESTORATIONS, not the certifications that follow them.
+    Index terminal_polish_sign_reverts = 0;
 };
 
 /// @brief Work counters for the semismooth-Newton kernel.

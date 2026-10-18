@@ -10,6 +10,12 @@
 // certificate seam (qp_certificate_seam.h), on the production statements that follow it.
 // Before the sign half each presented pair below came back kOptimal with the presented z.
 //
+// THE INCUMBENT FALLBACK (HIGH-1): an adopted terminal polish that fails the sign half is undone
+// and the pre-polish point is read by both halves. The polish re-prices a non-unique multiplier
+// set, so its sign flip says nothing about optimality; the incumbent is certified only if it passes
+// on its own, otherwise kNumericalError -- never kInfeasible. The seam presents the POLISHED pair
+// (first read only, QpCertificateSeam::first_only); the incumbent is the walk's own point.
+//
 // The natural path: DALLASM's QN-label subproblem (solve 10 of the cell; convex, H = 8.9e4 I, a
 // working set of rank 167 of 172). At fc567ce9 the terminal polish re-priced its face mu-free and
 // the walk certified kOptimal with a lower pin priced z = -3.9e3 (relative 4.4e-2) at a point
@@ -20,7 +26,6 @@
 #include <cmath>
 #include <cstdio>
 #include <limits>
-
 #include <string>
 
 #include <gtest/gtest.h>
@@ -184,6 +189,90 @@ TEST(QpCertificateSign, WorstWrongSignReadsPinsAndUnshiftedWorkingRows) {
         detail::dual_signs_hold(std::numeric_limits<double>::quiet_NaN(), 1.0, QpOptions{}));
 }
 
+// A QP whose terminal polish is adopted: an active inequality row under a large dual_mu leaves a
+// complementarity footprint, and a pin (x2 at its lower bound, z2 = +3) gives the seam a sign to
+// flip.
+QpProblem polish_qp() {
+    QpProblem qp;
+    const Index n = 3;
+    qp.H = Eigen::MatrixXd::Identity(n, n).sparseView();
+    qp.g = Vec(n);
+    qp.g << 1.0, 1.0, 3.0;
+    qp.Ae.resize(0, n);
+    qp.be = Vec(0);
+    Eigen::MatrixXd a(1, n);
+    a << 1.0, 1.0, 0.0;
+    qp.Ai = a.sparseView();
+    qp.bi = Vec::Constant(1, -4.0);
+    qp.lower = Vec::Constant(n, -10.0);
+    qp.lower(2) = 0.0;
+    qp.upper = Vec::Constant(n, 10.0);
+    return qp;
+}
+
+QpOptions polish_opts(WorkingSetLinearAlgebra alg) {
+    QpOptions o;
+    o.ws_algebra = alg;
+    o.dual_mu = 1e-4;
+    o.primal_delta = 1e-4; // leaves the free stage-1 polish a footprint to remove
+    return o;
+}
+
+QpSolution present_polished(const QpOptions &opts, bool first_only) {
+    Cert::reset();
+    Cert::x = Vec(3);
+    Cert::x << -2.0, -2.0, 0.0;
+    Cert::z = Vec(3);
+    Cert::z << 0.0, 0.0, -7.0; // the polished pin priced onto the wrong side
+    Cert::first_only = first_only;
+    Cert::armed = true;
+    QpEngine engine{opts};
+    QpSolution s = engine.solve(polish_qp());
+    Cert::armed = false;
+    return s;
+}
+
+TEST(QpCertificateSign, PolishPremiseTheTerminalPolishIsAdoptedUnarmed) {
+    SignSeamGuard guard;
+    for (const auto alg : kAlgebras) {
+        SCOPED_TRACE(static_cast<int>(alg));
+        QpEngine engine{polish_opts(alg)};
+        const QpSolution s = engine.solve(polish_qp());
+        ASSERT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+        EXPECT_GE(s.counters.terminal_polish_adopted, 1);
+        EXPECT_EQ(s.counters.terminal_polish_sign_reverts, 0);
+        EXPECT_NEAR(s.z(2), 3.0, 1e-6);
+    }
+}
+
+// The polish flips the pin's sign (presented); the incumbent is right-signed and is certified.
+TEST(QpCertificateSign, PolishedSignFlipFallsBackToACertifiedIncumbent) {
+    SignSeamGuard guard;
+    for (const auto alg : kAlgebras) {
+        SCOPED_TRACE(static_cast<int>(alg));
+        const QpSolution s = present_polished(polish_opts(alg), true);
+        ASSERT_EQ(Cert::presentations, 2) << "the incumbent was not read";
+        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+        EXPECT_EQ(s.counters.terminal_polish_sign_reverts, 1);
+        EXPECT_EQ(s.counters.certificate_sign_refusals, 0);
+        EXPECT_NEAR(s.z(2), 3.0, 1e-6); // the incumbent's price, not the presented -7
+    }
+}
+
+// The incumbent fails the sign half too: kNumericalError, never kInfeasible.
+TEST(QpCertificateSign, IncumbentFailingTheSignHalfIsNumericalErrorNotInfeasible) {
+    SignSeamGuard guard;
+    for (const auto alg : kAlgebras) {
+        SCOPED_TRACE(static_cast<int>(alg));
+        const QpSolution s = present_polished(polish_opts(alg), false);
+        ASSERT_EQ(Cert::presentations, 2);
+        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kNumericalError));
+        EXPECT_EQ(s.counters.terminal_polish_sign_reverts, 1);
+        EXPECT_EQ(s.counters.certificate_sign_refusals, 1);
+        EXPECT_EQ(s.z.lpNorm<Eigen::Infinity>(), 0.0);
+    }
+}
+
 // The natural path (see the header): no kOptimal with a wrong-signed exported multiplier.
 TEST(QpCertificateSign, DallasmQnSubproblemIsNotCertifiedWithAWrongSign) {
     SignSeamGuard guard;
@@ -193,16 +282,26 @@ TEST(QpCertificateSign, DallasmQnSubproblemIsNotCertifiedWithAWrongSign) {
             std::string(HVEN_QP_E2D4_FIXTURES) + "/SDL_DALLASM_QN_qp10.txt");
         QpOptions o = d.opts;
         o.ws_algebra = alg;
+        ASSERT_EQ(d.qp.mi(), 0); // the residual below assumes no inequality rows
         const QpSolution s = hven::test_support::solve_qp_dump(d, o);
         std::printf("[ sdl ] DALLASM_QN_qp10 alg=%d status=%d minors=%ld refusals=%ld zmx=%ld\n",
                     static_cast<int>(alg), static_cast<int>(s.status),
                     static_cast<long>(s.counters.minor_iters),
                     static_cast<long>(s.counters.certificate_sign_refusals),
                     static_cast<long>(s.counters.zero_motion_exhausted));
+        // Never a false kInfeasible on this feasible convex QP.
+        EXPECT_NE(static_cast<int>(s.status), static_cast<int>(QpStatus::kInfeasible));
         if (alg == WorkingSetLinearAlgebra::kSchurBorder) {
-            // The border walk reaches the certificate and its sign half refuses it.
-            EXPECT_GE(s.counters.certificate_sign_refusals, 1);
+            // The border walk reaches the certificate, the polish flips a sign, and the
+            // incumbent fallback is taken: the incumbent is no certificate either.
+            EXPECT_GE(s.counters.terminal_polish_sign_reverts, 1);
+            EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kNumericalError));
         }
+        // A sign refusal, the sign-checked kOptimal read below, or (refactorize) the walk's own
+        // zero-motion exhaustion, which never reaches the certificate.
+        EXPECT_TRUE(s.counters.certificate_sign_refusals >= 1 ||
+                    s.counters.terminal_polish_sign_reverts >= 1 ||
+                    s.status == QpStatus::kOptimal || s.counters.zero_motion_exhausted >= 1);
         if (s.status != QpStatus::kOptimal) {
             continue;
         }

@@ -827,8 +827,10 @@ void expect_objective_inflated_1e3_cell(const QpOptions &base) {
     EXPECT_GE(s.counters.dep_grey_reread_dependent, 1);
     QpOptions off = base;
     off.independent_working_set = false;
+    // The footprint miss, TRUSTWORTHY RANGE (ii): the violation route was kOptimal, which is
+    // wrong. The SDL sign half now reads the shifted row's wrong-signed multiplier and refuses.
     EXPECT_EQ(QpEngine{off}.solve(objective_inflated_lambda_qp(1e-3, 3e-4)).status,
-              QpStatus::kOptimal); // the footprint miss, TRUSTWORTHY RANGE (ii)
+              QpStatus::kNumericalError);
 }
 } // namespace
 

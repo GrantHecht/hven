@@ -509,10 +509,10 @@ inline QpProblem late_reclassification_qp() {
 //
 // Objective scaled 1e9 AND a Hessian whose eigenvalues span 1.9e-4 to 12.6 --
 // the two stresses combined, which is where the fix-round-1 telemetry's
-// remaining exposure lives. The walk solves it (8 minor iterations,
-// x* = (3, -1.8333)), so it is FEASIBLE; the shipped engine does not solve it
-// either, but it says so honestly -- SsnEscape::kNoContraction at 5 accepted
-// steps, which Task 5 routes to the walk.
+// remaining exposure lives. Its optimum is x* = (3, -1.8333), so it is FEASIBLE
+// (the walk ends kNumericalError on it since the SDL sign half; it used to certify the false
+// point (2.083, 3)); the shipped engine does not solve it either, but it says so honestly --
+// SsnEscape::kNoContraction at 5 accepted steps, which Task 5 routes to the walk.
 //
 // **WHAT IT DISCRIMINATES**: both of the stall window's second-line guards --
 // that the window advances on ACCEPTED STEPS rather than attempts, and that a

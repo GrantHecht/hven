@@ -344,9 +344,9 @@
 //    threshold. THE SHIFTED SEARCH (M7 W2 SDL): a face with a cluster of
 //    zero-curvature directions factors with perturbed pivots there and the
 //    inverse operator sees only them, so a search that finds nothing is repeated
-//    once on the face shifted by kSaddleShiftFactor * hessian_scale (a local
-//    factor; the add site keeps reading the unshifted one); its direction is
-//    verified on H as above, and it certifies nothing.
+//    once on the face shifted by kSaddleShiftFactor * hessian_scale ON TOP of the
+//    primal_delta in force (a local factor, always genuinely shifted; the add site keeps reading
+//    the unshifted one); its direction is verified on H as above, and it certifies nothing.
 //    BOUNDED: one search per dead end (at most two factorizations, at most
 //    kSaddleLanczosSteps operator applications each); a ride that moves decreases f
 //    strictly; a zero-length one is a zero-motion event (the point memory kept,
@@ -422,12 +422,17 @@
 //
 //    THE CERTIFICATE'S SIGN HALF (M7 W2 SDL; RDV-5). After the polish and beside
 //    the bound half, the EXPORTED multipliers are read once more:
-//    dual_signs_hold(worst_wrong_sign(pins, unshifted working rows), the
-//    stationarity scale) -- opt_tol * scale, the KKT-point test's own relative
-//    tolerance; a NaN refuses. A refusal is kNumericalError
-//    (certificate_sign_refusals). The drop rule's own sign test is not enough:
-//    it exempts re-entered members, and the polish re-prices the face mu-free
-//    after it, where a regularized multiplier's sign can flip.
+//    dual_signs_hold(worst_wrong_sign(pins, every working row), the stationarity
+//    scale) -- opt_tol * scale, the KKT-point test's own relative tolerance; a NaN
+//    refuses. A refusal is kNumericalError (certificate_sign_refusals). The drop
+//    rule's own sign test is not enough: it exempts re-entered members, and the
+//    polish re-prices the face mu-free after it, where a regularized multiplier's
+//    sign can flip. The scale includes ||Ai'lambda_i||, so a row with a very large
+//    ||a_j|| widens its own tolerance.
+//    THE INCUMBENT FALLBACK: an ADOPTED polish that fails the sign half is undone
+//    (x and all multipliers restored to their pre-polish values;
+//    terminal_polish_sign_reverts) and both halves are read on the incumbent;
+//    kOptimal only if both hold there, else kNumericalError -- never kInfeasible.
 //
 //    HOW A PASS IS RECOGNISED AS A KKT POINT OF ITS WORKING SET (M7 W2 E4,
 //    ruling E4-2) -- the free-block STATIONARITY RESIDUAL, in the engine's own
@@ -1205,8 +1210,8 @@ inline bool free_block_is_stationary(double residual, double scale, const QpOpti
 
 // THE DUAL SIGN READ (M7 W2 SDL; RDV-5): the largest WRONG-SIGNED multiplier of
 // the working set -- -z(i) at a lower pin, +z(i) at an upper pin, -lambda_i(r)
-// on a working row whose shift is 0 (`shift` null: every working row) -- or 0.
-// kFixed pins and equality rows are not sign-constrained. NaN-STICKY, like
+// on a working row whose shift is 0 (`shift` null: every working row; the certificate passes null)
+// -- or 0. kFixed pins and equality rows are not sign-constrained. NaN-STICKY, like
 // free_block_stationarity: a NaN multiplier returns NaN.
 inline double worst_wrong_sign(const QpProblem &qp, const WorkingSet &ws, const Vec &lambda_i,
                                const Vec &z, const Vec *shift) {
@@ -1325,11 +1330,11 @@ inline TerminalKkt terminal_kkt(const QpProblem &qp, const WorkingSet &ws, const
 constexpr double kCurvatureTolFactor = 1e-12;
 
 // THE SADDLE EXIT's SHIFTED SEARCH (section 4c): the primal shift, relative to
-// hessian_scale, of the face re-factorized when the face's own factor yields no
-// verified direction. A face with a cluster of zero-curvature directions factors
-// at primal_delta with perturbed pivots, and the inverse operator's Lanczos then
-// sees only them; shifted, that cluster maps to 1/sigma and a curvature below
-// -sigma stays negative. A direction is still verified on H itself.
+// hessian_scale and added to the primal_delta in force, of the face re-factorized when the face's
+// own factor yields no verified direction. A face with a cluster of zero-curvature directions
+// factors at primal_delta with perturbed pivots, and the inverse operator's Lanczos then sees only
+// them; shifted, that cluster maps to 1/sigma and a curvature below -sigma stays negative. A
+// direction is still verified on H itself.
 constexpr double kSaddleShiftFactor = 1e-6;
 
 // Relative tolerance on "the ride direction lies in the null space of the
@@ -2753,9 +2758,9 @@ class QpEngine {
     // THE SADDLE EXIT's direction (section 4c): `ws`'s face factorized at dual_mu = 0 into
     // the caller's `kkt`/`face` (`view` names that factor on return, for the add site),
     // then detail::face_negative_curvature on it. Found nothing there, the search is repeated
-    // once on the face shifted by kSaddleShiftFactor * hessian_scale (a local factor; `view`
-    // still names the unshifted one). Empty when no VERIFIED direction exists (including a
-    // failed factorization).
+    // once on the face shifted by kSaddleShiftFactor * hessian_scale on top of the primal_delta in
+    // force (a local factor; `view` still names the unshifted one). Empty when no VERIFIED
+    // direction exists (including a failed factorization).
     Vec saddle_direction(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
                          detail::KktFactor &kkt, EliminatedFace &face, QpCounters &counters,
                          const QpOptions &opts, double curvature_tol,

@@ -45,6 +45,9 @@ struct QpCertificateSeam {
     /// Their sizes must equal the problem's `n`.
     static inline thread_local Vec x{};
     static inline thread_local Vec z{};
+    /// Present on the FIRST read only: a later read (the incumbent's, after a reverted
+    /// polish) then sees the walk's own point and is merely counted.
+    static inline thread_local bool first_only = false;
     /// How many times a certificate read the presented pair on this thread.
     static inline thread_local Index presentations = 0;
     /// The effective `dual_mu` / `feas_tol` the certificate ran under, as of
@@ -55,6 +58,7 @@ struct QpCertificateSeam {
 
     static void reset() {
         armed = false;
+        first_only = false;
         x = Vec{};
         z = Vec{};
         presentations = 0;
@@ -75,8 +79,11 @@ inline void qp_certificate_present(Vec &x, Vec &z, const QpOptions &eff_opts) {
             fmt::format("QpCertificateSeam: presented sizes x={} z={} do not match n={}",
                         S::x.size(), S::z.size(), x.size()));
     }
-    x = S::x;
-    z = S::z;
+    const bool present = !(S::first_only && S::presentations > 0);
+    if (present) {
+        x = S::x;
+        z = S::z;
+    }
     S::eff_dual_mu = eff_opts.dual_mu;
     S::eff_feas_tol = eff_opts.feas_tol;
     ++S::presentations;
