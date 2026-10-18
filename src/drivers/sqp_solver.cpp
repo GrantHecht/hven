@@ -7025,6 +7025,9 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
             if (SqpLadderSeam::as_e2_termination) {
                 mj.qs.counters.dep_blocker_terminations = 1;
             }
+            if (SqpLadderSeam::as_bound_refusal) {
+                mj.qs.counters.certificate_bound_refusals = 1;
+            }
         }
     }
 #endif
@@ -7041,7 +7044,13 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
          mj.qs.counters.dep_certificate_rejections > 0) &&
         constraint_violation_l1(st.ev) + box_violation_l1(st.x, seam.lower(), seam.upper()) >
             opts_.feas_tol;
-    if (mj.qs.status == QpStatus::kInfeasible || e2_termination_to_elastic) {
+    // A certificate BOUND-HALF refusal (SDL-4) stands off its box, so neither the shrink ladder
+    // nor the failure step can take it (qp_failure_is_retryable): it keeps the elastic route
+    // its former kInfeasible had, at every h.
+    const bool bound_refusal_to_elastic =
+        mj.qs.status == QpStatus::kNumericalError && mj.qs.counters.certificate_bound_refusals > 0;
+    if (mj.qs.status == QpStatus::kInfeasible || e2_termination_to_elastic ||
+        bound_refusal_to_elastic) {
         // The window the ORIGINAL solve was given, folded into the
         // elastic problem's own box: `delta` is what the driver
         // passed through SolveOverrides, and opts_.qp.tr_radius is

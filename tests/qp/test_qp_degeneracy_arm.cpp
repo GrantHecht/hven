@@ -1226,9 +1226,10 @@ QpSolution present_to_certificate(const QpProblem &qp, const QpOptions &opts, co
 /// One presented case, asserted: the seam was reached exactly once, under the
 /// options the thresholds were computed from; a tolerated point comes back
 /// kOptimal carrying the presented pair to the bit; a refused one comes back
-/// kInfeasible carrying the presented x with every multiplier cleared.
+/// kNumericalError (SDL-4: kInfeasible before, on this feasible QP) carrying the
+/// presented x with every multiplier cleared.
 void expect_certificate_verdict(const QpProblem &qp, const QpOptions &opts, CertSide side, double v,
-                                bool want_infeasible, const char *label) {
+                                bool want_refused, const char *label) {
     SCOPED_TRACE(::testing::Message() << label << " side=" << cert_side_name(side) << " v=" << v);
     Vec x;
     Vec z;
@@ -1239,12 +1240,14 @@ void expect_certificate_verdict(const QpProblem &qp, const QpOptions &opts, Cert
     EXPECT_EQ(Cert::eff_feas_tol, opts.feas_tol);
     EXPECT_EQ(box_violation(qp, s.x), v) << "the returned x is not the presented one";
     EXPECT_TRUE(same_bits(s.x, x, "x"));
-    if (want_infeasible) {
-        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kInfeasible));
+    if (want_refused) {
+        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kNumericalError));
+        EXPECT_EQ(s.counters.certificate_bound_refusals, 1);
         EXPECT_EQ(s.z.lpNorm<Eigen::Infinity>(), 0.0);
         EXPECT_EQ(s.lambda_i.lpNorm<Eigen::Infinity>(), 0.0);
     } else {
         EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+        EXPECT_EQ(s.counters.certificate_bound_refusals, 0);
         EXPECT_TRUE(same_bits(s.z, z, "z"));
     }
 }
@@ -1310,7 +1313,8 @@ TEST(QpDegeneracyArm, CertificateRefusesABoundViolationOutsideTheStructuralMargi
     CertSeamGuard guard;
     // THE BOUNDARY, stated: past the margin a violation is structural iff it
     // also reaches kStructuralResidualFrac * dual_mu * |z| (the residue the
-    // regularization could own), and a structural one exits kInfeasible.
+    // regularization could own), and a structural one exits kNumericalError
+    // (SDL-4; it read kInfeasible on this feasible QP before).
     //   dual_mu 1e-8: the floor (5e-10) is below the margin (5e-7), so the
     //     first double past the margin is already refused.
     //   dual_mu 1e-4: the floor (5e-5) is above the margin (1e-5), so the

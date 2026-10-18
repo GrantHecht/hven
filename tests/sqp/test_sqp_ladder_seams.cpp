@@ -237,6 +237,31 @@ TEST(SqpLadderSeam, L3TheGuardReadsTheBox) {
     expect_line_optimum(sol);
 }
 
+// SDL-4: a certificate bound-half refusal (kNumericalError, formerly kInfeasible) stands off its
+// box, which neither the shrink ladder nor the failure step accepts; it keeps the elastic route
+// at every h -- here at a FEASIBLE iterate, where an E2 termination would shrink. Without the
+// route the solve ends kNumericalError at the first major.
+TEST(SqpLadderSeam, Sdl4ABoundRefusalOffItsBoxTakesTheElasticTierAtEveryH) {
+    for (const Vec &x0 : {vec2(0.0, 2.0), vec2(0.0, 0.0)}) {
+        const SeamReset guard;
+        SCOPED_TRACE(::testing::Message() << "x0 = (" << x0(0) << ", " << x0(1) << ")");
+        Seam::fail_walk_qps = 1;
+        Seam::as_e2_termination = false;
+        Seam::as_bound_refusal = true;
+        Seam::forced_point = {12.0, -10.0}; // rows met, x0 past its upper bound 10
+        QpAsNlpModel model = line_model(x0);
+        SqpSolver driver(quiet());
+        const SqpResult sol = driver.solve(model);
+
+        EXPECT_EQ(Seam::forced, 1);
+        EXPECT_GE(sol.counters.elastic_activations, 1);
+        EXPECT_EQ(sol.counters.qp_failures_routed, 0);
+        ASSERT_FALSE(sol.history.empty());
+        EXPECT_TRUE(sol.history.front().elastic_applied);
+        expect_line_optimum(sol);
+    }
+}
+
 // ---------------------------------------------------------------------------
 // M7 W2 R2 fix 1 -- the failed subproblem's own step through the seam
 // ---------------------------------------------------------------------------

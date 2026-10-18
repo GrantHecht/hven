@@ -429,10 +429,12 @@
 //    polish re-prices the face mu-free after it, where a regularized multiplier's
 //    sign can flip. The scale includes ||Ai'lambda_i||, so a row with a very large
 //    ||a_j|| widens its own tolerance.
-//    THE INCUMBENT FALLBACK: an ADOPTED polish that fails the sign half is undone
-//    (x and all multipliers restored to their pre-polish values;
-//    terminal_polish_sign_reverts) and both halves are read on the incumbent;
-//    kOptimal only if both hold there, else kNumericalError -- never kInfeasible.
+//    THE INCUMBENT FALLBACK: an ADOPTED polish that fails the sign half, or the
+//    bound half (its acceptance reads the worst of rows and bounds together, so it
+//    can trade one for the other), is undone (x and all multipliers restored to
+//    their pre-polish values; terminal_polish_sign_reverts / _bound_reverts) and
+//    both halves are read on the incumbent;
+//    kOptimal only if both hold there, else kNumericalError.
 //
 //    HOW A PASS IS RECOGNISED AS A KKT POINT OF ITS WORKING SET (M7 W2 E4,
 //    ruling E4-2) -- the free-block STATIONARITY RESIDUAL, in the engine's own
@@ -497,7 +499,10 @@
 //      - otherwise the Zero-multiplier PROBE gets a veto: a trusted kWrong there
 //        makes the drop real and RESUMES the loop without assigning a status.
 //      - kOptimal otherwise, but only if x meets its own box: a bound, read as
-//        the row e_i under the rows' structural test, violated gives kInfeasible.
+//        the row e_i under the rows' structural test, violated gives
+//        kNumericalError (certificate_bound_refusals) -- never kInfeasible: x off
+//        its box is a pass-over leak of the walk's own, the box alone is feasible,
+//        and an infeasible QP is the verified Farkas certificate's to prove (SDL-4).
 //    kMaxIter once eff_max_iter major iterations have been spent. A fourth
 //    kNumericalError exit bypasses this classification: 4c's ride, no blocker.
 //

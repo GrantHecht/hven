@@ -986,7 +986,10 @@ status it assigns and the export that follows are the production statements,
 unmodified. Unarmed it returns without touching anything.
 
 **Why it is needed.** The bound half tolerates a positive violation inside the
-rows' structural margin and refuses one outside it. The walk re-pins every bound
+rows' structural margin and refuses one outside it -- `kNumericalError`
+(`certificate_bound_refusals`) since SDL-4, `kInfeasible` before, which on these
+feasible fixtures was a false verdict (`QpCertificateSign.BoundHalf*`); a polished point
+that fails it falls back to the incumbent (`QpCertificateSign.PolishedPointOffItsBox*`). The walk re-pins every bound
 it blocks on, so no natural walk ends slightly outside its box and inside the
 margin; without a seam the tolerance-preserving half had no discriminating
 fixture, and a predicate that refused ANY positive violation passed every
@@ -1062,7 +1065,10 @@ walk subproblems through before the first forced exit, and a non-empty
 `forced_point` makes the forced exit's iterate the step to that point (in the
 engine's variables, so its fixtures turn scaling off) -- a walk that stopped
 somewhere other than the optimum, which is what the failed subproblem's own step
-(`SqpOptions::qp_failure_step`) judges.
+(`SqpOptions::qp_failure_step`) judges. One knob added at SDL-4: `as_bound_refusal`
+stamps the exit `certificate_bound_refusals = 1`, the certificate's bound-half refusal,
+whose iterate stands off its box; with an off-box `forced_point` it pins that exit's
+elastic route at every `h`.
 
 It is an INJECTED result, and faithful for the one question it serves: how the
 driver routes a failed QP (L1's refused-request spelling, L3's E2-termination

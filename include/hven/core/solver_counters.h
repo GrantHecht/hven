@@ -548,6 +548,14 @@ struct QpCounters {
     // multipliers failed the sign half; the incumbent (pre-polish x and multipliers) is then
     // read by both halves again. Counts RESTORATIONS, not the certifications that follow them.
     Index terminal_polish_sign_reverts = 0;
+    // M7 W2 SDL-4. Appended. `certificate_bound_refusals`: would-be kOptimal exits whose point
+    // violated its own box structurally (the certificate's BOUND HALF); each ends
+    // kNumericalError, never kInfeasible. The SQP driver routes such a solve to the elastic tier.
+    // `terminal_polish_bound_reverts`: adopted terminal polishes undone because the polished
+    // point failed the bound half; the incumbent is then read by both halves. Counts
+    // RESTORATIONS, as terminal_polish_sign_reverts (which a bound failure takes precedence over).
+    Index certificate_bound_refusals = 0;
+    Index terminal_polish_bound_reverts = 0;
 };
 
 /// @brief Work counters for the semismooth-Newton kernel.

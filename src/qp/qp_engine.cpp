@@ -1582,8 +1582,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         // say, so no branch of the walk can be reached differently
                         // because of it -- which is also why it moves no minor
                         // count.
-                        // The incumbent is kept: an adopted polish that fails the sign half
-                        // below is undone (terminal_polish_sign_reverts).
+                        // The incumbent is kept: an adopted polish that fails either half
+                        // below is undone (terminal_polish_sign_reverts / _bound_reverts).
                         Vec x_inc, lambda_e_inc, lambda_i_inc, z_inc;
                         bool polish_adopted = false;
                         if (eff_opts.dual_mu > 0.0 || eff_opts.primal_delta > 0.0) {
@@ -1602,7 +1602,12 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         // must not assume so. Each bound is read as the row e_i
                         // (norm1 = 1, multiplier z(i)) under the rows' own test,
                         // against `qp`'s box, so the TR window is included. A
-                        // structural violation is the primal-infeasible exit.
+                        // structural violation is kNumericalError, NEVER kInfeasible
+                        // (SDL-4): the point is a KKT point of the working set, not of
+                        // the QP, and x off its box is the walk's own invariant broken (a
+                        // pass-over leak), not evidence -- the box alone is feasible
+                        // (crossed bounds exit at entry) and an infeasible QP is the
+                        // verified Farkas route's to prove (certificate_bound_refusals).
                         //
                         // THE SIGN HALF (RDV-5). The drop rule reads the signs before the
                         // polish and exempts re-entered members, so the exported
@@ -1639,24 +1644,25 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         auto cert = read_certificate();
                         double &bound_worst = cert.first;
                         bool &signs_hold = cert.second;
-                        bool incumbent = false;
-                        if (polish_adopted && !signs_hold && bound_worst <= 0.0) {
+                        if (polish_adopted && (!signs_hold || bound_worst > 0.0)) {
                             // The polish re-priced a non-unique multiplier set onto a wrong
-                            // sign: that says nothing about optimality. Certify the incumbent
-                            // or nothing -- never kInfeasible, the incumbent is not the QP's
-                            // verdict.
-                            ++counters.terminal_polish_sign_reverts;
+                            // sign, or traded a bound for a row (its acceptance reads the
+                            // worst of rows and bounds together): neither says anything about
+                            // the QP. Certify the incumbent or nothing.
+                            if (bound_worst > 0.0) {
+                                ++counters.terminal_polish_bound_reverts;
+                            } else {
+                                ++counters.terminal_polish_sign_reverts;
+                            }
                             x = x_inc;
                             lambda_e = lambda_e_inc;
                             lambda_i = lambda_i_inc;
                             z = z_inc;
                             cert = read_certificate();
-                            incumbent = true;
                         }
-                        if (incumbent && bound_worst > 0.0) {
+                        if (bound_worst > 0.0) {
+                            ++counters.certificate_bound_refusals;
                             status = QpStatus::kNumericalError;
-                        } else if (bound_worst > 0.0) {
-                            status = QpStatus::kInfeasible;
                         } else if (!signs_hold) {
                             ++counters.certificate_sign_refusals;
                             status = QpStatus::kNumericalError;

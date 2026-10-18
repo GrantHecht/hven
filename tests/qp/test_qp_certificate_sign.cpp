@@ -21,6 +21,11 @@
 // the walk certified kOptimal with a lower pin priced z = -3.9e3 (relative 4.4e-2) at a point
 // missing 7 of the optimum's active bounds (Clarabel). The dump was taken at the SDL head's first
 // form (result line: kInfeasible, the polish refused); the QP is the same.
+//
+// THE BOUND HALF (SDL-4): a point off its own box is a KKT point of the working set, not of the QP
+// (a pass-over leak); it is refused kNumericalError (certificate_bound_refusals), never
+// kInfeasible. Seam fixtures on a feasible QP, and BRITGAS's QN subproblem 5 (natural, false
+// kInfeasible at e9cb2472).
 
 #include <algorithm>
 #include <cmath>
@@ -189,6 +194,67 @@ TEST(QpCertificateSign, WorstWrongSignReadsPinsAndUnshiftedWorkingRows) {
         detail::dual_signs_hold(std::numeric_limits<double>::quiet_NaN(), 1.0, QpOptions{}));
 }
 
+// THE BOUND HALF (SDL-4). The certificate reads the walk's own point whenever the polish is
+// skipped or rejected -- a KKT point of the working set, not of the QP -- so a free column left
+// past its box (a pass-over leak) is no evidence about the QP. sign_box_qp is feasible; before
+// SDL-4 each presented point below came back kInfeasible.
+QpSolution present_off_box(const QpOptions &opts, double x0) {
+    Cert::reset();
+    Cert::x = Vec(3);
+    Cert::x << x0, 0.0, 0.5;
+    Cert::z = Vec(3);
+    Cert::z << 5.0, -5.0, 0.0;
+    Cert::armed = true;
+    QpEngine engine{opts};
+    QpSolution s = engine.solve(sign_box_qp());
+    Cert::armed = false;
+    return s;
+}
+
+void expect_bound_refused(const QpSolution &s, double x0) {
+    ASSERT_EQ(Cert::presentations, 1) << "the certificate never read the presented pair";
+    EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kNumericalError));
+    EXPECT_EQ(s.counters.certificate_bound_refusals, 1);
+    EXPECT_EQ(s.counters.certificate_sign_refusals, 0);
+    EXPECT_EQ(s.x(0), x0); // the walk's point is reported, multipliers cleared
+    EXPECT_EQ(s.z.lpNorm<Eigen::Infinity>(), 0.0);
+}
+
+TEST(QpCertificateSign, BoundHalfOffBoxPointOnAFeasibleQpIsNumericalErrorNotInfeasible) {
+    SignSeamGuard guard;
+    for (const auto alg : kAlgebras) {
+        SCOPED_TRACE(static_cast<int>(alg));
+        expect_bound_refused(present_off_box(sign_opts(alg), -0.1), -0.1); // below lower(0) = 0
+        expect_bound_refused(present_off_box(sign_opts(alg), 1.5), 1.5);   // above upper(0) = 1
+    }
+}
+
+// The unpolished path: both regularizations 0, so the polish is skipped and the certificate
+// reads the walk's iterate as it stands.
+TEST(QpCertificateSign, BoundHalfOnTheUnpolishedPathIsNumericalErrorNotInfeasible) {
+    SignSeamGuard guard;
+    for (const auto alg : kAlgebras) {
+        SCOPED_TRACE(static_cast<int>(alg));
+        QpOptions o = sign_opts(alg);
+        o.dual_mu = 0.0;
+        o.primal_delta = 0.0;
+        const QpSolution s = present_off_box(o, -0.1);
+        EXPECT_EQ(s.counters.terminal_polish_solves, 0);
+        EXPECT_EQ(s.counters.terminal_polish_adopted, 0);
+        expect_bound_refused(s, -0.1);
+    }
+}
+
+// Inside the structural margin the bound half still tolerates the point (E4).
+TEST(QpCertificateSign, BoundHalfInsideTheMarginStillCertifies) {
+    SignSeamGuard guard;
+    const QpOptions o = sign_opts(WorkingSetLinearAlgebra::kRefactorize);
+    const QpSolution s = present_off_box(o, -0.5 * o.feas_tol);
+    ASSERT_EQ(Cert::presentations, 1);
+    EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+    EXPECT_EQ(s.counters.certificate_bound_refusals, 0);
+}
+
 // A QP whose terminal polish is adopted: an active inequality row under a large dual_mu leaves a
 // complementarity footprint, and a pin (x2 at its lower bound, z2 = +3) gives the seam a sign to
 // flip.
@@ -273,6 +339,51 @@ TEST(QpCertificateSign, IncumbentFailingTheSignHalfIsNumericalErrorNotInfeasible
     }
 }
 
+// SDL-4: the polished point leaves its box (presented: x2 = -0.5 below its lower bound 0, the
+// signs right). The polish is undone; the incumbent is in its box and certified.
+QpSolution present_polished_off_box(const QpOptions &opts, bool first_only) {
+    Cert::reset();
+    Cert::x = Vec(3);
+    Cert::x << -2.0, -2.0, -0.5;
+    Cert::z = Vec(3);
+    Cert::z << 0.0, 0.0, 3.0;
+    Cert::first_only = first_only;
+    Cert::armed = true;
+    QpEngine engine{opts};
+    QpSolution s = engine.solve(polish_qp());
+    Cert::armed = false;
+    return s;
+}
+
+TEST(QpCertificateSign, PolishedPointOffItsBoxFallsBackToACertifiedIncumbent) {
+    SignSeamGuard guard;
+    for (const auto alg : kAlgebras) {
+        SCOPED_TRACE(static_cast<int>(alg));
+        const QpSolution s = present_polished_off_box(polish_opts(alg), true);
+        ASSERT_EQ(Cert::presentations, 2) << "the incumbent was not read";
+        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+        EXPECT_EQ(s.counters.terminal_polish_bound_reverts, 1);
+        EXPECT_EQ(s.counters.terminal_polish_sign_reverts, 0);
+        EXPECT_EQ(s.counters.certificate_bound_refusals, 0);
+        EXPECT_GE(s.x(2), 0.0); // the incumbent's point, not the presented -0.5
+        EXPECT_NEAR(s.z(2), 3.0, 1e-6);
+    }
+}
+
+// The incumbent is off its box too: kNumericalError, never kInfeasible.
+TEST(QpCertificateSign, IncumbentOffItsBoxIsNumericalErrorNotInfeasible) {
+    SignSeamGuard guard;
+    for (const auto alg : kAlgebras) {
+        SCOPED_TRACE(static_cast<int>(alg));
+        const QpSolution s = present_polished_off_box(polish_opts(alg), false);
+        ASSERT_EQ(Cert::presentations, 2);
+        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kNumericalError));
+        EXPECT_EQ(s.counters.terminal_polish_bound_reverts, 1);
+        EXPECT_EQ(s.counters.certificate_bound_refusals, 1);
+        EXPECT_EQ(s.z.lpNorm<Eigen::Infinity>(), 0.0);
+    }
+}
+
 // The natural path (see the header): no kOptimal with a wrong-signed exported multiplier.
 TEST(QpCertificateSign, DallasmQnSubproblemIsNotCertifiedWithAWrongSign) {
     SignSeamGuard guard;
@@ -284,17 +395,21 @@ TEST(QpCertificateSign, DallasmQnSubproblemIsNotCertifiedWithAWrongSign) {
         o.ws_algebra = alg;
         ASSERT_EQ(d.qp.mi(), 0); // the residual below assumes no inequality rows
         const QpSolution s = hven::test_support::solve_qp_dump(d, o);
-        std::printf("[ sdl ] DALLASM_QN_qp10 alg=%d status=%d minors=%ld refusals=%ld zmx=%ld\n",
+        std::printf("[ sdl ] DALLASM_QN_qp10 alg=%d status=%d minors=%ld refusals=%ld zmx=%ld "
+                    "reverts=%ld bound_refusals=%ld\n",
                     static_cast<int>(alg), static_cast<int>(s.status),
                     static_cast<long>(s.counters.minor_iters),
                     static_cast<long>(s.counters.certificate_sign_refusals),
-                    static_cast<long>(s.counters.zero_motion_exhausted));
+                    static_cast<long>(s.counters.zero_motion_exhausted),
+                    static_cast<long>(s.counters.terminal_polish_sign_reverts),
+                    static_cast<long>(s.counters.certificate_bound_refusals));
         // Never a false kInfeasible on this feasible convex QP.
         EXPECT_NE(static_cast<int>(s.status), static_cast<int>(QpStatus::kInfeasible));
         if (alg == WorkingSetLinearAlgebra::kSchurBorder) {
             // The border walk reaches the certificate, the polish flips a sign, and the
-            // incumbent fallback is taken: the incumbent is no certificate either.
+            // incumbent fallback is taken: the incumbent stands off its box (SDL-4).
             EXPECT_GE(s.counters.terminal_polish_sign_reverts, 1);
+            EXPECT_EQ(s.counters.certificate_bound_refusals, 1);
             EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kNumericalError));
         }
         // A sign refusal, the sign-checked kOptimal read below, or (refactorize) the walk's own
@@ -332,5 +447,33 @@ TEST(QpCertificateSign, DallasmQnSubproblemIsNotCertifiedWithAWrongSign) {
                 EXPECT_LE(price, 1e-8 * scale) << "upper pin " << i;
             }
         }
+    }
+}
+
+// SDL-4's natural path: BRITGAS's QN-label subproblem (solve 5 of the cell; feasible -- HiGHS phase
+// 1 at zero violation -- and convex, Clarabel f* = 46659152.05). At e9cb2472 the walk ended with
+// free column 326 at 1.0176 against its upper bound 1 (a pass-over leak), the polish was rejected,
+// and the bound half read kInfeasible.
+TEST(QpCertificateSign, BritgasQnSubproblemOffBoxLeakIsNotInfeasible) {
+    SignSeamGuard guard;
+    const hven::test_support::QpDump d = hven::test_support::load_qp_dump(
+        std::string(HVEN_QP_E2D4_FIXTURES) + "/SDL4_BRITGAS_QN_qp5.txt");
+    for (const auto alg : kAlgebras) {
+        SCOPED_TRACE(static_cast<int>(alg));
+        QpOptions o = d.opts;
+        o.ws_algebra = alg;
+        const QpSolution s = hven::test_support::solve_qp_dump(d, o);
+        std::printf("[ sdl ] BRITGAS_QN_qp5 alg=%d status=%d minors=%ld bound_refusals=%ld "
+                    "polish_rejected=%ld x326=%.10g\n",
+                    static_cast<int>(alg), static_cast<int>(s.status),
+                    static_cast<long>(s.counters.minor_iters),
+                    static_cast<long>(s.counters.certificate_bound_refusals),
+                    static_cast<long>(s.counters.terminal_polish_rejected), s.x(326));
+        EXPECT_NE(static_cast<int>(s.status), static_cast<int>(QpStatus::kInfeasible));
+        // The premise, live: the walk's point is off its box by the leak, the polish refused.
+        EXPECT_GT(s.x(326) - d.qp.upper(326), 1e-2);
+        EXPECT_EQ(s.counters.terminal_polish_rejected, 1);
+        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kNumericalError));
+        EXPECT_EQ(s.counters.certificate_bound_refusals, 1);
     }
 }
