@@ -18,6 +18,7 @@
 //       feas_tol but their l1 sum is not certifies nothing (BRITGAS under W1); since
 //       SNR it resumes, the resume test reading the convergence test's inf-norm.
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <utility>
@@ -624,7 +625,15 @@ TEST(SqpLadderSeam, CertOneAPointTheConvergenceTestCallsFeasibleIsNoCertificate)
     // of the next request rather than at the phase's own exit.
     ASSERT_FALSE(sol.history.empty());
     EXPECT_GT(sol.history.front().violation_l1, 1.0) << "the requesting phase at x0 = (1, 1)";
-    EXPECT_DOUBLE_EQ(sol.history.back().violation_l1, sol.counters.restoration_h_out);
+    // The requesting row is the solve's last unless the entry resumed: the resumed phase's
+    // majors follow it, standing on the restored point, up to the refused request.
+    const auto request =
+        std::find_if(sol.history.begin(), sol.history.end(),
+                     [](const SqpIterate &r) { return r.verdict == StepVerdict::kRestore; });
+    ASSERT_NE(request, sol.history.end());
+    ASSERT_NE(request + 1, sol.history.end()) << "the entry did not resume";
+    EXPECT_EQ((request + 1)->violation_l1, sol.counters.restoration_h_out);
+    EXPECT_EQ(sol.history.back().verdict, StepVerdict::kRestore) << "the refused request";
 
     // THE CLAIM IS WITHHELD: no certificate and no kInfeasible at a point this
     // solve's own convergence test calls feasible.
