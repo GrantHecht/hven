@@ -1282,10 +1282,18 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 // classification below; the refined multipliers may release a member, and an
                 // adopted point with nothing to release is, once per solve, the next pass's
                 // iterate (that pass's KKT-point test reads it).
+                const Vec x_before_refine = x;
                 if (eff_opts.dual_mu > 0.0 &&
                     mu_footprint_open(qp, ws, x, ai_row_norm1, lambda_i, ae_row_norm1, lambda_e,
                                       eff_opts) &&
                     refine_terminal_mu_free(qp, ws, x, lambda_e, lambda_i, z, counters, eff_opts)) {
+                    // x is now the adopted point: the pass never reaches the guard or the ordinary
+                    // step from it (that step runs along the old pass's direction, from a point
+                    // its eqp never saw). It drops, resumes once, or ends the walk here.
+                    if (const Vec moved = x - x_before_refine;
+                        moved.lpNorm<Eigen::Infinity>() > step_tol) {
+                        pt_clear(seen); // the iterate moved
+                    }
                     refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen,
                                    eff_opts);
                     exempt_worst = 0.0;
@@ -1303,18 +1311,31 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
 #endif
                         continue;
                     }
+                    ++counters.stagnation_stops;
+#ifdef HVEN_TESTING
+                    walk_obs.record().action = detail::testing::QpWalkAction::kStagnationStop;
+#endif
+                    break;
                 }
                 // The walk ends at a point that meets its working rows, or off them when the
-                // idle run's own contraction could not bring them to their floor within the minors
-                // left (the cap's status either way). A run that could, still converging, takes the
-                // pass's ordinary step.
+                // idle run's best residual has not been beaten by this one, or, extrapolated over
+                // the run, could not bring them to their floor within the minors left -- this
+                // pass's step included (the cap's status either way). A run that could, still
+                // converging, takes the pass's ordinary step. The `!(largest < best)` clause alone
+                // stops a residual that GREW over the idle run: the log clause below only reads
+                // when the ratio is above one.
                 const WorkingRowResidual r_cur =
                     working_row_residual(qp, ws, x, Aix, ai_row_norm1, ae_row_norm1, eff_opts);
-                const double passes_to_floor = static_cast<double>(detail::kStagnationSteps) *
-                                               std::log(r_cur.in_floor_units) /
-                                               std::log(stagnation_r / r_cur.largest);
-                if (r_cur.in_floor_units <= 1.0 || !(r_cur.largest < stagnation_r) ||
-                    !(passes_to_floor <= static_cast<double>(eff_max_iter - iter))) {
+                bool stagnation_stop =
+                    r_cur.in_floor_units <= 1.0 || !(r_cur.largest < stagnation_r);
+                if (!stagnation_stop) {
+                    const double passes_to_floor = static_cast<double>(detail::kStagnationSteps) *
+                                                   std::log(r_cur.in_floor_units) /
+                                                   std::log(stagnation_r / r_cur.largest);
+                    stagnation_stop =
+                        !(passes_to_floor <= static_cast<double>(eff_max_iter - iter));
+                }
+                if (stagnation_stop) {
                     ++counters.stagnation_stops;
 #ifdef HVEN_TESTING
                     walk_obs.record().action = detail::testing::QpWalkAction::kStagnationStop;

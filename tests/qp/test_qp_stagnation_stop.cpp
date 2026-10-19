@@ -17,6 +17,14 @@
 //                 the KKT-point test does not certify: the steps are rounding-sized.
 // The QpE2Fix9StandstillRetreat, QpNc2FlatFace and QpBpsBorderCertificate fixtures are the
 // complementary case: idle runs a drop resolves, certified as before.
+//
+// ARMS UNCOVERED BY FIXTURES (declared mutants, M7 W2 SNXR2): (a) the refine-then-drop arm (the
+// mu-free adoption whose refined multipliers release a member); (b) an adoption with the resume
+// spent that the guard alone would let step on (a working inequality row on its slack side above
+// the floor) -- the spent-resume fixture below stops on the rows-met clause either way, so the
+// adoption's own stop is pinned by the walk's structure, not by a fixture; (c) the guard's
+// `!(residual < run's best)` clause alone: the stuck fixture's still residual is also stopped by
+// the extrapolation, so a residual that GREW over the idle run is unpinned.
 
 #include <algorithm>
 #include <cmath>

@@ -744,10 +744,13 @@
 // classification. With nothing to drop, a residual the dual_mu footprint explains is first
 // re-solved mu-free (refine_terminal_mu_free, as at the terminal classification) and the drop rule
 // asked again on the refined multipliers; an adopted point with nothing to drop is, once per solve,
-// the next pass's iterate. Otherwise, still nothing to drop, the walk ends kMaxIter at the iterate
-// it stands on -- the minor cap's status, point and multipliers, reached early -- if that iterate
-// meets its working rows, or if the idle run's own residual contraction, extrapolated, cannot bring
-// them to their floor within the minors left (the cap's status either way); a run that can takes
+// the next pass's iterate, and with that resume spent ends the walk kMaxIter at the adopted point
+// (the pass never steps from it). A refusal is not remembered: a continuing reading re-runs the
+// refine, one factorization, at each reading. Otherwise, still nothing to drop, the walk ends
+// kMaxIter at the iterate it stands on (an adopted one included) -- the minor cap's status, point
+// and multipliers, reached early -- if that iterate meets its working rows, or if its residual is
+// not below the run's best over the idle steps, or if that best, extrapolated, cannot bring the
+// rows to their floor within the minors left (the cap's status either way); a run that can takes
 // the pass's ordinary step. Each drop it makes spends one of kStagnationDropBudget; with the budget
 // spent, the next reading ends the walk kMaxIter at once. It certifies nothing.
 //

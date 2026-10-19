@@ -120,6 +120,16 @@ void expect_yorknet_qp1(WorkingSetLinearAlgebra alg) {
         << "f = " << f << " against the oracle's " << kYorknetQp1Oracle;
 }
 
+void print_walk(const char *tag, const QpDump &d, const QpSolution &s) {
+    const hven::test_support::QpDumpKkt k = hven::test_support::qp_dump_kkt(d, s);
+    std::printf("[ rdv ] %s status=%d minors=%ld stagnation_drops=%ld stagnation_stops=%ld "
+                "f=%.12g stationarity=%.3e eq=%.3e\n",
+                tag, static_cast<int>(s.status), static_cast<long>(s.counters.minor_iters),
+                static_cast<long>(s.counters.stagnation_drops),
+                static_cast<long>(s.counters.stagnation_stops),
+                hven::test_support::qp_dump_objective(d, s.x), k.stationarity, k.eq);
+}
+
 // SAWPATH qp1 and YORKNET qp5: the dead end is repaired on every configuration; what the walk then
 // reaches is NOT configuration-independent. Release certifies a KKT point (asserted below). Debug's
 // rounding leads both into a two-pass cycle of full steps on the face they reach (SAWPATH:
@@ -131,16 +141,6 @@ void expect_yorknet_qp1(WorkingSetLinearAlgebra alg) {
 // YORKNET qp5 f = -1078.49295775, Release's pin. The kOptimal status stays asserted in Release
 // only. Asserted on both: the rule's own effect (no dead-end exit, a repair taken) and NO FALSE
 // CERTIFICATE (kOptimal only at a KKT point; never kInfeasible).
-void print_walk(const char *tag, const QpDump &d, const QpSolution &s) {
-    const hven::test_support::QpDumpKkt k = hven::test_support::qp_dump_kkt(d, s);
-    std::printf("[ rdv ] %s status=%d minors=%ld stagnation_drops=%ld stagnation_stops=%ld "
-                "f=%.12g stationarity=%.3e eq=%.3e\n",
-                tag, static_cast<int>(s.status), static_cast<long>(s.counters.minor_iters),
-                static_cast<long>(s.counters.stagnation_drops),
-                static_cast<long>(s.counters.stagnation_stops),
-                hven::test_support::qp_dump_objective(d, s.x), k.stationarity, k.eq);
-}
-
 void expect_repaired(const QpDump &d, const QpSolution &s, double stationarity_tol) {
     EXPECT_GE(s.counters.rank_repairs, 1);
     EXPECT_EQ(s.counters.dep_blocker_terminations, 0);
@@ -150,6 +150,10 @@ void expect_repaired(const QpDump &d, const QpSolution &s, double stationarity_t
 #ifdef NDEBUG
     // Release: the repaired walk REACHES its KKT point.
     EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+#else
+    // Debug: the declared move, a stagnation drop out of the two-pass cycle, then the KKT point.
+    EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+    EXPECT_GE(s.counters.stagnation_drops, 1);
 #endif
     if (s.status == QpStatus::kOptimal) {
         expect_certified_kkt(d, s, stationarity_tol);
