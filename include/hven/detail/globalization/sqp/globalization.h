@@ -401,11 +401,12 @@ class FunnelStrategy final : public GlobalizationStrategy {
     /// point IS from the funnel's view (a point reached by a mechanism that
     /// reduced h). Emphatically NOT Eq. (9) — see the base class note.
     ///
-    /// MONOTONICITY HOLDS UNDER THE CALLER'S EXIT CONDITION, and only under
-    /// it: tau_+ <= tau iff h_restored <= tau. The driver resumes only when
-    /// h_restored <= feas_tol, and any funnel not itself tightened below the
-    /// feasibility tolerance has tau >= feas_tol, so the inequality holds with
-    /// room to spare. Transcribed UNCONDITIONALLY rather than clamped to
+    /// MONOTONICITY: tau_+ <= tau iff h_restored <= tau. The driver resumes when
+    /// the restored point's inf-norm violation is <= feas_tol, so h_restored (the
+    /// l1 sum) is at most (rows) * feas_tol; a funnel not tightened to that level
+    /// keeps the inequality, and one that was is widened to exactly what the
+    /// restored point implies -- at most once per solve, which restores at most
+    /// once. Transcribed UNCONDITIONALLY rather than clamped to
     /// min(tau, .) because Eq. (13) is not a clamped rule — a clamp would hide
     /// a caller resuming from outside its own funnel instead of reporting the
     /// width that behaviour implies.

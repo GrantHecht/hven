@@ -1964,9 +1964,9 @@ struct SqpCounters {
     /// seed was taken.
     ///
     /// IN THE ENGINE'S OWN UNITS, which are the caller's unless
-    /// `SqpOptions::enable_scaling` is on -- the units the resume test
-    /// `h_out <= SqpOptions::feas_tol` is taken in, so that the record is
-    /// stated in the units of the decision it describes.
+    /// `SqpOptions::enable_scaling` is on -- the units the resume test is taken
+    /// in, so that the record is stated in the units of the decision it
+    /// describes.
     ///
     /// NOT FOLDED from the restoration sub-solve, for `restoration_entries`'
     /// reason.
@@ -1976,11 +1976,11 @@ struct SqpCounters {
     ///        entry RETURNED (M7 W2 M2, signal S5).
     ///
     /// `h_out` of the record: the same quantity as `restoration_h_in`, at the
-    /// restored point, and the exact value the resume test compares against
-    /// `SqpOptions::feas_tol`. So `restoration_h_out <= feas_tol` iff that
-    /// entry took the RESUME arm -- at `SqpOptions::restoration_resume_reduction
-    /// > 0` an entry that `restoration_reduction_resumes` counted resumed too
-    /// (M7 W2 P1E), so a reader needs that second field only then.
+    /// restored point. NOT the resume test's reading since M7 W2 SNR: that test
+    /// reads the inf-norm `restoration_feas_out`, which this l1 sum bounds from
+    /// above on the rows, so `restoration_h_out <= feas_tol` on an in-box point
+    /// implies the entry resumed but not conversely. The resume reading is
+    /// `restoration_feas_out`'s.
     ///
     /// Same overwrite rule, same units, same non-fold as `restoration_h_in`.
     double restoration_h_out = 0.0;
@@ -2050,10 +2050,10 @@ struct SqpCounters {
     /// at all, and the sub-solve runs with `budget_mode` forced false.
     ///
     /// WHAT IT DOES NOT SAY IS WHETHER THE PARENT RESUMED (M7 W2 M3a fix1).
-    /// The resume decision is `restoration_h_out <= SqpOptions::feas_tol` and
-    /// NOTHING ELSE -- `enter_restoration` takes it before it looks at the
-    /// sub-solve's status at all (the M7 W2 P1E sufficient-reduction resume, off
-    /// by default, is the one exception: it reads the status, see
+    /// The resume decision is `restoration_feas_out <= SqpOptions::feas_tol`
+    /// (`restoration_h_out` until M7 W2 SNR) and NOTHING ELSE -- `enter_restoration` takes it
+    /// before it looks at the sub-solve's status at all (the M7 W2 P1E sufficient-reduction resume,
+    /// off by default, is the one exception: it reads the status, see
     /// `restoration_reduction_resumes`) -- so a sub-solve that returned a feasible
     /// enough point with `kMaxIter` or `kInterrupted` resumes exactly as a
     /// `kOptimal` one does. It is CERTIFICATION that requires `kOptimal`. An
@@ -2144,7 +2144,7 @@ struct SqpCounters {
     Index elastic_last_rung_fallbacks = 0;
     /// @brief THE SUFFICIENT-REDUCTION RESUME (M7 W2 P1E,
     ///        `SqpOptions::restoration_resume_reduction`): restoration entries that
-    ///        resumed with `restoration_h_out > feas_tol`. 0 with the option off. Not
+    ///        resumed with `restoration_feas_out > feas_tol`. 0 with the option off. Not
     ///        folded: the sub-solve never restores.
     Index restoration_reduction_resumes = 0;
     /// @brief THE CURVATURE SOURCE'S BILL (M7 QN stage 3): Lagrangian-Hessian
@@ -2200,6 +2200,13 @@ struct SqpCounters {
     ///        to the radius floor and the full-step mode. Appended last; FOLDED from
     ///        the restoration sub-solve.
     Index nonfinite_step_rollbacks = 0;
+    /// @brief THE RESUME TEST'S READING (M7 W2 SNR): the inf-norm violation, rows and
+    ///        box, at the point the last restoration entry RETURNED -- the measure the
+    ///        convergence test gates on (`SqpKkt::feasibility`), in the engine's units.
+    ///        `restoration_feas_out <= feas_tol` iff that entry resumed, unless it is
+    ///        counted in `restoration_reduction_resumes`. Same overwrite rule as
+    ///        `restoration_h_out`; appended last; not folded.
+    double restoration_feas_out = 0.0;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -2282,7 +2289,8 @@ struct SqpCounters {
     X(qn_kwrong_seen, counter_never_absent)                                                        \
     X(qn_nonpd_seen, counter_never_absent)                                                         \
     X(qn_dimension, counter_never_absent)                                                          \
-    X(nonfinite_step_rollbacks, counter_never_absent)
+    X(nonfinite_step_rollbacks, counter_never_absent)                                              \
+    X(restoration_feas_out, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =
@@ -2326,7 +2334,8 @@ inline constexpr std::size_t kSqpCountersFieldCount =
 // `sizeof` 944 -> 960. 63 -> 77 at M7 QN stage 3, `eval_hess_calls` and the thirteen-field
 // quasi-Newton group, the same way: `sizeof` 960 -> 1072. 77 -> 79 at the QN review and
 // riders, `qn_nonpd_seen` and `qn_dimension`; 79 -> 80 at M7 W2 R2-1,
-// `nonfinite_step_rollbacks`, the same way: `sizeof` 1088 -> 1096.)
+// `nonfinite_step_rollbacks`, the same way: `sizeof` 1088 -> 1096. 80 -> 81 at M7 W2 SNR,
+// `restoration_feas_out`, the same way: `sizeof` 1096 -> 1104.)
 static_assert(::hven::detail::kAggregateArity<SqpCounters> == kSqpCountersFieldCount + 2,
               "SqpCounters and HVEN_SQP_COUNTERS_FIELDS disagree: give the new field an X() entry "
               "in its declaration position, or -- if it is a new NESTED aggregate -- give it a "

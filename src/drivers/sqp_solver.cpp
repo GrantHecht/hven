@@ -5012,8 +5012,9 @@ namespace {
 // only way to spell a value other than `kNotRun` onto this field is to have a
 // sub-solve's status in hand.
 void record_restoration_excursion(SqpCounters &c, double h_in, double h_out, double f_in,
-                                  double f_out, SolveStatus sub_status) {
+                                  double f_out, SolveStatus sub_status, double feas_out) {
     ++c.restoration_entries;
+    c.restoration_feas_out = feas_out;
     c.restoration_h_in = h_in;
     c.restoration_h_out = h_out;
     c.restoration_f_in = f_in;
@@ -5528,9 +5529,13 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     }
     const double h_r = constraint_violation_l1(ev_r);
 
-    // THE RESUME TEST READS THE BOX TOO (M7 W2 ladder, L2): a point inside its
-    // rows but outside its box is not feasible (E2-D3: SAWPATH resumed at h = 0,
-    // 3.56 outside). `h_r` itself stays the rows' measure for the funnel and S5.
+    // THE RESUME TEST READS THE CONVERGENCE TEST'S FEASIBILITY MEASURE (M7 W2 SNR):
+    // `kkt_r.feasibility`, the inf-norm over rows AND box that `mj.converged` gates on,
+    // at the same `feas_tol`. The phase resumes exactly when the solve's own convergence
+    // test would call the restored point feasible. Until SNR it read the l1 sum
+    // `h_r + box`, which with many rows refused points that test calls feasible
+    // (registered C1). `h_r` stays the rows' l1 measure for the funnel and S5; the box
+    // is read as before (ladder L2: SAWPATH at h = 0, 3.56 outside its box).
     //
     // THE SUFFICIENT-REDUCTION RESUME (M7 W2 P1E; SqpOptions::
     // restoration_resume_reduction): the phase also hands back a point whose
@@ -5540,27 +5545,27 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     // kOptimal keeps its certificate, and a stopped or budget-spent sub-solve
     // its own exit. The box must hold as it does for the feasible resume.
     const double box_r = box_violation_l1(x_r, seam.lower(), seam.upper());
-    const double resume_measure = h_r + box_r;
+    const bool feasible_resume = kkt_r.feasibility <= opts_.feas_tol;
     // A kOptimal SUB-SOLVE CLAIMS INFEASIBILITY ONLY BEYOND 2 * feas_tol (QC-1; the CERT-1
     // arm of the switch below has the argument). Read here too, so "certifies nothing" means
     // one thing in both places.
     const bool optimal_claims = kkt_r.feasibility > kCertificateViolationMargin * opts_.feas_tol;
-    const bool reduction_resume = opts_.restoration_resume_reduction > 0.0 &&
-                                  resume_measure > opts_.feas_tol && box_r <= opts_.feas_tol &&
+    const bool reduction_resume = opts_.restoration_resume_reduction > 0.0 && !feasible_resume &&
+                                  box_r <= opts_.feas_tol &&
                                   h_r <= opts_.restoration_resume_reduction * excursion_h_in &&
                                   (rs.status == SolveStatus::kNumericalError ||
                                    (rs.status == SolveStatus::kOptimal && !optimal_claims));
-    if (resume_measure <= opts_.feas_tol || reduction_resume) {
+    if (feasible_resume || reduction_resume) {
         if (reduction_resume) {
             ++st.out.counters.restoration_reduction_resumes;
         }
         // THE EXCURSION RECORD, WRITTEN BEFORE THE MOVE BELOW takes `ev_r`
-        // apart (M7 W2 M2, signal S5). This is the RESUME arm, so `h_out` is
+        // apart (M7 W2 M2, signal S5). This is the RESUME arm, so `feas_out` is
         // inside `feas_tol` by the test above -- or the entry is counted in
         // `restoration_reduction_resumes` -- and `f_out` is the objective the
         // solve now carries forward.
         record_restoration_excursion(st.out.counters, excursion_h_in, h_r, excursion_f_in, ev_r.f,
-                                     rs.status);
+                                     rs.status, kkt_r.feasibility);
         // RESUME. The order here is the header note's order.
         st.x = x_r;
         st.ev = std::move(ev_r);
@@ -5618,12 +5623,12 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     //
     // AND THE EXCURSION RECORD IS WRITTEN HERE TOO (M7 W2 M2, signal S5), on
     // the same terms as the resume arm's: this is the phase's other MEASURED
-    // outcome, `h_out` is above `feas_tol` by the test above, and `f_out` is
+    // outcome, `feas_out` is above `feas_tol` by the test above, and `f_out` is
     // the objective of the point this exit reports. Written before the switch
     // below, which decides only how the exit is SPELLED and not what was
     // measured.
     record_restoration_excursion(st.out.counters, excursion_h_in, h_r, excursion_f_in, ev_r.f,
-                                 rs.status);
+                                 rs.status, kkt_r.feasibility);
     st.x = x_r;
     // The point being reported is now the RESTORED point, which
     // no in-loop QpSolution (qs/seed) was ever solved at -- see
@@ -5725,18 +5730,12 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
         // which are already taken above.
         //
         // AND THE CLAIM IS STATED IN THE CONVERGENCE TEST'S OWN FEASIBILITY
-        // MEASURE (M7 W2 C12, CERT-1). The resume test above reads the l1 sum
-        // `h_r + box`, the convergence test the inf-norm `kkt_r.feasibility`,
-        // and with many rows the two disagree: a restored point can fail the
-        // first and pass the second -- every row inside `feas_tol`, their sum
-        // outside it (MEASURED: BRITGAS under the W1 guard, l1 4.49e-6, inf
-        // 4.23e-7, certified after 53 restoration iterations; the problem is
-        // feasible). A point this solve's own convergence test calls feasible
-        // is no certificate of infeasibility, so the exit makes NO claim there:
-        // the same spelling as the sub-solve's other uncertified exits. The
-        // resume test is unchanged, so `restoration_h_out <= feas_tol` still
-        // says the entry resumed, unless restoration_resume_reduction > 0 (see
-        // restoration_reduction_resumes).
+        // MEASURE (M7 W2 C12, CERT-1): a point that test calls feasible is no
+        // certificate of infeasibility. CERT-1 met it here, when the resume test
+        // read the l1 sum and refused points every row of which was inside
+        // `feas_tol` (BRITGAS under the W1 guard, certified on a feasible
+        // problem); since SNR the resume test reads `kkt_r.feasibility` itself,
+        // so this arm sees only `kkt_r.feasibility > feas_tol`.
         //
         // AND NOT NEAR IT EITHER (QC-1): the claim needs `kkt_r.feasibility > 2 *
         // feas_tol`. A converged sub-solve leaves each wrapper row within feas_tol and

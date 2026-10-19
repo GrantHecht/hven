@@ -2055,7 +2055,8 @@ void expect_same_scalars(const std::vector<Seen> &a, const std::vector<Seen> &b)
     X(qn_kwrong_seen)                                                                              \
     X(qn_nonpd_seen)                                                                               \
     X(qn_dimension)                                                                                \
-    X(nonfinite_step_rollbacks)
+    X(nonfinite_step_rollbacks)                                                                    \
+    X(restoration_feas_out)
 
 // The 18 fields of SsnCounters and the 39 of IpqpCounters, the two nested
 // groups SqpCounters carries.
@@ -2144,8 +2145,9 @@ void expect_same_counters(const hven::solvers::SqpCounters &a,
     // (`elastic_last_rung_fallbacks`, `restoration_reduction_resumes`); 960 -> 1072 at
     // M7 QN stage 3 (`eval_hess_calls` and the thirteen `qn_*` Index); 1072 -> 1080 at
     // the QN stages 1-3 review (`qn_nonpd_seen`); 1080 -> 1088 at the QN-quality riders
-    // (`qn_dimension`); 1088 -> 1096 at M7 W2 R2-1 (`nonfinite_step_rollbacks`).
-    static_assert(sizeof(hven::solvers::SqpCounters) == 1096,
+    // (`qn_dimension`); 1088 -> 1096 at M7 W2 R2-1 (`nonfinite_step_rollbacks`); 1096 ->
+    // 1104 at M7 W2 SNR (`restoration_feas_out`).
+    static_assert(sizeof(hven::solvers::SqpCounters) == 1104,
                   "SqpCounters gained or lost a field -- extend "
                   "HVEN_T2_SQP_COUNTER_FIELDS so the mask comparison still "
                   "covers every counter");

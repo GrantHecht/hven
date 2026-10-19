@@ -115,7 +115,8 @@ double constraint_violation_l1(const NlpEval &ev);
 /// @brief The box half of the violation: sum_i max(0, l_i - x_i) + max(0, x_i - u_i).
 ///
 /// Added to constraint_violation_l1 wherever h DECIDES the ladder -- the
-/// restoration resume test and the E2-termination elastic guard -- and nowhere
+/// sufficient-reduction resume's box clause and the E2-termination elastic
+/// guard (the restoration resume test reads `SqpKkt::feasibility`) -- and nowhere
 /// else: the funnel's iterates are x + p with p inside the QP's own box, so there
 /// the term is zero up to the rounding of x + (l - x), which it must not turn
 /// into a trajectory. 0 on an in-box point; NaN if x is NaN.

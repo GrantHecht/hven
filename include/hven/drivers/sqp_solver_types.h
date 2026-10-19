@@ -930,7 +930,7 @@ struct SqpOptions {
     /// THE SUFFICIENT-REDUCTION RESUME (M7 W2 P1E), a fraction in [0, 1); 0 = OFF.
     /// At k > 0 the restoration phase also resumes at a point with
     /// `h_r <= k * restoration_h_in` and its box held, when the sub-solve certified
-    /// nothing (kNumericalError, or a kOptimal the convergence test calls feasible).
+    /// nothing (kNumericalError, or a kOptimal inside QC-1's no-claim margin).
     /// The funnel restoration exit (KLV Sec. 3) rather than feasibility; such an
     /// entry is counted in `SqpCounters::restoration_reduction_resumes`. `validate()`
     /// refuses a value outside [0, 1) and a NaN.
@@ -1546,13 +1546,12 @@ struct SqpResult : SolveResult {
     SqpScalingReport scaling;
 
     /// True ONLY on the certified infeasibility exit: the restoration phase ran to
-    /// its own KKT test, that test passed, and the returned point fails BOTH
-    /// feasibility readings -- the resume test's l1 `h + box` and the
-    /// convergence test's inf-norm `SqpKkt::feasibility` -- against feas_tol, so
-    /// (x, lambda_e, lambda_i, z) is the subgradient certificate documented
-    /// above. A point inside the inf-norm reading but not the l1 one is one this
-    /// solve's convergence test calls feasible; that exit is kNumericalError with
-    /// no claim (M7 W2 C12, CERT-1).
+    /// its own KKT test, that test passed, and the returned point fails the
+    /// convergence test's inf-norm feasibility reading `SqpKkt::feasibility` --
+    /// which the resume test reads too (M7 W2 SNR) -- so (x, lambda_e, lambda_i,
+    /// z) is the subgradient certificate documented above. A point the
+    /// convergence test calls feasible is no certificate (M7 W2 C12, CERT-1);
+    /// since SNR such a point resumes.
     ///
     /// THE CERTIFICATE PREDICATE, STATED WITH ITS MARGIN (QC-1): the certificate
     /// requires the restoration point's inf-norm violation to exceed

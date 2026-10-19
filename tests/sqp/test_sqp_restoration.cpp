@@ -2761,10 +2761,12 @@ TEST(SqpDriverRestorationExcursion, TheResumeArmRecordsTheCallersOwnExcursion) {
     EXPECT_GT(sol.counters.restoration_h_in, opts.feas_tol)
         << "the phase was entered at an INFEASIBLE point -- that is what h_in is for";
 
-    // THE EXIT HALF IS THE NUMBER THE RESUME DECISION WAS MADE ON. `h_out` is
-    // the `h_r` the test `h_r <= feas_tol` read and the value the funnel was
-    // re-based with, so the record and the decision cannot disagree.
+    // THE EXIT HALF. `h_out` is the `h_r` the funnel was re-based with; the
+    // resume decision read `restoration_feas_out` (M7 W2 SNR), the inf-norm
+    // the l1 `h_out` bounds, so both sit inside feas_tol on a resume.
     EXPECT_LE(sol.counters.restoration_h_out, opts.feas_tol);
+    EXPECT_LE(sol.counters.restoration_feas_out, opts.feas_tol);
+    EXPECT_LE(sol.counters.restoration_feas_out, sol.counters.restoration_h_out);
     EXPECT_DOUBLE_EQ(sol.counters.restoration_h_out, log.resumes[0]);
     // And `f_out` is the objective the solve CARRIES FORWARD: the restored
     // point becomes the iterate, so the first row after the resume reports it.
@@ -2772,7 +2774,7 @@ TEST(SqpDriverRestorationExcursion, TheResumeArmRecordsTheCallersOwnExcursion) {
     // AND THE SUB-SOLVE'S OWN VERDICT (M7 W2 M3a). On THIS fixture the phase
     // both converged and returned a point inside `feas_tol`, so the record
     // names `kOptimal`. It is NOT the resume's cause: the parent takes that
-    // decision on `h_out <= feas_tol` alone, above, before it looks at this
+    // decision on `restoration_feas_out <= feas_tol` alone, before it looks at this
     // status at all (fix1 corrected the note that said otherwise). Pinning it
     // here is what makes the field's OTHER values evidence rather than
     // decoration.
@@ -2999,7 +3001,7 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatus) 
     EXPECT_EQ(never_ran.counters.restoration_sub_status, RestorationSubStatus::kNotRun);
 
     // ARM 2 -- the SAME model and the SAME options but five more majors: the
-    // phase runs, converges, and the parent RESUMES on `h_out <= feas_tol`;
+    // phase runs, converges, and the parent RESUMES on `feas_out <= feas_tol`;
     // the solve then spends the rest of its budget and ends at the same status
     // as arm 1.
     RunawayValleyModel valley_resumed;

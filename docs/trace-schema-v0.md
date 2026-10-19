@@ -710,7 +710,7 @@ FIRST `double`s IN THE DIRECT BLOCK.**
 |---|---|---|---|
 | `restoration_entries` | integer | `SqpCounters::restoration_entries` | restoration phases that RAN and were MEASURED — the resume arm and the not-feasible-enough arm. NOT `restoration_iters`, which counts the sub-solve's majors: one entry of sixteen iterations reads `1` here and `16` there. The three refusals (nested, the once-per-solve cap, no budget) and the non-finite exit move nothing |
 | `restoration_h_in` | number | `SqpCounters::restoration_h_in` | the l1 constraint violation `sum \|c_e\| + sum max(0, c_i)` at the iterate that REQUESTED the last measured entry — not at the seed the phase may have started from |
-| `restoration_h_out` | number | `SqpCounters::restoration_h_out` | the same quantity at the point that entry RETURNED, and the exact value the resume test compares against `SqpOptions::feas_tol`. So `restoration_h_out <= feas_tol` iff that entry resumed -- unless `SqpOptions::restoration_resume_reduction > 0`, when an entry counted in `restoration_reduction_resumes` also resumed (M7 W2 P1E) |
+| `restoration_h_out` | number | `SqpCounters::restoration_h_out` | the same quantity at the point that entry RETURNED. Not the resume test's reading since M7 W2 SNR (that is `restoration_feas_out`, the inf-norm); as an l1 sum it bounds the rows' inf-norm from above, so `restoration_h_out <= feas_tol` on an in-box point implies the entry resumed, not conversely |
 | `restoration_f_in` | number | `SqpCounters::restoration_f_in` | the objective at the requesting iterate. An ABSOLUTE, never a ratio: a ratio is undefined near `f_in = 0` and meaningless across a sign change |
 | `restoration_f_out` | number | `SqpCounters::restoration_f_out` | the objective at the returned point — with `restoration_f_in`, the excursion the phase made. On the resume arm it is the `f` the solve carries forward, so the next `sqp.major` line's `f` is this value |
 
@@ -732,7 +732,7 @@ ENUM.**
 
 | counter | type | source | meaning |
 |---|---|---|---|
-| `restoration_sub_status` | string | `SqpCounters::restoration_sub_status` | the feasibility SUB-SOLVE's own terminal status at the last measured entry, read before the parent decides how its own exit is spelled — or `not_run`, which is the DEFAULT and says no restoration sub-solve was measured on this solve. The readings: `optimal` (the sub-solve converged — the only value a CERTIFIED infeasibility exit is reachable from), `infeasible` (the feasibility problem itself raised a restoration request nothing can service, so the parent makes no claim about the model), `max_iter`, `interrupted` or `numerical_error`. **A RESUME is not reachable from `optimal` alone**: the parent resumes on `restoration_h_out <= feas_tol` and nothing else, before it inspects this status at all, so a sub-solve that returned a feasible enough point with `max_iter` or `interrupted` resumes exactly as an `optimal` one does. The other four `SolveStatus` spellings (`acceptable`, `stalled`, `diverging`, `budget_exhausted`) exist in the alphabet so the map into it is total, and have never been observed here |
+| `restoration_sub_status` | string | `SqpCounters::restoration_sub_status` | the feasibility SUB-SOLVE's own terminal status at the last measured entry, read before the parent decides how its own exit is spelled — or `not_run`, which is the DEFAULT and says no restoration sub-solve was measured on this solve. The readings: `optimal` (the sub-solve converged — the only value a CERTIFIED infeasibility exit is reachable from), `infeasible` (the feasibility problem itself raised a restoration request nothing can service, so the parent makes no claim about the model), `max_iter`, `interrupted` or `numerical_error`. **A RESUME is not reachable from `optimal` alone**: the parent resumes on `restoration_feas_out <= feas_tol` and nothing else, before it inspects this status at all, so a sub-solve that returned a feasible enough point with `max_iter` or `interrupted` resumes exactly as an `optimal` one does. The other four `SolveStatus` spellings (`acceptable`, `stalled`, `diverging`, `budget_exhausted`) exist in the alphabet so the map into it is total, and have never been observed here |
 
 It is **last in its group**, appended after
 `restoration_f_out` for that group's own reason — so the counters object gained
@@ -824,7 +824,7 @@ both carry a "RE-DERIVED AT M7 W2 W1" note.
 | counter | type | source | meaning |
 |---|---|---|---|
 | `elastic_last_rung_fallbacks` | integer | `SqpCounters::elastic_last_rung_fallbacks` | elastic ladders whose failing rung was replaced by the last solved rung (`SqpOptions::elastic_last_optimal_rung`); 0 with the option off. Folded from the restoration sub-solve |
-| `restoration_reduction_resumes` | integer | `SqpCounters::restoration_reduction_resumes` | restoration entries that RESUMED at `restoration_h_out > feas_tol`, by the sufficient-reduction rule (`SqpOptions::restoration_resume_reduction`); 0 with the option off. Not folded (the sub-solve never restores) |
+| `restoration_reduction_resumes` | integer | `SqpCounters::restoration_reduction_resumes` | restoration entries that RESUMED at `restoration_feas_out > feas_tol`, by the sufficient-reduction rule (`SqpOptions::restoration_resume_reduction`); 0 with the option off. Not folded (the sub-solve never restores) |
 
 LAST in the table and last in the struct, after `nonfinite_box_projections`, so
 the counters object gains exactly two keys between `nonfinite_box_projections`
@@ -854,6 +854,7 @@ group; `SqpOptions::hessian_mode`).
 | `qn_nonpd_seen` | integer | `SqpCounters::qn_nonpd_seen` | lifts built while the quasi-Newton model did not read positive definite (a bug flag). Folded |
 | `qn_dimension` | integer | `SqpCounters::qn_dimension` | variables the quasi-Newton model carries curvature for: the structural count, or the nonlinear variables only under `SqpOptions::qn_nonlinear_only` (default off). Max-folded |
 | `nonfinite_step_rollbacks` | integer | `SqpCounters::nonfinite_step_rollbacks` | accepted steps rejected after the fact (M7 W2 R2-1): the first major after a commit found the committed point's gradient, `H`, `A` or `g` non-finite, restored the previous iterate (its evaluation and prices) and the funnel width, and shrank the radius the step was taken under; that major's row describes the abandoned point, `qp_solved` false. A rolled-back step stays in `steps_accepted`. Not taken across the radius floor, in the full-step mode, or at a point no commit reached -- those end through `nonfinite_subproblems` as before. Folded from the restoration sub-solve |
+| `restoration_feas_out` | number | `SqpCounters::restoration_feas_out` | the inf-norm violation, rows and box, at the point the last restoration entry RETURNED (M7 W2 SNR): the convergence test's own feasibility measure and the exact value the resume test compares against `SqpOptions::feas_tol`. So `restoration_feas_out <= feas_tol` iff that entry resumed -- unless an entry counted in `restoration_reduction_resumes` resumed above it. Same overwrite rule and units as `restoration_h_out`; not folded |
 
 LAST in the table and last in the struct, after `restoration_reduction_resumes`, so
 the counters object gains exactly fourteen keys before the `ssn` object and the two
@@ -876,6 +877,11 @@ lines re-derived ONCE with a "RE-DERIVED AT the QN-quality riders" note.
 row above). LAST in the struct, after `qn_dimension`, same route: one key before the
 `ssn` object, the nested tables' distinct values up by one, no sentinel, both golden
 lines re-derived ONCE with a "RE-DERIVED AT M7 W2 R2-1" note.
+
+**THE DIRECT COUNTER M7 W2 SNR APPENDED — ONE** (`restoration_feas_out`, the table
+row above). LAST in the struct, after `nonfinite_step_rollbacks`, same route: one key
+before the `ssn` object, the nested tables' distinct values up by one, no sentinel,
+both golden lines re-derived ONCE with a "RE-DERIVED AT M7 W2 SNR" note.
 
 ## 6. The mode-selection telemetry on `sqp.major`
 

@@ -264,13 +264,21 @@ one of those three therefore cannot silently miss the trace.
     may have started from (`SqpIterate::restoration_seed_used`). The excursion
     being measured is the caller's iterate's.
   * **They are the ENGINE's units** -- the caller's unless
-    `SqpOptions::enable_scaling` is on -- because `h_out` is the very number the
-    resume test compares against `feas_tol`, and a record with one half in each
-    space would report a scale factor as an excursion. `restoration_h_out <=
-    feas_tol` therefore says the entry RESUMED, and nothing else has to be read
-    to tell the two arms apart -- except at `SqpOptions::
-    restoration_resume_reduction > 0` (M7 W2 P1E), where an entry counted in
-    `restoration_reduction_resumes` resumed above `feas_tol`.
+    `SqpOptions::enable_scaling` is on -- the units the resume test is taken
+    in, and a record with one half in each space would report a scale factor as
+    an excursion.
+  * **The resume reading is `restoration_feas_out`, not `h_out`** (M7 W2 SNR).
+    The resume test reads the convergence test's own feasibility measure --
+    `SqpKkt::feasibility`, the inf-norm over rows and box -- and
+    `restoration_feas_out` (appended last in the struct) records it at the
+    returned point: `restoration_feas_out <= feas_tol` iff the entry RESUMED,
+    except at `SqpOptions::restoration_resume_reduction > 0` (M7 W2 P1E), where
+    an entry counted in `restoration_reduction_resumes` resumed above it. Until
+    SNR the test read the l1 sum `h_out + box` and `h_out <= feas_tol` was the
+    resume reading (registered C1: a point every row of which the convergence
+    test called feasible was refused). `h_out` is still the l1 sum, which
+    bounds the rows' inf-norm from above, so `h_out <= feas_tol` on an in-box
+    point still implies the entry resumed -- one way only.
   * **Absolutes, never ratios.** An objective ratio is undefined at `f_in` near
     zero and meaningless across a sign change, and the TRAIN cells in
     restoration's neighbourhood include negative objectives.
@@ -281,7 +289,7 @@ one of those three therefore cannot silently miss the trace.
   which is what they are at every weight. What the weight changes is the
   feasibility wrapper's own objective -- `h + (zeta/2)||D(x - x_k)||^2` rather
   than `h` -- so a depth-1 iteration event's `f` is no longer the violation at
-  that iterate, and `restoration_h_out <= feas_tol` still says the entry
+  that iterate, and `restoration_feas_out <= feas_tol` still says the entry
   RESUMED. The shipped weight is 0, at which none of this applies.
 
   **THE RECORD'S SIXTH FIELD SAYS ITS OWN ABSENCE** (M7 W2 M3a, corrected in
@@ -290,8 +298,8 @@ one of those three therefore cannot silently miss the trace.
   unlike them, it defaults to a value that is not a reading: `kNotRun`, spelled
   `not_run`. The first bullet above is therefore a statement about the four
   `double`s and not about the whole record. Two things it does NOT say, and
-  both are read off `restoration_h_out` instead: whether the entry RESUMED (the
-  parent takes that decision on `h_out <= feas_tol` alone, before it inspects
+  both are read elsewhere: whether the entry RESUMED (the parent takes that
+  decision on `restoration_feas_out <= feas_tol` alone, before it inspects
   the sub-status at all, so a feasible enough point returned with `max_iter` or
   `interrupted` resumes exactly as an `optimal` one does; the one exception is
   the sufficient-reduction resume below, which reads it), and whether the
@@ -306,10 +314,10 @@ one of those three therefore cannot silently miss the trace.
   **THE SUFFICIENT-REDUCTION RESUME** (M7 W2 P1E,
   `SqpOptions::restoration_resume_reduction = k`, default 0 = off). At `k > 0`
   an entry also RESUMES at `h_out <= k * h_in` with its box held, when the
-  sub-solve certified nothing (`numerical_error`, or an `optimal` whose point
-  the convergence test calls feasible -- CERT-1's no-claim case);
-  `restoration_reduction_resumes` counts those entries, so with it on the resume
-  reading is `h_out <= feas_tol || restoration_reduction_resumes moved`. A
+  sub-solve certified nothing (`numerical_error`, or an `optimal` inside QC-1's
+  no-claim margin); `restoration_reduction_resumes` counts those entries, so
+  with it on the resume reading is `restoration_feas_out <= feas_tol ||
+  restoration_reduction_resumes moved`. A
   certifying `optimal`, `max_iter` and `interrupted` never take it.
   `elastic_last_rung_fallbacks` (the same round) counts elastic ladders that
   handed back their last solved rung (`SqpOptions::elastic_last_optimal_rung`);
