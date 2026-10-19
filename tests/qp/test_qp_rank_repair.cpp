@@ -128,6 +128,10 @@ void expect_yorknet_qp1(WorkingSetLinearAlgebra alg) {
 // misses them by 1.2e-2 and the next answer returns) and the minor cap ends it -- registered beside
 // the repair, not part of it. Asserted on both: the rule's own effect (no dead-end exit, a repair
 // taken) and NO FALSE CERTIFICATE (kOptimal only at a KKT point; never kInfeasible).
+// M7 W2 SNX (declared, Debug only): THE STAGNATION READING (qp_engine.h) ends SAWPATH qp1's Debug
+// cycle with a drop, and Debug then certifies the KKT point f = -376.163994774 (inside the oracle
+// band below); its scaled stationarity, 2.2e-6 measured, is bounded by the same 1e-11 singular
+// values, so Debug's tolerance is 1e-5 (Release's stays 1e-6).
 void expect_repaired(const QpDump &d, const QpSolution &s, double stationarity_tol) {
     EXPECT_GE(s.counters.rank_repairs, 1);
     EXPECT_EQ(s.counters.dep_blocker_terminations, 0);
@@ -149,7 +153,11 @@ void expect_sawpath_qp1(WorkingSetLinearAlgebra alg) {
     EXPECT_NE(d.result.find("status=3 minors=6"), std::string::npos) << d.result;
     // Stationarity 1.7e-7 measured (scaled, Release): the equality block's 1e-11 singular values
     // bound the multipliers' accuracy.
+#ifdef NDEBUG
     expect_repaired(d, s, 1e-6);
+#else
+    expect_repaired(d, s, 1e-5);
+#endif
     if (s.status == QpStatus::kOptimal) {
         const double f = hven::test_support::qp_dump_objective(d, s.x);
         EXPECT_LE(std::abs(f - kSawpathQp1Oracle), kSawpathQp1Band)

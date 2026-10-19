@@ -673,6 +673,14 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     Index standstill_steps = 0;
     // THE DEAD-END RANK REPAIR's remaining analyses this solve (qp_engine.h, Degeneracy).
     Index rank_repairs_left = detail::kRankRepairBudget;
+    // THE STAGNATION READING's run (qp_engine.h): idle full steps since the run's last progress,
+    // -1 when no full-step run is open; the run's best objective and working-row residual; the
+    // reading taken, for the next pass's drop rule; and the drops it may still make this solve.
+    Index stagnation_idle = -1;
+    double stagnation_f = 0.0;
+    double stagnation_r = 0.0;
+    bool stagnation_read = false;
+    Index stagnation_drops_left = detail::kStagnationDropBudget;
 
     QpStatus status = crossed_bounds ? QpStatus::kInfeasible : QpStatus::kMaxIter;
 #ifdef HVEN_TESTING
@@ -727,6 +735,10 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         ++counters.minor_iters;
         const Index standstill_steps_in = standstill_steps;
         standstill_steps = 0;
+        const Index stagnation_idle_in = stagnation_idle;
+        stagnation_idle = -1;
+        const bool stagnation_read_in = stagnation_read;
+        stagnation_read = false;
 #ifdef HVEN_TESTING
         // One declaration covers every exit this loop body has: the record is
         // emitted by this object's DESTRUCTOR, so a `continue`, a `break` and
@@ -1223,10 +1235,14 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
 #endif
             continue;
         }
-        const bool stationary_on_ws =
+        const bool stationary_proper =
             !zero_motion && detail::free_block_is_stationary(stat_free_inf, stat_scale, eff_opts) &&
             worst_structural_violation(qp, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1, lambda_e,
                                        eff_opts) == 0.0;
+        // THE STAGNATION READING (qp_engine.h): this pass is a KKT point of the working set for
+        // the drop rule alone, never for the classification.
+        const bool stagnation_only = stagnation_read_in && !zero_motion && !stationary_proper;
+        const bool stationary_on_ws = stationary_proper || stagnation_only;
         // `ride_blocked`: a ride's first blocker tested dependent, and the add site
         // below decides it along `ride.dir` (THE DECLINED RIDE, section 4c; or THE
         // SADDLE EXIT's ride, `saddle_blocked`, which re-arms nothing).
@@ -1256,6 +1272,13 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     : drop_worst(qp, shift, lambda_i, z, ws, last_drop, counters);
             if (dropped_one && eff_opts.independent_working_set) {
                 pt_release(seen, last_drop.is_ineq, last_drop.idx);
+            }
+            if (stagnation_only) {
+                if (!dropped_one) {
+                    ++counters.stagnation_stops;
+                    break;
+                }
+                ++counters.stagnation_drops;
             }
             if (!dropped_one) {
 #ifdef HVEN_TESTING
@@ -2770,6 +2793,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             Adeg::indep_max_passed_violation = std::max(Adeg::indep_max_passed_violation, viol);
         }
 #endif
+        const std::size_t working_rows_before_refresh = ws.active_ineq().size();
         refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen, eff_opts);
         if (standstill_face && kind == BlockKind::kNone && !ride_blocked && alpha >= 1.0) {
             standstill_steps = standstill_steps_in + 1;
@@ -2777,6 +2801,37 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 eliminated_only = true;
                 ++counters.standstill_retreats;
                 recheck_pending = true;
+            }
+        }
+        // THE STAGNATION READING (qp_engine.h): an idle run of full steps on a fixed working set
+        // hands the next pass to the drop rule, or, with the drops spent, ends the walk kMaxIter
+        // here, at the iterate the step just reached.
+        if (eff_opts.independent_working_set && kind == BlockKind::kNone && !ride_blocked &&
+            alpha >= 1.0 && ws.active_ineq().size() == working_rows_before_refresh) {
+            const double f_now =
+                qp.g.dot(x) + 0.5 * x.dot(qp.H.selfadjointView<Eigen::Upper>() * x);
+            const double r_now = working_row_residual(qp, ws, x, Aix);
+            if (stagnation_idle_in < 0) {
+                stagnation_idle = 0;
+                stagnation_f = f_now;
+                stagnation_r = r_now;
+            } else if (f_now < stagnation_f - detail::kStagnationObjectiveTol *
+                                                  std::max(1.0, std::abs(stagnation_f)) ||
+                       (stagnation_r > 0.0 && r_now <= 0.5 * stagnation_r)) {
+                stagnation_idle = 0;
+                stagnation_f = std::min(stagnation_f, f_now);
+                stagnation_r = std::min(stagnation_r, r_now);
+            } else {
+                stagnation_idle = stagnation_idle_in + 1;
+                if (stagnation_idle >= detail::kStagnationSteps) {
+                    if (stagnation_drops_left == 0) {
+                        ++counters.stagnation_stops;
+                        break;
+                    }
+                    --stagnation_drops_left;
+                    stagnation_read = true;
+                    stagnation_idle = -1;
+                }
             }
         }
     }
@@ -3044,6 +3099,18 @@ bool QpEngine::iterate_meets_working_face(const QpProblem &qp, const WorkingSet 
         }
     }
     return true; // pinned columns sit on their bounds exactly
+}
+
+double QpEngine::working_row_residual(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                                      const Vec &Aix) const {
+    double r = 0.0;
+    for (Index j = 0; j < qp.me(); ++j) {
+        r = std::max(r, std::abs(qp.Ae.row(j).dot(x) - qp.be(j)));
+    }
+    for (const Index j : ws.active_ineq()) {
+        r = std::max(r, std::abs(Aix(j) - qp.bi(j)));
+    }
+    return r;
 }
 
 double QpEngine::row_tolerance(double row_scale, double lambda, const QpOptions &opts) const {

@@ -564,6 +564,11 @@ struct QpCounters {
     // kNumericalError without one (routing: see sqp_solver.cpp).
     Index terminal_farkas_certificates = 0;
     Index certificate_row_refusals = 0;
+    // M7 W2 SNX. Appended. THE STAGNATION READING (qp_engine.h, section 4): `stagnation_drops`
+    // counts the drops it made; `stagnation_stops` the walks it ended kMaxIter before the minor
+    // cap.
+    Index stagnation_drops = 0;
+    Index stagnation_stops = 0;
 };
 
 /// @brief Work counters for the semismooth-Newton kernel.

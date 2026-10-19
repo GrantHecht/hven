@@ -730,6 +730,20 @@
 // kWrong on the border path is that factor's failure signature (exactly rank-deficient
 // faces measured with a positive-definite reduced Hessian). A kOk standstill is left alone;
 // any non-qualifying pass resets the full-step run. Once per solve, like every retreat.
+// THE STAGNATION READING (independent_working_set; stagnation_drops, stagnation_stops). A run of
+// ordinary full steps (no blocker, alpha >= 1, no ride, no row added by the shift refresh) keeps
+// the working set fixed, so each step re-solves the same face's EQP from where the last one landed.
+// When kStagnationSteps of them in a row neither lower the run's best objective by
+// kStagnationObjectiveTol * max(1, |f|) nor halve its best working-row residual, the iteration
+// stands at a fixed point the KKT-point test does not recognise -- a stationary point whose
+// residual sits above opt_tol, or the regularization footprint of a face whose rows the step cannot
+// meet: the zero-motion observation, made over a run instead of one pass. The next pass is then a
+// KKT point of the working set FOR THE DROP RULE ALONE: no snap, and the drop it makes is the
+// ordinary one (its ride and point-memory rules unchanged). It is never a KKT point for the
+// classification: with nothing to drop the walk ends kMaxIter at the iterate it stands on -- the
+// minor cap's status, point and multipliers, reached early -- as it does once kStagnationDropBudget
+// readings have been spent in the solve. It certifies nothing.
+//
 // THE DEAD-END RANK REPAIR (M7 W2 RDV; ws_independence.h, rank_repair). Where the add-site rule
 // would END the solve -- no admissible member and no verified certificate (kRejected) or no
 // pass-over within tolerance (N3) -- on an ordinary step, after the border retreat, the WORKING
@@ -1149,6 +1163,13 @@ inline Index repair_pin_budget(Index n) {
 // minor cap, and the walk between repairs keeps its own arguments. MEASURED on the RDV battery: at
 // most 2 repairs per solve (SAWPATH elastic qp1), 1 elsewhere.
 constexpr Index kRankRepairBudget = 8;
+
+// THE STAGNATION READING (section 4): the length of the idle full-step run that is read as a KKT
+// point of the working set, the objective decrease, relative to max(1, |f|), that counts as
+// progress within it, and the readings a solve may answer with a drop.
+constexpr Index kStagnationSteps = 10;
+constexpr double kStagnationObjectiveTol = 1e-12;
+constexpr Index kStagnationDropBudget = 4;
 
 // Section 4b's SUSPECT-STALL GATE, invariant half (ii). The QP MODEL's
 // stationarity residual r = H x + g + Ae^T lambda_e + Ai^T lambda_i,
@@ -1978,6 +1999,11 @@ class QpEngine {
                                     const Vec &Aix, const Vec &ai_row_norm1, const Vec &lambda_i,
                                     const Vec &ae_row_norm1, const Vec &lambda_e,
                                     const QpOptions &opts) const;
+
+    // The largest |residual| over the equality rows and the working inequality rows at x (Aix =
+    // Ai x); pinned columns sit on their bounds exactly. THE STAGNATION READING's row measure.
+    double working_row_residual(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                                const Vec &Aix) const;
 
     // Is a single row's violation genuine evidence of infeasibility, rather
     // than the regularized solve's own noise? Both conditions must hold.

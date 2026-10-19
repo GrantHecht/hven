@@ -2437,11 +2437,10 @@ TEST(SqpDriverRestorationSeed, AWorseElasticCandidateIsRefusedOnTheSameModel) {
     // takes it. The site is still reached with an offer under kRestore and the solve still
     // ends certified kInfeasible (asserted below in both configs); the WORSE-candidate
     // refusal this fixture is named for is Release's reading. Release unchanged.
-#ifdef NDEBUG
+    // M7 W2 SNX (declared mover, Debug only): 1 -> 0. THE STAGNATION READING (qp_engine.h)
+    // takes Debug's walk off the idle run that delayed its request, and Debug reaches the
+    // ladder's exhaustion where Release does: the refusal is now both configurations' reading.
     EXPECT_EQ(0, seeded_rows(sol)) << "h(x + p_elastic) = 3 > 1 = h(x): refused";
-#else
-    EXPECT_EQ(1, seeded_rows(sol)) << "Debug: the candidate at major 39 measures better";
-#endif
     ASSERT_FALSE(sol.history.empty());
     EXPECT_TRUE(sol.history.back().elastic_applied) << "and the site was REACHED with an offer";
     EXPECT_EQ(StepVerdict::kRestore, sol.history.back().verdict);
@@ -2921,11 +2920,9 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConverg
     // request at major 40 (`AWorseElasticCandidateIsRefusedOnTheSameModel`'s note); the
     // cut-off window measured at budgets 41-44 (sub kMaxIter, 1-4 sub-iterations), 45 on
     // converges. 43 keeps the sub-solve's three iterations pinned below. Release unchanged.
-#ifdef NDEBUG
+    // M7 W2 SNX (declared, Debug only): 43 -> 5. Debug's request falls where Release's does
+    // again (`AWorseElasticCandidateIsRefusedOnTheSameModel`'s note), so the split is gone.
     cramped.max_iter = 5;
-#else
-    cramped.max_iter = 43;
-#endif
     cramped.qp_failure_step = false; // M7 W2 R2: the pre-R2 route, as `roomy`
     const SqpResult cut_off = SqpSolver(cramped).solve(model);
     ASSERT_EQ(cut_off.counters.restoration_entries, 1)
@@ -2959,11 +2956,8 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConverg
     // M7 W2 BPS (declared mover, Debug only): 1 -> 3 on Debug's 6-major budget -- the
     // bordered answer's certificate (bordered_eqp.h) brings the request forward there, so
     // the sub-solve gets more of the budget; Release unchanged.
-#ifdef NDEBUG
+    // M7 W2 SNX (declared, Debug only): 3 -> 1, with the budget above.
     EXPECT_EQ(cut_off.counters.restoration_iters, 1);
-#else
-    EXPECT_EQ(cut_off.counters.restoration_iters, 3);
-#endif
 }
 
 // M7 W2 M3a fix1. THE PARENT'S STATUS DISCRIMINATES NONE OF THE THREE, and this
@@ -3039,11 +3033,8 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatus) 
     // the same arm -- a phase that RAN and was CUT OFF -- and that is what is asserted.
     // M7 W2 QC-8 (declared, Debug only): 6 -> 43, as `TheSubStatusTellsACutOffSubSolve
     // FromAConvergedOne` re-derives it (Debug's request now falls at major 40).
-#ifdef NDEBUG
+    // M7 W2 SNX (declared, Debug only): 43 -> 5, as that test re-derives it.
     cramped.max_iter = 5;
-#else
-    cramped.max_iter = 43;
-#endif
     // M7 W2 R2: the pre-R2 route (see the seed family's note) -- with the
     // failed-subproblem step this budget ends before the request is raised.
     cramped.qp_failure_step = false;
