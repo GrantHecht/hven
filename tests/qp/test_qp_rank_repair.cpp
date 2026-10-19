@@ -121,17 +121,26 @@ void expect_yorknet_qp1(WorkingSetLinearAlgebra alg) {
 }
 
 // SAWPATH qp1 and YORKNET qp5: the dead end is repaired on every configuration; what the walk then
-// reaches is NOT configuration-independent. Release certifies a KKT point (asserted below when it
-// does); Debug's rounding leads both into a two-pass cycle of full steps on the face they reach
-// (SAWPATH: stationarity stalls at 1.7e-6 on the equality block's 1e-11 singular values; YORKNET
-// qp5: on a full-rank square face, sigma_min 0.027, the EQP answer from the point on the rows
-// misses them by 1.2e-2 and the next answer returns) and the minor cap ends it -- registered beside
-// the repair, not part of it. Asserted on both: the rule's own effect (no dead-end exit, a repair
-// taken) and NO FALSE CERTIFICATE (kOptimal only at a KKT point; never kInfeasible).
-// M7 W2 SNX (declared, Debug only): THE STAGNATION READING (qp_engine.h) ends SAWPATH qp1's Debug
-// cycle with a drop, and Debug then certifies the KKT point f = -376.163994774 (inside the oracle
-// band below); its scaled stationarity, 2.2e-6 measured, is bounded by the same 1e-11 singular
-// values, so Debug's tolerance is 1e-5 (Release's stays 1e-6).
+// reaches is NOT configuration-independent. Release certifies a KKT point (asserted below). Debug's
+// rounding leads both into a two-pass cycle of full steps on the face they reach (SAWPATH:
+// stationarity stalls on the equality block's 1e-11 singular values; YORKNET qp5: on a full-rank
+// square face, sigma_min 0.027, the EQP answer from the point on the rows misses them by 1.2e-2
+// and the next answer returns); until M7 W2 SNX the minor cap ended both cycles. THE STAGNATION
+// READING (qp_engine.h) now ends each with a drop, and Debug too certifies the KKT point Release
+// reaches (declared, Debug only): SAWPATH f = -376.163994774, inside the oracle band below;
+// YORKNET qp5 f = -1078.49295775, Release's pin. The kOptimal status stays asserted in Release
+// only. Asserted on both: the rule's own effect (no dead-end exit, a repair taken) and NO FALSE
+// CERTIFICATE (kOptimal only at a KKT point; never kInfeasible).
+void print_walk(const char *tag, const QpDump &d, const QpSolution &s) {
+    const hven::test_support::QpDumpKkt k = hven::test_support::qp_dump_kkt(d, s);
+    std::printf("[ rdv ] %s status=%d minors=%ld stagnation_drops=%ld stagnation_stops=%ld "
+                "f=%.12g stationarity=%.3e eq=%.3e\n",
+                tag, static_cast<int>(s.status), static_cast<long>(s.counters.minor_iters),
+                static_cast<long>(s.counters.stagnation_drops),
+                static_cast<long>(s.counters.stagnation_stops),
+                hven::test_support::qp_dump_objective(d, s.x), k.stationarity, k.eq);
+}
+
 void expect_repaired(const QpDump &d, const QpSolution &s, double stationarity_tol) {
     EXPECT_GE(s.counters.rank_repairs, 1);
     EXPECT_EQ(s.counters.dep_blocker_terminations, 0);
@@ -139,7 +148,7 @@ void expect_repaired(const QpDump &d, const QpSolution &s, double stationarity_t
     EXPECT_TRUE(s.status == QpStatus::kOptimal || s.status == QpStatus::kMaxIter)
         << static_cast<int>(s.status);
 #ifdef NDEBUG
-    // Release: the repaired walk REACHES its KKT point (the Debug caveat above does not apply).
+    // Release: the repaired walk REACHES its KKT point.
     EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
 #endif
     if (s.status == QpStatus::kOptimal) {
@@ -150,14 +159,11 @@ void expect_repaired(const QpDump &d, const QpSolution &s, double stationarity_t
 void expect_sawpath_qp1(WorkingSetLinearAlgebra alg) {
     QpDump d;
     const QpSolution s = solve_fixture("C11_SAWPATH_qp1.txt", alg, d);
+    print_walk("SAWPATH qp1", d, s);
     EXPECT_NE(d.result.find("status=3 minors=6"), std::string::npos) << d.result;
-    // Stationarity 1.7e-7 measured (scaled, Release): the equality block's 1e-11 singular values
-    // bound the multipliers' accuracy.
-#ifdef NDEBUG
-    expect_repaired(d, s, 1e-6);
-#else
+    // Scaled stationarity 5.0e-7 measured in Release and 2.2e-6 in Debug: the equality block's
+    // 1e-11 singular values bound the multipliers' accuracy, so one bound, 1e-5, holds both.
     expect_repaired(d, s, 1e-5);
-#endif
     if (s.status == QpStatus::kOptimal) {
         const double f = hven::test_support::qp_dump_objective(d, s.x);
         EXPECT_LE(std::abs(f - kSawpathQp1Oracle), kSawpathQp1Band)
@@ -168,6 +174,7 @@ void expect_sawpath_qp1(WorkingSetLinearAlgebra alg) {
 void expect_yorknet_qp5(WorkingSetLinearAlgebra alg) {
     QpDump d;
     const QpSolution s = solve_fixture("RDV_YORKNET_qp5.txt", alg, d);
+    print_walk("YORKNET qp5", d, s);
     EXPECT_NE(d.result.find("status=3 minors=546"), std::string::npos) << d.result;
     expect_repaired(d, s, 1e-8);
 #ifdef NDEBUG

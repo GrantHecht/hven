@@ -734,15 +734,22 @@
 // ordinary full steps (no blocker, alpha >= 1, no ride, no row added by the shift refresh) keeps
 // the working set fixed, so each step re-solves the same face's EQP from where the last one landed.
 // When kStagnationSteps of them in a row neither lower the run's best objective by
-// kStagnationObjectiveTol * max(1, |f|) nor halve its best working-row residual, the iteration
+// kStagnationObjectiveTol * max(1, |f|) nor halve its best working-row residual (a halving counts
+// only while that best sits above the rows' floor, working_row_residual), the iteration
 // stands at a fixed point the KKT-point test does not recognise -- a stationary point whose
 // residual sits above opt_tol, or the regularization footprint of a face whose rows the step cannot
 // meet: the zero-motion observation, made over a run instead of one pass. The next pass is then a
 // KKT point of the working set FOR THE DROP RULE ALONE: no snap, and the drop it makes is the
 // ordinary one (its ride and point-memory rules unchanged). It is never a KKT point for the
-// classification: with nothing to drop the walk ends kMaxIter at the iterate it stands on -- the
-// minor cap's status, point and multipliers, reached early -- as it does once kStagnationDropBudget
-// readings have been spent in the solve. It certifies nothing.
+// classification. With nothing to drop, a residual the dual_mu footprint explains is first
+// re-solved mu-free (refine_terminal_mu_free, as at the terminal classification) and the drop rule
+// asked again on the refined multipliers; an adopted point with nothing to drop is, once per solve,
+// the next pass's iterate. Otherwise, still nothing to drop, the walk ends kMaxIter at the iterate
+// it stands on -- the minor cap's status, point and multipliers, reached early -- if that iterate
+// meets its working rows, or if the idle run's own residual contraction, extrapolated, cannot bring
+// them to their floor within the minors left (the cap's status either way); a run that can takes
+// the pass's ordinary step. Each drop it makes spends one of kStagnationDropBudget; with the budget
+// spent, the next reading ends the walk kMaxIter at once. It certifies nothing.
 //
 // THE DEAD-END RANK REPAIR (M7 W2 RDV; ws_independence.h, rank_repair). Where the add-site rule
 // would END the solve -- no admissible member and no verified certificate (kRejected) or no
@@ -2000,10 +2007,16 @@ class QpEngine {
                                     const Vec &ae_row_norm1, const Vec &lambda_e,
                                     const QpOptions &opts) const;
 
-    // The largest |residual| over the equality rows and the working inequality rows at x (Aix =
-    // Ai x); pinned columns sit on their bounds exactly. THE STAGNATION READING's row measure.
-    double working_row_residual(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
-                                const Vec &Aix) const;
+    // THE STAGNATION READING's row measure over the equality rows and the working inequality rows
+    // at x (Aix = Ai x; pinned columns sit on their bounds exactly): the largest |residual|, and
+    // the largest in units of its row's floor row_tolerance(row_scale, 0) (<= 1: the rows are met).
+    struct WorkingRowResidual {
+        double largest = 0.0;
+        double in_floor_units = 0.0;
+    };
+    WorkingRowResidual working_row_residual(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                                            const Vec &Aix, const Vec &ai_row_norm1,
+                                            const Vec &ae_row_norm1, const QpOptions &opts) const;
 
     // Is a single row's violation genuine evidence of infeasibility, rather
     // than the regularized solve's own noise? Both conditions must hold.

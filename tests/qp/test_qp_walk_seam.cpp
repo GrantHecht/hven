@@ -789,6 +789,8 @@ TEST(QpWalkSeam, TheWorkingSetSignatureTracksTheActionsThatChangeIt) {
             case Action::kEliminatedRetreat:
             case Action::kTerminal:
             case Action::kRideUnbounded:
+            case Action::kStagnationStop:
+            case Action::kStagnationRefine:
                 EXPECT_EQ(base, r.ws_size_out);
                 break;
             case Action::kStartRepairRefused:

@@ -23,6 +23,7 @@
 //
 // Names carry a `QpCap` prefix: this suite's TUs share a link unit.
 
+#include <limits>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -38,6 +39,8 @@
 #include <hven/drivers/trace_writer.h>
 #include <hven/model/nlp_model.h>
 #include <hven/qp/qp_types.h>
+
+#include "support/qp_as_nlp_model.h"
 
 namespace hven::solvers {
 namespace {
@@ -353,6 +356,43 @@ TEST(QpCapRetry, ADoubledCapThatStillDoesNotSufficeFailsAsTodayAndSaysSo) {
     EXPECT_EQ(out.counters.qp_numerical_exits, 0);
     EXPECT_EQ(out.counters.qp_failures_routed, 1);
     EXPECT_EQ(out.counters.qp_failures_in_a_row_peak, 1);
+}
+
+// A STAGNATION STOP IS NOT RETRIED (M7 W2 SNX). The first subproblem stands idle on its row: x1 is
+// priced by 1e-5 at primal_delta = 5e3, so each full step moves it a few 1e-9 (above the walk's
+// zero-motion tolerance) and lowers the model by a few 1e-14, ten of them under the stagnation
+// reading's 1e-12, with nothing to drop and the row met. The walk ends kMaxIter on the reading
+// (qp_engine.h) after 1 + kStagnationSteps + 1 minors, far under its cap; a doubled cap would only
+// reach the same stop, so the retry's conjunct refuses it.
+TEST(QpCapRetry, AStagnationStopIsNotRetried) {
+    QpProblem qp;
+    qp.H.resize(2, 2);
+    qp.g = Vec::Zero(2);
+    qp.g(1) = 1e-5;
+    Eigen::MatrixXd Ae(1, 2);
+    Ae << 1, 0;
+    qp.Ae = Ae.sparseView();
+    qp.be = Vec::Zero(1);
+    qp.Ai.resize(0, 2);
+    qp.bi = Vec(0);
+    qp.lower = Vec::Constant(2, -std::numeric_limits<double>::infinity());
+    qp.upper = Vec::Constant(2, std::numeric_limits<double>::infinity());
+    test_support::QpAsNlpModel model(qp, Vec::Zero(2));
+
+    SqpOptions o = base_options();
+    o.qp.primal_delta = 5e3;
+    o.qp_cap_retry = true;
+    o.max_iter = 2;
+    SqpSolver driver(o);
+    const SqpResult out = driver.solve(model);
+
+    // THE PREMISE: the first subproblem ended kMaxIter on the reading, not on its cap.
+    ASSERT_FALSE(out.history.empty());
+    ASSERT_EQ(out.history.front().qp_status, QpStatus::kMaxIter);
+    ASSERT_EQ(out.history.front().qp_minor_iters, 12);
+    // It reached the routing site as a capped exit, and was not retried.
+    EXPECT_GE(out.counters.qp_maxiter_exits, 1);
+    EXPECT_EQ(out.counters.qp_cap_retries, 0);
 }
 
 TEST(QpCapRetry, OffNeverRetriesAndIsTodaysSolveExactly) {

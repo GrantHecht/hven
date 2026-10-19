@@ -1840,6 +1840,10 @@ struct SqpCounters {
     /// FOLDED from the restoration sub-solve, on the `qp_minor_iters`
     /// argument: it counts QP solves, and the sub-solve's subproblems are QP
     /// solves this solve caused.
+    ///
+    /// A walk the STAGNATION READING ended (`QpCounters::stagnation_stops`)
+    /// exits `QpStatus::kMaxIter` and is counted here; `qp_cap_retry` never
+    /// retries it.
     Index qp_maxiter_exits = 0;
 
     /// @brief Subproblem exits with `QpStatus::kNumericalError` -- the

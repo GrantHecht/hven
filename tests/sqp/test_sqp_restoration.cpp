@@ -2943,7 +2943,10 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConverg
     EXPECT_EQ(cut_off.status, SolveStatus::kMaxIter);
 
     // The record is the not-feasible-enough arm's on BOTH solves: neither
-    // resumed, and `h_out` above `feas_tol` is what says so.
+    // resumed, and `restoration_feas_out` above `feas_tol` is what says so (the
+    // resume decision's reading since M7 W2 SNR; `h_out` is the l1 sum beside it).
+    EXPECT_GT(converged.counters.restoration_feas_out, roomy.feas_tol);
+    EXPECT_GT(cut_off.counters.restoration_feas_out, cramped.feas_tol);
     EXPECT_GT(converged.counters.restoration_h_out, roomy.feas_tol);
     EXPECT_GT(cut_off.counters.restoration_h_out, cramped.feas_tol);
     // The sub-solve did real work before the budget ended it -- a phase that
@@ -3014,8 +3017,10 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatus) 
     ASSERT_EQ(sub_optimal.status, SolveStatus::kMaxIter);
     ASSERT_EQ(sub_optimal.counters.restoration_entries, 1);
     EXPECT_EQ(sub_optimal.counters.restoration_sub_status, RestorationSubStatus::kOptimal);
-    EXPECT_LE(sub_optimal.counters.restoration_h_out, resumed.feas_tol)
-        << "this entry RESUMED, and h_out is the number that decision was taken on";
+    EXPECT_LE(sub_optimal.counters.restoration_feas_out, resumed.feas_tol)
+        << "this entry RESUMED, and restoration_feas_out is the number that decision was "
+           "taken on";
+    EXPECT_LE(sub_optimal.counters.restoration_h_out, resumed.feas_tol);
 
     // ARM 3 -- a phase that ran and was CUT OFF, at the same parent status
     // again. `InfeasibleCircleLineModel` on five majors: the sub-solve spends
@@ -3044,6 +3049,7 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatus) 
     ASSERT_EQ(sub_cut_off.status, SolveStatus::kMaxIter);
     ASSERT_EQ(sub_cut_off.counters.restoration_entries, 1);
     EXPECT_EQ(sub_cut_off.counters.restoration_sub_status, RestorationSubStatus::kMaxIter);
+    EXPECT_GT(sub_cut_off.counters.restoration_feas_out, cramped.feas_tol) << "not resumed";
     EXPECT_GT(sub_cut_off.counters.restoration_h_out, cramped.feas_tol);
     EXPECT_FALSE(sub_cut_off.infeasibility_certified)
         << "the certificate gate hangs off the sub-solve's kOptimal arm";

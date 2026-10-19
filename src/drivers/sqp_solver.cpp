@@ -5535,7 +5535,7 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     // test would call the restored point feasible. Until SNR it read the l1 sum
     // `h_r + box`, which with many rows refused points that test calls feasible
     // (registered C1). `h_r` stays the rows' l1 measure for the funnel and S5; the box
-    // is read as before (ladder L2: SAWPATH at h = 0, 3.56 outside its box).
+    // is read too, by the inf-norm (ladder L2: SAWPATH at h = 0, 3.56 outside its box).
     //
     // THE SUFFICIENT-REDUCTION RESUME (M7 W2 P1E; SqpOptions::
     // restoration_resume_reduction): the phase also hands back a point whose
@@ -6912,7 +6912,7 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
     // so the two attempts' minors and factorizations both land in the
     // aggregates, which is what makes the retry's cost readable.
     //
-    // THE FOUR CONJUNCTS, each one load-bearing:
+    // THE FIVE CONJUNCTS, each one load-bearing:
     //   - the toggle, read first so that at the default nothing below it runs
     //     and `cap_retry_engine_` is never constructed;
     //   - `walk_owns_this_qp`: the retry is a WALK solve, so it fires only on a
@@ -6924,7 +6924,10 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
     //     a budget fact and is not retried at a raised budget;
     //   - `qp_failure_is_retryable`, the SAME test the routing gate below uses,
     //     so a capped solve whose iterate is unusable takes the ordinary exit it
-    //     takes today rather than seeding a retry with it.
+    //     takes today rather than seeding a retry with it;
+    //   - no stagnation stop: a walk the STAGNATION READING ended (qp_engine.h)
+    //     stopped on a fixed point, not on its budget, and a doubled cap would
+    //     only reach the same stop again.
     //
     // THE SEED IS THE WORKING SET, NOT THE POINT: `seed.x` is zeroed for the
     // reason every other seeding site in this driver zeroes it (see WARM
@@ -6939,7 +6942,8 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
     // major can retry at most one subproblem. A doubled cap reached a second
     // time is an ordinary failure and is routed below exactly as today.
     if (opts_.qp_cap_retry && mj.walk_owns_this_qp && mj.qs.status == QpStatus::kMaxIter &&
-        qp_failure_is_retryable(st.qp, mj.qs, opts_.feas_tol)) {
+        qp_failure_is_retryable(st.qp, mj.qs, opts_.feas_tol) &&
+        mj.qs.counters.stagnation_stops == 0) {
         // The cap THIS subproblem was solved under, from the engine's own
         // derivation rather than a second copy of it: the sentinel resolves to
         // max(kQpMaxIterFloor, kQpMaxIterCoeff * (n + mi + #bounded)) and a

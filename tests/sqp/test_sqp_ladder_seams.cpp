@@ -160,6 +160,7 @@ TEST(SqpLadderSeam, L1ARefusedRequestAtAFeasiblePointIsNeverInfeasible) {
     ASSERT_EQ(sol.counters.restoration_entries, 1);
     ASSERT_EQ(sol.counters.restoration_sub_status, RestorationSubStatus::kOptimal);
     ASSERT_LE(sol.counters.restoration_h_out, o.feas_tol);
+    ASSERT_LE(sol.counters.restoration_feas_out, o.feas_tol) << "the resume decision's reading";
     ASSERT_GE(Seam::forced, 1);
     // The refused second request: an honest failure, no claim about the model.
     EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
@@ -535,19 +536,19 @@ TEST(SqpLadderSeam, R2AJudgedRejectedStepIsNotChargedToTheBudget) {
 
 namespace {
 
-// CERT-1 (M7 W2 C12): K rows that each miss feasibility by kMiss < feas_tol,
+// CERT-1 (M7 W2 C12): K rows that each miss feasibility by miss_ < feas_tol (3e-7 default),
 //
-//     min x1^2  s.t.  cE_k(x) = x0^2 + kMiss = 0 (k < K),  -3 <= x <= 3,
+//     min x1^2  s.t.  cE_k(x) = x0^2 + miss_ = 0 (k < K),  -3 <= x <= 3,
 //
-// so the l1 violation is at least K*kMiss = 3e-6 > feas_tol everywhere while the
-// inf-norm reading kMiss passes feas_tol at x0 = 0 -- and there the rows'
+// so the l1 violation is at least K*miss_ = 3e-6 > feas_tol everywhere while the
+// inf-norm reading miss_ passes feas_tol at x0 = 0 -- and there the rows'
 // gradients vanish, BRITGAS's shape under the W1 guard (flows at their bounds,
 // the pipe rows' Jacobian zero, l1 4.49e-6, inf 4.23e-7, certified).
 class SpreadMissModel : public NlpModel {
   public:
     static constexpr Index kRows = 10;
-    explicit SpreadMissModel(double miss = 3e-7) : kMiss(miss) {}
-    const double kMiss;
+    explicit SpreadMissModel(double miss = 3e-7) : miss_(miss) {}
+    const double miss_;
     Index n() const override { return 2; }
     Index me() const override { return kRows; }
     Index mi() const override { return 0; }
@@ -557,7 +558,7 @@ class SpreadMissModel : public NlpModel {
         g << 0.0, 2.0 * x(1);
         return g;
     }
-    Vec eval_ce(const Vec &x) const override { return Vec::Constant(kRows, x(0) * x(0) + kMiss); }
+    Vec eval_ce(const Vec &x) const override { return Vec::Constant(kRows, x(0) * x(0) + miss_); }
     Vec eval_ci(const Vec &) const override { return Vec(0); }
     SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &lambda_e,
                       const Vec &) const override {
@@ -589,11 +590,12 @@ class SpreadMissModel : public NlpModel {
 
 } // namespace
 
-// Every walk QP of the top-level driver fails (a plain kNumericalError, the shrink
-// ladder), so the radius floor sends the solve to restoration, whose own walk is
-// untouched; the feasibility problem converges toward x0 = 0 and stops there. SNR: the
-// resume test reads the convergence test's inf-norm, so that point RESUMES; the resumed
-// solve's QPs still fail and the once-per-solve cap refuses its next request.
+// Every walk QP of the top-level driver fails (a plain kNumericalError), and the elastic ladder
+// answers for it: its steps carry the parent toward x0 = 0 until a ladder comes back unusable and
+// the elastic requester (row verdict kRestore) sends the solve to restoration, whose own walk is
+// untouched and whose sub-solve converges at once at the point it was handed. SNR: the resume
+// test reads the convergence test's inf-norm, so that point RESUMES; the resumed solve's QPs
+// still fail and the once-per-solve cap refuses its next request.
 TEST(SqpLadderSeam, CertOneAPointTheConvergenceTestCallsFeasibleIsNoCertificate) {
     const SeamReset guard;
     Seam::fail_walk_qps = 1000;
@@ -603,6 +605,12 @@ TEST(SqpLadderSeam, CertOneAPointTheConvergenceTestCallsFeasibleIsNoCertificate)
     o.max_iter = 200;
     o.qp_failure_budget = 1000; // the shrink ladder runs to the floor
     SqpSolver driver(o);
+    // The nesting depth of every row event, in order: the sub-solve's rows arrive at depth 1.
+    std::vector<Index> depths;
+    driver.set_iteration_callback([&depths](const IterationEvent &e) {
+        depths.push_back(e.depth.value_or(0));
+        return CallbackAction::kContinue;
+    });
     const SqpResult sol = driver.solve(model);
 
     // THE PREMISE: one restoration, its sub-solve converged at a point whose rows are
@@ -620,20 +628,23 @@ TEST(SqpLadderSeam, CertOneAPointTheConvergenceTestCallsFeasibleIsNoCertificate)
                 static_cast<long>(sol.counters.restoration_iters), sol.counters.restoration_h_out,
                 sol.counters.restoration_feas_out);
 
-    // THE ENTRY RESUMED (SNR): rows of the resumed phase stand on the restored point
-    // (every later QP fails, so x stays there), and the solve ends on the cap's refusal
-    // of the next request rather than at the phase's own exit.
+    // THE ENTRY RESUMED (SNR), located by the event stream rather than by a route's verdict:
+    // every request site pushes its own row AFTER the sub-solve, so the first depth-0 event
+    // after the depth-1 run is the requester's, and a second one exists only if the parent
+    // resumed. The resumed rows stand on the restored point (every later QP fails).
     ASSERT_FALSE(sol.history.empty());
     EXPECT_GT(sol.history.front().violation_l1, 1.0) << "the requesting phase at x0 = (1, 1)";
-    // The requesting row is the solve's last unless the entry resumed: the resumed phase's
-    // majors follow it, standing on the restored point, up to the refused request.
-    const auto request =
-        std::find_if(sol.history.begin(), sol.history.end(),
-                     [](const SqpIterate &r) { return r.verdict == StepVerdict::kRestore; });
-    ASSERT_NE(request, sol.history.end());
-    ASSERT_NE(request + 1, sol.history.end()) << "the entry did not resume";
-    EXPECT_EQ((request + 1)->violation_l1, sol.counters.restoration_h_out);
-    EXPECT_EQ(sol.history.back().verdict, StepVerdict::kRestore) << "the refused request";
+    const auto first_nested = std::find(depths.begin(), depths.end(), Index{1});
+    ASSERT_NE(first_nested, depths.end()) << "the sub-solve emitted no row";
+    const auto requester = std::find(first_nested, depths.end(), Index{0});
+    ASSERT_NE(requester, depths.end()) << "the requester's row";
+    const auto rows_before = std::count(depths.begin(), first_nested, Index{0});
+    EXPECT_EQ(std::count(requester, depths.end(), Index{1}), 0) << "one sub-solve: the cap refused";
+    const auto rows_after = std::count(requester, depths.end(), Index{0});
+    ASSERT_GE(rows_after, 2) << "the entry did not resume";
+    ASSERT_EQ(static_cast<long>(sol.history.size()), rows_before + rows_after);
+    const SqpIterate &resumed = sol.history[static_cast<std::size_t>(rows_before + 1)];
+    EXPECT_DOUBLE_EQ(resumed.violation_l1, sol.counters.restoration_h_out);
 
     // THE CLAIM IS WITHHELD: no certificate and no kInfeasible at a point this
     // solve's own convergence test calls feasible.
@@ -646,9 +657,13 @@ TEST(SqpLadderSeam, CertOneAPointTheConvergenceTestCallsFeasibleIsNoCertificate)
 // (h_in = 10): the first walk QP is forced to fail, and tr_min sits just under tr_init so the
 // first shrink hits the floor. Each row misses by kNoClaimMiss > feas_tol, so the sub-solve's
 // point fails the resume test; it ends kNumericalError, certifying nothing (SNR re-premise:
-// CERT-1's inf <= feas_tol point, the fixture's point until SNR, now resumes plainly). Off: that
-// exit makes no claim and ends the solve there. At k = 0.5 it RESUMES, above feas_tol, and is
-// counted.
+// CERT-1's inf <= feas_tol point, the fixture's point until SNR, now resumes plainly). WHAT ENDS
+// THE SUB-SOLVE: its rows bounce around x0 = 0, where their gradient vanishes, until a rejected
+// step's shrink crosses the inherited tr_min and its radius-floor request, nested, is refused.
+// Off: that exit makes no claim and ends the solve there. At k = 0.5 it RESUMES, above feas_tol,
+// and is counted. ARM UNCOVERED: the reduction resume's other arm, a sub-solve kOptimal without a
+// claim, is not reached by this model at any miss in (feas_tol, 2 feas_tol] (the same exit ends
+// it), so no fixture here exercises it.
 namespace {
 constexpr double kNoClaimMiss = 1.5e-6;
 SqpResult reduction_resume_solve(double k) {
@@ -761,6 +776,7 @@ TEST(SqpLadderSeam, QcOneASlackInsideFeasTolIsNotABoundAtAViolatedRow) {
         EXPECT_NE(sol.status, SolveStatus::kInfeasible);
         EXPECT_GE(sol.counters.restoration_iters, 1);
         EXPECT_LE(sol.counters.restoration_h_out, o.feas_tol) << "the phase restores and resumes";
+        EXPECT_LE(sol.counters.restoration_feas_out, o.feas_tol) << "the resume decision's reading";
         // AND THE SOLVE GOES ON TO THE OPTIMUM of the feasible problem.
         EXPECT_EQ(sol.status, SolveStatus::kOptimal);
         EXPECT_NEAR(sol.x(0), 2.5, 1e-6);

@@ -203,6 +203,12 @@ enum class QpWalkAction : int {
     /// THE DEAD-END RANK REPAIR (qp_engine.h, Degeneracy): an add-site dead end at a
     /// rank-deficient working set released the members on its null directions.
     kRankRepair,
+    /// THE STAGNATION READING (qp_engine.h, section 4) ended the walk kMaxIter on this pass:
+    /// nothing to drop at a point meeting its rows, or, after the pass's step, the drops spent.
+    kStagnationStop,
+    /// THE STAGNATION READING with nothing to drop re-solved the face mu-free and adopted the
+    /// point (once per solve); nothing released: the next pass starts from it.
+    kStagnationRefine,
 };
 
 /// Which block a constraint identity refers to.

@@ -674,13 +674,17 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     // THE DEAD-END RANK REPAIR's remaining analyses this solve (qp_engine.h, Degeneracy).
     Index rank_repairs_left = detail::kRankRepairBudget;
     // THE STAGNATION READING's run (qp_engine.h): idle full steps since the run's last progress,
-    // -1 when no full-step run is open; the run's best objective and working-row residual; the
-    // reading taken, for the next pass's drop rule; and the drops it may still make this solve.
+    // -1 when no full-step run is open; the run's best objective and working-row residual (and
+    // whether that residual sits above the rows' floor); the reading taken, for the next pass's
+    // drop rule; the drops it may still make this solve; and whether its one resume from a mu-free
+    // point has been spent.
     Index stagnation_idle = -1;
     double stagnation_f = 0.0;
     double stagnation_r = 0.0;
+    bool stagnation_r_over_floor = false;
     bool stagnation_read = false;
     Index stagnation_drops_left = detail::kStagnationDropBudget;
+    bool stagnation_resume_spent = false;
 
     QpStatus status = crossed_bounds ? QpStatus::kInfeasible : QpStatus::kMaxIter;
 #ifdef HVEN_TESTING
@@ -1150,13 +1154,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             // How far the iterate sits off the constraints the EQP holds at
             // EQUALITY: the equality rows, the WORKING inequality rows (read off
             // the maintained Aix rather than recomputed), and the pinned bounds.
-            double res = 0.0;
-            if (qp.me() > 0) {
-                res = std::max(res, (qp.Ae * x - qp.be).lpNorm<Eigen::Infinity>());
-            }
-            for (const Index row : ws.active_ineq()) {
-                res = std::max(res, std::abs(Aix(row) - qp.bi(row)));
-            }
+            double res =
+                working_row_residual(qp, ws, x, Aix, ai_row_norm1, ae_row_norm1, eff_opts).largest;
             for (Index i = 0; i < qp.n(); ++i) {
                 const BoundState st = ws.bound_state()[static_cast<std::size_t>(i)];
                 if (st == BoundState::kAtUpper) {
@@ -1273,14 +1272,57 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             if (dropped_one && eff_opts.independent_working_set) {
                 pt_release(seen, last_drop.is_ineq, last_drop.idx);
             }
-            if (stagnation_only) {
-                if (!dropped_one) {
+            if (stagnation_only && dropped_one) {
+                ++counters.stagnation_drops;
+                --stagnation_drops_left;
+            }
+            if (stagnation_only && !dropped_one) {
+                // THE STAGNATION READING with nothing to drop (qp_engine.h). A residual the
+                // dual_mu footprint explains is re-solved mu-free first, as at the terminal
+                // classification below; the refined multipliers may release a member, and an
+                // adopted point with nothing to release is, once per solve, the next pass's
+                // iterate (that pass's KKT-point test reads it).
+                if (eff_opts.dual_mu > 0.0 &&
+                    mu_footprint_open(qp, ws, x, ai_row_norm1, lambda_i, ae_row_norm1, lambda_e,
+                                      eff_opts) &&
+                    refine_terminal_mu_free(qp, ws, x, lambda_e, lambda_i, z, counters, eff_opts)) {
+                    refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen,
+                                   eff_opts);
+                    exempt_worst = 0.0;
+                    if (drop_worst(qp, shift, lambda_i, z, ws, last_drop, counters, &seen,
+                                   &exempt_worst)) {
+                        pt_release(seen, last_drop.is_ineq, last_drop.idx);
+                        ++counters.stagnation_drops;
+                        --stagnation_drops_left;
+                        continue;
+                    }
+                    if (!stagnation_resume_spent) {
+                        stagnation_resume_spent = true;
+#ifdef HVEN_TESTING
+                        walk_obs.record().action = detail::testing::QpWalkAction::kStagnationRefine;
+#endif
+                        continue;
+                    }
+                }
+                // The walk ends at a point that meets its working rows, or off them when the
+                // idle run's own contraction could not bring them to their floor within the minors
+                // left (the cap's status either way). A run that could, still converging, takes the
+                // pass's ordinary step.
+                const WorkingRowResidual r_cur =
+                    working_row_residual(qp, ws, x, Aix, ai_row_norm1, ae_row_norm1, eff_opts);
+                const double passes_to_floor = static_cast<double>(detail::kStagnationSteps) *
+                                               std::log(r_cur.in_floor_units) /
+                                               std::log(stagnation_r / r_cur.largest);
+                if (r_cur.in_floor_units <= 1.0 || !(r_cur.largest < stagnation_r) ||
+                    !(passes_to_floor <= static_cast<double>(eff_max_iter - iter))) {
                     ++counters.stagnation_stops;
+#ifdef HVEN_TESTING
+                    walk_obs.record().action = detail::testing::QpWalkAction::kStagnationStop;
+#endif
                     break;
                 }
-                ++counters.stagnation_drops;
             }
-            if (!dropped_one) {
+            if (!dropped_one && !stagnation_only) {
 #ifdef HVEN_TESTING
                 walk_obs.record().action = detail::testing::QpWalkAction::kTerminal;
 #endif
@@ -1800,7 +1842,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 std::fill(seen.shift_refused.begin(), seen.shift_refused.end(), 0);
                 continue;
             }
-            // THE SADDLE EXIT's dependent blocker: on to the add site.
+            // THE SADDLE EXIT's dependent blocker: on to the add site. A stagnation reading
+            // with nothing to drop off its rows: on to the ordinary step.
         }
 
         // ==================================================================
@@ -2805,30 +2848,39 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         }
         // THE STAGNATION READING (qp_engine.h): an idle run of full steps on a fixed working set
         // hands the next pass to the drop rule, or, with the drops spent, ends the walk kMaxIter
-        // here, at the iterate the step just reached.
+        // here, at the iterate the step just reached. A ride never reaches this line (every ride
+        // branch above ends its pass), so "no ride" holds by construction. f_now costs one H
+        // mat-vec per qualifying pass.
         if (eff_opts.independent_working_set && kind == BlockKind::kNone && !ride_blocked &&
             alpha >= 1.0 && ws.active_ineq().size() == working_rows_before_refresh) {
             const double f_now =
                 qp.g.dot(x) + 0.5 * x.dot(qp.H.selfadjointView<Eigen::Upper>() * x);
-            const double r_now = working_row_residual(qp, ws, x, Aix);
+            const WorkingRowResidual r_now =
+                working_row_residual(qp, ws, x, Aix, ai_row_norm1, ae_row_norm1, eff_opts);
             if (stagnation_idle_in < 0) {
                 stagnation_idle = 0;
                 stagnation_f = f_now;
-                stagnation_r = r_now;
+                stagnation_r = r_now.largest;
+                stagnation_r_over_floor = r_now.in_floor_units > 1.0;
             } else if (f_now < stagnation_f - detail::kStagnationObjectiveTol *
                                                   std::max(1.0, std::abs(stagnation_f)) ||
-                       (stagnation_r > 0.0 && r_now <= 0.5 * stagnation_r)) {
+                       (stagnation_r_over_floor && r_now.largest <= 0.5 * stagnation_r)) {
                 stagnation_idle = 0;
                 stagnation_f = std::min(stagnation_f, f_now);
-                stagnation_r = std::min(stagnation_r, r_now);
+                if (r_now.largest < stagnation_r) {
+                    stagnation_r = r_now.largest;
+                    stagnation_r_over_floor = r_now.in_floor_units > 1.0;
+                }
             } else {
                 stagnation_idle = stagnation_idle_in + 1;
                 if (stagnation_idle >= detail::kStagnationSteps) {
                     if (stagnation_drops_left == 0) {
                         ++counters.stagnation_stops;
+#ifdef HVEN_TESTING
+                        walk_obs.record().action = detail::testing::QpWalkAction::kStagnationStop;
+#endif
                         break;
                     }
-                    --stagnation_drops_left;
                     stagnation_read = true;
                     stagnation_idle = -1;
                 }
@@ -3101,14 +3153,28 @@ bool QpEngine::iterate_meets_working_face(const QpProblem &qp, const WorkingSet 
     return true; // pinned columns sit on their bounds exactly
 }
 
-double QpEngine::working_row_residual(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
-                                      const Vec &Aix) const {
-    double r = 0.0;
+QpEngine::WorkingRowResidual QpEngine::working_row_residual(const QpProblem &qp,
+                                                            const WorkingSet &ws, const Vec &x,
+                                                            const Vec &Aix, const Vec &ai_row_norm1,
+                                                            const Vec &ae_row_norm1,
+                                                            const QpOptions &opts) const {
+    // The floor is row_tolerance(row_scale, 0) = feas_tol * row_scale (row_scale as
+    // worst_structural_violation's); a zero floor reads as the smallest normal double, so the
+    // measure stays finite.
+    const double xmag = x.lpNorm<Eigen::Infinity>();
+    WorkingRowResidual r;
+    const auto read = [&](double resid, double b, double norm1) {
+        const double row_scale = std::max({1.0, std::abs(b), norm1 * xmag});
+        r.largest = std::max(r.largest, std::abs(resid));
+        r.in_floor_units = std::max(r.in_floor_units,
+                                    std::abs(resid) / std::max(row_tolerance(row_scale, 0.0, opts),
+                                                               std::numeric_limits<double>::min()));
+    };
     for (Index j = 0; j < qp.me(); ++j) {
-        r = std::max(r, std::abs(qp.Ae.row(j).dot(x) - qp.be(j)));
+        read(qp.Ae.row(j).dot(x) - qp.be(j), qp.be(j), ae_row_norm1(j));
     }
     for (const Index j : ws.active_ineq()) {
-        r = std::max(r, std::abs(Aix(j) - qp.bi(j)));
+        read(Aix(j) - qp.bi(j), qp.bi(j), ai_row_norm1(j));
     }
     return r;
 }
