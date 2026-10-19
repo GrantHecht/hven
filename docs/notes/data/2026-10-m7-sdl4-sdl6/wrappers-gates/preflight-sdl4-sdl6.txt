@@ -1,0 +1,119 @@
+# THE SDL-4 + SDL-6 GATES-RUN PRE-FLIGHT. Run at the declaration state (HEAD df416f71 sources + the declaration files), every slot DERIVED or MEASURED on 995439fb..df416f71. Transcripts verbatim.
+#  A --preflight-only; B --check-g4 on the rehearsal pin arms; C --check-names on the rehearsal ctest -N listing (+ falsifiers); D --check-skips (+ falsifier); E sentinel / wrong-BEFORE / class A / added / removed / fixture / outside / class B falsifiers; F classifier cmp
+
+=== A: --preflight-only
+GATES_START 2026-10-18T20:20:00-04:00
+=== HEAD df416f71  dirty-files=1 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/.scratch/m7sdl4sdl6gates ===
+=== BEFORE=995439fb  EXPECT_DEBUG_TESTS=3105  EXPECT_RELEASE_TESTS=3106 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=df416f713bff6f44564d8ffb7cb7e1000c6dfe4d
+=== CHANGED HEADERS: include/hven/core/solver_counters.h include/hven/detail/drivers/ladder_testing.h include/hven/detail/qp/qp_engine.h include/hven/detail/qp/ws_independence.h 
+=== CHANGED SOURCES: src/drivers/sqp_solver.cpp src/qp/qp_engine.cpp src/qp/ws_independence.cpp tests/qp/fixtures/e2-d4/SDL4_BRITGAS_QN_qp5.txt tests/qp/fixtures/e2-d4/SDL6_DALLASM_QN_qp0.txt tests/qp/fixtures/e2-d4/SDL6_MSS2_QN_qp58.txt tests/qp/fixtures/e2-d4/SDL6_NET3_QN_qp98.txt tests/qp/test_qp_certificate_sign.cpp tests/qp/test_qp_degeneracy_arm.cpp tests/sqp/test_qp_engine.cpp tests/sqp/test_sqp_ladder_seams.cpp tests/sqp/test_sqp_solver.cpp 
+=== MODIFIED C++ SOURCES: src/drivers/sqp_solver.cpp src/qp/qp_engine.cpp src/qp/ws_independence.cpp tests/qp/test_qp_certificate_sign.cpp tests/qp/test_qp_degeneracy_arm.cpp tests/sqp/test_qp_engine.cpp tests/sqp/test_sqp_ladder_seams.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES: 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_qp_certificate_sign.cpp tests/qp/test_qp_degeneracy_arm.cpp tests/sqp/test_sqp_ladder_seams.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir
+=== ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/mixed_lift.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/qn_lift_bridge.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/mixed_lift.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/qn_lift_bridge.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); 43 DIFFERENCES DECLARED as a SET (walk 17 / ssn 13 / ipm 13), every cell a U0 cell, the one declared WORSE cell [ipm f7_n1000_path_warm kkt_stationarity] among them
+=== CLASS_B_NAMES_OK: Release 39 / Debug 39 declared objects, none with a source modified in the range
+=== RELEASE-ONLY (Debug GTEST_SKIP) DECLARED: 0 name(s), each a declared ADDED name ===
+=== RE-DECLARED (TEST line removed and re-added under the same name): 0 name(s), each removed once and added once, net unchanged by name ===
+=== BY-NAME: baselines /home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/docs/notes/data/2026-10-m7-yrk-sdl/gates/suite-{debug,release}.txt (3090 / 3091 started names); 17 ADDED, each added by exactly one TEST line in the range; 0 REMOVED, each removed by exactly one TEST line; 0 TEST lines removed (0 of them RE-DECLARED)
+=== tests/sqp/CMakeLists.txt (checked): adds exactly the declared 0 non-comment line(s), removes none
+=== src/CMakeLists.txt (checked): adds exactly the declared 0 non-comment line(s), removes exactly the declared 0
+=== ADDED TEST FILES (checked): non-.cpp [tests/qp/fixtures/e2-d4/SDL4_BRITGAS_QN_qp5.txt tests/qp/fixtures/e2-d4/SDL6_DALLASM_QN_qp0.txt tests/qp/fixtures/e2-d4/SDL6_MSS2_QN_qp58.txt tests/qp/fixtures/e2-d4/SDL6_NET3_QN_qp98.txt ] == declared, under the fixture directory named in the two declared readers' compile definitions (hven_qp_walk_seam_tests, hven_sqp_tests); tests/CMakeLists.txt adds exactly [] and removes no non-comment line
+=== CLANG_FORMAT SET (derived, non-empty): 12 file(s) ===
+=== PREFLIGHT_VALUE_OK: class A 8 - 3 outside == declared 5/5; ADDED 0 == declared 0 (0 inside the universe == declared 0); class B library objects all unmodified; G4 gate 1e-5
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/.scratch/m7sdl4sdl6gates/g1.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/.scratch/m7sdl4sdl6gates  G=/home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/.scratch/m7sdl4sdl6gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/.scratch/m7sdl4sdl6gates/g2.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/.scratch/m7sdl4sdl6gates  G=/home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/.scratch/m7sdl4sdl6gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/.scratch/m7sdl4sdl6gates/g3.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/.scratch/m7sdl4sdl6gates  G=/home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/.scratch/m7sdl4sdl6gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/.scratch/m7sdl4sdl6gates/g4.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/.scratch/m7sdl4sdl6gates  G=/home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/.scratch/m7sdl4sdl6gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/.scratch/m7sdl4sdl6gates/g5.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/.scratch/m7sdl4sdl6gates  G=/home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/.scratch/m7sdl4sdl6gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/.scratch/m7sdl4sdl6gates/g6.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/.scratch/m7sdl4sdl6gates  G=/home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/.scratch/m7sdl4sdl6gates/gates
+=== PREFLIGHT_OK: 6 segments written and asserted against GATES_SCRATCH, before the first leg ===
+PREFLIGHT_ONLY: stopping before G1. No leg was run and no build tree was touched.
+rc=0
+
+=== B: --check-g4 (pin arms of the rehearsal comparison)
+ASSERT OK   replay header lines = 3
+ASSERT OK   replay walk shape 27/75/17 declared = 1
+ASSERT OK   replay walk difference lines listed = 17
+ASSERT OK   replay ssn shape 27/75/13 declared = 1
+ASSERT OK   replay ssn difference lines listed = 13
+ASSERT OK   replay ipm shape 27/75/13 declared = 1
+ASSERT OK   replay ipm difference lines listed = 13
+ASSERT OK   replay: the MEASURED difference set EQUALS the DECLARED 43-entry list
+rc=0
+
+=== C: --check-names release on the rehearsal listing
+ASSERT OK   offline release by name: 3108 started names == the baseline's 3091 - the 0 declared REMOVED + the 17 declared ADDED
+rc=0
+=== C2: --check-names debug on the listing less the long test (G1 excludes it by -E)
+ASSERT OK   offline debug by name: 3107 started names == the baseline's 3090 - the 0 declared REMOVED + the 17 declared ADDED
+rc=0
+=== C3 falsifier: listing short one test
+ASSERT FAIL offline release by name: 3107 started vs the baseline's 3091 - 0 REMOVED + 17 ADDED; the difference (expected '<' tab-indented '>' this run):
+Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/ordinal-24
+rc=2
+=== C4 falsifier: the previous record's own suite (the baseline) is refused
+ASSERT FAIL offline release by name: ADDED QpCertificateSign.BoundHalfInsideTheMarginStillCertifies is named 0 time(s) in the baseline (want 0) and 0 in this run (want 1)
+rc=2
+
+=== D: --check-skips baseline vs baseline
+ASSERT OK   offline debug skips by name: 7 Skipped == the baseline's 7 + the 0 declared Release-only
+rc=0
+ASSERT OK   offline release skips by name: 1 Skipped == the baseline's 1 + the 0 declared Release-only
+rc=0
+=== D2 falsifier: release log vs debug expectation
+ASSERT FAIL offline debug skips by name: 1 Skipped vs the baseline's 7 + 0 declared; the difference (expected '<' tab-indented '>' this run):
+QpE2Fix9StandstillRetreat.Acopp118Qp0Border
+QpE2Fix9StandstillRetreat.Acopp118Qp1Border
+QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize
+QpE2WorkingSet.AGreyPinOnYorknetThatIsIndependentStaysIndependent
+QpE4ProximalEqp.TheYorknetRestorationQpIsDriftFreeAndOptimal
+QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder
+rc=2
+
+=== E1 falsifier: wrong BEFORE (bdb1a82a)
+REFUSED: the by-name baseline resolved to [docs/notes/data/2026-10-m7-bps-qc8/gates/suite-release.txt], declared [docs/notes/data/2026-10-m7-yrk-sdl/gates/suite-release.txt]
+rc=2
+=== E2 falsifier: UNMEASURED sentinel in a class A slot
+REFUSED: EXPECT_PSYM_CLASS_A still carries the UNMEASURED sentinel -- the FINAL pair has not been
+         rehearsed, so this round has no measured P-SYM shape to gate against.
+rc=2
+=== E3 falsifier: class A declared 4/4
+=== ADDED C++ SOURCES: 
+REFUSED: 8 modified .cpp (less 3 outside the universe; Release less 0 and Debug less 0 declared NOISE-ONLY), but class A is DECLARED 4/4
+rc=2
+=== E4 falsifier: one ADDED name dropped (runner copy)
+=== RE-DECLARED (TEST line removed and re-added under the same name): 0 name(s), each removed once and added once, net unchanged by name ===
+REFUSED: debug declared 3105 != the baseline's 3088 + 16 ADDED - 0 REMOVED
+rc=2
+=== E5 falsifier: a REMOVED name declared that the range does not remove (runner copy)
+=== RELEASE-ONLY (Debug GTEST_SKIP) DECLARED: 0 name(s), each a declared ADDED name ===
+REFUSED: REMOVED FunnelHType.RetractionUndoesOnlyTheLastJudgement: its TEST line (FunnelHType, RetractionUndoesOnlyTheLastJudgement) is removed 0 time(s) in the range, want 1
+rc=2
+=== E6 falsifier: ADDED fixture list emptied
+=== BY-NAME: baselines /home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/docs/notes/data/2026-10-m7-yrk-sdl/gates/suite-{debug,release}.txt (3090 / 3091 started names); 17 ADDED, each added by exactly one TEST line in the range; 0 REMOVED, each removed by exactly one TEST line; 0 TEST lines removed (0 of them RE-DECLARED)
+REFUSED: the ADDED non-.cpp test files [tests/qp/fixtures/e2-d4/SDL4_BRITGAS_QN_qp5.txt tests/qp/fixtures/e2-d4/SDL6_DALLASM_QN_qp0.txt tests/qp/fixtures/e2-d4/SDL6_MSS2_QN_qp58.txt tests/qp/fixtures/e2-d4/SDL6_NET3_QN_qp98.txt ] != declared [ ]
+rc=2
+=== E7 falsifier: an outside source dropped from the declared outside-modified list
+=== ADDED C++ SOURCES: 
+REFUSED: 8 modified .cpp (less 2 outside the universe; Release less 0 and Debug less 0 declared NOISE-ONLY), but class A is DECLARED 5/5
+rc=2
+=== E8 falsifier: a class B name declared whose source is in the range (qp_engine.cpp.o appended)
+=== G4 RESIDUAL GATE: 1e-5 (checked); 43 DIFFERENCES DECLARED as a SET (walk 17 / ssn 13 / ipm 13), every cell a U0 cell, the one declared WORSE cell [ipm f7_n1000_path_warm kkt_stationarity] among them
+REFUSED: rel class B names list has 40 objects, class B is DECLARED 39
+rc=2
+=== E9 falsifier: sqp_solver.cpp.o (now class A) declared as library class B
+=== G4 RESIDUAL GATE: 1e-5 (checked); 43 DIFFERENCES DECLARED as a SET (walk 17 / ssn 13 / ipm 13), every cell a U0 cell, the one declared WORSE cell [ipm f7_n1000_path_warm kkt_stationarity] among them
+REFUSED: CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o is declared a class B library mover but its source src/drivers/sqp_solver.cpp is MODIFIED (class A)
+rc=2
+
+=== F: classifier byte-identical to the previous record's
+cmp YRK+SDL: IDENTICAL
