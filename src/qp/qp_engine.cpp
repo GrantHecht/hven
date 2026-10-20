@@ -3695,7 +3695,7 @@ EqpResult QpEngine::border_candidate(const QpProblem &qp, const WorkingSet &ws, 
     // them anyway is what drove dim() past schur_cap and made the wasted
     // work the dominant cost.
     if (border.latched) {
-        if (detail::latch_still_holds(ws, border, counters, opts_.schur_cap)) {
+        if (detail::latch_still_holds(ws, border, counters, opts.schur_cap)) {
             return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
         }
         // Bordering may be possible again: a cap latch's pin count fell back to
@@ -3779,8 +3779,6 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
         if (border.schur->needs_refactorization()) {
             if (rebuild_would_be_noop(ws, border)) {
                 detail::take_latch(ws, border, counters, opts, /*rebuilt=*/true);
-            } else {
-                border.latched = false;
             }
             return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
         }
@@ -5439,7 +5437,8 @@ bool detail::latch_still_holds(const WorkingSet &ws, BorderState &border, QpCoun
     if (ws.active_ineq() != border.latch_rows) {
         return false;
     }
-    // A culprit gone may take an extreme eigenvalue with it.
+    // A culprit gone may take an extreme eigenvalue with it (heuristic at kLatchCulpritFrac; an
+    // arrival can cure even an indefinite C; the mild rule and the entry bound cover the miss).
     const std::vector<BoundState> &bs = ws.bound_state();
     for (const Index i : border.latch_culprits) {
         if (bs[static_cast<std::size_t>(i)] == BoundState::kFree) {
@@ -5482,6 +5481,11 @@ void detail::take_latch(const WorkingSet &ws, BorderState &border, QpCounters &c
     }
     border.latch_reason = LatchReason::kConditioning;
     ++counters.border_latches_conditioning;
+    // A latch on an updated stack is released at the next entry (latch_still_holds), before it
+    // reads any of the members below.
+    if (!rebuilt) {
+        return;
+    }
     border.latch_pins.clear();
     const std::vector<BoundState> &bs = ws.bound_state();
     for (std::size_t i = 0; i < bs.size(); ++i) {

@@ -81,17 +81,18 @@
 //    rebuilt C's does not). One taken on a REBUILT stack
 //    releases when K0's working rows differ from those it latched on (another
 //    K0, another C); when a CULPRIT pin leaves the working set -- one C's
-//    near-null or dominant direction lives on, each an exact eigenvector of
-//    the C of any SUBSET of the pins that keeps every pin it lives on, so a
-//    departure that keeps them all keeps both extreme eigenvalues; at ANY
-//    change of the pin set when the C it latched on was only MILDLY past its
-//    limit (the condition ESTIMATE is not the eigenvalue ratio, and an arrival
-//    can cure an indefinite C: near the limit, every change is re-tested, as
-//    before); or after kLatchChangedEntries entries on a working set other
-//    than the one it latched on, which bounds what those arguments leave
-//    unseen. A severe latch therefore holds through arrivals and through
+//    near-null or dominant direction has weight on (an eigenvector supported
+//    on pins that all stay is an eigenvector of the reduced C; at
+//    kLatchCulpritFrac the argument is a heuristic, a miss bounded by the mild
+//    rule and kLatchChangedEntries); at ANY change of the pin set when the C it
+//    latched on was only MILDLY past its limit (the condition ESTIMATE is not
+//    the eigenvalue ratio, and an ARRIVAL can cure even an indefinite C, by
+//    interlacing: near the limit, every change is re-tested, as before); or
+//    after kLatchChangedEntries entries on a working set other than the one it
+//    latched on. A severe latch therefore holds through arrivals and through
 //    departures of pins neither extreme direction lives on. It chooses the
-//    algebra alone; both certify the same way. Counted border_latches_cap,
+//    algebra alone: both certify the same way, but they round differently, so
+//    the choice is visible in the walk's trajectory. Counted border_latches_cap,
 //    border_latches_conditioning, border_latch_releases, border_latch_holds.
 //
 //    THE BORDERED ANSWER'S CERTIFICATE (independent_working_set; M7 W2 BPS;
@@ -1213,12 +1214,7 @@ constexpr Index kStagnationDropBudget = 4;
 // measurement: it caps the re-tests skipped between two releases.
 // A conditioning latch is MILD when its C is not nearly singular and its condition estimate is
 // within kLatchMildCondFactor of schur_cond_max; a mild latch releases on ANY change of its pin
-// set. MEASURED at 6f12bec2 on 475 walk subproblems (BRITGAS's 69 census dumps' conditioning
-// latches, the 21 main subproblems of its `default` cell, ACOPR57's 443 `sqp-qn` subproblems):
-// every re-test the reason-blind latch passed that no culprit departure explains (an arrival, or
-// the departure of a pin neither extreme direction lives on) followed a mild latch. With the
-// factor at 100 the 475 walks are bit-identical in status, minors, point and multipliers; at 10,
-// two are not; with only an arrival at an indefinite mild C releasing, four; with neither, nine.
+// set. Calibrated on BRITGAS and ACOPR57 (fe0172e5).
 constexpr double kLatchCulpritFrac = 1e-3;
 constexpr Index kLatchChangedEntries = 16;
 constexpr double kLatchMildCondFactor = 100.0;
@@ -1545,7 +1541,7 @@ inline std::uint64_t values_hash(const QpProblem &qp) {
 // `latched` marks the pins-only dead end (border_candidate): bordering is
 // abandoned for the current working-set SHAPE, the elimination path serves
 // every iteration, and the border stack is deliberately NOT kept in sync.
-// `latch_reason` says why (detail::take_latch); a conditioning latch keeps the
+// `latch_reason` says why (detail::take_latch); a conditioning latch on a rebuilt stack keeps the
 // members it latched on (`latch_pins`, `latch_rows`), its culprits
 // (`latch_culprits`; all three sorted), whether the C it latched on was only mildly
 // past its limit (`latch_mild`), whether that C was read off a rebuilt stack
@@ -1605,12 +1601,12 @@ namespace detail {
 // updated (`latch_rebuilt` false) releases at once, so the next entry verifies it on a rebuilt
 // stack; one taken on a rebuilt stack releases when the working rows differ from those it
 // latched on (they are K0's: another K0 borders another C), when one of its
-// culprits has left `ws` (an eigenvector of C supported on pins that all stay is an exact
-// eigenvector of the C of any subset of the pins that keeps them, so a departure that keeps both
-// extreme ones keeps the eigenvalues they carry), at any change of its pin set when it is mild
-// (latch_mild), or on the kLatchChangedEntries-th entry on a set other than the one it latched
-// on; otherwise it holds and counts border_latch_holds. Holding is
-// correct because nothing reads K0 or the border stack while latched, and a release rebuilds K0
+// culprits has left `ws` (an eigenvector supported on pins that all stay is an eigenvector of
+// the reduced C; at kLatchCulpritFrac this is a heuristic, a miss bounded by the mild rule and
+// kLatchChangedEntries, and an arrival can cure even an indefinite C by interlacing), at any
+// change of its pin set when it is mild (latch_mild), or on the kLatchChangedEntries-th entry on a
+// set other than the one it latched on; otherwise it holds and counts border_latch_holds. Holding
+// is correct because nothing reads K0 or the border stack while latched, and a release rebuilds K0
 // from the CURRENT working set. The caller counts the release (border_latch_releases), where it
 // rebuilds.
 bool latch_still_holds(const WorkingSet &ws, BorderState &border, QpCounters &counters,
@@ -1619,7 +1615,8 @@ bool latch_still_holds(const WorkingSet &ws, BorderState &border, QpCounters &co
 // Take the latch for `ws` (border_solve_or_fall_back, where a rebuild would be a no-op): record
 // its reason -- kCap when `pinned > schur_cap`, else kConditioning (C's condition estimate,
 // near-singularity or exact singularity) -- whether `border`'s stack was `rebuilt` on this
-// entry (rebuild_k0 and a full sync) rather than updated, and, for a conditioning latch, the
+// entry (rebuild_k0 and a full sync) rather than updated, and, for a conditioning latch on a
+// rebuilt stack (an updated one is released at the next entry before any of this is read), the
 // members it latched on; whether its C is mild (not nearly singular, and a condition estimate at
 // most kLatchMildCondFactor * schur_cond_max); and its culprits: the
 // pins whose entry in border.schur's near_null_direction() or dominant_direction() is at least

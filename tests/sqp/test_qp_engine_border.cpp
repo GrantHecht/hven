@@ -1093,9 +1093,8 @@ TEST(QpEngineBorder, DefaultIsBorderMode) {
 // factorization every time the latch takes and every pass it holds, which is
 // what pushes factorizations comfortably past 1. (Pinned count 2 is never >
 // schur_cap, so this is a CONDITIONING latch: until M7 W2 RLA it released,
-// rebuilt K0, re-triggered and re-latched at every pass; it now holds until
-// one of the pins C's extreme directions live on leaves -- see
-// test_qp_latch_reason.cpp.)
+// rebuilt K0, re-triggered and re-latched at every pass; it now holds
+// until detail::latch_still_holds releases it -- see test_qp_latch_reason.cpp.)
 TEST(QpEngineBorder, SingularBorderTriggersRebuild) {
     const QpProblem qp = near_singular_border_qp();
 

@@ -574,8 +574,7 @@ struct QpCounters {
     // schur_cap, `border_latches_conditioning` with the pins under it and C ill-conditioned or
     // singular; `border_latch_releases` the latches released (each a K0 rebuild, also in
     // `factorizations`); `border_latch_holds` the border_candidate entries (passes and probes) on
-    // which a conditioning latch held with the pins under the cap -- each a release, K0 rebuild
-    // and border re-sync the reason-blind latch paid.
+    // which a conditioning latch held under the cap.
     Index border_latches_cap = 0;
     Index border_latches_conditioning = 0;
     Index border_latch_releases = 0;

@@ -174,7 +174,7 @@ TEST(QpLatchReason, TakeLatchUnderTheCapRecordsTheMembersAndTheCulprits) {
     WorkingSet ws = ws_with(4, 2, {0, 1, 3}, {1});
     QpCounters c;
     b.latch_changed_entries = 5; // stale: a latch starts its own count
-    detail::take_latch(ws, b, c, opts, /*rebuilt=*/false);
+    detail::take_latch(ws, b, c, opts, /*rebuilt=*/true);
     EXPECT_TRUE(b.latched);
     EXPECT_EQ(b.latch_reason, LatchReason::kConditioning);
     EXPECT_EQ(c.border_latches_conditioning, 1);
@@ -183,8 +183,31 @@ TEST(QpLatchReason, TakeLatchUnderTheCapRecordsTheMembersAndTheCulprits) {
     EXPECT_EQ(b.latch_rows, (std::vector<Index>{1}));
     EXPECT_EQ(b.latch_culprits, (std::vector<Index>{0, 1}));
     EXPECT_TRUE(b.latch_mild); // estimate 1e11 = kLatchMildCondFactor * schur_cond_max
+    EXPECT_TRUE(b.latch_rebuilt);
+    EXPECT_EQ(b.latch_changed_entries, 0);
+}
+
+// A latch on an UPDATED stack is released at the next entry before its members are read: it
+// records the reason and the flag, and leaves the members alone.
+TEST(QpLatchReason, TakeLatchOnAnUpdatedStackRecordsOnlyTheReason) {
+    QpOptions opts;
+    opts.schur_cap = 3;
+    BorderState b;
+    pin_borders(b, 4, {{0, -1e11}, {1, -1.0}, {3, -1e3}}, opts);
+    WorkingSet ws = ws_with(4, 2, {0, 1, 3}, {1});
+    QpCounters c;
+    b.latch_changed_entries = 5;
+    detail::take_latch(ws, b, c, opts, /*rebuilt=*/false);
+    EXPECT_TRUE(b.latched);
+    EXPECT_EQ(b.latch_reason, LatchReason::kConditioning);
     EXPECT_FALSE(b.latch_rebuilt);
     EXPECT_EQ(b.latch_changed_entries, 0);
+    EXPECT_EQ(c.border_latches_conditioning, 1);
+    EXPECT_TRUE(b.latch_pins.empty());
+    EXPECT_TRUE(b.latch_culprits.empty());
+    QpCounters c2;
+    EXPECT_FALSE(detail::latch_still_holds(ws, b, c2, opts.schur_cap));
+    EXPECT_EQ(c2.border_latch_holds, 0);
 }
 
 // A C within kLatchMildCondFactor of the limit, not nearly singular, is MILD, definite or not.
@@ -450,10 +473,17 @@ TEST(QpLatchReason, BritgasMainSubproblemHoldsItsConditioningLatch) {
         static_cast<long>(c.factorizations), static_cast<long>(c.border_latches_cap),
         static_cast<long>(c.border_latches_conditioning),
         static_cast<long>(c.border_latch_releases), static_cast<long>(c.border_latch_holds));
+    // The endpoint at kMinors, identical at 0e3554c6 and with the riders: status and counters
+    // exact (Release and Debug agree); the objective of the unconverged iterate to 1e-4 (Release
+    // 0.2429181, Debug 0.2429209), so no residual-class value is pinned.
+    EXPECT_EQ(s.status, QpStatus::kMaxIter);
+    EXPECT_EQ(c.minor_iters, kMinors);
+    EXPECT_NEAR(hven::test_support::qp_dump_objective(d, s.x), 0.24292, 1e-4);
+    EXPECT_EQ(c.factorizations, 166);
     EXPECT_EQ(c.border_latches_cap, 0);
-    EXPECT_GE(c.border_latches_conditioning, 1);
-    EXPECT_GE(c.border_latch_releases, 1);
-    EXPECT_GE(c.border_latch_holds, 1);
+    EXPECT_EQ(c.border_latches_conditioning, 40);
+    EXPECT_EQ(c.border_latch_releases, 39);
+    EXPECT_EQ(c.border_latch_holds, 84);
     // A latched pass costs its one eliminated factorization and a release one K0 rebuild more;
     // a held pass is one the reason-blind latch paid both on.
     EXPECT_LE(c.factorizations, c.minor_iters + c.border_latch_releases + kSlack);
