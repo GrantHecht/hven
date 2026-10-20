@@ -3699,8 +3699,8 @@ EqpResult QpEngine::border_candidate(const QpProblem &qp, const WorkingSet &ws, 
             return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
         }
         // Bordering may be possible again: a cap latch's pin count fell back to
-        // schur_cap or below, or a conditioning latch's members turned over (see
-        // latch_still_holds). The stale stack cannot be incrementally repaired
+        // schur_cap or below, or a conditioning latch's rule let it go (see
+        // detail::latch_still_holds). The stale stack cannot be incrementally repaired
         // (it was never updated, and the working ROWS may have moved
         // arbitrarily far during the latch), so resume with a clean K0 built
         // from the CURRENT working set.
@@ -3765,7 +3765,7 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
         // subsequent iterations from the elimination path, where pins ARE
         // eliminable, and stop maintaining a border stack nothing reads.
         if (rebuild_would_be_noop(ws, border)) {
-            detail::take_latch(ws, border, counters, opts);
+            detail::take_latch(ws, border, counters, opts, /*rebuilt=*/rebuilt);
             return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
         }
         // A rebuild that has already been spent this iteration, or one
@@ -3778,7 +3778,7 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
         sync_borders(qp, ws, border, counters, opts);
         if (border.schur->needs_refactorization()) {
             if (rebuild_would_be_noop(ws, border)) {
-                detail::take_latch(ws, border, counters, opts);
+                detail::take_latch(ws, border, counters, opts, /*rebuilt=*/true);
             } else {
                 border.latched = false;
             }
@@ -5429,7 +5429,13 @@ bool detail::latch_still_holds(const WorkingSet &ws, BorderState &border, QpCoun
     if (border.latch_reason == LatchReason::kCap) {
         return false;
     }
-    // A conditioning latch. Another K0 (its rows) borders another C.
+    // A conditioning latch read off a stack the walk had only updated: its C carries the update
+    // history (the border order and the drop/add arithmetic) a rebuild does not, so it is first
+    // verified on a rebuilt one -- the release the reason-blind latch made at every pass.
+    if (!border.latch_rebuilt) {
+        return false;
+    }
+    // Another K0 (its rows) borders another C.
     if (ws.active_ineq() != border.latch_rows) {
         return false;
     }
@@ -5447,14 +5453,15 @@ bool detail::latch_still_holds(const WorkingSet &ws, BorderState &border, QpCoun
         }
     }
     const bool arrived = pinned > stayed;
-    // A border added to an indefinite C can cure it; one added to a definite C pushes its extreme
-    // eigenvalues outward while the bordered C stays definite (interlacing).
-    if (arrived && border.latch_arrival_cures) {
+    const bool departed = stayed < static_cast<Index>(border.latch_pins.size());
+    // A MILD latch's estimate sits near the limit, where any change of the pin set can carry it
+    // under: re-test at every change, as the reason-blind latch did.
+    if ((arrived || departed) && border.latch_mild) {
         return false;
     }
     // The very set the latch was taken on re-forms the identical C; any other set counts
     // towards the bound.
-    const bool same_set = !arrived && stayed == static_cast<Index>(border.latch_pins.size());
+    const bool same_set = !arrived && !departed;
     if (!same_set && ++border.latch_changed_entries >= kLatchChangedEntries) {
         return false;
     }
@@ -5463,8 +5470,9 @@ bool detail::latch_still_holds(const WorkingSet &ws, BorderState &border, QpCoun
 }
 
 void detail::take_latch(const WorkingSet &ws, BorderState &border, QpCounters &counters,
-                        const QpOptions &opts) {
+                        const QpOptions &opts, bool rebuilt) {
     border.latched = true;
+    border.latch_rebuilt = rebuilt;
     border.latch_changed_entries = 0;
     const Index pinned = ws.n() - ws.num_free();
     if (pinned > opts.schur_cap) {
@@ -5482,10 +5490,9 @@ void detail::take_latch(const WorkingSet &ws, BorderState &border, QpCounters &c
         }
     }
     border.latch_rows = ws.active_ineq();
-    // Whether a pin's arrival may cure this C: indefinite and only mildly past its limit.
-    border.latch_arrival_cures =
-        border.schur.has_value() && !border.schur->definite() && !border.schur->nearly_singular() &&
-        border.schur->cond_estimate() <= kLatchArrivalCondFactor * opts.schur_cond_max;
+    // Whether this C is only MILDLY past its limit.
+    border.latch_mild = border.schur.has_value() && !border.schur->nearly_singular() &&
+                        border.schur->cond_estimate() <= kLatchMildCondFactor * opts.schur_cond_max;
     // The culprits: the pins C's two extreme directions live on. Position k of a direction is
     // the k-th border, and every live border is a pin here (the latch is taken only where a
     // rebuild would be a no-op). A direction that cannot be read makes every pin a culprit.

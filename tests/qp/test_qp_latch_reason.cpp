@@ -5,11 +5,13 @@
 // REASON (qp_engine.h, section 4). Border mode latches onto the elimination path where a K0
 // rebuild cannot help; a kCap latch (more pins than schur_cap) releases when the pins are back
 // under the cap, as before, while a kConditioning latch (C ill-conditioned or singular with the
-// pins under the cap) is no longer re-tested at every pass. It releases when K0's rows move, when
-// a CULPRIT pin (one C's near-null or dominant direction lives on) leaves, when a pin arrives at
-// an indefinite C judged mild, or on the kLatchChangedEntries-th entry on another set.
+// pins under the cap) is no longer re-tested at every pass. One taken on an updated (not rebuilt)
+// stack is verified at the next entry; one taken on a rebuilt stack releases when K0's rows move,
+// when a CULPRIT pin (one C's near-null or dominant direction lives on) leaves, at any change of
+// its pin set when its C is only MILDLY past the limit, or on the kLatchChangedEntries-th entry on
+// another set.
 //
-// Three layers: SchurComplement's two extreme directions and definite(); detail::take_latch and
+// Three layers: SchurComplement's two extreme directions; detail::take_latch and
 // detail::latch_still_holds on hand-built border states (every branch of the rule); and the walk,
 // whose counters must show the reason it latched for -- on a synthetic convex fixture, with the
 // answer refactorize mode gives, and on BRITGAS's first subproblem, where the thrash was measured.
@@ -72,13 +74,14 @@ WorkingSet ws_with(Index n, Index mi, const std::vector<Index> &pins,
 }
 
 // A conditioning latch taken by hand on pins {0,1,2,3}, rows {1}; culprits {0,1}.
-void hand_conditioning_latch(BorderState &b, bool arrival_cures) {
+void hand_conditioning_latch(BorderState &b, bool mild) {
     b.latched = true;
     b.latch_reason = LatchReason::kConditioning;
     b.latch_pins = {0, 1, 2, 3};
     b.latch_rows = {1};
     b.latch_culprits = {0, 1};
-    b.latch_arrival_cures = arrival_cures;
+    b.latch_mild = mild;
+    b.latch_rebuilt = true;
     b.latch_changed_entries = 0;
 }
 
@@ -97,7 +100,6 @@ TEST(QpLatchReason, SchurExtremeDirectionsFindTheirBorders) {
     BorderState b;
     pin_borders(b, 4, {{0, -1e11}, {1, -1.0}, {3, -1e3}}, opts);
     ASSERT_TRUE(b.schur->needs_refactorization()); // cond ~1e11 > schur_cond_max
-    EXPECT_TRUE(b.schur->definite());
 
     const Vec lo = b.schur->near_null_direction();
     const Vec hi = b.schur->dominant_direction();
@@ -113,27 +115,21 @@ TEST(QpLatchReason, SchurExtremeDirectionsFindTheirBorders) {
     EXPECT_LT(std::abs(hi(2)), detail::kLatchCulpritFrac);
 }
 
-TEST(QpLatchReason, SchurDirectionsAreEmptyWithoutBordersAndDefiniteNeedsOneSign) {
+TEST(QpLatchReason, SchurDirectionsAreEmptyWithoutBorders) {
     QpOptions opts;
     BorderState b;
     pin_borders(b, 3, {}, opts);
     EXPECT_EQ(b.schur->near_null_direction().size(), 0);
     EXPECT_EQ(b.schur->dominant_direction().size(), 0);
-    EXPECT_FALSE(b.schur->definite());
 
     BorderState c;
     pin_borders(c, 3, {{0, -1.0}, {1, 2.0}}, opts); // indefinite
-    EXPECT_FALSE(c.schur->definite());
     EXPECT_EQ(c.schur->near_null_direction().size(), 2);
     EXPECT_EQ(c.schur->dominant_direction().size(), 2);
-
-    BorderState d;
-    pin_borders(d, 3, {{0, 1.0}, {2, 2.0}}, opts); // every eigenvalue positive
-    EXPECT_TRUE(d.schur->definite());
 }
 
 // An exactly singular C has no usable factor, so no near-null direction; C = 0 has no dominant
-// one either (the power step vanishes); and definite() is false.
+// one either (the power step vanishes).
 TEST(QpLatchReason, SchurExactlySingularHasNoNearNullDirection) {
     QpOptions opts;
     BorderState b;
@@ -141,7 +137,6 @@ TEST(QpLatchReason, SchurExactlySingularHasNoNearNullDirection) {
     ASSERT_TRUE(b.schur->needs_refactorization());
     EXPECT_EQ(b.schur->near_null_direction().size(), 0);
     EXPECT_EQ(b.schur->dominant_direction().size(), 0);
-    EXPECT_FALSE(b.schur->definite());
 
     BorderState c;
     pin_borders(c, 2, {{0, 0.0}, {1, -2.0}}, opts); // singular, a nonzero dominant direction
@@ -162,9 +157,10 @@ TEST(QpLatchReason, TakeLatchPastTheCapRecordsTheCapReason) {
     pin_borders(b, 4, {{0, -1.0}, {1, -1.0}, {2, -1.0}}, opts);
     const WorkingSet ws = ws_with(4, 0, {0, 1, 2});
     QpCounters c;
-    detail::take_latch(ws, b, c, opts);
+    detail::take_latch(ws, b, c, opts, /*rebuilt=*/true);
     EXPECT_TRUE(b.latched);
     EXPECT_EQ(b.latch_reason, LatchReason::kCap);
+    EXPECT_TRUE(b.latch_rebuilt);
     EXPECT_EQ(c.border_latches_cap, 1);
     EXPECT_EQ(c.border_latches_conditioning, 0);
 }
@@ -178,7 +174,7 @@ TEST(QpLatchReason, TakeLatchUnderTheCapRecordsTheMembersAndTheCulprits) {
     WorkingSet ws = ws_with(4, 2, {0, 1, 3}, {1});
     QpCounters c;
     b.latch_changed_entries = 5; // stale: a latch starts its own count
-    detail::take_latch(ws, b, c, opts);
+    detail::take_latch(ws, b, c, opts, /*rebuilt=*/false);
     EXPECT_TRUE(b.latched);
     EXPECT_EQ(b.latch_reason, LatchReason::kConditioning);
     EXPECT_EQ(c.border_latches_conditioning, 1);
@@ -186,13 +182,13 @@ TEST(QpLatchReason, TakeLatchUnderTheCapRecordsTheMembersAndTheCulprits) {
     EXPECT_EQ(b.latch_pins, (std::vector<Index>{0, 1, 3}));
     EXPECT_EQ(b.latch_rows, (std::vector<Index>{1}));
     EXPECT_EQ(b.latch_culprits, (std::vector<Index>{0, 1}));
-    EXPECT_FALSE(b.latch_arrival_cures); // definite C
+    EXPECT_TRUE(b.latch_mild); // estimate 1e11 = kLatchMildCondFactor * schur_cond_max
+    EXPECT_FALSE(b.latch_rebuilt);
     EXPECT_EQ(b.latch_changed_entries, 0);
 }
 
-// An indefinite C mildly past the limit may be cured by an arrival; a severe one, or a definite
-// one, is not trusted to be.
-TEST(QpLatchReason, TakeLatchJudgesWhetherAnArrivalMayCure) {
+// A C within kLatchMildCondFactor of the limit, not nearly singular, is MILD, definite or not.
+TEST(QpLatchReason, TakeLatchJudgesWhetherItsCIsMild) {
     QpOptions opts;
     const auto latch_on = [&](double c0, double c1, double c2) {
         BorderState b;
@@ -200,19 +196,18 @@ TEST(QpLatchReason, TakeLatchJudgesWhetherAnArrivalMayCure) {
         EXPECT_TRUE(b.schur->needs_refactorization()) << c2;
         const WorkingSet ws = ws_with(3, 0, {0, 1, 2});
         QpCounters c;
-        detail::take_latch(ws, b, c, opts);
+        detail::take_latch(ws, b, c, opts, /*rebuilt=*/true);
         EXPECT_EQ(b.latch_reason, LatchReason::kConditioning);
-        return b.latch_arrival_cures;
+        return b.latch_mild;
     };
-    const double limit = detail::kLatchArrivalCondFactor * opts.schur_cond_max;
-    // Indefinite, cond 3e9: past schur_cond_max (1e9), within the factor.
+    const double limit = detail::kLatchMildCondFactor * opts.schur_cond_max;
+    // Cond 3e9: past schur_cond_max (1e9), within the factor -- indefinite and definite alike.
     EXPECT_TRUE(latch_on(-1.0, 1.0, -3e9));
-    // Indefinite at the factor exactly, and just past it.
+    EXPECT_TRUE(latch_on(-1.0, -1.0, -3e9));
+    // At the factor exactly, and past it.
     EXPECT_TRUE(latch_on(-1.0, 1.0, -limit));
     EXPECT_FALSE(latch_on(-1.0, 1.0, -2.0 * limit));
-    // Definite, cond 3e9: an arrival cannot cure it.
-    EXPECT_FALSE(latch_on(-1.0, -1.0, -3e9));
-    // Indefinite, cond 1, but uniformly tiny: nearly singular.
+    // Cond 1, but uniformly tiny: nearly singular.
     EXPECT_FALSE(latch_on(-1e-13, 1e-13, -1e-13));
 }
 
@@ -224,10 +219,10 @@ TEST(QpLatchReason, TakeLatchOnASingularCMakesEveryPinACulprit) {
     ASSERT_TRUE(b.schur->needs_refactorization());
     const WorkingSet ws = ws_with(3, 0, {0, 2});
     QpCounters c;
-    detail::take_latch(ws, b, c, opts);
+    detail::take_latch(ws, b, c, opts, /*rebuilt=*/true);
     EXPECT_EQ(b.latch_reason, LatchReason::kConditioning);
     EXPECT_EQ(b.latch_culprits, (std::vector<Index>{0, 2}));
-    EXPECT_FALSE(b.latch_arrival_cures);
+    EXPECT_FALSE(b.latch_mild); // no usable estimate
 }
 
 // ---- latch_still_holds: every branch ------------------------------------------------------------
@@ -255,6 +250,21 @@ TEST(QpLatchReason, ACapLatchReleasesUnderTheCap) {
     EXPECT_EQ(c.border_latch_holds, 0);
 }
 
+// A conditioning latch read off a stack the walk had only updated is verified on a rebuilt one:
+// it releases at the next entry under the cap even on the very set it latched on, and holds
+// past the cap like any other.
+TEST(QpLatchReason, ALatchOnAnUpdatedStackIsVerifiedOnARebuiltOne) {
+    BorderState b;
+    hand_conditioning_latch(b, false);
+    b.latch_rebuilt = false;
+    QpCounters c;
+    const WorkingSet same = ws_with(kN, kMi, {0, 1, 2, 3}, {1});
+    EXPECT_FALSE(detail::latch_still_holds(same, b, c, kCap));
+    const WorkingSet past = ws_with(kN, kMi, {0, 1, 2, 3, 4, 5, 6}, {1});
+    EXPECT_TRUE(detail::latch_still_holds(past, b, c, kCap));
+    EXPECT_EQ(c.border_latch_holds, 0);
+}
+
 TEST(QpLatchReason, AConditioningLatchReleasesWhenTheRowsMove) {
     for (const std::vector<Index> &rows :
          {std::vector<Index>{}, std::vector<Index>{1, 2}, std::vector<Index>{0}}) {
@@ -278,34 +288,33 @@ TEST(QpLatchReason, AConditioningLatchReleasesWhenACulpritLeaves) {
     }
 }
 
-TEST(QpLatchReason, AConditioningLatchHoldsWhenOnlyANonCulpritLeaves) {
-    BorderState b;
-    hand_conditioning_latch(b, true); // arrivals would cure -- but nothing arrives
-    const WorkingSet ws = ws_with(kN, kMi, {0, 1, 3}, {1});
-    QpCounters c;
-    EXPECT_TRUE(detail::latch_still_holds(ws, b, c, kCap));
-    EXPECT_EQ(c.border_latch_holds, 1);
-    EXPECT_EQ(b.latch_changed_entries, 1);
-}
-
-// A swap -- non-culprit 2 out, 6 in -- is an arrival: it releases a latch whose C an arrival may
-// cure, and holds one whose C it cannot.
-TEST(QpLatchReason, AnArrivalReleasesOnlyWhereItMayCure) {
+// A SEVERE latch holds when a pin neither extreme direction lives on leaves, and when one arrives
+// (a swap -- non-culprit 2 out, 6 in -- is both); each such entry counts towards the bound.
+TEST(QpLatchReason, ASevereLatchHoldsThroughNonCulpritChanges) {
+    const WorkingSet leave = ws_with(kN, kMi, {0, 1, 3}, {1});
     const WorkingSet swap = ws_with(kN, kMi, {0, 1, 3, 6}, {1});
     const WorkingSet grow = ws_with(kN, kMi, {0, 1, 2, 3, 6}, {1});
-    for (const WorkingSet *ws : {&swap, &grow}) {
-        BorderState cures;
-        hand_conditioning_latch(cures, true);
-        QpCounters c1;
-        EXPECT_FALSE(detail::latch_still_holds(*ws, cures, c1, kCap));
-        EXPECT_EQ(c1.border_latch_holds, 0);
+    for (const WorkingSet *ws : {&leave, &swap, &grow}) {
+        BorderState b;
+        hand_conditioning_latch(b, false);
+        QpCounters c;
+        EXPECT_TRUE(detail::latch_still_holds(*ws, b, c, kCap));
+        EXPECT_EQ(c.border_latch_holds, 1);
+        EXPECT_EQ(b.latch_changed_entries, 1);
+    }
+}
 
-        BorderState stays;
-        hand_conditioning_latch(stays, false);
-        QpCounters c2;
-        EXPECT_TRUE(detail::latch_still_holds(*ws, stays, c2, kCap));
-        EXPECT_EQ(c2.border_latch_holds, 1);
-        EXPECT_EQ(stays.latch_changed_entries, 1);
+// A MILD latch releases at any change of its pin set -- a departure, an arrival, or both.
+TEST(QpLatchReason, AMildLatchReleasesOnAnyChange) {
+    const WorkingSet leave = ws_with(kN, kMi, {0, 1, 3}, {1});
+    const WorkingSet swap = ws_with(kN, kMi, {0, 1, 3, 6}, {1});
+    const WorkingSet grow = ws_with(kN, kMi, {0, 1, 2, 3, 6}, {1});
+    for (const WorkingSet *ws : {&leave, &swap, &grow}) {
+        BorderState b;
+        hand_conditioning_latch(b, true);
+        QpCounters c;
+        EXPECT_FALSE(detail::latch_still_holds(*ws, b, c, kCap));
+        EXPECT_EQ(c.border_latch_holds, 0);
     }
 }
 
@@ -326,7 +335,7 @@ TEST(QpLatchReason, TheLatchTimeSetHoldsWithoutSpendingTheBound) {
 TEST(QpLatchReason, TheChangedEntryBoundReleases) {
     BorderState b;
     hand_conditioning_latch(b, false);
-    const WorkingSet other = ws_with(kN, kMi, {0, 1, 2, 3, 6}, {1}); // an arrival it cannot cure
+    const WorkingSet other = ws_with(kN, kMi, {0, 1, 2, 3, 6}, {1}); // an arrival; severe: holds
     const WorkingSet same = ws_with(kN, kMi, {0, 1, 2, 3}, {1});
     QpCounters c;
     for (Index k = 1; k < detail::kLatchChangedEntries; ++k) {
@@ -344,11 +353,11 @@ namespace {
 
 // min 1/2 x'Hx + g'x over a box. x0 and x1 share a nearly singular 2x2 block of H (eigenvalues
 // 2 - 1e-6 and 1e-6), so once both are pinned the pins' block of K0^-1 -- C, up to the -mu
-// diagonal -- has a condition estimate near 5e5, past the fixture's schur_cond_max (1e4) while
+// diagonal -- has a condition estimate near 5e5, past the fixture's schur_cond_max (1e3) while
 // K0 itself is far from any pivot the backend would perturb. x2 stays free; x3..x6 are decoupled
 // and reach their upper bounds one per pass AFTER x0 and x1 (step 0.3..0.6 against their 0.2).
-// Convex: C stays definite, so those four arrivals cannot cure it and the conditioning latch
-// holds through them.
+// With schur_cond_max at 1e3 the latch is SEVERE (estimate ~500x the limit), so it holds through
+// those four arrivals -- once verified on a rebuilt stack if it was taken on an updated one.
 QpProblem singular_pair_then_arrivals_qp() {
     const Index n = 7;
     QpProblem qp;
@@ -371,10 +380,10 @@ QpProblem singular_pair_then_arrivals_qp() {
 
 } // namespace
 
-TEST(QpLatchReason, TheWalkHoldsAConditioningLatchThroughArrivalsItCannotCure) {
+TEST(QpLatchReason, TheWalkHoldsASevereConditioningLatchThroughArrivals) {
     const QpProblem qp = singular_pair_then_arrivals_qp();
     QpOptions opts;
-    opts.schur_cond_max = 1e4; // the pinned pair's C (~5e5) past it, every K0 pivot clean
+    opts.schur_cond_max = 1e3; // the pinned pair's C (~5e5) severely past it, K0's pivots clean
 
     QpOptions ref_opts = opts;
     ref_opts.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
@@ -395,9 +404,11 @@ TEST(QpLatchReason, TheWalkHoldsAConditioningLatchThroughArrivalsItCannotCure) {
                 static_cast<long>(c.border_latch_releases), static_cast<long>(c.border_latch_holds),
                 static_cast<long>(c.factorizations), static_cast<long>(c.minor_iters));
     EXPECT_EQ(c.border_latches_cap, 0);
-    EXPECT_EQ(c.border_latches_conditioning, 1);
-    EXPECT_EQ(c.border_latch_releases, 0);
-    EXPECT_GE(c.border_latch_holds, 4); // x3..x6 arrive under the latch
+    // The pair latches on the stack the walk had updated; the next entry verifies it on a rebuilt
+    // one, which latches again; that latch holds while x3..x6 arrive.
+    EXPECT_EQ(c.border_latch_releases, 1);
+    EXPECT_EQ(c.border_latches_conditioning, 2);
+    EXPECT_GE(c.border_latch_holds, 3);
 }
 
 // The same walk with a cap below the pin count: the latch is a cap latch, never re-tested on its
@@ -419,7 +430,7 @@ TEST(QpLatchReason, TheWalkRecordsACapLatchAsBefore) {
 // to ~90 pins is ill-conditioned with the pins far under schur_cap, and the reason-blind latch
 // released, rebuilt K0, re-bordered every pin and re-latched at EVERY pass -- two factorizations
 // per minor. Over its first kMinors minors the reason-aware latch must take conditioning latches,
-// hold some passes, release on others (its culprits leave, or pins arrive at a mild indefinite C),
+// hold some passes, release on others (verifications, culprits leaving, changes at a mild C),
 // and pay well under the reason-blind two factorizations per latched minor.
 TEST(QpLatchReason, BritgasMainSubproblemHoldsItsConditioningLatch) {
     constexpr Index kMinors = 120;

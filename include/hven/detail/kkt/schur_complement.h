@@ -323,16 +323,6 @@ class SchurComplement {
 
     Index dim() const { return static_cast<Index>(v_.size()); }
 
-    // True iff C's last factorization is usable and its inertia is one-signed
-    // (every eigenvalue negative, or every one positive). Read by the walk's
-    // conditioning latch: a border ADDED to a definite C pushes its extreme
-    // eigenvalues outward (Cauchy interlacing) while the bordered C stays
-    // definite.
-    bool definite() const {
-        return dim() > 0 && evidence_usable() &&
-               (evidence_->neg_eigs == 0 || evidence_->neg_eigs == dim());
-    }
-
     // C's two extreme directions, the ends cond_estimate() measures: the one
     // nearest its null space (kConditionDirectionSteps steps of inverse
     // iteration on the cached factor) and its dominant one (as many steps of
