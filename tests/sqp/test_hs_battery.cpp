@@ -1073,8 +1073,13 @@ TEST(HsBattery, CrashBasisIsANullResultOnTheBatteryWithTwoBoundSeededExceptions)
     // in `factorizations` whether or not the read overturns the kWrong.
     // M7 W2 ladder round (L2, declared mover): 288/289 -> 287/288, HS45's projected
     // start (above).
-    EXPECT_EQ(facts_off, 287);
-    EXPECT_EQ(facts_on, 288);
+    // M7 W2 RLA (declared mover): 287/288 -> 274/275, minors and answers unchanged
+    // (both asserted above). Cause: THE LATCH AND ITS REASON (qp_engine.h, section
+    // 4) -- a conditioning latch no longer releases, rebuilds K0 and re-latches at
+    // every pass; each pass it holds is a K0 factorization not paid. Release and
+    // Debug agree.
+    EXPECT_EQ(facts_off, 274);
+    EXPECT_EQ(facts_on, 275);
 #endif
 }
 

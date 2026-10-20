@@ -99,7 +99,7 @@ believe. This table says only what exists, where, and how many.
 
 | group | header, line range | fields | produced by |
 |---|---|---|---|
-| `QpCounters` | `core/solver_counters.h:34-571` | 96 | the walk (active-set) QP tier, `qp/` |
+| `QpCounters` | `core/solver_counters.h:34-583` | 100 | the walk (active-set) QP tier, `qp/` |
 | `SsnCounters` | `core/solver_counters.h:210-348` | 18 | the SSN QP tier, `qp/` |
 | `IpqpCounters` | `core/solver_counters.h:466-896` | 39 | the IPQP QP tier, `qp/` |
 | `SqpCounters` | `core/solver_counters.h:1048-1683` | 50 direct, plus the nested `ssn` and `ipqp` | the SQP driver, `drivers/` |

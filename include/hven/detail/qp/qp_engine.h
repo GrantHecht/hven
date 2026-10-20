@@ -69,6 +69,27 @@
 //    needed a perturbed pivot; iterations where a rebuild cannot help fall back
 //    to the elimination path.
 //
+//    THE LATCH AND ITS REASON (M7 W2 RLA). Where a rebuild cannot help -- every
+//    live border a pin over K0's own rows -- the walk LATCHES onto the
+//    elimination path, and records why: kCap (more pins than schur_cap; no
+//    stack can carry them) or C's own conditioning or singularity with the pins
+//    under the cap. A cap latch releases when the pin count is back under the
+//    cap, as before. A conditioning latch is NOT re-tested at every pass. It
+//    releases when K0's working rows differ from those it latched on (another
+//    K0, another C); when a CULPRIT pin leaves the working set -- one C's
+//    near-null or dominant direction lives on, each an exact eigenvector of
+//    the C of any SUBSET of the pins that keeps every pin it lives on, so a
+//    departure that keeps them all keeps both extreme eigenvalues; when a pin
+//    ARRIVES at a C that was indefinite and only mildly past its limit (an
+//    added border pushes a definite C's extreme eigenvalues outward while the
+//    bordered C stays definite; an indefinite one it can cure, and the cures
+//    measured were all mild); or after kLatchChangedEntries entries on a
+//    working set other than the one it latched on, which bounds what those
+//    arguments leave unseen (the condition ESTIMATE is not the eigenvalue
+//    ratio; a definite C can be bordered indefinite). It chooses the algebra
+//    alone; both certify the same way. Counted border_latches_cap,
+//    border_latches_conditioning, border_latch_releases, border_latch_holds.
+//
 //    THE BORDERED ANSWER'S CERTIFICATE (independent_working_set; M7 W2 BPS;
 //    bordered_eqp.h states it), from an iterate that meets its equality rows: a
 //    pass whose bordered refinement stops above its own target takes the
@@ -1181,6 +1202,21 @@ constexpr Index kStagnationSteps = 10;
 constexpr double kStagnationObjectiveTol = 1e-12;
 constexpr Index kStagnationDropBudget = 4;
 
+// THE LATCH AND ITS REASON (section 4): a conditioning latch's CULPRITS are the pins whose
+// entry in C's near-null or dominant direction is at least kLatchCulpritFrac of that
+// direction's largest; it releases at the latest on the kLatchChangedEntries-th
+// border_candidate entry on a working set other than the one it latched on -- a bound, not a
+// measurement: it caps the re-tests skipped between two releases.
+// An ARRIVAL releases a conditioning latch only on an indefinite C judged MILD at the latch: not
+// nearly singular, and a condition estimate within kLatchArrivalCondFactor of schur_cond_max.
+// MEASURED on BRITGAS's 69 walk dumps at 6f12bec2 (13.4k failed re-tests of a conditioning
+// latch, 34 that passed): the re-tests that passed with MORE pins than the one that failed
+// before them (4, all in one subproblem) followed a C whose estimate was 1.0e9 to 8.9e9, against
+// schur_cond_max 1e9; every other one had as many pins as that one or fewer.
+constexpr double kLatchCulpritFrac = 1e-3;
+constexpr Index kLatchChangedEntries = 16;
+constexpr double kLatchArrivalCondFactor = 100.0;
+
 // Section 4b's SUSPECT-STALL GATE, invariant half (ii). The QP MODEL's
 // stationarity residual r = H x + g + Ae^T lambda_e + Ai^T lambda_i,
 // restricted to the FREE variables (a pinned variable's r(i) IS the bound
@@ -1503,6 +1539,14 @@ inline std::uint64_t values_hash(const QpProblem &qp) {
 // `latched` marks the pins-only dead end (border_candidate): bordering is
 // abandoned for the current working-set SHAPE, the elimination path serves
 // every iteration, and the border stack is deliberately NOT kept in sync.
+// `latch_reason` says why (detail::take_latch); a conditioning latch keeps the
+// members it latched on (`latch_pins`, `latch_rows`), its culprits
+// (`latch_culprits`; all three sorted), whether a pin's arrival may cure the C it
+// latched on (`latch_arrival_cures`) and the entries it has held on a different working set
+// (`latch_changed_entries`). All are read only while `latched`, and overwritten
+// whenever a latch is taken.
+enum class LatchReason : std::uint8_t { kCap, kConditioning };
+
 struct BorderState {
     /// @param threads The owning engine's thread count, handed to K0's factor
     ///                at construction (M6 W5 T8.8). 0 -- the default, and what
@@ -1522,12 +1566,58 @@ struct BorderState {
     detail::KktFactor kkt;                 // configured by sqp_kkt_options(threads)
     std::optional<SchurComplement> schur;
     bool latched = false;
+    LatchReason latch_reason = LatchReason::kCap;
+    std::vector<Index> latch_pins;
+    std::vector<Index> latch_rows;
+    std::vector<Index> latch_culprits;
+    bool latch_arrival_cures = false;
+    Index latch_changed_entries = 0;
 
     // Stale-handle detection lives in the backend factor's own identity:
     // `analyze()` moves `kkt.factor.session_id()` and every successful
     // `factorize()` advances `kkt.factor.epoch()`, so rebuild_k0() stamps
     // nothing. See QpEngine::run()'s reuse condition (e).
 };
+
+namespace detail {
+
+// THE LATCH AND ITS REASON (section 4). Free functions of the border state alone, so the rule
+// is readable -- and testable -- without a walk around it.
+//
+// Is the pins-only dead end still the situation we are in? While `pinned > schur_cap` it is,
+// whatever the reason the latch was taken: pins can never be folded into K0
+// (assemble_kkt_full eliminates nothing), so immediately after ANY rebuild_k0 the live stack is
+// exactly the pins, every possible K0 is born past needs_refactorization() and bordering is
+// unavailable at any price.
+//
+// Under the cap, the REASON decides. A kCap latch releases: testing the pin COUNT rather than
+// "fewer pins than at latch time" keeps it from oscillating, the single release that crosses the
+// cap costing exactly one rebuild, and a working ROW change never releases it -- the resumed
+// state would still have dim() > schur_cap. A kConditioning latch releases when the working rows
+// differ from those it latched on (they are K0's: another K0 borders another C), when one of its
+// culprits has left `ws` (an eigenvector of C supported on pins that all stay is an exact
+// eigenvector of the C of any subset of the pins that keeps them, so a departure that keeps both
+// extreme ones keeps the eigenvalues they carry), when a pin has arrived and the C it latched on
+// was indefinite and mild (latch_arrival_cures), or on the kLatchChangedEntries-th entry on a set
+// other than the one it latched on; otherwise it holds and counts border_latch_holds. Holding is
+// correct because nothing reads K0 or the border stack while latched, and a release rebuilds K0
+// from the CURRENT working set. The caller counts the release (border_latch_releases), where it
+// rebuilds.
+bool latch_still_holds(const WorkingSet &ws, BorderState &border, QpCounters &counters,
+                       Index schur_cap);
+
+// Take the latch for `ws` (border_solve_or_fall_back, where a rebuild would be a no-op): record
+// its reason -- kCap when `pinned > schur_cap`, else kConditioning (C's condition estimate,
+// near-singularity or exact singularity) -- and, for a conditioning latch, the members it
+// latched on; whether an arrival may cure its C (indefinite, not nearly singular, and a
+// condition estimate at most kLatchArrivalCondFactor * schur_cond_max); and its culprits: the
+// pins whose entry in border.schur's near_null_direction() or dominant_direction() is at least
+// kLatchCulpritFrac of that direction's largest, or every pin when either cannot be read (an
+// exactly singular C). Counted border_latches_cap / border_latches_conditioning.
+void take_latch(const WorkingSet &ws, BorderState &border, QpCounters &counters,
+                const QpOptions &opts);
+
+} // namespace detail
 
 // The face the elimination path'S `kkt` CURRENTLY HOLDS. Captured where
 // solve_eqp factorizes, read at the verdict site so the face refinement can
@@ -2474,23 +2564,6 @@ class QpEngine {
                                         detail::WsMember *removed = nullptr);
 
     static bool rebuild_would_be_noop(const WorkingSet &ws, const BorderState &border);
-
-    // Is the pins-only dead end still the situation we are in? EXACTLY ONE
-    // question decides it: can a border stack carry the current pin count at
-    // all? Pins can never be folded into K0 (assemble_kkt_full eliminates
-    // nothing), so immediately after ANY rebuild_k0 the live stack is exactly
-    // the pins -- while `pinned > schur_cap`, every possible K0 is born past
-    // needs_refactorization() and bordering is unavailable at any price.
-    //
-    // Testing the pin COUNT rather than "fewer pins than at latch time" keeps
-    // this from oscillating: the single release that crosses the cap costs
-    // exactly one rebuild. The latch releases on the PIN COUNT alone, never on
-    // a change to the working ROWS -- a working set whose rows change every
-    // iteration would otherwise thrash the latch for nothing, since the
-    // resumed state still has dim() > schur_cap. Holding through a row change
-    // is correct because nothing reads K0 or the border stack while latched,
-    // and the release rebuilds K0 from the CURRENT working set.
-    bool latch_still_holds(const WorkingSet &ws) const;
 
     // Assemble + factorize a fresh full-variable K0 for the CURRENT working
     // set and restart the border stack empty. Counted in

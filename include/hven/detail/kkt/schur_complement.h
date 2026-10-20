@@ -68,6 +68,7 @@
 // the throw and the stack it leaves are exactly the per-add ones.
 
 #include <algorithm>
+#include <cmath>
 #include <limits>
 #include <optional>
 #include <stdexcept>
@@ -97,6 +98,12 @@ namespace detail {
 // without disturbing the ratio test at higher dimensions, where the two
 // agree.
 constexpr double kSchurSingularEigFrac = 1e-12;
+
+// Steps near_null_direction() (inverse iteration on C's own factor) and dominant_direction()
+// (power iteration on C) take: each damps a direction whose |eigenvalue| is r times nearer the
+// other end of C's spectrum by 1/r. Few on purpose -- the reader wants every border the two
+// extreme directions could live on, and an unconverged direction only widens that set.
+constexpr int kConditionDirectionSteps = 2;
 
 } // namespace detail
 
@@ -316,6 +323,41 @@ class SchurComplement {
 
     Index dim() const { return static_cast<Index>(v_.size()); }
 
+    // True iff C's last factorization is usable and its inertia is one-signed
+    // (every eigenvalue negative, or every one positive). Read by the walk's
+    // conditioning latch: a border ADDED to a definite C pushes its extreme
+    // eigenvalues outward (Cauchy interlacing) while the bordered C stays
+    // definite.
+    bool definite() const {
+        return dim() > 0 && evidence_usable() &&
+               (evidence_->neg_eigs == 0 || evidence_->neg_eigs == dim());
+    }
+
+    // C's two extreme directions, the ends cond_estimate() measures: the one
+    // nearest its null space (kConditionDirectionSteps steps of inverse
+    // iteration on the cached factor) and its dominant one (as many steps of
+    // power iteration on C), each from a fixed start and scaled to a largest
+    // |entry| of 1. Entry i belongs to the i-th border (add order). EMPTY when
+    // the direction cannot be read: dim() == 0, a step that is not finite or
+    // vanishes, and -- for the near-null one -- no usable factorization (an
+    // exactly singular C, or a rebuild that threw). Read by the walk's
+    // conditioning latch (qp_engine.h, section 4) for the borders that made C
+    // ill-conditioned; they change nothing here.
+    Vec near_null_direction() const {
+        if (dim() == 0 || !evidence_usable()) {
+            return {};
+        }
+        return iterate_direction([this](const Vec &y, Vec &z) { factor_.solve(y, z); });
+    }
+    Vec dominant_direction() const {
+        if (dim() == 0) {
+            return {};
+        }
+        const Index m = dim();
+        return iterate_direction(
+            [this, m](const Vec &y, Vec &z) { z.noalias() = c_.topLeftCorner(m, m) * y; });
+    }
+
     // Ratio of the largest to smallest |eigenvalue| among C's Bunch-Kaufman
     // diagonal blocks (1x1 blocks contribute |d_ii| directly; 2x2 blocks
     // contribute the two eigenvalues of that 2x2 block). 1.0 when dim()==0;
@@ -421,6 +463,27 @@ class SchurComplement {
     // here: it reaches factor_.solve(), which refuses a factor that never
     // completed with its own std::runtime_error.
     bool evidence_usable() const noexcept { return !singular_ && evidence_.has_value(); }
+
+    // The shared loop of near_null_direction() and dominant_direction(): `apply`
+    // maps y to the next unnormalized iterate z.
+    template <class Apply> Vec iterate_direction(const Apply &apply) const {
+        const Index m = dim();
+        Vec y(m);
+        for (Index i = 0; i < m; ++i) {
+            // A fixed start with no symmetry for an eigenvector to be orthogonal to.
+            y(i) = 1.0 + static_cast<double>(i) / static_cast<double>(m);
+        }
+        Vec z(m);
+        for (int step = 0; step < detail::kConditionDirectionSteps; ++step) {
+            apply(y, z);
+            const double s = z.lpNorm<Eigen::Infinity>();
+            if (!std::isfinite(s) || s == 0.0) {
+                return {};
+            }
+            y = z / s;
+        }
+        return y;
+    }
 
     // Grows all three border arrays, and c_, to hold at least `want` entries,
     // doing EVERY allocation before any of them is mutated -- see add_border.

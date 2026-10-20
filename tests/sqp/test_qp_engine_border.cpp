@@ -1090,12 +1090,12 @@ TEST(QpEngineBorder, DefaultIsBorderMode) {
 // latch branch -- eliminated_candidate, not a K0 rebuild. x2 (the
 // independent free block) is what keeps that fallback from hitting the
 // empty-reduced-system short-circuit, so it actually spends a solve_eqp
-// factorization every time the latch takes (and, per the latch's own
-// documented oscillation -- pinned count 2 is never > schur_cap, so
-// latch_still_holds() is false and the NEXT iteration releases the latch,
-// rebuilds K0, immediately re-triggers, and re-latches -- one more
-// factorization per iteration from there on), which is what pushes
-// factorizations comfortably past 1.
+// factorization every time the latch takes and every pass it holds, which is
+// what pushes factorizations comfortably past 1. (Pinned count 2 is never >
+// schur_cap, so this is a CONDITIONING latch: until M7 W2 RLA it released,
+// rebuilt K0, re-triggered and re-latched at every pass; it now holds until
+// one of the pins C's extreme directions live on leaves -- see
+// test_qp_latch_reason.cpp.)
 TEST(QpEngineBorder, SingularBorderTriggersRebuild) {
     const QpProblem qp = near_singular_border_qp();
 

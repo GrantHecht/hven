@@ -401,6 +401,7 @@ add_executable(hven_qp_walk_seam_tests
     qp/test_qp_certificate_sign.cpp
     qp/test_qp_saddle_shift.cpp
     qp/test_qp_stagnation_stop.cpp
+    qp/test_qp_latch_reason.cpp
 )
 
 if(NOT APPLE)

@@ -569,6 +569,17 @@ struct QpCounters {
     // cap.
     Index stagnation_drops = 0;
     Index stagnation_stops = 0;
+    // M7 W2 RLA. Appended. THE LATCH AND ITS REASON (qp_engine.h, section 4): border mode's
+    // latches onto the elimination path, by reason -- `border_latches_cap` with more pins than
+    // schur_cap, `border_latches_conditioning` with the pins under it and C ill-conditioned or
+    // singular; `border_latch_releases` the latches released (each a K0 rebuild, also in
+    // `factorizations`); `border_latch_holds` the border_candidate entries (passes and probes) on
+    // which a conditioning latch held with the pins under the cap -- each a release, K0 rebuild
+    // and border re-sync the reason-blind latch paid.
+    Index border_latches_cap = 0;
+    Index border_latches_conditioning = 0;
+    Index border_latch_releases = 0;
+    Index border_latch_holds = 0;
 };
 
 /// @brief Work counters for the semismooth-Newton kernel.
