@@ -258,7 +258,18 @@ one of those three therefore cannot silently miss the trace.
   which the scaled test passed and the caller-unit one did not; such an iterate
   is not converged and the solve continues. 0 on every unscaled solve (the guard
   is not entered), so the shipped default never moves it. Not folded: the
-  restoration sub-solve runs unscaled.
+  restoration sub-solve runs unscaled. Where the caller-unit rounding floor
+  exceeds `feas_tol`, every iterate is refused and the solve ends `max_iter`: a
+  refusal streak to the cap is the expected spelling of that case.
+
+  **THE COLUMN RULE'S JACOBIAN PROBE IS AN `evals_values`** (M7 W2 SCL rider).
+  Whenever `SqpOptions::column_scaling != kOff` the rule evaluates the
+  Jacobians once at the start point; that query is charged one `evals_values`,
+  as the warm-resolution probe's is, so the `evals_full` / `evals_values`
+  partition stays a count of every model query. A solve the column layer scaled
+  also pays one `evals_full` for the caller-unit re-measurement of the returned
+  point. Both are on the counters before the `sqp.solve.end` emission, so the
+  trace, the result and the ledger agree. Under `kOff` neither exists.
 
   **THE RESTORATION EXCURSION RECORD IS A PER-ENTRY READING, OVERWRITTEN, AND
   ITS ABSENCE IS READ OFF ITS OWN COUNT** (M7 W2 M2, the A0 signals page's S5).

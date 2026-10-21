@@ -28,20 +28,18 @@
 //
 // THE RULE (compute_column_scaling): RUIZ'S EQUILIBRATION (D. Ruiz, "A scaling
 // algorithm to equilibrate both rows and columns norms in matrices", RAL-TR-2001-034)
-// of the stacked Jacobian [Je; Ji] at the start point, in the inf-norm: each sweep
-// divides every row by the square root of its inf-norm and every column by the
-// square root of its own, both read off the same matrix; the iteration drives every
-// row and column inf-norm to 1. ONLY THE COLUMN FACTORS ARE KEPT. The row factors
-// exist to make the column factors independent of the units the modeller happened to
-// write each row in -- a column read RAW (1/max_i |J_ij|) is dominated by the row
-// with the largest entries, which is exactly the badly-scaled row -- and the rows'
-// own units are the row layer's (problem_scaling.h) to set, by its own one-sided
-// rule. Measured on SAWPATH (Vandermonde rows, entries 1 .. 6e10): the raw column
-// rule leaves the solve failing; the Ruiz column half converts it.
+// of the stacked Jacobian [Je; Ji] at the start point, in the inf-norm; ONLY THE
+// COLUMN FACTORS ARE KEPT. The row factors make the column factors independent of
+// each row's units (a raw 1/max_i |J_ij| column is dominated by the badly-scaled
+// row); the rows' own units are the row layer's (problem_scaling.h) to set.
 //
-// THE GATE. A problem is column-scaled only when it is BADLY scaled: when the
-// spread max_j d_j / min_j d_j of the factors (over columns that carry data) is at
-// least the threshold. Below it the solve is the unscaled solve, bit for bit.
+// THE GATE. A problem is column-scaled only when the spread max_j d_j / min_j d_j of
+// the factors (over columns that carry data) is at least the threshold. Below it the
+// solve is the unscaled solve plus the rule's one Jacobian probe (`evals_values`).
+//
+// OVERFLOW. Exactness holds barring overflow: a finite bound with
+// |l_j| / d_j > DBL_MAX (|l_j| beyond about 1.8e308 / factor_limit) maps to an
+// infinite one, i.e. that bound is dropped in x~.
 //
 // WHAT IS SCALED IN UNITS OF WHAT -- the contract the driver keeps
 // (drivers/sqp_solver.h, SqpSolver::solve_column_scaled):
@@ -102,7 +100,8 @@ struct ColumnScaling {
 /// @param Ji    inequality Jacobian at the start point, mi x n (mi may be 0).
 /// @param rule  the parameters, already validated.
 /// @return the factors; `active` iff spread >= rule.threshold and some factor != 1.
-/// @throws std::invalid_argument if a block's column count is not n.
+/// @throws std::invalid_argument if a block's column count is not n, a 0-row block
+///         included.
 ColumnScaling compute_column_scaling(Index n, const SpMatRM &Je, const SpMatRM &Ji,
                                      const ColumnScalingRule &rule);
 

@@ -1598,12 +1598,14 @@ struct SqpCounters {
     // restoration exit's re-evaluation of the main model at a finite restored
     // point, and the restoration seed's guard query at the exhausted-ladder site,
     // charged whether the guard passes or fails. evals_values COUNTS: every
-    // REJECTED trial's evaluation, and the warm-resolution probe's f/cE/cI fetch.
+    // REJECTED trial's evaluation, the warm-resolution probe's f/cE/cI fetch, and
+    // the column-scaling rule's Jacobian probe (SqpOptions::column_scaling != kOff;
+    // derivatives without values, charged here as the warm probe's Jacobians are).
     // One exception: a rejected trial that restoration UPGRADED at the request site
     // moves to evals_full and out of evals_values, so the partition stays exact.
     //
-    // evals_values is identically zero on a solve that never rejected a trial and
-    // never ran the warm-resolution probe.
+    // evals_values is identically zero on a solve that never rejected a trial,
+    // never ran the warm-resolution probe and ran under column_scaling kOff.
     //
     // What they do not count: both are incremented from the driver's own
     // control-flow DECISION at each call site, never from observing which NlpModel
@@ -2226,7 +2228,10 @@ struct SqpCounters {
     ///        because the feasibility in the CALLER's units -- each row residual over its
     ///        row factor, each box violation times its column factor -- exceeded
     ///        feas_tol. 0 on a solve that ran unscaled. Appended last; not folded (the
-    ///        restoration sub-solve runs unscaled and has no guard).
+    ///        restoration sub-solve runs unscaled and has no guard). Where the
+    ///        caller-unit rounding floor exceeds feas_tol, every iterate is refused
+    ///        and the solve ends kMaxIter: a refusal streak to max_iter is the
+    ///        expected spelling of that case.
     Index scaled_convergence_refusals = 0;
 };
 

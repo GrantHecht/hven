@@ -324,7 +324,9 @@ struct IterationEvent {
     /// A NON-ZERO DEPTH CHANGES THE SPACE THE EVENT IS IN. The restoration
     /// sub-solve runs the FEASIBILITY problem -- a different model, in its own
     /// variables, with its own objective -- and the forwarder that carries its
-    /// rows out stamps this field and maps nothing else. So a caller that
+    /// rows out stamps this field and maps nothing else, save that on an SQP
+    /// solve whose column scaling fired its first n entries of `x` and `z` (the
+    /// caller's variables) are in caller units, as at depth 0. So a caller that
     /// compares an event against the caller's own model, or against
     /// SqpResult's fields, must filter on `depth == 0`; the design's rule is
     /// that depth-1 rows are the sub-solve's own.

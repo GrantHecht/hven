@@ -670,7 +670,11 @@ struct SqpOptions {
     /// `f`, its multiplier blocks and every history row report CALLER-scale
     /// values. Those two can differ, so a kOptimal solve may report a
     /// caller-scale `kkt_residual` above `kkt_tol`; `SqpScalingReport` carries
-    /// both the factors and the scaled residual the gate actually read.
+    /// both the factors and the scaled residual the gate actually read. One
+    /// exception, the caller-unit feasibility guard (M7 W2 SCL): a kOptimal also
+    /// needs each row residual over its row factor to be <= feas_tol, so its
+    /// caller-scale `sqp_feasibility` is within feas_tol
+    /// (SqpCounters::scaled_convergence_refusals counts the refusals).
     bool enable_scaling = false;
 
     /// The inf-norm the scaled objective gradient and each scaled Jacobian row
@@ -701,21 +705,22 @@ struct SqpOptions {
     /// and, beside it, on the CALLER-unit feasibility (rows and box) <= feas_tol, so a
     /// kOptimal point is feasible for the problem the caller posed;
     /// `SqpResult::x`, `z`, the multipliers and the terminal residuals are in caller
-    /// units, re-measured on the caller's model. History rows, iteration events'
-    /// scalar diagnostics and trace rows stay in the engine's units for the
-    /// x-dependent columns (stationarity, step_norm, tr_radius); an event's x and z
-    /// are mapped. A warm start crosses as x / d, z * d; its radius, regularization,
-    /// hot factorization and prox centre are not carried (they are scaled-space state).
-    /// Whenever the rule runs it costs one Jacobian evaluation at the start point,
-    /// which -- like the warm-start probe's -- no SqpCounters field counts; a solve that
-    /// fires also pays one full evaluation at the end (the caller-unit re-measurement,
-    /// counted in `evals_full`).
+    /// units, re-measured on the caller's model. History rows, `sqp.major` trace rows
+    /// and iteration events' scalar diagnostics stay in the engine's units for the
+    /// x-dependent columns (stationarity, step_norm, tr_radius; and the feasibility
+    /// columns when the row layer is off); an event's x and z are mapped, at depth 1
+    /// in their first n entries. A warm start crosses as x / d, z * d; its radius,
+    /// regularization, hot factorization and prox centre are not carried (they are
+    /// scaled-space state).
     ///
-    /// DEFAULT kOff, by measurement (M7 W2 SCL): kAuto converts SAWPATH's exact label
-    /// to the optimum on the CUTEst TRAIN set, but its gate also fires on every F7
-    /// trajectory cell of the U0 corpus (a mesh transcription's spread grows with N,
-    /// 2^11 .. 2^15 there), where it costs one U0 cell its optimum and the warm-start
-    /// currency its scaled-space state. Opt in per problem.
+    /// COST: whenever the rule runs, one Jacobian evaluation at the start point,
+    /// counted in `evals_values` as the warm-start probe's is; a solve that fires
+    /// also pays one full evaluation at the end (the caller-unit re-measurement,
+    /// `evals_full`), two under kAuto, whose row layer re-measures too.
+    ///
+    /// DEFAULT kOff: kAuto's gate fires on mesh transcriptions, whose spread grows
+    /// with N, and there it costs the warm-start currency its scaled-space state
+    /// (measured, M7 W2 SCL). Opt in per problem.
     SqpColumnScaling column_scaling = SqpColumnScaling::kOff;
 
     /// kAuto's gate: the column factors' spread (max d / min d over columns with
@@ -1386,11 +1391,12 @@ struct SqpScalingReport {
     double row_min = 1.0;
     /// THE SCALED RESIDUAL THE CONVERGENCE TEST ACTUALLY READ, at the returned
     /// point -- the counterpart of SqpResult::kkt_residual, which is on the
-    /// CALLER's scale. On an inactive solve the two are the same number by
-    /// construction. On an active one their difference is exactly the gap
-    /// SqpOptions::enable_scaling discloses, and reporting both is what makes it
-    /// computable. NaN whenever SqpResult::kkt_residual is NaN, for the same
-    /// reason: nothing was measured.
+    /// CALLER's scale. On a solve that ran in neither layer the two are the same
+    /// number by construction; on a column-scaled one (`columns_active`) this is
+    /// the residual in the scaled variables x~, whichever row layer ran. On a
+    /// scaled one their difference is exactly the gap SqpOptions::enable_scaling
+    /// discloses, and reporting both is what makes it computable. NaN whenever
+    /// SqpResult::kkt_residual is NaN, for the same reason: nothing was measured.
     double scaled_kkt_residual = std::numeric_limits<double>::quiet_NaN();
     /// THE COLUMN LAYER (M7 W2 SCL, SqpOptions::column_scaling). True when the solve
     /// ran in scaled variables. `col_min`/`col_max` are the installed factors'
@@ -1557,7 +1563,9 @@ struct SqpResult : SolveResult {
     // describe the PRE-SWEEP multipliers while `lambda_i` holds the swept
     // ones. `sqp_stationarity` is then optimistic by at most
     // `ssn_sign_sweep_max * ||Ji||inf`, and `sqp_complementarity` can only be
-    // over-stated.
+    // over-stated. NOT on a column-scaled solve (`scaling.columns_active`):
+    // there the four are re-measured on the caller's model at the RETURNED,
+    // post-sweep multipliers.
     //
     // IT DOES NOT REACH THE SHARED BASE (M6 W5 T8.4 fix1). SolveResult's four
     // are a statement about the values the call RETURNS: where the sweep -- or

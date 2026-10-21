@@ -147,7 +147,7 @@ double power_of_two_factor(double v, double limit) {
 
 ColumnScaling compute_column_scaling(Index n, const SpMatRM &Je, const SpMatRM &Ji,
                                      const ColumnScalingRule &rule) {
-    if ((Je.rows() > 0 && Je.cols() != n) || (Ji.rows() > 0 && Ji.cols() != n)) {
+    if (Je.cols() != n || Ji.cols() != n) {
         throw std::invalid_argument(fmt::format(
             "compute_column_scaling: the Jacobians have {} and {} columns, expected n = {}",
             Je.cols(), Ji.cols(), n));
@@ -249,7 +249,8 @@ ColumnScaledModel::ColumnScaledModel(const NlpModel &model, Vec d)
                 d_(j)));
         }
     }
-    // inf / d is inf, so an absent bound stays absent.
+    // inf / d is inf, so an absent bound stays absent. A finite bound whose quotient
+    // overflows becomes infinite (the banner's OVERFLOW note).
     lower_ = model_.lower().cwiseQuotient(d_);
     upper_ = model_.upper().cwiseQuotient(d_);
 }

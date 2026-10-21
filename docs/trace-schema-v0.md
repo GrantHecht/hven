@@ -177,6 +177,14 @@ The exported history row, VERBATIM, in `SqpIterate` declaration order, in CALLER
 units (the event is emitted inside `push_history` after its scaling map), plus
 two trailing keys.
 
+**Except on a column-scaled solve** (`SqpOptions::column_scaling` fired,
+`SqpResult::scaling.columns_active`; M7 W2 SCL): the row layer's map is the only
+one `push_history` applies, so the x-dependent columns -- `stationarity`,
+`step_norm`, `tr_radius` (an l-infinity radius in the scaled variables), and,
+when the row layer is off, `feasibility`, `violation_l1` and `kkt_residual` (a
+box violation read in units of its column factor) -- are in the ENGINE's
+variables. The terminal fields on `SqpResult` are the caller's, re-measured.
+
 | key | type | notes |
 |---|---|---|
 | `trial` | integer | trial steps this major took |

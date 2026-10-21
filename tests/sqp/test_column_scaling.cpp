@@ -11,10 +11,14 @@
 //       refusals.
 //   (c) THE OPTION: the shipped default is kOff, validation, the dump lines.
 //   (d) THE DRIVER: a badly column-scaled fit solves under kAuto and kAlways and
-//       reports in the caller's units against an independent measurement; below
-//       the gate kAuto is the kOff solve (plus the rule's one evaluation); the
-//       iteration event's x and z are the caller's; the warm start crosses both
-//       ways.
+//       reports in the caller's units against an independent measurement (an
+//       inequality row too); below the gate kAuto is the kOff solve plus the rule's
+//       one counted probe; the scaled solve is the kOff solve of the scaled model,
+//       its z mapped on every status (restoration's own price included); the rule
+//       reads the point the solve stands on; the trace, the result and the ledger
+//       agree; iteration events at depth 0 and 1 carry the caller's x and z; the
+//       warm start crosses both ways, natively and as a payload, without a hot
+//       factorization.
 //   (e) THE GUARD: a row the row layer shrank, and a box violation a column factor
 //       hid, are each refused as a convergence and the solve goes on to a point
 //       that is feasible in the caller's units.
@@ -28,8 +32,10 @@
 
 #include <gtest/gtest.h>
 
+#include <hven/core/ledger.h>
 #include <hven/detail/drivers/column_scaling.h>
 #include <hven/drivers/sqp_solver.h>
+#include <hven/drivers/trace.h>
 
 #include "support/hs_problems.h"
 
@@ -337,6 +343,10 @@ TEST(ColumnScalingRule, AJacobianOfTheWrongWidthIsRefused) {
     EXPECT_THROW(compute_column_scaling(2, SpMatRM(0, 2), dense_to_sparse(1, 3, {1, 1, 1}),
                                         ColumnScalingRule{}),
                  std::invalid_argument);
+    // A 0-row block must still have n columns.
+    EXPECT_THROW(compute_column_scaling(2, dense_to_sparse(1, 2, {1, 1}), SpMatRM(0, 3),
+                                        ColumnScalingRule{}),
+                 std::invalid_argument);
 }
 
 // ===========================================================================
@@ -601,7 +611,8 @@ void expect_same_solve(const SqpResult &a, const SqpResult &b) {
     EXPECT_EQ(a.counters.major_iters, b.counters.major_iters);
     EXPECT_EQ(a.counters.qp_minor_iters, b.counters.qp_minor_iters);
     EXPECT_EQ(a.counters.factorizations, b.counters.factorizations);
-    EXPECT_EQ(a.counters.evals_values, b.counters.evals_values);
+    EXPECT_EQ(a.counters.evals_values + 1, b.counters.evals_values)
+        << "the rule's Jacobian probe is counted as the warm probe is";
     EXPECT_EQ(a.counters.evals_full, b.counters.evals_full)
         << "the rule's Jacobian call is not a full evaluation";
     EXPECT_EQ(a.counters.eval_hess_calls, b.counters.eval_hess_calls);
@@ -777,51 +788,149 @@ class ScaledInfeasibleModel : public NlpModel {
     Vec upper_ = (Vec(2) << 0.5, 1e5).finished(); // x0's cap binds in restoration
 };
 
-TEST(ColumnScalingDriver, TheScaledSolveIsTheUnscaledSolveOfTheScaledModel) {
-    ScaledInfeasibleModel model;
+// THE EQUIVALENCE, every exported vector: the scaled solve's x, lambda and z are the
+// reference's mapped (x = d x~, z = z~ / d), on EVERY status -- a bound price the
+// inner finish exported from the feasibility problem (any restoration exit that
+// adopted its prices) is mapped, grad L's is re-measured, and on these fixtures the
+// re-measure is bit-equal to the map (power-of-two d). scaled_kkt_residual is the
+// inner residual under the column layer alone.
+struct Equivalence {
+    SqpResult ref;
+    SqpResult sol;
+    Vec d;
+};
+
+template <class Model> Equivalence expect_scaled_equivalence(const Model &model, int max_iter) {
     const Vec x0 = model.start_point();
-    // The rule reads the start PROJECTED onto the box, as the solve starts there:
-    // x0(0) = 2 is above its cap 0.5.
+    // The rule reads the start PROJECTED onto the box, as the solve starts there.
     SpMatRM je;
     model.eval_jac_e_in_place(x0.cwiseMax(model.lower()).cwiseMin(model.upper()), je);
     ColumnScalingRule rule;
     rule.threshold = 1.0;
-    const ColumnScaling cs = compute_column_scaling(2, je, SpMatRM(0, 2), rule);
-    ASSERT_TRUE(cs.active);
-    ASSERT_NE(cs.cols(0), cs.cols(1));
+    const ColumnScaling cs = compute_column_scaling(model.n(), je, SpMatRM(0, model.n()), rule);
+    EXPECT_TRUE(cs.active);
+    Equivalence e;
+    e.d = cs.active ? cs.cols : Vec::Ones(model.n());
 
     SqpOptions opts = off_options();
-    opts.max_iter = 60;
+    opts.max_iter = max_iter;
     SqpSolver plain{opts};
-    const ColumnScaledModel scaled_model(model, cs.cols);
-    const SqpResult ref = plain.solve(scaled_model, scaled_model.to_scaled(x0));
+    const ColumnScaledModel scaled_model(model, e.d);
+    e.ref = plain.solve(scaled_model, scaled_model.to_scaled(x0));
 
     opts.column_scaling = SqpColumnScaling::kAlways;
     SqpSolver driver{opts};
-    const SqpResult sol = driver.solve(model, x0);
-    ASSERT_TRUE(sol.scaling.columns_active);
-    ASSERT_GE(ref.counters.restoration_iters, 1) << "the premise: restoration runs";
+    e.sol = driver.solve(model, x0);
+    const SqpResult &ref = e.ref;
+    const SqpResult &sol = e.sol;
+    EXPECT_TRUE(sol.scaling.columns_active);
+    EXPECT_FALSE(sol.scaling.active);
 
     EXPECT_EQ(ref.status, sol.status);
+    EXPECT_EQ(ref.infeasibility_certified, sol.infeasibility_certified);
     EXPECT_EQ(ref.counters.major_iters, sol.counters.major_iters);
     EXPECT_EQ(ref.counters.restoration_iters, sol.counters.restoration_iters);
     EXPECT_EQ(ref.counters.restoration_entries, sol.counters.restoration_entries);
     EXPECT_EQ(ref.counters.qp_minor_iters, sol.counters.qp_minor_iters);
     EXPECT_EQ(ref.counters.factorizations, sol.counters.factorizations);
     EXPECT_EQ(ref.counters.restoration_h_out, sol.counters.restoration_h_out);
+    EXPECT_EQ(ref.counters.evals_full + 1, sol.counters.evals_full) << "the re-measurement";
+    EXPECT_EQ(ref.counters.evals_values + 1, sol.counters.evals_values) << "the rule's probe";
     EXPECT_EQ(ref.history.size(), sol.history.size());
     EXPECT_TRUE(sol.x.isApprox(scaled_model.to_caller(ref.x), 0.0));
     EXPECT_TRUE(sol.lambda_e.isApprox(ref.lambda_e, 0.0));
-    if (sol.status == SolveStatus::kInfeasible) {
-        // THE CERTIFICATE'S BOUND PRICE is the feasibility problem's, mapped: z = z~ / d.
-        ASSERT_EQ(2, sol.z.size());
-        EXPECT_TRUE(sol.z.isApprox(Vec(ref.z.cwiseQuotient(cs.cols)), 0.0))
-            << sol.z.transpose() << " vs " << ref.z.transpose();
-        std::printf("[ SCL ] infeasible certificate: z = (%g, %g)\n", sol.z(0), sol.z(1));
+    EXPECT_TRUE(sol.lambda_i.isApprox(ref.lambda_i, 0.0));
+    EXPECT_EQ(ref.z.size(), sol.z.size());
+    if (ref.z.size() == sol.z.size()) {
+        EXPECT_TRUE(sol.z.isApprox(Vec(ref.z.cwiseQuotient(e.d)), 0.0))
+            << sol.z.transpose() << " vs " << ref.z.transpose() << " / d";
     }
+    EXPECT_EQ(ref.kkt_residual, sol.scaling.scaled_kkt_residual)
+        << "the inner residual, under the column layer alone";
+    return e;
+}
+
+TEST(ColumnScalingDriver, TheScaledSolveIsTheUnscaledSolveOfTheScaledModel) {
+    ScaledInfeasibleModel model;
+    const Equivalence e = expect_scaled_equivalence(model, 60);
+    ASSERT_GE(e.ref.counters.restoration_iters, 1) << "the premise: restoration runs";
     std::printf("[ SCL ] scaled-model equivalence: status %d majors %ld resto %ld\n",
-                static_cast<int>(sol.status), static_cast<long>(sol.counters.major_iters),
-                static_cast<long>(sol.counters.restoration_iters));
+                static_cast<int>(e.sol.status), static_cast<long>(e.sol.counters.major_iters),
+                static_cast<long>(e.sol.counters.restoration_iters));
+}
+
+// ===========================================================================
+// THE BOX-BLOCKED EQUALITY, one variable in units of 1e4: 1e-4 x0 = 5 with
+// 0 <= x0 <= 1e4 is out of reach, so restoration ends on x0's cap, where the
+// feasibility problem's bound price (the certificate's, -1 in the row's units) and
+// grad L's (0: lambda_e cancels the objective there) differ. min 1/2 (1e-4 x0)^2 +
+// 1/2 x1^2, x1 in [0, 1].
+// ===========================================================================
+class ScaledBoxBlockedModel : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 1; }
+    Index mi() const override { return 0; }
+    double eval_f(const Vec &x) const override {
+        const double y = 1e-4 * x(0);
+        return 0.5 * (y * y + x(1) * x(1));
+    }
+    Vec eval_grad(const Vec &x) const override { return (Vec(2) << 1e-8 * x(0), x(1)).finished(); }
+    Vec eval_ce(const Vec &x) const override { return Vec::Constant(1, 1e-4 * x(0) - 5.0); }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = 1e-8 * obj_scale;
+        h.insert(1, 1) = obj_scale;
+        h.makeCompressed();
+        return h;
+    }
+    SpMatRM eval_jac_e(const Vec &) const override {
+        SpMatRM j(1, 2);
+        j.insert(0, 0) = 1e-4;
+        j.makeCompressed();
+        return j;
+    }
+    SpMatRM eval_jac_i(const Vec &) const override { return SpMatRM(0, 2); }
+    const Vec &lower() const override { return lower_; }
+    const Vec &upper() const override { return upper_; }
+    Vec start_point() const override { return (Vec(2) << 5e3, 0.5).finished(); }
+
+  private:
+    Vec lower_ = Vec::Zero(2);
+    Vec upper_ = (Vec(2) << 1e4, 1.0).finished();
+};
+
+TEST(ColumnScalingDriver, ACertifiedExitMapsTheFeasibilityPrice) {
+    // Restoration ends on x0's cap: the certificate's price there is not grad L's,
+    // which a re-measurement would have exported instead.
+    ScaledBoxBlockedModel model;
+    const Equivalence e = expect_scaled_equivalence(model, 60);
+    ASSERT_EQ(SolveStatus::kInfeasible, e.sol.status);
+    ASSERT_TRUE(e.sol.infeasibility_certified);
+    const SqpKkt k = evaluate_kkt(model, e.sol.x, e.sol.lambda_e, e.sol.lambda_i, 1e-6);
+    ASSERT_LT(e.sol.z(0), 0.0) << "the premise: the cap carries the certificate's price";
+    EXPECT_NE(k.z(0), e.sol.z(0)) << "the premise: grad L's price differs";
+}
+
+TEST(ColumnScalingDriver, ARestorationExitAtTheCapMapsTheFeasibilityPriceToo) {
+    // THE SAME EXPORT ON EVERY STATUS: restoration adopts its own prices on every
+    // exit that moved x, so a solve the iteration cap stops inside restoration
+    // (kMaxIter) exports the feasibility problem's price as the certified exit does.
+    // Swept over the caps that end before, inside and after the phase.
+    ScaledInfeasibleModel model;
+    bool saw_discriminating_max_iter = false;
+    for (int cap = 1; cap <= 8; ++cap) {
+        SCOPED_TRACE(cap);
+        const Equivalence c = expect_scaled_equivalence(model, cap);
+        const SqpKkt k = evaluate_kkt(model, c.sol.x, c.sol.lambda_e, c.sol.lambda_i, 1e-6);
+        if (c.sol.status == SolveStatus::kMaxIter && c.sol.counters.restoration_iters > 0 &&
+            k.z.size() == c.sol.z.size() && !k.z.isApprox(c.sol.z, 1e-6)) {
+            saw_discriminating_max_iter = true;
+        }
+    }
+    EXPECT_TRUE(saw_discriminating_max_iter)
+        << "the premise: a kMaxIter restoration exit whose price is not grad L's";
 }
 
 TEST(ColumnScalingDriver, TheWarmStartCrossesBothWays) {
@@ -836,8 +945,19 @@ TEST(ColumnScalingDriver, TheWarmStartCrossesBothWays) {
     SqpOptions warm_opts = opts;
     warm_opts.common.start_level = StartLevel::kWarm;
     SqpSolver second{warm_opts};
+    Vec first_x;
+    second.set_iteration_callback([&](const IterationEvent &ev) {
+        if (first_x.size() == 0) {
+            first_x = ev.x;
+        }
+        return CallbackAction::kContinue;
+    });
     const SqpResult again =
         second.solve(model, model.start_point(), cold.warm_start, SolveBudget{});
+    // The first major stands on the warm point: x~ = x / d in, x = d x~ out, the same
+    // doubles (power-of-two d).
+    EXPECT_TRUE(first_x.isApprox(cold.warm_start.x, 0.0))
+        << first_x.transpose() << " vs " << cold.warm_start.x.transpose();
     EXPECT_NE(StartLevel::kCold, again.counters.start_level_used);
     ASSERT_EQ(SolveStatus::kOptimal, again.status);
     EXPECT_TRUE(again.scaling.columns_active);
@@ -863,18 +983,121 @@ TEST(ColumnScalingDriver, TheWarmStartCrossesBothWays) {
     }
 }
 
-TEST(ColumnScalingDriver, TheRuleReadsTheWarmPointWhenOneIsCarried) {
-    // A warm point at the solution of the fit and a cold x0 far from it give the
-    // same Jacobian (the rows are linear), so the factors agree; what this pins is
-    // that a warm solve with an INVALID warm object reads x0 and still scales.
-    PolyFitModel model;
+// ===========================================================================
+// THE BILINEAR ROW: x0 x1 = 2, so the Jacobian (x1, x0) -- and with it the rule's
+// spread -- depends on the point read. Near (1, 2) it is 2 (below kAuto's gate); at
+// (1/100, 200) it is ~2^14 (above it). min 1/2 ||x - (1, 2)||^2.
+// ===========================================================================
+class BilinearRowModel : public NlpModel {
+  public:
+    BilinearRowModel() = default;
+    BilinearRowModel(Vec lower, Vec upper) : lower_(std::move(lower)), upper_(std::move(upper)) {}
+    Index n() const override { return 2; }
+    Index me() const override { return 1; }
+    Index mi() const override { return 0; }
+    double eval_f(const Vec &x) const override {
+        return 0.5 * ((x(0) - 1.0) * (x(0) - 1.0) + (x(1) - 2.0) * (x(1) - 2.0));
+    }
+    Vec eval_grad(const Vec &x) const override {
+        return (Vec(2) << x(0) - 1.0, x(1) - 2.0).finished();
+    }
+    Vec eval_ce(const Vec &x) const override { return Vec::Constant(1, x(0) * x(1) - 2.0); }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &lambda_e,
+                      const Vec &) const override {
+        SpMatRM h(2, 2);
+        const double l = lambda_e.size() > 0 ? lambda_e(0) : 0.0;
+        h.insert(0, 0) = obj_scale;
+        h.insert(0, 1) = l; // the upper triangle only (nlp_model.h)
+        h.insert(1, 1) = obj_scale;
+        h.makeCompressed();
+        return h;
+    }
+    SpMatRM eval_jac_e(const Vec &x) const override {
+        SpMatRM j(1, 2);
+        j.insert(0, 0) = x(1);
+        j.insert(0, 1) = x(0);
+        j.makeCompressed();
+        return j;
+    }
+    SpMatRM eval_jac_i(const Vec &) const override { return SpMatRM(0, 2); }
+    const Vec &lower() const override { return lower_; }
+    const Vec &upper() const override { return upper_; }
+    Vec start_point() const override { return (Vec(2) << 1.0, 2.0).finished(); }
+
+  private:
+    Vec lower_ = Vec::Constant(2, 1e-3);
+    Vec upper_ = Vec::Constant(2, 1e3);
+};
+
+double rule_spread_at(const NlpModel &model, const Vec &x) {
+    SpMatRM je;
+    model.eval_jac_e_in_place(x, je);
+    return compute_column_scaling(model.n(), je, SpMatRM(0, model.n()), ColumnScalingRule{}).spread;
+}
+
+TEST(ColumnScalingDriver, TheRuleReadsTheWarmPointWhenTheIngestWouldTakeIt) {
+    BilinearRowModel model;
+    const Vec far = (Vec(2) << 0.01, 200.0).finished();
+    const double spread_x0 = rule_spread_at(model, model.start_point());
+    const double spread_warm = rule_spread_at(model, far);
+    ASSERT_LT(spread_x0, 1e3) << "the premise: x0 is below the gate";
+    ASSERT_GE(spread_warm, 1e3) << "the premise: the warm point is above it";
+
+    // A valid warm object (dimensions and working set from a real solve), moved to
+    // the far point.
+    SqpSolver plain{off_options()};
+    const SqpResult seed = plain.solve(model, model.start_point());
+    ASSERT_TRUE(seed.warm_start.valid);
+    SqpWarmStart warm = seed.warm_start;
+    warm.x = far;
+
     SqpOptions opts;
     opts.column_scaling = SqpColumnScaling::kAuto;
-    SqpSolver driver{opts};
-    SqpWarmStart invalid;
-    const SqpResult sol = driver.solve(model, model.start_point(), invalid, SolveBudget{});
-    ASSERT_EQ(SolveStatus::kOptimal, sol.status);
-    EXPECT_TRUE(sol.scaling.columns_active);
+    opts.common.start_level = StartLevel::kWarm;
+    SqpSolver warm_driver{opts};
+    const SqpResult w = warm_driver.solve(model, model.start_point(), warm, SolveBudget{});
+    EXPECT_NE(StartLevel::kCold, w.counters.start_level_used);
+    EXPECT_TRUE(w.scaling.columns_active) << "the rule read warm.x";
+    EXPECT_DOUBLE_EQ(spread_warm, w.scaling.col_spread);
+
+    // AT A kCold CEILING the ingest never takes warm.x, so neither does the rule.
+    opts.common.start_level = StartLevel::kCold;
+    SqpSolver cold_driver{opts};
+    const SqpResult c = cold_driver.solve(model, model.start_point(), warm, SolveBudget{});
+    EXPECT_EQ(StartLevel::kCold, c.counters.start_level_used);
+    EXPECT_FALSE(c.scaling.columns_active) << "the rule read x0";
+    EXPECT_DOUBLE_EQ(spread_x0, c.scaling.col_spread);
+
+    // AN INVALID warm object: x0 is read.
+    opts.common.start_level = StartLevel::kWarm;
+    SqpSolver invalid_driver{opts};
+    const SqpResult i =
+        invalid_driver.solve(model, model.start_point(), SqpWarmStart{}, SolveBudget{});
+    EXPECT_FALSE(i.scaling.columns_active);
+    EXPECT_DOUBLE_EQ(spread_x0, i.scaling.col_spread);
+}
+
+TEST(ColumnScalingDriver, TheRuleReadsTheStartAsTheSolveDoes) {
+    // x0 = (1/100, 200) is outside x1 <= 1: projected it is (1/2, 1), below the gate;
+    // verbatim it is above it. The rule follows project_start_point.
+    const BilinearRowModel model((Vec(2) << 0.5, 1e-3).finished(), (Vec(2) << 1e3, 1.0).finished());
+    const Vec x0 = (Vec(2) << 0.01, 200.0).finished();
+    const Vec projected = x0.cwiseMax(model.lower()).cwiseMin(model.upper());
+    ASSERT_LT(rule_spread_at(model, projected), 1e3);
+    ASSERT_GE(rule_spread_at(model, x0), 1e3);
+    SqpOptions opts;
+    opts.column_scaling = SqpColumnScaling::kAuto;
+    opts.max_iter = 5;
+    SqpSolver projecting{opts};
+    const SqpResult p = projecting.solve(model, x0);
+    EXPECT_FALSE(p.scaling.columns_active);
+    EXPECT_DOUBLE_EQ(rule_spread_at(model, projected), p.scaling.col_spread);
+    opts.project_start_point = false;
+    SqpSolver verbatim{opts};
+    const SqpResult v = verbatim.solve(model, x0);
+    EXPECT_TRUE(v.scaling.columns_active);
+    EXPECT_DOUBLE_EQ(rule_spread_at(model, x0), v.scaling.col_spread);
 }
 
 TEST(ColumnScalingDriver, TheArgumentRefusalsAreSolveImplsOwn) {
@@ -886,6 +1109,276 @@ TEST(ColumnScalingDriver, TheArgumentRefusalsAreSolveImplsOwn) {
     Vec bad = Vec::Zero(6);
     bad(1) = std::numeric_limits<double>::quiet_NaN();
     EXPECT_THROW(driver.solve(model, bad), std::invalid_argument);
+}
+
+// ===========================================================================
+// THE THREE CONSUMERS OF ONE COUNTERS OBJECT AGREE on a fired solve: the
+// `sqp.solve.end` event, the returned result and the ledger record. The column
+// layer's re-measurement (+1 evals_full) and its probe (+1 evals_values) are both
+// made before the emission.
+// ===========================================================================
+class EndSink final : public TraceSink {
+  public:
+    std::vector<SqpCounters> ends;
+    void on_ipqp_iter(const IpqpTraceIterEvent &) override {}
+    void on_ipqp_reg(const IpqpTraceRegEvent &) override {}
+    void on_ipqp_restart(const IpqpTraceRestartEvent &) override {}
+    void on_ipqp_route(const IpqpTraceRouteEvent &) override {}
+    void on_ipqp_certify(const IpqpTraceCertifyEvent &) override {}
+    void on_ipqp_escape(const IpqpTraceEscapeEvent &) override {}
+    void on_qp_mode(const QpModeTraceEvent &) override {}
+    void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) override {}
+    void on_sqp_solve_end(const SqpSolveEndTraceEvent &e) override { ends.push_back(e.counters); }
+};
+
+void expect_three_consumers_agree(const SqpResult &sol, const EndSink &sink, const Ledger &ledger) {
+    ASSERT_FALSE(sink.ends.empty());
+    ASSERT_EQ(1u, ledger.sqp_records().size());
+    const SqpCounters &t = sink.ends.back(); // the outer solve closes last
+    const SqpCounters &l = ledger.sqp_records()[0].counters;
+    EXPECT_EQ(sol.counters.evals_full, t.evals_full);
+    EXPECT_EQ(sol.counters.evals_full, l.evals_full);
+    EXPECT_EQ(sol.counters.evals_values, t.evals_values);
+    EXPECT_EQ(sol.counters.evals_values, l.evals_values);
+    EXPECT_EQ(sol.counters.major_iters, t.major_iters);
+    EXPECT_EQ(sol.counters.major_iters, l.major_iters);
+    EXPECT_EQ(sol.counters.scaled_convergence_refusals, t.scaled_convergence_refusals);
+    EXPECT_EQ(sol.counters.scaled_convergence_refusals, l.scaled_convergence_refusals);
+}
+
+TEST(ColumnScalingDriver, TheTraceTheResultAndTheLedgerAgreeOnAFiredSolve) {
+    PolyFitModel model;
+    SqpSolver plain{off_options()};
+    const SqpResult ref = plain.solve(model, model.start_point());
+    SqpOptions opts;
+    opts.column_scaling = SqpColumnScaling::kAlways;
+    SqpSolver driver{opts};
+    EndSink sink;
+    Ledger ledger;
+    driver.attach_trace(&sink);
+    driver.attach_ledger(&ledger, "scl");
+    const SqpResult sol = driver.solve(model, model.start_point());
+    ASSERT_TRUE(sol.scaling.columns_active);
+    expect_three_consumers_agree(sol, sink, ledger);
+    EXPECT_GE(sol.counters.evals_values, 1) << "the probe is in it";
+    EXPECT_EQ(ref.counters.evals_values, 0) << "the kOff solve has no probe";
+
+    // AND ON A SOLVE THE GATE LEFT ALONE: the probe alone, in all three.
+    test_support::Hs14Model hs;
+    SqpOptions auto_opts;
+    auto_opts.column_scaling = SqpColumnScaling::kAuto;
+    SqpSolver quiet{auto_opts};
+    EndSink sink2;
+    Ledger ledger2;
+    quiet.attach_trace(&sink2);
+    quiet.attach_ledger(&ledger2, "scl");
+    const SqpResult q = quiet.solve(hs, hs.start_point());
+    ASSERT_FALSE(q.scaling.columns_active);
+    expect_three_consumers_agree(q, sink2, ledger2);
+}
+
+// THE DEPTH-1 EVENTS carry the caller's units in the caller's variables: each one
+// is the reference's (the kOff solve of the scaled model) with its first n entries
+// of x multiplied by d and of z divided by d, and nothing else moved.
+template <class Model>
+void expect_mapped_events(const Model &model, int max_iter, bool scaled_bound_price) {
+    const Vec x0 = model.start_point();
+    SpMatRM je;
+    model.eval_jac_e_in_place(x0.cwiseMax(model.lower()).cwiseMin(model.upper()), je);
+    ColumnScalingRule rule;
+    rule.threshold = 1.0;
+    const ColumnScaling cs = compute_column_scaling(2, je, SpMatRM(0, 2), rule);
+    ASSERT_TRUE(cs.active);
+    struct Seen {
+        Index depth;
+        Vec x, z, lambda_e;
+    };
+    auto record = [](std::vector<Seen> &into) {
+        return [&into](const IterationEvent &ev) {
+            into.push_back(Seen{ev.depth.value_or(-1), ev.x, ev.z, ev.lambda_e});
+            return CallbackAction::kContinue;
+        };
+    };
+    SqpOptions opts = off_options();
+    opts.max_iter = max_iter;
+    std::vector<Seen> ref_events, events;
+    SqpSolver plain{opts};
+    plain.set_iteration_callback(record(ref_events));
+    const ColumnScaledModel scaled_model(model, cs.cols);
+    (void)plain.solve(scaled_model, scaled_model.to_scaled(x0));
+    opts.column_scaling = SqpColumnScaling::kAlways;
+    SqpSolver driver{opts};
+    driver.set_iteration_callback(record(events));
+    (void)driver.solve(model, x0);
+    ASSERT_EQ(ref_events.size(), events.size());
+    Index depth1 = 0;
+    bool depth1_bound_price = false;
+    for (std::size_t k = 0; k < events.size(); ++k) {
+        SCOPED_TRACE(k);
+        const Seen &r = ref_events[k];
+        const Seen &e = events[k];
+        ASSERT_EQ(r.depth, e.depth);
+        ASSERT_EQ(r.x.size(), e.x.size());
+        ASSERT_EQ(r.z.size(), e.z.size());
+        ASSERT_GE(e.x.size(), 2);
+        Vec x_expect = r.x;
+        x_expect.head(2).array() *= cs.cols.array();
+        Vec z_expect = r.z;
+        z_expect.head(2).array() /= cs.cols.array();
+        EXPECT_TRUE(e.x.isApprox(x_expect, 0.0))
+            << e.x.transpose() << " vs " << x_expect.transpose();
+        EXPECT_TRUE(e.z.isApprox(z_expect, 0.0))
+            << e.z.transpose() << " vs " << z_expect.transpose();
+        EXPECT_TRUE(e.lambda_e.isApprox(r.lambda_e, 0.0));
+        if (e.depth == 1) {
+            ++depth1;
+            for (Index j = 0; j < 2; ++j) {
+                depth1_bound_price = depth1_bound_price || (cs.cols(j) != 1.0 && r.z(j) != 0.0);
+            }
+            EXPECT_GT(e.x.size(), 2) << "the feasibility problem carries slacks beyond x";
+        }
+    }
+    EXPECT_GE(depth1, 1) << "the premise: restoration rows were seen";
+    if (scaled_bound_price) {
+        EXPECT_TRUE(depth1_bound_price) << "the premise: a depth-1 bound price on a scaled column";
+    }
+}
+
+TEST(ColumnScalingDriver, RestorationEventsCarryTheCallersUnitsInTheCallersVariables) {
+    {
+        SCOPED_TRACE("infeasible circle and line");
+        expect_mapped_events(ScaledInfeasibleModel{}, 60, false);
+    }
+    {
+        SCOPED_TRACE("box-blocked equality"); // restoration ends on x0's scaled cap
+        expect_mapped_events(ScaledBoxBlockedModel{}, 60, true);
+    }
+}
+
+// A HOT FACTORIZATION IS A FACTORIZATION OF A DIFFERENT KKT MATRIX in the scaled
+// variables; its structure hash matches (a positive diagonal scaling keeps every
+// pattern), so the hand-off must drop it rather than let the hash resolve kHot.
+TEST(ColumnScalingDriver, AnUnscaledHotFactorizationDoesNotResolveHotInAScaledSolve) {
+    PolyFitModel model;
+    SqpOptions hot_opts = off_options();
+    hot_opts.common.start_level = StartLevel::kHot;
+    SqpSolver first{hot_opts};
+    const SqpResult cold = first.solve(model, model.start_point());
+    ASSERT_EQ(SolveStatus::kOptimal, cold.status);
+    ASSERT_NE(nullptr, cold.warm_start.hot) << "the premise: a hot handle was exported";
+    // The control: the unscaled solve takes it.
+    SqpSolver control{hot_opts};
+    const SqpResult c = control.solve(model, model.start_point(), cold.warm_start, SolveBudget{});
+    ASSERT_EQ(StartLevel::kHot, c.counters.start_level_used) << "the premise: kHot resolves";
+
+    SqpOptions opts = hot_opts;
+    opts.column_scaling = SqpColumnScaling::kAlways;
+    SqpSolver scaled{opts};
+    const SqpResult s = scaled.solve(model, model.start_point(), cold.warm_start, SolveBudget{});
+    ASSERT_TRUE(s.scaling.columns_active);
+    EXPECT_NE(StartLevel::kHot, s.counters.start_level_used);
+    EXPECT_NE(StartLevel::kCold, s.counters.start_level_used) << "the values still cross";
+    EXPECT_EQ(nullptr, s.warm_start.hot);
+    EXPECT_EQ(SolveStatus::kOptimal, s.status);
+    expect_caller_certified(model, s);
+}
+
+// THE SSN PROX BLOCK lives in the scaled dual space: a column-scaled solve exports
+// none of it (the hand-off clears what record_solve would attach).
+TEST(ColumnScalingDriver, TheSsnProxBlockIsNotExportedFromAScaledSolve) {
+    // HS27, whose SSN ladder arms (test_warm_start.cpp's prox-block fixture).
+    auto problem = test_support::make_hs(27);
+    const NlpModel &model = *problem.model;
+    SqpOptions opts = off_options();
+    opts.max_iter = 60;
+    opts.qp_mode = QpMode::kSsn;
+    SqpSolver plain{opts};
+    const SqpResult ref = plain.solve(model, model.start_point());
+    ASSERT_EQ(SolveStatus::kOptimal, ref.status);
+    ASSERT_GT(ref.warm_start.prox_sigma, 0.0) << "the premise: the unscaled solve exports one";
+    opts.column_scaling = SqpColumnScaling::kAlways;
+    SqpSolver scaled{opts};
+    const SqpResult sol = scaled.solve(model, model.start_point());
+    ASSERT_EQ(SolveStatus::kOptimal, sol.status);
+    ASSERT_TRUE(sol.scaling.columns_active);
+    EXPECT_EQ(0.0, sol.warm_start.prox_sigma);
+    EXPECT_FALSE(sol.warm_start.has_prox_center);
+    EXPECT_EQ(0, sol.warm_start.prox_center_x.size());
+}
+
+// THE FIT WITH AN INEQUALITY ROW: 100 a1 + 1e4 a2 <= 1/2 (the slope-like row) cuts
+// the interpolant (where it reads 1), so the row binds with a positive price.
+class PolyFitIneqModel final : public PolyFitModel {
+  public:
+    Index mi() const override { return 1; }
+    Vec eval_ci(const Vec &x) const override {
+        return Vec::Constant(1, 100.0 * x(1) + 1e4 * x(2) - 0.5);
+    }
+    SpMatRM eval_jac_i(const Vec &) const override {
+        SpMatRM j(1, 6);
+        j.insert(0, 1) = 100.0;
+        j.insert(0, 2) = 1e4;
+        j.makeCompressed();
+        return j;
+    }
+};
+
+TEST(ColumnScalingDriver, AnInequalityRowSolvesInTheCallersUnits) {
+    PolyFitIneqModel model;
+    SqpSolver plain{off_options()};
+    const SqpResult ref = plain.solve(model, model.start_point());
+    ASSERT_EQ(SolveStatus::kOptimal, ref.status);
+    for (const auto mode : {SqpColumnScaling::kAlways, SqpColumnScaling::kAuto}) {
+        SCOPED_TRACE(mode == SqpColumnScaling::kAlways ? "kAlways" : "kAuto");
+        SqpOptions opts;
+        opts.column_scaling = mode;
+        SqpSolver driver{opts};
+        const SqpResult sol = driver.solve(model, model.start_point());
+        ASSERT_EQ(SolveStatus::kOptimal, sol.status);
+        ASSERT_TRUE(sol.scaling.columns_active);
+        ASSERT_EQ(1, sol.lambda_i.size());
+        EXPECT_GT(sol.lambda_i(0), 1e-3) << "the row binds";
+        EXPECT_NEAR(ref.lambda_i(0), sol.lambda_i(0), 1e-6 * std::abs(ref.lambda_i(0)));
+        for (Index i = 0; i < 6; ++i) {
+            EXPECT_NEAR(ref.x(i), sol.x(i), 1e-6 * std::max(1e-4, std::abs(ref.x(i)))) << i;
+        }
+        EXPECT_LE(model.eval_ci(sol.x)(0), opts.feas_tol);
+        expect_caller_certified(model, sol);
+    }
+}
+
+// THE SHARED PAYLOAD ROUTE (consume_payload) into a column-scaled solve: the
+// declared-space currency a column-scaled solve exports is in the caller's units,
+// and a column-scaled solve ingests it as it ingests the native warm start.
+TEST(ColumnScalingDriver, ThePayloadRouteCrossesAColumnScaledSolve) {
+    PolyFitModel model(1.5); // a live bound price, so z crosses too
+    SqpOptions opts;
+    opts.column_scaling = SqpColumnScaling::kAlways;
+    SqpSolver first{opts};
+    const SqpResult cold = first.solve(model, model.start_point());
+    ASSERT_EQ(SolveStatus::kOptimal, cold.status);
+    const WarmStartData data = first.export_warm_start();
+    ASSERT_EQ(6, data.primal_.size());
+    EXPECT_TRUE(data.primal_.isApprox(cold.x, 0.0)) << "exported in the caller's units";
+    EXPECT_TRUE(data.bound_lmults_.isApprox(cold.z, 0.0));
+
+    SqpSolver second{opts};
+    const SqpResult again = second.solve(model, model.start_point(), data, SolveBudget{});
+    EXPECT_NE(StartLevel::kCold, again.counters.start_level_used);
+    ASSERT_EQ(SolveStatus::kOptimal, again.status);
+    EXPECT_TRUE(again.scaling.columns_active);
+    EXPECT_LE(again.counters.major_iters, 1) << "it starts at the optimum, in the right units";
+    for (Index i = 0; i < 6; ++i) {
+        EXPECT_NEAR(cold.x(i), again.x(i), 1e-8 * std::max(1e-4, std::abs(cold.x(i)))) << i;
+    }
+    expect_caller_certified(model, again);
+
+    // And into an unscaled solve.
+    SqpSolver third{off_options()};
+    const SqpResult crossed = third.solve(model, model.start_point(), data, SolveBudget{});
+    EXPECT_NE(StartLevel::kCold, crossed.counters.start_level_used);
+    ASSERT_EQ(SolveStatus::kOptimal, crossed.status);
+    EXPECT_LE(crossed.counters.major_iters, 1);
 }
 
 // ===========================================================================

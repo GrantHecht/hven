@@ -2631,14 +2631,22 @@ SqpResult SqpSolver::solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAssembl
     if (&seam.aggregate() != &bridge || x0.size() != n || !x0.allFinite()) {
         return solve_impl(seam, bridge, x0, warm, budget);
     }
-    // THE POINT THE RULE READS: where the solve will stand -- the warm point when
-    // one is carried, else x0 -- projected onto the box, as the start is.
-    const bool warm_point = warm.valid && warm.x.size() == n && warm.x.allFinite();
-    const Vec x_rule = (warm_point ? warm.x : x0).cwiseMax(seam.lower()).cwiseMin(seam.upper());
+    // THE POINT THE RULE READS: where the solve will stand. warm.x when solve_impl's
+    // ingest gate would take it (a ceiling above kCold, plausible dimensions, finite
+    // vectors -- `ingest_allowed` there), verbatim as the ingest takes it; else x0,
+    // projected onto the box iff project_start_point, as solve_impl projects it.
+    const bool warm_point = opts_.common.start_level != StartLevel::kCold && warm.valid &&
+                            warm.x.size() == n && warm.lambda_e.size() == seam.me() &&
+                            warm.lambda_i.size() == seam.mi() && warm.qp_working_set.n() == n &&
+                            warm.qp_working_set.mi() == seam.mi() && warm.x.allFinite() &&
+                            warm.lambda_e.allFinite() && warm.lambda_i.allFinite();
+    Vec x_rule = warm_point ? warm.x : x0;
+    if (!warm_point && opts_.project_start_point) {
+        x_rule = x_rule.cwiseMax(seam.lower()).cwiseMin(seam.upper());
+    }
     // THE JACOBIANS ALONE -- the rule reads nothing else -- through the moment the
-    // warm-start probe uses, and on the probe's footing: a Jacobian call that no
-    // SqpCounters field counts (`evals_full` counts full first-order evaluations).
-    // So a solve the gate leaves alone has every counter of the kOff solve.
+    // warm-start probe uses, and counted as that probe is: one `evals_values`,
+    // charged by solve_impl before its emission (column_probe_evals_).
     NlpEval at;
     at.grad = Vec::Zero(n);
     at.ce = Vec::Zero(seam.me());
@@ -2652,9 +2660,35 @@ SqpResult SqpSolver::solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAssembl
         opts_.column_scaling == SqpColumnScaling::kAuto ? opts_.column_scaling_threshold : 1.0;
     detail::ColumnScaling cs = detail::compute_column_scaling(n, at.Je, at.Ji, rule);
 
+    // THE HAND-OFF, for exactly the length of the inner call, a throw included. The
+    // SSN prox block record_solve attaches from the four members below holds
+    // scaled-space vectors on a fired solve, so it is cleared here too.
+    struct Handoff {
+        SqpSolver &self;
+        bool fired;
+        ~Handoff() {
+            self.column_units_ = nullptr;
+            self.column_caller_seam_ = nullptr;
+            self.force_row_scaling_ = false;
+            self.column_probe_evals_ = 0;
+            if (fired) {
+                self.ssn_prox_sigma_out_ = 0.0;
+                self.ssn_prox_center_sigma_out_ = 0.0;
+                self.ssn_prox_center_x_out_ = Vec();
+                self.ssn_prox_center_lambda_out_ = Vec();
+            }
+        }
+    };
+
     if (!cs.active) {
-        // NOT SCALED: the kOff solve, with the spread the rule read reported.
-        SqpResult out = solve_impl(seam, bridge, x0, warm, budget);
+        // NOT SCALED: the kOff solve, plus the probe's count and the spread the rule
+        // read.
+        SqpResult out;
+        {
+            const Handoff handoff{*this, false};
+            column_probe_evals_ = 1;
+            out = solve_impl(seam, bridge, x0, warm, budget);
+        }
         out.scaling.col_spread = cs.spread;
         return out;
     }
@@ -2683,24 +2717,27 @@ SqpResult SqpSolver::solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAssembl
     ipqp_staged_seed_.reset();
     const Vec scaled_x0 = x0.cwiseQuotient(d);
 
-    // THE HAND-OFF, for exactly the length of the inner call, a throw included.
-    struct Handoff {
-        SqpSolver &self;
-        ~Handoff() {
-            self.column_units_ = nullptr;
-            self.force_row_scaling_ = false;
-        }
-    };
     SqpResult out;
     {
-        const Handoff handoff{*this};
+        const Handoff handoff{*this, true};
         column_units_ = &d;
+        column_caller_seam_ = &seam;
         force_row_scaling_ = opts_.column_scaling == SqpColumnScaling::kAuto;
+        column_probe_evals_ = 1;
         out = solve_impl(scaled_seam, scaled_bridge, scaled_x0, scaled_warm, budget);
     }
+    out.scaling.columns_active = true;
+    out.scaling.col_min = cs.col_min;
+    out.scaling.col_max = cs.col_max;
+    out.scaling.col_spread = cs.spread;
+    return out;
+}
 
-    // THE ANSWER, OUT.
-    const Vec z_engine = out.z;
+void SqpSolver::map_column_scaled_answer(SqpResult &out) {
+    AssemblyEvalSeam &seam = *column_caller_seam_;
+    const Vec &d = *column_units_;
+    const Index n = seam.n();
+    const bool feasibility_price = finish_exported_feasibility_price_;
     if (out.x.size() == n) {
         out.x.array() *= d.array();
     }
@@ -2713,9 +2750,10 @@ SqpResult SqpSolver::solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAssembl
         const NlpEval ev = seam.eval_nlp(out.x, out.lambda_e, out.lambda_i);
         ++out.counters.evals_full;
         const SqpKkt k = evaluate_kkt(seam, ev, out.x, out.lambda_e, out.lambda_i, opts_.feas_tol);
-        // A CERTIFIED kInfeasible exports the feasibility problem's own bound price
-        // (finish's note on that exit); it is mapped, not re-measured.
-        if (out.status == SolveStatus::kInfeasible) {
+        // THE BOUND PRICE FOLLOWS WHAT finish EXPORTED: the feasibility problem's own
+        // price (finish's note on the adopting restoration exits, every status) is
+        // not a measurement of this model, so it is mapped; grad L's is re-measured.
+        if (feasibility_price) {
             if (out.z.size() == n) {
                 out.z.array() /= d.array();
             }
@@ -2740,7 +2778,7 @@ SqpResult SqpSolver::solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAssembl
         if (!std::isnan(out.complementarity)) {
             out.complementarity = dd.complementarity;
         }
-    } else if (z_engine.size() == n) {
+    } else if (out.z.size() == n) {
         out.z.array() /= d.array();
     }
     // THE EXPORTED WARM START, in the caller's variables, stripped of the
@@ -2754,18 +2792,6 @@ SqpResult SqpSolver::solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAssembl
     }
     drop_scaled_space_state(w);
     w.tr_radius = -1.0;
-    // record_solve attaches the SSN prox block from these members after this
-    // returns; they hold scaled-space vectors, so nothing is attached.
-    ssn_prox_sigma_out_ = 0.0;
-    ssn_prox_center_sigma_out_ = 0.0;
-    ssn_prox_center_x_out_ = Vec();
-    ssn_prox_center_lambda_out_ = Vec();
-
-    out.scaling.columns_active = true;
-    out.scaling.col_min = cs.col_min;
-    out.scaling.col_max = cs.col_max;
-    out.scaling.col_spread = cs.spread;
-    return out;
 }
 
 SqpResult SqpSolver::solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &bridge, const Vec &x0,
@@ -2959,6 +2985,7 @@ SqpResult SqpSolver::solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &bridge
     if (ipqp_trace_ != nullptr) {
         ipqp_trace_->on_sqp_solve_begin(make_solve_begin_event(opts_, seam));
     }
+    finish_exported_feasibility_price_ = false;
     SqpResult out = solve_impl_body(seam, bridge, *x0_used, warm, budget, std::move(strategy));
     // THE POLISH-IGNORED COUNT, BEFORE THE TRACE READS IT (M6 W5 T8.5 fix1).
     //
@@ -2989,6 +3016,14 @@ SqpResult SqpSolver::solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &bridge
     // `polish_ignored` it has no driver member to read, because the count is
     // made here and consumed here.
     out.counters.start_point_clamps = start_point_clamps;
+    // THE COLUMN LAYER (M7 W2 SCL), above the emission for the same reason: the
+    // rule's Jacobian probe (one `evals_values`, 0 unless the rule ran) and, on a
+    // solve it scaled, the caller-unit answer with its re-measurement's
+    // `evals_full`. Both are made one frame above; the hand-off carries them here.
+    out.counters.evals_values += column_probe_evals_;
+    if (column_caller_seam_ != nullptr) {
+        map_column_scaled_answer(out);
+    }
     if (ipqp_trace_ != nullptr) {
         // THE SCALING BLOCK (M6 W5 T8.7) rides the closing line, read off the
         // solution the caller is about to receive. It is the console trailer's
@@ -5497,11 +5532,45 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     if (iteration_callback_) {
         sub.set_iteration_callback(
             [this, &st](const IterationEvent &e) {
-                IterationEvent nested = e;
-                nested.depth = e.depth.value_or(0) + 1;
-                nested.elapsed_seconds = std::chrono::duration<double>(
-                                             std::chrono::steady_clock::now() - this->entry_time_)
-                                             .count();
+                // THE COLUMN LAYER'S MAP (M7 W2 SCL): on a column-scaled solve the
+                // feasibility problem's first n variables are the engine's x~, so
+                // the sub-solve's own rows (its depth 0) go out with x = d x~ and
+                // z = z~ / d there -- caller units, as at depth 0. The slack
+                // entries and the multipliers carry no column factor.
+                const Vec *d = this->column_units_;
+                const bool map = d != nullptr && e.depth.value_or(0) == 0;
+                const Index nd = map ? d->size() : 0;
+                Vec x_caller, z_caller;
+                const bool map_x = map && e.x.size() >= nd;
+                const bool map_z = map && e.z.size() >= nd;
+                if (map_x) {
+                    x_caller = e.x;
+                    x_caller.head(nd).array() *= d->array();
+                }
+                if (map_z) {
+                    z_caller = e.z;
+                    z_caller.head(nd).array() /= d->array();
+                }
+                const IterationEvent nested{
+                    .iteration = e.iteration,
+                    .phase = e.phase,
+                    .depth = e.depth.value_or(0) + 1,
+                    .f = e.f,
+                    .stationarity = e.stationarity,
+                    .feasibility_e = e.feasibility_e,
+                    .feasibility_i = e.feasibility_i,
+                    .complementarity = e.complementarity,
+                    .step_norm = e.step_norm,
+                    .radius = e.radius,
+                    .mu = e.mu,
+                    .x = map_x ? Eigen::Ref<const Vec>(x_caller) : e.x,
+                    .lambda_e = e.lambda_e,
+                    .lambda_i = e.lambda_i,
+                    .z = map_z ? Eigen::Ref<const Vec>(z_caller) : e.z,
+                    .elapsed_seconds = std::chrono::duration<double>(
+                                           std::chrono::steady_clock::now() - this->entry_time_)
+                                           .count(),
+                };
                 // THROUGH THE GUARDED ENTRY (M6 W5 T8.6 fix1), so that a
                 // callback clearing itself from inside a DEPTH-1 event is deferred
                 // exactly as it is at depth 0.
@@ -8516,6 +8585,7 @@ SqpResult SqpSolver::finish(AssemblyEvalSeam &seam, SqpResult out, SolveStatus s
     // identity back instead of the factors. Free when inactive -- both factor
     // blocks are then empty.
     const detail::ProblemScaling sc = seam.scaling();
+    finish_exported_feasibility_price_ = multipliers_are_caller_scale;
     out.status = status;
     out.counters.eval_hess_calls += exit_probe_hess_calls_;
     exit_probe_hess_calls_ = 0;

@@ -1766,28 +1766,54 @@ class SqpSolver {
     ///        otherwise. Every public route calls this where it called solve_impl.
     ///
     /// Under kOff it IS solve_impl. Otherwise it evaluates the caller's Jacobians once
-    /// at the (projected) start point -- warm.x on a warm route -- computes the factors
+    /// (counted in `evals_values`) at the point the solve will stand on -- warm.x when
+    /// the warm start can be ingested, else x0, projected iff
+    /// SqpOptions::project_start_point -- computes the factors
     /// (detail/drivers/column_scaling.h) and, when they are installed, solves a fresh
     /// bridge and seam over a ColumnScaledModel of `bridge.model()` from x0 / d with
-    /// the warm start mapped in, then maps the result out: x = d x~, the multipliers
-    /// unchanged, z and the terminal residuals re-measured on the caller's model at x
-    /// (a certified kInfeasible exit keeps the feasibility problem's own bound price,
-    /// z~ / d), the exported warm start mapped and stripped of scaled-space state.
+    /// the warm start mapped in. The answer is mapped out by map_column_scaled_answer,
+    /// inside solve_impl and before its `sqp.solve.end` emission.
     /// Argument refusals are solve_impl's: a mis-sized or non-finite x0, or a seam
     /// and bridge over different providers, is handed to it unscaled to throw.
     SqpResult solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAssembly &bridge, const Vec &x0,
                                   const SqpWarmStart &warm, SolveBudget budget);
 
+    /// @brief The column-scaled solve's answer in the CALLER's units (M7 W2 SCL),
+    ///        called by solve_impl before the `sqp.solve.end` emission whenever
+    ///        `column_caller_seam_` is set, so the trace, the result and the ledger
+    ///        read one set of counters.
+    ///
+    /// x = d x~; the multipliers unchanged by the column layer (the row layer's own
+    /// map ran in the inner finish); z, the four sqp_* residuals and the shared
+    /// diagnostics re-measured on the caller's model at the returned point and
+    /// prices (+1 evals_full) -- except a bound price the inner finish exported FROM
+    /// THE FEASIBILITY PROBLEM (`finish_exported_feasibility_price_`), which is
+    /// mapped, z = z~ / d; the exported warm start mapped and stripped of
+    /// scaled-space state.
+    void map_column_scaled_answer(SqpResult &out);
+
     SqpOptions opts_;
     // THE COLUMN LAYER'S HAND-OFF TO THE INNER solve_impl (M7 W2 SCL), set by
-    // solve_column_scaled for exactly the length of that call and null/false
-    // otherwise. `column_units_` is d: the convergence test's caller-unit
-    // feasibility multiplies each box violation by it, and the iteration event maps
-    // x and z through it. `force_row_scaling_` is kAuto's engagement of the
-    // row/objective layer (install_solve_scaling reads it beside enable_scaling).
-    // The restoration sub-solve is a different SqpSolver object and sees neither.
+    // solve_column_scaled for exactly the length of that call (a throw included) and
+    // null/false/0 otherwise. `column_units_` is d: the convergence test's
+    // caller-unit feasibility multiplies each box violation by it, and the iteration
+    // events (depth 0, and the first n entries at depth 1) map x and z through it.
+    // `column_caller_seam_` is the caller's seam, which map_column_scaled_answer
+    // re-measures on. `force_row_scaling_` is kAuto's engagement of the row/objective
+    // layer (install_solve_scaling reads it beside enable_scaling).
+    // `column_probe_evals_` is the rule's Jacobian probe, charged to `evals_values`
+    // by solve_impl before its emission (also when the gate did not fire). The
+    // restoration sub-solve is a different SqpSolver object and sees none of them.
     const Vec *column_units_ = nullptr;
+    AssemblyEvalSeam *column_caller_seam_ = nullptr;
     bool force_row_scaling_ = false;
+    Index column_probe_evals_ = 0;
+    // WHAT THIS SOLVE'S finish EXPORTED AS z (M7 W2 SCL): true when it was the
+    // restoration feasibility problem's own bound price (finish's
+    // `multipliers_are_caller_scale`), false when it was grad L's. Reset at
+    // solve_impl's entry; the non-finite-iterate exit, which bypasses finish,
+    // leaves it false.
+    bool finish_exported_feasibility_price_ = false;
     // ONE engine for the whole driver, deliberately: it is what makes warm seeding
     // possible across majors, and it makes SqpSolver exactly as thread-unsafe as
     // QpEngine -- use one driver per thread.
