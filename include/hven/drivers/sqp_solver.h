@@ -1761,7 +1761,33 @@ class SqpSolver {
     ///         caller to charge to its own counters.
     Index install_solve_scaling(AssemblyEvalSeam &seam, const Vec &x0) const;
 
+    /// @brief THE COLUMN LAYER'S ONE ENTRY (M7 W2 SCL): solve_impl, in the column-
+    ///        scaled variables when SqpOptions::column_scaling fires, in the caller's
+    ///        otherwise. Every public route calls this where it called solve_impl.
+    ///
+    /// Under kOff it IS solve_impl. Otherwise it evaluates the caller's Jacobians once
+    /// at the (projected) start point -- warm.x on a warm route -- computes the factors
+    /// (detail/drivers/column_scaling.h) and, when they are installed, solves a fresh
+    /// bridge and seam over a ColumnScaledModel of `bridge.model()` from x0 / d with
+    /// the warm start mapped in, then maps the result out: x = d x~, the multipliers
+    /// unchanged, z and the terminal residuals re-measured on the caller's model at x
+    /// (a certified kInfeasible exit keeps the feasibility problem's own bound price,
+    /// z~ / d), the exported warm start mapped and stripped of scaled-space state.
+    /// Argument refusals are solve_impl's: a mis-sized or non-finite x0, or a seam
+    /// and bridge over different providers, is handed to it unscaled to throw.
+    SqpResult solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAssembly &bridge, const Vec &x0,
+                                  const SqpWarmStart &warm, SolveBudget budget);
+
     SqpOptions opts_;
+    // THE COLUMN LAYER'S HAND-OFF TO THE INNER solve_impl (M7 W2 SCL), set by
+    // solve_column_scaled for exactly the length of that call and null/false
+    // otherwise. `column_units_` is d: the convergence test's caller-unit
+    // feasibility multiplies each box violation by it, and the iteration event maps
+    // x and z through it. `force_row_scaling_` is kAuto's engagement of the
+    // row/objective layer (install_solve_scaling reads it beside enable_scaling).
+    // The restoration sub-solve is a different SqpSolver object and sees neither.
+    const Vec *column_units_ = nullptr;
+    bool force_row_scaling_ = false;
     // ONE engine for the whole driver, deliberately: it is what makes warm seeding
     // possible across majors, and it makes SqpSolver exactly as thread-unsafe as
     // QpEngine -- use one driver per thread.

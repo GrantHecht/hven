@@ -40,6 +40,7 @@
 // complete.
 #include <hven/drivers/console_trace_sink.h>
 
+#include <hven/detail/drivers/column_scaling.h>
 #include <hven/detail/drivers/equality_basis.h>
 #include <hven/detail/drivers/equality_basis_testing.h>
 #include <hven/detail/drivers/ladder_testing.h>
@@ -334,26 +335,33 @@ struct CallerScaleRowMeasures {
     double violation_l1 = 0.0;
 };
 
+// THE COLUMN LAYER (M7 W2 SCL) widens it to the variable space: under column
+// scaling the box IS scaled (l~ = l / d), so a box violation in the caller's units
+// is the engine's times d_j; `column_units` is d, or null when no variable is
+// scaled. An INACTIVE row scaling divides by nothing, so the function also serves a
+// solve that scales columns alone.
 CallerScaleRowMeasures caller_scale_row_measures(const Vec &lo, const Vec &up, const NlpEval &ev,
-                                                 const Vec &x, const detail::ProblemScaling &sc) {
+                                                 const Vec &x, const detail::ProblemScaling &sc,
+                                                 const Vec *column_units = nullptr) {
     CallerScaleRowMeasures m;
     for (Index i = 0; i < ev.ce.size(); ++i) {
-        const double r = ev.ce(i) / sc.eq_rows(i);
+        const double r = sc.active ? ev.ce(i) / sc.eq_rows(i) : ev.ce(i);
         m.feasibility = std::max(m.feasibility, std::abs(r));
         m.violation_l1 += std::abs(r);
     }
     for (Index j = 0; j < ev.ci.size(); ++j) {
-        const double r = ev.ci(j) / sc.ineq_rows(j);
+        const double r = sc.active ? ev.ci(j) / sc.ineq_rows(j) : ev.ci(j);
         m.feasibility = std::max(m.feasibility, std::max(0.0, r));
         // NOT std::max(0.0, r) for the sum -- see constraint_violation_l1 on why
         // the NaN must survive rather than be quietly dropped.
         m.violation_l1 += (r > 0.0 || std::isnan(r)) ? r : 0.0;
     }
-    // THE BOX IS IN THE VARIABLE SPACE, which this layer does not scale, so
-    // these two terms are the same in both spaces and are folded in unchanged.
+    // THE BOX IS IN THE VARIABLE SPACE, which the row layer does not scale, so
+    // these two terms are the same in both spaces unless the column layer ran.
     for (Index i = 0; i < x.size(); ++i) {
-        m.feasibility = std::max(m.feasibility, std::max(0.0, lo(i) - x(i)));
-        m.feasibility = std::max(m.feasibility, std::max(0.0, x(i) - up(i)));
+        const double unit = column_units != nullptr ? (*column_units)(i) : 1.0;
+        m.feasibility = std::max(m.feasibility, unit * std::max(0.0, lo(i) - x(i)));
+        m.feasibility = std::max(m.feasibility, unit * std::max(0.0, x(i) - up(i)));
     }
     return m;
 }
@@ -2082,7 +2090,7 @@ SqpSolver::solve_from_entry(NlpModelAssembly &bridge, const Vec &x0, SolveBudget
     // below -- per ledger.h's SqpSolveRecord::wall_seconds note
     // (informational, never asserted).
     const auto t0 = std::chrono::steady_clock::now();
-    SqpResult out = solve_impl(seam, bridge, x0, warm, budget);
+    SqpResult out = solve_column_scaled(seam, bridge, x0, warm, budget);
     const auto t1 = std::chrono::steady_clock::now();
     SqpResult done = record_solve(std::move(out), std::chrono::duration<double>(t1 - t0).count());
     // THE EXPORT'S ONE CAPTURE, last: "completed" is a public solve() that
@@ -2119,7 +2127,7 @@ SqpSolver::solve_from_entry(NlpModelAssembly &bridge, const Vec &x0, const SqpWa
     AssemblyEvalSeam seam{bridge};
     // Same timing scope as the 2-arg overload above.
     const auto t0 = std::chrono::steady_clock::now();
-    SqpResult out = solve_impl(seam, bridge, x0, warm, budget);
+    SqpResult out = solve_column_scaled(seam, bridge, x0, warm, budget);
     const auto t1 = std::chrono::steady_clock::now();
     SqpResult done = record_solve(std::move(out), std::chrono::duration<double>(t1 - t0).count());
     capture_completed_warm_start(done, seam, bridge);
@@ -2193,7 +2201,7 @@ SqpSolver::solve_from_entry(NlpModelAssembly &bridge, const Vec &x0, const WarmS
     // count for this call.
     const SqpWarmStart native = consume_payload(seam, bridge, x0, warm);
     const auto t0 = std::chrono::steady_clock::now();
-    SqpResult out = solve_impl(seam, bridge, x0, native, budget);
+    SqpResult out = solve_column_scaled(seam, bridge, x0, native, budget);
     const auto t1 = std::chrono::steady_clock::now();
     SqpResult done = record_solve(std::move(out), std::chrono::duration<double>(t1 - t0).count());
     capture_completed_warm_start(done, seam, bridge);
@@ -2578,7 +2586,9 @@ void SqpSolver::capture_completed_warm_start(SqpResult &out, const AssemblyEvalS
 // ===========================================================================
 
 Index SqpSolver::install_solve_scaling(AssemblyEvalSeam &seam, const Vec &x0) const {
-    if (!opts_.enable_scaling) {
+    // `force_row_scaling_` is the column layer's kAuto engagement (M7 W2 SCL): a solve
+    // its gate called badly scaled runs the row/objective layer too.
+    if (!opts_.enable_scaling && !force_row_scaling_) {
         // Not merely "install the identity": nothing is installed at all, so the
         // seam keeps the inactive value it was born with and every apply site in
         // it stays behind a false predicate. This is the shipped default.
@@ -2596,6 +2606,166 @@ Index SqpSolver::install_solve_scaling(AssemblyEvalSeam &seam, const Vec &x0) co
     rule.factor_limit = opts_.scaling_factor_limit;
     seam.install_scaling(detail::compute_problem_scaling(at_x0.grad, at_x0.Je, at_x0.Ji, rule));
     return 1;
+}
+
+// ===========================================================================
+// THE COLUMN LAYER'S DRIVER-SIDE HALF (M7 W2 SCL). detail/drivers/column_scaling.h
+// carries the transformation, the rule and the scaled model; this is the one entry
+// that decides the factors, runs solve_impl in the scaled variables, and maps the
+// answer back. It sits OUTSIDE solve_impl so that everything inside -- the trust
+// region, the funnel, SOC, the elastic ladder and restoration (whose feasibility
+// model is built around `bridge.model()`, here the scaled one) -- runs on ONE
+// consistent problem; the only inner reads of the layer are the two hand-off
+// members (sqp_solver.h).
+// ===========================================================================
+
+SqpResult SqpSolver::solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAssembly &bridge,
+                                         const Vec &x0, const SqpWarmStart &warm,
+                                         SolveBudget budget) {
+    if (opts_.column_scaling == SqpColumnScaling::kOff) {
+        return solve_impl(seam, bridge, x0, warm, budget);
+    }
+    const Index n = seam.n();
+    // solve_impl's own refusals, handed to it unscaled so they throw as they
+    // always did and the rule never evaluates a point no solve would accept.
+    if (&seam.aggregate() != &bridge || x0.size() != n || !x0.allFinite()) {
+        return solve_impl(seam, bridge, x0, warm, budget);
+    }
+    // THE POINT THE RULE READS: where the solve will stand -- the warm point when
+    // one is carried, else x0 -- projected onto the box, as the start is.
+    const bool warm_point = warm.valid && warm.x.size() == n && warm.x.allFinite();
+    const Vec x_rule = (warm_point ? warm.x : x0).cwiseMax(seam.lower()).cwiseMin(seam.upper());
+    // THE JACOBIANS ALONE -- the rule reads nothing else -- through the moment the
+    // warm-start probe uses, and on the probe's footing: a Jacobian call that no
+    // SqpCounters field counts (`evals_full` counts full first-order evaluations).
+    // So a solve the gate leaves alone has every counter of the kOff solve.
+    NlpEval at;
+    at.grad = Vec::Zero(n);
+    at.ce = Vec::Zero(seam.me());
+    at.ci = Vec::Zero(seam.mi());
+    at.Je = SpMatRM(seam.me(), n);
+    at.Ji = SpMatRM(seam.mi(), n);
+    seam.jacobians_only(at, x_rule);
+    detail::ColumnScalingRule rule;
+    rule.factor_limit = opts_.scaling_factor_limit;
+    rule.threshold =
+        opts_.column_scaling == SqpColumnScaling::kAuto ? opts_.column_scaling_threshold : 1.0;
+    detail::ColumnScaling cs = detail::compute_column_scaling(n, at.Je, at.Ji, rule);
+
+    if (!cs.active) {
+        // NOT SCALED: the kOff solve, with the spread the rule read reported.
+        SqpResult out = solve_impl(seam, bridge, x0, warm, budget);
+        out.scaling.col_spread = cs.spread;
+        return out;
+    }
+
+    const Vec &d = cs.cols;
+    auto scaled_model = std::make_shared<const detail::ColumnScaledModel>(bridge.model(), d);
+    NlpModelAssembly scaled_bridge{scaled_model};
+    AssemblyEvalSeam scaled_seam{scaled_bridge};
+
+    // THE WARM START, IN: x~ = x / d and z~ = z * d (a bound price is a gradient
+    // coordinate); the row prices are unchanged because no row is scaled here.
+    // Everything that lives in the scaled space -- the radius, the funnel width,
+    // the regularization pair, the hot factorization, the prox block -- is not
+    // carried (the row layer's own ingest refusal, for the same reasons), and
+    // neither is a payload's interior-point tier seed, which is built in the
+    // caller's variables: the tier cold-starts.
+    SqpWarmStart scaled_warm = warm;
+    if (scaled_warm.x.size() == n) {
+        scaled_warm.x.array() /= d.array();
+    }
+    if (scaled_warm.z.size() == n) {
+        scaled_warm.z.array() *= d.array();
+    }
+    drop_scaled_space_state(scaled_warm);
+    scaled_warm.tr_radius = -1.0;
+    ipqp_staged_seed_.reset();
+    const Vec scaled_x0 = x0.cwiseQuotient(d);
+
+    // THE HAND-OFF, for exactly the length of the inner call, a throw included.
+    struct Handoff {
+        SqpSolver &self;
+        ~Handoff() {
+            self.column_units_ = nullptr;
+            self.force_row_scaling_ = false;
+        }
+    };
+    SqpResult out;
+    {
+        const Handoff handoff{*this};
+        column_units_ = &d;
+        force_row_scaling_ = opts_.column_scaling == SqpColumnScaling::kAuto;
+        out = solve_impl(scaled_seam, scaled_bridge, scaled_x0, scaled_warm, budget);
+    }
+
+    // THE ANSWER, OUT.
+    const Vec z_engine = out.z;
+    if (out.x.size() == n) {
+        out.x.array() *= d.array();
+    }
+    const bool measurable = out.x.size() == n && out.x.allFinite() &&
+                            out.lambda_e.size() == seam.me() && out.lambda_i.size() == seam.mi();
+    if (measurable) {
+        // RE-MEASURED ON THE CALLER'S MODEL at the returned point and prices, so the
+        // terminal residuals and the bound prices describe the problem the caller
+        // posed rather than being mapped back through the factors.
+        const NlpEval ev = seam.eval_nlp(out.x, out.lambda_e, out.lambda_i);
+        ++out.counters.evals_full;
+        const SqpKkt k = evaluate_kkt(seam, ev, out.x, out.lambda_e, out.lambda_i, opts_.feas_tol);
+        // A CERTIFIED kInfeasible exports the feasibility problem's own bound price
+        // (finish's note on that exit); it is mapped, not re-measured.
+        if (out.status == SolveStatus::kInfeasible) {
+            if (out.z.size() == n) {
+                out.z.array() /= d.array();
+            }
+        } else {
+            out.z = k.z;
+        }
+        record_terminal_kkt(out, k);
+        const DeclaredDiagnostics dd =
+            compute_declared_diagnostics(out.x, out.lambda_e, out.lambda_i, out.z, ev.grad, ev.Je,
+                                         ev.Ji, ev.ce, ev.ci, seam.lower(), seam.upper(), {});
+        // Each shared diagnostic is replaced only where the inner solve MEASURED it:
+        // a NaN there means unmeasured (sqp_solver_types.h) and stays NaN.
+        if (!std::isnan(out.stationarity)) {
+            out.stationarity = dd.stationarity;
+        }
+        if (!std::isnan(out.feasibility_e)) {
+            out.feasibility_e = dd.feasibility_e;
+        }
+        if (!std::isnan(out.feasibility_i)) {
+            out.feasibility_i = dd.feasibility_i;
+        }
+        if (!std::isnan(out.complementarity)) {
+            out.complementarity = dd.complementarity;
+        }
+    } else if (z_engine.size() == n) {
+        out.z.array() /= d.array();
+    }
+    // THE EXPORTED WARM START, in the caller's variables, stripped of the
+    // scaled-space state its ingest would refuse anyway.
+    SqpWarmStart &w = out.warm_start;
+    if (w.x.size() == n) {
+        w.x.array() *= d.array();
+    }
+    if (w.z.size() == n) {
+        w.z = out.z.size() == n ? out.z : Vec(w.z.cwiseQuotient(d));
+    }
+    drop_scaled_space_state(w);
+    w.tr_radius = -1.0;
+    // record_solve attaches the SSN prox block from these members after this
+    // returns; they hold scaled-space vectors, so nothing is attached.
+    ssn_prox_sigma_out_ = 0.0;
+    ssn_prox_center_sigma_out_ = 0.0;
+    ssn_prox_center_x_out_ = Vec();
+    ssn_prox_center_lambda_out_ = Vec();
+
+    out.scaling.columns_active = true;
+    out.scaling.col_min = cs.col_min;
+    out.scaling.col_max = cs.col_max;
+    out.scaling.col_spread = cs.spread;
+    return out;
 }
 
 SqpResult SqpSolver::solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &bridge, const Vec &x0,
@@ -5192,6 +5362,10 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     // describe it, and re-deriving factors for it would put a second,
     // independently-scaled space inside one solve for no measured gain.
     ropts.enable_scaling = false;
+    // NOR DOES IT RE-SCALE ITS COLUMNS (M7 W2 SCL): on a column-scaled solve the
+    // bridge it builds its feasibility model around is ALREADY the column-scaled
+    // model, so its variables are the engine's; a second rule would scale them twice.
+    ropts.column_scaling = SqpColumnScaling::kOff;
     // The caller's strategy factory is NOT carried; the radius is.
     // See the header note's WHAT IS CARRIED IN.
     ropts.make_strategy = {};
@@ -6066,6 +6240,19 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
                     mj.event_x, mj.event_lambda_i, mj.event_z, grad_lag_c, ce_c, ci_c, seam.lower(),
                     seam.upper(), {});
             }
+            // THE COLUMN LAYER'S MAP (M7 W2 SCL), AFTER the diagnostics, which are
+            // taken in the engine's variables: the row residuals and the bound
+            // complementarity (x - l) z are the same in both, the stationarity is
+            // the engine's (SqpOptions::column_scaling states it). The point and
+            // its bound prices go out in the caller's units: x = d x~, z = z~ / d.
+            if (column_units_ != nullptr) {
+                if (mj.event_x.size() == column_units_->size()) {
+                    mj.event_x.array() *= column_units_->array();
+                }
+                if (mj.event_z.size() == column_units_->size()) {
+                    mj.event_z.array() /= column_units_->array();
+                }
+            }
             if (!want_vectors) {
                 drop_snapshot();
             }
@@ -6095,9 +6282,13 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         mj.row.kkt_residual = mj.kkt.residual();
         mj.row.violation_l1 = constraint_violation_l1(st.ev);
         mj.row.tr_radius = st.delta;
-        if (st.solve_scaling.active) {
+        // ALSO ON A COLUMN-SCALED SOLVE (M7 W2 SCL): the convergence test's
+        // caller-unit feasibility guard reads it. A solve that scales columns alone
+        // leaves the history rows in the engine's units (push_history maps under the
+        // row layer only).
+        if (st.solve_scaling.active || column_units_ != nullptr) {
             mj.caller_row = caller_scale_row_measures(seam.lower(), seam.upper(), st.ev, st.x,
-                                                      st.solve_scaling);
+                                                      st.solve_scaling, column_units_);
             if (!mj.kkt.finite) {
                 // The engine-scale columns are NaN here by construction
                 // (evaluate_kkt's non-finite arm), and the caller-scale
@@ -6547,6 +6738,21 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
     mj.converged =
         mj.kkt.stationarity <= opts_.kkt_tol && mj.kkt.feasibility <= opts_.feas_tol &&
         (!(st.duals_ingested || st.duals_carried) || mj.kkt.complementarity <= opts_.kkt_tol);
+    // THE CALLER-UNIT FEASIBILITY GUARD (M7 W2 SCL). On a scaled solve the test
+    // above reads the ENGINE's residuals: a row shrunk by its factor s_j < 1 passes
+    // at |c_j| <= feas_tol / s_j, and a box violation is read in units of d_j. A
+    // kOptimal must be feasible for the problem the CALLER posed, so the same
+    // tolerance is required of the caller-unit measure too, and a refusal keeps the
+    // solve iterating (it ends kOptimal at a point that passes both, or at the cap).
+    // Stationarity is NOT re-judged in caller units: on a badly scaled problem the
+    // caller's absolute grad-L floor is set by rounding in its largest columns, and
+    // the scaled stationarity is the measure the scaling exists to make meaningful.
+    // Unscaled solves never enter: the identity is untouched.
+    if (mj.converged && (st.solve_scaling.active || column_units_ != nullptr) &&
+        !(mj.caller_row.feasibility <= opts_.feas_tol)) {
+        mj.converged = false;
+        ++st.out.counters.scaled_convergence_refusals;
+    }
     // THE CALLER'S PROBE BUDGET (the 4-argument solve()'s own note
     // has the contract). Evaluated HERE, beside the max_iter test and
     // after `converged` is already known, which is what gives the

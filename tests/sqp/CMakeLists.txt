@@ -27,6 +27,7 @@ set(HVEN_SQP_TEST_SOURCES
     test_b1_gate.cpp
     test_bench_dump.cpp
     test_border_ops.cpp
+    test_column_scaling.cpp
     test_continuation.cpp
     test_corpus_cells.cpp
     test_crossover_legs.cpp

@@ -2600,7 +2600,9 @@ TEST(SqpCountersFieldTables, EachTableEnumeratesItsWholeStruct) {
     // 79 -> 80 at M7 W2 R2-1, `nonfinite_step_rollbacks`, the same route, by one key.
     //
     // 80 -> 81 at M7 W2 SNR, `restoration_feas_out`, the same route, by one key.
-    EXPECT_EQ(kSqpCountersFieldCount, 81u);
+    //
+    // 81 -> 82 at M7 W2 SCL, `scaled_convergence_refusals`, the same route, by one key.
+    EXPECT_EQ(kSqpCountersFieldCount, 82u);
     EXPECT_EQ(::hven::detail::kAggregateArity<SsnCounters>, kSsnCountersFieldCount);
     EXPECT_EQ(::hven::detail::kAggregateArity<IpqpCounters>, kIpqpCountersFieldCount);
     // PLUS TWO: `ssn` and `ipqp` are nested aggregates, one initializer each.
@@ -3237,6 +3239,9 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWithEveryCounterDistinct) {
     //
     // RE-DERIVED AT M7 W2 SNR, the same route: `restoration_feas_out` after
     // `nonfinite_step_rollbacks`; the nested tables' distinct values shift up by one again.
+    //
+    // RE-DERIVED AT M7 W2 SCL, the same route: `scaled_convergence_refusals` after
+    // `restoration_feas_out`; the nested tables' distinct values shift up by one again.
     sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kBudgetExhausted, 42, c,
                                                 /*scaling_active=*/true, 0.25, 0.5, 4.0, 7.5e-09});
     EXPECT_EQ(os.str(),
@@ -3268,29 +3273,29 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWithEveryCounterDistinct) {
               "ips\":72,\"qn_resets_radius_floor\":73,\"qn_resets_restoration_resume\":74,\"qn_"
               "pairs_peak\":75,\"qn_lift_rank_peak\":76,\"qn_kwrong_seen\":77,\"qn_nonpd_seen\""
               ":78,\"qn_dimension\":79,\"nonfinite_step_rollbacks\":80,\"restoration_feas_out\""
-              ":81,\"ssn\":{\"ssn_iters\":82,\"ssn_bulk_flips\":83,\"ssn_backtracks\":84,\"ssn_"
-              "prox_updates\":85,\"ssn_escapes\":86,\"ssn_uncertain_peak\":87,\"ssn_refinements"
-              "\":88,\"ssn_refine_refused\":89,\"ssn_refine_factorizations\":90,\"ssn_refine_ne"
-              "g_duals\":91,\"ssn_sign_swept\":92,\"ssn_sign_sweep_max\":93,\"ssn_escape_budget"
-              "\":94,\"ssn_escape_singular\":95,\"ssn_escape_no_contraction\":96,\"ssn_escape_i"
-              "nfeasible_suspect\":97,\"ssn_escape_indefinite\":98,\"ssn_escape_gate_refused\":"
-              "99},\"ipqp\":{\"ipqp_iters\":100,\"ipqp_factorizations\":101,\"ipqp_symbolic_ana"
-              "lyses\":102,\"ipqp_solves\":103,\"ipqp_pattern_verifies\":104,\"ipqp_rho_demande"
-              "d_max\":105,\"ipqp_rho_demanded_last\":106,\"ipqp_inertia_retries\":107,\"ipqp_i"
-              "ters_at_elevated_rho\":108,\"ipqp_ladder_reclimbs\":109,\"ipqp_pivot_reroute_pri"
-              "mal\":110,\"ipqp_pivot_reroute_dual_fallback\":111,\"ipqp_iters_ladder_armed_no_"
-              "advance\":112,\"ipqp_final_inertia_read\":113,\"ipqp_reg_decreases\":114,\"ipqp_"
-              "reg_increases\":115,\"ipqp_prox_center_updates\":116,\"ipqp_restart_repairs\":11"
-              "7,\"ipqp_restart_shift_max\":118,\"ipqp_mu_adopted\":119,\"ipqp_warm_restart_aba"
-              "ndoned\":120,\"ipqp_declined_pinned\":121,\"ipqp_tier_retired_after\":122,\"ipqp"
-              "_face_uncertain\":123,\"ipqp_refine_accepted\":124,\"ipqp_refine_refused\":125,"
-              "\"ipqp_to_refine\":126,\"ipqp_to_ssn\":127,\"ipqp_to_walk\":128,\"ipqp_escapes\""
-              ":129,\"ipqp_escape_budget\":130,\"ipqp_escape_stall\":131,\"ipqp_escape_indefini"
-              "te\":132,\"ipqp_escape_numerical\":133,\"ipqp_escape_infeasible_suspect\":134,\""
-              "ipqp_alpha_p_min\":135,\"ipqp_alpha_d_min\":136,\"ipqp_read_kept_tight_sides\":1"
-              "37,\"ipqp_read_barrier_noise_sides\":138}},\"scaling_active\":true,\"obj_scale\""
-              ":0.25,\"row_scale_min\":0.5,\"row_scale_max\":4,\"scaled_kkt_residual\":7.499999"
-              "9999999993e-09}\n");
+              ":81,\"scaled_convergence_refusals\":82,\"ssn\":{\"ssn_iters\":83,\"ssn_bulk_flip"
+              "s\":84,\"ssn_backtracks\":85,\"ssn_prox_updates\":86,\"ssn_escapes\":87,\"ssn_un"
+              "certain_peak\":88,\"ssn_refinements\":89,\"ssn_refine_refused\":90,\"ssn_refine_"
+              "factorizations\":91,\"ssn_refine_neg_duals\":92,\"ssn_sign_swept\":93,\"ssn_sign"
+              "_sweep_max\":94,\"ssn_escape_budget\":95,\"ssn_escape_singular\":96,\"ssn_escape"
+              "_no_contraction\":97,\"ssn_escape_infeasible_suspect\":98,\"ssn_escape_indefinit"
+              "e\":99,\"ssn_escape_gate_refused\":100},\"ipqp\":{\"ipqp_iters\":101,\"ipqp_fact"
+              "orizations\":102,\"ipqp_symbolic_analyses\":103,\"ipqp_solves\":104,\"ipqp_patte"
+              "rn_verifies\":105,\"ipqp_rho_demanded_max\":106,\"ipqp_rho_demanded_last\":107,"
+              "\"ipqp_inertia_retries\":108,\"ipqp_iters_at_elevated_rho\":109,\"ipqp_ladder_re"
+              "climbs\":110,\"ipqp_pivot_reroute_primal\":111,\"ipqp_pivot_reroute_dual_fallbac"
+              "k\":112,\"ipqp_iters_ladder_armed_no_advance\":113,\"ipqp_final_inertia_read\":1"
+              "14,\"ipqp_reg_decreases\":115,\"ipqp_reg_increases\":116,\"ipqp_prox_center_upda"
+              "tes\":117,\"ipqp_restart_repairs\":118,\"ipqp_restart_shift_max\":119,\"ipqp_mu_"
+              "adopted\":120,\"ipqp_warm_restart_abandoned\":121,\"ipqp_declined_pinned\":122,"
+              "\"ipqp_tier_retired_after\":123,\"ipqp_face_uncertain\":124,\"ipqp_refine_accept"
+              "ed\":125,\"ipqp_refine_refused\":126,\"ipqp_to_refine\":127,\"ipqp_to_ssn\":128,"
+              "\"ipqp_to_walk\":129,\"ipqp_escapes\":130,\"ipqp_escape_budget\":131,\"ipqp_esca"
+              "pe_stall\":132,\"ipqp_escape_indefinite\":133,\"ipqp_escape_numerical\":134,\"ip"
+              "qp_escape_infeasible_suspect\":135,\"ipqp_alpha_p_min\":136,\"ipqp_alpha_d_min\""
+              ":137,\"ipqp_read_kept_tight_sides\":138,\"ipqp_read_barrier_noise_sides\":139}},"
+              "\"scaling_active\":true,\"obj_scale\":0.25,\"row_scale_min\":0.5,\"row_scale_max"
+              "\":4,\"scaled_kkt_residual\":7.4999999999999993e-09}\n");
 }
 
 TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull) {
@@ -3341,6 +3346,7 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull) {
     // RE-DERIVED AT the QN-quality riders: `qn_dimension`, 0 on this line.
     // RE-DERIVED AT M7 W2 R2-1: `nonfinite_step_rollbacks`, 0 on this line.
     // RE-DERIVED AT M7 W2 SNR: `restoration_feas_out`, 0 on this line.
+    // RE-DERIVED AT M7 W2 SCL: `scaled_convergence_refusals`, 0 on this line.
     sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kNumericalError, 0, c});
     EXPECT_EQ(os.str(),
               "{\"v\":0,\"ev\":\"sqp.solve.end\",\"seq\":1,\"depth\":0,\"status\":\"numerical_e"
@@ -3370,27 +3376,28 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull) {
               "ecutive_skips\":0,\"qn_resets_radius_floor\":0,\"qn_resets_restoration_resume\":"
               "0,\"qn_pairs_peak\":0,\"qn_lift_rank_peak\":0,\"qn_kwrong_seen\":0,\"qn_nonpd_se"
               "en\":0,\"qn_dimension\":0,\"nonfinite_step_rollbacks\":0,\"restoration_feas_out"
-              "\":0,\"ssn\":{\"ssn_iters\":0,\"ssn_bulk_flips\":0,\"ssn_backtracks\":0,\"ssn_pr"
-              "ox_updates\":0,\"ssn_escapes\":0,\"ssn_uncertain_peak\":0,\"ssn_refinements\":0,"
-              "\"ssn_refine_refused\":0,\"ssn_refine_factorizations\":0,\"ssn_refine_neg_duals"
-              "\":0,\"ssn_sign_swept\":0,\"ssn_sign_sweep_max\":0,\"ssn_escape_budget\":0,\"ssn"
-              "_escape_singular\":0,\"ssn_escape_no_contraction\":0,\"ssn_escape_infeasible_sus"
-              "pect\":0,\"ssn_escape_indefinite\":0,\"ssn_escape_gate_refused\":0},\"ipqp\":{\""
-              "ipqp_iters\":0,\"ipqp_factorizations\":0,\"ipqp_symbolic_analyses\":0,\"ipqp_sol"
-              "ves\":0,\"ipqp_pattern_verifies\":0,\"ipqp_rho_demanded_max\":0,\"ipqp_rho_deman"
-              "ded_last\":0,\"ipqp_inertia_retries\":0,\"ipqp_iters_at_elevated_rho\":0,\"ipqp_"
-              "ladder_reclimbs\":0,\"ipqp_pivot_reroute_primal\":0,\"ipqp_pivot_reroute_dual_fa"
-              "llback\":0,\"ipqp_iters_ladder_armed_no_advance\":0,\"ipqp_final_inertia_read\":"
-              "0,\"ipqp_reg_decreases\":0,\"ipqp_reg_increases\":0,\"ipqp_prox_center_updates\""
-              ":0,\"ipqp_restart_repairs\":0,\"ipqp_restart_shift_max\":0,\"ipqp_mu_adopted\":0"
-              ",\"ipqp_warm_restart_abandoned\":0,\"ipqp_declined_pinned\":0,\"ipqp_tier_retire"
-              "d_after\":null,\"ipqp_face_uncertain\":0,\"ipqp_refine_accepted\":0,\"ipqp_refin"
-              "e_refused\":0,\"ipqp_to_refine\":0,\"ipqp_to_ssn\":0,\"ipqp_to_walk\":0,\"ipqp_e"
-              "scapes\":0,\"ipqp_escape_budget\":0,\"ipqp_escape_stall\":0,\"ipqp_escape_indefi"
-              "nite\":0,\"ipqp_escape_numerical\":0,\"ipqp_escape_infeasible_suspect\":0,\"ipqp"
-              "_alpha_p_min\":null,\"ipqp_alpha_d_min\":null,\"ipqp_read_kept_tight_sides\":0,"
-              "\"ipqp_read_barrier_noise_sides\":0}},\"scaling_active\":false,\"obj_scale\":1,"
-              "\"row_scale_min\":1,\"row_scale_max\":1,\"scaled_kkt_residual\":0}\n");
+              "\":0,\"scaled_convergence_refusals\":0,\"ssn\":{\"ssn_iters\":0,\"ssn_bulk_flips"
+              "\":0,\"ssn_backtracks\":0,\"ssn_prox_updates\":0,\"ssn_escapes\":0,\"ssn_uncerta"
+              "in_peak\":0,\"ssn_refinements\":0,\"ssn_refine_refused\":0,\"ssn_refine_factoriz"
+              "ations\":0,\"ssn_refine_neg_duals\":0,\"ssn_sign_swept\":0,\"ssn_sign_sweep_max"
+              "\":0,\"ssn_escape_budget\":0,\"ssn_escape_singular\":0,\"ssn_escape_no_contracti"
+              "on\":0,\"ssn_escape_infeasible_suspect\":0,\"ssn_escape_indefinite\":0,\"ssn_esc"
+              "ape_gate_refused\":0},\"ipqp\":{\"ipqp_iters\":0,\"ipqp_factorizations\":0,\"ipq"
+              "p_symbolic_analyses\":0,\"ipqp_solves\":0,\"ipqp_pattern_verifies\":0,\"ipqp_rho"
+              "_demanded_max\":0,\"ipqp_rho_demanded_last\":0,\"ipqp_inertia_retries\":0,\"ipqp"
+              "_iters_at_elevated_rho\":0,\"ipqp_ladder_reclimbs\":0,\"ipqp_pivot_reroute_prima"
+              "l\":0,\"ipqp_pivot_reroute_dual_fallback\":0,\"ipqp_iters_ladder_armed_no_advanc"
+              "e\":0,\"ipqp_final_inertia_read\":0,\"ipqp_reg_decreases\":0,\"ipqp_reg_increase"
+              "s\":0,\"ipqp_prox_center_updates\":0,\"ipqp_restart_repairs\":0,\"ipqp_restart_s"
+              "hift_max\":0,\"ipqp_mu_adopted\":0,\"ipqp_warm_restart_abandoned\":0,\"ipqp_decl"
+              "ined_pinned\":0,\"ipqp_tier_retired_after\":null,\"ipqp_face_uncertain\":0,\"ipq"
+              "p_refine_accepted\":0,\"ipqp_refine_refused\":0,\"ipqp_to_refine\":0,\"ipqp_to_s"
+              "sn\":0,\"ipqp_to_walk\":0,\"ipqp_escapes\":0,\"ipqp_escape_budget\":0,\"ipqp_esc"
+              "ape_stall\":0,\"ipqp_escape_indefinite\":0,\"ipqp_escape_numerical\":0,\"ipqp_es"
+              "cape_infeasible_suspect\":0,\"ipqp_alpha_p_min\":null,\"ipqp_alpha_d_min\":null,"
+              "\"ipqp_read_kept_tight_sides\":0,\"ipqp_read_barrier_noise_sides\":0}},\"scaling"
+              "_active\":false,\"obj_scale\":1,\"row_scale_min\":1,\"row_scale_max\":1,\"scaled"
+              "_kkt_residual\":0}\n");
 }
 
 TEST(JsonLinesTraceSink, SqpSolveEndKeysAreExactlyTheTablesAndAllDistinct) {

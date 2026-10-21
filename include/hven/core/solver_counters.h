@@ -2221,6 +2221,13 @@ struct SqpCounters {
     ///        counted in `restoration_reduction_resumes`. Same overwrite rule as
     ///        `restoration_h_out`; appended last; not folded.
     double restoration_feas_out = 0.0;
+    /// @brief THE CALLER-UNIT FEASIBILITY GUARD (M7 W2 SCL): measured iterates at which
+    ///        the convergence test passed in the engine's scaled units and was refused
+    ///        because the feasibility in the CALLER's units -- each row residual over its
+    ///        row factor, each box violation times its column factor -- exceeded
+    ///        feas_tol. 0 on a solve that ran unscaled. Appended last; not folded (the
+    ///        restoration sub-solve runs unscaled and has no guard).
+    Index scaled_convergence_refusals = 0;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -2304,7 +2311,8 @@ struct SqpCounters {
     X(qn_nonpd_seen, counter_never_absent)                                                         \
     X(qn_dimension, counter_never_absent)                                                          \
     X(nonfinite_step_rollbacks, counter_never_absent)                                              \
-    X(restoration_feas_out, counter_never_absent)
+    X(restoration_feas_out, counter_never_absent)                                                  \
+    X(scaled_convergence_refusals, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =
@@ -2349,7 +2357,8 @@ inline constexpr std::size_t kSqpCountersFieldCount =
 // quasi-Newton group, the same way: `sizeof` 960 -> 1072. 77 -> 79 at the QN review and
 // riders, `qn_nonpd_seen` and `qn_dimension`; 79 -> 80 at M7 W2 R2-1,
 // `nonfinite_step_rollbacks`, the same way: `sizeof` 1088 -> 1096. 80 -> 81 at M7 W2 SNR,
-// `restoration_feas_out`, the same way: `sizeof` 1096 -> 1104.)
+// `restoration_feas_out`, the same way: `sizeof` 1096 -> 1104. 81 -> 82 at M7 W2 SCL,
+// `scaled_convergence_refusals`, the same way: `sizeof` 1104 -> 1112.)
 static_assert(::hven::detail::kAggregateArity<SqpCounters> == kSqpCountersFieldCount + 2,
               "SqpCounters and HVEN_SQP_COUNTERS_FIELDS disagree: give the new field an X() entry "
               "in its declaration position, or -- if it is a new NESTED aggregate -- give it a "

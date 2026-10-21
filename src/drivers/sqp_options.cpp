@@ -146,6 +146,19 @@ void validate(const SqpOptions &opts) {
             "factor to [1/limit, limit], and a limit below 1 inverts that interval",
             opts.scaling_factor_limit));
     }
+    // THE COLUMN LAYER (M7 W2 SCL), validated unconditionally for the same reason.
+    if (opts.column_scaling == SqpColumnScaling::kSqpColumnScalingCount) {
+        throw std::invalid_argument(
+            "SqpSolver: column_scaling == SqpColumnScaling::kSqpColumnScalingCount is the "
+            "enumeration's count sentinel, not a column-scaling mode");
+    }
+    if (!(opts.column_scaling_threshold >= 1.0) || std::isinf(opts.column_scaling_threshold)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpSolver: column_scaling_threshold ({}) must be finite and >= 1; it is the "
+            "column factors' max/min spread at which kAuto scales, and a spread is never "
+            "below 1",
+            opts.column_scaling_threshold));
+    }
     // THE kIpm TIER'S OWN OPTIONS (M6 W1 task 1). Validated UNCONDITIONALLY,
     // exactly like the scaling fields just above and for the same reason: an
     // options object is a value whose qp_mode a caller may set later, so a
@@ -497,6 +510,19 @@ const char *enum_name(SqpHessianMode v) {
     }
     return "unknown";
 }
+const char *enum_name(SqpColumnScaling v) {
+    switch (v) {
+    case SqpColumnScaling::kOff:
+        return "kOff";
+    case SqpColumnScaling::kAlways:
+        return "kAlways";
+    case SqpColumnScaling::kAuto:
+        return "kAuto";
+    case SqpColumnScaling::kSqpColumnScalingCount:
+        return "kSqpColumnScalingCount";
+    }
+    return "unknown";
+}
 const char *enum_name(SsnSigmaRule v) {
     switch (v) {
     case SsnSigmaRule::kLadder:
@@ -611,6 +637,8 @@ void dump_options(const SqpOptions &o, std::ostream &os) {
     kv_bool(os, "enable_scaling", o.enable_scaling);
     kv_dbl(os, "scaling_max_gradient", o.scaling_max_gradient);
     kv_dbl(os, "scaling_factor_limit", o.scaling_factor_limit);
+    kv_str(os, "column_scaling", enum_name(o.column_scaling));
+    kv_dbl(os, "column_scaling_threshold", o.column_scaling_threshold);
     kv_bool(os, "project_start_point", o.project_start_point);
     kv_int(os, "qp_failure_budget", static_cast<long long>(o.qp_failure_budget));
     kv_bool(os, "qp_cap_retry", o.qp_cap_retry);

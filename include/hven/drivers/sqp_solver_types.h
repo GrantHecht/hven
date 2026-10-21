@@ -338,6 +338,18 @@ enum class ElasticRungEngine { kWalk, kTier, kElasticRungEngineCount };
 /// @see .superpowers/m7-qn-design.md sections 2-3
 enum class SqpHessianMode { kExact, kLbfgsDamped, kSqpHessianModeCount };
 
+/// @brief The VARIABLE (column) half of problem scaling (M7 W2 SCL); see
+///        SqpOptions::column_scaling and detail/drivers/column_scaling.h.
+///
+/// `kOff` never scales a variable. `kAlways` installs the rule's column factors
+/// whenever they are not all 1; the row/objective layer stays as
+/// `SqpOptions::enable_scaling` says. `kAuto` installs them only on a BADLY scaled
+/// problem -- factor spread >= `SqpOptions::column_scaling_threshold` -- and then
+/// engages the row/objective layer for that solve too, whatever `enable_scaling`
+/// says; below the threshold the solve is the `kOff` solve. The trailing enumerator
+/// is the COUNT SENTINEL, refused by validation.
+enum class SqpColumnScaling { kOff, kAlways, kAuto, kSqpColumnScalingCount };
+
 /// @brief Driver options for the whole SQP solve.
 ///
 /// TOLERANCES. kkt_tol gates the STATIONARITY measure and feas_tol the
@@ -677,6 +689,39 @@ struct SqpOptions {
     /// its objective gradient AMPLIFIED, and without a ceiling that amplification
     /// is unbounded.
     double scaling_factor_limit = 1e12;
+
+    /// THE COLUMN (VARIABLE) LAYER of problem scaling (M7 W2 SCL). When it fires the
+    /// engine solves the problem in the variables x~ = x / d, d the power-of-two column
+    /// half of a Ruiz equilibration of [Je; Ji] at the start point
+    /// (detail/drivers/column_scaling.h); restoration, the trust region and the funnel
+    /// all run in x~, and every exported quantity is mapped back.
+    ///
+    /// What changes when it fires: the trust region is an l-infinity box in x~, i.e.
+    /// |dx_j| <= d_j * radius; the convergence test gates on the scaled stationarity
+    /// and, beside it, on the CALLER-unit feasibility (rows and box) <= feas_tol, so a
+    /// kOptimal point is feasible for the problem the caller posed;
+    /// `SqpResult::x`, `z`, the multipliers and the terminal residuals are in caller
+    /// units, re-measured on the caller's model. History rows, iteration events'
+    /// scalar diagnostics and trace rows stay in the engine's units for the
+    /// x-dependent columns (stationarity, step_norm, tr_radius); an event's x and z
+    /// are mapped. A warm start crosses as x / d, z * d; its radius, regularization,
+    /// hot factorization and prox centre are not carried (they are scaled-space state).
+    /// Whenever the rule runs it costs one Jacobian evaluation at the start point,
+    /// which -- like the warm-start probe's -- no SqpCounters field counts; a solve that
+    /// fires also pays one full evaluation at the end (the caller-unit re-measurement,
+    /// counted in `evals_full`).
+    ///
+    /// DEFAULT kOff, by measurement (M7 W2 SCL): kAuto converts SAWPATH's exact label
+    /// to the optimum on the CUTEst TRAIN set, but its gate also fires on every F7
+    /// trajectory cell of the U0 corpus (a mesh transcription's spread grows with N,
+    /// 2^11 .. 2^15 there), where it costs one U0 cell its optimum and the warm-start
+    /// currency its scaled-space state. Opt in per problem.
+    SqpColumnScaling column_scaling = SqpColumnScaling::kOff;
+
+    /// kAuto's gate: the column factors' spread (max d / min d over columns with
+    /// Jacobian data) at or above which a problem counts as badly scaled. Default 1e3.
+    /// Must be finite and >= 1. Read only under kAuto.
+    double column_scaling_threshold = 1e3;
 
     /// THE OUT-OF-BOX START POINT: project it, or take it verbatim (M7 W2 M4).
     ///
@@ -1326,8 +1371,9 @@ struct SqpIterate {
 /// and the sub-solve runs unscaled by design. An INACTIVE report is the identity,
 /// field for field, so a reader never has to branch on `active`.
 struct SqpScalingReport {
-    /// True when the solve ran scaled, i.e. `SqpOptions::enable_scaling` was on
-    /// and factors were installed.
+    /// True when the ROW/OBJECTIVE layer ran, i.e. `SqpOptions::enable_scaling` was
+    /// on -- or `column_scaling == kAuto` fired, which engages it -- and factors were
+    /// installed.
     bool active = false;
     /// The objective factor `sf`. Multiply a caller-scale objective by it to
     /// reach the engine's; divide to come back. 1.0 when inactive.
@@ -1346,6 +1392,16 @@ struct SqpScalingReport {
     /// computable. NaN whenever SqpResult::kkt_residual is NaN, for the same
     /// reason: nothing was measured.
     double scaled_kkt_residual = std::numeric_limits<double>::quiet_NaN();
+    /// THE COLUMN LAYER (M7 W2 SCL, SqpOptions::column_scaling). True when the solve
+    /// ran in scaled variables. `col_min`/`col_max` are the installed factors'
+    /// extremes over the columns that carry Jacobian data, 1.0 when none was
+    /// installed. `col_spread` is the spread the rule COMPUTED whenever it ran -- also
+    /// when kAuto's gate did not fire, which is how a caller reads why -- and 1.0
+    /// under kOff.
+    bool columns_active = false;
+    double col_min = 1.0;
+    double col_max = 1.0;
+    double col_spread = 1.0;
 };
 
 /// @brief Why an equality-basis split dropped nothing although it was computed

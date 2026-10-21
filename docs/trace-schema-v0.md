@@ -855,6 +855,7 @@ group; `SqpOptions::hessian_mode`).
 | `qn_dimension` | integer | `SqpCounters::qn_dimension` | variables the quasi-Newton model carries curvature for: the structural count, or the nonlinear variables only under `SqpOptions::qn_nonlinear_only` (default off). Max-folded |
 | `nonfinite_step_rollbacks` | integer | `SqpCounters::nonfinite_step_rollbacks` | accepted steps rejected after the fact (M7 W2 R2-1): the first major after a commit found the committed point's gradient, `H`, `A` or `g` non-finite, restored the previous iterate (its evaluation and prices) and the funnel width, and shrank the radius the step was taken under; that major's row describes the abandoned point, `qp_solved` false. A rolled-back step stays in `steps_accepted`. Not taken across the radius floor, in the full-step mode, or at a point no commit reached -- those end through `nonfinite_subproblems` as before. Folded from the restoration sub-solve |
 | `restoration_feas_out` | number | `SqpCounters::restoration_feas_out` | the inf-norm violation, rows and box, at the point the last restoration entry RETURNED (M7 W2 SNR): the convergence test's own feasibility measure and the exact value the resume test compares against `SqpOptions::feas_tol`. So `restoration_feas_out <= feas_tol` iff that entry resumed -- unless an entry counted in `restoration_reduction_resumes` resumed above it. Same overwrite rule and units as `restoration_h_out`; not folded |
+| `scaled_convergence_refusals` | integer | `SqpCounters::scaled_convergence_refusals` | measured iterates at which the convergence test passed in the engine's SCALED units and was refused by the caller-unit feasibility guard (M7 W2 SCL): each row residual over its row factor, each box violation times its column factor, against `feas_tol`. 0 on a solve that ran unscaled; not folded (the restoration sub-solve runs unscaled) |
 
 LAST in the table and last in the struct, after `restoration_reduction_resumes`, so
 the counters object gains exactly fourteen keys before the `ssn` object and the two
@@ -882,6 +883,14 @@ lines re-derived ONCE with a "RE-DERIVED AT M7 W2 R2-1" note.
 row above). LAST in the struct, after `nonfinite_step_rollbacks`, same route: one key
 before the `ssn` object, the nested tables' distinct values up by one, no sentinel,
 both golden lines re-derived ONCE with a "RE-DERIVED AT M7 W2 SNR" note.
+
+**THE DIRECT COUNTER M7 W2 SCL APPENDED — ONE** (`scaled_convergence_refusals`, the
+table row above). LAST in the struct, after `restoration_feas_out`, same route: one key
+before the `ssn` object, the nested tables' distinct values up by one, no sentinel,
+both golden lines re-derived ONCE with a "RE-DERIVED AT M7 W2 SCL" note. The scaling
+block below the counters is UNCHANGED by that round: it carries the row/objective
+layer's five values only, and the column layer's factors are reported on
+`SqpResult::scaling` (`columns_active`, `col_min`, `col_max`, `col_spread`), not here.
 
 ## 6. The mode-selection telemetry on `sqp.major`
 

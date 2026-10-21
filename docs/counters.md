@@ -246,6 +246,20 @@ one of those three therefore cannot silently miss the trace.
   was not reached by a commit -- those still end through `nonfinite_subproblems`
   (or the non-finite-iterate exit), which therefore counts only exits.
 
+  **`scaled_convergence_refusals` IS THE CALLER-UNIT FEASIBILITY GUARD** (M7 W2
+  SCL, appended last after `restoration_feas_out`). On a solve that ran scaled --
+  the row/objective layer (`SqpOptions::enable_scaling`, or `column_scaling ==
+  kAuto` firing) or the column layer (`SqpOptions::column_scaling`) -- the
+  convergence test's two conjuncts are read in the engine's units, so a row the
+  row layer shrank by `s_j < 1` passes at `|c_j| <= feas_tol / s_j` and a box
+  violation is read in units of the column factor. The guard requires the same
+  `feas_tol` of the CALLER-unit measure (each row residual over its row factor,
+  each box violation times its column factor) and counts each measured iterate at
+  which the scaled test passed and the caller-unit one did not; such an iterate
+  is not converged and the solve continues. 0 on every unscaled solve (the guard
+  is not entered), so the shipped default never moves it. Not folded: the
+  restoration sub-solve runs unscaled.
+
   **THE RESTORATION EXCURSION RECORD IS A PER-ENTRY READING, OVERWRITTEN, AND
   ITS ABSENCE IS READ OFF ITS OWN COUNT** (M7 W2 M2, the A0 signals page's S5).
   `restoration_entries` counts the restoration phases that RAN and were
