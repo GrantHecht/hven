@@ -1,0 +1,151 @@
+M7 W2 SCL -- THE GATE EXPECTATIONS, DERIVED.
+Written and committed BEFORE the chain was detached.
+
+RULE: nothing here, and no declared value in gates-scl.sh, may be adjusted after the chain's first leg. Every value is derived from
+the FINAL range d9bfbb27..c1075641 or measured on that pair by this declaration's own rehearsal (rehearsal/). No value is carried from
+the RLA declaration: where a number equals a previous record's it is a COMPARISON, stated as such. The previous gate run (RLA,
+docs/notes/data/2026-10-m7-rla/, record 7d9510d1) is frozen, untouched. If a gate fails the declaration stays frozen; a fix gets
+a successor -r2 declaration and the failed record is filed under gates-run1/.
+
+BASE   d9bfbb27 (the ledger-only commit on top of the RLA record 7d9510d1, the previous GREEN gate record; no source differs between them).
+HEAD   c1075641. The declaration commit sits on top and is docs only, so every derivation sees c1075641's sources.
+       Commits in the range (2 code commits): 14d6ba08 (SCL: problem scaling's COLUMN layer -- SqpOptions::column_scaling
+       {kOff, kAlways, kAuto} default kOff and column_scaling_threshold 1e3; include/hven/detail/drivers/column_scaling.h (ADDED header);
+       src/drivers/problem_scaling.cpp, sqp_options.cpp, sqp_solver.cpp; the caller-unit feasibility guard and
+       SqpCounters::scaled_convergence_refusals; the scaling report's columns_active / col_min / col_max / col_spread; docs/counters.md,
+       docs/trace-schema-v0.md; new tests/sqp/test_column_scaling.cpp), c1075641 (riders: the caller-unit answer before sqp.solve.end,
+       z keyed on what finish exported, depth-1 events mapped, the column probe counted in evals_values).
+       The commit messages' own measurements (U0 walk / ssn / ipm 0 / 0 / 0 differences, 27 cells x 75 columns) are the implementer's, not
+       this run's; this run measures its own (section 5).
+RUNNER gates-scl.sh + chain_gates_scl.sh: copies of RLA's, re-pointed (NOT edited in place). Changes, and nothing else (also in the runner
+       header): (a) names / scratch .scratch/gates-scl / G4 label / BEFORE d9bfbb27 / by-name baseline and G4 exact arm pinned to RLA's
+       gates/ record (BEFORE-bounded, preflight E1); the exact arm's directory is DERIVED from the by-name baseline directory, not typed,
+       and is now ASSERTED rc 0 per engine (it was recorded-only); the chain derives its wrappers directory from its own location; the
+       classifier is a byte-identical copy (preflight F); (b) the changed surface (section 1); (c) the name checks (section 3);
+       (d) the measured P-SYM slots (section 2).
+       ENVIRONMENT NOTE: the worktree was created on main; `git checkout -b gates-scl c1075641` was run on the clean worktree. It was created
+       without its submodules; dep/eigen and dep/fmt were populated by copying the main checkout's working trees (same gitlinks) with no
+       .git file; they are not tracked content and the tree stays clean.
+
+-----------------------------------------------------------------------------
+1  THE CHANGED SURFACE of d9bfbb27..c1075641 -- OBSERVED, derived from git.
+
+   5 headers (git diff --name-only d9bfbb27 c1075641 -- include/): core/solver_counters.h, detail/drivers/column_scaling.h (ADDED),
+     drivers/solve_result.h, drivers/sqp_solver.h, drivers/sqp_solver_types.h.
+   7 MODIFIED .cpp, all INSIDE the P-SYM universe: library src/drivers/problem_scaling.cpp, sqp_options.cpp, sqp_solver.cpp;
+     hven_drivers_tests tests/drivers/test_callback.cpp, test_options_dump.cpp, test_threads.cpp; hven_sqp_tests tests/sqp/test_trace_writer.cpp.
+     Nothing modified outside the universe (EXPECT_CLASS_A_OUTSIDE_SRCS is EMPTY). => class A = 7.
+   1 ADDED .cpp: tests/sqp/test_column_scaling.cpp, a source of hven_sqp_tests (tests/sqp/CMakeLists.txt adds exactly that one line), so it lies
+     INSIDE the P-SYM universe: EXPECT_ADDED_CXX 1, EXPECT_ADDED_OUTSIDE_UNIVERSE empty, EXPECT_PSYM_ADDED 1, EXPECT_SQP_CMAKE_ADDS
+     test_column_scaling.cpp, no ADDED library object. tests/CMakeLists.txt and src/CMakeLists.txt UNCHANGED. No ADDED fixture.
+   Other range files: docs/counters.md, docs/trace-schema-v0.md (docs only).
+   clang-format set (include/*.h src/*.cpp tests/*.cpp tests/*.h bench/*.cpp): 13 files (the runner prints it).
+
+   THE DECLARED MOVERS this range carries, each VERIFIED against the diff (git diff d9bfbb27 c1075641):
+   - SqpOptions: 41 -> 43 fields (column_scaling, column_scaling_threshold), sizeof 472 -> 488; the dump is 74 -> 76 lines
+     (tests/drivers/test_options_dump.cpp kSqpDumpLines; defaults column_scaling = kOff, column_scaling_threshold = 1000).
+   - SqpCounters: 81 -> 82 fields (scaled_convergence_refusals appended last, counter_never_absent, NOT folded), sizeof 1104 -> 1112
+     (tests/drivers/test_callback.cpp, test_threads.cpp field-count asserts).
+   - sqp.solve.end trace gains scaled_convergence_refusals: two golden lines re-derived in tests/sqp/test_trace_writer.cpp.
+   - the scaling report gains columns_active / col_min / col_max / col_spread (SqpResult scaling report).
+   - evals_values additionally counts the column-scaling rule's Jacobian probe -- only when column_scaling != kOff.
+   With column_scaling defaulting to kOff NO U0 cell is expected to move (section 5).
+
+-----------------------------------------------------------------------------
+2  THE P-SYM MOVER SHAPE, PER CONFIGURATION -- MEASURED on the final pair d9bfbb27/c1075641 by a FRESH rehearsal.
+
+     Release  DIFFERING 62 = class A 7 + class B 55; UNEXPLAINED 0; NOISE-ONLY 0; negative control 117; sections: 48 objects, 40
+              byte-identical, DEBUG_ONLY 0, NON-DEBUG MOVERS 8, REFUSED 0
+     Debug    DIFFERING 63 = class A 7 + class B 56; UNEXPLAINED 0; NOISE-ONLY 8 (3 in the library: drivers/console_trace_sink,
+              drivers/ipm_solver, qp/qp_engine -- the three DEBUG_ONLY objects); negative control 106; sections: 48 objects, 37
+              byte-identical, DEBUG_ONLY 3, NON-DEBUG MOVERS 8, REFUSED 0
+
+   HOW MEASURED. rehearsal/rehearse-scl.sh ran THIS runner's g5 segment (EXTRACTED from the runner's text, @ROOT@ substituted) at the
+   declaration-prep HEAD e55d2980 (a temporary docs-only commit above c1075641 holding the wrappers, since reset away; its tree differs from
+   c1075641 in docs only) against d9bfbb27, both configurations, ONE hold of the box lock: 2026-10-21 19:50-20:20, PGREP_EMPTY under the
+   hold (rehearsal/rehearsal-scl-log.txt). Its HYPOTHESIS declaration (class A only, 7/7, class B 0) was REFUSED in both configurations by
+   design (rehearsal/*-refused-at-7.txt), printing the measured shape (62 / 63 differing). Then rehearsal/offline-scl.sh 62 63 (its own hold,
+   20:20-20:29): a fresh Release build with g5's flags and the UNCAPPED classifier re-run on the rehearsal's compare files at the measured
+   counts -- OFFLINE_CLASSIFY_RC 0 in BOTH configurations (rehearsal/rehearsal-scl-classification-{Release,Debug}.txt). The measured slots
+   were UNMEASURED sentinels in the runner while the rehearsal ran and were filled in AFTER it; nothing else changed between the rehearsal
+   and the declaration. The capture-pair asserts (after = before + ADDED = 161; ONLY-AFTER == [test_column_scaling.cpp.o]) held in both
+   configurations in the rehearsal's g5.
+
+   CLASS A: 7 in both configurations = the in-universe MODIFIED .cpp of section 1 exactly, the same 7 objects (OBSERVED): library
+   drivers/problem_scaling, drivers/sqp_options, drivers/sqp_solver; hven_drivers_tests test_callback, test_options_dump, test_threads;
+   hven_sqp_tests test_trace_writer. Both class-A noise-only slots are EMPTY.
+   CLASS B: Release 55, Debug 56 (OBSERVED, compared by name): the Debug set is the Release set plus ONE object,
+   tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_status.cpp.o -- BYTE-IDENTICAL in Release (named in the Release negative
+   control, whose listing is complete: 117 of 117), a mover in Debug. EXPECT_PSYM_B_DEBUG_ONLY declares it (the same object the RLA
+   round's ancestors declared; a COMPARISON, re-measured here). Library class B (5, both configs, all unmodified): core/ledger,
+   drivers/sqp_print, drivers/trace_writer, qp/ipqp_engine, warmstart/continuation. The pre-flight refuses any declared class B object
+   whose source is in the range (falsifier E8: tests/sqp test_trace_writer.cpp.o; E9: problem_scaling.cpp.o as a library class B).
+
+   Manifests: 160 objects before, 161 after (test_column_scaling.cpp.o added inside the universe). The outside-universe asserts hold
+   trivially (no outside source in the range; no outside target's object is in either manifest).
+
+   COMPARISON WITH RLA (a comparison, not the derivation): that round measured 43/43 = 3 + 40 on 3 headers; this range changes 5 headers
+   (one new, included by the driver translation units) and modifies 7 sources, so more fans out.
+
+-----------------------------------------------------------------------------
+3  TEST COUNTS -- derived against the by-name baseline.
+
+   THE BASELINE IS DERIVED, NOT NAMED, AND CHECKED AGAINST ITS DECLARATION: git log -1 --format= --name-only --diff-filter=A d9bfbb27 --
+   'docs/notes/data/*/gates*/suite-release.txt' -> ONE path, docs/notes/data/2026-10-m7-rla/gates/suite-release.txt == the declared
+   EXPECT_NAMES_BASE_REL (the runner refuses otherwise; falsified with BEFORE=0feb82aa, preflight E1).
+   BASELINE (the RLA record): ctest total Debug 3137 / Release 3138; started names 3139 / 3140. Skipped: Debug 7, Release 1.
+
+   ADDED = 35 instances by name, OBSERVED with git diff d9bfbb27 c1075641 -- 'tests/*.cpp': 35 `+TEST(` lines, all in
+   tests/sqp/test_column_scaling.cpp (suites ColumnScalingRule 7, ColumnScaledModel 3, ColumnScalingOption 3, ColumnScalingDriver 20,
+   ScaledConvergenceGuard 2), all names new, no TEST_P / TEST_F; 0 GTEST_SKIP / DISABLED_ lines in the range.
+   REMOVED = 0 (no `-TEST(` line). RE-DECLARED = 0.
+   EXPECTED SUITE COUNTS: Debug 3137 + 35 = 3172 (G1, the long test excluded); Release 3138 + 35 = 3173 (G3); G2 1. Started names Debug
+   3139 + 35 = 3174, Release 3140 + 35 = 3175 (the rehearsal build's `ctest -N` total is 3175: rehearsal/ctest-N-startfmt-derived.txt, derived
+   from the ctest -N listing by rewriting each "Test #n: name" line to the runner's "Start n: name" shape; it passes the runner's by-name
+   check in Release shape and Debug shape (the Debug shape less the long test), preflight C/C2; a short listing and the baseline are refused).
+   (The task brief's "3164 -> 3173" is read as 3138 -> 3173: 3138 + 35 = 3173.)
+   None added is Release-only, so DEBUG_ONLY_SKIPS_ADDED is EMPTY and the SKIPPED set must equal the baseline's by name (Debug 7, Release 1).
+
+   DECLARED MOVES in existing tests (checked by the suites passing; every one is a pin the range itself moved):
+   - the SqpOptions field count / sizeof / dump lines, the SqpCounters field count / sizeof (section 1): test_options_dump.cpp,
+     test_callback.cpp, test_threads.cpp.
+   - the two re-derived sqp.solve.end golden lines in test_trace_writer.cpp.
+   - NEW COUNTER KEY: SqpCounters::scaled_convergence_refusals (appended; documented NOT folded). Any U0 replay column this adds is declared
+     here: the replay's 75-column shape is asserted as 27 cells x 75 columns, so a column count other than 75 fails G4. Fold proofs are
+     expected 46/0 (the key is not folded); the count the record shows is reported as observed.
+
+-----------------------------------------------------------------------------
+4  THE SECTION SHAPE (G5b) -- MEASURED by this run's rehearsal (rehearsal/rehearsal-scl-sections-{Release,Debug}.txt).
+   NON-DEBUG-MOVER set 8 in BOTH configurations: the three class A library objects (drivers/problem_scaling, sqp_options, sqp_solver) + the
+   five declared class B library objects above. DEBUG_ONLY Release 0 / Debug 3 (console_trace_sink, ipm_solver, qp_engine; declared by
+   COUNT). NOISE-ONLY library-mover slots EMPTY. No library object ADDED.
+
+-----------------------------------------------------------------------------
+5  G4: 27 cells x 75 columns x 3 engines.
+
+   MEASURED by the rehearsal's offline leg (a fresh Release build of c1075641's sources, MKL_NUM_THREADS=1, taskset -c 2;
+   rehearsal/rehearsal-scl-g4-comparison.txt): vs the M6 close pin, GATED (1e-5 relative, 1e-13 floor): walk 17 differences, ssn 13,
+   ipm 13 = 43; the measured (engine, cell, column) SET EQUALS the declared 43-entry list (runner --check-g4 on the pin arms, rc 0, all
+   eight asserts OK: preflight B). The 43 are the previous record's list, re-backed by this measurement (a comparison, not a carry: the
+   set equality is asserted).
+   EXACT arm vs the RLA record's gates/replay: walk 0, ssn 0, ipm 0 differences (measured in the rehearsal, rc 0 each). Because
+   column_scaling defaults to kOff this range claims to move no U0 cell and add no U0 column, so the exact arm is DECLARED 0 / 0 / 0
+   and ASSERTED rc 0 per engine by the chain's g4 segment (preflight B2 shows the comparator exits non-zero on a real difference).
+   The chain's own replay moving beyond the declared 43-set, or the exact arm moving at all, fails G4; it is reported, never re-declared.
+
+-----------------------------------------------------------------------------
+6  G6: expected CLEAN: install smoke; export contract; clang-format over the DERIVED set (13 files, asserted clean by the gate itself);
+   git diff --check; DIRTY_FILES 0. Fold proofs expected 46/0 or the count the gate-assert library produces (the library is unchanged);
+   the count the record shows is reported as observed.
+
+-----------------------------------------------------------------------------
+7  PRE-FLIGHT: preflight-scl.txt (this directory; generated by preflight-scl.sh), committed WITH this file and BEFORE the chain was
+   detached: A full pre-flight PREFLIGHT_OK; B --check-g4 rc 0 (+ B2 the exact-arm comparator's teeth); C by-name reader; D skipped sets;
+   E wrong-BEFORE / sentinel / class A / Debug count / removed / fixture / universe-added / cmake-add / class B / library-class-B
+   falsifiers; F classifier.
+
+-----------------------------------------------------------------------------
+8  G5 CHECKS THE WORKTREE OUT TO BEFORE while it builds its before arm, once per configuration: nothing may edit or commit in this
+   worktree from the chain's launch until CHAIN_END.
+
+   WALL IS INFORMATIONAL. Nothing above is a timing claim.
