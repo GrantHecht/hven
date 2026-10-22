@@ -1,0 +1,35 @@
+# RST-I1 (commit 03903d55 on 91dd3f64): the regularized restart requires !st.interrupted.
+# Same box conditions as the README. Build: Release, this tree, target hven_sqp_seam_tests.
+
+## The new test and its neighbours (Release, before the commit, tree = the commit's two hunks + inert scratch hooks)
+[ RUN      ] SqpLadderSeam.AFailedPhaseSubproblemRestartsThePhaseOnTheRegularizedModel
+[       OK ] SqpLadderSeam.AFailedPhaseSubproblemRestartsThePhaseOnTheRegularizedModel (23 ms)
+[ RUN      ] SqpLadderSeam.AStopOnTheSwitchRowEndsTheSolveWithoutTheRegularizedRestart
+[       OK ] SqpLadderSeam.AStopOnTheSwitchRowEndsTheSolveWithoutTheRegularizedRestart (3 ms)
+[ RUN      ] SqpLadderSeam.UnderTheQuasiNewtonModeAFailedPhaseSubproblemDoesNotSwitch
+[       OK ] SqpLadderSeam.UnderTheQuasiNewtonModeAFailedPhaseSubproblemDoesNotSwitch (40 ms)
+[ RUN      ] SqpLadderSeam.AnExhaustedElasticTierInsideThePhaseTakesTheRegularizedRestart
+[       OK ] SqpLadderSeam.AnExhaustedElasticTierInsideThePhaseTakesTheRegularizedRestart (9 ms)
+[ RUN      ] SqpLadderSeam.EveryRowBlockIsReadOncePerCountedQueryWithBothRowKinds
+[       OK ] SqpLadderSeam.EveryRowBlockIsReadOncePerCountedQueryWithBothRowKinds (111 ms)
+[  PASSED  ] 5 tests.
+
+## Mutant: the conjunct removed (`regularize_on_failure && true && ...`), target rebuilt, test re-run: KILLED
+tests/sqp/test_sqp_ladder_seams.cpp:969: Failure
+Expected equality of these values:
+  depth1_rows
+    Which is: 3
+[  FAILED  ] SqpLadderSeam.AStopOnTheSwitchRowEndsTheSolveWithoutTheRegularizedRestart (7 ms)
+(the source was restored to the commit's text afterwards)
+
+## Suites on the commit (tree == 03903d55, no uncommitted change): Release and Debug ctest -j4 under setsid,
+## MKL_NUM_THREADS=1, the long test (Continuation.ProbeBudgetBoundsAFailingProposal) in its own leg; U0 exact arm
+## against docs/notes/data/2026-10-m7-rst-gates/gates/replay.
+Release: 3195 listed; legs 1598 + 1594 passed + the long test 1/1 = 3193 passed, 0 failed; 2 Not Run (Disabled):
+  EqpRefinementAb.FootprintRuleProbe, EqpRefinementAb.FullBattery (disabled in the tree, unchanged)
+Debug:   3195 listed; 10 legs (320 x 8 + 318 + 314) + the long test 1/1 = 3193 passed, 0 failed; the same 2 disabled
+U0 exact arm (27 cells x 75 columns) vs docs/notes/data/2026-10-m7-rst-gates/gates/replay:
+=== RST GATE RECORD HEAD-walk vs YKN HEAD-walk (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+=== RST GATE RECORD HEAD-ssn vs YKN HEAD-ssn (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+=== RST GATE RECORD HEAD-ipm vs YKN HEAD-ipm (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+Legs 13:16-13:59, each under the lock, interleaved with RETAKE17's cells.
