@@ -1,117 +1,69 @@
-# ablations on the RST head lane (exact label): RST_K=1 = restoration_max_entries 1; RST_CURV=model = kModel
-CELL_PID 2952402 BRITGAS default cap=450
-CELL BRITGAS default rc=0 wall=376.1s
-  -> status=optimal iterations=62 objective=0  
-CELL_PID 2956007 NET3 default cap=450
-CELL NET3 default rc=0 wall=96.2s
-  -> status=optimal iterations=23 objective=5859393.7023180835  
-CELL_PID 2956765 NET3 default cap=450
-CELL NET3 default rc=0 wall=84.1s
-  -> status=numerical_error iterations=11 objective=6082908.2441864172  
-CELL_PID 2957337 NET3 default cap=450
-CELL NET3 default CAPPED wall=450.2s
-CELL_PID 2960297 BRITGAS default cap=450
-CELL BRITGAS default rc=0 wall=204.4s
-  -> status=numerical_error iterations=8 objective=4.2873511537665543  
-CELL_PID 2962029 BRITGAS default cap=450
-CELL BRITGAS default rc=0 wall=431.0s
-  -> status=numerical_error iterations=19 objective=8.405336302097739  
-CELL_PID 2964897 BIGBANK sqp-qn cap=590
-CELL BIGBANK sqp-qn rc=0 wall=480.3s
-  -> status=max_iter iterations=300 objective=-4150620.4034463288  
-# experiment lanes (env hooks, not shipped; logs/exp1..exp4)
+# The two RST levers apart, on the RST head lane (commit 80da6e46's binary), exact label unless stated.
+# Each row: the cell, its cap, WHICH LEVER was changed from the shipped defaults, and the outcome.
+BRITGAS  default  cap 450s | both levers at the shipped defaults
+                           -> wall 376.1s  status=optimal iterations=62 objective=0
+NET3     default  cap 450s | both levers at the shipped defaults
+                           -> wall 96.2s  status=optimal iterations=23 objective=5859393.7023180835
+NET3     default  cap 450s | restoration_max_entries = 1 (curvature at the default kModelThenRegularized)
+                           -> wall 84.1s  status=numerical_error iterations=11 objective=6082908.2441864172
+NET3     default  cap 450s | restoration_curvature = kModel (entries at the default 10)
+                           -> wall 450.2s  CAPPED
+BRITGAS  default  cap 450s | restoration_max_entries = 1 (curvature at the default kModelThenRegularized)
+                           -> wall 204.4s  status=numerical_error iterations=8 objective=4.2873511537665543
+BRITGAS  default  cap 450s | restoration_curvature = kModel (entries at the default 10)
+                           -> wall 431.0s  status=numerical_error iterations=19 objective=8.405336302097739
+BIGBANK  sqp-qn   cap 590s | both levers at the shipped defaults
+                           -> wall 480.3s  status=max_iter iterations=300 objective=-4150620.4034463288
+
+# The experiment lanes the design was chosen on: environment hooks on the base 0dc2f1aa tree,
+# never shipped ([hook] rows). Same row format.
 ## exp1
-exp1 runs/pc1 YORKNET default 300 RST_PROXC=1 C10_TRACE=runs/pc1/YORKNET-default.jsonl
-exp1 runs/pc1 BRITGAS default 500 RST_PROXC=1 C10_TRACE=runs/pc1/BRITGAS-default.jsonl
-exp1 runs/res05 YORKNET default 300 C13O_RESUME=0.5 C10_TRACE=runs/res05/YORKNET-default.jsonl
-exp1 runs/rqn YORKNET default 300 RST_RESTO_HESS=1 C10_TRACE=runs/rqn/YORKNET-default.jsonl
-exp1 runs/rqn BRITGAS default 500 RST_RESTO_HESS=1 C10_TRACE=runs/rqn/BRITGAS-default.jsonl
-exp1 runs/pc1 YORKNET sqp-qn 450 RST_PROXC=1 C10_TRACE=runs/pc1/YORKNET-sqp-qn.jsonl
-CELL_PID 2868810 YORKNET default cap=300
-CELL YORKNET default rc=0 wall=54.9s
-  -> status=numerical_error iterations=34 objective=14794.859352692822  
-CELL_PID 2869259 BRITGAS default cap=500
-CELL BRITGAS default rc=0 wall=283.0s
-  -> status=numerical_error iterations=76 objective=0  
-CELL_PID 2871317 YORKNET default cap=300
-CELL YORKNET default rc=0 wall=42.8s
-  -> status=numerical_error iterations=38 objective=14669.895158722122  
-CELL_PID 2871772 YORKNET default cap=300
-CELL YORKNET default rc=0 wall=43.8s
-  -> status=numerical_error iterations=30 objective=15999.064034992334  
-CELL_PID 2872121 BRITGAS default cap=500
-CELL BRITGAS default rc=0 wall=66.0s
-  -> status=numerical_error iterations=6 objective=2.1279964418044317  
-CELL_PID 2872576 YORKNET sqp-qn cap=450
-CELL YORKNET sqp-qn rc=0 wall=376.6s
-  -> status=numerical_error iterations=1 objective=100905.62850021633  
+YORKNET  default  cap 300s | [hook] restoration B = 1 * D^2 on the x-block, no constraint curvature
+                           -> wall 54.9s  status=numerical_error iterations=34 objective=14794.859352692822
+BRITGAS  default  cap 500s | [hook] restoration B = 1 * D^2 on the x-block, no constraint curvature
+                           -> wall 283.0s  status=numerical_error iterations=76 objective=0
+YORKNET  default  cap 300s | restoration_resume_reduction = 0.5
+                           -> wall 42.8s  status=numerical_error iterations=38 objective=14669.895158722122
+YORKNET  default  cap 300s | [hook] restoration sub-solve kLbfgsDamped
+                           -> wall 43.8s  status=numerical_error iterations=30 objective=15999.064034992334
+BRITGAS  default  cap 500s | [hook] restoration sub-solve kLbfgsDamped
+                           -> wall 66.0s  status=numerical_error iterations=6 objective=2.1279964418044317
+YORKNET  sqp-qn   cap 450s | [hook] restoration B = 1 * D^2 on the x-block, no constraint curvature
+                           -> wall 376.6s  status=numerical_error iterations=1 objective=100905.62850021633
 ## exp2
-exp2 runs/x2/qnm10 BRITGAS default 400 RST_RESTO_HESS=1 RST_MAXRESTO=10 C10_TRACE=runs/x2/qnm10-BRITGAS.jsonl
-exp2 runs/x2/pcm10 YORKNET default 300 RST_PROXC=1 RST_MAXRESTO=10 C10_TRACE=runs/x2/pcm10-YORKNET.jsonl
-exp2 runs/x2/qnm10 YORKNET default 300 RST_RESTO_HESS=1 RST_MAXRESTO=10 C10_TRACE=runs/x2/qnm10-YORKNET.jsonl
-exp2 runs/x2/lm1 YORKNET default 300 RST_PROXC=1 RST_LM=1 C10_TRACE=runs/x2/lm1-YORKNET.jsonl
-exp2 runs/x2/lm1 BRITGAS default 400 RST_PROXC=1 RST_LM=1 C10_TRACE=runs/x2/lm1-BRITGAS.jsonl
-exp2 runs/x2/pcm10 BRITGAS default 400 RST_PROXC=1 RST_MAXRESTO=10 C10_TRACE=runs/x2/pcm10-BRITGAS.jsonl
-CELL_PID 2875767 BRITGAS default cap=400
-CELL BRITGAS default rc=0 wall=171.2s
-  -> status=optimal iterations=54 objective=0  
-CELL_PID 2877005 YORKNET default cap=300
-CELL YORKNET default rc=0 wall=61.9s
-  -> status=max_iter iterations=34 objective=14806.483832062941  
-CELL_PID 2877434 YORKNET default cap=300
-CELL YORKNET default rc=0 wall=43.8s
-  -> status=numerical_error iterations=30 objective=15999.064034992334  
-CELL_PID 2877742 YORKNET default cap=300
-CELL YORKNET default rc=0 wall=33.2s
-  -> status=numerical_error iterations=32 objective=14781.831004580743  
-CELL_PID 2877987 BRITGAS default cap=400
-CELL BRITGAS default rc=0 wall=170.2s
-  -> status=numerical_error iterations=9 objective=0.0067298767488875753  
-CELL_PID 2879129 BRITGAS default cap=400
-CELL BRITGAS default rc=0 wall=283.5s
-  -> status=optimal iterations=76 objective=0  
+BRITGAS  default  cap 400s | [hook] restoration sub-solve kLbfgsDamped; [hook] restoration entries per solve <= 10 (no progress guard)
+                           -> wall 171.2s  status=optimal iterations=54 objective=0
+YORKNET  default  cap 300s | [hook] restoration B = 1 * D^2 on the x-block, no constraint curvature; [hook] restoration entries per solve <= 10 (no progress guard)
+                           -> wall 61.9s  status=max_iter iterations=34 objective=14806.483832062941
+YORKNET  default  cap 300s | [hook] restoration sub-solve kLbfgsDamped; [hook] restoration entries per solve <= 10 (no progress guard)
+                           -> wall 43.8s  status=numerical_error iterations=30 objective=15999.064034992334
+YORKNET  default  cap 300s | [hook] restoration B = 1 * D^2 on the x-block, no constraint curvature; [hook] that B scaled by min(1, ||c||_1)^1
+                           -> wall 33.2s  status=numerical_error iterations=32 objective=14781.831004580743
+BRITGAS  default  cap 400s | [hook] restoration B = 1 * D^2 on the x-block, no constraint curvature; [hook] that B scaled by min(1, ||c||_1)^1
+                           -> wall 170.2s  status=numerical_error iterations=9 objective=0.0067298767488875753
+BRITGAS  default  cap 400s | [hook] restoration B = 1 * D^2 on the x-block, no constraint curvature; [hook] restoration entries per solve <= 10 (no progress guard)
+                           -> wall 283.5s  status=optimal iterations=76 objective=0
 ## exp3
-exp2 runs/x3/lm1m10 BRITGAS default 400 RST_PROXC=1 RST_LM=1 RST_MAXRESTO=10 C10_TRACE=runs/x3/lm1m10-BRITGAS.jsonl
-exp2 runs/x3/lm1m10 YORKNET default 300 RST_PROXC=1 RST_LM=1 RST_MAXRESTO=10 C10_TRACE=runs/x3/lm1m10-YORKNET.jsonl
-exp2 runs/x3/lm2m10 BRITGAS default 400 RST_PROXC=1 RST_LM=2 RST_MAXRESTO=10 C10_TRACE=runs/x3/lm2m10-BRITGAS.jsonl
-exp2 runs/x3/lm2m10 YORKNET default 300 RST_PROXC=1 RST_LM=2 RST_MAXRESTO=10 C10_TRACE=runs/x3/lm2m10-YORKNET.jsonl
-CELL_PID 2881286 BRITGAS default cap=400
-CELL BRITGAS default rc=0 wall=244.7s
-  -> status=optimal iterations=34 objective=0  
-CELL_PID 2882955 YORKNET default cap=300
-CELL YORKNET default rc=0 wall=48.3s
-  -> status=numerical_error iterations=48 objective=14672.231567486931  
-CELL_PID 2883294 BRITGAS default cap=400
-CELL BRITGAS default rc=0 wall=380.6s
-  -> status=optimal iterations=58 objective=0  
-CELL_PID 2885970 YORKNET default cap=300
-CELL YORKNET default rc=0 wall=66.0s
-  -> status=numerical_error iterations=30 objective=14810.723665765005  
+BRITGAS  default  cap 400s | [hook] restoration B = 1 * D^2 on the x-block, no constraint curvature; [hook] that B scaled by min(1, ||c||_1)^1; [hook] restoration entries per solve <= 10 (no progress guard)
+                           -> wall 244.7s  status=optimal iterations=34 objective=0
+YORKNET  default  cap 300s | [hook] restoration B = 1 * D^2 on the x-block, no constraint curvature; [hook] that B scaled by min(1, ||c||_1)^1; [hook] restoration entries per solve <= 10 (no progress guard)
+                           -> wall 48.3s  status=numerical_error iterations=48 objective=14672.231567486931
+BRITGAS  default  cap 400s | [hook] restoration B = 1 * D^2 on the x-block, no constraint curvature; [hook] that B scaled by min(1, ||c||_1)^2; [hook] restoration entries per solve <= 10 (no progress guard)
+                           -> wall 380.6s  status=optimal iterations=58 objective=0
+YORKNET  default  cap 300s | [hook] restoration B = 1 * D^2 on the x-block, no constraint curvature; [hook] that B scaled by min(1, ||c||_1)^2; [hook] restoration entries per solve <= 10 (no progress guard)
+                           -> wall 66.0s  status=numerical_error iterations=30 objective=14810.723665765005
 ## exp4
-exp3 runs/x4/c01 BRITGAS default 400 RST_PROXC=0.1 RST_LM=1 RST_MAXRESTO=10 C10_TRACE=runs/x4/c01-BRITGAS.jsonl
-exp3 runs/x4/c001 BRITGAS default 400 RST_PROXC=0.01 RST_LM=1 RST_MAXRESTO=10 C10_TRACE=runs/x4/c001-BRITGAS.jsonl
-exp3 runs/x4/c01 YORKNET default 300 RST_PROXC=0.1 RST_LM=1 RST_MAXRESTO=10 C10_TRACE=runs/x4/c01-YORKNET.jsonl
-exp3 runs/x4/c001 YORKNET default 300 RST_PROXC=0.01 RST_LM=1 RST_MAXRESTO=10 C10_TRACE=runs/x4/c001-YORKNET.jsonl
-exp3 runs/x4/qnlm YORKNET sqp-qn 300 RST_PROXC=1 RST_LM=1 RST_RESTO_HESS=2 RST_MAXRESTO=10 C10_TRACE=runs/x4/qnlm-YORKNET.jsonl
-exp3 runs/x4/qnlm BRITGAS sqp-qn 300 RST_PROXC=1 RST_LM=1 RST_RESTO_HESS=2 RST_MAXRESTO=10 C10_TRACE=runs/x4/qnlm-BRITGAS.jsonl
-exp3 runs/x4/qnm10 YORKNET sqp-qn 300 RST_MAXRESTO=10 C10_TRACE=runs/x4/qnm10-YORKNET.jsonl
-CELL_PID 2887110 BRITGAS default cap=400
-CELL BRITGAS default rc=0 wall=378.7s
-  -> status=optimal iterations=70 objective=0  
-CELL_PID 2889771 BRITGAS default cap=400
-CELL BRITGAS default rc=0 wall=223.0s
-  -> status=optimal iterations=68 objective=0  
-CELL_PID 2891266 YORKNET default cap=300
-CELL YORKNET default rc=0 wall=47.8s
-  -> status=numerical_error iterations=61 objective=14715.725740144242  
-CELL_PID 2891652 YORKNET default cap=300
-CELL YORKNET default rc=0 wall=68.5s
-  -> status=numerical_error iterations=30 objective=14762.247481409469  
-CELL_PID 2892120 YORKNET sqp-qn cap=300
-CELL YORKNET sqp-qn rc=0 wall=51.4s
-  -> status=max_iter iterations=75 objective=14247.273086785313  
-CELL_PID 2892486 BRITGAS sqp-qn cap=300
-CELL BRITGAS sqp-qn rc=0 wall=28.2s
-  -> status=optimal iterations=18 objective=0  
-CELL_PID 2892698 YORKNET sqp-qn cap=300
-CELL YORKNET sqp-qn CAPPED wall=300.1s
+BRITGAS  default  cap 400s | [hook] restoration B = 0.1 * D^2 on the x-block, no constraint curvature; [hook] that B scaled by min(1, ||c||_1)^1; [hook] restoration entries per solve <= 10 (no progress guard)
+                           -> wall 378.7s  status=optimal iterations=70 objective=0
+BRITGAS  default  cap 400s | [hook] restoration B = 0.01 * D^2 on the x-block, no constraint curvature; [hook] that B scaled by min(1, ||c||_1)^1; [hook] restoration entries per solve <= 10 (no progress guard)
+                           -> wall 223.0s  status=optimal iterations=68 objective=0
+YORKNET  default  cap 300s | [hook] restoration B = 0.1 * D^2 on the x-block, no constraint curvature; [hook] that B scaled by min(1, ||c||_1)^1; [hook] restoration entries per solve <= 10 (no progress guard)
+                           -> wall 47.8s  status=numerical_error iterations=61 objective=14715.725740144242
+YORKNET  default  cap 300s | [hook] restoration B = 0.01 * D^2 on the x-block, no constraint curvature; [hook] that B scaled by min(1, ||c||_1)^1; [hook] restoration entries per solve <= 10 (no progress guard)
+                           -> wall 68.5s  status=numerical_error iterations=30 objective=14762.247481409469
+YORKNET  sqp-qn   cap 300s | [hook] restoration B = 1 * D^2 on the x-block, no constraint curvature; [hook] that B scaled by min(1, ||c||_1)^1; [hook] restoration sub-solve kExact; [hook] restoration entries per solve <= 10 (no progress guard)
+                           -> wall 51.4s  status=max_iter iterations=75 objective=14247.273086785313
+BRITGAS  sqp-qn   cap 300s | [hook] restoration B = 1 * D^2 on the x-block, no constraint curvature; [hook] that B scaled by min(1, ||c||_1)^1; [hook] restoration sub-solve kExact; [hook] restoration entries per solve <= 10 (no progress guard)
+                           -> wall 28.2s  status=optimal iterations=18 objective=0
+YORKNET  sqp-qn   cap 300s | [hook] restoration entries per solve <= 10 (no progress guard)
+                           -> wall 300.1s  CAPPED

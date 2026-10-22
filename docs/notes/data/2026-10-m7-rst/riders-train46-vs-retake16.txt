@@ -1,0 +1,48 @@
+cell                     R16                                NEW                                class
+ACOPP118-default         optimal/8 f=129660.6862 25.1s      optimal/8 f=129660.6862 24.7s      IDENTICAL
+ACOPP57-default          optimal/5 f=41737.78685 1.0s       optimal/5 f=41737.78685 0.5s       IDENTICAL
+ACOPR118-default         optimal/25 f=129660.6837 69.2s     optimal/25 f=129660.6837 69.0s     IDENTICAL
+ACOPR57-default          optimal/16 f=41737.78604 2.0s      optimal/16 f=41737.78604 2.0s      IDENTICAL
+BIGBANK-default          optimal/23 f=-4205693.3 25.1s      optimal/23 f=-4205693.3 24.7s      IDENTICAL
+BRITGAS-default          numerical_error/19 f=0 403.4s      optimal/62 f=0 377.6s              status numerical_error->optimal
+DALLASM-default          optimal/18 f=-48198.18819 2.0s     optimal/18 f=-48198.18819 1.5s     IDENTICAL
+MSS2-default             dnf_wall (300.1s)                  dnf_wall (300.1s)                  capped both
+MSS3-default             dnf_wall (300.2s)                  dnf_wall (300.4s)                  capped both
+NET3-default             numerical_error/8 f=6174466.762 401.4s optimal/23 f=5859393.702 96.2s     CONVERTED
+READING6-default         optimal/8 f=-144.6597006 1.0s      optimal/8 f=-144.6597006 1.0s      IDENTICAL
+READING8-default         dnf_wall (300.2s)                  dnf_wall (300.4s)                  capped both
+SAWPATH-default          optimal/9 f=750.4589468 1.0s       optimal/9 f=750.4589468 1.0s       IDENTICAL
+SMBANK-default           optimal/29 f=-7129292 1.0s         optimal/29 f=-7129292 0.5s         IDENTICAL
+STEENBRB-default         optimal/136 f=9075.855376 32.1s    optimal/136 f=9075.855376 31.7s    IDENTICAL
+STEENBRC-default         optimal/102 f=27504.93682 51.2s    optimal/102 f=27504.93682 50.4s    IDENTICAL
+STEENBRD-default         optimal/85 f=9030.081867 29.1s     optimal/85 f=9030.081867 29.2s     IDENTICAL
+STEENBRE-default         optimal/80 f=27459.16331 30.1s     optimal/80 f=27459.16331 30.2s     IDENTICAL
+STEENBRG-default         optimal/78 f=27420.92967 39.1s     optimal/78 f=27420.92967 38.8s     IDENTICAL
+TAX213322-default        dnf_wall (300.2s)                  dnf_wall (300.2s)                  capped both
+TAX53322-default         dnf_wall (300.1s)                  dnf_wall (300.1s)                  capped both
+YORKNET-default          numerical_error/30 f=14697.31795 42.1s numerical_error/40 f=14706.40371 35.2s same status, moved (56 fields)
+ZAMB2-8-default          optimal/8 f=-0.1529359284 1.0s     optimal/8 f=-0.1529359284 0.5s     IDENTICAL
+ACOPP118-sqp-qn          optimal/119 f=129660.6862 7.0s     optimal/119 f=129660.6862 6.5s     IDENTICAL
+ACOPP57-sqp-qn           optimal/34 f=41737.78685 1.0s      optimal/34 f=41737.78685 0.5s      IDENTICAL
+ACOPR118-sqp-qn          numerical_error/154 f=129660.6875 412.4s numerical_error/154 f=129660.6875 411.3s IDENTICAL
+ACOPR57-sqp-qn           optimal/264 f=41737.78604 3.0s     optimal/264 f=41737.78604 2.5s     IDENTICAL
+BIGBANK-sqp-qn           max_iter/300 f=-4150620.403 481.7s max_iter/300 f=-4150620.403 479.8s IDENTICAL
+BRITGAS-sqp-qn           optimal/16 f=0 16.1s               optimal/16 f=0 15.6s               IDENTICAL
+DALLASM-sqp-qn           optimal/142 f=-48198.18819 8.0s    optimal/142 f=-48198.18819 8.1s    IDENTICAL
+MSS2-sqp-qn              numerical_error/10 f=-2.234774541 103.4s numerical_error/10 f=-2.234774541 103.2s IDENTICAL
+MSS3-sqp-qn              dnf_wall (300.2s)                  dnf_wall (300.3s)                  capped both
+NET3-sqp-qn              numerical_error/7 f=6409198.922 75.3s max_iter/7 f=6409199.386 83.1s     status numerical_error->max_iter
+READING6-sqp-qn          optimal/50 f=-144.6597006 1.0s     optimal/50 f=-144.6597006 1.0s     IDENTICAL
+READING8-sqp-qn          dnf_wall (300.2s)                  dnf_wall (300.3s)                  capped both
+SAWPATH-sqp-qn           numerical_error/16 f=5198.122402 29.1s numerical_error/16 f=5198.122402 28.7s IDENTICAL
+SMBANK-sqp-qn            optimal/194 f=-7129292 5.0s        optimal/194 f=-7129292 4.5s        IDENTICAL
+STEENBRB-sqp-qn          numerical_error/64 f=46510529.56 21.1s numerical_error/64 f=46510529.56 21.1s IDENTICAL
+STEENBRC-sqp-qn          numerical_error/47 f=4730987804 32.1s numerical_error/66 f=3164122028 49.8s same status, moved (55 fields)
+STEENBRD-sqp-qn          max_iter/284 f=9265.814816 37.1s   max_iter/284 f=9265.814816 36.8s   IDENTICAL
+STEENBRE-sqp-qn          max_iter/277 f=28608.16506 52.2s   max_iter/277 f=28608.16506 52.4s   IDENTICAL
+STEENBRG-sqp-qn          numerical_error/45 f=4731396757 32.1s numerical_error/64 f=3164345528 43.3s same status, moved (54 fields)
+TAX213322-sqp-qn         dnf_wall (300.2s)                  dnf_wall (300.2s)                  capped both
+TAX53322-sqp-qn          dnf_wall (300.1s)                  dnf_wall (300.1s)                  capped both
+YORKNET-sqp-qn           numerical_error/1 f=100905.6285 375.3s numerical_error/1 f=100905.6285 374.6s IDENTICAL
+ZAMB2-8-sqp-qn           optimal/34 f=-0.1529359276 2.0s    optimal/34 f=-0.1529359276 1.5s    IDENTICAL
+SCORE base {'default': 15, 'sqp-qn': 8} new {'default': 16, 'sqp-qn': 8}

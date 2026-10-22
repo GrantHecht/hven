@@ -1,18 +1,44 @@
-# first run (14 mutants); M11/M12 survived and were re-run after the evals identity assertion was added
-MUTANT M1_guard KILLED by:
-MUTANT M2_cap KILLED by:
-MUTANT M3_mark KILLED by:
-MUTANT M4_mu1 KILLED by:
-MUTANT M5_memo KILLED by:
-MUTANT M6_hook KILLED by:
-MUTANT M7_restart KILLED by:
-MUTANT M8_restart_exact KILLED by:
-MUTANT M9_qn_gate KILLED by:
-MUTANT M10_lambda_leak KILLED by:
-MUTANT M11_eval_fold SURVIVED
-MUTANT M12_restart_eval SURVIVED
-MUTANT M13_entries_inc KILLED by:
-MUTANT M14_sub_qn_force KILLED by:
-# re-run after the evaluation-identity assertion (SqpLadderSeam.AFailedPhaseSubproblemRestartsThePhaseOnTheRegularizedModel):
-MUTANT M11_eval_fold KILLED by: SqpLadderSeam.AFailedPhaseSubproblemRestartsThePhaseOnTheRegularizedModel
-MUTANT M12_restart_eval KILLED by: SqpLadderSeam.AFailedPhaseSubproblemRestartsThePhaseOnTheRegularizedModel
+# Mutants on the RST logic, each applied alone to the rider head (a5c29790), the two sqp test targets rebuilt
+# (Release) and the RST filters run: '*Restoration*:*RestorationModel*:SqpQn*:RestorationEntries*:SqpLadderSeam*:SqpDriverSsnMode*'
+# in hven_sqp_tests and hven_sqp_seam_tests. Each line names every test that killed the mutant (the substitutions are listed
+# below the results). M1-M14: the implementation's (all killed at 80da6e46, M11/M12 after the
+# evaluation-identity assertion was added); M15-M18: the riders' new logic (M1 trigger and gate, M5 per-point charge,
+# the M1 seam's exhaustion).
+MUTANT M1_guard KILLED by: SqpLadderSeam.ARequestWithNoAcceptedStepSinceTheResumeIsRefusedAtAnyCap SqpLadderSeam.CertOneAPointTheConvergenceTestCallsFeasibleIsNoCertificate SqpLadderSeam.L1ARefusedRequestAtAFeasiblePointIsNeverInfeasible SqpLadderSeam.TheReductionResumeTakesTheNoClaimPointAndCountsIt 
+MUTANT M2_cap KILLED by: SqpDriverRestorationEntries.ASecondRequestAfterProgressIsServicedOnlyAboveACapOfOne SqpDriverRestorationExcursion.ARefusedSecondRequestLeavesTheFirstEntrysRecord SqpDriverSsnMode.RestorationStaysOnTheWalkUnderKSsn SqpLadderSeam.ARequestAfterAnAcceptedStepIsServicedOnlyBelowTheCap 
+MUTANT M3_mark KILLED by: SqpLadderSeam.CertOneAPointTheConvergenceTestCallsFeasibleIsNoCertificate 
+MUTANT M4_mu1 KILLED by: RestorationModelRegularized.MuIsTheViolationBelowOneAndVanishesWithIt 
+MUTANT M5_memo KILLED by: RestorationModelRegularized.ChargesOneValuesQueryPerPointWhateverBlocksItReads RestorationModelRegularized.IsTheResidualScaledDiagonalWithNoConstraintCurvature RestorationModelRegularized.ReadsHFromTheLastTwoEvaluatedPointsAndCountsEveryOtherRead SqpLadderSeam.EveryRowBlockIsReadOncePerCountedQueryWithBothRowKinds 
+MUTANT M6_hook KILLED by: SqpLadderSeam.AFailedPhaseSubproblemRestartsThePhaseOnTheRegularizedModel SqpLadderSeam.EveryRowBlockIsReadOncePerCountedQueryWithBothRowKinds 
+MUTANT M7_restart KILLED by: SqpLadderSeam.AFailedPhaseSubproblemRestartsThePhaseOnTheRegularizedModel SqpLadderSeam.AnExhaustedElasticTierInsideThePhaseTakesTheRegularizedRestart SqpLadderSeam.EveryRowBlockIsReadOncePerCountedQueryWithBothRowKinds 
+MUTANT M8_restart_exact KILLED by: SqpLadderSeam.AFailedPhaseSubproblemRestartsThePhaseOnTheRegularizedModel 
+MUTANT M9_qn_gate KILLED by: SqpLadderSeam.UnderTheQuasiNewtonModeAFailedPhaseSubproblemDoesNotSwitch 
+MUTANT M10_lambda_leak KILLED by: RestorationModelRegularized.ChargesOneValuesQueryPerPointWhateverBlocksItReads RestorationModelRegularized.IsTheResidualScaledDiagonalWithNoConstraintCurvature RestorationModelRegularized.MuIsTheViolationBelowOneAndVanishesWithIt RestorationModelRegularized.ReadsHFromTheLastTwoEvaluatedPointsAndCountsEveryOtherRead RestorationModelRegularized.SumsTheProximityTermsOwnCurvatureOnItsScaling SqpLadderSeam.AFailedPhaseSubproblemRestartsThePhaseOnTheRegularizedModel SqpQnRestoration.TheRegularizedCurvatureNeverCallsTheCallersHessianInThePhase 
+MUTANT M11_eval_fold KILLED by: SqpLadderSeam.AFailedPhaseSubproblemRestartsThePhaseOnTheRegularizedModel SqpLadderSeam.AnExhaustedElasticTierInsideThePhaseTakesTheRegularizedRestart SqpLadderSeam.EveryRowBlockIsReadOncePerCountedQueryWithBothRowKinds 
+MUTANT M12_restart_eval KILLED by: SqpLadderSeam.AFailedPhaseSubproblemRestartsThePhaseOnTheRegularizedModel SqpLadderSeam.AnExhaustedElasticTierInsideThePhaseTakesTheRegularizedRestart SqpLadderSeam.EveryRowBlockIsReadOncePerCountedQueryWithBothRowKinds 
+MUTANT M13_entries_inc KILLED by: SqpDriverRestorationEntries.ASecondRequestAfterProgressIsServicedOnlyAboveACapOfOne SqpDriverRestorationExcursion.ARefusedSecondRequestLeavesTheFirstEntrysRecord SqpDriverSsnMode.RestorationStaysOnTheWalkUnderKSsn SqpLadderSeam.ARequestAfterAnAcceptedStepIsServicedOnlyBelowTheCap SqpLadderSeam.ARequestWithNoAcceptedStepSinceTheResumeIsRefusedAtAnyCap SqpLadderSeam.CertOneAPointTheConvergenceTestCallsFeasibleIsNoCertificate SqpLadderSeam.L1ARefusedRequestAtAFeasiblePointIsNeverInfeasible SqpLadderSeam.TheReductionResumeTakesTheNoClaimPointAndCountsIt 
+MUTANT M14_sub_qn_force KILLED by: SqpQnRestoration.TheRegularizedCurvatureNeverCallsTheCallersHessianInThePhase 
+MUTANT M15_m1_trigger KILLED by: SqpLadderSeam.AnExhaustedElasticTierInsideThePhaseTakesTheRegularizedRestart 
+MUTANT M16_m1_gate KILLED by: SqpLadderSeam.AnExhaustedElasticTierInsideThePhaseTakesTheRegularizedRestart 
+MUTANT M17_m5_per_block KILLED by: RestorationModelRegularized.ChargesOneValuesQueryPerPointWhateverBlocksItReads SqpLadderSeam.EveryRowBlockIsReadOncePerCountedQueryWithBothRowKinds 
+MUTANT M18_seam_exhaust KILLED by: SqpLadderSeam.AnExhaustedElasticTierInsideThePhaseTakesTheRegularizedRestart 
+
+# The substitutions (file: old -> new):
+# M1_guard: src/drivers/sqp_solver.cpp: 'st.out.counters.steps_accepted > st.resto.accepted_at_resume' -> 'true'
+# M2_cap: src/drivers/sqp_solver.cpp: 'st.resto.entries < opts_.restoration_max_entries' -> 'true'
+# M3_mark: src/drivers/sqp_solver.cpp: 'st.resto.accepted_at_resume = st.out.counters.steps_accepted;' -> '(void)0;'
+# M4_mu1: src/globalization/sqp/soc_elastic_restoration.cpp: 'const double mu = std::min(1.0, curvature_violation(original_x(y)));' -> 'const double mu = 1.0 + 0.0 * curvature_violation(original_x(y));'
+# M5_memo: src/globalization/sqp/soc_elastic_restoration.cpp: 'ViolationMemo &m = memo_e_[memo_e_next_];' -> 'ViolationMemo m;'
+# M6_hook: src/drivers/sqp_solver.cpp: 'if (stop_phase_on_qp_failure_ && mj.walk_owns_this_qp) {' -> 'if (false && stop_phase_on_qp_failure_ && mj.walk_owns_this_qp) {'
+# M7_restart: src/drivers/sqp_solver.cpp: 'if (regularize_on_failure && rs.counters.restoration_curvature_switches > 0) {' -> 'if (false && regularize_on_failure) {'
+# M8_restart_exact: src/drivers/sqp_solver.cpp: 'opts_.restoration_proximity, true);' -> 'opts_.restoration_proximity, false);'
+# M9_qn_gate: src/drivers/sqp_solver.cpp: 'SqpRestorationCurvature::kModelThenRegularized &&\n        opts_.hessian_mode == SqpHessianMode::kExact;' -> 'SqpRestorationCurvature::kModelThenRegularized;'
+# M10_lambda_leak: src/globalization/sqp/soc_elastic_restoration.cpp: 'if (regularized_) {\n        // THE REGULARIZED CURVATURE (header note)' -> 'if (false) {\n        // THE REGULARIZED CURVATURE (header note)'
+# M11_eval_fold: src/drivers/sqp_solver.cpp: 'st.out.counters.evals_values += wrapper.curvature_residual_evals();' -> '(void)wrapper;'
+# M12_restart_eval: src/drivers/sqp_solver.cpp: 'const NlpEval ev_switch = eval_nlp(resto_base, x_switch);\n            ++st.out.counters.evals_full;' -> 'const NlpEval ev_switch = eval_nlp(resto_base, x_switch);'
+# M13_entries_inc: src/drivers/sqp_solver.cpp: '    ++st.resto.entries;\n' -> '\n'
+# M14_sub_qn_force: src/drivers/sqp_solver.cpp: '    if (regularized) {\n        ropts.hessian_mode = SqpHessianMode::kExact;\n    }' -> '    if (false) {\n        ropts.hessian_mode = SqpHessianMode::kExact;\n    }'
+# M15_m1_trigger: src/drivers/sqp_solver.cpp: 'if (elastic_outcome == RestorationOutcome::kRefused && stop_phase_on_qp_failure_ &&' -> 'if (false && elastic_outcome == RestorationOutcome::kRefused && stop_phase_on_qp_failure_ &&'
+# M16_m1_gate: src/drivers/sqp_solver.cpp: 'stop_phase_on_qp_failure_ &&\n                !allow_restoration_) {' -> 'true &&\n                !allow_restoration_) {'
+# M17_m5_per_block: src/globalization/sqp/soc_elastic_restoration.cpp: 'model_.eval_ce_in_place(x, c);\n            queried = true;' -> 'model_.eval_ce_in_place(x, c);\n            ++curvature_evals_;'
+# M18_seam_exhaust: src/drivers/sqp_solver.cpp: '            ladder_usable = false;\n' -> '\n'
