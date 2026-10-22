@@ -405,8 +405,9 @@ class FunnelStrategy final : public GlobalizationStrategy {
     /// the restored point's inf-norm violation is <= feas_tol, so h_restored (the
     /// l1 sum) is at most (rows) * feas_tol; a funnel not tightened to that level
     /// keeps the inequality, and one that was is widened to exactly what the
-    /// restored point implies -- at most once per solve, which restores at most
-    /// once. Transcribed UNCONDITIONALLY rather than clamped to
+    /// restored point implies -- at most once per restoration entry, and
+    /// `SqpOptions::restoration_max_entries` bounds those. Transcribed UNCONDITIONALLY
+    /// rather than clamped to
     /// min(tau, .) because Eq. (13) is not a clamped rule — a clamp would hide
     /// a caller resuming from outside its own funnel instead of reporting the
     /// width that behaviour implies.

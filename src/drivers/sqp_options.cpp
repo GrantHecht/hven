@@ -397,6 +397,20 @@ void validate(const SqpOptions &opts) {
     }
     // `qn_update_on_reject` and `qn_nonlinear_only` are BOOLs with no refusable value.
 
+    // THE RESTORATION PHASE'S CURVATURE AND ENTRY COUNT (M7 W2 RST).
+    if (opts.restoration_curvature == SqpRestorationCurvature::kSqpRestorationCurvatureCount) {
+        throw std::invalid_argument(
+            "SqpSolver: restoration_curvature == "
+            "SqpRestorationCurvature::kSqpRestorationCurvatureCount is the enumerator-count "
+            "sentinel, not a curvature. Use kModel, kRegularized or kModelThenRegularized");
+    }
+    if (!(opts.restoration_max_entries >= 1)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpSolver: restoration_max_entries ({}) must be >= 1 (1 = one restoration phase "
+            "per solve)",
+            opts.restoration_max_entries));
+    }
+
     // The two CommonOptions fields (M6 W5 T8.3). Neither is read by this engine
     // yet -- T8.7 reads print_level, T8.8 reads threads -- but both are part of
     // the value a caller hands over and both are checked here, so an
@@ -507,6 +521,19 @@ const char *enum_name(SqpHessianMode v) {
         return "kLbfgsDamped";
     case SqpHessianMode::kSqpHessianModeCount:
         return "kSqpHessianModeCount";
+    }
+    return "unknown";
+}
+const char *enum_name(SqpRestorationCurvature v) {
+    switch (v) {
+    case SqpRestorationCurvature::kModel:
+        return "kModel";
+    case SqpRestorationCurvature::kRegularized:
+        return "kRegularized";
+    case SqpRestorationCurvature::kModelThenRegularized:
+        return "kModelThenRegularized";
+    case SqpRestorationCurvature::kSqpRestorationCurvatureCount:
+        return "kSqpRestorationCurvatureCount";
     }
     return "unknown";
 }
@@ -653,6 +680,8 @@ void dump_options(const SqpOptions &o, std::ostream &os) {
     kv_bool(os, "qn_update_on_reject", o.qn_update_on_reject);
     kv_bool(os, "qn_nonlinear_only", o.qn_nonlinear_only);
     kv_int(os, "qn_full_memory_max", static_cast<long long>(o.qn_full_memory_max));
+    kv_str(os, "restoration_curvature", enum_name(o.restoration_curvature));
+    kv_int(os, "restoration_max_entries", static_cast<long long>(o.restoration_max_entries));
     kv_int(os, "common.threads", o.common.threads);
     kv_int(os, "common.print_level", o.common.print_level);
     kv_str(os, "common.start_level", enum_name(o.common.start_level));

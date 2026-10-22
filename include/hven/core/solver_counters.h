@@ -1934,12 +1934,11 @@ struct SqpCounters {
     /// could measure its returned point on the caller's own model: the RESUME
     /// arm and the not-feasible-enough arm, which are the two the four fields
     /// below are written at. The three REFUSALS never enter the phase at all (a
-    /// nested restoration, the once-per-solve cap, and no budget left to
-    /// restore with), and the NON-FINITE exit -- where the restored point or
-    /// its KKT measurement is not finite -- ran the phase but measured nothing,
-    /// so it moves neither this count nor the four fields, on the driver's own
-    /// rule at that exit: nothing was measured, so nothing may be reported as
-    /// evidence.
+    /// nested restoration, the entry rule (`SqpOptions::restoration_max_entries`), and no budget
+    /// left to restore with), and the NON-FINITE exit -- where the restored point or its KKT
+    /// measurement is not finite -- ran the phase but measured nothing, so it moves neither this
+    /// count nor the four fields, on the driver's own rule at that exit: nothing was measured, so
+    /// nothing may be reported as evidence.
     ///
     /// NOT `restoration_iters`, which counts the sub-solve's MAJORS. One entry
     /// of sixteen iterations reports `restoration_entries == 1` and
@@ -2233,6 +2232,14 @@ struct SqpCounters {
     ///        and the solve ends kMaxIter: a refusal streak to max_iter is the
     ///        expected spelling of that case.
     Index scaled_convergence_refusals = 0;
+    /// @brief THE RESTORATION PHASE'S CURVATURE SWITCHES (M7 W2 RST): restoration
+    ///        sub-solves that ran on the exact model and stopped at their first failed
+    ///        walk subproblem, so that the phase continued from that point on the
+    ///        regularized model (SqpOptions::restoration_curvature ==
+    ///        kModelThenRegularized). At most one per restoration entry; 0 under every
+    ///        other curvature mode and under kLbfgsDamped. Appended last; FOLDED from the
+    ///        restoration sub-solve, where it is counted.
+    Index restoration_curvature_switches = 0;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -2317,7 +2324,8 @@ struct SqpCounters {
     X(qn_dimension, counter_never_absent)                                                          \
     X(nonfinite_step_rollbacks, counter_never_absent)                                              \
     X(restoration_feas_out, counter_never_absent)                                                  \
-    X(scaled_convergence_refusals, counter_never_absent)
+    X(scaled_convergence_refusals, counter_never_absent)                                           \
+    X(restoration_curvature_switches, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =
@@ -2363,7 +2371,8 @@ inline constexpr std::size_t kSqpCountersFieldCount =
 // riders, `qn_nonpd_seen` and `qn_dimension`; 79 -> 80 at M7 W2 R2-1,
 // `nonfinite_step_rollbacks`, the same way: `sizeof` 1088 -> 1096. 80 -> 81 at M7 W2 SNR,
 // `restoration_feas_out`, the same way: `sizeof` 1096 -> 1104. 81 -> 82 at M7 W2 SCL,
-// `scaled_convergence_refusals`, the same way: `sizeof` 1104 -> 1112.)
+// `scaled_convergence_refusals`, the same way: `sizeof` 1104 -> 1112. 82 -> 83 at M7 W2 RST,
+// `restoration_curvature_switches`, the same way: `sizeof` 1112 -> 1120.)
 static_assert(::hven::detail::kAggregateArity<SqpCounters> == kSqpCountersFieldCount + 2,
               "SqpCounters and HVEN_SQP_COUNTERS_FIELDS disagree: give the new field an X() entry "
               "in its declaration position, or -- if it is a new NESTED aggregate -- give it a "

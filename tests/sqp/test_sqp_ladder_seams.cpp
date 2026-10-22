@@ -784,4 +784,180 @@ TEST(SqpLadderSeam, QcOneASlackInsideFeasTolIsNotABoundAtAViolatedRow) {
     }
 }
 
+// THE ENTRY RULE'S PROGRESS GUARD (M7 W2 RST; SqpOptions::restoration_max_entries).
+// L1A's shape with the cap well above one: restoration resumes at a feasible point,
+// every QP after it fails, and the loop accepts NO step before it asks again. The
+// request comes from the point the phase has just restored, so it is refused exactly
+// as the once-per-solve rule refused it -- one entry, kNumericalError, no claim.
+TEST(SqpLadderSeam, ARequestWithNoAcceptedStepSinceTheResumeIsRefusedAtAnyCap) {
+    for (const Index cap : {Index{1}, Index{10}}) {
+        SCOPED_TRACE(cap);
+        const SeamReset guard;
+        Seam::fail_walk_qps = 1000;
+        Seam::only_after_resume = true;
+        RunawayValleyModel model;
+        SqpOptions o = quiet();
+        o.tr_init = 8.0;
+        o.max_iter = 200;
+        o.qp_failure_budget = 1000;
+        o.restoration_max_entries = cap;
+        SqpSolver driver(o);
+        const SqpResult sol = driver.solve(model);
+        ASSERT_GE(Seam::forced, 1);
+        EXPECT_EQ(sol.counters.restoration_entries, 1);
+        EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
+        EXPECT_FALSE(sol.infeasibility_certified);
+        EXPECT_LE(std::abs(model.eval_ce(sol.x)(0)), o.feas_tol);
+    }
+}
+
+// THE ENTRY RULE'S CAP (M7 W2 RST). After the first resume FIVE walk subproblems pass
+// (the loop accepts their steps) and every later one fails, so the loop asks again from a
+// point it has moved to: a cap of one refuses that request, a cap above one services
+// it, and the request after the second resume -- with no accepted step since -- is
+// refused by the progress guard at any cap.
+TEST(SqpLadderSeam, ARequestAfterAnAcceptedStepIsServicedOnlyBelowTheCap) {
+    for (const Index cap : {Index{1}, Index{2}, Index{10}}) {
+        SCOPED_TRACE(cap);
+        const SeamReset guard;
+        Seam::fail_walk_qps = 1000;
+        Seam::pass_walk_qps = 5;
+        Seam::only_after_resume = true;
+        RunawayValleyModel model;
+        SqpOptions o = quiet();
+        o.tr_init = 8.0;
+        o.max_iter = 200;
+        o.qp_failure_budget = 1000;
+        o.restoration_max_entries = cap;
+        SqpSolver driver(o);
+        const SqpResult sol = driver.solve(model);
+        ASSERT_GE(Seam::forced, 1);
+        EXPECT_EQ(sol.counters.restoration_entries, cap == 1 ? 1 : 2);
+        EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
+        EXPECT_FALSE(sol.infeasibility_certified);
+    }
+}
+
+// THE PHASE'S CURVATURE SWITCH (M7 W2 RST; SqpOptions::restoration_curvature). min x0 + x1
+// s.t. x0^2 + x1^2 = 1, x0 + x1 = 2 is infeasible (test_sqp_restoration.cpp's fixture 1):
+// the phase certifies at (1/sqrt 2, 1/sqrt 2). The seam fails the phase's FIRST walk
+// subproblem. Under kModelThenRegularized that sub-solve stops there and the phase is
+// restarted on the regularized model, whose curvature never reaches the caller's Hessian;
+// under kModel the failure is routed by the sub-solve's own shrink ladder; under either the
+// same certificate comes back.
+namespace {
+class CountingCircleLineModel final : public NlpModel {
+  public:
+    mutable Index n_hess = 0;
+    mutable Index n_ce = 0;
+    Index n() const override { return 2; }
+    Index me() const override { return 2; }
+    Index mi() const override { return 0; }
+    double eval_f(const Vec &x) const override { return x(0) + x(1); }
+    Vec eval_grad(const Vec &) const override { return Vec::Ones(2); }
+    Vec eval_ce(const Vec &x) const override {
+        ++n_ce;
+        Vec c(2);
+        c << x(0) * x(0) + x(1) * x(1) - 1.0, x(0) + x(1) - 2.0;
+        return c;
+    }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &, double, const Vec &lambda_e, const Vec &) const override {
+        ++n_hess;
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = 2.0 * lambda_e(0);
+        h.insert(1, 1) = 2.0 * lambda_e(0);
+        h.makeCompressed();
+        return h;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &x) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> j(2, 2);
+        j.insert(0, 0) = 2.0 * x(0);
+        j.insert(0, 1) = 2.0 * x(1);
+        j.insert(1, 0) = 1.0;
+        j.insert(1, 1) = 1.0;
+        j.makeCompressed();
+        return j;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &) const override {
+        return Eigen::SparseMatrix<double, Eigen::RowMajor>(0, 2);
+    }
+    const Vec &lower() const override {
+        static const Vec l = Vec::Constant(2, -1e20);
+        return l;
+    }
+    const Vec &upper() const override {
+        static const Vec u = Vec::Constant(2, 1e20);
+        return u;
+    }
+    Vec start_point() const override { return Vec::Constant(2, 2.0); }
+};
+} // namespace
+
+TEST(SqpLadderSeam, AFailedPhaseSubproblemRestartsThePhaseOnTheRegularizedModel) {
+    struct Arm {
+        SqpRestorationCurvature curvature;
+        Index switches;
+    };
+    for (const Arm arm : {Arm{SqpRestorationCurvature::kModelThenRegularized, 1},
+                          Arm{SqpRestorationCurvature::kModel, 0}}) {
+        SCOPED_TRACE(static_cast<int>(arm.curvature));
+        // The unforced solve first: the premise that no phase QP fails here on its own.
+        Index hess_unforced = 0;
+        {
+            const SeamReset guard;
+            CountingCircleLineModel model;
+            SqpOptions o = quiet();
+            o.max_iter = 200;
+            o.restoration_curvature = arm.curvature;
+            const SqpResult sol = SqpSolver(o).solve(model);
+            ASSERT_EQ(sol.status, SolveStatus::kInfeasible);
+            ASSERT_EQ(sol.counters.restoration_curvature_switches, 0) << "fixture premise";
+            hess_unforced = model.n_hess;
+        }
+        const SeamReset guard;
+        Seam::fail_restoration_walk_qps = 1;
+        CountingCircleLineModel model;
+        SqpOptions o = quiet();
+        o.max_iter = 200;
+        o.restoration_curvature = arm.curvature;
+        const SqpResult sol = SqpSolver(o).solve(model);
+        ASSERT_EQ(Seam::forced_restoration, 1);
+        ASSERT_EQ(Seam::forced, 0) << "the top-level knobs are off";
+        EXPECT_EQ(sol.counters.restoration_curvature_switches, arm.switches);
+        // The same certified answer either way.
+        EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
+        EXPECT_TRUE(sol.infeasibility_certified);
+        const double t = 1.0 / std::sqrt(2.0);
+        EXPECT_NEAR(sol.x(0), t, 1e-5);
+        EXPECT_NEAR(sol.x(1), t, 1e-5);
+        if (arm.switches > 0) {
+            // The restarted phase's curvature is the regularized model's, so the caller's
+            // Hessian sees FEWER calls than the unforced exact phase made of it.
+            EXPECT_LT(model.n_hess, hess_unforced);
+        }
+        // EVERY ROW EVALUATION OF THE CALLER'S MODEL IS A COUNTED QUERY, the restart's
+        // own start evaluation and the regularized wrapper's reads of h included.
+        EXPECT_EQ(model.n_ce, sol.counters.evals_full + sol.counters.evals_values);
+    }
+}
+
+// UNDER kLbfgsDamped THE SHIPPED kModelThenRegularized IS kModel: the phase's QN model is
+// convex by construction, so a failed phase subproblem is routed by the sub-solve itself
+// and no exact-Hessian call is ever made.
+TEST(SqpLadderSeam, UnderTheQuasiNewtonModeAFailedPhaseSubproblemDoesNotSwitch) {
+    const SeamReset guard;
+    Seam::fail_restoration_walk_qps = 1;
+    CountingCircleLineModel model;
+    SqpOptions o = quiet();
+    o.hessian_mode = SqpHessianMode::kLbfgsDamped;
+    o.max_iter = 300;
+    ASSERT_EQ(o.restoration_curvature, SqpRestorationCurvature::kModelThenRegularized);
+    const SqpResult sol = SqpSolver(o).solve(model);
+    ASSERT_EQ(Seam::forced_restoration, 1);
+    EXPECT_EQ(sol.counters.restoration_curvature_switches, 0);
+    EXPECT_EQ(sol.counters.eval_hess_calls, 0);
+    EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
+}
+
 } // namespace hven::solvers

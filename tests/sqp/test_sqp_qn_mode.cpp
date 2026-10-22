@@ -595,6 +595,9 @@ TEST(SqpQnRestoration, TheSubSolveRunsItsOwnInstanceWithoutAHessianCall) {
         HessCountingModel model(&inner);
         SqpOptions o = qn_options();
         o.qp.ws_algebra = algebra;
+        // The phase on the solve's OWN curvature source (M7 W2 RST's kModel); the
+        // regularized curvature is the next test's.
+        o.restoration_curvature = SqpRestorationCurvature::kModel;
         SqpSolver driver(o);
         const SqpResult sol = driver.solve(model);
         ASSERT_GE(sol.counters.restoration_entries, 1);
@@ -616,10 +619,43 @@ TEST(SqpQnRestoration, TheExactModeFoldsTheSubSolvesHessianCalls) {
     HessCountingModel model(&inner);
     SqpOptions o;
     o.max_iter = 200;
+    o.restoration_curvature = SqpRestorationCurvature::kModel;
     SqpSolver driver(o);
     const SqpResult sol = driver.solve(model);
     ASSERT_GE(sol.counters.restoration_entries, 1);
     EXPECT_EQ(model.n_hess, 1 + sol.counters.restoration_entries + sol.counters.eval_hess_calls);
+}
+
+// THE REGULARIZED CURVATURE (M7 W2 RST) REPLACES THE SUB-SOLVE'S CURVATURE SOURCE IN
+// BOTH MODES: the sub-solve takes the exact-Hessian path, so its Hessian calls are
+// counted, and every one of them is answered by the wrapper's own model -- the caller's
+// eval_hess sees the main loop's calls and its lay walk, and nothing of the phase's.
+TEST(SqpQnRestoration, TheRegularizedCurvatureNeverCallsTheCallersHessianInThePhase) {
+    for (const bool qn : {true, false}) {
+        SCOPED_TRACE(qn ? "kLbfgsDamped" : "kExact");
+        InfeasibleCircleLineModel inner;
+        HessCountingModel model(&inner);
+        SqpOptions o = qn ? qn_options() : SqpOptions{};
+        o.max_iter = 300;
+        o.restoration_curvature = SqpRestorationCurvature::kRegularized;
+        o.restoration_max_entries = 1;
+        SqpSolver driver(o);
+        const SqpResult sol = driver.solve(model);
+        ASSERT_GE(sol.counters.restoration_entries, 1);
+        EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
+        EXPECT_TRUE(sol.infeasibility_certified);
+        EXPECT_GE(sol.counters.eval_hess_calls, 1) << "the phase's Hessian calls are counted";
+        if (qn) {
+            EXPECT_EQ(model.n_hess, 1) << "the caller's lay walk only";
+        } else {
+            EXPECT_LT(model.n_hess,
+                      1 + sol.counters.restoration_entries + sol.counters.eval_hess_calls)
+                << "the phase's calls did not reach the caller's model";
+        }
+        const double t = 1.0 / std::sqrt(2.0);
+        EXPECT_NEAR(sol.x(0), t, 1e-5);
+        EXPECT_NEAR(sol.x(1), t, 1e-5);
+    }
 }
 
 // ===========================================================================

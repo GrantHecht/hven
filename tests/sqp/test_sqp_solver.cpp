@@ -8404,6 +8404,11 @@ TEST(SqpDriverSsnMode, RestorationStaysOnTheWalkUnderKSsn) {
     SecondOrderInfeasibleModel model;
     SqpOptions opts = ssn_mode_options(20);
     opts.tr_init = 8.0;
+    // The M7 W2 RST restoration levers at their pre-RST values, so the figures below keep
+    // measuring the kernel reset alone (at the shipped levers `factorizations` reads 219,
+    // observed).
+    opts.restoration_curvature = SqpRestorationCurvature::kModel;
+    opts.restoration_max_entries = 1;
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(model);
 

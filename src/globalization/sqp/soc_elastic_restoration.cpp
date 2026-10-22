@@ -257,7 +257,13 @@ RestorationModel::RestorationModel(const NlpModel &model, const Vec &x_entry, co
 
 RestorationModel::RestorationModel(const NlpModel &model, const Vec &x_entry, const NlpEval &ev,
                                    const Vec &x_centre, double proximity)
-    : model_(model), nx_(model.n()), me_(model.me()), mi_(model.mi()) {
+    : RestorationModel(model, x_entry, ev, x_centre, proximity, false) {}
+
+RestorationModel::RestorationModel(const NlpModel &model, const Vec &x_entry, const NlpEval &ev,
+                                   const Vec &x_centre, double proximity,
+                                   bool regularized_curvature)
+    : model_(model), nx_(model.n()), me_(model.me()), mi_(model.mi()),
+      regularized_(regularized_curvature) {
     if (x_entry.size() != nx_) {
         throw std::invalid_argument(
             fmt::format("RestorationModel: x_entry has size {}, expected {} (= model.n())",
@@ -375,6 +381,17 @@ RestorationModel::RestorationModel(const NlpModel &model, const Vec &x_entry, co
     for (Index j = 0; j < mi_; ++j) {
         start_(nx_ + 2 * me_ + j) = std::max(0.0, ci(j)) / sigma_i_(j); // si
     }
+    // THE REGULARIZED CURVATURE'S SCALING (M7 W2 RST): the proximity term's own d
+    // when that term is on, else the same rule read at the start point -- a
+    // coordinate with |x_i| <= 1 unscaled, a larger one in proportion, so the model
+    // curvature is in the variable's own units. Computed once, O(n), no model call.
+    if (regularized_ && zeta_ == 0.0) {
+        d_ = Vec::Ones(nx_);
+        for (Index i = 0; i < nx_; ++i) {
+            const double a = std::abs(start_(i));
+            d_(i) = a > 1.0 ? 1.0 / a : 1.0;
+        }
+    }
 }
 
 Index RestorationModel::start_clamps() const { return start_clamps_; }
@@ -406,6 +423,50 @@ Vec RestorationModel::bound_activity_tolerance(double tol) const {
 }
 
 double RestorationModel::proximity() const { return zeta_; }
+
+bool RestorationModel::regularized_curvature() const { return regularized_; }
+
+Index RestorationModel::curvature_residual_evals() const { return curvature_evals_; }
+
+namespace {
+
+// The memo's lookup: an exact match on the point (the driver evaluates the
+// Hessian at a point whose rows it has just evaluated), never an approximate one.
+const double *memo_lookup(const Vec &x, const auto &memo) {
+    for (const auto &m : memo) {
+        if (m.valid && m.x.size() == x.size() && m.x == x) {
+            return &m.value;
+        }
+    }
+    return nullptr;
+}
+
+} // namespace
+
+double RestorationModel::curvature_violation(const Vec &x) const {
+    double h = 0.0;
+    if (me_ > 0) {
+        if (const double *v = memo_lookup(x, memo_e_)) {
+            h += *v;
+        } else {
+            Vec c;
+            model_.eval_ce_in_place(x, c);
+            ++curvature_evals_;
+            h += c.lpNorm<1>();
+        }
+    }
+    if (mi_ > 0) {
+        if (const double *v = memo_lookup(x, memo_i_)) {
+            h += *v;
+        } else {
+            Vec c;
+            model_.eval_ci_in_place(x, c);
+            ++curvature_evals_;
+            h += c.cwiseMax(0.0).sum();
+        }
+    }
+    return h;
+}
 
 double RestorationModel::eval_f(const Vec &y) const {
     double s = 0.0;
@@ -450,7 +511,15 @@ Vec RestorationModel::eval_ce(const Vec &y) const {
         return Vec(0);
     }
     Vec c;
-    model_.eval_ce_in_place(original_x(y), c);
+    const Vec x = original_x(y);
+    model_.eval_ce_in_place(x, c);
+    if (regularized_) {
+        ViolationMemo &m = memo_e_[memo_e_next_];
+        memo_e_next_ = 1 - memo_e_next_;
+        m.x = x;
+        m.value = c.lpNorm<1>();
+        m.valid = true;
+    }
     for (Index k = 0; k < me_; ++k) {
         c(k) += sigma_e_(k) * (y(nx_ + k) - y(nx_ + me_ + k));
     }
@@ -462,7 +531,15 @@ Vec RestorationModel::eval_ci(const Vec &y) const {
         return Vec(0);
     }
     Vec c;
-    model_.eval_ci_in_place(original_x(y), c);
+    const Vec x = original_x(y);
+    model_.eval_ci_in_place(x, c);
+    if (regularized_) {
+        ViolationMemo &m = memo_i_[memo_i_next_];
+        memo_i_next_ = 1 - memo_i_next_;
+        m.x = x;
+        m.value = c.cwiseMax(0.0).sum();
+        m.valid = true;
+    }
     for (Index j = 0; j < mi_; ++j) {
         c(j) -= sigma_i_(j) * y(nx_ + 2 * me_ + j);
     }
@@ -471,6 +548,22 @@ Vec RestorationModel::eval_ci(const Vec &y) const {
 
 SpMatRM RestorationModel::eval_hess(const Vec &y, double obj_scale, const Vec &lambda_e,
                                     const Vec &lambda_i) const {
+    if (regularized_) {
+        // THE REGULARIZED CURVATURE (header note): the x-block diagonal, emitted for
+        // every original coordinate at every call (the pattern invariance), with the
+        // proximity term's exact curvature summed in when that term is on.
+        const double mu = std::min(1.0, curvature_violation(original_x(y)));
+        const double w = zeta_ > 0.0 ? mu + obj_scale * zeta_ : mu;
+        std::vector<Eigen::Triplet<double>> t;
+        t.reserve(static_cast<std::size_t>(nx_));
+        for (Index i = 0; i < nx_; ++i) {
+            t.emplace_back(i, i, w * d_(i) * d_(i));
+        }
+        SpMatRM H(n_, n_);
+        H.setFromTriplets(t.begin(), t.end());
+        H.makeCompressed();
+        return H;
+    }
     SpMatRM inner;
     model_.eval_hess_in_place(original_x(y), 0.0, lambda_e, lambda_i, inner);
     std::vector<Eigen::Triplet<double>> t;

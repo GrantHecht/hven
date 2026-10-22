@@ -350,6 +350,26 @@ enum class SqpHessianMode { kExact, kLbfgsDamped, kSqpHessianModeCount };
 /// is the COUNT SENTINEL, refused by validation.
 enum class SqpColumnScaling { kOff, kAlways, kAuto, kSqpColumnScalingCount };
 
+/// @brief The CURVATURE the restoration phase's QPs carry (M7 W2 RST); see
+///        SqpOptions::restoration_curvature.
+///
+/// `kModel` gives the restoration sub-solve the solve's own curvature source: the
+/// exact Hessian of the feasibility problem's Lagrangian under kExact (the wrapped
+/// model's sum lambda_i * hess c_i, with lambda the l1 subgradient selectors), the
+/// quasi-Newton B under kLbfgsDamped. `kRegularized` gives it the Levenberg-Marquardt
+/// model B = mu(x) D^2 on the original variables and no constraint curvature, with
+/// mu(x) = min(1, h(x)) (detail/globalization/sqp/restoration.h).
+/// `kModelThenRegularized` runs the phase as kModel and, at the first walk subproblem
+/// that fails on that model, restarts the phase from that point under kRegularized; under
+/// kLbfgsDamped (whose phase QPs are convex by construction) it is kModel. The trailing
+/// enumerator is the COUNT SENTINEL, refused by validation.
+enum class SqpRestorationCurvature {
+    kModel,
+    kRegularized,
+    kModelThenRegularized,
+    kSqpRestorationCurvatureCount
+};
+
 /// @brief Driver options for the whole SQP solve.
 ///
 /// TOLERANCES. kkt_tol gates the STATIONARITY measure and feas_tol the
@@ -1019,6 +1039,59 @@ struct SqpOptions {
     /// 450-540). Read in no other mode. `validate()` refuses a negative value.
     Index qn_full_memory_max = 400;
 
+    /// THE RESTORATION PHASE'S CURVATURE (M7 W2 RST); see SqpRestorationCurvature.
+    ///
+    /// WHY NOT THE EXACT HESSIAN. The feasibility wrapper minimizes the l1 violation, so
+    /// its multipliers are subgradient selectors of size sigma that do NOT shrink as the
+    /// violation goes to zero, and the curvature sum lambda_i hess c_i stays full-sized
+    /// and indefinite all the way to the restored point: every restoration QP is a
+    /// nonconvex QP. Measured on BRITGAS at 0dc2f1aa: 66 restoration majors, 114k walk
+    /// minors, 39 QP iteration-cap exits, ~80% of the solve's factorizations.
+    ///
+    /// WHAT kRegularized DOES. B = mu D^2 on the x-block, D = diag(min(1, 1/|x_i|)) at
+    /// the phase's start, mu(x) = min(1, h(x)) -- the Levenberg-Marquardt parameter
+    /// proportional to the residual norm (Yamashita & Fukushima 2001; Fan & Yuan 2005).
+    /// Every restoration QP is then convex. Far from feasibility the step is the
+    /// l1-elastic linearization's minimizer inside the trust region; near a feasible
+    /// point with a consistent linearization it is the D-weighted minimum-norm Newton
+    /// step for c(x) = 0, and mu -> 0 with h lets it take that step whole. Only the
+    /// MODEL changes: the wrapper's objective, constraints, gradients and the
+    /// infeasibility certificate (first-order quantities) are the same, and the phase's
+    /// sub-solve runs the exact-Hessian path (eval_hess supplies B) whatever
+    /// `hessian_mode` is. The final certification stays on the caller's problem.
+    ///
+    /// WHY NOT kRegularized ALONE. The model is a Gauss-Newton-type one, so it converges
+    /// only linearly to a NONZERO-residual stationary point of h -- the certified
+    /// infeasible case (SqpDriverRestoration.InfeasibleNlpCertifies: 119 restoration
+    /// majors, where that test bounds kModel's at 20) -- and slowly from far away
+    /// (STEENBRC/E/G spend 296 of the 300-major budget in one phase and lose their optima).
+    ///
+    /// WHAT kModelThenRegularized DOES, AND WHY IT IS THE DEFAULT. The phase runs on the
+    /// exact model, keeping its rate wherever its QPs are solvable; the first walk
+    /// subproblem that FAILS on it (kMaxIter or kNumericalError) ends that sub-solve where
+    /// it stands, and the phase continues from that point under kRegularized
+    /// (`SqpCounters::restoration_curvature_switches`). A phase whose QPs never fail is
+    /// byte-identical to kModel. Measured on the CUTEst TRAIN set at the 300-iteration
+    /// budget with `restoration_max_entries = 10`: 44 of 46 label-cells field-identical or
+    /// failing-to-failing, NET3 numerical_error -> optimal under the exact label (f
+    /// 5859393.70, clean KKT), BRITGAS numerical_error -> optimal but beyond the 300 s
+    /// wall, no optimum lost or worsened (docs/notes/data/2026-10-m7-rst/). Under
+    /// kLbfgsDamped it is kModel: that phase's QN model is convex by construction.
+    SqpRestorationCurvature restoration_curvature = SqpRestorationCurvature::kModelThenRegularized;
+
+    /// THE NUMBER OF RESTORATION PHASES ONE SOLVE MAY RUN (M7 W2 RST); >= 1.
+    ///
+    /// 1 is the once-per-solve rule: a second restoration request is refused and the
+    /// solve ends kNumericalError. Above 1 a later request is serviced, as the filter
+    /// and funnel methods' restoration is (Fletcher & Leyffer, Math. Program. 91 (2002);
+    /// [KLV], globalization.h), but only when the main loop has ACCEPTED at least one step
+    /// since the previous resume -- a request from the point the last phase handed back,
+    /// with nothing done there, is refused as before. Every phase draws on the same
+    /// `max_iter` budget, and each resume re-bases the funnel (KLV Algorithm 2). 10 is a
+    /// safety cap, not a tuned value (measured: NET3 runs three phases, BRITGAS two).
+    /// `validate()` refuses a value below 1.
+    Index restoration_max_entries = 10;
+
     /// The options both engines share (drivers/common_options.h), at the SQP
     /// engine's own defaults -- `threads = 0` ("leave the backend alone", which
     /// is what this engine has always done; the process-wide MKL_NUM_THREADS pin
@@ -1066,7 +1139,8 @@ struct SqpOptions {
 ///         NaN or infinite `restoration_proximity`, or a `restoration_resume_reduction`
 ///         outside [0, 1) or NaN, or the `hessian_mode` count sentinel, a `qn_memory`
 ///         below 1, a negative `qn_full_memory_max`, or kLbfgsDamped with
-///         `restoration_proximity > 0`.
+///         `restoration_proximity > 0`, or the `restoration_curvature` count sentinel,
+///         or a `restoration_max_entries` below 1.
 void validate(const SqpOptions &opts);
 
 /// @brief Returns a full SqpOptions value for a named preset.

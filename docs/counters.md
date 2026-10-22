@@ -262,6 +262,18 @@ one of those three therefore cannot silently miss the trace.
   exceeds `feas_tol`, every iterate is refused and the solve ends `max_iter`: a
   refusal streak to the cap is the expected spelling of that case.
 
+  **`restoration_curvature_switches` COUNTS THE PHASE'S CURVATURE RESTARTS** (M7
+  W2 RST, appended last after `scaled_convergence_refusals`). Under
+  `SqpOptions::restoration_curvature == kModelThenRegularized` (the default) and
+  kExact, a restoration sub-solve whose walk subproblem fails on the exact model
+  stops there (one rejected major on the sub-solve) and the phase continues from
+  that point on the regularized model; this counts those stops, at most one per
+  restoration entry, FOLDED from the sub-solve. The restart pays one
+  `evals_full` (the new wrapper's start), and the regularized wrapper's own reads
+  of h at a point whose rows it did not have in hand are charged to
+  `evals_values`, so the evaluation partition stays whole. 0 under kModel, under
+  kRegularized and under kLbfgsDamped.
+
   **THE COLUMN RULE'S JACOBIAN PROBE IS AN `evals_values`** (M7 W2 SCL rider).
   Whenever `SqpOptions::column_scaling != kOff` the rule evaluates the
   Jacobians once at the start point; that query is charged one `evals_values`,
@@ -375,7 +387,8 @@ one of those three therefore cannot silently miss the trace.
   restoration sub-solve, which runs its own QN instance on the wrapper's x-block.
 
   THE THREE REFUSALS AND THE NON-FINITE EXIT WRITE NOTHING. A nested
-  restoration, the once-per-solve cap and a spent budget never enter the phase;
+  restoration, the entry rule (`SqpOptions::restoration_max_entries` and its
+  progress guard) and a spent budget never enter the phase;
   the non-finite exit entered it and measured nothing, and the driver's rule
   there is that nothing unmeasured may be reported as evidence. Nothing folds
   from the restoration sub-solve either: nested restoration is refused, so its

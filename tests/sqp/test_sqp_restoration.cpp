@@ -1628,6 +1628,9 @@ TEST(SqpDriverRestoration, SecondRequestIsCappedAndReported) {
     SqpOptions opts;
     opts.tr_init = 8.0;
     opts.max_iter = 60;
+    // THE ONCE-PER-SOLVE RULE, which this test pins, is `restoration_max_entries = 1`
+    // since M7 W2 RST (SqpDriverRestorationEntries covers the cap above one).
+    opts.restoration_max_entries = 1;
     FunnelLog log;
     record_funnel_into(opts, &log);
     SqpSolver driver(opts);
@@ -2827,6 +2830,7 @@ TEST(SqpDriverRestorationExcursion, ARefusedSecondRequestLeavesTheFirstEntrysRec
     SqpOptions opts;
     opts.tr_init = 8.0; // SqpDriverRestoration.SecondRequestIsCappedAndReported' options
     opts.max_iter = 60;
+    opts.restoration_max_entries = 1;
     FunnelLog log;
     record_funnel_into(opts, &log);
     SqpSolver driver(opts);
@@ -3996,6 +4000,243 @@ TEST(RestorationModelClampedStart, AnInBoxEntryIsTheWrapperThatShipped) {
     Vec on_bound(2);
     on_bound << 0.0, 5.0;
     EXPECT_EQ(RestorationModel(model, on_bound, eval_nlp(model, on_bound)).start_clamps(), 0);
+}
+
+// =========================================================================
+// THE REGULARIZED CURVATURE (M7 W2 RST; SqpOptions::restoration_curvature ==
+// kRegularized; restoration.h's eval_hess note). B = mu(x) D^2 on the original
+// variables, mu(x) = min(1, h(x)), D = diag(min(1, 1/|x_i|)) at the start point,
+// nothing on the slacks, and the multipliers and the wrapped model's own
+// Hessian never read.
+// =========================================================================
+
+namespace {
+Eigen::MatrixXd dense(const SpMatRM &h) { return Eigen::MatrixXd(h); }
+} // namespace
+
+TEST(RestorationModelRegularized, IsTheResidualScaledDiagonalWithNoConstraintCurvature) {
+    InfeasibleCircleLineModel model;
+    Vec x_entry(2);
+    x_entry << 2.0, 0.5; // d = (1/2, 1): one coordinate of each branch
+    const NlpEval ev = eval_nlp(model, x_entry);
+    const RestorationModel reg(model, x_entry, ev, x_entry, 0.0, true);
+    ASSERT_TRUE(reg.regularized_curvature());
+    const Vec y = reg.start_point();
+    (void)reg.eval_ce(y); // the driver evaluates the rows before the Hessian
+    // h(x_entry) = |4 + 0.25 - 1| + |2.5 - 2| = 3.75 > 1, so mu = 1.
+    Vec lambda_a(2), lambda_b(2);
+    lambda_a << 0.7, -1.0;
+    lambda_b << -0.3, 0.9;
+    const SpMatRM Ha = reg.eval_hess(y, 1.0, lambda_a, Vec(0));
+    const SpMatRM Hb = reg.eval_hess(y, 1.0, lambda_b, Vec(0));
+    ASSERT_EQ(Ha.rows(), reg.n());
+    EXPECT_EQ(Ha.nonZeros(), 2) << "the x-block diagonal and nothing on the slacks";
+    EXPECT_DOUBLE_EQ(dense(Ha)(0, 0), 0.25);
+    EXPECT_DOUBLE_EQ(dense(Ha)(1, 1), 1.0);
+    EXPECT_EQ(dense(Ha), dense(Hb)) << "the multipliers are never read";
+    EXPECT_EQ(reg.curvature_residual_evals(), 0) << "h came from the memo";
+    // The exact wrapper's curvature at the same arguments is the circle's 2 lambda_0 I:
+    // the regularized one is NOT it.
+    const RestorationModel exact(model, x_entry, ev);
+    EXPECT_FALSE(exact.regularized_curvature());
+    EXPECT_DOUBLE_EQ(dense(exact.eval_hess(y, 1.0, lambda_a, Vec(0)))(0, 0), 1.4);
+}
+
+TEST(RestorationModelRegularized, MuIsTheViolationBelowOneAndVanishesWithIt) {
+    // Near the circle-line h-minimizer h = 2 - sqrt(2) < 1, so mu = h exactly.
+    InfeasibleCircleLineModel model;
+    const double t = 1.0 / std::sqrt(2.0);
+    Vec x(2);
+    x << t, t;
+    const NlpEval ev = eval_nlp(model, x);
+    const RestorationModel reg(model, x, ev, x, 0.0, true);
+    const Vec y = reg.start_point();
+    (void)reg.eval_ce(y);
+    const double h = std::abs(ev.ce(0)) + std::abs(ev.ce(1));
+    ASSERT_LT(h, 1.0);
+    const SpMatRM H = reg.eval_hess(y, 1.0, Vec::Zero(2), Vec(0));
+    EXPECT_DOUBLE_EQ(dense(H)(0, 0), h);
+    EXPECT_DOUBLE_EQ(dense(H)(1, 1), h);
+
+    // At a FEASIBLE point mu = 0, and the pattern is still the x-block diagonal
+    // (nlp_model.h's STRUCTURAL PATTERN INVARIANCE).
+    StalledValleyModel valley;
+    Vec xf(2);
+    xf << 0.0, 0.0;
+    const NlpEval evf = eval_nlp(valley, xf);
+    ASSERT_EQ(evf.ce(0), 0.0);
+    const RestorationModel regf(valley, xf, evf, xf, 0.0, true);
+    const Vec yf = regf.start_point();
+    (void)regf.eval_ce(yf);
+    const SpMatRM Hf = regf.eval_hess(yf, 1.0, Vec::Constant(1, 5.0), Vec(0));
+    EXPECT_EQ(Hf.nonZeros(), 2);
+    EXPECT_EQ(dense(Hf).norm(), 0.0) << "no curvature at a feasible point";
+}
+
+TEST(RestorationModelRegularized, ReadsHFromTheLastTwoEvaluatedPointsAndCountsEveryOtherRead) {
+    InfeasibleCircleLineModel model;
+    Vec x_entry(2);
+    x_entry << 0.5, 0.25;
+    const NlpEval ev = eval_nlp(model, x_entry);
+    const RestorationModel reg(model, x_entry, ev, x_entry, 0.0, true);
+    Vec y1 = reg.start_point(), y2 = y1, y3 = y1;
+    y2(0) = 0.4;
+    y3(0) = 0.3;
+    // Never evaluated: h is read by the wrapper itself, and counted.
+    (void)reg.eval_hess(y1, 1.0, Vec::Zero(2), Vec(0));
+    EXPECT_EQ(reg.curvature_residual_evals(), 1);
+    // The iterate and a trial are both remembered.
+    (void)reg.eval_ce(y1);
+    (void)reg.eval_ce(y2);
+    (void)reg.eval_hess(y1, 1.0, Vec::Zero(2), Vec(0));
+    (void)reg.eval_hess(y2, 1.0, Vec::Zero(2), Vec(0));
+    EXPECT_EQ(reg.curvature_residual_evals(), 1);
+    // A third point displaces the oldest.
+    (void)reg.eval_ce(y3);
+    (void)reg.eval_hess(y1, 1.0, Vec::Zero(2), Vec(0));
+    EXPECT_EQ(reg.curvature_residual_evals(), 2);
+    // And the memo's value is the model's: the same Hessian either way.
+    const RestorationModel fresh(model, x_entry, ev, x_entry, 0.0, true);
+    EXPECT_EQ(dense(fresh.eval_hess(y3, 1.0, Vec::Zero(2), Vec(0))),
+              dense(reg.eval_hess(y3, 1.0, Vec::Zero(2), Vec(0))));
+}
+
+TEST(RestorationModelRegularized, SumsTheProximityTermsOwnCurvatureOnItsScaling) {
+    LinearPairModel model;
+    Vec x_entry(2);
+    x_entry << 3.0, 3.0; // h = |6 - 2| = 4, so mu = 1
+    const NlpEval ev = eval_nlp(model, x_entry);
+    Vec centre(2);
+    centre << 2.0, 0.5; // the proximity term's d = (0.5, 1)
+    const RestorationModel reg(model, x_entry, ev, centre, 0.25, true);
+    const Vec y = reg.start_point();
+    (void)reg.eval_ce(y);
+    const SpMatRM H = reg.eval_hess(y, 1.0, Vec::Constant(1, 0.7), Vec(0));
+    EXPECT_DOUBLE_EQ(dense(H)(0, 0), (1.0 + 0.25) * 0.25);
+    EXPECT_DOUBLE_EQ(dense(H)(1, 1), (1.0 + 0.25) * 1.0);
+    const SpMatRM H0 = reg.eval_hess(y, 0.0, Vec::Constant(1, 0.7), Vec(0));
+    EXPECT_DOUBLE_EQ(dense(H0)(0, 0), 1.0 * 0.25) << "obj_scale reaches the term, not mu";
+}
+
+TEST(RestorationModelRegularized, OffIsTheWrapperThatShips) {
+    InfeasibleCircleLineModel model;
+    Vec x_entry(2);
+    x_entry << 2.0, 0.5;
+    const NlpEval ev = eval_nlp(model, x_entry);
+    const RestorationModel shipped(model, x_entry, ev);
+    const RestorationModel off(model, x_entry, ev, x_entry, 0.0, false);
+    const Vec y = shipped.start_point();
+    Vec lambda(2);
+    lambda << 0.7, -1.0;
+    EXPECT_EQ(off.start_point(), y);
+    EXPECT_EQ(dense(off.eval_hess(y, 1.0, lambda, Vec(0))),
+              dense(shipped.eval_hess(y, 1.0, lambda, Vec(0))));
+    EXPECT_EQ(off.eval_hess(y, 1.0, lambda, Vec(0)).nonZeros(),
+              shipped.eval_hess(y, 1.0, lambda, Vec(0)).nonZeros());
+    EXPECT_EQ(off.curvature_residual_evals(), 0);
+}
+
+// =========================================================================
+// THE ENTRY RULE (M7 W2 RST; SqpOptions::restoration_max_entries). A later
+// restoration request is serviced below the cap and only after the main loop
+// has accepted a step since the previous resume. RunawayValleyModel is the
+// fixture the once-per-solve rule was written for: restoration recovers a
+// feasible point and the unbounded objective walks the loop back out to the
+// next stall, so every serviced request is followed by another.
+// =========================================================================
+
+TEST(SqpDriverRestorationEntries, ASecondRequestAfterProgressIsServicedOnlyAboveACapOfOne) {
+    for (const Index cap : {Index{1}, Index{2}, Index{3}}) {
+        SCOPED_TRACE(fmt::format("restoration_max_entries = {}", cap));
+        RunawayValleyModel model;
+        SqpOptions opts;
+        opts.tr_init = 8.0;
+        opts.max_iter = 200;
+        opts.restoration_max_entries = cap;
+        FunnelLog log;
+        record_funnel_into(opts, &log);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(model);
+        // The first phase resumes and the loop makes progress before asking again; the
+        // second request is refused at a cap of one and serviced above it. On this
+        // fixture the second phase itself ends without a point inside feas_tol (its
+        // sub-solve numerical_error), so the solve ends there whatever the cap.
+        EXPECT_EQ(log.resumes.size(), 1u);
+        EXPECT_GT(sol.counters.steps_accepted, 1) << "the resumed loop made real progress";
+        EXPECT_EQ(sol.counters.restoration_entries, cap == 1 ? 1 : 2);
+        EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
+        EXPECT_FALSE(sol.infeasibility_certified) << "the NLP is feasible: no claim is made";
+        EXPECT_LT(sol.counters.major_iters + sol.counters.restoration_iters, opts.max_iter);
+    }
+}
+
+TEST(RestorationEntriesOption, RefusesFewerThanOnePhaseByNameAndValue) {
+    SqpOptions o;
+    for (const Index bad : {Index{0}, Index{-1}}) {
+        o.restoration_max_entries = bad;
+        try {
+            SqpSolver driver(o);
+            FAIL() << "accepted " << bad;
+        } catch (const std::invalid_argument &e) {
+            EXPECT_NE(std::string(e.what()).find("restoration_max_entries"), std::string::npos)
+                << e.what();
+            EXPECT_NE(std::string(e.what()).find(fmt::format("({})", bad)), std::string::npos)
+                << e.what();
+        }
+    }
+    o.restoration_max_entries = 1;
+    EXPECT_NO_THROW(SqpSolver{o});
+    o.restoration_curvature = SqpRestorationCurvature::kSqpRestorationCurvatureCount;
+    try {
+        SqpSolver driver(o);
+        FAIL() << "accepted the count sentinel";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("restoration_curvature"), std::string::npos)
+            << e.what();
+    }
+}
+
+TEST(RestorationEntriesOption, BothFieldsCarryADumpLineInDeclarationPosition) {
+    SqpOptions o;
+    o.restoration_curvature = SqpRestorationCurvature::kModel;
+    o.restoration_max_entries = 3;
+    std::ostringstream os;
+    dump_options(o, os);
+    const std::string text = os.str();
+    EXPECT_NE(text.find("restoration_curvature = kModel\n"), std::string::npos) << text;
+    EXPECT_NE(text.find("restoration_max_entries = 3\n"), std::string::npos) << text;
+    EXPECT_LT(text.find("qn_full_memory_max"), text.find("restoration_curvature"));
+    EXPECT_LT(text.find("restoration_curvature"), text.find("restoration_max_entries"));
+    EXPECT_LT(text.find("restoration_max_entries"), text.find("common.threads"));
+    o.restoration_curvature = SqpRestorationCurvature::kRegularized;
+    std::ostringstream os2;
+    dump_options(o, os2);
+    EXPECT_NE(os2.str().find("restoration_curvature = kRegularized\n"), std::string::npos);
+}
+
+// THE REGULARIZED CURVATURE IN THE DRIVER: the phase certifies the same infeasible
+// point with the same first-order certificate, and none of its curvature comes from
+// the caller's model -- the wrapper's eval_hess never calls the wrapped model's.
+TEST(SqpDriverRestorationCurvature, CertifiesTheSameInfeasibleNlpWithNoConstraintCurvature) {
+    for (const auto curvature :
+         {SqpRestorationCurvature::kModel, SqpRestorationCurvature::kRegularized}) {
+        SCOPED_TRACE(curvature == SqpRestorationCurvature::kModel ? "kModel" : "kRegularized");
+        InfeasibleCircleLineModel model;
+        SqpOptions opts;
+        opts.max_iter = 200;
+        opts.restoration_curvature = curvature;
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(model);
+        ASSERT_EQ(sol.status, SolveStatus::kInfeasible);
+        EXPECT_TRUE(sol.infeasibility_certified);
+        const double t = 1.0 / std::sqrt(2.0);
+        EXPECT_NEAR(sol.x(0), t, 1e-5);
+        EXPECT_NEAR(sol.x(1), t, 1e-5);
+        const SubgradientCertificate cert = check_certificate(model, sol, 1e-6);
+        EXPECT_LE(cert.stationarity, 1e-5);
+        EXPECT_LE(cert.selector, 1e-8);
+        EXPECT_LE(cert.sign_error, 1e-6);
+    }
 }
 
 HVEN_SUPPRESS_DEPRECATED_END

@@ -3449,8 +3449,14 @@ struct SqpSolver::SolveState {
     // (`kFinishRestorationSeed`, `kFinishRestorationQp`) read them.
     // `RestorationOutcome` is a TAG and carries no second copy.
     struct RestorationExit {
-        // ONE RESTORATION PER SOLVE (this header's RESTORATION PHASE note).
+        // AT LEAST ONE RESTORATION PHASE HAS RUN in this solve.
         bool used = false;
+        // THE PHASES SERVICED SO FAR, and the main loop's accepted-step count at the
+        // last resume (M7 W2 RST): a later request is serviced only below
+        // `SqpOptions::restoration_max_entries` and only once the loop has accepted a
+        // step since that resume (`enter_restoration`).
+        Index entries = 0;
+        Index accepted_at_resume = 0;
         // Written by `enter_restoration` on the exits it decides, and read
         // only by the caller's two tagged restoration finish arms.
         SolveStatus status = SolveStatus::kInfeasible;
@@ -5243,9 +5249,18 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     // Majors already spent, on both phases, at this point.
     const Index spent = iter + 1 + st.out.counters.restoration_iters;
 
-    if (!allow_restoration_ || st.resto.used) {
+    // THE ENTRY RULE (M7 W2 RST; SqpOptions::restoration_max_entries). A first
+    // request is serviced. A later one is serviced only below the cap AND only when
+    // the main loop has accepted a step since the previous resume: a request from
+    // the very point the last phase handed back, with nothing done there, would
+    // restore a point the phase has just restored, so it is refused as the
+    // once-per-solve rule refused every second request.
+    const bool entry_admissible =
+        st.resto.entries == 0 || (st.resto.entries < opts_.restoration_max_entries &&
+                                  st.out.counters.steps_accepted > st.resto.accepted_at_resume);
+    if (!allow_restoration_ || !entry_admissible) {
         // The nested case (a restoration solve raising its own
-        // request) and the once-per-solve cap take the SAME exit,
+        // request) and the entry cap take the SAME exit,
         // for the same reason: there is a restoration request and
         // no admissible way to service it. counters.
         // restoration_iters tells the two apart (0 for the nested
@@ -5272,6 +5287,7 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
         return RestorationOutcome::kRefused;
     }
     st.resto.used = true;
+    ++st.resto.entries;
 
     // THE ONE MODEL IDENTITY READ ON THIS PATH, and it is not an
     // evaluation. RestorationModel is a Level 1 WRAPPER in the
@@ -5387,8 +5403,19 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     }
     const NlpModel &resto_base =
         resto_rows ? static_cast<const NlpModel &>(*resto_rows) : bridge.model();
+    // THE PHASE'S CURVATURE (M7 W2 RST; SqpOptions::restoration_curvature): under
+    // kRegularized the wrapper's eval_hess IS the Levenberg-Marquardt model, and the
+    // sub-solve below runs the exact-Hessian path so that it reads it.
+    const bool regularized = opts_.restoration_curvature == SqpRestorationCurvature::kRegularized;
+    // kModelThenRegularized (M7 W2 RST): the phase runs on the solve's own curvature and,
+    // at its first failed walk subproblem, is restarted from that point on the
+    // regularized model (below). Under kLbfgsDamped the phase's QN model is convex by
+    // construction, so the mode is kModel there.
+    const bool regularize_on_failure =
+        opts_.restoration_curvature == SqpRestorationCurvature::kModelThenRegularized &&
+        opts_.hessian_mode == SqpHessianMode::kExact;
     const RestorationModel feasibility(resto_base, *x_start, resto_ev, st.x,
-                                       opts_.restoration_proximity);
+                                       opts_.restoration_proximity, regularized);
     SqpOptions ropts = opts_;
     // AND THE SUB-SOLVE RUNS UNSCALED, alongside the budget_mode and
     // qp_mode forcings just below and for the same kind of reason: the
@@ -5471,129 +5498,317 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     // sub-driver gets what is left of the CALLER's ceiling and not what is left
     // of this engine's own option.
     ropts.max_iter = static_cast<int>(st.eff_max_iter - spent);
-    SqpSolver sub(ropts, SqpSolver::RestorationSubDriverTag{});
-    // THE SUB-SOLVE'S OWN QN INSTANCE (ruling C30 AMEND-7) acts on the wrapper's x-block only:
-    // its slack columns carry no curvature.
-    if (opts_.hessian_mode == SqpHessianMode::kLbfgsDamped) {
-        sub.qn_struct_vars_ = resto_base.n();
+    // THE REGULARIZED CURVATURE IS SUPPLIED THROUGH eval_hess, so the sub-solve takes
+    // the exact-Hessian path whatever this solve's own curvature source is.
+    if (regularized) {
+        ropts.hessian_mode = SqpHessianMode::kExact;
     }
-    // A SLACK IS AT ITS BOUND ONLY WHILE ITS ROW IS INSIDE feas_tol (QC-1). The sub-driver's
-    // convergence test reads bound activity per variable: feas_tol on the x-block, feas_tol /
-    // sigma on each slack column, whose units are violation / sigma. With the bare feas_tol a
-    // row missing by up to sigma * feas_tol read as bound-active, `z` absorbed the slack's
-    // objective coefficient, and the sub-solve converged at its major 0 with zero multipliers
-    // -- a "stationary point of h" at which h's own descent direction was untouched (ACOPR57
-    // under a QN arm, h_inf 7.3e-6, certified kInfeasible on a feasible problem). Now a row
-    // violated beyond feas_tol keeps its slack free, so a converged sub-solve prices it with
-    // the full subgradient selector (|lambda| = 1 to within kkt_tol / sigma). The x-block's
-    // tolerance is unchanged, so a sub-solve whose slacks never sit in (feas_tol / sigma,
-    // feas_tol] measures exactly what it measured before.
-    sub.kkt_bound_tol_ = feasibility.bound_activity_tolerance(opts_.feas_tol);
-    // THE ONE SINK, SHARED SEQUENTIALLY (plan amendment A): the
-    // sub-solve's own `sqp.solve` pair, rows and tier events land in the
-    // same stream, told apart by the sink-owned `depth`.
-    sub.attach_trace(ipqp_trace_);
-    // THE CALLBACK IS FORWARDED, NOT COPIED (M6 W5 T8.6). The sub-driver runs
-    // its own history and its own `push_history`, so its rows reach the
-    // caller's callback through this lambda, which does the two things a
-    // nested solve's events need and the sub-driver cannot do for itself:
-    //
-    //   * it stamps the NESTING DEPTH -- one deeper than whatever arrived, so
-    //     the rule composes if a nested solve ever nests again;
-    //   * it re-reads the clock against THIS driver's public entry, so
-    //     `elapsed_seconds` is one measurement across the whole solve rather
-    //     than restarting at the sub-solve's own entry;
-    //   * and it LATCHES a kStop on the PARENT as well as returning it, so a
-    //     stop taken inside restoration ends the outer solve too -- whether
-    //     that phase comes back kResumed (the loop's next major reads the
-    //     latch at its exit conjunction) or kExited (the sub-solve's own
-    //     kInterrupted arrives in the switch below).
-    //
-    // AND THE PAYLOAD MASK TRAVELS WITH IT (M7 W0 T2), as the second argument
-    // below: the sub-driver prepares a depth-1 event's payload for the SAME
-    // consumer this driver has, so it must prepare exactly what that consumer
-    // declared. Forwarding the callable alone would make a scalars-only
-    // consumer pay the full payload on every restoration major.
-    //
-    // AND IT KEEPS TRAVELLING (M7 W0 T2 fix1, the sol review's first Important).
-    // The argument below is ONE COPY, taken at entry, and a mask the consumer
-    // CHANGES from inside a depth-1 callback would otherwise never reach the
-    // sub-driver: the sub would go on preparing the old payload and handing it
-    // to the new callable, which contradicts the next-event rule both setters
-    // advertise. `restoration_sub_` below makes the parent's apply point push
-    // the new mask down, so a widening or a narrowing made at depth 1 takes
-    // effect at the NEXT depth-1 event, exactly as it does at depth 0.
-    //
-    // THE CALLABLE NEEDS NO SUCH PUSH, and that is why only the mask is
-    // pushed: the forwarder dispatches through THIS driver's
-    // `invoke_iteration_callback`, which reads `iteration_callback_` at the
-    // moment of the call, so a replacement callable is already live at the
-    // next depth-1 event.
-    if (iteration_callback_) {
-        sub.set_iteration_callback(
-            [this, &st](const IterationEvent &e) {
-                // THE COLUMN LAYER'S MAP (M7 W2 SCL): on a column-scaled solve the
-                // feasibility problem's first n variables are the engine's x~, so
-                // the sub-solve's own rows (its depth 0) go out with x = d x~ and
-                // z = z~ / d there -- caller units, as at depth 0. The slack
-                // entries and the multipliers carry no column factor.
-                const Vec *d = this->column_units_;
-                const bool map = d != nullptr && e.depth.value_or(0) == 0;
-                const Index nd = map ? d->size() : 0;
-                Vec x_caller, z_caller;
-                const bool map_x = map && e.x.size() >= nd;
-                const bool map_z = map && e.z.size() >= nd;
-                if (map_x) {
-                    x_caller = e.x;
-                    x_caller.head(nd).array() *= d->array();
-                }
-                if (map_z) {
-                    z_caller = e.z;
-                    z_caller.head(nd).array() /= d->array();
-                }
-                const IterationEvent nested{
-                    .iteration = e.iteration,
-                    .phase = e.phase,
-                    .depth = e.depth.value_or(0) + 1,
-                    .f = e.f,
-                    .stationarity = e.stationarity,
-                    .feasibility_e = e.feasibility_e,
-                    .feasibility_i = e.feasibility_i,
-                    .complementarity = e.complementarity,
-                    .step_norm = e.step_norm,
-                    .radius = e.radius,
-                    .mu = e.mu,
-                    .x = map_x ? Eigen::Ref<const Vec>(x_caller) : e.x,
-                    .lambda_e = e.lambda_e,
-                    .lambda_i = e.lambda_i,
-                    .z = map_z ? Eigen::Ref<const Vec>(z_caller) : e.z,
-                    .elapsed_seconds = std::chrono::duration<double>(
-                                           std::chrono::steady_clock::now() - this->entry_time_)
-                                           .count(),
-                };
-                // THROUGH THE GUARDED ENTRY (M6 W5 T8.6 fix1), so that a
-                // callback clearing itself from inside a DEPTH-1 event is deferred
-                // exactly as it is at depth 0.
-                const CallbackAction action = this->invoke_iteration_callback(nested);
-                if (action == CallbackAction::kStop) {
-                    st.interrupted = true;
-                }
-                return action;
-            },
-            iteration_payload_);
-    }
-    // THE ACTIVE SUB-DRIVER, PUBLISHED FOR EXACTLY THE DURATION OF ITS SOLVE
-    // (M7 W0 T2 fix1). Non-owning, and cleared by the guard's destructor on
-    // every exit including a throw out of the sub-solve -- a callback that
-    // throws out of a depth-1 event unwinds through here, and a dangling
-    // pointer to a destroyed sub-driver would be read by the next apply point.
-    struct ActiveSubGuard {
-        SqpSolver *parent;
-        ~ActiveSubGuard() { parent->restoration_sub_ = nullptr; }
+    // ONE SUB-SOLVE OF THE PHASE, on `wrapper`, with `max_iter` majors of the budget. A
+    // phase is one call, or two under kModelThenRegularized when the first one stops at a
+    // failed walk subproblem (`stop_on_qp_failure`).
+    const auto run_phase = [&](const RestorationModel &wrapper, int max_iter,
+                               bool stop_on_qp_failure) -> SqpResult {
+        SqpOptions phase_opts = ropts;
+        phase_opts.max_iter = max_iter;
+        SqpSolver sub(phase_opts, SqpSolver::RestorationSubDriverTag{});
+        sub.stop_phase_on_qp_failure_ = stop_on_qp_failure;
+        // THE SUB-SOLVE'S OWN QN INSTANCE (ruling C30 AMEND-7) acts on the wrapper's x-block only:
+        // its slack columns carry no curvature.
+        if (ropts.hessian_mode == SqpHessianMode::kLbfgsDamped) {
+            sub.qn_struct_vars_ = resto_base.n();
+        }
+        // A SLACK IS AT ITS BOUND ONLY WHILE ITS ROW IS INSIDE feas_tol (QC-1). The sub-driver's
+        // convergence test reads bound activity per variable: feas_tol on the x-block, feas_tol /
+        // sigma on each slack column, whose units are violation / sigma. With the bare feas_tol a
+        // row missing by up to sigma * feas_tol read as bound-active, `z` absorbed the slack's
+        // objective coefficient, and the sub-solve converged at its major 0 with zero multipliers
+        // -- a "stationary point of h" at which h's own descent direction was untouched (ACOPR57
+        // under a QN arm, h_inf 7.3e-6, certified kInfeasible on a feasible problem). Now a row
+        // violated beyond feas_tol keeps its slack free, so a converged sub-solve prices it with
+        // the full subgradient selector (|lambda| = 1 to within kkt_tol / sigma). The x-block's
+        // tolerance is unchanged, so a sub-solve whose slacks never sit in (feas_tol / sigma,
+        // feas_tol] measures exactly what it measured before.
+        sub.kkt_bound_tol_ = wrapper.bound_activity_tolerance(opts_.feas_tol);
+        // THE ONE SINK, SHARED SEQUENTIALLY (plan amendment A): the
+        // sub-solve's own `sqp.solve` pair, rows and tier events land in the
+        // same stream, told apart by the sink-owned `depth`.
+        sub.attach_trace(ipqp_trace_);
+        // THE CALLBACK IS FORWARDED, NOT COPIED (M6 W5 T8.6). The sub-driver runs
+        // its own history and its own `push_history`, so its rows reach the
+        // caller's callback through this lambda, which does the two things a
+        // nested solve's events need and the sub-driver cannot do for itself:
+        //
+        //   * it stamps the NESTING DEPTH -- one deeper than whatever arrived, so
+        //     the rule composes if a nested solve ever nests again;
+        //   * it re-reads the clock against THIS driver's public entry, so
+        //     `elapsed_seconds` is one measurement across the whole solve rather
+        //     than restarting at the sub-solve's own entry;
+        //   * and it LATCHES a kStop on the PARENT as well as returning it, so a
+        //     stop taken inside restoration ends the outer solve too -- whether
+        //     that phase comes back kResumed (the loop's next major reads the
+        //     latch at its exit conjunction) or kExited (the sub-solve's own
+        //     kInterrupted arrives in the switch below).
+        //
+        // AND THE PAYLOAD MASK TRAVELS WITH IT (M7 W0 T2), as the second argument
+        // below: the sub-driver prepares a depth-1 event's payload for the SAME
+        // consumer this driver has, so it must prepare exactly what that consumer
+        // declared. Forwarding the callable alone would make a scalars-only
+        // consumer pay the full payload on every restoration major.
+        //
+        // AND IT KEEPS TRAVELLING (M7 W0 T2 fix1, the sol review's first Important).
+        // The argument below is ONE COPY, taken at entry, and a mask the consumer
+        // CHANGES from inside a depth-1 callback would otherwise never reach the
+        // sub-driver: the sub would go on preparing the old payload and handing it
+        // to the new callable, which contradicts the next-event rule both setters
+        // advertise. `restoration_sub_` below makes the parent's apply point push
+        // the new mask down, so a widening or a narrowing made at depth 1 takes
+        // effect at the NEXT depth-1 event, exactly as it does at depth 0.
+        //
+        // THE CALLABLE NEEDS NO SUCH PUSH, and that is why only the mask is
+        // pushed: the forwarder dispatches through THIS driver's
+        // `invoke_iteration_callback`, which reads `iteration_callback_` at the
+        // moment of the call, so a replacement callable is already live at the
+        // next depth-1 event.
+        if (iteration_callback_) {
+            sub.set_iteration_callback(
+                [this, &st](const IterationEvent &e) {
+                    // THE COLUMN LAYER'S MAP (M7 W2 SCL): on a column-scaled solve the
+                    // feasibility problem's first n variables are the engine's x~, so
+                    // the sub-solve's own rows (its depth 0) go out with x = d x~ and
+                    // z = z~ / d there -- caller units, as at depth 0. The slack
+                    // entries and the multipliers carry no column factor.
+                    const Vec *d = this->column_units_;
+                    const bool map = d != nullptr && e.depth.value_or(0) == 0;
+                    const Index nd = map ? d->size() : 0;
+                    Vec x_caller, z_caller;
+                    const bool map_x = map && e.x.size() >= nd;
+                    const bool map_z = map && e.z.size() >= nd;
+                    if (map_x) {
+                        x_caller = e.x;
+                        x_caller.head(nd).array() *= d->array();
+                    }
+                    if (map_z) {
+                        z_caller = e.z;
+                        z_caller.head(nd).array() /= d->array();
+                    }
+                    const IterationEvent nested{
+                        .iteration = e.iteration,
+                        .phase = e.phase,
+                        .depth = e.depth.value_or(0) + 1,
+                        .f = e.f,
+                        .stationarity = e.stationarity,
+                        .feasibility_e = e.feasibility_e,
+                        .feasibility_i = e.feasibility_i,
+                        .complementarity = e.complementarity,
+                        .step_norm = e.step_norm,
+                        .radius = e.radius,
+                        .mu = e.mu,
+                        .x = map_x ? Eigen::Ref<const Vec>(x_caller) : e.x,
+                        .lambda_e = e.lambda_e,
+                        .lambda_i = e.lambda_i,
+                        .z = map_z ? Eigen::Ref<const Vec>(z_caller) : e.z,
+                        .elapsed_seconds = std::chrono::duration<double>(
+                                               std::chrono::steady_clock::now() - this->entry_time_)
+                                               .count(),
+                    };
+                    // THROUGH THE GUARDED ENTRY (M6 W5 T8.6 fix1), so that a
+                    // callback clearing itself from inside a DEPTH-1 event is deferred
+                    // exactly as it is at depth 0.
+                    const CallbackAction action = this->invoke_iteration_callback(nested);
+                    if (action == CallbackAction::kStop) {
+                        st.interrupted = true;
+                    }
+                    return action;
+                },
+                iteration_payload_);
+        }
+        // THE ACTIVE SUB-DRIVER, PUBLISHED FOR EXACTLY THE DURATION OF ITS SOLVE
+        // (M7 W0 T2 fix1). Non-owning, and cleared by the guard's destructor on
+        // every exit including a throw out of the sub-solve -- a callback that
+        // throws out of a depth-1 event unwinds through here, and a dangling
+        // pointer to a destroyed sub-driver would be read by the next apply point.
+        struct ActiveSubGuard {
+            SqpSolver *parent;
+            ~ActiveSubGuard() { parent->restoration_sub_ = nullptr; }
+        };
+        restoration_sub_ = &sub;
+        const ActiveSubGuard active_sub_guard{this};
+        return sub.solve(wrapper, wrapper.start_point());
     };
-    restoration_sub_ = &sub;
-    const ActiveSubGuard active_sub_guard{this};
-    const SqpResult rs = sub.solve(feasibility, feasibility.start_point());
+    SqpResult rs = run_phase(feasibility, ropts.max_iter, regularize_on_failure);
+
+    const auto fold_phase = [&](const SqpResult &rs, const RestorationModel &wrapper) {
+        // EVERY WORK counter the sub-solve moved is folded in: the
+        // work was spent (the SOC/elastic convention, ported). Its
+        // majors are the ONE work quantity that gets its own field
+        // rather than joining major_iters -- see SqpCounters.
+        //
+        // steps_accepted AND rejected_steps ARE DELIBERATELY NOT
+        // FOLDED, and that is not an omission: they do not measure
+        // work, they describe WHAT HAPPENED TO THE CALLER'S ITERATE
+        // (how many times it moved, how many times the radius shrank
+        // under it). The sub-solve's acceptances move a point in the
+        // WRAPPER's variables, on a different objective; adding them
+        // would make steps_accepted stop being "the number of times
+        // x moved" -- which is exactly what SqpCounters promises and
+        // what the major_iters identity there is written against.
+        st.out.counters.restoration_iters += rs.counters.major_iters;
+        st.out.counters.qp_minor_iters += rs.counters.qp_minor_iters;
+        st.out.counters.factorizations += rs.counters.factorizations;
+        st.out.counters.eqp_refine_steps += rs.counters.eqp_refine_steps;
+        st.out.counters.border_refine_steps += rs.counters.border_refine_steps;
+        st.out.counters.eqp_refine_iters += rs.counters.eqp_refine_iters;
+        st.out.counters.eqp_residual_refusals += rs.counters.eqp_residual_refusals;
+        st.out.counters.eqp_row_drift_refusals += rs.counters.eqp_row_drift_refusals;
+        st.out.counters.eqp_polish_steps += rs.counters.eqp_polish_steps;
+        st.out.counters.terminal_polish_solves += rs.counters.terminal_polish_solves;
+        st.out.counters.terminal_polish_rejected += rs.counters.terminal_polish_rejected;
+        st.out.counters.terminal_polish_adopted += rs.counters.terminal_polish_adopted;
+        st.out.counters.verdict_refine_steps += rs.counters.verdict_refine_steps;
+        st.out.counters.suspect_escalations += rs.counters.suspect_escalations;
+        st.out.counters.symbolic_analyses += rs.counters.symbolic_analyses;
+        // THE SUBPROBLEM-EXIT GROUP'S WORK HALF (M7 W2 M1) FOLDS, on the
+        // qp_minor_iters argument: all three count QP SOLVES, and the sub-solve's
+        // subproblems are QP solves this solve caused. Its ROUTING half --
+        // qp_failures_routed and qp_failures_in_a_row_peak -- does NOT fold, on
+        // rejected_steps' argument two paragraphs above: those two describe what
+        // happened to the CALLER's iterate, and a radius shrunk under the
+        // feasibility wrapper's own point is not that.
+        st.out.counters.qp_maxiter_exits += rs.counters.qp_maxiter_exits;
+        st.out.counters.qp_numerical_exits += rs.counters.qp_numerical_exits;
+        st.out.counters.qp_cap_retries += rs.counters.qp_cap_retries;
+        st.out.counters.qp_failure_steps_judged += rs.counters.qp_failure_steps_judged;
+        st.out.counters.qp_failure_steps_accepted += rs.counters.qp_failure_steps_accepted;
+        st.out.counters.nonfinite_subproblems += rs.counters.nonfinite_subproblems;
+        st.out.counters.nonfinite_box_projections += rs.counters.nonfinite_box_projections;
+        st.out.counters.nonfinite_step_rollbacks += rs.counters.nonfinite_step_rollbacks;
+        st.out.counters.elastic_last_rung_fallbacks += rs.counters.elastic_last_rung_fallbacks;
+        // THE EXCURSION RECORD DOES NOT FOLD AND CANNOT (M7 W2 M2): this sub-solve
+        // runs with `allow_restoration_` false, so its own `restoration_entries` is
+        // structurally 0 and its four absolutes are untouched defaults. Folding a
+        // guaranteed zero would only suggest it might not be one -- the
+        // full-step-mode counters' argument, a few lines below.
+        st.out.counters.soc_steps += rs.counters.soc_steps;
+        st.out.counters.soc_applied += rs.counters.soc_applied;
+        st.out.counters.soc_qp_infeasible += rs.counters.soc_qp_infeasible;
+        st.out.counters.soc_rejected += rs.counters.soc_rejected;
+        st.out.counters.elastic_activations += rs.counters.elastic_activations;
+        st.out.counters.elastic_escalations += rs.counters.elastic_escalations;
+        // The fallback partition folds exactly as the two above do, so the identities stay
+        // stated over a WHOLE solve. Today the five are identically zero here: restoration
+        // runs at kWalk (`ropts.qp_mode`), which never reaches the certified fallback.
+        st.out.counters.elastic_from_ipqp_escape += rs.counters.elastic_from_ipqp_escape;
+        st.out.counters.ipqp_suspicion_disproved += rs.counters.ipqp_suspicion_disproved;
+        st.out.counters.ipqp_fallback_rung_b += rs.counters.ipqp_fallback_rung_b;
+        st.out.counters.elastic_rho0_ceiling_hits += rs.counters.elastic_rho0_ceiling_hits;
+        st.out.counters.elastic_floor_retries += rs.counters.elastic_floor_retries;
+        // The VALUES-only counters ARE folded, exactly like every other
+        // WORK counter above (qp_minor_iters, factorizations, ...):
+        // the sub-solve's own solve_impl runs through the SAME three
+        // call sites the values/full split exists for, so its
+        // split is real work spent evaluating `feasibility`, not a
+        // property of the WRAPPER's variables the way steps_accepted/
+        // rejected_steps are (see the note just below for that
+        // distinction).
+        st.out.counters.evals_full += rs.counters.evals_full;
+        st.out.counters.evals_values += rs.counters.evals_values;
+        // AND THE REGULARIZED CURVATURE'S OWN READS OF h (M7 W2 RST): values-only model
+        // queries the wrapper made for mu at a point whose rows it did not have in hand.
+        st.out.counters.evals_values += wrapper.curvature_residual_evals();
+        // The crash-basis counters ARE folded, for the same reason
+        // the values counters are and NOT for the reason the
+        // full-step pair below is omitted. The sub-solve inherits
+        // `crash_basis` from `opts_` like every other lever in ropts,
+        // it is COLD by construction (a fresh 2-arg solve()), and its
+        // own first subproblem therefore gets a crash basis of its
+        // own -- real seeding work, on the feasibility wrapper's
+        // geometry, that this solve caused. It is NOT identically
+        // zero and folding a live quantity is the only honest option:
+        // the restoration wrapper's slack columns start AT their own
+        // lower bound of 0, so a restoration entered with the lever
+        // on seeds every one of them.
+        st.out.counters.crash_seeded_rows += rs.counters.crash_seeded_rows;
+        st.out.counters.crash_seeded_bounds += rs.counters.crash_seeded_bounds;
+        // The SSN counters ARE folded, and for the exact OPPOSITE of the
+        // "identically zero, so folding it would only suggest it might not
+        // be" argument the next paragraph makes about the warm-start
+        // pair's counters. They are identically zero too --
+        // `ropts.qp_mode` is reset to kWalk above, so the sub-solve has no
+        // SSN kernel to run -- and folding them is what makes that reset
+        // OBSERVABLE FROM OUTSIDE. THE R6 PAIR IS ZERO FOR A DIFFERENT
+        // REASON, because the sign sweep is NOT conditioned on qp_mode and
+        // does run on this sub-solve: it is zero because the sub-solve is a
+        // WALK solve, and an active-set price is non-negative by the walk's
+        // own drop rule, so there is nothing to clamp. With the fold in place a kSsn solve
+        // that entered restoration reports its main loop's SSN work and
+        // nothing else, and any future change that let the mode leak back
+        // in shows up here as a number instead of as silence. The fold
+        // also keeps the aggregate honest against the factorization fold
+        // above, which does NOT discriminate by kernel: without it,
+        // restoration-nested SSN work would contribute factorizations that
+        // `ssn_iters` denied, breaking sqp_solver_types.h's `ssn_iters <=
+        // factorizations` in the direction that hides work.
+        //
+        // DELETING THIS LINE IS AN EQUIVALENT MUTANT, AND SAYING SO IS
+        // NOT A HOLE IN THE TESTING -- it is the same statement as
+        // "the reset above works", read from the other side. Because
+        // `ropts.qp_mode` is kWalk, `rs.counters.ssn` is all-zero, so
+        // removing this fold changes no observable of the SHIPPED
+        // code. What it removes is a MEASUREMENT: it is only with this
+        // fold present that letting the mode leak back in moves
+        // `ssn_iters` (131 -> 140). The two mutations are therefore
+        // not independent, and the one that matters -- deleting the
+        // reset -- dies on this fixture with or without this line,
+        // since the folded FACTORIZATIONS move too (234 -> 247).
+        accumulate_ssn_counters(st.out.counters.ssn, rs.counters.ssn);
+        // AND THE IPQP TIER'S, folded for exactly the same reason and
+        // subject to exactly the same argument: `ropts.qp_mode` is kWalk,
+        // so `rs.counters.ipqp` is all-zero (bar the two min-folded alpha
+        // fields, which fold their +inf identity), and this line changes
+        // no observable of the shipped code. What it preserves is the
+        // MEASUREMENT: it is only with the fold present that letting the
+        // mode leak back in would move the tier's counters.
+        accumulate_ipqp_counters(st.out.counters.ipqp, rs.counters.ipqp);
+        // THE CURVATURE-SOURCE GROUP (M7 QN stage 3) folds: eval_hess calls are work this solve
+        // caused, and the QN events are the sub-solve's own instance's.
+        fold_restoration_qn_counters(st.out.counters, rs.counters);
+        // The full-step-mode counters are deliberately absent from this
+        // fold, and they are absent because they are IDENTICALLY ZERO
+        // on the sub-solve: it runs the 2-arg solve() on a fresh
+        // driver, which is cold by construction, and the full-step
+        // mode never engages on a cold solve. Folding a guaranteed
+        // zero would only suggest it might not be one.
+        // THE PHASE'S CURVATURE SWITCHES (M7 W2 RST) fold as work: each is a sub-solve
+        // stopped at its first failed walk subproblem to be restarted on the regularized model.
+        st.out.counters.restoration_curvature_switches +=
+            rs.counters.restoration_curvature_switches;
+    };
+    fold_phase(rs, feasibility);
+
+    // THE REGULARIZED RESTART (M7 W2 RST, kModelThenRegularized). The first sub-solve
+    // stopped at its first failed walk subproblem: the phase continues FROM THAT POINT on
+    // the regularized model -- a fresh wrapper built there (its sigmas and slacks read at
+    // that point, so its start is again feasible with objective h), with what is left of
+    // the phase's budget. One full evaluation, counted. A point the model cannot be
+    // measured at keeps the first sub-solve's own exit, which the arms below read as they
+    // read any numerical_error sub-solve.
+    std::optional<RestorationModel> regularized_restart;
+    const RestorationModel *phase_wrapper = &feasibility;
+    if (regularize_on_failure && rs.counters.restoration_curvature_switches > 0) {
+        const Vec x_switch = feasibility.original_x(rs.x);
+        const int left = ropts.max_iter - static_cast<int>(rs.counters.major_iters);
+        if (x_switch.allFinite() && left > 0) {
+            const NlpEval ev_switch = eval_nlp(resto_base, x_switch);
+            ++st.out.counters.evals_full;
+            if (ev_switch.all_finite && jacobian_values_finite(ev_switch)) {
+                regularized_restart.emplace(resto_base, x_switch, ev_switch, st.x,
+                                            opts_.restoration_proximity, true);
+                rs = run_phase(*regularized_restart, left, false);
+                fold_phase(rs, *regularized_restart);
+                phase_wrapper = &*regularized_restart;
+            }
+        }
+    }
     // The phase's equality multipliers over every model row: zero on the rows it
     // did not carry, so J^T lambda (and the certificate below) is the phase's own.
     Vec rs_lambda_e = rs.lambda_e;
@@ -5604,145 +5819,7 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
         }
     }
 
-    // EVERY WORK counter the sub-solve moved is folded in: the
-    // work was spent (the SOC/elastic convention, ported). Its
-    // majors are the ONE work quantity that gets its own field
-    // rather than joining major_iters -- see SqpCounters.
-    //
-    // steps_accepted AND rejected_steps ARE DELIBERATELY NOT
-    // FOLDED, and that is not an omission: they do not measure
-    // work, they describe WHAT HAPPENED TO THE CALLER'S ITERATE
-    // (how many times it moved, how many times the radius shrank
-    // under it). The sub-solve's acceptances move a point in the
-    // WRAPPER's variables, on a different objective; adding them
-    // would make steps_accepted stop being "the number of times
-    // x moved" -- which is exactly what SqpCounters promises and
-    // what the major_iters identity there is written against.
-    st.out.counters.restoration_iters += rs.counters.major_iters;
-    st.out.counters.qp_minor_iters += rs.counters.qp_minor_iters;
-    st.out.counters.factorizations += rs.counters.factorizations;
-    st.out.counters.eqp_refine_steps += rs.counters.eqp_refine_steps;
-    st.out.counters.border_refine_steps += rs.counters.border_refine_steps;
-    st.out.counters.eqp_refine_iters += rs.counters.eqp_refine_iters;
-    st.out.counters.eqp_residual_refusals += rs.counters.eqp_residual_refusals;
-    st.out.counters.eqp_row_drift_refusals += rs.counters.eqp_row_drift_refusals;
-    st.out.counters.eqp_polish_steps += rs.counters.eqp_polish_steps;
-    st.out.counters.terminal_polish_solves += rs.counters.terminal_polish_solves;
-    st.out.counters.terminal_polish_rejected += rs.counters.terminal_polish_rejected;
-    st.out.counters.terminal_polish_adopted += rs.counters.terminal_polish_adopted;
-    st.out.counters.verdict_refine_steps += rs.counters.verdict_refine_steps;
-    st.out.counters.suspect_escalations += rs.counters.suspect_escalations;
-    st.out.counters.symbolic_analyses += rs.counters.symbolic_analyses;
-    // THE SUBPROBLEM-EXIT GROUP'S WORK HALF (M7 W2 M1) FOLDS, on the
-    // qp_minor_iters argument: all three count QP SOLVES, and the sub-solve's
-    // subproblems are QP solves this solve caused. Its ROUTING half --
-    // qp_failures_routed and qp_failures_in_a_row_peak -- does NOT fold, on
-    // rejected_steps' argument two paragraphs above: those two describe what
-    // happened to the CALLER's iterate, and a radius shrunk under the
-    // feasibility wrapper's own point is not that.
-    st.out.counters.qp_maxiter_exits += rs.counters.qp_maxiter_exits;
-    st.out.counters.qp_numerical_exits += rs.counters.qp_numerical_exits;
-    st.out.counters.qp_cap_retries += rs.counters.qp_cap_retries;
-    st.out.counters.qp_failure_steps_judged += rs.counters.qp_failure_steps_judged;
-    st.out.counters.qp_failure_steps_accepted += rs.counters.qp_failure_steps_accepted;
-    st.out.counters.nonfinite_subproblems += rs.counters.nonfinite_subproblems;
-    st.out.counters.nonfinite_box_projections += rs.counters.nonfinite_box_projections;
-    st.out.counters.nonfinite_step_rollbacks += rs.counters.nonfinite_step_rollbacks;
-    st.out.counters.elastic_last_rung_fallbacks += rs.counters.elastic_last_rung_fallbacks;
-    // THE EXCURSION RECORD DOES NOT FOLD AND CANNOT (M7 W2 M2): this sub-solve
-    // runs with `allow_restoration_` false, so its own `restoration_entries` is
-    // structurally 0 and its four absolutes are untouched defaults. Folding a
-    // guaranteed zero would only suggest it might not be one -- the
-    // full-step-mode counters' argument, a few lines below.
-    st.out.counters.soc_steps += rs.counters.soc_steps;
-    st.out.counters.soc_applied += rs.counters.soc_applied;
-    st.out.counters.soc_qp_infeasible += rs.counters.soc_qp_infeasible;
-    st.out.counters.soc_rejected += rs.counters.soc_rejected;
-    st.out.counters.elastic_activations += rs.counters.elastic_activations;
-    st.out.counters.elastic_escalations += rs.counters.elastic_escalations;
-    // The fallback partition folds exactly as the two above do, so the identities stay
-    // stated over a WHOLE solve. Today the five are identically zero here: restoration
-    // runs at kWalk (`ropts.qp_mode`), which never reaches the certified fallback.
-    st.out.counters.elastic_from_ipqp_escape += rs.counters.elastic_from_ipqp_escape;
-    st.out.counters.ipqp_suspicion_disproved += rs.counters.ipqp_suspicion_disproved;
-    st.out.counters.ipqp_fallback_rung_b += rs.counters.ipqp_fallback_rung_b;
-    st.out.counters.elastic_rho0_ceiling_hits += rs.counters.elastic_rho0_ceiling_hits;
-    st.out.counters.elastic_floor_retries += rs.counters.elastic_floor_retries;
-    // The VALUES-only counters ARE folded, exactly like every other
-    // WORK counter above (qp_minor_iters, factorizations, ...):
-    // the sub-solve's own solve_impl runs through the SAME three
-    // call sites the values/full split exists for, so its
-    // split is real work spent evaluating `feasibility`, not a
-    // property of the WRAPPER's variables the way steps_accepted/
-    // rejected_steps are (see the note just below for that
-    // distinction).
-    st.out.counters.evals_full += rs.counters.evals_full;
-    st.out.counters.evals_values += rs.counters.evals_values;
-    // The crash-basis counters ARE folded, for the same reason
-    // the values counters are and NOT for the reason the
-    // full-step pair below is omitted. The sub-solve inherits
-    // `crash_basis` from `opts_` like every other lever in ropts,
-    // it is COLD by construction (a fresh 2-arg solve()), and its
-    // own first subproblem therefore gets a crash basis of its
-    // own -- real seeding work, on the feasibility wrapper's
-    // geometry, that this solve caused. It is NOT identically
-    // zero and folding a live quantity is the only honest option:
-    // the restoration wrapper's slack columns start AT their own
-    // lower bound of 0, so a restoration entered with the lever
-    // on seeds every one of them.
-    st.out.counters.crash_seeded_rows += rs.counters.crash_seeded_rows;
-    st.out.counters.crash_seeded_bounds += rs.counters.crash_seeded_bounds;
-    // The SSN counters ARE folded, and for the exact OPPOSITE of the
-    // "identically zero, so folding it would only suggest it might not
-    // be" argument the next paragraph makes about the warm-start
-    // pair's counters. They are identically zero too --
-    // `ropts.qp_mode` is reset to kWalk above, so the sub-solve has no
-    // SSN kernel to run -- and folding them is what makes that reset
-    // OBSERVABLE FROM OUTSIDE. THE R6 PAIR IS ZERO FOR A DIFFERENT
-    // REASON, because the sign sweep is NOT conditioned on qp_mode and
-    // does run on this sub-solve: it is zero because the sub-solve is a
-    // WALK solve, and an active-set price is non-negative by the walk's
-    // own drop rule, so there is nothing to clamp. With the fold in place a kSsn solve
-    // that entered restoration reports its main loop's SSN work and
-    // nothing else, and any future change that let the mode leak back
-    // in shows up here as a number instead of as silence. The fold
-    // also keeps the aggregate honest against the factorization fold
-    // above, which does NOT discriminate by kernel: without it,
-    // restoration-nested SSN work would contribute factorizations that
-    // `ssn_iters` denied, breaking sqp_solver_types.h's `ssn_iters <=
-    // factorizations` in the direction that hides work.
-    //
-    // DELETING THIS LINE IS AN EQUIVALENT MUTANT, AND SAYING SO IS
-    // NOT A HOLE IN THE TESTING -- it is the same statement as
-    // "the reset above works", read from the other side. Because
-    // `ropts.qp_mode` is kWalk, `rs.counters.ssn` is all-zero, so
-    // removing this fold changes no observable of the SHIPPED
-    // code. What it removes is a MEASUREMENT: it is only with this
-    // fold present that letting the mode leak back in moves
-    // `ssn_iters` (131 -> 140). The two mutations are therefore
-    // not independent, and the one that matters -- deleting the
-    // reset -- dies on this fixture with or without this line,
-    // since the folded FACTORIZATIONS move too (234 -> 247).
-    accumulate_ssn_counters(st.out.counters.ssn, rs.counters.ssn);
-    // AND THE IPQP TIER'S, folded for exactly the same reason and
-    // subject to exactly the same argument: `ropts.qp_mode` is kWalk,
-    // so `rs.counters.ipqp` is all-zero (bar the two min-folded alpha
-    // fields, which fold their +inf identity), and this line changes
-    // no observable of the shipped code. What it preserves is the
-    // MEASUREMENT: it is only with the fold present that letting the
-    // mode leak back in would move the tier's counters.
-    accumulate_ipqp_counters(st.out.counters.ipqp, rs.counters.ipqp);
-    // THE CURVATURE-SOURCE GROUP (M7 QN stage 3) folds: eval_hess calls are work this solve
-    // caused, and the QN events are the sub-solve's own instance's.
-    fold_restoration_qn_counters(st.out.counters, rs.counters);
-    // The full-step-mode counters are deliberately absent from this
-    // fold, and they are absent because they are IDENTICALLY ZERO
-    // on the sub-solve: it runs the 2-arg solve() on a fresh
-    // driver, which is cold by construction, and the full-step
-    // mode never engages on a cold solve. Folding a guaranteed
-    // zero would only suggest it might not be one.
-
-    const Vec x_r = feasibility.original_x(rs.x);
+    const Vec x_r = phase_wrapper->original_x(rs.x);
     NlpEval ev_r = x_r.allFinite() ? seam.eval_nlp(x_r, rs_lambda_e, rs.lambda_i) : NlpEval{};
     if (x_r.allFinite()) {
         ++st.out.counters.evals_full;
@@ -5835,6 +5912,9 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
         // definitive evidence against the mode's premise, and the
         // solve comes back out fully globalized.
         st.strategy->resume_from_restoration(h_r);
+        // THE ENTRY RULE'S MARK (M7 W2 RST): a later request needs a step accepted
+        // after this point.
+        st.resto.accepted_at_resume = st.out.counters.steps_accepted;
         st.full_step_funnel = nullptr;
         st.delta = restoration_restart_radius();
         st.rejections_at_iterate = 0;
@@ -5917,7 +5997,7 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     // here. Correcting it -- subtracting grad P -- would make the
     // residual identically zero at every wrapper-stationary
     // point, certifying everything and testing nothing.
-    st.resto.kkt.z = feasibility.original_x(rs.z);
+    st.resto.kkt.z = phase_wrapper->original_x(rs.z);
     st.resto.f = ev_r.f;
     // THE SHARED DECLARED DIAGNOSTICS AT THE RESTORED POINT, taken HERE because
     // `ev_r` is a local of this function and dies at its end: nothing of it
@@ -7310,6 +7390,17 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
                 mj.qs.counters.certificate_row_refusals = 1;
             }
         }
+        // THE RESTORATION SUB-DRIVER'S OWN KNOB (M7 W2 RST): a walk subproblem of the
+        // phase that fails on the exact model, which is what kModelThenRegularized reads.
+        if (SqpLadderSeam::fail_restoration_walk_qps > 0 && is_restoration_sub_driver_ &&
+            mj.walk_owns_this_qp && mj.qs.status == QpStatus::kOptimal) {
+            --SqpLadderSeam::fail_restoration_walk_qps;
+            ++SqpLadderSeam::forced_restoration;
+            mj.qs.status = QpStatus::kNumericalError;
+            mj.qs.lambda_e.setZero();
+            mj.qs.lambda_i.setZero();
+            mj.qs.z.setZero();
+        }
     }
 #endif
     // F4 WITH THE GUARD (M7 W2 ladder, L3; E2-D1 D4). A walk subproblem that ends
@@ -7475,6 +7566,17 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         case QpStatus::kOptimal:
         case QpStatus::kInfeasible:
             break;
+        }
+        // THE PHASE'S CURVATURE SWITCH (M7 W2 RST; SqpOptions::restoration_curvature ==
+        // kModelThenRegularized). On a restoration sub-driver told to, the first walk
+        // subproblem that fails on the exact model ends this sub-solve at its iterate, which
+        // has not moved: the parent restarts the phase there on the regularized model, whose
+        // subproblems are convex. Nothing is claimed; the row is a rejection.
+        if (stop_phase_on_qp_failure_ && mj.walk_owns_this_qp) {
+            ++st.out.counters.restoration_curvature_switches;
+            ++st.out.counters.rejected_steps;
+            push_history(mj.row);
+            return MajorOutcome::kFinishQpFailure;
         }
         // THE FAILED SUBPROBLEM'S OWN STEP (M7 W2 R2, SqpOptions::qp_failure_step).
         // A walk that failed at a dead end, a zero-motion exhaustion or its minor

@@ -139,6 +139,13 @@ class RestorationModel final : public NlpModel {
     RestorationModel(const NlpModel &model, const Vec &x_entry, const NlpEval &ev,
                      const Vec &x_centre, double proximity);
 
+    /// @param regularized_curvature THE REGULARIZED CURVATURE (M7 W2 RST;
+    /// SqpOptions::restoration_curvature == kRegularized). False is the wrapper above,
+    /// to the byte. True replaces the constraint curvature `eval_hess` returns with
+    /// the Levenberg-Marquardt model of the class note's REGULARIZED CURVATURE.
+    RestorationModel(const NlpModel &model, const Vec &x_entry, const NlpEval &ev,
+                     const Vec &x_centre, double proximity, bool regularized_curvature);
+
     Index n() const override;
     Index me() const override;
     Index mi() const override;
@@ -162,6 +169,15 @@ class RestorationModel final : public NlpModel {
 
     /// The proximity weight `zeta` this wrapper was built with; 0 == OFF.
     double proximity() const;
+
+    /// True iff `eval_hess` returns the REGULARIZED CURVATURE (class note).
+    bool regularized_curvature() const;
+
+    /// Model queries `eval_hess` made ITSELF to read h(x) for the regularized
+    /// curvature's mu -- 0 whenever the point's rows were already in hand from this
+    /// wrapper's own `eval_ce`/`eval_ci` (the memo). Charged by the driver to
+    /// `SqpCounters::evals_values`, so the solve's eval economics stay whole.
+    Index curvature_residual_evals() const;
 
     /// Components of `x_entry` strictly outside the box, clamped into it for
     /// the start point. 0 on an in-box entry, and 0 when the rows are not finite
@@ -207,6 +223,20 @@ class RestorationModel final : public NlpModel {
     /// zeta > 0, for every original coordinate, whatever `obj_scale` or the
     /// multipliers are: nlp_model.h's STRUCTURAL PATTERN INVARIANCE precondition
     /// forbids a pattern that depends on the arguments a model is called with.
+    ///
+    /// THE REGULARIZED CURVATURE (M7 W2 RST), PRESENT ONLY WHEN THE WRAPPER IS BUILT
+    /// WITH IT. Then `lambda_e`, `lambda_i` and the wrapped model's Hessian are not
+    /// read: the x-block is the diagonal `(mu(x) + obj_scale * zeta) * d_i^2` and
+    /// every slack entry is zero, with `mu(x) = min(1, h(x))`, `h` the wrapped
+    /// model's l1 violation at the original variables and `d` the proximity term's
+    /// own scaling (taken at the start point when zeta == 0). It is a MODEL of the
+    /// feasibility problem's curvature, as a quasi-Newton B is: positive semidefinite
+    /// by construction, so every restoration QP is convex, and it supplies what the
+    /// l1 selectors' curvature cannot -- a Hessian that vanishes as the violation
+    /// does, so near a feasible point the QP step is the minimum-norm Newton step
+    /// for c(x) = 0 (the Levenberg-Marquardt parameter mu ~ ||c||; Yamashita &
+    /// Fukushima 2001, Fan & Yuan 2005). The pattern is the x-block diagonal at
+    /// every call, whatever the arguments.
     SpMatRM eval_hess(const Vec &y, double obj_scale, const Vec &lambda_e,
                       const Vec &lambda_i) const override;
 
@@ -233,6 +263,22 @@ class RestorationModel final : public NlpModel {
     /// `st.x` is moved from on the resume arm while this wrapper is still alive.
     double zeta_ = 0.0;
     Vec centre_, d_;
+    /// THE REGULARIZED CURVATURE'S STATE (M7 W2 RST), untouched when it is off.
+    /// `memo_e_`/`memo_i_` keep the l1 violation of the LAST TWO points this
+    /// wrapper's `eval_ce`/`eval_ci` evaluated -- the iterate and a trial -- so
+    /// `eval_hess` reads h at a point already evaluated without a model query.
+    /// MUTABLE, so this wrapper is not safe to evaluate from two threads at once;
+    /// the driver builds one per restoration phase and evaluates it sequentially.
+    struct ViolationMemo {
+        Vec x;
+        double value = 0.0;
+        bool valid = false;
+    };
+    bool regularized_ = false;
+    mutable ViolationMemo memo_e_[2], memo_i_[2];
+    mutable int memo_e_next_ = 0, memo_i_next_ = 0;
+    mutable Index curvature_evals_ = 0;
+    double curvature_violation(const Vec &x) const;
 };
 
 /// @brief The infeasibility certificate's residual at a restored point,

@@ -1059,8 +1059,8 @@ elastic tier's entry test (an Apache-2.0 file this repository wrote; no deviatio
 It ends the TOP-LEVEL driver's next `fail_walk_qps` kOptimal walk subproblems the
 way the engine's own N3 exit ends one — `kNumericalError`, multipliers cleared, the
 iterate kept, and (by default) `dep_blocker_terminations = 1` — optionally only once
-the solve's one restoration has resumed. The restoration sub-driver is never
-touched. Two knobs added at M7 W2 R2 fix 1: `pass_walk_qps` lets that many kOptimal
+the solve's one restoration has resumed. The restoration sub-driver is touched
+only by the M7 W2 RST knob below. Two knobs added at M7 W2 R2 fix 1: `pass_walk_qps` lets that many kOptimal
 walk subproblems through before the first forced exit, and a non-empty
 `forced_point` makes the forced exit's iterate the step to that point (in the
 engine's variables, so its fixtures turn scaling off) -- a walk that stopped
@@ -1071,7 +1071,13 @@ whose iterate stands off its box; with an off-box `forced_point` it pins that ex
 elastic route at every `h`, without one its E2-termination routing (the shrink ladder at a
 feasible iterate). One knob added at SDL-6: `as_row_refusal` stamps the exit
 `certificate_row_refusals = 1`, the certificate's row-half refusal (a structural row
-violation with no verified Farkas certificate), routed the same way.
+violation with no verified Farkas certificate), routed the same way. One knob added
+at M7 W2 RST: `fail_restoration_walk_qps` ends that many kOptimal walk subproblems of
+the RESTORATION SUB-DRIVER the same way (no E2 stamp) -- the one knob that touches the
+sub-driver -- so the phase's curvature switch
+(`SqpOptions::restoration_curvature == kModelThenRegularized`) has a fixture; the
+nonconvex restoration QPs it stands in for (BRITGAS's, NET3's) are far too large for a
+unit test.
 
 It is an INJECTED result, and faithful for the one question it serves: how the
 driver routes a failed QP (L1's refused-request spelling, L3's E2-termination
