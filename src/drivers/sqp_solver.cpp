@@ -5791,10 +5791,12 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     // that point, so its start is again feasible with objective h), with what is left of
     // the phase's budget. One full evaluation, counted. A point the model cannot be
     // measured at keeps the first sub-solve's own exit, which the arms below read as they
-    // read any numerical_error sub-solve.
+    // read any numerical_error sub-solve. A consumer stop taken inside the first sub-solve
+    // (its switch row included) is honoured here: no restart, the latch's exit below.
     std::optional<RestorationModel> regularized_restart;
     const RestorationModel *phase_wrapper = &feasibility;
-    if (regularize_on_failure && rs.counters.restoration_curvature_switches > 0) {
+    if (regularize_on_failure && !st.interrupted &&
+        rs.counters.restoration_curvature_switches > 0) {
         const Vec x_switch = feasibility.original_x(rs.x);
         const int left = ropts.max_iter - static_cast<int>(rs.counters.major_iters);
         if (x_switch.allFinite() && left > 0) {

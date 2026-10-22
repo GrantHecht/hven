@@ -942,6 +942,36 @@ TEST(SqpLadderSeam, AFailedPhaseSubproblemRestartsThePhaseOnTheRegularizedModel)
     }
 }
 
+// A CONSUMER STOP ON THE SWITCH ROW IS HONOURED AT ONCE (M7 W2 RST-I1). The phase's first
+// walk subproblem is forced to fail, so the sub-solve's first row is its switch row; a
+// callback that returns kStop there must end the solve kInterrupted with no regularized
+// restart run after it -- no further depth-1 row, and the restart's own evaluation of
+// the caller's model never made.
+TEST(SqpLadderSeam, AStopOnTheSwitchRowEndsTheSolveWithoutTheRegularizedRestart) {
+    const SeamReset guard;
+    Seam::fail_restoration_walk_qps = 1;
+    CountingCircleLineModel model;
+    SqpOptions o = quiet();
+    o.max_iter = 200;
+    ASSERT_EQ(o.restoration_curvature, SqpRestorationCurvature::kModelThenRegularized);
+    SqpSolver solver(o);
+    int depth1_rows = 0;
+    solver.set_iteration_callback([&](const IterationEvent &e) {
+        if (e.depth.value_or(0) >= 1) {
+            ++depth1_rows;
+            return CallbackAction::kStop;
+        }
+        return CallbackAction::kContinue;
+    });
+    const SqpResult sol = solver.solve(model);
+    ASSERT_EQ(Seam::forced_restoration, 1);
+    EXPECT_EQ(sol.counters.restoration_curvature_switches, 1) << "the stop came on the switch row";
+    EXPECT_EQ(depth1_rows, 1) << "no regularized phase ran after the stop";
+    EXPECT_EQ(sol.status, SolveStatus::kInterrupted);
+    EXPECT_FALSE(sol.infeasibility_certified);
+    EXPECT_EQ(model.n_ce, sol.counters.evals_full + sol.counters.evals_values);
+}
+
 // UNDER kLbfgsDamped THE SHIPPED kModelThenRegularized IS kModel: the phase's QN model is
 // convex by construction, so a failed phase subproblem is routed by the sub-solve itself
 // and no exact-Hessian call is ever made.
