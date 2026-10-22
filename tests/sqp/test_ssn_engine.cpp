@@ -690,6 +690,23 @@ TEST(SsnEngineLocal, ARoundOffPriceOnAnAbsentBoundIsZero) {
     EXPECT_NO_THROW(engine.solve(qp, at_band, SsnOptions{}, &res));
 }
 
+// The band scales with the seed: a 1e6 price on variable 0's finite lower bound lifts it
+// to ~2.3e-7, so -1e-8 on variable 1's absent side is round-off and -1e-6 is mass.
+TEST(SsnEngineLocal, TheAbsentPriceBandScalesWithTheSeedsOwnMagnitude) {
+    QpProblem qp = two_row_qp();
+    qp.lower(0) = -5.0; // variable 0 has its lower bound; variable 1 has neither
+    SsnEngine engine(default_opts());
+    SsnResult res;
+    SsnStart in_band;
+    in_band.z = Vec::Zero(2);
+    in_band.z(0) = 1e6;
+    in_band.z(1) = -1e-8;
+    EXPECT_NO_THROW(engine.solve(qp, in_band, SsnOptions{}, &res));
+    SsnStart above = in_band;
+    above.z(1) = -1e-6;
+    EXPECT_THROW(engine.solve(qp, above, SsnOptions{}, &res), std::invalid_argument);
+}
+
 // =============================================================================
 // THE PER-SOLVE TRUST-REGION SEAM (Fable kernel review, I1)
 // =============================================================================

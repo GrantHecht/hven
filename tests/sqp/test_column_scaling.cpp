@@ -1608,6 +1608,31 @@ TEST(ColumnScalingDriver, TheEngagedRowLayerNeverAmplifiesTheObjective) {
     EXPECT_GT(asked.scaling.obj, 1.0) << "the caller's own toggle keeps the two-sided rule";
 }
 
+// The ceiling's divisor carries the objective factor: a hidden caller-unit gradient is
+// measured against obj * d(i), so dropping obj from it would pass this solve.
+TEST(ScaledConvergenceGuard, TheCeilingDividesByTheObjectiveFactorOnTheDefaultPath) {
+    HiddenGradientModel base;
+    const WeightedObjective model(base, 1e4);
+    SqpSolver plain{off_options()};
+    const SqpResult cold = plain.solve(model, model.start_point());
+    ASSERT_EQ(SolveStatus::kOptimal, cold.status);
+    SqpWarmStart warm = cold.warm_start;
+    warm.lambda_e(0) += 2e-15; // caller-unit grad L in x0: 1e16 * 2e-15 = 20
+
+    SqpOptions opts;
+    opts.column_scaling = SqpColumnScaling::kAuto;
+    opts.column_scaling_threshold = kFixtureGate;
+    opts.common.start_level = StartLevel::kWarm;
+    // The row layer reads its gradient at x0: x1 = 1 puts it at 1e4, above max_gradient.
+    const Vec x_start = (Vec(2) << 0.0, 1.0).finished();
+    const SqpResult sol = SqpSolver{opts}.solve(model, x_start, warm, SolveBudget{});
+    ASSERT_TRUE(sol.scaling.columns_active);
+    ASSERT_TRUE(sol.scaling.active);
+    EXPECT_LT(sol.scaling.obj, 1.0) << "the premise: the row layer shrank the objective";
+    EXPECT_GE(sol.counters.scaled_convergence_refusals, 1)
+        << "scaled stationarity / (obj * d) is 20 in the caller's units";
+}
+
 // ===========================================================================
 // THE DECISION TRAVELS WITH THE WARM START (M7 W2 SCW, SqpWarmStart::column_factors).
 // ===========================================================================
@@ -1660,9 +1685,13 @@ TEST(ColumnScalingWarmChain, AnUnscaledDecisionIsNotReReadAtTheWarmPoint) {
     EXPECT_DOUBLE_EQ(1.0, w.scaling.col_spread);
 
     // A record this problem cannot use is ignored: the rule runs at warm.x, here the
-    // cold answer, where it does not fire -- so a bad record taken would show.
+    // cold answer, where it does not fire -- so a bad record taken would show. The
+    // subnormal and huge powers of two are outside [1/limit, limit]: taken, they
+    // would overflow the scaled start.
     for (const Vec &bad : {Vec(Vec::Constant(1, 0.5)), Vec((Vec(2) << 1.0, 3.0).finished()),
-                           Vec((Vec(2) << 0.5, -2.0).finished())}) {
+                           Vec((Vec(2) << 0.5, -2.0).finished()),
+                           Vec((Vec(2) << 1.0, std::ldexp(1.0, -1074)).finished()),
+                           Vec((Vec(2) << std::ldexp(1.0, 1000), 1.0).finished())}) {
         SqpWarmStart b = cold.warm_start;
         b.column_factors = bad;
         const SqpResult r = SqpSolver{opts}.solve(model, model.start_point(), b, SolveBudget{});

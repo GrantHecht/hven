@@ -303,15 +303,17 @@ double caller_unit_stationarity(const SqpKkt &k, const Vec &x, const Vec &lo, co
 
 // THE CARRIED COLUMN DECISION (SqpWarmStart::column_factors, M7 W2 SCW): usable
 // when it is sized to this problem and every factor is a finite positive power of
-// two -- the only values the rule produces. A record that is not is ignored and the
-// rule runs, so a hand-edited object can cost a probe and nothing else.
-bool carried_column_factors_usable(const Vec &f, Index n) {
+// two inside [1/limit, limit] -- the only values the rule produces. A record that is
+// not is ignored and the rule runs, so a hand-edited object can cost a probe and
+// nothing else.
+bool carried_column_factors_usable(const Vec &f, Index n, double limit) {
     if (f.size() != n || n == 0) {
         return false;
     }
     for (Index j = 0; j < n; ++j) {
         int e = 0;
-        if (!(f(j) > 0.0) || !std::isfinite(f(j)) || std::frexp(f(j), &e) != 0.5) {
+        if (!(f(j) > 0.0) || !std::isfinite(f(j)) || std::frexp(f(j), &e) != 0.5 ||
+            !(f(j) >= 1.0 / limit && f(j) <= limit)) {
             return false;
         }
     }
@@ -2715,7 +2717,17 @@ SqpResult SqpSolver::solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAssembl
     // variables. Anything else runs the rule.
     detail::ColumnScaling cs;
     Index probe_evals = 0;
-    if (warm_point && carried_column_factors_usable(warm.column_factors, n)) {
+    // The carried record is also refused when the scaled start point or scaled warm
+    // vectors it would produce are not all finite: a warm start degrades to the rule,
+    // it never throws.
+    bool use_carried = warm_point && carried_column_factors_usable(warm.column_factors, n,
+                                                                   opts_.scaling_factor_limit);
+    if (use_carried) {
+        const Vec &f = warm.column_factors;
+        use_carried = x0.cwiseQuotient(f).allFinite() && warm.x.cwiseQuotient(f).allFinite() &&
+                      (warm.z.size() != n || warm.z.cwiseProduct(f).allFinite());
+    }
+    if (use_carried) {
         cs = carried_column_scaling(warm.column_factors);
     } else {
         Vec x_rule = warm_point ? warm.x : x0;

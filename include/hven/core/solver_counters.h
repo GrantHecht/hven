@@ -2237,10 +2237,11 @@ struct SqpCounters {
     ///        restoration sub-solve runs unscaled and has no guard). Where the
     ///        caller-unit rounding floor exceeds feas_tol, every iterate is refused
     ///        and the solve ends kMaxIter: a refusal streak to max_iter is the
-    ///        expected spelling of that case. ALSO COUNTS (M7 W2 SCW) a column-scaled
-    ///        iterate refused by the caller-unit STATIONARITY ceiling (<= 1, IPOPT's
-    ///        unscaled dual_inf_tol), which a column factor read where its column
-    ///        nearly vanishes can otherwise hide.
+    ///        expected spelling of that case, and of the stationarity ceiling below
+    ///        when its caller-unit floor exceeds 1. ALSO COUNTS (M7 W2 SCW) a
+    ///        column-scaled iterate refused by the caller-unit STATIONARITY ceiling
+    ///        (<= 1, IPOPT's unscaled dual_inf_tol), which a column factor read where
+    ///        its column nearly vanishes can otherwise hide.
     Index scaled_convergence_refusals = 0;
     /// @brief THE RESTORATION PHASE'S CURVATURE SWITCHES (M7 W2 RST): restoration
     ///        sub-solves on the exact model that met a switch trigger

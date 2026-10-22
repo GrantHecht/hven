@@ -116,11 +116,9 @@ struct ProblemScaling {
 ///     cost is that a start point which is genuinely near-stationary has its
 ///     gradient amplified too; `factor_limit` bounds the damage and every
 ///     factor is reported on the solution, so the choice is visible.
-///     THE AUTOMATIC ENGAGEMENT DOES NOT AMPLIFY (`amplify_objective` false,
-///     M7 W2 SCW): a gate the caller did not ask for must not make the
-///     convergence test stricter than the caller's kkt_tol. On a mesh
-///     transcription the gradient is O(h), and amplifying it ~1900x turned a
-///     converging warm hop into kNumericalError.
+///     The automatic engagement does not amplify (`amplify_objective` false): a
+///     gate the caller did not ask for must not tighten the caller's kkt_tol.
+///     Evidence: docs/notes/data/2026-10-m7-scw/README.md.
 ///   * A ROW is never scaled up. Amplifying a row whose Jacobian is small at
 ///     the start point -- because the row is nearly inactive there, not because
 ///     its units are wrong -- multiplies its residual by up to `factor_limit`

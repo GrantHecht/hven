@@ -103,7 +103,8 @@ ProblemScaling compute_problem_scaling(const Vec &grad, const SpMatRM &Je, const
     s.active = true;
     // An empty gradient folds to 0.0, which factor_for maps to the identity --
     // the right answer for a model with no variables to speak of. THE OBJECTIVE
-    // IS TWO-SIDED and the rows are not; the header's declaration carries why.
+    // IS TWO-SIDED only when rule.amplify_objective; the rows never are. The
+    // header's declaration carries why.
     s.obj = factor_for(grad.size() > 0 ? grad.cwiseAbs().maxCoeff() : 0.0, rule,
                        /*two_sided=*/rule.amplify_objective);
 

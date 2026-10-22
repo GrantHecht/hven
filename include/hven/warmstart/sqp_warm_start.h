@@ -328,7 +328,9 @@ struct SqpWarmStart {
     // (no rule probe), so a warm chain stays in the variables its cold root chose:
     // the rule is not re-read at a converged point, where a variable sitting at a
     // value that zeroes its own Jacobian column would read as a scale of its own.
-    // kOff ignores it. Not part of the structure hash.
+    // kOff ignores it. Only this native struct carries the decision: the
+    // WarmStartData payload route and interior-point crossover re-read the rule. Not part of the
+    // structure hash.
     Vec column_factors;
 };
 

@@ -54,7 +54,8 @@ namespace detail {
 inline constexpr double kSsnInfBound = 1e20;
 // The relative band below which a seeded bound price on an ABSENT side is read as
 // round-off rather than a caller error (SsnEngine::split_bound_multipliers).
-// 1024 ulps of 1.0.
+// 1024 ulps of 1.0. The band is this times max(1, ||z||_inf): the floor of 1 keeps a
+// seed whose prices are all tiny from shrinking the band below absolute round-off.
 inline constexpr double kSsnAbsentPriceRoundoff = 1024.0 * 2.220446049250313e-16;
 
 // Floor applied to alpha = d phi / d s before it is divided by. alpha_f appears

@@ -342,13 +342,14 @@ enum class SqpHessianMode { kExact, kLbfgsDamped, kSqpHessianModeCount };
 ///        SqpOptions::column_scaling and detail/drivers/column_scaling.h.
 ///
 /// `kOff` never scales a variable. `kAlways` installs the rule's column factors
-/// whenever they are not all 1; the row/objective layer stays as
+/// whenever they are not all 1 (a decision carried by a warm start replaces the
+/// rule, SqpWarmStart::column_factors); the row/objective layer stays as
 /// `SqpOptions::enable_scaling` says. `kAuto` installs them only on a BADLY scaled
 /// problem -- factor spread >= `SqpOptions::column_scaling_threshold` -- and then
 /// engages the row/objective layer for that solve too, whatever `enable_scaling`
 /// says (with the one-sided objective rule when `enable_scaling` is off); below the
-/// threshold the solve is the `kOff` solve plus the rule's one Jacobian probe. The trailing
-/// enumerator is the COUNT SENTINEL, refused by validation.
+/// threshold the solve is the `kOff` solve plus the rule's one Jacobian probe. The
+/// trailing enumerator is the COUNT SENTINEL, refused by validation.
 enum class SqpColumnScaling { kOff, kAlways, kAuto, kSqpColumnScalingCount };
 
 /// @brief The CURVATURE the restoration phase's QPs carry (M7 W2 RST); see
@@ -702,13 +703,14 @@ struct SqpOptions {
     /// The inf-norm the scaled objective gradient and each scaled Jacobian row
     /// are aimed at. Default 100.0, following IPOPT's
     /// `nlp_scaling_max_gradient` in name and value. Must be finite and > 0.
-    /// Read only when `enable_scaling` is true.
+    /// Read only when the row layer runs: `enable_scaling`, or column_scaling kAuto's
+    /// engagement of it.
     double scaling_max_gradient = 100.0;
 
     /// Symmetric clamp on every factor the rule produces: each is confined to
     /// [1/scaling_factor_limit, scaling_factor_limit]. Default 1e12 -- twelve
-    /// orders each way. Must be finite and >= 1. Read only when
-    /// `enable_scaling` is true.
+    /// orders each way. Must be finite and >= 1. Read when the row layer runs
+    /// (`enable_scaling`, or column_scaling kAuto's engagement) and by the column rule.
     ///
     /// It is what bounds the damage from the rule being TWO-SIDED
     /// (problem_scaling.h): a start point that is genuinely near-stationary has
@@ -741,7 +743,9 @@ struct SqpOptions {
     ///
     /// THE DECISION TRAVELS WITH THE WARM START (SqpWarmStart::column_factors): a
     /// warm start the ingest gate admits and that carries a decision is solved under
-    /// it, without the rule; so is a decision of "unscaled".
+    /// it, without the rule; so is a decision of "unscaled". Only the native
+    /// SqpWarmStart carries it: the WarmStartData payload route and interior-point
+    /// crossover warm starts re-read the rule.
     ///
     /// COST: whenever the rule runs, one Jacobian evaluation at the start point,
     /// counted in `evals_values` as the warm-start probe's is (none on a carried
@@ -1488,8 +1492,10 @@ struct SqpScalingReport {
     /// THE COLUMN LAYER (M7 W2 SCL, SqpOptions::column_scaling). True when the solve
     /// ran in scaled variables. `col_min`/`col_max` are the installed factors'
     /// extremes over the columns that carry Jacobian data, 1.0 when none was
-    /// installed. `col_spread` is the spread the rule COMPUTED whenever it ran -- also
-    /// when kAuto's gate did not fire, which is how a caller reads why -- and 1.0
+    /// installed. On a CARRIED decision (SqpWarmStart::column_factors) min, max and
+    /// spread are over every variable, identity entries included, and a carried
+    /// "unscaled" decision reports spread 1. `col_spread` is the spread the rule COMPUTED whenever
+    /// it ran -- also when kAuto's gate did not fire, which is how a caller reads why -- and 1.0
     /// under kOff.
     bool columns_active = false;
     double col_min = 1.0;

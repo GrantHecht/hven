@@ -2726,6 +2726,30 @@ TEST(SqpDriverRestorationSeed, TheSeedsEvaluationIsCountedExactlyOnce) {
     EXPECT_GT(model.n_jac_e, 0);
 }
 
+// THE SAME FIXTURE UNDER THE SHIPPED DEFAULT (kAuto, M7 W2 SCW): below the gate the
+// solve is the kOff solve plus the rule's one Jacobian probe, charged to evals_values
+// and nothing else -- so the seed's evaluation is still counted exactly once.
+TEST(SqpDriverRestorationSeed, TheSeedsEvaluationIsCountedExactlyOnceUnderTheDefaultPlusProbe) {
+    SqpOptions opts;
+    opts.qp.independent_working_set = false;
+    opts.equality_basis = false;
+    opts.max_iter = 200;
+    opts.qp.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
+    SeedCountingModel off_model(2.0, 2.0);
+    SqpOptions off = opts;
+    off.column_scaling = SqpColumnScaling::kOff;
+    const SqpResult a = SqpSolver(off).solve(off_model);
+    SeedCountingModel model(2.0, 2.0);
+    const SqpResult b = SqpSolver(opts).solve(model);
+    ASSERT_FALSE(b.scaling.columns_active) << "fixture premise: below the gate";
+    ASSERT_EQ(1, seeded_rows(b)) << "fixture premise: a candidate was TAKEN";
+    EXPECT_EQ(a.status, b.status);
+    EXPECT_EQ(a.counters.evals_full, b.counters.evals_full);
+    EXPECT_EQ(a.counters.evals_values + 1, b.counters.evals_values)
+        << "the probe is the only addition";
+    EXPECT_EQ(off_model.n_ce, model.n_ce) << "the probe reads Jacobians, not values";
+}
+
 // =========================================================================
 // THE RESTORATION EXCURSION RECORD (M7 W2 M2, the A0 signals page's S5).
 // =========================================================================
