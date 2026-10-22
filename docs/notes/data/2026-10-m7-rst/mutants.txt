@@ -1,0 +1,18 @@
+# first run (14 mutants); M11/M12 survived and were re-run after the evals identity assertion was added
+MUTANT M1_guard KILLED by:
+MUTANT M2_cap KILLED by:
+MUTANT M3_mark KILLED by:
+MUTANT M4_mu1 KILLED by:
+MUTANT M5_memo KILLED by:
+MUTANT M6_hook KILLED by:
+MUTANT M7_restart KILLED by:
+MUTANT M8_restart_exact KILLED by:
+MUTANT M9_qn_gate KILLED by:
+MUTANT M10_lambda_leak KILLED by:
+MUTANT M11_eval_fold SURVIVED
+MUTANT M12_restart_eval SURVIVED
+MUTANT M13_entries_inc KILLED by:
+MUTANT M14_sub_qn_force KILLED by:
+# re-run after the evaluation-identity assertion (SqpLadderSeam.AFailedPhaseSubproblemRestartsThePhaseOnTheRegularizedModel):
+MUTANT M11_eval_fold KILLED by: SqpLadderSeam.AFailedPhaseSubproblemRestartsThePhaseOnTheRegularizedModel
+MUTANT M12_restart_eval KILLED by: SqpLadderSeam.AFailedPhaseSubproblemRestartsThePhaseOnTheRegularizedModel
