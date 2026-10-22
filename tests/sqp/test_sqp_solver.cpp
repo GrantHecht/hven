@@ -1245,6 +1245,11 @@ TEST(SqpDriverContract, CallCountPerMajorIsBounded) {
         // why n_f/n_grad/n_ce/n_ci below carry no such term: a lay reads no
         // value callback at all.
         const Index lay = 1 + (model.me() > 0 ? 1 : 0) + (model.mi() > 0 ? 1 : 0);
+        // THE COLUMN RULE'S PROBE (SqpOptions::column_scaling, default kAuto since M7 W2
+        // SCW) is the other per-SOLVE term: one Jacobian read per row kind at the start
+        // point, no value callback. None of these fixtures fires the gate.
+        const Index probe = opts.column_scaling != SqpColumnScaling::kOff ? 1 : 0;
+        ASSERT_FALSE(sol.scaling.columns_active) << tag;
 
         EXPECT_EQ(model.n_f, rows) << tag;
         EXPECT_EQ(model.n_grad, rows) << tag;
@@ -1252,10 +1257,10 @@ TEST(SqpDriverContract, CallCountPerMajorIsBounded) {
         EXPECT_EQ(model.n_hess, accepted + 1) << tag;
         EXPECT_EQ(model.n_ce, model.me() > 0 ? rows : 0) << tag;
         // + 1 is the lay's own eval_jac_e, paid because this model has rows.
-        EXPECT_EQ(model.n_jac_e, model.me() > 0 ? rows + 1 : 0) << tag;
+        EXPECT_EQ(model.n_jac_e, model.me() > 0 ? rows + 1 + probe : 0) << tag;
         EXPECT_EQ(model.n_ci, model.mi() > 0 ? rows : 0) << tag;
         // + 1 is the lay's own eval_jac_i, paid because this model has rows.
-        EXPECT_EQ(model.n_jac_i, model.mi() > 0 ? rows + 1 : 0) << tag;
+        EXPECT_EQ(model.n_jac_i, model.mi() > 0 ? rows + 1 + probe : 0) << tag;
 
         // Stated as a total too, because that is the number a future reader
         // will actually compare against: 2 + 2*[me>0] + 2*[mi>0] per row, plus
@@ -1263,7 +1268,9 @@ TEST(SqpDriverContract, CallCountPerMajorIsBounded) {
         const Index per_row = 2 + (model.me() > 0 ? 2 : 0) + (model.mi() > 0 ? 2 : 0);
         const Index total = model.n_f + model.n_grad + model.n_ce + model.n_ci + model.n_jac_e +
                             model.n_jac_i + model.n_hess;
-        EXPECT_EQ(total, per_row * rows + accepted + lay) << tag;
+        EXPECT_EQ(total, per_row * rows + accepted + lay +
+                             probe * ((model.me() > 0 ? 1 : 0) + (model.mi() > 0 ? 1 : 0)))
+            << tag;
         ::testing::Test::RecordProperty(fmt::format("hs{}_model_calls", number),
                                         fmt::format("{} over {} rows / {} majors ({} rejected)",
                                                     total, rows, majors,
@@ -5184,7 +5191,11 @@ TEST(SqpDriverSoc, SocRescuePaysNoExtraHessian) {
     EXPECT_EQ(model.n_f, rows + 1) << "the one successful SOC re-solve pays one extra values fetch";
     EXPECT_EQ(model.n_ce, rows + 1);
     EXPECT_EQ(model.n_grad, 1 + accepted);
-    EXPECT_EQ(model.n_jac_e, 1 + accepted + 1);
+    // + 1 more under the default column_scaling (kAuto, M7 W2 SCW): the rule's one
+    // Jacobian probe at the start point; MaratosModel does not fire the gate.
+    const Index probe = opts.column_scaling != SqpColumnScaling::kOff ? 1 : 0;
+    ASSERT_FALSE(sol.scaling.columns_active);
+    EXPECT_EQ(model.n_jac_e, 1 + accepted + 1 + probe);
     // NO LAY TERM ON THE INEQUALITY SIDE, and that is the claim pass's own
     // row-gating showing through rather than an omission: a model with mi() ==
     // 0 has its eval_jac_i skipped by the lay exactly as the solve skips it.
@@ -6762,6 +6773,10 @@ TEST(SqpDriverEvalEconomics, RejectionHeavyHs40PoisonedFixtureCutsFullEvals) {
     SqpOptions opts;
     opts.max_iter = 80;
     opts.tr_init = 5.0;
+    // The subject is the rejected-trial split, pinned against exact query counts; the
+    // column rule's start-point Jacobian probe (default kAuto since M7 W2 SCW) is one
+    // more `evals_values` with no value read, pinned in test_column_scaling.cpp.
+    opts.column_scaling = SqpColumnScaling::kOff;
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(model);
 

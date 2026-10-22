@@ -2692,6 +2692,10 @@ TEST(SqpDriverRestorationSeed, TheSeedsEvaluationIsCountedExactlyOnce) {
     opts.equality_basis = false;
     opts.max_iter = 200;
     opts.qp.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
+    // The PARTITION below counts row reads; the column rule's start-point Jacobian
+    // probe (default kAuto since M7 W2 SCW) is a counted query with none, pinned in
+    // test_column_scaling.cpp.
+    opts.column_scaling = SqpColumnScaling::kOff;
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(model);
 

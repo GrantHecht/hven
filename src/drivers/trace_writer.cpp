@@ -562,12 +562,13 @@ static_assert(::hven::detail::kAggregateArity<SqpSolveBeginTraceEvent> == 10,
 // for such a struct -- it refuses N = 0 and the climb stops there (the helper's
 // own note). The two-sided form below is the exact net for that shape.
 //
-// 8 / !9 AS OF M6 W5 T8.7, which appended the five scaling fields the console's
-// `Scaling:` trailer reads (3 / !4 before it).
+// 10 / !11 AS OF M7 W2 SCW, which appended the column layer's two fields (8 / !9
+// since M6 W5 T8.7, which appended the five scaling fields the console's
+// `Scaling:` trailer reads; 3 / !4 before it).
 static_assert(::hven::detail::aggregate_initializable_with<SqpSolveEndTraceEvent>(
-                  std::make_index_sequence<8>{}) &&
+                  std::make_index_sequence<10>{}) &&
                   !::hven::detail::aggregate_initializable_with<SqpSolveEndTraceEvent>(
-                      std::make_index_sequence<9>{}),
+                      std::make_index_sequence<11>{}),
               "SqpSolveEndTraceEvent gained or lost a field: give it a key in "
               "JsonLinesTraceSink::on_sqp_solve_end, re-derive the golden line, and update "
               "these two counts.");
@@ -940,6 +941,10 @@ void JsonLinesTraceSink::on_sqp_solve_end(const SqpSolveEndTraceEvent &event) {
     key_double(b, first, "row_scale_min", event.row_scale_min);
     key_double(b, first, "row_scale_max", event.row_scale_max);
     key_double(b, first, "scaled_kkt_residual", event.scaled_kkt_residual);
+    // THE COLUMN LAYER (M7 W2 SCW), trailing: whether it fired and the spread its
+    // rule read, so a reader can tell a column-scaled solve from the stream alone.
+    key_bool(b, first, "columns_active", event.columns_active);
+    key_double(b, first, "col_spread", event.col_spread);
     write_line("sqp.solve.end", b);
     // Written FIRST, then unwound: this line belongs to the solve it closes.
     if (open_solves_ > 0) {

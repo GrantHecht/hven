@@ -3247,8 +3247,12 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWithEveryCounterDistinct) {
     //
     // RE-DERIVED AT M7 W2 RST, the same route: `restoration_curvature_switches` after
     // `scaled_convergence_refusals`; the nested tables' distinct values shift up by one again.
+    //
+    // EXTENDED AT M7 W2 SCW: the column layer's `columns_active` and `col_spread`
+    // trail the scaling block (a declared trace-schema event).
     sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kBudgetExhausted, 42, c,
-                                                /*scaling_active=*/true, 0.25, 0.5, 4.0, 7.5e-09});
+                                                /*scaling_active=*/true, 0.25, 0.5, 4.0, 7.5e-09,
+                                                /*columns_active=*/true, 2048.0});
     EXPECT_EQ(os.str(),
               "{\"v\":0,\"ev\":\"sqp.solve.end\",\"seq\":1,\"depth\":0,\"status\":\"budget_exha"
               "usted\",\"majors\":42,\"counters\":{\"major_iters\":1,\"qp_minor_iters\":2,\"fac"
@@ -3301,7 +3305,7 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWithEveryCounterDistinct) {
               "qp_alpha_p_min\":137,\"ipqp_alpha_d_min\":138,\"ipqp_read_kept_tight_sides\":139"
               ",\"ipqp_read_barrier_noise_sides\":140}},\"scaling_active\":true,\"obj_scale\":0"
               ".25,\"row_scale_min\":0.5,\"row_scale_max\":4,\"scaled_kkt_residual\":7.49999999"
-              "99999993e-09}\n");
+              "99999993e-09,\"columns_active\":true,\"col_spread\":2048}\n");
 }
 
 TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull) {
@@ -3404,7 +3408,8 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull) {
               ":0,\"ipqp_escape_numerical\":0,\"ipqp_escape_infeasible_suspect\":0,\"ipqp_alpha"
               "_p_min\":null,\"ipqp_alpha_d_min\":null,\"ipqp_read_kept_tight_sides\":0,\"ipqp_"
               "read_barrier_noise_sides\":0}},\"scaling_active\":false,\"obj_scale\":1,\"row_sc"
-              "ale_min\":1,\"row_scale_max\":1,\"scaled_kkt_residual\":0}\n");
+              "ale_min\":1,\"row_scale_max\":1,\"scaled_kkt_residual\":0,\"columns_active\":false,"
+              "\"col_spread\":1}\n");
 }
 
 TEST(JsonLinesTraceSink, SqpSolveEndKeysAreExactlyTheTablesAndAllDistinct) {

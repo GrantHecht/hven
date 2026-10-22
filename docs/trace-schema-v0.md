@@ -143,6 +143,13 @@ derived here. That census is REGISTERED for M7's model-contract work.
 | `row_scale_min` | double | **M6 W5 T8.7.** `::row_min`, the smallest constraint-row factor over the equality and inequality blocks TOGETHER; 1.0 when the problem has no rows |
 | `row_scale_max` | double | **M6 W5 T8.7.** `::row_max`, the largest, same blocks; the two factors' RATIO is the row conditioning the layer removed |
 | `scaled_kkt_residual` | double | **M6 W5 T8.7.** `::scaled_kkt_residual` — the residual the convergence test actually read, the counterpart of `SqpResult::kkt_residual`, which is on the CALLER's scale. The same number on an inactive solve by construction; NaN whenever that one is, for the same reason (nothing was measured) |
+| `columns_active` | bool | **M7 W2 SCW.** `::columns_active` — did the COLUMN layer (`SqpOptions::column_scaling`) fire on this solve |
+| `col_spread` | double | **M7 W2 SCW.** `::col_spread` — max d / min d of the column factors the rule COMPUTED, written whether or not the gate fired; 1.0 when the rule did not run (`kOff`, or a refused call handed to the unscaled path) |
+
+**THE TWO COLUMN KEYS (M7 W2 SCW) are a declared schema event**: appended after
+`scaled_kkt_residual`, flat, so the end line now carries seven trailing keys. A
+reader that ignores unknown keys is unaffected; the two golden lines were
+re-derived with them.
 
 **THE FIVE SCALING KEYS ARE TRAILING AND FLAT (M6 W5 T8.7)** — after the
 `counters` object, not inside it, and in the wire order above, which is **not**

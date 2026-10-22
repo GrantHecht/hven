@@ -105,7 +105,7 @@ ProblemScaling compute_problem_scaling(const Vec &grad, const SpMatRM &Je, const
     // the right answer for a model with no variables to speak of. THE OBJECTIVE
     // IS TWO-SIDED and the rows are not; the header's declaration carries why.
     s.obj = factor_for(grad.size() > 0 ? grad.cwiseAbs().maxCoeff() : 0.0, rule,
-                       /*two_sided=*/true);
+                       /*two_sided=*/rule.amplify_objective);
 
     const Vec e_norms = row_inf_norms(Je);
     s.eq_rows.resize(e_norms.size());

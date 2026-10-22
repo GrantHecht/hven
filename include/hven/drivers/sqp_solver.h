@@ -1765,14 +1765,20 @@ class SqpSolver {
     ///        scaled variables when SqpOptions::column_scaling fires, in the caller's
     ///        otherwise. Every public route calls this where it called solve_impl.
     ///
-    /// Under kOff it IS solve_impl. Otherwise it evaluates the caller's Jacobians once
-    /// (counted in `evals_values`) at the point the solve will stand on -- warm.x when
-    /// the warm start can be ingested, else x0, projected iff
+    /// Under kOff it IS solve_impl. A warm start that passes the ingest gate and
+    /// carries a usable decision (SqpWarmStart::column_factors) is solved under that
+    /// decision with no probe. Otherwise it evaluates the caller's Jacobians once
+    /// (counted in `evals_values`) at the point the solve's ingest gate admits --
+    /// warm.x when the warm start passes that gate, else x0, projected iff
     /// SqpOptions::project_start_point -- computes the factors
     /// (detail/drivers/column_scaling.h) and, when they are installed, solves a fresh
     /// bridge and seam over a ColumnScaledModel of `bridge.model()` from x0 / d with
     /// the warm start mapped in. The answer is mapped out by map_column_scaled_answer,
-    /// inside solve_impl and before its `sqp.solve.end` emission.
+    /// inside solve_impl and before its `sqp.solve.end` emission; the decision rides
+    /// the exported warm start (d, or all ones when unscaled).
+    /// The rule point is decided before the ingest's later checks: a kSeeded ingest
+    /// that the seeded dual clamp degrades to kCold stands on x0, but the factors were
+    /// read at warm.x and stay installed for that solve.
     /// Argument refusals are solve_impl's: a mis-sized or non-finite x0, or a seam
     /// and bridge over different providers, is handed to it unscaled to throw.
     SqpResult solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAssembly &bridge, const Vec &x0,
@@ -1808,6 +1814,14 @@ class SqpSolver {
     AssemblyEvalSeam *column_caller_seam_ = nullptr;
     bool force_row_scaling_ = false;
     Index column_probe_evals_ = 0;
+    // The column report (M7 W2 SCW): the rule's -- or the carried decision's --
+    // spread and extremes, written onto the result by solve_impl before its
+    // `sqp.solve.end` emission so the trace carries them; `column_report_set_` false
+    // means the layer did not run (kOff, or a refused call).
+    bool column_report_set_ = false;
+    double column_report_spread_ = 1.0;
+    double column_report_min_ = 1.0;
+    double column_report_max_ = 1.0;
     // WHAT THIS SOLVE'S finish EXPORTED AS z (M7 W2 SCL): true when it was the
     // restoration feasibility problem's own bound price (finish's
     // `multipliers_are_caller_scale`), false when it was grad L's. Reset at

@@ -130,6 +130,10 @@ SqpOptions quiet() {
     // real walk hands back -- so the M7 W2 R2 failed-subproblem step would simply
     // take it. These fixtures pin the ladder's ROUTING of a failure: it is off here.
     o.qp_failure_step = false;
+    // These fixtures pin every row read against a counted query; the column rule's
+    // start-point Jacobian probe (default kAuto since M7 W2 SCW) is a counted query
+    // that reads no row value, and is pinned in test_column_scaling.cpp.
+    o.column_scaling = SqpColumnScaling::kOff;
     return o;
 }
 

@@ -1601,13 +1601,15 @@ struct SqpCounters {
     // point, and the restoration seed's guard query at the exhausted-ladder site,
     // charged whether the guard passes or fails. evals_values COUNTS: every
     // REJECTED trial's evaluation, the warm-resolution probe's f/cE/cI fetch, and
-    // the column-scaling rule's Jacobian probe (SqpOptions::column_scaling != kOff;
+    // the column-scaling rule's Jacobian probe (SqpOptions::column_scaling != kOff,
+    // the default kAuto included, unless the warm start carries the decision;
     // derivatives without values, charged here as the warm probe's Jacobians are).
     // One exception: a rejected trial that restoration UPGRADED at the request site
     // moves to evals_full and out of evals_values, so the partition stays exact.
     //
     // evals_values is identically zero on a solve that never rejected a trial,
-    // never ran the warm-resolution probe and ran under column_scaling kOff.
+    // never ran the warm-resolution probe and ran no column rule (kOff, or a carried
+    // decision).
     //
     // What they do not count: both are incremented from the driver's own
     // control-flow DECISION at each call site, never from observing which NlpModel
@@ -2235,7 +2237,10 @@ struct SqpCounters {
     ///        restoration sub-solve runs unscaled and has no guard). Where the
     ///        caller-unit rounding floor exceeds feas_tol, every iterate is refused
     ///        and the solve ends kMaxIter: a refusal streak to max_iter is the
-    ///        expected spelling of that case.
+    ///        expected spelling of that case. ALSO COUNTS (M7 W2 SCW) a column-scaled
+    ///        iterate refused by the caller-unit STATIONARITY ceiling (<= 1, IPOPT's
+    ///        unscaled dual_inf_tol), which a column factor read where its column
+    ///        nearly vanishes can otherwise hide.
     Index scaled_convergence_refusals = 0;
     /// @brief THE RESTORATION PHASE'S CURVATURE SWITCHES (M7 W2 RST): restoration
     ///        sub-solves on the exact model that met a switch trigger

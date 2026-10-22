@@ -257,10 +257,17 @@ one of those three therefore cannot silently miss the trace.
   each box violation times its column factor) and counts each measured iterate at
   which the scaled test passed and the caller-unit one did not; such an iterate
   is not converged and the solve continues. 0 on every unscaled solve (the guard
-  is not entered), so the shipped default never moves it. Not folded: the
+  is not entered); under the shipped default (kAuto) only a solve whose gate
+  fires can move it. Not folded: the
   restoration sub-solve runs unscaled. Where the caller-unit rounding floor
   exceeds `feas_tol`, every iterate is refused and the solve ends `max_iter`: a
-  refusal streak to the cap is the expected spelling of that case.
+  refusal streak to the cap is the expected spelling of that case. **Since M7 W2
+  SCW it also counts the caller-unit STATIONARITY ceiling's refusals** on a
+  column-scaled solve: the scaled stationarity reads each component through
+  `obj * d_j`, so a factor read where its column nearly vanishes can certify a
+  point whose caller-unit grad L is O(1); a kOptimal there also needs the
+  caller-unit stationarity <= 1 (IPOPT's unscaled `dual_inf_tol`, loose on
+  purpose).
 
   **`restoration_curvature_switches` COUNTS THE PHASE'S CURVATURE RESTARTS** (M7
   W2 RST, appended last after `scaled_convergence_refusals`). Under
@@ -280,8 +287,10 @@ one of those three therefore cannot silently miss the trace.
   kRegularized and under kLbfgsDamped.
 
   **THE COLUMN RULE'S JACOBIAN PROBE IS AN `evals_values`** (M7 W2 SCL rider).
-  Whenever `SqpOptions::column_scaling != kOff` the rule evaluates the
-  Jacobians once at the start point; that query is charged one `evals_values`,
+  Whenever `SqpOptions::column_scaling != kOff` -- the shipped default is kAuto
+  since M7 W2 SCW -- the rule evaluates the Jacobians once at the start point,
+  unless the warm start carries the decision (`SqpWarmStart::column_factors`),
+  when no probe runs; that query is charged one `evals_values`,
   as the warm-resolution probe's is, so the `evals_full` / `evals_values`
   partition stays a count of every model query. A solve the column layer scaled
   also pays one `evals_full` for the caller-unit re-measurement of the returned

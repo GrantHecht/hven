@@ -269,6 +269,70 @@ void record_terminal_kkt(SqpResult &out, const SqpKkt &kkt) {
     out.kkt_residual = kkt.residual();
 }
 
+// THE CALLER-UNIT STATIONARITY CEILING's measure (M7 W2 SCW): the engine's
+// per-variable stationarity residual -- evaluate_kkt_over_impl's arms, verbatim, on
+// the scaled grad L -- mapped to the caller's units, s_j / (obj * d_j), and maxed.
+constexpr double kCallerStationarityCeiling = 1.0;
+
+double caller_unit_stationarity(const SqpKkt &k, const Vec &x, const Vec &lo, const Vec &up,
+                                double bound_tol, const Vec &per_var_tol, double obj,
+                                const Vec &d) {
+    if (!k.finite || k.grad_lag.size() != x.size() || d.size() != x.size()) {
+        return std::numeric_limits<double>::quiet_NaN();
+    }
+    double out = 0.0;
+    for (Index i = 0; i < x.size(); ++i) {
+        const double tol = per_var_tol.size() == x.size() ? per_var_tol(i) : bound_tol;
+        const bool at_lower = (x(i) - lo(i)) <= tol;
+        const bool at_upper = (up(i) - x(i)) <= tol;
+        const double g = k.grad_lag(i);
+        double s = 0.0;
+        if (at_lower && at_upper) {
+            s = 0.0;
+        } else if (at_lower) {
+            s = std::max(0.0, -g);
+        } else if (at_upper) {
+            s = std::max(0.0, g);
+        } else {
+            s = std::abs(g);
+        }
+        out = std::max(out, s / (obj * d(i)));
+    }
+    return out;
+}
+
+// THE CARRIED COLUMN DECISION (SqpWarmStart::column_factors, M7 W2 SCW): usable
+// when it is sized to this problem and every factor is a finite positive power of
+// two -- the only values the rule produces. A record that is not is ignored and the
+// rule runs, so a hand-edited object can cost a probe and nothing else.
+bool carried_column_factors_usable(const Vec &f, Index n) {
+    if (f.size() != n || n == 0) {
+        return false;
+    }
+    for (Index j = 0; j < n; ++j) {
+        int e = 0;
+        if (!(f(j) > 0.0) || !std::isfinite(f(j)) || std::frexp(f(j), &e) != 0.5) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// The carried factors as the rule's own value: active iff any factor is not 1, the
+// extremes and spread read over every variable (the record does not say which
+// columns carried data, so the identity entries are included).
+detail::ColumnScaling carried_column_scaling(const Vec &f) {
+    detail::ColumnScaling cs;
+    cs.col_min = f.minCoeff();
+    cs.col_max = f.maxCoeff();
+    cs.spread = cs.col_max / cs.col_min;
+    if ((f.array() != 1.0).any()) {
+        cs.active = true;
+        cs.cols = f;
+    }
+    return cs;
+}
+
 // THE W0.2 SCALING REPORT, copied onto the solution from the factors the solve
 // ran under. One body for the same reason record_terminal_kkt has one: there
 // are two assembly sites -- finish() and the non-finite-iterate exit, which
@@ -2604,6 +2668,9 @@ Index SqpSolver::install_solve_scaling(AssemblyEvalSeam &seam, const Vec &x0) co
     detail::ScalingRule rule;
     rule.max_gradient = opts_.scaling_max_gradient;
     rule.factor_limit = opts_.scaling_factor_limit;
+    // kAuto's engagement alone (the caller did not ask for the row layer) takes the
+    // one-sided objective rule: problem_scaling.h, `amplify_objective`.
+    rule.amplify_objective = opts_.enable_scaling;
     seam.install_scaling(detail::compute_problem_scaling(at_x0.grad, at_x0.Je, at_x0.Ji, rule));
     return 1;
 }
@@ -2631,34 +2698,47 @@ SqpResult SqpSolver::solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAssembl
     if (&seam.aggregate() != &bridge || x0.size() != n || !x0.allFinite()) {
         return solve_impl(seam, bridge, x0, warm, budget);
     }
-    // THE POINT THE RULE READS: where the solve will stand. warm.x when solve_impl's
-    // ingest gate would take it (a ceiling above kCold, plausible dimensions, finite
-    // vectors -- `ingest_allowed` there), verbatim as the ingest takes it; else x0,
-    // projected onto the box iff project_start_point, as solve_impl projects it.
+    // THE POINT THE RULE READS: where the ingest gate admits the solve to stand
+    // (sqp_solver.h: a seeded ingest the dual clamp later degrades stands on x0).
+    // warm.x when solve_impl's ingest gate would take it (a ceiling above kCold,
+    // plausible dimensions, finite vectors -- `ingest_allowed` there), verbatim as the
+    // ingest takes it; else x0, projected onto the box iff project_start_point, as
+    // solve_impl projects it.
     const bool warm_point = opts_.common.start_level != StartLevel::kCold && warm.valid &&
                             warm.x.size() == n && warm.lambda_e.size() == seam.me() &&
                             warm.lambda_i.size() == seam.mi() && warm.qp_working_set.n() == n &&
                             warm.qp_working_set.mi() == seam.mi() && warm.x.allFinite() &&
                             warm.lambda_e.allFinite() && warm.lambda_i.allFinite();
-    Vec x_rule = warm_point ? warm.x : x0;
-    if (!warm_point && opts_.project_start_point) {
-        x_rule = x_rule.cwiseMax(seam.lower()).cwiseMin(seam.upper());
+    // THE CARRIED DECISION (SqpWarmStart::column_factors): a warm start the ingest
+    // gate admits and that records the factors its producer ran under hands them on
+    // as they are -- no probe, no rule -- so a warm chain keeps its cold root's
+    // variables. Anything else runs the rule.
+    detail::ColumnScaling cs;
+    Index probe_evals = 0;
+    if (warm_point && carried_column_factors_usable(warm.column_factors, n)) {
+        cs = carried_column_scaling(warm.column_factors);
+    } else {
+        Vec x_rule = warm_point ? warm.x : x0;
+        if (!warm_point && opts_.project_start_point) {
+            x_rule = x_rule.cwiseMax(seam.lower()).cwiseMin(seam.upper());
+        }
+        // THE JACOBIANS ALONE -- the rule reads nothing else -- through the moment the
+        // warm-start probe uses, and counted as that probe is: one `evals_values`,
+        // charged by solve_impl before its emission (column_probe_evals_).
+        NlpEval at;
+        at.grad = Vec::Zero(n);
+        at.ce = Vec::Zero(seam.me());
+        at.ci = Vec::Zero(seam.mi());
+        at.Je = SpMatRM(seam.me(), n);
+        at.Ji = SpMatRM(seam.mi(), n);
+        seam.jacobians_only(at, x_rule);
+        detail::ColumnScalingRule rule;
+        rule.factor_limit = opts_.scaling_factor_limit;
+        rule.threshold =
+            opts_.column_scaling == SqpColumnScaling::kAuto ? opts_.column_scaling_threshold : 1.0;
+        cs = detail::compute_column_scaling(n, at.Je, at.Ji, rule);
+        probe_evals = 1;
     }
-    // THE JACOBIANS ALONE -- the rule reads nothing else -- through the moment the
-    // warm-start probe uses, and counted as that probe is: one `evals_values`,
-    // charged by solve_impl before its emission (column_probe_evals_).
-    NlpEval at;
-    at.grad = Vec::Zero(n);
-    at.ce = Vec::Zero(seam.me());
-    at.ci = Vec::Zero(seam.mi());
-    at.Je = SpMatRM(seam.me(), n);
-    at.Ji = SpMatRM(seam.mi(), n);
-    seam.jacobians_only(at, x_rule);
-    detail::ColumnScalingRule rule;
-    rule.factor_limit = opts_.scaling_factor_limit;
-    rule.threshold =
-        opts_.column_scaling == SqpColumnScaling::kAuto ? opts_.column_scaling_threshold : 1.0;
-    detail::ColumnScaling cs = detail::compute_column_scaling(n, at.Je, at.Ji, rule);
 
     // THE HAND-OFF, for exactly the length of the inner call, a throw included. The
     // SSN prox block record_solve attaches from the four members below holds
@@ -2671,6 +2751,10 @@ SqpResult SqpSolver::solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAssembl
             self.column_caller_seam_ = nullptr;
             self.force_row_scaling_ = false;
             self.column_probe_evals_ = 0;
+            self.column_report_set_ = false;
+            self.column_report_spread_ = 1.0;
+            self.column_report_min_ = 1.0;
+            self.column_report_max_ = 1.0;
             if (fired) {
                 self.ssn_prox_sigma_out_ = 0.0;
                 self.ssn_prox_center_sigma_out_ = 0.0;
@@ -2681,15 +2765,17 @@ SqpResult SqpSolver::solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAssembl
     };
 
     if (!cs.active) {
-        // NOT SCALED: the kOff solve, plus the probe's count and the spread the rule
-        // read.
+        // NOT SCALED: the kOff solve, plus the probe's count (0 on a carried
+        // decision) and the spread the rule read; the decision rides the export.
         SqpResult out;
         {
             const Handoff handoff{*this, false};
-            column_probe_evals_ = 1;
+            column_probe_evals_ = probe_evals;
+            column_report_set_ = true;
+            column_report_spread_ = cs.spread;
             out = solve_impl(seam, bridge, x0, warm, budget);
         }
-        out.scaling.col_spread = cs.spread;
+        out.warm_start.column_factors = Vec::Ones(n);
         return out;
     }
 
@@ -2723,13 +2809,14 @@ SqpResult SqpSolver::solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAssembl
         column_units_ = &d;
         column_caller_seam_ = &seam;
         force_row_scaling_ = opts_.column_scaling == SqpColumnScaling::kAuto;
-        column_probe_evals_ = 1;
+        column_probe_evals_ = probe_evals;
+        column_report_set_ = true;
+        column_report_spread_ = cs.spread;
+        column_report_min_ = cs.col_min;
+        column_report_max_ = cs.col_max;
         out = solve_impl(scaled_seam, scaled_bridge, scaled_x0, scaled_warm, budget);
     }
-    out.scaling.columns_active = true;
-    out.scaling.col_min = cs.col_min;
-    out.scaling.col_max = cs.col_max;
-    out.scaling.col_spread = cs.spread;
+    out.warm_start.column_factors = d;
     return out;
 }
 
@@ -3021,6 +3108,14 @@ SqpResult SqpSolver::solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &bridge
     // solve it scaled, the caller-unit answer with its re-measurement's
     // `evals_full`. Both are made one frame above; the hand-off carries them here.
     out.counters.evals_values += column_probe_evals_;
+    if (column_report_set_) {
+        out.scaling.col_spread = column_report_spread_;
+        if (column_units_ != nullptr) {
+            out.scaling.columns_active = true;
+            out.scaling.col_min = column_report_min_;
+            out.scaling.col_max = column_report_max_;
+        }
+    }
     if (column_caller_seam_ != nullptr) {
         map_column_scaled_answer(out);
     }
@@ -3031,7 +3126,8 @@ SqpResult SqpSolver::solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &bridge
         // `sol.scaling`, and no event carried it before this task.
         ipqp_trace_->on_sqp_solve_end(SqpSolveEndTraceEvent{
             out.status, out.counters.major_iters, out.counters, out.scaling.active, out.scaling.obj,
-            out.scaling.row_min, out.scaling.row_max, out.scaling.scaled_kkt_residual});
+            out.scaling.row_min, out.scaling.row_max, out.scaling.scaled_kkt_residual,
+            out.scaling.columns_active, out.scaling.col_spread});
     }
     return out;
 }
@@ -6901,6 +6997,19 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
     // Unscaled solves never enter: the identity is untouched.
     if (mj.converged && (st.solve_scaling.active || column_units_ != nullptr) &&
         !(mj.caller_row.feasibility <= opts_.feas_tol)) {
+        mj.converged = false;
+        ++st.out.counters.scaled_convergence_refusals;
+    }
+    // THE CALLER-UNIT STATIONARITY CEILING (M7 W2 SCW), column-scaled solves only. A
+    // column factor multiplies its stationarity component, so a factor read at a
+    // point where its column nearly vanishes can certify a point whose caller-unit
+    // grad L is O(1). IPOPT's unscaled `dual_inf_tol` (default 1) is the published
+    // form of this sanity bound; it is loose on purpose, for the reason above.
+    if (mj.converged && column_units_ != nullptr &&
+        !(caller_unit_stationarity(mj.kkt, st.x, seam.lower(), seam.upper(), opts_.feas_tol,
+                                   kkt_bound_tol_,
+                                   st.solve_scaling.active ? st.solve_scaling.obj : 1.0,
+                                   *column_units_) <= kCallerStationarityCeiling)) {
         mj.converged = false;
         ++st.out.counters.scaled_convergence_refusals;
     }

@@ -346,8 +346,9 @@ enum class SqpHessianMode { kExact, kLbfgsDamped, kSqpHessianModeCount };
 /// `SqpOptions::enable_scaling` says. `kAuto` installs them only on a BADLY scaled
 /// problem -- factor spread >= `SqpOptions::column_scaling_threshold` -- and then
 /// engages the row/objective layer for that solve too, whatever `enable_scaling`
-/// says; below the threshold the solve is the `kOff` solve. The trailing enumerator
-/// is the COUNT SENTINEL, refused by validation.
+/// says (with the one-sided objective rule when `enable_scaling` is off); below the
+/// threshold the solve is the `kOff` solve plus the rule's one Jacobian probe. The trailing
+/// enumerator is the COUNT SENTINEL, refused by validation.
 enum class SqpColumnScaling { kOff, kAlways, kAuto, kSqpColumnScalingCount };
 
 /// @brief The CURVATURE the restoration phase's QPs carry (M7 W2 RST); see
@@ -734,20 +735,33 @@ struct SqpOptions {
     /// regularization, hot factorization and prox centre are not carried (they are
     /// scaled-space state).
     ///
-    /// COST: whenever the rule runs, one Jacobian evaluation at the start point,
-    /// counted in `evals_values` as the warm-start probe's is; a solve that fires
-    /// also pays one full evaluation at the end (the caller-unit re-measurement,
-    /// `evals_full`), two under kAuto, whose row layer re-measures too.
+    /// A kOptimal on a column-scaled solve also needs the caller-unit stationarity
+    /// <= 1 (IPOPT's unscaled `dual_inf_tol`): a coarse bound against a factor that
+    /// hides an O(1) gradient, counted in SqpCounters::scaled_convergence_refusals.
     ///
-    /// DEFAULT kOff: kAuto's gate fires on mesh transcriptions, whose spread grows
-    /// with N, and there it costs the warm-start currency its scaled-space state
-    /// (measured, M7 W2 SCL). Opt in per problem.
-    SqpColumnScaling column_scaling = SqpColumnScaling::kOff;
+    /// THE DECISION TRAVELS WITH THE WARM START (SqpWarmStart::column_factors): a
+    /// warm start the ingest gate admits and that carries a decision is solved under
+    /// it, without the rule; so is a decision of "unscaled".
+    ///
+    /// COST: whenever the rule runs, one Jacobian evaluation at the start point,
+    /// counted in `evals_values` as the warm-start probe's is (none on a carried
+    /// decision); a solve that fires also pays one full evaluation at the end (the
+    /// caller-unit re-measurement, `evals_full`), two under kAuto, whose row layer
+    /// re-measures too.
+    ///
+    /// DEFAULT kAuto (M7 W2 SCW, a declared event). kAuto's engagement of the row
+    /// layer uses the one-sided objective rule (problem_scaling.h,
+    /// `amplify_objective`) unless `enable_scaling` is on.
+    SqpColumnScaling column_scaling = SqpColumnScaling::kAuto;
 
     /// kAuto's gate: the column factors' spread (max d / min d over columns with
-    /// Jacobian data) at or above which a problem counts as badly scaled. Default 1e3.
-    /// Must be finite and >= 1. Read only under kAuto.
-    double column_scaling_threshold = 1e3;
+    /// Jacobian data) at or above which a problem counts as badly scaled. Default
+    /// 2^26 = 1/sqrt(machine epsilon), the spread past which the smaller columns'
+    /// contributions keep fewer than half of a double's digits. A mesh transcription's
+    /// spread grows like its node count (control columns enter every defect row as
+    /// O(h)), and 2^26 leaves that growth unscaled to about 4e7 nodes. Must be finite
+    /// and >= 1. Read only under kAuto.
+    double column_scaling_threshold = 67108864.0;
 
     /// THE OUT-OF-BOX START POINT: project it, or take it verbatim (M7 W2 M4).
     ///

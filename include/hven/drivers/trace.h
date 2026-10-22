@@ -353,6 +353,11 @@ struct SqpSolveEndTraceEvent {
     /// `::scaled_kkt_residual` -- the number the convergence test gated on,
     /// which is NOT in the caller-scale table above it.
     double scaled_kkt_residual = 0.0;
+    /// `::columns_active` (M7 W2 SCW): did the COLUMN layer fire on this solve.
+    bool columns_active = false;
+    /// `::col_spread`: the column factors' spread the rule computed, fired or not;
+    /// 1.0 when the rule did not run.
+    double col_spread = 1.0;
 };
 
 /// @brief One interior-point iteration record (schema `ipm.iter`, M6 W4 T4).

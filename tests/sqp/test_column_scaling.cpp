@@ -28,12 +28,14 @@
 #include <limits>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <gtest/gtest.h>
 
 #include <hven/core/ledger.h>
 #include <hven/detail/drivers/column_scaling.h>
+#include <hven/detail/drivers/problem_scaling.h>
 #include <hven/drivers/sqp_solver.h>
 #include <hven/drivers/trace.h>
 
@@ -68,6 +70,10 @@ SqpOptions off_options() {
     o.column_scaling = SqpColumnScaling::kOff;
     return o;
 }
+
+// kAuto's gate for the driver fixtures: below their spreads (2^16 for the fit), which
+// the shipped 2^26 is not -- these tests exercise the mechanism, not the default.
+constexpr double kFixtureGate = 1e3;
 
 bool is_power_of_two(double v) {
     int e = 0;
@@ -462,11 +468,13 @@ TEST(ColumnScaledModel, BadFactorsAreRefused) {
 // (c) THE OPTION
 // ===========================================================================
 
-TEST(ColumnScalingOption, TheShippedDefaultIsOff) {
+TEST(ColumnScalingOption, TheShippedDefaultIsAutoAtTheHalfPrecisionGate) {
     const SqpOptions o;
-    EXPECT_EQ(SqpColumnScaling::kOff, o.column_scaling);
-    EXPECT_FALSE(o.enable_scaling) << "the row layer stays opt-in too";
-    EXPECT_DOUBLE_EQ(1e3, o.column_scaling_threshold);
+    EXPECT_EQ(SqpColumnScaling::kAuto, o.column_scaling);
+    EXPECT_FALSE(o.enable_scaling) << "the row layer stays opt-in";
+    EXPECT_DOUBLE_EQ(std::ldexp(1.0, 26), o.column_scaling_threshold);
+    EXPECT_DOUBLE_EQ(1.0 / std::sqrt(std::numeric_limits<double>::epsilon()),
+                     o.column_scaling_threshold);
 }
 
 TEST(ColumnScalingOption, ValidationRefusesTheSentinelAndABadThreshold) {
@@ -543,6 +551,7 @@ TEST(ColumnScalingDriver, AutoSolvesTheBadlyScaledFitInTheCallersUnits) {
     PolyFitModel model;
     SqpOptions opts;
     opts.column_scaling = SqpColumnScaling::kAuto;
+    opts.column_scaling_threshold = kFixtureGate;
     SqpSolver driver{opts};
     const SqpResult sol = driver.solve(model, model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, sol.status);
@@ -575,6 +584,7 @@ TEST(ColumnScalingDriver, AnActiveBoundsPriceIsReMeasuredInTheCallersUnits) {
     PolyFitModel model(1.5);
     SqpOptions opts;
     opts.column_scaling = SqpColumnScaling::kAuto;
+    opts.column_scaling_threshold = kFixtureGate;
     SqpSolver driver{opts};
     const SqpResult sol = driver.solve(model, model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, sol.status);
@@ -668,6 +678,7 @@ TEST(ColumnScalingDriver, TheRuleCostsOneJacobianCallAndNothingElse) {
     const SqpResult a = off.solve(off_model, base.start_point());
     SqpOptions opts;
     opts.column_scaling = SqpColumnScaling::kAuto;
+    opts.column_scaling_threshold = kFixtureGate;
     SqpSolver on{opts};
     const SqpResult b = on.solve(on_model, base.start_point());
     ASSERT_FALSE(b.scaling.columns_active);
@@ -683,6 +694,7 @@ TEST(ColumnScalingDriver, BelowTheGateAutoIsTheOffSolve) {
     const SqpResult a = off.solve(model, model.start_point());
     SqpOptions opts;
     opts.column_scaling = SqpColumnScaling::kAuto;
+    opts.column_scaling_threshold = kFixtureGate;
     SqpSolver on{opts};
     const SqpResult b = on.solve(model, model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, a.status);
@@ -695,6 +707,7 @@ TEST(ColumnScalingDriver, TheIterationEventCarriesTheCallersPointAndPrices) {
     PolyFitModel model(1.5); // the cap binds, so a bound price is nonzero (z~ = 64 z)
     SqpOptions opts;
     opts.column_scaling = SqpColumnScaling::kAuto;
+    opts.column_scaling_threshold = kFixtureGate;
     SqpSolver driver{opts};
     Vec last_x, last_z;
     driver.set_iteration_callback([&](const IterationEvent &ev) {
@@ -937,6 +950,7 @@ TEST(ColumnScalingDriver, TheWarmStartCrossesBothWays) {
     PolyFitModel model;
     SqpOptions opts;
     opts.column_scaling = SqpColumnScaling::kAuto;
+    opts.column_scaling_threshold = kFixtureGate;
     SqpSolver first{opts};
     const SqpResult cold = first.solve(model, model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, cold.status);
@@ -1054,6 +1068,7 @@ TEST(ColumnScalingDriver, TheRuleReadsTheWarmPointWhenTheIngestWouldTakeIt) {
 
     SqpOptions opts;
     opts.column_scaling = SqpColumnScaling::kAuto;
+    opts.column_scaling_threshold = kFixtureGate;
     opts.common.start_level = StartLevel::kWarm;
     SqpSolver warm_driver{opts};
     const SqpResult w = warm_driver.solve(model, model.start_point(), warm, SolveBudget{});
@@ -1088,6 +1103,7 @@ TEST(ColumnScalingDriver, TheRuleReadsTheStartAsTheSolveDoes) {
     ASSERT_GE(rule_spread_at(model, x0), 1e3);
     SqpOptions opts;
     opts.column_scaling = SqpColumnScaling::kAuto;
+    opts.column_scaling_threshold = kFixtureGate;
     opts.max_iter = 5;
     SqpSolver projecting{opts};
     const SqpResult p = projecting.solve(model, x0);
@@ -1104,6 +1120,7 @@ TEST(ColumnScalingDriver, TheArgumentRefusalsAreSolveImplsOwn) {
     PolyFitModel model;
     SqpOptions opts;
     opts.column_scaling = SqpColumnScaling::kAuto;
+    opts.column_scaling_threshold = kFixtureGate;
     SqpSolver driver{opts};
     EXPECT_THROW(driver.solve(model, Vec::Zero(5)), std::invalid_argument);
     Vec bad = Vec::Zero(6);
@@ -1120,6 +1137,7 @@ TEST(ColumnScalingDriver, TheArgumentRefusalsAreSolveImplsOwn) {
 class EndSink final : public TraceSink {
   public:
     std::vector<SqpCounters> ends;
+    std::vector<std::pair<bool, double>> columns; // (columns_active, col_spread) per end
     void on_ipqp_iter(const IpqpTraceIterEvent &) override {}
     void on_ipqp_reg(const IpqpTraceRegEvent &) override {}
     void on_ipqp_restart(const IpqpTraceRestartEvent &) override {}
@@ -1128,7 +1146,10 @@ class EndSink final : public TraceSink {
     void on_ipqp_escape(const IpqpTraceEscapeEvent &) override {}
     void on_qp_mode(const QpModeTraceEvent &) override {}
     void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) override {}
-    void on_sqp_solve_end(const SqpSolveEndTraceEvent &e) override { ends.push_back(e.counters); }
+    void on_sqp_solve_end(const SqpSolveEndTraceEvent &e) override {
+        ends.push_back(e.counters);
+        columns.emplace_back(e.columns_active, e.col_spread);
+    }
 };
 
 void expect_three_consumers_agree(const SqpResult &sol, const EndSink &sink, const Ledger &ledger) {
@@ -1136,6 +1157,9 @@ void expect_three_consumers_agree(const SqpResult &sol, const EndSink &sink, con
     ASSERT_EQ(1u, ledger.sqp_records().size());
     const SqpCounters &t = sink.ends.back(); // the outer solve closes last
     const SqpCounters &l = ledger.sqp_records()[0].counters;
+    // The column pair rides the end line (M7 W2 SCW): fired or not, and the spread.
+    EXPECT_EQ(sol.scaling.columns_active, sink.columns.back().first);
+    EXPECT_EQ(sol.scaling.col_spread, sink.columns.back().second);
     EXPECT_EQ(sol.counters.evals_full, t.evals_full);
     EXPECT_EQ(sol.counters.evals_full, l.evals_full);
     EXPECT_EQ(sol.counters.evals_values, t.evals_values);
@@ -1159,6 +1183,7 @@ TEST(ColumnScalingDriver, TheTraceTheResultAndTheLedgerAgreeOnAFiredSolve) {
     driver.attach_ledger(&ledger, "scl");
     const SqpResult sol = driver.solve(model, model.start_point());
     ASSERT_TRUE(sol.scaling.columns_active);
+    EXPECT_GT(sol.scaling.col_spread, 1.0);
     expect_three_consumers_agree(sol, sink, ledger);
     EXPECT_GE(sol.counters.evals_values, 1) << "the probe is in it";
     EXPECT_EQ(ref.counters.evals_values, 0) << "the kOff solve has no probe";
@@ -1167,6 +1192,7 @@ TEST(ColumnScalingDriver, TheTraceTheResultAndTheLedgerAgreeOnAFiredSolve) {
     test_support::Hs14Model hs;
     SqpOptions auto_opts;
     auto_opts.column_scaling = SqpColumnScaling::kAuto;
+    auto_opts.column_scaling_threshold = kFixtureGate;
     SqpSolver quiet{auto_opts};
     EndSink sink2;
     Ledger ledger2;
@@ -1174,6 +1200,7 @@ TEST(ColumnScalingDriver, TheTraceTheResultAndTheLedgerAgreeOnAFiredSolve) {
     quiet.attach_ledger(&ledger2, "scl");
     const SqpResult q = quiet.solve(hs, hs.start_point());
     ASSERT_FALSE(q.scaling.columns_active);
+    EXPECT_GE(q.scaling.col_spread, 1.0) << "the rule ran and its spread is reported";
     expect_three_consumers_agree(q, sink2, ledger2);
 }
 
@@ -1332,6 +1359,7 @@ TEST(ColumnScalingDriver, AnInequalityRowSolvesInTheCallersUnits) {
         SCOPED_TRACE(mode == SqpColumnScaling::kAlways ? "kAlways" : "kAuto");
         SqpOptions opts;
         opts.column_scaling = mode;
+        opts.column_scaling_threshold = kFixtureGate;
         SqpSolver driver{opts};
         const SqpResult sol = driver.solve(model, model.start_point());
         ASSERT_EQ(SolveStatus::kOptimal, sol.status);
@@ -1417,6 +1445,7 @@ TEST(ScaledConvergenceGuard, ABoxViolationAColumnFactorHidIsRefused) {
     HiddenBoxModel model;
     SqpOptions opts;
     opts.column_scaling = SqpColumnScaling::kAuto;
+    opts.column_scaling_threshold = kFixtureGate;
     opts.project_start_point = false;
     SqpSolver driver{opts};
     const SqpResult sol = driver.solve(model, model.start_point());
@@ -1427,6 +1456,235 @@ TEST(ScaledConvergenceGuard, ABoxViolationAColumnFactorHidIsRefused) {
     ASSERT_EQ(SolveStatus::kOptimal, sol.status);
     EXPECT_LE(sol.x(1), model.upper()(1) + opts.feas_tol) << "the returned point is in the box";
     EXPECT_LE(sol.sqp_feasibility, opts.feas_tol);
+}
+
+// ===========================================================================
+// THE HIDDEN GRADIENT (M7 W2 SCW): min 3 x0 + x1^2 / 2 s.t. 1e16 x0 + x1 = 1. The
+// rule shrinks x0's column to ~2^-27, so its stationarity component is read through
+// that factor: a warm start at x* whose price is off by 2e-15 carries a caller-unit
+// gradient of 20 in x0 and passes the scaled test at major 0.
+// ===========================================================================
+class HiddenGradientModel : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 1; }
+    Index mi() const override { return 0; }
+    double eval_f(const Vec &x) const override { return 3.0 * x(0) + 0.5 * x(1) * x(1); }
+    Vec eval_grad(const Vec &x) const override { return (Vec(2) << 3.0, x(1)).finished(); }
+    Vec eval_ce(const Vec &x) const override { return Vec::Constant(1, 1e16 * x(0) + x(1) - 1.0); }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(1, 1) = obj_scale;
+        h.makeCompressed();
+        return h;
+    }
+    SpMatRM eval_jac_e(const Vec &) const override {
+        SpMatRM j(1, 2);
+        j.insert(0, 0) = 1e16;
+        j.insert(0, 1) = 1.0;
+        j.makeCompressed();
+        return j;
+    }
+    SpMatRM eval_jac_i(const Vec &) const override { return SpMatRM(0, 2); }
+    const Vec &lower() const override { return lower_; }
+    const Vec &upper() const override { return upper_; }
+    Vec start_point() const override { return Vec::Zero(2); }
+
+  private:
+    Vec lower_ = Vec::Constant(2, -1e20);
+    Vec upper_ = Vec::Constant(2, 1e20);
+};
+
+TEST(ScaledConvergenceGuard, ACallerUnitGradientAColumnFactorHidIsRefused) {
+    HiddenGradientModel model;
+    SqpSolver plain{off_options()};
+    const SqpResult cold = plain.solve(model, model.start_point());
+    ASSERT_EQ(SolveStatus::kOptimal, cold.status);
+    ASSERT_TRUE(cold.warm_start.valid);
+    ASSERT_EQ(0, cold.warm_start.column_factors.size()) << "kOff records no decision";
+    SqpWarmStart warm = cold.warm_start;
+    warm.lambda_e(0) += 2e-15; // caller-unit grad L in x0: 1e16 * 2e-15 = 20
+
+    SqpOptions opts;
+    opts.column_scaling = SqpColumnScaling::kAlways;
+    opts.common.start_level = StartLevel::kWarm;
+    SqpSolver driver{opts};
+    const SqpResult sol = driver.solve(model, model.start_point(), warm, SolveBudget{});
+    ASSERT_TRUE(sol.scaling.columns_active);
+    ASSERT_LE(sol.scaling.col_min, std::ldexp(1.0, -26)) << "the premise: x0's column shrunk";
+    EXPECT_NE(StartLevel::kCold, sol.counters.start_level_used);
+    EXPECT_GE(sol.counters.scaled_convergence_refusals, 1)
+        << "the warm point passes the scaled test with a caller-unit gradient of 20";
+    ASSERT_EQ(SolveStatus::kOptimal, sol.status);
+    EXPECT_GE(sol.counters.major_iters, 1);
+    EXPECT_LE(sol.sqp_stationarity, 1.0) << "the caller-unit ceiling holds at the answer";
+}
+
+// ===========================================================================
+// THE SHIPPED DEFAULT (M7 W2 SCW): kAuto at 2^26. Below the gate it is the kOff solve
+// plus one Jacobian read per row block, bit for bit.
+// ===========================================================================
+TEST(ColumnScalingDefault, BelowTheGateTheDefaultIsTheOffSolvePlusTheProbe) {
+    test_support::Hs14Model base;
+    CountingModel off_model(base), on_model(base);
+    const SqpResult a = SqpSolver{off_options()}.solve(off_model, base.start_point());
+    const SqpResult b = SqpSolver{SqpOptions{}}.solve(on_model, base.start_point());
+    ASSERT_FALSE(b.scaling.columns_active);
+    EXPECT_FALSE(b.scaling.active);
+    EXPECT_EQ(a.status, b.status);
+    EXPECT_TRUE(a.x.isApprox(b.x, 0.0));
+    EXPECT_TRUE(a.lambda_i.isApprox(b.lambda_i, 0.0));
+    EXPECT_EQ(a.counters.major_iters, b.counters.major_iters);
+    EXPECT_EQ(a.counters.factorizations, b.counters.factorizations);
+    EXPECT_EQ(a.counters.evals_full, b.counters.evals_full);
+    EXPECT_EQ(a.counters.evals_values + 1, b.counters.evals_values);
+    EXPECT_EQ(off_model.values, on_model.values);
+    EXPECT_EQ(off_model.grads, on_model.grads);
+    EXPECT_EQ(off_model.hess, on_model.hess);
+    EXPECT_EQ(off_model.jacs + 2, on_model.jacs);
+    EXPECT_EQ(a.warm_start.column_factors.size(), 0);
+    ASSERT_EQ(b.warm_start.column_factors.size(), base.n());
+    EXPECT_TRUE((b.warm_start.column_factors.array() == 1.0).all()) << "decided: unscaled";
+}
+
+// ===========================================================================
+// THE ENGAGED ROW LAYER DOES NOT AMPLIFY THE OBJECTIVE (M7 W2 SCW). kAuto's own
+// engagement takes IPOPT's one-sided objective rule; the explicit toggle keeps the
+// two-sided one.
+// ===========================================================================
+// The caller's model with its objective weighted by w (gradient and Hessian with it).
+class WeightedObjective final : public NlpModel {
+  public:
+    WeightedObjective(const NlpModel &m, double w) : m_(m), w_(w) {}
+    Index n() const override { return m_.n(); }
+    Index me() const override { return m_.me(); }
+    Index mi() const override { return m_.mi(); }
+    double eval_f(const Vec &x) const override { return w_ * m_.eval_f(x); }
+    HVEN_SUPPRESS_DEPRECATED_BEGIN
+    Vec eval_grad(const Vec &x) const override { return w_ * m_.eval_grad(x); }
+    Vec eval_ce(const Vec &x) const override { return m_.eval_ce(x); }
+    Vec eval_ci(const Vec &x) const override { return m_.eval_ci(x); }
+    SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &a, const Vec &b) const override {
+        return m_.eval_hess(x, w_ * obj_scale, a, b);
+    }
+    SpMatRM eval_jac_e(const Vec &x) const override { return m_.eval_jac_e(x); }
+    SpMatRM eval_jac_i(const Vec &x) const override { return m_.eval_jac_i(x); }
+    HVEN_SUPPRESS_DEPRECATED_END
+    const Vec &lower() const override { return m_.lower(); }
+    const Vec &upper() const override { return m_.upper(); }
+    Vec start_point() const override { return m_.start_point(); }
+
+  private:
+    const NlpModel &m_;
+    double w_;
+};
+
+TEST(ColumnScalingDriver, TheEngagedRowLayerNeverAmplifiesTheObjective) {
+    detail::ScalingRule rule;
+    const Vec small = Vec::Constant(2, 1e-3);
+    const SpMatRM none(0, 2);
+    EXPECT_DOUBLE_EQ(1e5, detail::compute_problem_scaling(small, none, none, rule).obj);
+    rule.amplify_objective = false;
+    EXPECT_DOUBLE_EQ(1.0, detail::compute_problem_scaling(small, none, none, rule).obj);
+    const Vec large = Vec::Constant(2, 1e4);
+    EXPECT_DOUBLE_EQ(1e-2, detail::compute_problem_scaling(large, none, none, rule).obj)
+        << "shrinking is unchanged";
+
+    // The fit with its objective weighted 1e-4: the column-scaled start gradient is
+    // then ~1e-2, far below max_gradient = 100, which the two-sided rule amplifies.
+    const PolyFitModel fit;
+    const WeightedObjective model(fit, 1e-4);
+    SqpOptions opts;
+    opts.column_scaling = SqpColumnScaling::kAuto;
+    opts.column_scaling_threshold = kFixtureGate;
+    const SqpResult engaged = SqpSolver{opts}.solve(model, model.start_point());
+    ASSERT_TRUE(engaged.scaling.columns_active);
+    ASSERT_TRUE(engaged.scaling.active);
+    EXPECT_DOUBLE_EQ(1.0, engaged.scaling.obj) << "not amplified";
+    opts.enable_scaling = true;
+    const SqpResult asked = SqpSolver{opts}.solve(model, model.start_point());
+    ASSERT_TRUE(asked.scaling.active);
+    EXPECT_GT(asked.scaling.obj, 1.0) << "the caller's own toggle keeps the two-sided rule";
+}
+
+// ===========================================================================
+// THE DECISION TRAVELS WITH THE WARM START (M7 W2 SCW, SqpWarmStart::column_factors).
+// ===========================================================================
+TEST(ColumnScalingWarmChain, AFiredDecisionIsCarriedWithoutAProbe) {
+    PolyFitModel model;
+    SqpOptions opts;
+    opts.column_scaling = SqpColumnScaling::kAuto;
+    opts.column_scaling_threshold = kFixtureGate;
+    const SqpResult cold = SqpSolver{opts}.solve(model, model.start_point());
+    ASSERT_TRUE(cold.scaling.columns_active);
+    const Vec &d = cold.warm_start.column_factors;
+    ASSERT_EQ(model.n(), d.size());
+    EXPECT_FALSE((d.array() == 1.0).all());
+    for (Index j = 0; j < d.size(); ++j) {
+        EXPECT_TRUE(is_power_of_two(d(j))) << j;
+    }
+
+    opts.common.start_level = StartLevel::kWarm;
+    const SqpResult carried =
+        SqpSolver{opts}.solve(model, model.start_point(), cold.warm_start, SolveBudget{});
+    SqpWarmStart cleared = cold.warm_start;
+    cleared.column_factors = Vec();
+    const SqpResult reread =
+        SqpSolver{opts}.solve(model, model.start_point(), cleared, SolveBudget{});
+    ASSERT_TRUE(carried.scaling.columns_active);
+    ASSERT_TRUE(reread.scaling.columns_active);
+    EXPECT_TRUE(carried.warm_start.column_factors.isApprox(d, 0.0)) << "the chain keeps d";
+    EXPECT_EQ(reread.counters.evals_values, carried.counters.evals_values + 1)
+        << "a carried decision costs no probe";
+    EXPECT_EQ(SolveStatus::kOptimal, carried.status);
+}
+
+TEST(ColumnScalingWarmChain, AnUnscaledDecisionIsNotReReadAtTheWarmPoint) {
+    BilinearRowModel model;
+    const Vec far = (Vec(2) << 0.01, 200.0).finished();
+    ASSERT_GE(rule_spread_at(model, far), kFixtureGate) << "the premise: far fires";
+    SqpOptions opts;
+    opts.column_scaling = SqpColumnScaling::kAuto;
+    opts.column_scaling_threshold = kFixtureGate;
+    const SqpResult cold = SqpSolver{opts}.solve(model, model.start_point());
+    ASSERT_FALSE(cold.scaling.columns_active);
+    ASSERT_EQ(2, cold.warm_start.column_factors.size());
+    SqpWarmStart warm = cold.warm_start;
+    warm.x = far;
+
+    opts.common.start_level = StartLevel::kWarm;
+    const SqpResult w = SqpSolver{opts}.solve(model, model.start_point(), warm, SolveBudget{});
+    EXPECT_NE(StartLevel::kCold, w.counters.start_level_used);
+    EXPECT_FALSE(w.scaling.columns_active) << "the chain's decision, not the far point's";
+    EXPECT_DOUBLE_EQ(1.0, w.scaling.col_spread);
+
+    // A record this problem cannot use is ignored: the rule runs at warm.x, here the
+    // cold answer, where it does not fire -- so a bad record taken would show.
+    for (const Vec &bad : {Vec(Vec::Constant(1, 0.5)), Vec((Vec(2) << 1.0, 3.0).finished()),
+                           Vec((Vec(2) << 0.5, -2.0).finished())}) {
+        SqpWarmStart b = cold.warm_start;
+        b.column_factors = bad;
+        const SqpResult r = SqpSolver{opts}.solve(model, model.start_point(), b, SolveBudget{});
+        EXPECT_FALSE(r.scaling.columns_active) << bad.transpose();
+        EXPECT_DOUBLE_EQ(rule_spread_at(model, cold.warm_start.x), r.scaling.col_spread)
+            << bad.transpose();
+    }
+
+    // At a kCold ceiling the ingest takes nothing, the record included: the rule reads x0.
+    opts.common.start_level = StartLevel::kCold;
+    SqpWarmStart fired = warm;
+    fired.column_factors = (Vec(2) << 1.0, 1.0 / 128.0).finished();
+    const SqpResult c = SqpSolver{opts}.solve(model, model.start_point(), fired, SolveBudget{});
+    EXPECT_FALSE(c.scaling.columns_active);
+    EXPECT_DOUBLE_EQ(rule_spread_at(model, model.start_point()), c.scaling.col_spread);
+
+    // kOff never reads it, and records nothing.
+    SqpOptions off = off_options();
+    off.common.start_level = StartLevel::kWarm;
+    const SqpResult o = SqpSolver{off}.solve(model, model.start_point(), fired, SolveBudget{});
+    EXPECT_FALSE(o.scaling.columns_active);
+    EXPECT_EQ(0, o.warm_start.column_factors.size());
 }
 
 } // namespace
