@@ -445,13 +445,16 @@ const double *memo_lookup(const Vec &x, const auto &memo) {
 
 double RestorationModel::curvature_violation(const Vec &x) const {
     double h = 0.0;
+    // ONE values query per point, however many row blocks it had to read (the
+    // evals_values convention: a model query is a point, not a block).
+    bool queried = false;
     if (me_ > 0) {
         if (const double *v = memo_lookup(x, memo_e_)) {
             h += *v;
         } else {
             Vec c;
             model_.eval_ce_in_place(x, c);
-            ++curvature_evals_;
+            queried = true;
             h += c.lpNorm<1>();
         }
     }
@@ -461,9 +464,12 @@ double RestorationModel::curvature_violation(const Vec &x) const {
         } else {
             Vec c;
             model_.eval_ci_in_place(x, c);
-            ++curvature_evals_;
+            queried = true;
             h += c.cwiseMax(0.0).sum();
         }
+    }
+    if (queried) {
+        ++curvature_evals_;
     }
     return h;
 }
@@ -553,6 +559,8 @@ SpMatRM RestorationModel::eval_hess(const Vec &y, double obj_scale, const Vec &l
         // every original coordinate at every call (the pattern invariance), with the
         // proximity term's exact curvature summed in when that term is on.
         const double mu = std::min(1.0, curvature_violation(original_x(y)));
+        // mu is not weighted by obj_scale: it models h's curvature, not the objective's,
+        // and the phase's sub-solve runs unscaled (enable_scaling = false), so no factor is owed.
         const double w = zeta_ > 0.0 ? mu + obj_scale * zeta_ : mu;
         std::vector<Eigen::Triplet<double>> t;
         t.reserve(static_cast<std::size_t>(nx_));

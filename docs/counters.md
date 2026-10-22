@@ -265,10 +265,15 @@ one of those three therefore cannot silently miss the trace.
   **`restoration_curvature_switches` COUNTS THE PHASE'S CURVATURE RESTARTS** (M7
   W2 RST, appended last after `scaled_convergence_refusals`). Under
   `SqpOptions::restoration_curvature == kModelThenRegularized` (the default) and
-  kExact, a restoration sub-solve whose walk subproblem fails on the exact model
-  stops there (one rejected major on the sub-solve) and the phase continues from
-  that point on the regularized model; this counts those stops, at most one per
-  restoration entry, FOLDED from the sub-solve. The restart pays one
+  kExact, a restoration sub-solve stops at the first of two triggers: a walk
+  subproblem that fails on the exact model (one rejected major on the sub-solve),
+  or an exhausted elastic tier whose nested restoration request -- never serviced
+  inside a phase -- would end the sub-solve `numerical_error` (that major stays
+  the refusal's `kRestore` row). This counts those stops, at most one per
+  restoration entry, FOLDED from the sub-solve. The phase then continues from the
+  stop point on the regularized model, unless its budget is spent or the model is
+  not finite there, in which case the stopped sub-solve's exit stands and the
+  count still reads 1. The restart pays one
   `evals_full` (the new wrapper's start), and the regularized wrapper's own reads
   of h at a point whose rows it did not have in hand are charged to
   `evals_values`, so the evaluation partition stays whole. 0 under kModel, under
@@ -364,8 +369,10 @@ one of those three therefore cannot silently miss the trace.
   and thirteen `qn_*` fields; `qn_nonpd_seen` appended after them at the QN
   stages 1-3 review, `qn_dimension` at the QN-quality riders). `eval_hess_calls` counts every Lagrangian-Hessian
   evaluation the solve made -- each subproblem build and each warm-start structure
-  probe under `SqpOptions::hessian_mode = kExact` -- and is 0 under `kLbfgsDamped`
-  by construction. It does NOT count the assembly bridge's lay-time pattern walk:
+  probe under `SqpOptions::hessian_mode = kExact` -- and is 0 under `kLbfgsDamped`,
+  except under `SqpOptions::restoration_curvature = kRegularized`, whose phase
+  sub-solve runs the exact-Hessian path on the regularized wrapper: those calls
+  are folded here and never reach the caller's model. It does NOT count the assembly bridge's lay-time pattern walk:
   laying the structures reads the Hessian's pattern through one `eval_hess` per
   lay, so under `kLbfgsDamped` one call per solve and one per restoration entry
   still reaches the model, uncounted here. The `qn_*` fields are all 0 under

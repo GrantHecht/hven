@@ -5637,7 +5637,7 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     };
     SqpResult rs = run_phase(feasibility, ropts.max_iter, regularize_on_failure);
 
-    const auto fold_phase = [&](const SqpResult &rs, const RestorationModel &wrapper) {
+    const auto fold_phase = [&](const SqpResult &phase, const RestorationModel &wrapper) {
         // EVERY WORK counter the sub-solve moved is folded in: the
         // work was spent (the SOC/elastic convention, ported). Its
         // majors are the ONE work quantity that gets its own field
@@ -5652,21 +5652,21 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
         // would make steps_accepted stop being "the number of times
         // x moved" -- which is exactly what SqpCounters promises and
         // what the major_iters identity there is written against.
-        st.out.counters.restoration_iters += rs.counters.major_iters;
-        st.out.counters.qp_minor_iters += rs.counters.qp_minor_iters;
-        st.out.counters.factorizations += rs.counters.factorizations;
-        st.out.counters.eqp_refine_steps += rs.counters.eqp_refine_steps;
-        st.out.counters.border_refine_steps += rs.counters.border_refine_steps;
-        st.out.counters.eqp_refine_iters += rs.counters.eqp_refine_iters;
-        st.out.counters.eqp_residual_refusals += rs.counters.eqp_residual_refusals;
-        st.out.counters.eqp_row_drift_refusals += rs.counters.eqp_row_drift_refusals;
-        st.out.counters.eqp_polish_steps += rs.counters.eqp_polish_steps;
-        st.out.counters.terminal_polish_solves += rs.counters.terminal_polish_solves;
-        st.out.counters.terminal_polish_rejected += rs.counters.terminal_polish_rejected;
-        st.out.counters.terminal_polish_adopted += rs.counters.terminal_polish_adopted;
-        st.out.counters.verdict_refine_steps += rs.counters.verdict_refine_steps;
-        st.out.counters.suspect_escalations += rs.counters.suspect_escalations;
-        st.out.counters.symbolic_analyses += rs.counters.symbolic_analyses;
+        st.out.counters.restoration_iters += phase.counters.major_iters;
+        st.out.counters.qp_minor_iters += phase.counters.qp_minor_iters;
+        st.out.counters.factorizations += phase.counters.factorizations;
+        st.out.counters.eqp_refine_steps += phase.counters.eqp_refine_steps;
+        st.out.counters.border_refine_steps += phase.counters.border_refine_steps;
+        st.out.counters.eqp_refine_iters += phase.counters.eqp_refine_iters;
+        st.out.counters.eqp_residual_refusals += phase.counters.eqp_residual_refusals;
+        st.out.counters.eqp_row_drift_refusals += phase.counters.eqp_row_drift_refusals;
+        st.out.counters.eqp_polish_steps += phase.counters.eqp_polish_steps;
+        st.out.counters.terminal_polish_solves += phase.counters.terminal_polish_solves;
+        st.out.counters.terminal_polish_rejected += phase.counters.terminal_polish_rejected;
+        st.out.counters.terminal_polish_adopted += phase.counters.terminal_polish_adopted;
+        st.out.counters.verdict_refine_steps += phase.counters.verdict_refine_steps;
+        st.out.counters.suspect_escalations += phase.counters.suspect_escalations;
+        st.out.counters.symbolic_analyses += phase.counters.symbolic_analyses;
         // THE SUBPROBLEM-EXIT GROUP'S WORK HALF (M7 W2 M1) FOLDS, on the
         // qp_minor_iters argument: all three count QP SOLVES, and the sub-solve's
         // subproblems are QP solves this solve caused. Its ROUTING half --
@@ -5674,34 +5674,34 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
         // rejected_steps' argument two paragraphs above: those two describe what
         // happened to the CALLER's iterate, and a radius shrunk under the
         // feasibility wrapper's own point is not that.
-        st.out.counters.qp_maxiter_exits += rs.counters.qp_maxiter_exits;
-        st.out.counters.qp_numerical_exits += rs.counters.qp_numerical_exits;
-        st.out.counters.qp_cap_retries += rs.counters.qp_cap_retries;
-        st.out.counters.qp_failure_steps_judged += rs.counters.qp_failure_steps_judged;
-        st.out.counters.qp_failure_steps_accepted += rs.counters.qp_failure_steps_accepted;
-        st.out.counters.nonfinite_subproblems += rs.counters.nonfinite_subproblems;
-        st.out.counters.nonfinite_box_projections += rs.counters.nonfinite_box_projections;
-        st.out.counters.nonfinite_step_rollbacks += rs.counters.nonfinite_step_rollbacks;
-        st.out.counters.elastic_last_rung_fallbacks += rs.counters.elastic_last_rung_fallbacks;
+        st.out.counters.qp_maxiter_exits += phase.counters.qp_maxiter_exits;
+        st.out.counters.qp_numerical_exits += phase.counters.qp_numerical_exits;
+        st.out.counters.qp_cap_retries += phase.counters.qp_cap_retries;
+        st.out.counters.qp_failure_steps_judged += phase.counters.qp_failure_steps_judged;
+        st.out.counters.qp_failure_steps_accepted += phase.counters.qp_failure_steps_accepted;
+        st.out.counters.nonfinite_subproblems += phase.counters.nonfinite_subproblems;
+        st.out.counters.nonfinite_box_projections += phase.counters.nonfinite_box_projections;
+        st.out.counters.nonfinite_step_rollbacks += phase.counters.nonfinite_step_rollbacks;
+        st.out.counters.elastic_last_rung_fallbacks += phase.counters.elastic_last_rung_fallbacks;
         // THE EXCURSION RECORD DOES NOT FOLD AND CANNOT (M7 W2 M2): this sub-solve
         // runs with `allow_restoration_` false, so its own `restoration_entries` is
         // structurally 0 and its four absolutes are untouched defaults. Folding a
         // guaranteed zero would only suggest it might not be one -- the
         // full-step-mode counters' argument, a few lines below.
-        st.out.counters.soc_steps += rs.counters.soc_steps;
-        st.out.counters.soc_applied += rs.counters.soc_applied;
-        st.out.counters.soc_qp_infeasible += rs.counters.soc_qp_infeasible;
-        st.out.counters.soc_rejected += rs.counters.soc_rejected;
-        st.out.counters.elastic_activations += rs.counters.elastic_activations;
-        st.out.counters.elastic_escalations += rs.counters.elastic_escalations;
+        st.out.counters.soc_steps += phase.counters.soc_steps;
+        st.out.counters.soc_applied += phase.counters.soc_applied;
+        st.out.counters.soc_qp_infeasible += phase.counters.soc_qp_infeasible;
+        st.out.counters.soc_rejected += phase.counters.soc_rejected;
+        st.out.counters.elastic_activations += phase.counters.elastic_activations;
+        st.out.counters.elastic_escalations += phase.counters.elastic_escalations;
         // The fallback partition folds exactly as the two above do, so the identities stay
         // stated over a WHOLE solve. Today the five are identically zero here: restoration
         // runs at kWalk (`ropts.qp_mode`), which never reaches the certified fallback.
-        st.out.counters.elastic_from_ipqp_escape += rs.counters.elastic_from_ipqp_escape;
-        st.out.counters.ipqp_suspicion_disproved += rs.counters.ipqp_suspicion_disproved;
-        st.out.counters.ipqp_fallback_rung_b += rs.counters.ipqp_fallback_rung_b;
-        st.out.counters.elastic_rho0_ceiling_hits += rs.counters.elastic_rho0_ceiling_hits;
-        st.out.counters.elastic_floor_retries += rs.counters.elastic_floor_retries;
+        st.out.counters.elastic_from_ipqp_escape += phase.counters.elastic_from_ipqp_escape;
+        st.out.counters.ipqp_suspicion_disproved += phase.counters.ipqp_suspicion_disproved;
+        st.out.counters.ipqp_fallback_rung_b += phase.counters.ipqp_fallback_rung_b;
+        st.out.counters.elastic_rho0_ceiling_hits += phase.counters.elastic_rho0_ceiling_hits;
+        st.out.counters.elastic_floor_retries += phase.counters.elastic_floor_retries;
         // The VALUES-only counters ARE folded, exactly like every other
         // WORK counter above (qp_minor_iters, factorizations, ...):
         // the sub-solve's own solve_impl runs through the SAME three
@@ -5710,8 +5710,8 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
         // property of the WRAPPER's variables the way steps_accepted/
         // rejected_steps are (see the note just below for that
         // distinction).
-        st.out.counters.evals_full += rs.counters.evals_full;
-        st.out.counters.evals_values += rs.counters.evals_values;
+        st.out.counters.evals_full += phase.counters.evals_full;
+        st.out.counters.evals_values += phase.counters.evals_values;
         // AND THE REGULARIZED CURVATURE'S OWN READS OF h (M7 W2 RST): values-only model
         // queries the wrapper made for mu at a point whose rows it did not have in hand.
         st.out.counters.evals_values += wrapper.curvature_residual_evals();
@@ -5727,8 +5727,8 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
         // the restoration wrapper's slack columns start AT their own
         // lower bound of 0, so a restoration entered with the lever
         // on seeds every one of them.
-        st.out.counters.crash_seeded_rows += rs.counters.crash_seeded_rows;
-        st.out.counters.crash_seeded_bounds += rs.counters.crash_seeded_bounds;
+        st.out.counters.crash_seeded_rows += phase.counters.crash_seeded_rows;
+        st.out.counters.crash_seeded_bounds += phase.counters.crash_seeded_bounds;
         // The SSN counters ARE folded, and for the exact OPPOSITE of the
         // "identically zero, so folding it would only suggest it might not
         // be" argument the next paragraph makes about the warm-start
@@ -5752,7 +5752,7 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
         // DELETING THIS LINE IS AN EQUIVALENT MUTANT, AND SAYING SO IS
         // NOT A HOLE IN THE TESTING -- it is the same statement as
         // "the reset above works", read from the other side. Because
-        // `ropts.qp_mode` is kWalk, `rs.counters.ssn` is all-zero, so
+        // `ropts.qp_mode` is kWalk, `phase.counters.ssn` is all-zero, so
         // removing this fold changes no observable of the SHIPPED
         // code. What it removes is a MEASUREMENT: it is only with this
         // fold present that letting the mode leak back in moves
@@ -5760,18 +5760,18 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
         // not independent, and the one that matters -- deleting the
         // reset -- dies on this fixture with or without this line,
         // since the folded FACTORIZATIONS move too (234 -> 247).
-        accumulate_ssn_counters(st.out.counters.ssn, rs.counters.ssn);
+        accumulate_ssn_counters(st.out.counters.ssn, phase.counters.ssn);
         // AND THE IPQP TIER'S, folded for exactly the same reason and
         // subject to exactly the same argument: `ropts.qp_mode` is kWalk,
-        // so `rs.counters.ipqp` is all-zero (bar the two min-folded alpha
+        // so `phase.counters.ipqp` is all-zero (bar the two min-folded alpha
         // fields, which fold their +inf identity), and this line changes
         // no observable of the shipped code. What it preserves is the
         // MEASUREMENT: it is only with the fold present that letting the
         // mode leak back in would move the tier's counters.
-        accumulate_ipqp_counters(st.out.counters.ipqp, rs.counters.ipqp);
+        accumulate_ipqp_counters(st.out.counters.ipqp, phase.counters.ipqp);
         // THE CURVATURE-SOURCE GROUP (M7 QN stage 3) folds: eval_hess calls are work this solve
         // caused, and the QN events are the sub-solve's own instance's.
-        fold_restoration_qn_counters(st.out.counters, rs.counters);
+        fold_restoration_qn_counters(st.out.counters, phase.counters);
         // The full-step-mode counters are deliberately absent from this
         // fold, and they are absent because they are IDENTICALLY ZERO
         // on the sub-solve: it runs the 2-arg solve() on a fresh
@@ -5781,7 +5781,7 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
         // THE PHASE'S CURVATURE SWITCHES (M7 W2 RST) fold as work: each is a sub-solve
         // stopped at its first failed walk subproblem to be restarted on the regularized model.
         st.out.counters.restoration_curvature_switches +=
-            rs.counters.restoration_curvature_switches;
+            phase.counters.restoration_curvature_switches;
     };
     fold_phase(rs, feasibility);
 
@@ -7361,6 +7361,7 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
     bool elastic_applied = mj.fallback_report.has_value();
     bool rho0_ceiling_hit = mj.fallback_report && mj.fallback_report->rho0_ceiling_hit;
 #ifdef HVEN_TESTING
+    bool seam_exhaust_elastic = false;
     {
         using detail::testing::SqpLadderSeam;
         const bool eligible = SqpLadderSeam::fail_walk_qps > 0 && !is_restoration_sub_driver_ &&
@@ -7400,6 +7401,12 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
             mj.qs.lambda_e.setZero();
             mj.qs.lambda_i.setZero();
             mj.qs.z.setZero();
+            // ... or as an infeasible subproblem whose elastic ladder is exhausted.
+            if (SqpLadderSeam::exhaust_restoration_elastic > 0) {
+                --SqpLadderSeam::exhaust_restoration_elastic;
+                mj.qs.status = QpStatus::kInfeasible;
+                seam_exhaust_elastic = true;
+            }
         }
     }
 #endif
@@ -7447,8 +7454,14 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
                                      st.out.counters, std::nullopt, ipqp_trace_,
                                      elastic_rung_tier(), st.qn_bridge ? &*st.qn_bridge : nullptr);
         rho0_ceiling_hit = report.rho0_ceiling_hit;
+        bool ladder_usable = report.usable;
+#ifdef HVEN_TESTING
+        if (seam_exhaust_elastic) {
+            ladder_usable = false;
+        }
+#endif
 
-        if (!report.usable) {
+        if (!ladder_usable) {
             mj.row.qp_solved = true;
             mj.row.elastic_applied = true;
             mj.row.elastic_rho0_ceiling_hit = rho0_ceiling_hit;
@@ -7481,6 +7494,17 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
             // `history` and the stream with its final value.
             const RestorationOutcome elastic_outcome =
                 enter_restoration(st, mj, seam, bridge, iter, elastic_cand);
+            // THE PHASE'S CURVATURE SWITCH, SECOND TRIGGER (M7 W2 RST rider M1). Inside a
+            // restoration sub-solve told to switch, this request is the NESTED one, which is
+            // always refused: the sub-solve would end numerical_error here. Counted as a switch
+            // instead, so the parent restarts the phase from this unmoved iterate on the
+            // regularized model. The sub-solve's own exit is unchanged (the refusal's
+            // kNumericalError, this kRestore row), and so is the elastic tier's place ahead of
+            // it: only a ladder that is exhausted reaches here.
+            if (elastic_outcome == RestorationOutcome::kRefused && stop_phase_on_qp_failure_ &&
+                !allow_restoration_) {
+                ++st.out.counters.restoration_curvature_switches;
+            }
             // THE PARENT'S LATCH, READ BEFORE THIS ROW'S OWN EVENT FIRES (M6 W5
             // T8.6 fix1, ruling R4). A stop taken INSIDE the restoration
             // sub-solve -- through the forwarder, or as the sub-solve's own

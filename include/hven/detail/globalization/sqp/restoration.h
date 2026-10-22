@@ -174,9 +174,9 @@ class RestorationModel final : public NlpModel {
     bool regularized_curvature() const;
 
     /// Model queries `eval_hess` made ITSELF to read h(x) for the regularized
-    /// curvature's mu -- 0 whenever the point's rows were already in hand from this
-    /// wrapper's own `eval_ce`/`eval_ci` (the memo). Charged by the driver to
-    /// `SqpCounters::evals_values`, so the solve's eval economics stay whole.
+    /// curvature's mu, ONE per point however many row blocks it read -- 0 whenever the point's rows
+    /// were already in hand from this wrapper's own `eval_ce`/`eval_ci` (the memo). Charged by the
+    /// driver to `SqpCounters::evals_values`, so the solve's eval economics stay whole.
     Index curvature_residual_evals() const;
 
     /// Components of `x_entry` strictly outside the box, clamped into it for

@@ -359,8 +359,9 @@ enum class SqpColumnScaling { kOff, kAlways, kAuto, kSqpColumnScalingCount };
 /// quasi-Newton B under kLbfgsDamped. `kRegularized` gives it the Levenberg-Marquardt
 /// model B = mu(x) D^2 on the original variables and no constraint curvature, with
 /// mu(x) = min(1, h(x)) (detail/globalization/sqp/restoration.h).
-/// `kModelThenRegularized` runs the phase as kModel and, at the first walk subproblem
-/// that fails on that model, restarts the phase from that point under kRegularized; under
+/// `kModelThenRegularized` runs the phase as kModel and restarts it from the point it
+/// stands at under kRegularized at the first failed subproblem or exhausted elastic tier
+/// inside the phase (the two triggers SqpOptions::restoration_curvature states); under
 /// kLbfgsDamped (whose phase QPs are convex by construction) it is kModel. The trailing
 /// enumerator is the COUNT SENTINEL, refused by validation.
 enum class SqpRestorationCurvature {
@@ -1044,39 +1045,37 @@ struct SqpOptions {
     /// WHY NOT THE EXACT HESSIAN. The feasibility wrapper minimizes the l1 violation, so
     /// its multipliers are subgradient selectors of size sigma that do NOT shrink as the
     /// violation goes to zero, and the curvature sum lambda_i hess c_i stays full-sized
-    /// and indefinite all the way to the restored point: every restoration QP is a
-    /// nonconvex QP. Measured on BRITGAS at 0dc2f1aa: 66 restoration majors, 114k walk
-    /// minors, 39 QP iteration-cap exits, ~80% of the solve's factorizations.
+    /// and indefinite all the way to the restored point: a restoration QP may be
+    /// nonconvex at every major of the phase.
     ///
-    /// WHAT kRegularized DOES. B = mu D^2 on the x-block, D = diag(min(1, 1/|x_i|)) at
-    /// the phase's start, mu(x) = min(1, h(x)) -- the Levenberg-Marquardt parameter
-    /// proportional to the residual norm (Yamashita & Fukushima 2001; Fan & Yuan 2005).
-    /// Every restoration QP is then convex. Far from feasibility the step is the
-    /// l1-elastic linearization's minimizer inside the trust region; near a feasible
-    /// point with a consistent linearization it is the D-weighted minimum-norm Newton
-    /// step for c(x) = 0, and mu -> 0 with h lets it take that step whole. Only the
-    /// MODEL changes: the wrapper's objective, constraints, gradients and the
-    /// infeasibility certificate (first-order quantities) are the same, and the phase's
-    /// sub-solve runs the exact-Hessian path (eval_hess supplies B) whatever
-    /// `hessian_mode` is. The final certification stays on the caller's problem.
+    /// WHAT kRegularized DOES. B = mu D^2 on the x-block, mu(x) = min(1, h(x)) -- the
+    /// Levenberg-Marquardt parameter proportional to the residual norm (Yamashita &
+    /// Fukushima 2001; Fan & Yuan 2005). D is the proximity term's scaling when
+    /// `restoration_proximity > 0` (read at its centre, the requesting iterate), else
+    /// diag(min(1, 1/|x_i|)) at the wrapper's construction point: the phase's start, or
+    /// the switch point on a phase restarted under kModelThenRegularized. Every
+    /// restoration QP is then convex. Only the MODEL changes: the wrapper's objective,
+    /// constraints, gradients and the infeasibility certificate (first-order quantities)
+    /// are the same, and the phase's sub-solve runs the exact-Hessian path (eval_hess
+    /// supplies B) whatever `hessian_mode` is. The final certification stays on the
+    /// caller's problem. Alone it converges only linearly to a nonzero-residual
+    /// stationary point of h (the certified infeasible case), and slowly from far away.
     ///
-    /// WHY NOT kRegularized ALONE. The model is a Gauss-Newton-type one, so it converges
-    /// only linearly to a NONZERO-residual stationary point of h -- the certified
-    /// infeasible case (SqpDriverRestoration.InfeasibleNlpCertifies: 119 restoration
-    /// majors, where that test bounds kModel's at 20) -- and slowly from far away
-    /// (STEENBRC/E/G spend 296 of the 300-major budget in one phase and lose their optima).
-    ///
-    /// WHAT kModelThenRegularized DOES, AND WHY IT IS THE DEFAULT. The phase runs on the
-    /// exact model, keeping its rate wherever its QPs are solvable; the first walk
-    /// subproblem that FAILS on it (kMaxIter or kNumericalError) ends that sub-solve where
-    /// it stands, and the phase continues from that point under kRegularized
-    /// (`SqpCounters::restoration_curvature_switches`). A phase whose QPs never fail is
-    /// byte-identical to kModel. Measured on the CUTEst TRAIN set at the 300-iteration
-    /// budget with `restoration_max_entries = 10`: 44 of 46 label-cells field-identical or
-    /// failing-to-failing, NET3 numerical_error -> optimal under the exact label (f
-    /// 5859393.70, clean KKT), BRITGAS numerical_error -> optimal but beyond the 300 s
-    /// wall, no optimum lost or worsened (docs/notes/data/2026-10-m7-rst/). Under
-    /// kLbfgsDamped it is kModel: that phase's QN model is convex by construction.
+    /// WHAT kModelThenRegularized DOES (the default). The phase runs on the exact model
+    /// and switches to kRegularized, from the point it stands at, on the FIRST of two
+    /// triggers inside its sub-solve (`SqpCounters::restoration_curvature_switches`):
+    ///   1. a walk subproblem's answer -- the elastic tier's, where that tier took the
+    ///      subproblem -- is kMaxIter or kNumericalError (where the sub-solve would
+    ///      otherwise route the failure itself, by shrinking its radius);
+    ///   2. the elastic tier -- which keeps its place first for an infeasible subproblem
+    ///      and for an E2-class or certificate-refusal exit at a violated linearization --
+    ///      is exhausted and raises the nested restoration request, which is never
+    ///      serviced inside a phase.
+    /// The switch restarts the phase only when budget remains and the model is finite at
+    /// that point; otherwise the stopped sub-solve's own exit stands. A phase that meets
+    /// neither trigger is byte-identical to kModel. Under kLbfgsDamped it is kModel: that
+    /// phase's QN model is convex by construction. Measurements:
+    /// docs/notes/data/2026-10-m7-rst/.
     SqpRestorationCurvature restoration_curvature = SqpRestorationCurvature::kModelThenRegularized;
 
     /// THE NUMBER OF RESTORATION PHASES ONE SOLVE MAY RUN (M7 W2 RST); >= 1.
@@ -1088,7 +1087,7 @@ struct SqpOptions {
     /// since the previous resume -- a request from the point the last phase handed back,
     /// with nothing done there, is refused as before. Every phase draws on the same
     /// `max_iter` budget, and each resume re-bases the funnel (KLV Algorithm 2). 10 is a
-    /// safety cap, not a tuned value (measured: NET3 runs three phases, BRITGAS two).
+    /// safety cap, not a tuned value (docs/notes/data/2026-10-m7-rst/).
     /// `validate()` refuses a value below 1.
     Index restoration_max_entries = 10;
 
@@ -1703,7 +1702,9 @@ struct SqpResult : SolveResult {
     /// counters. (Before the M7 W2 ladder round a solve that restored once and
     /// then met a second request, and one whose restoration was itself stuck,
     /// both reported kInfeasible with restoration_iters > 0; both are
-    /// kNumericalError now, L1.) Nor is the last row's verdict a reliable
+    /// kNumericalError now, L1 -- the first only when the entry rule refuses that
+    /// request: `SqpOptions::restoration_max_entries`, default 10, services a later
+    /// request made after an accepted step.) Nor is the last row's verdict a reliable
     /// discriminator: it is kRestore from the funnel's signature or the elastic
     /// tier's exhaustion but kReject from the radius floor, and any of the three
     /// kInfeasible outcomes can pair with either shape.

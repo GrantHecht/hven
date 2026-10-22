@@ -1388,7 +1388,9 @@ static_assert(counters_offsets_increase(kOffsetsIpqpCounters, kIpqpCountersField
 /// steps_accepted + restoration_iters + 1 as the unconditional upper bound.
 ///
 /// EXACT-HESSIAN-SPECIFIC (M9 label): this identity holds under SqpHessianMode::kExact only;
-/// `eval_hess_calls` is the measured count, and it is 0 under kLbfgsDamped.
+/// `eval_hess_calls` is the measured count, and it is 0 under kLbfgsDamped unless
+/// `SqpOptions::restoration_curvature == kRegularized`, whose phase runs the exact-Hessian
+/// path on the regularized wrapper (those folded calls never reach the caller's Hessian).
 ///
 /// BOTH ACCEPT/Reject counters are counted explicitly because the obvious identity
 /// IS FALSE. In general
@@ -2165,7 +2167,10 @@ struct SqpCounters {
     /// @brief THE CURVATURE SOURCE'S BILL (M7 QN stage 3): Lagrangian-Hessian
     ///        evaluations this solve made -- one per subproblem build and one per
     ///        warm-start structure probe under `SqpHessianMode::kExact`, and 0 under
-    ///        kLbfgsDamped by construction. Appended last; FOLDED from the
+    ///        kLbfgsDamped -- except that under `SqpOptions::restoration_curvature ==
+    ///        kRegularized` the phase's sub-solve runs the exact-Hessian path on the
+    ///        regularized wrapper, whose eval_hess calls are counted here and never
+    ///        reach the caller's model. Appended last; FOLDED from the
     ///        restoration sub-solve. NOT COUNTED, in either mode: the assembly
     ///        bridge's lay-time pattern walk, which reads the Hessian's structure
     ///        through one eval_hess per lay -- so one call per solve and one per
@@ -2233,12 +2238,15 @@ struct SqpCounters {
     ///        expected spelling of that case.
     Index scaled_convergence_refusals = 0;
     /// @brief THE RESTORATION PHASE'S CURVATURE SWITCHES (M7 W2 RST): restoration
-    ///        sub-solves that ran on the exact model and stopped at their first failed
-    ///        walk subproblem, so that the phase continued from that point on the
-    ///        regularized model (SqpOptions::restoration_curvature ==
-    ///        kModelThenRegularized). At most one per restoration entry; 0 under every
-    ///        other curvature mode and under kLbfgsDamped. Appended last; FOLDED from the
-    ///        restoration sub-solve, where it is counted.
+    ///        sub-solves on the exact model that met a switch trigger
+    ///        (SqpOptions::restoration_curvature == kModelThenRegularized): their first
+    ///        failed walk subproblem, or an exhausted elastic tier's nested restoration
+    ///        request. Counted at the stop; the phase then continues from that point on
+    ///        the regularized model unless its budget is spent or the model is not
+    ///        finite there, when the stopped sub-solve's exit stands. At most one per
+    ///        restoration entry; 0 under every other curvature mode and under
+    ///        kLbfgsDamped. Appended last; FOLDED from the restoration sub-solve, where
+    ///        it is counted.
     Index restoration_curvature_switches = 0;
 };
 

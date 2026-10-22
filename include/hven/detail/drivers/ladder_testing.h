@@ -18,7 +18,7 @@ namespace hven::solvers::detail::testing {
 /// the iterate kept. It stands in for a QP the engine does not solve (E2-D3: the
 /// DALLASM major-1 QP at a feasible point, the READING6 E2 terminations), which
 /// no small model reproduces. The restoration sub-driver is touched only by
-/// `fail_restoration_walk_qps`.
+/// `fail_restoration_walk_qps` and `exhaust_restoration_elastic`.
 struct SqpLadderSeam {
     /// How many walk subproblems to end kNumericalError; 0 = off.
     static inline int fail_walk_qps = 0;
@@ -42,6 +42,10 @@ struct SqpLadderSeam {
     /// subproblems to end kNumericalError the same way (multipliers cleared, the iterate
     /// kept, no E2 stamp); 0 = off. The knobs above never touch the sub-driver.
     static inline int fail_restoration_walk_qps = 0;
+    /// Of those forced exits, how many instead read kInfeasible and have their elastic
+    /// ladder end unusable (M7 W2 RST rider M1): the exhausted tier whose nested
+    /// restoration request is refused. 0 = off.
+    static inline int exhaust_restoration_elastic = 0;
     /// How many restoration sub-driver exits were forced (read by the test).
     static inline int forced_restoration = 0;
 
@@ -55,6 +59,7 @@ struct SqpLadderSeam {
         as_row_refusal = false;
         forced = 0;
         fail_restoration_walk_qps = 0;
+        exhaust_restoration_elastic = 0;
         forced_restoration = 0;
     }
 };

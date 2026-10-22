@@ -377,6 +377,7 @@ struct FunnelLog {
     std::vector<double> resets;  // h0 at each reset()
     std::vector<double> resumes; // h_restored at each resume_from_restoration()
     std::vector<double> width_after_resume;
+    std::vector<double> width_before_resume; // the width each resume found
     std::vector<StepVerdict> verdict;
     Index judged = 0;
 };
@@ -390,6 +391,7 @@ class RecordingFunnel final : public GlobalizationStrategy {
         log_->resets.push_back(h0);
     }
     void resume_from_restoration(double h) override {
+        log_->width_before_resume.push_back(inner_.width());
         inner_.resume_from_restoration(h);
         log_->resumes.push_back(h);
         log_->width_after_resume.push_back(inner_.width());
@@ -4101,6 +4103,29 @@ TEST(RestorationModelRegularized, ReadsHFromTheLastTwoEvaluatedPointsAndCountsEv
               dense(reg.eval_hess(y3, 1.0, Vec::Zero(2), Vec(0))));
 }
 
+// ONE VALUES QUERY PER POINT WITH BOTH ROW KINDS (M7 W2 RST rider M5): a point whose
+// equality and inequality rows are both missing from the memo is read through eval_ce AND
+// eval_ci, and charged once; a point missing only one block is charged once too.
+TEST(RestorationModelRegularized, ChargesOneValuesQueryPerPointWhateverBlocksItReads) {
+    MixedScaleRowsModel model;
+    Vec x_entry(2);
+    x_entry << 0.0, 0.0;
+    const RestorationModel reg(model, x_entry, eval_nlp(model, x_entry), x_entry, 0.0, true);
+    ASSERT_EQ(reg.me(), 1);
+    ASSERT_EQ(reg.mi(), 1);
+    Vec y1 = reg.start_point(), y2 = y1;
+    y1(0) = 0.5;
+    y2(0) = 0.25;
+    (void)reg.eval_hess(y1, 1.0, Vec::Zero(1), Vec::Zero(1));
+    EXPECT_EQ(reg.curvature_residual_evals(), 1) << "both blocks read, one query";
+    (void)reg.eval_ce(y2); // the equality rows in hand, the inequality rows not
+    (void)reg.eval_hess(y2, 1.0, Vec::Zero(1), Vec::Zero(1));
+    EXPECT_EQ(reg.curvature_residual_evals(), 2) << "one block read, one query";
+    (void)reg.eval_ci(y2);
+    (void)reg.eval_hess(y2, 1.0, Vec::Zero(1), Vec::Zero(1));
+    EXPECT_EQ(reg.curvature_residual_evals(), 2) << "both blocks in hand, no query";
+}
+
 TEST(RestorationModelRegularized, SumsTheProximityTermsOwnCurvatureOnItsScaling) {
     LinearPairModel model;
     Vec x_entry(2);
@@ -4168,6 +4193,70 @@ TEST(SqpDriverRestorationEntries, ASecondRequestAfterProgressIsServicedOnlyAbove
         EXPECT_FALSE(sol.infeasibility_certified) << "the NLP is feasible: no claim is made";
         EXPECT_LT(sol.counters.major_iters + sol.counters.restoration_iters, opts.max_iter);
     }
+}
+
+// THE RE-BASED FUNNEL WIDTH ON A SECOND RESUME (M7 W2 RST rider L6). RunawayValleyModel
+// with a ten-times steeper valley wall (c = x1 + 1e4 x0^2) and a ten-times weaker pull
+// (f's x1 coefficient -1): restoration resumes, the loop runs out to the next stall, and the
+// second phase resumes too. Each resume re-bases the funnel from the width it FOUND, KLV
+// Algorithm 2: tau = (1 - kappa) h_restored + kappa tau_prev -- never the Eq. (9) reset.
+// (The recorder is a decorator, so the driver's FunnelStrategy-only hooks -- the
+// rejected-step retraction -- do not reach it; the figures below are this run's own.)
+class SteepRunawayValleyModel final : public RunawayValleyModel {
+  public:
+    double eval_f(const Vec &x) const override {
+        return -1.0 * x(1) - 0.01 * x(0) + 0.0005 * (x(0) * x(0) + x(1) * x(1));
+    }
+    Vec eval_grad(const Vec &x) const override {
+        Vec g(2);
+        g << 0.001 * x(0) - 0.01, 0.001 * x(1) - 1.0;
+        return g;
+    }
+    Vec eval_ce(const Vec &x) const override {
+        Vec c(1);
+        c << x(1) + 1.0e4 * x(0) * x(0);
+        return c;
+    }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &lambda_e,
+                      const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = obj_scale * 0.001 + lambda_e(0) * 2.0e4;
+        h.insert(1, 1) = obj_scale * 0.001;
+        h.makeCompressed();
+        return h;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &x) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> j(1, 2);
+        j.insert(0, 0) = 2.0e4 * x(0);
+        j.insert(0, 1) = 1.0;
+        j.makeCompressed();
+        return j;
+    }
+};
+
+TEST(SqpDriverRestorationEntries, TheSecondResumeReBasesTheFunnelFromTheWidthItFound) {
+    SteepRunawayValleyModel model;
+    SqpOptions opts;
+    opts.tr_init = 8.0;
+    opts.max_iter = 300;
+    ASSERT_EQ(opts.restoration_max_entries, 10);
+    FunnelLog log;
+    record_funnel_into(opts, &log);
+    const SqpResult sol = SqpSolver(opts).solve(model);
+    ASSERT_EQ(sol.counters.restoration_entries, 2);
+    ASSERT_EQ(log.resumes.size(), 2u) << "both phases resumed";
+    ASSERT_EQ(log.resets.size(), 1u) << "and neither through reset()";
+    for (std::size_t k = 0; k < 2; ++k) {
+        SCOPED_TRACE(k);
+        ASSERT_TRUE(std::isfinite(log.width_before_resume[k]));
+        EXPECT_LE(log.resumes[k], opts.feas_tol);
+        EXPECT_DOUBLE_EQ(log.width_after_resume[k],
+                         (1.0 - detail::kFunnelKappa) * log.resumes[k] +
+                             detail::kFunnelKappa * log.width_before_resume[k]);
+    }
+    // The second re-base starts from the width the resumed loop carried to its next stall.
+    EXPECT_LE(log.width_before_resume[1], log.width_after_resume[0]);
+    EXPECT_EQ(sol.status, SolveStatus::kOptimal) << "OBSERVED. MKL, clang++, Release.";
 }
 
 TEST(RestorationEntriesOption, RefusesFewerThanOnePhaseByNameAndValue) {

@@ -1936,7 +1936,8 @@ class SqpSolver {
     Index qn_struct_vars_ = -1;
     // THE PHASE'S CURVATURE SWITCH (M7 W2 RST): set only by the restoration phase on its
     // sub-driver under SqpOptions::restoration_curvature == kModelThenRegularized. The
-    // first failed walk subproblem then ends this sub-solve at its iterate
+    // first failed walk subproblem then ends this sub-solve at its iterate, and an exhausted
+    // elastic tier's refused nested request is counted the same way
     // (`restoration_curvature_switches`), for the parent to restart on the regularized model.
     bool stop_phase_on_qp_failure_ = false;
     // eval_hess calls make_warm_start's exit probe made, folded by `finish` (whose arguments

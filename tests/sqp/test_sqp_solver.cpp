@@ -8437,6 +8437,29 @@ TEST(SqpDriverSsnMode, RestorationStaysOnTheWalkUnderKSsn) {
         << "sqp_solver_types.h's own invariant, which the unfolded nested counters used to break";
 }
 
+// THE SAME FIXTURE AT THE SHIPPED RESTORATION LEVERS (M7 W2 RST rider L4), no seam:
+// kModelThenRegularized and restoration_max_entries = 10. The phase's walk subproblems all
+// solve on the exact model, so the curvature switch never fires; the entry rule services a
+// second request after the resumed loop's accepted steps, and the solve then ends at the
+// budget. The figures below pin what the defaults do on this fixture.
+TEST(SqpDriverSsnMode, AtTheShippedRestorationLeversThePhaseReEntersWithoutASwitch) {
+    SecondOrderInfeasibleModel model;
+    SqpOptions opts = ssn_mode_options(20);
+    opts.tr_init = 8.0;
+    ASSERT_EQ(opts.restoration_curvature, SqpRestorationCurvature::kModelThenRegularized);
+    ASSERT_EQ(opts.restoration_max_entries, 10);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
+    EXPECT_EQ(0, sol.counters.restoration_curvature_switches) << "OBSERVED. MKL, clang++, Release.";
+    EXPECT_EQ(2, sol.counters.restoration_entries) << "OBSERVED. MKL, clang++, Release.";
+    EXPECT_EQ(2, sol.counters.restoration_iters) << "OBSERVED. MKL, clang++, Release.";
+    EXPECT_EQ(131, sol.counters.ssn.ssn_iters)
+        << "the MAIN loop's SSN work, as at the pre-RST levers: the phase stays on the walk";
+    EXPECT_EQ(219, sol.counters.factorizations) << "OBSERVED. MKL, clang++, Release.";
+    EXPECT_EQ(SolveStatus::kMaxIter, sol.status) << "OBSERVED. MKL, clang++, Release.";
+    EXPECT_FALSE(sol.infeasibility_certified);
+}
+
 // =====================================================================
 // FIX ROUND 1 (F-D). THE PROBE BUDGET SEES SSN WORK.
 //

@@ -54,8 +54,9 @@ enum class QpStatus {
 /// - Not certified: the sub-solve converged with h above feas_tol but the
 /// certificate gate refused it (restoration_proximity > 0), or E1's
 /// inconsistent-equalities exit. NO CLAIM is made about the model.
-/// An UNSERVICEABLE restoration request (nested, or past the once-per-solve
-/// cap) is kNumericalError, never kInfeasible (M7 W2 ladder round, L1).
+/// An UNSERVICEABLE restoration request (nested, or refused by the entry rule:
+/// SqpOptions::restoration_max_entries and its progress guard) is
+/// kNumericalError, never kInfeasible (M7 W2 ladder round, L1).
 ///
 /// THE ONLY FIELD DISTINGUISHING THE TWO SHAPES IS
 /// SqpResult::infeasibility_certified. counters.restoration_iters does NOT

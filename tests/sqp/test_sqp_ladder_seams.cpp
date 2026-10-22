@@ -960,4 +960,121 @@ TEST(SqpLadderSeam, UnderTheQuasiNewtonModeAFailedPhaseSubproblemDoesNotSwitch) 
     EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
 }
 
+// THE SWITCH'S SECOND TRIGGER (M7 W2 RST rider M1). The phase's first walk subproblem is
+// forced kInfeasible and its elastic ladder exhausted, so the sub-solve raises the NESTED
+// restoration request, which a phase never services. Under kModel that refusal ends the
+// sub-solve numerical_error, and the solve with it, no claim made. Under
+// kModelThenRegularized the refusal is the switch: the phase restarts from the unmoved
+// iterate on the regularized model and certifies the same infeasible point.
+TEST(SqpLadderSeam, AnExhaustedElasticTierInsideThePhaseTakesTheRegularizedRestart) {
+    for (const auto curvature :
+         {SqpRestorationCurvature::kModelThenRegularized, SqpRestorationCurvature::kModel}) {
+        const bool switches = curvature == SqpRestorationCurvature::kModelThenRegularized;
+        SCOPED_TRACE(switches ? "kModelThenRegularized" : "kModel");
+        const SeamReset guard;
+        Seam::fail_restoration_walk_qps = 1;
+        Seam::exhaust_restoration_elastic = 1;
+        CountingCircleLineModel model;
+        SqpOptions o = quiet();
+        o.max_iter = 200;
+        o.restoration_curvature = curvature;
+        const SqpResult sol = SqpSolver(o).solve(model);
+        ASSERT_EQ(Seam::forced_restoration, 1);
+        ASSERT_EQ(Seam::exhaust_restoration_elastic, 0) << "the forced exit reached the knob";
+        EXPECT_GE(sol.counters.elastic_activations, 1) << "the elastic tier ran first";
+        EXPECT_EQ(sol.counters.restoration_entries, 1);
+        EXPECT_EQ(sol.counters.restoration_curvature_switches, switches ? 1 : 0);
+        if (switches) {
+            EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
+            EXPECT_TRUE(sol.infeasibility_certified);
+            const double t = 1.0 / std::sqrt(2.0);
+            EXPECT_NEAR(sol.x(0), t, 1e-5);
+            EXPECT_NEAR(sol.x(1), t, 1e-5);
+        } else {
+            EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
+            EXPECT_FALSE(sol.infeasibility_certified);
+        }
+        EXPECT_EQ(model.n_ce, sol.counters.evals_full + sol.counters.evals_values);
+    }
+}
+
+// THE EVALUATION IDENTITY WITH BOTH ROW KINDS (M7 W2 RST rider M5). min x0 + x1 s.t.
+// x0^2 + x1^2 = 1, 2 - x0 - x1 <= 0 is infeasible with the same h-minimizer as the
+// equality pair above. The regularized wrapper reads h at a point it has not evaluated
+// through BOTH eval_ce and eval_ci, and that is ONE values query: every row block of the
+// caller's model is read exactly once per counted query, on the forced switch and off it.
+namespace {
+class CountingCircleHalfPlaneModel final : public NlpModel {
+  public:
+    mutable Index n_ce = 0;
+    mutable Index n_ci = 0;
+    Index n() const override { return 2; }
+    Index me() const override { return 1; }
+    Index mi() const override { return 1; }
+    double eval_f(const Vec &x) const override { return x(0) + x(1); }
+    Vec eval_grad(const Vec &) const override { return Vec::Ones(2); }
+    Vec eval_ce(const Vec &x) const override {
+        ++n_ce;
+        Vec c(1);
+        c << x(0) * x(0) + x(1) * x(1) - 1.0;
+        return c;
+    }
+    Vec eval_ci(const Vec &x) const override {
+        ++n_ci;
+        Vec c(1);
+        c << 2.0 - x(0) - x(1);
+        return c;
+    }
+    SpMatRM eval_hess(const Vec &, double, const Vec &lambda_e, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = 2.0 * lambda_e(0);
+        h.insert(1, 1) = 2.0 * lambda_e(0);
+        h.makeCompressed();
+        return h;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &x) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> j(1, 2);
+        j.insert(0, 0) = 2.0 * x(0);
+        j.insert(0, 1) = 2.0 * x(1);
+        j.makeCompressed();
+        return j;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> j(1, 2);
+        j.insert(0, 0) = -1.0;
+        j.insert(0, 1) = -1.0;
+        j.makeCompressed();
+        return j;
+    }
+    const Vec &lower() const override {
+        static const Vec l = Vec::Constant(2, -1e20);
+        return l;
+    }
+    const Vec &upper() const override {
+        static const Vec u = Vec::Constant(2, 1e20);
+        return u;
+    }
+    Vec start_point() const override { return Vec::Constant(2, 2.0); }
+};
+} // namespace
+
+TEST(SqpLadderSeam, EveryRowBlockIsReadOncePerCountedQueryWithBothRowKinds) {
+    for (const int forced : {0, 1}) {
+        SCOPED_TRACE(forced);
+        const SeamReset guard;
+        Seam::fail_restoration_walk_qps = forced;
+        CountingCircleHalfPlaneModel model;
+        SqpOptions o = quiet();
+        o.max_iter = 200;
+        const SqpResult sol = SqpSolver(o).solve(model);
+        ASSERT_EQ(Seam::forced_restoration, forced);
+        ASSERT_GE(sol.counters.restoration_entries, 1) << "fixture premise: the phase runs";
+        EXPECT_EQ(sol.counters.restoration_curvature_switches, forced);
+        EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
+        EXPECT_TRUE(sol.infeasibility_certified);
+        EXPECT_EQ(model.n_ce, sol.counters.evals_full + sol.counters.evals_values);
+        EXPECT_EQ(model.n_ci, sol.counters.evals_full + sol.counters.evals_values);
+    }
+}
+
 } // namespace hven::solvers

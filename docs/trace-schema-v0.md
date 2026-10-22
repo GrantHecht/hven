@@ -24,7 +24,7 @@ The first four keys are always these, in this order:
 | `v` | integer | schema version. **0** for the whole of M6. |
 | `ev` | string | the event name, from §3's table. |
 | `seq` | integer | **per SINK**, not per solve: a monotone counter starting at 1, so a reader can prove it saw every line. Two solves on one sink share one numbering. |
-| `depth` | integer | the number of ENCLOSING `sqp.solve` brackets. 0 at the top level; the restoration sub-solve's lines — its own `sqp.solve` pair included — read 1. |
+| `depth` | integer | the number of ENCLOSING `sqp.solve` brackets. 0 at the top level; every restoration sub-solve's lines — its own `sqp.solve` pair included — read 1. One restoration entry runs ONE sub-solve, or TWO under the phase's curvature switch (`SqpOptions::restoration_curvature`; `restoration_curvature_switches`): two depth-1 `sqp.solve` pairs back to back, the second's `iteration` restarting at 0. A solve may run several entries (`SqpOptions::restoration_max_entries`). |
 
 `seq` and `depth` are **sink-owned**: no event struct carries either. `depth`
 moves on `sqp.solve` begin/end only; the `ipm.solve` pair does **not** move it
@@ -221,10 +221,11 @@ CONFIGURED mode; the same line's `qp_solved` tells the two apart. Such a row is
 the solve's stopped-AT row or a `rolled_back` row (mid-history, possibly several
 per solve).
 
-**A restoration-requesting row's `sqp.major` line FOLLOWS the nested solve** it
+**A restoration-requesting row's `sqp.major` line FOLLOWS the nested solve(s)** it
 asked for. The row is pushed with its FINAL values, and `restoration_seed_used`
-is only known after the sub-solve returns — so a depth-0 bracket can contain a
-whole depth-1 solve, and a reader joining on `seq` must expect it.
+is only known after the phase returns — so a depth-0 bracket can contain a
+whole depth-1 solve, or two under the curvature switch (§1's `depth` row), and a
+reader joining on `seq` must expect it.
 
 ### 4.4 `qp.mode`
 
@@ -716,7 +717,7 @@ FIRST `double`s IN THE DIRECT BLOCK.**
 
 | counter | type | source | meaning |
 |---|---|---|---|
-| `restoration_entries` | integer | `SqpCounters::restoration_entries` | restoration phases that RAN and were MEASURED — the resume arm and the not-feasible-enough arm. NOT `restoration_iters`, which counts the sub-solve's majors: one entry of sixteen iterations reads `1` here and `16` there. The three refusals (nested, the once-per-solve cap, no budget) and the non-finite exit move nothing |
+| `restoration_entries` | integer | `SqpCounters::restoration_entries` | restoration phases that RAN and were MEASURED — the resume arm and the not-feasible-enough arm. NOT `restoration_iters`, which counts the sub-solve's majors: one entry of sixteen iterations reads `1` here and `16` there. The three refusals (nested, the entry rule -- `SqpOptions::restoration_max_entries` and its progress guard -- and no budget) and the non-finite exit move nothing |
 | `restoration_h_in` | number | `SqpCounters::restoration_h_in` | the l1 constraint violation `sum \|c_e\| + sum max(0, c_i)` at the iterate that REQUESTED the last measured entry — not at the seed the phase may have started from |
 | `restoration_h_out` | number | `SqpCounters::restoration_h_out` | the same quantity at the point that entry RETURNED. Not the resume test's reading since M7 W2 SNR (that is `restoration_feas_out`, the inf-norm); as an l1 sum it bounds the rows' inf-norm from above, so `restoration_h_out <= feas_tol` on an in-box point implies the entry resumed, not conversely |
 | `restoration_f_in` | number | `SqpCounters::restoration_f_in` | the objective at the requesting iterate. An ABSOLUTE, never a ratio: a ratio is undefined near `f_in = 0` and meaningless across a sign change |
@@ -864,6 +865,7 @@ group; `SqpOptions::hessian_mode`).
 | `nonfinite_step_rollbacks` | integer | `SqpCounters::nonfinite_step_rollbacks` | accepted steps rejected after the fact (M7 W2 R2-1): the first major after a commit found the committed point's gradient, `H`, `A` or `g` non-finite, restored the previous iterate (its evaluation and prices) and the funnel width, and shrank the radius the step was taken under; that major's row describes the abandoned point, `qp_solved` false. A rolled-back step stays in `steps_accepted`. Not taken across the radius floor, in the full-step mode, or at a point no commit reached -- those end through `nonfinite_subproblems` as before. Folded from the restoration sub-solve |
 | `restoration_feas_out` | number | `SqpCounters::restoration_feas_out` | the inf-norm violation, rows and box, at the point the last restoration entry RETURNED (M7 W2 SNR): the convergence test's own feasibility measure and the exact value the resume test compares against `SqpOptions::feas_tol`. So `restoration_feas_out <= feas_tol` iff that entry resumed -- unless an entry counted in `restoration_reduction_resumes` resumed above it. Same overwrite rule and units as `restoration_h_out`; not folded |
 | `scaled_convergence_refusals` | integer | `SqpCounters::scaled_convergence_refusals` | measured iterates at which the convergence test passed in the engine's SCALED units and was refused by the caller-unit feasibility guard (M7 W2 SCL): each row residual over its row factor, each box violation times its column factor, against `feas_tol`. 0 on a solve that ran unscaled; not folded (the restoration sub-solve runs unscaled) |
+| `restoration_curvature_switches` | integer | `SqpCounters::restoration_curvature_switches` | restoration sub-solves on the exact model stopped for the phase's curvature switch (M7 W2 RST, `SqpOptions::restoration_curvature = kModelThenRegularized`, the default): at their first failed walk subproblem, or at an exhausted elastic tier's nested restoration request. Counted at the stop; the phase then restarts there on the regularized model unless its budget is spent or the model is not finite there. At most one per restoration entry; 0 under `kModel`, `kRegularized` and `kLbfgsDamped`. Folded from the restoration sub-solve |
 
 LAST in the table and last in the struct, after `restoration_reduction_resumes`, so
 the counters object gains exactly fourteen keys before the `ssn` object and the two
@@ -899,6 +901,11 @@ both golden lines re-derived ONCE with a "RE-DERIVED AT M7 W2 SCL" note. The sca
 block below the counters is UNCHANGED by that round: it carries the row/objective
 layer's five values only, and the column layer's factors are reported on
 `SqpResult::scaling` (`columns_active`, `col_min`, `col_max`, `col_spread`), not here.
+
+**THE DIRECT COUNTER M7 W2 RST APPENDED — ONE** (`restoration_curvature_switches`, the
+table row above). LAST in the struct, after `scaled_convergence_refusals`, same route:
+one key before the `ssn` object, the nested tables' distinct values up by one, no
+sentinel, both golden lines re-derived ONCE with a "RE-DERIVED AT M7 W2 RST" note.
 
 ## 6. The mode-selection telemetry on `sqp.major`
 
@@ -944,9 +951,10 @@ M6 reads them.
 
 1. **Order is the join key.** Every `qp.mode`, `fallback.verdict` and IPQP line
    belongs to the major whose `sqp.major` line comes NEXT at the same depth.
-2. **A depth-0 bracket may contain a whole depth-1 solve**, and a
-   restoration-requesting row's `sqp.major` line FOLLOWS that nested solve
-   (§4.3).
+2. **A depth-0 bracket may contain a whole depth-1 solve** -- two back to
+   back when the phase's curvature switch restarts it, the second's iteration
+   numbering from 0 -- and a restoration-requesting row's `sqp.major` line
+   FOLLOWS those nested solves (§4.3).
 3. **`sqp.solve` begin/end PARTITIONS a multi-solve stream.** Two solves on one
    sink share `seq` contiguously and are told apart by their pairs.
 4. **Tolerate exactly one malformed line, at a truncation point**, and take the

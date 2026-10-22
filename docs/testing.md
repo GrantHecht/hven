@@ -1060,7 +1060,7 @@ It ends the TOP-LEVEL driver's next `fail_walk_qps` kOptimal walk subproblems th
 way the engine's own N3 exit ends one — `kNumericalError`, multipliers cleared, the
 iterate kept, and (by default) `dep_blocker_terminations = 1` — optionally only once
 the solve's one restoration has resumed. The restoration sub-driver is touched
-only by the M7 W2 RST knob below. Two knobs added at M7 W2 R2 fix 1: `pass_walk_qps` lets that many kOptimal
+only by the two M7 W2 RST knobs below. Two knobs added at M7 W2 R2 fix 1: `pass_walk_qps` lets that many kOptimal
 walk subproblems through before the first forced exit, and a non-empty
 `forced_point` makes the forced exit's iterate the step to that point (in the
 engine's variables, so its fixtures turn scaling off) -- a walk that stopped
@@ -1073,11 +1073,18 @@ feasible iterate). One knob added at SDL-6: `as_row_refusal` stamps the exit
 `certificate_row_refusals = 1`, the certificate's row-half refusal (a structural row
 violation with no verified Farkas certificate), routed the same way. One knob added
 at M7 W2 RST: `fail_restoration_walk_qps` ends that many kOptimal walk subproblems of
-the RESTORATION SUB-DRIVER the same way (no E2 stamp) -- the one knob that touches the
-sub-driver -- so the phase's curvature switch
+the RESTORATION SUB-DRIVER the same way (no E2 stamp) -- with its companion below, the
+only knobs that touch the sub-driver -- so the phase's curvature switch
 (`SqpOptions::restoration_curvature == kModelThenRegularized`) has a fixture; the
 nonconvex restoration QPs it stands in for (BRITGAS's, NET3's) are far too large for a
-unit test.
+unit test. Its companion `exhaust_restoration_elastic` (RST rider M1) makes that many of
+those forced exits read `kInfeasible` instead and ends their elastic ladder unusable, so
+the switch's second trigger -- the exhausted tier's nested restoration request, refused
+inside a phase -- has a fixture too. The small models the suite does run unseamed do not
+reach the switch: `SecondOrderInfeasibleModel` under kSsn at the shipped levers is a
+SECOND-ENTRY fixture, not a switch one -- its phase QPs all solve on the exact model, and
+`SqpDriverSsnMode.AtTheShippedRestorationLeversThePhaseReEntersWithoutASwitch` pins that
+(two entries, zero switches).
 
 It is an INJECTED result, and faithful for the one question it serves: how the
 driver routes a failed QP (L1's refused-request spelling, L3's E2-termination
