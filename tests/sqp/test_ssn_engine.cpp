@@ -660,6 +660,36 @@ TEST(SsnEngineLocal, SeededZOnAnAbsentBoundThrows) {
     EXPECT_NO_THROW(engine.solve(qp, priced, SsnOptions{}, &res));
 }
 
+// YKN-S1: the YORKNET seed, z(13) = -1.8e-26 on an absent upper bound, is round-off,
+// not mass. It is accepted and changes nothing; a price just above the relative band
+// still throws.
+TEST(SsnEngineLocal, ARoundOffPriceOnAnAbsentBoundIsZero) {
+    const QpProblem qp = two_row_qp(); // both bounds at the +/-1e20 sentinel
+    SsnEngine engine(default_opts());
+    SsnResult clean;
+    engine.solve(qp, SsnStart{}, SsnOptions{}, &clean);
+
+    SsnStart noisy;
+    noisy.z = Vec::Zero(2);
+    noisy.z(1) = -1.8e-26;
+    noisy.z(0) = 1.8e-26;
+    SsnResult res;
+    ASSERT_NO_THROW(engine.solve(qp, noisy, SsnOptions{}, &res));
+    EXPECT_EQ(res.status, clean.status);
+    EXPECT_EQ(res.x, clean.x);
+    EXPECT_EQ(res.z, clean.z);
+
+    // The band is relative to the seed's own scale, with a floor of 1.
+    SsnStart above;
+    above.z = Vec::Zero(2);
+    above.z(1) = -4.0 * hven::solvers::detail::kSsnAbsentPriceRoundoff;
+    EXPECT_THROW(engine.solve(qp, above, SsnOptions{}, &res), std::invalid_argument);
+    SsnStart at_band;
+    at_band.z = Vec::Zero(2);
+    at_band.z(1) = -hven::solvers::detail::kSsnAbsentPriceRoundoff;
+    EXPECT_NO_THROW(engine.solve(qp, at_band, SsnOptions{}, &res));
+}
+
 // =============================================================================
 // THE PER-SOLVE TRUST-REGION SEAM (Fable kernel review, I1)
 // =============================================================================

@@ -52,6 +52,10 @@ namespace detail {
 // reached for so this header depends on the QP data types only, not on the
 // walk's internals.
 inline constexpr double kSsnInfBound = 1e20;
+// The relative band below which a seeded bound price on an ABSENT side is read as
+// round-off rather than a caller error (SsnEngine::split_bound_multipliers).
+// 1024 ulps of 1.0.
+inline constexpr double kSsnAbsentPriceRoundoff = 1024.0 * 2.220446049250313e-16;
 
 // Floor applied to alpha = d phi / d s before it is divided by. alpha_f appears
 // in BOTH the FB diagonal and the right-hand side, so it CANCELS in the
@@ -849,8 +853,9 @@ class SsnEngine {
     //
     // A seeded z that prices a bound this QP does NOT have is a CALLER ERROR and
     // THROWS: z(j) > 0 prices variable j's lower bound and z(j) < 0 its upper one,
-    // and if that side is absent the mass has nowhere to go. THE TEST IS EXACT
-    // ZERO, not a tolerance -- an absent side has no multiplier at all.
+    // and if that side is absent the mass has nowhere to go. A price within
+    // kSsnAbsentPriceRoundoff * max(1, ||z||_inf) of zero is round-off, not mass,
+    // and is accepted (and, having no row, ignored); anything above it throws.
     //
     // The absent-side test reads the real bound, Not the effective one, and a TR
     // row is seeded at zero: a caller's z prices the QP's own bounds, so a finite
