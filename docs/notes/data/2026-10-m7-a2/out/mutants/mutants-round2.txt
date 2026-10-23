@@ -1,0 +1,72 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:44:29-04:00
+FOREGROUND_END rc=0 2026-10-23T07:44:35-04:00
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:44:35-04:00
+FOREGROUND_END rc=0 2026-10-23T07:44:35-04:00
+[----------] 4 tests from IpqpMuResidualFloor (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 18 tests from 3 test suites ran. (8 ms total)
+[  PASSED  ] 18 tests.
+MUTANT M5 strict positivity not checked: SURVIVED
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:44:35-04:00
+FOREGROUND_END rc=0 2026-10-23T07:44:41-04:00
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:44:41-04:00
+FOREGROUND_END rc=0 2026-10-23T07:44:41-04:00
+[----------] 4 tests from IpqpMuResidualFloor (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 18 tests from 3 test suites ran. (8 ms total)
+[  PASSED  ] 18 tests.
+MUTANT M7 the ladder high-water mark is not restored: SURVIVED
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:44:41-04:00
+FOREGROUND_END rc=0 2026-10-23T07:44:47-04:00
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:44:47-04:00
+FOREGROUND_END rc=1 2026-10-23T07:44:47-04:00
+[  PASSED  ] 17 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] IpqpMu0Rule.AFallbackLeavesTheLadderMemoryAsOffFindsIt
+
+ 1 FAILED TEST
+MUTANT M8 the ladder memory is not restored: KILLED by IpqpMu0Rule.AFallbackLeavesTheLadderMemoryAsOffFindsIt
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:44:47-04:00
+FOREGROUND_END rc=0 2026-10-23T07:44:53-04:00
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:44:53-04:00
+FOREGROUND_END rc=1 2026-10-23T07:44:53-04:00
+[  PASSED  ] 17 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] IpqpMuResidualFloor.TheCounterIsTheNeighbourhoodRuleReadOffTheTrace
+
+ 1 FAILED TEST
+MUTANT M14 the floor's beta is r_s, not max(1, r_s): KILLED by IpqpMuResidualFloor.TheCounterIsTheNeighbourhoodRuleReadOffTheTrace
+SUMMARY
+  M5 strict positivity not checked: SURVIVED
+  M7 the ladder high-water mark is not restored: SURVIVED
+  M8 the ladder memory is not restored: KILLED by IpqpMu0Rule.AFallbackLeavesTheLadderMemoryAsOffFindsIt
+  M14 the floor's beta is r_s, not max(1, r_s): KILLED by IpqpMuResidualFloor.TheCounterIsTheNeighbourhoodRuleReadOffTheTrace
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:44:53-04:00
+FOREGROUND_END rc=0 2026-10-23T07:44:59-04:00
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+RESTORED_BUILD rc=0
