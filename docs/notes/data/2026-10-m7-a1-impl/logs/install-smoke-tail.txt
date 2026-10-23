@@ -1,0 +1,5 @@
+install smoke: SqpSolver converged, objective = 17.0140173 (OK)
+install smoke: both solvers converged through one generic consumer; 19 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/agent-ad5e6e56c9da5d8a5/.scratch/a1i/smoke-work/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/agent-ad5e6e56c9da5d8a5/.scratch/a1i/smoke-work/hven-configure.log

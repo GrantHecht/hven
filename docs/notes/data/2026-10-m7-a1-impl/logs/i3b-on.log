@@ -1,0 +1,6 @@
+f7-path f7_n1000_path_neutral: optimal facts=11546
+f7-path f7_n1000_path_physics: optimal facts=80
+f7-path f7_n800_path_neutral: optimal facts=138
+f7-path f7_n800_path_physics: optimal facts=81
+f7-path f7_n750_path_neutral_control: optimal facts=8919
+f7-path f7_n825_path_neutral_control: optimal facts=134

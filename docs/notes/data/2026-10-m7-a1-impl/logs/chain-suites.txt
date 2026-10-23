@@ -1,0 +1,37 @@
+HEAD ebef6ca2a953cf216fd4e55bd2d753137670100d DIRTY=0
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:28:43-04:00
+FOREGROUND_END rc=0 2026-10-23T06:30:35-04:00
+
+The following tests did not run:
+	420 - IpqpMarginI1.TheFixtureClassUnderEveryArm (Disabled)
+	667 - MeasurementArm.E1TwentyNineCellsUnderOneArm (Disabled)
+	668 - MeasurementArm.FinalPassExponentsOfCommittedRowsByTruth (Disabled)
+	669 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1931 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1932 - EqpRefinementAb.FullBattery (Disabled)
+100% tests passed, 0 tests failed out of 3216
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:30:35-04:00
+FOREGROUND_END rc=0 2026-10-23T06:37:10-04:00
+	531 - QpE2Fix9StandstillRetreat.Acopp118Qp0Border (Skipped)
+	532 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	533 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	667 - MeasurementArm.E1TwentyNineCellsUnderOneArm (Disabled)
+	668 - MeasurementArm.FinalPassExponentsOfCommittedRowsByTruth (Disabled)
+	669 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1930 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1931 - EqpRefinementAb.FullBattery (Disabled)
+100% tests passed, 0 tests failed out of 3215
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:37:10-04:00
+FOREGROUND_END rc=0 2026-10-23T06:39:55-04:00
+Test project /home/ghecht/Projects/hven/.claude/worktrees/agent-ad5e6e56c9da5d8a5/.scratch/a1i/build-dbg
+    Start 1780: Continuation.ProbeBudgetBoundsAFailingProposal
+1/1 Test #1780: Continuation.ProbeBudgetBoundsAFailingProposal ...   Passed  164.82 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) = 164.89 sec
+100% tests passed, 0 tests failed out of 1
+SUITES_DONE fail=0 2026-10-23T06:39:55-04:00

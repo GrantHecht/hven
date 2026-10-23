@@ -1,0 +1,20 @@
+3216/3221 Test #3218: Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <4C-00 00-00 00-00 00-00 4E-78 59-07 00-00 00-00>, 24-byte object <0B-79 59-07 00-00 00-00 01-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00>) ...   Passed    0.01 sec
+          Start 3220: Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <4C-00 00-00 00-00 00-00 4E-78 59-07 00-00 00-00>, 24-byte object <0E-79 59-07 00-00 00-00 01-00 00-00 00-00 00-00 E8-03 00-00 00-00 00-00>)
+3217/3221 Test #3219: Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <4C-00 00-00 00-00 00-00 4E-78 59-07 00-00 00-00>, 24-byte object <D0-AB 55-07 00-00 00-00 00-00 00-00 00-00 00-00 E8-03 00-00 00-00 00-00>) ...   Passed    0.01 sec
+          Start 3221: Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <4C-00 00-00 00-00 00-00 4E-78 59-07 00-00 00-00>, 24-byte object <1B-CE 55-07 00-00 00-00 00-00 00-00 00-00 00-00 90-01 00-00 00-00 00-00>)
+3218/3221 Test #3220: Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <4C-00 00-00 00-00 00-00 4E-78 59-07 00-00 00-00>, 24-byte object <0E-79 59-07 00-00 00-00 01-00 00-00 00-00 00-00 E8-03 00-00 00-00 00-00>) ...   Passed    0.01 sec
+3219/3221 Test #3221: Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <4C-00 00-00 00-00 00-00 4E-78 59-07 00-00 00-00>, 24-byte object <1B-CE 55-07 00-00 00-00 00-00 00-00 00-00 00-00 90-01 00-00 00-00 00-00>) ...   Passed    0.01 sec
+3220/3221 Test #2192: IpqpMarginStop.OnTheE1TightMarginClassTheExtensionAndDemotionRecoverThePolish ......................................................................................................................................   Passed    1.09 sec
+3221/3221 Test #2193: IpqpMarginStop.OnTheE1TightMarginClassTheExponentTestLeavesSlackCollapsingRowsCommitted ............................................................................................................................   Passed    1.71 sec
+
+100% tests passed, 0 tests failed out of 3216
+
+Total Test time (real) = 112.30 sec
+
+The following tests did not run:
+	420 - IpqpMarginI1.TheFixtureClassUnderEveryArm (Disabled)
+	667 - MeasurementArm.E1TwentyNineCellsUnderOneArm (Disabled)
+	668 - MeasurementArm.FinalPassExponentsOfCommittedRowsByTruth (Disabled)
+	669 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1931 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1932 - EqpRefinementAb.FullBattery (Disabled)

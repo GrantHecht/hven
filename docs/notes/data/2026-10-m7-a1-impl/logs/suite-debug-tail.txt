@@ -1,0 +1,20 @@
+3219/3220 Test #2608: QpScaleSmoke.ModerateScaleBorderModeMatchesRefactorizeAndReusesHotStart ............................................................................................................................................   Passed   39.33 sec
+3220/3220 Test #3148: WarmStartBattery.CrossoverChainOnTheBridgeFamilyBeatsCold ..........................................................................................................................................................   Passed   39.02 sec
+
+100% tests passed, 0 tests failed out of 3215
+
+Total Test time (real) = 394.77 sec
+
+The following tests did not run:
+	420 - IpqpMarginI1.TheFixtureClassUnderEveryArm (Disabled)
+	477 - QpE2WorkingSet.AGreyPinOnYorknetThatIsIndependentStaysIndependent (Skipped)
+	484 - QpE4ProximalEqp.TheYorknetRestorationQpIsDriftFreeAndOptimal (Skipped)
+	517 - QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder (Skipped)
+	531 - QpE2Fix9StandstillRetreat.Acopp118Qp0Border (Skipped)
+	532 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	533 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	667 - MeasurementArm.E1TwentyNineCellsUnderOneArm (Disabled)
+	668 - MeasurementArm.FinalPassExponentsOfCommittedRowsByTruth (Disabled)
+	669 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1930 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1931 - EqpRefinementAb.FullBattery (Disabled)
