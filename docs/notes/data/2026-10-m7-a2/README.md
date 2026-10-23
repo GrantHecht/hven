@@ -83,7 +83,87 @@ HS 10 rises 25 → 41. (Counters per cell: `scored.txt`, FAMILIES.)
 
 ## TRAIN (page §6.4)
 
-PENDING — filled when the TRAIN chain closes.
+**How it ran.** A scratch `git clone` of `hven-bench` at `40bb726` (RETAKE18's close) with two
+local commits, never pushed (`scripts/hven-bench-scratch-clone.diff`): `cmake/hven_pin.cmake`
+moved to hven `e924bbe2` (`w2-a2`), and the lane gained the three labels `sqp-ipm-mu0c`,
+`sqp-ipm-mufloor`, `sqp-ipm-mu1e-3`, each `sqp-ipm` plus ONE field — proved from the lane binary's
+own dumps (`out/train/dumps/*-vs-sqp-ipm.diff`: exactly one line each). The CUTEst instances and
+their decode are the harness's own files, linked read-only. The pin was built by the clone's
+`scripts/build_hven_pin.sh` (its `HVEN_PIN.txt` stamps `e924bbe2`), the harness by its own
+configure. Cells ran through the harness's documented runner (`scripts/w2_a4_sweep.sh` →
+`runners/run_serial.py`, TRAIN split, the sets' own ceilings: `hs` 600 s, `cutest` 300 s; the
+lane's 300-iteration budget), **one cell per leg**, `pgrep -a hven_bench_cell` in its own command
+first and the clone's `scripts/leg.sh` gates around the lock: **352 legs, every one
+`PGREP_EMPTY`, `PGREP_NO_UNCOVERED_CELL` and `IN_LOCK_PGREP_EMPTY`** (`out/train/leg-logs/`,
+`chain-summary.txt`). 344 legs exit 0; the 8 exit-1 legs are `hs025` under every label and run —
+the runner's REFERENCE FAILURE on the battery's documented trap (32.835 vs the published 0), the
+same row every label returns. A first attempt was aborted within a minute (the clone lacked the
+`.SIF` links; no cutest row was produced) and restarted from empty; nothing from it is used.
+
+**Determinism (§4 of the A4 rule): every label, both families, run A vs run B — `N / N / 0`**
+(`out/train/determinism-*.txt`: 21/21/0 on `hs`, 23/23/0 on `cutest`).
+
+**Controls.** `default` and `sqp-qn` on `cutest`, once, against RETAKE18's chain rows: **0 of 23
+cells differ** on outcome, iterations, factorizations or objective for either label
+(`out/train/control-*-vs-retake18.txt`) — the A2 fields are unread under `kWalk`.
+
+**The decision** — `scripts/w2_a4_decide.py` from the clone, unmodified, run A scored, with `D =
+sqp-ipm` sitting in the tree's `default` slot as the page pre-registered (`out/train/decisions.txt`):
+
+| family | label | optimal | dnf_wall | error | \|B\| | median cost (D) | verdict | predicted |
+|---|---|---:|---:|---:|---:|---:|---|---|
+| `hs` | `sqp-ipm` (D) | 21 | 0 | 0 | 21 | 10.6667 | — | — |
+| `hs` | `sqp-ipm-mu0c` | 21 | 0 | 0 | 21 | 11 | **lose: cost** | WIN |
+| `hs` | `sqp-ipm-mufloor` | 21 | 0 | 0 | 21 | **9.22222** | **WIN** | TIE |
+| `hs` | `sqp-ipm-mu1e-3` | 21 | 0 | 0 | 21 | 10.5556 | **WIN** | WIN |
+| `cutest` | `sqp-ipm` (D) | 16 | 5 | 2 | 16 | 207.696 | — | — |
+| `cutest` | `sqp-ipm-mu0c` | 16 | 5 | 2 | 16 | 207.747 | **lose: cost** | ≤ TIE |
+| `cutest` | `sqp-ipm-mufloor` | 16 | 6 | 1 | 16 | **207.332** | **WIN** | TIE |
+
+The script's own pick: `sqp-ipm-mufloor` on both families. Per cell (`out/train/per-cell-table.md`):
+
+* **`mu0c` is the E1 result again.** No outcome moves on either family, and every cell whose
+  cost moves at all is dearer (the estimate's factorization, then the `kFixed` start). The rule falls back on TRAIN too; the side file does not carry the new counters (the
+  lane's 153 columns predate them — no schema event was taken), so that is inferred from the costs
+  and from E1/families, not read off a TRAIN row.
+* **`mufloor` wins `hs` broadly but not uniformly** — 13 of 21 cells cheaper, 2 equal, 6 dearer
+  (worst `hs011` 11.57 → 23.71, `hs033` 19.67 → 26.29, `hs027` 27.5 → 33) — and **wins `cutest` narrowly**: 207.332 vs 207.696 over
+  16 cells most of which the tier never changes (`BIGBANK`, `NET3`, `SAWPATH`, `STEENBRG`,
+  `ZAMB2-8` identical), and one `error` (`TAX53322`) becomes `dnf_wall`, which clause 2 scores in
+  its favour (errors 2 → 1). No objective moved by more than 1e-6 relative on any cell both
+  solve, under any label.
+* **`mu1e-3` wins `hs` by a hair** (10.5556 vs 10.6667) with one large loss (`hs045` 17 → 51.5).
+
+**What the pre-registered reading decides** (page §6.4, verbatim rule: "RECOMMENDED ON iff its
+label WINS on at least one family and loses on none"):
+
+* `ipqp_mu0_rule`: loses on both families → **stays `kFixed`**. Not recommended.
+* `ipqp_mu_residual_floor`: WINS on both → **RECOMMENDED ON by the TRAIN rule.** The default is
+  not moved in this round (the page: a move is the settler's declared event). **Stated beside it,
+  not folded into it:** the same toggle FAILED two pre-registered fixture clauses — E1-c (face
+  recovery 12 → 8 end-to-end) and T-a (`two_negative_eigenvalue_row` lost). The page did not
+  pre-register how a fixture-clause failure bears on a TRAIN recommendation; this README reports
+  both and does not resolve it.
+* `ipqp_init_mu = 1e-3` on `hs`: WIN → the brief's "HS 1e-3" table entry is **confirmed on TRAIN
+  as configuration guidance**, by a margin of 0.11 factorizations per major and with one large
+  per-cell loss. hven ships one `ipqp_init_mu`; nothing moves.
+
+## Verdict, per clause
+
+| clause | `ipqp_mu0_rule = kComplementarity` | `ipqp_mu_residual_floor = true` |
+|---|---|---|
+| G1–G5 (OFF identity, suites, P-SYM, counters, mutants) | PASS (both fields; mutants 18/20, the two survivors argued above) | ← |
+| E1-a no new RED | PASS → PASS | PASS → PASS |
+| E1-b cost | FAIL → FAIL | PASS → PASS |
+| E1-c recovery | PASS → PASS | PASS → **FAIL** |
+| E1-d A1-R1 | FAIL → FAIL | PASS → PASS |
+| T-a no loss | PASS → PASS | PASS → **FAIL** |
+| T-b HS cost | PASS → **FAIL** | PASS → PASS |
+| TRAIN `hs` | WIN → **lose (cost)** | TIE → **WIN** |
+| TRAIN `cutest` | ≤ TIE → **lose (cost)** | TIE → **WIN** |
+| pre-registered reading | stays `kFixed` | RECOMMENDED ON by TRAIN; two fixture clauses failed beside it |
+
+`ipqp_init_mu = 1e-3` on `hs`: WIN → WIN.
 
 ## Findings to register
 
@@ -98,3 +178,11 @@ PENDING — filled when the TRAIN chain closes.
   (A1-R1 closed on the RED cell) but raises `mu_stop`, and the face recovery on the tight-margin
   class falls with it. A μ update that tracks infeasibility and a stop that resolves `d^2` against
   `kappa * mu` cannot be chosen separately on E1.
+* **A2-F3 — the harness cannot see the A2 counters.** The lane's side file (153 columns) predates
+  `ipqp_mu0_derived` / `_fallbacks` / `ipqp_mu_floor_binds`; reading "did the rule fire on TRAIN"
+  needs a declared harness schema event.
+* **A2-F4 — the pre-registration left one combination open:** a TRAIN WIN beside fixture-clause
+  FAILs. Reported, not resolved here.
+* Carried from the page: **A2-R1** (PIQP Algorithm 2's complementarity-coupled proximal decrease),
+  **A2-R2** (the NLP IPM driver's `init_mu = 1e-3`, same circular placement, never measured),
+  **A2-R3** (the warm-kill's cold restart under `kComplementarity`).

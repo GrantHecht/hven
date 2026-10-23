@@ -1,0 +1,4 @@
+31c31
+< ipqp.ipqp_init_mu = 0.01
+---
+> ipqp.ipqp_init_mu = 0.001

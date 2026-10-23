@@ -1,0 +1,9 @@
+PGREP_EMPTY a2-sqp-ipm-mu1e-3-hs-A-hs035
+PGREP_NO_UNCOVERED_CELL a2-sqp-ipm-mu1e-3-hs-A-hs035 2026-10-23T14:07:13-04:00
+IN_LOCK_PGREP_EMPTY a2-sqp-ipm-mu1e-3-hs-A-hs035 2026-10-23T14:07:13-04:00
+FOREGROUND_START a2-sqp-ipm-mu1e-3-hs-A-hs035 2026-10-23T14:07:13-04:00
+w2_a4_sweep: sqp-ipm-mu1e-3 / hven-sqp / hs / run A-hs035 -> /home/ghecht/Projects/hven/.claude/worktrees/agent-aa38d0451de957235/.scratch/a2/train/cells/hven-sqp/sqp-ipm-mu1e-3/hs-run-A-hs035 (ceiling 600s) [problems: hs035]
+run_serial: hs/hs035/hven-sqp/sqp-ipm-mu1e-3
+run_serial: 1 cells -> /home/ghecht/Projects/hven/.claude/worktrees/agent-aa38d0451de957235/.scratch/a2/train/cells/hven-sqp/sqp-ipm-mu1e-3/hs-run-A-hs035/results.csv
+w2_a4_sweep: RUNNER_EXIT 0
+FOREGROUND_END a2-sqp-ipm-mu1e-3-hs-A-hs035 2026-10-23T14:07:13-04:00 rc=0
