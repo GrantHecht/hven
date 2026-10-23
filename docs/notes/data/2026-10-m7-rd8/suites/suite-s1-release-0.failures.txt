@@ -1,0 +1,168 @@
+tests/qp/test_qp_anti_cycling_arm.cpp:2019: Failure
+Expected: (s.counters.dep_structural_first) >= (1), actual: 0 vs 1
+Google Test trace:
+tests/qp/test_qp_anti_cycling_arm.cpp:2003: border
+
+[  FAILED  ] QpE2WorkingSet.AStructuralDependencyDecidesFirstOnTheSteenbrbElasticQp (1992 ms)
+[----------] 1 test from QpE2WorkingSet (1992 ms total)
+
+--
+tests/qp/test_qp_anti_cycling_arm.cpp:2308: Failure
+Expected equality of these values:
+  s_off.counters.minor_iters
+    Which is: 196
+  off_minors
+    Which is: 197
+
+[  FAILED  ] QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp4 (669 ms)
+--
+tests/qp/test_qp_anti_cycling_arm.cpp:2308: Failure
+Expected equality of these values:
+  s_off.counters.minor_iters
+    Which is: 182
+  off_minors
+    Which is: 181
+
+[  FAILED  ] QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp5 (625 ms)
+--
+tests/qp/test_qp_anti_cycling_arm.cpp:2308: Failure
+Expected equality of these values:
+  s_off.counters.minor_iters
+    Which is: 178
+  off_minors
+    Which is: 180
+
+[  FAILED  ] QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp6 (601 ms)
+--
+tests/qp/test_qp_anti_cycling_arm.cpp:2630: Failure
+Expected equality of these values:
+  static_cast<int>(s.status)
+    Which is: 0
+  static_cast<int>(QpStatus::kNumericalError)
+    Which is: 3
+declared: this cell is not optimal at the shipped polish step cap
+Google Test trace:
+--
+tests/qp/test_qp_anti_cycling_arm.cpp:2308: Failure
+Expected equality of these values:
+  s_off.counters.minor_iters
+    Which is: 578
+  off_minors
+    Which is: 586
+
+[  FAILED  ] QpE2WorkingSet.TheDeclinedRideResolvesWithoutAnExchangeOnSteenbrbRestorationQp3 (4802 ms)
+--
+tests/qp/test_qp_flat_face_saddle.cpp:334: Failure
+Expected equality of these values:
+  static_cast<int>(s.status)
+    Which is: 1
+  static_cast<int>(expected)
+    Which is: 0
+measured per configuration in NC2 fix round 1
+
+--
+tests/qp/test_qp_saddle_exit.cpp:363: Failure
+Expected: (s.counters.convex_certificates) >= (1), actual: 0 vs 1
+Google Test trace:
+tests/qp/test_qp_saddle_exit.cpp:356: border
+
+[  FAILED  ] QpNc3SaddleExit.AZeroCurvatureDeadEndIsNotRiddenSteenbrbRestorationLpQp3 (596 ms)
+[----------] 1 test from QpNc3SaddleExit (596 ms total)
+
+--
+tests/qp/test_qp_convex_certificate.cpp:94: Failure
+Expected equality of these values:
+  s.counters.convex_certificates
+    Which is: 0
+  route_certificates
+    Which is: 1
+
+[ nc4 ] C10_STEENBRB_qp3.txt refactorize status=0 minors=32 facts=166 f=-48 f*=-48 eq=4.55e-13 box=0.00e+00 stat=5.01e-22 comp=1.00e-21 convex_certificates=1 saddle_exits=0 misses=0 rereads=1
+--
+tests/qp/test_qp_convex_certificate.cpp:94: Failure
+Expected equality of these values:
+  s.counters.convex_certificates
+    Which is: 1
+  route_certificates
+    Which is: 0
+
+tests/qp/test_qp_convex_certificate.cpp:96: Failure
+Expected equality of these values:
+  s.counters.dep_inertia_rereads
+    Which is: 3
+  route_rereads
+    Which is: 1
+
+[ nc4 ] C10_BRITGAS_qp4.txt refactorize status=0 minors=969 facts=1078 f=-19.1894367779 f*=-19.1894367779 eq=5.71e-17 box=0.00e+00 stat=7.42e-17 comp=6.70e-17 convex_certificates=0 saddle_exits=0 misses=0 rereads=1
+--
+tests/qp/test_qp_ascent_guard.cpp:201: Failure
+Expected equality of these values:
+  s.counters.eq_drift_violations
+    Which is: 2
+  0
+
+[  FAILED  ] QpW1AscentGuard.BritgasElasticQp1Border (2534 ms)
+[----------] 1 test from QpW1AscentGuard (2534 ms total)
+--
+tests/qp/test_qp_rank_repair.cpp:90: Failure
+Expected: (s.counters.rank_repairs) >= (1), actual: 0 vs 1
+
+[  FAILED  ] QpRdvRankRepair.YorknetQp1Border (966 ms)
+[----------] 1 test from QpRdvRankRepair (966 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (966 ms total)
+--
+tests/qp/test_qp_refused_exchange.cpp:126: Failure
+Expected: (s.counters.dep_known_dependent_refusals) >= (1), actual: 0 vs 1
+
+tests/qp/test_qp_refused_exchange.cpp:127: Failure
+Expected: (s.counters.rank_repair_misses) >= (1), actual: 0 vs 1
+
+tests/qp/test_qp_refused_exchange.cpp:129: Failure
+Expected: (s.counters.dep_refused_exchanges) >= (1), actual: 0 vs 1
+
+[ yrk ] YRK_YORKNET_qp26.txt face null_dim=18 min_curvature=-5.369e-24
+[  FAILED  ] QpYrkRefusedExchange.YorknetRestorationQp26Border (421 ms)
+[----------] 1 test from QpYrkRefusedExchange (421 ms total)
+
+[----------] Global test environment tear-down
+--
+tests/qp/test_qp_refused_exchange.cpp:126: Failure
+Expected: (s.counters.dep_known_dependent_refusals) >= (1), actual: 0 vs 1
+
+tests/qp/test_qp_refused_exchange.cpp:127: Failure
+Expected: (s.counters.rank_repair_misses) >= (1), actual: 0 vs 1
+
+tests/qp/test_qp_refused_exchange.cpp:129: Failure
+Expected: (s.counters.dep_refused_exchanges) >= (1), actual: 0 vs 1
+
+[ yrk ] YRK_YORKNET_qp25.txt face null_dim=20 min_curvature=-1.595e-16
+[  FAILED  ] QpYrkRefusedExchange.YorknetRestorationQp25Border (441 ms)
+[----------] 1 test from QpYrkRefusedExchange (441 ms total)
+
+[----------] Global test environment tear-down
+--
+tests/qp/test_qp_saddle_shift.cpp:113: Failure
+Expected: (s.counters.saddle_shifted_directions) >= (1), actual: 0 vs 1
+
+tests/qp/test_qp_saddle_shift.cpp:114: Failure
+Expected: (s.counters.saddle_exits) >= (1), actual: 0 vs 1
+
+[ sdl ] SDL_YORKNET_qp29.txt face null_dim=32 min_curvature=-9.663e-14
+[  FAILED  ] QpSdlSaddleShift.YorknetRestorationQp29Border (565 ms)
+[----------] 1 test from QpSdlSaddleShift (565 ms total)
+
+[----------] Global test environment tear-down
+--
+tests/qp/test_qp_saddle_shift.cpp:113: Failure
+Expected: (s.counters.saddle_shifted_directions) >= (1), actual: 0 vs 1
+
+tests/qp/test_qp_saddle_shift.cpp:114: Failure
+Expected: (s.counters.saddle_exits) >= (1), actual: 0 vs 1
+
+[ sdl ] SDL_YORKNET_qp30.txt face null_dim=24 min_curvature=-9.663e-14
+[  FAILED  ] QpSdlSaddleShift.YorknetRestorationQp30Border (567 ms)
+[----------] 1 test from QpSdlSaddleShift (567 ms total)
+
+[----------] Global test environment tear-down

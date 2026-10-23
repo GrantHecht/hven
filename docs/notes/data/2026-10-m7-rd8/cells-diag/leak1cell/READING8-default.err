@@ -1,0 +1,3 @@
+RD8_REPAIR pinned=1001 verdict=2 budget=1001
+C10QP solve=0 status=1 site=689 n=2002 me=1000 mi=0 warm=0 seed=0 hot=0 tr=1 minors=1093 facts=1842 cap=15020 zme=0 zmcap=0 bret=0 sstr=1 stall=3 refus=0 susp=0 drift=121 blkterm=0 certrej=0 certtol=0 ridebl=0 dump=-1 ws=0 free=1034 wall=204.8589 ana=1 schur=258 adds=972 drops=5 degen=261 lcap=2 lcond=0 lrel=1 stagst=1 rpins=0 rbud=1 rrest=1 k0re=0 zmex=0
+RD8_REPAIR pinned=162 verdict=0 budget=1001
