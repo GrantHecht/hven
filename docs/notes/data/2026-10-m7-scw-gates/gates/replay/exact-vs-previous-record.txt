@@ -1,0 +1,3 @@
+=== PREVIOUS (2026-10-m7-rst-gates record) GATE RECORD HEAD-walk vs M7 SCW HEAD-walk (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+=== PREVIOUS (2026-10-m7-rst-gates record) GATE RECORD HEAD-ssn vs M7 SCW HEAD-ssn (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+=== PREVIOUS (2026-10-m7-rst-gates record) GATE RECORD HEAD-ipm vs M7 SCW HEAD-ipm (EXACT) === cells compared: 27  columns compared: 75  differences: 0
