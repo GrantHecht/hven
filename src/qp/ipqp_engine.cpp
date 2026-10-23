@@ -2047,16 +2047,15 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
 
         const double saved_rho_dem_last = rho_dem_last;
         const double saved_rho_dem_max = rho_dem_max;
-        const bool saved_evidence_failed = evidence_failed;
         double rho_dem = ladder_trial();
         double delta = delta_sched;
         const InertiaRead read = factorize_with_ladder(rho_sched, rho_dem, delta);
         rho_dem_last = saved_rho_dem_last;
         rho_dem_max = saved_rho_dem_max;
-        evidence_failed = saved_evidence_failed;
 
-        bool ok =
-            !fact_budget_hit && (read == InertiaRead::kOk || read == InertiaRead::kUnreadable);
+        // Accepted only on a usable reading. An unreadable one falls back; the evidence-failure
+        // flag the ladder armed STAYS armed for the whole solve (the never-disarm contract).
+        bool ok = !fact_budget_hit && read == InertiaRead::kOk;
         if (ok) {
             build_rhs(rho_sched, delta_sched, 0.0, /*corrector=*/false);
             solve_system();

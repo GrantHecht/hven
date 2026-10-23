@@ -286,11 +286,11 @@ struct IpqpOptions {
     bool ipqp_require_final_inertia = true;
 
     /// How the solve-entry cold start sets `mu_0` (A2, M7-37). kFixed (default): every pair at
-    /// `ipqp_init_mu`. kComplementarity: multipliers from one affine-scaling solve at the
-    /// unit-scaled start, Mehrotra-shifted; `mu_0` = their measured complementarity, accepted
-    /// inside `[ipqp_min_mu, ipqp_init_mu]`, else the kFixed start (the fallback). Warm starts
-    /// and the warm-kill restart are unaffected. Counters: `ipqp_mu0_derived`,
-    /// `ipqp_mu0_fallbacks`. Design: docs/notes/2026-10-m7-w2-a2-mu0-design.md section 3.
+    /// `ipqp_init_mu`. kComplementarity: `mu_0` is derived from one affine-scaling solve; it
+    /// fires only when the derived value lies in `[ipqp_min_mu, ipqp_init_mu]`, on a cold
+    /// solve-entry only, otherwise kFixed. The estimate is charged to the factorization budget.
+    /// Counters: `ipqp_mu0_derived`, `ipqp_mu0_fallbacks`. Design:
+    /// docs/notes/2026-10-m7-w2-a2-mu0-design.md.
     IpqpMu0Rule ipqp_mu0_rule = IpqpMu0Rule::kFixed;
 
     /// The residual-proportional `mu` floor (A2, carrying A1-R1). Default false: the corrector

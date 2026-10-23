@@ -28,7 +28,7 @@ page landed at `0000a52f` before any measured row existed; no criterion was edit
   CSVs), `psym.sh` / `psym_classify.py`, `train_chain.sh` / `train_close.py` (TRAIN), and
   `hven-bench-scratch-clone.diff` (the two local edits to the scratch clone of hven-bench).
 * `out/meas/` — G1 (`u0-head-*.csv`, `u0-exact-*.txt`), G2 and the E1 arms (`e1-{off,m0,mf,m0mf}.csv`),
-  the T10 families (`fam-*.csv`), and `scored.txt`.
+  the T10 families (`fam-*.csv`), and `scored.txt`. The family instrument writes only the CSV, so there are no `fam-*.log` transcripts.
 * `out/psym/` — the P-SYM compares (both configs) and `classification.txt`.
 * `out/mutants/`, `out/suites/`, `logs/` — transcripts.
 * `out/train/` — the TRAIN tree, determinism compares, decisions and controls (section TRAIN).
@@ -42,7 +42,7 @@ page landed at `0000a52f` before any measured row existed; no criterion was edit
 | **G3** suites | Release **3220/3220**, Debug **3219/3219** (long test excluded) + the long test alone **1/1** |
 | **G3** P-SYM `f424c8db` vs `e924bbe2`, same build path, both configs | exit 1 (expected: a public options field); classified **Release 65 differing = 10 source-changed + 55 includers of a changed header, 0 unexplained; Debug 66 = 10 + 56, 0 unexplained**; negative control 107 / 106 includers byte-identical; one added object (the new test TU) |
 | **G4** fire counters | 0 on every OFF row (E1 29 cells, families 8 cells); under M0 `derived + fallbacks = 29` on E1 = one per cold start; under MF the two `ipqp_mu0_*` are 0 |
-| **G5** mutants | **18 of 20 killed** (`out/mutants/`). M5 (strict-positivity check dropped) SURVIVES as an EQUIVALENT mutant: after the `1.5 · min` shift every multiplier is `>= 0.5 |min z| > 0` or the band test already refuses `mu = 0`. M7 (the ladder's high-water mark not restored) SURVIVES: the estimate is taken at the unit-scaled point, whose bound curvature (`Sigma = 1` per side) needs no more modification than the loop's own first iteration, so the restored value is never the larger one on any fixture built; the restore stays as a defence. Round 1 left M8 and M14 alive too; `e924bbe2` added the fixtures that kill them |
+| **G5** mutants | **18 of 20 killed at round 1, 19 of 20 after the riders** (`out/mutants/`). M5 (strict-positivity check dropped) SURVIVES as an EQUIVALENT mutant: after the `1.5 · min` shift every multiplier is `>= 0.5 |min z| > 0` or the band test already refuses `mu = 0`. M7 (the ladder's high-water mark not restored) survived the round-1 fixtures, and the original argument for it was WRONG: at a box half-width `d < 0.1` the unit-scaled cold `Sigma = 1e-2/d^2` exceeds 1, so the restore IS load-bearing. The review's fixture (`scalar_box_qp(-50, 1)`, box `[-0.01, 0.01]`, `g *= 1e4`) now kills M7 (see `riders.md`). Round 1 left M8 and M14 alive too; `e924bbe2` added the fixtures that kill them |
 
 ## The E1 population (page §6.2) — predicted → measured
 
@@ -152,7 +152,7 @@ label WINS on at least one family and loses on none"):
 
 | clause | `ipqp_mu0_rule = kComplementarity` | `ipqp_mu_residual_floor = true` |
 |---|---|---|
-| G1–G5 (OFF identity, suites, P-SYM, counters, mutants) | PASS (both fields; mutants 18/20, the two survivors argued above) | ← |
+| G1–G5 (OFF identity, suites, P-SYM, counters, mutants) | PASS (both fields; mutants 19/20 after the rider round, M5 the one equivalent survivor) | ← |
 | E1-a no new RED | PASS → PASS | PASS → PASS |
 | E1-b cost | FAIL → FAIL | PASS → PASS |
 | E1-c recovery | PASS → PASS | PASS → **FAIL** |

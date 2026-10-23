@@ -808,4 +808,43 @@ TEST_F(IpqpSeamTest, NoAcceptedStepIsAFixedPointTheStoppingGateCannotSee) {
     }
 }
 
+// A2 (MEDIUM-2, ruling C130 PAGE-LITERAL): the complementarity estimate is accepted only on a
+// usable reading. An unreadable one falls back to the kFixed start, and the evidence-failure
+// flag the estimate's ladder armed STAYS armed for the whole solve (never-disarm contract).
+TEST_F(IpqpSeamTest, AnUnreadableMu0EstimateFallsBackAndTheEvidenceFlagStaysArmed) {
+    // min x^2 + g x over [-1, 1] at g = 1e-3: the rule's derived mu_0 (0.1875 g) lies in the
+    // band, so a clean run DERIVES -- the control that makes the fallback below the injection's.
+    QpProblem qp;
+    qp.H = dense_upper({{2.0}});
+    qp.g = vec({1e-3});
+    qp.Ae = dense_rows({}, 1);
+    qp.be = Vec(0);
+    qp.Ai = dense_rows({}, 1);
+    qp.bi = Vec(0);
+    qp.lower = vec({-1.0});
+    qp.upper = vec({1.0});
+    IpqpOptions io;
+    io.ipqp_mu0_rule = IpqpMu0Rule::kComplementarity;
+
+    IpqpEngine clean(tight_opts());
+    const IpqpResult c = clean.solve(qp, nullptr, io, SolveOverrides{});
+    ASSERT_EQ(c.counters.ipqp_mu0_derived, 1);
+    ASSERT_FALSE(c.inertia_evidence_failed);
+
+    // Two replaced reads: the estimate's first read and the floor retry. Later reads are real.
+    Injector::active = true;
+    Injector::on_final_read = false;
+    Injector::max_injections = 2;
+    Injector::evidence = unusable(InertiaEvidence::State::kQueryFailed);
+    IpqpEngine tier(tight_opts());
+    const IpqpResult r = tier.solve(qp, nullptr, io, SolveOverrides{});
+
+    ASSERT_EQ(Injector::injections, 2) << "the injection must have applied to the estimate";
+    EXPECT_EQ(r.counters.ipqp_mu0_fallbacks, 1);
+    EXPECT_EQ(r.counters.ipqp_mu0_derived, 0);
+    EXPECT_TRUE(r.inertia_evidence_failed) << "the flag armed by the estimate's ladder stays armed";
+    EXPECT_TRUE(r.certificate_downgraded);
+    EXPECT_GT(r.counters.ipqp_iters, 0) << "the solve continued from the kFixed start";
+}
+
 } // namespace hven::solvers

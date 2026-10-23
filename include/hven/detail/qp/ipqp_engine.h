@@ -139,13 +139,13 @@ inline constexpr double kIpqpSlackInit = 1.0;
 /// The two are asymmetric: a payload slack and a payload price are floored on
 /// different scales.
 inline constexpr double kIpqpRepairEps = 1.0e-8;
+inline constexpr double kIpqpRepairSlackEps = 1.0e-8;
 
 /// @brief A2's `ipqp_mu0_rule = kComplementarity` shifts (Mehrotra 1992 as PIQP section IV.A
 /// states them): the multipliers move by `1.5 * -min(z)` when negative, then by
 /// `0.5 * d'z / sum(d)`. Literature constants, not tuned.
 inline constexpr double kIpqpMu0ShiftFactor = 1.5;
 inline constexpr double kIpqpMu0CentreFraction = 0.5;
-inline constexpr double kIpqpRepairSlackEps = 1.0e-8;
 
 /// @brief The SAY shift of 5.2 item 2 is applied ONLY to a seed that is not
 /// already centred (`min pair product < this * mu_0`), so a good warm seed

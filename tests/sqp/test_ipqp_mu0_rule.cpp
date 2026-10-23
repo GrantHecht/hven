@@ -354,9 +354,14 @@ TEST(IpqpMu0Rule, AWarmStartIsUntouched) {
 // estimate's own ladder MUST climb, which is what makes the restore observable.
 TEST(IpqpMu0Rule, AFallbackLeavesTheLadderMemoryAsOffFindsIt) {
     Index climbed = 0;
+    // The last fixture is the review's (M7-killer): a box half-width d = 0.01 < 0.1, where the
+    // unit-scaled cold Sigma = 1e-2 / d^2 exceeds 1 -- the high-water mark is then observable.
+    QpProblem narrow = scalar_box_qp(-50.0, 1.0);
+    narrow.lower = vec({-0.01});
+    narrow.upper = vec({0.01});
     for (QpProblem qp :
          {test_support::indefinite_equality_qp(), test_support::indefinite_equality_and_row_qp(),
-          test_support::two_negative_eigenvalue_row_qp(), scalar_box_qp(-100.0, 1.0)}) {
+          test_support::two_negative_eigenvalue_row_qp(), scalar_box_qp(-100.0, 1.0), narrow}) {
         qp.g *= 1e4;
         const Traced off = solve_traced(qp, IpqpOptions{});
         const Traced on = solve_traced(qp, with_rule(IpqpMu0Rule::kComplementarity));
@@ -370,6 +375,19 @@ TEST(IpqpMu0Rule, AFallbackLeavesTheLadderMemoryAsOffFindsIt) {
         EXPECT_GE(on.r.counters.ipqp_inertia_retries, off.r.counters.ipqp_inertia_retries);
     }
     EXPECT_GT(climbed, 0) << "no fixture's estimate climbed the ladder: the pin is vacuous";
+}
+
+// The estimate is charged to the factorization budget: at a one-factorization budget the
+// estimate spends it and the loop escapes at iteration 0 (review LOW-5; the pin records what the
+// code does).
+TEST(IpqpMu0Rule, TheEstimateIsChargedToTheFactorizationBudget) {
+    IpqpOptions o = with_rule(IpqpMu0Rule::kComplementarity);
+    o.ipqp_max_factorizations = 1;
+    IpqpEngine tier(untrusted_region());
+    const IpqpResult r = tier.solve(general_qp(), nullptr, o, SolveOverrides{});
+    EXPECT_EQ(r.counters.ipqp_factorizations, 1);
+    EXPECT_EQ(r.escape_reason, IpqpEscape::kBudget);
+    EXPECT_EQ(r.counters.ipqp_iters, 0);
 }
 
 // ---------------------------------------------------------------------------
