@@ -348,24 +348,28 @@ TEST(IpqpMu0Rule, AWarmStartIsUntouched) {
     expect_same_trajectory(on.r, off.r);
 }
 
-// On an indefinite QP the estimate's own ladder climbs; forced to fall back (g scaled up), the
-// solve must then be OFF's: the ladder's memory is restored, so the first iteration's climb and
-// the high-water mark are OFF's own.
+// Forced to fall back (g scaled up), the solve must then be OFF's: the ladder's memory is
+// restored, so the first iteration's climb and the high-water mark are OFF's own. The concave
+// scalar (h = -100, far past rho_0 + the unit point's curvature 2) is the case where the
+// estimate's own ladder MUST climb, which is what makes the restore observable.
 TEST(IpqpMu0Rule, AFallbackLeavesTheLadderMemoryAsOffFindsIt) {
+    Index climbed = 0;
     for (QpProblem qp :
          {test_support::indefinite_equality_qp(), test_support::indefinite_equality_and_row_qp(),
-          test_support::two_negative_eigenvalue_row_qp()}) {
+          test_support::two_negative_eigenvalue_row_qp(), scalar_box_qp(-100.0, 1.0)}) {
         qp.g *= 1e4;
         const Traced off = solve_traced(qp, IpqpOptions{});
         const Traced on = solve_traced(qp, with_rule(IpqpMu0Rule::kComplementarity));
-        if (on.r.counters.ipqp_mu0_fallbacks != 1) {
-            continue; // this fixture's estimate landed in band; the pin is about fallbacks
+        ASSERT_EQ(on.r.counters.ipqp_mu0_fallbacks, 1);
+        if (on.r.counters.ipqp_inertia_retries > off.r.counters.ipqp_inertia_retries) {
+            ++climbed;
         }
         expect_same_trajectory(on.r, off.r);
         EXPECT_EQ(on.r.counters.ipqp_rho_demanded_max, off.r.counters.ipqp_rho_demanded_max);
         EXPECT_EQ(on.r.counters.ipqp_ladder_reclimbs, off.r.counters.ipqp_ladder_reclimbs);
         EXPECT_GE(on.r.counters.ipqp_inertia_retries, off.r.counters.ipqp_inertia_retries);
     }
+    EXPECT_GT(climbed, 0) << "no fixture's estimate climbed the ladder: the pin is vacuous";
 }
 
 // ---------------------------------------------------------------------------
@@ -392,7 +396,9 @@ Index binds_from_trace(const std::vector<IpqpTraceIterEvent> &iters, double min_
 }
 
 TEST(IpqpMuResidualFloor, TheCounterIsTheNeighbourhoodRuleReadOffTheTrace) {
-    for (const QpProblem &qp : {general_qp(), many_rows_qp(), scalar_box_qp(2.0, 10.0)}) {
+    // The last starts nearly stationary (r_s ~ 1e-3), where `max(1, r_s)` and `r_s` part ways.
+    for (const QpProblem &qp :
+         {general_qp(), many_rows_qp(), scalar_box_qp(2.0, 10.0), scalar_box_qp(2.0, 1e-3)}) {
         const Traced on = solve_traced(qp, with_floor(true));
         EXPECT_EQ(on.r.counters.ipqp_mu_floor_binds,
                   binds_from_trace(on.iters, IpqpOptions{}.ipqp_min_mu));
