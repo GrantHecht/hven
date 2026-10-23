@@ -1,0 +1,21 @@
+iter it=1 mu=1.000e-02 res_p=1.303e+00 res_d=9.991e-01 res_c=1.000e-02 sigma=1.319e-04 alpha_p=7.756e-01 alpha_d=9.951e-01 rho=8.000e+00
+iter it=2 mu=4.670e-04 res_p=1.190e+00 res_d=9.905e-01 res_c=2.445e-03 sigma=9.053e-01 alpha_p=3.592e-01 alpha_d=1.000e+00 rho=8.000e-01
+iter it=3 mu=7.241e-04 res_p=1.064e+00 res_d=4.161e-01 res_c=1.769e-01 sigma=9.274e-02 alpha_p=5.275e-01 alpha_d=1.000e+00 rho=8.000e-01
+iter it=4 mu=3.643e-04 res_p=8.466e-01 res_d=4.122e-01 res_c=5.556e-02 sigma=1.569e-01 alpha_p=6.677e-01 alpha_d=1.000e+00 rho=8.000e-01
+iter it=5 mu=1.774e-04 res_p=6.560e-01 res_d=4.074e-01 res_c=1.564e-02 sigma=1.000e+00 alpha_p=7.084e-01 alpha_d=1.480e-01 rho=8.000e-02
+iter it=6 mu=1.864e-03 res_p=3.555e-01 res_d=3.475e-01 res_c=5.434e-01 sigma=1.000e+00 alpha_p=5.359e-01 alpha_d=4.112e-01 rho=8.000e-02
+iter it=7 mu=3.055e-03 res_p=2.878e-01 res_d=1.958e-01 res_c=3.960e-01 sigma=1.000e+00 alpha_p=5.382e-01 alpha_d=9.480e-01 rho=8.000e-02
+iter it=8 mu=4.652e-03 res_p=1.920e-01 res_d=3.109e-02 res_c=2.718e-01 sigma=4.260e-02 alpha_p=6.532e-01 alpha_d=1.000e+00 rho=8.000e-02
+iter it=9 mu=9.587e-04 res_p=1.360e-01 res_d=3.339e-02 res_c=1.592e-01 sigma=2.362e-01 alpha_p=9.413e-01 alpha_d=8.707e-01 rho=8.000e-03
+iter it=10 mu=2.674e-04 res_p=8.105e-03 res_d=4.406e-03 res_c=9.784e-03 sigma=1.622e-01 alpha_p=9.193e-01 alpha_d=7.963e-01 rho=8.000e-04
+iter it=11 mu=8.176e-05 res_p=6.565e-04 res_d=8.986e-04 res_c=8.898e-04 sigma=6.762e-02 alpha_p=8.488e-01 alpha_d=7.948e-01 rho=8.000e-05
+iter it=12 mu=2.098e-05 res_p=9.508e-05 res_d=1.844e-04 res_c=1.627e-04 sigma=6.032e-02 alpha_p=6.156e-01 alpha_d=6.657e-01 rho=8.000e-06
+iter it=13 mu=8.069e-06 res_p=3.748e-05 res_d=6.160e-05 res_c=4.969e-05 sigma=1.503e-02 alpha_p=6.462e-01 alpha_d=7.562e-01 rho=8.000e-07
+iter it=14 mu=2.177e-06 res_p=1.332e-05 res_d=1.492e-05 res_c=1.594e-05 sigma=6.202e-03 alpha_p=8.301e-01 alpha_d=8.691e-01 rho=8.000e-08
+iter it=15 mu=3.108e-07 res_p=2.269e-06 res_d=1.931e-06 res_c=2.569e-06 sigma=1.036e-03 alpha_p=9.151e-01 alpha_d=9.800e-01 rho=8.000e-09
+iter it=16 mu=9.757e-09 res_p=1.929e-07 res_d=8.089e-08 res_c=2.246e-07 sigma=7.395e-04 alpha_p=9.602e-01 alpha_d=9.899e-01 rho=8.000e-10
+iter it=17 mu=2.353e-10 res_p=7.674e-09 res_d=1.516e-08 res_c=1.272e-08 sigma=1.118e-04 alpha_p=9.940e-01 alpha_d=9.954e-01 rho=1.000e-10
+result id=e1_f7_n20000_af30_m1e-4 slack=1e+00 cap=60 status=0 escape=0 iters=17 facts=18 mu=2.335e-12 sqrt_mu=1.528e-06 res_p=4.603e-11 res_d=1.691e-10 res_c=2.466e-10
+face active_true=6000 over_committed=0 under_committed=0 uncertain=1014 uncertain_truly_active=0 min_inactive_slack_abs=1.535e-06
+overcommit z*s_true/mu median=nan max=nan ; s_true/row_scale median=nan max=nan
+e2e usable=1 polished=1 rule_a=6000 rule_a_missed=0 rule_a_fp=0 e2e_rule_a_missed=0 e2e_rule_a_fp=0 e2e_factorizations=19
