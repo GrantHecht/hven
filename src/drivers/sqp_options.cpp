@@ -277,6 +277,16 @@ void validate(const SqpOptions &opts) {
                         "consecutive escapes\" is not a count, it disables the tier outright",
                         opts.ipqp.ipqp_retire_after));
     }
+    // A2 (M7-37): the two shipped values only, in the NEGATED acceptance form, so the count
+    // sentinel and any out-of-range cast are refused by name. `ipqp_mu_residual_floor` is a bool:
+    // it has no refusable value and therefore no predicate here.
+    if (!(opts.ipqp.ipqp_mu0_rule == IpqpMu0Rule::kFixed ||
+          opts.ipqp.ipqp_mu0_rule == IpqpMu0Rule::kComplementarity)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpSolver: ipqp.ipqp_mu0_rule ({}) must be kFixed or kComplementarity; "
+            "IpqpMu0Rule::kIpqpMu0RuleCount is the enumerator-count sentinel, not a value",
+            static_cast<int>(opts.ipqp.ipqp_mu0_rule)));
+    }
     // THE ENUMERATOR-COUNT SENTINEL IS NOT A MODE (fix round 3). It is a
     // legal `QpMode` value naming no kernel, so it is refused here rather than
     // left to reach the dispatch, where the arm that enumerates it throws --
@@ -550,6 +560,18 @@ const char *enum_name(SqpColumnScaling v) {
     }
     return "unknown";
 }
+const char *enum_name(IpqpMu0Rule v) {
+    switch (v) {
+    case IpqpMu0Rule::kFixed:
+        return "kFixed";
+    case IpqpMu0Rule::kComplementarity:
+        return "kComplementarity";
+    case IpqpMu0Rule::kIpqpMu0RuleCount:
+        // NOT a value; validate() refuses it. Named rather than "unknown", as kQpModeCount is.
+        return "kIpqpMu0RuleCount";
+    }
+    return "unknown";
+}
 const char *enum_name(SsnSigmaRule v) {
     switch (v) {
     case SsnSigmaRule::kLadder:
@@ -656,6 +678,8 @@ void dump_options(const SqpOptions &o, std::ostream &os) {
     kv_bool(os, "ipqp.ipqp_farkas_gate", o.ipqp.ipqp_farkas_gate);
     kv_bool(os, "ipqp.ipqp_hoist_symbolic", o.ipqp.ipqp_hoist_symbolic);
     kv_bool(os, "ipqp.ipqp_require_final_inertia", o.ipqp.ipqp_require_final_inertia);
+    kv_str(os, "ipqp.ipqp_mu0_rule", enum_name(o.ipqp.ipqp_mu0_rule));
+    kv_bool(os, "ipqp.ipqp_mu_residual_floor", o.ipqp.ipqp_mu_residual_floor);
     kv_bool(os, "ssn_prox_carry", o.ssn_prox_carry);
     kv_bool(os, "ssn_certify_from_face", o.ssn_certify_from_face);
     kv_str(os, "ssn_sigma_rule", enum_name(o.ssn_sigma_rule));

@@ -76,7 +76,7 @@ constexpr std::size_t kIpmOptionsFields = 65;
 constexpr std::size_t kIpmOptionsFields = 63;
 #endif
 constexpr std::size_t kSqpOptionsFields = 45;
-constexpr std::size_t kIpqpOptionsFields = 22;
+constexpr std::size_t kIpqpOptionsFields = 24;
 constexpr std::size_t kQpOptionsFields = 11;
 constexpr std::size_t kCommonOptionsFields = 3;
 
@@ -115,7 +115,7 @@ static_assert(sizeof(IpmOptions) == 376, "IpmOptions' layout moved on Linux x86-
                                          "was added, axis 1 above has already told you so; if "
                                          "only a TYPE changed, this is the only axis that "
                                          "noticed. Check the dump, then re-observe this value.");
-static_assert(sizeof(SqpOptions) == 504,
+static_assert(sizeof(SqpOptions) == 512,
               "SqpOptions' layout moved on Linux x86-64 -- see the IpmOptions note directly "
               "above. 376 -> 384 at M7 W0 T3, which added the `elastic_rung_engine` enum; "
               "UNCHANGED at M7 W0 T4, whose `ipqp_reseed_after_disproval` bool fits the "
@@ -149,8 +149,11 @@ static_assert(sizeof(SqpOptions) == 504,
               "8-aligned `column_scaling_threshold` double follow `scaling_factor_limit` "
               "(observed); 488 -> 504 at M7 W2 RST, whose `restoration_curvature` enum and "
               "8-aligned `restoration_max_entries` Index follow `qn_full_memory_max` "
+              "(observed); 504 -> 512 at M7 W2 A2, the nested IpqpOptions' 152 -> 160 "
               "(observed).");
-static_assert(sizeof(IpqpOptions) == 152, "IpqpOptions' layout moved on Linux x86-64.");
+// 152 -> 160 at M7 W2 A2: the `ipqp_mu0_rule` enum and the `ipqp_mu_residual_floor` bool
+// follow the three trailing bools and round the struct to the next 8 (observed).
+static_assert(sizeof(IpqpOptions) == 160, "IpqpOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(QpOptions) == 80, "QpOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(CommonOptions) == 12, "CommonOptions' layout moved on Linux x86-64.");
 #endif
@@ -162,7 +165,8 @@ static_assert(sizeof(CommonOptions) == 12, "CommonOptions' layout moved on Linux
 // CommonOptions' 3 = 65 -- and 67 on an Accelerate build, where the two
 // `accel_*` fields exist and the dump prints them.
 // SqpOptions: 42 own lines (the 45 fields less `qp`, `ipqp` and `common`) plus
-// QpOptions' 11, IpqpOptions' 22 and CommonOptions' 3 = 78. (40 and 76 before M7 W2 RST
+// QpOptions' 11, IpqpOptions' 24 and CommonOptions' 3 = 80. (IpqpOptions' 22 and 78 before
+// M7 W2 A2 added `ipqp_mu0_rule` and `ipqp_mu_residual_floor`; 40 and 76 before M7 W2 RST
 // added `restoration_curvature` and `restoration_max_entries`; 38 and 74 before M7 W2 SCL
 // added `column_scaling` and `column_scaling_threshold`; 36 and 72 before the M7 QN
 // quality round added its two fields; 33 and 69 before M7 QN
@@ -182,7 +186,7 @@ constexpr int kIpmDumpLines = 67;
 #else
 constexpr int kIpmDumpLines = 65;
 #endif
-constexpr int kSqpDumpLines = 78;
+constexpr int kSqpDumpLines = 80;
 
 int count_lines(const std::string &text) {
     int n = 0;

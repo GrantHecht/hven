@@ -98,6 +98,12 @@ enum class SsnInfeasibilityRule {
     kFarkasGated = 1,
 };
 
+/// @brief A2 (M7-37): how the IPQP tier's solve-entry cold start sets `mu_0`. Semantics at
+/// `IpqpOptions::ipqp_mu0_rule`; design docs/notes/2026-10-m7-w2-a2-mu0-design.md section 3.
+///
+/// `kIpqpMu0RuleCount` is the enumerator-count sentinel, not a value: `validate` refuses it.
+enum class IpqpMu0Rule { kFixed, kComplementarity, kIpqpMu0RuleCount };
+
 /// @brief The kIpm tier's own settings.
 ///
 /// Declared HERE for the same reason QpMode and the three Ssn*Rule enums are:
@@ -278,6 +284,21 @@ struct IpqpOptions {
     /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian under kExact; under
     /// SqpHessianMode::kLbfgsDamped the PD quasi-Newton B, so this certifies B, not the NLP.
     bool ipqp_require_final_inertia = true;
+
+    /// How the solve-entry cold start sets `mu_0` (A2, M7-37). kFixed (default): every pair at
+    /// `ipqp_init_mu`. kComplementarity: multipliers from one affine-scaling solve at the
+    /// unit-scaled start, Mehrotra-shifted; `mu_0` = their measured complementarity, accepted
+    /// inside `[ipqp_min_mu, ipqp_init_mu]`, else the kFixed start (the fallback). Warm starts
+    /// and the warm-kill restart are unaffected. Counters: `ipqp_mu0_derived`,
+    /// `ipqp_mu0_fallbacks`. Design: docs/notes/2026-10-m7-w2-a2-mu0-design.md section 3.
+    IpqpMu0Rule ipqp_mu0_rule = IpqpMu0Rule::kFixed;
+
+    /// The residual-proportional `mu` floor (A2, carrying A1-R1). Default false: the corrector
+    /// target is `clamp(sigma * mu, ipqp_min_mu, ipqp_init_mu)`. True: `sigma * mu` is first
+    /// raised to `mu_s * r / max(1, r_s)`, `r` the unregularized relative residual and
+    /// `(mu_s, r_s)` the attempt's first iterate. Counter: `ipqp_mu_floor_binds`. A bool
+    /// refuses no value, so `validate` has no predicate for it. Design: the A2 page section 4.
+    bool ipqp_mu_residual_floor = false;
 };
 
 // The full-step-first warm rule's two constants. Both are watchdog thresholds:
@@ -1157,7 +1178,9 @@ struct SqpOptions {
 ///         outside [0, 1) or NaN, or the `hessian_mode` count sentinel, a `qn_memory`
 ///         below 1, a negative `qn_full_memory_max`, or kLbfgsDamped with
 ///         `restoration_proximity > 0`, or the `restoration_curvature` count sentinel,
-///         or a `restoration_max_entries` below 1.
+///         or a `restoration_max_entries` below 1, or an `ipqp.ipqp_mu0_rule` other than
+///         kFixed / kComplementarity (the count sentinel included). `ipqp.ipqp_mu_residual_floor`
+///         is a bool and is never refused.
 void validate(const SqpOptions &opts);
 
 /// @brief Returns a full SqpOptions value for a named preset.

@@ -2060,7 +2060,7 @@ void expect_same_scalars(const std::vector<Seen> &a, const std::vector<Seen> &b)
     X(scaled_convergence_refusals)                                                                 \
     X(restoration_curvature_switches)
 
-// The 18 fields of SsnCounters and the 39 of IpqpCounters, the two nested
+// The 18 fields of SsnCounters and the 42 of IpqpCounters (39 until M7 W2 A2), the two nested
 // groups SqpCounters carries.
 #define HVEN_T2_SSN_COUNTER_FIELDS(X)                                                              \
     X(ssn_iters)                                                                                   \
@@ -2121,7 +2121,10 @@ void expect_same_scalars(const std::vector<Seen> &a, const std::vector<Seen> &b)
     X(ipqp_alpha_p_min)                                                                            \
     X(ipqp_alpha_d_min)                                                                            \
     X(ipqp_read_kept_tight_sides)                                                                  \
-    X(ipqp_read_barrier_noise_sides)
+    X(ipqp_read_barrier_noise_sides)                                                               \
+    X(ipqp_mu0_derived)                                                                            \
+    X(ipqp_mu0_fallbacks)                                                                          \
+    X(ipqp_mu_floor_binds)
 
 void expect_same_counters(const hven::solvers::SqpCounters &a,
                           const hven::solvers::SqpCounters &b) {
@@ -2150,14 +2153,15 @@ void expect_same_counters(const hven::solvers::SqpCounters &a,
     // (`qn_dimension`); 1088 -> 1096 at M7 W2 R2-1 (`nonfinite_step_rollbacks`); 1096 ->
     // 1104 at M7 W2 SNR (`restoration_feas_out`); 1104 -> 1112 at M7 W2 SCL
     // (`scaled_convergence_refusals`); 1112 -> 1120 at M7 W2 RST
-    // (`restoration_curvature_switches`).
-    static_assert(sizeof(hven::solvers::SqpCounters) == 1120,
+    // (`restoration_curvature_switches`); 1120 -> 1144 at M7 W2 A2 (the three nested
+    // `ipqp_mu*` Index in IpqpCounters, 312 -> 336).
+    static_assert(sizeof(hven::solvers::SqpCounters) == 1144,
                   "SqpCounters gained or lost a field -- extend "
                   "HVEN_T2_SQP_COUNTER_FIELDS so the mask comparison still "
                   "covers every counter");
     static_assert(sizeof(hven::solvers::SsnCounters) == 144,
                   "SsnCounters moved -- extend HVEN_T2_SSN_COUNTER_FIELDS");
-    static_assert(sizeof(hven::solvers::IpqpCounters) == 312,
+    static_assert(sizeof(hven::solvers::IpqpCounters) == 336,
                   "IpqpCounters moved -- extend HVEN_T2_IPQP_COUNTER_FIELDS");
 #endif
 #define X(field) EXPECT_EQ(a.field, b.field) << #field;

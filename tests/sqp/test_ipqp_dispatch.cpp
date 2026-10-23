@@ -60,7 +60,7 @@ SqpOptions walk_options() {
     // THE FIELD LIST BELOW IS HAND-WRITTEN, so the static_assert must fail when the
     // struct grows: a W2 field added without a line here would drop silently out of
     // A7's coverage. Field history: `.superpowers/w1-t4c-report.md`.
-    static_assert(sizeof(IpqpCounters) == 39 * 8,
+    static_assert(sizeof(IpqpCounters) == 42 * 8,
                   "IpqpCounters changed size: add the new field to "
                   "every_ipqp_counter_is_at_its_default below (A7's coverage is this list) and "
                   "update this assertion.");
@@ -144,6 +144,12 @@ SqpOptions walk_options() {
           static_cast<double>(d.ipqp_read_kept_tight_sides));
     check("ipqp_read_barrier_noise_sides", static_cast<double>(c.ipqp_read_barrier_noise_sides),
           static_cast<double>(d.ipqp_read_barrier_noise_sides));
+    check("ipqp_mu0_derived", static_cast<double>(c.ipqp_mu0_derived),
+          static_cast<double>(d.ipqp_mu0_derived));
+    check("ipqp_mu0_fallbacks", static_cast<double>(c.ipqp_mu0_fallbacks),
+          static_cast<double>(d.ipqp_mu0_fallbacks));
+    check("ipqp_mu_floor_binds", static_cast<double>(c.ipqp_mu_floor_binds),
+          static_cast<double>(d.ipqp_mu_floor_binds));
     if (!moved.empty()) {
         return ::testing::AssertionFailure() << "IpqpCounters is not at its default: "
                                              << fmt::format("{}", fmt::join(moved, "; "));

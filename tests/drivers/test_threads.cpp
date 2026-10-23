@@ -401,9 +401,9 @@ void expect_ssn_counters_identical(const SsnCounters &a, const SsnCounters &b) {
     HVEN_EXPECT_SAME(a, b, ssn_escape_gate_refused);
 }
 
-// EVERY field of the IPQP tier's nested counters -- all 39.
+// EVERY field of the IPQP tier's nested counters -- all 42 (39 until M7 W2 A2).
 void expect_ipqp_counters_identical(const IpqpCounters &a, const IpqpCounters &b) {
-    static_assert(sizeof(IpqpCounters) == 39 * 8,
+    static_assert(sizeof(IpqpCounters) == 42 * 8,
                   "IpqpCounters changed size: add the new field to expect_ipqp_counters_identical "
                   "and update this assertion.");
     HVEN_EXPECT_SAME(a, b, ipqp_iters);
@@ -445,6 +445,9 @@ void expect_ipqp_counters_identical(const IpqpCounters &a, const IpqpCounters &b
     HVEN_EXPECT_BITS(a, b, ipqp_alpha_d_min);
     HVEN_EXPECT_SAME(a, b, ipqp_read_kept_tight_sides);
     HVEN_EXPECT_SAME(a, b, ipqp_read_barrier_noise_sides);
+    HVEN_EXPECT_SAME(a, b, ipqp_mu0_derived);
+    HVEN_EXPECT_SAME(a, b, ipqp_mu0_fallbacks);
+    HVEN_EXPECT_SAME(a, b, ipqp_mu_floor_binds);
 }
 
 // EVERY field of SqpCounters -- all 62, the two nested blocks through the

@@ -2529,7 +2529,11 @@ TEST(SqpCountersFieldTables, EachTableEnumeratesItsWholeStruct) {
     // These read the same numbers back at run time, so a reader sees what they
     // are and a table edited to a different length is named here too.
     EXPECT_EQ(kSsnCountersFieldCount, 18u);
-    EXPECT_EQ(kIpqpCountersFieldCount, 39u);
+    // 39 -> 42 at M7 W2 A2, which appended the three `ipqp_mu*` fire counters LAST in
+    // IpqpCounters: both golden lines below gain those three keys at the end of the `ipqp`
+    // object, re-derived ONCE (docs/trace-schema-v0.md section 8: declared additive trailing
+    // keys). Nothing else moved.
+    EXPECT_EQ(kIpqpCountersFieldCount, 42u);
     // 37 -> 38 at M6 W5 T8.5, which appended `polish_ignored` LAST -- after
     // both nested aggregates -- so every pre-existing field offset is unmoved
     // and the two golden lines below gain exactly one key, at the end of the
@@ -3250,6 +3254,9 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWithEveryCounterDistinct) {
     //
     // EXTENDED AT M7 W2 SCW: the column layer's `columns_active` and `col_spread`
     // trail the scaling block (a declared trace-schema event).
+    //
+    // RE-DERIVED AT M7 W2 A2, the declared additive route: the three `ipqp_mu*` keys after
+    // `ipqp_read_barrier_noise_sides`, LAST in the `ipqp` object, 141-143; nothing shifts.
     sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kBudgetExhausted, 42, c,
                                                 /*scaling_active=*/true, 0.25, 0.5, 4.0, 7.5e-09,
                                                 /*columns_active=*/true, 2048.0});
@@ -3303,7 +3310,8 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWithEveryCounterDistinct) {
               "1,\"ipqp_escape_budget\":132,\"ipqp_escape_stall\":133,\"ipqp_escape_indefinite"
               "\":134,\"ipqp_escape_numerical\":135,\"ipqp_escape_infeasible_suspect\":136,\"ip"
               "qp_alpha_p_min\":137,\"ipqp_alpha_d_min\":138,\"ipqp_read_kept_tight_sides\":139"
-              ",\"ipqp_read_barrier_noise_sides\":140}},\"scaling_active\":true,\"obj_scale\":0"
+              ",\"ipqp_read_barrier_noise_sides\":140,\"ipqp_mu0_derived\":141,\"ipqp_mu0_fal"
+              "lbacks\":142,\"ipqp_mu_floor_binds\":143}},\"scaling_active\":true,\"obj_scale\":0"
               ".25,\"row_scale_min\":0.5,\"row_scale_max\":4,\"scaled_kkt_residual\":7.49999999"
               "99999993e-09,\"columns_active\":true,\"col_spread\":2048}\n");
 }
@@ -3358,6 +3366,7 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull) {
     // RE-DERIVED AT M7 W2 SNR: `restoration_feas_out`, 0 on this line.
     // RE-DERIVED AT M7 W2 SCL: `scaled_convergence_refusals`, 0 on this line.
     // RE-DERIVED AT M7 W2 RST: `restoration_curvature_switches`, 0 on this line.
+    // RE-DERIVED AT M7 W2 A2: the three `ipqp_mu*` keys, each 0 on this line.
     sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kNumericalError, 0, c});
     EXPECT_EQ(os.str(),
               "{\"v\":0,\"ev\":\"sqp.solve.end\",\"seq\":1,\"depth\":0,\"status\":\"numerical_e"
@@ -3407,7 +3416,8 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull) {
               "\":0,\"ipqp_escape_budget\":0,\"ipqp_escape_stall\":0,\"ipqp_escape_indefinite\""
               ":0,\"ipqp_escape_numerical\":0,\"ipqp_escape_infeasible_suspect\":0,\"ipqp_alpha"
               "_p_min\":null,\"ipqp_alpha_d_min\":null,\"ipqp_read_kept_tight_sides\":0,\"ipqp_"
-              "read_barrier_noise_sides\":0}},\"scaling_active\":false,\"obj_scale\":1,\"row_sc"
+              "read_barrier_noise_sides\":0,\"ipqp_mu0_derived\":0,\"ipqp_mu0_fallbacks\":0,"
+              "\"ipqp_mu_floor_binds\":0}},\"scaling_active\":false,\"obj_scale\":1,\"row_sc"
               "ale_min\":1,\"row_scale_max\":1,\"scaled_kkt_residual\":0,\"columns_active\":false,"
               "\"col_spread\":1}\n");
 }

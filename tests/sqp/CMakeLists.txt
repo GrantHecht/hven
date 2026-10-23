@@ -49,6 +49,7 @@ set(HVEN_SQP_TEST_SOURCES
     test_ipqp_engine.cpp
     test_ipqp_kkt_layout.cpp
     test_ipqp_math.cpp
+    test_ipqp_mu0_rule.cpp
     test_ipqp_options.cpp
     test_ipqp_trace.cpp
     test_ipqp_warm_restart.cpp

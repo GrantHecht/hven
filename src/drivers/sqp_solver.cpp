@@ -1902,6 +1902,10 @@ void accumulate_ipqp_counters(IpqpCounters &total, const IpqpCounters &one) {
     // T4c disclosure instrument: SUMMED, the ordinary fold.
     total.ipqp_read_kept_tight_sides += one.ipqp_read_kept_tight_sides;
     total.ipqp_read_barrier_noise_sides += one.ipqp_read_barrier_noise_sides;
+    // A2's three fire counters: SUMMED, the ordinary fold.
+    total.ipqp_mu0_derived += one.ipqp_mu0_derived;
+    total.ipqp_mu0_fallbacks += one.ipqp_mu0_fallbacks;
+    total.ipqp_mu_floor_binds += one.ipqp_mu_floor_binds;
 }
 
 SqpResult SqpSolver::solve(const NlpModel &model) {

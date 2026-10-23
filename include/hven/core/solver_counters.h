@@ -1276,6 +1276,19 @@ struct IpqpCounters {
     /// `kSuspect`; `0` on the band-only fallback. Additive fold, and the same
     /// corpus caveat as `ipqp_read_kept_tight_sides` above.
     Index ipqp_read_barrier_noise_sides = 0;
+
+    // A2 (M7-37): the fire counters of `IpqpOptions::ipqp_mu0_rule` and
+    // `ipqp_mu_residual_floor`, all 0 at their defaults. Additive fold. Design:
+    // docs/notes/2026-10-m7-w2-a2-mu0-design.md section 5 clause 4.
+
+    /// += 1 per solve whose cold start took the derived `mu_0` (`kComplementarity` accepted).
+    Index ipqp_mu0_derived = 0;
+
+    /// += 1 per solve where `kComplementarity` ran and fell back to the `kFixed` start.
+    Index ipqp_mu0_fallbacks = 0;
+
+    /// += iterations whose corrector target the residual floor raised above `sigma * mu`.
+    Index ipqp_mu_floor_binds = 0;
 };
 
 #define HVEN_IPQP_COUNTERS_FIELDS(X)                                                               \
@@ -1317,7 +1330,10 @@ struct IpqpCounters {
     X(ipqp_alpha_p_min, counter_absent_at_pos_inf)                                                 \
     X(ipqp_alpha_d_min, counter_absent_at_pos_inf)                                                 \
     X(ipqp_read_kept_tight_sides, counter_never_absent)                                            \
-    X(ipqp_read_barrier_noise_sides, counter_never_absent)
+    X(ipqp_read_barrier_noise_sides, counter_never_absent)                                         \
+    X(ipqp_mu0_derived, counter_never_absent)                                                      \
+    X(ipqp_mu0_fallbacks, counter_never_absent)                                                    \
+    X(ipqp_mu_floor_binds, counter_never_absent)
 
 /// @brief `HVEN_IPQP_COUNTERS_FIELDS`' entry count.
 inline constexpr std::size_t kIpqpCountersFieldCount =
