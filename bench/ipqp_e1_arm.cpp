@@ -30,9 +30,10 @@ using namespace hven;
 using namespace hven::solvers;
 
 constexpr const char *kUsage =
-    "usage: hven_sqp_ipqp_e1_arm <--regen|--sweep|--mu-sweep|--envelope|--gate>\n"
+    "usage: hven_sqp_ipqp_e1_arm <--regen|--sweep|--mu-sweep|--envelope|--gate|--families>\n"
     "                            --out FILE [--mu VALUE] [--converge-slack VALUE]\n"
     "                            [--hard-cap N] [--sizes 20000,100000] [--nodes N] [--p P]\n"
+    "                            [--mu0-rule kFixed|kComplementarity] [--mu-floor]\n"
     "\n"
     "  --gate   the A4 acceptance gate: all 29 cells at both sizes, shipped\n"
     "           options, scored against E1's four pre-registered criteria.\n"
@@ -74,6 +75,15 @@ void stamp(std::ostream &os, const std::string &mode, const std::string &extra) 
 
 std::string fnum(double v) { return fmt::format("{:.6e}", v); }
 
+// A2's two levers, set once from argv and applied to EVERY IpqpOptions this binary builds.
+IpqpMu0Rule g_mu0_rule = IpqpMu0Rule::kFixed;
+bool g_mu_floor = false;
+
+void apply_a2_levers(IpqpOptions &o) {
+    o.ipqp_mu0_rule = g_mu0_rule;
+    o.ipqp_mu_residual_floor = g_mu_floor;
+}
+
 /// Every option this binary can move, stamped into EVERY mode's header: a
 /// reader must be able to tell a shipped-default run from a lever run without
 /// leaving the file. Sentinels are printed as the sentinel, not resolved.
@@ -81,10 +91,15 @@ std::string option_stamp(const IpqpOptions &o) {
     return fmt::format("# ipqp_init_mu: {}\n# ipqp_converge_slack: {}\n"
                        "# ipqp_hard_iter_cap: {}\n# ipqp_max_iter: {}\n"
                        "# ipqp_max_factorizations: {}\n"
-                       "# (shipped defaults: 1.000000e-02 / 1.000000e+02 / 60 / 0 / 0;\n"
+                       "# ipqp_mu0_rule: {}\n# ipqp_mu_residual_floor: {}\n"
+                       "# (shipped defaults: 1.000000e-02 / 1.000000e+02 / 60 / 0 / 0 / kFixed / "
+                       "false;\n"
                        "#  0 is the size-derived sentinel, NOT an unbounded budget)\n",
                        fnum(o.ipqp_init_mu), fnum(o.ipqp_converge_slack), o.ipqp_hard_iter_cap,
-                       o.ipqp_max_iter, o.ipqp_max_factorizations);
+                       o.ipqp_max_iter, o.ipqp_max_factorizations,
+                       o.ipqp_mu0_rule == IpqpMu0Rule::kComplementarity ? "kComplementarity"
+                                                                        : "kFixed",
+                       o.ipqp_mu_residual_floor ? "true" : "false");
 }
 
 const char *status_name(QpStatus s) {
@@ -105,7 +120,7 @@ const char *sqp_status_name(SolveStatus s) {
     return s == SolveStatus::kOptimal ? "optimal" : "not_optimal";
 }
 
-/// The 39 `IpqpCounters` fields, in declaration order, as CSV.
+/// The 42 `IpqpCounters` fields, in declaration order, as CSV.
 std::string counters_header() {
     return "ipqp_iters,ipqp_factorizations,ipqp_symbolic_analyses,ipqp_solves,"
            "ipqp_pattern_verifies,ipqp_rho_demanded_max,ipqp_rho_demanded_last,"
@@ -118,13 +133,14 @@ std::string counters_header() {
            "ipqp_refine_accepted,ipqp_refine_refused,ipqp_to_refine,ipqp_to_ssn,ipqp_to_walk,"
            "ipqp_escapes,ipqp_escape_budget,ipqp_escape_stall,ipqp_escape_indefinite,"
            "ipqp_escape_numerical,ipqp_escape_infeasible_suspect,ipqp_alpha_p_min,"
-           "ipqp_alpha_d_min,ipqp_read_kept_tight_sides,ipqp_read_barrier_noise_sides";
+           "ipqp_alpha_d_min,ipqp_read_kept_tight_sides,ipqp_read_barrier_noise_sides,"
+           "ipqp_mu0_derived,ipqp_mu0_fallbacks,ipqp_mu_floor_binds";
 }
 
 std::string counters_row(const IpqpCounters &c) {
     return fmt::format(
         "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},"
-        "{},{},{},{},{},{},{},{},{},{}",
+        "{},{},{},{},{},{},{},{},{},{},{},{},{}",
         c.ipqp_iters, c.ipqp_factorizations, c.ipqp_symbolic_analyses, c.ipqp_solves,
         c.ipqp_pattern_verifies, fnum(c.ipqp_rho_demanded_max), fnum(c.ipqp_rho_demanded_last),
         c.ipqp_inertia_retries, c.ipqp_iters_at_elevated_rho, c.ipqp_ladder_reclimbs,
@@ -137,7 +153,8 @@ std::string counters_row(const IpqpCounters &c) {
         c.ipqp_to_walk, c.ipqp_escapes, c.ipqp_escape_budget, c.ipqp_escape_stall,
         c.ipqp_escape_indefinite, c.ipqp_escape_numerical, c.ipqp_escape_infeasible_suspect,
         fnum(c.ipqp_alpha_p_min), fnum(c.ipqp_alpha_d_min), c.ipqp_read_kept_tight_sides,
-        c.ipqp_read_barrier_noise_sides);
+        c.ipqp_read_barrier_noise_sides, c.ipqp_mu0_derived, c.ipqp_mu0_fallbacks,
+        c.ipqp_mu_floor_binds);
 }
 
 std::vector<e1arm::CellSpec> selected(const std::vector<Index> &sizes) {
@@ -192,6 +209,7 @@ int run_regen(std::ostream &os, const std::vector<Index> &sizes) {
 int run_sweep(std::ostream &os, const std::vector<Index> &sizes, double mu, Index hard_cap,
               double converge_slack, std::vector<e1arm::SolveRow> *collect = nullptr) {
     IpqpOptions iopts;
+    apply_a2_levers(iopts);
     if (mu > 0.0) {
         iopts.ipqp_init_mu = mu;
     }
@@ -335,12 +353,67 @@ int run_gate(std::ostream &os, const std::vector<Index> &sizes) {
     return bad ? 1 : 0;
 }
 
+/// T10's non-E1 families at ONE options value: hs10/24/33 under SqpSolver at kIpm, the three
+/// indefinite tier fixtures, the two `path_warm` corpus cells. Rows carry `mu` as their key.
+void emit_families(std::ostream &os, double mu, const IpqpOptions &iopts) {
+    for (const int number : {10, 24, 33}) {
+        const test_support::HsProblem p = test_support::make_hs(number);
+        SqpOptions o;
+        o.qp_mode = QpMode::kIpm;
+        o.max_iter = 60;
+        o.ipqp = iopts;
+        SqpSolver driver(o);
+        const auto t0 = std::chrono::steady_clock::now();
+        const SqpResult sol = driver.solve(*p.model);
+        const double wall =
+            std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+        os << fmt::format("{},hs,hs{},{},{},{}\n", fnum(mu), number, sqp_status_name(sol.status),
+                          fnum(wall), counters_row(sol.counters.ipqp));
+        os.flush();
+    }
+    struct Fixture {
+        const char *name;
+        QpProblem qp;
+    };
+    std::vector<Fixture> fixtures;
+    fixtures.push_back({"indefinite_equality", test_support::indefinite_equality_qp()});
+    fixtures.push_back(
+        {"indefinite_equality_and_row", test_support::indefinite_equality_and_row_qp()});
+    fixtures.push_back(
+        {"two_negative_eigenvalue_row", test_support::two_negative_eigenvalue_row_qp()});
+    for (Fixture &f : fixtures) {
+        QpOptions qopts;
+        qopts.tr_radius = std::numeric_limits<double>::infinity();
+        IpqpEngine tier(qopts);
+        const auto t0 = std::chrono::steady_clock::now();
+        const IpqpResult r = tier.solve(f.qp, nullptr, iopts, SolveOverrides{});
+        const double wall =
+            std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+        os << fmt::format("{},indefinite,{},{},{},{}\n", fnum(mu), f.name, status_name(r.status),
+                          fnum(wall), counters_row(r.counters));
+        os.flush();
+    }
+    for (const char *id : {"f7_n800_path_warm", "f7_n1000_path_warm"}) {
+        const corpus::CorpusCell *cell = corpus::find_cell(id);
+        if (cell == nullptr) {
+            throw std::invalid_argument(fmt::format("mu-sweep: no corpus cell '{}'", id));
+        }
+        corpus::detail::EngineConfig cfg;
+        cfg.ipqp = iopts;
+        const corpus::CorpusRow row = corpus::run_cell(*cell, "ipm", {}, cfg);
+        os << fmt::format("{},corpus,{},{},{},{}\n", fnum(mu), id, sqp_status_name(row.status),
+                          fnum(row.wall_s), counters_row(row.ipqp));
+        os.flush();
+    }
+}
+
 /// The nonconvex family and the two `path_warm` corpus cells, which the mu
 /// decision is taken on beside the A4 cells (settler amendment (b)).
 int run_mu_sweep(std::ostream &os, const std::vector<Index> &sizes, Index hard_cap) {
     const double mus[4] = {1e-3, 1e-2, 1e-1, 1.0};
     const auto opts_at = [&](double mu) {
         IpqpOptions o;
+        apply_a2_levers(o);
         o.ipqp_init_mu = mu;
         if (hard_cap > 0) {
             o.ipqp_hard_iter_cap = hard_cap;
@@ -371,59 +444,20 @@ int run_mu_sweep(std::ostream &os, const std::vector<Index> &sizes, Index hard_c
     }
 
     for (const double mu : mus) {
-        const IpqpOptions iopts = opts_at(mu);
-        for (const int number : {10, 24, 33}) {
-            const test_support::HsProblem p = test_support::make_hs(number);
-            SqpOptions o;
-            o.qp_mode = QpMode::kIpm;
-            o.max_iter = 60;
-            o.ipqp = iopts;
-            SqpSolver driver(o);
-            const auto t0 = std::chrono::steady_clock::now();
-            const SqpResult sol = driver.solve(*p.model);
-            const double wall =
-                std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
-            os << fmt::format("{},hs,hs{},{},{},{}\n", fnum(mu), number,
-                              sqp_status_name(sol.status), fnum(wall),
-                              counters_row(sol.counters.ipqp));
-            os.flush();
-        }
-        struct Fixture {
-            const char *name;
-            QpProblem qp;
-        };
-        std::vector<Fixture> fixtures;
-        fixtures.push_back({"indefinite_equality", test_support::indefinite_equality_qp()});
-        fixtures.push_back(
-            {"indefinite_equality_and_row", test_support::indefinite_equality_and_row_qp()});
-        fixtures.push_back(
-            {"two_negative_eigenvalue_row", test_support::two_negative_eigenvalue_row_qp()});
-        for (Fixture &f : fixtures) {
-            QpOptions qopts;
-            qopts.tr_radius = std::numeric_limits<double>::infinity();
-            IpqpEngine tier(qopts);
-            const auto t0 = std::chrono::steady_clock::now();
-            const IpqpResult r = tier.solve(f.qp, nullptr, iopts, SolveOverrides{});
-            const double wall =
-                std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
-            os << fmt::format("{},indefinite,{},{},{},{}\n", fnum(mu), f.name,
-                              status_name(r.status), fnum(wall), counters_row(r.counters));
-            os.flush();
-        }
-        for (const char *id : {"f7_n800_path_warm", "f7_n1000_path_warm"}) {
-            const corpus::CorpusCell *cell = corpus::find_cell(id);
-            if (cell == nullptr) {
-                throw std::invalid_argument(fmt::format("mu-sweep: no corpus cell '{}'", id));
-            }
-            corpus::detail::EngineConfig cfg;
-            cfg.ipqp = iopts;
-            const corpus::CorpusRow row = corpus::run_cell(*cell, "ipm", {}, cfg);
-            os << fmt::format("{},corpus,{},{},{},{}\n", fnum(mu), id, sqp_status_name(row.status),
-                              fnum(row.wall_s), counters_row(row.ipqp));
-            os.flush();
-        }
+        emit_families(os, mu, opts_at(mu));
         std::fprintf(stderr, "mu-sweep families mu=%g done\n", mu);
     }
+    return 0;
+}
+
+/// A2's T10-families instrument: `emit_families` once, at the shipped `ipqp_init_mu` plus the A2
+/// levers from argv.
+int run_families(std::ostream &os) {
+    IpqpOptions iopts;
+    apply_a2_levers(iopts);
+    stamp(os, "families", option_stamp(iopts));
+    os << "mu,family,id,status,wall_s," << counters_header() << "\n";
+    emit_families(os, iopts.ipqp_init_mu, iopts);
     return 0;
 }
 
@@ -482,10 +516,22 @@ int main(int argc, char **argv) {
                 return std::string(argv[++i]);
             };
             if (a == "--regen" || a == "--sweep" || a == "--mu-sweep" || a == "--envelope" ||
-                a == "--gate") {
+                a == "--gate" || a == "--families") {
                 mode = a.substr(2);
             } else if (a == "--out") {
                 out = next("--out");
+            } else if (a == "--mu0-rule") {
+                const std::string v = next("--mu0-rule");
+                if (v == "kFixed") {
+                    g_mu0_rule = IpqpMu0Rule::kFixed;
+                } else if (v == "kComplementarity") {
+                    g_mu0_rule = IpqpMu0Rule::kComplementarity;
+                } else {
+                    throw std::invalid_argument(fmt::format(
+                        "{}: --mu0-rule must be kFixed or kComplementarity, got '{}'", kUsage, v));
+                }
+            } else if (a == "--mu-floor") {
+                g_mu_floor = true;
             } else if (a == "--mu") {
                 mu = hven::solvers::bench_cli::parse_double(kUsage, "--mu", next("--mu"));
             } else if (a == "--hard-cap") {
@@ -534,6 +580,9 @@ int main(int argc, char **argv) {
         }
         if (mode == "gate") {
             return run_gate(os, sizes);
+        }
+        if (mode == "families") {
+            return run_families(os);
         }
         return run_envelope(os, nodes, p_window);
     } catch (const std::exception &e) {
