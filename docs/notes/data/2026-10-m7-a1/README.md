@@ -66,6 +66,16 @@ attempt (`scripts/run_probe.sh`, last two legs) included the path window and was
 stopped the same way at the same cell; `scripts/run_probe2.sh` re-ran the bound
 window and those transcripts are the ones here. The probe binaries `a1_probe` …
 `a1_probe4` are successive builds of the one source; the source here is the final
-form (the earlier builds lacked the `e1demote` mode and the two `A1_F7_*` filters,
-which change nothing in the modes they share). `scripts/` — the build and run legs
-as executed.
+form. The mapping from build to legs is taken from `scripts/`:
+* build 1 (`a1_probe`) ran `e1`, `gate8` and `f7`;
+* build 2 (`a1_probe2`) added `e1demote`, which produced every `demote-*`
+  transcript, and re-ran the bound-window `f7`;
+* builds 3 and 4 added the `A1_F7_PATH` and `A1_F7_MAXN` filters, for the path
+  window.
+
+That each later build changes nothing in the modes it shares with an earlier one
+is **asserted, not diffed**. The source was edited in place between builds, and
+the sources of builds 1–3 were not kept. Each transcript is the output of the
+build that ran its leg.
+
+`scripts/` — the build and run legs as executed.
