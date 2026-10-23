@@ -8,7 +8,7 @@ page landed at `0000a52f` before any measured row existed; no criterion was edit
 ## Provenance
 
 * hven: branch `w2-a2` (off `m7` `f424c8db`). Pre-registration `0000a52f`; implementation
-  `3e0c6afc` (library + tests), the E1-arm flags (bench commit after it), `e924bbe2` (two tests
+  `3e0c6afc` (library + tests), the E1-arm flags `f0e9c596`, `e924bbe2` (two tests
   added from the mutation run). **Every measurement leg and both suites ran at `e924bbe2`**
   (`out/suites/chain-final.txt`: `HEAD e924bbe2… DIRTY=0`). Release and Debug, the uniform flag
   regime.
