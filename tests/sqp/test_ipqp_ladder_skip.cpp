@@ -141,30 +141,34 @@ TEST(IpqpLadderSkip, TheShippedValueFiresOnTheLadderFixtures) {
 }
 
 // THE LATCH (design page section 2): once fired the rule holds for the rest of the attempt, so on
-// gate 7's fixture -- 25 of 26 iterations modified at every value -- the count is the iterations
-// after the threshold is first met, one fewer per step of the threshold. Measured pins (MKL,
-// Linux x86-64, the A3 round); a mis-timed licence (`>` for `>=`, a hard-coded 3) moves them.
-TEST(IpqpLadderSkip, TheCountOnGateSevensFixtureTracksTheThreshold) {
-    const QpProblem qp = test_support::equality_null_space_indefinite_qp(-2.0);
+// a fixture whose trajectory the value does not move before the licence -- 26 of 27 iterations
+// modified at 1, 2 and 3 -- the count is the iterations after the threshold is first met, one
+// fewer per step. Measured pins, identical in Debug and Release (MKL, Linux x86-64, the A3 round;
+// gate 7's fixture is NOT used: its Debug and Release trajectories differ); a mis-timed licence
+// (`>` for `>=`, a hard-coded 3) moves them.
+TEST(IpqpLadderSkip, TheCountTracksTheThresholdOnTheTwoNegativeEigenvalueRow) {
+    const QpProblem qp = test_support::two_negative_eigenvalue_row_qp();
     const IpqpResult r1 = solve(qp, with_skip(1));
     const IpqpResult r2 = solve(qp, with_skip(2));
     const IpqpResult r3 = solve(qp, with_skip(3));
 #ifdef USE_ACCELERATE_SPARSE
     // Exact trajectory pins are MKL-scoped (T4b F5); the ordering is the backend-neutral part.
-    RecordProperty("a3_gate7_skip_counts_accelerate",
-                   "UNOBSERVED -- the exact counts are MKL-only");
+    RecordProperty("a3_skip_counts_accelerate", "UNOBSERVED -- the exact counts are MKL-only");
     EXPECT_GE(r1.counters.ipqp_ladder_zero_trial_skips, r3.counters.ipqp_ladder_zero_trial_skips);
     return;
 #endif
-    ASSERT_EQ(r3.counters.ipqp_iters, 26);
-    ASSERT_EQ(r3.counters.ipqp_iters_at_elevated_rho, 25);
-    EXPECT_EQ(r1.counters.ipqp_ladder_zero_trial_skips, 24);
-    EXPECT_EQ(r2.counters.ipqp_ladder_zero_trial_skips, 23);
-    EXPECT_EQ(r3.counters.ipqp_ladder_zero_trial_skips, 22);
+    for (const IpqpResult *r : {&r1, &r2, &r3}) {
+        ASSERT_EQ(r->status, QpStatus::kOptimal);
+        ASSERT_EQ(r->counters.ipqp_iters, 27);
+        ASSERT_EQ(r->counters.ipqp_iters_at_elevated_rho, 26);
+    }
+    EXPECT_EQ(r1.counters.ipqp_ladder_zero_trial_skips, 25);
+    EXPECT_EQ(r2.counters.ipqp_ladder_zero_trial_skips, 24);
+    EXPECT_EQ(r3.counters.ipqp_ladder_zero_trial_skips, 23);
     // Each skipped zero trial is one refused factorization not paid.
-    EXPECT_EQ(r2.counters.ipqp_factorizations - r1.counters.ipqp_factorizations, 1);
-    EXPECT_EQ(r3.counters.ipqp_factorizations - r2.counters.ipqp_factorizations, 1);
-    EXPECT_EQ(solve(qp, with_skip(kNever)).counters.ipqp_factorizations, 67);
+    EXPECT_EQ(r1.counters.ipqp_factorizations, 36);
+    EXPECT_EQ(r2.counters.ipqp_factorizations, 37);
+    EXPECT_EQ(r3.counters.ipqp_factorizations, 38);
 }
 
 // The default is the pre-A3 constant: an explicit 3 and a default-constructed IpqpOptions run
