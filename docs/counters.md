@@ -101,12 +101,14 @@ believe. This table says only what exists, where, and how many.
 |---|---|---|---|
 | `QpCounters` | `core/solver_counters.h:34-583` | 100 | the walk (active-set) QP tier, `qp/` |
 | `SsnCounters` | `core/solver_counters.h:210-348` | 18 | the SSN QP tier, `qp/` |
-| `IpqpCounters` | `core/solver_counters.h:466-896` | 42 | the IPQP QP tier, `qp/` |
+| `IpqpCounters` | `core/solver_counters.h:466-896` | 43 | the IPQP QP tier, `qp/` |
 | `SqpCounters` | `core/solver_counters.h:1048-1683` | 50 direct, plus the nested `ssn` and `ipqp` | the SQP driver, `drivers/` |
 | `SymmetricFactor::Counters` | `linear/symmetric_factor.h:646-682` | 5 | every sparse symmetric factor, `linear/` |
 
-130 fields across the four `core/` groups; `SqpCounters`' 50 do not include the
-two nested groups' 60, which it carries whole. (127 and 57 until M7 W2 A2, which
+131 fields across the four `core/` groups; `SqpCounters`' 50 do not include the
+two nested groups' 61, which it carries whole. (130 and 60 until M7 W2 A3, which
+appended `ipqp_ladder_zero_trial_skips`, the fire counter of
+`IpqpOptions::ipqp_ladder_skip_after`, last in `IpqpCounters`; 127 and 57 until M7 W2 A2, which
 appended the three fire counters of `IpqpOptions::ipqp_mu0_rule` and
 `ipqp_mu_residual_floor` -- `ipqp_mu0_derived`, `ipqp_mu0_fallbacks` and
 `ipqp_mu_floor_binds` -- last in `IpqpCounters`; 115 and 38 until M7 W2 M4, which

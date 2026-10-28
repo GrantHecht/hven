@@ -1906,6 +1906,8 @@ void accumulate_ipqp_counters(IpqpCounters &total, const IpqpCounters &one) {
     total.ipqp_mu0_derived += one.ipqp_mu0_derived;
     total.ipqp_mu0_fallbacks += one.ipqp_mu0_fallbacks;
     total.ipqp_mu_floor_binds += one.ipqp_mu_floor_binds;
+    // A3's fire counter: SUMMED, the ordinary fold.
+    total.ipqp_ladder_zero_trial_skips += one.ipqp_ladder_zero_trial_skips;
 }
 
 SqpResult SqpSolver::solve(const NlpModel &model) {

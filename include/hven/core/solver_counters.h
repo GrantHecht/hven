@@ -940,7 +940,7 @@ struct IpqpCounters {
     /// past it. One per iteration, never per rung -- the quantity is "how often
     /// did the memory's guess come back too small", not how far the climb went.
     /// Both routes to that value are charged: as an iteration's first trial once
-    /// `kIpqpLadderSkipAfter` consecutive iterations have needed a modification,
+    /// `IpqpOptions::ipqp_ladder_skip_after` consecutive iterations have needed a modification,
     /// and as the rung that answers a refused zero-trial before then.
     ///
     /// AN EXPECTED COST, NOT A FAULT: the ladder deliberately re-tries a smaller
@@ -1289,6 +1289,14 @@ struct IpqpCounters {
 
     /// += iterations whose corrector target the residual floor raised above `sigma * mu`.
     Index ipqp_mu_floor_binds = 0;
+
+    /// A3 (M7-38): += iterations whose first ladder trial was the memory value because the
+    /// skip rule (`IpqpOptions::ipqp_ladder_skip_after`) licensed it. Non-zero at the default on
+    /// a nonconvex subproblem; structurally 0 on a convex one. Additive fold. Design:
+    /// docs/notes/2026-10-m7-w2-a3-ipqp-levers-design.md section 3.2.
+    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian, or a caller-asserted
+    /// convex B, in which case this reads B, not the NLP.
+    Index ipqp_ladder_zero_trial_skips = 0;
 };
 
 #define HVEN_IPQP_COUNTERS_FIELDS(X)                                                               \
@@ -1333,7 +1341,8 @@ struct IpqpCounters {
     X(ipqp_read_barrier_noise_sides, counter_never_absent)                                         \
     X(ipqp_mu0_derived, counter_never_absent)                                                      \
     X(ipqp_mu0_fallbacks, counter_never_absent)                                                    \
-    X(ipqp_mu_floor_binds, counter_never_absent)
+    X(ipqp_mu_floor_binds, counter_never_absent)                                                   \
+    X(ipqp_ladder_zero_trial_skips, counter_never_absent)
 
 /// @brief `HVEN_IPQP_COUNTERS_FIELDS`' entry count.
 inline constexpr std::size_t kIpqpCountersFieldCount =

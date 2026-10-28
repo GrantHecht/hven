@@ -1714,16 +1714,19 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // step IC-1 / IC-2; the four constants and hven's two declared adaptations
     // are in `detail`'s ladder banner).
     //
-    //   * NO MEMORY, or fewer than `kIpqpLadderSkipAfter` consecutive modified iterations:
+    //   * NO MEMORY, or fewer than `ipqp_ladder_skip_after` consecutive modified iterations:
     //     TRY ZERO (IC-1). OTHERWISE: `max(ipqp_reg_floor, rho_dem_last / kIpqpLadderDown)`,
     //     probing down for the smallest sufficient value; a refused probe is a RECLIMB.
     //
     // THE EVIDENCE-FAILURE FLOOR RIDES THE TRIAL, NOT THE LADDER, once armed: on the backend that
     // clause exists for EVERY factorization reports no usable evidence, so this keeps such a
     // solve at ONE factorization per iteration. IC-1's zero trial is skipped while it stands.
+    const auto skip_licensed = [&]() {
+        return rho_dem_last > 0.0 && consec_modified >= iopts.ipqp_ladder_skip_after;
+    };
     auto ladder_trial = [&]() {
         double trial = 0.0;
-        if (rho_dem_last > 0.0 && consec_modified >= detail::kIpqpLadderSkipAfter) {
+        if (skip_licensed()) {
             trial = std::max(iopts.ipqp_reg_floor, rho_dem_last / detail::kIpqpLadderDown);
         }
         if (evidence_failed) {
@@ -2404,6 +2407,11 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // THE TWO REGULARIZATIONS, SELECTED SEPARATELY (T4b): `rho_sched` is the subproblem's own
         // proximal weight and is NOT touched here; `rho_dem` is the inertia-demanded modification
         // chosen fresh every iteration. Additive in the matrix; only `rho_sched` reaches the RHS.
+        // A3: the skip rule's firing, counted at the iteration's own ladder only (A2's estimate
+        // saves and restores the memory around its call).
+        if (skip_licensed()) {
+            ++out.counters.ipqp_ladder_zero_trial_skips;
+        }
         double rho_dem = ladder_trial();
         if (rho_dem > 0.0) {
             rho_dem_max = std::max(rho_dem_max, rho_dem);

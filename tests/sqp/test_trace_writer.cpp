@@ -2532,8 +2532,9 @@ TEST(SqpCountersFieldTables, EachTableEnumeratesItsWholeStruct) {
     // 39 -> 42 at M7 W2 A2, which appended the three `ipqp_mu*` fire counters LAST in
     // IpqpCounters: both golden lines below gain those three keys at the end of the `ipqp`
     // object, re-derived ONCE (docs/trace-schema-v0.md section 8: declared additive trailing
-    // keys). Nothing else moved.
-    EXPECT_EQ(kIpqpCountersFieldCount, 42u);
+    // keys). Nothing else moved. 42 -> 43 at M7 W2 A3 (`ipqp_ladder_zero_trial_skips`, the
+    // same route, one key).
+    EXPECT_EQ(kIpqpCountersFieldCount, 43u);
     // 37 -> 38 at M6 W5 T8.5, which appended `polish_ignored` LAST -- after
     // both nested aggregates -- so every pre-existing field offset is unmoved
     // and the two golden lines below gain exactly one key, at the end of the
@@ -3311,7 +3312,8 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWithEveryCounterDistinct) {
               "\":134,\"ipqp_escape_numerical\":135,\"ipqp_escape_infeasible_suspect\":136,\"ip"
               "qp_alpha_p_min\":137,\"ipqp_alpha_d_min\":138,\"ipqp_read_kept_tight_sides\":139"
               ",\"ipqp_read_barrier_noise_sides\":140,\"ipqp_mu0_derived\":141,\"ipqp_mu0_fal"
-              "lbacks\":142,\"ipqp_mu_floor_binds\":143}},\"scaling_active\":true,\"obj_scale\":0"
+              "lbacks\":142,\"ipqp_mu_floor_binds\":143,\"ipqp_ladder_zero_trial_skips\":144}},"
+              "\"scaling_active\":true,\"obj_scale\":0"
               ".25,\"row_scale_min\":0.5,\"row_scale_max\":4,\"scaled_kkt_residual\":7.49999999"
               "99999993e-09,\"columns_active\":true,\"col_spread\":2048}\n");
 }
@@ -3417,7 +3419,8 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull) {
               ":0,\"ipqp_escape_numerical\":0,\"ipqp_escape_infeasible_suspect\":0,\"ipqp_alpha"
               "_p_min\":null,\"ipqp_alpha_d_min\":null,\"ipqp_read_kept_tight_sides\":0,\"ipqp_"
               "read_barrier_noise_sides\":0,\"ipqp_mu0_derived\":0,\"ipqp_mu0_fallbacks\":0,"
-              "\"ipqp_mu_floor_binds\":0}},\"scaling_active\":false,\"obj_scale\":1,\"row_sc"
+              "\"ipqp_mu_floor_binds\":0,\"ipqp_ladder_zero_trial_skips\":0}},"
+              "\"scaling_active\":false,\"obj_scale\":1,\"row_sc"
               "ale_min\":1,\"row_scale_max\":1,\"scaled_kkt_residual\":0,\"columns_active\":false,"
               "\"col_spread\":1}\n");
 }

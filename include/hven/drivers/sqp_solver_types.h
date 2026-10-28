@@ -299,6 +299,16 @@ struct IpqpOptions {
     /// `(mu_s, r_s)` the attempt's first iterate. Counter: `ipqp_mu_floor_binds`. A bool
     /// refuses no value, so `validate` has no predicate for it. Design: the A2 page section 4.
     bool ipqp_mu_residual_floor = false;
+
+    /// Algorithm IC's zero trial (IC-1) is skipped once this many CONSECUTIVE iterations have
+    /// needed a modification (A3, M7-38; hven's adaptation (ii) of Wachter-Biegler 2006). Once
+    /// skipped it is not re-offered within the attempt. Default 3. 0 skips whenever the ladder
+    /// has a memory; a value above the attempt's iteration count never skips. Must be >= 0.
+    /// Counter: `ipqp_ladder_zero_trial_skips`. Design:
+    /// docs/notes/2026-10-m7-w2-a3-ipqp-levers-design.md. CURVATURE SOURCE: the subproblem Hessian
+    /// -- the exact model Hessian under kExact; under SqpHessianMode::kLbfgsDamped the PD
+    /// quasi-Newton B, so this reads B, not the NLP.
+    Index ipqp_ladder_skip_after = 3;
 };
 
 // The full-step-first warm rule's two constants. Both are watchdog thresholds:
@@ -1179,8 +1189,9 @@ struct SqpOptions {
 ///         below 1, a negative `qn_full_memory_max`, or kLbfgsDamped with
 ///         `restoration_proximity > 0`, or the `restoration_curvature` count sentinel,
 ///         or a `restoration_max_entries` below 1, or an `ipqp.ipqp_mu0_rule` other than
-///         kFixed / kComplementarity (the count sentinel included). `ipqp.ipqp_mu_residual_floor`
-///         is a bool and is never refused.
+///         kFixed / kComplementarity (the count sentinel included), or a negative
+///         `ipqp.ipqp_ladder_skip_after`. `ipqp.ipqp_mu_residual_floor` is a bool and is never
+///         refused.
 void validate(const SqpOptions &opts);
 
 /// @brief Returns a full SqpOptions value for a named preset.

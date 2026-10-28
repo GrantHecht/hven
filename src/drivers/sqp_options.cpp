@@ -287,6 +287,14 @@ void validate(const SqpOptions &opts) {
             "IpqpMu0Rule::kIpqpMu0RuleCount is the enumerator-count sentinel, not a value",
             static_cast<int>(opts.ipqp.ipqp_mu0_rule)));
     }
+    // A3 (M7-38): 0 is legal (skip whenever a memory exists); a count cannot be negative.
+    if (!(opts.ipqp.ipqp_ladder_skip_after >= 0)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpSolver: ipqp.ipqp_ladder_skip_after ({}) must be >= 0; it counts consecutive "
+            "modified iterations, and 0 already means \"skip the zero trial whenever the ladder "
+            "has a memory\"",
+            opts.ipqp.ipqp_ladder_skip_after));
+    }
     // THE ENUMERATOR-COUNT SENTINEL IS NOT A MODE (fix round 3). It is a
     // legal `QpMode` value naming no kernel, so it is refused here rather than
     // left to reach the dispatch, where the arm that enumerates it throws --
@@ -680,6 +688,8 @@ void dump_options(const SqpOptions &o, std::ostream &os) {
     kv_bool(os, "ipqp.ipqp_require_final_inertia", o.ipqp.ipqp_require_final_inertia);
     kv_str(os, "ipqp.ipqp_mu0_rule", enum_name(o.ipqp.ipqp_mu0_rule));
     kv_bool(os, "ipqp.ipqp_mu_residual_floor", o.ipqp.ipqp_mu_residual_floor);
+    kv_int(os, "ipqp.ipqp_ladder_skip_after",
+           static_cast<long long>(o.ipqp.ipqp_ladder_skip_after));
     kv_bool(os, "ssn_prox_carry", o.ssn_prox_carry);
     kv_bool(os, "ssn_certify_from_face", o.ssn_certify_from_face);
     kv_str(os, "ssn_sigma_rule", enum_name(o.ssn_sigma_rule));

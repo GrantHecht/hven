@@ -63,8 +63,8 @@ namespace detail {
 //     kappa_w^-     = 1/3      -> kIpqpLadderDown      (the next trial)
 //
 // hven DEPARTS on two declared points: the bounds are spec 3.2's, not the paper's
-// 1e-20/1e40, and IC-1's unmodified trial is skipped only after `kIpqpLadderSkipAfter`
-// modified iterations.
+// 1e-20/1e40, and IC-1's unmodified trial is skipped only after
+// `IpqpOptions::ipqp_ladder_skip_after` modified iterations.
 
 /// @brief IC's `delta_w^0`: the first rung of a climb that starts from no
 /// memory at all. An ABSOLUTE magnitude, not a multiple of anything -- the
@@ -85,11 +85,6 @@ inline constexpr double kIpqpLadderUp = 8.0;
 /// `max(ipqp_reg_floor, rho_dem_last / kIpqpLadderDown)`. The ladder is therefore NOT
 /// monotone within a solve, deliberately -- a monotone floor makes an overshoot permanent.
 inline constexpr double kIpqpLadderDown = 3.0;
-
-/// @brief How many CONSECUTIVE preceding iterations must have needed a
-/// modification before the unmodified trial (IC-1) is skipped. Adaptation
-/// (ii) in the banner above.
-inline constexpr int kIpqpLadderSkipAfter = 3;
 
 /// @brief How many CONSECUTIVE primal escalations may answer a perturbed-pivot
 /// report before the ladder falls back to escalating the DUAL shift instead.

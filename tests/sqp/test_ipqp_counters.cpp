@@ -287,6 +287,7 @@ TEST(AccumulateIpqpCounters, EveryOtherIndexFieldSumsAcrossSubproblems) {
     a.ipqp_mu0_derived = 1;
     a.ipqp_mu0_fallbacks = 0;
     a.ipqp_mu_floor_binds = 4;
+    a.ipqp_ladder_zero_trial_skips = 2;
 
     IpqpCounters b;
     b.ipqp_iters = 10;
@@ -323,6 +324,7 @@ TEST(AccumulateIpqpCounters, EveryOtherIndexFieldSumsAcrossSubproblems) {
     b.ipqp_mu0_derived = 1;
     b.ipqp_mu0_fallbacks = 1;
     b.ipqp_mu_floor_binds = 6;
+    b.ipqp_ladder_zero_trial_skips = 5;
 
     IpqpCounters total;
     accumulate_ipqp_counters(total, a);
@@ -362,6 +364,7 @@ TEST(AccumulateIpqpCounters, EveryOtherIndexFieldSumsAcrossSubproblems) {
     EXPECT_EQ(total.ipqp_mu0_derived, 2);
     EXPECT_EQ(total.ipqp_mu0_fallbacks, 1);
     EXPECT_EQ(total.ipqp_mu_floor_binds, 10);
+    EXPECT_EQ(total.ipqp_ladder_zero_trial_skips, 7);
 
     // The census invariant holds on the folded total too, using the same
     // reusable helper live solves will call later.

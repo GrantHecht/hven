@@ -30,14 +30,18 @@ using namespace hven;
 using namespace hven::solvers;
 
 constexpr const char *kUsage =
-    "usage: hven_sqp_ipqp_e1_arm <--regen|--sweep|--mu-sweep|--envelope|--gate|--families>\n"
+    "usage: hven_sqp_ipqp_e1_arm <--regen|--sweep|--mu-sweep|--envelope|--gate|--families|\n"
+    "                             --ladder>\n"
     "                            --out FILE [--mu VALUE] [--converge-slack VALUE]\n"
     "                            [--hard-cap N] [--sizes 20000,100000] [--nodes N] [--p P]\n"
     "                            [--mu0-rule kFixed|kComplementarity] [--mu-floor]\n"
+    "                            [--ladder-skip-after N]\n"
     "\n"
     "  --gate   the A4 acceptance gate: all 29 cells at both sizes, shipped\n"
     "           options, scored against E1's four pre-registered criteria.\n"
     "           EXITS NONZERO on any RED criterion. Run it SOLO.\n"
+    "  --ladder the seven T4b gate-9 ladder fixtures, the tier direct (A3).\n"
+    "  --converge-slack and --ladder-skip-after apply to EVERY mode.\n"
     "  --sizes  selects by variable count n (= 5 x nodes); an unknown value\n"
     "           is an error, never an empty artifact.\n";
 
@@ -75,13 +79,22 @@ void stamp(std::ostream &os, const std::string &mode, const std::string &extra) 
 
 std::string fnum(double v) { return fmt::format("{:.6e}", v); }
 
-// A2's two levers, set once from argv and applied to EVERY IpqpOptions this binary builds.
+// The A2 and A3 levers, set once from argv and applied to EVERY IpqpOptions this binary
+// builds. A negative A3 value means "not given": the field keeps its default.
 IpqpMu0Rule g_mu0_rule = IpqpMu0Rule::kFixed;
 bool g_mu_floor = false;
+double g_converge_slack = -1.0;
+Index g_skip_after = -1;
 
 void apply_a2_levers(IpqpOptions &o) {
     o.ipqp_mu0_rule = g_mu0_rule;
     o.ipqp_mu_residual_floor = g_mu_floor;
+    if (g_converge_slack > 0.0) {
+        o.ipqp_converge_slack = g_converge_slack;
+    }
+    if (g_skip_after >= 0) {
+        o.ipqp_ladder_skip_after = g_skip_after;
+    }
 }
 
 /// Every option this binary can move, stamped into EVERY mode's header: a
@@ -92,14 +105,15 @@ std::string option_stamp(const IpqpOptions &o) {
                        "# ipqp_hard_iter_cap: {}\n# ipqp_max_iter: {}\n"
                        "# ipqp_max_factorizations: {}\n"
                        "# ipqp_mu0_rule: {}\n# ipqp_mu_residual_floor: {}\n"
+                       "# ipqp_ladder_skip_after: {}\n"
                        "# (shipped defaults: 1.000000e-02 / 1.000000e+02 / 60 / 0 / 0 / kFixed / "
-                       "false;\n"
+                       "false / 3;\n"
                        "#  0 is the size-derived sentinel, NOT an unbounded budget)\n",
                        fnum(o.ipqp_init_mu), fnum(o.ipqp_converge_slack), o.ipqp_hard_iter_cap,
                        o.ipqp_max_iter, o.ipqp_max_factorizations,
                        o.ipqp_mu0_rule == IpqpMu0Rule::kComplementarity ? "kComplementarity"
                                                                         : "kFixed",
-                       o.ipqp_mu_residual_floor ? "true" : "false");
+                       o.ipqp_mu_residual_floor ? "true" : "false", o.ipqp_ladder_skip_after);
 }
 
 const char *status_name(QpStatus s) {
@@ -134,13 +148,13 @@ std::string counters_header() {
            "ipqp_escapes,ipqp_escape_budget,ipqp_escape_stall,ipqp_escape_indefinite,"
            "ipqp_escape_numerical,ipqp_escape_infeasible_suspect,ipqp_alpha_p_min,"
            "ipqp_alpha_d_min,ipqp_read_kept_tight_sides,ipqp_read_barrier_noise_sides,"
-           "ipqp_mu0_derived,ipqp_mu0_fallbacks,ipqp_mu_floor_binds";
+           "ipqp_mu0_derived,ipqp_mu0_fallbacks,ipqp_mu_floor_binds,ipqp_ladder_zero_trial_skips";
 }
 
 std::string counters_row(const IpqpCounters &c) {
     return fmt::format(
         "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},"
-        "{},{},{},{},{},{},{},{},{},{},{},{},{}",
+        "{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
         c.ipqp_iters, c.ipqp_factorizations, c.ipqp_symbolic_analyses, c.ipqp_solves,
         c.ipqp_pattern_verifies, fnum(c.ipqp_rho_demanded_max), fnum(c.ipqp_rho_demanded_last),
         c.ipqp_inertia_retries, c.ipqp_iters_at_elevated_rho, c.ipqp_ladder_reclimbs,
@@ -154,7 +168,7 @@ std::string counters_row(const IpqpCounters &c) {
         c.ipqp_escape_indefinite, c.ipqp_escape_numerical, c.ipqp_escape_infeasible_suspect,
         fnum(c.ipqp_alpha_p_min), fnum(c.ipqp_alpha_d_min), c.ipqp_read_kept_tight_sides,
         c.ipqp_read_barrier_noise_sides, c.ipqp_mu0_derived, c.ipqp_mu0_fallbacks,
-        c.ipqp_mu_floor_binds);
+        c.ipqp_mu_floor_binds, c.ipqp_ladder_zero_trial_skips);
 }
 
 std::vector<e1arm::CellSpec> selected(const std::vector<Index> &sizes) {
@@ -461,6 +475,44 @@ int run_families(std::ostream &os) {
     return 0;
 }
 
+/// A3's ladder instrument: the seven T4b gate-9 fixtures
+/// (`IpqpLadderTest.AFixedPointOfTheExecutedMapIsAPointTheGateCanSee`), the tier direct at
+/// `tr_radius = inf`, at the shipped options plus the levers from argv.
+int run_ladder(std::ostream &os) {
+    IpqpOptions iopts;
+    apply_a2_levers(iopts);
+    stamp(os, "ladder", option_stamp(iopts));
+    os << "id,status,escape,wall_s," << counters_header() << "\n";
+    struct Fixture {
+        const char *name;
+        QpProblem qp;
+    };
+    std::vector<Fixture> fixtures;
+    fixtures.push_back({"hs_indefinite_equality", test_support::indefinite_equality_qp()});
+    fixtures.push_back(
+        {"hs_indefinite_equality_and_row", test_support::indefinite_equality_and_row_qp()});
+    fixtures.push_back(
+        {"hs_two_negative_eigenvalue_row", test_support::two_negative_eigenvalue_row_qp()});
+    fixtures.push_back({"indefinite_box_family_c0", test_support::indefinite_box_qp(0.0)});
+    fixtures.push_back({"indefinite_box_family_c1", test_support::indefinite_box_qp(1.0)});
+    fixtures.push_back(
+        {"equality_null_space", test_support::equality_null_space_indefinite_qp(-2.0)});
+    fixtures.push_back({"saddle", test_support::saddle_qp()});
+    for (Fixture &f : fixtures) {
+        QpOptions qopts;
+        qopts.tr_radius = std::numeric_limits<double>::infinity();
+        IpqpEngine tier(qopts);
+        const auto t0 = std::chrono::steady_clock::now();
+        const IpqpResult r = tier.solve(f.qp, nullptr, iopts, SolveOverrides{});
+        const double wall =
+            std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+        os << fmt::format("{},{},{},{},{}\n", f.name, status_name(r.status),
+                          static_cast<int>(r.escape_reason), fnum(wall), counters_row(r.counters));
+        os.flush();
+    }
+    return 0;
+}
+
 /// A13/A14's wall leg: the same F7 cell solved by the walk and by the tier on
 /// one occasion. WALL-ASSERTING -- the caller must run it solo and serialized.
 int run_envelope(std::ostream &os, Index nodes, double p) {
@@ -516,7 +568,7 @@ int main(int argc, char **argv) {
                 return std::string(argv[++i]);
             };
             if (a == "--regen" || a == "--sweep" || a == "--mu-sweep" || a == "--envelope" ||
-                a == "--gate" || a == "--families") {
+                a == "--gate" || a == "--families" || a == "--ladder") {
                 mode = a.substr(2);
             } else if (a == "--out") {
                 out = next("--out");
@@ -542,6 +594,14 @@ int main(int argc, char **argv) {
             } else if (a == "--converge-slack") {
                 converge_slack = hven::solvers::bench_cli::parse_double(kUsage, "--converge-slack",
                                                                         next("--converge-slack"));
+                g_converge_slack = converge_slack;
+            } else if (a == "--ladder-skip-after") {
+                g_skip_after = static_cast<Index>(hven::solvers::bench_cli::parse_ll(
+                    kUsage, "--ladder-skip-after", next("--ladder-skip-after")));
+                if (g_skip_after < 0) {
+                    throw std::invalid_argument(
+                        fmt::format("{}: --ladder-skip-after must be >= 0", kUsage));
+                }
             } else if (a == "--nodes") {
                 nodes = static_cast<Index>(
                     hven::solvers::bench_cli::parse_ll(kUsage, "--nodes", next("--nodes")));
@@ -583,6 +643,9 @@ int main(int argc, char **argv) {
         }
         if (mode == "families") {
             return run_families(os);
+        }
+        if (mode == "ladder") {
+            return run_ladder(os);
         }
         return run_envelope(os, nodes, p_window);
     } catch (const std::exception &e) {

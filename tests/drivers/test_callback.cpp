@@ -2124,7 +2124,8 @@ void expect_same_scalars(const std::vector<Seen> &a, const std::vector<Seen> &b)
     X(ipqp_read_barrier_noise_sides)                                                               \
     X(ipqp_mu0_derived)                                                                            \
     X(ipqp_mu0_fallbacks)                                                                          \
-    X(ipqp_mu_floor_binds)
+    X(ipqp_mu_floor_binds)                                                                         \
+    X(ipqp_ladder_zero_trial_skips)
 
 void expect_same_counters(const hven::solvers::SqpCounters &a,
                           const hven::solvers::SqpCounters &b) {
@@ -2154,14 +2155,15 @@ void expect_same_counters(const hven::solvers::SqpCounters &a,
     // 1104 at M7 W2 SNR (`restoration_feas_out`); 1104 -> 1112 at M7 W2 SCL
     // (`scaled_convergence_refusals`); 1112 -> 1120 at M7 W2 RST
     // (`restoration_curvature_switches`); 1120 -> 1144 at M7 W2 A2 (the three nested
-    // `ipqp_mu*` Index in IpqpCounters, 312 -> 336).
-    static_assert(sizeof(hven::solvers::SqpCounters) == 1144,
+    // `ipqp_mu*` Index in IpqpCounters, 312 -> 336); 1144 -> 1152 at M7 W2 A3
+    // (`ipqp_ladder_zero_trial_skips`, IpqpCounters 336 -> 344).
+    static_assert(sizeof(hven::solvers::SqpCounters) == 1152,
                   "SqpCounters gained or lost a field -- extend "
                   "HVEN_T2_SQP_COUNTER_FIELDS so the mask comparison still "
                   "covers every counter");
     static_assert(sizeof(hven::solvers::SsnCounters) == 144,
                   "SsnCounters moved -- extend HVEN_T2_SSN_COUNTER_FIELDS");
-    static_assert(sizeof(hven::solvers::IpqpCounters) == 336,
+    static_assert(sizeof(hven::solvers::IpqpCounters) == 344,
                   "IpqpCounters moved -- extend HVEN_T2_IPQP_COUNTER_FIELDS");
 #endif
 #define X(field) EXPECT_EQ(a.field, b.field) << #field;
