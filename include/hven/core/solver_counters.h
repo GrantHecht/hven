@@ -1290,12 +1290,13 @@ struct IpqpCounters {
     /// += iterations whose corrector target the residual floor raised above `sigma * mu`.
     Index ipqp_mu_floor_binds = 0;
 
-    /// A3 (M7-38): += iterations whose first ladder trial was the memory value because the
-    /// skip rule (`IpqpOptions::ipqp_ladder_skip_after`) licensed it. Non-zero at the default on
-    /// a nonconvex subproblem; structurally 0 on a convex one. Additive fold. Design:
-    /// docs/notes/2026-10-m7-w2-a3-ipqp-levers-design.md section 3.2.
-    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian, or a caller-asserted
-    /// convex B, in which case this reads B, not the NLP.
+    /// A3 (M7-38): += iterations on which the skip rule (`IpqpOptions::ipqp_ladder_skip_after`)
+    /// LICENSED starting the ladder at the memory value (the `skip_licensed()` predicate). Counts
+    /// licensed skips: when the evidence floor stands, the first trial may be that floor instead.
+    /// Non-zero at the default on a nonconvex subproblem; structurally 0 on a convex one. Additive
+    /// fold. Design: docs/notes/2026-10-m7-w2-a3-ipqp-levers-design.md section 3.2. CURVATURE
+    /// SOURCE: the subproblem Hessian -- the exact model Hessian, or a caller-asserted convex B, in
+    /// which case this reads B, not the NLP.
     Index ipqp_ladder_zero_trial_skips = 0;
 };
 

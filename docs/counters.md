@@ -101,7 +101,7 @@ believe. This table says only what exists, where, and how many.
 |---|---|---|---|
 | `QpCounters` | `core/solver_counters.h:34-583` | 100 | the walk (active-set) QP tier, `qp/` |
 | `SsnCounters` | `core/solver_counters.h:210-348` | 18 | the SSN QP tier, `qp/` |
-| `IpqpCounters` | `core/solver_counters.h:466-896` | 43 | the IPQP QP tier, `qp/` |
+| `IpqpCounters` | `core/solver_counters.h:849-1300` | 43 | the IPQP QP tier, `qp/` |
 | `SqpCounters` | `core/solver_counters.h:1048-1683` | 50 direct, plus the nested `ssn` and `ipqp` | the SQP driver, `drivers/` |
 | `SymmetricFactor::Counters` | `linear/symmetric_factor.h:646-682` | 5 | every sparse symmetric factor, `linear/` |
 

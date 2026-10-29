@@ -2407,8 +2407,10 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // THE TWO REGULARIZATIONS, SELECTED SEPARATELY (T4b): `rho_sched` is the subproblem's own
         // proximal weight and is NOT touched here; `rho_dem` is the inertia-demanded modification
         // chosen fresh every iteration. Additive in the matrix; only `rho_sched` reaches the RHS.
-        // A3: the skip rule's firing, counted at the iteration's own ladder only (A2's estimate
-        // saves and restores the memory around its call).
+        // A3: counts LICENSED skips (`skip_licensed()`), not trials that began at the memory value:
+        // under `evidence_failed` the first trial may be the evidence floor. Counted at the
+        // iteration's own ladder only (A2's estimate saves and restores the memory around its
+        // call).
         if (skip_licensed()) {
             ++out.counters.ipqp_ladder_zero_trial_skips;
         }

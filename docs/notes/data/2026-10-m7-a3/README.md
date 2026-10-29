@@ -25,9 +25,12 @@ landed at `2909cb21` before any measured row existed; no criterion was edited af
   foreign cell. Counters only; `wall_s` columns are informational. Accelerate: UNOBSERVED.
 * HOLDOUT was never run.
 * **Declared, not hidden:** two DEVELOPMENT probes (`out/dev/`, `scripts/dev_probe*.sh`) ran the
-  new `--ladder` instrument at skip 0/1/2/3/never (Release, then Debug) on the uncommitted tree
-  before `ac4b07e6`, solely to write the unit-test pins of `tests/sqp/test_ipqp_ladder_skip.cpp`.
-  They are not protocol rows; the protocol ran later at `ac4b07e6`. No criterion was changed.
+  new `--ladder` instrument at skip 0/1/2/3/never (Release, then Debug), solely to write the
+  unit-test pins of `tests/sqp/test_ipqp_ladder_skip.cpp`. `out/dev/lad-k3.csv` (git describe
+  `2909cb2145f1-dirty`, 15:19Z) ran on the uncommitted tree before `ac4b07e6` (15:20Z);
+  `out/dev/dbg-lad-k3.csv` (git describe `ac4b07e66c92`, clean, 15:42Z) ran after `ac4b07e6` and
+  before `70f8d393` (15:43Z), via `scripts/dev_probe_dbg.sh`, to choose the Debug-stable pin
+  fixture. They are not protocol rows; the protocol ran at `ac4b07e6`. No criterion was changed.
 
 ## The gates (page §5.1)
 
@@ -57,6 +60,11 @@ against the base; it contradicts the page's own definition. The identity half �
 purpose — holds exactly. **Consequence, as pre-registered: the §3.2 landing rule ("the field lands
 at 3 iff §5.1's gates pass") is NOT APPLIED by this round; it is the settler's.** §5.4's
 recommendation rule references no §5.1 gate and is evaluated below.
+
+The design page's §5 opening clause ("A criterion found ill-posed is reported as ill-posed and the
+round STOPS; it is not amended") was not applied when G2b's counter half was found ill-posed. The
+round continued with §5.2-5.4, which do not depend on G2b; no criterion was edited and no default
+moved. The settler ratified the continuation (ruling C140, 2026-10-28).
 
 ## The fixture clauses (page §5.2) — VETO-CLASS, predicted → measured
 
