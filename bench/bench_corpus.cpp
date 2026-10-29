@@ -331,7 +331,8 @@ constexpr const char *kUsage =
     "                    ssn_iters,ssn_escapes,esc_budget,esc_singular,\n"
     "                    esc_no_contraction,esc_infeasible_suspect,\n"
     "                    esc_indefinite,ssn_prox_updates,ssn_refinements,\n"
-    "                    ssn_refine_refused (all 0 unless --engine ssn).\n"
+    "                    ssn_refine_refused (0 at kWalk; at kIpm nonzero only when the IPQP tier "
+    "hands off to SSN, ipqp_to_ssn).\n"
     "  --repeat N        HS ONLY. Solve each cell N times and report the MEDIAN\n"
     "                    wall, with min/max and the full spread as a percentage\n"
     "                    of the median. Calibration: raise N until the\n"
@@ -2053,7 +2054,8 @@ struct HsRow {
     long long ev_fallback_rung_b = 0;
     long long ev_ssn_warm_grade = 0;
     // M7 W3: the SSN escape census and the lever-facing SsnCounters, so an SSN
-    // measurement arm (--ssn-*) can be read on this suite. 0 at kWalk/kIpm.
+    // measurement arm (--ssn-*) can be read on this suite. 0 at kWalk; at kIpm, nonzero only when
+    // the IPQP tier hands off to SSN (ipqp_to_ssn).
     long long ssn_iters = 0;
     long long ssn_escapes = 0;
     long long esc_budget = 0;

@@ -26,14 +26,14 @@ criterion was edited after.
 * Box terms: every leg its own `flock /tmp/box-build.lock` hold with PGREP / IN_LOCK_PGREP /
   FOREGROUND_START / FOREGROUND_END markers (`logs/`, `out/train/logs/`), `MKL_NUM_THREADS=1`,
   `OMP_NUM_THREADS=1`, no `timeout`, ctest `-j4` under `setsid`. The lock was shared with the A3
-  gates round; my legs queued behind it. **668/668 TRAIN legs `PGREP_NO_UNCOVERED_CELL` and
+  gates round; my legs queued behind it. **668/668 TRAIN legs (660 cell legs = 7x88 + 44, plus 8 pin/harness build legs; per `out/train/logs/chain-summary.txt`) `PGREP_NO_UNCOVERED_CELL` and
   `IN_LOCK_PGREP_EMPTY`**; every in-tree leg `IN_LOCK_PGREP_EMPTY`. Counters only; wall informational.
   Accelerate: UNOBSERVED. **HOLDOUT was never run.**
 * **Declared, not hidden:**
   * Two in-tree legs exceeded the 600 s leg bound: `u0-tau10-walk` (16 min — the two `path_warm`
     cells' SETUP hops (a cold solve at p0, not a scored row) ran long at τ̄ = 10; both scored rows
-    `Optimal` in 0.11/0.23 s) and each corpus-44 leg (~8 min; the page predicted ~2 min from the
-    committed walls). Nothing was killed.
+    `Optimal` in 0.11/0.23 s) and each corpus-44 leg (~8 min; the ~2 min figure was my own estimate from the
+    committed walls, not the page's -- the page gives only the 300 s per-cell cut, §5.2). Nothing was killed.
   * The τ-probe recipe's first attempt (`logs/tauprobe-recipe-attempt1.log`) failed to BUILD
     (rc 93: the compile line starts with the `ccache` launcher, so the include flag was injected in
     the wrong place). Script fixed, re-run as leg `tauprobe-recipe-r2`; no measurement was consumed.
@@ -180,18 +180,19 @@ Per cell (run A; `out/train/tree-*`):
 ## Prediction misses
 
 * T1e3 `cutest`: predicted TIE, measured **lose: cost** (and a BRITGAS conversion).
-* Wall budget per corpus-44 leg: predicted ~2 min, measured ~8 min (no clause depends on it).
+* Wall budget per corpus-44 leg: ~2 min was an estimate from committed walls (the page gives only the 300 s per-cell cut, §5.2), measured ~8 min (no clause depends on it).
+* Descriptive miss (nothing is decided on it): page §5.3 predicted `esc_infeasible_suspect` = 0 on every HS-27 row; at OFF the measured sum is 7. The corpus-44 half of that prediction held.
 * The probe's FP population counts differ from P7-B's (the evolved probe), not the reading.
 
 ## What is here
 
 * `corpus44-cells.txt` (part of the pre-registration).
-* `scripts/` — every driver as it ran (`chain_build.sh`, `chain_meas.sh`, `tau_recipe.sh`,
+* `scripts/` — every driver as it ran (`scripts/tau_recipe.sh` is committed in its fixed (r2) form; attempt 1's script version is not committed, only its log; `chain_build.sh`, `chain_meas.sh`, `tau_recipe.sh`,
   `train_chain.sh`, `master.sh`, `leg.sh`, `build.sh`, `train_close.py` adapted from A3's,
   `score_meas.py`, `compare_cols.py`, `set_pin.py`, `edit_lane.py`, `preview_a.py` — the last only
   PREVIEWED run A during the chain; the close is `train_close.py`).
 * `patches/` — the three hven scratch commits and the four hven-bench clone commits.
-* `out/meas/` — every in-tree CSV and probe output; `scored.txt`.
+* `out/meas/` — every in-tree CSV and probe output; `scored.txt`. Note: `scored.txt`'s recall line contains an FP tuple (5567, 7); that is a parser artefact of `scripts/score_meas.py:527` misreading `fact(diag)` 7.58. The quoted 233 refusals come from the raw probe text (`probe-head-lever-farkas.txt`). Neither file is edited.
 * `out/train/` — `tree-r/` (D = `sqp-ssn` in the `default` slot), `tree-tau/` (D = `default`; slots
   `tau10`, `tau1e3`), `controls/`, determinism, decisions, C-1/C-2, option dumps, chain summary and
   every leg log.
