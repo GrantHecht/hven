@@ -1,0 +1,10 @@
+# Appended (uncommitted) to tests/sqp/CMakeLists.txt to build the two diagnostics against the
+# worktree's library; removed before the code commit. Sources copied beside this file.
+add_executable(diag_wx_r1 "${CMAKE_CURRENT_SOURCE_DIR}/../../.scratch/diag/diag_wx_r1.cpp")
+target_link_libraries(diag_wx_r1 PRIVATE hven::hven)
+target_compile_options(diag_wx_r1 PRIVATE ${COMPILE_FLAGS})
+target_include_directories(diag_wx_r1 PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+add_executable(diag_wx_r1_hist "${CMAKE_CURRENT_SOURCE_DIR}/../../.scratch/diag/diag_wx_r1_hist.cpp")
+target_link_libraries(diag_wx_r1_hist PRIVATE hven::hven)
+target_compile_options(diag_wx_r1_hist PRIVATE ${COMPILE_FLAGS})
+target_include_directories(diag_wx_r1_hist PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
