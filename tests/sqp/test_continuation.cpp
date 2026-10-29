@@ -1216,11 +1216,6 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
     // still applies unchanged. Arms D and E below are NEW and are MKL-observed
     // only -- they have no Apple value yet and must not be given one until a
     // Mac pass produces it.
-#ifdef USE_ACCELERATE_SPARSE
-    EXPECT_EQ(off.steps[1].counters.factorizations, 304)
-        << "Apple Accelerate (origin D19, re-adjudicated as M3-2); MKL Pardiso reads 303\n"
-        << trajectory(off);
-#else
     // M7 W2 E2 step 2 (declared mover, S20): 303 -> 200 on MKL. The failed,
     // cap-pinned proposal's walks are shorter under the add-site exchange and
     // the zero-motion re-entry rule. The Accelerate arm above keeps its
@@ -1232,7 +1227,9 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
         << "MKL Pardiso (303 before M7 W2 E2); Accelerate observed 304 pre-E2 (origin D19, "
            "re-adjudicated as M3-2)\n"
         << trajectory(off);
-#endif
+    // M7 WX B1 collapse (design section 2.4): the Accelerate arm (304; then 303 -> 18 UNOBSERVED
+    // under E2) is deleted -- macOS run 40905599627 (head 864f5814, Accelerate pinned to one
+    // thread) reads 18 here, MKL's value. Register entry M3-2 carries the LATER DISPOSITION.
     EXPECT_EQ(off.steps[1].counters.probe_budget_stops, 0);
 
     // ---- ARM B: the default probe budget ---------------------------------

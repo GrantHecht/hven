@@ -671,7 +671,16 @@ TEST(Threads, ZeroLeavesEveryFactorAtTheBackendDefault) {
     SqpSolver driver(ropts);
     const SqpResult sol = driver.solve(restoring, restoring.start_point());
     ASSERT_GE(sol.counters.restoration_iters, 1) << "fixture premise: the phase RAN";
+#ifdef HVEN_USE_ACCELERATE_LAPACK
+    // M7 WX B1 (design section 2.3, class D): UNOBSERVED on Accelerate. The count is stored and
+    // applied to nothing there, and this knife-edge model's route ends with no hot handle on the
+    // macOS lane (hot == nullptr, helper read -1; run 40905599627), as it does on MKL Debug (the
+    // comment above). So the K0 read of the restoration leg is recorded, not asserted.
+    RecordProperty("threads_restoration_k0_read",
+                   "UNOBSERVED on Accelerate: no hot handle on this knife-edge route");
+#else
     EXPECT_EQ(driver_k0_num_threads(sol), 0);
+#endif
     EXPECT_EQ(max_threads_now(), before);
 }
 

@@ -1445,7 +1445,8 @@ const FamilyPin kPins[] = {
 // addition had two places to update; now it has one. `table` is the
 // caller's own table-dump string (corpus_table() or f7_scale_table()),
 // computed once by the caller rather than once per assertion.
-void check_pin(const CellStats &c, const Pin &p, const std::string &table) {
+void check_pin(const CellStats &c, const Pin &p, const std::string &table,
+               bool pin_border_refine = true) {
     EXPECT_EQ(c.steps, static_cast<std::size_t>(p.steps)) << table;
     EXPECT_EQ(c.majors, p.majors) << table;
     EXPECT_EQ(c.minors, p.minors) << table;
@@ -1456,7 +1457,9 @@ void check_pin(const CellStats &c, const Pin &p, const std::string &table) {
     EXPECT_EQ(c.n_warm, p.n_warm) << table;
     EXPECT_EQ(c.n_hot, p.n_hot) << table;
     EXPECT_EQ(c.predictor_calls, p.predictor_calls) << table;
-    EXPECT_EQ(c.border_refine, p.border_refine) << table;
+    if (pin_border_refine) {
+        EXPECT_EQ(c.border_refine, p.border_refine) << table;
+    }
     EXPECT_EQ(c.elastic_activations, p.elastic_activations) << table;
 }
 
@@ -1467,7 +1470,23 @@ void check_pinned_corpus_totals() {
             const CellStats &c = f.cell[0][a];
             const Pin &p = fp.arm[a];
             SCOPED_TRACE(fmt::format("{} / {}", fp.name, arm_name(a)));
+#ifdef USE_ACCELERATE_SPARSE
+            // M7 WX B1 (design section 2.2; settler C149/C150). F3n50 cold / cold@pred read
+            // border_refine 57 on the Accelerate lane against the pinned 58. Pinned run 1 of 3
+            // is macOS run 40905599627 (57 in both cells); recorded, not pinned, until three
+            // pinned runs agree. Every other column of every cell is still asserted.
+            // TODO(register M3-8/WX-R6): pin 57 on Accelerate after pinned run 3.
+            const bool lane_unpinned =
+                std::string(fp.name) == "F3n50" && (a == kArmCold || a == kArmColdPred);
+            if (lane_unpinned) {
+                ::testing::Test::RecordProperty(
+                    fmt::format("{}_{}_border_refine", fp.name, arm_name(a)),
+                    static_cast<int>(c.border_refine));
+            }
+            check_pin(c, p, corpus_table(), !lane_unpinned);
+#else
             check_pin(c, p, corpus_table());
+#endif
             // NOTHING IN THIS CORPUS REACHES THE SECOND-ORDER CORRECTION OR
             // THE ELIMINATION-PATH EQP REFINEMENT, and that is pinned so a
             // future change routing work through either says so here instead

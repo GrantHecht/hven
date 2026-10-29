@@ -101,6 +101,13 @@ Provenance: stable across every m3 CI run carrying the suite, from
 Disposition: per-backend arm on the two minor counts, taken at gate B. The
 pin's own comment had asked for exactly this if the counts moved.
 
+**LATER DISPOSITION (2026-10-29, M7 WX B1) — append-only; nothing above is
+altered.** The Accelerate arm is deleted (a collapse, WX design section 2.4). After M7 W2 E2 the
+MKL pins moved to 800 / 797 minors and 275 / 276 factorizations; macOS run
+[40905599627](https://github.com/GrantHecht/hven/actions/runs/40905599627) (head 864f5814,
+Accelerate pinned to one thread by B0) reads exactly 800 / 797 and 275 / 276, so the test asserts
+the MKL values on both backends. The pre-E2 861 / 858 and 320 / 323 are history.
+
 ### M3-2 — origin `D19` re-adjudicated: the failed proposal costs 304
 
 `tests/sqp/test_continuation.cpp`,
@@ -122,6 +129,13 @@ Origin `D19` also claimed Debug byte-identity; this lane has no Debug leg, so
 that half stays on the origin's authority and is not re-observed here.
 
 Disposition: the per-backend arm the comment was structured to receive.
+
+**LATER DISPOSITION (2026-10-29, M7 WX B1) — append-only; nothing above is
+altered.** The Accelerate arm is deleted (a collapse, WX design section 2.4). After M7 W2 E2 the
+MKL pin is 18; macOS run
+[40905599627](https://github.com/GrantHecht/hven/actions/runs/40905599627) (head 864f5814,
+Accelerate pinned to one thread by B0) reads 18, so the test asserts 18 on both backends. The
+pre-E2 304 / 303 are history.
 
 ### M3-3 — the task-6b float columns cannot be pinned on this lane
 

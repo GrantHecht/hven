@@ -214,8 +214,15 @@ TEST_F(IpqpSeamTest, WithNothingInjectedTheTierSolvesExactlyAsItDoesInProduction
     EXPECT_GT(Observer::reads, r.counters.ipqp_iters);
     EXPECT_EQ(Observer::final_reads, 1);
     EXPECT_EQ(Observer::last_final.state, InertiaEvidence::State::kObserved);
+#ifdef USE_ACCELERATE_SPARSE
+    // M7 WX B1 (design section 2.3, class D): Accelerate's declared state is that it reports NO
+    // pivot count (`std::nullopt` by construction, symmetric_factor_accelerate.cpp); asserting
+    // that absence is the backend's own contract, not an observed value.
+    EXPECT_FALSE(Observer::last_final.perturbed_pivots.has_value());
+#else
     ASSERT_TRUE(Observer::last_final.perturbed_pivots.has_value());
     EXPECT_EQ(*Observer::last_final.perturbed_pivots, 0);
+#endif
 }
 
 // ---------------------------------------------------------------------------

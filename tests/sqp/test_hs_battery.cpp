@@ -1015,26 +1015,6 @@ TEST(HsBattery, CrashBasisIsANullResultOnTheBatteryWithTwoBoundSeededExceptions)
         << "HS25 sits on a bound at x0 but converges in 0 majors, so nothing is ever seeded";
     EXPECT_EQ(changed, (std::vector<int>{30, 33}))
         << "only BOUND seeds move a trajectory; every row seed is redundant with the homotopy";
-#ifdef USE_ACCELERATE_SPARSE
-    // M3-1. The battery total is exactly ONE minor lighter in each arm on
-    // Apple Accelerate -- 861/858 against MKL Pardiso's 862/859 -- while
-    // facts_off/facts_on, the seeded counts, and BOTH problem lists above are
-    // byte-identical. One HS problem spends one fewer QP minor; the
-    // answer-invariance half of this battery (status and objective, asserted
-    // per problem above) is untouched, so this is a trajectory fork and not a
-    // different answer.
-    //
-    // OBSERVED, NOT PREDICTED. macOS CI, runner class github-macos26-arm64,
-    // Release, AppleClang, and stable across every m3 run that carried this
-    // suite -- first at
-    // https://github.com/GrantHecht/hven/actions/runs/31736708703 (0ba1b9f),
-    // most recently https://github.com/GrantHecht/hven/actions/runs/31824897327
-    // (6535566). A counter carries none of the machine/thread/configuration
-    // context a float does, so ten agreeing runs on real Apple hardware is a
-    // firmer basis for a pin than this lane can offer any float column.
-    EXPECT_EQ(minors_off, 861);
-    EXPECT_EQ(minors_on, 858);
-#else
     // M7 W2 E2: HS24 spends one minor fewer in each arm (11 -> 10; answer
     // bit-identical): a re-check after shift adds finds two shifted rows and
     // a pin over-counted (3 > n = 2) and releases the pin. 862/859 before.
@@ -1059,13 +1039,6 @@ TEST(HsBattery, CrashBasisIsANullResultOnTheBatteryWithTwoBoundSeededExceptions)
     // `terminal_polish_solves`, not to `factorizations` (solver_counters.h).
     EXPECT_EQ(minors_off, 800);
     EXPECT_EQ(minors_on, 797);
-#endif
-#ifdef USE_ACCELERATE_SPARSE
-    // UNOBSERVED under M7 W2 E2 on Accelerate: the pre-E2 pins stay until the
-    // macOS lane reports (CLAUDE.md section 6).
-    EXPECT_EQ(facts_off, 320);
-    EXPECT_EQ(facts_on, 323);
-#else
     // M7 W2 E2 fix3 (declared mover, settler S29): 267/270 -> 288/289
     // factorizations, minors and answers unchanged. Cause: the mu-free inertia
     // re-read (R-C') of a kWrong verdict at the start repair or the terminal
@@ -1081,7 +1054,10 @@ TEST(HsBattery, CrashBasisIsANullResultOnTheBatteryWithTwoBoundSeededExceptions)
     // verified on a rebuilt one). Release and Debug agree.
     EXPECT_EQ(facts_off, 275);
     EXPECT_EQ(facts_on, 276);
-#endif
+    // M7 WX B1 collapse (design section 2.4): the Accelerate arms (861/858 minors, 320/323
+    // factorizations, pre-E2 pins) are deleted -- macOS run 40905599627 (head 864f5814,
+    // Accelerate pinned to one thread) reads 800/797 and 275/276, MKL's values. Register entry
+    // M3-1 carries the LATER DISPOSITION.
 }
 
 // THE TABLE MUST COVER EVERY SHIPPED PROBLEM. Without this a problem added to

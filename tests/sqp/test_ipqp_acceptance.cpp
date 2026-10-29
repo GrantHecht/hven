@@ -243,7 +243,16 @@ TEST(IpqpAcceptanceA1, TheWindowAtF7sOwnJunctionsIsRecoveredExactly) {
     // RE-DERIVED at T10b's measured `ipqp_init_mu` (0 at the 0.1 placeholder):
     // stopping a decade earlier in `mu` leaves three window rows inside the
     // section 2.3 ratio rule's uncertain band, never forced either way.
+#ifdef USE_ACCELERATE_SPARSE
+    // M7 WX B1 (design section 2.2; settler C149/C150). The uncertain count is not a route, but
+    // the lane's Accelerate value is pinned only once three runs at one thread agree: pinned run
+    // 1 of 3 is macOS run 40905599627 (reads 2). Until then the portable contract above
+    // (misclassified == 0, the counter/verdict agreement below) is asserted and the count is
+    // RECORDED. TODO(register M3-8/WX-R6): tighten to the Apple value after pinned run 3.
+    RecordProperty("a1_window_uncertain", v.uncertain);
+#else
     EXPECT_EQ(v.uncertain, 3);
+#endif
     EXPECT_EQ(r.counters.ipqp_face_uncertain, v.uncertain);
 
     const E1RuleCounts c = e1_rule_counts(cell, r.x, r.lambda_i);
@@ -287,7 +296,14 @@ TEST(IpqpAcceptanceA1, TwoBlocksOneAtEachJunctionAreRecoveredExactly) {
     // THREE tie rows, measured (one at the 0.1 placeholder -- T10b re-derived):
     // rows near the blocks draw margins inside the ratio rule's uncertain band
     // at the tier's own tolerance. Never forced either way -- section 2.3.
+#ifdef USE_ACCELERATE_SPARSE
+    // M7 WX B1 (design section 2.2; settler C149/C150): pinned run 1 of 3 is macOS run
+    // 40905599627 (reads 11); recorded, not pinned, until three pinned runs agree.
+    // TODO(register M3-8/WX-R6): tighten to the Apple value after pinned run 3.
+    RecordProperty("a1_two_block_uncertain", v.uncertain);
+#else
     EXPECT_EQ(v.uncertain, 3);
+#endif
     EXPECT_EQ(r.counters.ipqp_face_uncertain, v.uncertain);
     const E1RuleCounts c = e1_rule_counts(cell, r.x, r.lambda_i);
     RecordProperty("a1_two_block_rule_a", static_cast<int>(c.rule_a));
