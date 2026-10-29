@@ -24,6 +24,7 @@
 
 #include <hven/drivers/sqp_solver.h>
 
+#include "../common_support/route_reference.h"
 #include "../qp/support/qp_dump.h"
 
 using namespace hven::solvers;
@@ -102,8 +103,17 @@ void expect_premise(const Pair &p) {
 /// `f_star` / `rel`: an independent convex-QP oracle's optimum (Clarabel, scratch venv, never
 /// vendored) and the relative band the walk's KKT point must land in. Both rungs are convex (H
 /// PSD), so a KKT point is a global minimizer.
+///
+/// `route_pinned`: the cell's replay statuses and counters are a ROUTE (SAWPATH, an exactly
+/// rank-deficient equality block decided by Pardiso's pivot perturbation: WX-R2), pinned on the
+/// reference build only (the reference arm below is the original text, byte for byte). Off that
+/// build a route-pinned cell records the route and asserts the portable contract: an honest
+/// status (the rung is feasible by construction, never kInfeasible), and, when the answer is
+/// kOptimal, the full KKT battery and the convex-QP oracle objective. A cell that is not
+/// route-pinned keeps its asserts on every build.
 void expect_rung_before_after(const char *cell, double f_star, double rel,
-                              bool seed_optimal_in_debug) {
+                              bool seed_optimal_in_debug, bool route_pinned = false) {
+    (void)route_pinned;
     const Pair p = load_pair(cell);
     expect_premise(p);
     if (::testing::Test::HasFatalFailure()) {
@@ -149,6 +159,7 @@ void expect_rung_before_after(const char *cell, double f_star, double rel,
     // is repaired (no dead-end exit, no false certificate) and ends on its rows to ~1e-13.
     // What the walk reaches after the repair is configuration-dependent for SAWPATH (see
     // `seed_optimal_in_debug`); the witness arm below is unchanged.
+#if HVEN_TEST_ROUTE_REFERENCE
     EXPECT_LE(before_off, 1e-9 * std::max(1.0, p.e.violation_l1));
     EXPECT_GE(before.counters.rank_repairs, 1);
     EXPECT_EQ(before.counters.dep_blocker_terminations, 0);
@@ -162,18 +173,66 @@ void expect_rung_before_after(const char *cell, double f_star, double rel,
         EXPECT_EQ(before.status, QpStatus::kOptimal);
     }
 #endif
+#else
+    if (route_pinned) {
+        hven::test_support::record_off_reference_route(
+            std::string(cell) + "_rung_before",
+            "status=" + std::to_string(static_cast<int>(before.status)) +
+                " minors=" + std::to_string(before.counters.minor_iters) + " rank_repairs=" +
+                std::to_string(before.counters.rank_repairs) + " dep_blocker_terminations=" +
+                std::to_string(before.counters.dep_blocker_terminations) +
+                " dep_certificate_rejections=" +
+                std::to_string(before.counters.dep_certificate_rejections));
+        EXPECT_NE(before.status, QpStatus::kInfeasible) << "the rung is feasible by construction";
+    } else {
+        EXPECT_LE(before_off, 1e-9 * std::max(1.0, p.e.violation_l1));
+        EXPECT_GE(before.counters.rank_repairs, 1);
+        EXPECT_EQ(before.counters.dep_blocker_terminations, 0);
+        EXPECT_EQ(before.counters.dep_certificate_rejections, 0);
+        EXPECT_NE(before.status, QpStatus::kInfeasible);
+        EXPECT_NE(before.status, QpStatus::kNumericalError);
+#ifdef NDEBUG
+        EXPECT_EQ(before.status, QpStatus::kOptimal);
+#else
+        if (seed_optimal_in_debug) {
+            EXPECT_EQ(before.status, QpStatus::kOptimal);
+        }
+#endif
+    }
+#endif
     // THE WITNESS: feasible for every row and bound, to rounding.
     const double scale = std::max(1.0, p.e.violation_l1);
     EXPECT_LE(start_off, 1e-12 * scale);
     // AFTER: a KKT point of the rung, with the relaxation reduced.
+#if HVEN_TEST_ROUTE_REFERENCE
     ASSERT_EQ(after.status, QpStatus::kOptimal);
+#else
+    if (route_pinned) {
+        hven::test_support::record_off_reference_route(
+            std::string(cell) + "_rung_after",
+            "status=" + std::to_string(static_cast<int>(after.status)) +
+                " minors=" + std::to_string(after.counters.minor_iters));
+        EXPECT_NE(after.status, QpStatus::kInfeasible) << "the rung is feasible by construction";
+        if (after.status != QpStatus::kOptimal) {
+            return; // an honest non-optimal end: no KKT claim is made
+        }
+    } else {
+        ASSERT_EQ(after.status, QpStatus::kOptimal);
+    }
+#endif
     EXPECT_LE(k.eq, 1e-8 * scale);
     EXPECT_LE(k.ineq, 1e-8 * scale);
     EXPECT_LE(k.box, 1e-12 * scale);
     EXPECT_LE(k.stationarity, 1e-6);
     EXPECT_LE(k.sign, 1e-8);
     EXPECT_LE(k.complementarity, 1e-8);
+#if HVEN_TEST_ROUTE_REFERENCE
     EXPECT_LT(slack_l1, p.e.violation_l1);
+#else
+    if (!route_pinned) {
+        EXPECT_LT(slack_l1, p.e.violation_l1);
+    }
+#endif
     EXPECT_LE(std::abs(f - f_star), rel * std::abs(f_star)) << f << " vs oracle " << f_star;
 }
 
@@ -235,7 +294,7 @@ TEST(SqpElasticWitnessStart, SawpathMajor0RungSolvesFromItsWitness) {
     // the known downstream two-pass cycle and the minor cap ends it (kMaxIter, 6830 minors,
     // off_rows 7.6e-13) -- so Debug asserts only "repaired, no dead-end exit, no false
     // certificate", as tests/qp/test_qp_rank_repair.cpp does for this fixture's sister.
-    expect_rung_before_after("SAWPATH", -376.225617384, 1e-3, false);
+    expect_rung_before_after("SAWPATH", -376.225617384, 1e-3, false, true);
 }
 
 // YORKNET: every rung of the ladder solves from the shipped start and from the witness; the
@@ -276,6 +335,7 @@ TEST(SqpElasticWitnessStart, SawpathMajor0LadderNeedsTheLastOptimalRung) {
                 static_cast<long>(c2.dep_dependent), static_cast<long>(pins),
                 static_cast<long>(a.rep[1].elastic.qp.n()),
                 static_cast<long>(a.rep[1].elastic.qp.me()));
+#if HVEN_TEST_ROUTE_REFERENCE
     EXPECT_FALSE(a.rep[0].usable) << "the shipped (0, 0) start";
     EXPECT_FALSE(a.rep[1].usable) << "rung 2 fails from rung 1's optimum";
     EXPECT_GE(a.out[1].elastic_escalations, 1);
@@ -284,4 +344,23 @@ TEST(SqpElasticWitnessStart, SawpathMajor0LadderNeedsTheLastOptimalRung) {
     EXPECT_EQ(a.rep[2].qp_status, QpStatus::kOptimal);
     EXPECT_TRUE(a.rep[2].reduced);
     EXPECT_EQ(a.out[2].elastic_last_rung_fallbacks, 1);
+#else
+    // Which rung fails, and so whether the last-optimal-rung hand-back is needed, is the route
+    // (an exactly dependent equality block: WX-R2): recorded, not pinned. PORTABLE: every rung
+    // report is honest -- the elastic rung is feasible by construction, so none reads
+    // kInfeasible, and a report that calls itself usable is a kOptimal one.
+    for (int arm = 0; arm < 3; ++arm) {
+        hven::test_support::record_off_reference_route(
+            "sawpath_ladder_arm" + std::to_string(arm),
+            "usable=" + std::to_string(a.rep[arm].usable) +
+                " status=" + std::to_string(static_cast<int>(a.rep[arm].qp_status)) +
+                " reduced=" + std::to_string(a.rep[arm].reduced) +
+                " escalations=" + std::to_string(a.out[arm].elastic_escalations) +
+                " last_rung_fallbacks=" + std::to_string(a.out[arm].elastic_last_rung_fallbacks));
+        EXPECT_NE(a.rep[arm].qp_status, QpStatus::kInfeasible) << arm;
+        if (a.rep[arm].usable) {
+            EXPECT_EQ(a.rep[arm].qp_status, QpStatus::kOptimal) << arm;
+        }
+    }
+#endif
 }

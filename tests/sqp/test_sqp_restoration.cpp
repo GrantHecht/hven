@@ -48,8 +48,10 @@
 #include <hven/drivers/sqp_solver.h>
 #include <hven/drivers/sqp_solver_types.h>
 
+#include "../common_support/route_reference.h"
 #include "support/derivative_check.h"
 #include "support/hs_problems.h"
+#include "support/nlp_kkt_check.h"
 
 #include "hven/core/compiler.h"
 
@@ -2313,10 +2315,19 @@ TEST(SqpDriverRestorationSeed, TheOfferedCandidateNoLongerMeasuresBetterAndIsNot
 
     // RE-PREMISED (see the family note above): 1 -> 0, the candidate is offered and
     // the guard refuses it because it no longer measures better.
+    // (Whether the knife-edge candidate measures better, and that the phase ran, are the
+    // route: reference-only.)
+#if HVEN_TEST_ROUTE_REFERENCE
     ASSERT_EQ(0, seeded_rows(sol)) << "the candidate measures better again: the guard took it";
     EXPECT_EQ(nullptr, seeded_row(sol));
     EXPECT_GE(sol.counters.restoration_iters, 1)
         << "the phase RAN from the requesting iterate -- the half that never needed the seed";
+#else
+    hven::test_support::record_off_reference_route(
+        "seed_offered_not_taken",
+        fmt::format("seeded_rows={} restoration_iters={} status={}", seeded_rows(sol),
+                    sol.counters.restoration_iters, static_cast<int>(sol.status)));
+#endif
     // WHICH SITE offered it is build-arithmetic-dependent on this knife-edge
     // fixture -- Release reaches the ladder's exhaustion, Debug the radius floor
     // -- so the site is pinned elsewhere, on fixtures that agree in both.
@@ -2354,7 +2365,13 @@ TEST(SqpDriverRestorationSeed, TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEv
         // asserted per mode, and is the claim that matters for the ruling behind
         // it (owner Q-O3), is that the OFFER and the ANSWER are mode-independent:
         // every mode reaches the same certified point below.
+#if HVEN_TEST_ROUTE_REFERENCE
         EXPECT_EQ(0, seeded_rows(sol)) << "a mode took the seed: the margins have moved back";
+#else
+        hven::test_support::record_off_reference_route(
+            std::string("seed_offer_") + seed_mode_name(mode),
+            fmt::format("seeded_rows={}", seeded_rows(sol)));
+#endif
         EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
         EXPECT_TRUE(sol.infeasibility_certified);
         const double t = 1.0 / std::sqrt(2.0);
@@ -2410,6 +2427,7 @@ TEST(SqpDriverRestorationSeed, TheExhaustedLadderSiteOffersItsOwnStepAndTheGuard
         // RE-PREMISED (the family note): 1 -> 0. THE SITE IS STILL THE LADDER'S
         // EXHAUSTION, which is this fixture's actual subject, and it is asserted
         // directly off the history instead of through the seeded row.
+#if HVEN_TEST_ROUTE_REFERENCE
         ASSERT_EQ(0, seeded_rows(sol));
         EXPECT_EQ(nullptr, seeded_row(sol));
         bool saw_restore = false;
@@ -2417,6 +2435,17 @@ TEST(SqpDriverRestorationSeed, TheExhaustedLadderSiteOffersItsOwnStepAndTheGuard
             saw_restore = saw_restore || r.verdict == StepVerdict::kRestore;
         }
         EXPECT_TRUE(saw_restore) << "the ladder's exhaustion, not the floor";
+#else
+        {
+            Index restore_rows = 0;
+            for (const SqpIterate &r : sol.history) {
+                restore_rows += r.verdict == StepVerdict::kRestore ? 1 : 0;
+            }
+            hven::test_support::record_off_reference_route(
+                std::string("exhausted_ladder_") + seed_mode_name(mode),
+                fmt::format("seeded_rows={} restore_rows={}", seeded_rows(sol), restore_rows));
+        }
+#endif
         EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
         EXPECT_TRUE(sol.infeasibility_certified);
     }
@@ -2591,8 +2620,10 @@ TEST(SqpDriverRestorationSeed, TheOffDiagonalStartOffersTheLadderStepAndTheGuard
     // RE-PREMISED (the family note): 1 -> 0. The FLOOR'S OWN SIGNATURE -- a
     // kReject verdict on the requesting row, where the ladder's exhaustion writes
     // kRestore -- is this fixture's subject and is asserted off the history.
+#if HVEN_TEST_ROUTE_REFERENCE
     ASSERT_EQ(0, seeded_rows(sol));
     EXPECT_EQ(nullptr, seeded_row(sol));
+#endif
     // RE-DERIVED WITH THE SITE (E4 fix round 2, and see
     // `TheElasticExhaustionPreemptsTheRadiusFloorOnThisModel` for the measurement):
     // on this model the radius never shrinks, so the floor is not the site any more.
@@ -2606,10 +2637,16 @@ TEST(SqpDriverRestorationSeed, TheOffDiagonalStartOffersTheLadderStepAndTheGuard
         saw_restore_row = saw_restore_row || r.verdict == StepVerdict::kRestore;
         saw_reject_row = saw_reject_row || r.verdict == StepVerdict::kReject;
     }
+#if HVEN_TEST_ROUTE_REFERENCE
     EXPECT_TRUE(saw_restore_row) << "the ladder's exhaustion is the site now";
     EXPECT_FALSE(saw_reject_row)
         << "a kReject row is back: the radius floor is the site again and this fixture's "
            "original read-out can be reinstated";
+#else
+    hven::test_support::record_off_reference_route(
+        "off_diagonal_site", fmt::format("seeded_rows={} saw_restore_row={} saw_reject_row={}",
+                                         seeded_rows(sol), saw_restore_row, saw_reject_row));
+#endif
     EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
     EXPECT_TRUE(sol.infeasibility_certified);
 }
@@ -2706,6 +2743,11 @@ TEST(SqpDriverRestorationSeed, TheSeedsEvaluationIsCountedExactlyOnce) {
     // `evals_full` 27 -> 28 and `evals_values` 40/41 -> 36, with the PARTITION
     // below -- the independent cross-check that no query is double-counted or lost
     // -- unchanged and still asserted.
+    // The take, and the two counts, are the route (macOS: evals_values 17 against 36): the
+    // reference build's. The PARTITION identity below is pure bookkeeping -- every model query
+    // is charged to exactly one of the two counters -- and holds on any route, so it stays
+    // portable; with no take the in-place upgrade just is not exercised.
+#if HVEN_TEST_ROUTE_REFERENCE
     ASSERT_EQ(1, seeded_rows(sol)) << "fixture premise: a candidate was TAKEN";
     // `evals_values` is CONFIG-SPLIT (measured 36 Release / 35 Debug at E4 fix round 2;
     // the trajectory's length differs by one rejected trial between the configs, which
@@ -2716,6 +2758,12 @@ TEST(SqpDriverRestorationSeed, TheSeedsEvaluationIsCountedExactlyOnce) {
     EXPECT_EQ(36, sol.counters.evals_values) << "evals_values was " << sol.counters.evals_values;
 #else
     EXPECT_EQ(35, sol.counters.evals_values) << "evals_values was " << sol.counters.evals_values;
+#endif
+#else
+    hven::test_support::record_off_reference_route(
+        "seed_eval_counted_once",
+        fmt::format("seeded_rows={} evals_full={} evals_values={} n_ce={}", seeded_rows(sol),
+                    sol.counters.evals_full, sol.counters.evals_values, model.n_ce));
 #endif
     // n_grad and n_jac_e do NOT equal evals_full (the wrapper's gradient is
     // constant, so a sub-solve's full query never reaches the inner one), which
@@ -2942,8 +2990,24 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConverg
     roomy.max_iter = 200;
     roomy.qp_failure_step = false; // M7 W2 R2: the pre-R2 route (see the seed family's note)
     const SqpResult converged = SqpSolver(roomy).solve(model);
+    // The fixture premise (the phase ran) is the route: asserted on the reference build; off it
+    // the sub-status block is skipped, with the route recorded, when the phase did not run.
+#if HVEN_TEST_ROUTE_REFERENCE
     ASSERT_EQ(converged.status, SolveStatus::kInfeasible);
     ASSERT_EQ(converged.counters.restoration_entries, 1);
+#else
+    if (converged.status == SolveStatus::kInfeasible) {
+        EXPECT_TRUE(converged.infeasibility_certified) << "an infeasibility verdict is certified";
+    }
+    if (converged.status != SolveStatus::kInfeasible ||
+        converged.counters.restoration_entries != 1) {
+        hven::test_support::record_off_reference_route(
+            "substatus_converged",
+            fmt::format("status={} restoration_entries={}", static_cast<int>(converged.status),
+                        converged.counters.restoration_entries));
+        return;
+    }
+#endif
 
     SqpOptions cramped;
     // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
@@ -2961,8 +3025,18 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConverg
     cramped.max_iter = 5;
     cramped.qp_failure_step = false; // M7 W2 R2: the pre-R2 route, as `roomy`
     const SqpResult cut_off = SqpSolver(cramped).solve(model);
+#if HVEN_TEST_ROUTE_REFERENCE
     ASSERT_EQ(cut_off.counters.restoration_entries, 1)
         << "fixture premise: the phase RAN and was measured on this budget too";
+#else
+    if (cut_off.counters.restoration_entries != 1) {
+        hven::test_support::record_off_reference_route(
+            "substatus_cut_off",
+            fmt::format("status={} restoration_entries={}", static_cast<int>(cut_off.status),
+                        cut_off.counters.restoration_entries));
+        return;
+    }
+#endif
 
     // THE TWO READINGS, AND THEY DISAGREE.
     EXPECT_EQ(converged.counters.restoration_sub_status, RestorationSubStatus::kOptimal);
@@ -2996,7 +3070,13 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConverg
     // bordered answer's certificate (bordered_eqp.h) brings the request forward there, so
     // the sub-solve gets more of the budget; Release unchanged.
     // M7 W2 SNX (declared, Debug only): 3 -> 1, with the budget above.
+#if HVEN_TEST_ROUTE_REFERENCE
     EXPECT_EQ(cut_off.counters.restoration_iters, 1);
+#else
+    hven::test_support::record_off_reference_route(
+        "substatus_cut_off_iters",
+        fmt::format("restoration_iters={}", cut_off.counters.restoration_iters));
+#endif
 }
 
 // M7 W2 M3a fix1. THE PARENT'S STATUS DISCRIMINATES NONE OF THE THREE, and this
@@ -3027,6 +3107,10 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatus) 
     refused.tr_init = 8.0;
     refused.max_iter = 5;
     const SqpResult never_ran = SqpSolver(refused).solve(valley_refused);
+    // The fixture premises of each arm are the route: asserted on the reference build; off it
+    // an arm whose premise does not hold records the route and ends the test (the arms below
+    // compare against each other, so they need all three).
+#if HVEN_TEST_ROUTE_REFERENCE
     ASSERT_EQ(never_ran.status, SolveStatus::kMaxIter);
     ASSERT_FALSE(never_ran.history.empty());
     ASSERT_EQ(never_ran.history.back().verdict, StepVerdict::kRestore)
@@ -3034,6 +3118,18 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatus) 
            "below is a refused phase, not an uneventful solve";
     ASSERT_EQ(never_ran.counters.restoration_entries, 0)
         << "fixture premise: the refusal ran no phase and measured nothing";
+#else
+    if (never_ran.status != SolveStatus::kMaxIter || never_ran.history.empty() ||
+        never_ran.history.back().verdict != StepVerdict::kRestore ||
+        never_ran.counters.restoration_entries != 0) {
+        hven::test_support::record_off_reference_route(
+            "discriminates_arm1",
+            fmt::format("status={} rows={} restoration_entries={}",
+                        static_cast<int>(never_ran.status), never_ran.history.size(),
+                        never_ran.counters.restoration_entries));
+        return;
+    }
+#endif
     EXPECT_EQ(never_ran.counters.restoration_iters, 0);
     EXPECT_EQ(never_ran.counters.restoration_sub_status, RestorationSubStatus::kNotRun);
 
@@ -3048,8 +3144,19 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatus) 
     resumed.tr_init = 8.0;
     resumed.max_iter = 10;
     const SqpResult sub_optimal = SqpSolver(resumed).solve(valley_resumed);
+#if HVEN_TEST_ROUTE_REFERENCE
     ASSERT_EQ(sub_optimal.status, SolveStatus::kMaxIter);
     ASSERT_EQ(sub_optimal.counters.restoration_entries, 1);
+#else
+    if (sub_optimal.status != SolveStatus::kMaxIter ||
+        sub_optimal.counters.restoration_entries != 1) {
+        hven::test_support::record_off_reference_route(
+            "discriminates_arm2",
+            fmt::format("status={} restoration_entries={}", static_cast<int>(sub_optimal.status),
+                        sub_optimal.counters.restoration_entries));
+        return;
+    }
+#endif
     EXPECT_EQ(sub_optimal.counters.restoration_sub_status, RestorationSubStatus::kOptimal);
     EXPECT_LE(sub_optimal.counters.restoration_feas_out, resumed.feas_tol)
         << "this entry RESUMED, and restoration_feas_out is the number that decision was "
@@ -3080,8 +3187,19 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatus) 
     // failed-subproblem step this budget ends before the request is raised.
     cramped.qp_failure_step = false;
     const SqpResult sub_cut_off = SqpSolver(cramped).solve(circle);
+#if HVEN_TEST_ROUTE_REFERENCE
     ASSERT_EQ(sub_cut_off.status, SolveStatus::kMaxIter);
     ASSERT_EQ(sub_cut_off.counters.restoration_entries, 1);
+#else
+    if (sub_cut_off.status != SolveStatus::kMaxIter ||
+        sub_cut_off.counters.restoration_entries != 1) {
+        hven::test_support::record_off_reference_route(
+            "discriminates_arm3",
+            fmt::format("status={} restoration_entries={}", static_cast<int>(sub_cut_off.status),
+                        sub_cut_off.counters.restoration_entries));
+        return;
+    }
+#endif
     EXPECT_EQ(sub_cut_off.counters.restoration_sub_status, RestorationSubStatus::kMaxIter);
     EXPECT_GT(sub_cut_off.counters.restoration_feas_out, cramped.feas_tol) << "not resumed";
     EXPECT_GT(sub_cut_off.counters.restoration_h_out, cramped.feas_tol);
@@ -3413,14 +3531,35 @@ TEST(SqpDriverRestorationProximity, TheSeedGuardFiresAndTheStartObjectiveIsHPlus
     // proximity term P, centred on the REQUESTING iterate -- which is the same
     // point either way, and is in fact easier to read now that the guard has not
     // moved the start.
+    // The take (a margin comparison, macOS read 1) and that the phase ran are the route:
+    // reference-only. Off the reference build the test continues when the phase ran, and records
+    // the route and ends when it did not (there is no requesting iterate to recover).
+#if HVEN_TEST_ROUTE_REFERENCE
     ASSERT_EQ(0, seeded_rows(sol)) << "the candidate measures better again: the guard took it";
     EXPECT_EQ(nullptr, seeded_row(sol));
     ASSERT_GE(sol.counters.restoration_iters, 1) << "the phase RAN from the requesting iterate";
     ASSERT_EQ(1, sol.counters.restoration_entries);
+#else
+    // The identity below holds for every watched point the guard's own test admits, whether or
+    // not the guard took one, so a taken seed does not end the test; no phase does.
+    hven::test_support::record_off_reference_route(
+        "seed_guard_proximity",
+        fmt::format("seeded_rows={} restoration_iters={} restoration_entries={}", seeded_rows(sol),
+                    sol.counters.restoration_iters, sol.counters.restoration_entries));
+    if (sol.counters.restoration_iters < 1 || sol.counters.restoration_entries != 1) {
+        return;
+    }
+#endif
 
     const Vec *x_k = recover_requesting_iterate(model.points, sol.counters.restoration_h_in,
                                                 sol.counters.restoration_f_in, 2.0, 1.999999);
+#if HVEN_TEST_ROUTE_REFERENCE
     ASSERT_NE(nullptr, x_k);
+#else
+    if (x_k == nullptr) {
+        return; // the requesting iterate is not among the watched points on this route
+    }
+#endif
 
     const InfeasibleCircleLineModel plain(2.0, 1.999999);
     const double h_in = sol.counters.restoration_h_in;
@@ -3455,7 +3594,9 @@ TEST(SqpDriverRestorationProximity, TheSeedGuardFiresAndTheStartObjectiveIsHPlus
         // the objective being minimized, not on the violation being measured.
         EXPECT_LT(on.eval_ce(on.start_point()).lpNorm<Eigen::Infinity>(), 1e-12);
     }
+#if HVEN_TEST_ROUTE_REFERENCE
     EXPECT_GE(candidates, 1) << "the guard fired, so at least one better-measuring point exists";
+#endif
 }
 
 // THE REFUSALS' MESSAGE CONTENT (fix round 1). CLAUDE.md section 4 requires a
@@ -4214,10 +4355,34 @@ TEST(SqpDriverRestorationEntries, ASecondRequestAfterProgressIsServicedOnlyAbove
         // second request is refused at a cap of one and serviced above it. On this
         // fixture the second phase itself ends without a point inside feas_tol (its
         // sub-solve numerical_error), so the solve ends there whatever the cap.
+#if HVEN_TEST_ROUTE_REFERENCE
         EXPECT_EQ(log.resumes.size(), 1u);
         EXPECT_GT(sol.counters.steps_accepted, 1) << "the resumed loop made real progress";
         EXPECT_EQ(sol.counters.restoration_entries, cap == 1 ? 1 : 2);
         EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
+#else
+        // The number of serviced entries and the ending are a route (macOS: 2 resumes and
+        // kOptimal at a cap of one's neighbours -- the better outcome): recorded, not pinned.
+        // PORTABLE: the cap itself -- no more phases than the cap, whatever the route -- and an
+        // honest status for a FEASIBLE NLP (never kInfeasible).
+        hven::test_support::record_off_reference_route(
+            fmt::format("entries_cap{}", cap),
+            fmt::format("resumes={} entries={} steps_accepted={} status={}", log.resumes.size(),
+                        sol.counters.restoration_entries, sol.counters.steps_accepted,
+                        static_cast<int>(sol.status)));
+        EXPECT_LE(sol.counters.restoration_entries, cap);
+        EXPECT_LE(static_cast<Index>(log.resumes.size()), cap);
+        EXPECT_NE(sol.status, SolveStatus::kInfeasible);
+        if (sol.status == SolveStatus::kOptimal) {
+            // A kOptimal on the valley is a KKT point of the NLP, checked against the model
+            // itself (the objective is not convex here, so no objective comparison).
+            const hven::solvers::test_support::NlpKktResidual chk =
+                hven::solvers::test_support::self_check_kkt(model, sol, opts.feas_tol);
+            EXPECT_LE(chk.stationarity, 10.0 * opts.kkt_tol);
+            EXPECT_LE(chk.primal, 10.0 * opts.feas_tol);
+            EXPECT_LE(chk.dual_sign, 1e-9);
+        }
+#endif
         EXPECT_FALSE(sol.infeasibility_certified) << "the NLP is feasible: no claim is made";
         EXPECT_LT(sol.counters.major_iters + sol.counters.restoration_iters, opts.max_iter);
     }
