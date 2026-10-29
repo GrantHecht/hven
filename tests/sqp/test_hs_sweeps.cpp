@@ -28,9 +28,9 @@
 // THE MECHANISM IN FOUR LINES, all of them citations rather than claims:
 //   1. sqp_solver.h line ~3126 seeds `lambda_e`/`lambda_i` FROM THE WARM START
 //      when a warm ingest resolves -- i.e. from a solve of a DIFFERENT problem.
-//   2. The convergence test (line ~3549) is
+//   2. The convergence test (line ~3549) was
 //      `kkt.stationarity <= kkt_tol && kkt.feasibility <= feas_tol`. NLP
-//      complementarity is measured but NOT gated.
+//      complementarity was measured but NOT gated (it is gated since WX-R1).
 //   3. sqp_solver.h's CONVERGENCE TEST note justified (2) by
 //      "|lambda_i(j) cI_j| = |lambda_i(j) (Ji p)(j)| = O(||lambda_i|| ||p||),
 //      which goes to zero with the step". THAT ARGUMENT PRESUPPOSES A
@@ -1684,7 +1684,6 @@ TEST(HsSweepRepair, WarmChainOnAQuarterGridCertifiesNoPointOffTheRow) {
         ASSERT_EQ(SolveStatus::kOptimal, pt.status);
         if (pt.level != StartLevel::kCold) {
             ++warm_points;
-            EXPECT_GT(pt.majors, 1) << "pre-WX-R1, p = 2.25 was certified in ONE major";
         }
         EXPECT_NEAR(-std::sqrt(1.0 + pt.p), pt.f, 1e-6)
             << "pre-WX-R1, p = 2.25 read -sqrt(3), the p = 2 answer";

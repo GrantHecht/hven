@@ -316,19 +316,22 @@ struct IpqpOptions {
 // globalization.h's full-step mode before restoring the best iterate it saw and
 // handing the solve back to the funnel.
 //
-// kWarmResidualGrowthMax = 2 consecutive majors with a growing ||KKT||inf;
-// kWarmFullStepWindow = 5 majors without a new best ||KKT||inf.
+// kWarmResidualGrowthMax = 2 consecutive majors with a growing max(stationarity, feasibility,
+// complementarity); kWarmFullStepWindow = 5 majors without a new best max(stationarity,
+// feasibility, complementarity).
 //
 // Changing either is a behaviour change on every warm solve: the warm-start
 // suite pins the majors of both a converging and a watchdog-restored run
 // against these exact values.
 // @see docs/notes/2026-09-header-prose-archive.md §sqp_solver_types.h
 
-/// Watchdog threshold: consecutive majors with growing ||KKT||inf tolerated
+/// Watchdog threshold: consecutive majors with growing max(stationarity,
+/// feasibility, complementarity) tolerated
 /// under the full-step mode before it restores the best iterate.
 inline constexpr Index kWarmResidualGrowthMax = 2;
 
-/// Watchdog threshold: majors without a new best ||KKT||inf tolerated under
+/// Watchdog threshold: majors without a new best max(stationarity, feasibility,
+/// complementarity) tolerated under
 /// the full-step mode before it restores the best iterate.
 inline constexpr Index kWarmFullStepWindow = 5;
 
@@ -439,8 +442,9 @@ enum class SqpRestorationCurvature {
 /// variation goes through SolveOverrides, never through this struct.
 /// @see docs/notes/2026-09-header-prose-archive.md §sqp_solver_types.h
 struct SqpOptions {
-    /// Stationarity gate: CONVERGED requires stationarity <= kkt_tol (AND
-    /// feasibility <= feas_tol). Default 1e-6. Must be > 0. See the
+    /// Stationarity gate: CONVERGED requires stationarity <= kkt_tol AND
+    /// feasibility <= feas_tol AND NLP complementarity <= kkt_tol (absolute; the
+    /// last on every major, WX-R1). Default 1e-6. Must be > 0. See the
     /// CONVERGENCE TEST note in sqp_solver.h for exactly what "stationarity"
     /// measures.
     double kkt_tol = 1e-6;
@@ -514,8 +518,8 @@ struct SqpOptions {
     /// The full-step-first warm rule: when on, a solve whose warm-start level
     /// resolved to kWarm or above -- never a cold one, and never the 2-argument
     /// overload -- begins in globalization.h's full-step mode, with a WATCHDOG
-    /// that restores the best iterate by ||KKT||inf and hands the solve back to
-    /// ordinary funnel globalization the moment the residual grows
+    /// that restores the best iterate by max(stationarity, feasibility, complementarity) and hands
+    /// the solve back to ordinary funnel globalization the moment the residual grows
     /// kWarmResidualGrowthMax majors in a row, or kWarmFullStepWindow majors pass
     /// without a new best. Default true.
     ///
@@ -958,8 +962,9 @@ struct SqpOptions {
     /// trial step when it predicts a decrease or halves a violation above
     /// `feas_tol`. Accepted: taken with the multipliers kept (the failed solve's
     /// are not trusted), no radius growth, no SOC. Rejected: routed, not charged
-    /// to `qp_failure_budget`. Certifies nothing: the kept multipliers arm the KKT
-    /// test's complementarity conjunct until a QP re-prices them. Not consulted in
+    /// to `qp_failure_budget`. Certifies nothing: a step taken here is never itself an
+    /// optimality claim; the KKT test (complementarity conjunct included) runs on
+    /// every major as usual. Not consulted in
     /// the full-step mode; off routes every failure as before R2.
     /// @see docs/counters.md (the failed-subproblem step group)
     bool qp_failure_step = true;
@@ -1384,7 +1389,8 @@ struct SqpIterate {
     /// than at the iterate -- the candidate's MEASURED violation was lower (sqp_solver.h's
     /// RESTORATION PHASE note). False on every other row, INCLUDING a degraded-to-x seed.
     bool restoration_seed_used = false;
-    /// True iff the Full-step watchdog restored an earlier best-||KKT||inf
+    /// True iff the Full-step watchdog restored an earlier best-residual (max of stationarity,
+    /// feasibility, complementarity)
     /// iterate ON THIS PASS, i.e. this row's residual columns describe the
     /// RESTORED point rather than the diverged-or-stalled one the previous row
     /// left off at. Without this flag the history's residual column can jump
@@ -1706,8 +1712,8 @@ struct SqpResult : SolveResult {
     /// @brief max_j |lambda_i(j) * cI_j(x)| at the returned point. Gated at
     ///        kkt_tol on a kOptimal exit -- see SqpIterate::complementarity.
     double sqp_complementarity = std::numeric_limits<double>::quiet_NaN();
-    /// @brief max(sqp_stationarity, sqp_feasibility) -- the scalar the
-    ///        convergence test gates on, beside sqp_complementarity.
+    /// @brief max(sqp_stationarity, sqp_feasibility). Not the whole convergence
+    ///        test: complementarity (sqp_complementarity) is gated separately.
     double kkt_residual = std::numeric_limits<double>::quiet_NaN();
 
     /// Wall-clock seconds spent inside this solve's `solve_impl` ALONE --

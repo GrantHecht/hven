@@ -1557,11 +1557,11 @@ TEST(B1Gate, AScaledStalePriceIsRefusedAtIngestUnderKSsn) {
 //
 // NOT by fb_tol. At ||lambda||inf = 1e6 that bound is 1.0 and the measured 0.63
 // sat inside it. The certificate was intact; it simply certified min(s, lambda),
-// which is a WEAKER quantity than the product the driver's convergence-test note
-// assumes. That note (sqp_solver.h's WHAT IS MEASURED BUT NOT GATED) declines to
-// gate NLP complementarity on the grounds that the SUBPROBLEM's own
-// complementarity is an EXACT identity -- true of an active-set solve, false of
-// a residual-tolerance one.
+// which was a WEAKER quantity than the product the driver's convergence-test note
+// assumed. That note (sqp_solver.h's WHAT IS MEASURED BUT NOT GATED, since
+// retired) declined to gate NLP complementarity on the grounds that the
+// SUBPROBLEM's own complementarity is an EXACT identity -- true of an active-set
+// solve, false of a residual-tolerance one. (The driver gates it since WX-R1.)
 //
 // **THE REPAIR, AND IT IS NOT A TOLERANCE.** Task 5's own brief named a
 // deliverable that had never been implemented: the tier-3 STABLE-FACE

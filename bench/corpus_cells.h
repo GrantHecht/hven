@@ -306,8 +306,9 @@ struct CorpusRow {
     // MODEL level, which is true at any dual scale.) Nothing in the pre-Task-6
     // instrument could
     // have caught that: `status` is what the driver believes, and the driver's
-    // own convergence test does not gate NLP complementarity at all
-    // (sqp_solver.h's WHAT IS MEASURED BUT NOT GATED note).
+    // convergence test did not gate NLP complementarity at all (it does since
+    // WX-R1, at kkt_tol absolute; this check remains the independent MODEL-level
+    // read, at the corpus's own tolerance).
     //
     // A ROW THAT FAILS THIS CHECK IS A WRONG-ANSWER ROW, IN ITS OWN CATEGORY,
     // AND NEVER A SPEED WIN: `evaluate_gates` charges it exactly as it charges

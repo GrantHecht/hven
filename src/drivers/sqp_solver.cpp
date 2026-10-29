@@ -3607,7 +3607,8 @@ struct SqpSolver::SolveState {
     // THE FULL-STEP WATCHDOG SNAPSHOT (ownership doc section 2.2 M). INDEPENDENT
     // copies -- see the members.
     struct FullStepWatchdog {
-        // The best iterate seen under the mode, by ||KKT||inf -- the watchdog
+        // The best iterate seen under the mode, by max(stationarity,
+        // feasibility, complementarity) -- the watchdog
         // restores exactly this. `best_ev` is a COPY of the NlpEval already
         // in hand, so a restore costs no model evaluation.
         Vec best_x, best_lambda_e, best_lambda_i;
@@ -4720,11 +4721,11 @@ void SqpSolver::route_through_ssn_tier(SolveState &st, MajorState &mj) {
         // QpEngine::refine_on_face's own contract for the design;
         // only the mechanics are here. ONE exact solve on the face
         // the SSN just identified, which is what restores the
-        // walk-exact SUBPROBLEM complementarity identity that this
-        // header's WHAT IS MEASURED BUT NOT GATED note is written
-        // against -- an FB kernel stopping at |phi| <= fb_tol
-        // cannot supply that identity on its own, and the note now
-        // states the per-mode guarantee explicitly.
+        // walk-exact SUBPROBLEM complementarity identity (an FB kernel
+        // stopping at |phi| <= fb_tol cannot supply that identity on its
+        // own). The identity makes the NLP complementarity the convergence
+        // test now gates (WX-R1) small at a step's end; it is no longer the
+        // reason the term goes ungated.
         //
         // ITS COST -- one factorization, paid whether or not the
         // result is used -- is folded into `qs.counters` BEFORE the
@@ -6943,9 +6944,9 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
     // subproblem's own complementarity is exact, and the walk does not certify
     // it: its KKT-point test reads only the violated side of a working
     // inequality row, so a row STRICTLY SLACK at the iterate can carry a
-    // positive price and a zero step (HS10 warm at p = 2.25, dp = 0.25, on MKL:
-    // kOptimal in one major at the p = 2 optimum, slack 0.25, complementarity
-    // 0.0722). Stationarity and feasibility are then both met at a point that is
+    // positive price and a zero step (reproducer and measurements:
+    // docs/notes/data/2026-10-m7-wx-r1/). Stationarity and feasibility are then
+    // both met at a point that is
     // not a KKT point. The tolerance is kkt_tol, absolute, as for stationarity.
     mj.converged = mj.kkt.stationarity <= opts_.kkt_tol && mj.kkt.feasibility <= opts_.feas_tol &&
                    mj.kkt.complementarity <= opts_.kkt_tol;
