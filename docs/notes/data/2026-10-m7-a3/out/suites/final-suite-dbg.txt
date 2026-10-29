@@ -1,0 +1,16 @@
+Test project /home/ghecht/Projects/hven/.claude/worktrees/agent-afecbe0a5611f9eff/.scratch/a3/build-head-dbg
+
+100% tests passed, 0 tests failed out of 3229
+
+Total Test time (real) = 367.99 sec
+
+The following tests did not run:
+	475 - QpE2WorkingSet.AGreyPinOnYorknetThatIsIndependentStaysIndependent (Skipped)
+	482 - QpE4ProximalEqp.TheYorknetRestorationQpIsDriftFreeAndOptimal (Skipped)
+	515 - QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder (Skipped)
+	529 - QpE2Fix9StandstillRetreat.Acopp118Qp0Border (Skipped)
+	530 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	531 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	665 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1926 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1927 - EqpRefinementAb.FullBattery (Disabled)

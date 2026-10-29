@@ -1,0 +1,20 @@
+
+=== hs / hven-sqp ===
+label                  optimal dnf_budget dnf_wall   err infeasible  |B|  median-cost  verdict
+default                     21          0        0     0          0   21      10.6667  default
+sqp-ipm-skip1               21          0        0     0          0   21      10.6667  tie (default stands)
+sqp-ipm-skipnever           21          0        0     0          0   21      10.6667  tie (default stands)
+sqp-ipm-slack1              21          0        0     0          0   21       11.625  lose: median cost 11.625 > 10.6667
+sqp-ipm-slack1e3            21          0        0     0          0   21      9.88889  WIN
+  --> best fixed choice: sqp-ipm-slack1e3 (smallest median cost among the winners)
+
+=== cutest / hven-sqp ===
+label                  optimal dnf_budget dnf_wall   err infeasible  |B|  median-cost  verdict
+default                     16          0        5     2          0   16      207.696  default
+sqp-ipm-skip1               16          0        5     2          0   16      207.676  WIN
+sqp-ipm-skipnever           16          0        5     2          0   16      207.812  lose: median cost 207.812 > 207.696
+sqp-ipm-slack1              16          0        6     1          0   16      207.696  tie (default stands)
+sqp-ipm-slack1e3            16          0        6     1          0   16      207.696  tie (default stands)
+  --> best fixed choice: sqp-ipm-skip1 (smallest median cost among the winners)
+
+w2_a4_decide: verdicts -> train/out/decisions.json

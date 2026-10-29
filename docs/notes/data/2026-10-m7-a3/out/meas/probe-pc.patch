@@ -1,0 +1,33 @@
+diff --git a/src/qp/ipqp_engine.cpp b/src/qp/ipqp_engine.cpp
+index ccd5db27..9d004fdd 100644
+--- a/src/qp/ipqp_engine.cpp
++++ b/src/qp/ipqp_engine.cpp
+@@ -1224,6 +1224,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
+     double rho_dem_max = 0.0;
+     double rho_dem_final = 0.0;
+     int consec_modified = 0;
++    bool probe_last_reclimbed = false; // PROBE P-C
+     // The regularized relative residual at the last estimate advance -- the
+     // contraction gate's reference. NaN until the first iteration measures it,
+     // so the gate cannot fire before there is anything to contract against.
+@@ -1727,7 +1728,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
+     auto ladder_trial = [&]() {
+         double trial = 0.0;
+         if (skip_licensed()) {
+-            trial = std::max(iopts.ipqp_reg_floor, rho_dem_last / detail::kIpqpLadderDown);
++            trial = std::max(iopts.ipqp_reg_floor,
++                             probe_last_reclimbed ? rho_dem_last
++                                                  : rho_dem_last / detail::kIpqpLadderDown); // PROBE P-C
+         }
+         if (evidence_failed) {
+             trial =
+@@ -2418,7 +2421,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
+         }
+         double delta = delta_sched;
+ 
++        const Index probe_reclimbs_before = out.counters.ipqp_ladder_reclimbs; // PROBE P-C
+         const InertiaRead read = factorize_with_ladder(rho_sched, rho_dem, delta);
++        probe_last_reclimbed = out.counters.ipqp_ladder_reclimbs > probe_reclimbs_before;
+ 
+         // I4 + N1: READ AFTER THE LADDER SETTLES, COUNTED ONLY IF A STEP IS ACTUALLY TAKEN. `rho`
+         // is in/out, so this reads the level the step would run at; the increment waits until the
