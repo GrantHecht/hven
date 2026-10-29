@@ -37,6 +37,7 @@
 
 #include <hven/detail/qp/qp_engine.h>
 
+#include "../common_support/route_reference.h"
 #include "support/qp_dump.h"
 
 using namespace hven::solvers;
@@ -84,6 +85,7 @@ void expect_stopped_like_the_cap(const char *file, bool ends_on_a_stop,
                 static_cast<long>(s.counters.certificate_bound_refusals),
                 static_cast<long>(s.counters.certificate_row_refusals));
 
+#if HVEN_TEST_ROUTE_REFERENCE
     // The reading answered the idle run: a drop, a stop, or both.
     EXPECT_GE(s.counters.stagnation_drops + s.counters.stagnation_stops, 1);
     EXPECT_LE(s.counters.stagnation_drops, hven::solvers::detail::kStagnationDropBudget);
@@ -106,6 +108,32 @@ void expect_stopped_like_the_cap(const char *file, bool ends_on_a_stop,
     // endpoint's miss (the two endpoints are different points of the same footprint face).
     EXPECT_LE(f, f_cap + 1e-12 * std::max(1.0, std::abs(f_cap)));
     EXPECT_LE(eq, 2.0 * eq_cap + 1e-12);
+#else
+    // Off the reference build the reading's route -- whether the idle run is answered by a
+    // drop or a stop, how many minors it spends, and where the endpoint lands against the
+    // in-cell one -- is recorded, not pinned (WX design section 2.1; the fixtures are
+    // nonconvex, so the objective is a route float and is recorded, not asserted). The portable
+    // contract: an honest status for a feasible fixture, the drop budget and the one-stop bound
+    // (invariants, not rule-fired checks), a stop is the cap's own status, and, if kOptimal,
+    // the battery below.
+    hven::test_support::record_off_reference_route(
+        std::string(file) + "_alg" + std::to_string(static_cast<int>(o.ws_algebra)),
+        "status=" + std::to_string(static_cast<int>(s.status)) +
+            " minors=" + std::to_string(s.counters.minor_iters) +
+            " facts=" + std::to_string(s.counters.factorizations) +
+            " stagnation_drops=" + std::to_string(s.counters.stagnation_drops) +
+            " stagnation_stops=" + std::to_string(s.counters.stagnation_stops) +
+            " terminal_polish_solves=" + std::to_string(s.counters.terminal_polish_solves) +
+            " f=" + std::to_string(f) + " f_cap=" + std::to_string(f_cap) +
+            " eq=" + std::to_string(eq) + " eq_cap=" + std::to_string(eq_cap));
+    EXPECT_LE(s.counters.stagnation_drops, hven::solvers::detail::kStagnationDropBudget);
+    EXPECT_LE(s.counters.stagnation_stops, 1);
+    if (s.counters.stagnation_stops == 1) {
+        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kMaxIter));
+    }
+    ASSERT_TRUE(s.status == QpStatus::kMaxIter || s.status == QpStatus::kOptimal)
+        << static_cast<int>(s.status);
+#endif
     if (s.status == QpStatus::kOptimal) {
         const hven::test_support::QpDumpKkt k = hven::test_support::qp_dump_kkt(d, s);
         EXPECT_LE(k.eq, 1e-8);

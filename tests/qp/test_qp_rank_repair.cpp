@@ -38,6 +38,7 @@
 
 #include <hven/detail/qp/qp_engine.h>
 
+#include "../common_support/route_reference.h"
 #include "support/qp_dump.h"
 
 using namespace hven::solvers;
@@ -141,7 +142,45 @@ void print_walk(const char *tag, const QpDump &d, const QpSolution &s) {
 // YORKNET qp5 f = -1078.49295775, Release's pin. The kOptimal status stays asserted in Release
 // only. Asserted on both: the rule's own effect (no dead-end exit, a repair taken) and NO FALSE
 // CERTIFICATE (kOptimal only at a KKT point; never kInfeasible).
-void expect_repaired(const QpDump &d, const QpSolution &s, double stationarity_tol) {
+void expect_repaired(const QpDump &d, const QpSolution &s, double stationarity_tol,
+                     const char *off_reference_key = nullptr) {
+#if !HVEN_TEST_ROUTE_REFERENCE
+    // Off the reference build a fixture that names a key (SAWPATH qp1: an exactly dependent
+    // equality block Pardiso's pivot perturbation decides on MKL and nothing equivalent decides
+    // elsewhere) records its route instead of pinning it (WX design section 2.1): the repair
+    // count, the certificate-rejection and blocker-termination counters, the stagnation counters
+    // and the status. The portable contract: never kInfeasible on a feasible fixture, and, if
+    // kOptimal, the battery. Fixtures without a key keep the pins below on every build.
+    if (off_reference_key != nullptr) {
+        hven::test_support::record_off_reference_route(
+            off_reference_key,
+            "status=" + std::to_string(static_cast<int>(s.status)) +
+                " minors=" + std::to_string(s.counters.minor_iters) +
+                " rank_repairs=" + std::to_string(s.counters.rank_repairs) +
+                " dep_blocker_terminations=" + std::to_string(s.counters.dep_blocker_terminations) +
+                " dep_certificate_rejections=" +
+                std::to_string(s.counters.dep_certificate_rejections) +
+                " stagnation_drops=" + std::to_string(s.counters.stagnation_drops) +
+                " stagnation_stops=" + std::to_string(s.counters.stagnation_stops));
+        EXPECT_NE(static_cast<int>(s.status), static_cast<int>(QpStatus::kInfeasible));
+        if (s.status == QpStatus::kOptimal) {
+            // The battery without the route counters (a repair taken, no blocker termination,
+            // no certificate rejection), which expect_certified_kkt pins for the reference
+            // build.
+            const hven::test_support::QpDumpKkt k = hven::test_support::qp_dump_kkt(d, s);
+            EXPECT_LE(k.eq, 1e-8);
+            EXPECT_LE(k.ineq, 1e-8);
+            EXPECT_LE(k.box, 1e-9);
+            EXPECT_LE(k.stationarity, stationarity_tol);
+            EXPECT_LE(k.sign, 1e-9);
+            EXPECT_LE(k.complementarity, 1e-8);
+            EXPECT_LE(pin_sign_violation(s), 1e-9 * k.scale);
+        }
+        return;
+    }
+#else
+    (void)off_reference_key;
+#endif
     EXPECT_GE(s.counters.rank_repairs, 1);
     EXPECT_EQ(s.counters.dep_blocker_terminations, 0);
     EXPECT_EQ(s.counters.dep_certificate_rejections, 0);
@@ -167,7 +206,7 @@ void expect_sawpath_qp1(WorkingSetLinearAlgebra alg) {
     EXPECT_NE(d.result.find("status=3 minors=6"), std::string::npos) << d.result;
     // Scaled stationarity 5.0e-7 measured in Release and 2.2e-6 in Debug: the equality block's
     // 1e-11 singular values bound the multipliers' accuracy, so one bound, 1e-5, holds both.
-    expect_repaired(d, s, 1e-5);
+    expect_repaired(d, s, 1e-5, alg == kBorder ? "sawpath_qp1_border" : "sawpath_qp1_refactorize");
     if (s.status == QpStatus::kOptimal) {
         const double f = hven::test_support::qp_dump_objective(d, s.x);
         EXPECT_LE(std::abs(f - kSawpathQp1Oracle), kSawpathQp1Band)

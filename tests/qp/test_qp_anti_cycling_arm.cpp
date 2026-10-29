@@ -65,6 +65,7 @@
 
 #include <hven/detail/qp/qp_engine.h>
 
+#include "../common_support/route_reference.h"
 #include "support/qp_dump.h"
 
 using namespace hven::solvers;
@@ -1708,6 +1709,7 @@ TEST(QpE2WorkingSet, TheUndecidableBorderPingPongRetreatsOnceAndEndsOptimal) {
         EXPECT_EQ(c.dep_known_dependent_refusals, 0);
         EXPECT_EQ(c.ws_exchanges, 1);
         EXPECT_LE(c.minor_iters, 8);
+#if HVEN_TEST_ROUTE_REFERENCE
         if (alg == WorkingSetLinearAlgebra::kSchurBorder) {
             EXPECT_EQ(c.dep_undecidable, 1);
             EXPECT_EQ(c.dep_border_retreats, 1);
@@ -1715,6 +1717,16 @@ TEST(QpE2WorkingSet, TheUndecidableBorderPingPongRetreatsOnceAndEndsOptimal) {
             EXPECT_EQ(c.dep_undecidable, 0);
             EXPECT_EQ(c.dep_border_retreats, 0);
         }
+#else
+        // Whether the border test stalls undecidable and takes the retreat is the walk's
+        // route, pinned on the reference build only (WX design section 2.1); recorded here.
+        // The portable contract is the rest of this loop: kOptimal, the KKT residual, no
+        // zero-motion cap, one exchange, both algebras at the same point.
+        hven::test_support::record_off_reference_route(
+            std::string("pingpong_") + e2_name(alg),
+            "dep_undecidable=" + std::to_string(c.dep_undecidable) + " dep_border_retreats=" +
+                std::to_string(c.dep_border_retreats) + " minors=" + std::to_string(c.minor_iters));
+#endif
         if (x_ref.size() == 0) {
             x_ref = s.x;
         } else {
@@ -1791,6 +1803,7 @@ TEST(QpE2WorkingSet, AFullyPinnedRowDecidesAnUndecidablePinExactly) {
         // carries, not of passes that held no factor.
         EXPECT_EQ(c.dep_unrun_tests, 0);
         if (alg == WorkingSetLinearAlgebra::kSchurBorder) {
+#if HVEN_TEST_ROUTE_REFERENCE
             EXPECT_EQ(c.dep_structural_first, 1);
             // RE-DERIVED AGAIN, M7 W2 E2 FIX ROUND 8 (F7-1): 1 -> 2 minors. The first pass's
             // repair pins and undoes itself, and that pass is now SPENT rather than run on
@@ -1801,13 +1814,26 @@ TEST(QpE2WorkingSet, AFullyPinnedRowDecidesAnUndecidablePinExactly) {
             // thing, on a factor it can actually test against.
             EXPECT_EQ(c.dep_repair_restarts, 1);
             EXPECT_EQ(c.minor_iters, 2);
+#else
+            // Which counter records the exact decision, the repair restart and the minor count
+            // are the route (reference build only, WX design section 2.1); recorded here. The
+            // verdict -- kInfeasible, one verified certificate, its content -- is portable and
+            // asserted around this block.
+            hven::test_support::record_off_reference_route(
+                "fully_pinned_row_border",
+                "dep_structural_first=" + std::to_string(c.dep_structural_first) +
+                    " dep_repair_restarts=" + std::to_string(c.dep_repair_restarts) +
+                    " minors=" + std::to_string(c.minor_iters));
+#endif
             // Read off the row, exactly: -e2 = a - e0, so y_e = 1 and the
             // implied bound is be - u0 = 0.5 against -l2 = 0.
             EXPECT_EQ(f.y_e(0), 1.0);
             EXPECT_EQ(f.implied, 0.5);
             EXPECT_EQ(f.limit, 0.0);
         } else {
+#if HVEN_TEST_ROUTE_REFERENCE
             EXPECT_EQ(c.dep_structural_first, 0);
+#endif
         }
     }
 }
@@ -2005,6 +2031,7 @@ TEST(QpE2WorkingSet, AStructuralDependencyDecidesFirstOnTheSteenbrbElasticQp) {
         expect_e2d4_kkt(d, s);
         EXPECT_EQ(s.counters.zero_motion_exhausted, 0);
         EXPECT_EQ(s.counters.zero_motion_cap_hits, 0);
+#if HVEN_TEST_ROUTE_REFERENCE
 #ifdef NDEBUG
         // Release only: Debug's arithmetic never makes that admission on this QP
         // (measured dep_structural_first 0 there, kOptimal all the same).
@@ -2018,6 +2045,15 @@ TEST(QpE2WorkingSet, AStructuralDependencyDecidesFirstOnTheSteenbrbElasticQp) {
         if (alg == WorkingSetLinearAlgebra::kSchurBorder) {
             EXPECT_GE(s.counters.dep_structural_first, 1);
         }
+#endif
+#else
+        // Whether the structural dependency decides first (a rule-fired counter) is the walk's
+        // route, pinned on the reference build only (WX design section 2.1); recorded here.
+        // The portable contract is the KKT battery and the clean zero-motion counters above.
+        hven::test_support::record_off_reference_route(
+            std::string("structural_first_") + e2_name(alg),
+            "dep_structural_first=" + std::to_string(s.counters.dep_structural_first) +
+                " minors=" + std::to_string(s.counters.minor_iters));
 #endif
     }
 }
@@ -2110,7 +2146,20 @@ TEST(QpE2WorkingSet, AMuFreeInertiaReReadCertifiesTheSingularPsdFaceOfAcopp57) {
         EXPECT_LE(s.counters.minor_iters, 12);
         EXPECT_EQ(s.counters.dep_inertia_reread_flips, s.counters.dep_inertia_rereads);
         if (alg == WorkingSetLinearAlgebra::kSchurBorder) {
+#if HVEN_TEST_ROUTE_REFERENCE
             EXPECT_GE(s.counters.dep_inertia_reread_flips, 1);
+#else
+            // A rule-fired counter (the border path's kWrong read flipping on the mu-free
+            // re-read) is the route, pinned on the reference build only (WX design section
+            // 2.1); recorded here. The portable contract is kOptimal at the oracle objective
+            // (this QP is convex) and the flips == rereads identity above.
+            hven::test_support::record_off_reference_route(
+                "acopp57_inertia_reread_border",
+                "dep_inertia_rereads=" + std::to_string(s.counters.dep_inertia_rereads) +
+                    " dep_inertia_reread_flips=" +
+                    std::to_string(s.counters.dep_inertia_reread_flips) +
+                    " minors=" + std::to_string(s.counters.minor_iters));
+#endif
         }
     }
 }
@@ -2292,6 +2341,7 @@ void expect_the_declined_ride_resolves(const char *file, double f_off, Index off
     // The in-cell E2-on outcome (the pre-NC1 walk): stuck, zero-motion exhaustion.
     EXPECT_NE(d.result.find("status=3"), std::string::npos);
     EXPECT_NE(d.result.find("zmexh=1"), std::string::npos);
+#if HVEN_TEST_ROUTE_REFERENCE
 #ifdef NDEBUG
     // The option-off walk is untouched (N3): kOptimal at the R1 replay's minors
     // (Release only: Debug's arithmetic takes a different, equally optimal walk).
@@ -2314,17 +2364,63 @@ void expect_the_declined_ride_resolves(const char *file, double f_off, Index off
 #else
     (void)off_minors;
 #endif
+#elif defined(NDEBUG)
+    // Off the reference build the option-off walk's status, minors and objective are its route
+    // (WX design section 2.1): recorded here, with the portable contract that the feasible
+    // fixture is never declared infeasible, a kOptimal read is a KKT point, and the option-off
+    // walk (N3) still takes none of the ride rules.
+    {
+        QpOptions off = d.opts;
+        off.independent_working_set = false;
+        const QpSolution s_off = hven::test_support::solve_qp_dump(d, off);
+        hven::test_support::record_off_reference_route(
+            std::string(file) + "_option_off",
+            "status=" + std::to_string(static_cast<int>(s_off.status)) +
+                " minors=" + std::to_string(s_off.counters.minor_iters) +
+                " f=" + std::to_string(hven::test_support::qp_dump_objective(d, s_off.x)));
+        EXPECT_NE(static_cast<int>(s_off.status), static_cast<int>(QpStatus::kInfeasible));
+        if (s_off.status == QpStatus::kOptimal) {
+            expect_e2d4_kkt(d, s_off);
+        }
+        EXPECT_EQ(s_off.counters.dep_ride_blockers, 0);
+        EXPECT_EQ(s_off.counters.ride_declines_fallthrough_blocked, 0);
+        (void)off_minors;
+    }
+#else
+    (void)off_minors;
+#endif
     for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
         const QpSolution s = e2d4_solve(d, alg);
         expect_e2d4_kkt(d, s);
+#if HVEN_TEST_ROUTE_REFERENCE
         EXPECT_LE(std::abs(hven::test_support::qp_dump_objective(d, s.x) - f_off),
                   1e-7 * std::abs(f_off));
+#else
+        // The restoration QP is nonconvex, so its objective is a route float: the reference
+        // arm pins it against the option-off optimum, off the reference build it is recorded
+        // together with the ride counters (WX design section 2.1). The portable contract is the
+        // kOptimal battery above, clean zero-motion counters and the rule statements below.
+        hven::test_support::record_off_reference_route(
+            std::string(file) + "_" + e2_name(alg),
+            "f=" + std::to_string(hven::test_support::qp_dump_objective(d, s.x)) +
+                " f_off=" + std::to_string(f_off) +
+                " dep_ride_blockers=" + std::to_string(s.counters.dep_ride_blockers) +
+                " ride_exchanges=" + std::to_string(s.counters.ride_exchanges) +
+                " minors=" + std::to_string(s.counters.minor_iters));
+#endif
         EXPECT_EQ(s.counters.zero_motion_exhausted, 0);
         EXPECT_EQ(s.counters.zero_motion_cap_hits, 0);
         if (expect_exchange) {
+#if HVEN_TEST_ROUTE_REFERENCE
             EXPECT_GE(s.counters.dep_ride_blockers, 1);
             EXPECT_GE(s.counters.ride_exchanges, 1);
+#else
+            // Rule-fired (counter >= 1): the reference build only; the identity every met
+            // blocker is exchanged holds on any route and is asserted.
+            EXPECT_EQ(s.counters.ride_exchanges, s.counters.dep_ride_blockers)
+                << "a dependent ride blocker was met and not exchanged";
+#endif
         } else {
             // qp3 ONLY, and it is ALGEBRA-DEPENDENT at E4 fix round 2: the border
             // walk still meets 3 dependent ride blockers and exchanges all 3, the
@@ -2627,8 +2723,25 @@ TEST(QpE4ProximalEqp, TheSteenbrbRestorationQp2ExitsFiniteAndSaysWhy) {
         SCOPED_TRACE(e2_name(alg));
         const QpSolution s = e2d4_solve(d, alg);
         const hven::test_support::QpDumpKkt k = hven::test_support::qp_dump_kkt(d, s);
+#if HVEN_TEST_ROUTE_REFERENCE
         EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kNumericalError))
             << "declared: this cell is not optimal at the shipped polish step cap";
+#else
+        // The declared kNumericalError is the reference build's reading of a fixture that sits
+        // at the polish step cap's edge (a cap of 1e-5 converts it); Windows, macOS and every
+        // MKL_CBWR branch read kOptimal (WX design section 4.2). The honest outcome set is
+        // kOptimal or kNumericalError, and a kOptimal read is a KKT point.
+        hven::test_support::record_off_reference_route(
+            std::string("steenbrb_qp2_") + e2_name(alg),
+            "status=" + std::to_string(static_cast<int>(s.status)) +
+                " minors=" + std::to_string(s.counters.minor_iters) +
+                " eqp_residual_refusals=" + std::to_string(s.counters.eqp_residual_refusals));
+        EXPECT_TRUE(s.status == QpStatus::kOptimal || s.status == QpStatus::kNumericalError)
+            << static_cast<int>(s.status);
+        if (s.status == QpStatus::kOptimal) {
+            expect_e2d4_kkt(d, s);
+        }
+#endif
         EXPECT_TRUE(s.x.allFinite()) << "no NaN may reach the caller";
         EXPECT_TRUE(std::isfinite(hven::test_support::qp_dump_objective(d, s.x)));
         EXPECT_LE(k.eq, 1e-12) << "and the rows it does report are met";

@@ -27,6 +27,7 @@
 
 #include <hven/detail/qp/qp_engine.h>
 
+#include "../common_support/route_reference.h"
 #include "support/qp_dump.h"
 
 using namespace hven::solvers;
@@ -473,6 +474,7 @@ TEST(QpLatchReason, BritgasMainSubproblemHoldsItsConditioningLatch) {
         static_cast<long>(c.factorizations), static_cast<long>(c.border_latches_cap),
         static_cast<long>(c.border_latches_conditioning),
         static_cast<long>(c.border_latch_releases), static_cast<long>(c.border_latch_holds));
+#if HVEN_TEST_ROUTE_REFERENCE
     // The endpoint at kMinors, identical at 0e3554c6 and with the riders: status and counters
     // exact (Release and Debug agree); the objective of the unconverged iterate to 1e-4 (Release
     // 0.2429181, Debug 0.2429209), so no residual-class value is pinned.
@@ -487,4 +489,23 @@ TEST(QpLatchReason, BritgasMainSubproblemHoldsItsConditioningLatch) {
     // A latched pass costs its one eliminated factorization and a release one K0 rebuild more;
     // a held pass is one the reason-blind latch paid both on.
     EXPECT_LE(c.factorizations, c.minor_iters + c.border_latch_releases + kSlack);
+#else
+    // Off the reference build the walk's route over its first kMinors minors -- the capped
+    // iterate's objective (a route float at a minor cap, not an optimum), the factorization
+    // count and the four latch counters -- is recorded, not pinned (WX design section 2.1).
+    // The portable contract: the cap is honoured and the walk does not declare the subproblem
+    // infeasible within it (the in-cell kInfeasible was the reason-blind latch's, after 508
+    // minors).
+    hven::test_support::record_off_reference_route(
+        "britgas_qp0_first120",
+        "status=" + std::to_string(static_cast<int>(s.status)) + " minors=" +
+            std::to_string(c.minor_iters) + " facts=" + std::to_string(c.factorizations) +
+            " latches_cap=" + std::to_string(c.border_latches_cap) +
+            " latches_conditioning=" + std::to_string(c.border_latches_conditioning) +
+            " releases=" + std::to_string(c.border_latch_releases) +
+            " holds=" + std::to_string(c.border_latch_holds) +
+            " f=" + std::to_string(hven::test_support::qp_dump_objective(d, s.x)));
+    EXPECT_NE(s.status, QpStatus::kInfeasible);
+    EXPECT_LE(c.minor_iters, kMinors);
+#endif
 }

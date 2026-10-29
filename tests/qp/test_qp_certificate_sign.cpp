@@ -41,6 +41,7 @@
 
 #include <hven/detail/qp/qp_engine.h>
 
+#include "../common_support/route_reference.h"
 #include "support/qp_dump.h"
 
 using namespace hven::solvers;
@@ -544,9 +545,38 @@ TEST(QpCertificateSign, Net3QnSubproblemInconsistentFaceIsNotInfeasible) {
     }
     // The in-cell path, live: the walk's own point violates its rows.
     const RowHalfRun r = run_row_half(d, d.opts.ws_algebra);
+#if HVEN_TEST_ROUTE_REFERENCE
     EXPECT_GT(r.row_res, 1e-2);
     EXPECT_EQ(static_cast<int>(r.s.status), static_cast<int>(QpStatus::kNumericalError));
     EXPECT_EQ(r.s.counters.certificate_row_refusals, 1);
+#else
+    // The dead end itself -- kNumericalError with the rows violated by 0.108 and one row
+    // refusal -- is the fixture's route on the reference build only: NET3 qp98 is feasible and
+    // the walk solves it on neither backend (Accelerate burns its minors to the cap, other
+    // routes may certify), so the route is recorded, not pinned (WX design sections 2.1, 4.1).
+    // The test's claim holds portably and is asserted above for both algebras: never
+    // kInfeasible, no Farkas certificate. Here: the in-cell algebra's status is honest, and a
+    // kOptimal read is a real KKT point of the feasible fixture.
+    hven::test_support::record_off_reference_route(
+        "net3_qn_qp98",
+        "status=" + std::to_string(static_cast<int>(r.s.status)) +
+            " minors=" + std::to_string(r.s.counters.minor_iters) +
+            " certificate_row_refusals=" + std::to_string(r.s.counters.certificate_row_refusals) +
+            " terminal_farkas_certificates=" +
+            std::to_string(r.s.counters.terminal_farkas_certificates) +
+            " eq_res=" + std::to_string(r.eq_res) + " row_res=" + std::to_string(r.row_res));
+    EXPECT_NE(static_cast<int>(r.s.status), static_cast<int>(QpStatus::kInfeasible));
+    EXPECT_EQ(r.s.counters.terminal_farkas_certificates, 0);
+    if (r.s.status == QpStatus::kOptimal) {
+        const hven::test_support::QpDumpKkt k = hven::test_support::qp_dump_kkt(d, r.s);
+        EXPECT_LE(k.eq, 1e-8);
+        EXPECT_LE(k.ineq, 1e-8);
+        EXPECT_LE(k.box, 1e-9);
+        EXPECT_LE(k.stationarity, 1e-8);
+        EXPECT_LE(k.sign, 1e-9);
+        EXPECT_LE(k.complementarity, 1e-8);
+    }
+#endif
 }
 
 TEST(QpCertificateSign, Mss2QnSubproblemMuFootprintIsNotInfeasible) {
