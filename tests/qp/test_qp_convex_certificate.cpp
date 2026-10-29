@@ -27,6 +27,7 @@
 
 #include <hven/detail/qp/qp_engine.h>
 
+#include "../common_support/route_reference.h"
 #include "support/qp_dump.h"
 
 using namespace hven::solvers;
@@ -90,6 +91,7 @@ void expect_certified(const char *file, double f_star, WorkingSetLinearAlgebra a
     // trusted kWrong before the certificate is consulted). MEASURED: under Debug's rounding
     // BRITGAS qp2's walk takes another path to the same optimum and reads no kWrong (rereads 0);
     // the outcome below is the contract on every build.
+#if HVEN_TEST_ROUTE_REFERENCE
     if (route_certificates >= 0) {
         EXPECT_EQ(s.counters.convex_certificates, route_certificates);
         if (route_rereads >= 0) {
@@ -98,6 +100,23 @@ void expect_certified(const char *file, double f_star, WorkingSetLinearAlgebra a
     } else if (s.counters.dep_inertia_rereads > 0) {
         EXPECT_GE(s.counters.convex_certificates, 1);
     }
+#else
+    // Off the reference build (Windows MKL, Accelerate, ...) the exact route is not pinned (WX
+    // design section 2.1): it is recorded. A call that pins no route keeps the file's contract
+    // implication -- a kWrong read => the certificate. A call that DOES pin one (BRITGAS qp4,
+    // STEENBRB qp3) gets no implication: BRITGAS qp4's own reference route reads one re-read
+    // and takes no certificate (the QC-8 note above), so the implication is not portable there;
+    // the status, objective and KKT battery below are its portable contract.
+    hven::test_support::record_off_reference_route(
+        std::string(file) + "_" + alg_name(alg),
+        "convex_certificates=" + std::to_string(s.counters.convex_certificates) +
+            " rereads=" + std::to_string(s.counters.dep_inertia_rereads) +
+            " minors=" + std::to_string(s.counters.minor_iters) +
+            " facts=" + std::to_string(s.counters.factorizations));
+    if (route_certificates < 0 && s.counters.dep_inertia_rereads > 0) {
+        EXPECT_GE(s.counters.convex_certificates, 1);
+    }
+#endif
     EXPECT_EQ(s.counters.saddle_exits, 0);
     EXPECT_EQ(s.counters.saddle_exit_misses, 0) << "the certificate precedes the saddle search";
     ASSERT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));

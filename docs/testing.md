@@ -1367,6 +1367,27 @@ written at all):
   asserted on MKL, reported on Apple). An unobserved Apple value stays
   `UNOBSERVED` — never zero-filled, never interpolated from the MKL arm.
 
+**The reference build, for route pins** (M7 WX; register M3-8, M3-9, W-1). An
+exact *route* pin -- minors, factorizations, `dep_*` / certificate / saddle /
+latch counters, the status of a capped or knife-edge fixture -- is a statement
+about one build: Linux, x86-64, clang, MKL Pardiso at its AUTO dispatch.
+`tests/common_support/route_reference.h` defines `HVEN_TEST_ROUTE_REFERENCE`
+(1 on that build, 0 elsewhere, derived from `__linux__`, `__x86_64__`,
+`__clang__` and the absence of `USE_ACCELERATE_SPARSE`). The arm shape is
+`#if HVEN_TEST_ROUTE_REFERENCE` -- the pin, **verbatim** -- `#else`
+`record_off_reference_route(key, observed)` plus the fixture's portable
+contract (status in its honest set, the KKT battery if kOptimal, the oracle
+objective where convex). Windows MKL is off-reference too: it is a second MKL
+*build*, not a second version. This replaces the per-backend counter arm for
+this class: no Accelerate or Windows counter is committed for a route, because
+a route counter inherits the float nondeterminism that chose the route (M3-8).
+A lane-observed counter arm outside the class needs three agreeing lane runs.
+`RouteReference.TheReferenceBuildRunsAtMklsAutoDispatch` fails a reference
+build run with `MKL_CBWR` set, since a forced CBWR branch invalidates every
+route pin. Reviewers diff the reference arm against its pre-conversion text;
+zero changed lines inside `#if HVEN_TEST_ROUTE_REFERENCE`. Design:
+`docs/notes/2026-10-m7-wx-ci-design.md`.
+
 **Origin entries `D14`–`D19`/`D22` are cited but not readable here.** The SQP
 suite arrived carrying citations to four origin notes
 (`2026-07-28-accelerate-audit-checklist.md`,
