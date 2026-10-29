@@ -5226,7 +5226,7 @@ bool QpEngine::verify_terminal_farkas(const QpProblem &qp, const WorkingSet &ws,
                                       const Vec &ai_row_norm1, const Vec &ae_row_norm1,
                                       const detail::DepFactorView &view, QpCounters &counters,
                                       const QpOptions &opts) const {
-    constexpr double kInf = std::numeric_limits<double>::infinity();
+    static constexpr double kInf = std::numeric_limits<double>::infinity();
     const Index n = qp.n();
     const double gamma = detail::kCertExactKappa * static_cast<double>(n + qp.me() + qp.mi()) *
                          std::numeric_limits<double>::epsilon();
