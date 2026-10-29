@@ -33,6 +33,7 @@
 
 #include <hven/detail/qp/qp_engine.h>
 
+#include "../common_support/route_reference.h"
 #include "support/qp_dump.h"
 
 using namespace hven::solvers;
@@ -83,7 +84,18 @@ TEST(QpBpsBorderCertificate, Acopr118Qp26Border) {
     const QpSolution s = solve_fixture("BPS_ACOPR118_qp26.txt", kBorder, d);
     // The premise: in-cell, this subproblem ran to its iteration cap.
     EXPECT_NE(d.result.find("status=1"), std::string::npos) << d.result;
+#if HVEN_TEST_ROUTE_REFERENCE
     EXPECT_GE(s.counters.border_uncertified_fallbacks, 1);
+#else
+    // That the diverging refinement's pass fell back to the eliminated twin is a route (WX
+    // design section 2.1): recorded off the reference build. The certified outcome below -- the
+    // status, the basin and the KKT battery -- is the portable contract.
+    hven::test_support::record_off_reference_route(
+        "BPS_ACOPR118_qp26_border",
+        "border_uncertified_fallbacks=" + std::to_string(s.counters.border_uncertified_fallbacks) +
+            " border_refine_steps=" + std::to_string(s.counters.border_refine_steps) +
+            " minors=" + std::to_string(s.counters.minor_iters));
+#endif
     expect_certified_at(d, s, -0.000976904148597);
 }
 TEST(QpBpsBorderCertificate, Acopr118Qp26Refactorize) {

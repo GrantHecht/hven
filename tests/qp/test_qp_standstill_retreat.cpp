@@ -29,6 +29,7 @@
 
 #include <hven/detail/qp/qp_engine.h>
 
+#include "../common_support/route_reference.h"
 #include "support/qp_dump.h"
 
 using namespace hven::solvers;
@@ -66,10 +67,30 @@ void expect_certified(const char *file, WorkingSetLinearAlgebra alg, double f_re
                 static_cast<long>(s.counters.standstill_retreats),
                 static_cast<long>(s.counters.dep_border_retreats));
 
+#if HVEN_TEST_ROUTE_REFERENCE
     // The retreat is a border-path rule, once per solve.
     EXPECT_EQ(s.counters.standstill_retreats, alg == WorkingSetLinearAlgebra::kSchurBorder ? 1 : 0);
 
     EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+#else
+    // Off the reference build the walk's route -- whether it stood still and retreated, and
+    // whether this capped fixture certifies inside its iteration budget -- is recorded, not
+    // pinned (WX design section 2.1). The portable contract: an honest status for a feasible
+    // fixture (the dump's premise is an in-cell kMaxIter), and, if kOptimal, the battery and
+    // the reference basin below. The refactorize algebra never takes the retreat on any build.
+    hven::test_support::record_off_reference_route(
+        std::string(file) + "_" + alg_name(alg),
+        "status=" + std::to_string(static_cast<int>(s.status)) +
+            " standstill_retreats=" + std::to_string(s.counters.standstill_retreats) +
+            " dep_border_retreats=" + std::to_string(s.counters.dep_border_retreats) +
+            " minors=" + std::to_string(s.counters.minor_iters) +
+            " facts=" + std::to_string(s.counters.factorizations));
+    if (alg != WorkingSetLinearAlgebra::kSchurBorder) {
+        EXPECT_EQ(s.counters.standstill_retreats, 0);
+    }
+    EXPECT_TRUE(s.status == QpStatus::kOptimal || s.status == QpStatus::kMaxIter)
+        << "status " << static_cast<int>(s.status);
+#endif
     if (s.status != QpStatus::kOptimal) {
         return;
     }

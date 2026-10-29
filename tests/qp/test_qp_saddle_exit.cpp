@@ -31,6 +31,7 @@
 
 #include <hven/detail/qp/qp_engine.h>
 
+#include "../common_support/route_reference.h"
 #include "support/qp_dump.h"
 
 using namespace hven::solvers;
@@ -196,14 +197,34 @@ void expect_saddle_left(const char *file, WorkingSetLinearAlgebra alg) {
                 static_cast<long>(s.counters.saddle_exit_misses),
                 static_cast<long>(s.counters.saddle_direction_solves));
 
+#if HVEN_TEST_ROUTE_REFERENCE
     EXPECT_GE(s.counters.saddle_exits, 1);
+#else
+    // That a saddle exit fired -- the walk reaches the saddle at all -- is a route (WX design
+    // section 2.1): recorded off the reference build.
+    hven::test_support::record_off_reference_route(
+        std::string(file) + "_" + alg_name(alg),
+        "status=" + std::to_string(static_cast<int>(s.status)) +
+            " saddle_exits=" + std::to_string(s.counters.saddle_exits) +
+            " saddle_exit_misses=" + std::to_string(s.counters.saddle_exit_misses) +
+            " f=" + std::to_string(f) + " f_saddle=" + std::to_string(f_saddle));
+#endif
     expect_saddle_passes_descend(w.records, s.counters);
+#if HVEN_TEST_ROUTE_REFERENCE
     EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+#else
+    // The portable contract: the feasible fixture is never called infeasible, and a kOptimal
+    // answer carries the battery and a second-order face below.
+    EXPECT_NE(static_cast<int>(s.status), static_cast<int>(QpStatus::kInfeasible));
+#endif
     if (s.status != QpStatus::kOptimal) {
         return;
     }
+#if HVEN_TEST_ROUTE_REFERENCE
+    // Nonconvex: strictly below the saddle is a statement about the route that reached it.
     EXPECT_LT(f, f_saddle - 1e-6 * std::max(1.0, std::abs(f_saddle)))
         << "the exit must end strictly below the saddle it left";
+#endif
     EXPECT_LE(k.eq, 1e-8);
     EXPECT_LE(k.ineq, 1e-8);
     EXPECT_LE(k.box, 1e-9);
@@ -359,10 +380,33 @@ TEST(QpNc3SaddleExit, AZeroCurvatureDeadEndIsNotRiddenSteenbrbRestorationLpQp3) 
         const Walk w = observed([&] { return hven::test_support::solve_qp_dump(d, o); });
         const QpSolution &s = w.solution;
         EXPECT_EQ(s.counters.saddle_exits, 0);
+#if HVEN_TEST_ROUTE_REFERENCE
         EXPECT_EQ(s.counters.saddle_exit_misses, 0);
         EXPECT_GE(s.counters.convex_certificates, 1);
         EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
         EXPECT_NEAR(objective(d.qp, s.x), -48.0, 1e-8 * 48.0);
+#else
+        // That the convex certificate overruled the false kWrong, and the search's misses, are
+        // routes (WX design section 2.1): recorded off the reference build. The portable
+        // contract: the feasible LP is never called infeasible; a kOptimal answer is the
+        // oracle's optimum (convex, f* = -48) and passes the battery.
+        hven::test_support::record_off_reference_route(
+            std::string("C10_STEENBRB_qp3_") + alg_name(alg),
+            "status=" + std::to_string(static_cast<int>(s.status)) +
+                " convex_certificates=" + std::to_string(s.counters.convex_certificates) +
+                " saddle_exit_misses=" + std::to_string(s.counters.saddle_exit_misses));
+        EXPECT_NE(static_cast<int>(s.status), static_cast<int>(QpStatus::kInfeasible));
+        if (s.status == QpStatus::kOptimal) {
+            EXPECT_NEAR(objective(d.qp, s.x), -48.0, 1e-8 * 48.0);
+            const hven::test_support::QpDumpKkt k = hven::test_support::qp_dump_kkt(d, s);
+            EXPECT_LE(k.eq, 1e-8);
+            EXPECT_LE(k.ineq, 1e-8);
+            EXPECT_LE(k.box, 1e-9);
+            EXPECT_LE(k.stationarity, 1e-8);
+            EXPECT_LE(k.sign, 1e-9);
+            EXPECT_LE(k.complementarity, 1e-8);
+        }
+#endif
         expect_saddle_passes_descend(w.records, s.counters);
     }
 }

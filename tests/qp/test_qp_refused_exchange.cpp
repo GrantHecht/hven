@@ -36,6 +36,7 @@
 
 #include <hven/detail/qp/qp_engine.h>
 
+#include "../common_support/route_reference.h"
 #include "support/qp_dump.h"
 
 using namespace hven::solvers;
@@ -122,6 +123,7 @@ void expect_exchanged_to_kkt(const char *file, const char *premise, WorkingSetLi
     const QpSolution s = solve_fixture(file, alg, d);
     // The premise: in-cell, this feasible subproblem ended kNumericalError at the dead end.
     EXPECT_NE(d.result.find(premise), std::string::npos) << d.result;
+#if HVEN_TEST_ROUTE_REFERENCE
     // The premise, live: the refusal and the rank repair's miss both happened in this run.
     EXPECT_GE(s.counters.dep_known_dependent_refusals, 1);
     EXPECT_GE(s.counters.rank_repair_misses, 1);
@@ -129,6 +131,24 @@ void expect_exchanged_to_kkt(const char *file, const char *premise, WorkingSetLi
     EXPECT_GE(s.counters.dep_refused_exchanges, 1);
     EXPECT_EQ(s.counters.dep_blocker_terminations, 0);
     EXPECT_EQ(s.counters.dep_certificate_rejections, 0);
+#else
+    // That the refusal, the rank repair's miss and the refused exchange happened is a route (WX
+    // design section 2.1): recorded off the reference build. The portable contract: the
+    // feasible fixture is never called infeasible, and a kOptimal answer carries the battery and
+    // a second-order face below.
+    hven::test_support::record_off_reference_route(
+        std::string(file) + "_" + (alg == kBorder ? "border" : "refactorize"),
+        "status=" + std::to_string(static_cast<int>(s.status)) + " dep_known_dependent_refusals=" +
+            std::to_string(s.counters.dep_known_dependent_refusals) +
+            " rank_repair_misses=" + std::to_string(s.counters.rank_repair_misses) +
+            " dep_refused_exchanges=" + std::to_string(s.counters.dep_refused_exchanges) +
+            " dep_blocker_terminations=" + std::to_string(s.counters.dep_blocker_terminations) +
+            " dep_certificate_rejections=" + std::to_string(s.counters.dep_certificate_rejections));
+    EXPECT_NE(static_cast<int>(s.status), static_cast<int>(QpStatus::kInfeasible));
+    if (s.status != QpStatus::kOptimal) {
+        return;
+    }
+#endif
     const hven::test_support::QpDumpKkt k = hven::test_support::qp_dump_kkt(d, s);
     EXPECT_LE(k.eq, 1e-7);
     // The walk holds bounds to feas_tol * max(1, |bound|, ||x||inf) (the TR box reaches 16 here).
@@ -149,12 +169,21 @@ void expect_exchanged_to_kkt(const char *file, const char *premise, WorkingSetLi
     std::printf("[ yrk ] %s face null_dim=%ld min_curvature=%.3e\n", file,
                 static_cast<long>(null_dim), curv);
     EXPECT_GE(curv, -1e-9) << "negative curvature on the certified face";
+#if HVEN_TEST_ROUTE_REFERENCE
 #ifdef NDEBUG
     // Release: the walk's own certified point (no oracle optimum: a nonconvex restoration QP).
     EXPECT_NEAR(hven::test_support::qp_dump_objective(d, s.x), f_release,
                 1e-6 * std::max(1.0, std::abs(f_release)));
 #else
     (void)f_release;
+#endif
+#else
+    // Nonconvex: off the reference build the certified point is route-dependent (the same
+    // fixture reads -5.7996 on one build and -1398.63 on another, both kOptimal). Recorded.
+    (void)f_release;
+    hven::test_support::record_off_reference_route(
+        std::string(file) + "_f",
+        "f=" + std::to_string(hven::test_support::qp_dump_objective(d, s.x)));
 #endif
 }
 
