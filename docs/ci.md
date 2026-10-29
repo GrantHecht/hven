@@ -17,8 +17,10 @@ Runs on `ubuntu-latest`. Steps:
 
 1. Checkout with `submodules: recursive` (pulls `dep/eigen`, `dep/fmt`).
 2. Install `clang` and `ninja-build` via apt.
-3. Install Intel MKL (`intel-oneapi-mkl-devel`) via the Intel oneAPI apt
-   repository, then export `ONEAPI_ROOT` and `MKLROOT` into
+3. Install Intel MKL, pinned to `intel-oneapi-mkl-devel-2026.2` (M7 WX
+   B0, WX-R7: the lane is the reference build for the exact route pins, so
+   it names its MKL; 2026.1 and 2026.2 are bit-identical on every WX cell)
+   via the Intel oneAPI apt repository, then export `ONEAPI_ROOT` and `MKLROOT` into
    `$GITHUB_ENV` so `cmake/FindMKL.cmake` is not limited to its three
    hardcoded fallback paths for libiomp5's directory (the piece most prone
    to moving between oneAPI package layouts). MKLROOT itself still assumes
@@ -67,7 +69,13 @@ Runs on `macos-latest` (Apple Silicon). Steps:
 5. Build (`cmake --build build-macos`).
 6. Test (`ctest --test-dir build-macos --output-on-failure`) — the one lane
    whose run asserts committed float rows rather than reporting them as
-   context-mismatched.
+   context-mismatched. The step sets `VECLIB_MAXIMUM_THREADS=1` (M7 WX B0,
+   ruling R-4; register M3-8): two runs of identical code differed on 19 of 68
+   failing cells while Accelerate's threading was unpinned. Caveat: the
+   library's own `ensure_accelerate_initialized` re-sets the variable to 8
+   (`setenv(..., 1)`) on the solver-init path, so whether the env pin governs
+   the solves is read from the lane, not assumed. Accelerate values recorded
+   unpinned are re-observed under it.
 
 The Linux and Windows lanes deliberately set no such label: their committed
 float rows are pinned to the machine they were derived on, which is not a

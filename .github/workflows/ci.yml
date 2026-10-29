@@ -55,7 +55,7 @@ jobs:
           echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" \
             | sudo tee /etc/apt/sources.list.d/oneAPI.list
           sudo apt-get update
-          sudo apt-get install -y intel-oneapi-mkl-devel
+          sudo apt-get install -y intel-oneapi-mkl-devel-2026.2
           echo "ONEAPI_ROOT=/opt/intel/oneapi" >> "$GITHUB_ENV"
           echo "MKLROOT=/opt/intel/oneapi/mkl/latest" >> "$GITHUB_ENV"
 
@@ -126,7 +126,7 @@ jobs:
           echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" \
             | sudo tee /etc/apt/sources.list.d/oneAPI.list
           sudo apt-get update
-          sudo apt-get install -y intel-oneapi-mkl-devel
+          sudo apt-get install -y intel-oneapi-mkl-devel-2026.2
           # cmake/FindMKL.cmake's only environment-free fallback paths are
           # /opt/intel/oneapi/mkl/latest/{include,lib,lib/intel64} and, for
           # libiomp5, /opt/intel/oneapi/compiler/latest/lib. Every other
@@ -412,8 +412,23 @@ jobs:
         # under this lane's current (unpinned) threading config. Changing it here
         # would be a re-observation decision, not a mechanical port of the Linux
         # fix, and is left to the gate reviewer.
+        #
+        # VECLIB_MAXIMUM_THREADS=1 (M7 WX B0, ruling R-4; register M3-8): the
+        # question above is now decided. Two runs of byte-identical code
+        # differed on 19 of 68 failing cells with Accelerate's threading
+        # unpinned, so the lane was not run-to-run deterministic on route
+        # counters. This sets the variable Accelerate itself reads. CAVEAT,
+        # flagged for the settler: ensure_accelerate_initialized()
+        # (accelerate_threads.h, called from ensure_solver_initialized) runs
+        # setenv("VECLIB_MAXIMUM_THREADS", "8", overwrite=1) before its first
+        # BLAS call, so on any path through the solver init the library's own
+        # value wins and this env pin governs only what reaches BLAS earlier.
+        # Whether it pins anything is read from the first lane run, not
+        # assumed. It is a re-observation event for every Accelerate value
+        # recorded unpinned, declared in the register, not ported silently.
         env:
           GTEST_OUTPUT: "xml:${{ runner.temp }}/gtest-xml/"
+          VECLIB_MAXIMUM_THREADS: "1"
         run: ctest --test-dir build-macos --output-on-failure --timeout 300
 
       # Cheap half of the PCH check: assert the precompiled header is actually
