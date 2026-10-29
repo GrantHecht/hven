@@ -141,7 +141,8 @@ struct SqpKkt {
     ///        reading the residuals as numbers.
     bool finite = true;
 
-    /// @brief The single scalar the convergence and contraction tests read.
+    /// @brief The scalar the contraction test reads; the convergence test reads it
+    ///        and, separately, `complementarity` (WX-R1).
     /// @return max(stationarity, feasibility); NaN when `finite` is false.
     double residual() const { return std::max(stationarity, feasibility); }
 };

@@ -3605,7 +3605,7 @@ struct SqpSolver::SolveState {
     };
 
     // THE FULL-STEP WATCHDOG SNAPSHOT (ownership doc section 2.2 M). INDEPENDENT
-    // copies, including the snapshot's own dual-ingest flag -- see the members.
+    // copies -- see the members.
     struct FullStepWatchdog {
         // The best iterate seen under the mode, by ||KKT||inf -- the watchdog
         // restores exactly this. `best_ev` is a COPY of the NlpEval already
@@ -3613,12 +3613,6 @@ struct SqpSolver::SolveState {
         Vec best_x, best_lambda_e, best_lambda_i;
         NlpEval best_ev;
         double best_residual = std::numeric_limits<double>::infinity();
-        // The best iterate's own `duals_ingested` reading, so that a
-        // restore puts the complementarity gate back exactly as it puts the
-        // multipliers back. Without it a solve refused at iter 0 could certify
-        // the identical (x, lambda) at iter k.
-        bool best_duals_ingested = false;
-        bool best_duals_carried = false; // its sibling, for the same reason
         // Consecutive majors whose residual GREW, and majors since the last
         // new best -- the two watchdog signals. `prev_residual` is the
         // previous major's reading, +inf before the first (so the first can
@@ -3795,12 +3789,7 @@ struct SqpSolver::SolveState {
     // ---- the SSN proximal carry, spent once -------------------------------
     double ssn_prox_ingested = 0.0;
 
-    // ---- ingest and funnel state ------------------------------------------
-    bool duals_ingested = false;
-    // TRUE while the multipliers in hand were CARRIED across a failed subproblem's own
-    // step (M7 W2 R2 fix 1): priced at an earlier x, not re-priced at this one. Arms the
-    // complementarity conjunct exactly as `duals_ingested` does, for the same reason.
-    bool duals_carried = false;
+    // ---- funnel state ---------------------------------------------------------
     bool funnel_started = false;
 
     // ---- the non-finite step rollback (M7 W2 R2-1) --------------------------
@@ -3814,8 +3803,6 @@ struct SqpSolver::SolveState {
         bool valid = false;
         Vec x, lambda_e, lambda_i;
         NlpEval ev;
-        bool duals_ingested = false;
-        bool duals_carried = false;
         // The radius the committed step was taken under, BEFORE any growth.
         double delta = 0.0;
         Index rejections_at_iterate = 0;
@@ -4063,7 +4050,6 @@ void SqpSolver::prepare_solve(SolveState &st, AssemblyEvalSeam &seam, const Vec 
     double &delta = st.delta;
     double &last_dual_mu = st.last_dual_mu;
     double &ssn_prox_ingested = st.ssn_prox_ingested;
-    bool &duals_ingested = st.duals_ingested;
 
     const Index n = seam.n();
     st.n = n;
@@ -4559,18 +4545,6 @@ void SqpSolver::prepare_solve(SolveState &st, AssemblyEvalSeam &seam, const Vec 
             ++out.counters.evals_full;
         }
     }
-
-    // TRUE while lambda_e/lambda_i are still the multipliers this solve
-    // INGESTED -- i.e. while no subproblem or restoration of THIS problem
-    // has re-priced them. It arms the convergence test's complementarity
-    // conjunct and nothing else. See this header's THE INGESTED CERTIFICATE
-    // IS GATED ON COMPLEMENTARITY note for the tolerance derivation and for
-    // why this scope, rather than "the first test" or "every major", is the
-    // defensible one.
-    //
-    // Declared AFTER the seeded clamp so a degrade-to-kCold (which has
-    // already zeroed the duals and unwound the ingest) leaves it false.
-    duals_ingested = warm_ingest;
 
     st.eqb.basis.reset(seam.me());
     st.eqb.on = opts_.equality_basis && seam.me() > 0;
@@ -6010,17 +5984,6 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
         // prices); the first main-loop QP re-estimates them.
         st.lambda_e.setZero();
         st.lambda_i.setZero();
-        // The ingested duals are gone here too, so the ingest-scoped
-        // complementarity gate disarms with them. Behaviourally this
-        // line is inert -- complementarity is max_j |lambda_i(j)
-        // cI_j| and lambda_i has just been zeroed, so the armed
-        // conjunct would pass anyway -- but the flag's declared
-        // invariant ("TRUE while lambda are still the multipliers
-        // this solve INGESTED") must be TRUE rather than merely
-        // harmless, which is the same doc-vs-code discipline every
-        // declared invariant here is held to.
-        st.duals_ingested = false;
-        st.duals_carried = false;
         // KLV Algorithm 2's re-basing, NOT reset() -- see
         // globalization.h::resume_from_restoration. It also CLEARS
         // the full-step mode on the strategy, so the driver's own
@@ -6082,11 +6045,6 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     // the ENGINE->CALLER map for exactly these blocks; applying it
     // would divide a caller-scale price by `sf` a second time.
     st.resto.multipliers_are_caller_scale = true;
-    // The ingested duals are gone -- these are the restoration
-    // sub-solve's own subgradient selectors -- so the ingest-scoped
-    // complementarity gate disarms with them.
-    st.duals_ingested = false;
-    st.duals_carried = false;
     st.resto.kkt = kkt_r;
     // THE BOUND PRICE MUST COME FROM THE RESTORATION PROBLEM, not
     // from kkt_r. evaluate_kkt reports z = grad L at an active
@@ -6652,8 +6610,6 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         std::swap(st.ev, st.rollback.ev);
         st.lambda_e = st.rollback.lambda_e;
         st.lambda_i = st.rollback.lambda_i;
-        st.duals_ingested = st.rollback.duals_ingested;
-        st.duals_carried = st.rollback.duals_carried;
         st.delta = shrunk_radius(st.rollback.delta);
         st.rejections_at_iterate = st.rollback.rejections_at_iterate + 1;
         st.subproblem_is_stale = true;
@@ -6819,28 +6775,19 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
     // too, which is how the warm start point itself becomes the first
     // "best iterate".
     if (st.full_step_funnel != nullptr) {
-        // THE RANKING IS kkt.residual(), i.e. max(stationarity,
-        // feasibility) -- COMPLEMENTARITY IS DELIBERATELY NOT IN IT,
-        // and the reason is that the watchdog must rank iterates by
-        // exactly the quantity the CONVERGENCE TEST gates on. That
-        // test is `kkt.stationarity <= kkt_tol && kkt.feasibility <=
-        // feas_tol` (just below), and SqpKkt::residual() is its
-        // scalar form; complementarity is MEASURED BUT NOT GATED
-        // throughout this driver (see the CONVERGENCE TEST note's WHAT
-        // IS MEASURED BUT NOT GATED paragraph, and
-        // SqpIterate::complementarity's own "RECORDED, NOT GATED"). A
-        // watchdog ranking on a third term could prefer an iterate the
-        // convergence test rates WORSE, i.e. restore away from the
-        // point this solve is closest to certifying -- which is the
-        // one thing the restore exists not to do.
-        const double residual = mj.kkt.residual();
+        // THE RANKING IS max(stationarity, feasibility, complementarity):
+        // the watchdog must rank iterates by exactly the quantities the
+        // CONVERGENCE TEST gates on (just below), all three since WX-R1. A
+        // ranking that left one out could prefer an iterate the convergence
+        // test rates WORSE, i.e. restore away from the point this solve is
+        // closest to certifying -- which is the one thing the restore exists
+        // not to do.
+        const double residual = std::max(mj.kkt.residual(), mj.kkt.complementarity);
         if (residual < st.fs.best_residual) {
             st.fs.best_residual = residual;
             st.fs.best_x = st.x;
             st.fs.best_lambda_e = st.lambda_e;
             st.fs.best_lambda_i = st.lambda_i;
-            st.fs.best_duals_ingested = st.duals_ingested; // see its note above
-            st.fs.best_duals_carried = st.duals_carried;
             st.fs.best_ev = st.ev; // a COPY; no model evaluation
             st.fs.majors_since_best = 0;
             st.fs.growth_in_a_row = 0;
@@ -6863,8 +6810,6 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
             st.x = std::move(st.fs.best_x);
             st.lambda_e = std::move(st.fs.best_lambda_e);
             st.lambda_i = std::move(st.fs.best_lambda_i);
-            st.duals_ingested = st.fs.best_duals_ingested; // see its note above
-            st.duals_carried = st.fs.best_duals_carried;
             st.ev = std::move(st.fs.best_ev);
             st.rollback.valid = false; // the iterate moved by other means than a commit
             mj.kkt = measure_kkt(seam, st.ev, st.x, st.lambda_e, st.lambda_i);
@@ -6990,19 +6935,20 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
     // SqpOptions note): max_iter bounds subproblems solved across
     // BOTH, so majors already spent restoring are not available here.
     //
-    // THE THIRD CONJUNCT IS ARMED ONLY WHILE THE MULTIPLIERS ARE
-    // THE INGESTED ONES, OR CARRIED ACROSS A FAILED SUBPROBLEM'S OWN
-    // STEP (`duals_carried`, M7 W2 R2 fix 1) -- either way priced
-    // somewhere other than at this x by this problem's own QP. Once a
-    // subproblem or a restoration of this problem has re-priced them,
-    // both flags are false and the test reduces to the plain
-    // two-conjunct form. The tolerance
-    // is kkt_tol, absolute; see this header's THE INGESTED CERTIFICATE
-    // IS GATED ON COMPLEMENTARITY note for that derivation, for why no
-    // ||lambda_i||-relative form can do the job, and for the scope.
-    mj.converged =
-        mj.kkt.stationarity <= opts_.kkt_tol && mj.kkt.feasibility <= opts_.feas_tol &&
-        (!(st.duals_ingested || st.duals_carried) || mj.kkt.complementarity <= opts_.kkt_tol);
+    // THE THIRD CONJUNCT, NLP COMPLEMENTARITY max_j |lambda_i(j) cI_j(x)|, IS
+    // ARMED ON EVERY MAJOR (WX-R1). It used to be armed only while the
+    // multipliers were the ingested ones or carried across a failed
+    // subproblem's own step, on the argument that a QP-priced lambda_i makes
+    // |lambda_i(j) cI_j| = O(||lambda_i|| ||p||). That argument presumes the
+    // subproblem's own complementarity is exact, and the walk does not certify
+    // it: its KKT-point test reads only the violated side of a working
+    // inequality row, so a row STRICTLY SLACK at the iterate can carry a
+    // positive price and a zero step (HS10 warm at p = 2.25, dp = 0.25, on MKL:
+    // kOptimal in one major at the p = 2 optimum, slack 0.25, complementarity
+    // 0.0722). Stationarity and feasibility are then both met at a point that is
+    // not a KKT point. The tolerance is kkt_tol, absolute, as for stationarity.
+    mj.converged = mj.kkt.stationarity <= opts_.kkt_tol && mj.kkt.feasibility <= opts_.feas_tol &&
+                   mj.kkt.complementarity <= opts_.kkt_tol;
     // THE CALLER-UNIT FEASIBILITY GUARD (M7 W2 SCL). On a scaled solve the test
     // above reads the ENGINE's residuals: a row shrunk by its factor s_j < 1 passes
     // at |c_j| <= feas_tol / s_j, and a box violation is read in units of d_j. A
@@ -7744,7 +7690,8 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         //     propose;
         //   - accepted: x + p is committed through the ordinary accept arm with
         //     the multipliers KEPT (the failed solve's are not trusted) and
-        //     marked `duals_carried`, no radius growth and no SOC;
+        //     still subject to the complementarity conjunct, no radius growth
+        //     and no SOC;
         //   - rejected: an ordinary rejection, so the routing below shrinks and
         //     reseeds as before but does NOT charge `qp_failure_budget`, which
         //     bounds majors that produced no judgeable step. The radius floor
@@ -8253,8 +8200,6 @@ SqpResult SqpSolver::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &b
             st.rollback.rejections_at_iterate = st.rejections_at_iterate;
             st.rollback.lambda_e = st.lambda_e;
             st.rollback.lambda_i = st.lambda_i;
-            st.rollback.duals_ingested = st.duals_ingested;
-            st.rollback.duals_carried = st.duals_carried;
 
             // ACCEPTED (kAcceptF or kAcceptH), possibly via SOC. The radius
             // grows only on the evidence described in RADIUS MANAGEMENT, and
@@ -8297,8 +8242,6 @@ SqpResult SqpSolver::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &b
                     st.eqb.refuse_pending = true; // st.lambda_e is the zero-scatter lift
                 }
                 st.lambda_i = mj.qs_soc.lambda_i;
-                st.duals_ingested = false; // re-priced by this solve's own QP
-                st.duals_carried = false;
                 st.seed = std::move(mj.qs_soc);
             } else {
                 // UPGRADE TO FULL: a DIRECT acceptance (no SOC, or
@@ -8319,19 +8262,15 @@ SqpResult SqpSolver::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &b
                 // A FAILED SUBPROBLEM'S OWN STEP (M7 W2 R2) KEEPS the multipliers:
                 // the failed solve's are not trusted, so there is no new price. The
                 // kept ones were priced at the OLD x, so they are no certificate at
-                // the new one: `duals_carried` arms complementarity until a QP
-                // re-prices them (R2 fix 1).
-                if (mj.failure_step) {
-                    st.duals_carried = true;
-                } else {
+                // the new one -- which the convergence test's complementarity
+                // conjunct, armed on every major (WX-R1), refuses to read as one.
+                if (!mj.failure_step) {
                     if (!st.eqb.basis.lift(mj.qs.lambda_e, st.lambda_e)) {
                         ++st.out.equality_basis.lift_refusals;
                         ++st.out.equality_basis.lift_refusal_sites.commit_lift;
                         st.eqb.refuse_pending = true; // st.lambda_e is the zero-scatter lift
                     }
                     st.lambda_i = mj.qs.lambda_i;
-                    st.duals_ingested = false; // re-priced by this solve's own QP
-                    st.duals_carried = false;
                 }
                 st.seed = std::move(mj.qs);
             }

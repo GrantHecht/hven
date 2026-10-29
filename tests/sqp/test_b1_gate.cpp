@@ -1336,20 +1336,19 @@ TEST(B1Gate, TheComplementarityGateBoundaryIsKktTolOnBothSides) {
 // RESTORE THE GATE ALONG WITH THE MULTIPLIERS.**
 //
 // THE HOLE THIS PINS, and it is a wrong-answer hole rather than a quality one.
-// The W1 conjunct is armed by `duals_ingested`, which an accepted step clears.
-// The Kungurtsev-Diehl full-step watchdog can then RESTORE the ingested
-// (x, lambda_e, lambda_i) wholesale -- and if it does not restore the FLAG with
-// them, the gate is disarmed on precisely the triple it exists to refuse, and
-// the convergence test one screen below certifies it. sqp_solver.h carries
-// `fs_best_duals_ingested` for exactly this; this fixture is what makes that
-// carry a pinned property instead of an unexercised invariant.
+// The W1 conjunct used to be armed by `duals_ingested`, which an accepted step
+// cleared, so a full-step watchdog RESTORE of the ingested (x, lambda_e,
+// lambda_i) had to restore the flag with them or the convergence test would
+// certify the triple the gate refused. Since WX-R1 the conjunct is armed on
+// every major and there is no flag; the fixture keeps pinning the property
+// itself: a restored, refused triple is never certified.
 //
 // WHY THE RESTORE FIRES HERE, DETERMINISTICALLY, which is the whole trick:
-//   * `SqpKkt::residual()` is `max(stationarity, feasibility)` and DELIBERATELY
-//     EXCLUDES complementarity (the watchdog's own note says why).
+//   * The watchdog ranks by max(stationarity, feasibility, complementarity).
 //   * A W1-refused ingest has stationarity EXACTLY 0 and feasibility EXACTLY 0
-//     -- that is what made its certificate false. So its residual() is 0, the
-//     floor of the measure.
+//     -- that is what made its certificate false -- and every later major
+//     repeats its complementarity (see the re-premise note in the test), so no
+//     later iterate ranks strictly better.
 //   * The new-best test is a STRICT `residual < fs_best_residual`, so no later
 //     iterate can ever displace it. `fs_majors_since_best` therefore increments
 //     on every subsequent major and `kWarmFullStepWindow = 5` fires the restore
@@ -1365,10 +1364,9 @@ TEST(B1Gate, TheComplementarityGateBoundaryIsKktTolOnBothSides) {
 // comfortably past the window and does not depend on the growth threshold, the
 // funnel, or any counter this project pins.
 //
-// WHAT EACH ARM ASSERTS. The solve must reach the TRUE answer, and the
-// watchdog must be shown to have actually restored -- otherwise the fixture
-// could pass for the trivial reason that the restore never happened and would
-// stop pinning the carry the moment the window moved.
+// WHAT IT ASSERTS. The watchdog must be shown to have actually restored --
+// otherwise the fixture could pass for the trivial reason that the restore never
+// happened -- and the solve must not certify the refused triple.
 // =====================================================================
 TEST(B1Gate, TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers) {
     constexpr double kScale = 1e6;
@@ -1400,60 +1398,32 @@ TEST(B1Gate, TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers) 
 
     ASSERT_EQ(StartLevel::kWarm, sol.counters.start_level_used);
 
-    // RE-PREMISED AT M7 W2 E4 FIX ROUND 2, AND THE FIXTURE'S SUBJECT IS LOST ON THIS
-    // MODEL -- declared here and REGISTERED, because it is a coverage gap and not a
-    // value that moved.
+    // RE-PREMISED AT WX-R1 (declared). The complementarity conjunct is now armed on
+    // EVERY major, so there is no flag left for a restore to carry: the property
+    // this fixture pins -- a restore can never hand the convergence test a triple
+    // the test refused -- now holds by construction, and the fixture shows it on
+    // the restore it was built to provoke.
     //
-    // WHAT THE FIXTURE NEEDED. A post-refusal solve LONGER than
-    // `kWarmFullStepWindow` (5 majors), built by pinning the trust region at
-    // `tr_init == tr_max == 1e-07` and placing the model's row `8 * tr` away, so the
-    // walk is TR-limited at every step and needs about eight majors to cross. Inside
-    // that window the watchdog restores, and the PIN is that the restore carries the
-    // W1 complementarity gate with the multipliers it re-installs.
+    // WHAT HAPPENED BEFORE WX-R1, MEASURED: the solve ended kOptimal in ONE major at
+    // x = 0, f = 0 against a truth of -0.8, complementarity 0.8. Major 0 refused that
+    // point (the ingest gate); major 1 certified the SAME point at the SAME price,
+    // because major 0's QP had re-priced the multipliers and so disarmed the gate --
+    // exactly the "refused at iter 0, certified at iter k" hole the carry existed to
+    // close, reached through the QP instead of the watchdog. That QP certifies x = 0
+    // with lambda_i = 1e+06 on a row 8e-07 slack: inside the walk's own row
+    // tolerance, and a pinned 1e-07 radius cannot step past it.
     //
-    // WHAT HAPPENS NOW, MEASURED: the solve converges in ONE major and never restores.
-    // Its returned point meets the driver's stated tolerances -- recomputed
-    // stationarity 8.0001e-07 against `kkt_tol = 1e-06`, feasibility exactly 0 -- and
-    // the third conjunct of the convergence test is correctly OUT OF SCOPE there,
-    // because major 0's QP re-priced the multipliers (`duals_ingested` false), which is
-    // the scope sqp_solver.h states. It converges EARLY for the round's own reason: the
-    // stationarity residual at that point used to carry the dual regularization's
-    // footprint and sat above `kkt_tol`, and E4's polishes take that footprint out, so
-    // the point is inside tolerance where it was not before. The same mechanism retires
-    // `SqpDriverAdaptiveMu`'s fixed-mu ceiling and `EqpRefinementAb`'s.
-    //
-    // WHAT THE OBJECTIVE GAP IS, AND WHY IT IS NOT A FALSE CERTIFICATE. `sol.f` is 0
-    // against a truth of -0.8, and that gap is the MODEL'S 1e+06 SCALING: a point
-    // 8e-07 from the optimum on a row priced at 1e+06 carries a stationarity residual
-    // of 8e-07 and an objective residue of 0.8, so `kkt_tol = 1e-06` cannot separate
-    // the two points by construction -- which is exactly what makes this model a good
-    // vehicle for a LONG solve and a bad one for an objective claim. The solve is
-    // within the tolerance it was given; it is not within 1e-3 of the optimum, and
-    // NOTHING HERE ASSERTS THAT IT IS.
-    //
-    // REGISTERED (E4 fix round 2): the WATCHDOG CARRY of the W1 complementarity gate
-    // has no fixture on the E4 engine. It needs a model whose post-refusal solve
-    // outlasts `kWarmFullStepWindow` under E4's tighter stationarity -- the old recipe
-    // (place the row 8*tr away) no longer buys eight majors. THE INGEST HALF of the
-    // gate is unaffected and keeps its own arms: `AScaledStalePriceIsRefusedAtIngest`
-    // and `TheReportedScaleIsRefusedEvenThoughTheSolveThenRunsOut`, both green.
-    const test_support::NlpKktResidual rr = self_check_kkt(model, sol, kTol);
+    // WHAT HAPPENS NOW, MEASURED: every major repeats that zero step, the watchdog
+    // restores at major kWarmFullStepWindow + 1 (its subject is back), and the solve
+    // ends kMaxIter at the cap. That is the honest status for a solve that cannot
+    // move; it is not a certificate.
     const bool restored = std::any_of(sol.history.begin(), sol.history.end(),
                                       [](const SqpIterate &row) { return row.watchdog_restored; });
-    EXPECT_FALSE(restored) << "the watchdog restores again on this model: the carry's own pin "
-                              "below can be reinstated";
-    EXPECT_LE(sol.counters.major_iters, kWarmFullStepWindow)
-        << "the solve outlasts the window again: the fixture's construction works once more";
-    EXPECT_EQ(SolveStatus::kOptimal, sol.status);
-    // AND THE EXIT IS WITHIN THE TOLERANCES IT WAS GIVEN, asserted rather than argued:
-    // this is what makes the early convergence correct rather than a false certificate.
-    EXPECT_LE(rr.stationarity, opts.kkt_tol) << "the exit meets its own stationarity tolerance";
-    EXPECT_LE(rr.primal, opts.feas_tol) << "and its feasibility tolerance";
-    EXPECT_EQ(0.0, rr.dual_sign) << "with no wrong-signed multiplier";
-    // THE OBJECTIVE GAP, PINNED AS THE MEASURED FACT IT IS so that it cannot grow
-    // silently: 0.8 is the model's own 1e+06 scaling of an 8e-07 displacement.
-    EXPECT_NEAR(0.8, std::abs(sol.f - model.f_star()), 1e-3)
-        << "the objective residue is the model's 1e+06 scaling of an 8e-07 displacement";
+    EXPECT_TRUE(restored) << "the watchdog must actually restore, or this pins nothing";
+    EXPECT_NE(SolveStatus::kOptimal, sol.status)
+        << "the triple the ingest gate refused must not be certified after the restore";
+    EXPECT_EQ(SolveStatus::kMaxIter, sol.status);
+    EXPECT_GT(sol.sqp_complementarity, opts.kkt_tol);
 }
 
 // =====================================================================

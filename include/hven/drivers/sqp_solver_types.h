@@ -1272,14 +1272,12 @@ struct SqpIterate {
     double stationarity = 0.0;
     /// @brief max(||cE||inf, max(cI)+, bound violation).
     double feasibility = 0.0;
-    /// max_j |lambda_i(j) * cI_j(x)|. RECORDED, NOT GATED -- see
-    /// sqp_solver.h's CONVERGENCE TEST note for the argument, and its THE
-    /// INGESTED MULTIPLIERS ARE MADE COMPLEMENTARY note for how the ingested
-    /// multipliers were made complementary BY CONSTRUCTION rather than by
-    /// adding a third conjunct to the test.
+    /// max_j |lambda_i(j) * cI_j(x)|. GATED at kkt_tol by the convergence test
+    /// on every major (WX-R1), beside stationarity and feasibility.
     double complementarity = 0.0;
     /// max(stationarity, feasibility) -- the scalar the contraction test
-    /// reads.
+    /// reads. Complementarity is not in it; the convergence test reads it
+    /// separately.
     double kkt_residual = 0.0;
     /// h(x) = ||cE(x)||_1 + sum_j max(0, cI_j(x)) at the iterate: the
     /// GLOBALIZATION measure (sqp_solver.h's constraint_violation_l1), a
@@ -1705,11 +1703,11 @@ struct SqpResult : SolveResult {
     double sqp_stationarity = std::numeric_limits<double>::quiet_NaN();
     /// @brief max(||cE||inf, max(cI)+, bound violation) at the returned point.
     double sqp_feasibility = std::numeric_limits<double>::quiet_NaN();
-    /// @brief max_j |lambda_i(j) * cI_j(x)| at the returned point. Recorded,
-    ///        not gated -- see SqpIterate::complementarity.
+    /// @brief max_j |lambda_i(j) * cI_j(x)| at the returned point. Gated at
+    ///        kkt_tol on a kOptimal exit -- see SqpIterate::complementarity.
     double sqp_complementarity = std::numeric_limits<double>::quiet_NaN();
     /// @brief max(sqp_stationarity, sqp_feasibility) -- the scalar the
-    ///        convergence test gates on.
+    ///        convergence test gates on, beside sqp_complementarity.
     double kkt_residual = std::numeric_limits<double>::quiet_NaN();
 
     /// Wall-clock seconds spent inside this solve's `solve_impl` ALONE --

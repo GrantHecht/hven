@@ -1641,10 +1641,9 @@ TEST(HsSweepRepair, WarmSolveOnAReleasedRowNoLongerCertifiesTheOldPoint) {
     EXPECT_LT(r.complementarity, 1e-6)
         << "... whose COMPLEMENTARITY is now at tolerance. Pre-repair this read 0.25: "
            "lambda_i = 0.5 priced against cI = -0.5, on a term the convergence test "
-           "does not gate. The repair does not gate it either -- it makes the ingested "
-           "multipliers complementary BY CONSTRUCTION (sqp_solver.h's THE INGESTED "
-           "MULTIPLIERS ARE MADE COMPLEMENTARY), which is what restores the "
-           "stationarity/feasibility pair to a complete KKT test at that point.";
+           "did not gate then. The repair makes the ingested multipliers complementary "
+           "BY CONSTRUCTION (sqp_solver.h's THE INGESTED MULTIPLIERS ARE MADE "
+           "COMPLEMENTARY); since WX-R1 the convergence test gates the term as well.";
 
     // THE TRUTH, from a cold solve of the same problem: x*(0.5) = (0, sqrt(1.5)).
     SqpSolver d2(sweep_options(StartLevel::kCold, true, true, 60));
@@ -1655,6 +1654,45 @@ TEST(HsSweepRepair, WarmSolveOnAReleasedRowNoLongerCertifiesTheOldPoint) {
     EXPECT_LT(rc.complementarity, 1e-6);
     // The 18 % relative objective error is gone; the two arms now agree.
     EXPECT_LT(std::abs(s1.f - s2.f) / std::abs(s2.f), 1e-6) << "pre-repair this read 0.1835";
+}
+
+// ---------------------------------------------------------------------
+// WX-R1: A QP-PRICED MULTIPLIER IS NOT A CERTIFICATE EITHER. The B-1 repair
+// above clears the INGESTED price on a released row, and that clear works here
+// too -- but on HS10's warm chain at dp = 0.25 the solve at p = 2.25 then got
+// the same stale point back from its own first QP: a zero step, priced at
+// lambda_i = 1/(2 sqrt 3) on the row the new parameter had released by 0.25
+// (the walk's KKT-point test reads only the violated side of a working
+// inequality row). With the complementarity conjunct armed only while the
+// multipliers were ingested or carried, the next major certified that point:
+// kOptimal in ONE major at the p = 2 optimum f = -sqrt(3), complementarity
+// 0.0722, against a truth of -sqrt(3.25). MEASURED ON MKL, before the fix; the
+// macOS lane's HS10 p = 3 false optimum (complementarity 0.1336, dp = 0.5) is the
+// same signature on the corpus's own grid.
+//
+// The truth along the whole grid is analytic: HS10 widened by p has its optimum
+// on the scaled ellipse at f*(p) = -sqrt(1 + p), with the row active.
+// ---------------------------------------------------------------------
+TEST(HsSweepRepair, WarmChainOnAQuarterGridCertifiesNoPointOffTheRow) {
+    HsSweepSpec spec = hs_sweep_spec(10);
+    spec.dp = 0.25;
+    const std::vector<ChainPoint> chain = run_warm_chain(spec);
+    ASSERT_EQ(13u, chain.size()) << "the chain stopped early: a link was not certified";
+    Index warm_points = 0;
+    for (const ChainPoint &pt : chain) {
+        SCOPED_TRACE(fmt::format("HS10 at p = {}", pt.p));
+        ASSERT_EQ(SolveStatus::kOptimal, pt.status);
+        if (pt.level != StartLevel::kCold) {
+            ++warm_points;
+            EXPECT_GT(pt.majors, 1) << "pre-WX-R1, p = 2.25 was certified in ONE major";
+        }
+        EXPECT_NEAR(-std::sqrt(1.0 + pt.p), pt.f, 1e-6)
+            << "pre-WX-R1, p = 2.25 read -sqrt(3), the p = 2 answer";
+        EXPECT_LT(pt.kkt.stationarity, 1e-5);
+        EXPECT_LT(pt.kkt.primal, 1e-5);
+        EXPECT_LT(pt.kkt.complementarity, 1e-6) << "pre-WX-R1, p = 2.25 read 0.0722";
+    }
+    EXPECT_EQ(12, warm_points);
 }
 
 // ---------------------------------------------------------------------
