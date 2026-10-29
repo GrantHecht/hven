@@ -417,15 +417,11 @@ jobs:
         # question above is now decided. Two runs of byte-identical code
         # differed on 19 of 68 failing cells with Accelerate's threading
         # unpinned, so the lane was not run-to-run deterministic on route
-        # counters. This sets the variable Accelerate itself reads. CAVEAT,
-        # flagged for the settler: ensure_accelerate_initialized()
-        # (accelerate_threads.h, called from ensure_solver_initialized) runs
-        # setenv("VECLIB_MAXIMUM_THREADS", "8", overwrite=1) before its first
-        # BLAS call, so on any path through the solver init the library's own
-        # value wins and this env pin governs only what reaches BLAS earlier.
-        # Whether it pins anything is read from the first lane run, not
-        # assumed. It is a re-observation event for every Accelerate value
-        # recorded unpinned, declared in the register, not ported silently.
+        # counters. This sets the variable Accelerate itself reads, and the
+        # library respects a pre-set value (ensure_accelerate_initialized
+        # calls setenv with overwrite 0; num_threads is only the default when
+        # the variable is unset). It is a re-observation event for every
+        # Accelerate value recorded unpinned, declared in the register, not ported silently.
         env:
           GTEST_OUTPUT: "xml:${{ runner.temp }}/gtest-xml/"
           VECLIB_MAXIMUM_THREADS: "1"

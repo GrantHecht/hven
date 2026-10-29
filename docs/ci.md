@@ -71,10 +71,8 @@ Runs on `macos-latest` (Apple Silicon). Steps:
    whose run asserts committed float rows rather than reporting them as
    context-mismatched. The step sets `VECLIB_MAXIMUM_THREADS=1` (M7 WX B0,
    ruling R-4; register M3-8): two runs of identical code differed on 19 of 68
-   failing cells while Accelerate's threading was unpinned. Caveat: the
-   library's own `ensure_accelerate_initialized` re-sets the variable to 8
-   (`setenv(..., 1)`) on the solver-init path, so whether the env pin governs
-   the solves is read from the lane, not assumed. Accelerate values recorded
+   failing cells while Accelerate's threading was unpinned. The library respects a pre-set value
+   (`ensure_accelerate_initialized` uses `setenv(..., 0)`). Accelerate values recorded
    unpinned are re-observed under it.
 
 The Linux and Windows lanes deliberately set no such label: their committed
