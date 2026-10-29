@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# WX-R1 TRAIN check chain (adapted from scripts/w2_retake19_chain.sh: no prechain/preflight, close done by hand)
+set -o pipefail
+WT="$1"; ROOT=/home/ghecht/Projects/hven/.claude/worktrees/wx-r1/.scratch/train-bench
+cd "$ROOT"
+D="${ROOT}/.scratch/retake19"; LOGS="${D}/logs"; CELLS="${D}/cells"; SUM="${LOGS}/chain-summary.txt"; TAG="RT19"
+mkdir -p "${LOGS}" "${CELLS}"
+PROBLEMS="$(python3 "${ROOT}/scripts/w2_retake19_roster.py")"
+LABELS="default sqp-qn"
+leg() { local name="$1"; shift; local log="${LOGS}/leg-${name}.log" start rc; start="$(date -Is)"
+  { "${ROOT}/scripts/wait_quiet.sh" "${name}"; "${ROOT}/scripts/leg.sh" "${name}" "$@"; } > "${log}" 2>&1
+  rc=$?; printf '%-48s rc=%s   %s -> %s\n' "${name}" "${rc}" "${start}" "$(date -Is)" | tee -a "${SUM}"; return ${rc}; }
+echo "CHAIN START $(date -Is) pid=$$" | tee -a "${SUM}"
+[[ -n "${SKIP_BUILD:-}" ]] || leg rt19-build "${ROOT}/scripts/w2_retake19_build.sh" "${WT}" || { echo STOPPED build | tee -a "${SUM}"; exit 1; }
+[[ -n "${SKIP_BUILD:-}" ]] || leg rt19-harness bash -c "set -euo pipefail; cd '${ROOT}'; ./configure.sh; cmake --build build --parallel \"\$(nproc)\"" || { echo STOPPED harness | tee -a "${SUM}"; exit 1; }
+for L in ${LABELS}; do for P in ${PROBLEMS}; do
+  leg "rt19-${L}-${P}" "${ROOT}/scripts/w2_a4_sweep.sh" "${L}" hven-sqp cutest "${TAG}-${P}" "${CELLS}" "${P}"
+  rc=$?; if [[ ${rc} -eq 2 ]]; then echo "STOPPED: runner REFUSED ${L} ${P}" | tee -a "${SUM}"; exit 2; fi
+done; echo "SET ${L} DONE $(date -Is)" | tee -a "${SUM}"; done
+echo "CHAIN END $(date -Is)" | tee -a "${SUM}"
