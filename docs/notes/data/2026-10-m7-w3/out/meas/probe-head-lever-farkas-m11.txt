@@ -1,0 +1,7 @@
+# hven_sqp_ssn_safeguard_probe mode=lever-farkas-m11 count=10000 seed=20260807
+# M11 A/B: does the <b, y> < 0 conjunct refuse anything the residual conjunct does not?
+# Run this binary AND the residual-only patched build (m11_ab/run.sh); the claim is that the rows match.
+construction                                 draws     cells     armed refusals   certificate fired kInfeasible reported
+generic feasible, obj x 1e6                  10000     9971      61               0                0
+feasible NARROW STRIP, obj x 1e6             10000     9972      50               0                0
+duplicated EQUALITY PAIR, obj x 1e6          5000      3759      0                0                0

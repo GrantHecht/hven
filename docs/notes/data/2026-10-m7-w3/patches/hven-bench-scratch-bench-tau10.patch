@@ -1,0 +1,35 @@
+From e9edf6867b3347677668270dc41f2847ac7c8a32 Mon Sep 17 00:00:00 2001
+From: Grant Hecht <grantrhecht@icloud.com>
+Date: Wed, 28 Oct 2026 22:08:42 -0400
+Subject: [PATCH] SCRATCH (hven M7 W3, never pushed): pin move
+
+---
+ cmake/hven_pin.cmake | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/cmake/hven_pin.cmake b/cmake/hven_pin.cmake
+index f08495c..2d1b49b 100644
+--- a/cmake/hven_pin.cmake
++++ b/cmake/hven_pin.cmake
+@@ -563,14 +563,15 @@
+ # from a clean clone of 6a2a58c7 at .scratch/retake18-wt by scripts/w2_retake18_build.sh.  Nothing under
+ # runs/ taken at an earlier pin is re-derived by this move; the per-cell predictions, MEASURED on this
+ # pin's own build, are in runs/2026-10-m7-w2-retake18/README.md.
+-set(HVEN_PIN_SHA "6a2a58c71ec7bc40a44fd78a7b8e947c6fc2874e")
++# SCRATCH CLONE ONLY (hven M7 W3, never pushed): the pin moved to hven w3-scratch-tau10 bc7635a6 = W3 head 7187a255 + kFunnelTauBar 10.0 (one line; arm T10)
++set(HVEN_PIN_SHA "bc7635a6435792ec528cd8a9cc203625aeee47fd")
+ 
+ # The branch the sha was read from, for a reader tracing it back.  NOT a
+ # lookup key: the sha alone identifies the tree, and the branch will move.
+-set(HVEN_PIN_BRANCH "m7")
++set(HVEN_PIN_BRANCH "w3-scratch-tau10")
+ 
+ # The date the pin was taken (UTC, ISO-8601 date).
+-set(HVEN_PIN_DATE "2026-10-22")
++set(HVEN_PIN_DATE "2026-10-28")
+ 
+ # The install prefix the pin builds into, relative to the harness root.  The
+ # sha12 in the name is what makes two pins two prefixes, so a stale prefix is
+-- 
+2.56.0
+

@@ -1,0 +1,10 @@
+PGREP_EMPTY w3base-sqp-ssn-cutest-A-STEENBRB
+PGREP_NO_UNCOVERED_CELL w3base-sqp-ssn-cutest-A-STEENBRB 2026-10-29T10:55:41-04:00
+IN_LOCK_PGREP_EMPTY w3base-sqp-ssn-cutest-A-STEENBRB 2026-10-29T10:55:41-04:00
+FOREGROUND_START w3base-sqp-ssn-cutest-A-STEENBRB 2026-10-29T10:55:41-04:00
+w2_a4_sweep: sqp-ssn / hven-sqp / cutest / run A-STEENBRB -> /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/train/cells-base/hven-sqp/sqp-ssn/cutest-run-A-STEENBRB (ceiling 300s) [problems: STEENBRB]
+run_serial: cutest/STEENBRB/hven-sqp/sqp-ssn
+hven_bench_cell: SsnEngine::solve: start.z(38) = -3.2971181340712974e-11 prices variable 38's UPPER bound, but that bound is absent (upper = inf, at or beyond the +/-1e+20 infinity sentinel) -- there is no row for that multiplier
+run_serial: CELL ERROR cutest/STEENBRB/hven-sqp/sqp-ssn
+run_serial: 1 cells -> /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/train/cells-base/hven-sqp/sqp-ssn/cutest-run-A-STEENBRB/results.csv
+FOREGROUND_END w3base-sqp-ssn-cutest-A-STEENBRB 2026-10-29T10:56:04-04:00 rc=1

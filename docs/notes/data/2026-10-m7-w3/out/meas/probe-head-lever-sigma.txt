@@ -1,0 +1,15 @@
+# hven_sqp_ssn_safeguard_probe mode=lever-sigma count=10000 seed=20260807
+# R1: factorizations-to-exit vs the ladder, 6 start arms per QP
+population                         sigma_rule       cells     fact        optimal   escapes   prox_upd 
+generic (Ai + box)                 kLadder          60000     286639      59898     102       483      
+generic (Ai + box)                 kResidualArmed   60000     286496      59906     94        631      
+generic (Ai + box)                 kResidualAlways  60000     384862      59886     114       312832   
+DEGENERATE (row 0 weakly active)   kLadder          59994     240276      59973     21        94       
+DEGENERATE (row 0 weakly active)   kResidualArmed   59994     240253      59974     20        129      
+DEGENERATE (row 0 weakly active)   kResidualAlways  59994     341601      59928     66        271694   
+ILL-CONDITIONED (H 10^{+-3})       kLadder          60000     539414      55810     4190      50337    
+ILL-CONDITIONED (H 10^{+-3})       kResidualArmed   60000     498874      57486     2514      144179   
+ILL-CONDITIONED (H 10^{+-3})       kResidualAlways  60000     627065      55449     4551      481165   
+ILL-COND + obj x 1e6               kLadder          58872     875050      40372     18500     46158    
+ILL-COND + obj x 1e6               kResidualArmed   58872     874974      40377     18495     47737    
+ILL-COND + obj x 1e6               kResidualAlways  58872     1085802     35290     23582     314022   

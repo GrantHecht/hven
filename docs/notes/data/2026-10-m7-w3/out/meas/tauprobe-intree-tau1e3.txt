@@ -1,0 +1,8 @@
+tau_bar=1000
+  HS10  majors=  96 minors= 1284 fact= 152 rejects=  0 all_optimal=1 f(p1)=-2.000000044
+  HS15  majors=  86 minors= 1064 fact= 185 rejects= 16 all_optimal=1 f(p1)=18.40578444
+  HS26  majors=  88 minors=  190 fact=  88 rejects=  0 all_optimal=1 f(p1)=6.944605992e-13
+  HS33  majors=  22 minors=   84 fact=  54 rejects=  0 all_optimal=1 f(p1)=-4.585786438
+  HS40  majors=  28 minors=   59 fact=  32 rejects=  0 all_optimal=1 f(p1)=-0.03173411619
+  HS77  majors=  56 minors=  121 fact=  52 rejects=  8 all_optimal=1 f(p1)=0.625026941
+  TOTAL   majors= 376 minors= 2802 fact= 563
