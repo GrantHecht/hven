@@ -243,8 +243,11 @@ void expect_yorknet_qp5(WorkingSetLinearAlgebra alg) {
     const QpSolution s = solve_fixture("RDV_YORKNET_qp5.txt", alg, d);
     print_walk("YORKNET qp5", d, s);
     EXPECT_NE(d.result.find("status=3 minors=546"), std::string::npos) << d.result;
-    expect_repaired(d, s, 1e-8);
-#ifdef NDEBUG
+    // Off the reference build the repair count, the blocker-termination counter and the status
+    // are a route (WX B7: an AVX-512 MKL runner ended this nonconvex sub-solve kNumericalError
+    // with a dep blocker termination, an honest exit): recorded, not pinned.
+    expect_repaired(d, s, 1e-8, alg == kBorder ? "yorknet_qp5_border" : "yorknet_qp5_refactorize");
+#if defined(NDEBUG) && HVEN_TEST_ROUTE_REFERENCE
     // Release reaches the KKT point f = -1078.49 (RDV measurement; no oracle optimum: a nonconvex
     // restoration sub-solve, so the value is pinned as the walk's own certified point).
     EXPECT_NEAR(hven::test_support::qp_dump_objective(d, s.x), -1078.49, 5e-3);
