@@ -1358,63 +1358,43 @@ TEST(SqpDriverRestoration, AlgebraModeDivergenceIsANonUniqueSubproblemOptimum) {
         opts.qp_failure_step = false;
         SqpSolver driver(opts);
         const SqpResult sol = driver.solve(model);
-#ifdef USE_ACCELERATE_SPARSE
-        if (algebra == WorkingSetLinearAlgebra::kSchurBorder) {
-            // Origin divergence entry D14. The note that carried it
-            // (docs/notes/2026-07-30-accelerate-at-head-results.md) did NOT
-            // migrate into hven, and the register that succeeds it here
-            // (docs/notes/2026-08-14-accelerate-divergence-register.md, "Why
-            // this file exists at this path") has no row for D14 -- the
-            // observation is quoted in full below and in the second D14 block
-            // further down, and those comments are its citable record here.
-            // What was observed: on
-            // Accelerate, border mode departs from the MKL mechanism at major
-            // 0 -- the first elastic subproblem exits QpStatus::kMaxIter with
-            // |p|inf == 0 instead of taking MKL's 0.125 elastic step, and the
-            // driver routes the failure into restoration immediately. At the
-            // max_iter = 2 cap the solve is therefore mid-restoration, not
-            // sitting in an open elastic relaxation, so lambda_e(0) here is a
-            // RESTORATION-PHASE multiplier and is not zero. Value is
-            // Accelerate-observed (macOS 26.5.2 / AppleClang 21) and will be
-            // re-verified on the next Mac session.
-            EXPECT_NEAR(sol.lambda_e(0), 0.25000000000000011, 1e-12)
-                << "mid-restoration multiplier at the max_iter=2 cap (Accelerate, D14)";
-        } else {
-            // Refactorize mode still matches the MKL mechanism on Accelerate.
-            EXPECT_EQ(sol.lambda_e(0), 0.0) << "an open elastic relaxation carries no multipliers";
-        }
-#else
+#if HVEN_TEST_ROUTE_REFERENCE
         // The multipliers the NEXT subproblem would be built from are zero,
         // which is what makes that subproblem's Hessian 2*lambda_e(0)*I == 0
         // and its optimum a face rather than a point.
         EXPECT_EQ(sol.lambda_e(0), 0.0) << "an open elastic relaxation carries no multipliers";
+#else
+        // Off the reference build the cap can land mid-restoration (origin divergence D14:
+        // the first elastic subproblem may exit with a zero step and route into the phase),
+        // where lambda_e(0) is a restoration-phase multiplier. The structural reading: it is
+        // exactly 0 (open relaxation) or the phase ran. No per-backend float is committed.
+        hven::test_support::record_off_reference_route(
+            std::string("algebra_divergence_lambda_e0_") +
+                (algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize"),
+            fmt::format("lambda_e0={:.17g} restoration_entries={}", sol.lambda_e(0),
+                        sol.counters.restoration_entries));
+        EXPECT_TRUE(sol.lambda_e(0) == 0.0 || sol.counters.restoration_entries >= 1)
+            << "lambda_e(0) is neither the open relaxation's 0 nor a restoration multiplier";
 #endif
         (algebra == WorkingSetLinearAlgebra::kSchurBorder ? x_border : x_refac) = sol.x;
     }
 
-#ifdef USE_ACCELERATE_SPARSE
-    // Origin divergence entry D14, second half (see the first block above for
-    // why the origin note is cited as not-migrated and this comment is the
-    // record): on Accelerate, border mode's iterate at the cap is mid-restoration
-    // -- x = (1.50000000031, 1.49999999969), sum 3.0000000000000004 -- not on
-    // the open-relaxation LP face x0 + x1 == 2 that MKL and refactorize mode
-    // both reach. Refactorize mode is unaffected. Values are
-    // Accelerate-observed (macOS 26.5.2 / AppleClang 21) and will be
-    // re-verified on the next Mac session; the x-components are quoted to 11
-    // significant digits in the origin note, hence the looser tolerance there
-    // than on the (full-precision) sum.
-    EXPECT_NEAR(x_border(0), 1.50000000031, 1e-9);
-    EXPECT_NEAR(x_border(1), 1.49999999969, 1e-9);
-    EXPECT_NEAR(x_border(0) + x_border(1), 3.0000000000000004, 1e-12)
-        << "mid-restoration point, not the LP face (Accelerate, D14)";
-    EXPECT_NEAR(x_refac(0) + x_refac(1), 2.0, 1e-12);
-    // Still the same CLASS of claim part (a) makes on MKL: the two modes land
-    // on materially different points, just for a different reason here (one
-    // is mid-restoration, not a different face point of the same relaxation).
-    EXPECT_GT((x_border - x_refac).lpNorm<Eigen::Infinity>(), 1e-3)
-        << "the two modes no longer diverge on this fixture; the mechanism "
-           "this test documents (as adapted for Accelerate, D14) has changed";
-#else
+#if !HVEN_TEST_ROUTE_REFERENCE
+    // Structural reading (WX design 2.5): each iterate lies on the open-relaxation face
+    // x0 + x1 = 2 or, mid-restoration, on the diagonal x0 = x1, at 1e-12 on an O(1) set.
+    // Which point of the face each algebra returns is the engines' last-digit choice and is
+    // reference-only; the pre-R2 separation claim is not asserted here.
+    hven::test_support::record_off_reference_route(
+        "algebra_divergence_iterates",
+        fmt::format("border=({:.17g},{:.17g}) refactorize=({:.17g},{:.17g})", x_border(0),
+                    x_border(1), x_refac(0), x_refac(1)));
+    for (const Vec *x : {&x_border, &x_refac}) {
+        EXPECT_TRUE(std::abs((*x)(0) + (*x)(1) - 2.0) <= 1e-12 ||
+                    std::abs((*x)(0) - (*x)(1)) <= 1e-12)
+            << "iterate (" << (*x)(0) << ", " << (*x)(1)
+            << ") is on neither the face nor the diagonal";
+    }
+#else // HVEN_TEST_ROUTE_REFERENCE
     // RE-DERIVED AT M7 W2 E4 FIX ROUND 2 (a declared mover), and the reading is now
     // the one the Accelerate arm above already carried (origin divergence D14): at
     // the cap the BORDER mode's iterate is MID-RESTORATION -- x = (1.125, 1.125),
@@ -1887,6 +1867,7 @@ TEST(SqpDriverRadius, TheElasticExhaustionPreemptsTheRadiusFloorOnThisModel) {
 
         // (1) THE FUNNEL DID NOT ASK. Its signature never fired anywhere in
         // the solve, so every kRestore on this path came from the driver.
+#if HVEN_TEST_ROUTE_REFERENCE
         EXPECT_EQ(std::count(log.verdict.begin(), log.verdict.end(), StepVerdict::kRestore), 0)
             << "if the signature fires here this test is measuring the wrong trigger";
         ASSERT_FALSE(log.verdict.empty());
@@ -1896,6 +1877,17 @@ TEST(SqpDriverRadius, TheElasticExhaustionPreemptsTheRadiusFloorOnThisModel) {
         EXPECT_EQ(log.verdict.back(), StepVerdict::kAcceptH);
         EXPECT_TRUE(log.resumes.empty()) << "this fixture is infeasible; there is nothing to "
                                             "resume to";
+#else
+        // Off the reference build WHICH trigger raised the restoration request (route (2),
+        // the elastic tier's exhaustion, or route (3), the radius floor -- WX design 4.4) is
+        // a route and is recorded, not pinned.
+        hven::test_support::record_off_reference_route(
+            fmt::format("radius_floor_trigger_tr_min_{:g}", run.tr_min),
+            fmt::format("restore_verdicts={} last_verdict={} resumes={} last_radius={:.17g}",
+                        std::count(log.verdict.begin(), log.verdict.end(), StepVerdict::kRestore),
+                        log.verdict.empty() ? -1 : static_cast<int>(log.verdict.back()),
+                        log.resumes.size(), run.last_radius));
+#endif
 
         // (2) THE FLOOR HELD, AND WAS REACHED. Every radius is >= tr_min, and
         // the last one is within one halving of it -- which is exactly the
@@ -1903,6 +1895,7 @@ TEST(SqpDriverRadius, TheElasticExhaustionPreemptsTheRadiusFloorOnThisModel) {
         for (const SqpIterate &h : sol.history) {
             EXPECT_GE(h.tr_radius, opts.tr_min) << "trial " << h.trial;
         }
+#if HVEN_TEST_ROUTE_REFERENCE
         // RE-DERIVED, AND THE SENSE IS REVERSED: the request is raised WELL ABOVE the
         // floor, because it is route (2)'s and not route (3)'s. Asserted as the
         // negation so that a grind back down to the floor fails here.
@@ -1910,12 +1903,15 @@ TEST(SqpDriverRadius, TheElasticExhaustionPreemptsTheRadiusFloorOnThisModel) {
             << "the radius reached the floor again: route (3) is back and this fixture's "
                "original read-out can be reinstated";
         EXPECT_EQ(run.last_radius, 1.0) << "the radius never shrank at all";
+#endif
 
         // And the phase ran, and produced the same verdict and the same
         // certificate as the elastic tier's route does (InfeasibleNlpCertifies).
         EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
         EXPECT_TRUE(sol.infeasibility_certified);
+#if HVEN_TEST_ROUTE_REFERENCE
         EXPECT_GE(sol.counters.restoration_iters, 1);
+#endif
         const SubgradientCertificate c = check_certificate(model, sol, opts.feas_tol);
         EXPECT_NEAR(c.h, 2.0 - std::sqrt(2.0), 1e-6);
         EXPECT_LE(c.stationarity, opts.kkt_tol);
@@ -1927,9 +1923,11 @@ TEST(SqpDriverRadius, TheElasticExhaustionPreemptsTheRadiusFloorOnThisModel) {
     // of tr_min buy nothing because no halving ever happens. RE-DERIVED from
     // `LT`/`GT` (20 majors saved at the higher floor) to equality, so that a knob
     // that starts biting again fails here.
+#if HVEN_TEST_ROUTE_REFERENCE
     EXPECT_EQ(runs[1].majors, runs[0].majors) << "tr_min moved the trajectory: the floor is a "
                                                  "trigger again on this model";
     EXPECT_EQ(runs[1].last_radius, runs[0].last_radius);
+#endif
     ::testing::Test::RecordProperty(
         "floor_knob",
         fmt::format("tr_min=1e-10 -> {} majors (last delta {:.3g}); tr_min=1e-4 -> "
