@@ -61,8 +61,8 @@ template <class Scalar> struct BumpStack {
     /// @internal
     /// @brief Snapshot of the allocator state for save/restore.
     struct SavePoint {
-        size_t offset;           ///< @internal Current bump offset in elements.
-        size_t overflow_count;   ///< @internal Number of active overflow blocks.
+        size_t offset;              ///< @internal Current bump offset in elements.
+        size_t overflow_count;      ///< @internal Number of active overflow blocks.
         size_t cumulative_overflow; ///< @internal Total elements in overflow blocks.
     };
 
@@ -218,16 +218,15 @@ template <class... TempSpecs> struct ExactTempPack {
 template <class T> struct TempSpec : detail::RCBase<T::RowsAtCompileTime, T::ColsAtCompileTime> {
     /// @internal @brief RCBase specialisation.
     using Base = detail::RCBase<T::RowsAtCompileTime, T::ColsAtCompileTime>;
-    using ExactTempType = T;               ///< @internal Exact Eigen type to instantiate.
-    using MatType = T;                     ///< @internal Underlying matrix type.
-    using Scalar = typename T::Scalar;     ///< @internal Scalar element type.
+    using ExactTempType = T;           ///< @internal Exact Eigen type to instantiate.
+    using MatType = T;                 ///< @internal Underlying matrix type.
+    using Scalar = typename T::Scalar; ///< @internal Scalar element type.
     /// @internal @brief Compile-time row count (-1 if dynamic).
     static constexpr int RowsAtCompileTime = T::RowsAtCompileTime;
     /// @internal @brief Compile-time column count (-1 if dynamic).
     static constexpr int ColsAtCompileTime = T::ColsAtCompileTime;
     /// @internal @brief True when both dimensions are compile-time constants.
-    static constexpr bool IsConstantSize =
-        (RowsAtCompileTime >= 0) && (ColsAtCompileTime >= 0);
+    static constexpr bool IsConstantSize = (RowsAtCompileTime >= 0) && (ColsAtCompileTime >= 0);
     static constexpr bool IsArray = false; ///< @internal False for scalar TempSpec.
     static constexpr bool IsTuple = false; ///< @internal False for scalar TempSpec.
 
@@ -244,12 +243,12 @@ template <class T> struct TempSpec : detail::RCBase<T::RowsAtCompileTime, T::Col
 /// @tparam T    Eigen matrix or array type for each element.
 /// @tparam Size Number of elements in the array.
 template <class T, int Size> struct ArrayOfTempSpecs {
-    using Scalar = typename T::Scalar;     ///< @internal Scalar element type.
+    using Scalar = typename T::Scalar; ///< @internal Scalar element type.
     /// @internal @brief Exact `std::array` type to instantiate.
     using ExactTempType = std::array<T, Size>;
     /// @internal @brief Underlying matrix type of each element.
     using MatType = T;
-    static constexpr int size = Size;      ///< @internal Number of array elements.
+    static constexpr int size = Size; ///< @internal Number of array elements.
     /// @internal @brief True when T has compile-time dimensions.
     static constexpr bool IsConstantSize = TempSpec<T>::IsConstantSize;
     static constexpr bool IsArray = true;  ///< @internal True for ArrayOfTempSpecs.
@@ -267,8 +266,7 @@ template <class T, int Size> struct ArrayOfTempSpecs {
 /// @tparam T... Eigen matrix or array types for each element.
 template <class... T> struct TupleOfTempSpecs {
     /// @internal @brief Scalar type of the first element.
-    using Scalar =
-        typename std::remove_cvref_t<decltype(std::get<0>(std::tuple<T...>()))>::Scalar;
+    using Scalar = typename std::remove_cvref_t<decltype(std::get<0>(std::tuple<T...>()))>::Scalar;
     // count_blocksize_aligned sizes each element in units of that element's own
     // Scalar, while make_temps computes every offset in units of the first
     // element's Scalar — a tuple mixing e.g. `double` and `DefaultSuperScalar`
@@ -304,7 +302,7 @@ template <class... T> struct TupleOfTempSpecs {
 /// during hot-path evaluation. Resizes only the calling thread's arenas; thread-pool
 /// workers are unaffected and warm up independently via high-water learning.
 struct BumpAllocator {
-    using ScalarStackType = detail::BumpStack<double>;         ///< @internal Scalar arena type.
+    using ScalarStackType = detail::BumpStack<double>; ///< @internal Scalar arena type.
     /// @internal @brief SuperScalar arena type.
     using SuperScalarStackType = detail::BumpStack<hven::DefaultSuperScalar>;
 
