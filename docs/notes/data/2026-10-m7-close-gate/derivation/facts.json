@@ -1,0 +1,59 @@
+{
+ "census_asserted_columns": [
+  "cell_id",
+  "family",
+  "n_nodes",
+  "window",
+  "taxonomy",
+  "degenerate",
+  "status",
+  "factorizations",
+  "qp_minors",
+  "escapes",
+  "qp_subproblems",
+  "qp_fact_per_qp",
+  "kkt_residual"
+ ],
+ "census_cells": 57,
+ "census_declared_movers": [
+  "f7_n10000_bound_neutral kkt_residual",
+  "f7_n10000_bound_neutral qp_minors",
+  "f7_n1000_bound_neutral qp_minors",
+  "f7_n20000_bound_corrupted kkt_residual",
+  "f7_n20000_bound_neutral kkt_residual",
+  "f7_n20000_bound_neutral qp_minors",
+  "f7_n2000_bound_neutral kkt_residual",
+  "f7_n2000_bound_neutral qp_minors",
+  "f7_n5000_bound_neutral kkt_residual",
+  "f7_n5000_bound_neutral qp_minors"
+ ],
+ "debug": {
+  "disabled": 2,
+  "failed": 0,
+  "out_of": 3231,
+  "skipped": 7,
+  "started": 3233
+ },
+ "debug_only": [],
+ "long_test_names_in_release_not_debug": [
+  "Continuation.ProbeBudgetBoundsAFailingProposal"
+ ],
+ "m6_release_inventory": 2593,
+ "m6_rig_full_inventory": 2628,
+ "release": {
+  "disabled": 2,
+  "failed": 0,
+  "out_of": 3232,
+  "skipped": 1,
+  "started": 3234
+ },
+ "replay_diffs_by_engine": {
+  "ipm": 13,
+  "ssn": 13,
+  "walk": 17
+ },
+ "replay_diffs_vs_m6": 43,
+ "rig_inventory_delta": 35,
+ "test_line_delta_wx2_gated_to_pin": [],
+ "wx2_declaration_commit": "1740846301ff763eeb11fd96335aa10e513a7906"
+}
