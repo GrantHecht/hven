@@ -1,0 +1,30 @@
+DERIV hs/hs001 ok
+DERIV hs/hs003 ok
+DERIV hs/hs005 ok
+DERIV hs/hs006 ok
+DERIV hs/hs007 ok
+DERIV hs/hs010 ok
+DERIV hs/hs011 ok
+DERIV hs/hs012 ok
+DERIV hs/hs014 ok
+DERIV hs/hs015 ok
+DERIV hs/hs022 ok
+DERIV hs/hs024 ok
+DERIV hs/hs025 ok
+DERIV hs/hs026 ok
+DERIV hs/hs027 ok
+DERIV hs/hs028 ok
+DERIV hs/hs030 ok
+DERIV hs/hs033 ok
+DERIV hs/hs035 ok
+DERIV hs/hs038 ok
+DERIV hs/hs039 ok
+DERIV hs/hs040 ok
+DERIV hs/hs043 ok
+DERIV hs/hs045 ok
+DERIV hs/hs076 ok
+DERIV hs/hs077 ok
+DERIV hs/hs079 ok
+DERIV hs/hs071 ok
+SELFTEST wrong-gradient rejected: yes -- eval_grad_f mismatch at index 1: analytic=2.2 fd=2 |diff|=0.2 > 2.20178e-06 (ratio 90835.7)
+DERIVATIVE CHECK hs-27 27/27, roster 28/28

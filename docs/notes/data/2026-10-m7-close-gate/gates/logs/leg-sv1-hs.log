@@ -1,0 +1,108 @@
+LEG: bash -o pipefail /home/ghecht/Projects/hven/.claude/worktrees/m7-close-gate/docs/notes/data/2026-10-m7-close-gate/wrappers-close/suitev1.sh hs
+PGREP_SEPARATE 2026-10-30T12:49:28Z
+PGREP_EMPTY_BEFORE_LOCK
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-10-30T12:49:28Z
+run_serial: hs/hs003/hven-ipm/default
+run_serial: hs/hs003/hven-sqp/default
+run_serial: hs/hs003/ipopt/default
+run_serial: hs/hs003/snopt/default
+run_serial: hs/hs005/hven-ipm/default
+run_serial: hs/hs005/hven-sqp/default
+run_serial: hs/hs005/ipopt/default
+run_serial: hs/hs005/snopt/default
+run_serial: hs/hs006/hven-ipm/default
+run_serial: hs/hs006/hven-sqp/default
+run_serial: hs/hs006/ipopt/default
+run_serial: hs/hs006/snopt/default
+run_serial: hs/hs007/hven-ipm/default
+run_serial: hs/hs007/hven-sqp/default
+run_serial: hs/hs007/ipopt/default
+run_serial: hs/hs007/snopt/default
+run_serial: hs/hs010/hven-ipm/default
+run_serial: hs/hs010/hven-sqp/default
+run_serial: hs/hs010/ipopt/default
+run_serial: hs/hs010/snopt/default
+run_serial: hs/hs011/hven-ipm/default
+run_serial: hs/hs011/hven-sqp/default
+run_serial: hs/hs011/ipopt/default
+run_serial: hs/hs011/snopt/default
+run_serial: hs/hs012/hven-ipm/default
+run_serial: hs/hs012/hven-sqp/default
+run_serial: hs/hs012/ipopt/default
+run_serial: hs/hs012/snopt/default
+run_serial: hs/hs014/hven-ipm/default
+run_serial: hs/hs014/hven-sqp/default
+run_serial: hs/hs014/ipopt/default
+run_serial: hs/hs014/snopt/default
+run_serial: hs/hs022/hven-ipm/default
+run_serial: hs/hs022/hven-sqp/default
+run_serial: hs/hs022/ipopt/default
+run_serial: hs/hs022/snopt/default
+run_serial: hs/hs025/hven-ipm/default
+hven_bench_cell: hven-ipm/hs025 converged to 32.834999999202502, reference 0 (|err| = 3.283e+01 > 1.000e-06)
+run_serial: hs/hs025/hven-sqp/default
+hven_bench_cell: hven-sqp/hs025 converged to 32.834999999663594, reference 0 (|err| = 3.283e+01 > 1.000e-06)
+run_serial: hs/hs025/ipopt/default
+run_serial: hs/hs025/snopt/default
+snopt: snopt/hs025 converged to 32.834999999663594, reference 0 (|err| = 3.283e+01 > 1.000e-06)
+run_serial: hs/hs026/hven-ipm/default
+run_serial: hs/hs026/hven-sqp/default
+run_serial: hs/hs026/ipopt/default
+run_serial: hs/hs026/snopt/default
+run_serial: hs/hs027/hven-ipm/default
+run_serial: hs/hs027/hven-sqp/default
+run_serial: hs/hs027/ipopt/default
+run_serial: hs/hs027/snopt/default
+run_serial: hs/hs028/hven-ipm/default
+run_serial: hs/hs028/hven-sqp/default
+run_serial: hs/hs028/ipopt/default
+run_serial: hs/hs028/snopt/default
+run_serial: hs/hs030/hven-ipm/default
+run_serial: hs/hs030/hven-sqp/default
+run_serial: hs/hs030/ipopt/default
+run_serial: hs/hs030/snopt/default
+run_serial: hs/hs033/hven-ipm/default
+run_serial: hs/hs033/hven-sqp/default
+hven_bench_cell: hven-sqp/hs033 converged to -3.9999999999737859, reference -4.5857864376269051 (|err| = 5.858e-01 > 4.586e-06)
+run_serial: hs/hs033/ipopt/default
+run_serial: hs/hs033/snopt/default
+snopt: snopt/hs033 converged to -3.9999988594497746, reference -4.5857864376269051 (|err| = 5.858e-01 > 4.586e-06)
+run_serial: hs/hs035/hven-ipm/default
+run_serial: hs/hs035/hven-sqp/default
+run_serial: hs/hs035/ipopt/default
+run_serial: hs/hs035/snopt/default
+run_serial: hs/hs039/hven-ipm/default
+run_serial: hs/hs039/hven-sqp/default
+run_serial: hs/hs039/ipopt/default
+run_serial: hs/hs039/snopt/default
+run_serial: hs/hs043/hven-ipm/default
+run_serial: hs/hs043/hven-sqp/default
+run_serial: hs/hs043/ipopt/default
+run_serial: hs/hs043/snopt/default
+run_serial: hs/hs045/hven-ipm/default
+run_serial: hs/hs045/hven-sqp/default
+run_serial: hs/hs045/ipopt/default
+run_serial: hs/hs045/snopt/default
+run_serial: hs/hs077/hven-ipm/default
+run_serial: hs/hs077/hven-sqp/default
+run_serial: hs/hs077/ipopt/default
+run_serial: hs/hs077/snopt/default
+run_serial: hs/hs079/hven-ipm/default
+run_serial: hs/hs079/hven-sqp/default
+run_serial: hs/hs079/ipopt/default
+run_serial: hs/hs079/snopt/default
+run_serial: hs/hs071/hven-ipm/default
+run_serial: hs/hs071/hven-sqp/default
+run_serial: hs/hs071/ipopt/default
+run_serial: hs/hs071/snopt/default
+run_serial: REFERENCE FAILURE hs/hs025/hven-ipm/default
+run_serial: REFERENCE FAILURE hs/hs025/hven-sqp/default
+run_serial: REFERENCE FAILURE hs/hs025/snopt/default
+run_serial: REFERENCE FAILURE hs/hs033/hven-sqp/default
+run_serial: REFERENCE FAILURE hs/hs033/snopt/default
+run_serial: 88 cells -> /home/ghecht/Projects/hven/.claude/worktrees/m7-close-gate/.scratch/m7-close/suitev1/run-hs/results.csv
+RUN_SERIAL_RC=1 (0 = clean; 1 = a REFERENCE FAILURE with all rows written; anything else = the evidence is not whole)
+LEG_RC=1
+FOREGROUND_END 2026-10-30T12:49:50Z
+WRAPPER_EXIT=1

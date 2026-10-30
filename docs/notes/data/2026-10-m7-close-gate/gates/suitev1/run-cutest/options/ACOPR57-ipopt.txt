@@ -1,0 +1,50 @@
+# hven-bench lane `ipopt` -- the RESOLVED value of every option below,
+# read back out of IPOPT's own options list, which returns the registered
+# default where this lane set nothing.  It records what was IN FORCE.
+#
+# EXCLUDED, deliberately: `output_file`, whose value is a per-cell log path.
+# A pin hashed over a path would differ for every cell and say nothing about
+# the options.  The log itself is retained under .scratch/.
+#
+# IPOPT version: 3.14.19
+linear_solver = pardisomkl
+linear_system_scaling = none
+linear_scaling_on_demand = yes
+hessian_approximation = exact
+hessian_constant = no
+max_iter = 3000
+max_wall_time = 300
+max_cpu_time = 1e+20
+tol = 1e-08
+dual_inf_tol = 1
+constr_viol_tol = 0.0001
+compl_inf_tol = 0.0001
+acceptable_tol = 9.9999999999999995e-07
+acceptable_iter = 15
+acceptable_constr_viol_tol = 0.01
+diverging_iterates_tol = 1e+20
+mu_strategy = monotone
+mu_init = 0.10000000000000001
+mu_oracle = quality-function
+adaptive_mu_globalization = obj-constr-filter
+nlp_scaling_method = gradient-based
+obj_scaling_factor = 1
+nlp_lower_bound_inf = -1e+19
+nlp_upper_bound_inf = 1e+19
+bound_relax_factor = 1e-08
+bound_push = 0.01
+bound_frac = 0.01
+honor_original_bounds = no
+fixed_variable_treatment = make_parameter
+line_search_method = filter
+alpha_for_y = primal
+recalc_y = no
+max_soc = 4
+watchdog_shortened_iter_trigger = 10
+expect_infeasible_problem = no
+start_with_resto = no
+required_infeasibility_reduction = 0.90000000000000002
+warm_start_init_point = no
+derivative_test = none
+print_level = 0
+file_print_level = 5

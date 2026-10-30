@@ -1,0 +1,18 @@
+LEG: bash -o pipefail /home/ghecht/Projects/hven/.claude/worktrees/m7-close-gate/docs/notes/data/2026-10-m7-close-gate/wrappers-close/legs.sh suite-release
+PGREP_SEPARATE 2026-10-30T11:49:15Z
+PGREP_EMPTY_BEFORE_LOCK
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-10-30T11:49:15Z
+CTEST_RC_release=0
+100% tests passed, 0 tests failed out of 3232
+
+Total Test time (real) = 134.87 sec
+
+The following tests did not run:
+	666 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1928 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1929 - EqpRefinementAb.FullBattery (Disabled)
+INVENTORY_RC_release=0
+LEG_RC=0
+FOREGROUND_END 2026-10-30T11:51:30Z
+WRAPPER_EXIT=0

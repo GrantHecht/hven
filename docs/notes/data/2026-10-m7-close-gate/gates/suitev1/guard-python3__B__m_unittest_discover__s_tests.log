@@ -1,0 +1,26 @@
+.....................F.F.run_serial: stub/sleeper/hven-ipm/default
+..
+======================================================================
+FAIL: test_the_copy_names_the_sha_it_was_copied_from (test_hs_set.HsCopyFidelityTest.test_the_copy_names_the_sha_it_was_copied_from)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ghecht/Projects/hven-bench/tests/test_hs_set.py", line 80, in test_the_copy_names_the_sha_it_was_copied_from
+    self.assertIn(head[:8], header)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+AssertionError: 'd4b8e84b' not found in "// sets/hs/hs001.cpp -- Hock & Schittkowski problem 1, the harness's copy.\n//\n// COPIED FROM hven `tests/sqp/support/hs_problems.h` at 3904a477, M7 W1 H2.\n// The citation banner, the sign-conversion notes and the class body below are\n// VERBATIM from that file: not one formula was re-derived here, because a\n// re-derivation is exactly the transcription risk the copy exists to avoid.\n// What is the harness's own is this header, the anonymous namespace the class\n// sits in, and the declaration function at the bottom.\n//\n// THE DIGEST IS THIS FILE.  schema v1's `set_digest` for `hs/hs001` is the\n// sha256 of these bytes -- so a row records the source its model was compiled\n// from, and a change to this problem moves this problem's pin and no other's.\n//\n// THE DEPRECATION BRACKET.  hven's NlpModel deprecated its six by-value\n// evaluations at M6 W5 in favour of the in-place forms, and the battery's\n// classes override the by-value ones.  They are copied unchanged and the\n// bracket silences the override warnings, exactly as hven's own\n// `tests/sqp/support/derivative_check.h` does.  The harness's bridge\n// (lanes/hven/nlp_model_triplet_view.cpp) calls only the IN-PLACE forms, so\n// no"
+
+======================================================================
+FAIL: test_the_set_pin_agrees_with_the_set_the_binary_carries (test_hs_set.PinTest.test_the_set_pin_agrees_with_the_set_the_binary_carries)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ghecht/Projects/hven-bench/tests/test_hs_set.py", line 126, in test_the_set_pin_agrees_with_the_set_the_binary_carries
+    self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : set_pin: PIN DISAGREES with the set the binary carries
+
+
+----------------------------------------------------------------------
+Ran 27 tests in 3.319s
+
+FAILED (failures=2)
+run_serial: 1 cells -> /tmp/tmp4lkypvm3/run/results.csv

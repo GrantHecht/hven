@@ -1,0 +1,15 @@
+LEG: bash -o pipefail /home/ghecht/Projects/hven/.claude/worktrees/m7-close-gate/docs/notes/data/2026-10-m7-close-gate/wrappers-close/legs.sh long-debug
+PGREP_SEPARATE 2026-10-30T11:58:00Z
+PGREP_EMPTY_BEFORE_LOCK
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-10-30T11:58:00Z
+CTEST_RC_long=0
+    Start 1777: Continuation.ProbeBudgetBoundsAFailingProposal
+1/1 Test #1777: Continuation.ProbeBudgetBoundsAFailingProposal ...   Passed  171.29 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) = 171.35 sec
+LEG_RC=0
+FOREGROUND_END 2026-10-30T12:00:51Z
+WRAPPER_EXIT=0

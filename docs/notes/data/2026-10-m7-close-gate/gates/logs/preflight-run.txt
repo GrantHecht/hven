@@ -1,0 +1,48 @@
+PREFLIGHT mode=run falsify=1 head=b9ccfaa65248c9496b67e6fa69e0e0ba3a449a26 date=2026-10-30T12:49:23Z
+PF_OK    head: docs-only descendant of the pin d4b8e84b0283, compiled tree identical
+PF_FALSIFIER_REFUSED head against aaa95642 (a tests-bearing range)
+PF_OK    tree clean (run)
+PF_FALSIFIER_REFUSED clean against a stray untracked file
+PF_OK    derivation reproducible from git + the frozen records
+PF_FALSIFIER_REFUSED derivation with a skipped-set line deleted
+PF_OK    tool clang++
+PF_OK    tool cmake
+PF_OK    tool ninja
+PF_OK    tool ctest
+PF_OK    tool flock
+PF_OK    tool taskset
+PF_OK    tool python3
+PF_OK    tool pgrep
+PF_OK    tool git
+PF_FALSIFIER_REFUSED tool check against a missing tool
+PF_OK    box: no hven_bench_cell process
+PF_FALSIFIER_REFUSED box check against a live decoy named hven_bench_cell
+PF_OK    rig seams at their pins (tycho consumed tree, tycho_sqp phase-7-close)
+PF_FALSIFIER_REFUSED seams against a wrong tycho pin
+PF_OK    replay baseline: the WX2 record, 3 engines x 27 cells x 75 compared columns (76 header fields)
+PF_FALSIFIER_REFUSED replay baseline against a wrong cell count
+PF_OK    replay baseline: the M6 pin, 3 x 27 x 76 fields
+PF_OK    replay cell list = 27 cells
+PF_FALSIFIER_REFUSED cell list against 26
+PF_OK    census baseline: 57 rows; the M6 close census equals it (57/57/0, byte-exact comparator)
+PF_FALSIFIER_REFUSED census baseline against a non-census csv
+PF_OK    census lineage: the M6 close census is the latest census record on the tree
+PF_FALSIFIER_REFUSED lineage against an older expected record
+PF_OK    MKL present
+PF_OK    SNOPT install (lane invoked only through the harness)
+PF_OK    IPOPT install (lane invoked only through the harness)
+PF_FALSIFIER_REFUSED install check against a missing path
+PF_OK    CUTEst: 35 fetched instances
+PF_OK    CUTEst: 35 decoded instances
+PF_FALSIFIER_REFUSED instance count against 36
+PF_OK    hven-bench: pin file = d4b8e84b0283, harness HEAD 451b51b, tree clean
+PF_FALSIFIER_REFUSED hven-bench against a wrong harness head
+PF_OK    dep/eigen and dep/fmt populated
+PF_FALSIFIER_REFUSED submodule check against an empty dir
+PF_OK    run_leg.sh protocol proofs (fold, pipefail refusal, in-lock foreign-process refusal)
+PF_OK    close_check.py falsifiers (suite/configure/replay/census/rig assertions)
+SELFTEST_FAILS=0
+PF_OK    check_suitev1.py falsifiers
+SELFTEST_FAILS=0
+PREFLIGHT_FAILS=0
+PREFLIGHT_GREEN

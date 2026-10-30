@@ -1,0 +1,212 @@
+Test project /home/ghecht/Projects/hven/.claude/worktrees/m7-close-gate/.scratch/m7-close/build-3seam
+      Start 666: FailByDesignControl.SqpSeamStillZeroFillsItsPreFactorizationInertia
+      Start 667: FailByDesignControl.SqpSeamDeclaresTheInertiaSurfaceTheFailingTraceNeeds
+      Start 668: FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas
+      Start 669: Arms/SqpTrace.T1_PhaseSplitLifecycle/native@mkl
+ 1/84 Test #668: FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas ............................   Passed    0.00 sec
+      Start 670: Arms/SqpTrace.T1_PhaseSplitLifecycle/native-sqp-parity@mkl
+ 2/84 Test #666: FailByDesignControl.SqpSeamStillZeroFillsItsPreFactorizationInertia ...............................   Passed    0.01 sec
+      Start 671: Arms/SqpTrace.T1_PhaseSplitLifecycle/native-psiopt-parity@mkl
+ 3/84 Test #667: FailByDesignControl.SqpSeamDeclaresTheInertiaSurfaceTheFailingTraceNeeds ..........................   Passed    0.01 sec
+      Start 672: Arms/SqpTrace.T1_PhaseSplitLifecycle/psiopt-old@mkl
+ 4/84 Test #669: Arms/SqpTrace.T1_PhaseSplitLifecycle/native@mkl ...................................................   Passed    0.01 sec
+      Start 673: Arms/SqpTrace.T1_PhaseSplitLifecycle/sqp-old@mkl
+ 5/84 Test #670: Arms/SqpTrace.T1_PhaseSplitLifecycle/native-sqp-parity@mkl ........................................   Passed    0.01 sec
+      Start 674: Arms/SqpTrace.T2_PersistentOracleInterleaving/native@mkl
+ 6/84 Test #671: Arms/SqpTrace.T1_PhaseSplitLifecycle/native-psiopt-parity@mkl .....................................   Passed    0.01 sec
+      Start 675: Arms/SqpTrace.T2_PersistentOracleInterleaving/native-sqp-parity@mkl
+ 7/84 Test #672: Arms/SqpTrace.T1_PhaseSplitLifecycle/psiopt-old@mkl ...............................................   Passed    0.01 sec
+      Start 676: Arms/SqpTrace.T2_PersistentOracleInterleaving/native-psiopt-parity@mkl
+ 8/84 Test #674: Arms/SqpTrace.T2_PersistentOracleInterleaving/native@mkl ..........................................   Passed    0.01 sec
+      Start 677: Arms/SqpTrace.T2_PersistentOracleInterleaving/psiopt-old@mkl
+ 9/84 Test #673: Arms/SqpTrace.T1_PhaseSplitLifecycle/sqp-old@mkl ..................................................   Passed    0.01 sec
+      Start 678: Arms/SqpTrace.T2_PersistentOracleInterleaving/sqp-old@mkl
+10/84 Test #675: Arms/SqpTrace.T2_PersistentOracleInterleaving/native-sqp-parity@mkl ...............................   Passed    0.01 sec
+      Start 679: Arms/SqpTrace.T2b_PartialSolvePredicateUnderPerturbation/native@mkl
+11/84 Test #676: Arms/SqpTrace.T2_PersistentOracleInterleaving/native-psiopt-parity@mkl ............................   Passed    0.01 sec
+      Start 680: Arms/SqpTrace.T2b_PartialSolvePredicateUnderPerturbation/native-sqp-parity@mkl
+12/84 Test #677: Arms/SqpTrace.T2_PersistentOracleInterleaving/psiopt-old@mkl ......................................   Passed    0.01 sec
+      Start 681: Arms/SqpTrace.T2b_PartialSolvePredicateUnderPerturbation/native-psiopt-parity@mkl
+13/84 Test #678: Arms/SqpTrace.T2_PersistentOracleInterleaving/sqp-old@mkl .........................................   Passed    0.01 sec
+      Start 682: Arms/SqpTrace.T2b_PartialSolvePredicateUnderPerturbation/psiopt-old@mkl
+14/84 Test #679: Arms/SqpTrace.T2b_PartialSolvePredicateUnderPerturbation/native@mkl ...............................   Passed    0.01 sec
+      Start 683: Arms/SqpTrace.T2b_PartialSolvePredicateUnderPerturbation/sqp-old@mkl
+15/84 Test #680: Arms/SqpTrace.T2b_PartialSolvePredicateUnderPerturbation/native-sqp-parity@mkl ....................   Passed    0.01 sec
+      Start 684: Arms/SqpTrace.T3_ValueOnlyRefactorization/native@mkl
+16/84 Test #681: Arms/SqpTrace.T2b_PartialSolvePredicateUnderPerturbation/native-psiopt-parity@mkl .................   Passed    0.01 sec
+      Start 685: Arms/SqpTrace.T3_ValueOnlyRefactorization/native-sqp-parity@mkl
+17/84 Test #682: Arms/SqpTrace.T2b_PartialSolvePredicateUnderPerturbation/psiopt-old@mkl ...........................***Skipped   0.01 sec
+      Start 686: Arms/SqpTrace.T3_ValueOnlyRefactorization/native-psiopt-parity@mkl
+18/84 Test #683: Arms/SqpTrace.T2b_PartialSolvePredicateUnderPerturbation/sqp-old@mkl ..............................   Passed    0.01 sec
+      Start 687: Arms/SqpTrace.T3_ValueOnlyRefactorization/psiopt-old@mkl
+19/84 Test #684: Arms/SqpTrace.T3_ValueOnlyRefactorization/native@mkl ..............................................   Passed    0.01 sec
+      Start 688: Arms/SqpTrace.T3_ValueOnlyRefactorization/sqp-old@mkl
+20/84 Test #685: Arms/SqpTrace.T3_ValueOnlyRefactorization/native-sqp-parity@mkl ...................................   Passed    0.01 sec
+      Start 689: Arms/SqpTrace.T4_HandleOutlivesItsEmitter/native@mkl
+21/84 Test #687: Arms/SqpTrace.T3_ValueOnlyRefactorization/psiopt-old@mkl ..........................................   Passed    0.01 sec
+      Start 690: Arms/SqpTrace.T4_HandleOutlivesItsEmitter/native-sqp-parity@mkl
+22/84 Test #686: Arms/SqpTrace.T3_ValueOnlyRefactorization/native-psiopt-parity@mkl ................................   Passed    0.02 sec
+      Start 691: Arms/SqpTrace.T4_HandleOutlivesItsEmitter/native-psiopt-parity@mkl
+23/84 Test #688: Arms/SqpTrace.T3_ValueOnlyRefactorization/sqp-old@mkl .............................................   Passed    0.01 sec
+      Start 692: Arms/SqpTrace.T4_HandleOutlivesItsEmitter/psiopt-old@mkl
+24/84 Test #689: Arms/SqpTrace.T4_HandleOutlivesItsEmitter/native@mkl ..............................................   Passed    0.01 sec
+      Start 693: Arms/SqpTrace.T4_HandleOutlivesItsEmitter/sqp-old@mkl
+25/84 Test #690: Arms/SqpTrace.T4_HandleOutlivesItsEmitter/native-sqp-parity@mkl ...................................   Passed    0.01 sec
+      Start 694: Arms/SqpTrace.T4b_AdoptRefusesStaleNumerics/native@mkl
+26/84 Test #691: Arms/SqpTrace.T4_HandleOutlivesItsEmitter/native-psiopt-parity@mkl ................................   Passed    0.01 sec
+      Start 695: Arms/SqpTrace.T4b_AdoptRefusesStaleNumerics/native-sqp-parity@mkl
+27/84 Test #692: Arms/SqpTrace.T4_HandleOutlivesItsEmitter/psiopt-old@mkl ..........................................***Skipped   0.01 sec
+      Start 696: Arms/SqpTrace.T4b_AdoptRefusesStaleNumerics/native-psiopt-parity@mkl
+28/84 Test #693: Arms/SqpTrace.T4_HandleOutlivesItsEmitter/sqp-old@mkl .............................................***Skipped   0.01 sec
+      Start 697: Arms/SqpTrace.T4b_AdoptRefusesStaleNumerics/psiopt-old@mkl
+29/84 Test #694: Arms/SqpTrace.T4b_AdoptRefusesStaleNumerics/native@mkl ............................................   Passed    0.01 sec
+      Start 698: Arms/SqpTrace.T4b_AdoptRefusesStaleNumerics/sqp-old@mkl
+30/84 Test #697: Arms/SqpTrace.T4b_AdoptRefusesStaleNumerics/psiopt-old@mkl ........................................***Skipped   0.01 sec
+      Start 699: Arms/SqpTrace.T5_InertiaEvidence/native@mkl
+31/84 Test #695: Arms/SqpTrace.T4b_AdoptRefusesStaleNumerics/native-sqp-parity@mkl .................................   Passed    0.01 sec
+      Start 700: Arms/SqpTrace.T5_InertiaEvidence/native-sqp-parity@mkl
+32/84 Test #696: Arms/SqpTrace.T4b_AdoptRefusesStaleNumerics/native-psiopt-parity@mkl ..............................   Passed    0.01 sec
+      Start 701: Arms/SqpTrace.T5_InertiaEvidence/native-psiopt-parity@mkl
+33/84 Test #698: Arms/SqpTrace.T4b_AdoptRefusesStaleNumerics/sqp-old@mkl ...........................................***Skipped   0.01 sec
+      Start 702: Arms/SqpTrace.T5_InertiaEvidence/psiopt-old@mkl
+34/84 Test #699: Arms/SqpTrace.T5_InertiaEvidence/native@mkl .......................................................   Passed    0.01 sec
+      Start 703: Arms/SqpTrace.T5_InertiaEvidence/sqp-old@mkl
+35/84 Test #700: Arms/SqpTrace.T5_InertiaEvidence/native-sqp-parity@mkl ............................................   Passed    0.01 sec
+      Start 704: Arms/SqpTrace.T6_RankDeficientFaceReportsAState/native@mkl
+36/84 Test #701: Arms/SqpTrace.T5_InertiaEvidence/native-psiopt-parity@mkl .........................................   Passed    0.01 sec
+      Start 705: Arms/SqpTrace.T6_RankDeficientFaceReportsAState/native-sqp-parity@mkl
+37/84 Test #702: Arms/SqpTrace.T5_InertiaEvidence/psiopt-old@mkl ...................................................   Passed    0.01 sec
+      Start 706: Arms/SqpTrace.T6_RankDeficientFaceReportsAState/native-psiopt-parity@mkl
+38/84 Test #703: Arms/SqpTrace.T5_InertiaEvidence/sqp-old@mkl ......................................................   Passed    0.01 sec
+      Start 707: Arms/SqpTrace.T6_RankDeficientFaceReportsAState/psiopt-old@mkl
+39/84 Test #704: Arms/SqpTrace.T6_RankDeficientFaceReportsAState/native@mkl ........................................   Passed    0.01 sec
+      Start 708: Arms/SqpTrace.T6_RankDeficientFaceReportsAState/sqp-old@mkl
+40/84 Test #705: Arms/SqpTrace.T6_RankDeficientFaceReportsAState/native-sqp-parity@mkl .............................   Passed    0.01 sec
+      Start 709: Arms/SqpTrace.T7_BackendParameterSurfaceFloor/native@mkl
+41/84 Test #706: Arms/SqpTrace.T6_RankDeficientFaceReportsAState/native-psiopt-parity@mkl ..........................   Passed    0.01 sec
+      Start 710: Arms/SqpTrace.T7_BackendParameterSurfaceFloor/native-sqp-parity@mkl
+42/84 Test #707: Arms/SqpTrace.T6_RankDeficientFaceReportsAState/psiopt-old@mkl ....................................   Passed    0.01 sec
+      Start 711: Arms/SqpTrace.T7_BackendParameterSurfaceFloor/native-psiopt-parity@mkl
+43/84 Test #708: Arms/SqpTrace.T6_RankDeficientFaceReportsAState/sqp-old@mkl .......................................   Passed    0.01 sec
+      Start 712: Arms/SqpTrace.T7_BackendParameterSurfaceFloor/psiopt-old@mkl
+44/84 Test #709: Arms/SqpTrace.T7_BackendParameterSurfaceFloor/native@mkl ..........................................   Passed    0.01 sec
+      Start 713: Arms/SqpTrace.T7_BackendParameterSurfaceFloor/sqp-old@mkl
+45/84 Test #710: Arms/SqpTrace.T7_BackendParameterSurfaceFloor/native-sqp-parity@mkl ...............................   Passed    0.01 sec
+      Start 714: Arms/SqpTrace.T8_ThreadCountControl/native@mkl
+46/84 Test #711: Arms/SqpTrace.T7_BackendParameterSurfaceFloor/native-psiopt-parity@mkl ............................   Passed    0.01 sec
+      Start 715: Arms/SqpTrace.T8_ThreadCountControl/native-sqp-parity@mkl
+47/84 Test #712: Arms/SqpTrace.T7_BackendParameterSurfaceFloor/psiopt-old@mkl ......................................   Passed    0.01 sec
+      Start 716: Arms/SqpTrace.T8_ThreadCountControl/native-psiopt-parity@mkl
+48/84 Test #713: Arms/SqpTrace.T7_BackendParameterSurfaceFloor/sqp-old@mkl .........................................   Passed    0.01 sec
+      Start 717: Arms/SqpTrace.T8_ThreadCountControl/psiopt-old@mkl
+49/84 Test #714: Arms/SqpTrace.T8_ThreadCountControl/native@mkl ....................................................   Passed    0.01 sec
+      Start 718: Arms/SqpTrace.T8_ThreadCountControl/sqp-old@mkl
+50/84 Test #715: Arms/SqpTrace.T8_ThreadCountControl/native-sqp-parity@mkl .........................................   Passed    0.02 sec
+      Start 719: Arms/InteriorPointTrace.P1_IterateLoopLifecycle/native@mkl
+51/84 Test #716: Arms/SqpTrace.T8_ThreadCountControl/native-psiopt-parity@mkl ......................................   Passed    0.02 sec
+      Start 720: Arms/InteriorPointTrace.P1_IterateLoopLifecycle/native-sqp-parity@mkl
+52/84 Test #717: Arms/SqpTrace.T8_ThreadCountControl/psiopt-old@mkl ................................................   Passed    0.02 sec
+      Start 721: Arms/InteriorPointTrace.P1_IterateLoopLifecycle/native-psiopt-parity@mkl
+53/84 Test #718: Arms/SqpTrace.T8_ThreadCountControl/sqp-old@mkl ...................................................   Passed    0.01 sec
+      Start 722: Arms/InteriorPointTrace.P1_IterateLoopLifecycle/psiopt-old@mkl
+54/84 Test #719: Arms/InteriorPointTrace.P1_IterateLoopLifecycle/native@mkl ........................................   Passed    0.01 sec
+      Start 723: Arms/InteriorPointTrace.P1_IterateLoopLifecycle/sqp-old@mkl
+55/84 Test #720: Arms/InteriorPointTrace.P1_IterateLoopLifecycle/native-sqp-parity@mkl .............................   Passed    0.02 sec
+      Start 724: Arms/InteriorPointTrace.P2_InertiaCorrectionLadderReplay/native@mkl
+56/84 Test #721: Arms/InteriorPointTrace.P1_IterateLoopLifecycle/native-psiopt-parity@mkl ..........................   Passed    0.02 sec
+      Start 725: Arms/InteriorPointTrace.P2_InertiaCorrectionLadderReplay/native-sqp-parity@mkl
+57/84 Test #722: Arms/InteriorPointTrace.P1_IterateLoopLifecycle/psiopt-old@mkl ....................................   Passed    0.01 sec
+      Start 726: Arms/InteriorPointTrace.P2_InertiaCorrectionLadderReplay/native-psiopt-parity@mkl
+58/84 Test #724: Arms/InteriorPointTrace.P2_InertiaCorrectionLadderReplay/native@mkl ...............................   Passed    0.01 sec
+      Start 727: Arms/InteriorPointTrace.P2_InertiaCorrectionLadderReplay/psiopt-old@mkl
+59/84 Test #725: Arms/InteriorPointTrace.P2_InertiaCorrectionLadderReplay/native-sqp-parity@mkl ....................   Passed    0.01 sec
+      Start 728: Arms/InteriorPointTrace.P2_InertiaCorrectionLadderReplay/sqp-old@mkl
+60/84 Test #723: Arms/InteriorPointTrace.P1_IterateLoopLifecycle/sqp-old@mkl .......................................   Passed    0.01 sec
+      Start 729: Arms/InteriorPointTrace.P3_SingularVerdictAndControl/native@mkl
+61/84 Test #726: Arms/InteriorPointTrace.P2_InertiaCorrectionLadderReplay/native-psiopt-parity@mkl .................   Passed    0.01 sec
+      Start 730: Arms/InteriorPointTrace.P3_SingularVerdictAndControl/native-sqp-parity@mkl
+62/84 Test #729: Arms/InteriorPointTrace.P3_SingularVerdictAndControl/native@mkl ...................................   Passed    0.01 sec
+      Start 731: Arms/InteriorPointTrace.P3_SingularVerdictAndControl/native-psiopt-parity@mkl
+63/84 Test #727: Arms/InteriorPointTrace.P2_InertiaCorrectionLadderReplay/psiopt-old@mkl ...........................   Passed    0.01 sec
+64/84 Test #728: Arms/InteriorPointTrace.P2_InertiaCorrectionLadderReplay/sqp-old@mkl ..............................   Passed    0.01 sec
+      Start 732: Arms/InteriorPointTrace.P3_SingularVerdictAndControl/psiopt-old@mkl
+      Start 733: Arms/InteriorPointTrace.P3_SingularVerdictAndControl/sqp-old@mkl
+65/84 Test #730: Arms/InteriorPointTrace.P3_SingularVerdictAndControl/native-sqp-parity@mkl ........................   Passed    0.01 sec
+      Start 734: Arms/InteriorPointTrace.P4_PerturbationEvidencePresenceIsBackendHonest/native@mkl
+66/84 Test #731: Arms/InteriorPointTrace.P3_SingularVerdictAndControl/native-psiopt-parity@mkl .....................   Passed    0.01 sec
+      Start 735: Arms/InteriorPointTrace.P4_PerturbationEvidencePresenceIsBackendHonest/native-sqp-parity@mkl
+67/84 Test #732: Arms/InteriorPointTrace.P3_SingularVerdictAndControl/psiopt-old@mkl ...............................   Passed    0.01 sec
+      Start 736: Arms/InteriorPointTrace.P4_PerturbationEvidencePresenceIsBackendHonest/native-psiopt-parity@mkl
+68/84 Test #733: Arms/InteriorPointTrace.P3_SingularVerdictAndControl/sqp-old@mkl ..................................   Passed    0.01 sec
+      Start 737: Arms/InteriorPointTrace.P4_PerturbationEvidencePresenceIsBackendHonest/psiopt-old@mkl
+69/84 Test #734: Arms/InteriorPointTrace.P4_PerturbationEvidencePresenceIsBackendHonest/native@mkl .................   Passed    0.01 sec
+      Start 738: Arms/InteriorPointTrace.P4_PerturbationEvidencePresenceIsBackendHonest/sqp-old@mkl
+70/84 Test #735: Arms/InteriorPointTrace.P4_PerturbationEvidencePresenceIsBackendHonest/native-sqp-parity@mkl ......   Passed    0.01 sec
+      Start 739: Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/native@mkl
+71/84 Test #736: Arms/InteriorPointTrace.P4_PerturbationEvidencePresenceIsBackendHonest/native-psiopt-parity@mkl ...   Passed    0.01 sec
+      Start 740: Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/native-sqp-parity@mkl
+72/84 Test #739: Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/native@mkl .................   Passed    0.00 sec
+      Start 741: Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/native-psiopt-parity@mkl
+73/84 Test #737: Arms/InteriorPointTrace.P4_PerturbationEvidencePresenceIsBackendHonest/psiopt-old@mkl .............   Passed    0.01 sec
+      Start 742: Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/psiopt-old@mkl
+74/84 Test #740: Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/native-sqp-parity@mkl ......   Passed    0.00 sec
+      Start 743: Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/sqp-old@mkl
+75/84 Test #738: Arms/InteriorPointTrace.P4_PerturbationEvidencePresenceIsBackendHonest/sqp-old@mkl ................   Passed    0.01 sec
+76/84 Test #741: Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/native-psiopt-parity@mkl ...   Passed    0.00 sec
+      Start 744: Arms/InteriorPointTrace.P6_RefinementStepEvidence/native@mkl
+      Start 745: Arms/InteriorPointTrace.P6_RefinementStepEvidence/native-sqp-parity@mkl
+77/84 Test #743: Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/sqp-old@mkl ................***Failed    0.01 sec
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/m7-close-gate/.scratch/m7-close/build-3seam/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/sqp_old
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Arms/InteriorPointTrace
+[ RUN      ] Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/sqp_old
+/home/ghecht/Projects/hven/.claude/worktrees/m7-close-gate/tests/golden_rig/traces_interior_point.cpp:269: Failure
+Expected: (e.state) != (hl::InertiaEvidence::State::kObserved), actual: 4-byte object <00-00 00-00> vs 4-byte object <00-00 00-00>
+nothing has been factorized, so there is nothing to have observed
+
+/home/ghecht/Projects/hven/.claude/worktrees/m7-close-gate/tests/golden_rig/traces_interior_point.cpp:271: Failure
+Value of: e.n_pos == 0 && e.n_neg == 0 && e.n_zero == 0
+  Actual: true
+Expected: false
+counts with nothing behind them must stay invalid, never be zero-filled -- a zero-filled triple reads exactly like a real one
+
+[  FAILED  ] Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/sqp_old, where GetParam() = sqp-old@mkl (3 ms)
+[----------] 1 test from Arms/InteriorPointTrace (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/sqp_old, where GetParam() = sqp-old@mkl
+
+ 1 FAILED TEST
+
+      Start 746: Arms/InteriorPointTrace.P6_RefinementStepEvidence/native-psiopt-parity@mkl
+78/84 Test #742: Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/psiopt-old@mkl .............   Passed    0.01 sec
+      Start 747: Arms/InteriorPointTrace.P6_RefinementStepEvidence/psiopt-old@mkl
+79/84 Test #744: Arms/InteriorPointTrace.P6_RefinementStepEvidence/native@mkl ......................................   Passed    0.01 sec
+80/84 Test #745: Arms/InteriorPointTrace.P6_RefinementStepEvidence/native-sqp-parity@mkl ...........................   Passed    0.01 sec
+      Start 748: Arms/InteriorPointTrace.P6_RefinementStepEvidence/sqp-old@mkl
+      Start 753: GoldenRigAudit.StaticScanSelfTest
+81/84 Test #746: Arms/InteriorPointTrace.P6_RefinementStepEvidence/native-psiopt-parity@mkl ........................   Passed    0.01 sec
+82/84 Test #747: Arms/InteriorPointTrace.P6_RefinementStepEvidence/psiopt-old@mkl ..................................   Passed    0.01 sec
+83/84 Test #748: Arms/InteriorPointTrace.P6_RefinementStepEvidence/sqp-old@mkl .....................................***Skipped   0.01 sec
+84/84 Test #753: GoldenRigAudit.StaticScanSelfTest .................................................................   Passed    0.08 sec
+
+99% tests passed, 1 tests failed out of 84
+
+Total Test time (real) =   0.35 sec
+
+The following tests did not run:
+	682 - Arms/SqpTrace.T2b_PartialSolvePredicateUnderPerturbation/psiopt-old@mkl (Skipped)
+	692 - Arms/SqpTrace.T4_HandleOutlivesItsEmitter/psiopt-old@mkl (Skipped)
+	693 - Arms/SqpTrace.T4_HandleOutlivesItsEmitter/sqp-old@mkl (Skipped)
+	697 - Arms/SqpTrace.T4b_AdoptRefusesStaleNumerics/psiopt-old@mkl (Skipped)
+	698 - Arms/SqpTrace.T4b_AdoptRefusesStaleNumerics/sqp-old@mkl (Skipped)
+	748 - Arms/InteriorPointTrace.P6_RefinementStepEvidence/sqp-old@mkl (Skipped)
+
+The following tests FAILED:
+	743 - Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/sqp-old@mkl (Failed)
+Errors while running CTest
