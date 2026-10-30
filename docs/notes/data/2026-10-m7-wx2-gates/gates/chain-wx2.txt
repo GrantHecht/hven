@@ -1,0 +1,28 @@
+CHAIN_START 2026-10-30T01:18:10-04:00
+HEAD 17408463  dirty-files=0
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx2-gates/wrappers-gates/gates-wx2.sh
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers/gate_asserts_m3b.sh
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx2-gates/wrappers-gates/classify_psym_m4_uncapped.py
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers/check_sections_fix2.sh
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers/section_digest_fix2.py
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers/fold_proofs_m3b.sh
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/scripts/psym_compare.sh
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/scripts/compare_replay.py
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/scripts/check_install_smoke.sh
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/scripts/check_export_contract.sh
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-09-m6-close-gate/replay
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/replay (binary 083cf8268cb3, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/e1/e1-off.csv
+GATES_WX_RC=0
+FOREGROUND_START fold-proofs 2026-10-30T02:15:02-04:00
+PGREP_EMPTY fold-proofs: no foreign cell binary under my lock
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers/fold_proofs_m3b.sh
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/gates-dbg/CTestTestfile.cmake
+FOLD_PROOFS_RC=0
+FOREGROUND_END fold-proofs 2026-10-30T02:15:03-04:00
+FOLD_PROOFS_AGGREGATE_RC=0
+
+FOLD_PROOFS_TOTAL=46  FOLD_PROOFS_FAILED=0
+FOLD_PROOFS_END 2026-10-30T02:15:03-04:00
+CHAIN_END 2026-10-30T02:15:03-04:00
+CHAIN_SUMMARY gates=0 fold_proofs=0
