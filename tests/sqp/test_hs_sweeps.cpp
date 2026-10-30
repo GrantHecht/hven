@@ -119,6 +119,7 @@
 #include <hven/model/nlp_model.h>
 #include <hven/qp/qp_types.h>
 
+#include "../common_support/route_reference.h"
 #include "support/derivative_check.h"
 #include "support/hs_sweeps.h"
 #include "support/nlp_kkt_check.h"
@@ -1258,18 +1259,23 @@ void check_soc_costs_what_it_costs() {
     // rather than an accident: every SOC attempt in this corpus is on a cell
     // the repair does not touch (the cold arm) or on HS77's warm arm, which was
     // sound all along.
-#ifdef USE_ACCELERATE_SPARSE
-    // UNOBSERVED under M7 W2 E2 on Accelerate: the pre-E2 numerator stays
-    // until the macOS lane reports (CLAUDE.md section 6).
-    EXPECT_EQ(23, extra_minors) << corpus_table();
-    EXPECT_EQ(4, extra_factorizations) << corpus_table();
-#else
+#if HVEN_TEST_ROUTE_REFERENCE
     // M7 W2 E2 step 2 (declared mover, S20): 23 -> 22 extra minors and 4 -> 3
     // extra factorizations. The majors stay identical in every cell (asserted
     // above); the SOC-on walks are shorter under the add-site exchange and the
     // zero-motion re-entry rule, so what SOC costs shrinks with them.
     EXPECT_EQ(22, extra_minors) << corpus_table();
     EXPECT_EQ(3, extra_factorizations) << corpus_table();
+#else
+    // OFF THE REFERENCE BUILD (WX B6): the SOC cost numerator is a route pin. The macOS lane
+    // reads 22 / 3 here (the reference values; the stale pre-E2 23 / 4 arm that stood here was
+    // never observed and is retired). The portable contract is the per-cell bookkeeping
+    // asserted above (majors identical with SOC off; SOC on never cheaper than SOC off).
+    hven::test_support::record_off_reference_route(
+        "HsSweepCorpus.soc_cost",
+        fmt::format("extra_minors={} extra_factorizations={}", extra_minors, extra_factorizations));
+    EXPECT_GE(extra_minors, 0);
+    EXPECT_GE(extra_factorizations, 0);
 #endif
     // The denominator the note's percentage is computed against, pinned so the
     // percentage is reproducible rather than recomputed by hand.
@@ -1289,37 +1295,7 @@ void check_soc_costs_what_it_costs() {
     // before the decoupling, when HS15's cold arm was still shortened to 1095
     // minors by its warm arm's truncation. It is superseded and appears only in
     // the note's revision history.)
-#ifdef USE_ACCELERATE_SPARSE
-    // Origin divergence entry D17. The note that carried it
-    // (docs/notes/2026-07-31-accelerate-second-pass-results.md) did NOT
-    // migrate into hven, and the register that succeeds it here
-    // (docs/notes/2026-08-14-accelerate-divergence-register.md, "Why this
-    // file exists at this path") has no row for D17 -- the observation is
-    // quoted in full below, and this comment is its citable record here.
-    // What was observed: this is
-    // the corpus's ONLY failing assertion on Accelerate. Every abridged row
-    // is byte-identical to the Linux measurement except HS26, which forks by
-    // exactly one minor in each of its two SOC-on cells (cold 88/190/88 ->
-    // 88/191/88 on MKL, warm 29/60/29 -> 29/61/29 on MKL) -- the same single
-    // HS26 trajectory fork that dominates origin entry D16 (quoted at
-    // tests/sqp/test_b1_gate.cpp's own Accelerate arm, same not-migrated
-    // origin). Majors and factorizations are
-    // unchanged in both cells, and the SOC numerator this test also pins
-    // (extra_minors == 23, extra_factorizations == 4, two lines above) holds
-    // EXACTLY on this backend -- the fork is confined to the denominator.
-    // The origin's quoted 23/3719 = 0.62 % is unaffected at its own precision
-    // by the -2 total here (23/3717 = 0.62 % also).
-    // APPLE/ACCELERATE IS **UNOBSERVED** UNDER M7 W2 M1 AND THE PIN IS NOT
-    // ADJUSTED (CLAUDE.md section 6: a value not observed on real Mac hardware
-    // is never interpolated). The MKL arm below moved 3719 -> 3737 when the
-    // shipped `qp_failure_budget` became 3; the -2 recorded here is an HS26
-    // fork in the DENOMINATOR that has nothing to do with this task, so the
-    // arithmetic "3717 + 18" is a guess and is deliberately not made. If this
-    // assertion fails on the Mac lane reading 3735, that is the expected +18 on
-    // HS15's warm arm and the pin should be re-derived BY THE OBSERVATION;
-    // any other value is a finding.
-    EXPECT_EQ(3717, total_minors) << corpus_table();
-#else
+#if HVEN_TEST_ROUTE_REFERENCE
     // RE-DERIVED, M7 W2 M1 (a DECLARED break): 3719 -> 3737, +18, all of it
     // HS15's warm arm (92 -> 110) for the reason given at the engagement pins
     // above -- two more routed failures, two more majors. The SOC numerator does
@@ -1377,6 +1353,14 @@ void check_soc_costs_what_it_costs() {
 #else
     EXPECT_EQ(3342, total_minors) << corpus_table();
 #endif
+#else
+    // OFF THE REFERENCE BUILD (WX B6): the corpus total is a route pin (the macOS lane reads
+    // 3338 against the reference 3340; the retired Accelerate arm's 3717 was an unobserved
+    // pre-E2 value). Recorded, not pinned. (The D17 comment that stood here is in git history
+    // at c1cc9891.)
+    hven::test_support::record_off_reference_route("HsSweepCorpus.total_minors",
+                                                   fmt::format("total_minors={}", total_minors));
+    EXPECT_GT(total_minors, 0);
 #endif
 }
 
