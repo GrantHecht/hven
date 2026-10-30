@@ -11555,33 +11555,59 @@ TEST(SqpDriverCertifiedFallback, T7TheEscapeBranchTernaryCONSUMESAnAttachedRepor
     EXPECT_TRUE(sol.infeasibility_certified);
     EXPECT_EQ(sol.counters.restoration_iters, 1);
 #else
-    // Off the reference build the number of fallback entries, the escape count and the
-    // trajectory (3 entries / 3 majors) are a route (macOS read 2 entries): recorded, not pinned.
-    // PORTABLE: the claim the name makes is that the ternary CONSUMES the attached report rather
-    // than re-running the ladder, and that is a bookkeeping identity, route-free -- every FIRED
-    // entry (not the unfired one) charges exactly one ladder activation, so a re-run inside the
-    // ternary would break it on any route. The verdict of an inconsistent fixture is never
-    // kOptimal and a kInfeasible carries its certificate.
+    // Off the reference build the number of fallback entries, their verdicts, the escape count
+    // and the trajectory (3 entries / 3 majors) are a route: recorded, not pinned. macOS read 2
+    // entries, BOTH kUnfired, with 2 activations.
+    //
+    // ACTIVATIONS == FIRED ENTRIES IS THE REFERENCE ROUTE'S, NOT A PORTABLE IDENTITY: an UNFIRED
+    // entry runs one cold walk (certified_feasibility_fallback), and when that walk returns
+    // kInfeasible the driver's elastic branch -- with no report attached -- runs W1's ladder and
+    // charges a WALK-ROUTE activation, as SqpCounters documents (elastic_activations ==
+    // <walk-route> + elastic_from_ipqp_escape). Reproduced on MKL: this fixture at s = 3e7 reads
+    // the macOS shape exactly (2 unfired entries, 2 activations, 0 escapes). The consumption
+    // claim is therefore pinned on the reference arm, where the walk route raises none.
+    std::string verdicts;
+    for (const SqpFallbackVerdictTraceEvent &e : sink.fallbacks) {
+        verdicts += fmt::format("{}{}", verdicts.empty() ? "" : ",", static_cast<int>(e.verdict));
+    }
     hven::test_support::record_off_reference_route(
         "escape_ternary",
-        fmt::format("fallbacks={} escapes={} activations={} rung_b={} floor_retries={} majors={} "
-                    "restoration_iters={} status={}",
-                    sink.fallbacks.size(), sol.counters.elastic_from_ipqp_escape,
-                    sol.counters.elastic_activations, sol.counters.ipqp_fallback_rung_b,
-                    sol.counters.elastic_floor_retries, sol.counters.major_iters,
-                    sol.counters.restoration_iters, static_cast<int>(sol.status)));
+        fmt::format("fallbacks={} verdicts=[{}] fired={} escapes={} activations={} rung_b={} "
+                    "floor_retries={} majors={} restoration_iters={} status={}",
+                    sink.fallbacks.size(), verdicts,
+                    static_cast<Index>(sink.fallbacks.size()) -
+                        w2t7_count(sink.fallbacks, SqpFallbackVerdict::kUnfired),
+                    sol.counters.elastic_from_ipqp_escape, sol.counters.elastic_activations,
+                    sol.counters.ipqp_fallback_rung_b, sol.counters.elastic_floor_retries,
+                    sol.counters.major_iters, sol.counters.restoration_iters,
+                    static_cast<int>(sol.status)));
     ASSERT_GE(sink.fallbacks.size(), 1u);
-    EXPECT_EQ(sink.fallbacks.back().verdict, SqpFallbackVerdict::kExhausted);
-    EXPECT_EQ(sol.counters.elastic_activations,
-              static_cast<Index>(sink.fallbacks.size()) -
-                  w2t7_count(sink.fallbacks, SqpFallbackVerdict::kUnfired))
-        << "one activation per FIRED entry: a re-run inside the ternary would read more";
     EXPECT_EQ(sol.counters.ipqp_suspicion_disproved, 0);
     EXPECT_NE(sol.status, SolveStatus::kOptimal) << "the fixture is infeasible";
     if (sol.status == SolveStatus::kInfeasible) {
         EXPECT_TRUE(sol.infeasibility_certified);
     }
 #endif
+
+    // PORTABLE, BOTH ARMS: the fallback's own bookkeeping against its own trace events, route-free
+    // because certified_feasibility_fallback is the only writer of each side (restoration runs at
+    // kWalk and folds zeros). Every FIRED entry charges one escape activation plus its floor
+    // retry; the sink's arms match their counters; and the escape route is a SUBSET of all
+    // activations -- the walk route makes up the rest.
+    Index floor_retry_events = 0;
+    for (const SqpFallbackVerdictTraceEvent &e : sink.fallbacks) {
+        floor_retry_events += e.floor_retry ? 1 : 0;
+    }
+    EXPECT_EQ(sol.counters.elastic_from_ipqp_escape - sol.counters.elastic_floor_retries,
+              static_cast<Index>(sink.fallbacks.size()) -
+                  w2t7_count(sink.fallbacks, SqpFallbackVerdict::kUnfired))
+        << "one escape activation per FIRED entry, plus its floor retry";
+    EXPECT_EQ(sol.counters.elastic_floor_retries, floor_retry_events);
+    EXPECT_EQ(sol.counters.ipqp_suspicion_disproved,
+              w2t7_count(sink.fallbacks, SqpFallbackVerdict::kDisproved));
+    EXPECT_EQ(sol.counters.ipqp_fallback_rung_b,
+              w2t7_count(sink.fallbacks, SqpFallbackVerdict::kRungB));
+    EXPECT_GE(sol.counters.elastic_activations, sol.counters.elastic_from_ipqp_escape);
 }
 
 TEST(SqpDriverCertifiedFallback, T7TheCeilingFlagsTRUEArmOnADriverRowIsThePricedOne) {
