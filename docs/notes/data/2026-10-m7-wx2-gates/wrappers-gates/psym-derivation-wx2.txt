@@ -1,0 +1,72 @@
+M7 WX2 GATES -- THE DERIVATION  (range fcd2574f..aaa95642 on branch m7; BEFORE fcd2574f = the WX gates record, code-identical to 65c3a24b)
+=============================================================================================================================================
+Everything below is DERIVED from the range (git) or MEASURED on the final pair fcd2574f / aaa95642 by rehearsal/ (run at temporary docs-only commits above aaa95642,
+reset before the declaration commit). Nothing is carried from the WX declaration; the runner derives its lists from its own BEFORE..HEAD.
+
+1  THE RANGE.
+   9 commits, 40 files (git diff --stat fcd2574f..aaa95642):
+     7dd4740f  WX-R10  ci.yml, docs/ci.md (no code)
+     bf90ac82, c1cc9891, 564e836d, 4cc67c2b, 97d87a6c  WX B5 / T7 / B6 / B7: test sources only (route pins made reference-only with portable arms; RecordProperty)
+     869bdcf2  WX-R13  tests/CMakeLists.txt (a 45-line block: the configure-time MKL dispatch probe, try_run of the ADDED tests/common_support/mkl_dispatch_probe.cpp;
+               the ADDED header mkl_dispatch_signature.h; route_reference.h now requires HVEN_TEST_REFERENCE_DISPATCH, which the block defines on every test target)
+     5c404b75  CF-1     clang-format sweep, FORMAT-ONLY, 22 files: 14 headers (include/hven/detail/globalization x10, interior x4), src/interior/utils/get_core_count.cpp,
+               src/model/non_linear_program.cpp (one blank line removed each), tests/interior x6
+     aaa95642  CF-1-R1 top-level CMakeLists.txt: target_compile_definitions(hven_dep_eigen INTERFACE EIGEN_MAX_ALIGN_BYTES=${HVEN_EIGEN_MAX_ALIGN_BYTES})
+   CHANGED HEADERS (include/): the 14 CF-1 headers. CHANGED src/ .cpp: the 2 CF-1 files. ADDED .cpp: ONE, tests/common_support/mkl_dispatch_probe.cpp, compiled only by try_run (no object
+   in any build tree; structural addition W2-S1). ADDED non-.cpp test file: tests/common_support/mkl_dispatch_signature.h. MODIFIED .cpp: 18 = 2 src + 6 tests/interior + 6 hven_sqp_tests
+   (test_crossover_legs, test_hs_sweeps, test_qp_lift_oracle, test_sqp_equality_basis, test_sqp_restoration, test_sqp_solver) INSIDE the P-SYM universe (14) and 4 OUTSIDE it:
+   tests/qp/test_qp_flat_face_saddle.cpp, test_qp_rank_repair.cpp, test_route_reference.cpp (hven_qp_walk_seam_tests) and tests/sqp/test_sqp_equality_basis_seams.cpp (hven_sqp_seam_tests).
+   tests/sqp/CMakeLists.txt and src/CMakeLists.txt: no change. tests/CMakeLists.txt: exactly the WX-R13 block (W2-S3). No library behaviour, test name, test count or bench output can move
+   except through the tests the range edits; the claim under test is IDENTITY on the U0 replay and E1, and COUNT/NAME identity of the suites.
+
+2  G5 P-SYM, MEASURED (rehearsal/rehearsal-wx2-{classification,sections,compare}-*.txt; second pass rehearsal-wx2-log.txt: G5_ASSERT_RC 0 with the measured shape as the declaration).
+   RELEASE: 163 objects, 154 byte-identical, 7 NOISE-ONLY, 2 DIFFERS.   DEBUG: 163 objects, 142 byte-identical, 18 NOISE-ONLY, 2 DIFFERS.
+   DIFFERING = CLASS A in both configurations: tests/sqp test_qp_lift_oracle.cpp.o and test_sqp_solver.cpp.o (modified sources whose edits change instructions). CLASS B = 0 (no includer of a
+   changed header moved beyond __LINE__-class noise). UNEXPLAINED 0.
+   The 14 in-universe MODIFIED sources account as follows (declared BY NAME; the arithmetic is checked before any leg):
+     2   class A movers (above), both configurations;
+     4   NOISE-ONLY in both configurations (hven_sqp_tests test_crossover_legs, test_hs_sweeps, test_sqp_equality_basis, test_sqp_restoration);
+     2   LIBRARY sources get_core_count.cpp, non_linear_program.cpp: byte-IDENTICAL in Release (declared IDENTICAL, cmp-proven on the saved objects), NOISE-ONLY in Debug (and a DEBUG-ONLY
+         section difference: they are not non-debug movers);
+     6   tests/interior sources in a UNITY build (UNITY_BUILD ON, batch 8): no object of their own. Their unity objects are byte-identical in Release and NOISE-ONLY in Debug (4 objects).
+         Declared as EXPECT_CLASS_A_UNITY_SRCS and proven against the generated unity files (W2-S6).
+   NOISE-ONLY objects of UNMODIFIED sources (not counted as differing): Release 3 (bench_corpus, bench_crossover, ipqp_e1_arm: the per-arm commit stamp and changed-header line shifts);
+   Debug 8 (3 bench, drivers test_concurrency, library ipm_solver, ipm_solver_globalization, memory_management, thread_pool: includers of changed headers, DEBUG-ONLY section differences).
+   NON-DEBUG MOVERS (check_sections): Release 0, Debug 0 (DEBUG_ONLY Release 0 / Debug 6: ipm_solver, ipm_solver_globalization, get_core_count, memory_management, thread_pool,
+   non_linear_program). DECLARED: none. The 48 library objects of each configuration: Release 48 byte-identical; Debug 42 byte-identical + 6 debug-info-only.
+   Declared: Release DIFFERING 2 = A 2 + B 0; Debug DIFFERING 2 = A 2 + B 0; NOISE-ONLY / IDENTICAL / UNITY slots as in gates-wx2.sh; EXPECT_DEBUG_ONLY 0 / 6.
+
+3  THE OBJECT CENSUS (W2-S7) -- what P-SYM cannot see.  CF-1-R1's define reaches every TU that includes Eigen without linking hven::hven (golden rig support, the fault-injection / IPQP / QP-walk /
+   SQP seam executables, whose objects the runner deliberately keeps out of the P-SYM manifest). rehearsal/rehearsal-wx2-census-{Release,Debug}.txt: 277 objects per configuration, 216 with a
+   compile-command delta, 50 of them gaining -DEIGEN_MAX_ALIGN_BYTES=32 (EIGEN_DELTA 50 / 50). The rest of the delta is -DHVEN_TEST_REFERENCE_DISPATCH=0|1 (WX-R13) and the per-arm commit stamp.
+   RELEASE: 14 objects differ (9 inside the P-SYM universe -- exactly the 2 + 7 above -- and 5 outside: 4 modified sources of the seam targets and golden-rig support trace_support, the commit
+   stamp); the 50 define-delta objects: 46 byte-identical, 4 differ and every one of those 4 is explained by a modified source or the stamp. C_PURE_DIFFERING 0 = the define alone changes NO
+   Release byte (as CF-1-R1 showed on three TUs; here on all 50).
+   DEBUG: 71 objects differ (20 in the universe -- exactly the 2 + 18 above -- and 51 outside). The 50 define-delta objects: 6 byte-identical, 44 differ: 36 carry the define and NOTHING else
+   (C_PURE_DIFFERING 36: the Eigen allocator variant the Debug-only auto alignment of 16 used to select), 8 are also explained by a modified source / changed header / stamp. UNEXPLAINED 0 in both.
+   Classes: M modified source (or unity constituent); C define delta; B after-arm dependency log names a changed header; S commit stamp. The census refuses: differing object sets between the
+   arms; any removed token; any added token outside {the define, the dispatch define, a stamp that is each arm's own commit}; a differing object with no class; counts that are not the declared.
+
+4  TEST COUNTS (derived against the by-name baseline = the WX gates record fcd2574f).
+   BASELINE: ctest total Debug 3231 / Release 3232; started names 3233 / 3234. Skipped Debug 7 / Release 1.
+   ADDED = 0, REMOVED = 0, RE-DECLARED = 0, OBSERVED with git diff fcd2574f aaa95642 over tests/*.cpp: no added and no removed TEST / TEST_F / TEST_P line (the runner checks the empty list
+   against git: W2-S2). One GTEST_SKIP message reworded (route_reference.h's off-reference skip text), no GTEST_SKIP added. This box is the REFERENCE build (WX-R13's probe), so the skipped
+   sets equal the baseline's. EXPECTED: Debug 3231 (G1, the long test excluded); Release 3232 (G3); G2 1. The rehearsal build's ctest -N lists 3234 tests
+   (rehearsal/ctest-N-startfmt-derived.txt: sed -nE 's/^ +Test +#([0-9]+): (.*)$/      Start \1: \2/p' of the listing, the two " (Disabled)" suffixes stripped as the baseline's derivation does); it passes the runner's by-name check in Release and Debug shape.
+
+5  G4: 27 cells x 75 columns x 3 engines, plus E1 OFF.
+   MEASURED by the rehearsal's offline leg (rehearsal/rehearsal-wx2-offline-log.txt, rehearsal-wx2-g4-comparison.txt; a fresh Release build of aaa95642's sources, MKL_NUM_THREADS=1, taskset -c 2):
+   vs the M6 close pin, GATED (1e-5 relative, 1e-13 floor): walk 17, ssn 13, ipm 13 = 43; the measured set EQUALS the declared 43-entry list (runner --check-g4, rc 0: preflight B).
+   EXACT arm vs the WX gates record's replay: walk 0, ssn 0, ipm 0 differences (DECLARED and ASSERTED rc 0 per engine). E1 OFF (hven_sqp_ipqp_e1_arm --gate): rc 0, 29 cells x 69 columns
+   (wall_s excluded), 0 differences vs the WX record's e1-off.csv, no column added or dropped (DECLARED the same and ASSERTED).
+
+6  G6: expected CLEAN: install smoke; export contract (align 32 from this build's configure log); clang-format over the DERIVED set (35 files: the CF-1 22 + the range's other touched .cpp / .h);
+   git diff --check; DIRTY_FILES 0. WX-R13: every HEAD-tree configure confirms `-> REFERENCE (route pins asserted)` (W2-S4). Fold proofs: the count the gate-assert library produces, reported as observed.
+
+7  PRE-FLIGHT: preflight-wx2.txt (generated by preflight-wx2.sh), committed WITH this file and BEFORE the chain was detached.
+   A full pre-flight PREFLIGHT_OK; B / B1 --check-g4 rc 0 (+ B2 the exact arm's teeth); C by-name reader (+ falsifiers); D skipped sets; E1-E12 falsifiers (E5 / E5b adapted: the ADDED list is
+   empty and checked against git); B3 the E1 comparator's teeth; F classifier byte-identical to the WX record's; W1-W8 the structural additions' falsifiers; W7 the dispatch / probe helpers on
+   fabricated logs; G the post-G5 block proven offline on the rehearsal's own data (check-class-a-wx2.sh: H1 pass, H2-H6 falsifiers refused; census C5 pass, C1-C4 falsifiers refused).
+
+8  G5 CHECKS THE WORKTREE OUT TO BEFORE while it builds its before arm, once per configuration: nothing may edit or commit in this worktree from the chain's launch until CHAIN_END.
+   WALL IS INFORMATIONAL.

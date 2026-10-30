@@ -1,0 +1,67 @@
+HEADER DERIVATION
+  repo : /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt
+  base : fcd2574f -> fcd2574fdf33071e7e86e82266a582aa684af760
+  head : 238307254da655cef294505f39ce310f3c57403b -> 238307254da655cef294505f39ce310f3c57403b
+  cmd  : git -C /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt diff --name-only fcd2574f..238307254da655cef294505f39ce310f3c57403b -- include/
+  list : ['include/hven/detail/globalization/acceptance_strategy.h', 'include/hven/detail/globalization/filter_acceptance.h', 'include/hven/detail/globalization/globalization_mechanism.h', 'include/hven/detail/globalization/modern_merit.h', 'include/hven/detail/globalization/monitored_governor.h', 'include/hven/detail/globalization/proximal_restoration.h', 'include/hven/detail/globalization/restoration.h', 'include/hven/detail/globalization/soc.h', 'include/hven/detail/globalization/switching_acceptance.h', 'include/hven/detail/globalization/watchdog.h', 'include/hven/detail/interior/sizing_specs.h', 'include/hven/detail/interior/typedefs/super_scalar_traits.h', 'include/hven/detail/interior/utils/memory_management.h', 'include/hven/detail/interior/utils/thread_pool.h']
+HEADER LIST ACCEPTED: ['include/hven/detail/globalization/acceptance_strategy.h', 'include/hven/detail/globalization/filter_acceptance.h', 'include/hven/detail/globalization/globalization_mechanism.h', 'include/hven/detail/globalization/modern_merit.h', 'include/hven/detail/globalization/monitored_governor.h', 'include/hven/detail/globalization/proximal_restoration.h', 'include/hven/detail/globalization/restoration.h', 'include/hven/detail/globalization/soc.h', 'include/hven/detail/globalization/switching_acceptance.h', 'include/hven/detail/globalization/watchdog.h', 'include/hven/detail/interior/sizing_specs.h', 'include/hven/detail/interior/typedefs/super_scalar_traits.h', 'include/hven/detail/interior/utils/memory_management.h', 'include/hven/detail/interior/utils/thread_pool.h']
+P-SYM: FAIL — differences outside the accepted noise class
+DIFFERING OBJECTS: 2
+  class A -- SOURCE CHANGED by this task: 2
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_lift_oracle.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+  class B -- INCLUDERS of a changed header, source untouched: 0
+  UNEXPLAINED: 0
+
+  NOISE-ONLY -- objects whose BYTES DIFFER and whose every disassembly difference P-SYM classified as __LINE__-class noise: 18 (6 of them in the PRODUCTION LIBRARY, 17 explained by this round's changed source or header)
+      LIB   CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+      LIB   CMakeFiles/hven.dir/src/drivers/ipm_solver_globalization.cpp.o
+      LIB   CMakeFiles/hven.dir/src/interior/utils/get_core_count.cpp.o
+      LIB   CMakeFiles/hven.dir/src/interior/utils/memory_management.cpp.o
+      LIB   CMakeFiles/hven.dir/src/interior/utils/thread_pool.cpp.o
+      LIB   CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o
+      test  bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+      test  bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+      test  bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+      test  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_concurrency.cpp.o
+      test  tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_0_cxx.cxx.o
+      test  tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o
+      test  tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_2_cxx.cxx.o
+      test  tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_3_cxx.cxx.o
+      test  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o
+      test  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_sweeps.cpp.o
+      test  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_equality_basis.cpp.o
+      test  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o
+
+  NEGATIVE CONTROL -- objects that ALSO include one of those headers and are BYTE-IDENTICAL (neither a mover nor NOISE-ONLY): 31
+      CMakeFiles/hven.dir/src/drivers/ipm_options.cpp.o
+      CMakeFiles/hven.dir/src/model/assembly_declaration.cpp.o
+      CMakeFiles/hven.dir/src/model/nlp_adapter.cpp.o
+      CMakeFiles/hven.dir/src/model/nlp_problem_model.cpp.o
+      CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o
+      bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o
+      tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/qp/ipqp_engine.cpp.o
+      tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/ipm_options.cpp.o
+      tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/ipm_solver.cpp.o
+      tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/ipm_solver_globalization.cpp.o
+      tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/interior/utils/memory_management.cpp.o
+      tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/interior/utils/thread_pool.cpp.o
+      tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/model/assembly_declaration.cpp.o
+      tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/model/nlp_adapter.cpp.o
+      tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/model/nlp_problem_model.cpp.o
+      tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/model/non_linear_program.cpp.o
+      tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/qp/ipqp_engine.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options_dump.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_result.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_warm_protocol.cpp.o
+      tests/model/CMakeFiles/hven_model_tests.dir/test_aggregate_contract.cpp.o
+      tests/model/CMakeFiles/hven_model_tests.dir/test_claim_stream_restatement.cpp.o
+      tests/model/CMakeFiles/hven_model_tests.dir/test_claim_stream_state.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/__/bench/ipm_corpus_leg.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_assembly_eval_seam.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_corpus_cells.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_math.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_problem_scaling.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_warm_currency.cpp.o
