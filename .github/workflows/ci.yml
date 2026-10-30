@@ -613,7 +613,24 @@ jobs:
         # this repo needs (MKL devel + the OpenMP runtime) from it via the
         # embedded bootstrapper's --components= flag, but the download cost
         # is paid regardless of how few components are selected.
+        #
+        # WX-R10: run 40925068485 hung this step for the whole 6 h job timeout. A
+        # healthy cold install takes ~26 min (runs 40861914857, 40868557422,
+        # 40905599627: 25.6 / 26.9 / 26.5 min), so each attempt is capped at 50
+        # minutes and a hung or failed first attempt is retried once, by a second
+        # step (a step's timeout-minutes covers the whole step, so the retry has to
+        # be its own step). The retry is bounded: the job fails after the second
+        # attempt rather than hanging.
+        id: install-mkl-1
         if: steps.cache-oneapi-mkl.outputs.cache-hit != 'true'
+        timeout-minutes: 50
+        continue-on-error: true
+        shell: cmd
+        run: scripts\install_windows_mkl.bat
+
+      - name: Install Intel MKL (retry after a failed or timed-out first attempt)
+        if: steps.cache-oneapi-mkl.outputs.cache-hit != 'true' && steps.install-mkl-1.outcome != 'success'
+        timeout-minutes: 50
         shell: cmd
         run: scripts\install_windows_mkl.bat
 
