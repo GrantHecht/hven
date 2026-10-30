@@ -25,7 +25,21 @@ Runs on `ubuntu-latest`. Steps:
    hardcoded fallback paths for libiomp5's directory (the piece most prone
    to moving between oneAPI package layouts). MKLROOT itself still assumes
    the mkl/latest symlink apt creates.
-4. Configure with the `linux-clang-release` CMake preset.
+4. Configure with the `linux-clang-release` CMake preset. Configure also
+   decides whether this runner is the **reference build** for the exact route
+   pins (`docs/testing.md` "The reference build"): `tests/CMakeLists.txt`
+   probes the runner's MKL dispatch (CPU vendor, AVX2 / FMA / AVX-512F,
+   `mkl_cbwr_get_auto_branch()`), and only the derivation box's signature
+   compiles the pinned arms; any other runner compiles the portable arms. The
+   hosted pool mixes CPU models, so this is per-run: run 40985070468 passed on
+   one runner and moved 39 route cells on an AVX-512 one, same commit and
+   image (WX-R13). A run that lands off-reference is green on the portable
+   contract, not a pin check.
+   Then "Runner CPU and MKL dispatch" prints `lscpu` and
+   `build/tests/hven_mkl_dispatch.txt` (the signature and the verdict) every
+   run, so a lane result is always readable against its hardware. The
+   coverage lane prints `lscpu` the same way, and its configure output carries
+   the verdict.
 5. Build (`cmake --build build`).
 6. Test (`ctest --test-dir build --output-on-failure`).
 7. Accelerate backend syntax check, stubbed

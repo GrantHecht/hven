@@ -1370,10 +1370,28 @@ written at all):
 **The reference build, for route pins** (M7 WX; register M3-8, M3-9, W-1). An
 exact *route* pin -- minors, factorizations, `dep_*` / certificate / saddle /
 latch counters, the status of a capped or knife-edge fixture -- is a statement
-about one build: Linux, x86-64, clang, MKL Pardiso at its AUTO dispatch.
-`tests/common_support/route_reference.h` defines `HVEN_TEST_ROUTE_REFERENCE`
-(1 on that build, 0 elsewhere, derived from `__linux__`, `__x86_64__`,
-`__clang__` and the absence of `USE_ACCELERATE_SPARSE`). The arm shape is
+about one build: Linux, x86-64, clang, MKL Pardiso at its AUTO dispatch **on
+the derivation box's CPU**. `tests/common_support/route_reference.h` defines
+`HVEN_TEST_ROUTE_REFERENCE` (1 on that build, 0 elsewhere, derived from
+`__linux__`, `__x86_64__`, `__clang__`, the absence of `USE_ACCELERATE_SPARSE`,
+and `HVEN_TEST_REFERENCE_DISPATCH`). The last is decided at configure time, on
+the host that builds the tests: `tests/CMakeLists.txt` `try_run`s
+`tests/common_support/mkl_dispatch_probe.cpp`, which reads the CPU vendor, its
+AVX2 / FMA / AVX-512F bits and `mkl_cbwr_get_auto_branch()` and matches them
+against the box's signature (`mkl_dispatch_signature.h`: `AuthenticAMD`, AVX2,
+FMA, no AVX-512F, auto branch `MKL_CBWR_AUTO` -- MKL names no concrete CNR
+branch for that CPU). Only a match is the reference; a probe that fails to
+compile or run is off-reference; an unobserved dispatch stays off-reference
+until a measurement admits it. The rule exists because MKL picks its kernels
+per CPU: CI run 40985070468 passed attempt 1 and failed 39 route cells on
+attempt 2 with the same commit, image and `x86-64-v3` binary, on a runner whose
+native compile reported AVX-512/AVX10.1 (WX-R13). Configure prints the
+verdict (`hven tests: MKL dispatch ... -> REFERENCE` / `OFF-REFERENCE`) and
+writes it to `<build>/tests/hven_mkl_dispatch.txt`;
+`-DHVEN_TEST_ROUTE_REFERENCE_DISPATCH=OFF` forces the portable arms on any host
+(the local proof that they compile and pass). `route_reference.h` refuses to
+compile without the definition, so no test target can default to the
+reference. The arm shape is
 `#if HVEN_TEST_ROUTE_REFERENCE` -- the pin, **verbatim** -- `#else`
 `record_off_reference_route(key, observed)` plus the fixture's portable
 contract (status in its honest set, the KKT battery if kOptimal, the oracle
@@ -1384,7 +1402,9 @@ a route counter inherits the float nondeterminism that chose the route (M3-8).
 A lane-observed counter arm outside the class needs three agreeing lane runs.
 `RouteReference.TheReferenceBuildRunsAtMklsAutoDispatch` fails a reference
 build run with `MKL_CBWR` set, since a forced CBWR branch invalidates every
-route pin. Reviewers diff the reference arm against its pre-conversion text;
+route pin, and fails a reference binary run on a host whose dispatch signature
+is not the box's (a build carried from the box to another machine); on every
+build it records the observed signature as the `mkl_dispatch` gtest property. Reviewers diff the reference arm against its pre-conversion text;
 zero changed lines inside `#if HVEN_TEST_ROUTE_REFERENCE`. Design:
 `docs/notes/2026-10-m7-wx-ci-design.md`.
 

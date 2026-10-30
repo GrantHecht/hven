@@ -59,6 +59,11 @@ jobs:
           echo "ONEAPI_ROOT=/opt/intel/oneapi" >> "$GITHUB_ENV"
           echo "MKLROOT=/opt/intel/oneapi/mkl/latest" >> "$GITHUB_ENV"
 
+      - name: Runner CPU
+        # WX-R13: see linux-clang-release's "Runner CPU and MKL dispatch". The
+        # probe's verdict prints in the script's configure output.
+        run: lscpu
+
       - name: Coverage build, suite, and report
         # The script owns the whole path (configure/build/ctest/report) so
         # CI and local runs cannot drift. Instrumented Debug is slow and
@@ -148,6 +153,19 @@ jobs:
       # lane-vs-local pin divergence a stable, re-derivable finding.
       - name: Configure
         run: cmake --preset linux-clang-release -DHVEN_SIMD_ARCH=x86-64-v3
+
+      # WX-R13: the hosted pool mixes CPU models and MKL picks its kernels per
+      # CPU, so the exact route pins hold only where tests/CMakeLists.txt's
+      # configure-time probe found the derivation box's MKL dispatch (run
+      # 40985070468: the same commit and image passed on one runner and moved 39
+      # route cells on an AVX-512 one). The probe decides the arm; this step
+      # prints, every run, the CPU and the probe's verdict (vendor, AVX2/FMA/
+      # AVX-512F, mkl_cbwr_get_auto_branch, REFERENCE or not), so every lane
+      # result can be read against the hardware that produced it.
+      - name: Runner CPU and MKL dispatch
+        run: |
+          lscpu
+          cat build/tests/hven_mkl_dispatch.txt
 
       # `id` so the post-Test steps below can condition on THIS step rather
       # than on the default "nothing has failed yet" (M3 gate B, replicated

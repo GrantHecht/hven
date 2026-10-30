@@ -104,6 +104,64 @@ if(WIN32)
     set(HVEN_GTEST_DISCOVERY_MODE PRE_TEST)
 endif()
 
+# The reference dispatch for exact route pins (tests/common_support/route_reference.h;
+# docs/testing.md "The reference build"; WX-R13). The pins were measured at ONE MKL dispatch --
+# the derivation box's -- and a Linux x86-64 clang MKL build on any other CPU is a different
+# build in fact (CI run 40985070468: the same commit and image went 0 -> 39 route failures on
+# an AVX-512 runner). So the build decides it by probing the host it configures on:
+# tests/common_support/mkl_dispatch_probe.cpp prints the CPU vendor / AVX2 / FMA / AVX-512F bits
+# and mkl_cbwr_get_auto_branch(), and exits 0 only on the reference signature. Every test target
+# below sees HVEN_TEST_REFERENCE_DISPATCH=0|1 (route_reference.h refuses to compile without
+# it). A probe that cannot compile or run is off-reference. OFF forces the portable arms (the
+# local proof that a non-matching host compiles and passes them). The sentinel
+# RouteReference.TheReferenceBuildRunsAtMklsAutoDispatch re-checks the signature at run time,
+# so a reference binary carried to another host fails one readable test.
+set(HVEN_TEST_ROUTE_REFERENCE_DISPATCH "AUTO" CACHE STRING
+    "Route-pin reference dispatch: AUTO probes the configuring host's MKL dispatch; OFF forces the off-reference (portable) arms")
+set_property(CACHE HVEN_TEST_ROUTE_REFERENCE_DISPATCH PROPERTY STRINGS AUTO OFF)
+set(_hven_reference_dispatch 0)
+set(_hven_dispatch_signature "not probed")
+if(HVEN_TEST_ROUTE_REFERENCE_DISPATCH STREQUAL "OFF")
+    set(_hven_dispatch_signature "forced OFF by HVEN_TEST_ROUTE_REFERENCE_DISPATCH")
+elseif(NOT HVEN_TEST_ROUTE_REFERENCE_DISPATCH STREQUAL "AUTO")
+    message(FATAL_ERROR "HVEN_TEST_ROUTE_REFERENCE_DISPATCH must be AUTO or OFF, got "
+        "'${HVEN_TEST_ROUTE_REFERENCE_DISPATCH}'")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64)$"
+       AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND NOT APPLE AND MKL_FOUND
+       AND NOT CMAKE_CROSSCOMPILING)
+    unset(_hven_dispatch_run CACHE)
+    unset(_hven_dispatch_compile CACHE)
+    try_run(_hven_dispatch_run _hven_dispatch_compile
+        "${CMAKE_CURRENT_BINARY_DIR}/mkl_dispatch_probe"
+        "${CMAKE_CURRENT_SOURCE_DIR}/common_support/mkl_dispatch_probe.cpp"
+        CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${INCLUDE_DIRS}"
+        LINK_LIBRARIES ${LINK_LIBS}
+        CXX_STANDARD 20
+        COMPILE_OUTPUT_VARIABLE _hven_dispatch_compile_out
+        RUN_OUTPUT_VARIABLE _hven_dispatch_run_out)
+    string(STRIP "${_hven_dispatch_run_out}" _hven_dispatch_run_out)
+    if(NOT _hven_dispatch_compile)
+        set(_hven_dispatch_signature "probe did not compile")
+        message(WARNING "hven tests: the MKL dispatch probe did not compile, so this build is "
+            "off-reference:\n${_hven_dispatch_compile_out}")
+    elseif(_hven_dispatch_run STREQUAL "0")
+        set(_hven_reference_dispatch 1)
+        set(_hven_dispatch_signature "${_hven_dispatch_run_out}")
+    else()
+        set(_hven_dispatch_signature "${_hven_dispatch_run_out} (exit ${_hven_dispatch_run})")
+    endif()
+else()
+    set(_hven_dispatch_signature "not Linux x86-64 clang MKL")
+endif()
+if(_hven_reference_dispatch)
+    message(STATUS "hven tests: MKL dispatch ${_hven_dispatch_signature} -> REFERENCE (route pins asserted)")
+else()
+    message(STATUS "hven tests: MKL dispatch ${_hven_dispatch_signature} -> OFF-REFERENCE (portable arms)")
+endif()
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/hven_mkl_dispatch.txt"
+    "${_hven_dispatch_signature}\nHVEN_TEST_REFERENCE_DISPATCH=${_hven_reference_dispatch}\n")
+add_compile_definitions(HVEN_TEST_REFERENCE_DISPATCH=${_hven_reference_dispatch})
+
 set(HVEN_TEST_SOURCES
     core/test_version.cpp
     core/test_sparse_backend_link.cpp

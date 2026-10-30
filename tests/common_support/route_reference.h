@@ -6,10 +6,14 @@
 
 // The build every exact ROUTE pin was measured on (M7 WX design, docs/notes/
 // 2026-10-m7-wx-ci-design.md section 2.1): Linux, x86-64, clang, MKL Pardiso at its AUTO
-// dispatch. A route -- minors, factorizations, dep_* / certificate / saddle / latch counters,
-// the status of a capped or knife-edge fixture -- is pinned there and nowhere else; off it the
-// cell asserts its portable contract and RECORDS the route. This is not a backend switch:
-// Windows runs MKL and is off-reference, so are macOS/Accelerate and any non-clang compiler.
+// dispatch ON THE DERIVATION BOX'S CPU. The last clause is HVEN_TEST_REFERENCE_DISPATCH, which
+// tests/CMakeLists.txt decides by probing the configuring host (mkl_dispatch_signature.h): MKL
+// picks its kernels per CPU, and an AVX-512 runner moved 39 route cells that an AVX2 runner of
+// the same image passed (WX-R13). A route -- minors, factorizations, dep_* / certificate / saddle /
+// latch counters, the status of a capped or knife-edge fixture -- is pinned there and nowhere else;
+// off it the cell asserts its portable contract and RECORDS the route. This is not a backend
+// switch: Windows runs MKL and is off-reference, so are macOS/Accelerate and any non-clang
+// compiler.
 //
 // The arm shape (docs/testing.md "The reference build"):
 //
@@ -21,15 +25,20 @@
 //     #endif
 //
 // Reached as "../common_support/route_reference.h" (the console_capture.h precedent).
-// MKL_CBWR set on a reference build puts it off-reference in fact while the macro still says 1;
-// the sentinel test RouteReference.TheReferenceBuildRunsAtMklsAutoDispatch fails that case.
+// MKL_CBWR set, or a reference binary run on a host with another dispatch, puts it off-reference
+// in fact while the macro still says 1; the sentinel test
+// RouteReference.TheReferenceBuildRunsAtMklsAutoDispatch fails both cases.
 
 #include <string>
 
 #include <gtest/gtest.h>
 
+#if !defined(HVEN_TEST_REFERENCE_DISPATCH)
+#error "HVEN_TEST_REFERENCE_DISPATCH is set by tests/CMakeLists.txt's MKL dispatch probe"
+#endif
+
 #if defined(__linux__) && defined(__x86_64__) && defined(__clang__) &&                             \
-    !defined(USE_ACCELERATE_SPARSE)
+    !defined(USE_ACCELERATE_SPARSE) && HVEN_TEST_REFERENCE_DISPATCH
 #define HVEN_TEST_ROUTE_REFERENCE 1
 #else
 #define HVEN_TEST_ROUTE_REFERENCE 0
