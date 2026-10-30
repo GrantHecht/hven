@@ -1,0 +1,9 @@
+PGREP_EMPTY w3base-sqp-ssn-cutest-A-BIGBANK
+PGREP_NO_UNCOVERED_CELL w3base-sqp-ssn-cutest-A-BIGBANK 2026-10-29T10:36:42-04:00
+IN_LOCK_PGREP_EMPTY w3base-sqp-ssn-cutest-A-BIGBANK 2026-10-29T10:36:42-04:00
+FOREGROUND_START w3base-sqp-ssn-cutest-A-BIGBANK 2026-10-29T10:36:42-04:00
+w2_a4_sweep: sqp-ssn / hven-sqp / cutest / run A-BIGBANK -> /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/train/cells-base/hven-sqp/sqp-ssn/cutest-run-A-BIGBANK (ceiling 300s) [problems: BIGBANK]
+run_serial: cutest/BIGBANK/hven-sqp/sqp-ssn
+run_serial: 1 cells -> /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/train/cells-base/hven-sqp/sqp-ssn/cutest-run-A-BIGBANK/results.csv
+w2_a4_sweep: RUNNER_EXIT 0
+FOREGROUND_END w3base-sqp-ssn-cutest-A-BIGBANK 2026-10-29T10:36:54-04:00 rc=0

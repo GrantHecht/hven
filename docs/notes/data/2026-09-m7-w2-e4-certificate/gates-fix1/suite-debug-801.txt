@@ -1,0 +1,805 @@
+Test project /home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates/gates-dbg
+        Start  801: L1RestoIdentity.ProximalTrioThrowsForNestedMode
+        Start  802: L1RestoLifecycle.EnterActivatesExitDeactivates
+        Start  803: L1RestoReset.ClearsAllElasticState
+        Start  804: L1RestoDiagnostics.NeverEnteredReportsZeroZero
+  1/400 Test  #801: L1RestoIdentity.ProximalTrioThrowsForNestedMode ...........................................................   Passed    0.01 sec
+        Start  805: L1RestoDiagnostics.ReportsEntriesAndIterationsInMode
+  2/400 Test  #802: L1RestoLifecycle.EnterActivatesExitDeactivates ............................................................   Passed    0.01 sec
+        Start  806: L1RestoConstants.BoundMultResetThresholdDefault
+  3/400 Test  #803: L1RestoReset.ClearsAllElasticState ........................................................................   Passed    0.01 sec
+        Start  807: WmnoRule.DescentAcceptsPenaltyUnchanged
+  4/400 Test  #804: L1RestoDiagnostics.NeverEnteredReportsZeroZero ............................................................   Passed    0.01 sec
+        Start  808: WmnoRule.PenaltyBumpThenAccept
+  5/400 Test  #805: L1RestoDiagnostics.ReportsEntriesAndIterationsInMode ......................................................   Passed    0.01 sec
+        Start  809: WmnoRule.MeritIncreaseRejects
+  6/400 Test  #806: L1RestoConstants.BoundMultResetThresholdDefault ...........................................................   Passed    0.01 sec
+        Start  810: WmnoRule.FeasibleCurrentNoPenaltyUpdate
+  7/400 Test  #807: WmnoRule.DescentAcceptsPenaltyUnchanged ...................................................................   Passed    0.01 sec
+        Start  811: WmnoRule.PenaltyTrajectoryMonotone
+  8/400 Test  #808: WmnoRule.PenaltyBumpThenAccept ............................................................................   Passed    0.01 sec
+        Start  812: FlexRule.RegionIIAcceptsAndRaisesPiL
+  9/400 Test  #809: WmnoRule.MeritIncreaseRejects .............................................................................   Passed    0.01 sec
+        Start  813: FlexRule.ObjectiveDecreaseAcceptsKeepsPiL
+ 10/400 Test  #810: WmnoRule.FeasibleCurrentNoPenaltyUpdate ...................................................................   Passed    0.01 sec
+        Start  814: FlexRule.BothWorseRejects
+ 11/400 Test  #811: WmnoRule.PenaltyTrajectoryMonotone ........................................................................   Passed    0.01 sec
+        Start  815: FlexRule.PiUpperRaisedWhenChiExceeds
+ 12/400 Test  #812: FlexRule.RegionIIAcceptsAndRaisesPiL ......................................................................   Passed    0.01 sec
+        Start  816: ModernMerit.ResetClearsPenaltyState
+ 13/400 Test  #813: FlexRule.ObjectiveDecreaseAcceptsKeepsPiL .................................................................   Passed    0.01 sec
+        Start  817: ModernMerit.DrivesGenericPath
+ 14/400 Test  #814: FlexRule.BothWorseRejects .................................................................................   Passed    0.01 sec
+        Start  818: ModernMeritRestoration.SmallestKnownTracksAcceptsNotRejects
+ 15/400 Test  #815: FlexRule.PiUpperRaisedWhenChiExceeds ......................................................................   Passed    0.01 sec
+        Start  819: ModernMeritRestoration.ExitBoundaryAtRatioTimesSmallestKnown
+ 16/400 Test  #816: ModernMerit.ResetClearsPenaltyState .......................................................................   Passed    0.01 sec
+        Start  820: ModernMeritRestoration.ReferenceArgumentIgnored
+ 17/400 Test  #817: ModernMerit.DrivesGenericPath .............................................................................   Passed    0.01 sec
+        Start  821: ModernMeritRestoration.ResetReBasesTrackerToInfinity
+ 18/400 Test  #818: ModernMeritRestoration.SmallestKnownTracksAcceptsNotRejects ...............................................   Passed    0.01 sec
+        Start  822: ModernMeritRestoration.StashFreezeRestore
+ 19/400 Test  #819: ModernMeritRestoration.ExitBoundaryAtRatioTimesSmallestKnown ..............................................   Passed    0.01 sec
+        Start  823: ModernMeritRestoration.ExitTestReadsStashedTrackerInPhase
+ 20/400 Test  #820: ModernMeritRestoration.ReferenceArgumentIgnored ...........................................................   Passed    0.01 sec
+        Start  824: ModernMeritRestoration.ResetMidPhasePreservesStash
+ 21/400 Test  #821: ModernMeritRestoration.ResetReBasesTrackerToInfinity ......................................................   Passed    0.01 sec
+        Start  825: ModernMeritRestoration.ResetOutsidePhaseDropsStash
+ 22/400 Test  #822: ModernMeritRestoration.StashFreezeRestore .................................................................   Passed    0.01 sec
+        Start  826: ModernMeritRestoration.EntryBeforeAnyAcceptStashesInfinity
+ 23/400 Test  #823: ModernMeritRestoration.ExitTestReadsStashedTrackerInPhase .................................................   Passed    0.01 sec
+        Start  827: ModernMeritRestoration.DoubleEntryThrows
+ 24/400 Test  #824: ModernMeritRestoration.ResetMidPhasePreservesStash ........................................................   Passed    0.01 sec
+        Start  828: ModernMeritRestoration.ExitWithoutEntryThrows
+ 25/400 Test  #825: ModernMeritRestoration.ResetOutsidePhaseDropsStash ........................................................   Passed    0.01 sec
+        Start  829: MonGovErrorNorm.MonitorErrorIsSumOfSquaredResiduals
+ 26/400 Test  #826: ModernMeritRestoration.EntryBeforeAnyAcceptStashesInfinity ................................................   Passed    0.01 sec
+        Start  830: MonGovMonitorWindow.FewerThanFourRefsAlwaysSufficient
+ 27/400 Test  #827: ModernMeritRestoration.DoubleEntryThrows ..................................................................   Passed    0.01 sec
+        Start  831: MonGovMonitorWindow.SufficientDecreaseBoundary
+ 28/400 Test  #828: ModernMeritRestoration.ExitWithoutEntryThrows .............................................................   Passed    0.01 sec
+        Start  832: MonGovMonitorWindow.NonmonotoneAnyReferenceSatisfies
+ 29/400 Test  #829: MonGovErrorNorm.MonitorErrorIsSumOfSquaredResiduals .......................................................   Passed    0.01 sec
+        Start  833: MonGovMonitorWindow.ReferenceListFifoCapAtFour
+ 30/400 Test  #830: MonGovMonitorWindow.FewerThanFourRefsAlwaysSufficient .....................................................   Passed    0.01 sec
+        Start  834: MonGovHandoff.MuIsPointEightTimesAvgComp
+ 31/400 Test  #831: MonGovMonitorWindow.SufficientDecreaseBoundary ............................................................   Passed    0.01 sec
+        Start  835: MonGovHandoff.DecideSwitchesToMonotoneOnMonitorFailure
+ 32/400 Test  #832: MonGovMonitorWindow.NonmonotoneAnyReferenceSatisfies ......................................................   Passed    0.01 sec
+        Start  836: MonGovFiaccoMcCormick.SequenceHandComputed
+ 33/400 Test  #833: MonGovMonitorWindow.ReferenceListFifoCapAtFour ............................................................   Passed    0.01 sec
+        Start  837: MonGovFiaccoMcCormick.FloorClampsTinyMu
+ 34/400 Test  #834: MonGovHandoff.MuIsPointEightTimesAvgComp ..................................................................   Passed    0.01 sec
+        Start  838: MonGovFiaccoMcCormick.GateBlocksAdvanceUntilSubproblemConverged
+ 35/400 Test  #835: MonGovHandoff.DecideSwitchesToMonotoneOnMonitorFailure ....................................................   Passed    0.01 sec
+        Start  839: MonGovReentry.ReturnsToFreeWhenErrorReentersBand
+ 36/400 Test  #836: MonGovFiaccoMcCormick.SequenceHandComputed ................................................................   Passed    0.01 sec
+        Start  840: MonGovMuEvent.StayingFreeDoesNotFire
+ 37/400 Test  #837: MonGovFiaccoMcCormick.FloorClampsTinyMu ...................................................................   Passed    0.01 sec
+        Start  841: MonGovMuEvent.HoldingMonotoneDoesNotFire
+ 38/400 Test  #838: MonGovFiaccoMcCormick.GateBlocksAdvanceUntilSubproblemConverged ...........................................   Passed    0.01 sec
+        Start  842: MonGovReset.ClearsAllState
+ 39/400 Test  #839: MonGovReentry.ReturnsToFreeWhenErrorReentersBand ..........................................................   Passed    0.01 sec
+        Start  843: MonGovDelegation.FreeModeForwardsToDelegateVerbatim
+ 40/400 Test  #840: MonGovMuEvent.StayingFreeDoesNotFire ......................................................................   Passed    0.01 sec
+        Start  844: MonGovSequence.SufficientProgressVerdictFlipsWithPassedCurrent
+ 41/400 Test  #841: MonGovMuEvent.HoldingMonotoneDoesNotFire ..................................................................   Passed    0.01 sec
+        Start  845: MonGovSequence.FiaccoMcCormickGateAdvancesOnSatisfyingCall
+ 42/400 Test  #842: MonGovReset.ClearsAllState ................................................................................   Passed    0.01 sec
+        Start  846: MonGovMonotoneSchedule.AdvancesAndFlagsTheEventWhenTheSubproblemIsSolved
+ 43/400 Test  #843: MonGovDelegation.FreeModeForwardsToDelegateVerbatim .......................................................   Passed    0.01 sec
+        Start  847: MonGovMonotoneSchedule.HoldsMuWhileTheSubproblemIsUnsolved
+ 44/400 Test  #844: MonGovSequence.SufficientProgressVerdictFlipsWithPassedCurrent ............................................   Passed    0.01 sec
+        Start  848: MonGovMonotoneSchedule.AFlooredMuIsHeldRatherThanReAdvanced
+ 45/400 Test  #845: MonGovSequence.FiaccoMcCormickGateAdvancesOnSatisfyingCall ................................................   Passed    0.01 sec
+        Start  849: MonGovMonotoneSchedule.EveryGovernorRunsTheSameSharedSchedule
+ 46/400 Test  #846: MonGovMonotoneSchedule.AdvancesAndFlagsTheEventWhenTheSubproblemIsSolved ..................................   Passed    0.01 sec
+        Start  850: NLPRowClassificationTest.ClassifiesAllRowKindsAndCounts
+ 47/400 Test  #847: MonGovMonotoneSchedule.HoldsMuWhileTheSubproblemIsUnsolved ................................................   Passed    0.01 sec
+        Start  851: NLPRowClassificationTest.RejectsInvertedAndNaNAndInfiniteEqualityBounds
+ 48/400 Test  #848: MonGovMonotoneSchedule.AFlooredMuIsHeldRatherThanReAdvanced ...............................................   Passed    0.01 sec
+        Start  852: NLPAdapterCoreTest.ValidSetupPopulatesTables
+ 49/400 Test  #849: MonGovMonotoneSchedule.EveryGovernorRunsTheSameSharedSchedule .............................................   Passed    0.01 sec
+        Start  853: NLPAdapterCoreTest.RejectsBadSizesAndStructures
+ 50/400 Test  #850: NLPRowClassificationTest.ClassifiesAllRowKindsAndCounts ...................................................   Passed    0.01 sec
+        Start  854: NLPAdapterCoreTest.HessianOwnerFallsBackToEqThenObjective
+ 51/400 Test  #851: NLPRowClassificationTest.RejectsInvertedAndNaNAndInfiniteEqualityBounds ...................................   Passed    0.01 sec
+        Start  855: NLPAdapterAssemblyTest.KktMatchesDenseReferenceAndCallbacksAreCounted
+ 52/400 Test  #852: NLPAdapterCoreTest.ValidSetupPopulatesTables ..............................................................   Passed    0.01 sec
+        Start  856: NLPAdapterAssemblyTest.ShortEqualityMultiplierBlockIsRefusedBeforeItIsRead
+ 53/400 Test  #853: NLPAdapterCoreTest.RejectsBadSizesAndStructures ...........................................................   Passed    0.01 sec
+        Start  857: NLPAdapterAssemblyTest.ShortNonEmptyEqualityMultiplierBlockIsRefusedBeforeItIsRead
+ 54/400 Test  #854: NLPAdapterCoreTest.HessianOwnerFallsBackToEqThenObjective .................................................   Passed    0.01 sec
+        Start  858: NLPAdapterAssemblyTest.NoObjectiveChainUsesZeroObjFactorConsumeOnce
+ 55/400 Test  #855: NLPAdapterAssemblyTest.KktMatchesDenseReferenceAndCallbacksAreCounted .....................................   Passed    0.01 sec
+        Start  859: NLPAdapterAssemblyTest.AbortedAssemblyDoesNotLeakStalePendingRecords
+ 56/400 Test  #856: NLPAdapterAssemblyTest.ShortEqualityMultiplierBlockIsRefusedBeforeItIsRead ................................   Passed    0.01 sec
+        Start  860: NLPAdapterAssemblyTest.RangeRowScattersDuplicatedJacobianAndComposedLambdaHessian
+ 57/400 Test  #857: NLPAdapterAssemblyTest.ShortNonEmptyEqualityMultiplierBlockIsRefusedBeforeItIsRead ........................   Passed    0.01 sec
+        Start  861: NlpAggregateEngineContract.EveryRequestReproducesTheEntryPointItReplaces
+ 58/400 Test  #858: NLPAdapterAssemblyTest.NoObjectiveChainUsesZeroObjFactorConsumeOnce .......................................   Passed    0.01 sec
+        Start  862: NlpAggregateEngineContract.ShapesFiveAndSevenLeaveTheirZeroArenasEmpty
+ 59/400 Test  #859: NLPAdapterAssemblyTest.AbortedAssemblyDoesNotLeakStalePendingRecords ......................................   Passed    0.01 sec
+        Start  863: NlpAggregateEngineContract.AnEqualityOnlyModelEvaluatesValuesThroughTheContract
+ 60/400 Test  #860: NLPAdapterAssemblyTest.RangeRowScattersDuplicatedJacobianAndComposedLambdaHessian .........................   Passed    0.01 sec
+        Start  864: NlpAggregateEngineContract.AnInequalityOnlyModelEvaluatesValuesThroughTheContract
+ 61/400 Test  #861: NlpAggregateEngineContract.EveryRequestReproducesTheEntryPointItReplaces ..................................   Passed    0.01 sec
+        Start  865: NlpAggregateEngineContract.AnUnmappedRequestIsRefusedAtTheEngineEntry
+ 62/400 Test  #862: NlpAggregateEngineContract.ShapesFiveAndSevenLeaveTheirZeroArenasEmpty ....................................   Passed    0.01 sec
+        Start  866: NlpAggregateEngineContract.ALegalLagrangianHessianRequestIsRefusedByName
+ 63/400 Test  #863: NlpAggregateEngineContract.AnEqualityOnlyModelEvaluatesValuesThroughTheContract ...........................   Passed    0.01 sec
+        Start  867: NlpAggregateEngineContract.ALegalGradientAndJacobiansRequestIsRefusedByName
+ 64/400 Test  #864: NlpAggregateEngineContract.AnInequalityOnlyModelEvaluatesValuesThroughTheContract .........................   Passed    0.01 sec
+        Start  868: NlpAggregateEngineContract.ALegalConstraintJacobiansOnlyRequestIsRefusedByName
+ 65/400 Test  #865: NlpAggregateEngineContract.AnUnmappedRequestIsRefusedAtTheEngineEntry .....................................   Passed    0.01 sec
+        Start  869: NlpAggregateEngineContract.TheFullKktShapeStillRunsAfterTheExplicitArm
+ 66/400 Test  #866: NlpAggregateEngineContract.ALegalLagrangianHessianRequestIsRefusedByName ..................................   Passed    0.01 sec
+        Start  870: NlpAggregateEngineContract.AShortGradientViewIsRefusedByTheProvider
+ 67/400 Test  #867: NlpAggregateEngineContract.ALegalGradientAndJacobiansRequestIsRefusedByName ...............................   Passed    0.01 sec
+        Start  871: NlpAggregateEngineContract.ADoublyInvalidCallReportsTheLaidWidthFirst
+ 68/400 Test  #868: NlpAggregateEngineContract.ALegalConstraintJacobiansOnlyRequestIsRefusedByName ............................   Passed    0.01 sec
+        Start  872: NlpAggregateEngineEpoch.EveryRelayBumpsAndTheBumpPrecedesTheNewStructures
+ 69/400 Test  #869: NlpAggregateEngineContract.TheFullKktShapeStillRunsAfterTheExplicitArm ....................................   Passed    0.01 sec
+        Start  873: NlpAggregateEngineEpoch.AnEvaluationNeverRunsUnderAStaleEpoch
+ 70/400 Test  #870: NlpAggregateEngineContract.AShortGradientViewIsRefusedByTheProvider .......................................   Passed    0.01 sec
+        Start  874: NlpAggregateEngineEpoch.ARejectedReconfigurationThatRelaidBumpsToo
+ 71/400 Test  #871: NlpAggregateEngineContract.ADoublyInvalidCallReportsTheLaidWidthFirst .....................................   Passed    0.01 sec
+        Start  875: NlpAggregateEngineEpoch.ARejectionThatTouchedNoLayoutDoesNotBump
+ 72/400 Test  #872: NlpAggregateEngineEpoch.EveryRelayBumpsAndTheBumpPrecedesTheNewStructures .................................   Passed    0.01 sec
+        Start  876: NlpAggregateEngineEpoch.AnInvalidStagedRecordCannotBreakARenegotiation
+ 73/400 Test  #873: NlpAggregateEngineEpoch.AnEvaluationNeverRunsUnderAStaleEpoch .............................................   Passed    0.01 sec
+        Start  877: NlpAggregateEngineKey.TheKeySurvivesTheSparsityAnalysis
+ 74/400 Test  #874: NlpAggregateEngineEpoch.ARejectedReconfigurationThatRelaidBumpsToo ........................................   Passed    0.01 sec
+        Start  878: NlpAggregateEngineKey.DroppingStagedBoundsDoesNotMoveTheKeyUntilTheNextLay
+ 75/400 Test  #875: NlpAggregateEngineEpoch.ARejectionThatTouchedNoLayoutDoesNotBump ..........................................   Passed    0.01 sec
+        Start  879: NlpAggregateEngineKey.ABoundThatFixesAVariableKeysDifferentlyFromOneThatDoesNot
+ 76/400 Test  #876: NlpAggregateEngineEpoch.AnInvalidStagedRecordCannotBreakARenegotiation ....................................   Passed    0.01 sec
+        Start  880: NlpAggregateEngineKey.StagingABoundThenConfiguringATreatmentDoesNotMoveTheBoundDigest
+ 77/400 Test  #877: NlpAggregateEngineKey.TheKeySurvivesTheSparsityAnalysis ...................................................   Passed    0.01 sec
+        Start  881: NlpAggregateEngineLayout.TheSameDeclarationLaysTheSameLayoutTwice
+ 78/400 Test  #878: NlpAggregateEngineKey.DroppingStagedBoundsDoesNotMoveTheKeyUntilTheNextLay ................................   Passed    0.01 sec
+        Start  882: NlpAggregateEngineLayout.TheStructuralKeyIsTheSameBeforeAndAfterSparsityAnalysis
+ 79/400 Test  #879: NlpAggregateEngineKey.ABoundThatFixesAVariableKeysDifferentlyFromOneThatDoesNot ...........................   Passed    0.01 sec
+        Start  883: NlpAggregateEngineLayout.ARelayIsFullyVisibleThroughASecondDeclarationRead
+ 80/400 Test  #880: NlpAggregateEngineKey.StagingABoundThenConfiguringATreatmentDoesNotMoveTheBoundDigest .....................   Passed    0.01 sec
+        Start  884: NlpAggregateEngineLayout.MutatingTheMasterListsAfterALayIsRefusedByName
+ 81/400 Test  #881: NlpAggregateEngineLayout.TheSameDeclarationLaysTheSameLayoutTwice .........................................   Passed    0.01 sec
+        Start  885: NlpAggregateEngineLayout.AFailedRelayNeverLeavesAMixedDeclaration
+ 82/400 Test  #882: NlpAggregateEngineLayout.TheStructuralKeyIsTheSameBeforeAndAfterSparsityAnalysis ..........................   Passed    0.01 sec
+        Start  886: NlpAggregateEngineLayout.AFailedRelayAfterTheMasterListsMovedIsRefusedNotServed
+ 83/400 Test  #883: NlpAggregateEngineLayout.ARelayIsFullyVisibleThroughASecondDeclarationRead ................................   Passed    0.01 sec
+        Start  887: NlpAggregateEngineLayout.TheMasterListGuardFiresAfterTheCopyIsAlreadyDischarged
+ 84/400 Test  #884: NlpAggregateEngineLayout.MutatingTheMasterListsAfterALayIsRefusedByName ...................................   Passed    0.01 sec
+        Start  888: NlpAggregateEngineLayout.AnAggregateThatWasNeverLaidIsNotCheckedAgainstALayout
+ 85/400 Test  #885: NlpAggregateEngineLayout.AFailedRelayNeverLeavesAMixedDeclaration .........................................   Passed    0.01 sec
+        Start  889: NlpAggregateEngineLayout.TheEvaluationThreadCountDecidesNoPartOfTheLayout
+ 86/400 Test  #886: NlpAggregateEngineLayout.AFailedRelayAfterTheMasterListsMovedIsRefusedNotServed ...........................   Passed    0.01 sec
+        Start  890: NlpAggregateEnginePartitions.ARenegotiationReportsWhatItAdoptedAndRelays
+ 87/400 Test  #887: NlpAggregateEngineLayout.TheMasterListGuardFiresAfterTheCopyIsAlreadyDischarged ...........................   Passed    0.01 sec
+        Start  891: NlpAggregateEnginePartitions.NoClaimIsRenumberedByARenegotiation
+ 88/400 Test  #888: NlpAggregateEngineLayout.AnAggregateThatWasNeverLaidIsNotCheckedAgainstALayout ............................   Passed    0.01 sec
+        Start  892: NlpAggregateEnginePartitions.TheRightHandSideIsBitStableAcrossPartitionCounts
+ 89/400 Test  #889: NlpAggregateEngineLayout.TheEvaluationThreadCountDecidesNoPartOfTheLayout .................................   Passed    0.01 sec
+        Start  893: NlpAggregateEnginePartitions.ANonPositivePartitionCountIsRefused
+ 90/400 Test  #893: NlpAggregateEnginePartitions.ANonPositivePartitionCountIsRefused ..........................................   Passed    0.01 sec
+        Start  894: NlpAggregateEngineBinding.TheAnalysisBindsTheTablesAndTheEntryChecksTheView
+ 91/400 Test  #890: NlpAggregateEnginePartitions.ARenegotiationReportsWhatItAdoptedAndRelays ..................................   Passed    0.01 sec
+        Start  895: NlpAggregateEngineBinding.ARelayDropsTheBindingBecauseItDropsTheOffsets
+ 92/400 Test  #894: NlpAggregateEngineBinding.TheAnalysisBindsTheTablesAndTheEntryChecksTheView ...............................   Passed    0.01 sec
+        Start  896: NlpAggregateEngineBinding.SolverCoefficientBlocksAgainstPieceClaims
+ 93/400 Test  #895: NlpAggregateEngineBinding.ARelayDropsTheBindingBecauseItDropsTheOffsets ...................................   Passed    0.01 sec
+        Start  897: NlpAggregateEngineBinding.RePatterningTheAnalysedMatrixIsCaughtAsAStaleTable
+ 94/400 Test  #892: NlpAggregateEnginePartitions.TheRightHandSideIsBitStableAcrossPartitionCounts .............................   Passed    0.02 sec
+        Start  898: NlpAggregateEngineCandidate.TheEntriesAssignRatherThanAccumulate
+ 95/400 Test  #896: NlpAggregateEngineBinding.SolverCoefficientBlocksAgainstPieceClaims .......................................   Passed    0.01 sec
+        Start  899: NlpAggregateEngineCandidate.TheSurfaceIsInDeclarationSpaceWhateverTheTreatment
+ 96/400 Test  #897: NlpAggregateEngineBinding.RePatterningTheAnalysedMatrixIsCaughtAsAStaleTable ..............................   Passed    0.01 sec
+        Start  900: NlpAggregateEngineCandidate.TheProbePairsTheEpochWithTheValuesAtThePoint
+ 97/400 Test  #891: NlpAggregateEnginePartitions.NoClaimIsRenumberedByARenegotiation ..........................................   Passed    0.03 sec
+        Start  901: NlpAggregateEngineCandidate.TheScorerExclusionSetIsComputableFromTheDeclarationAlone
+ 98/400 Test  #898: NlpAggregateEngineCandidate.TheEntriesAssignRatherThanAccumulate ..........................................   Passed    0.01 sec
+        Start  902: NlpAggregateEngineDeclaration.ItDescribesTheStructuresOnHandAndIsStoredState
+ 99/400 Test  #899: NlpAggregateEngineCandidate.TheSurfaceIsInDeclarationSpaceWhateverTheTreatment ............................   Passed    0.01 sec
+        Start  903: NlpAggregateEngineDeclaration.ObjectivePiecesAloneMakeADeclarationPieceSourced
+100/400 Test  #900: NlpAggregateEngineCandidate.TheProbePairsTheEpochWithTheValuesAtThePoint ..................................   Passed    0.01 sec
+        Start  904: NlpAggregateEngineDeclaration.APieceSourcedDeclarationStillFailsOnABadRowSum
+101/400 Test  #901: NlpAggregateEngineCandidate.TheScorerExclusionSetIsComputableFromTheDeclarationAlone ......................   Passed    0.01 sec
+        Start  905: NlpAggregateEngineDeclaration.StagingABoundChangesNothingUntilItIsMaterialized
+102/400 Test  #902: NlpAggregateEngineDeclaration.ItDescribesTheStructuresOnHandAndIsStoredState ..............................   Passed    0.01 sec
+        Start  906: NlpAggregateEngineDeclaration.DeclaredRowIdentitiesSurviveATreatmentReconfiguration
+103/400 Test  #903: NlpAggregateEngineDeclaration.ObjectivePiecesAloneMakeADeclarationPieceSourced ............................   Passed    0.01 sec
+        Start  907: NlpAggregateEngineCapabilities.TheValuesFastPathIsDeclaredAndDirectScatterIsNot
+104/400 Test  #904: NlpAggregateEngineDeclaration.APieceSourcedDeclarationStillFailsOnABadRowSum ..............................   Passed    0.01 sec
+        Start  908: NlpAggregateConsumerViews.BuildersAddressExactlyTheLegacySegments
+105/400 Test  #905: NlpAggregateEngineDeclaration.StagingABoundChangesNothingUntilItIsMaterialized ............................   Passed    0.01 sec
+        Start  909: AcceptanceDiagnostics.DefaultIsNoop
+106/400 Test  #906: NlpAggregateEngineDeclaration.DeclaredRowIdentitiesSurviveATreatmentReconfiguration .......................   Passed    0.01 sec
+        Start  910: AcceptanceDiagnostics.FakeStrategyOverrideIsInvoked
+107/400 Test  #907: NlpAggregateEngineCapabilities.TheValuesFastPathIsDeclaredAndDirectScatterIsNot ...........................   Passed    0.01 sec
+        Start  911: AcceptanceDiagnostics.FunnelReportsWidth
+108/400 Test  #908: NlpAggregateConsumerViews.BuildersAddressExactlyTheLegacySegments .........................................   Passed    0.01 sec
+        Start  912: AcceptanceDiagnostics.DiagFunnelUninitializedWidthSentinel
+109/400 Test  #909: AcceptanceDiagnostics.DefaultIsNoop .......................................................................   Passed    0.01 sec
+        Start  913: AcceptanceDiagnostics.FilterReportsSizeAndResets
+110/400 Test  #910: AcceptanceDiagnostics.FakeStrategyOverrideIsInvoked .......................................................   Passed    0.01 sec
+        Start  914: AcceptanceDiagnostics.ADefaultResultCarriesTheSentinels
+111/400 Test  #911: AcceptanceDiagnostics.FunnelReportsWidth ..................................................................   Passed    0.01 sec
+        Start  915: NlpAdapterAllocationTest.TheCounterSeesEachInterposedAllocator
+112/400 Test  #912: AcceptanceDiagnostics.DiagFunnelUninitializedWidthSentinel ................................................   Passed    0.01 sec
+        Start  916: NlpAdapterAllocationTest.AWarmAssemblyAllocatesNothing
+113/400 Test  #913: AcceptanceDiagnostics.FilterReportsSizeAndResets ..........................................................   Passed    0.01 sec
+        Start  917: ClassicMeritRestoration.RelativeFloorBoundary
+114/400 Test  #914: AcceptanceDiagnostics.ADefaultResultCarriesTheSentinels ...................................................   Passed    0.01 sec
+        Start  918: ClassicMeritRestoration.ToleranceFloorWaivesRelativeWhenRefTiny
+115/400 Test  #915: NlpAdapterAllocationTest.TheCounterSeesEachInterposedAllocator ............................................   Passed    0.01 sec
+        Start  919: ClassicMeritRestoration.FloorTracksSettingsEconTol
+116/400 Test  #916: NlpAdapterAllocationTest.AWarmAssemblyAllocatesNothing ....................................................   Passed    0.01 sec
+        Start  920: ClassicMeritRestoration.TheGenericAcceptanceQuestionIsRefusedNotAnswered
+117/400 Test  #917: ClassicMeritRestoration.RelativeFloorBoundary .............................................................   Passed    0.01 sec
+        Start  921: FilterAcceptance.FilterEmptyBeforeFirstAccept
+118/400 Test  #918: ClassicMeritRestoration.ToleranceFloorWaivesRelativeWhenRefTiny ...........................................   Passed    0.01 sec
+        Start  922: FilterAcceptance.AcceptableToCurrentThetaMarginAccepts
+119/400 Test  #919: ClassicMeritRestoration.FloorTracksSettingsEconTol ........................................................   Passed    0.01 sec
+        Start  923: FilterAcceptance.AcceptableToCurrentPhiMarginAccepts
+120/400 Test  #920: ClassicMeritRestoration.TheGenericAcceptanceQuestionIsRefusedNotAnswered ..................................   Passed    0.01 sec
+        Start  924: FilterAcceptance.AcceptableToCurrentBothMarginsFailRejects
+121/400 Test  #921: FilterAcceptance.FilterEmptyBeforeFirstAccept .............................................................   Passed    0.01 sec
+        Start  925: FilterAcceptance.AcceptableToCurrentThetaBoundaryInclusive
+122/400 Test  #922: FilterAcceptance.AcceptableToCurrentThetaMarginAccepts ....................................................   Passed    0.01 sec
+        Start  926: FilterAcceptance.BarrierCeilingRejectsLargeIncrease
+123/400 Test  #923: FilterAcceptance.AcceptableToCurrentPhiMarginAccepts ......................................................   Passed    0.01 sec
+        Start  927: FilterAcceptance.BarrierCeilingPassesModerateIncrease
+124/400 Test  #924: FilterAcceptance.AcceptableToCurrentBothMarginsFailRejects ................................................   Passed    0.01 sec
+        Start  928: FilterAcceptance.BarrierCeilingBasvalScalesWithReference
+125/400 Test  #925: FilterAcceptance.AcceptableToCurrentThetaBoundaryInclusive ................................................   Passed    0.01 sec
+        Start  929: FilterAcceptance.AugmentStoresExactMarginedPair
+126/400 Test  #926: FilterAcceptance.BarrierCeilingRejectsLargeIncrease .......................................................   Passed    0.01 sec
+        Start  930: FilterAcceptance.FilterEntryBlocksDominatedTrial
+127/400 Test  #927: FilterAcceptance.BarrierCeilingPassesModerateIncrease .....................................................   Passed    0.01 sec
+        Start  931: FilterAcceptance.FilterEntryAllowsTrialBelowInOneCoordinate
+128/400 Test  #928: FilterAcceptance.BarrierCeilingBasvalScalesWithReference ..................................................   Passed    0.01 sec
+        Start  932: FilterAcceptance.FilterDominanceBoundaryInclusive
+129/400 Test  #929: FilterAcceptance.AugmentStoresExactMarginedPair ...........................................................   Passed    0.01 sec
+        Start  933: FilterAcceptance.AugmentPrunesDominatedEntries
+130/400 Test  #930: FilterAcceptance.FilterEntryBlocksDominatedTrial ..........................................................   Passed    0.01 sec
+        Start  934: FilterAcceptance.AugmentKeepsNonDominatedEntries
+131/400 Test  #931: FilterAcceptance.FilterEntryAllowsTrialBelowInOneCoordinate ...............................................   Passed    0.01 sec
+        Start  935: FilterAcceptance.FTypeAcceptDoesNotAugment
+132/400 Test  #932: FilterAcceptance.FilterDominanceBoundaryInclusive .........................................................   Passed    0.01 sec
+        Start  936: FilterAcceptance.ThetaMaxCeilingRejectsBeforeFilter
+133/400 Test  #933: FilterAcceptance.AugmentPrunesDominatedEntries ............................................................   Passed    0.01 sec
+        Start  937: FilterAcceptance.MultipleFilterRejectionsBeforeAcceptCountOnce
+134/400 Test  #934: FilterAcceptance.AugmentKeepsNonDominatedEntries ..........................................................   Passed    0.01 sec
+        Start  938: FilterAcceptance.ArmijoLastRejectionZeroesStreakOnAccept
+135/400 Test  #935: FilterAcceptance.FTypeAcceptDoesNotAugment ................................................................   Passed    0.01 sec
+        Start  939: FilterAcceptance.AttributionFailsBothHTypeZeroesStreak
+136/400 Test  #936: FilterAcceptance.ThetaMaxCeilingRejectsBeforeFilter .......................................................   Passed    0.01 sec
+        Start  940: FilterAcceptance.AttributionFailsMembershipOnlyHTypeIncrementsStreak
+137/400 Test  #937: FilterAcceptance.MultipleFilterRejectionsBeforeAcceptCountOnce ............................................   Passed    0.01 sec
+        Start  941: FilterAcceptance.AttributionFailsBothFTypeZeroesStreak
+138/400 Test  #938: FilterAcceptance.ArmijoLastRejectionZeroesStreakOnAccept ..................................................   Passed    0.01 sec
+        Start  942: FilterAcceptance.AttributionFailsMembershipOnlyFTypeIncrementsStreak
+139/400 Test  #939: FilterAcceptance.AttributionFailsBothHTypeZeroesStreak ....................................................   Passed    0.01 sec
+        Start  943: FilterAcceptance.FiveFilterCausedIterationsClearFilter
+140/400 Test  #940: FilterAcceptance.AttributionFailsMembershipOnlyHTypeIncrementsStreak ......................................   Passed    0.01 sec
+        Start  944: FilterAcceptance.ResetCapNeverExceeded
+141/400 Test  #941: FilterAcceptance.AttributionFailsBothFTypeZeroesStreak ....................................................   Passed    0.01 sec
+        Start  945: FilterAcceptance.ResetClearsEverythingAndReArms
+142/400 Test  #942: FilterAcceptance.AttributionFailsMembershipOnlyFTypeIncrementsStreak ......................................   Passed    0.01 sec
+        Start  946: FilterRestoration.ExitAllClausesPassRelativeFloorDominates
+143/400 Test  #943: FilterAcceptance.FiveFilterCausedIterationsClearFilter ....................................................   Passed    0.01 sec
+        Start  947: FilterRestoration.ExitRelativeFloorRejects
+144/400 Test  #944: FilterAcceptance.ResetCapNeverExceeded ....................................................................   Passed    0.01 sec
+        Start  948: FilterRestoration.ExitToleranceFloorWaivesRelativeWhenRefTiny
+145/400 Test  #945: FilterAcceptance.ResetClearsEverythingAndReArms ...........................................................   Passed    0.01 sec
+        Start  949: FilterRestoration.ExitTinyInjectedTolDoesNotWaive
+146/400 Test  #946: FilterRestoration.ExitAllClausesPassRelativeFloorDominates ................................................   Passed    0.01 sec
+        Start  950: FilterRestoration.ExitStashedFilterRejectsOtherwisePassingTrial
+147/400 Test  #947: FilterRestoration.ExitRelativeFloorRejects ................................................................   Passed    0.01 sec
+        Start  951: FilterRestoration.StashRestoreRoundTrip
+148/400 Test  #948: FilterRestoration.ExitToleranceFloorWaivesRelativeWhenRefTiny .............................................   Passed    0.01 sec
+        Start  952: FilterRestoration.EntryWithoutInterveningExitThrows
+149/400 Test  #949: FilterRestoration.ExitTinyInjectedTolDoesNotWaive .........................................................   Passed    0.01 sec
+        Start  953: FilterRestoration.ExitWithoutPrecedingEntryThrows
+150/400 Test  #950: FilterRestoration.ExitStashedFilterRejectsOtherwisePassingTrial ...........................................   Passed    0.01 sec
+        Start  954: FilterRestoration.ResetDuringFeasibilityPreservesStash
+151/400 Test  #951: FilterRestoration.StashRestoreRoundTrip ...................................................................   Passed    0.01 sec
+        Start  955: FilterRestoration.ResetOutsidePhaseClearsLeftoverStash
+152/400 Test  #952: FilterRestoration.EntryWithoutInterveningExitThrows .......................................................   Passed    0.01 sec
+        Start  956: FunnelAcceptance.InitWidthMultiplierBranch
+153/400 Test  #953: FilterRestoration.ExitWithoutPrecedingEntryThrows .........................................................   Passed    0.01 sec
+        Start  957: FunnelAcceptance.InitWidthFloorBranch
+154/400 Test  #954: FilterRestoration.ResetDuringFeasibilityPreservesStash ....................................................   Passed    0.01 sec
+        Start  958: FunnelAcceptance.WidthUninitializedBeforeFirstCall
+155/400 Test  #955: FilterRestoration.ResetOutsidePhaseClearsLeftoverStash ....................................................   Passed    0.01 sec
+        Start  959: FunnelAcceptance.TrialInsideFunnelSufficientDecreaseAccepts
+156/400 Test  #956: FunnelAcceptance.InitWidthMultiplierBranch ................................................................   Passed    0.01 sec
+        Start  960: FunnelAcceptance.TrialOutsideFunnelRejectsAndLeavesWidth
+157/400 Test  #957: FunnelAcceptance.InitWidthFloorBranch .....................................................................   Passed    0.01 sec
+        Start  961: FunnelAcceptance.SufficientDecreaseBoundaryPasses
+158/400 Test  #958: FunnelAcceptance.WidthUninitializedBeforeFirstCall ........................................................   Passed    0.01 sec
+        Start  962: FunnelAcceptance.SufficientDecreaseBoundaryFailsJustAbove
+159/400 Test  #959: FunnelAcceptance.TrialInsideFunnelSufficientDecreaseAccepts ...............................................   Passed    0.01 sec
+        Start  963: FunnelAcceptance.WidthUpdateFloorDominates
+160/400 Test  #960: FunnelAcceptance.TrialOutsideFunnelRejectsAndLeavesWidth ..................................................   Passed    0.01 sec
+        Start  964: FunnelAcceptance.WidthUpdateConvexCombinationDominates
+161/400 Test  #961: FunnelAcceptance.SufficientDecreaseBoundaryPasses .........................................................   Passed    0.01 sec
+        Start  965: FunnelAcceptance.WidthUpdateTrialAboveCurrentUsesFloor
+162/400 Test  #962: FunnelAcceptance.SufficientDecreaseBoundaryFailsJustAbove .................................................   Passed    0.01 sec
+        Start  966: FunnelAcceptance.WidthUpdateReWidensWhenCurrentIterateOutsideFunnel
+163/400 Test  #963: FunnelAcceptance.WidthUpdateFloorDominates ................................................................   Passed    0.01 sec
+        Start  967: FunnelAcceptance.FTypeAcceptLeavesWidthUnchanged
+164/400 Test  #964: FunnelAcceptance.WidthUpdateConvexCombinationDominates ....................................................   Passed    0.01 sec
+        Start  968: FunnelAcceptance.MembershipRejectsFTypeTrialOutsideFunnel
+165/400 Test  #965: FunnelAcceptance.WidthUpdateTrialAboveCurrentUsesFloor ....................................................   Passed    0.01 sec
+        Start  969: FunnelAcceptance.ResetReDerivesWidthFromNewThetaZero
+166/400 Test  #966: FunnelAcceptance.WidthUpdateReWidensWhenCurrentIterateOutsideFunnel .......................................   Passed    0.01 sec
+        Start  970: FunnelAcceptance.WidthMonotoneNonIncreasingAcrossSequence
+167/400 Test  #967: FunnelAcceptance.FTypeAcceptLeavesWidthUnchanged ..........................................................   Passed    0.01 sec
+        Start  971: FunnelAcceptance.ExitTestBothHalvesPass
+168/400 Test  #968: FunnelAcceptance.MembershipRejectsFTypeTrialOutsideFunnel .................................................   Passed    0.01 sec
+        Start  972: FunnelAcceptance.ExitTestMembershipHalfRejects
+169/400 Test  #969: FunnelAcceptance.ResetReDerivesWidthFromNewThetaZero ......................................................   Passed    0.01 sec
+        Start  973: FunnelAcceptance.ExitTestRelativeHalfRejects
+170/400 Test  #970: FunnelAcceptance.WidthMonotoneNonIncreasingAcrossSequence .................................................   Passed    0.01 sec
+        Start  974: FunnelAcceptance.ExitTestRelativeBoundaryInclusive
+171/400 Test  #971: FunnelAcceptance.ExitTestBothHalvesPass ...................................................................   Passed    0.01 sec
+        Start  975: FunnelAcceptance.NotifySwitchToFeasibilityStashesWidth
+172/400 Test  #972: FunnelAcceptance.ExitTestMembershipHalfRejects ............................................................   Passed    0.01 sec
+        Start  976: FunnelAcceptance.NotifySwitchToOptimalityReBasesRestoredWidth
+173/400 Test  #973: FunnelAcceptance.ExitTestRelativeHalfRejects ..............................................................   Passed    0.01 sec
+        Start  977: FunnelAcceptance.NotifySwitchToOptimalityAllowsReWidening
+174/400 Test  #974: FunnelAcceptance.ExitTestRelativeBoundaryInclusive ........................................................   Passed    0.01 sec
+        Start  978: FunnelAcceptance.ExitTestReadsStashedWidthInPhase
+175/400 Test  #975: FunnelAcceptance.NotifySwitchToFeasibilityStashesWidth ....................................................   Passed    0.01 sec
+        Start  979: FunnelAcceptance.ResetMidPhasePreservesStashedWidth
+176/400 Test  #976: FunnelAcceptance.NotifySwitchToOptimalityReBasesRestoredWidth .............................................   Passed    0.01 sec
+        Start  980: FunnelAcceptance.ResetOutsidePhaseDropsStashedWidth
+177/400 Test  #977: FunnelAcceptance.NotifySwitchToOptimalityAllowsReWidening .................................................   Passed    0.01 sec
+        Start  981: FunnelAcceptance.EntryBeforeFirstCallStashesInfinityExitStaysWide
+178/400 Test  #978: FunnelAcceptance.ExitTestReadsStashedWidthInPhase .........................................................   Passed    0.01 sec
+        Start  982: FunnelAcceptance.DoubleEntryThrows
+179/400 Test  #979: FunnelAcceptance.ResetMidPhasePreservesStashedWidth .......................................................   Passed    0.01 sec
+        Start  983: FunnelAcceptance.ExitWithoutEntryThrows
+180/400 Test  #980: FunnelAcceptance.ResetOutsidePhaseDropsStashedWidth .......................................................   Passed    0.01 sec
+        Start  984: InteriorPointSolverPresetsTest.PresetGateClassicDiffersFromTheDefaultInExactlyTheTwoGlobalizationFields
+181/400 Test  #981: FunnelAcceptance.EntryBeforeFirstCallStashesInfinityExitStaysWide .........................................   Passed    0.01 sec
+        Start  985: InteriorPointSolverPresetsTest.PresetGateClassicPlusFiveHundredReconstructsThePreEventDefault
+182/400 Test  #982: FunnelAcceptance.DoubleEntryThrows ........................................................................   Passed    0.01 sec
+        Start  986: InteriorPointSolverPresetsTest.PresetGateThePreEventDefaultStillValidates
+183/400 Test  #983: FunnelAcceptance.ExitWithoutEntryThrows ...................................................................   Passed    0.01 sec
+        Start  987: IpmSolverEntry.Hs071ConvergesToKnownOptimum
+184/400 Test  #984: InteriorPointSolverPresetsTest.PresetGateClassicDiffersFromTheDefaultInExactlyTheTwoGlobalizationFields ...   Passed    0.01 sec
+        Start  988: IpmSolverEntry.Hs071BoundDualsMatchActiveLowerBound
+185/400 Test  #985: InteriorPointSolverPresetsTest.PresetGateClassicPlusFiveHundredReconstructsThePreEventDefault .............   Passed    0.01 sec
+        Start  989: IpmSolverEntry.RosenbrockConvergesToKnownOptimum
+186/400 Test  #986: InteriorPointSolverPresetsTest.PresetGateThePreEventDefaultStillValidates .................................   Passed    0.01 sec
+        Start  990: IpmSolverEntry.EqualityMultiplierHasIpoptSign
+187/400 Test  #989: IpmSolverEntry.RosenbrockConvergesToKnownOptimum ..........................................................   Passed    0.32 sec
+        Start  991: IpmSolverEntry.LowerBoundedRowActiveWithNegativeIpoptMultiplier
+188/400 Test  #990: IpmSolverEntry.EqualityMultiplierHasIpoptSign .............................................................   Passed    0.32 sec
+189/400 Test  #987: IpmSolverEntry.Hs071ConvergesToKnownOptimum ...............................................................   Passed    0.32 sec
+        Start  992: IpmSolverEntry.RangeRowActiveAtUpperWithPositiveIpoptMultiplier
+        Start  993: IpmSolverEntry.FreeRowDroppedFromTranscriptionReadsZeroMultiplier
+190/400 Test  #988: IpmSolverEntry.Hs071BoundDualsMatchActiveLowerBound .......................................................   Passed    0.32 sec
+        Start  994: IpmSolverEntry.FixedVariableSolvesExactlyAtItsFixedValue
+191/400 Test  #993: IpmSolverEntry.FreeRowDroppedFromTranscriptionReadsZeroMultiplier .........................................   Passed    0.99 sec
+        Start  995: IpmSolverEntry.FixedVariableTreatmentIsRecordedOnSolveResult
+192/400 Test  #991: IpmSolverEntry.LowerBoundedRowActiveWithNegativeIpoptMultiplier ...........................................   Passed    1.00 sec
+193/400 Test  #992: IpmSolverEntry.RangeRowActiveAtUpperWithPositiveIpoptMultiplier ...........................................   Passed    1.00 sec
+194/400 Test  #994: IpmSolverEntry.FixedVariableSolvesExactlyAtItsFixedValue ..................................................   Passed    0.99 sec
+        Start  996: IpmSolverEntry.ZIsDeclaredWidthAndZeroAtAnEliminatedCoordinate
+        Start  997: IpmSolverEntry.SeededSolveConverges
+        Start  998: IpmSolverEntry.TwoSolvesFromTheSameStartPointAgree
+195/400 Test  #997: IpmSolverEntry.SeededSolveConverges .......................................................................   Passed    1.00 sec
+        Start  999: IpmSolverEntry.AStartPointOfTheWrongSizeIsRefused
+196/400 Test  #995: IpmSolverEntry.FixedVariableTreatmentIsRecordedOnSolveResult ..............................................   Passed    1.00 sec
+        Start 1000: IpmSolverEntry.NonFiniteStartingMultipliersThrow
+197/400 Test  #998: IpmSolverEntry.TwoSolvesFromTheSameStartPointAgree ........................................................   Passed    1.00 sec
+198/400 Test  #996: IpmSolverEntry.ZIsDeclaredWidthAndZeroAtAnEliminatedCoordinate ............................................   Passed    1.00 sec
+        Start 1001: IpmSolverEntry.PartitionCountAndQpThreadCountAreSetIndependently
+        Start 1002: IpmSolverEntry.AFaultedTranscriptionCommitsNothingAndRetriesCleanly
+199/400 Test  #999: IpmSolverEntry.AStartPointOfTheWrongSizeIsRefused .........................................................   Passed    0.01 sec
+        Start 1003: IpmSolverEntry.ASecondSolveTranscribesNothingAndSpendsNoFurtherSetupEvaluation
+200/400 Test #1000: IpmSolverEntry.NonFiniteStartingMultipliersThrow ..........................................................   Passed    0.01 sec
+        Start 1004: IpmSolverEntry.TheReportedKktResidualsAreTheOnesTheConvergenceTestGated
+201/400 Test #1001: IpmSolverEntry.PartitionCountAndQpThreadCountAreSetIndependently ..........................................   Passed    0.01 sec
+        Start 1005: IpmSolverEntry.TheReportedKktResidualsDescribeTheIterateTheResultDescribes
+202/400 Test #1005: IpmSolverEntry.TheReportedKktResidualsDescribeTheIterateTheResultDescribes ................................   Passed    0.99 sec
+        Start 1006: IpmSolverEntry.TheKktResidualsOfAResultNoSolveHasWrittenAreUnmeasured
+203/400 Test #1002: IpmSolverEntry.AFaultedTranscriptionCommitsNothingAndRetriesCleanly .......................................   Passed    1.00 sec
+204/400 Test #1003: IpmSolverEntry.ASecondSolveTranscribesNothingAndSpendsNoFurtherSetupEvaluation ............................   Passed    0.99 sec
+        Start 1007: IpmSolverEntry.TheProgramsPartitionCountIsWhatEvaluationsSee
+        Start 1008: IpmSolverEntry.TheIterationCapIsTheRecordedStopReason
+205/400 Test #1004: IpmSolverEntry.TheReportedKktResidualsAreTheOnesTheConvergenceTestGated ...................................   Passed    1.00 sec
+        Start 1009: IpmSolverEntry.AConvergedSolveRecordsNoStopReason
+206/400 Test #1006: IpmSolverEntry.TheKktResidualsOfAResultNoSolveHasWrittenAreUnmeasured .....................................   Passed    0.01 sec
+        Start 1010: IpmSolverEntry.AMultiPhaseCapIsLabelledByThePhaseThatHitIt
+207/400 Test #1007: IpmSolverEntry.TheProgramsPartitionCountIsWhatEvaluationsSee ..............................................   Passed    1.00 sec
+        Start 1011: IpmSolverEntry.AConvergenceOnTheCapIterationRecordsNoStopReason
+208/400 Test #1008: IpmSolverEntry.TheIterationCapIsTheRecordedStopReason .....................................................   Passed    1.00 sec
+        Start 1012: IpmSolverEntry.OneIterationShortOfConvergenceRecordsTheCap
+209/400 Test #1009: IpmSolverEntry.AConvergedSolveRecordsNoStopReason .........................................................   Passed    1.00 sec
+        Start 1013: IpmSolverEntry.TheLagrangianMeritLineSearchSolvesHs071OnItsOwnTrajectory
+210/400 Test #1010: IpmSolverEntry.AMultiPhaseCapIsLabelledByThePhaseThatHitIt ................................................   Passed    1.00 sec
+        Start 1014: IpmSolverEntry.TheL1MeritLineSearchSolvesHs071OnItsOwnTrajectory
+211/400 Test #1013: IpmSolverEntry.TheLagrangianMeritLineSearchSolvesHs071OnItsOwnTrajectory ..................................   Passed    1.00 sec
+        Start 1015: IpmSolverEntry.TheProbeBarrierOracleSolvesHs071OnItsOwnBarrierSchedule
+212/400 Test #1011: IpmSolverEntry.AConvergenceOnTheCapIterationRecordsNoStopReason ...........................................   Passed    1.01 sec
+213/400 Test #1012: IpmSolverEntry.OneIterationShortOfConvergenceRecordsTheCap ................................................   Passed    1.00 sec
+214/400 Test #1014: IpmSolverEntry.TheL1MeritLineSearchSolvesHs071OnItsOwnTrajectory ..........................................   Passed    1.00 sec
+        Start 1016: IpmSolverEntry.AnOutOfBoxStartPointIsPushedInteriorBeforeTheFirstEvaluation
+        Start 1017: IpmSolverEntry.AnInBoxStartPointIsUnchangedByTheSameSolve
+        Start 1018: WorkerOptions.JetPreparationEquivalent
+215/400 Test #1018: WorkerOptions.JetPreparationEquivalent ....................................................................   Passed    0.99 sec
+        Start 1019: InteriorPointSolverSettingsTest.NaNRejectedBySiteNamedSetters
+216/400 Test #1017: IpmSolverEntry.AnInBoxStartPointIsUnchangedByTheSameSolve .................................................   Passed    0.99 sec
+        Start 1020: InteriorPointSolverSettingsTest.InfRejectedByGreaterThanSetters
+217/400 Test #1016: IpmSolverEntry.AnOutOfBoxStartPointIsPushedInteriorBeforeTheFirstEvaluation ...............................   Passed    1.00 sec
+        Start 1021: InteriorPointSolverSettingsTest.NaNRejectedByValidateForEveryHelperFamily
+218/400 Test #1019: InteriorPointSolverSettingsTest.NaNRejectedBySiteNamedSetters .............................................   Passed    0.01 sec
+        Start 1022: IpmPhases.TheFiveRetiredJobModesAreFivePhaseSequences
+219/400 Test #1015: IpmSolverEntry.TheProbeBarrierOracleSolvesHs071OnItsOwnBarrierSchedule ....................................   Passed    1.00 sec
+        Start 1023: IpmPhases.TheEmptySequenceIsRefusedByValidate
+220/400 Test #1020: InteriorPointSolverSettingsTest.InfRejectedByGreaterThanSetters ...........................................   Passed    0.01 sec
+221/400 Test #1021: InteriorPointSolverSettingsTest.NaNRejectedByValidateForEveryHelperFamily .................................   Passed    0.01 sec
+        Start 1024: IpmPhaseSemantics.SolveOptimizeSolveSkipsTheTrailingSoeOnlyWhenOptConverged
+        Start 1025: IpmPhaseSemantics.OptimizeSolveSkipsTheTrailingSoeOnlyWhenOptConverged
+222/400 Test #1022: IpmPhases.TheFiveRetiredJobModesAreFivePhaseSequences .....................................................   Passed    0.01 sec
+        Start 1026: IpmPhaseSemantics.SolveOptimizeAlwaysRunsBothPhases
+223/400 Test #1023: IpmPhases.TheEmptySequenceIsRefusedByValidate .............................................................   Passed    0.01 sec
+        Start 1027: IpmPhaseSemantics.SolveAndOptimizeEachRunExactlyOnePhase
+224/400 Test #1027: IpmPhaseSemantics.SolveAndOptimizeEachRunExactlyOnePhase ..................................................   Passed    0.99 sec
+        Start 1028: IpmStopReason.NoSolveHasHappenedYet
+225/400 Test #1024: IpmPhaseSemantics.SolveOptimizeSolveSkipsTheTrailingSoeOnlyWhenOptConverged ...............................   Passed    1.00 sec
+226/400 Test #1026: IpmPhaseSemantics.SolveOptimizeAlwaysRunsBothPhases .......................................................   Passed    1.00 sec
+        Start 1029: IpmStopReason.AStalledFeasibilityStageIsRecordedAsSuch
+        Start 1030: IpmStopReason.WithDefaultDivergenceThresholdsTheSameFixtureDiverges
+227/400 Test #1025: IpmPhaseSemantics.OptimizeSolveSkipsTheTrailingSoeOnlyWhenOptConverged ....................................   Passed    1.00 sec
+        Start 1031: IpmStopReason.ARestorationLocalInfeasibilityIsRecordedAsSuch
+228/400 Test #1028: IpmStopReason.NoSolveHasHappenedYet .......................................................................   Passed    0.01 sec
+        Start 1032: IpmStopReason.TheLocallyInfeasibleDoorFiresItsRowOnBothStreams
+229/400 Test #1031: IpmStopReason.ARestorationLocalInfeasibilityIsRecordedAsSuch ..............................................   Passed    0.99 sec
+        Start 1033: IpmStopReason.TheDoorsMarkerFollowsItsOwnIterLineOnALiveSolve
+230/400 Test #1030: IpmStopReason.WithDefaultDivergenceThresholdsTheSameFixtureDiverges .......................................   Passed    0.99 sec
+        Start 1034: IpmStopReason.AStallOnTheCapIterationKeepsTheStallLabel
+231/400 Test #1032: IpmStopReason.TheLocallyInfeasibleDoorFiresItsRowOnBothStreams ............................................   Passed    0.99 sec
+        Start 1035: IpmStopReason.TheStalledDoorStillPrintsNoSolutionFoundAndCarriesItsMessage
+232/400 Test #1029: IpmStopReason.AStalledFeasibilityStageIsRecordedAsSuch ....................................................   Passed    1.00 sec
+        Start 1036: IpmStopReason.TheLocallyInfeasibleDoorStillPrintsNoSolutionFoundAndCarriesItsMessage
+233/400 Test #1033: IpmStopReason.TheDoorsMarkerFollowsItsOwnIterLineOnALiveSolve .............................................   Passed    1.00 sec
+        Start 1037: IpmStopReason.TheInterruptDoorStillPrintsNoSolutionFoundAndCarriesItsMessage
+234/400 Test #1036: IpmStopReason.TheLocallyInfeasibleDoorStillPrintsNoSolutionFoundAndCarriesItsMessage ......................   Passed    1.00 sec
+        Start 1038: IpmStopReason.OnlyResolutionEverProducesStalledOrInterrupted
+235/400 Test #1035: IpmStopReason.TheStalledDoorStillPrintsNoSolutionFoundAndCarriesItsMessage ................................   Passed    1.01 sec
+        Start 1039: IpmStopReason.TheProximalArmLeavesRestorationWhereTheL1ArmDeclaresInfeasibility
+236/400 Test #1034: IpmStopReason.AStallOnTheCapIterationKeepsTheStallLabel ...................................................   Passed    1.03 sec
+        Start 1040: IpmStopReason.TheProximalArmReEntersRestorationOnlyAfterLeavingIt
+237/400 Test #1037: IpmStopReason.TheInterruptDoorStillPrintsNoSolutionFoundAndCarriesItsMessage ..............................   Passed    1.00 sec
+        Start 1041: IpmStopReason.AnUnevaluableStepAtAnAcceptableIterateExitsAtTheAcceptableLevel
+238/400 Test #1039: IpmStopReason.TheProximalArmLeavesRestorationWhereTheL1ArmDeclaresInfeasibility ...........................   Passed    0.99 sec
+        Start 1042: IpmStopReason.AnUnevaluableStepAtAnUnacceptableIterateAbortsWithTheLatchedError
+239/400 Test #1038: IpmStopReason.OnlyResolutionEverProducesStalledOrInterrupted ..............................................   Passed    1.01 sec
+        Start 1043: IpmStopReason.AnUnevaluableStepWithRestorationAvailableEntersItThroughTheRecoveryChain
+240/400 Test #1040: IpmStopReason.TheProximalArmReEntersRestorationOnlyAfterLeavingIt .........................................   Passed    0.99 sec
+        Start 1044: IpmStopReason.TheLagrangianMeritVariantAbsorbsUnevaluableTrials
+241/400 Test #1043: IpmStopReason.AnUnevaluableStepWithRestorationAvailableEntersItThroughTheRecoveryChain ....................   Passed    0.99 sec
+242/400 Test #1044: IpmStopReason.TheLagrangianMeritVariantAbsorbsUnevaluableTrials ...........................................   Passed    0.98 sec
+        Start 1045: IpmStopReason.TheL1MeritVariantAbsorbsUnevaluableTrials
+        Start 1046: hven_compile_fail_unregistered_constraint
+243/400 Test #1042: IpmStopReason.AnUnevaluableStepAtAnUnacceptableIterateAbortsWithTheLatchedError ...........................   Passed    1.00 sec
+        Start 1058: Callback.SqpEventRowsEqualHistoryInCallerUnits
+244/400 Test #1041: IpmStopReason.AnUnevaluableStepAtAnAcceptableIterateExitsAtTheAcceptableLevel .............................   Passed    1.00 sec
+        Start 1059: Callback.SqpTerminalEventDiagnosticsAreTheResultsOwn
+245/400 Test #1058: Callback.SqpEventRowsEqualHistoryInCallerUnits ............................................................   Passed    0.01 sec
+        Start 1060: Callback.SqpStopReturnsInterruptedAtTheCurrentPoint
+246/400 Test #1059: Callback.SqpTerminalEventDiagnosticsAreTheResultsOwn ......................................................   Passed    0.01 sec
+        Start 1061: Callback.SqpConvergedBeatsStop
+247/400 Test #1061: Callback.SqpConvergedBeatsStop ............................................................................   Passed    0.02 sec
+        Start 1062: Callback.SqpStopInsideRestorationLatchesAndReachesTheParent
+248/400 Test #1060: Callback.SqpStopReturnsInterruptedAtTheCurrentPoint .......................................................   Passed    0.02 sec
+        Start 1063: Callback.SqpStopInsideRestorationArrivesAsTheSubSolvesOwnVerdict
+249/400 Test #1062: Callback.SqpStopInsideRestorationLatchesAndReachesTheParent ...............................................   Passed    0.02 sec
+        Start 1064: Callback.SqpEventXIsTheRowsOwnPointAcrossRestoration
+250/400 Test #1063: Callback.SqpStopInsideRestorationArrivesAsTheSubSolvesOwnVerdict ..........................................   Passed    0.03 sec
+        Start 1065: Callback.ASolveWithNoCallbackSnapshotsNothing
+251/400 Test #1064: Callback.SqpEventXIsTheRowsOwnPointAcrossRestoration ......................................................   Passed    0.02 sec
+        Start 1066: Callback.SqpStopOnANonConvergedCapTerminalRowIsANoOp
+252/400 Test #1065: Callback.ASolveWithNoCallbackSnapshotsNothing .............................................................   Passed    0.02 sec
+        Start 1067: Callback.SqpStopOnTheRestorationsConvergedRowInterruptsAndKeepsTheCertificate
+253/400 Test #1066: Callback.SqpStopOnANonConvergedCapTerminalRowIsANoOp ......................................................   Passed    0.01 sec
+        Start 1068: Callback.ClearingTheCallbackFromInsideItIsSafe
+254/400 Test #1067: Callback.SqpStopOnTheRestorationsConvergedRowInterruptsAndKeepsTheCertificate .............................   Passed    0.03 sec
+        Start 1069: Callback.ADirectSetAfterAThrownDeferralSupersedesIt
+255/400 Test #1068: Callback.ClearingTheCallbackFromInsideItIsSafe ............................................................   Passed    0.91 sec
+        Start 1070: Callback.ZeroMajorExitFiresOnceOrNever
+256/400 Test #1045: IpmStopReason.TheL1MeritVariantAbsorbsUnevaluableTrials ...................................................   Passed    1.00 sec
+        Start 1071: Callback.IpmContinuingEventObservesTheCommittedPoint
+257/400 Test #1070: Callback.ZeroMajorExitFiresOnceOrNever ....................................................................   Passed    0.01 sec
+        Start 1072: Callback.IpmTerminalRowStillFires
+258/400 Test #1069: Callback.ADirectSetAfterAThrownDeferralSupersedesIt .......................................................   Passed    0.90 sec
+        Start 1073: Callback.IpmStopEndsThePhaseSequence
+259/400 Test #1071: Callback.IpmContinuingEventObservesTheCommittedPoint ......................................................   Passed    1.00 sec
+        Start 1074: Callback.IpmTerminalEventDiagnosticsAreTheResultsOwn
+260/400 Test #1072: Callback.IpmTerminalRowStillFires .........................................................................   Passed    1.00 sec
+        Start 1075: Callback.IpmEventObjectiveIsNaNOnANonObjectiveBearingPhase
+261/400 Test #1073: Callback.IpmStopEndsThePhaseSequence ......................................................................   Passed    1.00 sec
+        Start 1076: Callback.IpmTerminalEventDescribesTheReturnedPointUnderReturnBest
+262/400 Test #1046: hven_compile_fail_unregistered_constraint .................................................................   Passed    2.21 sec
+        Start 1047: hven_compile_fail_constraint_only_objective
+263/400 Test #1076: Callback.IpmTerminalEventDescribesTheReturnedPointUnderReturnBest .........................................   Passed    1.00 sec
+        Start 1077: Callback.ThrowingCallbackPropagatesAndTheSolverIsReusable
+264/400 Test #1075: Callback.IpmEventObjectiveIsNaNOnANonObjectiveBearingPhase ................................................   Passed    1.00 sec
+        Start 1078: Callback.AReadOnlyCallbackChangesNothingOnEitherEngine
+265/400 Test #1074: Callback.IpmTerminalEventDiagnosticsAreTheResultsOwn ......................................................   Passed    1.01 sec
+        Start 1079: Callback.ClearingTheCallbackStopsTheEvents
+266/400 Test #1079: Callback.ClearingTheCallbackStopsTheEvents ................................................................   Passed    0.99 sec
+        Start 1080: CallbackPayload.TheOneArgumentOverloadStillDeliversEverything
+267/400 Test #1078: Callback.AReadOnlyCallbackChangesNothingOnEitherEngine ....................................................   Passed    1.00 sec
+268/400 Test #1077: Callback.ThrowingCallbackPropagatesAndTheSolverIsReusable .................................................   Passed    1.00 sec
+        Start 1081: CallbackPayload.ScalarsDeliversTheScalarsAndNothingElse
+        Start 1082: CallbackPayload.VectorsAloneDeliversTheViewsAndNaNDiagnostics
+269/400 Test #1047: hven_compile_fail_constraint_only_objective ...............................................................   Passed    2.17 sec
+        Start 1048: hven_compile_fail_partial_objective_surface
+270/400 Test #1081: CallbackPayload.ScalarsDeliversTheScalarsAndNothingElse ...................................................   Passed    1.00 sec
+271/400 Test #1082: CallbackPayload.VectorsAloneDeliversTheViewsAndNaNDiagnostics .............................................   Passed    1.00 sec
+        Start 1083: CallbackPayload.DiagnosticsAloneDeliversTheDiagnosticsAndEmptyViews
+        Start 1084: CallbackPayload.ClearingResetsTheMask
+272/400 Test #1080: CallbackPayload.TheOneArgumentOverloadStillDeliversEverything .............................................   Passed    1.00 sec
+        Start 1085: CallbackPayload.AMaskSetFromInsideTheCallbackTakesEffectAtTheNextEvent
+273/400 Test #1083: CallbackPayload.DiagnosticsAloneDeliversTheDiagnosticsAndEmptyViews .......................................   Passed    1.00 sec
+        Start 1086: CallbackPayload.ANarrowingSetFromInsideTheCallbackEmptiesTheLaterEvents
+274/400 Test #1085: CallbackPayload.AMaskSetFromInsideTheCallbackTakesEffectAtTheNextEvent ....................................   Passed    1.01 sec
+        Start 1087: CallbackPayload.AMaskWidenedFromInsideARestorationEventReachesTheSubDriver
+275/400 Test #1084: CallbackPayload.ClearingResetsTheMask .....................................................................   Passed    1.01 sec
+        Start 1088: CallbackPayload.AMaskNarrowedFromInsideARestorationEventReachesTheSubDriver
+276/400 Test #1086: CallbackPayload.ANarrowingSetFromInsideTheCallbackEmptiesTheLaterEvents ...................................   Passed    0.02 sec
+        Start 1089: CallbackPayload.AnEmptyCallableNormalisesTheMaskToAll
+277/400 Test #1087: CallbackPayload.AMaskWidenedFromInsideARestorationEventReachesTheSubDriver ................................   Passed    0.02 sec
+        Start 1090: CallbackPayload.TheObservationPointReadsTheActiveMask
+278/400 Test #1088: CallbackPayload.AMaskNarrowedFromInsideARestorationEventReachesTheSubDriver ...............................   Passed    0.02 sec
+        Start 1091: Concurrency.NInstancesOnNThreadsMatchSerial
+279/400 Test #1090: CallbackPayload.TheObservationPointReadsTheActiveMask .....................................................   Passed    0.00 sec
+        Start 1092: Concurrency.TwoPartitionedProgramsOnTwoThreadsMatchSerial
+280/400 Test #1048: hven_compile_fail_partial_objective_surface ...............................................................   Passed    2.17 sec
+        Start 1049: hven_compile_fail_objective_unsupported_mixin
+281/400 Test #1091: Concurrency.NInstancesOnNThreadsMatchSerial ...............................................................   Passed    0.97 sec
+        Start 1093: Concurrency.AWorkerThatThrowsFailsOnlyItsOwnTest
+282/400 Test #1089: CallbackPayload.AnEmptyCallableNormalisesTheMaskToAll .....................................................   Passed    0.99 sec
+        Start 1094: ConsoleSink.IpmScriptedRowsAreByteIdenticalToTheOldPrinterNarrow
+283/400 Test #1093: Concurrency.AWorkerThatThrowsFailsOnlyItsOwnTest ..........................................................   Passed    0.00 sec
+        Start 1095: ConsoleSink.IpmScriptedRowsAreByteIdenticalToTheOldPrinterWide
+284/400 Test #1094: ConsoleSink.IpmScriptedRowsAreByteIdenticalToTheOldPrinterNarrow ..........................................   Passed    0.00 sec
+        Start 1096: ConsoleSink.ThePhaseChangeColoursTheNextPhasesFirstRowAsAFirstRow
+285/400 Test #1095: ConsoleSink.IpmScriptedRowsAreByteIdenticalToTheOldPrinterWide ............................................   Passed    0.00 sec
+        Start 1097: ConsoleSink.ASecondSolveBeginAlsoResetsThePreviousRow
+286/400 Test #1096: ConsoleSink.ThePhaseChangeColoursTheNextPhasesFirstRowAsAFirstRow .........................................   Passed    0.00 sec
+        Start 1098: ConsoleSink.IpmRendersNothingAboveTheTiers
+287/400 Test #1097: ConsoleSink.ASecondSolveBeginAlsoResetsThePreviousRow .....................................................   Passed    0.00 sec
+        Start 1099: ConsoleSink.TheWholeScriptedTranscriptIsByteIdenticalToBaseNarrow
+288/400 Test #1098: ConsoleSink.IpmRendersNothingAboveTheTiers ................................................................   Passed    0.00 sec
+        Start 1100: ConsoleSink.TheWholeScriptedTranscriptIsByteIdenticalToBaseWide
+289/400 Test #1099: ConsoleSink.TheWholeScriptedTranscriptIsByteIdenticalToBaseNarrow .........................................   Passed    0.00 sec
+        Start 1101: ConsoleSink.TheResolvedStalledAndInterruptedVerdictsRenderAsNoSolutionFound
+290/400 Test #1100: ConsoleSink.TheWholeScriptedTranscriptIsByteIdenticalToBaseWide ...........................................   Passed    0.00 sec
+        Start 1102: ConsoleSink.TheT8_7bLineKindsEachRenderAtTheirOwnTier
+291/400 Test #1101: ConsoleSink.TheResolvedStalledAndInterruptedVerdictsRenderAsNoSolutionFound ...............................   Passed    0.00 sec
+        Start 1103: ConsoleSink.TheRestorationExitRowMarkerRendersNothing
+292/400 Test #1102: ConsoleSink.TheT8_7bLineKindsEachRenderAtTheirOwnTier .....................................................   Passed    0.00 sec
+        Start 1104: ConsoleSink.TheSqpTableIsByteIdenticalToFormatIterationTable
+293/400 Test #1103: ConsoleSink.TheRestorationExitRowMarkerRendersNothing .....................................................   Passed    0.00 sec
+        Start 1105: ConsoleSink.TheSqpTableRendersOnlyDepthZeroMajors
+294/400 Test #1104: ConsoleSink.TheSqpTableIsByteIdenticalToFormatIterationTable ..............................................   Passed    0.00 sec
+        Start 1106: ConsoleSink.TheSqpTableHonoursTheThreeTiers
+295/400 Test #1105: ConsoleSink.TheSqpTableRendersOnlyDepthZeroMajors .........................................................   Passed    0.00 sec
+        Start 1107: ConsoleSink.TheEightQpTierEventsRenderNothing
+296/400 Test #1106: ConsoleSink.TheSqpTableHonoursTheThreeTiers ...............................................................   Passed    0.00 sec
+        Start 1108: FanOut.ForwardsEveryEventToBothHalvesFirstThenSecond
+297/400 Test #1107: ConsoleSink.TheEightQpTierEventsRenderNothing .............................................................   Passed    0.00 sec
+        Start 1109: FanOut.ANullHalfIsSkippedRatherThanDereferenced
+298/400 Test #1108: FanOut.ForwardsEveryEventToBothHalvesFirstThenSecond ......................................................   Passed    0.00 sec
+        Start 1110: FanOut.AUserSinkIsNotDisplacedByTheConsole
+299/400 Test #1109: FanOut.ANullHalfIsSkippedRatherThanDereferenced ...........................................................   Passed    0.00 sec
+        Start 1111: Options.IpmValidateRefusesWhatSettingsValidateRefused
+300/400 Test #1110: FanOut.AUserSinkIsNotDisplacedByTheConsole ................................................................   Passed    0.00 sec
+        Start 1112: Options.CommonDefaultsAreEachEnginesOwn
+301/400 Test #1111: Options.IpmValidateRefusesWhatSettingsValidateRefused .....................................................   Passed    0.00 sec
+        Start 1113: Options.IpmSetOptionsIsTransactional
+302/400 Test #1112: Options.CommonDefaultsAreEachEnginesOwn ...................................................................   Passed    0.00 sec
+        Start 1114: Options.IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve
+303/400 Test #1113: Options.IpmSetOptionsIsTransactional ......................................................................   Passed    0.00 sec
+        Start 1115: Options.IpmSetOptionsDuringASolveThrowsLogicError
+304/400 Test #1092: Concurrency.TwoPartitionedProgramsOnTwoThreadsMatchSerial .................................................   Passed    1.45 sec
+        Start 1116: Options.IpmTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve
+305/400 Test #1115: Options.IpmSetOptionsDuringASolveThrowsLogicError .........................................................   Passed    0.95 sec
+        Start 1117: Options.PresetsReturnFullValues
+306/400 Test #1116: Options.IpmTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve ............................................   Passed    0.52 sec
+        Start 1118: Options.AnUnknownIpmPresetIsRefusedAndListsTheValidNames
+307/400 Test #1117: Options.PresetsReturnFullValues ...........................................................................   Passed    0.00 sec
+        Start 1119: Options.SqpCommonDefaultsAreTheStructsOwn
+308/400 Test #1118: Options.AnUnknownIpmPresetIsRefusedAndListsTheValidNames ..................................................   Passed    0.00 sec
+        Start 1120: Options.SqpValidateRefusesTheCommonFieldsAndWhatItAlwaysRefused
+309/400 Test #1119: Options.SqpCommonDefaultsAreTheStructsOwn .................................................................   Passed    0.00 sec
+        Start 1121: Options.SqpPresetsReturnFullValues
+310/400 Test #1114: Options.IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve ........................................   Passed    0.97 sec
+        Start 1122: Options.SqpSetOptionsIsTransactional
+311/400 Test #1120: Options.SqpValidateRefusesTheCommonFieldsAndWhatItAlwaysRefused ...........................................   Passed    0.00 sec
+        Start 1123: Options.SqpSetOptionsDuringASolveThrowsLogicError
+312/400 Test #1121: Options.SqpPresetsReturnFullValues ........................................................................   Passed    0.00 sec
+        Start 1124: Options.SqpTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve
+313/400 Test #1122: Options.SqpSetOptionsIsTransactional ......................................................................   Passed    0.01 sec
+        Start 1125: Options.SqpAnOptionReplacementDoesNotRestartTheLedgerLabelSequence
+314/400 Test #1123: Options.SqpSetOptionsDuringASolveThrowsLogicError .........................................................   Passed    0.01 sec
+        Start 1126: Options.TheOptionsFingerprintCoversEveryQpOptionsField
+315/400 Test #1124: Options.SqpTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve ............................................   Passed    0.01 sec
+        Start 1127: OptionsDump.IpmDumpsOneLinePerField
+316/400 Test #1126: Options.TheOptionsFingerprintCoversEveryQpOptionsField ....................................................   Passed    0.00 sec
+        Start 1128: OptionsDump.SqpDumpsOneLinePerField
+317/400 Test #1127: OptionsDump.IpmDumpsOneLinePerField .......................................................................   Passed    0.00 sec
+        Start 1129: OptionsDump.SqpDumpsTheCommonDefaults
+318/400 Test #1128: OptionsDump.SqpDumpsOneLinePerField .......................................................................   Passed    0.00 sec
+        Start 1130: OptionsDump.EnumsPrintEnumeratorNames
+319/400 Test #1129: OptionsDump.SqpDumpsTheCommonDefaults .....................................................................   Passed    0.00 sec
+        Start 1131: OptionsDump.IpmDumpHeadIsVerbatim
+320/400 Test #1130: OptionsDump.EnumsPrintEnumeratorNames .....................................................................   Passed    0.00 sec
+        Start 1132: OptionsDump.IsDeterministic
+321/400 Test #1125: Options.SqpAnOptionReplacementDoesNotRestartTheLedgerLabelSequence ........................................   Passed    0.02 sec
+        Start 1133: OptionsDump.NoTrailingWhitespace
+322/400 Test #1131: OptionsDump.IpmDumpHeadIsVerbatim .........................................................................   Passed    0.00 sec
+        Start 1134: OptionsDump.APoisonedStreamProducesTheSameBytes
+323/400 Test #1132: OptionsDump.IsDeterministic ...............................................................................   Passed    0.00 sec
+        Start 1135: OptionsDump.WritesIntoAStreamTheCallerIsAlreadyUsing
+324/400 Test #1133: OptionsDump.NoTrailingWhitespace ..........................................................................   Passed    0.00 sec
+        Start 1136: OptionsDump.ReadsTheValueItWasGiven
+325/400 Test #1134: OptionsDump.APoisonedStreamProducesTheSameBytes ...........................................................   Passed    0.00 sec
+        Start 1137: PrintTables.PredictorOutcomeNamesEveryEnumerator
+326/400 Test #1135: OptionsDump.WritesIntoAStreamTheCallerIsAlreadyUsing ......................................................   Passed    0.00 sec
+        Start 1138: PrintTables.PredictorOutcomeFallbackBelongsToNoDeclaredValue
+327/400 Test #1136: OptionsDump.ReadsTheValueItWasGiven .......................................................................   Passed    0.00 sec
+        Start 1139: PrintTables.StepVerdictNamesEveryEnumeratorAndFallsBackOnNoneOfThem
+328/400 Test #1137: PrintTables.PredictorOutcomeNamesEveryEnumerator ..........................................................   Passed    0.00 sec
+        Start 1140: VariableBoundCensusTable.ClassifiesEveryKindOfBoundedVariable
+329/400 Test #1138: PrintTables.PredictorOutcomeFallbackBelongsToNoDeclaredValue ..............................................   Passed    0.00 sec
+        Start 1141: VariableBoundCensusTable.AnEmptySideMeansUnboundedThereForEveryVariable
+330/400 Test #1139: PrintTables.StepVerdictNamesEveryEnumeratorAndFallsBackOnNoneOfThem .......................................   Passed    0.00 sec
+        Start 1142: VariableBoundCensusTable.RefusesANegativeWidthAndAMisSizedSide
+331/400 Test #1140: VariableBoundCensusTable.ClassifiesEveryKindOfBoundedVariable .............................................   Passed    0.00 sec
+        Start 1143: SolveStatus.SeverityIsTotalAndOrderedAsDocumented
+332/400 Test #1141: VariableBoundCensusTable.AnEmptySideMeansUnboundedThereForEveryVariable ...................................   Passed    0.00 sec
+        Start 1144: SolveStatus.IpmPhaseResolutionSplitsTheCapExitByStopReason
+333/400 Test #1142: VariableBoundCensusTable.RefusesANegativeWidthAndAMisSizedSide ............................................   Passed    0.00 sec
+        Start 1145: SolveStatus.TheNineDisplayNamesArePinnedLiterals
+334/400 Test #1143: SolveStatus.SeverityIsTotalAndOrderedAsDocumented .........................................................   Passed    0.00 sec
+        Start 1146: RestorationSubStatus.TheMapIsTotalAndTheSpellingsAreSolveStatusSPlusNotRun
+335/400 Test #1144: SolveStatus.IpmPhaseResolutionSplitsTheCapExitByStopReason ................................................   Passed    0.00 sec
+        Start 1147: DeclaredDiagnostics.ClosesOnAKktPointOfHs071
+336/400 Test #1145: SolveStatus.TheNineDisplayNamesArePinnedLiterals ..........................................................   Passed    0.00 sec
+        Start 1148: DeclaredDiagnostics.TwoSidedBoundUsesCanonicalSplit
+337/400 Test #1146: RestorationSubStatus.TheMapIsTotalAndTheSpellingsAreSolveStatusSPlusNotRun ................................   Passed    0.00 sec
+        Start 1149: DeclaredDiagnostics.ExcludedCoordinateIsNotMeasured
+338/400 Test #1147: DeclaredDiagnostics.ClosesOnAKktPointOfHs071 ..............................................................   Passed    0.00 sec
+        Start 1150: DeclaredDiagnostics.TheRefusalFixtureIsItselfWellFormed
+339/400 Test #1148: DeclaredDiagnostics.TwoSidedBoundUsesCanonicalSplit .......................................................   Passed    0.00 sec
+        Start 1151: DeclaredDiagnostics.RefusesEveryMalformedDeclaredBlock
+340/400 Test #1149: DeclaredDiagnostics.ExcludedCoordinateIsNotMeasured .......................................................   Passed    0.00 sec
+        Start 1152: DeclaredDiagnostics.TheGradLagDoorChecksItsOwnBlockWidths
+341/400 Test #1150: DeclaredDiagnostics.TheRefusalFixtureIsItselfWellFormed ...................................................   Passed    0.00 sec
+        Start 1153: DeclaredDiagnostics.ANonFiniteEntryReportsUnmeasuredRatherThanANumber
+342/400 Test #1151: DeclaredDiagnostics.RefusesEveryMalformedDeclaredBlock ....................................................   Passed    0.00 sec
+        Start 1154: IpmPhases.TrailingSolveIsConditionalOnThePrecedingOptimize
+343/400 Test #1152: DeclaredDiagnostics.TheGradLagDoorChecksItsOwnBlockWidths .................................................   Passed    0.00 sec
+        Start 1155: IpmPhases.EachPhaseCarriesItsOwnVerdict
+344/400 Test #1153: DeclaredDiagnostics.ANonFiniteEntryReportsUnmeasuredRatherThanANumber .....................................   Passed    0.00 sec
+        Start 1156: IpmPhases.EmptySequenceIsRefused
+345/400 Test #1156: IpmPhases.EmptySequenceIsRefused ..........................................................................   Passed    0.00 sec
+        Start 1157: SolveBudget.IpmMaxIterationsCapsEachPhase
+346/400 Test #1049: hven_compile_fail_objective_unsupported_mixin .............................................................   Passed    2.17 sec
+        Start 1050: hven_compile_fail_constraint_unsupported_mixin
+347/400 Test #1154: IpmPhases.TrailingSolveIsConditionalOnThePrecedingOptimize ................................................   Passed    0.93 sec
+        Start 1158: SolveBudget.SqpRestorationIsBudgetedFromTheEffectiveCap
+348/400 Test #1155: IpmPhases.EachPhaseCarriesItsOwnVerdict ...................................................................   Passed    0.93 sec
+349/400 Test #1157: SolveBudget.IpmMaxIterationsCapsEachPhase .................................................................   Passed    0.92 sec
+        Start 1159: SolveBudget.IpmClampsBeforeNarrowing
+        Start 1160: SolveBudget.TheSqpTakesABudgetOnEveryPublicOverload
+350/400 Test #1160: SolveBudget.TheSqpTakesABudgetOnEveryPublicOverload .......................................................   Passed    0.02 sec
+        Start 1161: IpmIntrospection.PatternQueryTakesTheModel
+351/400 Test #1158: SolveBudget.SqpRestorationIsBudgetedFromTheEffectiveCap ...................................................   Passed    0.03 sec
+        Start 1162: IpmIntrospection.AnalysisIdentityOutlivesTheAnalysingSolver
+352/400 Test #1161: IpmIntrospection.PatternQueryTakesTheModel ................................................................   Passed    0.98 sec
+        Start 1163: SolveResult.ExportIsASnapshotIndependentOfLaterEdits
+353/400 Test #1162: IpmIntrospection.AnalysisIdentityOutlivesTheAnalysingSolver ...............................................   Passed    0.98 sec
+        Start 1164: SolveResult.TheIpmFillsTheSharedDiagnosticsAtItsReturnedPoint
+354/400 Test #1159: SolveBudget.IpmClampsBeforeNarrowing ......................................................................   Passed    1.00 sec
+        Start 1165: SolveResult.UnmeasuredExitsReportNaNAndEmptyVectors
+355/400 Test #1165: SolveResult.UnmeasuredExitsReportNaNAndEmptyVectors .......................................................   Passed    0.00 sec
+        Start 1166: SolveResult.TheSqpFillsTheSharedDiagnosticsAtItsReturnedPoint
+356/400 Test #1166: SolveResult.TheSqpFillsTheSharedDiagnosticsAtItsReturnedPoint .............................................   Passed    0.01 sec
+        Start 1167: SolveResult.AFeasibilityOnlyLastPhaseReportsStationarityUnmeasured
+357/400 Test #1050: hven_compile_fail_constraint_unsupported_mixin ............................................................   Passed    2.16 sec
+        Start 1051: hven_compile_fail_adapter_missing_objective
+358/400 Test #1164: SolveResult.TheIpmFillsTheSharedDiagnosticsAtItsReturnedPoint .............................................   Passed    0.99 sec
+        Start 1168: SolveResult.AnObjectiveBearingLastPhaseReportsAllFour
+359/400 Test #1167: SolveResult.AFeasibilityOnlyLastPhaseReportsStationarityUnmeasured ........................................   Passed    0.98 sec
+        Start 1169: SolveResult.AnActiveRestorationExitEmptiesTheResidualBlocks
+360/400 Test #1163: SolveResult.ExportIsASnapshotIndependentOfLaterEdits ......................................................   Passed    1.00 sec
+        Start 1170: SolveResult.ReturnBestReportsTheBestIterateSObjective
+361/400 Test #1168: SolveResult.AnObjectiveBearingLastPhaseReportsAllFour .....................................................   Passed    1.00 sec
+        Start 1171: SolveResult.TheIpmClockRunsFromThePublicEntry
+362/400 Test #1169: SolveResult.AnActiveRestorationExitEmptiesTheResidualBlocks ...............................................   Passed    1.00 sec
+363/400 Test #1170: SolveResult.ReturnBestReportsTheBestIterateSObjective .....................................................   Passed    1.00 sec
+        Start 1172: Threads.ZeroLeavesEveryFactorAtTheBackendDefault
+        Start 1173: Threads.NonZeroReachesEveryFactorTier
+364/400 Test #1173: Threads.NonZeroReachesEveryFactorTier .....................................................................   Passed    0.02 sec
+        Start 1174: Threads.NonZeroReachesTheDenseBorderFactor
+365/400 Test #1172: Threads.ZeroLeavesEveryFactorAtTheBackendDefault ..........................................................   Passed    0.03 sec
+        Start 1175: Threads.ZeroLeavesTheDenseBorderFactorAtTheBackendDefault
+366/400 Test #1174: Threads.NonZeroReachesTheDenseBorderFactor ................................................................   Passed    0.01 sec
+        Start 1176: Threads.TheCallersThreadSettingSurvivesEveryTierAndTheRestoration
+367/400 Test #1175: Threads.ZeroLeavesTheDenseBorderFactorAtTheBackendDefault .................................................   Passed    0.01 sec
+        Start 1177: Threads.ZeroAndOneProduceIdenticalHistoriesAndCounters
+368/400 Test #1176: Threads.TheCallersThreadSettingSurvivesEveryTierAndTheRestoration .........................................   Passed    0.03 sec
+        Start 1178: Threads.ANegativeThreadCountIsRefusedByTheDriverConstructor
+369/400 Test #1178: Threads.ANegativeThreadCountIsRefusedByTheDriverConstructor ...............................................   Passed    0.00 sec
+        Start 1179: WarmProtocol.PayloadStampMismatchRefusesOnBothEngines
+370/400 Test #1177: Threads.ZeroAndOneProduceIdenticalHistoriesAndCounters ....................................................   Passed    0.08 sec
+        Start 1180: WarmProtocol.KIpmModeNoLongerColdGradesAMismatch
+371/400 Test #1180: WarmProtocol.KIpmModeNoLongerColdGradesAMismatch ..........................................................   Passed    0.88 sec
+        Start 1181: WarmProtocol.MultipliersOnlySeedResolvesSeededOnSqp
+372/400 Test #1171: SolveResult.TheIpmClockRunsFromThePublicEntry .............................................................   Passed    1.00 sec
+        Start 1182: WarmProtocol.MultipliersOnlySeedIgnoresAPolishExtension
+373/400 Test #1179: WarmProtocol.PayloadStampMismatchRefusesOnBothEngines .....................................................   Passed    0.94 sec
+        Start 1183: WarmProtocol.EmptyPrimalWithNonEmptyBoundDualsIsRefusedAtHandOver
+374/400 Test #1051: hven_compile_fail_adapter_missing_objective ...............................................................   Passed    2.17 sec
+        Start 1052: hven_compile_fail_deprecated_eval_grad
+375/400 Test #1183: WarmProtocol.EmptyPrimalWithNonEmptyBoundDualsIsRefusedAtHandOver .........................................   Passed    1.00 sec
+        Start 1184: WarmProtocol.NativePatternMismatchStillDegradesToSeeded
+376/400 Test #1182: WarmProtocol.MultipliersOnlySeedIgnoresAPolishExtension ...................................................   Passed    1.01 sec
+        Start 1185: WarmProtocol.NativeNonFiniteResolvesCold
+377/400 Test #1184: WarmProtocol.NativePatternMismatchStillDegradesToSeeded ...................................................   Passed    0.02 sec
+        Start 1186: WarmProtocol.SeededClampBandStillDegradesNotRefuses
+378/400 Test #1181: WarmProtocol.MultipliersOnlySeedResolvesSeededOnSqp .......................................................   Passed    1.02 sec
+        Start 1187: WarmProtocol.ColdCeilingIgnoresAndCountsThePayload
+379/400 Test #1185: WarmProtocol.NativeNonFiniteResolvesCold ..................................................................   Passed    0.02 sec
+        Start 1188: WarmProtocol.ColdCeilingStillRefusesAWrongStampAtTheRightDimensions
+380/400 Test #1186: WarmProtocol.SeededClampBandStillDegradesNotRefuses .......................................................   Passed    0.02 sec
+        Start 1189: WarmProtocol.TheIpmCeilingHasFourRungs
+381/400 Test #1052: hven_compile_fail_deprecated_eval_grad ....................................................................   Passed    1.50 sec
+        Start 1053: hven_compile_fail_deprecated_eval_ce
+382/400 Test #1189: WarmProtocol.TheIpmCeilingHasFourRungs ....................................................................   Passed    1.00 sec
+        Start 1190: WarmProtocol.ThePolishIgnoredCountAgreesAcrossTraceResultAndLedger
+383/400 Test #1187: WarmProtocol.ColdCeilingIgnoresAndCountsThePayload ........................................................   Passed    1.01 sec
+384/400 Test #1188: WarmProtocol.ColdCeilingStillRefusesAWrongStampAtTheRightDimensions .......................................   Passed    1.01 sec
+        Start 1191: WarmProtocol.TheSolveFamilyKeepsItsSeedlessAndItsPayloadEntries
+        Start 1192: WarmProtocol.RoundTripIpmToSqpToIpmStillWorks
+385/400 Test #1190: WarmProtocol.ThePolishIgnoredCountAgreesAcrossTraceResultAndLedger ........................................   Passed    0.97 sec
+386/400 Test #1192: WarmProtocol.RoundTripIpmToSqpToIpmStillWorks .............................................................   Passed    0.97 sec
+        Start 1193: AggregatePieceConcept.IsSatisfiedByAMinimalPieceAndByTheExistingPieces
+        Start 1194: AggregatePieceConcept.TheObjectiveKindIsNoWeakerThanTheSeamThatStoresOne
+387/400 Test #1193: AggregatePieceConcept.IsSatisfiedByAMinimalPieceAndByTheExistingPieces ....................................   Passed    0.01 sec
+        Start 1195: AggregateDeclarationTest.AcceptsAConsistentDeclaration
+388/400 Test #1194: AggregatePieceConcept.TheObjectiveKindIsNoWeakerThanTheSeamThatStoresOne ..................................   Passed    0.01 sec
+        Start 1196: AggregateDeclarationTest.AcceptsRowCountsWhenNoPiecesAreDeclared
+389/400 Test #1195: AggregateDeclarationTest.AcceptsAConsistentDeclaration ....................................................   Passed    0.01 sec
+        Start 1197: AggregateDeclarationTest.RejectsANonPositivePartitionCount
+390/400 Test #1191: WarmProtocol.TheSolveFamilyKeepsItsSeedlessAndItsPayloadEntries ...........................................   Passed    0.99 sec
+391/400 Test #1196: AggregateDeclarationTest.AcceptsRowCountsWhenNoPiecesAreDeclared ..........................................   Passed    0.01 sec
+        Start 1198: AggregateDeclarationTest.RejectsANegativeDimension
+        Start 1199: AggregateDeclarationTest.RejectsABoundOutsideTheVariableRange
+392/400 Test #1197: AggregateDeclarationTest.RejectsANonPositivePartitionCount ................................................   Passed    0.00 sec
+        Start 1200: AggregateDeclarationTest.RejectsANotANumberBound
+393/400 Test #1198: AggregateDeclarationTest.RejectsANegativeDimension ........................................................   Passed    0.00 sec
+394/400 Test #1199: AggregateDeclarationTest.RejectsABoundOutsideTheVariableRange .............................................   Passed    0.00 sec
+395/400 Test #1200: AggregateDeclarationTest.RejectsANotANumberBound ..........................................................   Passed    0.00 sec
+396/400 Test #1053: hven_compile_fail_deprecated_eval_ce ......................................................................   Passed    1.50 sec
+        Start 1054: hven_compile_fail_deprecated_eval_ci
+397/400 Test #1054: hven_compile_fail_deprecated_eval_ci ......................................................................   Passed    1.52 sec
+        Start 1055: hven_compile_fail_deprecated_eval_hess
+398/400 Test #1055: hven_compile_fail_deprecated_eval_hess ....................................................................   Passed    1.52 sec
+        Start 1056: hven_compile_fail_deprecated_eval_jac_e
+399/400 Test #1056: hven_compile_fail_deprecated_eval_jac_e ...................................................................   Passed    1.51 sec
+        Start 1057: hven_compile_fail_deprecated_eval_jac_i
+400/400 Test #1057: hven_compile_fail_deprecated_eval_jac_i ...................................................................   Passed    1.52 sec
+
+100% tests passed, 0 tests failed out of 400
+
+Total Test time (real) =  33.82 sec

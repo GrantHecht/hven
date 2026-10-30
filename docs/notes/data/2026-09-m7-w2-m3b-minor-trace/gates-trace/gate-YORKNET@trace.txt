@@ -1,0 +1,27 @@
+IDENTITY GATE  M3a=YORKNET@F-trinf.txt  probe=YORKNET@trace.txt
+  fields compared: 21  (20 QpCounters fields + the record status)
+    first_factorizations                       5106
+    first_schur_updates                      144684
+    first_minor_iters                          2560
+    first_eqp_refine_steps                        0
+    first_border_refine_steps                     9
+    first_verdict_refine_steps                    0
+    first_suspect_escalations                     0
+    first_k0_reused                               0
+    first_symbolic_analyses                       1
+    first_ws_adds                              1287
+    first_ws_drops                             1232
+    first_shift_adds                              0
+    first_degenerate_steps                     1257
+    first_degenerate_run_max                   1191
+    first_ws_adds_bound                        1287
+    first_ws_drops_bound                       1232
+    first_distinct_ineq_added                     0
+    first_distinct_bound_added                   95
+    first_drop_ties                              12
+    first_ratio_ties                             52
+    first_qp_record_status                 max_iter
+  DIFFERING: 0 -- the rebuilt HVEN_TESTING binary reproduces M3a's committed record 0 on all 20 fields and the status
+TRACE INTEGRITY  YORKNET@trace.csv
+  records=2560  minor_iters=2560  truncated=0  exit=max_iter  warm=0  solve_index=0  incoming_ws_size=0  solves_seen=1
+  OK -- one record per pass, nothing truncated, the cold first subproblem, exited on the cap

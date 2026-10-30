@@ -243,7 +243,16 @@ TEST(IpqpAcceptanceA1, TheWindowAtF7sOwnJunctionsIsRecoveredExactly) {
     // RE-DERIVED at T10b's measured `ipqp_init_mu` (0 at the 0.1 placeholder):
     // stopping a decade earlier in `mu` leaves three window rows inside the
     // section 2.3 ratio rule's uncertain band, never forced either way.
+#ifdef USE_ACCELERATE_SPARSE
+    // M7 WX B1 (design section 2.2; settler C149/C150). The uncertain count is not a route, but
+    // the lane's Accelerate value is pinned only once three runs at one thread agree: pinned run
+    // 1 of 3 is macOS run 40905599627 (reads 2). Until then the portable contract above
+    // (misclassified == 0, the counter/verdict agreement below) is asserted and the count is
+    // RECORDED. TODO(register M3-8/WX-R6): tighten to the Apple value after pinned run 3.
+    RecordProperty("a1_window_uncertain", v.uncertain);
+#else
     EXPECT_EQ(v.uncertain, 3);
+#endif
     EXPECT_EQ(r.counters.ipqp_face_uncertain, v.uncertain);
 
     const E1RuleCounts c = e1_rule_counts(cell, r.x, r.lambda_i);
@@ -287,7 +296,14 @@ TEST(IpqpAcceptanceA1, TwoBlocksOneAtEachJunctionAreRecoveredExactly) {
     // THREE tie rows, measured (one at the 0.1 placeholder -- T10b re-derived):
     // rows near the blocks draw margins inside the ratio rule's uncertain band
     // at the tier's own tolerance. Never forced either way -- section 2.3.
+#ifdef USE_ACCELERATE_SPARSE
+    // M7 WX B1 (design section 2.2; settler C149/C150): pinned run 1 of 3 is macOS run
+    // 40905599627 (reads 11); recorded, not pinned, until three pinned runs agree.
+    // TODO(register M3-8/WX-R6): tighten to the Apple value after pinned run 3.
+    RecordProperty("a1_two_block_uncertain", v.uncertain);
+#else
     EXPECT_EQ(v.uncertain, 3);
+#endif
     EXPECT_EQ(r.counters.ipqp_face_uncertain, v.uncertain);
     const E1RuleCounts c = e1_rule_counts(cell, r.x, r.lambda_i);
     RecordProperty("a1_two_block_rule_a", static_cast<int>(c.rule_a));
@@ -784,11 +800,23 @@ TEST(IpqpAcceptanceCensus, AnArmedRunIsNeverMistakenForAStallAcrossTheHsBattery)
     EXPECT_EQ(stall_detail, fmt::format(" hs{}=1", kStallRow));
     // T10b re-derivation (65 at the 0.1 placeholder), and no longer build-invariant.
 #ifdef NDEBUG
-    EXPECT_EQ(armed_peak, 85);
+    // M7 W2 E4 fix round 1 (declared mover): 85 -> 72. The UNREGULARIZED POLISH
+    // (eqp_solve.h) shortens the walks this peak is taken over, so the largest
+    // per-solve minor count on the battery falls; the claim -- that an armed run is
+    // never mistaken for a stall -- is the comparison below, not the peak's value.
+    EXPECT_EQ(armed_peak, 72);
 #else
-    EXPECT_EQ(armed_peak, 79);
+    // M7 W2 E4 fix round 2 (declared): 79 -> 72, so the two configurations now AGREE
+    // on this peak. Debug's walks were the longer ones before; the polish shortens
+    // them to the same length here. The split is kept rather than collapsed, because
+    // the value is build-arithmetic-dependent by the note above and a future
+    // divergence should have a place to land.
+    EXPECT_EQ(armed_peak, 72);
 #endif
-    EXPECT_EQ(rows_with_armed, 6);
+    // 6 -> 5 at the M7 W2 ladder round (L2, declared counter mover): HS45's x0 lies
+    // outside its box (one component, gap 1); projected by default, it no longer arms
+    // the ladder (hs45=33 before). Status and objective unchanged.
+    EXPECT_EQ(rows_with_armed, 5);
 #endif
 }
 

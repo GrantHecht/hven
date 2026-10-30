@@ -311,7 +311,17 @@ without a `default` will need the `kInterrupted` arm**, which T8.6 added.
 **The setters are gone on both engines.** `IpmSolver::Settings` is now
 `hven::solvers::IpmOptions` in the new public header
 `hven/drivers/ipm_solver_types.h`: same 65 knobs, same declaration order, same
-defaults, **trailing underscores dropped**. Two of them moved into the new
+defaults **as of the M6 API break**, **trailing underscores dropped**. (Three of
+those defaults have moved SINCE, at M7 W2 D1 on 2026-09-18 — `acceptance_strategy`
+to `filter`, `barrier_governor` to `monitored`, `max_iters` to 1000 — as one
+declared re-derivation event. The pre-break behaviour is still reachable, and
+bit-identically: `ipm_preset("classic")` with `max_iters = 500`. One behaviour
+break rides that same event: `never_monotone = true` on an otherwise-default
+`IpmOptions` now throws `std::invalid_argument` from `validate()`, because
+`monitored` is now the default and the hatch is contradictory with it — a
+caller that sets `never_monotone` must now also write
+`barrier_governor = classic_adaptive`.) Two of them
+moved into the new
 `hven::solvers::CommonOptions` (`hven/drivers/common_options.h`), which both
 engines embed as a member called `common`:
 

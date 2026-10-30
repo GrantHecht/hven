@@ -1,0 +1,12 @@
+3211/3213 Test #3213: Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <4C-00 00-00 00-00 00-00 7F-05 59-07 00-00 00-00>, 24-byte object <D1-6D 55-07 00-00 00-00 00-00 00-00 00-00 00-00 90-01 00-00 00-00 00-00>) ...   Passed    0.01 sec
+3212/3213 Test #3132: WarmStartBattery.CrossoverChainOnTheBridgeFamilyBeatsCold ..........................................................................................................................................................   Passed    2.26 sec
+3213/3213 Test #1921: M7T3ElasticRungVehicle.TheConstructedCellFiresTheElasticRungAndPricesBothEngines ...................................................................................................................................   Passed   49.04 sec
+
+100% tests passed, 0 tests failed out of 3211
+
+Total Test time (real) = 134.44 sec
+
+The following tests did not run:
+	664 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1926 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1927 - EqpRefinementAb.FullBattery (Disabled)

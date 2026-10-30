@@ -1,0 +1,95 @@
+PGREP_EMPTY e3-phase7 2026-09-26T20:28:53-04:00
+FOREGROUND_START e3-phase7 2026-09-26T20:28:53-04:00
+=== STEP ctest-release-mode3 2026-09-26T20:28:53-04:00
+ctest release mode3 rc=8
+97% tests passed, 75 tests failed out of 2863
+Total Test time (real) = 100.48 sec
+The following tests FAILED:
+	467 - QpE2WorkingSet.AStructuralDependencyDecidesFirstOnTheSteenbrbElasticQp (Failed)
+	474 - QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp3 (Failed)
+	475 - QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp4 (Failed)
+	476 - QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp5 (Failed)
+	477 - QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp6 (Failed)
+	502 - QpNc2FlatFace.AWrongSignedDropOnAnLpFaceRidesTheRayToItsBlocker (Failed)
+	504 - QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeRefactorize (Failed)
+	505 - QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder (Failed)
+	508 - QpNc2FlatFace.TheSteenbrbRestorationLpQp4NeverAscendsTheSlopeRefactorize (Failed)
+	509 - QpNc2FlatFace.TheSteenbrbRestorationLpQp4NeverAscendsTheSlopeBorder (Failed)
+	510 - E3.MeasureOrdinaryStep (Failed)
+	1504 - ActivityTelemetry.WeakActiveRowsIsNonVacuousOnAControlledPrice (Failed)
+	1541 - B1Gate.EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair (Failed)
+	1575 - Continuation.SweepF1CrossesActivationsWarm (Failed)
+	1576 - Continuation.AdaptiveDpGrowsAndShrinks (Failed)
+	1577 - Continuation.PredictorOffCostsMore (Failed)
+	1578 - Continuation.TwoParameterSweepFollowsTheDirection (Failed)
+	1579 - Continuation.DegradedPredictionsAreCountedNotHidden (Failed)
+	1580 - Continuation.ShrinkRetriesFromTheLastGoodWarm (Failed)
+	1584 - Continuation.ZeroLengthSweepIsJustTheColdSolve (Failed)
+	1585 - Continuation.SubnormalSegmentIsRefusedRatherThanCalledZeroLength (Failed)
+	1586 - Continuation.FailingInitialPointIsCountedAsAFailedAttempt (Failed)
+	1592 - Continuation.FailedRunReturnsRatherThanThrows (Failed)
+	1914 - IpqpDispatch.TheFeasibilityHookTakesTheEvidenceAndRunsItsTwoRungLadder (Failed)
+	1917 - IpqpDispatch.KIpmAndKWalkAgreeOnTheAnswerAcrossTheHsBattery (Failed)
+	2108 - ParametricF1.AnalyticPathMatchesColdSolve (Failed)
+	2136 - Predictor.PredictorHandlesBoundCrossing (Failed)
+	2137 - Predictor.PredictorKeepsWeaklyActiveRow (Failed)
+	2143 - Predictor.FrozenActivityModeTakesTheRawStep (Failed)
+	2149 - PredictorRatioTest.InheritsTheTrueActivitySetAcrossAnActivationThreshold (Failed)
+	2181 - QpEngine.OracleBattery (Failed)
+	2244 - QpEngineBorder.BorderModeCountsUpdates (Failed)
+	2260 - QpEngineIndefinite.GateIsANoOpOnAConvexFixture (Failed)
+	2266 - QpEngineIndefinite.RideWithNoBlockerReportsNumericalError (Failed)
+	2268 - QpEngineIndefinite.RideDeclinesAFlatDirectionOnAPsdSingularQp (Failed)
+	2275 - QpEngineIndefinite.EngineLandsOnALocalMinimizer (Failed)
+	2277 - QpEngineIndefinite.WeaklyActiveBoundIsNotCertifiedOptimal (Failed)
+	2279 - QpEngineIndefinite.WeaklyActiveGeneralRowIsNotCertifiedEither (Failed)
+	2280 - QpEngineIndefinite.PostProbeRestartIsOneShotPerSolve (Failed)
+	2302 - QpEngineTr.StoredRegularizationValidationLeavesWellFormedValuesUntouched (Failed)
+	2319 - QpWarmStart.HotStateEmitsCommittedIdentityNotLive (Failed)
+	2339 - F7ColdScaleSmoke.EmptyWindowColdSolveAtTenThousandVariables (Failed)
+	2356 - SqpEqualityBasis.F8SameCardinalityRowSwapDropsTheRowCarries (Failed)
+	2359 - SqpEqualityBasis.T5OffIsByteIdenticalToThePreE1BaseOnADependentQp (Failed)
+	2383 - SqpDriverBounds.Hs3ReachesItsBoundConstrainedSolution (Failed)
+	2394 - SqpDriverTrustRegion.RejectionShrinksAndRetriesHotly (Failed)
+	2403 - SqpDriverQpFailure.QpNumericalErrorShrinksInsteadOfAborting (Failed)
+	2405 - SqpDriverQpFailure.RepeatedQpNumericalErrorStillPropagates (Failed)
+	2408 - SqpDriverQpFailure.RepeatedQpMaxIterStillPropagates (Failed)
+	2412 - SqpDriverSoc.SocDefeatsMaratos (Failed)
+	2422 - SqpDriverElastic.InconsistentLinearizationRecovers (Failed)
+	2425 - SqpDriverElastic.RhoEscalationIsBoundedAndSignals (Failed)
+	2426 - SqpDriverElastic.EarlyExitCutsTheLadderOnABoundPinnedFixture (Failed)
+	2427 - SqpDriverElastic.EarlyExitCutsBothActivationsOnASecondBoundPinnedFixture (Failed)
+	2448 - SqpDriverSsnMode.AnEscapedSubproblemLandsInTheWalkAndStillCertifies (Failed)
+	2515 - SqpDriverCertifiedFallback.T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnItsWorstFixture (Failed)
+	2516 - SqpDriverCertifiedFallback.T7TheT3ARouteIsREACHABLEAtTheDriverAndCostsOneExtraLadder (Failed)
+	2518 - SqpDriverCertifiedFallback.T7F1TheSameInconsistentLinearizationInAllThreeModes (Failed)
+	2519 - SqpDriverCertifiedFallback.T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearization (Failed)
+=== STEP u0-mode3 2026-09-26T20:30:33-04:00
+u0 mode3 rc=1
+    WITHIN-GATE f7_n1000_bound_physics kkt_primal A=1.079633839e-16  B=1.085259744e-16
+    WITHIN-GATE f7_n1000_bound_warm kkt_primal A=2.759659681e-15  B=1.547009608e-16
+    WITHIN-GATE f7_n1000_path_warm kkt_primal A=4.445677160e-11  B=4.444522528e-11
+    WITHIN-GATE f7_n1000_path_warm kkt_complementarity A=1.081515277e-15  B=1.081344571e-15
+    WITHIN-GATE f7_n20000_bound_activity kkt_primal A=1.365272909e-16  B=1.429331247e-16
+    WITHIN-GATE f7_n20000_bound_corrupted kkt_primal A=5.392944711e-14  B=1.888257151e-16
+    WITHIN-GATE f7_n20000_bound_physics kkt_primal A=1.365272909e-16  B=1.429331247e-16
+    WITHIN-GATE f7_n20000_bound_warm kkt_primal A=5.394909349e-14  B=1.689989270e-16
+    WITHIN-GATE f7_n2000_bound_activity kkt_primal A=1.105729050e-16  B=1.119655175e-16
+    WITHIN-GATE f7_n2000_bound_corrupted kkt_primal A=5.425851090e-15  B=1.756464040e-16
+    WITHIN-GATE f7_n2000_bound_neutral kkt_primal A=3.878155499e-14  B=2.500616457e-16
+    WITHIN-GATE f7_n2000_bound_physics kkt_primal A=1.105729050e-16  B=1.119655175e-16
+    WITHIN-GATE f7_n2000_bound_warm kkt_primal A=5.419408507e-15  B=1.690169737e-16
+    WITHIN-GATE f7_n5000_bound_activity kkt_primal A=1.110891234e-16  B=1.580603570e-16
+    WITHIN-GATE f7_n5000_bound_corrupted kkt_primal A=1.351772635e-14  B=1.735734450e-16
+    WITHIN-GATE f7_n5000_bound_neutral kkt_primal A=9.692247005e-14  B=2.627975884e-16
+    WITHIN-GATE f7_n5000_bound_physics kkt_primal A=1.110891234e-16  B=1.580603570e-16
+    WITHIN-GATE f7_n5000_bound_warm kkt_primal A=1.353613753e-14  B=1.627551614e-16
+    WITHIN-GATE f7_n800_path_warm kkt_primal A=4.285150013e-11  B=4.284250732e-11
+    WITHIN-GATE f7_n800_path_warm kkt_complementarity A=1.295715293e-15  B=1.295550365e-15
+  CMP_RC=1
+=== M6 CLOSE HEAD-ssn vs M7 W2 NC2 HEAD-ssn (GATED 1e-5) === cells compared: 27  columns compared: 75  differences: 0  within gate: 0
+  CMP_RC=0
+=== M6 CLOSE HEAD-ipm vs M7 W2 NC2 HEAD-ipm (GATED 1e-5) === cells compared: 27  columns compared: 75  differences: 0  within gate: 0
+  CMP_RC=0
+PHASE7_OK
+FOREGROUND_END e3-phase7 2026-09-26T20:35:25-04:00 rc=0

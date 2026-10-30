@@ -1,0 +1,222 @@
+# E2-D2 scratch instrumentation (env-gated; scratch tree only)
+import re, sys
+T = sys.argv[1]
+def sub(path, old, new, count=1):
+    s = open(path).read()
+    n = s.count(old)
+    assert n == count, (path, old[:80], n)
+    s = s.replace(old, new)
+    open(path, 'w').write(s)
+
+E = T + '/src/qp/qp_engine.cpp'
+W = T + '/src/qp/ws_independence.cpp'
+H = T + '/include/hven/detail/qp/ws_independence.h'
+
+# ---- shared d2 header bits (in ws_independence.h so both TUs see them)
+sub(H, 'struct EntryDetection {', '''} // namespace hven::solvers::detail
+#include <cstdio>
+#include <cstdlib>
+namespace hven::solvers::d2 {
+inline int level() { static const int l = [] { const char *e = std::getenv("HVEN_D2"); return e ? std::atoi(e) : 0; }(); return l; }
+inline long trace_solve() { static const long v = [] { const char *e = std::getenv("HVEN_D2_TRACE"); return e ? std::atol(e) : -1L; }(); return v; }
+inline char cand() { static const char c = [] { const char *e = std::getenv("HVEN_D2_CAND"); return e ? e[0] : '0'; }(); return c; }
+inline long &solve_no() { static thread_local long v = -1; return v; }
+inline long &iter_no() { static thread_local long v = -1; return v; }
+inline bool on() { return level() > 0 && (trace_solve() < 0 || trace_solve() == solve_no()); }
+inline double dump_rho() { static const double v = [] { const char *e = std::getenv("HVEN_D2_TOL"); return e ? std::atof(e) : 1e-6; }(); return v; }
+} // namespace hven::solvers::d2
+namespace hven::solvers::detail {
+struct EntryDetection {''')
+
+# ---- detector: print support + candidates A/B
+sub(W, '''    if (!(scaled_max > 0.0)) {
+        return d;
+    }
+    d.found = true;
+    for (std::size_t k = 0; k < nc; ++k) {
+        if (scaled[k] >= kDepCoeffTol * scaled_max) {
+            d.support.push_back(sys.comp[k]);
+        }
+    }
+    if (!sys.bordered) {
+        for (Index i = 0; i < qp.n(); ++i) {
+            if (bs[static_cast<std::size_t>(i)] != BoundState::kFree &&
+                std::abs(pin_coef(i)) >= kDepCoeffTol * scaled_max) {
+                d.support.push_back(WsMember{WsMember::Kind::kPin, i});
+            }
+        }
+    }
+    return d;''', '''    if (!(scaled_max > 0.0)) {
+        return d;
+    }
+    double rows_max = 0.0;
+    for (std::size_t k = 0; k < nc; ++k) rows_max = std::max(rows_max, scaled[k]);
+    const char cd = d2::cand();
+    // (B) the rows' threshold stays on the rows' own maximum
+    const double thr_max = (cd == 'B' && !sys.bordered && rows_max > 0.0) ? rows_max : scaled_max;
+    d.found = true;
+    for (std::size_t k = 0; k < nc; ++k) {
+        if (scaled[k] >= kDepCoeffTol * thr_max) {
+            d.support.push_back(sys.comp[k]);
+        }
+    }
+    bool rows_removable = false;
+    for (const WsMember &m : d.support) {
+        if (m.kind == WsMember::Kind::kRow ||
+            (m.kind == WsMember::Kind::kPin && bs[static_cast<std::size_t>(m.idx)] != BoundState::kFixed)) {
+            rows_removable = true;
+        }
+    }
+    const bool add_pins = !sys.bordered && !(cd == 'A' && rows_removable);
+    if (add_pins) {
+        for (Index i = 0; i < qp.n(); ++i) {
+            if (bs[static_cast<std::size_t>(i)] != BoundState::kFree &&
+                std::abs(pin_coef(i)) >= kDepCoeffTol * thr_max) {
+                d.support.push_back(WsMember{WsMember::Kind::kPin, i});
+            }
+        }
+    }
+    if (d2::on()) {
+        std::fprintf(stderr, "D2DET solve=%ld iter=%ld bordered=%d nc=%zu resid=%.3e scaled_max=%.6e rows_max=%.6e support:",
+                     d2::solve_no(), d2::iter_no(), (int)sys.bordered, nc, d.null_residual, scaled_max, rows_max);
+        for (std::size_t k = 0; k < nc; ++k) {
+            if (scaled[k] >= 1e-3 * kDepCoeffTol * scaled_max) {
+                const WsMember &m = sys.comp[k];
+                std::fprintf(stderr, " %c%ld=%.3e%s", m.kind == WsMember::Kind::kEq ? 'E' : (m.kind == WsMember::Kind::kRow ? 'R' : 'P'),
+                             (long)m.idx, scaled[k], scaled[k] >= kDepCoeffTol * thr_max ? "" : "(x)");
+            }
+        }
+        if (!sys.bordered) {
+            for (Index i = 0; i < qp.n(); ++i) {
+                if (bs[static_cast<std::size_t>(i)] != BoundState::kFree && std::abs(pin_coef(i)) >= 1e-3 * kDepCoeffTol * scaled_max) {
+                    std::fprintf(stderr, " P%ld=%.3e%s%s", (long)i, std::abs(pin_coef(i)),
+                                 bs[static_cast<std::size_t>(i)] == BoundState::kFixed ? "F" : "",
+                                 (add_pins && std::abs(pin_coef(i)) >= kDepCoeffTol * thr_max) ? "" : "(x)");
+                }
+            }
+        }
+        std::fprintf(stderr, "\\n");
+    }
+    return d;''')
+
+# ---- engine
+sub(E, '''    for (Index iter = 0; !crossed_bounds && iter < eff_max_iter; ++iter) {
+        ++counters.minor_iters;''', '''    ++d2::solve_no();
+    if (d2::level() > 0) {
+        std::fprintf(stderr, "D2SOLVE solve=%ld n=%ld me=%ld mi=%ld warm=%d iws=%d\\n", d2::solve_no(), (long)n, (long)me, (long)mi, (int)warm, (int)eff_opts.independent_working_set);
+    }
+    if (const char *dd = std::getenv("HVEN_D2_DUMPQP"); dd != nullptr && d2::on()) {
+        char path[1024];
+        std::snprintf(path, sizeof path, "%s/qp_%03ld.txt", dd, d2::solve_no());
+        std::FILE *f = std::fopen(path, "w");
+        std::fprintf(f, "n %ld me %ld mi %ld\\nH\\n", (long)qp.n(), (long)qp.me(), (long)qp.mi());
+        for (Index i = 0; i < qp.H.outerSize(); ++i) for (SpMatRM::InnerIterator it(qp.H, i); it; ++it) std::fprintf(f, "%ld %ld %.17g\\n", (long)it.row(), (long)it.col(), it.value());
+        std::fprintf(f, "END\\ng\\n"); for (Index i = 0; i < qp.n(); ++i) std::fprintf(f, "%.17g ", qp.g(i));
+        std::fprintf(f, "\\nAe\\n");
+        for (Index i = 0; i < qp.me(); ++i) for (SpMatRM::InnerIterator it(qp.Ae, i); it; ++it) std::fprintf(f, "%ld %ld %.17g\\n", (long)it.row(), (long)it.col(), it.value());
+        std::fprintf(f, "END\\nbe\\n"); for (Index i = 0; i < qp.me(); ++i) std::fprintf(f, "%.17g ", qp.be(i));
+        std::fprintf(f, "\\nAi\\n");
+        for (Index i = 0; i < qp.mi(); ++i) for (SpMatRM::InnerIterator it(qp.Ai, i); it; ++it) std::fprintf(f, "%ld %ld %.17g\\n", (long)it.row(), (long)it.col(), it.value());
+        std::fprintf(f, "END\\nbi\\n"); for (Index i = 0; i < qp.mi(); ++i) std::fprintf(f, "%.17g ", qp.bi(i));
+        std::fprintf(f, "\\nlower\\n"); for (Index i = 0; i < qp.n(); ++i) std::fprintf(f, "%.17g ", qp.lower(i));
+        std::fprintf(f, "\\nupper\\n"); for (Index i = 0; i < qp.n(); ++i) std::fprintf(f, "%.17g ", qp.upper(i));
+        std::fprintf(f, "\\n");
+        std::fclose(f);
+    }
+    for (Index iter = 0; !crossed_bounds && iter < eff_max_iter; ++iter) {
+        ++counters.minor_iters;
+        d2::iter_no() = iter;
+        if (const char *dw = std::getenv("HVEN_D2_DUMPWS"); dw != nullptr && d2::on()) {
+            char path[1024];
+            std::snprintf(path, sizeof path, "%s/ws_%03ld_%04ld.txt", dw, d2::solve_no(), (long)iter);
+            std::FILE *f = std::fopen(path, "w");
+            std::fprintf(f, "x\\n"); for (Index i = 0; i < n; ++i) std::fprintf(f, "%.17g ", x(i));
+            std::fprintf(f, "\\nbs\\n"); for (Index i = 0; i < n; ++i) std::fprintf(f, "%d ", (int)ws.bound_state()[static_cast<std::size_t>(i)]);
+            std::fprintf(f, "\\nW\\n"); for (const Index r : ws.active_ineq()) std::fprintf(f, "%ld ", (long)r);
+            std::fprintf(f, "\\nshift\\n"); for (Index i = 0; i < mi; ++i) std::fprintf(f, "%.17g ", shift(i));
+            std::fprintf(f, "\\n");
+            std::fclose(f);
+        }
+        if (d2::on()) {
+            std::fprintf(stderr, "D2P solve=%ld iter=%ld W=%zu pins=%ld me=%ld n=%ld elim_only=%d facts=%ld\\n", d2::solve_no(), (long)iter,
+                         ws.active_ineq().size(), (long)(n - ws.num_free()), (long)me, (long)n, (int)eliminated_only, (long)counters.factorizations);
+        }''')
+
+sub(E, '''                    ++(entry_check_pending ? counters.entry_dependency_removals
+                                           : counters.dep_recheck_removals);''', '''                    ++(entry_check_pending ? counters.entry_dependency_removals
+                                           : counters.dep_recheck_removals);
+                    if (d2::on()) {
+                        std::fprintf(stderr, "D2RM solve=%ld iter=%ld entry=%d over=%d removed=%c%ld deferred=%c%ld mark=%d\\n", d2::solve_no(), (long)iter,
+                                     (int)entry_check_pending, (int)over, removed.kind == detail::WsMember::Kind::kRow ? 'R' : (removed.kind == detail::WsMember::Kind::kPin ? 'P' : 'E'), (long)removed.idx,
+                                     deferred_member.kind == detail::WsMember::Kind::kRow ? 'R' : 'P', (long)deferred_member.idx,
+                                     (int)(!entry_check_pending && deferred_member.kind == removed.kind && deferred_member.idx == removed.idx));
+                    }''')
+
+# add-site: per blocker trace + candidate D
+sub(E, '''                const bool known_dependent =
+                    !moves && (pt_flags(seen, is_ineq, block_idx) & kPtKnownDependent) != 0;''', '''                bool known_dependent =
+                    !moves && (pt_flags(seen, is_ineq, block_idx) & kPtKnownDependent) != 0;
+                {
+                    const Oriented o0 = oriented(is_ineq, block_idx, block_state);
+                    const double anorm = is_ineq ? qp.Ai.row(block_idx).norm() : 1.0;
+                    const double rate = std::abs(o0.cp) / (anorm * p.norm());
+                    if (d2::on()) {
+                        std::fprintf(stderr, "D2B solve=%ld iter=%ld blk=%c%ld side=%d alpha=%.3e moves=%d verdict=%d rho=%.3e screen=%d kd=%d cp=%.3e rate=%.3e viol=%.3e scale=%.3e |p|=%.3e\\n",
+                                     d2::solve_no(), (long)iter, is_ineq ? 'R' : 'P', (long)block_idx, (int)block_state, alpha, (int)moves, (int)t.verdict, t.rho, (int)t.screen,
+                                     (int)known_dependent, o0.cp, rate, o0.cx - o0.d, o0.scale, p.norm());
+                    }
+                    if (d2::cand() == 'D' && known_dependent) {
+                        if (rate <= detail::kDepTol) {
+                            if (d2::on()) std::fprintf(stderr, "D2SKIP\\n");
+                            refused = true; // handled as noise skip below
+                        } else {
+                            if (d2::on()) std::fprintf(stderr, "D2STALE\\n");
+                            known_dependent = false;
+                        }
+                    }
+                }''')
+sub(E, '''                if (!t.dependent() && !known_dependent) {
+                    break; // the ordinary add
+                }
+                bool refused = false;''', '''                if (!t.dependent() && !known_dependent && !refused) {
+                    break; // the ordinary add
+                }''')
+# declare refused before the trace block
+sub(E, '''                detail::DepTest t =
+                    test_candidate(qp, ws, pass_view, is_ineq, block_idx, counters, eff_opts);''', '''                detail::DepTest t =
+                    test_candidate(qp, ws, pass_view, is_ineq, block_idx, counters, eff_opts);
+                bool refused = false;''')
+sub(E, '''                if (t.verdict != detail::DepVerdict::kDependent && known_dependent) {''', '''                if (refused) {
+                    ++counters.dep_known_dependent_refusals;
+                    xpick = ExchangePick{};
+                } else if (t.verdict != detail::DepVerdict::kDependent && known_dependent) {''')
+sub(E, '''                    if (xpick.found) {
+                        break; // the exchange
+                    }''', '''                    if (d2::on()) {
+                        std::fprintf(stderr, "D2X solve=%ld iter=%ld found=%d cond1=%d j=%c%ld verdict=%d\\n", d2::solve_no(), (long)iter, (int)xpick.found, (int)xpick.cond1,
+                                     xpick.j_is_ineq ? 'R' : 'P', (long)xpick.j, (int)t.verdict);
+                    }
+                    if (xpick.found) {
+                        break; // the exchange
+                    }''')
+sub(E, '''                if (!within) {
+                    add_exit = AddExit::kTerminate;
+                    break;
+                }''', '''                if (d2::on()) {
+                    std::fprintf(stderr, "D2PASS solve=%ld iter=%ld within=%d next=%d:%ld a2=%.3e\\n", d2::solve_no(), (long)iter, (int)within, (int)k2, (long)i2, a2);
+                }
+                if (!within) {
+                    add_exit = AddExit::kTerminate;
+                    break;
+                }''')
+sub(E, '''    QpSolution out;
+    out.status = status;''', '''    if (d2::level() > 0) {
+        std::fprintf(stderr, "D2END solve=%ld status=%d minors=%ld facts=%ld recheck_rm=%ld kd_refusals=%ld passovers=%ld blk_term=%ld zm_cap=%ld deferred=%ld xch=%ld retreats=%ld cert=%ld\\n",
+                     d2::solve_no(), (int)status, (long)counters.minor_iters, (long)counters.factorizations, (long)counters.dep_recheck_removals,
+                     (long)counters.dep_known_dependent_refusals, (long)counters.dep_passovers, (long)counters.dep_blocker_terminations,
+                     (long)counters.zero_motion_cap_hits, (long)counters.dep_deferred_adds, (long)counters.ws_exchanges, (long)counters.dep_border_retreats,
+                     (long)counters.dep_infeasible_certificates);
+    }
+    QpSolution out;
+    out.status = status;''')
+print("ok")

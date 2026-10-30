@@ -1,0 +1,140 @@
+M7 W2 M2 -- THE GATES AT 9a08a715
+=================================
+
+Six segments, each inside its own `flock /tmp/box-build.lock` acquisition with no
+timeout and no fallback, markers inside the lock, `set -o pipefail`. The tree was
+refused if not clean; it was clean at the start of every segment and is clean now.
+Window 2026-09-18T15:18:42-04:00 to 2026-09-18T18:58:54-04:00. Wrapper:
+`wrappers/gates.sh`.
+
+| gate | result |
+|---|---|
+| G1  Debug suite, the >600 s test excluded | **2662 / 2662 passed, 0 failed**, rc 0 |
+| G2  `Continuation.ProbeBudgetBoundsAFailingProposal`, ALONE | **passed, 669.98 s**, rc 0 |
+| G3  Release suite | **2663 / 2663 passed, 0 failed**, rc 0 (102.08 s) |
+| G4  U0 27-cell three-arm replay vs the M6 close pin | **27 / 75 / 0 on all three engines** |
+| G5  P-SYM, Release and Debug, classified vs `aeebdccc` | exit 1 as EXPECTED; **0 UNEXPLAINED in both** |
+| G6  install smoke, clang-format, `git diff --check` | rc 0 / 0 replacements / clean |
+
+Two disabled tests and one skipped control did not run in either config, as they
+do not on any build of this tree: `EqpRefinementAb.FootprintRuleProbe`,
+`EqpRefinementAb.FullBattery` (Disabled) and
+`FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas`
+(Skipped).
+
+THE SUITE COUNT MOVED BY FOUR, and that is this task's four fixtures:
+`SqpDriverRestorationExcursion.{TheResumeArmRecordsTheCallersOwnExcursion,
+TheTerminalArmRecordsThePointItReports,
+ARefusedSecondRequestLeavesTheFirstEntrysRecord, ACleanSolveHoldsNoReading}`.
+The Release suite reads **2663** here, and the Debug count is one lower because
+G1 excludes the long test and G2 runs it. The count at `aeebdccc` is NOT quoted:
+no leg of this task measured it, and 2663 - 4 is arithmetic rather than an
+observation.
+
+G4, verbatim from `replay/comparison.txt`:
+
+    === M6 CLOSE HEAD-walk vs M7 W2 M2 HEAD-walk === cells compared: 27  columns compared: 75  differences: 0
+    === M6 CLOSE HEAD-ssn  vs M7 W2 M2 HEAD-ssn  === cells compared: 27  columns compared: 75  differences: 0
+    === M6 CLOSE HEAD-ipm  vs M7 W2 M2 HEAD-ipm  === cells compared: 27  columns compared: 75  differences: 0
+
+THE REPLAY IS THE OFF-IDENTITY PROOF, and it came back unmoved because it had to:
+this commit writes five counters and changes no trajectory. The A-SQP read warned
+that a declared re-derivation should be budgeted for any M2 change; it was
+budgeted and was not needed, because the SHAPE has not landed -- only the record.
+
+G5, P-SYM. Exit 1 is the expected status: five public fields move
+`sizeof(SqpCounters)` 808 -> 848 in every TU that lays the struct out, so the gate
+is the CLASSIFICATION and not byte-identity.
+
+| config | differing objects | class A (source changed here) | class B (includers of the changed header) | UNEXPLAINED | negative control |
+|---|---:|---:|---:|---:|---:|
+| Release | 54 | 5 | 49 | **0** | 54 |
+| Debug | 54 | 5 | 49 | **0** | 54 |
+
+**The two classifications are BYTE-IDENTICAL** (`diff` of the two files is empty),
+which is the stronger statement: the same 54 objects move for the same reasons in
+both configs. The classifier's header list is THIS task's own -- exactly
+`include/hven/core/solver_counters.h`, the one header M7 W2 M2 edits -- and not a
+copy of M1's three-header list, which would have credited these objects to
+headers this task never touched. Class A is the five edited `.cpp` files. **The
+negative control is 54 objects that ALSO include that header and are
+byte-identical**, so the differing set is not "everything that sees the header".
+
+G6. `scripts/check_install_smoke.sh` rc 0. `clang-format --dry-run -Werror` on the
+six authored files: 0 replacements. `git diff --check`: clean. Working tree:
+clean.
+
+THE EXPORT-CONTRACT CHECK IS RECORDED SEPARATELY AND THE REASON IS MINE, NOT THE
+TREE'S: `scripts/check_export_contract.sh` takes three arguments
+(`<hvenTargets.cmake> <apple|windows|linux> <expected-align-bytes>`) and the
+first invocation in `gates.sh` passed none, so the script REFUSED with its usage
+message -- a defect in my wrapper, which is why G6 still reported rc 0 on its
+own last command. It was re-run afterwards, alone under the lock, against this
+task's own install prefix with `linux 32` --
+
+    scripts/check_export_contract.sh \
+      <prefix>/lib64/cmake/hven/hvenTargets.cmake linux 32
+
+-- and at the moment the rest of this artifact was committed that re-run was
+STILL QUEUED behind the other lane's 1800 s cell, which is what taking the lock
+with no timeout and no fallback means. It was recorded as OUTSTANDING there
+rather than claimed, and the wait is left on the record rather than tidied away.
+
+IT HAS SINCE LANDED, and it is `export-contract.txt` beside this file, verbatim:
+it ran at 19:29:00 and reports **`export contract OK for platform=linux,
+align=32`**, rc 0 -- platform macro set, `EIGEN_MAX_ALIGN_BYTES` exported 32
+against computed 32, no `INTERFACE_COMPILE_OPTIONS`, and
+`INTERFACE_INCLUDE_DIRECTORIES` appearing exactly once. The check reads a
+generated CMake file and asserts the alignment the export advertises; no
+measurement on this page depended on it either way.
+
+--- APPENDED 2026-09-18, BY THE WRITING ROUND (the page/README/report task) ---
+
+G6b EXPORT CONTRACT: **CLOSED, rc 0.** The re-run this file recorded as
+OUTSTANDING landed at 2026-09-18T19:29:01-04:00, alone inside its own
+`flock /tmp/box-build.lock` acquisition taken with no timeout and no fallback --
+it had been queued since 19:00 behind the other lane's 1800 s re-pin cell, which
+is what "no timeout and no fallback" costs and buys. It was NOT re-launched by
+this round; the process already queued is the one that ran, and its transcript is
+copied verbatim to `export-contract.txt` beside this file.
+
+    scripts/check_export_contract.sh \
+      <prefix>/lib64/cmake/hven/hvenTargets.cmake linux 32
+
+    platform macro set OK for linux
+    EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+    INTERFACE_COMPILE_OPTIONS OK: absent
+    INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+    == export contract OK for platform=linux, align=32
+    EXPORT_CONTRACT_RC=0
+
+The table above is NOT rewritten: it recorded what was true when it was written.
+This record is the append the outstanding line asked for, and with it the
+measurement is complete -- all six gate segments plus G6b, green.
+
+--- CORRECTION, 2026-09-18, BY THE WRITING ROUND ---
+
+A SECOND COPY of the G6b record was appended by me in `01d24747` and is removed
+here. It said the same thing twice: I re-derived the append after reading HEAD,
+not having seen that the block above had already landed -- carried into
+`7e0c6691` with my staged README when the retiring measurement implementer
+committed from the shared index. Nothing above this line is edited, the record
+that remains is the first one, and this line is why the file shrank between
+`01d24747` and the commit that carries this note.
+
+`01d24747`'s own message says the outstanding paragraph was "left byte-for-byte
+as it was". That is true OF THAT COMMIT'S DIFF -- it deletes nothing -- but not
+of the file's history: the implementer had already rewritten that paragraph in
+`7e0c6691` to point at the landed transcript. The message cannot be amended, so
+the correction is recorded here instead.
+
+--- APPENDED 2026-09-18, BY THE PAGE FIX ROUND (review F6) ---
+
+THE TWO DURATIONS IN THE TABLE ABOVE ARE INFORMATIONAL, not measurements.
+G2's "669.98 s" and G3's "(102.08 s)" are ctest's own wall-clock report,
+recorded because the transcript carried them; under CLAUDE.md section 7 a
+wall-clock number is quotable only from a serialized suite run alone on the
+machine and asserted as such, and these are not. They assert nothing and are
+compared against nothing. The label the README and PROVENANCE carry
+artifact-wide applies to them; it is written out here so the transcript cannot
+be read on its own as a timing claim. Nothing above this line is edited.

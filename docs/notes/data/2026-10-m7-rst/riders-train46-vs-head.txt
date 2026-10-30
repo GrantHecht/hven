@@ -1,0 +1,49 @@
+# rider head a5c29790 (runs/r46) against the measured RST head 80da6e46 (runs/hyb46), every non-time field.
+# BIGBANK sqp-qn: the RST head row is its 590 s re-run (runs/hybdiag), the 450 s hyb46 cell having capped.
+ACOPP118-default       IDENTICAL
+ACOPP118-sqp-qn        IDENTICAL
+ACOPP57-default        IDENTICAL
+ACOPP57-sqp-qn         IDENTICAL
+ACOPR118-default       IDENTICAL
+ACOPR118-sqp-qn        IDENTICAL
+ACOPR57-default        IDENTICAL
+ACOPR57-sqp-qn         IDENTICAL
+BIGBANK-default        IDENTICAL
+BIGBANK-sqp-qn         IDENTICAL
+BRITGAS-default        IDENTICAL
+BRITGAS-sqp-qn         IDENTICAL
+DALLASM-default        IDENTICAL
+DALLASM-sqp-qn         IDENTICAL
+MSS2-default           capped both
+MSS2-sqp-qn            IDENTICAL
+MSS3-default           capped both
+MSS3-sqp-qn            capped both
+NET3-default           MOVED: ['side.evals_values']
+NET3-sqp-qn            IDENTICAL
+READING6-default       IDENTICAL
+READING6-sqp-qn        IDENTICAL
+READING8-default       capped both
+READING8-sqp-qn        capped both
+SAWPATH-default        IDENTICAL
+SAWPATH-sqp-qn         IDENTICAL
+SMBANK-default         IDENTICAL
+SMBANK-sqp-qn          IDENTICAL
+STEENBRB-default       IDENTICAL
+STEENBRB-sqp-qn        IDENTICAL
+STEENBRC-default       IDENTICAL
+STEENBRC-sqp-qn        IDENTICAL
+STEENBRD-default       IDENTICAL
+STEENBRD-sqp-qn        IDENTICAL
+STEENBRE-default       IDENTICAL
+STEENBRE-sqp-qn        IDENTICAL
+STEENBRG-default       IDENTICAL
+STEENBRG-sqp-qn        IDENTICAL
+TAX213322-default      capped both
+TAX213322-sqp-qn       capped both
+TAX53322-default       capped both
+TAX53322-sqp-qn        capped both
+YORKNET-default        IDENTICAL
+YORKNET-sqp-qn         IDENTICAL
+ZAMB2-8-default        IDENTICAL
+ZAMB2-8-sqp-qn         IDENTICAL
+# 45 of 46 identical or capped both

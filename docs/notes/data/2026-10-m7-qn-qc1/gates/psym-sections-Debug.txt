@@ -1,0 +1,20 @@
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/core/ledger.cpp.o  sections=[.text]
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/drivers/assembly_eval_seam.cpp.o  sections=[SECTION-COUNT(4717->4782)]
+DEBUG-ONLY       CMakeFiles/hven.dir/src/drivers/console_trace_sink.cpp.o
+DEBUG-ONLY       CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o  sections=[.eh_frame,.gcc_except_table,.group,.llvm_addrsig,.rela.data.DW.ref.__gxx_personality_v0,.rela.data.rel.ro._ZTIN3fmt3v1212format_errorE,.rela.d
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o  sections=[.text]
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o  sections=[SECTION-COUNT(10128->10861)]
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o  sections=[.eh_frame,.gcc_except_table,.group,.llvm_addrsig,.rela.data.DW.ref.__gxx_personality_v0,.rela.data.rel.ro,.rela.data.rel.ro._ZTIN3fmt3v1212fo
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o  sections=[SECTION-COUNT(5588->5601)]
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o  sections=[.eh_frame,.rela.text._ZN4hven7solvers10SqpOptionsC2Ev,.symtab,.text,.text._ZN4hven7solvers10SqpOptionsC2Ev,.text._ZN4hven7solvers9QpOptionsC2Ev]
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o  sections=[.eh_frame,.rela.eh_frame,.rela.text,.rela.text._ZN5Eigen8internal10redux_implINS0_13scalar_max_opIddLi0EEENS0_15redux_evaluatorINS_12CwiseUnaryOpINS0
+DEBUG-ONLY       CMakeFiles/hven.dir/src/qp/ssn_engine.cpp.o
+DEBUG-ONLY       CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o  sections=[.eh_frame,.gcc_except_table._ZNSt12_Vector_baseIN4hven7solvers16ContinuationStepESaIS2_EED2Ev,.rela.text._ZNSt12_Vector_baseIN4hven7solvers
+SECTIONS_Debug_OBJECTS=44
+SECTIONS_Debug_BYTE_IDENTICAL=30
+SECTIONS_Debug_DEBUG_ONLY=4
+SECTIONS_Debug_NON_DEBUG_MOVERS=10
+SECTIONS_Debug_REFUSED=0
+SECTIONS_Debug_RC=1

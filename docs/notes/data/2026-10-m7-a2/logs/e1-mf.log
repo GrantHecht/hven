@@ -1,0 +1,39 @@
+sweep e1_f7_n4000_af01_m1e-2: optimal iters=22 facts=23 wall=0.50s
+sweep e1_f7_n4000_af01_m1e-4: optimal iters=24 facts=25 wall=0.53s
+sweep e1_f7_n4000_af01_m1e-6: optimal iters=22 facts=23 wall=0.49s
+sweep e1_f7_n4000_af10_m1e-2: optimal iters=26 facts=27 wall=0.56s
+sweep e1_f7_n4000_af10_m1e-4: optimal iters=21 facts=22 wall=0.47s
+sweep e1_f7_n4000_af10_m1e-6: optimal iters=19 facts=20 wall=0.43s
+sweep e1_f7_n4000_af30_m1e-2: optimal iters=19 facts=20 wall=0.43s
+sweep e1_f7_n4000_af30_m1e-4: optimal iters=13 facts=14 wall=0.32s
+sweep e1_f7_n4000_af30_m1e-6: optimal iters=23 facts=24 wall=0.50s
+sweep e1_f7_n20000_af01_m1e-2: optimal iters=26 facts=27 wall=2.95s
+sweep e1_f7_n20000_af01_m1e-4: optimal iters=27 facts=28 wall=3.03s
+sweep e1_f7_n20000_af01_m1e-6: optimal iters=29 facts=30 wall=3.19s
+sweep e1_f7_n20000_af10_m1e-2: optimal iters=26 facts=27 wall=2.92s
+sweep e1_f7_n20000_af10_m1e-4: optimal iters=26 facts=27 wall=2.92s
+sweep e1_f7_n20000_af10_m1e-6: optimal iters=22 facts=23 wall=2.52s
+sweep e1_f7_n20000_af30_m1e-2: optimal iters=35 facts=36 wall=3.80s
+sweep e1_f7_n20000_af30_m1e-4: optimal iters=13 facts=14 wall=1.64s
+sweep e1_f7_n20000_af30_m1e-6: optimal iters=19 facts=20 wall=2.23s
+sweep e1_anchor_f7_n20000_bound_neutral: optimal iters=8 facts=9 wall=1.03s
+sweep e1_anchor_f7_n20000_path_neutral: optimal iters=8 facts=9 wall=1.03s
+sweep e1blk_f7_n20000_af01_m1e-2: optimal iters=20 facts=21 wall=2.31s
+sweep e1blk_f7_n20000_af01_m1e-4: optimal iters=23 facts=24 wall=2.59s
+sweep e1blk_f7_n20000_af01_m1e-6: optimal iters=18 facts=19 wall=2.13s
+sweep e1blk_f7_n20000_af10_m1e-2: optimal iters=24 facts=25 wall=2.71s
+sweep e1blk_f7_n20000_af10_m1e-4: optimal iters=15 facts=16 wall=1.84s
+sweep e1blk_f7_n20000_af10_m1e-6: optimal iters=19 facts=20 wall=2.21s
+sweep e1blk_f7_n20000_af30_m1e-2: optimal iters=18 facts=19 wall=2.13s
+sweep e1blk_f7_n20000_af30_m1e-4: optimal iters=15 facts=16 wall=1.83s
+sweep e1blk_f7_n20000_af30_m1e-6: optimal iters=18 facts=19 wall=2.12s
+
+A4 GATE (Amendment F), 29 cells:
+  [PASS] every cell converges               29 / 29
+  [PASS] iterations < 40                    29 / 29
+  [RED] tier-contract recovery             12 / 27
+  [RED] end-to-end recovery                8 / 27
+  [RED] exact recovery (E1 Rule A)         1 / 27
+  [PASS] no blow-up across active fraction 
+  factorizations: tier 627, tier+polish 656 (PIQP: 9-18 iters/cell)
+A4 VERDICT: GREEN but for the named exception

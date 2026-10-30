@@ -1,0 +1,19 @@
+CHAIN_START 2026-09-21T16:56:31-04:00
+HEAD 29073877  dirty-files=0
+GATES_FIX2_RC=0
+FOREGROUND_START fold-proofs 2026-09-21T17:29:18-04:00
+PGREP_EMPTY fold-proofs: no foreign cell binary under my lock
+PATH_OK /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers/fold_proofs_m3b.sh
+PATH_OK /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers/fold_proofs_psym_fix2.sh
+PATH_OK /home/ghecht/Projects/hven/.scratch/m7w2m3bfix2/gates-dbg/CTestTestfile.cmake
+FOLD_PROOFS_RC=0  FOLD_PROOFS_PSYM_RC=0
+FOREGROUND_END fold-proofs 2026-09-21T17:29:26-04:00
+FOLD_PROOFS_AGGREGATE_RC=0
+
+FOLD_PROOFS_TOTAL=46  FOLD_PROOFS_FAILED=0
+FOLD_PROOFS_END 2026-09-21T17:29:19-04:00
+NOTE  P6 non-vacuity: version 1 ACCEPTS bad-nameterm.o -- the fold above is a real difference
+PSYM_FOLD_PROOFS_FIX2_TOTAL=60  PSYM_FOLD_PROOFS_FIX2_FAILED=0
+PSYM_FOLD_PROOFS_FIX2_END 2026-09-21T17:29:26-04:00
+CHAIN_END 2026-09-21T17:29:26-04:00
+CHAIN_SUMMARY gates=0 fold_proofs=0

@@ -1,0 +1,278 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:40:36-04:00
+FOREGROUND_END rc=0 2026-10-23T06:40:53-04:00
+[4/6] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+[5/6] Linking CXX executable bench/hven_sqp_corpus
+[6/6] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:40:53-04:00
+FOREGROUND_END rc=1 2026-10-23T06:40:56-04:00
+[  FAILED  ] IpqpMarginStop.TheInBandTrulyActiveRowIsNeverDemotedUnderEitherHistory
+[  FAILED  ] IpqpMarginStop.OnTheE1TightMarginClassTheExtensionAndDemotionRecoverThePolish
+[  FAILED  ] IpqpMarginStop.OnTheE1TightMarginClassTheExponentTestLeavesSlackCollapsingRowsCommitted
+
+ 7 FAILED TESTS
+MUTANT M1 exponent test never flags: KILLED by IpqpMarginStop.ABudgetExitDuringTheExtensionReturnsTheFirstStopResultWhole;IpqpMarginStop.GateEightResolvableSaddlesDowngradeAndTheirPartnersCertify;IpqpMarginStop.GateEightUnresolvableKeepsItsCertificateAndFlagWithItsSidesUncertain;IpqpMarginStop.OnTheE1TightMarginClassTheExponentTestLeavesSlackCol
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:40:56-04:00
+FOREGROUND_END rc=0 2026-10-23T06:41:09-04:00
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:41:09-04:00
+FOREGROUND_END rc=1 2026-10-23T06:41:12-04:00
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] IpqpMarginStop.TheInBandTrulyActiveRowIsNeverDemotedUnderEitherHistory
+[  FAILED  ] IpqpMarginStop.AWarmConvergedGateEightSeedIsCountedAsAFallbackSuspect
+
+ 2 FAILED TESTS
+MUTANT M2 band fallback inverted: KILLED by IpqpMarginStop.AWarmConvergedGateEightSeedIsCountedAsAFallbackSuspect;IpqpMarginStop.TheInBandTrulyActiveRowIsNeverDemotedUnderEitherHistory
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:41:12-04:00
+FOREGROUND_END rc=0 2026-10-23T06:41:24-04:00
+[1/2] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/qp/ipqp_engine.cpp.o
+[2/2] Linking CXX executable tests/hven_ipqp_seam_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:41:24-04:00
+FOREGROUND_END rc=1 2026-10-23T06:41:24-04:00
+[  PASSED  ] 1 test.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] IpqpMarginSeams.TheThreeArmsDifferOnTheWarmSeedsAndTheUnresolvableMemberOnly
+
+ 1 FAILED TEST
+MUTANT M3 ON-2X acts on band suspects at the candidate: KILLED by IpqpMarginSeams.TheThreeArmsDifferOnTheWarmSeedsAndTheUnresolvableMemberOnly
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:41:24-04:00
+FOREGROUND_END rc=0 2026-10-23T06:41:38-04:00
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:41:38-04:00
+FOREGROUND_END rc=1 2026-10-23T06:41:41-04:00
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] IpqpMarginStop.OnTheE1TightMarginClassTheExtensionAndDemotionRecoverThePolish
+[  FAILED  ] IpqpMarginStop.OnTheE1TightMarginClassTheExponentTestLeavesSlackCollapsingRowsCommitted
+
+ 2 FAILED TESTS
+MUTANT M4 extension keeps the configured slack: KILLED by IpqpMarginStop.OnTheE1TightMarginClassTheExponentTestLeavesSlackCollapsingRowsCommitted;IpqpMarginStop.OnTheE1TightMarginClassTheExtensionAndDemotionRecoverThePolish
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:41:41-04:00
+FOREGROUND_END rc=0 2026-10-23T06:41:54-04:00
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:41:54-04:00
+FOREGROUND_END rc=1 2026-10-23T06:41:57-04:00
+[  PASSED  ] 11 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] IpqpMarginStop.AWarmKillDuringTheExtensionReturnsTheFirstStopResultWhole
+
+ 1 FAILED TEST
+MUTANT M5 warm-kill during the extension restarts cold: KILLED by IpqpMarginStop.AWarmKillDuringTheExtensionReturnsTheFirstStopResultWhole
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:41:57-04:00
+FOREGROUND_END rc=0 2026-10-23T06:42:09-04:00
+[1/2] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/qp/ipqp_engine.cpp.o
+[2/2] Linking CXX executable tests/hven_ipqp_seam_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:42:09-04:00
+FOREGROUND_END rc=1 2026-10-23T06:42:09-04:00
+[  PASSED  ] 1 test.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] IpqpMarginSeams.AnEvidenceFailureDuringTheExtensionReturnsTheCandidateWhole
+
+ 1 FAILED TEST
+MUTANT M6 evidence failure during the extension is carried: KILLED by IpqpMarginSeams.AnEvidenceFailureDuringTheExtensionReturnsTheCandidateWhole
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:42:09-04:00
+FOREGROUND_END rc=0 2026-10-23T06:42:22-04:00
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:42:22-04:00
+FOREGROUND_END rc=1 2026-10-23T06:42:25-04:00
+[  PASSED  ] 11 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] IpqpMarginStop.GateEightUnresolvableKeepsItsCertificateAndFlagWithItsSidesUncertain
+
+ 1 FAILED TEST
+MUTANT M7 demotion forces INACTIVE: KILLED by IpqpMarginStop.GateEightUnresolvableKeepsItsCertificateAndFlagWithItsSidesUncertain
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:42:25-04:00
+FOREGROUND_END rc=0 2026-10-23T06:42:39-04:00
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:42:39-04:00
+FOREGROUND_END rc=1 2026-10-23T06:42:41-04:00
+[  FAILED  ] IpqpMarginStop.ABudgetExitDuringTheExtensionReturnsTheFirstStopResultWhole
+[  FAILED  ] IpqpMarginStop.AWarmKillDuringTheExtensionReturnsTheFirstStopResultWhole
+[  FAILED  ] IpqpMarginStop.TheSolveLevelEventsAreEmittedOnceForTheReturnedResult
+
+ 3 FAILED TESTS
+MUTANT M8 non-converged extension returns the live result: KILLED by IpqpMarginStop.ABudgetExitDuringTheExtensionReturnsTheFirstStopResultWhole;IpqpMarginStop.AWarmKillDuringTheExtensionReturnsTheFirstStopResultWhole;IpqpMarginStop.TheSolveLevelEventsAreEmittedOnceForTheReturnedResult
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:42:41-04:00
+FOREGROUND_END rc=0 2026-10-23T06:42:55-04:00
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:42:55-04:00
+FOREGROUND_END rc=1 2026-10-23T06:42:58-04:00
+[  PASSED  ] 11 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] IpqpMarginStop.ABudgetExitDuringTheExtensionReturnsTheFirstStopResultWhole
+
+ 1 FAILED TEST
+MUTANT M9 a budget-refused second read is finalised: KILLED by IpqpMarginStop.ABudgetExitDuringTheExtensionReturnsTheFirstStopResultWhole
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:42:58-04:00
+FOREGROUND_END rc=0 2026-10-23T06:43:11-04:00
+[4/6] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/qp/ipqp_engine.cpp.o
+[5/6] Linking CXX executable tests/hven_ipqp_seam_tests
+[6/6] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:43:11-04:00
+FOREGROUND_END rc=0 2026-10-23T06:43:11-04:00
+[----------] 2 tests from IpqpMarginSeams (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (4 ms total)
+[  PASSED  ] 2 tests.
+MUTANT M10 ON-2X demotes by the band at an uninformative final pass: SURVIVED
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:43:11-04:00
+FOREGROUND_END rc=0 2026-10-23T06:43:21-04:00
+[3/5] Linking CXX static library libhven.a
+[4/5] Linking CXX executable bench/hven_sqp_corpus
+[5/5] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:43:21-04:00
+FOREGROUND_END rc=1 2026-10-23T06:43:24-04:00
+[  PASSED  ] 11 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] IpqpMarginStop.DefaultsOffAndRefusesTheCountSentinelAndAnyOutOfRangeValue
+
+ 1 FAILED TEST
+MUTANT M11 validation admits the count sentinel: KILLED by IpqpMarginStop.DefaultsOffAndRefusesTheCountSentinelAndAnyOutOfRangeValue
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:43:24-04:00
+FOREGROUND_END rc=0 2026-10-23T06:43:40-04:00
+[3/5] Linking CXX static library libhven.a
+[4/5] Linking CXX executable bench/hven_sqp_corpus
+[5/5] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:43:40-04:00
+FOREGROUND_END rc=1 2026-10-23T06:43:40-04:00
+[  PASSED  ] 14 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] AccumulateIpqpCounters.EveryOtherIndexFieldSumsAcrossSubproblems
+
+ 1 FAILED TEST
+MUTANT M12 fold overwrites ipqp_margin_demoted: KILLED by AccumulateIpqpCounters.EveryOtherIndexFieldSumsAcrossSubproblems
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:43:40-04:00
+FOREGROUND_END rc=0 2026-10-23T06:43:53-04:00
+[3/5] Linking CXX static library libhven.a
+[4/5] Linking CXX executable bench/hven_sqp_corpus
+[5/5] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:43:53-04:00
+FOREGROUND_END rc=1 2026-10-23T06:43:56-04:00
+[  PASSED  ] 11 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] IpqpMarginStop.TheSolveLevelEventsAreEmittedOnceForTheReturnedResult
+
+ 1 FAILED TEST
+MUTANT M13 a returned candidate's certify event is dropped: KILLED by IpqpMarginStop.TheSolveLevelEventsAreEmittedOnceForTheReturnedResult
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:43:56-04:00
+FOREGROUND_END rc=0 2026-10-23T06:44:10-04:00
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:44:10-04:00
+FOREGROUND_END rc=1 2026-10-23T06:44:12-04:00
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] IpqpMarginStop.OnTheE1TightMarginClassTheExtensionAndDemotionRecoverThePolish
+[  FAILED  ] IpqpMarginStop.OnTheE1TightMarginClassTheExponentTestLeavesSlackCollapsingRowsCommitted
+
+ 2 FAILED TESTS
+MUTANT M14 rows read a scrambled previous multiplier: KILLED by IpqpMarginStop.OnTheE1TightMarginClassTheExponentTestLeavesSlackCollapsingRowsCommitted;IpqpMarginStop.OnTheE1TightMarginClassTheExtensionAndDemotionRecoverThePolish
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:44:12-04:00
+FOREGROUND_END rc=0 2026-10-23T06:44:26-04:00
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:44:26-04:00
+FOREGROUND_END rc=1 2026-10-23T06:44:29-04:00
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] IpqpMarginStop.GateEightResolvableSaddlesDowngradeAndTheirPartnersCertify
+[  FAILED  ] IpqpMarginStop.OnTheE1TightMarginClassTheExtensionAndDemotionRecoverThePolish
+
+ 2 FAILED TESTS
+MUTANT M15 fallback counter counts informative suspects: KILLED by IpqpMarginStop.GateEightResolvableSaddlesDowngradeAndTheirPartnersCertify;IpqpMarginStop.OnTheE1TightMarginClassTheExtensionAndDemotionRecoverThePolish
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:44:29-04:00
+FOREGROUND_END rc=0 2026-10-23T06:44:42-04:00
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:44:42-04:00
+FOREGROUND_END rc=1 2026-10-23T06:44:45-04:00
+[  FAILED  ] IpqpMarginStop.GateEightUnresolvableKeepsItsCertificateAndFlagWithItsSidesUncertain
+[  FAILED  ] IpqpMarginStop.OnTheE1TightMarginClassTheExtensionAndDemotionRecoverThePolish
+[  FAILED  ] IpqpMarginStop.OnTheE1TightMarginClassTheExponentTestLeavesSlackCollapsingRowsCommitted
+
+ 3 FAILED TESTS
+MUTANT M16 demotion disabled: KILLED by IpqpMarginStop.GateEightUnresolvableKeepsItsCertificateAndFlagWithItsSidesUncertain;IpqpMarginStop.OnTheE1TightMarginClassTheExponentTestLeavesSlackCollapsingRowsCommitted;IpqpMarginStop.OnTheE1TightMarginClassTheExtensionAndDemotionRecoverThePolish
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:44:45-04:00
+FOREGROUND_END rc=0 2026-10-23T06:44:58-04:00
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:44:58-04:00
+FOREGROUND_END rc=1 2026-10-23T06:45:01-04:00
+[  FAILED  ] IpqpMarginStop.GateEightResolvableSaddlesDowngradeAndTheirPartnersCertify
+[  FAILED  ] IpqpMarginStop.ABudgetExitDuringTheExtensionReturnsTheFirstStopResultWhole
+[  FAILED  ] IpqpMarginStop.AWarmKillDuringTheExtensionReturnsTheFirstStopResultWhole
+
+ 3 FAILED TESTS
+MUTANT M17 the candidate is not finalised first: KILLED by IpqpMarginStop.ABudgetExitDuringTheExtensionReturnsTheFirstStopResultWhole;IpqpMarginStop.AWarmKillDuringTheExtensionReturnsTheFirstStopResultWhole;IpqpMarginStop.GateEightResolvableSaddlesDowngradeAndTheirPartnersCertify
+SUMMARY
+  M1 exponent test never flags: KILLED by IpqpMarginStop.ABudgetExitDuringTheExtensionReturnsTheFirstStopResultWhole;IpqpMarginStop.GateEightResolvableSaddlesDowngradeAndTheirPartnersCertify;IpqpMarginStop.GateEightUnresolvableKeepsItsCertificateAndFlagWithItsSidesUncertain;IpqpMarginStop.OnTheE1TightMarginClassTheExponentTestLeavesSlackCol
+  M2 band fallback inverted: KILLED by IpqpMarginStop.AWarmConvergedGateEightSeedIsCountedAsAFallbackSuspect;IpqpMarginStop.TheInBandTrulyActiveRowIsNeverDemotedUnderEitherHistory
+  M3 ON-2X acts on band suspects at the candidate: KILLED by IpqpMarginSeams.TheThreeArmsDifferOnTheWarmSeedsAndTheUnresolvableMemberOnly
+  M4 extension keeps the configured slack: KILLED by IpqpMarginStop.OnTheE1TightMarginClassTheExponentTestLeavesSlackCollapsingRowsCommitted;IpqpMarginStop.OnTheE1TightMarginClassTheExtensionAndDemotionRecoverThePolish
+  M5 warm-kill during the extension restarts cold: KILLED by IpqpMarginStop.AWarmKillDuringTheExtensionReturnsTheFirstStopResultWhole
+  M6 evidence failure during the extension is carried: KILLED by IpqpMarginSeams.AnEvidenceFailureDuringTheExtensionReturnsTheCandidateWhole
+  M7 demotion forces INACTIVE: KILLED by IpqpMarginStop.GateEightUnresolvableKeepsItsCertificateAndFlagWithItsSidesUncertain
+  M8 non-converged extension returns the live result: KILLED by IpqpMarginStop.ABudgetExitDuringTheExtensionReturnsTheFirstStopResultWhole;IpqpMarginStop.AWarmKillDuringTheExtensionReturnsTheFirstStopResultWhole;IpqpMarginStop.TheSolveLevelEventsAreEmittedOnceForTheReturnedResult
+  M9 a budget-refused second read is finalised: KILLED by IpqpMarginStop.ABudgetExitDuringTheExtensionReturnsTheFirstStopResultWhole
+  M10 ON-2X demotes by the band at an uninformative final pass: SURVIVED
+  M11 validation admits the count sentinel: KILLED by IpqpMarginStop.DefaultsOffAndRefusesTheCountSentinelAndAnyOutOfRangeValue
+  M12 fold overwrites ipqp_margin_demoted: KILLED by AccumulateIpqpCounters.EveryOtherIndexFieldSumsAcrossSubproblems
+  M13 a returned candidate's certify event is dropped: KILLED by IpqpMarginStop.TheSolveLevelEventsAreEmittedOnceForTheReturnedResult
+  M14 rows read a scrambled previous multiplier: KILLED by IpqpMarginStop.OnTheE1TightMarginClassTheExponentTestLeavesSlackCollapsingRowsCommitted;IpqpMarginStop.OnTheE1TightMarginClassTheExtensionAndDemotionRecoverThePolish
+  M15 fallback counter counts informative suspects: KILLED by IpqpMarginStop.GateEightResolvableSaddlesDowngradeAndTheirPartnersCertify;IpqpMarginStop.OnTheE1TightMarginClassTheExtensionAndDemotionRecoverThePolish
+  M16 demotion disabled: KILLED by IpqpMarginStop.GateEightUnresolvableKeepsItsCertificateAndFlagWithItsSidesUncertain;IpqpMarginStop.OnTheE1TightMarginClassTheExponentTestLeavesSlackCollapsingRowsCommitted;IpqpMarginStop.OnTheE1TightMarginClassTheExtensionAndDemotionRecoverThePolish
+  M17 the candidate is not finalised first: KILLED by IpqpMarginStop.ABudgetExitDuringTheExtensionReturnsTheFirstStopResultWhole;IpqpMarginStop.AWarmKillDuringTheExtensionReturnsTheFirstStopResultWhole;IpqpMarginStop.GateEightResolvableSaddlesDowngradeAndTheirPartnersCertify
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:45:01-04:00
+FOREGROUND_END rc=0 2026-10-23T06:45:07-04:00
+[7/9] Linking CXX executable tests/hven_ipqp_seam_tests
+[8/9] Linking CXX executable bench/hven_sqp_corpus
+[9/9] Linking CXX executable tests/sqp/hven_sqp_tests
+RESTORED_BUILD rc=0

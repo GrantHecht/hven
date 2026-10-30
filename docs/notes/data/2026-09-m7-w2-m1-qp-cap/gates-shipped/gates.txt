@@ -1,0 +1,52 @@
+FOREGROUND_START gates4 2026-09-18T05:22:08-04:00
+=== HEAD 3f2f6e35  dirty-files=0 ===
+REPLAY_SHIPPED_RC=0
+=== THE DECLARED RE-DERIVATION: U0 27-cell three-arm replay at the SHIPPED defaults ===
+hven HEAD:        3f2f6e35743f8dd3a8a20e748a1815503397728d
+shipped defaults: Index qp_failure_budget = 3;  bool qp_cap_retry = false;
+binary:           5e16804a720456e4b414f4e2a7d24c4590533d3ec5ab2d81ff4972555907890d
+
+--- A. against the M6 CLOSE HEAD CSVs (the PIN this task breaks on purpose) ---
+=== M6 CLOSE HEAD-walk vs M7 W2 M1 SHIPPED HEAD-walk === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+=== M6 CLOSE HEAD-ssn vs M7 W2 M1 SHIPPED HEAD-ssn === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+=== M6 CLOSE HEAD-ipm vs M7 W2 M1 SHIPPED HEAD-ipm === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+
+--- B. against THIS TASK's OWN heads at the OFF-default HEAD 4d27fb02 ---
+    (same code, same binary options, ONE literal different: the isolation)
+=== M1 OFF-DEFAULT HEAD-walk vs M1 SHIPPED HEAD-walk === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+=== M1 OFF-DEFAULT HEAD-ssn vs M1 SHIPPED HEAD-ssn === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+=== M1 OFF-DEFAULT HEAD-ipm vs M1 SHIPPED HEAD-ipm === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+=== INSTALL SMOKE (default front end) ===
+install smoke: IpmSolver converged, objective = 17.0140174 (OK)
+install smoke: SqpSolver converged, objective = 17.0140173 (OK)
+install smoke: both solvers converged through one generic consumer; 19 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.scratch/m7w2m1/smoke-default/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.scratch/m7w2m1/smoke-default/hven-configure.log
+SMOKE_DEFAULT_RC=0
+=== INSTALL SMOKE (clang front end) ===
+install smoke: IpmSolver converged, objective = 17.0140174 (OK)
+install smoke: SqpSolver converged, objective = 17.0140173 (OK)
+install smoke: both solvers converged through one generic consumer; 19 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.scratch/m7w2m1/smoke-clang/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.scratch/m7w2m1/smoke-clang/hven-configure.log
+SMOKE_CLANG_RC=0
+=== EXPORT CONTRACT, on THAT build's install and THAT build's align value ===
+align=32  targets=/home/ghecht/Projects/hven/.scratch/m7w2m1/smoke-clang/hven-install/lib64/cmake/hven/hvenTargets.cmake
+== checking export contract: /home/ghecht/Projects/hven/.scratch/m7w2m1/smoke-clang/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+== export contract OK for platform=linux, align=32
+EXPORT_RC=0
+SMOKE_EXPORT_WORST=0
+FOREGROUND_END gates4 2026-09-18T05:27:15-04:00 rc=0
+WRAPPER_RC gates4 rc=0

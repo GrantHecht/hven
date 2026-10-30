@@ -1,0 +1,23 @@
+[1/23] Building CXX object CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+[2/23] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/qp/qp_engine.cpp.o
+[3/23] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/qp/qp_engine.cpp.o
+[4/23] Linking CXX static library libhven.a
+[5/23] Linking CXX executable bench/hven_sqp_snopt_f7
+[6/23] Linking CXX executable tests/model/hven_model_tests
+[7/23] Linking CXX executable bench/hven_sqp_ssn_safeguard_probe
+[8/23] Linking CXX executable bench/hven_sqp_tau_bar_sweep_probe
+[9/23] Linking CXX executable bench/hven_sqp_crossover
+[10/23] Linking CXX executable tests/golden_rig/hven_golden_rig_audit
+[11/23] Linking CXX executable bench/hven_sqp_f7_cold
+[12/23] Linking CXX executable tests/golden_rig/hven_golden_rig_report
+[13/23] Linking CXX executable tests/golden_rig/hven_golden_rig
+[14/23] Linking CXX executable tests/hven_qp_walk_seam_tests
+[15/23] Linking CXX executable tests/hven_sqp_seam_tests
+[16/23] Linking CXX executable bench/hven_sqp_bench
+[17/23] Linking CXX executable bench/hven_sqp_ipqp_e1_arm
+[18/23] Linking CXX executable bench/hven_sqp_corpus
+[19/23] Linking CXX executable tests/drivers/hven_drivers_tests
+[20/23] Linking CXX executable tests/hven_tests
+[21/23] Linking CXX executable tests/interior/hven_interior_tests
+[22/23] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_sweeps.cpp.o
+[23/23] Linking CXX executable tests/sqp/hven_sqp_tests

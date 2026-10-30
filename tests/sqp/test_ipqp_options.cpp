@@ -56,6 +56,40 @@ TEST(IpqpOptions, TheFieldsAreValidatedAtEveryModeIncludingTheDefault) {
     }
 }
 
+// M7 W0 T3. THE ELASTIC RUNG'S ENGINE: the default, and the sentinel refusal on
+// `qp_mode`'s own terms.
+//
+// THE DEFAULT IS PART OF THE CONTRACT, not an implementation detail: `kWalk` is
+// what every pinned counter in this suite was derived under, and a silent flip
+// would move all of them at once.
+TEST(IpqpOptions, TheElasticRungEngineDefaultsToTheWalkAndRefusesTheCountSentinel) {
+    SqpOptions defaulted;
+    EXPECT_EQ(defaulted.elastic_rung_engine, ElasticRungEngine::kWalk)
+        << "M7 W0 T3 shipped the tier-solved rung behind a toggle that is OFF: the measured win "
+           "is on a CONSTRUCTED family, not on the suite's TRAIN split, which is what the M7 "
+           "exit criterion asks for";
+    EXPECT_NO_THROW(validate(defaulted));
+
+    SqpOptions sentinel;
+    sentinel.elastic_rung_engine = ElasticRungEngine::kElasticRungEngineCount;
+    EXPECT_THROW(validate(sentinel), std::invalid_argument);
+    EXPECT_THROW(SqpSolver{sentinel}, std::invalid_argument)
+        << "and the constructor validates, so no solve can carry it to the rung dispatch";
+
+    // BOTH REAL ENGINES ARE ACCEPTED IN EVERY MODE, which is the field's own contract: the
+    // elastic ladder is reachable from the walk route's kInfeasible consumer too, not only
+    // from the kIpm arm's certified fallback, so this is deliberately NOT gated on qp_mode.
+    for (ElasticRungEngine rung : {ElasticRungEngine::kWalk, ElasticRungEngine::kTier}) {
+        for (QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpm}) {
+            SqpOptions real;
+            real.elastic_rung_engine = rung;
+            real.qp_mode = mode;
+            EXPECT_NO_THROW(validate(real)) << "rung engine " << static_cast<int>(rung)
+                                            << " in mode " << static_cast<int>(mode);
+        }
+    }
+}
+
 TEST(IpqpOptions, HardIterCapMustBePositive) {
     SqpOptions o;
     o.ipqp.ipqp_hard_iter_cap = 0;

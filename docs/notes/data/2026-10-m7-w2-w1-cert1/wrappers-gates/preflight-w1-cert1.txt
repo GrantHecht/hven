@@ -1,0 +1,229 @@
+# THE W1 + CERT-1 GATES-RUN PRE-FLIGHT. Run on gates-w1-cert1.sh at the declaration state (HEAD d70cd8af = the temporary prep
+# commit above 6bcffcd9, plus the uncommitted slot fill; the runner's derivations all read include/ src/ tests/ bench/, so they
+# see 6bcffcd9's sources), before the declaration commit, and pasted verbatim. `dirty-files=N` in A is the staging state; the
+# mode does not apply the clean-tree refusal, the chain does.
+#   A  `--preflight-only`, every slot DERIVED/MEASURED on 2d2f92b1..6bcffcd9. PREFLIGHT_OK.
+#   B  `--check-g4` on THIS declaration's own offline replay (the M6-pin arms of rehearsal/rehearsal-w1-cert1-g4-comparison.txt).
+#   C  `--check-names`: NC4 r2's own suites (the by-name baseline; they lack the 5 ADDED names) REFUSED as this round's, rc 2.
+#   D  `--check-skips`: baseline vs baseline rc 0 each; falsifiers rc 2.
+#   E  class B no-modified-source refusal, falsified. rc 2.
+#   F  declared-baseline refusal, falsified with BEFORE=79775010 (resolves to NC3 r2's record). rc 2.
+#   G  UNMEASURED-sentinel refusal. rc 2.
+#   H  outside-universe ADDED declaration enforced. rc 2.
+#   I  ADDED fixture list enforced. rc 2.
+#   J  BASELINE NARROWING, shown: the by-name baseline derivation is `git log -1 ... --diff-filter=A 2d2f92b1`, BOUNDED AT BEFORE.
+#   K  the THREE-modified + ONE-added outside-source declaration is enforced: dropping one outside source, or naming a source no
+#      listed target owns, is refused. rc 2 each.
+#   L  (NEW) THE CLASSIFIER CAP IS LIFTED: the uncapped classifier differs from the shared one in exactly two `[:80]` slices; on the
+#      rehearsal's own Release compare the shared classifier prints 80 of the stated 85 negative-control objects (the old
+#      completeness assertion would FAIL on it), the uncapped one prints 85 of 85 (COMPLETE).
+
+# ============================================================================
+# TRANSCRIPT A -- the pre-flight in full.
+# ============================================================================
+
+GATES_START 2026-10-03T10:53:01-04:00
+=== HEAD d70cd8af  dirty-files=2 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/agent-a21119447c8eb6f78/.scratch/m7w2w1cert1gates ===
+=== BEFORE=2d2f92b1  EXPECT_DEBUG_TESTS=2930  EXPECT_RELEASE_TESTS=2931 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=d70cd8af0387c8b3d391c44a17f20b06062d6809
+=== CHANGED HEADERS: include/hven/core/solver_counters.h include/hven/detail/qp/qp_engine.h include/hven/detail/qp/qp_walk_trace.h include/hven/drivers/sqp_solver_types.h 
+=== CHANGED SOURCES: src/drivers/sqp_solver.cpp src/qp/qp_engine.cpp tests/CMakeLists.txt tests/drivers/test_callback.cpp tests/drivers/test_threads.cpp tests/qp/fixtures/e2-d4/C11_BRITGAS_qp1.txt tests/qp/test_qp_ascent_guard.cpp tests/qp/test_qp_saddle_exit.cpp tests/qp/test_qp_unrun_dependency_test.cpp tests/sqp/test_sqp_ladder_seams.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_trace_writer.cpp 
+=== MODIFIED C++ SOURCES: src/drivers/sqp_solver.cpp src/qp/qp_engine.cpp tests/drivers/test_callback.cpp tests/drivers/test_threads.cpp tests/qp/test_qp_saddle_exit.cpp tests/qp/test_qp_unrun_dependency_test.cpp tests/sqp/test_sqp_ladder_seams.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_trace_writer.cpp 
+=== ADDED C++ SOURCES: tests/qp/test_qp_ascent_guard.cpp 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_qp_saddle_exit.cpp tests/qp/test_qp_unrun_dependency_test.cpp tests/sqp/test_sqp_ladder_seams.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir
+=== ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_qp_ascent_guard.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); 43 DIFFERENCES DECLARED as a SET (walk 17 / ssn 13 / ipm 13), every cell a U0 cell, the one declared WORSE cell [ipm f7_n1000_path_warm kkt_stationarity] among them
+=== CLASS_B_NAMES_OK: Release 61 / Debug 62 declared objects, none with a source modified in the range
+=== RELEASE-ONLY (Debug GTEST_SKIP) DECLARED: 0 name(s), each a declared ADDED name ===
+=== BY-NAME: baselines /home/ghecht/Projects/hven/.claude/worktrees/agent-a21119447c8eb6f78/docs/notes/data/2026-10-m7-w2-nc4-r2/gates/suite-{debug,release}.txt (2927 / 2928 started names); 5 ADDED, each added by exactly one TEST line in the range; 0 REMOVED, each removed by exactly one TEST line; 0 TEST lines removed
+=== ADDED TEST FILES (checked): non-.cpp [tests/qp/fixtures/e2-d4/C11_BRITGAS_qp1.txt ] == declared, under the fixture directory named once in hven_qp_walk_seam_tests's compile definitions; tests/CMakeLists.txt adds exactly [qp/test_qp_ascent_guard.cpp ] and removes no non-comment line
+=== CLANG_FORMAT SET (derived, non-empty): 14 file(s) ===
+=== PREFLIGHT_VALUE_OK: class A 9 - 3 outside == declared 6/6; ADDED 1 == declared 1 (0 inside the universe == declared 0); class B library objects all unmodified; G4 gate 1e-5
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a21119447c8eb6f78/.scratch/m7w2w1cert1gates/g1.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/agent-a21119447c8eb6f78/.scratch/m7w2w1cert1gates  G=/home/ghecht/Projects/hven/.claude/worktrees/agent-a21119447c8eb6f78/.scratch/m7w2w1cert1gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a21119447c8eb6f78/.scratch/m7w2w1cert1gates/g2.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/agent-a21119447c8eb6f78/.scratch/m7w2w1cert1gates  G=/home/ghecht/Projects/hven/.claude/worktrees/agent-a21119447c8eb6f78/.scratch/m7w2w1cert1gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a21119447c8eb6f78/.scratch/m7w2w1cert1gates/g3.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/agent-a21119447c8eb6f78/.scratch/m7w2w1cert1gates  G=/home/ghecht/Projects/hven/.claude/worktrees/agent-a21119447c8eb6f78/.scratch/m7w2w1cert1gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a21119447c8eb6f78/.scratch/m7w2w1cert1gates/g4.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/agent-a21119447c8eb6f78/.scratch/m7w2w1cert1gates  G=/home/ghecht/Projects/hven/.claude/worktrees/agent-a21119447c8eb6f78/.scratch/m7w2w1cert1gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a21119447c8eb6f78/.scratch/m7w2w1cert1gates/g5.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/agent-a21119447c8eb6f78/.scratch/m7w2w1cert1gates  G=/home/ghecht/Projects/hven/.claude/worktrees/agent-a21119447c8eb6f78/.scratch/m7w2w1cert1gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a21119447c8eb6f78/.scratch/m7w2w1cert1gates/g6.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/agent-a21119447c8eb6f78/.scratch/m7w2w1cert1gates  G=/home/ghecht/Projects/hven/.claude/worktrees/agent-a21119447c8eb6f78/.scratch/m7w2w1cert1gates/gates
+=== PREFLIGHT_OK: 6 segments written and asserted against GATES_SCRATCH, before the first leg ===
+PREFLIGHT_ONLY: stopping before G1. No leg was run and no build tree was touched.
+rc=0
+
+# ============================================================================
+# TRANSCRIPT B -- --check-g4 on the pin arms of this declaration's own offline replay.
+# ============================================================================
+
+(pin arms extracted: 3 headers, 257 lines)
+--- B check-g4
+$ bash docs/notes/data/2026-10-m7-w2-w1-cert1/wrappers-gates/gates-w1-cert1.sh --check-g4 <pin arms>
+ASSERT OK   replay header lines = 3
+ASSERT OK   replay walk shape 27/75/17 declared = 1
+ASSERT OK   replay walk difference lines listed = 17
+ASSERT OK   replay ssn shape 27/75/13 declared = 1
+ASSERT OK   replay ssn difference lines listed = 13
+ASSERT OK   replay ipm shape 27/75/13 declared = 1
+ASSERT OK   replay ipm difference lines listed = 13
+ASSERT OK   replay: the MEASURED difference set EQUALS the DECLARED 43-entry list
+rc=0
+
+# ============================================================================
+# TRANSCRIPT C -- the added names are enforced (NC4 r2's own suites, the by-name baseline, REFUSED as this round's).
+# ============================================================================
+
+--- C1 baseline NC4 r2 gates suite-debug
+$ bash docs/notes/data/2026-10-m7-w2-w1-cert1/wrappers-gates/gates-w1-cert1.sh --check-names debug docs/notes/data/2026-10-m7-w2-nc4-r2/gates/suite-debug.txt
+ASSERT FAIL offline debug by name: ADDED QpW1AscentGuard.BritgasElasticQp1Border is named 0 time(s) in the baseline (want 0) and 0 in this run (want 1)
+rc=2
+
+--- C1 baseline NC4 r2 gates suite-release
+$ bash docs/notes/data/2026-10-m7-w2-w1-cert1/wrappers-gates/gates-w1-cert1.sh --check-names release docs/notes/data/2026-10-m7-w2-nc4-r2/gates/suite-release.txt
+ASSERT FAIL offline release by name: ADDED QpW1AscentGuard.BritgasElasticQp1Border is named 0 time(s) in the baseline (want 0) and 0 in this run (want 1)
+rc=2
+
+# ============================================================================
+# TRANSCRIPT D -- skipped sets.
+# ============================================================================
+
+--- D1 baseline vs baseline debug
+$ bash docs/notes/data/2026-10-m7-w2-w1-cert1/wrappers-gates/gates-w1-cert1.sh --check-skips debug docs/notes/data/2026-10-m7-w2-nc4-r2/gates/suite-debug.txt
+ASSERT OK   offline debug skips by name: 7 Skipped == the baseline's 7 + the 0 declared Release-only
+rc=0
+
+--- D1 baseline vs baseline release
+$ bash docs/notes/data/2026-10-m7-w2-w1-cert1/wrappers-gates/gates-w1-cert1.sh --check-skips release docs/notes/data/2026-10-m7-w2-nc4-r2/gates/suite-release.txt
+ASSERT OK   offline release skips by name: 1 Skipped == the baseline's 1 + the 0 declared Release-only
+rc=0
+
+--- D2 falsifier: Debug baseline's skips against the Release listing (must differ)
+$ bash docs/notes/data/2026-10-m7-w2-w1-cert1/wrappers-gates/gates-w1-cert1.sh --check-skips debug docs/notes/data/2026-10-m7-w2-nc4-r2/gates/suite-release.txt
+ASSERT FAIL offline debug skips by name: 1 Skipped vs the baseline's 7 + 0 declared; the difference (expected '<' tab-indented '>' this run):
+QpE2Fix9StandstillRetreat.Acopp118Qp0Border
+QpE2Fix9StandstillRetreat.Acopp118Qp1Border
+QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize
+QpE2WorkingSet.AGreyPinOnYorknetThatIsIndependentStaysIndependent
+QpE4ProximalEqp.TheYorknetRestorationQpIsDriftFreeAndOptimal
+QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder
+rc=2
+
+--- D3 falsifier: Release baseline's skips against the Debug listing (must differ)
+$ bash docs/notes/data/2026-10-m7-w2-w1-cert1/wrappers-gates/gates-w1-cert1.sh --check-skips release docs/notes/data/2026-10-m7-w2-nc4-r2/gates/suite-debug.txt
+ASSERT FAIL offline release skips by name: 7 Skipped vs the baseline's 1 + 0 declared; the difference (expected '<' tab-indented '>' this run):
+	QpE2Fix9StandstillRetreat.Acopp118Qp0Border
+	QpE2Fix9StandstillRetreat.Acopp118Qp1Border
+	QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize
+	QpE2WorkingSet.AGreyPinOnYorknetThatIsIndependentStaysIndependent
+	QpE4ProximalEqp.TheYorknetRestorationQpIsDriftFreeAndOptimal
+	QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder
+rc=2
+
+# ============================================================================
+# TRANSCRIPT E -- a declared class B object whose source is MODIFIED in the range is refused (count kept at 61).
+# ============================================================================
+
+(the declared Release class B list with core/ledger.cpp.o replaced by qp/qp_engine.cpp.o, a MODIFIED source)
+--- E falsifier
+$ env EXPECT_CLASS_B_NAMES_RELEASE=<list with qp_engine.cpp.o for ledger.cpp.o> bash docs/notes/data/2026-10-m7-w2-w1-cert1/wrappers-gates/gates-w1-cert1.sh --preflight-only
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); 43 DIFFERENCES DECLARED as a SET (walk 17 / ssn 13 / ipm 13), every cell a U0 cell, the one declared WORSE cell [ipm f7_n1000_path_warm kkt_stationarity] among them
+REFUSED: rel class B CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o has its source src/qp/qp_engine.cpp MODIFIED in 2d2f92b1..d70cd8af0387c8b3d391c44a17f20b06062d6809 (it is class A)
+rc=2
+
+# ============================================================================
+# TRANSCRIPT F -- the declared-baseline refusal, falsified (BEFORE=79775010).
+# ============================================================================
+
+--- F falsifier
+$ env BEFORE=79775010 bash docs/notes/data/2026-10-m7-w2-w1-cert1/wrappers-gates/gates-w1-cert1.sh --preflight-only
+REFUSED: the by-name baseline resolved to [docs/notes/data/2026-10-m7-w2-nc3-saddle-exit/gates-r2/suite-release.txt], declared [docs/notes/data/2026-10-m7-w2-nc4-r2/gates/suite-release.txt]
+rc=2
+
+# ============================================================================
+# TRANSCRIPT G -- the UNMEASURED sentinel.
+# ============================================================================
+
+--- G falsifier
+$ env EXPECT_PSYM_DIFFERING=UNMEASURED bash docs/notes/data/2026-10-m7-w2-w1-cert1/wrappers-gates/gates-w1-cert1.sh --preflight-only
+=== BEFORE=2d2f92b1  EXPECT_DEBUG_TESTS=2930  EXPECT_RELEASE_TESTS=2931 ===
+REFUSED: EXPECT_PSYM_DIFFERING still carries the UNMEASURED sentinel -- the FINAL pair has not been
+         rehearsed, so this round has no measured P-SYM shape to gate against.
+rc=2
+
+# ============================================================================
+# TRANSCRIPT H -- the outside-universe ADDED declaration is enforced (declared empty).
+# ============================================================================
+
+--- H falsifier
+$ env EXPECT_ADDED_OUTSIDE_UNIVERSE= bash docs/notes/data/2026-10-m7-w2-w1-cert1/wrappers-gates/gates-w1-cert1.sh --preflight-only
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): tests/qp/test_qp_ascent_guard.cpp 
+REFUSED: 1 added .cpp inside the universe, but the universe's ADDED is DECLARED 0
+rc=2
+
+# ============================================================================
+# TRANSCRIPT I -- the ADDED fixture list is enforced (declared empty).
+# ============================================================================
+
+--- I falsifier
+$ env ADDED_TEST_FILES= bash docs/notes/data/2026-10-m7-w2-w1-cert1/wrappers-gates/gates-w1-cert1.sh --preflight-only
+=== BY-NAME: baselines /home/ghecht/Projects/hven/.claude/worktrees/agent-a21119447c8eb6f78/docs/notes/data/2026-10-m7-w2-nc4-r2/gates/suite-{debug,release}.txt (2927 / 2928 started names); 5 ADDED, each added by exactly one TEST line in the range; 0 REMOVED, each removed by exactly one TEST line; 0
+REFUSED: the ADDED non-.cpp test files [tests/qp/fixtures/e2-d4/C11_BRITGAS_qp1.txt ] != declared [ ]
+rc=2
+
+# ============================================================================
+# TRANSCRIPT J -- BASELINE NARROWING: the derivation, bounded at BEFORE.
+# ============================================================================
+
+$ git log -1 --format= --name-only --diff-filter=A 2d2f92b1 -- 'docs/notes/data/*/gates-*/suite-release.txt' 'docs/notes/data/*/gates/suite-release.txt'
+docs/notes/data/2026-10-m7-w2-nc4-r2/gates/suite-release.txt
+$ git ls-tree -r 2d2f92b1 --name-only | grep -c 'suite-release.txt'   (records visible at BEFORE)
+45
+$ git log --format=%h --diff-filter=A 2d2f92b1..HEAD -- 'docs/notes/data/*/gates*/suite-release.txt'   (records added AFTER BEFORE: invisible to the bounded log)
+(empty above = none yet; this round's own record, committed later, cannot be seen by a log bounded at 2d2f92b1)
+
+# ============================================================================
+# TRANSCRIPT K -- the outside-source declaration is enforced.
+# ============================================================================
+
+--- K1 falsifier: only two of the three outside MODIFIED sources declared
+$ env EXPECT_CLASS_A_OUTSIDE_SRCS='tests/qp/test_qp_saddle_exit.cpp tests/sqp/test_sqp_ladder_seams.cpp' bash docs/notes/data/2026-10-m7-w2-w1-cert1/wrappers-gates/gates-w1-cert1.sh --preflight-only
+=== ADDED C++ SOURCES: tests/qp/test_qp_ascent_guard.cpp 
+REFUSED: 9 modified .cpp (less 2 outside the universe; Debug less 0 declared NOISE-ONLY), but class A is DECLARED 6/6
+rc=2
+
+--- K2 falsifier: a source no listed target owns declared outside (tests/sqp/test_sqp_solver.cpp, a hven_sqp_tests source)
+$ env EXPECT_CLASS_A_OUTSIDE_SRCS='tests/qp/test_qp_saddle_exit.cpp tests/qp/test_qp_unrun_dependency_test.cpp tests/sqp/test_sqp_solver.cpp' bash docs/notes/data/2026-10-m7-w2-w1-cert1/wrappers-gates/gates-w1-cert1.sh --preflight-only
+=== ADDED C++ SOURCES: tests/qp/test_qp_ascent_guard.cpp 
+REFUSED: tests/sqp/test_sqp_solver.cpp is a source of 0 listed outside target(s) and is named 1 time(s) in the build files, want 1 and 1 -- its object may be captured elsewhere
+rc=2
+
+# ============================================================================
+# TRANSCRIPT L -- THE CLASSIFIER CAP IS LIFTED.
+# ============================================================================
+
+$ diff docs/notes/data/2026-09-m7-w2-m4-anticycling-arm/wrappers/classify_psym_m4.py docs/notes/data/2026-10-m7-w2-w1-cert1/wrappers-gates/classify_psym_m4_uncapped.py
+370c370
+<     for o in sorted(o for o in noise if o not in set(noise_lib))[:80]:
+---
+>     for o in sorted(o for o in noise if o not in set(noise_lib)):
+377c377
+<     for o in sorted(control)[:80]:
+---
+>     for o in sorted(control):
+rc=1
+
+--- L shared classifier on the rehearsal's own Release compare (offline Release tree), 67 differing
+classify rc=0
+NEGATIVE CONTROL stated=85 printed=80
+completeness assertion: WOULD FAIL ('80 of 85' -- truncated)
+
+--- L uncapped classifier on the rehearsal's own Release compare (offline Release tree), 67 differing
+classify rc=0
+NEGATIVE CONTROL stated=85 printed=85
+completeness assertion: COMPLETE (85 of 85)
+

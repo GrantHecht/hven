@@ -1,0 +1,230 @@
+M7 W2 M3b -- VERDICT: RULE.md's classifier over the first-QP per-minor trace
+The outcome below is whatever the pre-registered rule returns. No bar was moved,
+no predicate relaxed, and no verdict here licenses a behaviour or default change.
+
+SUMMARY
+  STEENBRB     CYCLING_PROPER
+  YORKNET      CYCLING_PROPER
+
+==============================================================================
+CELL STEENBRB   OUTCOME: CYCLING_PROPER
+==============================================================================
+  records 4680   n 468   me 108   mi 0   max_iter 4680   exit max_iter
+  RULE.md section 2: identity gate 21 fields DIFFERING 0; trace integrity OK
+
+-- section 3, every predicate, whatever won (RULE.md 3: 'every quantity
+   below is reported for every cell whatever outcome wins') ------------
+  3.1 CYCLING_PROPER            HOLDS
+      R = 0.988889   (bar 0.20)   seen 4628 of 4680 passes
+      distinct states 52   passes that moved the iterate 38
+      first recurrence  i=22  j=24  period 2   drift bound 1.82674e-06
+      recurring pairs with NO moving pass in [i,j): 4628   first (22, 24)
+      period multiset (top 10 by count): 2x4628
+  3.2 SIDE_PING_PONG            does not hold
+      P_flip = 0.000000 (bar 0.40)   C_top = 0.000000 (bar 0.20)
+      side flips 0 over 2344 bound ADD passes; sides outside lower/upper: none
+      top flippers: (none)
+  3.3 IMMEDIATE_READD           HOLDS
+      P_imm(k=2) = 0.993973 (bar 0.60)   immediate drops 2310 of 2323 drops
+      P_imm at k = 1,2,3,5: 1:0.993973  2:0.993973  3:0.993973  5:0.993973
+      immediate drops never re-admitted anywhere later: 1
+  3.4 ZERO_PROBE_CHURN          does not hold
+      P_probe = 0.000000 (bar 0.30)   route histogram over DROP passes: {'dantzig': 2323}
+      N_drop 2323 vs the record's ws_drops 2323  -> AGREE
+  3.5 NEGATIVE_CURVATURE_BLOCKERS does not hold
+      P_ride = 0.000853 (bar 0.30)   ride-adds 2 of 2344 ADD passes
+      N_add 2344 vs the record's ws_adds 2344  -> AGREE
+  3.6 DEGENERATE_CRAWL          does not hold
+      G = D/N = 34/4680 = 0.007265 (bar 0.70)
+      D1 = 34  D2 = 2  floor 0.60*(N/2) = 1404.0
+      distinct signatures by decile: 468:34  936:34  1404:34  1872:34  2340:34  2808:34  3276:34  3744:34  4212:34  4680:34
+
+-- section 4, precedence ------------------------------------------------
+     CYCLING_PROPER                 HOLDS
+     SIDE_PING_PONG                 -
+     IMMEDIATE_READD                HOLDS
+     ZERO_PROBE_CHURN               -
+     NEGATIVE_CURVATURE_BLOCKERS    -
+     DEGENERATE_CRAWL               -
+     MIXED                          (the residue)
+  => OUTCOME CYCLING_PROPER
+
+==============================================================================
+CELL YORKNET   OUTCOME: CYCLING_PROPER
+==============================================================================
+  records 2560   n 312   me 256   mi 0   max_iter 2560   exit max_iter
+  RULE.md section 2: identity gate 21 fields DIFFERING 0; trace integrity OK
+
+-- section 3, every predicate, whatever won (RULE.md 3: 'every quantity
+   below is reported for every cell whatever outcome wins') ------------
+  3.1 CYCLING_PROPER            HOLDS
+      R = 0.930078   (bar 0.20)   seen 2381 of 2560 passes
+      distinct states 179   passes that moved the iterate 70
+      first recurrence  i=177  j=179  period 2   drift bound 3.02374e-07
+      recurring pairs with NO moving pass in [i,j): 2381   first (177, 179)
+      period multiset (top 10 by count): 2x2381
+  3.2 SIDE_PING_PONG            does not hold
+      P_flip = 0.000000 (bar 0.40)   C_top = 0.000000 (bar 0.20)
+      side flips 0 over 1287 bound ADD passes; sides outside lower/upper: none
+      top flippers: (none)
+  3.3 IMMEDIATE_READD           HOLDS
+      P_imm(k=2) = 0.965909 (bar 0.60)   immediate drops 1191 of 1232 drops
+      P_imm at k = 1,2,3,5: 1:0.965909  2:0.965909  3:0.965909  5:0.965909
+      immediate drops never re-admitted anywhere later: 1
+  3.4 ZERO_PROBE_CHURN          does not hold
+      P_probe = 0.000000 (bar 0.30)   route histogram over DROP passes: {'dantzig': 1232}
+      N_drop 1232 vs the record's ws_drops 1232  -> AGREE
+  3.5 NEGATIVE_CURVATURE_BLOCKERS does not hold
+      P_ride = 0.000000 (bar 0.30)   ride-adds 0 of 1287 ADD passes
+      N_add 1287 vs the record's ws_adds 1287  -> AGREE
+  3.6 DEGENERATE_CRAWL          does not hold
+      G = D/N = 138/2560 = 0.053906 (bar 0.70)
+      D1 = 138  D2 = 2  floor 0.60*(N/2) = 768.0
+      distinct signatures by decile: 256:138  512:138  768:138  1024:138  1280:138  1536:138  1792:138  2048:138  2304:138  2560:138
+
+-- section 4, precedence ------------------------------------------------
+     CYCLING_PROPER                 HOLDS
+     SIDE_PING_PONG                 -
+     IMMEDIATE_READD                HOLDS
+     ZERO_PROBE_CHURN               -
+     NEGATIVE_CURVATURE_BLOCKERS    -
+     DEGENERATE_CRAWL               -
+     MIXED                          (the residue)
+  => OUTCOME CYCLING_PROPER
+
+==============================================================================
+CELL STEENBRB -- RULE.md section 5's DESCRIPTIVE READ-OUTS
+These are NOT verdicts and none of them can change the outcome.
+==============================================================================
+5.1 the first minor at which progress stops
+    m_stop (last pass with dx_inf > step_tol) = 58   m_stop/N = 0.012393
+    last minor with dx_inf > 0            = 58
+    sum of dx_inf over the passes AFTER m_stop = 0
+    passes that moved the iterate: 38 of 4680   passes with no step_tol: 0
+
+5.2 admissions per identity, over ADD passes
+    distinct identities 23   admissions 2344   mean 101.913   median 1   max 2314
+    top 10: bound189x2314, bound205x3, bound167x3, bound83x2, bound264x2, bound158x2, bound217x2, bound206x1, bound190x1, bound375x1
+    bound identities 23 (declared distinct_bound_added 23), bound admissions 2344 (declared ws_adds_bound 2344) -> AGREE
+
+5.3 are the admitted bounds fixed or near-fixed?
+    at each pass's own step_tol: {'ORDINARY': 2344}
+    at opt_tol = 1e-09:          {'ORDINARY': 2344}
+    decision_tol values observed in the trace: [1e-09]
+    bound_gap min inf  max inf  infinite on 2344 passes
+    bound_gap deciles: inf  inf  inf  inf  inf  inf  inf  inf  inf  inf  inf
+
+5.4 the multiplier at drop against the drop tolerance
+    ALL DROPS          n=2323
+        |mu|      min 7.17639e-05  median 0.00117484  max 0.00548531
+        |mu| deciles: 7.176e-05  0.001175  0.001175  0.001175  0.001175  0.001175  0.001175  0.001175  0.001175  0.001175  0.005485
+        |mu|/tol  min 71763.9  median 1.17484e+06  max 5.48531e+06
+        |mu|/best min 1  median 1  max 1
+        drop_candidates min 2 median 10 max 16   drop_tied max 1
+    route dantzig      n=2323
+        |mu|      min 7.17639e-05  median 0.00117484  max 0.00548531
+        |mu| deciles: 7.176e-05  0.001175  0.001175  0.001175  0.001175  0.001175  0.001175  0.001175  0.001175  0.001175  0.005485
+        |mu|/tol  min 71763.9  median 1.17484e+06  max 5.48531e+06
+        |mu|/best min 1  median 1  max 1
+        drop_candidates min 2 median 10 max 16   drop_tied max 1
+
+5.5 ratio-test tie multiplicity over ADD passes
+    histogram {1: 2344}   share with ratio_tied>1 0.000000   max 1
+    ADD passes with ratio_tied>1: 0   the record's ratio_ties = 0  -> AGREE
+
+5.6 the incoming (warm) working set
+    signature 0   size 0   warm 0
+    RULE.md 5.6: this task traces ONE QP per cell, so the comparison against later majors is DECLINED BY SCOPE, not a gap.
+
+5.7 the action and drop-route histograms
+    unset                0
+    start_repair         0
+    post_probe_restart   0
+    drop_dantzig         2323
+    drop_zero_probe      0
+    suspect_escalation   0
+    terminal             0
+    ride_stepped         2
+    ride_unbounded       0
+    add                  2342
+    move_only            13
+    routes {'none': 2357, 'dantzig': 2323}   blocks {'bound': 4667, 'none': 13}
+
+5.8 the working-set size trajectory
+    first 0  last 22  min 0  max 23
+    deciles 0  21  21  21  21  21  22  22  22  22  23
+    passes where ws_size_out != ws_size_in: 4667   passes with shift_adds>0: 0
+
+5.9 the uncapped ratio test
+    ADD passes 2344   with raw_ratio > 1: 0
+    raw_ratio <= 1: min -0  median -0  max 0.109601
+    deciles -0  -0  -0  -0  -0  -0  -0  -0  -0  -0  0.1096
+
+==============================================================================
+CELL YORKNET -- RULE.md section 5's DESCRIPTIVE READ-OUTS
+These are NOT verdicts and none of them can change the outcome.
+==============================================================================
+5.1 the first minor at which progress stops
+    m_stop (last pass with dx_inf > step_tol) = 176   m_stop/N = 0.068750
+    last minor with dx_inf > 0            = 176
+    sum of dx_inf over the passes AFTER m_stop = 0
+    passes that moved the iterate: 70 of 2560   passes with no step_tol: 1
+
+5.2 admissions per identity, over ADD passes
+    distinct identities 95   admissions 1287   mean 13.547   median 1   max 1193
+    top 10: bound291x1193, bound15x1, bound16x1, bound18x1, bound19x1, bound20x1, bound21x1, bound22x1, bound33x1, bound54x1
+    bound identities 95 (declared distinct_bound_added 95), bound admissions 1287 (declared ws_adds_bound 1287) -> AGREE
+
+5.3 are the admitted bounds fixed or near-fixed?
+    at each pass's own step_tol: {'ORDINARY': 1287}
+    at opt_tol = 1e-09:          {'ORDINARY': 1287}
+    decision_tol values observed in the trace: [1e-09]
+    bound_gap min 3.83  max inf  infinite on 51 passes
+    bound_gap deciles: 3.83  9.34  9.34  9.34  9.34  9.34  9.34  9.34  9.34  9.34  inf
+
+5.4 the multiplier at drop against the drop tolerance
+    ALL DROPS          n=1232
+        |mu|      min 1.31592e+06  median 1.4895e+07  max 1.18594e+11
+        |mu| deciles: 1.316e+06  1.49e+07  1.49e+07  1.49e+07  1.49e+07  1.49e+07  1.49e+07  1.49e+07  1.49e+07  1.49e+07  1.186e+11
+        |mu|/tol  min 1.31592e+15  median 1.4895e+16  max 1.18594e+20
+        |mu|/best min 1  median 1  max 1
+        drop_candidates min 19 median 19 max 34   drop_tied max 5
+    route dantzig      n=1232
+        |mu|      min 1.31592e+06  median 1.4895e+07  max 1.18594e+11
+        |mu| deciles: 1.316e+06  1.49e+07  1.49e+07  1.49e+07  1.49e+07  1.49e+07  1.49e+07  1.49e+07  1.49e+07  1.49e+07  1.186e+11
+        |mu|/tol  min 1.31592e+15  median 1.4895e+16  max 1.18594e+20
+        |mu|/best min 1  median 1  max 1
+        drop_candidates min 19 median 19 max 34   drop_tied max 5
+
+5.5 ratio-test tie multiplicity over ADD passes
+    histogram {1: 1235, 2: 4, 3: 3, 5: 1, 6: 1, 7: 1, 8: 1, 9: 2, 10: 1, 11: 1, 15: 1, 20: 1, 21: 2, 22: 2, 23: 2, 25: 1, 28: 2, 29: 2, 31: 1, 38: 1, 40: 1, 41: 1, 42: 1, 43: 1, 44: 1, 46: 1, 47: 1, 49: 2, 54: 1, 58: 2, 59: 1, 63: 1, 64: 1, 65: 2, 66: 1, 68: 1, 88: 1, 89: 1, 90: 1}   share with ratio_tied>1 0.040404   max 90
+    ADD passes with ratio_tied>1: 52   the record's ratio_ties = 52  -> AGREE
+
+5.6 the incoming (warm) working set
+    signature 0   size 0   warm 0
+    RULE.md 5.6: this task traces ONE QP per cell, so the comparison against later majors is DECLINED BY SCOPE, not a gap.
+
+5.7 the action and drop-route histograms
+    unset                0
+    start_repair         1
+    post_probe_restart   0
+    drop_dantzig         1232
+    drop_zero_probe      0
+    suspect_escalation   0
+    terminal             0
+    ride_stepped         0
+    ride_unbounded       0
+    add                  1287
+    move_only            40
+    routes {'none': 1328, 'dantzig': 1232}   blocks {'none': 41, 'bound': 2519}
+
+5.8 the working-set size trajectory
+    first 0  last 57  min 0  max 82
+    deciles 0  56  56  56  56  57  57  57  57  57  82
+    passes where ws_size_out != ws_size_in: 2520   passes with shift_adds>0: 0
+
+5.9 the uncapped ratio test
+    ADD passes 1287   with raw_ratio > 1: 0
+    raw_ratio <= 1: min -0  median -0  max 1
+    deciles -0  -0  -0  -0  -0  -0  -0  -0  -0  -0  1
+

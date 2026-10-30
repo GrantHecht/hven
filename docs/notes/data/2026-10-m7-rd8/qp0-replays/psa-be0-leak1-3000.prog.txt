@@ -1,0 +1,10 @@
+minors     0-   99 ws    1-> 100 obj +0.000000e+00 -> +0.000000e+00 deg  99 facts  878 | add:99 repairRef:1 | border:99 borderL:1
+minors   100-  199 ws  100-> 200 obj +0.000000e+00 -> +0.000000e+00 deg 100 facts   71 | add:100 | border:29 elim:1 elimL:70
+minors   200-  299 ws  200-> 300 obj +0.000000e+00 -> +0.000000e+00 deg  62 facts  100 | add:62 rideStep:38 | elimL:100
+minors   300-  399 ws  300-> 400 obj +0.000000e+00 -> -7.368702e+01 deg   0 facts  100 | add:52 rideStep:48 | elimL:100
+minors   400-  499 ws  400-> 500 obj -7.368702e+01 -> -3.393979e+02 deg   0 facts  100 | add:30 rideStep:70 | elimL:100
+minors   500-  599 ws  500-> 600 obj -3.407950e+02 -> -6.160752e+02 deg   0 facts  100 | rideStep:100 | elimL:100
+minors   600-  699 ws  600-> 700 obj -6.174174e+02 -> -6.943885e+02 deg   0 facts  100 | rideStep:100 | elimL:100
+minors   700-  799 ws  700-> 800 obj -6.947315e+02 -> -7.207134e+02 deg   0 facts  100 | add:38 rideStep:62 | elimL:100
+minors   800-  899 ws  800-> 842 obj -7.205991e+02 -> -6.929438e+02 deg   0 facts  100 | add:42 dropD:4 move:50 rideUndone:4 | elim:56 elimL:44
+minors   900-  904 ws  842-> 842 obj -6.929438e+02 -> -6.929438e+02 deg   0 facts    5 | move:4 stagStop:1 | elim:5

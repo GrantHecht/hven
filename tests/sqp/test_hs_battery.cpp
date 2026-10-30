@@ -579,7 +579,16 @@ TEST(HsBattery, RefinementStepCountersOnBorderRepro) {
     // solves means a baseline of 4 mandatory steps, so SIX of the ten are
     // extra steps the iterated loop earned -- and the loop's per-solve budget
     // is 10, so no single solve is anywhere near exhausting it.
-    EXPECT_EQ(bor.counters.border_refine_steps, 10);
+    // M7 W2 E4 (declared mover): 10 -> 6. `bordered_regularization` no longer
+    // reports the primal delta (bordered_eqp.h), so the iterated loop's footprint
+    // stopping rule reads a different threshold and earns four fewer extra steps on
+    // this stack; the answer, the status and `minor_iters` are unchanged, and the
+    // inequality below -- the whole content of the Task 11b fix -- still holds at 6
+    // against 4.
+    // M7 W2 BPS (declared mover): 6 -> 8, both configs. The bordered answer's certificate
+    // (bordered_eqp.h) refines answers whose step is undecided at the zero-motion scale past
+    // the footprint while the refinement contracts; status and minor_iters are unchanged.
+    EXPECT_EQ(bor.counters.border_refine_steps, 8);
     EXPECT_GT(bor.counters.border_refine_steps, bor.counters.minor_iters)
         << "at least one bordered solve must have taken more than the single mandatory step -- "
            "that is the whole content of the Task 11b fix";
@@ -1006,31 +1015,49 @@ TEST(HsBattery, CrashBasisIsANullResultOnTheBatteryWithTwoBoundSeededExceptions)
         << "HS25 sits on a bound at x0 but converges in 0 majors, so nothing is ever seeded";
     EXPECT_EQ(changed, (std::vector<int>{30, 33}))
         << "only BOUND seeds move a trajectory; every row seed is redundant with the homotopy";
-#ifdef USE_ACCELERATE_SPARSE
-    // M3-1. The battery total is exactly ONE minor lighter in each arm on
-    // Apple Accelerate -- 861/858 against MKL Pardiso's 862/859 -- while
-    // facts_off/facts_on, the seeded counts, and BOTH problem lists above are
-    // byte-identical. One HS problem spends one fewer QP minor; the
-    // answer-invariance half of this battery (status and objective, asserted
-    // per problem above) is untouched, so this is a trajectory fork and not a
-    // different answer.
-    //
-    // OBSERVED, NOT PREDICTED. macOS CI, runner class github-macos26-arm64,
-    // Release, AppleClang, and stable across every m3 run that carried this
-    // suite -- first at
-    // https://github.com/GrantHecht/hven/actions/runs/31736708703 (0ba1b9f),
-    // most recently https://github.com/GrantHecht/hven/actions/runs/31824897327
-    // (6535566). A counter carries none of the machine/thread/configuration
-    // context a float does, so ten agreeing runs on real Apple hardware is a
-    // firmer basis for a pin than this lane can offer any float column.
-    EXPECT_EQ(minors_off, 861);
-    EXPECT_EQ(minors_on, 858);
-#else
-    EXPECT_EQ(minors_off, 862);
-    EXPECT_EQ(minors_on, 859);
-#endif
-    EXPECT_EQ(facts_off, 320);
-    EXPECT_EQ(facts_on, 323);
+    // M7 W2 E2: HS24 spends one minor fewer in each arm (11 -> 10; answer
+    // bit-identical): a re-check after shift adds finds two shifted rows and
+    // a pin over-counted (3 > n = 2) and releases the pin. 862/859 before.
+    // UNOBSERVED on Accelerate: the arm above keeps its observed pre-E2 pin
+    // until the macOS lane reports.
+    // M7 W2 E2 step 2 (declared mover, S20): 861/858 -> 804/801 minors and
+    // 320/323 -> 267/270 factorizations, answers unchanged. Cause: the add-site
+    // exchange (Gill & Wong 2015, Result 3.4(b)) swaps a dependent blocker for
+    // a member instead of admitting it and paying a later removal, and the
+    // zero-motion re-entry rule ends the release/re-entry churn at fixed
+    // points; both shorten the walks.
+    // M7 W2 ladder round (L2, declared mover): 804/801 -> 802/799 minors. Cause:
+    // HS45's x0 lies outside its box (one component, gap 1) and is projected by
+    // default now; its answer is unchanged.
+    // M7 W2 E4 fix round 1 (declared mover): 802/799 -> 800/797, answers and
+    // statuses unchanged. Cause: the UNREGULARIZED POLISH at the EQP site
+    // (eqp_solve.h's polish_eqp_core) takes the proximal answer's O(primal_delta)
+    // bias back out wherever the face's own exact system has an answer, so the
+    // extra pass per face that bias used to cost is no longer spent. Two cells of
+    // the battery each save one minor. `facts_off`/`facts_on` below are UNMOVED --
+    // the terminal polish's own factorization is charged to
+    // `terminal_polish_solves`, not to `factorizations` (solver_counters.h).
+    EXPECT_EQ(minors_off, 800);
+    EXPECT_EQ(minors_on, 797);
+    // M7 W2 E2 fix3 (declared mover, settler S29): 267/270 -> 288/289
+    // factorizations, minors and answers unchanged. Cause: the mu-free inertia
+    // re-read (R-C') of a kWrong verdict at the start repair or the terminal
+    // check costs one or two extra eliminated factorizations per read, counted
+    // in `factorizations` whether or not the read overturns the kWrong.
+    // M7 W2 ladder round (L2, declared mover): 288/289 -> 287/288, HS45's projected
+    // start (above).
+    // M7 W2 RLA (declared mover): 287/288 -> 275/276, minors and answers unchanged
+    // (both asserted above). Cause: THE LATCH AND ITS REASON (qp_engine.h, section
+    // 4) -- a conditioning latch no longer releases, rebuilds K0 and re-latches at
+    // every pass; each pass it holds is a K0 factorization not paid (274/275 in
+    // its first round; one more each since a latch taken on an updated stack is
+    // verified on a rebuilt one). Release and Debug agree.
+    EXPECT_EQ(facts_off, 275);
+    EXPECT_EQ(facts_on, 276);
+    // M7 WX B1 collapse (design section 2.4): the Accelerate arms (861/858 minors, 320/323
+    // factorizations, pre-E2 pins) are deleted -- macOS run 40905599627 (head 864f5814,
+    // Accelerate pinned to one thread) reads 800/797 and 275/276, MKL's values. Register entry
+    // M3-1 carries the LATER DISPOSITION.
 }
 
 // THE TABLE MUST COVER EVERY SHIPPED PROBLEM. Without this a problem added to

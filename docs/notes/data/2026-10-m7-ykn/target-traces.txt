@@ -1,0 +1,235 @@
+### YORKNET default -- run d0 -- HEAD-91dd3f64-control
+status=numerical_error iterations=40 objective=14706.403707417367 kkt_stationarity=50.406115246454249 kkt_primal_eq=6.1042310515519902e-06 
+== depth 0: 40 major rows
+  verdicts {'accept_h': 24, 'reject': 10, 'restore': 1, 'accept_f': 5}
+  qp_status {'optimal': 37, 'numerical_error': 1, 'max_iter': 2}
+  minors 534 facts 1000 elastic 24 soc 0
+  qp.mode (site,outcome): count / iters
+     ('dispatch', 'escaped') 26 630
+     ('dispatch', 'optimal') 5 93
+     ('elastic_rung', 'escaped') 1 9
+     ('elastic_rung', 'optimal') 162 7867
+== depth 1: 24 major rows
+  verdicts {'accept_f': 11, 'reject': 5, 'accept_h': 8}
+  qp_status {'optimal': 23, 'numerical_error': 1}
+  minors 1595 facts 1863 elastic 0 soc 0
+  qp.mode (site,outcome): count / iters
+     ('dispatch', 'escaped') 1 62
+     ('dispatch', 'optimal') 21 1533
+     ('soc_resolve', 'escaped') 2 25
+  closest-to-KKT depth-0 rows:
+ m 39 kkt 50.40611524645425 st 50.40611524645425 feas 6.10423105155199e-06 f 14706.403707417367
+ m 33 kkt 51.99663123973946 st 51.99663123973946 feas 9.742274076364143e-05 f 14694.97746471711
+ m 35 kkt 52.56468510000826 st 52.56468510000826 feas 2.6611243571463576e-05 f 14701.454822928501
+ majors 40 qp statuses {'optimal': 37, 'numerical_error': 1, 'max_iter': 2}
+
+### YORKNET default -- run e1s1 -- A-hessian-substitution(YKN_SUB=1)
+status=numerical_error iterations=26 objective=14669.581985958419 kkt_stationarity=66.817328484237578 kkt_primal_eq=0.00011554136570018002 
+== depth 0: 26 major rows
+  verdicts {'accept_h': 22, 'reject': 4}
+  qp_status {'optimal': 20, 'numerical_error': 2, 'max_iter': 4}
+  minors 938 facts 1757 elastic 11 soc 0
+  qp.mode (site,outcome): count / iters
+     ('dispatch', 'escaped') 17 1218
+     ('dispatch', 'optimal') 9 43
+     ('elastic_rung', 'optimal') 77 4743
+  closest-to-KKT depth-0 rows:
+ m 15 kkt 1.5368261396873606 st 2.842170943040401e-14 feas 1.5368261396873606 f 14239.973463476952
+ m 16 kkt 4.824409835934773 st 5.684341886080802e-14 feas 4.824409835934773 f 14239.973463476952
+ m 14 kkt 6.147221837588209 st 2.842170943040401e-14 feas 6.147221837588209 f 14239.973463476952
+ majors 26 qp statuses {'optimal': 20, 'numerical_error': 2, 'max_iter': 4}
+
+### YORKNET default -- run e6a -- A+B-mu-retry-1e-12(YKN_SUB=1,YKN_MUFB=1e-12)
+status=numerical_error iterations=33 objective=14682.381978287864 kkt_stationarity=30.489779147902112 kkt_primal_eq=0.38530545336499245 
+== depth 0: 33 major rows
+  verdicts {'accept_h': 27, 'reject': 5, 'accept_f': 1}
+  qp_status {'optimal': 32, 'numerical_error': 1}
+  minors 258 facts 1391 elastic 11 soc 0
+  qp.mode (site,outcome): count / iters
+     ('dispatch', 'escaped') 23 777
+     ('dispatch', 'optimal') 10 45
+     ('elastic_rung', 'optimal') 77 4743
+     ('soc_resolve', 'escaped') 4 24
+  closest-to-KKT depth-0 rows:
+ m 15 kkt 1.5368261396873606 st 2.842170943040401e-14 feas 1.5368261396873606 f 14239.973463476952
+ m 16 kkt 4.824409835934773 st 5.684341886080802e-14 feas 4.824409835934773 f 14239.973463476952
+ m 14 kkt 6.147221837588209 st 2.842170943040401e-14 feas 6.147221837588209 f 14239.973463476952
+ majors 33 qp statuses {'optimal': 32, 'numerical_error': 1}
+
+### YORKNET default -- run e7a -- A+B-mu-ladder(YKN_SUB=1,YKN_MUFB=L)
+status=numerical_error iterations=37 objective=14682.159386799975 kkt_stationarity=20.414635180108007 kkt_primal_eq=0.095692022348387695 
+== depth 0: 37 major rows
+  verdicts {'accept_h': 28, 'reject': 8, 'accept_f': 1}
+  qp_status {'optimal': 36, 'numerical_error': 1}
+  minors 238 facts 1448 elastic 11 soc 0
+  qp.mode (site,outcome): count / iters
+     ('dispatch', 'escaped') 28 601
+     ('dispatch', 'optimal') 9 43
+     ('elastic_rung', 'optimal') 77 4743
+     ('soc_resolve', 'escaped') 7 451
+  closest-to-KKT depth-0 rows:
+ m 32 kkt 0.058058464171040214 st 0.058058464171040214 feas 1.4968025283224051e-05 f 14680.884124270076
+ m 33 kkt 0.058058464171040214 st 0.058058464171040214 feas 1.4968025283224051e-05 f 14680.884124270076
+ m 34 kkt 0.09859541755734824 st 0.004499442583437485 feas 0.09859541755734824 f 14680.864114521959
+ majors 37 qp statuses {'optimal': 36, 'numerical_error': 1}
+
+### YORKNET default -- run e9a -- A+B-ladder+clamp(YKN_SUB=1,YKN_MUFB=L,YKN_CLAMP=1)
+status=numerical_error iterations=190 objective=14689.733671430748 kkt_stationarity=276.03827305103852 kkt_primal_eq=5.419920912853679e-07 
+== depth 0: 190 major rows
+  verdicts {'accept_h': 60, 'reject': 87, 'accept_f': 38, 'restore': 5}
+  qp_status {'optimal': 171, 'numerical_error': 8, 'max_iter': 8, 'infeasible': 3}
+  minors 3459 facts 9631 elastic 16 soc 1
+  qp.mode (site,outcome): count / iters
+     ('dispatch', 'escaped') 124 5305
+     ('dispatch', 'optimal') 66 1021
+     ('elastic_rung', 'escaped') 4 137
+     ('elastic_rung', 'optimal') 84 4814
+     ('soc_resolve', 'escaped') 51 1432
+     ('soc_resolve', 'optimal') 31 451
+== depth 1: 61 major rows
+  verdicts {'accept_f': 4, 'accept_h': 47, 'reject': 10}
+  qp_status {'optimal': 61}
+  minors 3552 facts 6743 elastic 0 soc 0
+  qp.mode (site,outcome): count / iters
+     ('dispatch', 'escaped') 48 1311
+     ('dispatch', 'optimal') 9 1781
+     ('soc_resolve', 'escaped') 6 115
+  closest-to-KKT depth-0 rows:
+ m 119 kkt 6.737221349339961e-05 st 6.737221349339961e-05 feas 3.971550851936773e-06 f 14680.86869443535
+ m 120 kkt 6.737221349339961e-05 st 6.737221349339961e-05 feas 3.971550851936773e-06 f 14680.86869443535
+ m 121 kkt 6.737221349339961e-05 st 6.737221349339961e-05 feas 3.971550851936773e-06 f 14680.86869443535
+ majors 190 qp statuses {'optimal': 171, 'numerical_error': 8, 'max_iter': 8, 'infeasible': 3}
+
+### YORKNET default -- run e10b -- A+B-1e-10+clamp(YKN_SUB=1,YKN_MUFB=1e-10,YKN_CLAMP=1)
+status=max_iter iterations=253 objective=14694.423912156702 kkt_stationarity=81.340700155479084 kkt_primal_eq=2.0922434022602184e-06 
+== depth 0: 254 major rows
+  verdicts {'accept_h': 43, 'reject': 143, 'accept_f': 64, 'restore': 4}
+  qp_status {'optimal': 186, 'max_iter': 54, 'numerical_error': 13, 'infeasible': 1}
+  minors 6848 facts 14590 elastic 27 soc 0
+  qp.mode (site,outcome): count / iters
+     ('dispatch', 'escaped') 144 4484
+     ('dispatch', 'optimal') 109 2440
+     ('elastic_rung', 'escaped') 4 204
+     ('elastic_rung', 'optimal') 102 6048
+     ('soc_resolve', 'escaped') 42 1835
+     ('soc_resolve', 'optimal') 55 1086
+== depth 1: 52 major rows
+  verdicts {'accept_f': 8, 'accept_h': 27, 'reject': 17}
+  qp_status {'optimal': 49, 'numerical_error': 3}
+  minors 5492 facts 8479 elastic 0 soc 0
+  qp.mode (site,outcome): count / iters
+     ('dispatch', 'escaped') 25 726
+     ('dispatch', 'optimal') 22 4768
+     ('soc_resolve', 'escaped') 4 72
+     ('soc_resolve', 'optimal') 4 57
+  closest-to-KKT depth-0 rows:
+ m 62 kkt 0.00031524212130307205 st 0.00031524212130307205 feas 0.0001449848569450296 f 14680.867125962926
+ m 46 kkt 0.002617109374999997 st 6.492491365861497e-06 feas 0.002617109374999997 f 14680.868353512464
+ m 47 kkt 0.002617109374999997 st 6.492491365861497e-06 feas 0.002617109374999997 f 14680.868353512464
+ majors 254 qp statuses {'optimal': 186, 'max_iter': 54, 'numerical_error': 13, 'infeasible': 1}
+
+### HEAD control (d0): depth-0 rows m11-m39 (rows with step=0 and min=0 are non-finite step rollbacks)
+   m 11 t11 f=14739 feas=42.7 vl1=554 st=308 tr=64 step=41.6 qp=optimal min=14 fac=68 el=0 soc=0 v=accept_h
+   m 12 t12 f=14240 feas=98.3 vl1=505 st=1.78e-13 tr=64 step=0 qp=optimal min=0 fac=0 el=0 soc=0 v=reject
+   m 13 t13 f=14739 feas=42.7 vl1=554 st=308 tr=32 step=32 qp=optimal min=3 fac=25 el=1 soc=0 v=accept_h
+   m 14 t14 f=14683.5 feas=98.4 vl1=397 st=276 tr=64 step=0 qp=optimal min=0 fac=0 el=0 soc=0 v=reject
+   m 15 t15 f=14739 feas=42.7 vl1=554 st=308 tr=16 step=16 qp=optimal min=3 fac=32 el=1 soc=0 v=accept_h
+   m 16 t16 f=14683.5 feas=98.4 vl1=392 st=276 tr=32 step=0 qp=optimal min=0 fac=0 el=0 soc=0 v=reject
+   m 17 t17 f=14739 feas=42.7 vl1=554 st=308 tr=8 step=8 qp=optimal min=6 fac=37 el=1 soc=0 v=accept_h
+   m 18 t18 f=14683.5 feas=98.4 vl1=497 st=276 tr=16 step=0 qp=optimal min=0 fac=0 el=0 soc=0 v=reject
+   m 19 t19 f=14739 feas=42.7 vl1=554 st=308 tr=4 step=4 qp=optimal min=8 fac=39 el=1 soc=0 v=accept_h
+   m 20 t20 f=14683.5 feas=98.4 vl1=576 st=276 tr=8 step=0 qp=optimal min=0 fac=0 el=0 soc=0 v=reject
+   m 21 t21 f=14739 feas=42.7 vl1=554 st=308 tr=2 step=2 qp=optimal min=9 fac=41 el=1 soc=0 v=accept_h
+   m 22 t22 f=14683.5 feas=98.4 vl1=620 st=276 tr=4 step=4 qp=optimal min=5 fac=43 el=1 soc=0 v=accept_h
+   m 23 t23 f=14683.5 feas=38 vl1=421 st=276 tr=8 step=8 qp=optimal min=2 fac=69 el=1 soc=0 v=accept_h
+   m 24 t24 f=14683.5 feas=30.3 vl1=252 st=276 tr=8 step=8 qp=optimal min=3 fac=5 el=1 soc=0 v=accept_h
+   m 25 t25 f=14683.5 feas=22.8 vl1=177 st=276 tr=8 step=8 qp=optimal min=4 fac=3 el=1 soc=0 v=accept_h
+   m 26 t26 f=14683.5 feas=17.1 vl1=129 st=276 tr=8 step=8 qp=optimal min=46 fac=11 el=1 soc=0 v=accept_h
+   m 27 t27 f=14683.5 feas=11.9 vl1=88.5 st=276 tr=8 step=8 qp=optimal min=120 fac=16 el=1 soc=0 v=accept_h
+   m 28 t28 f=14683.5 feas=7.54 vl1=55.5 st=276 tr=8 step=8 qp=optimal min=67 fac=13 el=1 soc=0 v=accept_h
+   m 29 t29 f=14683.5 feas=4.08 vl1=30.1 st=276 tr=8 step=0 qp=numerical_error min=9 fac=9 el=1 soc=0 v=restore
+   m 30 t30 f=14710.9 feas=5.94e-07 vl1=1.48e-06 st=306 tr=0.1 step=0.1 qp=max_iter min=77 fac=70 el=0 soc=0 v=accept_f
+   m 31 t31 f=14682.1 feas=0.000372 vl1=0.00173 st=275 tr=0.1 step=0 qp=optimal min=0 fac=0 el=0 soc=0 v=reject
+   m 32 t32 f=14710.9 feas=5.94e-07 vl1=1.48e-06 st=306 tr=0.05 step=0.05 qp=optimal min=14 fac=34 el=0 soc=0 v=accept_f
+   m 33 t33 f=14695 feas=9.74e-05 vl1=0.00043 st=52 tr=0.1 step=0 qp=optimal min=0 fac=0 el=0 soc=0 v=reject
+   m 34 t34 f=14710.9 feas=5.94e-07 vl1=1.48e-06 st=306 tr=0.025 step=0.025 qp=optimal min=14 fac=38 el=0 soc=0 v=accept_f
+   m 35 t35 f=14701.5 feas=2.66e-05 vl1=0.000121 st=52.6 tr=0.05 step=0 qp=optimal min=0 fac=0 el=0 soc=0 v=reject
+   m 36 t36 f=14710.9 feas=5.94e-07 vl1=1.48e-06 st=306 tr=0.0125 step=0.0125 qp=optimal min=18 fac=24 el=0 soc=0 v=accept_f
+   m 37 t37 f=14704.7 feas=2.31e-05 vl1=8.31e-05 st=52.8 tr=0.025 step=0 qp=optimal min=0 fac=0 el=0 soc=0 v=reject
+   m 38 t38 f=14710.9 feas=5.94e-07 vl1=1.48e-06 st=306 tr=0.00625 step=0.00625 qp=optimal min=33 fac=31 el=0 soc=0 v=accept_f
+   m 39 t39 f=14706.4 feas=6.1e-06 vl1=2.21e-05 st=50.4 tr=0.0125 step=0.0125 qp=max_iter min=32 fac=36 el=0 soc=0 v=reject
+
+### A (e1s1): depth-0 rows m11-m25
+   m 11 t11 f=14739 feas=42.7 vl1=554 st=308 tr=64 step=41.6 qp=optimal min=14 fac=68 el=0 soc=0 v=accept_h
+   m 12 t12 f=14240 feas=98.3 vl1=505 st=1.78e-13 tr=64 step=14.1 qp=optimal min=2 fac=49 el=0 soc=0 v=accept_h
+   m 13 t13 f=14240 feas=24.6 vl1=124 st=5.68e-14 tr=64 step=6.71 qp=optimal min=2 fac=49 el=0 soc=0 v=accept_h
+   m 14 t14 f=14240 feas=6.15 vl1=30.9 st=2.84e-14 tr=64 step=2.58 qp=optimal min=2 fac=49 el=0 soc=0 v=accept_h
+   m 15 t15 f=14240 feas=1.54 vl1=7.88 st=2.84e-14 tr=64 step=13.9 qp=optimal min=13 fac=68 el=0 soc=0 v=accept_h
+   m 16 t16 f=14240 feas=4.82 vl1=13.9 st=5.68e-14 tr=64 step=5.43 qp=optimal min=2 fac=47 el=0 soc=0 v=accept_h
+   m 17 t17 f=14350.8 feas=0.496 vl1=1.95 st=20.4 tr=64 step=2.71 qp=optimal min=2 fac=46 el=0 soc=0 v=accept_h
+   m 18 t18 f=14489.4 feas=0.119 vl1=0.349 st=25.5 tr=64 step=1.36 qp=optimal min=2 fac=47 el=0 soc=0 v=accept_h
+   m 19 t19 f=14579.5 feas=0.0263 vl1=0.0797 st=26.8 tr=64 step=0.678 qp=optimal min=4 fac=42 el=0 soc=0 v=accept_h
+   m 20 t20 f=14629.8 feas=0.00617 vl1=0.0191 st=27.1 tr=64 step=0.339 qp=numerical_error min=5 fac=48 el=0 soc=0 v=accept_h
+   m 21 t21 f=14656.2 feas=0.000454 vl1=0.00422 st=53.7 tr=64 step=0.168 qp=numerical_error min=7 fac=33 el=0 soc=0 v=accept_h
+   m 22 t22 f=14669.6 feas=0.000116 vl1=0.00105 st=66.8 tr=64 step=15.9 qp=max_iter min=157 fac=165 el=0 soc=0 v=reject
+   m 23 t23 f=14669.6 feas=0.000116 vl1=0.00105 st=66.8 tr=32 step=13.4 qp=max_iter min=101 fac=103 el=0 soc=0 v=reject
+   m 24 t24 f=14669.6 feas=0.000116 vl1=0.00105 st=66.8 tr=16 step=16 qp=max_iter min=231 fac=235 el=0 soc=0 v=reject
+   m 25 t25 f=14669.6 feas=0.000116 vl1=0.00105 st=66.8 tr=8 step=8 qp=max_iter min=347 fac=352 el=0 soc=0 v=reject
+
+### YORKNET sqp-qn at HEAD (q0)
+status=numerical_error iterations=1 objective=100905.62850021633 kkt_stationarity=2823.0304202436032 kkt_primal_eq=0.00051415234850082925 
+CELL YORKNET sqp-qn rc=0 wall=375.1s
+== depth 0: 1 major rows
+  verdicts {'restore': 1}
+  qp_status {'numerical_error': 1}
+  minors 7 facts 7 elastic 1 soc 0
+  qp.mode (site,outcome): count / iters
+     ('dispatch', 'escaped') 1 75
+     ('elastic_rung', 'escaped') 1 7
+     ('elastic_rung', 'optimal') 6 755
+== depth 1: 65 major rows
+  verdicts {'reject': 31, 'accept_f': 17, 'accept_h': 17}
+  qp_status {'optimal': 52, 'max_iter': 10, 'numerical_error': 3}
+  minors 46769 facts 47139 elastic 0 soc 9
+  qp.mode (site,outcome): count / iters
+     ('dispatch', 'escaped') 13 40765
+     ('dispatch', 'optimal') 52 6004
+     ('soc_resolve', 'escaped') 1 7680
+     ('soc_resolve', 'optimal') 28 2682
+  restoration rows m40-m64:
+   m 40 t40 f=253.219 feas=3.63 vl1=6.97 st=4.37 tr=2 step=2 qp=optimal min=46 fac=47 el=0 soc=0 v=accept_h
+   m 41 t41 f=221.219 feas=0.323 vl1=2.4 st=1 tr=4 step=4 qp=optimal min=233 fac=248 el=0 soc=0 v=accept_f
+   m 42 t42 f=157.219 feas=1.3 vl1=5.36 st=1 tr=8 step=8 qp=optimal min=152 fac=161 el=0 soc=1 v=accept_f
+   m 43 t43 f=29.2186 feas=1.23 vl1=4.38 st=1 tr=16 step=10.6 qp=numerical_error min=78 fac=85 el=0 soc=0 v=reject
+   m 44 t44 f=29.2186 feas=1.23 vl1=4.38 st=1 tr=8 step=8 qp=optimal min=13 fac=14 el=0 soc=0 v=accept_f
+   m 45 t45 f=0 feas=1.33 vl1=6.97 st=0.000353 tr=16 step=5.24 qp=max_iter min=479 fac=484 el=0 soc=0 v=reject
+   m 46 t46 f=0 feas=1.33 vl1=6.97 st=0.000353 tr=8 step=5.24 qp=max_iter min=150 fac=151 el=0 soc=0 v=reject
+   m 47 t47 f=0 feas=1.33 vl1=6.97 st=0.000353 tr=4 step=4 qp=max_iter min=7680 fac=7681 el=0 soc=0 v=reject
+   m 48 t48 f=0 feas=1.33 vl1=6.97 st=0.000353 tr=2 step=2 qp=optimal min=101 fac=120 el=0 soc=0 v=accept_h
+   m 49 t49 f=2.10531 feas=0.853 vl1=1.55 st=0.0789 tr=2 step=2 qp=optimal min=54 fac=59 el=0 soc=0 v=accept_h
+   m 50 t50 f=0.835385 feas=0.335 vl1=0.766 st=0.0471 tr=4 step=4 qp=optimal min=45 fac=46 el=0 soc=0 v=reject
+   m 51 t51 f=0.835385 feas=0.335 vl1=0.766 st=0.0471 tr=2 step=2 qp=numerical_error min=61 fac=62 el=0 soc=0 v=reject
+   m 52 t52 f=0.835385 feas=0.335 vl1=0.766 st=0.0471 tr=1 step=1 qp=optimal min=80 fac=83 el=0 soc=0 v=accept_h
+   m 53 t53 f=0.607441 feas=0.272 vl1=0.511 st=0.0298 tr=2 step=2 qp=optimal min=80 fac=85 el=0 soc=0 v=reject
+   m 54 t54 f=0.607441 feas=0.272 vl1=0.511 st=0.0298 tr=1 step=1 qp=optimal min=35 fac=36 el=0 soc=1 v=accept_h
+   m 55 t55 f=0.401728 feas=0.61 vl1=1.11 st=0.0285 tr=2 step=2 qp=max_iter min=7680 fac=7685 el=0 soc=0 v=reject
+   m 56 t56 f=0.401728 feas=0.61 vl1=1.11 st=0.0285 tr=1 step=1 qp=optimal min=51 fac=52 el=0 soc=1 v=accept_h
+   m 57 t57 f=0.208182 feas=0.277 vl1=0.497 st=0.0302 tr=2 step=2 qp=optimal min=71 fac=80 el=0 soc=0 v=reject
+   m 58 t58 f=0.208182 feas=0.277 vl1=0.497 st=0.0302 tr=1 step=1 qp=max_iter min=7680 fac=7681 el=0 soc=0 v=accept_h
+   m 59 t59 f=0.0796556 feas=0.282 vl1=0.726 st=0.0475 tr=1 step=0.545 qp=optimal min=49 fac=50 el=0 soc=0 v=accept_h
+   m 60 t60 f=0 feas=0.0783 vl1=0.263 st=0.000226 tr=1 step=0.0397 qp=optimal min=2 fac=3 el=0 soc=0 v=accept_h
+   m 61 t61 f=0 feas=0.000514 vl1=0.00119 st=2.04e-06 tr=1 step=1 qp=max_iter min=85 fac=135 el=0 soc=0 v=reject
+   m 62 t62 f=0 feas=0.000514 vl1=0.00119 st=2.04e-06 tr=0.5 step=0.5 qp=max_iter min=1252 fac=1302 el=0 soc=0 v=reject
+   m 63 t63 f=0 feas=0.000514 vl1=0.00119 st=2.04e-06 tr=0.25 step=0.25 qp=max_iter min=7680 fac=7730 el=0 soc=0 v=reject
+   m 64 t64 f=0 feas=0.000514 vl1=0.00119 st=2.04e-06 tr=0.125 step=0.125 qp=max_iter min=148 fac=198 el=0 soc=0 v=reject
+
+### YORKNET sqp-qn with the dual_mu retry (e6c, YKN_MUFB=1e-12): every retried phase QP ends max_iter again
+YKN_MUFB iter=38 depth=1 prev=1 mu=1e-12 status=1 minors=7680 |p|=4
+YKN_MUFB iter=39 depth=1 prev=3 mu=1e-12 status=1 minors=749 |p|=2
+YKN_MUFB iter=43 depth=1 prev=3 mu=1e-12 status=1 minors=482 |p|=16
+YKN_MUFB iter=45 depth=1 prev=1 mu=1e-12 status=1 minors=143 |p|=16
+YKN_MUFB iter=46 depth=1 prev=1 mu=1e-12 status=1 minors=396 |p|=8
+YKN_MUFB iter=47 depth=1 prev=1 mu=1e-12 status=1 minors=7680 |p|=4
+YKN_MUFB iter=51 depth=1 prev=3 mu=1e-12 status=1 minors=688 |p|=2
+YKN_MUFB iter=55 depth=1 prev=1 mu=1e-12 status=1 minors=7680 |p|=2
+CELL YORKNET sqp-qn CAPPED wall=450.1s

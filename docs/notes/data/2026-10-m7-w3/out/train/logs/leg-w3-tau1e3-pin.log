@@ -1,0 +1,17 @@
+PGREP_EMPTY w3-tau1e3-pin
+PGREP_NO_UNCOVERED_CELL w3-tau1e3-pin 2026-10-29T00:33:32-04:00
+IN_LOCK_PGREP_EMPTY w3-tau1e3-pin 2026-10-29T00:33:32-04:00
+FOREGROUND_START w3-tau1e3-pin 2026-10-29T00:33:32-04:00
+FOREGROUND_START build_hven_pin 156e47c3b618 2026-10-29T04:33:32Z
+Cloning into '/home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/bench-tau1e3/.hven/src'...
+done.
+build_hven_pin: installed 156e47c3b618 into /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/bench-tau1e3/.hven/install-156e47c3b618
+HVEN_PIN_SHA 156e47c3b6181c2bd8fdaeee669f3ef08fd5f758
+HVEN_PIN_BRANCH w3-scratch-tau1e3
+HVEN_PIN_DATE 2026-10-28
+HVEN_BUILT_UTC 2026-10-29T04:34:07Z
+HVEN_CXX_COMPILER clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+HVEN_EIGEN_ALIGN EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+HVEN_CMAKE_ARGS -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang++ -DHVEN_BUILD_TESTS=OFF -DHVEN_BUILD_BENCH=OFF -DHVEN_LINK_TIME_OPT=OFF
+FOREGROUND_END build_hven_pin 156e47c3b618 2026-10-29T04:34:07Z
+FOREGROUND_END w3-tau1e3-pin 2026-10-29T00:34:07-04:00 rc=0

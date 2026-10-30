@@ -1,0 +1,51 @@
+### BEFORE=b5325623
+REFUSED: 12 modified .cpp (less 3 outside the universe), but class A is DECLARED 13/13
+rc=2
+### EXPECT_PSYM_CLASS_A=12/12
+REFUSED: 16 modified .cpp (less 3 outside the universe), but class A is DECLARED 12/12
+rc=2
+### EXPECT_PSYM_CLASS_A=13/12
+REFUSED: 16 modified .cpp (less 3 outside the universe), but class A is DECLARED 13/12
+rc=2
+### EXPECT_ADDED_CXX=1
+REFUSED: 2 added .cpp derived, but ADDED is DECLARED 1
+rc=2
+### EXPECT_PSYM_ADDED=1
+REFUSED: 2 added .cpp inside the universe, but the universe's ADDED is DECLARED 1
+rc=2
+### EXPECT_ADDED_OUTSIDE_UNIVERSE=tests/sqp/test_qp_ws_independence.cpp
+REFUSED: this round declares no ADDED source outside the universe, got tests/sqp/test_qp_ws_independence.cpp
+rc=2
+### EXPECT_CLASS_A_OUTSIDE_SRCS=tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_degeneracy_arm.cpp tests/qp/test_qp_walk_seam.cpp tests/sqp/test_hs_battery.cpp
+REFUSED: 16 modified .cpp (less 4 outside the universe), but class A is DECLARED 13/13
+rc=2
+### EXPECT_CLASS_A_OUTSIDE_SRCS=tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_degeneracy_arm.cpp tests/qp/test_qp_engine_gate.cpp
+REFUSED: declared outside source tests/qp/test_qp_engine_gate.cpp is not MODIFIED against 0747050c
+rc=2
+### EXPECT_LIB_CLASS_B_RELEASE=CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+REFUSED: CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o is declared class B but its source src/qp/qp_engine.cpp is MODIFIED (class A)
+rc=2
+### EXPECT_LIB_CLASS_B_DEBUG=CMakeFiles/hven.dir/src/qp/nonexistent.cpp.o
+REFUSED: declared class B CMakeFiles/hven.dir/src/qp/nonexistent.cpp.o has no source src/qp/nonexistent.cpp
+rc=2
+### EXPECT_PSYM_DIFFERING=70/71
+REFUSED: rel DIFFERING 70 != class A 13 + class B 58
+rc=2
+### EXPECT_PSYM_CLASS_B=57/58
+REFUSED: rel DIFFERING 71 != class A 13 + class B 57
+rc=2
+### EXPECT_DEBUG_TESTS=2803
+REFUSED: Debug 2803 != Release 2803 - long 1
+rc=2
+### EXPECT_RELEASE_TESTS=2802
+REFUSED: Debug 2802 != Release 2802 - long 1
+rc=2
+### EXPECT_DEBUG_ONLY_DEBUG=x
+REFUSED: DEBUG_ONLY counts not integers
+rc=2
+### REPLAY_RESIDUAL_GATE=1e-4
+REFUSED: G4's residual gate is '1e-4', declared 1e-5
+rc=2
+### EXPECT_PSYM_CLASS_A=12/12 EXPECT_PSYM_DIFFERING=70/70 EXPECT_CLASS_A_OUTSIDE_SRCS=<3 tests/qp> + tests/sqp/test_hs_battery.cpp
+REFUSED: tests/sqp/test_hs_battery.cpp is not a source of hven_qp_walk_seam_tests in tests/CMakeLists.txt
+rc=2

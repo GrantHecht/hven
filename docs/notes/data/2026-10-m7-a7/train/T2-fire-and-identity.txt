@@ -1,0 +1,13 @@
+sqp-wsrule hs: fired 0 = 
+sqp-wsrule hs: quiet 21 (compared against default)
+sqp-wsrule hs: unscored (no fire-log line; dnf_wall) 0 = 
+sqp-wsrule cutest: fired 13 = ACOPP118(qps=4) ACOPP57(qps=4) ACOPR118(qps=21) ACOPR57(qps=14) BRITGAS(qps=9) NET3(qps=48) READING6(qps=7) STEENBRB(qps=143) STEENBRC(qps=113) STEENBRD(qps=94) STEENBRE(qps=89) STEENBRG(qps=89) YORKNET(qps=8)
+sqp-wsrule cutest: quiet 5 (compared against default)
+sqp-wsrule cutest: unscored (no fire-log line; dnf_wall) 5 = MSS2 MSS3 READING8 TAX213322 TAX53322
+sqp-qn-wsrule hs: fired 0 = 
+sqp-qn-wsrule hs: quiet 21 (compared against sqp-qn)
+sqp-qn-wsrule hs: unscored (no fire-log line; dnf_wall) 0 = 
+sqp-qn-wsrule cutest: fired 8 = BRITGAS(qps=19) NET3(qps=54) SAWPATH(qps=6) STEENBRB(qps=14) STEENBRC(qps=16) STEENBRD(qps=14) STEENBRE(qps=13) STEENBRG(qps=12)
+sqp-qn-wsrule cutest: quiet 8 (compared against sqp-qn)
+sqp-qn-wsrule cutest: unscored (no fire-log line; dnf_wall) 7 = ACOPR118 BIGBANK MSS3 READING8 TAX213322 TAX53322 YORKNET
+OFF labels with a nonzero switch: none

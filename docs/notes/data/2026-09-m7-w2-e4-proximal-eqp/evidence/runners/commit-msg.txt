@@ -1,0 +1,55 @@
+qp(m7): W2 E4 -- the proximal EQP with the walk's tests in its currency, and the EQP-site residual check
+
+THE SYSTEM (E4-1). The EQP is solved from the iterate it is called at: the primal
+regularization becomes the proximal penalty (delta/2)||x_F - x_k,F||^2, so the answer
+is a descent direction for the face's model by construction and its stationarity
+residual carries -delta*p, zero in the limit, instead of -delta*x_F. K is unchanged;
+the free block's rhs gains +delta*x_k,F and the refinement backs out only the DUAL
+regularization, because the primal one is now a term of the model. `x_k` is a
+REQUIRED argument of solve_eqp / solve_bordered_eqp, threaded explicitly through
+every function on the path, and the border twin carries the same term on every
+variable row -- a pinned row's delta*x_i is cancelled by its pin, which is what the
+eliminated path's elimination implies for it.
+
+THE THREE TESTS THAT HAD TO MOVE WITH IT.
+ * TERMINATION (E4-2): a pass is a KKT point of its working set when the free-block
+   stationarity residual is within opt_tol of its own scale AND no row or bound
+   carries a structural violation -- the two tests the classification already decides
+   kOptimal on. The zero-motion reading ||p|| <= step_tol is kept as the observation
+   it always was and no longer certifies alone: p is now the STEP and carries 1/delta
+   on a flat face.
+ * THE RUNAWAY GUARD (E4-3): `is_runaway` is asked on every MOVING pass, not only at
+   the terminal classification, which is what the three runaway fixtures need once
+   the ridge's answer is re-proposed from every point it reaches. They pass
+   UNMODIFIED. A ridge-scale guard on the STEP was built, measured and removed: it
+   fires on an ordinary degenerate first step (HS10/HS27, alpha = 0 with p_inf 8e9)
+   and cost two kOptimal exits. A NON-FINITE answer is refused instead.
+ * THE EQP-SITE RESIDUAL CHECK (E4-4): the answer's own miss against the REGULARIZED
+   system, over the CONSTRAINT rows, against a scale that carries the dual
+   regularization's footprint; over tolerance it buys at most
+   kEqpResidualRefineIters solves against that same system and, failing that, is
+   REFUSED -- the border path retreating to the eliminated one and the walk taking
+   4b's suspect-stall escalation rather than a step. Counters eqp_refine_iters and
+   eqp_residual_refusals.
+
+WHAT IT DOES, on the 51-dump corpus against NC2 fix1's rows, both algebras:
+13 conversions to kOptimal on the eliminated path (A0_YORKNET qp1-qp6 ALL, with
+eq 2.5e-01 -> 8.9e-14 and eq_drift_violations 7502 -> 12 on qp3; Cs_STEENBRB
+qp1/qp3/qp5/qp6 at the Clarabel optimum, qp1 f = -1378.22320088 in 232 minors;
+STEENBRB_def/qp2, which was one of E3's two NaN cells, kMaxIter -> kOptimal at 392
+minors with NO NaN; Hj_STEENBRD/qp4, YORKNET_def/qp1, ACOPR57_def/qp3), 12 on the
+border path, and NO certified cell lost on the eliminated path. The T7 feasible
+census holds 120/120.
+
+WHAT IT COSTS, measured and NOT resolved: ACOPP57_def qp0-qp3 go kOptimal(8 minors)
+-> kMaxIter(1795) on the BORDER path only, where that face's own answer is
+1.25e-07-stationary against the eliminated path's 1.02e-14 and the proximal step
+amplifies the gap; 83 of 2863 Release tests fail, about 25 of them fixtures that PIN
+the cycling this change removes ("the off walk cycles at period two" now reads
+kOptimal), and six B1Gate cells plus HsSweepCorpus.Corpus re-open the B-1
+complementarity family (0.177 = mu*lambda^2 at a warm-certified point); U0's walk
+terminal kkt_stationarity moves from ~1e-15 to ~1e-11 on the F7 bound family, which
+is the new test stopping at the engine's own opt_tol rather than grinding past it.
+
+NOT MERGEABLE AS IT STANDS. The fixture re-derivation and the B-1 re-check are the
+next round's; the report is .superpowers/m7-w2-e4-report.md.

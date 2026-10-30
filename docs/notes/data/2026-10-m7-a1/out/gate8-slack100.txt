@@ -1,0 +1,15 @@
+gate8 mu_stop(shipped slack)=1.250000e-09
+gate8 slack=1e+02 target=0.77 h=-1 s=5.698e-05 iters=3 mu=1.250e-09 sigma=7.700e-01 x1=0.00e+00 status=3 escape=3 read=1 downgraded=1 kept_tight=0 band=0 noise=0
+gate8 slack=1e+02 target=0.77 h=+1 s=5.698e-05 iters=3 mu=1.250e-09 sigma=7.700e-01 x1=0.00e+00 status=0 escape=0 read=0 downgraded=0 kept_tight=0 band=0 noise=0
+gate8 slack=1e+02 target=1.28 h=-1 s=4.419e-05 iters=3 mu=1.250e-09 sigma=1.280e+00 x1=0.00e+00 status=3 escape=3 read=1 downgraded=1 kept_tight=0 band=0 noise=0
+gate8 slack=1e+02 target=1.28 h=+1 s=4.419e-05 iters=3 mu=1.250e-09 sigma=1.280e+00 x1=0.00e+00 status=0 escape=0 read=0 downgraded=0 kept_tight=0 band=0 noise=0
+gate8 slack=1e+02 target=10 h=-1 s=1.581e-05 iters=3 mu=1.250e-09 sigma=1.000e+01 x1=0.00e+00 status=3 escape=3 read=1 downgraded=1 kept_tight=0 band=0 noise=0
+gate8 slack=1e+02 target=10 h=+1 s=1.581e-05 iters=3 mu=1.250e-09 sigma=1.000e+01 x1=0.00e+00 status=0 escape=0 read=0 downgraded=0 kept_tight=0 band=0 noise=0
+gate8 slack=1e+02 target=250 h=-1 s=3.162e-06 iters=3 mu=1.250e-09 sigma=2.500e+02 x1=0.00e+00 status=0 escape=0 read=0 downgraded=0 kept_tight=1 band=2 noise=2
+gate8 slack=1e+02 target=250 h=+1 s=3.162e-06 iters=3 mu=1.250e-09 sigma=2.500e+02 x1=0.00e+00 status=0 escape=0 read=0 downgraded=0 kept_tight=1 band=2 noise=2
+gate8 slack=1e+02 target=1e+03 h=-1 s=1.581e-06 iters=3 mu=1.250e-09 sigma=1.000e+03 x1=0.00e+00 status=0 escape=0 read=0 downgraded=0 kept_tight=1 band=2 noise=2
+gate8 slack=1e+02 target=1e+03 h=+1 s=1.581e-06 iters=3 mu=1.250e-09 sigma=1.000e+03 x1=0.00e+00 status=0 escape=0 read=0 downgraded=0 kept_tight=1 band=2 noise=2
+gate8 slack=1e+02 target=2.5e+04 h=-1 s=3.162e-07 iters=3 mu=1.250e-09 sigma=2.500e+04 x1=0.00e+00 status=0 escape=0 read=0 downgraded=0 kept_tight=1 band=2 noise=2
+gate8 slack=1e+02 target=2.5e+04 h=+1 s=3.162e-07 iters=3 mu=1.250e-09 sigma=2.500e+04 x1=0.00e+00 status=0 escape=0 read=0 downgraded=0 kept_tight=1 band=2 noise=2
+gate8 slack=1e+02 target=2.5e+05 h=-1 s=1.000e-07 iters=3 mu=1.250e-09 sigma=2.500e+05 x1=0.00e+00 status=0 escape=0 read=0 downgraded=0 kept_tight=1 band=2 noise=2
+gate8 slack=1e+02 target=2.5e+05 h=+1 s=1.000e-07 iters=3 mu=1.250e-09 sigma=2.500e+05 x1=0.00e+00 status=0 escape=0 read=0 downgraded=0 kept_tight=1 band=2 noise=2

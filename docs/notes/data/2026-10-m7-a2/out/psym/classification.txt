@@ -1,0 +1,38 @@
+CHANGED HEADERS: ['include/hven/core/solver_counters.h', 'include/hven/detail/qp/ipqp_engine.h', 'include/hven/drivers/sqp_solver_types.h']
+CHANGED SOURCES: ['bench/ipqp_e1_arm.cpp', 'src/drivers/sqp_options.cpp', 'src/drivers/sqp_solver.cpp', 'src/qp/ipqp_engine.cpp', 'tests/drivers/test_callback.cpp', 'tests/drivers/test_options_dump.cpp', 'tests/drivers/test_threads.cpp', 'tests/sqp/CMakeLists.txt', 'tests/sqp/test_ipqp_counters.cpp', 'tests/sqp/test_ipqp_dispatch.cpp', 'tests/sqp/test_ipqp_mu0_rule.cpp', 'tests/sqp/test_trace_writer.cpp']
+
+=== Release: 65 differing objects
+  class A (source changed): 10
+      CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o
+      CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+      CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o
+      bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options_dump.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_counters.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_dispatch.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_trace_writer.cpp.o
+  class B (includer of a changed header, source untouched): 55
+  UNEXPLAINED: 0
+  negative control: 107 includer objects of a changed header are IDENTICAL (of 172 includers in the dependency log)
+  compare verdict line: P-SYM: FAIL — differences outside the accepted noise class
+
+=== Debug: 66 differing objects
+  class A (source changed): 10
+      CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o
+      CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+      CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o
+      bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options_dump.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_counters.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_dispatch.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_trace_writer.cpp.o
+  class B (includer of a changed header, source untouched): 56
+  UNEXPLAINED: 0
+  negative control: 106 includer objects of a changed header are IDENTICAL (of 172 includers in the dependency log)
+  compare verdict line: P-SYM: FAIL — differences outside the accepted noise class
+
+CLASSIFICATION: PASS -- 0 unexplained

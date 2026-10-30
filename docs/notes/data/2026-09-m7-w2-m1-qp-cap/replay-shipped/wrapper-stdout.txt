@@ -1,0 +1,26 @@
+FOREGROUND_START retake-shipped-fix1 2026-09-18T06:37:40-04:00
+=== HEAD 9400690e  dirty-files=0 ===
+=== source tree:  /home/ghecht/Projects/hven
+=== build dir:    /home/ghecht/Projects/hven/.scratch/m7w2m1/rel-clean  (removed and re-configured by this wrapper)
+=== csv out:      /home/ghecht/Projects/hven/.scratch/m7w2m1/replay-shipped-fix1
+=== git describe: 9400690ec1a0  (what the configure will bake in)
+configure rc=0
+build rc=0  (target hven_sqp_corpus)
+libhven.a sha256:       c3af7c1e2674eb363db359522df4de44b6652982bd2a4ac2cb06de54e8875824
+hven_sqp_corpus sha256: 7d9d41f21c95113942ef86e0a5ef36aaca9205f67f1bb3a2dfbcf69f0a1a47ee
+=== U0 27-CELL THREE-ARM REPLAY (expecting 27/75/0 x3) ===
+ran head-walk rc=0 (worst 0)
+ran head-ssn rc=0 (worst 0)
+ran head-ipm rc=0 (worst 0)
+--- comparison against the M6 close HEAD CSVs ---
+=== M6 CLOSE HEAD-walk vs M7 W2 M1 HEAD-walk === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0 (worst 0)
+=== M6 CLOSE HEAD-ssn vs M7 W2 M1 HEAD-ssn === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0 (worst 0)
+=== M6 CLOSE HEAD-ipm vs M7 W2 M1 HEAD-ipm === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0 (worst 0)
+REPLAY_WORST_RC=0
+RETAKE_REPLAY_RC=0
+stamp written into the CSVs: # binary: 9400690ec1a0
+FOREGROUND_END retake-shipped-fix1 2026-09-18T06:42:05-04:00 rc=0
+WRAPPER_RC retake-shipped-fix1 rc=0

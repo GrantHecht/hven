@@ -1,0 +1,39 @@
+{
+ "dump": "dumps/STEENBRB_def/qp2.txt",
+ "n": 468,
+ "me": 96,
+ "mi": 0,
+ "tr": 0.05,
+ "result": {
+  "status": "1",
+  "minors": "4680",
+  "facts": "4695",
+  "blk_term": "0",
+  "cert": "0",
+  "cert_rej": "0",
+  "zmcap": "0",
+  "zmexh": "0",
+  "retreats": "0",
+  "exch": "881",
+  "deferred": "2",
+  "undec": "5",
+  "maxiter": "4680"
+ },
+ "phase1_status": 0,
+ "phase1_min_l1_violation": 0.0,
+ "H_eig_min": -3.16227766016838,
+ "H_eig_max": 517072067533838.1,
+ "final_ws": {
+  "rows": 0,
+  "pins": 348,
+  "rank": 436,
+  "count": 444
+ },
+ "redH_final_min": -0.0035215608675278807,
+ "clarabel_status": "Solved",
+ "f_star": -990729858499.4126,
+ "active_star": {
+  "rows": 0,
+  "pins": 379
+ }
+}

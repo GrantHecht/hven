@@ -1,0 +1,20 @@
+minors     0-   99 ws    1-> 100 obj +0.000000e+00 -> +0.000000e+00 deg  99 facts  878 | add:99 repairRef:1 | border:99 borderL:1
+minors   100-  199 ws  100-> 200 obj +0.000000e+00 -> +0.000000e+00 deg 100 facts   71 | add:100 | border:29 elim:1 elimL:70
+minors   200-  299 ws  200-> 300 obj +0.000000e+00 -> +8.593767e-03 deg  62 facts  100 | add:100 | elimL:100
+minors   300-  399 ws  300-> 400 obj +9.245035e-03 -> +6.278563e+01 deg   0 facts  100 | add:100 | elimL:100
+minors   400-  499 ws  400-> 500 obj +6.571786e+01 -> +1.567588e+02 deg   0 facts  100 | add:100 | elimL:100
+minors   500-  599 ws  500-> 600 obj +1.571139e+02 -> +1.864395e+02 deg   0 facts  100 | add:100 | elimL:100
+minors   600-  699 ws  600-> 700 obj +1.865116e+02 -> +2.481984e+02 deg   0 facts  100 | add:100 | elimL:100
+minors   700-  799 ws  700-> 800 obj +2.482326e+02 -> +2.866230e+02 deg   0 facts  100 | add:100 | elimL:100
+minors   800-  899 ws  800-> 900 obj +2.868750e+02 -> +3.222999e+02 deg   0 facts  100 | add:100 | elimL:100
+minors   900-  999 ws  900-> 968 obj +3.223580e+02 -> +1.911071e+02 deg   0 facts  100 | add:56 dropD:15 move:2 rideStep:13 rideUndone:14 | elimL:100
+minors  1000- 1099 ws  968-> 968 obj +1.911071e+02 -> +1.911071e+02 deg   0 facts  100 | dropD:50 rideUndone:50 | elimL:100
+minors  1100- 1199 ws  968-> 968 obj +1.911071e+02 -> +1.911071e+02 deg   0 facts  100 | dropD:50 rideUndone:50 | elimL:100
+minors  1200- 1299 ws  968-> 968 obj +1.911071e+02 -> +1.911071e+02 deg   0 facts  100 | dropD:50 rideUndone:50 | elimL:100
+minors  1300- 1399 ws  968-> 968 obj +1.911071e+02 -> +1.911071e+02 deg   0 facts  100 | dropD:50 rideUndone:50 | elimL:100
+minors  1400- 1499 ws  968-> 968 obj +1.911071e+02 -> +1.911071e+02 deg   0 facts  100 | dropD:50 rideUndone:50 | elimL:100
+minors  1500- 1599 ws  968-> 968 obj +1.911071e+02 -> +1.911071e+02 deg   0 facts  100 | dropD:50 rideUndone:50 | elimL:100
+minors  1600- 1699 ws  968-> 968 obj +1.911071e+02 -> +1.911071e+02 deg   0 facts  100 | dropD:50 rideUndone:50 | elimL:100
+minors  1700- 1799 ws  968-> 968 obj +1.911071e+02 -> +1.911071e+02 deg   0 facts  100 | dropD:50 rideUndone:50 | elimL:100
+minors  1800- 1899 ws  968-> 968 obj +1.911071e+02 -> +1.911071e+02 deg   0 facts  100 | dropD:50 rideUndone:50 | elimL:100
+minors  1900- 1999 ws  968-> 968 obj +1.911071e+02 -> +1.818747e+02 deg   0 facts  100 | dropD:50 rideStep:1 rideUndone:49 | elimL:100

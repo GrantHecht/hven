@@ -1,0 +1,119 @@
+M7 W2 E1b FIX ROUND 3 r2 -- THE SUCCESSOR DECLARATION (the by-name rename check corrected)
+Written and committed BEFORE the r2 chain was detached. RULE: nothing here may be adjusted
+after the r2 chain's first leg. The first declaration (psym-derivation-e1bfix3.txt,
+gates-e1bfix3.sh, chain_gates_e1bfix3.sh at 6fbb43d6) is NOT edited.
+
+§0 WHY r2. The first chain (.scratch/m7w2e1bfix3gates, 06:34-07:07) ended G1=1 G3=1 G5=0 G6=0,
+fold proofs 46/0, on exactly one assertion per suite: "ASSERT FAIL G{1,3} ... by name: this run
+does not carry the rename". The run DID carry it (Start lines: RENAME_FROM 0, RENAME_TO 1 in
+both suite logs). ROOT CAUSE -- not an inverted condition: the condition was
+`suite_names LOG | grep -qxF FROM || ! suite_names LOG | grep -qxF TO`, and under
+`set -o pipefail` a grep -q that MATCHES exits early, the upstream `sort` takes SIGPIPE, and the
+pipeline's status is 141, so `! ... grep -q TO` was true on a correct run (reproduced offline:
+rc 141 three of three on the first chain's suite-debug.log). The runner's message text
+"(FROM absent, TO present)" stated the requirement, not the measurement.
+THE FIX (gates-e1bfix3-r2.sh, E1BFR3r2 (n)): counts via grep -c (reads its whole input):
+pass iff FROM counted 0 AND TO counted 1 in the run's started names, else ASSERT FAIL (the
+measured counts printed). Offline mode `--check-names debug|release LOG` runs the full
+by-name check (rename + set equality) against the declared baseline: rc 0 pass, rc 2 refused.
+
+§0a THE FIRST CHAIN'S OTHER ASSERTIONS (read from its raw transcripts, logs/gates-e1bfix3.log):
+  G1 Debug: suite failed = 0, total = 2817 ("100% tests passed, 0 tests failed out of 2817");
+  G3 Release: suite failed = 0, total = 2818 (out of 2818);
+  by-name set equality (never reached in-run; run OFFLINE by the r2 check on the first chain's
+    suite logs): Debug 2819 started names == baseline 2819 with the rename, Release 2820 == 2820;
+  G5 P-SYM: every assertion OK, G5_ASSERT_RC=0 (differing 1/1, class A 1/1, class B 0/0,
+    unexplained 0, NC 62 Rel / 60 Dbg, no library mover, DEBUG_ONLY 0 Rel / 1 Dbg as declared);
+    the two "P-SYM: FAIL -- differences outside the accepted noise class" lines are the
+    compare's own rc 1 on the declared mover, asserted "compare rc (declared 1 mover(s)) = 1";
+  G6: install smoke, export contract, clang-format, diff --check, dirty 0 -- G6_ASSERT_RC=0;
+  fold proofs 46/0; ASSERT FAIL count in the whole log = 2 (the two above).
+
+§0b OFFLINE EXERCISE OF THE r2 CHECK (before the first leg):
+  --check-names debug   <first chain>/gates/suite-debug.log     rc 0 (0 / 1; 2819 == 2819)
+  --check-names release <first chain>/gates/suite-release.log   rc 0 (0 / 1; 2820 == 2820)
+  --check-names debug   synthetic: TO replaced by FROM          rc 2 (measured 1 and 0)
+  --check-names debug   synthetic: TO's lines removed           rc 2 (measured 0 and 0)
+  --check-names debug   synthetic: FROM added beside TO         rc 2 (measured 1 and 1)
+  --preflight-only (r2, at 6fbb43d6 + the uncommitted r2 wrappers): PREFLIGHT_RC 0 --
+    COMMENT_ONLY_OK, COMMENT_ONLY_HEADERS_OK, RENAME_OK, CLASS_B_NAMES_OK, PREFLIGHT_VALUE_OK,
+    4 SEGMENT_OK against .scratch/m7w2e1bfix3gates-r2, PREFLIGHT_OK.
+
+§0c EVERY OTHER DECLARED VALUE IS CARRIED BY DERIVATION, NOT RE-TYPED. The r2 runner is the
+first runner copied: its 67 top-level assignments differ from the first's in exactly two, S=
+(the scratch tree) and LOG= (the log name); every EXPECT_*, BEFORE, RENAME_*, NAMES_BASE_DIR
+is byte-identical. The range is the same: BEFORE de62a2e7 (de62a2e7f9d3...), code head
+9c08cc10 (9c08cc105f7f...), `git diff --name-status de62a2e7..9c08cc10` re-derived = the four
+M lines of §1 below; everything above 9c08cc10 (6fbb43d6 and this r2 commit) is
+docs/notes/data only. The P-SYM rehearsal at that exact pair (rehearsal/, 06:18-06:32) STANDS
+and is cited for §2/§4 unchanged; no code moved, so it is not re-taken.
+
+LITERAL CHECK before the first leg: the ONE scratch literal is `.scratch/m7w2e1bfix3gates-r2`
+(gates-e1bfix3-r2.sh, the S= line; chain_gates_e1bfix3_r2.sh asks it with --print-scratch and
+names no scratch path). The old literal `m7w2e1bfix3gates` (not -r2) appears in the r2 copies
+ONLY in the runner header's provenance comment (E1BFR3 (j)); the generated r2 segments
+(.scratch/m7w2e1bfix3gates-r2/g{1,3,5,6}.sh) carry it 0 times.
+
+======== THE FIRST DECLARATION, CARRIED VERBATIM BELOW (values unchanged) ========
+
+M7 W2 E1b FIX ROUND 3 -- THE REDUCED GATE'S EXPECTATIONS, DERIVED AND MEASURED
+Written and committed BEFORE the chain was detached. RULE: nothing here may be adjusted
+after the chain's first leg.
+
+§1 THE RANGE. BEFORE de62a2e7 (de62a2e7f9d364f3e1ddc24e8bc69e39fbd71ca2, the E1b fix-round-2
+gates record), code head 9c08cc10 (9c08cc105f7f4f5ef2e313e5736bf9b4d3d36f6c); the commit above
+it (this file's) is docs/notes/data only. `git diff --name-status de62a2e7..9c08cc10`:
+  M include/hven/drivers/sqp_solver.h           comment only (2 lines -> 3; +1 line shift below 1804)
+  M src/drivers/sqp_solver.cpp                  comment only (3 lines -> 3; no line shift)
+  M tests/sqp/test_equality_basis.cpp           comments + ONE TEST RENAMED (class A)
+  M tests/sqp/test_sqp_equality_basis_seams.cpp comment only; hven_sqp_seam_tests, OUTSIDE the universe
+Every +/- line over src/*.cpp and include/ is a `//` comment (the pre-flight's COMMENT_ONLY_OK,
+by value). No inline code sits below the changed header line (lines 1805-1966 are member
+declarations and comments).
+THE DECLARED RENAME (E1BFR3 (l)): EqualityBasis.T4NearCapMultiColumnLiftMeetsItsForwardBound ->
+EqualityBasis.T4NearCapMultiColumnLiftMeetsItsForwardEstimate: 1 renamed, 0 added, 0 removed.
+The pre-flight proves the range's only TEST-macro line changes over tests/*.cpp are that -/+
+pair (RENAME_OK), and both baselines name the old name once and the new one never.
+
+§2 P-SYM PER CONFIGURATION (MEASURED by the fresh rehearsal, rehearsal/, 06:18:35-06:32:26,
+this runner's own g5 segment byte-identical, HEAD 9c08cc10 vs de62a2e7, one lock hold):
+  DIFFERING 1/1 = class A 1/1 + class B 0/0; UNEXPLAINED 0/0.
+  class A = tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_equality_basis.cpp.o in both.
+  class B EMPTY in both (by name: the empty set; header-driven class B MEASURED EMPTY: the
+    public header's shift moved no includer's code in either configuration).
+  negative control (includers of sqp_solver.h, byte-identical): 62 Release / 60 Debug.
+  NOISE-ONLY (informational, not gated beyond the library rule): Release 3, all bench
+    (bench_corpus, bench_crossover, ipqp_e1_arm), 0 library; Debug 5: those 3 +
+    tests/drivers test_print_tables.cpp.o + the library's src/drivers/sqp_solver.cpp.o.
+  No production-library object is a P-SYM mover (DIFFERS/RELOCATIONS) in either configuration.
+  asymmetry admission list EMPTY.
+  The rehearsal's one ASSERT FAIL was its HYPOTHESIS DEBUG_ONLY Debug 0 (measured 1); every
+  other assertion ASSERT OK (rehearsal/rehearsal-log.txt).
+§3 TESTS: Release 2818 (G3), Debug 2817 (G1, less the long test); BY NAME 2820 / 2819 started
+  names == ../gates-e1b-fix2/suite-{release,debug}.txt with the declared rename applied.
+§4 SECTIONS (library, 44 objects each): NON-DEBUG-MOVERS empty both; no library ADDED;
+  Release: 44/44 BYTE-IDENTICAL, DEBUG_ONLY 0 (the comment-only production sources --
+    sqp_solver.cpp and every library includer of sqp_solver.h -- are byte-identical);
+  Debug: 43 BYTE-IDENTICAL, DEBUG_ONLY 1 = CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+    (NOISE-ONLY in P-SYM; a comment-only source's own object); header-driven DEBUG_ONLY set
+    MEASURED EMPTY (the includer admission of E1BFR3 (m) is in place and admits nothing this
+    round); REFUSED 0.
+  Declared: EXPECT_DEBUG_ONLY_RELEASE=0, EXPECT_DEBUG_ONLY_DEBUG=1.
+§5 G2 and G4 NOT RUN (declared; re-checked by value in the pre-flight: every changed
+  src/include line is a comment, and tests/sqp/test_continuation.cpp is outside the range).
+§6 G6 expected clean; fold proofs 46/0 (gate-assert library unchanged).
+§8 G5 checks the main tree out to de62a2e7 during its before arms: nothing edits or commits
+  in the main tree until CHAIN_END.
+
+PRE-FLIGHT and REFUSALS: preflight.txt (this directory; HEAD 9c08cc10 + the uncommitted
+wrappers): offline class B check rc 0/0 on the rehearsal classifications; PREFLIGHT_RC 0; nine
+wrong values each refused rc 2 (class A, empty header list, empty comment-only list, a
+BEFORE whose range carries code, a class A object declared class B, a library class B, a
+Debug/Release count mismatch, a wrong RENAME_TO, a wrong RENAME_FROM).
+
+LITERAL CHECK before the first leg: the ONE scratch literal is `.scratch/m7w2e1bfix3gates`
+(gates-e1bfix3.sh, the S= line; the chain asks it with --print-scratch). The copies were
+grepped for fix2 / r2 / 7ab88b81 / 92e6a12c / m7w2e1bfix2: the hits are provenance comments
+(runner header, chain header), the DECLARED by-name baseline directory gates-e1b-fix2 (E1BFR3
+(l)), and the M3b library's own tool file names check_sections_fix2.sh / section_digest_fix2.py
+(unchanged gate machinery). No previous round's scratch tree, log name, BEFORE or head appears.

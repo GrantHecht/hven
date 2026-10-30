@@ -1,0 +1,361 @@
+M7 W2 M3a -- THE RESTORATION REQUEST PROBE: STAGE 1 (the 12 legs), THE CONTROL
+IDENTITY CHECK, THE TABLES AND THE VERDICT
+==============================================================================
+
+THE STAMP (CLAUDE.md section 7)
+-------------------------------
+repository      hven, branch m7
+commit measured 396e3a36  "data(m7): M7 W2 M3a task B -- the chain's build and
+                its smoke split into separate lock holds" -- the tree that
+                carries task A's code (8e6aacdf, the S5 sixth field), task A's
+                gate transcripts (3caf8d50), RULE.md (dbf55675) and the probe
+                (a62650c9, 396e3a36), and nothing else.
+                Every leg below ran on a CLEAN tree at that commit; the chain
+                prints `HEAD 396e3a36  dirty-files=0` at its head
+                (logs/chain1.log line 2) and refuses to start otherwise.
+parent          e7ef78b0  (the W2 M2b close; task A's `before` arm)
+date            2026-09-21, America/New_York
+                (chain 1: 07:19:06 -> 07:34:36)
+artifact date   2026-09-21, America/New_York (this directory; no leg re-run)
+toolchain       clang version 22.1.8 (Fedora 22.1.8-4.fc44),
+                target x86_64-redhat-linux-gnu; CMake 4.3.0 + Ninja; C++20;
+                Release
+host            fedora, AMD Ryzen 7 5800X3D 8-Core Processor, 8 physical cores
+backend         Intel MKL (oneapi, lp64, /opt/intel/oneapi/mkl/latest)
+alignment       EIGEN_MAX_ALIGN_BYTES=32, passed explicitly to the probe
+                project at directory level (M7 H3 fix1)
+
+APPLE / ACCELERATE: UNOBSERVED. No leg here ran on Mac hardware and no Apple
+value appears in this artifact, interpolated or otherwise.
+
+HOLDOUT: NOT RUN. Both cells named here -- STEENBRB and YORKNET -- are TRAIN.
+
+
+THE MEASUREMENT TERMS (CLAUDE.md section 7, declared in the artifact they
+produced -- RULE.md section 6, and repeated in wrappers/chain1.sh's header)
+-----------------------------------------------------------------------------
+NO CO-RUN. Every one of the 12 legs ran ALONE: one cell per process, serial,
+`MKL_NUM_THREADS=1 OMP_NUM_THREADS=1`, `taskset -c 2` (one physical core), each
+leg taking `/tmp/box-build.lock` for ITS OWN hold with no timeout and no
+fallback and releasing it before the next leg. A `pgrep` guard ran as a
+separate prior command AND a `PGREP_EMPTY` marker was written inside the lock
+before every leg; the guard never fired (logs/chain1.log,
+`PGREP_BEFORE_LOCK` / `PGREP_EMPTY` on all 12).
+
+WALL IS INFORMATIONAL. The per-leg `wall_s` in logs/chain1.log is printed
+"(INFORMATIONAL)" and is quoted as a measurement nowhere in this artifact. It
+supports no conclusion here. Two budgets exist and are NOT timings:
+
+  * a 300 s SOLVER deadline enforced by the probe in its own iteration
+    callback (RULE.md section 6). `deadline_seconds=300` and `deadline_fired`
+    are printed on every leg. `deadline_fired=0` on ALL TWELVE: no leg is
+    TRUNCATED, so no leg's status is UNRANKED on that ground.
+  * a 900 s OUTER `timeout` around each process, the safety stop whose firing
+    would make the leg CENSORED and produce NO ROW. It did not fire on any
+    leg: all 12 exited rc=0 (`WRAPPER_RC ... rc=0`, and `LEGS_WORST=0`).
+
+WHAT IS ASSERTED here is counters, statuses and the S5 restoration record --
+the deterministic per-process columns -- plus the residual-class floats the
+probe prints. Nothing in this artifact is a timing claim.
+
+
+WHAT PRODUCED EACH NUMBER
+-------------------------
+THE 12 LEGS (rows/stage1/, tables/, verdict.txt) -- `m3a_probe`, this task's
+instrument, built against an hven INSTALLED from 396e3a36.
+
+    hven install      .../.scratch/m7w2m3a/install, from 396e3a36
+      lib64/libhven.a
+        c79f404fd377f7ecdefc8ab016a71d65a8cba026a498b4f1f65ce303a72d5cd3
+    m3a_probe
+        ba6a1a74698311f6aaf493e6a815f716f1fe5ba7a3df990756f6660acffac3f3
+
+    The probe sha256 is recorded by the chain at prepare time and re-printed at
+    the head of the log (logs/chain1.log line 3), so all 12 legs carry the
+    identity of the binary they ran on. ONE PROBE BINARY, ONE LIBRARY, NO
+    SUPERSEDED LEGS: no row in this directory was re-taken with a second
+    binary.
+
+    THE PROBE IS M2b's, WITH FOUR ADDITIONS AND NOTHING ELSE: `--tr-init r`,
+    `--deadline s` (the callback-enforced solver deadline),
+    `restoration_sub_status` (task A's field), and the first-QP key group.
+    14 new printed keys in all, every one of them named in RULE.md section 4's
+    exclusion list BEFORE the control identity check ran.
+    wrappers/m3a_probe.cpp's own header lists them.
+
+    The probe compiles three harness sources READ-ONLY out of hven-bench and
+    links the installed hven itself; the harness's own CMake is never entered
+    (wrappers/probe-CMakeLists.txt states why, and the consequence: nothing
+    built here carries `HVEN_BENCH_PIN_SHA`, so NO ROW FROM THIS PROBE IS EVER
+    CITED AS A HARNESS ROW). The three sources, by CONTENT, because the
+    harness tree is another lane's live working tree:
+
+      lanes/cutest/cutest_model.cpp
+        53b46be1a454e2f680371580f1f1f46325a706089ed0cddaed225b192a89f9e9
+      lanes/cutest/cutest_source.cpp
+        52def50c3e46fda490158557e1dc1506d3c6067ad2256c59579416e600776ec2
+      lanes/hven/nlp_model_triplet_view.cpp
+        588ce85e885335b76dc6ce1e43112883e1b20d7c03ff459266787f9da036f400
+
+      These are the SAME three content hashes M2b recorded
+      (../2026-09-m7-w2-m2b-proximity/PROVENANCE.txt): the three files have not
+      moved since 2026-09-16. The harness HEAD was a5682c0 when this artifact
+      was written and is recorded as CONTEXT ONLY; the content hashes are the
+      pin, and the harness tree was not modified by this task.
+
+    CUTEst is an EXTERNAL tool (owner ruling, 2026-09-15): found under
+    ~/Software/cutest, neither vendored nor built here, linked by RPATH.
+
+THE CONTROL IDENTITY CHECK (identity-stage1.txt) -- wrappers/identity_m3a.py,
+run by the chain between the two control legs and the ten raised-radius legs,
+comparing each control leg against M2b's committed
+`../2026-09-m7-w2-m2b-proximity/rows/screen/<CELL>.txt` under RULE.md section
+4. Result: 38 shared keys and the full ladder IDENTICAL on both cells, 0
+differing, `NEAR_ULP_TOLERATED=0`, `IDENTITY_WORST=0`. The near-ulp fallback
+RULE.md section 4 declared in advance was never used. The 14 excluded keys are
+listed in the report and are exactly RULE.md's list.
+
+THE TABLES AND THE VERDICT ARE MACHINE-WRITTEN: wrappers/summarise_m3a.py
+folds rows/stage1/ into tables/ and verdict.txt. No number in them is
+transcribed by hand, and RULE.md section 5's predicates are coded once, in that
+file, from the rule as committed. The fold is pure file reading -- it starts no
+solve -- and was re-run against the committed rows at artifact time.
+
+THE RADII ARE PRE-REGISTERED, in RULE.md section 3, committed at dbf55675
+BEFORE any leg ran, and are reproduced in wrappers/chain1.sh verbatim rather
+than recomputed.
+
+THE GATES (gates/) -- task A's six-gate chain on the committed tree, in lock
+segments, Debug and Release; the transcripts are what they are and gates/README.md
+names each one's exit status. Committed separately at 3caf8d50.
+
+WHAT IS NOT HERE
+----------------
+STAGE 2 AND STAGE 3 WERE NOT RUN. RULE.md section 5.5's failure path fired:
+no radius satisfies WINDOW_ARTEFACT on both stage-1 cells, so the task reports
+stage 1 and stops. See verdict.txt and README.md. No leg beyond the 12 listed
+here was ever started.
+
+NO DEFAULT WAS CHANGED BY THIS TASK -- not `tr_init`, not
+`restoration_proximity`, not `qp.tr_radius`, not `feas_tol`. Every leg ran this
+lane's `default` label (hven's own defaults plus `common.threads = 1` and
+`common.print_level = 10`) with only `SqpOptions::tr_init` varied, and the
+library at 396e3a36 ships exactly the defaults it shipped at e7ef78b0.
+
+
+==============================================================================
+ADDENDUM E -- THE QP-CAP EXPERIMENTS (the 5 E legs)
+==============================================================================
+
+THE STAMP
+---------
+commit measured 09160ae0  "data(m7): M7 W2 M3a addendum E -- the probe's two
+                cap arguments and five new keys, the identity checker and the
+                E chain" -- the tree that carries everything stage 1 carried,
+                plus RULE-E.md (ade36329), the stage-1 rows and fold
+                (b663b834, 6bc75ee9) and the rebuilt probe.
+                Every E leg ran on a CLEAN tree at that commit; the chain
+                prints `HEAD 09160ae0  dirty-files=0` at its head
+                (logs/chainE.log line 2) and refuses to start otherwise.
+date            2026-09-21, America/New_York
+                (chain E: 07:51:22 -> 08:11:28)
+toolchain, host, backend, alignment: UNCHANGED from stage 1 above. Same box,
+                same day, same install.
+
+APPLE / ACCELERATE: UNOBSERVED. No E leg ran on Mac hardware.
+HOLDOUT: NOT RUN. STEENBRB and YORKNET are TRAIN.
+
+THE MEASUREMENT TERMS
+---------------------
+UNCHANGED from stage 1 and restated in RULE-E.md section 6: NO CO-RUN, one
+leg per process, serial, `MKL_NUM_THREADS=1 OMP_NUM_THREADS=1`,
+`taskset -c 2`, each leg its OWN hold of /tmp/box-build.lock with no timeout
+and no fallback, a `pgrep` guard as a separate prior command and a
+`PGREP_EMPTY` marker inside the lock before every leg (the guard never fired:
+logs/chainE.log, all 5 legs). 300 s SOLVER deadline enforced by the probe in
+its own iteration callback, inside a 900 s OUTER `timeout`.
+
+WALL IS INFORMATIONAL. The per-leg `wall_s` in logs/chainE.log is printed
+"(INFORMATIONAL)" and is quoted as a measurement nowhere. Two E legs' wall
+exceeds 300 s because the solver deadline fires only when the iteration
+callback is next reached; that is a budget, not a timing, and neither number
+supports any claim in this artifact.
+
+TRUNCATED AND CENSORED, as they fell: all 5 legs exited rc=0, so NO leg is
+CENSORED and no row is missing (`LEGS_E_WORST=0`). BOTH E2 legs printed
+`deadline_fired=1` and are TRUNCATED -- their counters are reported and they
+carry NO VERDICT (RULE-E.md section 5). The two E1 legs and the identity leg
+printed `deadline_fired=0`.
+
+WHAT PRODUCED EACH NUMBER
+-------------------------
+THE 5 E LEGS (rows/e/, tables/e-*.txt, verdict-E.txt) -- the SAME hven
+install as stage 1, and a REBUILT m3a_probe:
+
+    hven install      .../.scratch/m7w2m3a/install, from 396e3a36 -- UNCHANGED
+      lib64/libhven.a
+        c79f404fd377f7ecdefc8ab016a71d65a8cba026a498b4f1f65ce303a72d5cd3
+        (re-checked by chainE.sh at prepare, which refuses a mismatch and does
+        NOT rebuild the library: logs/chainE.log line 4)
+    m3a_probe, stage 1
+        ba6a1a74698311f6aaf493e6a815f716f1fe5ba7a3df990756f6660acffac3f3
+    m3a_probe, addendum E
+        37d13d765d02fc41d0d801532edbf5f1a7e32e5e322ff61296941be041ebfcc1
+        (logs/chainE.log line 3, recorded at prepare and carried by all 5 legs)
+
+    THE TWO BINARIES DIFFER BY CONSTRUCTION -- the E probe adds
+    `--qp-cap-retry on|off`, `--qp-max-iter N` and five printed keys
+    (`qp_cap_retry`, `qp_max_iter`, `qp_cap_retries`, `first_qp_minor_iters`,
+    `first_qp_factorizations`) -- and THE IDENTITY LEG IS THE PROOF THAT THE
+    DIFFERENCE IS INERT AT THE DEFAULTS. `STEENBRB@identity`, run BEFORE any
+    E leg with both new options at their defaults, is byte-identical to the
+    committed rows/stage1/STEENBRB@trinf.txt on all 50 shared keys and on the
+    whole excursion ladder, `NEAR_ULP_TOLERATED=0`, `IDENTITY_E_WORST=0`
+    (identity-e.txt; wrappers/identity_e.py; the five keys above are the only
+    additions and are excluded BY NAME by RULE-E.md section 3, committed
+    before the leg ran). An identity failure would have ABORTED the chain
+    before any E leg; it did not fire.
+
+    NO ROW IN rows/stage1/ WAS RE-TAKEN with the E binary. The controls for
+    the E legs are the COMMITTED stage-1 @trinf rows (RULE-E.md section 2),
+    read as files by the fold.
+
+    Nothing built here carries `HVEN_BENCH_PIN_SHA` -- the harness CMake is
+    never entered -- so NO ROW FROM THIS PROBE IS EVER CITED AS A HARNESS ROW,
+    and /home/ghecht/Projects/hven-bench stayed read-only to this addendum as
+    it did to stage 1. The three harness sources and their content hashes are
+    UNCHANGED from the stage-1 stamp above.
+
+THE E TABLES AND verdict-E.txt ARE MACHINE-WRITTEN: wrappers/summarise_m3a.py's
+fold_e() folds rows/e/ and the two committed stage-1 controls into
+tables/e-first-qp.txt, tables/e-solve-counters.txt and verdict-E.txt. No number
+in them is transcribed by hand, and RULE-E.md section 5's predicates are coded
+once, in that file, from the rule as committed at ade36329. The stage-1 fold is
+untouched: re-running the script leaves verdict.txt and tables/stage1-*.txt
+byte-identical to 6bc75ee9.
+
+THE TWO E2 CAPS ARE PRE-REGISTERED as literal integers in RULE-E.md section 1
+(46800 and 25600), committed before any leg ran; the fold independently derives
+each cell's per-major quotient (4680, 2560) from that cell's own control row and
+checks that the argument is exactly ten times it.
+
+WHAT IS NOT HERE, FOR THE ADDENDUM
+----------------------------------
+NO LEG BEYOND THE FIVE was ever started. RULE-E.md section 5's failure path
+applies: H-QP is recorded as NOT SUPPORTED on these cells at these caps -- and
+NOT REFUTED either, both E2 legs being TRUNCATED -- and the addendum stops. It
+is not re-tested at a larger cap, not widened to other cells, not re-run at a
+wider budget.
+
+NO DEFAULT WAS CHANGED BY THIS ADDENDUM -- not qp_cap_retry, not
+QpOptions::max_iter, not tr_init, not restoration_proximity, not qp.tr_radius,
+not feas_tol. Both options exercised here ship OFF / at the sentinel and still
+do.
+
+===========================================================================
+ADDENDUM F -- THE DEGENERATE-STALL PROBE
+===========================================================================
+
+RULE-F.md was committed at 229d63de, BEFORE any F leg ran, the identity leg
+included. The probe and both checks landed at bb29174f; the rows, the chain
+transcript and the two gate reports at 94ca4116; the fold, verdict-F.txt and the
+three F tables at 2cf26017.
+
+THE LIBRARY IS THE SAME ONE STAGE 1 AND ADDENDUM E MEASURED ON. It was NOT
+rebuilt and NOT reinstalled for the F legs: chainF.sh re-checks
+
+  libhven.a sha256  c79f404fd377f7ecdefc8ab016a71d65a8cba026a498b4f1f65ce303a72d5cd3
+
+and REFUSES to run if it has moved.
+
+THE PROBE WAS REBUILT and its sha256 differs from stage 1's and from addendum
+E's BY CONSTRUCTION -- it gained one argument (`--ledger on|off`), one printed
+key (`ledger`) and one block (LEDGER_BEGIN..LEDGER_END, emitted after
+LADDER_END):
+
+  stage 1 probe sha256   ba6a1a74698311f6aaf493e6a815f716f1fe5ba7a3df990756f6660acffac3f3
+  addendum E probe sha256 37d13d765d02fc41d0d801532edbf5f1a7e32e5e322ff61296941be041ebfcc1
+  ADDENDUM F probe sha256 882e9d80cae63ab265d3f7f68ce91cf22e85c4309882d405c0405d3b1e244543
+
+THE IDENTITY LEG IS THE PROOF THE DIFFERENCE IS INERT AT THE DEFAULT.
+`STEENBRB@identity-F` ran the rebuilt binary at `--tr-init inf --ledger off` --
+the E probe's behaviour exactly, since `off` constructs no Ledger and never
+calls attach_ledger -- and reproduced the COMMITTED rows/stage1/STEENBRB@trinf.txt
+on all 50 shared keys and the whole ladder block, byte for byte, with
+NEAR_ULP_TOLERATED=0. See identity-f.txt.
+
+A SECOND, DIFFERENT CHECK COVERS THE ATTACHED LEDGER. RULE-F.md section 3.2's
+NEUTRALITY check compares each of the four `--ledger on` legs against its OWN
+committed stage-1 twin -- @trinf against @trinf, @tr1 against @tr1 -- on every
+shared key and the whole ladder: 50 keys on the inf arms, 52 on the tr1 arms, 0
+differing, NEAR_ULP_TOLERATED=0. NO SOLVER COUNTER MOVED WITH THE LEDGER
+ATTACHED. Had one moved, RULE-F.md section 3.2 made that a STOP and a finding
+about hven, and the gating leg's check ran BEFORE the other three legs so the
+stop would have been a stop. See neutral-first-f.txt and neutrality-f.txt.
+
+MEASUREMENT CONDITIONS, unchanged from stage 1 and addendum E: one leg per
+process, serial, ALONE under flock /tmp/box-build.lock with no timeout and no
+fallback, released per leg; a pgrep check for a foreign cell binary as a separate
+prior command and again inside each hold; MKL_NUM_THREADS=1, OMP_NUM_THREADS=1;
+taskset -c 2; a 300 s SOLVER deadline enforced by the probe's callback inside a
+900 s outer `timeout 900`. Nothing co-ran. Wall-clock is informational only
+(CLAUDE.md section 7). HOLDOUT was never run; both cells are TRAIN.
+
+Chain F: pid 2308391, setsid-detached at HEAD bb29174f with a clean tree,
+2026-09-21T08:33:44 -> 08:38:43 -04:00. IDENTITY_F_RC=0, NEUTRAL_FIRST_RC=0,
+NEUTRALITY_F_RC=0, LEGS_F_WORST=0, five legs rc=0, deadline_fired=0 on all five.
+No leg CENSORED, none TRUNCATED.
+
+THE F TABLES AND verdict-F.txt ARE MACHINE-WRITTEN: summarise_m3a.py's fold_f()
+folds rows/f/ and the four committed stage-1 twins into tables/f-first-qp.txt,
+tables/f-records.txt, tables/f-neutrality.txt and verdict-F.txt. No number in
+them is transcribed by hand, and RULE-F.md section 4's predicates are coded once,
+in that file, from the rule as committed at 229d63de. The fold RE-RUNS both of
+section 3's checks itself, on the COMMITTED rows, as an independent re-check of
+the chain's own reports. The stage-1 and E folds are untouched: re-running the
+script leaves verdict.txt, verdict-E.txt, tables/stage1-*.txt and tables/e-*.txt
+byte-identical, checked by sha256 before and after.
+
+NOTHING BUILT HERE CARRIES HVEN_BENCH_PIN_SHA -- the harness CMake is never
+entered -- so no row from this probe is ever cited as a harness row, and
+/home/ghecht/Projects/hven-bench stayed READ-ONLY to this addendum as it was to
+stage 1 and addendum E.
+
+WHAT IS NOT HERE, FOR THE ADDENDUM
+----------------------------------
+NO REGISTERED LEG BEYOND THE FIVE was run, and none will be: confirming CYCLING
+PROPER -- the same working SET revisited, as against a long degenerate crawl --
+is not reachable from any public surface, since QpEngine has no trace sink and
+its only instrument is the per-SOLVE Ledger record. That needs a REGISTERED
+INSTRUMENT with its own pre-registered rule, not another leg on this one.
+
+CORRECTED IN FIX ROUND 1 (R5). This paragraph read "NO LEG BEYOND THE FIVE was
+ever started", which was FALSE AS WRITTEN and is withdrawn. ONE MORE SOLVE RAN ON
+THIS BOX FOR THIS ADDENDUM: a hand-run `--ledger on` / `--ledger off` A/B on
+ZAMB2-8, an UNREGISTERED INSTRUMENT SMOKE taken while the probe was being built.
+Commit bb29174f's own message disclosed it and quoted its numbers; this file did
+not, and the two could not both be read literally.
+
+  * IT HAS NO LOCK, PGREP OR FOREGROUND TRANSCRIPT. None was taken. The box
+    protocol's markers are what a registered leg produces and this was not run as
+    one. Stated, not excused.
+  * ITS VALUES SET NOTHING. No RULE reads it, no predicate is derived from it, no
+    threshold in RULE-F.md came from it, and no number in verdict-F.txt,
+    tables/f-*.txt or README.md is one of its numbers. RULE-F.md was committed at
+    08:27:43 and the smoke's own output files were written from 08:32:10 to
+    08:32:51 -- AFTER the rule -- so the thresholds were fixed before these
+    numbers existed. That ordering is read off filesystem mtimes bracketed by two
+    git commit timestamps (229d63de at 08:27:43, bb29174f at 08:33:28) and by
+    CHAINF_START at 08:33:44; shell history is not evidence and is not cited. An
+    mtime is mutable metadata, so this is the best evidence available rather than
+    a transcript -- and if a reader declines it, the honest fallback is that the
+    order cannot be SHOWN, only that the rule's commit and the disclosure commit
+    bracket the smoke's files.
+  * THE FILES THEMSELVES ARE NOW COMMITTED, as they were found and with their
+    mtimes, at fix1/zamb-smoke/ (six files plus a README.txt that says what they
+    are). Nothing about them is reconstructed.
+
+NO FILE UNDER src/ OR include/ WAS TOUCHED by this addendum, and notices/ was
+not touched. NO DEFAULT WAS CHANGED -- not tr_init, not QpOptions::max_iter, not
+qp_cap_retry, not restoration_proximity, not qp.tr_radius, not feas_tol -- and
+RULE-F.md section 0 stated before the legs that no verdict could license one.

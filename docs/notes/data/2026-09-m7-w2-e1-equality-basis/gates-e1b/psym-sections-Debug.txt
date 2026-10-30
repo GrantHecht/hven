@@ -1,0 +1,23 @@
+=== NON-DEBUG SECTION COMPARISON (Debug) -- FAIL-CLOSED
+DEBUG_CLASS_PREFIXES=.debug .zdebug .rela.debug .rel.debug
+BEFORE_DIR=/home/ghecht/Projects/hven/.scratch/m7w2e1bgates/gates/psym/before-obj-Debug
+AFTER_DIR=/home/ghecht/Projects/hven/.scratch/m7w2e1bgates/gates/psym/after-obj-Debug
+DIGEST=/home/ghecht/Projects/hven/.scratch/m7w2e1bgates/section_digest_fix2.py
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o  sections=[SECTION-COUNT(8824->18018)]
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o  sections=[.text]
+DEBUG-ONLY       CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o  sections=[.eh_frame,.gcc_except_table,.llvm_addrsig,.rela.eh_frame,.rela.rodata,.rela.text,.rela.text._ZN4hven7solvers9SqpSolver10MajorStateC2Ev,.rela.text._ZN4hven7solvers9SqpSolver10SolveStateC2ERKNS0_11IpqpOptionsE,.rela.text._ZN4hven7solvers9SqpSolver10SolveStateD2Ev,.rela.text._ZN5Eigen8internal10redux_implINS0_13scalar_sum_opIiiEENS0_15redux_evaluatorINS_3MapIKNS_6MatrixIiLin1ELi1ELi0ELin1ELi1EEELi0ENS_6StrideILi0ELi0EEEEEEELi3ELi0EE3runISB_EEiRKSC_RKS3_RKT_,.strtab,.symtab,.text,.text._ZN4hven7solvers9SqpSolver22set_iteration_callbackESt8functionIFNS0_14CallbackActionERKNS0_14IterationEventEEENS0_16IterationPayloadE]
+DEBUG-ONLY       CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o  sections=[.text._ZN4hven7solvers10SqpOptionsC2Ev]
+DEBUG-ONLY       CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+SECTIONS_Debug_OBJECTS=43
+SECTIONS_Debug_BYTE_IDENTICAL=36
+SECTIONS_Debug_DEBUG_ONLY=3
+SECTIONS_Debug_NON_DEBUG_MOVERS=4
+SECTIONS_Debug_REFUSED=0
+--- the non-debug movers, in full:
+CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o  [SECTION-COUNT(8824->18018)]
+CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o  [.text]
+CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o  [.eh_frame,.gcc_except_table,.llvm_addrsig,.rela.eh_frame,.rela.rodata,.rela.text,.rela.text._ZN4hven7solvers9SqpSolver10MajorStateC2Ev,.rela.text._ZN4hven7solvers9SqpSolver10SolveStateC2ERKNS0_11IpqpOptionsE,.rela.text._ZN4hven7solvers9SqpSolver10SolveStateD2Ev,.rela.text._ZN5Eigen8internal10redux_implINS0_13scalar_sum_opIiiEENS0_15redux_evaluatorINS_3MapIKNS_6MatrixIiLin1ELi1ELi0ELin1ELi1EEELi0ENS_6StrideILi0ELi0EEEEEEELi3ELi0EE3runISB_EEiRKSC_RKS3_RKT_,.strtab,.symtab,.text,.text._ZN4hven7solvers9SqpSolver22set_iteration_callbackESt8functionIFNS0_14CallbackActionERKNS0_14IterationEventEEENS0_16IterationPayloadE]
+CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o  [.text._ZN4hven7solvers10SqpOptionsC2Ev]
+SECTIONS_Debug_RC=1

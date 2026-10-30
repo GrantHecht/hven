@@ -1,0 +1,66 @@
+PGREP_FOREIGN_BEGIN
+1182269 /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1789567559992-kakuwb.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID=
+1188310 python3 runners/run_serial.py --problem-set hs --split TRAIN --lanes hven-ipm --options ipm-bar-monitored --budget-wall-s 600 --out /home/ghecht/Project
+1188352 /home/ghecht/Projects/hven-bench/build/lanes/hven/hven_bench_cell --lane hven-ipm --problem hs071 --options ipm-bar-monitored --budget-iters 0 --options
+PGREP_FOREIGN_END
+LEG_START 2026-09-17T10:45:54-04:00
+LOCK=held
+CELL problem=STEENBRC lane=hven-sqp label=default budget_iters=12 pin_cpu=7 timeout_s=280
+BINARY /home/ghecht/Projects/hven-bench/build/lanes/hven/hven_bench_cell
+CELL_BEGIN
+lane=hven-sqp
+problem=STEENBRC
+problem_set=cutest
+set_version=cutest-nlp-35 v1
+source_path=sets/cutest/sif/STEENBRC.SIF
+hessian_provenance=exact
+options_label=default
+hven_pin_sha=3904a477771524b85b34678fb7d2ff55dd4768f1
+threw=0
+budget_iters=12
+status=max_iter
+outcome=dnf_budget
+iterations=2
+factorizations=18016
+objective=219821589051.01547
+kkt_stationarity=1044559970840.4849
+kkt_primal_eq=9488.5000000000036
+kkt_primal_ineq=3.2606513526665845e-14
+kkt_complementarity=3.944304526105059e-29
+side.major_iters=2
+side.qp_minor_iters=13636
+side.factorizations=18016
+side.steps_accepted=0
+side.rejected_steps=1
+side.soc_steps=0
+side.soc_applied=0
+side.elastic_activations=1
+side.restoration_iters=10
+side.eqp_refine_steps=0
+side.border_refine_steps=619
+side.verdict_refine_steps=0
+side.suspect_escalations=0
+side.symbolic_analyses=3
+side.full_step_majors=0
+side.watchdog_restores=0
+side.evals_full=13
+side.evals_values=0
+side.sqp_stationarity=1044559970840.4849
+side.sqp_feasibility=9488.5000000000036
+side.sqp_complementarity=0
+side.sqp_kkt_residual=1044559970840.4849
+side.sqp_infeasibility_certified=0
+side.harness_eval_f=2
+side.harness_eval_grad_f=2
+side.harness_eval_g=11
+side.harness_eval_jac=12
+side.harness_eval_hess=13
+side.harness_dual_sign_violation=0
+reference_objective=null
+reference_abs_err=null
+reference_bound=null
+reference_ok=null
+CELL_END
+CELL_RC=0
+LEG_END 2026-09-17T10:47:09-04:00
+LEG_RC=0

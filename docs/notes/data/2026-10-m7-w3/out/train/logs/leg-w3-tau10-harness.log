@@ -1,0 +1,91 @@
+PGREP_EMPTY w3-tau10-harness
+PGREP_NO_UNCOVERED_CELL w3-tau10-harness 2026-10-29T00:33:19-04:00
+IN_LOCK_PGREP_EMPTY w3-tau10-harness 2026-10-29T00:33:19-04:00
+FOREGROUND_START w3-tau10-harness 2026-10-29T00:33:19-04:00
+-- The CXX compiler identification is Clang 22.1.8
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/clang++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- libiomp5.so
+-- MKL_INTERFACE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a
+-- MKL_SEQTHR_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a
+-- MKL_CORE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a
+-- MKL_TBB_LIBRARY = 
+-- MKL_OMP_LIBRARY = /opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- Found MKL: /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_core.a;/opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- hven-bench: hven pin bc7635a6435792ec528cd8a9cc203625aeee47fd (w3-scratch-tau10, 2026-10-28)
+-- hven-bench: hven package RESOLVED at /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/bench-tau10/.hven/install-bc7635a64357/lib64/cmake/hven
+-- hven-bench: hven pin prefix /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/bench-tau10/cmake/../.hven/install-bc7635a64357
+-- hven-bench: IPOPT at /home/ghecht/Software/ipopt-pardisomkl/install/lib/libipopt.so
+-- hven-bench: IPOPT rpath (DT_RPATH) /home/ghecht/Software/ipopt-pardisomkl/install/lib;/opt/intel/oneapi/mkl/latest/lib;/opt/intel/oneapi/compiler/latest/lib
+-- hven-bench: SNOPT at /home/ghecht/Software/snopt7/lib/libsnopt7_cpp.so
+-- hven-bench: CUTEst at /home/ghecht/Software/cutest/lib/libcutest_double.so
+-- Configuring done (0.4s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/bench-tau10/build
+[1/60] Building CXX object lanes/hven/CMakeFiles/hven_bench_hven_lane.dir/problems/hs071.cpp.o
+[2/60] Building CXX object sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs_absent_bounds.cpp.o
+[3/60] Building CXX object sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs001.cpp.o
+[4/60] Building CXX object sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs003.cpp.o
+[5/60] Building CXX object sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs010.cpp.o
+[6/60] Building CXX object sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs014.cpp.o
+[7/60] Building CXX object sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs012.cpp.o
+[8/60] Building CXX object sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs_registry.cpp.o
+[9/60] Building CXX object sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs005.cpp.o
+[10/60] Building CXX object sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs022.cpp.o
+[11/60] Building CXX object sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs011.cpp.o
+[12/60] Building CXX object sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs015.cpp.o
+[13/60] Building CXX object sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs_source.cpp.o
+[14/60] Building CXX object sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs007.cpp.o
+[15/60] Building CXX object sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs006.cpp.o
+[16/60] Building CXX object lanes/hven/CMakeFiles/hven_bench_hven_lane.dir/nlp_model_triplet_view.cpp.o
+[17/60] Linking CXX static library lanes/hven/libhven_bench_hven_lane.a
+[18/60] Building CXX object sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs024.cpp.o
+[19/60] Building CXX object sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs027.cpp.o
+[20/60] Building CXX object sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs028.cpp.o
+[21/60] Building CXX object sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs025.cpp.o
+[22/60] Building CXX object sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs026.cpp.o
+[23/60] Building CXX object sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs033.cpp.o
+[24/60] Building CXX object sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs039.cpp.o
+[25/60] Building CXX object sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs035.cpp.o
+[26/60] Building CXX object sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs038.cpp.o
+[27/60] Building CXX object sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs030.cpp.o
+[28/60] Building CXX object sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs040.cpp.o
+[29/60] Building CXX object sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs077.cpp.o
+[30/60] Building CXX object sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs043.cpp.o
+[31/60] Building CXX object sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs045.cpp.o
+[32/60] Building CXX object sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs076.cpp.o
+[33/60] Building CXX object sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs079.cpp.o
+[34/60] Linking CXX static library sets/hs/libhven_bench_set_hs.a
+[35/60] Building CXX object lanes/cutest/CMakeFiles/hven_bench_set_cutest.dir/cutest_source.cpp.o
+[36/60] Building CXX object tests/CMakeFiles/hven_bench_cutest_bound_map.dir/cutest_bound_map.cpp.o
+[37/60] Building CXX object CMakeFiles/hven_bench_roster.dir/lanes/roster.cpp.o
+[38/60] Building CXX object lanes/external/CMakeFiles/hven_bench_external.dir/declared_point.cpp.o
+[39/60] Building CXX object lanes/external/CMakeFiles/hven_bench_external.dir/external_cell.cpp.o
+[40/60] Building CXX object lanes/snopt/CMakeFiles/hven_bench_snopt_cell.dir/snopt_source_driver.cpp.o
+[41/60] Building CXX object lanes/ipopt/CMakeFiles/hven_bench_ipopt_cell.dir/ipopt_bench_cell.cpp.o
+[42/60] Building CXX object lanes/ipopt/CMakeFiles/hven_bench_ipopt_cell.dir/ipopt_source_tnlp.cpp.o
+[43/60] Building CXX object lanes/snopt/CMakeFiles/hven_bench_snopt_cell.dir/snopt_bench_cell.cpp.o
+[44/60] Building CXX object lanes/cutest/CMakeFiles/hven_bench_set_cutest.dir/cutest_model.cpp.o
+[45/60] Linking CXX static library lanes/cutest/libhven_bench_set_cutest.a
+[46/60] Linking CXX static library libhven_bench_roster.a
+[47/60] Linking CXX static library lanes/external/libhven_bench_external.a
+[48/60] Linking CXX executable tests/hven_bench_cutest_bound_map
+[49/60] Building CXX object tests/CMakeFiles/hven_bench_declared_point.dir/external_declared_point_check.cpp.o
+[50/60] Linking CXX executable lanes/snopt/hven_bench_snopt_cell
+[51/60] Linking CXX executable lanes/ipopt/hven_bench_ipopt_cell
+[52/60] Building CXX object tests/CMakeFiles/hven_bench_bridge_oracle.dir/bridge_oracle_check.cpp.o
+[53/60] Building CXX object tests/CMakeFiles/hven_bench_cutest_derivative_check.dir/cutest_derivative_check.cpp.o
+[54/60] Linking CXX executable tests/hven_bench_declared_point
+[55/60] Linking CXX executable tests/hven_bench_bridge_oracle
+[56/60] Linking CXX executable tests/hven_bench_cutest_derivative_check
+[57/60] Building CXX object tests/CMakeFiles/hven_bench_derivative_check.dir/hs_derivative_check.cpp.o
+[58/60] Linking CXX executable tests/hven_bench_derivative_check
+[59/60] Building CXX object lanes/hven/CMakeFiles/hven_bench_cell.dir/hven_bench_cell.cpp.o
+[60/60] Linking CXX executable lanes/hven/hven_bench_cell
+FOREGROUND_END w3-tau10-harness 2026-10-29T00:33:32-04:00 rc=0

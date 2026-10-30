@@ -1,0 +1,9 @@
+TOOLS_OK
+FOREGROUND_END k1-tools 2026-09-27T05:39:22-04:00 rc=0
+corpus k1-border-old36 [] rc=0 secs=212
+corpus k1-border-new15 [] rc=0 secs=226
+corpus k1-refactorize-old36 [] rc=0 secs=53
+corpus k1-refactorize-new15 [] rc=0 secs=8
+corpus k1off-border-old36 [] rc=0 secs=222
+corpus k1off-border-new15 [] rc=0 secs=123
+CORPUS_DONE

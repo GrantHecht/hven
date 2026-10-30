@@ -1,0 +1,4 @@
+# off-r1 vs off-r2
+# cells: 23
+# MOVED (counter/status/objective): 0 field differences
+# CENSORED (a dnf_wall on one side): 0 field differences

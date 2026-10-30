@@ -1,0 +1,61 @@
+Test project /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-release
+      Start 1596: Continuation.ProbeBudgetBoundsAFailingProposal
+      Start 1734: SqpDriverDisprovedEntry.ThreeConsecutiveDisprovalsRetireTheTierAtTheShippedThreshold
+      Start 1735: SqpDriverDisprovedEntry.TheDefaultIsOffAndOffIsTodaysColdRestart
+      Start 1736: SqpDriverDisprovedEntry.TheReseedMakesTheNextEntryBaseWarmAndTheTierStopsEscaping
+ 1/20 Test #1734: SqpDriverDisprovedEntry.ThreeConsecutiveDisprovalsRetireTheTierAtTheShippedThreshold .....   Passed    0.01 sec
+      Start 1813: HsBattery.BorderMode
+ 2/20 Test #1736: SqpDriverDisprovedEntry.TheReseedMakesTheNextEntryBaseWarmAndTheTierStopsEscaping ........   Passed    0.01 sec
+      Start 1814: HsBattery.RefactorizeMode
+ 3/20 Test #1735: SqpDriverDisprovedEntry.TheDefaultIsOffAndOffIsTodaysColdRestart .........................   Passed    0.01 sec
+      Start 1824: HsBattery.CrashBasisIsANullResultOnTheBatteryWithTwoBoundSeededExceptions
+ 4/20 Test #1814: HsBattery.RefactorizeMode ................................................................***Failed    0.04 sec
+      Start 1832: HsSweepCorpus.Corpus
+ 5/20 Test #1813: HsBattery.BorderMode .....................................................................***Failed    0.05 sec
+      Start 1925: IpqpDispatch.KIpmAndKWalkAgreeOnTheAnswerAcrossTheHsBattery
+ 6/20 Test #1824: HsBattery.CrashBasisIsANullResultOnTheBatteryWithTwoBoundSeededExceptions ................***Failed    0.08 sec
+      Start 2288: QpEngineIndefinite.PostProbeRestartIsOneShotPerSolve
+ 7/20 Test #2288: QpEngineIndefinite.PostProbeRestartIsOneShotPerSolve .....................................***Failed    0.01 sec
+      Start 2336: ScaleF7.WideWindowWalkIsChurnNotDegeneracy
+ 8/20 Test #1925: IpqpDispatch.KIpmAndKWalkAgreeOnTheAnswerAcrossTheHsBattery ..............................***Failed    0.10 sec
+      Start 2411: SqpDriverQpFailure.QpNumericalErrorShrinksInsteadOfAborting
+ 9/20 Test #2411: SqpDriverQpFailure.QpNumericalErrorShrinksInsteadOfAborting ..............................***Failed    0.01 sec
+      Start 2413: SqpDriverQpFailure.RepeatedQpNumericalErrorStillPropagates
+10/20 Test #2413: SqpDriverQpFailure.RepeatedQpNumericalErrorStillPropagates ...............................***Failed    0.01 sec
+      Start 2414: SqpDriverQpFailure.TheShippedBudgetRoutesMoreAndThisFixtureThenSolves
+11/20 Test #2414: SqpDriverQpFailure.TheShippedBudgetRoutesMoreAndThisFixtureThenSolves ....................***Failed    0.01 sec
+      Start 2422: SqpDriverSoc.SocIsSkippedOnRoutedFailures
+12/20 Test #2422: SqpDriverSoc.SocIsSkippedOnRoutedFailures ................................................***Failed    0.01 sec
+      Start 2454: SqpDriverSsnMode.EveryHsProblemTheWalkCertifiesIsCertifiedUnderKSsn
+13/20 Test #2454: SqpDriverSsnMode.EveryHsProblemTheWalkCertifiesIsCertifiedUnderKSsn ......................***Failed    0.08 sec
+      Start 2531: QpEngineStructuralViolation.T6bAFeasibleElasticCopyIsNoLongerCertifiedInfeasible
+14/20 Test #2531: QpEngineStructuralViolation.T6bAFeasibleElasticCopyIsNoLongerCertifiedInfeasible .........   Passed    0.02 sec
+      Start 2538: QpEngineStructuralViolation.T7TheFeasibleCensusHalfOverTheFULLDualMuSet
+15/20 Test #2538: QpEngineStructuralViolation.T7TheFeasibleCensusHalfOverTheFULLDualMuSet ..................   Passed    0.04 sec
+      Start 2539: QpEngineStructuralViolation.E2Fix4TheTerminalMuPointIsRefinedBeforeAnInfeasibleVerdict
+16/20 Test #2539: QpEngineStructuralViolation.E2Fix4TheTerminalMuPointIsRefinedBeforeAnInfeasibleVerdict ...   Passed    0.01 sec
+      Start 1816: HsBattery.BorderModeFalseInfeasible
+17/20 Test #1816: HsBattery.BorderModeFalseInfeasible ......................................................   Passed    0.01 sec
+18/20 Test #2336: ScaleF7.WideWindowWalkIsChurnNotDegeneracy ...............................................   Passed    0.44 sec
+19/20 Test #1832: HsSweepCorpus.Corpus .....................................................................***Failed    0.95 sec
+20/20 Test #1596: Continuation.ProbeBudgetBoundsAFailingProposal ...........................................   Passed   11.99 sec
+
+45% tests passed, 11 tests failed out of 20
+
+Total Test time (real) =  12.07 sec
+
+The following tests FAILED:
+	1813 - HsBattery.BorderMode (Failed)
+	1814 - HsBattery.RefactorizeMode (Failed)
+	1824 - HsBattery.CrashBasisIsANullResultOnTheBatteryWithTwoBoundSeededExceptions (Failed)
+	1832 - HsSweepCorpus.Corpus (Failed)
+	1925 - IpqpDispatch.KIpmAndKWalkAgreeOnTheAnswerAcrossTheHsBattery (Failed)
+	2288 - QpEngineIndefinite.PostProbeRestartIsOneShotPerSolve (Failed)
+	2411 - SqpDriverQpFailure.QpNumericalErrorShrinksInsteadOfAborting (Failed)
+	2413 - SqpDriverQpFailure.RepeatedQpNumericalErrorStillPropagates (Failed)
+	2414 - SqpDriverQpFailure.TheShippedBudgetRoutesMoreAndThisFixtureThenSolves (Failed)
+	2422 - SqpDriverSoc.SocIsSkippedOnRoutedFailures (Failed)
+	2454 - SqpDriverSsnMode.EveryHsProblemTheWalkCertifiesIsCertifiedUnderKSsn (Failed)
+Errors while running CTest
+Output from these tests are in: /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-release/Testing/Temporary/LastTest.log
+Use "--rerun-failed --output-on-failure" to re-run the failed cases verbosely.

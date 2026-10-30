@@ -1,0 +1,12 @@
+ORACLE /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/docs/notes/data/2026-09-m7-w2-e2-d4-feasible-qps/dumps/DALLASM_def/qp2.txt n=196 me=150 mi=0 tr=0.25 in-cell: status=3 minors=64 facts=2 blk_term=1 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=1 exch=16 deferred=0 undec=0 maxiter=1960
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=6.024000000000003
+  H eig min=0.0000e+00 max=5.4307e+03 n_neg=0 n_zero=24
+  Z'HZ on null(Ae): dim=46 rank(Ae)=150 eig min=1.2652e-01
+  WALK final: f=-227271.767176 viol eq/in/box=(1.5514041169644772, 0.0, 7.605027718682322e-14) |W| rows=0 pins=46 me+|W|=196 rank=190 n=196
+    working-set normalized singular values: min=2.665e-17 (smallest 3: [2.66457688e-17 3.66282720e-17 1.11323457e-16])
+    Z'HZ on the final working set's null space: dim=6 eig min=6.3691e+01 (next 1.6058e+02) max=5.6266e+02
+  OPTIMUM (Clarabel) status=PrimalInfeasible f*=-7.46830973938e-06 viol=(1.5599999996889062, 0.0, 2.9019842700601793e-11) active rows=0 pins=50
+    walk final vs x*: |dx|inf=2.5000e-01  f_walk - f* = -2.2727e+05
+    rows in W not active at x*: [] ; active at x* not in W: []
+    pins in W not at that bound at x*: 46 [(17, 'L'), (19, 'L'), (21, 'U'), (37, 'U'), (46, 'U'), (50, 'U'), (55, 'U'), (67, 'L'), (72, 'U'), (74, 'L'), (75, 'U'), (79, 'U'), (81, 'U'), (83, 'U'), (87, 'U'), (93, 'U'), (94, 'U'), (95, 'L'), (96, 'U'), (98, 'U'), (108, 'U'), (113, 'L'), (114, 'U'), (115, 'U'), (118, 'U'), (119, 'L'), (120, 'U'), (125, 'L'), (127, 'L'), (128, 'U')]
+    bounds active at x* not pinned in W: 28 [(0, 'U'), (1, 'U'), (2, 'U'), (3, 'U'), (12, 'L'), (14, 'U'), (16, 'U'), (25, 'U'), (40, 'U'), (44, 'L'), (59, 'L'), (69, 'L'), (71, 'U'), (88, 'U'), (106, 'L'), (110, 'L'), (123, 'U'), (131, 'L'), (133, 'L'), (137, 'L'), (138, 'U'), (140, 'L'), (147, 'L'), (148, 'U'), (154, 'L'), (156, 'L'), (178, 'U'), (180, 'L')]

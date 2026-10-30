@@ -55,4 +55,10 @@ inline constexpr double kTrShrinkFactor = 0.5;
 /// does not work: the engine's regularized solve returns ~1e-23, not 0.
 inline constexpr double kZeroStepScale = 1e-12;
 
+/// THE FAILED SUBPROBLEM'S STEP, its second gate (M7 W2 R2,
+/// SqpOptions::qp_failure_step): a step whose model predicts no decrease is
+/// still judged when its trial violation is at most this fraction of the
+/// iterate's -- a real infeasibility reduction, not a funnel-width one.
+inline constexpr double kFailureStepViolationFactor = 0.5;
+
 } // namespace hven::solvers

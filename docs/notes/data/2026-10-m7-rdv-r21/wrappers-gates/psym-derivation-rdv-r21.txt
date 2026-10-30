@@ -1,0 +1,121 @@
+M7 W2 RDV + R2-1 -- THE GATE EXPECTATIONS, DERIVED.
+Written and committed BEFORE the chain was detached.
+
+RULE: nothing here, and no declared value in gates-rdv-r21.sh, may be adjusted after the chain's first leg. Every value is derived from
+the FINAL range bdb1a82a..a9f01851 or measured on that pair by this declaration's own rehearsal (rehearsal/). No value is carried from
+the BPS + QC-8 declaration: where a number equals a previous record's it is a COMPARISON, stated as such. The previous gate run (BPS + QC-8,
+docs/notes/data/2026-10-m7-bps-qc8/, record bdb1a82a) is frozen, untouched. If a gate fails the declaration stays frozen; a fix gets a
+successor -r2 declaration and the failed record is filed under gates-run1/.
+
+BASE   bdb1a82a (the BPS + QC-8 record's commit; GREEN).
+HEAD   a9f01851. The declaration commit sits on top and is docs only, so every derivation sees a9f01851's sources.
+       Commits in the range (6): fb41ec97 (RDV: the dead-end rank repair; QpCounters::rank_repairs / rank_repair_releases /
+       rank_repair_misses), 8cda9d14 (re-premise of the three SqpElasticWitnessStart tests; one renamed), c1bf9c33 (RDV riders R1-R4),
+       c45a6cc5 (RDV riders R5 R6), c52589ef (R2-1: the non-finite step rollback; SqpCounters::nonfinite_step_rollbacks), a9f01851 (R2-1
+       riders: SqpIterate::rolled_back appended; FunnelStrategy::judged_since_ / note_unjudged_commit).
+RUNNER gates-rdv-r21.sh + chain_gates_rdv_r21.sh: copies of BPS + QC-8's, re-pointed (NOT edited in place). Changes, and nothing else
+       (also in the runner header): (a) names / scratch .scratch/m7rdvr21gates / G4 label / BEFORE bdb1a82a / by-name baseline and G4
+       exact arm pinned to BPS + QC-8's gates/ record (BEFORE-bounded, preflight E1); the classifier is a byte-identical copy (preflight F);
+       (b) the changed surface (section 1); (c) the name checks (section 3); (d) the measured P-SYM slots (section 2).
+
+-----------------------------------------------------------------------------
+1  THE CHANGED SURFACE of bdb1a82a..a9f01851 -- OBSERVED, derived from git.
+
+   8 headers (git diff --name-only bdb1a82a a9f01851 -- include/): core/solver_counters.h, detail/globalization/sqp/globalization.h,
+     detail/qp/qp_engine.h, detail/qp/qp_walk_trace.h, detail/qp/ws_independence.h, drivers/sqp_solver.h, drivers/sqp_solver_types.h,
+     drivers/trace.h. All modified, none added.
+   15 MODIFIED .cpp: library (6, inside the universe): src/drivers/{sqp_print,sqp_solver,trace_writer}.cpp,
+     src/globalization/sqp/funnel.cpp, src/qp/{qp_engine,ws_independence}.cpp. hven_drivers_tests (2): tests/drivers/test_{callback,threads}.cpp.
+     hven_sqp_tests (6): tests/sqp/test_{elastic_witness_start,funnel,qp_ws_independence,sqp_restoration,sqp_solver,trace_writer}.cpp.
+     OUTSIDE the universe (1, hven_qp_walk_seam_tests): tests/qp/test_qp_walk_seam.cpp. => class A = 15 - 1 = 14 in-universe modified .cpp.
+   1 ADDED .cpp, OUTSIDE the universe: tests/qp/test_qp_rank_repair.cpp (hven_qp_walk_seam_tests; tests/CMakeLists.txt adds exactly that
+     line, removes none). So EXPECT_ADDED_CXX 1, EXPECT_PSYM_ADDED 0, no ADDED library object.
+   1 ADDED non-.cpp file: tests/qp/fixtures/e2-d4/RDV_YORKNET_qp5.txt.
+   src/CMakeLists.txt, tests/sqp/CMakeLists.txt: UNCHANGED (EXPECT_*_CMAKE_ADDS/DELS EMPTY). Other range files: docs/counters.md,
+     docs/trace-schema-v0.md.
+   clang-format set (include/*.h src/*.cpp tests/*.cpp tests/*.h bench/*.cpp): 24 files (the runner prints it).
+
+-----------------------------------------------------------------------------
+2  THE P-SYM MOVER SHAPE, PER CONFIGURATION -- MEASURED on the final pair bdb1a82a/a9f01851 by a FRESH rehearsal.
+
+     Release  DIFFERING 75 = class A 14 + class B 61; UNEXPLAINED 0; NOISE-ONLY 0; negative control 88;
+              sections: 48 objects, 36 byte-identical, DEBUG_ONLY 0, NON-DEBUG MOVERS 12, REFUSED 0
+     Debug    DIFFERING 76 = class A 14 + class B 62; UNEXPLAINED 0; NOISE-ONLY 10 (4 in the library: console_trace_sink, ipm_solver,
+              trace, ssn_engine -- the four DEBUG_ONLY objects); negative control 76;
+              sections: 48 objects, 32 byte-identical, DEBUG_ONLY 4, NON-DEBUG MOVERS 12, REFUSED 0
+
+   HOW MEASURED. rehearsal/rehearse-rdv-r21.sh ran THIS runner's g5 segment (EXTRACTED from the runner's text, @ROOT@ substituted) at the
+   declaration-prep HEAD (a temporary docs-only commit 7f4d3f3b above a9f01851, since reset away) against bdb1a82a, both configurations,
+   ONE hold of the box lock: 2026-10-17 15:50-16:28, PGREP_EMPTY under the hold (rehearsal/rehearsal-rdv-r21-log.txt). Its HYPOTHESIS
+   declaration (class A only, 14/14, class B 0) was REFUSED in both configurations by design (rehearsal/*-refused-at-14.txt), printing the
+   measured shape. Then rehearsal/offline-rdv-r21.sh 75 76 (its own hold, PGREP_EMPTY, 16:28-16:37): a fresh Release build with g5's flags and
+   the UNCAPPED classifier re-run on the rehearsal's compare files at the measured counts -- OFFLINE_CLASSIFY_RC 0 in BOTH configurations
+   (rehearsal/rehearsal-rdv-r21-classification-{Release,Debug}.txt). The measured slots were filled into the runner AFTER the rehearsal (they
+   were UNMEASURED sentinels while it ran); nothing else changed between the rehearsal and the declaration.
+
+   CLASS A: 14 in both configurations = the in-universe MODIFIED .cpp of section 1 exactly, same 14 objects (OBSERVED). Both class-A
+   noise-only slots (EXPECT_CLASS_A_NOISE_ONLY_{DEBUG,RELEASE}) are EMPTY (test_sqp_restoration.cpp.o moves for real in both).
+   CLASS B: Release 61, Debug 62; the Debug set = Release's + tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_status.cpp.o
+   (OBSERVED: Release-only class B is empty). That object is therefore the one declared asymmetry, EXPECT_PSYM_B_DEBUG_ONLY (it is in the
+   Release negative control, not a mover; the runner checks that off the complete uncapped listing). Library class B (6, both configs, all
+   unmodified): core/ledger, globalization/sqp/mixed_lift, globalization/sqp/qn_lift_bridge, globalization/sqp/soc_elastic_restoration,
+   qp/ipqp_engine, warmstart/continuation. (drivers/sqp_solver is class A this range.)
+   The pre-flight refuses any declared class B object whose source is in the range (carried code).
+
+   Manifests: after = before (nothing added in the universe). The outside-universe asserts held in both configurations in the rehearsal:
+   tests/qp/test_qp_rank_repair.cpp was BUILT in the after arm in exactly one listed target (hven_qp_walk_seam_tests) and no object of either
+   listed target is in either after manifest.
+
+   COMPARISON WITH BPS + QC-8 (a comparison, not the derivation): that round measured 45/46 on 4 headers; this range changes 8 headers
+   including the SQP driver/trace/funnel ones, so far more objects move.
+
+-----------------------------------------------------------------------------
+3  TEST COUNTS -- derived against the by-name baseline.
+
+   THE BASELINE IS DERIVED, NOT NAMED, AND CHECKED AGAINST ITS DECLARATION: git log -1 --format= --name-only --diff-filter=A bdb1a82a --
+   'docs/notes/data/*/gates*/suite-release.txt' -> ONE path, docs/notes/data/2026-10-m7-bps-qc8/gates/suite-release.txt == the declared
+   EXPECT_NAMES_BASE_REL (the runner refuses otherwise; falsified with BEFORE=4a0da559, preflight E1).
+   BASELINE (the BPS + QC-8 record): ctest total Debug 3045 / Release 3046; started names 3047 / 3048. Skipped: Debug 7, Release 1.
+
+   ADDED = 26 instances by name, OBSERVED with git diff bdb1a82a a9f01851 -- 'tests/*.cpp': 26 `+TEST(` lines whose name is new (7
+   QpRdvRankRepair, 1 FunnelHType, 9 WsRankRepair, 8 SqpDriverNonfiniteRollback, and 1 renamed SqpElasticWitnessStart test), no TEST_P /
+   TEST_F; 0 added GTEST_SKIP / DISABLED_ lines. REMOVED = 1: SqpElasticWitnessStart.YorknetMajor0LadderIsUsableOnlyFromTheWitness
+   (8cda9d14 renamed it to ...LadderIsUsableFromTheShippedStartAndTheWitness; one `-TEST(` line). RE-DECLARED = 0.
+   EXPECTED SUITE COUNTS: Debug 3045 - 1 + 26 = 3070 (G1, the long test excluded); Release 3046 - 1 + 26 = 3071 (G3); G2 1. Started
+   names Debug 3047 + 25 = 3072, Release 3048 + 25 = 3073 (the rehearsal build's `ctest -N` total is 3073: rehearsal/ctest-N-startfmt-derived.txt,
+   which passes the runner's by-name check in Release shape and Debug shape, preflight C/C2; short listing and the baseline are refused).
+   None added is Release-only, so DEBUG_ONLY_SKIPS_ADDED is EMPTY and the SKIPPED set must equal the baseline's by name (Debug 7, Release 1).
+   THE THREE SqpElasticWitnessStart TESTS the dead-end rank repair falsified (8cda9d14 re-premised them) are expected to PASS in the chain.
+
+-----------------------------------------------------------------------------
+4  THE SECTION SHAPE (G5b) -- MEASURED by this run's rehearsal (rehearsal/rehearsal-rdv-r21-sections-{Release,Debug}.txt).
+   NON-DEBUG-MOVER set 12 in BOTH configurations: the six class A library objects (drivers/sqp_print, drivers/sqp_solver,
+   drivers/trace_writer, globalization/sqp/funnel, qp/qp_engine, qp/ws_independence) + the six declared class B library objects above.
+   DEBUG_ONLY Release 0 / Debug 4 (drivers/console_trace_sink, drivers/ipm_solver, drivers/trace, qp/ssn_engine, declared by COUNT).
+   NOISE-ONLY library-mover slots EMPTY. No library object ADDED.
+
+-----------------------------------------------------------------------------
+5  G4: 27 cells x 75 columns x 3 engines.
+
+   MEASURED by the rehearsal's offline leg (a fresh Release build of a9f01851's sources, MKL_NUM_THREADS=1, taskset -c 2;
+   rehearsal/rehearsal-rdv-r21-g4-comparison.txt): vs the M6 close pin, GATED (1e-5 relative, 1e-13 floor): walk 17 differences, ssn 13,
+   ipm 13 = 43; the measured (engine, cell, column) SET EQUALS the declared 43-entry list (runner --check-g4 on the pin arms, rc 0, all
+   eight asserts OK: preflight B). The 43 are declared AS A SET (unchanged from the previous record's list, now re-backed by this
+   measurement).
+   EXACT arm vs the BPS + QC-8 record's gates/replay: walk 0, ssn 0, ipm 0 differences (RECORDED, not asserted). The chain's own replay
+   moving beyond the declared 43-set fails G4; it is reported, never re-declared.
+
+-----------------------------------------------------------------------------
+6  G6: expected CLEAN: install smoke; export contract; clang-format over the DERIVED set (24 files, asserted clean by the gate itself);
+   git diff --check; DIRTY_FILES 0. Fold proofs 46/0 expected (the gate-assert library is unchanged).
+
+-----------------------------------------------------------------------------
+7  PRE-FLIGHT: preflight-rdv-r21.txt (this directory), committed WITH this file and BEFORE the chain was detached: A full pre-flight
+   PREFLIGHT_OK; B --check-g4 rc 0; C by-name reader; D skipped sets; E sentinel / wrong BEFORE / class A / removed / fixture / outside
+   falsifiers; F classifier. (Hypothesis-form falsifiers E3/E4/E6/E7 print the runner's refusal.)
+
+-----------------------------------------------------------------------------
+8  G5 CHECKS THE WORKTREE OUT TO BEFORE while it builds its before arm, once per configuration: nothing may edit or commit in this
+   worktree from the chain's launch until CHAIN_END.
+
+   WALL IS INFORMATIONAL. Nothing above is a timing claim.

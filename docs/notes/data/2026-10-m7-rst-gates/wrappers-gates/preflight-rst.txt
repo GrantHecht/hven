@@ -1,0 +1,262 @@
+# range d5984ea2..3e90d587 (HEAD sources == 3e90d587's); by-name baseline record commit 0dc2f1aa
+
+=== A: --preflight-only
+GATES_START 2026-10-22T08:55:18-04:00
+=== HEAD 3e90d587  dirty-files=17 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/agent-a055bccf74d9c4e82/.scratch/gates-rst ===
+=== BEFORE=d5984ea2  EXPECT_DEBUG_TESTS=3191  EXPECT_RELEASE_TESTS=3192 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=3e90d5878f7121d34a82b52c24dfca204794e4ff
+=== CHANGED HEADERS: include/hven/core/solver_counters.h include/hven/core/solver_status.h include/hven/detail/drivers/ladder_testing.h include/hven/detail/globalization/sqp/globalization.h include/hven/detail/globalization/sqp/restoration.h include/hven/drivers/sqp_solver.h include/hven/drivers/sqp_solver_types.h 
+=== CHANGED SOURCES: src/drivers/sqp_options.cpp src/drivers/sqp_solver.cpp src/globalization/sqp/soc_elastic_restoration.cpp tests/drivers/test_callback.cpp tests/drivers/test_options_dump.cpp tests/drivers/test_threads.cpp tests/sqp/test_sqp_ladder_seams.cpp tests/sqp/test_sqp_qn_mode.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_trace_writer.cpp 
+=== MODIFIED C++ SOURCES: src/drivers/sqp_options.cpp src/drivers/sqp_solver.cpp src/globalization/sqp/soc_elastic_restoration.cpp tests/drivers/test_callback.cpp tests/drivers/test_options_dump.cpp tests/drivers/test_threads.cpp tests/sqp/test_sqp_ladder_seams.cpp tests/sqp/test_sqp_qn_mode.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_trace_writer.cpp 
+=== ADDED C++ SOURCES: 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/sqp/test_sqp_ladder_seams.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir
+=== ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); 43 DIFFERENCES DECLARED as a SET (walk 17 / ssn 13 / ipm 13), every cell a U0 cell, the one declared WORSE cell [ipm f7_n1000_path_warm kkt_stationarity] among them
+=== CLASS_B_NAMES_OK: Release 53 / Debug 54 declared objects, none with a source modified in the range
+=== RELEASE-ONLY (Debug GTEST_SKIP) DECLARED: 0 name(s), each a declared ADDED name ===
+=== RE-DECLARED (TEST line removed and re-added under the same name): 0 name(s), each removed once and added once, net unchanged by name ===
+=== BY-NAME: baselines /home/ghecht/Projects/hven/.claude/worktrees/agent-a055bccf74d9c4e82/docs/notes/data/2026-10-m7-scl/gates/suite-{debug,release}.txt (3174 / 3175 started names); 19 ADDED, each added by exactly one TEST line in the range; 0 REMOVED, each removed by exactly one TEST line; 0 TEST lines removed (0 of them RE-DECLARED)
+=== tests/sqp/CMakeLists.txt (checked): adds exactly the declared 0 non-comment line(s), removes none
+=== src/CMakeLists.txt (checked): adds exactly the declared 0 non-comment line(s), removes exactly the declared 0
+=== ADDED TEST FILES (checked): non-.cpp [ ] == declared, under the fixture directory named in the two declared readers' compile definitions (hven_qp_walk_seam_tests, hven_sqp_tests); tests/CMakeLists.txt adds exactly [] and removes no non-comment line
+=== CLANG_FORMAT SET (derived, non-empty): 18 file(s) ===
+=== PREFLIGHT_VALUE_OK: class A 11 - 1 outside == declared 10/10; ADDED 0 == declared 0 (0 inside the universe == declared 0); class B library objects all unmodified; G4 gate 1e-5
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a055bccf74d9c4e82/.scratch/gates-rst/g1.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/agent-a055bccf74d9c4e82/.scratch/gates-rst  G=/home/ghecht/Projects/hven/.claude/worktrees/agent-a055bccf74d9c4e82/.scratch/gates-rst/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a055bccf74d9c4e82/.scratch/gates-rst/g2.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/agent-a055bccf74d9c4e82/.scratch/gates-rst  G=/home/ghecht/Projects/hven/.claude/worktrees/agent-a055bccf74d9c4e82/.scratch/gates-rst/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a055bccf74d9c4e82/.scratch/gates-rst/g3.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/agent-a055bccf74d9c4e82/.scratch/gates-rst  G=/home/ghecht/Projects/hven/.claude/worktrees/agent-a055bccf74d9c4e82/.scratch/gates-rst/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a055bccf74d9c4e82/.scratch/gates-rst/g4.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/agent-a055bccf74d9c4e82/.scratch/gates-rst  G=/home/ghecht/Projects/hven/.claude/worktrees/agent-a055bccf74d9c4e82/.scratch/gates-rst/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a055bccf74d9c4e82/.scratch/gates-rst/g5.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/agent-a055bccf74d9c4e82/.scratch/gates-rst  G=/home/ghecht/Projects/hven/.claude/worktrees/agent-a055bccf74d9c4e82/.scratch/gates-rst/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a055bccf74d9c4e82/.scratch/gates-rst/g6.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/agent-a055bccf74d9c4e82/.scratch/gates-rst  G=/home/ghecht/Projects/hven/.claude/worktrees/agent-a055bccf74d9c4e82/.scratch/gates-rst/gates
+=== PREFLIGHT_OK: 6 segments written and asserted against GATES_SCRATCH, before the first leg ===
+PREFLIGHT_ONLY: stopping before G1. No leg was run and no build tree was touched.
+rc=0
+
+=== B: --check-g4 (pin arms of the rehearsal comparison)
+ASSERT OK   replay header lines = 3
+ASSERT OK   replay walk shape 27/75/17 declared = 1
+ASSERT OK   replay walk difference lines listed = 17
+ASSERT OK   replay ssn shape 27/75/13 declared = 1
+ASSERT OK   replay ssn difference lines listed = 13
+ASSERT OK   replay ipm shape 27/75/13 declared = 1
+ASSERT OK   replay ipm difference lines listed = 13
+ASSERT OK   replay: the MEASURED difference set EQUALS the DECLARED 43-entry list
+rc=0
+
+=== B2: the exact arm has teeth (the comparator exits non-zero on any difference): the M6 pin vs the previous record, EXACT, no gate
+=== falsifier: M6 pin vs SCL record, EXACT === cells compared: 27  columns compared: 75  differences: 88
+rc=1 (non-zero: a real difference fails the asserted exact arm)
+=== control: SCL record vs itself, EXACT === cells compared: 27  columns compared: 75  differences: 0
+rc=0 (zero)
+
+=== C: --check-names release on the rehearsal listing
+ASSERT OK   offline release by name: 3194 started names == the baseline's 3175 - the 0 declared REMOVED + the 19 declared ADDED
+rc=0
+
+=== C2: --check-names debug on the listing less the long test (G1 excludes it by -E)
+ASSERT OK   offline debug by name: 3193 started names == the baseline's 3174 - the 0 declared REMOVED + the 19 declared ADDED
+rc=0
+
+=== C3 falsifier: listing short one test
+ASSERT FAIL offline release by name: 3193 started vs the baseline's 3175 - 0 REMOVED + 19 ADDED; the difference (expected '<' tab-indented '>' this run):
+Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/ordinal-24
+rc=2
+
+=== C4 falsifier: the previous record's own suite (the baseline) is refused
+ASSERT FAIL offline release by name: ADDED RestorationEntriesOption.BothFieldsCarryADumpLineInDeclarationPosition is named 0 time(s) in the baseline (want 0) and 0 in this run (want 1)
+rc=2
+
+=== D: --check-skips baseline vs baseline (debug)
+ASSERT OK   offline debug skips by name: 7 Skipped == the baseline's 7 + the 0 declared Release-only
+rc=0
+
+=== D1: --check-skips baseline vs baseline (release)
+ASSERT OK   offline release skips by name: 1 Skipped == the baseline's 1 + the 0 declared Release-only
+rc=0
+
+=== D2 falsifier: release log vs debug expectation
+ASSERT FAIL offline debug skips by name: 1 Skipped vs the baseline's 7 + 0 declared; the difference (expected '<' tab-indented '>' this run):
+QpE2Fix9StandstillRetreat.Acopp118Qp0Border
+QpE2Fix9StandstillRetreat.Acopp118Qp1Border
+QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize
+QpE2WorkingSet.AGreyPinOnYorknetThatIsIndependentStaysIndependent
+QpE4ProximalEqp.TheYorknetRestorationQpIsDriftFreeAndOptimal
+QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder
+rc=2
+
+=== E1 falsifier: wrong BEFORE (d9bfbb27, the SCL base)
+REFUSED: the by-name baseline resolved to [docs/notes/data/2026-10-m7-rla/gates/suite-release.txt], declared [docs/notes/data/2026-10-m7-scl/gates/suite-release.txt]
+rc=2
+
+=== E2 falsifier: UNMEASURED sentinel in a class A slot
+GATES_START 2026-10-22T08:55:25-04:00
+=== HEAD 3e90d587  dirty-files=17 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/agent-a055bccf74d9c4e82/.scratch/gates-rst ===
+=== BEFORE=d5984ea2  EXPECT_DEBUG_TESTS=3191  EXPECT_RELEASE_TESTS=3192 ===
+REFUSED: EXPECT_PSYM_CLASS_A still carries the UNMEASURED sentinel -- the FINAL pair has not been
+         rehearsed, so this round has no measured P-SYM shape to gate against.
+rc=2
+
+=== E3 falsifier: class A declared 6/6
+GATES_START 2026-10-22T08:55:25-04:00
+=== HEAD 3e90d587  dirty-files=17 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/agent-a055bccf74d9c4e82/.scratch/gates-rst ===
+=== BEFORE=d5984ea2  EXPECT_DEBUG_TESTS=3191  EXPECT_RELEASE_TESTS=3192 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=3e90d5878f7121d34a82b52c24dfca204794e4ff
+=== CHANGED HEADERS: include/hven/core/solver_counters.h include/hven/core/solver_status.h include/hven/detail/drivers/ladder_testing.h include/hven/detail/globalization/sqp/globalization.h include/hven/detail/globalization/sqp/restoration.h include/hven/drivers/sqp_solver.h include/hven/drivers/sqp_solver_types.h 
+=== CHANGED SOURCES: src/drivers/sqp_options.cpp src/drivers/sqp_solver.cpp src/globalization/sqp/soc_elastic_restoration.cpp tests/drivers/test_callback.cpp tests/drivers/test_options_dump.cpp tests/drivers/test_threads.cpp tests/sqp/test_sqp_ladder_seams.cpp tests/sqp/test_sqp_qn_mode.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_trace_writer.cpp 
+=== MODIFIED C++ SOURCES: src/drivers/sqp_options.cpp src/drivers/sqp_solver.cpp src/globalization/sqp/soc_elastic_restoration.cpp tests/drivers/test_callback.cpp tests/drivers/test_options_dump.cpp tests/drivers/test_threads.cpp tests/sqp/test_sqp_ladder_seams.cpp tests/sqp/test_sqp_qn_mode.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_trace_writer.cpp 
+=== ADDED C++ SOURCES: 
+REFUSED: 11 modified .cpp (less 1 outside the universe; Release less 0 and Debug less 0 declared NOISE-ONLY), but class A is DECLARED 6/6
+rc=2
+
+=== E4 falsifier: Debug test count 3190 (one ADDED name short)
+GATES_START 2026-10-22T08:55:25-04:00
+=== HEAD 3e90d587  dirty-files=17 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/agent-a055bccf74d9c4e82/.scratch/gates-rst ===
+=== BEFORE=d5984ea2  EXPECT_DEBUG_TESTS=3190  EXPECT_RELEASE_TESTS=3192 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=3e90d5878f7121d34a82b52c24dfca204794e4ff
+=== CHANGED HEADERS: include/hven/core/solver_counters.h include/hven/core/solver_status.h include/hven/detail/drivers/ladder_testing.h include/hven/detail/globalization/sqp/globalization.h include/hven/detail/globalization/sqp/restoration.h include/hven/drivers/sqp_solver.h include/hven/drivers/sqp_solver_types.h 
+=== CHANGED SOURCES: src/drivers/sqp_options.cpp src/drivers/sqp_solver.cpp src/globalization/sqp/soc_elastic_restoration.cpp tests/drivers/test_callback.cpp tests/drivers/test_options_dump.cpp tests/drivers/test_threads.cpp tests/sqp/test_sqp_ladder_seams.cpp tests/sqp/test_sqp_qn_mode.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_trace_writer.cpp 
+=== MODIFIED C++ SOURCES: src/drivers/sqp_options.cpp src/drivers/sqp_solver.cpp src/globalization/sqp/soc_elastic_restoration.cpp tests/drivers/test_callback.cpp tests/drivers/test_options_dump.cpp tests/drivers/test_threads.cpp tests/sqp/test_sqp_ladder_seams.cpp tests/sqp/test_sqp_qn_mode.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_trace_writer.cpp 
+=== ADDED C++ SOURCES: 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/sqp/test_sqp_ladder_seams.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir
+=== ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+REFUSED: Debug 3190 != Release 3192 - long 1
+rc=2
+
+=== E5 falsifier: a REMOVED name declared that the range does not remove (a scratch copy of the runner: REMOVED_TEST_NAMES is not an environment slot)
+1
+=== RELEASE-ONLY (Debug GTEST_SKIP) DECLARED: 0 name(s), each a declared ADDED name ===
+REFUSED: REMOVED FunnelHType.RetractionUndoesOnlyTheLastJudgement: its TEST line (FunnelHType, RetractionUndoesOnlyTheLastJudgement) is removed 0 time(s) in the range, want 1
+rc=2
+
+=== E6 falsifier: an ADDED fixture declared that the range does not add
+GATES_START 2026-10-22T08:55:26-04:00
+=== HEAD 3e90d587  dirty-files=17 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/agent-a055bccf74d9c4e82/.scratch/gates-rst ===
+=== BEFORE=d5984ea2  EXPECT_DEBUG_TESTS=3191  EXPECT_RELEASE_TESTS=3192 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=3e90d5878f7121d34a82b52c24dfca204794e4ff
+=== CHANGED HEADERS: include/hven/core/solver_counters.h include/hven/core/solver_status.h include/hven/detail/drivers/ladder_testing.h include/hven/detail/globalization/sqp/globalization.h include/hven/detail/globalization/sqp/restoration.h include/hven/drivers/sqp_solver.h include/hven/drivers/sqp_solver_types.h 
+=== CHANGED SOURCES: src/drivers/sqp_options.cpp src/drivers/sqp_solver.cpp src/globalization/sqp/soc_elastic_restoration.cpp tests/drivers/test_callback.cpp tests/drivers/test_options_dump.cpp tests/drivers/test_threads.cpp tests/sqp/test_sqp_ladder_seams.cpp tests/sqp/test_sqp_qn_mode.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_trace_writer.cpp 
+=== MODIFIED C++ SOURCES: src/drivers/sqp_options.cpp src/drivers/sqp_solver.cpp src/globalization/sqp/soc_elastic_restoration.cpp tests/drivers/test_callback.cpp tests/drivers/test_options_dump.cpp tests/drivers/test_threads.cpp tests/sqp/test_sqp_ladder_seams.cpp tests/sqp/test_sqp_qn_mode.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_trace_writer.cpp 
+=== ADDED C++ SOURCES: 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/sqp/test_sqp_ladder_seams.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir
+=== ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); 43 DIFFERENCES DECLARED as a SET (walk 17 / ssn 13 / ipm 13), every cell a U0 cell, the one declared WORSE cell [ipm f7_n1000_path_warm kkt_stationarity] among them
+=== CLASS_B_NAMES_OK: Release 53 / Debug 54 declared objects, none with a source modified in the range
+=== RELEASE-ONLY (Debug GTEST_SKIP) DECLARED: 0 name(s), each a declared ADDED name ===
+=== RE-DECLARED (TEST line removed and re-added under the same name): 0 name(s), each removed once and added once, net unchanged by name ===
+=== BY-NAME: baselines /home/ghecht/Projects/hven/.claude/worktrees/agent-a055bccf74d9c4e82/docs/notes/data/2026-10-m7-scl/gates/suite-{debug,release}.txt (3174 / 3175 started names); 19 ADDED, each added by exactly one TEST line in the range; 0 REMOVED, each removed by exactly one TEST line; 0 TEST lines removed (0 of them RE-DECLARED)
+REFUSED: the ADDED non-.cpp test files [ ] != declared [tests/qp/fixtures/e2-d4/RLA_BRITGAS_qp0.txt ]
+rc=2
+
+=== E7 falsifier: an added in-universe source declared that the range does not add (EXPECT_PSYM_ADDED=1)
+GATES_START 2026-10-22T08:55:27-04:00
+=== HEAD 3e90d587  dirty-files=17 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/agent-a055bccf74d9c4e82/.scratch/gates-rst ===
+=== BEFORE=d5984ea2  EXPECT_DEBUG_TESTS=3191  EXPECT_RELEASE_TESTS=3192 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=3e90d5878f7121d34a82b52c24dfca204794e4ff
+=== CHANGED HEADERS: include/hven/core/solver_counters.h include/hven/core/solver_status.h include/hven/detail/drivers/ladder_testing.h include/hven/detail/globalization/sqp/globalization.h include/hven/detail/globalization/sqp/restoration.h include/hven/drivers/sqp_solver.h include/hven/drivers/sqp_solver_types.h 
+=== CHANGED SOURCES: src/drivers/sqp_options.cpp src/drivers/sqp_solver.cpp src/globalization/sqp/soc_elastic_restoration.cpp tests/drivers/test_callback.cpp tests/drivers/test_options_dump.cpp tests/drivers/test_threads.cpp tests/sqp/test_sqp_ladder_seams.cpp tests/sqp/test_sqp_qn_mode.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_trace_writer.cpp 
+=== MODIFIED C++ SOURCES: src/drivers/sqp_options.cpp src/drivers/sqp_solver.cpp src/globalization/sqp/soc_elastic_restoration.cpp tests/drivers/test_callback.cpp tests/drivers/test_options_dump.cpp tests/drivers/test_threads.cpp tests/sqp/test_sqp_ladder_seams.cpp tests/sqp/test_sqp_qn_mode.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_trace_writer.cpp 
+=== ADDED C++ SOURCES: 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/sqp/test_sqp_ladder_seams.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir
+=== ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+REFUSED: 0 added .cpp inside the universe, but the universe's ADDED is DECLARED 1
+rc=2
+
+=== E7b falsifier: a source declared ADDED outside the universe that the range does not add
+GATES_START 2026-10-22T08:55:27-04:00
+=== HEAD 3e90d587  dirty-files=17 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/agent-a055bccf74d9c4e82/.scratch/gates-rst ===
+=== BEFORE=d5984ea2  EXPECT_DEBUG_TESTS=3191  EXPECT_RELEASE_TESTS=3192 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=3e90d5878f7121d34a82b52c24dfca204794e4ff
+=== CHANGED HEADERS: include/hven/core/solver_counters.h include/hven/core/solver_status.h include/hven/detail/drivers/ladder_testing.h include/hven/detail/globalization/sqp/globalization.h include/hven/detail/globalization/sqp/restoration.h include/hven/drivers/sqp_solver.h include/hven/drivers/sqp_solver_types.h 
+=== CHANGED SOURCES: src/drivers/sqp_options.cpp src/drivers/sqp_solver.cpp src/globalization/sqp/soc_elastic_restoration.cpp tests/drivers/test_callback.cpp tests/drivers/test_options_dump.cpp tests/drivers/test_threads.cpp tests/sqp/test_sqp_ladder_seams.cpp tests/sqp/test_sqp_qn_mode.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_trace_writer.cpp 
+=== MODIFIED C++ SOURCES: src/drivers/sqp_options.cpp src/drivers/sqp_solver.cpp src/globalization/sqp/soc_elastic_restoration.cpp tests/drivers/test_callback.cpp tests/drivers/test_options_dump.cpp tests/drivers/test_threads.cpp tests/sqp/test_sqp_ladder_seams.cpp tests/sqp/test_sqp_qn_mode.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_trace_writer.cpp 
+=== ADDED C++ SOURCES: 
+REFUSED: declared outside source tests/sqp/test_sqp_ladder_seams.cpp is not ADDED against d5984ea2
+rc=2
+
+=== E10 falsifier: the outside-universe modified source (test_sqp_ladder_seams.cpp) not declared
+GATES_START 2026-10-22T08:55:27-04:00
+=== HEAD 3e90d587  dirty-files=17 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/agent-a055bccf74d9c4e82/.scratch/gates-rst ===
+=== BEFORE=d5984ea2  EXPECT_DEBUG_TESTS=3191  EXPECT_RELEASE_TESTS=3192 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=3e90d5878f7121d34a82b52c24dfca204794e4ff
+=== CHANGED HEADERS: include/hven/core/solver_counters.h include/hven/core/solver_status.h include/hven/detail/drivers/ladder_testing.h include/hven/detail/globalization/sqp/globalization.h include/hven/detail/globalization/sqp/restoration.h include/hven/drivers/sqp_solver.h include/hven/drivers/sqp_solver_types.h 
+=== CHANGED SOURCES: src/drivers/sqp_options.cpp src/drivers/sqp_solver.cpp src/globalization/sqp/soc_elastic_restoration.cpp tests/drivers/test_callback.cpp tests/drivers/test_options_dump.cpp tests/drivers/test_threads.cpp tests/sqp/test_sqp_ladder_seams.cpp tests/sqp/test_sqp_qn_mode.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_trace_writer.cpp 
+=== MODIFIED C++ SOURCES: src/drivers/sqp_options.cpp src/drivers/sqp_solver.cpp src/globalization/sqp/soc_elastic_restoration.cpp tests/drivers/test_callback.cpp tests/drivers/test_options_dump.cpp tests/drivers/test_threads.cpp tests/sqp/test_sqp_ladder_seams.cpp tests/sqp/test_sqp_qn_mode.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_trace_writer.cpp 
+=== ADDED C++ SOURCES: 
+REFUSED: 11 modified .cpp (less 0 outside the universe; Release less 0 and Debug less 0 declared NOISE-ONLY), but class A is DECLARED 10/10
+rc=2
+
+=== E7c falsifier: tests/sqp/CMakeLists.txt add declared that the range does not make
+GATES_START 2026-10-22T08:55:27-04:00
+=== HEAD 3e90d587  dirty-files=17 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/agent-a055bccf74d9c4e82/.scratch/gates-rst ===
+=== BEFORE=d5984ea2  EXPECT_DEBUG_TESTS=3191  EXPECT_RELEASE_TESTS=3192 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=3e90d5878f7121d34a82b52c24dfca204794e4ff
+=== CHANGED HEADERS: include/hven/core/solver_counters.h include/hven/core/solver_status.h include/hven/detail/drivers/ladder_testing.h include/hven/detail/globalization/sqp/globalization.h include/hven/detail/globalization/sqp/restoration.h include/hven/drivers/sqp_solver.h include/hven/drivers/sqp_solver_types.h 
+=== CHANGED SOURCES: src/drivers/sqp_options.cpp src/drivers/sqp_solver.cpp src/globalization/sqp/soc_elastic_restoration.cpp tests/drivers/test_callback.cpp tests/drivers/test_options_dump.cpp tests/drivers/test_threads.cpp tests/sqp/test_sqp_ladder_seams.cpp tests/sqp/test_sqp_qn_mode.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_trace_writer.cpp 
+=== MODIFIED C++ SOURCES: src/drivers/sqp_options.cpp src/drivers/sqp_solver.cpp src/globalization/sqp/soc_elastic_restoration.cpp tests/drivers/test_callback.cpp tests/drivers/test_options_dump.cpp tests/drivers/test_threads.cpp tests/sqp/test_sqp_ladder_seams.cpp tests/sqp/test_sqp_qn_mode.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_trace_writer.cpp 
+=== ADDED C++ SOURCES: 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/sqp/test_sqp_ladder_seams.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir
+=== ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); 43 DIFFERENCES DECLARED as a SET (walk 17 / ssn 13 / ipm 13), every cell a U0 cell, the one declared WORSE cell [ipm f7_n1000_path_warm kkt_stationarity] among them
+=== CLASS_B_NAMES_OK: Release 53 / Debug 54 declared objects, none with a source modified in the range
+=== RELEASE-ONLY (Debug GTEST_SKIP) DECLARED: 0 name(s), each a declared ADDED name ===
+=== RE-DECLARED (TEST line removed and re-added under the same name): 0 name(s), each removed once and added once, net unchanged by name ===
+=== BY-NAME: baselines /home/ghecht/Projects/hven/.claude/worktrees/agent-a055bccf74d9c4e82/docs/notes/data/2026-10-m7-scl/gates/suite-{debug,release}.txt (3174 / 3175 started names); 19 ADDED, each added by exactly one TEST line in the range; 0 REMOVED, each removed by exactly one TEST line; 0 TEST lines removed (0 of them RE-DECLARED)
+REFUSED: tests/sqp/CMakeLists.txt adds [] (declared [test_column_scaling.cpp|]) and removes 0 (declared 0)
+rc=2
+
+=== E8 falsifier: a class B name declared whose source is in the range (tests/sqp test_trace_writer.cpp.o swapped in for one declared object)
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); 43 DIFFERENCES DECLARED as a SET (walk 17 / ssn 13 / ipm 13), every cell a U0 cell, the one declared WORSE cell [ipm f7_n1000_path_warm kkt_stationarity] among them
+REFUSED: rel class B tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_trace_writer.cpp.o has its source tests/sqp/test_trace_writer.cpp MODIFIED in d5984ea2..3e90d5878f7121d34a82b52c24dfca204794e4ff (it is class A)
+rc=2
+
+=== E9 falsifier: sqp_solver.cpp.o (class A) declared as library class B
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); 43 DIFFERENCES DECLARED as a SET (walk 17 / ssn 13 / ipm 13), every cell a U0 cell, the one declared WORSE cell [ipm f7_n1000_path_warm kkt_stationarity] among them
+REFUSED: CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o is declared a class B library mover but its source src/drivers/sqp_solver.cpp is MODIFIED (class A)
+rc=2
+
+=== F: classifier byte-identical to the previous record's
+cmp SCL: IDENTICAL

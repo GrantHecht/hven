@@ -1,0 +1,11 @@
+# pass-2 leg stderr sizes, from .scratch/m7w2m3c/p2/out/<CELL>.p2.stderr
+0 ACOPP118.p2.stderr
+0 ACOPP57.p2.stderr
+0 ACOPR57.p2.stderr
+0 BRITGAS.p2.stderr
+0 DALLASM.p2.stderr
+0 SAWPATH.p2.stderr
+0 STEENBRB.p2.stderr
+0 STEENBRC.p2.stderr
+0 STEENBRG.p2.stderr
+0 YORKNET.p2.stderr

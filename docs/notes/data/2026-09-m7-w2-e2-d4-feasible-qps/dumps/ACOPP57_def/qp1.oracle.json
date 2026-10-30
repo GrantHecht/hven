@@ -1,0 +1,39 @@
+{
+ "dump": "dumps/ACOPP57_def/qp1.txt",
+ "n": 128,
+ "me": 114,
+ "mi": 160,
+ "tr": 0.5,
+ "result": {
+  "status": "3",
+  "minors": "2",
+  "facts": "1",
+  "blk_term": "0",
+  "cert": "0",
+  "cert_rej": "0",
+  "zmcap": "0",
+  "zmexh": "0",
+  "retreats": "0",
+  "exch": "0",
+  "deferred": "0",
+  "undec": "0",
+  "maxiter": "1795"
+ },
+ "phase1_status": 0,
+ "phase1_min_l1_violation": 0.0,
+ "H_eig_min": -31.50995214428925,
+ "H_eig_max": 730765.0053152587,
+ "final_ws": {
+  "rows": 0,
+  "pins": 3,
+  "rank": 117,
+  "count": 117
+ },
+ "redH_final_min": 3.017477184880803e-12,
+ "clarabel_status": "Solved",
+ "f_star": 0.24374260621130053,
+ "active_star": {
+  "rows": 0,
+  "pins": 3
+ }
+}

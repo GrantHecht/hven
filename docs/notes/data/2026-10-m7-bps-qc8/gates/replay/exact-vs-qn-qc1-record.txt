@@ -1,0 +1,11 @@
+=== PREVIOUS (QN + QC-1 record 4a0da559) GATE RECORD HEAD-walk vs M7 BPS QC8 HEAD-walk (EXACT) === cells compared: 27  columns compared: 75  differences: 8
+    f7_n1000_path_warm               kkt_residual                       A=3.364070057e-10  B=3.364070937e-10
+    f7_n1000_path_warm               kkt_stationarity                   A=3.364070057e-10  B=3.364070937e-10
+    f7_n1000_path_warm               kkt_primal                         A=4.445654955e-11  B=4.445643853e-11
+    f7_n1000_path_warm               kkt_complementarity                A=1.081543198e-15  B=1.081545754e-15
+    f7_n800_path_warm                kkt_residual                       A=4.212494012e-10  B=4.212493723e-10
+    f7_n800_path_warm                kkt_stationarity                   A=4.212494012e-10  B=4.212493723e-10
+    f7_n800_path_warm                kkt_primal                         A=4.285172217e-11  B=4.285183319e-11
+    f7_n800_path_warm                kkt_complementarity                A=1.295709534e-15  B=1.295699806e-15
+=== PREVIOUS (QN + QC-1 record 4a0da559) GATE RECORD HEAD-ssn vs M7 BPS QC8 HEAD-ssn (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+=== PREVIOUS (QN + QC-1 record 4a0da559) GATE RECORD HEAD-ipm vs M7 BPS QC8 HEAD-ipm (EXACT) === cells compared: 27  columns compared: 75  differences: 0

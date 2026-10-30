@@ -1,0 +1,4 @@
+=== THE LONG DEBUG TEST, ALONE, at the SHIPPED commit ===
+1/1 Test #1483: Continuation.ProbeBudgetBoundsAFailingProposal ...   Passed  673.55 sec
+100% tests passed, 0 tests failed out of 1
+Total Test time (real) = 673.60 sec

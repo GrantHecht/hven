@@ -1,0 +1,76 @@
+M7 W2 M3b fix1 -- RULE-G.md section 7's read-outs for YORKNET
+NOT verdicts. None of these can change an outcome.
+
+-- section 7, the PRE-REGISTERED descriptive read-outs. None of these is a
+   verdict and none can change an outcome (RULE-G.md section 7). ---------
+
+  7.0 Do the fields FIX ROUND 1 ADDED also repeat with period 2 over T?
+      (section 3 defines the tail on F0 alone precisely so that this is a
+      finding and not an assumption.)
+      45 of 45 added fields repeat with period 2 over T.
+      Every one of them repeats.
+
+  7.1 Inertia, on state A and state D, with the expectation beside it.
+      state A  observed (256, 256, 0)  expected (256, 256)  state=observed  verdict=0
+               zero is DERIVED (dim - pos - neg; not an observation that there are none)   perturbed_pivots=0   excess negative = 0
+      state D  observed (255, 256, 0)  expected (255, 256)  state=observed  verdict=0
+               zero is DERIVED (dim - pos - neg; not an observation that there are none)   perturbed_pivots=0   excess negative = 0
+
+  7.2 Curvature, on state A, and section 4.2's entailment check.
+      p_hp=3.7929431113745138  p_sq=23212.970727152086
+      curvature=0.00016339757439740054  curvature_tol=1.49399995803833e-10  fired=False
+      ENTAILMENT (4.2): fired==False must give p_hp > curvature_tol*p_sq: 3.7929431113745138 > 3.4680177292310197e-06 is True
+
+  7.3 The released constraint, on state A.
+      released bound:291:lower
+      p[released] sign negative   magnitude 44.41796875
+      released_directional = 44.41796875
+
+  7.4 / 7.5 The slope, the four numbers, and the ride outcome by name.
+      ride_outcome     = not_attempted
+      ride_sign_chosen = 0
+      slope  (g'p) = 2309.8564868938493         slope_tol  = ABSENT(nan)
+      leaves       = ABSENT(nan)                leaves_tol = ABSENT(nan)
+      the ride outcome over ALL state-A passes: {'not_attempted': 1191}
+
+  7.6 The linear algebra, on both states.
+      state A  eqp_path=eliminated  border_attempted=True  border_dim=-1  eqp_call_refine_steps=0
+               k0_rebuilt=True  border_latched=True  needs_refactorization=True
+               per-pass counters: factorizations=2 eqp_refine=0 border_refine=0 verdict_refine=0 schur_updates=56
+      state D  eqp_path=eliminated  border_attempted=True  border_dim=-1  eqp_call_refine_steps=0
+               k0_rebuilt=True  border_latched=True  needs_refactorization=True
+               per-pass counters: factorizations=2 eqp_refine=0 border_refine=0 verdict_refine=0 schur_updates=57
+
+  7.7 Residuals and the EFFECTIVE regularization, on both states.
+      state A  stat_free_inf=703807.81804016174       stat_scale=1726562.9814192213       ratio=0.407635
+               active_res_inf=0.019156471716399892    x_inf=151.18681370725051          ratio=0.000126707
+               primal_delta=1e-08  dual_mu=1e-08  (EFFECTIVE)
+      state D  stat_free_inf=5.567407416551106e-09    stat_scale=14895027.940413455       ratio=3.73776e-16
+               active_res_inf=0.019156471716399892    x_inf=151.18681370725051          ratio=0.000126707
+               primal_delta=1e-08  dual_mu=1e-08  (EFFECTIVE)
+
+  7.8 The drop rule's candidate set, on state D.
+      drop_candidates=19  drop_tied=1  candidates_recorded=8
+      decision_multiplier=14895027.940413455  best_multiplier=14895027.940413455
+        rank 1  bound:291:lower          violation 14895027.940413455   <- CHOSEN
+        rank 2  bound:55:lower           violation 13200404.289480176
+        rank 3  bound:289:lower          violation 12819201.528086547
+        rank 4  bound:177:lower          violation 1315860.3537601682
+        rank 5  bound:33:upper           violation 355455.82385900203
+        rank 6  bound:166:lower          violation 345526.9845779498
+        rank 7  bound:49:lower           violation 345272.70575959643
+        rank 8  bound:88:lower           violation 345272.70575959631
+      the chosen candidate's RANK BY VIOLATION: 1 (the Dantzig rule makes this 1 by construction -- reported so that it is checked, not assumed)
+      ABSENT, restated on the spot (RULE-G.md section 0): no post-drop inertia is
+      predicted for any candidate, and no rank evidence exists for the released
+      bound. Nothing here adjudicates the review's cause (1); it describes it.
+
+  7.9 The tail itself.
+      t0=177  |T|=2383  |T|/N=0.930859  N=2560
+      action histogram over T: {('drop_dantzig', '-'): 1192, ('add', 'post_drop'): 1191}
+      period 2, two-state shape: True   state A passes 1191   state D passes 1192
+      the repeated identity: state A re-admits bound:291:lower with alpha=-0 (ws_sig 15077628046709894555 -> 16810987215800583597)
+                            state D releases bound:291:lower (ws_sig 16810987215800583597 -> 15077628046709894555)
+      section 5 homogeneity, field by field:
+        state A: 16 of 16 fields homogeneous
+        state D: 16 of 16 fields homogeneous

@@ -1,0 +1,119 @@
+PGREP_EMPTY n1-debug 2026-09-25T16:00:58-04:00
+FOREGROUND_START n1-debug 2026-09-25T16:00:58-04:00
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a21a2ab349204592e/.scratch/nc1-build-debug/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = *NC1ObserveDeclines
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from QpE2WorkingSet
+[ RUN      ] QpE2WorkingSet.NC1ObserveDeclines
+NC1 Cs_STEENBRB_qp3.txt mode=0 minor=565 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9649e+01 stol=2.575e-07 leaves=-3.9344e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp3.txt mode=0 minor=569 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9649e+01 stol=2.575e-07 leaves=-3.9344e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp3.txt mode=0 minor=573 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9649e+01 stol=2.575e-07 leaves=-3.9344e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp3.txt mode=0 minor=577 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9649e+01 stol=2.575e-07 leaves=-3.9344e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp3.txt mode=0 minor=581 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9649e+01 stol=2.575e-07 leaves=-3.9344e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp3.txt mode=0 minor=585 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9649e+01 stol=2.575e-07 leaves=-3.9344e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp3.txt mode=0 minor=589 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9649e+01 stol=2.575e-07 leaves=-3.9344e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp3.txt mode=0 minor=593 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9649e+01 stol=2.575e-07 leaves=-3.9344e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp3.txt mode=0 minor=597 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9649e+01 stol=2.575e-07 leaves=-3.9344e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp3.txt mode=0 minor=601 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9649e+01 stol=2.575e-07 leaves=-3.9344e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp3.txt mode=0 minor=605 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9649e+01 stol=2.575e-07 leaves=-3.9344e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp3.txt mode=0 minor=609 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9649e+01 stol=2.575e-07 leaves=-3.9344e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1SUM Cs_STEENBRB_qp3.txt mode=0 status=3 minors=611 f=-11.5360645825 fired=39 stepped=27 dep=12 nullspace=0 flat=0 disagree=0 unb=0 dep_ride_declines=12 zmexh=1
+NC1 Cs_STEENBRB_qp3.txt mode=1 minor=499 rel=229 side=1 why=DEP(notattempted) sign=1 slope=-2.7702e+07 stol=4.796e-03 leaves=2.7702e+07 ltol=7.329e-05 curv=1.6995e-51 action=9 blk=73 alpha=-0.000e+00
+NC1 Cs_STEENBRB_qp3.txt mode=1 minor=517 rel=187 side=1 why=DEP(notattempted) sign=1 slope=-9.9888e+06 stol=2.911e-03 leaves=1.8161e+07 ltol=4.449e-05 curv=-2.1421e-18 action=9 blk=56 alpha=-0.000e+00
+NC1 Cs_STEENBRB_qp3.txt mode=1 minor=576 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9649e+01 stol=2.575e-07 leaves=-3.9344e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp3.txt mode=1 minor=580 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9649e+01 stol=2.575e-07 leaves=-3.9344e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp3.txt mode=1 minor=584 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9649e+01 stol=2.575e-07 leaves=-3.9344e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp3.txt mode=1 minor=588 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9649e+01 stol=2.575e-07 leaves=-3.9344e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp3.txt mode=1 minor=592 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9649e+01 stol=2.575e-07 leaves=-3.9344e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp3.txt mode=1 minor=596 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9649e+01 stol=2.575e-07 leaves=-3.9344e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp3.txt mode=1 minor=600 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9649e+01 stol=2.575e-07 leaves=-3.9344e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp3.txt mode=1 minor=604 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9649e+01 stol=2.575e-07 leaves=-3.9344e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp3.txt mode=1 minor=608 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9649e+01 stol=2.575e-07 leaves=-3.9344e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp3.txt mode=1 minor=612 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9649e+01 stol=2.575e-07 leaves=-3.9344e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp3.txt mode=1 minor=616 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9649e+01 stol=2.575e-07 leaves=-3.9344e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp3.txt mode=1 minor=620 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9649e+01 stol=2.575e-07 leaves=-3.9344e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1SUM Cs_STEENBRB_qp3.txt mode=1 status=3 minors=622 f=-11.5360645825 fired=39 stepped=25 dep=14 nullspace=0 flat=0 disagree=0 unb=0 dep_ride_declines=14 zmexh=1
+NC1SUM Cs_STEENBRB_qp3.txt mode=2 status=0 minors=584 f=-11.5370634375 fired=25 stepped=25 dep=0 nullspace=0 flat=0 disagree=0 unb=0 dep_ride_declines=0 zmexh=0
+NC1 Cs_STEENBRB_qp4.txt mode=0 minor=178 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9646e+01 stol=2.575e-07 leaves=-3.9342e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp4.txt mode=0 minor=182 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9646e+01 stol=2.575e-07 leaves=-3.9342e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp4.txt mode=0 minor=186 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9646e+01 stol=2.575e-07 leaves=-3.9342e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp4.txt mode=0 minor=190 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9646e+01 stol=2.575e-07 leaves=-3.9342e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp4.txt mode=0 minor=194 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9646e+01 stol=2.575e-07 leaves=-3.9342e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp4.txt mode=0 minor=198 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9646e+01 stol=2.575e-07 leaves=-3.9342e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp4.txt mode=0 minor=202 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9646e+01 stol=2.575e-07 leaves=-3.9342e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp4.txt mode=0 minor=206 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9646e+01 stol=2.575e-07 leaves=-3.9342e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp4.txt mode=0 minor=210 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9646e+01 stol=2.575e-07 leaves=-3.9342e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp4.txt mode=0 minor=214 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9646e+01 stol=2.575e-07 leaves=-3.9342e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp4.txt mode=0 minor=218 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9646e+01 stol=2.575e-07 leaves=-3.9342e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1SUM Cs_STEENBRB_qp4.txt mode=0 status=3 minors=220 f=-5.7685475593 fired=34 stepped=23 dep=11 nullspace=0 flat=0 disagree=0 unb=0 dep_ride_declines=11 zmexh=1
+NC1 Cs_STEENBRB_qp4.txt mode=1 minor=178 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9646e+01 stol=2.575e-07 leaves=-3.9342e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp4.txt mode=1 minor=182 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9646e+01 stol=2.575e-07 leaves=-3.9342e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp4.txt mode=1 minor=186 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9646e+01 stol=2.575e-07 leaves=-3.9342e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp4.txt mode=1 minor=190 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9646e+01 stol=2.575e-07 leaves=-3.9342e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp4.txt mode=1 minor=194 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9646e+01 stol=2.575e-07 leaves=-3.9342e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp4.txt mode=1 minor=198 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9646e+01 stol=2.575e-07 leaves=-3.9342e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp4.txt mode=1 minor=202 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9646e+01 stol=2.575e-07 leaves=-3.9342e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp4.txt mode=1 minor=206 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9646e+01 stol=2.575e-07 leaves=-3.9342e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp4.txt mode=1 minor=210 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9646e+01 stol=2.575e-07 leaves=-3.9342e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp4.txt mode=1 minor=214 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9646e+01 stol=2.575e-07 leaves=-3.9342e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp4.txt mode=1 minor=218 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9646e+01 stol=2.575e-07 leaves=-3.9342e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1SUM Cs_STEENBRB_qp4.txt mode=1 status=3 minors=220 f=-5.7685475593 fired=34 stepped=23 dep=11 nullspace=0 flat=0 disagree=0 unb=0 dep_ride_declines=11 zmexh=1
+NC1SUM Cs_STEENBRB_qp4.txt mode=2 status=0 minors=192 f=-5.7690469472 fired=25 stepped=25 dep=0 nullspace=0 flat=0 disagree=0 unb=0 dep_ride_declines=0 zmexh=0
+NC1 Cs_STEENBRB_qp5.txt mode=0 minor=168 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9645e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp5.txt mode=0 minor=172 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9645e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp5.txt mode=0 minor=176 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9645e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp5.txt mode=0 minor=180 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9645e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp5.txt mode=0 minor=184 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9645e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp5.txt mode=0 minor=188 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9645e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp5.txt mode=0 minor=192 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9645e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp5.txt mode=0 minor=196 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9645e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp5.txt mode=0 minor=200 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9645e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp5.txt mode=0 minor=204 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9645e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp5.txt mode=0 minor=208 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9645e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1SUM Cs_STEENBRB_qp5.txt mode=0 status=3 minors=210 f=-2.8844025966 fired=33 stepped=22 dep=11 nullspace=0 flat=0 disagree=0 unb=0 dep_ride_declines=11 zmexh=1
+NC1 Cs_STEENBRB_qp5.txt mode=1 minor=168 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9645e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp5.txt mode=1 minor=172 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9645e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp5.txt mode=1 minor=176 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9645e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp5.txt mode=1 minor=180 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9645e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp5.txt mode=1 minor=184 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9645e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp5.txt mode=1 minor=188 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9645e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp5.txt mode=1 minor=192 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9645e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp5.txt mode=1 minor=196 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9645e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp5.txt mode=1 minor=200 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9645e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp5.txt mode=1 minor=204 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9645e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp5.txt mode=1 minor=208 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9645e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1SUM Cs_STEENBRB_qp5.txt mode=1 status=3 minors=210 f=-2.8844025966 fired=33 stepped=22 dep=11 nullspace=0 flat=0 disagree=0 unb=0 dep_ride_declines=11 zmexh=1
+NC1SUM Cs_STEENBRB_qp5.txt mode=2 status=0 minors=191 f=-2.8846522807 fired=26 stepped=26 dep=0 nullspace=0 flat=0 disagree=0 unb=0 dep_ride_declines=0 zmexh=0
+NC1 Cs_STEENBRB_qp6.txt mode=0 minor=163 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9644e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp6.txt mode=0 minor=167 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9644e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp6.txt mode=0 minor=171 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9644e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp6.txt mode=0 minor=175 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9644e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp6.txt mode=0 minor=179 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9644e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp6.txt mode=0 minor=183 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9644e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp6.txt mode=0 minor=187 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9644e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp6.txt mode=0 minor=191 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9644e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp6.txt mode=0 minor=195 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9644e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp6.txt mode=0 minor=199 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9644e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp6.txt mode=0 minor=203 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9644e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1SUM Cs_STEENBRB_qp6.txt mode=0 status=3 minors=205 f=-1.4422335025 fired=35 stepped=24 dep=11 nullspace=0 flat=0 disagree=0 unb=0 dep_ride_declines=11 zmexh=1
+NC1 Cs_STEENBRB_qp6.txt mode=1 minor=163 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9644e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp6.txt mode=1 minor=167 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9644e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp6.txt mode=1 minor=171 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9644e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp6.txt mode=1 minor=175 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9644e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp6.txt mode=1 minor=179 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9644e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp6.txt mode=1 minor=183 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9644e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp6.txt mode=1 minor=187 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9644e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp6.txt mode=1 minor=191 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9644e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp6.txt mode=1 minor=195 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9644e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp6.txt mode=1 minor=199 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9644e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1 Cs_STEENBRB_qp6.txt mode=1 minor=203 rel=312 side=2 why=DEP(notattempted) sign=-1 slope=1.9644e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=312 alpha=0.000e+00
+NC1SUM Cs_STEENBRB_qp6.txt mode=1 status=3 minors=205 f=-1.4422335025 fired=35 stepped=24 dep=11 nullspace=0 flat=0 disagree=0 unb=0 dep_ride_declines=11 zmexh=1
+NC1SUM Cs_STEENBRB_qp6.txt mode=2 status=0 minors=184 f=-1.4423583421 fired=26 stepped=26 dep=0 nullspace=0 flat=0 disagree=0 unb=0 dep_ride_declines=0 zmexh=0
+[       OK ] QpE2WorkingSet.NC1ObserveDeclines (733509 ms)
+[----------] 1 test from QpE2WorkingSet (733509 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (733509 ms total)
+[  PASSED  ] 1 test.
+FOREGROUND_END n1-debug 2026-09-25T16:13:11-04:00 rc=0

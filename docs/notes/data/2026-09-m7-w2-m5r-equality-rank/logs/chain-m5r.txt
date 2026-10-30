@@ -1,0 +1,185 @@
+CHAIN_M5R_BEGIN 2026-09-22T16:48:19-04:00 HEAD 111c5682 dirty=1
+SPLIT_PIN_SHA256 e19a220255717ebe0b8b715fe3ccc054b1590156ea77d0d669be240af36bd76e
+TRAIN (23): ACOPP118 ACOPP57 ACOPR118 ACOPR57 BIGBANK BRITGAS DALLASM MSS2 MSS3 NET3 READING6 READING8 SAWPATH SMBANK STEENBRB STEENBRC STEENBRD STEENBRE STEENBRG TAX213322 TAX53322 YORKNET ZAMB2-8
+HOLDOUT (12) -- never run: ACOPP300 ACOPR300 DALLASL GROUPING NET2 READING7 STEENBRF TAXR213322 TAXR53322 ZAMB2-10 ZAMB2-11 ZAMB2-9
+PGREP_BEFORE_LOCK build: 
+FOREGROUND_START m5r-build 2026-09-22T16:48:19-04:00
+PGREP_EMPTY m5r-build: no foreign cell binary under my lock
+installed libhven.a sha256 18a71b727533e9231fbdeb4e6bf0c9bb2d77aad6ab886a0f2e5729f1169eee10
+M3c's recorded pin         18a71b727533e9231fbdeb4e6bf0c9bb2d77aad6ab886a0f2e5729f1169eee10
+  PROBE TU m3c_probe.cpp: no residual difference  (declared: source, object, dep file)
+  BRIDGE   cutest_model.cpp: no residual difference
+  BRIDGE   cutest_source.cpp: no residual difference
+  BRIDGE   nlp_model_triplet_view.cpp: no residual difference
+  one command in full: /usr/bin/clang++ -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO -DEIGEN_MAX_ALIGN_BYTES=32 -DFMT_HEADER_ONLY -DFMT_USE_LOCALE=0 -DHVEN_BENCH_HAS_CUTEST=1 -DHVEN_DEFAULT_QP_THREADS=8 -I/home/ghecht/Projects/hven-bench -I/home/ghecht/Projects/hven-bench/lanes/hven -I/home/ghecht/Software/cutest/include -isystem /home/ghecht/Projects/hven/.scratch/m7w2m3c/install/include -isystem /opt/intel/oneapi/mkl/latest/include -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 -MD -MT CMakeFiles/m3c_probe.dir/m5r_rank_probe.cpp.o -MF CMakeFiles/m3c_probe.dir/m5r_rank_probe.cpp.o.d -o CMakeFiles/m3c_probe.dir/m5r_rank_probe.cpp.o -c /home/ghecht/Projects/hven/.scratch/m7w2m5r/build/m5r_rank_probe.cpp
+  4 objects produced
+  LINK: no residual difference (declared: probe object, target name)
+  : && /usr/bin/clang++ -DMKL_LP64 -m64 -O3 -DNDEBUG -Wl,-rpath,/home/ghecht/Software/cutest/lib -Xlinker --dependency-file=CMakeFiles/m3c_probe.dir/link.d CMakeFiles/m3c_probe.dir/m5r_rank_probe.cpp.o CMakeFiles/m3c_probe.dir/home/ghecht/Projects/hven-bench/lanes/cutest/cutest_model.cpp.o CMakeFiles/m3c_probe.dir/home/ghecht/Projects/hven-bench/lanes/cutest/cutest_source.cpp.o CMakeFiles/m3c_probe.dir/home/ghecht/Projects/hven-bench/lanes/hven/nlp_model_triplet_view.cpp.o -o m5r_rank_probe  -Wl,-rpath,/opt/intel/oneapi/mkl/latest/lib:/opt/intel/oneapi/compiler/latest/lib:/home/ghecht/Software/cutest/lib  /home/ghecht/Projects/hven/.scratch/m7w2m3c/install/lib64/libhven.a  /home/ghecht/Software/cutest/lib/libcutest_double.so  -Wl,--start-group  /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a  /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a  /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a  /opt/intel/oneapi/compiler/latest/lib/libiomp5.so  -Wl,--end-group  -ldl  -lm && :
+BINARY /home/ghecht/Projects/hven/.scratch/m7w2m5r/build/m5r_rank_probe
+BINARY_SHA256 fc66e01bb84dbb5d0644839ca0d9117ef44f549315e2203c9cc7b18b5098f0b2
+FOREGROUND_END m5r-build 2026-09-22T16:48:28-04:00 rc=0
+BINARY_SHA256 fc66e01bb84dbb5d0644839ca0d9117ef44f549315e2203c9cc7b18b5098f0b2
+HOLDOUT refused as it should: m5r_rank_probe: ACOPP300 has split HOLDOUT in sets/split-v1.json -- REFUSED (TRAIN only; HOLDOUT is never run)
+unknown name refused as it should: m5r_rank_probe: NOT_A_CELL is not in the cutest-nlp-35 roster
+PGREP_BEFORE_LOCK ACOPP118: 
+FOREGROUND_START leg-ACOPP118 2026-09-22T16:48:28-04:00
+PGREP_EMPTY leg-ACOPP118: no foreign cell binary under my lock
+LEG ACOPP118   rc=0 wall_s=0.1 (INFORMATIONAL)
+n=344 me=236 fixed_bounds=0 f_finite=1 jac_finite=1 eq_dflt_deficiency=0 eq_alt_deficiency=0 skel_dflt_deficiency=0 entry_dflt_deficiency=0 
+FOREGROUND_END leg-ACOPP118 2026-09-22T16:48:28-04:00 rc=0
+WRAPPER_RC leg-ACOPP118 rc=0
+PGREP_BEFORE_LOCK ACOPP57: 
+FOREGROUND_START leg-ACOPP57 2026-09-22T16:48:28-04:00
+PGREP_EMPTY leg-ACOPP57: no foreign cell binary under my lock
+LEG ACOPP57    rc=0 wall_s=0.0 (INFORMATIONAL)
+n=128 me=114 fixed_bounds=0 f_finite=1 jac_finite=1 eq_dflt_deficiency=0 eq_alt_deficiency=0 skel_dflt_deficiency=0 entry_dflt_deficiency=0 f_finite=1 jac_finite=1 eq_dflt_deficiency=0 eq_alt_deficiency=0 skel_dflt_deficiency=0 entry_dflt_deficiency=0 
+FOREGROUND_END leg-ACOPP57 2026-09-22T16:48:29-04:00 rc=0
+WRAPPER_RC leg-ACOPP57 rc=0
+PGREP_BEFORE_LOCK ACOPR118: 
+FOREGROUND_START leg-ACOPR118 2026-09-22T16:48:29-04:00
+PGREP_EMPTY leg-ACOPR118: no foreign cell binary under my lock
+LEG ACOPR118   rc=0 wall_s=0.1 (INFORMATIONAL)
+n=344 me=236 fixed_bounds=0 f_finite=1 jac_finite=1 eq_dflt_deficiency=0 eq_alt_deficiency=0 skel_dflt_deficiency=0 entry_dflt_deficiency=0 
+FOREGROUND_END leg-ACOPR118 2026-09-22T16:48:29-04:00 rc=0
+WRAPPER_RC leg-ACOPR118 rc=0
+PGREP_BEFORE_LOCK ACOPR57: 
+FOREGROUND_START leg-ACOPR57 2026-09-22T16:48:29-04:00
+PGREP_EMPTY leg-ACOPR57: no foreign cell binary under my lock
+LEG ACOPR57    rc=0 wall_s=0.0 (INFORMATIONAL)
+n=128 me=114 fixed_bounds=0 f_finite=1 jac_finite=1 eq_dflt_deficiency=0 eq_alt_deficiency=0 skel_dflt_deficiency=0 entry_dflt_deficiency=0 
+FOREGROUND_END leg-ACOPR57 2026-09-22T16:48:29-04:00 rc=0
+WRAPPER_RC leg-ACOPR57 rc=0
+PGREP_BEFORE_LOCK BIGBANK: 
+FOREGROUND_START leg-BIGBANK 2026-09-22T16:48:29-04:00
+PGREP_EMPTY leg-BIGBANK: no foreign cell binary under my lock
+LEG BIGBANK    rc=0 wall_s=15.2 (INFORMATIONAL)
+n=2230 me=1112 fixed_bounds=308 f_finite=1 jac_finite=1 eq_dflt_deficiency=1 eq_alt_deficiency=1 skel_dflt_deficiency=150 entry_dflt_deficiency=223 
+FOREGROUND_END leg-BIGBANK 2026-09-22T16:48:44-04:00 rc=0
+WRAPPER_RC leg-BIGBANK rc=0
+PGREP_BEFORE_LOCK BRITGAS: 
+FOREGROUND_START leg-BRITGAS 2026-09-22T16:48:44-04:00
+PGREP_EMPTY leg-BRITGAS: no foreign cell binary under my lock
+LEG BRITGAS    rc=0 wall_s=0.1 (INFORMATIONAL)
+n=450 me=360 fixed_bounds=0 f_finite=1 jac_finite=1 eq_dflt_deficiency=0 eq_alt_deficiency=0 skel_dflt_deficiency=0 entry_dflt_deficiency=0 
+FOREGROUND_END leg-BRITGAS 2026-09-22T16:48:44-04:00 rc=0
+WRAPPER_RC leg-BRITGAS rc=0
+PGREP_BEFORE_LOCK DALLASM: 
+FOREGROUND_START leg-DALLASM 2026-09-22T16:48:44-04:00
+PGREP_EMPTY leg-DALLASM: no foreign cell binary under my lock
+LEG DALLASM    rc=0 wall_s=0.0 (INFORMATIONAL)
+n=196 me=151 fixed_bounds=0 f_finite=1 jac_finite=1 eq_dflt_deficiency=1 eq_alt_deficiency=1 skel_dflt_deficiency=1 entry_dflt_deficiency=5 
+FOREGROUND_END leg-DALLASM 2026-09-22T16:48:44-04:00 rc=0
+WRAPPER_RC leg-DALLASM rc=0
+PGREP_BEFORE_LOCK MSS2: 
+FOREGROUND_START leg-MSS2 2026-09-22T16:48:44-04:00
+PGREP_EMPTY leg-MSS2: no foreign cell binary under my lock
+LEG MSS2       rc=0 wall_s=1.2 (INFORMATIONAL)
+n=756 me=703 fixed_bounds=0 f_finite=1 jac_finite=1 eq_dflt_deficiency=325 eq_alt_deficiency=325 skel_dflt_deficiency=325 entry_dflt_deficiency=325 
+FOREGROUND_END leg-MSS2 2026-09-22T16:48:46-04:00 rc=0
+WRAPPER_RC leg-MSS2 rc=0
+PGREP_BEFORE_LOCK MSS3: 
+FOREGROUND_START leg-MSS3 2026-09-22T16:48:46-04:00
+PGREP_EMPTY leg-MSS3: no foreign cell binary under my lock
+LEG MSS3       rc=0 wall_s=35.8 (INFORMATIONAL)
+n=2070 me=1981 fixed_bounds=0 f_finite=1 jac_finite=1 eq_dflt_deficiency=946 eq_alt_deficiency=946 skel_dflt_deficiency=946 entry_dflt_deficiency=946 
+FOREGROUND_END leg-MSS3 2026-09-22T16:49:21-04:00 rc=0
+WRAPPER_RC leg-MSS3 rc=0
+PGREP_BEFORE_LOCK NET3: 
+FOREGROUND_START leg-NET3 2026-09-22T16:49:22-04:00
+PGREP_EMPTY leg-NET3: no foreign cell binary under my lock
+LEG NET3       rc=0 wall_s=0.2 (INFORMATIONAL)
+n=464 me=394 fixed_bounds=37 f_finite=0 jac_finite=0 f_finite=1 jac_finite=1 eq_dflt_deficiency=0 eq_alt_deficiency=0 skel_dflt_deficiency=0 entry_dflt_deficiency=166 
+FOREGROUND_END leg-NET3 2026-09-22T16:49:22-04:00 rc=0
+WRAPPER_RC leg-NET3 rc=0
+PGREP_BEFORE_LOCK READING6: 
+FOREGROUND_START leg-READING6 2026-09-22T16:49:22-04:00
+PGREP_EMPTY leg-READING6: no foreign cell binary under my lock
+LEG READING6   rc=0 wall_s=0.0 (INFORMATIONAL)
+n=102 me=50 fixed_bounds=1 f_finite=1 jac_finite=1 eq_dflt_deficiency=0 eq_alt_deficiency=0 skel_dflt_deficiency=0 entry_dflt_deficiency=0 
+FOREGROUND_END leg-READING6 2026-09-22T16:49:22-04:00 rc=0
+WRAPPER_RC leg-READING6 rc=0
+PGREP_BEFORE_LOCK READING8: 
+FOREGROUND_START leg-READING8 2026-09-22T16:49:22-04:00
+PGREP_EMPTY leg-READING8: no foreign cell binary under my lock
+LEG READING8   rc=0 wall_s=4.9 (INFORMATIONAL)
+n=2002 me=1000 fixed_bounds=1 f_finite=1 jac_finite=1 eq_dflt_deficiency=0 eq_alt_deficiency=0 skel_dflt_deficiency=0 entry_dflt_deficiency=0 
+FOREGROUND_END leg-READING8 2026-09-22T16:49:27-04:00 rc=0
+WRAPPER_RC leg-READING8 rc=0
+PGREP_BEFORE_LOCK SAWPATH: 
+FOREGROUND_START leg-SAWPATH 2026-09-22T16:49:27-04:00
+PGREP_EMPTY leg-SAWPATH: no foreign cell binary under my lock
+LEG SAWPATH    rc=0 wall_s=0.7 (INFORMATIONAL)
+n=583 me=578 fixed_bounds=2 f_finite=1 jac_finite=1 eq_dflt_deficiency=0 eq_alt_deficiency=574 skel_dflt_deficiency=1 entry_dflt_deficiency=1 f_finite=1 jac_finite=1 eq_dflt_deficiency=0 eq_alt_deficiency=574 skel_dflt_deficiency=1 entry_dflt_deficiency=1 
+FOREGROUND_END leg-SAWPATH 2026-09-22T16:49:28-04:00 rc=0
+WRAPPER_RC leg-SAWPATH rc=0
+PGREP_BEFORE_LOCK SMBANK: 
+FOREGROUND_START leg-SMBANK 2026-09-22T16:49:28-04:00
+PGREP_EMPTY leg-SMBANK: no foreign cell binary under my lock
+LEG SMBANK     rc=0 wall_s=0.0 (INFORMATIONAL)
+n=117 me=64 fixed_bounds=0 f_finite=1 jac_finite=1 eq_dflt_deficiency=1 eq_alt_deficiency=1 skel_dflt_deficiency=1 entry_dflt_deficiency=9 
+FOREGROUND_END leg-SMBANK 2026-09-22T16:49:28-04:00 rc=0
+WRAPPER_RC leg-SMBANK rc=0
+PGREP_BEFORE_LOCK STEENBRB: 
+FOREGROUND_START leg-STEENBRB 2026-09-22T16:49:28-04:00
+PGREP_EMPTY leg-STEENBRB: no foreign cell binary under my lock
+LEG STEENBRB   rc=0 wall_s=0.0 (INFORMATIONAL)
+n=468 me=108 fixed_bounds=0 f_finite=1 jac_finite=1 eq_dflt_deficiency=12 eq_alt_deficiency=12 skel_dflt_deficiency=12 entry_dflt_deficiency=12 
+FOREGROUND_END leg-STEENBRB 2026-09-22T16:49:28-04:00 rc=0
+WRAPPER_RC leg-STEENBRB rc=0
+PGREP_BEFORE_LOCK STEENBRC: 
+FOREGROUND_START leg-STEENBRC 2026-09-22T16:49:28-04:00
+PGREP_EMPTY leg-STEENBRC: no foreign cell binary under my lock
+LEG STEENBRC   rc=0 wall_s=0.0 (INFORMATIONAL)
+n=540 me=126 fixed_bounds=0 f_finite=1 jac_finite=1 eq_dflt_deficiency=14 eq_alt_deficiency=14 skel_dflt_deficiency=14 entry_dflt_deficiency=14 
+FOREGROUND_END leg-STEENBRC 2026-09-22T16:49:28-04:00 rc=0
+WRAPPER_RC leg-STEENBRC rc=0
+PGREP_BEFORE_LOCK STEENBRD: 
+FOREGROUND_START leg-STEENBRD 2026-09-22T16:49:28-04:00
+PGREP_EMPTY leg-STEENBRD: no foreign cell binary under my lock
+LEG STEENBRD   rc=0 wall_s=0.0 (INFORMATIONAL)
+n=468 me=108 fixed_bounds=0 f_finite=0 jac_finite=1 eq_dflt_deficiency=12 eq_alt_deficiency=12 skel_dflt_deficiency=12 entry_dflt_deficiency=12 f_finite=1 jac_finite=1 eq_dflt_deficiency=12 eq_alt_deficiency=12 skel_dflt_deficiency=12 entry_dflt_deficiency=12 
+FOREGROUND_END leg-STEENBRD 2026-09-22T16:49:28-04:00 rc=0
+WRAPPER_RC leg-STEENBRD rc=0
+PGREP_BEFORE_LOCK STEENBRE: 
+FOREGROUND_START leg-STEENBRE 2026-09-22T16:49:28-04:00
+PGREP_EMPTY leg-STEENBRE: no foreign cell binary under my lock
+LEG STEENBRE   rc=0 wall_s=0.1 (INFORMATIONAL)
+n=540 me=126 fixed_bounds=0 f_finite=0 jac_finite=1 eq_dflt_deficiency=14 eq_alt_deficiency=14 skel_dflt_deficiency=14 entry_dflt_deficiency=14 f_finite=1 jac_finite=1 eq_dflt_deficiency=14 eq_alt_deficiency=14 skel_dflt_deficiency=14 entry_dflt_deficiency=14 
+FOREGROUND_END leg-STEENBRE 2026-09-22T16:49:28-04:00 rc=0
+WRAPPER_RC leg-STEENBRE rc=0
+PGREP_BEFORE_LOCK STEENBRG: 
+FOREGROUND_START leg-STEENBRG 2026-09-22T16:49:28-04:00
+PGREP_EMPTY leg-STEENBRG: no foreign cell binary under my lock
+LEG STEENBRG   rc=0 wall_s=0.0 (INFORMATIONAL)
+n=540 me=126 fixed_bounds=0 f_finite=1 jac_finite=1 eq_dflt_deficiency=14 eq_alt_deficiency=14 skel_dflt_deficiency=14 entry_dflt_deficiency=14 
+FOREGROUND_END leg-STEENBRG 2026-09-22T16:49:28-04:00 rc=0
+WRAPPER_RC leg-STEENBRG rc=0
+PGREP_BEFORE_LOCK TAX213322: 
+FOREGROUND_START leg-TAX213322 2026-09-22T16:49:28-04:00
+PGREP_EMPTY leg-TAX213322: no foreign cell binary under my lock
+LEG TAX213322  rc=0 wall_s=11.5 (INFORMATIONAL)
+n=1512 me=0 fixed_bounds=0 f_finite=1 jac_finite=1 entry_dflt_deficiency=0 
+FOREGROUND_END leg-TAX213322 2026-09-22T16:49:40-04:00 rc=0
+WRAPPER_RC leg-TAX213322 rc=0
+PGREP_BEFORE_LOCK TAX53322: 
+FOREGROUND_START leg-TAX53322 2026-09-22T16:49:40-04:00
+PGREP_EMPTY leg-TAX53322: no foreign cell binary under my lock
+LEG TAX53322   rc=0 wall_s=0.2 (INFORMATIONAL)
+n=360 me=0 fixed_bounds=0 f_finite=1 jac_finite=1 entry_dflt_deficiency=0 
+FOREGROUND_END leg-TAX53322 2026-09-22T16:49:40-04:00 rc=0
+WRAPPER_RC leg-TAX53322 rc=0
+PGREP_BEFORE_LOCK YORKNET: 
+FOREGROUND_START leg-YORKNET 2026-09-22T16:49:40-04:00
+PGREP_EMPTY leg-YORKNET: no foreign cell binary under my lock
+LEG YORKNET    rc=0 wall_s=0.1 (INFORMATIONAL)
+n=312 me=256 fixed_bounds=0 f_finite=1 jac_finite=1 eq_dflt_deficiency=0 eq_alt_deficiency=0 skel_dflt_deficiency=0 entry_dflt_deficiency=40 f_finite=1 jac_finite=1 eq_dflt_deficiency=0 eq_alt_deficiency=0 skel_dflt_deficiency=0 entry_dflt_deficiency=64 
+FOREGROUND_END leg-YORKNET 2026-09-22T16:49:40-04:00 rc=0
+WRAPPER_RC leg-YORKNET rc=0
+PGREP_BEFORE_LOCK ZAMB2-8: 
+FOREGROUND_START leg-ZAMB2-8 2026-09-22T16:49:40-04:00
+PGREP_EMPTY leg-ZAMB2-8: no foreign cell binary under my lock
+LEG ZAMB2-8    rc=0 wall_s=0.0 (INFORMATIONAL)
+n=138 me=48 fixed_bounds=6 f_finite=1 jac_finite=1 eq_dflt_deficiency=0 eq_alt_deficiency=0 skel_dflt_deficiency=0 entry_dflt_deficiency=0 f_finite=1 jac_finite=1 eq_dflt_deficiency=0 eq_alt_deficiency=0 skel_dflt_deficiency=0 entry_dflt_deficiency=0 
+FOREGROUND_END leg-ZAMB2-8 2026-09-22T16:49:40-04:00 rc=0
+WRAPPER_RC leg-ZAMB2-8 rc=0
+CHAIN_M5R_END 2026-09-22T16:49:40-04:00 failed_legs=0

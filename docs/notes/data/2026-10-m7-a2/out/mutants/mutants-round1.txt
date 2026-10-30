@@ -1,0 +1,328 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:36:16-04:00
+FOREGROUND_END rc=0 2026-10-23T07:37:30-04:00
+[54/56] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_lift_oracle.cpp.o
+[55/56] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+[56/56] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:37:30-04:00
+FOREGROUND_END rc=1 2026-10-23T07:37:30-04:00
+[  FAILED  ] IpqpMu0Rule.TheDerivedMuZeroMatchesTheClosedFormOnABoundOnlyQp
+[  FAILED  ] IpqpMu0Rule.TheBandIsTheOptionsOwnCeiling
+[  FAILED  ] IpqpMu0Rule.TheDerivedMuZeroOfTheRowQpsIsPinned
+
+ 3 FAILED TESTS
+MUTANT M1 the 1.5 positivity shift factor: KILLED by IpqpMu0Rule.TheBandIsTheOptionsOwnCeiling;IpqpMu0Rule.TheDerivedMuZeroMatchesTheClosedFormOnABoundOnlyQp;IpqpMu0Rule.TheDerivedMuZeroOfTheRowQpsIsPinned
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:37:30-04:00
+FOREGROUND_END rc=0 2026-10-23T07:38:46-04:00
+[54/56] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_lift_oracle.cpp.o
+[55/56] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+[56/56] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:38:46-04:00
+FOREGROUND_END rc=1 2026-10-23T07:38:46-04:00
+[  FAILED  ] IpqpMu0Rule.TheDerivedMuZeroMatchesTheClosedFormOnABoundOnlyQp
+[  FAILED  ] IpqpMu0Rule.TheBandIsTheOptionsOwnCeiling
+[  FAILED  ] IpqpMu0Rule.TheDerivedMuZeroOfTheRowQpsIsPinned
+
+ 3 FAILED TESTS
+MUTANT M2 the 0.5 centring fraction: KILLED by IpqpMu0Rule.TheBandIsTheOptionsOwnCeiling;IpqpMu0Rule.TheDerivedMuZeroMatchesTheClosedFormOnABoundOnlyQp;IpqpMu0Rule.TheDerivedMuZeroOfTheRowQpsIsPinned
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:38:46-04:00
+FOREGROUND_END rc=0 2026-10-23T07:39:09-04:00
+[54/56] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/__/bench/ipm_corpus_leg.cpp.o
+[55/56] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_mu0_rule.cpp.o
+[56/56] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:39:09-04:00
+FOREGROUND_END rc=1 2026-10-23T07:39:09-04:00
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] IpqpMu0Rule.ADerivedValueAboveTheCeilingFallsBackToTheFixedStart
+[  FAILED  ] IpqpMu0Rule.AQpWithEveryBlockConvergesToTheWalksAnswerOnBothPaths
+
+ 2 FAILED TESTS
+MUTANT M3 the band's ceiling dropped: KILLED by IpqpMu0Rule.ADerivedValueAboveTheCeilingFallsBackToTheFixedStart;IpqpMu0Rule.AQpWithEveryBlockConvergesToTheWalksAnswerOnBothPaths
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:39:09-04:00
+FOREGROUND_END rc=0 2026-10-23T07:39:22-04:00
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:39:22-04:00
+FOREGROUND_END rc=1 2026-10-23T07:39:22-04:00
+[  PASSED  ] 17 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] IpqpMu0Rule.ADerivedValueBelowTheFloorOrAZeroEstimateFallsBack
+
+ 1 FAILED TEST
+MUTANT M4 the band's floor dropped: KILLED by IpqpMu0Rule.ADerivedValueBelowTheFloorOrAZeroEstimateFallsBack
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:39:22-04:00
+FOREGROUND_END rc=0 2026-10-23T07:39:36-04:00
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:39:36-04:00
+FOREGROUND_END rc=0 2026-10-23T07:39:36-04:00
+[----------] 4 tests from IpqpMuResidualFloor (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 18 tests from 3 test suites ran. (8 ms total)
+[  PASSED  ] 18 tests.
+MUTANT M5 strict positivity not checked: SURVIVED
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:39:36-04:00
+FOREGROUND_END rc=0 2026-10-23T07:39:49-04:00
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:39:49-04:00
+FOREGROUND_END rc=1 2026-10-23T07:39:49-04:00
+[  FAILED  ] IpqpMu0Rule.ADerivedValueAboveTheCeilingFallsBackToTheFixedStart
+[  FAILED  ] IpqpMu0Rule.ADerivedValueBelowTheFloorOrAZeroEstimateFallsBack
+[  FAILED  ] IpqpMu0Rule.AFallbackLeavesTheLadderMemoryAsOffFindsIt
+
+ 3 FAILED TESTS
+MUTANT M6 the fallback keeps the unit-scaled point: KILLED by IpqpMu0Rule.ADerivedValueAboveTheCeilingFallsBackToTheFixedStart;IpqpMu0Rule.ADerivedValueBelowTheFloorOrAZeroEstimateFallsBack;IpqpMu0Rule.AFallbackLeavesTheLadderMemoryAsOffFindsIt
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:39:49-04:00
+FOREGROUND_END rc=0 2026-10-23T07:40:02-04:00
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:40:02-04:00
+FOREGROUND_END rc=0 2026-10-23T07:40:02-04:00
+[----------] 4 tests from IpqpMuResidualFloor (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 18 tests from 3 test suites ran. (8 ms total)
+[  PASSED  ] 18 tests.
+MUTANT M7 the ladder high-water mark is not restored: SURVIVED
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:40:02-04:00
+FOREGROUND_END rc=0 2026-10-23T07:40:16-04:00
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:40:16-04:00
+FOREGROUND_END rc=0 2026-10-23T07:40:16-04:00
+[----------] 4 tests from IpqpMuResidualFloor (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 18 tests from 3 test suites ran. (8 ms total)
+[  PASSED  ] 18 tests.
+MUTANT M8 the ladder memory is not restored: SURVIVED
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:40:16-04:00
+FOREGROUND_END rc=0 2026-10-23T07:40:29-04:00
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:40:29-04:00
+FOREGROUND_END rc=1 2026-10-23T07:40:29-04:00
+[  FAILED  ] IpqpMu0Rule.TheDerivedMuZeroMatchesTheClosedFormOnABoundOnlyQp
+[  FAILED  ] IpqpMu0Rule.TheBandIsTheOptionsOwnCeiling
+[  FAILED  ] IpqpMu0Rule.TheDerivedMuZeroOfTheRowQpsIsPinned
+
+ 3 FAILED TESTS
+MUTANT M9 the unit-scaled point is not unit-scaled: KILLED by IpqpMu0Rule.TheBandIsTheOptionsOwnCeiling;IpqpMu0Rule.TheDerivedMuZeroMatchesTheClosedFormOnABoundOnlyQp;IpqpMu0Rule.TheDerivedMuZeroOfTheRowQpsIsPinned
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:40:29-04:00
+FOREGROUND_END rc=0 2026-10-23T07:40:42-04:00
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:40:42-04:00
+FOREGROUND_END rc=1 2026-10-23T07:40:42-04:00
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] IpqpMu0Rule.AQpWithEveryBlockConvergesToTheWalksAnswerOnBothPaths
+[  FAILED  ] IpqpMu0Rule.TheDerivedMuZeroOfTheRowQpsIsPinned
+
+ 2 FAILED TESTS
+MUTANT M10 the row estimates keep the mu-placed values: KILLED by IpqpMu0Rule.AQpWithEveryBlockConvergesToTheWalksAnswerOnBothPaths;IpqpMu0Rule.TheDerivedMuZeroOfTheRowQpsIsPinned
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:40:42-04:00
+FOREGROUND_END rc=0 2026-10-23T07:40:56-04:00
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:40:56-04:00
+FOREGROUND_END rc=1 2026-10-23T07:40:56-04:00
+[  PASSED  ] 17 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] IpqpMu0Rule.AWarmStartIsUntouched
+
+ 1 FAILED TEST
+MUTANT M11 the rule runs on warm starts: KILLED by IpqpMu0Rule.AWarmStartIsUntouched
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:40:56-04:00
+FOREGROUND_END rc=0 2026-10-23T07:41:09-04:00
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:41:09-04:00
+FOREGROUND_END rc=1 2026-10-23T07:41:09-04:00
+[  FAILED  ] IpqpMu0Rule.TheDerivedMuZeroMatchesTheClosedFormOnABoundOnlyQp
+[  FAILED  ] IpqpMu0Rule.TheBandIsTheOptionsOwnCeiling
+[  FAILED  ] IpqpMu0Rule.AQpWithEveryBlockConvergesToTheWalksAnswerOnBothPaths
+
+ 3 FAILED TESTS
+MUTANT M12 the derived counter is not written: KILLED by IpqpMu0Rule.AQpWithEveryBlockConvergesToTheWalksAnswerOnBothPaths;IpqpMu0Rule.TheBandIsTheOptionsOwnCeiling;IpqpMu0Rule.TheDerivedMuZeroMatchesTheClosedFormOnABoundOnlyQp
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:41:09-04:00
+FOREGROUND_END rc=0 2026-10-23T07:41:22-04:00
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:41:22-04:00
+FOREGROUND_END rc=1 2026-10-23T07:41:22-04:00
+[  FAILED  ] IpqpMuResidualFloor.TheCounterIsTheNeighbourhoodRuleReadOffTheTrace
+[  FAILED  ] IpqpMuResidualFloor.ItBindsOnARowPopulationAndStopsAtTheTiersContract
+[  FAILED  ] IpqpMuResidualFloor.AWarmKillReAnchorsAtTheColdRestart
+
+ 3 FAILED TESTS
+MUTANT M13 the floor never binds: KILLED by IpqpMuResidualFloor.AWarmKillReAnchorsAtTheColdRestart;IpqpMuResidualFloor.ItBindsOnARowPopulationAndStopsAtTheTiersContract;IpqpMuResidualFloor.TheCounterIsTheNeighbourhoodRuleReadOffTheTrace
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:41:23-04:00
+FOREGROUND_END rc=0 2026-10-23T07:41:36-04:00
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:41:36-04:00
+FOREGROUND_END rc=0 2026-10-23T07:41:36-04:00
+[----------] 4 tests from IpqpMuResidualFloor (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 18 tests from 3 test suites ran. (8 ms total)
+[  PASSED  ] 18 tests.
+MUTANT M14 the floor's beta is r_s, not max(1, r_s): SURVIVED
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:41:36-04:00
+FOREGROUND_END rc=0 2026-10-23T07:41:49-04:00
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:41:49-04:00
+FOREGROUND_END rc=1 2026-10-23T07:41:49-04:00
+[  PASSED  ] 17 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] IpqpMuResidualFloor.TheCounterIsTheNeighbourhoodRuleReadOffTheTrace
+
+ 1 FAILED TEST
+MUTANT M15 the floor reads complementarity too: KILLED by IpqpMuResidualFloor.TheCounterIsTheNeighbourhoodRuleReadOffTheTrace
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:41:49-04:00
+FOREGROUND_END rc=0 2026-10-23T07:42:02-04:00
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:42:03-04:00
+FOREGROUND_END rc=1 2026-10-23T07:42:03-04:00
+[  FAILED  ] IpqpMuResidualFloor.TheCounterIsTheNeighbourhoodRuleReadOffTheTrace
+[  FAILED  ] IpqpMuResidualFloor.ItBindsOnARowPopulationAndStopsAtTheTiersContract
+[  FAILED  ] IpqpMuResidualFloor.AWarmKillReAnchorsAtTheColdRestart
+
+ 3 FAILED TESTS
+MUTANT M16 the bind counter is not counted: KILLED by IpqpMuResidualFloor.AWarmKillReAnchorsAtTheColdRestart;IpqpMuResidualFloor.ItBindsOnARowPopulationAndStopsAtTheTiersContract;IpqpMuResidualFloor.TheCounterIsTheNeighbourhoodRuleReadOffTheTrace
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:42:03-04:00
+FOREGROUND_END rc=0 2026-10-23T07:42:16-04:00
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:42:16-04:00
+FOREGROUND_END rc=1 2026-10-23T07:42:16-04:00
+[  PASSED  ] 17 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] IpqpMuResidualFloor.TheCounterIsTheNeighbourhoodRuleReadOffTheTrace
+
+ 1 FAILED TEST
+MUTANT M17 the anchor is re-taken every iteration: KILLED by IpqpMuResidualFloor.TheCounterIsTheNeighbourhoodRuleReadOffTheTrace
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:42:16-04:00
+FOREGROUND_END rc=0 2026-10-23T07:42:29-04:00
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:42:29-04:00
+FOREGROUND_END rc=1 2026-10-23T07:42:29-04:00
+[  PASSED  ] 17 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] IpqpMuResidualFloor.AWarmKillReAnchorsAtTheColdRestart
+
+ 1 FAILED TEST
+MUTANT M18 the warm-kill does not re-anchor: KILLED by IpqpMuResidualFloor.AWarmKillReAnchorsAtTheColdRestart
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:42:29-04:00
+FOREGROUND_END rc=0 2026-10-23T07:42:39-04:00
+[3/5] Linking CXX static library libhven.a
+[4/5] Linking CXX executable bench/hven_sqp_corpus
+[5/5] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:42:39-04:00
+FOREGROUND_END rc=1 2026-10-23T07:42:39-04:00
+[  PASSED  ] 17 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] IpqpMu0RuleOptions.ValidateAcceptsTheTwoRulesAndRefusesTheSentinelByName
+
+ 1 FAILED TEST
+MUTANT M19 validation admits the count sentinel: KILLED by IpqpMu0RuleOptions.ValidateAcceptsTheTwoRulesAndRefusesTheSentinelByName
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:42:39-04:00
+FOREGROUND_END rc=0 2026-10-23T07:42:55-04:00
+[3/5] Linking CXX static library libhven.a
+[4/5] Linking CXX executable bench/hven_sqp_corpus
+[5/5] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:42:55-04:00
+FOREGROUND_END rc=1 2026-10-23T07:42:55-04:00
+[  PASSED  ] 8 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] AccumulateIpqpCounters.EveryOtherIndexFieldSumsAcrossSubproblems
+
+ 1 FAILED TEST
+MUTANT M20 the fold overwrites ipqp_mu_floor_binds: KILLED by AccumulateIpqpCounters.EveryOtherIndexFieldSumsAcrossSubproblems
+SUMMARY
+  M1 the 1.5 positivity shift factor: KILLED by IpqpMu0Rule.TheBandIsTheOptionsOwnCeiling;IpqpMu0Rule.TheDerivedMuZeroMatchesTheClosedFormOnABoundOnlyQp;IpqpMu0Rule.TheDerivedMuZeroOfTheRowQpsIsPinned
+  M2 the 0.5 centring fraction: KILLED by IpqpMu0Rule.TheBandIsTheOptionsOwnCeiling;IpqpMu0Rule.TheDerivedMuZeroMatchesTheClosedFormOnABoundOnlyQp;IpqpMu0Rule.TheDerivedMuZeroOfTheRowQpsIsPinned
+  M3 the band's ceiling dropped: KILLED by IpqpMu0Rule.ADerivedValueAboveTheCeilingFallsBackToTheFixedStart;IpqpMu0Rule.AQpWithEveryBlockConvergesToTheWalksAnswerOnBothPaths
+  M4 the band's floor dropped: KILLED by IpqpMu0Rule.ADerivedValueBelowTheFloorOrAZeroEstimateFallsBack
+  M5 strict positivity not checked: SURVIVED
+  M6 the fallback keeps the unit-scaled point: KILLED by IpqpMu0Rule.ADerivedValueAboveTheCeilingFallsBackToTheFixedStart;IpqpMu0Rule.ADerivedValueBelowTheFloorOrAZeroEstimateFallsBack;IpqpMu0Rule.AFallbackLeavesTheLadderMemoryAsOffFindsIt
+  M7 the ladder high-water mark is not restored: SURVIVED
+  M8 the ladder memory is not restored: SURVIVED
+  M9 the unit-scaled point is not unit-scaled: KILLED by IpqpMu0Rule.TheBandIsTheOptionsOwnCeiling;IpqpMu0Rule.TheDerivedMuZeroMatchesTheClosedFormOnABoundOnlyQp;IpqpMu0Rule.TheDerivedMuZeroOfTheRowQpsIsPinned
+  M10 the row estimates keep the mu-placed values: KILLED by IpqpMu0Rule.AQpWithEveryBlockConvergesToTheWalksAnswerOnBothPaths;IpqpMu0Rule.TheDerivedMuZeroOfTheRowQpsIsPinned
+  M11 the rule runs on warm starts: KILLED by IpqpMu0Rule.AWarmStartIsUntouched
+  M12 the derived counter is not written: KILLED by IpqpMu0Rule.AQpWithEveryBlockConvergesToTheWalksAnswerOnBothPaths;IpqpMu0Rule.TheBandIsTheOptionsOwnCeiling;IpqpMu0Rule.TheDerivedMuZeroMatchesTheClosedFormOnABoundOnlyQp
+  M13 the floor never binds: KILLED by IpqpMuResidualFloor.AWarmKillReAnchorsAtTheColdRestart;IpqpMuResidualFloor.ItBindsOnARowPopulationAndStopsAtTheTiersContract;IpqpMuResidualFloor.TheCounterIsTheNeighbourhoodRuleReadOffTheTrace
+  M14 the floor's beta is r_s, not max(1, r_s): SURVIVED
+  M15 the floor reads complementarity too: KILLED by IpqpMuResidualFloor.TheCounterIsTheNeighbourhoodRuleReadOffTheTrace
+  M16 the bind counter is not counted: KILLED by IpqpMuResidualFloor.AWarmKillReAnchorsAtTheColdRestart;IpqpMuResidualFloor.ItBindsOnARowPopulationAndStopsAtTheTiersContract;IpqpMuResidualFloor.TheCounterIsTheNeighbourhoodRuleReadOffTheTrace
+  M17 the anchor is re-taken every iteration: KILLED by IpqpMuResidualFloor.TheCounterIsTheNeighbourhoodRuleReadOffTheTrace
+  M18 the warm-kill does not re-anchor: KILLED by IpqpMuResidualFloor.AWarmKillReAnchorsAtTheColdRestart
+  M19 validation admits the count sentinel: KILLED by IpqpMu0RuleOptions.ValidateAcceptsTheTwoRulesAndRefusesTheSentinelByName
+  M20 the fold overwrites ipqp_mu_floor_binds: KILLED by AccumulateIpqpCounters.EveryOtherIndexFieldSumsAcrossSubproblems
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:42:55-04:00
+FOREGROUND_END rc=0 2026-10-23T07:43:13-04:00
+[4/6] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+[5/6] Linking CXX executable bench/hven_sqp_corpus
+[6/6] Linking CXX executable tests/sqp/hven_sqp_tests
+RESTORED_BUILD rc=0

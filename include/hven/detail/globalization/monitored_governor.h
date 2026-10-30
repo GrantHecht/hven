@@ -23,12 +23,12 @@ class GlobalizationMechanism;
 // kBarrierKappaMu -> mu_linear_decrease_factor,
 // kBarrierThetaMu -> mu_superlinear_decrease_power,
 // kBarrierTolFactor -> barrier_tol_factor.
-inline constexpr int kAdaptiveMuKktErrorRedIters = 4;       
-inline constexpr double kAdaptiveMuKktErrorRedFact = 0.9999; 
-inline constexpr double kAdaptiveMuMonotoneInitFactor = 0.8; 
-inline constexpr double kBarrierKappaMu = 0.2;              
-inline constexpr double kBarrierThetaMu = 1.5;              
-inline constexpr double kBarrierTolFactor = 10.0;           
+inline constexpr int kAdaptiveMuKktErrorRedIters = 4;
+inline constexpr double kAdaptiveMuKktErrorRedFact = 0.9999;
+inline constexpr double kAdaptiveMuMonotoneInitFactor = 0.8;
+inline constexpr double kBarrierKappaMu = 0.2;
+inline constexpr double kBarrierThetaMu = 1.5;
+inline constexpr double kBarrierTolFactor = 10.0;
 
 /// @brief Free<->monotone monitored barrier-parameter governor.
 ///
@@ -144,14 +144,14 @@ class MonitoredBarrierGovernor : public BarrierGovernor {
     // drivable in unit tests without a real KKT solve.
     // ------------------------------------------------------------------------
     struct BarrierDecision {
-        double mu = 0.0;      ///< Barrier parameter to use (MEANINGFUL IFF monotone:
+        double mu = 0.0;       ///< Barrier parameter to use (MEANINGFUL IFF monotone:
                                ///< decide() returns mu_in untouched on every free-mode
                                ///< path, so read d.mu only after checking d.monotone).
         bool mu_event = false; ///< A new monotone barrier subproblem began.
         bool monotone = false; ///< Resulting mode after this decision.
     };
-    BarrierDecision decide(const IterateInfo &current, double mu_in, double avgcomp,
-                           double bar_tol, double kkt_tol, double min_mu, double max_mu);
+    BarrierDecision decide(const IterateInfo &current, double mu_in, double avgcomp, double bar_tol,
+                           double kkt_tol, double min_mu, double max_mu);
 
     /// Pure quantities (see formulation items (1), (6), (4)).
     static double monitor_error(const IterateInfo &it);
@@ -185,7 +185,8 @@ class MonitoredBarrierGovernor : public BarrierGovernor {
     /// KKT-error reference window (FIFO, at most kAdaptiveMuKktErrorRedIters entries).
     std::deque<double> refs_vals_;
     bool monotone_mode_ = false;
-    double monotone_mu_ = 0.0; ///< Current monotone barrier parameter (meaningful iff monotone_mode_).
+    double monotone_mu_ =
+        0.0; ///< Current monotone barrier parameter (meaningful iff monotone_mode_).
 
     /// Write-only IpmResult diagnostics, bound via append_diagnostics().
     int last_monotone_switches_ = 0; ///< Free -> monotone handoffs this phase.

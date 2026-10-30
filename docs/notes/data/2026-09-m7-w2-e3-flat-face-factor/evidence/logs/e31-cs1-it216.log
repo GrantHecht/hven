@@ -1,0 +1,14 @@
+state nf=107 me=96 nw=0 n=660 pinned=553 dl=1e-07 mu=1e-08
+ABS   reg  |Ae x-be|=1.236344e-12 |x-x_k|inf=6.430965e+01 |lam|inf=1.233070e-04 ||rho||inf=1.280000e-05 ||r_row||inf=1.236344e-12 g'p=2.707485e-04 centre=2.706688e-03 p'Hp=0.000000e+00 df=2.707485e-04
+ABS   ref1 |Ae x-be|=3.836931e-13 |x-x_k|inf=6.060652e+01 |lam|inf=1.190275e-04 ||rho||inf=3.703130e-07 ||r_row||inf=3.840000e-13 g'p=2.556732e-04 centre=2.684075e-03 p'Hp=0.000000e+00 df=2.556732e-04
+ABS   contraction ||rho_ref||/||rho_unref|| = 2.893070e-02   full-residual contraction = 2.893070e-02
+ABS   EXACT reg answer: |Ae x-be|inf=1.236344e-12  mu*|lam_e|inf=1.233070e-12  ratio=1.0027
+ABS   engine eqpx: |Ae x-be|inf=4.263256e-14
+ABS   |eqpx - dense_ref1|inf=6.060652e+01  |eqpx - dense_reg|inf=6.430965e+01
+PROX  reg  |Ae x-be|=1.193712e-12 |x-x_k|inf=3.703130e+00 |lam|inf=1.190275e-04 ||rho||inf=1.280000e-05 ||r_row||inf=1.193712e-12 g'p=-1.507531e-05 centre=-2.933615e-04 p'Hp=0.000000e+00 df=-1.507531e-05
+PROX  ref1 |Ae x-be|=3.836931e-13 |x-x_k|inf=7.541904e+01 |lam|inf=1.574275e-04 ||rho||inf=7.171591e-06 ||r_row||inf=3.840000e-13 g'p=-3.159744e-04 centre=-9.316122e-03 p'Hp=0.000000e+00 df=-3.159744e-04
+PROX  EXACT reg answer: |Ae x-be|inf=1.193712e-12  mu*|lam_e|inf=1.190275e-12
+cond(K)=2.091689e+07
+inertia pos/neg/zero-ish 107 96 expected 107 96 min|ev|=1.000000e-07
+K0: cond=inf min|ev|=0.000000e+00 pos/neg 101 101
+face: rank(C)=96 nullity=11 ||Z^T H Z||inf=0.000000e+00 min eig ZHZ=0.000000e+00

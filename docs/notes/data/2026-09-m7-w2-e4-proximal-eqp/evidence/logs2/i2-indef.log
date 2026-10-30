@@ -1,0 +1,65 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-release/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpEngineIndefinite.EngineLandsOnALocalMinimizer:QpEngineIndefinite.T7Fix2DualMuZero*:QpE2WorkingSet.TheLockedVertexUnlocksOnTheAcopr57PrimalQps
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from QpEngineIndefinite
+[ RUN      ] QpEngineIndefinite.EngineLandsOnALocalMinimizer
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_qp_engine_indefinite.cpp:1947: Failure
+Expected equality of these values:
+  sol.status
+    Which is: 4-byte object <01-00 00-00>
+  QpStatus::kOptimal
+    Which is: 4-byte object <00-00 00-00>
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_qp_engine_indefinite.cpp:1945: border
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_qp_engine_indefinite.cpp:1926: indefinite_equality_qp
+
+[  FAILED  ] QpEngineIndefinite.EngineLandsOnALocalMinimizer (16 ms)
+[ RUN      ] QpEngineIndefinite.T7Fix2DualMuZeroOnARankDeficientFaceDoesNotEscapeSolve
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_qp_engine_indefinite.cpp:2792: Failure
+Expected equality of these values:
+  cold.status
+    Which is: 4-byte object <03-00 00-00>
+  QpStatus::kInfeasible
+    Which is: 4-byte object <02-00 00-00>
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_qp_engine_indefinite.cpp:2784: border
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_qp_engine_indefinite.cpp:2795: Failure
+Expected equality of these values:
+  warm.status
+    Which is: 4-byte object <03-00 00-00>
+  QpStatus::kInfeasible
+    Which is: 4-byte object <02-00 00-00>
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_qp_engine_indefinite.cpp:2784: border
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_qp_engine_indefinite.cpp:2792: Failure
+Expected equality of these values:
+  cold.status
+    Which is: 4-byte object <03-00 00-00>
+  QpStatus::kInfeasible
+    Which is: 4-byte object <02-00 00-00>
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_qp_engine_indefinite.cpp:2784: refactorize
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_qp_engine_indefinite.cpp:2795: Failure
+Expected equality of these values:
+  warm.status
+    Which is: 4-byte object <03-00 00-00>
+  QpStatus::kInfeasible
+    Which is: 4-byte object <02-00 00-00>
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_qp_engine_indefinite.cpp:2784: refactorize
+
+[  FAILED  ] QpEngineIndefinite.T7Fix2DualMuZeroOnARankDeficientFaceDoesNotEscapeSolve (0 ms)
+[----------] 2 tests from QpEngineIndefinite (16 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (16 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] QpEngineIndefinite.EngineLandsOnALocalMinimizer
+[  FAILED  ] QpEngineIndefinite.T7Fix2DualMuZeroOnARankDeficientFaceDoesNotEscapeSolve
+
+ 2 FAILED TESTS

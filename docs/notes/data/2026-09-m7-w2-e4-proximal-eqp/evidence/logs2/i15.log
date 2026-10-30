@@ -1,0 +1,114 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-release/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpAntiCyclingArm.*:QpDegeneracyArm.*
+[==========] Running 38 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 16 tests from QpAntiCyclingArm
+[ RUN      ] QpAntiCyclingArm.TheSwitchIsOffByDefaultAndItsParametersAreThePaperDerivedOnes
+[       OK ] QpAntiCyclingArm.TheSwitchIsOffByDefaultAndItsParametersAreThePaperDerivedOnes (0 ms)
+[ RUN      ] QpAntiCyclingArm.AnUnarmedSwitchWithTheObserverAttachedIsTheUnattachedRunBitForBit
+[       OK ] QpAntiCyclingArm.AnUnarmedSwitchWithTheObserverAttachedIsTheUnattachedRunBitForBit (3 ms)
+[ RUN      ] QpAntiCyclingArm.TheOffWalkOnThePeriodTwoFixtureTerminatesAtItsOptimum
+[       OK ] QpAntiCyclingArm.TheOffWalkOnThePeriodTwoFixtureTerminatesAtItsOptimum (0 ms)
+[ RUN      ] QpAntiCyclingArm.TheOffWalkOnThePeriodFourFixtureTerminatesAtItsOptimum
+[       OK ] QpAntiCyclingArm.TheOffWalkOnThePeriodFourFixtureTerminatesAtItsOptimum (0 ms)
+[ RUN      ] QpAntiCyclingArm.ArmEIsInertOnThePeriodTwoFixtureThatNoLongerCycles
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:560: Failure
+Expected equality of these values:
+  on.total_motion
+    Which is: 2.3609090880667681e-13
+  off.total_motion
+    Which is: 0
+the arm moved the iterate a different distance on a walk that does not cycle
+
+[ e4fix2 ] arm E inert: off 0/4 == on 0/4 ; switches min=2 pivot=1 lex_drop=0 lex_ratio=0
+[  FAILED  ] QpAntiCyclingArm.ArmEIsInertOnThePeriodTwoFixtureThatNoLongerCycles (1 ms)
+[ RUN      ] QpAntiCyclingArm.ArmLIsInertOnThePeriodTwoFixtureThatNoLongerCycles
+[ e4fix2 ] arm L inert: off 0/4 == on 0/4 ; switches min=0 pivot=0 lex_drop=0 lex_ratio=1
+[       OK ] QpAntiCyclingArm.ArmLIsInertOnThePeriodTwoFixtureThatNoLongerCycles (1 ms)
+[ RUN      ] QpAntiCyclingArm.ArmEIsInertOnThePeriodFourFixtureThatNoLongerCycles
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:560: Failure
+Expected equality of these values:
+  on.total_motion
+    Which is: 1.9999999999999998
+  off.total_motion
+    Which is: 2
+the arm moved the iterate a different distance on a walk that does not cycle
+
+[ e4fix2 ] arm E inert: off 0/4 == on 0/4 ; switches min=2 pivot=1 lex_drop=0 lex_ratio=0
+[  FAILED  ] QpAntiCyclingArm.ArmEIsInertOnThePeriodFourFixtureThatNoLongerCycles (1 ms)
+[ RUN      ] QpAntiCyclingArm.ArmLIsInertOnThePeriodFourFixtureThatNoLongerCycles
+[ e4fix2 ] arm L inert: off 0/4 == on 0/4 ; switches min=0 pivot=0 lex_drop=0 lex_ratio=0
+[       OK ] QpAntiCyclingArm.ArmLIsInertOnThePeriodFourFixtureThatNoLongerCycles (1 ms)
+[ RUN      ] QpAntiCyclingArm.NeitherArmChangesAWalkWithNoTieAndNoZeroRatio
+[       OK ] QpAntiCyclingArm.NeitherArmChangesAWalkWithNoTieAndNoZeroRatio (0 ms)
+[ RUN      ] QpAntiCyclingArm.ArmEsKthIterationRunsAtTheExpandedToleranceAndTheResetFollowsIt
+[       OK ] QpAntiCyclingArm.ArmEsKthIterationRunsAtTheExpandedToleranceAndTheResetFollowsIt (0 ms)
+[ RUN      ] QpAntiCyclingArm.ArmEsResetCountsANontrivialReProjection
+[       OK ] QpAntiCyclingArm.ArmEsResetCountsANontrivialReProjection (0 ms)
+[ RUN      ] QpAntiCyclingArm.ArmEsResetSequenceIsReachableAndRestartsTheTolerance
+[       OK ] QpAntiCyclingArm.ArmEsResetSequenceIsReachableAndRestartsTheTolerance (0 ms)
+[ RUN      ] QpAntiCyclingArm.ArmingOnOneThreadIsInvisibleOnAnother
+[       OK ] QpAntiCyclingArm.ArmingOnOneThreadIsInvisibleOnAnother (1 ms)
+[ RUN      ] QpAntiCyclingArm.ArmEsFloorStepOnTheNegativeCurvatureRideIsNotRePinned
+[       OK ] QpAntiCyclingArm.ArmEsFloorStepOnTheNegativeCurvatureRideIsNotRePinned (0 ms)
+[ RUN      ] QpAntiCyclingArm.ArmEsNegligiblePivotParameterDecidesWhichConstraintsCanBlock
+[       OK ] QpAntiCyclingArm.ArmEsNegligiblePivotParameterDecidesWhichConstraintsCanBlock (0 ms)
+[ RUN      ] QpAntiCyclingArm.AnArmedSolveDoesNotReachIntoAnUnarmedOneRunningBesideIt
+[       OK ] QpAntiCyclingArm.AnArmedSolveDoesNotReachIntoAnUnarmedOneRunningBesideIt (1 ms)
+[----------] 16 tests from QpAntiCyclingArm (16 ms total)
+
+[----------] 22 tests from QpDegeneracyArm
+[ RUN      ] QpDegeneracyArm.TheSwitchIsOffByDefaultAndOffIsProduction
+[       OK ] QpDegeneracyArm.TheSwitchIsOffByDefaultAndOffIsProduction (1 ms)
+[ RUN      ] QpDegeneracyArm.TheOffWalkOnTheScaleCarrierFixtureTakesNoNoiseDropAndTerminates
+[       OK ] QpDegeneracyArm.TheOffWalkOnTheScaleCarrierFixtureTakesNoNoiseDropAndTerminates (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmAHasNoNoiseDropToRefuseAndIsInert
+[       OK ] QpDegeneracyArm.ArmAHasNoNoiseDropToRefuseAndIsInert (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmAIsBitIdenticalOnANonDegenerateQp
+[       OK ] QpDegeneracyArm.ArmAIsBitIdenticalOnANonDegenerateQp (0 ms)
+[ RUN      ] QpDegeneracyArm.TheDropScaleColumnHasNoDropPassToCheck
+[       OK ] QpDegeneracyArm.TheDropScaleColumnHasNoDropPassToCheck (0 ms)
+[ RUN      ] QpDegeneracyArm.ThePostDropInertiaDiagnosticHasNoDropPassToRunOnAndMovesNothing
+[       OK ] QpDegeneracyArm.ThePostDropInertiaDiagnosticHasNoDropPassToRunOnAndMovesNothing (1 ms)
+[ RUN      ] QpDegeneracyArm.TheDiagnosticColumnsStayAbsentBecauseNoDropPassRuns
+[       OK ] QpDegeneracyArm.TheDiagnosticColumnsStayAbsentBecauseNoDropPassRuns (0 ms)
+[ RUN      ] QpDegeneracyArm.WithoutTheSwitchThePostDropInertiaColumnsStayAbsent
+[       OK ] QpDegeneracyArm.WithoutTheSwitchThePostDropInertiaColumnsStayAbsent (0 ms)
+[ RUN      ] QpDegeneracyArm.AnArmedSolveDoesNotReachIntoAnUnarmedOneRunningBesideIt
+[       OK ] QpDegeneracyArm.AnArmedSolveDoesNotReachIntoAnUnarmedOneRunningBesideIt (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1IsInertOnTheFixtureThatNoLongerCycles
+[       OK ] QpDegeneracyArm.ArmB1IsInertOnTheFixtureThatNoLongerCycles (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1IsBitIdenticalWhereItPassesNothingOver
+[       OK ] QpDegeneracyArm.ArmB1IsBitIdenticalWhereItPassesNothingOver (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1HasNoPassOverToLeaveTheBoxWithAndTheCertificateIsNotReached
+[       OK ] QpDegeneracyArm.ArmB1HasNoPassOverToLeaveTheBoxWithAndTheCertificateIsNotReached (0 ms)
+[ RUN      ] QpDegeneracyArm.TheCertificatesBoundHalfPassesASolvedQpWithActiveBounds
+[       OK ] QpDegeneracyArm.TheCertificatesBoundHalfPassesASolvedQpWithActiveBounds (0 ms)
+[ RUN      ] QpDegeneracyArm.CertificateSeamIsInertUnarmedOnTheFixtureQp
+[       OK ] QpDegeneracyArm.CertificateSeamIsInertUnarmedOnTheFixtureQp (0 ms)
+[ RUN      ] QpDegeneracyArm.CertificateToleratesABoundViolationInsideAndOnTheStructuralMargin
+[       OK ] QpDegeneracyArm.CertificateToleratesABoundViolationInsideAndOnTheStructuralMargin (1 ms)
+[ RUN      ] QpDegeneracyArm.CertificateRefusesABoundViolationOutsideTheStructuralMargin
+[       OK ] QpDegeneracyArm.CertificateRefusesABoundViolationOutsideTheStructuralMargin (2 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1sColumnsAndCountersStayAbsentWhenItIsNotArmed
+[       OK ] QpDegeneracyArm.ArmB1sColumnsAndCountersStayAbsentWhenItIsNotArmed (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1sEnumerationAgreesWithProductionsRatioTestOnEveryPass
+[       OK ] QpDegeneracyArm.ArmB1sEnumerationAgreesWithProductionsRatioTestOnEveryPass (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1sEntryRepairRemovesDependentSeedMembersAndHoldsTheInvariant
+[       OK ] QpDegeneracyArm.ArmB1sEntryRepairRemovesDependentSeedMembersAndHoldsTheInvariant (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1sMuSweepFindsNoPassOverToLeakAtAnyMu
+[       OK ] QpDegeneracyArm.ArmB1sMuSweepFindsNoPassOverToLeakAtAnyMu (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1sSwitchIsPerThreadWithBothSolvesInFlight
+[       OK ] QpDegeneracyArm.ArmB1sSwitchIsPerThreadWithBothSolvesInFlight (0 ms)
+[ RUN      ] QpDegeneracyArm.CondROnTheQrIsFilledWhereADecompositionRanAndSizesTheConditioning
+[       OK ] QpDegeneracyArm.CondROnTheQrIsFilledWhereADecompositionRanAndSizesTheConditioning (0 ms)
+[----------] 22 tests from QpDegeneracyArm (16 ms total)
+
+[----------] Global test environment tear-down
+[==========] 38 tests from 2 test suites ran. (32 ms total)
+[  PASSED  ] 36 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] QpAntiCyclingArm.ArmEIsInertOnThePeriodTwoFixtureThatNoLongerCycles
+[  FAILED  ] QpAntiCyclingArm.ArmEIsInertOnThePeriodFourFixtureThatNoLongerCycles
+
+ 2 FAILED TESTS

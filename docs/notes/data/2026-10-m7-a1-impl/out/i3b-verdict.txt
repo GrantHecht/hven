@@ -1,0 +1,8 @@
+cell                                        status off>on       facts    uncert  susp/fb/ext/eit/dem diffs
+f7_n1000_path_neutral                 optimal>optimal     11544>11546   35>1782   1749/1749/2/4/1756 8
+f7_n1000_path_physics                 optimal>optimal        72>80      35>1638   1491/1491/2/7/1615 9
+f7_n800_path_neutral                  optimal>optimal       120>138     17>1428   1410/1410/2/5/1413 11
+f7_n800_path_physics                  optimal>optimal        35>81      10>1251   1069/1069/2/6/1242 14
+f7_n750_path_neutral_control          optimal>optimal      8908>8919   236>1559   1324/1324/2/4/1324 7
+f7_n825_path_neutral_control          optimal>optimal       123>134     24>1476   1455/1455/2/4/1453 8
+[I3b-ON-2] cells with any fire counter > 0: 6 of 6; status lost vs OFF: []

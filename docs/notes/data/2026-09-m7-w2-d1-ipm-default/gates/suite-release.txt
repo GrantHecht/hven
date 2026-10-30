@@ -1,0 +1,86 @@
+FOREGROUND_START release-d1c 2026-09-18T08:56:55-04:00
+=== HEAD 806ca757  dirty-files=0 ===
+-- Configuring done (2.6s)
+-- Generating done (0.1s)
+-- Build files have been written to: /home/ghecht/Projects/hven/.scratch/m7w2d1/rel
+BUILD_RC=0
+--- warnings, if any ---
+16
+/home/ghecht/Projects/hven/src/drivers/sqp_solver.cpp:4754:13: warning: enumeration values 'kAcceptable', 'kStalled', and 'kDiverging' not handled in switch [-Wswitch]
+/home/ghecht/Projects/hven/.scratch/m7w2d1/rel/_deps/googletest-src/googletest/include/gtest/gtest-printers.h:528:35: warning: implicit conversion from 'char8_t' to 'char32_t' may change the meaning of the represented code unit [-Wcharacter-conversion]
+/home/ghecht/Projects/hven/tests/interior/test_solver_interface_adapter.cpp:62:22: warning: expression with side effects will be evaluated despite being used as an operand to 'typeid' [-Wpotentially-evaluated-expression]
+/home/ghecht/Projects/hven/tests/interior/test_solver_interface_adapter.cpp:69:22: warning: expression with side effects will be evaluated despite being used as an operand to 'typeid' [-Wpotentially-evaluated-expression]
+/home/ghecht/Projects/hven/tests/interior/test_solver_interface_adapter.cpp:75:22: warning: expression with side effects will be evaluated despite being used as an operand to 'typeid' [-Wpotentially-evaluated-expression]
+/home/ghecht/Projects/hven/tests/interior/test_solver_interface_adapter.cpp:85:22: warning: expression with side effects will be evaluated despite being used as an operand to 'typeid' [-Wpotentially-evaluated-expression]
+/home/ghecht/Projects/hven/tests/interior/test_solver_interface_adapter.cpp:99:22: warning: expression with side effects will be evaluated despite being used as an operand to 'typeid' [-Wpotentially-evaluated-expression]
+/home/ghecht/Projects/hven/tests/interior/test_solver_interface_adapter.cpp:108:22: warning: expression with side effects will be evaluated despite being used as an operand to 'typeid' [-Wpotentially-evaluated-expression]
+/home/ghecht/Projects/hven/tests/interior/test_solver_interface_adapter.cpp:142:22: warning: expression with side effects will be evaluated despite being used as an operand to 'typeid' [-Wpotentially-evaluated-expression]
+/home/ghecht/Projects/hven/tests/drivers/test_callback.cpp:528:57: warning: 'eval_grad' is deprecated: use eval_grad_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+/home/ghecht/Projects/hven/tests/drivers/test_callback.cpp:528:75: warning: 'eval_jac_e' is deprecated: use eval_jac_e_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+/home/ghecht/Projects/hven/tests/drivers/test_callback.cpp:529:23: warning: 'eval_jac_i' is deprecated: use eval_jac_i_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+/home/ghecht/Projects/hven/tests/drivers/test_callback.cpp:529:42: warning: 'eval_ce' is deprecated: use eval_ce_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+/home/ghecht/Projects/hven/tests/drivers/test_callback.cpp:529:58: warning: 'eval_ci' is deprecated: use eval_ci_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+/home/ghecht/Projects/hven/tests/sqp/test_eqp_refine_ab.cpp:141:13: warning: 4 enumeration values not handled in switch: 'kAcceptable', 'kStalled', 'kDiverging'... [-Wswitch]
+/home/ghecht/Projects/hven/tests/sqp/test_hs_battery.cpp:239:13: warning: 4 enumeration values not handled in switch: 'kAcceptable', 'kStalled', 'kDiverging'... [-Wswitch]
+          Start 2638: WarmStart.CrossoverWrongSignDualLeavesRowFree
+2635/2661 Test #2636: WarmStart.CrossoverDegenerateRowLeftFree .......................................................................   Passed    0.01 sec
+          Start 2639: WarmStart.SeededGrossWrongSignPriceDegradesToCold
+2636/2661 Test #2637: WarmStart.CrossoverDimensionMismatchesThrow ....................................................................   Passed    0.00 sec
+          Start 2640: WarmStart.SeededDualClampBoundaryIsExactOnBothSides
+2637/2661 Test #2638: WarmStart.CrossoverWrongSignDualLeavesRowFree ..................................................................   Passed    0.01 sec
+          Start 2641: WarmStart.SeededB1ClearRunsBeforeTheSignClampAndTheOrderIsObservable
+2638/2661 Test #2639: WarmStart.SeededGrossWrongSignPriceDegradesToCold ..............................................................   Passed    0.01 sec
+          Start 2642: WarmStart.SeededGateRejectsIncompatibleAndNonFiniteObjects
+2639/2661 Test #2640: WarmStart.SeededDualClampBoundaryIsExactOnBothSides ............................................................   Passed    0.01 sec
+          Start 2643: WarmStart.NonFiniteObjectResolvesColdEvenWithAMatchingHash
+2640/2661 Test #2641: WarmStart.SeededB1ClearRunsBeforeTheSignClampAndTheOrderIsObservable ...........................................   Passed    0.01 sec
+          Start 2644: WarmStart.SeededRefusesFunnelTrustRegionAndFullStepState
+2641/2661 Test #2643: WarmStart.NonFiniteObjectResolvesColdEvenWithAMatchingHash .....................................................   Passed    0.01 sec
+          Start 2645: WarmStart.LedgerLevelHistogramCountsEveryResolvedLevel
+2642/2661 Test #2642: WarmStart.SeededGateRejectsIncompatibleAndNonFiniteObjects .....................................................   Passed    0.02 sec
+          Start 2646: WarmStart.CrossoverActivityInferenceRecoversTheCollocationActiveSet
+2643/2661 Test #2644: WarmStart.SeededRefusesFunnelTrustRegionAndFullStepState .......................................................   Passed    0.01 sec
+          Start 2647: WarmStart.CrossoverActivityInferenceHoldsUnderMeshRefinement
+2644/2661 Test #2646: WarmStart.CrossoverActivityInferenceRecoversTheCollocationActiveSet ............................................   Passed    0.01 sec
+          Start 2648: WarmStart.CrossoverLooseIpIterateDoesNotOverInfer
+2645/2661 Test #2645: WarmStart.LedgerLevelHistogramCountsEveryResolvedLevel .........................................................   Passed    0.01 sec
+          Start 2649: WarmStart.CrossoverActivityRepairBakeOffRecordsTheRejectedCandidate
+2646/2661 Test #2647: WarmStart.CrossoverActivityInferenceHoldsUnderMeshRefinement ...................................................   Passed    0.01 sec
+          Start 2650: WarmStart.CrossoverAllZeroDualsInferNothingAndStillResolveSeeded
+2647/2661 Test #2648: WarmStart.CrossoverLooseIpIterateDoesNotOverInfer ..............................................................   Passed    0.01 sec
+          Start 2651: WarmStart.CrossoverExtremeDualAgainstALargeResidualIsRefused
+2648/2661 Test #2649: WarmStart.CrossoverActivityRepairBakeOffRecordsTheRejectedCandidate ............................................   Passed    0.01 sec
+          Start 2652: WarmStart.CrossoverBoundActivityIsInferredAtCollocationScale
+2649/2661 Test #2651: WarmStart.CrossoverExtremeDualAgainstALargeResidualIsRefused ...................................................   Passed    0.01 sec
+          Start 2653: WarmStart.CrossoverFalseActiveGuardDegradesAtTheOperativeBarrierLevel
+2650/2661 Test #2650: WarmStart.CrossoverAllZeroDualsInferNothingAndStillResolveSeeded ...............................................   Passed    0.01 sec
+          Start 2654: WarmStartProxCarry.TheCarryIsHashGatedAndIsNeverEmittedByAWalkSolve
+2651/2661 Test #2652: WarmStart.CrossoverBoundActivityIsInferredAtCollocationScale ...................................................   Passed    0.01 sec
+          Start 2655: WarmStartBattery.Corpus
+2652/2661 Test #2653: WarmStart.CrossoverFalseActiveGuardDegradesAtTheOperativeBarrierLevel ..........................................   Passed    0.02 sec
+          Start 2656: WarmStartBattery.ZeroMajorStepKeepsTheWarmStartChain
+2653/2661 Test #2654: WarmStartProxCarry.TheCarryIsHashGatedAndIsNeverEmittedByAWalkSolve ............................................   Passed    0.02 sec
+          Start 2657: WarmStartBattery.CrossoverChainOnTheBridgeFamilyBeatsCold
+2654/2661 Test #2656: WarmStartBattery.ZeroMajorStepKeepsTheWarmStartChain ...........................................................   Passed    0.01 sec
+          Start 2658: SnoptBridgeGate.ColdSolveLandsOnTheManufacturedOptimum
+2655/2661 Test #2658: SnoptBridgeGate.ColdSolveLandsOnTheManufacturedOptimum .........................................................   Passed    0.01 sec
+          Start 2659: SnoptBridgeGate.AccuracyTracksTheRequestedToleranceWithNoFloor
+2656/2661 Test #2659: SnoptBridgeGate.AccuracyTracksTheRequestedToleranceWithNoFloor .................................................   Passed    0.02 sec
+          Start 2660: SnoptBridgeGate.RowTranscriptionMatchesTheModelAtTheSolution
+2657/2661 Test #2660: SnoptBridgeGate.RowTranscriptionMatchesTheModelAtTheSolution ...................................................   Passed    0.01 sec
+          Start 2661: SnoptBridgeGate.WarmBasisReSolveLandsOnTheOptimumAtTheNewParameter
+2658/2661 Test #2661: SnoptBridgeGate.WarmBasisReSolveLandsOnTheOptimumAtTheNewParameter .............................................   Passed    0.01 sec
+2659/2661 Test #2655: WarmStartBattery.Corpus ........................................................................................   Passed    0.70 sec
+2660/2661 Test #2657: WarmStartBattery.CrossoverChainOnTheBridgeFamilyBeatsCold ......................................................   Passed    1.61 sec
+2661/2661 Test #1631: M7T3ElasticRungVehicle.TheConstructedCellFiresTheElasticRungAndPricesBothEngines ...............................   Passed   42.27 sec
+
+100% tests passed, 0 tests failed out of 2659
+
+Total Test time (real) = 101.67 sec
+
+The following tests did not run:
+	420 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1632 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1633 - EqpRefinementAb.FullBattery (Disabled)
+FOREGROUND_END release-d1c 2026-09-18T08:58:55-04:00 rc=0
+WRAPPER_RC release-d1c rc=0

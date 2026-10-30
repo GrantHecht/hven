@@ -1,0 +1,34 @@
+# M7 W0 T4 -- the U0 27-cell three-arm replay, under the DEFAULT (ipqp_reseed_after_disproval = false).
+# HEAD arm measured at 39746705438c404026dbd9d690c992c43987404a, clean tree, inside the gate leg's own lock hold.
+# BASE side: the COMMITTED M6 close-gate CSVs, docs/notes/data/2026-09-m6-close-gate/replay/head-{walk,ssn,ipm}.csv (binary stamp 15f97cae51ff).
+# Comparator: scripts/compare_replay.py at its BYTE-EXACT default (--residual-gate NOT passed).
+# comparator sha256: 4f64af2cae391f868bb7ca8e92ca90cbe2f608b77f4d51fa2903bdfd8ae3183d
+# HEAD-arm binary stamp and schema, from the produced CSVs' own provenance headers:
+#   walk # binary: 0be12ec390c5-dirty
+#   walk # schema: 76
+#   walk # budget_table_hash: 0x357aee91dee27391
+#   ssn # binary: 0be12ec390c5-dirty
+#   ssn # schema: 76
+#   ssn # budget_table_hash: 0x357aee91dee27391
+#   ipm # binary: 0be12ec390c5-dirty
+#   ipm # schema: 76
+#   ipm # budget_table_hash: 0x357aee91dee27391
+
+===== STEP 8/9 the U0 27-cell three-arm replay, under the DEFAULT =====
+-- walk
+=== T4-walk === cells compared: 27  columns compared: 75  differences: 0
+-- ssn
+=== T4-ssn === cells compared: 27  columns compared: 75  differences: 0
+-- ipm
+=== T4-ipm === cells compared: 27  columns compared: 75  differences: 0
+===== STEP 9/9 install smoke + export contract =====
+
+--------------------------------------------------------------------------------
+THE RE-TAKEN ARM (the authority). See PROVENANCE.txt's "THE REPLAY'S BINARY STAMP"
+for why there are two. Full transcript: replay-restamp.log.
+--------------------------------------------------------------------------------
+  binary: 39746705438c   schema: 76   budget_table_hash: 0x357aee91dee27391  (all three arms)
+  === T4-walk === cells compared: 27  columns compared: 75  differences: 0
+  === T4-ssn  === cells compared: 27  columns compared: 75  differences: 0
+  === T4-ipm  === cells compared: 27  columns compared: 75  differences: 0
+  and the stale-stamped arm agrees with it cell for cell, 27/75/0 on all three.

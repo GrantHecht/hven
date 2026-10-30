@@ -1,0 +1,435 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-debug/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = CorpusTask6bPhaseB.TheShippedKSsnConfigurationIsUnmovedByTheFourLevers:HsSweepCorpus.Corpus:IpqpAcceptanceCensus.AnArmedRunIsNeverMistakenForAStallAcrossTheHsBattery:SqpDriverCertifiedFallback.T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearization:SqpDriverCertifiedFallback.T7F1TheSameInconsistentLinearizationInAllThreeModes:SqpDriverQpFailure.RepeatedQpMaxIterStillPropagates:SqpDriverRestorationExcursion.*:SqpDriverRestorationProximity.TheProxyWouldCertifyWhereTheExactResidualRefuses:SqpDriverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce:WarmStartBattery.Corpus
+[==========] Running 15 tests from 9 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from CorpusTask6bPhaseB
+[ RUN      ] CorpusTask6bPhaseB.TheShippedKSsnConfigurationIsUnmovedByTheFourLevers
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_corpus_cells.cpp:4102: Failure
+Expected: (std::abs(observed - want)) <= (1e-5 * scale), actual: 3.4671207702521625e-12 vs 3.2209514702077024e-12
+kkt_stationarity on cell f7_n1000_path_neutral: Debug 3.220951470e-07, Release-derived artifact 3.220916799e-07
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_corpus_cells.cpp:3748: f7_n1000_path_neutral
+
+[  FAILED  ] CorpusTask6bPhaseB.TheShippedKSsnConfigurationIsUnmovedByTheFourLevers (1772 ms)
+[----------] 1 test from CorpusTask6bPhaseB (1772 ms total)
+
+[----------] 1 test from HsSweepCorpus
+[ RUN      ] HsSweepCorpus.Corpus
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_hs_sweeps.cpp:1115: Failure
+Expected equality of these values:
+  12
+  problem("HS26").cell[kArmWarm][kOn][kOn].full_step_majors
+    Which is: 13
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_hs_sweeps.cpp:1116: Failure
+Expected equality of these values:
+  29
+  problem("HS26").cell[kArmWarm][kOn][kOn].majors
+    Which is: 30
+
+
+prob   arm   KD   SOC  solves majors minors fact   acc/rej  soc a/i/r/n   elas a/e  restor fsMaj  wd  lvl c/w/h fail
+HS10   cold  on   on   7      96     1284   152    96/0     0/0/0/0       56/336    0      0      0   7/0/0    0
+HS10   cold  on   off  7      96     1284   152    96/0     0/0/0/0       56/336    0      0      0   7/0/0    0
+HS10   cold  off  on   7      96     1284   152    96/0     0/0/0/0       56/336    0      0      0   7/0/0    0
+HS10   cold  off  off  7      96     1284   152    96/0     0/0/0/0       56/336    0      0      0   7/0/0    0
+HS10   warm  on   on   7      40     232    48     40/0     0/0/0/0       8/48      0      26     0   1/6/0    0
+HS10   warm  on   off  7      40     232    48     40/0     0/0/0/0       8/48      0      26     0   1/6/0    0
+HS10   warm  off  on   7      40     232    48     40/0     0/0/0/0       8/48      0      0      0   1/6/0    0
+HS10   warm  off  off  7      40     232    48     40/0     0/0/0/0       8/48      0      0      0   1/6/0    0
+HS15   cold  on   on   7      86     1067   185    70/16    0/0/2/2       48/288    0      0      0   7/0/0    0
+HS15   cold  on   off  7      86     1062   185    70/16    0/0/0/0       48/288    0      0      0   7/0/0    0
+HS15   cold  off  on   7      86     1067   185    70/16    0/0/2/2       48/288    0      0      0   7/0/0    0
+HS15   cold  off  off  7      86     1062   185    70/16    0/0/0/0       48/288    0      0      0   7/0/0    0
+HS15   warm  on   on   5      30     89     32     26/3     0/0/0/0       1/6       0      23     0   1/4/0    1
+HS15   warm  on   off  5      30     89     32     26/3     0/0/0/0       1/6       0      23     0   1/4/0    1
+HS15   warm  off  on   5      30     89     32     26/3     0/0/0/0       1/6       0      0      0   1/4/0    1
+HS15   warm  off  off  5      30     89     32     26/3     0/0/0/0       1/6       0      0      0   1/4/0    1
+HS26   cold  on   on   5      88     190    88     88/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS26   cold  on   off  5      88     190    88     88/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS26   cold  off  on   5      88     190    88     88/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS26   cold  off  off  5      88     190    88     88/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS26   warm  on   on   5      30     62     30     30/0     0/0/0/0       0/0       0      13     0   1/4/0    0
+HS26   warm  on   off  5      30     62     30     30/0     0/0/0/0       0/0       0      13     0   1/4/0    0
+HS26   warm  off  on   5      30     62     30     30/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS26   warm  off  off  5      30     62     30     30/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS33   cold  on   on   5      22     84     54     22/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS33   cold  on   off  5      22     84     54     22/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS33   cold  off  on   5      22     84     54     22/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS33   cold  off  off  5      22     84     54     22/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS33   warm  on   on   5      16     52     38     16/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS33   warm  on   off  5      16     52     38     16/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS33   warm  off  on   5      16     52     38     16/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS33   warm  off  off  5      16     52     38     16/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS40   cold  on   on   5      28     59     32     28/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS40   cold  on   off  5      28     59     32     28/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS40   cold  off  on   5      28     59     32     28/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS40   cold  off  off  5      28     59     32     28/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS40   warm  on   on   5      16     32     16     16/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS40   warm  on   off  5      16     32     16     16/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS40   warm  off  on   5      16     32     16     16/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS40   warm  off  off  5      16     32     16     16/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS77   cold  on   on   5      56     134    55     48/8     0/0/5/5       0/0       0      0      0   5/0/0    0
+HS77   cold  on   off  5      56     121    52     48/8     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS77   cold  off  on   5      56     134    55     48/8     0/0/5/5       0/0       0      0      0   5/0/0    0
+HS77   cold  off  off  5      56     121    52     48/8     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS77   warm  on   on   5      25     55     23     23/2     0/0/2/2       0/0       0      13     0   1/4/0    0
+HS77   warm  on   off  5      25     51     23     23/2     0/0/0/0       0/0       0      13     0   1/4/0    0
+HS77   warm  off  on   5      25     55     23     23/2     0/0/2/2       0/0       0      0      0   1/4/0    0
+HS77   warm  off  off  5      25     51     23     23/2     0/0/0/0       0/0       0      0      0   1/4/0    0
+
+[  FAILED  ] HsSweepCorpus.Corpus (4705 ms)
+[----------] 1 test from HsSweepCorpus (4706 ms total)
+
+[----------] 1 test from IpqpAcceptanceCensus
+[ RUN      ] IpqpAcceptanceCensus.AnArmedRunIsNeverMistakenForAStallAcrossTheHsBattery
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_ipqp_acceptance.cpp:793: Failure
+Expected equality of these values:
+  armed_peak
+    Which is: 72
+  79
+
+[  FAILED  ] IpqpAcceptanceCensus.AnArmedRunIsNeverMistakenForAStallAcrossTheHsBattery (276 ms)
+[----------] 1 test from IpqpAcceptanceCensus (276 ms total)
+
+[----------] 1 test from SqpDriverQpFailure
+[ RUN      ] SqpDriverQpFailure.RepeatedQpMaxIterStillPropagates
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_solver.cpp:3654: Failure
+Expected equality of these values:
+  sol.history.size()
+    Which is: 4
+  2u
+    Which is: 2
+
+[  FAILED  ] SqpDriverQpFailure.RepeatedQpMaxIterStillPropagates (2 ms)
+[----------] 1 test from SqpDriverQpFailure (2 ms total)
+
+[----------] 2 tests from SqpDriverCertifiedFallback
+[ RUN      ] SqpDriverCertifiedFallback.T7F1TheSameInconsistentLinearizationInAllThreeModes
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_solver.cpp:11567: Failure
+Expected equality of these values:
+  sol.status
+    Which is: 4-byte object <03-00 00-00>
+  SolveStatus::kNumericalError
+    Which is: 4-byte object <06-00 00-00>
+the same answer in every mode
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_solver.cpp:11558: walk
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_solver.cpp:11567: Failure
+Expected equality of these values:
+  sol.status
+    Which is: 4-byte object <03-00 00-00>
+  SolveStatus::kNumericalError
+    Which is: 4-byte object <06-00 00-00>
+the same answer in every mode
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_solver.cpp:11558: ssn
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_solver.cpp:11567: Failure
+Expected equality of these values:
+  sol.status
+    Which is: 4-byte object <03-00 00-00>
+  SolveStatus::kNumericalError
+    Which is: 4-byte object <06-00 00-00>
+the same answer in every mode
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_solver.cpp:11558: ipm
+
+[  FAILED  ] SqpDriverCertifiedFallback.T7F1TheSameInconsistentLinearizationInAllThreeModes (20 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearization
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_solver.cpp:11662: Failure
+Expected equality of these values:
+  walk_rung.status
+    Which is: 4-byte object <03-00 00-00>
+  SolveStatus::kNumericalError
+    Which is: 4-byte object <06-00 00-00>
+
+[  FAILED  ] SqpDriverCertifiedFallback.T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearization (25 ms)
+[----------] 2 tests from SqpDriverCertifiedFallback (46 ms total)
+
+[----------] 1 test from SqpDriverRestorationProximity
+[ RUN      ] SqpDriverRestorationProximity.TheProxyWouldCertifyWhereTheExactResidualRefuses
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_restoration.cpp:2975: Failure
+Expected: (c.stationarity) > (opts.kkt_tol), actual: 4.556630066598899e-07 vs 4.88e-07
+premise 2: the EXACT residual does not (4.556630066598899e-07)
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_restoration.cpp:2980: Failure
+Value of: sol.infeasibility_certified
+  Actual: true
+Expected: false
+the returned point is NOT a certified infeasible stationary point of h: its exact subgradient residual is 4.556630066598899e-07 against a kkt_tol of 4.8800000000000003e-07
+
+[  FAILED  ] SqpDriverRestorationProximity.TheProxyWouldCertifyWhereTheExactResidualRefuses (274 ms)
+[----------] 1 test from SqpDriverRestorationProximity (274 ms total)
+
+[----------] 1 test from SqpDriverRestorationSeed
+[ RUN      ] SqpDriverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_restoration.cpp:2453: Failure
+Expected equality of these values:
+  36
+  sol.counters.evals_values
+    Which is: 35
+evals_values was 35
+
+[  FAILED  ] SqpDriverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce (175 ms)
+[----------] 1 test from SqpDriverRestorationSeed (175 ms total)
+
+[----------] 6 tests from SqpDriverRestorationExcursion
+[ RUN      ] SqpDriverRestorationExcursion.TheResumeArmRecordsTheCallersOwnExcursion
+[       OK ] SqpDriverRestorationExcursion.TheResumeArmRecordsTheCallersOwnExcursion (10 ms)
+[ RUN      ] SqpDriverRestorationExcursion.TheTerminalArmRecordsThePointItReports
+[       OK ] SqpDriverRestorationExcursion.TheTerminalArmRecordsThePointItReports (155 ms)
+[ RUN      ] SqpDriverRestorationExcursion.ARefusedSecondRequestLeavesTheFirstEntrysRecord
+[       OK ] SqpDriverRestorationExcursion.ARefusedSecondRequestLeavesTheFirstEntrysRecord (31 ms)
+[ RUN      ] SqpDriverRestorationExcursion.ACleanSolveHoldsNoReading
+[       OK ] SqpDriverRestorationExcursion.ACleanSolveHoldsNoReading (8 ms)
+[ RUN      ] SqpDriverRestorationExcursion.TheSubStatusTellsACutOffSubSolveFromAConvergedOne
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_restoration.cpp:2659: Failure
+Expected equality of these values:
+  cut_off.counters.restoration_entries
+    Which is: 0
+  1
+fixture premise: the phase RAN and was measured on this budget too
+
+[  FAILED  ] SqpDriverRestorationExcursion.TheSubStatusTellsACutOffSubSolveFromAConvergedOne (189 ms)
+[ RUN      ] SqpDriverRestorationExcursion.TheSubStatusDiscriminatesAtOneParentStatus
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_restoration.cpp:2756: Failure
+Expected equality of these values:
+  sub_cut_off.counters.restoration_entries
+    Which is: 0
+  1
+
+[  FAILED  ] SqpDriverRestorationExcursion.TheSubStatusDiscriminatesAtOneParentStatus (104 ms)
+[----------] 6 tests from SqpDriverRestorationExcursion (501 ms total)
+
+[----------] 1 test from WarmStartBattery
+[ RUN      ] WarmStartBattery.Corpus
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1393: Failure
+Expected equality of these values:
+  c.minors
+    Which is: 19
+  p.minors
+    Which is: 18
+
+family    arm        full  steps  majors  minors  fact   saved  wd  fullstep  brdref  lvl c/w/h  pred c/d  secs
+F1        cold       on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.003
+F1        warm       on    5      5       16      1      0      0   4         20      1/4/0      0/0       0.004
+F1        warm+pred  on    5      1       3       1      0      0   0         4       1/4/0      4/0       0.002
+F1        hot        on    5      5       16      1      4      0   4         20      1/0/4      0/0       0.004
+F1        cold@pred  on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.003
+F1        cold       off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.003
+F1        warm       off   5      5       16      1      0      0   0         20      1/4/0      0/0       0.004
+F1        warm+pred  off   5      1       3       1      0      0   0         4       1/4/0      4/0       0.002
+F1        hot        off   5      5       16      1      4      0   0         20      1/0/4      0/0       0.004
+F1        cold@pred  off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.003
+F2        cold       on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.003
+F2        warm       on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.003
+F2        warm+pred  on    5      7       14      7      0      0   6         14      1/4/0      4/0       0.003
+F2        hot        on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.003
+F2        cold@pred  on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.003
+F2        cold       off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.003
+F2        warm       off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.003
+F2        warm+pred  off   5      7       14      7      0      0   0         14      1/4/0      4/0       0.003
+F2        hot        off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.003
+F2        cold@pred  off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.003
+F2far     cold       on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.032
+F2far     warm       on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.009
+F2far     warm+pred  on    5      9       40      10     0      0   6         40      1/4/0      4/0       0.009
+F2far     hot        on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.009
+F2far     cold@pred  on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.032
+F2far     cold       off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.032
+F2far     warm       off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.009
+F2far     warm+pred  off   5      9       40      10     0      0   0         40      1/4/0      4/0       0.009
+F2far     hot        off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.009
+F2far     cold@pred  off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.033
+F3n50     cold       on    4      19      57      19     0      0   0         57      4/0/0      0/0       0.034
+F3n50     warm       on    4      12      34      9      0      0   8         34      1/3/0      0/0       0.022
+F3n50     warm+pred  on    4      6       16      5      0      0   2         16      1/3/0      3/0       0.013
+F3n50     hot        on    4      12      34      9      3      0   8         34      1/0/3      0/0       0.021
+F3n50     cold@pred  on    4      19      57      19     0      0   0         57      4/0/0      0/0       0.034
+F3n50     cold       off   4      19      57      19     0      0   0         57      4/0/0      0/0       0.034
+F3n50     warm       off   4      12      34      9      0      0   0         34      1/3/0      0/0       0.021
+F3n50     warm+pred  off   4      6       16      5      0      0   0         16      1/3/0      3/0       0.013
+F3n50     hot        off   4      12      34      9      3      0   0         34      1/0/3      0/0       0.021
+F3n50     cold@pred  off   4      19      57      19     0      0   0         57      4/0/0      0/0       0.034
+F3n1000   cold       on    6      53      162     53     0      0   0         162     6/0/0      0/0       1.288
+F3n1000   warm       on    6      30      89      25     0      0   22        89      1/5/0      0/0       0.725
+F3n1000   warm+pred  on    4      10      32      9      0      0   2         32      1/3/0      3/0       0.279
+F3n1000   hot        on    6      30      89      25     5      0   22        89      1/0/5      0/0       0.725
+F3n1000   cold@pred  on    4      35      107     35     0      0   0         107     4/0/0      0/0       0.854
+F3n1000   cold       off   6      53      162     53     0      0   0         162     6/0/0      0/0       1.286
+F3n1000   warm       off   6      30      89      25     0      0   0         89      1/5/0      0/0       0.727
+F3n1000   warm+pred  off   (not run -- see THE RUNTIME BUDGET)
+F3n1000   hot        off   6      30      89      25     5      0   0         89      1/0/5      0/0       0.725
+F3n1000   cold@pred  off   (not run -- see THE RUNTIME BUDGET)
+F3stress  cold       on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.178
+F3stress  warm       on    5      15      39      11     0      0   10        39      1/4/0      0/0       0.077
+F3stress  warm+pred  on    5      7       19      6      0      0   2         19      1/4/0      4/0       0.046
+F3stress  hot        on    5      15      39      11     4      0   10        39      1/0/4      0/0       0.078
+F3stress  cold@pred  on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.178
+F3stress  cold       off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.178
+F3stress  warm       off   5      15      39      11     0      0   0         39      1/4/0      0/0       0.077
+F3stress  warm+pred  off   5      7       19      6      0      0   0         19      1/4/0      4/0       0.046
+F3stress  hot        off   5      15      39      11     4      0   0         39      1/0/4      0/0       0.077
+F3stress  cold@pred  off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.178
+
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1411: F3stress / warm+pred
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1483: the pinned corpus totals
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1401: Failure
+Expected equality of these values:
+  c.border_refine
+    Which is: 19
+  p.border_refine
+    Which is: 18
+
+family    arm        full  steps  majors  minors  fact   saved  wd  fullstep  brdref  lvl c/w/h  pred c/d  secs
+F1        cold       on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.003
+F1        warm       on    5      5       16      1      0      0   4         20      1/4/0      0/0       0.004
+F1        warm+pred  on    5      1       3       1      0      0   0         4       1/4/0      4/0       0.002
+F1        hot        on    5      5       16      1      4      0   4         20      1/0/4      0/0       0.004
+F1        cold@pred  on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.003
+F1        cold       off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.003
+F1        warm       off   5      5       16      1      0      0   0         20      1/4/0      0/0       0.004
+F1        warm+pred  off   5      1       3       1      0      0   0         4       1/4/0      4/0       0.002
+F1        hot        off   5      5       16      1      4      0   0         20      1/0/4      0/0       0.004
+F1        cold@pred  off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.003
+F2        cold       on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.003
+F2        warm       on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.003
+F2        warm+pred  on    5      7       14      7      0      0   6         14      1/4/0      4/0       0.003
+F2        hot        on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.003
+F2        cold@pred  on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.003
+F2        cold       off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.003
+F2        warm       off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.003
+F2        warm+pred  off   5      7       14      7      0      0   0         14      1/4/0      4/0       0.003
+F2        hot        off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.003
+F2        cold@pred  off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.003
+F2far     cold       on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.032
+F2far     warm       on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.009
+F2far     warm+pred  on    5      9       40      10     0      0   6         40      1/4/0      4/0       0.009
+F2far     hot        on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.009
+F2far     cold@pred  on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.032
+F2far     cold       off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.032
+F2far     warm       off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.009
+F2far     warm+pred  off   5      9       40      10     0      0   0         40      1/4/0      4/0       0.009
+F2far     hot        off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.009
+F2far     cold@pred  off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.033
+F3n50     cold       on    4      19      57      19     0      0   0         57      4/0/0      0/0       0.034
+F3n50     warm       on    4      12      34      9      0      0   8         34      1/3/0      0/0       0.022
+F3n50     warm+pred  on    4      6       16      5      0      0   2         16      1/3/0      3/0       0.013
+F3n50     hot        on    4      12      34      9      3      0   8         34      1/0/3      0/0       0.021
+F3n50     cold@pred  on    4      19      57      19     0      0   0         57      4/0/0      0/0       0.034
+F3n50     cold       off   4      19      57      19     0      0   0         57      4/0/0      0/0       0.034
+F3n50     warm       off   4      12      34      9      0      0   0         34      1/3/0      0/0       0.021
+F3n50     warm+pred  off   4      6       16      5      0      0   0         16      1/3/0      3/0       0.013
+F3n50     hot        off   4      12      34      9      3      0   0         34      1/0/3      0/0       0.021
+F3n50     cold@pred  off   4      19      57      19     0      0   0         57      4/0/0      0/0       0.034
+F3n1000   cold       on    6      53      162     53     0      0   0         162     6/0/0      0/0       1.288
+F3n1000   warm       on    6      30      89      25     0      0   22        89      1/5/0      0/0       0.725
+F3n1000   warm+pred  on    4      10      32      9      0      0   2         32      1/3/0      3/0       0.279
+F3n1000   hot        on    6      30      89      25     5      0   22        89      1/0/5      0/0       0.725
+F3n1000   cold@pred  on    4      35      107     35     0      0   0         107     4/0/0      0/0       0.854
+F3n1000   cold       off   6      53      162     53     0      0   0         162     6/0/0      0/0       1.286
+F3n1000   warm       off   6      30      89      25     0      0   0         89      1/5/0      0/0       0.727
+F3n1000   warm+pred  off   (not run -- see THE RUNTIME BUDGET)
+F3n1000   hot        off   6      30      89      25     5      0   0         89      1/0/5      0/0       0.725
+F3n1000   cold@pred  off   (not run -- see THE RUNTIME BUDGET)
+F3stress  cold       on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.178
+F3stress  warm       on    5      15      39      11     0      0   10        39      1/4/0      0/0       0.077
+F3stress  warm+pred  on    5      7       19      6      0      0   2         19      1/4/0      4/0       0.046
+F3stress  hot        on    5      15      39      11     4      0   10        39      1/0/4      0/0       0.078
+F3stress  cold@pred  on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.178
+F3stress  cold       off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.178
+F3stress  warm       off   5      15      39      11     0      0   0         39      1/4/0      0/0       0.077
+F3stress  warm+pred  off   5      7       19      6      0      0   0         19      1/4/0      4/0       0.046
+F3stress  hot        off   5      15      39      11     4      0   0         39      1/0/4      0/0       0.077
+F3stress  cold@pred  off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.178
+
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1411: F3stress / warm+pred
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1483: the pinned corpus totals
+
+
+family    arm        full  steps  majors  minors  fact   saved  wd  fullstep  brdref  lvl c/w/h  pred c/d  secs
+F1        cold       on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.003
+F1        warm       on    5      5       16      1      0      0   4         20      1/4/0      0/0       0.004
+F1        warm+pred  on    5      1       3       1      0      0   0         4       1/4/0      4/0       0.002
+F1        hot        on    5      5       16      1      4      0   4         20      1/0/4      0/0       0.004
+F1        cold@pred  on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.003
+F1        cold       off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.003
+F1        warm       off   5      5       16      1      0      0   0         20      1/4/0      0/0       0.004
+F1        warm+pred  off   5      1       3       1      0      0   0         4       1/4/0      4/0       0.002
+F1        hot        off   5      5       16      1      4      0   0         20      1/0/4      0/0       0.004
+F1        cold@pred  off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.003
+F2        cold       on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.003
+F2        warm       on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.003
+F2        warm+pred  on    5      7       14      7      0      0   6         14      1/4/0      4/0       0.003
+F2        hot        on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.003
+F2        cold@pred  on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.003
+F2        cold       off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.003
+F2        warm       off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.003
+F2        warm+pred  off   5      7       14      7      0      0   0         14      1/4/0      4/0       0.003
+F2        hot        off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.003
+F2        cold@pred  off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.003
+F2far     cold       on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.032
+F2far     warm       on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.009
+F2far     warm+pred  on    5      9       40      10     0      0   6         40      1/4/0      4/0       0.009
+F2far     hot        on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.009
+F2far     cold@pred  on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.032
+F2far     cold       off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.032
+F2far     warm       off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.009
+F2far     warm+pred  off   5      9       40      10     0      0   0         40      1/4/0      4/0       0.009
+F2far     hot        off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.009
+F2far     cold@pred  off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.033
+F3n50     cold       on    4      19      57      19     0      0   0         57      4/0/0      0/0       0.034
+F3n50     warm       on    4      12      34      9      0      0   8         34      1/3/0      0/0       0.022
+F3n50     warm+pred  on    4      6       16      5      0      0   2         16      1/3/0      3/0       0.013
+F3n50     hot        on    4      12      34      9      3      0   8         34      1/0/3      0/0       0.021
+F3n50     cold@pred  on    4      19      57      19     0      0   0         57      4/0/0      0/0       0.034
+F3n50     cold       off   4      19      57      19     0      0   0         57      4/0/0      0/0       0.034
+F3n50     warm       off   4      12      34      9      0      0   0         34      1/3/0      0/0       0.021
+F3n50     warm+pred  off   4      6       16      5      0      0   0         16      1/3/0      3/0       0.013
+F3n50     hot        off   4      12      34      9      3      0   0         34      1/0/3      0/0       0.021
+F3n50     cold@pred  off   4      19      57      19     0      0   0         57      4/0/0      0/0       0.034
+F3n1000   cold       on    6      53      162     53     0      0   0         162     6/0/0      0/0       1.288
+F3n1000   warm       on    6      30      89      25     0      0   22        89      1/5/0      0/0       0.725
+F3n1000   warm+pred  on    4      10      32      9      0      0   2         32      1/3/0      3/0       0.279
+F3n1000   hot        on    6      30      89      25     5      0   22        89      1/0/5      0/0       0.725
+F3n1000   cold@pred  on    4      35      107     35     0      0   0         107     4/0/0      0/0       0.854
+F3n1000   cold       off   6      53      162     53     0      0   0         162     6/0/0      0/0       1.286
+F3n1000   warm       off   6      30      89      25     0      0   0         89      1/5/0      0/0       0.727
+F3n1000   warm+pred  off   (not run -- see THE RUNTIME BUDGET)
+F3n1000   hot        off   6      30      89      25     5      0   0         89      1/0/5      0/0       0.725
+F3n1000   cold@pred  off   (not run -- see THE RUNTIME BUDGET)
+F3stress  cold       on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.178
+F3stress  warm       on    5      15      39      11     0      0   10        39      1/4/0      0/0       0.077
+F3stress  warm+pred  on    5      7       19      6      0      0   2         19      1/4/0      4/0       0.046
+F3stress  hot        on    5      15      39      11     4      0   10        39      1/0/4      0/0       0.078
+F3stress  cold@pred  on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.178
+F3stress  cold       off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.178
+F3stress  warm       off   5      15      39      11     0      0   0         39      1/4/0      0/0       0.077
+F3stress  warm+pred  off   5      7       19      6      0      0   0         19      1/4/0      4/0       0.046
+F3stress  hot        off   5      15      39      11     4      0   0         39      1/0/4      0/0       0.077
+F3stress  cold@pred  off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.178
+[  FAILED  ] WarmStartBattery.Corpus (8239 ms)
+[----------] 1 test from WarmStartBattery (8239 ms total)
+
+[----------] Global test environment tear-down
+[==========] 15 tests from 9 test suites ran. (15995 ms total)
+[  PASSED  ] 4 tests.
+[  FAILED  ] 11 tests, listed below:
+[  FAILED  ] CorpusTask6bPhaseB.TheShippedKSsnConfigurationIsUnmovedByTheFourLevers
+[  FAILED  ] HsSweepCorpus.Corpus
+[  FAILED  ] IpqpAcceptanceCensus.AnArmedRunIsNeverMistakenForAStallAcrossTheHsBattery
+[  FAILED  ] SqpDriverQpFailure.RepeatedQpMaxIterStillPropagates
+[  FAILED  ] SqpDriverCertifiedFallback.T7F1TheSameInconsistentLinearizationInAllThreeModes
+[  FAILED  ] SqpDriverCertifiedFallback.T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearization
+[  FAILED  ] SqpDriverRestorationProximity.TheProxyWouldCertifyWhereTheExactResidualRefuses
+[  FAILED  ] SqpDriverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce
+[  FAILED  ] SqpDriverRestorationExcursion.TheSubStatusTellsACutOffSubSolveFromAConvergedOne
+[  FAILED  ] SqpDriverRestorationExcursion.TheSubStatusDiscriminatesAtOneParentStatus
+[  FAILED  ] WarmStartBattery.Corpus
+
+11 FAILED TESTS

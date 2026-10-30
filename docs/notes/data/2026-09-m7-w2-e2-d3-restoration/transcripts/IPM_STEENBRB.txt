@@ -1,0 +1,11 @@
+# IPM_STEENBRB -- hven 763cda00 + E2-D3 scratch instrumentation; harness ea1aa4e copy; MKL_NUM_THREADS=1, taskset -c 2, lane hven-ipm, --budget-iters 100
+status=optimal
+outcome=optimal
+iterations=90
+factorizations=136
+objective=9075.8553734639245
+kkt_stationarity=8.4742424832917607e-07
+kkt_primal_eq=2.7289118294550471e-13
+kkt_primal_ineq=9.6905473315894719e-09
+kkt_complementarity=2.4226380122651526e-08
+# --- D3 trace (stderr) ---

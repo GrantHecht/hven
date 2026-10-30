@@ -1,0 +1,521 @@
+--- a/src/qp/qp_engine.cpp
++++ b/src/qp/qp_engine.cpp
+@@ -32,10 +32,125 @@
+ // re-derivation.
+ 
+ #include <bit>
++#include <cstdio>
++#include <cstdlib>
++#include <fstream>
+ 
+ #include <hven/detail/qp/qp_engine.h>
+ 
++// ===== E2-D1 TEMPORARY DIAGNOSTIC INSTRUMENTATION (scratch only) =====
++namespace hven::solvers::d1 {
++inline int level() {
++    static const int l = [] {
++        const char *e = std::getenv("HVEN_D1");
++        return e ? std::atoi(e) : 0;
++    }();
++    return l;
++}
++inline bool twin_on() { static const bool b = std::getenv("HVEN_D1_TWIN") != nullptr; return b; }
++inline const char *dump_dir() { return std::getenv("HVEN_D1_DUMP"); }
++inline long trace_solve() {
++    static const long v = [] { const char *e = std::getenv("HVEN_D1_TRACE"); return e ? std::atol(e) : -2L; }();
++    return v;
++}
++thread_local bool in_twin = false;
++thread_local long solve_no = -1;   // index of the MAIN (driver) solve
++thread_local const char *tag = "MAIN";
++inline bool pass_trace() { return level() > 0 && (trace_solve() == -1 || trace_solve() == solve_no); }
++} // namespace hven::solvers::d1
++
+ namespace hven::solvers {
++namespace {
++const char *d1_status(QpStatus s) {
++    switch (s) {
++    case QpStatus::kOptimal: return "kOptimal";
++    case QpStatus::kInfeasible: return "kInfeasible";
++    case QpStatus::kMaxIter: return "kMaxIter";
++    case QpStatus::kNumericalError: return "kNumericalError";
++    }
++    return "?";
++}
++// KKT of the QP at x with the returned lambda_e, lambda_i, over the TR-tightened
++// box [max(l, -D), min(u, D)] (window centred at 0: the driver zeroes seed.x).
++// The bound multiplier is the BEST one: z_i = r_i where r = Hx+g+Ae'le+Ai'li,
++// with the sign condition at an active bound, |r_i| on a free coordinate.
++void d1_kkt(const QpProblem &qp, const QpSolution &s, double D, double tol, const char *lab) {
++    const Index n = qp.n();
++    if (s.x.size() != n) { std::fprintf(stderr, "D1KKT %s no x\n", lab); return; }
++    Vec lo = qp.lower, up = qp.upper;
++    if (std::isfinite(D)) { for (Index i = 0; i < n; ++i) { lo(i) = std::max(lo(i), -D); up(i) = std::min(up(i), D); } }
++    const Vec Hx = qp.H.selfadjointView<Eigen::Upper>() * s.x;
++    Vec r = Hx + qp.g;
++    const bool have_mult = s.lambda_i.size() == qp.mi() && s.lambda_e.size() == qp.me();
++    if (have_mult) {
++        if (qp.me() > 0) r += qp.Ae.transpose() * s.lambda_e;
++        if (qp.mi() > 0) r += qp.Ai.transpose() * s.lambda_i;
++    }
++    double stat = 0, bviol = 0, eqviol = 0, iviol = 0, lneg = 0, comp = 0, gscale = 1.0;
++    gscale = std::max(1.0, qp.g.lpNorm<Eigen::Infinity>());
++    Index nlo = 0, nup = 0;
++    for (Index i = 0; i < n; ++i) {
++        const double xi = s.x(i);
++        bviol = std::max({bviol, lo(i) - xi, xi - up(i)});
++        const bool atl = lo(i) > -1e19 && xi - lo(i) <= 1e-9 * std::max(1.0, std::abs(lo(i)));
++        const bool atu = up(i) < 1e19 && up(i) - xi <= 1e-9 * std::max(1.0, std::abs(up(i)));
++        if (atl && atu) continue;
++        if (atl) { ++nlo; stat = std::max(stat, -r(i)); }
++        else if (atu) { ++nup; stat = std::max(stat, r(i)); }
++        else stat = std::max(stat, std::abs(r(i)));
++    }
++    if (qp.me() > 0) eqviol = (qp.Ae * s.x - qp.be).lpNorm<Eigen::Infinity>();
++    if (qp.mi() > 0) {
++        const Vec ax = qp.Ai * s.x;
++        for (Index j = 0; j < qp.mi(); ++j) {
++            iviol = std::max(iviol, ax(j) - qp.bi(j));
++            if (have_mult) { lneg = std::max(lneg, -s.lambda_i(j)); comp = std::max(comp, std::abs(s.lambda_i(j) * std::min(0.0, ax(j) - qp.bi(j)))); }
++        }
++    }
++    const double obj = qp.g.dot(s.x) + 0.5 * s.x.dot(Hx);
++    std::fprintf(stderr,
++                 "D1KKT %s status=%s obj=%.12e stat=%.3e(scale %.3e) eqviol=%.3e iviol=%.3e boxviol=%.3e lneg=%.3e comp=%.3e mult=%d atlo=%ld atup=%ld |x|inf=%.6e KKT@tol%.0e=%s\n",
++                 lab, d1_status(s.status), obj, stat, gscale, eqviol, iviol, bviol, lneg, comp, have_mult ? 1 : 0,
++                 (long)nlo, (long)nup, s.x.lpNorm<Eigen::Infinity>(), tol,
++                 (have_mult && stat <= tol * gscale && eqviol <= 1e-6 && iviol <= 1e-6 && bviol <= 1e-6 && lneg <= tol * gscale) ? "YES" : "NO");
++}
++void d1_counters(const QpSolution &s, const char *lab) {
++    const QpCounters &c = s.counters;
++    std::fprintf(stderr,
++                 "D1CNT %s status=%s minors=%ld facts=%ld adds=%ld drops=%ld dep_tests=%ld dep_dep=%ld undec=%ld entry_rm=%ld mand_dep=%ld recheck_rm=%ld ride_decl=%ld pin_skip=%ld cnt_viol=%ld untested=%ld xch=%ld xch_b=%ld xch_sh=%ld cert=%ld cert_rej=%ld passover=%ld blk_term=%ld deferred=%ld retreat=%ld reentry=%ld zm_exh=%ld zm_cap=%ld\n",
++                 lab, d1_status(s.status), (long)c.minor_iters, (long)c.factorizations, (long)c.ws_adds, (long)c.ws_drops,
++                 (long)c.dep_tests, (long)c.dep_dependent, (long)c.dep_undecidable, (long)c.entry_dependency_removals,
++                 (long)c.mandatory_dependent_entries, (long)c.dep_recheck_removals, (long)c.dep_ride_declines,
++                 (long)c.dep_pin_skips, (long)c.ws_count_violations, (long)c.dep_untested_growth, (long)c.ws_exchanges,
++                 (long)c.ws_exchanges_bound, (long)c.ws_exchanges_shifted, (long)c.dep_infeasible_certificates,
++                 (long)c.dep_certificate_rejections, (long)c.dep_passovers, (long)c.dep_blocker_terminations,
++                 (long)c.dep_deferred_adds, (long)c.dep_border_retreats, (long)c.reentry_exemptions,
++                 (long)c.zero_motion_exhausted, (long)c.zero_motion_cap_hits);
++}
++void d1_dump(const QpProblem &qp, const QpSolution *seed, double D, long no) {
++    const char *dir = d1::dump_dir();
++    if (dir == nullptr) return;
++    char path[1024];
++    std::snprintf(path, sizeof path, "%s/qp_%03ld.txt", dir, no);
++    std::ofstream f(path);
++    f.precision(17);
++    f << "n " << qp.n() << " me " << qp.me() << " mi " << qp.mi() << " D " << D << "\n";
++    f << "H\n";
++    for (Index i = 0; i < qp.n(); ++i) for (SpMatRM::InnerIterator it(qp.H, i); it; ++it) f << it.row() << ' ' << it.col() << ' ' << it.value() << '\n';
++    f << "END\ng\n" << qp.g.transpose() << "\nAe\n";
++    for (Index i = 0; i < qp.me(); ++i) for (Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it(qp.Ae, i); it; ++it) f << it.row() << ' ' << it.col() << ' ' << it.value() << '\n';
++    f << "END\nbe\n" << qp.be.transpose() << "\nAi\n";
++    for (Index i = 0; i < qp.mi(); ++i) for (Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it(qp.Ai, i); it; ++it) f << it.row() << ' ' << it.col() << ' ' << it.value() << '\n';
++    f << "END\nbi\n" << qp.bi.transpose() << "\nlower\n" << qp.lower.transpose() << "\nupper\n" << qp.upper.transpose() << "\n";
++    if (seed != nullptr) {
++        f << "seed_bound_state\n";
++        for (auto b : seed->bound_state) f << static_cast<int>(b) << ' ';
++        f << "\nseed_ineq_active\n";
++        for (bool b : seed->ineq_active) f << (b ? 1 : 0) << ' ';
++        f << "\n";
++    }
++}
++} // namespace
+ 
+ void QpEngine::attach_ledger(Ledger *ledger, std::string label_prefix) {
+     ledger_ = ledger;
+@@ -66,6 +181,86 @@
+     return run(qp, &seed, true, overrides, hot);
+ }
+ 
++QpSolution QpEngine::run(const QpProblem &qp, const QpSolution *seed, bool warm,
++                         const SolveOverrides &overrides,
++                         const std::shared_ptr<const HotState> &hot) const {
++    if (d1::level() == 0 || d1::in_twin) {
++        return run_impl(qp, seed, warm, overrides, hot);
++    }
++    const long no = ++d1::solve_no;
++    const double D = std::isfinite(overrides.tr_radius) ? overrides.tr_radius : opts_.tr_radius;
++    std::fprintf(stderr, "D1SOLVE %ld begin n=%ld me=%ld mi=%ld D=%.6e ind=%d warm=%d hot=%d seed_x_inf=%.3e mu=%.3e delta=%.3e engine=%p maxit=%ld\n", no,
++                 (long)qp.n(), (long)qp.me(), (long)qp.mi(), D, opts_.independent_working_set ? 1 : 0, warm ? 1 : 0, hot ? 1 : 0,
++                 (seed && seed->x.size()) ? seed->x.lpNorm<Eigen::Infinity>() : 0.0, overrides.dual_mu, overrides.primal_delta, (const void *)this, (long)opts_.max_iter);
++    d1_dump(qp, seed, D, no);
++    QpSolution res = run_impl(qp, seed, warm, overrides, hot);
++    d1_counters(res, "MAIN");
++    d1_kkt(qp, res, D, opts_.opt_tol, "MAIN");
++    if (res.farkas.present) {
++        const QpFarkasCertificate &c = res.farkas;
++        const Index n = qp.n();
++        Vec lo = qp.lower, up = qp.upper;
++        if (std::isfinite(D)) { for (Index i = 0; i < n; ++i) { lo(i) = std::max(lo(i), -D); up(i) = std::min(up(i), D); } }
++        Vec cv = Vec::Zero(n);
++        if (c.blocker_is_ineq) cv = qp.Ai.row(c.blocker).transpose(); else cv(c.blocker) = c.sign;
++        Vec bp = cv;
++        double implied = 0.0;
++        if (qp.me() > 0) { bp -= qp.Ae.transpose() * c.y_e; implied += c.y_e.dot(qp.be); }
++        if (qp.mi() > 0) { bp -= qp.Ai.transpose() * c.y_i; implied += c.y_i.dot(qp.bi); }
++        double ymax = c.y_i.size() ? c.y_i.maxCoeff() : 0.0;
++        double inf_part = 0.0; Index ninf = 0;
++        for (Index i = 0; i < n; ++i) {
++            const double b = bp(i);
++            if (b == 0.0) continue;
++            const double bound = b > 0.0 ? lo(i) : up(i);
++            if (!(std::abs(bound) < 1e19)) { inf_part += b * b; ++ninf; continue; }
++            implied += b * bound;
++        }
++        const double limit = c.blocker_is_ineq ? qp.bi(c.blocker) : (c.sign > 0 ? up(c.blocker) : -lo(c.blocker));
++        std::fprintf(stderr, "D1CERT blocker=%s:%ld sign=%.0f stored_implied=%.12e stored_limit=%.12e margin=%.3e residual=%.3e | REDERIVED implied=%.12e limit=%.12e gap=%.6e max(y_i)=%.3e |box_part-stored|=%.3e unbounded_nnz=%ld unbounded_norm=%.3e |y_e|=%.3e |y_i|=%.3e nnz(y_i<0)=%ld\n",
++                     c.blocker_is_ineq ? "row" : "var", (long)c.blocker, c.sign, c.implied, c.limit, c.margin, c.residual, implied, limit, implied - limit, ymax,
++                     (c.box_part.size() == n ? (bp - c.box_part).lpNorm<Eigen::Infinity>() : -1.0), (long)ninf, std::sqrt(inf_part),
++                     c.y_e.size() ? c.y_e.lpNorm<Eigen::Infinity>() : 0.0, c.y_i.size() ? c.y_i.lpNorm<Eigen::Infinity>() : 0.0,
++                     (long)(c.y_i.size() ? (c.y_i.array() < 0.0).count() : 0));
++        if (std::getenv("HVEN_D1_TWIN_CERT") != nullptr) {
++            d1::in_twin = true;
++            QpOptions o = opts_;
++            o.independent_working_set = false;
++            QpEngine e(o, threads_);
++            QpSolution r = e.run_impl(qp, seed, warm, overrides, nullptr);
++            d1_counters(r, "CERT_TWIN_OFF");
++            d1_kkt(qp, r, D, opts_.opt_tol, "CERT_TWIN_OFF");
++            o.max_iter = 5 * detail::effective_qp_max_iter(qp, opts_.max_iter);
++            QpEngine e2(o, threads_);
++            QpSolution r2 = e2.run_impl(qp, seed, warm, overrides, nullptr);
++            d1_counters(r2, "CERT_TWIN_OFF_5XCAP");
++            d1_kkt(qp, r2, D, opts_.opt_tol, "CERT_TWIN_OFF_5XCAP");
++            d1::in_twin = false;
++        }
++    }
++    if (d1::twin_on()) {
++        d1::in_twin = true;
++        for (const bool ind : {true, false}) {
++            QpOptions o = opts_;
++            o.independent_working_set = ind;
++            QpEngine e(o, threads_);
++            QpSolution r = e.run_impl(qp, seed, warm, overrides, nullptr);
++            d1_counters(r, ind ? "TWIN_ON" : "TWIN_OFF");
++            d1_kkt(qp, r, D, opts_.opt_tol, ind ? "TWIN_ON" : "TWIN_OFF");
++            if (!ind && res.x.size() == r.x.size()) {
++                std::fprintf(stderr, "D1DIFF |x_main - x_off|inf=%.3e\n", (res.x - r.x).lpNorm<Eigen::Infinity>());
++            }
++        }
++        d1::in_twin = false;
++    }
++    std::fprintf(stderr, "D1SOLVE %ld end\n", no);
++    if (const char *ea = std::getenv("HVEN_D1_EXIT_AFTER"); ea != nullptr && std::atol(ea) == no) {
++        std::fflush(stderr);
++        std::_Exit(0);
++    }
++    return res;
++}
++
+ std::uint64_t options_fingerprint(const QpOptions &opts, int threads) {
+     // splitmix64's finalizer as the mixer: a FIELD-WISE fold, never a byte hash
+     // over the struct, so padding bytes cannot make two equal values disagree.
+@@ -316,7 +511,7 @@
+     return eff;
+ }
+ 
+-QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool warm,
++QpSolution QpEngine::run_impl(const QpProblem &qp_in, const QpSolution *seed, bool warm,
+                          const SolveOverrides &overrides,
+                          const std::shared_ptr<const HotState> &hot) const {
+     // ADOPT AN EXTERNAL HOT HANDLE. `hot` (SqpWarmStart::hot, opaque) is a
+@@ -821,6 +1016,23 @@
+                         }
+                     }
+                 }
++                if (d1::level() >= 1 && !d1::in_twin && (over || (det.found == false && over))) {
++                    std::fprintf(stderr, "D1OVER s=%ld it=%ld count=%ld n=%ld det.found=%d solves=%ld null_res=%.3e shift_adds=%ld ws_adds=%ld deferred=%ld entry_pending=%d recheck_pending_was=%d path_schur=%d\n",
++                                 d1::solve_no, (long)iter, (long)ws_count, (long)n, det.found ? 1 : 0, (long)det.solves, det.null_residual, (long)counters.shift_adds, (long)counters.ws_adds,
++                                 (long)counters.dep_deferred_adds, entry_check_pending ? 1 : 0, 0, view.schur != nullptr ? 1 : 0);
++                }
++                if (d1::pass_trace()) {
++                    std::fprintf(stderr, "D1ENTRY it=%ld over=%d untested=%d entry_pending=%d det.found=%d det.solves=%ld null_res=%.3e support=%zu trim=%d\n",
++                                 (long)iter, over ? 1 : 0, untested ? 1 : 0, entry_check_pending ? 1 : 0, det.found ? 1 : 0, (long)det.solves, det.null_residual, det.support.size(), trim.found ? 1 : 0);
++                    for (const auto &m : det.support) {
++                        std::fprintf(stderr, "D1SUPPORT kind=%d(0eq,1row,2pin) idx=%ld state=%d\n", (int)m.kind, (long)m.idx,
++                                     m.kind == detail::WsMember::Kind::kPin ? (int)ws.bound_state()[(std::size_t)m.idx] : -1);
++                    }
++                    if (d1::level() >= 3) {
++                        for (Index i = 0; i < n; ++i) if (ws.bound_state()[(std::size_t)i] != BoundState::kFree)
++                            std::fprintf(stderr, "D1PIN %ld state=%d x=%.9e l=%.9e u=%.9e\n", (long)i, (int)ws.bound_state()[(std::size_t)i], x(i), qp.lower(i), qp.upper(i));
++                    }
++                }
+                 detail::WsMember removed;
+                 if ((det.found || trim.found) &&
+                     remove_entry_dependency(ws, shift, det.found ? det : trim,
+@@ -839,6 +1051,9 @@
+         }
+         const bool first_pass = start_pass;
+         start_pass = false;
++        if (first_pass && verdict == detail::InertiaVerdict::kWrong && d1::level() >= 1 && !d1::in_twin) {
++            std::fprintf(stderr, "D1REPAIR s=%ld it=%ld attempting start repair (pin_skips before=%ld)\n", d1::solve_no, (long)iter, (long)counters.dep_pin_skips);
++        }
+         if (first_pass && verdict == detail::InertiaVerdict::kWrong &&
+             repair_temporary_vertex(qp, ws, x, kkt, face, *border_, counters, eff_opts)) {
+ #ifdef HVEN_TESTING
+@@ -869,6 +1084,12 @@
+         last_drop = DropRecord{};
+ 
+         const double step_tol = eff_opts.feas_tol * std::max(1.0, x.lpNorm<Eigen::Infinity>());
++        if (d1::pass_trace()) {
++            std::fprintf(stderr, "D1PASS s=%ld[%s] it=%ld me=%ld rows=%ld pins=%ld n=%ld |p|=%.3e step_tol=%.3e elim_only=%d schur=%d verdict=%d |x|=%.6e drop_prev=%d:%ld\n",
++                         d1::solve_no, d1::in_twin ? "twin" : "main", (long)iter, (long)me, (long)ws.active_ineq().size(), (long)(n - ws.num_free()), (long)n,
++                         p.lpNorm<Eigen::Infinity>(), step_tol, eliminated_only ? 1 : 0, pass_view.schur != nullptr ? 1 : 0,
++                         (int)verdict, x.lpNorm<Eigen::Infinity>(), dropped.active ? (dropped.is_ineq ? 1 : 2) : 0, (long)dropped.idx);
++        }
+ #ifdef HVEN_TESTING
+         walk_obs.record().step_tol = step_tol;
+         walk_obs.record().p_inf = p.lpNorm<Eigen::Infinity>();
+@@ -958,6 +1179,10 @@
+             if (dropped_one && eff_opts.independent_working_set) {
+                 pt_release(seen, last_drop.is_ineq, last_drop.idx);
+             }
++            if (d1::pass_trace()) {
++                std::fprintf(stderr, "D1DROP it=%ld dropped=%d is_ineq=%d idx=%ld exempt_worst=%.3e\n", (long)iter, dropped_one ? 1 : 0,
++                             last_drop.is_ineq ? 1 : 0, (long)last_drop.idx, exempt_worst);
++            }
+             if (!dropped_one) {
+ #ifdef HVEN_TESTING
+                 walk_obs.record().action = detail::testing::QpWalkAction::kTerminal;
+@@ -996,6 +1221,11 @@
+                     worst = worst_structural_violation(qp, x, Aix, ai_row_norm1, lambda_i,
+                                                        ae_row_norm1, lambda_e, eff_opts);
+                 }
++                if (d1::level() >= 1 && !d1::in_twin) {
++                    std::fprintf(stderr, "D1TERM s=%ld it=%ld worst=%.3e runaway=%d verdict=%d probe_drop_made=%d restart_spent=%d exempt_worst=%.3e me+|W|=%ld n=%ld\n", d1::solve_no, (long)iter, worst,
++                                 is_runaway(qp, x, ws, eff_opts) ? 1 : 0, (int)verdict, probe_drop_made ? 1 : 0, post_probe_restart_spent ? 1 : 0, exempt_worst,
++                                 (long)(me + (Index)ws.active_ineq().size() + (n - ws.num_free())), (long)n);
++                }
+                 if (worst > 0.0) {
+                     status = QpStatus::kInfeasible;
+                 } else if (is_runaway(qp, x, ws, eff_opts)) {
+@@ -1406,13 +1636,30 @@
+                 return Oriented{sgn * x(idx), sgn * p(idx), sgn * bound,
+                                 std::max({1.0, std::abs(bound), xmag})};
+             };
++            bool d1_undec_retreat = false;
++            const BlockKind d1_kind0 = kind;
++            const Index d1_idx0 = block_idx;
++            const BoundState d1_state0 = block_state;
++            const double d1_alpha0 = alpha;
+             while (kind != BlockKind::kNone) {
+                 const bool is_ineq = kind == BlockKind::kIneq;
+                 const detail::DepTest t =
+                     test_candidate(qp, ws, pass_view, is_ineq, block_idx, counters, eff_opts);
++                if (d1::pass_trace()) {
++                    const Index wsc = me + (Index)ws.active_ineq().size() + (n - ws.num_free());
++                    std::fprintf(stderr, "D1TEST it=%ld blk=%s:%ld side=%d alpha=%.6e |p|=%.3e verdict=%d rho=%.6e screen=%d solves=%ld me+|W|=%ld n=%ld usable=%d elim=%d schur=%d\n",
++                                 (long)iter, is_ineq ? "row" : "pin", (long)block_idx, (int)block_state, alpha, p.lpNorm<Eigen::Infinity>(),
++                                 (int)t.verdict, t.rho, t.screen ? 1 : 0, (long)t.solves, (long)wsc, (long)n, pass_view.usable() ? 1 : 0,
++                                 pass_view.eliminated != nullptr ? 1 : 0, pass_view.schur != nullptr ? 1 : 0);
++                }
+                 if (!t.dependent()) {
+                     break; // the ordinary add
+                 }
++                static const bool d1_undec_retreat_on = std::getenv("HVEN_D1_UNDEC_RETREAT") != nullptr;
++                if (t.verdict == detail::DepVerdict::kUndecidable && d1_undec_retreat_on && pass_view.schur != nullptr) {
++                    d1_undec_retreat = true;
++                    break;
++                }
+                 if (t.verdict == detail::DepVerdict::kUndecidable) {
+                     // Screen-negative and unresolved (no factor for this
+                     // pass's set, or a stalled refinement): nothing proves
+@@ -1431,12 +1678,38 @@
+                 xpick = select_exchange(qp, ws, shift, seen, t, is_ineq, block_idx, block_state,
+                                         lambda_e, lambda_i, z,
+                                         alpha * p.lpNorm<Eigen::Infinity>() > step_tol);
++                if (d1::pass_trace()) {
++                    Index nadm_pos = 0, nlocked = 0;
++                    const double vmax_dbg = std::max({xpick.v_w.size() ? xpick.v_w.cwiseAbs().maxCoeff() : 0.0, xpick.v_pin.size() ? xpick.v_pin.cwiseAbs().maxCoeff() : 0.0, xpick.v_e.size() ? xpick.v_e.cwiseAbs().maxCoeff() : 0.0});
++                    for (Index k = 0; k < xpick.v_w.size(); ++k) if (xpick.v_w(k) > 1e-6 * vmax_dbg) { ++nadm_pos; if (pt_flags(seen, true, ws.active_ineq()[(std::size_t)k]) & kPtEntered) ++nlocked; }
++                    for (Index i = 0; i < n; ++i) if (xpick.v_pin.size() && xpick.v_pin(i) > 1e-6 * vmax_dbg) { ++nadm_pos; if (pt_flags(seen, false, i) & kPtEntered) ++nlocked; }
++                    std::fprintf(stderr, "D1XPICK it=%ld found=%d cond1=%d j=%s:%ld sigma=%.3e g=%.6e sign=%.0f moves=%d pos_coeff_members=%ld of_which_entered_at_point=%ld |v_e|=%.3e |v_w|=%.3e |v_pin|=%.3e\n",
++                                 (long)iter, xpick.found ? 1 : 0, xpick.cond1 ? 1 : 0, xpick.j_is_ineq ? "row" : "pin", (long)xpick.j, xpick.sigma, xpick.g, xpick.sign,
++                                 alpha * p.lpNorm<Eigen::Infinity>() > step_tol ? 1 : 0, (long)nadm_pos, (long)nlocked,
++                                 xpick.v_e.size() ? xpick.v_e.lpNorm<Eigen::Infinity>() : 0.0, xpick.v_w.size() ? xpick.v_w.lpNorm<Eigen::Infinity>() : 0.0,
++                                 xpick.v_pin.size() ? xpick.v_pin.lpNorm<Eigen::Infinity>() : 0.0);
++                    if (d1::level() >= 3) {
++                        for (Index k = 0; k < xpick.v_w.size(); ++k) if (xpick.v_w(k) != 0.0) std::fprintf(stderr, "D1V row %ld v=%.6e lam=%.6e flags=%d shift=%.3e\n", (long)ws.active_ineq()[(std::size_t)k], xpick.v_w(k), lambda_i(ws.active_ineq()[(std::size_t)k]), (int)pt_flags(seen, true, ws.active_ineq()[(std::size_t)k]), shift(ws.active_ineq()[(std::size_t)k]));
++                        for (Index i = 0; i < n; ++i) if (xpick.v_pin.size() && xpick.v_pin(i) != 0.0) std::fprintf(stderr, "D1V pin %ld st=%d v=%.6e z=%.6e flags=%d\n", (long)i, (int)ws.bound_state()[(std::size_t)i], xpick.v_pin(i), z(i), (int)pt_flags(seen, false, i));
++                        for (Index r = 0; r < xpick.v_e.size(); ++r) if (xpick.v_e(r) != 0.0) std::fprintf(stderr, "D1V eq %ld v=%.6e lam=%.6e\n", (long)r, xpick.v_e(r), lambda_e(r));
++                    }
++                }
+                 if (xpick.found) {
+                     break; // the exchange
+                 }
+                 const Oriented o = oriented(is_ineq, block_idx, block_state);
+                 // (N1) The certificate: candidate on the design's two
+                 // conditions, then verified before it may be returned.
++                static const bool d1_boxcert = std::getenv("HVEN_D1_BOXCERT") != nullptr;
++                if (d1_boxcert && !xpick.cond1) {
++                    QpFarkasCertificate cert;
++                    if (verify_farkas(qp, ws, xpick, is_ineq, block_idx, o.scale, eff_opts, cert)) {
++                        if (d1::pass_trace() || d1::level() >= 1) std::fprintf(stderr, "D1BOXCERT it=%ld verified implied=%.6e limit=%.6e\n", (long)iter, cert.implied, cert.limit);
++                        farkas = std::move(cert);
++                        add_exit = AddExit::kInfeasible;
++                        break;
++                    }
++                }
+                 if (xpick.cond1 && violation_is_structural(xpick.g, o.scale, 0.0, eff_opts)) {
+                     QpFarkasCertificate cert;
+                     if (verify_farkas(qp, ws, xpick, is_ineq, block_idx, o.scale, eff_opts, cert)) {
+@@ -1467,6 +1740,14 @@
+                         within = false;
+                     }
+                 }
++                if (d1::pass_trace()) {
++                    std::fprintf(stderr, "D1N2 it=%ld n_passed=%zu next=%d:%ld a2=%.6e within=%d feas_tol=%.1e\n", (long)iter, passed.size(), (int)k2, (long)i2, a2, within ? 1 : 0, eff_opts.feas_tol);
++                    for (const auto &[pi, pidx] : passed) {
++                        const BoundState side = pi ? BoundState::kFree : p(pidx) > 0.0 ? BoundState::kAtUpper : BoundState::kAtLower;
++                        const Oriented po = oriented(pi, pidx, side);
++                        std::fprintf(stderr, "D1N2   passed %s:%ld cx-d=%.6e cp=%.6e viol_at_a2=%.6e limit=%.6e\n", pi ? "row" : "pin", (long)pidx, po.cx - po.d, po.cp, po.cx - po.d + a2 * po.cp, eff_opts.feas_tol * po.scale);
++                    }
++                }
+                 if (!within) {
+                     add_exit = AddExit::kTerminate;
+                     break;
+@@ -1477,6 +1758,25 @@
+                 block_state = s2;
+                 alpha = a2;
+             }
++            if (d1_undec_retreat) {
++                eliminated_only = true;
++                ++counters.dep_border_retreats;
++                continue;
++            }
++            static const bool d1_n3admit = std::getenv("HVEN_D1_N3ADMIT") != nullptr;
++            if (d1_n3admit && (add_exit == AddExit::kTerminate || add_exit == AddExit::kRejected) &&
++                pass_view.schur == nullptr) {
++                if (d1::level() >= 1) std::fprintf(stderr, "D1N3ADMIT it=%ld exit=%d -> admit original blocker %d:%ld\n", (long)iter, (int)add_exit, (int)d1_kind0, (long)d1_idx0);
++                add_exit = AddExit::kNone;
++                kind = d1_kind0;
++                block_idx = d1_idx0;
++                block_state = d1_state0;
++                alpha = d1_alpha0;
++                xpick = ExchangePick{};
++            }
++            if (d1::pass_trace() && add_exit != AddExit::kNone) {
++                std::fprintf(stderr, "D1EXIT it=%ld add_exit=%d(1=infeas,2=rejected,3=terminate) schur=%d\n", (long)iter, (int)add_exit, pass_view.schur != nullptr ? 1 : 0);
++            }
+             if ((add_exit == AddExit::kTerminate || add_exit == AddExit::kRejected) &&
+                 pass_view.schur != nullptr) {
+                 // THE BORDER RETREAT, once per solve. On the border path the
+@@ -1627,6 +1927,10 @@
+             }
+         }
+ #endif
++        if (d1::pass_trace()) {
++            std::fprintf(stderr, "D1STEP it=%ld kind=%d idx=%ld side=%d alpha=%.6e dx=%.3e xch=%d j=%s:%ld\n", (long)iter, (int)kind, (long)block_idx, (int)block_state, alpha,
++                         alpha * p.lpNorm<Eigen::Infinity>(), xpick.found ? 1 : 0, xpick.j_is_ineq ? "row" : "pin", (long)xpick.j);
++        }
+         if (kind != BlockKind::kNone) {
+             ++counters.ws_adds;
+             if (kind == BlockKind::kBound) {
+@@ -2866,6 +3170,12 @@
+             if (screen && counters.mandatory_dependent_entries > 0) {
+                 ++counters.dep_screen_under_mandatory_dependence;
+             }
++            if (!screen && view.usable() && d1::level() >= 2 && !d1::in_twin) {
++                QpCounters scratch = counters;
++                const detail::DepTest tt = test_candidate(qp, ws, view, false, i, scratch, opts);
++                std::fprintf(stderr, "D1RPIN i=%ld rho=%.3e verdict=%d count=%ld hdiag=%.3e\n", (long)i, tt.rho, (int)tt.verdict,
++                             (long)(qp.me() + (Index)ws.active_ineq().size() + (qp.n() - ws.num_free())), hdiag(i));
++            }
+             if (screen ||
+                 (view.usable() &&
+                  test_candidate(qp, ws, view, /*is_ineq=*/false, i, counters, opts).dependent())) {
+@@ -2879,6 +3189,7 @@
+         }
+         pinned.push_back(i);
+         verdict = probe_inertia(qp, ws, kkt, face, border, counters, opts);
++        if (d1::level() >= 2 && !d1::in_twin) std::fprintf(stderr, "D1RPROBE pinned=%ld npinned=%zu verdict=%d count=%ld\n", (long)i, pinned.size(), (int)verdict, (long)(qp.me() + (Index)ws.active_ineq().size() + (qp.n() - ws.num_free())));
+         if (verdict != detail::InertiaVerdict::kWrong) {
+             break; // repaired, or no longer verifiable
+         }
+--- a/src/qp/ws_independence.cpp
++++ b/src/qp/ws_independence.cpp
+@@ -2,6 +2,7 @@
+ // (see LICENSE).
+ 
+ #include <hven/detail/qp/ws_independence.h>
++#include <cstdlib>
+ 
+ #include <algorithm>
+ #include <cmath>
+@@ -365,12 +366,32 @@
+     if (!(scaled_max > 0.0)) {
+         return d;
+     }
++    // E2-D1 EXPERIMENT (env HVEN_D1_FIXPIN): on the eliminated path the pins
++    // are eliminated columns, so their coefficients are A_W^T y_hat at the
++    // pinned columns; include them in the support.
++    Vec pin_coef;
++    if (std::getenv("HVEN_D1_FIXPIN") != nullptr && !sys.bordered) {
++        pin_coef = sys.at_times(qp, rhs);
++        for (Index i = 0; i < qp.n(); ++i) {
++            if (ws.bound_state()[static_cast<std::size_t>(i)] != BoundState::kFree) {
++                scaled_max = std::max(scaled_max, std::abs(pin_coef(i)));
++            }
++        }
++    }
+     d.found = true;
+     for (std::size_t k = 0; k < nc; ++k) {
+         if (scaled[k] >= kDepCoeffTol * scaled_max) {
+             d.support.push_back(sys.comp[k]);
+         }
+     }
++    if (pin_coef.size() == qp.n()) {
++        for (Index i = 0; i < qp.n(); ++i) {
++            if (ws.bound_state()[static_cast<std::size_t>(i)] != BoundState::kFree &&
++                std::abs(pin_coef(i)) >= kDepCoeffTol * scaled_max) {
++                d.support.push_back(WsMember{WsMember::Kind::kPin, i});
++            }
++        }
++    }
+     return d;
+ }
+ 
+--- a/include/hven/detail/qp/qp_engine.h
++++ b/include/hven/detail/qp/qp_engine.h
+@@ -1101,6 +1101,9 @@
+     QpSolution run(const QpProblem &qp_in, const QpSolution *seed, bool warm,
+                    const SolveOverrides &overrides,
+                    const std::shared_ptr<const HotState> &hot = nullptr) const;
++    QpSolution run_impl(const QpProblem &qp_in, const QpSolution *seed, bool warm,
++                        const SolveOverrides &overrides,
++                        const std::shared_ptr<const HotState> &hot = nullptr) const;
+ 
+     // Step 1a: the START CENTER -- the clamped seed primal, plus kFixed
+     // detection. NO seeded bound-state hint is materialized here; that is
+--- a/src/drivers/sqp_solver.cpp
++++ b/src/drivers/sqp_solver.cpp
+@@ -32,6 +32,8 @@
+ #include <fmt/format.h>
+ 
+ #include <hven/drivers/sqp_solver.h>
++#include <cstdio>
++#include <cstdlib>
+ 
+ // THE ONE TRANSLATION UNIT THAT COMPLETES THE SINK TYPES (M6 W5 T8.7 fix1, the
+ // lane's M4). `sqp_solver.h` forward-declares `ConsoleTraceSink` and
+@@ -6281,7 +6283,16 @@
+     // ladder's counts below. `fallback_report` is engaged here iff that happened.
+     bool elastic_applied = mj.fallback_report.has_value();
+     bool rho0_ceiling_hit = mj.fallback_report && mj.fallback_report->rho0_ceiling_hit;
+-    if (mj.qs.status == QpStatus::kInfeasible) {
++    static const bool d1_n3elastic = std::getenv("HVEN_D1_N3ELASTIC") != nullptr;
++    const bool d1_route_elastic =
++        d1_n3elastic && mj.walk_owns_this_qp && mj.qs.status == QpStatus::kNumericalError &&
++        (mj.qs.counters.dep_blocker_terminations > 0 || mj.qs.counters.zero_motion_cap_hits > 0 ||
++         mj.qs.counters.dep_certificate_rejections > 0);
++    if (d1_route_elastic) {
++        std::fprintf(stderr, "D1N3ELASTIC major=%ld routing an E2 termination (blk=%ld zmcap=%ld rej=%ld) to the elastic tier\n", (long)iter,
++                     (long)mj.qs.counters.dep_blocker_terminations, (long)mj.qs.counters.zero_motion_cap_hits, (long)mj.qs.counters.dep_certificate_rejections);
++    }
++    if (mj.qs.status == QpStatus::kInfeasible || d1_route_elastic) {
+         // The window the ORIGINAL solve was given, folded into the
+         // elastic problem's own box: `delta` is what the driver
+         // passed through SolveOverrides, and opts_.qp.tr_radius is

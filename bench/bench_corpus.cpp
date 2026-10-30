@@ -118,6 +118,7 @@
 
 #include "bench_cli.h"
 #include "corpus_cells.h"
+#include "counting_trace_sink.h"
 #include "ipm_corpus_leg.h"
 #include "support/hs_problems.h"
 
@@ -134,6 +135,7 @@ using hven::solvers::corpus::budget_table_hash;
 using hven::solvers::corpus::CorpusCell;
 using hven::solvers::corpus::CorpusOutcome;
 using hven::solvers::corpus::CorpusRow;
+using hven::solvers::corpus::CountingTraceSink;
 using hven::solvers::corpus::dnf_phase_status_string;
 using hven::solvers::corpus::DnfPhase;
 using hven::solvers::corpus::dual_sign_would_fail;
@@ -151,6 +153,7 @@ using hven::solvers::FixedVariableTreatments;
 using hven::solvers::corpus::interior_base_variant;
 using hven::solvers::corpus::interior_csv_header;
 using hven::solvers::corpus::interior_exit_variants;
+using hven::solvers::corpus::interior_globalization_stamp;
 using hven::solvers::corpus::interior_treatment_from_tag;
 using hven::solvers::corpus::interior_treatment_tag;
 using hven::solvers::corpus::interior_treatments;
@@ -190,7 +193,7 @@ using hven::solvers::TraceSink;
 constexpr const char *kUsage =
     "usage: hven_sqp_corpus --engine walk|ssn|ipm --cells all|<id1,id2,...> --csv <path> "
     "[--score-gates]\n"
-    "                       [--callback off|count] [--trace off|sink]\n"
+    "                       [--callback off|count|count-scalars] [--trace off|sink]\n"
     "       hven_sqp_corpus --hs --engine walk|ssn|ipm --csv <path> [--repeat N]\n"
     "                       [--hs-cells all|<n1,n2,...>] [--hs-trace off|sink]\n"
     "       hven_sqp_corpus --from-csv <path1[,path2,...]> [--csv <merged>] [--score-gates]\n"
@@ -322,6 +325,14 @@ constexpr const char *kUsage =
     "                    gate-scored, and NOT wrapped in this file's wall\n"
     "                    deadline: these cells run in milliseconds, so a fork\n"
     "                    per cell would cost more than the measurement.\n"
+    "                    The SSN measurement levers (--ssn-*) ARE applied to\n"
+    "                    every HS solve and stamped as `# lever:` lines (M7 W3),\n"
+    "                    and ten trailing columns carry the SSN census:\n"
+    "                    ssn_iters,ssn_escapes,esc_budget,esc_singular,\n"
+    "                    esc_no_contraction,esc_infeasible_suspect,\n"
+    "                    esc_indefinite,ssn_prox_updates,ssn_refinements,\n"
+    "                    ssn_refine_refused (0 at kWalk; at kIpm nonzero only when the IPQP tier "
+    "hands off to SSN, ipqp_to_ssn).\n"
     "  --repeat N        HS ONLY. Solve each cell N times and report the MEDIAN\n"
     "                    wall, with min/max and the full spread as a percentage\n"
     "                    of the median. Calibration: raise N until the\n"
@@ -377,6 +388,10 @@ constexpr const char *kUsage =
     "                    the interior side the expansion and mapping behind the\n"
     "                    guard at ipm_solver.cpp:2248. M6 W6 T6 measured it:\n"
     "                    docs/notes/data/2026-09-m6-w6-attached-cost/.\n"
+    "                    count-scalars (M7 W0 T2) attaches the SAME callback\n"
+    "                    under IterationPayload::kScalars, so the driver\n"
+    "                    prepares no per-event snapshot at all: it is the\n"
+    "                    remedy arm against which count is the cost arm.\n"
     "                    The count goes to stderr, never\n"
     "                    into the CSV: the schema does not move for an\n"
     "                    instrument. Stamped in the provenance header.\n"
@@ -563,6 +578,13 @@ struct Args {
     // cells the ledger records as attaching neither (M6 ledger :4455-4457).
     bool corpus_callback = false;
     bool corpus_trace_sink = false;
+    // M7 W0 T2 -- THE THIRD VALUE OF --callback. `count-scalars` attaches the
+    // SAME counting callback as `count` and declares IterationPayload::kScalars
+    // for it, so the driver prepares no per-event snapshot. It is the REMEDY
+    // arm of the payload-mask measurement, beside `count` (T6's arm) and `off`
+    // (the shipped shape). Meaningless, and never read, when
+    // `corpus_callback` is false.
+    bool corpus_callback_scalars = false;
     // M6 W6 T6 fix1 -- WAS THE FLAG SUPPLIED, independent of the value it
     // carried. The refusals below are a contract about which ROUTES own these
     // levers, not about which value a route could honour: `--callback off` on
@@ -708,10 +730,16 @@ Args parse_args(int argc, char **argv) {
             a.corpus_callback_supplied = true;
             if (v == "off") {
                 a.corpus_callback = false;
+                a.corpus_callback_scalars = false;
             } else if (v == "count") {
                 a.corpus_callback = true;
+                a.corpus_callback_scalars = false;
+            } else if (v == "count-scalars") {
+                a.corpus_callback = true;
+                a.corpus_callback_scalars = true;
             } else {
-                throw_usage(fmt::format("--callback: '{}' is not one of off|count", v));
+                throw_usage(
+                    fmt::format("--callback: '{}' is not one of off|count|count-scalars", v));
             }
         } else if (arg == "--trace") {
             const std::string v = next_value(arg);
@@ -817,10 +845,44 @@ constexpr int kIpqpColumns = 76;
 // `iteration_callback` and `trace` are EMPTY even on an attached arm -- the
 // parent forks and never solves, and only the child builds the observers -- so
 // a header that read the levers would stamp `off` over an attached capture.
+// M7 W0 T2. THE CALLBACK ARM'S NAME, in one place, so the CSV header, the
+// console line and the child's argv cannot spell the same arm three ways.
+const char *callback_arm_label(bool attached, bool scalars) {
+    if (!attached) {
+        return "off";
+    }
+    return scalars ? "count-scalars" : "count";
+}
+
+// The SSN measurement levers' `# lever:` provenance lines, one per NON-default
+// lever. Shared by the corpus provenance and (M7 W3) the HS-suite provenance, so
+// an arm is stamped in the same words whichever instrument ran it.
+void write_ssn_lever_lines(std::ostream &os, const EngineLevers &levers) {
+    if (levers.ssn_prox_carry) {
+        os << "# lever: ssn_prox_carry=true (MEASUREMENT ARM -- the shipped default is false)\n";
+    }
+    if (levers.ssn_certify_from_face) {
+        os << "# lever: ssn_certify_from_face=true (MEASUREMENT ARM R5 -- shipped default false)\n";
+    }
+    if (levers.ssn_sigma_rule != SsnSigmaRule::kLadder) {
+        os << fmt::format(
+            "# lever: ssn_sigma_rule={} (MEASUREMENT ARM R1 -- shipped default ladder)\n",
+            levers.ssn_sigma_rule == SsnSigmaRule::kResidualArmed ? "residual-armed"
+                                                                  : "residual-always");
+    }
+    if (levers.ssn_hint_rule != SsnHintRule::kIterationZeroFree) {
+        os << "# lever: ssn_hint_rule=watchdog (MEASUREMENT ARM R2 -- shipped default exempt)\n";
+    }
+    if (levers.ssn_infeasibility_rule != SsnInfeasibilityRule::kSymptoms) {
+        os << "# lever: ssn_infeasibility_rule=farkas (MEASUREMENT ARM R4 -- shipped default "
+              "symptoms)\n";
+    }
+}
+
 void write_provenance(std::ostream &os, int argc, char **argv, const EngineLevers &levers,
                       bool forced_throw, const std::optional<double> &forced_setup,
                       const std::optional<double> &forced_solve, bool attached_callback,
-                      bool attached_sink) {
+                      bool attached_callback_scalars, bool attached_sink) {
     std::string invocation;
     for (int i = 0; i < argc; ++i) {
         invocation += (i == 0 ? "" : " ");
@@ -854,27 +916,12 @@ void write_provenance(std::ostream &os, int argc, char **argv, const EngineLever
     // than by the absence of a line. Both defaults are off.
     os << fmt::format("# attached observers: callback={} trace={} (M6 W6 T6 -- off/off is the "
                       "shipped shape: nothing is attached and the driver's callback dispatch and "
-                      "sink emit guards do not execute)\n",
-                      attached_callback ? "count" : "off", attached_sink ? "sink" : "off");
-    if (levers.ssn_prox_carry) {
-        os << "# lever: ssn_prox_carry=true (MEASUREMENT ARM -- the shipped default is false)\n";
-    }
-    if (levers.ssn_certify_from_face) {
-        os << "# lever: ssn_certify_from_face=true (MEASUREMENT ARM R5 -- shipped default false)\n";
-    }
-    if (levers.ssn_sigma_rule != SsnSigmaRule::kLadder) {
-        os << fmt::format(
-            "# lever: ssn_sigma_rule={} (MEASUREMENT ARM R1 -- shipped default ladder)\n",
-            levers.ssn_sigma_rule == SsnSigmaRule::kResidualArmed ? "residual-armed"
-                                                                  : "residual-always");
-    }
-    if (levers.ssn_hint_rule != SsnHintRule::kIterationZeroFree) {
-        os << "# lever: ssn_hint_rule=watchdog (MEASUREMENT ARM R2 -- shipped default exempt)\n";
-    }
-    if (levers.ssn_infeasibility_rule != SsnInfeasibilityRule::kSymptoms) {
-        os << "# lever: ssn_infeasibility_rule=farkas (MEASUREMENT ARM R4 -- shipped default "
-              "symptoms)\n";
-    }
+                      "sink emit guards do not execute; M7 W0 T2 -- count-scalars attaches the "
+                      "same callback under IterationPayload::kScalars, so no per-event payload "
+                      "is prepared)\n",
+                      callback_arm_label(attached_callback, attached_callback_scalars),
+                      attached_sink ? "sink" : "off");
+    write_ssn_lever_lines(os, levers);
     if (forced_throw) {
         os << "# WARNING forced_child_throw: these rows are TEST FIXTURES, not measurements\n";
     }
@@ -1583,7 +1630,7 @@ CorpusOutcome run_cell_with_deadline(const char *self_path, const CorpusCell &ce
                                      bool force_child_throw, bool force_child_abort,
                                      std::optional<double> forced_setup_s,
                                      std::optional<double> forced_solve_s, bool attach_callback,
-                                     bool attach_sink) {
+                                     bool attach_callback_scalars, bool attach_sink) {
     const double band_s = wall_budget_for_cell(cell);
     const double setup_budget_s = forced_setup_s.value_or(band_s);
     const double solve_budget_s = forced_solve_s.value_or(band_s);
@@ -1643,7 +1690,7 @@ CorpusOutcome run_cell_with_deadline(const char *self_path, const CorpusCell &ce
         // rebuilds both from its own argv.
         if (attach_callback) {
             argv_own.emplace_back("--callback");
-            argv_own.emplace_back("count");
+            argv_own.emplace_back(attach_callback_scalars ? "count-scalars" : "count");
         }
         if (attach_sink) {
             argv_own.emplace_back("--trace");
@@ -1963,90 +2010,6 @@ void write_model_surface_census(const std::string &path,
 // is deliberately IN-PROCESS. It is also not gate-scored: it produces timings
 // and counters, and nothing here decides a verdict.
 
-/// @brief A real sink that COUNTS, per site, and keeps nothing else.
-///
-/// It must do real work at the call -- a sink whose overrides were empty could
-/// be optimised into nothing and would not prove the emit path ran -- but it
-/// must also not dominate the timing it is there to enable, so it counts and
-/// returns. The per-site counts ARE the evidence that each mapper site fired.
-class CountingTraceSink final : public TraceSink {
-  public:
-    void on_ipqp_iter(const hven::solvers::IpqpTraceIterEvent &) override { ++ipqp_iter_; }
-    void on_ipqp_reg(const hven::solvers::IpqpTraceRegEvent &) override { ++other_; }
-    void on_ipqp_restart(const hven::solvers::IpqpTraceRestartEvent &) override { ++other_; }
-    void on_ipqp_route(const hven::solvers::IpqpTraceRouteEvent &) override { ++other_; }
-    void on_ipqp_certify(const hven::solvers::IpqpTraceCertifyEvent &) override { ++other_; }
-    void on_ipqp_escape(const hven::solvers::IpqpTraceEscapeEvent &) override { ++other_; }
-    void on_fallback_verdict(const hven::solvers::SqpFallbackVerdictTraceEvent &) override {
-        ++fallback_verdict_;
-    }
-    void on_sqp_major(const hven::solvers::SqpMajorTraceEvent &) override { ++other_; }
-    void on_sqp_solve_begin(const hven::solvers::SqpSolveBeginTraceEvent &) override { ++other_; }
-    void on_sqp_solve_end(const hven::solvers::SqpSolveEndTraceEvent &) override { ++other_; }
-    void on_ipm_iter(const hven::solvers::IpmIterTraceEvent &) override { ++other_; }
-    void on_ipm_solve_begin(const hven::solvers::IpmSolveBeginTraceEvent &) override { ++other_; }
-    void on_ipm_solve_end(const hven::solvers::IpmSolveEndTraceEvent &) override { ++other_; }
-
-    /// THE ONE THAT MATTERS. `qp.mode` is the event both driver-side
-    /// `trace_outcome_of` calls construct and both kernels-side
-    /// `emit_qp_mode_line` calls construct, and `site` is what tells them
-    /// apart -- so this counter, split by site, is the whole proof that the
-    /// mapper's call sites executed.
-    void on_qp_mode(const QpModeTraceEvent &event) override {
-        switch (event.site) {
-        case QpModeSite::kDispatch:
-            ++dispatch;
-            break;
-        case QpModeSite::kSsnWarmGrade:
-            ++ssn_warm_grade;
-            break;
-        case QpModeSite::kFallbackRungB:
-            ++fallback_rung_b;
-            break;
-        case QpModeSite::kElasticRung:
-            ++elastic_rung;
-            break;
-        case QpModeSite::kSocResolve:
-            ++soc_resolve;
-            break;
-        }
-    }
-
-    /// Zeroed explicitly rather than by assigning a fresh instance: this type
-    /// is polymorphic, and copy-assigning a polymorphic object to reset it is
-    /// the kind of clever that stops being true when someone adds a member.
-    void reset() {
-        dispatch = 0;
-        soc_resolve = 0;
-        elastic_rung = 0;
-        fallback_rung_b = 0;
-        ssn_warm_grade = 0;
-        ipqp_iter_ = 0;
-        fallback_verdict_ = 0;
-        other_ = 0;
-    }
-
-    /// M6 W6 T6. The events that reach NO named counter above -- the SQP
-    /// major/solve-begin/solve-end sites, the IPQP iteration site and the
-    /// fallback verdict. The corpus attached-observer arm needs them because a
-    /// walk-mode cell fires no `qp.mode` site at all, so every counter above
-    /// stays zero and the five of them together could not tell "the sink was
-    /// attached and never reached" from "the sink was attached and reached".
-    /// The HS leg's own report is unchanged: it reads the named counters.
-    long long unnamed_events() const { return ipqp_iter_ + fallback_verdict_ + other_; }
-
-    long long dispatch = 0;
-    long long soc_resolve = 0;
-    long long elastic_rung = 0;
-    long long fallback_rung_b = 0;
-    long long ssn_warm_grade = 0;
-
-  private:
-    long long ipqp_iter_ = 0;
-    long long fallback_verdict_ = 0;
-    long long other_ = 0;
-};
-
 QpMode hs_qp_mode(const std::string &engine) {
     if (engine == "walk") {
         return QpMode::kWalk;
@@ -2090,6 +2053,19 @@ struct HsRow {
     long long ev_elastic_rung = 0;
     long long ev_fallback_rung_b = 0;
     long long ev_ssn_warm_grade = 0;
+    // M7 W3: the SSN escape census and the lever-facing SsnCounters, so an SSN
+    // measurement arm (--ssn-*) can be read on this suite. 0 at kWalk; at kIpm, nonzero only when
+    // the IPQP tier hands off to SSN (ipqp_to_ssn).
+    long long ssn_iters = 0;
+    long long ssn_escapes = 0;
+    long long esc_budget = 0;
+    long long esc_singular = 0;
+    long long esc_no_contraction = 0;
+    long long esc_infeasible_suspect = 0;
+    long long esc_indefinite = 0;
+    long long ssn_prox_updates = 0;
+    long long ssn_refinements = 0;
+    long long ssn_refine_refused = 0;
 };
 
 double median_of(std::vector<double> v) {
@@ -2129,17 +2105,29 @@ std::vector<int> resolve_hs_cells(const std::string &spec) {
 /// repeat k a different computation from repeat 1 -- which the counter-stability
 /// check below would then report as an instability that is really the harness's.
 /// Construction is outside the timed region.
-HsRow run_hs_cell(int number, QpMode mode, int repeat, int warmup, CountingTraceSink *sink) {
+HsRow run_hs_cell(int number, QpMode mode, const EngineLevers &levers, int repeat, int warmup,
+                  CountingTraceSink *sink) {
     HsRow row;
     row.number = number;
+    // M7 W3: the SSN measurement levers reach this suite exactly as they reach
+    // the corpus arms (corpus_cells.h options_for_cell). At their defaults every
+    // assignment below is the SqpOptions default, so the shipped rows are unmoved.
+    const auto hs_options = [&]() {
+        SqpOptions opts;
+        opts.qp_mode = mode;
+        opts.ssn_prox_carry = levers.ssn_prox_carry;
+        opts.ssn_certify_from_face = levers.ssn_certify_from_face;
+        opts.ssn_sigma_rule = levers.ssn_sigma_rule;
+        opts.ssn_hint_rule = levers.ssn_hint_rule;
+        opts.ssn_infeasibility_rule = levers.ssn_infeasibility_rule;
+        return opts;
+    };
     // THE WARM-UP SOLVES, discarded: same model, same options, same sink, same
     // code path -- only the clock is not read. See Args::hs_warmup for the
     // measurement that made this necessary.
     for (int w = 0; w < warmup; ++w) {
         hven::solvers::test_support::HsProblem hs = hven::solvers::test_support::make_hs(number);
-        SqpOptions opts;
-        opts.qp_mode = mode;
-        SqpSolver driver(opts);
+        SqpSolver driver(hs_options());
         if (sink != nullptr) {
             sink->reset();
             driver.attach_trace(sink);
@@ -2152,9 +2140,7 @@ HsRow run_hs_cell(int number, QpMode mode, int repeat, int warmup, CountingTrace
     hven::solvers::SqpCounters first_counters;
     for (int r = 0; r < repeat; ++r) {
         hven::solvers::test_support::HsProblem hs = hven::solvers::test_support::make_hs(number);
-        SqpOptions opts;
-        opts.qp_mode = mode;
-        SqpSolver driver(opts);
+        SqpSolver driver(hs_options());
         if (sink != nullptr) {
             sink->reset();
             driver.attach_trace(sink);
@@ -2185,6 +2171,17 @@ HsRow run_hs_cell(int number, QpMode mode, int repeat, int warmup, CountingTrace
             static_cast<long long>(sol.counters.elastic_from_ipqp_escape);
         row.ipqp_fallback_rung_b = static_cast<long long>(sol.counters.ipqp_fallback_rung_b);
         row.history_rows = static_cast<long long>(sol.history.size());
+        const auto &ssn = sol.counters.ssn;
+        row.ssn_iters = static_cast<long long>(ssn.ssn_iters);
+        row.ssn_escapes = static_cast<long long>(ssn.ssn_escapes);
+        row.esc_budget = static_cast<long long>(ssn.ssn_escape_budget);
+        row.esc_singular = static_cast<long long>(ssn.ssn_escape_singular);
+        row.esc_no_contraction = static_cast<long long>(ssn.ssn_escape_no_contraction);
+        row.esc_infeasible_suspect = static_cast<long long>(ssn.ssn_escape_infeasible_suspect);
+        row.esc_indefinite = static_cast<long long>(ssn.ssn_escape_indefinite);
+        row.ssn_prox_updates = static_cast<long long>(ssn.ssn_prox_updates);
+        row.ssn_refinements = static_cast<long long>(ssn.ssn_refinements);
+        row.ssn_refine_refused = static_cast<long long>(ssn.ssn_refine_refused);
         if (sink != nullptr) {
             row.ev_dispatch = sink->dispatch;
             row.ev_soc_resolve = sink->soc_resolve;
@@ -2274,7 +2271,7 @@ std::string hs_utc_stamp() {
 /// anything here, and it is the producer of PINNED committed artifacts. A
 /// measurement commit does not edit the code that writes pinned evidence.
 void write_hs_provenance(std::ostream &os, int argc, char **argv, const std::string &engine,
-                         int repeat, int warmup, bool trace_sink) {
+                         const EngineLevers &levers, int repeat, int warmup, bool trace_sink) {
     const char *mkl = std::getenv("MKL_NUM_THREADS");
     const char *omp = std::getenv("OMP_NUM_THREADS");
     os << "# hven_sqp_corpus HS-suite provenance (M6 W5 T6.d leg 2)\n";
@@ -2289,6 +2286,7 @@ void write_hs_provenance(std::ostream &os, int argc, char **argv, const std::str
     os << fmt::format("# host: {}\n", hs_host());
     os << fmt::format("# generated: {}\n", hs_utc_stamp());
     os << "# cells: tests/sqp/support/hs_problems.h hs_numbers()\n";
+    write_ssn_lever_lines(os, levers);
     os << "# aggregation: wall_median_s is the MEDIAN of `repeat` in-process solves; the corpus\n";
     os << "#              figure is the SUM of per-cell medians, never a mean of ratios.\n";
     os << "# NOT gate-scored, and no wall-deadline machinery: these cells run in milliseconds.\n";
@@ -2302,20 +2300,24 @@ void write_hs_header(std::ostream &os) {
           "counters_stable,status,f,majors,qp_minors,factorizations,soc_steps,soc_applied,"
           "elastic_activations,elastic_escalations,elastic_from_ipqp_escape,ipqp_fallback_rung_b,"
           "history_rows,ev_dispatch,ev_soc_resolve,ev_elastic_rung,ev_fallback_rung_b,"
-          "ev_ssn_warm_grade\n";
+          "ev_ssn_warm_grade,ssn_iters,ssn_escapes,esc_budget,esc_singular,esc_no_contraction,"
+          "esc_infeasible_suspect,esc_indefinite,ssn_prox_updates,ssn_refinements,"
+          "ssn_refine_refused\n";
 }
 
 void write_hs_row(std::ostream &os, const HsRow &r, const std::string &engine, bool trace_sink,
                   int repeat, int warmup) {
-    os << fmt::format("{},{},{},{},{},{:.9e},{:.9e},{:.9e},{:.6f},{:.6f},{},{},{:.17g},{},{},{},{},"
-                      "{},{},{},{},{},{},{},{},{},{},{}\n",
-                      r.number, engine, trace_sink ? "sink" : "off", repeat, warmup,
-                      r.wall_median_s, r.wall_min_s, r.wall_max_s, r.spread_pct, r.median_se_pct,
-                      r.counters_stable ? 1 : 0, to_string(r.status), r.f, r.majors, r.qp_minors,
-                      r.factorizations, r.soc_steps, r.soc_applied, r.elastic_activations,
-                      r.elastic_escalations, r.elastic_from_ipqp_escape, r.ipqp_fallback_rung_b,
-                      r.history_rows, r.ev_dispatch, r.ev_soc_resolve, r.ev_elastic_rung,
-                      r.ev_fallback_rung_b, r.ev_ssn_warm_grade);
+    os << fmt::format(
+        "{},{},{},{},{},{:.9e},{:.9e},{:.9e},{:.6f},{:.6f},{},{},{:.17g},{},{},{},{},"
+        "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
+        r.number, engine, trace_sink ? "sink" : "off", repeat, warmup, r.wall_median_s,
+        r.wall_min_s, r.wall_max_s, r.spread_pct, r.median_se_pct, r.counters_stable ? 1 : 0,
+        to_string(r.status), r.f, r.majors, r.qp_minors, r.factorizations, r.soc_steps,
+        r.soc_applied, r.elastic_activations, r.elastic_escalations, r.elastic_from_ipqp_escape,
+        r.ipqp_fallback_rung_b, r.history_rows, r.ev_dispatch, r.ev_soc_resolve, r.ev_elastic_rung,
+        r.ev_fallback_rung_b, r.ev_ssn_warm_grade, r.ssn_iters, r.ssn_escapes, r.esc_budget,
+        r.esc_singular, r.esc_no_contraction, r.esc_infeasible_suspect, r.esc_indefinite,
+        r.ssn_prox_updates, r.ssn_refinements, r.ssn_refine_refused);
 }
 
 // =============================================================================
@@ -2369,6 +2371,11 @@ void write_interior_provenance_head(std::ostream &os, int argc, char **argv,
     os << fmt::format("# levers: kkt_tol={:.9e} econ_tol={:.9e} icon_tol={:.9e} barr_tol={:.9e}\n",
                       levers.kkt_tol, levers.econ_tol, levers.icon_tol, levers.barr_tol);
     os << fmt::format("# levers: bound_relax_factor={:.9e}\n", levers.bound_relax_factor);
+    // M7 W2 D1 (2026-09-18): the two globalization fields this leg does NOT
+    // set, stamped because they decide the trajectory and the header above
+    // claims a row is reproducible from this file alone. See
+    // interior_globalization_stamp() in bench/ipm_corpus_leg.h.
+    os << fmt::format("# levers: {}\n", interior_globalization_stamp());
 }
 
 // THE SINGLE-ROW MODE'S header (M6 W5 T8.9r). One base row, so the leg's
@@ -2682,6 +2689,13 @@ int main(int argc, char **argv) {
                         ++callback_events;
                         return hven::solvers::CallbackAction::kContinue;
                     };
+                // M7 W0 T2. THE SAME CALLBACK, A NARROWER DECLARATION. The
+                // `count-scalars` arm changes nothing about the observer -- it
+                // still increments a long long and returns kContinue -- only
+                // what the driver is asked to prepare for it.
+                levers.iteration_payload = args.corpus_callback_scalars
+                                               ? hven::solvers::IterationPayload::kScalars
+                                               : hven::solvers::IterationPayload::kAll;
             }
             run_internal_one(*args.internal_run_one, *args.engine, *args.internal_out, levers,
                              args.internal_force_child_throw, args.internal_force_child_abort);
@@ -2691,8 +2705,9 @@ int main(int argc, char **argv) {
             // its stderr into the leg's transcript, so this lands where a
             // reader of the transcript can see that the observer was reached.
             if (args.corpus_callback) {
-                fmt::print(stderr, "ATTACHED-CALLBACK cell={} engine={} events={}\n",
-                           *args.internal_run_one, *args.engine, callback_events);
+                fmt::print(stderr, "ATTACHED-CALLBACK cell={} engine={} payload={} events={}\n",
+                           *args.internal_run_one, *args.engine,
+                           args.corpus_callback_scalars ? "scalars" : "all", callback_events);
             }
             if (args.corpus_trace_sink) {
                 fmt::print(stderr,
@@ -2749,8 +2764,14 @@ int main(int argc, char **argv) {
                 throw std::invalid_argument(
                     fmt::format("--csv: could not open '{}' for writing", *args.csv));
             }
-            write_hs_provenance(out, argc, argv, *args.engine, args.repeat, args.hs_warmup,
-                                args.hs_trace_sink);
+            EngineLevers hs_levers;
+            hs_levers.ssn_prox_carry = args.ssn_prox_carry;
+            hs_levers.ssn_certify_from_face = args.ssn_certify_from_face;
+            hs_levers.ssn_sigma_rule = args.ssn_sigma_rule;
+            hs_levers.ssn_hint_rule = args.ssn_hint_rule;
+            hs_levers.ssn_infeasibility_rule = args.ssn_infeasibility_rule;
+            write_hs_provenance(out, argc, argv, *args.engine, hs_levers, args.repeat,
+                                args.hs_warmup, args.hs_trace_sink);
             write_hs_header(out);
             out.flush();
 
@@ -2765,7 +2786,8 @@ int main(int argc, char **argv) {
             long long fired_elastic = 0;
             long long fired_rung_b = 0;
             for (const int number : numbers) {
-                const HsRow row = run_hs_cell(number, mode, args.repeat, args.hs_warmup, sink_ptr);
+                const HsRow row =
+                    run_hs_cell(number, mode, hs_levers, args.repeat, args.hs_warmup, sink_ptr);
                 write_hs_row(out, row, *args.engine, args.hs_trace_sink, args.repeat,
                              args.hs_warmup);
                 out.flush();
@@ -3131,7 +3153,8 @@ int main(int argc, char **argv) {
                 write_provenance(out, argc, argv, merge_levers, args.internal_force_child_throw,
                                  args.internal_force_setup_budget_s,
                                  args.internal_force_solve_budget_s,
-                                 /*attached_callback=*/false, /*attached_sink=*/false);
+                                 /*attached_callback=*/false,
+                                 /*attached_callback_scalars=*/false, /*attached_sink=*/false);
                 write_header(out);
                 for (const CorpusOutcome &o : outcomes) {
                     write_outcome(out, o);
@@ -3178,14 +3201,16 @@ int main(int argc, char **argv) {
         }
         write_provenance(out, argc, argv, levers, args.internal_force_child_throw,
                          args.internal_force_setup_budget_s, args.internal_force_solve_budget_s,
-                         args.corpus_callback, args.corpus_trace_sink);
+                         args.corpus_callback, args.corpus_callback_scalars,
+                         args.corpus_trace_sink);
         write_header(out);
         out.flush();
 
         // THE ARM, ON THE LEG'S OWN CONSOLE LINE (M6 W6 T6), so a transcript
         // says which population it captured without a reader opening the CSV.
         fmt::print("attached observers: callback={} trace={}\n",
-                   args.corpus_callback ? "count" : "off", args.corpus_trace_sink ? "sink" : "off");
+                   callback_arm_label(args.corpus_callback, args.corpus_callback_scalars),
+                   args.corpus_trace_sink ? "sink" : "off");
 
         std::vector<CorpusOutcome> outcomes;
         outcomes.reserve(cells.size());
@@ -3197,7 +3222,8 @@ int main(int argc, char **argv) {
             CorpusOutcome outcome = run_cell_with_deadline(
                 argv[0], *cell, *args.engine, levers, args.internal_force_child_throw,
                 args.internal_force_child_abort, args.internal_force_setup_budget_s,
-                args.internal_force_solve_budget_s, args.corpus_callback, args.corpus_trace_sink);
+                args.internal_force_solve_budget_s, args.corpus_callback,
+                args.corpus_callback_scalars, args.corpus_trace_sink);
             if (outcome.engine_error) {
                 fmt::print("  -> ENGINE ERROR (scored as a non-answer, worst case): {}\n",
                            outcome.engine_error_what);

@@ -1,0 +1,327 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-release/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpEngineStructuralViolation.T7*:HsSweepCorpus.*:HsBattery.*
+[==========] Running 16 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 13 tests from HsBattery
+[ RUN      ] HsBattery.BorderMode
+[       OK ] HsBattery.BorderMode (37 ms)
+[ RUN      ] HsBattery.RefactorizeMode
+[       OK ] HsBattery.RefactorizeMode (31 ms)
+[ RUN      ] HsBattery.ModeStatusDivergenceIsEmpty
+[       OK ] HsBattery.ModeStatusDivergenceIsEmpty (65 ms)
+[ RUN      ] HsBattery.BorderModeFalseInfeasible
+[       OK ] HsBattery.BorderModeFalseInfeasible (0 ms)
+[ RUN      ] HsBattery.RefinementStepCountersOnBorderRepro
+[       OK ] HsBattery.RefinementStepCountersOnBorderRepro (0 ms)
+[ RUN      ] HsBattery.SocIsRareAndUnprofitableAcrossTheBattery
+[       OK ] HsBattery.SocIsRareAndUnprofitableAcrossTheBattery (34 ms)
+[ RUN      ] HsBattery.EveryElasticActivationRunsTheRhoLadderToItsCeiling
+[       OK ] HsBattery.EveryElasticActivationRunsTheRhoLadderToItsCeiling (34 ms)
+[ RUN      ] HsBattery.AdaptiveMuNeverSharesAMajorWithSocOrElastic
+[       OK ] HsBattery.AdaptiveMuNeverSharesAMajorWithSocOrElastic (34 ms)
+[ RUN      ] HsBattery.FeasibleStartsEndFeasibleDespiteTheLooseFunnelWidth
+[       OK ] HsBattery.FeasibleStartsEndFeasibleDespiteTheLooseFunnelWidth (31 ms)
+[ RUN      ] HsBattery.NoBatteryProblemEverCertifiesInfeasibility
+[       OK ] HsBattery.NoBatteryProblemEverCertifiesInfeasibility (65 ms)
+[ RUN      ] HsBattery.AggregateCostIsRecordedAndBounded
+[       OK ] HsBattery.AggregateCostIsRecordedAndBounded (34 ms)
+[ RUN      ] HsBattery.CrashBasisIsANullResultOnTheBatteryWithTwoBoundSeededExceptions
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_hs_battery.cpp:1043: Failure
+Expected equality of these values:
+  minors_off
+    Which is: 846
+  802
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_hs_battery.cpp:1044: Failure
+Expected equality of these values:
+  minors_on
+    Which is: 843
+  799
+
+[  FAILED  ] HsBattery.CrashBasisIsANullResultOnTheBatteryWithTwoBoundSeededExceptions (68 ms)
+[ RUN      ] HsBattery.TableCoversEveryShippedProblem
+[       OK ] HsBattery.TableCoversEveryShippedProblem (0 ms)
+[----------] 13 tests from HsBattery (439 ms total)
+
+[----------] 1 test from HsSweepCorpus
+[ RUN      ] HsSweepCorpus.Corpus
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_hs_sweeps.cpp:840: Failure
+Value of: c.reached_p1
+  Actual: false
+Expected: true
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_hs_sweeps.cpp:830: HS10/warm KD=0 SOC=0
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_hs_sweeps.cpp:841: Failure
+Expected equality of these values:
+  0
+  c.status_failures
+    Which is: 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_hs_sweeps.cpp:830: HS10/warm KD=0 SOC=0
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_hs_sweeps.cpp:840: Failure
+Value of: c.reached_p1
+  Actual: false
+Expected: true
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_hs_sweeps.cpp:830: HS10/warm KD=0 SOC=1
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_hs_sweeps.cpp:841: Failure
+Expected equality of these values:
+  0
+  c.status_failures
+    Which is: 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_hs_sweeps.cpp:830: HS10/warm KD=0 SOC=1
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_hs_sweeps.cpp:840: Failure
+Value of: c.reached_p1
+  Actual: false
+Expected: true
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_hs_sweeps.cpp:830: HS10/warm KD=1 SOC=0
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_hs_sweeps.cpp:841: Failure
+Expected equality of these values:
+  0
+  c.status_failures
+    Which is: 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_hs_sweeps.cpp:830: HS10/warm KD=1 SOC=0
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_hs_sweeps.cpp:840: Failure
+Value of: c.reached_p1
+  Actual: false
+Expected: true
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_hs_sweeps.cpp:830: HS10/warm KD=1 SOC=1
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_hs_sweeps.cpp:841: Failure
+Expected equality of these values:
+  0
+  c.status_failures
+    Which is: 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_hs_sweeps.cpp:830: HS10/warm KD=1 SOC=1
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_hs_sweeps.cpp:885: Failure
+Expected equality of these values:
+  full.size()
+    Which is: 7
+  got.size()
+    Which is: 2
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_hs_sweeps.cpp:879: HS10/warm KD=0 SOC=0
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_hs_sweeps.cpp:986: Failure
+Expected equality of these values:
+  warm.fvals.size()
+    Which is: 2
+  cold.fvals.size()
+    Which is: 7
+HS10
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_hs_sweeps.cpp:1101: Failure
+Expected equality of these values:
+  26
+  problem("HS10").cell[kArmWarm][kOn][kOn].full_step_majors
+    Which is: 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_hs_sweeps.cpp:1102: Failure
+Expected equality of these values:
+  40
+  problem("HS10").cell[kArmWarm][kOn][kOn].majors
+    Which is: 15
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_hs_sweeps.cpp:1244: Failure
+Expected equality of these values:
+  22
+  extra_minors
+    Which is: 26
+
+prob   arm   KD   SOC  solves majors minors fact   acc/rej  soc a/i/r/n   elas a/e  restor fsMaj  wd  lvl c/w/h fail
+HS10   cold  on   on   7      96     1292   152    96/0     0/0/0/0       56/336    0      0      0   7/0/0    0
+HS10   cold  on   off  7      96     1292   152    96/0     0/0/0/0       56/336    0      0      0   7/0/0    0
+HS10   cold  off  on   7      96     1292   152    96/0     0/0/0/0       56/336    0      0      0   7/0/0    0
+HS10   cold  off  off  7      96     1292   152    96/0     0/0/0/0       56/336    0      0      0   7/0/0    0
+HS10   warm  on   on   2      15     686    23     14/1     0/0/0/0       8/48      0      1      0   1/1/0    1
+HS10   warm  on   off  2      15     686    23     14/1     0/0/0/0       8/48      0      1      0   1/1/0    1
+HS10   warm  off  on   2      15     686    23     14/1     0/0/0/0       8/48      0      0      0   1/1/0    1
+HS10   warm  off  off  2      15     686    23     14/1     0/0/0/0       8/48      0      0      0   1/1/0    1
+HS15   cold  on   on   7      86     1079   185    70/16    0/0/2/2       48/288    0      0      0   7/0/0    0
+HS15   cold  on   off  7      86     1074   185    70/16    0/0/0/0       48/288    0      0      0   7/0/0    0
+HS15   cold  off  on   7      86     1079   185    70/16    0/0/2/2       48/288    0      0      0   7/0/0    0
+HS15   cold  off  off  7      86     1074   185    70/16    0/0/0/0       48/288    0      0      0   7/0/0    0
+HS15   warm  on   on   5      30     93     31     26/3     0/0/0/0       1/6       0      23     0   1/4/0    1
+HS15   warm  on   off  5      30     93     31     26/3     0/0/0/0       1/6       0      23     0   1/4/0    1
+HS15   warm  off  on   5      30     93     31     26/3     0/0/0/0       1/6       0      0      0   1/4/0    1
+HS15   warm  off  off  5      30     93     31     26/3     0/0/0/0       1/6       0      0      0   1/4/0    1
+HS26   cold  on   on   5      88     256    88     88/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS26   cold  on   off  5      88     256    88     88/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS26   cold  off  on   5      88     256    88     88/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS26   cold  off  off  5      88     256    88     88/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS26   warm  on   on   5      29     164    29     29/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS26   warm  on   off  5      29     164    29     29/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS26   warm  off  on   5      29     164    29     29/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS26   warm  off  off  5      29     164    29     29/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS33   cold  on   on   5      22     84     54     22/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS33   cold  on   off  5      22     84     54     22/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS33   cold  off  on   5      22     84     54     22/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS33   cold  off  off  5      22     84     54     22/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS33   warm  on   on   5      16     56     46     16/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS33   warm  on   off  5      16     56     46     16/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS33   warm  off  on   5      16     56     46     16/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS33   warm  off  off  5      16     56     46     16/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS40   cold  on   on   5      28     64     32     28/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS40   cold  on   off  5      28     64     32     28/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS40   cold  off  on   5      28     64     32     28/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS40   cold  off  off  5      28     64     32     28/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS40   warm  on   on   5      16     32     16     16/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS40   warm  on   off  5      16     32     16     16/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS40   warm  off  on   5      16     32     16     16/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS40   warm  off  off  5      16     32     16     16/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS77   cold  on   on   5      56     154    55     48/8     0/0/5/5       0/0       0      0      0   5/0/0    0
+HS77   cold  on   off  5      56     139    52     48/8     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS77   cold  off  on   5      56     154    55     48/8     0/0/5/5       0/0       0      0      0   5/0/0    0
+HS77   cold  off  off  5      56     139    52     48/8     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS77   warm  on   on   5      25     62     23     23/2     0/0/2/2       0/0       0      13     0   1/4/0    0
+HS77   warm  on   off  5      25     56     23     23/2     0/0/0/0       0/0       0      13     0   1/4/0    0
+HS77   warm  off  on   5      25     62     23     23/2     0/0/2/2       0/0       0      0      0   1/4/0    0
+HS77   warm  off  off  5      25     56     23     23/2     0/0/0/0       0/0       0      0      0   1/4/0    0
+
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_hs_sweeps.cpp:1319: Failure
+Expected equality of these values:
+  3365
+  total_minors
+    Which is: 4022
+
+prob   arm   KD   SOC  solves majors minors fact   acc/rej  soc a/i/r/n   elas a/e  restor fsMaj  wd  lvl c/w/h fail
+HS10   cold  on   on   7      96     1292   152    96/0     0/0/0/0       56/336    0      0      0   7/0/0    0
+HS10   cold  on   off  7      96     1292   152    96/0     0/0/0/0       56/336    0      0      0   7/0/0    0
+HS10   cold  off  on   7      96     1292   152    96/0     0/0/0/0       56/336    0      0      0   7/0/0    0
+HS10   cold  off  off  7      96     1292   152    96/0     0/0/0/0       56/336    0      0      0   7/0/0    0
+HS10   warm  on   on   2      15     686    23     14/1     0/0/0/0       8/48      0      1      0   1/1/0    1
+HS10   warm  on   off  2      15     686    23     14/1     0/0/0/0       8/48      0      1      0   1/1/0    1
+HS10   warm  off  on   2      15     686    23     14/1     0/0/0/0       8/48      0      0      0   1/1/0    1
+HS10   warm  off  off  2      15     686    23     14/1     0/0/0/0       8/48      0      0      0   1/1/0    1
+HS15   cold  on   on   7      86     1079   185    70/16    0/0/2/2       48/288    0      0      0   7/0/0    0
+HS15   cold  on   off  7      86     1074   185    70/16    0/0/0/0       48/288    0      0      0   7/0/0    0
+HS15   cold  off  on   7      86     1079   185    70/16    0/0/2/2       48/288    0      0      0   7/0/0    0
+HS15   cold  off  off  7      86     1074   185    70/16    0/0/0/0       48/288    0      0      0   7/0/0    0
+HS15   warm  on   on   5      30     93     31     26/3     0/0/0/0       1/6       0      23     0   1/4/0    1
+HS15   warm  on   off  5      30     93     31     26/3     0/0/0/0       1/6       0      23     0   1/4/0    1
+HS15   warm  off  on   5      30     93     31     26/3     0/0/0/0       1/6       0      0      0   1/4/0    1
+HS15   warm  off  off  5      30     93     31     26/3     0/0/0/0       1/6       0      0      0   1/4/0    1
+HS26   cold  on   on   5      88     256    88     88/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS26   cold  on   off  5      88     256    88     88/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS26   cold  off  on   5      88     256    88     88/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS26   cold  off  off  5      88     256    88     88/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS26   warm  on   on   5      29     164    29     29/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS26   warm  on   off  5      29     164    29     29/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS26   warm  off  on   5      29     164    29     29/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS26   warm  off  off  5      29     164    29     29/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS33   cold  on   on   5      22     84     54     22/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS33   cold  on   off  5      22     84     54     22/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS33   cold  off  on   5      22     84     54     22/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS33   cold  off  off  5      22     84     54     22/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS33   warm  on   on   5      16     56     46     16/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS33   warm  on   off  5      16     56     46     16/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS33   warm  off  on   5      16     56     46     16/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS33   warm  off  off  5      16     56     46     16/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS40   cold  on   on   5      28     64     32     28/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS40   cold  on   off  5      28     64     32     28/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS40   cold  off  on   5      28     64     32     28/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS40   cold  off  off  5      28     64     32     28/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS40   warm  on   on   5      16     32     16     16/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS40   warm  on   off  5      16     32     16     16/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS40   warm  off  on   5      16     32     16     16/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS40   warm  off  off  5      16     32     16     16/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS77   cold  on   on   5      56     154    55     48/8     0/0/5/5       0/0       0      0      0   5/0/0    0
+HS77   cold  on   off  5      56     139    52     48/8     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS77   cold  off  on   5      56     154    55     48/8     0/0/5/5       0/0       0      0      0   5/0/0    0
+HS77   cold  off  off  5      56     139    52     48/8     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS77   warm  on   on   5      25     62     23     23/2     0/0/2/2       0/0       0      13     0   1/4/0    0
+HS77   warm  on   off  5      25     56     23     23/2     0/0/0/0       0/0       0      13     0   1/4/0    0
+HS77   warm  off  on   5      25     62     23     23/2     0/0/2/2       0/0       0      0      0   1/4/0    0
+HS77   warm  off  off  5      25     56     23     23/2     0/0/0/0       0/0       0      0      0   1/4/0    0
+
+
+
+prob   arm   KD   SOC  solves majors minors fact   acc/rej  soc a/i/r/n   elas a/e  restor fsMaj  wd  lvl c/w/h fail
+HS10   cold  on   on   7      96     1292   152    96/0     0/0/0/0       56/336    0      0      0   7/0/0    0
+HS10   cold  on   off  7      96     1292   152    96/0     0/0/0/0       56/336    0      0      0   7/0/0    0
+HS10   cold  off  on   7      96     1292   152    96/0     0/0/0/0       56/336    0      0      0   7/0/0    0
+HS10   cold  off  off  7      96     1292   152    96/0     0/0/0/0       56/336    0      0      0   7/0/0    0
+HS10   warm  on   on   2      15     686    23     14/1     0/0/0/0       8/48      0      1      0   1/1/0    1
+HS10   warm  on   off  2      15     686    23     14/1     0/0/0/0       8/48      0      1      0   1/1/0    1
+HS10   warm  off  on   2      15     686    23     14/1     0/0/0/0       8/48      0      0      0   1/1/0    1
+HS10   warm  off  off  2      15     686    23     14/1     0/0/0/0       8/48      0      0      0   1/1/0    1
+HS15   cold  on   on   7      86     1079   185    70/16    0/0/2/2       48/288    0      0      0   7/0/0    0
+HS15   cold  on   off  7      86     1074   185    70/16    0/0/0/0       48/288    0      0      0   7/0/0    0
+HS15   cold  off  on   7      86     1079   185    70/16    0/0/2/2       48/288    0      0      0   7/0/0    0
+HS15   cold  off  off  7      86     1074   185    70/16    0/0/0/0       48/288    0      0      0   7/0/0    0
+HS15   warm  on   on   5      30     93     31     26/3     0/0/0/0       1/6       0      23     0   1/4/0    1
+HS15   warm  on   off  5      30     93     31     26/3     0/0/0/0       1/6       0      23     0   1/4/0    1
+HS15   warm  off  on   5      30     93     31     26/3     0/0/0/0       1/6       0      0      0   1/4/0    1
+HS15   warm  off  off  5      30     93     31     26/3     0/0/0/0       1/6       0      0      0   1/4/0    1
+HS26   cold  on   on   5      88     256    88     88/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS26   cold  on   off  5      88     256    88     88/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS26   cold  off  on   5      88     256    88     88/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS26   cold  off  off  5      88     256    88     88/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS26   warm  on   on   5      29     164    29     29/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS26   warm  on   off  5      29     164    29     29/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS26   warm  off  on   5      29     164    29     29/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS26   warm  off  off  5      29     164    29     29/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS33   cold  on   on   5      22     84     54     22/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS33   cold  on   off  5      22     84     54     22/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS33   cold  off  on   5      22     84     54     22/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS33   cold  off  off  5      22     84     54     22/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS33   warm  on   on   5      16     56     46     16/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS33   warm  on   off  5      16     56     46     16/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS33   warm  off  on   5      16     56     46     16/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS33   warm  off  off  5      16     56     46     16/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS40   cold  on   on   5      28     64     32     28/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS40   cold  on   off  5      28     64     32     28/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS40   cold  off  on   5      28     64     32     28/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS40   cold  off  off  5      28     64     32     28/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS40   warm  on   on   5      16     32     16     16/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS40   warm  on   off  5      16     32     16     16/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS40   warm  off  on   5      16     32     16     16/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS40   warm  off  off  5      16     32     16     16/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS77   cold  on   on   5      56     154    55     48/8     0/0/5/5       0/0       0      0      0   5/0/0    0
+HS77   cold  on   off  5      56     139    52     48/8     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS77   cold  off  on   5      56     154    55     48/8     0/0/5/5       0/0       0      0      0   5/0/0    0
+HS77   cold  off  off  5      56     139    52     48/8     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS77   warm  on   on   5      25     62     23     23/2     0/0/2/2       0/0       0      13     0   1/4/0    0
+HS77   warm  on   off  5      25     56     23     23/2     0/0/0/0       0/0       0      13     0   1/4/0    0
+HS77   warm  off  on   5      25     62     23     23/2     0/0/2/2       0/0       0      0      0   1/4/0    0
+HS77   warm  off  off  5      25     56     23     23/2     0/0/0/0       0/0       0      0      0   1/4/0    0
+
+[  FAILED  ] HsSweepCorpus.Corpus (1023 ms)
+[----------] 1 test from HsSweepCorpus (1023 ms total)
+
+[----------] 2 tests from QpEngineStructuralViolation
+[ RUN      ] QpEngineStructuralViolation.T7ACertifiedInfeasibleExitRETURNSTheRefinedPointInBothAlgebras
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_solver.cpp:11074: Failure
+Expected equality of these values:
+  latched_border.factorizations
+    Which is: 4
+  3
+the twin bought no factorization of its own
+
+[  FAILED  ] QpEngineStructuralViolation.T7ACertifiedInfeasibleExitRETURNSTheRefinedPointInBothAlgebras (36 ms)
+[ RUN      ] QpEngineStructuralViolation.T7TheFeasibleCensusHalfOverTheFULLDualMuSet
+[       OK ] QpEngineStructuralViolation.T7TheFeasibleCensusHalfOverTheFULLDualMuSet (25 ms)
+[----------] 2 tests from QpEngineStructuralViolation (61 ms total)
+
+[----------] Global test environment tear-down
+[==========] 16 tests from 3 test suites ran. (1524 ms total)
+[  PASSED  ] 13 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] HsBattery.CrashBasisIsANullResultOnTheBatteryWithTwoBoundSeededExceptions
+[  FAILED  ] HsSweepCorpus.Corpus
+[  FAILED  ] QpEngineStructuralViolation.T7ACertifiedInfeasibleExitRETURNSTheRefinedPointInBothAlgebras
+
+ 3 FAILED TESTS

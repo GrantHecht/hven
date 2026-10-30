@@ -1,0 +1,63 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-release/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = CorpusTask6bPhaseB.*:SqpEqualityBasis.T5Off*
+[==========] Running 2 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from CorpusTask6bPhaseB
+[ RUN      ] CorpusTask6bPhaseB.TheShippedKSsnConfigurationIsUnmovedByTheFourLevers
+[       OK ] CorpusTask6bPhaseB.TheShippedKSsnConfigurationIsUnmovedByTheFourLevers (359 ms)
+[----------] 1 test from CorpusTask6bPhaseB (359 ms total)
+
+[----------] 1 test from SqpEqualityBasis
+[ RUN      ] SqpEqualityBasis.T5OffIsByteIdenticalToThePreE1BaseOnADependentQp
+[ e4fix2 ] T5OFF GOT BEGIN
+kWalk status 0
+kWalk counters 2 6 2 2 0 0
+kWalk x 3fe901571ed3c507 3fe9d26de7dfd51c 3fe8d116c90c1015 3fcbfaa384b0ebe4 3fde5dd26de7dfd5 3ff0f47335124678 3fd181f94652c01a 3fd181f94652c01c bfdc2e332bb6e61e 3fee171995db730e 3fd24fd38df659c3
+kWalk lambda_e bfb42e69c51a4ef7 bfc308ec339f09b0 bfc0862f41721474 3fd6d3282bcf22cf c003ebffe20ecbb0 bfd7bc6567e429c2 3fdb94beff9eb013 3ff7ccc5507fb8e2 3fee2a481b5e79d2 bfc308ec339f09b0
+kSsn status 0
+kSsn counters 2 0 11 2 0 0
+kSsn x 3fe901571ed3c506 3fe9d26de7dfd51d 3fe8d116c90c1015 3fcbfaa384b0ebe4 3fde5dd26de7dfd3 3ff0f47335124678 3fd181f94652c01b 3fd181f94652c01c bfdc2e332bb6e61e 3fee171995db730e 3fd24fd38df659c3
+kSsn lambda_e bfb42e69e059c13e bfc308ec3a6ee643 bfc0862f4f11cd98 3fd6d32824ff463b c003ebffe2a9c48a bfd7bc656cbbf094 3fdb94befac6e942 3ff7ccc54f49c72e 3fee2a4818f29669 bfc308ec3a6ee643
+kIpm status 0
+kIpm counters 2 0 30 2 0 0
+kIpm x 3fe901571ed3c506 3fe9d26de7dfd51c 3fe8d116c90c1015 3fcbfaa384b0ebe4 3fde5dd26de7dfd4 3ff0f47335124678 3fd181f94652c01c 3fd181f94652c01c bfdc2e332bb6e620 3fee171995db7310 3fd24fd38df659c5
+kIpm lambda_e bfb42e69edf97a63 bfc308ec3dd6d48c bfc0862f55e1aa2a 3fd6d328219757f2 c003ebffe2f3ad71 bfd7bc656f0b37c2 3fdb94bef877a218 3ff7ccc54eb5f563 3fee2a4817caf2d1 bfc308ec3dd6d48c
+[ e4fix2 ] T5OFF GOT END
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:688: Failure
+Expected equality of these values:
+  got
+    Which is: "kWalk status 0\nkWalk counters 2 6 2 2 0 0\nkWalk x 3fe901571ed3c507 3fe9d26de7dfd51c 3fe8d116c90c1015 3fcbfaa384b0ebe4 3fde5dd26de7dfd5 3ff0f47335124678 3fd181f94652c01a 3fd181f94652c01c bfdc2e332bb6e61e 3fee171995db730e 3fd24fd38df659c3\nkWalk lambda_e bfb42e69c51a4ef7 bfc308ec339f09b0 bfc0862f41721474 3fd6d3282bcf22cf c003ebffe20ecbb0 bfd7bc6567e429c2 3fdb94beff9eb013 3ff7ccc5507fb8e2 3fee2a481b5e79d2 bfc308ec339f09b0\nkSsn status 0\nkSsn counters 2 0 11 2 0 0\nkSsn x 3fe901571ed3c506 3fe9d26de7dfd51d 3fe8d116c90c1015 3fcbfaa384b0ebe4 3fde5dd26de7dfd3 3ff0f47335124678 3fd181f94652c01b 3fd181f94652c01c bfdc2e332bb6e61e 3fee171995db730e 3fd24fd38df659c3\nkSsn lambda_e bfb42e69e059c13e bfc308ec3a6ee643 bfc0862f4f11cd98 3fd6d32824ff463b c003ebffe2a9c48a bfd7bc656cbbf094 3fdb94befac6e942 3ff7ccc54f49c72e 3fee2a4818f29669 bfc308ec3a6ee643\nkIpm status 0\nkIpm counters 2 0 30 2 0 0\nkIpm x 3fe901571ed3c506 3fe9d26de7dfd51c 3fe8d116c90c1015 3fcbfaa384b0ebe4 3fde5dd26de7dfd4 3ff0f47335124678 3fd181f94652c01c 3fd181f94652c01c bfdc2e332bb6e620 3fee171995db7310 3fd24fd38df659c5\nkIpm lambda_e bfb42e69edf97a63 bfc308ec3dd6d48c bfc0862f55e1aa2a 3fd6d328219757f2 c003ebffe2f3ad71 bfd7bc656f0b37c2 3fdb94bef877a218 3ff7ccc54eb5f563 3fee2a4817caf2d1 bfc308ec3dd6d48c\n"
+  golden
+    Which is: "kWalk status 0\nkWalk counters 2 6 2 2 0 0\nkWalk x 3fe901571ed3c507 3fe9d26de7dfd51d 3fe8d116c90c1016 3fcbfaa384b0ebe4 3fde5dd26de7dfd5 3ff0f47335124678 3fd181f94652c01b 3fd181f94652c01d bfdc2e332bb6e61c 3fee171995db730d 3fd24fd38df659c4\nkWalk lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe20a06fc bfd7bc6567be0423 3fdb94beffc4d5b3 3ff7ccc55089424b 3fee2a481b718ca3 bfc308ec25ff508c\nkSsn status 0\nkSsn counters 2 0 11 2 0 0\nkSsn x 3fe901571ed3c507 3fe9d26de7dfd51d 3fe8d116c90c1016 3fcbfaa384b0ebe4 3fde5dd26de7dfd5 3ff0f47335124678 3fd181f94652c01a 3fd181f94652c01c bfdc2e332bb6e61f 3fee171995db730e 3fd24fd38df659c4\nkSsn lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe1c01e16 bfd7bc65656ebcf2 3fdb94bf02141ce3 3ff7ccc5511d1417 3fee2a481c993039 bfc308ec25ff508c\nkIpm status 0\nkIpm counters 2 0 30 2 0 0\nkIpm x 3fe901571ed3c507 3fe9d26de7dfd51d 3fe8d116c90c1016 3fcbfaa384b0ebe4 3fde5dd26de7dfd5 3ff0f47335124678 3fd181f94652c01a 3fd181f94652c01c bfdc2e332bb6e61f 3fee171995db730e 3fd24fd38df659c4\nkIpm lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe1c01e16 bfd7bc65656ebcf2 3fdb94bf02141ce3 3ff7ccc5511d1417 3fee2a481c993039 bfc308ec25ff508c\n"
+With diff:
+@@ -1,12 +1,12 @@
+ kWalk status 0
+ kWalk counters 2 6 2 2 0 0
+-kWalk x 3fe901571ed3c507 3fe9d26de7dfd51c 3fe8d116c90c1015 3fcbfaa384b0ebe4 3fde5dd26de7dfd5 3ff0f47335124678 3fd181f94652c01a 3fd181f94652c01c bfdc2e332bb6e61e 3fee171995db730e 3fd24fd38df659c3
+-kWalk lambda_e bfb42e69c51a4ef7 bfc308ec339f09b0 bfc0862f41721474 3fd6d3282bcf22cf c003ebffe20ecbb0 bfd7bc6567e429c2 3fdb94beff9eb013 3ff7ccc5507fb8e2 3fee2a481b5e79d2 bfc308ec339f09b0
++kWalk x 3fe901571ed3c507 3fe9d26de7dfd51d 3fe8d116c90c1016 3fcbfaa384b0ebe4 3fde5dd26de7dfd5 3ff0f47335124678 3fd181f94652c01b 3fd181f94652c01d bfdc2e332bb6e61c 3fee171995db730d 3fd24fd38df659c4
++kWalk lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe20a06fc bfd7bc6567be0423 3fdb94beffc4d5b3 3ff7ccc55089424b 3fee2a481b718ca3 bfc308ec25ff508c
+ kSsn status 0
+ kSsn counters 2 0 11 2 0 0
+-kSsn x 3fe901571ed3c506 3fe9d26de7dfd51d 3fe8d116c90c1015 3fcbfaa384b0ebe4 3fde5dd26de7dfd3 3ff0f47335124678 3fd181f94652c01b 3fd181f94652c01c bfdc2e332bb6e61e 3fee171995db730e 3fd24fd38df659c3
+-kSsn lambda_e bfb42e69e059c13e bfc308ec3a6ee643 bfc0862f4f11cd98 3fd6d32824ff463b c003ebffe2a9c48a bfd7bc656cbbf094 3fdb94befac6e942 3ff7ccc54f49c72e 3fee2a4818f29669 bfc308ec3a6ee643
++kSsn x 3fe901571ed3c507 3fe9d26de7dfd51d 3fe8d116c90c1016 3fcbfaa384b0ebe4 3fde5dd26de7dfd5 3ff0f47335124678 3fd181f94652c01a 3fd181f94652c01c bfdc2e332bb6e61f 3fee171995db730e 3fd24fd38df659c4
++kSsn lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe1c01e16 bfd7bc65656ebcf2 3fdb94bf02141ce3 3ff7ccc5511d1417 3fee2a481c993039 bfc308ec25ff508c
+ kIpm status 0
+ kIpm counters 2 0 30 2 0 0
+-kIpm x 3fe901571ed3c506 3fe9d26de7dfd51c 3fe8d116c90c1015 3fcbfaa384b0ebe4 3fde5dd26de7dfd4 3ff0f47335124678 3fd181f94652c01c 3fd181f94652c01c bfdc2e332bb6e620 3fee171995db7310 3fd24fd38df659c5
+-kIpm lambda_e bfb42e69edf97a63 bfc308ec3dd6d48c bfc0862f55e1aa2a 3fd6d328219757f2 c003ebffe2f3ad71 bfd7bc656f0b37c2 3fdb94bef877a218 3ff7ccc54eb5f563 3fee2a4817caf2d1 bfc308ec3dd6d48c\n
++kIpm x 3fe901571ed3c507 3fe9d26de7dfd51d 3fe8d116c90c1016 3fcbfaa384b0ebe4 3fde5dd26de7dfd5 3ff0f47335124678 3fd181f94652c01a 3fd181f94652c01c bfdc2e332bb6e61f 3fee171995db730e 3fd24fd38df659c4
++kIpm lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe1c01e16 bfd7bc65656ebcf2 3fdb94bf02141ce3 3ff7ccc5511d1417 3fee2a481c993039 bfc308ec25ff508c\n
+
+
+[  FAILED  ] SqpEqualityBasis.T5OffIsByteIdenticalToThePreE1BaseOnADependentQp (2 ms)
+[----------] 1 test from SqpEqualityBasis (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 2 test suites ran. (361 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] SqpEqualityBasis.T5OffIsByteIdenticalToThePreE1BaseOnADependentQp
+
+ 1 FAILED TEST

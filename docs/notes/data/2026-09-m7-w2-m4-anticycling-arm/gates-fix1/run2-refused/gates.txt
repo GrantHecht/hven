@@ -1,0 +1,67 @@
+GATES_START 2026-09-22T09:56:14-04:00
+=== HEAD 2a148849  dirty-files=0 ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.scratch/m7w2m4fix1gates ===
+=== BEFORE=f5205770  EXPECT_DEBUG_TESTS=2714  EXPECT_RELEASE_TESTS=2715 ===
+=== HEAD_AT_START=2a148849d0eb00152de06bdf8a179f019d035a44
+=== CHANGED HEADERS: include/hven/detail/qp/qp_anti_cycling_arm.h include/hven/detail/qp/qp_walk_trace.h 
+=== CHANGED SOURCES: src/qp/qp_engine.cpp tests/CMakeLists.txt tests/qp/test_qp_anti_cycling_arm.cpp 
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2m4fix1gates/g1.sh: names no scratch path of its own
+FOREGROUND_START G1-debug 2026-09-22T09:56:14-04:00
+PGREP_EMPTY G1-debug: no foreign cell binary under my lock
+Total Test time (real) = 346.96 sec
+
+The following tests did not run:
+	456 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1668 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1669 - EqpRefinementAb.FullBattery (Disabled)
+FOREGROUND_END G1-debug 2026-09-22T10:03:24-04:00 rc=0
+WRAPPER_RC G1-debug rc=0
+ASSERT OK   G1 Debug suite failed = 0
+ASSERT OK   G1 Debug suite total = 2714
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2m4fix1gates/g2.sh: names no scratch path of its own
+FOREGROUND_START G2-debug-long 2026-09-22T10:03:24-04:00
+PGREP_EMPTY G2-debug-long: no foreign cell binary under my lock
+Test project /home/ghecht/Projects/hven/.scratch/m7w2m4fix1gates/gates-dbg
+    Start 1523: Continuation.ProbeBudgetBoundsAFailingProposal
+1/1 Test #1523: Continuation.ProbeBudgetBoundsAFailingProposal ...   Passed  673.78 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) = 673.83 sec
+FOREGROUND_END G2-debug-long 2026-09-22T10:14:38-04:00 rc=0
+WRAPPER_RC G2-debug-long rc=0
+ASSERT OK   G2 long test failed = 0
+ASSERT OK   G2 long test total = 1
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2m4fix1gates/g3.sh: names no scratch path of its own
+FOREGROUND_START G3-release 2026-09-22T10:14:38-04:00
+PGREP_EMPTY G3-release: no foreign cell binary under my lock
+Total Test time (real) = 102.16 sec
+
+The following tests did not run:
+	456 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1669 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1670 - EqpRefinementAb.FullBattery (Disabled)
+FOREGROUND_END G3-release 2026-09-22T10:17:57-04:00 rc=0
+WRAPPER_RC G3-release rc=0
+ASSERT OK   G3 Release suite failed = 0
+ASSERT OK   G3 Release suite total = 2715
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2m4fix1gates/g4.sh: names no scratch path of its own
+FOREGROUND_START G4-replay 2026-09-22T10:17:57-04:00
+PGREP_EMPTY G4-replay: no foreign cell binary under my lock
+ran head-walk rc=0
+ran head-ssn rc=0
+ran head-ipm rc=0
+=== M6 CLOSE HEAD-walk vs M7 W2 M4 HEAD-walk === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+=== M6 CLOSE HEAD-ssn vs M7 W2 M4 HEAD-ssn === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+=== M6 CLOSE HEAD-ipm vs M7 W2 M4 HEAD-ipm === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+FOREGROUND_END G4-replay 2026-09-22T10:22:06-04:00 rc=0
+WRAPPER_RC G4-replay rc=0
+ASSERT OK   replay lines at 27/75/0 = 3
+ASSERT OK   replay lines total = 3
+REFUSED: the gate segment /home/ghecht/Projects/hven/.scratch/m7w2m4fix1gates/g5.sh names a scratch path of its own.
+         Segments read GATES_SCRATCH so that a copied runner cannot
+         carry the previous round's tree into this one:
+4:# The section digest lives beside the checker in the scratch copy, for the same

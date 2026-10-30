@@ -319,6 +319,19 @@ struct SqpWarmStart {
     // feeding that point back would override the corrected x0 a caller
     // retries with (EXACTLY ONE EXIT IS EXCLUDED, above).
     bool valid = false;
+
+    // THE COLUMN LAYER'S DECISION, CARRIED (M7 W2 SCW; SqpOptions::column_scaling).
+    // Empty: no decision recorded, and a receiving solve under kAlways/kAuto runs the
+    // rule itself. Size n: the column factors the producing solve ran under, all 1.0
+    // when it ran the rule and left the variables unscaled. A receiving solve under
+    // kAlways/kAuto whose ingest gate admits this object takes the decision as it is
+    // (no rule probe), so a warm chain stays in the variables its cold root chose:
+    // the rule is not re-read at a converged point, where a variable sitting at a
+    // value that zeroes its own Jacobian column would read as a scale of its own.
+    // kOff ignores it. Only this native struct carries the decision: the
+    // WarmStartData payload route and interior-point crossover re-read the rule. Not part of the
+    // structure hash.
+    Vec column_factors;
 };
 
 } // namespace hven::solvers

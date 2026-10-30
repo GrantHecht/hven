@@ -1,0 +1,3 @@
+=== DEBUG SUITE at the SHIPPED commit (the >600 s test excluded) ===
+100% tests passed, 0 tests failed out of 2655
+Total Test time (real) = 290.25 sec

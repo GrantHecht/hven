@@ -1,0 +1,24 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-debug/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = SqpDriverRestorationProximity.*
+[==========] Running 7 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 7 tests from SqpDriverRestorationProximity
+[ RUN      ] SqpDriverRestorationProximity.TheCertificateIsGatedOnTheUncorrectedResidual
+[       OK ] SqpDriverRestorationProximity.TheCertificateIsGatedOnTheUncorrectedResidual (474 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheProxyWouldCertifyWhereTheExactResidualRefuses
+[       OK ] SqpDriverRestorationProximity.TheProxyWouldCertifyWhereTheExactResidualRefuses (276 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheSeedGuardFiresAndTheStartObjectiveIsHPlusP
+[       OK ] SqpDriverRestorationProximity.TheSeedGuardFiresAndTheStartObjectiveIsHPlusP (277 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheRefusalsNameTheFieldTheValueAndTheRemedy
+[       OK ] SqpDriverRestorationProximity.TheRefusalsNameTheFieldTheValueAndTheRemedy (0 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheZeroWeightGateNeverReadsTheBundle
+[       OK ] SqpDriverRestorationProximity.TheZeroWeightGateNeverReadsTheBundle (0 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheZeroWeightCertifiesOnAScaledSolve
+[       OK ] SqpDriverRestorationProximity.TheZeroWeightCertifiesOnAScaledSolve (21 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheProductionCentreIsTheRequestingIterateNotTheSeed
+[       OK ] SqpDriverRestorationProximity.TheProductionCentreIsTheRequestingIterateNotTheSeed (2 ms)
+[----------] 7 tests from SqpDriverRestorationProximity (1052 ms total)
+
+[----------] Global test environment tear-down
+[==========] 7 tests from 1 test suite ran. (1052 ms total)
+[  PASSED  ] 7 tests.

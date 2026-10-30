@@ -1,0 +1,13 @@
+M7 W2 M2b -- OFF IDENTITY: the screen arm (zeta = 0) vs M2's committed ladder
+A DIFFERENCE IS A STOP. `proximity` is this task's new key and `prox_rel` is its
+new column; both are excluded by name, and nothing else is.
+
+STEENBRB   keys  37 compared,   0 differing; rows  17 x 8 columns, 0 differing   IDENTICAL
+STEENBRC   keys  37 compared,   0 differing; rows  23 x 8 columns, 0 differing   IDENTICAL
+STEENBRG   keys  37 compared,   0 differing; rows  23 x 8 columns, 0 differing   IDENTICAL
+ZAMB2-8    keys  37 compared,   0 differing; rows  24 x 8 columns, 0 differing   IDENTICAL
+YORKNET    keys  37 compared,   0 differing; rows  19 x 8 columns, 0 differing   IDENTICAL
+BRITGAS    keys  37 compared,   0 differing; rows  11 x 8 columns, 0 differing   IDENTICAL
+READING6   keys  35 compared,   0 differing; rows  14 x 8 columns, 0 differing   IDENTICAL
+
+OFF_IDENTITY_WORST=0

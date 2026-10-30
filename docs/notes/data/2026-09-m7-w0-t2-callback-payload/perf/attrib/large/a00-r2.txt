@@ -1,0 +1,17 @@
+# started on Tue Sep 15 02:29:28 2026
+
+
+ Performance counter stats for '/home/ghecht/Projects/hven/.scratch/m7t2/build-release/bench/hven_sqp_corpus --engine interior --cells f7_n20000_bound_neutral,f7_n20000_bound_physics,f7_n20000_bound_corrupted,f7_n20000_bound_activity,f7_n20000_bound_warm --csv /home/ghecht/Projects/hven/.scratch/m7t2/art/raw/attrib/large/a00-r2.csv':
+
+    57,818,700,438      instructions:u                                                        
+     8,562,968,337      branches:u                                                            
+    20,387,324,951      cycles:u                                                              
+        29,495,299      branch-misses:u                                                       
+         3,783,249      L1-icache-load-misses:u                                               
+
+       6.742502422 seconds time elapsed
+
+       6.104028000 seconds user
+       0.608251000 seconds sys
+
+

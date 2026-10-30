@@ -1,0 +1,53 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-release/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpNc2FlatFace.*
+[==========] Running 8 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 8 tests from QpNc2FlatFace
+[ RUN      ] QpNc2FlatFace.AWrongSignedDropOnAnLpFaceRidesTheRayToItsBlocker
+[       OK ] QpNc2FlatFace.AWrongSignedDropOnAnLpFaceRidesTheRayToItsBlocker (2 ms)
+[ RUN      ] QpNc2FlatFace.ANoiseLevelDropIsUndoneAndCountedNotRidden
+[       OK ] QpNc2FlatFace.ANoiseLevelDropIsUndoneAndCountedNotRidden (0 ms)
+[ RUN      ] QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeRefactorize
+[ nc2 ] R2_Cs_STEENBRB_qp2.txt refactorize status=0 f=-192.000437989 minors=252 rides=60 zero_length=28 predicted_signs=0 vetoes=3 undos=3 zmexh=0 zmcap=0
+[       OK ] QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeRefactorize (139 ms)
+[ RUN      ] QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder
+[ nc2 ] R2_Cs_STEENBRB_qp2.txt border status=0 f=-192.000437989 minors=252 rides=60 zero_length=28 predicted_signs=0 vetoes=3 undos=3 zmexh=0 zmcap=0
+[       OK ] QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder (11374 ms)
+[ RUN      ] QpNc2FlatFace.TheSteenbrbRestorationLpQp3NeverAscendsTheSlopeRefactorize
+[ nc2 ] R2_Cs_STEENBRB_qp3.txt refactorize status=1 f=-384.000271723 minors=6600 rides=1307 zero_length=13 predicted_signs=0 vetoes=1312 undos=1312 zmexh=0 zmcap=0
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_flat_face_saddle.cpp:320: Failure
+Expected equality of these values:
+  static_cast<int>(s.status)
+    Which is: 1
+  static_cast<int>(expected)
+    Which is: 0
+measured per configuration in NC2 fix round 1
+
+[  FAILED  ] QpNc2FlatFace.TheSteenbrbRestorationLpQp3NeverAscendsTheSlopeRefactorize (3350 ms)
+[ RUN      ] QpNc2FlatFace.TheSteenbrbRestorationLpQp3NeverAscendsTheSlopeBorder
+[ nc2 ] R2_Cs_STEENBRB_qp3.txt border status=1 f=-384.000271723 minors=6600 rides=1307 zero_length=13 predicted_signs=0 vetoes=1312 undos=1312 zmexh=0 zmcap=0
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_flat_face_saddle.cpp:320: Failure
+Expected equality of these values:
+  static_cast<int>(s.status)
+    Which is: 1
+  static_cast<int>(expected)
+    Which is: 0
+measured per configuration in NC2 fix round 1
+
+[  FAILED  ] QpNc2FlatFace.TheSteenbrbRestorationLpQp3NeverAscendsTheSlopeBorder (7588 ms)
+[ RUN      ] QpNc2FlatFace.TheSteenbrbRestorationLpQp4NeverAscendsTheSlopeRefactorize
+[ nc2 ] R2_Cs_STEENBRB_qp4.txt refactorize status=0 f=-192.000146263 minors=246 rides=51 zero_length=18 predicted_signs=0 vetoes=15 undos=15 zmexh=0 zmcap=0
+[       OK ] QpNc2FlatFace.TheSteenbrbRestorationLpQp4NeverAscendsTheSlopeRefactorize (132 ms)
+[ RUN      ] QpNc2FlatFace.TheSteenbrbRestorationLpQp4NeverAscendsTheSlopeBorder
+[ nc2 ] R2_Cs_STEENBRB_qp4.txt border status=0 f=-192.000146263 minors=246 rides=51 zero_length=18 predicted_signs=0 vetoes=15 undos=15 zmexh=0 zmcap=0
+[       OK ] QpNc2FlatFace.TheSteenbrbRestorationLpQp4NeverAscendsTheSlopeBorder (10368 ms)
+[----------] 8 tests from QpNc2FlatFace (32956 ms total)
+
+[----------] Global test environment tear-down
+[==========] 8 tests from 1 test suite ran. (32956 ms total)
+[  PASSED  ] 6 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] QpNc2FlatFace.TheSteenbrbRestorationLpQp3NeverAscendsTheSlopeRefactorize
+[  FAILED  ] QpNc2FlatFace.TheSteenbrbRestorationLpQp3NeverAscendsTheSlopeBorder
+
+ 2 FAILED TESTS

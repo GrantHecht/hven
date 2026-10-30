@@ -1,0 +1,168 @@
+M7 W2 NC1 (the declined ride) -- THE GATE EXPECTATIONS, DERIVED
+Written and committed BEFORE the chain was detached. RULE: nothing here may be
+adjusted after the chain's first leg. Every value is derived from the FINAL range;
+nothing is carried from, or added to, an earlier round's count.
+
+BASE   82303972 (docs(m7): W2 R1 -- the restoration landing diagnosis; branch m7). Its sources
+       are the previous round's gated sources (a53dbb88, E2 fix 6): no file under include/,
+       src/ or tests/ differs between them.
+       5732a1f3 qp(m7): W2 NC1 -- the declined ride (the cherry-pick of 232853d9; tree identical)
+HEAD   the commit that carries this file (docs/notes/data only). Range 82303972..5732a1f3 for
+       every source/header derivation (the declaration commit adds no source, header or test).
+RUNNER gates-nc1.sh + chain_gates_nc1.sh (this directory): copies of the previous round's
+       runner and chain (docs/notes/data/2026-09-m7-w2-e2-working-set/wrappers-gates-fix6/),
+       re-pointed (scratch .scratch/m7w2nc1gates -- ONE literal, gates-nc1.sh; the chain,
+       rehearse.sh and offline.sh ask it with --print-scratch; logs gates-nc1.log,
+       chain-nc1.log), plus NC1 (c) TWO outside-universe sources MODIFIED
+       (tests/qp/test_qp_anti_cycling_arm.cpp, tests/qp/test_qp_walk_seam.cpp ->
+       hven_qp_walk_seam_tests), no source ADDED, (d) the by-name baseline DERIVED from git,
+       six ADDED names and NONE REMOVED, (e) four ADDED non-.cpp test files declared by name
+       (the R1 dumps, under the fixture directory named once, in the outside target's compile
+       definitions); tests/CMakeLists.txt unchanged, (f) the G4 label, (g) the P-SYM shape:
+       the Debug NOISE-ONLY class A slot is EMPTY this round, the class B library section movers
+       in their declared slot (EXPECT_LIB_CLASS_B_*). The emitted g1/g2/g3/g5/g6 segments are
+       byte-identical to the previous round's; g4 differs in its label string only (cmp before
+       the declaration); g5 is byte-identical to the rehearsal's g5, which rehearse.sh EXTRACTS
+       from the runner's text. Literal check before the first leg: grep 'e2fix6', 'm7w2e2fix6',
+       'e07f8173', 'a53dbb88', '63c687f7' on the three copies -> none outside comments naming
+       the previous round deliberately; 82303972 exactly once, as BEFORE (gates-nc1.sh).
+
+§1 THE CHANGED SURFACE (`git diff --name-status 82303972..5732a1f3`; nothing outside include/,
+   src/, tests/):
+   3 headers  include/hven/core/solver_counters.h (QpCounters: dep_ride_declines renamed
+              dep_ride_blockers + three new Index fields ride_exchanges,
+              ride_declines_fallthrough_blocked, ride_sign_vetoes -- the layout change),
+              include/hven/detail/qp/qp_engine.h (§4c contract text, RideOutcome/RideBlocker
+              declarations), include/hven/detail/qp/qp_walk_trace.h (HVEN_TESTING seam enums:
+              QpWalkAction::kRideUndone, QpWalkRideOutcome::kDependentBlocker)
+   4 MODIFIED .cpp  src/qp/qp_engine.cpp, tests/sqp/test_hs_sweeps.cpp (one re-pin,
+              3371 -> 3365) -- inside the P-SYM universe (hven, hven_sqp_tests) -- and
+              tests/qp/test_qp_anti_cycling_arm.cpp, tests/qp/test_qp_walk_seam.cpp, OUTSIDE it
+              (their only objects are hven_qp_walk_seam_tests's, a HVEN_TESTING recompile target,
+              not a PSYM_GROUPS entry; each named exactly once in the build files, in that
+              target's add_executable block -- checked by value in the pre-flight)
+   0 ADDED .cpp
+   4 ADDED non-C++ test files: tests/qp/fixtures/e2-d4/Cs_STEENBRB_qp{3,4,5,6}.txt (the R1
+              dumps, byte-copies); tests/CMakeLists.txt unchanged.
+
+§2 THE P-SYM MOVER SHAPE, PER CONFIGURATION -- MEASURED on the final pair
+     Release  DIFFERING 38 = class A 2 + class B 36; UNEXPLAINED 0; control 106;
+              NOISE-ONLY 2 (0 in the library: bench_corpus, bench_crossover)
+     Debug    DIFFERING 38 = class A 2 + class B 36; UNEXPLAINED 0; control 71;
+              NOISE-ONLY 37 (6 in the library)
+     after 151 = before 151 in both; ONLY-AFTER {}; both MODIFIED outside objects
+     (tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_{anti_cycling_arm,walk_seam}.cpp.o)
+     BUILT in the after arm and absent from the after manifest (both configurations).
+   MEASURED by a FRESH rehearsal at 5732a1f3 against 82303972, both configurations, one hold of
+   the box lock (rehearsal/rehearse.sh, rehearsal/rehearsal-log-summary.txt; 2026-09-25
+   17:40:37-18:08:25, PGREP_EMPTY), this runner's g5 with a HYPOTHESIS declaration (class A
+   only: 2/2, class B 0, DEBUG_ONLY 0/0, NON-DEBUG movers = class A only). Both configurations
+   were REFUSED at the hypothesis (classify rc 4: "names 38 differing object(s) and this round
+   DECLARED 2", rehearsal/rehearsal-classification-{Release,Debug}-refused-at-2.txt) and
+   re-classified OFFLINE from the same compare files at 38 / 38 (rc 0 both,
+   rehearsal/rehearsal-classification-{Release,Debug}.txt; rehearsal/offline.sh, one lock hold
+   18:08:33-18:16:01, PGREP_EMPTY). Debug: against the rehearsal's own build tree (left at the
+   before arm, as g5 classifies). Release: against a fresh Release build of 5732a1f3 with g5's
+   flags (.scratch/m7w2nc1gates/rehearsal/rel-deps; the g5 Release tree was replaced by the
+   Debug arm) -- the classifier reads only its ninja deps and object list.
+   Class A, both configurations (2) = the 2 in-universe MODIFIED .cpp:
+       CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o             (the NC1 rule)
+       tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_sweeps.cpp.o (the 3371 -> 3365 re-pin and
+                                                                its comment; NOT NOISE-ONLY in
+                                                                Debug, unlike fix 6's re-pin)
+       The Debug NOISE-ONLY class A slot is therefore EMPTY (EXPECT_CLASS_A_NOISE_ONLY_DEBUG ""),
+       and the measured class A is compared BY SOURCE with git after G5 (dry-run on the
+       rehearsal's files: ASSERT OK both configurations, preflight.txt).
+   CLASS B = the SAME 36 objects in both configurations, none with a source modified in the range
+   (checked in the pre-flight, library AND tests). One cause for all 36: each holds, copies or
+   destroys a QpCounters by value (directly, or inside QpSolution / SolveRecord / the SQP solve
+   and major state / the ledger rows / SqpSolveResult), and QpCounters grew by three Index
+   fields (24 bytes) with a field renamed in place -- sizes, member offsets, copy/move/zeroing
+   and the inlined destructors move. None names the renamed field (only qp_engine.cpp and the
+   header do; git grep). By object (the library causes OBSERVED from the moved section names in
+   the rehearsal's G5b lines; the bench/test causes INFERRED from what the objects hold -- the
+   classifier's verdict, class B with the source untouched, is the measured fact):
+     library (4, all non-debug section movers):
+       src/core/ledger.cpp.o                 ledger rows carry QpCounters (.text)
+       src/drivers/sqp_solver.cpp.o          MajorState/SolveState hold QpSolution/QpCounters;
+                                             QpSolution copy/move/dtor, ElasticLadderReport
+       src/globalization/sqp/soc_elastic_restoration.cpp.o  QpSolution dtor / locals
+       src/qp/ipqp_engine.cpp.o              vector<SolveRecord> realloc (records hold counters)
+     bench (4): hven_sqp_bench/bench_scale, hven_sqp_f7_cold/bench_f7_cold,
+       hven_sqp_ipqp_e1_arm/ipqp_e1_arm, hven_sqp_ssn_safeguard_probe/ssn_safeguard_probe --
+       solve results / QP solutions held by value in the drivers' loops
+     tests/drivers (4): test_callback, test_options, test_threads, test_warm_protocol --
+       SqpSolveResult / counter snapshots by value
+     tests/interior (1): Unity/unity_1_cxx.cxx (a unity TU whose constituents hold solve
+       results by value; its source directory is checked unmodified in the pre-flight)
+     tests/sqp (23): test_activity_telemetry, test_dense_oracle, test_elastic_rung_vehicle,
+       test_eqp_solve, test_hs_battery, test_ipqp_acceptance, test_ipqp_dispatch,
+       test_ipqp_engine, test_ipqp_trace, test_ledger, test_qp_engine, test_qp_engine_border,
+       test_qp_engine_indefinite, test_qp_engine_tr, test_qp_warm_start,
+       test_qp_ws_independence, test_scale_problems, test_scale_smoke, test_sqp_solver,
+       test_ssn_engine, test_trace_writer, test_warm_start, test_warm_start_battery --
+       QpSolution / QpCounters / SqpSolveResult by value in fixtures and assertions
+   Against the previous round's 34 (not carried, only compared): + test_qp_engine,
+   test_qp_ws_independence, test_scale_problems (class A there, their sources modified in that
+   range, unmodified in this one); - test_hs_sweeps (class A here). 34 + 3 - 1 = 36.
+   The asymmetry admission list stays EMPTY (the two class B sets are equal).
+
+§3 TEST COUNTS: Release 2854 (G3), Debug 2853 (G1), G2 1. By name against the DERIVED baseline
+   (the previous round's gate record, docs/notes/data/2026-09-m7-w2-e2-working-set/gates-e2-fix6/
+   suite-{debug,release}.txt: 2847 / 2848 tests, 2849 / 2850 started names; ran at 63c687f7, the
+   parent of c1f73065 that added it; no test file differs between 63c687f7 and 82303972, checked
+   in the pre-flight): the measured suites of the final sources (the implementer's worktree at
+   232853d9, tree-identical to 5732a1f3: .claude/worktrees/agent-a21a2ab349204592e/.scratch/nc1/
+   logs/suite-{rel2,dbg}.log -- Release 2854/2854, Debug 2853/2853 without the long test; the
+   long test 1/1 alone, detached, 548 s, suite-dbg-long.log) ADD six instances and REMOVE none,
+   each ADDED by exactly one `+TEST(` line in the range, no `-TEST(` line:
+     ADDED   QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp3
+             QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp4
+             QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp5
+             QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp6
+             QpE2WorkingSet.ADependentRideBlockerIsExchangedAndTheRideRetaken
+             QpE2WorkingSet.ANullSpaceVetoedRideNeverStepsBackIntoTheReleasedBound
+     REMOVED (none)
+   The offline --check-names run passes both configurations (2855 == 2849 - 0 + 6;
+   2856 == 2850 - 0 + 6); the negative controls are refused (preflight.txt). The Debug suite is
+   ~410 s longer than the previous round's (the four dump fixtures, 190/74/74/71 s in Debug);
+   G1 runs under the lock with no timeout, as every G1.
+
+§4 THE SECTION SHAPE (G5b), measured by the same rehearsal: NON-DEBUG-MOVER set 5 in both
+   configurations == {qp/qp_engine.cpp.o} (derived, class A) + {core/ledger.cpp.o,
+   drivers/sqp_solver.cpp.o, globalization/sqp/soc_elastic_restoration.cpp.o,
+   qp/ipqp_engine.cpp.o} (declared, EXPECT_LIB_CLASS_B_*: unmodified, class B); objects 44;
+   byte-identical 39 Release / 33 Debug; no library ADDED; DEBUG_ONLY Release 0 / Debug 6
+   (drivers/console_trace_sink, drivers/ipm_solver, drivers/sqp_print, drivers/trace_writer,
+   qp/ssn_engine, warmstart/continuation -- each NOISE-ONLY in the Debug classification;
+   INFERRED cause: debug line tables of solver_counters.h, which grew by 12 lines); REFUSED 0.
+
+§5 G4: 27 cells x 75 columns x 3 engines, 0 differences under
+   `compare_replay.py --residual-gate 1e-5`. VERIFIED OFFLINE FIRST on these sources
+   (rehearsal/offline.sh from the rel-deps Release build of 5732a1f3;
+   .scratch/m7w2nc1gates/rehearsal/g4/comparison.txt): against the M6 close pin, walk 0
+   differences (7 within the gate, the known f7 warm residual digits), ssn 0, ipm 0; and EXACT
+   against the previous round's gate record's head CSVs (gates-e2-fix6/replay/, BEFORE's
+   sources): 0 differences on all 75 columns in all three engines. No U0 status, objective,
+   counter or residual moved (the implementer's own U0 run agrees: EXACT vs base, 0 NC1 events
+   on the 27 cells).
+
+§6 G6: expected CLEAN -- install smoke, export contract, clang-format on the derived changed
+   include/*.h, src/*.cpp, tests/*.cpp, tests/*.h (7 files; clean at 5732a1f3, checked:
+   CLANG_FORMAT_RC=0), git diff --check, DIRTY_FILES 0. Fold proofs as the previous chain (46/0).
+
+§7 PRE-FLIGHT (`gates-nc1.sh --preflight-only`): preflight.txt (CLASS_B_NAMES_OK 36/36,
+   BY-NAME 6 ADDED each by exactly one TEST line, 0 REMOVED, 0 TEST lines removed, ADDED TEST
+   FILES == declared, PREFLIGHT_VALUE_OK, 6 SEGMENT_OK, PREFLIGHT_OK). Refusals exercised against
+   a wrong value, each rc 2 (recorded there): a class B name whose TEST source is modified
+   (test_hs_sweeps), a class B name whose LIBRARY source is modified (qp_engine), Release 2853
+   against Debug 2853, BEFORE = the previous declaration, class A 3/3, the outside source list
+   emptied, the outside source list short one, a class A object declared a class B library
+   mover, a class B library mover not in the class B list, a Debug NOISE-ONLY class A with an
+   unmodified source, the ADDED non-.cpp list short one, the suite counts one ADDED short, class
+   B 35 against a 36-name list; the by-name negative controls rc 2; the post-G5 checks dry-run
+   on the rehearsal's files (ASSERT OK) and against the previous round's Release classification
+   (ASSERT FAIL, rc5 1).
+
+§8 G5 CHECKS THE MAIN TREE OUT TO 82303972 while it builds its before arm, once per
+   configuration: nothing may edit or commit in the main tree until CHAIN_END.

@@ -1,0 +1,13 @@
+LEG: .scratch/m7t2/configure.sh
+PGREP_SEPARATE 2026-09-15T04:21:07Z
+PGREP_EMPTY
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-09-15T04:21:07Z
+CONFIGURE_RC=0
+-- Configuring done (2.6s)
+-- Generating done (0.1s)
+-- Build files have been written to: /home/ghecht/Projects/hven/.scratch/m7t2/build-release
+CONFIGURE_WORST_RC=0
+LEG_RC=0
+FOREGROUND_END 2026-09-15T04:21:09Z
+WRAPPER_EXIT=0

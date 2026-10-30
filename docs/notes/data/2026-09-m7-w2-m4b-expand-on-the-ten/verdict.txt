@@ -1,0 +1,136 @@
+M7 W2 M4b -- RULE.md SECTIONS 6 AND 7, APPLIED MECHANICALLY
+===========================================================
+Written at the close of the task, from the raw transcripts named on every line.
+No solver ran to produce this file.  Neither RULE.md was edited.
+
+THE SUBJECT OF EVERY LINE BELOW
+-------------------------------
+"arm E as implemented in the pinned M4 binary"
+    /home/ghecht/Projects/hven/.scratch/m7w2m4/arm/build/m4_arm_probe
+    sha256 c1be17d2d47e7930440450d72d233da56a8fc374bceb68062baea924fe50a720
+NOT "EXPAND", and NOT "canonical EXPAND".  Two departures from Gill, Murray,
+Saunders & Wright (1989) are present in that binary and are disclosed in
+README.md section "What this binary is not"; they bear on what the counters
+below mean and they are named again where they bite.
+
+THE CHAIN
+---------
+`.scratch/m7w2m4b/logs/chain.log`, copied to `logs/chain.log`.
+    CHAIN_START 2026-09-22T08:13:59-04:00    CHAIN_END 2026-09-22T08:33:40-04:00
+    PIN_BINARY OK          -- the M4 probe, unrebuilt
+    PIN_OFF_ROWS OK        -- 10 rows verified against rows-off/SHA256-off-rows.txt
+    PIN_OFF_ROWS_ARE_M4S OK -- all ten byte-identical to M4's committed rows
+    rows written 10   traces written 10   CENSORED 0   FINDING lines 0
+    TRUNCATED (deadline_fired=1): SAWPATH
+
+SECTION 6's CONTROL, FIRST
+--------------------------
+RULE.md section 6 requires `arm_lex_drop_switches` to be 0 on every E leg,
+since E touches no drop rule, and makes a non-zero value a FINDING about the
+instrument.  It is 0 on all ten rows.  `arm_lex_ratio_switches` is 0 on all ten
+as well.  THE CONTROL HOLDS; there is no instrument FINDING to report.
+
+THE RANK ORDER APPLIED (RULE.md section 7, M4 RULE.md section 7.2)
+------------------------------------------------------------------
+`numerical_error` 7, `infeasible` 6, `interrupted` NOT RANKED.
+M4 section 7.2's own note applies and is repeated: `infeasible` ranks below
+admitting defeat ON THIS CELL SET, not as a general matter of the enum, and the
+one cell it applied to is YORKNET.
+
+  cell       OFF status        rank   E status          rank   verdict
+  --------   ---------------   ----   ---------------   ----   -----------------
+  ACOPP57    numerical_error     7    numerical_error     7    none
+  DALLASM    numerical_error     7    numerical_error     7    none
+  STEENBRB   numerical_error     7    numerical_error     7    none
+  ACOPP118   numerical_error     7    numerical_error     7    none
+  ACOPR57    numerical_error     7    numerical_error     7    none
+  STEENBRC   numerical_error     7    numerical_error     7    none
+  STEENBRG   numerical_error     7    numerical_error     7    none
+  YORKNET    infeasible          6    infeasible          6    none
+  SAWPATH    interrupted        --    interrupted        --    TRUNCATED
+  BRITGAS    numerical_error     7    numerical_error     7    none
+
+  CONVERTED               0
+  improved, unverified    0
+  HARM                    0
+  none                    9
+  TRUNCATED               1   (SAWPATH)
+
+SECTION 7.3 -- `CONVERTED`
+--------------------------
+Condition 1, `rank(arm) < rank(OFF)`, is FALSE on all nine ranked cells: every
+one of them has rank(E) == rank(OFF).  Conditions 2 and 3 are therefore never
+reached on any cell, and NO CELL IS `CONVERTED`.  The conversion total is 0.
+
+Two absences are recorded rather than papered over, because a reader must not
+believe conditions 2 and 3 were evaluated and passed:
+
+  * Condition 2's `feas_tol` is to be read from "that leg's own printed
+    `opt_feas_tol`".  THIS PROBE DOES NOT PRINT IT.  `opt_feas_tol` is one of
+    the 127 fields M4's own OFF-control gate lists as ABSENT from this probe's
+    row (`../2026-09-m7-w2-m4-anticycling-arm/logs/gate-off.txt`, the "fields
+    the leg does not print" list); the whole `OPTIONS` block of M3c's row is
+    absent from it.  The value is NOT substituted from M3c's committed row and
+    NOT typed in from the rule.  Condition 2 has no input on any cell and was
+    not evaluated on any.
+  * Section 7.1's restoration record asks for `restoration_h_in/out` and
+    `restoration_f_in/out`.  Those four are in the same ABSENT list.
+    `restoration_entries`, `restoration_sub_status` and `restoration_iters` ARE
+    printed and ARE in tables/arm.md.
+
+Neither absence changes a verdict: condition 1 fails first, on every cell.
+
+SECTION 7.4 -- `improved, unverified`
+-------------------------------------
+Requires conditions 1 and 2 of section 7.3 with no consensus for the cell.
+Condition 1 fails on every cell, so NO CELL IS `improved, unverified`.
+Recorded for completeness, machine-read from M3c's committed
+`../2026-09-m7-w2-m3c-default-census/tables/census.md`: STEENBRC and STEENBRG
+carry `ABSENT (no consensus)` there, so those two could never have been
+anything better than `improved, unverified` even had condition 1 held.
+
+SECTION 7.5 -- `HARM`
+---------------------
+First clause, `rank(arm) > rank(OFF)`: FALSE on all nine ranked cells.  NO CELL
+IS `HARM`.
+Second clause (equal ranks, a cell OFF already solved, minors > 1.10x OFF's):
+**N/A on these ten, because OFF solves none of them.**  Stated, per section
+7.5's own instruction, and NOT printed as a vacuous "0 harmed".
+That matters here, because the second clause would otherwise have caught
+YORKNET: 50241 -> 67259 minors is 1.3387x.  It does not catch it, because
+YORKNET is not a cell OFF solved -- OFF returns `infeasible` on it.
+
+SECTION 7.6 -- the consensus rule
+---------------------------------
+Applied only as far as section 7.4 needed it.  Only committed RESULT ROWS of
+the SNOPT lane were read, through M3c's committed census table.  No SNOPT
+source, header or decompiled material was read by this task under any
+circumstance.
+
+SECTION 7.7 -- the SNOPT cost read-out
+--------------------------------------
+For CONVERTED cells only.  There are none.  It does not run.
+
+SAWPATH -- TRUNCATED, COUNTERS ONLY, AND THE OFF SIDE IS CENSORED TOO
+---------------------------------------------------------------------
+`deadline_fired=1` on the E leg (300 s, the value M3c ran it at).  Section 7.2
+makes `interrupted` a CENSORING, not a status: SAWPATH is TRUNCATED for arm E
+and receives no `CONVERTED`/`HARM` verdict at all.  Its counters are printed in
+tables/arm.md and are read as counters.
+AND THE CONTROL IS CENSORED ON THE SAME GROUND: `off-SAWPATH.txt` also carries
+`deadline_fired=1`.  Neither arm ran SAWPATH to an end, so the pair's minor
+counts (77037 OFF, 59600 E) are two different truncations of two different
+walks at the same wall-clock stop and are NOT a comparison of work done.  The
+rule does not say this; it follows from the rule's own reason for censoring, and
+it is recorded here so no reader reads 0.7736 as a saving.
+
+WHAT SECTION 9 SAYS THIS LICENSES
+---------------------------------
+Nothing ships.  Not a default change, not a production switch, not a line under
+`src/` or `include/`, not in this task and not as a consequence of it.  This is
+an UNSUPPORTED result in section 9's terms and section 9 fixes its worth in
+advance.  M4's STOP verdict on arms E, L and L+ at M4's own neutrality bar is
+untouched by this task and is not reclassified by it: this is a FOLLOW-UP
+experiment under a new rule, never a successful continuation of M4's
+pre-registered primary path.
+See README.md.

@@ -1,0 +1,542 @@
+--- a/include/hven/detail/globalization/sqp/restoration.h
++++ b/include/hven/detail/globalization/sqp/restoration.h
+@@ -215,6 +215,15 @@
+     /// `st.x` is moved from on the resume arm while this wrapper is still alive.
+     double zeta_ = 0.0;
+     Vec centre_, d_;
++
++  public:
++    // ===== M7 W2 R1 SCRATCH ONLY: Arm C's composite weight (0 = OFF) =====
++    void r1_set_omega(double w) const { r1_omega_ = w; }
++    double r1_omega() const { return r1_omega_; }
++    double r1_violation(const Vec &y) const;
++
++  private:
++    mutable double r1_omega_ = 0.0;
+ };
+ 
+ /// @brief The infeasibility certificate's residual at a restored point,
+--- a/src/globalization/sqp/soc_elastic_restoration.cpp
++++ b/src/globalization/sqp/soc_elastic_restoration.cpp
+@@ -16,6 +16,7 @@
+ // ahead of `drivers/...`, which would put the three headers BEFORE the
+ // definition they depend on and fail to compile.
+ #include <hven/drivers/sqp_solver.h>
++#include <cstdlib>
+ 
+ namespace hven::solvers {
+ 
+@@ -380,6 +381,20 @@
+         }
+         s += 0.5 * zeta_ * p;
+     }
++    if (r1_omega_ > 0.0) { // M7 W2 R1 scratch: Arm C
++        s += r1_omega_ * model_.eval_f(original_x(y));
++    }
++    return s;
++}
++
++double RestorationModel::r1_violation(const Vec &y) const {
++    double s = 0.0;
++    for (Index k = 0; k < me_; ++k) {
++        s += sigma_e_(k) * (y(nx_ + k) + y(nx_ + me_ + k));
++    }
++    for (Index j = 0; j < mi_; ++j) {
++        s += sigma_i_(j) * y(nx_ + 2 * me_ + j);
++    }
+     return s;
+ }
+ 
+@@ -397,6 +412,9 @@
+             g(i) = zeta_ * d_(i) * d_(i) * (y(i) - centre_(i));
+         }
+     }
++    if (r1_omega_ > 0.0) { // M7 W2 R1 scratch: Arm C
++        g.head(nx_) += r1_omega_ * model_.eval_grad(original_x(y));
++    }
+     return g;
+ }
+ 
+@@ -427,7 +445,9 @@
+ SpMatRM RestorationModel::eval_hess(const Vec &y, double obj_scale, const Vec &lambda_e,
+                                     const Vec &lambda_i) const {
+     SpMatRM inner;
+-    model_.eval_hess_in_place(original_x(y), 0.0, lambda_e, lambda_i, inner);
++    static const bool r1_nohess = std::getenv("HVEN_R1_OMEGA_NOHESS") != nullptr;
++    model_.eval_hess_in_place(original_x(y), (r1_omega_ > 0.0 && !r1_nohess) ? obj_scale * r1_omega_ : 0.0,
++                              lambda_e, lambda_i, inner); // M7 W2 R1 scratch: Arm C
+     std::vector<Eigen::Triplet<double>> t;
+     t.reserve(static_cast<std::size_t>(inner.nonZeros()) +
+               (zeta_ > 0.0 ? static_cast<std::size_t>(nx_) : std::size_t{0}));
+--- a/src/drivers/sqp_solver.cpp
++++ b/src/drivers/sqp_solver.cpp
+@@ -32,6 +32,15 @@
+ #include <fmt/format.h>
+ 
+ #include <hven/drivers/sqp_solver.h>
++#include <cstdio>
++#include <cstdlib>
++// ===== M7 W2 R1 TEMPORARY DIAGNOSTIC INSTRUMENTATION + ARM TOGGLES (scratch only) =====
++namespace hven::solvers::r1 {
++inline bool on() { static const bool b = std::getenv("HVEN_R1") != nullptr; return b; }
++inline double env(const char *k, double dflt) { const char *v = std::getenv(k); return v ? std::atof(v) : dflt; }
++inline long qp_seq = 0;       // top-level QP solves, in order
++inline long qp_after_resume = -1; // index of top-level QP solves since the restoration resume (-1 = none yet)
++} // namespace hven::solvers::r1
+ 
+ // THE ONE TRANSLATION UNIT THAT COMPLETES THE SINK TYPES (M6 W5 T8.7 fix1, the
+ // lane's M4). `sqp_solver.h` forward-declares `ConsoleTraceSink` and
+@@ -2571,6 +2580,11 @@
+     Index start_point_clamps = 0;
+     Vec x0_projected;
+     const Vec *x0_used = &x0;
++    if (r1::on()) {
++        const Vec &lo3 = seam.lower(); const Vec &up3 = seam.upper(); long c3 = 0; double m3 = 0.0;
++        for (Index i = 0; i < n; ++i) { const double v = std::max(lo3[i] - x0[i], x0[i] - up3[i]); if (v > 0) { ++c3; m3 = std::max(m3, v); } }
++        std::fprintf(stderr, "R1START depth=%d n=%ld out_of_box=%ld max_box_viol=%.10g project=%d tr_init=%.6g tr_max=%.6g\n", is_restoration_sub_driver_ ? 1 : 0, (long)n, c3, m3, (int)opts_.project_start_point, opts_.tr_init, opts_.tr_max);
++    }
+     if (opts_.project_start_point) {
+         const Vec &lo = seam.lower();
+         const Vec &up = seam.upper();
+@@ -2666,6 +2680,7 @@
+         ipqp_trace_->on_sqp_solve_begin(make_solve_begin_event(opts_, seam));
+     }
+     SqpResult out = solve_impl_body(seam, bridge, *x0_used, warm, budget, std::move(strategy));
++    if (r1::on()) std::fprintf(stderr, "R1END depth=%d status=%d majors=%ld resto_iters=%ld certified=%d obj=%.12g feas=%.6g stat=%.6g\n", is_restoration_sub_driver_ ? 1 : 0, (int)out.status, (long)out.counters.major_iters, (long)out.counters.restoration_iters, (int)out.infeasibility_certified, out.f, out.sqp_feasibility, out.sqp_stationarity);
+     // THE POLISH-IGNORED COUNT, BEFORE THE TRACE READS IT (M6 W5 T8.5 fix1).
+     //
+     // The count is `consume_payload`'s, taken one frame ABOVE this one, so no
+@@ -4570,6 +4585,17 @@
+     QpSolution &crash_seed = st.crash_seed;
+     QpSolution &qs = mj.qs;
+     mj.row_qp_mode = IpqpTraceQpMode::kWalk;
++    static const bool r1_post_e2off = std::getenv("HVEN_R1_POSTRESTO_E2OFF") != nullptr;
++    if (r1_post_e2off && st.resto.used && !is_restoration_sub_driver_) {
++        static thread_local std::unique_ptr<QpEngine> r1_e2off;
++        if (!r1_e2off) {
++            QpOptions q = opts_.qp;
++            q.independent_working_set = false;
++            r1_e2off = std::make_unique<QpEngine>(q, opts_.common.threads);
++        }
++        qs = have_seed ? r1_e2off->solve(qp, seed, overrides) : r1_e2off->solve(qp, overrides);
++        if (r1::on()) std::fprintf(stderr, "R1POSTE2OFF status=%d minors=%ld\n", (int)qs.status, (long)qs.counters.minor_iters);
++    } else
+     qs = offer_hot   ? engine_->solve(qp, seed, overrides, warm.hot)
+          : have_seed ? engine_->solve(qp, seed, overrides)
+          : use_crash ? engine_->solve(qp, crash_seed, overrides)
+@@ -4664,6 +4690,7 @@
+     // Majors already spent, on both phases, at this point.
+     const Index spent = iter + 1 + st.out.counters.restoration_iters;
+ 
++    if (r1::on()) std::fprintf(stderr, "R1RESTO_REQ depth=%d major=%ld allow=%d used=%d h=%.10g f=%.12g delta=%.6g cand=%d\n", is_restoration_sub_driver_ ? 1 : 0, (long)iter, (int)allow_restoration_, (int)st.resto.used, constraint_violation_l1(st.ev), st.ev.f, st.delta, (int)(cand.x != nullptr));
+     if (!allow_restoration_ || st.resto.used) {
+         // The nested case (a restoration solve raising its own
+         // request) and the once-per-solve cap take the SAME exit,
+@@ -4808,8 +4835,19 @@
+     }
+     const NlpModel &resto_base =
+         resto_rows ? static_cast<const NlpModel &>(*resto_rows) : bridge.model();
+-    const RestorationModel feasibility(resto_base, *x_start, resto_ev, st.x,
+-                                       opts_.restoration_proximity);
++    const double r1_prox = r1::env("HVEN_R1_PROX", opts_.restoration_proximity);
++    const RestorationModel feasibility(resto_base, *x_start, resto_ev, st.x, r1_prox);
++    // Arm C: omega = k * max(sigma) / ||grad f(x_start)||_inf, at the wrapper's construction point.
++    const double r1_omega_k = r1::env("HVEN_R1_OMEGA", 0.0);
++    double r1_omega0 = 0.0, r1_gradf_inf = 0.0, r1_sigma_max = 1.0;
++    if (feasibility.slack_scale_e().size() > 0) r1_sigma_max = std::max(r1_sigma_max, feasibility.slack_scale_e().maxCoeff());
++    if (feasibility.slack_scale_i().size() > 0) r1_sigma_max = std::max(r1_sigma_max, feasibility.slack_scale_i().maxCoeff());
++    if (r1_omega_k > 0.0) {
++        const Vec xs0 = feasibility.original_x(feasibility.start_point());
++        r1_gradf_inf = resto_base.eval_grad(xs0).lpNorm<Eigen::Infinity>();
++        r1_omega0 = r1_gradf_inf > 0.0 ? r1_omega_k * r1_sigma_max / r1_gradf_inf : 0.0;
++        feasibility.r1_set_omega(r1_omega0);
++    }
+     SqpOptions ropts = opts_;
+     // AND THE SUB-SOLVE RUNS UNSCALED, alongside the budget_mode and
+     // qp_mode forcings just below and for the same kind of reason: the
+@@ -4883,6 +4921,11 @@
+     ropts.tr_init =
+         std::isfinite(st.delta) ? std::max(st.delta, restoration_restart_radius()) : opts_.tr_max;
+     ropts.tr_max = std::max(opts_.tr_max, ropts.tr_init);
++    if (const double c = r1::env("HVEN_R1_TRCAP", 0.0); c > 0.0) {
++        ropts.tr_max = c * ropts.tr_init; // Arm T: the entry-scale cap
++    }
++    if (r1::on()) std::fprintf(stderr, "R1RESTO_CFG prox=%.6g trcap=%.6g sub_tr_init=%.6g sub_tr_max=%.6g omega_k=%.6g omega0=%.10g gradf_inf=%.10g sigma_max=%.10g sub_max_iter=%ld start_clamps=%ld seed_used=%d\n",
++                               r1_prox, r1::env("HVEN_R1_TRCAP", 0.0), ropts.tr_init, ropts.tr_max, r1_omega_k, r1_omega0, r1_gradf_inf, r1_sigma_max, (long)(st.eff_max_iter - spent), (long)feasibility.start_clamps(), (int)mj.row.restoration_seed_used);
+     // FROM THE EFFECTIVE CAP (M6 W5 T8.4, design §2.2): a caller's
+     // max_iterations bounds the whole solve, restoration included, so the
+     // sub-driver gets what is left of the CALLER's ceiling and not what is left
+@@ -4953,6 +4996,34 @@
+     // every exit including a throw out of the sub-solve -- a callback that
+     // throws out of a depth-1 event unwinds through here, and a dangling
+     // pointer to a destroyed sub-driver would be read by the next apply point.
++    double r1_h_prev = r1_omega0 > 0.0 ? feasibility.r1_violation(feasibility.start_point()) : 0.0;
++    if (r1_omega0 > 0.0) {
++        sub.set_iteration_callback(
++            [this, &st, &feasibility, &r1_h_prev](const IterationEvent &e) {
++                if (e.x.size() == feasibility.n()) {
++                    const double h = feasibility.r1_violation(e.x);
++                    const bool halve = !(h < r1_h_prev) && h > opts_.feas_tol;
++                    if (halve) feasibility.r1_set_omega(0.5 * feasibility.r1_omega());
++                    if (r1::on()) std::fprintf(stderr, "R1OMEGA iter=%ld h_prev=%.10g h=%.10g halve=%d omega=%.10g step=%.6g radius=%.6g\n", (long)e.iteration, r1_h_prev, h, (int)halve, feasibility.r1_omega(), e.step_norm, e.radius.value_or(-1.0));
++                    r1_h_prev = h;
++                    // Arm C variant: return to the main loop at the first feasible restoration iterate
++                    static const bool stopfeas = std::getenv("HVEN_R1_OMEGA_STOPFEAS") != nullptr;
++                    if (stopfeas && h <= opts_.feas_tol) {
++                        if (r1::on()) std::fprintf(stderr, "R1OMEGA_STOPFEAS iter=%ld h=%.10g\n", (long)e.iteration, h);
++                        return CallbackAction::kStop;
++                    }
++                }
++                if (!iteration_callback_) return CallbackAction::kContinue;
++                // the caller's callback, forwarded exactly as the shipped forwarder does
++                IterationEvent nested = e;
++                nested.depth = e.depth.value_or(0) + 1;
++                nested.elapsed_seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - this->entry_time_).count();
++                const CallbackAction action = this->invoke_iteration_callback(nested);
++                if (action == CallbackAction::kStop) st.interrupted = true;
++                return action;
++            },
++            IterationPayload::kVectors);
++    }
+     struct ActiveSubGuard {
+         SqpSolver *parent;
+         ~ActiveSubGuard() { parent->restoration_sub_ = nullptr; }
+@@ -5121,6 +5192,14 @@
+         return RestorationOutcome::kExited;
+     }
+     const double h_r = constraint_violation_l1(ev_r);
++    if (r1::on()) {
++        std::fprintf(stderr, "R1RESTO_END sub_status=%d sub_majors=%ld sub_minors=%ld sub_facts=%ld sub_elastic=%ld sub_maxiter_exits=%ld h_in=%.10g h_r=%.10g box_r=%.6g f_in=%.12g f_r=%.12g dx_inf=%.10g dx_2=%.10g gradf_r_inf=%.6g omega_end=%.10g sub_obj=%.12g sub_stat=%.6g sub_feas=%.6g\n",
++                     (int)rs.status, (long)rs.counters.major_iters, (long)rs.counters.qp_minor_iters, (long)rs.counters.factorizations,
++                     (long)rs.counters.elastic_activations, (long)rs.counters.qp_maxiter_exits,
++                     excursion_h_in, h_r, box_violation_l1(x_r, seam.lower(), seam.upper()), excursion_f_in, ev_r.f,
++                     (x_r - st.x).lpNorm<Eigen::Infinity>(), (x_r - st.x).norm(), ev_r.grad.size() ? ev_r.grad.lpNorm<Eigen::Infinity>() : -1.0,
++                     feasibility.r1_omega(), rs.f, rs.sqp_stationarity, rs.sqp_feasibility);
++    }
+ 
+     // THE RESUME TEST READS THE BOX TOO (M7 W2 ladder, L2): a point inside its
+     // rows but outside its box is not feasible (E2-D3: SAWPATH resumed at h = 0,
+@@ -5166,6 +5245,7 @@
+         // ABANDONED iterate; the sub-solve ran on its own engine
+         // and its working set is a different problem's.
+         st.have_seed = false;
++        if (r1::on()) { r1::qp_after_resume = 0; std::fprintf(stderr, "R1RESUME delta=%.6g f=%.12g h=%.10g\n", st.delta, st.ev.f, h_r); }
+         return RestorationOutcome::kResumed;
+     }
+ 
+@@ -5288,7 +5368,7 @@
+         // which are already taken above.
+         st.resto.status = SolveStatus::kInfeasible;
+         st.out.infeasibility_certified =
+-            feasibility_subsolve_certifies(opts_.restoration_proximity, opts_.kkt_tol, rs_lambda_e,
++            feasibility_subsolve_certifies(r1_omega0 > 0.0 ? std::max(1.0, r1_prox) : r1_prox, opts_.kkt_tol, rs_lambda_e,
+                                            rs.lambda_i, st.resto.kkt.z, [&ev_r, &seam] {
+                                                NlpEval certificate_ev = ev_r;
+                                                seam.to_caller_scale(certificate_ev);
+@@ -6318,6 +6398,17 @@
+     // ONCE, BY CONSTRUCTION: this is straight-line code, not a loop, so one
+     // major can retry at most one subproblem. A doubled cap reached a second
+     // time is an ordinary failure and is routed below exactly as today.
++    if (r1::on()) {
++        long seq = -1, after = -1;
++        if (!is_restoration_sub_driver_) { seq = r1::qp_seq++; if (r1::qp_after_resume >= 0) after = r1::qp_after_resume++; }
++        std::fprintf(stderr, "R1QP depth=%d major=%ld seq=%ld post_resume_idx=%ld delta=%.6g status=%d minors=%ld facts=%ld h=%.10g f=%.12g gradf_inf=%.6g blk_term=%ld zmcap=%ld cert=%ld cert_rej=%ld n=%ld me=%ld mi=%ld walk=%d resto_used=%d\n",
++                     is_restoration_sub_driver_ ? 1 : 0, (long)iter, seq, after, st.delta, (int)mj.qs.status,
++                     (long)mj.qs.counters.minor_iters, (long)mj.qs.counters.factorizations,
++                     constraint_violation_l1(st.ev), st.ev.f, st.ev.grad.size() ? st.ev.grad.lpNorm<Eigen::Infinity>() : -1.0,
++                     (long)mj.qs.counters.dep_blocker_terminations, (long)mj.qs.counters.zero_motion_cap_hits,
++                     (long)mj.qs.counters.dep_infeasible_certificates, (long)mj.qs.counters.dep_certificate_rejections,
++                     (long)st.qp.n(), (long)st.qp.me(), (long)st.qp.mi(), (int)mj.walk_owns_this_qp, (int)st.resto.used);
++    }
+     if (opts_.qp_cap_retry && mj.walk_owns_this_qp && mj.qs.status == QpStatus::kMaxIter &&
+         qp_failure_is_retryable(st.qp, mj.qs, opts_.feas_tol)) {
+         // The cap THIS subproblem was solved under, from the engine's own
+@@ -6358,6 +6449,7 @@
+         // THE RETRY IS THIS MAJOR'S ANSWER from here down, whatever it says:
+         // the row, the census, the routing and map_status all read `mj.qs`.
+         mj.qs = std::move(retried);
++        if (r1::on()) std::fprintf(stderr, "R1QPR depth=%d major=%ld retry_cap=%ld status=%d minors=%ld facts=%ld\n", is_restoration_sub_driver_ ? 1 : 0, (long)iter, (long)(2 * cap), (int)mj.qs.status, (long)mj.qs.counters.minor_iters, (long)mj.qs.counters.factorizations);
+     }
+ 
+     // THE ELASTIC TIER. See this header's ELASTIC TIER note
+@@ -6923,6 +7015,12 @@
+         // `history` and in the stream by the time any tag below is acted on --
+         // that is what `run_major` guarantees at each of its ten push sites.
+         const MajorOutcome outcome = run_major(st, mj, seam, bridge, warm, budget, iter);
++        if (r1::on()) {
++            std::fprintf(stderr, "R1MAJ depth=%d major=%ld outcome=%d qp_status=%d verdict=%d elastic=%d viol=%.10g f=%.12g tr=%.6g step=%.6g minors=%ld h_now=%.10g f_now=%.12g\n",
++                         is_restoration_sub_driver_ ? 1 : 0, (long)iter, (int)outcome, (int)mj.row.qp_status, (int)mj.row.verdict,
++                         (int)mj.row.elastic_applied, mj.row.violation_l1, mj.row.f, mj.row.tr_radius, mj.row.step_norm,
++                         (long)mj.row.qp_minor_iters, constraint_violation_l1(st.ev), st.ev.f);
++        }
+         // A PROX-CENTRE LIFT WHOSE INFLATED A-POSTERIORI ESTIMATE FAILED ITS CHECK during
+         // this major's subproblem is counted here and takes the same pending-refusal
+         // transition as a failed commit lift: the next subproblem build carries every row.
+--- a/src/qp/qp_engine.cpp
++++ b/src/qp/qp_engine.cpp
+@@ -34,6 +34,47 @@
+ #include <bit>
+ 
+ #include <hven/detail/qp/qp_engine.h>
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++#include <fstream>
++#include <string>
++
++// ===== E2-D4 TEMPORARY DIAGNOSTIC INSTRUMENTATION (scratch only) =====
++namespace hven::solvers::d4 {
++inline bool trace() { static const bool b = std::getenv("HVEN_D4_TRACE") != nullptr; return b; }
++inline const char *dump_dir() { static const char *d = std::getenv("HVEN_D4_QPDUMP"); return d; }
++inline bool dump_all() { static const bool b = std::getenv("HVEN_D4_DUMPALL") != nullptr; return b; }
++inline bool fix(const char *name) {
++    static const char *f = std::getenv("HVEN_D4_FIX");
++    if (f == nullptr) return false;
++    const std::string all = std::string(",") + f + ",";
++    return all.find(std::string(",") + name + ",") != std::string::npos;
++}
++inline long solve_seq = 0;
++inline long dump_seq = 0;
++inline void dvec(std::ofstream &o, const char *name, const Eigen::VectorXd &v) {
++    o << name << " " << v.size() << "\n";
++    char b[64];
++    for (Eigen::Index i = 0; i < v.size(); ++i) { std::snprintf(b, sizeof b, "%.17g\n", v(i)); o << b; }
++}
++template <class M> inline void dsp(std::ofstream &o, const char *name, const M &A) {
++    o << name << " " << A.rows() << " " << A.cols() << " " << A.nonZeros() << "\n";
++    char b[96];
++    for (int k = 0; k < A.outerSize(); ++k)
++        for (typename M::InnerIterator it(A, k); it; ++it) {
++            std::snprintf(b, sizeof b, "%ld %ld %.17g\n", (long)it.row(), (long)it.col(), it.value());
++            o << b;
++        }
++}
++inline void divec(std::ofstream &o, const char *name, const std::vector<long> &v) {
++    o << name << " " << v.size() << "\n";
++    for (long x : v) o << x << "\n";
++}
++inline const char *st(BoundState b) {
++    return b == BoundState::kFree ? "F" : b == BoundState::kAtLower ? "L" : b == BoundState::kAtUpper ? "U" : "X";
++}
++} // namespace hven::solvers::d4
+ 
+ namespace hven::solvers {
+ 
+@@ -684,6 +725,12 @@
+     std::unique_ptr<detail::KktFactor> diag_kkt;
+     EliminatedFace diag_face;
+ #endif
++    const long d4_solve = d4::solve_seq++;
++    if (d4::trace()) {
++        std::fprintf(stderr, "D4T solve=%ld begin n=%ld me=%ld mi=%ld warm=%d tr=%.6g mu=%.3g delta=%.3g indep=%d algebra=%d cap=%ld k0_reused=%d\n",
++                     d4_solve, (long)n, (long)me, (long)mi, (int)warm, eff_opts.tr_radius, eff_opts.dual_mu, eff_opts.primal_delta,
++                     (int)eff_opts.independent_working_set, (int)opts_.ws_algebra, (long)eff_max_iter, (int)counters.k0_reused);
++    }
+     for (Index iter = 0; !crossed_bounds && iter < eff_max_iter; ++iter) {
+         ++counters.minor_iters;
+ #ifdef HVEN_TESTING
+@@ -763,6 +810,15 @@
+             eliminated_only
+                 ? eliminated_candidate(qp, ws, kkt, face, counters, verdict, eff_opts)
+                 : eqp_candidate(qp, ws, kkt, face, *border_, counters, verdict, eff_opts);
++        if (d4::trace()) {
++            const Index d4_pins = n - ws.num_free();
++            const Vec d4_p = eqp.x - x;
++            const double d4_f = qp.g.dot(x) + 0.5 * x.dot(qp.H.selfadjointView<Eigen::Upper>() * x);
++            std::fprintf(stderr, "D4T it=%ld PASS rows=%zu pins=%ld cnt-n=%ld verdict=%d elim_only=%d pinf=%.4e f=%.12g ptevents=%ld\n",
++                         (long)iter, ws.active_ineq().size(), (long)d4_pins,
++                         (long)(me + (Index)ws.active_ineq().size() + d4_pins - n), (int)verdict, (int)eliminated_only,
++                         d4_p.lpNorm<Eigen::Infinity>(), d4_f, (long)seen.pt_events);
++        }
+ #ifdef HVEN_TESTING
+         // Snapshotted IMMEDIATELY: section 4b's zero-multiplier probe re-enters
+         // the same verdict site for HYPOTHETICAL working sets later in this very
+@@ -838,6 +894,10 @@
+                                             seen.shift_refused, &removed)) {
+                     ++(entry_check_pending ? counters.entry_dependency_removals
+                                            : counters.dep_recheck_removals);
++                    if (d4::trace())
++                        std::fprintf(stderr, "D4T it=%ld DETECT_REMOVE %s kind=%d idx=%ld found=%d trim=%d null_res=%.3e over=%d\n",
++                                     (long)iter, entry_check_pending ? "entry" : "recheck", (int)removed.kind, (long)removed.idx,
++                                     (int)det.found, (int)trim.found, det.null_residual, (int)over);
+                     const bool removed_row = removed.kind == detail::WsMember::Kind::kRow;
+                     pt_release(seen, removed_row, removed.idx);
+                     if (!entry_check_pending && deferred_member.kind == removed.kind &&
+@@ -977,6 +1037,15 @@
+             if (dropped_one && eff_opts.independent_working_set) {
+                 pt_release(seen, last_drop.is_ineq, last_drop.idx);
+             }
++            if (d4::trace()) {
++                if (dropped_one) {
++                    const double m = last_drop.is_ineq ? lambda_i(last_drop.idx) : z(last_drop.idx);
++                    std::fprintf(stderr, "D4T it=%ld DROP %s %ld from=%s mult=%.4e exempt_worst=%.3e\n", (long)iter,
++                                 last_drop.is_ineq ? "row" : "pin", (long)last_drop.idx, d4::st(last_drop.from), m, exempt_worst);
++                } else {
++                    std::fprintf(stderr, "D4T it=%ld NODROP exempt_worst=%.3e\n", (long)iter, exempt_worst);
++                }
++            }
+             if (!dropped_one) {
+ #ifdef HVEN_TESTING
+                 walk_obs.record().action = detail::testing::QpWalkAction::kTerminal;
+@@ -1042,6 +1111,9 @@
+                     worst = worst_structural_violation(qp, x, Aix, ai_row_norm1, lambda_i,
+                                                        ae_row_norm1, lambda_e, eff_opts);
+                 }
++                if (d4::trace())
++                    std::fprintf(stderr, "D4T it=%ld TERMINAL worst=%.3e refined=%d runaway=%d verdict=%d probe_drop_made=%d\n", (long)iter,
++                                 worst, (int)refined, (int)(worst > 0.0 ? 0 : is_runaway(qp, x, ws, eff_opts)), (int)verdict, (int)probe_drop_made);
+                 if (worst > 0.0) {
+                     status = QpStatus::kInfeasible;
+                 } else if (is_runaway(qp, x, ws, eff_opts)) {
+@@ -1344,6 +1416,8 @@
+                 // ride_negative_curvature and ride_sign, which are the only
+                 // places the THREE refusals are distinguishable at all.
+ #endif
++                if (d4::trace())
++                    std::fprintf(stderr, "D4T it=%ld RIDE outcome=%d curvature=%.3e\n", (long)iter, (int)outcome, curvature);
+                 if (outcome == RideOutcome::kUnbounded) {
+                     // Nothing blocks: genuinely unbounded. Same verdict and
+                     // same semantics (final iterate reported, multipliers
+@@ -1467,6 +1541,15 @@
+                 // DECIDED dependent test (an exchange) may bring it back here.
+                 const bool known_dependent =
+                     !moves && (pt_flags(seen, is_ineq, block_idx) & kPtKnownDependent) != 0;
++                if (d4::trace()) {
++                    const double rate = is_ineq ? qp.Ai.row(block_idx).dot(p) : p(block_idx);
++                    const double anorm = is_ineq ? qp.Ai.row(block_idx).norm() : 1.0;
++                    std::fprintf(stderr, "D4T it=%ld BLOCK %s %ld side=%s alpha=%.4e moves=%d rate=%.4e rate_rel=%.3e test=%d rho=%.3e screen=%d path=%s known_dep=%d ptflags=%d\n",
++                                 (long)iter, is_ineq ? "row" : "pin", (long)block_idx, d4::st(block_state), alpha, (int)moves, rate,
++                                 rate / (anorm * std::max(p.norm(), 1e-300)), (int)t.verdict, t.rho, (int)t.screen,
++                                 pass_view.schur != nullptr ? "border" : pass_view.eliminated != nullptr ? "elim" : "none", (int)known_dependent,
++                                 (int)pt_flags(seen, is_ineq, block_idx));
++                }
+                 if (!t.dependent() && !known_dependent) {
+                     break; // the ordinary add
+                 }
+@@ -1613,12 +1696,16 @@
+                 // the rule may end the solve.
+                 eliminated_only = true;
+                 ++counters.dep_border_retreats;
++                if (d4::trace())
++                    std::fprintf(stderr, "D4T it=%ld BORDER_RETREAT undecidable=%d add_exit=%d\n", (long)iter, (int)undecidable_retreat, (int)add_exit);
+                 farkas = QpFarkasCertificate{}; // a toleranced one is re-derived there
+ #ifdef HVEN_TESTING
+                 walk_obs.record().action = detail::testing::QpWalkAction::kEliminatedRetreat;
+ #endif
+                 continue;
+             }
++            if (d4::trace() && add_exit != AddExit::kNone)
++                std::fprintf(stderr, "D4T it=%ld ADD_EXIT %d (1=infeasible 2=rejected 3=terminate)\n", (long)iter, (int)add_exit);
+             if (add_exit != AddExit::kNone) {
+                 // The iterate the walk stands on: no step past the blocker.
+                 if (add_exit == AddExit::kInfeasible) {
+@@ -1768,6 +1855,12 @@
+             }
+         }
+ 
++        if (d4::trace()) {
++            std::fprintf(stderr, "D4T it=%ld STEP kind=%s %ld side=%s alpha=%.4e dx=%.4e exch=%d%s%ld sigma=%.3e\n", (long)iter,
++                         kind == BlockKind::kIneq ? "row" : kind == BlockKind::kBound ? "pin" : "none", (long)block_idx, d4::st(block_state),
++                         alpha, alpha * p.lpNorm<Eigen::Infinity>(), (int)xpick.found, xpick.j_is_ineq ? " out=row" : " out=pin",
++                         (long)xpick.j, xpick.sigma);
++        }
+         x = (alpha >= 1.0) ? eqp.x : Vec(x + alpha * p);
+         if (eff_opts.independent_working_set) {
+             if (alpha * p.lpNorm<Eigen::Infinity>() > step_tol) {
+@@ -1998,6 +2091,58 @@
+         out.farkas = std::move(farkas);
+     }
+ 
++    if (d4::trace())
++        std::fprintf(stderr, "D4T solve=%ld end status=%d minors=%ld facts=%ld\n", d4_solve, (int)status,
++                     (long)counters.minor_iters, (long)counters.factorizations);
++    if (const char *dd = d4::dump_dir();
++        dd != nullptr && (d4::dump_all() || status == QpStatus::kNumericalError || status == QpStatus::kMaxIter)) {
++        const long seq = d4::dump_seq++;
++        std::ofstream o(std::string(dd) + "/qp" + std::to_string(seq) + ".txt");
++        o << "D4QP 1\n";
++        o << "dims " << n << " " << me << " " << mi << "\n";
++        char b[512];
++        std::snprintf(b, sizeof b, "opts %.17g %.17g %.17g %.17g %ld %ld %.17g %d %.17g %d %d\n", opts_.primal_delta, opts_.dual_mu,
++                      opts_.feas_tol, opts_.opt_tol, (long)opts_.max_iter, (long)opts_.schur_cap, opts_.schur_cond_max, (int)opts_.ws_algebra,
++                      opts_.tr_radius, (int)opts_.independent_working_set, threads_);
++        o << b;
++        std::snprintf(b, sizeof b, "overrides %.17g %.17g %.17g\n", overrides.tr_radius, overrides.primal_delta, overrides.dual_mu);
++        o << b;
++        o << "warm " << (int)warm << " seed " << (seed != nullptr ? 1 : 0) << " hot " << (hot != nullptr ? 1 : 0) << " k0_reused "
++          << (int)counters.k0_reused << "\n";
++        std::snprintf(b, sizeof b, "result status=%d minors=%ld facts=%ld blk_term=%ld cert=%ld cert_rej=%ld zmcap=%ld zmexh=%ld retreats=%ld exch=%ld deferred=%ld undec=%ld maxiter=%ld\n",
++                      (int)status, (long)counters.minor_iters, (long)counters.factorizations, (long)counters.dep_blocker_terminations,
++                      (long)counters.dep_infeasible_certificates, (long)counters.dep_certificate_rejections, (long)counters.zero_motion_cap_hits,
++                      (long)counters.zero_motion_exhausted, (long)counters.dep_border_retreats, (long)counters.ws_exchanges,
++                      (long)counters.dep_deferred_adds, (long)counters.dep_undecidable, (long)eff_max_iter);
++        o << b;
++        d4::dsp(o, "H", qp_in.H);
++        d4::dvec(o, "g", qp_in.g);
++        d4::dsp(o, "Ae", qp_in.Ae);
++        d4::dvec(o, "be", qp_in.be);
++        d4::dsp(o, "Ai", qp_in.Ai);
++        d4::dvec(o, "bi", qp_in.bi);
++        d4::dvec(o, "lower", qp_in.lower);
++        d4::dvec(o, "upper", qp_in.upper);
++        if (seed != nullptr) {
++            d4::dvec(o, "seed_x", seed->x);
++            std::vector<long> sb, sa;
++            for (BoundState bs : seed->bound_state) sb.push_back((long)bs);
++            for (bool a : seed->ineq_active) sa.push_back(a ? 1 : 0);
++            d4::divec(o, "seed_bound_state", sb);
++            d4::divec(o, "seed_ineq_active", sa);
++        }
++        d4::dvec(o, "x_final", out.x);
++        std::vector<long> fb, fa;
++        for (BoundState bs : ws.bound_state()) fb.push_back((long)bs);
++        for (Index r : ws.active_ineq()) fa.push_back((long)r);
++        d4::divec(o, "final_bound_state", fb);
++        d4::divec(o, "final_active_ineq", fa);
++        std::fprintf(stderr, "D4DUMP seq=%ld solve=%ld status=%d n=%ld me=%ld mi=%ld warm=%d tr=%.6g minors=%ld facts=%ld blk_term=%ld cert_rej=%ld zmcap=%ld retreats=%ld k0_reused=%d\n",
++                     seq, d4_solve, (int)status, (long)n, (long)me, (long)mi, (int)warm, eff_opts.tr_radius, (long)counters.minor_iters,
++                     (long)counters.factorizations, (long)counters.dep_blocker_terminations, (long)counters.dep_certificate_rejections,
++                     (long)counters.zero_motion_cap_hits, (long)counters.dep_border_retreats, (int)counters.k0_reused);
++    }
++
+     // Emit a record to the ledger if attached.
+     if (ledger_ != nullptr) {
+         SolveRecord rec;
+--- hven-bench/a/lanes/hven/hven_bench_cell.cpp
++++ hven-bench/b/lanes/hven/hven_bench_cell.cpp
+@@ -55,6 +55,8 @@
+ #include "hven/drivers/ipm_solver_types.h"
+ #include "hven/drivers/solve_result.h"
+ #include "hven/drivers/sqp_solver.h"
++#include "hven/drivers/trace_writer.h"
++#include <cstdlib>
+ #include "hven/drivers/sqp_solver_types.h"
+ #include "hven/model/make_nlp_program.h"
+ #include "hven/model/nlp_problem_model.h"
+@@ -994,6 +996,26 @@
+         hven::solvers::dump_options(options, dump);
+     }
+     hven::solvers::SqpSolver solver(options);
++    // M7 W2 R1 scratch only: HVEN_R1_TRACE=<file> attaches a JSON-lines trace sink (every depth).
++    static std::ofstream r1_trace_file;
++    static std::unique_ptr<hven::solvers::JsonLinesTraceSink> r1_sink;
++    if (const char *tp = std::getenv("HVEN_R1_TRACE"); tp != nullptr) {
++        r1_trace_file.open(tp, std::ios::trunc);
++        r1_sink = std::make_unique<hven::solvers::JsonLinesTraceSink>(r1_trace_file);
++        solver.attach_trace(r1_sink.get());
++    }
++    // M7 W2 R1 scratch only: HVEN_R1_WALL=<s> ends the solve from inside (kStop at the first
++    // history row past <s> seconds) -- the harness's own 300 s ceiling, without a signal.
++    if (const char *w = std::getenv("HVEN_R1_WALL"); w != nullptr) {
++        const double wall = std::atof(w);
++        solver.set_iteration_callback([wall](const hven::solvers::IterationEvent &e) {
++            if (e.elapsed_seconds > wall) {
++                std::fprintf(stderr, "R1WALLSTOP elapsed=%.3f depth=%ld iter=%ld\n", e.elapsed_seconds, (long)e.depth.value_or(0), (long)e.iteration);
++                return hven::solvers::CallbackAction::kStop;
++            }
++            return hven::solvers::CallbackAction::kContinue;
++        });
++    }
+     // Observation only (M7 W2 E2-RETAKE schema event): the per-QP counters E2
+     // added live on QpCounters, which SqpCounters does not aggregate, so the
+     // lane reads them off hven's own ledger (one SolveRecord per solve of the

@@ -1,0 +1,1246 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-release/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = WarmStartBattery.Corpus
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from WarmStartBattery
+[ RUN      ] WarmStartBattery.Corpus
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1337: Failure
+Expected equality of these values:
+  c.minors
+    Which is: 162
+  p.minors
+    Which is: 156
+
+family    arm        full  steps  majors  minors  fact   saved  wd  fullstep  brdref  lvl c/w/h  pred c/d  secs
+F1        cold       on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       on    5      5       16      1      0      0   4         20      1/4/0      0/0       0.003
+F1        warm+pred  on    5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        on    5      5       16      1      4      0   4         20      1/0/4      0/0       0.001
+F1        cold@pred  on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        cold       off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       off   5      5       16      1      0      0   0         20      1/4/0      0/0       0.001
+F1        warm+pred  off   5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        off   5      5       16      1      4      0   0         20      1/0/4      0/0       0.001
+F1        cold@pred  off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F2        cold       on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        warm+pred  on    5      7       14      7      0      0   6         14      1/4/0      4/0       0.001
+F2        hot        on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        cold@pred  on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        cold       off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        warm+pred  off   5      7       14      7      0      0   0         14      1/4/0      4/0       0.001
+F2        hot        off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        cold@pred  off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2far     cold       on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     warm+pred  on    5      9       40      10     0      0   6         40      1/4/0      4/0       0.002
+F2far     hot        on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     cold@pred  on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     cold       off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     warm+pred  off   5      9       40      10     0      0   0         40      1/4/0      4/0       0.002
+F2far     hot        off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     cold@pred  off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F3n50     cold       on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       on    4      12      23      9      0      0   8         23      1/3/0      0/0       0.004
+F3n50     warm+pred  on    4      6       12      5      0      0   2         12      1/3/0      3/0       0.002
+F3n50     hot        on    4      12      23      9      3      0   8         23      1/0/3      0/0       0.004
+F3n50     cold@pred  on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     cold       off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       off   4      12      23      9      0      0   0         23      1/3/0      0/0       0.004
+F3n50     warm+pred  off   4      6       12      5      0      0   0         12      1/3/0      3/0       0.002
+F3n50     hot        off   4      12      23      9      3      0   0         23      1/0/3      0/0       0.004
+F3n50     cold@pred  off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n1000   cold       on    6      53      162     53     0      0   0         162     6/0/0      0/0       0.224
+F3n1000   warm       on    6      30      89      25     0      0   22        89      1/5/0      0/0       0.124
+F3n1000   warm+pred  on    4      10      31      9      0      0   2         31      1/3/0      3/0       0.046
+F3n1000   hot        on    6      30      89      25     5      0   22        89      1/0/5      0/0       0.123
+F3n1000   cold@pred  on    4      35      107     35     0      0   0         107     4/0/0      0/0       0.148
+F3n1000   cold       off   6      53      162     53     0      0   0         162     6/0/0      0/0       0.225
+F3n1000   warm       off   6      30      89      25     0      0   0         89      1/5/0      0/0       0.123
+F3n1000   warm+pred  off   (not run -- see THE RUNTIME BUDGET)
+F3n1000   hot        off   6      30      89      25     5      0   0         89      1/0/5      0/0       0.122
+F3n1000   cold@pred  off   (not run -- see THE RUNTIME BUDGET)
+F3stress  cold       on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  warm       on    5      15      39      11     0      0   10        39      1/4/0      0/0       0.014
+F3stress  warm+pred  on    5      8       21      6      0      0   3         21      1/4/0      4/0       0.009
+F3stress  hot        on    5      15      39      11     4      0   10        39      1/0/4      0/0       0.014
+F3stress  cold@pred  on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  cold       off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+F3stress  warm       off   5      15      39      11     0      0   0         39      1/4/0      0/0       0.014
+F3stress  warm+pred  off   5      8       21      6      0      0   0         21      1/4/0      4/0       0.009
+F3stress  hot        off   5      15      39      11     4      0   0         39      1/0/4      0/0       0.014
+F3stress  cold@pred  off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1355: F3n1000 / cold
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1427: the pinned corpus totals
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1345: Failure
+Expected equality of these values:
+  c.border_refine
+    Which is: 162
+  p.border_refine
+    Which is: 156
+
+family    arm        full  steps  majors  minors  fact   saved  wd  fullstep  brdref  lvl c/w/h  pred c/d  secs
+F1        cold       on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       on    5      5       16      1      0      0   4         20      1/4/0      0/0       0.003
+F1        warm+pred  on    5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        on    5      5       16      1      4      0   4         20      1/0/4      0/0       0.001
+F1        cold@pred  on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        cold       off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       off   5      5       16      1      0      0   0         20      1/4/0      0/0       0.001
+F1        warm+pred  off   5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        off   5      5       16      1      4      0   0         20      1/0/4      0/0       0.001
+F1        cold@pred  off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F2        cold       on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        warm+pred  on    5      7       14      7      0      0   6         14      1/4/0      4/0       0.001
+F2        hot        on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        cold@pred  on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        cold       off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        warm+pred  off   5      7       14      7      0      0   0         14      1/4/0      4/0       0.001
+F2        hot        off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        cold@pred  off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2far     cold       on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     warm+pred  on    5      9       40      10     0      0   6         40      1/4/0      4/0       0.002
+F2far     hot        on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     cold@pred  on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     cold       off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     warm+pred  off   5      9       40      10     0      0   0         40      1/4/0      4/0       0.002
+F2far     hot        off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     cold@pred  off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F3n50     cold       on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       on    4      12      23      9      0      0   8         23      1/3/0      0/0       0.004
+F3n50     warm+pred  on    4      6       12      5      0      0   2         12      1/3/0      3/0       0.002
+F3n50     hot        on    4      12      23      9      3      0   8         23      1/0/3      0/0       0.004
+F3n50     cold@pred  on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     cold       off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       off   4      12      23      9      0      0   0         23      1/3/0      0/0       0.004
+F3n50     warm+pred  off   4      6       12      5      0      0   0         12      1/3/0      3/0       0.002
+F3n50     hot        off   4      12      23      9      3      0   0         23      1/0/3      0/0       0.004
+F3n50     cold@pred  off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n1000   cold       on    6      53      162     53     0      0   0         162     6/0/0      0/0       0.224
+F3n1000   warm       on    6      30      89      25     0      0   22        89      1/5/0      0/0       0.124
+F3n1000   warm+pred  on    4      10      31      9      0      0   2         31      1/3/0      3/0       0.046
+F3n1000   hot        on    6      30      89      25     5      0   22        89      1/0/5      0/0       0.123
+F3n1000   cold@pred  on    4      35      107     35     0      0   0         107     4/0/0      0/0       0.148
+F3n1000   cold       off   6      53      162     53     0      0   0         162     6/0/0      0/0       0.225
+F3n1000   warm       off   6      30      89      25     0      0   0         89      1/5/0      0/0       0.123
+F3n1000   warm+pred  off   (not run -- see THE RUNTIME BUDGET)
+F3n1000   hot        off   6      30      89      25     5      0   0         89      1/0/5      0/0       0.122
+F3n1000   cold@pred  off   (not run -- see THE RUNTIME BUDGET)
+F3stress  cold       on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  warm       on    5      15      39      11     0      0   10        39      1/4/0      0/0       0.014
+F3stress  warm+pred  on    5      8       21      6      0      0   3         21      1/4/0      4/0       0.009
+F3stress  hot        on    5      15      39      11     4      0   10        39      1/0/4      0/0       0.014
+F3stress  cold@pred  on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  cold       off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+F3stress  warm       off   5      15      39      11     0      0   0         39      1/4/0      0/0       0.014
+F3stress  warm+pred  off   5      8       21      6      0      0   0         21      1/4/0      4/0       0.009
+F3stress  hot        off   5      15      39      11     4      0   0         39      1/0/4      0/0       0.014
+F3stress  cold@pred  off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1355: F3n1000 / cold
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1427: the pinned corpus totals
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1337: Failure
+Expected equality of these values:
+  c.minors
+    Which is: 89
+  p.minors
+    Which is: 84
+
+family    arm        full  steps  majors  minors  fact   saved  wd  fullstep  brdref  lvl c/w/h  pred c/d  secs
+F1        cold       on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       on    5      5       16      1      0      0   4         20      1/4/0      0/0       0.003
+F1        warm+pred  on    5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        on    5      5       16      1      4      0   4         20      1/0/4      0/0       0.001
+F1        cold@pred  on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        cold       off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       off   5      5       16      1      0      0   0         20      1/4/0      0/0       0.001
+F1        warm+pred  off   5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        off   5      5       16      1      4      0   0         20      1/0/4      0/0       0.001
+F1        cold@pred  off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F2        cold       on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        warm+pred  on    5      7       14      7      0      0   6         14      1/4/0      4/0       0.001
+F2        hot        on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        cold@pred  on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        cold       off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        warm+pred  off   5      7       14      7      0      0   0         14      1/4/0      4/0       0.001
+F2        hot        off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        cold@pred  off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2far     cold       on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     warm+pred  on    5      9       40      10     0      0   6         40      1/4/0      4/0       0.002
+F2far     hot        on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     cold@pred  on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     cold       off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     warm+pred  off   5      9       40      10     0      0   0         40      1/4/0      4/0       0.002
+F2far     hot        off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     cold@pred  off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F3n50     cold       on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       on    4      12      23      9      0      0   8         23      1/3/0      0/0       0.004
+F3n50     warm+pred  on    4      6       12      5      0      0   2         12      1/3/0      3/0       0.002
+F3n50     hot        on    4      12      23      9      3      0   8         23      1/0/3      0/0       0.004
+F3n50     cold@pred  on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     cold       off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       off   4      12      23      9      0      0   0         23      1/3/0      0/0       0.004
+F3n50     warm+pred  off   4      6       12      5      0      0   0         12      1/3/0      3/0       0.002
+F3n50     hot        off   4      12      23      9      3      0   0         23      1/0/3      0/0       0.004
+F3n50     cold@pred  off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n1000   cold       on    6      53      162     53     0      0   0         162     6/0/0      0/0       0.224
+F3n1000   warm       on    6      30      89      25     0      0   22        89      1/5/0      0/0       0.124
+F3n1000   warm+pred  on    4      10      31      9      0      0   2         31      1/3/0      3/0       0.046
+F3n1000   hot        on    6      30      89      25     5      0   22        89      1/0/5      0/0       0.123
+F3n1000   cold@pred  on    4      35      107     35     0      0   0         107     4/0/0      0/0       0.148
+F3n1000   cold       off   6      53      162     53     0      0   0         162     6/0/0      0/0       0.225
+F3n1000   warm       off   6      30      89      25     0      0   0         89      1/5/0      0/0       0.123
+F3n1000   warm+pred  off   (not run -- see THE RUNTIME BUDGET)
+F3n1000   hot        off   6      30      89      25     5      0   0         89      1/0/5      0/0       0.122
+F3n1000   cold@pred  off   (not run -- see THE RUNTIME BUDGET)
+F3stress  cold       on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  warm       on    5      15      39      11     0      0   10        39      1/4/0      0/0       0.014
+F3stress  warm+pred  on    5      8       21      6      0      0   3         21      1/4/0      4/0       0.009
+F3stress  hot        on    5      15      39      11     4      0   10        39      1/0/4      0/0       0.014
+F3stress  cold@pred  on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  cold       off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+F3stress  warm       off   5      15      39      11     0      0   0         39      1/4/0      0/0       0.014
+F3stress  warm+pred  off   5      8       21      6      0      0   0         21      1/4/0      4/0       0.009
+F3stress  hot        off   5      15      39      11     4      0   0         39      1/0/4      0/0       0.014
+F3stress  cold@pred  off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1355: F3n1000 / warm
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1427: the pinned corpus totals
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1345: Failure
+Expected equality of these values:
+  c.border_refine
+    Which is: 89
+  p.border_refine
+    Which is: 84
+
+family    arm        full  steps  majors  minors  fact   saved  wd  fullstep  brdref  lvl c/w/h  pred c/d  secs
+F1        cold       on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       on    5      5       16      1      0      0   4         20      1/4/0      0/0       0.003
+F1        warm+pred  on    5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        on    5      5       16      1      4      0   4         20      1/0/4      0/0       0.001
+F1        cold@pred  on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        cold       off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       off   5      5       16      1      0      0   0         20      1/4/0      0/0       0.001
+F1        warm+pred  off   5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        off   5      5       16      1      4      0   0         20      1/0/4      0/0       0.001
+F1        cold@pred  off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F2        cold       on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        warm+pred  on    5      7       14      7      0      0   6         14      1/4/0      4/0       0.001
+F2        hot        on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        cold@pred  on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        cold       off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        warm+pred  off   5      7       14      7      0      0   0         14      1/4/0      4/0       0.001
+F2        hot        off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        cold@pred  off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2far     cold       on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     warm+pred  on    5      9       40      10     0      0   6         40      1/4/0      4/0       0.002
+F2far     hot        on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     cold@pred  on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     cold       off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     warm+pred  off   5      9       40      10     0      0   0         40      1/4/0      4/0       0.002
+F2far     hot        off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     cold@pred  off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F3n50     cold       on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       on    4      12      23      9      0      0   8         23      1/3/0      0/0       0.004
+F3n50     warm+pred  on    4      6       12      5      0      0   2         12      1/3/0      3/0       0.002
+F3n50     hot        on    4      12      23      9      3      0   8         23      1/0/3      0/0       0.004
+F3n50     cold@pred  on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     cold       off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       off   4      12      23      9      0      0   0         23      1/3/0      0/0       0.004
+F3n50     warm+pred  off   4      6       12      5      0      0   0         12      1/3/0      3/0       0.002
+F3n50     hot        off   4      12      23      9      3      0   0         23      1/0/3      0/0       0.004
+F3n50     cold@pred  off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n1000   cold       on    6      53      162     53     0      0   0         162     6/0/0      0/0       0.224
+F3n1000   warm       on    6      30      89      25     0      0   22        89      1/5/0      0/0       0.124
+F3n1000   warm+pred  on    4      10      31      9      0      0   2         31      1/3/0      3/0       0.046
+F3n1000   hot        on    6      30      89      25     5      0   22        89      1/0/5      0/0       0.123
+F3n1000   cold@pred  on    4      35      107     35     0      0   0         107     4/0/0      0/0       0.148
+F3n1000   cold       off   6      53      162     53     0      0   0         162     6/0/0      0/0       0.225
+F3n1000   warm       off   6      30      89      25     0      0   0         89      1/5/0      0/0       0.123
+F3n1000   warm+pred  off   (not run -- see THE RUNTIME BUDGET)
+F3n1000   hot        off   6      30      89      25     5      0   0         89      1/0/5      0/0       0.122
+F3n1000   cold@pred  off   (not run -- see THE RUNTIME BUDGET)
+F3stress  cold       on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  warm       on    5      15      39      11     0      0   10        39      1/4/0      0/0       0.014
+F3stress  warm+pred  on    5      8       21      6      0      0   3         21      1/4/0      4/0       0.009
+F3stress  hot        on    5      15      39      11     4      0   10        39      1/0/4      0/0       0.014
+F3stress  cold@pred  on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  cold       off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+F3stress  warm       off   5      15      39      11     0      0   0         39      1/4/0      0/0       0.014
+F3stress  warm+pred  off   5      8       21      6      0      0   0         21      1/4/0      4/0       0.009
+F3stress  hot        off   5      15      39      11     4      0   0         39      1/0/4      0/0       0.014
+F3stress  cold@pred  off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1355: F3n1000 / warm
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1427: the pinned corpus totals
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1337: Failure
+Expected equality of these values:
+  c.minors
+    Which is: 31
+  p.minors
+    Which is: 27
+
+family    arm        full  steps  majors  minors  fact   saved  wd  fullstep  brdref  lvl c/w/h  pred c/d  secs
+F1        cold       on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       on    5      5       16      1      0      0   4         20      1/4/0      0/0       0.003
+F1        warm+pred  on    5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        on    5      5       16      1      4      0   4         20      1/0/4      0/0       0.001
+F1        cold@pred  on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        cold       off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       off   5      5       16      1      0      0   0         20      1/4/0      0/0       0.001
+F1        warm+pred  off   5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        off   5      5       16      1      4      0   0         20      1/0/4      0/0       0.001
+F1        cold@pred  off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F2        cold       on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        warm+pred  on    5      7       14      7      0      0   6         14      1/4/0      4/0       0.001
+F2        hot        on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        cold@pred  on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        cold       off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        warm+pred  off   5      7       14      7      0      0   0         14      1/4/0      4/0       0.001
+F2        hot        off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        cold@pred  off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2far     cold       on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     warm+pred  on    5      9       40      10     0      0   6         40      1/4/0      4/0       0.002
+F2far     hot        on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     cold@pred  on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     cold       off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     warm+pred  off   5      9       40      10     0      0   0         40      1/4/0      4/0       0.002
+F2far     hot        off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     cold@pred  off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F3n50     cold       on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       on    4      12      23      9      0      0   8         23      1/3/0      0/0       0.004
+F3n50     warm+pred  on    4      6       12      5      0      0   2         12      1/3/0      3/0       0.002
+F3n50     hot        on    4      12      23      9      3      0   8         23      1/0/3      0/0       0.004
+F3n50     cold@pred  on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     cold       off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       off   4      12      23      9      0      0   0         23      1/3/0      0/0       0.004
+F3n50     warm+pred  off   4      6       12      5      0      0   0         12      1/3/0      3/0       0.002
+F3n50     hot        off   4      12      23      9      3      0   0         23      1/0/3      0/0       0.004
+F3n50     cold@pred  off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n1000   cold       on    6      53      162     53     0      0   0         162     6/0/0      0/0       0.224
+F3n1000   warm       on    6      30      89      25     0      0   22        89      1/5/0      0/0       0.124
+F3n1000   warm+pred  on    4      10      31      9      0      0   2         31      1/3/0      3/0       0.046
+F3n1000   hot        on    6      30      89      25     5      0   22        89      1/0/5      0/0       0.123
+F3n1000   cold@pred  on    4      35      107     35     0      0   0         107     4/0/0      0/0       0.148
+F3n1000   cold       off   6      53      162     53     0      0   0         162     6/0/0      0/0       0.225
+F3n1000   warm       off   6      30      89      25     0      0   0         89      1/5/0      0/0       0.123
+F3n1000   warm+pred  off   (not run -- see THE RUNTIME BUDGET)
+F3n1000   hot        off   6      30      89      25     5      0   0         89      1/0/5      0/0       0.122
+F3n1000   cold@pred  off   (not run -- see THE RUNTIME BUDGET)
+F3stress  cold       on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  warm       on    5      15      39      11     0      0   10        39      1/4/0      0/0       0.014
+F3stress  warm+pred  on    5      8       21      6      0      0   3         21      1/4/0      4/0       0.009
+F3stress  hot        on    5      15      39      11     4      0   10        39      1/0/4      0/0       0.014
+F3stress  cold@pred  on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  cold       off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+F3stress  warm       off   5      15      39      11     0      0   0         39      1/4/0      0/0       0.014
+F3stress  warm+pred  off   5      8       21      6      0      0   0         21      1/4/0      4/0       0.009
+F3stress  hot        off   5      15      39      11     4      0   0         39      1/0/4      0/0       0.014
+F3stress  cold@pred  off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1355: F3n1000 / warm+pred
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1427: the pinned corpus totals
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1345: Failure
+Expected equality of these values:
+  c.border_refine
+    Which is: 31
+  p.border_refine
+    Which is: 27
+
+family    arm        full  steps  majors  minors  fact   saved  wd  fullstep  brdref  lvl c/w/h  pred c/d  secs
+F1        cold       on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       on    5      5       16      1      0      0   4         20      1/4/0      0/0       0.003
+F1        warm+pred  on    5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        on    5      5       16      1      4      0   4         20      1/0/4      0/0       0.001
+F1        cold@pred  on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        cold       off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       off   5      5       16      1      0      0   0         20      1/4/0      0/0       0.001
+F1        warm+pred  off   5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        off   5      5       16      1      4      0   0         20      1/0/4      0/0       0.001
+F1        cold@pred  off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F2        cold       on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        warm+pred  on    5      7       14      7      0      0   6         14      1/4/0      4/0       0.001
+F2        hot        on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        cold@pred  on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        cold       off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        warm+pred  off   5      7       14      7      0      0   0         14      1/4/0      4/0       0.001
+F2        hot        off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        cold@pred  off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2far     cold       on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     warm+pred  on    5      9       40      10     0      0   6         40      1/4/0      4/0       0.002
+F2far     hot        on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     cold@pred  on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     cold       off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     warm+pred  off   5      9       40      10     0      0   0         40      1/4/0      4/0       0.002
+F2far     hot        off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     cold@pred  off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F3n50     cold       on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       on    4      12      23      9      0      0   8         23      1/3/0      0/0       0.004
+F3n50     warm+pred  on    4      6       12      5      0      0   2         12      1/3/0      3/0       0.002
+F3n50     hot        on    4      12      23      9      3      0   8         23      1/0/3      0/0       0.004
+F3n50     cold@pred  on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     cold       off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       off   4      12      23      9      0      0   0         23      1/3/0      0/0       0.004
+F3n50     warm+pred  off   4      6       12      5      0      0   0         12      1/3/0      3/0       0.002
+F3n50     hot        off   4      12      23      9      3      0   0         23      1/0/3      0/0       0.004
+F3n50     cold@pred  off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n1000   cold       on    6      53      162     53     0      0   0         162     6/0/0      0/0       0.224
+F3n1000   warm       on    6      30      89      25     0      0   22        89      1/5/0      0/0       0.124
+F3n1000   warm+pred  on    4      10      31      9      0      0   2         31      1/3/0      3/0       0.046
+F3n1000   hot        on    6      30      89      25     5      0   22        89      1/0/5      0/0       0.123
+F3n1000   cold@pred  on    4      35      107     35     0      0   0         107     4/0/0      0/0       0.148
+F3n1000   cold       off   6      53      162     53     0      0   0         162     6/0/0      0/0       0.225
+F3n1000   warm       off   6      30      89      25     0      0   0         89      1/5/0      0/0       0.123
+F3n1000   warm+pred  off   (not run -- see THE RUNTIME BUDGET)
+F3n1000   hot        off   6      30      89      25     5      0   0         89      1/0/5      0/0       0.122
+F3n1000   cold@pred  off   (not run -- see THE RUNTIME BUDGET)
+F3stress  cold       on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  warm       on    5      15      39      11     0      0   10        39      1/4/0      0/0       0.014
+F3stress  warm+pred  on    5      8       21      6      0      0   3         21      1/4/0      4/0       0.009
+F3stress  hot        on    5      15      39      11     4      0   10        39      1/0/4      0/0       0.014
+F3stress  cold@pred  on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  cold       off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+F3stress  warm       off   5      15      39      11     0      0   0         39      1/4/0      0/0       0.014
+F3stress  warm+pred  off   5      8       21      6      0      0   0         21      1/4/0      4/0       0.009
+F3stress  hot        off   5      15      39      11     4      0   0         39      1/0/4      0/0       0.014
+F3stress  cold@pred  off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1355: F3n1000 / warm+pred
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1427: the pinned corpus totals
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1337: Failure
+Expected equality of these values:
+  c.minors
+    Which is: 89
+  p.minors
+    Which is: 84
+
+family    arm        full  steps  majors  minors  fact   saved  wd  fullstep  brdref  lvl c/w/h  pred c/d  secs
+F1        cold       on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       on    5      5       16      1      0      0   4         20      1/4/0      0/0       0.003
+F1        warm+pred  on    5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        on    5      5       16      1      4      0   4         20      1/0/4      0/0       0.001
+F1        cold@pred  on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        cold       off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       off   5      5       16      1      0      0   0         20      1/4/0      0/0       0.001
+F1        warm+pred  off   5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        off   5      5       16      1      4      0   0         20      1/0/4      0/0       0.001
+F1        cold@pred  off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F2        cold       on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        warm+pred  on    5      7       14      7      0      0   6         14      1/4/0      4/0       0.001
+F2        hot        on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        cold@pred  on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        cold       off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        warm+pred  off   5      7       14      7      0      0   0         14      1/4/0      4/0       0.001
+F2        hot        off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        cold@pred  off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2far     cold       on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     warm+pred  on    5      9       40      10     0      0   6         40      1/4/0      4/0       0.002
+F2far     hot        on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     cold@pred  on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     cold       off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     warm+pred  off   5      9       40      10     0      0   0         40      1/4/0      4/0       0.002
+F2far     hot        off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     cold@pred  off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F3n50     cold       on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       on    4      12      23      9      0      0   8         23      1/3/0      0/0       0.004
+F3n50     warm+pred  on    4      6       12      5      0      0   2         12      1/3/0      3/0       0.002
+F3n50     hot        on    4      12      23      9      3      0   8         23      1/0/3      0/0       0.004
+F3n50     cold@pred  on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     cold       off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       off   4      12      23      9      0      0   0         23      1/3/0      0/0       0.004
+F3n50     warm+pred  off   4      6       12      5      0      0   0         12      1/3/0      3/0       0.002
+F3n50     hot        off   4      12      23      9      3      0   0         23      1/0/3      0/0       0.004
+F3n50     cold@pred  off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n1000   cold       on    6      53      162     53     0      0   0         162     6/0/0      0/0       0.224
+F3n1000   warm       on    6      30      89      25     0      0   22        89      1/5/0      0/0       0.124
+F3n1000   warm+pred  on    4      10      31      9      0      0   2         31      1/3/0      3/0       0.046
+F3n1000   hot        on    6      30      89      25     5      0   22        89      1/0/5      0/0       0.123
+F3n1000   cold@pred  on    4      35      107     35     0      0   0         107     4/0/0      0/0       0.148
+F3n1000   cold       off   6      53      162     53     0      0   0         162     6/0/0      0/0       0.225
+F3n1000   warm       off   6      30      89      25     0      0   0         89      1/5/0      0/0       0.123
+F3n1000   warm+pred  off   (not run -- see THE RUNTIME BUDGET)
+F3n1000   hot        off   6      30      89      25     5      0   0         89      1/0/5      0/0       0.122
+F3n1000   cold@pred  off   (not run -- see THE RUNTIME BUDGET)
+F3stress  cold       on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  warm       on    5      15      39      11     0      0   10        39      1/4/0      0/0       0.014
+F3stress  warm+pred  on    5      8       21      6      0      0   3         21      1/4/0      4/0       0.009
+F3stress  hot        on    5      15      39      11     4      0   10        39      1/0/4      0/0       0.014
+F3stress  cold@pred  on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  cold       off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+F3stress  warm       off   5      15      39      11     0      0   0         39      1/4/0      0/0       0.014
+F3stress  warm+pred  off   5      8       21      6      0      0   0         21      1/4/0      4/0       0.009
+F3stress  hot        off   5      15      39      11     4      0   0         39      1/0/4      0/0       0.014
+F3stress  cold@pred  off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1355: F3n1000 / hot
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1427: the pinned corpus totals
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1345: Failure
+Expected equality of these values:
+  c.border_refine
+    Which is: 89
+  p.border_refine
+    Which is: 84
+
+family    arm        full  steps  majors  minors  fact   saved  wd  fullstep  brdref  lvl c/w/h  pred c/d  secs
+F1        cold       on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       on    5      5       16      1      0      0   4         20      1/4/0      0/0       0.003
+F1        warm+pred  on    5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        on    5      5       16      1      4      0   4         20      1/0/4      0/0       0.001
+F1        cold@pred  on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        cold       off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       off   5      5       16      1      0      0   0         20      1/4/0      0/0       0.001
+F1        warm+pred  off   5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        off   5      5       16      1      4      0   0         20      1/0/4      0/0       0.001
+F1        cold@pred  off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F2        cold       on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        warm+pred  on    5      7       14      7      0      0   6         14      1/4/0      4/0       0.001
+F2        hot        on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        cold@pred  on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        cold       off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        warm+pred  off   5      7       14      7      0      0   0         14      1/4/0      4/0       0.001
+F2        hot        off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        cold@pred  off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2far     cold       on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     warm+pred  on    5      9       40      10     0      0   6         40      1/4/0      4/0       0.002
+F2far     hot        on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     cold@pred  on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     cold       off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     warm+pred  off   5      9       40      10     0      0   0         40      1/4/0      4/0       0.002
+F2far     hot        off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     cold@pred  off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F3n50     cold       on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       on    4      12      23      9      0      0   8         23      1/3/0      0/0       0.004
+F3n50     warm+pred  on    4      6       12      5      0      0   2         12      1/3/0      3/0       0.002
+F3n50     hot        on    4      12      23      9      3      0   8         23      1/0/3      0/0       0.004
+F3n50     cold@pred  on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     cold       off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       off   4      12      23      9      0      0   0         23      1/3/0      0/0       0.004
+F3n50     warm+pred  off   4      6       12      5      0      0   0         12      1/3/0      3/0       0.002
+F3n50     hot        off   4      12      23      9      3      0   0         23      1/0/3      0/0       0.004
+F3n50     cold@pred  off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n1000   cold       on    6      53      162     53     0      0   0         162     6/0/0      0/0       0.224
+F3n1000   warm       on    6      30      89      25     0      0   22        89      1/5/0      0/0       0.124
+F3n1000   warm+pred  on    4      10      31      9      0      0   2         31      1/3/0      3/0       0.046
+F3n1000   hot        on    6      30      89      25     5      0   22        89      1/0/5      0/0       0.123
+F3n1000   cold@pred  on    4      35      107     35     0      0   0         107     4/0/0      0/0       0.148
+F3n1000   cold       off   6      53      162     53     0      0   0         162     6/0/0      0/0       0.225
+F3n1000   warm       off   6      30      89      25     0      0   0         89      1/5/0      0/0       0.123
+F3n1000   warm+pred  off   (not run -- see THE RUNTIME BUDGET)
+F3n1000   hot        off   6      30      89      25     5      0   0         89      1/0/5      0/0       0.122
+F3n1000   cold@pred  off   (not run -- see THE RUNTIME BUDGET)
+F3stress  cold       on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  warm       on    5      15      39      11     0      0   10        39      1/4/0      0/0       0.014
+F3stress  warm+pred  on    5      8       21      6      0      0   3         21      1/4/0      4/0       0.009
+F3stress  hot        on    5      15      39      11     4      0   10        39      1/0/4      0/0       0.014
+F3stress  cold@pred  on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  cold       off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+F3stress  warm       off   5      15      39      11     0      0   0         39      1/4/0      0/0       0.014
+F3stress  warm+pred  off   5      8       21      6      0      0   0         21      1/4/0      4/0       0.009
+F3stress  hot        off   5      15      39      11     4      0   0         39      1/0/4      0/0       0.014
+F3stress  cold@pred  off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1355: F3n1000 / hot
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1427: the pinned corpus totals
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1337: Failure
+Expected equality of these values:
+  c.minors
+    Which is: 107
+  p.minors
+    Which is: 103
+
+family    arm        full  steps  majors  minors  fact   saved  wd  fullstep  brdref  lvl c/w/h  pred c/d  secs
+F1        cold       on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       on    5      5       16      1      0      0   4         20      1/4/0      0/0       0.003
+F1        warm+pred  on    5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        on    5      5       16      1      4      0   4         20      1/0/4      0/0       0.001
+F1        cold@pred  on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        cold       off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       off   5      5       16      1      0      0   0         20      1/4/0      0/0       0.001
+F1        warm+pred  off   5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        off   5      5       16      1      4      0   0         20      1/0/4      0/0       0.001
+F1        cold@pred  off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F2        cold       on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        warm+pred  on    5      7       14      7      0      0   6         14      1/4/0      4/0       0.001
+F2        hot        on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        cold@pred  on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        cold       off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        warm+pred  off   5      7       14      7      0      0   0         14      1/4/0      4/0       0.001
+F2        hot        off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        cold@pred  off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2far     cold       on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     warm+pred  on    5      9       40      10     0      0   6         40      1/4/0      4/0       0.002
+F2far     hot        on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     cold@pred  on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     cold       off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     warm+pred  off   5      9       40      10     0      0   0         40      1/4/0      4/0       0.002
+F2far     hot        off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     cold@pred  off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F3n50     cold       on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       on    4      12      23      9      0      0   8         23      1/3/0      0/0       0.004
+F3n50     warm+pred  on    4      6       12      5      0      0   2         12      1/3/0      3/0       0.002
+F3n50     hot        on    4      12      23      9      3      0   8         23      1/0/3      0/0       0.004
+F3n50     cold@pred  on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     cold       off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       off   4      12      23      9      0      0   0         23      1/3/0      0/0       0.004
+F3n50     warm+pred  off   4      6       12      5      0      0   0         12      1/3/0      3/0       0.002
+F3n50     hot        off   4      12      23      9      3      0   0         23      1/0/3      0/0       0.004
+F3n50     cold@pred  off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n1000   cold       on    6      53      162     53     0      0   0         162     6/0/0      0/0       0.224
+F3n1000   warm       on    6      30      89      25     0      0   22        89      1/5/0      0/0       0.124
+F3n1000   warm+pred  on    4      10      31      9      0      0   2         31      1/3/0      3/0       0.046
+F3n1000   hot        on    6      30      89      25     5      0   22        89      1/0/5      0/0       0.123
+F3n1000   cold@pred  on    4      35      107     35     0      0   0         107     4/0/0      0/0       0.148
+F3n1000   cold       off   6      53      162     53     0      0   0         162     6/0/0      0/0       0.225
+F3n1000   warm       off   6      30      89      25     0      0   0         89      1/5/0      0/0       0.123
+F3n1000   warm+pred  off   (not run -- see THE RUNTIME BUDGET)
+F3n1000   hot        off   6      30      89      25     5      0   0         89      1/0/5      0/0       0.122
+F3n1000   cold@pred  off   (not run -- see THE RUNTIME BUDGET)
+F3stress  cold       on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  warm       on    5      15      39      11     0      0   10        39      1/4/0      0/0       0.014
+F3stress  warm+pred  on    5      8       21      6      0      0   3         21      1/4/0      4/0       0.009
+F3stress  hot        on    5      15      39      11     4      0   10        39      1/0/4      0/0       0.014
+F3stress  cold@pred  on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  cold       off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+F3stress  warm       off   5      15      39      11     0      0   0         39      1/4/0      0/0       0.014
+F3stress  warm+pred  off   5      8       21      6      0      0   0         21      1/4/0      4/0       0.009
+F3stress  hot        off   5      15      39      11     4      0   0         39      1/0/4      0/0       0.014
+F3stress  cold@pred  off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1355: F3n1000 / cold@pred
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1427: the pinned corpus totals
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1345: Failure
+Expected equality of these values:
+  c.border_refine
+    Which is: 107
+  p.border_refine
+    Which is: 103
+
+family    arm        full  steps  majors  minors  fact   saved  wd  fullstep  brdref  lvl c/w/h  pred c/d  secs
+F1        cold       on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       on    5      5       16      1      0      0   4         20      1/4/0      0/0       0.003
+F1        warm+pred  on    5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        on    5      5       16      1      4      0   4         20      1/0/4      0/0       0.001
+F1        cold@pred  on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        cold       off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       off   5      5       16      1      0      0   0         20      1/4/0      0/0       0.001
+F1        warm+pred  off   5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        off   5      5       16      1      4      0   0         20      1/0/4      0/0       0.001
+F1        cold@pred  off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F2        cold       on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        warm+pred  on    5      7       14      7      0      0   6         14      1/4/0      4/0       0.001
+F2        hot        on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        cold@pred  on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        cold       off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        warm+pred  off   5      7       14      7      0      0   0         14      1/4/0      4/0       0.001
+F2        hot        off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        cold@pred  off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2far     cold       on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     warm+pred  on    5      9       40      10     0      0   6         40      1/4/0      4/0       0.002
+F2far     hot        on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     cold@pred  on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     cold       off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     warm+pred  off   5      9       40      10     0      0   0         40      1/4/0      4/0       0.002
+F2far     hot        off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     cold@pred  off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F3n50     cold       on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       on    4      12      23      9      0      0   8         23      1/3/0      0/0       0.004
+F3n50     warm+pred  on    4      6       12      5      0      0   2         12      1/3/0      3/0       0.002
+F3n50     hot        on    4      12      23      9      3      0   8         23      1/0/3      0/0       0.004
+F3n50     cold@pred  on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     cold       off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       off   4      12      23      9      0      0   0         23      1/3/0      0/0       0.004
+F3n50     warm+pred  off   4      6       12      5      0      0   0         12      1/3/0      3/0       0.002
+F3n50     hot        off   4      12      23      9      3      0   0         23      1/0/3      0/0       0.004
+F3n50     cold@pred  off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n1000   cold       on    6      53      162     53     0      0   0         162     6/0/0      0/0       0.224
+F3n1000   warm       on    6      30      89      25     0      0   22        89      1/5/0      0/0       0.124
+F3n1000   warm+pred  on    4      10      31      9      0      0   2         31      1/3/0      3/0       0.046
+F3n1000   hot        on    6      30      89      25     5      0   22        89      1/0/5      0/0       0.123
+F3n1000   cold@pred  on    4      35      107     35     0      0   0         107     4/0/0      0/0       0.148
+F3n1000   cold       off   6      53      162     53     0      0   0         162     6/0/0      0/0       0.225
+F3n1000   warm       off   6      30      89      25     0      0   0         89      1/5/0      0/0       0.123
+F3n1000   warm+pred  off   (not run -- see THE RUNTIME BUDGET)
+F3n1000   hot        off   6      30      89      25     5      0   0         89      1/0/5      0/0       0.122
+F3n1000   cold@pred  off   (not run -- see THE RUNTIME BUDGET)
+F3stress  cold       on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  warm       on    5      15      39      11     0      0   10        39      1/4/0      0/0       0.014
+F3stress  warm+pred  on    5      8       21      6      0      0   3         21      1/4/0      4/0       0.009
+F3stress  hot        on    5      15      39      11     4      0   10        39      1/0/4      0/0       0.014
+F3stress  cold@pred  on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  cold       off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+F3stress  warm       off   5      15      39      11     0      0   0         39      1/4/0      0/0       0.014
+F3stress  warm+pred  off   5      8       21      6      0      0   0         21      1/4/0      4/0       0.009
+F3stress  hot        off   5      15      39      11     4      0   0         39      1/0/4      0/0       0.014
+F3stress  cold@pred  off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1355: F3n1000 / cold@pred
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1427: the pinned corpus totals
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1337: Failure
+Expected equality of these values:
+  c.minors
+    Which is: 99
+  p.minors
+    Which is: 98
+
+family    arm        full  steps  majors  minors  fact   saved  wd  fullstep  brdref  lvl c/w/h  pred c/d  secs
+F1        cold       on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       on    5      5       16      1      0      0   4         20      1/4/0      0/0       0.003
+F1        warm+pred  on    5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        on    5      5       16      1      4      0   4         20      1/0/4      0/0       0.001
+F1        cold@pred  on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        cold       off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       off   5      5       16      1      0      0   0         20      1/4/0      0/0       0.001
+F1        warm+pred  off   5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        off   5      5       16      1      4      0   0         20      1/0/4      0/0       0.001
+F1        cold@pred  off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F2        cold       on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        warm+pred  on    5      7       14      7      0      0   6         14      1/4/0      4/0       0.001
+F2        hot        on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        cold@pred  on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        cold       off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        warm+pred  off   5      7       14      7      0      0   0         14      1/4/0      4/0       0.001
+F2        hot        off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        cold@pred  off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2far     cold       on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     warm+pred  on    5      9       40      10     0      0   6         40      1/4/0      4/0       0.002
+F2far     hot        on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     cold@pred  on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     cold       off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     warm+pred  off   5      9       40      10     0      0   0         40      1/4/0      4/0       0.002
+F2far     hot        off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     cold@pred  off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F3n50     cold       on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       on    4      12      23      9      0      0   8         23      1/3/0      0/0       0.004
+F3n50     warm+pred  on    4      6       12      5      0      0   2         12      1/3/0      3/0       0.002
+F3n50     hot        on    4      12      23      9      3      0   8         23      1/0/3      0/0       0.004
+F3n50     cold@pred  on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     cold       off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       off   4      12      23      9      0      0   0         23      1/3/0      0/0       0.004
+F3n50     warm+pred  off   4      6       12      5      0      0   0         12      1/3/0      3/0       0.002
+F3n50     hot        off   4      12      23      9      3      0   0         23      1/0/3      0/0       0.004
+F3n50     cold@pred  off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n1000   cold       on    6      53      162     53     0      0   0         162     6/0/0      0/0       0.224
+F3n1000   warm       on    6      30      89      25     0      0   22        89      1/5/0      0/0       0.124
+F3n1000   warm+pred  on    4      10      31      9      0      0   2         31      1/3/0      3/0       0.046
+F3n1000   hot        on    6      30      89      25     5      0   22        89      1/0/5      0/0       0.123
+F3n1000   cold@pred  on    4      35      107     35     0      0   0         107     4/0/0      0/0       0.148
+F3n1000   cold       off   6      53      162     53     0      0   0         162     6/0/0      0/0       0.225
+F3n1000   warm       off   6      30      89      25     0      0   0         89      1/5/0      0/0       0.123
+F3n1000   warm+pred  off   (not run -- see THE RUNTIME BUDGET)
+F3n1000   hot        off   6      30      89      25     5      0   0         89      1/0/5      0/0       0.122
+F3n1000   cold@pred  off   (not run -- see THE RUNTIME BUDGET)
+F3stress  cold       on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  warm       on    5      15      39      11     0      0   10        39      1/4/0      0/0       0.014
+F3stress  warm+pred  on    5      8       21      6      0      0   3         21      1/4/0      4/0       0.009
+F3stress  hot        on    5      15      39      11     4      0   10        39      1/0/4      0/0       0.014
+F3stress  cold@pred  on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  cold       off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+F3stress  warm       off   5      15      39      11     0      0   0         39      1/4/0      0/0       0.014
+F3stress  warm+pred  off   5      8       21      6      0      0   0         21      1/4/0      4/0       0.009
+F3stress  hot        off   5      15      39      11     4      0   0         39      1/0/4      0/0       0.014
+F3stress  cold@pred  off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1355: F3stress / cold
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1427: the pinned corpus totals
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1345: Failure
+Expected equality of these values:
+  c.border_refine
+    Which is: 99
+  p.border_refine
+    Which is: 98
+
+family    arm        full  steps  majors  minors  fact   saved  wd  fullstep  brdref  lvl c/w/h  pred c/d  secs
+F1        cold       on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       on    5      5       16      1      0      0   4         20      1/4/0      0/0       0.003
+F1        warm+pred  on    5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        on    5      5       16      1      4      0   4         20      1/0/4      0/0       0.001
+F1        cold@pred  on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        cold       off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       off   5      5       16      1      0      0   0         20      1/4/0      0/0       0.001
+F1        warm+pred  off   5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        off   5      5       16      1      4      0   0         20      1/0/4      0/0       0.001
+F1        cold@pred  off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F2        cold       on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        warm+pred  on    5      7       14      7      0      0   6         14      1/4/0      4/0       0.001
+F2        hot        on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        cold@pred  on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        cold       off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        warm+pred  off   5      7       14      7      0      0   0         14      1/4/0      4/0       0.001
+F2        hot        off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        cold@pred  off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2far     cold       on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     warm+pred  on    5      9       40      10     0      0   6         40      1/4/0      4/0       0.002
+F2far     hot        on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     cold@pred  on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     cold       off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     warm+pred  off   5      9       40      10     0      0   0         40      1/4/0      4/0       0.002
+F2far     hot        off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     cold@pred  off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F3n50     cold       on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       on    4      12      23      9      0      0   8         23      1/3/0      0/0       0.004
+F3n50     warm+pred  on    4      6       12      5      0      0   2         12      1/3/0      3/0       0.002
+F3n50     hot        on    4      12      23      9      3      0   8         23      1/0/3      0/0       0.004
+F3n50     cold@pred  on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     cold       off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       off   4      12      23      9      0      0   0         23      1/3/0      0/0       0.004
+F3n50     warm+pred  off   4      6       12      5      0      0   0         12      1/3/0      3/0       0.002
+F3n50     hot        off   4      12      23      9      3      0   0         23      1/0/3      0/0       0.004
+F3n50     cold@pred  off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n1000   cold       on    6      53      162     53     0      0   0         162     6/0/0      0/0       0.224
+F3n1000   warm       on    6      30      89      25     0      0   22        89      1/5/0      0/0       0.124
+F3n1000   warm+pred  on    4      10      31      9      0      0   2         31      1/3/0      3/0       0.046
+F3n1000   hot        on    6      30      89      25     5      0   22        89      1/0/5      0/0       0.123
+F3n1000   cold@pred  on    4      35      107     35     0      0   0         107     4/0/0      0/0       0.148
+F3n1000   cold       off   6      53      162     53     0      0   0         162     6/0/0      0/0       0.225
+F3n1000   warm       off   6      30      89      25     0      0   0         89      1/5/0      0/0       0.123
+F3n1000   warm+pred  off   (not run -- see THE RUNTIME BUDGET)
+F3n1000   hot        off   6      30      89      25     5      0   0         89      1/0/5      0/0       0.122
+F3n1000   cold@pred  off   (not run -- see THE RUNTIME BUDGET)
+F3stress  cold       on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  warm       on    5      15      39      11     0      0   10        39      1/4/0      0/0       0.014
+F3stress  warm+pred  on    5      8       21      6      0      0   3         21      1/4/0      4/0       0.009
+F3stress  hot        on    5      15      39      11     4      0   10        39      1/0/4      0/0       0.014
+F3stress  cold@pred  on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  cold       off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+F3stress  warm       off   5      15      39      11     0      0   0         39      1/4/0      0/0       0.014
+F3stress  warm+pred  off   5      8       21      6      0      0   0         21      1/4/0      4/0       0.009
+F3stress  hot        off   5      15      39      11     4      0   0         39      1/0/4      0/0       0.014
+F3stress  cold@pred  off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1355: F3stress / cold
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1427: the pinned corpus totals
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1337: Failure
+Expected equality of these values:
+  c.minors
+    Which is: 21
+  p.minors
+    Which is: 20
+
+family    arm        full  steps  majors  minors  fact   saved  wd  fullstep  brdref  lvl c/w/h  pred c/d  secs
+F1        cold       on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       on    5      5       16      1      0      0   4         20      1/4/0      0/0       0.003
+F1        warm+pred  on    5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        on    5      5       16      1      4      0   4         20      1/0/4      0/0       0.001
+F1        cold@pred  on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        cold       off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       off   5      5       16      1      0      0   0         20      1/4/0      0/0       0.001
+F1        warm+pred  off   5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        off   5      5       16      1      4      0   0         20      1/0/4      0/0       0.001
+F1        cold@pred  off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F2        cold       on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        warm+pred  on    5      7       14      7      0      0   6         14      1/4/0      4/0       0.001
+F2        hot        on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        cold@pred  on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        cold       off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        warm+pred  off   5      7       14      7      0      0   0         14      1/4/0      4/0       0.001
+F2        hot        off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        cold@pred  off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2far     cold       on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     warm+pred  on    5      9       40      10     0      0   6         40      1/4/0      4/0       0.002
+F2far     hot        on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     cold@pred  on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     cold       off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     warm+pred  off   5      9       40      10     0      0   0         40      1/4/0      4/0       0.002
+F2far     hot        off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     cold@pred  off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F3n50     cold       on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       on    4      12      23      9      0      0   8         23      1/3/0      0/0       0.004
+F3n50     warm+pred  on    4      6       12      5      0      0   2         12      1/3/0      3/0       0.002
+F3n50     hot        on    4      12      23      9      3      0   8         23      1/0/3      0/0       0.004
+F3n50     cold@pred  on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     cold       off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       off   4      12      23      9      0      0   0         23      1/3/0      0/0       0.004
+F3n50     warm+pred  off   4      6       12      5      0      0   0         12      1/3/0      3/0       0.002
+F3n50     hot        off   4      12      23      9      3      0   0         23      1/0/3      0/0       0.004
+F3n50     cold@pred  off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n1000   cold       on    6      53      162     53     0      0   0         162     6/0/0      0/0       0.224
+F3n1000   warm       on    6      30      89      25     0      0   22        89      1/5/0      0/0       0.124
+F3n1000   warm+pred  on    4      10      31      9      0      0   2         31      1/3/0      3/0       0.046
+F3n1000   hot        on    6      30      89      25     5      0   22        89      1/0/5      0/0       0.123
+F3n1000   cold@pred  on    4      35      107     35     0      0   0         107     4/0/0      0/0       0.148
+F3n1000   cold       off   6      53      162     53     0      0   0         162     6/0/0      0/0       0.225
+F3n1000   warm       off   6      30      89      25     0      0   0         89      1/5/0      0/0       0.123
+F3n1000   warm+pred  off   (not run -- see THE RUNTIME BUDGET)
+F3n1000   hot        off   6      30      89      25     5      0   0         89      1/0/5      0/0       0.122
+F3n1000   cold@pred  off   (not run -- see THE RUNTIME BUDGET)
+F3stress  cold       on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  warm       on    5      15      39      11     0      0   10        39      1/4/0      0/0       0.014
+F3stress  warm+pred  on    5      8       21      6      0      0   3         21      1/4/0      4/0       0.009
+F3stress  hot        on    5      15      39      11     4      0   10        39      1/0/4      0/0       0.014
+F3stress  cold@pred  on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  cold       off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+F3stress  warm       off   5      15      39      11     0      0   0         39      1/4/0      0/0       0.014
+F3stress  warm+pred  off   5      8       21      6      0      0   0         21      1/4/0      4/0       0.009
+F3stress  hot        off   5      15      39      11     4      0   0         39      1/0/4      0/0       0.014
+F3stress  cold@pred  off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1355: F3stress / warm+pred
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1427: the pinned corpus totals
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1345: Failure
+Expected equality of these values:
+  c.border_refine
+    Which is: 21
+  p.border_refine
+    Which is: 20
+
+family    arm        full  steps  majors  minors  fact   saved  wd  fullstep  brdref  lvl c/w/h  pred c/d  secs
+F1        cold       on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       on    5      5       16      1      0      0   4         20      1/4/0      0/0       0.003
+F1        warm+pred  on    5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        on    5      5       16      1      4      0   4         20      1/0/4      0/0       0.001
+F1        cold@pred  on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        cold       off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       off   5      5       16      1      0      0   0         20      1/4/0      0/0       0.001
+F1        warm+pred  off   5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        off   5      5       16      1      4      0   0         20      1/0/4      0/0       0.001
+F1        cold@pred  off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F2        cold       on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        warm+pred  on    5      7       14      7      0      0   6         14      1/4/0      4/0       0.001
+F2        hot        on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        cold@pred  on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        cold       off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        warm+pred  off   5      7       14      7      0      0   0         14      1/4/0      4/0       0.001
+F2        hot        off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        cold@pred  off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2far     cold       on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     warm+pred  on    5      9       40      10     0      0   6         40      1/4/0      4/0       0.002
+F2far     hot        on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     cold@pred  on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     cold       off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     warm+pred  off   5      9       40      10     0      0   0         40      1/4/0      4/0       0.002
+F2far     hot        off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     cold@pred  off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F3n50     cold       on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       on    4      12      23      9      0      0   8         23      1/3/0      0/0       0.004
+F3n50     warm+pred  on    4      6       12      5      0      0   2         12      1/3/0      3/0       0.002
+F3n50     hot        on    4      12      23      9      3      0   8         23      1/0/3      0/0       0.004
+F3n50     cold@pred  on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     cold       off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       off   4      12      23      9      0      0   0         23      1/3/0      0/0       0.004
+F3n50     warm+pred  off   4      6       12      5      0      0   0         12      1/3/0      3/0       0.002
+F3n50     hot        off   4      12      23      9      3      0   0         23      1/0/3      0/0       0.004
+F3n50     cold@pred  off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n1000   cold       on    6      53      162     53     0      0   0         162     6/0/0      0/0       0.224
+F3n1000   warm       on    6      30      89      25     0      0   22        89      1/5/0      0/0       0.124
+F3n1000   warm+pred  on    4      10      31      9      0      0   2         31      1/3/0      3/0       0.046
+F3n1000   hot        on    6      30      89      25     5      0   22        89      1/0/5      0/0       0.123
+F3n1000   cold@pred  on    4      35      107     35     0      0   0         107     4/0/0      0/0       0.148
+F3n1000   cold       off   6      53      162     53     0      0   0         162     6/0/0      0/0       0.225
+F3n1000   warm       off   6      30      89      25     0      0   0         89      1/5/0      0/0       0.123
+F3n1000   warm+pred  off   (not run -- see THE RUNTIME BUDGET)
+F3n1000   hot        off   6      30      89      25     5      0   0         89      1/0/5      0/0       0.122
+F3n1000   cold@pred  off   (not run -- see THE RUNTIME BUDGET)
+F3stress  cold       on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  warm       on    5      15      39      11     0      0   10        39      1/4/0      0/0       0.014
+F3stress  warm+pred  on    5      8       21      6      0      0   3         21      1/4/0      4/0       0.009
+F3stress  hot        on    5      15      39      11     4      0   10        39      1/0/4      0/0       0.014
+F3stress  cold@pred  on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  cold       off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+F3stress  warm       off   5      15      39      11     0      0   0         39      1/4/0      0/0       0.014
+F3stress  warm+pred  off   5      8       21      6      0      0   0         21      1/4/0      4/0       0.009
+F3stress  hot        off   5      15      39      11     4      0   0         39      1/0/4      0/0       0.014
+F3stress  cold@pred  off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1355: F3stress / warm+pred
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1427: the pinned corpus totals
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1337: Failure
+Expected equality of these values:
+  c.minors
+    Which is: 99
+  p.minors
+    Which is: 98
+
+family    arm        full  steps  majors  minors  fact   saved  wd  fullstep  brdref  lvl c/w/h  pred c/d  secs
+F1        cold       on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       on    5      5       16      1      0      0   4         20      1/4/0      0/0       0.003
+F1        warm+pred  on    5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        on    5      5       16      1      4      0   4         20      1/0/4      0/0       0.001
+F1        cold@pred  on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        cold       off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       off   5      5       16      1      0      0   0         20      1/4/0      0/0       0.001
+F1        warm+pred  off   5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        off   5      5       16      1      4      0   0         20      1/0/4      0/0       0.001
+F1        cold@pred  off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F2        cold       on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        warm+pred  on    5      7       14      7      0      0   6         14      1/4/0      4/0       0.001
+F2        hot        on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        cold@pred  on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        cold       off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        warm+pred  off   5      7       14      7      0      0   0         14      1/4/0      4/0       0.001
+F2        hot        off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        cold@pred  off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2far     cold       on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     warm+pred  on    5      9       40      10     0      0   6         40      1/4/0      4/0       0.002
+F2far     hot        on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     cold@pred  on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     cold       off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     warm+pred  off   5      9       40      10     0      0   0         40      1/4/0      4/0       0.002
+F2far     hot        off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     cold@pred  off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F3n50     cold       on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       on    4      12      23      9      0      0   8         23      1/3/0      0/0       0.004
+F3n50     warm+pred  on    4      6       12      5      0      0   2         12      1/3/0      3/0       0.002
+F3n50     hot        on    4      12      23      9      3      0   8         23      1/0/3      0/0       0.004
+F3n50     cold@pred  on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     cold       off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       off   4      12      23      9      0      0   0         23      1/3/0      0/0       0.004
+F3n50     warm+pred  off   4      6       12      5      0      0   0         12      1/3/0      3/0       0.002
+F3n50     hot        off   4      12      23      9      3      0   0         23      1/0/3      0/0       0.004
+F3n50     cold@pred  off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n1000   cold       on    6      53      162     53     0      0   0         162     6/0/0      0/0       0.224
+F3n1000   warm       on    6      30      89      25     0      0   22        89      1/5/0      0/0       0.124
+F3n1000   warm+pred  on    4      10      31      9      0      0   2         31      1/3/0      3/0       0.046
+F3n1000   hot        on    6      30      89      25     5      0   22        89      1/0/5      0/0       0.123
+F3n1000   cold@pred  on    4      35      107     35     0      0   0         107     4/0/0      0/0       0.148
+F3n1000   cold       off   6      53      162     53     0      0   0         162     6/0/0      0/0       0.225
+F3n1000   warm       off   6      30      89      25     0      0   0         89      1/5/0      0/0       0.123
+F3n1000   warm+pred  off   (not run -- see THE RUNTIME BUDGET)
+F3n1000   hot        off   6      30      89      25     5      0   0         89      1/0/5      0/0       0.122
+F3n1000   cold@pred  off   (not run -- see THE RUNTIME BUDGET)
+F3stress  cold       on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  warm       on    5      15      39      11     0      0   10        39      1/4/0      0/0       0.014
+F3stress  warm+pred  on    5      8       21      6      0      0   3         21      1/4/0      4/0       0.009
+F3stress  hot        on    5      15      39      11     4      0   10        39      1/0/4      0/0       0.014
+F3stress  cold@pred  on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  cold       off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+F3stress  warm       off   5      15      39      11     0      0   0         39      1/4/0      0/0       0.014
+F3stress  warm+pred  off   5      8       21      6      0      0   0         21      1/4/0      4/0       0.009
+F3stress  hot        off   5      15      39      11     4      0   0         39      1/0/4      0/0       0.014
+F3stress  cold@pred  off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1355: F3stress / cold@pred
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1427: the pinned corpus totals
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1345: Failure
+Expected equality of these values:
+  c.border_refine
+    Which is: 99
+  p.border_refine
+    Which is: 98
+
+family    arm        full  steps  majors  minors  fact   saved  wd  fullstep  brdref  lvl c/w/h  pred c/d  secs
+F1        cold       on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       on    5      5       16      1      0      0   4         20      1/4/0      0/0       0.003
+F1        warm+pred  on    5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        on    5      5       16      1      4      0   4         20      1/0/4      0/0       0.001
+F1        cold@pred  on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        cold       off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       off   5      5       16      1      0      0   0         20      1/4/0      0/0       0.001
+F1        warm+pred  off   5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        off   5      5       16      1      4      0   0         20      1/0/4      0/0       0.001
+F1        cold@pred  off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F2        cold       on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        warm+pred  on    5      7       14      7      0      0   6         14      1/4/0      4/0       0.001
+F2        hot        on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        cold@pred  on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        cold       off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        warm+pred  off   5      7       14      7      0      0   0         14      1/4/0      4/0       0.001
+F2        hot        off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        cold@pred  off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2far     cold       on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     warm+pred  on    5      9       40      10     0      0   6         40      1/4/0      4/0       0.002
+F2far     hot        on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     cold@pred  on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     cold       off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     warm+pred  off   5      9       40      10     0      0   0         40      1/4/0      4/0       0.002
+F2far     hot        off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     cold@pred  off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F3n50     cold       on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       on    4      12      23      9      0      0   8         23      1/3/0      0/0       0.004
+F3n50     warm+pred  on    4      6       12      5      0      0   2         12      1/3/0      3/0       0.002
+F3n50     hot        on    4      12      23      9      3      0   8         23      1/0/3      0/0       0.004
+F3n50     cold@pred  on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     cold       off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       off   4      12      23      9      0      0   0         23      1/3/0      0/0       0.004
+F3n50     warm+pred  off   4      6       12      5      0      0   0         12      1/3/0      3/0       0.002
+F3n50     hot        off   4      12      23      9      3      0   0         23      1/0/3      0/0       0.004
+F3n50     cold@pred  off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n1000   cold       on    6      53      162     53     0      0   0         162     6/0/0      0/0       0.224
+F3n1000   warm       on    6      30      89      25     0      0   22        89      1/5/0      0/0       0.124
+F3n1000   warm+pred  on    4      10      31      9      0      0   2         31      1/3/0      3/0       0.046
+F3n1000   hot        on    6      30      89      25     5      0   22        89      1/0/5      0/0       0.123
+F3n1000   cold@pred  on    4      35      107     35     0      0   0         107     4/0/0      0/0       0.148
+F3n1000   cold       off   6      53      162     53     0      0   0         162     6/0/0      0/0       0.225
+F3n1000   warm       off   6      30      89      25     0      0   0         89      1/5/0      0/0       0.123
+F3n1000   warm+pred  off   (not run -- see THE RUNTIME BUDGET)
+F3n1000   hot        off   6      30      89      25     5      0   0         89      1/0/5      0/0       0.122
+F3n1000   cold@pred  off   (not run -- see THE RUNTIME BUDGET)
+F3stress  cold       on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  warm       on    5      15      39      11     0      0   10        39      1/4/0      0/0       0.014
+F3stress  warm+pred  on    5      8       21      6      0      0   3         21      1/4/0      4/0       0.009
+F3stress  hot        on    5      15      39      11     4      0   10        39      1/0/4      0/0       0.014
+F3stress  cold@pred  on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  cold       off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+F3stress  warm       off   5      15      39      11     0      0   0         39      1/4/0      0/0       0.014
+F3stress  warm+pred  off   5      8       21      6      0      0   0         21      1/4/0      4/0       0.009
+F3stress  hot        off   5      15      39      11     4      0   0         39      1/0/4      0/0       0.014
+F3stress  cold@pred  off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1355: F3stress / cold@pred
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start_battery.cpp:1427: the pinned corpus totals
+
+
+family    arm        full  steps  majors  minors  fact   saved  wd  fullstep  brdref  lvl c/w/h  pred c/d  secs
+F1        cold       on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       on    5      5       16      1      0      0   4         20      1/4/0      0/0       0.003
+F1        warm+pred  on    5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        on    5      5       16      1      4      0   4         20      1/0/4      0/0       0.001
+F1        cold@pred  on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        cold       off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       off   5      5       16      1      0      0   0         20      1/4/0      0/0       0.001
+F1        warm+pred  off   5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        off   5      5       16      1      4      0   0         20      1/0/4      0/0       0.001
+F1        cold@pred  off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F2        cold       on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        warm+pred  on    5      7       14      7      0      0   6         14      1/4/0      4/0       0.001
+F2        hot        on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        cold@pred  on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        cold       off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        warm+pred  off   5      7       14      7      0      0   0         14      1/4/0      4/0       0.001
+F2        hot        off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        cold@pred  off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2far     cold       on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     warm+pred  on    5      9       40      10     0      0   6         40      1/4/0      4/0       0.002
+F2far     hot        on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     cold@pred  on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     cold       off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     warm+pred  off   5      9       40      10     0      0   0         40      1/4/0      4/0       0.002
+F2far     hot        off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     cold@pred  off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F3n50     cold       on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       on    4      12      23      9      0      0   8         23      1/3/0      0/0       0.004
+F3n50     warm+pred  on    4      6       12      5      0      0   2         12      1/3/0      3/0       0.002
+F3n50     hot        on    4      12      23      9      3      0   8         23      1/0/3      0/0       0.004
+F3n50     cold@pred  on    4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     cold       off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n50     warm       off   4      12      23      9      0      0   0         23      1/3/0      0/0       0.004
+F3n50     warm+pred  off   4      6       12      5      0      0   0         12      1/3/0      3/0       0.002
+F3n50     hot        off   4      12      23      9      3      0   0         23      1/0/3      0/0       0.004
+F3n50     cold@pred  off   4      19      38      19     0      0   0         38      4/0/0      0/0       0.006
+F3n1000   cold       on    6      53      162     53     0      0   0         162     6/0/0      0/0       0.224
+F3n1000   warm       on    6      30      89      25     0      0   22        89      1/5/0      0/0       0.124
+F3n1000   warm+pred  on    4      10      31      9      0      0   2         31      1/3/0      3/0       0.046
+F3n1000   hot        on    6      30      89      25     5      0   22        89      1/0/5      0/0       0.123
+F3n1000   cold@pred  on    4      35      107     35     0      0   0         107     4/0/0      0/0       0.148
+F3n1000   cold       off   6      53      162     53     0      0   0         162     6/0/0      0/0       0.225
+F3n1000   warm       off   6      30      89      25     0      0   0         89      1/5/0      0/0       0.123
+F3n1000   warm+pred  off   (not run -- see THE RUNTIME BUDGET)
+F3n1000   hot        off   6      30      89      25     5      0   0         89      1/0/5      0/0       0.122
+F3n1000   cold@pred  off   (not run -- see THE RUNTIME BUDGET)
+F3stress  cold       on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  warm       on    5      15      39      11     0      0   10        39      1/4/0      0/0       0.014
+F3stress  warm+pred  on    5      8       21      6      0      0   3         21      1/4/0      4/0       0.009
+F3stress  hot        on    5      15      39      11     4      0   10        39      1/0/4      0/0       0.014
+F3stress  cold@pred  on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.034
+F3stress  cold       off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+F3stress  warm       off   5      15      39      11     0      0   0         39      1/4/0      0/0       0.014
+F3stress  warm+pred  off   5      8       21      6      0      0   0         21      1/4/0      4/0       0.009
+F3stress  hot        off   5      15      39      11     4      0   0         39      1/0/4      0/0       0.014
+F3stress  cold@pred  off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+[  FAILED  ] WarmStartBattery.Corpus (1453 ms)
+[----------] 1 test from WarmStartBattery (1453 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (1453 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] WarmStartBattery.Corpus
+
+ 1 FAILED TEST

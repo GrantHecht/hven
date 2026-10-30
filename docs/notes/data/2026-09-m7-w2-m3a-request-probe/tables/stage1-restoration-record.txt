@@ -1,0 +1,23 @@
+M7 W2 M3a -- THE S5 RESTORATION RECORD, cell x radius
+
+Machine-written by wrappers/summarise_m3a.py from rows/stage1/.
+restoration_sub_status is M3a task A's field. It has NO 'never entered'
+sentinel: the record's absence rule is restoration_entries == 0, so this
+table prints '(no phase ran)' in that case and NEVER the raw field, exactly
+as RULE.md section 2.3 requires.
+
+cell     tr_init    rest_entries rest_iters restoration_sub_status x_k_source                                        h_in                  h_out                   f_in                  f_out                 
+STEENBRB 1 (control)1            11         optimal                start_point (the phase was entered in major 0)    19800                 1.6303669053986523e-12  2858.7861353626763    4090860686442.3218    
+STEENBRB 10         1            8          optimal                start_point (the phase was entered in major 0)    19800                 2.9106992493860338e-12  2858.7861353626763    3459905740400.4653    
+STEENBRB 1e2        0            0          (no phase ran)         none (no restoration phase ran)                   (no phase ran)        (no phase ran)          (no phase ran)        (no phase ran)        
+STEENBRB 1e3        0            0          (no phase ran)         none (no restoration phase ran)                   (no phase ran)        (no phase ran)          (no phase ran)        (no phase ran)        
+STEENBRB 1e4        0            0          (no phase ran)         none (no restoration phase ran)                   (no phase ran)        (no phase ran)          (no phase ran)        (no phase ran)        
+STEENBRB +inf       0            0          (no phase ran)         none (no restoration phase ran)                   (no phase ran)        (no phase ran)          (no phase ran)        (no phase ran)        
+
+YORKNET  1 (control)1            18         infeasible             start_point (the phase was entered in major 0)    48491.383947016526    48491.383947016526      110670.29950761795    110670.29950761795    
+YORKNET  10         1            19         infeasible             depth0_event (the major before the requesting one)48491.383947016526    48491.383947016526      110670.29950761795    110670.29950761795    
+YORKNET  1e2        1            1          infeasible             depth0_event (the major before the requesting one)48491.383947016526    48491.383947016526      110670.29950761795    110670.29950761795    
+YORKNET  1e3        0            0          (no phase ran)         none (no restoration phase ran)                   (no phase ran)        (no phase ran)          (no phase ran)        (no phase ran)        
+YORKNET  1e4        0            0          (no phase ran)         none (no restoration phase ran)                   (no phase ran)        (no phase ran)          (no phase ran)        (no phase ran)        
+YORKNET  +inf       0            0          (no phase ran)         none (no restoration phase ran)                   (no phase ran)        (no phase ran)          (no phase ran)        (no phase ran)        
+

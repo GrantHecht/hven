@@ -1,0 +1,10 @@
+PGREP_EMPTY w3-default-hs-B-hs025
+PGREP_NO_UNCOVERED_CELL w3-default-hs-B-hs025 2026-10-29T08:34:49-04:00
+IN_LOCK_PGREP_EMPTY w3-default-hs-B-hs025 2026-10-29T08:34:49-04:00
+FOREGROUND_START w3-default-hs-B-hs025 2026-10-29T08:34:49-04:00
+w2_a4_sweep: default / hven-sqp / hs / run B-hs025 -> /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/train/cells/hven-sqp/default/hs-run-B-hs025 (ceiling 600s) [problems: hs025]
+run_serial: hs/hs025/hven-sqp/default
+hven_bench_cell: hven-sqp/hs025 converged to 32.834999999663594, reference 0 (|err| = 3.283e+01 > 1.000e-06)
+run_serial: REFERENCE FAILURE hs/hs025/hven-sqp/default
+run_serial: 1 cells -> /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/train/cells/hven-sqp/default/hs-run-B-hs025/results.csv
+FOREGROUND_END w3-default-hs-B-hs025 2026-10-29T08:34:49-04:00 rc=1

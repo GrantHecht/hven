@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.24)
+project(d4_qp_replay CXX)
+set(CMAKE_CXX_STANDARD 20)
+find_package(hven REQUIRED)
+add_executable(qp_replay qp_replay.cpp)
+target_link_libraries(qp_replay PRIVATE hven::hven)

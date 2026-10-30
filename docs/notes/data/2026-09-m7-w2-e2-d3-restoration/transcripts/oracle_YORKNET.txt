@@ -1,0 +1,9 @@
+POINT /home/ghecht/Projects/hven/.scratch/m7w2e2d3/dumps/YORKNET_def/resto0_entry.txt
+  n=312 me=256 mi=0 h_l1=48491.38395 box_viol: count=40 max=131.08 sum=1550.8
+  phi(0) [h + box viol, linearized] = 50042.18395
+  eps=1e-06: phi_box=50042.15222 (drop 0.03173, rate 3.173e+04)   phi_nobox=48491.35219 (drop 0.03176, rate 3.176e+04)
+  eps=0.0001: phi_box=50039.01076 (drop 3.173, rate 3.173e+04)   phi_nobox=48488.20835 (drop 3.176, rate 3.176e+04)
+  eps=0.01: phi_box=49724.91671 (drop 317.3, rate 3.173e+04)   phi_nobox=48173.8243 (drop 317.6, rate 3.176e+04)
+  eps=1: phi_box=19222.58808 (drop 3.082e+04, rate 3.082e+04)   phi_nobox=17652.83623 (drop 3.084e+04, rate 3.084e+04)
+  smallest l_inf radius with a feasible linearization (box hard): 135.302
+  independent feasible point (hven-ipm final x): |x_ipm - x|_inf=135.302  |x_ipm - clamp(x)|_inf=135.194  x_ipm box viol max=4.4e-07

@@ -1,0 +1,24 @@
+PGREP_EMPTY
+FOREGROUND_START Thu Oct 29 11:55:48 AM EDT 2026
+/home/ghecht/Projects/hven/.claude/worktrees/wx-r1/tests/sqp/test_b1_gate.cpp:1422: Failure
+Expected: true
+the watchdog must actually restore, or this pins nothing
+/home/ghecht/Projects/hven/.claude/worktrees/wx-r1/tests/sqp/test_b1_gate.cpp:1423: Failure
+Expected: (SolveStatus::kOptimal) != (sol.status), actual: 4-byte object <00-00 00-00> vs 4-byte object <00-00 00-00>
+/home/ghecht/Projects/hven/.claude/worktrees/wx-r1/tests/sqp/test_b1_gate.cpp:1425: Failure
+Expected equality of these values:
+    Which is: 4-byte object <02-00 00-00>
+    Which is: 4-byte object <00-00 00-00>
+[  FAILED  ] B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers (3 ms)
+/home/ghecht/Projects/hven/.claude/worktrees/wx-r1/tests/sqp/test_hs_sweeps.cpp:1687: Failure
+Expected: (pt.majors) > (1), actual: 1 vs 1
+/home/ghecht/Projects/hven/.claude/worktrees/wx-r1/tests/sqp/test_hs_sweeps.cpp:1689: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/wx-r1/tests/sqp/test_hs_sweeps.cpp:1693: Failure
+Expected: (pt.kkt.complementarity) < (1e-6), actual: 0.072168783621534199 vs 1e-06
+[  FAILED  ] HsSweepRepair.WarmChainOnAQuarterGridCertifiesNoPointOffTheRow (17 ms)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers
+[  FAILED  ] HsSweepRepair.WarmChainOnAQuarterGridCertifiesNoPointOffTheRow
+ 2 FAILED TESTS
+FOREGROUND_END rc=0 Thu Oct 29 11:56:04 AM EDT 2026

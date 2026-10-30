@@ -1,0 +1,32 @@
+{
+ "dump": "/home/ghecht/Projects/hven/.scratch/m7w2r1/dumps/Cs_STEENBRB/qp3.txt",
+ "n": 468,
+ "me": 96,
+ "mi": 0,
+ "tr": 0.1,
+ "result": {
+  "status": "3",
+  "minors": "623",
+  "facts": "624",
+  "blk_term": "0",
+  "cert": "0",
+  "cert_rej": "0",
+  "zmcap": "0",
+  "zmexh": "1",
+  "retreats": "0",
+  "exch": "20",
+  "deferred": "0",
+  "undec": "0",
+  "maxiter": "4680"
+ },
+ "phase1_status": 0,
+ "phase1_min_l1_violation": 0.0,
+ "H_eig_min": -7.790454193089009e-05,
+ "H_eig_max": 0.14101418322961215,
+ "final_ws": {
+  "rows": 0,
+  "pins": 372,
+  "rank": 468,
+  "count": 468
+ }
+}

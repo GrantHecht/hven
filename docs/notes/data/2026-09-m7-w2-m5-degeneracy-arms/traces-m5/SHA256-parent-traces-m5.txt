@@ -1,0 +1,60 @@
+M7 W2 M5 -- sha256 of the PARENT FLAT TRACES this round's read-outs read.
+The parents are NOT committed (298 MB of arm traces; M4's OFF parents were
+already pinned by M4 and M4b).  The slices in this directory ARE committed and
+each one names its own parent in its `# slice_source=` header.  No solver ran
+to produce this file.
+
+--- the TWENTY-EIGHT arm flat traces, written by this task's chain (pid 3123140)
+ac32d120d91520725b2dac394c0fdbeb47ed5cb85727e4a5eabdd19f618bd6b3  a+b1-ACOPP118.csv
+36942e010e4c768c3de86efd41971f9bf64803686703796ca70e8b87e57d5ecd  a+b1-ACOPP57.csv
+9aec8e852be1acf803e700f511908eb1ba0a80b2bd0ee3c1d10c991014cd35fc  a+b1-ACOPR57.csv
+b6d75efb57682058d76857bcd6ec8a45cbb5de518332358b3336b5ce95e4a19e  a+b1-BRITGAS.csv
+5bfebe539c4aa30bac588d23a34657cabc33c7150d4b3ff8baa43b1be55363d0  a+b1-DALLASM.csv
+6ae65c7643eb58d217317377219c05e05d01b835355121bd8a75b45afabbddcc  a+b1-READING6.csv
+f12ffeb3c9b288ab4fc44611801ef1618b62d115dad527438abe4582c7bfd6b2  a+b1-SAWPATH.csv
+9c025add7eacd583dd57ba3d23edfe8f04c9c69cf494fd801c2dca34f9df2ff2  a+b1-SMBANK.csv
+b6994f0faf833bd8aa845926d61dfb931dd723177c5bf17287ec65b201ac7c6b  a+b1-STEENBRB.csv
+bdc1aa06f1ed8e1bc9c52c04d661448dd1d0f51f4ac554b20862279c9f6fec43  a+b1-STEENBRC.csv
+a5e9c37cf267efd4ca2343d4ae1c184ea9afd8552463d1b3f9bd5fb3a0ccc288  a+b1-STEENBRG.csv
+a546f03440f2c5fa84565978f0c8bc85f5b12c21a1293c3aad9209d00fd53bae  a+b1-YORKNET.csv
+7e1beb1413cdbd5036824819b76ac6c75a6fbecba2150fc7d6d50dd0e8106579  a+b1-ZAMB2-8.csv
+104b477bd49794dd4ecdc5c6b4831c1a1cfe393e178d48120fe1e51845001109  a-READING6.csv
+9c025add7eacd583dd57ba3d23edfe8f04c9c69cf494fd801c2dca34f9df2ff2  a-SMBANK.csv
+fd89ab82afef587c8acabe431c26286ff13af3ad322c926237c1a7d0f5c930db  a-YORKNET.csv
+5527c67eb60bfdeb744dac3f8c0ac8a64adb693ddd58a6be8b731020588402cb  a-ZAMB2-8.csv
+ac32d120d91520725b2dac394c0fdbeb47ed5cb85727e4a5eabdd19f618bd6b3  b1-ACOPP118.csv
+36942e010e4c768c3de86efd41971f9bf64803686703796ca70e8b87e57d5ecd  b1-ACOPP57.csv
+9aec8e852be1acf803e700f511908eb1ba0a80b2bd0ee3c1d10c991014cd35fc  b1-ACOPR57.csv
+5bfebe539c4aa30bac588d23a34657cabc33c7150d4b3ff8baa43b1be55363d0  b1-DALLASM.csv
+6ae65c7643eb58d217317377219c05e05d01b835355121bd8a75b45afabbddcc  b1-READING6.csv
+5254d80b8a477eec3a60bdad981b6b8dffba3aa8cb8e95edea9b8672e03333b1  b1-SAWPATH.csv
+9c025add7eacd583dd57ba3d23edfe8f04c9c69cf494fd801c2dca34f9df2ff2  b1-SMBANK.csv
+13762eed76972b634679d445f6271d8cfae0060a8ddf5a7322a22e9ff23a845a  b1-STEENBRB.csv
+e6062c0fc4395e8e8e5b65a2a294612e7f12d1dd3a343ff08836345583cf2e65  b1-STEENBRC.csv
+6e814497f50cb485ff1077773eadf89ad5a591542a64fca0ebcb198b00611d33  b1-STEENBRG.csv
+a62d64231cb3f80b78646cdf95908733c4756b2cf9ad1e92f3596f760deaaf9c  b1-ZAMB2-8.csv
+
+--- M4's THIRTEEN OFF parents, RE-VERIFIED here against M4's own committed pins
+--- (2026-09-m7-w2-m4-anticycling-arm/traces-m4/, 2026-09-m7-w2-m4b-.../traces-m4b/)
+0f369b21f0fa8e2514f724179b900c3e6a97dd54c64d062957a29ce64835ab56  off-ACOPP118.csv
+19822007082eb396cc5cc3c553843466559a40cba3edbc7b89bdedc114ef44d1  off-ACOPP57.csv
+e8bc0af196516a772cd8dfdac14416564b62029aec2b793f8c70c11b69b35559  off-ACOPR57.csv
+7f0130215743b8b4c1da03ac2dcf0e799a6180af4ca0fcec2fdd37a752bec1cd  off-BRITGAS.csv
+600f1cf053dc26412bc3535137964d5542496e9efdb0e599328402874c00bcc0  off-DALLASM.csv
+fb500427cea7903422423eb15e948acc2b57d39bd8ca656e51b709da2fb432d3  off-READING6.csv
+5254d80b8a477eec3a60bdad981b6b8dffba3aa8cb8e95edea9b8672e03333b1  off-SAWPATH.csv
+9c025add7eacd583dd57ba3d23edfe8f04c9c69cf494fd801c2dca34f9df2ff2  off-SMBANK.csv
+9ba7d30c2192681ecfdbe64e1425e0324a470025b9e70c4985a5146dcb1d3a4a  off-STEENBRB.csv
+b06a4db13e9a166a157d88e77ff331e4fc61558b80f9dc600f5034d7e866079d  off-STEENBRC.csv
+6862289cf135025b21ea421ab89d434a38b252faa50990684af3111b89f4ccee  off-STEENBRG.csv
+a69816b944ff79bfdd4c081bc5dce5a5c68b148228ccfadeb7152722dada5b95  off-YORKNET.csv
+01796788bf6cd64d31d095f67842f3396dd953014c1214bd52cdc9a7024e6607  off-ZAMB2-8.csv
+
+--- THREE BYTE-IDENTITIES THE SHAS ABOVE ESTABLISH, and they are a RESULT:
+      b1-SAWPATH.csv == off-SAWPATH.csv                       (5254d80b...)
+      b1-SMBANK.csv == a-SMBANK.csv == a+b1-SMBANK.csv == off-SMBANK.csv
+                                                              (9c025add...)
+    On SAWPATH arm b1 refused to arm on 11 of 11 solves and on SMBANK on 29 of
+    29 (mandatory rows dependent, A3), so the armed walk IS the production walk,
+    bit for bit.  That is neutrality by the arm NEVER RUNNING, not by the arm
+    running and changing nothing.

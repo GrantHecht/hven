@@ -1,0 +1,45 @@
+Test project /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-release
+      Start 1813: HsBattery.BorderMode
+      Start 1814: HsBattery.RefactorizeMode
+      Start 1824: HsBattery.CrashBasisIsANullResultOnTheBatteryWithTwoBoundSeededExceptions
+      Start 1832: HsSweepCorpus.Corpus
+ 1/20 Test #1814: HsBattery.RefactorizeMode ................................................................   Passed    0.04 sec
+      Start 1925: IpqpDispatch.KIpmAndKWalkAgreeOnTheAnswerAcrossTheHsBattery
+ 2/20 Test #1813: HsBattery.BorderMode .....................................................................   Passed    0.05 sec
+      Start 2288: QpEngineIndefinite.PostProbeRestartIsOneShotPerSolve
+ 3/20 Test #2288: QpEngineIndefinite.PostProbeRestartIsOneShotPerSolve .....................................   Passed    0.01 sec
+      Start 2411: SqpDriverQpFailure.QpNumericalErrorShrinksInsteadOfAborting
+ 4/20 Test #2411: SqpDriverQpFailure.QpNumericalErrorShrinksInsteadOfAborting ..............................   Passed    0.01 sec
+      Start 2413: SqpDriverQpFailure.RepeatedQpNumericalErrorStillPropagates
+ 5/20 Test #2413: SqpDriverQpFailure.RepeatedQpNumericalErrorStillPropagates ...............................   Passed    0.02 sec
+      Start 2414: SqpDriverQpFailure.TheShippedBudgetRoutesMoreAndThisFixtureThenSolves
+ 6/20 Test #1824: HsBattery.CrashBasisIsANullResultOnTheBatteryWithTwoBoundSeededExceptions ................   Passed    0.09 sec
+      Start 2422: SqpDriverSoc.SocIsSkippedOnRoutedFailures
+ 7/20 Test #2422: SqpDriverSoc.SocIsSkippedOnRoutedFailures ................................................   Passed    0.02 sec
+      Start 2454: SqpDriverSsnMode.EveryHsProblemTheWalkCertifiesIsCertifiedUnderKSsn
+ 8/20 Test #2414: SqpDriverQpFailure.TheShippedBudgetRoutesMoreAndThisFixtureThenSolves ....................   Passed    0.02 sec
+      Start 1596: Continuation.ProbeBudgetBoundsAFailingProposal
+ 9/20 Test #1925: IpqpDispatch.KIpmAndKWalkAgreeOnTheAnswerAcrossTheHsBattery ..............................   Passed    0.09 sec
+      Start 2336: ScaleF7.WideWindowWalkIsChurnNotDegeneracy
+10/20 Test #2454: SqpDriverSsnMode.EveryHsProblemTheWalkCertifiesIsCertifiedUnderKSsn ......................   Passed    0.08 sec
+      Start 2538: QpEngineStructuralViolation.T7TheFeasibleCensusHalfOverTheFULLDualMuSet
+11/20 Test #2538: QpEngineStructuralViolation.T7TheFeasibleCensusHalfOverTheFULLDualMuSet ..................   Passed    0.04 sec
+      Start 2531: QpEngineStructuralViolation.T6bAFeasibleElasticCopyIsNoLongerCertifiedInfeasible
+12/20 Test #2531: QpEngineStructuralViolation.T6bAFeasibleElasticCopyIsNoLongerCertifiedInfeasible .........   Passed    0.01 sec
+      Start 1735: SqpDriverDisprovedEntry.TheDefaultIsOffAndOffIsTodaysColdRestart
+13/20 Test #1735: SqpDriverDisprovedEntry.TheDefaultIsOffAndOffIsTodaysColdRestart .........................   Passed    0.01 sec
+      Start 2539: QpEngineStructuralViolation.E2Fix4TheTerminalMuPointIsRefinedBeforeAnInfeasibleVerdict
+14/20 Test #2539: QpEngineStructuralViolation.E2Fix4TheTerminalMuPointIsRefinedBeforeAnInfeasibleVerdict ...   Passed    0.01 sec
+      Start 1816: HsBattery.BorderModeFalseInfeasible
+15/20 Test #1816: HsBattery.BorderModeFalseInfeasible ......................................................   Passed    0.01 sec
+      Start 1736: SqpDriverDisprovedEntry.TheReseedMakesTheNextEntryBaseWarmAndTheTierStopsEscaping
+16/20 Test #1736: SqpDriverDisprovedEntry.TheReseedMakesTheNextEntryBaseWarmAndTheTierStopsEscaping ........   Passed    0.01 sec
+      Start 1734: SqpDriverDisprovedEntry.ThreeConsecutiveDisprovalsRetireTheTierAtTheShippedThreshold
+17/20 Test #1734: SqpDriverDisprovedEntry.ThreeConsecutiveDisprovalsRetireTheTierAtTheShippedThreshold .....   Passed    0.01 sec
+18/20 Test #2336: ScaleF7.WideWindowWalkIsChurnNotDegeneracy ...............................................   Passed    0.43 sec
+19/20 Test #1832: HsSweepCorpus.Corpus .....................................................................   Passed    0.95 sec
+20/20 Test #1596: Continuation.ProbeBudgetBoundsAFailingProposal ...........................................   Passed   11.97 sec
+
+100% tests passed, 0 tests failed out of 20
+
+Total Test time (real) =  12.15 sec

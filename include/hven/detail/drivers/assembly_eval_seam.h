@@ -193,6 +193,22 @@ class AssemblyEvalSeam {
     QpProblem build_subproblem(const NlpEval &ev, const Vec &x, const Vec &lambda_e,
                                const Vec &lambda_i, double obj_scale = 1.0);
 
+    /// @brief The variables the laid Lagrangian-Hessian PATTERN touches -- a row or a
+    ///        column of a structural entry -- read from the pattern alone, values unread.
+    ///        Entry i is 1 when variable i can carry curvature in some Lagrangian, 0 when
+    ///        every Lagrangian is linear in it (M7 QN quality: the quasi-Newton model's
+    ///        nonlinear-variables-only restriction). Size n().
+    std::vector<char> nonlinear_variables();
+
+    /// @brief build_subproblem WITHOUT the Lagrangian Hessian (M7 QN stage 3): no
+    ///        eval_hess is made, and H is `sigma` on the first @p n_struct diagonal
+    ///        entries (the quasi-Newton model's scalar part; its low-rank part enters
+    ///        through the mixed lift). Every other block is build_subproblem's.
+    /// @throws std::invalid_argument on a stale bundle (as build_subproblem) or an
+    ///         n_struct outside [0, n()].
+    QpProblem build_subproblem_without_hessian(const NlpEval &ev, const Vec &x, double obj_scale,
+                                               Index n_struct, double sigma);
+
     /// @brief Installs the W0.2 problem scaling this seam serves its outputs
     ///        under, for the rest of the solve.
     ///
@@ -282,6 +298,8 @@ class AssemblyEvalSeam {
     void publish_matrix(const ClaimBlock &block, const SpMatRM &pattern, SpMatRM &out) const;
 
     /// The Lagrangian-Hessian shape: one eval_hess and nothing else.
+    /// EXACT-HESSIAN-SPECIFIC (M9 label): reached under SqpHessianMode::kExact only; the
+    /// driver counts it in `SqpCounters::eval_hess_calls`, 0 under kLbfgsDamped.
     void assemble_hessian(const Vec &x, const Vec &lambda_e, const Vec &lambda_i, double obj_scale);
 
     /// The gradient-and-Jacobians shape: the accepted-trial derivative bill.

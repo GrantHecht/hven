@@ -1714,16 +1714,19 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // step IC-1 / IC-2; the four constants and hven's two declared adaptations
     // are in `detail`'s ladder banner).
     //
-    //   * NO MEMORY, or fewer than `kIpqpLadderSkipAfter` consecutive modified iterations:
+    //   * NO MEMORY, or fewer than `ipqp_ladder_skip_after` consecutive modified iterations:
     //     TRY ZERO (IC-1). OTHERWISE: `max(ipqp_reg_floor, rho_dem_last / kIpqpLadderDown)`,
     //     probing down for the smallest sufficient value; a refused probe is a RECLIMB.
     //
     // THE EVIDENCE-FAILURE FLOOR RIDES THE TRIAL, NOT THE LADDER, once armed: on the backend that
     // clause exists for EVERY factorization reports no usable evidence, so this keeps such a
     // solve at ONE factorization per iteration. IC-1's zero trial is skipped while it stands.
+    const auto skip_licensed = [&]() {
+        return rho_dem_last > 0.0 && consec_modified >= iopts.ipqp_ladder_skip_after;
+    };
     auto ladder_trial = [&]() {
         double trial = 0.0;
-        if (rho_dem_last > 0.0 && consec_modified >= detail::kIpqpLadderSkipAfter) {
+        if (skip_licensed()) {
             trial = std::max(iopts.ipqp_reg_floor, rho_dem_last / detail::kIpqpLadderDown);
         }
         if (evidence_failed) {
@@ -2026,16 +2029,149 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                       step_to_boundary(w.zu, dzu, tau, n)});
     };
 
+    // --- A2: the complementarity-derived mu_0 (docs/notes/2026-10-m7-w2-a2-mu0-design.md s3) --
+    //
+    // The primal stays the heuristic's. Multipliers: one affine step at the unit-scaled point
+    // (every z = its distance, estimates 0), Mehrotra-shifted on the multipliers only; mu_0 is
+    // their measured complementarity, else the kFixed start. Ladder memory left as OFF finds it.
+    if (!started_warm && iopts.ipqp_mu0_rule == IpqpMu0Rule::kComplementarity && npairs > 0) {
+        refresh_distances();
+        if (mi > 0) {
+            w.yi = w.s;
+            w.lam_est_i.setZero();
+        }
+        for (Index i = 0; i < n; ++i) {
+            w.zl(i) = detail::ipqp_has_lower(bounds.lower(i)) ? w.dL(i) : 0.0;
+            w.zu(i) = detail::ipqp_has_upper(bounds.upper(i)) ? w.dU(i) : 0.0;
+        }
+        w.ye.setZero();
+        w.lam_est_e.setZero();
+        (void)residuals();
+
+        const double saved_rho_dem_last = rho_dem_last;
+        const double saved_rho_dem_max = rho_dem_max;
+        double rho_dem = ladder_trial();
+        double delta = delta_sched;
+        const InertiaRead read = factorize_with_ladder(rho_sched, rho_dem, delta);
+        rho_dem_last = saved_rho_dem_last;
+        rho_dem_max = saved_rho_dem_max;
+
+        // Accepted only on a usable reading. An unreadable one falls back; the evidence-failure
+        // flag the ladder armed STAYS armed for the whole solve (the never-disarm contract).
+        bool ok = !fact_budget_hit && read == InertiaRead::kOk;
+        if (ok) {
+            build_rhs(rho_sched, delta_sched, 0.0, /*corrector=*/false);
+            solve_system();
+            recover(0.0, false, w.dx_a, w.ds_a, w.dye, w.dyi_a, w.dzl_a, w.dzu_a);
+            ok = w.sol.allFinite();
+        }
+        double mu_derived = 0.0;
+        if (ok) {
+            // The estimate, then PIQP section IV.A's two shifts (multiplier half).
+            if (mi > 0) {
+                w.tyi = w.yi + w.dyi_a;
+            }
+            w.tzl = w.zl + w.dzl_a;
+            w.tzu = w.zu + w.dzu_a;
+            double zmin = kInf;
+            for (Index j = 0; j < mi; ++j) {
+                zmin = std::min(zmin, w.tyi(j));
+            }
+            for (Index i = 0; i < n; ++i) {
+                if (detail::ipqp_has_lower(bounds.lower(i))) {
+                    zmin = std::min(zmin, w.tzl(i));
+                }
+                if (detail::ipqp_has_upper(bounds.upper(i))) {
+                    zmin = std::min(zmin, w.tzu(i));
+                }
+            }
+            const double shift1 = std::max(0.0, -detail::kIpqpMu0ShiftFactor * zmin);
+            double sum_d = 0.0;
+            double dz = 0.0;
+            for (Index j = 0; j < mi; ++j) {
+                w.tyi(j) += shift1;
+                sum_d += w.s(j);
+                dz += w.s(j) * w.tyi(j);
+            }
+            for (Index i = 0; i < n; ++i) {
+                if (detail::ipqp_has_lower(bounds.lower(i))) {
+                    w.tzl(i) += shift1;
+                    sum_d += w.dL(i);
+                    dz += w.dL(i) * w.tzl(i);
+                }
+                if (detail::ipqp_has_upper(bounds.upper(i))) {
+                    w.tzu(i) += shift1;
+                    sum_d += w.dU(i);
+                    dz += w.dU(i) * w.tzu(i);
+                }
+            }
+            const double shift2 = detail::kIpqpMu0CentreFraction * dz / sum_d;
+            double zlo = kInf;
+            double prod = 0.0;
+            for (Index j = 0; j < mi; ++j) {
+                w.tyi(j) += shift2;
+                zlo = std::min(zlo, w.tyi(j));
+                prod += w.s(j) * w.tyi(j);
+            }
+            for (Index i = 0; i < n; ++i) {
+                if (detail::ipqp_has_lower(bounds.lower(i))) {
+                    w.tzl(i) += shift2;
+                    zlo = std::min(zlo, w.tzl(i));
+                    prod += w.dL(i) * w.tzl(i);
+                }
+                if (detail::ipqp_has_upper(bounds.upper(i))) {
+                    w.tzu(i) += shift2;
+                    zlo = std::min(zlo, w.tzu(i));
+                    prod += w.dU(i) * w.tzu(i);
+                }
+            }
+            mu_derived = prod / static_cast<double>(npairs);
+            // Negated acceptance: NaN falls back. Strict positivity of every multiplier too.
+            ok = zlo > 0.0 && mu_derived >= iopts.ipqp_min_mu && mu_derived <= iopts.ipqp_init_mu;
+        }
+        if (ok) {
+            if (mi > 0) {
+                w.yi = w.tyi;
+                w.lam_est_i = w.yi;
+            }
+            for (Index i = 0; i < n; ++i) {
+                w.zl(i) = detail::ipqp_has_lower(bounds.lower(i)) ? w.tzl(i) : 0.0;
+                w.zu(i) = detail::ipqp_has_upper(bounds.upper(i)) ? w.tzu(i) : 0.0;
+            }
+            if (me > 0) {
+                w.ye = w.dye;
+            }
+            w.lam_est_e = w.ye;
+            mu0 = mu_derived;
+            mu_meas = mu_derived;
+            out.counters.ipqp_mu0_derived = 1;
+        } else {
+            cold_start();
+            out.counters.ipqp_mu0_fallbacks = 1;
+        }
+    }
+
 #ifdef HVEN_TESTING
     capture_first_iterate(w.x, w.s, w.ye, w.yi, w.zl, w.zu, mu_meas);
 #endif
 
     // --- the iteration (spec 3.1) -----------------------------------------
 
+    // A2's residual floor anchor `(mu_s, r_s)`: the attempt's first iterate (re-taken on a
+    // warm-kill). Read only when `ipqp_mu_residual_floor` is on.
+    bool floor_anchor_set = false;
+    double floor_mu_s = 0.0;
+    double floor_r_s = 0.0;
+
     for (;;) {
         refresh_distances();
         const IpqpResiduals res = residuals();
         out.residuals = res;
+        if (iopts.ipqp_mu_residual_floor && !floor_anchor_set) {
+            floor_mu_s = mu_meas;
+            floor_r_s = std::max({res.primal_eq, res.primal_iq, res.stationarity});
+            floor_anchor_set = true;
+        }
 
         if (!std::isfinite(res.worst())) {
             escape = IpqpEscape::kNumerical;
@@ -2138,6 +2274,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         if (warm_live && out.counters.ipqp_iters - iters_base >= warm_budget) {
             warm_live = false;
             out.counters.ipqp_warm_restart_abandoned = 1;
+            floor_anchor_set = false;
             iters_base = out.counters.ipqp_iters;
             facts_base = kkt_.counters().factorize_count;
             cold_start();
@@ -2270,6 +2407,13 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // THE TWO REGULARIZATIONS, SELECTED SEPARATELY (T4b): `rho_sched` is the subproblem's own
         // proximal weight and is NOT touched here; `rho_dem` is the inertia-demanded modification
         // chosen fresh every iteration. Additive in the matrix; only `rho_sched` reaches the RHS.
+        // A3: counts LICENSED skips (`skip_licensed()`), not trials that began at the memory value:
+        // under `evidence_failed` the first trial may be the evidence floor. Counted at the
+        // iteration's own ladder only (A2's estimate saves and restores the memory around its
+        // call).
+        if (skip_licensed()) {
+            ++out.counters.ipqp_ladder_zero_trial_skips;
+        }
         double rho_dem = ladder_trial();
         if (rho_dem > 0.0) {
             rho_dem_max = std::max(rho_dem_max, rho_dem);
@@ -2347,7 +2491,17 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             // Spec 3.3's clamp. The FLOOR matters as much as the ceiling: a
             // target driven to exactly zero turns the corrector into a second
             // affine step and gives up the centering the corrector exists for.
-            mu_t = std::clamp(sigma_m * mu_meas, iopts.ipqp_min_mu, iopts.ipqp_init_mu);
+            double target = sigma_m * mu_meas;
+            if (iopts.ipqp_mu_residual_floor) {
+                // A2 / A1-R1: the infeasible-IPM neighbourhood's floor (the A2 page section 4).
+                const double r = std::max({res.primal_eq, res.primal_iq, res.stationarity});
+                const double floor_k = floor_mu_s * r / std::max(1.0, floor_r_s);
+                if (floor_k > target && floor_k > iopts.ipqp_min_mu) {
+                    target = floor_k;
+                    ++out.counters.ipqp_mu_floor_binds;
+                }
+            }
+            mu_t = std::clamp(target, iopts.ipqp_min_mu, iopts.ipqp_init_mu);
         }
 
         // 3. THE CORRECTOR, against the SAME numeric factorization (Amendment E's re-entrancy

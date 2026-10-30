@@ -1,0 +1,92 @@
+HEAD e626e6eaab3800cef545b9f7daac8837c5fe6079 DIRTY=10
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T17:33:18-04:00
+FOREGROUND_END rc=0 2026-10-23T17:33:20-04:00
+ninja: no work to do.
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T17:33:20-04:00
+FOREGROUND_END rc=0 2026-10-23T17:34:28-04:00
+[204/206] Linking CXX executable bench/hven_sqp_crossover
+[205/206] Linking CXX executable bench/hven_sqp_ipqp_e1_arm
+[206/206] Linking CXX executable tests/sqp/hven_sqp_tests
+HEAD e626e6eaab3800cef545b9f7daac8837c5fe6079 DIRTY=10
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T17:34:28-04:00
+FOREGROUND_END rc=0 2026-10-23T17:36:19-04:00
+100% tests passed, 0 tests failed out of 3222
+
+Total Test time (real) = 111.37 sec
+
+The following tests did not run:
+	665 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1927 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1928 - EqpRefinementAb.FullBattery (Disabled)
+100% tests passed, 0 tests failed out of 3222
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T17:36:19-04:00
+FOREGROUND_END rc=0 2026-10-23T17:42:28-04:00
+	482 - QpE4ProximalEqp.TheYorknetRestorationQpIsDriftFreeAndOptimal (Skipped)
+	515 - QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder (Skipped)
+	529 - QpE2Fix9StandstillRetreat.Acopp118Qp0Border (Skipped)
+	530 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	531 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	665 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1926 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1927 - EqpRefinementAb.FullBattery (Disabled)
+100% tests passed, 0 tests failed out of 3221
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T17:42:28-04:00
+FOREGROUND_END rc=0 2026-10-23T17:45:50-04:00
+Test project /home/ghecht/Projects/hven/.claude/worktrees/agent-aa38d0451de957235/.scratch/a2/build-dbg
+    Start 1776: Continuation.ProbeBudgetBoundsAFailingProposal
+1/1 Test #1776: Continuation.ProbeBudgetBoundsAFailingProposal ...   Passed  169.47 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) = 169.54 sec
+100% tests passed, 0 tests failed out of 1
+SUITES_DONE fail=0 2026-10-23T17:45:50-04:00
+CHAIN_BUILD_SUITES_DONE fail=0 2026-10-23T17:45:50-04:00
+HEAD e626e6eaab3800cef545b9f7daac8837c5fe6079 DIRTY=10
+PGREP_EMPTY u0-walk
+FOREGROUND_START u0-walk 2026-10-23T17:45:50-04:00
+FOREGROUND_END u0-walk rc=0 2026-10-23T17:52:17-04:00
+PGREP_EMPTY u0-ssn
+FOREGROUND_START u0-ssn 2026-10-23T17:52:17-04:00
+FOREGROUND_END u0-ssn rc=0 2026-10-23T17:52:38-04:00
+PGREP_EMPTY u0-ipm
+FOREGROUND_START u0-ipm 2026-10-23T17:52:38-04:00
+FOREGROUND_END u0-ipm rc=0 2026-10-23T17:53:03-04:00
+PGREP_EMPTY e1-off
+FOREGROUND_START e1-off 2026-10-23T17:53:03-04:00
+FOREGROUND_END e1-off rc=0 2026-10-23T17:54:25-04:00
+e1-off gate rc=0
+PGREP_EMPTY e1-m0
+FOREGROUND_START e1-m0 2026-10-23T17:54:25-04:00
+FOREGROUND_END e1-m0 rc=0 2026-10-23T17:55:37-04:00
+e1-m0 gate rc=0
+PGREP_EMPTY e1-mf
+FOREGROUND_START e1-mf 2026-10-23T17:55:37-04:00
+FOREGROUND_END e1-mf rc=0 2026-10-23T17:56:40-04:00
+e1-mf gate rc=0
+PGREP_EMPTY e1-m0mf
+FOREGROUND_START e1-m0mf 2026-10-23T17:56:40-04:00
+FOREGROUND_END e1-m0mf rc=0 2026-10-23T17:57:43-04:00
+e1-m0mf gate rc=0
+PGREP_EMPTY fam-off
+FOREGROUND_START fam-off 2026-10-23T17:57:43-04:00
+FOREGROUND_END fam-off rc=0 2026-10-23T17:58:09-04:00
+PGREP_EMPTY fam-m0
+FOREGROUND_START fam-m0 2026-10-23T17:58:09-04:00
+FOREGROUND_END fam-m0 rc=0 2026-10-23T17:58:11-04:00
+PGREP_EMPTY fam-mf
+FOREGROUND_START fam-mf 2026-10-23T17:58:11-04:00
+FOREGROUND_END fam-mf rc=0 2026-10-23T18:02:38-04:00
+PGREP_EMPTY fam-m0mf
+FOREGROUND_START fam-m0mf 2026-10-23T18:02:38-04:00
+FOREGROUND_END fam-m0mf rc=0 2026-10-23T18:07:06-04:00
+u0-walk compare rc=0 :: === u0-walk === cells compared: 27  columns compared: 75  differences: 0
+u0-ssn compare rc=0 :: === u0-ssn === cells compared: 27  columns compared: 75  differences: 0
+u0-ipm compare rc=0 :: === u0-ipm === cells compared: 27  columns compared: 75  differences: 0
+CHAIN_MEAS_DONE fail=0 2026-10-23T18:07:06-04:00
+CHAIN_FINAL_DONE 2026-10-23T18:07:06-04:00

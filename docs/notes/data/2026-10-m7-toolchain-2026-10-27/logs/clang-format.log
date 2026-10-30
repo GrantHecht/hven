@@ -1,0 +1,490 @@
+include/hven/detail/globalization/acceptance_strategy.h:47:72: error: code should be clang-formatted [-Wclang-format-violations]
+    virtual bool is_iterate_acceptable(const ProgressMeasures &current,
+                                                                       ^
+include/hven/detail/globalization/acceptance_strategy.h:48:71: error: code should be clang-formatted [-Wclang-format-violations]
+                                        const ProgressMeasures &trial,
+                                                                      ^
+include/hven/detail/globalization/acceptance_strategy.h:49:85: error: code should be clang-formatted [-Wclang-format-violations]
+                                        const ProgressMeasures &predicted_reduction,
+                                                                                    ^
+include/hven/detail/globalization/acceptance_strategy.h:57:90: error: code should be clang-formatted [-Wclang-format-violations]
+    virtual bool is_infeasibility_sufficiently_reduced(const ProgressMeasures &reference,
+                                                                                         ^
+include/hven/detail/globalization/acceptance_strategy.h:133:32: error: code should be clang-formatted [-Wclang-format-violations]
+        throw std::logic_error(
+                               ^
+include/hven/detail/globalization/filter_acceptance.h:55:32: error: code should be clang-formatted [-Wclang-format-violations]
+        std::erase_if(entries_, [&](const Entry &e) {
+                               ^
+include/hven/detail/globalization/filter_acceptance.h:55:54: error: code should be clang-formatted [-Wclang-format-violations]
+        std::erase_if(entries_, [&](const Entry &e) {
+                                                     ^
+include/hven/detail/globalization/filter_acceptance.h:56:61: error: code should be clang-formatted [-Wclang-format-violations]
+            return phi_add <= e.phi && theta_add <= e.theta;
+                                                            ^
+include/hven/detail/globalization/filter_acceptance.h:245:43: error: code should be clang-formatted [-Wclang-format-violations]
+    int successive_filter_rejections_ = 0;   
+                                          ^
+include/hven/detail/globalization/filter_acceptance.h:246:30: error: code should be clang-formatted [-Wclang-format-violations]
+    int n_filter_resets_ = 0;                
+                             ^
+include/hven/detail/globalization/filter_acceptance.h:247:45: error: code should be clang-formatted [-Wclang-format-violations]
+    bool last_rejection_was_filter_ = false; 
+                                            ^
+include/hven/detail/globalization/globalization_mechanism.h:71:97: error: code should be clang-formatted [-Wclang-format-violations]
+    virtual void max_primal_dual_step(Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, double bfrac,
+                                                                                                ^
+include/hven/detail/globalization/modern_merit.h:189:35: error: code should be clang-formatted [-Wclang-format-violations]
+    double nu_ = kWmnoInitPenalty;    ///< WMNO single penalty ν.
+include/hven/detail/globalization/modern_merit.h:190:33: error: code should be clang-formatted [-Wclang-format-violations]
+    double pi_l_ = kFlexInitPiL;      ///< Flexible lower penalty π_l.
+include/hven/detail/globalization/modern_merit.h:191:33: error: code should be clang-formatted [-Wclang-format-violations]
+    double pi_u_ = kFlexInitPiU;      ///< Flexible upper penalty π_u.
+include/hven/detail/globalization/monitored_governor.h:26:54: error: code should be clang-formatted [-Wclang-format-violations]
+inline constexpr int kAdaptiveMuKktErrorRedIters = 4;       
+                                                     ^
+include/hven/detail/globalization/monitored_governor.h:27:61: error: code should be clang-formatted [-Wclang-format-violations]
+inline constexpr double kAdaptiveMuKktErrorRedFact = 0.9999; 
+                                                            ^
+include/hven/detail/globalization/monitored_governor.h:28:61: error: code should be clang-formatted [-Wclang-format-violations]
+inline constexpr double kAdaptiveMuMonotoneInitFactor = 0.8; 
+                                                            ^
+include/hven/detail/globalization/monitored_governor.h:29:47: error: code should be clang-formatted [-Wclang-format-violations]
+inline constexpr double kBarrierKappaMu = 0.2;              
+                                              ^
+include/hven/detail/globalization/monitored_governor.h:30:47: error: code should be clang-formatted [-Wclang-format-violations]
+inline constexpr double kBarrierThetaMu = 1.5;              
+                                              ^
+include/hven/detail/globalization/monitored_governor.h:31:50: error: code should be clang-formatted [-Wclang-format-violations]
+inline constexpr double kBarrierTolFactor = 10.0;           
+                                                 ^
+include/hven/detail/globalization/monitored_governor.h:147:25: error: code should be clang-formatted [-Wclang-format-violations]
+        double mu = 0.0;      ///< Barrier parameter to use (MEANINGFUL IFF monotone:
+                        ^
+include/hven/detail/globalization/monitored_governor.h:153:85: error: code should be clang-formatted [-Wclang-format-violations]
+    BarrierDecision decide(const IterateInfo &current, double mu_in, double avgcomp,
+                                                                                    ^
+include/hven/detail/globalization/monitored_governor.h:154:43: error: code should be clang-formatted [-Wclang-format-violations]
+                           double bar_tol, double kkt_tol, double min_mu, double max_mu);
+                                          ^
+include/hven/detail/globalization/monitored_governor.h:188:26: error: code should be clang-formatted [-Wclang-format-violations]
+    double monotone_mu_ = 0.0; ///< Current monotone barrier parameter (meaningful iff monotone_mode_).
+                         ^
+include/hven/detail/globalization/proximal_restoration.h:70:62: error: code should be clang-formatted [-Wclang-format-violations]
+    void enter_restoration(const ProgressMeasures &reference,
+                                                             ^
+include/hven/detail/globalization/proximal_restoration.h:71:78: error: code should be clang-formatted [-Wclang-format-violations]
+                            const Eigen::Ref<const Eigen::VectorXd> &primals,
+                                                                             ^
+include/hven/detail/globalization/proximal_restoration.h:82:81: error: code should be clang-formatted [-Wclang-format-violations]
+    void add_proximal_gradient(const Eigen::Ref<const Eigen::VectorXd> &primals,
+                                                                                ^
+include/hven/detail/globalization/restoration.h:47:70: error: code should be clang-formatted [-Wclang-format-violations]
+    virtual void enter_restoration(const ProgressMeasures &reference,
+                                                                     ^
+include/hven/detail/globalization/restoration.h:48:86: error: code should be clang-formatted [-Wclang-format-violations]
+                                    const Eigen::Ref<const Eigen::VectorXd> &primals,
+                                                                                     ^
+include/hven/detail/globalization/restoration.h:72:89: error: code should be clang-formatted [-Wclang-format-violations]
+    virtual void add_proximal_gradient(const Eigen::Ref<const Eigen::VectorXd> &primals,
+                                                                                        ^
+include/hven/detail/globalization/restoration.h:163:32: error: code should be clang-formatted [-Wclang-format-violations]
+        throw std::logic_error(
+                               ^
+include/hven/detail/globalization/restoration.h:164:80: error: code should be clang-formatted [-Wclang-format-violations]
+            "RestorationStrategy::entry_mu called on a strategy that does not "
+                                                                               ^
+include/hven/detail/globalization/restoration.h:172:32: error: code should be clang-formatted [-Wclang-format-violations]
+        throw std::logic_error(
+                               ^
+include/hven/detail/globalization/restoration.h:173:80: error: code should be clang-formatted [-Wclang-format-violations]
+            "RestorationStrategy::e_pivots called on a strategy that does not "
+                                                                               ^
+include/hven/detail/globalization/restoration.h:177:32: error: code should be clang-formatted [-Wclang-format-violations]
+        throw std::logic_error(
+                               ^
+include/hven/detail/globalization/restoration.h:178:80: error: code should be clang-formatted [-Wclang-format-violations]
+            "RestorationStrategy::i_pivots called on a strategy that does not "
+                                                                               ^
+include/hven/detail/globalization/restoration.h:236:48: error: code should be clang-formatted [-Wclang-format-violations]
+    virtual void add_nested_gradient(double mu,
+                                               ^
+include/hven/detail/globalization/restoration.h:282:46: error: code should be clang-formatted [-Wclang-format-violations]
+    virtual void recenter_elastics(double mu,
+                                             ^
+include/hven/detail/globalization/soc.h:62:79: error: code should be clang-formatted [-Wclang-format-violations]
+inline bool soc_should_continue(double trial_violation, double prev_violation,
+                                                                              ^
+include/hven/detail/globalization/soc.h:63:54: error: code should be clang-formatted [-Wclang-format-violations]
+                                int corrections_done, int max_soc) {
+                                                     ^
+include/hven/detail/globalization/switching_acceptance.h:164:38: error: code should be clang-formatted [-Wclang-format-violations]
+    bool bounds_initialized_ = false; 
+                                     ^
+include/hven/detail/globalization/watchdog.h:12:1: error: code should be clang-formatted [-Wclang-format-violations]
+#include "hven/detail/interior/bound_set.h"
+^
+include/hven/detail/interior/sizing_specs.h:47:21: error: code should be clang-formatted [-Wclang-format-violations]
+    struct Concept { 
+                    ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:40:12: error: code should be clang-formatted [-Wclang-format-violations]
+template <>
+           ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:44:12: error: code should be clang-formatted [-Wclang-format-violations]
+template <>
+           ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:48:12: error: code should be clang-formatted [-Wclang-format-violations]
+template <>
+           ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:69:12: error: code should be clang-formatted [-Wclang-format-violations]
+template <>
+           ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:73:12: error: code should be clang-formatted [-Wclang-format-violations]
+template <>
+           ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:77:12: error: code should be clang-formatted [-Wclang-format-violations]
+template <>
+           ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:88:17: error: code should be clang-formatted [-Wclang-format-violations]
+template <int W>
+                ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:109:58: error: code should be clang-formatted [-Wclang-format-violations]
+EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC Array<double, W, 1>
+                                                         ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:110:31: error: code should be clang-formatted [-Wclang-format-violations]
+conj(const Array<double, W, 1>& x) {
+                              ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:110:32: error: code should be clang-formatted [-Wclang-format-violations]
+conj(const Array<double, W, 1>& x) {
+                               ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:116:58: error: code should be clang-formatted [-Wclang-format-violations]
+EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC Array<double, W, 1>
+                                                         ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:117:31: error: code should be clang-formatted [-Wclang-format-violations]
+real(const Array<double, W, 1>& x) {
+                              ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:117:32: error: code should be clang-formatted [-Wclang-format-violations]
+real(const Array<double, W, 1>& x) {
+                               ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:123:58: error: code should be clang-formatted [-Wclang-format-violations]
+EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC Array<double, W, 1>
+                                                         ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:124:31: error: code should be clang-formatted [-Wclang-format-violations]
+imag(const Array<double, W, 1>& /*x*/) {
+                              ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:130:58: error: code should be clang-formatted [-Wclang-format-violations]
+EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC Array<double, W, 1>
+                                                         ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:131:30: error: code should be clang-formatted [-Wclang-format-violations]
+abs(const Array<double, W, 1>& x) {
+                             ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:131:31: error: code should be clang-formatted [-Wclang-format-violations]
+abs(const Array<double, W, 1>& x) {
+                              ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:137:58: error: code should be clang-formatted [-Wclang-format-violations]
+EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC Array<double, W, 1>
+                                                         ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:138:31: error: code should be clang-formatted [-Wclang-format-violations]
+abs2(const Array<double, W, 1>& x) {
+                              ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:138:32: error: code should be clang-formatted [-Wclang-format-violations]
+abs2(const Array<double, W, 1>& x) {
+                               ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:148:54: error: code should be clang-formatted [-Wclang-format-violations]
+    static EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC bool
+                                                     ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:149:34: error: code should be clang-formatted [-Wclang-format-violations]
+    run(const Array<double, 2, 1>& x, const Array<double, 2, 1>& y) {
+                                 ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:149:35: error: code should be clang-formatted [-Wclang-format-violations]
+    run(const Array<double, 2, 1>& x, const Array<double, 2, 1>& y) {
+                                  ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:149:38: error: code should be clang-formatted [-Wclang-format-violations]
+    run(const Array<double, 2, 1>& x, const Array<double, 2, 1>& y) {
+                                     ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:149:64: error: code should be clang-formatted [-Wclang-format-violations]
+    run(const Array<double, 2, 1>& x, const Array<double, 2, 1>& y) {
+                                                               ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:149:65: error: code should be clang-formatted [-Wclang-format-violations]
+    run(const Array<double, 2, 1>& x, const Array<double, 2, 1>& y) {
+                                                                ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:155:54: error: code should be clang-formatted [-Wclang-format-violations]
+    static EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC bool
+                                                     ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:156:34: error: code should be clang-formatted [-Wclang-format-violations]
+    run(const Array<double, 4, 1>& x, const Array<double, 4, 1>& y) {
+                                 ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:156:35: error: code should be clang-formatted [-Wclang-format-violations]
+    run(const Array<double, 4, 1>& x, const Array<double, 4, 1>& y) {
+                                  ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:156:38: error: code should be clang-formatted [-Wclang-format-violations]
+    run(const Array<double, 4, 1>& x, const Array<double, 4, 1>& y) {
+                                     ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:156:64: error: code should be clang-formatted [-Wclang-format-violations]
+    run(const Array<double, 4, 1>& x, const Array<double, 4, 1>& y) {
+                                                               ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:156:65: error: code should be clang-formatted [-Wclang-format-violations]
+    run(const Array<double, 4, 1>& x, const Array<double, 4, 1>& y) {
+                                                                ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:162:54: error: code should be clang-formatted [-Wclang-format-violations]
+    static EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC bool
+                                                     ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:163:34: error: code should be clang-formatted [-Wclang-format-violations]
+    run(const Array<double, 8, 1>& x, const Array<double, 8, 1>& y) {
+                                 ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:163:35: error: code should be clang-formatted [-Wclang-format-violations]
+    run(const Array<double, 8, 1>& x, const Array<double, 8, 1>& y) {
+                                  ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:163:38: error: code should be clang-formatted [-Wclang-format-violations]
+    run(const Array<double, 8, 1>& x, const Array<double, 8, 1>& y) {
+                                     ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:163:64: error: code should be clang-formatted [-Wclang-format-violations]
+    run(const Array<double, 8, 1>& x, const Array<double, 8, 1>& y) {
+                                                               ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:163:65: error: code should be clang-formatted [-Wclang-format-violations]
+    run(const Array<double, 8, 1>& x, const Array<double, 8, 1>& y) {
+                                                                ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:174:43: error: code should be clang-formatted [-Wclang-format-violations]
+EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC bool
+                                          ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:175:42: error: code should be clang-formatted [-Wclang-format-violations]
+is_exactly_zero(const Array<double, W, 1>& x) {
+                                         ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:175:43: error: code should be clang-formatted [-Wclang-format-violations]
+is_exactly_zero(const Array<double, W, 1>& x) {
+                                          ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:181:43: error: code should be clang-formatted [-Wclang-format-violations]
+EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC bool
+                                          ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:182:41: error: code should be clang-formatted [-Wclang-format-violations]
+is_exactly_one(const Array<double, W, 1>& x) {
+                                        ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:182:42: error: code should be clang-formatted [-Wclang-format-violations]
+is_exactly_one(const Array<double, W, 1>& x) {
+                                         ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:184:2: error: code should be clang-formatted [-Wclang-format-violations]
+}
+ ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:189:17: error: code should be clang-formatted [-Wclang-format-violations]
+template <int W>
+                ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:191:49: error: code should be clang-formatted [-Wclang-format-violations]
+    static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE
+                                                ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:192:24: error: code should be clang-formatted [-Wclang-format-violations]
+    Array<double, W, 1> run(const Array<double, W, 1>& a) {
+                       ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:192:54: error: code should be clang-formatted [-Wclang-format-violations]
+    Array<double, W, 1> run(const Array<double, W, 1>& a) {
+                                                     ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:192:55: error: code should be clang-formatted [-Wclang-format-violations]
+    Array<double, W, 1> run(const Array<double, W, 1>& a) {
+                                                      ^
+include/hven/detail/interior/typedefs/super_scalar_traits.h:193:28: error: code should be clang-formatted [-Wclang-format-violations]
+        return -a.matrix();  // routes through Matrix's negation, returns Array via assignment
+                           ^
+include/hven/detail/interior/utils/memory_management.h:64:23: error: code should be clang-formatted [-Wclang-format-violations]
+        size_t offset;           ///< @internal Current bump offset in elements.
+                      ^
+include/hven/detail/interior/utils/memory_management.h:65:31: error: code should be clang-formatted [-Wclang-format-violations]
+        size_t overflow_count;   ///< @internal Number of active overflow blocks.
+                              ^
+include/hven/detail/interior/utils/memory_management.h:221:29: error: code should be clang-formatted [-Wclang-format-violations]
+    using ExactTempType = T;               ///< @internal Exact Eigen type to instantiate.
+                            ^
+include/hven/detail/interior/utils/memory_management.h:222:23: error: code should be clang-formatted [-Wclang-format-violations]
+    using MatType = T;                     ///< @internal Underlying matrix type.
+                      ^
+include/hven/detail/interior/utils/memory_management.h:223:39: error: code should be clang-formatted [-Wclang-format-violations]
+    using Scalar = typename T::Scalar;     ///< @internal Scalar element type.
+                                      ^
+include/hven/detail/interior/utils/memory_management.h:229:43: error: code should be clang-formatted [-Wclang-format-violations]
+    static constexpr bool IsConstantSize =
+                                          ^
+include/hven/detail/interior/utils/memory_management.h:247:39: error: code should be clang-formatted [-Wclang-format-violations]
+    using Scalar = typename T::Scalar;     ///< @internal Scalar element type.
+                                      ^
+include/hven/detail/interior/utils/memory_management.h:252:38: error: code should be clang-formatted [-Wclang-format-violations]
+    static constexpr int size = Size;      ///< @internal Number of array elements.
+                                     ^
+include/hven/detail/interior/utils/memory_management.h:270:19: error: code should be clang-formatted [-Wclang-format-violations]
+    using Scalar =
+                  ^
+include/hven/detail/interior/utils/memory_management.h:307:55: error: code should be clang-formatted [-Wclang-format-violations]
+    using ScalarStackType = detail::BumpStack<double>;         ///< @internal Scalar arena type.
+                                                      ^
+include/hven/detail/interior/utils/thread_pool.h:55:21: error: code should be clang-formatted [-Wclang-format-violations]
+    std::latch done;           ///< @internal Countdown latch; each worker calls count_down().
+                    ^
+include/hven/detail/interior/utils/thread_pool.h:404:38: error: code should be clang-formatted [-Wclang-format-violations]
+                        std::fprintf(
+                                     ^
+include/hven/detail/interior/utils/thread_pool.h:405:36: error: code should be clang-formatted [-Wclang-format-violations]
+                            stderr, "[hven] FATAL: unhandled exception in enqueue_work task: %s\n",
+                                   ^
+include/hven/detail/interior/utils/thread_pool.h:405:100: error: code should be clang-formatted [-Wclang-format-violations]
+                            stderr, "[hven] FATAL: unhandled exception in enqueue_work task: %s\n",
+                                                                                                   ^
+include/hven/detail/interior/utils/thread_pool.h:654:36: error: code should be clang-formatted [-Wclang-format-violations]
+            throw std::logic_error(
+                                   ^
+src/interior/utils/get_core_count.cpp:12:18: error: code should be clang-formatted [-Wclang-format-violations]
+// (see LICENSE).
+                 ^
+src/model/non_linear_program.cpp:2356:67: error: code should be clang-formatted [-Wclang-format-violations]
+// surviving variables' derivatives need no handling of their own.
+                                                                  ^
+tests/interior/test_filter_acceptance.cpp:328:21: error: code should be clang-formatted [-Wclang-format-violations]
+    EXPECT_TRUE(ok);                  // F-type accept
+                    ^
+tests/interior/test_filter_acceptance.cpp:329:36: error: code should be clang-formatted [-Wclang-format-violations]
+    EXPECT_EQ(a.filter_size(), 1u);   // untouched by the F-type step
+                                   ^
+tests/interior/test_filter_acceptance.cpp:736:43: error: code should be clang-formatted [-Wclang-format-violations]
+    EXPECT_TRUE(a.in_feasibility_phase());   // flag survives
+                                          ^
+tests/interior/test_filter_acceptance.cpp:737:36: error: code should be clang-formatted [-Wclang-format-violations]
+    EXPECT_EQ(a.filter_size(), 0u);          // working state cleared
+                                   ^
+tests/interior/test_filter_acceptance.cpp:738:44: error: code should be clang-formatted [-Wclang-format-violations]
+    EXPECT_EQ(a.stashed_filter_size(), 1u);  // stash preserved
+                                           ^
+tests/interior/test_funnel_acceptance.cpp:373:40: error: code should be clang-formatted [-Wclang-format-violations]
+    FunnelPrimeRejecting(a, 4.0, 10.0);                         // τ = 6.0
+tests/interior/test_funnel_acceptance.cpp:374:55: error: code should be clang-formatted [-Wclang-format-violations]
+    a.notify_switch_to_feasibility(pm(5.0, 0.0, 0.0));          // stash 6.0, working → +∞
+tests/interior/test_funnel_acceptance.cpp:398:40: error: code should be clang-formatted [-Wclang-format-violations]
+    FunnelPrimeRejecting(a, 4.0, 10.0);                         // τ = 6.0
+tests/interior/test_funnel_acceptance.cpp:399:55: error: code should be clang-formatted [-Wclang-format-violations]
+    a.notify_switch_to_feasibility(pm(4.0, 0.0, 0.0));          // stash 6.0, working → +∞
+tests/interior/test_funnel_acceptance.cpp:414:40: error: code should be clang-formatted [-Wclang-format-violations]
+    FunnelPrimeRejecting(a, 4.0, 10.0);                         // τ = 6.0
+tests/interior/test_funnel_acceptance.cpp:415:55: error: code should be clang-formatted [-Wclang-format-violations]
+    a.notify_switch_to_feasibility(pm(4.0, 0.0, 0.0));          // stash 6.0
+                                                      ^
+tests/interior/test_funnel_acceptance.cpp:416:39: error: code should be clang-formatted [-Wclang-format-violations]
+    FunnelPrimeRejecting(a, 0.1, 2.0);                          // working width → 1.0
+tests/interior/test_funnel_acceptance.cpp:417:15: error: code should be clang-formatted [-Wclang-format-violations]
+    a.reset();                                                 // μ-event mid-restoration
+tests/interior/test_funnel_acceptance.cpp:418:43: error: code should be clang-formatted [-Wclang-format-violations]
+    EXPECT_TRUE(a.in_feasibility_phase());            // flag survives
+                                          ^
+tests/interior/test_funnel_acceptance.cpp:420:53: error: code should be clang-formatted [-Wclang-format-violations]
+    EXPECT_DOUBLE_EQ(a.stashed_funnel_width(), 6.0);  // stash survives
+                                                    ^
+tests/interior/test_l1_restoration.cpp:321:39: error: code should be clang-formatted [-Wclang-format-violations]
+    EXPECT_DOUBLE_EQ(r.dr2()[0], 1.0);          // |xr| < 1 -> d = 1
+                                      ^
+tests/interior/test_l1_restoration.cpp:322:42: error: code should be clang-formatted [-Wclang-format-violations]
+    EXPECT_DOUBLE_EQ(r.dr2()[1], 0.0625);       // |xr| > 1 -> d = 1/4
+                                         ^
+tests/interior/test_l1_restoration.cpp:323:39: error: code should be clang-formatted [-Wclang-format-violations]
+    EXPECT_DOUBLE_EQ(r.dr2()[2], 1.0);          // |xr| = 0 -> d = 1 (no divide-by-zero)
+                                      ^
+tests/interior/test_l1_restoration.cpp:324:44: error: code should be clang-formatted [-Wclang-format-violations]
+    EXPECT_DOUBLE_EQ(r.dr2()[3], 0.015625);     // |xr| = 8 -> d = 1/8
+                                           ^
+tests/interior/test_merit_rules.cpp:300:58: error: code should be clang-formatted [-Wclang-format-violations]
+    EXPECT_DOUBLE_EQ(a.wmno_penalty(), kWmnoInitPenalty);              // working reset
+                                                         ^
+tests/interior/test_merit_rules.cpp:301:63: error: code should be clang-formatted [-Wclang-format-violations]
+    EXPECT_TRUE(std::isinf(a.smallest_known_infeasibility()));         // working reset
+                                                              ^
+tests/interior/test_merit_rules.cpp:302:54: error: code should be clang-formatted [-Wclang-format-violations]
+    EXPECT_DOUBLE_EQ(a.stashed_wmno_penalty(), 11.0);                  // frozen
+                                                     ^
+tests/interior/test_merit_rules.cpp:303:69: error: code should be clang-formatted [-Wclang-format-violations]
+    EXPECT_DOUBLE_EQ(a.stashed_smallest_known_infeasibility(), 0.5);   // frozen
+                                                                    ^
+tests/interior/test_merit_rules.cpp:309:45: error: code should be clang-formatted [-Wclang-format-violations]
+    EXPECT_DOUBLE_EQ(a.wmno_penalty(), 1.0);                          // working evolved
+                                            ^
+tests/interior/test_merit_rules.cpp:311:54: error: code should be clang-formatted [-Wclang-format-violations]
+    EXPECT_DOUBLE_EQ(a.stashed_wmno_penalty(), 11.0);               // still frozen
+                                                     ^
+tests/interior/test_merit_rules.cpp:350:15: error: code should be clang-formatted [-Wclang-format-violations]
+    a.reset(); // μ-event mid-restoration
+tests/interior/test_merit_rules.cpp:351:43: error: code should be clang-formatted [-Wclang-format-violations]
+    EXPECT_TRUE(a.in_feasibility_phase());                            // flag survives
+                                          ^
+tests/interior/test_merit_rules.cpp:352:63: error: code should be clang-formatted [-Wclang-format-violations]
+    EXPECT_TRUE(std::isinf(a.smallest_known_infeasibility()));        // working cleared
+                                                              ^
+tests/interior/test_merit_rules.cpp:353:69: error: code should be clang-formatted [-Wclang-format-violations]
+    EXPECT_DOUBLE_EQ(a.stashed_smallest_known_infeasibility(), 3.0);  // stash survives
+                                                                    ^
+tests/interior/test_monitored_governor.cpp:206:29: error: code should be clang-formatted [-Wclang-format-violations]
+    EXPECT_TRUE(d.mu_event); // handoff begins a new barrier subproblem.
+                            ^
+tests/interior/test_monitored_governor.cpp:372:47: error: code should be clang-formatted [-Wclang-format-violations]
+    EXPECT_DOUBLE_EQ(fake->seen_mu_in, 0.007);   // mu_in forwarded verbatim.
+                                              ^
+tests/interior/test_monitored_governor.cpp:373:48: error: code should be clang-formatted [-Wclang-format-violations]
+    EXPECT_DOUBLE_EQ(fake->seen_avgcomp, 0.55);  // avgcomp forwarded verbatim.
+                                               ^
+tests/interior/test_monitored_governor.cpp:374:48: error: code should be clang-formatted [-Wclang-format-violations]
+    EXPECT_DOUBLE_EQ(fake->seen_mincomp, 0.11);  // mincomp forwarded verbatim.
+                                               ^
+tests/interior/test_monitored_governor.cpp:375:43: error: code should be clang-formatted [-Wclang-format-violations]
+    EXPECT_DOUBLE_EQ(mu, fake->return_mu);       // delegate's mu returned.
+                                          ^
+tests/interior/test_watchdog.cpp:103:55: error: code should be clang-formatted [-Wclang-format-violations]
+    static_assert(kWatchdogShortenedIterTrigger == 10,
+                                                      ^
+tests/interior/test_watchdog.cpp:518:86: error: code should be clang-formatted [-Wclang-format-violations]
+    ChainedRecovery chain(std::make_unique<WatchdogSpyRecovery>(Action::kAcceptAsIs),
+                                                                                     ^
+tests/interior/test_watchdog.cpp:550:70: error: code should be clang-formatted [-Wclang-format-violations]
+Action drive_watchdog(WatchdogRecovery &watchdog, SolverContext &ctx,
+                                                                     ^
+tests/interior/test_watchdog.cpp:551:88: error: code should be clang-formatted [-Wclang-format-violations]
+                     AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism,
+                                                                                       ^
+tests/interior/test_watchdog.cpp:552:89: error: code should be clang-formatted [-Wclang-format-violations]
+                     Eigen::VectorXd &v, IterateInfo &citer, double mu, double prim_obj,
+                                                                                        ^
+tests/interior/test_watchdog.cpp:618:95: error: code should be clang-formatted [-Wclang-format-violations]
+        drive_watchdog(watchdog, ctx, acceptance, mechanism, v, citer, kMu, /*prim_obj=*/10.0,
+                                                                                              ^
+tests/interior/test_watchdog.cpp:630:20: error: code should be clang-formatted [-Wclang-format-violations]
+    Action action = drive_watchdog(watchdog, ctx, acceptance, mechanism, v1, citer1, kMu,
+                   ^
+tests/interior/test_watchdog.cpp:630:90: error: code should be clang-formatted [-Wclang-format-violations]
+    Action action = drive_watchdog(watchdog, ctx, acceptance, mechanism, v1, citer1, kMu,
+                                                                                         ^
+tests/interior/test_watchdog.cpp:631:79: error: code should be clang-formatted [-Wclang-format-violations]
+                                   /*prim_obj=*/10.0, alpha1, resolved_depth1,
+                                                                              ^
+tests/interior/test_watchdog.cpp:689:95: error: code should be clang-formatted [-Wclang-format-violations]
+        drive_watchdog(watchdog, ctx, acceptance, mechanism, v, citer, kMu, /*prim_obj=*/10.0,
+                                                                                              ^
+tests/interior/test_watchdog.cpp:702:26: error: code should be clang-formatted [-Wclang-format-violations]
+    const Action action = drive_watchdog(watchdog, ctx, acceptance, mechanism, v, citer, kMu,
+                         ^
+tests/interior/test_watchdog.cpp:702:94: error: code should be clang-formatted [-Wclang-format-violations]
+    const Action action = drive_watchdog(watchdog, ctx, acceptance, mechanism, v, citer, kMu,
+                                                                                             ^
+tests/interior/test_watchdog.cpp:703:82: error: code should be clang-formatted [-Wclang-format-violations]
+                                         /*prim_obj=*/5.0, alpha, resolved_depth,
+                                                                                 ^
+tests/interior/test_watchdog.cpp:705:39: error: code should be clang-formatted [-Wclang-format-violations]
+    EXPECT_EQ(action, Action::kRetry); // inner's configured return value
+                                      ^
+tests/interior/test_watchdog.cpp:727:55: error: code should be clang-formatted [-Wclang-format-violations]
+    static_assert(kWatchdogShortenedIterTrigger == 10,
+                                                      ^
+tests/interior/test_watchdog.cpp:735:95: error: code should be clang-formatted [-Wclang-format-violations]
+        drive_watchdog(watchdog, ctx, acceptance, mechanism, v, citer, kMu, /*prim_obj=*/10.0,
+                                                                                              ^
+tests/interior/test_watchdog.cpp:753:26: error: code should be clang-formatted [-Wclang-format-violations]
+    const Action action = drive_watchdog(watchdog, ctx, acceptance, mechanism, v, citer, kMu,
+                         ^
+tests/interior/test_watchdog.cpp:753:94: error: code should be clang-formatted [-Wclang-format-violations]
+    const Action action = drive_watchdog(watchdog, ctx, acceptance, mechanism, v, citer, kMu,
+                                                                                             ^
+tests/interior/test_watchdog.cpp:754:83: error: code should be clang-formatted [-Wclang-format-violations]
+                                         /*prim_obj=*/10.0, alpha, resolved_depth,
+                                                                                  ^
+tests/interior/test_watchdog.cpp:756:44: error: code should be clang-formatted [-Wclang-format-violations]
+    EXPECT_EQ(action, Action::kAcceptAsIs); // inner's configured return value
+                                           ^

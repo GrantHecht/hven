@@ -1,0 +1,33 @@
+FOREGROUND_START recap-fix1 2026-09-18T09:59:42-04:00
+=== HEAD 5bf6760c  dirty-files=0 ===
+CONFIGURE_RC=0
+BUILD_RC=0
+libhven.a sha256: a2840d3a5eaff83cc1a4a23beecce2661edba7a466cc98324e9b3540fc5d92a1
+corpus binary sha256: cf3536d5539cafd697fde18f3ca9d9f2a947c30ebacab58d21455e4a9ef6eda7
+libhven.a sha256 MATCHES PROVENANCE.txt's record for 2a75cecd's build
+pinned capture 1 rc=0 rows=44
+pinned capture 2 rc=0 rows=44
+shipped capture 1 rc=0 rows=44
+shipped capture 2 rc=0 rows=44
+=== THE OFF PROOF (pinned arms vs the PRE-EVENT baseline, commit 806ca757) ===
+=== PRE-EVENT baseline (806ca757) vs PRE-EVENT-PINNED capture 1 === cells compared: 43  columns compared: 30  differences: 0
+  CMP_RC=0
+pinned capture 1: BYTE-IDENTICAL to the pre-event baseline outside wall_s (44 lines, header + 43 rows)
+=== PRE-EVENT baseline (806ca757) vs PRE-EVENT-PINNED capture 2 === cells compared: 43  columns compared: 30  differences: 0
+  CMP_RC=0
+pinned capture 2: BYTE-IDENTICAL to the pre-event baseline outside wall_s (44 lines, header + 43 rows)
+=== THE RE-DERIVATION HOLDS (shipped arms vs the CURRENTLY COMMITTED interior_baseline.csv) ===
+=== CURRENTLY COMMITTED baseline vs SHIPPED-DEFAULT capture 1 === cells compared: 43  columns compared: 30  differences: 0
+  CMP_RC=0
+shipped capture 1: BYTE-IDENTICAL to the committed baseline outside wall_s (44 lines, header + 43 rows)
+=== CURRENTLY COMMITTED baseline vs SHIPPED-DEFAULT capture 2 === cells compared: 43  columns compared: 30  differences: 0
+  CMP_RC=0
+shipped capture 2: BYTE-IDENTICAL to the committed baseline outside wall_s (44 lines, header + 43 rows)
+=== DETERMINISM, each arm ===
+=== pinned capture 1 vs 2 (determinism) === cells compared: 43  columns compared: 30  differences: 0
+  CMP_RC=0
+=== shipped capture 1 vs 2 (determinism) === cells compared: 43  columns compared: 30  differences: 0
+  CMP_RC=0
+RECAP_FIX1_WORST_RC=0
+FOREGROUND_END recap-fix1 2026-09-18T10:00:45-04:00 rc=0
+WRAPPER_RC recap-fix1 rc=0

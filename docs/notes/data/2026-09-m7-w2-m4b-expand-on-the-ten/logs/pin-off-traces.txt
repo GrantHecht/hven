@@ -1,0 +1,14 @@
+M7 W2 M4b -- the TEN OFF flat traces, re-verified against M4's own committed pin
+  docs/notes/data/2026-09-m7-w2-m4-anticycling-arm/traces-m4/SHA256-parent-traces-m4.txt
+No solver ran here. sha256sum -c of M4's pinned lines, run at read-out time.
+
+off-ACOPP57.csv: OK
+off-DALLASM.csv: OK
+off-STEENBRB.csv: OK
+off-ACOPP118.csv: OK
+off-ACOPR57.csv: OK
+off-STEENBRC.csv: OK
+off-STEENBRG.csv: OK
+off-YORKNET.csv: OK
+off-SAWPATH.csv: OK
+off-BRITGAS.csv: OK

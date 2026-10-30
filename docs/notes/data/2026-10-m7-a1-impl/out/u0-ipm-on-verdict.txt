@@ -1,0 +1,29 @@
+cell                                        status off>on       facts    uncert  susp/fb/ext/eit/dem diffs
+f7_n1000_bound_neutral                optimal>optimal        12>12       0>0               0/0/0/0/0 0
+f7_n1000_bound_physics                optimal>optimal         8>8        0>0               0/0/0/0/0 0
+f7_n1000_bound_corrupted              optimal>optimal        11>11       0>0               0/0/0/0/0 0
+f7_n1000_bound_activity               optimal>optimal         8>8        0>0               0/0/0/0/0 0
+f7_n1000_bound_warm                   optimal>optimal        11>11       0>0               0/0/0/0/0 0
+f7_n2000_bound_neutral                optimal>optimal        12>12       0>0               0/0/0/0/0 0
+f7_n2000_bound_physics                optimal>optimal         8>8        0>0               0/0/0/0/0 0
+f7_n2000_bound_corrupted              optimal>optimal        11>11       0>0               0/0/0/0/0 0
+f7_n2000_bound_activity               optimal>optimal         8>8        0>0               0/0/0/0/0 0
+f7_n2000_bound_warm                   optimal>optimal        11>11       0>0               0/0/0/0/0 0
+f7_n5000_bound_neutral                optimal>optimal        12>12       0>0               0/0/0/0/0 0
+f7_n5000_bound_physics                optimal>optimal         8>8        0>0               0/0/0/0/0 0
+f7_n5000_bound_corrupted              optimal>optimal        12>12       0>0               0/0/0/0/0 0
+f7_n5000_bound_activity               optimal>optimal         8>8        0>0               0/0/0/0/0 0
+f7_n5000_bound_warm                   optimal>optimal        11>11       0>0               0/0/0/0/0 0
+f7_n10000_bound_neutral               optimal>optimal        12>12       0>0               0/0/0/0/0 0
+f7_n10000_bound_physics               optimal>optimal         8>8        0>0               0/0/0/0/0 0
+f7_n10000_bound_corrupted             optimal>optimal        12>12       0>0               0/0/0/0/0 0
+f7_n10000_bound_activity              optimal>optimal         8>8        0>0               0/0/0/0/0 0
+f7_n10000_bound_warm                  optimal>optimal        12>12       0>0               0/0/0/0/0 0
+f7_n20000_bound_neutral               optimal>optimal        12>12       0>0               0/0/0/0/0 0
+f7_n20000_bound_physics               optimal>optimal         8>8        0>0               0/0/0/0/0 0
+f7_n20000_bound_corrupted             optimal>optimal        12>12       0>0               0/0/0/0/0 0
+f7_n20000_bound_activity              optimal>optimal         8>8        0>0               0/0/0/0/0 0
+f7_n20000_bound_warm                  optimal>optimal        12>12       0>0               0/0/0/0/0 0
+f7_n1000_path_warm                    optimal>optimal        44>46      35>888       879/879/1/2/878 11
+f7_n800_path_warm                     optimal>optimal        47>85       7>1382   1375/1375/2/6/1378 12
+[U0-ipm-ON-2] cells with any fire counter > 0: 2 of 27; status lost vs OFF: []

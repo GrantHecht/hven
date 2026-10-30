@@ -1,0 +1,19 @@
+CO_RUN_DECLARED export-installed 2026-09-17T03:00:44-04:00 -- box lock NOT taken; foreign lane:
+  FOREIGN 1091379 python3 runners/run_serial.py --problem-set cutest --split TRAIN --lanes hven-ipm --options ipm-rest-l1 --budget-wall-s 300 --out /home/ghecht
+  FOREIGN 1091687 /home/ghecht/Projects/hven-bench/build/lanes/hven/hven_bench_cell --lane hven-ipm --problem MSS3 --options ipm-rest-l1 --budget-iters 0 --opti
+CO_RUN_TERMS MKL_NUM_THREADS=1 OMP_NUM_THREADS=1; counters/statuses only; no wall, no instructions quoted
+PGREP_NOT_EMPTY -- the foreign lane above was found by the pre-leg pgrep run in its own command; this leg CO-RUNS with it by declaration
+FOREGROUND_START export-installed 2026-09-17T03:00:44-04:00
+# the two exported copies are byte-identical:
+a65ba638c5a13fa721f47ed5d8dc2e0d  .scratch/m7t4/smoke/hven-build/CMakeFiles/Export/61f1e425b542d5760b5cf5972e12310b/hvenTargets.cmake
+a65ba638c5a13fa721f47ed5d8dc2e0d  .scratch/m7t4/smoke/hven-install/lib64/cmake/hven/hvenTargets.cmake
+
+# the check re-run against the INSTALLED copy:
+== checking export contract: .scratch/m7t4/smoke/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+== export contract OK for platform=linux, align=32
+FOREGROUND_END export-installed 2026-09-17T03:00:44-04:00 rc=0
+WRAPPER_RC export-installed 0

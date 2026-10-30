@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+"""E2-D1 LP feasibility oracle (HiGHS via scipy) for a dumped QP: is
+{Ae x = be, Ai x <= bi, max(l,-D) <= x <= min(u,D)} nonempty?"""
+import sys, numpy as np
+from scipy.sparse import coo_matrix, hstack, identity, vstack, csr_matrix
+from scipy.optimize import linprog
+
+def load(path):
+    L = open(path).read().split('\n')
+    hdr = L[0].split(); n, me, mi, D = int(hdr[1]), int(hdr[3]), int(hdr[5]), float(hdr[7])
+    i = 1; out = {}
+    def trip(i):
+        rows, cols, vals = [], [], []
+        while L[i] != 'END':
+            r, c, v = L[i].split(); rows.append(int(r)); cols.append(int(c)); vals.append(float(v)); i += 1
+        return (rows, cols, vals), i + 1
+    def vec(line):
+        return np.array([float(t) for t in line.split()]) if line.strip() else np.zeros(0)
+    assert L[i] == 'H'; out['H'], i = trip(i + 1)
+    assert L[i] == 'g'; out['g'] = vec(L[i + 1]); i += 2
+    assert L[i] == 'Ae'; out['Ae'], i = trip(i + 1)
+    assert L[i] == 'be'; out['be'] = vec(L[i + 1]); i += 2
+    assert L[i] == 'Ai'; out['Ai'], i = trip(i + 1)
+    assert L[i] == 'bi'; out['bi'] = vec(L[i + 1]); i += 2
+    assert L[i] == 'lower'; out['lower'] = vec(L[i + 1]); i += 2
+    assert L[i] == 'upper'; out['upper'] = vec(L[i + 1]); i += 2
+    return n, me, mi, D, out
+
+def mat(t, m, n):
+    r, c, v = t
+    return coo_matrix((v, (r, c)), shape=(m, n)).tocsr()
+
+def main(path):
+    n, me, mi, D, q = load(path)
+    lo = q['lower'].copy(); up = q['upper'].copy()
+    lo[lo < -1e19] = -np.inf; up[up > 1e19] = np.inf
+    if np.isfinite(D):
+        lo = np.maximum(lo, -D); up = np.minimum(up, D)
+    Ae = mat(q['Ae'], me, n); Ai = mat(q['Ai'], mi, n)
+    # phase 1: min 1'(sp+sm) + 1't  s.t. Ae x + sp - sm = be ; Ai x - t <= bi
+    nv = n + 2 * me + mi
+    c = np.concatenate([np.zeros(n), np.ones(2 * me + mi)])
+    A_eq = hstack([Ae, identity(me), -identity(me), csr_matrix((me, mi))]).tocsr() if me else None
+    A_ub = hstack([Ai, csr_matrix((mi, 2 * me)), -identity(mi)]).tocsr() if mi else None
+    bounds = [(lo[j] if np.isfinite(lo[j]) else None, up[j] if np.isfinite(up[j]) else None) for j in range(n)] + [(0, None)] * (2 * me + mi)
+    res = linprog(c, A_ub=A_ub, b_ub=q['bi'] if mi else None, A_eq=A_eq, b_eq=q['be'] if me else None, bounds=bounds, method='highs')
+    print(f"ORACLE {path} n={n} me={me} mi={mi} D={D} status={res.status} ({res.message.strip()[:60]}) min_sum_infeas={(res.fun if res.fun is not None else float('nan')):.6e} -> {'INFEASIBLE' if res.status == 0 and res.fun > 1e-7 else ('FEASIBLE' if res.status == 0 else 'UNKNOWN')}")
+    # also: tight-D radius at which it becomes feasible (min over x of ||x||inf s.t. constraints, real box only)
+    lo2 = q['lower'].copy(); up2 = q['upper'].copy(); lo2[lo2 < -1e19] = -np.inf; up2[up2 > 1e19] = np.inf
+    # min r s.t. -r <= x <= r
+    c2 = np.zeros(n + 1); c2[-1] = 1.0
+    I = identity(n).tocsr(); ones = csr_matrix(np.ones((n, 1)))
+    A_ub2 = vstack([hstack([I, -ones]), hstack([-I, -ones])] + ([hstack([Ai, csr_matrix((mi, 1))])] if mi else [])).tocsr()
+    b_ub2 = np.concatenate([np.zeros(2 * n)] + ([q['bi']] if mi else []))
+    A_eq2 = hstack([Ae, csr_matrix((me, 1))]).tocsr() if me else None
+    b2 = [(lo2[j] if np.isfinite(lo2[j]) else None, up2[j] if np.isfinite(up2[j]) else None) for j in range(n)] + [(0, None)]
+    r2 = linprog(c2, A_ub=A_ub2, b_ub=b_ub2, A_eq=A_eq2, b_eq=q['be'] if me else None, bounds=b2, method='highs')
+    print(f"ORACLE {path} smallest_feasible_TR_radius={'%.6e' % r2.fun if r2.status == 0 else 'n/a status %d' % r2.status}")
+
+for p in sys.argv[1:]:
+    main(p)

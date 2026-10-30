@@ -1,0 +1,18 @@
+D3START depth=0 n=196 out_of_box=0 max_box_viol=0 project=0
+D4DUMP seq=0 solve=0 status=3 n=196 me=150 mi=0 warm=0 tr=1 minors=64 facts=2 blk_term=1 cert_rej=0 zmcap=0 retreats=1 k0_reused=0
+D3QP depth=0 major=0 delta=1 status=3 minors=64 facts=2 h=12.456 f=61971710.59 blk_term=1 zmcap=0 cert=0 cert_rej=0 n=196 me=150 mi=0 f4route=0 resto_used=0
+D3ROUTE depth=0 major=0 routed failure 1/3 delta=1 floor=0
+D3MAJ depth=0 major=0 outcome=0 qp_status=3 verdict=2 elastic=0 viol=12.456 f=61971710.59 tr=1 step=1 minors=64 h_now=12.456
+D4DUMP seq=1 solve=1 status=3 n=196 me=150 mi=0 warm=1 tr=0.5 minors=64 facts=2 blk_term=1 cert_rej=0 zmcap=0 retreats=1 k0_reused=0
+D3QP depth=0 major=1 delta=0.5 status=3 minors=64 facts=2 h=12.456 f=61971710.59 blk_term=1 zmcap=0 cert=0 cert_rej=0 n=196 me=150 mi=0 f4route=0 resto_used=0
+D3ROUTE depth=0 major=1 routed failure 2/3 delta=0.5 floor=0
+D3MAJ depth=0 major=1 outcome=0 qp_status=3 verdict=2 elastic=0 viol=12.456 f=61971710.59 tr=0.5 step=0.5 minors=64 h_now=12.456
+D4DUMP seq=2 solve=2 status=3 n=196 me=150 mi=0 warm=1 tr=0.25 minors=64 facts=2 blk_term=1 cert_rej=0 zmcap=0 retreats=1 k0_reused=0
+D3QP depth=0 major=2 delta=0.25 status=3 minors=64 facts=2 h=12.456 f=61971710.59 blk_term=1 zmcap=0 cert=0 cert_rej=0 n=196 me=150 mi=0 f4route=0 resto_used=0
+D3ROUTE depth=0 major=2 routed failure 3/3 delta=0.25 floor=0
+D3MAJ depth=0 major=2 outcome=0 qp_status=3 verdict=2 elastic=0 viol=12.456 f=61971710.59 tr=0.25 step=0.25 minors=64 h_now=12.456
+D4DUMP seq=3 solve=3 status=3 n=196 me=150 mi=0 warm=1 tr=0.125 minors=64 facts=2 blk_term=1 cert_rej=0 zmcap=0 retreats=1 k0_reused=0
+D3QP depth=0 major=3 delta=0.125 status=3 minors=64 facts=2 h=12.456 f=61971710.59 blk_term=1 zmcap=0 cert=0 cert_rej=0 n=196 me=150 mi=0 f4route=0 resto_used=0
+D3ROUTE depth=0 major=3 kFinishQpFailure status=3 failures_in_a_row=3 retryable=1
+D3MAJ depth=0 major=3 outcome=5 qp_status=3 verdict=2 elastic=0 viol=12.456 f=61971710.59 tr=0.125 step=0.125 minors=64 h_now=12.456
+D3END depth=0 status=6 majors=4 resto_iters=0 certified=0 obj=61971710.59 feas=1.56 stat=89474.3

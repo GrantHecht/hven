@@ -1,0 +1,12 @@
+M7 W2 E1c -- SMOKE IDENTITY: probe row vs the COMMITTED E1-retake harness row
+  results.csv   /home/ghecht/Projects/hven-bench/runs/2026-09-m7-w2-e1-retake/run-A/cutest/results.csv
+  counters.csv  /home/ghecht/Projects/hven-bench/runs/2026-09-m7-w2-e1-retake/run-A/cutest/counters-hven-sqp.csv
+  rows          /home/ghecht/Projects/hven/.scratch/m7w2e1c/smoke/rows
+  field map     identity_m3c.py (unmodified), 24 pairs: ['status', 'c_major_iters', 'c_qp_minor_iters', 'c_factorizations', 'f', 'c_steps_accepted', 'c_rejected_steps', 'c_soc_steps', 'c_soc_applied', 'c_elastic_activations', 'c_restoration_iters', 'c_eqp_refine_steps', 'c_border_refine_steps', 'c_verdict_refine_steps', 'c_suspect_escalations', 'c_symbolic_analyses', 'c_full_step_majors', 'c_watchdog_restores', 'c_evals_full', 'c_evals_values', 'stationarity', 'feasibility_e', 'feasibility_i', 'complementarity']
+  trace_out     a LABEL: not in the field map, never compared
+ACOPP57    STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+ACOPP57    24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+ACOPP57 FLOOR: 24 of 24 pairs compared (both sides present)
+ACOPP57 near-ulp acceptances (passed by tolerance, not by bytes): 0
+IDENTITY ACOPP57 REPRODUCES
+IDENTITY_RC=0

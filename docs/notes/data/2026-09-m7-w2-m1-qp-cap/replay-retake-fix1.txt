@@ -1,0 +1,52 @@
+M7 W2 M1 FIX ROUND 1 -- THE TWO REPLAY SETS, RE-TAKEN CLEAN (review finding MEDIUM-1)
+
+Machine-written by wrappers/replay_retake_identity.py 9400690e. The SUPERSEDED
+CSVs are read out of git at 9400690e; the re-taken ones off disk.
+
+WHY: `HVEN_SQP_CORPUS_GIT_DESCRIBE` resolves at CONFIGURE time
+(bench/CMakeLists.txt:81-95). The first take reused a bench build directory
+configured while the M1 edits were still uncommitted, so its CSVs stamped a
+`-dirty` binary that had in fact run at a clean, committed tree. Each set below
+was re-taken from a build directory REMOVED AND RE-CONFIGURED INSIDE THE LEG, at
+a tree with dirty-files=0; the legs' own verbatim stdout is in
+replay{,-shipped}/wrapper-stdout.txt.
+
+------------------------------------------------------------------------------
+1. THE SUPERSEDED STAMP vs THE RE-TAKEN STAMP
+------------------------------------------------------------------------------
+  replay/head-walk.csv             was ff5bf143e852-dirty     now 4d27fb022b88
+  replay/head-ssn.csv              was ff5bf143e852-dirty     now 4d27fb022b88
+  replay/head-ipm.csv              was ff5bf143e852-dirty     now 4d27fb022b88
+  replay-shipped/head-walk.csv     was 1334884a371e-dirty     now 9400690ec1a0
+  replay-shipped/head-ssn.csv      was 1334884a371e-dirty     now 9400690ec1a0
+  replay-shipped/head-ipm.csv      was 1334884a371e-dirty     now 9400690ec1a0
+
+------------------------------------------------------------------------------
+2. THE RE-TAKEN BYTES vs THE SUPERSEDED BYTES, COLUMN BY COLUMN
+------------------------------------------------------------------------------
+  Every asserted column is identical in every cell. The ONLY data column that
+  moves is `wall_s`, which CLAUDE.md section 7 makes informational and which no
+  comparison in this artifact asserts; the three header lines that move are the
+  configure-time stamp, the invocation's build-directory path and the
+  generation timestamp.
+
+  replay/head-walk.csv             rows 27  identical data columns 75/76  moved ['wall_s']  header lines moved ['binary', 'invocation', 'generated']
+  replay/head-ssn.csv              rows 27  identical data columns 75/76  moved ['wall_s']  header lines moved ['binary', 'invocation', 'generated']
+  replay/head-ipm.csv              rows 27  identical data columns 75/76  moved ['wall_s']  header lines moved ['binary', 'invocation', 'generated']
+  replay-shipped/head-walk.csv     rows 27  identical data columns 75/76  moved ['wall_s']  header lines moved ['binary', 'invocation', 'generated']
+  replay-shipped/head-ssn.csv      rows 27  identical data columns 75/76  moved ['wall_s']  header lines moved ['binary', 'invocation', 'generated']
+  replay-shipped/head-ipm.csv      rows 27  identical data columns 75/76  moved ['wall_s']  header lines moved ['binary', 'invocation', 'generated']
+
+  ASSERTED-COLUMN DIFFERENCES OUTSIDE `wall_s`: NONE
+
+------------------------------------------------------------------------------
+3. THE B-DIRECTION COMPARISON, RE-DERIVED ON THE RE-TAKEN BYTES
+------------------------------------------------------------------------------
+  `replay-shipped/comparison.txt` asserted the OFF-default heads against the
+  shipped heads on the SUPERSEDED bytes (its section B). Re-derived here on the
+  re-taken bytes, by the same script, it comes back the same. Section A of that
+  file -- against the M6 close pin -- is in each leg's own wrapper stdout.
+
+=== RE-TAKEN M1 OFF-DEFAULT HEAD-walk vs RE-TAKEN M1 SHIPPED HEAD-walk === cells compared: 27  columns compared: 75  differences: 0
+=== RE-TAKEN M1 OFF-DEFAULT HEAD-ssn vs RE-TAKEN M1 SHIPPED HEAD-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== RE-TAKEN M1 OFF-DEFAULT HEAD-ipm vs RE-TAKEN M1 SHIPPED HEAD-ipm === cells compared: 27  columns compared: 75  differences: 0

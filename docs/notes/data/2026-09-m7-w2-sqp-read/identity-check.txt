@@ -1,0 +1,24 @@
+M7 W2 A-SQP -- THE INSTRUMENT AGAINST THE ARTIFACT IT READS
+==============================================================================
+
+Four cells re-run at `--budget-iters 0` -- the uncapped configuration H3 ran --
+with the harness's CURRENT cell binary, and compared column by column against
+H3's retained run-A rows.  The binary in the harness build tree is NEWER than the
+one that produced those rows (harness 348932f then, 2af3e4e now); this is what
+makes the capped ladders on this page readable beside them.
+
+Compared per cell: the 28 counter columns of counters-hven-sqp.csv that the cell
+prints, plus the 9 schema columns of results.csv (status, outcome, iterations,
+factorizations, objective and the four declared residuals).  Byte equality, not
+a tolerance.
+
+ACOPP57    LOCK=corun  columns=37  identical=37  DIFFER=0
+READING6   LOCK=held   columns=37  identical=37  DIFFER=0
+DALLASM    LOCK=corun  columns=37  identical=37  DIFFER=0
+STEENBRB   LOCK=corun  columns=37  identical=37  DIFFER=0
+
+TOTAL  148 columns, 148 identical, 0 different
+
+The one leg that took the box lock (READING6) and the three that co-ran
+(ACOPP57, DALLASM, STEENBRB) are identical on every column alike, which is
+the closing check docs/measurement.md 3.1 asks a co-run to carry.

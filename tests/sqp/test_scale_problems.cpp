@@ -688,12 +688,33 @@ void check_wide_window_walk(Index nodes, double p, const WalkCounts &want) {
 }
 
 TEST(ScaleF7, WideWindowWalkIsChurnNotDegeneracy) {
-    // N = 30: |W*| = 26. 87 row admissions over 28 distinct rows = 3.11x;
-    // 36 bound pins over 36 distinct bounds = 1.00x. 295 minors, 1.54/event.
-    check_wide_window_walk(30, 0.85, WalkCounts{295, 95, 97, 28, 0, 36, 36, 28, 36, 0, 0});
-    // N = 50: |W*| = 44. 185 row admissions over 47 distinct rows = 3.94x;
-    // 69 bound pins over 69 distinct bounds = 1.00x. 635 minors, 1.52/event.
-    check_wide_window_walk(50, 0.85, WalkCounts{635, 207, 210, 47, 0, 69, 69, 47, 69, 0, 0});
+    // RE-DERIVED, M7 W2 E2 step 2 (declared mover, S20). Old -> new, per N:
+    //   N = 30: minors 295 -> 280, adds 95 -> 96, drops 97 -> 98,
+    //           adds_bound / drops_bound / distinct_bound 36 -> 44;
+    //   N = 50: minors 635 -> 526, adds 207 -> 181, drops 210 -> 184,
+    //           adds_bound / drops_bound 69 -> 70, distinct_bound 69 -> 68.
+    // Cause: the add-site exchange (a dependent blocker swapped for a member,
+    // its release counted in ws_drops per S19) and the zero-motion re-entry
+    // rule. shift_adds, distinct_ineq, degeneracy, ties, the conservation
+    // identity and the cost-law band are unchanged in kind and all hold.
+    // E2 fix6 (declared mover): N = 30 minors 280 -> 278 -- the grey re-read (R-E)
+    // reads a converged grey admission dependent; every other count unchanged.
+    // N = 30: |W*| = 26. 80 row admissions over 28 distinct rows = 2.86x;
+    // 44 bound pins over 44 distinct bounds = 1.00x. 278 minors, 1.43/event.
+    // M7 W2 E4 fix round 1 (declared mover): 278 -> 280 minors, every other column
+    // unmoved. The terminal polish (qp_engine.h section 5) re-solves a certified
+    // point mu-free on its final face and the walk that follows it takes two more
+    // passes on this window; the churn reading this test is about -- one bound pin
+    // per event, 44 pins over 44 distinct bounds -- is unchanged.
+    check_wide_window_walk(30, 0.85, WalkCounts{280, 96, 98, 28, 0, 44, 44, 28, 44, 0, 0});
+    // N = 50: |W*| = 44. 158 row admissions over 47 distinct rows = 3.36x;
+    // 70 bound pins over 68 distinct bounds = 1.03x. 526 minors, 1.44/event.
+    // M7 W2 E4 fix round 1 (declared mover): 526 -> 527 minors, every other column
+    // unmoved; same cause as the N = 30 row above.
+    // M7 W2 BPS (declared mover): 527 -> 528 minors, both configs, every other column
+    // unmoved -- one pass's bordered answer is refined to a decided step (bordered_eqp.h,
+    // the bordered answer's certificate) and the walk takes one more minor.
+    check_wide_window_walk(50, 0.85, WalkCounts{528, 181, 184, 47, 0, 70, 70, 47, 68, 0, 0});
 }
 
 // =====================================================================

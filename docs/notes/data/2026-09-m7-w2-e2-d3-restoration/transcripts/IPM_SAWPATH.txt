@@ -1,0 +1,11 @@
+# IPM_SAWPATH -- hven 763cda00 + E2-D3 scratch instrumentation; harness ea1aa4e copy; MKL_NUM_THREADS=1, taskset -c 2, lane hven-ipm, --budget-iters 100
+status=acceptable
+outcome=optimal
+iterations=70
+factorizations=70
+objective=750.45894675975467
+kkt_stationarity=0.00061884103731916248
+kkt_primal_eq=3.5527136788005009e-15
+kkt_primal_ineq=0
+kkt_complementarity=5.1811322117605548e-11
+# --- D3 trace (stderr) ---

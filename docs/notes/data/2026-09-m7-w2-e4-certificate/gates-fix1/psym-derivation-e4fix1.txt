@@ -1,0 +1,91 @@
+M7 W2 E4 FIX ROUND 1 -- THE GATE EXPECTATIONS, DERIVED FROM 53676599..HEAD
+Written and committed BEFORE the gate chain was detached. Nothing here may be
+adjusted after the chain reports.
+
+WORKTREE  a git worktree of the hven repository (branch
+          worktree-agent-a7724c6ad1ce4c857); every build, the P-SYM checkout
+          of BEFORE, and the scratch tree are the worktree's own. ROOT is
+          derived by the runner from the tree it lives in.
+BASE      53676599 (E4's head; this round's base)
+CODE      5c2a0aae  test(m7): W2 E4 fix1 -- an HVEN_TESTING-only certificate
+          seam and the inside-the-margin fixtures
+HEAD      the declaration commit that carries this file (docs/notes/data only)
+
+§1 THE CHANGED SURFACE (`git diff --name-only 53676599..HEAD`, re-derived by
+   the runner at HEAD_AT_START):
+     include/hven/detail/qp/qp_certificate_seam.h  NEW; body entirely under
+                                  #ifdef HVEN_TESTING
+     include/hven/detail/qp/qp_walk_trace.h        +4 lines, INSIDE its own
+                                  #ifdef HVEN_TESTING block (the include)
+     src/qp/qp_engine.cpp         +4 lines, one #ifdef HVEN_TESTING block at
+                                  @@ -994 +994,10 @@ -- below the TU's one
+                                  assert() at 447
+     tests/qp/test_qp_degeneracy_arm.cpp  hven_qp_walk_seam_tests only; that
+                                  target is outside the P-SYM universe
+   plus docs/notes/data/** (this round's wrappers and this file).
+
+§2 THE MOVER SHAPE, DERIVED AS A VALUE (`wrappers-fix1/derive_movers_e4fix1.py`):
+   it drops the bodies a production compile skips (#ifdef HVEN_TESTING), keeps
+   line numbers, compares BASE and HEAD token streams, and reports:
+     NON_DEBUG_MOVERS           (none)          -> declared class A 0
+     DEBUG_ONLY_DEBUG           CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+                                                -> declared Debug DEBUG_ONLY 1
+     PRODUCTION_VISIBLE_HEADERS (none)          -> declared class B 0
+   CALIBRATION on three past rounds whose shapes were MEASURED, all agreeing:
+     M4    f5205770..dfcf048b   non-debug 0, debug-only 1 (qp_engine.cpp.o),
+                                headers 0 -- M4/M4 fix1 measured exactly this
+     M5    2ca21aa0^..2ca21aa0  non-debug 0, debug-only 1, headers 0
+     E4    2a5b11f7..99334900   non-debug 1 (qp_engine.cpp.o), debug-only 0,
+                                headers 0 -- E4 measured exactly this
+   THE DECLARATION:
+     Release   DIFFERING 0 = class A 0 + class B 0; compare rc 0;
+               DEBUG_ONLY 0 -- all 42 library objects byte-identical
+     Debug     DIFFERING 0 = class A 0 + class B 0; compare rc 0;
+               DEBUG_ONLY 1 = exactly the derived qp_engine.cpp.o (debug
+               sections only: its own lines below the hook shifted by 4)
+     NON-DEBUG-MOVER set EMPTY in both; REFUSED 0 in both
+     negative control >= 1 (every includer of qp_walk_trace.h via
+     qp_engine.h must be byte-identical)
+
+§3 TEST COUNTS: E4 MEASURED 2733 Debug (long test excluded) / 2734 Release.
+   Between 2d77a672 (E4's chain HEAD) and 53676599 nothing under tests/ src/
+   include/ bench/ cmake/ CMakeLists.txt changed. This round adds THREE
+   TEST() blocks (19 -> 22 in test_qp_degeneracy_arm.cpp, derived by the
+   pre-flight) and renames none:
+     G1 2736 Debug, 0 failed   G2 1, 0 failed   G3 2737 Release, 0 failed
+   The suites run in index chunks of 400 (`ctest -I a,b`), one box-lock hold
+   per chunk; every chunk must print its own CTest summary with 0 failed, and
+   the chunk totals must SUM to the declared number.
+
+§4 G4: 27 cells x 75 columns x 3 engines, 0 differences (one hold per
+   engine). Nothing a production compile sees changed, so no cell can move.
+
+§5 G6: install smoke PASSED, export contract OK (align 32), clang-format rc 0
+   on the four changed C++ files, git diff --check rc 0, DIRTY_FILES 0.
+   Fold proofs (this round's copy, ROOT derived): 46 total, 0 failed.
+
+§6 PRE-FLIGHT, run before this commit (`gates-e4fix1.sh --preflight-only`):
+GATES_START 2026-09-22T18:57:50-04:00
+=== ROOT=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857
+=== HEAD 5c2a0aae  dirty-files=3 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates ===
+=== BEFORE=53676599  EXPECT_DEBUG_TESTS=2736  EXPECT_RELEASE_TESTS=2737 ===
+=== HEAD_AT_START=5c2a0aaec7bbee48b1c7daab3fe6c9de109324c9
+=== CHANGED HEADERS: include/hven/detail/qp/qp_certificate_seam.h include/hven/detail/qp/qp_walk_trace.h
+=== CHANGED SOURCES: src/qp/qp_engine.cpp tests/qp/test_qp_degeneracy_arm.cpp
+=== DERIVED CHANGED=include/hven/detail/qp/qp_certificate_seam.h include/hven/detail/qp/qp_walk_trace.h src/qp/qp_engine.cpp
+=== DERIVED NEW_HEADERS=include/hven/detail/qp/qp_certificate_seam.h
+=== DERIVED NON_DEBUG_MOVERS=
+=== DERIVED NON_DEBUG_MOVER_COUNT=0
+=== DERIVED DEBUG_ONLY_DEBUG=CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+=== DERIVED DEBUG_ONLY_DEBUG_COUNT=1
+=== DERIVED PRODUCTION_VISIBLE_HEADERS=
+=== DERIVED PRODUCTION_VISIBLE_HEADER_COUNT=0
+=== PREFLIGHT_VALUE_OK: movers non-debug 0, debug-only 1, visible headers 0
+=== TEST BLOCKS tests/qp/test_qp_degeneracy_arm.cpp: 19 -> 22
+=== PREFLIGHT_VALUE_OK: TEST() delta 3 == declared 3 (2733+3, 2734+3)
+SEGMENT_OK build.sh / chunk.sh / g2.sh / g4.sh / g4cmp.sh / g5.sh / g6.sh:
+  each resolves ROOT=<the worktree>  S=<ROOT>/.scratch/m7w2e4fix1gates  G=<S>/gates
+=== PREFLIGHT_OK: 7 segments written and asserted against GATES_ROOT/GATES_SCRATCH, before the first leg ===
+PREFLIGHT_ONLY: stopping before G1. No leg was run and no build tree was touched.

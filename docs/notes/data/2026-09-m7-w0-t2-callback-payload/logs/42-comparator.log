@@ -1,0 +1,9 @@
+LEG: bash -o pipefail -c cd /home/ghecht/Projects/hven/.scratch/m7t2 && python3 comparator.py --root art --out art/comparator.out; echo "COMPARATOR_RC=$?"
+PGREP_SEPARATE 2026-09-15T06:24:44Z
+PGREP_EMPTY
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-09-15T06:24:44Z
+COMPARATOR_RC=0
+LEG_RC=0
+FOREGROUND_END 2026-09-15T06:24:45Z
+WRAPPER_EXIT=0

@@ -1,0 +1,720 @@
+# range fcd2574f..aaa95642 (HEAD sources == aaa95642's); by-name baseline record commit fcd2574f
+
+=== A: --preflight-only
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/replay (binary 083cf8268cb3, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/e1/e1-off.csv
+GATES_START 2026-10-30T01:17:28-04:00
+=== HEAD aaa95642  dirty-files=27 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2 ===
+=== BEFORE=fcd2574f  EXPECT_DEBUG_TESTS=3231  EXPECT_RELEASE_TESTS=3232 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=aaa956427474ef3e60a83645bcaa8750d1a81a8a
+=== CHANGED HEADERS: include/hven/detail/globalization/acceptance_strategy.h include/hven/detail/globalization/filter_acceptance.h include/hven/detail/globalization/globalization_mechanism.h include/hven/detail/globalization/modern_merit.h include/hven/detail/globalization/monitored_governor.h include/hven/detail/globalization/proximal_restoration.h include/hven/detail/globalization/restoration.h include/hven/detail/globalization/soc.h include/hven/detail/globalization/switching_acceptance.h include/hven/detail/globalization/watchdog.h include/hven/detail/interior/sizing_specs.h include/hven/detail/interior/typedefs/super_scalar_traits.h include/hven/detail/interior/utils/memory_management.h include/hven/detail/interior/utils/thread_pool.h 
+=== CHANGED SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/CMakeLists.txt tests/common_support/mkl_dispatch_probe.cpp tests/common_support/mkl_dispatch_signature.h tests/common_support/route_reference.h tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES with NO OBJECT (declared, checked: try_run only): [tests/common_support/mkl_dispatch_probe.cpp]; ADDED with an object: []
+=== MODIFIED C++ SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES: 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_sqp_equality_basis_seams.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared NOISE-ONLY + declared class B): 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared NOISE-ONLY + declared class B): 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); 43 DIFFERENCES DECLARED as a SET (walk 17 / ssn 13 / ipm 13), every cell a U0 cell, the one declared WORSE cell [ipm f7_n1000_path_warm kkt_stationarity] among them
+=== CLASS_B_NAMES_OK: Release 0 / Debug 0 declared objects, none with a source modified in the range
+=== RELEASE-ONLY (Debug GTEST_SKIP) DECLARED: 0 name(s), each a declared ADDED name ===
+=== RE-DECLARED (TEST line removed and re-added under the same name): 0 name(s), each removed once and added once, net unchanged by name ===
+=== BY-NAME: baselines /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/suite-{debug,release}.txt (3233 / 3234 started names); 0 ADDED, each added by exactly one TEST line in the range; 0 REMOVED, each removed by exactly one TEST line; 0 TEST lines removed (0 of them RE-DECLARED)
+=== tests/sqp/CMakeLists.txt (checked): adds exactly the declared 0 non-comment line(s), removes none
+=== src/CMakeLists.txt (checked): adds exactly the declared 0 non-comment line(s), removes exactly the declared 0
+=== ADDED TEST FILES (checked): non-.cpp [tests/common_support/mkl_dispatch_signature.h ] == declared, under the fixture directory named in the two declared readers' compile definitions (hven_qp_walk_seam_tests, hven_sqp_tests); tests/CMakeLists.txt adds exactly ["${CMAKE_CURRENT_BINARY_DIR}/mkl_dispatch_probe" "${CMAKE_CURRENT_SOURCE_DIR}/common_support/mkl_dispatch_probe.cpp" "${_hven_dispatch_signature}\nHVEN_TEST_REFERENCE_DISPATCH=${_hven_reference_dispatch}\n") "'${HVEN_TEST_ROUTE_REFERENCE_DISPATCH}'") "Route-pin reference dispatch: AUTO probes the configuring host's MKL dispatch; OFF forces the off-reference (portable) arms") "off-reference:\n${_hven_dispatch_compile_out}") AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND NOT APPLE AND MKL_FOUND AND NOT CMAKE_CROSSCOMPILING) CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${INCLUDE_DIRS}" COMPILE_OUTPUT_VARIABLE _hven_dispatch_compile_out CXX_STANDARD 20 LINK_LIBRARIES ${LINK_LIBS} RUN_OUTPUT_VARIABLE _hven_dispatch_run_out) add_compile_definitions(HVEN_TEST_REFERENCE_DISPATCH=${_hven_reference_dispatch}) else() else() else() elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64)$" elseif(NOT HVEN_TEST_ROUTE_REFERENCE_DISPATCH STREQUAL "AUTO") elseif(_hven_dispatch_run STREQUAL "0") endif() endif() endif() file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/hven_mkl_dispatch.txt" if(HVEN_TEST_ROUTE_REFERENCE_DISPATCH STREQUAL "OFF") if(NOT _hven_dispatch_compile) if(_hven_reference_dispatch) message(FATAL_ERROR "HVEN_TEST_ROUTE_REFERENCE_DISPATCH must be AUTO or OFF, got " message(STATUS "hven tests: MKL dispatch ${_hven_dispatch_signature} -> OFF-REFERENCE (portable arms)") message(STATUS "hven tests: MKL dispatch ${_hven_dispatch_signature} -> REFERENCE (route pins asserted)") message(WARNING "hven tests: the MKL dispatch probe did not compile, so this build is " set(HVEN_TEST_ROUTE_REFERENCE_DISPATCH "AUTO" CACHE STRING set(_hven_dispatch_signature "${_hven_dispatch_run_out} (exit ${_hven_dispatch_run})") set(_hven_dispatch_signature "${_hven_dispatch_run_out}") set(_hven_dispatch_signature "forced OFF by HVEN_TEST_ROUTE_REFERENCE_DISPATCH") set(_hven_dispatch_signature "not Linux x86-64 clang MKL") set(_hven_dispatch_signature "not probed") set(_hven_dispatch_signature "probe did not compile") set(_hven_reference_dispatch 0) set(_hven_reference_dispatch 1) set_property(CACHE HVEN_TEST_ROUTE_REFERENCE_DISPATCH PROPERTY STRINGS AUTO OFF) string(STRIP "${_hven_dispatch_run_out}" _hven_dispatch_run_out) try_run(_hven_dispatch_run _hven_dispatch_compile unset(_hven_dispatch_compile CACHE) unset(_hven_dispatch_run CACHE) ] and removes no non-comment line
+=== CLANG_FORMAT SET (derived, non-empty): 35 file(s) ===
+=== PREFLIGHT_VALUE_OK: class A 18 - 4 outside == declared 2/2; ADDED 0 == declared 0 (0 inside the universe == declared 0); class B library objects all unmodified; G4 gate 1e-5
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/g1.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2  G=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/g2.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2  G=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/g3.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2  G=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/g4.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2  G=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/g5.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2  G=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/g6.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2  G=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/gates
+=== PREFLIGHT_OK: 6 segments written and asserted against GATES_SCRATCH, before the first leg ===
+PREFLIGHT_ONLY: stopping before G1. No leg was run and no build tree was touched.
+rc=0
+
+=== B: --check-g4 (pin arms of the rehearsal comparison)
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/replay (binary 083cf8268cb3, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/e1/e1-off.csv
+ASSERT OK   replay header lines = 3
+ASSERT OK   replay walk shape 27/75/17 declared = 1
+ASSERT OK   replay walk difference lines listed = 17
+ASSERT OK   replay ssn shape 27/75/13 declared = 1
+ASSERT OK   replay ssn difference lines listed = 13
+ASSERT OK   replay ipm shape 27/75/13 declared = 1
+ASSERT OK   replay ipm difference lines listed = 13
+ASSERT OK   replay: the MEASURED difference set EQUALS the DECLARED 43-entry list
+rc=0
+
+=== B1: --check-g4 on the toolchain record's own comparison-vs-m6-pin.txt (the declared 43-set equals the new-toolchain baseline's measured set)
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/replay (binary 083cf8268cb3, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/e1/e1-off.csv
+ASSERT OK   replay header lines = 3
+ASSERT OK   replay walk shape 27/75/17 declared = 1
+ASSERT OK   replay walk difference lines listed = 17
+ASSERT OK   replay ssn shape 27/75/13 declared = 1
+ASSERT OK   replay ssn difference lines listed = 13
+ASSERT OK   replay ipm shape 27/75/13 declared = 1
+ASSERT OK   replay ipm difference lines listed = 13
+ASSERT OK   replay: the MEASURED difference set EQUALS the DECLARED 43-entry list
+rc=0
+
+=== B2: the exact arm has teeth (the comparator exits non-zero on any difference): the M6 pin vs the previous record, EXACT, no gate
+=== falsifier: M6 pin vs the WX record, EXACT === cells compared: 27  columns compared: 75  differences: 88
+rc=1 (non-zero: a real difference fails the asserted exact arm)
+=== control: the WX record vs itself, EXACT === cells compared: 27  columns compared: 75  differences: 0
+rc=0 (zero)
+
+=== C: --check-names release on the rehearsal listing
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/replay (binary 083cf8268cb3, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/e1/e1-off.csv
+ASSERT OK   offline release by name: 3234 started names == the baseline's 3234 - the 0 declared REMOVED + the 0 declared ADDED
+rc=0
+
+=== C2: --check-names debug on the listing less the long test (G1 excludes it by -E)
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/replay (binary 083cf8268cb3, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/e1/e1-off.csv
+ASSERT OK   offline debug by name: 3233 started names == the baseline's 3233 - the 0 declared REMOVED + the 0 declared ADDED
+rc=0
+
+=== C3 falsifier: listing short one test
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/replay (binary 083cf8268cb3, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/e1/e1-off.csv
+ASSERT FAIL offline release by name: 3233 started vs the baseline's 3234 - 0 REMOVED + 0 ADDED; the difference (expected '<' tab-indented '>' this run):
+Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/ordinal-24
+rc=2
+
+=== C4 control: the previous record's own suite IS this range's name set (the range adds and removes no test), so it is accepted
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/replay (binary 083cf8268cb3, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/e1/e1-off.csv
+ASSERT OK   offline release by name: 3234 started names == the baseline's 3234 - the 0 declared REMOVED + the 0 declared ADDED
+rc=0
+
+=== C4b falsifier: the baseline with ONE test renamed is refused (same count, different name)
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/replay (binary 083cf8268cb3, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/e1/e1-off.csv
+ASSERT FAIL offline release by name: 3234 started vs the baseline's 3234 - 0 REMOVED + 0 ADDED; the difference (expected '<' tab-indented '>' this run):
+Version.NonNullNonEmptyMatchesProjectVersion
+	Version.NonNullNonEmptyMatchesProjectVersionX
+rc=2
+
+=== D: --check-skips baseline vs baseline (debug)
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/replay (binary 083cf8268cb3, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/e1/e1-off.csv
+ASSERT OK   offline debug skips by name: 7 Skipped == the baseline's 7 + the 0 declared Release-only
+rc=0
+
+=== D1: --check-skips baseline vs baseline (release)
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/replay (binary 083cf8268cb3, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/e1/e1-off.csv
+ASSERT OK   offline release skips by name: 1 Skipped == the baseline's 1 + the 0 declared Release-only
+rc=0
+
+=== D2 falsifier: release log vs debug expectation
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/replay (binary 083cf8268cb3, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/e1/e1-off.csv
+ASSERT FAIL offline debug skips by name: 1 Skipped vs the baseline's 7 + 0 declared; the difference (expected '<' tab-indented '>' this run):
+QpE2Fix9StandstillRetreat.Acopp118Qp0Border
+QpE2Fix9StandstillRetreat.Acopp118Qp1Border
+QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize
+QpE2WorkingSet.AGreyPinOnYorknetThatIsIndependentStaysIndependent
+QpE4ProximalEqp.TheYorknetRestorationQpIsDriftFreeAndOptimal
+QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder
+rc=2
+
+=== E1 falsifier: wrong BEFORE (1ff37db2, the WX base)
+REFUSED: the by-name baseline resolved to [docs/notes/data/2026-10-m7-a3-gates/gates/suite-release.txt], declared [docs/notes/data/2026-10-m7-wx-gates/gates/suite-release.txt]
+rc=2
+
+=== E2 falsifier: UNMEASURED sentinel in a class A slot
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/replay (binary 083cf8268cb3, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/e1/e1-off.csv
+GATES_START 2026-10-30T01:17:30-04:00
+=== HEAD aaa95642  dirty-files=27 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2 ===
+=== BEFORE=fcd2574f  EXPECT_DEBUG_TESTS=3231  EXPECT_RELEASE_TESTS=3232 ===
+REFUSED: EXPECT_PSYM_CLASS_A still carries the UNMEASURED sentinel -- the FINAL pair has not been
+         rehearsed, so this round has no measured P-SYM shape to gate against.
+rc=2
+
+=== E3 falsifier: class A declared 6/6
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/replay (binary 083cf8268cb3, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/e1/e1-off.csv
+GATES_START 2026-10-30T01:17:30-04:00
+=== HEAD aaa95642  dirty-files=27 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2 ===
+=== BEFORE=fcd2574f  EXPECT_DEBUG_TESTS=3231  EXPECT_RELEASE_TESTS=3232 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=aaa956427474ef3e60a83645bcaa8750d1a81a8a
+=== CHANGED HEADERS: include/hven/detail/globalization/acceptance_strategy.h include/hven/detail/globalization/filter_acceptance.h include/hven/detail/globalization/globalization_mechanism.h include/hven/detail/globalization/modern_merit.h include/hven/detail/globalization/monitored_governor.h include/hven/detail/globalization/proximal_restoration.h include/hven/detail/globalization/restoration.h include/hven/detail/globalization/soc.h include/hven/detail/globalization/switching_acceptance.h include/hven/detail/globalization/watchdog.h include/hven/detail/interior/sizing_specs.h include/hven/detail/interior/typedefs/super_scalar_traits.h include/hven/detail/interior/utils/memory_management.h include/hven/detail/interior/utils/thread_pool.h 
+=== CHANGED SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/CMakeLists.txt tests/common_support/mkl_dispatch_probe.cpp tests/common_support/mkl_dispatch_signature.h tests/common_support/route_reference.h tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES with NO OBJECT (declared, checked: try_run only): [tests/common_support/mkl_dispatch_probe.cpp]; ADDED with an object: []
+=== MODIFIED C++ SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES: 
+REFUSED: 18 modified .cpp (less 4 outside the universe; Release less 12 and Debug less 12 declared NOISE-ONLY or IDENTICAL), but class A is DECLARED 6/6
+rc=2
+
+=== E4 falsifier: Debug test count 3230 (one short of the declared 3231 = 3231 + 0 ADDED - 0 REMOVED)
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/replay (binary 083cf8268cb3, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/e1/e1-off.csv
+GATES_START 2026-10-30T01:17:30-04:00
+=== HEAD aaa95642  dirty-files=27 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2 ===
+=== BEFORE=fcd2574f  EXPECT_DEBUG_TESTS=3230  EXPECT_RELEASE_TESTS=3232 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=aaa956427474ef3e60a83645bcaa8750d1a81a8a
+=== CHANGED HEADERS: include/hven/detail/globalization/acceptance_strategy.h include/hven/detail/globalization/filter_acceptance.h include/hven/detail/globalization/globalization_mechanism.h include/hven/detail/globalization/modern_merit.h include/hven/detail/globalization/monitored_governor.h include/hven/detail/globalization/proximal_restoration.h include/hven/detail/globalization/restoration.h include/hven/detail/globalization/soc.h include/hven/detail/globalization/switching_acceptance.h include/hven/detail/globalization/watchdog.h include/hven/detail/interior/sizing_specs.h include/hven/detail/interior/typedefs/super_scalar_traits.h include/hven/detail/interior/utils/memory_management.h include/hven/detail/interior/utils/thread_pool.h 
+=== CHANGED SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/CMakeLists.txt tests/common_support/mkl_dispatch_probe.cpp tests/common_support/mkl_dispatch_signature.h tests/common_support/route_reference.h tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES with NO OBJECT (declared, checked: try_run only): [tests/common_support/mkl_dispatch_probe.cpp]; ADDED with an object: []
+=== MODIFIED C++ SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES: 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_sqp_equality_basis_seams.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared NOISE-ONLY + declared class B): 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared NOISE-ONLY + declared class B): 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+REFUSED: Debug 3230 != Release 3232 - long 1
+rc=2
+
+=== E5 falsifier: a REMOVED name declared that the range does not remove (a scratch copy of the runner: REMOVED_TEST_NAMES is not an environment slot)
+1
+=== RELEASE-ONLY (Debug GTEST_SKIP) DECLARED: 0 name(s), each a declared ADDED name ===
+REFUSED: REMOVED FunnelHType.RetractionUndoesOnlyTheLastJudgement: its TEST line (FunnelHType, RetractionUndoesOnlyTheLastJudgement) is removed 0 time(s) in the range, want 1
+rc=2
+
+=== E5b falsifier (W2-S2): a name declared ADDED that the range does not add (a scratch copy; ADDED_TEST_NAMES is not an environment slot): the empty list is checked against git, so a non-empty one is refused
+1
+=== CLASS_B_NAMES_OK: Release 0 / Debug 0 declared objects, none with a source modified in the range
+REFUSED: the ADDED list has duplicates or disagrees with git (1 names / 1 unique / 0 TEST lines added in the range)
+rc=2
+
+=== E5d (W2-S2) control: the range adds no TEST line, by git
+0
+
+=== E5c (A2) DROPPED: the TEST_F-blind reader falsifier has nothing to refuse in this range (no TEST_F is added; the widened TEST(_[FP])? regex is carried unchanged from A2, where E5c proved it necessary)
+
+=== E6 falsifier: an ADDED fixture declared that the range does not add
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/replay (binary 083cf8268cb3, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/e1/e1-off.csv
+GATES_START 2026-10-30T01:17:31-04:00
+=== HEAD aaa95642  dirty-files=27 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2 ===
+=== BEFORE=fcd2574f  EXPECT_DEBUG_TESTS=3231  EXPECT_RELEASE_TESTS=3232 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=aaa956427474ef3e60a83645bcaa8750d1a81a8a
+=== CHANGED HEADERS: include/hven/detail/globalization/acceptance_strategy.h include/hven/detail/globalization/filter_acceptance.h include/hven/detail/globalization/globalization_mechanism.h include/hven/detail/globalization/modern_merit.h include/hven/detail/globalization/monitored_governor.h include/hven/detail/globalization/proximal_restoration.h include/hven/detail/globalization/restoration.h include/hven/detail/globalization/soc.h include/hven/detail/globalization/switching_acceptance.h include/hven/detail/globalization/watchdog.h include/hven/detail/interior/sizing_specs.h include/hven/detail/interior/typedefs/super_scalar_traits.h include/hven/detail/interior/utils/memory_management.h include/hven/detail/interior/utils/thread_pool.h 
+=== CHANGED SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/CMakeLists.txt tests/common_support/mkl_dispatch_probe.cpp tests/common_support/mkl_dispatch_signature.h tests/common_support/route_reference.h tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES with NO OBJECT (declared, checked: try_run only): [tests/common_support/mkl_dispatch_probe.cpp]; ADDED with an object: []
+=== MODIFIED C++ SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES: 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_sqp_equality_basis_seams.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared NOISE-ONLY + declared class B): 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared NOISE-ONLY + declared class B): 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); 43 DIFFERENCES DECLARED as a SET (walk 17 / ssn 13 / ipm 13), every cell a U0 cell, the one declared WORSE cell [ipm f7_n1000_path_warm kkt_stationarity] among them
+=== CLASS_B_NAMES_OK: Release 0 / Debug 0 declared objects, none with a source modified in the range
+=== RELEASE-ONLY (Debug GTEST_SKIP) DECLARED: 0 name(s), each a declared ADDED name ===
+=== RE-DECLARED (TEST line removed and re-added under the same name): 0 name(s), each removed once and added once, net unchanged by name ===
+=== BY-NAME: baselines /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/suite-{debug,release}.txt (3233 / 3234 started names); 0 ADDED, each added by exactly one TEST line in the range; 0 REMOVED, each removed by exactly one TEST line; 0 TEST lines removed (0 of them RE-DECLARED)
+REFUSED: the ADDED non-.cpp test files [tests/common_support/mkl_dispatch_signature.h ] != declared [tests/qp/fixtures/e2-d4/RLA_BRITGAS_qp0.txt ]
+rc=2
+
+=== E7 falsifier: an added in-universe source count declared that the range does not add (EXPECT_PSYM_ADDED=2)
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/replay (binary 083cf8268cb3, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/e1/e1-off.csv
+GATES_START 2026-10-30T01:17:32-04:00
+=== HEAD aaa95642  dirty-files=27 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2 ===
+=== BEFORE=fcd2574f  EXPECT_DEBUG_TESTS=3231  EXPECT_RELEASE_TESTS=3232 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=aaa956427474ef3e60a83645bcaa8750d1a81a8a
+=== CHANGED HEADERS: include/hven/detail/globalization/acceptance_strategy.h include/hven/detail/globalization/filter_acceptance.h include/hven/detail/globalization/globalization_mechanism.h include/hven/detail/globalization/modern_merit.h include/hven/detail/globalization/monitored_governor.h include/hven/detail/globalization/proximal_restoration.h include/hven/detail/globalization/restoration.h include/hven/detail/globalization/soc.h include/hven/detail/globalization/switching_acceptance.h include/hven/detail/globalization/watchdog.h include/hven/detail/interior/sizing_specs.h include/hven/detail/interior/typedefs/super_scalar_traits.h include/hven/detail/interior/utils/memory_management.h include/hven/detail/interior/utils/thread_pool.h 
+=== CHANGED SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/CMakeLists.txt tests/common_support/mkl_dispatch_probe.cpp tests/common_support/mkl_dispatch_signature.h tests/common_support/route_reference.h tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES with NO OBJECT (declared, checked: try_run only): [tests/common_support/mkl_dispatch_probe.cpp]; ADDED with an object: []
+=== MODIFIED C++ SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES: 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_sqp_equality_basis_seams.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+REFUSED: 0 added .cpp inside the universe, but the universe's ADDED is DECLARED 2
+rc=2
+
+=== E7b falsifier: a source declared ADDED outside the universe that the range does not add
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/replay (binary 083cf8268cb3, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/e1/e1-off.csv
+GATES_START 2026-10-30T01:17:32-04:00
+=== HEAD aaa95642  dirty-files=27 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2 ===
+=== BEFORE=fcd2574f  EXPECT_DEBUG_TESTS=3231  EXPECT_RELEASE_TESTS=3232 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=aaa956427474ef3e60a83645bcaa8750d1a81a8a
+=== CHANGED HEADERS: include/hven/detail/globalization/acceptance_strategy.h include/hven/detail/globalization/filter_acceptance.h include/hven/detail/globalization/globalization_mechanism.h include/hven/detail/globalization/modern_merit.h include/hven/detail/globalization/monitored_governor.h include/hven/detail/globalization/proximal_restoration.h include/hven/detail/globalization/restoration.h include/hven/detail/globalization/soc.h include/hven/detail/globalization/switching_acceptance.h include/hven/detail/globalization/watchdog.h include/hven/detail/interior/sizing_specs.h include/hven/detail/interior/typedefs/super_scalar_traits.h include/hven/detail/interior/utils/memory_management.h include/hven/detail/interior/utils/thread_pool.h 
+=== CHANGED SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/CMakeLists.txt tests/common_support/mkl_dispatch_probe.cpp tests/common_support/mkl_dispatch_signature.h tests/common_support/route_reference.h tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES with NO OBJECT (declared, checked: try_run only): [tests/common_support/mkl_dispatch_probe.cpp]; ADDED with an object: []
+=== MODIFIED C++ SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES: 
+REFUSED: declared outside source tests/sqp/test_ipqp_seams.cpp is not ADDED against fcd2574f
+rc=2
+
+=== E10 falsifier: an outside-universe MODIFIED source declared that the range does not modify (tests/qp/test_qp_degeneracy_arm.cpp)
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/replay (binary 083cf8268cb3, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/e1/e1-off.csv
+GATES_START 2026-10-30T01:17:32-04:00
+=== HEAD aaa95642  dirty-files=27 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2 ===
+=== BEFORE=fcd2574f  EXPECT_DEBUG_TESTS=3231  EXPECT_RELEASE_TESTS=3232 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=aaa956427474ef3e60a83645bcaa8750d1a81a8a
+=== CHANGED HEADERS: include/hven/detail/globalization/acceptance_strategy.h include/hven/detail/globalization/filter_acceptance.h include/hven/detail/globalization/globalization_mechanism.h include/hven/detail/globalization/modern_merit.h include/hven/detail/globalization/monitored_governor.h include/hven/detail/globalization/proximal_restoration.h include/hven/detail/globalization/restoration.h include/hven/detail/globalization/soc.h include/hven/detail/globalization/switching_acceptance.h include/hven/detail/globalization/watchdog.h include/hven/detail/interior/sizing_specs.h include/hven/detail/interior/typedefs/super_scalar_traits.h include/hven/detail/interior/utils/memory_management.h include/hven/detail/interior/utils/thread_pool.h 
+=== CHANGED SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/CMakeLists.txt tests/common_support/mkl_dispatch_probe.cpp tests/common_support/mkl_dispatch_signature.h tests/common_support/route_reference.h tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES with NO OBJECT (declared, checked: try_run only): [tests/common_support/mkl_dispatch_probe.cpp]; ADDED with an object: []
+=== MODIFIED C++ SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES: 
+REFUSED: 18 modified .cpp (less 1 outside the universe; Release less 12 and Debug less 12 declared NOISE-ONLY or IDENTICAL), but class A is DECLARED 2/2
+rc=2
+
+=== E7c falsifier: tests/sqp/CMakeLists.txt add declared that the range does not make
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/replay (binary 083cf8268cb3, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/e1/e1-off.csv
+GATES_START 2026-10-30T01:17:33-04:00
+=== HEAD aaa95642  dirty-files=27 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2 ===
+=== BEFORE=fcd2574f  EXPECT_DEBUG_TESTS=3231  EXPECT_RELEASE_TESTS=3232 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=aaa956427474ef3e60a83645bcaa8750d1a81a8a
+=== CHANGED HEADERS: include/hven/detail/globalization/acceptance_strategy.h include/hven/detail/globalization/filter_acceptance.h include/hven/detail/globalization/globalization_mechanism.h include/hven/detail/globalization/modern_merit.h include/hven/detail/globalization/monitored_governor.h include/hven/detail/globalization/proximal_restoration.h include/hven/detail/globalization/restoration.h include/hven/detail/globalization/soc.h include/hven/detail/globalization/switching_acceptance.h include/hven/detail/globalization/watchdog.h include/hven/detail/interior/sizing_specs.h include/hven/detail/interior/typedefs/super_scalar_traits.h include/hven/detail/interior/utils/memory_management.h include/hven/detail/interior/utils/thread_pool.h 
+=== CHANGED SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/CMakeLists.txt tests/common_support/mkl_dispatch_probe.cpp tests/common_support/mkl_dispatch_signature.h tests/common_support/route_reference.h tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES with NO OBJECT (declared, checked: try_run only): [tests/common_support/mkl_dispatch_probe.cpp]; ADDED with an object: []
+=== MODIFIED C++ SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES: 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_sqp_equality_basis_seams.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared NOISE-ONLY + declared class B): 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared NOISE-ONLY + declared class B): 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); 43 DIFFERENCES DECLARED as a SET (walk 17 / ssn 13 / ipm 13), every cell a U0 cell, the one declared WORSE cell [ipm f7_n1000_path_warm kkt_stationarity] among them
+=== CLASS_B_NAMES_OK: Release 0 / Debug 0 declared objects, none with a source modified in the range
+=== RELEASE-ONLY (Debug GTEST_SKIP) DECLARED: 0 name(s), each a declared ADDED name ===
+=== RE-DECLARED (TEST line removed and re-added under the same name): 0 name(s), each removed once and added once, net unchanged by name ===
+=== BY-NAME: baselines /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/suite-{debug,release}.txt (3233 / 3234 started names); 0 ADDED, each added by exactly one TEST line in the range; 0 REMOVED, each removed by exactly one TEST line; 0 TEST lines removed (0 of them RE-DECLARED)
+REFUSED: tests/sqp/CMakeLists.txt adds [] (declared [test_column_scaling.cpp|]) and removes 0 (declared 0)
+rc=2
+
+=== E8 falsifier: a class B name declared whose source is in the range (this range declares class B EMPTY, so the falsifier declares ONE object, test_sqp_solver.cpp.o, whose source is MODIFIED, with class B 1/1 and DIFFERING 3/3 so the count checks pass first)
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); 43 DIFFERENCES DECLARED as a SET (walk 17 / ssn 13 / ipm 13), every cell a U0 cell, the one declared WORSE cell [ipm f7_n1000_path_warm kkt_stationarity] among them
+REFUSED: rel class B tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o has its source tests/sqp/test_sqp_solver.cpp MODIFIED in fcd2574f..aaa956427474ef3e60a83645bcaa8750d1a81a8a (it is class A)
+rc=2
+
+=== E9 falsifier: non_linear_program.cpp.o (class A, MODIFIED source) declared as library class B (the declared list is empty)
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); 43 DIFFERENCES DECLARED as a SET (walk 17 / ssn 13 / ipm 13), every cell a U0 cell, the one declared WORSE cell [ipm f7_n1000_path_warm kkt_stationarity] among them
+REFUSED: CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o is declared a class B library mover but its source src/model/non_linear_program.cpp is MODIFIED (class A)
+rc=2
+
+=== B3: the E1 OFF comparator has teeth (synthetic heads built from the A3 record's e1-off.csv; the declared added-column set is EMPTY)
+E1_OFF cells=29 columns_compared=69 differences=0 added_columns=0 added_nonzero_rows=0
+good rc=0 (want: good 0; mutated 1; added 1; dropped 1)
+E1_OFF cells=29 columns_compared=69 differences=1 added_columns=0 added_nonzero_rows=0
+mutated rc=1 (want: good 0; mutated 1; added 1; dropped 1)
+E1_OFF cells=29 columns_compared=69 differences=0 added_columns=1 added_nonzero_rows=0
+added rc=1 (want: good 0; mutated 1; added 1; dropped 1)
+E1_OFF cells=29 columns_compared=68 differences=0 added_columns=0 added_nonzero_rows=0
+dropped rc=1 (want: good 0; mutated 1; added 1; dropped 1)
+E1_OFF cells=29 columns_compared=69 differences=0 added_columns=1 added_nonzero_rows=0
+added-and-declared rc=0 (want 0: the comparator still accepts a declared column that is 0 on every row)
+
+=== F: classifier byte-identical to the WX record's
+cmp WX: IDENTICAL
+
+=== E11 falsifier: class B declared 1/0 (DIFFERING 2/2 != A + B)
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/replay (binary 083cf8268cb3, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/e1/e1-off.csv
+GATES_START 2026-10-30T01:17:34-04:00
+=== HEAD aaa95642  dirty-files=27 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2 ===
+=== BEFORE=fcd2574f  EXPECT_DEBUG_TESTS=3231  EXPECT_RELEASE_TESTS=3232 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=aaa956427474ef3e60a83645bcaa8750d1a81a8a
+=== CHANGED HEADERS: include/hven/detail/globalization/acceptance_strategy.h include/hven/detail/globalization/filter_acceptance.h include/hven/detail/globalization/globalization_mechanism.h include/hven/detail/globalization/modern_merit.h include/hven/detail/globalization/monitored_governor.h include/hven/detail/globalization/proximal_restoration.h include/hven/detail/globalization/restoration.h include/hven/detail/globalization/soc.h include/hven/detail/globalization/switching_acceptance.h include/hven/detail/globalization/watchdog.h include/hven/detail/interior/sizing_specs.h include/hven/detail/interior/typedefs/super_scalar_traits.h include/hven/detail/interior/utils/memory_management.h include/hven/detail/interior/utils/thread_pool.h 
+=== CHANGED SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/CMakeLists.txt tests/common_support/mkl_dispatch_probe.cpp tests/common_support/mkl_dispatch_signature.h tests/common_support/route_reference.h tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES with NO OBJECT (declared, checked: try_run only): [tests/common_support/mkl_dispatch_probe.cpp]; ADDED with an object: []
+=== MODIFIED C++ SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES: 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_sqp_equality_basis_seams.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared NOISE-ONLY + declared class B): 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared NOISE-ONLY + declared class B): 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+REFUSED: rel DIFFERING 2 != class A 2 + class B 1
+rc=2
+
+=== E12 falsifier: a MODIFIED library source (get_core_count.cpp.o) declared a Debug NOISE-ONLY library mover
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/replay (binary 083cf8268cb3, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/e1/e1-off.csv
+GATES_START 2026-10-30T01:17:35-04:00
+=== HEAD aaa95642  dirty-files=27 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2 ===
+=== BEFORE=fcd2574f  EXPECT_DEBUG_TESTS=3231  EXPECT_RELEASE_TESTS=3232 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=aaa956427474ef3e60a83645bcaa8750d1a81a8a
+=== CHANGED HEADERS: include/hven/detail/globalization/acceptance_strategy.h include/hven/detail/globalization/filter_acceptance.h include/hven/detail/globalization/globalization_mechanism.h include/hven/detail/globalization/modern_merit.h include/hven/detail/globalization/monitored_governor.h include/hven/detail/globalization/proximal_restoration.h include/hven/detail/globalization/restoration.h include/hven/detail/globalization/soc.h include/hven/detail/globalization/switching_acceptance.h include/hven/detail/globalization/watchdog.h include/hven/detail/interior/sizing_specs.h include/hven/detail/interior/typedefs/super_scalar_traits.h include/hven/detail/interior/utils/memory_management.h include/hven/detail/interior/utils/thread_pool.h 
+=== CHANGED SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/CMakeLists.txt tests/common_support/mkl_dispatch_probe.cpp tests/common_support/mkl_dispatch_signature.h tests/common_support/route_reference.h tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES with NO OBJECT (declared, checked: try_run only): [tests/common_support/mkl_dispatch_probe.cpp]; ADDED with an object: []
+=== MODIFIED C++ SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES: 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_sqp_equality_basis_seams.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared NOISE-ONLY + declared class B): 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared NOISE-ONLY + declared class B): 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+REFUSED: CMakeFiles/hven.dir/src/interior/utils/get_core_count.cpp.o is declared a NOISE-ONLY library mover but its source src/interior/utils/get_core_count.cpp is MODIFIED (class A)
+rc=2
+
+=== W: the WX2 structural additions W2-S1..S6, each with a falsifier the runner refuses
+
+=== W1 falsifier (W2-S1): a NO-OBJECT source declared that the range does not add (tests/qp/test_qp_rank_repair.cpp is MODIFIED, not ADDED)
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/replay (binary 083cf8268cb3, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/e1/e1-off.csv
+GATES_START 2026-10-30T01:17:35-04:00
+=== HEAD aaa95642  dirty-files=27 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2 ===
+=== BEFORE=fcd2574f  EXPECT_DEBUG_TESTS=3231  EXPECT_RELEASE_TESTS=3232 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=aaa956427474ef3e60a83645bcaa8750d1a81a8a
+=== CHANGED HEADERS: include/hven/detail/globalization/acceptance_strategy.h include/hven/detail/globalization/filter_acceptance.h include/hven/detail/globalization/globalization_mechanism.h include/hven/detail/globalization/modern_merit.h include/hven/detail/globalization/monitored_governor.h include/hven/detail/globalization/proximal_restoration.h include/hven/detail/globalization/restoration.h include/hven/detail/globalization/soc.h include/hven/detail/globalization/switching_acceptance.h include/hven/detail/globalization/watchdog.h include/hven/detail/interior/sizing_specs.h include/hven/detail/interior/typedefs/super_scalar_traits.h include/hven/detail/interior/utils/memory_management.h include/hven/detail/interior/utils/thread_pool.h 
+=== CHANGED SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/CMakeLists.txt tests/common_support/mkl_dispatch_probe.cpp tests/common_support/mkl_dispatch_signature.h tests/common_support/route_reference.h tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+REFUSED: declared NO-OBJECT source tests/qp/test_qp_rank_repair.cpp is not ADDED against fcd2574f
+rc=2
+
+=== W1b falsifier (W2-S1): the probe is ADDED but its command is declared add_executable (it sits in try_run)
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/replay (binary 083cf8268cb3, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/e1/e1-off.csv
+GATES_START 2026-10-30T01:17:35-04:00
+=== HEAD aaa95642  dirty-files=27 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2 ===
+=== BEFORE=fcd2574f  EXPECT_DEBUG_TESTS=3231  EXPECT_RELEASE_TESTS=3232 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=aaa956427474ef3e60a83645bcaa8750d1a81a8a
+=== CHANGED HEADERS: include/hven/detail/globalization/acceptance_strategy.h include/hven/detail/globalization/filter_acceptance.h include/hven/detail/globalization/globalization_mechanism.h include/hven/detail/globalization/modern_merit.h include/hven/detail/globalization/monitored_governor.h include/hven/detail/globalization/proximal_restoration.h include/hven/detail/globalization/restoration.h include/hven/detail/globalization/soc.h include/hven/detail/globalization/switching_acceptance.h include/hven/detail/globalization/watchdog.h include/hven/detail/interior/sizing_specs.h include/hven/detail/interior/typedefs/super_scalar_traits.h include/hven/detail/interior/utils/memory_management.h include/hven/detail/interior/utils/thread_pool.h 
+=== CHANGED SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/CMakeLists.txt tests/common_support/mkl_dispatch_probe.cpp tests/common_support/mkl_dispatch_signature.h tests/common_support/route_reference.h tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+REFUSED: declared NO-OBJECT source tests/common_support/mkl_dispatch_probe.cpp is named 1 time(s) in the build files (want 1), inside command 'try_run' (want add_executable)
+rc=2
+
+=== W1c falsifier (W2-S1): the NO-OBJECT slot emptied, so the probe is an ADDED .cpp with no object (ADDED declared 0 != derived 1)
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/replay (binary 083cf8268cb3, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/e1/e1-off.csv
+GATES_START 2026-10-30T01:17:35-04:00
+=== HEAD aaa95642  dirty-files=27 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2 ===
+=== BEFORE=fcd2574f  EXPECT_DEBUG_TESTS=3231  EXPECT_RELEASE_TESTS=3232 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=aaa956427474ef3e60a83645bcaa8750d1a81a8a
+=== CHANGED HEADERS: include/hven/detail/globalization/acceptance_strategy.h include/hven/detail/globalization/filter_acceptance.h include/hven/detail/globalization/globalization_mechanism.h include/hven/detail/globalization/modern_merit.h include/hven/detail/globalization/monitored_governor.h include/hven/detail/globalization/proximal_restoration.h include/hven/detail/globalization/restoration.h include/hven/detail/globalization/soc.h include/hven/detail/globalization/switching_acceptance.h include/hven/detail/globalization/watchdog.h include/hven/detail/interior/sizing_specs.h include/hven/detail/interior/typedefs/super_scalar_traits.h include/hven/detail/interior/utils/memory_management.h include/hven/detail/interior/utils/thread_pool.h 
+=== CHANGED SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/CMakeLists.txt tests/common_support/mkl_dispatch_probe.cpp tests/common_support/mkl_dispatch_signature.h tests/common_support/route_reference.h tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES with NO OBJECT (declared, checked: try_run only): []; ADDED with an object: [tests/common_support/mkl_dispatch_probe.cpp ]
+=== MODIFIED C++ SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES: tests/common_support/mkl_dispatch_probe.cpp 
+REFUSED: 1 added .cpp derived, but ADDED is DECLARED 0
+rc=2
+
+=== W3 falsifier (W2-S3): the WX-R13 block declared one line short (44 != 45)
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/replay (binary 083cf8268cb3, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/e1/e1-off.csv
+GATES_START 2026-10-30T01:17:35-04:00
+=== HEAD aaa95642  dirty-files=27 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2 ===
+=== BEFORE=fcd2574f  EXPECT_DEBUG_TESTS=3231  EXPECT_RELEASE_TESTS=3232 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=aaa956427474ef3e60a83645bcaa8750d1a81a8a
+=== CHANGED HEADERS: include/hven/detail/globalization/acceptance_strategy.h include/hven/detail/globalization/filter_acceptance.h include/hven/detail/globalization/globalization_mechanism.h include/hven/detail/globalization/modern_merit.h include/hven/detail/globalization/monitored_governor.h include/hven/detail/globalization/proximal_restoration.h include/hven/detail/globalization/restoration.h include/hven/detail/globalization/soc.h include/hven/detail/globalization/switching_acceptance.h include/hven/detail/globalization/watchdog.h include/hven/detail/interior/sizing_specs.h include/hven/detail/interior/typedefs/super_scalar_traits.h include/hven/detail/interior/utils/memory_management.h include/hven/detail/interior/utils/thread_pool.h 
+=== CHANGED SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/CMakeLists.txt tests/common_support/mkl_dispatch_probe.cpp tests/common_support/mkl_dispatch_signature.h tests/common_support/route_reference.h tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES with NO OBJECT (declared, checked: try_run only): [tests/common_support/mkl_dispatch_probe.cpp]; ADDED with an object: []
+=== MODIFIED C++ SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES: 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_sqp_equality_basis_seams.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared NOISE-ONLY + declared class B): 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared NOISE-ONLY + declared class B): 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); 43 DIFFERENCES DECLARED as a SET (walk 17 / ssn 13 / ipm 13), every cell a U0 cell, the one declared WORSE cell [ipm f7_n1000_path_warm kkt_stationarity] among them
+=== CLASS_B_NAMES_OK: Release 0 / Debug 0 declared objects, none with a source modified in the range
+=== RELEASE-ONLY (Debug GTEST_SKIP) DECLARED: 0 name(s), each a declared ADDED name ===
+=== RE-DECLARED (TEST line removed and re-added under the same name): 0 name(s), each removed once and added once, net unchanged by name ===
+=== BY-NAME: baselines /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/suite-{debug,release}.txt (3233 / 3234 started names); 0 ADDED, each added by exactly one TEST line in the range; 0 REMOVED, each removed by exactly one TEST line; 0 TEST lines removed (0 of them RE-DECLARED)
+=== tests/sqp/CMakeLists.txt (checked): adds exactly the declared 0 non-comment line(s), removes none
+=== src/CMakeLists.txt (checked): adds exactly the declared 0 non-comment line(s), removes exactly the declared 0
+REFUSED: the WX-R13 block in tests/CMakeLists.txt holds 45 non-comment line(s), declared 44
+rc=2
+
+=== W6 falsifier: an ADDED test header declared that the range does not add (route_reference.h is MODIFIED, not added)
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/replay (binary 083cf8268cb3, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/e1/e1-off.csv
+GATES_START 2026-10-30T01:17:36-04:00
+=== HEAD aaa95642  dirty-files=27 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2 ===
+=== BEFORE=fcd2574f  EXPECT_DEBUG_TESTS=3231  EXPECT_RELEASE_TESTS=3232 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=aaa956427474ef3e60a83645bcaa8750d1a81a8a
+=== CHANGED HEADERS: include/hven/detail/globalization/acceptance_strategy.h include/hven/detail/globalization/filter_acceptance.h include/hven/detail/globalization/globalization_mechanism.h include/hven/detail/globalization/modern_merit.h include/hven/detail/globalization/monitored_governor.h include/hven/detail/globalization/proximal_restoration.h include/hven/detail/globalization/restoration.h include/hven/detail/globalization/soc.h include/hven/detail/globalization/switching_acceptance.h include/hven/detail/globalization/watchdog.h include/hven/detail/interior/sizing_specs.h include/hven/detail/interior/typedefs/super_scalar_traits.h include/hven/detail/interior/utils/memory_management.h include/hven/detail/interior/utils/thread_pool.h 
+=== CHANGED SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/CMakeLists.txt tests/common_support/mkl_dispatch_probe.cpp tests/common_support/mkl_dispatch_signature.h tests/common_support/route_reference.h tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES with NO OBJECT (declared, checked: try_run only): [tests/common_support/mkl_dispatch_probe.cpp]; ADDED with an object: []
+=== MODIFIED C++ SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES: 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_sqp_equality_basis_seams.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared NOISE-ONLY + declared class B): 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared NOISE-ONLY + declared class B): 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); 43 DIFFERENCES DECLARED as a SET (walk 17 / ssn 13 / ipm 13), every cell a U0 cell, the one declared WORSE cell [ipm f7_n1000_path_warm kkt_stationarity] among them
+=== CLASS_B_NAMES_OK: Release 0 / Debug 0 declared objects, none with a source modified in the range
+=== RELEASE-ONLY (Debug GTEST_SKIP) DECLARED: 0 name(s), each a declared ADDED name ===
+=== RE-DECLARED (TEST line removed and re-added under the same name): 0 name(s), each removed once and added once, net unchanged by name ===
+=== BY-NAME: baselines /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/suite-{debug,release}.txt (3233 / 3234 started names); 0 ADDED, each added by exactly one TEST line in the range; 0 REMOVED, each removed by exactly one TEST line; 0 TEST lines removed (0 of them RE-DECLARED)
+REFUSED: the ADDED non-.cpp test files [tests/common_support/mkl_dispatch_signature.h ] != declared [tests/common_support/route_reference.h ]
+rc=2
+
+=== W4 falsifier (W2-S6): a UNITY source declared that is NOT modified (test_watchdog.cpp swapped for tests/interior/test_assembly_allocation.cpp; the count of six is kept so the arithmetic passes first)
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/replay (binary 083cf8268cb3, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/e1/e1-off.csv
+GATES_START 2026-10-30T01:17:37-04:00
+=== HEAD aaa95642  dirty-files=27 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2 ===
+=== BEFORE=fcd2574f  EXPECT_DEBUG_TESTS=3231  EXPECT_RELEASE_TESTS=3232 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=aaa956427474ef3e60a83645bcaa8750d1a81a8a
+=== CHANGED HEADERS: include/hven/detail/globalization/acceptance_strategy.h include/hven/detail/globalization/filter_acceptance.h include/hven/detail/globalization/globalization_mechanism.h include/hven/detail/globalization/modern_merit.h include/hven/detail/globalization/monitored_governor.h include/hven/detail/globalization/proximal_restoration.h include/hven/detail/globalization/restoration.h include/hven/detail/globalization/soc.h include/hven/detail/globalization/switching_acceptance.h include/hven/detail/globalization/watchdog.h include/hven/detail/interior/sizing_specs.h include/hven/detail/interior/typedefs/super_scalar_traits.h include/hven/detail/interior/utils/memory_management.h include/hven/detail/interior/utils/thread_pool.h 
+=== CHANGED SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/CMakeLists.txt tests/common_support/mkl_dispatch_probe.cpp tests/common_support/mkl_dispatch_signature.h tests/common_support/route_reference.h tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES with NO OBJECT (declared, checked: try_run only): [tests/common_support/mkl_dispatch_probe.cpp]; ADDED with an object: []
+=== MODIFIED C++ SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES: 
+REFUSED: declared UNITY source tests/interior/test_assembly_allocation.cpp is not MODIFIED against fcd2574f
+rc=2
+
+=== W4b falsifier (W2-S6): a UNITY source that is not in a unity target (test_watchdog.cpp swapped for tests/sqp/test_sqp_solver.cpp: modified, but hven_sqp_tests is not UNITY_BUILD)
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/replay (binary 083cf8268cb3, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/e1/e1-off.csv
+GATES_START 2026-10-30T01:17:37-04:00
+=== HEAD aaa95642  dirty-files=27 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2 ===
+=== BEFORE=fcd2574f  EXPECT_DEBUG_TESTS=3231  EXPECT_RELEASE_TESTS=3232 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=aaa956427474ef3e60a83645bcaa8750d1a81a8a
+=== CHANGED HEADERS: include/hven/detail/globalization/acceptance_strategy.h include/hven/detail/globalization/filter_acceptance.h include/hven/detail/globalization/globalization_mechanism.h include/hven/detail/globalization/modern_merit.h include/hven/detail/globalization/monitored_governor.h include/hven/detail/globalization/proximal_restoration.h include/hven/detail/globalization/restoration.h include/hven/detail/globalization/soc.h include/hven/detail/globalization/switching_acceptance.h include/hven/detail/globalization/watchdog.h include/hven/detail/interior/sizing_specs.h include/hven/detail/interior/typedefs/super_scalar_traits.h include/hven/detail/interior/utils/memory_management.h include/hven/detail/interior/utils/thread_pool.h 
+=== CHANGED SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/CMakeLists.txt tests/common_support/mkl_dispatch_probe.cpp tests/common_support/mkl_dispatch_signature.h tests/common_support/route_reference.h tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES with NO OBJECT (declared, checked: try_run only): [tests/common_support/mkl_dispatch_probe.cpp]; ADDED with an object: []
+=== MODIFIED C++ SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES: 
+REFUSED: declared UNITY source tests/sqp/test_sqp_solver.cpp is named 1 time(s) in the build files (want 1) or tests/sqp/CMakeLists.txt does not set UNITY_BUILD ON
+rc=2
+
+=== W5 falsifier (W2-S6): the UNITY slot emptied, so six modified sources are unaccounted for (class A arithmetic)
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/replay (binary 083cf8268cb3, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/e1/e1-off.csv
+GATES_START 2026-10-30T01:17:37-04:00
+=== HEAD aaa95642  dirty-files=27 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2 ===
+=== BEFORE=fcd2574f  EXPECT_DEBUG_TESTS=3231  EXPECT_RELEASE_TESTS=3232 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=aaa956427474ef3e60a83645bcaa8750d1a81a8a
+=== CHANGED HEADERS: include/hven/detail/globalization/acceptance_strategy.h include/hven/detail/globalization/filter_acceptance.h include/hven/detail/globalization/globalization_mechanism.h include/hven/detail/globalization/modern_merit.h include/hven/detail/globalization/monitored_governor.h include/hven/detail/globalization/proximal_restoration.h include/hven/detail/globalization/restoration.h include/hven/detail/globalization/soc.h include/hven/detail/globalization/switching_acceptance.h include/hven/detail/globalization/watchdog.h include/hven/detail/interior/sizing_specs.h include/hven/detail/interior/typedefs/super_scalar_traits.h include/hven/detail/interior/utils/memory_management.h include/hven/detail/interior/utils/thread_pool.h 
+=== CHANGED SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/CMakeLists.txt tests/common_support/mkl_dispatch_probe.cpp tests/common_support/mkl_dispatch_signature.h tests/common_support/route_reference.h tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES with NO OBJECT (declared, checked: try_run only): [tests/common_support/mkl_dispatch_probe.cpp]; ADDED with an object: []
+=== MODIFIED C++ SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES: 
+REFUSED: 18 modified .cpp (less 4 outside the universe; Release less 6 and Debug less 6 declared NOISE-ONLY or IDENTICAL), but class A is DECLARED 2/2
+rc=2
+
+=== W8 falsifier (W2-S7): the census C counts are still the UNMEASURED sentinel
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/replay (binary 083cf8268cb3, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/e1/e1-off.csv
+GATES_START 2026-10-30T01:17:37-04:00
+=== HEAD aaa95642  dirty-files=27 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2 ===
+=== BEFORE=fcd2574f  EXPECT_DEBUG_TESTS=3231  EXPECT_RELEASE_TESTS=3232 ===
+REFUSED: EXPECT_CENSUS_C_PURE_DIFFERING still carries the UNMEASURED sentinel -- the FINAL pair has not been
+         rehearsed, so this round has no measured P-SYM shape to gate against.
+rc=2
+
+=== W7: the reference-dispatch and probe-object assertion helpers (W2-S4/S5), cut out of the runner and run on fabricated logs
+reference-dispatch ok rc=0 (want: ok 0; off 1; twice 1; none 1)
+reference-dispatch off rc=1 (want: ok 0; off 1; twice 1; none 1)
+reference-dispatch twice rc=1 (want: ok 0; off 1; twice 1; none 1)
+reference-dispatch none rc=1 (want: ok 0; off 1; twice 1; none 1)
+no-probe build-ok rc=0 (want 0)
+no-probe build-bad rc=1 (want 1)
+
+=== G: the class A NOISE-ONLY / IDENTICAL admission, proven offline on the rehearsal's own classifications and compares (this range has no Debug-only class B: EXPECT_PSYM_B_DEBUG_ONLY and the mirror slot are EMPTY)
+block lines: 100
+=== H1: the declared slots
+ASSERT OK   G5 Release after-arm configure: reference dispatch, once, never off-reference: hven tests: MKL dispatch vendor=AuthenticAMD avx2=1 fma=1 avx512f=0 mkl_auto_branch=2 (MKL_CBWR_AUTO=2) -> REFERENCE (route pins asserted)
+ASSERT OK   G5 Release after-arm build: no build step names mkl_dispatch_probe (try_run only)
+ASSERT OK   G5 Debug after-arm configure: reference dispatch, once, never off-reference: hven tests: MKL dispatch vendor=AuthenticAMD avx2=1 fma=1 avx512f=0 mkl_auto_branch=2 (MKL_CBWR_AUTO=2) -> REFERENCE (route pins asserted)
+ASSERT OK   G5 Debug after-arm build: no build step names mkl_dispatch_probe (try_run only)
+ASSERT OK   Release UNITY class A source tests/interior/test_filter_acceptance.cpp: unity object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_0_cxx.cxx.o is in both manifests and is not a mover
+ASSERT OK   Release UNITY class A source tests/interior/test_funnel_acceptance.cpp: unity object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_0_cxx.cxx.o is in both manifests and is not a mover
+ASSERT OK   Release UNITY class A source tests/interior/test_l1_restoration.cpp: unity object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o is in both manifests and is not a mover
+ASSERT OK   Release UNITY class A source tests/interior/test_merit_rules.cpp: unity object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o is in both manifests and is not a mover
+ASSERT OK   Release UNITY class A source tests/interior/test_monitored_governor.cpp: unity object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o is in both manifests and is not a mover
+ASSERT OK   Release UNITY class A source tests/interior/test_watchdog.cpp: unity object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_3_cxx.cxx.o is in both manifests and is not a mover
+ASSERT OK   Debug UNITY class A source tests/interior/test_filter_acceptance.cpp: unity object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_0_cxx.cxx.o is in both manifests and is not a mover
+ASSERT OK   Debug UNITY class A source tests/interior/test_funnel_acceptance.cpp: unity object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_0_cxx.cxx.o is in both manifests and is not a mover
+ASSERT OK   Debug UNITY class A source tests/interior/test_l1_restoration.cpp: unity object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o is in both manifests and is not a mover
+ASSERT OK   Debug UNITY class A source tests/interior/test_merit_rules.cpp: unity object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o is in both manifests and is not a mover
+ASSERT OK   Debug UNITY class A source tests/interior/test_monitored_governor.cpp: unity object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o is in both manifests and is not a mover
+ASSERT OK   Debug UNITY class A source tests/interior/test_watchdog.cpp: unity object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_3_cxx.cxx.o is in both manifests and is not a mover
+CENSUS_Release objects=277 universe=162 command_delta=216 eigen_delta=50 differing=14 differing_outside_universe=5
+CENSUS_DIFFERS Release universe BS bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+CENSUS_DIFFERS Release universe BS bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+CENSUS_DIFFERS Release universe S bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+CENSUS_DIFFERS Release outside MC tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_flat_face_saddle.cpp.o
+CENSUS_DIFFERS Release outside MC tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_rank_repair.cpp.o
+CENSUS_DIFFERS Release outside MC tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_route_reference.cpp.o
+CENSUS_DIFFERS Release outside M tests/CMakeFiles/hven_sqp_seam_tests.dir/sqp/test_sqp_equality_basis_seams.cpp.o
+CENSUS_DIFFERS Release outside CS tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/trace_support.cpp.o
+CENSUS_DIFFERS Release universe MB tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o
+CENSUS_DIFFERS Release universe M tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_sweeps.cpp.o
+CENSUS_DIFFERS Release universe M tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_lift_oracle.cpp.o
+CENSUS_DIFFERS Release universe M tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_equality_basis.cpp.o
+CENSUS_DIFFERS Release universe M tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o
+CENSUS_DIFFERS Release universe M tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+CENSUS_Release C_differing=4 C_identical=46 C_pure_differing=0 UNEXPLAINED=0
+CENSUS_Release_OK
+CENSUS_Debug objects=277 universe=162 command_delta=216 eigen_delta=50 differing=71 differing_outside_universe=51
+CENSUS_DIFFERS Debug universe B CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+CENSUS_DIFFERS Debug universe B CMakeFiles/hven.dir/src/drivers/ipm_solver_globalization.cpp.o
+CENSUS_DIFFERS Debug universe M CMakeFiles/hven.dir/src/interior/utils/get_core_count.cpp.o
+CENSUS_DIFFERS Debug universe B CMakeFiles/hven.dir/src/interior/utils/memory_management.cpp.o
+CENSUS_DIFFERS Debug universe B CMakeFiles/hven.dir/src/interior/utils/thread_pool.cpp.o
+CENSUS_DIFFERS Debug universe MB CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o
+CENSUS_DIFFERS Debug universe BS bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+CENSUS_DIFFERS Debug universe BS bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+CENSUS_DIFFERS Debug universe S bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_fault_injection_tests.dir/__/src/core/pattern_hash.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_fault_injection_tests.dir/__/src/interior/kkt_factorization.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_fault_injection_tests.dir/__/src/linear/pardiso_session.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_fault_injection_tests.dir/__/src/linear/symmetric_factor_mkl.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_fault_injection_tests.dir/interior/test_kkt_factorization_faults.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_fault_injection_tests.dir/linear/test_fault_injection.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/core/pattern_hash.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/drivers/trace.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/interior/kkt_factorization.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/linear/pardiso_session.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/linear/symmetric_factor_mkl.cpp.o
+CENSUS_DIFFERS Debug outside CB tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/qp/ipqp_engine.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/qp/ipqp_kkt_layout.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_ipqp_seam_tests.dir/sqp/test_ipqp_seams.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/core/pattern_hash.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/interior/kkt_factorization.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/kkt/kkt_calls.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/linear/dense_symmetric_factor.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/linear/pardiso_session.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/linear/symmetric_factor_mkl.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/qp/qp_engine.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/qp/ws_independence.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_anti_cycling_arm.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_ascent_guard.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_border_certificate.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_certificate_sign.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_convex_certificate.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_degeneracy_arm.cpp.o
+CENSUS_DIFFERS Debug outside MC tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_flat_face_saddle.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_implied_blocker.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_latch_reason.cpp.o
+CENSUS_DIFFERS Debug outside MC tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_rank_repair.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_refused_exchange.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_saddle_exit.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_saddle_shift.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_stagnation_stop.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_standstill_retreat.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_unrun_dependency_test.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_walk_seam.cpp.o
+CENSUS_DIFFERS Debug outside MC tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_route_reference.cpp.o
+CENSUS_DIFFERS Debug outside B tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/ipm_solver.cpp.o
+CENSUS_DIFFERS Debug outside B tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/ipm_solver_globalization.cpp.o
+CENSUS_DIFFERS Debug outside M tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/interior/utils/get_core_count.cpp.o
+CENSUS_DIFFERS Debug outside B tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/interior/utils/memory_management.cpp.o
+CENSUS_DIFFERS Debug outside B tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/interior/utils/thread_pool.cpp.o
+CENSUS_DIFFERS Debug outside MB tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/model/non_linear_program.cpp.o
+CENSUS_DIFFERS Debug outside M tests/CMakeFiles/hven_sqp_seam_tests.dir/sqp/test_sqp_equality_basis_seams.cpp.o
+CENSUS_DIFFERS Debug universe B tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_concurrency.cpp.o
+CENSUS_DIFFERS Debug outside CS tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/recipes.cpp.o
+CENSUS_DIFFERS Debug outside CS tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/seam_native.cpp.o
+CENSUS_DIFFERS Debug outside CS tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/seam_registry.cpp.o
+CENSUS_DIFFERS Debug outside CS tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/trace_support.cpp.o
+CENSUS_DIFFERS Debug universe MB tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_0_cxx.cxx.o
+CENSUS_DIFFERS Debug universe MB tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o
+CENSUS_DIFFERS Debug universe B tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_2_cxx.cxx.o
+CENSUS_DIFFERS Debug universe MB tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_3_cxx.cxx.o
+CENSUS_DIFFERS Debug universe MB tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o
+CENSUS_DIFFERS Debug universe M tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_sweeps.cpp.o
+CENSUS_DIFFERS Debug universe M tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_lift_oracle.cpp.o
+CENSUS_DIFFERS Debug universe M tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_equality_basis.cpp.o
+CENSUS_DIFFERS Debug universe M tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o
+CENSUS_DIFFERS Debug universe M tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+CENSUS_Debug C_differing=44 C_identical=6 C_pure_differing=36 UNEXPLAINED=0
+CENSUS_Debug_OK
+ASSERT OK   class A by source Release: [tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_solver.cpp ]
+ASSERT OK   class A by source Debug: [tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_solver.cpp ]
+ASSERT OK   Release NOISE-ONLY class A: tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o
+ASSERT OK   Release NOISE-ONLY class A: tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_sweeps.cpp.o
+ASSERT OK   Release NOISE-ONLY class A: tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_equality_basis.cpp.o
+ASSERT OK   Release NOISE-ONLY class A: tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o
+ASSERT OK   Debug NOISE-ONLY class A: tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o
+ASSERT OK   Debug NOISE-ONLY class A: tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_sweeps.cpp.o
+ASSERT OK   Debug NOISE-ONLY class A: tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_equality_basis.cpp.o
+ASSERT OK   Debug NOISE-ONLY class A: tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o
+ASSERT OK   Debug NOISE-ONLY class A: CMakeFiles/hven.dir/src/interior/utils/get_core_count.cpp.o
+ASSERT OK   Debug NOISE-ONLY class A: CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o
+ASSERT OK   Release IDENTICAL class A (modified source, byte-identical object): CMakeFiles/hven.dir/src/interior/utils/get_core_count.cpp.o
+ASSERT OK   Release IDENTICAL class A (modified source, byte-identical object): CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o
+RC5=0
+=== H2: falsifier, get_core_count.cpp.o declared IDENTICAL in Debug (it is NOISE-ONLY there)
+ASSERT FAIL Debug IDENTICAL class A: CMakeFiles/hven.dir/src/interior/utils/get_core_count.cpp.o is not byte-identical / is named by the compare / is missing from a manifest
+RC5=1
+=== H3: falsifier, test_sqp_solver.cpp.o (a real mover) declared NOISE-ONLY in Release
+ASSERT FAIL class A by source Release: measured [tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_solver.cpp ] != derived [tests/sqp/test_qp_lift_oracle.cpp ]
+ASSERT FAIL Release NOISE-ONLY class A: tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o is not NOISE-ONLY in the Release compare
+RC5=1
+=== H4: falsifier, the Release IDENTICAL slot emptied (the two library sources become unaccounted class A sources)
+ASSERT FAIL class A by source Release: measured [tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_solver.cpp ] != derived [src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp
+RC5=1
+=== H5: falsifier, a modified source in no unity file declared a UNITY source
+ASSERT FAIL Release UNITY class A source tests/sqp/test_sqp_solver.cpp: included by 0 generated unity file(s), want 1
+ASSERT FAIL Debug UNITY class A source tests/sqp/test_sqp_solver.cpp: included by 0 generated unity file(s), want 1
+ASSERT FAIL class A by source Release: measured [tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_solver.cpp ] != derived [tests/sqp/test_qp_lift_oracle.cpp ]
+ASSERT FAIL class A by source Debug: measured [tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_solver.cpp ] != derived [tests/sqp/test_qp_lift_oracle.cpp ]
+RC5=1
+=== H6: falsifier, the UNITY slot emptied
+ASSERT FAIL class A by source Release: measured [tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_solver.cpp ] != derived [tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp 
+ASSERT FAIL class A by source Debug: measured [tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_solver.cpp ] != derived [tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp te
+RC5=1
+=== C5: control, the census on the unmodified Debug data with the declared Debug counts (eigen_delta 50, C_pure_differing 36)
+CENSUS_Debug objects=277 universe=162 command_delta=216 eigen_delta=50 differing=71 differing_outside_universe=51
+CENSUS_Debug C_differing=44 C_identical=6 C_pure_differing=36 UNEXPLAINED=0
+CENSUS_Debug_OK
+C5 rc=0 (want 0)
+=== C1: falsifier, one object's after-arm command gains -O3
+CENSUS_REFUSED: object CMakeFiles/hven.dir/src/core/version.cpp.o: compile-command tokens ADDED beyond the declared set: ['-O3']
+C1 rc=1 (want 1)
+=== C2: falsifier, an unmodified, delta-free, header-free object's sha is flipped (a differing object that carries no class)
+(flipped CMakeFiles/hven.dir/src/core/enum_names.cpp.o)
+CENSUS_UNEXPLAINED Debug CMakeFiles/hven.dir/src/core/enum_names.cpp.o
+CENSUS_REFUSED: 1 object(s) differ with no class
+C2 rc=1 (want 1)
+=== C3: falsifier, a wrong C_pure_differing count declared
+CENSUS_REFUSED: C_pure_differing / eigen_delta measured 36 / 50, declared 37 / 50
+C3 rc=1 (want 1)
+=== C4: falsifier, a pure class-C object loses the define from its AFTER command while its bytes still differ: nothing explains it
+(stripped tests/CMakeFiles/hven_fault_injection_tests.dir/__/src/core/pattern_hash.cpp.o)
+CENSUS_UNEXPLAINED Debug tests/CMakeFiles/hven_fault_injection_tests.dir/__/src/core/pattern_hash.cpp.o
+CENSUS_REFUSED: 1 object(s) differ with no class
+C4 rc=1 (want 1)
+H1=0 (want 0) H2=1 H3=1 H4=1 H5=1 H6=1 (want 1 each) C5=0 (want 0) C1=1 C2=1 C3=1 C4=1 (want 1 each)
+CLASS_A_CHECK_OK
+rc=0

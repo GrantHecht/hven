@@ -1,0 +1,8 @@
+ORACLE /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/e4-fix5/dumps/ACOPR118_e4/qp5.txt n=344 me=236 mi=608 tr=0.25 in-cell: status=3 minors=3 facts=5 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=0 deferred=1 undec=1 maxiter=5300
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=-1.4419e+02 max=6.4676e+05 n_neg=2 n_zero=54
+  Z'HZ on null(Ae): dim=108 rank(Ae)=236 eig min=-7.2663e-02
+  WALK final: f=0.1054162515 viol eq/in/box=(3.885780586188048e-16, 6.071532165918825e-18, 0.0) |W| rows=9 pins=30 me+|W|=275 rank=275 n=344
+    working-set normalized singular values: min=3.626e-03 (smallest 3: [0.00362623 0.00435159 0.00450784])
+    Z'HZ on the final working set's null space: dim=69 eig min=-6.8122e-02 (next 6.3571e+00) max=3.8108e+04
+  H is not PSD on null(Ae): no global oracle; only local checks

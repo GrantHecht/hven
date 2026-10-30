@@ -76,7 +76,14 @@ TEST(EqpSolve, MatchesOracleOnItsOptimalWorkingSet) {
     WorkingSet ws = working_set_from_oracle(qp, oracle);
 
     detail::KktFactor kkt;
-    auto eqp = solve_eqp(qp, ws, kkt, QpOptions{});
+    // THE PROXIMAL CENTRE IS THE POINT UNDER TEST (M7 W2 E4; eqp_solve.h). The
+    // proximal EQP's fixed point is the face's EXACT KKT point -- p = 0 makes its
+    // stationarity row the unregularized one, for any delta -- so centring at the
+    // oracle's own answer is what makes "matches the oracle" a statement about the
+    // assembly, the sign convention and the refinement rather than about the
+    // model's O(delta*||x* - x_k||) proximal bias, which is a property of the
+    // model and not of this solve.
+    auto eqp = solve_eqp(qp, ws, oracle.x, kkt, QpOptions{});
 
     EXPECT_LT((eqp.x - oracle.x).norm(), 1e-10);
 }
@@ -87,7 +94,14 @@ TEST(EqpSolve, MatchesOracleOnEqualityOnlyProblem) {
     WorkingSet ws = working_set_from_oracle(qp, oracle);
 
     detail::KktFactor kkt;
-    auto eqp = solve_eqp(qp, ws, kkt, QpOptions{});
+    // THE PROXIMAL CENTRE IS THE POINT UNDER TEST (M7 W2 E4; eqp_solve.h). The
+    // proximal EQP's fixed point is the face's EXACT KKT point -- p = 0 makes its
+    // stationarity row the unregularized one, for any delta -- so centring at the
+    // oracle's own answer is what makes "matches the oracle" a statement about the
+    // assembly, the sign convention and the refinement rather than about the
+    // model's O(delta*||x* - x_k||) proximal bias, which is a property of the
+    // model and not of this solve.
+    auto eqp = solve_eqp(qp, ws, oracle.x, kkt, QpOptions{});
 
     EXPECT_LT((eqp.x - oracle.x).norm(), 1e-10);
     ASSERT_EQ(eqp.lambda_e.size(), 1);
@@ -123,7 +137,10 @@ TEST(EqpSolve, FixedVariableWithEqualityRefinementImprovesAccuracy) {
 
     detail::KktFactor kkt;
     EqpResult unrefined;
-    auto refined = solve_eqp(qp, ws, kkt, QpOptions{}, &unrefined);
+    // Centred at the point under test, as above: what this fixture is about is the
+    // refinement step removing the O(mu*|lambda_e|) DUAL error, which the centring
+    // does not touch (it is still 1e-7 here before the step).
+    auto refined = solve_eqp(qp, ws, oracle.x, kkt, QpOptions{}, &unrefined);
 
     const double unrefined_err = (unrefined.x - oracle.x).norm();
     const double refined_err = (refined.x - oracle.x).norm();

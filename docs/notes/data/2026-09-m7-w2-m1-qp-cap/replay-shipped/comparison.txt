@@ -1,0 +1,21 @@
+=== THE DECLARED RE-DERIVATION: U0 27-cell three-arm replay at the SHIPPED defaults ===
+hven HEAD:        3f2f6e35743f8dd3a8a20e748a1815503397728d
+shipped defaults: Index qp_failure_budget = 3;  bool qp_cap_retry = false;
+binary:           5e16804a720456e4b414f4e2a7d24c4590533d3ec5ab2d81ff4972555907890d
+
+--- A. against the M6 CLOSE HEAD CSVs (the PIN this task breaks on purpose) ---
+=== M6 CLOSE HEAD-walk vs M7 W2 M1 SHIPPED HEAD-walk === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+=== M6 CLOSE HEAD-ssn vs M7 W2 M1 SHIPPED HEAD-ssn === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+=== M6 CLOSE HEAD-ipm vs M7 W2 M1 SHIPPED HEAD-ipm === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+
+--- B. against THIS TASK's OWN heads at the OFF-default HEAD 4d27fb02 ---
+    (same code, same binary options, ONE literal different: the isolation)
+=== M1 OFF-DEFAULT HEAD-walk vs M1 SHIPPED HEAD-walk === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+=== M1 OFF-DEFAULT HEAD-ssn vs M1 SHIPPED HEAD-ssn === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+=== M1 OFF-DEFAULT HEAD-ipm vs M1 SHIPPED HEAD-ipm === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0

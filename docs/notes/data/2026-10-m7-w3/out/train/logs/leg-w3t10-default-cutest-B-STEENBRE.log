@@ -1,0 +1,9 @@
+PGREP_EMPTY w3t10-default-cutest-B-STEENBRE
+PGREP_NO_UNCOVERED_CELL w3t10-default-cutest-B-STEENBRE 2026-10-29T09:42:35-04:00
+IN_LOCK_PGREP_EMPTY w3t10-default-cutest-B-STEENBRE 2026-10-29T09:42:35-04:00
+FOREGROUND_START w3t10-default-cutest-B-STEENBRE 2026-10-29T09:42:35-04:00
+w2_a4_sweep: default / hven-sqp / cutest / run B-STEENBRE -> /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/train/cells-tau10/hven-sqp/default/cutest-run-B-STEENBRE (ceiling 300s) [problems: STEENBRE]
+run_serial: cutest/STEENBRE/hven-sqp/default
+run_serial: 1 cells -> /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/train/cells-tau10/hven-sqp/default/cutest-run-B-STEENBRE/results.csv
+w2_a4_sweep: RUNNER_EXIT 0
+FOREGROUND_END w3t10-default-cutest-B-STEENBRE 2026-10-29T09:43:05-04:00 rc=0

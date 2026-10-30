@@ -220,6 +220,39 @@ TEST(FunnelHType, AcceptanceShrinksTheWidthByEquationThirteen) {
     EXPECT_DOUBLE_EQ(s.width(), 425.0);
 }
 
+// THE RETRACTION (M7 W2 R2-1): the driver's non-finite step rollback rejects, after
+// the fact, the step the most recent judge() accepted, and the width goes back to
+// where that call found it -- only that call's move, not the one before it. Before any
+// judge() (and after a re-base) it is a no-op.
+TEST(FunnelHType, RetractionUndoesOnlyTheLastJudgement) {
+    FunnelStrategy s = funnel_at_1000();
+    s.retract_last_judgement();
+    EXPECT_DOUBLE_EQ(s.width(), 1000.0) << "no judge() yet";
+    ASSERT_EQ(s.judge(ctx(10.0, 10.0, 800.0, 500.0, 0.0)), StepVerdict::kAcceptH);
+    ASSERT_EQ(s.judge(ctx(10.0, 10.0, 500.0, 100.0, 0.0)), StepVerdict::kAcceptH);
+    ASSERT_DOUBLE_EQ(s.width(), 425.0);
+    s.retract_last_judgement();
+    EXPECT_DOUBLE_EQ(s.width(), 750.0);
+    // A COMMIT WITHOUT A JUDGEMENT (the driver's zero-step accept) has nothing to
+    // retract: the retraction after it must not undo the PREVIOUS major's move.
+    s.retract_last_judgement();
+    EXPECT_DOUBLE_EQ(s.width(), 750.0) << "already retracted; a second retraction is a no-op";
+    ASSERT_EQ(s.judge(ctx(10.0, 10.0, 500.0, 100.0, 0.0)), StepVerdict::kAcceptH);
+    ASSERT_DOUBLE_EQ(s.width(), 425.0);
+    // The next major commits judge-less (the zero-step accept); the major after it
+    // retracts. It must NOT undo the 750 -> 425 move above, which was a legitimate
+    // earlier acceptance.
+    s.note_unjudged_commit();
+    s.retract_last_judgement();
+    EXPECT_DOUBLE_EQ(s.width(), 425.0) << "a judge-less commit has no judgement to retract";
+    ASSERT_EQ(s.judge(ctx(10.0, 10.0, 300.0, 50.0, 0.0)), StepVerdict::kAcceptH);
+    s.retract_last_judgement();
+    EXPECT_DOUBLE_EQ(s.width(), 425.0) << "a judged commit still retracts exactly its own move";
+    s.resume_from_restoration(50.0); // (13): 0.5·50 + 0.5·425 = 237.5
+    s.retract_last_judgement();
+    EXPECT_DOUBLE_EQ(s.width(), 237.5) << "a re-base is not a judgement";
+}
+
 // Eq. (12) is a non-strict "<=": h = β·τ exactly is accepted, and the tiniest
 // step above it is not. This pins β itself, not merely its neighbourhood.
 TEST(FunnelHType, SufficientDecreaseBoundaryIsInclusive) {

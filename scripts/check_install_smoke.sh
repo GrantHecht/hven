@@ -43,6 +43,19 @@
 # remedy are in docs/build.md's "LTO installs" section and in
 # docs/notes/data/2026-09-m6-w6-lto/install-smoke.txt.
 #
+# THE CLANG ARM IS A REQUIRED SECOND ARM FROM M7 W0 T5(d) (2026-09-14). One run
+# of this script proves ONE front end, and the default one is GCC here and in
+# CI; the paragraph above is why that is no longer only a hygiene question. So
+# the gate is two runs, not one, and the CI Linux lane runs both:
+#
+#   ./scripts/check_install_smoke.sh                                 # the default arm
+#   ./scripts/check_install_smoke.sh -DCMAKE_CXX_COMPILER=clang++    # the clang arm
+#
+# Nothing about this script's DEFAULT behaviour changed for that: the second arm
+# is the passthrough described above, invoked by the caller. Give the two arms
+# separate HVEN_INSTALL_SMOKE_WORKDIR values if both trees are to be inspected
+# afterwards -- they would otherwise configure over each other.
+#
 # Optional environment:
 #   HVEN_INSTALL_SMOKE_WORKDIR  Use this directory instead of a fresh
 #                                mktemp one, and do NOT delete it on exit.

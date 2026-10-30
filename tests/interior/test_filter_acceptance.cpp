@@ -325,8 +325,8 @@ TEST(FilterAcceptance, FTypeAcceptDoesNotAugment) {
 
     const bool ok = a.is_iterate_acceptable(pm(1.0e-5, 10.0, 0.0), pm(1.0e-6, 9.9999, 0.0),
                                             pm(0.01, 0.01, 0.0), 1.0, 1.0);
-    EXPECT_TRUE(ok);                  // F-type accept
-    EXPECT_EQ(a.filter_size(), 1u);   // untouched by the F-type step
+    EXPECT_TRUE(ok);                // F-type accept
+    EXPECT_EQ(a.filter_size(), 1u); // untouched by the F-type step
 }
 
 // ===========================================================================
@@ -733,9 +733,9 @@ TEST(FilterRestoration, ResetDuringFeasibilityPreservesStash) {
 
     // μ-event reset mid-phase.
     a.reset();
-    EXPECT_TRUE(a.in_feasibility_phase());   // flag survives
-    EXPECT_EQ(a.filter_size(), 0u);          // working state cleared
-    EXPECT_EQ(a.stashed_filter_size(), 1u);  // stash preserved
+    EXPECT_TRUE(a.in_feasibility_phase());  // flag survives
+    EXPECT_EQ(a.filter_size(), 0u);         // working state cleared
+    EXPECT_EQ(a.stashed_filter_size(), 1u); // stash preserved
 
     // Exit still restores correctly after the mid-phase reset.
     a.notify_switch_to_optimality(pm(0.5, 20.0, 0.0));

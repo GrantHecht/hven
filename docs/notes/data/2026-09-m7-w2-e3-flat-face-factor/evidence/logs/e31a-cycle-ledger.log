@@ -1,0 +1,34 @@
+==== Cs_STEENBRB qp1: last 60 passes ====
+ws_sig period = 6  distinct x_inf {'128.00000000000057', '128.00000000000051', '128.00000000000045'} distinct x_l1 4
+  minor  6594 moveOnly     alpha=1          p_inf=18.5091    gp=4.28728e-05  ride_slope=nan          sign= 0 centre=0.000216026  df=4.28728e-05  rho_ref=3.048e-07
+  minor  6595 dropDantzig  alpha=nan        p_inf=0          gp=0            ride_slope=nan          sign= 0 centre=0            df=0            rho_ref=3.048e-07
+  minor  6596 rideStepped  alpha=1.58253    p_inf=45.2379    gp=-3.84691e-05 ride_slope=-3.84691e-05 sign= 1 centre=0.000183379  df=-6.08785e-05 rho_ref=3.931e-07
+  minor  6597 moveOnly     alpha=1          p_inf=9.28588    gp=2.40708e-05  ride_slope=nan          sign= 0 centre=7.48735e-05  df=2.40708e-05  rho_ref=3.872e-07
+  minor  6598 dropDantzig  alpha=nan        p_inf=0          gp=0            ride_slope=nan          sign= 0 centre=0            df=0            rho_ref=3.872e-07
+  minor  6599 rideStepped  alpha=3.65067    p_inf=19.8165    gp=-1.66135e-06 ride_slope=-1.66135e-06 sign= 1 centre=5.41283e-05  df=-6.06504e-06 rho_ref=3.931e-07
+  --- one period, df by action: {'moveOnly': '6.694355e-05', 'dropDantzig': '0.000000e+00', 'rideStepped': '-6.694355e-05'} {'moveOnly': 2, 'dropDantzig': 2, 'rideStepped': 2}
+  --- NET over the period: 7.995991e-19
+==== Cs_STEENBRB qp3: last 60 passes ====
+ws_sig period = 10  distinct x_inf {'32'} distinct x_l1 4
+  minor  6590 rideStepped  alpha=2.90836    p_inf=6.29243    gp=-3.10543e-07 ride_slope=-3.10543e-07 sign= 1 centre=-4.33051e-08 df=-9.03172e-07 rho_ref=2.089e-07
+  minor  6591 moveOnly     alpha=1          p_inf=8.41687    gp=1.22373e-06  ride_slope=nan          sign= 0 centre=3.0167e-06   df=1.22373e-06  rho_ref=2.361e-07
+  minor  6592 dropDantzig  alpha=nan        p_inf=0          gp=0            ride_slope=nan          sign= 0 centre=0            df=0            rho_ref=2.361e-07
+  minor  6593 rideStepped  alpha=2.73423    p_inf=6.3026     gp=-6.31103e-07 ride_slope=-6.31103e-07 sign= 1 centre=-5.80967e-07 df=-1.72558e-06 rho_ref=2.089e-07
+  minor  6594 moveOnly     alpha=1          p_inf=10.9301    gp=1.40502e-06  ride_slope=nan          sign= 0 centre=1.09436e-05  df=1.40502e-06  rho_ref=1.526e-07
+  minor  6595 dropDantzig  alpha=nan        p_inf=0          gp=0            ride_slope=nan          sign= 0 centre=0            df=0            rho_ref=1.526e-07
+  minor  6596 rideUndone   alpha=nan        p_inf=7.22036    gp=6.85824e-07  ride_slope=6.85824e-07  sign= 0 centre=2.22434e-06  df=0            rho_ref=1.675e-07
+  minor  6597 dropDantzig  alpha=nan        p_inf=0          gp=0            ride_slope=nan          sign= 0 centre=0            df=0            rho_ref=1.526e-07
+  minor  6598 rideUndone   alpha=nan        p_inf=6.3026     gp=9.82629e-08  ride_slope=9.82629e-08  sign= 0 centre=9.25526e-08  df=0            rho_ref=1.386e-07
+  minor  6599 dropDantzig  alpha=nan        p_inf=0          gp=0            ride_slope=nan          sign= 0 centre=0            df=0            rho_ref=1.526e-07
+  --- one period, df by action: {'rideStepped': '-2.628749e-06', 'moveOnly': '2.628749e-06', 'dropDantzig': '0.000000e+00', 'rideUndone': '0.000000e+00'} {'rideStepped': 2, 'moveOnly': 2, 'dropDantzig': 4, 'rideUndone': 2}
+  --- NET over the period: 0.000000e+00
+==== Cs_STEENBRB qp5: last 60 passes ====
+ws_sig period = 6  distinct x_inf {'16.000000000000004'} distinct x_l1 4
+  minor  6594 moveOnly     alpha=1          p_inf=7.81396    gp=1.69111e-07  ride_slope=nan          sign= 0 centre=1.57829e-06  df=1.69111e-07  rho_ref=7.541e-08
+  minor  6595 dropDantzig  alpha=nan        p_inf=0          gp=0            ride_slope=nan          sign= 0 centre=0            df=0            rho_ref=7.541e-08
+  minor  6596 rideStepped  alpha=2.62777    p_inf=10.4452    gp=-1.36648e-07 ride_slope=-1.36648e-07 sign= 1 centre=1.01738e-06  df=-3.59079e-07 rho_ref=7.541e-08
+  minor  6597 moveOnly     alpha=1          p_inf=9.87305    gp=2.44589e-07  ride_slope=nan          sign= 0 centre=2.11377e-06  df=2.44589e-07  rho_ref=7.541e-08
+  minor  6598 dropDantzig  alpha=nan        p_inf=0          gp=0            ride_slope=nan          sign= 0 centre=0            df=0            rho_ref=7.541e-08
+  minor  6599 rideStepped  alpha=2.46509    p_inf=9.1847     gp=-2.21577e-08 ride_slope=-2.21577e-08 sign= 1 centre=1.10141e-06  df=-5.46207e-08 rho_ref=7.541e-08
+  --- one period, df by action: {'moveOnly': '4.136997e-07', 'dropDantzig': '0.000000e+00', 'rideStepped': '-4.136997e-07'} {'moveOnly': 2, 'dropDantzig': 2, 'rideStepped': 2}
+  --- NET over the period: 1.588187e-22

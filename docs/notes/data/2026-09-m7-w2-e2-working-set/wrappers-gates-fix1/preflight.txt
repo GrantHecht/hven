@@ -1,0 +1,33 @@
+GATES_START 2026-09-24T03:13:46-04:00
+=== HEAD b2dfe97a  dirty-files=1 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.scratch/m7w2e2fix1gates ===
+=== BEFORE=6d123e75  EXPECT_DEBUG_TESTS=2817  EXPECT_RELEASE_TESTS=2818 ===
+=== HEAD_AT_START=b2dfe97a6f840ef11a11c7251c0eeb94cfbe5f61
+=== CHANGED HEADERS: include/hven/core/solver_counters.h include/hven/detail/qp/qp_engine.h include/hven/detail/qp/ws_independence.h
+=== CHANGED SOURCES: src/qp/qp_engine.cpp src/qp/ws_independence.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/sqp/test_qp_ws_independence.cpp
+=== MODIFIED C++ SOURCES: src/qp/qp_engine.cpp src/qp/ws_independence.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/sqp/test_qp_ws_independence.cpp
+=== ADDED C++ SOURCES:
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): tests/qp/test_qp_anti_cycling_arm.cpp -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived):
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o
+=== DECLARED ADDED LIBRARY OBJECTS (derived):
+=== G4 RESIDUAL GATE: 1e-5 (checked); differences declared 0
+=== CLASS_B_NAMES_OK: Release 36 / Debug 36 declared objects, none with a source modified in the range
+=== PREFLIGHT_VALUE_OK: class A 4 - 1 outside == declared 3/3; ADDED 0 == declared 0 (0 inside the universe == declared 0); class B library objects all unmodified; G4 gate 1e-5
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2fix1gates/g1.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2fix1gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2fix1gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2fix1gates/g2.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2fix1gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2fix1gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2fix1gates/g3.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2fix1gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2fix1gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2fix1gates/g4.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2fix1gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2fix1gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2fix1gates/g5.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2fix1gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2fix1gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2fix1gates/g6.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2fix1gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2fix1gates/gates
+=== PREFLIGHT_OK: 6 segments written and asserted against GATES_SCRATCH, before the first leg ===
+PREFLIGHT_ONLY: stopping before G1. No leg was run and no build tree was touched.
+# Refusals exercised against a wrong value (each must be rc 2):
+class B 37 declared with that name appended (the DIFFERING sum refuses first): rc=2 REFUSED: rel DIFFERING 39 != class A 3 + class B 37
+class B 37 with a 36-name list: rc=2 REFUSED: rel DIFFERING 39 != class A 3 + class B 37
+Release 2813 against Debug 2817: rc=2 REFUSED: Debug 2817 != Release 2813 - long 1
+BEFORE b25ab7ed: rc=2 REFUSED: 3 modified .cpp (less 1 outside the universe), but class A is DECLARED 3/3
+class A 4/4: rc=2 REFUSED: 4 modified .cpp (less 1 outside the universe), but class A is DECLARED 4/4
+class B name whose source is modified (test_qp_ws_independence.cpp.o swapped in, 36 names): rc=2 REFUSED: rel class B tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_ws_independence.cpp.o has its source tests/sqp/test_qp_ws_independence.cpp MODIFIED in 6d123e75..b2dfe97a6f840ef11a11c7251c0eeb94cfbe5f61 (it is class A)

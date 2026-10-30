@@ -1,0 +1,67 @@
+==============================================================================
+CELL STEENBRB -- RULE.md section 5's DESCRIPTIVE READ-OUTS
+These are NOT verdicts and none of them can change the outcome.
+==============================================================================
+5.1 the first minor at which progress stops
+    m_stop (last pass with dx_inf > step_tol) = 58   m_stop/N = 0.012393
+    last minor with dx_inf > 0            = 58
+    sum of dx_inf over the passes AFTER m_stop = 0
+    passes that moved the iterate: 38 of 4680   passes with no step_tol: 0
+
+5.2 admissions per identity, over ADD passes
+    distinct identities 23   admissions 2344   mean 101.913   median 1   max 2314
+    top 10: bound189x2314, bound205x3, bound167x3, bound83x2, bound264x2, bound158x2, bound217x2, bound206x1, bound190x1, bound375x1
+    bound identities 23 (declared distinct_bound_added 23), bound admissions 2344 (declared ws_adds_bound 2344) -> AGREE
+
+5.3 are the admitted bounds fixed or near-fixed?
+    at each pass's own step_tol: {'ORDINARY': 2344}
+    at opt_tol = 1e-09:          {'ORDINARY': 2344}
+    decision_tol values observed in the trace: [1e-09]
+    bound_gap min inf  max inf  infinite on 2344 passes
+    bound_gap deciles: inf  inf  inf  inf  inf  inf  inf  inf  inf  inf  inf
+
+5.4 the multiplier at drop against the drop tolerance
+    ALL DROPS          n=2323
+        |mu|      min 7.17639e-05  median 0.00117484  max 0.00548531
+        |mu| deciles: 7.176e-05  0.001175  0.001175  0.001175  0.001175  0.001175  0.001175  0.001175  0.001175  0.001175  0.005485
+        |mu|/tol  min 71763.9  median 1.17484e+06  max 5.48531e+06
+        |mu|/best min 1  median 1  max 1
+        drop_candidates min 2 median 10 max 16   drop_tied max 1
+    route dantzig      n=2323
+        |mu|      min 7.17639e-05  median 0.00117484  max 0.00548531
+        |mu| deciles: 7.176e-05  0.001175  0.001175  0.001175  0.001175  0.001175  0.001175  0.001175  0.001175  0.001175  0.005485
+        |mu|/tol  min 71763.9  median 1.17484e+06  max 5.48531e+06
+        |mu|/best min 1  median 1  max 1
+        drop_candidates min 2 median 10 max 16   drop_tied max 1
+
+5.5 ratio-test tie multiplicity over ADD passes
+    histogram {1: 2344}   share with ratio_tied>1 0.000000   max 1
+    ADD passes with ratio_tied>1: 0   the record's ratio_ties = 0  -> AGREE
+
+5.6 the incoming (warm) working set
+    signature 0   size 0   warm 0
+    RULE.md 5.6: this task traces ONE QP per cell, so the comparison against later majors is DECLINED BY SCOPE, not a gap.
+
+5.7 the action and drop-route histograms
+    unset                0
+    start_repair         0
+    post_probe_restart   0
+    drop_dantzig         2323
+    drop_zero_probe      0
+    suspect_escalation   0
+    terminal             0
+    ride_stepped         2
+    ride_unbounded       0
+    add                  2342
+    move_only            13
+    routes {'none': 2357, 'dantzig': 2323}   blocks {'bound': 4667, 'none': 13}
+
+5.8 the working-set size trajectory
+    first 0  last 22  min 0  max 23
+    deciles 0  21  21  21  21  21  22  22  22  22  23
+    passes where ws_size_out != ws_size_in: 4667   passes with shift_adds>0: 0
+
+5.9 the uncapped ratio test
+    ADD passes 2344   with raw_ratio > 1: 0
+    raw_ratio <= 1: min -0  median -0  max 0.109601
+    deciles -0  -0  -0  -0  -0  -0  -0  -0  -0  -0  0.1096

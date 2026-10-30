@@ -1,0 +1,40 @@
+THE THREE-PART NEUTRALITY PROOF, per cell, machine-written by summarise.py.
+
+(i)   the same binary, --callback on vs --callback off, every column the probe prints
+(ii)  ZAMB2-8 only, against H3 run-A (hven pin 3904a477 = qp_failure_budget 1)
+(iii) every other cell, against M1's committed budget arm (the shipped default)
+
+=== STEENBRB ===
+  (i) arms: 33 columns compared, 0 differing
+  (iii) against M1's budget arm:
+    columns compared: 16   identical: 16   differing: 0   absent from baseline: 0
+
+=== STEENBRC ===
+  (i) arms: 33 columns compared, 0 differing
+  (iii) against M1's budget arm:
+    columns compared: 16   identical: 16   differing: 0   absent from baseline: 0
+
+=== STEENBRG ===
+  (i) arms: 33 columns compared, 0 differing
+  (iii) against M1's budget arm:
+    columns compared: 16   identical: 16   differing: 0   absent from baseline: 0
+
+=== ZAMB2-8 ===
+  (i) arms: 33 columns compared, 0 differing
+  (ii) against H3 run-A:
+    columns compared: 13   identical: 13   differing: 0   absent from baseline: 0
+
+=== YORKNET ===
+  (i) arms: 33 columns compared, 0 differing
+  (iii) against M1's budget arm:
+    columns compared: 16   identical: 16   differing: 0   absent from baseline: 0
+
+=== BRITGAS ===
+  (i) arms: 33 columns compared, 0 differing
+  (iii) against M1's budget arm:
+    columns compared: 16   identical: 16   differing: 0   absent from baseline: 0
+
+=== READING6 ===
+  (i) arms: 33 columns compared, 0 differing
+  (iii) against M1's budget arm:
+    columns compared: 16   identical: 16   differing: 0   absent from baseline: 0

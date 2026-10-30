@@ -1,0 +1,139 @@
+M7 W2 M3a ADDENDUM E -- THE VERDICT: RULE-E.md section 5, applied to the
+four E legs.
+
+Machine-written by wrappers/summarise_m3a.py from rows/e/ and from the two
+COMMITTED stage-1 controls in rows/stage1/. No number below is transcribed
+by hand. RULE-E.md was committed at ade36329, BEFORE any E leg ran, and is
+applied here AS WRITTEN -- no predicate is relaxed, widened or re-read in
+the light of what the legs said.
+
+THIS IS NOT A RE-TEST OF THE RADIUS HYPOTHESIS (RULE-E.md section 0). That
+hypothesis stays CLOSED by RULE.md section 5.5 and verdict.txt stands
+exactly as committed at 6bc75ee9. The hypothesis under test here is:
+
+  H-QP  With the trust window removed, the first QP subproblem on STEENBRB
+        and YORKNET is SOLVABLE by the shipped active-set walk given more
+        minor iterations; the solve dies on the iteration cap, not on a
+        broken subproblem.
+
+THE PREDICATES, as the rule states them:
+  SUPPORTED(cell,arm) iff first_qp_plain_status == optimal
+                      AND steps_accepted >= 1
+  REFUTED(cell)       iff the first QP still ends `max_iter` on that cell's
+                          E2 leg (the 10x-cap arm)
+  TRUNCATED(leg)      iff deadline_fired == 1 -- counters ARE reported and
+                          the leg yields NO VERDICT
+  CENSORED(leg)       iff rc != 0 -- NO ROW, never filled
+
+CENSORED LEGS: none. All 5 legs produced a row.
+TRUNCATED LEGS (deadline_fired=1 -- counters reported, NO VERDICT):
+  STEENBRB @ E2
+  YORKNET @ E2
+
+THE IDENTITY LEG (RULE-E.md section 3), the gate on the rebuilt instrument:
+  50 shared keys re-compared by this fold, 0 differing; ladder block 5 vs 5 lines (the CSV header plus its rows), IDENTICAL
+  keys present only in the rebuilt probe: first_qp_factorizations, first_qp_minor_iters, qp_cap_retries, qp_cap_retry, qp_max_iter
+  (identity-e.txt is the chain's own report, run before any E leg;
+   this line is this fold's independent re-check of the same files.)
+
+THE DERIVED PER-MAJOR MINOR CAP, read off each cell's own committed control
+(rows/stage1/<CELL>@trinf.txt) under the three conditions of
+tables/stage1-qp-counters.txt, and the arguments the E legs actually ran at:
+  STEENBRB  derived cap   4680;  E2 ran at --qp-max-iter 46800  = 10x  AS REGISTERED;  E1 first_qp_minor_iters 9360 = 2x the cap
+  YORKNET   derived cap   2560;  E2 ran at --qp-max-iter 25600  = 10x  AS REGISTERED;  E1 first_qp_minor_iters 5120 = 2x the cap
+
+THE VERDICT TABLE (RULE-E.md section 5), cell x arm. The control row of each
+cell is its committed stage-1 @trinf leg and carries no verdict.
+------------------------------------------------------------------------------
+cell     arm  argument             deadline_fired first_qp_plain_status steps_accepted first_qp_minor_iters first_qp_factorizations terminal status  VERDICT                       
+STEENBRB ctrl (stage-1 control)    0              max_iter              0              n/a (absent)         n/a (absent)            numerical_error  -- (control, RULE-E.md section 2)
+STEENBRB E1   --qp-cap-retry on    0              max_iter              0              9360                 5                       numerical_error  not SUPPORTED                 
+STEENBRB E2   --qp-max-iter 46800  1              max_iter              0              46800                5                       numerical_error  NO VERDICT (TRUNCATED)        
+
+YORKNET  ctrl (stage-1 control)    0              max_iter              0              n/a (absent)         n/a (absent)            numerical_error  -- (control, RULE-E.md section 2)
+YORKNET  E1   --qp-cap-retry on    0              max_iter              0              5120                 10240                   numerical_error  not SUPPORTED                 
+YORKNET  E2   --qp-max-iter 25600  1              max_iter              0              25600                51186                   interrupted      NO VERDICT (TRUNCATED)        
+
+WHAT THE RULE RETURNS
+------------------------------------------------------------------------------
+  SUPPORTED legs:     NONE
+  not-SUPPORTED legs: STEENBRB@E1, YORKNET@E1
+  REFUTED cells:      NONE
+  NO VERDICT: STEENBRB@E2 -- TRUNCATED at the 300 s solver deadline
+  NO VERDICT: YORKNET@E2 -- TRUNCATED at the 300 s solver deadline
+
+VERDICT: NO LEG IS SUPPORTED, AND NO CELL IS REFUTED.
+
+H-QP is NOT SUPPORTED on either cell at either arm: the SUPPORTED
+predicate is FALSE wherever a leg could be evaluated. It is NOT REFUTED
+either -- REFUTED(cell) is defined on that cell's E2 leg alone, and both
+E2 legs are TRUNCATED, which RULE-E.md section 5 says yields NO VERDICT.
+The rule's last clause therefore governs: 'Any other combination is
+reported as exactly what it is -- the table is the finding -- and is not
+forced into one of the three labels above.'
+
+The failure path's INSTRUCTION applies unchanged: H-QP is recorded as not
+supported on these cells at these caps, and the addendum STOPS. It is not
+re-tested at a larger cap, not widened to other cells, not re-run at a
+wider budget, and not rescued by relaxing the SUPPORTED predicate.
+
+NO DEFAULT IS CHANGED BY THIS ADDENDUM UNDER ANY OUTCOME (RULE-E.md section
+0) -- not qp_cap_retry, not QpOptions::max_iter, not tr_init, not
+restoration_proximity, not qp.tr_radius, not feas_tol. A SUPPORTED verdict
+would have licensed none either.
+
+==============================================================================
+OBSERVATION -- OUTSIDE THE VERDICT, AND NOT ONE
+==============================================================================
+
+The two E2 legs are TRUNCATED and the rule gives them no verdict. What
+follows is not a verdict and is not offered as one: it is what the first
+QP's own history[0] fields say on those legs, printed because they were
+complete BEFORE the deadline fired. The evidence that they were complete is
+in the row itself and is checked here, not assumed:
+
+  STEENBRB @ E2  (--qp-max-iter 46800, deadline_fired=1, terminal status numerical_error)
+      first_qp_solved            = 1   (history[0] carries a QP result)
+      first_qp_minor_iters       = 46800    = the cap EXACTLY: the first QP ran out its whole budget and RETURNED
+      first_qp_status            = max_iter
+      first_qp_elastic_applied   = 0   (so first_qp_plain_status is the
+                                       raw status, no inference)
+      first_qp_factorizations    = 5
+      history_rows               = 4        major_iters = 4 -- a later major
+                                       exists, so history[0] is closed
+      qp_maxiter_exits           = 4   qp_cap_retries = 0
+      minors vs the derived cap  = 46800 = 10x 4680
+
+  YORKNET @ E2  (--qp-max-iter 25600, deadline_fired=1, terminal status interrupted)
+      first_qp_solved            = 1   (history[0] carries a QP result)
+      first_qp_minor_iters       = 25600    = the cap EXACTLY: the first QP ran out its whole budget and RETURNED
+      first_qp_status            = max_iter
+      first_qp_elastic_applied   = 0   (so first_qp_plain_status is the
+                                       raw status, no inference)
+      first_qp_factorizations    = 51186
+      history_rows               = 3        major_iters = 2 -- a later major
+                                       exists, so history[0] is closed
+      qp_maxiter_exits           = 2   qp_cap_retries = 0
+      minors vs the derived cap  = 25600 = 10x 2560
+
+Read plainly, and as an OBSERVATION only: on both cells the first QP
+subproblem consumed ten times the minor budget stage 1 refused it and still
+came back `max_iter`. That is the reading the REFUTED label would have
+carried had the legs not been truncated; the rule withholds the label
+because the LEG was truncated, and this fold withholds it too.
+
+The E1 legs are NOT truncated and need no such caveat: at twice the cap,
+  STEENBRB  first QP max_iter after 9360 minors on 5 factorizations; qp_cap_retries=4,
+            qp_maxiter_exits=4, steps_accepted=0, terminal numerical_error
+  YORKNET   first QP max_iter after 5120 minors on 10240 factorizations; qp_cap_retries=4,
+            qp_maxiter_exits=4, steps_accepted=0, terminal numerical_error
+
+RULE-E.md section 4's counter accounting is what makes those two numbers
+read: qp_maxiter_exits counts capped exits AT THE ROUTING SITE, so a retry
+that RESCUED its subproblem would not appear there at all. Both legs show
+qp_cap_retries and qp_maxiter_exits EQUAL and non-zero, which that section
+reads as: every capped subproblem was retried at twice the budget and hit
+the doubled cap too. No retry rescued anything.
+
+QpCounters::schur_updates is ABSENT from SqpCounters and is recorded as
+absent, not substituted for (RULE-E.md section 4).

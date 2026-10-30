@@ -1,0 +1,215 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-release/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = SqpDriverAdaptiveMu.*:SqpDriverCertifiedFallback.*:SqpDriverElastic*:QpEngineStructuralViolation.*:QpEngine.T6b*
+[==========] Running 70 tests from 6 test suites.
+[----------] Global test environment set-up.
+[----------] 2 tests from QpEngine
+[ RUN      ] QpEngine.T6bObjectiveInflatedMultiplierBehavesTheSameInBothAlgebras
+[       OK ] QpEngine.T6bObjectiveInflatedMultiplierBehavesTheSameInBothAlgebras (3 ms)
+[ RUN      ] QpEngine.T6bANonFiniteDualMuLeavesTheRowToleranceFinite
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_qp_engine.cpp:897: Failure
+Expected equality of these values:
+  QpEngine{opts}.solve(inconsistent_equalities_qp()).status
+    Which is: 4-byte object <03-00 00-00>
+  QpStatus::kMaxIter
+    Which is: 4-byte object <01-00 00-00>
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_qp_engine.cpp:898: Failure
+Expected equality of these values:
+  QpEngine{opts}.solve(infeasible_bounds_qp()).status
+    Which is: 4-byte object <03-00 00-00>
+  QpStatus::kMaxIter
+    Which is: 4-byte object <01-00 00-00>
+
+[  FAILED  ] QpEngine.T6bANonFiniteDualMuLeavesTheRowToleranceFinite (0 ms)
+[----------] 2 tests from QpEngine (3 ms total)
+
+[----------] 10 tests from SqpDriverElastic
+[ RUN      ] SqpDriverElastic.ElasticConstructionRelaxesOnlyViolatedRows
+[       OK ] SqpDriverElastic.ElasticConstructionRelaxesOnlyViolatedRows (0 ms)
+[ RUN      ] SqpDriverElastic.ElasticReformulationRecoversAFeasibleQpsSolution
+[       OK ] SqpDriverElastic.ElasticReformulationRecoversAFeasibleQpsSolution (0 ms)
+[ RUN      ] SqpDriverElastic.InconsistentLinearizationRecovers
+[       OK ] SqpDriverElastic.InconsistentLinearizationRecovers (3 ms)
+[ RUN      ] SqpDriverElastic.ElasticSurvivesALargeConstraintScale
+[       OK ] SqpDriverElastic.ElasticSurvivesALargeConstraintScale (3 ms)
+[ RUN      ] SqpDriverElastic.ElasticIsIdleOnCleanProblems
+[       OK ] SqpDriverElastic.ElasticIsIdleOnCleanProblems (8 ms)
+[ RUN      ] SqpDriverElastic.RhoEscalationIsBoundedAndSignals
+[       OK ] SqpDriverElastic.RhoEscalationIsBoundedAndSignals (4 ms)
+[ RUN      ] SqpDriverElastic.EarlyExitCutsTheLadderOnABoundPinnedFixture
+[       OK ] SqpDriverElastic.EarlyExitCutsTheLadderOnABoundPinnedFixture (1 ms)
+[ RUN      ] SqpDriverElastic.EarlyExitCutsBothActivationsOnASecondBoundPinnedFixture
+[       OK ] SqpDriverElastic.EarlyExitCutsBothActivationsOnASecondBoundPinnedFixture (2 ms)
+[ RUN      ] SqpDriverElastic.EarlyExitOnADegenerateRelaxationStillCertifiesCorrectly
+[       OK ] SqpDriverElastic.EarlyExitOnADegenerateRelaxationStillCertifiesCorrectly (4 ms)
+[ RUN      ] SqpDriverElastic.InconsistentLinearizationRecoversUnderKSsn
+[       OK ] SqpDriverElastic.InconsistentLinearizationRecoversUnderKSsn (3 ms)
+[----------] 10 tests from SqpDriverElastic (32 ms total)
+
+[----------] 3 tests from SqpDriverAdaptiveMu
+[ RUN      ] SqpDriverAdaptiveMu.AdaptiveMuRecoversTailAccuracy
+[       OK ] SqpDriverAdaptiveMu.AdaptiveMuRecoversTailAccuracy (0 ms)
+[ RUN      ] SqpDriverAdaptiveMu.MuScheduleIsQuantizedAndMonotone
+[       OK ] SqpDriverAdaptiveMu.MuScheduleIsQuantizedAndMonotone (9 ms)
+[ RUN      ] SqpDriverAdaptiveMu.ScheduleIsIdleWhenDisabled
+[       OK ] SqpDriverAdaptiveMu.ScheduleIsIdleWhenDisabled (0 ms)
+[----------] 3 tests from SqpDriverAdaptiveMu (11 ms total)
+
+[----------] 13 tests from SqpDriverElasticSeed
+[ RUN      ] SqpDriverElasticSeed.TheFirstRungsPenaltyIsFlooredAtTodaysStartAndPlacedByTheEvidence
+[       OK ] SqpDriverElasticSeed.TheFirstRungsPenaltyIsFlooredAtTodaysStartAndPlacedByTheEvidence (1 ms)
+[ RUN      ] SqpDriverElasticSeed.TheWorkingSetSeedIsSolutionIdenticalAndEarnsItsMinorIterations
+[       OK ] SqpDriverElasticSeed.TheWorkingSetSeedIsSolutionIdenticalAndEarnsItsMinorIterations (6 ms)
+[ RUN      ] SqpDriverElasticSeed.TheDegradedPathIsSAFEOnFixturesWhereGeometryNamesNothing
+[       OK ] SqpDriverElasticSeed.TheDegradedPathIsSAFEOnFixturesWhereGeometryNamesNothing (3 ms)
+[ RUN      ] SqpDriverElasticSeed.GeometricActivityEARNSItsMinorIterationsWhereTheGeometryIsThere
+[       OK ] SqpDriverElasticSeed.GeometricActivityEARNSItsMinorIterationsWhereTheGeometryIsThere (2 ms)
+[ RUN      ] SqpDriverElasticSeed.TheWorkingSetIsClassifiedAgainstTheWINDOWCLAMPEDBounds
+[       OK ] SqpDriverElasticSeed.TheWorkingSetIsClassifiedAgainstTheWINDOWCLAMPEDBounds (1 ms)
+[ RUN      ] SqpDriverElasticSeed.AnEvidenceNormAboveTheLaddersCeilingIsCAPPEDAtIt
+[       OK ] SqpDriverElasticSeed.AnEvidenceNormAboveTheLaddersCeilingIsCAPPEDAtIt (2 ms)
+[ RUN      ] SqpDriverElasticSeed.ABlockThatNeverFIREDIsW1sLadderWhateverItsFieldsSay
+[       OK ] SqpDriverElasticSeed.ABlockThatNeverFIREDIsW1sLadderWhateverItsFieldsSay (2 ms)
+[ RUN      ] SqpDriverElasticSeed.ADefaultConstructedEvidenceBlockIsW1sLadderExactly
+[       OK ] SqpDriverElasticSeed.ADefaultConstructedEvidenceBlockIsW1sLadderExactly (2 ms)
+[ RUN      ] SqpDriverElasticSeed.T6bAClimbingConsistentLadderClosesAtEveryRung
+[       OK ] SqpDriverElasticSeed.T6bAClimbingConsistentLadderClosesAtEveryRung (0 ms)
+[ RUN      ] SqpDriverElasticSeed.T6bTheLadderAboveLambda1e6ClosesToo
+[       OK ] SqpDriverElasticSeed.T6bTheLadderAboveLambda1e6ClosesToo (0 ms)
+[ RUN      ] SqpDriverElasticSeed.T6bTheUncontainedInBranchRouteNoLongerDeclines
+[       OK ] SqpDriverElasticSeed.T6bTheUncontainedInBranchRouteNoLongerDeclines (1 ms)
+[ RUN      ] SqpDriverElasticSeed.T6bCoversTheBandWhereThePlacementMarginIsUnachievable
+[       OK ] SqpDriverElasticSeed.T6bCoversTheBandWhereThePlacementMarginIsUnachievable (0 ms)
+[ RUN      ] SqpDriverElasticSeed.T6bTheBandsHIGHRungsReachTheOptimum
+[       OK ] SqpDriverElasticSeed.T6bTheBandsHIGHRungsReachTheOptimum (0 ms)
+[----------] 13 tests from SqpDriverElasticSeed (27 ms total)
+
+[----------] 30 tests from SqpDriverCertifiedFallback
+[ RUN      ] SqpDriverCertifiedFallback.P1TheEvidencePlacesRungAsFirstRungBetweenTheFloorAndTheCeiling
+[       OK ] SqpDriverCertifiedFallback.P1TheEvidencePlacesRungAsFirstRungBetweenTheFloorAndTheCeiling (1 ms)
+[ RUN      ] SqpDriverCertifiedFallback.P2ClosedSlacksDisproveTheSuspicionAndCarryTheMultipliers
+[       OK ] SqpDriverCertifiedFallback.P2ClosedSlacksDisproveTheSuspicionAndCarryTheMultipliers (0 ms)
+[ RUN      ] SqpDriverCertifiedFallback.P2bOpenButReducedSlacksReturnKOptimalWithMultipliersZEROED
+[       OK ] SqpDriverCertifiedFallback.P2bOpenButReducedSlacksReturnKOptimalWithMultipliersZEROED (0 ms)
+[ RUN      ] SqpDriverCertifiedFallback.P3AnExhaustedLadderCertifiesInfeasibleWithItsReportAttached
+[       OK ] SqpDriverCertifiedFallback.P3AnExhaustedLadderCertifiesInfeasibleWithItsReportAttached (0 ms)
+[ RUN      ] SqpDriverCertifiedFallback.P3TheEscapeBranchCONSUMESTheAttachedLadderRatherThanRerunningIt
+[       OK ] SqpDriverCertifiedFallback.P3TheEscapeBranchCONSUMESTheAttachedLadderRatherThanRerunningIt (1 ms)
+[ RUN      ] SqpDriverCertifiedFallback.P4ARefusedRungAReturnsTheColdWalkCounterForCounter
+[       OK ] SqpDriverCertifiedFallback.P4ARefusedRungAReturnsTheColdWalkCounterForCounter (1 ms)
+[ RUN      ] SqpDriverCertifiedFallback.P4bTheCeilingDeclineIsGONEUnderThePlacementBound
+[       OK ] SqpDriverCertifiedFallback.P4bTheCeilingDeclineIsGONEUnderThePlacementBound (0 ms)
+[ RUN      ] SqpDriverCertifiedFallback.AnOverriddenPlacementIsVALIDATEDAndClampedIntoTheLaddersRange
+[       OK ] SqpDriverCertifiedFallback.AnOverriddenPlacementIsVALIDATEDAndClampedIntoTheLaddersRange (0 ms)
+[ RUN      ] SqpDriverCertifiedFallback.P4OnAPrimedEngineCostsTheAnalysisRungADisplaces
+[       OK ] SqpDriverCertifiedFallback.P4OnAPrimedEngineCostsTheAnalysisRungADisplaces (1 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T3ARefusalWhoseWalkCertifiesInfeasibleCostsTwoActivations
+[       OK ] SqpDriverCertifiedFallback.T3ARefusalWhoseWalkCertifiesInfeasibleCostsTwoActivations (3 ms)
+[ RUN      ] SqpDriverCertifiedFallback.P5AnUnfiredEvidenceBlockNeverEntersRungAAtAll
+[       OK ] SqpDriverCertifiedFallback.P5AnUnfiredEvidenceBlockNeverEntersRungAAtAll (1 ms)
+[ RUN      ] SqpDriverCertifiedFallback.P6NoEvidenceContentMakesTheFallbackThrow
+[       OK ] SqpDriverCertifiedFallback.P6NoEvidenceContentMakesTheFallbackThrow (6 ms)
+[ RUN      ] SqpDriverCertifiedFallback.P7TheVerdictReadsNothingFromTheEvidenceBeyondItsThreeInputs
+[       OK ] SqpDriverCertifiedFallback.P7TheVerdictReadsNothingFromTheEvidenceBeyondItsThreeInputs (16 ms)
+[ RUN      ] SqpDriverCertifiedFallback.ANegativeOrNaNWindowIsREFUSEDAtBothPublicEntryPoints
+[       OK ] SqpDriverCertifiedFallback.ANegativeOrNaNWindowIsREFUSEDAtBothPublicEntryPoints (0 ms)
+[ RUN      ] SqpDriverCertifiedFallback.ThePartitionOverFallbackEntriesIsCOMPLETEAndSumsToTheFiredOnes
+[       OK ] SqpDriverCertifiedFallback.ThePartitionOverFallbackEntriesIsCOMPLETEAndSumsToTheFiredOnes (2 ms)
+[ RUN      ] SqpDriverCertifiedFallback.ADeclinedRungAAboveTheFloorIsRETRIEDThereExactlyOnce
+[       OK ] SqpDriverCertifiedFallback.ADeclinedRungAAboveTheFloorIsRETRIEDThereExactlyOnce (1 ms)
+[ RUN      ] SqpDriverCertifiedFallback.TheFallbackVerdictEventDescribesEVERYEntryIncludingTheUnfiredOne
+[       OK ] SqpDriverCertifiedFallback.TheFallbackVerdictEventDescribesEVERYEntryIncludingTheUnfiredOne (0 ms)
+[ RUN      ] SqpDriverCertifiedFallback.ARungAOwnedMajorIsAnElasticRowOnTheDriversOwnHistory
+[       OK ] SqpDriverCertifiedFallback.ARungAOwnedMajorIsAnElasticRowOnTheDriversOwnHistory (1 ms)
+[ RUN      ] SqpDriverCertifiedFallback.TheDriverEmitsOneFallbackVerdictPerEscapeAndHS38sNeverFIRED
+[       OK ] SqpDriverCertifiedFallback.TheDriverEmitsOneFallbackVerdictPerEscapeAndHS38sNeverFIRED (8 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T7TheEscapeBranchTernaryCONSUMESAnAttachedReportAtTheDriver
+[       OK ] SqpDriverCertifiedFallback.T7TheEscapeBranchTernaryCONSUMESAnAttachedReportAtTheDriver (3 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T7TheCeilingFlagsTRUEArmOnADriverRowIsThePricedOne
+[       OK ] SqpDriverCertifiedFallback.T7TheCeilingFlagsTRUEArmOnADriverRowIsThePricedOne (1 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T7TheDisprovedSuspicionCalibrationOverTheHsCorpusIsZERO
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_solver.cpp:10983: Failure
+Expected equality of these values:
+  fired
+    Which is: 6
+  5
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_solver.cpp:10985: Failure
+Expected equality of these values:
+  relaxed
+    Which is: 6
+  5
+
+[  FAILED  ] SqpDriverCertifiedFallback.T7TheDisprovedSuspicionCalibrationOverTheHsCorpusIsZERO (45 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T7TheDisplacedPatternCostsONEAnalysisOnTheFollowingMajor
+[       OK ] SqpDriverCertifiedFallback.T7TheDisplacedPatternCostsONEAnalysisOnTheFollowingMajor (99 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T7AnInfiniteOverridePlacesTheLadderAtItsCeiling
+[       OK ] SqpDriverCertifiedFallback.T7AnInfiniteOverridePlacesTheLadderAtItsCeiling (0 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnItsWorstFixture
+[       OK ] SqpDriverCertifiedFallback.T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnItsWorstFixture (64 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T7TheT3ARouteIsREACHABLEAtTheDriverAndCostsOneExtraLadder
+[       OK ] SqpDriverCertifiedFallback.T7TheT3ARouteIsREACHABLEAtTheDriverAndCostsOneExtraLadder (2 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T7TheAttachedReportsRestorationOfferIsATROUNDINGNotAMargin
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_solver.cpp:11510: Failure
+Expected: (requesting.step_norm) > (0.0), actual: 0 vs 0
+an offer WAS made -- this is not the zero-step case
+
+[  FAILED  ] SqpDriverCertifiedFallback.T7TheAttachedReportsRestorationOfferIsATROUNDINGNotAMargin (3 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T7F1TheSameInconsistentLinearizationInAllThreeModes
+[       OK ] SqpDriverCertifiedFallback.T7F1TheSameInconsistentLinearizationInAllThreeModes (6 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearization
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_solver.cpp:11650: Failure
+Expected equality of these values:
+  tier_rung.status
+    Which is: 4-byte object <03-00 00-00>
+  SolveStatus::kNumericalError
+    Which is: 4-byte object <06-00 00-00>
+no certificate on the tier arm, so no kInfeasible (L1)
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_solver.cpp:11652: Failure
+Value of: tier_rung.infeasibility_certified
+  Actual: true
+Expected: false
+
+[  FAILED  ] SqpDriverCertifiedFallback.T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearization (3 ms)
+[ RUN      ] SqpDriverCertifiedFallback.E1TheDependentInconsistentPairIsCertifiedByTheEqualityBasis
+[       OK ] SqpDriverCertifiedFallback.E1TheDependentInconsistentPairIsCertifiedByTheEqualityBasis (0 ms)
+[----------] 30 tests from SqpDriverCertifiedFallback (285 ms total)
+
+[----------] 12 tests from QpEngineStructuralViolation
+[ RUN      ] QpEngineStructuralViolation.T6bTrueInfeasibilityStillReadsKInfeasibleInBothAlgebras
+[       OK ] QpEngineStructuralViolation.T6bTrueInfeasibilityStillReadsKInfeasibleInBothAlgebras (8 ms)
+[ RUN      ] QpEngineStructuralViolation.T6bTheGuardContradictionsAreNotAbsorbedInEitherAlgebra
+[       OK ] QpEngineStructuralViolation.T6bTheGuardContradictionsAreNotAbsorbedInEitherAlgebra (8 ms)
+[ RUN      ] QpEngineStructuralViolation.T6bAFeasibleElasticCopyIsNoLongerCertifiedInfeasible
+[       OK ] QpEngineStructuralViolation.T6bAFeasibleElasticCopyIsNoLongerCertifiedInfeasible (3 ms)
+[ RUN      ] QpEngineStructuralViolation.T6bTheStiffFamilyClosesInBothAlgebras
+[       OK ] QpEngineStructuralViolation.T6bTheStiffFamilyClosesInBothAlgebras (9 ms)
+[ RUN      ] QpEngineStructuralViolation.T6bTheInequalityBranchClosesWithItsResidueOnTheSafeSide
+[       OK ] QpEngineStructuralViolation.T6bTheInequalityBranchClosesWithItsResidueOnTheSafeSide (3 ms)
+[ RUN      ] QpEngineStructuralViolation.T6bTheGENUINELYBlockedSiblingStaysKOptimalAndOPEN
+[       OK ] QpEngineStructuralViolation.T6bTheGENUINELYBlockedSiblingStaysKOptimalAndOPEN (1 ms)
+[ RUN      ] QpEngineStructuralViolation.T6bTheMisfireCensusOverBothPopulationsAndBothAlgebras
+[       OK ] QpEngineStructuralViolation.T6bTheMisfireCensusOverBothPopulationsAndBothAlgebras (20 ms)
+[ RUN      ] QpEngineStructuralViolation.T6bTheStiffBorderWalkAboveTheShippedDualMuReachesTheOptimum
+[       OK ] QpEngineStructuralViolation.T6bTheStiffBorderWalkAboveTheShippedDualMuReachesTheOptimum (0 ms)
+[ RUN      ] QpEngineStructuralViolation.T7ACertifiedInfeasibleExitRETURNSTheRefinedPointInBothAlgebras
+[       OK ] QpEngineStructuralViolation.T7ACertifiedInfeasibleExitRETURNSTheRefinedPointInBothAlgebras (36 ms)
+[ RUN      ] QpEngineStructuralViolation.T7TheFeasibleCensusHalfOverTheFULLDualMuSet
+[       OK ] QpEngineStructuralViolation.T7TheFeasibleCensusHalfOverTheFULLDualMuSet (25 ms)
+[ RUN      ] QpEngineStructuralViolation.E2Fix4TheTerminalMuPointIsRefinedBeforeAnInfeasibleVerdict
+[       OK ] QpEngineStructuralViolation.E2Fix4TheTerminalMuPointIsRefinedBeforeAnInfeasibleVerdict (3 ms)
+[ RUN      ] QpEngineStructuralViolation.E2Fix4ARealTerminalViolationStillEndsInfeasible
+[       OK ] QpEngineStructuralViolation.E2Fix4ARealTerminalViolationStillEndsInfeasible (0 ms)
+[----------] 12 tests from QpEngineStructuralViolation (123 ms total)
+
+[----------] Global test environment tear-down
+[==========] 70 tests from 6 test suites ran. (483 ms total)
+[  PASSED  ] 66 tests.
+[  FAILED  ] 4 tests, listed below:
+[  FAILED  ] QpEngine.T6bANonFiniteDualMuLeavesTheRowToleranceFinite
+[  FAILED  ] SqpDriverCertifiedFallback.T7TheDisprovedSuspicionCalibrationOverTheHsCorpusIsZERO
+[  FAILED  ] SqpDriverCertifiedFallback.T7TheAttachedReportsRestorationOfferIsATROUNDINGNotAMargin
+[  FAILED  ] SqpDriverCertifiedFallback.T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearization
+
+ 4 FAILED TESTS

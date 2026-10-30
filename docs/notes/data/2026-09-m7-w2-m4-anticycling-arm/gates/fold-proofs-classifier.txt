@@ -1,0 +1,43 @@
+FOLD 1  ACCEPTED (rc=2, wanted 2)  the WRONG runner list (M3b's one header) is REFUSED
+            list : ['include/hven/detail/qp/qp_anti_cycling_arm.h', 'include/hven/detail/qp/qp_walk_trace.h']
+          REFUSED: the runner's changed-header list is ['include/hven/detail/qp/qp_walk_trace.h'] but this round's own f5205770..196f0ef0 diff derives ['include/hven/detail/qp/qp_anti_cycling_arm.h', 'include/hven/detail/qp/qp_walk_trace.h']
+
+FOLD 2  ACCEPTED (rc=0, wanted 0)  the RIGHT runner list (this round's two headers) is ACCEPTED
+            list : ['include/hven/detail/qp/qp_anti_cycling_arm.h', 'include/hven/detail/qp/qp_walk_trace.h']
+          HEADER LIST ACCEPTED: ['include/hven/detail/qp/qp_anti_cycling_arm.h', 'include/hven/detail/qp/qp_walk_trace.h']
+
+FOLD 3  ACCEPTED (rc=2, wanted 2)  a runner list with an EXTRA header is REFUSED
+            list : ['include/hven/detail/qp/qp_anti_cycling_arm.h', 'include/hven/detail/qp/qp_walk_trace.h']
+          REFUSED: the runner's changed-header list is ['include/hven/detail/qp/qp_anti_cycling_arm.h', 'include/hven/detail/qp/qp_engine.h', 'include/hven/detail/qp/qp_walk_trace.h'] but this round's own f5205770..196f0ef0 diff derives ['include/hven/detail/qp/qp_anti_cycling_arm.h', 'include/hven/detail/qp/qp_walk_trace.h']
+
+FOLD 4  ACCEPTED (rc=0, wanted 0)  no runner list: the derivation alone governs and ACCEPTS
+            list : ['include/hven/detail/qp/qp_anti_cycling_arm.h', 'include/hven/detail/qp/qp_walk_trace.h']
+          HEADER LIST ACCEPTED: ['include/hven/detail/qp/qp_anti_cycling_arm.h', 'include/hven/detail/qp/qp_walk_trace.h']
+
+FOLD 5  ACCEPTED (rc=7, wanted 7)  an unresolvable base REFUSES (R6)
+          REFUSED (R6): a revision this round names does not resolve in /home/ghecht/Projects/hven
+
+FOLD 6  ACCEPTED (rc=7, wanted 7)  an EMPTY derivation REFUSES (R6), never passes vacuously
+            list : EMPTY
+          REFUSED (R6): the derivation names NO header under include/. This script classifies differing objects into 'changed source' and 'includes a changed header'; with no header there is no class B and no negative control, and a classification that cannot be non-vacuous is not a gate.
+
+FOLD 7  ACCEPTED (rc=0, wanted 0)  the reversed range names the same two headers and ACCEPTS
+            list : ['include/hven/detail/qp/qp_anti_cycling_arm.h', 'include/hven/detail/qp/qp_walk_trace.h']
+          HEADER LIST ACCEPTED: ['include/hven/detail/qp/qp_anti_cycling_arm.h', 'include/hven/detail/qp/qp_walk_trace.h']
+
+FOLD 8  ACCEPTED (rc=3, wanted 3)  a missing comparison file still REFUSES
+            list : ['include/hven/detail/qp/qp_anti_cycling_arm.h', 'include/hven/detail/qp/qp_walk_trace.h']
+          HEADER LIST ACCEPTED: ['include/hven/detail/qp/qp_anti_cycling_arm.h', 'include/hven/detail/qp/qp_walk_trace.h']
+          REFUSED: no comparison file at /tmp/tmp.jbfAOx60nh/not-a-file.txt
+
+FOLD 9  ACCEPTED (rc=3, wanted 3)  a comparison with no P-SYM summary still REFUSES (R1)
+            list : ['include/hven/detail/qp/qp_anti_cycling_arm.h', 'include/hven/detail/qp/qp_walk_trace.h']
+          HEADER LIST ACCEPTED: ['include/hven/detail/qp/qp_anti_cycling_arm.h', 'include/hven/detail/qp/qp_walk_trace.h']
+          REFUSED (R1): /tmp/tmp.jbfAOx60nh/empty-compare.txt carries no `P-SYM: ` summary line -- the comparison is empty or malformed, and a classification of nothing is not a pass
+
+FOLD 10 ACCEPTED (rc=4, wanted 4)  declaring 1 mover over a 0-mover comparison still REFUSES (R2)
+            list : ['include/hven/detail/qp/qp_anti_cycling_arm.h', 'include/hven/detail/qp/qp_walk_trace.h']
+          HEADER LIST ACCEPTED: ['include/hven/detail/qp/qp_anti_cycling_arm.h', 'include/hven/detail/qp/qp_walk_trace.h']
+          REFUSED (R2): /home/ghecht/Projects/hven/.scratch/m7w2m4gates/gates/psym/compare-Release.txt names 0 differing object(s) and this round DECLARED 1 -- a shape that is not the declared one is re-derived and declared again, never discovered
+
+CLASSIFIER_FOLD_TOTAL=10  CLASSIFIER_FOLD_FAILED=0

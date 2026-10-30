@@ -1,0 +1,10 @@
+PGREP_EMPTY w3-sqp-ssn-certify-face-cutest-A-BRITGAS
+PGREP_NO_UNCOVERED_CELL w3-sqp-ssn-certify-face-cutest-A-BRITGAS 2026-10-29T03:42:20-04:00
+IN_LOCK_PGREP_EMPTY w3-sqp-ssn-certify-face-cutest-A-BRITGAS 2026-10-29T03:42:20-04:00
+FOREGROUND_START w3-sqp-ssn-certify-face-cutest-A-BRITGAS 2026-10-29T03:42:20-04:00
+w2_a4_sweep: sqp-ssn-certify-face / hven-sqp / cutest / run A-BRITGAS -> /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/train/cells/hven-sqp/sqp-ssn-certify-face/cutest-run-A-BRITGAS (ceiling 300s) [problems: BRITGAS]
+run_serial: cutest/BRITGAS/hven-sqp/sqp-ssn-certify-face
+hven_bench_cell: SsnEngine::solve: start.z(18) = -0.001872426084974048 prices variable 18's UPPER bound, but that bound is absent (upper = inf, at or beyond the +/-1e+20 infinity sentinel) -- there is no row for that multiplier
+run_serial: CELL ERROR cutest/BRITGAS/hven-sqp/sqp-ssn-certify-face
+run_serial: 1 cells -> /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/train/cells/hven-sqp/sqp-ssn-certify-face/cutest-run-A-BRITGAS/results.csv
+FOREGROUND_END w3-sqp-ssn-certify-face-cutest-A-BRITGAS 2026-10-29T03:44:27-04:00 rc=1

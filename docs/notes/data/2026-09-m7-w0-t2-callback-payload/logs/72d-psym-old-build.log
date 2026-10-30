@@ -1,0 +1,32 @@
+LEG: bash -o pipefail -c 
+set -o pipefail
+cd /home/ghecht/Projects/hven
+git worktree remove --force .scratch/m7t2/before-tree 2>/dev/null
+rm -rf .scratch/m7t2/before-build .scratch/m7t2/psym-old-tree .scratch/m7t2/psym-old-build
+# EQUAL-LENGTH SIBLING PATHS on purpose: `psym-old-tree` and `psym-new-tree`
+# are the same number of characters, so __FILE__ is the same LENGTH in both
+# arms and the comparison cannot be perturbed by a string-constant shift.
+git worktree add --detach .scratch/m7t2/psym-old-tree d8ed6b28 > /dev/null 2>&1
+rc=$?; echo "WORKTREE_RC=$rc"; [ $rc -eq 0 ] || exit $rc
+rmdir .scratch/m7t2/psym-old-tree/dep/eigen .scratch/m7t2/psym-old-tree/dep/fmt 2>/dev/null
+ln -sfn /home/ghecht/Projects/hven/dep/eigen .scratch/m7t2/psym-old-tree/dep/eigen
+ln -sfn /home/ghecht/Projects/hven/dep/fmt   .scratch/m7t2/psym-old-tree/dep/fmt
+CCACHE_DISABLE=1 cmake -S .scratch/m7t2/psym-old-tree -B .scratch/m7t2/psym-old-build \
+  -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=TRUE -DHVEN_FP_MODE=SAFER_FAST \
+  -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_BUILD_TYPE=Release \
+  > .scratch/m7t2/logs/72d-configure.out 2>&1
+rc=$?; echo "CONFIGURE_RC=$rc"; [ $rc -eq 0 ] || { tail -5 .scratch/m7t2/logs/72d-configure.out; exit $rc; }
+CCACHE_DISABLE=1 cmake --build .scratch/m7t2/psym-old-build -j 8 > .scratch/m7t2/logs/72d-build.out 2>&1
+rc=$?; echo "BUILD_RC=$rc"; tail -1 .scratch/m7t2/logs/72d-build.out
+exit $rc
+PGREP_SEPARATE 2026-09-15T07:12:51Z
+PGREP_EMPTY
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-09-15T07:12:51Z
+WORKTREE_RC=0
+CONFIGURE_RC=0
+BUILD_RC=0
+[201/201] Linking CXX executable bench/hven_sqp_ipqp_e1_arm
+LEG_RC=0
+FOREGROUND_END 2026-09-15T07:15:04Z
+WRAPPER_EXIT=0

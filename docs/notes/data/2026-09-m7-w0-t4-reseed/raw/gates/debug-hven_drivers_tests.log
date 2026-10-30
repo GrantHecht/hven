@@ -1,0 +1,338 @@
+Running main() from /home/ghecht/Projects/hven/build-debug/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 134 tests from 17 test suites.
+[----------] Global test environment set-up.
+[----------] 22 tests from Callback
+[ RUN      ] Callback.SqpEventRowsEqualHistoryInCallerUnits
+[       OK ] Callback.SqpEventRowsEqualHistoryInCallerUnits (6 ms)
+[ RUN      ] Callback.SqpTerminalEventDiagnosticsAreTheResultsOwn
+[       OK ] Callback.SqpTerminalEventDiagnosticsAreTheResultsOwn (3 ms)
+[ RUN      ] Callback.SqpStopReturnsInterruptedAtTheCurrentPoint
+[       OK ] Callback.SqpStopReturnsInterruptedAtTheCurrentPoint (11 ms)
+[ RUN      ] Callback.SqpConvergedBeatsStop
+[       OK ] Callback.SqpConvergedBeatsStop (6 ms)
+[ RUN      ] Callback.SqpStopInsideRestorationLatchesAndReachesTheParent
+[       OK ] Callback.SqpStopInsideRestorationLatchesAndReachesTheParent (8 ms)
+[ RUN      ] Callback.SqpStopInsideRestorationArrivesAsTheSubSolvesOwnVerdict
+[       OK ] Callback.SqpStopInsideRestorationArrivesAsTheSubSolvesOwnVerdict (15 ms)
+[ RUN      ] Callback.SqpEventXIsTheRowsOwnPointAcrossRestoration
+[       OK ] Callback.SqpEventXIsTheRowsOwnPointAcrossRestoration (14 ms)
+[ RUN      ] Callback.ASolveWithNoCallbackSnapshotsNothing
+[       OK ] Callback.ASolveWithNoCallbackSnapshotsNothing (5 ms)
+[ RUN      ] Callback.SqpStopOnANonConvergedCapTerminalRowIsANoOp
+[       OK ] Callback.SqpStopOnANonConvergedCapTerminalRowIsANoOp (5 ms)
+[ RUN      ] Callback.SqpStopOnTheRestorationsConvergedRowInterruptsAndKeepsTheCertificate
+[       OK ] Callback.SqpStopOnTheRestorationsConvergedRowInterruptsAndKeepsTheCertificate (16 ms)
+[ RUN      ] Callback.ClearingTheCallbackFromInsideItIsSafe
+[       OK ] Callback.ClearingTheCallbackFromInsideItIsSafe (679 ms)
+[ RUN      ] Callback.ADirectSetAfterAThrownDeferralSupersedesIt
+[       OK ] Callback.ADirectSetAfterAThrownDeferralSupersedesIt (21 ms)
+[ RUN      ] Callback.ZeroMajorExitFiresOnceOrNever
+[       OK ] Callback.ZeroMajorExitFiresOnceOrNever (0 ms)
+[ RUN      ] Callback.IpmContinuingEventObservesTheCommittedPoint
+[       OK ] Callback.IpmContinuingEventObservesTheCommittedPoint (2 ms)
+[ RUN      ] Callback.IpmTerminalRowStillFires
+[       OK ] Callback.IpmTerminalRowStillFires (2 ms)
+[ RUN      ] Callback.IpmStopEndsThePhaseSequence
+[       OK ] Callback.IpmStopEndsThePhaseSequence (2 ms)
+[ RUN      ] Callback.IpmTerminalEventDiagnosticsAreTheResultsOwn
+[       OK ] Callback.IpmTerminalEventDiagnosticsAreTheResultsOwn (3 ms)
+[ RUN      ] Callback.IpmEventObjectiveIsNaNOnANonObjectiveBearingPhase
+[       OK ] Callback.IpmEventObjectiveIsNaNOnANonObjectiveBearingPhase (4 ms)
+[ RUN      ] Callback.IpmTerminalEventDescribesTheReturnedPointUnderReturnBest
+[       OK ] Callback.IpmTerminalEventDescribesTheReturnedPointUnderReturnBest (2 ms)
+[ RUN      ] Callback.ThrowingCallbackPropagatesAndTheSolverIsReusable
+[       OK ] Callback.ThrowingCallbackPropagatesAndTheSolverIsReusable (14 ms)
+[ RUN      ] Callback.AReadOnlyCallbackChangesNothingOnEitherEngine
+[       OK ] Callback.AReadOnlyCallbackChangesNothingOnEitherEngine (11 ms)
+[ RUN      ] Callback.ClearingTheCallbackStopsTheEvents
+[       OK ] Callback.ClearingTheCallbackStopsTheEvents (10 ms)
+[----------] 22 tests from Callback (853 ms total)
+
+[----------] 11 tests from CallbackPayload
+[ RUN      ] CallbackPayload.TheOneArgumentOverloadStillDeliversEverything
+[       OK ] CallbackPayload.TheOneArgumentOverloadStillDeliversEverything (12 ms)
+[ RUN      ] CallbackPayload.ScalarsDeliversTheScalarsAndNothingElse
+[       OK ] CallbackPayload.ScalarsDeliversTheScalarsAndNothingElse (12 ms)
+[ RUN      ] CallbackPayload.VectorsAloneDeliversTheViewsAndNaNDiagnostics
+[       OK ] CallbackPayload.VectorsAloneDeliversTheViewsAndNaNDiagnostics (12 ms)
+[ RUN      ] CallbackPayload.DiagnosticsAloneDeliversTheDiagnosticsAndEmptyViews
+[       OK ] CallbackPayload.DiagnosticsAloneDeliversTheDiagnosticsAndEmptyViews (12 ms)
+[ RUN      ] CallbackPayload.ClearingResetsTheMask
+[       OK ] CallbackPayload.ClearingResetsTheMask (10 ms)
+[ RUN      ] CallbackPayload.AMaskSetFromInsideTheCallbackTakesEffectAtTheNextEvent
+[       OK ] CallbackPayload.AMaskSetFromInsideTheCallbackTakesEffectAtTheNextEvent (6 ms)
+[ RUN      ] CallbackPayload.ANarrowingSetFromInsideTheCallbackEmptiesTheLaterEvents
+[       OK ] CallbackPayload.ANarrowingSetFromInsideTheCallbackEmptiesTheLaterEvents (3 ms)
+[ RUN      ] CallbackPayload.AMaskWidenedFromInsideARestorationEventReachesTheSubDriver
+[       OK ] CallbackPayload.AMaskWidenedFromInsideARestorationEventReachesTheSubDriver (8 ms)
+[ RUN      ] CallbackPayload.AMaskNarrowedFromInsideARestorationEventReachesTheSubDriver
+[       OK ] CallbackPayload.AMaskNarrowedFromInsideARestorationEventReachesTheSubDriver (8 ms)
+[ RUN      ] CallbackPayload.AnEmptyCallableNormalisesTheMaskToAll
+[       OK ] CallbackPayload.AnEmptyCallableNormalisesTheMaskToAll (5 ms)
+[ RUN      ] CallbackPayload.TheObservationPointReadsTheActiveMask
+[       OK ] CallbackPayload.TheObservationPointReadsTheActiveMask (0 ms)
+[----------] 11 tests from CallbackPayload (93 ms total)
+
+[----------] 3 tests from Concurrency
+[ RUN      ] Concurrency.NInstancesOnNThreadsMatchSerial
+[ FINDING  ] the ruling's literal bit-identity, as observed on this box (N instances on N threads, one partition each):
+[ FINDING  ]   counters and statuses byte-equal: 56/56
+[ FINDING  ]   floating measures byte-equal:     42/42
+[ FINDING  ]   bit-identical overall:            YES
+[ FINDING  ]   worst relative move:              0.000000e+00 ((none))
+[       OK ] Concurrency.NInstancesOnNThreadsMatchSerial (13 ms)
+[ RUN      ] Concurrency.TwoPartitionedProgramsOnTwoThreadsMatchSerial
+[ PREMISE  ] process-global evaluation-pool width: 16
+[ PREMISE  ] ipm-fanout/chain500@p2: requested 2 partitions, ADOPTED 2, over 3000 user KKT elements
+[ PREMISE  ] ipm-fanout/chain700@p3: requested 3 partitions, ADOPTED 3, over 4200 user KKT elements
+[ FINDING  ] the ruling's literal bit-identity, as observed on this box (two partitioned programs fanning into one shared pool from two threads):
+[ FINDING  ]   counters and statuses byte-equal: 32/32
+[ FINDING  ]   floating measures byte-equal:     2418/2418
+[ FINDING  ]   bit-identical overall:            YES
+[ FINDING  ]   worst relative move:              0.000000e+00 ((none))
+[       OK ] Concurrency.TwoPartitionedProgramsOnTwoThreadsMatchSerial (486 ms)
+[ RUN      ] Concurrency.AWorkerThatThrowsFailsOnlyItsOwnTest
+[       OK ] Concurrency.AWorkerThatThrowsFailsOnlyItsOwnTest (0 ms)
+[----------] 3 tests from Concurrency (500 ms total)
+
+[----------] 14 tests from ConsoleSink
+[ RUN      ] ConsoleSink.IpmScriptedRowsAreByteIdenticalToTheOldPrinterNarrow
+[       OK ] ConsoleSink.IpmScriptedRowsAreByteIdenticalToTheOldPrinterNarrow (0 ms)
+[ RUN      ] ConsoleSink.IpmScriptedRowsAreByteIdenticalToTheOldPrinterWide
+[       OK ] ConsoleSink.IpmScriptedRowsAreByteIdenticalToTheOldPrinterWide (0 ms)
+[ RUN      ] ConsoleSink.ThePhaseChangeColoursTheNextPhasesFirstRowAsAFirstRow
+[       OK ] ConsoleSink.ThePhaseChangeColoursTheNextPhasesFirstRowAsAFirstRow (0 ms)
+[ RUN      ] ConsoleSink.ASecondSolveBeginAlsoResetsThePreviousRow
+[       OK ] ConsoleSink.ASecondSolveBeginAlsoResetsThePreviousRow (0 ms)
+[ RUN      ] ConsoleSink.IpmRendersNothingAboveTheTiers
+[       OK ] ConsoleSink.IpmRendersNothingAboveTheTiers (0 ms)
+[ RUN      ] ConsoleSink.TheWholeScriptedTranscriptIsByteIdenticalToBaseNarrow
+[       OK ] ConsoleSink.TheWholeScriptedTranscriptIsByteIdenticalToBaseNarrow (0 ms)
+[ RUN      ] ConsoleSink.TheWholeScriptedTranscriptIsByteIdenticalToBaseWide
+[       OK ] ConsoleSink.TheWholeScriptedTranscriptIsByteIdenticalToBaseWide (0 ms)
+[ RUN      ] ConsoleSink.TheResolvedStalledAndInterruptedVerdictsRenderAsNoSolutionFound
+[       OK ] ConsoleSink.TheResolvedStalledAndInterruptedVerdictsRenderAsNoSolutionFound (0 ms)
+[ RUN      ] ConsoleSink.TheT8_7bLineKindsEachRenderAtTheirOwnTier
+[       OK ] ConsoleSink.TheT8_7bLineKindsEachRenderAtTheirOwnTier (0 ms)
+[ RUN      ] ConsoleSink.TheRestorationExitRowMarkerRendersNothing
+[       OK ] ConsoleSink.TheRestorationExitRowMarkerRendersNothing (0 ms)
+[ RUN      ] ConsoleSink.TheSqpTableIsByteIdenticalToFormatIterationTable
+[       OK ] ConsoleSink.TheSqpTableIsByteIdenticalToFormatIterationTable (0 ms)
+[ RUN      ] ConsoleSink.TheSqpTableRendersOnlyDepthZeroMajors
+[       OK ] ConsoleSink.TheSqpTableRendersOnlyDepthZeroMajors (0 ms)
+[ RUN      ] ConsoleSink.TheSqpTableHonoursTheThreeTiers
+[       OK ] ConsoleSink.TheSqpTableHonoursTheThreeTiers (0 ms)
+[ RUN      ] ConsoleSink.TheEightQpTierEventsRenderNothing
+[       OK ] ConsoleSink.TheEightQpTierEventsRenderNothing (0 ms)
+[----------] 14 tests from ConsoleSink (3 ms total)
+
+[----------] 3 tests from FanOut
+[ RUN      ] FanOut.ForwardsEveryEventToBothHalvesFirstThenSecond
+[       OK ] FanOut.ForwardsEveryEventToBothHalvesFirstThenSecond (0 ms)
+[ RUN      ] FanOut.ANullHalfIsSkippedRatherThanDereferenced
+[       OK ] FanOut.ANullHalfIsSkippedRatherThanDereferenced (0 ms)
+[ RUN      ] FanOut.AUserSinkIsNotDisplacedByTheConsole
+[       OK ] FanOut.AUserSinkIsNotDisplacedByTheConsole (0 ms)
+[----------] 3 tests from FanOut (0 ms total)
+
+[----------] 16 tests from Options
+[ RUN      ] Options.IpmValidateRefusesWhatSettingsValidateRefused
+[       OK ] Options.IpmValidateRefusesWhatSettingsValidateRefused (0 ms)
+[ RUN      ] Options.CommonDefaultsAreEachEnginesOwn
+[       OK ] Options.CommonDefaultsAreEachEnginesOwn (0 ms)
+[ RUN      ] Options.IpmSetOptionsIsTransactional
+[       OK ] Options.IpmSetOptionsIsTransactional (0 ms)
+[ RUN      ] Options.IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve
+[       OK ] Options.IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve (9 ms)
+[ RUN      ] Options.IpmSetOptionsDuringASolveThrowsLogicError
+[       OK ] Options.IpmSetOptionsDuringASolveThrowsLogicError (4 ms)
+[ RUN      ] Options.IpmTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve
+[       OK ] Options.IpmTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve (2 ms)
+[ RUN      ] Options.PresetsReturnFullValues
+[       OK ] Options.PresetsReturnFullValues (0 ms)
+[ RUN      ] Options.AnUnknownIpmPresetIsRefusedAndListsTheValidNames
+[       OK ] Options.AnUnknownIpmPresetIsRefusedAndListsTheValidNames (0 ms)
+[ RUN      ] Options.SqpCommonDefaultsAreTheStructsOwn
+[       OK ] Options.SqpCommonDefaultsAreTheStructsOwn (0 ms)
+[ RUN      ] Options.SqpValidateRefusesTheCommonFieldsAndWhatItAlwaysRefused
+[       OK ] Options.SqpValidateRefusesTheCommonFieldsAndWhatItAlwaysRefused (0 ms)
+[ RUN      ] Options.SqpPresetsReturnFullValues
+[       OK ] Options.SqpPresetsReturnFullValues (0 ms)
+[ RUN      ] Options.SqpSetOptionsIsTransactional
+[       OK ] Options.SqpSetOptionsIsTransactional (2 ms)
+[ RUN      ] Options.SqpSetOptionsDuringASolveThrowsLogicError
+[       OK ] Options.SqpSetOptionsDuringASolveThrowsLogicError (5 ms)
+[ RUN      ] Options.SqpTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve
+[       OK ] Options.SqpTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve (2 ms)
+[ RUN      ] Options.SqpAnOptionReplacementDoesNotRestartTheLedgerLabelSequence
+[       OK ] Options.SqpAnOptionReplacementDoesNotRestartTheLedgerLabelSequence (8 ms)
+[ RUN      ] Options.TheOptionsFingerprintCoversEveryQpOptionsField
+[       OK ] Options.TheOptionsFingerprintCoversEveryQpOptionsField (0 ms)
+[----------] 16 tests from Options (37 ms total)
+
+[----------] 10 tests from OptionsDump
+[ RUN      ] OptionsDump.IpmDumpsOneLinePerField
+[       OK ] OptionsDump.IpmDumpsOneLinePerField (0 ms)
+[ RUN      ] OptionsDump.SqpDumpsOneLinePerField
+[       OK ] OptionsDump.SqpDumpsOneLinePerField (0 ms)
+[ RUN      ] OptionsDump.SqpDumpsTheCommonDefaults
+[       OK ] OptionsDump.SqpDumpsTheCommonDefaults (0 ms)
+[ RUN      ] OptionsDump.EnumsPrintEnumeratorNames
+[       OK ] OptionsDump.EnumsPrintEnumeratorNames (0 ms)
+[ RUN      ] OptionsDump.IpmDumpHeadIsVerbatim
+[       OK ] OptionsDump.IpmDumpHeadIsVerbatim (0 ms)
+[ RUN      ] OptionsDump.IsDeterministic
+[       OK ] OptionsDump.IsDeterministic (0 ms)
+[ RUN      ] OptionsDump.NoTrailingWhitespace
+[       OK ] OptionsDump.NoTrailingWhitespace (0 ms)
+[ RUN      ] OptionsDump.APoisonedStreamProducesTheSameBytes
+[       OK ] OptionsDump.APoisonedStreamProducesTheSameBytes (0 ms)
+[ RUN      ] OptionsDump.WritesIntoAStreamTheCallerIsAlreadyUsing
+[       OK ] OptionsDump.WritesIntoAStreamTheCallerIsAlreadyUsing (0 ms)
+[ RUN      ] OptionsDump.ReadsTheValueItWasGiven
+[       OK ] OptionsDump.ReadsTheValueItWasGiven (0 ms)
+[----------] 10 tests from OptionsDump (1 ms total)
+
+[----------] 3 tests from PrintTables
+[ RUN      ] PrintTables.PredictorOutcomeNamesEveryEnumerator
+[       OK ] PrintTables.PredictorOutcomeNamesEveryEnumerator (0 ms)
+[ RUN      ] PrintTables.PredictorOutcomeFallbackBelongsToNoDeclaredValue
+[       OK ] PrintTables.PredictorOutcomeFallbackBelongsToNoDeclaredValue (0 ms)
+[ RUN      ] PrintTables.StepVerdictNamesEveryEnumeratorAndFallsBackOnNoneOfThem
+[       OK ] PrintTables.StepVerdictNamesEveryEnumeratorAndFallsBackOnNoneOfThem (0 ms)
+[----------] 3 tests from PrintTables (0 ms total)
+
+[----------] 3 tests from VariableBoundCensusTable
+[ RUN      ] VariableBoundCensusTable.ClassifiesEveryKindOfBoundedVariable
+[       OK ] VariableBoundCensusTable.ClassifiesEveryKindOfBoundedVariable (0 ms)
+[ RUN      ] VariableBoundCensusTable.AnEmptySideMeansUnboundedThereForEveryVariable
+[       OK ] VariableBoundCensusTable.AnEmptySideMeansUnboundedThereForEveryVariable (0 ms)
+[ RUN      ] VariableBoundCensusTable.RefusesANegativeWidthAndAMisSizedSide
+[       OK ] VariableBoundCensusTable.RefusesANegativeWidthAndAMisSizedSide (0 ms)
+[----------] 3 tests from VariableBoundCensusTable (0 ms total)
+
+[----------] 3 tests from SolveStatus
+[ RUN      ] SolveStatus.SeverityIsTotalAndOrderedAsDocumented
+[       OK ] SolveStatus.SeverityIsTotalAndOrderedAsDocumented (0 ms)
+[ RUN      ] SolveStatus.IpmPhaseResolutionSplitsTheCapExitByStopReason
+[       OK ] SolveStatus.IpmPhaseResolutionSplitsTheCapExitByStopReason (0 ms)
+[ RUN      ] SolveStatus.TheNineDisplayNamesArePinnedLiterals
+[       OK ] SolveStatus.TheNineDisplayNamesArePinnedLiterals (0 ms)
+[----------] 3 tests from SolveStatus (0 ms total)
+
+[----------] 7 tests from DeclaredDiagnostics
+[ RUN      ] DeclaredDiagnostics.ClosesOnAKktPointOfHs071
+[       OK ] DeclaredDiagnostics.ClosesOnAKktPointOfHs071 (0 ms)
+[ RUN      ] DeclaredDiagnostics.TwoSidedBoundUsesCanonicalSplit
+[       OK ] DeclaredDiagnostics.TwoSidedBoundUsesCanonicalSplit (0 ms)
+[ RUN      ] DeclaredDiagnostics.ExcludedCoordinateIsNotMeasured
+[       OK ] DeclaredDiagnostics.ExcludedCoordinateIsNotMeasured (0 ms)
+[ RUN      ] DeclaredDiagnostics.TheRefusalFixtureIsItselfWellFormed
+[       OK ] DeclaredDiagnostics.TheRefusalFixtureIsItselfWellFormed (0 ms)
+[ RUN      ] DeclaredDiagnostics.RefusesEveryMalformedDeclaredBlock
+[       OK ] DeclaredDiagnostics.RefusesEveryMalformedDeclaredBlock (0 ms)
+[ RUN      ] DeclaredDiagnostics.TheGradLagDoorChecksItsOwnBlockWidths
+[       OK ] DeclaredDiagnostics.TheGradLagDoorChecksItsOwnBlockWidths (0 ms)
+[ RUN      ] DeclaredDiagnostics.ANonFiniteEntryReportsUnmeasuredRatherThanANumber
+[       OK ] DeclaredDiagnostics.ANonFiniteEntryReportsUnmeasuredRatherThanANumber (0 ms)
+[----------] 7 tests from DeclaredDiagnostics (0 ms total)
+
+[----------] 3 tests from IpmPhases
+[ RUN      ] IpmPhases.TrailingSolveIsConditionalOnThePrecedingOptimize
+[       OK ] IpmPhases.TrailingSolveIsConditionalOnThePrecedingOptimize (3 ms)
+[ RUN      ] IpmPhases.EachPhaseCarriesItsOwnVerdict
+[       OK ] IpmPhases.EachPhaseCarriesItsOwnVerdict (3 ms)
+[ RUN      ] IpmPhases.EmptySequenceIsRefused
+[       OK ] IpmPhases.EmptySequenceIsRefused (0 ms)
+[----------] 3 tests from IpmPhases (7 ms total)
+
+[----------] 4 tests from SolveBudget
+[ RUN      ] SolveBudget.IpmMaxIterationsCapsEachPhase
+[       OK ] SolveBudget.IpmMaxIterationsCapsEachPhase (4 ms)
+[ RUN      ] SolveBudget.SqpRestorationIsBudgetedFromTheEffectiveCap
+[       OK ] SolveBudget.SqpRestorationIsBudgetedFromTheEffectiveCap (16 ms)
+[ RUN      ] SolveBudget.IpmClampsBeforeNarrowing
+[       OK ] SolveBudget.IpmClampsBeforeNarrowing (3 ms)
+[ RUN      ] SolveBudget.TheSqpTakesABudgetOnEveryPublicOverload
+[       OK ] SolveBudget.TheSqpTakesABudgetOnEveryPublicOverload (6 ms)
+[----------] 4 tests from SolveBudget (31 ms total)
+
+[----------] 2 tests from IpmIntrospection
+[ RUN      ] IpmIntrospection.PatternQueryTakesTheModel
+[       OK ] IpmIntrospection.PatternQueryTakesTheModel (5 ms)
+[ RUN      ] IpmIntrospection.AnalysisIdentityOutlivesTheAnalysingSolver
+[       OK ] IpmIntrospection.AnalysisIdentityOutlivesTheAnalysingSolver (6 ms)
+[----------] 2 tests from IpmIntrospection (11 ms total)
+
+[----------] 9 tests from SolveResult
+[ RUN      ] SolveResult.ExportIsASnapshotIndependentOfLaterEdits
+[       OK ] SolveResult.ExportIsASnapshotIndependentOfLaterEdits (2 ms)
+[ RUN      ] SolveResult.TheIpmFillsTheSharedDiagnosticsAtItsReturnedPoint
+[       OK ] SolveResult.TheIpmFillsTheSharedDiagnosticsAtItsReturnedPoint (2 ms)
+[ RUN      ] SolveResult.UnmeasuredExitsReportNaNAndEmptyVectors
+[       OK ] SolveResult.UnmeasuredExitsReportNaNAndEmptyVectors (0 ms)
+[ RUN      ] SolveResult.TheSqpFillsTheSharedDiagnosticsAtItsReturnedPoint
+[       OK ] SolveResult.TheSqpFillsTheSharedDiagnosticsAtItsReturnedPoint (2 ms)
+[ RUN      ] SolveResult.AFeasibilityOnlyLastPhaseReportsStationarityUnmeasured
+[       OK ] SolveResult.AFeasibilityOnlyLastPhaseReportsStationarityUnmeasured (1 ms)
+[ RUN      ] SolveResult.AnObjectiveBearingLastPhaseReportsAllFour
+[       OK ] SolveResult.AnObjectiveBearingLastPhaseReportsAllFour (3 ms)
+[ RUN      ] SolveResult.AnActiveRestorationExitEmptiesTheResidualBlocks
+[       OK ] SolveResult.AnActiveRestorationExitEmptiesTheResidualBlocks (3 ms)
+[ RUN      ] SolveResult.ReturnBestReportsTheBestIterateSObjective
+[       OK ] SolveResult.ReturnBestReportsTheBestIterateSObjective (7 ms)
+[ RUN      ] SolveResult.TheIpmClockRunsFromThePublicEntry
+[       OK ] SolveResult.TheIpmClockRunsFromThePublicEntry (2 ms)
+[----------] 9 tests from SolveResult (26 ms total)
+
+[----------] 7 tests from Threads
+[ RUN      ] Threads.ZeroLeavesEveryFactorAtTheBackendDefault
+[       OK ] Threads.ZeroLeavesEveryFactorAtTheBackendDefault (16 ms)
+[ RUN      ] Threads.NonZeroReachesEveryFactorTier
+[       OK ] Threads.NonZeroReachesEveryFactorTier (8 ms)
+[ RUN      ] Threads.NonZeroReachesTheDenseBorderFactor
+[       OK ] Threads.NonZeroReachesTheDenseBorderFactor (1 ms)
+[ RUN      ] Threads.ZeroLeavesTheDenseBorderFactorAtTheBackendDefault
+[       OK ] Threads.ZeroLeavesTheDenseBorderFactorAtTheBackendDefault (1 ms)
+[ RUN      ] Threads.TheCallersThreadSettingSurvivesEveryTierAndTheRestoration
+[       OK ] Threads.TheCallersThreadSettingSurvivesEveryTierAndTheRestoration (16 ms)
+[ RUN      ] Threads.ZeroAndOneProduceIdenticalHistoriesAndCounters
+[       OK ] Threads.ZeroAndOneProduceIdenticalHistoriesAndCounters (70 ms)
+[ RUN      ] Threads.ANegativeThreadCountIsRefusedByTheDriverConstructor
+[       OK ] Threads.ANegativeThreadCountIsRefusedByTheDriverConstructor (0 ms)
+[----------] 7 tests from Threads (114 ms total)
+
+[----------] 14 tests from WarmProtocol
+[ RUN      ] WarmProtocol.PayloadStampMismatchRefusesOnBothEngines
+[       OK ] WarmProtocol.PayloadStampMismatchRefusesOnBothEngines (3 ms)
+[ RUN      ] WarmProtocol.KIpmModeNoLongerColdGradesAMismatch
+[       OK ] WarmProtocol.KIpmModeNoLongerColdGradesAMismatch (2 ms)
+[ RUN      ] WarmProtocol.MultipliersOnlySeedResolvesSeededOnSqp
+[       OK ] WarmProtocol.MultipliersOnlySeedResolvesSeededOnSqp (24 ms)
+[ RUN      ] WarmProtocol.MultipliersOnlySeedIgnoresAPolishExtension
+[       OK ] WarmProtocol.MultipliersOnlySeedIgnoresAPolishExtension (10 ms)
+[ RUN      ] WarmProtocol.EmptyPrimalWithNonEmptyBoundDualsIsRefusedAtHandOver
+[       OK ] WarmProtocol.EmptyPrimalWithNonEmptyBoundDualsIsRefusedAtHandOver (3 ms)
+[ RUN      ] WarmProtocol.NativePatternMismatchStillDegradesToSeeded
+[       OK ] WarmProtocol.NativePatternMismatchStillDegradesToSeeded (3 ms)
+[ RUN      ] WarmProtocol.NativeNonFiniteResolvesCold
+[       OK ] WarmProtocol.NativeNonFiniteResolvesCold (6 ms)
+[ RUN      ] WarmProtocol.SeededClampBandStillDegradesNotRefuses
+[       OK ] WarmProtocol.SeededClampBandStillDegradesNotRefuses (6 ms)
+[ RUN      ] WarmProtocol.ColdCeilingIgnoresAndCountsThePayload
+[       OK ] WarmProtocol.ColdCeilingIgnoresAndCountsThePayload (8 ms)
+[ RUN      ] WarmProtocol.ColdCeilingStillRefusesAWrongStampAtTheRightDimensions
+[       OK ] WarmProtocol.ColdCeilingStillRefusesAWrongStampAtTheRightDimensions (9 ms)
+[ RUN      ] WarmProtocol.TheIpmCeilingHasFourRungs
+[       OK ] WarmProtocol.TheIpmCeilingHasFourRungs (8 ms)
+[ RUN      ] WarmProtocol.ThePolishIgnoredCountAgreesAcrossTraceResultAndLedger
+[       OK ] WarmProtocol.ThePolishIgnoredCountAgreesAcrossTraceResultAndLedger (6 ms)
+[ RUN      ] WarmProtocol.TheSolveFamilyKeepsItsSeedlessAndItsPayloadEntries
+[       OK ] WarmProtocol.TheSolveFamilyKeepsItsSeedlessAndItsPayloadEntries (16 ms)
+[ RUN      ] WarmProtocol.RoundTripIpmToSqpToIpmStillWorks
+[       OK ] WarmProtocol.RoundTripIpmToSqpToIpmStillWorks (4 ms)
+[----------] 14 tests from WarmProtocol (115 ms total)
+
+[----------] Global test environment tear-down
+[==========] 134 tests from 17 test suites ran. (1798 ms total)
+[  PASSED  ] 134 tests.

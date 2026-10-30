@@ -1,0 +1,10 @@
+# per-cell instructions (perf stat -e instructions:u), one process per cell
+walk,100,4085264635
+walk,200,15993540932
+walk,400,65695782054
+walk,800,273623050382
+tier,100,522794121
+tier,200,1027470751
+tier,400,2092413068
+tier,800,4315096861
+baseline,0,13635526

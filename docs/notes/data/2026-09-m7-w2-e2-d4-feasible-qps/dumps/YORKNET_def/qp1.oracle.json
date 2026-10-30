@@ -1,0 +1,39 @@
+{
+ "dump": "dumps/YORKNET_def/qp1.txt",
+ "n": 900,
+ "me": 256,
+ "mi": 0,
+ "tr": Infinity,
+ "result": {
+  "status": "3",
+  "minors": "594",
+  "facts": "595",
+  "blk_term": "1",
+  "cert": "0",
+  "cert_rej": "0",
+  "zmcap": "0",
+  "zmexh": "0",
+  "retreats": "0",
+  "exch": "359",
+  "deferred": "0",
+  "undec": "0",
+  "maxiter": "9000"
+ },
+ "phase1_status": 0,
+ "phase1_min_l1_violation": 0.0,
+ "H_eig_min": 0.0,
+ "H_eig_max": 0.0,
+ "final_ws": {
+  "rows": 0,
+  "pins": 644,
+  "rank": 899,
+  "count": 900
+ },
+ "redH_final_min": 0.0,
+ "clarabel_status": "Solved",
+ "f_star": 664247.8014602368,
+ "active_star": {
+  "rows": 0,
+  "pins": 669
+ }
+}

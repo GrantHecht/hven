@@ -439,6 +439,29 @@ TEST(AggregateEvalSeamIdentity, BuildSubproblemReproducesTheFreeFunction) {
     }
 }
 
+// THE NONLINEAR-VARIABLES READ (M7 QN quality): exactly the rows and columns of the laid
+// Hessian pattern -- the structure the subproblem's H is published into -- values unread.
+TEST(AggregateEvalSeamIdentity, NonlinearVariablesAreTheHessianPatternsRowsAndColumns) {
+    for (const SeamFixture &fixture : fixtures()) {
+        SCOPED_TRACE(fixture.name_);
+        NlpModelAssembly aggregate(fixture.model_);
+        AssemblyEvalSeam seam(aggregate);
+        const Vec &x = fixture.points_.front();
+        const Vec lambda_e = multipliers(fixture.model_->me(), 0.5);
+        const Vec lambda_i = multipliers(fixture.model_->mi(), 0.25);
+        const QpProblem qp =
+            seam.build_subproblem(seam.eval_nlp(x, lambda_e, lambda_i), x, lambda_e, lambda_i);
+        std::vector<char> expect(static_cast<std::size_t>(fixture.model_->n()), 0);
+        for (Index r = 0; r < qp.H.outerSize(); ++r) {
+            for (SpMatRM::InnerIterator e(qp.H, r); e; ++e) {
+                expect[static_cast<std::size_t>(e.row())] = 1;
+                expect[static_cast<std::size_t>(e.col())] = 1;
+            }
+        }
+        EXPECT_EQ(seam.nonlinear_variables(), expect);
+    }
+}
+
 TEST(AggregateEvalSeamIdentity, LaysTheDeclarationsDimensionsAndBounds) {
     for (const SeamFixture &fixture : fixtures()) {
         SCOPED_TRACE(fixture.name_);
@@ -755,6 +778,8 @@ TEST(AggregateEvalSeamBoundary, AProviderThatClaimsNothingLaysAndPublishesEmptyB
     EXPECT_EQ(qp.H.rows(), 2);
     EXPECT_EQ(qp.H.cols(), 2);
     EXPECT_EQ(qp.H.nonZeros(), 0);
+    // ... and no variable is nonlinear.
+    EXPECT_EQ(seam.nonlinear_variables(), std::vector<char>(2, 0));
 }
 
 TEST(AggregateEvalSeamBoundary, OverlappingClaimBlocksAreRefused) {

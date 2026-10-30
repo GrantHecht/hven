@@ -27,22 +27,30 @@ set(HVEN_SQP_TEST_SOURCES
     test_b1_gate.cpp
     test_bench_dump.cpp
     test_border_ops.cpp
+    test_column_scaling.cpp
     test_continuation.cpp
     test_corpus_cells.cpp
     test_crossover_legs.cpp
     test_dense_oracle.cpp
+    test_disproved_entry.cpp
+    test_elastic_rung_vehicle.cpp
+    test_elastic_witness_start.cpp
     test_eqp_refine_ab.cpp
+    test_equality_basis.cpp
     test_eqp_solve.cpp
     test_funnel.cpp
     test_hs_battery.cpp
     test_hs_sweeps.cpp
+    test_lbfgs_damped.cpp
     test_ipqp_acceptance.cpp
     test_ipqp_certification.cpp
     test_ipqp_counters.cpp
     test_ipqp_dispatch.cpp
     test_ipqp_engine.cpp
     test_ipqp_kkt_layout.cpp
+    test_ipqp_ladder_skip.cpp
     test_ipqp_math.cpp
+    test_ipqp_mu0_rule.cpp
     test_ipqp_options.cpp
     test_ipqp_trace.cpp
     test_ipqp_warm_restart.cpp
@@ -57,20 +65,27 @@ set(HVEN_SQP_TEST_SOURCES
     test_parametric_families.cpp
     test_predictor.cpp
     test_problem_scaling.cpp
+    test_qn_models.cpp
     test_qp_engine.cpp
+    test_qp_ws_independence.cpp
+    test_qp_cap_levers.cpp
     test_qp_engine_border.cpp
     test_qp_engine_indefinite.cpp
     test_qp_engine_tr.cpp
+    test_qp_lift_oracle.cpp
     test_qp_mode_sites.cpp
     test_qp_warm_start.cpp
     test_scaffold.cpp
     test_scale_problems.cpp
     test_scale_smoke.cpp
     test_schur.cpp
+    test_sqp_equality_basis.cpp
+    test_sqp_qn_mode.cpp
     test_sqp_solver.cpp
     test_sqp_restoration.cpp
     test_sqp_warm_currency.cpp
     test_ssn_engine.cpp
+    test_start_point_projection.cpp
     test_trace_writer.cpp
     test_types.cpp
     test_warm_start.cpp
@@ -109,6 +124,11 @@ target_include_directories(hven_sqp_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 # and absolute so the test does not depend on ctest's working directory; the
 # test asserts the file exists and contains the invocations it expects, so a
 # wrong path fails loudly rather than scanning nothing.
+# M7 W2 P1E: the E2-D4 dump fixtures (tests/qp/support/qp_dump.h loads them) for
+# test_elastic_witness_start.cpp, read in place, absolute as for the walk seam target.
+target_compile_definitions(hven_sqp_tests PRIVATE
+    HVEN_QP_E2D4_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/../qp/fixtures/e2-d4")
+
 target_compile_definitions(hven_sqp_tests
     PRIVATE HVEN_SQP_SOLVER_SOURCE="${CMAKE_CURRENT_SOURCE_DIR}/../../src/drivers/sqp_solver.cpp")
 

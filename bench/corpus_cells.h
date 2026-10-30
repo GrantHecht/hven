@@ -306,8 +306,9 @@ struct CorpusRow {
     // MODEL level, which is true at any dual scale.) Nothing in the pre-Task-6
     // instrument could
     // have caught that: `status` is what the driver believes, and the driver's
-    // own convergence test does not gate NLP complementarity at all
-    // (sqp_solver.h's WHAT IS MEASURED BUT NOT GATED note).
+    // convergence test did not gate NLP complementarity at all (it does since
+    // WX-R1, at kkt_tol absolute; this check remains the independent MODEL-level
+    // read, at the corpus's own tolerance).
     //
     // A ROW THAT FAILS THIS CHECK IS A WRONG-ANSWER ROW, IN ITS OWN CATEGORY,
     // AND NEVER A SPEED WIN: `evaluate_gates` charges it exactly as it charges
@@ -1404,6 +1405,12 @@ struct EngineConfig {
     // already follows (run_cell_with_deadline's own note).
     hven::solvers::TraceSink *trace = nullptr;
     hven::solvers::IterationCallback iteration_callback{};
+    // M7 W0 T2. WHAT THAT CALLBACK DECLARES IT READS. kAll is the arm W6 T6
+    // measured (and the one-argument attach's own meaning); kScalars is the
+    // payload-mask arm, which asks the driver to prepare no snapshot at all.
+    // Read only when `iteration_callback` is set, and forwarded across the
+    // subprocess boundary as a FLAG VALUE like every other lever here.
+    hven::solvers::IterationPayload iteration_payload = hven::solvers::IterationPayload::kAll;
 
     // The model-surface census hook's opt-in flag.
     // UNLIKE every field above, this is NOT an SqpOptions/SsnOptions field --
@@ -1452,7 +1459,7 @@ inline void attach_observers(SqpSolver &driver, const EngineConfig &cfg) {
         driver.attach_trace(cfg.trace);
     }
     if (cfg.iteration_callback) {
-        driver.set_iteration_callback(cfg.iteration_callback);
+        driver.set_iteration_callback(cfg.iteration_callback, cfg.iteration_payload);
     }
 }
 

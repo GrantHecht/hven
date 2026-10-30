@@ -1,0 +1,27 @@
+START 2026-10-21T20:20:44-04:00 HEAD e55d2980ed14dfdce1e035034a6c4385f1f228c0 BEFORE d9bfbb27 dirty=0
+FOREGROUND_START R-offline-scl 2026-10-21T20:20:44-04:00
+PGREP_EMPTY R-offline-scl: no foreign cell binary under my lock
+CTEST_N_RC=0
+OFFLINE_CLASSIFY_RC_Release=0
+OFFLINE_CLASSIFY_RC_Debug=0
+ran head-walk rc=0
+ran head-ssn rc=0
+ran head-ipm rc=0
+CMP_PIN_walk=1
+CMP_PREV_walk=0
+CMP_PREV_NOTE_walk=0 (expected 0: the previous record is the RLA gates at the BEFORE sources)
+CMP_PIN_ssn=1
+CMP_PREV_ssn=0
+CMP_PREV_NOTE_ssn=0 (expected 0: the previous record is the RLA gates at the BEFORE sources)
+CMP_PIN_ipm=1
+CMP_PREV_ipm=0
+CMP_PREV_NOTE_ipm=0 (expected 0: the previous record is the RLA gates at the BEFORE sources)
+=== M6 CLOSE HEAD-walk vs M7 SCL HEAD-walk (GATED 1e-5) === cells compared: 27  columns compared: 75  differences: 17  within gate: 71
+=== PREVIOUS (RLA record 7d9510d1) GATE RECORD HEAD-walk vs M7 SCL HEAD-walk (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+=== M6 CLOSE HEAD-ssn vs M7 SCL HEAD-ssn (GATED 1e-5) === cells compared: 27  columns compared: 75  differences: 13  within gate: 68
+=== PREVIOUS (RLA record 7d9510d1) GATE RECORD HEAD-ssn vs M7 SCL HEAD-ssn (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+=== M6 CLOSE HEAD-ipm vs M7 SCL HEAD-ipm (GATED 1e-5) === cells compared: 27  columns compared: 75  differences: 13  within gate: 72
+=== PREVIOUS (RLA record 7d9510d1) GATE RECORD HEAD-ipm vs M7 SCL HEAD-ipm (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+FOREGROUND_END R-offline-scl 2026-10-21T20:29:24-04:00 rc=0
+LEG_RC R-offline-scl rc=0
+END 2026-10-21T20:29:24-04:00 tree=gates-scl e55d2980 dirty=0

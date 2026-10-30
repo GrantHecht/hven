@@ -1,0 +1,7 @@
+PGREP_EMPTY tauprobe-recipe-r2
+IN_LOCK_PGREP_EMPTY tauprobe-recipe-r2
+FOREGROUND_START tauprobe-recipe-r2 2026-10-29T01:59:10-04:00
+FOREGROUND_END tauprobe-recipe-r2 rc=0 2026-10-29T02:00:08-04:00
+  HS77  majors=  56 minors=  121 fact=  52 rejects=  8 all_optimal=1 f(p1)=0.625026941
+  TOTAL   majors= 376 minors= 2802 fact= 563
+RECIPE_SELFTEST PASS (byte-identical to the in-tree probe)

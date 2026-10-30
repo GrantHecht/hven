@@ -216,6 +216,13 @@ it, so it cannot arrive last.
   certification, R5). The beat-SNOPT lever: SNOPT's dense
   reduced-Hessian Θ(nS²) cost is exactly what a sparse partitioned
   approximation avoids.
+
+  > **ANNOTATION 2026-09-14 (the settler, at the M7 brief).** This bullet is
+  > SUPERSEDED by the 2026-08-31 amendment below: the first-order mode is M9
+  > (M9a the reading/design gate, M9b the implementation). M7 carries only
+  > the amendment's two constraints (don't foreclose; the cost model with its
+  > curvature-source labels). Left in place, unedited, as the record.
+
 - **Globalization ratification ladder** (all opt-in today): R5
   default-flip fixture, R4 1e-4 re-derivation, R3 arming rule, R7,
   R9, τ re-derivation on an ill-conditioned population — worked

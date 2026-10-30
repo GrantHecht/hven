@@ -36,6 +36,11 @@
 // so that the three-artifact list above is a complete account of what this
 // file was written from. See the first-contact note's section 1.1
 // (docs/notes/2026-08-02-snopt-first-contact.md).
+// UPDATE 2026-09-14 (M7 W0): the owner DELETED that source distribution from
+// this machine; ~/Source/snopt7 no longer exists. The paragraph above is kept
+// as the historical account of what this file was written from; only the
+// binary install at ~/Software/snopt7 remains, and the firewall (CLAUDE.md §6)
+// is unchanged.
 //
 // THE GUIDE IS A VERSION BEHIND THE INSTALL and this file does not pretend
 // otherwise. The 2008 guide documents SNOPT 7; the install is 7.7.7. The

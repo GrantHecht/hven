@@ -1,0 +1,26 @@
+PGREP_EMPTY e3-phase5 2026-09-26T20:05:50-04:00
+FOREGROUND_START e3-phase5 2026-09-26T20:05:50-04:00
+=== STEP build-debug-all 2026-09-26T20:05:50-04:00
+BUILD_DBG_OK
+=== STEP ctest-debug-mode2 2026-09-26T20:07:01-04:00
+ctest debug mode2 rc=8
+	2568 - SqpDriverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce (Failed)
+	2573 - SqpDriverRestorationExcursion.TheSubStatusTellsACutOffSubSolveFromAConvergedOne (Failed)
+	2574 - SqpDriverRestorationExcursion.TheSubStatusDiscriminatesAtOneParentStatus (Failed)
+	2822 - WarmStartBattery.Corpus (Failed)
+	2824 - WarmStartBattery.CrossoverChainOnTheBridgeFamilyBeatsCold (Failed)
+Errors while running CTest
+Output from these tests are in: /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-debug/Testing/Temporary/LastTest.log
+Use "--rerun-failed --output-on-failure" to re-run the failed cases verbosely.
+=== STEP ctest-debug-mode0 2026-09-26T20:17:31-04:00
+ctest debug mode0 rc=8
+	1734 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1735 - EqpRefinementAb.FullBattery (Disabled)
+
+The following tests FAILED:
+	510 - E3.MeasureOrdinaryStep (Failed)
+Errors while running CTest
+Output from these tests are in: /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-debug/Testing/Temporary/LastTest.log
+Use "--rerun-failed --output-on-failure" to re-run the failed cases verbosely.
+PHASE5_OK
+FOREGROUND_END e3-phase5 2026-09-26T20:28:53-04:00 rc=0

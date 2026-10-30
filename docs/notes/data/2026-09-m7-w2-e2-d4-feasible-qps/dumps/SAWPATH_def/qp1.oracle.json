@@ -1,0 +1,39 @@
+{
+ "dump": "dumps/SAWPATH_def/qp1.txt",
+ "n": 1937,
+ "me": 578,
+ "mi": 196,
+ "tr": Infinity,
+ "result": {
+  "status": "1",
+  "minors": "20350",
+  "facts": "20359",
+  "blk_term": "0",
+  "cert": "0",
+  "cert_rej": "0",
+  "zmcap": "0",
+  "zmexh": "0",
+  "retreats": "0",
+  "exch": "513",
+  "deferred": "9236",
+  "undec": "193154",
+  "maxiter": "20350"
+ },
+ "phase1_status": 0,
+ "phase1_min_l1_violation": 0.0,
+ "H_eig_min": 0.0,
+ "H_eig_max": 0.0,
+ "final_ws": {
+  "rows": 0,
+  "pins": 1359,
+  "rank": 1860,
+  "count": 1937
+ },
+ "redH_final_min": 0.0,
+ "clarabel_status": "AlmostSolved",
+ "f_star": 156.6030443838992,
+ "active_star": {
+  "rows": 0,
+  "pins": 1373
+ }
+}

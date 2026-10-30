@@ -1,0 +1,14 @@
+D1REPAIR s=3 it=0 attempting start repair (pin_skips before=0)
+D1RPROBE pinned=115 npinned=1 verdict=2 count=118
+D1RPROBE pinned=119 npinned=2 verdict=2 count=119
+D1RPROBE pinned=121 npinned=3 verdict=2 count=120
+D1RPROBE pinned=123 npinned=4 verdict=2 count=121
+D1RPROBE pinned=127 npinned=5 verdict=2 count=122
+D1RPROBE pinned=116 npinned=6 verdict=2 count=123
+D1RPROBE pinned=120 npinned=7 verdict=2 count=124
+D1RPROBE pinned=124 npinned=8 verdict=2 count=125
+D1RPROBE pinned=122 npinned=9 verdict=2 count=126
+D1RPROBE pinned=126 npinned=10 verdict=2 count=127
+D1RPROBE pinned=85 npinned=11 verdict=2 count=128
+D1RPROBE pinned=84 npinned=12 verdict=0 count=129
+D1CNT MAIN status=kMaxIter minors=1795 facts=7 adds=901 drops=890 dep_tests=0 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0

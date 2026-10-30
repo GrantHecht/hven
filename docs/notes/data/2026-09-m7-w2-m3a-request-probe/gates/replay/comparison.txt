@@ -1,0 +1,3 @@
+=== M6 CLOSE HEAD-walk vs M7 W2 M3a task A HEAD-walk === cells compared: 27  columns compared: 75  differences: 0
+=== M6 CLOSE HEAD-ssn vs M7 W2 M3a task A HEAD-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== M6 CLOSE HEAD-ipm vs M7 W2 M3a task A HEAD-ipm === cells compared: 27  columns compared: 75  differences: 0

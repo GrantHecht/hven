@@ -1,0 +1,160 @@
+# QP-level evidence. Dumps: runs/e2s1 = YORKNET default with the Hessian substitution (A) at HEAD's walk;
+# qp11/qp12 = the m20/m21 saddle-exit misses (kNumericalError), qp13-qp16 = the m22-m25 stagnation stops
+# (kMaxIter). runs/e8 = A + the dual_mu retry ladder; qp39 = the m36 primary failure (kNumericalError).
+# Oracle: HiGHS phase-1 LP and Clarabel (scratch venv, never vendored); hven walk replays: HEAD's QpEngine
+# (ykn_wreplay, HVEN_TESTING observer; summary line 'CYC ...'), options from the dump unless an arm says otherwise.
+
+## Oracle
+ORACLE runs/e2s1/dumps/qp11.txt n=312 me=256 mi=0 tr=64 in-cell: status=3 minors=5 facts=48 site=1495 solve=97 maxiter=2560
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=-6.2731e-04 max=1.4949e+05 n_neg=2 n_zero=291
+  Z'HZ on null(Ae): dim=56 rank(Ae)=256 eig min=-6.1701e-04
+  WALK final: f=30.6026842528 viol eq/in/box=(5.94915062277282e-07, 0.0, 0.0) |W| rows=0 pins=41 me+|W|=297 rank=297 n=312
+    working-set normalized singular values: min=3.080e-03 (smallest 3: [0.00308041 0.00644938 0.01097176])
+    Z'HZ on the final working set's null space: dim=15 eig min=-5.3037e-04 (next -4.2545e-14) max=1.4924e+02
+  H is not PSD on null(Ae): no global oracle; only local checks
+ORACLE_SUMMARY phase1=0 viol=0.0 Hmin=-6.2731e-04 Hmax=1.4949e+05 Hneg=2 Emin=-6.1701e-04 Eneg=2 Edim=56 Wmin=-5.3037e-04 Wneg=1 Wdim=15 fstar=na clar=na fwalk=30.60268425
+
+ORACLE runs/e2s1/dumps/qp13.txt n=312 me=256 mi=0 tr=64 in-cell: status=1 minors=157 facts=165 site=689 solve=99 maxiter=2560
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=-1.9390420222113198e-10
+  H eig min=-6.2729e-04 max=1.4954e+05 n_neg=2 n_zero=291
+  Z'HZ on null(Ae): dim=56 rank(Ae)=256 eig min=-6.1699e-04
+  WALK final: f=5.63156621963 viol eq/in/box=(2.410287152011505e-05, 0.0, 0.0) |W| rows=0 pins=44 me+|W|=300 rank=300 n=312
+    working-set normalized singular values: min=2.854e-03 (smallest 3: [0.00285445 0.00435901 0.00551657])
+    Z'HZ on the final working set's null space: dim=12 eig min=-2.2771e-14 (next -8.6462e-15) max=1.4924e+02
+  H is not PSD on null(Ae): no global oracle; only local checks
+ORACLE_SUMMARY phase1=0 viol=-1.9390420222113198e-10 Hmin=-6.2729e-04 Hmax=1.4954e+05 Hneg=2 Emin=-6.1699e-04 Eneg=2 Edim=56 Wmin=-2.2771e-14 Wneg=0 Wdim=12 fstar=na clar=na fwalk=5.63156622
+
+ORACLE runs/e2s1/dumps/qp16.txt n=312 me=256 mi=0 tr=8 in-cell: status=1 minors=347 facts=352 site=689 solve=102 maxiter=2560
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=-1.9390420222113198e-10
+  H eig min=-6.2729e-04 max=1.4954e+05 n_neg=2 n_zero=291
+  Z'HZ on null(Ae): dim=56 rank(Ae)=256 eig min=-6.1699e-04
+  WALK final: f=5.63156621937 viol eq/in/box=(2.4102871524295596e-05, 0.0, 0.0) |W| rows=0 pins=46 me+|W|=302 rank=302 n=312
+    working-set normalized singular values: min=2.533e-03 (smallest 3: [0.00253317 0.0036757  0.00548002])
+    Z'HZ on the final working set's null space: dim=10 eig min=-1.1161e-14 (next -4.9593e-15) max=1.4924e+02
+  H is not PSD on null(Ae): no global oracle; only local checks
+ORACLE_SUMMARY phase1=0 viol=-1.9390420222113198e-10 Hmin=-6.2729e-04 Hmax=1.4954e+05 Hneg=2 Emin=-6.1699e-04 Eneg=2 Edim=56 Wmin=-1.1161e-14 Wneg=0 Wdim=10 fstar=na clar=na fwalk=5.631566219
+
+ORACLE runs/e8/dumps/qp39.txt n=312 me=256 mi=0 tr=2 in-cell: status=3 minors=3 facts=20 site=1502 solve=141 maxiter=2560
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=-1.5609359801432053e-13
+  H eig min=-2.7366e-05 max=1.1412e+07 n_neg=0 n_zero=291
+  Z'HZ on null(Ae): dim=57 rank(Ae)=255 eig min=-5.5722e-10
+  WALK final: f=-0.863511052605 viol eq/in/box=(3.643716799397478e-06, 0.0, 0.00016854750882937461) |W| rows=0 pins=44 me+|W|=300 rank=299 n=312
+    working-set normalized singular values: min=4.282e-15 (smallest 3: [4.28178621e-15 3.08737436e-03 1.08608878e-02])
+    Z'HZ on the final working set's null space: dim=13 eig min=-1.5556e-14 (next -1.1258e-14) max=1.4924e+02
+  OPTIMUM (Clarabel) status=Solved f*=0.770685524412 viol=(2.7815114772858935e-15, 0.0, 0.0) active rows=0 pins=29
+    walk final vs x*: |dx|inf=2.3016e-02  f_walk - f* = -1.6342e+00
+    rows in W not active at x*: [] ; active at x* not in W: []
+    pins in W not at that bound at x*: 21 [(13, 'L'), (22, 'L'), (61, 'L'), (72, 'L'), (111, 'L'), (150, 'L'), (178, 'L'), (189, 'L'), (192, 'L'), (194, 'L'), (208, 'L'), (217, 'L'), (228, 'U'), (231, 'L'), (248, 'L'), (256, 'L'), (267, 'U'), (287, 'L'), (295, 'L'), (306, 'U'), (311, 'L')]
+    bounds active at x* not pinned in W: 6 [(37, 'L'), (75, 'L'), (168, 'L'), (169, 'L'), (232, 'L'), (272, 'L')]
+ORACLE_SUMMARY phase1=0 viol=-1.5609359801432053e-13 Hmin=-2.7366e-05 Hmax=1.1412e+07 Hneg=0 Emin=-5.5722e-10 Eneg=0 Edim=57 Wmin=-1.5556e-14 Wneg=0 Wdim=13 fstar=0.7706855244118379 clar=Solved fwalk=-0.8635110526
+
+## The walk's final face of qp13, solved exactly (dense least squares on its KKT system)
+n 312 me 256 pins 44 KKT rank 606 of 612 sv min/max 8.317807109884032e-12 149543.35110840568
+rows |Ax-b|inf 2.64800704018419e-10 stationarity |Hx+g+A'l|inf 4.851136093580566e-10 scale 306.2000036239624
+pin prices wrong-signed 11 worst 7.227892712745583e-10
+free-variable box violation 0.0 |x|inf 14.461503430278157 q 7.177484549268528
+walk x: rows 2.410287152011505e-05 q 5.631566219634382 |x - xw| 6.174555179268028
+Z'HZ dim 12 eig [-4.60082906e-14 -2.75169916e-14 -9.22973660e-15 -2.53054156e-15] ... [149.23874561 149.23983205] Z'g 2.4232230841846458e-11
+
+## The mu-free terminal refine on qp13-qp16 (YKN_QPDBG): the refined point jumps |dx| ~ 1e5..1e8 off the box
+YKN_STAG iter=156 footprint_open=1
+YKN_REFINE verdict=1 factorized=1 rows=2.013e-09 box=8.034e+06 |dx|=8.034e+06 xmag=8.034e+06
+CYC runs/e2s1/dumps/qp13.txt n=312 me=256 mi=0 status=1 minors=157 facts=165 wall=0.086 q=5.631566219634e+00 adds=5 drops=2 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=2 stag_stops=1 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+YKN_STAG iter=100 footprint_open=1
+YKN_REFINE verdict=1 factorized=1 rows=2.662e-07 box=1.557e+08 |dx|=1.557e+08 xmag=1.557e+08
+CYC runs/e2s1/dumps/qp14.txt n=312 me=256 mi=0 status=1 minors=101 facts=103 wall=0.049 q=5.631566219243e+00 adds=2 drops=1 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=1 stag_stops=1 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+YKN_STAG iter=346 footprint_open=1
+YKN_REFINE verdict=1 factorized=1 rows=1.910e-10 box=2.977e+05 |dx|=2.977e+05 xmag=2.977e+05
+CYC runs/e2s1/dumps/qp16.txt n=312 me=256 mi=0 status=1 minors=347 facts=352 wall=0.154 q=5.631566219373e+00 adds=4 drops=2 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=2 stag_stops=1 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+
+## Replay arms on qp11-qp16: dual_mu (--mu), anti-cycling (CYC_AC), uniform shift H + rel*hs*I (--shift)
+[] CYC runs/e2s1/dumps/qp11.txt n=312 me=256 mi=0 status=3 minors=5 facts=48 wall=0.099 q=3.060268425276e+01 adds=0 drops=2 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--mu 1e-10] CYC runs/e2s1/dumps/qp11.txt n=312 me=256 mi=0 status=0 minors=7 facts=34 wall=0.045 q=3.061423405269e+01 adds=5 drops=0 deg=1 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--mu 1e-12] CYC runs/e2s1/dumps/qp11.txt n=312 me=256 mi=0 status=0 minors=8 facts=37 wall=0.051 q=3.061423405270e+01 adds=6 drops=0 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--mu 0] CYC runs/e2s1/dumps/qp11.txt n=312 me=256 mi=0 status=0 minors=7 facts=54 wall=0.124 q=3.061423405269e+01 adds=2 drops=0 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--shift 1e-8] CYC runs/e2s1/dumps/qp11.txt n=312 me=256 mi=0 status=0 minors=96 facts=22 wall=0.099 q=3.060296552927e+01 adds=38 drops=9 deg=38 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--shift 1e-6] CYC runs/e2s1/dumps/qp11.txt n=312 me=256 mi=0 status=0 minors=105 facts=1 wall=0.104 q=3.063071285942e+01 adds=43 drops=9 deg=43 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[] CYC runs/e2s1/dumps/qp12.txt n=312 me=256 mi=0 status=3 minors=7 facts=33 wall=0.061 q=1.444872938015e+01 adds=0 drops=3 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--mu 1e-10] CYC runs/e2s1/dumps/qp12.txt n=312 me=256 mi=0 status=0 minors=9 facts=38 wall=0.054 q=1.458805488436e+01 adds=7 drops=0 deg=1 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--mu 1e-12] CYC runs/e2s1/dumps/qp12.txt n=312 me=256 mi=0 status=0 minors=7 facts=30 wall=0.038 q=1.458805488405e+01 adds=3 drops=0 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--mu 0] CYC runs/e2s1/dumps/qp12.txt n=312 me=256 mi=0 status=0 minors=6 facts=34 wall=0.054 q=1.458805488436e+01 adds=4 drops=0 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--shift 1e-8] CYC runs/e2s1/dumps/qp12.txt n=312 me=256 mi=0 status=0 minors=91 facts=19 wall=0.102 q=1.444878963900e+01 adds=39 drops=7 deg=39 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--shift 1e-6] CYC runs/e2s1/dumps/qp12.txt n=312 me=256 mi=0 status=0 minors=107 facts=1 wall=0.108 q=1.445473441136e+01 adds=43 drops=9 deg=43 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[] CYC runs/e2s1/dumps/qp13.txt n=312 me=256 mi=0 status=1 minors=157 facts=165 wall=0.086 q=5.631566219634e+00 adds=5 drops=2 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=2 stag_stops=1 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--mu 1e-10] CYC runs/e2s1/dumps/qp13.txt n=312 me=256 mi=0 status=0 minors=26 facts=60 wall=0.078 q=7.177484607601e+00 adds=11 drops=1 deg=2 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=1 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--mu 1e-12] CYC runs/e2s1/dumps/qp13.txt n=312 me=256 mi=0 status=0 minors=10 facts=38 wall=0.053 q=7.177484607653e+00 adds=8 drops=1 deg=1 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--mu 0] CYC runs/e2s1/dumps/qp13.txt n=312 me=256 mi=0 status=0 minors=7 facts=37 wall=0.062 q=7.177484607641e+00 adds=5 drops=0 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--shift 1e-8] CYC runs/e2s1/dumps/qp13.txt n=312 me=256 mi=0 status=3 minors=77 facts=2 wall=0.094 q=0.000000000000e+00 adds=38 drops=0 deg=38 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--shift 1e-6] CYC runs/e2s1/dumps/qp13.txt n=312 me=256 mi=0 status=3 minors=78 facts=2 wall=0.092 q=0.000000000000e+00 adds=38 drops=0 deg=38 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[] CYC runs/e2s1/dumps/qp14.txt n=312 me=256 mi=0 status=1 minors=101 facts=103 wall=0.049 q=5.631566219243e+00 adds=2 drops=1 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=1 stag_stops=1 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--mu 1e-10] CYC runs/e2s1/dumps/qp14.txt n=312 me=256 mi=0 status=0 minors=14 facts=46 wall=0.060 q=7.177484607635e+00 adds=6 drops=0 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--mu 1e-12] CYC runs/e2s1/dumps/qp14.txt n=312 me=256 mi=0 status=0 minors=6 facts=33 wall=0.044 q=7.177484607637e+00 adds=4 drops=1 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--mu 0] CYC runs/e2s1/dumps/qp14.txt n=312 me=256 mi=0 status=0 minors=8 facts=60 wall=0.140 q=7.177484607653e+00 adds=2 drops=0 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--shift 1e-8] CYC runs/e2s1/dumps/qp14.txt n=312 me=256 mi=0 status=3 minors=85 facts=2 wall=0.102 q=1.134240757630e-04 adds=42 drops=0 deg=42 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--shift 1e-6] CYC runs/e2s1/dumps/qp14.txt n=312 me=256 mi=0 status=3 minors=86 facts=2 wall=0.098 q=1.134240757630e-02 adds=42 drops=0 deg=42 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[] CYC runs/e2s1/dumps/qp15.txt n=312 me=256 mi=0 status=1 minors=231 facts=235 wall=0.112 q=5.631566219278e+00 adds=5 drops=4 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=4 stag_stops=1 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--mu 1e-10] CYC runs/e2s1/dumps/qp15.txt n=312 me=256 mi=0 status=0 minors=51 facts=101 wall=0.162 q=7.177484607641e+00 adds=13 drops=9 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=2 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--mu 1e-12] CYC runs/e2s1/dumps/qp15.txt n=312 me=256 mi=0 status=0 minors=8 facts=38 wall=0.051 q=7.177484607639e+00 adds=5 drops=1 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--mu 0] CYC runs/e2s1/dumps/qp15.txt n=312 me=256 mi=0 status=0 minors=5 facts=38 wall=0.064 q=7.177484607652e+00 adds=3 drops=0 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--shift 1e-8] CYC runs/e2s1/dumps/qp15.txt n=312 me=256 mi=0 status=3 minors=96 facts=2 wall=0.112 q=5.631491253495e+00 adds=40 drops=4 deg=40 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--shift 1e-6] CYC runs/e2s1/dumps/qp15.txt n=312 me=256 mi=0 status=3 minors=96 facts=2 wall=0.107 q=5.624489764915e+00 adds=40 drops=4 deg=40 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[] CYC runs/e2s1/dumps/qp16.txt n=312 me=256 mi=0 status=1 minors=347 facts=352 wall=0.154 q=5.631566219373e+00 adds=4 drops=2 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=2 stag_stops=1 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--mu 1e-10] CYC runs/e2s1/dumps/qp16.txt n=312 me=256 mi=0 status=0 minors=36 facts=59 wall=0.072 q=7.177280092824e+00 adds=10 drops=7 deg=0 ride_sign_vetoes=1 ascent_rides=0 saddle_exits=0 stag_drops=1 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--mu 1e-12] CYC runs/e2s1/dumps/qp16.txt n=312 me=256 mi=0 status=0 minors=6 facts=34 wall=0.045 q=7.177484607649e+00 adds=4 drops=0 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--mu 0] CYC runs/e2s1/dumps/qp16.txt n=312 me=256 mi=0 status=0 minors=8 facts=42 wall=0.068 q=7.177484607648e+00 adds=5 drops=0 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--shift 1e-8] CYC runs/e2s1/dumps/qp16.txt n=312 me=256 mi=0 status=3 minors=95 facts=2 wall=0.108 q=5.631491253495e+00 adds=40 drops=4 deg=40 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--shift 1e-6] CYC runs/e2s1/dumps/qp16.txt n=312 me=256 mi=0 status=3 minors=95 facts=2 wall=0.105 q=5.624489764915e+00 adds=40 drops=4 deg=40 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[none] CYC runs/e2s1/dumps/qp13.txt n=312 me=256 mi=0 status=1 minors=157 facts=165 wall=0.086 q=5.631566219634e+00 adds=5 drops=2 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=2 stag_stops=1 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[expand] CYC runs/e2s1/dumps/qp13.txt n=312 me=256 mi=0 status=1 minors=157 facts=165 wall=0.087 q=5.631566219634e+00 adds=5 drops=2 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=2 stag_stops=1 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[lex] CYC runs/e2s1/dumps/qp13.txt n=312 me=256 mi=0 status=1 minors=157 facts=165 wall=0.086 q=5.631566219634e+00 adds=5 drops=2 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=2 stag_stops=1 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[lexfull] CYC runs/e2s1/dumps/qp13.txt n=312 me=256 mi=0 status=1 minors=32 facts=41 wall=0.042 q=5.631566211391e+00 adds=4 drops=1 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=1 stag_stops=1 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[none] CYC runs/e2s1/dumps/qp16.txt n=312 me=256 mi=0 status=1 minors=347 facts=352 wall=0.153 q=5.631566219373e+00 adds=4 drops=2 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=2 stag_stops=1 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[expand] CYC runs/e2s1/dumps/qp16.txt n=312 me=256 mi=0 status=1 minors=347 facts=352 wall=0.154 q=5.631566219373e+00 adds=4 drops=2 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=2 stag_stops=1 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[lex] CYC runs/e2s1/dumps/qp16.txt n=312 me=256 mi=0 status=1 minors=347 facts=352 wall=0.154 q=5.631566219373e+00 adds=4 drops=2 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=2 stag_stops=1 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[lexfull] CYC runs/e2s1/dumps/qp16.txt n=312 me=256 mi=0 status=1 minors=350 facts=352 wall=0.148 q=5.631566219270e+00 adds=5 drops=4 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=4 stag_stops=1 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+
+## Replay arms on qp39 (convex, feasible, Ae rank 255/256; Clarabel solves it): every arm fails
+[] CYC runs/e8/dumps/qp39.txt n=312 me=256 mi=0 status=3 minors=3 facts=20 wall=0.039 q=-8.635110526053e-01 adds=0 drops=0 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--mu 1e-6] CYC runs/e8/dumps/qp39.txt n=312 me=256 mi=0 status=3 minors=3 facts=142 wall=0.178 q=-8.635277552669e-01 adds=0 drops=0 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--mu 1e-10] CYC runs/e8/dumps/qp39.txt n=312 me=256 mi=0 status=3 minors=42 facts=72 wall=0.087 q=-7.939703566091e-01 adds=14 drops=8 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--mu 1e-12] CYC runs/e8/dumps/qp39.txt n=312 me=256 mi=0 status=3 minors=46 facts=52 wall=0.078 q=6.836436486545e-01 adds=16 drops=6 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=1 standstill=0 trunc=0
+[--mu 0] CYC runs/e8/dumps/qp39.txt n=312 me=256 mi=0 status=1 minors=42 facts=45 wall=0.047 q=-8.438567263515e-01 adds=9 drops=2 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=1 stag_stops=1 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--shift 1e-10] CYC runs/e8/dumps/qp39.txt n=312 me=256 mi=0 status=3 minors=19 facts=47 wall=0.087 q=-8.635102467045e-01 adds=0 drops=9 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+
+## QN label (sqp-qn), restoration phase QPs at HEAD (runs/q1): qp2 = phase QP 69 and qp13 = phase QP 100,
+## both kMaxIter at the 7680-minor cap (n = 824: 312 x + 512 slacks, me = 256)
+ORACLE runs/q1/dumps/qp2.txt n=824 me=256 mi=0 tr=4 in-cell: status=1 minors=7680 facts=7693 site=689 solve=69 maxiter=7680
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=0.0000e+00 max=1.3361e+01 n_neg=0 n_zero=515
+  Z'HZ on null(Ae): dim=568 rank(Ae)=256 eig min=-1.1026e-15
+  WALK final: f=-64.2942508013 viol eq/in/box=(1.0857981180834031e-13, 0.0, 0.0) |W| rows=0 pins=524 me+|W|=780 rank=780 n=824
+    working-set normalized singular values: min=1.481e-03 (smallest 3: [0.0014807  0.00178058 0.0020992 ])
+    Z'HZ on the final working set's null space: dim=44 eig min=8.6391e-06 (next 1.0928e-05) max=2.1854e+00
+  OPTIMUM (Clarabel) status=Solved f*=-64.2944882693 viol=(1.4654943925052066e-13, 0.0, 0.0) active rows=0 pins=514
+    walk final vs x*: |dx|inf=2.8963e+00  f_walk - f* = 2.3747e-04
+    rows in W not active at x*: [] ; active at x* not in W: []
+    pins in W not at that bound at x*: 10 [(13, 'L'), (34, 'U'), (52, 'L'), (99, 'U'), (138, 'U'), (148, 'L'), (176, 'U'), (177, 'U'), (229, 'U'), (294, 'U')]
+    bounds active at x* not pinned in W: 0 []
+ORACLE_SUMMARY phase1=0 viol=0.0 Hmin=0.0000e+00 Hmax=1.3361e+01 Hneg=0 Emin=-1.1026e-15 Eneg=0 Edim=568 Wmin=8.6391e-06 Wneg=0 Wdim=44 fstar=-64.29448826928426 clar=Solved fwalk=-64.2942508
+
+ORACLE runs/q1/dumps/qp13.txt n=824 me=256 mi=0 tr=0.5 in-cell: status=1 minors=1252 facts=1302 site=689 solve=99 maxiter=7680
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=0.0000e+00 max=7.1733e-02 n_neg=0 n_zero=516
+  Z'HZ on null(Ae): dim=568 rank(Ae)=256 eig min=-6.1745e-18
+  WALK final: f=1.96142744779e-07 viol eq/in/box=(8.881784197001252e-16, 0.0, 1.1102230246251565e-16) |W| rows=0 pins=523 me+|W|=779 rank=779 n=824
+    working-set normalized singular values: min=2.502e-03 (smallest 3: [0.00250243 0.00263689 0.00293061])
+    Z'HZ on the final working set's null space: dim=45 eig min=2.0552e-08 (next 4.1638e-08) max=7.0183e-03
+  OPTIMUM (Clarabel) status=Solved f*=3.59098653173e-11 viol=(2.072520215341822e-17, 0.0, 0.0) active rows=0 pins=512
+    walk final vs x*: |dx|inf=5.0594e-01  f_walk - f* = 1.9611e-07
+    rows in W not active at x*: [] ; active at x* not in W: []
+    pins in W not at that bound at x*: 11 [(12, 'L'), (31, 'U'), (90, 'L'), (151, 'L'), (169, 'U'), (170, 'L'), (190, 'L'), (208, 'U'), (209, 'L'), (268, 'U'), (307, 'L')]
+    bounds active at x* not pinned in W: 0 []
+ORACLE_SUMMARY phase1=0 viol=0.0 Hmin=0.0000e+00 Hmax=7.1733e-02 Hneg=0 Emin=-6.1745e-18 Eneg=0 Edim=568 Wmin=2.0552e-08 Wneg=0 Wdim=45 fstar=3.590986531730506e-11 clar=Solved fwalk=1.961427448e-07
+
+[] CYC runs/q1/dumps/qp2.txt n=824 me=256 mi=0 status=1 minors=7680 facts=7693 wall=46.451 q=-6.429425080128e+01 adds=1742 drops=1716 deg=9 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--mu 1e-10] CYC runs/q1/dumps/qp2.txt n=824 me=256 mi=0 status=1 minors=7680 facts=7829 wall=42.121 q=-6.428892337530e+01 adds=2078 drops=2066 deg=818 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--mu 1e-12] CYC runs/q1/dumps/qp2.txt n=824 me=256 mi=0 status=1 minors=7680 facts=7688 wall=47.727 q=-5.919543408540e+01 adds=3177 drops=3106 deg=3073 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[] CYC runs/q1/dumps/qp13.txt n=824 me=256 mi=0 status=1 minors=1252 facts=1302 wall=7.170 q=1.961427447787e-07 adds=195 drops=184 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=4 stag_stops=1 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--mu 1e-10] CYC runs/q1/dumps/qp13.txt n=824 me=256 mi=0 status=1 minors=874 facts=878 wall=3.556 q=2.195516095153e-06 adds=47 drops=6 deg=2 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=4 stag_stops=1 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0
+[--mu 1e-12] CYC runs/q1/dumps/qp13.txt n=824 me=256 mi=0 status=1 minors=7680 facts=7684 wall=31.169 q=6.247654814149e-07 adds=885 drops=849 deg=0 ride_sign_vetoes=0 ascent_rides=0 saddle_exits=0 stag_drops=0 stag_stops=0 zero_motion_exh=0 rank_repairs=0 standstill=0 trunc=0

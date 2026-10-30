@@ -1,0 +1,122 @@
+START 2026-10-30T00:42:43-04:00 HEAD d438c01785d7914abb08999fc4399c73e36d93d0 BEFORE fcd2574f dirty=0
+G5 args: CS=[src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/CMakeLists.txt tests/common_support/mkl_dispatch_probe.cpp tests/common_support/mkl_dispatch_signature.h tests/common_support/route_reference.h tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp ] CH=[include/hven/detail/globalization/acceptance_strategy.h include/hven/detail/globalization/filter_acceptance.h include/hven/detail/globalization/globalization_mechanism.h include/hven/detail/globalization/modern_merit.h include/hven/detail/globalization/monitored_governor.h include/hven/detail/globalization/proximal_restoration.h include/hven/detail/globalization/restoration.h include/hven/detail/globalization/soc.h include/hven/detail/globalization/switching_acceptance.h include/hven/detail/globalization/watchdog.h include/hven/detail/interior/sizing_specs.h include/hven/detail/interior/typedefs/super_scalar_traits.h include/hven/detail/interior/utils/memory_management.h include/hven/detail/interior/utils/thread_pool.h ] MOV=[CMakeFiles/hven.dir/src/interior/utils/get_core_count.cpp.o CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o ] NMOD=14 ADD(in universe)=[] LADD=[] OUTS=[] OUTM=[tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_sqp_equality_basis_seams.cpp] ODIR=tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+FOREGROUND_START R-psym-wx2 2026-10-30T00:42:43-04:00
+PGREP_EMPTY R-psym-wx2: no foreign cell binary under my lock
+=== P-SYM Release  after=d438c01785d7914abb08999fc4399c73e36d93d0  before=fcd2574f  declared differing=2 A=2 B=0
+CLEANDEAD_Release: 0 output(s) removed
+ASSERT OK   capture after-Release: rc=0, 163 object(s) in /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/rehearsal/gates/psym/after-Release/.psym-manifest
+ASSERT OK   capture before-Release: rc=0, 163 object(s) in /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/rehearsal/gates/psym/before-Release/.psym-manifest
+ASSERT OK   capture pair Release after = before + ADDED = 163
+ASSERT OK   outside-universe Release: tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_flat_face_saddle.cpp.o was BUILT in the after arm
+ASSERT OK   outside-universe Release: tests/qp/test_qp_flat_face_saddle.cpp compiled in exactly one listed outside target = 1
+ASSERT OK   outside-universe Release: tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_rank_repair.cpp.o was BUILT in the after arm
+ASSERT OK   outside-universe Release: tests/qp/test_qp_rank_repair.cpp compiled in exactly one listed outside target = 1
+ASSERT OK   outside-universe Release: tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_route_reference.cpp.o was BUILT in the after arm
+ASSERT OK   outside-universe Release: tests/qp/test_route_reference.cpp compiled in exactly one listed outside target = 1
+ASSERT OK   outside-universe Release: tests/CMakeFiles/hven_sqp_seam_tests.dir/sqp/test_sqp_equality_basis_seams.cpp.o was BUILT in the after arm
+ASSERT OK   outside-universe Release: tests/sqp/test_sqp_equality_basis_seams.cpp compiled in exactly one listed outside target = 1
+ASSERT OK   outside-universe Release: objects of [tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir] in the after manifest = 0
+tree restored to wx2-gates d438c017
+PSYM_COMPARE_RC_Release=1 (1 is EXPECTED; the gate is the classification)
+ASSERT OK   ONLY-AFTER Release: [] == the ADDED sources' objects
+CLASSIFY_RC_Release=0
+HEADER DERIVATION
+  repo : /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt
+  base : fcd2574f -> fcd2574fdf33071e7e86e82266a582aa684af760
+  head : d438c01785d7914abb08999fc4399c73e36d93d0 -> d438c01785d7914abb08999fc4399c73e36d93d0
+  cmd  : git -C /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt diff --name-only fcd2574f..d438c01785d7914abb08999fc4399c73e36d93d0 -- include/
+  list : ['include/hven/detail/globalization/acceptance_strategy.h', 'include/hven/detail/globalization/filter_acceptance.h', 'include/hven/detail/globalization/globalization_mechanism.h', 'include/hven/detail/globalization/modern_merit.h', 'include/hven/detail/globalization/monitored_governor.h', 'include/hven/detail/globalization/proximal_restoration.h', 'include/hven/detail/globalization/restoration.h', 'include/hven/detail/globalization/soc.h', 'include/hven/detail/globalization/switching_acceptance.h', 'include/hven/detail/globalization/watchdog.h', 'include/hven/detail/interior/sizing_specs.h', 'include/hven/detail/interior/typedefs/super_scalar_traits.h', 'include/hven/detail/interior/utils/memory_management.h', 'include/hven/detail/interior/utils/thread_pool.h']
+HEADER LIST ACCEPTED: ['include/hven/detail/globalization/acceptance_strategy.h', 'include/hven/detail/globalization/filter_acceptance.h', 'include/hven/detail/globalization/globalization_mechanism.h', 'include/hven/detail/globalization/modern_merit.h', 'include/hven/detail/globalization/monitored_governor.h', 'include/hven/detail/globalization/proximal_restoration.h', 'include/hven/detail/globalization/restoration.h', 'include/hven/detail/globalization/soc.h', 'include/hven/detail/globalization/switching_acceptance.h', 'include/hven/detail/globalization/watchdog.h', 'include/hven/detail/interior/sizing_specs.h', 'include/hven/detail/interior/typedefs/super_scalar_traits.h', 'include/hven/detail/interior/utils/memory_management.h', 'include/hven/detail/interior/utils/thread_pool.h']
+P-SYM: FAIL — differences outside the accepted noise class
+DIFFERING OBJECTS: 2
+  class A -- SOURCE CHANGED by this task: 2
+  class B -- INCLUDERS of a changed header, source untouched: 0
+  UNEXPLAINED: 0
+  NEGATIVE CONTROL -- objects that ALSO include one of those headers and are BYTE-IDENTICAL (neither a mover nor NOISE-ONLY): 41
+ASSERT OK   P-SYM Release compare rc (declared 2 mover(s)) = 1
+ASSERT OK   P-SYM Release classify rc = 0
+ASSERT OK   P-SYM Release differing = 2 (>= 1)
+ASSERT OK   P-SYM Release class A + class B = 2
+ASSERT OK   P-SYM Release unexplained = 0
+ASSERT OK   P-SYM Release negative control = 41 (>= 1)
+ASSERT OK   P-SYM Release differing (declared) = 2
+ASSERT OK   P-SYM Release class A (declared) = 2
+ASSERT OK   P-SYM Release class B (declared) = 0
+ASSERT OK   library ADDED Release: [] present after, absent before
+SECTIONS_RC_Release=0
+SECTIONS_Release_OBJECTS=48
+SECTIONS_Release_BYTE_IDENTICAL=48
+SECTIONS_Release_DEBUG_ONLY=0
+SECTIONS_Release_NON_DEBUG_MOVERS=0
+SECTIONS_Release_REFUSED=0
+SECTIONS_Release_RC=0
+NON_DEBUG_MOVERS_GOT_Release=[]  DECLARED=[]  REFUSED=0
+ASSERT OK   sections Release: the non-debug movers are EXACTLY the declared set, nothing refused
+ASSERT OK   sections Release: DEBUG_ONLY=0, as declared
+=== P-SYM Debug  after=d438c01785d7914abb08999fc4399c73e36d93d0  before=fcd2574f  declared differing=2 A=2 B=0
+CLEANDEAD_Debug: 0 output(s) removed
+ASSERT OK   capture after-Debug: rc=0, 163 object(s) in /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/rehearsal/gates/psym/after-Debug/.psym-manifest
+ASSERT OK   capture before-Debug: rc=0, 163 object(s) in /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/rehearsal/gates/psym/before-Debug/.psym-manifest
+ASSERT OK   capture pair Debug after = before + ADDED = 163
+ASSERT OK   outside-universe Debug: tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_flat_face_saddle.cpp.o was BUILT in the after arm
+ASSERT OK   outside-universe Debug: tests/qp/test_qp_flat_face_saddle.cpp compiled in exactly one listed outside target = 1
+ASSERT OK   outside-universe Debug: tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_rank_repair.cpp.o was BUILT in the after arm
+ASSERT OK   outside-universe Debug: tests/qp/test_qp_rank_repair.cpp compiled in exactly one listed outside target = 1
+ASSERT OK   outside-universe Debug: tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_route_reference.cpp.o was BUILT in the after arm
+ASSERT OK   outside-universe Debug: tests/qp/test_route_reference.cpp compiled in exactly one listed outside target = 1
+ASSERT OK   outside-universe Debug: tests/CMakeFiles/hven_sqp_seam_tests.dir/sqp/test_sqp_equality_basis_seams.cpp.o was BUILT in the after arm
+ASSERT OK   outside-universe Debug: tests/sqp/test_sqp_equality_basis_seams.cpp compiled in exactly one listed outside target = 1
+ASSERT OK   outside-universe Debug: objects of [tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir] in the after manifest = 0
+tree restored to wx2-gates d438c017
+PSYM_COMPARE_RC_Debug=1 (1 is EXPECTED; the gate is the classification)
+ASSERT OK   ONLY-AFTER Debug: [] == the ADDED sources' objects
+CLASSIFY_RC_Debug=0
+HEADER DERIVATION
+  repo : /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt
+  base : fcd2574f -> fcd2574fdf33071e7e86e82266a582aa684af760
+  head : d438c01785d7914abb08999fc4399c73e36d93d0 -> d438c01785d7914abb08999fc4399c73e36d93d0
+  cmd  : git -C /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt diff --name-only fcd2574f..d438c01785d7914abb08999fc4399c73e36d93d0 -- include/
+  list : ['include/hven/detail/globalization/acceptance_strategy.h', 'include/hven/detail/globalization/filter_acceptance.h', 'include/hven/detail/globalization/globalization_mechanism.h', 'include/hven/detail/globalization/modern_merit.h', 'include/hven/detail/globalization/monitored_governor.h', 'include/hven/detail/globalization/proximal_restoration.h', 'include/hven/detail/globalization/restoration.h', 'include/hven/detail/globalization/soc.h', 'include/hven/detail/globalization/switching_acceptance.h', 'include/hven/detail/globalization/watchdog.h', 'include/hven/detail/interior/sizing_specs.h', 'include/hven/detail/interior/typedefs/super_scalar_traits.h', 'include/hven/detail/interior/utils/memory_management.h', 'include/hven/detail/interior/utils/thread_pool.h']
+HEADER LIST ACCEPTED: ['include/hven/detail/globalization/acceptance_strategy.h', 'include/hven/detail/globalization/filter_acceptance.h', 'include/hven/detail/globalization/globalization_mechanism.h', 'include/hven/detail/globalization/modern_merit.h', 'include/hven/detail/globalization/monitored_governor.h', 'include/hven/detail/globalization/proximal_restoration.h', 'include/hven/detail/globalization/restoration.h', 'include/hven/detail/globalization/soc.h', 'include/hven/detail/globalization/switching_acceptance.h', 'include/hven/detail/globalization/watchdog.h', 'include/hven/detail/interior/sizing_specs.h', 'include/hven/detail/interior/typedefs/super_scalar_traits.h', 'include/hven/detail/interior/utils/memory_management.h', 'include/hven/detail/interior/utils/thread_pool.h']
+P-SYM: FAIL — differences outside the accepted noise class
+DIFFERING OBJECTS: 2
+  class A -- SOURCE CHANGED by this task: 2
+  class B -- INCLUDERS of a changed header, source untouched: 0
+  UNEXPLAINED: 0
+  NEGATIVE CONTROL -- objects that ALSO include one of those headers and are BYTE-IDENTICAL (neither a mover nor NOISE-ONLY): 31
+ASSERT OK   P-SYM Debug compare rc (declared 2 mover(s)) = 1
+ASSERT OK   P-SYM Debug classify rc = 0
+ASSERT OK   P-SYM Debug differing = 2 (>= 1)
+ASSERT OK   P-SYM Debug class A + class B = 2
+ASSERT OK   P-SYM Debug unexplained = 0
+ASSERT OK   P-SYM Debug negative control = 31 (>= 1)
+ASSERT OK   P-SYM Debug differing (declared) = 2
+ASSERT OK   P-SYM Debug class A (declared) = 2
+ASSERT OK   P-SYM Debug class B (declared) = 0
+ASSERT OK   library ADDED Debug: [] present after, absent before
+SECTIONS_RC_Debug=0
+DEBUG-ONLY       CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+DEBUG-ONLY       CMakeFiles/hven.dir/src/drivers/ipm_solver_globalization.cpp.o
+DEBUG-ONLY       CMakeFiles/hven.dir/src/interior/utils/get_core_count.cpp.o
+DEBUG-ONLY       CMakeFiles/hven.dir/src/interior/utils/memory_management.cpp.o
+DEBUG-ONLY       CMakeFiles/hven.dir/src/interior/utils/thread_pool.cpp.o
+DEBUG-ONLY       CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o
+SECTIONS_Debug_OBJECTS=48
+SECTIONS_Debug_BYTE_IDENTICAL=42
+SECTIONS_Debug_DEBUG_ONLY=6
+SECTIONS_Debug_NON_DEBUG_MOVERS=0
+SECTIONS_Debug_REFUSED=0
+SECTIONS_Debug_RC=0
+NON_DEBUG_MOVERS_GOT_Debug=[]  DECLARED=[]  REFUSED=0
+ASSERT OK   sections Debug: the non-debug movers are EXACTLY the declared set, nothing refused
+ASSERT OK   sections Debug: DEBUG_ONLY=6, as declared
+ASSERT OK   P-SYM cross-config: class B sets equal (0 object(s))
+ASSERT OK   P-SYM cross-config: Release unexplained = 0 (count and list)
+ASSERT OK   P-SYM cross-config: Debug unexplained = 0 (count and list)
+ASSERT OK   P-SYM cross-config: Release class A (2) all changed-source
+ASSERT OK   P-SYM cross-config: Debug class A (2) all changed-source
+ASSERT OK   P-SYM cross-config: the two class A sets are identical
+G5_ASSERT_RC=0
+FOREGROUND_END R-psym-wx2 2026-10-30T01:03:00-04:00 rc=0
+LEG_RC R-psym-wx2 rc=0
+END 2026-10-30T01:03:00-04:00 tree=wx2-gates d438c017 dirty=0

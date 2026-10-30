@@ -1,0 +1,39 @@
+{
+ "dump": "dumps/DALLASM_f4/qp1.txt",
+ "n": 215,
+ "me": 150,
+ "mi": 0,
+ "tr": Infinity,
+ "result": {
+  "status": "3",
+  "minors": "194",
+  "facts": "370",
+  "blk_term": "1",
+  "cert": "0",
+  "cert_rej": "0",
+  "zmcap": "0",
+  "zmexh": "0",
+  "retreats": "0",
+  "exch": "128",
+  "deferred": "0",
+  "undec": "0",
+  "maxiter": "2150"
+ },
+ "phase1_status": 0,
+ "phase1_min_l1_violation": 0.0,
+ "H_eig_min": 0.0,
+ "H_eig_max": 5430.653360368355,
+ "final_ws": {
+  "rows": 0,
+  "pins": 65,
+  "rank": 210,
+  "count": 215
+ },
+ "redH_final_min": 20.395113551152782,
+ "clarabel_status": "Solved",
+ "f_star": -923778.932267775,
+ "active_star": {
+  "rows": 0,
+  "pins": 136
+ }
+}

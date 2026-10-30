@@ -45,9 +45,9 @@ class AcceptanceStrategy {
     /// @param predicted_reduction Stays alpha-scaled; recover the raw
     ///   directional derivative as predicted_reduction.objective / step_length.
     virtual bool is_iterate_acceptable(const ProgressMeasures &current,
-                                        const ProgressMeasures &trial,
-                                        const ProgressMeasures &predicted_reduction,
-                                        double objective_multiplier, double step_length) = 0;
+                                       const ProgressMeasures &trial,
+                                       const ProgressMeasures &predicted_reduction,
+                                       double objective_multiplier, double step_length) = 0;
 
     /// @brief Restoration-exit test: has infeasibility been reduced enough,
     /// relative to @p reference (the point restoration was entered from), to
@@ -55,7 +55,7 @@ class AcceptanceStrategy {
     /// test call sites; near-feasible exits are plain threshold tests and do
     /// not consult the strategy.
     virtual bool is_infeasibility_sufficiently_reduced(const ProgressMeasures &reference,
-                                                        const ProgressMeasures &trial) const = 0;
+                                                       const ProgressMeasures &trial) const = 0;
 
     /// @brief mu-event / phase-change hook: called whenever the solver starts
     /// a new phase or resets the barrier parameter. Stateful strategies clear
@@ -130,8 +130,7 @@ class AcceptanceStrategy {
         (void)RHS2;
         (void)Citer;
         (void)iters;
-        throw std::logic_error(
-            "classic_line_search is only implemented by ClassicMeritAcceptance");
+        throw std::logic_error("classic_line_search is only implemented by ClassicMeritAcceptance");
     }
 };
 

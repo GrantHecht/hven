@@ -1,0 +1,14 @@
+replay_build_m4.py (copy) sha256 7403158b6df12e3b206922e7979880e17be14c856692dc445d2d3329c5076610
+replay_build_m4.py (M4)   sha256 7403158b6df12e3b206922e7979880e17be14c856692dc445d2d3329c5076610
+installed libhven.a sha256 18a71b727533e9231fbdeb4e6bf0c9bb2d77aad6ab886a0f2e5729f1169eee10
+M3c's recorded pin         18a71b727533e9231fbdeb4e6bf0c9bb2d77aad6ab886a0f2e5729f1169eee10
+  PROBE TU m3c_probe.cpp: no residual difference  (declared: source, object, dep file)
+  BRIDGE   cutest_model.cpp: no residual difference
+  BRIDGE   cutest_source.cpp: no residual difference
+  BRIDGE   nlp_model_triplet_view.cpp: no residual difference
+  one command in full: /usr/bin/clang++ -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO -DEIGEN_MAX_ALIGN_BYTES=32 -DFMT_HEADER_ONLY -DFMT_USE_LOCALE=0 -DHVEN_BENCH_HAS_CUTEST=1 -DHVEN_DEFAULT_QP_THREADS=8 -I/home/ghecht/Projects/hven-bench -I/home/ghecht/Projects/hven-bench/lanes/hven -I/home/ghecht/Software/cutest/include -isystem /home/ghecht/Projects/hven/.scratch/m7w2m3c/install/include -isystem /opt/intel/oneapi/mkl/latest/include -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 -MD -MT CMakeFiles/m3c_probe.dir/m5r_rank_probe.cpp.o -MF CMakeFiles/m3c_probe.dir/m5r_rank_probe.cpp.o.d -o CMakeFiles/m3c_probe.dir/m5r_rank_probe.cpp.o -c /home/ghecht/Projects/hven/.scratch/m7w2m5r/build/m5r_rank_probe.cpp
+  4 objects produced
+  LINK: no residual difference (declared: probe object, target name)
+  : && /usr/bin/clang++ -DMKL_LP64 -m64 -O3 -DNDEBUG -Wl,-rpath,/home/ghecht/Software/cutest/lib -Xlinker --dependency-file=CMakeFiles/m3c_probe.dir/link.d CMakeFiles/m3c_probe.dir/m5r_rank_probe.cpp.o CMakeFiles/m3c_probe.dir/home/ghecht/Projects/hven-bench/lanes/cutest/cutest_model.cpp.o CMakeFiles/m3c_probe.dir/home/ghecht/Projects/hven-bench/lanes/cutest/cutest_source.cpp.o CMakeFiles/m3c_probe.dir/home/ghecht/Projects/hven-bench/lanes/hven/nlp_model_triplet_view.cpp.o -o m5r_rank_probe  -Wl,-rpath,/opt/intel/oneapi/mkl/latest/lib:/opt/intel/oneapi/compiler/latest/lib:/home/ghecht/Software/cutest/lib  /home/ghecht/Projects/hven/.scratch/m7w2m3c/install/lib64/libhven.a  /home/ghecht/Software/cutest/lib/libcutest_double.so  -Wl,--start-group  /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a  /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a  /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a  /opt/intel/oneapi/compiler/latest/lib/libiomp5.so  -Wl,--end-group  -ldl  -lm && :
+BINARY /home/ghecht/Projects/hven/.scratch/m7w2m5r/build/m5r_rank_probe
+BINARY_SHA256 fc66e01bb84dbb5d0644839ca0d9117ef44f549315e2203c9cc7b18b5098f0b2

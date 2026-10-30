@@ -1,0 +1,76 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-release/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpEngineStructuralViolation.T7TheFeasibleCensusHalfOverTheFULLDualMuSet:SqpDriverAdaptiveMu.MuScheduleIsQuantizedAndMonotone:WarmStart.FullStepModeInheritsElasticAndRestoration:SqpDriverRestorationSeed.TheGuardAndThePhaseRunOnTheCallerScale
+[==========] Running 4 tests from 4 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from SqpDriverAdaptiveMu
+[ RUN      ] SqpDriverAdaptiveMu.MuScheduleIsQuantizedAndMonotone
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_solver.cpp:5912: Failure
+Value of: saw_decade_drop
+  Actual: false
+Expected: true
+this fixture is only interesting if mu actually moved
+
+[  FAILED  ] SqpDriverAdaptiveMu.MuScheduleIsQuantizedAndMonotone (11 ms)
+[----------] 1 test from SqpDriverAdaptiveMu (11 ms total)
+
+[----------] 1 test from QpEngineStructuralViolation
+[ RUN      ] QpEngineStructuralViolation.T7TheFeasibleCensusHalfOverTheFULLDualMuSet
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_solver.cpp:11140: Failure
+Expected equality of these values:
+  open_relaxation_certified_infeasible
+    Which is: 16
+  0
+the census's own claim, and it holds at every dual_mu
+
+[  FAILED  ] QpEngineStructuralViolation.T7TheFeasibleCensusHalfOverTheFULLDualMuSet (26 ms)
+[----------] 1 test from QpEngineStructuralViolation (26 ms total)
+
+[----------] 1 test from SqpDriverRestorationSeed
+[ RUN      ] SqpDriverRestorationSeed.TheGuardAndThePhaseRunOnTheCallerScale
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_restoration.cpp:2261: Failure
+Expected equality of these values:
+  1
+  seeded_rows(sol)
+    Which is: 0
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_restoration.cpp:2241: walk
+
+[  FAILED  ] SqpDriverRestorationSeed.TheGuardAndThePhaseRunOnTheCallerScale (3 ms)
+[----------] 1 test from SqpDriverRestorationSeed (3 ms total)
+
+[----------] 1 test from WarmStart
+[ RUN      ] WarmStart.FullStepModeInheritsElasticAndRestoration
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start.cpp:1832: Failure
+The difference between sol.f and cold.f is 0.2500000000031779, which exceeds 1e-6, where
+sol.f evaluates to 6.7537129268473545e-19,
+cold.f evaluates to -0.2500000000031779, and
+1e-6 evaluates to 9.9999999999999995e-07.
+the restoration phase moves the iterate, so this lands on HS40's optimum to the phase's own accuracy rather than to the 1e-8 the un-restored runs hit
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start.cpp:1841: Failure
+Expected: (sol.counters.restoration_iters) >= (1), actual: 0 vs 1
+and the elastic tier's exhaustion raised a restoration request the driver serviced
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start.cpp:1844: Failure
+Expected equality of these values:
+  sol.counters.suspect_escalations
+    Which is: 3
+  0
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_warm_start.cpp:1859: Failure
+Expected: (restore_row) < (sol.history.size()), actual: 25 vs 25
+the fixture must actually reach a kRestore row
+
+[  FAILED  ] WarmStart.FullStepModeInheritsElasticAndRestoration (11 ms)
+[----------] 1 test from WarmStart (11 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 4 test suites ran. (53 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 4 tests, listed below:
+[  FAILED  ] SqpDriverAdaptiveMu.MuScheduleIsQuantizedAndMonotone
+[  FAILED  ] QpEngineStructuralViolation.T7TheFeasibleCensusHalfOverTheFULLDualMuSet
+[  FAILED  ] SqpDriverRestorationSeed.TheGuardAndThePhaseRunOnTheCallerScale
+[  FAILED  ] WarmStart.FullStepModeInheritsElasticAndRestoration
+
+ 4 FAILED TESTS

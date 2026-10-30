@@ -186,9 +186,9 @@ class ModernMeritAcceptance : public AcceptanceStrategy {
     MeritPenaltyRules rule_;
 
     /// Per-solve penalty state (reset() clears to the kInit* constants).
-    double nu_ = kWmnoInitPenalty;    ///< WMNO single penalty ν.
-    double pi_l_ = kFlexInitPiL;      ///< Flexible lower penalty π_l.
-    double pi_u_ = kFlexInitPiU;      ///< Flexible upper penalty π_u.
+    double nu_ = kWmnoInitPenalty; ///< WMNO single penalty ν.
+    double pi_l_ = kFlexInitPiL;   ///< Flexible lower penalty π_l.
+    double pi_u_ = kFlexInitPiU;   ///< Flexible upper penalty π_u.
 
     /// Restoration-exit tracker (+inf-initialized; min()-updated ONLY in the
     /// accept branch; cleared by reset()). FP-inert on the default path: it

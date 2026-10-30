@@ -1,0 +1,15 @@
+RD8_BISECT hi=1522 probes=11 hi_verdict=0 final=0
+RD8_REPAIR pinned=1522 verdict=0 budget=2002
+RD8 /home/ghecht/Projects/hven/.claude/worktrees/agent-af791fbc982c20d3f/.scratch/rd8/runs/dump0/entry0.txt n=2002 me=1000 mi=0 cap=128 algebra=border status=1 minors=2000 facts=2022 schur=3135 analyses=1 adds=1221 drops=1222 degen=226 wall=274.368 q=-5.912492677042e+02 pins=993 xinf=1.0000e+00
+CNT repair_pins=1000 repair_budget=0 repair_restarts=0 latch_cap=4 latch_cond=0 releases=0 holds=0 standstill=0 stag_drops=0 stag_stops=0 zm_ex=0 zm_cap=0 ride_vetoes=0 ascent=0 saddle=0 saddle_miss=0 rank_rep=0 dep_tests=1005
+PATH border+attempted+k0rebuilt|pf=3                    1
+PATH elim+attempted+k0rebuilt|pf=2                      3
+PATH elim+latched|pf=1                                  1996
+ACT 0 521
+ACT 1 1
+ACT 4 250
+ACT 6 3
+ACT 8 22
+ACT 10 972
+ACT 11 4
+ACT 13 227

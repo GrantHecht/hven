@@ -1,0 +1,6 @@
+f7 engine=ipm cell=f7_n1000_path_neutral mi_nodes=1000 status=0 majors=5 weak_peak=10 near_peak=10 majors_qp=4 majors_near_gt0=3 majors_weak_gt0=2 near_sum=19 active_rows_sum=2639 ipqp_band=0 ipqp_noise=0 ipqp_uncertain=35
+f7 engine=ipm cell=f7_n1000_path_physics mi_nodes=1000 status=0 majors=3 weak_peak=8 near_peak=273 majors_qp=2 majors_near_gt0=2 majors_weak_gt0=2 near_sum=276 active_rows_sum=1496 ipqp_band=0 ipqp_noise=0 ipqp_uncertain=35
+f7 engine=ipm cell=f7_n800_path_neutral mi_nodes=800 status=0 majors=5 weak_peak=17 near_peak=13 majors_qp=4 majors_near_gt0=2 majors_weak_gt0=1 near_sum=14 active_rows_sum=2109 ipqp_band=0 ipqp_noise=0 ipqp_uncertain=17
+f7 engine=ipm cell=f7_n800_path_physics mi_nodes=800 status=0 majors=3 weak_peak=0 near_peak=10 majors_qp=2 majors_near_gt0=1 majors_weak_gt0=0 near_sum=10 active_rows_sum=1406 ipqp_band=0 ipqp_noise=0 ipqp_uncertain=10
+f7 engine=ipm cell=f7_n750_path_neutral_control mi_nodes=750 status=0 majors=5 weak_peak=0 near_peak=8 majors_qp=4 majors_near_gt0=2 majors_weak_gt0=0 near_sum=9 active_rows_sum=1982 ipqp_band=0 ipqp_noise=0 ipqp_uncertain=236
+f7 engine=ipm cell=f7_n825_path_neutral_control mi_nodes=825 status=0 majors=5 weak_peak=19 near_peak=14 majors_qp=4 majors_near_gt0=3 majors_weak_gt0=3 near_sum=17 active_rows_sum=2175 ipqp_band=0 ipqp_noise=0 ipqp_uncertain=24

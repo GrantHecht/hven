@@ -25,7 +25,10 @@
 // header shared by two translation units in the same binary needs them to be;
 // nothing else about them changed.
 
+#include <vector>
+
 #include <Eigen/Core>
+#include <Eigen/SparseCore>
 
 #include <hven/core/types.h>
 #include <hven/detail/qp/qp_problem.h>
@@ -147,6 +150,71 @@ inline QpProblem two_negative_eigenvalue_row_qp() {
     qp.bi = Vec::Constant(1, 1.0);
     qp.lower = Vec::Constant(3, -2.0);
     qp.upper = Vec::Constant(3, 2.0);
+    return qp;
+}
+
+// THE T4b GATE-9 BOX/EQUALITY FIXTURES, moved verbatim from
+// tests/sqp/test_ipqp_certification.cpp (M7 W2 A3) so `hven_sqp_ipqp_e1_arm --ladder` solves the
+// same problems the gate asserts on. Built from (row, col, value) triplets exactly as that file's
+// `dense_upper` / `dense_rows` built them.
+inline SpMatRM fixture_sparse(Index rows, Index cols,
+                              const std::vector<Eigen::Triplet<double>> &t) {
+    SpMatRM m(rows, cols);
+    m.setFromTriplets(t.begin(), t.end());
+    m.makeCompressed();
+    return m;
+}
+
+/// THE A11 PARAMETRIC INDEFINITE FAMILY at QP level: min 1/2 x0^2 - x1^2 - c x0 + 1/4 x1 on
+/// [-1, 1]^2. The KKT residual vanishes at BOTH the minimizer (c, -1) and the interior saddle
+/// (c, 1/8), so only a section 2.2 item 4 inertia read separates them.
+inline QpProblem indefinite_box_qp(double c) {
+    QpProblem qp;
+    qp.H = fixture_sparse(2, 2, {{0, 0, 1.0}, {1, 1, -2.0}});
+    qp.g = Vec(2);
+    qp.g << -c, 0.25;
+    qp.Ae = fixture_sparse(0, 2, {});
+    qp.be = Vec(0);
+    qp.Ai = fixture_sparse(0, 2, {});
+    qp.bi = Vec(0);
+    qp.lower = Vec::Constant(2, -1.0);
+    qp.upper = Vec::Constant(2, 1.0);
+    return qp;
+}
+
+/// The saddle fixture task 4's `TheFinalReadCatchesASaddle...` uses: `H =
+/// diag(2, -1)`, `g = 0`, a SYMMETRIC box, so the origin is an exact KKT point
+/// of the barrier problem at every `mu` and the tier converges to it.
+inline QpProblem saddle_qp() {
+    QpProblem qp;
+    qp.H = fixture_sparse(2, 2, {{0, 0, 2.0}, {1, 1, -1.0}});
+    qp.g = Vec::Zero(2);
+    qp.Ae = fixture_sparse(0, 2, {});
+    qp.be = Vec(0);
+    qp.Ai = fixture_sparse(0, 2, {});
+    qp.bi = Vec(0);
+    qp.lower = Vec::Constant(2, -10.0);
+    qp.upper = Vec::Constant(2, 10.0);
+    return qp;
+}
+
+/// T4b close gate 7's fixture: min 1/2 (x0^2 + lam x1^2) s.t. x0 = 0.5, x in [-10, 10]^2. The
+/// equality eliminates x0, so the REDUCED Hessian is the scalar `lam`, known analytically; `g1 =
+/// 0` and a symmetric box make the SADDLE `x1 = 0` an exact barrier KKT point at every `mu`.
+inline QpProblem equality_null_space_indefinite_qp(double lam) {
+    QpProblem qp;
+    std::vector<Eigen::Triplet<double>> h = {{0, 0, 1.0}};
+    if (lam != 0.0) {
+        h.emplace_back(1, 1, lam);
+    }
+    qp.H = fixture_sparse(2, 2, h);
+    qp.g = Vec::Zero(2);
+    qp.Ae = fixture_sparse(1, 2, {{0, 0, 1.0}});
+    qp.be = Vec::Constant(1, 0.5);
+    qp.Ai = fixture_sparse(0, 2, {});
+    qp.bi = Vec(0);
+    qp.lower = Vec::Constant(2, -10.0);
+    qp.upper = Vec::Constant(2, 10.0);
     return qp;
 }
 

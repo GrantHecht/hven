@@ -1,0 +1,16 @@
+M1 strict > becomes >=: KILLED by WsAlgebraRule.AChurningBorderSwitchesOnceAndCostsLess, WsAlgebraRule.EverySolveStartsOnTheConfiguredAlgebra, WsAlgebraRule.InertUntilItFiresOnEveryShippedDefaultHsProblem, WsAlgebraRule.TheRestorationSubSolveRunsTheRuleAndIsFolded, WsAlgebraRule.TheWitnessIsStrictAndCountsTheSeedFactorization
+M2 the +1 of the nominal dropped: KILLED by WsAlgebraRule.TheWitnessIsStrictAndCountsTheSeedFactorization
+M3 no accumulation before the switch: KILLED by WsAlgebraRule.AChurningBorderSwitchesOnceAndCostsLess, WsAlgebraRule.EverySolveStartsOnTheConfiguredAlgebra, WsAlgebraRule.SetOptionsUndoesTheSwitch, WsAlgebraRule.TheRestorationSubSolveRunsTheRuleAndIsFolded, WsAlgebraRule.TheTwinRecordsIntoTheLedgerSequence
+M4 no reset at solve entry: KILLED by WsAlgebraRule.EverySolveStartsOnTheConfiguredAlgebra
+M5 set_options leaves the switch: KILLED by WsAlgebraRule.SetOptionsUndoesTheSwitch
+M6 inert-on-refactorize test removed (before): SURVIVED
+M7 the twin built on the border algebra: KILLED by WsAlgebraRule.AChurningBorderSwitchesOnceAndCostsLess
+M8 switches not counted: KILLED by WsAlgebraRule.AChurningBorderSwitchesOnceAndCostsLess, WsAlgebraRule.EverySolveStartsOnTheConfiguredAlgebra, WsAlgebraRule.SetOptionsUndoesTheSwitch, WsAlgebraRule.TheRestorationSubSolveRunsTheRuleAndIsFolded, WsAlgebraRule.TheTwinRecordsIntoTheLedgerSequence
+M9 switched subproblems not counted: KILLED by WsAlgebraRule.AChurningBorderSwitchesOnceAndCostsLess, WsAlgebraRule.TheRestorationSubSolveRunsTheRuleAndIsFolded
+M10 restoration fold dropped: KILLED by WsAlgebraRule.TheRestorationSubSolveRunsTheRuleAndIsFolded
+M11 ledger sequence not carried at the switch: KILLED by WsAlgebraRule.TheTwinRecordsIntoTheLedgerSequence
+M12 twin not attached to the ledger: KILLED by WsAlgebraRule.TheTwinRecordsIntoTheLedgerSequence
+M13 the sentinel accepted: KILLED by WsAlgebraRule.ValidationRefusesTheSentinelAndTheDumpCarriesTheField
+M14 dump line dropped: KILLED by WsAlgebraRule.ValidationRefusesTheSentinelAndTheDumpCarriesTheField
+M15 the rule always on: SURVIVED
+M16 the reset does not swap back: SURVIVED

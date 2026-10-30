@@ -1,0 +1,43 @@
+FOREGROUND_START gates 2026-09-17T13:04:43-04:00
+=== HEAD 003b5d89  dirty-files=1 ===
+=== U0 27-CELL THREE-ARM REPLAY (expecting 27/75/0 x3) ===
+ran head-walk rc=0 (worst 0)
+ran head-ssn rc=0 (worst 0)
+ran head-ipm rc=0 (worst 0)
+--- comparison against the M6 close HEAD CSVs ---
+=== M6 CLOSE HEAD-walk vs M7 W2 M4 HEAD-walk === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0 (worst 0)
+=== M6 CLOSE HEAD-ssn vs M7 W2 M4 HEAD-ssn === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0 (worst 0)
+=== M6 CLOSE HEAD-ipm vs M7 W2 M4 HEAD-ipm === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0 (worst 0)
+REPLAY_WORST_RC=0
+REPLAY_RC=0
+=== INSTALL SMOKE (default front end) ===
+install smoke: IpmSolver converged, objective = 17.0140174 (OK)
+install smoke: SqpSolver converged, objective = 17.0140173 (OK)
+install smoke: both solvers converged through one generic consumer; 19 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.scratch/m7w2m4/smoke-default/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.scratch/m7w2m4/smoke-default/hven-configure.log
+SMOKE_DEFAULT_RC=0
+=== INSTALL SMOKE (clang front end) ===
+install smoke: IpmSolver converged, objective = 17.0140174 (OK)
+install smoke: SqpSolver converged, objective = 17.0140173 (OK)
+install smoke: both solvers converged through one generic consumer; 19 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.scratch/m7w2m4/smoke-clang/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.scratch/m7w2m4/smoke-clang/hven-configure.log
+SMOKE_CLANG_RC=0
+=== EXPORT CONTRACT, on THAT build's install and THAT build's align value ===
+align=32  targets=/home/ghecht/Projects/hven/.scratch/m7w2m4/smoke-clang/hven-install/lib64/cmake/hven/hvenTargets.cmake
+== checking export contract: /home/ghecht/Projects/hven/.scratch/m7w2m4/smoke-clang/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+== export contract OK for platform=linux, align=32
+EXPORT_RC=0
+GATES_WORST=0
+FOREGROUND_END gates 2026-09-17T13:10:01-04:00 rc=0
+WRAPPER_RC gates rc=0

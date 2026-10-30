@@ -1,0 +1,152 @@
+P-SYM: FAIL — differences outside the accepted noise class
+DIFFERING OBJECTS: 7
+  class A -- SOURCE CHANGED by this task: 5
+      bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+      bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options_dump.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/__/bench/ipm_corpus_leg.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_corpus_cells.cpp.o
+  class B -- INCLUDERS of a changed header, source untouched: 2
+      tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_0_cxx.cxx.o
+      tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_2_cxx.cxx.o
+  UNEXPLAINED: 0
+
+  NEGATIVE CONTROL -- objects that ALSO include one of those headers and are byte-identical: 101
+      CMakeFiles/hven.dir/src/core/ledger.cpp.o
+      CMakeFiles/hven.dir/src/drivers/assembly_eval_seam.cpp.o
+      CMakeFiles/hven.dir/src/drivers/console_trace_sink.cpp.o
+      CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+      CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o
+      CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o
+      CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+      CMakeFiles/hven.dir/src/drivers/trace.cpp.o
+      CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o
+      CMakeFiles/hven.dir/src/globalization/sqp/funnel.cpp.o
+      CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o
+      CMakeFiles/hven.dir/src/kkt/kkt_calls.cpp.o
+      CMakeFiles/hven.dir/src/model/nlp_adapter.cpp.o
+      CMakeFiles/hven.dir/src/model/nlp_model_assembly.cpp.o
+      CMakeFiles/hven.dir/src/model/nlp_problem_model.cpp.o
+      CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o
+      CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+      CMakeFiles/hven.dir/src/qp/ssn_engine.cpp.o
+      CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+      CMakeFiles/hven.dir/src/warmstart/ipm_polish_extension.cpp.o
+      CMakeFiles/hven.dir/src/warmstart/warm_start.cpp.o
+      bench/CMakeFiles/hven_sqp_bench.dir/bench_scale.cpp.o
+      bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+      bench/CMakeFiles/hven_sqp_f7_cold.dir/bench_f7_cold.cpp.o
+      bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+      bench/CMakeFiles/hven_sqp_snopt_f7.dir/bench_snopt_f7.cpp.o
+      bench/CMakeFiles/hven_sqp_ssn_safeguard_probe.dir/ssn_safeguard_probe.cpp.o
+      bench/CMakeFiles/hven_sqp_tau_bar_sweep_probe.dir/tau_bar_sweep_probe.cpp.o
+      tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/core/ledger.cpp.o
+      tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/drivers/sqp_options.cpp.o
+      tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/drivers/trace.cpp.o
+      tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/qp/ipqp_engine.cpp.o
+      tests/CMakeFiles/hven_ipqp_seam_tests.dir/sqp/test_ipqp_seams.cpp.o
+      tests/CMakeFiles/hven_tests.dir/warmstart/test_ipm_polish_extension.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_concurrency.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_console_sink.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_print_tables.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_result.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_warm_protocol.cpp.o
+      tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o
+      tests/model/CMakeFiles/hven_model_tests.dir/test_aggregate_contract.cpp.o
+      tests/model/CMakeFiles/hven_model_tests.dir/test_model_surface_kkt.cpp.o
+      tests/model/CMakeFiles/hven_model_tests.dir/test_nlp_model_assembly.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_activity_telemetry.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_assembly_eval_seam.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_b1_gate.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_bench_dump.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_border_ops.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_continuation.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_dense_oracle.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_disproved_entry.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_elastic_rung_vehicle.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_eqp_refine_ab.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_eqp_solve.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_funnel.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_battery.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_sweeps.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_acceptance.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_certification.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_counters.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_dispatch.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_engine.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_math.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_options.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_trace.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_warm_restart.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_kkt_assembly.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_kkt_calls.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_kkt_inertia_probe.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_kkt_partial_solve.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ledger.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_mesh_transfer.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_nlp_kkt_check.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_nlp_model.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_parametric_families.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_predictor.cpp.o
+
+===========================================================================
+APPENDED BY HAND, FIX ROUND 1, 2026-09-18 -- the classification above was
+produced against the WRONG HEADER LIST. Append-only; it supersedes neither
+the classifier's verbatim output above nor its own content, but is the one
+to read for the correct picture. See the matching, longer correction in
+`psym/classification-Release.txt` for the full defect description; this
+record states the Debug-specific facts only.
+
+THE DEFECT. `wrappers/classify_psym.py`'s `HEADERS` constant read M1/M4's SQP
+list (`include/hven/core/solver_counters.h`, `include/hven/drivers/
+sqp_solver_types.h`, `include/hven/drivers/sqp_solver.h`) -- none of which
+this task edited. The three it DID edit are
+`include/hven/detail/drivers/ipm_solver_presets.h`,
+`include/hven/drivers/ipm_solver.h` and
+`include/hven/drivers/ipm_solver_types.h`.
+
+THE RECLASSIFICATION, pure Python against the existing compare-Debug.txt and
+the existing psym-build ninja dep log -- no rebuild, no lock -- with
+`HEADERS` set to the three lines above, `--changed-sources` unchanged.
+Committed verbatim as `psym/classification-Debug.corrected.txt`. THE RESULT
+STANDS: **7 differing objects = 5 class A + 2 class B, 0 unexplained** -- the
+same partition as the wrong-header run, because Debug had no UNEXPLAINED
+object under either header list (unity_0 and unity_2 land in class B by
+both routes) and every class-A object is still source this task changed.
+
+THE NEGATIVE CONTROL IS MIS-SPECIFIED IN THE TEXT ABOVE, independent of which
+header list is used: "101" counted byte-identical objects that include the
+SQP headers, not this task's changed headers. Reclassified against the three
+IPM headers, the properly specified negative control in Debug is **15**, not
+101:
+    CMakeFiles/hven.dir/src/drivers/ipm_options.cpp.o
+    CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+    CMakeFiles/hven.dir/src/drivers/ipm_solver_globalization.cpp.o
+    CMakeFiles/hven.dir/src/model/nlp_adapter.cpp.o
+    CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o
+    bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+    tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o
+    tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_concurrency.cpp.o
+    tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options.cpp.o
+    tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_result.cpp.o
+    tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_warm_protocol.cpp.o
+    tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o
+    tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_3_cxx.cxx.o
+    tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o
+    tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_warm_currency.cpp.o
+`ipm_options.cpp.o` is source this task changed and is class A in Release
+(where it DOES differ), but in Debug it is byte-identical -- the negative
+control is over the differing SET for the config at hand, and Debug's
+differing set does not include it. The other fourteen are includers,
+byte-identical because none materialises a default-constructed `IpmOptions`
+inline in a way this change's three literals reach.
+
+THE RESULT, restated correctly: **Debug 7 differing objects = 5 class A + 2
+class B, 0 unexplained**, negative control **15** byte-identical includers
+of this task's three changed headers. README sections 3 and 4 are corrected
+in place with a one-line "corrected in fix1" mark.
+===========================================================================

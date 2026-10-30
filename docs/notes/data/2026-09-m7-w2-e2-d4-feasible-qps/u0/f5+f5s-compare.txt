@@ -1,0 +1,8 @@
+=== M6 CLOSE walk vs D4 f5+f5s === cells compared: 27  columns compared: 75  differences: 0  within gate: 7
+    WITHIN-GATE f7_n1000_path_warm kkt_residual A=3.364060441e-10  B=3.364059856e-10
+    WITHIN-GATE f7_n1000_path_warm kkt_stationarity A=3.364060441e-10  B=3.364059856e-10
+    WITHIN-GATE f7_n1000_path_warm kkt_primal A=4.445677160e-11  B=4.445666058e-11
+    WITHIN-GATE f7_n1000_path_warm kkt_complementarity A=1.081515277e-15  B=1.081513503e-15
+    WITHIN-GATE f7_n800_path_warm kkt_residual A=4.212497650e-10  B=4.212497485e-10
+    WITHIN-GATE f7_n800_path_warm kkt_stationarity A=4.212497650e-10  B=4.212497485e-10
+    WITHIN-GATE f7_n800_path_warm kkt_complementarity A=1.295715293e-15  B=1.295710416e-15

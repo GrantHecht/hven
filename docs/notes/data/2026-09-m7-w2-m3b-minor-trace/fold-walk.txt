@@ -1,0 +1,20 @@
+FOLD 6.1 strict two-cycle, x constant               want=CYCLING_PROPER               got=CYCLING_PROPER               OK
+FOLD 6.2 lower/upper alternation on one variable    want=SIDE_PING_PONG               got=SIDE_PING_PONG               OK
+FOLD 6.3 immediate drop/re-add, sets drifting       want=IMMEDIATE_READD              got=IMMEDIATE_READD              OK
+FOLD 6.4 every drop by the zero-multiplier probe    want=ZERO_PROBE_CHURN             got=ZERO_PROBE_CHURN             OK
+FOLD 6.5 every add a negative-curvature ride        want=NEGATIVE_CURVATURE_BLOCKERS  got=NEGATIVE_CURVATURE_BLOCKERS  OK
+FOLD 6.6 a monotone crawl, every set distinct       want=DEGENERATE_CRAWL             got=DEGENERATE_CRAWL             OK
+FOLD 6.7 none of the above at their bars            want=MIXED                        got=MIXED                        OK
+FOLD 6.8a an EMPTY trace                            want=ABORTED                      got=ABORTED                      OK
+        RULE.md section 2.2 (trace integrity) refused
+FOLD 6.8b a trace carrying an `unset` action        want=ABORTED                      got=ABORTED                      OK
+        RULE.md section 2.2 (trace integrity) refused
+FOLD 6.8c truncated = true                          want=ABORTED                      got=ABORTED                      OK
+        RULE.md section 2.2 (trace integrity) refused
+FOLD 6.9a an identity row with 19 of the 20 fields  want=ABORTED                      got=ABORTED                      OK
+        RULE.md section 2.1 (the identity gate) refused
+FOLD 6.9b an identity row with one field DIFFERENT  want=ABORTED                      got=ABORTED                      OK
+        RULE.md section 2.1 (the identity gate) refused
+
+WALK_FOLDS_TOTAL=12  WALK_FOLDS_FAILED=0
+distinct classes exercised: 8 (a classifier that returned one class for all of them would be vacuous)

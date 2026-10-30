@@ -1,0 +1,147 @@
+GATES_START 2026-09-21T10:01:05-04:00
+=== HEAD ea027804  dirty-files=0 ===
+=== BEFORE=11b066e8  EXPECT_DEBUG_TESTS=2678  EXPECT_RELEASE_TESTS=2679 ===
+=== CHANGED HEADERS: include/hven/core/solver_counters.h include/hven/core/solver_status.h 
+=== CHANGED SOURCES: src/core/enum_names.cpp src/drivers/sqp_solver.cpp src/drivers/trace_writer.cpp tests/drivers/test_callback.cpp tests/drivers/test_solve_status.cpp tests/drivers/test_threads.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_trace_writer.cpp 
+FOREGROUND_START G1-debug 2026-09-21T10:01:05-04:00
+PGREP_EMPTY G1-debug: no foreign cell binary under my lock
+Total Test time (real) = 344.88 sec
+
+The following tests did not run:
+	420 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1632 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1633 - EqpRefinementAb.FullBattery (Disabled)
+FOREGROUND_END G1-debug 2026-09-21T10:07:58-04:00 rc=0
+WRAPPER_RC G1-debug rc=0
+ASSERT OK   G1 Debug suite failed = 0
+ASSERT OK   G1 Debug suite total = 2678
+FOREGROUND_START G2-debug-long 2026-09-21T10:07:58-04:00
+PGREP_EMPTY G2-debug-long: no foreign cell binary under my lock
+Test project /home/ghecht/Projects/hven/.scratch/m7w2m3a/gates-dbg
+    Start 1487: Continuation.ProbeBudgetBoundsAFailingProposal
+1/1 Test #1487: Continuation.ProbeBudgetBoundsAFailingProposal ...   Passed  673.00 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) = 673.05 sec
+FOREGROUND_END G2-debug-long 2026-09-21T10:19:11-04:00 rc=0
+WRAPPER_RC G2-debug-long rc=0
+ASSERT OK   G2 long test failed = 0
+ASSERT OK   G2 long test total = 1
+FOREGROUND_START G3-release 2026-09-21T10:19:11-04:00
+PGREP_EMPTY G3-release: no foreign cell binary under my lock
+Total Test time (real) = 101.59 sec
+
+The following tests did not run:
+	420 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1633 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1634 - EqpRefinementAb.FullBattery (Disabled)
+FOREGROUND_END G3-release 2026-09-21T10:22:19-04:00 rc=0
+WRAPPER_RC G3-release rc=0
+ASSERT OK   G3 Release suite failed = 0
+ASSERT OK   G3 Release suite total = 2679
+FOREGROUND_START G4-replay 2026-09-21T10:22:19-04:00
+PGREP_EMPTY G4-replay: no foreign cell binary under my lock
+ran head-walk rc=0
+ran head-ssn rc=0
+ran head-ipm rc=0
+=== M6 CLOSE HEAD-walk vs M7 W2 M3a task A HEAD-walk === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+=== M6 CLOSE HEAD-ssn vs M7 W2 M3a task A HEAD-ssn === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+=== M6 CLOSE HEAD-ipm vs M7 W2 M3a task A HEAD-ipm === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+FOREGROUND_END G4-replay 2026-09-21T10:26:27-04:00 rc=0
+WRAPPER_RC G4-replay rc=0
+ASSERT OK   replay lines at 27/75/0 = 3
+ASSERT OK   replay lines total = 3
+FOREGROUND_START G5-psym 2026-09-21T10:26:27-04:00
+PGREP_EMPTY G5-psym: no foreign cell binary under my lock
+=== P-SYM Release  after=ea0278040378830c014ad2791b9279d2276a980a  before=11b066e8
+ASSERT OK   capture after-Release: rc=0, 146 object(s) in /home/ghecht/Projects/hven/.scratch/m7w2m3a/gates-fix1/psym/after-Release/.psym-manifest
+ASSERT OK   capture before-Release: rc=0, 146 object(s) in /home/ghecht/Projects/hven/.scratch/m7w2m3a/gates-fix1/psym/before-Release/.psym-manifest
+ASSERT OK   capture pair object count = 146
+tree restored to m7 ea027804
+PSYM_COMPARE_RC_Release=1 (1 is EXPECTED; the gate is the classification)
+CLASSIFY_RC_Release=0
+P-SYM: FAIL — differences outside the accepted noise class
+DIFFERING OBJECTS: 10
+  class A -- SOURCE CHANGED by this task: 7
+  class B -- INCLUDERS of a changed header, source untouched: 3
+  UNEXPLAINED: 0
+  NEGATIVE CONTROL -- objects that ALSO include one of those headers and are byte-identical: 107
+ASSERT OK   P-SYM Release compare rc = 1
+ASSERT OK   P-SYM Release classify rc = 0
+ASSERT OK   P-SYM Release differing = 10 (>= 1)
+ASSERT OK   P-SYM Release class A + class B = 10
+ASSERT OK   P-SYM Release unexplained = 0
+ASSERT OK   P-SYM Release negative control = 107 (>= 1)
+ASSERT FAIL P-SYM Release differing (declared): got '10', expected '12'
+ASSERT FAIL P-SYM Release class A (declared): got '7', expected '9'
+ASSERT OK   P-SYM Release class B (declared) = 3
+=== P-SYM Debug  after=ea0278040378830c014ad2791b9279d2276a980a  before=11b066e8
+ASSERT OK   capture after-Debug: rc=0, 146 object(s) in /home/ghecht/Projects/hven/.scratch/m7w2m3a/gates-fix1/psym/after-Debug/.psym-manifest
+ASSERT OK   capture before-Debug: rc=0, 146 object(s) in /home/ghecht/Projects/hven/.scratch/m7w2m3a/gates-fix1/psym/before-Debug/.psym-manifest
+ASSERT OK   capture pair object count = 146
+tree restored to m7 ea027804
+PSYM_COMPARE_RC_Debug=1 (1 is EXPECTED; the gate is the classification)
+CLASSIFY_RC_Debug=0
+P-SYM: FAIL — differences outside the accepted noise class
+DIFFERING OBJECTS: 11
+  class A -- SOURCE CHANGED by this task: 8
+  class B -- INCLUDERS of a changed header, source untouched: 3
+  UNEXPLAINED: 0
+  NEGATIVE CONTROL -- objects that ALSO include one of those headers and are byte-identical: 106
+ASSERT OK   P-SYM Debug compare rc = 1
+ASSERT OK   P-SYM Debug classify rc = 0
+ASSERT OK   P-SYM Debug differing = 11 (>= 1)
+ASSERT OK   P-SYM Debug class A + class B = 11
+ASSERT OK   P-SYM Debug unexplained = 0
+ASSERT OK   P-SYM Debug negative control = 106 (>= 1)
+ASSERT FAIL P-SYM Debug differing (declared): got '11', expected '12'
+ASSERT FAIL P-SYM Debug class A (declared): got '8', expected '9'
+ASSERT OK   P-SYM Debug class B (declared) = 3
+ASSERT FAIL P-SYM classification differs between configs:
+2,3c2,3
+< DIFFERING OBJECTS: 10
+<   class A -- SOURCE CHANGED by this task: 7
+---
+> DIFFERING OBJECTS: 11
+>   class A -- SOURCE CHANGED by this task: 8
+5a6
+>       CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o
+17c18
+<   NEGATIVE CONTROL -- objects that ALSO include one of those headers and are byte-identical: 107
+---
+>   NEGATIVE CONTROL -- objects that ALSO include one of those headers and are byte-identical: 106
+29d29
+<       CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o
+97a98
+>       tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_warm_restart.cpp.o
+G5_ASSERT_RC=1
+FOREGROUND_END G5-psym 2026-09-21T10:46:39-04:00 rc=1
+WRAPPER_RC G5-psym rc=1
+=== CHANGED C++ FOR CLANG-FORMAT: include/hven/core/solver_counters.h include/hven/core/solver_status.h src/core/enum_names.cpp src/drivers/sqp_solver.cpp src/drivers/trace_writer.cpp tests/drivers/test_callback.cpp tests/drivers/test_solve_status.cpp tests/drivers/test_threads.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_trace_writer.cpp 
+FOREGROUND_START G6-smoke 2026-09-21T10:46:39-04:00
+PGREP_EMPTY G6-smoke: no foreign cell binary under my lock
+INSTALL_SMOKE_RC=0
+install smoke: both solvers converged through one generic consumer; 19 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.scratch/m7w2m3a/smoke-work/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.scratch/m7w2m3a/smoke-work/hven-configure.log
+ALIGN_FROM_THIS_BUILDS_CONFIGURE_LOG=32
+-rw-r--r--. 1 ghecht ghecht 4314 Sep 21 10:46 /home/ghecht/Projects/hven/.scratch/m7w2m3a/smoke-work/hven-install/lib64/cmake/hven/hvenTargets.cmake
+EXPORT_CONTRACT_RC=0
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+== export contract OK for platform=linux, align=32
+--- clang-format on this round's changed C++ files, derived from git
+CLANG_FORMAT_RC=0
+DIFF_CHECK_RC=0
+DIRTY_FILES=0
+G6_ASSERT_RC=0
+FOREGROUND_END G6-smoke 2026-09-21T10:47:30-04:00 rc=0
+WRAPPER_RC G6-smoke rc=0
+GATES_SUMMARY G1=0 G2=0 G3=0 G4=0 G5=1 G6=0
+GATES_END 2026-09-21T10:47:30-04:00
+GATES_AGGREGATE rc=1 over [0 0 0 0 1 0]

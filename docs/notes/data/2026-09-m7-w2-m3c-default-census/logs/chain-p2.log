@@ -1,0 +1,203 @@
+CHAIN_P2_START 2026-09-21T20:10:09-04:00
+=== HEAD 12bdf94c  dirty-files=1
+=== probe sha256: 48c4fdea48c43ed27982d2b55a8eadf3fe7054a9030c23c244a4d552bec23bfd  /home/ghecht/Projects/hven/.scratch/m7w2m3c/p2/probebuild/m3c_p2_probe
+
+PGREP_BEFORE_LOCK ACOPP57: 
+FOREGROUND_START leg-ACOPP57 2026-09-21T20:10:09-04:00
+PGREP_EMPTY leg-ACOPP57: no foreign cell binary under my lock
+LEG ACOPP57   deadline=600   rc=0   wall_s=1.707324057 (INFORMATIONAL)
+    status=numerical_error
+    major_iters=7
+    qp_minor_iters=7248
+    factorizations=128
+    deadline_fired=0
+    tr_init_touched=0
+    capture_solve_arg=-1
+    summary_solves_seen=7
+    summary_records=7248
+    summary_truncated=0
+    summary_allocation_failed=0
+    trace_bytes=4434866
+FOREGROUND_END leg-ACOPP57 2026-09-21T20:10:11-04:00 rc=0
+WRAPPER_RC leg-ACOPP57 rc=0
+
+PGREP_BEFORE_LOCK DALLASM: 
+FOREGROUND_START leg-DALLASM 2026-09-21T20:10:11-04:00
+PGREP_EMPTY leg-DALLASM: no foreign cell binary under my lock
+LEG DALLASM   deadline=600   rc=0   wall_s=57.182087994 (INFORMATIONAL)
+    status=numerical_error
+    major_iters=5
+    qp_minor_iters=10584
+    factorizations=5104
+    deadline_fired=0
+    tr_init_touched=0
+    capture_solve_arg=-1
+    summary_solves_seen=8
+    summary_records=10584
+    summary_truncated=0
+    summary_allocation_failed=0
+    trace_bytes=6877542
+FOREGROUND_END leg-DALLASM 2026-09-21T20:11:08-04:00 rc=0
+WRAPPER_RC leg-DALLASM rc=0
+
+PGREP_BEFORE_LOCK STEENBRB: 
+FOREGROUND_START leg-STEENBRB 2026-09-21T20:11:08-04:00
+PGREP_EMPTY leg-STEENBRB: no foreign cell binary under my lock
+LEG STEENBRB   deadline=600   rc=0   wall_s=86.021709769 (INFORMATIONAL)
+    status=numerical_error
+    major_iters=1
+    qp_minor_iters=2025
+    factorizations=8393
+    deadline_fired=0
+    tr_init_touched=0
+    capture_solve_arg=-1
+    summary_solves_seen=20
+    summary_records=2025
+    summary_truncated=0
+    summary_allocation_failed=0
+    trace_bytes=1119471
+FOREGROUND_END leg-STEENBRB 2026-09-21T20:12:34-04:00 rc=0
+WRAPPER_RC leg-STEENBRB rc=0
+
+PGREP_BEFORE_LOCK ACOPP118: 
+FOREGROUND_START leg-ACOPP118 2026-09-21T20:12:34-04:00
+PGREP_EMPTY leg-ACOPP118: no foreign cell binary under my lock
+LEG ACOPP118   deadline=600   rc=0   wall_s=546.381064152 (INFORMATIONAL)
+    status=numerical_error
+    major_iters=10
+    qp_minor_iters=33948
+    factorizations=17840
+    deadline_fired=0
+    tr_init_touched=0
+    capture_solve_arg=-1
+    summary_solves_seen=10
+    summary_records=33948
+    summary_truncated=0
+    summary_allocation_failed=0
+    trace_bytes=21119316
+FOREGROUND_END leg-ACOPP118 2026-09-21T20:21:40-04:00 rc=0
+WRAPPER_RC leg-ACOPP118 rc=0
+
+PGREP_BEFORE_LOCK ACOPR57: 
+FOREGROUND_START leg-ACOPR57 2026-09-21T20:21:40-04:00
+PGREP_EMPTY leg-ACOPR57: no foreign cell binary under my lock
+LEG ACOPR57   deadline=600   rc=0   wall_s=11.413094997 (INFORMATIONAL)
+    status=numerical_error
+    major_iters=16
+    qp_minor_iters=15956
+    factorizations=8905
+    deadline_fired=0
+    tr_init_touched=0
+    capture_solve_arg=-1
+    summary_solves_seen=18
+    summary_records=15956
+    summary_truncated=0
+    summary_allocation_failed=0
+    trace_bytes=9894942
+FOREGROUND_END leg-ACOPR57 2026-09-21T20:21:52-04:00 rc=0
+WRAPPER_RC leg-ACOPR57 rc=0
+
+PGREP_BEFORE_LOCK STEENBRC: 
+FOREGROUND_START leg-STEENBRC 2026-09-21T20:21:52-04:00
+PGREP_EMPTY leg-STEENBRC: no foreign cell binary under my lock
+LEG STEENBRC   deadline=600   rc=0   wall_s=141.981152883 (INFORMATIONAL)
+    status=numerical_error
+    major_iters=6
+    qp_minor_iters=35408
+    factorizations=41550
+    deadline_fired=0
+    tr_init_touched=0
+    capture_solve_arg=-1
+    summary_solves_seen=29
+    summary_records=35408
+    summary_truncated=0
+    summary_allocation_failed=0
+    trace_bytes=23334838
+FOREGROUND_END leg-STEENBRC 2026-09-21T20:24:14-04:00 rc=0
+WRAPPER_RC leg-STEENBRC rc=0
+
+PGREP_BEFORE_LOCK STEENBRG: 
+FOREGROUND_START leg-STEENBRG 2026-09-21T20:24:14-04:00
+PGREP_EMPTY leg-STEENBRG: no foreign cell binary under my lock
+LEG STEENBRG   deadline=600   rc=0   wall_s=133.238241297 (INFORMATIONAL)
+    status=numerical_error
+    major_iters=5
+    qp_minor_iters=30357
+    factorizations=35942
+    deadline_fired=0
+    tr_init_touched=0
+    capture_solve_arg=-1
+    summary_solves_seen=25
+    summary_records=30357
+    summary_truncated=0
+    summary_allocation_failed=0
+    trace_bytes=20096342
+FOREGROUND_END leg-STEENBRG 2026-09-21T20:26:27-04:00 rc=0
+WRAPPER_RC leg-STEENBRG rc=0
+
+PGREP_BEFORE_LOCK YORKNET: 
+FOREGROUND_START leg-YORKNET 2026-09-21T20:26:27-04:00
+PGREP_EMPTY leg-YORKNET: no foreign cell binary under my lock
+LEG YORKNET   deadline=600   rc=0   wall_s=49.934321194 (INFORMATIONAL)
+    status=infeasible
+    major_iters=1
+    qp_minor_iters=34770
+    factorizations=36011
+    deadline_fired=0
+    tr_init_touched=0
+    capture_solve_arg=-1
+    summary_solves_seen=81
+    summary_records=34770
+    summary_truncated=0
+    summary_allocation_failed=0
+    trace_bytes=20887835
+FOREGROUND_END leg-YORKNET 2026-09-21T20:27:17-04:00 rc=0
+WRAPPER_RC leg-YORKNET rc=0
+
+PGREP_BEFORE_LOCK SAWPATH: 
+FOREGROUND_START leg-SAWPATH 2026-09-21T20:27:17-04:00
+PGREP_EMPTY leg-SAWPATH: no foreign cell binary under my lock
+LEG SAWPATH   deadline=300   rc=0   wall_s=335.473354272 (INFORMATIONAL)
+    status=interrupted
+    major_iters=1
+    qp_minor_iters=77037
+    factorizations=83630
+    deadline_fired=1
+    tr_init_touched=0
+    capture_solve_arg=-1
+    summary_solves_seen=11
+    summary_records=77037
+    summary_truncated=0
+    summary_allocation_failed=0
+    trace_bytes=45686339
+FOREGROUND_END leg-SAWPATH 2026-09-21T20:32:53-04:00 rc=0
+WRAPPER_RC leg-SAWPATH rc=0
+
+PGREP_BEFORE_LOCK BRITGAS: 
+FOREGROUND_START leg-BRITGAS 2026-09-21T20:32:53-04:00
+PGREP_EMPTY leg-BRITGAS: no foreign cell binary under my lock
+LEG BRITGAS   deadline=600   rc=0   wall_s=142.559236875 (INFORMATIONAL)
+    status=numerical_error
+    major_iters=4
+    qp_minor_iters=46608
+    factorizations=47943
+    deadline_fired=0
+    tr_init_touched=0
+    capture_solve_arg=-1
+    summary_solves_seen=9
+    summary_records=46608
+    summary_truncated=0
+    summary_allocation_failed=0
+    trace_bytes=29595566
+FOREGROUND_END leg-BRITGAS 2026-09-21T20:35:15-04:00 rc=0
+WRAPPER_RC leg-BRITGAS rc=0
+
+=== STAGE 1 LEGS DONE. Rows that exist:
+    rows: 10
+    traces: 10
+    trace bytes: 175M	/home/ghecht/Projects/hven/.scratch/m7w2m3c/p2/traces
+
+NOTE: the mapping (RULE-P2 section 2), the identity gate (section 5), the
+      selection (section 3 stage 2) and the read-outs (section 6) are
+      OFFLINE and run NO solver. They are not this chain's work.
+CHAIN_P2_END 2026-09-21T20:35:15-04:00

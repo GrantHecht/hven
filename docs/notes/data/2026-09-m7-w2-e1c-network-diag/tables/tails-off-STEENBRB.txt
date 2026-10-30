@@ -1,0 +1,5 @@
+solves with a RECURRENT tail: 4
+STEENBRB   s13   N=4680   p=4   |T|=4284   units=2141  homo=False d  {'d': 1071, 'b': 1070}
+STEENBRB   s14   N=4680   p=4   |T|=4549   units=2274  homo=False b  {'d': 1137, 'b': 1137}
+STEENBRB   s15   N=4680   p=2   |T|=4511   units=2255  homo=True  b  {'b': 2255}
+STEENBRB   s16   N=4680   p=2   |T|=4531   units=2265  homo=True  b  {'b': 2265}

@@ -1,0 +1,160 @@
+M7 W2 BPS + QC-8 -- THE GATE EXPECTATIONS, DERIVED.
+Written and committed BEFORE the chain was detached.
+
+RULE: nothing here, and no declared value in gates-bps-qc8.sh, may be adjusted after the chain's first leg. Every value is derived from
+the FINAL range 4a0da559..f58d01dc or measured on that pair by this declaration's own rehearsal (rehearsal/). No value is carried from
+the QN + QC-1 declaration or by adding a delta to a prior count: where a number equals a previous record's it is a COMPARISON, stated as
+such. The previous gate run (QN + QC-1, docs/notes/data/2026-10-m7-qn-qc1/, declaration 8c2b4f3e, record 4a0da559) is frozen, untouched.
+
+BASE   4a0da559 (the QN + QC-1 record's commit; GREEN).
+HEAD   f58d01dc. The declaration commit sits on top and is docs only, so every derivation sees f58d01dc's sources.
+       Commits in the range (8): 7f97fb1f (docs-only ledger commit: touches docs/notes/2026-09-m7-ledger.md alone; IN the range, it
+       changes nothing the runner derives from include/ src/ tests/ bench/), a781c3f2 (BPS: the bordered answer's certificate;
+       QpCounters::border_uncertified_fallbacks), d761d91f (BPS riders), c65ab30e (QC-8: the implied blocker;
+       QpCounters::dep_implied_passovers), b79b012f (QC-8 riders R1-R4), b3dca346 (QC-8 re-pin set), ffab67c0 (QC-8: leak budget reads each
+       member's own footprint), f58d01dc (QC-8 riders C52).
+RUNNER gates-bps-qc8.sh + chain_gates_bps_qc8.sh: copies of QN + QC-1's, re-pointed (NOT edited in place). Changes, and nothing else
+       (also listed in the runner header):
+         (a) names / scratch .scratch/m7bpsqc8gates / G4 label / BEFORE 4a0da559 / by-name baseline pinned to QN + QC-1's gates/ record
+             (BEFORE-bounded, preflight E1); the classifier is a byte-identical copy (preflight F);
+         (b) the changed surface (section 1) re-derived;
+         (c) the re-declared-name check (section 3): REDECLARED_TEST_NAMES, a TEST line removed and re-added under the same name;
+         (c2) EXPECT_CLASS_A_NOISE_ONLY_RELEASE, the mirror of the carried Debug slot (section 2): a class A object NOISE-ONLY in Release;
+         (d) G4's exact arm names QN + QC-1's gates/replay; the sentinel loop covers the G4 declaration too.
+
+-----------------------------------------------------------------------------
+1  THE CHANGED SURFACE of 4a0da559..f58d01dc -- ALL OBSERVED, derived from git.
+
+   4 headers (git diff --name-only 4a0da559 f58d01dc -- include/): core/solver_counters.h, detail/kkt/bordered_eqp.h,
+     detail/qp/eqp_solve.h, detail/qp/qp_engine.h. All modified, none added.
+   10 MODIFIED .cpp: library (1, inside the universe): src/qp/qp_engine.cpp. bench (1, inside; bench_scale.cpp is in hven_sqp_bench):
+     bench/bench_scale.cpp. hven_sqp_tests (6, inside): tests/sqp/test_{hs_battery,hs_sweeps,scale_problems,sqp_restoration,
+     sqp_solver,warm_start_battery}.cpp. OUTSIDE the universe (2, hven_qp_walk_seam_tests): tests/qp/test_qp_anti_cycling_arm.cpp,
+     tests/qp/test_qp_convex_certificate.cpp. => class A = 10 - 2 = 8 in-universe modified .cpp.
+   2 ADDED .cpp, BOTH outside the universe: tests/qp/test_qp_border_certificate.cpp, tests/qp/test_qp_implied_blocker.cpp (sources of
+     hven_qp_walk_seam_tests; tests/CMakeLists.txt adds exactly those two lines and removes none). So EXPECT_ADDED_CXX 2,
+     EXPECT_PSYM_ADDED 0, no ADDED library object.
+   6 ADDED non-.cpp files, all fixtures under tests/qp/fixtures/e2-d4/: BPS_ACOPP57_entry1, BPS_ACOPR118_{entry9,qp26},
+     QC8_DALLASM_{entry6,qp1,qp7}.txt (the directory is still named exactly twice in the build files, once per declared reader).
+   src/CMakeLists.txt, tests/sqp/CMakeLists.txt: UNCHANGED (the carried EXPECT_*_CMAKE_ADDS/DELS are EMPTY, falsified: preflight E6/E7
+     class). Other range files: docs/counters.md (QpCounters row 20 -> 83 fields), the ledger.
+   clang-format set (include/*.h src/*.cpp tests/*.cpp tests/*.h bench/*.cpp): 16 files (the runner prints it).
+   No HVEN_TESTING seam header is touched.
+
+-----------------------------------------------------------------------------
+2  THE P-SYM MOVER SHAPE, PER CONFIGURATION -- MEASURED on the final pair 4a0da559/f58d01dc by a FRESH rehearsal.
+
+     Release  DIFFERING 45 = class A 7 + class B 38; UNEXPLAINED 0; NOISE-ONLY 3 (0 in the library); negative control 114;
+              sections: 48 objects, 41 byte-identical, DEBUG_ONLY 0, NON-DEBUG MOVERS 7, REFUSED 0
+     Debug    DIFFERING 46 = class A 8 + class B 38; UNEXPLAINED 0; NOISE-ONLY 36 (7 in the library, the seven DEBUG_ONLY objects);
+              negative control 78; sections: 48 objects, 34 byte-identical, DEBUG_ONLY 7, NON-DEBUG MOVERS 7, REFUSED 0
+     Manifests: after = before (nothing ADDED inside the universe); ONLY-AFTER empty in both. The outside-universe asserts held in both
+     configurations in the rehearsal: the four outside sources (two modified, two added) were each BUILT in the after arm in exactly one
+     listed target (hven_qp_walk_seam_tests) and no object of either listed target is in either after manifest.
+
+   HOW MEASURED. rehearsal/rehearse-bps-qc8.sh ran THIS runner's g5 segment (EXTRACTED from the runner's text, @ROOT@ substituted) at the
+   declaration-prep HEAD (a temporary docs-only commit 28e312dc above f58d01dc) against 4a0da559, both configurations, ONE hold of the
+   box lock: 2026-10-09 00:09:58-00:44:03, PGREP_EMPTY under the hold, dirty=0 at START, tree restored at END
+   (rehearsal/rehearsal-bps-qc8-log.txt). Its HYPOTHESIS declaration (class A only, 8/8, class B 0) was REFUSED in both configurations by
+   design (classify rc 4; rehearsal/rehearsal-bps-qc8-classification-{Release,Debug}-refused-at-8.txt), printing the measured shape.
+   Then rehearsal/offline-bps-qc8.sh 45 46 (its own hold, PGREP_EMPTY, 00:44:33-00:53:05): a fresh Release build with g5's flags and the
+   UNCAPPED classifier re-run on the rehearsal's compare files at the measured counts -- OFFLINE_CLASSIFY_RC 0 in BOTH configurations
+   (rehearsal/rehearsal-bps-qc8-classification-{Release,Debug}.txt). The temporary prep commit is then reset away (soft) and the
+   declaration is ONE commit whose sources are f58d01dc's. The measured slots were filled into the runner AFTER the rehearsal (they were
+   UNMEASURED sentinels while it ran) together with the section-2 slot EXPECT_CLASS_A_NOISE_ONLY_RELEASE and the REDECLARED_TEST_NAMES
+   check; nothing else changed between the rehearsal and the declaration.
+
+   CLASS A, Debug 8 = the in-universe MODIFIED .cpp of section 1 exactly (OBSERVED, object for object). CLASS A, Release 7 = those less
+   ONE: tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o is NOISE-ONLY in Release (its edits are Debug-only #ifdef NDEBUG
+   premises, so its Release bytes move by __LINE__-class noise only) and a CLASS A mover in Debug. The carried runner could declare this
+   asymmetry only in the Debug direction; EXPECT_CLASS_A_NOISE_ONLY_RELEASE (header (c2)) is the mirror, with the same pre-flight
+   (declared object's source is MODIFIED), the same class-A-by-source assertion and a NOISE-ONLY-in-compare assertion. The cross-config
+   assert's clause (4) already admits a class A object that compiles identically in one configuration when its source changed.
+
+   CLASS B, 38 in BOTH configurations and the SAME 38 objects (OBSERVED: the Release and Debug class B lists are equal as sets), the
+   includers of the 4 changed headers whose source is NOT modified in the range: 6 library (core/ledger, drivers/sqp_solver,
+   globalization/sqp/mixed_lift, globalization/sqp/qn_lift_bridge, globalization/sqp/soc_elastic_restoration, qp/ipqp_engine), the rest
+   benches, hven_drivers_tests, the interior Unity object and hven_sqp_tests objects. EXPECT_PSYM_B_DEBUG_ONLY is EMPTY: the object that
+   was the one class B asymmetry in earlier rounds (test_solve_status.cpp.o) is NOISE-ONLY in Debug here, not class B. The pre-flight
+   refuses any declared class B object whose source is in the range (falsified in earlier rounds, carried code).
+
+   COMPARISON WITH QN + QC-1 (a comparison, not the derivation): that round measured 76/77 on 13 headers and 8 added in-universe
+   sources; this range changes 4 headers, adds nothing in the universe, and the class B set (38) was DERIVED afresh.
+
+-----------------------------------------------------------------------------
+3  TEST COUNTS -- derived against the by-name baseline.
+
+   THE BASELINE IS DERIVED, NOT NAMED, AND CHECKED AGAINST ITS DECLARATION: git log -1 --format= --name-only --diff-filter=A 4a0da559 --
+   'docs/notes/data/*/gates*/suite-release.txt' -> ONE path, docs/notes/data/2026-10-m7-qn-qc1/gates/suite-release.txt == the declared
+   EXPECT_NAMES_BASE_REL (the runner refuses otherwise; falsified with BEFORE=2d1011e4, preflight E1). The runner checks no tests/ file
+   changed between the baseline's head (the parent of the record commit) and BEFORE: 0.
+   BASELINE (the QN + QC-1 record): ctest total Debug 3033 / Release 3034; started names 3035 / 3036. Skipped: Debug 7, Release 1.
+
+   ADDED = 12 instances. OBSERVED with git diff 4a0da559 f58d01dc -- 'tests/*.cpp': 12 `+TEST(` lines whose (suite, name) is new
+   (5 QpBpsBorderCertificate, 6 QpQc8ImpliedBlocker, 1 QpE2WorkingSet.TheDoubledRowIsImpliedByItsFaceAndTheWalkReachesTheOptimum), no
+   TEST_P; 0 added GTEST_SKIP / DISABLED_ lines (the added `#ifdef NDEBUG` lines are premise selectors inside test bodies, not skips).
+   The instance list is the difference between the rehearsal build's `ctest -N` listing (rehearsal/ctest-N-startfmt-derived.txt, ctest's
+   own " (Disabled)" marker on the two baseline-disabled EqpRefinementAb tests removed) and the baseline's started names: exactly these 12
+   (preflight C: the listing passes the runner's own by-name check, Release and Debug-shaped; one name missing is refused).
+   RE-DECLARED = 1, REMOVED = 0. git shows ONE `-TEST(` line: QC-8 (b3dca346/c65ab30e, settler C50(1)) RENAMED the N3 fixture's old
+   test `QpE2WorkingSet.NoAdmissibleMemberAndNoPassOverEndsInsideTheBox` to `...TheDoubledRowIsImpliedByItsFaceAndTheWalkReachesTheOptimum`
+   (the doubled-row instance now reaches its optimum) and RE-PREMISED the old name with a NEW fixture body (an equality plus an
+   inequality, the N3 dead end with the face on the wrong side). So the old name's TEST line is removed once and added once: net unchanged
+   by name, while the renamed instance is ADDED. The carried runner would have refused the 1 removed TEST line against REMOVED 0;
+   REDECLARED_TEST_NAMES declares it, and the runner checks it is removed once, added once, in neither list, and in the baseline once.
+   The by-name set check (baseline - REMOVED + ADDED == this run) is unchanged and proves the name survives. Falsified: preflight E4
+   (dropping the declaration refuses), E5 (also naming it ADDED refuses).
+   EXPECTED SUITE COUNTS: Debug 3033 + 12 = 3045 (G1, the long test excluded); Release 3034 + 12 = 3046 (G3); G2 1. Started names
+   Debug 3035 + 12 = 3047, Release 3036 + 12 = 3048 (the rehearsal build's `ctest -N` total is 3048 = 3046 + 2 disabled).
+   None added is Release-only, so DEBUG_ONLY_SKIPS_ADDED is EMPTY and the SKIPPED set must equal the baseline's by name (Debug 7,
+   Release 1; preflight D).
+   The two value-parameterised QN suites keep their stem + ordinal reading (carried; the baseline holds them folded, +30 instances unchanged).
+
+-----------------------------------------------------------------------------
+4  THE SECTION SHAPE (G5b) -- MEASURED by this run's rehearsal (rehearsal/rehearsal-bps-qc8-sections-{Release,Debug}.txt).
+   NON-DEBUG-MOVER set 7 in BOTH configurations, the same seven: the one derived class A library object {qp/qp_engine} + the six declared
+   class B library objects {core/ledger, drivers/sqp_solver, globalization/sqp/mixed_lift, globalization/sqp/qn_lift_bridge,
+   globalization/sqp/soc_elastic_restoration, qp/ipqp_engine} (EXPECT_LIB_CLASS_B_*, unmodified). objects 48; byte-identical 41 Release /
+   34 Debug; REFUSED 0. DEBUG_ONLY Release 0 / Debug 7: drivers/console_trace_sink, drivers/ipm_solver, drivers/sqp_print,
+   drivers/trace_writer, qp/ssn_engine, qp/ws_independence, warmstart/continuation (declared by COUNT). The NOISE-ONLY library-mover
+   slots are EMPTY (those seven are DEBUG_ONLY objects, not non-debug movers). No library object is ADDED.
+
+-----------------------------------------------------------------------------
+5  G4: 27 cells x 75 columns x 3 engines.
+
+   THE EXPECTATION IS DERIVED FROM THIS DECLARATION'S REHEARSAL MEASUREMENT (rehearsal/rehearsal-bps-qc8-g4-comparison.txt; the offline
+   leg ran the U0 replay from a fresh Release build of f58d01dc inside the box lock, MKL_NUM_THREADS=1, taskset -c 2):
+     vs the M6 close pin, GATED (1e-5 relative, 1e-13 floor): walk 17 differences (71 within gate), ssn 13 (68), ipm 13 (72) = 43. The
+     measured (engine, cell, column) SET was extracted from that transcript and compared with the previous record's declared 43-entry
+     list: EQUAL (diff empty). The 43 are therefore DECLARED AS A SET, now backed by this measurement (not carried): 5 integer qp_minors
+     2 -> 3 on the five walk bound_neutral cells, 37 residual columns strictly better, one worse (ipm f7_n1000_path_warm
+     kkt_stationarity). The runner's own --check-g4 on the pin arms returns rc 0, all eight asserts OK (preflight B).
+     EXACT arm vs the QN + QC-1 record's gates/replay (the previous GREEN record, sources == BEFORE's): ssn 0 differences, ipm 0
+     differences, walk 8 differences, all on two cells and four columns each: f7_n1000_path_warm and f7_n800_path_warm x {kkt_residual,
+     kkt_stationarity, kkt_primal, kkt_complementarity}, last-digit residual-class moves (e.g. 3.364070057e-10 -> 3.364070937e-10), all
+     inside the near-ulp gate (these cells' columns are within the pin's gate, so they are not in the 43). NO status or counter column
+     moves on any engine. The exact arm is RECORDED, not asserted; what the chain's replay shows beyond this expectation is a finding.
+   IF THE CHAIN'S OWN REPLAY MOVES BEYOND THE DECLARED 43-SET, G4 fails and is reported, never re-declared.
+
+-----------------------------------------------------------------------------
+6  G6: expected CLEAN. install smoke; the export contract; clang-format over the DERIVED set (16 files; asserted clean by the gate
+   itself); git diff --check; DIRTY_FILES 0. Fold proofs 46/0 expected (the gate-assert library is unchanged).
+
+-----------------------------------------------------------------------------
+7  PRE-FLIGHT: preflight-bps-qc8.txt (this directory), committed WITH this file and BEFORE the chain was detached: A the full pre-flight
+   PREFLIGHT_OK (HEAD 28e312dc, the prep commit, dirty-files=11 = the staging state; the mode does not apply the clean-tree refusal, the
+   chain does); B --check-g4 rc 0; C by-name reader (Release listing, Debug-shaped listing; short listing and the baseline refused, rc 2);
+   D skipped sets (baseline vs baseline rc 0; falsifier rc 2); E1 declared-baseline refusal; E2 UNMEASURED sentinel; E3 class A
+   declaration vs the Release noise-only slot; E4/E5 re-declared name; E6 ADDED fixture list; E7 outside-source declaration; F the classifier.
+
+-----------------------------------------------------------------------------
+8  G5 CHECKS THE WORKTREE OUT TO BEFORE while it builds its before arm, once per configuration: nothing may edit or commit in this
+   worktree from the chain's launch until CHAIN_END. (It runs in its own worktree, agent-a8738dd7f8e3c1176.) The worktree's
+   submodules (dep/eigen, dep/fmt) were initialised before the rehearsal.
+
+9  FILE PROVENANCE. Against QN + QC-1's runner the emitted segments differ in the g4 label / PREV record / exact-arm file name, and in g5's
+   classifier path and label only; g1, g2, g3, g6 are otherwise identical. The sha 4a0da559 appears once in code, as the BEFORE assignment.
+   ONE .scratch/ literal in code. Self-consistency is checked by the runner before any leg: Debug 3045 == Release 3046 - 1; DIFFERING
+   45 == 7 + 38 and 46 == 8 + 38; G4 43 == 17 + 13 + 13, 43 unique U0 entries.
+
+   WALL IS INFORMATIONAL. Nothing above is a timing claim.

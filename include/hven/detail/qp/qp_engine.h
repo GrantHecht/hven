@@ -69,6 +69,40 @@
 //    needed a perturbed pivot; iterations where a rebuild cannot help fall back
 //    to the elimination path.
 //
+//    THE LATCH AND ITS REASON (M7 W2 RLA). Where a rebuild cannot help -- every
+//    live border a pin over K0's own rows -- the walk LATCHES onto the
+//    elimination path, and records why: kCap (more pins than schur_cap; no
+//    stack can carry them) or C's own conditioning or singularity with the pins
+//    under the cap. A cap latch releases when the pin count is back under the
+//    cap, as before. A conditioning latch is NOT re-tested at every pass. One
+//    taken on a stack the walk had only UPDATED is first verified on a rebuilt
+//    one at the next entry (an updated C carries its border order and drop/add
+//    arithmetic, and its condition estimate can sit past the limit where the
+//    rebuilt C's does not). One taken on a REBUILT stack
+//    releases when K0's working rows differ from those it latched on (another
+//    K0, another C); when a CULPRIT pin leaves the working set -- one C's
+//    near-null or dominant direction has weight on (an eigenvector supported
+//    on pins that all stay is an eigenvector of the reduced C; at
+//    kLatchCulpritFrac the argument is a heuristic, a miss bounded by the mild
+//    rule and kLatchChangedEntries); at ANY change of the pin set when the C it
+//    latched on was only MILDLY past its limit (the condition ESTIMATE is not
+//    the eigenvalue ratio, and an ARRIVAL can cure even an indefinite C, by
+//    interlacing: near the limit, every change is re-tested, as before); or
+//    after kLatchChangedEntries entries on a working set other than the one it
+//    latched on. A severe latch therefore holds through arrivals and through
+//    departures of pins neither extreme direction lives on. It chooses the
+//    algebra alone: both certify the same way, but they round differently, so
+//    the choice is visible in the walk's trajectory. Counted border_latches_cap,
+//    border_latches_conditioning, border_latch_releases, border_latch_holds.
+//
+//    THE BORDERED ANSWER'S CERTIFICATE (independent_working_set; M7 W2 BPS;
+//    bordered_eqp.h states it), from an iterate that meets its equality rows: a
+//    pass whose bordered refinement stops above its own target takes the
+//    eliminated twin for that pass (border_uncertified_fallbacks); an answer
+//    whose step is undecided at the zero-motion scale is refined past the
+//    footprint while the refinement contracts. With the option off nothing
+//    changes.
+//
 //    The two modes are OBSERVATIONALLY EQUIVALENT for a CONVEX H, with the
 //    refactorize path as the oracle. They are NOT equivalent for an indefinite
 //    H: the bound-eliminated K and the full-variable K0 can have different
@@ -194,24 +228,299 @@
 //    inside the loop.
 //
 //    ARMING IS ONE-SHOT: the drop record is consumed on the very next iteration
-//    whether the ride fires, declines, or is never reached. THIS SECTION IS
-//    VACUOUS for a probe-driven drop, which 4b's Post-PROBE restart intercepts.
-//    4c's no-blocker branch and 4b's certification branch are mutually exclusive
-//    by construction and report the same status.
+//    whether the ride fires, is refused, or is never reached -- except where THE
+//    DECLINED RIDE below re-arms it. THIS SECTION IS VACUOUS for a probe-driven
+//    drop, which 4b's Post-PROBE restart intercepts. 4c's no-blocker branch and
+//    4b's certification branch are mutually exclusive by construction and report
+//    the same status.
+//
+//    THE DECLINED RIDE. A drop onto a negative-curvature face never falls
+//    through to a step that re-enters the released constraint. With
+//    independent_working_set, per refusal:
+//    (iii) The ride's first blocker tests DEPENDENT on the pass's factor: it
+//        takes the add site's rule (Degeneracy) along the ride direction,
+//        uncapped -- the exchange (ExchangePick), else the certificate, the
+//        pass-over (the next blocker takes the same rule) or the end. After an
+//        exchange the ride is RE-ARMED and re-taken on the exchanged set (same
+//        null space, fresh factor); an independent blocker reached by pass-over
+//        is a ride step. Finite: a ride step that moves strictly decreases f;
+//        at one point an exchange releases only a member that did not enter
+//        there (the lock) and marks the blocker entered, so at most |W| per
+//        point, inside the zero-motion cap.
+//    (ii) ride_sign's veto (flat slope, or descent against leaving): the drop
+//        is UNDONE -- the released constraint re-enters at this point,
+//        drop-exempt under the zero-motion re-entry rule -- never the ordinary
+//        step. At a stationary point of an independent set g'p = z_s * (leaving
+//        rate of p) EXACTLY, so descent and leaving agree there; they disagree
+//        only by the point's own first-order residual along p, which is what
+//        THE FLAT FACE below reads the veto as. ride_sign_vetoes counts every
+//        firing.
+//    (i) The null-space veto (p off the retained set's null space): the
+//        ordinary step only when p leaves the released constraint
+//        (dropped_directional(p) < -tol, ride_sign's tolerance); else undone
+//        as in (ii). No reduced-curvature re-read is made.
+//    Counted: dep_ride_blockers, ride_exchanges, ride_declines_fallthrough_blocked,
+//    ride_sign_vetoes.
+//    With the option off, (i) and (ii) fall through to the ordinary step and
+//    (iii) cannot arise.
+//
+//    THE FLAT FACE (independent_working_set). On a face with NO curvature the
+//    post-drop quotient is 0 and the gate fires (hessian_scale floors at 1, so
+//    curvature_tol is a positive floor and not 0): the direction is a RAY and
+//    the ride along it is the problem's own answer. What stops a ride there is
+//    ride_sign, so ride_sign carries the rule.
+//    At a stationary point of an INDEPENDENT retained set the slope along p is
+//    also readable from the drop's own multiplier,
+//        s = violation * dropped_directional(p),
+//    which IS g'p in exact arithmetic on every member kind: the Dantzig
+//    violation is -lambda_s on a row, -z_s at a LOWER bound and +z_s at an
+//    UPPER one, dropped_directional carries the matching sign, and every
+//    retained row is orthogonal to p, so that one product is the whole of g'p.
+//    The two differ by rho'p, rho being the point's own first-order residual
+//    (the regularized EQP's, as its one unregularized refinement step leaves
+//    it), and on a flat face rho'p can be the LARGER term and of the opposite
+//    sign.
+//    RULE: the MEASURED g'p is the exact directional derivative of the
+//    objective, so it decides the sign WHENEVER IT RESOLVES above ride_sign's
+//    slope tolerance; s decides only below that resolution, where the measured
+//    slope says nothing (ride_predicted_signs counts those). DESCENT INVARIANT:
+//    no ride ever ascends a slope the arithmetic can read --
+//    sign * g'p <= kEngineDenomTol * ||g|| * ||p|| on every ride taken, by
+//    construction, hence f does not rise by more than alpha times that.
+//    The predicted sign IS the leaving sign by construction (violation > 0 at
+//    every drop, so s < 0 iff p leaves the released constraint), so where s
+//    decides, (ii)'s feasibility half cannot veto it.
+//    A drop undone on ride_sign's veto is marked kPtNoise -- it does not count
+//    toward zero-motion exhaustion at this point -- but ONLY when it is a NOISE
+//    drop: |s| at or below the resolution of the slope it was meant to predict,
+//    which is the larger of the dot product's own floor and |g'p - s|, the
+//    residual the two slopes disclose (ride_drop_is_noise; no extra solve).
+//    Testing |s| against an ABSOLUTE floor instead would read a resolving
+//    multiplier on a p that barely leaves the constraint as noise; testing it
+//    against the residual along the SAME p does not. pt_clear retires the mark
+//    as soon as the iterate moves.
+//    Note that a sign veto and a noise drop coincide under this rule: a veto
+//    needs the two slopes to disagree or neither to resolve, and a disagreement
+//    forces |s| < |g'p - s| by that same identity.
+//
+//    THE FLOOR IS NOT A COINCIDENCE-FREE ZONE. "s decides only below the
+//    measured slope's resolution" is inert on the faces this rule exists for --
+//    where rho'p dominates, the measured slope is far ABOVE the tolerance, not
+//    below it. It is not impossible: g'p = s + rho'p cancelling to within
+//    kEngineDenomTol * ||g|| * ||p|| is a coincidence of measure ~tol/|s|, not
+//    something double precision forbids. It was simply measured never to happen
+//    on the corpus -- see
+//    docs/notes/data/2026-09-m7-w2-nc2-flat-face/REPORT.md.
+//
+//    THE EQUALITY DRIFT (independent_working_set). A regularized EQP answer can
+//    miss its OWN equality rows, and a ratio-test step toward such an answer
+//    leaves the iterate off rows it had already met. The iterate's invariant -- no equality
+//    row carries a STRUCTURAL violation, the terminal classifier's own test
+//    (violation_is_structural, row by row, on this pass's multipliers) -- is
+//    therefore CHECKED at every pass once the walk has met the rows (a start
+//    point need not), and a miss is COUNTED (eq_drift_violations). Stated in the
+//    classifier's currency and not one digit tighter: a residual section 5 would
+//    not call a violation is not a drift either. NOTHING re-projects the
+//    iterate: the repair belongs where the miss is made, in the regularized
+//    solve, and the walk-side forms that were implemented and measured are in
+//    docs/notes/data/2026-09-m7-w2-nc2-flat-face/REPORT.md.
 //
 //    For STRICTLY CONVEX H the ride branch is UNREACHABLE and the engine is
 //    bit-for-bit unchanged. For PSD-SINGULAR H it IS reachable and behaviour is
 //    NOT identical to the capped path: the ride takes the uncapped ratio while
 //    the ordinary path clamps at alpha = 1. That is intended.
 //
-//    No anti-cycling rule is needed here: a ride's objective decrease is strict
-//    whenever alpha > 0.
+//    FINITENESS. A ride that MOVES decreases f strictly (the descent invariant
+//    above with alpha > 0), so it needs no anti-cycling rule. A ride whose
+//    uncapped ratio test answers a step within step_tol moves NOTHING and is
+//    the ZERO-MOTION EVENT it looks like: the point memory is not cleared and
+//    the ride's blocker is admitted through it -- the ordinary add path's own
+//    two rules -- so the release/re-entry cap 2(n + mi) bounds a
+//    drop -> zero-length ride -> drop cycle.
+//
+//    THE SADDLE EXIT (independent_working_set). At the certification branch's
+//    trusted-kWrong arm (4b; after R-C''s re-read and the post-probe restart) the
+//    point is a stationary point of an INDEFINITE face, however the face was
+//    reached -- an add as well as a drop. Before the kNumericalError exit the
+//    face is searched for a direction of negative curvature: ONE factorization
+//    of the current face at dual_mu = 0 (the bound-eliminated K R-C' reads), and
+//    detail::face_negative_curvature on it -- Lanczos on the inverse reduced
+//    Hessian through that factor (papers: Forsgren, Gill & Murray 1991; Gill,
+//    Murray, Saunders & Wright 1991). A direction is used only when VERIFIED:
+//    d'Hd <= -curvature_tol * d'd on H itself, and d in the working set's null
+//    space (ride_stays_in_working_set). SIGN: the descent sign when g'd resolves;
+//    on a flat slope (the stationary point's own case, where both signs descend)
+//    the sign with the larger decrease to its first blocker, a tie preferring the
+//    sign that leaves the constraint the previous pass released -- and a ride
+//    that would re-enter that constraint at zero length is not a direction (it
+//    undoes the drop: the zero-multiplier probe's, whose point would then be
+//    re-certified); the same for a zero-length re-entry of ANY probe-exempt member
+//    or any member the point memory holds released at this point (two such rides
+//    would otherwise re-certify the saddle through a degenerate vertex). Then it
+//    is ridden as 4c's ride is: the uncapped ratio test to the first blocker; an independent
+//    blocker joins; a dependent one takes the add site's rule along d (THE
+//    DECLINED RIDE (iii)) on that same mu-free factor, and nothing is re-armed;
+//    no blocker is kNumericalError (unbounded along d, multipliers cleared). No
+//    verified direction: the kNumericalError exit stands. NOTHING IS CERTIFIED
+//    HERE -- every later exit is the ordinary walk's, its inertia gate included.
+//    DESCENT: f(x + alpha d) - f(x) = alpha g'd + alpha^2 d'Hd / 2 with
+//    d'Hd < 0 and g'd at most its own resolution (kEngineDenomTol ||g|| ||d||):
+//    no ride ascends a slope the arithmetic can read, and the curvature term
+//    makes it a decrease for every alpha above 2 g'd / |d'Hd|, a rounding-sized
+//    threshold. THE SHIFTED SEARCH (M7 W2 SDL): a face with a cluster of
+//    zero-curvature directions factors with perturbed pivots there and the
+//    inverse operator sees only them, so a search that finds nothing is repeated
+//    once on the face shifted by kSaddleShiftFactor * hessian_scale ON TOP of the
+//    primal_delta in force (a local factor, always genuinely shifted; the add site keeps reading
+//    the unshifted one); its direction is verified on H as above, and it certifies nothing.
+//    BOUNDED: one search per dead end (at most two factorizations, at most
+//    kSaddleLanczosSteps operator applications each); a ride that moves decreases f
+//    strictly; a zero-length one is a zero-motion event (the point memory kept,
+//    its blocker admitted through it), inside the zero-motion cap; all of it
+//    inside the minor cap. Counted: saddle_exits, saddle_exit_misses,
+//    saddle_direction_solves, saddle_shifted_searches, saddle_shifted_directions.
+//    With the option off the exit is unchanged.
+//
+//    THE CONVEX CERTIFICATE (independent_working_set; M7 W2 NC4). Taken at the
+//    same arm, after R-C''s re-read and after the post-probe restart (an armed
+//    restart is spent first, as before; a failed one falls through to this), in
+//    place of the saddle search:
+//    when every stored entry of H is exactly 0 off the diagonal and >= 0 on it
+//    (detail::hessian_is_nonneg_diagonal; an LP is H == 0) or the caller asserts
+//    it (QpOptions::hessian_known_convex, default false), H is PSD on all of
+//    R^n, so every K the walk factorizes, [H_F + delta I, A'; A, -mu I], is
+//    quasi-definite and its TRUE inertia IS the expectation: a trusted kWrong
+//    read is a misread (a flat face's delta-sized null-space pivots signed by
+//    rounding), not a saddle -- and the saddle exit could only miss there (no
+//    d'Hd < 0 exists, in exact or floating-point arithmetic). If the free block
+//    is stationary in the suspect-stall gate's own opt_tol currency, the read is
+//    replaced by kSuspect and the point goes to the would-be-kOptimal branch --
+//    the ordinary walk's tests, unchanged: the zero-motion exhaustion test, the
+//    suspect-stall gate (which the precondition passes, so the escalation
+//    ladder is never entered from here), the terminal polish, the certificate's
+//    bound half. Not stationary: the kNumericalError exit stands, as before.
+//    The zero-multiplier PROBE is skipped on this path: on a convex QP no
+//    weakly active constraint can hide negative curvature, and its inertia
+//    reads are the same misreads. SOUNDNESS: for a convex QP a first-order
+//    point is a global minimizer; nothing is certified on the exemption of a
+//    probe or of the point memory alone -- the exhaustion test still reads
+//    every exempted multiplier. A face with no verified negative curvature that
+//    is NOT provably PSD this way stays on the saddle exit's path (a miss is
+//    kNumericalError), and a true saddle never qualifies (a nonnegative
+//    diagonal H has no negative curvature anywhere). The only outcomes it can
+//    change are the ones that were kNumericalError at this exit. Counted:
+//    convex_certificates. With the option off nothing changes.
+//
+//    THE ASCENT GUARD (independent_working_set; M7 W2 W1). Interlacing makes a drop
+//    the only way INTO an indefinite face, but nothing makes a ride's add the way
+//    OUT: on the reduced space of W - s + r the Hessian is A + (gamma/beta^2) c c'
+//    (A the PD reduced Hessian of W, gamma = p'Hp < 0, beta = a_r'p, c = Z_W'a_r), which
+//    can stay indefinite. The next pass follows no drop, the curvature gate is
+//    unarmed, and the EQP step heads for the face's stationary point -- a saddle.
+//    With p'(H + delta I)p = -(Hx + g)'p on the face, a slope s > 0 gives
+//    f(x + alpha p) - f(x) = s (alpha - alpha^2/2) - delta alpha^2 |p|^2 / 2, positive
+//    at every alpha in (0, 1] once s > delta |p|^2: an ascent (BRITGAS: s = 0.181,
+//    delta |p|^2 = 8e-8), and a dependent blocker then exchanges
+//    without changing the face, so it repeats (BRITGAS's elastic qp1 cycled so to
+//    its minor cap). RULE: on any pass about to take the ordinary step (no ride
+//    pending), when s > kEngineDenomTol ||Hx + g|| ||p||, p'Hp <= -curvature_tol p'p
+//    (VERIFIED negative curvature, the saddle exit's test), p holds the working set
+//    (ride_stays_in_working_set), x meets every equality and working row within
+//    row_tolerance (iterate_meets_working_face: no row-restoring part, which a
+//    phase-1 step may legitimately pay for in f), and the capped step along p or the
+//    ride along -p would move x (a pass where both are zero-length is a degenerate
+//    pivot, not an ascent, and keeps the ordinary add: measured, guard rides at such
+//    vertices only re-ordered the pivots and sent a Debug walk to a blocker
+//    termination), the walk rides -p instead -- a
+//    direction of negative curvature taken with its descent sign to the nearest
+//    blocking constraint (Gill, Murray, Saunders & Wright 1991; Fletcher, Practical
+//    Methods of Optimization, ch. 10), never the indefinite face's stationary point.
+//    It is ridden as the saddle exit's d: the uncapped ratio test; an independent
+//    blocker joins; a dependent one takes the add site's rule along -p and nothing
+//    is re-armed (not counted in dep_ride_blockers / ride_exchanges, which stay 4c's
+//    and the exit's); no blocker is kNumericalError. DESCENT: g'(-p) = -s < 0 and
+//    p'Hp < 0, so f falls strictly for every alpha > 0 -- a ride that moves cannot
+//    cycle, a zero-length one is a zero-motion event inside the zero-motion cap.
+//    Counted: ascent_rides. With the option off nothing changes.
 //
 // 5. TERMINATION. The loop reaches a KKT point of its working set with nothing
-//    left to drop, and classifies it:
-//      - kInfeasible if any inequality or equality row carries a STRUCTURAL
-//        violation. Both blocks are checked; the shift machinery only watches
-//        inequalities.
+//    left to drop, and classifies it.
+//
+//    THE CERTIFICATE'S SIGN HALF (M7 W2 SDL; RDV-5). After the polish and beside
+//    the bound half, the EXPORTED multipliers are read once more:
+//    dual_signs_hold(worst_wrong_sign(pins, every working row), the stationarity
+//    scale) -- opt_tol * scale, the KKT-point test's own relative tolerance; a NaN
+//    refuses. A refusal is kNumericalError (certificate_sign_refusals). The drop
+//    rule's own sign test is not enough: it exempts re-entered members, and the
+//    polish re-prices the face mu-free after it, where a regularized multiplier's
+//    sign can flip. The scale includes ||Ai'lambda_i||, so a row with a very large
+//    ||a_j|| widens its own tolerance.
+//    THE INCUMBENT FALLBACK: an ADOPTED polish that fails the sign half, or the
+//    bound half (its acceptance reads the worst of rows and bounds together, so it
+//    can trade one for the other), is undone (x and all multipliers restored to
+//    their pre-polish values; terminal_polish_sign_reverts / _bound_reverts) and
+//    both halves are read on the incumbent;
+//    kOptimal only if both hold there, else kNumericalError.
+//
+//    HOW A PASS IS RECOGNISED AS A KKT POINT OF ITS WORKING SET (M7 W2 E4,
+//    ruling E4-2) -- the free-block STATIONARITY RESIDUAL, in the engine's own
+//    opt_tol currency, AND the rows:
+//        free_block_stationarity(x, price's multipliers) <= opt_tol * its scale
+//      AND no row or bound carries a STRUCTURAL violation
+//    which are the same two tests this classification itself decides kOptimal
+//    on, asked one branch earlier so the loop can recognise the point it is
+//    standing on. The zero-motion reading ||p||inf <= step_tol is kept, ahead of
+//    it, as the observation it always was -- the EQP answer IS this iterate, so
+//    snapping onto it is free -- and it alone may no longer certify convergence.
+//    WHY: since E4 the EQP is centred at the iterate (eqp_solve.h), so p is the
+//    STEP and on a flat face p = -(1/delta) P_Z (H x + g); delta*||p||, not
+//    ||p||, is the reduced gradient's size. A reduced gradient of 1e-17 makes a
+//    step of 2.8e-09 against a step_tol of 1e-09, and 300 consecutive full steps
+//    were measured around a point whose rows were met to 5e-14 and whose
+//    stationarity residual was 1.6e-15 -- a converged point the old test could
+//    not see (M7 W2 E3 §3e). The stationary branch does NOT snap x onto the EQP
+//    point: nothing has run a ratio test on a step of that size.
+//
+//    THE RUNAWAY GUARD IS ASKED ON EVERY MOVING PASS, not only here (E4-3), and
+//    in the ITERATE's currency: `is_runaway`, this section's own predicate,
+//    unchanged, at the head of the ordinary path. That is what the proximal
+//    centring makes necessary -- the ridge's answer is now re-proposed from every
+//    point it reaches instead of vanishing at its fixed point, so the cap would
+//    be burned rather than the artifact reported. A SECOND guard in the STEP's
+//    currency was built, MEASURED and REMOVED: at the scale the three runaway
+//    fixtures need it fired on 10 HS cells that are not runaways and cost HS10
+//    and HS27, so the iterate and the ridge scale are the only currencies the
+//    guard is asked in (eqp_solve.h says the same, and says why ||p|| cannot
+//    carry it).
+//
+//    A pass whose EQP answer is REFUSED -- by the EQP-site residual check
+//    (eqp_solve.h; E4-4) or by the step's ROW-DRIFT CHECK
+//    (eqp_answer_drifts_off_met_rows) -- or that is not finite takes 4b's
+//    SUSPECT-STALL ESCALATION instead of a step: one decade of primal_delta per
+//    rung, the border state discarded, at most kMaxSuspectEscalations rungs.
+//
+//    THE RULE, E4-4 AS AMENDED (ruling E4-27; the other sites point here): no
+//    step is taken toward a refused answer WHILE THE LADDER HAS RUNGS; an
+//    EXHAUSTED ladder is ADVISORY for BOTH refusals -- the walk steps and this
+//    section's TERMINAL SITE decides, because exhaustion says the residual is
+//    IRREDUCIBLE (what an inconsistent row set looks like) rather than
+//    untrustworthy, and the certificate is a claim about the point the walk stops
+//    at and never about the refused pass -- and only a NON-FINITE answer is
+//    TERMINAL (kNumericalError at the finite iterate the walk stands on).
+//    MEASURED both ways: the terminal form cost an inconsistent pair its
+//    certified kInfeasible, and classifying AT the refused pass produced 16 false
+//    census certificates. `eqp_residual_refusals` and `eqp_row_drift_refusals`
+//    carry the reason.
+//
+//    The classification:
+//      - if any inequality or equality row carries a STRUCTURAL violation (both
+//        blocks are checked; the shift machinery only watches inequalities):
+//        kInfeasible iff verify_terminal_farkas VERIFIES a Farkas certificate
+//        for the QP (terminal_farkas_certificates), else kNumericalError
+//        (certificate_row_refusals) -- the violation is evidence, not a proof:
+//        a consistent ill-conditioned row block leaves a dual_mu footprint above
+//        the absorb cap, and a rank-deficient working set can end with
+//        non-working rows violated (SDL-6).
 //      - kNumericalError if the point is feasible but some free component
 //        unbounded on the side it grew toward exceeds
 //        detail::unbounded_artifact_scale() -- the answer is the regularization
@@ -220,10 +529,13 @@
 //        solved is a TRUSTED kWrong. ONE ESCAPE: 4b's Post-PROBE restart.
 //      - otherwise the Zero-multiplier PROBE gets a veto: a trusted kWrong there
 //        makes the drop real and RESUMES the loop without assigning a status.
-//      - kOptimal otherwise.
+//      - kOptimal otherwise, but only if x meets its own box: a bound, read as
+//        the row e_i under the rows' structural test, violated gives
+//        kNumericalError (certificate_bound_refusals) -- never kInfeasible: x off
+//        its box is a pass-over leak of the walk's own, the box alone is feasible,
+//        and an infeasible QP is the verified Farkas certificate's to prove (SDL-4).
 //    kMaxIter once eff_max_iter major iterations have been spent. A fourth
-//    kNumericalError exit bypasses this classification entirely: 4c's ride
-//    finding no blocker.
+//    kNumericalError exit bypasses this classification: 4c's ride, no blocker.
 //
 //    ORDERING IS LOAD-BEARING: the drop rule is consulted BEFORE infeasibility
 //    may be declared, because a bound pinned by the ratio test commonly blocks a
@@ -241,7 +553,10 @@
 //        kStructuralResidualFrac*dual_mu*|lambda|. Tightening the fraction to
 //        catch it re-breaks (i). The SQP driver is the second detection layer;
 //        a caller using the engine alone should scale its rows or shrink
-//        dual_mu.
+//        dual_mu. On the independent working set a contradiction that rides a
+//        DEPENDENT row is read by the dependency test instead and ends
+//        kInfeasible on a Farkas certificate (E2 fix6's grey re-read closes
+//        objective_inflated_lambda_qp(1e-3, 3e-4)); (ii) stands for the rest.
 //    (iii) FALSE kNumericalError where a free variable's TRUE optimum lies
 //        beyond unbounded_artifact_scale(). Tune primal_delta rather than treat
 //        this kNumericalError as load-bearing.
@@ -332,9 +647,181 @@
 //
 // --- Degeneracy ---
 //
-// Linearly dependent working sets do not break the loop: the delta/mu
-// regularization keeps the KKT matrix factorizable, and the dependent rows split
-// the multiplier between them. No anti-cycling rule is implemented; a degenerate
+// With QpOptions::independent_working_set (default) the working set is kept
+// linearly independent (qp/ws_independence.h): an entry detector runs on the
+// first factorization and after untested growth or an over-count (Debug
+// asserts that an over-count is always found), and each ratio-test blocker is
+// tested against the pass's factor (a ride's too: 4c, THE DECLINED RIDE). A
+// dependent blocker is EXCHANGED for a member (ExchangePick; Gill & Wong 2015,
+// Result 3.4(b)); with no admissible
+// member: a verified EXACT Farkas certificate (multipliers refined mu-free,
+// residual within the rounding floor kCertExactKappa) ends kInfeasible
+// (QpSolution::farkas), a verified TOLERANCED one (residual above the floor,
+// not a proof for this QP) ends kNumericalError with the certificate kept, else the
+// blocker is passed over when its predicted violation stays within
+// feas_tol * row_scale, else the solve ends kNumericalError at the current
+// iterate. Before any exchange, on an ordinary step, THE IMPLIED BLOCKER (M7
+// W2 QC-8; QpEngine::blocker_implied_by_face): a blocker PROVED dependent
+// (rho <= kDepTol, no shift-driven row involved) whose face value satisfies it
+// (g + rho ||a|| ||x_face,free|| <= feas_tol * row_scale) cannot be crossed by
+// the exact step, so its computed rate is the step's leak off the members; it
+// is passed over while its predicted violation stays within the members'
+// leak allowance (dep_implied_passovers), and otherwise falls back to the
+// exchange it set aside, the unlock, then the end -- never a new end.
+// The zero-motion re-entry rule (WalkSeen's point memory) makes a
+// constraint released and re-entered at one point drop-exempt until the
+// iterate moves; an exempt multiplier above opt_tol * stat_scale at the end
+// is kNumericalError (zero_motion_exhausted). The integer screen can call an
+// independent candidate dependent when the MANDATORY rows are dependent
+// (counted: dep_screen_under_mandatory_dependence; the safe direction). A
+// blocker the test leaves UNDECIDABLE (screen-negative, a stalled refinement)
+// is decided exactly by a structural
+// dependency when one exists (dep_structural_exact); else, on a border-stack
+// pass, it takes the border retreat below; else it is admitted and the next
+// pass's detector tests the grown set (dep_deferred_adds). E2 FIX7 (settler
+// E4-37(b)): a test that did not RUN is not one of those. With no factor for
+// this pass's set nothing is computed -- rho is the NaN default and solves is
+// 0 -- so the verdict is the integer screen's alone: positive it is an exact
+// proof of dependence, negative the blocker is an ORDINARY ADD, the pre-E2
+// admission (S17), counted dep_unrun_tests. It is never a deferred add: that
+// path charges the next pass to a re-check and marks the member
+// known-dependent if the re-check removes it, on the strength of a rho that
+// was never computed. A pass can reach the add site with no factor after
+// repair_temporary_vertex FAILS -- see E2 FIX8 below, which stops the walk
+// running such a pass at all. A stalled test with
+// rho >= kDepUndecidable is admitted as independent (dep_stall_admits). A deferred add that
+// re-check removes is known-dependent at that point and is not re-admitted
+// there on an undecided test (dep_known_dependent_refusals). THE BORDER
+// RETREAT (once per solve, dep_border_retreats): when the rule would end the
+// solve, or a blocker's test is undecidable, on a border-stack pass, the pass
+// is redone on the bound-eliminated path. When K0
+// is near-singular on the pinned directions its Schur complement carries O(1)
+// rounding, the border step leaves its face, and the dependency coefficients
+// are inaccurate (rho = 1.4e-3 and 0.34 measured where the exact value is 0):
+// finding E2-F1, a limit of the border path's accuracy, not of the rule.
+// E2 FIX3 (the E2-D4 rules): (R-A) an exact structural dependency decides a
+// candidate before any numerical "independent" at every growth site
+// (dep_structural_first; ws_independence.h); (R-C') a kWrong
+// inertia at the start repair or the terminal check is re-read mu-free: kOk overturns it,
+// kSuspect only with a second eliminated read at dual_mu reading kOk (dep_inertia_rereads /
+// dep_inertia_reread_flips; reread_wrong_inertia). E2 FIX5 (R-B): a zero-motion
+// blocker with no admissible member, where the rule would otherwise end the solve,
+// unlocks the members locked only by having entered at this point, min-ratio with
+// lowest-index ties (dep_unlocks; ExchangePick, where the finiteness argument is).
+// E2 FIX6 (R-E, the grey re-read): a candidate test that CONVERGED to "independent" with
+// kDepTol < rho < kDepUndecidable is re-read at every growth site (test_candidate, after R-A)
+// by running the refinement to its end on the same factor (certificate_coefficients: no
+// factorization, at most kDepRefineSteps steps); rho' plus its rounding floor
+// (kDepRereadKappa) <= kDepTol makes it DEPENDENT with the re-read coefficients, else the
+// "independent" stands (dep_grey_rereads / dep_grey_reread_dependent). Stall, undecidable,
+// screen and R-A verdicts are never touched. THEOREM (the safe direction): for every v,
+// rho(v) = ||(a - A_W^T v)_free|| / ||a|| >= dist(a_free, span A_W,free) / ||a||, since A_W^T v
+// is a point of that span; so a dependent verdict is CERTIFIED at the contract's own kDepTol
+// and R-E can never call dependent a candidate farther than kDepTol from the span. Why the
+// converged grey reading is not a distance: the test stops on the KKT residual, which sees the
+// mu-solve's A_W u = mu v, while rho reads (H + delta) u -- amplified by ||H|| and by a
+// rank-deficient A_W, which the residual does not see. The stall class is left alone: it is
+// truly independent on the measured corpus (R-D retired, settler S34).
+// E2 FIX8, THE BOUNDED REPAIR (two rules; settler S40).
+// (i) THE INTEGER SCREEN MAY NOT SKIP A REPAIR PIN. me + |W| + 1 > n proves the FAMILY
+// {A_W, e_i} dependent; it proves e_i in span(A_W) -- which is what "a dependent pin leaves
+// null(A_W), and so the inertia, unchanged" needs -- only when A_W is itself independent,
+// which a rank-deficient equality Jacobian denies (M5's Q1). At the add site the screen's
+// reading is the SAFE direction; in the repair it is the unsafe one, because a skipped pin
+// that would have cut the negative curvature costs the solve. So a screen-positive candidate
+// is decided by the EXACT structural dependency alone and is otherwise TRIED
+// (dep_repair_screen_pins), under a MEASURED BUDGET on its pins, which bounds its probe
+// factorizations at twice that (repair_pin_budget below, with the distribution the bound
+// comes from); a repair that stops on the budget fails, counted dep_repair_budget_stops. Measured
+// on ACOPR118's majors 17-20: the screen fired after 70 pins and skipped the remaining 245, where
+// pin 75 reads kOk and both algebras then certify at the objective the option-off walk reaches.
+// (ii) F7-1, A FAILED REPAIR DOES NOT LEAVE A PASS RUNNING ON WHAT IT LEFT BEHIND. The
+// repair restores ws and x but not `face` and the border stack, which describe the last set
+// it PROBED; the walk used to fall through into the same pass and run every dependency test
+// at its add site with no factor that holds its working set -- which is how fix7's un-run
+// test was reached. When the repair took away a factor view the pass HELD (dep_factor_view
+// usable before the repair, unusable after), that pass is now SPENT (dep_repair_restarts),
+// and the next one re-establishes the factor by the ordinary route: a fresh factorization on
+// the eliminated path, sync_borders on the border path. Nothing is lost, because a failed
+// repair moved neither ws nor x; a repair that never probed, or a pass that had no view to
+// lose, runs on as before. GATED on
+// independent_working_set: what a stale `face` costs is a dependency test with nothing to
+// test against, and only this walk takes one, so the option-off walk stays byte-identical --
+// which its role as the declared CONTROL arm of every E2 re-take requires.
+// THE STANDSTILL RETREAT (E2 fix9; standstill_retreats). On a border-stack pass of the
+// independent walk whose inertia reads kWrong while the iterate carries a structural
+// equality violation, a zero-motion pass -- or the second of two consecutive full steps (no
+// blocker, alpha >= 1, no ride) -- takes THE BORDER RETREAT and arms the re-check. Such a
+// walk cannot reach a KKT point of its face: the rows it stands off are the face's own, and
+// kWrong on the border path is that factor's failure signature (exactly rank-deficient
+// faces measured with a positive-definite reduced Hessian). A kOk standstill is left alone;
+// any non-qualifying pass resets the full-step run. Once per solve, like every retreat.
+// THE STAGNATION READING (independent_working_set; stagnation_drops, stagnation_stops). A run of
+// ordinary full steps (no blocker, alpha >= 1, no ride, no row added by the shift refresh) keeps
+// the working set fixed, so each step re-solves the same face's EQP from where the last one landed.
+// When kStagnationSteps of them in a row neither lower the run's best objective by
+// kStagnationObjectiveTol * max(1, |f|) nor halve its best working-row residual (a halving counts
+// only while that best sits above the rows' floor, working_row_residual), the iteration
+// stands at a fixed point the KKT-point test does not recognise -- a stationary point whose
+// residual sits above opt_tol, or the regularization footprint of a face whose rows the step cannot
+// meet: the zero-motion observation, made over a run instead of one pass. The next pass is then a
+// KKT point of the working set FOR THE DROP RULE ALONE: no snap, and the drop it makes is the
+// ordinary one (its ride and point-memory rules unchanged). It is never a KKT point for the
+// classification. With nothing to drop, a residual the dual_mu footprint explains is first
+// re-solved mu-free (refine_terminal_mu_free, as at the terminal classification) and the drop rule
+// asked again on the refined multipliers; an adopted point with nothing to drop is, once per solve,
+// the next pass's iterate, and with that resume spent ends the walk kMaxIter at the adopted point
+// (the pass never steps from it). A refusal is not remembered: a continuing reading re-runs the
+// refine, one factorization, at each reading. Otherwise, still nothing to drop, the walk ends
+// kMaxIter at the iterate it stands on (an adopted one included) -- the minor cap's status, point
+// and multipliers, reached early -- if that iterate meets its working rows, or if its residual is
+// not below the run's best over the idle steps, or if that best, extrapolated, cannot bring the
+// rows to their floor within the minors left (the cap's status either way); a run that can takes
+// the pass's ordinary step. Each drop it makes spends one of kStagnationDropBudget; with the budget
+// spent, the next reading ends the walk kMaxIter at once. It certifies nothing.
+//
+// THE DEAD-END RANK REPAIR (M7 W2 RDV; ws_independence.h, rank_repair). Where the add-site rule
+// would END the solve -- no admissible member and no verified certificate (kRejected) or no
+// pass-over within tolerance (N3) -- on an ordinary step, after the border retreat, the WORKING
+// SET ITSELF is read for numerical rank: its rows on the free columns, without the walk's
+// regularized factor. The regularized dependency test cannot see a dependency whose singular
+// value sits below what dual_mu and primal_delta resolve -- with H singular on most of the face
+// the delta pivots are the backend's to perturb -- so a STALLED test admits an exactly dependent
+// pin and a CONVERGED one carries coefficients polluted by residual / sigma_min into an exchange
+// that keeps the wrong member (MEASURED, M7 W2 M1 / RDV: YORKNET's and BRITGAS's elastic rungs,
+// sigma_min 1e-16 against a next singular value of 1e-5). The face such a set describes can be
+// INCONSISTENT (no point meets every member): the walk then steps toward a point that does not
+// exist, every blocker is "dependent" by the integer screen, and the rule ends the solve on a
+// feasible QP. When the set is rank-deficient the members on its null directions are released
+// until it is full rank: on an inconsistent direction the member whose constraint the face
+// without it satisfies STRICTLY (Farkas' orientation), on a consistent one the member with the
+// largest share of the direction, the face unchanged. A consistent dependence of the mandatory
+// rows alone is left to the dual regularization; an inconsistent direction with no member of the
+// right orientation releases nothing. The released members are marked released at this point
+// (WalkSeen), their multipliers cleared, and the walk resumes from the same iterate. NOTHING IS
+// CERTIFIED HERE: every later exit is the ordinary walk's, so the repair can change only a solve
+// that would otherwise have ended dep_blocker_terminations or dep_certificate_rejections, and it
+// can neither certify an infeasible QP nor certify a point the classifier would not. FINITE:
+// kRankRepairBudget analyses per solve. Counted rank_repairs, rank_repair_releases (also in
+// ws_drops), rank_repair_misses.
+// THE REFUSED-BLOCKER EXCHANGE (M7 W2 YRK). D3(b) refuses a known-dependent blocker whose
+// regularized test is undecided at zero motion: it has no coefficients, so no exchange. On a
+// FULL-RANK set the rank repair then misses and N3 ends the solve on a feasible QP: the detector
+// scales its threshold with the largest member norm while the candidate test scales with the
+// candidate's own, so the blocker is admitted, removed, then refused. Where N3 would end the
+// solve, after the rank repair, on an ordinary pass on the eliminated factor, and the pass-over
+// sequence's FIRST blocker was so refused, its coefficients are derived mu-free
+// (certificate_coefficients) and, when decided (rho < kDepUndecidable), the ordinary exchange,
+// then the R-B unlock, is offered for it at the step that reached it; the pass-overs counted
+// since are put back. A later blocker's R-B unlock is offered before this exchange, by choice.
+// None admissible: N3 as before. NOTHING IS CERTIFIED HERE: it can change only a solve that
+// would otherwise end dep_blocker_terminations. Counted dep_refused_exchanges.
+// E2 FIX4: a terminal point that would
+// read kInfeasible by its structural violation is first re-solved mu-free on its face and
+// adopted when it satisfies every row and bound (terminal_mu_refines /
+// terminal_mu_refine_rescues; refine_terminal_mu_free). With
+// the option off, the delta/mu regularization keeps a dependent KKT
+// factorizable and the dependent rows split the multiplier; a degenerate
 // stall is bounded by max_iter.
 
 #include <algorithm>
@@ -346,6 +833,7 @@
 #include <memory>
 #include <optional>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 #include <fmt/format.h>
@@ -359,7 +847,13 @@
 #include <hven/detail/kkt/schur_complement.h>
 #include <hven/detail/qp/eqp_solve.h>
 #include <hven/detail/qp/qp_problem.h>
+// The walk's READ-ONLY test seam (docs/testing.md; CLAUDE.md §8). It compiles
+// to NOTHING without HVEN_TESTING, and it is included HERE rather than in
+// src/qp/qp_engine.cpp so that that TU gains no line and its one `assert`'s
+// __LINE__ immediate cannot move -- see qp_walk_trace.h's own note.
+#include <hven/detail/qp/qp_walk_trace.h>
 #include <hven/detail/qp/working_set.h>
+#include <hven/detail/qp/ws_independence.h>
 #include <hven/linear/symmetric_factor.h>
 #include <hven/qp/qp_types.h>
 
@@ -437,6 +931,16 @@ inline double unbounded_artifact_scale(const QpOptions &opts) {
 // considered as evidence of infeasibility (condition (a); see
 // violation_is_structural).
 constexpr double kInfeasibilityMarginFactor = 10.0;
+// The Farkas certificate's rounding floor (settler S25'): its residual is EXACT
+// iff <= kCertExactTol = kCertExactKappa * (n + m) * eps * ||y||_1 * max_k ||a_k||
+// (QpFarkasCertificate::exact_tol). Standard model, fl(a op b) = (a op b)(1 + d),
+// |d| <= eps: box_part = s c - Ae^T y_e - Ai^T y_i sums at most m + 1 products
+// per entry, so its computed error is <= (m + 1) eps ||y||_1 max_k ||a_k||; y is
+// the mu-free-refined solution of the (n + m)-dimensional KKT system, whose
+// backward error is O((n + m) eps) relative to the same product. (n + m) covers
+// both; kappa = 10 is the safety factor. ||y||_1 counts the blocker's own unit
+// coefficient, max_k runs over c and the rows with y_k != 0, m = me + |W|.
+constexpr double kCertExactKappa = 10.0;
 // Fraction of the regularization footprint dual_mu*|lambda| that a violation
 // must reach before it counts as STRUCTURAL rather than solver noise
 // (condition (b); see violation_is_structural).
@@ -448,6 +952,136 @@ constexpr double kStructuralResidualFrac = 0.1;
 // noise. It is a backstop, not the rule: at any sane feas_tol the classifier's
 // own tolerance is orders above it and is what actually ends the loop.
 constexpr double kVerdictRefineRelFloor = 1e-14;
+// THE TERMINAL MU-FREE REFINEMENT (E2 fix4; refine_terminal_mu_free): the
+// iterative-refinement steps taken on the dual_mu = 0 bound-eliminated factor
+// BEYOND solve_eqp's own mandatory one, each kept only while the unregularized
+// KKT residual strictly falls. Two: the mu-free solve is already accurate to
+// O(primal_delta) and the steps only polish that; a face they cannot close is
+// left to the existing classification.
+constexpr Index kTerminalMuRefineSteps = 2;
+
+// THE TERMINAL POLISH's refinement budget (M7 W2 E4 fix1, ruling E4-11;
+// QpEngine::polish_terminal_point, and polish_eqp_unregularized which takes
+// them). Steps against the FULLY unregularized residual -- dual mu and the
+// primal delta both backed out -- on the polish's own mu-free factor, each kept
+// only while that residual strictly falls. TWO, for the same reason
+// kTerminalMuRefineSteps is two: the mu-free solve of the final face is already
+// accurate to O(primal_delta * ||x* - x_k||) and each step contracts that by
+// another factor of order primal_delta / lambda_min(Z'HZ), so two steps take a
+// 1e-08-sized bias past 1e-16 wherever they converge at all, and a face they
+// cannot close in two they will not close in ten (the guard stops them at the
+// first).
+constexpr Index kTerminalPolishSteps = 2;
+
+// THE TERMINAL POLISH's ENTRY TEST (polish_footprint_open), as a multiple of
+// feas_tol: the worst COMPLEMENTARITY PRODUCT at a would-be kOptimal point --
+// |slack|/row_scale times |multiplier|, over the working rows and the pinned
+// bounds (detail::terminal_kkt) -- that must be reached before the polish's
+// stage-2 factorization is spent.
+//
+// THE PRODUCT IS THE RIGHT QUANTITY because it is what a CONSUMER reads. The
+// regularized row identity leaves a working row slack by dual_mu*|lambda|, and a
+// driver's own KKT check prices that slack by lambda again, so what it sees is
+// dual_mu*lambda^2 -- the B-1 term. A footprint invisible in that product is
+// invisible, full stop.
+//
+// A HUNDRED, i.e. 1e-07 at the QpOptions defaults, which is ONE DECADE beneath
+// the 1e-06 kkt_tol both drivers default to (SqpOptions, IpmOptions): a product
+// below it cannot move any consumer's complementarity check even after the
+// driver's own scaling, and one above it can. MEASURED, on the 27-problem HS
+// battery at kSchurBorder, and the calibration is why the factor is not 1:
+//
+//   factor    factorizations   stage-2 solves   stage-2 adoptions
+//   1         432              145              58
+//   100       288              1                1
+//
+// -- at a factor of 1 the gate fired at nearly every certified exit for a 40 %
+// adoption rate and cost 145 factorizations against a pre-E4 baseline of 320,
+// and EVERY fixture it fixed is green at 100 as well. (288 is BELOW that 320
+// baseline, because the EQP-site polish removes the extra pass per face the
+// proximal answer's O(primal_delta) bias used to cost.)
+//
+// A THIRD DISJUNCT WAS MEASURED AND REMOVED: the DUAL FOOTPRINT
+// (mu_footprint_open: a working row whose dual_mu*|lambda| exceeds its own
+// tolerance) is this product's square root and fires two decades wider for
+// nothing a consumer sees -- at a factor of 1 with that disjunct in place the HS
+// battery spent 145 stage-2 solves for 58 adoptions.
+constexpr double kTerminalPolishComplFactor = 100.0;
+
+// THE ENTRY TEST's SECOND DISJUNCT (polish_footprint_open): the multiple of
+// opt_tol a terminal point's free-block STATIONARITY residual, relative to its own
+// scale, must reach before stage 2 is spent.
+//
+// THIS IS E4-11's U0 TARGET, and it is the one quantity the EQP-site polish
+// cannot reach on its own. The KKT-point test of section 5 stops as soon as that
+// residual is within opt_tol * scale, which is correct and is where it should
+// stop; the walk it replaced kept stepping until ||p|| fell under step_tol and on
+// the F7 bound family that was four decades further (U0's `kkt_stationarity`
+// column: 9.19e-14 at the M6-close pin against 9.20e-10 at the tolerance). One
+// mu-free re-solve of the final face reaches 1e-16 there, so the polish buys back
+// the accuracy for ONE factorization instead of the extra passes.
+//
+// 1e-3, i.e. THREE DECADES of the point's own tolerance left to gain. Below it
+// there is nothing worth a solve: a face already at 1e-6 of its tolerance is at
+// rounding or is flat, and a flat face's residual is one no re-solve removes (the
+// polish's strict-decrease guard rejects it at both sites). The COST of this
+// disjunct lands in `terminal_polish_solves` and NOT in `factorizations` -- see
+// that counter's note, which is also why this disjunct is affordable at all.
+constexpr double kTerminalPolishStatFactor = 1e-3;
+
+// THE TERMINAL POLISH'S ACCEPTANCE SLACK (M7 W2 E4 fix round 2), on each of the
+// three KKT residuals: a candidate may leave one of them up to this factor WORSE,
+// and must leave one of them better BY this factor, before it is adopted.
+//
+// WHY IT IS NOT 1 (an exact `<=`, which is what fix round 1 shipped). On
+// `ACOPR57_def`/qp0 the mu-free candidate improves the worst row residual from
+// 6.14e-07 to 1.20e-14 -- SEVEN DECADES -- and lands its stationarity at 1.80e-14
+// against the incumbent's 1.64e-14, which is one ulp of that quantity in the wrong
+// direction. Under an exact test that single ulp decides the adoption, and WHICH
+// SIDE of it the two numbers fall on is not a property of the algorithm: MEASURED,
+// the production library adopts and the HVEN_TESTING recompile of the same TU
+// (tests/CMakeLists.txt's walk-seam target) does not, and the exported objective
+// then differs by 3.2e-05 relative between two builds of one source. A factor
+// makes the decision depend on the decades and not on the ulp.
+//
+// 4, and it is a ROUNDING factor rather than a tuning knob: it is two bits, far
+// below the decade a polish that is worth its factorization moves, and far above
+// the last-digit noise two builds of the same expression can differ by. The
+// "strictly better" half is strengthened with it in the same motion -- a candidate
+// must now improve a residual by a FACTOR OF 4, where before any improvement
+// however small was enough -- so the slack does not widen adoption: it moves the
+// decision from a tie-break to a margin on both sides.
+//
+// AND IT APPLIES TO THE TWO DUAL RESIDUALS ONLY. The worst ROW/BOUND violation is
+// compared exactly, because feasibility is the one thing the polish may never
+// trade: MEASURED, with the factor on the row half as well a candidate up to 4x
+// LESS feasible than the incumbent is adoptable, and on an elastic relaxation whose
+// incumbent rows sit at 1e-3 that is enough for the exported point to read a
+// STRUCTURAL violation -- the T7 feasible census went to 16 open relaxations
+// certified infeasible against its own claim of 0.
+constexpr double kTerminalPolishWorseFactor = 4.0;
+
+// THE STEP'S ROW-DRIFT FLOOR (M7 W2 E4 fix round 2), relative to a row's own
+// scale: below it a drift off a closed working row is not refused.
+//
+// WHY THERE IS A FLOOR AT ALL. The refusal routes into the suspect-stall ladder,
+// which is GLOBAL by design -- it raises `primal_delta` for the whole remaining
+// solve and discards the border state -- so a refusal is not a cheap observation
+// and a check that fires on ordinary accuracy changes every route downstream of
+// it. MEASURED without a floor: three driver fixtures lose their premises to a
+// solve that ran at 1e-05 primal_delta after three rungs, one of them
+// (`WarmStart.FullStepModeInheritsElasticAndRestoration`) reading
+// `suspect_escalations` 3 against its pinned 0 and never reaching the restoration
+// row it exists to test.
+//
+// 1e-3 OF THE ROW'S SCALE. The pathology is a drift of ORDER ONE relative to the
+// scale -- `dual_mu * |lambda|` with `|lambda| ~ 1/primal_delta`, which is 1e-08 /
+// 1e-08 = O(1) at the defaults, and 0.5 on the fixture that found it
+// (`indefinite_equality_qp`, reduced Hessian exactly 0 on the face). Three decades
+// beneath that and two above `face_row_target`, so the check still sees anything
+// the regularization's own term can produce and says nothing about a solve that is
+// merely a few decades short of exact.
+constexpr double kEqpRowDriftFloor = 1e-3;
 
 // --- Inertia gate (see the header contract's section 4b) ---
 
@@ -488,6 +1122,21 @@ inline InertiaVerdict inertia_verdict(const hven::linear::InertiaEvidence &e, In
                                                         : InertiaVerdict::kWrong;
 }
 
+// THE CONVEX CERTIFICATE's structural test (M7 W2 NC4; section 4c). True iff every
+// STORED entry of H is exactly 0.0 off the diagonal and >= 0 on it: an exact proof,
+// with no tolerance and no factorization, that H is positive semidefinite on all of
+// R^n -- an LP is the case H == 0. A NaN entry fails. O(nnz(H)).
+inline bool hessian_is_nonneg_diagonal(const SpMatRM &H) {
+    for (Index r = 0; r < H.outerSize(); ++r) {
+        for (SpMatRM::InnerIterator it(H, r); it; ++it) {
+            if (it.row() == it.col() ? !(it.value() >= 0.0) : it.value() != 0.0) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 // --- Suspect-stall escalation ladder (section 4b's SUSPECT-STALL GATE) ---
 //
 // What a would-be-kOptimal exit off a kSuspect factorization does when the
@@ -499,6 +1148,76 @@ inline InertiaVerdict inertia_verdict(const hven::linear::InertiaEvidence &e, In
 // RUNGS, i.e. delta 1e-8 -> 1e-5 at the defaults. Per-SOLVE.
 constexpr double kSuspectDeltaFactor = 10.0;
 constexpr Index kMaxSuspectEscalations = 3;
+
+// --- The temporary-vertex repair's BUDGET (E2 fix8, settler S40) -----------
+//
+// `repair_temporary_vertex` pins free variables one at a time, probing the inertia after
+// each, until the gate reads kOk or the candidates run out. Until E2 fix8 the INTEGER
+// SCREEN (me + |W| + 1 > n) skipped every candidate once it fired, which bounded the loop
+// by accident and at the wrong place: the screen proves the FAMILY {A_W, e_i} dependent,
+// not e_i in span(A_W), and those differ exactly when A_W is rank-deficient -- which a
+// rank-deficient equality Jacobian makes routine. Removing that accident needs a REAL
+// bound, and this is it:
+//   pin budget = max(kRepairPinFloor, ceil(n / kRepairPinDivisor))
+// It bounds the PROBE FACTORIZATIONS as well, by construction: the pin loop probes once per
+// pin and the release pass at most once per pin, so a repair probes at most twice its pin
+// budget, and never more than 2n.
+//
+// MEASURED, two populations. (a) 838 repairs replayed from dumps -- the 51-dump E2-D4 corpus
+// on both algebras, the whole HS sweep, and ACOPR118's majors 17-20 on both algebras: 832
+// succeed, and the pins a SUCCESSFUL repair tries are p50 1, p90 1, p95 2, p99 134, max 161;
+// the largest fraction of n any of them used is 75/344 = 0.218, then 161/824 = 0.195. (b) The
+// repairs IN-CELL on the hven-sqp lane's `default` ACOPR118 and ACOPP118 cells, with the
+// repair unbounded (scratch instrumentation): 20 repairs, all succeed, the largest 118 pins at
+// n = 344 = 0.343 -- each cell's first, cold subproblem -- the next 99. Pins scale with n, so
+// the bound is a fraction of n: 1/2 clears the largest measured fraction by 1.46x (an
+// earlier 1/3, derived from (a) alone, cut that 118-pin repair in both cells and moved both
+// trajectories). Below n = 16 the floor governs; there the largest measured is 4 pins at
+// n = 5, which the floor of 8 clears by 2x (n = 2's one pin by 8x). NOTHING MEASURED IS CUT:
+// the budget exists to bound the pathology the screen used to bound by accident (an unbounded
+// repair can spend n probe factorizations, and n more releasing, on one attempt). A repair
+// that stops on it is counted QpCounters::dep_repair_budget_stops and FAILS, with every
+// consequence a failed start repair has -- on a truly indefinite face the walk has no way
+// off it and ends kNumericalError, which is what the screen produced whenever it aborted a
+// repair. THE COST WHEN IT BINDS is therefore real, and pinned
+// (QpE2Fix8Budget in tests/qp/test_qp_unrun_dependency_test.cpp): a fraction of n cannot see
+// the INERTIA DEFICIT, so a QP needing more pins than the budget -- H = -I on n = 12 needs
+// all twelve, its budget is 8 -- is cut where the unbounded repair would have succeeded. None of
+// the measured repairs is; a deficit-aware budget is registered. THE BUDGET IS
+// independent_working_set ONLY: the option-off walk has neither screen nor dependency test, so it
+// never had the accidental bound this replaces, and bounding it now would restrict the declared
+// CONTROL arm of every E2 re-take. That its repair is unbounded is registered.
+constexpr Index kRepairPinFloor = 8;
+constexpr Index kRepairPinDivisor = 2;
+inline Index repair_pin_budget(Index n) {
+    const Index fraction = (n + kRepairPinDivisor - 1) / kRepairPinDivisor; // ceil(n / 2)
+    return fraction > kRepairPinFloor ? fraction : kRepairPinFloor;
+}
+
+// THE DEAD-END RANK REPAIR's analyses per solve (Degeneracy; ws_independence.h, rank_repair). The
+// finiteness of the walk across repairs rests on this cap alone: a repair moves neither x nor the
+// minor cap, and the walk between repairs keeps its own arguments. MEASURED on the RDV battery: at
+// most 2 repairs per solve (SAWPATH elastic qp1), 1 elsewhere.
+constexpr Index kRankRepairBudget = 8;
+
+// THE STAGNATION READING (section 4): the length of the idle full-step run that is read as a KKT
+// point of the working set, the objective decrease, relative to max(1, |f|), that counts as
+// progress within it, and the readings a solve may answer with a drop.
+constexpr Index kStagnationSteps = 10;
+constexpr double kStagnationObjectiveTol = 1e-12;
+constexpr Index kStagnationDropBudget = 4;
+
+// THE LATCH AND ITS REASON (section 4): a conditioning latch's CULPRITS are the pins whose
+// entry in C's near-null or dominant direction is at least kLatchCulpritFrac of that
+// direction's largest; it releases at the latest on the kLatchChangedEntries-th
+// border_candidate entry on a working set other than the one it latched on -- a bound, not a
+// measurement: it caps the re-tests skipped between two releases.
+// A conditioning latch is MILD when its C is not nearly singular and its condition estimate is
+// within kLatchMildCondFactor of schur_cond_max; a mild latch releases on ANY change of its pin
+// set. Calibrated on BRITGAS and ACOPR57 (fe0172e5).
+constexpr double kLatchCulpritFrac = 1e-3;
+constexpr Index kLatchChangedEntries = 16;
+constexpr double kLatchMildCondFactor = 100.0;
 
 // Section 4b's SUSPECT-STALL GATE, invariant half (ii). The QP MODEL's
 // stationarity residual r = H x + g + Ae^T lambda_e + Ai^T lambda_i,
@@ -568,6 +1287,119 @@ inline bool free_block_is_stationary(double residual, double scale, const QpOpti
     return residual <= opts.opt_tol * scale;
 }
 
+// THE DUAL SIGN READ (M7 W2 SDL; RDV-5): the largest WRONG-SIGNED multiplier of
+// the working set -- -z(i) at a lower pin, +z(i) at an upper pin, -lambda_i(r)
+// on a working row whose shift is 0 (`shift` null: every working row; the certificate passes null)
+// -- or 0. kFixed pins and equality rows are not sign-constrained. NaN-STICKY, like
+// free_block_stationarity: a NaN multiplier returns NaN.
+inline double worst_wrong_sign(const QpProblem &qp, const WorkingSet &ws, const Vec &lambda_i,
+                               const Vec &z, const Vec *shift) {
+    double worst = 0.0;
+    const auto take = [&worst](double v) {
+        if (std::isnan(v) || std::isnan(worst)) {
+            worst = std::numeric_limits<double>::quiet_NaN();
+        } else if (v > worst) {
+            worst = v;
+        }
+    };
+    for (Index row : ws.active_ineq()) {
+        if (shift == nullptr || !((*shift)(row) > 0.0)) {
+            take(-lambda_i(row));
+        }
+    }
+    for (Index i = 0; i < qp.n(); ++i) {
+        const BoundState st = ws.bound_state()[static_cast<std::size_t>(i)];
+        if (st == BoundState::kAtLower) {
+            take(-z(i));
+        } else if (st == BoundState::kAtUpper) {
+            take(z(i));
+        }
+    }
+    return worst;
+}
+
+// The certificate's SIGN HALF decision: dual feasible within the KKT-point
+// test's own relative tolerance. Written as `<=` so a NaN refuses.
+inline bool dual_signs_hold(double wrong_sign, double scale, const QpOptions &opts) {
+    return wrong_sign <= opts.opt_tol * scale;
+}
+
+// THE TERMINAL POLISH's three KKT residuals (M7 W2 E4 fix1, ruling E4-11), all
+// three RELATIVE to their own scales so that "worse" is a comparison between
+// two points of the same face and not between two units:
+//
+//  - `stationarity`: free_block_stationarity divided by the scale that function
+//    reports, i.e. the quantity the KKT-point test and the suspect-stall gate
+//    both read, in units of opt_tol.
+//  - `rows`: the worst row (equality, inequality) or bound violation divided by
+//    that row's own scale -- worst_structural_violation's row_scale and
+//    refine_terminal_mu_free's box rule, in units of feas_tol.
+//  - `complementarity`: the worst |slack| * |multiplier| product over the WORKING
+//    rows and the PINNED bounds, the slack relative to the row's scale. It is
+//    the quantity the regularization's footprint shows up in and the one the B-1
+//    family reads at the NLP level: a regularized row identity leaves a working
+//    row slack by dual_mu*|lambda|, so this product is dual_mu*lambda^2 there
+//    and the driver's own complementarity check sees it.
+struct TerminalKkt {
+    double stationarity = 0.0;
+    double rows = 0.0;
+    double complementarity = 0.0;
+
+    bool all_finite() const {
+        return std::isfinite(stationarity) && std::isfinite(rows) && std::isfinite(complementarity);
+    }
+};
+
+inline TerminalKkt terminal_kkt(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                                const Vec &lambda_e, const Vec &lambda_i, const Vec &z) {
+    TerminalKkt out;
+    double stat_scale = 1.0;
+    const double stat = free_block_stationarity(qp, x, ws, lambda_e, lambda_i, stat_scale);
+    out.stationarity = stat / std::max(stat_scale, 1e-300);
+
+    const double xmag = x.lpNorm<Eigen::Infinity>();
+    if (qp.me() > 0) {
+        const Vec resid = qp.Ae * x - qp.be;
+        for (Index j = 0; j < qp.me(); ++j) {
+            const double row_scale =
+                std::max({1.0, std::abs(qp.be(j)), qp.Ae.row(j).cwiseAbs().sum() * xmag});
+            const double rel = std::abs(resid(j)) / row_scale;
+            out.rows = std::max(out.rows, rel);
+            out.complementarity = std::max(out.complementarity, rel * std::abs(lambda_e(j)));
+        }
+    }
+    if (qp.mi() > 0) {
+        const Vec resid = qp.Ai * x - qp.bi;
+        for (Index j = 0; j < qp.mi(); ++j) {
+            const double row_scale =
+                std::max({1.0, std::abs(qp.bi(j)), qp.Ai.row(j).cwiseAbs().sum() * xmag});
+            out.rows = std::max(out.rows, std::max(0.0, resid(j)) / row_scale);
+            // In the working set? The list is index-ordered, and this is the same
+            // binary search QpEngine::in_working runs on the same vector (a private
+            // static this free function cannot name).
+            const auto &aw = ws.active_ineq();
+            if (std::binary_search(aw.begin(), aw.end(), j)) {
+                out.complementarity = std::max(out.complementarity, std::abs(resid(j)) / row_scale *
+                                                                        std::abs(lambda_i(j)));
+            }
+        }
+    }
+    for (Index i = 0; i < qp.n(); ++i) {
+        const double below = qp.lower(i) - x(i);
+        const double above = x(i) - qp.upper(i);
+        const double bound = below >= above ? qp.lower(i) : qp.upper(i);
+        const double row_scale = std::max({1.0, std::abs(bound), xmag});
+        out.rows = std::max(out.rows, std::max(below, above) / row_scale);
+        const BoundState st = ws.bound_state()[static_cast<std::size_t>(i)];
+        if (st != BoundState::kFree) {
+            const double at = st == BoundState::kAtUpper ? qp.upper(i) : qp.lower(i);
+            out.complementarity =
+                std::max(out.complementarity, std::abs(x(i) - at) / row_scale * std::abs(z(i)));
+        }
+    }
+    return out;
+}
+
 // --- Negative-curvature ride (see the header contract's section 4c) ---
 
 // Relative threshold below which a direction's curvature counts as NOT
@@ -575,6 +1407,14 @@ inline bool free_block_is_stationary(double residual, double scale, const QpOpti
 // own eigenvalue scale -- so the threshold must be relative to that scale
 // too, or it would classify H and 1000*H differently.
 constexpr double kCurvatureTolFactor = 1e-12;
+
+// THE SADDLE EXIT's SHIFTED SEARCH (section 4c): the primal shift, relative to
+// hessian_scale and added to the primal_delta in force, of the face re-factorized when the face's
+// own factor yields no verified direction. A face with a cluster of zero-curvature directions
+// factors at primal_delta with perturbed pivots, and the inverse operator's Lanczos then sees only
+// them; shifted, that cluster maps to 1/sigma and a curvature below -sigma stays negative. A
+// direction is still verified on H itself.
+constexpr double kSaddleShiftFactor = 1e-6;
 
 // Relative tolerance on "the ride direction lies in the null space of the
 // working constraints" (ride_stays_in_working_set), stated relative to
@@ -701,6 +1541,15 @@ inline std::uint64_t values_hash(const QpProblem &qp) {
 // `latched` marks the pins-only dead end (border_candidate): bordering is
 // abandoned for the current working-set SHAPE, the elimination path serves
 // every iteration, and the border stack is deliberately NOT kept in sync.
+// `latch_reason` says why (detail::take_latch); a conditioning latch on a rebuilt stack keeps the
+// members it latched on (`latch_pins`, `latch_rows`), its culprits
+// (`latch_culprits`; all three sorted), whether the C it latched on was only mildly
+// past its limit (`latch_mild`), whether that C was read off a rebuilt stack
+// (`latch_rebuilt`) and the entries it has held on a different working set
+// (`latch_changed_entries`). All are read only while `latched`, and overwritten
+// whenever a latch is taken.
+enum class LatchReason : std::uint8_t { kCap, kConditioning };
+
 struct BorderState {
     /// @param threads The owning engine's thread count, handed to K0's factor
     ///                at construction (M6 W5 T8.8). 0 -- the default, and what
@@ -720,12 +1569,63 @@ struct BorderState {
     detail::KktFactor kkt;                 // configured by sqp_kkt_options(threads)
     std::optional<SchurComplement> schur;
     bool latched = false;
+    LatchReason latch_reason = LatchReason::kCap;
+    std::vector<Index> latch_pins;
+    std::vector<Index> latch_rows;
+    std::vector<Index> latch_culprits;
+    bool latch_mild = false;
+    bool latch_rebuilt = false;
+    Index latch_changed_entries = 0;
 
     // Stale-handle detection lives in the backend factor's own identity:
     // `analyze()` moves `kkt.factor.session_id()` and every successful
     // `factorize()` advances `kkt.factor.epoch()`, so rebuild_k0() stamps
     // nothing. See QpEngine::run()'s reuse condition (e).
 };
+
+namespace detail {
+
+// THE LATCH AND ITS REASON (section 4). Free functions of the border state alone, so the rule
+// is readable -- and testable -- without a walk around it.
+//
+// Is the pins-only dead end still the situation we are in? While `pinned > schur_cap` it is,
+// whatever the reason the latch was taken: pins can never be folded into K0
+// (assemble_kkt_full eliminates nothing), so immediately after ANY rebuild_k0 the live stack is
+// exactly the pins, every possible K0 is born past needs_refactorization() and bordering is
+// unavailable at any price.
+//
+// Under the cap, the REASON decides. A kCap latch releases: testing the pin COUNT rather than
+// "fewer pins than at latch time" keeps it from oscillating, the single release that crosses the
+// cap costing exactly one rebuild, and a working ROW change never releases it -- the resumed
+// state would still have dim() > schur_cap. A kConditioning latch taken on a stack that was only
+// updated (`latch_rebuilt` false) releases at once, so the next entry verifies it on a rebuilt
+// stack; one taken on a rebuilt stack releases when the working rows differ from those it
+// latched on (they are K0's: another K0 borders another C), when one of its
+// culprits has left `ws` (an eigenvector supported on pins that all stay is an eigenvector of
+// the reduced C; at kLatchCulpritFrac this is a heuristic, a miss bounded by the mild rule and
+// kLatchChangedEntries, and an arrival can cure even an indefinite C by interlacing), at any
+// change of its pin set when it is mild (latch_mild), or on the kLatchChangedEntries-th entry on a
+// set other than the one it latched on; otherwise it holds and counts border_latch_holds. Holding
+// is correct because nothing reads K0 or the border stack while latched, and a release rebuilds K0
+// from the CURRENT working set. The caller counts the release (border_latch_releases), where it
+// rebuilds.
+bool latch_still_holds(const WorkingSet &ws, BorderState &border, QpCounters &counters,
+                       Index schur_cap);
+
+// Take the latch for `ws` (border_solve_or_fall_back, where a rebuild would be a no-op): record
+// its reason -- kCap when `pinned > schur_cap`, else kConditioning (C's condition estimate,
+// near-singularity or exact singularity) -- whether `border`'s stack was `rebuilt` on this
+// entry (rebuild_k0 and a full sync) rather than updated, and, for a conditioning latch on a
+// rebuilt stack (an updated one is released at the next entry before any of this is read), the
+// members it latched on; whether its C is mild (not nearly singular, and a condition estimate at
+// most kLatchMildCondFactor * schur_cond_max); and its culprits: the
+// pins whose entry in border.schur's near_null_direction() or dominant_direction() is at least
+// kLatchCulpritFrac of that direction's largest, or every pin when either cannot be read (an
+// exactly singular C). Counted border_latches_cap / border_latches_conditioning.
+void take_latch(const WorkingSet &ws, BorderState &border, QpCounters &counters,
+                const QpOptions &opts, bool rebuilt);
+
+} // namespace detail
 
 // The face the elimination path'S `kkt` CURRENTLY HOLDS. Captured where
 // solve_eqp factorizes, read at the verdict site so the face refinement can
@@ -997,14 +1897,38 @@ class QpEngine {
         bool is_ineq = false;
         Index idx = -1;
         BoundState from = BoundState::kFree;
+        // The drop's own Dantzig violation (> opt_tol): the predicted slope along
+        // d is violation * dropped_directional(d) (4c, THE FLAT FACE).
+        double violation = 0.0;
     };
 
     // What one attempt at section 4c's ride did.
     enum class RideOutcome {
-        kStepped,   // moved to a blocker, which joined the working set
-        kUnbounded, // nothing blocks: the QP is unbounded along the ride
-        kDeclined,  // the direction is not ridable: see ride_stays_in_working_set
-                    // and ride_sign. The caller falls back to the ordinary step.
+        kStepped,          // moved to a blocker, which joined the working set
+        kUnbounded,        // nothing blocks: the QP is unbounded along the ride
+        kVetoed,           // the direction is not ridable: ride_stays_in_working_set
+                           // or ride_sign refused it (section 4c, THE DECLINED RIDE)
+        kDependentBlocker, // the ride's first blocker tested dependent on the
+                           // pass's factor; nothing mutated, RideBlocker says
+                           // what blocks (section 4c, THE DECLINED RIDE)
+        kDeclined,         // HVEN_TESTING arms only: the caller falls back to the
+                           // ordinary step
+    };
+
+    // The blocker section 4c's ride found. On kDependentBlocker the ride did NOT
+    // admit it and the add site's rule decides it along `dir`, uncapped. On
+    // kStepped the ride admitted it already, and `dir` is left empty: what the
+    // caller needs there is the MOTION the ride made (4c, FINITENESS).
+    struct RideBlocker {
+        BlockKind kind = BlockKind::kNone;
+        Index idx = -1;
+        BoundState state = BoundState::kFree;
+        double alpha = 0.0;
+        // alpha * ||dir||inf -- the quantity the ordinary add path tests against
+        // step_tol to decide whether the iterate moved.
+        double dx_inf = 0.0;
+        Vec dir;
+        detail::DepTest test;
     };
 
     // Per-solve bookkeeping for section 4b's ZERO-MULTIPLIER PROBE: the order
@@ -1126,7 +2050,40 @@ class QpEngine {
     struct WalkSeen {
         std::vector<std::uint8_t> ineq;
         std::vector<std::uint8_t> bound;
+        // Rows the independence re-check removed as dependent shift adds;
+        // refresh_shifts skips them until the next drop clears the set.
+        std::vector<std::uint8_t> shift_refused;
+        // THE ZERO-MOTION RE-ENTRY RULE's point memory (independent_working_set
+        // only; empty otherwise), cleared whenever the iterate moves. A
+        // constraint released here that re-enters here is drop-exempt until
+        // the iterate moves; members that entered here are not exchanged out
+        // by a step that does not move. `pt_events` counts releases and re-entries at this point,
+        // capped at 2(n + mi). `pt_touched`: row j as j, bound i as -(i + 1).
+        std::vector<std::uint8_t> pt_ineq;
+        std::vector<std::uint8_t> pt_bound;
+        std::vector<Index> pt_touched;
+        Index pt_events = 0;
     };
+
+    static constexpr std::uint8_t kPtReleased = 1;
+    static constexpr std::uint8_t kPtEntered = 2;
+    static constexpr std::uint8_t kPtExempt = 4;
+    // A deferred add the re-check removed as dependent here (E2 fix1, D3(b)):
+    // not re-admitted at this point on an undecided test.
+    static constexpr std::uint8_t kPtKnownDependent = 8;
+    // A drop undone on ride_sign's veto here: its multiplier is below the
+    // resolution of the slope it was supposed to predict, so it does not count
+    // as exhausted (4c, THE FLAT FACE).
+    static constexpr std::uint8_t kPtNoise = 16;
+
+    static std::uint8_t pt_flags(const WalkSeen &seen, bool is_ineq, Index idx);
+    static void pt_mark(WalkSeen &seen, bool is_ineq, Index idx, std::uint8_t flag);
+    static void pt_clear(WalkSeen &seen);
+    // A release at this point (drop, probe drop, exchange, detector removal).
+    static void pt_release(WalkSeen &seen, bool is_ineq, Index idx);
+    // An admission at this point; a re-entry of a released constraint is made
+    // drop-exempt and counted. Returns true on a re-entry.
+    static bool pt_admit(WalkSeen &seen, QpCounters &counters, bool is_ineq, Index idx);
 
     static void mark_ineq_seen(WalkSeen &seen, QpCounters &counters, Index j);
 
@@ -1142,6 +2099,25 @@ class QpEngine {
     // footprint -- the latter capped at kInfeasibilityAbsorbTol * row_scale
     // so a contradiction cannot fund its own tolerance.
     double row_tolerance(double row_scale, double lambda, const QpOptions &opts) const;
+
+    // THE ASCENT GUARD's precondition (4c): every equality row and every working
+    // inequality row met at x within row_tolerance -- the iterate stands ON its face, so
+    // the EQP step has no row-restoring part to excuse an ascent.
+    bool iterate_meets_working_face(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                                    const Vec &Aix, const Vec &ai_row_norm1, const Vec &lambda_i,
+                                    const Vec &ae_row_norm1, const Vec &lambda_e,
+                                    const QpOptions &opts) const;
+
+    // THE STAGNATION READING's row measure over the equality rows and the working inequality rows
+    // at x (Aix = Ai x; pinned columns sit on their bounds exactly): the largest |residual|, and
+    // the largest in units of its row's floor row_tolerance(row_scale, 0) (<= 1: the rows are met).
+    struct WorkingRowResidual {
+        double largest = 0.0;
+        double in_floor_units = 0.0;
+    };
+    WorkingRowResidual working_row_residual(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                                            const Vec &Aix, const Vec &ai_row_norm1,
+                                            const Vec &ae_row_norm1, const QpOptions &opts) const;
 
     // Is a single row's violation genuine evidence of infeasibility, rather
     // than the regularized solve's own noise? Both conditions must hold.
@@ -1190,6 +2166,56 @@ class QpEngine {
                                 const Vec &Aix, const Vec &ai_row_norm1, const Vec &lambda_i,
                                 const Vec &ae_row_norm1, const Vec &lambda_e,
                                 const QpOptions &opts) const;
+
+    // THE STEP'S ROW-DRIFT CHECK (E4 fix round 2): does the EQP answer leave a
+    // working row the INCOMING iterate was already on?
+    //
+    // The classical active-set invariant is that a step along the EQP direction
+    // keeps every working row met, because the unregularized system has
+    // Ae p = 0 on those rows. The DUAL regularization breaks it by exactly its
+    // own term: the regularized row block reads Ae p = -dual_mu * lambda, so the
+    // step drifts off the row by dual_mu*|lambda|. That is harmless while lambda
+    // is O(1) -- it is the footprint row_tolerance() already absorbs -- and it is
+    // NOT harmless once the PROXIMAL step's multipliers are O(1/primal_delta),
+    // which is what they are on a face whose reduced Hessian is flat: the drift
+    // is then O(dual_mu/primal_delta), which is O(1) at the defaults.
+    //
+    // MEASURED (indefinite_equality_qp, 3 variables, one equality row, the
+    // reduced Hessian on the face exactly 0, lambda_e ~ 5e+07): the answer
+    // solved its own regularized system to 5.5e-09 -- so the E4-4 residual
+    // check, which reads that system, had nothing to say -- and opened the
+    // equality row by 0.5, after which the walk spent its whole iteration cap
+    // taking full steps on an UNCHANGING working set with the row open,
+    // reporting kMaxIter at a point that is no local minimizer. The base walk's
+    // absolute centring prices that face's multipliers at O(primal_delta), so
+    // it never saw this.
+    //
+    // WHAT IS CHECKED, and what makes it silent where it must be: the check
+    // speaks ONLY for a CLOSED FACE -- the incoming iterate meets EVERY working
+    // row within face_row_target (the classifier's own threshold, which already
+    // absorbs an O(1) multiplier's footprint up to kInfeasibilityAbsorbTol) --
+    // and it fires when the candidate leaves any of them. Two things follow.
+    // On every restoration cell the incoming iterate does NOT meet its rows --
+    // that is what makes it a restoration -- so the check says nothing there.
+    // And on an INCONSISTENT row set no point meets them all, so the invariant
+    // has nothing to defend and the qualifier keeps the check quiet while the
+    // walk reaches its verdict. Equality rows and the working inequality rows
+    // only, the same set working_face_measure reads, and with the CANDIDATE's
+    // own multipliers pricing the target so a stale incumbent cannot widen it.
+    //
+    // The caller's response is the suspect-stall ladder, for the reason the
+    // arithmetic gives: lambda scales as 1/primal_delta on such a face, so one
+    // decade more primal_delta is one decade less drift. AND AN EXHAUSTED LADDER
+    // IS ADVISORY, exactly as it is for the residual refusal -- section 5 states
+    // the rule. MEASURED both ways -- terminal costs `ACOPR57_def`/qp0 its
+    // base certificate on both algebras (opt/183 -> num/162, terminal
+    // stationarity 1.24); advisory keeps it, still converges
+    // `indefinite_equality_qp`, and converts `A0_YORKNET`/qp1 (num/329 ->
+    // opt/717, a conversion fix round 1's polish step cap had given up).
+    bool eqp_answer_drifts_off_met_rows(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                                        const EqpResult &eqp, const Vec &Aix,
+                                        const Vec &ai_row_norm1, const Vec &ae_row_norm1,
+                                        const QpOptions &opts) const;
 
     // The verdict-site face refinement (section 5's dead-end classification).
     // Re-forms the live bordered system, refines it against a target expressed
@@ -1271,6 +2297,82 @@ class QpEngine {
                                             const EliminatedFace &face, QpCounters &counters,
                                             const QpOptions &opts) const;
 
+    // THE TERMINAL MU-FREE REFINEMENT (E2 fix4). At a terminal KKT point whose
+    // structural classification would read kInfeasible, the point is the
+    // dual_mu-REGULARIZED stationary point of the working face: each working
+    // row's residual is dual_mu * lambda_j, and with |lambda| ~ 1e6 that is
+    // O(1) -- a violation of the regularized system, not of the QP. The face's
+    // EQP is re-solved with dual_mu = 0 on a local bound-eliminated factor
+    // (reread_wrong_inertia's path; the pass's factor and border stack are
+    // untouched), refined at most kTerminalMuRefineSteps further steps against
+    // the unregularized residual, and the refined point is ADOPTED -- x and
+    // the multipliers (lambda_e, lambda_i, z re-priced) -- only when it
+    // satisfies EVERY row and every bound of `qp` within feas_tol * row_scale
+    // (row_scale as worst_structural_violation's; the box as E4's). Otherwise
+    // nothing changes and the existing classification stands.
+    //
+    // mu_footprint_open is the entry test: some working-face row (an equality
+    // or an active inequality) carries dual_mu * |lambda_j| > feas_tol *
+    // row_scale_j. Below it the regularization cannot explain a residual and
+    // the refinement is skipped. The caller enters only at a would-be
+    // kInfeasible (worst > 0) with independent_working_set on and dual_mu > 0,
+    // so a terminal point that already satisfies the rows never reaches it.
+    //
+    // Counters: terminal_mu_refines (entries: one factorization each, charged
+    // to `factorizations` too), terminal_mu_refine_rescues (adoptions).
+    bool mu_footprint_open(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                           const Vec &ai_row_norm1, const Vec &lambda_i, const Vec &ae_row_norm1,
+                           const Vec &lambda_e, const QpOptions &opts) const;
+    bool refine_terminal_mu_free(const QpProblem &qp, const WorkingSet &ws, Vec &x, Vec &lambda_e,
+                                 Vec &lambda_i, Vec &z, QpCounters &counters,
+                                 const QpOptions &opts) const;
+
+    // THE TERMINAL POLISH (M7 W2 E4 fix round 1, ruling E4-11; section 5 states
+    // the rule and why the walk needs it). At a would-be kOptimal exit, the
+    // final point is re-solved on its FINAL WORKING SET with the regularization
+    // BACKED OUT -- dual_mu = 0 in the system, and the primal delta backed out
+    // of the refinement target by kTerminalPolishSteps steps of
+    // polish_eqp_unregularized, which is consistent precisely here because the
+    // step is going to zero. One local factorization, charged to
+    // `terminal_polish_solves` and NOT to `factorizations` (ruling E4-17;
+    // solver_counters.h states the contract at both fields, and the asymmetry
+    // with refine_terminal_mu_free, whose factorization IS in `factorizations`),
+    // the pass's own factor and border stack untouched.
+    //
+    // ADOPTED only if the candidate is finite, keeps feasibility (no row and no
+    // bound outside feas_tol * row_scale that the incumbent met, and nothing
+    // worse than the incumbent), does not WORSEN any of the three KKT residuals
+    // -- free-block stationarity, worst row/bound violation, worst
+    // complementarity product -- and strictly IMPROVES at least one of them, and
+    // if it PASSES THE WALK'S OWN KKT-POINT TEST (section 5) -- its relative
+    // stationarity within opt_tol, so the exported point is one the walk itself
+    // would certify. Otherwise x and every multiplier are left exactly as they
+    // were and the exit is unchanged: the polish can make the answer better and
+    // cannot make it worse.
+    //
+    // `polish_footprint_open` is the entry test, and it is a COST gate, not a
+    // correctness one: it asks whether this point has anything a solve could gain
+    // -- a complementarity product above kTerminalPolishComplFactor * feas_tol, or
+    // a stationarity residual above kTerminalPolishStatFactor * opt_tol. Both
+    // constants carry their own calibration; below both there is nothing worth a
+    // factorization, and stage 1 is free either way.
+    //
+    // Counters: terminal_polish_solves (entries), terminal_polish_rejected
+    // (candidates not adopted).
+    bool polish_footprint_open(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                               const Vec &lambda_e, const Vec &lambda_i, const Vec &z,
+                               const QpOptions &opts) const;
+    // The acceptance test, shared by both stages: prices `cand`, measures
+    // detail::terminal_kkt at it, and ADOPTS (x and all three multiplier blocks)
+    // only if the candidate is finite, keeps feasibility, worsens none of the
+    // three residuals and strictly improves one. Returns whether it adopted.
+    bool adopt_polished_candidate(const QpProblem &qp, const WorkingSet &ws, const EqpResult &cand,
+                                  const detail::TerminalKkt &before, const QpOptions &opts, Vec &x,
+                                  Vec &lambda_e, Vec &lambda_i, Vec &z) const;
+    bool polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
+                               const EqpResult &pass_answer, Vec &x, Vec &lambda_e, Vec &lambda_i,
+                               Vec &z, QpCounters &counters, const QpOptions &opts) const;
+
     // Is ||x|| large in a way that only an unbounded direction explains?
     // Bound-relative on purpose: a variable boxed by finite bounds CANNOT run
     // away, and one pinned at a bound demonstrably has not, so only free
@@ -1293,35 +2395,83 @@ class QpEngine {
     // ACTUALLY solved (section 4b) -- the bordered K0 or the bound-eliminated
     // K, on either mode. It is an out-parameter rather than a member so the
     // verdict can never outlive the factorization it describes.
-    EqpResult eqp_candidate(const QpProblem &qp, const WorkingSet &ws, detail::KktFactor &kkt,
-                            EliminatedFace &face, BorderState &border, QpCounters &counters,
-                            detail::InertiaVerdict &verdict, const QpOptions &opts) const;
+    //
+    // `x_k` is THE PROXIMAL CENTRE the EQP is solved from -- the pass's own
+    // iterate -- and it is threaded, explicitly, through every function on this
+    // path down to the two solves (eqp_solve.h states the system). Explicitly,
+    // because the centre is part of the system: a reader of any of these
+    // signatures can see which point the answer is a step from. The probe and
+    // inertia-read call sites pass the same iterate even though only the
+    // FACTORIZATION's inertia is read there and the rhs cannot reach it.
+    EqpResult eqp_candidate(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
+                            detail::KktFactor &kkt, EliminatedFace &face, BorderState &border,
+                            QpCounters &counters, detail::InertiaVerdict &verdict,
+                            const QpOptions &opts) const;
 
     // One solve_eqp against a freshly assembled+factorized, bound-ELIMINATED
     // KKT system. Short-circuits the empty system (every variable pinned, no
     // equalities, no working rows), which Pardiso cannot be handed -- which is
     // also why a border-mode fallback on an all-variables-pinned working set
     // costs no factorization at all.
-    EqpResult eliminated_candidate(const QpProblem &qp, const WorkingSet &ws,
+    EqpResult eliminated_candidate(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
                                    detail::KktFactor &kkt, EliminatedFace &face,
                                    QpCounters &counters, detail::InertiaVerdict &verdict,
                                    const QpOptions &opts) const;
+
+    // THE MU-FREE INERTIA RE-READ (R-C', E2 fix3; E2-D4 class B; settler S26).
+    // A kWrong verdict at the start repair or the terminal check is re-read on a
+    // bound-eliminated factor of the CURRENT working set assembled with
+    // dual_mu = 0, in a local KktFactor (the pass's factor and border stack are
+    // untouched; each read is one extra factorization). THE RULE: a kOk mu-free
+    // read overturns the kWrong. A kSuspect mu-free read overturns it ONLY when
+    // a second eliminated read at the pass's own dual_mu reads kOk -- a kSuspect
+    // alone (a perturbed zero pivot at mu = 0) cannot tell a PSD-singular face
+    // from an indefinite one, so only the border path's K0 verdict is overturned
+    // there; the suspect-stall gate then decides a would-be kOptimal as for any
+    // kSuspect (correctness guard: AMuFreeSuspectReadDoesNotCertifyASaddle). Any
+    // other outcome -- a kWrong mu-free read, a kSuspect with a non-kOk second
+    // read, or a backend runtime_error -- leaves the kWrong standing. Known gap
+    // (registered): a strict local minimum whose mu-free read is kSuspect and
+    // whose dual_mu read is kWrong is not certified (ACOPR57 qp4); the honest fix
+    // is the reduced Hessian's inertia on a small face, a later round.
+    // independent_working_set only (the option-off walk is unchanged). Returns
+    // true iff the verdict was replaced (dep_inertia_rereads counts the calls
+    // that read, dep_inertia_reread_flips the replacements).
+    bool reread_wrong_inertia(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
+                              QpCounters &counters, const QpOptions &opts,
+                              detail::InertiaVerdict &verdict) const;
+
+    // THE CONVEX CERTIFICATE (M7 W2 NC4; section 4c). At the certification
+    // branch's trusted-kWrong arm, after R-C''s re-read has left the kWrong
+    // standing and the post-probe restart has not been taken: a STRUCTURALLY
+    // convex H (detail::hessian_is_nonneg_diagonal) at a point whose free block
+    // is stationary in opt_tol currency (free_block_is_stationary) replaces the
+    // kWrong by kSuspect -- the read is a misread, not evidence -- and counts it
+    // (convex_certificates). independent_working_set only. Returns true iff the
+    // verdict was replaced. QpOptions::hessian_known_convex stands in for the
+    // structural test (a caller's assertion, never verified here).
+    static bool convex_overrules_wrong_inertia(const QpProblem &qp, const WorkingSet &ws,
+                                               const Vec &x, const Vec &lambda_e,
+                                               const Vec &lambda_i, QpCounters &counters,
+                                               const QpOptions &opts,
+                                               detail::InertiaVerdict &verdict);
 
     // Border-mode counterpart of eqp_candidate (header contract, step 4):
     // bring K0's border stack in line with `ws`, rebuild K0 if that stack can
     // no longer be trusted, then solve through it. The empty-system
     // short-circuit above has no counterpart here and needs none -- K0 spans
     // all n variables whatever the working set does.
-    EqpResult border_candidate(const QpProblem &qp, const WorkingSet &ws, detail::KktFactor &kkt,
-                               EliminatedFace &face, BorderState &border, QpCounters &counters,
-                               detail::InertiaVerdict &verdict, const QpOptions &opts) const;
+    EqpResult border_candidate(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
+                               detail::KktFactor &kkt, EliminatedFace &face, BorderState &border,
+                               QpCounters &counters, detail::InertiaVerdict &verdict,
+                               const QpOptions &opts) const;
 
     // Shared tail of both entry paths above: decide whether the border stack
     // is usable, spend at most one rebuild trying to make it so, and solve --
     // falling back to the elimination path (and latching where appropriate)
     // when it is not. `opts` is the effective options this solve resolved
     // (see run()'s `eff_opts`).
-    EqpResult border_solve_or_fall_back(const QpProblem &qp, const WorkingSet &ws,
+    EqpResult border_solve_or_fall_back(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
                                         detail::KktFactor &kkt, EliminatedFace &face,
                                         BorderState &border, QpCounters &counters,
                                         detail::InertiaVerdict &verdict, bool rebuilt,
@@ -1345,7 +2495,7 @@ class QpEngine {
     // `face` is the LOOP's key, not a throwaway: this call may re-factorize
     // `kkt`, and a key that did not follow it would keep asserting a
     // factorization the probe overwrote (EliminatedFace, fix 2).
-    detail::InertiaVerdict probe_inertia(const QpProblem &qp, const WorkingSet &ws,
+    detail::InertiaVerdict probe_inertia(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
                                          detail::KktFactor &kkt, EliminatedFace &face,
                                          BorderState &border, QpCounters &counters,
                                          const QpOptions &opts) const;
@@ -1364,11 +2514,13 @@ class QpEngine {
     // none), leaving `ws` exactly as it found it. COST WHEN NOTHING IS WEAKLY
     // ACTIVE IS ZERO: an empty candidate list returns before any linear
     // algebra runs.
-    bool probe_zero_multiplier_drops(const QpProblem &qp, const Vec &shift, const Vec &lambda_i,
-                                     const Vec &z, WorkingSet &ws, detail::KktFactor &kkt,
-                                     EliminatedFace &face, BorderState &border,
-                                     QpCounters &counters, ProbeState &probe, DropRecord &dropped,
-                                     const QpOptions &opts) const;
+    // CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian, or a caller-asserted
+    // convex B, in which case this certifies B, not the NLP.
+    bool probe_zero_multiplier_drops(const QpProblem &qp, const Vec &x_k, const Vec &shift,
+                                     const Vec &lambda_i, const Vec &z, WorkingSet &ws,
+                                     detail::KktFactor &kkt, EliminatedFace &face,
+                                     BorderState &border, QpCounters &counters, ProbeState &probe,
+                                     DropRecord &dropped, const QpOptions &opts) const;
 
     // H's diagonal, gathered once (qp.H stores the upper triangle, so the
     // diagonal entries are the ones with col == row).
@@ -1395,24 +2547,31 @@ class QpEngine {
     // assembles the same matrix) and every live border is a pin (so the
     // re-sync re-adds the same borders). Rebuilding then buys nothing and
     // costs a factorization.
-    static bool rebuild_would_be_noop(const WorkingSet &ws, const BorderState &border);
+    // The factor this pass holds for exactly `ws` (read-only), or none.
+    static detail::DepFactorView dep_factor_view(const WorkingSet &ws, const detail::KktFactor &kkt,
+                                                 const EliminatedFace &face,
+                                                 const BorderState &border);
 
-    // Is the pins-only dead end still the situation we are in? EXACTLY ONE
-    // question decides it: can a border stack carry the current pin count at
-    // all? Pins can never be folded into K0 (assemble_kkt_full eliminates
-    // nothing), so immediately after ANY rebuild_k0 the live stack is exactly
-    // the pins -- while `pinned > schur_cap`, every possible K0 is born past
-    // needs_refactorization() and bordering is unavailable at any price.
-    //
-    // Testing the pin COUNT rather than "fewer pins than at latch time" keeps
-    // this from oscillating: the single release that crosses the cap costs
-    // exactly one rebuild. The latch releases on the PIN COUNT alone, never on
-    // a change to the working ROWS -- a working set whose rows change every
-    // iteration would otherwise thrash the latch for nothing, since the
-    // resumed state still has dim() > schur_cap. Holding through a row change
-    // is correct because nothing reads K0 or the border stack while latched,
-    // and the release rebuilds K0 from the CURRENT working set.
-    bool latch_still_holds(const WorkingSet &ws) const;
+    // Does the live border stack represent exactly `ws`'s members?
+    static bool border_holds(const WorkingSet &ws, const BorderState &border);
+
+    // The dependency test on one candidate (a row, or a bound of variable
+    // `idx`), counted.
+    static detail::DepTest test_candidate(const QpProblem &qp, const WorkingSet &ws,
+                                          const detail::DepFactorView &view, bool is_ineq,
+                                          Index idx, QpCounters &counters, const QpOptions &opts);
+
+    // Detector repair: drops one optional member of `det`'s support. At entry
+    // (`seq` null): seed rows, then seed pins, then shifted rows, highest
+    // index first. On a re-check: the newest member by `seq` (addition order),
+    // highest index on ties. A removed shifted row is marked refused in
+    // `refused`. False when the support is mandatory only.
+    static bool remove_entry_dependency(WorkingSet &ws, const Vec &shift,
+                                        const detail::EntryDetection &det, const ProbeState *seq,
+                                        std::vector<std::uint8_t> &refused,
+                                        detail::WsMember *removed = nullptr);
+
+    static bool rebuild_would_be_noop(const WorkingSet &ws, const BorderState &border);
 
     // Assemble + factorize a fresh full-variable K0 for the CURRENT working
     // set and restart the border stack empty. Counted in
@@ -1459,8 +2618,209 @@ class QpEngine {
     // the working set; false means the point is optimal. `dropped` records
     // WHAT left, which section 4c's ride needs to choose its sign; it is left
     // untouched when nothing is dropped.
+    // `pt` (independent_working_set): drop-exempt members are skipped, and the
+    // largest violation among them is reported in `exempt_worst`.
     bool drop_worst(const QpProblem &qp, const Vec &shift, const Vec &lambda_i, const Vec &z,
-                    WorkingSet &ws, DropRecord &dropped, QpCounters &counters) const;
+                    WorkingSet &ws, DropRecord &dropped, QpCounters &counters,
+                    const WalkSeen *pt = nullptr, double *exempt_worst = nullptr) const;
+
+    // THE EXCHANGE at the ordinary add site, for a blocker the dependency test
+    // found dependent (Gill & Wong 2015, Result 3.4(b)). Every sign-constrained
+    // member k is oriented c_k^T x <= d_k with m_k >= 0 at optimality, and the
+    // test's coefficients give c_r = sum_k v_k c_k + Ae^T v_e. Removable:
+    // not an equality, a kFixed pin, or -- on a step that does not move (`moves`
+    // false) -- a member that entered at this point. The lock applies ONLY on a
+    // zero-motion step: the re-entry rule guards zero-motion cycles, and a
+    // moving step changes the point and clears the point memory by
+    // construction before the exchange mutates the set. Admissible: removable with
+    // v_k ||c_k|| > kDepCoeffTol * max_l |v_l| ||c_l||. j = argmin m_k^+ / v_k
+    // (ties: most negative m_k, then largest scaled v_k, then rows before pins,
+    // ascending index); sigma = m_j^+ / v_j. New multipliers m - sigma v, and
+    // sigma on r. A shifted row is admissible only when no other member is
+    // (`j_shifted`, last resort): with v_j > 0 its value on the new face is
+    // d_j - g / v_j <= d_j, so the face satisfies it; it is marked
+    // shift-refused so the homotopy does not re-admit it. Shifted rows rank
+    // LAST: one is never chosen while an unshifted admissible member exists
+    // (Debug-asserted in select_exchange).
+    //
+    // THE LOCKED-VERTEX UNLOCK (R-B, E2 fix5; E2-D4 class A). When a
+    // zero-motion step finds no admissible member and the rule would END the
+    // solve there (no verified certificate, no pass-over within tolerance; on a
+    // border-stack pass the border retreat comes first), the scan is repeated
+    // (`unlock`) with every member locked ONLY by having entered at this point
+    // -- flags kPtEntered without kPtReleased or kPtExempt, i.e. never
+    // released here -- made removable, and j is chosen by the min-ratio rule
+    // alone with ties to the lowest index (rows before pins, ascending; Bland
+    // 1977), shifted rows still last. It can change only a solve that would
+    // otherwise end dep_blocker_terminations (dep_unlocks counts it).
+    // FINITENESS: the unlocked member is released (kPtReleased), so it can
+    // never be unlocked again until the point memory clears (motion, a ride
+    // step, or one of the two once-per-solve repairs): each member is unlocked
+    // at most once per point, so at most n + mi unlocks per point, and each is
+    // also a release event under the zero-motion cap 2(n + mi). No extra cap is
+    // needed. Re-entered members (kPtExempt) stay locked: unlocking them too
+    // broke ACOPR57 qp0-qp2 (E2-D4 `unlockall`).
+    struct ExchangePick {
+        bool found = false; // an admissible member exists
+        bool cond1 = false; // every sign-constrained member's scaled v_k <= tol * max
+        bool j_is_ineq = false;
+        bool j_shifted = false; // the released member is a shift-driven row
+        bool unlocked = false;  // j was admissible only under the unlock (R-B)
+        // A shift-driven member row carries a nonzero coefficient (either sign): `g`
+        // reads unshifted right-hand sides, so it does not describe the face.
+        bool shifted_coeff = false;
+        Index j = -1;
+        double sigma = 0.0;
+        double sign = 1.0; // the blocker's orientation: c_r = sign * (a_r or e_r)
+        double g = 0.0;    // sum_k v_k d_k + v_e^T be - d_r
+        Vec v_e;           // oriented, per equality row
+        Vec v_w;           // oriented, per ws.active_ineq() entry
+        Vec v_pin;         // oriented by each pin's side (kFixed as +e_i)
+    };
+    static ExchangePick select_exchange(const QpProblem &qp, const WorkingSet &ws, const Vec &shift,
+                                        const WalkSeen &seen, const detail::DepTest &t,
+                                        bool is_ineq, Index idx, BoundState side,
+                                        const Vec &lambda_e, const Vec &lambda_i, const Vec &z,
+                                        bool moves, bool unlock);
+
+    // THE IMPLIED BLOCKER (M7 W2 QC-8), asked at the add site before the
+    // exchange, on an ORDINARY step only (x_face = x + p, alpha <= 1). The
+    // test proves c_r = sum_k v_k c_k + Ae^T v_e + r (verdict kDependent with
+    // rho <= kDepTol, so ||r|| = rho ||a_r|| on free columns; structural:
+    // r = 0). Every point meeting the members exactly gives c_r^T y = d_r + g
+    // + r^T y (g as select_exchange's), and along the exact ordinary step every
+    // member moves linearly onto its own constraint, so c_r^T (x + alpha p) =
+    // (1 - alpha) c_r^T x + alpha (d_r + g + r^T x_face): the blocker's value
+    // is a convex combination of its value at x and at the face. When
+    // g + rho ||a_r|| ||x_face,free|| <= feas_tol * row_scale the face meets
+    // it, so the EXACT step cannot carry it past max(its violation at x,
+    // feas_tol * row_scale) -- it is not a blocker, and its computed rate along
+    // p is the step's own leak off the members (A_W p = O(mu lambda)), which at
+    // a tied vertex makes every member of a dependent cycle block in turn at
+    // zero motion (DALLASM QN QP 6: an exchange keeps the span and so the step,
+    // the released member blocks next, and the lock ends the solve). False for
+    // a shift-driven blocker or a member row carrying ANY nonzero coefficient
+    // while shifted (`g` reads unshifted right-hand sides), an unproved
+    // dependency (the integer screen alone, a stalled or un-run test), and on a
+    // ride, whose direction is not the step onto the face.
+    //
+    // THE LEAK BUDGET (QC-8 R1). The computed step leaks off each member by its
+    // regularization footprint (A_W p = mu lambda on the face), so the blocker's leak is
+    // bounded by implied_leak_allowance = max(feas_tol * row_scale, sum_k |v_k|
+    // max(feas_tol * scale_k, dual_mu |lambda_k|)) over the equality and working inequality
+    // rows (pins are exact: 0). An implied blocker is passed over only while its predicted
+    // violation at the end of the step, max(0, c^T x - d + alpha c^T p), stays within that
+    // allowance -- N2's check with the members' absorbency as the allowance, not an exemption
+    // (QpCounters::dep_implied_passovers counts the pass-overs that survive). Each member's
+    // footprint is min(dual_mu |lambda_k|, kInfeasibilityMarginFactor *
+    // kInfeasibilityAbsorbTol * scale_k), floored at feas_tol * scale_k: capped at the exit's
+    // structural band, a factor above row_tolerance()'s own cap (which keeps a contradiction
+    // from funding its own tolerance; g <= tol has already excluded one here). On the border
+    // path the pins' footprints, capped alike, join the sum (their border carries -dual_mu);
+    // the eliminated path holds pins exactly. MEASURED (QC-8 riders): row_tolerance()'s own cap
+    // refused DALLASM QN's tenth subproblem -- the QP variable a step, so the equality rows'
+    // scale is 1 and the cap 1e-6 -- at predicted violations of 1.01e-6 .. 1.4e-6.
+    //
+    // A PREFERENCE, NOT A ROUTE (QC-8 R3). When a step with an implied
+    // blocker passed over fails N2's check -- its own leak above the budget, or
+    // any passed-over blocker's violation at the longer step -- the rule falls
+    // back to what the walk would have done without it: the exchange pick of the
+    // sequence's first implied blocker with a pick set aside, taken at the step that
+    // reached that blocker; else the locked-vertex unlock (R-B); only then the
+    // end (N3). The implied pass-over never makes a new N3 end.
+    static bool blocker_implied_by_face(const QpProblem &qp, const WorkingSet &ws, const Vec &shift,
+                                        const Vec &x, const Vec &p, const detail::DepTest &t,
+                                        const ExchangePick &pick, bool is_ineq, Index idx,
+                                        double row_scale, const QpOptions &opts);
+    static double implied_leak_allowance(const QpProblem &qp, const WorkingSet &ws,
+                                         const ExchangePick &pick, const Vec &x,
+                                         const Vec &ai_row_norm1, const Vec &ae_row_norm1,
+                                         const Vec &lambda_e, const Vec &lambda_i, const Vec &z,
+                                         bool border_path, double row_scale, const QpOptions &opts);
+
+    // The no-admissible-member rule's certificate, VERIFIED, tried whenever no
+    // member is admissible (E2 fix1: the box-based certificate does not need
+    // cond1, and a locked positive-coefficient member leaves cond1 false on an
+    // infeasible QP; a cond1 candidate that fails is still kRejected): builds the
+    // certificate from the test `t` oriented by `pick.sign` (y_i = min(v, 0) on
+    // member rows, the rest in the explicit box part) and true iff its implied
+    // bound clears the blocker's limit by more than the structural margin at
+    // `row_scale`. The multipliers are first REFINED mu-free on `view`
+    // (detail::certificate_coefficients; its solves added to `solves`): t's come
+    // from the dual_mu-regularized solve and are O(mu) off, which leaves an
+    // O(mu) box_part on free coordinates of an exactly dependent blocker
+    // (settler S25'). On a single-row dependency the row's exact coefficient
+    // (c's least-squares fit on it over the free columns) replaces the refined
+    // one when it lowers the residual: the refinement contracts by ~ mu ||H|| /
+    // ||a||^2 per step, slowly on a short row. A test with rho == 0 (structural,
+    // or no free column) is exact already and is not refined. Box_part entries <= kDepTol * ||c||
+    // on coordinates unbounded on the needed side are dropped and their norm kept in
+    // QpFarkasCertificate::residual. residual <= exact_tol (kCertExactKappa, the rounding floor):
+    // EXACT, the caller ends kInfeasible. Above it: TOLERANCED, a proof only for the QP with the
+    // dropped coefficients zeroed, NOT for this one (the dropped term is unbounded on its
+    // coordinate): the caller ends kNumericalError at the current iterate (after the border retreat
+    // on a border pass) and counts dep_certificate_toleranced (S25). Either is copied into
+    // QpSolution::farkas.
+    bool verify_farkas(const QpProblem &qp, const WorkingSet &ws, const detail::DepFactorView &view,
+                       const detail::DepTest &t, const ExchangePick &pick, bool is_ineq, Index idx,
+                       double row_scale, const QpOptions &opts, QpFarkasCertificate &cert,
+                       Index &solves) const;
+
+    // THE ROW HALF'S CERTIFICATE (M7 W2 SDL-6), at a terminal point whose rows carry a
+    // structural violation. True iff some y (y_e free, y_i >= 0) is VERIFIED to prove this QP
+    // (box = qp's, TR included) infeasible beyond its tolerance:
+    //   min_{l<=x<=u} w'x - y'b > floor + kInfeasibilityMarginFactor * sum_j |y_j| tol_j,
+    // w = Ae'y_e + Ai'y_i, each w_i widened by its rounding bound before the box minimum (a
+    // needed infinite bound fails), floor the sum's own rounding (kCertExactKappa), tol_j =
+    // row_tolerance(row_scale_j, 0) at worst_structural_violation's row scale. Then every box
+    // point violates some row j by more than kInfeasibilityMarginFactor * tol_j. Candidates: the
+    // residual at x (no solve), then detail::terminal_null_direction on `view` -- or, when the
+    // pass's factor no longer holds for `ws` (a verdict refinement moved it), on a local
+    // eliminated factor of `ws` (one factorization, charged as eliminated_candidate charges it);
+    // its solves go to dep_test_solves. The local-factor fallback runs a full eliminated EQP
+    // solve and charges its eqp_* counters. QpSolution::farkas is left absent (it is
+    // blocker-shaped).
+    bool verify_terminal_farkas(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                                const Vec &ai_row_norm1, const Vec &ae_row_norm1,
+                                const detail::DepFactorView &view, QpCounters &counters,
+                                const QpOptions &opts) const;
+
+    // THE PASS-OVER SCAN: production's ratio scan with the passed-over
+    // constraints excluded (the no-admissible rule's pass-over, N2), for ONE
+    // pass-over sequence -- p, x and the working set do not change inside it.
+    // The candidates (non-working rows with a.p > kEngineDenomTol, free
+    // variables moving toward a finite bound, finite ratio) are scored and
+    // sorted ONCE, by (ratio, rows before bounds, index): exactly the order in
+    // which the full scan's strict `<` keeps the first minimum it meets, so
+    // `next` returns the full scan's pick. Each pass-over is then O(1)
+    // amortized instead of O(mi + n) -- M7 W2 C13 measured a degenerate vertex
+    // of TAX53322 (mi = 32 221) passing over ~4 000-8 000 blockers per minor.
+    class PassOverScan {
+      public:
+        PassOverScan(const QpProblem &qp, const WorkingSet &ws, const Vec &x, const Vec &Aix,
+                     const Vec &p);
+        // Excludes a constraint from every later `next`.
+        void pass(bool is_ineq, Index idx);
+        // The smallest unpassed ratio and its constraint, capped at the unit
+        // step unless `cap_at_unit` is false (a ride's pass-over: the raw
+        // ratio, infinite exactly when nothing blocks).
+        double next(const Vec &p, BlockKind &kind, Index &block_idx, BoundState &block_state,
+                    bool cap_at_unit);
+
+      private:
+        struct Candidate {
+            double ratio;
+            bool bound;
+            Index idx;
+        };
+        bool passed(const Candidate &c) const {
+            return (c.bound ? passed_bound_ : passed_ineq_)[static_cast<std::size_t>(c.idx)] != 0;
+        }
+        std::vector<Candidate> cands_;
+        std::size_t cur_ = 0;
+        std::vector<char> passed_ineq_;
+        std::vector<char> passed_bound_;
+    };
 
     // Directional derivative of the constraint `dropped` names, along `d`.
     // Stated so that a NEGATIVE value means "d moves into that constraint's
@@ -1479,8 +2839,8 @@ class QpEngine {
     // ride has no such cap, so any component of p out of that null space sails
     // straight through a working row nothing is watching (the HOMOTOPY, where
     // A_j p != 0 by design, and a DEGENERATE working set, where x sits off the
-    // rows by O(dual_mu * |lambda|)). Failing this DECLINES the ride, falling
-    // back to the ordinary capped step, which handles both cases correctly.
+    // rows by O(dual_mu * |lambda|)). Failing this VETOES the ride (section
+    // 4c, THE DECLINED RIDE, says what follows).
     bool ride_stays_in_working_set(const QpProblem &qp, const WorkingSet &ws, const Vec &p) const;
 
     // Which sign of `p` the ride takes, or 0 to DECLINE the ride entirely.
@@ -1500,15 +2860,26 @@ class QpEngine {
     // At a KKT point of the PRE-drop working set the two provably agree; they
     // CAN disagree on a DEGENERATE working set, where the multipliers split
     // among dependent rows and "lambda_c < 0" stops implying that moving off c
-    // improves anything. A disagreement DECLINES, falling through to the
-    // ordinary EQP step.
+    // improves anything. A disagreement VETOES the ride (section 4c, THE
+    // DECLINED RIDE).
     //
-    // A FLAT DIRECTION ALSO DECLINES, and that is load-bearing: it buys no
+    // A FLAT DIRECTION ALSO VETOES, and that is load-bearing: it buys no
     // objective decrease while still pinning a blocker into the working set,
     // which can turn a legitimate small row residual into a spurious
     // kInfeasible at step 5's classifier, and it would contradict 4c's
     // anti-cycling argument, which rests on the decrease being STRICT.
-    int ride_sign(const QpProblem &qp, const DropRecord &dropped, const Vec &p, const Vec &x) const;
+    //
+    // With independent_working_set the drop's own PREDICTED slope decides the
+    // sign only BELOW the measured slope's resolution (4c, THE FLAT FACE);
+    // `predicted` reports that it did.
+    int ride_sign(const QpProblem &qp, const DropRecord &dropped, const Vec &p, const Vec &x,
+                  bool *predicted = nullptr) const;
+
+    // Whether a drop whose ride ride_sign vetoed is a NOISE drop: its own
+    // predicted slope is at or below the resolution of the slope it was meant to
+    // predict (4c, THE FLAT FACE). Reads g'p and s from `x` and `p`; no solve.
+    bool ride_drop_is_noise(const QpProblem &qp, const DropRecord &dropped, const Vec &p,
+                            const Vec &x) const;
 
     // 2-norm of the dropped constraint's gradient, for ride_sign's tolerance.
     static double dropped_gradient_norm(const QpProblem &qp, const DropRecord &dropped);
@@ -1517,10 +2888,46 @@ class QpEngine {
     // have non-positive curvature, so the QP is unbounded below along one of
     // +/-p inside the current working set. Steps to the nearest blocker along
     // the admissible sign and puts that blocker into `ws`. `ws` and `x` are
-    // left untouched on kUnbounded and kDeclined.
+    // left untouched on every outcome but kStepped.
+    // CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian, or a caller-asserted
+    // convex B, in which case this certifies B, not the NLP.
+    // `dep` (independent_working_set): the pass's factor; a dependent ride
+    // blocker is returned in `blocked` (kDependentBlocker), not admitted.
     RideOutcome ride_negative_curvature(const QpProblem &qp, const DropRecord &dropped,
                                         QpCounters &counters, WalkSeen &seen, const Vec &p,
-                                        const Vec &Aix, WorkingSet &ws, Vec &x) const;
+                                        const Vec &Aix, WorkingSet &ws, Vec &x,
+                                        const detail::DepFactorView *dep, const QpOptions &opts,
+                                        RideBlocker &blocked) const;
+
+    // The ride itself, along a direction already chosen: section 4c's ride after its
+    // sign, and THE SADDLE EXIT's. Same outcomes and contract as ride_negative_curvature
+    // past its two vetoes.
+    RideOutcome ride_direction(QpCounters &counters, WalkSeen &seen, const QpProblem &qp,
+                               const Vec &dir, const Vec &Aix, WorkingSet &ws, Vec &x,
+                               const detail::DepFactorView *dep, const QpOptions &opts,
+                               RideBlocker &blocked) const;
+
+    // THE SADDLE EXIT's direction (section 4c): `ws`'s face factorized at dual_mu = 0 into
+    // the caller's `kkt`/`face` (`view` names that factor on return, for the add site),
+    // then detail::face_negative_curvature on it. Found nothing there, the search is repeated
+    // once on the face shifted by kSaddleShiftFactor * hessian_scale on top of the primal_delta in
+    // force (a local factor; `view` still names the unshifted one). Empty when no VERIFIED
+    // direction exists (including a failed factorization).
+    Vec saddle_direction(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                         detail::KktFactor &kkt, EliminatedFace &face, QpCounters &counters,
+                         const QpOptions &opts, double curvature_tol,
+                         detail::DepFactorView &view) const;
+
+    // THE SADDLE EXIT's sign (section 4c), at `x`: the descent sign when g'd resolves; on a
+    // flat slope the sign with the larger decrease to its first blocker, a tie preferring the
+    // sign that leaves `released` (the previous pass's drop, if any). Empty when the chosen
+    // ride would re-enter `released` at zero length (it would undo the drop, not leave the
+    // saddle). The same holds for a zero-length re-entry of ANY probe-exempt member or
+    // any member the point memory `seen` marks released at this point.
+    Vec orient_saddle_direction(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                                const Vec &Aix, Vec d, const DropRecord *released,
+                                const ProbeState &probe, const WalkSeen &seen,
+                                double step_tol) const;
 
     // Step 3. Reports the blocking constraint and the step to it.
     //

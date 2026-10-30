@@ -1,0 +1,67 @@
+# M7 W2 M3c's DEFAULT-PATH CENSUS probe, built AGAINST AN INSTALLED hven and
+# AROUND the harness rather than through it.
+#
+# THIS FILE IS M3a's `wrappers/probe-CMakeLists.txt`, copied at HEAD b2bbaed8
+# and changed in exactly two ways: the project and target names, and the source
+# file name. The M3a original is not edited (RULE.md section 0). Everything
+# below -- the alignment pin, the three READ-ONLY bridge sources, the CUTEst
+# discovery and the consequence note -- is M3a's, verbatim.
+#
+# WHY THE HARNESS'S OWN CMake IS NOT ENTERED (settler ruling). `hven-bench`'s
+# root CMakeLists refuses a `find_package(hven)` that resolves outside the
+# PINNED prefix -- a guard its re-pin task added after a stale `hven_DIR` linked
+# one hven and stamped another. This probe must link an hven AHEAD of that pin
+# (`restoration_sub_status` does not exist at it), so it is exactly the case the guard is for,
+# and the guard stays. Instead this project compiles the three bridge sources it
+# needs, READ-ONLY, out of the harness tree, and links the installed hven itself.
+#
+# THE HARNESS TREE IS NEVER WRITTEN. Its re-pin implementer is its writer.
+#
+# CONSEQUENCE: nothing built here carries `HVEN_BENCH_PIN_SHA`, because that
+# definition is the harness CMake's and the harness CMake does not run. Rows from
+# this binary are M3a's REQUEST PROBE and are never cited as harness rows.
+cmake_minimum_required(VERSION 3.24)
+project(hven_m7w2m3c_probe CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# THE ALIGNMENT PIN EVERY CONSUMER OF AN INSTALLED hven CARRIES (M7 H3 fix1).
+# Directory-level, so the harness sources compiled below get it too -- a mixed
+# alignment across TUs sharing Eigen types is an ABI break, not a warning.
+add_compile_definitions(EIGEN_MAX_ALIGN_BYTES=32)
+
+find_package(hven REQUIRED)
+
+set(HVEN_BENCH_ROOT "/home/ghecht/Projects/hven-bench"
+    CACHE PATH "The harness tree, READ-ONLY: three bridge sources are compiled out of it")
+set(HVEN_BENCH_CUTEST_ROOT "$ENV{HOME}/Software/cutest"
+    CACHE PATH "The CUTEst install prefix (external; neither vendored nor built here)")
+
+find_path(CUTEST_INCLUDE_DIR cutest.h
+          HINTS "${HVEN_BENCH_CUTEST_ROOT}/include" NO_DEFAULT_PATH)
+find_library(CUTEST_LIBRARY cutest_double
+             HINTS "${HVEN_BENCH_CUTEST_ROOT}/lib" NO_DEFAULT_PATH)
+if(NOT CUTEST_INCLUDE_DIR OR NOT CUTEST_LIBRARY)
+    message(FATAL_ERROR "m3c_probe: CUTEst not found under ${HVEN_BENCH_CUTEST_ROOT}")
+endif()
+
+add_executable(m3c_probe
+    m3c_probe.cpp
+    "${HVEN_BENCH_ROOT}/lanes/cutest/cutest_model.cpp"
+    "${HVEN_BENCH_ROOT}/lanes/cutest/cutest_source.cpp"
+    "${HVEN_BENCH_ROOT}/lanes/hven/nlp_model_triplet_view.cpp")
+
+# The harness root is its own include root (a cross-directory include reads as
+# the path it is), and `lanes/hven` is what its lane library adds beside it.
+target_include_directories(m3c_probe PRIVATE
+    "${HVEN_BENCH_ROOT}"
+    "${HVEN_BENCH_ROOT}/lanes/hven"
+    "${CUTEST_INCLUDE_DIR}")
+
+target_compile_definitions(m3c_probe PRIVATE HVEN_BENCH_HAS_CUTEST=1)
+target_link_libraries(m3c_probe PRIVATE hven::hven "${CUTEST_LIBRARY}")
+# CUTEst lives outside any standard search path; the RPATH is how the binary
+# finds it without an LD_LIBRARY_PATH the row could not record.
+target_link_options(m3c_probe PRIVATE "-Wl,-rpath,${HVEN_BENCH_CUTEST_ROOT}/lib")

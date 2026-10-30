@@ -1,0 +1,213 @@
+PGREP_EMPTY seam-release 2026-09-25T16:30:29-04:00
+FOREGROUND_START seam-release 2026-09-25T16:30:29-04:00
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a21a2ab349204592e/.scratch/nc1-build-release/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 82 tests from 4 test suites.
+[----------] Global test environment set-up.
+[----------] 20 tests from QpWalkSeam
+[ RUN      ] QpWalkSeam.AttachingTheObserverChangesNoCounterAndNoAnswer
+[       OK ] QpWalkSeam.AttachingTheObserverChangesNoCounterAndNoAnswer (7 ms)
+[ RUN      ] QpWalkSeam.TheObserverIsNeutralOnAWarmRESOLVETOO
+[       OK ] QpWalkSeam.TheObserverIsNeutralOnAWarmRESOLVETOO (1 ms)
+[ RUN      ] QpWalkSeam.TwoEnginesOnTwoThreadsOneArmedOneNot
+[       OK ] QpWalkSeam.TwoEnginesOnTwoThreadsOneArmedOneNot (41 ms)
+[ RUN      ] QpWalkSeam.TwoEnginesOnTwoThreadsBothArmed
+[       OK ] QpWalkSeam.TwoEnginesOnTwoThreadsBothArmed (41 ms)
+[ RUN      ] QpWalkSeam.ArmingOnOneThreadIsInvisibleOnAnother
+[       OK ] QpWalkSeam.ArmingOnOneThreadIsInvisibleOnAnother (0 ms)
+[ RUN      ] QpWalkSeam.CaptureSolveSelectsOneSolveAndTheRestAreNotRecorded
+[       OK ] QpWalkSeam.CaptureSolveSelectsOneSolveAndTheRestAreNotRecorded (0 ms)
+[ RUN      ] QpWalkSeam.TheTraceAgreesWithTheCountersItMustNotHaveTouched
+[       OK ] QpWalkSeam.TheTraceAgreesWithTheCountersItMustNotHaveTouched (2 ms)
+[ RUN      ] QpWalkSeam.TheWorkingSetSignatureTracksTheActionsThatChangeIt
+[       OK ] QpWalkSeam.TheWorkingSetSignatureTracksTheActionsThatChangeIt (2 ms)
+[ RUN      ] QpWalkSeam.ADropRecordsItsRouteItsMultiplierAndTheToleranceItWasComparedAgainst
+[       OK ] QpWalkSeam.ADropRecordsItsRouteItsMultiplierAndTheToleranceItWasComparedAgainst (0 ms)
+[ RUN      ] QpWalkSeam.ADegenerateStepIsAnAdditionThatMovedNoFurtherThanTheStepTolerance
+[       OK ] QpWalkSeam.ADegenerateStepIsAnAdditionThatMovedNoFurtherThanTheStepTolerance (2 ms)
+[ RUN      ] QpWalkSeam.EveryPassRecordsTheMainVerdictAndThePathThatProducedIt
+[       OK ] QpWalkSeam.EveryPassRecordsTheMainVerdictAndThePathThatProducedIt (2 ms)
+[ RUN      ] QpWalkSeam.TheBackendsInertiaAccessorAnswersTheSameThingTwiceOnThisPlatform
+[       OK ] QpWalkSeam.TheBackendsInertiaAccessorAnswersTheSameThingTwiceOnThisPlatform (0 ms)
+[ RUN      ] QpWalkSeam.ThePerPassCounterDeltasAreNonNegativeAndBoundedByTheSolvesTotals
+[       OK ] QpWalkSeam.ThePerPassCounterDeltasAreNonNegativeAndBoundedByTheSolvesTotals (2 ms)
+[ RUN      ] QpWalkSeam.APostDropPassRecordsWhatWasReleasedAndWhyTheRideDidOrDidNotRun
+[       OK ] QpWalkSeam.APostDropPassRecordsWhatWasReleasedAndWhyTheRideDidOrDidNotRun (2 ms)
+[ RUN      ] QpWalkSeam.TheDropCandidateSetIsRecordedLargestViolationFirst
+[       OK ] QpWalkSeam.TheDropCandidateSetIsRecordedLargestViolationFirst (2 ms)
+[ RUN      ] QpWalkSeam.TheRegularizationAndResidualsAreRecordedOnEveryPass
+[       OK ] QpWalkSeam.TheRegularizationAndResidualsAreRecordedOnEveryPass (2 ms)
+[ RUN      ] QpWalkSeam.TheSignatureIsOrderIndependentSideSensitiveAndIdentitySensitive
+[       OK ] QpWalkSeam.TheSignatureIsOrderIndependentSideSensitiveAndIdentitySensitive (0 ms)
+[ RUN      ] QpWalkSeam.ResetClearsEverythingTheObserverHolds
+[       OK ] QpWalkSeam.ResetClearsEverythingTheObserverHolds (0 ms)
+[ RUN      ] QpWalkSeam.TheRecordCapIsHonouredAndReported
+[       OK ] QpWalkSeam.TheRecordCapIsHonouredAndReported (0 ms)
+[ RUN      ] QpWalkSeam.TheNeutralityComparisonWouldCatchAMoveIfThereWereOne
+[       OK ] QpWalkSeam.TheNeutralityComparisonWouldCatchAMoveIfThereWereOne (0 ms)
+[----------] 20 tests from QpWalkSeam (116 ms total)
+
+[----------] 16 tests from QpAntiCyclingArm
+[ RUN      ] QpAntiCyclingArm.TheSwitchIsOffByDefaultAndItsParametersAreThePaperDerivedOnes
+[       OK ] QpAntiCyclingArm.TheSwitchIsOffByDefaultAndItsParametersAreThePaperDerivedOnes (0 ms)
+[ RUN      ] QpAntiCyclingArm.AnUnarmedSwitchWithTheObserverAttachedIsTheUnattachedRunBitForBit
+[       OK ] QpAntiCyclingArm.AnUnarmedSwitchWithTheObserverAttachedIsTheUnattachedRunBitForBit (58 ms)
+[ RUN      ] QpAntiCyclingArm.TheOffWalkCyclesAtPeriodTwoWithExactlyZeroMotion
+[       OK ] QpAntiCyclingArm.TheOffWalkCyclesAtPeriodTwoWithExactlyZeroMotion (13 ms)
+[ RUN      ] QpAntiCyclingArm.TheOffWalkCyclesAtPeriodFourWithExactlyZeroMotion
+[       OK ] QpAntiCyclingArm.TheOffWalkCyclesAtPeriodFourWithExactlyZeroMotion (15 ms)
+[ RUN      ] QpAntiCyclingArm.ArmEEscapesThePeriodTwoCycleAndReturnsTheOptimum
+[       OK ] QpAntiCyclingArm.ArmEEscapesThePeriodTwoCycleAndReturnsTheOptimum (14 ms)
+[ RUN      ] QpAntiCyclingArm.ArmLEscapesThePeriodTwoCycleAndReturnsTheOptimum
+[       OK ] QpAntiCyclingArm.ArmLEscapesThePeriodTwoCycleAndReturnsTheOptimum (13 ms)
+[ RUN      ] QpAntiCyclingArm.ArmEEscapesThePeriodFourCycleAndReturnsTheOptimum
+[       OK ] QpAntiCyclingArm.ArmEEscapesThePeriodFourCycleAndReturnsTheOptimum (16 ms)
+[ RUN      ] QpAntiCyclingArm.ArmLEscapesThePeriodFourCycleAndReturnsTheOptimum
+[       OK ] QpAntiCyclingArm.ArmLEscapesThePeriodFourCycleAndReturnsTheOptimum (16 ms)
+[ RUN      ] QpAntiCyclingArm.NeitherArmChangesAWalkWithNoTieAndNoZeroRatio
+[       OK ] QpAntiCyclingArm.NeitherArmChangesAWalkWithNoTieAndNoZeroRatio (0 ms)
+[ RUN      ] QpAntiCyclingArm.ArmEsKthIterationRunsAtTheExpandedToleranceAndTheResetFollowsIt
+[       OK ] QpAntiCyclingArm.ArmEsKthIterationRunsAtTheExpandedToleranceAndTheResetFollowsIt (0 ms)
+[ RUN      ] QpAntiCyclingArm.ArmEsResetCountsANontrivialReProjection
+[       OK ] QpAntiCyclingArm.ArmEsResetCountsANontrivialReProjection (0 ms)
+[ RUN      ] QpAntiCyclingArm.ArmEsResetSequenceIsReachableAndRestartsTheTolerance
+[       OK ] QpAntiCyclingArm.ArmEsResetSequenceIsReachableAndRestartsTheTolerance (0 ms)
+[ RUN      ] QpAntiCyclingArm.ArmingOnOneThreadIsInvisibleOnAnother
+[       OK ] QpAntiCyclingArm.ArmingOnOneThreadIsInvisibleOnAnother (26 ms)
+[ RUN      ] QpAntiCyclingArm.ArmEsFloorStepOnTheNegativeCurvatureRideIsNotRePinned
+[       OK ] QpAntiCyclingArm.ArmEsFloorStepOnTheNegativeCurvatureRideIsNotRePinned (0 ms)
+[ RUN      ] QpAntiCyclingArm.ArmEsNegligiblePivotParameterDecidesWhichConstraintsCanBlock
+[       OK ] QpAntiCyclingArm.ArmEsNegligiblePivotParameterDecidesWhichConstraintsCanBlock (0 ms)
+[ RUN      ] QpAntiCyclingArm.AnArmedSolveDoesNotReachIntoAnUnarmedOneRunningBesideIt
+[       OK ] QpAntiCyclingArm.AnArmedSolveDoesNotReachIntoAnUnarmedOneRunningBesideIt (0 ms)
+[----------] 16 tests from QpAntiCyclingArm (178 ms total)
+
+[----------] 24 tests from QpE2WorkingSet
+[ RUN      ] QpE2WorkingSet.ThePeriodTwoQpEndsAtItsOptimumInBothAlgebras
+[       OK ] QpE2WorkingSet.ThePeriodTwoQpEndsAtItsOptimumInBothAlgebras (1 ms)
+[ RUN      ] QpE2WorkingSet.ThePeriodFourQpEndsAtItsOptimumInBothAlgebras
+[       OK ] QpE2WorkingSet.ThePeriodFourQpEndsAtItsOptimumInBothAlgebras (1 ms)
+[ RUN      ] QpE2WorkingSet.ADependentBlockerIsExchangedForTheMemberItsCoefficientsName
+[       OK ] QpE2WorkingSet.ADependentBlockerIsExchangedForTheMemberItsCoefficientsName (0 ms)
+[ RUN      ] QpE2WorkingSet.NoAdmissibleMemberOnAnInfeasibleQpReturnsAVerifiedCertificate
+[       OK ] QpE2WorkingSet.NoAdmissibleMemberOnAnInfeasibleQpReturnsAVerifiedCertificate (0 ms)
+[ RUN      ] QpE2WorkingSet.NoAdmissibleMemberAndNoPassOverEndsInsideTheBox
+[       OK ] QpE2WorkingSet.NoAdmissibleMemberAndNoPassOverEndsInsideTheBox (0 ms)
+[ RUN      ] QpE2WorkingSet.TheBorderRetreatsExactlyOnceAndEndsOptimal
+[       OK ] QpE2WorkingSet.TheBorderRetreatsExactlyOnceAndEndsOptimal (0 ms)
+[ RUN      ] QpE2WorkingSet.ALockedPositiveMemberStillGetsTheVerifiedCertificate
+[       OK ] QpE2WorkingSet.ALockedPositiveMemberStillGetsTheVerifiedCertificate (0 ms)
+[ RUN      ] QpE2WorkingSet.TheUndecidableBorderPingPongRetreatsOnceAndEndsOptimal
+[       OK ] QpE2WorkingSet.TheUndecidableBorderPingPongRetreatsOnceAndEndsOptimal (1 ms)
+[ RUN      ] QpE2WorkingSet.AFullyPinnedRowDecidesAnUndecidablePinExactly
+[       OK ] QpE2WorkingSet.AFullyPinnedRowDecidesAnUndecidablePinExactly (0 ms)
+[ RUN      ] QpE2WorkingSet.ATolerancedCertificateOnAnUnboundedCoordinateEndsNumericalErrorInsideTheBox
+[       OK ] QpE2WorkingSet.ATolerancedCertificateOnAnUnboundedCoordinateEndsNumericalErrorInsideTheBox (0 ms)
+[ RUN      ] QpE2WorkingSet.AnExactlyDependentBlockerOnFreeVariablesIsCertifiedInfeasibleAfterRefinement
+[       OK ] QpE2WorkingSet.AnExactlyDependentBlockerOnFreeVariablesIsCertifiedInfeasibleAfterRefinement (0 ms)
+[ RUN      ] QpE2WorkingSet.AStructuralDependencyDecidesFirstOnTheSteenbrbElasticQp
+[       OK ] QpE2WorkingSet.AStructuralDependencyDecidesFirstOnTheSteenbrbElasticQp (4313 ms)
+[ RUN      ] QpE2WorkingSet.TheLockedVertexUnlocksOnTheAcopr57PrimalQps
+[       OK ] QpE2WorkingSet.TheLockedVertexUnlocksOnTheAcopr57PrimalQps (798 ms)
+[ RUN      ] QpE2WorkingSet.AMuFreeInertiaReReadCertifiesTheSingularPsdFaceOfAcopp57
+[       OK ] QpE2WorkingSet.AMuFreeInertiaReReadCertifiesTheSingularPsdFaceOfAcopp57 (10 ms)
+[ RUN      ] QpE2WorkingSet.AMuFreeSuspectReadDoesNotCertifyASaddle
+[       OK ] QpE2WorkingSet.AMuFreeSuspectReadDoesNotCertifyASaddle (1 ms)
+[ RUN      ] QpE2WorkingSet.AGreyReReadSolvesTheAcopr57RestorationQp
+[       OK ] QpE2WorkingSet.AGreyReReadSolvesTheAcopr57RestorationQp (6148 ms)
+[ RUN      ] QpE2WorkingSet.AConvergedGreyPinOnDallasmIsReReadDependent
+[       OK ] QpE2WorkingSet.AConvergedGreyPinOnDallasmIsReReadDependent (283 ms)
+[ RUN      ] QpE2WorkingSet.AGreyPinOnYorknetThatIsIndependentStaysIndependent
+[       OK ] QpE2WorkingSet.AGreyPinOnYorknetThatIsIndependentStaysIndependent (4880 ms)
+[ RUN      ] QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp3
+[       OK ] QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp3 (8112 ms)
+[ RUN      ] QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp4
+[       OK ] QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp4 (2257 ms)
+[ RUN      ] QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp5
+[       OK ] QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp5 (2235 ms)
+[ RUN      ] QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp6
+[       OK ] QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp6 (2214 ms)
+[ RUN      ] QpE2WorkingSet.ADependentRideBlockerIsExchangedAndTheRideRetaken
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a21a2ab349204592e/tests/qp/test_qp_anti_cycling_arm.cpp:2199: Failure
+Expected: (r.block_index) != (2), actual: 2 vs 2
+the released bound never re-enters
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a21a2ab349204592e/tests/qp/test_qp_anti_cycling_arm.cpp:2175: refactorize
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a21a2ab349204592e/tests/qp/test_qp_anti_cycling_arm.cpp:2199: Failure
+Expected: (r.block_index) != (2), actual: 2 vs 2
+the released bound never re-enters
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a21a2ab349204592e/tests/qp/test_qp_anti_cycling_arm.cpp:2175: refactorize
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a21a2ab349204592e/tests/qp/test_qp_anti_cycling_arm.cpp:2199: Failure
+Expected: (r.block_index) != (2), actual: 2 vs 2
+the released bound never re-enters
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a21a2ab349204592e/tests/qp/test_qp_anti_cycling_arm.cpp:2175: border
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a21a2ab349204592e/tests/qp/test_qp_anti_cycling_arm.cpp:2199: Failure
+Expected: (r.block_index) != (2), actual: 2 vs 2
+the released bound never re-enters
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a21a2ab349204592e/tests/qp/test_qp_anti_cycling_arm.cpp:2175: border
+
+[  FAILED  ] QpE2WorkingSet.ADependentRideBlockerIsExchangedAndTheRideRetaken (1 ms)
+[ RUN      ] QpE2WorkingSet.ANullSpaceVetoedRideNeverStepsBackIntoTheReleasedBound
+[       OK ] QpE2WorkingSet.ANullSpaceVetoedRideNeverStepsBackIntoTheReleasedBound (3 ms)
+[----------] 24 tests from QpE2WorkingSet (31268 ms total)
+
+[----------] 22 tests from QpDegeneracyArm
+[ RUN      ] QpDegeneracyArm.TheSwitchIsOffByDefaultAndOffIsProduction
+[       OK ] QpDegeneracyArm.TheSwitchIsOffByDefaultAndOffIsProduction (36 ms)
+[ RUN      ] QpDegeneracyArm.TheOffWalkOnTheScaleCarrierFixtureReallyDoesCycle
+[       OK ] QpDegeneracyArm.TheOffWalkOnTheScaleCarrierFixtureReallyDoesCycle (5 ms)
+[ RUN      ] QpDegeneracyArm.ArmAScaledDropRefusesTheDropAndEndsTheRecurrence
+[       OK ] QpDegeneracyArm.ArmAScaledDropRefusesTheDropAndEndsTheRecurrence (5 ms)
+[ RUN      ] QpDegeneracyArm.ArmAIsBitIdenticalOnANonDegenerateQp
+[       OK ] QpDegeneracyArm.ArmAIsBitIdenticalOnANonDegenerateQp (0 ms)
+[ RUN      ] QpDegeneracyArm.TheDropScaleIsTheSameNumberFreeBlockStationarityComputed
+[       OK ] QpDegeneracyArm.TheDropScaleIsTheSameNumberFreeBlockStationarityComputed (5 ms)
+[ RUN      ] QpDegeneracyArm.ThePostDropInertiaDiagnosticMovesNoCounterAndNoAnswer
+[       OK ] QpDegeneracyArm.ThePostDropInertiaDiagnosticMovesNoCounterAndNoAnswer (38 ms)
+[ RUN      ] QpDegeneracyArm.TheDiagnosticColumnsAreFilledWhereTheirBranchRan
+[       OK ] QpDegeneracyArm.TheDiagnosticColumnsAreFilledWhereTheirBranchRan (6 ms)
+[ RUN      ] QpDegeneracyArm.WithoutTheSwitchThePostDropInertiaColumnsStayAbsent
+[       OK ] QpDegeneracyArm.WithoutTheSwitchThePostDropInertiaColumnsStayAbsent (5 ms)
+[ RUN      ] QpDegeneracyArm.AnArmedSolveDoesNotReachIntoAnUnarmedOneRunningBesideIt
+[       OK ] QpDegeneracyArm.AnArmedSolveDoesNotReachIntoAnUnarmedOneRunningBesideIt (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1EndsTheCyclingWalkNearTheOptimumButOutsideItsBox
+[       OK ] QpDegeneracyArm.ArmB1EndsTheCyclingWalkNearTheOptimumButOutsideItsBox (13 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1IsBitIdenticalWhereItPassesNothingOver
+[       OK ] QpDegeneracyArm.ArmB1IsBitIdenticalWhereItPassesNothingOver (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1CanLeaveTheIterateOutsideItsBoxAndTheCertificateRefusesIt
+[       OK ] QpDegeneracyArm.ArmB1CanLeaveTheIterateOutsideItsBoxAndTheCertificateRefusesIt (0 ms)
+[ RUN      ] QpDegeneracyArm.TheCertificatesBoundHalfPassesASolvedQpWithActiveBounds
+[       OK ] QpDegeneracyArm.TheCertificatesBoundHalfPassesASolvedQpWithActiveBounds (0 ms)
+[ RUN      ] QpDegeneracyArm.CertificateSeamIsInertUnarmedOnTheFixtureQp
+[       OK ] QpDegeneracyArm.CertificateSeamIsInertUnarmedOnTheFixtureQp (0 ms)
+[ RUN      ] QpDegeneracyArm.CertificateToleratesABoundViolationInsideAndOnTheStructuralMargin
+[       OK ] QpDegeneracyArm.CertificateToleratesABoundViolationInsideAndOnTheStructuralMargin (1 ms)
+[ RUN      ] QpDegeneracyArm.CertificateRefusesABoundViolationOutsideTheStructuralMargin
+[       OK ] QpDegeneracyArm.CertificateRefusesABoundViolationOutsideTheStructuralMargin (1 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1sColumnsAndCountersStayAbsentWhenItIsNotArmed
+[       OK ] QpDegeneracyArm.ArmB1sColumnsAndCountersStayAbsentWhenItIsNotArmed (18 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1sEnumerationAgreesWithProductionsRatioTestOnEveryPass
+[       OK ] QpDegeneracyArm.ArmB1sEnumerationAgreesWithProductionsRatioTestOnEveryPass (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1sEntryRepairRemovesDependentSeedMembersAndHoldsTheInvariant
+[       OK ] QpDegeneracyArm.ArmB1sEntryRepairRemovesDependentSeedMembersAndHoldsTheInvariant (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1sLeakRatioUnderTheMuSweepAmendmentA5Asks
+[       OK ] QpDegeneracyArm.ArmB1sLeakRatioUnderTheMuSweepAmendmentA5Asks (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1sSwitchIsPerThreadWithBothSolvesInFlight
+[       OK ] QpDegeneracyArm.ArmB1sSwitchIsPerThreadWithBothSolvesInFlight (0 ms)
+[ RUN      ] QpDegeneracyArm.CondROnTheQrIsFilledWhereADecompositionRanAndSizesTheConditioning
+[       OK ] QpDegeneracyArm.CondROnTheQrIsFilledWhereADecompositionRanAndSizesTheConditioning (13 ms)
+[----------] 22 tests from QpDegeneracyArm (156 ms total)
+
+[----------] Global test environment tear-down
+[==========] 82 tests from 4 test suites ran. (31719 ms total)
+[  PASSED  ] 81 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] QpE2WorkingSet.ADependentRideBlockerIsExchangedAndTheRideRetaken
+
+ 1 FAILED TEST
+FOREGROUND_END seam-release 2026-09-25T16:31:01-04:00 rc=1

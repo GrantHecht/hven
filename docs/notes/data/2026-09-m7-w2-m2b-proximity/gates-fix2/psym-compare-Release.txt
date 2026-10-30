@@ -1,0 +1,156 @@
+P-SYM tool sha256 (runner):   2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM tool sha256 (captures): 2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM maps: object-map=none symbol-map=none exceptions=none
+
+SYMBOLS     CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o: COVERAGE FINDINGS
+              ONLY-AFTER    bool hven::solvers::feasibility_subsolve_certifies<hven::solvers::SqpSolver::enter_restoration(hven::solvers::SqpSolver::SolveState&, hven::solvers::SqpSolver::MajorState&, hven::solvers::AssemblyEvalSeam&, hven::solvers::NlpModelAssembly&, long, hven::solvers::SqpSolver::RestorationCandidate)::$_1>(double, double, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::SqpSolver::enter_restoration(hven::solvers::SqpSolver::SolveState&, hven::solvers::SqpSolver::MajorState&, hven::solvers::AssemblyEvalSeam&, hven::solvers::NlpModelAssembly&, long, hven::solvers::SqpSolver::RestorationCandidate)::$_1&&)
+              LOCAL-FAMILY  .LCPI: 147 before, 145 after
+              LOCAL-FAMILY  GCC_except_table: 101 before, 102 after
+DIFFERS     CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 1643 alignment-pad lines vs 1640 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 71079 lines vs 70764 -- instructions were added or removed
+PER-SYMBOL  CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o: PERSYM 307 identical, 0 noise-only, 1 differing, 0 only-before, 1 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 2 rank-tagged, 0 section moves, 4165 relocation records compared (0 through the symbol map), 2 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SqpSolver::enter_restoration(hven::solvers::SqpSolver::SolveState&, hven::solvers::SqpSolver::MajorState&, hven::solvers::AssemblyEvalSeam&, hven::solvers::NlpModelAssembly&, long, hven::solvers::SqpSolver::RestorationCandidate)
+                            PAD-ROUTE DECLINED: 78 alignment-pad lines vs 74 (789 -> 765 bytes); start 0x1f8a0 (mod 32 = 0) -> 0x1f8a0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 3170 lines vs 2779 -- instructions were added or removed
+              ONLY-AFTER    bool hven::solvers::feasibility_subsolve_certifies<hven::solvers::SqpSolver::enter_restoration(hven::solvers::SqpSolver::SolveState&, hven::solvers::SqpSolver::MajorState&, hven::solvers::AssemblyEvalSeam&, hven::solvers::NlpModelAssembly&, long, hven::solvers::SqpSolver::RestorationCandidate)::$_1>(double, double, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::SqpSolver::enter_restoration(hven::solvers::SqpSolver::SolveState&, hven::solvers::SqpSolver::MajorState&, hven::solvers::AssemblyEvalSeam&, hven::solvers::NlpModelAssembly&, long, hven::solvers::SqpSolver::RestorationCandidate)::$_1&&)
+SYMBOLS     CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o: COVERAGE FINDINGS
+              ONLY-AFTER    hven::solvers::subgradient_certificate_residual_inf(hven::solvers::NlpEval const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&)
+              ONLY-AFTER    Eigen::Matrix<double, -1, 1, 0, -1, 1>::Matrix<Eigen::Product<Eigen::Transpose<Eigen::SparseMatrix<double, 1, int> const>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, 0> >(Eigen::Product<Eigen::Transpose<Eigen::SparseMatrix<double, 1, int> const>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, 0> const&)
+              LOCAL-FAMILY  .LCPI: 25 before, 28 after
+              LOCAL-FAMILY  GCC_except_table: 40 before, 42 after
+DIFFERS     CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 953 alignment-pad lines vs 979 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 35279 lines vs 35883 -- instructions were added or removed
+PER-SYMBOL  CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o: PERSYM 169 identical, 0 noise-only, 0 differing, 0 only-before, 2 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 1 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 1574 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              ONLY-AFTER    hven::solvers::subgradient_certificate_residual_inf(hven::solvers::NlpEval const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&)
+              ONLY-AFTER    Eigen::Matrix<double, -1, 1, 0, -1, 1>::Matrix<Eigen::Product<Eigen::Transpose<Eigen::SparseMatrix<double, 1, int> const>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, 0> >(Eigen::Product<Eigen::Transpose<Eigen::SparseMatrix<double, 1, int> const>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, 0> const&)
+SYMBOLS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o: COVERAGE FINDINGS
+              ONLY-AFTER    typeinfo for SqpDriverRestorationProximity_TheProductionCentreIsTheRequestingIterateNotTheSeed_Test
+              ONLY-AFTER    SqpDriverRestorationProximity_TheZeroWeightCertifiesOnAScaledSolve_Test::TestBody()
+              ONLY-AFTER    SqpDriverRestorationProximity_TheProductionCentreIsTheRequestingIterateNotTheSeed_Test::test_info_
+              ONLY-AFTER    testing::internal::TestFactoryImpl<SqpDriverRestorationProximity_TheProductionCentreIsTheRequestingIterateNotTheSeed_Test>::CreateTest()
+              ONLY-AFTER    (anonymous namespace)::SeparatedRestorationModel::start_point() const
+              ONLY-AFTER    vtable for (anonymous namespace)::SeparatedRestorationModel
+              ONLY-AFTER    (anonymous namespace)::SeparatedRestorationModel::eval_ce(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+              ONLY-AFTER    (anonymous namespace)::SeparatedRestorationModel::eval_jac_e(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+              ONLY-AFTER    testing::internal::TestFactoryImpl<SqpDriverRestorationProximity_TheZeroWeightGateNeverReadsTheBundle_Test>::~TestFactoryImpl()
+              ONLY-AFTER    SqpDriverRestorationProximity_TheZeroWeightGateNeverReadsTheBundle_Test::TestBody()
+              ONLY-AFTER    hven::solvers::NlpEval::NlpEval(hven::solvers::NlpEval const&)
+              ONLY-AFTER    (anonymous namespace)::kCentreMinSeparation
+              ONLY-AFTER    typeinfo name for SqpDriverRestorationProximity_TheZeroWeightCertifiesOnAScaledSolve_Test
+              ONLY-AFTER    (anonymous namespace)::SeparatedRestorationModel::eval_grad(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+              ONLY-AFTER    (anonymous namespace)::SeparatedRestorationModel::lower() const
+              ONLY-AFTER    vtable for SqpDriverRestorationProximity_TheZeroWeightCertifiesOnAScaledSolve_Test
+              ONLY-AFTER    guard variable for (anonymous namespace)::SeparatedRestorationModel::upper() const::u
+              ONLY-AFTER    (anonymous namespace)::WatchedSeparatedRestorationModel::~WatchedSeparatedRestorationModel()[D0]
+              ONLY-AFTER    (anonymous namespace)::WatchedSeparatedRestorationModel::eval_f(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+              ONLY-AFTER    vtable for (anonymous namespace)::WatchedSeparatedRestorationModel
+              ... and 46 more symbols present only in the after arm
+              LOCAL-FAMILY  .LCPI: 866 before, 912 after
+              LOCAL-FAMILY  .L.str: 524 before, 555 after
+              LOCAL-FAMILY  GCC_except_table: 462 before, 480 after
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 1609 alignment-pad lines vs 1680 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 103227 lines vs 108574 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o: PERSYM 882 identical, 1 noise-only, 9 differing, 0 only-before, 34 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 1 with unequal trailing alignment padding, 0 duplicate copies identical, 2 rank-tagged, 0 section moves, 13955 relocation records compared (0 through the symbol map), 2 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       _GLOBAL__sub_I_test_sqp_restoration.cpp
+                            STRUCTURAL: normalized listing is 3759 lines vs 4044 -- instructions were added or removed
+              DIFFERS       SqpDriverRestoration_RestorationRecoversAndResumes_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x1ef1f(%rip),%rdx ;LEN=7
+                                            + 	lea    0x22b3f(%rip),%rdx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x1eeb8(%rip),%rcx ;LEN=7
+                                            + 	lea    0x22ad8(%rip),%rcx ;LEN=7
+                            COUNTS 2218 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       SqpDriverRestoration_SecondRequestIsCappedAndReported_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x1a601(%rip),%rdx ;LEN=7
+                                            + 	lea    0x1e221(%rip),%rdx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x1a59a(%rip),%rcx ;LEN=7
+                                            + 	lea    0x1e1ba(%rip),%rcx ;LEN=7
+                            COUNTS 850 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       SqpDriverRestorationProximity_TheRefusalsNameTheFieldTheValueAndTheRemedy_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x5fbf(%rip),%rax ;LEN=7
+                                            + 	lea    0x9bdf(%rip),%rax ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x61f8(%rip),%rcx ;LEN=7
+                                            + 	lea    0x9e18(%rip),%rcx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x6165(%rip),%rax ;LEN=7
+                                            + 	lea    0x9d85(%rip),%rax ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x639e(%rip),%rcx ;LEN=7
+                                            + 	lea    0x9fbe(%rip),%rcx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x610c(%rip),%rcx ;LEN=7
+                                            + 	lea    0x9d2c(%rip),%rcx ;LEN=7
+                              ... and 3 more unclassified differences
+                            COUNTS 530 insns; CHANGED 8; UNCLASSIFIED 8; DELTAS
+              DIFFERS       SqpDriverRestoration_ZeroStepIsAcceptedAsAKktPoint_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x19554(%rip),%rdx ;LEN=7
+                                            + 	lea    0x1d174(%rip),%rdx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x1932e(%rip),%rcx ;LEN=7
+                                            + 	lea    0x1cf4e(%rip),%rcx ;LEN=7
+                            COUNTS 776 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              NOISE-ONLY    (anonymous namespace)::CircleInequalityModel::start_point() const
+                            COUNTS 87 insns; CHANGED 13; UNCLASSIFIED 0; DELTAS (pad-merged)
+            PAD-MERGED 5 alignment-pad lines vs 7 (48 -> 64 bytes, +16); 87 non-pad lines, 74 identical, 13 control-transfer targets shifted +16; 17 control-transfer target(s) resolved to the SAME instruction; start 0x2de60 (mod 32 = 0) -> 0x31a70 (mod 32 = 16)
+              DIFFERS       SqpDriverRestorationExcursion_ARefusedSecondRequestLeavesTheFirstEntrysRecord_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x9158(%rip),%rdx ;LEN=7
+                                            + 	lea    0xcd78(%rip),%rdx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x90f1(%rip),%rcx ;LEN=7
+                                            + 	lea    0xcd11(%rip),%rcx ;LEN=7
+                            COUNTS 505 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       SqpDriverRestorationExcursion_TheResumeArmRecordsTheCallersOwnExcursion_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0xafa1(%rip),%rdx ;LEN=7
+                                            + 	lea    0xebc1(%rip),%rdx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0xaf3a(%rip),%rcx ;LEN=7
+                                            + 	lea    0xeb5a(%rip),%rcx ;LEN=7
+                            COUNTS 940 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       SqpDriverRadius_FloorRaisesTheRestorationRequest_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x15652(%rip),%rdx ;LEN=7
+                                            + 	lea    0x19272(%rip),%rdx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x155eb(%rip),%rcx ;LEN=7
+                                            + 	lea    0x1920b(%rip),%rcx ;LEN=7
+                            COUNTS 1428 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       SqpDriverRestoration_RestorationIsIdleOnCleanProblems_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x1b58f(%rip),%rdx ;LEN=7
+                                            + 	lea    0x1f1af(%rip),%rdx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x1b4b5(%rip),%rcx ;LEN=7
+                                            + 	lea    0x1f0d5(%rip),%rcx ;LEN=7
+                            COUNTS 1452 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              ONLY-AFTER    (anonymous namespace)::SeparatedRestorationModel::eval_ci(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+              ONLY-AFTER    (anonymous namespace)::SeparatedRestorationModel::eval_jac_e(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+              ONLY-AFTER    (anonymous namespace)::SeparatedRestorationModel::n() const
+              ONLY-AFTER    SqpDriverRestorationProximity_TheZeroWeightCertifiesOnAScaledSolve_Test::~SqpDriverRestorationProximity_TheZeroWeightCertifiesOnAScaledSolve_Test()
+              ONLY-AFTER    (anonymous namespace)::SeparatedRestorationModel::mi() const
+              ONLY-AFTER    (anonymous namespace)::WatchedSeparatedRestorationModel::eval_ce(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+              ONLY-AFTER    SqpDriverRestorationProximity_TheProductionCentreIsTheRequestingIterateNotTheSeed_Test::~SqpDriverRestorationProximity_TheProductionCentreIsTheRequestingIterateNotTheSeed_Test()
+              ONLY-AFTER    (anonymous namespace)::SeparatedRestorationModel::me() const
+              ONLY-AFTER    (anonymous namespace)::SeparatedRestorationModel::lower() const
+              ONLY-AFTER    (anonymous namespace)::SeparatedRestorationModel::eval_hess(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, double, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+              ONLY-AFTER    testing::internal::TestFactoryImpl<SqpDriverRestorationProximity_TheZeroWeightCertifiesOnAScaledSolve_Test>::~TestFactoryImpl()
+              ONLY-AFTER    testing::internal::TestFactoryImpl<SqpDriverRestorationProximity_TheProductionCentreIsTheRequestingIterateNotTheSeed_Test>::~TestFactoryImpl()
+              ONLY-AFTER    (anonymous namespace)::SeparatedRestorationModel::~SeparatedRestorationModel()
+              ONLY-AFTER    SqpDriverRestorationProximity_TheZeroWeightCertifiesOnAScaledSolve_Test::TestBody()
+              ONLY-AFTER    (anonymous namespace)::SeparatedRestorationModel::upper() const
+              ONLY-AFTER    testing::internal::TestFactoryImpl<SqpDriverRestorationProximity_TheProductionCentreIsTheRequestingIterateNotTheSeed_Test>::CreateTest()
+              ONLY-AFTER    (anonymous namespace)::SeparatedRestorationModel::eval_ce(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+              ONLY-AFTER    testing::internal::TestFactoryImpl<SqpDriverRestorationProximity_TheZeroWeightGateNeverReadsTheBundle_Test>::CreateTest()
+              ONLY-AFTER    testing::internal::TestFactoryImpl<SqpDriverRestorationProximity_TheZeroWeightGateNeverReadsTheBundle_Test>::~TestFactoryImpl()
+              ONLY-AFTER    SqpDriverRestorationProximity_TheProductionCentreIsTheRequestingIterateNotTheSeed_Test::TestBody()
+              ONLY-AFTER    Eigen::SparseMatrix<double, 1, int>::operator=(Eigen::SparseMatrix<double, 1, int> const&)
+              ONLY-AFTER    SqpDriverRestorationProximity_TheZeroWeightGateNeverReadsTheBundle_Test::TestBody()
+              ONLY-AFTER    (anonymous namespace)::SeparatedRestorationModel::eval_jac_i(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+              ONLY-AFTER    (anonymous namespace)::SeparatedRestorationModel::start_point() const
+              ONLY-AFTER    (anonymous namespace)::SeparatedRestorationModel::eval_grad(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+              ONLY-AFTER    hven::solvers::NlpEval::NlpEval()
+              ONLY-AFTER    (anonymous namespace)::WatchedSeparatedRestorationModel::~WatchedSeparatedRestorationModel()[D0]
+              ONLY-AFTER    void Eigen::internal::assign_sparse_to_sparse<Eigen::SparseMatrix<double, 1, int>, Eigen::SparseMatrix<double, 1, int> >(Eigen::SparseMatrix<double, 1, int>&, Eigen::SparseMatrix<double, 1, int> const&)
+              ONLY-AFTER    (anonymous namespace)::WatchedSeparatedRestorationModel::eval_f(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+              ONLY-AFTER    testing::internal::TestFactoryImpl<SqpDriverRestorationProximity_TheZeroWeightCertifiesOnAScaledSolve_Test>::CreateTest()
+              ONLY-AFTER    hven::solvers::NlpEval::NlpEval(hven::solvers::NlpEval const&)
+              ONLY-AFTER    (anonymous namespace)::WatchedSeparatedRestorationModel::~WatchedSeparatedRestorationModel()[D2]
+              ONLY-AFTER    SqpDriverRestorationProximity_TheZeroWeightGateNeverReadsTheBundle_Test::~SqpDriverRestorationProximity_TheZeroWeightGateNeverReadsTheBundle_Test()
+              ONLY-AFTER    (anonymous namespace)::SeparatedRestorationModel::eval_f(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+ARCHIVE     libhven.a differs -- see its member objects above; archive
+            metadata (member timestamps, symbol index) is not instructions
+
+P-SYM: 146 objects — 142 byte-identical, 0 differing within the accepted noise class, 3 with unclassified differences, 0 matched by basename after a path move, 0 missing
+P-SYM coverage: 0 objects matched through the object map, 3 compared per symbol, 0 objects passed per symbol, 0 after-arm objects unaccounted for; symbols — 68669 matched (0 through the symbol map), 0 only-before, 69 only-after, 0 excepted, 0 collisions, 46 rank-tagged, 0 stale exceptions, 0 stale map entries; compiler-local label families — 588 matched by count, 7 differing (78508 before-arm and 78607 after-arm symbols accounted by family); relocations — 19694 records compared (0 through the symbol map)
+P-SYM: FAIL — differences outside the accepted noise class

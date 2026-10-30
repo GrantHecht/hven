@@ -1,0 +1,550 @@
+diff --git a/include/hven/core/solver_counters.h b/include/hven/core/solver_counters.h
+index f95dbd44..e44dae78 100644
+--- a/include/hven/core/solver_counters.h
++++ b/include/hven/core/solver_counters.h
+@@ -356,6 +356,26 @@ struct QpCounters {
+     // of those refined points satisfied every row and bound and were adopted.
+     Index terminal_mu_refines = 0;
+     Index terminal_mu_refine_rescues = 0;
++
++    /// THE TERMINAL POLISH (M7 W2 E4 fix round 1, ruling E4-11;
++    /// qp_engine.h's section 5 and QpEngine::polish_terminal_point).
++    ///
++    /// `terminal_polish_solves`: would-be kOptimal exits at which the final
++    /// point was re-solved on its FINAL WORKING SET with the regularization
++    /// backed out -- one factorization each, charged to `factorizations` too,
++    /// exactly as terminal_mu_refines is. One per certified exit of a solve
++    /// whose terminal face has anything to gain (the entry test is
++    /// polish_footprint_open); 0 on a solve that ends any other way.
++    ///
++    /// `terminal_polish_rejected`: of those, the candidates NOT adopted --
++    /// non-finite, or a row/bound outside feas_tol that the incumbent met, or a
++    /// worse stationarity / row / complementarity residual, or nothing strictly
++    /// better to show. A rejection leaves x and every multiplier exactly as the
++    /// walk had them, so it is a cost and never a risk;
++    /// `terminal_polish_solves - terminal_polish_rejected` is the adoption
++    /// count.
++    Index terminal_polish_solves = 0;
++    Index terminal_polish_rejected = 0;
+ };
+ 
+ /// @brief Work counters for the semismooth-Newton kernel.
+diff --git a/include/hven/detail/qp/eqp_solve.h b/include/hven/detail/qp/eqp_solve.h
+index a4d0cffa..3a64494c 100644
+--- a/include/hven/detail/qp/eqp_solve.h
++++ b/include/hven/detail/qp/eqp_solve.h
+@@ -438,4 +438,113 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec
+     return out;
+ }
+ 
++// THE UNREGULARIZED POLISH (M7 W2 E4 fix round 1, ruling E4-11).
++//
++// Iterative refinement of an EQP answer `io` on the face `ws`, against the
++// residual of the system with BOTH regularizations backed out -- the dual mu AND
++// the primal delta, i.e. the face's OWN exact KKT system
++//
++//     H_FF x_F + Ae_F' le + Aw_F' lw = -g_F - hess_shift
++//     Ae x = be,   Aw x = bw
++//
++// taken on the ALREADY-FACTORIZED `kkt` (no factorization, one assembly and two
++// mat-vecs per step), at most `max_steps` steps, each KEPT only while the
++// infinity norm of that residual STRICTLY FALLS. Returns the number of steps
++// kept and rewrites `io.x`, `io.lambda_e` and `io.lambda_w` only if that number
++// is nonzero; nothing else on `io` is touched. A NaN residual keeps nothing
++// (every test is written as !(v < w)).
++//
++// WHY THE STRICT-DECREASE GUARD IS THE WHOLE SAFETY ARGUMENT, and why this
++// function is therefore safe to call on ANY face. The proximal system this
++// engine solves is the one the model poses (eqp_solve.h's Iterative refinement
++// section: delta is a TERM, not an error), and its answer carries an
++// O(delta * ||x* - x_k||) bias away from the face's exact KKT point. On a face
++// with curvature along its null space the unregularized system above HAS that
++// point, the refinement converges to it, and one or two steps remove the bias --
++// which is what a terminal point, and an exact face re-solve, are asked for. On
++// a FLAT face (Z'HZ = 0) it has NO solution along the null space at all; the
++// step is then 1/delta-sized and does not reduce the null-space component of the
++// residual by construction, so the guard rejects it and the proximal answer
++// stands untouched. That is the same rule, and the same reason, as the refinement
++// safeguard in QpEngine::refine_terminal_mu_free (E2 fix4), which this function
++// is factored out of; it is deliberately NOT a curvature test, because a
++// residual that falls IS the evidence and a curvature estimate would be a proxy
++// for it.
++//
++// `opts` must be the options the ANSWER was produced under: both regularizations
++// are read off it to form K0 = K - diag(reg), reg = [+primal_delta on the free
++// rows; -dual_mu on the constraint rows], so the residual is computable without
++// ever forming K0. A caller that has already zeroed one of the two (the mu-free
++// re-solve) passes its own options and this function backs out what is left.
++inline Index polish_eqp_unregularized(const QpProblem &qp, const WorkingSet &ws,
++                                      detail::KktFactor &kkt, const QpOptions &opts,
++                                      Index max_steps, EqpResult &io) {
++    if (max_steps <= 0) {
++        return 0;
++    }
++    const Index me = qp.me();
++    const std::vector<Index> &aw = ws.active_ineq();
++    const Index n_working = static_cast<Index>(aw.size());
++    const KktAssembly asm_ = assemble_kkt(qp, ws, opts);
++    const Index n_free = static_cast<Index>(asm_.free_of_full.size());
++    const Index dim = n_free + me + n_working;
++    if (dim == 0) {
++        return 0;
++    }
++
++    // The ABSOLUTE unregularized rhs: solve_eqp's own rhs WITHOUT its proximal
++    // `+ delta*x_k,F` term, which belongs to the penalty this function removes.
++    Vec rhs(dim);
++    for (Index k = 0; k < n_free; ++k) {
++        rhs(k) = -qp.g(asm_.free_of_full[static_cast<std::size_t>(k)]) - asm_.rhs_shift(k);
++    }
++    for (Index r = 0; r < me; ++r) {
++        rhs(n_free + r) = qp.be(r) - asm_.rhs_shift(n_free + r);
++    }
++    for (Index k = 0; k < n_working; ++k) {
++        rhs(n_free + me + k) =
++            qp.bi(aw[static_cast<std::size_t>(k)]) - asm_.rhs_shift(n_free + me + k);
++    }
++
++    Vec y(dim);
++    for (Index k = 0; k < n_free; ++k) {
++        y(k) = io.x(asm_.free_of_full[static_cast<std::size_t>(k)]);
++    }
++    y.segment(n_free, me) = io.lambda_e;
++    y.segment(n_free + me, n_working) = io.lambda_w;
++
++    Vec reg = Vec::Zero(dim);
++    reg.head(n_free).setConstant(opts.primal_delta);
++    reg.segment(n_free, me + n_working).setConstant(-opts.dual_mu);
++    const auto residual_of = [&](const Vec &yy) {
++        const Vec Kyy = asm_.K.template selfadjointView<Eigen::Upper>() * yy;
++        return Vec((rhs - Kyy) + reg.cwiseProduct(yy));
++    };
++
++    Vec res = residual_of(y);
++    double res_inf = res.lpNorm<Eigen::Infinity>();
++    Index kept = 0;
++    for (Index step = 0; step < max_steps; ++step) {
++        const Vec candidate = y + detail::solve_vec(kkt, res);
++        Vec cres = residual_of(candidate);
++        const double cres_inf = cres.lpNorm<Eigen::Infinity>();
++        if (!(cres_inf < res_inf)) {
++            break; // stagnated, diverging, or NaN -- keep the better point
++        }
++        y = candidate;
++        res = std::move(cres);
++        res_inf = cres_inf;
++        ++kept;
++    }
++    if (kept == 0) {
++        return 0;
++    }
++    for (Index k = 0; k < n_free; ++k) {
++        io.x(asm_.free_of_full[static_cast<std::size_t>(k)]) = y(k);
++    }
++    io.lambda_e = y.segment(n_free, me);
++    io.lambda_w = y.segment(n_free + me, n_working);
++    return kept;
++}
++
+ } // namespace hven::solvers
+diff --git a/include/hven/detail/qp/qp_engine.h b/include/hven/detail/qp/qp_engine.h
+index e76012d4..a6984192 100644
+--- a/include/hven/detail/qp/qp_engine.h
++++ b/include/hven/detail/qp/qp_engine.h
+@@ -672,6 +672,32 @@ constexpr double kVerdictRefineRelFloor = 1e-14;
+ // left to the existing classification.
+ constexpr Index kTerminalMuRefineSteps = 2;
+ 
++// THE TERMINAL POLISH's refinement budget (M7 W2 E4 fix1, ruling E4-11;
++// QpEngine::polish_terminal_point, and polish_eqp_unregularized which takes
++// them). Steps against the FULLY unregularized residual -- dual mu and the
++// primal delta both backed out -- on the polish's own mu-free factor, each kept
++// only while that residual strictly falls. TWO, for the same reason
++// kTerminalMuRefineSteps is two: the mu-free solve of the final face is already
++// accurate to O(primal_delta * ||x* - x_k||) and each step contracts that by
++// another factor of order primal_delta / lambda_min(Z'HZ), so two steps take a
++// 1e-08-sized bias past 1e-16 wherever they converge at all, and a face they
++// cannot close in two they will not close in ten (the guard stops them at the
++// first).
++constexpr Index kTerminalPolishSteps = 2;
++
++// THE TERMINAL POLISH's ENTRY TEST, as a fraction of the terminal point's own
++// stationarity tolerance (polish_footprint_open's second disjunct). A point
++// whose free-block stationarity residual is already beneath
++// kTerminalPolishStatFrac * opt_tol * stat_scale has less than three decades of
++// its own tolerance left to gain and is not worth a factorization; anything
++// above it is. 1e-3 rather than 1 because the KKT-point test (section 5) admits
++// a point at opt_tol * scale and the walk's old step-size test used to grind
++// several decades past it -- the population this exists to catch sits at
++// 1e-2..1 of the tolerance, and the population it exists to skip (a small
++// exactly-solved face) sits at 1e-6 and below. MEASURED, not chosen: see the
++// fix-round report's terminal-polish table.
++constexpr double kTerminalPolishStatFrac = 1e-3;
++
+ // --- Inertia gate (see the header contract's section 4b) ---
+ 
+ // What one factorization's reported inertia says about the system that was
+@@ -1581,6 +1607,43 @@ class QpEngine {
+                                  Vec &lambda_i, Vec &z, QpCounters &counters,
+                                  const QpOptions &opts) const;
+ 
++    // THE TERMINAL POLISH (M7 W2 E4 fix round 1, ruling E4-11; section 5 states
++    // the rule and why the walk needs it). At a would-be kOptimal exit, the
++    // final point is re-solved on its FINAL WORKING SET with the regularization
++    // BACKED OUT -- dual_mu = 0 in the system, and the primal delta backed out
++    // of the refinement target by kTerminalPolishSteps steps of
++    // polish_eqp_unregularized, which is consistent precisely here because the
++    // step is going to zero. One local factorization (charged to
++    // `factorizations`, as refine_terminal_mu_free's is), the pass's own factor
++    // and border stack untouched.
++    //
++    // ADOPTED only if the candidate is finite, keeps feasibility (no row and no
++    // bound outside feas_tol * row_scale that the incumbent met, and nothing
++    // worse than the incumbent), does not WORSEN any of the three KKT residuals
++    // -- free-block stationarity, worst row/bound violation, worst
++    // complementarity product -- and strictly IMPROVES at least one of them.
++    // Otherwise x and every multiplier are left exactly as they were and the
++    // exit is unchanged: the polish can make the answer better and cannot make
++    // it worse.
++    //
++    // `polish_footprint_open` is the entry test, and it is a COST gate, not a
++    // correctness one: it asks whether the regularization has left a footprint
++    // this polish could remove -- a working row or bound whose dual_mu*|lambda|
++    // exceeds its own tolerance (mu_footprint_open's question), or a free-block
++    // stationarity residual above kTerminalPolishStatFrac * opt_tol *
++    // stat_scale, or a complementarity product above feas_tol. Below all three
++    // there is nothing to gain and the factorization is not spent.
++    //
++    // Counters: terminal_polish_solves (entries), terminal_polish_rejected
++    // (candidates not adopted).
++    bool polish_footprint_open(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
++                               const Vec &ai_row_norm1, const Vec &lambda_i,
++                               const Vec &ae_row_norm1, const Vec &lambda_e, const Vec &z,
++                               const QpOptions &opts) const;
++    bool polish_terminal_point(const QpProblem &qp, const WorkingSet &ws, Vec &x, Vec &lambda_e,
++                               Vec &lambda_i, Vec &z, QpCounters &counters,
++                               const QpOptions &opts) const;
++
+     // Is ||x|| large in a way that only an unbounded direction explains?
+     // Bound-relative on purpose: a variable boxed by finite bounds CANNOT run
+     // away, and one pinned at a bound demonstrably has not, so only free
+diff --git a/src/qp/qp_engine.cpp b/src/qp/qp_engine.cpp
+index d77ab361..474e90fb 100644
+--- a/src/qp/qp_engine.cpp
++++ b/src/qp/qp_engine.cpp
+@@ -200,7 +200,21 @@ bool QpEngine::refine_on_face(const QpProblem &qp_in, const QpSolution &face,
+     // THE PROXIMAL CENTRE for a re-solve OF THE CALLER'S OWN FACE is the point
+     // the caller stopped at: this function re-solves the same subproblem from
+     // there (eqp_solve.h states the system).
+-    const EqpResult eqp = solve_eqp(qp, ws, face.x, kkt, eff_opts);
++    EqpResult eqp = solve_eqp(qp, ws, face.x, kkt, eff_opts);
++    // AND THE REGULARIZATION BACKED OUT OF IT (M7 W2 E4 fix1, ruling E4-11's
++    // rule at this function's own site). What this function promises the caller
++    // is THE FACE'S EXACT ANSWER -- it is a terminal cleanup, not a step: the
++    // caller has already stopped, and the only reason to re-solve is to get the
++    // face solved exactly rather than to move anywhere. The proximal answer above
++    // carries an O(primal_delta * ||x* - face.x||) bias away from that point by
++    // construction (eqp_solve.h's PROXIMAL CENTRE section), so the same
++    // strict-decrease-guarded polish the terminal exit takes is taken here, on
++    // the factor this call already paid for -- no second factorization, and on a
++    // face whose unregularized system has no answer the guard keeps the proximal
++    // one. It runs BEFORE the gate below, so what is gated is what is returned.
++    if (!eqp.residual_refused) {
++        (void)polish_eqp_unregularized(qp, ws, kkt, eff_opts, detail::kTerminalPolishSteps, eqp);
++    }
+     out.counters.eqp_refine_steps += eqp.refine_steps; // identically 0; see eqp_solve.h
+     out.counters.eqp_refine_iters += eqp.residual_refine_iters;
+     if (eqp.residual_refused) {
+@@ -1308,6 +1322,48 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+                         // counters.suspect_escalations carry the reason.
+                         status = QpStatus::kNumericalError;
+                     } else {
++                        // THE TERMINAL POLISH (M7 W2 E4 fix1, ruling E4-11). This
++                        // is the walk's ONE certified exit -- the 4b ladder's
++                        // certified rung reaches it too, by falling through the
++                        // stationarity gate above -- and it is where the final
++                        // point gets the regularization taken back OUT of it.
++                        //
++                        // WHY IT IS NEEDED AND WHY IT IS HERE. The KKT-point test
++                        // of section 5 stops as soon as the free-block
++                        // stationarity residual is within opt_tol of its scale;
++                        // the walk it replaced kept stepping until ||p|| fell
++                        // under step_tol, which on these faces meant grinding
++                        // several decades past that tolerance. Stopping at the
++                        // tolerance is correct and it leaves the regularization's
++                        // O(primal_delta) and O(dual_mu*|lambda|) footprint in the
++                        // terminal point -- and dual_mu*|lambda| left in a working
++                        // row's slack is dual_mu*lambda^2 in the complementarity a
++                        // consumer measures, which is the B-1 term. So the point
++                        // is re-solved on THIS face with the regularization backed
++                        // out, and the answer is adopted only if it is better by
++                        // every one of the three KKT residuals and feasible
++                        // (polish_terminal_point states the rule).
++                        //
++                        // PLACED BEFORE THE CERTIFICATE, so the bound half below
++                        // and the certificate seam read the point that is actually
++                        // exported. It cannot manufacture a certificate: the
++                        // acceptance test refuses any candidate whose rows or
++                        // bounds are worse than the incumbent's, or outside
++                        // feas_tol where the incumbent met it.
++                        //
++                        // NOTHING ABOVE IS RE-DECIDED. The polish moves x by at
++                        // most the bias it removes, does not touch the working set,
++                        // and runs after every drop, probe and gate has had its
++                        // say, so no branch of the walk can be reached differently
++                        // because of it -- which is also why it moves no minor
++                        // count.
++                        if (eff_opts.dual_mu > 0.0 || eff_opts.primal_delta > 0.0) {
++                            if (polish_footprint_open(qp, ws, x, ai_row_norm1, lambda_i,
++                                                      ae_row_norm1, lambda_e, z, eff_opts)) {
++                                (void)polish_terminal_point(qp, ws, x, lambda_e, lambda_i, z,
++                                                            counters, eff_opts);
++                            }
++                        }
+                         // THE CERTIFICATE'S BOUND HALF. worst_structural_violation
+                         // reads the rows only, and nothing above reads x against
+                         // its own box -- the walk keeps it there, the certificate
+@@ -3335,8 +3391,6 @@ bool QpEngine::refine_terminal_mu_free(const QpProblem &qp, const WorkingSet &ws
+     ++counters.terminal_mu_refines;
+     const Index n = qp.n();
+     const Index me = qp.me();
+-    const std::vector<Index> &aw = ws.active_ineq();
+-    const Index n_working = static_cast<Index>(aw.size());
+     QpOptions o = opts;
+     o.dual_mu = 0.0;
+ 
+@@ -3354,53 +3408,13 @@ bool QpEngine::refine_terminal_mu_free(const QpProblem &qp, const WorkingSet &ws
+ 
+     // Up to kTerminalMuRefineSteps further steps against the residual of the
+     // UNREGULARIZED system (primal_delta removed too), each kept only while
+-    // that residual strictly falls.
++    // that residual strictly falls. THE SHARED PRIMITIVE (M7 W2 E4 fix1):
++    // eqp_solve.h's polish_eqp_unregularized, which this block was factored
++    // into when the terminal polish needed the identical loop -- `o` already
++    // carries dual_mu = 0, so what it backs out here is the primal delta, as
++    // before, on the same factor and with the same strict-decrease safeguard.
+     if (local_face.factorized) {
+-        const KktAssembly assembly = assemble_kkt(qp, ws, o);
+-        const Index n_free = static_cast<Index>(assembly.free_of_full.size());
+-        const Index dim = n_free + me + n_working;
+-        Vec rhs(dim);
+-        for (Index k = 0; k < n_free; ++k) {
+-            rhs(k) =
+-                -qp.g(assembly.free_of_full[static_cast<std::size_t>(k)]) - assembly.rhs_shift(k);
+-        }
+-        for (Index row = 0; row < me; ++row) {
+-            rhs(n_free + row) = qp.be(row) - assembly.rhs_shift(n_free + row);
+-        }
+-        for (Index k = 0; k < n_working; ++k) {
+-            rhs(n_free + me + k) =
+-                qp.bi(aw[static_cast<std::size_t>(k)]) - assembly.rhs_shift(n_free + me + k);
+-        }
+-        Vec y(dim);
+-        for (Index k = 0; k < n_free; ++k) {
+-            y(k) = r.x(assembly.free_of_full[static_cast<std::size_t>(k)]);
+-        }
+-        y.segment(n_free, me) = r.lambda_e;
+-        y.segment(n_free + me, n_working) = r.lambda_w;
+-        Vec reg = Vec::Zero(dim);
+-        reg.head(n_free).setConstant(o.primal_delta);
+-        const auto residual_of = [&](const Vec &yy) {
+-            const Vec Kyy = assembly.K.template selfadjointView<Eigen::Upper>() * yy;
+-            return Vec((rhs - Kyy) + reg.cwiseProduct(yy));
+-        };
+-        Vec res = residual_of(y);
+-        double res_inf = res.lpNorm<Eigen::Infinity>();
+-        for (Index step = 0; step < detail::kTerminalMuRefineSteps; ++step) {
+-            const Vec candidate = y + detail::solve_vec(local, res);
+-            Vec cres = residual_of(candidate);
+-            const double cres_inf = cres.lpNorm<Eigen::Infinity>();
+-            if (!(cres_inf < res_inf)) {
+-                break; // stagnated, diverging, or NaN -- keep the better point
+-            }
+-            y = candidate;
+-            res = std::move(cres);
+-            res_inf = cres_inf;
+-        }
+-        for (Index k = 0; k < n_free; ++k) {
+-            r.x(assembly.free_of_full[static_cast<std::size_t>(k)]) = y(k);
+-        }
+-        r.lambda_e = y.segment(n_free, me);
+-        r.lambda_w = y.segment(n_free + me, n_working);
++        (void)polish_eqp_unregularized(qp, ws, local, o, detail::kTerminalMuRefineSteps, r);
+     }
+ 
+     // ADOPTION: every row and every bound of `qp` within feas_tol * row_scale,
+@@ -3444,6 +3458,174 @@ bool QpEngine::refine_terminal_mu_free(const QpProblem &qp, const WorkingSet &ws
+     return true;
+ }
+ 
++namespace {
++
++// THE TERMINAL POLISH's three KKT residuals (M7 W2 E4 fix1, ruling E4-11), all
++// three RELATIVE to their own scales so that "worse" is a comparison between
++// two points of the same face and not between two units:
++//
++//  - `stationarity`: free_block_stationarity divided by the scale that function
++//    reports, i.e. the quantity the KKT-point test and the suspect-stall gate
++//    both read, in units of opt_tol.
++//  - `rows`: the worst row (equality, inequality) or bound violation divided by
++//    that row's own scale -- worst_structural_violation's row_scale and
++//    refine_terminal_mu_free's box rule, in units of feas_tol.
++//  - `complementarity`: the worst |slack| * |multiplier| product over the WORKING
++//    rows and the PINNED bounds, the slack relative to the row's scale. It is
++//    the quantity the regularization's footprint shows up in and the one the B-1
++//    family reads at the NLP level: a regularized row identity leaves a working
++//    row slack by dual_mu*|lambda|, so this product is dual_mu*lambda^2 there
++//    and the driver's own complementarity check sees it.
++struct TerminalKkt {
++    double stationarity = 0.0;
++    double rows = 0.0;
++    double complementarity = 0.0;
++
++    bool all_finite() const {
++        return std::isfinite(stationarity) && std::isfinite(rows) &&
++               std::isfinite(complementarity);
++    }
++};
++
++TerminalKkt terminal_kkt(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
++                         const Vec &lambda_e, const Vec &lambda_i, const Vec &z) {
++    TerminalKkt out;
++    double stat_scale = 1.0;
++    const double stat = detail::free_block_stationarity(qp, x, ws, lambda_e, lambda_i, stat_scale);
++    out.stationarity = stat / std::max(stat_scale, 1e-300);
++
++    const double xmag = x.lpNorm<Eigen::Infinity>();
++    if (qp.me() > 0) {
++        const Vec resid = qp.Ae * x - qp.be;
++        for (Index j = 0; j < qp.me(); ++j) {
++            const double row_scale =
++                std::max({1.0, std::abs(qp.be(j)), qp.Ae.row(j).cwiseAbs().sum() * xmag});
++            const double rel = std::abs(resid(j)) / row_scale;
++            out.rows = std::max(out.rows, rel);
++            out.complementarity = std::max(out.complementarity, rel * std::abs(lambda_e(j)));
++        }
++    }
++    if (qp.mi() > 0) {
++        const Vec resid = qp.Ai * x - qp.bi;
++        for (Index j = 0; j < qp.mi(); ++j) {
++            const double row_scale =
++                std::max({1.0, std::abs(qp.bi(j)), qp.Ai.row(j).cwiseAbs().sum() * xmag});
++            out.rows = std::max(out.rows, std::max(0.0, resid(j)) / row_scale);
++            // In the working set? The list is index-ordered (QpEngine::in_working
++            // binary-searches the same vector); a free function cannot reach that
++            // private static, so the same search is spelled out here.
++            const auto &aw = ws.active_ineq();
++            if (std::binary_search(aw.begin(), aw.end(), j)) {
++                out.complementarity = std::max(
++                    out.complementarity, std::abs(resid(j)) / row_scale * std::abs(lambda_i(j)));
++            }
++        }
++    }
++    for (Index i = 0; i < qp.n(); ++i) {
++        const double below = qp.lower(i) - x(i);
++        const double above = x(i) - qp.upper(i);
++        const double bound = below >= above ? qp.lower(i) : qp.upper(i);
++        const double row_scale = std::max({1.0, std::abs(bound), xmag});
++        out.rows = std::max(out.rows, std::max(below, above) / row_scale);
++        const BoundState st = ws.bound_state()[static_cast<std::size_t>(i)];
++        if (st != BoundState::kFree) {
++            const double at = st == BoundState::kAtUpper ? qp.upper(i) : qp.lower(i);
++            out.complementarity =
++                std::max(out.complementarity, std::abs(x(i) - at) / row_scale * std::abs(z(i)));
++        }
++    }
++    return out;
++}
++
++} // namespace
++
++bool QpEngine::polish_footprint_open(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
++                                    const Vec &ai_row_norm1, const Vec &lambda_i,
++                                    const Vec &ae_row_norm1, const Vec &lambda_e, const Vec &z,
++                                    const QpOptions &opts) const {
++    // (a) the DUAL footprint: a working row whose dual_mu*|lambda| is above its
++    // own tolerance, which is exactly mu_footprint_open's question and the term
++    // the complementarity product squares.
++    if (opts.dual_mu > 0.0 &&
++        mu_footprint_open(qp, ws, x, ai_row_norm1, lambda_i, ae_row_norm1, lambda_e, opts)) {
++        return true;
++    }
++    const TerminalKkt now = terminal_kkt(qp, ws, x, lambda_e, lambda_i, z);
++    // (b) the PRIMAL footprint in the stationarity residual: the KKT-point test
++    // admits opt_tol * scale, and the O(primal_delta) bias of the proximal answer
++    // is what usually sits there. NaN is "open" -- the polish is the branch that
++    // can tell a bad answer from a good one, and its acceptance test refuses a
++    // non-finite candidate anyway.
++    if (!(now.stationarity <= detail::kTerminalPolishStatFrac * opts.opt_tol)) {
++        return true;
++    }
++    // (c) the complementarity product itself, against the row tolerance it is
++    // measured in.
++    return !(now.complementarity <= opts.feas_tol);
++}
++
++bool QpEngine::polish_terminal_point(const QpProblem &qp, const WorkingSet &ws, Vec &x,
++                                     Vec &lambda_e, Vec &lambda_i, Vec &z, QpCounters &counters,
++                                     const QpOptions &opts) const {
++    ++counters.terminal_polish_solves;
++    QpOptions o = opts;
++    o.dual_mu = 0.0;
++
++    // The mu-free EQP of the FINAL face, in a LOCAL factor and a LOCAL face:
++    // the pass's own factor and border stack are untouched, and the answer is
++    // the bound-ELIMINATED one on both algebras, so the polished point a border
++    // solve reports and the one a refactorize solve reports come out of the same
++    // system.
++    detail::KktFactor local(threads_);
++    EliminatedFace local_face;
++    detail::InertiaVerdict v = detail::InertiaVerdict::kWrong;
++    EqpResult r;
++    try {
++        r = eliminated_candidate(qp, ws, x, local, local_face, counters, v, o);
++    } catch (const std::runtime_error &) {
++        ++counters.terminal_polish_rejected;
++        return false; // no mu-free solve: the walk's own point stands
++    }
++    // AND THE PRIMAL DELTA BACKED OUT OF THE ANSWER, which is consistent exactly
++    // here: at a terminal point the step is going to zero, so the proximal
++    // penalty's own term delta*(x - x_k) is going to zero with it and the face's
++    // unregularized KKT system is the one the point should satisfy.
++    if (local_face.factorized) {
++        (void)polish_eqp_unregularized(qp, ws, local, o, detail::kTerminalPolishSteps, r);
++    }
++    if (r.x.size() != qp.n() || !r.x.allFinite() || !r.lambda_e.allFinite() ||
++        !r.lambda_w.allFinite()) {
++        ++counters.terminal_polish_rejected;
++        return false;
++    }
++
++    Vec cand_le = Vec::Zero(qp.me());
++    Vec cand_li = Vec::Zero(qp.mi());
++    Vec cand_z = Vec::Zero(qp.n());
++    price(qp, ws, r, cand_le, cand_li, cand_z);
++
++    const TerminalKkt before = terminal_kkt(qp, ws, x, lambda_e, lambda_i, z);
++    const TerminalKkt after = terminal_kkt(qp, ws, r.x, cand_le, cand_li, cand_z);
++
++    // ACCEPTANCE. Written as a chain of !(good) tests so a NaN anywhere rejects.
++    const bool feasible =
++        after.rows <= std::max(opts.feas_tol, before.rows); // keeps feasibility
++    const bool no_worse = after.stationarity <= before.stationarity && after.rows <= before.rows &&
++                          after.complementarity <= before.complementarity;
++    const bool strictly_better = after.stationarity < before.stationarity ||
++                                 after.rows < before.rows ||
++                                 after.complementarity < before.complementarity;
++    if (!after.all_finite() || !feasible || !no_worse || !strictly_better) {
++        ++counters.terminal_polish_rejected;
++        return false;
++    }
++    x = r.x;
++    lambda_e = std::move(cand_le);
++    lambda_i = std::move(cand_li);
++    z = std::move(cand_z);
++    return true;
++}
++
+ bool QpEngine::repair_temporary_vertex(const QpProblem &qp, WorkingSet &ws, Vec &x,
+                                        detail::KktFactor &kkt, EliminatedFace &face,
+                                        BorderState &border, QpCounters &counters,

@@ -1,0 +1,145 @@
+D1SOLVE 0 begin n=117 me=63 mi=0 D=1.000000e+00 ind=1 warm=0 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x36cd7db0 maxit=0
+D1TERM s=0 it=31 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=93 n=117
+D1CNT MAIN status=kOptimal minors=32 facts=1 adds=30 drops=0 dep_tests=30 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-2.931045409839e+02 stat=1.066e-14(scale 1.438e+01) eqviol=3.082e-13 iviol=0.000e+00 boxviol=2.963e-13 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=17 atup=18 |x|inf=1.000000e+00 KKT@tol1e-09=YES
+D1SOLVE 0 end
+D1SOLVE 1 begin n=117 me=63 mi=0 D=2.000000e+00 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x36cd7db0 maxit=0
+D1TERM s=1 it=27 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=88 n=117
+D1CNT MAIN status=kOptimal minors=28 facts=1 adds=15 drops=6 dep_tests=15 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-5.612483639914e+02 stat=1.066e-14(scale 1.395e+01) eqviol=1.208e-13 iviol=0.000e+00 boxviol=1.952e-13 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=12 atup=15 |x|inf=2.000000e+00 KKT@tol1e-09=YES
+D1SOLVE 1 end
+D1SOLVE 2 begin n=117 me=63 mi=0 D=4.000000e+00 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x36cd7db0 maxit=0
+D1TERM s=2 it=19 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=86 n=117
+D1CNT MAIN status=kOptimal minors=20 facts=1 adds=14 drops=2 dep_tests=14 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-1.048044835051e+03 stat=1.332e-14(scale 1.292e+01) eqviol=5.773e-14 iviol=0.000e+00 boxviol=7.909e-14 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=10 atup=15 |x|inf=4.000000e+00 KKT@tol1e-09=YES
+D1SOLVE 2 end
+D1SOLVE 3 begin n=117 me=63 mi=0 D=8.000000e+00 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x36cd7db0 maxit=0
+D1TERM s=3 it=19 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=84 n=117
+D1CNT MAIN status=kOptimal minors=20 facts=1 adds=14 drops=2 dep_tests=14 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-1.948732570159e+03 stat=1.243e-14(scale 1.224e+01) eqviol=3.317e-14 iviol=0.000e+00 boxviol=2.977e-15 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=8 atup=15 |x|inf=8.000000e+00 KKT@tol1e-09=YES
+D1SOLVE 3 end
+D1SOLVE 4 begin n=117 me=63 mi=0 D=1.600000e+01 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x36cd7db0 maxit=0
+D1TERM s=4 it=17 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=83 n=117
+D1CNT MAIN status=kOptimal minors=18 facts=1 adds=14 drops=1 dep_tests=14 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-3.607117788920e+03 stat=1.066e-14(scale 1.160e+01) eqviol=4.757e-14 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=7 atup=15 |x|inf=1.600000e+01 KKT@tol1e-09=YES
+D1SOLVE 4 end
+D1SOLVE 5 begin n=117 me=63 mi=0 D=3.200000e+01 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x36cd7db0 maxit=0
+D1TERM s=5 it=15 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=83 n=117
+D1CNT MAIN status=kOptimal minors=16 facts=1 adds=14 drops=0 dep_tests=14 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-6.638604047898e+03 stat=2.132e-14(scale 1.153e+01) eqviol=7.285e-14 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=7 atup=15 |x|inf=3.200000e+01 KKT@tol1e-09=YES
+D1SOLVE 5 end
+D1SOLVE 6 begin n=117 me=63 mi=0 D=6.400000e+01 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x36cd7db0 maxit=0
+D1TERM s=6 it=15 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=83 n=117
+D1CNT MAIN status=kOptimal minors=16 facts=1 adds=14 drops=0 dep_tests=14 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-1.213170709926e+04 stat=7.017e-14(scale 1.153e+01) eqviol=9.414e-14 iviol=0.000e+00 boxviol=1.421e-14 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=7 atup=15 |x|inf=6.400000e+01 KKT@tol1e-09=YES
+D1SOLVE 6 end
+D1SOLVE 7 begin n=117 me=63 mi=0 D=1.280000e+02 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x36cd7db0 maxit=0
+D1TERM s=7 it=18 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=83 n=117
+D1CNT MAIN status=kOptimal minors=19 facts=1 adds=15 drops=1 dep_tests=15 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-2.197956310351e+04 stat=2.665e-13(scale 1.153e+01) eqviol=1.422e-13 iviol=0.000e+00 boxviol=2.842e-14 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=6 atup=16 |x|inf=1.280000e+02 KKT@tol1e-09=YES
+D1SOLVE 7 end
+D1SOLVE 8 begin n=117 me=63 mi=0 D=2.560000e+02 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x36cd7db0 maxit=0
+D1TERM s=8 it=15 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=82 n=117
+D1CNT MAIN status=kOptimal minors=16 facts=1 adds=14 drops=0 dep_tests=14 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-3.940015387294e+04 stat=1.012e-12(scale 1.153e+01) eqviol=4.601e-13 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=5 atup=14 |x|inf=2.560000e+02 KKT@tol1e-09=YES
+D1SOLVE 8 end
+D1SOLVE 9 begin n=117 me=63 mi=0 D=5.120000e+02 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x36cd7db0 maxit=0
+D1TERM s=9 it=15 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=82 n=117
+D1CNT MAIN status=kOptimal minors=16 facts=1 adds=14 drops=0 dep_tests=14 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-6.969517940561e+04 stat=3.827e-12(scale 1.144e+01) eqviol=8.646e-13 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=5 atup=14 |x|inf=5.120000e+02 KKT@tol1e-09=YES
+D1SOLVE 9 end
+D1SOLVE 10 begin n=117 me=63 mi=0 D=1.024000e+03 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x36cd7db0 maxit=0
+D1TERM s=10 it=20 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=78 n=117
+D1CNT MAIN status=kOptimal minors=21 facts=1 adds=13 drops=3 dep_tests=13 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-1.212024083346e+05 stat=2.945e-11(scale 1.144e+01) eqviol=1.139e-12 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=2 atup=13 |x|inf=1.024000e+03 KKT@tol1e-09=YES
+D1SOLVE 10 end
+D1SOLVE 11 begin n=117 me=63 mi=0 D=2.048000e+03 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x36cd7db0 maxit=0
+D1TERM s=11 it=16 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=77 n=117
+D1CNT MAIN status=kOptimal minors=17 facts=1 adds=13 drops=1 dep_tests=13 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-2.061963397330e+05 stat=8.319e-11(scale 1.125e+01) eqviol=1.675e-12 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=1 atup=13 |x|inf=2.048000e+03 KKT@tol1e-09=YES
+D1SOLVE 11 end
+D1SOLVE 12 begin n=117 me=63 mi=0 D=4.096000e+03 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x36cd7db0 maxit=0
+D1TERM s=12 it=16 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=76 n=117
+D1CNT MAIN status=kOptimal minors=17 facts=1 adds=13 drops=1 dep_tests=13 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-3.406916525215e+05 stat=2.094e-10(scale 1.011e+01) eqviol=4.358e-12 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=0 atup=13 |x|inf=4.096000e+03 KKT@tol1e-09=YES
+D1SOLVE 12 end
+D1SOLVE 13 begin n=117 me=63 mi=0 D=8.192000e+03 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x36cd7db0 maxit=0
+D1TERM s=13 it=14 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=76 n=117
+D1CNT MAIN status=kOptimal minors=15 facts=1 adds=13 drops=0 dep_tests=13 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-5.391812440056e+05 stat=6.045e-10(scale 8.708e+00) eqviol=9.046e-12 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=0 atup=13 |x|inf=8.192000e+03 KKT@tol1e-09=YES
+D1SOLVE 13 end
+D1SOLVE 14 begin n=117 me=63 mi=0 D=1.638400e+04 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x36cd7db0 maxit=0
+D1TERM s=14 it=13 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=75 n=117
+D1CNT MAIN status=kOptimal minors=14 facts=1 adds=12 drops=0 dep_tests=12 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-7.963590781010e+05 stat=2.604e-09(scale 7.160e+00) eqviol=2.015e-11 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=0 atup=12 |x|inf=1.638400e+04 KKT@tol1e-09=YES
+D1SOLVE 14 end
+D1SOLVE 15 begin n=117 me=63 mi=0 D=3.276800e+04 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x36cd7db0 maxit=0
+D1TERM s=15 it=9 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=71 n=117
+D1CNT MAIN status=kOptimal minors=10 facts=1 adds=8 drops=0 dep_tests=8 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-1.049956402442e+06 stat=9.488e-08(scale 5.545e+00) eqviol=2.515e-11 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=0 atup=8 |x|inf=3.276800e+04 KKT@tol1e-09=NO
+D1SOLVE 15 end
+D1SOLVE 16 begin n=117 me=63 mi=0 D=6.553600e+04 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x36cd7db0 maxit=0
+D1TERM s=16 it=8 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=70 n=117
+D1CNT MAIN status=kOptimal minors=9 facts=1 adds=7 drops=0 dep_tests=7 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-1.242280295228e+06 stat=1.792e-07(scale 4.116e+00) eqviol=4.816e-11 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=0 atup=7 |x|inf=6.553600e+04 KKT@tol1e-09=NO
+D1SOLVE 16 end
+D1SOLVE 17 begin n=117 me=63 mi=0 D=1.310720e+05 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x36cd7db0 maxit=0
+D1TERM s=17 it=4 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=66 n=117
+D1CNT MAIN status=kOptimal minors=5 facts=1 adds=3 drops=0 dep_tests=3 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-1.265015300667e+06 stat=1.063e-06(scale 2.798e+00) eqviol=9.966e-11 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=0 atup=3 |x|inf=1.310720e+05 KKT@tol1e-09=NO
+D1SOLVE 17 end
+D1SOLVE 18 begin n=117 me=63 mi=0 D=2.621440e+05 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x36cd7db0 maxit=0
+D1TERM s=18 it=2 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=64 n=117
+D1CNT MAIN status=kOptimal minors=3 facts=1 adds=1 drops=0 dep_tests=1 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-7.620118589047e+05 stat=7.043e-06(scale 1.736e+00) eqviol=3.740e-11 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=1 atup=0 |x|inf=2.361603e+05 KKT@tol1e-09=NO
+D1SOLVE 18 end
+D1SOLVE 19 begin n=117 me=63 mi=0 D=2.621440e+05 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x36cd7db0 maxit=0
+D1TERM s=19 it=3 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=63 n=117
+D1CNT MAIN status=kOptimal minors=4 facts=1 adds=0 drops=1 dep_tests=0 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-8.344664914570e+04 stat=5.482e-06(scale 1.188e+01) eqviol=1.584e-11 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=0 atup=0 |x|inf=9.886664e+04 KKT@tol1e-09=NO
+D1SOLVE 19 end
+D1SOLVE 20 begin n=117 me=63 mi=0 D=2.621440e+05 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x36cd7db0 maxit=0
+D1TERM s=20 it=1 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=63 n=117
+D1CNT MAIN status=kOptimal minors=2 facts=1 adds=0 drops=0 dep_tests=0 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-1.207877901494e+03 stat=8.220e-07(scale 9.316e+00) eqviol=2.581e-12 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=0 atup=0 |x|inf=1.185314e+04 KKT@tol1e-09=NO
+D1SOLVE 20 end
+D1SOLVE 21 begin n=117 me=63 mi=0 D=2.621440e+05 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x36cd7db0 maxit=0
+D1TERM s=21 it=1 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=63 n=117
+D1CNT MAIN status=kOptimal minors=2 facts=1 adds=0 drops=0 dep_tests=0 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-3.427107216650e+02 stat=1.112e-08(scale 6.974e+00) eqviol=2.920e-14 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=0 atup=0 |x|inf=2.259427e+02 KKT@tol1e-09=NO
+D1SOLVE 21 end
+D1SOLVE 22 begin n=117 me=63 mi=0 D=2.621440e+05 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x36cd7db0 maxit=0
+D1TERM s=22 it=1 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=63 n=117
+D1CNT MAIN status=kOptimal minors=2 facts=1 adds=0 drops=0 dep_tests=0 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-1.343335054567e+03 stat=7.160e-09(scale 4.887e+00) eqviol=7.461e-14 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=0 atup=0 |x|inf=5.402469e+02 KKT@tol1e-09=NO
+D1SOLVE 22 end
+D1SOLVE 23 begin n=117 me=63 mi=0 D=2.621440e+05 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x36cd7db0 maxit=0
+D1TERM s=23 it=1 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=63 n=117
+D1CNT MAIN status=kOptimal minors=2 facts=1 adds=0 drops=0 dep_tests=0 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-3.274659991948e+03 stat=2.749e-08(scale 3.100e+00) eqviol=2.602e-13 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=0 atup=0 |x|inf=2.057563e+03 KKT@tol1e-09=NO
+D1SOLVE 23 end
+D1SOLVE 24 begin n=117 me=63 mi=0 D=2.621440e+05 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x36cd7db0 maxit=0
+D1TERM s=24 it=1 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=63 n=117
+D1CNT MAIN status=kOptimal minors=2 facts=1 adds=0 drops=0 dep_tests=0 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-4.042868476335e+03 stat=6.264e-08(scale 1.672e+00) eqviol=7.372e-13 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=0 atup=0 |x|inf=4.640214e+03 KKT@tol1e-09=NO
+D1SOLVE 24 end
+D1SOLVE 25 begin n=117 me=63 mi=0 D=2.621440e+05 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x36cd7db0 maxit=0
+D1TERM s=25 it=1 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=63 n=117
+D1CNT MAIN status=kOptimal minors=2 facts=1 adds=0 drops=0 dep_tests=0 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-1.802739267336e+03 stat=6.938e-08(scale 1.000e+00) eqviol=1.243e-12 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=0 atup=0 |x|inf=5.036258e+03 KKT@tol1e-09=NO
+D1SOLVE 25 end
+D1SOLVE 26 begin n=117 me=63 mi=0 D=2.621440e+05 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x36cd7db0 maxit=0
+D1TERM s=26 it=1 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=63 n=117
+D1CNT MAIN status=kOptimal minors=2 facts=1 adds=0 drops=0 dep_tests=0 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-1.540118880546e+02 stat=2.640e-08(scale 1.000e+00) eqviol=1.732e-13 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=0 atup=0 |x|inf=1.884064e+03 KKT@tol1e-09=NO
+D1SOLVE 26 end
+D1SOLVE 27 begin n=117 me=63 mi=0 D=2.621440e+05 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x36cd7db0 maxit=0
+D1TERM s=27 it=1 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=63 n=117
+D1CNT MAIN status=kOptimal minors=2 facts=1 adds=0 drops=0 dep_tests=0 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-7.281197274642e-01 stat=1.934e-09(scale 1.000e+00) eqviol=3.197e-14 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=0 atup=0 |x|inf=1.383267e+02 KKT@tol1e-09=NO
+D1SOLVE 27 end
+D1SOLVE 28 begin n=117 me=63 mi=0 D=2.621440e+05 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x36cd7db0 maxit=0
+D1TERM s=28 it=1 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=63 n=117
+D1CNT MAIN status=kOptimal minors=2 facts=1 adds=0 drops=0 dep_tests=0 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-1.448488214726e-05 stat=8.699e-12(scale 1.000e+00) eqviol=1.110e-16 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=0 atup=0 |x|inf=6.197093e-01 KKT@tol1e-09=YES
+D1SOLVE 28 end

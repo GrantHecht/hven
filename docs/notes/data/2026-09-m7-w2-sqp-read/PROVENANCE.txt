@@ -1,0 +1,159 @@
+M7 W2 A-SQP — THE SQP ENGINE'S CUTEst TRAIN FAILURES, READ PER CELL
+================================================================================
+CLAUDE.md §7 provenance stamp for every number in this directory, and for every
+number in docs/notes/2026-09-m7-w2-sqp-cutest-read.md that is not cited to
+somebody else's retained artifact.
+
+NOTHING IN THIS DIRECTORY ASSERTS WALL-CLOCK. Counters, statuses and the four
+declared residuals are the currency. No duration produced by any leg here is
+quoted anywhere, and the only place a duration appears at all is the fact that
+three legs did not RETURN inside a cap of this task's own — which is recorded as
+a CANDIDATE and never as a measurement (see CONCURRENCY below).
+
+WHAT THESE LEGS ARE
+--------------------------------------------------------------------------------
+Re-runs of the hven-bench `hven-sqp` lane's CUTEst TRAIN cells at a tightened
+MAJOR-ITERATION CAP. `SolveBudget::max_iterations` can only tighten the engine's
+own option (hven drivers/solve_result.h), so `--budget-iters k` produces the
+PREFIX of the uncapped solve and the row it prints is that solve's state after k
+units of budget — and the budget is shared with the restoration phase, "the
+bounded quantity is major_iters + restoration_iters"
+(include/hven/drivers/sqp_solver_types.h:250-253), so a ladder over k walks the
+restoration phase too. That is the whole instrument: no hven code was built,
+changed or even compiled for this page.
+
+NO hven SOURCE, TEST, SCRIPT OR CMAKE FILE MOVES WITH THIS ARTIFACT. The commit
+that lands it carries this directory and the design page and nothing else.
+
+THE TREES — COMMIT-EXACT, BOTH CLEAN
+--------------------------------------------------------------------------------
+hven             /home/ghecht/Projects/hven, branch m7
+                 24c8f7b69c18da89a8cbf4a86202cc65f7aa361e
+                 ("docs(m7): W0 T7 CLOSED … W0 CLOSED")
+                 `git describe --always --dirty` printed `24c8f7b6` — NO -dirty
+                 suffix — and `git status --porcelain` printed 0 lines, both
+                 captured BEFORE the first byte of this artifact was written
+                 (docs/measurement.md §7: every artifact edit after the stamped
+                 legs, never before).
+
+hven-bench       /home/ghecht/Projects/hven-bench, branch main
+(the harness)    2af3e4e324444bdc130b3f3574def1262d2655be
+                 `git describe --always --dirty` printed `2af3e4e` — no -dirty.
+                 THE HARNESS IS ANOTHER IMPLEMENTER'S TREE (the W2 A4-0 options
+                 sweep, running throughout). Nothing here wrote to it: every leg
+                 ran from a private root under this task's scratch holding a
+                 COPY of the decoded CUTEst instances, and every output landed
+                 under that scratch.
+
+THE BINARY
+--------------------------------------------------------------------------------
+path             hven-bench/build/lanes/hven/hven_bench_cell
+sha256           5e04d1208a3c852ab6ec76af8518a21fbef36380a987ad3aa90af5fc49849600
+built            2026-09-17T09:46:36-04:00 (by the A4-0 lane, not by this task)
+hven pin it      3904a477771524b85b34678fb7d2ff55dd4768f1
+links            — the SAME pin H2, H3 and H4 ran, printed by every leg's row as
+                 `hven_pin_sha` (see any file under raw/).
+
+THIS BINARY IS NEWER THAN THE ONE THAT PRODUCED THE ROWS THIS PAGE READS
+(harness 348932f at H3). identity-check.txt is the check that closes that gap:
+four cells re-run at `--budget-iters 0`, the uncapped configuration H3 ran,
+compared column by column against H3's retained run-A rows — 4 cells x 37
+columns, 148 of 148 byte-identical, statuses, counters and residuals alike.
+
+THE HOST
+--------------------------------------------------------------------------------
+uname            Linux 7.2.4-200.fc44.x86_64 x86_64
+cpu              AMD Ryzen 7 5800X3D 8-Core Processor
+physical cores   8
+captured         2026-09-17T14:21:30Z
+
+CONCURRENCY — MIXED, AND THE SPLIT IS PER LEG (docs/measurement.md §3.1)
+--------------------------------------------------------------------------------
+THE PART THAT WAS WRONG, FIRST. Every leg here ran while the W2 A4-0 options
+sweep was working the same box, holding /tmp/box-build.lock for whole legs of its
+own. This task's wrapper (scripts/run_cell.sh) takes that lock where it can and,
+after a 20 s wait, PROCEEDS WITHOUT IT. That fallback was not this task's to
+make: the sweep's cells run under a 300 s WALL ceiling, and a wall-ceilinged row
+is exactly what CLAUDE.md §7 says "must run solo, or co-run only with their full
+budget honored". The fallback is recorded here rather than removed from the
+record, and the settler has directed the sweep lane to re-run whatever
+overlapped.
+
+  THE WINDOW, first leg start to last leg end, from the raw logs:
+      2026-09-17T10:01:08-04:00  ->  2026-09-17T10:49:38-04:00
+
+  THE SPLIT, from each leg's own LOCK= line:
+      LOCK=held    4 legs  — ACOPP57-default-b1, READING6-default-b0,
+                             STEENBRC-default-b12, YORKNET-default-b14
+      LOCK=corun  39 legs  — every other file under raw/
+
+  NO FOREIGN PROCESS WAS EVER SIGNALLED. The only signals sent by this task were
+  its own `timeout -s TERM -k 10` to its own child, on the three legs that hit
+  their cap (READING8, MSS2, MSS3 at --budget-iters 1). Each leg's raw log opens
+  with a `pgrep` of the foreign lane, taken before the leg, so the overlap is
+  readable per leg and not only from this block.
+
+  THE TERMS ON THIS TASK'S OWN PROCESSES: `taskset -c 7`, MKL_NUM_THREADS=1,
+  OMP_NUM_THREADS=1, one cell at a time, never two of this task's at once.
+  THE FOREIGN LANE'S PLACEMENT WAS NOT CONTROLLED, so this is NOT the "one
+  process per pinned PHYSICAL core" discipline §3 defines for a measured co-run
+  and nothing here is offered as one.
+
+  WHAT IS READ, AND WHY IT SURVIVES THE CO-RUN: counters, statuses and the four
+  declared residuals, which are scheduling-invariant at MKL_NUM_THREADS=1
+  (CLAUDE.md §7). identity-check.txt is the closing evidence §3.1 asks for —
+  three co-run legs and one lock-held leg, all four byte-identical to a solo
+  measurement on every column.
+
+  WHAT DOES NOT SURVIVE IT, NAMED: the three legs whose cell did not return
+  inside this task's own 300 s cap (raw/READING8-default-b1.log,
+  raw/MSS2-default-b1.log, raw/MSS3-default-b1.log, each LEG_RC=124). Contention
+  can only push a cell toward a deadline outcome, so those three are CANDIDATES,
+  not measurements; the design page marks them as such at each of the three
+  cells and draws only the bounded conclusion that the first major had not
+  completed.
+
+FOLD PROOFS
+--------------------------------------------------------------------------------
+raw/foldproof-false.log       scripts/run_cell.sh with HVEN_W2A_BIN=/bin/false:
+                              CELL_RC=1, LEG_RC=1, wrapper exit 1. A stubbed
+                              failure propagates.
+raw/NOSUCHPROB-default-b1.log scripts/batch.sh over a plan naming a problem the
+                              roster does not have: leg rc 2, batch bad=1,
+                              batch exit 1. A failing leg is counted, not
+                              swallowed.
+Both wrappers run under `set -o pipefail`.
+
+WHAT IS HERE
+--------------------------------------------------------------------------------
+raw/<PROBLEM>-default-b<k>.log   43 legs: 38 a completed cell, 3 a cell that hit
+                                 this task's cap, 2 fold proofs. Each carries
+                                 its pre-leg pgrep of the foreign lane, its
+                                 LOCK= line, the cell's invocation, the whole
+                                 row the cell printed, CELL_RC and LEG_RC.
+identity-check.txt               the instrument against the artifact it reads.
+scripts/run_cell.sh              one leg.
+scripts/batch.sh                 several legs in sequence.
+scripts/summarise.py             folds raw/ into one table; reads no duration.
+
+REPRODUCING A LEG
+--------------------------------------------------------------------------------
+    cd <a root holding .scratch/h3/decoded/<PROBLEM> from the harness>
+    MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 taskset -c <cpu> \
+      <harness>/build/lanes/hven/hven_bench_cell \
+        --lane hven-sqp --problem <PROBLEM> --options default --budget-iters <k>
+
+under `flock /tmp/box-build.lock`, one cell at a time — which is what the next
+re-run of any of these must do, without the wrapper's 20 s fallback.
+
+ONE NOTE ON THE RAW BYTES
+--------------------------------------------------------------------------------
+`git diff --check` flags ONE trailing space in each of two raw logs
+(raw/NOSUCHPROB-default-b1.log:4 and raw/smoke-SMBANK-b5.log:4). It is on the
+pre-leg `pgrep` line, where the wrapper truncates the foreign lane's command
+line at 160 columns and the cut lands after a space. **The logs are committed as
+they were written.** Editing a leg's own record to satisfy a whitespace check
+would make the artifact differ from what ran, which is the one property it
+exists to have; the two lines are named here instead, so the check's output is
+explained rather than silenced. No line this task AUTHORED carries trailing
+whitespace.

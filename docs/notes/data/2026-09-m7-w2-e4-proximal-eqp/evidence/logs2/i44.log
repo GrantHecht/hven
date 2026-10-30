@@ -1,0 +1,56 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-release/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = B1Gate.*
+[==========] Running 23 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 23 tests from B1Gate
+[ RUN      ] B1Gate.TheMinimalModelMovesNoGatedQuantityWithP
+[       OK ] B1Gate.TheMinimalModelMovesNoGatedQuantityWithP (0 ms)
+[ RUN      ] B1Gate.MinimalReleaseNoLongerCertifiesTheOldPoint
+[       OK ] B1Gate.MinimalReleaseNoLongerCertifiesTheOldPoint (2 ms)
+[ RUN      ] B1Gate.AFullyReleasedRowExitsWithAnExactlyZeroPrice
+[       OK ] B1Gate.AFullyReleasedRowExitsWithAnExactlyZeroPrice (0 ms)
+[ RUN      ] B1Gate.ReviewSphereAgreesWithItsAnalyticPathAtEveryStepSize
+[       OK ] B1Gate.ReviewSphereAgreesWithItsAnalyticPathAtEveryStepSize (2 ms)
+[ RUN      ] B1Gate.ReviewSphereContinuationSweepTracksTheTruePath
+[       OK ] B1Gate.ReviewSphereContinuationSweepTracksTheTruePath (5 ms)
+[ RUN      ] B1Gate.F6RelaxingStepsNoLongerFreezeTheObjective
+[       OK ] B1Gate.F6RelaxingStepsNoLongerFreezeTheObjective (4 ms)
+[ RUN      ] B1Gate.F6TighteningStepWasNeverExposedAndIsUnchanged
+[       OK ] B1Gate.F6TighteningStepWasNeverExposedAndIsUnchanged (0 ms)
+[ RUN      ] B1Gate.TransferProducedWarmStartIsSeededAndTheB1ClearCarriesToIt
+[       OK ] B1Gate.TransferProducedWarmStartIsSeededAndTheB1ClearCarriesToIt (2 ms)
+[ RUN      ] B1Gate.EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair
+[       OK ] B1Gate.EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair (6 ms)
+[ RUN      ] B1Gate.AZeroMajorWarmSolveWithALiveInequalityPriceStillCertifies
+[       OK ] B1Gate.AZeroMajorWarmSolveWithALiveInequalityPriceStillCertifies (0 ms)
+[ RUN      ] B1Gate.TheActivityBoundaryIsFeasTolOnBothSides
+[       OK ] B1Gate.TheActivityBoundaryIsFeasTolOnBothSides (0 ms)
+[ RUN      ] B1Gate.SeededIngestCarriesTheB1Repair
+[       OK ] B1Gate.SeededIngestCarriesTheB1Repair (7 ms)
+[ RUN      ] B1Gate.ASeededZeroMajorSolveWithALiveInequalityPriceStillCertifies
+[       OK ] B1Gate.ASeededZeroMajorSolveWithALiveInequalityPriceStillCertifies (0 ms)
+[ RUN      ] B1Gate.AScaledStalePriceIsRefusedAtIngest
+[       OK ] B1Gate.AScaledStalePriceIsRefusedAtIngest (0 ms)
+[ RUN      ] B1Gate.TheReportedScaleIsRefusedEvenThoughTheSolveThenRunsOut
+[       OK ] B1Gate.TheReportedScaleIsRefusedEvenThoughTheSolveThenRunsOut (0 ms)
+[ RUN      ] B1Gate.TheScaledStalePriceIsRefusedAtWarmToo
+[       OK ] B1Gate.TheScaledStalePriceIsRefusedAtWarmToo (0 ms)
+[ RUN      ] B1Gate.TheComplementarityGateBoundaryIsKktTolOnBothSides
+[       OK ] B1Gate.TheComplementarityGateBoundaryIsKktTolOnBothSides (0 ms)
+[ RUN      ] B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers
+[       OK ] B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers (0 ms)
+[ RUN      ] B1Gate.MinimalReleaseNoLongerCertifiesTheOldPointUnderKSsn
+[       OK ] B1Gate.MinimalReleaseNoLongerCertifiesTheOldPointUnderKSsn (0 ms)
+[ RUN      ] B1Gate.AFullyReleasedRowExitsWithAnExactlyZeroPriceUnderKSsn
+[       OK ] B1Gate.AFullyReleasedRowExitsWithAnExactlyZeroPriceUnderKSsn (0 ms)
+[ RUN      ] B1Gate.AScaledStalePriceIsRefusedAtIngestUnderKSsn
+[       OK ] B1Gate.AScaledStalePriceIsRefusedAtIngestUnderKSsn (0 ms)
+[ RUN      ] B1Gate.KSsnMatchesTheWalksComplementarityOnceTheFaceIsRefined
+[       OK ] B1Gate.KSsnMatchesTheWalksComplementarityOnceTheFaceIsRefined (0 ms)
+[ RUN      ] B1Gate.ReviewSphereIsRepairedUnderKSsnToo
+[       OK ] B1Gate.ReviewSphereIsRepairedUnderKSsnToo (0 ms)
+[----------] 23 tests from B1Gate (38 ms total)
+
+[----------] Global test environment tear-down
+[==========] 23 tests from 1 test suite ran. (38 ms total)
+[  PASSED  ] 23 tests.

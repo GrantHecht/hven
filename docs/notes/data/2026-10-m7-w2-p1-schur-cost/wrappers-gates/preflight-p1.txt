@@ -1,0 +1,113 @@
+# THE p1 PRE-FLIGHT. Run on THIS copy of gates-p1.sh at HEAD 1f46e34d, before the declaration
+# commit, and pasted verbatim. `dirty-files=N` in A is this task directory itself, untracked at the
+# moment of the run; the mode does not apply the clean-tree refusal, the chain does.
+#
+#   A  `gates-p1.sh --preflight-only`, every slot MEASURED on baddb728..1f46e34d. rc 0, PREFLIGHT_OK.
+#   B  `--check-g4` on THIS declaration's own offline replay transcript (the M6-pin arm of
+#      rehearsal/rehearsal-p1-g4-comparison.txt: its three "M6 CLOSE" blocks). rc 0.
+#   C  `--check-names debug|release` against the P1 implementer's final suite transcripts
+#      (worktree agent-a9f44008cb25541ea, .scratch/p1/logs/ctest-{debug1,debug2,release}-B1.log,
+#      tree 904350e2, source-identical to 1f46e34d; the two Debug legs concatenated). rc 0 each.
+#   D  F9 (g) `--check-skips debug|release` on the same transcripts, rc 0 each; then two falsifiers
+#      (each configuration's transcript read as the other's), rc 2 each.
+#   E  the class B no-modified-source refusal, falsified: test_schur.cpp.o (class A) substituted
+#      for test_ledger.cpp.o in the class B lists. REFUSED, rc 2.
+#   F  P1 (f), falsified: BEFORE=bffd2ea2 makes the derivation resolve to the e2f8 record, which is
+#      not the declared e2f9 record. REFUSED, rc 2.
+#   G  the UNMEASURED-sentinel refusal, observed on this runner with its measured slots unfilled
+#      (the pre-rehearsal state), rc 2.
+#
+# ============================================================================
+# TRANSCRIPT A -- the pre-flight in full.
+# ============================================================================
+
+GATES_START 2026-10-01T20:26:48-04:00
+=== HEAD 1f46e34d  dirty-files=1 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.scratch/m7w2p1gates ===
+=== BEFORE=baddb728  EXPECT_DEBUG_TESTS=2893  EXPECT_RELEASE_TESTS=2894 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=1f46e34dc52ef1146b5dd401cb178853c5e95c34
+=== CHANGED HEADERS: include/hven/detail/kkt/schur_complement.h 
+=== CHANGED SOURCES: src/qp/qp_engine.cpp tests/sqp/test_schur.cpp 
+=== MODIFIED C++ SOURCES: src/qp/qp_engine.cpp tests/sqp/test_schur.cpp 
+=== ADDED C++ SOURCES: 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir
+=== ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); 43 DIFFERENCES DECLARED as a SET (walk 17 / ssn 13 / ipm 13), every cell a U0 cell, the one declared WORSE cell [ipm f7_n1000_path_warm kkt_stationarity] among them
+=== CLASS_B_NAMES_OK: Release 23 / Debug 23 declared objects, none with a source modified in the range
+=== RELEASE-ONLY (Debug GTEST_SKIP) DECLARED: 0 name(s), each a declared ADDED name ===
+=== BY-NAME: baselines /home/ghecht/Projects/hven/docs/notes/data/2026-10-m7-w2-e2-fix9-standstill/gates/suite-{debug,release}.txt (2892 / 2893 started names); 3 ADDED, each added by exactly one TEST line in the range; 0 REMOVED, each removed by exactly one TEST line; 0 TEST lines removed
+=== ADDED TEST FILES (checked): non-.cpp [ ] == declared, under the fixture directory named once in hven_qp_walk_seam_tests's compile definitions; tests/CMakeLists.txt adds exactly [] and removes no non-comment line
+=== CLANG_FORMAT SET (derived, non-empty): 3 file(s) ===
+=== PREFLIGHT_VALUE_OK: class A 2 - 0 outside == declared 2/2; ADDED 0 == declared 0 (0 inside the universe == declared 0); class B library objects all unmodified; G4 gate 1e-5
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2p1gates/g1.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2p1gates  G=/home/ghecht/Projects/hven/.scratch/m7w2p1gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2p1gates/g2.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2p1gates  G=/home/ghecht/Projects/hven/.scratch/m7w2p1gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2p1gates/g3.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2p1gates  G=/home/ghecht/Projects/hven/.scratch/m7w2p1gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2p1gates/g4.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2p1gates  G=/home/ghecht/Projects/hven/.scratch/m7w2p1gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2p1gates/g5.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2p1gates  G=/home/ghecht/Projects/hven/.scratch/m7w2p1gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2p1gates/g6.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2p1gates  G=/home/ghecht/Projects/hven/.scratch/m7w2p1gates/gates
+=== PREFLIGHT_OK: 6 segments written and asserted against GATES_SCRATCH, before the first leg ===
+PREFLIGHT_ONLY: stopping before G1. No leg was run and no build tree was touched.
+PREFLIGHT_RC=0
+
+# ============================================================================
+# TRANSCRIPT B -- the G4 set gate on this declaration's own replay.
+# ============================================================================
+
+ASSERT OK   replay header lines = 3
+ASSERT OK   replay walk shape 27/75/17 declared = 1
+ASSERT OK   replay walk difference lines listed = 17
+ASSERT OK   replay ssn shape 27/75/13 declared = 1
+ASSERT OK   replay ssn difference lines listed = 13
+ASSERT OK   replay ipm shape 27/75/13 declared = 1
+ASSERT OK   replay ipm difference lines listed = 13
+ASSERT OK   replay: the MEASURED difference set EQUALS the DECLARED 43-entry list
+CHECK_G4_RC=0
+
+# ============================================================================
+# TRANSCRIPT C -- the by-name suites against the P1 implementer's final transcripts.
+# ============================================================================
+
+ASSERT OK   offline debug by name: 2895 started names == the baseline's 2892 - the 0 declared REMOVED + the 3 declared ADDED
+CHECK_NAMES_debug_RC=0
+ASSERT OK   offline release by name: 2896 started names == the baseline's 2893 - the 0 declared REMOVED + the 3 declared ADDED
+CHECK_NAMES_release_RC=0
+
+# ============================================================================
+# TRANSCRIPT D -- the skipped sets by name.
+# ============================================================================
+
+ASSERT OK   offline debug skips by name: 7 Skipped == the baseline's 7 + the 0 declared Release-only
+CHECK_SKIPS_debug_RC=0
+ASSERT OK   offline release skips by name: 1 Skipped == the baseline's 1 + the 0 declared Release-only
+CHECK_SKIPS_release_RC=0
+
+# ============ TRANSCRIPT E: class B no-modified-source refusal, falsified: test_schur.cpp.o (class A) substituted for test_ledger.cpp.o in BOTH class B lists
+=== G4 RESIDUAL GATE: 1e-5 (checked); 43 DIFFERENCES DECLARED as a SET (walk 17 / ssn 13 / ipm 13), every cell a U0 cell, the one declared WORSE cell [ipm f7_n1000_path_warm kkt_stationarity] among them
+REFUSED: rel class B tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_schur.cpp.o has its source tests/sqp/test_schur.cpp MODIFIED in baddb728..1f46e34dc52ef1146b5dd401cb178853c5e95c34 (it is class A)
+FALSIFIER_E_RC=2
+
+# ============ TRANSCRIPT F: P1 (f) baseline refusal, falsified with BEFORE=bffd2ea2 (resolves to the e2f8 record)
+REFUSED: the by-name baseline resolved to [docs/notes/data/2026-09-m7-w2-e2-fix7-fix8/gates/suite-release.txt], declared [docs/notes/data/2026-10-m7-w2-e2-fix9-standstill/gates/suite-release.txt]
+FALSIFIER_F_RC=2
+
+# ============ TRANSCRIPT G: UNMEASURED-sentinel refusal (runner with every measured slot unfilled)
+=== BEFORE=baddb728  EXPECT_DEBUG_TESTS=2893  EXPECT_RELEASE_TESTS=2894 ===
+REFUSED: EXPECT_PSYM_DIFFERING still carries the UNMEASURED sentinel -- the FINAL pair has not been
+         rehearsed, so this round has no measured P-SYM shape to gate against.
+SENTINEL_G_RC=2
+
+# TRANSCRIPT D2: skips falsifiers (each configuration's transcript read as the other's)
+ASSERT FAIL offline debug skips by name: 1 Skipped vs the baseline's 7 + 0 declared; the difference (expected '<' tab-indented '>' this run):
+QpE2Fix9StandstillRetreat.Acopp118Qp0Border
+QpE2Fix9StandstillRetreat.Acopp118Qp1Border
+FALSIFIER_D_dbg_as_rel_RC=2
+ASSERT FAIL offline release skips by name: 7 Skipped vs the baseline's 1 + 0 declared; the difference (expected '<' tab-indented '>' this run):
+	QpE2Fix9StandstillRetreat.Acopp118Qp0Border
+	QpE2Fix9StandstillRetreat.Acopp118Qp1Border
+FALSIFIER_D_rel_as_dbg_RC=2

@@ -1,0 +1,22 @@
+=== A0_YORKNET qp3 mode2: last 300 passes
+  action histogram: {'moveOnly': 300}
+  p_inf     median 2.7612e-09 min 1.2080e-09 max 3.6684e-09
+  step_tol  median 1.0000e-09
+  dx_inf    median 2.7612e-09 max 3.6684e-09
+  passes with p_inf <= step_tol: 0 of 300
+  p_inf/step_tol median 2.7612e+00
+   minor  7676 moveOnly     p_inf=3.3890e-09 step_tol=1.0000e-09 alpha=1 dx=3.389e-09 gp=3.1659e-17 rho_ref=1.619e-15 row_ref=4.891e-14
+   minor  7677 moveOnly     p_inf=1.8180e-09 step_tol=1.0000e-09 alpha=1 dx=1.818e-09 gp=-4.9873e-17 rho_ref=1.619e-15 row_ref=4.891e-14
+   minor  7678 moveOnly     p_inf=1.2080e-09 step_tol=1.0000e-09 alpha=1 dx=1.208e-09 gp=-3.4694e-17 rho_ref=1.619e-15 row_ref=4.891e-14
+   minor  7679 moveOnly     p_inf=2.7612e-09 step_tol=1.0000e-09 alpha=1 dx=2.761e-09 gp=5.7246e-17 rho_ref=1.619e-15 row_ref=4.891e-14
+=== A0_YORKNET qp3 mode0: last 300 passes
+  action histogram: {'moveOnly': 50, 'dropDantzig': 50, 'rideStepped': 50, 'add': 150}
+  p_inf     median 1.0346e-02 min 0.0000e+00 max 6.1104e+06
+  step_tol  median 1.0000e-09
+  dx_inf    median 9.3119e-03 max 1.0346e-02
+  passes with p_inf <= step_tol: 50 of 300
+  p_inf/step_tol median 1.0346e+07
+   minor  7676 rideStepped  p_inf=6.1104e+06 step_tol=1.0000e-09 alpha=3.3834641713128315e-10 dx=2.067e-03 gp=2.8390e+08 rho_ref=5.759e+01 row_ref=2.644e-08
+   minor  7677 add          p_inf=2.3514e+01 step_tol=1.0000e-09 alpha=0.00043996677536912245 dx=1.035e-02 gp=5.6977e+02 rho_ref=3.200e-07 row_ref=7.109e+02
+   minor  7678 add          p_inf=1.0346e-02 step_tol=1.0000e-09 alpha=-0 dx=-0.000e+00 gp=-1.0339e-01 rho_ref=1.463e-13 row_ref=4.891e-14
+   minor  7679 add          p_inf=1.0346e-02 step_tol=1.0000e-09 alpha=0.19999999999999785 dx=2.069e-03 gp=2.2979e-01 rho_ref=1.463e-13 row_ref=4.891e-14

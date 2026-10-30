@@ -1,0 +1,49 @@
+D3START depth=0 n=138 out_of_box=43 max_box_viol=2.839 project=0
+D3QP depth=0 major=0 delta=1 status=2 minors=76 facts=1 h=24.6436188 f=0.01806853526 blk_term=0 zmcap=0 cert=1 cert_rej=0 n=138 me=48 mi=0 f4route=0 resto_used=0
+D3RUNG rho=100 status=0 minors=120 facts=74 slack_l1=12.91792989 slack_max=3.12813 viol_l1_in=26.36814583 blk_term=0 zmcap=0 cert=0 cert_rej=0
+D3RUNG rho=1000 status=0 minors=2 facts=7 slack_l1=12.91792989 slack_max=3.12813 viol_l1_in=26.36814583 blk_term=0 zmcap=0 cert=0 cert_rej=0
+D3RUNG rho=10000 status=0 minors=2 facts=7 slack_l1=12.91792989 slack_max=3.12813 viol_l1_in=26.36814583 blk_term=0 zmcap=0 cert=0 cert_rej=0
+D3RUNG rho=100000 status=0 minors=2 facts=7 slack_l1=12.91792989 slack_max=3.12813 viol_l1_in=26.36814583 blk_term=0 zmcap=0 cert=0 cert_rej=0
+D3RUNG rho=1e+06 status=0 minors=6 facts=10 slack_l1=12.91792989 slack_max=3.12813 viol_l1_in=26.36814583 blk_term=0 zmcap=0 cert=0 cert_rej=0
+D3RUNG rho=1e+07 status=0 minors=8 facts=9 slack_l1=12.91792989 slack_max=3.12813 viol_l1_in=26.36814583 blk_term=0 zmcap=0 cert=0 cert_rej=0
+D3RUNG rho=1e+08 status=0 minors=4 facts=5 slack_l1=12.91792988 slack_max=3.12813 viol_l1_in=26.36814583 blk_term=0 zmcap=0 cert=0 cert_rej=0
+D3LADDER rho0=100 final_rho=1e+08 status=0 slack_l1=12.91792988 viol_l1_in=26.36814583 closed=0 reduced=1 promises_f=1 pred_dec=0.20705 usable=1 step_inf=2.839 window=1
+D3MAJ depth=0 major=0 outcome=1 qp_status=0 verdict=1 elastic=1 viol=24.6436188 f=0.01806853526 tr=1 step=2.839 minors=4 h_now=24.6436188
+D3QP depth=0 major=1 delta=2 status=2 minors=10 facts=1 h=12.98422237 f=-0.1889686135 blk_term=0 zmcap=0 cert=1 cert_rej=0 n=138 me=48 mi=0 f4route=0 resto_used=0
+D3RUNG rho=100 status=0 minors=42 facts=1 slack_l1=6.043577378 slack_max=2.12318 viol_l1_in=12.98421876 blk_term=0 zmcap=0 cert=0 cert_rej=0
+D3RUNG rho=1000 status=0 minors=2 facts=0 slack_l1=6.043577378 slack_max=2.12318 viol_l1_in=12.98421876 blk_term=0 zmcap=0 cert=0 cert_rej=0
+D3RUNG rho=10000 status=0 minors=2 facts=0 slack_l1=6.043577378 slack_max=2.12318 viol_l1_in=12.98421876 blk_term=0 zmcap=0 cert=0 cert_rej=0
+D3RUNG rho=100000 status=0 minors=2 facts=0 slack_l1=6.043577378 slack_max=2.12318 viol_l1_in=12.98421876 blk_term=0 zmcap=0 cert=0 cert_rej=0
+D3RUNG rho=1e+06 status=0 minors=7 facts=0 slack_l1=6.043577377 slack_max=2.12318 viol_l1_in=12.98421876 blk_term=0 zmcap=0 cert=0 cert_rej=0
+D3RUNG rho=1e+07 status=0 minors=7 facts=0 slack_l1=6.043577376 slack_max=2.12318 viol_l1_in=12.98421876 blk_term=0 zmcap=0 cert=0 cert_rej=0
+D3RUNG rho=1e+08 status=0 minors=2 facts=0 slack_l1=6.043577347 slack_max=2.12318 viol_l1_in=12.98421876 blk_term=0 zmcap=0 cert=0 cert_rej=0
+D3LADDER rho0=100 final_rho=1e+08 status=0 slack_l1=6.043577347 viol_l1_in=12.98421876 closed=0 reduced=1 promises_f=0 pred_dec=-0.0152844 usable=1 step_inf=2 window=2
+D3MAJ depth=0 major=1 outcome=1 qp_status=0 verdict=1 elastic=1 viol=12.98422237 f=-0.1889686135 tr=2 step=2 minors=2 h_now=12.98422237
+D3QP depth=0 major=2 delta=2 status=2 minors=1 facts=1 h=6.238216362 f=-0.1736811243 blk_term=0 zmcap=0 cert=1 cert_rej=0 n=138 me=48 mi=0 f4route=0 resto_used=0
+D3RUNG rho=100 status=0 minors=71 facts=1 slack_l1=4.02520983 slack_max=2.11813 viol_l1_in=6.238214608 blk_term=0 zmcap=0 cert=0 cert_rej=0
+D3RUNG rho=1000 status=0 minors=2 facts=0 slack_l1=4.02520983 slack_max=2.11813 viol_l1_in=6.238214608 blk_term=0 zmcap=0 cert=0 cert_rej=0
+D3RUNG rho=10000 status=0 minors=2 facts=0 slack_l1=4.02520983 slack_max=2.11813 viol_l1_in=6.238214608 blk_term=0 zmcap=0 cert=0 cert_rej=0
+D3RUNG rho=100000 status=0 minors=2 facts=0 slack_l1=4.02520983 slack_max=2.11813 viol_l1_in=6.238214608 blk_term=0 zmcap=0 cert=0 cert_rej=0
+D3RUNG rho=1e+06 status=0 minors=2 facts=0 slack_l1=4.02520983 slack_max=2.11813 viol_l1_in=6.238214608 blk_term=0 zmcap=0 cert=0 cert_rej=0
+D3RUNG rho=1e+07 status=0 minors=2 facts=0 slack_l1=4.02520983 slack_max=2.11813 viol_l1_in=6.238214608 blk_term=0 zmcap=0 cert=0 cert_rej=0
+D3RUNG rho=1e+08 status=0 minors=2 facts=0 slack_l1=4.025209829 slack_max=2.11813 viol_l1_in=6.238214608 blk_term=0 zmcap=0 cert=0 cert_rej=0
+D3LADDER rho0=100 final_rho=1e+08 status=0 slack_l1=4.025209829 viol_l1_in=6.238214608 closed=0 reduced=1 promises_f=1 pred_dec=0.00560312 usable=1 step_inf=2 window=2
+D3MAJ depth=0 major=2 outcome=1 qp_status=0 verdict=1 elastic=1 viol=6.238216362 f=-0.1736811243 tr=2 step=2 minors=2 h_now=6.238216362
+D3QP depth=0 major=3 delta=4 status=2 minors=1 facts=1 h=4.095738734 f=-0.1792839926 blk_term=0 zmcap=0 cert=1 cert_rej=0 n=138 me=48 mi=0 f4route=0 resto_used=0
+D3RUNG rho=100 status=0 minors=30 facts=1 slack_l1=0.01983274502 slack_max=0.0198327 viol_l1_in=4.095736503 blk_term=0 zmcap=0 cert=0 cert_rej=0
+D3RUNG rho=1000 status=0 minors=2 facts=0 slack_l1=0.01983274502 slack_max=0.0198327 viol_l1_in=4.095736503 blk_term=0 zmcap=0 cert=0 cert_rej=0
+D3RUNG rho=10000 status=0 minors=2 facts=0 slack_l1=0.01983274502 slack_max=0.0198327 viol_l1_in=4.095736503 blk_term=0 zmcap=0 cert=0 cert_rej=0
+D3RUNG rho=100000 status=0 minors=2 facts=0 slack_l1=0.01983274502 slack_max=0.0198327 viol_l1_in=4.095736503 blk_term=0 zmcap=0 cert=0 cert_rej=0
+D3RUNG rho=1e+06 status=0 minors=2 facts=0 slack_l1=0.01983274502 slack_max=0.0198327 viol_l1_in=4.095736503 blk_term=0 zmcap=0 cert=0 cert_rej=0
+D3RUNG rho=1e+07 status=0 minors=2 facts=0 slack_l1=0.01983274497 slack_max=0.0198327 viol_l1_in=4.095736503 blk_term=0 zmcap=0 cert=0 cert_rej=0
+D3RUNG rho=1e+08 status=0 minors=2 facts=0 slack_l1=0.01983274471 slack_max=0.0198327 viol_l1_in=4.095736503 blk_term=0 zmcap=0 cert=0 cert_rej=0
+D3LADDER rho0=100 final_rho=1e+08 status=0 slack_l1=0.01983274471 viol_l1_in=4.095736503 closed=0 reduced=1 promises_f=0 pred_dec=-0.0275782 usable=1 step_inf=4 window=4
+D3MAJ depth=0 major=3 outcome=1 qp_status=0 verdict=1 elastic=1 viol=4.095738734 f=-0.1792839926 tr=4 step=4 minors=2 h_now=4.095738734
+D3QP depth=0 major=4 delta=4 status=0 minors=26 facts=1 h=0.02060572592 f=-0.1517057919 blk_term=0 zmcap=0 cert=0 cert_rej=0 n=138 me=48 mi=0 f4route=0 resto_used=0
+D3MAJ depth=0 major=4 outcome=1 qp_status=0 verdict=0 elastic=0 viol=0.02060572592 f=-0.1517057919 tr=4 step=1.45957 minors=26 h_now=0.02060572592
+D3QP depth=0 major=5 delta=4 status=0 minors=2 facts=1 h=0.0002933214536 f=-0.1529327282 blk_term=0 zmcap=0 cert=0 cert_rej=0 n=138 me=48 mi=0 f4route=0 resto_used=0
+D3MAJ depth=0 major=5 outcome=1 qp_status=0 verdict=0 elastic=0 viol=0.0002933214536 f=-0.1529327282 tr=4 step=0.0292312 minors=2 h_now=0.0002933214536
+D3QP depth=0 major=6 delta=4 status=0 minors=2 facts=1 h=5.250705091e-05 f=-0.1529355179 blk_term=0 zmcap=0 cert=0 cert_rej=0 n=138 me=48 mi=0 f4route=0 resto_used=0
+D3MAJ depth=0 major=6 outcome=1 qp_status=0 verdict=0 elastic=0 viol=5.250705091e-05 f=-0.1529355179 tr=4 step=8.54375e-05 minors=2 h_now=5.250705091e-05
+D3MAJ depth=0 major=7 outcome=3 qp_status=0 verdict=2 elastic=0 viol=5.87374354e-10 f=-0.1529359284 tr=4 step=0 minors=0 h_now=5.87374354e-10
+D3END depth=0 status=0 majors=7 resto_iters=0 certified=0 obj=-0.1529359284 feas=2.83519e-10 stat=4.52139e-13

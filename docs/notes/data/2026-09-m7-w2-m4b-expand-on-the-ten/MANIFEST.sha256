@@ -1,0 +1,88 @@
+# M7 W2 M4b -- sha256 of every file committed in this directory.
+# Regenerated last, after every table, transcript and slice was final.
+# The twenty PARENT flat traces are not committed; their sha256 are in
+# traces-m4b/SHA256-parent-traces-m4b.txt.  The 121 uncommitted slices' sha256
+# are in traces-m4b/SLICES.txt.  No solver ran to produce this file.
+#
+# [fix1] 2026-09-22, M4c fix round 1 (review .superpowers/m7-w2-m4bc-review-sol.md,
+# M4b minors 1 and 4).  TWO DECLARED EDITS to this directory, and nothing else:
+#   (1) minor 4 -- the five prose lines above are now '#'-comments, so a standard
+#       `sha256sum -c MANIFEST.sha256` runs WARNING-FREE.  No hash was touched by
+#       that change.
+#   (2) minor 1 -- README.md section 4.3's first and third bullets were narrowed
+#       from a universal step-length claim to THIS floor/snap recurrence.  The
+#       ./README.md line below is RE-DERIVED from the edited file and declared
+#       here rather than silently refreshed (CLAUDE.md section 7).  Its previous
+#       value was
+#       3376ac158668dfdbe7effe0ae2c533de8aaadd5922ac54f304fdcefd68ae2088.
+# No solver ran, nothing was rebuilt, and no other file in this directory changed.
+
+e49ce8dc3092ba65b3dffd4fd91fbac61eaea09ca29371ddf50ead644e9792a9  ./logs/chain.log
+1c08e4453ea3d5c5beba7ee673fd306ba4685896c2ffbbd239587c4d4ac0f340  ./logs/compare-E-vs-off-no-traceout.txt
+8aacb894bbf2e7ce8a815c67a06e7a2d1f93c791bc8597386371f140d4551b1c  ./logs/compare-E-vs-off.txt
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./logs/E-ACOPP118.err
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./logs/E-ACOPP57.err
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./logs/E-ACOPR57.err
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./logs/E-BRITGAS.err
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./logs/E-DALLASM.err
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./logs/E-SAWPATH.err
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./logs/E-STEENBRB.err
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./logs/E-STEENBRC.err
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./logs/E-STEENBRG.err
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./logs/E-YORKNET.err
+42cc769f2142861b2b53616d0a6326e445e9e1891e7effe3bc2495b460548262  ./logs/pin-off-rows.txt
+a60aea2596d44813a7fb546607438195003715676676561df226267cee137566  ./logs/pin-off-traces.txt
+47cb718080345bfd41f5c178c4ee0284bfa2c54cde4da0cf967696afefd420b8  ./README.md
+38014cdebd9dc643672c47934aee0c85caaeca05a9aa34658ab95c709c0e6078  ./rows/E-ACOPP118.txt
+ba2b69526909ad96c514eba293ddde3c19fe0fecec6b8b274cff6dcea6b8cca5  ./rows/E-ACOPP57.txt
+7a698d9652952f880cf1b184706e9d856e23274a30d9316f3447475d859f178d  ./rows/E-ACOPR57.txt
+74a194681a0038c0a39a3db86e55be8611ed9169446ca6b57557bfd65782ec12  ./rows/E-BRITGAS.txt
+bb0e1ba8e39d5a7a5b4a4c230716ec521c77b8393a8046b84d04d4cbd2aa7989  ./rows/E-DALLASM.txt
+98d8236be60c3f0d1a5e62f4272a7e067e002650bd4032e2c955813ae1caf1dc  ./rows/E-SAWPATH.txt
+798a3db976e350a3368903b88977ab3e77717807bc344f7b371af1adb3be9410  ./rows/E-STEENBRB.txt
+c647888122c497ae2135cfc7f87f1f203619c3dd32ab1e6bfe1f0c8f1f6a3506  ./rows/E-STEENBRC.txt
+c73b833e3a72ecfd0ac2ddd5212b11b0d18651ea542603665f3f7220d8843ef0  ./rows/E-STEENBRG.txt
+69dff2c54bd22c7f46398ef91f36dca6a3b97ea5416b856c231eb76f0ceb6ed7  ./rows/E-YORKNET.txt
+eceb9012aa8c797ded0ebea79291eea1600f58f9a260946cfa446e3f48aef319  ./rows-off/off-ACOPP118.txt
+d66f354aed8542f13eb1b9e9492fe7354dd7d83831586217c588ed369a98fdcc  ./rows-off/off-ACOPP57.txt
+7ab2fbad1b0aa32ae91e932d24bf361869631622aa4b5c3c625c38931c8fc34e  ./rows-off/off-ACOPR57.txt
+0c0da07d3cd0417ec7bae16542ee2657bff3c07728fb52a30d23f610174cf6a2  ./rows-off/off-BRITGAS.txt
+619ad17eaddb76f36906a706093c67da195d1688134ef4aef7999213c7e7fd3d  ./rows-off/off-DALLASM.txt
+981b4d62d875629ab8f6bdd1d67e56b1184739e02c283e34f736e58a2e0773ec  ./rows-off/off-SAWPATH.txt
+447ce775360934683d496124ca4e358a517415348c15c5190c90835d0136f69c  ./rows-off/off-STEENBRB.txt
+e5db438451076c460e5dd11d96f832c125fea56f2760db4ad3f3607ec9eb024a  ./rows-off/off-STEENBRC.txt
+8d50eab58f9e3997d09cfa1002fbeb086d1b07c1c8cf7b96af481ca983c903dd  ./rows-off/off-STEENBRG.txt
+6171c6e868df2ccfe10cc42883cece9203117f60ffc8c1ba501c2fbc338e4546  ./rows-off/off-YORKNET.txt
+9a86fdd126b362301f26ff227748bbbb14ba00813eaca31f3df6c295309e5864  ./rows-off/SHA256-off-rows.txt
+0b511f5054d0b50ed19de9467b65aecb7ce18f4497fb1ff8bea4f0e4c4b5ffc4  ./RULE.md
+39a6ff6dea42d4e4b163941025f24fd4a641f7cac42062e8b2b6706946c42e7d  ./tables/acopp57-tail-period-posthoc.md
+e0559ea201cf09f11f1c09dd11e85bbd654320302d2b639342b530307e258385  ./tables/arm.md
+651dce2528d4dd7c089eb4be20c90fa4a80bde5647223e27b3cafdf77c9656f9  ./tables/neutrality-descriptive.md
+b62c65b6b9705d649af400657e2319e715e84d1df554e41d832bece6a87dedd3  ./tables/readd-route-posthoc.md
+8524ae688ed7a32d9919ccef543b866b4b3b71b298ae7bf835603cc12b4d421b  ./tables/readouts-m4b.md
+402fcd706f752fdbd01a839ff293de9a90cac7d52527b7b51125f7a4062dde19  ./traces-m4b/E-ACOPP57-solve0.csv
+3bca623756e69c1d64777bf7e8e6d502ba2498c9f87fd1eece162709f1a45ac8  ./traces-m4b/E-ACOPP57-solve3.csv
+be88aba83991463adf92d0362b475ad0bc5434bbff658a427901aabda003e123  ./traces-m4b/E-ACOPP57-solve4.csv
+1411635d9c8d19b94024b37c6c39556ebdfcc46f6133ec64b6c34a6bb73ce678  ./traces-m4b/E-ACOPP57-solve5.csv
+336888525fb943e8796e39b043fe6343fd32210a8715372e7c09cfeacca170a2  ./traces-m4b/E-ACOPP57-solve6.csv
+bb200c4e7b1d57e705d09039ed708341c425f295b6b983572494ac70d5cf9a85  ./traces-m4b/off-ACOPP57-solve0.csv
+5d226d894f94f94728ed6fbe649490ded9120236c8530842060915313267d766  ./traces-m4b/off-ACOPP57-solve3.csv
+23341e22f3afabf99ca3648bec56866e5ae51e2805915b1345498d31fd625dc8  ./traces-m4b/off-ACOPP57-solve4.csv
+820f252793759e808d0292ba11cd37bd5a33247b47d24afd67d035a136f000b7  ./traces-m4b/off-ACOPP57-solve5.csv
+9378eef285cefa044b4f2c6f5185c309e0e81f7526a221fc74da6023ae6e7e91  ./traces-m4b/off-ACOPP57-solve6.csv
+94f4b93c02eaf87b2caa8ae123baff74c914a8b5cb58ff629d7904d1d1e940fe  ./traces-m4b/SHA256-parent-traces-m4b.txt
+6e45e5f7c775aa16fb1319876a97def3b38b1b7bb0ad4a222d1639db04b2662e  ./traces-m4b/SLICES.txt
+1634ffffaa044aea0399768cc48537a619233102e6d283b60355b74ed26f5d64  ./verdict.txt
+8243dddcadf0cb29c9516df73c4035d5dda38bbf0eb47d4ce3118c35166e2f79  ./wrappers/acopp57_period_m4b.py
+dfa18945b83bb2fa32e010c059b7cc3ba07e483ebf9e52716bce37b32daabbdb  ./wrappers/chain_m4b.sh
+6ff44451d405a36bdec2c7c10d3a0e9aea014a839fcab69d24fd8757dfba9fb5  ./wrappers/check_identity_m3b.py
+1930d89d0fd4a18e82d82faebdd07e0c0e9794521ad9da82dfa5b5177b9ba0be  ./wrappers/classify_cause_fix1.py
+15c6426a19dfce21e47e29d5e885ec42acb4d2c7d80d8456b0f1652368437215  ./wrappers/classify_walk_m3b.py
+de56f6af8a5c6dab2de407abee17cbc553b4858cbf0ea7580a62e6af5b1d2293  ./wrappers/gate_m4.py
+6a921ce8db9c24f3166b3159b1066fe6e7e7f2be70478bb350771b22969c01c3  ./wrappers/readd_route_m4b.py
+137729d6e2f270bdb3d049f5ea8f5f1f4fa3040efd7c57333c3c32421a85c063  ./wrappers/readouts_driver_m4b.py
+e009ffbc21e44612e14736fd78b343eae65fbc5e70c5ac98987c8bd61b6564a9  ./wrappers/readouts_driver_m4.py
+b98c67236917bf7f6713215457f2e998d65057ab96f80c71676ed469bc0757e0  ./wrappers/readouts_m4.py
+6322f5164565f458305fb0d169ec4fe69f1cd76b46b81d5e932a164935736420  ./wrappers/table_arm_m4b.py
+b01272738807b1cda7329c02ca9212861e55a013c555714ea7f61a42e0c7c1d0  ./wrappers/table_arm_m4.py
+16a71d21271d4a5dbf8b847a5c42daf0ad04ed1bff60a21a1664e87028ee13f5  ./wrappers/table_neutrality_m4b.py

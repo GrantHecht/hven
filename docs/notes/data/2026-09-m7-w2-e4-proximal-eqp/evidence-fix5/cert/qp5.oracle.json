@@ -1,0 +1,33 @@
+{
+ "dump": "/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/e4-fix5/dumps/ACOPR118_e4/qp5.txt",
+ "n": 344,
+ "me": 236,
+ "mi": 608,
+ "tr": 0.25,
+ "result": {
+  "status": "3",
+  "minors": "3",
+  "facts": "5",
+  "blk_term": "0",
+  "cert": "0",
+  "cert_rej": "0",
+  "zmcap": "0",
+  "zmexh": "0",
+  "retreats": "0",
+  "exch": "0",
+  "deferred": "1",
+  "undec": "1",
+  "maxiter": "5300"
+ },
+ "phase1_status": 0,
+ "phase1_min_l1_violation": 0.0,
+ "H_eig_min": -144.19467159398096,
+ "H_eig_max": 646758.759606597,
+ "final_ws": {
+  "rows": 9,
+  "pins": 30,
+  "rank": 275,
+  "count": 275
+ },
+ "redH_final_min": -0.06812191142593582
+}

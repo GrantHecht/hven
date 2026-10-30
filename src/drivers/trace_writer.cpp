@@ -244,6 +244,8 @@ const char *to_json(QpModeSite v) {
         return "elastic_rung";
     case QpModeSite::kSocResolve:
         return "soc_resolve";
+    case QpModeSite::kCapRetry:
+        return "cap_retry";
     }
     return "unknown";
 }
@@ -356,6 +358,13 @@ const char *to_json(WorkingSetLinearAlgebra v) {
 // traces do not move.
 const char *to_json(SolveStatus v) { return to_string(v); }
 
+// AND THE COUNTER'S OWN TEN (M7 W2 M3a fix1), forwarding for the same reason
+// the three above do: `to_string(RestorationSubStatus)` already spells them in
+// the schema's lower snake, and it spells its nine status values EXACTLY as
+// `to_string(SolveStatus)` spells the same names, so a second table here could
+// only drift the two apart.
+const char *to_json(RestorationSubStatus v) { return to_string(v); }
+
 const char *to_json(InertiaModes v) {
     switch (v) {
     case InertiaModes::classic:
@@ -438,6 +447,21 @@ void key_value(std::string &s, bool &first, const char *k, StartLevel v, bool ab
     }
 }
 
+// THE TABLE'S SECOND ENUM (M7 W2 M3a, `restoration_sub_status`). Its nine
+// status spellings are `to_json(SolveStatus)`'s, byte for byte -- a consumer
+// compares this key against the end line's `status` without a translation
+// table -- and its tenth is the `not_run` the counter's own enum carries for
+// the solves that never restored. It honours the predicate for the StartLevel
+// overload's reason.
+void key_value(std::string &s, bool &first, const char *k, RestorationSubStatus v, bool absent) {
+    key(s, first, k);
+    if (absent) {
+        s += "null";
+    } else {
+        append_string(s, to_json(v));
+    }
+}
+
 std::string counters_object(const SqpCounters &c) {
     std::string b;
     bool first = true;
@@ -507,10 +531,10 @@ std::string evidence_object(const IpqpTraceEscapeEvidence &e) {
 // keeps the two in step: `SqpIterate` gaining a field stops the build here
 // until the field gets a key below.
 //
-// 29 is a COUNT OF INITIALIZERS, not a sizeof (plan amendment E). W4 T3 added
+// 30 is a COUNT OF INITIALIZERS, not a sizeof (plan amendment E). W4 T3 added
 // the six telemetry fields, and this number and the four golden lines moved
 // with them as a declared additive re-derivation (plan section 2 rule 6).
-constexpr std::size_t kSqpIterateFieldCount = 29;
+constexpr std::size_t kSqpIterateFieldCount = 30;
 static_assert(::hven::detail::kAggregateArity<SqpIterate> == kSqpIterateFieldCount,
               "SqpIterate's field count moved: give the new field a key in "
               "JsonLinesTraceSink::on_sqp_major (in DECLARATION order, ahead of `major`), "
@@ -538,12 +562,13 @@ static_assert(::hven::detail::kAggregateArity<SqpSolveBeginTraceEvent> == 10,
 // for such a struct -- it refuses N = 0 and the climb stops there (the helper's
 // own note). The two-sided form below is the exact net for that shape.
 //
-// 8 / !9 AS OF M6 W5 T8.7, which appended the five scaling fields the console's
-// `Scaling:` trailer reads (3 / !4 before it).
+// 10 / !11 AS OF M7 W2 SCW, which appended the column layer's two fields (8 / !9
+// since M6 W5 T8.7, which appended the five scaling fields the console's
+// `Scaling:` trailer reads; 3 / !4 before it).
 static_assert(::hven::detail::aggregate_initializable_with<SqpSolveEndTraceEvent>(
-                  std::make_index_sequence<8>{}) &&
+                  std::make_index_sequence<10>{}) &&
                   !::hven::detail::aggregate_initializable_with<SqpSolveEndTraceEvent>(
-                      std::make_index_sequence<9>{}),
+                      std::make_index_sequence<11>{}),
               "SqpSolveEndTraceEvent gained or lost a field: give it a key in "
               "JsonLinesTraceSink::on_sqp_solve_end, re-derive the golden line, and update "
               "these two counts.");
@@ -653,7 +678,28 @@ static_assert(::hven::detail::kAggregateArity<IpmPhaseReport> == 6,
 
 JsonLinesTraceSink::JsonLinesTraceSink(std::ostream &out) : out_(out) {}
 
-JsonLinesTraceSink::~JsonLinesTraceSink() = default;
+// M7 W0 T5(c): the destructor flushes, under the only guard a destructor can
+// carry. `flush()` propagates under an armed mask (the class contract), and a
+// destructor that let that escape would terminate the process during unwinding,
+// so the failure is swallowed HERE and nowhere else -- a caller who needs to see
+// it calls flush() while it can still be reported.
+JsonLinesTraceSink::~JsonLinesTraceSink() {
+    try {
+        flush();
+    } catch (...) { // NOLINT(bugprone-empty-catch) -- see above; nothing to report to.
+    }
+}
+
+// A STREAM OPERATION ONLY: no line is written and `seq_`/`depth_` do not move.
+// The failure reading mirrors write_line() exactly -- the stream's own state,
+// read after the operation and sticky -- so `failed()` means the same thing
+// whether the failure happened on a write or on a flush.
+void JsonLinesTraceSink::flush() {
+    out_.flush();
+    if (!out_) {
+        failed_ = true;
+    }
+}
 
 void JsonLinesTraceSink::push_depth() { ++depth_; }
 
@@ -850,6 +896,7 @@ void JsonLinesTraceSink::on_sqp_major(const SqpMajorTraceEvent &event) {
     key_index(b, first, "active_rows", r.active_rows);
     key_index(b, first, "active_lower_sides", r.active_lower_sides);
     key_index(b, first, "active_upper_sides", r.active_upper_sides);
+    key_bool(b, first, "rolled_back", r.rolled_back);
     key_index(b, first, "major", event.major);
     key_enum(b, first, "mode", to_json(event.mode));
     write_line("sqp.major", b);
@@ -894,6 +941,10 @@ void JsonLinesTraceSink::on_sqp_solve_end(const SqpSolveEndTraceEvent &event) {
     key_double(b, first, "row_scale_min", event.row_scale_min);
     key_double(b, first, "row_scale_max", event.row_scale_max);
     key_double(b, first, "scaled_kkt_residual", event.scaled_kkt_residual);
+    // THE COLUMN LAYER (M7 W2 SCW), trailing: whether it fired and the spread its
+    // rule read, so a reader can tell a column-scaled solve from the stream alone.
+    key_bool(b, first, "columns_active", event.columns_active);
+    key_double(b, first, "col_spread", event.col_spread);
     write_line("sqp.solve.end", b);
     // Written FIRST, then unwound: this line belongs to the solve it closes.
     if (open_solves_ > 0) {

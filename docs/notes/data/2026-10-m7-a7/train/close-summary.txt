@@ -1,0 +1,13 @@
+T-1 determinism default hs: rc=0 :: 21 baseline cells, 21 fresh cells, 0 mismatches
+T-1 determinism default cutest: rc=0 :: 23 baseline cells, 23 fresh cells, 0 mismatches
+T-1 determinism sqp-wsrule hs: rc=0 :: 21 baseline cells, 21 fresh cells, 0 mismatches
+T-1 determinism sqp-wsrule cutest: rc=0 :: 23 baseline cells, 23 fresh cells, 0 mismatches
+T-1 determinism sqp-qn hs: rc=0 :: 21 baseline cells, 21 fresh cells, 0 mismatches
+T-1 determinism sqp-qn cutest: rc=0 :: 23 baseline cells, 23 fresh cells, 0 mismatches
+T-1 determinism sqp-qn-wsrule hs: rc=0 :: 21 baseline cells, 21 fresh cells, 0 mismatches
+T-1 determinism sqp-qn-wsrule cutest: rc=0 :: 23 baseline cells, 23 fresh cells, 0 mismatches
+decide tree-exact rc=0
+decide tree-qn rc=0
+T-0 control default vs RETAKE18: 0 cell(s) differing of 23
+T-0 control sqp-qn vs RETAKE18: 0 cell(s) differing of 23
+T-2 inert until it fires: 0 violation(s); OFF fired: 0

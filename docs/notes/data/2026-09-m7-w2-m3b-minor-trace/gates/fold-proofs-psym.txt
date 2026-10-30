@@ -1,0 +1,118 @@
+PSYM_FOLD_PROOFS_M3B_START 2026-09-21T12:50:37-04:00
+root=/home/ghecht/Projects/hven
+HEAD e891041e5f20030f29f959ad8bd95cbc0e77e562  dirty-files=0
+-- wrapper identity: WORKTREE digest vs the digest of the SAME path AT HEAD.
+-- They must agree, or this transcript did not exercise what landed.
+gate_asserts_m3b.sh          sha256 f9bd974f00efeff3f1b3c2db6fb5794656e8b31f1923e0ecdca55be9b34ddf41  (worktree == HEAD)
+psym_assert_only.sh          sha256 08f6896f8c81c2acee55513319c8bb267bacab617e4891e1cb3bbcc37b41fe6a  (worktree == HEAD)
+fold_proofs_psym_m3b.sh      sha256 17345998a81e7ce37b613ac2be8af922c718e793215c92fd5f63e59ece21d376  (worktree == HEAD)
+classify_psym_m3b.py         sha256 6e416736371bf56033e628d29f4bbc6312ee41da39a8b9f5ca819558c7f8c445  (worktree == HEAD)
+
+== PART 1 -- M3a FIX ROUND 1's FOLDS, RE-RUN AGAINST VERSION 3 ==========
+   /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-m3a-request-probe/gates-fix1/psym-classification-Release.txt
+     sha256 757383dd987a850f3243e7b79076102bf8758118093b47d12958d6ea17ed90b3
+   /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-m3a-request-probe/gates-fix1/psym-classification-Debug.txt
+     sha256 c266f4865d39a0edceaac2075860dacec0ea0e541fd92bdaed852684406f1588
+   M3a fix1's changed sources, from git: src/core/enum_names.cpp src/drivers/sqp_solver.cpp src/drivers/trace_writer.cpp tests/drivers/test_callback.cpp tests/drivers/test_solve_status.cpp tests/drivers/test_threads.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_trace_writer.cpp 
+
+FOLD 01  ACCEPTED (rc=0)  P1: M3a's REAL capture pair still passes under version 3 (10/7/3 and 11/8/3, compare rc 1)
+FOLD 02  ACCEPTED (rc=0)  P1: M3a's pair still passes assert_psym_cross_config on its own
+FOLD 03  REFUSED (rc=1)  P1: M3a's ONE declared shape (12/9/3 for BOTH configs) is still refused -- G5's own failure, reproduced
+          ASSERT FAIL P-SYM Release differing (declared): got '10', expected '12'
+ASSERT FAIL P-SYM Release class A (declared): got '7', expected '9'
+FOLD 04  REFUSED (rc=1)  P1: PER-CONFIGURATION is still real: Release asserted with Debug's shape
+          ASSERT FAIL P-SYM Release differing (declared): got '10', expected '11'
+ASSERT FAIL P-SYM Release class A (declared): got '7', expected '8'
+FOLD 05  REFUSED (rc=1)  P1: PER-CONFIGURATION is still real, the other way
+          ASSERT FAIL P-SYM Debug differing (declared): got '11', expected '10'
+ASSERT FAIL P-SYM Debug class A (declared): got '8', expected '7'
+FOLD 06  REFUSED (rc=1)  P1: cross-config clause 1 -- the two class B sets are NOT equal
+          ASSERT FAIL P-SYM cross-config: the class B sets differ (Release '<' vs Debug '>'):
+FOLD 07  REFUSED (rc=1)  P1: cross-config clause 2 -- one UNEXPLAINED object in the RELEASE classification
+          ASSERT FAIL P-SYM Release unexplained: got '1', expected '0'
+ASSERT FAIL P-SYM cross-config: Release unexplained count '1', list:
+FOLD 08  REFUSED (rc=1)  P1: cross-config clause 2 -- one UNEXPLAINED object in the DEBUG classification
+          ASSERT FAIL P-SYM Debug unexplained: got '1', expected '0'
+ASSERT FAIL P-SYM cross-config: Debug unexplained count '1', list:
+FOLD 09  REFUSED (rc=1)  P1: cross-config clause 2, isolated
+          ASSERT FAIL P-SYM cross-config: Release unexplained count '1', list:
+FOLD 10  REFUSED (rc=1)  P1: cross-config clauses 3+4 -- class A differs on an object whose SOURCE that round did not change
+          ASSERT FAIL P-SYM cross-config: Debug class A names 'CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o', whose source
+ASSERT FAIL P-SYM cross-config: class A differs on 'CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o', whose source this round
+FOLD 11  REFUSED (rc=1)  P1: the same stray class A object end to end, with the per-config shape declared to match it
+          ASSERT FAIL P-SYM cross-config: Debug class A names 'CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o', whose source
+ASSERT FAIL P-SYM cross-config: class A differs on 'CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o', whose source this round
+FOLD 12  REFUSED (rc=1)  P1: an EMPTY changed-source list
+          ASSERT FAIL P-SYM cross-config: the changed-source list is EMPTY -- the 
+FOLD 13  REFUSED (rc=1)  P1: a classification file that does not exist
+          ASSERT FAIL P-SYM Release: /tmp/m3b-psymfold-mFmYe6/no-such-file.txt is missing or empty
+ASSERT FAIL P-SYM cross-config: one of the two classifications is missing or empty
+FOLD 14  REFUSED (rc=1)  P1: an EMPTY classification file
+          ASSERT FAIL P-SYM Debug: /tmp/m3b-psymfold-mFmYe6/empty.txt is missing or empty
+ASSERT FAIL P-SYM cross-config: one of the two classifications is missing or empty
+FOLD 15  REFUSED (rc=1)  P1: a classification missing one of its five counts
+          ASSERT FAIL P-SYM Release: the classification is missing one of its five counts
+ASSERT FAIL P-SYM cross-config: Release carries no UNEXPLAINED count
+FOLD 16  REFUSED (rc=1)  P1: a negative control of 0
+          ASSERT FAIL P-SYM Release negative control: got '0', expected >= 1
+
+== PART 2 -- THIS ROUND'S ZERO-MOVER SHAPE ==============================
+   /home/ghecht/Projects/hven/.scratch/m7w2m3b/derive/classification-Release.txt
+     sha256 2caf9f8eb09ce71bb146ecf7f0f193c417d6ac36ad0647f01ae65c2591706863
+   /home/ghecht/Projects/hven/.scratch/m7w2m3b/derive/classification-Debug.txt
+     sha256 2caf9f8eb09ce71bb146ecf7f0f193c417d6ac36ad0647f01ae65c2591706863
+   this round's changed sources, from git: src/qp/qp_engine.cpp tests/CMakeLists.txt tests/qp/test_qp_walk_seam.cpp 
+
+FOLD 17  ACCEPTED (rc=0)  P2: THIS round's REAL zero-mover pair passes (0/0/0 both configs, compare rc 0)
+FOLD 18  ACCEPTED (rc=0)  P2: the zero-mover pair passes assert_psym_cross_config on its own (empty class A and class B sets)
+FOLD 19  REFUSED (rc=1)  P2: CONTRAST -- version 2's assert_psym refuses this round's REAL, CORRECT zero-mover pair
+          ASSERT FAIL P-SYM Release compare rc: got '0', expected '1'
+ASSERT FAIL P-SYM Release differing: got '0', expected >= 1
+FOLD 20  REFUSED (rc=1)  P2: a declared 0 with compare rc 1 -- the comparison found something the declaration denies
+          ASSERT FAIL P-SYM Release compare rc (declared 0 mover(s)): got '1', expected '0'
+ASSERT FAIL P-SYM Debug compare rc (declared 0 mover(s)): got '1', expected '0'
+FOLD 21  REFUSED (rc=1)  P2: a declared 0 with compare rc 1 in DEBUG only
+          ASSERT FAIL P-SYM Debug compare rc (declared 0 mover(s)): got '1', expected '0'
+FOLD 22  REFUSED (rc=1)  P2: ONE real mover in Release against a declared 0 -- the claim this task makes, falsified
+          ASSERT FAIL P-SYM Release differing (declared): got '1', expected '0'
+ASSERT FAIL P-SYM Release class A (declared): got '1', expected '0'
+FOLD 23  REFUSED (rc=1)  P2: the same mover in DEBUG against a declared 0
+          ASSERT FAIL P-SYM Debug differing (declared): got '1', expected '0'
+ASSERT FAIL P-SYM Debug class A (declared): got '1', expected '0'
+FOLD 24  REFUSED (rc=1)  P2: the mover DECLARED (1/1/0) but compare rc still 0 -- a mover with a PASS is a contradiction
+          ASSERT FAIL P-SYM Release compare rc (declared 1 mover(s)): got '0', expected '1'
+FOLD 25  REFUSED (rc=1)  P2: a ZERO declaration with a ZERO negative control -- nothing was compared, and 0 movers means nothing
+          ASSERT FAIL P-SYM Release negative control: got '0', expected >= 1
+FOLD 26  REFUSED (rc=1)  P2: an UNEXPLAINED object beside a declared 0
+          ASSERT FAIL P-SYM Release unexplained: got '1', expected '0'
+ASSERT FAIL P-SYM cross-config: Release unexplained count '1', list:
+FOLD 27  REFUSED (rc=1)  P2: an EMPTY classification file against a zero declaration
+          ASSERT FAIL P-SYM Debug: /tmp/m3b-psymfold-mFmYe6/empty2.txt is missing or empty
+ASSERT FAIL P-SYM cross-config: one of the two classifications is missing or empty
+FOLD 28  REFUSED (rc=1)  P2: a classification file that does not exist, against a zero declaration
+          ASSERT FAIL P-SYM Release: /tmp/m3b-psymfold-mFmYe6/no-such-file-2.txt is missing or empty
+ASSERT FAIL P-SYM cross-config: one of the two classifications is missing or empty
+
+== PART 3 -- THE CLASSIFIER =============================================
+   /home/ghecht/Projects/hven/.scratch/m7w2m3b/derive/compare-Release.txt
+     sha256 bc23fd47894dd53549268c31df216de7ca13c637b0e9e05772b7e166e788ac92
+   this round's changed headers, from git: include/hven/detail/qp/qp_engine.h include/hven/detail/qp/qp_walk_trace.h 
+
+FOLD 29  ACCEPTED (rc=0)  P3: the REAL comparison classifies clean against --expect-differing 0
+FOLD 30  REFUSED (rc=4)  P3: the same comparison against --expect-differing 1 (R2) -- a declared count that is not the measured one
+          REFUSED (R2): /home/ghecht/Projects/hven/.scratch/m7w2m3b/derive/compare-Release.txt names 0 differing object(s) and this round DECLARED 1 -- a shape that is not the declared one is re-derived and declared again, never discovered
+FOLD 31  REFUSED (rc=4)  P3: THE REGISTERED DEFECT -- a NOISE-ONLY object with a RELOCATIONS line is now HARVESTED, so a declared 0 fails
+          REFUSED (R2): /tmp/m3b-psymfold-mFmYe6/cmp-reloc.txt names 1 differing object(s) and this round DECLARED 0 -- a shape that is not the declared one is re-derived and declared again, never discovered
+FOLD 32  ACCEPTED (rc=0)  P3: and declaring that one mover accepts it -- the harvest counts it as exactly one object, not two, and classifies it
+FOLD 33  ACCEPTED (rc=0)  P3: CONTRAST -- M3a's classifier reports NO differing object on that same file; this round's reports exactly one
+FOLD 34  REFUSED (rc=3)  P3: R1 -- a comparison with no 'P-SYM: ' summary line
+          REFUSED (R1): /tmp/m3b-psymfold-mFmYe6/cmp-empty.txt carries no `P-SYM: ` summary line -- the comparison is empty or malformed, and a classification of nothing is not a pass
+FOLD 35  REFUSED (rc=3)  P3: a comparison file that does not exist
+          REFUSED: no comparison file at /tmp/m3b-psymfold-mFmYe6/no-such-compare.txt
+FOLD 36  REFUSED (rc=2)  P3: a changed-header list that disagrees with the classifier's own declared list
+          REFUSED: the round's changed-header list is ['include/hven/core/types.h'] but this script declares ['include/hven/detail/qp/qp_engine.h', 'include/hven/detail/qp/qp_walk_trace.h']
+FOLD 37  REFUSED (rc=5)  P3: an impossible negative-control floor -- 0 movers with a control below the floor explains nothing
+          REFUSED (R3): the negative control is 72 (< 100000) -- the differing set is 'everything that sees the header' and this classification explains nothing
+
+PSYM_FOLD_PROOFS_M3B_TOTAL=37  PSYM_FOLD_PROOFS_M3B_FAILED=0
+PSYM_FOLD_PROOFS_M3B_END 2026-09-21T12:50:40-04:00

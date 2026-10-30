@@ -1,0 +1,13 @@
+diff --git a/src/qp/ipqp_engine.cpp b/src/qp/ipqp_engine.cpp
+index ccd5db27..f08022d5 100644
+--- a/src/qp/ipqp_engine.cpp
++++ b/src/qp/ipqp_engine.cpp
+@@ -1727,7 +1727,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
+     auto ladder_trial = [&]() {
+         double trial = 0.0;
+         if (skip_licensed()) {
+-            trial = std::max(iopts.ipqp_reg_floor, rho_dem_last / detail::kIpqpLadderDown);
++            trial = std::max(iopts.ipqp_reg_floor, rho_dem_last); // PROBE P-U
+         }
+         if (evidence_failed) {
+             trial =

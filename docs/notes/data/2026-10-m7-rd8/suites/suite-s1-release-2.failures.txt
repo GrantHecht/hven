@@ -1,0 +1,8 @@
+tests/sqp/test_elastic_witness_start.cpp:153: Failure
+Expected: (before.counters.rank_repairs) >= (1), actual: 0 vs 1
+
+[  FAILED  ] SqpElasticWitnessStart.YorknetMajor0RungSolvesFromItsWitness (1510 ms)
+[----------] 1 test from SqpElasticWitnessStart (1510 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (1510 ms total)

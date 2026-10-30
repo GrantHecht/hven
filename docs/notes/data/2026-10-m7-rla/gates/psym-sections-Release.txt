@@ -1,0 +1,13 @@
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/core/ledger.cpp.o  sections=[.text]
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o  sections=[SECTION-COUNT(866->869)]
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/globalization/sqp/mixed_lift.cpp.o  sections=[.text,.text._ZN4hven7solvers10QpSolutionC2ERKS1_,.text._ZN4hven7solvers10QpSolutionD2Ev]
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/globalization/sqp/qn_lift_bridge.cpp.o  sections=[.eh_frame,.text,.text._ZN4hven7solvers10QpSolutionaSEOS1_,.text._ZN4hven7solvers10QpSolutionC2ERKS1_,.text._ZN4hven7solvers10QpSolutionD2Ev]
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o  sections=[.text,.text._ZN4hven7solvers10QpSolutionD2Ev]
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o  sections=[.eh_frame,.rela.text._ZNSt6vectorIN4hven7solvers11SolveRecordESaIS2_EE17_M_realloc_appendIJS2_EEEvDpOT_,.text,.text._ZNSt6vectorIN4hven7solvers11SolveRecordESaIS2_EE17_M_realloc_appendIJS2_EEEvDpOT_]
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o  sections=[SECTION-COUNT(931->944)]
+SECTIONS_Release_OBJECTS=48
+SECTIONS_Release_BYTE_IDENTICAL=41
+SECTIONS_Release_DEBUG_ONLY=0
+SECTIONS_Release_NON_DEBUG_MOVERS=7
+SECTIONS_Release_REFUSED=0
+SECTIONS_Release_RC=1

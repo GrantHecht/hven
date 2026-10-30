@@ -1742,7 +1742,22 @@ TEST(IpmSolverEntry, AConvergedSolveRecordsNoStopReason) {
 // fix round's search budget; the verdict's per-CALL lifetime is registered for
 // T8.4's per-phase results.
 TEST(IpmSolverEntry, AMultiPhaseCapIsLabelledByThePhaseThatHitIt) {
-    constexpr int kCap = 10;
+    // RE-DERIVED at M7 W2 D1 (2026-09-18), the declared IPM-default event: the
+    // cap was 10, and it is 7. Nothing about the MECHANISM moved -- a cap is
+    // still labelled by the phase that hit it -- but the cap is an instrument,
+    // and it has to be tuned to the trajectory it is measuring. Under the old
+    // default (classic merit over the free-only governor) this HS071 pair ran
+    // kSolve to terminal index 8-or-less and kOptimize past 9, so 10 stopped
+    // the optimality phase and nothing else. Under the shipped default (filter
+    // over the monitored governor) the same pair runs to terminal indices 5 and
+    // 7, measured uncapped, so a cap of 10 stopped neither phase and this test
+    // was asserting a verdict the solve no longer reached.
+    //
+    // 7 is the ONLY value that works, and the two conditions that pin it are
+    // the two assertions below: the cap must be <= 7 for the optimality phase
+    // to run out (it converges AT index 7), and > 6 for the feasibility phase
+    // to end on its own verdict at index 5 with room to spare.
+    constexpr int kCap = 7;
     const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
     hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
@@ -1982,6 +1997,28 @@ void expect_reaches_the_known_optimum(const VariantRun &run, const char *what) {
     EXPECT_FALSE(run.objective_trace.empty()) << what;
 }
 
+// THE PRE-EVENT GLOBALIZATION PAIR (M7 W2 D1, 2026-09-18), for the two
+// opt_ls_mode variant tests below and for nothing else in this file.
+//
+// opt_ls_mode selects WITHIN the classic-merit line-search family: it is read
+// only on the path the classic merit acceptance strategy drives. The shipped
+// default is `filter` over the monitored governor, under which no classic
+// ladder runs and the option selects nothing -- the two arms then come back
+// with byte-identical objective traces, and the tests' own failure message
+// said exactly that: "the option selected nothing". That is not a defect in the
+// option; it is a fixture asking a question that only has an answer under the
+// acceptance strategy the option belongs to.
+//
+// So both arms of each comparison pin classic_merit over classic_adaptive --
+// the pre-event default pair, and ipm_preset("classic")'s values for these two
+// fields -- and the comparison stays a comparison of line searches. Written on
+// BOTH arms deliberately: pinning only the variant would make the test compare
+// two different acceptance strategies and pass for the wrong reason.
+void pin_pre_d1_globalization(hven::solvers::IpmOptions &o) {
+    o.acceptance_strategy = hven::solvers::AcceptanceStrategies::classic_merit;
+    o.barrier_governor = hven::solvers::BarrierGovernors::classic_adaptive;
+}
+
 } // namespace
 } // namespace ipm_option_variants
 
@@ -1989,9 +2026,12 @@ void expect_reaches_the_known_optimum(const VariantRun &run, const char *what) {
 // opt_ls_mode, never by a default: the shipped default is kAugLang.
 TEST(IpmSolverEntry, TheLagrangianMeritLineSearchSolvesHs071OnItsOwnTrajectory) {
     using hven::solvers::LineSearchModes;
-    const auto base = ipm_option_variants::run_hs071([](hven::solvers::IpmOptions &) {});
-    const auto lang = ipm_option_variants::run_hs071(
-        [](hven::solvers::IpmOptions &o) { o.opt_ls_mode = LineSearchModes::kLang; });
+    const auto base = ipm_option_variants::run_hs071(
+        [](hven::solvers::IpmOptions &o) { ipm_option_variants::pin_pre_d1_globalization(o); });
+    const auto lang = ipm_option_variants::run_hs071([](hven::solvers::IpmOptions &o) {
+        ipm_option_variants::pin_pre_d1_globalization(o);
+        o.opt_ls_mode = LineSearchModes::kLang;
+    });
 
     ipm_option_variants::expect_reaches_the_known_optimum(base, "the default (kAugLang) arm");
     ipm_option_variants::expect_reaches_the_known_optimum(lang, "the kLang arm");
@@ -2004,9 +2044,12 @@ TEST(IpmSolverEntry, TheLagrangianMeritLineSearchSolvesHs071OnItsOwnTrajectory) 
 // same cold run.
 TEST(IpmSolverEntry, TheL1MeritLineSearchSolvesHs071OnItsOwnTrajectory) {
     using hven::solvers::LineSearchModes;
-    const auto base = ipm_option_variants::run_hs071([](hven::solvers::IpmOptions &) {});
-    const auto l1 = ipm_option_variants::run_hs071(
-        [](hven::solvers::IpmOptions &o) { o.opt_ls_mode = LineSearchModes::kL1; });
+    const auto base = ipm_option_variants::run_hs071(
+        [](hven::solvers::IpmOptions &o) { ipm_option_variants::pin_pre_d1_globalization(o); });
+    const auto l1 = ipm_option_variants::run_hs071([](hven::solvers::IpmOptions &o) {
+        ipm_option_variants::pin_pre_d1_globalization(o);
+        o.opt_ls_mode = LineSearchModes::kL1;
+    });
 
     ipm_option_variants::expect_reaches_the_known_optimum(l1, "the kL1 arm");
     EXPECT_NE(l1.objective_trace, base.objective_trace)
@@ -2032,4 +2075,134 @@ TEST(IpmSolverEntry, TheProbeBarrierOracleSolvesHs071OnItsOwnBarrierSchedule) {
     EXPECT_NE(probe.mu_trace, loqo.mu_trace)
         << "opt_bar_mode = kProbe produced the LOQO barrier schedule, so the option selected "
            "nothing";
+}
+
+// ===========================================================================
+// M7 W2 M4 -- THE IPM TWIN OF THE SQP ENGINE'S START-POINT PROJECTION
+// ===========================================================================
+//
+// THE QUESTION M4 HAD TO ANSWER, and the answer: does the interior-point
+// engine's initial push already guarantee an out-of-box `x0` reaches the first
+// evaluation INSIDE the declared box? It does, and this is the test that says
+// so rather than the reading of the source that suggested it.
+//
+// The mechanism is `IpmSolver::push_initial_point_interior`
+// (src/drivers/ipm_solver.cpp), which runs once per solve, after the gather and
+// BEFORE any evaluation, and whose own comment states the contract this pins:
+// "A guess sitting on or outside a bound is projected, not rejected."
+//
+// WHY THE MODEL IS NaN OUTSIDE ITS BOX. A test that merely started outside the
+// bounds on an everywhere-evaluable model could not tell a push that happened
+// from one that did not. Here `f` and `g` are NaN at the declared start point --
+// the property is asserted below, on the model itself -- so reaching `kOptimal`
+// at all is only possible if the point was moved before the first evaluation.
+//
+// THE COUNTER TWIN IS REGISTERED, NOT BUILT. Because the push already handles
+// the case, there is nothing for an IPM toggle to switch, and `IpmResult` gains
+// no field at M4. If one is ever built it takes `SqpCounters::start_point_clamps`'
+// own definition -- components STRICTLY OUTSIDE the box at entry -- and NOT
+// "components the push moved", which on this engine is every bounded coordinate
+// that was not already at least `bound_push` inside.
+namespace {
+
+// min -sqrt(x0) - sqrt(x1) s.t. x0 + x1 = 6, 1 <= x <= 5. Convex on the box;
+// minimizer (3, 3), f* = -2*sqrt(3). NaN at any negative coordinate.
+struct BoxedSqrtProblem : NlpTripletModel {
+    int num_vars() const override { return 2; }
+    int num_cons() const override { return 1; }
+    int num_jac_nonzeros() const override { return 2; }
+    int num_hess_nonzeros() const override { return 2; }
+
+    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
+                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+        xl << 1.0, 1.0;
+        xu << 5.0, 5.0;
+        gl << 6.0;
+        gu << 6.0;
+    }
+    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+        f = -std::sqrt(x[0]) - std::sqrt(x[1]);
+    }
+    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
+                     Eigen::Ref<Eigen::VectorXd> g) const override {
+        g[0] = -0.5 / std::sqrt(x[0]);
+        g[1] = -0.5 / std::sqrt(x[1]);
+    }
+    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
+        g[0] = x[0] + x[1];
+    }
+    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
+                       Eigen::Ref<Eigen::VectorXi> c) const override {
+        r << 0, 0;
+        c << 0, 1;
+    }
+    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
+                        Eigen::Ref<Eigen::VectorXi> c) const override {
+        r << 0, 1;
+        c << 0, 1;
+    }
+    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+        v[0] = 1.0;
+        v[1] = 1.0;
+    }
+    void eval_hess(ConstEigenRef<Eigen::VectorXd> x, double obj_factor,
+                   ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+        v[0] = obj_factor * 0.25 * std::pow(x[0], -1.5);
+        v[1] = obj_factor * 0.25 * std::pow(x[1], -1.5);
+    }
+    std::string name() const override { return "BoxedSqrtProblem"; }
+};
+
+} // namespace
+
+TEST(IpmSolverEntry, AnOutOfBoxStartPointIsPushedInteriorBeforeTheFirstEvaluation) {
+    const auto problem = std::make_shared<BoxedSqrtProblem>();
+
+    // THE PREMISE, asserted rather than assumed: the model cannot be evaluated
+    // at the start point this test hands the engine.
+    Eigen::VectorXd x0(2);
+    x0 << -1.0, -1.0;
+    double f_at_x0 = 0.0;
+    problem->eval_f(x0, f_at_x0);
+    ASSERT_TRUE(std::isnan(f_at_x0))
+        << "the fixture must be un-evaluable at x0, or this test cannot tell a push that "
+           "happened from one that did not";
+
+    const auto program = hven::solvers::make_nlp_program(problem);
+    hven::solvers::IpmSolver solver;
+    {
+        auto o = solver.options();
+        o.common.print_level = 10;
+        solver.set_options(std::move(o));
+    }
+    const hven::solvers::IpmResult result = solver.solve(*program, x0);
+
+    EXPECT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    EXPECT_TRUE(std::isfinite(result.f));
+    EXPECT_NEAR(result.f, -2.0 * std::sqrt(3.0), 1e-6);
+    EXPECT_NEAR(result.x[0], 3.0, 1e-5);
+    EXPECT_NEAR(result.x[1], 3.0, 1e-5);
+    // AND THE POINT IS STRICTLY INSIDE, not merely on the bound: the push moves
+    // by bound_push, so no barrier term divides by zero at the first iterate.
+    EXPECT_GT(result.x[0], 1.0);
+    EXPECT_LT(result.x[0], 5.0);
+}
+
+TEST(IpmSolverEntry, AnInBoxStartPointIsUnchangedByTheSameSolve) {
+    // The other half of the claim: the push is not a repair that only an
+    // out-of-box caller triggers, so an in-box start reaches the same answer.
+    const auto problem = std::make_shared<BoxedSqrtProblem>();
+    const auto program = hven::solvers::make_nlp_program(problem);
+    hven::solvers::IpmSolver solver;
+    {
+        auto o = solver.options();
+        o.common.print_level = 10;
+        solver.set_options(std::move(o));
+    }
+    Eigen::VectorXd x0(2);
+    x0 << 2.0, 4.0;
+    const hven::solvers::IpmResult result = solver.solve(*program, x0);
+
+    EXPECT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    EXPECT_NEAR(result.f, -2.0 * std::sqrt(3.0), 1e-6);
 }

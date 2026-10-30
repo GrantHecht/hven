@@ -1,0 +1,20 @@
+minors     0-   99 ws    1->1424 obj +0.000000e+00 -> -6.840466e+03 deg   0 facts  119 | repair:1 unset:99 | border:1 elimL:99
+minors   100-  199 ws 1424->1324 obj -6.840466e+03 -> -6.840466e+03 deg   0 facts  100 | unset:100 | elimL:100
+minors   200-  299 ws 1324->1224 obj -6.840466e+03 -> -6.840466e+03 deg   0 facts  100 | unset:100 | elimL:100
+minors   300-  399 ws 1224->1124 obj -6.840466e+03 -> -6.840466e+03 deg   0 facts  100 | unset:100 | elimL:100
+minors   400-  499 ws 1124->1024 obj -6.840466e+03 -> -6.840466e+03 deg   0 facts  100 | unset:100 | elimL:100
+minors   500-  599 ws 1024->1002 obj -6.840466e+03 -> -3.038187e+03 deg  35 facts  101 | add:77 suspEsc:1 unset:22 | elim:1 elimL:99
+minors   600-  699 ws 1002->1002 obj -3.032385e+03 -> -1.785149e+03 deg   0 facts  102 | add:98 suspEsc:2 | elim:2 elimL:98
+minors   700-  799 ws 1002->1002 obj -1.754238e+03 -> -1.314910e+03 deg   0 facts  100 | add:100 | elimL:100
+minors   800-  899 ws 1002->1002 obj -1.314909e+03 -> -1.289833e+03 deg   7 facts  100 | add:100 | elimL:100
+minors   900-  999 ws 1002->1002 obj -1.289833e+03 -> -1.187743e+03 deg  31 facts  100 | add:100 | elimL:100
+minors  1000- 1099 ws 1002->1002 obj -1.187743e+03 -> -1.125423e+03 deg  50 facts  100 | add:100 | elimL:100
+minors  1100- 1199 ws 1002->1002 obj -1.125423e+03 -> -9.407468e+02 deg  25 facts  100 | add:100 | elimL:100
+minors  1200- 1299 ws 1002->1002 obj -9.341961e+02 -> -6.868125e+02 deg  20 facts  100 | add:100 | elimL:100
+minors  1300- 1399 ws 1002->1002 obj -6.862655e+02 -> -6.081870e+02 deg  40 facts  100 | add:100 | elimL:100
+minors  1400- 1499 ws 1002->1001 obj -6.081870e+02 -> -3.543666e+02 deg  18 facts  100 | add:97 dropD:1 move:2 | elimL:100
+minors  1500- 1599 ws 1001->1001 obj -3.543688e+02 -> -3.971170e+02 deg   0 facts  100 | dropD:49 move:2 rideStep:7 rideUndone:42 | elimL:100
+minors  1600- 1699 ws 1001->1001 obj -3.971170e+02 -> -4.594421e+02 deg   0 facts  100 | dropD:50 rideStep:5 rideUndone:45 | elimL:100
+minors  1700- 1799 ws 1001->1001 obj -4.594421e+02 -> -4.938320e+02 deg   0 facts  100 | dropD:50 rideStep:3 rideUndone:47 | elimL:100
+minors  1800- 1899 ws 1001->1001 obj -4.938320e+02 -> -5.397463e+02 deg   0 facts  100 | dropD:50 rideStep:3 rideUndone:47 | elimL:100
+minors  1900- 1999 ws 1001->1001 obj -5.397463e+02 -> -5.912493e+02 deg   0 facts  100 | dropD:50 rideStep:4 rideUndone:46 | elimL:100

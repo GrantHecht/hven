@@ -1,0 +1,19 @@
+import sys, numpy as np
+sys.path.insert(0, sys.path[0]); from rank import *
+D = sys.argv[1]
+qp = load_qp(D + '/qp_001.txt')
+def spec(M):
+    nr = np.linalg.norm(M, axis=1); nr[nr == 0] = 1
+    s = np.linalg.svd(M / nr[:, None], compute_uv=False)
+    return s
+x, bs, W = load_ws(D + '/ws_001_0214.txt')
+free = bs == 0
+sAe = spec(qp['Ae'][:, free]); print('Ae|free', qp['Ae'][:, free].shape, 'n sv<1e-8:', (sAe < 1e-8).sum(), 'smallest above:', np.sort(sAe[sAe>=1e-8])[:4])
+sAeAll = spec(qp['Ae']); print('Ae (all cols)', 'n sv<1e-8:', (sAeAll < 1e-8).sum(), np.sort(sAeAll)[:4])
+for lab, b in (('213', '0213'), ('214', '0214')):
+    x, bs, W = load_ws(D + '/ws_001_%s.txt' % b); free = bs == 0
+    M = np.vstack([qp['Ae'], qp['Ai'][W]])[:, free]
+    s = spec(M); print(lab, M.shape, 'n sv<1e-8:', (s < 1e-8).sum(), 'next:', np.sort(s[s>=1e-8])[:4])
+    # the full (unrestricted) system [Ae; Ai_W; E_pins]
+    P = np.eye(qp['n'])[~free]
+    s2 = spec(np.vstack([qp['Ae'], qp['Ai'][W], P])); print('   [rows;pins] n sv<1e-8:', (s2 < 1e-8).sum(), 'next:', np.sort(s2[s2>=1e-8])[:4])

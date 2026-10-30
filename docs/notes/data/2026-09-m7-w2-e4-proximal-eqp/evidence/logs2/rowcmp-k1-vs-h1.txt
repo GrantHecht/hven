@@ -1,0 +1,105 @@
+## border   (h1: 51 rows, missing [])  (k1: 51 rows, missing [])
+  A0_YORKNET/qp1 [num->opt]: status: 3 -> 0; minors: 329 -> 717; facts: 598 -> 1012; f: -20963.0904636 -> -21156.1786123; eq: 4.37e-01 -> 1.97e-13; box: 1.55e-15 -> 2.22e-16; stat: 1.00e+00 -> 5.23e-17; comp: 6.60e-01 -> 0.00e+00; blk: 1 -> 0; undec: 3 -> 0; deferred: 2 -> 0; grey: 21 -> 28; residiters: 10 -> 5; eqviol: 2 -> 0; drift: ABSENT -> 1
+  A0_YORKNET/qp2 [opt->opt]: drift: ABSENT -> 0
+  A0_YORKNET/qp3 [opt->opt]: minors: 683 -> 689; facts: 1015 -> 1021; eq: 8.86e-14 -> 5.12e-14; box: 6.55e-17 -> 8.54e-17; comp: 8.33e-20 -> 0.00e+00; exch: 19 -> 21; rideblk: 1 -> 3; rexch: 1 -> 3; refuse: 3 -> 2; residiters: 4 -> 5; drift: ABSENT -> 1
+  A0_YORKNET/qp4 [opt->opt]: minors: 695 -> 683; facts: 1005 -> 993; f: -5840.56376511 -> -5840.56376506; box: 5.55e-17 -> 8.47e-17; stat: 1.70e-10 -> 4.11e-10; exch: 26 -> 30; stall_admits: 37 -> 21; rideblk: 8 -> 7; rexch: 8 -> 7; undo: 7 -> 0; refuse: 3 -> 1; residiters: 12 -> 3; eqviol: 5 -> 0; drift: ABSENT -> 2
+  A0_YORKNET/qp5 [opt->opt]: eq: 2.10e-14 -> 1.07e-14; box: 2.78e-17 -> 2.57e-18; drift: ABSENT -> 0
+  A0_YORKNET/qp6 [opt->opt]: minors: 712 -> 700; facts: 1062 -> 1050; box: 1.00e-21 -> 4.16e-17; exch: 38 -> 37; stall_admits: 33 -> 32; undo: 2 -> 1; refuse: 3 -> 1; residiters: 5 -> 3; eqviol: 2 -> 0; drift: ABSENT -> 2
+  ACOPP57_def/qp0 [opt->opt]: drift: ABSENT -> 0
+  ACOPP57_def/qp1 [opt->opt]: drift: ABSENT -> 0
+  ACOPP57_def/qp2 [opt->opt]: drift: ABSENT -> 0
+  ACOPP57_def/qp3 [opt->opt]: drift: ABSENT -> 0
+  ACOPR57_def/qp0 [opt->opt]: f: 432.660942518 -> 432.674974173; eq: 6.14e-07 -> 9.77e-15; in: 3.07e-07 -> 2.22e-16; stat: 1.29e-14 -> 1.76e-14; comp: 7.42e-08 -> 8.48e-17; drift: ABSENT -> 0
+  ACOPR57_def/qp1 [opt->opt]: drift: ABSENT -> 0
+  ACOPR57_def/qp2 [num->num]: drift: ABSENT -> 0
+  ACOPR57_def/qp3 [opt->opt]: drift: ABSENT -> 0
+  ACOPR57_def/qp4 [opt->opt]: drift: ABSENT -> 0
+  ACOPR57_def/qp5 [cap->cap]: drift: ABSENT -> 0
+  ACOPR57_def/qp6 [num->num]: drift: ABSENT -> 0
+  ACOPR57_def/qp7 [cap->cap]: drift: ABSENT -> 0
+  ACOPR57_def/qp8 [num->num]: drift: ABSENT -> 0
+  Cs_STEENBRB/qp1 [opt->opt]: drift: ABSENT -> 0
+  Cs_STEENBRB/qp2 [opt->opt]: drift: ABSENT -> 0
+  Cs_STEENBRB/qp3 [opt->opt]: drift: ABSENT -> 0
+  Cs_STEENBRB/qp4 [opt->opt]: drift: ABSENT -> 0
+  Cs_STEENBRB/qp5 [opt->opt]: drift: ABSENT -> 0
+  Cs_STEENBRB/qp6 [opt->opt]: drift: ABSENT -> 0
+  DALLASM_def/qp0 [num->num]: drift: ABSENT -> 0
+  DALLASM_def/qp1 [num->num]: drift: ABSENT -> 0
+  DALLASM_def/qp2 [inf->inf]: drift: ABSENT -> 0
+  DALLASM_def/qp3 [num->num]: drift: ABSENT -> 0
+  DALLASM_f4/qp0 [num->num]: drift: ABSENT -> 0
+  DALLASM_f4/qp1 [num->num]: drift: ABSENT -> 0
+  DALLASM_f4/qp2 [opt->opt]: drift: ABSENT -> 0
+  DALLASM_f4/qp3 [opt->opt]: drift: ABSENT -> 0
+  Hj_STEENBRD/qp1 [num->num]: drift: ABSENT -> 0
+  Hj_STEENBRD/qp4 [opt->opt]: drift: ABSENT -> 0
+  Hj_STEENBRD/qp9 [num->num]: drift: ABSENT -> 0
+  R1_Cs_STEENBRB_qp3 [opt->opt]: drift: ABSENT -> 0
+  R1_Cs_STEENBRB_qp4 [opt->opt]: drift: ABSENT -> 0
+  R1_Cs_STEENBRB_qp5 [opt->opt]: drift: ABSENT -> 0
+  R1_Cs_STEENBRB_qp6 [opt->opt]: drift: ABSENT -> 0
+  READING6_def/qp0 [inf->inf]: drift: ABSENT -> 0
+  READING6_def/qp1 [inf->inf]: drift: ABSENT -> 0
+  SAWPATH_def/qp0 [num->num]: drift: ABSENT -> 0
+  SAWPATH_def/qp1 [cap->cap]: drift: ABSENT -> 0
+  SAWPATH_def/qp2 [num->num]: drift: ABSENT -> 0
+  STEENBRB_def/qp0 [opt->opt]: drift: ABSENT -> 0
+  STEENBRB_def/qp1 [num->num]: drift: ABSENT -> 0
+  STEENBRB_def/qp2 [num->num]: drift: ABSENT -> 0
+  STEENBRB_def/qp3 [num->num]: drift: ABSENT -> 0
+  YORKNET_def/qp0 [opt->opt]: drift: ABSENT -> 0
+  YORKNET_def/qp1 [opt->opt]: minors: 747 -> 742; facts: 765 -> 759; eq: 8.93e-14 -> 3.68e-13; box: 3.99e-17 -> 1.47e-16; stat: 2.30e-18 -> 5.74e-19; comp: 2.80e-22 -> 1.12e-21; exch: 505 -> 501; refuse: 2 -> 0; residiters: 5 -> 1; drift: ABSENT -> 1
+## refactorize   (h1: 51 rows, missing [])  (k1: 51 rows, missing [])
+  A0_YORKNET/qp1 [num->opt]: status: 3 -> 0; minors: 329 -> 717; facts: 595 -> 1008; f: -20963.0904636 -> -21156.1786123; eq: 4.37e-01 -> 1.97e-13; box: 1.55e-15 -> 2.22e-16; stat: 1.00e+00 -> 5.23e-17; comp: 6.60e-01 -> 0.00e+00; blk: 1 -> 0; undec: 3 -> 0; deferred: 2 -> 0; grey: 21 -> 28; residiters: 10 -> 5; eqviol: 2 -> 0; drift: ABSENT -> 1
+  A0_YORKNET/qp2 [opt->opt]: drift: ABSENT -> 0
+  A0_YORKNET/qp3 [opt->opt]: minors: 683 -> 689; facts: 1011 -> 1017; eq: 8.86e-14 -> 5.12e-14; box: 6.55e-17 -> 8.54e-17; comp: 8.33e-20 -> 0.00e+00; exch: 19 -> 21; rideblk: 1 -> 3; rexch: 1 -> 3; refuse: 3 -> 2; residiters: 4 -> 5; drift: ABSENT -> 1
+  A0_YORKNET/qp4 [opt->opt]: minors: 695 -> 683; facts: 1001 -> 989; f: -5840.56376511 -> -5840.56376506; box: 5.55e-17 -> 8.47e-17; stat: 1.70e-10 -> 4.11e-10; exch: 26 -> 30; stall_admits: 37 -> 21; rideblk: 8 -> 7; rexch: 8 -> 7; undo: 7 -> 0; refuse: 3 -> 1; residiters: 12 -> 3; eqviol: 5 -> 0; drift: ABSENT -> 2
+  A0_YORKNET/qp5 [opt->opt]: eq: 2.10e-14 -> 1.07e-14; box: 2.78e-17 -> 2.57e-18; drift: ABSENT -> 0
+  A0_YORKNET/qp6 [opt->opt]: minors: 712 -> 700; facts: 1058 -> 1046; box: 1.00e-21 -> 4.16e-17; exch: 38 -> 37; stall_admits: 33 -> 32; undo: 2 -> 1; refuse: 3 -> 1; residiters: 5 -> 3; eqviol: 2 -> 0; drift: ABSENT -> 2
+  ACOPP57_def/qp0 [opt->opt]: drift: ABSENT -> 0
+  ACOPP57_def/qp1 [opt->opt]: drift: ABSENT -> 0
+  ACOPP57_def/qp2 [opt->opt]: drift: ABSENT -> 0
+  ACOPP57_def/qp3 [opt->opt]: drift: ABSENT -> 0
+  ACOPR57_def/qp0 [opt->opt]: f: 432.660942518 -> 432.674974173; eq: 6.14e-07 -> 9.77e-15; in: 3.07e-07 -> 2.22e-16; stat: 1.29e-14 -> 1.76e-14; comp: 7.42e-08 -> 8.48e-17; drift: ABSENT -> 0
+  ACOPR57_def/qp1 [opt->opt]: drift: ABSENT -> 0
+  ACOPR57_def/qp2 [num->num]: drift: ABSENT -> 0
+  ACOPR57_def/qp3 [opt->opt]: drift: ABSENT -> 0
+  ACOPR57_def/qp4 [opt->opt]: drift: ABSENT -> 0
+  ACOPR57_def/qp5 [cap->cap]: drift: ABSENT -> 0
+  ACOPR57_def/qp6 [num->num]: drift: ABSENT -> 0
+  ACOPR57_def/qp7 [cap->cap]: drift: ABSENT -> 0
+  ACOPR57_def/qp8 [num->num]: drift: ABSENT -> 0
+  Cs_STEENBRB/qp1 [opt->opt]: drift: ABSENT -> 0
+  Cs_STEENBRB/qp2 [opt->opt]: drift: ABSENT -> 0
+  Cs_STEENBRB/qp3 [opt->opt]: drift: ABSENT -> 0
+  Cs_STEENBRB/qp4 [opt->opt]: drift: ABSENT -> 0
+  Cs_STEENBRB/qp5 [opt->opt]: drift: ABSENT -> 0
+  Cs_STEENBRB/qp6 [opt->opt]: drift: ABSENT -> 0
+  DALLASM_def/qp0 [num->num]: drift: ABSENT -> 0
+  DALLASM_def/qp1 [inf->inf]: drift: ABSENT -> 0
+  DALLASM_def/qp2 [num->num]: drift: ABSENT -> 0
+  DALLASM_def/qp3 [num->num]: drift: ABSENT -> 0
+  DALLASM_f4/qp0 [num->num]: drift: ABSENT -> 0
+  DALLASM_f4/qp1 [num->num]: drift: ABSENT -> 0
+  DALLASM_f4/qp2 [opt->opt]: drift: ABSENT -> 0
+  DALLASM_f4/qp3 [opt->opt]: drift: ABSENT -> 0
+  Hj_STEENBRD/qp1 [num->num]: drift: ABSENT -> 0
+  Hj_STEENBRD/qp4 [opt->opt]: drift: ABSENT -> 0
+  Hj_STEENBRD/qp9 [num->num]: drift: ABSENT -> 0
+  R1_Cs_STEENBRB_qp3 [opt->opt]: drift: ABSENT -> 0
+  R1_Cs_STEENBRB_qp4 [opt->opt]: drift: ABSENT -> 0
+  R1_Cs_STEENBRB_qp5 [opt->opt]: drift: ABSENT -> 0
+  R1_Cs_STEENBRB_qp6 [opt->opt]: drift: ABSENT -> 0
+  READING6_def/qp0 [inf->inf]: drift: ABSENT -> 0
+  READING6_def/qp1 [inf->inf]: drift: ABSENT -> 0
+  SAWPATH_def/qp0 [num->num]: drift: ABSENT -> 0
+  SAWPATH_def/qp1 [cap->cap]: drift: ABSENT -> 0
+  SAWPATH_def/qp2 [num->num]: drift: ABSENT -> 0
+  STEENBRB_def/qp0 [opt->opt]: drift: ABSENT -> 0
+  STEENBRB_def/qp1 [num->num]: drift: ABSENT -> 0
+  STEENBRB_def/qp2 [num->num]: drift: ABSENT -> 0
+  STEENBRB_def/qp3 [num->num]: drift: ABSENT -> 0
+  YORKNET_def/qp0 [opt->opt]: drift: ABSENT -> 0
+  YORKNET_def/qp1 [opt->opt]: minors: 747 -> 742; facts: 762 -> 757; eq: 8.93e-14 -> 3.68e-13; box: 3.99e-17 -> 1.47e-16; stat: 2.30e-18 -> 5.74e-19; comp: 2.80e-22 -> 1.12e-21; exch: 505 -> 501; refuse: 2 -> 0; residiters: 5 -> 1; drift: ABSENT -> 1
+TOTAL ROWS WITH ANY COLUMN CHANGE: 102

@@ -1,0 +1,74 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-release/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = E4Fix2Scratch.IndefiniteEqualityWalk
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from E4Fix2Scratch
+[ RUN      ] E4Fix2Scratch.IndefiniteEqualityWalk
+status=1 minors=500 records=500 x=(-0.318485930562,-0.181514061987,2)
+m=  0 act= 9 blk=2 idx= 0 sig_in=0000000000000000->910a2dec89025cc1 |W|=0->1 alpha=0.5 p_inf=4 dx=2 x_inf=0 x_l1=0 stat=4/3.5 actres=1 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=2 rowres=0
+m=  1 act= 9 blk=2 idx= 1 sig_in=910a2dec89025cc1->999140ab135a8c8b |W|=1->2 alpha=0.6 p_inf=0.4167 dx=0.25 x_inf=2 x_l1=4.5 stat=0.417/2.17 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=2 rowres=4.44e-16
+m=  2 act=10 blk=0 idx=-1 sig_in=999140ab135a8c8b->999140ab135a8c8b |W|=2->2 alpha=1 p_inf=0.2 dx=0.2 x_inf=2 x_l1=4.8 stat=0.4/2.5 actres=0.2 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=0 rowres=0
+m=  3 act= 3 blk=2 idx= 1 sig_in=999140ab135a8c8b->910a2dec89025cc1 |W|=2->1 alpha=nan p_inf=1.11e-16 dx=nan x_inf=2 x_l1=5 stat=0/2.5 actres=0 ride=0 ro=0 curv=0 php=nan dropmult=0.5/1e-09 cands=1 vd=0 rowres=2.22e-16
+m=  4 act= 7 blk=2 idx= 2 sig_in=910a2dec89025cc1->a22ae1bc92584cf3 |W|=1->2 alpha=6 p_inf=0.1667 dx=1 x_inf=2 x_l1=5 stat=0.333/2.17 actres=0 ride=1 ro=5 curv=1 php=-0.0833 dropmult=nan/nan cands=0 vd=2 rowres=2.22e-16
+m=  5 act= 3 blk=2 idx= 0 sig_in=a22ae1bc92584cf3->1120b3d00955f032 |W|=2->1 alpha=nan p_inf=2.665e-15 dx=nan x_inf=2 x_l1=5 stat=2.66e-15/4 actres=2.66e-15 ride=0 ro=0 curv=0 php=nan dropmult=0.5/1e-09 cands=1 vd=0 rowres=4.44e-16
+m=  6 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=1.636 dx=1.636 x_inf=2 x_l1=5 stat=1.64/4 actres=0 ride=0 ro=0 curv=0 php=1.39 dropmult=nan/nan cands=0 vd=1 rowres=5.49e-09
+m=  7 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.5003 dx=0.5003 x_inf=2 x_l1=2.5 stat=0.5/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=4.27e-09
+m=  8 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.7018 dx=0.7018 x_inf=2 x_l1=3.22795 stat=0.702/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=2.96e-09
+m=  9 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.2259 dx=0.2259 x_inf=2 x_l1=2.5 stat=0.226/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=3.68e-10
+m= 10 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.2694 dx=0.2694 x_inf=2 x_l1=2.62744 stat=0.269/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=9.79e-10
+m= 11 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.2529 dx=0.2529 x_inf=2 x_l1=2.5 stat=0.253/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=2.24e-09
+m= 12 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.7998 dx=0.7998 x_inf=2 x_l1=2.5 stat=0.8/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=2.52e-09
+m= 13 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=1.579 dx=1.579 x_inf=2 x_l1=4.01679 stat=1.58/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=1.65e-09
+m= 14 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=1.919 dx=1.919 x_inf=2 x_l1=3.14032 stat=1.92/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=4.94e-10
+m= 15 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=1.56 dx=1.56 x_inf=2 x_l1=4.69752 stat=1.56/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=3.87e-09
+m= 16 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=1.398 dx=1.398 x_inf=2 x_l1=2.5 stat=1.4/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=3.15e-10
+m= 17 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.3583 dx=0.3583 x_inf=2 x_l1=4.37412 stat=0.358/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=1.62e-09
+m= 18 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.1706 dx=0.1706 x_inf=2 x_l1=3.65749 stat=0.171/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=2.47e-09
+m= 19 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.9333 dx=0.9333 x_inf=2 x_l1=3.99864 stat=0.933/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=2.19e-09
+m= 20 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.02413 dx=0.02413 x_inf=2 x_l1=2.5 stat=0.0241/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=1.41e-09
+m= 21 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.2896 dx=0.2896 x_inf=2 x_l1=2.5 stat=0.29/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=3.79e-11
+m= 22 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.9956 dx=0.9956 x_inf=2 x_l1=2.5 stat=0.996/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=2.51e-09
+m= 23 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.7186 dx=0.7186 x_inf=2 x_l1=3.49582 stat=0.719/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=2.38e-09
+m= 24 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.4277 dx=0.4277 x_inf=2 x_l1=2.5 stat=0.428/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=7.91e-10
+m= 25 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.8286 dx=0.8286 x_inf=2 x_l1=2.7967 stat=0.829/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=4.1e-09
+m= 26 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.4874 dx=0.4874 x_inf=2 x_l1=2.86054 stat=0.487/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=9.15e-10
+m= 27 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.1121 dx=0.1121 x_inf=2 x_l1=2.5 stat=0.112/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=1.48e-09
+m= 28 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.1446 dx=0.1446 x_inf=2 x_l1=2.5 stat=0.145/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=7.53e-10
+m= 29 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.2456 dx=0.2456 x_inf=2 x_l1=2.5 stat=0.246/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=4.75e-10
+m= 30 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.03347 dx=0.03347 x_inf=2 x_l1=2.67034 stat=0.0335/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=3.08e-10
+m= 31 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=1.147 dx=1.147 x_inf=2 x_l1=2.6034 stat=1.15/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=5.75e-09
+m= 32 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.3493 dx=0.3493 x_inf=2 x_l1=3.68999 stat=0.349/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=3.45e-09
+m= 33 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.2789 dx=0.2789 x_inf=2 x_l1=4.38856 stat=0.279/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=2.05e-09
+m= 34 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.3786 dx=0.3786 x_inf=2 x_l1=3.83078 stat=0.379/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=2.2e-10
+m= 35 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.07256 dx=0.07256 x_inf=2 x_l1=4.58793 stat=0.0726/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=5.83e-10
+m= 36 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=1.364 dx=1.364 x_inf=2 x_l1=4.73304 stat=1.36/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=4.94e-09
+m= 37 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.01754 dx=0.01754 x_inf=2 x_l1=2.5 stat=0.0175/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=5.02e-09
+m= 38 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.5346 dx=0.5346 x_inf=2 x_l1=2.5 stat=0.535/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=1.37e-09
+m= 39 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.2905 dx=0.2905 x_inf=2 x_l1=3.03001 stat=0.29/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=3.8e-09
+TAIL:
+m=480 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.007344 dx=0.007344 x_inf=2 x_l1=2.5 stat=0.00734/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=9.04e-10
+m=481 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.08813 dx=0.08813 x_inf=2 x_l1=2.5 stat=0.0881/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=1.34e-09
+m=482 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.4325 dx=0.4325 x_inf=2 x_l1=2.5 stat=0.433/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=8.18e-10
+m=483 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.7703 dx=0.7703 x_inf=2 x_l1=2.80731 stat=0.77/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=3.03e-09
+m=484 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.4427 dx=0.4427 x_inf=2 x_l1=2.73319 stat=0.443/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=2.91e-09
+m=485 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.09749 dx=0.09749 x_inf=2 x_l1=2.5 stat=0.0975/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=3.32e-10
+m=486 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=1.065 dx=1.065 x_inf=2 x_l1=2.5 stat=1.07/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=1.93e-09
+m=487 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.6273 dx=0.6273 x_inf=2 x_l1=3.78336 stat=0.627/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=6.25e-09
+m=488 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.8216 dx=0.8216 x_inf=2 x_l1=2.52884 stat=0.822/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=1.59e-09
+m=489 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=1.316 dx=1.316 x_inf=2 x_l1=3.1144 stat=1.32/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=1.27e-09
+m=490 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=1.339 dx=1.339 x_inf=2 x_l1=3.51842 stat=1.34/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=5.75e-09
+m=491 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=1.809 dx=1.809 x_inf=2 x_l1=3.16038 stat=1.81/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=1.08e-10
+m=492 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.6481 dx=0.6481 x_inf=2 x_l1=4.45689 stat=0.648/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=4.1e-09
+m=493 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.418 dx=0.418 x_inf=2 x_l1=3.16061 stat=0.418/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=4.98e-09
+m=494 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.945 dx=0.945 x_inf=2 x_l1=3.99652 stat=0.945/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=2.26e-09
+m=495 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.1641 dx=0.1641 x_inf=2 x_l1=2.5 stat=0.164/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=6.47e-10
+m=496 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.4786 dx=0.4786 x_inf=2 x_l1=2.5 stat=0.479/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=5.7e-09
+m=497 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.9628 dx=0.9628 x_inf=2 x_l1=3.1787 stat=0.963/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=6.57e-10
+m=498 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.3673 dx=0.3673 x_inf=2 x_l1=2.7469 stat=0.367/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=4.96e-09
+m=499 act=10 blk=0 idx=-1 sig_in=1120b3d00955f032->1120b3d00955f032 |W|=1->1 alpha=1 p_inf=0.06237 dx=0.06237 x_inf=2 x_l1=2.5 stat=0.0624/4 actres=0.5 ride=0 ro=0 curv=0 php=nan dropmult=nan/nan cands=0 vd=1 rowres=2.18e-09
+[       OK ] E4Fix2Scratch.IndefiniteEqualityWalk (14 ms)
+[----------] 1 test from E4Fix2Scratch (14 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (14 ms total)
+[  PASSED  ] 1 test.

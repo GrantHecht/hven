@@ -4,6 +4,7 @@
 #include <cmath>
 #include <random>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -769,6 +770,31 @@ TEST(QpEngine, EqualityOutsideTheBoxIsInfeasible) {
     EXPECT_GT((qp.Ae * sol.x - qp.be).lpNorm<Eigen::Infinity>(), 1e-3);
 }
 
+// SDL-6: each kInfeasible above carries exactly one VERIFIED Farkas certificate -- the add site's
+// or the row half's. The two inconsistent pairs (interior least-squares point, no blocker) end
+// at the row half; the unbounded variant: A'y cancels to rounding on columns with no finite bound.
+TEST(QpEngine, RowHalfInfeasibleVerdictsCarryAVerifiedCertificate) {
+    QpProblem unbounded = inconsistent_equalities_qp();
+    unbounded.lower = Vec::Constant(2, -1e20);
+    unbounded.upper = Vec::Constant(2, 1e20);
+    const std::vector<std::pair<QpProblem, bool>> cases = {{infeasible_bounds_qp(), false},
+                                                           {infeasible_with_equality_qp(), false},
+                                                           {inconsistent_equalities_qp(), true},
+                                                           {equality_outside_box_qp(), false},
+                                                           {unbounded, true}};
+    for (const auto &[qp, terminal] : cases) {
+        const auto sol = QpEngine{QpOptions{}}.solve(qp);
+        EXPECT_EQ(sol.status, QpStatus::kInfeasible);
+        EXPECT_EQ(sol.counters.terminal_farkas_certificates +
+                      sol.counters.dep_infeasible_certificates,
+                  1);
+        if (terminal) {
+            EXPECT_EQ(sol.counters.terminal_farkas_certificates, 1);
+        }
+        EXPECT_EQ(sol.counters.certificate_row_refusals, 0);
+    }
+}
+
 TEST(QpEngine, UnboundedProblemIsReportedAsNumericalErrorNotOptimal) {
     // x0 runs to ~1/primal_delta: the regularization talking, not an optimum;
     // reporting kOptimal there would be a lie.
@@ -816,36 +842,60 @@ TEST(QpEngine, EffectivelyInfiniteBoundsStillDetectTheRunaway) {
     EXPECT_GT(std::abs(sol.x(0)), 1e7);
 }
 
-TEST(QpEngine, ObjectiveInflatedMultiplierHidesASmallContradiction) {
-    // KNOWN, OWNED LIMITATION -- this test pins CURRENT behavior, and the
-    // expected verdict on the a = 1e-3 row is WRONG in the mathematical sense.
-    //
+// The a = 1e-3 cell: kInfeasible by an EXACT Farkas certificate on the independent working
+// set (the default), and kOptimal -- wrong -- with the option off. Shared by the two tests below.
+namespace {
+void expect_objective_inflated_1e3_cell(const QpOptions &base) {
+    const QpSolution s = QpEngine{base}.solve(objective_inflated_lambda_qp(1e-3, 3e-4));
+    EXPECT_EQ(s.status, QpStatus::kInfeasible);
+    ASSERT_TRUE(s.farkas.present);
+    EXPECT_LE(s.farkas.residual, s.farkas.exact_tol);
+    EXPECT_GE(s.counters.dep_grey_reread_dependent, 1);
+    QpOptions off = base;
+    off.independent_working_set = false;
+    // The footprint miss, TRUSTWORTHY RANGE (ii): the violation route was kOptimal, which is
+    // wrong. The SDL sign half now reads the shifted row's wrong-signed multiplier and refuses.
+    EXPECT_EQ(QpEngine{off}.solve(objective_inflated_lambda_qp(1e-3, 3e-4)).status,
+              QpStatus::kNumericalError);
+}
+} // namespace
+
+TEST(QpEngine, ObjectiveInflatedMultiplierContradictionIsCertifiedOnTheIndependentWorkingSet) {
     // Both problems below are genuinely INFEASIBLE (an equality demanding
-    // a(x0+x1) = 1 alongside an inequality capping it at 1 - 3e-4). Detection
-    // rests on the violation reaching kStructuralResidualFrac of the
+    // a(x0+x1) = 1 alongside an inequality capping it at 1 - 3e-4). Detection BY
+    // THE VIOLATION rests on it reaching kStructuralResidualFrac of the
     // regularization footprint dual_mu*|lambda|. Here |lambda| is inflated by
     // the OBJECTIVE (it grows as 1/(2a^2) as the row is scaled down) while the
     // contradiction's gap stays fixed, so shrinking `a` inflates the footprint
     // out from under a fixed violation until the contradiction hides beneath
-    // it. This is the false-kOptimal direction of the kStructuralResidualFrac
-    // trade-off, and it is the exact mirror of the false-kInfeasible direction
-    // pinned by IllScaledFeasibleRowsAreNotDeclaredInfeasible.
+    // it: at a = 1e-3 the violation route reads kOptimal, which is WRONG. That
+    // is the false-kOptimal direction of the kStructuralResidualFrac trade-off
+    // (TRUSTWORTHY RANGE (ii) in qp_engine.h), the mirror of the
+    // false-kInfeasible direction pinned by IllScaledFeasibleRowsAreNotDeclaredInfeasible,
+    // and it is still what the walk returns with independent_working_set off.
     //
-    // Per the project spec the SQP driver is the second detection layer and
-    // restores this case; the engine does not pretend to catch it alone. See
-    // the TRUSTWORTHY RANGE note in qp_engine.h.
+    // On the independent working set (the default) the inequality row is an
+    // exact multiple of the equality. Its dependency test converges in the grey
+    // band (rho between kDepTol and kDepUndecidable: the objective-inflated
+    // multiplier's footprint, not a distance), and until E2 fix6 it was admitted
+    // as independent and the violation route decided. The grey re-read (R-E)
+    // runs the refinement to its end and certifies it DEPENDENT; with no
+    // admissible member the verified Farkas certificate is EXACT and the walk
+    // ends kInfeasible -- the correct answer, an honest improvement over the
+    // earlier pinned kOptimal (E2 fix6 re-pin).
     EXPECT_EQ(QpEngine{QpOptions{}}.solve(objective_inflated_lambda_qp(1e-2, 3e-4)).status,
-              QpStatus::kInfeasible); // still caught at this scale
+              QpStatus::kInfeasible);
     EXPECT_EQ(QpEngine{QpOptions{}}.solve(objective_inflated_lambda_qp(3e-3, 3e-4)).status,
-              QpStatus::kInfeasible); // still caught at this scale
-    EXPECT_EQ(QpEngine{QpOptions{}}.solve(objective_inflated_lambda_qp(1e-3, 3e-4)).status,
-              QpStatus::kOptimal); // KNOWN MISS: contradiction hidden by footprint
+              QpStatus::kInfeasible);
+    expect_objective_inflated_1e3_cell(QpOptions{});
 }
 
 TEST(QpEngine, T6bObjectiveInflatedMultiplierBehavesTheSameInBothAlgebras) {
     // M6 W2 T6b fix round 1: the (ii)-direction fixture, MODE-PAIRED. It carries no border at
     // the classified point, so the two algebras must agree cell for cell -- and this family is
-    // where a widened tolerance would first certify a contradiction kOptimal.
+    // where a widened tolerance would first certify a contradiction kOptimal. The a = 1e-3
+    // cell was pinned kOptimal (the footprint miss); since E2 fix6 both algebras certify it
+    // kInfeasible exactly through the grey re-read (above).
     for (const WorkingSetLinearAlgebra alg :
          {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
         QpOptions opts;
@@ -856,8 +906,7 @@ TEST(QpEngine, T6bObjectiveInflatedMultiplierBehavesTheSameInBothAlgebras) {
                   QpStatus::kInfeasible);
         EXPECT_EQ(QpEngine{opts}.solve(objective_inflated_lambda_qp(3e-3, 3e-4)).status,
                   QpStatus::kInfeasible);
-        EXPECT_EQ(QpEngine{opts}.solve(objective_inflated_lambda_qp(1e-3, 3e-4)).status,
-                  QpStatus::kOptimal); // the KNOWN MISS above, in both algebras
+        expect_objective_inflated_1e3_cell(opts);
     }
 }
 
@@ -870,11 +919,25 @@ TEST(QpEngine, T6bANonFiniteDualMuLeavesTheRowToleranceFinite) {
     // infinite tolerance makes kInfeasible unreachable engine-wide, silently and totally.
     QpOptions opts;
     opts.dual_mu = std::numeric_limits<double>::infinity();
-    // MEASURED, and it is kMaxIter rather than kInfeasible on both: an infinite dual_mu poisons
-    // the factorization long before the classification, so the walk exhausts its budget. What
-    // this pins is that neither problem is CERTIFIED, which an infinite tolerance would do.
-    EXPECT_EQ(QpEngine{opts}.solve(inconsistent_equalities_qp()).status, QpStatus::kMaxIter);
-    EXPECT_EQ(QpEngine{opts}.solve(infeasible_bounds_qp()).status, QpStatus::kMaxIter);
+    // MEASURED, and it is neither kInfeasible nor kOptimal on either: an infinite
+    // dual_mu poisons the factorization long before the classification. RE-DERIVED AT
+    // M7 W2 E4 FIX ROUND 2 (a declared mover): kMaxIter -> kNumericalError on both.
+    // The walk used to exhaust its budget against a poisoned factor; E4's EQP-SITE
+    // RESIDUAL CHECK sees the poisoned answer immediately -- it does not solve its own
+    // system -- escalates the suspect ladder three rungs, and a non-finite answer then
+    // ends the solve at the finite iterate it stands on. An honest early exit in place
+    // of a budget grind, and strictly the better of the two.
+    //
+    // WHAT THIS TEST PINS IS UNCHANGED AND IS ASSERTED AS SUCH: neither problem is
+    // CERTIFIED. An uncapped `dual_mu * |lambda|` absorbency would make kInfeasible
+    // unreachable engine-wide; an infinite tolerance must not turn either of these two
+    // genuinely infeasible problems into a claim.
+    const QpSolution eq = QpEngine{opts}.solve(inconsistent_equalities_qp());
+    const QpSolution bx = QpEngine{opts}.solve(infeasible_bounds_qp());
+    EXPECT_EQ(eq.status, QpStatus::kNumericalError);
+    EXPECT_EQ(bx.status, QpStatus::kNumericalError);
+    EXPECT_FALSE(eq.farkas.present) << "an infinite row tolerance must certify nothing";
+    EXPECT_FALSE(bx.farkas.present) << "an infinite row tolerance must certify nothing";
 }
 
 TEST(QpEngine, LargeButLegitimateSolutionsAreOptimalNotNumericalError) {

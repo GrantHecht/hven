@@ -1,0 +1,99 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-release/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpEngineStructuralViolation.T7*:HsSweepCorpus.*:HsBattery.*
+[==========] Running 16 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 13 tests from HsBattery
+[ RUN      ] HsBattery.BorderMode
+[       OK ] HsBattery.BorderMode (50 ms)
+[ RUN      ] HsBattery.RefactorizeMode
+[       OK ] HsBattery.RefactorizeMode (37 ms)
+[ RUN      ] HsBattery.ModeStatusDivergenceIsEmpty
+[       OK ] HsBattery.ModeStatusDivergenceIsEmpty (84 ms)
+[ RUN      ] HsBattery.BorderModeFalseInfeasible
+[       OK ] HsBattery.BorderModeFalseInfeasible (0 ms)
+[ RUN      ] HsBattery.RefinementStepCountersOnBorderRepro
+[       OK ] HsBattery.RefinementStepCountersOnBorderRepro (0 ms)
+[ RUN      ] HsBattery.SocIsRareAndUnprofitableAcrossTheBattery
+[       OK ] HsBattery.SocIsRareAndUnprofitableAcrossTheBattery (47 ms)
+[ RUN      ] HsBattery.EveryElasticActivationRunsTheRhoLadderToItsCeiling
+[       OK ] HsBattery.EveryElasticActivationRunsTheRhoLadderToItsCeiling (47 ms)
+[ RUN      ] HsBattery.AdaptiveMuNeverSharesAMajorWithSocOrElastic
+[       OK ] HsBattery.AdaptiveMuNeverSharesAMajorWithSocOrElastic (48 ms)
+[ RUN      ] HsBattery.FeasibleStartsEndFeasibleDespiteTheLooseFunnelWidth
+[       OK ] HsBattery.FeasibleStartsEndFeasibleDespiteTheLooseFunnelWidth (36 ms)
+[ RUN      ] HsBattery.NoBatteryProblemEverCertifiesInfeasibility
+[       OK ] HsBattery.NoBatteryProblemEverCertifiesInfeasibility (84 ms)
+[ RUN      ] HsBattery.AggregateCostIsRecordedAndBounded
+[       OK ] HsBattery.AggregateCostIsRecordedAndBounded (47 ms)
+[ RUN      ] HsBattery.CrashBasisIsANullResultOnTheBatteryWithTwoBoundSeededExceptions
+[       OK ] HsBattery.CrashBasisIsANullResultOnTheBatteryWithTwoBoundSeededExceptions (95 ms)
+[ RUN      ] HsBattery.TableCoversEveryShippedProblem
+[       OK ] HsBattery.TableCoversEveryShippedProblem (0 ms)
+[----------] 13 tests from HsBattery (581 ms total)
+
+[----------] 1 test from HsSweepCorpus
+[ RUN      ] HsSweepCorpus.Corpus
+
+prob   arm   KD   SOC  solves majors minors fact   acc/rej  soc a/i/r/n   elas a/e  restor fsMaj  wd  lvl c/w/h fail
+HS10   cold  on   on   7      96     1284   152    96/0     0/0/0/0       56/336    0      0      0   7/0/0    0
+HS10   cold  on   off  7      96     1284   152    96/0     0/0/0/0       56/336    0      0      0   7/0/0    0
+HS10   cold  off  on   7      96     1284   152    96/0     0/0/0/0       56/336    0      0      0   7/0/0    0
+HS10   cold  off  off  7      96     1284   152    96/0     0/0/0/0       56/336    0      0      0   7/0/0    0
+HS10   warm  on   on   7      40     232    48     40/0     0/0/0/0       8/48      0      26     0   1/6/0    0
+HS10   warm  on   off  7      40     232    48     40/0     0/0/0/0       8/48      0      26     0   1/6/0    0
+HS10   warm  off  on   7      40     232    48     40/0     0/0/0/0       8/48      0      0      0   1/6/0    0
+HS10   warm  off  off  7      40     232    48     40/0     0/0/0/0       8/48      0      0      0   1/6/0    0
+HS15   cold  on   on   7      86     1067   185    70/16    0/0/2/2       48/288    0      0      0   7/0/0    0
+HS15   cold  on   off  7      86     1062   185    70/16    0/0/0/0       48/288    0      0      0   7/0/0    0
+HS15   cold  off  on   7      86     1067   185    70/16    0/0/2/2       48/288    0      0      0   7/0/0    0
+HS15   cold  off  off  7      86     1062   185    70/16    0/0/0/0       48/288    0      0      0   7/0/0    0
+HS15   warm  on   on   5      30     91     31     26/3     0/0/0/0       1/6       0      23     0   1/4/0    1
+HS15   warm  on   off  5      30     91     31     26/3     0/0/0/0       1/6       0      23     0   1/4/0    1
+HS15   warm  off  on   5      30     91     31     26/3     0/0/0/0       1/6       0      0      0   1/4/0    1
+HS15   warm  off  off  5      30     91     31     26/3     0/0/0/0       1/6       0      0      0   1/4/0    1
+HS26   cold  on   on   5      88     190    88     88/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS26   cold  on   off  5      88     190    88     88/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS26   cold  off  on   5      88     190    88     88/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS26   cold  off  off  5      88     190    88     88/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS26   warm  on   on   5      29     60     29     29/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS26   warm  on   off  5      29     60     29     29/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS26   warm  off  on   5      29     60     29     29/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS26   warm  off  off  5      29     60     29     29/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS33   cold  on   on   5      22     84     54     22/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS33   cold  on   off  5      22     84     54     22/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS33   cold  off  on   5      22     84     54     22/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS33   cold  off  off  5      22     84     54     22/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS33   warm  on   on   5      16     52     38     16/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS33   warm  on   off  5      16     52     38     16/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS33   warm  off  on   5      16     52     38     16/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS33   warm  off  off  5      16     52     38     16/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS40   cold  on   on   5      28     59     32     28/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS40   cold  on   off  5      28     59     32     28/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS40   cold  off  on   5      28     59     32     28/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS40   cold  off  off  5      28     59     32     28/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS40   warm  on   on   5      16     32     16     16/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS40   warm  on   off  5      16     32     16     16/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS40   warm  off  on   5      16     32     16     16/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS40   warm  off  off  5      16     32     16     16/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS77   cold  on   on   5      56     134    55     48/8     0/0/5/5       0/0       0      0      0   5/0/0    0
+HS77   cold  on   off  5      56     121    52     48/8     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS77   cold  off  on   5      56     134    55     48/8     0/0/5/5       0/0       0      0      0   5/0/0    0
+HS77   cold  off  off  5      56     121    52     48/8     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS77   warm  on   on   5      25     55     23     23/2     0/0/2/2       0/0       0      13     0   1/4/0    0
+HS77   warm  on   off  5      25     51     23     23/2     0/0/0/0       0/0       0      13     0   1/4/0    0
+HS77   warm  off  on   5      25     55     23     23/2     0/0/2/2       0/0       0      0      0   1/4/0    0
+HS77   warm  off  off  5      25     51     23     23/2     0/0/0/0       0/0       0      0      0   1/4/0    0
+
+[       OK ] HsSweepCorpus.Corpus (1289 ms)
+[----------] 1 test from HsSweepCorpus (1289 ms total)
+
+[----------] 2 tests from QpEngineStructuralViolation
+[ RUN      ] QpEngineStructuralViolation.T7ACertifiedInfeasibleExitRETURNSTheRefinedPointInBothAlgebras
+[       OK ] QpEngineStructuralViolation.T7ACertifiedInfeasibleExitRETURNSTheRefinedPointInBothAlgebras (37 ms)
+[ RUN      ] QpEngineStructuralViolation.T7TheFeasibleCensusHalfOverTheFULLDualMuSet
+[       OK ] QpEngineStructuralViolation.T7TheFeasibleCensusHalfOverTheFULLDualMuSet (25 ms)
+[----------] 2 tests from QpEngineStructuralViolation (62 ms total)
+
+[----------] Global test environment tear-down
+[==========] 16 tests from 3 test suites ran. (1934 ms total)
+[  PASSED  ] 16 tests.

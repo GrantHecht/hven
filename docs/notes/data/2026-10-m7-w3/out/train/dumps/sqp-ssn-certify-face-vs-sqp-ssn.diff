@@ -1,0 +1,4 @@
+54c54
+< ssn_certify_from_face = false
+---
+> ssn_certify_from_face = true

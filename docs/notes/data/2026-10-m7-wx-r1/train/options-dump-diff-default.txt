@@ -1,0 +1,4 @@
+49a50,52
+> ipqp.ipqp_mu0_rule = kFixed
+> ipqp.ipqp_mu_residual_floor = false
+> ipqp.ipqp_ladder_skip_after = 3

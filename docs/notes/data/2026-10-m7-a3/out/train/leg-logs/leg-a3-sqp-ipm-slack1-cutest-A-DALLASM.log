@@ -1,0 +1,11 @@
+PGREP_EMPTY a3-sqp-ipm-slack1-cutest-A-DALLASM
+PGREP_NO_UNCOVERED_CELL a3-sqp-ipm-slack1-cutest-A-DALLASM 2026-10-28T15:53:47-04:00
+CELLS_PRESENT_BUT_UNDER_THE_LOCK -- flock queues this leg behind them:
+279552 /home/ghecht/Projects/hven-bench/build/lanes/hven/hven_bench_cell --lane hven-sqp --problem ZAMB2-8 --options sqp-qn --budget-iters 0 --options-dump /home/ghecht/Projects/hven-bench/.scratch/retake19/cells/hven-sqp/sqp-qn/cutest-run-RT19-ZAMB2-8/options/ZAMB2-8-hven-sqp.txt --assert-reference
+IN_LOCK_PGREP_EMPTY a3-sqp-ipm-slack1-cutest-A-DALLASM 2026-10-28T15:53:48-04:00
+FOREGROUND_START a3-sqp-ipm-slack1-cutest-A-DALLASM 2026-10-28T15:53:48-04:00
+w2_a4_sweep: sqp-ipm-slack1 / hven-sqp / cutest / run A-DALLASM -> /home/ghecht/Projects/hven/.claude/worktrees/agent-afecbe0a5611f9eff/.scratch/a3/train/cells/hven-sqp/sqp-ipm-slack1/cutest-run-A-DALLASM (ceiling 300s) [problems: DALLASM]
+run_serial: cutest/DALLASM/hven-sqp/sqp-ipm-slack1
+run_serial: 1 cells -> /home/ghecht/Projects/hven/.claude/worktrees/agent-afecbe0a5611f9eff/.scratch/a3/train/cells/hven-sqp/sqp-ipm-slack1/cutest-run-A-DALLASM/results.csv
+w2_a4_sweep: RUNNER_EXIT 0
+FOREGROUND_END a3-sqp-ipm-slack1-cutest-A-DALLASM 2026-10-28T15:53:50-04:00 rc=0

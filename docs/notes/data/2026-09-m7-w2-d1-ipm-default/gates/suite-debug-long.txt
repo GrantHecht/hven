@@ -1,0 +1,10 @@
+FOREGROUND_START debug-long-d1c 2026-09-18T09:11:51-04:00
+Test project /home/ghecht/Projects/hven/.scratch/m7w2d1/dbg
+    Start 1486: Continuation.ProbeBudgetBoundsAFailingProposal
+1/1 Test #1486: Continuation.ProbeBudgetBoundsAFailingProposal ...   Passed  673.84 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) = 673.89 sec
+FOREGROUND_END debug-long-d1c 2026-09-18T09:23:05-04:00 rc=0
+WRAPPER_RC debug-long-d1c rc=0

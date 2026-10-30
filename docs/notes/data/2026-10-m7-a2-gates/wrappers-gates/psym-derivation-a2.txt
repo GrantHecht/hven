@@ -1,0 +1,115 @@
+M7 A2 -- THE GATE EXPECTATIONS, DERIVED.
+Written and committed BEFORE the chain was detached.
+
+RULE: nothing here, and no declared value in gates-a2.sh, may be adjusted after the chain's first leg. Every value is derived from the FINAL
+range 6a2a58c7..9973a4fb or measured on that pair by this declaration's own rehearsal (rehearsal/). No value is carried from the SCW
+declaration: where a number equals a previous record's it is a COMPARISON, stated as such. The previous gate run (SCW, docs/notes/data/
+2026-10-m7-scw-gates/, record 6a2a58c7) is frozen, untouched. If a gate fails the declaration stays frozen; a fix gets a successor -r2
+declaration and the failed record is filed under gates-run1/.
+
+BASE   6a2a58c7 (the SCW gates record, the previous GREEN gate record; the by-name baseline is its gates/suite-*.txt, derived and checked against
+       the declared EXPECT_NAMES_BASE_REL, falsified with BEFORE=91dd3f64, preflight E1).
+HEAD   9973a4fb. The declaration commit sits on top and is docs/data only, so every derivation sees 9973a4fb's sources.
+       Commits in the range that touch code (git log 6a2a58c7..9973a4fb): 3e0c6afc (A2: IpqpOptions::ipqp_mu0_rule {kFixed, kComplementarity} and
+       ipqp_mu_residual_floor -- the rules, validation, options dump, three fire counters, tests), f0e9c596 (bench/ipqp_e1_arm.cpp: --mu0-rule,
+       --mu-floor, the three fire counters, --families), e924bbe2 (two mutation-survivor tests), 9973a4fb (A2 riders: an unreadable estimate falls back,
+       a seam test, a budget pin). All other commits are docs and data (ledger, RD8 record, A6 draft, A1 page and record, A2 page and data).
+       The commit messages' own measurements are the implementer's, not this run's; this run measures its own.
+       THE FIELDS ARE OFF BY DEFAULT (both toggles default off, test IpqpMu0RuleOptions.BothTogglesDefaultOff), so U0 is declared untouched: the
+       exact arm against the SCW record is declared 0 / 0 / 0 and ASSERTED.
+RUNNER gates-a2.sh + chain_gates_a2.sh: copies of SCW's, re-pointed (NOT edited in place). Changes, and nothing else: (a) names / scratch
+       .scratch/gates-a2 / G4 label / BEFORE 6a2a58c7 / by-name baseline and G4 exact arm pinned to the SCW gates record; classifier a byte-identical
+       copy (preflight F); (b) the changed surface (section 1), including the THIRD outside target hven_ipqp_seam_tests (OUTSIDE_TARGETS) and the one
+       ADDED in-universe source with its tests/sqp/CMakeLists.txt line; (c) the name checks (section 3: 20 ADDED, 0 REMOVED); (d) the measured P-SYM
+       slots (section 2); (e) ONE STRUCTURAL ADDITION to the line-reader: the TEST-line regexes `TEST(_P)?\(` widened to `TEST(_[FP])?\(` (five
+       occurrences: the ADDED, REMOVED, removed-count and RE-DECLARED readers), because the range adds a TEST_F
+       (IpqpSeamTest.AnUnreadableMu0EstimateFallsBackAndTheEvidenceFlagStaysArmed) which the carried regex cannot see. Preflight E5c shows a
+       copy with the regex narrowed back is REFUSED on that name; with the widened regex all 20 ADDED names are each added by exactly one line.
+       The EXPECT_PSYM_B_RELEASE_ONLY mirror slot and its block (BEGIN/END_MIRROR_BLOCK) are KEPT as in SCW; its CONTENTS are re-derived: EMPTY (no
+       Release-only class B object in this range), so the block is not exercised; it is byte-identical to SCW's (preflight G, D4). The older
+       EXPECT_PSYM_B_DEBUG_ONLY admission IS exercised (section 2) and is proven offline (rehearsal/check-dbgonly-a2.sh, preflight G).
+       ENVIRONMENT NOTE: the worktree was created without its submodules; dep/eigen and dep/fmt were populated by copying the main checkout's working
+       trees (untracked; the copied .git pointer files removed). `git checkout -b a2-gates 9973a4fb` was run on the clean worktree. The rehearsal ran at
+       a temporary docs-only commit above 9973a4fb (the wrappers), since reset away. The rehearsal scripts are kept AS RUN: the sed that re-pointed
+       the offline script left the label text "PREVIOUS (RST gates record 6a2a58c7)" in the rehearsal's own comparison transcript; the record 6a2a58c7
+       is the SCW gates record (the chain's g4 segment derives its label from the baseline directory).
+
+-----------------------------------------------------------------------------
+1  THE CHANGED SURFACE of 6a2a58c7..9973a4fb -- OBSERVED, derived from git (git diff --name-status 6a2a58c7 9973a4fb -- include src tests bench).
+
+   3 headers (all MODIFIED, none added): core/solver_counters.h, detail/qp/ipqp_engine.h, drivers/sqp_solver_types.h.
+   11 MODIFIED .cpp: 10 INSIDE the P-SYM universe -- library src/drivers/sqp_options.cpp, src/drivers/sqp_solver.cpp, src/qp/ipqp_engine.cpp;
+     bench/ipqp_e1_arm.cpp (hven_sqp_ipqp_e1_arm); hven_drivers_tests test_callback, test_options_dump, test_threads; hven_sqp_tests
+     test_ipqp_counters, test_ipqp_dispatch, test_trace_writer -- and 1 OUTSIDE it: tests/sqp/test_ipqp_seams.cpp, a source of
+     hven_ipqp_seam_tests (an HVEN_TESTING recompile target, tests/CMakeLists.txt, named once in the build files; EXPECT_CLASS_A_OUTSIDE_SRCS).
+     => class A = 10.
+   1 ADDED .cpp, INSIDE the universe: tests/sqp/test_ipqp_mu0_rule.cpp (hven_sqp_tests), with its one tests/sqp/CMakeLists.txt line:
+     EXPECT_ADDED_CXX 1, EXPECT_PSYM_ADDED 1, EXPECT_SQP_CMAKE_ADDS test_ipqp_mu0_rule.cpp; EXPECT_ADDED_OUTSIDE_UNIVERSE empty. No ADDED fixture, no
+     src/CMakeLists.txt or tests/CMakeLists.txt change. Docs-only files in the range: docs/counters.md, docs/trace-schema-v0.md, docs/notes/**.
+   clang-format set: 15 files (3 headers + 11 modified .cpp + 1 added .cpp; the runner prints it, preflight A).
+
+   THE DECLARED MOVERS this range carries: IpqpOptions::ipqp_mu0_rule and ipqp_mu_residual_floor (both OFF by default), three new IpqpCounters
+   (SqpSolver/Ipqp counters surface), two new options-dump lines, three additive trailing trace keys (trace goldens), the fall-back for an unreadable
+   estimate. U0 cells are claimed untouched (exact arm 0 / 0 / 0, asserted).
+
+-----------------------------------------------------------------------------
+2  THE P-SYM MOVER SHAPE, PER CONFIGURATION -- MEASURED on the final pair 6a2a58c7/9973a4fb by a FRESH rehearsal.
+
+     Release  DIFFERING 65 = class A 10 + class B 55; UNEXPLAINED 0; NOISE-ONLY 0; negative control 107; sections: 48 objects, 40
+              byte-identical, DEBUG_ONLY 0, NON-DEBUG MOVERS 8, REFUSED 0
+     Debug    DIFFERING 66 = class A 10 + class B 56; UNEXPLAINED 0; NOISE-ONLY 5 (3 in the library); negative control 100; sections: 48
+              objects, 37 byte-identical, DEBUG_ONLY 3, NON-DEBUG MOVERS 8, REFUSED 0
+
+   HOW MEASURED. rehearsal/rehearse-a2.sh ran THIS runner's g5 segment (EXTRACTED from the runner's text) at a temporary docs-only commit above
+   9973a4fb (since reset away) against 6a2a58c7, both configurations, one hold of the box lock (2026-10-23 18:11-18:45, PGREP_EMPTY under the
+   hold; rehearsal/rehearsal-a2-log.txt). Its HYPOTHESIS declaration (class A only, 10/10, class B 0) was REFUSED in both configurations by design
+   (rehearsal/*-refused-at-10.txt), printing the measured shape (65 / 66 differing). Then rehearsal/offline-a2.sh 65 66: a fresh Release build with
+   g5's flags and the UNCAPPED classifier re-run on the compare files at the measured counts -- OFFLINE_CLASSIFY_RC 0 in BOTH configurations. The
+   capture-pair asserts (after = before + ADDED = 162 objects, before 161; ONLY-AFTER = test_ipqp_mu0_rule.cpp.o; outside-universe:
+   test_ipqp_seams.cpp built in hven_ipqp_seam_tests only) held in both configurations.
+   CLASS A: 10 in both configurations = the in-universe MODIFIED .cpp of section 1 exactly, the same 10 objects. Both class-A noise-only slots EMPTY.
+   CLASS B: Release 55, Debug 56 (OBSERVED, by name, in the runner). THE SHAPE: the Debug set is the Release set PLUS ONE object,
+   tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_status.cpp.o, a Debug class B mover that is BYTE-IDENTICAL in Release (named in the
+   Release negative control). That is the carried DEBUG-ONLY asymmetry: EXPECT_PSYM_B_DEBUG_ONLY carries that one object, and
+   EXPECT_PSYM_B_RELEASE_ONLY (the SCW mirror slot) is EMPTY. The admission block was proven offline on the rehearsal's own classifications
+   (rehearsal/check-dbgonly-a2.sh, preflight G: the carried rule alone refuses the pair; the block with the declared list passes; two falsifiers are
+   refused). Library class B (both configurations, 5): core/ledger, drivers/sqp_print, drivers/trace_writer, globalization/sqp/qn_lift_bridge,
+   warmstart/continuation. NOISE-ONLY library objects in Debug (console_trace_sink, ipm_solver, qp_engine) are not section movers.
+   NON-DEBUG-MOVER set 8 in BOTH configurations: the three class A library objects (drivers/sqp_options, drivers/sqp_solver, qp/ipqp_engine) +
+   the five class B library objects above. No NOISE-ONLY library mover slot (both EMPTY). DEBUG_ONLY Release 0 / Debug 3 (console_trace_sink,
+   ipm_solver, qp_engine: bytes differ only in debug information). No library object ADDED.
+
+-----------------------------------------------------------------------------
+3  TEST COUNTS -- derived against the by-name baseline.
+
+   BASELINE (the SCW record): ctest total Debug 3201 / Release 3202; started names 3203 / 3204. Skipped: Debug 7, Release 1.
+   ADDED = 20 instances by name, REMOVED = 0, OBSERVED with git diff 6a2a58c7 9973a4fb -- tests: 19 `+TEST(` lines (IpqpMu0RuleOptions 4, IpqpMu0Rule 11,
+   IpqpMuResidualFloor 4) and 1 `+TEST_F(` line (IpqpSeamTest.AnUnreadableMu0EstimateFallsBackAndTheEvidenceFlagStaysArmed); no TEST_P, no removed
+   TEST line, 0 GTEST_SKIP / DISABLED_.
+   EXPECTED SUITE COUNTS: Debug 3201 + 20 = 3221 (G1, the long test excluded); Release 3202 + 20 = 3222 (G3); G2 1. The rehearsal build's
+   `ctest -N` total is 3224 (rehearsal/ctest-N-startfmt-derived.txt, rewritten to the runner's "Start n: name" shape, the two "(Disabled)" suffixes
+   stripped as the baseline's derivation does; it passes the runner's by-name check in Release and Debug shape, preflight C/C2; a short listing and
+   the baseline are refused). Of the 3224 listed, 2 are Disabled (EqpRefinementAb.FootprintRuleProbe, .FullBattery): 3222 run.
+   None added is Release-only, so DEBUG_ONLY_SKIPS_ADDED is EMPTY and the SKIPPED sets must equal the baseline's by name (Debug 7, Release 1).
+
+-----------------------------------------------------------------------------
+4  G4: 27 cells x 75 columns x 3 engines.
+
+   MEASURED by the rehearsal's offline leg (a fresh Release build of 9973a4fb's sources, MKL_NUM_THREADS=1, taskset -c 2;
+   rehearsal/rehearsal-a2-g4-comparison.txt): vs the M6 close pin, GATED (1e-5 relative, 1e-13 floor): walk 17 differences, ssn 13, ipm 13 = 43;
+   the measured (engine, cell, column) SET EQUALS the declared 43-entry list (runner --check-g4, rc 0: preflight B) -- the same set the SCW rounds
+   declared (a comparison). EXACT arm vs the SCW record's gates/replay: walk 0, ssn 0, ipm 0 differences (rehearsal, rc 0 each). The exact arm is
+   DECLARED 0 / 0 / 0 and ASSERTED rc 0 per engine by the chain's g4 segment (preflight B2 shows the comparator exits non-zero on a real
+   difference). The chain's own replay moving beyond the declared 43-set, or the exact arm moving at all, fails G4; it is reported, never re-declared.
+
+-----------------------------------------------------------------------------
+5  G6: expected CLEAN: install smoke; export contract; clang-format over the DERIVED set (15 files); git diff --check; DIRTY_FILES 0.
+   Fold proofs: the count the gate-assert library produces, reported as observed.
+
+6  PRE-FLIGHT: preflight-a2.txt (generated by preflight-a2.sh), committed WITH this file and BEFORE the chain was detached: A full pre-flight
+   PREFLIGHT_OK; B --check-g4 rc 0 (+ B2 the exact arm's teeth); C by-name reader (+ falsifiers); D skipped sets; E1-E12 falsifiers (E5b: an ADDED
+   name omitted is refused; E5c: a TEST_F-blind reader is refused); F classifier byte-identical to SCW's; G the Debug-only admission proven and the
+   mirror block identical to SCW's.
+
+7  G5 CHECKS THE WORKTREE OUT TO BEFORE while it builds its before arm, once per configuration: nothing may edit or commit in this worktree
+   from the chain's launch until CHAIN_END. WALL IS INFORMATIONAL.

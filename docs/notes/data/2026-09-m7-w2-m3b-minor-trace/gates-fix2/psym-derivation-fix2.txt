@@ -1,0 +1,125 @@
+M7 W2 M3b FIX ROUND 2 -- THE P-SYM / SECTION DECLARATION, DERIVED BEFORE THE GATE CHAIN RAN
+===========================================================================================
+
+WHY THIS FILE EXISTS. Fix round 1's G5 FAILED its own declaration: it declared
+three Debug debug-only movers and measured one, because the shape was INHERITED
+from the previous round's measurement instead of being derived from this round's
+own diff. The process rule that failure earned is: A DECLARATION IS DERIVED BY
+DIFFING THE TASK'S OWN base..head. This file is that derivation for fix round 2,
+written and committed BEFORE `chain_gates_fix2.sh` was detached, and it is what
+`wrappers/gates-fix2.sh`'s declared numbers were transcribed from.
+
+BASE = f61199bd (fix round 1's head). HEAD = this round's code/test/docs commit.
+
+1. THE CHANGED SURFACE, from `git diff --name-only f61199bd`
+-----------------------------------------------------------
+  src/qp/qp_engine.cpp                     COMPILED into libhven.a
+  include/hven/detail/qp/qp_walk_trace.h   COMPILED (but see section 3)
+  tests/qp/test_qp_walk_seam.cpp           the HVEN_TESTING seam target only,
+                                           which scripts/psym_compare.sh
+                                           deliberately excludes from its
+                                           capture universe
+  docs/**                                  not compiled
+
+2. THE TEST COUNTS: 2698 Debug / 2699 Release
+---------------------------------------------
+Baseline at f61199bd: 2697 Debug (long test excluded) and 2698 Release, both
+ASSERTED and met by fix round 1's own G1/G3. This round adds exactly ONE TEST()
+block -- QpWalkSeam.TheBackendsInertiaAccessorAnswersTheSameThingTwiceOnThisPlatform,
+in the existing hven_qp_walk_seam_tests executable -- and changes none in place.
+CROSS-CHECK, measured on this round's own configured tree:
+  $ ctest --test-dir <this round's Debug tree> -N | tail -1
+  Total Tests: 2701
+and the offset M2b fix round 1 derived in full (a CTest summary line counts the
+one SKIPPED test but not the two DISABLED ones; Debug additionally excludes the
+long test) gives 2701 - 2 = 2699 Release and 2701 - 3 = 2698 Debug. The two
+derivations agree.
+
+3. WHICH LIBRARY OBJECTS CAN MOVE AT ALL
+----------------------------------------
+From the build's OWN Ninja dependency records (`ninja -t deps`), the library
+objects whose dependency list names include/hven/detail/qp/qp_walk_trace.h:
+  === debug: library objects whose ninja dep list names qp_walk_trace.h
+  CMakeFiles/hven.dir/src/drivers/assembly_eval_seam.cpp.o:
+  CMakeFiles/hven.dir/src/drivers/console_trace_sink.cpp.o:
+  CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o:
+  CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o:
+  CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o:
+  CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o:
+  CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o:
+  CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o:
+  === release: library objects whose ninja dep list names qp_walk_trace.h
+  CMakeFiles/hven.dir/src/drivers/assembly_eval_seam.cpp.o:
+  CMakeFiles/hven.dir/src/drivers/console_trace_sink.cpp.o:
+  CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o:
+  CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o:
+  CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o:
+  CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o:
+  CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o:
+  CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o:
+
+EIGHT objects include the changed header, and exactly ONE object (qp_engine.cpp.o)
+is compiled from the changed .cpp. The PREDICTION is nevertheless ONE Debug
+mover and ZERO Release movers, because the header's ENTIRE BODY is inside its
+own `#ifdef HVEN_TESTING` and no production TU defines that macro: the file
+contributes no line, no byte and no line-table record to any production object.
+The one object that does move moves only in its DEBUG sections, because its own
+source lines shifted; its single `assert()` is at line 447, ABOVE every
+`#ifdef HVEN_TESTING` block this round touches, so no `__LINE__` immediate moves
+and the instruction stream cannot. The seven other header-including objects being
+byte-identical anyway is this derivation's own NON-VACUITY witness.
+
+4. THE MEASUREMENT
+------------------
+Method: in a configured tree per configuration, build target `hven` with
+CCACHE_DISABLE=1 (the AFTER arm), snapshot all 42 objects, replace the two
+changed compiled files with their `git show f61199bd:<path>` contents, rebuild
+(the BEFORE arm), snapshot again, restore, then compare whole-object bytes and
+run the fail-closed non-debug section check over ALL 42.
+
+  === Debug build dir /home/ghecht/Projects/hven/.scratch/m7w2m3bfix2/derive-debug
+  library objects: 42
+  --- objects whose dependency list names the changed header/source (Debug)
+  [THIS PROBE PRINTED NOTHING AND IS VACUOUS AS WRITTEN: it looked for `<obj>.d`
+   depfiles, which the Makefile generator writes and NINJA does not -- Ninja
+   keeps dependencies in .ninja_deps. Recorded rather than deleted. The dependency
+   evidence in section 3 above is `ninja -t deps`, which is the generator's own
+   record, and it is what the declaration rests on.]
+  --- whole-object byte comparison (Debug)
+    DIFFERS CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+  DERIVED_DIFFERING_Debug=1
+  SECTIONS_RC_Debug=0
+  DEBUG-ONLY       CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+  SECTIONS_Debug_OBJECTS=42
+  SECTIONS_Debug_BYTE_IDENTICAL=41
+  SECTIONS_Debug_DEBUG_ONLY=1
+  SECTIONS_Debug_NON_DEBUG_MOVERS=0
+  SECTIONS_Debug_REFUSED=0
+  SECTIONS_Debug_RC=0
+  === Release build dir /home/ghecht/Projects/hven/.scratch/m7w2m3bfix2/derive-release
+  library objects: 42
+  --- objects whose dependency list names the changed header/source (Release)
+  --- whole-object byte comparison (Release)
+  DERIVED_DIFFERING_Release=0
+  SECTIONS_RC_Release=0
+  SECTIONS_Release_OBJECTS=42
+  SECTIONS_Release_BYTE_IDENTICAL=42
+  SECTIONS_Release_DEBUG_ONLY=0
+  SECTIONS_Release_NON_DEBUG_MOVERS=0
+  SECTIONS_Release_REFUSED=0
+  SECTIONS_Release_RC=0
+  DERIVATION_DONE 2026-09-21T16:47:55-04:00
+
+5. WHAT IS THEREFORE DECLARED IN wrappers/gates-fix2.sh
+-------------------------------------------------------
+  EXPECT_DEBUG_TESTS=2698           EXPECT_RELEASE_TESTS=2699
+  EXPECT_PSYM_DIFFERING=0           EXPECT_PSYM_CLASS_A=0   EXPECT_PSYM_CLASS_B=0
+  EXPECT_DEBUG_ONLY_RELEASE=0       EXPECT_DEBUG_ONLY_DEBUG=1
+  EXPECT_REPLAY_CELLS=27  EXPECT_REPLAY_COLUMNS=75  EXPECT_REPLAY_DIFFS=0  ENGINES=3
+
+These are ASSERTIONS, not floors. A second Debug object differing in debug
+sections, any Release object differing at all, or any difference in a NON-debug
+section FAILS the gate, and the shape is then re-derived and declared again --
+never discovered.
+
+WALL-CLOCK IN THIS FILE IS INFORMATIONAL. Nothing here is a timing claim.

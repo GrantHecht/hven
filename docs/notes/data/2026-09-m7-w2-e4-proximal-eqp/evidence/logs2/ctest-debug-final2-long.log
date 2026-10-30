@@ -1,0 +1,7 @@
+Test project /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-debug
+    Start 1595: Continuation.ProbeBudgetBoundsAFailingProposal
+1/1 Test #1595: Continuation.ProbeBudgetBoundsAFailingProposal ...   Passed  622.29 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) = 622.35 sec

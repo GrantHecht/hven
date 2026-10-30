@@ -1,0 +1,121 @@
+M7 W2 E2 FIX ROUND 5 -- THE GATE EXPECTATIONS, DERIVED
+Written and committed BEFORE the chain was detached. RULE: nothing here may be
+adjusted after the chain's first leg. Every value is derived from the FINAL range;
+nothing is carried from, or added to, an earlier round's count.
+
+BASE   0447288f (docs(m7): W2 E2 fix4 gate declaration; source-identical to the fix4 engine
+       commit; branch m7)
+       f96da576 docs: the fix4 gates GREEN record, gates-e2-fix4/ (docs/notes/data only)
+       34e100de fix(m7): W2 E2 fix5 -- locked-vertex unlock under the min-ratio rule (R-B)
+                on the refined terminal check; R-D deferred
+HEAD   the commit that carries this file (docs/notes/data only). Range 0447288f..34e100de
+       for every source/header derivation (the two docs commits add no source, header or
+       test).
+RUNNER gates-e2fix5.sh + chain_gates_e2fix5.sh (this directory): copies of the previous
+       round's runner and chain (../wrappers-gates-fix4/), re-pointed (scratch
+       .scratch/m7w2e2fix5gates -- ONE literal, gates-e2fix5.sh:51; the chain asks it with
+       --print-scratch; logs gates-e2fix5.log, chain-e2fix5.log), plus E2FR5 (c) the
+       outside-universe list = {tests/qp/test_qp_anti_cycling_arm.cpp} (derived: the only
+       modified source of hven_qp_walk_seam_tests), (d) the by-name baseline =
+       ../gates-e2-fix4/suite-*.txt (run at 0447288f = BEFORE itself) with a NEW declared
+       REMOVED list beside the ADDED list (three renames), (e) carried: no ADDED non-.cpp test
+       file, tests/CMakeLists.txt unchanged, (f) the G4 label. The emitted g1/g2/g3/g5/g6
+       segments are byte-identical to the previous round's chain segments; g4 differs in its
+       label string only (checked with cmp/diff before the declaration; g5 is also
+       byte-identical to the rehearsal's g5). Literal check before the first leg: grep 'fix4',
+       'ef3b5225', '6c368913', 'm7w2e2fix4' on both copies -> the provenance comments
+       (gates-e2fix5.sh:7, chain_gates_e2fix5.sh:8), the by-name baseline directory
+       ../gates-e2-fix4 (gates-e2fix5.sh:17 comment, :108); no ef3b5225, no 6c368913, no
+       m7w2e2fix4; 0447288f exactly once, as BEFORE (gates-e2fix5.sh:88).
+
+§1 THE CHANGED SURFACE (`git diff --name-status 0447288f..34e100de -- include src tests`):
+   2 headers  include/hven/core/solver_counters.h (QpCounters::dep_unlocks),
+              include/hven/detail/qp/qp_engine.h (ExchangePick::unlocked, the `unlock`
+              parameter of select_exchange, the R-B header comment + the Degeneracy block)
+   3 MODIFIED .cpp  src/qp/qp_engine.cpp (R-B), tests/sqp/test_sqp_solver.cpp (the two T6b
+              fixtures renamed + re-pinned, the fix-4 border twin re-pinned, W2ElasticWalk::
+              unlocks, a census comment), tests/qp/test_qp_anti_cycling_arm.cpp (the ACOPR57
+              fixture renamed + flipped to kOptimal, dep_unlocks == 0 on the period fixtures)
+              -- the last OUTSIDE the P-SYM universe (hven_qp_walk_seam_tests)
+   0 ADDED .cpp; 0 ADDED non-C++ test files; tests/CMakeLists.txt unchanged.
+   docs: the E2 README (fix-round-5 section), gates-e2-fix4/ (the fix4 record).
+
+§2 THE P-SYM MOVER SHAPE, PER CONFIGURATION -- MEASURED on the final pair
+     Release  DIFFERING 38 = class A 2 + class B 36; UNEXPLAINED 0; control 105;
+              NOISE-ONLY 2 (0 in the library)
+     Debug    DIFFERING 38 = class A 2 + class B 36; UNEXPLAINED 0; control 70;
+              NOISE-ONLY 37 (6 in the library; all explained)
+     after 151 = before 151 in both; ONLY-AFTER {}; the outside-universe object
+     tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_anti_cycling_arm.cpp.o BUILT in
+     the after arm and absent from the after manifest (both configurations).
+   MEASURED by a FRESH rehearsal at 34e100de against 0447288f, both configurations, one hold
+   of the box lock (rehearsal/rehearse.sh, rehearsal/rehearsal-log-summary.txt; 2026-09-24
+   22:24:26-22:52:13, PGREP_EMPTY): this runner's g5 segment with a HYPOTHESIS declaration
+   (38/2/36, DEBUG_ONLY 0/6, NON-DEBUG movers = class A only). The P-SYM counts matched the
+   hypothesis exactly (classify rc 0 in both configurations, rehearsal/rehearsal-
+   classification-{Release,Debug}.txt; no offline re-run needed); the only failed asserts are
+   the section movers, which the hypothesis declared as class A only (measured: the 5 below).
+   HEAD 34e100de is source-identical to the declaration commit (docs only), so this is the
+   final pair.
+   Class A (2, identical in both) = the 3 MODIFIED .cpp less the 1 outside the universe:
+       CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+       tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+   CLASS B IS SYMMETRIC: the Release and Debug sets are EQUAL, 36 objects, and EQUAL to the
+   names declared in the runner (EXPECT_CLASS_B_NAMES_{RELEASE,DEBUG}). Against the previous
+   round's 35: test_qp_engine_indefinite.cpp.o joined (it was class A there, unmodified
+   here). The library objects among them: src/core/ledger.cpp.o, src/drivers/sqp_solver.cpp.o,
+   src/globalization/sqp/soc_elastic_restoration.cpp.o, src/qp/ipqp_engine.cpp.o. None has a
+   source modified in the range (pre-flight, tests included; the unity TU
+   tests/interior/Unity/unity_1_cxx.cxx: no source under tests/interior modified). The
+   asymmetry admission list stays EMPTY.
+
+§3 TEST COUNTS: Release 2833 (G3), Debug 2832 (G1), G2 1. By name against the previous
+   round's gate transcripts (../gates-e2-fix4/suite-{debug,release}.txt, 2832/2833 tests,
+   2834/2835 started names; run at 0447288f = BEFORE): the measured suites of the fix5 sources
+   (scratch Release/Debug builds of sources byte-identical to 34e100de: Release 2833/2833,
+   Debug 2832/2832 without the long test, the long test 1/1 alone, 690 s;
+   .scratch/m7w2e2fix5/rb-suite-{rel,dbg}.log, rb-suite-dbg-long.log) differ by exactly three
+   RENAMES -- three instances REMOVED and three ADDED, totals unchanged (declared
+   newline-delimited in REMOVED_TEST_NAMES / ADDED_TEST_NAMES):
+     REMOVED QpE2WorkingSet.TheLockedVertexOnTheAcopr57PrimalQpsStillEndsN3
+             QpEngineStructuralViolation.T6bTheStiffWALKSOwnPathologyAboveTheShippedDualMuIsUNCHANGED
+             SqpDriverElasticSeed.T6bTheBandsHIGHRungsRemainAPREEXISTINGResidue
+     ADDED   QpE2WorkingSet.TheLockedVertexUnlocksOnTheAcopr57PrimalQps
+             QpEngineStructuralViolation.T6bTheStiffBorderWalkAboveTheShippedDualMuReachesTheOptimum
+             SqpDriverElasticSeed.T6bTheBandsHIGHRungsReachTheOptimum
+   The offline --check-names run passes both configurations (2834 == 2834 - 3 + 3;
+   2835 == 2835 - 3 + 3); the negative controls (the Release transcript checked as Debug; the
+   baseline itself checked as Release) are refused (preflight.txt).
+
+§4 THE SECTION SHAPE (G5b), measured by the same rehearsal: NON-DEBUG-MOVER set 5 in both
+   configurations == {qp/qp_engine.cpp.o} (derived) + {core/ledger.cpp.o,
+   drivers/sqp_solver.cpp.o, globalization/sqp/soc_elastic_restoration.cpp.o,
+   qp/ipqp_engine.cpp.o} (declared); objects 44; byte-identical 39 Release / 33 Debug; no
+   library ADDED; DEBUG_ONLY Release 0 / Debug 6 (drivers/console_trace_sink,
+   drivers/ipm_solver, drivers/sqp_print, drivers/trace_writer, qp/ssn_engine,
+   warmstart/continuation); REFUSED 0.
+
+§5 G4: 27 cells x 75 columns x 3 engines, 0 differences under
+   `compare_replay.py --residual-gate 1e-5`. VERIFIED OFFLINE FIRST on the fix5 sources
+   (scratch Release build; .scratch/m7w2e2fix5/g4/comparison.txt): walk 0 differences (7
+   within the gate, the f7_n800/f7_n1000_path_warm residual digits), ssn 0, ipm 0; and EXACT
+   against the fix4 head CSVs (.scratch/m7w2e2fix4/g4/): 0 differences on all 75 columns in
+   all three engines. No U0 status, objective or counter moved.
+
+§6 G6: expected CLEAN -- install smoke, export contract, clang-format on the derived changed
+   include/*.h, src/*.cpp, tests/*.cpp, tests/*.h (clean at 34e100de), git diff --check,
+   DIRTY_FILES 0. Fold proofs 46/0.
+
+§7 PRE-FLIGHT (`gates-e2fix5.sh --preflight-only`): preflight.txt (CLASS_B_NAMES_OK 36/36,
+   BY-NAME 3 ADDED + 3 REMOVED each by exactly one TEST line, 3 TEST lines removed, ADDED
+   TEST FILES none + tests/CMakeLists.txt unchanged, PREFLIGHT_VALUE_OK, 6 SEGMENT_OK,
+   PREFLIGHT_OK). Refusals exercised against a wrong value, each rc 2 (recorded there): a
+   class B name whose source is modified (test_sqp_solver.cpp.o swapped in for
+   test_qp_engine_indefinite.cpp.o), class B 37 with a 36-name list, Release 2832 against
+   Debug 2832, BEFORE 1742b645, class A 3/3, the outside-universe list emptied, the REMOVED
+   list one name short; the by-name negative controls rc 2.
+
+§8 G5 CHECKS THE MAIN TREE OUT TO 0447288f while it builds its before arm, once per
+   configuration: nothing may edit or commit in the main tree until CHAIN_END.
+
+R-D (stall => undecidable) is NOT in the range: evaluated and DEFERRED (README, fix round 5).

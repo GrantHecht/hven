@@ -1,0 +1,24 @@
+M7 W2 E1c -- THE EIGHT COMMITTED TRACE SLICES, AND THE RULE FOR WHICH ARE COMMITTED.
+
+`wrappers/slice_m5.py` (copied BYTE-IDENTICAL from M5's artifact; its own
+`# SLICE ... (M7 W2 M5 read-out)` label line is therefore M5's text, not a claim
+that M5 cut these) cuts one solve's records verbatim out of a flat trace and
+prepends the parent's header plus a `# slice_*` block naming the parent and the
+reason. Nothing is recomputed.
+
+PARENTS (8 flat traces, 116 MB) are NOT committed; they are pinned by sha256 in
+`SHA256-parent-traces-e1c.txt`, which agrees line for line with the chain's own
+end-of-run `logs/chain-sha256.txt`. COMMITTED are only the solves the README's
+answers rest on (sha256 in `SHA256-slices.txt`):
+
+  on-STEENBRB-solve0   Q1/Q2/Q3  ON first QP at x0, radius 1: capped at 4680, period-4 alpha=0 two-bound cycle, DERIVED over-count +1..+3
+  on-STEENBRB-solve1   Q2        ON retry at radius 0.5: still cycles, DERIVED over-count -6..-4 (no integer proof of dependence)
+  off-STEENBRB-solve0  Q3        OFF first QP at the SAME x0, radius 1: kInfeasible after 827 minors -> elastic -> restoration
+  on-STEENBRC-solve0   Q1/Q2     ON first QP at x0, radius 1: capped at 5400, period-4 alpha=0 cycle, over-count +1..+3
+  off-STEENBRC-solve1  Q3        OFF major-1 QP at radius 0.5: kInfeasible after 515 minors -> elastic -> restoration
+  on-DALLASM-solve0    Q1/Q4     ON first QP, radius 1: capped at 1960, period-2 same-bound drop/re-add at alpha=-0
+  on-DALLASM-solve2    Q4        ON major-2 QP at radius 0.25: kInfeasible after 295 minors -> elastic -> restoration
+  off-DALLASM-solve0   Q4        OFF first QP at radius 1: kInfeasible after 232 minors -> elastic -> restoration
+
+STEENBRG is not sliced: its ON/OFF rows and per-solve table are STEENBRC's shape
+(same n, same me, same dropped rows, same ladder); its parents are pinned.

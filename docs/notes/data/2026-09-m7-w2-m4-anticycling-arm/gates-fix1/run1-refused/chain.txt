@@ -1,0 +1,24 @@
+CHAIN_START 2026-09-22T09:21:24-04:00
+HEAD 90a31da4  dirty-files=0
+PATH_OK /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-m4-anticycling-arm/wrappers/gates-m4fix1.sh
+PATH_OK /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers/gate_asserts_m3b.sh
+PATH_OK /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-m4-anticycling-arm/wrappers/classify_psym_m4.py
+PATH_OK /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers/check_sections_fix2.sh
+PATH_OK /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers/section_digest_fix2.py
+PATH_OK /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers/fold_proofs_m3b.sh
+PATH_OK /home/ghecht/Projects/hven/scripts/psym_compare.sh
+PATH_OK /home/ghecht/Projects/hven/scripts/compare_replay.py
+PATH_OK /home/ghecht/Projects/hven/scripts/check_install_smoke.sh
+PATH_OK /home/ghecht/Projects/hven/scripts/check_export_contract.sh
+PATH_OK /home/ghecht/Projects/hven/docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt
+PATH_OK /home/ghecht/Projects/hven/docs/notes/data/2026-09-m6-close-gate/replay
+GATES_M4FIX1_RC=1
+FOREGROUND_START fold-proofs 2026-09-22T09:52:34-04:00
+PGREP_EMPTY fold-proofs: no foreign cell binary under my lock
+PATH_OK /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers/fold_proofs_m3b.sh
+REFUSED: the fold-proof segment was about to hand a sibling a path that does not exist: /home/ghecht/Projects/hven/.scratch/m7w2m4fix1gates/gates-dbg/CTestTestfile.cmake
+FOREGROUND_END fold-proofs 2026-09-22T09:52:34-04:00
+FOLD_PROOFS_AGGREGATE_RC=3
+tail: cannot open '/home/ghecht/Projects/hven/.scratch/m7w2m4fix1gates/gates/fold-proofs.txt' for reading: No such file or directory
+CHAIN_END 2026-09-22T09:52:34-04:00
+CHAIN_SUMMARY gates=1 fold_proofs=3

@@ -1,0 +1,14 @@
+CHAIN_GATES_FIX1_START 2026-09-21T10:01:05-04:00
+HEAD ea027804  dirty=0
+GATES_FIX1_RC=1
+FOREGROUND_START fold-proofs-fix1 2026-09-21T10:47:30-04:00
+PGREP_EMPTY fold-proofs-fix1: no foreign cell binary under my lock
+FOREGROUND_END fold-proofs-fix1 2026-09-21T10:47:31-04:00 rc=0
+FOLD_PROOFS_FIX1_RC=0
+FOLD 42  REFUSED (rc=1)  accumulate_rc: a failure in the LAST sub-gate is not lost either
+          
+FOLD 43  ACCEPTED (rc=0)  accumulate_rc: an all-green G6 accumulates to 0
+
+FOLD_PROOFS_TOTAL=43  FOLD_PROOFS_FAILED=0
+FOLD_PROOFS_END 2026-09-21T10:47:31-04:00
+CHAIN_GATES_FIX1_END 2026-09-21T10:47:31-04:00  gates=1 fold_proofs=0

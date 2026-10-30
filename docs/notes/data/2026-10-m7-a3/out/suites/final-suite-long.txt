@@ -1,0 +1,5 @@
+Test project /home/ghecht/Projects/hven/.claude/worktrees/agent-afecbe0a5611f9eff/.scratch/a3/build-head-dbg
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) = 166.17 sec

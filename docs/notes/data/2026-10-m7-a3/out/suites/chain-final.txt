@@ -1,0 +1,81 @@
+CHAIN_FINAL_START 2026-10-28T12:41:18-04:00 HEAD 70f8d393f3cc6223102dbf25a47e7bca0b1139e9 DIRTY=0
+SRC /home/ghecht/Projects/hven/.claude/worktrees/agent-afecbe0a5611f9eff HEAD 70f8d393f3cc6223102dbf25a47e7bca0b1139e9 DIRTY=0
+89912 /home/ghecht/Projects/hven-bench/build/lanes/hven/hven_bench_cell --lane hven-sqp --problem ACOPR118 --options sqp-qn --budget-iters 0 --options-dump /home/ghecht/Projects/hven-bench/runs/2026-10-m7-w2-retake19/measured/ACOPR118-sqp-qn.dump --assert-reference
+PGREP_NONEMPTY
+FOREGROUND_START 2026-10-28T12:41:18-04:00
+FOREGROUND_END rc=0 2026-10-28T12:47:39-04:00
+[25/26] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_ladder_skip.cpp.o
+[26/26] Linking CXX executable tests/sqp/hven_sqp_tests
+SRC /home/ghecht/Projects/hven/.claude/worktrees/agent-afecbe0a5611f9eff HEAD 70f8d393f3cc6223102dbf25a47e7bca0b1139e9 DIRTY=0
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T12:47:39-04:00
+FOREGROUND_END rc=0 2026-10-28T12:48:04-04:00
+[25/26] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_ladder_skip.cpp.o
+[26/26] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T12:48:05-04:00
+FOREGROUND_END rc=0 2026-10-28T12:57:59-04:00
+100% tests passed, 0 tests failed out of 3230
+
+Total Test time (real) = 110.07 sec
+
+The following tests did not run:
+	665 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1927 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1928 - EqpRefinementAb.FullBattery (Disabled)
+100% tests passed, 0 tests failed out of 3230
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T12:57:59-04:00
+FOREGROUND_END rc=0 2026-10-28T13:04:24-04:00
+	482 - QpE4ProximalEqp.TheYorknetRestorationQpIsDriftFreeAndOptimal (Skipped)
+	515 - QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder (Skipped)
+	529 - QpE2Fix9StandstillRetreat.Acopp118Qp0Border (Skipped)
+	530 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	531 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	665 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1926 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1927 - EqpRefinementAb.FullBattery (Disabled)
+100% tests passed, 0 tests failed out of 3229
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T13:04:24-04:00
+FOREGROUND_END rc=0 2026-10-28T13:07:18-04:00
+Test project /home/ghecht/Projects/hven/.claude/worktrees/agent-afecbe0a5611f9eff/.scratch/a3/build-head-dbg
+    Start 1776: Continuation.ProbeBudgetBoundsAFailingProposal
+1/1 Test #1776: Continuation.ProbeBudgetBoundsAFailingProposal ...   Passed  166.10 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) = 166.17 sec
+100% tests passed, 0 tests failed out of 1
+FINAL_SUITES_DONE fail=0 2026-10-28T13:07:18-04:00
+MUTANTS_DONE rc=0 2026-10-28T13:42:58-04:00
+  K3 the memory condition dropped: KILLED by IpqpLadderSkip.TheCounterIsZeroOnAConvexSubproblemAtEveryValue
+  K4 the counter is not incremented: KILLED by IpqpLadderSkip.TheCountTracksTheThresholdOnTheTwoNegativeEigenvalueRow;IpqpLadderSkip.TheShippedValueFiresOnTheLadderFixtures
+  K5 the counter moved to the A2 estimate site: KILLED by IpqpLadderSkip.TheCountTracksTheThresholdOnTheTwoNegativeEigenvalueRow;IpqpLadderSkip.TheShippedValueFiresOnTheLadderFixtures
+  K6 the counter counts every iteration: KILLED by IpqpLadderSkip.NeverSkippingCountsNothingAndPaysTheZeroTrialEveryModifiedIteration;IpqpLadderSkip.TheCountTracksTheThresholdOnTheTwoNegativeEigenvalueRow;IpqpLadderSkip.TheCounterIsZeroOnAConvexSubproblemAtEveryValue;IpqpLadderSkip.TheShippedValueFiresOnTheLadderFixtures
+  K7 validation admits a negative count: KILLED by IpqpLadderSkipOptions.ValidateRefusesANegativeCountByName
+  K8 the dump line dropped: KILLED by IpqpLadderSkipOptions.TheDumpCarriesTheLine
+  K9 the fold overwrites ipqp_ladder_zero_trial_skips: KILLED by AccumulateIpqpCounters.EveryOtherIndexFieldSumsAcrossSubproblems
+SRC /home/ghecht/Projects/hven/.claude/worktrees/agent-afecbe0a5611f9eff HEAD 70f8d393f3cc6223102dbf25a47e7bca0b1139e9 DIRTY=0
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T13:36:32-04:00
+FOREGROUND_END rc=0 2026-10-28T13:42:58-04:00
+[5/6] Linking CXX executable bench/hven_sqp_corpus
+[6/6] Linking CXX executable tests/sqp/hven_sqp_tests
+RESTORED_BUILD rc=0
+PSYM_DONE rc=0 2026-10-28T14:26:53-04:00
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options_dump.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_certification.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_counters.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_dispatch.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_trace_writer.cpp.o
+  class B (includer of a changed header, source untouched): 56
+  UNEXPLAINED: 0
+  negative control: 106 includer objects of a changed header are IDENTICAL (of 173 includers in the dependency log)
+  compare verdict line: P-SYM: FAIL — differences outside the accepted noise class
+
+CLASSIFICATION: PASS -- 0 unexplained
+70f8d393f3cc6223102dbf25a47e7bca0b1139e9
+PSYM_DONE 2026-10-28T14:26:53-04:00
+CHAIN_FINAL_DONE fail=0 HEAD 70f8d393f3cc6223102dbf25a47e7bca0b1139e9 2026-10-28T14:26:53-04:00

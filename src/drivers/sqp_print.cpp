@@ -83,7 +83,8 @@ std::string sqp_iteration_table_head() {
 }
 
 std::string sqp_iteration_table_row(const SqpIterate &row) {
-    const char *wd_marker = row.watchdog_restored ? "*" : "";
+    // "*" marks a watchdog restore; "r" a non-finite step rollback row (M7 W2 R2-1).
+    const char *wd_marker = row.watchdog_restored ? "*" : (row.rolled_back ? "r" : "");
     if (row.qp_solved) {
         return fmt::format(
             "{:>5} {:>14.6e} {:>14.6e} {:>14.6e} {:>12.6e} {:>9} {:>7} {:>7} {:>3}\n", row.trial,

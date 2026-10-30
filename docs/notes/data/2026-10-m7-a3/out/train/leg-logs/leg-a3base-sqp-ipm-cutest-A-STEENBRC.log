@@ -1,0 +1,9 @@
+PGREP_EMPTY a3base-sqp-ipm-cutest-A-STEENBRC
+PGREP_NO_UNCOVERED_CELL a3base-sqp-ipm-cutest-A-STEENBRC 2026-10-28T21:32:37-04:00
+IN_LOCK_PGREP_EMPTY a3base-sqp-ipm-cutest-A-STEENBRC 2026-10-28T21:32:37-04:00
+FOREGROUND_START a3base-sqp-ipm-cutest-A-STEENBRC 2026-10-28T21:32:37-04:00
+w2_a4_sweep: sqp-ipm / hven-sqp / cutest / run A-STEENBRC -> /home/ghecht/Projects/hven/.claude/worktrees/agent-afecbe0a5611f9eff/.scratch/a3/train/cells-base/hven-sqp/sqp-ipm/cutest-run-A-STEENBRC (ceiling 300s) [problems: STEENBRC]
+run_serial: cutest/STEENBRC/hven-sqp/sqp-ipm
+run_serial: 1 cells -> /home/ghecht/Projects/hven/.claude/worktrees/agent-afecbe0a5611f9eff/.scratch/a3/train/cells-base/hven-sqp/sqp-ipm/cutest-run-A-STEENBRC/results.csv
+w2_a4_sweep: RUNNER_EXIT 0
+FOREGROUND_END a3base-sqp-ipm-cutest-A-STEENBRC 2026-10-28T21:33:16-04:00 rc=0

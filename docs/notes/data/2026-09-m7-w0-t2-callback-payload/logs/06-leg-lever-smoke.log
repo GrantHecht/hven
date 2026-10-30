@@ -1,0 +1,45 @@
+LEG: bash -o pipefail -c 
+set -e
+cd /home/ghecht/Projects/hven
+S=.scratch/m7t2/smoke
+C="$(sed -n "3p" docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt)"
+B=build/bench/hven_sqp_corpus
+run() { name=$1; shift; env MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 "$@" $B --engine interior --cells "$C" --csv $S/$name.csv > $S/$name.stdout 2> $S/$name.stderr; echo "RC_$name=$?"; }
+run a00
+run a-all HVEN_LEG_COUNT_CALLBACK=1
+run a-scalars HVEN_LEG_COUNT_CALLBACK=1 HVEN_LEG_CALLBACK_PAYLOAD=scalars
+run a-sink HVEN_LEG_TRACE_SINK=1
+echo "=== stderr evidence ==="
+head -2 $S/a-all.stderr; head -2 $S/a-scalars.stderr; head -2 $S/a-sink.stderr
+echo "=== byte identity (excluding the generated/invocation header lines) ==="
+for a in a-all a-scalars a-sink; do
+  if diff <(grep -v "^# generated:\|^# invocation:" $S/a00.csv) <(grep -v "^# generated:\|^# invocation:" $S/$a.csv) > /dev/null; then echo "IDENTICAL a00 vs $a"; else echo "DIFFERS a00 vs $a"; diff <(grep -v "^# generated:\|^# invocation:" $S/a00.csv) <(grep -v "^# generated:\|^# invocation:" $S/$a.csv) | head -5; fi
+done
+echo "=== bad payload spelling is refused ==="
+env MKL_NUM_THREADS=1 HVEN_LEG_COUNT_CALLBACK=1 HVEN_LEG_CALLBACK_PAYLOAD=scalar $B --engine interior --cells f7_n1000_bound_neutral --csv $S/refuse.csv > $S/refuse.out 2>&1; echo "REFUSE_RC=$?"; tail -2 $S/refuse.out
+
+PGREP_SEPARATE 2026-09-15T04:17:51Z
+PGREP_EMPTY
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-09-15T04:17:51Z
+RC_a00=0
+RC_a-all=0
+RC_a-scalars=0
+RC_a-sink=0
+=== stderr evidence ===
+callback-events row=f7_n1000_bound_neutral/MakeParameter payload=all events=7 iter_num=7
+callback-events row=f7_n1000_bound_neutral/MakeConstraint payload=all events=7 iter_num=7
+callback-events row=f7_n1000_bound_neutral/MakeParameter payload=scalars events=7 iter_num=7
+callback-events row=f7_n1000_bound_neutral/MakeConstraint payload=scalars events=7 iter_num=7
+trace-sink-events row=f7_n1000_bound_neutral/MakeParameter events=9 iter_num=7
+trace-sink-events row=f7_n1000_bound_neutral/MakeConstraint events=9 iter_num=7
+=== byte identity (excluding the generated/invocation header lines) ===
+DIFFERS a00 vs a-all
+44,86c44,86
+< f7_n1000_bound_neutral/MakeParameter,F7,1000,bound,neutral,optimal,7,-4.075173558e-01,4.165961184e-09,6.604566508e-10,1.123981747e-16,0.000000000e+00,7,7,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:7,5000,3000,1000,5000,4.165961184e-09,1.123981747e-16,0.000000000e+00,6.604566508e-10,0.326342634
+< f7_n1000_bound_neutral/MakeConstraint,F7,1000,bound,neutral,optimal,7,-4.075173558e-01,4.165961184e-09,6.604566508e-10,1.123981747e-16,0.000000000e+00,7,7,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:7,5000,3000,1000,5000,4.165961184e-09,1.123981747e-16,0.000000000e+00,6.604566508e-10,0.042060067
+< f7_n1000_bound_neutral/RelaxBounds,F7,1000,bound,neutral,optimal,7,-4.075173558e-01,4.165961184e-09,6.604566508e-10,1.123981747e-16,0.000000000e+00,7,7,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:7,5000,3000,1000,5000,4.165961184e-09,1.123981747e-16,0.000000000e+00,6.604566508e-10,0.042006668
+< f7_n1000_bound_physics/MakeParameter,F7,1000,bound,physics,optimal,5,-4.075173558e-01,2.380795236e-10,3.669294146e-11,1.081291806e-16,0.000000000e+00,5,5,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:5,5000,3000,1000,5000,2.380795236e-10,1.081291806e-16,0.000000000e+00,3.669294146e-11,0.033409503
+LEG_RC=141
+FOREGROUND_END 2026-09-15T04:18:39Z
+WRAPPER_EXIT=141

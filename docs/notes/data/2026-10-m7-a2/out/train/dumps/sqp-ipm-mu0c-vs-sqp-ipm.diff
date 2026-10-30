@@ -1,0 +1,4 @@
+50c50
+< ipqp.ipqp_mu0_rule = kFixed
+---
+> ipqp.ipqp_mu0_rule = kComplementarity

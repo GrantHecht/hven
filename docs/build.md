@@ -10,6 +10,15 @@ target's translation units. It exists because this library's build time
 is dominated by header parsing, not by how much code any one file
 contains.
 
+It is enabled **only under Clang** (M7 W2 E4 fix round 4).
+`src/CMakeLists.txt` guards `target_precompile_headers()` on the compiler
+id, so a build with any other front end — notably the GCC that
+`scripts/check_install_smoke.sh`'s default arm picks up — configures with
+no precompiled header at all. Two reasons, both recorded at the guard:
+GCC cannot clear bar 2 below (see the disclosed limitations), and a GCC
+`.gch` is not safe to cache. The second is the one that forced the
+guard; the ccache section states it.
+
 The numbers behind that claim (Linux, clang, Release `-O3`, idle box,
 ccache disabled):
 
@@ -129,7 +138,29 @@ enough to be worth stating precisely:
   setting would do nothing. It was recommended here in an earlier
   revision of this page; that was a misreading of the manual.
 
-The safeguard that actually protects the verification path is neither of
+- **A GCC `.gch` is not safe to cache, which is why there is no longer
+  one to cache.** GCC bakes a table of (file size, content md5) pairs
+  into the `.gch` and that table is the *only* thing keeping a consuming
+  TU from re-reading a `#pragma once` header the PCH already holds; GCC
+  never re-checks that the pairs still describe the files on disk, and
+  there is no macro include guard to fall back on. ccache's
+  preprocessor-mode key, meanwhile, is the preprocessed text, which a
+  comment-only, line-count-preserving header edit leaves byte-identical
+  — so it replays a `.gch` built before such an edit while the file on
+  disk no longer matches the table inside it, and every consuming TU
+  then fails with `multiple definition of 'enum class …'`. Measured on
+  GCC 16.2.1 with ccache 4.12.3: such an edit to
+  `include/hven/core/solver_status.h` gets a `preprocessed_cache_hit`
+  and a served `.gch` byte-identical to the pre-edit one. This is not a
+  hypothetical — it is what failed M7 W2 E4's install-smoke gate on
+  sources that build it green. Clang is unexposed because it records
+  each input's size and mtime in the AST file and refuses one whose
+  inputs moved, so the same stale artifact is a loud refusal rather than
+  a silent re-parse. The remedy is the compiler guard in
+  `src/CMakeLists.txt`, not a ccache setting: nothing in a ccache config
+  makes a GCC `.gch` validate its own inputs.
+
+The safeguard that actually protects the verification path is none of
 these: `scripts/check_pch_neutrality.sh` exports `CCACHE_DISABLE=1` for
 both of its builds, so the byte-identity comparison always compiles the
 sources in front of it rather than replaying whatever a cache happened
@@ -151,10 +182,15 @@ them:
   (`interior_point_solver_settings.cpp`, `non_linear_program.cpp`,
   `nlp_adapter.cpp`) emit a different object with the PCH than without
   it. Clang is the toolchain `CLAUDE.md` documents, every preset selects
-  and all three CI lanes use, so this is outside the supported
+  and all three CI lanes use, so this was already outside the supported
   configuration — but it is a real boundary on the claim, not a
   rounding error. `scripts/check_pch_neutrality.sh` defaults to clang
-  for this reason and prints the compiler it used.
+  for this reason and prints the compiler it used. As of M7 W2 E4 fix
+  round 4 the boundary is closed by construction rather than by
+  convention: no GCC build gets a PCH, so there is no GCC object whose
+  identity is in question. Running that script with
+  `-DCMAKE_CXX_COMPILER=g++` now fails its engagement assertion, and
+  correctly so — under GCC there is no PCH for it to find.
 - **tycho-embedded composition is build-verified, not
   identity-verified.** When tycho consumes hven via `add_subdirectory`,
   the two projects' precompiled headers are independent per-target

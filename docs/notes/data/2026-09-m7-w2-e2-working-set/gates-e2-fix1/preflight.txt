@@ -1,0 +1,25 @@
+GATES_START 2026-09-23T15:58:28-04:00
+=== HEAD a100fbc3  dirty-files=3 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.scratch/m7w2e2gatesfix1 ===
+=== BEFORE=0747050c  EXPECT_DEBUG_TESTS=2802  EXPECT_RELEASE_TESTS=2803 ===
+=== HEAD_AT_START=a100fbc3627d90b6576dc4f3292eb9fa14e6563f
+=== CHANGED HEADERS: include/hven/core/solver_counters.h include/hven/detail/qp/qp_engine.h include/hven/detail/qp/qp_problem.h include/hven/detail/qp/qp_walk_trace.h include/hven/detail/qp/ws_independence.h include/hven/qp/qp_types.h 
+=== CHANGED SOURCES: src/CMakeLists.txt src/drivers/sqp_options.cpp src/qp/qp_engine.cpp src/qp/ws_independence.cpp tests/CMakeLists.txt tests/drivers/test_options_dump.cpp tests/drivers/test_threads.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_degeneracy_arm.cpp tests/qp/test_qp_walk_seam.cpp tests/sqp/CMakeLists.txt tests/sqp/support/e1b_off_golden.h tests/sqp/test_continuation.cpp tests/sqp/test_hs_battery.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_engine_indefinite.cpp tests/sqp/test_qp_ws_independence.cpp tests/sqp/test_scale_problems.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_warm_start_battery.cpp 
+=== MODIFIED C++ SOURCES: src/drivers/sqp_options.cpp src/qp/qp_engine.cpp tests/drivers/test_options_dump.cpp tests/drivers/test_threads.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_degeneracy_arm.cpp tests/qp/test_qp_walk_seam.cpp tests/sqp/test_continuation.cpp tests/sqp/test_hs_battery.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_engine_indefinite.cpp tests/sqp/test_scale_problems.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_warm_start_battery.cpp 
+=== ADDED C++ SOURCES: src/qp/ws_independence.cpp tests/sqp/test_qp_ws_independence.cpp 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_degeneracy_arm.cpp tests/qp/test_qp_walk_seam.cpp -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): src/qp/ws_independence.cpp tests/sqp/test_qp_ws_independence.cpp 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ssn_engine.cpp.o CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ssn_engine.cpp.o CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o 
+=== G4 RESIDUAL GATE: 1e-5 (checked); differences declared 0
+=== PREFLIGHT_VALUE_OK: class A 16 - 3 outside == declared 13/13; ADDED 2 == declared 2 (2 inside the universe == declared 2); class B library objects all unmodified; G4 gate 1e-5
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2gatesfix1/g1.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2gatesfix1  G=/home/ghecht/Projects/hven/.scratch/m7w2e2gatesfix1/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2gatesfix1/g2.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2gatesfix1  G=/home/ghecht/Projects/hven/.scratch/m7w2e2gatesfix1/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2gatesfix1/g3.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2gatesfix1  G=/home/ghecht/Projects/hven/.scratch/m7w2e2gatesfix1/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2gatesfix1/g4.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2gatesfix1  G=/home/ghecht/Projects/hven/.scratch/m7w2e2gatesfix1/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2gatesfix1/g5.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2gatesfix1  G=/home/ghecht/Projects/hven/.scratch/m7w2e2gatesfix1/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2gatesfix1/g6.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2gatesfix1  G=/home/ghecht/Projects/hven/.scratch/m7w2e2gatesfix1/gates
+=== PREFLIGHT_OK: 6 segments written and asserted against GATES_SCRATCH, before the first leg ===
+PREFLIGHT_ONLY: stopping before G1. No leg was run and no build tree was touched.

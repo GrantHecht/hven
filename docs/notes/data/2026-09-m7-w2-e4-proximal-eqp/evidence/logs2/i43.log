@@ -1,0 +1,88 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-release/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = B1Gate.*
+[==========] Running 23 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 23 tests from B1Gate
+[ RUN      ] B1Gate.TheMinimalModelMovesNoGatedQuantityWithP
+[       OK ] B1Gate.TheMinimalModelMovesNoGatedQuantityWithP (0 ms)
+[ RUN      ] B1Gate.MinimalReleaseNoLongerCertifiesTheOldPoint
+[       OK ] B1Gate.MinimalReleaseNoLongerCertifiesTheOldPoint (2 ms)
+[ RUN      ] B1Gate.AFullyReleasedRowExitsWithAnExactlyZeroPrice
+[       OK ] B1Gate.AFullyReleasedRowExitsWithAnExactlyZeroPrice (0 ms)
+[ RUN      ] B1Gate.ReviewSphereAgreesWithItsAnalyticPathAtEveryStepSize
+[       OK ] B1Gate.ReviewSphereAgreesWithItsAnalyticPathAtEveryStepSize (2 ms)
+[ RUN      ] B1Gate.ReviewSphereContinuationSweepTracksTheTruePath
+[       OK ] B1Gate.ReviewSphereContinuationSweepTracksTheTruePath (5 ms)
+[ RUN      ] B1Gate.F6RelaxingStepsNoLongerFreezeTheObjective
+[       OK ] B1Gate.F6RelaxingStepsNoLongerFreezeTheObjective (4 ms)
+[ RUN      ] B1Gate.F6TighteningStepWasNeverExposedAndIsUnchanged
+[       OK ] B1Gate.F6TighteningStepWasNeverExposedAndIsUnchanged (0 ms)
+[ RUN      ] B1Gate.TransferProducedWarmStartIsSeededAndTheB1ClearCarriesToIt
+[       OK ] B1Gate.TransferProducedWarmStartIsSeededAndTheB1ClearCarriesToIt (2 ms)
+[ RUN      ] B1Gate.EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair
+[       OK ] B1Gate.EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair (6 ms)
+[ RUN      ] B1Gate.AZeroMajorWarmSolveWithALiveInequalityPriceStillCertifies
+[       OK ] B1Gate.AZeroMajorWarmSolveWithALiveInequalityPriceStillCertifies (0 ms)
+[ RUN      ] B1Gate.TheActivityBoundaryIsFeasTolOnBothSides
+[       OK ] B1Gate.TheActivityBoundaryIsFeasTolOnBothSides (0 ms)
+[ RUN      ] B1Gate.SeededIngestCarriesTheB1Repair
+[       OK ] B1Gate.SeededIngestCarriesTheB1Repair (7 ms)
+[ RUN      ] B1Gate.ASeededZeroMajorSolveWithALiveInequalityPriceStillCertifies
+[       OK ] B1Gate.ASeededZeroMajorSolveWithALiveInequalityPriceStillCertifies (0 ms)
+[ RUN      ] B1Gate.AScaledStalePriceIsRefusedAtIngest
+[       OK ] B1Gate.AScaledStalePriceIsRefusedAtIngest (0 ms)
+[ RUN      ] B1Gate.TheReportedScaleIsRefusedEvenThoughTheSolveThenRunsOut
+[       OK ] B1Gate.TheReportedScaleIsRefusedEvenThoughTheSolveThenRunsOut (0 ms)
+[ RUN      ] B1Gate.TheScaledStalePriceIsRefusedAtWarmToo
+[       OK ] B1Gate.TheScaledStalePriceIsRefusedAtWarmToo (0 ms)
+[ RUN      ] B1Gate.TheComplementarityGateBoundaryIsKktTolOnBothSides
+[       OK ] B1Gate.TheComplementarityGateBoundaryIsKktTolOnBothSides (0 ms)
+[ RUN      ] B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers
+[ e4fix2 ] watchdog: status=0 majors=1 f=0 x0=0 stat=8.0001e-07 prim=0.0000e+00 comp=8.0000e-01 dual_sign=0.0000e+00 lam=1e+06 pad=0
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_b1_gate.cpp:1415: Failure
+Value of: restored
+  Actual: false
+Expected: true
+fixture premise: kWarmFullStepWindow must fire on this solve; if this fails the fixture has stopped testing what it claims
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_b1_gate.cpp:1417: Failure
+Expected: (sol.counters.major_iters) > (kWarmFullStepWindow), actual: 1 vs 5
+fixture premise: the post-refusal solve must outlast the window
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_b1_gate.cpp:1431: Failure
+The difference between model.f_star() and sol.f is 0.79999999999967997, which exceeds 1e-3, where
+model.f_star() evaluates to -0.79999999999967997,
+sol.f evaluates to 0, and
+1e-3 evaluates to 0.001.
+THE PIN: dropping fs_best_duals_ingested reports f = 0 here
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_b1_gate.cpp:1433: Failure
+The difference between model.x_star() and sol.x(0) is 7.9999999999999996e-07, which exceeds 1e-9, where
+model.x_star() evaluates to 7.9999999999999996e-07,
+sol.x(0) evaluates to 0, and
+1e-9 evaluates to 1.0000000000000001e-09.
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_b1_gate.cpp:1434: Failure
+Expected: (std::abs(sol.f)) > (0.5), actual: 0 vs 0.5
+the wrong answer this guards against is f = 0 exactly
+
+[  FAILED  ] B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers (0 ms)
+[ RUN      ] B1Gate.MinimalReleaseNoLongerCertifiesTheOldPointUnderKSsn
+[       OK ] B1Gate.MinimalReleaseNoLongerCertifiesTheOldPointUnderKSsn (0 ms)
+[ RUN      ] B1Gate.AFullyReleasedRowExitsWithAnExactlyZeroPriceUnderKSsn
+[       OK ] B1Gate.AFullyReleasedRowExitsWithAnExactlyZeroPriceUnderKSsn (0 ms)
+[ RUN      ] B1Gate.AScaledStalePriceIsRefusedAtIngestUnderKSsn
+[       OK ] B1Gate.AScaledStalePriceIsRefusedAtIngestUnderKSsn (0 ms)
+[ RUN      ] B1Gate.KSsnMatchesTheWalksComplementarityOnceTheFaceIsRefined
+[       OK ] B1Gate.KSsnMatchesTheWalksComplementarityOnceTheFaceIsRefined (0 ms)
+[ RUN      ] B1Gate.ReviewSphereIsRepairedUnderKSsnToo
+[       OK ] B1Gate.ReviewSphereIsRepairedUnderKSsnToo (0 ms)
+[----------] 23 tests from B1Gate (38 ms total)
+
+[----------] Global test environment tear-down
+[==========] 23 tests from 1 test suite ran. (38 ms total)
+[  PASSED  ] 22 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers
+
+ 1 FAILED TEST

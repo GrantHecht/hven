@@ -1,0 +1,61 @@
+M7 W2 E1b FIX ROUND 3 -- THE REDUCED GATE'S EXPECTATIONS, DERIVED AND MEASURED
+Written and committed BEFORE the chain was detached. RULE: nothing here may be adjusted
+after the chain's first leg.
+
+§1 THE RANGE. BEFORE de62a2e7 (de62a2e7f9d364f3e1ddc24e8bc69e39fbd71ca2, the E1b fix-round-2
+gates record), code head 9c08cc10 (9c08cc105f7f4f5ef2e313e5736bf9b4d3d36f6c); the commit above
+it (this file's) is docs/notes/data only. `git diff --name-status de62a2e7..9c08cc10`:
+  M include/hven/drivers/sqp_solver.h           comment only (2 lines -> 3; +1 line shift below 1804)
+  M src/drivers/sqp_solver.cpp                  comment only (3 lines -> 3; no line shift)
+  M tests/sqp/test_equality_basis.cpp           comments + ONE TEST RENAMED (class A)
+  M tests/sqp/test_sqp_equality_basis_seams.cpp comment only; hven_sqp_seam_tests, OUTSIDE the universe
+Every +/- line over src/*.cpp and include/ is a `//` comment (the pre-flight's COMMENT_ONLY_OK,
+by value). No inline code sits below the changed header line (lines 1805-1966 are member
+declarations and comments).
+THE DECLARED RENAME (E1BFR3 (l)): EqualityBasis.T4NearCapMultiColumnLiftMeetsItsForwardBound ->
+EqualityBasis.T4NearCapMultiColumnLiftMeetsItsForwardEstimate: 1 renamed, 0 added, 0 removed.
+The pre-flight proves the range's only TEST-macro line changes over tests/*.cpp are that -/+
+pair (RENAME_OK), and both baselines name the old name once and the new one never.
+
+§2 P-SYM PER CONFIGURATION (MEASURED by the fresh rehearsal, rehearsal/, 06:18:35-06:32:26,
+this runner's own g5 segment byte-identical, HEAD 9c08cc10 vs de62a2e7, one lock hold):
+  DIFFERING 1/1 = class A 1/1 + class B 0/0; UNEXPLAINED 0/0.
+  class A = tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_equality_basis.cpp.o in both.
+  class B EMPTY in both (by name: the empty set; header-driven class B MEASURED EMPTY: the
+    public header's shift moved no includer's code in either configuration).
+  negative control (includers of sqp_solver.h, byte-identical): 62 Release / 60 Debug.
+  NOISE-ONLY (informational, not gated beyond the library rule): Release 3, all bench
+    (bench_corpus, bench_crossover, ipqp_e1_arm), 0 library; Debug 5: those 3 +
+    tests/drivers test_print_tables.cpp.o + the library's src/drivers/sqp_solver.cpp.o.
+  No production-library object is a P-SYM mover (DIFFERS/RELOCATIONS) in either configuration.
+  asymmetry admission list EMPTY.
+  The rehearsal's one ASSERT FAIL was its HYPOTHESIS DEBUG_ONLY Debug 0 (measured 1); every
+  other assertion ASSERT OK (rehearsal/rehearsal-log.txt).
+§3 TESTS: Release 2818 (G3), Debug 2817 (G1, less the long test); BY NAME 2820 / 2819 started
+  names == ../gates-e1b-fix2/suite-{release,debug}.txt with the declared rename applied.
+§4 SECTIONS (library, 44 objects each): NON-DEBUG-MOVERS empty both; no library ADDED;
+  Release: 44/44 BYTE-IDENTICAL, DEBUG_ONLY 0 (the comment-only production sources --
+    sqp_solver.cpp and every library includer of sqp_solver.h -- are byte-identical);
+  Debug: 43 BYTE-IDENTICAL, DEBUG_ONLY 1 = CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+    (NOISE-ONLY in P-SYM; a comment-only source's own object); header-driven DEBUG_ONLY set
+    MEASURED EMPTY (the includer admission of E1BFR3 (m) is in place and admits nothing this
+    round); REFUSED 0.
+  Declared: EXPECT_DEBUG_ONLY_RELEASE=0, EXPECT_DEBUG_ONLY_DEBUG=1.
+§5 G2 and G4 NOT RUN (declared; re-checked by value in the pre-flight: every changed
+  src/include line is a comment, and tests/sqp/test_continuation.cpp is outside the range).
+§6 G6 expected clean; fold proofs 46/0 (gate-assert library unchanged).
+§8 G5 checks the main tree out to de62a2e7 during its before arms: nothing edits or commits
+  in the main tree until CHAIN_END.
+
+PRE-FLIGHT and REFUSALS: preflight.txt (this directory; HEAD 9c08cc10 + the uncommitted
+wrappers): offline class B check rc 0/0 on the rehearsal classifications; PREFLIGHT_RC 0; nine
+wrong values each refused rc 2 (class A, empty header list, empty comment-only list, a
+BEFORE whose range carries code, a class A object declared class B, a library class B, a
+Debug/Release count mismatch, a wrong RENAME_TO, a wrong RENAME_FROM).
+
+LITERAL CHECK before the first leg: the ONE scratch literal is `.scratch/m7w2e1bfix3gates`
+(gates-e1bfix3.sh, the S= line; the chain asks it with --print-scratch). The copies were
+grepped for fix2 / r2 / 7ab88b81 / 92e6a12c / m7w2e1bfix2: the hits are provenance comments
+(runner header, chain header), the DECLARED by-name baseline directory gates-e1b-fix2 (E1BFR3
+(l)), and the M3b library's own tool file names check_sections_fix2.sh / section_digest_fix2.py
+(unchanged gate machinery). No previous round's scratch tree, log name, BEFORE or head appears.

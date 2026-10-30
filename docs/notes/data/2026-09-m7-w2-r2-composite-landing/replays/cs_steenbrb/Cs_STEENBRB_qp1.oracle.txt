@@ -1,0 +1,13 @@
+ORACLE /home/ghecht/Projects/hven/.scratch/m7w2r2/dumps/Cs_STEENBRB/qp1.txt n=660 me=96 mi=0 tr=128 in-cell: status=3 minors=219 facts=220 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=1 retreats=0 exch=0 deferred=0 undec=0 maxiter=6600
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=0.0000e+00 max=0.0000e+00 n_neg=0 n_zero=660
+  Z'HZ on null(Ae): dim=564 rank(Ae)=96 eig min=0.0000e+00
+  WALK final: f=-1378.22297564 viol eq/in/box=(5.684341886080802e-14, 0.0, 7.539913077351926e-14) |W| rows=0 pins=553 me+|W|=649 rank=649 n=660
+    working-set normalized singular values: min=4.943e-02 (smallest 3: [0.04943153 0.05685519 0.07443225])
+    Z'HZ on the final working set's null space: dim=11 eig min=0.0000e+00 (next 0.0000e+00) max=0.0000e+00
+  OPTIMUM (Clarabel) status=Solved f*=-1378.22319848 viol=(6.674154901227593e-14, 0.0, 0.0) active rows=0 pins=294
+    walk final vs x*: |dx|inf=1.0828e+02  f_walk - f* = 2.2283e-04
+    rows in W not active at x*: [] ; active at x* not in W: []
+    pins in W not at that bound at x*: 276 [(2, 'L'), (4, 'L'), (6, 'L'), (9, 'L'), (11, 'L'), (12, 'L'), (13, 'L'), (15, 'L'), (16, 'L'), (17, 'L'), (18, 'L'), (19, 'L'), (20, 'L'), (21, 'L'), (23, 'L'), (24, 'L'), (25, 'L'), (29, 'L'), (31, 'L'), (33, 'L'), (34, 'L'), (36, 'L'), (39, 'L'), (40, 'L'), (41, 'L'), (43, 'L'), (44, 'L'), (45, 'L'), (47, 'L'), (48, 'L')]
+    bounds active at x* not pinned in W: 17 [(57, 'U'), (59, 'U'), (95, 'U'), (134, 'U'), (147, 'L'), (179, 'U'), (187, 'L'), (189, 'L'), (218, 'U'), (265, 'U'), (267, 'L'), (271, 'L'), (296, 'L'), (320, 'U'), (368, 'L'), (394, 'U'), (398, 'U')]
+  POINT replays/cs_steenbrb/Cs_STEENBRB_qp1.on.sol: status=3 f=-1378.22297564 viol=(5.684341886080802e-14, 0.0, 7.539913077351926e-14) f-f*=2.2283e-04 |dx|inf=1.083e+02

@@ -1,0 +1,1 @@
+=== RST RECORD HEAD-ipm vs /home/ghecht/Projects/hven/.claude/worktrees/agent-aaa1ae957506b3537/.scratch/scw/runs/p4-c1-u0 HEAD-ipm (EXACT) === cells compared: 27  columns compared: 75  differences: 0

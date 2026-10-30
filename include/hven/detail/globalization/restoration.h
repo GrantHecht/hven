@@ -45,8 +45,7 @@ class RestorationStrategy {
     ///   mode-specific state is frozen at switch time (for the proximal switch:
     ///   the coefficient zeta, set ONCE here and never re-derived from live mu).
     virtual void enter_restoration(const ProgressMeasures &reference,
-                                    const Eigen::Ref<const Eigen::VectorXd> &primals,
-                                    double mu) = 0;
+                                   const Eigen::Ref<const Eigen::VectorXd> &primals, double mu) = 0;
 
     /// @brief Leave restoration mode. This call only deactivates the mode;
     /// the solver-side multiplier reset around a nested-restoration exit ships
@@ -70,7 +69,7 @@ class RestorationStrategy {
     /// Accumulates the proximal term's gradient into grad_out (ADDED, not
     /// overwritten — the caller's objective gradient is already there).
     virtual void add_proximal_gradient(const Eigen::Ref<const Eigen::VectorXd> &primals,
-                                        Eigen::Ref<Eigen::VectorXd> grad_out) const = 0;
+                                       Eigen::Ref<Eigen::VectorXd> grad_out) const = 0;
 
     /// The proximal term's (diagonal) contribution to the primal Hessian block.
     virtual const Eigen::VectorXd &proximal_diagonal() const = 0;
@@ -160,23 +159,20 @@ class RestorationStrategy {
     /// The restoration barrier parameter computed at entry (also the phase's
     /// starting barrier parameter).
     virtual double entry_mu() const {
-        throw std::logic_error(
-            "RestorationStrategy::entry_mu called on a strategy that does not "
-            "implement the nested restoration surface");
+        throw std::logic_error("RestorationStrategy::entry_mu called on a strategy that does not "
+                               "implement the nested restoration surface");
     }
 
     /// Per-row diagonal pivots landing in the KKT constraint-row slots —
     /// POSITIVE vectors (the solver seam negates them into the (y,y)
     /// diagonal entries).
     virtual const Eigen::VectorXd &e_pivots() const {
-        throw std::logic_error(
-            "RestorationStrategy::e_pivots called on a strategy that does not "
-            "implement the nested restoration surface");
+        throw std::logic_error("RestorationStrategy::e_pivots called on a strategy that does not "
+                               "implement the nested restoration surface");
     }
     virtual const Eigen::VectorXd &i_pivots() const {
-        throw std::logic_error(
-            "RestorationStrategy::i_pivots called on a strategy that does not "
-            "implement the nested restoration surface");
+        throw std::logic_error("RestorationStrategy::i_pivots called on a strategy that does not "
+                               "implement the nested restoration surface");
     }
 
     /// @brief Aggregates the elastic bound-variable complementarity products
@@ -233,8 +229,7 @@ class RestorationStrategy {
             "RestorationStrategy::nested_objective called on a strategy that does not "
             "implement the nested restoration surface");
     }
-    virtual void add_nested_gradient(double mu,
-                                     const Eigen::Ref<const Eigen::VectorXd> &primals,
+    virtual void add_nested_gradient(double mu, const Eigen::Ref<const Eigen::VectorXd> &primals,
                                      Eigen::Ref<Eigen::VectorXd> grad_out) const {
         (void)mu;
         (void)primals;
@@ -279,8 +274,7 @@ class RestorationStrategy {
     /// ALONGSIDE n,p rather than keeping stale multipliers (the classic
     /// reference implementation leaves z untouched because its z are real
     /// variables the next Newton step updates — here they are not).
-    virtual void recenter_elastics(double mu,
-                                   const Eigen::Ref<const Eigen::VectorXd> &eq_residuals,
+    virtual void recenter_elastics(double mu, const Eigen::Ref<const Eigen::VectorXd> &eq_residuals,
                                    const Eigen::Ref<const Eigen::VectorXd> &iq_residuals) {
         (void)mu;
         (void)eq_residuals;

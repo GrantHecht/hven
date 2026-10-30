@@ -17,13 +17,29 @@ Runs on `ubuntu-latest`. Steps:
 
 1. Checkout with `submodules: recursive` (pulls `dep/eigen`, `dep/fmt`).
 2. Install `clang` and `ninja-build` via apt.
-3. Install Intel MKL (`intel-oneapi-mkl-devel`) via the Intel oneAPI apt
-   repository, then export `ONEAPI_ROOT` and `MKLROOT` into
+3. Install Intel MKL, pinned to `intel-oneapi-mkl-devel-2026.2` (M7 WX
+   B0, WX-R7: the lane is the reference build for the exact route pins, so
+   it names its MKL; 2026.1 and 2026.2 are bit-identical on every WX cell)
+   via the Intel oneAPI apt repository, then export `ONEAPI_ROOT` and `MKLROOT` into
    `$GITHUB_ENV` so `cmake/FindMKL.cmake` is not limited to its three
    hardcoded fallback paths for libiomp5's directory (the piece most prone
    to moving between oneAPI package layouts). MKLROOT itself still assumes
    the mkl/latest symlink apt creates.
-4. Configure with the `linux-clang-release` CMake preset.
+4. Configure with the `linux-clang-release` CMake preset. Configure also
+   decides whether this runner is the **reference build** for the exact route
+   pins (`docs/testing.md` "The reference build"): `tests/CMakeLists.txt`
+   probes the runner's MKL dispatch (CPU vendor, AVX2 / FMA / AVX-512F,
+   `mkl_cbwr_get_auto_branch()`), and only the derivation box's signature
+   compiles the pinned arms; any other runner compiles the portable arms. The
+   hosted pool mixes CPU models, so this is per-run: run 40985070468 passed on
+   one runner and moved 39 route cells on an AVX-512 one, same commit and
+   image (WX-R13). A run that lands off-reference is green on the portable
+   contract, not a pin check.
+   Then "Runner CPU and MKL dispatch" prints `lscpu` and
+   `build/tests/hven_mkl_dispatch.txt` (the signature and the verdict) every
+   run, so a lane result is always readable against its hardware. The
+   coverage lane prints `lscpu` the same way, and its configure output carries
+   the verdict.
 5. Build (`cmake --build build`).
 6. Test (`ctest --test-dir build --output-on-failure`).
 7. Accelerate backend syntax check, stubbed
@@ -67,7 +83,11 @@ Runs on `macos-latest` (Apple Silicon). Steps:
 5. Build (`cmake --build build-macos`).
 6. Test (`ctest --test-dir build-macos --output-on-failure`) — the one lane
    whose run asserts committed float rows rather than reporting them as
-   context-mismatched.
+   context-mismatched. The step sets `VECLIB_MAXIMUM_THREADS=1` (M7 WX B0,
+   ruling R-4; register M3-8): two runs of identical code differed on 19 of 68
+   failing cells while Accelerate's threading was unpinned. The library respects a pre-set value
+   (`ensure_accelerate_initialized` uses `setenv(..., 0)`). Accelerate values recorded
+   unpinned are re-observed under it.
 
 The Linux and Windows lanes deliberately set no such label: their committed
 float rows are pinned to the machine they were derived on, which is not a

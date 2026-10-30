@@ -1,0 +1,233 @@
+== G1 is compare_replay's output (u0-exact-*.txt) ==
+== G2 / G2b: OFF identity, head vs base (new toolchain, same session) ==
+G2 e1 --gate OFF: 29 rows x 68 base columns (wall_s excluded): 0 differences; head-only columns ['ipqp_ladder_zero_trial_skips'], ipqp_ladder_zero_trial_skips non-zero on 0 rows
+G2b --families OFF: 8 rows x 46 base columns (wall_s excluded): 0 differences; head-only columns ['ipqp_ladder_zero_trial_skips'], ipqp_ladder_zero_trial_skips non-zero on 3 rows
+G2 verdict: PASS; G2b verdict: FAIL
+
+== G4 fire counter ==
+  off: ipqp_ladder_zero_trial_skips sums E1 0, families 50, ladder 63
+  s1: ipqp_ladder_zero_trial_skips sums E1 0, families 66, ladder 68
+  s3: ipqp_ladder_zero_trial_skips sums E1 0, families 34, ladder 61
+  k1: ipqp_ladder_zero_trial_skips sums E1 0, families 191, ladder 122
+  kn: ipqp_ladder_zero_trial_skips sums E1 0, families 0, ladder 0
+G4: E1 zero under every arm True; KN zero everywhere True; OFF ladder non-vacuous True -> PASS
+
+== s5.2 fixture clauses (VETO-CLASS), vs OFF in the same build ==
+OFF: E1 RED ['e1_f7_n20000_af30_m1e-6']; e2e exact 12/27; tier-contract 13/27; sum e2e_factorizations 746; sum ipqp_iters 690; families HS ipqp_factorizations 183; ladder ipqp_factorizations 177
+
+-- arm s1 --
+  F-a no new RED: RED ['e1_f7_n20000_af30_m1e-6'] -> PASS
+  F-b recovery: e2e 20 (OFF 12), tier-contract 17 (OFF 13) -> PASS
+  F-c families: lost [] -> PASS
+  F-d ladder: lost [] -> PASS
+  VETO-CLASS overall: PASS
+  descriptive: E1 sum e2e_factorizations 793 (OFF 746), sum ipqp_iters 737 (OFF 690); families HS ipqp_factorizations 209 (OFF 183); ladder ipqp_factorizations 183 (OFF 177)
+  E1 cells whose row moved vs OFF: 27
+
+-- arm s3 --
+  F-a no new RED: RED ['e1_f7_n20000_af30_m1e-6'] -> PASS
+  F-b recovery: e2e 9 (OFF 12), tier-contract 11 (OFF 13) -> FAIL
+  F-c families: lost [] -> PASS
+  F-d ladder: lost [] -> PASS
+  VETO-CLASS overall: FAIL
+  descriptive: E1 sum e2e_factorizations 716 (OFF 746), sum ipqp_iters 660 (OFF 690); families HS ipqp_factorizations 151 (OFF 183); ladder ipqp_factorizations 170 (OFF 177)
+  E1 cells whose row moved vs OFF: 24
+
+-- arm k1 --
+  F-a no new RED: RED ['e1_f7_n20000_af30_m1e-6'] -> PASS
+  F-b recovery: e2e 12 (OFF 12), tier-contract 13 (OFF 13) -> PASS
+  F-c families: lost [] -> PASS
+  F-d ladder: lost [] -> PASS
+  VETO-CLASS overall: PASS
+  descriptive: E1 sum e2e_factorizations 746 (OFF 746), sum ipqp_iters 690 (OFF 690); families HS ipqp_factorizations 270 (OFF 183); ladder ipqp_factorizations 193 (OFF 177)
+  E1 cells whose row moved vs OFF: 0
+
+-- arm kn --
+  F-a no new RED: RED ['e1_f7_n20000_af30_m1e-6'] -> PASS
+  F-b recovery: e2e 12 (OFF 12), tier-contract 13 (OFF 13) -> PASS
+  F-c families: lost [] -> PASS
+  F-d ladder: lost [] -> PASS
+  VETO-CLASS overall: PASS
+  descriptive: E1 sum e2e_factorizations 746 (OFF 746), sum ipqp_iters 690 (OFF 690); families HS ipqp_factorizations 207 (OFF 183); ladder ipqp_factorizations 251 (OFF 177)
+  E1 cells whose row moved vs OFF: 0
+
+== per-row tables ==
+-- ladder off: id status escape iters facts retries elevated reclimbs skips
+   hs_indefinite_equality optimal 0 14 20 5 2 1 0
+   hs_indefinite_equality_and_row optimal 0 14 21 6 3 1 0
+   hs_two_negative_eigenvalue_row optimal 0 27 38 10 26 4 23
+   indefinite_box_family_c0 optimal 0 7 13 5 2 1 0
+   indefinite_box_family_c1 optimal 0 22 30 7 21 1 18
+   equality_null_space numerical_error 3 26 45 18 25 13 22
+   saddle numerical_error 3 3 10 6 3 0 0
+-- families off: key status iters facts skips
+   hs/hs10 optimal 25 25 0
+   hs/hs24 optimal 37 46 13
+   hs/hs33 optimal 80 112 14
+   indefinite/indefinite_equality optimal 14 20 0
+   indefinite/indefinite_equality_and_row optimal 14 21 0
+   indefinite/two_negative_eigenvalue_row optimal 27 38 23
+   corpus/f7_n800_path_warm optimal 37 39 0
+   corpus/f7_n1000_path_warm optimal 31 33 0
+-- ladder s1: id status escape iters facts retries elevated reclimbs skips
+   hs_indefinite_equality optimal 0 14 20 5 2 1 0
+   hs_indefinite_equality_and_row optimal 0 14 21 6 3 1 0
+   hs_two_negative_eigenvalue_row optimal 0 27 38 10 26 4 23
+   indefinite_box_family_c0 optimal 0 8 14 5 2 1 0
+   indefinite_box_family_c1 optimal 0 26 34 7 25 1 22
+   equality_null_space numerical_error 3 26 45 18 25 13 22
+   saddle numerical_error 3 4 11 6 4 0 1
+-- families s1: key status iters facts skips
+   hs/hs10 optimal 25 25 0
+   hs/hs24 optimal 38 47 13
+   hs/hs33 optimal 100 137 30
+   indefinite/indefinite_equality optimal 14 20 0
+   indefinite/indefinite_equality_and_row optimal 14 21 0
+   indefinite/two_negative_eigenvalue_row optimal 27 38 23
+   corpus/f7_n800_path_warm optimal 45 47 0
+   corpus/f7_n1000_path_warm optimal 36 38 0
+-- ladder s3: id status escape iters facts retries elevated reclimbs skips
+   hs_indefinite_equality optimal 0 12 18 5 2 1 0
+   hs_indefinite_equality_and_row optimal 0 13 20 6 3 1 0
+   hs_two_negative_eigenvalue_row optimal 0 27 38 10 26 4 23
+   indefinite_box_family_c0 optimal 0 7 13 5 2 1 0
+   indefinite_box_family_c1 optimal 0 21 29 7 20 1 17
+   equality_null_space numerical_error 3 25 44 18 24 13 21
+   saddle numerical_error 3 2 8 5 2 0 0
+-- families s3: key status iters facts skips
+   hs/hs10 optimal 40 41 0
+   hs/hs24 optimal 33 42 11
+   hs/hs33 optimal 52 68 0
+   indefinite/indefinite_equality optimal 12 18 0
+   indefinite/indefinite_equality_and_row optimal 13 20 0
+   indefinite/two_negative_eigenvalue_row optimal 27 38 23
+   corpus/f7_n800_path_warm optimal 31 33 0
+   corpus/f7_n1000_path_warm optimal 25 27 0
+-- ladder k1: id status escape iters facts retries elevated reclimbs skips
+   hs_indefinite_equality optimal 0 20 25 4 19 1 18
+   hs_indefinite_equality_and_row optimal 0 23 33 9 21 5 20
+   hs_two_negative_eigenvalue_row optimal 0 27 36 8 26 4 25
+   indefinite_box_family_c0 optimal 0 15 20 4 14 1 13
+   indefinite_box_family_c1 optimal 0 22 28 5 21 1 20
+   equality_null_space numerical_error 3 26 43 16 25 13 24
+   saddle numerical_error 3 3 8 4 3 0 2
+-- families k1: key status iters facts skips
+   hs/hs10 optimal 25 25 0
+   hs/hs24 optimal 37 44 15
+   hs/hs33 optimal 141 201 113
+   indefinite/indefinite_equality optimal 20 25 18
+   indefinite/indefinite_equality_and_row optimal 23 33 20
+   indefinite/two_negative_eigenvalue_row optimal 27 36 25
+   corpus/f7_n800_path_warm optimal 37 39 0
+   corpus/f7_n1000_path_warm optimal 31 33 0
+-- ladder kn: id status escape iters facts retries elevated reclimbs skips
+   hs_indefinite_equality optimal 0 14 20 5 2 1 0
+   hs_indefinite_equality_and_row optimal 0 14 21 6 3 1 0
+   hs_two_negative_eigenvalue_row optimal 0 49 89 39 25 11 0
+   indefinite_box_family_c0 optimal 0 7 13 5 2 1 0
+   indefinite_box_family_c1 optimal 0 19 31 11 7 1 0
+   equality_null_space numerical_error 3 26 67 40 25 13 0
+   saddle numerical_error 3 3 10 6 3 0 0
+-- families kn: key status iters facts skips
+   hs/hs10 optimal 25 25 0
+   hs/hs24 optimal 42 69 0
+   hs/hs33 optimal 76 113 0
+   indefinite/indefinite_equality optimal 14 20 0
+   indefinite/indefinite_equality_and_row optimal 14 21 0
+   indefinite/two_negative_eigenvalue_row optimal 49 89 0
+   corpus/f7_n800_path_warm optimal 37 39 0
+   corpus/f7_n1000_path_warm optimal 31 33 0
+-- E1 s1 vs OFF (moved cells): id status iters e2e_fac missed/fp tier-misclassified
+   e1_f7_n4000_af01_m1e-4 optimal->optimal it 25->26 fac 27->28 e2e 0/2->0/0 mis 2->0
+   e1_f7_n4000_af01_m1e-6 optimal->optimal it 34->36 fac 36->38 e2e 0/0->0/0 mis 281->59
+   e1_f7_n4000_af10_m1e-2 optimal->optimal it 19->20 fac 21->22 e2e 0/0->0/0 mis 0->0
+   e1_f7_n4000_af10_m1e-6 optimal->optimal it 23->27 fac 25->29 e2e 12/0->0/0 mis 1625->205
+   e1_f7_n4000_af30_m1e-2 optimal->optimal it 19->20 fac 21->22 e2e 0/0->0/0 mis 0->0
+   e1_f7_n4000_af30_m1e-4 optimal->optimal it 15->17 fac 17->19 e2e 0/56->0/0 mis 56->0
+   e1_f7_n4000_af30_m1e-6 optimal->optimal it 17->20 fac 19->22 e2e 0/0->0/204 mis 1399->203
+   e1_f7_n20000_af01_m1e-2 optimal->optimal it 34->35 fac 36->37 e2e 0/0->0/0 mis 0->0
+   e1_f7_n20000_af01_m1e-4 optimal->optimal it 32->33 fac 34->35 e2e 0/4->0/0 mis 4->0
+   e1_f7_n20000_af01_m1e-6 optimal->optimal it 29->32 fac 31->34 e2e 129/0->0/0 mis 4828->1323
+   e1_f7_n20000_af10_m1e-2 optimal->optimal it 24->25 fac 26->27 e2e 0/0->0/0 mis 0->0
+   e1_f7_n20000_af10_m1e-4 optimal->optimal it 22->23 fac 24->25 e2e 0/65->0/2 mis 66->2
+   e1_f7_n20000_af10_m1e-6 optimal->optimal it 28->29 fac 30->31 e2e 0/0->0/0 mis 6809->3546
+   e1_f7_n20000_af30_m1e-2 optimal->optimal it 18->20 fac 20->22 e2e 0/0->0/0 mis 0->0
+   e1_f7_n20000_af30_m1e-4 optimal->optimal it 16->17 fac 18->19 e2e 0/17->0/0 mis 18->0
+   e1_f7_n20000_af30_m1e-6 max_iter->max_iter it 60->60 fac 60->60 e2e 178/5124->216/6576 mis 11649->11526
+   e1_anchor_f7_n20000_bound_neutral optimal->optimal it 11->12 fac 13->14 e2e -1/-1->-1/-1 mis 0->0
+   e1_anchor_f7_n20000_path_neutral optimal->optimal it 11->12 fac 13->14 e2e -1/-1->-1/-1 mis 0->0
+   e1blk_f7_n20000_af01_m1e-2 optimal->optimal it 26->27 fac 28->29 e2e 1/0->1/0 mis 0->0
+   e1blk_f7_n20000_af01_m1e-4 optimal->optimal it 22->24 fac 24->26 e2e 0/0->0/0 mis 0->0
+   e1blk_f7_n20000_af01_m1e-6 optimal->optimal it 20->24 fac 22->26 e2e 29/0->0/0 mis 14->2
+   e1blk_f7_n20000_af10_m1e-2 optimal->optimal it 21->22 fac 23->24 e2e 0/0->0/0 mis 0->0
+   e1blk_f7_n20000_af10_m1e-4 optimal->optimal it 28->30 fac 30->32 e2e 5/0->5/0 mis 0->0
+   e1blk_f7_n20000_af10_m1e-6 optimal->optimal it 24->27 fac 26->29 e2e 848/0->0/0 mis 11->1
+   e1blk_f7_n20000_af30_m1e-2 optimal->optimal it 28->31 fac 30->33 e2e 4/0->4/0 mis 0->0
+   e1blk_f7_n20000_af30_m1e-4 optimal->optimal it 19->21 fac 21->23 e2e 7/0->7/0 mis 0->0
+   e1blk_f7_n20000_af30_m1e-6 optimal->optimal it 18->20 fac 20->22 e2e 2/0->0/0 mis 9->1
+-- E1 s3 vs OFF (moved cells): id status iters e2e_fac missed/fp tier-misclassified
+   e1_f7_n4000_af01_m1e-2 optimal->optimal it 25->24 fac 27->26 e2e 0/0->0/0 mis 0->0
+   e1_f7_n4000_af01_m1e-4 optimal->optimal it 25->24 fac 27->26 e2e 0/2->6/0 mis 2->31
+   e1_f7_n4000_af01_m1e-6 optimal->optimal it 34->30 fac 36->32 e2e 0/0->0/0 mis 281->408
+   e1_f7_n4000_af10_m1e-4 optimal->optimal it 22->21 fac 24->23 e2e 0/0->0/0 mis 0->0
+   e1_f7_n4000_af10_m1e-6 optimal->optimal it 23->22 fac 25->24 e2e 12/0->89/0 mis 1625->2169
+   e1_f7_n4000_af30_m1e-2 optimal->optimal it 19->18 fac 21->20 e2e 0/0->0/0 mis 0->0
+   e1_f7_n4000_af30_m1e-6 optimal->optimal it 17->15 fac 19->17 e2e 0/0->389/0 mis 1399->2453
+   e1_f7_n20000_af01_m1e-2 optimal->optimal it 34->33 fac 36->35 e2e 0/0->0/0 mis 0->0
+   e1_f7_n20000_af01_m1e-4 optimal->optimal it 32->31 fac 34->33 e2e 0/4->0/30 mis 4->30
+   e1_f7_n20000_af01_m1e-6 optimal->optimal it 29->28 fac 31->30 e2e 129/0->200/0 mis 4828->5234
+   e1_f7_n20000_af10_m1e-2 optimal->optimal it 24->23 fac 26->25 e2e 0/0->0/0 mis 0->0
+   e1_f7_n20000_af10_m1e-6 optimal->optimal it 28->27 fac 30->29 e2e 0/0->336/0 mis 6809->10517
+   e1_f7_n20000_af30_m1e-4 optimal->optimal it 16->15 fac 18->17 e2e 0/17->1618/0 mis 18->582
+   e1_f7_n20000_af30_m1e-6 max_iter->max_iter it 60->60 fac 60->60 e2e 178/5124->254/760 mis 11649->11565
+   e1_anchor_f7_n20000_bound_neutral optimal->optimal it 11->10 fac 13->12 e2e -1/-1->-1/-1 mis 0->0
+   e1blk_f7_n20000_af01_m1e-2 optimal->optimal it 26->25 fac 28->27 e2e 1/0->1/0 mis 0->0
+   e1blk_f7_n20000_af01_m1e-4 optimal->optimal it 22->21 fac 24->23 e2e 0/0->98/0 mis 0->1
+   e1blk_f7_n20000_af01_m1e-6 optimal->optimal it 20->19 fac 22->21 e2e 29/0->106/0 mis 14->14
+   e1blk_f7_n20000_af10_m1e-2 optimal->optimal it 21->20 fac 23->22 e2e 0/0->0/0 mis 0->0
+   e1blk_f7_n20000_af10_m1e-4 optimal->optimal it 28->27 fac 30->29 e2e 5/0->5/0 mis 0->0
+   e1blk_f7_n20000_af10_m1e-6 optimal->optimal it 24->22 fac 26->24 e2e 848/0->1004/0 mis 11->14
+   e1blk_f7_n20000_af30_m1e-2 optimal->optimal it 28->27 fac 30->29 e2e 4/0->4/0 mis 0->0
+   e1blk_f7_n20000_af30_m1e-4 optimal->optimal it 19->17 fac 21->19 e2e 7/0->5314/0 mis 0->2
+   e1blk_f7_n20000_af30_m1e-6 optimal->optimal it 18->16 fac 20->18 e2e 2/0->5098/0 mis 9->8
+-- E1 k1 vs OFF (moved cells): id status iters e2e_fac missed/fp tier-misclassified
+-- E1 kn vs OFF (moved cells): id status iters e2e_fac missed/fp tier-misclassified
+
+== probe PU (DESCRIPTIVE) ==
+  ladder lost ['hs_two_negative_eigenvalue_row', 'indefinite_box_family_c1']; families lost ['indefinite/two_negative_eigenvalue_row']; ladder facts 246 (OFF 177); families HS facts 336 (OFF 183)
+   hs_indefinite_equality optimal/0 it 14 fac 20 -> optimal/0 it 14 fac 20
+   hs_indefinite_equality_and_row optimal/0 it 14 fac 21 -> optimal/0 it 14 fac 21
+   hs_two_negative_eigenvalue_row optimal/0 it 27 fac 38 -> max_iter/1 it 60 fac 66
+   indefinite_box_family_c0 optimal/0 it 7 fac 13 -> optimal/0 it 7 fac 13
+   indefinite_box_family_c1 optimal/0 it 22 fac 30 -> max_iter/1 it 60 fac 66
+   equality_null_space numerical_error/3 it 26 fac 45 -> numerical_error/3 it 42 fac 50
+   saddle numerical_error/3 it 3 fac 10 -> numerical_error/3 it 3 fac 10
+   hs/hs10 optimal it 25 fac 25 -> optimal it 25 fac 25
+   hs/hs24 optimal it 37 fac 46 -> optimal it 75 fac 83
+   hs/hs33 optimal it 80 fac 112 -> optimal it 190 fac 228
+   indefinite/indefinite_equality optimal it 14 fac 20 -> optimal it 14 fac 20
+   indefinite/indefinite_equality_and_row optimal it 14 fac 21 -> optimal it 14 fac 21
+   indefinite/two_negative_eigenvalue_row optimal it 27 fac 38 -> max_iter it 60 fac 66
+   corpus/f7_n800_path_warm optimal it 37 fac 39 -> optimal it 37 fac 39
+   corpus/f7_n1000_path_warm optimal it 31 fac 33 -> optimal it 31 fac 33
+
+== probe PC (DESCRIPTIVE) ==
+  ladder lost ['hs_two_negative_eigenvalue_row']; families lost ['indefinite/two_negative_eigenvalue_row']; ladder facts 186 (OFF 177); families HS facts 185 (OFF 183)
+   hs_indefinite_equality optimal/0 it 14 fac 20 -> optimal/0 it 14 fac 20
+   hs_indefinite_equality_and_row optimal/0 it 14 fac 21 -> optimal/0 it 14 fac 21
+   hs_two_negative_eigenvalue_row optimal/0 it 27 fac 38 -> numerical_error/5 it 32 fac 46
+   indefinite_box_family_c0 optimal/0 it 7 fac 13 -> optimal/0 it 7 fac 13
+   indefinite_box_family_c1 optimal/0 it 22 fac 30 -> optimal/0 it 23 fac 31
+   equality_null_space numerical_error/3 it 26 fac 45 -> numerical_error/3 it 29 fac 45
+   saddle numerical_error/3 it 3 fac 10 -> numerical_error/3 it 3 fac 10
+   hs/hs10 optimal it 25 fac 25 -> optimal it 25 fac 25
+   hs/hs24 optimal it 37 fac 46 -> optimal it 38 fac 47
+   hs/hs33 optimal it 80 fac 112 -> optimal it 82 fac 113
+   indefinite/indefinite_equality optimal it 14 fac 20 -> optimal it 14 fac 20
+   indefinite/indefinite_equality_and_row optimal it 14 fac 21 -> optimal it 14 fac 21
+   indefinite/two_negative_eigenvalue_row optimal it 27 fac 38 -> numerical_error it 32 fac 46
+   corpus/f7_n800_path_warm optimal it 37 fac 39 -> optimal it 37 fac 39
+   corpus/f7_n1000_path_warm optimal it 31 fac 33 -> optimal it 31 fac 33
+
+== T-0 (DESCRIPTIVE): base new-toolchain E1 OFF vs the committed old-toolchain CSV ==
+  29 rows x 65 common columns: 0 differences

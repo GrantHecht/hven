@@ -1,0 +1,260 @@
+M7 W2 M3b -- read-outs OUTSIDE RULE.md. Not pre-registered, not a verdict, and
+incapable of changing the outcome the rule returned. The settler asked for these
+after the rule was written; they are reported here, separately, for that reason.
+
+==============================================================================
+STEENBRB -- READ-OUTS OUTSIDE RULE.md (not pre-registered, not a verdict)
+==============================================================================
+records 4680   n 468   me 108   mi 0
+
+(a) THE FINAL CYCLE
+    begins at minor 59   ends at minor 4679 (the last pass of the walk)
+    identity bound189 at side lower   period 2 (one drop, one add)
+    passes consumed 4621 of 4680 = 0.9874 of the whole walk
+    every recorded field but `minor` repeats with period 2: True
+
+(b) IS THERE ONE CYCLE OR SEVERAL? all alternating runs of length >= 4
+     start    end    len  identity       side
+        59   4679   4621  bound189       lower
+    runs found: 1
+
+    per-variable ADMISSION table (all identities, admissions desc):
+    identity         admissions  re-admissions      share
+    bound189               2314           2313    0.9872
+    bound205                  3              2    0.0013
+    bound167                  3              2    0.0013
+    bound83                   2              1    0.0009
+    bound264                  2              1    0.0009
+    bound158                  2              1    0.0009
+    bound217                  2              1    0.0009
+    bound206                  1              0    0.0004
+    bound190                  1              0    0.0004
+    bound375                  1              0    0.0004
+    bound376                  1              0    0.0004
+    bound348                  1              0    0.0004
+    bound135                  1              0    0.0004
+    bound219                  1              0    0.0004
+    bound2                    1              0    0.0004
+    bound210                  1              0    0.0004
+    bound107                  1              0    0.0004
+    bound29                   1              0    0.0004
+    bound133                  1              0    0.0004
+    bound374                  1              0    0.0004
+    bound322                  1              0    0.0004
+    bound163                  1              0    0.0004
+    bound191                  1              0    0.0004
+    distinct identities 23   admissions 2344
+    identities admitted EXACTLY ONCE: 16   the single top identity holds 0.9872 of all admissions
+
+(d) THE CYCLING PAIR, FIELD BY FIELD
+    minor 59  action drop_dantzig
+        block=bound  block_index=189  block_side=lower  drop_route=dantzig  bound_gap=inf
+        alpha=nan  p_inf=0.0  dx_inf=nan  step_tol=9.135609154992571e-07  raw_ratio=nan  ratio_tied=0  ratio_capped=True
+        degenerate=False  ride=False
+        decision_multiplier=0.0011748355559042523  decision_tol=1e-09  best_multiplier=0.0011748355559042523  drop_candidates=10  drop_tied=1
+        ws_size_in=22  ws_sig_in=14864884868504189174  ws_size_out=21  ws_sig_out=223057516508574445  shift_adds=0
+        x_inf=913.560915499257  x_l1=103080.58777493805
+    minor 60  action add
+        block=bound  block_index=189  block_side=lower  drop_route=none  bound_gap=inf
+        alpha=-0.0  p_inf=14568.88377705458  dx_inf=-0.0  step_tol=9.135609154992571e-07  raw_ratio=-0.0  ratio_tied=1  ratio_capped=True
+        degenerate=True  ride=False
+        decision_multiplier=nan  decision_tol=nan  best_multiplier=nan  drop_candidates=0  drop_tied=0
+        ws_size_in=21  ws_sig_in=223057516508574445  ws_size_out=22  ws_sig_out=14864884868504189174  shift_adds=0
+        x_inf=913.560915499257  x_l1=103080.58777493805
+    the 20 passes BEFORE the cycle starts:
+           39 add              b205    lower  alpha=-0.0         p_inf=10283.935139356512 dx=-0.0         mu=nan            cand=0 deg=1 ride=0
+           40 move_only        n-1     free   alpha=1.0          p_inf=0.12211720819937 dx=0.12211720819937 mu=nan            cand=0 deg=0 ride=0
+           41 drop_dantzig     b217    lower  alpha=nan          p_inf=0.0            dx=nan          mu=0.00287920933747543 cand=15 deg=0 ride=0
+           42 add              b217    lower  alpha=-0.0         p_inf=18.726816063133718 dx=-0.0         mu=nan            cand=0 deg=1 ride=0
+           43 move_only        n-1     free   alpha=1.0          p_inf=0.1490352699103994 dx=0.1490352699103994 mu=nan            cand=0 deg=0 ride=0
+           44 drop_dantzig     b205    lower  alpha=nan          p_inf=0.0            dx=nan          mu=0.005201088701449752 cand=10 deg=0 ride=0
+           45 ride_stepped     b191    lower  alpha=0.10960136141791543 p_inf=10283.917492561186 dx=1127.131357894221 mu=nan            cand=0 deg=0 ride=1
+           46 add              b205    lower  alpha=0.07289038489902368 p_inf=15463.375031640398 dx=1127.131357894221 mu=nan            cand=0 deg=0 ride=0
+           47 move_only        n-1     free   alpha=1.0          p_inf=0.10516319117347184 dx=0.10516319117347184 mu=nan            cand=0 deg=0 ride=0
+           48 drop_dantzig     b167    lower  alpha=nan          p_inf=0.0            dx=nan          mu=0.0037249920115982604 cand=10 deg=0 ride=0
+           49 add              b167    lower  alpha=-0.0         p_inf=314.08962972494794 dx=-0.0         mu=nan            cand=0 deg=1 ride=0
+           50 move_only        n-1     free   alpha=1.0          p_inf=0.06003838102998316 dx=0.06003838102998316 mu=nan            cand=0 deg=0 ride=0
+           51 drop_dantzig     b191    lower  alpha=nan          p_inf=0.0            dx=nan          mu=0.0033596440422303253 cand=16 deg=0 ride=0
+           52 move_only        n-1     free   alpha=1.0          p_inf=109.63723406638583 dx=109.63723406638583 mu=nan            cand=0 deg=0 ride=0
+           53 drop_dantzig     b158    lower  alpha=nan          p_inf=0.0            dx=nan          mu=7.17638814577981e-05 cand=2 deg=0 ride=0
+           54 add              b158    lower  alpha=-0.0         p_inf=55.56562312443655 dx=-0.0         mu=nan            cand=0 deg=1 ride=0
+           55 move_only        n-1     free   alpha=1.0          p_inf=0.09545635861672963 dx=0.09545635861672963 mu=nan            cand=0 deg=0 ride=0
+           56 drop_dantzig     b189    lower  alpha=nan          p_inf=0.0            dx=nan          mu=0.0016836649978095863 cand=9 deg=0 ride=0
+           57 add              b189    lower  alpha=-0.0         p_inf=14568.88377705458 dx=-0.0         mu=nan            cand=0 deg=1 ride=0
+           58 move_only        n-1     free   alpha=1.0          p_inf=0.11812962208693989 dx=0.11812962208693989 mu=nan            cand=0 deg=0 ride=0
+
+    actions anywhere in the walk that would show the engine reacting to the stall:
+        suspect_escalation   0
+        start_repair         0
+        post_probe_restart   0
+        drop_zero_probe      0
+        ride_stepped         2
+        ride_unbounded       0
+        terminal             0
+        move_only            13
+    the record's suspect_escalations counter is in the committed row; the trace's own count of that action is above.
+
+==============================================================================
+YORKNET -- READ-OUTS OUTSIDE RULE.md (not pre-registered, not a verdict)
+==============================================================================
+records 2560   n 312   me 256   mi 0
+
+(a) THE FINAL CYCLE
+    begins at minor 177   ends at minor 2559 (the last pass of the walk)
+    identity bound291 at side lower   period 2 (one drop, one add)
+    passes consumed 2383 of 2560 = 0.9309 of the whole walk
+    every recorded field but `minor` repeats with period 2: True
+
+(b) IS THERE ONE CYCLE OR SEVERAL? all alternating runs of length >= 4
+     start    end    len  identity       side
+       177   2559   2383  bound291       lower
+    runs found: 1
+
+    per-variable ADMISSION table (all identities, admissions desc):
+    identity         admissions  re-admissions      share
+    bound291               1193           1192    0.9270
+    bound15                   1              0    0.0008
+    bound16                   1              0    0.0008
+    bound18                   1              0    0.0008
+    bound19                   1              0    0.0008
+    bound20                   1              0    0.0008
+    bound21                   1              0    0.0008
+    bound22                   1              0    0.0008
+    bound33                   1              0    0.0008
+    bound54                   1              0    0.0008
+    bound55                   1              0    0.0008
+    bound57                   1              0    0.0008
+    bound59                   1              0    0.0008
+    bound93                   1              0    0.0008
+    bound94                   1              0    0.0008
+    bound96                   1              0    0.0008
+    bound132                  1              0    0.0008
+    bound98                   1              0    0.0008
+    bound133                  1              0    0.0008
+    bound135                  1              0    0.0008
+    bound171                  1              0    0.0008
+    bound172                  1              0    0.0008
+    bound173                  1              0    0.0008
+    bound174                  1              0    0.0008
+    bound175                  1              0    0.0008
+    bound176                  1              0    0.0008
+    bound181                  1              0    0.0008
+    bound137                  1              0    0.0008
+    bound210                  1              0    0.0008
+    bound211                  1              0    0.0008
+    bound213                  1              0    0.0008
+    bound216                  1              0    0.0008
+    bound228                  1              0    0.0008
+    bound212                  1              0    0.0008
+    bound249                  1              0    0.0008
+    bound250                  1              0    0.0008
+    bound252                  1              0    0.0008
+    bound255                  1              0    0.0008
+    bound251                  1              0    0.0008
+    bound253                  1              0    0.0008
+    bound267                  1              0    0.0008
+    bound254                  1              0    0.0008
+    bound288                  1              0    0.0008
+    bound289                  1              0    0.0008
+    bound294                  1              0    0.0008
+    bound290                  1              0    0.0008
+    bound292                  1              0    0.0008
+    bound306                  1              0    0.0008
+    bound293                  1              0    0.0008
+    bound166                  1              0    0.0008
+    bound12                   1              0    0.0008
+    bound49                   1              0    0.0008
+    bound88                   1              0    0.0008
+    bound127                  1              0    0.0008
+    bound246                  1              0    0.0008
+    bound285                  1              0    0.0008
+    bound295                  1              0    0.0008
+    bound256                  1              0    0.0008
+    bound32                   1              0    0.0008
+    bound168                  1              0    0.0008
+    bound169                  1              0    0.0008
+    bound189                  1              0    0.0008
+    bound170                  1              0    0.0008
+    bound61                   1              0    0.0008
+    bound139                  1              0    0.0008
+    bound100                  1              0    0.0008
+    bound99                   1              0    0.0008
+    bound138                  1              0    0.0008
+    bound60                   1              0    0.0008
+    bound178                  1              0    0.0008
+    bound177                  1              0    0.0008
+    bound188                  1              0    0.0008
+    bound217                  1              0    0.0008
+    bound205                  1              0    0.0008
+    bound244                  1              0    0.0008
+    bound283                  1              0    0.0008
+    bound14                   1              0    0.0008
+    bound72                   1              0    0.0008
+    bound13                   1              0    0.0008
+    bound71                   1              0    0.0008
+    bound51                   1              0    0.0008
+    bound110                  1              0    0.0008
+    bound90                   1              0    0.0008
+    bound111                  1              0    0.0008
+    bound91                   1              0    0.0008
+    bound92                   1              0    0.0008
+    bound149                  1              0    0.0008
+    bound129                  1              0    0.0008
+    bound150                  1              0    0.0008
+    bound130                  1              0    0.0008
+    bound131                  1              0    0.0008
+    bound227                  1              0    0.0008
+    bound207                  1              0    0.0008
+    bound266                  1              0    0.0008
+    bound305                  1              0    0.0008
+    distinct identities 95   admissions 1287
+    identities admitted EXACTLY ONCE: 94   the single top identity holds 0.9270 of all admissions
+
+(d) THE CYCLING PAIR, FIELD BY FIELD
+    minor 177  action drop_dantzig
+        block=bound  block_index=291  block_side=lower  drop_route=dantzig  bound_gap=9.340000000000003
+        alpha=nan  p_inf=0.0  dx_inf=nan  step_tol=1.5118681370725051e-07  raw_ratio=nan  ratio_tied=0  ratio_capped=True
+        degenerate=False  ride=False
+        decision_multiplier=14895027.940413455  decision_tol=1e-09  best_multiplier=14895027.940413455  drop_candidates=19  drop_tied=1
+        ws_size_in=57  ws_sig_in=16810987215800583597  ws_size_out=56  ws_sig_out=15077628046709894555  shift_adds=0
+        x_inf=151.1868137072505  x_l1=9035.107394520895
+    minor 178  action add
+        block=bound  block_index=291  block_side=lower  drop_route=none  bound_gap=9.340000000000003
+        alpha=-0.0  p_inf=44.42264847921532  dx_inf=-0.0  step_tol=1.5118681370725051e-07  raw_ratio=-0.0  ratio_tied=1  ratio_capped=True
+        degenerate=True  ride=False
+        decision_multiplier=nan  decision_tol=nan  best_multiplier=nan  drop_candidates=0  drop_tied=0
+        ws_size_in=56  ws_sig_in=15077628046709894555  ws_size_out=57  ws_sig_out=16810987215800583597  shift_adds=0
+        x_inf=151.1868137072505  x_l1=9035.107394520895
+    the 20 passes BEFORE the cycle starts:
+          157 move_only        n-1     free   alpha=1.0          p_inf=0.3412500000000014 dx=0.3412500000000014 mu=nan            cand=0 deg=0 ride=0
+          158 drop_dantzig     b288    lower  alpha=nan          p_inf=0.0            dx=nan          mu=171817027.19999996 cand=34 deg=0 ride=0
+          159 move_only        n-1     free   alpha=1.0          p_inf=2.730000000000013 dx=2.730000000000013 mu=nan            cand=0 deg=0 ride=0
+          160 drop_dantzig     b291    lower  alpha=nan          p_inf=0.0            dx=nan          mu=15138810.926941495 cand=25 deg=0 ride=0
+          161 move_only        n-1     free   alpha=1.0          p_inf=0.24310007234694808 dx=0.24310007234694808 mu=nan            cand=0 deg=0 ride=0
+          162 drop_dantzig     b60     lower  alpha=nan          p_inf=0.0            dx=nan          mu=1315923.7736108415 cand=30 deg=0 ride=0
+          163 move_only        n-1     free   alpha=1.0          p_inf=0.009277793549692603 dx=0.009277793549692603 mu=nan            cand=0 deg=0 ride=0
+          164 drop_dantzig     b99     lower  alpha=nan          p_inf=0.0            dx=nan          mu=1315923.773610841 cand=29 deg=0 ride=0
+          165 move_only        n-1     free   alpha=1.0          p_inf=0.009277793549692603 dx=0.009277793549692603 mu=nan            cand=0 deg=0 ride=0
+          166 drop_dantzig     b138    lower  alpha=nan          p_inf=0.0            dx=nan          mu=1315923.7736108408 cand=28 deg=0 ride=0
+          167 move_only        n-1     free   alpha=1.0          p_inf=0.6577422790888312 dx=0.6577422790888312 mu=nan            cand=0 deg=0 ride=0
+          168 drop_dantzig     b21     lower  alpha=nan          p_inf=0.0            dx=nan          mu=1315923.7383552103 cand=27 deg=0 ride=0
+          169 move_only        n-1     free   alpha=1.0          p_inf=0.6577422790872395 dx=0.6577422790872395 mu=nan            cand=0 deg=0 ride=0
+          170 drop_dantzig     b216    lower  alpha=nan          p_inf=0.0            dx=nan          mu=1315923.7383552105 cand=25 deg=0 ride=0
+          171 move_only        n-1     free   alpha=1.0          p_inf=0.00927779354969438 dx=0.00927779354969438 mu=nan            cand=0 deg=0 ride=0
+          172 drop_dantzig     b255    lower  alpha=nan          p_inf=0.0            dx=nan          mu=1315923.7383552103 cand=23 deg=0 ride=0
+          173 move_only        n-1     free   alpha=1.0          p_inf=0.009277793549696156 dx=0.009277793549696156 mu=nan            cand=0 deg=0 ride=0
+          174 drop_dantzig     b294    lower  alpha=nan          p_inf=0.0            dx=nan          mu=1315923.7383552103 cand=21 deg=0 ride=0
+          175 add              b291    lower  alpha=0.000827423068816641 p_inf=44.45475163702299 dx=0.036782887022987154 mu=nan            cand=0 deg=0 ride=0
+          176 move_only        n-1     free   alpha=1.0          p_inf=0.23918397025516924 dx=0.23918397025516924 mu=nan            cand=0 deg=0 ride=0
+
+    actions anywhere in the walk that would show the engine reacting to the stall:
+        suspect_escalation   0
+        start_repair         1
+        post_probe_restart   0
+        drop_zero_probe      0
+        ride_stepped         0
+        ride_unbounded       0
+        terminal             0
+        move_only            40
+    the record's suspect_escalations counter is in the committed row; the trace's own count of that action is above.
+

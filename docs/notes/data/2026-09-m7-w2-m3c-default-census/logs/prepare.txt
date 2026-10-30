@@ -1,0 +1,12 @@
+PGREP_BEFORE_LOCK: 
+FOREGROUND_START m3c-prepare 2026-09-21T17:55:14-04:00
+PGREP_EMPTY m3c-prepare: no foreign cell binary under my lock
+=== HEAD d6eb24de  dirty-files=0 ===
+--- LIBRARY SHA256 (Fedora installs to lib64)
+18a71b727533e9231fbdeb4e6bf0c9bb2d77aad6ab886a0f2e5729f1169eee10  /home/ghecht/Projects/hven/.scratch/m7w2m3c/install/lib64/libhven.a
+--- THE hven PACKAGE THIS PROBE RESOLVED
+hven_DIR:PATH=/home/ghecht/Projects/hven/.scratch/m7w2m3c/install/lib64/cmake/hven
+--- PROBE SHA256
+14f40b250a3c82d8b6d5e46b137b2500b2f233b341b9d792cfa997265d1b14f5  /home/ghecht/Projects/hven/.scratch/m7w2m3c/probebuild/m3c_probe
+FOREGROUND_END m3c-prepare 2026-09-21T17:55:33-04:00 rc=0
+WRAPPER_RC m3c-prepare rc=0

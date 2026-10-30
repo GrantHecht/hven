@@ -1,0 +1,188 @@
+GATES_START 2026-09-24T05:19:29-04:00
+=== HEAD d37c2dfb  dirty-files=0 ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates-r2 ===
+=== BEFORE=7ab88b81  EXPECT_DEBUG_TESTS=2817  EXPECT_RELEASE_TESTS=2818 ===
+=== HEAD_AT_START=d37c2dfb334b4036cb06b1a27b6febecbae5e977
+=== CHANGED HEADERS: include/hven/detail/drivers/equality_basis.h include/hven/detail/drivers/equality_basis_testing.h 
+=== CHANGED SOURCES: src/drivers/equality_basis.cpp src/drivers/sqp_solver.cpp tests/sqp/test_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp 
+=== MODIFIED C++ SOURCES: src/drivers/equality_basis.cpp src/drivers/sqp_solver.cpp tests/sqp/test_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp 
+=== ADDED C++ SOURCES: 
+=== COMMENT_ONLY_OK: every changed line of src/*.cpp and include/ in 7ab88b81..d37c2dfb334b4036cb06b1a27b6febecbae5e977 is a // comment (sources: src/drivers/equality_basis.cpp src/drivers/sqp_solver.cpp )
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): tests/sqp/test_sqp_equality_basis_seams.cpp -> tests/CMakeFiles/hven_sqp_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (by name, each must be NOISE-ONLY): 
+=== DECLARED NON-DEBUG MOVERS Debug   (by name, each must be NOISE-ONLY): 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== BY-NAME BASELINES: /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-e2-working-set/gates-e2-fix1b/suite-{debug,release}.txt (2819 / 2820 started names)
+=== G2 NOT RUN (declared): no library code, no header code and not tests/sqp/test_continuation.cpp changed
+=== G4 NOT RUN (declared): no numeric code changed (comment-only proof above); the replay's inputs are the previous round's
+=== CLASS_B_NAMES_OK: Release 0 / Debug 0 declared objects, none with a source modified in the range
+=== PREFLIGHT_VALUE_OK: class A 4 - 1 outside == declared 1/1; ADDED 0 == declared 0 (0 inside the universe == declared 0); comment-only library sources 2; no library class B; G2/G4 not run (declared)
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates-r2/g1.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates-r2  G=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates-r2/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates-r2/g3.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates-r2  G=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates-r2/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates-r2/g5.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates-r2  G=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates-r2/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates-r2/g6.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates-r2  G=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates-r2/gates
+=== PREFLIGHT_OK: 4 segments (g1 g3 g5 g6) written and asserted against GATES_SCRATCH, g2/g4 declared not run, before the first leg ===
+FOREGROUND_START G1-debug 2026-09-24T05:24:01-04:00
+PGREP_EMPTY G1-debug: no foreign cell binary under my lock
+Total Test time (real) = 305.74 sec
+
+The following tests did not run:
+	490 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1704 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1705 - EqpRefinementAb.FullBattery (Disabled)
+FOREGROUND_END G1-debug 2026-09-24T05:30:56-04:00 rc=0
+WRAPPER_RC G1-debug rc=0
+ASSERT OK   G1 Debug suite failed = 0
+ASSERT OK   G1 Debug suite total = 2817
+ASSERT OK   G1 Debug by name: 2819 started names == the previous round's 2819
+G2 NOT RUN (declared, E1BFR2 (f)): the long test's source and every library line it runs are unchanged but for comments
+FOREGROUND_START G3-release 2026-09-24T05:30:56-04:00
+PGREP_EMPTY G3-release: no foreign cell binary under my lock
+Total Test time (real) = 106.50 sec
+
+The following tests did not run:
+	490 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1705 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1706 - EqpRefinementAb.FullBattery (Disabled)
+FOREGROUND_END G3-release 2026-09-24T05:34:30-04:00 rc=0
+WRAPPER_RC G3-release rc=0
+ASSERT OK   G3 Release suite failed = 0
+ASSERT OK   G3 Release suite total = 2818
+ASSERT OK   G3 Release by name: 2820 started names == the previous round's 2820
+G4 NOT RUN (declared, E1BFR2 (f)): no numeric code changed (the pre-flight's comment-only proof)
+FOREGROUND_START G5-psym 2026-09-24T05:34:35-04:00
+PGREP_EMPTY G5-psym: no foreign cell binary under my lock
+=== P-SYM Release  after=d37c2dfb334b4036cb06b1a27b6febecbae5e977  before=7ab88b81  declared differing=1 A=1 B=0
+CLEANDEAD_Release: 0 output(s) removed
+ASSERT OK   capture after-Release: rc=0, 151 object(s) in /home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates-r2/gates/psym/after-Release/.psym-manifest
+ASSERT OK   capture before-Release: rc=0, 151 object(s) in /home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates-r2/gates/psym/before-Release/.psym-manifest
+ASSERT OK   capture pair Release after = before + ADDED = 151
+ASSERT OK   outside-universe Release: tests/CMakeFiles/hven_sqp_seam_tests.dir/sqp/test_sqp_equality_basis_seams.cpp.o was BUILT in the after arm
+ASSERT OK   outside-universe Release: objects of tests/CMakeFiles/hven_sqp_seam_tests.dir in the after manifest = 0
+tree restored to m7 d37c2dfb
+PSYM_COMPARE_RC_Release=1 (1 is EXPECTED; the gate is the classification)
+ASSERT OK   ONLY-AFTER Release: [] == the ADDED sources' objects
+CLASSIFY_RC_Release=0
+HEADER DERIVATION
+  repo : /home/ghecht/Projects/hven
+  base : 7ab88b81 -> 7ab88b81a83d432a1aa5e34ee8cb8ae5632d7483
+  head : d37c2dfb334b4036cb06b1a27b6febecbae5e977 -> d37c2dfb334b4036cb06b1a27b6febecbae5e977
+  cmd  : git -C /home/ghecht/Projects/hven diff --name-only 7ab88b81..d37c2dfb334b4036cb06b1a27b6febecbae5e977 -- include/
+  list : ['include/hven/detail/drivers/equality_basis.h', 'include/hven/detail/drivers/equality_basis_testing.h']
+HEADER LIST ACCEPTED: ['include/hven/detail/drivers/equality_basis.h', 'include/hven/detail/drivers/equality_basis_testing.h']
+P-SYM: FAIL — differences outside the accepted noise class
+DIFFERING OBJECTS: 1
+  class A -- SOURCE CHANGED by this task: 1
+  class B -- INCLUDERS of a changed header, source untouched: 0
+  UNEXPLAINED: 0
+  NEGATIVE CONTROL -- objects that ALSO include one of those headers and are BYTE-IDENTICAL (neither a mover nor NOISE-ONLY): 6
+ASSERT OK   P-SYM Release compare rc (declared 1 mover(s)) = 1
+ASSERT OK   P-SYM Release classify rc = 0
+ASSERT OK   P-SYM Release differing = 1 (>= 1)
+ASSERT OK   P-SYM Release class A + class B = 1
+ASSERT OK   P-SYM Release unexplained = 0
+ASSERT OK   P-SYM Release negative control = 6 (>= 1)
+ASSERT OK   P-SYM Release differing (declared) = 1
+ASSERT OK   P-SYM Release class A (declared) = 1
+ASSERT OK   P-SYM Release class B (declared) = 0
+ASSERT OK   library ADDED Release: [] present after, absent before
+SECTIONS_RC_Release=0
+SECTIONS_Release_OBJECTS=44
+SECTIONS_Release_BYTE_IDENTICAL=44
+SECTIONS_Release_DEBUG_ONLY=0
+SECTIONS_Release_NON_DEBUG_MOVERS=0
+SECTIONS_Release_REFUSED=0
+SECTIONS_Release_RC=0
+NON_DEBUG_MOVERS_GOT_Release=[]  DECLARED=[]  REFUSED=0
+ASSERT OK   sections Release: the non-debug movers are EXACTLY the declared set, nothing refused
+ASSERT OK   library Release: no production-library object is a P-SYM mover (DIFFERS/RELOCATIONS)
+INFO comment-only source Release: CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o -> BYTE-IDENTICAL-OR-UNREPORTED
+INFO comment-only source Release: CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o -> BYTE-IDENTICAL-OR-UNREPORTED
+ASSERT OK   sections Release: DEBUG_ONLY=0, as declared
+=== P-SYM Debug  after=d37c2dfb334b4036cb06b1a27b6febecbae5e977  before=7ab88b81  declared differing=1 A=1 B=0
+CLEANDEAD_Debug: 0 output(s) removed
+ASSERT OK   capture after-Debug: rc=0, 151 object(s) in /home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates-r2/gates/psym/after-Debug/.psym-manifest
+ASSERT OK   capture before-Debug: rc=0, 151 object(s) in /home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates-r2/gates/psym/before-Debug/.psym-manifest
+ASSERT OK   capture pair Debug after = before + ADDED = 151
+ASSERT OK   outside-universe Debug: tests/CMakeFiles/hven_sqp_seam_tests.dir/sqp/test_sqp_equality_basis_seams.cpp.o was BUILT in the after arm
+ASSERT OK   outside-universe Debug: objects of tests/CMakeFiles/hven_sqp_seam_tests.dir in the after manifest = 0
+tree restored to m7 d37c2dfb
+PSYM_COMPARE_RC_Debug=1 (1 is EXPECTED; the gate is the classification)
+ASSERT OK   ONLY-AFTER Debug: [] == the ADDED sources' objects
+CLASSIFY_RC_Debug=0
+HEADER DERIVATION
+  repo : /home/ghecht/Projects/hven
+  base : 7ab88b81 -> 7ab88b81a83d432a1aa5e34ee8cb8ae5632d7483
+  head : d37c2dfb334b4036cb06b1a27b6febecbae5e977 -> d37c2dfb334b4036cb06b1a27b6febecbae5e977
+  cmd  : git -C /home/ghecht/Projects/hven diff --name-only 7ab88b81..d37c2dfb334b4036cb06b1a27b6febecbae5e977 -- include/
+  list : ['include/hven/detail/drivers/equality_basis.h', 'include/hven/detail/drivers/equality_basis_testing.h']
+HEADER LIST ACCEPTED: ['include/hven/detail/drivers/equality_basis.h', 'include/hven/detail/drivers/equality_basis_testing.h']
+P-SYM: FAIL — differences outside the accepted noise class
+DIFFERING OBJECTS: 1
+  class A -- SOURCE CHANGED by this task: 1
+  class B -- INCLUDERS of a changed header, source untouched: 0
+  UNEXPLAINED: 0
+  NEGATIVE CONTROL -- objects that ALSO include one of those headers and are BYTE-IDENTICAL (neither a mover nor NOISE-ONLY): 3
+ASSERT OK   P-SYM Debug compare rc (declared 1 mover(s)) = 1
+ASSERT OK   P-SYM Debug classify rc = 0
+ASSERT OK   P-SYM Debug differing = 1 (>= 1)
+ASSERT OK   P-SYM Debug class A + class B = 1
+ASSERT OK   P-SYM Debug unexplained = 0
+ASSERT OK   P-SYM Debug negative control = 3 (>= 1)
+ASSERT OK   P-SYM Debug differing (declared) = 1
+ASSERT OK   P-SYM Debug class A (declared) = 1
+ASSERT OK   P-SYM Debug class B (declared) = 0
+ASSERT OK   library ADDED Debug: [] present after, absent before
+SECTIONS_RC_Debug=0
+DEBUG-ONLY       CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o
+DEBUG-ONLY       CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+SECTIONS_Debug_OBJECTS=44
+SECTIONS_Debug_BYTE_IDENTICAL=42
+SECTIONS_Debug_DEBUG_ONLY=2
+SECTIONS_Debug_NON_DEBUG_MOVERS=0
+SECTIONS_Debug_REFUSED=0
+SECTIONS_Debug_RC=0
+NON_DEBUG_MOVERS_GOT_Debug=[]  DECLARED=[]  REFUSED=0
+ASSERT OK   sections Debug: the non-debug movers are EXACTLY the declared set, nothing refused
+ASSERT OK   library Debug: no production-library object is a P-SYM mover (DIFFERS/RELOCATIONS)
+ASSERT OK   library Debug: DEBUG-ONLY CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o is a comment-only source's object
+ASSERT OK   library Debug: DEBUG-ONLY CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o is a comment-only source's object
+INFO comment-only source Debug: CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o -> NOISE-ONLY
+INFO comment-only source Debug: CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o -> NOISE-ONLY
+ASSERT OK   sections Debug: DEBUG_ONLY=2, as declared
+ASSERT OK   P-SYM cross-config: class B sets equal (0 object(s))
+ASSERT OK   P-SYM cross-config: Release unexplained = 0 (count and list)
+ASSERT OK   P-SYM cross-config: Debug unexplained = 0 (count and list)
+ASSERT OK   P-SYM cross-config: Release class A (1) all changed-source
+ASSERT OK   P-SYM cross-config: Debug class A (1) all changed-source
+ASSERT OK   P-SYM cross-config: the two class A sets are identical
+G5_ASSERT_RC=0
+FOREGROUND_END G5-psym 2026-09-24T05:44:47-04:00 rc=0
+WRAPPER_RC G5-psym rc=0
+ASSERT OK   class B by name Release: the measured set [] equals the declared set []
+ASSERT OK   class B by name Debug: the measured set [] equals the declared set []
+=== CHANGED C++ FOR CLANG-FORMAT: include/hven/detail/drivers/equality_basis.h include/hven/detail/drivers/equality_basis_testing.h src/drivers/equality_basis.cpp src/drivers/sqp_solver.cpp tests/sqp/test_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp 
+FOREGROUND_START G6-smoke 2026-09-24T05:49:47-04:00
+PGREP_EMPTY G6-smoke: no foreign cell binary under my lock
+INSTALL_SMOKE_RC=0
+install smoke: both solvers converged through one generic consumer; 19 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates-r2/smoke-work/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates-r2/smoke-work/hven-configure.log
+ALIGN_FROM_THIS_BUILDS_CONFIGURE_LOG=32
+-rw-r--r--. 1 ghecht ghecht 4314 Sep 24 05:49 /home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates-r2/smoke-work/hven-install/lib64/cmake/hven/hvenTargets.cmake
+EXPORT_CONTRACT_RC=0
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+== export contract OK for platform=linux, align=32
+--- clang-format on this round's changed C++ files, derived from git
+CLANG_FORMAT_RC=0
+DIFF_CHECK_RC=0
+DIRTY_FILES=0
+G6_ASSERT_RC=0
+FOREGROUND_END G6-smoke 2026-09-24T05:50:19-04:00 rc=0
+WRAPPER_RC G6-smoke rc=0
+GATES_SUMMARY G1=0 G2=NOT-RUN(declared) G3=0 G4=NOT-RUN(declared) G5=0 G6=0
+GATES_END 2026-09-24T05:50:19-04:00
+GATES_AGGREGATE rc=0 over [0 0 0 0]

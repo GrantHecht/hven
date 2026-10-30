@@ -96,9 +96,21 @@ struct QpOptions {
     /// ("no regularization on this block"), not a sentinel.
     ///
     /// Not free: its price is a footprint on what the solve can claim
-    /// (~|g|/primal_delta bounds how far a free variable can run before it
-    /// reads as an unbounded artifact — see qp_engine.h's
+    /// (~|g|/primal_delta bounds how far a free variable can run in ONE STEP
+    /// before it reads as an unbounded artifact — see qp_engine.h's
     /// unbounded_artifact_threshold, written in terms of this field).
+    ///
+    /// SINCE M7 W2 E4 THE TERM IS CENTRED AT THE ITERATE, not at the origin:
+    /// the EQP minimises (primal_delta/2)||x_F - x_k,F||^2 rather than
+    /// (primal_delta/2)||x_F||^2 (eqp_solve.h states the system and why). So the
+    /// bound above is on the STEP, and the engine's runaway guard is asked on the
+    /// ITERATE and on the ridge scale -- NOT on the step, where a guard was built,
+    /// measured and removed -- on every moving pass (qp_engine.h section 5). What
+    /// the centring at 0 bought, a bound on the absolute size of a free variable
+    /// on a flat face, it charged for by making the ordinary step ASCEND the
+    /// objective there on every pass of a measured cycle, which is why the
+    /// centring moved; what ||p|| used to say is now said by the walk's own
+    /// KKT-point test and that iterate-currency guard.
     ///
     /// Validated at solve start (QpEngine::solve throws std::invalid_argument
     /// otherwise): a NaN burned the entire minor budget returning a NaN
@@ -163,6 +175,20 @@ struct QpOptions {
     /// assert a Release build compiles out), never NaN (read as "disabled", a
     /// meaning only +inf has).
     double tr_radius = std::numeric_limits<double>::infinity();
+
+    /// Keep the walk's working set linearly independent (qp/ws_independence.h).
+    /// false is the pre-E2 walk.
+    bool independent_working_set = true;
+
+    /// CALLER-ASSERTED CONVEXITY (M7 QN stage 2). True says "H is positive semidefinite on all
+    /// of R^n", asserted by a caller that built H that way (the quasi-Newton mixed lift, whose
+    /// Hessian is PD by construction but not diagonal). The walk's convex certificate
+    /// (qp_engine.h section 4c) accepts it in place of its own structural test
+    /// (detail::hessian_is_nonneg_diagonal); that is the ONE read of this field, and only with
+    /// independent_working_set on. Never verified: a false assertion on an indefinite H lets a
+    /// first-order point stand where the saddle exit would have searched. The default keeps the
+    /// structural test alone, so default-constructed options behave exactly as before.
+    bool hessian_known_convex = false;
 };
 
 /// @brief A field-wise hash of the options a QpEngine was built under, plus the
@@ -179,9 +205,11 @@ struct QpOptions {
 /// for other settings. This value closes that gap: `hot_state()` stamps it and
 /// `run()` adopts only a handle whose stamp equals the adopting engine's own.
 ///
-/// EVERY FIELD OF QpOptions IS COVERED -- all nine (primal_delta, dual_mu,
+/// EVERY FIELD OF QpOptions IS COVERED -- all eleven (primal_delta, dual_mu,
 /// feas_tol, opt_tol, max_iter, schur_cap, schur_cond_max, ws_algebra,
-/// tr_radius) -- because a field left out is a hole of exactly the kind above.
+/// tr_radius, independent_working_set, hessian_known_convex; the last is folded
+/// only when set, so a default value hashes as it did before the field existed)
+/// -- because a field left out is a hole of exactly the kind above.
 /// Add a field to QpOptions and you add it here; the field-coverage test in
 /// tests/drivers/test_options.cpp flips each one alone and requires the hash to
 /// move.

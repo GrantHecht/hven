@@ -1,0 +1,64 @@
+M7 W2 M3c -- IDENTITY GATE (RULE.md section 4): this task's legs at HEAD
+against the harness's COMMITTED rows at the pin aeebdccc, read from their bytes.
+  results.csv   /home/ghecht/Projects/hven-bench/runs/2026-09-m7-w2-h-repin/run-A/results.csv
+  counters.csv  /home/ghecht/Projects/hven-bench/runs/2026-09-m7-w2-h-repin/run-A/cutest/counters-hven-sqp.csv
+  leg rows      /home/ghecht/Projects/hven/.scratch/m7w2m3c/out
+  near-ulp gate, residual class only: |a-b| <= 1e-12 * max(1,|a|,|b|)
+
+ACOPP118   STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+ACOPP118   24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY ACOPP118 PASS
+
+ACOPP57    STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+ACOPP57    24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY ACOPP57 PASS
+
+ACOPR57    STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+ACOPR57    24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY ACOPR57 PASS
+
+BRITGAS    STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+BRITGAS    24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY BRITGAS PASS
+
+DALLASM    STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+DALLASM    24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY DALLASM PASS
+
+NET3       STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+NET3       NaN SPELLING ACCEPTED f: -nan vs nan -- both are NaN; the sign bit of a NaN is not a value
+NET3       24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY NET3 PASS
+
+STEENBRB   STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+STEENBRB   24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY STEENBRB PASS
+
+STEENBRC   STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+STEENBRC   24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY STEENBRC PASS
+
+STEENBRD   STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+STEENBRD   NaN SPELLING ACCEPTED f: -nan vs nan -- both are NaN; the sign bit of a NaN is not a value
+STEENBRD   24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY STEENBRD PASS
+
+STEENBRE   STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+STEENBRE   NaN SPELLING ACCEPTED f: -nan vs nan -- both are NaN; the sign bit of a NaN is not a value
+STEENBRE   24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY STEENBRE PASS
+
+STEENBRG   STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+STEENBRG   24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY STEENBRG PASS
+
+YORKNET    STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+YORKNET    24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY YORKNET PASS
+
+IDENTITY_PASS=12
+IDENTITY_DIFFERS=0
+IDENTITY_REFUSED=0
+IDENTITY_NOT_COMPARABLE=0
+IDENTITY_COMPARABLE=12
+IDENTITY_VERDICT=ALL_COMPARABLE_CELLS_IDENTICAL

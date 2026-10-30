@@ -466,6 +466,20 @@ message(STATUS
 # from what hven's own build actually used.
 target_compile_definitions(hven PUBLIC
     EIGEN_MAX_ALIGN_BYTES=${HVEN_EIGEN_MAX_ALIGN_BYTES})
+# The same value on the vendored Eigen target, so every in-tree TU that
+# includes Eigen agrees with hven's -- including those that link
+# Eigen3::Eigen but not hven::hven (the golden rig's support objects, the
+# seam executables). The probe always sees SIMD_FLAGS, but SIMD_FLAGS reach
+# only Release/RelWithDebInfo compiles; in any other configuration a TU
+# without this define auto-derives a smaller value (16 without AVX), which
+# flips EIGEN_MALLOC_ALREADY_ALIGNED. Linked into one binary with hven, the
+# two variants of each COMDAT Eigen allocator (plain realloc vs the
+# offset-header handmade_aligned_realloc) are an ODR violation, and the
+# variant the linker keeps follows object order: a Makefile-generator Debug
+# build corrupted the heap in hven_golden_rig/_audit (CF-1-R1) while the
+# Ninja preset's order happened not to crash.
+target_compile_definitions(hven_dep_eigen INTERFACE
+    EIGEN_MAX_ALIGN_BYTES=${HVEN_EIGEN_MAX_ALIGN_BYTES})
 
 target_compile_options(hven PRIVATE ${COMPILE_FLAGS})
 

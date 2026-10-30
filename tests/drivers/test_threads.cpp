@@ -338,9 +338,9 @@ void expect_vectors_identical(const Vec &a, const Vec &b, const char *name) {
     }
 }
 
-// EVERY field of one history row -- all 29.
+// EVERY field of one history row -- all 30.
 void expect_rows_identical(const SqpIterate &a, const SqpIterate &b, int i) {
-    static_assert(sizeof(SqpIterate) == 184,
+    static_assert(sizeof(SqpIterate) == 192,
                   "SqpIterate changed size: add the new field to expect_rows_identical "
                   "(this pin's claim is EVERY deterministic field) and update this assertion.");
     SCOPED_TRACE(::testing::Message() << "history row " << i);
@@ -367,6 +367,7 @@ void expect_rows_identical(const SqpIterate &a, const SqpIterate &b, int i) {
     HVEN_EXPECT_SAME(a, b, elastic_rho0_ceiling_hit);
     HVEN_EXPECT_SAME(a, b, restoration_seed_used);
     HVEN_EXPECT_SAME(a, b, watchdog_restored);
+    HVEN_EXPECT_SAME(a, b, rolled_back);
     HVEN_EXPECT_SAME(a, b, active_set_delta);
     HVEN_EXPECT_SAME(a, b, weak_active_rows);
     HVEN_EXPECT_SAME(a, b, near_active_rows);
@@ -400,9 +401,9 @@ void expect_ssn_counters_identical(const SsnCounters &a, const SsnCounters &b) {
     HVEN_EXPECT_SAME(a, b, ssn_escape_gate_refused);
 }
 
-// EVERY field of the IPQP tier's nested counters -- all 39.
+// EVERY field of the IPQP tier's nested counters -- all 43 (42 until M7 W2 A3, 39 until A2).
 void expect_ipqp_counters_identical(const IpqpCounters &a, const IpqpCounters &b) {
-    static_assert(sizeof(IpqpCounters) == 39 * 8,
+    static_assert(sizeof(IpqpCounters) == 43 * 8,
                   "IpqpCounters changed size: add the new field to expect_ipqp_counters_identical "
                   "and update this assertion.");
     HVEN_EXPECT_SAME(a, b, ipqp_iters);
@@ -444,12 +445,36 @@ void expect_ipqp_counters_identical(const IpqpCounters &a, const IpqpCounters &b
     HVEN_EXPECT_BITS(a, b, ipqp_alpha_d_min);
     HVEN_EXPECT_SAME(a, b, ipqp_read_kept_tight_sides);
     HVEN_EXPECT_SAME(a, b, ipqp_read_barrier_noise_sides);
+    HVEN_EXPECT_SAME(a, b, ipqp_mu0_derived);
+    HVEN_EXPECT_SAME(a, b, ipqp_mu0_fallbacks);
+    HVEN_EXPECT_SAME(a, b, ipqp_mu_floor_binds);
+    HVEN_EXPECT_SAME(a, b, ipqp_ladder_zero_trial_skips);
 }
 
-// EVERY field of SqpCounters -- all 40, the two nested blocks through the
-// helpers above.
+// EVERY field of SqpCounters -- all 62, the two nested blocks through the
+// helpers above. (40 and 38 direct until M7 W2 M4 appended
+// `start_point_clamps`; 41 and 39 until M7 W2 M1 appended the five-field
+// subproblem-exit group; 46 and 44 until M7 W2 M2 appended the five-field
+// restoration excursion record, whose four doubles are 8 bytes apiece like
+// every Index before them, so the arithmetic below is unchanged in form; 51 and
+// 49 until M7 W2 M3a appended `restoration_sub_status`, a 4-byte enum last in
+// the struct that its 8-byte alignment pads to a full slot (`SolveStatus` then,
+// `RestorationSubStatus` and the same width since M3a fix1), so unchanged; 57
+// and 55 until M7 W2 E4 fix round 1 appended the QP engine's six-field E4 group,
+// six `Index` whose first lands in that enum's padding; 63 and 61 until fix
+// round 2 made that group SEVEN with `eqp_row_drift_refusals`; 66 and 64 until M7 W2
+// R2 appended `qp_failure_steps_judged`, `qp_failure_steps_accepted` and
+// `nonfinite_subproblems`; 67 and 65 until M7 W2 W1 appended `nonfinite_box_projections`;
+// 68 and 66 until M7 W2 P1E appended `elastic_last_rung_fallbacks` and
+// `restoration_reduction_resumes`; 70 and 68 until M7 QN stage 3 appended
+// `eval_hess_calls` and the thirteen-field quasi-Newton group; 77 and 75 until the QN
+// stages 1-3 review appended `qn_nonpd_seen`; 78 and 76 until the QN-quality riders
+// appended `qn_dimension`; 79 and 77 until M7 W2 R2-1 appended `nonfinite_step_rollbacks`;
+// 80 and 78 until M7 W2 SNR appended `restoration_feas_out`; 81 and 79 until M7 W2 SCL
+// appended `scaled_convergence_refusals`; 82 and 80 until M7 W2 RST appended
+// `restoration_curvature_switches`.)
 void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
-    static_assert(sizeof(SqpCounters) == 38 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
+    static_assert(sizeof(SqpCounters) == 83 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
                   "SqpCounters changed size: add the new field to expect_counters_identical "
                   "and update this assertion.");
     HVEN_EXPECT_SAME(a, b, major_iters);
@@ -490,6 +515,51 @@ void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
     HVEN_EXPECT_SAME(a, b, weak_active_peak);
     HVEN_EXPECT_SAME(a, b, near_active_peak);
     HVEN_EXPECT_SAME(a, b, polish_ignored);
+    HVEN_EXPECT_SAME(a, b, start_point_clamps);
+    HVEN_EXPECT_SAME(a, b, qp_maxiter_exits);
+    HVEN_EXPECT_SAME(a, b, qp_numerical_exits);
+    HVEN_EXPECT_SAME(a, b, qp_failures_routed);
+    HVEN_EXPECT_SAME(a, b, qp_failures_in_a_row_peak);
+    HVEN_EXPECT_SAME(a, b, qp_cap_retries);
+    HVEN_EXPECT_SAME(a, b, restoration_entries);
+    HVEN_EXPECT_BITS(a, b, restoration_h_in);
+    HVEN_EXPECT_BITS(a, b, restoration_h_out);
+    HVEN_EXPECT_BITS(a, b, restoration_f_in);
+    HVEN_EXPECT_BITS(a, b, restoration_f_out);
+    HVEN_EXPECT_SAME(a, b, restoration_sub_status);
+    HVEN_EXPECT_SAME(a, b, eqp_refine_iters);
+    HVEN_EXPECT_SAME(a, b, eqp_residual_refusals);
+    HVEN_EXPECT_SAME(a, b, eqp_row_drift_refusals);
+    HVEN_EXPECT_SAME(a, b, eqp_polish_steps);
+    HVEN_EXPECT_SAME(a, b, terminal_polish_solves);
+    HVEN_EXPECT_SAME(a, b, terminal_polish_rejected);
+    HVEN_EXPECT_SAME(a, b, terminal_polish_adopted);
+    HVEN_EXPECT_SAME(a, b, qp_failure_steps_judged);
+    HVEN_EXPECT_SAME(a, b, qp_failure_steps_accepted);
+    HVEN_EXPECT_SAME(a, b, nonfinite_subproblems);
+    HVEN_EXPECT_SAME(a, b, nonfinite_box_projections);
+    HVEN_EXPECT_SAME(a, b, elastic_last_rung_fallbacks);
+    HVEN_EXPECT_SAME(a, b, restoration_reduction_resumes);
+    HVEN_EXPECT_SAME(a, b, eval_hess_calls);
+    HVEN_EXPECT_SAME(a, b, qn_updates);
+    HVEN_EXPECT_SAME(a, b, qn_damped);
+    HVEN_EXPECT_SAME(a, b, qn_skipped_nonfinite);
+    HVEN_EXPECT_SAME(a, b, qn_skipped_zero_step);
+    HVEN_EXPECT_SAME(a, b, qn_skipped_curvature);
+    HVEN_EXPECT_SAME(a, b, qn_skipped_conditioning);
+    HVEN_EXPECT_SAME(a, b, qn_rank_dropped);
+    HVEN_EXPECT_SAME(a, b, qn_resets_consecutive_skips);
+    HVEN_EXPECT_SAME(a, b, qn_resets_radius_floor);
+    HVEN_EXPECT_SAME(a, b, qn_resets_restoration_resume);
+    HVEN_EXPECT_SAME(a, b, qn_pairs_peak);
+    HVEN_EXPECT_SAME(a, b, qn_lift_rank_peak);
+    HVEN_EXPECT_SAME(a, b, qn_kwrong_seen);
+    HVEN_EXPECT_SAME(a, b, qn_nonpd_seen);
+    HVEN_EXPECT_SAME(a, b, qn_dimension);
+    HVEN_EXPECT_SAME(a, b, nonfinite_step_rollbacks);
+    HVEN_EXPECT_BITS(a, b, restoration_feas_out);
+    HVEN_EXPECT_SAME(a, b, scaled_convergence_refusals);
+    HVEN_EXPECT_SAME(a, b, restoration_curvature_switches);
     expect_ssn_counters_identical(a.ssn, b.ssn);
     expect_ipqp_counters_identical(a.ipqp, b.ipqp);
 }
@@ -594,10 +664,23 @@ TEST(Threads, ZeroLeavesEveryFactorAtTheBackendDefault) {
     // opts_` copies `common` whole -- and what this asserts is that a solve
     // which ran the phase left MKL's state where it found it.
     InfeasibleCircleLineModel restoring;
-    SqpSolver driver(base_options(QpMode::kWalk, 0));
+    SqpOptions ropts = base_options(QpMode::kWalk, 0);
+    // M7 W2 E2: on this knife-edge model the entry repair's trajectory ends
+    // with no hot handle in Debug; the premise is the pre-E2 walk's.
+    ropts.qp.independent_working_set = false;
+    SqpSolver driver(ropts);
     const SqpResult sol = driver.solve(restoring, restoring.start_point());
     ASSERT_GE(sol.counters.restoration_iters, 1) << "fixture premise: the phase RAN";
+#ifdef HVEN_USE_ACCELERATE_LAPACK
+    // M7 WX B1 (design section 2.3, class D): UNOBSERVED on Accelerate. The count is stored and
+    // applied to nothing there, and this knife-edge model's route ends with no hot handle on the
+    // macOS lane (hot == nullptr, helper read -1; run 40905599627), as it does on MKL Debug (the
+    // comment above). So the K0 read of the restoration leg is recorded, not asserted.
+    RecordProperty("threads_restoration_k0_read",
+                   "UNOBSERVED on Accelerate: no hot handle on this knife-edge route");
+#else
     EXPECT_EQ(driver_k0_num_threads(sol), 0);
+#endif
     EXPECT_EQ(max_threads_now(), before);
 }
 
@@ -786,7 +869,11 @@ TEST(Threads, TheCallersThreadSettingSurvivesEveryTierAndTheRestoration) {
     // (enable_scaling, make_strategy, budget_mode, qp_mode, tr_init, tr_max,
     // max_iter) name no `common` field.
     InfeasibleCircleLineModel restoring;
-    SqpSolver driver(base_options(QpMode::kWalk, kAskedFor));
+    SqpOptions ropts = base_options(QpMode::kWalk, kAskedFor);
+    // M7 W2 E2: on this knife-edge model the entry repair's trajectory ends
+    // with no hot handle in Debug; the premise is the pre-E2 walk's.
+    ropts.qp.independent_working_set = false;
+    SqpSolver driver(ropts);
     const SqpResult sol = driver.solve(restoring, restoring.start_point());
     ASSERT_GE(sol.counters.restoration_iters, 1) << "fixture premise: the phase RAN";
     EXPECT_EQ(driver_k0_num_threads(sol), kAskedFor);

@@ -1,0 +1,130 @@
+M7 W2 M2b -- THE PROXIMITY TERM'S CALIBRATION LADDER: THE SCREEN ARM, THE FOUR
+CANDIDATE ARMS, THE OFF-IDENTITY CHECK AND THE VERDICT
+==============================================================================
+
+THE STAMP (CLAUDE.md section 7)
+-------------------------------
+repository      hven, branch m7
+commit measured 57742341  "evidence(m7): M7 W2 M2b -- the zeta calibration's
+                DECISION RULE, pre-registered before any leg" -- the tree that
+                carries task A's code (577719a0, the proximity term at a
+                declared OFF) and RULE.md, and nothing else.
+                Every leg below ran on a CLEAN tree at that commit; the chain
+                refuses to start otherwise (wrappers/chainB.sh, segment 0).
+parent          a494b7f5  (the W2 M2 (design) close; the P-SYM `before` arm)
+date            2026-09-18, America/New_York (chain B: 20:34:38 -> 21:22:00)
+artifact date   2026-09-20, America/New_York (this directory; no leg re-run)
+toolchain       Clang 22.1.8 (Fedora), CMake + Ninja, C++20, Release
+host            fedora, AMD Ryzen 7 5800X3D 8-Core Processor, 8 physical cores
+backend         Intel MKL (oneapi, lp64, /opt/intel/oneapi/mkl/latest)
+alignment       EIGEN_MAX_ALIGN_BYTES resolved to 32 by hven's own configure
+                probe, and passed explicitly to the probe project (M7 H3 fix1)
+
+APPLE / ACCELERATE: UNOBSERVED. No leg here ran on Mac hardware and no Apple
+value appears in this artifact, interpolated or otherwise.
+
+HOLDOUT: NOT RUN. Every cell named here is TRAIN.
+
+
+THE MEASUREMENT TERMS (CLAUDE.md section 7, declared in the artifact they
+produced -- RULE.md section 4, and repeated in wrappers/chainB.sh's header)
+-----------------------------------------------------------------------------
+NO CO-RUN. Every one of the 35 legs ran ALONE: one cell per process, serial,
+`MKL_NUM_THREADS=1 OMP_NUM_THREADS=1`, `taskset -c 2` (one physical core), each
+ARM holding `/tmp/box-build.lock` with no timeout and no fallback for its own
+seven legs and releasing between arms so the harness lane could interleave. A
+`pgrep -x hven_bench_cell` guard ran INSIDE the lock before every leg and would
+have aborted the arm; it never fired (logs/chainB.log).
+
+WALL IS INFORMATIONAL. The per-leg `wall_s` in logs/chainB.log is printed
+"(INFORMATIONAL)" and is quoted as a measurement nowhere. The 900 s per-leg
+`timeout` is a SAFETY STOP whose firing would be reported as CENSORED and never
+as a row; it did not fire on any leg (all 35 rc=0).
+
+WHAT IS ASSERTED here is counters, statuses and the S5 record -- the
+deterministic per-process columns -- plus `prox_rel`, which the probe computes
+from the callback's own x. Nothing in this artifact is a timing claim.
+
+
+WHAT PRODUCED EACH NUMBER
+-------------------------
+THE 35 LEGS (rows/, tables/, off-identity.txt, verdict.txt) -- `m2b_probe`,
+this task's instrument, built against an hven INSTALLED from 57742341.
+
+    hven install      .../.scratch/m7w2m2b/install, from 57742341
+      libhven.a       fed6243691970e4d3433e0818abaf9bb28cd2f9a1e9c84366fb5dfa84a9d93fc
+    m2b_probe         79c464b7a634081c55d99f371dc42dafd436de58df5a3f3c242979511ef7a640
+
+    Both sha256 values are printed by the chain at segment 0 AND re-printed at
+    the head of every one of the five arms (logs/chainB.log), so each arm's
+    seven legs carry the identity of the binaries they ran on. All five arms
+    print the same two values: THE 35 LEGS COME FROM ONE BINARY AND ONE
+    LIBRARY.
+
+    ONE PROBE BINARY, NO SUPERSEDED LEGS. Unlike M2, no leg in this directory
+    was re-taken with a second binary.
+
+    THE PROBE IS M2's, WITH TWO ADDITIONS AND NOTHING ELSE (RULE.md section 7
+    item 4): the `--proximity zeta` argument and the `prox_rel` column.
+    wrappers/m2b_probe.cpp's own header lists them.
+
+    The probe compiles three harness sources READ-ONLY out of hven-bench and
+    links the installed hven itself; the harness's own CMake is never entered
+    (wrappers/probe-CMakeLists.txt states why, and the consequence: nothing
+    built here carries `HVEN_BENCH_PIN_SHA`, so no row here is a harness row).
+    The three sources, by CONTENT, because the harness tree is another lane's
+    live working tree and its HEAD moved during this chain:
+
+      lanes/cutest/cutest_model.cpp
+        53b46be1a454e2f680371580f1f1f46325a706089ed0cddaed225b192a89f9e9
+        last touched 9f90273, 2026-09-16 10:58:48 -0400
+      lanes/cutest/cutest_source.cpp
+        52def50c3e46fda490158557e1dc1506d3c6067ad2256c59579416e600776ec2
+        last touched b5dd655, 2026-09-15 08:00:20 -0400
+      lanes/hven/nlp_model_triplet_view.cpp
+        588ce85e885335b76dc6ce1e43112883e1b20d7c03ff459266787f9da036f400
+        last touched 87f8b6a, 2026-09-15 02:41:40 -0400
+
+      The harness HEAD was e157282 when the probe was built and had advanced to
+      b5907d25 by the time this artifact was written; NONE of the commits in
+      between touched any of the three files above, whose last edits predate
+      the chain by two days. The content hashes are the pin; the tree sha is
+      not, and is recorded here only as context.
+
+    CUTEst is an EXTERNAL tool (owner ruling, 2026-09-15): found under
+    ~/Software/cutest, neither vendored nor built here, linked by RPATH.
+
+THE OFF ARM OF EACH PER-CELL TABLE IS M2's COMMITTED LADDER
+(docs/notes/data/2026-09-m7-w2-m2-restoration/ladder/), CITED AND NOT RE-RUN.
+The seven zeta = 0 legs in rows/screen/ are a SEPARATE arm, run because the
+rule is stated in `prox_rel`, which M2's ladder does not carry (RULE.md section
+7 item 1); off-identity.txt is the proof that they reproduce it.
+
+THE TABLES, THE OFF-IDENTITY CHECK AND THE VERDICT ARE MACHINE-WRITTEN:
+wrappers/summarise_m2b.py folds rows/ (and M2's ladder) into tables/,
+off-identity.txt and verdict.txt. No number in them is transcribed by hand. The
+fold is pure file reading -- it starts no solve -- and was RE-RUN at artifact
+time against the committed rows: tables/, off-identity.txt and verdict.txt all
+reproduced BYTE-IDENTICALLY.
+
+THE ZETA VALUES ARE PRE-REGISTERED, in RULE.md section 3, committed at 57742341
+BEFORE any leg ran, and are reproduced in wrappers/chainB.sh verbatim rather
+than recomputed.
+
+THE GATES (gates/) -- the committed tree at the artifact commit, in lock
+segments, Debug and Release; the transcripts are what they are and the gate
+README in gates/ names each one's exit status.
+
+THE CROSS-CHECK AGAINST THE HARNESS'S OWN PINNED ROWS. Two screen-arm legs
+reproduce the four-lane table's hven-sqp row exactly, counter for counter, on a
+different binary (this probe, an ahead-of-pin hven) from the one the harness
+ran:
+
+    STEENBRB  screen arm: majors 5, factorizations 25973, f 4.090861e+12
+              hven-bench/runs/2026-09-m7-w2-h-repin/four-lane-table.md:89
+              (`sqp @aeebdccc`): 5, 25973, 4.090861e+12
+    ZAMB2-8   screen arm: majors 11, factorizations 8803, f -0.1529359
+              same table:137 (`sqp @aeebdccc`): 11, 8803, -0.1529359
+
+    This is context, not a pin: the harness rows are the harness's, taken at
+    its own pinned hven, and are cited here by path and line.

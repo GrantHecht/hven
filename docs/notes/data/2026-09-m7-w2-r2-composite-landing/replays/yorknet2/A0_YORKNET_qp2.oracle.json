@@ -1,0 +1,33 @@
+{
+ "dump": "/home/ghecht/Projects/hven/.scratch/m7w2r2/dumps/A0_YORKNET/qp2.txt",
+ "n": 824,
+ "me": 256,
+ "mi": 0,
+ "tr": 0.5,
+ "result": {
+  "status": "1",
+  "minors": "7680",
+  "facts": "7951",
+  "blk_term": "0",
+  "cert": "0",
+  "cert_rej": "0",
+  "zmcap": "0",
+  "zmexh": "0",
+  "retreats": "0",
+  "exch": "354",
+  "deferred": "0",
+  "undec": "0",
+  "maxiter": "7680"
+ },
+ "phase1_status": 0,
+ "phase1_min_l1_violation": 0.0,
+ "H_eig_min": -0.5327841009973926,
+ "H_eig_max": 361.2584051640472,
+ "final_ws": {
+  "rows": 0,
+  "pins": 565,
+  "rank": 821,
+  "count": 821
+ },
+ "redH_final_min": 4.908898979211386e-29
+}

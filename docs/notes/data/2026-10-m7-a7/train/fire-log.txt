@@ -1,0 +1,654 @@
+RUN default hs A hs003
+hs003 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs A hs005
+hs005 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs A hs006
+hs006 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs A hs007
+hs007 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs A hs010
+hs010 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs A hs011
+hs011 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs A hs012
+hs012 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs A hs014
+hs014 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs A hs022
+hs022 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs A hs025
+hs025 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs A hs026
+hs026 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs A hs027
+hs027 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs A hs028
+hs028 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs A hs030
+hs030 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs A hs033
+hs033 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs A hs035
+hs035 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs A hs039
+hs039 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs A hs043
+hs043 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs A hs045
+hs045 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs A hs077
+hs077 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs A hs079
+hs079 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest A ACOPP118
+ACOPP118 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest A ACOPP57
+ACOPP57 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest A ACOPR118
+ACOPR118 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest A ACOPR57
+ACOPR57 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest A BIGBANK
+BIGBANK default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest A BRITGAS
+RUN default cutest A DALLASM
+DALLASM default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest A MSS2
+RUN default cutest A MSS3
+RUN default cutest A NET3
+NET3 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest A READING6
+READING6 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest A READING8
+RUN default cutest A SAWPATH
+SAWPATH default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest A SMBANK
+SMBANK default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest A STEENBRB
+STEENBRB default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest A STEENBRC
+STEENBRC default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest A STEENBRD
+STEENBRD default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest A STEENBRE
+STEENBRE default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest A STEENBRG
+STEENBRG default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest A TAX213322
+RUN default cutest A TAX53322
+RUN default cutest A YORKNET
+YORKNET default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest A ZAMB2-8
+ZAMB2-8 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs A hs003
+hs003 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs A hs005
+hs005 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs A hs006
+hs006 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs A hs007
+hs007 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs A hs010
+hs010 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs A hs011
+hs011 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs A hs012
+hs012 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs A hs014
+hs014 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs A hs022
+hs022 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs A hs025
+hs025 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs A hs026
+hs026 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs A hs027
+hs027 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs A hs028
+hs028 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs A hs030
+hs030 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs A hs033
+hs033 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs A hs035
+hs035 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs A hs039
+hs039 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs A hs043
+hs043 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs A hs045
+hs045 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs A hs077
+hs077 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs A hs079
+hs079 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule cutest A ACOPP118
+ACOPP118 sqp-wsrule ws_algebra_switches=1 ws_algebra_switched_qps=4
+RUN sqp-wsrule cutest A ACOPP57
+ACOPP57 sqp-wsrule ws_algebra_switches=1 ws_algebra_switched_qps=4
+RUN sqp-wsrule cutest A ACOPR118
+ACOPR118 sqp-wsrule ws_algebra_switches=1 ws_algebra_switched_qps=21
+RUN sqp-wsrule cutest A ACOPR57
+ACOPR57 sqp-wsrule ws_algebra_switches=1 ws_algebra_switched_qps=14
+RUN sqp-wsrule cutest A BIGBANK
+BIGBANK sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule cutest A BRITGAS
+BRITGAS sqp-wsrule ws_algebra_switches=2 ws_algebra_switched_qps=9
+RUN sqp-wsrule cutest A DALLASM
+DALLASM sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule cutest A MSS2
+RUN sqp-wsrule cutest A MSS3
+RUN sqp-wsrule cutest A NET3
+NET3 sqp-wsrule ws_algebra_switches=2 ws_algebra_switched_qps=48
+RUN sqp-wsrule cutest A READING6
+READING6 sqp-wsrule ws_algebra_switches=1 ws_algebra_switched_qps=7
+RUN sqp-wsrule cutest A READING8
+RUN sqp-wsrule cutest A SAWPATH
+SAWPATH sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule cutest A SMBANK
+SMBANK sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule cutest A STEENBRB
+STEENBRB sqp-wsrule ws_algebra_switches=2 ws_algebra_switched_qps=143
+RUN sqp-wsrule cutest A STEENBRC
+STEENBRC sqp-wsrule ws_algebra_switches=2 ws_algebra_switched_qps=113
+RUN sqp-wsrule cutest A STEENBRD
+STEENBRD sqp-wsrule ws_algebra_switches=2 ws_algebra_switched_qps=94
+RUN sqp-wsrule cutest A STEENBRE
+STEENBRE sqp-wsrule ws_algebra_switches=2 ws_algebra_switched_qps=89
+RUN sqp-wsrule cutest A STEENBRG
+STEENBRG sqp-wsrule ws_algebra_switches=2 ws_algebra_switched_qps=89
+RUN sqp-wsrule cutest A TAX213322
+RUN sqp-wsrule cutest A TAX53322
+RUN sqp-wsrule cutest A YORKNET
+YORKNET sqp-wsrule ws_algebra_switches=2 ws_algebra_switched_qps=8
+RUN sqp-wsrule cutest A ZAMB2-8
+ZAMB2-8 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs A hs003
+hs003 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs A hs005
+hs005 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs A hs006
+hs006 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs A hs007
+hs007 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs A hs010
+hs010 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs A hs011
+hs011 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs A hs012
+hs012 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs A hs014
+hs014 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs A hs022
+hs022 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs A hs025
+hs025 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs A hs026
+hs026 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs A hs027
+hs027 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs A hs028
+hs028 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs A hs030
+hs030 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs A hs033
+hs033 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs A hs035
+hs035 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs A hs039
+hs039 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs A hs043
+hs043 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs A hs045
+hs045 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs A hs077
+hs077 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs A hs079
+hs079 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest A ACOPP118
+ACOPP118 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest A ACOPP57
+ACOPP57 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest A ACOPR118
+RUN sqp-qn cutest A ACOPR57
+ACOPR57 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest A BIGBANK
+RUN sqp-qn cutest A BRITGAS
+BRITGAS sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest A DALLASM
+DALLASM sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest A MSS2
+MSS2 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest A MSS3
+RUN sqp-qn cutest A NET3
+NET3 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest A READING6
+READING6 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest A READING8
+RUN sqp-qn cutest A SAWPATH
+SAWPATH sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest A SMBANK
+SMBANK sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest A STEENBRB
+STEENBRB sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest A STEENBRC
+STEENBRC sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest A STEENBRD
+STEENBRD sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest A STEENBRE
+STEENBRE sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest A STEENBRG
+STEENBRG sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest A TAX213322
+RUN sqp-qn cutest A TAX53322
+RUN sqp-qn cutest A YORKNET
+RUN sqp-qn cutest A ZAMB2-8
+ZAMB2-8 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs A hs003
+hs003 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs A hs005
+hs005 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs A hs006
+hs006 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs A hs007
+hs007 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs A hs010
+hs010 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs A hs011
+hs011 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs A hs012
+hs012 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs A hs014
+hs014 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs A hs022
+hs022 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs A hs025
+hs025 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs A hs026
+hs026 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs A hs027
+hs027 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs A hs028
+hs028 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs A hs030
+hs030 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs A hs033
+hs033 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs A hs035
+hs035 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs A hs039
+hs039 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs A hs043
+hs043 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs A hs045
+hs045 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs A hs077
+hs077 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs A hs079
+hs079 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule cutest A ACOPP118
+ACOPP118 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule cutest A ACOPP57
+ACOPP57 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule cutest A ACOPR118
+RUN sqp-qn-wsrule cutest A ACOPR57
+ACOPR57 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule cutest A BIGBANK
+RUN sqp-qn-wsrule cutest A BRITGAS
+BRITGAS sqp-qn-wsrule ws_algebra_switches=1 ws_algebra_switched_qps=19
+RUN sqp-qn-wsrule cutest A DALLASM
+DALLASM sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule cutest A MSS2
+MSS2 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule cutest A MSS3
+RUN sqp-qn-wsrule cutest A NET3
+NET3 sqp-qn-wsrule ws_algebra_switches=1 ws_algebra_switched_qps=54
+RUN sqp-qn-wsrule cutest A READING6
+READING6 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule cutest A READING8
+RUN sqp-qn-wsrule cutest A SAWPATH
+SAWPATH sqp-qn-wsrule ws_algebra_switches=1 ws_algebra_switched_qps=6
+RUN sqp-qn-wsrule cutest A SMBANK
+SMBANK sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule cutest A STEENBRB
+STEENBRB sqp-qn-wsrule ws_algebra_switches=1 ws_algebra_switched_qps=14
+RUN sqp-qn-wsrule cutest A STEENBRC
+STEENBRC sqp-qn-wsrule ws_algebra_switches=1 ws_algebra_switched_qps=16
+RUN sqp-qn-wsrule cutest A STEENBRD
+STEENBRD sqp-qn-wsrule ws_algebra_switches=1 ws_algebra_switched_qps=14
+RUN sqp-qn-wsrule cutest A STEENBRE
+STEENBRE sqp-qn-wsrule ws_algebra_switches=1 ws_algebra_switched_qps=13
+RUN sqp-qn-wsrule cutest A STEENBRG
+STEENBRG sqp-qn-wsrule ws_algebra_switches=1 ws_algebra_switched_qps=12
+RUN sqp-qn-wsrule cutest A TAX213322
+RUN sqp-qn-wsrule cutest A TAX53322
+RUN sqp-qn-wsrule cutest A YORKNET
+RUN sqp-qn-wsrule cutest A ZAMB2-8
+ZAMB2-8 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs B hs003
+hs003 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs B hs005
+hs005 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs B hs006
+hs006 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs B hs007
+hs007 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs B hs010
+hs010 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs B hs011
+hs011 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs B hs012
+hs012 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs B hs014
+hs014 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs B hs022
+hs022 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs B hs025
+hs025 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs B hs026
+hs026 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs B hs027
+hs027 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs B hs028
+hs028 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs B hs030
+hs030 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs B hs033
+hs033 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs B hs035
+hs035 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs B hs039
+hs039 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs B hs043
+hs043 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs B hs045
+hs045 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs B hs077
+hs077 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default hs B hs079
+hs079 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest B ACOPP118
+ACOPP118 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest B ACOPP57
+ACOPP57 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest B ACOPR118
+ACOPR118 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest B ACOPR57
+ACOPR57 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest B BIGBANK
+BIGBANK default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest B BRITGAS
+RUN default cutest B DALLASM
+DALLASM default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest B MSS2
+RUN default cutest B MSS3
+RUN default cutest B NET3
+NET3 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest B READING6
+READING6 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest B READING8
+RUN default cutest B SAWPATH
+SAWPATH default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest B SMBANK
+SMBANK default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest B STEENBRB
+STEENBRB default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest B STEENBRC
+STEENBRC default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest B STEENBRD
+STEENBRD default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest B STEENBRE
+STEENBRE default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest B STEENBRG
+STEENBRG default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest B TAX213322
+RUN default cutest B TAX53322
+RUN default cutest B YORKNET
+YORKNET default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN default cutest B ZAMB2-8
+ZAMB2-8 default ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs B hs003
+hs003 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs B hs005
+hs005 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs B hs006
+hs006 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs B hs007
+hs007 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs B hs010
+hs010 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs B hs011
+hs011 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs B hs012
+hs012 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs B hs014
+hs014 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs B hs022
+hs022 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs B hs025
+hs025 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs B hs026
+hs026 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs B hs027
+hs027 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs B hs028
+hs028 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs B hs030
+hs030 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs B hs033
+hs033 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs B hs035
+hs035 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs B hs039
+hs039 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs B hs043
+hs043 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs B hs045
+hs045 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs B hs077
+hs077 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule hs B hs079
+hs079 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule cutest B ACOPP118
+ACOPP118 sqp-wsrule ws_algebra_switches=1 ws_algebra_switched_qps=4
+RUN sqp-wsrule cutest B ACOPP57
+ACOPP57 sqp-wsrule ws_algebra_switches=1 ws_algebra_switched_qps=4
+RUN sqp-wsrule cutest B ACOPR118
+ACOPR118 sqp-wsrule ws_algebra_switches=1 ws_algebra_switched_qps=21
+RUN sqp-wsrule cutest B ACOPR57
+ACOPR57 sqp-wsrule ws_algebra_switches=1 ws_algebra_switched_qps=14
+RUN sqp-wsrule cutest B BIGBANK
+BIGBANK sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule cutest B BRITGAS
+BRITGAS sqp-wsrule ws_algebra_switches=2 ws_algebra_switched_qps=9
+RUN sqp-wsrule cutest B DALLASM
+DALLASM sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule cutest B MSS2
+RUN sqp-wsrule cutest B MSS3
+RUN sqp-wsrule cutest B NET3
+NET3 sqp-wsrule ws_algebra_switches=2 ws_algebra_switched_qps=48
+RUN sqp-wsrule cutest B READING6
+READING6 sqp-wsrule ws_algebra_switches=1 ws_algebra_switched_qps=7
+RUN sqp-wsrule cutest B READING8
+RUN sqp-wsrule cutest B SAWPATH
+SAWPATH sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule cutest B SMBANK
+SMBANK sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-wsrule cutest B STEENBRB
+STEENBRB sqp-wsrule ws_algebra_switches=2 ws_algebra_switched_qps=143
+RUN sqp-wsrule cutest B STEENBRC
+STEENBRC sqp-wsrule ws_algebra_switches=2 ws_algebra_switched_qps=113
+RUN sqp-wsrule cutest B STEENBRD
+STEENBRD sqp-wsrule ws_algebra_switches=2 ws_algebra_switched_qps=94
+RUN sqp-wsrule cutest B STEENBRE
+STEENBRE sqp-wsrule ws_algebra_switches=2 ws_algebra_switched_qps=89
+RUN sqp-wsrule cutest B STEENBRG
+STEENBRG sqp-wsrule ws_algebra_switches=2 ws_algebra_switched_qps=89
+RUN sqp-wsrule cutest B TAX213322
+RUN sqp-wsrule cutest B TAX53322
+RUN sqp-wsrule cutest B YORKNET
+YORKNET sqp-wsrule ws_algebra_switches=2 ws_algebra_switched_qps=8
+RUN sqp-wsrule cutest B ZAMB2-8
+ZAMB2-8 sqp-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs B hs003
+hs003 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs B hs005
+hs005 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs B hs006
+hs006 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs B hs007
+hs007 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs B hs010
+hs010 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs B hs011
+hs011 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs B hs012
+hs012 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs B hs014
+hs014 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs B hs022
+hs022 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs B hs025
+hs025 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs B hs026
+hs026 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs B hs027
+hs027 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs B hs028
+hs028 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs B hs030
+hs030 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs B hs033
+hs033 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs B hs035
+hs035 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs B hs039
+hs039 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs B hs043
+hs043 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs B hs045
+hs045 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs B hs077
+hs077 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn hs B hs079
+hs079 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest B ACOPP118
+ACOPP118 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest B ACOPP57
+ACOPP57 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest B ACOPR118
+RUN sqp-qn cutest B ACOPR57
+ACOPR57 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest B BIGBANK
+RUN sqp-qn cutest B BRITGAS
+BRITGAS sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest B DALLASM
+DALLASM sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest B MSS2
+MSS2 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest B MSS3
+RUN sqp-qn cutest B NET3
+NET3 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest B READING6
+READING6 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest B READING8
+RUN sqp-qn cutest B SAWPATH
+SAWPATH sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest B SMBANK
+SMBANK sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest B STEENBRB
+STEENBRB sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest B STEENBRC
+STEENBRC sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest B STEENBRD
+STEENBRD sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest B STEENBRE
+STEENBRE sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest B STEENBRG
+STEENBRG sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn cutest B TAX213322
+RUN sqp-qn cutest B TAX53322
+RUN sqp-qn cutest B YORKNET
+RUN sqp-qn cutest B ZAMB2-8
+ZAMB2-8 sqp-qn ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs B hs003
+hs003 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs B hs005
+hs005 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs B hs006
+hs006 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs B hs007
+hs007 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs B hs010
+hs010 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs B hs011
+hs011 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs B hs012
+hs012 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs B hs014
+hs014 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs B hs022
+hs022 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs B hs025
+hs025 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs B hs026
+hs026 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs B hs027
+hs027 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs B hs028
+hs028 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs B hs030
+hs030 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs B hs033
+hs033 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs B hs035
+hs035 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs B hs039
+hs039 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs B hs043
+hs043 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs B hs045
+hs045 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs B hs077
+hs077 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule hs B hs079
+hs079 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule cutest B ACOPP118
+ACOPP118 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule cutest B ACOPP57
+ACOPP57 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule cutest B ACOPR118
+RUN sqp-qn-wsrule cutest B ACOPR57
+ACOPR57 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule cutest B BIGBANK
+RUN sqp-qn-wsrule cutest B BRITGAS
+BRITGAS sqp-qn-wsrule ws_algebra_switches=1 ws_algebra_switched_qps=19
+RUN sqp-qn-wsrule cutest B DALLASM
+DALLASM sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule cutest B MSS2
+MSS2 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule cutest B MSS3
+RUN sqp-qn-wsrule cutest B NET3
+NET3 sqp-qn-wsrule ws_algebra_switches=1 ws_algebra_switched_qps=54
+RUN sqp-qn-wsrule cutest B READING6
+READING6 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule cutest B READING8
+RUN sqp-qn-wsrule cutest B SAWPATH
+SAWPATH sqp-qn-wsrule ws_algebra_switches=1 ws_algebra_switched_qps=6
+RUN sqp-qn-wsrule cutest B SMBANK
+SMBANK sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0
+RUN sqp-qn-wsrule cutest B STEENBRB
+STEENBRB sqp-qn-wsrule ws_algebra_switches=1 ws_algebra_switched_qps=14
+RUN sqp-qn-wsrule cutest B STEENBRC
+STEENBRC sqp-qn-wsrule ws_algebra_switches=1 ws_algebra_switched_qps=16
+RUN sqp-qn-wsrule cutest B STEENBRD
+STEENBRD sqp-qn-wsrule ws_algebra_switches=1 ws_algebra_switched_qps=14
+RUN sqp-qn-wsrule cutest B STEENBRE
+STEENBRE sqp-qn-wsrule ws_algebra_switches=1 ws_algebra_switched_qps=13
+RUN sqp-qn-wsrule cutest B STEENBRG
+STEENBRG sqp-qn-wsrule ws_algebra_switches=1 ws_algebra_switched_qps=12
+RUN sqp-qn-wsrule cutest B TAX213322
+RUN sqp-qn-wsrule cutest B TAX53322
+RUN sqp-qn-wsrule cutest B YORKNET
+RUN sqp-qn-wsrule cutest B ZAMB2-8
+ZAMB2-8 sqp-qn-wsrule ws_algebra_switches=0 ws_algebra_switched_qps=0

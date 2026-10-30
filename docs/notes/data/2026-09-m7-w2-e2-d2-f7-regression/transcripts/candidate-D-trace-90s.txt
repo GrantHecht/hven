@@ -1,0 +1,33 @@
+FOREGROUND_START cell-trD 2026-09-24T01:25:12-04:00
+RC=124
+FOREGROUND_END cell-trD 2026-09-24T01:26:42-04:00
+D2END solve=0 status=0 minors=2 facts=1 recheck_rm=0 kd_refusals=0 passovers=0 blk_term=0 zm_cap=0 deferred=0 xch=0 retreats=0 cert=0
+D2RM solve=1 iter=214 entry=0 over=0 removed=P3768 deferred=P3768 mark=1
+D2STALE
+D2RM solve=1 iter=216 entry=0 over=0 removed=P3768 deferred=P3768 mark=1
+D2STALE
+D2RM solve=1 iter=218 entry=0 over=0 removed=P3768 deferred=P3768 mark=1
+D2STALE
+D2RM solve=1 iter=220 entry=0 over=0 removed=P3768 deferred=P3768 mark=1
+D2STALE
+D2RM solve=1 iter=222 entry=0 over=0 removed=P3768 deferred=P3768 mark=1
+D2STALE
+D2RM solve=1 iter=224 entry=0 over=0 removed=P3768 deferred=P3768 mark=1
+D2STALE
+D2RM solve=1 iter=226 entry=0 over=0 removed=P3768 deferred=P3768 mark=1
+D2STALE
+D2RM solve=1 iter=228 entry=0 over=0 removed=P3768 deferred=P3768 mark=1
+D2STALE
+D2RM solve=1 iter=230 entry=0 over=0 removed=P3768 deferred=P3768 mark=1
+D2STALE
+D2RM solve=1 iter=232 entry=0 over=0 removed=P3768 deferred=P3768 mark=1
+D2STALE
+D2RM solve=1 iter=234 entry=0 over=0 removed=P3768 deferred=P3768 mark=1
+D2STALE
+D2RM solve=1 iter=236 entry=0 over=0 removed=P3768 deferred=P3768 mark=1
+D2STALE
+D2RM solve=1 iter=238 entry=0 over=0 removed=P3768 deferred=P3768 mark=1
+D2STALE
+D2RM solve=1 iter=240 entry=0 over=0 removed=P3768 deferred=P3768 mark=1
+D2STALE
+D2RM solve=1 iter=242 entry=0 over=0 removed=P3768 deferred=P3768 mark=1

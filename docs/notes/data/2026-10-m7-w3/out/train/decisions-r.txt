@@ -1,0 +1,18 @@
+
+=== hs / hven-sqp ===
+label                  optimal dnf_budget dnf_wall   err infeasible  |B|  median-cost  verdict
+default                     21          0        0     0          0   21      6.66667  default
+sqp-ssn-certify-face        21          0        0     0          0   21            6  WIN
+sqp-ssn-farkas              21          0        0     0          0   21      6.66667  tie (default stands)
+sqp-ssn-sigma-armed         21          0        0     0          0   21      6.66667  tie (default stands)
+  --> best fixed choice: sqp-ssn-certify-face (smallest median cost among the winners)
+
+=== cutest / hven-sqp ===
+label                  optimal dnf_budget dnf_wall   err infeasible  |B|  median-cost  verdict
+default                     14          0        5     4          0   14      80.3043  default
+sqp-ssn-certify-face        14          0        5     4          0   14      79.7065  WIN
+sqp-ssn-farkas              14          0        5     4          0   14      80.4918  lose: median cost 80.4918 > 80.3043
+sqp-ssn-sigma-armed         14          0        5     4          0   14      80.3043  tie (default stands)
+  --> best fixed choice: sqp-ssn-certify-face (smallest median cost among the winners)
+
+w2_a4_decide: verdicts -> train/out/decisions-r.json
