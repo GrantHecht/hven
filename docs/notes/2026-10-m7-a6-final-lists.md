@@ -1,6 +1,6 @@
 # M7 W2 A6 — the final lists (M7-1 … M7-42, plus the M8 registrations of the close)
 
-Status: **RE-FILED per settler ruling C182 (2026-10-31); for the close line.** Date: 2026-10-31. Base: m7 `d4b8e84b`.
+Status: **RE-FILED per settler ruling C182 (2026-10-31); ratified by the close artifact `docs/notes/2026-10-m7-close.md` (C185).** Date: 2026-10-31. Base: m7 `d4b8e84b`.
 Docs only; nothing was built or run. Supersedes the draft lists of
 `docs/notes/2026-10-m7-w2-a6-register-triage.md` (`6259eb88`), which is left unedited.
 Authority: brief §1 W2 A6 (`docs/notes/2026-09-m7-brief.md:287`); rulings C124 in
@@ -19,8 +19,9 @@ Authority: brief §1 W2 A6 (`docs/notes/2026-09-m7-brief.md:287`); rulings C124 
   a heuristic with no such read is CARRIED to M8 (C124 (7) amended accordingly), not MEASURED.
 - ARGUED rows rest on the triage's argument (`6259eb88` §3). The close line ratifies them
   explicitly, except as re-filed here (C182).
-- The prior draft's UNSETTLED marks are resolved by C182; the one item C182 leaves to the close
-  artifact is marked "disposition pending close artifact".
+- The prior draft's UNSETTLED marks are resolved by C182; the item C182 leaves to the close
+  artifact (the H5/H6/H7 package dispositions) is answered in `docs/notes/2026-10-m7-close.md`
+  section 6, where the ledger gives none and the settler is asked.
 
 ## 1. Counts
 
@@ -43,9 +44,15 @@ M7-16, M7-23 OWNED ELSEWHERE to split. Changes from the triage's counts, by earl
 (C124 (6)); M7-35, 37 left OWNED ELSEWHERE when A1 and A2 closed; M7-39 ARGUED to CARRIED (C138);
 M7-29 ARGUED to CARRIED (C124 (5), §5 below); M7-40 and M7-42 to CARRIED (§5); M7-21 filed CLOSED.
 
-Exit criterion 2 (two settings): `project_start_point` and `equality_basis` fail criterion 2 as
-written (C182) and are being measured in RETAKE21 (ruling C184; arms ON, OFF-PSP, OFF-EQB on
-CUTEst 23 + HS TRAIN). Outcome: to be filled in by the close artifact.
+Exit criterion 2 (two settings): `project_start_point` and `equality_basis` failed criterion 2 as
+written (C182) and were measured in RETAKE21 (ruling C184; arms ON, OFF-PSP, OFF-EQB on CUTEst 23
++ HS TRAIN; hven-bench close `8a4627f`). **Outcome (C186): both STAY ON; criterion 2 is met for
+both; no default event.** `project_start_point`: CUTEst 6W/1L/39T, HS 1W/1L/40T. `equality_basis`:
+CUTEst 7W/0L/39T, HS 0W/0L/42T. The close artifact's section 4.2 carries the per-cell detail and
+the OFF-PSP iteration-0 error note.
+
+A6 close line (C185): MEASURED 4 / ARGUED 13 / CARRIED 21 / CLOSED 4 = 42. The close ratifies the
+13 ARGUED rows and sends every CARRIED row to M8 (`docs/notes/2026-10-m7-close.md` section 7).
 
 ## 2. MEASURED on TRAIN
 
@@ -90,7 +97,7 @@ Destination of every row below: **M8**.
 | id | reason |
 |---|---|
 | M7-1 | C182: no TRAIN read of the `elastic_rung_engine` default (`kWalk`) vs OFF (`kTier`) was taken in M7; C124 (7) amended. Build/F7 measurement only (W0 T3, `m7:445`, `40ef105f`, `2200c880`). |
-| M7-2 | C182: H5 is unbuilt (no many-solves leg in the record). H6/H7 package dispositions: disposition pending close artifact. Brief `:200-207`. |
+| M7-2 | C182: H5 is unbuilt (no many-solves leg in the record). H5/H6/H7 package dispositions: see `docs/notes/2026-10-m7-close.md` section 6 (the ledger gives none; settler to state). Brief `:200-207`. |
 | M7-4 (residual) | The task closed at W0 T2 (`m7:280`, `b68590a5` ... `231a279f`); the +0.6% unattributed residual after the mask is carried, C124 (8). |
 | M7-6 | C182: filed CARRIED (was ARGUED under C124 (9)). Probe D has no TRAIN population and no TRAIN read was taken; column scaling has shipped default-on (SCW `59939b29`, C117, C120). `m7:773-775`. |
 | M7-7 | C182: take-vs-decline of the elastic-site restoration offer (D6) not read on TRAIN in M7; RST (C109) did not name it. |
@@ -99,10 +106,10 @@ Destination of every row below: **M8**.
 | M7-13 | C182: `x_soc` as a restoration candidate (D14) not read on TRAIN in M7; RST/YKN/RD8 not diagnosed seed-limited (C124 (3)). |
 | M7-14 | C182: cross-mode disagreement shape (D15) not read on TRAIN; the A4-0 sweep (`m7:739-745`) is a different statistic. |
 | M7-15 | C182: the two `mu = 1e-6` pathologies (D16) not read; A2 measured `init_mu`/floor on other cells (C129). |
-| M7-16 (hven half) | C182 split: the harness half is CLOSED at H1; the hven half (configure-time `git describe` stamp; H7, brief `:215`) is CARRIED. H7 package disposition: disposition pending close artifact. |
+| M7-16 (hven half) | C182 split: the harness half is CLOSED at H1; the hven half (configure-time `git describe` stamp; H7, brief `:215`) is CARRIED. H7 package disposition: see `docs/notes/2026-10-m7-close.md` section 6. |
 | M7-18 | Row-kind census: on no list in the brief; no W2 heuristic reads it; T5 took no interface widening. C124 (1). |
 | M7-19 | C182: filed CARRIED (was ARGUED). No M7 task moved an IPM counter that would have taken it; take with the next task that does. Triage row. |
-| M7-23 (hven half) | C182 split: the harness half is CLOSED at H1; the hven half (emitter, H7, brief `:217`) is CARRIED. Read the A0 clause-4 note (`m7:806-811`) first. H7 package disposition: disposition pending close artifact. |
+| M7-23 (hven half) | C182 split: the harness half is CLOSED at H1; the hven half (emitter, H7, brief `:217`) is CARRIED. Read the A0 clause-4 note (`m7:806-811`) first. H7 package disposition: see `docs/notes/2026-10-m7-close.md` section 6. |
 | M7-29 | Warm costs more IPM iterations than cold (24 vs 5). The identity with acceptance cell A12 is not established: `m6:244-248` registers the symptom as A12, but the A12 result reported (`m6:1207`, 36 to 33 vs cold 48 to 47) is an IPQP-tier datum, not the IPM 24-vs-5. Carried per C124 (5); its reader is A5-R1's between-solve layer. |
 | M7-30 | IPM re-entry mu reset: the owner's M6 condition lapsed (`m6:522-525`) and no M7 package owns it. C124 (4). |
 | M7-35 | Stopping-mu vs bound geometry: A1 CLOSED NEGATIVE for M7. Mechanism confirmed (gate-8, `e1_f7_n20000_af30_m1e-6`), but the rule fails "no cell worse end-to-end" on 4 of 29 E1 cells; code held on `w2-a1-impl`; carried with A1-R4..R6. C125-C128; record `558ab224` (`docs/notes/data/2026-10-m7-a1-impl/`). |
@@ -144,8 +151,11 @@ A2-R1..R3 (C129), A3-R2..R5 (C138), A7-R1..R4 (C134), W3-R1..R5 (C146), WX-R8 (d
 
 ## 8. Open items for the close artifact
 
-1. Fill in the RETAKE21 outcome for `project_start_point` and `equality_basis` (C184, §1).
-2. State the H6/H7 package dispositions (M7-2, M7-16, M7-23 hven half).
-3. Ratify the ARGUED rows (§3, now including M7-5) in the close line.
-4. State the criterion-2 reading for untoggled QP-engine mechanisms (E4 and others) with E4's
-   before/after record and CEN-R1/R2 disclosed (C182).
+All four items are taken up by `docs/notes/2026-10-m7-close.md`:
+
+1. RETAKE21 outcome: section 4.2 (both settings STAY ON, C186); filled in at §1 above.
+2. H5/H6/H7 package dispositions (M7-2, M7-16, M7-23 hven half): section 6; the ledger gives none,
+   so the page asks the settler.
+3. ARGUED rows (§3, including M7-5) ratified: section 7 (C185).
+4. Criterion-2 reading for untoggled QP-engine mechanisms, with E4's before/after record and
+   CEN-R1/R2 disclosed: section 4.3 (C182).
