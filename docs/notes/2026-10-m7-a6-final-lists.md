@@ -15,7 +15,7 @@ Authority: brief §1 W2 A6 (`docs/notes/2026-09-m7-brief.md:287`); rulings C124 
   class (CLOSED). Each id is on exactly one. Where C124 moved an item, it
   sits on its new list.
 - This page is re-filed per C182 (`.superpowers/m7-w2-c10-report.md:601`), which accepted the
-  Opus criterion-2 judgement. The rule applied: MEASURED means a TRAIN read was taken in M7;
+  read-only criterion-2 judgement round. The rule applied: MEASURED means a TRAIN read was taken in M7;
   a heuristic with no such read is CARRIED to M8 (C124 (7) amended accordingly), not MEASURED.
 - ARGUED rows rest on the triage's argument (`6259eb88` §3). The close line ratifies them
   explicitly, except as re-filed here (C182).
@@ -41,7 +41,7 @@ Changes from the prior draft of this page, all by C182: M7-1, 7, 9, 11, 13, 14, 
 CARRIED; M7-5 MEASURED to ARGUED; M7-6, M7-19 ARGUED to CARRIED; M7-2 OWNED ELSEWHERE to CARRIED;
 M7-16, M7-23 OWNED ELSEWHERE to split. Changes from the triage's counts, by earlier ruling: M7-18,
 30, 41 and M7-4's residual CARRIED (C124 (1), (3), (4), (8)); M7-25 stays CLOSED, both halves
-(C124 (6)); M7-35, 37 left OWNED ELSEWHERE when A1 and A2 closed; M7-39 ARGUED to CARRIED (C138);
+(C124 (6)); M7-35 and M7-37 moved off OWNED ELSEWHERE when A1 closed negative (CARRIED, C128) and A2 closed (MEASURED, C132); M7-39 ARGUED to CARRIED (C138);
 M7-29 ARGUED to CARRIED (C124 (5), §5 below); M7-40 and M7-42 to CARRIED (§5); M7-21 filed CLOSED.
 
 Exit criterion 2 (two settings): `project_start_point` and `equality_basis` failed criterion 2 as
