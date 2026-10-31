@@ -62,6 +62,21 @@ counter arm elsewhere needs **three** agreeing lane runs, not two (WX-R6).
   `mkl_intel_thread`, `MKL_NUM_THREADS=1`, UCRT libm. Linux lane: apt
   `intel-oneapi-mkl-*-2026.2 (2026.2.0-881)`, clang **18.1.3**, glibc. Box: MKL 2026.2,
   clang 22. Windows is deterministic across the two runs (all three cells byte-identical).
+
+  **Amendment (2026-10-31, WX-R11).** Supersedes the sentence above ("Windows is deterministic
+  across the two runs"), which held for two runs only, and the clause "the Linux lane and the box both reproduce
+  today" in the answer paragraph below, which holds only on a matching host. Run 40975942261 (`fcd2574f`) failed five
+  Windows cells that had passed, with no QP library change and the same MKL key (C161); run
+  40980437162 (`c1cc9891`) passed the same five (C163a). Windows (MKL 2026.1, clang-cl) is
+  OFF-REFERENCE and its route outcomes flip from run to run; no Windows value is a fixed
+  reference. Linux hosted runners also vary by host CPU: AMD EPYC 7763 matches the box's MKL
+  dispatch signature (REFERENCE, runs 40995698237 and 41013534471); Intel Xeon Platinum 8573C
+  (AVX-512, `mkl_auto_branch` 14) does not (run 41000998004, C173). Hence the reference build is
+  decided by a configure-time MKL dispatch probe (WX-R13, `869bdcf2`, C169), not by "Linux".
+  Windows and non-matching Linux hosts assert the portable contract and record the route. The
+  rest of §1.2 (MKL version ruled out, kernel path ruled in) stands. Evidence:
+  `.superpowers/m7-w2-c10-report.md` C161, C163a, C164-C176.
+
 - **MKL version ruled out.** The same tree built here against MKL **2026.1** (static, `MKLROOT`
   swapped; `.scratch/build-mkl261`) passes all 68 cells, and every printed counter, objective
   and residual of the 68 is **bit-identical** to the 2026.2 build — only wall-clock columns
