@@ -1,0 +1,24 @@
+LEG: bash -o pipefail /home/ghecht/Projects/hven/.claude/worktrees/m7-close-gate/docs/notes/data/2026-10-m7-close-gate/wrappers-close-r3/legs_r3.sh census
+PGREP_SEPARATE 2026-10-31T10:07:04Z
+PGREP_EMPTY_BEFORE_LOCK
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-10-31T10:07:04Z
+# binary: 0de4ae7f19ed
+# schema: 76
+# budget_table_hash: 0x357aee91dee27391
+CENSUS_RUN_RC=0
+f7_n20000_bound_physics	13-column mismatch
+f7_n20000_bound_corrupted	13-column mismatch
+f7_n20000_bound_activity	13-column mismatch
+f7_n20000_bound_warm	13-column mismatch
+f7_n800_path_neutral	13-column mismatch
+f7_n800_path_physics	13-column mismatch
+f7_n800_path_corrupted	13-column mismatch
+f7_n800_path_activity	13-column mismatch
+f7_n800_path_warm	13-column mismatch
+f7_n750_path_neutral_control	13-column mismatch
+f7_n825_path_neutral_control	13-column mismatch
+=== census done (merge_rc=0 compare_rc=1 rows=57/57) ===
+LEG_RC=0
+FOREGROUND_END 2026-10-31T16:08:18Z
+WRAPPER_EXIT=0

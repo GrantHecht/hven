@@ -1,0 +1,20 @@
+PREFLIGHT_R3 falsify=1 head=7635a728138a3d82fa1926bd862e79fe535730f9 date=2026-10-31T10:07:03Z
+PREFLIGHT_FAILS=0
+PREFLIGHT_GREEN
+PF_OK    frozen r1 pre-flight (run mode, with its falsifiers)
+PF_OK    legs that stand: r1 legs 1-5 and r2 leg 6 each logged STEP_OK in the record's chain
+PF_FALSIFIER_REFUSED legs-stand check against a step that never ran
+PF_OK    build-release unchanged since the declaration (file/size/mtime manifest)
+PF_OK    build-debug unchanged since the declaration
+PF_OK    build-3seam unchanged since the declaration
+PF_FALSIFIER_REFUSED manifest check against the wrong digest
+PF_OK    census corpus binary sha256 = the declared one
+PF_FALSIFIER_REFUSED binary check against a wrong digest
+PF_OK    binary stamp: 0de4ae7f19ed, clean (the build r1 ran its legs on)
+PF_FALSIFIER_REFUSED stamp check against a wrong stamp
+PF_OK    r3 census checker falsifiers (real records + perturbed copies; floor artifact reproduced on the r1 checker)
+SELFTEST_FAILS=0
+PF_OK    r2 guard-replacement assertions: accept the real inputs, refuse every mutated one
+SELFTEST_FAILS=0
+PREFLIGHT_R3_FAILS=0
+PREFLIGHT_R3_GREEN
