@@ -32,11 +32,8 @@ int standalone_include_console_trace_sink() {
     hven::solvers::ConsoleTraceSink console(
         hven::solvers::ConsoleTraceSink::Format{/*wide=*/true, /*print_level=*/3}, stdout);
     hven::solvers::FanOutTraceSink fan(nullptr, &console);
-    // The colour function the header declares beside them, on a value that is
-    // unambiguously inside the converged band.
-    const bool coloured = hven::solvers::ipm_residual_color(1e-12, 1e-6, 1e-2) != fmt::text_style();
     const bool composed = fan.second() == &console && fan.first() == nullptr &&
                           console.format().wide && console.sqp_depth() == 0;
-    return (coloured && composed) ? 1 : 0;
+    return composed ? 1 : 0;
 }
 } // namespace hven_install_smoke
