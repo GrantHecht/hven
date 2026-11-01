@@ -15,8 +15,7 @@ namespace hven::utils {
 /// @brief Insertion-ordered flat map backed by a `std::vector` of key-value pairs.
 ///
 /// Lookup is O(N) linear scan. Intended for small collections (fewer than ~20 entries)
-/// where cache locality outweighs tree or hash overhead. The underlying `std::vector` is
-/// trivially relocatable, making `FlatMap` safe for use inside `TypeStorage` inline storage.
+/// where cache locality outweighs tree or hash overhead.
 ///
 /// @tparam Key   Key type. Must be equality-comparable.
 /// @tparam Value Mapped value type.

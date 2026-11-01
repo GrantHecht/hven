@@ -103,10 +103,6 @@ struct NoConstraintSurface {
 
 // A scalar objective term  weight * (z - ref)^2  applied to one variable per
 // application. ControlEffort is (ref = 0), Tracking is (ref = 0.3).
-//
-// A piece is stored in an erased handle by memcpy, so it must be trivially
-// relocatable: NO std::string member (small-string optimisation points into the
-// object itself). The label is a string literal pointer for that reason.
 struct QuadraticTerm : NoConstraintSurface {
     const char *label;
     double weight, ref;

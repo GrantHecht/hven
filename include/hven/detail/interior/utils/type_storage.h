@@ -11,7 +11,8 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
-#include <cstring>
+#include <new>
+#include <type_traits>
 #include <utility>
 
 namespace hven::utils {
@@ -19,8 +20,11 @@ namespace hven::utils {
 /// @brief Type-erasing SBO (small-buffer-optimised) container with value semantics.
 ///
 /// Stores any object derived from `C` either inline (if `sizeof(Model) <= SBO_CAP`
-/// and alignment is compatible) or on the heap. Inline storage uses `memcpy`-based
-/// move, so stored types must be trivially relocatable (no self-referential pointers).
+/// and alignment is compatible, and its move constructor is `noexcept`) or on the
+/// heap. Moving inline storage move-constructs the Model into the destination through
+/// a function captured at `emplace` time, so a Model need not be trivially relocatable
+/// (`std::string`, `std::vector` and the like are fine). Moves of the container are
+/// `noexcept`; `get()` is unaffected.
 ///
 /// `C` must provide `virtual void clone_into(TypeStorage<C, SBO_CAP>&) const` for
 /// copy construction and copy assignment. Each concrete Model implements this as
@@ -34,6 +38,8 @@ template <typename C, std::size_t SBO_CAP = 128> class TypeStorage {
     enum class Kind : uint8_t { Empty, Inline, Heap };
 
     Kind kind_ = Kind::Empty;
+    // Inline only: move-constructs the Model at `src` into raw `dst`, then destroys `src`.
+    void (*relocate_)(void *dst, void *src) noexcept = nullptr;
     union {
         alignas(SBO_ALIGN) std::byte buf_[SBO_CAP];
         C *ptr_;
@@ -51,39 +57,41 @@ template <typename C, std::size_t SBO_CAP = 128> class TypeStorage {
         kind_ = Kind::Empty;
     }
 
+    // Take over `o`'s contents; *this must be empty.
+    void take(TypeStorage &o) noexcept {
+        if (o.kind_ == Kind::Inline) {
+            o.relocate_(buf_, o.buf_);
+            relocate_ = o.relocate_;
+        } else if (o.kind_ == Kind::Heap) {
+            ptr_ = o.ptr_;
+        }
+        kind_ = o.kind_;
+        o.kind_ = Kind::Empty;
+    }
+
   public:
     /// @brief Construct an empty container.
     TypeStorage() noexcept = default;
 
     /// @brief Construct a `Model(obj)` in the SBO buffer (if it fits) or on the heap.
     ///
-    /// `Model` must derive from `C` and be constructible from `T`. Inline storage
-    /// requires that `Model` is trivially relocatable (see class-level note).
+    /// `Model` must derive from `C` and be constructible from `T`. It is stored inline
+    /// only if it fits and is nothrow-move-constructible, so the container's moves
+    /// stay `noexcept`.
     ///
     /// @tparam Model Concrete derived type to construct.
     /// @tparam T     Type of the forwarded argument used to construct `Model`.
     /// @param obj    Value moved into the new `Model` instance.
     template <typename Model, typename T> void emplace(T obj) {
         destroy();
-        if constexpr (sizeof(Model) <= SBO_CAP && alignof(Model) <= SBO_ALIGN) {
-            // Inline Models are memcpy-moved (see move ctor below), so they must
-            // be trivially relocatable (no self-referential pointers). All current
-            // Models wrap value-semantic VectorFunction types (Eigen matrices +
-            // primitives) and satisfy this. If a non-relocatable Model is ever
-            // stored here, the move path must be changed to virtual dispatch.
-            // SAFETY: memcpy-move requires no self-referential pointers.
-            // std::string SSO, std::list, etc. are NOT safe here.
-            // std::shared_ptr, Eigen matrices, and primitives ARE safe.
-            // Clang's __is_trivially_relocatable is overly conservative
-            // (rejects shared_ptr), so we cannot static_assert on it.
-            // NOTE: MSVC STL's checked-iterator proxy (_ITERATOR_DEBUG_LEVEL >= 1)
-            // adds self-referential state to std::vector and other containers.
-            // This project's Release builds set /DNDEBUG (_ITERATOR_DEBUG_LEVEL=0),
-            // disabling the proxy entirely. Do not use TypeStorage inline storage
-            // in Debug builds on MSVC without verifying relocatability.
-            // If adding a new Model type here, manually verify it has no
-            // self-referential members before allowing inline storage.
+        if constexpr (sizeof(Model) <= SBO_CAP && alignof(Model) <= SBO_ALIGN &&
+                      std::is_nothrow_move_constructible_v<Model>) {
             ::new (static_cast<void *>(buf_)) Model(std::move(obj));
+            relocate_ = [](void *dst, void *src) noexcept {
+                Model *m = static_cast<Model *>(src);
+                ::new (dst) Model(std::move(*m));
+                m->~Model();
+            };
             kind_ = Kind::Inline;
         } else {
             ptr_ = new Model(std::move(obj));
@@ -98,22 +106,9 @@ template <typename C, std::size_t SBO_CAP = 128> class TypeStorage {
         }
     }
 
-    /// @brief Move constructor — uses `memcpy` for inline storage, pointer steal for heap.
-    ///
-    /// Valid because all stored Models are trivially relocatable. See the note in
-    /// `emplace()`.
-    TypeStorage(TypeStorage &&o) noexcept : kind_(Kind::Empty) {
-        if (o.kind_ == Kind::Inline) {
-            std::memcpy(buf_, o.buf_, SBO_CAP);
-            kind_ = Kind::Inline;
-            o.kind_ = Kind::Empty;
-        } else if (o.kind_ == Kind::Heap) {
-            ptr_ = o.ptr_;
-            kind_ = Kind::Heap;
-            o.ptr_ = nullptr;
-            o.kind_ = Kind::Empty;
-        }
-    }
+    /// @brief Move constructor — relocates inline storage via the Model's move constructor,
+    /// steals the pointer for heap storage.
+    TypeStorage(TypeStorage &&o) noexcept : kind_(Kind::Empty) { take(o); }
 
     /// @brief Copy-assignment operator — destroys current contents, then deep-copies via
     /// `clone_into`.
@@ -131,16 +126,7 @@ template <typename C, std::size_t SBO_CAP = 128> class TypeStorage {
     TypeStorage &operator=(TypeStorage &&o) noexcept {
         if (this != &o) {
             destroy();
-            if (o.kind_ == Kind::Inline) {
-                std::memcpy(buf_, o.buf_, SBO_CAP);
-                kind_ = Kind::Inline;
-                o.kind_ = Kind::Empty;
-            } else if (o.kind_ == Kind::Heap) {
-                ptr_ = o.ptr_;
-                kind_ = Kind::Heap;
-                o.ptr_ = nullptr;
-                o.kind_ = Kind::Empty;
-            }
+            take(o);
         }
         return *this;
     }

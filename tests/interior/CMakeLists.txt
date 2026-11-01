@@ -38,6 +38,8 @@ set(HVEN_INTERIOR_TEST_SOURCES
     test_soc.cpp
     test_solver_interface_adapter.cpp
     test_structure_epoch_gating.cpp
+    test_string_piece.cpp
+    test_type_storage.cpp
     test_switching_acceptance.cpp
     test_watchdog.cpp
 )

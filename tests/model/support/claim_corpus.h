@@ -49,10 +49,7 @@ namespace hven::model_tests {
 /// Hessian claim is left in the walk order the piece chose, and the restatement
 /// is what puts it in the upper triangle; a fixture that only ever claimed
 /// already-ordered pairs would let a restatement that forgot to order them pass.
-/// NO std::string MEMBER, deliberately. TypeStorage's inline buffer relocates
-/// what it holds with memcpy (detail/interior/utils/type_storage.h), so a stored
-/// piece must be trivially relocatable and an SSO string is self-referential.
-/// The name is composed on demand from a literal and an index instead.
+/// The name is composed on demand from a literal and an index.
 struct CorpusConstraintPiece {
     bool owns_hessian_ = false;
     const char *kind_ = "corpus_constraint";
