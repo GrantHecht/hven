@@ -51,12 +51,19 @@
 
 #include <Eigen/Core>
 
-#include <fmt/format.h>
-
 #include "hven/core/pattern_hash.h"
 #include "hven/model/assembly_declaration.h"
 
 namespace hven::solvers {
+
+namespace detail {
+
+// Cold paths of this header's argument checks. Each throws std::invalid_argument;
+// the message is built out of line (src/model/validation_errors.cpp) so this
+// header needs no formatting library and the inline check stays small.
+[[noreturn]] void throw_claim_stream_length_mismatch(Eigen::Index rows, Eigen::Index cols);
+
+} // namespace detail
 
 /// @brief The structural key of a declared model: the digest of its claim
 ///        structure, the partition count that structure was laid at, and the
@@ -208,10 +215,7 @@ inline std::uint64_t claim_stream_digest(const AssemblyDeclaration &declaration,
                                          Eigen::Ref<const Eigen::VectorXi> claim_rows,
                                          Eigen::Ref<const Eigen::VectorXi> claim_cols) {
     if (claim_rows.size() != claim_cols.size()) {
-        throw std::invalid_argument(
-            fmt::format("claim_stream_digest: the claim stream has {0} rows and {1} columns; a "
-                        "claim is a (row, column) pair, so the two arrays must be the same length",
-                        claim_rows.size(), claim_cols.size()));
+        detail::throw_claim_stream_length_mismatch(claim_rows.size(), claim_cols.size());
     }
 
     Fnv1a hash;

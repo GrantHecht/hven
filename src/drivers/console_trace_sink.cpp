@@ -45,6 +45,7 @@
 // here is a per-element hot path and nothing depends on inlining through a
 // template parameter.
 
+#include <hven/detail/drivers/console_color.h>
 #include <hven/drivers/console_trace_sink.h>
 
 #include <algorithm>
@@ -52,8 +53,8 @@
 
 #include <fmt/format.h>
 
+#include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/interior/iterate_info.h>
-#include <hven/drivers/sqp_solver.h>
 
 namespace hven::solvers {
 

@@ -6,14 +6,6 @@
 #include <string>
 #include <vector>
 
-// This header does not use fmt any more, but the include below is kept
-// deliberately: dropping it changes the preprocessed input of every TU that
-// includes this header, which is nearly the whole SQP tree, and that is
-// exactly the kind of include-order perturbation the PCH measurement table in
-// src/CMakeLists.txt records as moving emission order. Removing it is a fine
-// separate change with its own P-SYM run.
-#include <fmt/core.h>
-
 #include <hven/core/solver_counters.h>
 #include <hven/core/solver_status.h>
 #include <hven/core/start_level.h>
@@ -177,11 +169,10 @@ struct IpmSolveRecord {
     /// the total would charge this record for the previous call's work.
     ///
     /// That accessor is differenced rather than the linear engine's own
-    /// `Counters::factorize_count` (M6 W5 T8.7 fix1) because that counter is
-    /// per ENGINE INSTANCE and starts again at zero when the solver replaces
-    /// the engine -- which a solve of a second, DIFFERENT program does, so the
-    /// difference of two such readings is negative there. This field is never
-    /// negative.
+    /// `Counters::factorize_count` because that counter is per engine instance
+    /// and starts again at zero when the solver replaces the engine -- which a
+    /// solve of a second, different program does, so the difference of two such
+    /// readings would be negative there. This field is never negative.
     Index factorizations = 0;
     /// @brief IpmResult::kkt_analyses_this_call -- symbolic analyses paid by
     ///        THIS call (the engine's own per-call counter).

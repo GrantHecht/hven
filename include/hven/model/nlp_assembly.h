@@ -47,8 +47,6 @@
 #include <cstdint>
 #include <stdexcept>
 
-#include <fmt/format.h>
-
 #include "hven/core/types.h"
 #include "hven/model/assembly_declaration.h"
 #include "hven/model/candidate_point.h"
@@ -56,6 +54,23 @@
 #include "hven/model/structure_identity.h"
 
 namespace hven::solvers {
+
+namespace detail {
+
+// Cold paths of this header's argument checks. Each throws std::invalid_argument;
+// the message is built out of line (src/model/validation_errors.cpp) so this
+// header needs no formatting library and the inline check stays small.
+[[noreturn]] void throw_arena_view_missing(const char *arena, std::uint32_t flag,
+                                           const char *missing);
+[[noreturn]] void throw_residual_arena_view_missing(const char *arena, Eigen::Index declared_rows,
+                                                    const char *missing);
+[[noreturn]] void throw_residual_arena_size(const char *arena, Eigen::Index view_rows,
+                                            Eigen::Index declared_rows);
+[[noreturn]] void throw_objective_slot_missing(std::uint32_t flag);
+[[noreturn]] void throw_kkt_view_empty(std::uint32_t flags);
+[[noreturn]] void throw_bound_destination_mismatch(const double *view_values, const double *bound);
+
+} // namespace detail
 
 /// What a provider DECLARES about how it does its work -- never about what it
 /// is allowed to return.
@@ -145,11 +160,7 @@ inline void require_arena_view(const RhsArenaView &view, EvalRequest flag, const
         const char *missing = view.values_ == nullptr      ? "storage"
                               : view.locations_ == nullptr ? "location table"
                                                            : "rows (its length is zero)";
-        throw std::invalid_argument(
-            fmt::format("assemble: the request names the {0} (flag 0x{1:x}), but that arena's "
-                        "scatter view supplies no {2}. A request may leave empty only the arenas "
-                        "it does NOT name; see the mapping table in model/candidate_point.h",
-                        arena, static_cast<std::uint32_t>(flag), missing));
+        detail::throw_arena_view_missing(arena, static_cast<std::uint32_t>(flag), missing);
     }
 }
 
@@ -175,16 +186,11 @@ inline void require_residual_arena(const RhsArenaView &view, Eigen::Index declar
         return;
     }
     if (view.locations_ == nullptr || view.values_ == nullptr) {
-        throw std::invalid_argument(fmt::format(
-            "assemble: the request names the {0} arena, whose declared length is {1}, but the "
-            "view supplies no {2}",
-            arena, declared_rows, view.values_ == nullptr ? "storage" : "location table"));
+        detail::throw_residual_arena_view_missing(
+            arena, declared_rows, view.values_ == nullptr ? "storage" : "location table");
     }
     if (view.size_ != declared_rows) {
-        throw std::invalid_argument(
-            fmt::format("assemble: the {0} arena's view is {1} rows, but the aggregate declares "
-                        "{2} {0} rows",
-                        arena, view.size_, declared_rows));
+        detail::throw_residual_arena_size(arena, view.size_, declared_rows);
     }
 }
 
@@ -217,10 +223,8 @@ inline void require_residual_arena(const RhsArenaView &view, Eigen::Index declar
 inline void validate_request_destinations(EvalRequest request, const AssemblyDeclaration &declared,
                                           const KktScatterView &kkt, const RhsScatterView &rhs) {
     if (has_request(request, EvalRequest::kObjectiveValue) && rhs.objective_ == nullptr) {
-        throw std::invalid_argument(
-            fmt::format("assemble: the request names the objective value (flag 0x{0:x}), but no "
-                        "out slot was supplied for it",
-                        static_cast<std::uint32_t>(EvalRequest::kObjectiveValue)));
+        detail::throw_objective_slot_missing(
+            static_cast<std::uint32_t>(EvalRequest::kObjectiveValue));
     }
     if (has_request(request, EvalRequest::kObjectiveGradient)) {
         detail::require_arena_view(rhs.objective_gradient_, EvalRequest::kObjectiveGradient,
@@ -245,10 +249,7 @@ inline void validate_request_destinations(EvalRequest request, const AssemblyDec
                                         EvalRequest::kConstraintJacobian |
                                         EvalRequest::kConstraintAdjointHessian;
     if ((request & kKktBearing) != EvalRequest::kNone && kkt.empty()) {
-        throw std::invalid_argument(fmt::format(
-            "assemble: the request names KKT-bearing output (flags 0x{0:x} of the request), but "
-            "the KKT scatter view is empty",
-            static_cast<std::uint32_t>(request & kKktBearing)));
+        detail::throw_kkt_view_empty(static_cast<std::uint32_t>(request & kKktBearing));
     }
 }
 
@@ -284,13 +285,7 @@ inline void validate_bound_destination(const double *bound, const KktScatterView
         return;
     }
     if (kkt.values_ != bound) {
-        throw std::invalid_argument(fmt::format(
-            "assemble: the KKT scatter view names value array {0}, but this provider's location "
-            "tables were bound at analysis time to {1}. The destination bound at analysis no "
-            "longer matches the view; re-run the analysis against the destination you intend to "
-            "fill. (A consumer matrix that was resized or reallocated moves its value array, so "
-            "this is a stale location table being caught rather than a rejected argument.)",
-            fmt::ptr(kkt.values_), fmt::ptr(bound)));
+        detail::throw_bound_destination_mismatch(kkt.values_, bound);
     }
 }
 

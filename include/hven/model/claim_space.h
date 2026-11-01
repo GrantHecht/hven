@@ -29,9 +29,23 @@
 
 #include <Eigen/Core>
 
-#include <fmt/format.h>
-
 namespace hven::solvers {
+
+namespace detail {
+
+// Cold paths of the location tables' construction checks. Each throws
+// std::invalid_argument; the message is built out of line (src/model/
+// validation_errors.cpp) so this header needs no formatting library.
+[[noreturn]] void throw_kkt_table_negative_size(int size, int clash_size);
+[[noreturn]] void throw_kkt_table_no_locations(int size);
+[[noreturn]] void throw_kkt_table_no_clash_marks(int clash_size);
+[[noreturn]] void throw_kkt_table_bad_clash_mark(int column, int mark);
+[[noreturn]] void throw_kkt_table_lock_index(int column, int mark, int lock_count);
+[[noreturn]] void throw_rhs_table_negative_size(int size);
+[[noreturn]] void throw_rhs_table_no_rows(int size);
+[[noreturn]] void throw_rhs_table_bad_row(int slot, int row);
+
+} // namespace detail
 
 /// @brief The four kinds of structure a piece may claim slots for.
 ///
@@ -145,19 +159,13 @@ class KktLocationTable {
         : locations_(locations), size_(size), clashes_(clashes), clash_size_(clash_size),
           locks_(locks) {
         if (size_ < 0 || clash_size_ < 0) {
-            throw std::invalid_argument(
-                fmt::format("KktLocationTable: negative array size (locations {0}, clash marks "
-                            "{1})",
-                            size_, clash_size_));
+            detail::throw_kkt_table_negative_size(size_, clash_size_);
         }
         if (size_ > 0 && locations_ == nullptr) {
-            throw std::invalid_argument(fmt::format(
-                "KktLocationTable: {0} claim slots were published with no location array", size_));
+            detail::throw_kkt_table_no_locations(size_);
         }
         if (clash_size_ > 0 && clashes_ == nullptr) {
-            throw std::invalid_argument(
-                fmt::format("KktLocationTable: {0} columns were published with no clash-mark array",
-                            clash_size_));
+            detail::throw_kkt_table_no_clash_marks(clash_size_);
         }
         const int lock_count = locks_ == nullptr ? 0 : static_cast<int>(locks_->size());
         for (int column = 0; column < clash_size_; ++column) {
@@ -167,16 +175,10 @@ class KktLocationTable {
             // `mark != -1`, and indexing the mutex vector with it is undefined
             // behaviour, which an upper-bound check alone lets through.
             if (mark < -1) {
-                throw std::invalid_argument(fmt::format(
-                    "KktLocationTable: column {0} carries clash mark {1}; the only negative mark "
-                    "is -1, meaning uncontested",
-                    column, mark));
+                detail::throw_kkt_table_bad_clash_mark(column, mark);
             }
             if (mark >= lock_count) {
-                throw std::invalid_argument(fmt::format(
-                    "KktLocationTable: column {0} is marked contested with lock index {1}, but "
-                    "only {2} locks were published",
-                    column, mark, lock_count));
+                detail::throw_kkt_table_lock_index(column, mark, lock_count);
             }
         }
     }
@@ -253,12 +255,10 @@ class RhsLocationTable {
 
     RhsLocationTable(const int *rows, int size) : rows_(rows), size_(size) {
         if (size_ < 0) {
-            throw std::invalid_argument(
-                fmt::format("RhsLocationTable: negative array size ({0})", size_));
+            detail::throw_rhs_table_negative_size(size_);
         }
         if (size_ > 0 && rows_ == nullptr) {
-            throw std::invalid_argument(fmt::format(
-                "RhsLocationTable: {0} claim slots were published with no row array", size_));
+            detail::throw_rhs_table_no_rows(size_);
         }
         for (int slot = 0; slot < size_; ++slot) {
             // Same sentinel discipline as the KKT table's clash marks, though
@@ -268,10 +268,7 @@ class RhsLocationTable {
             // an index genuinely in range. A stray negative belongs to neither
             // set.
             if (rows_[slot] < -1) {
-                throw std::invalid_argument(
-                    fmt::format("RhsLocationTable: claim slot {0} maps to row {1}; the only "
-                                "negative row is -1, meaning dropped",
-                                slot, rows_[slot]));
+                detail::throw_rhs_table_bad_row(slot, rows_[slot]);
             }
         }
     }

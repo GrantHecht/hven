@@ -12,7 +12,6 @@
 #include <limits>
 #include <type_traits>
 
-#include <hven/core/detail/aggregate_arity.h>
 #include <hven/core/solver_status.h>
 #include <hven/core/start_level.h>
 
@@ -736,9 +735,9 @@ struct SsnCounters {
 // order, so the JSON's key order is the declaration order and a field added to a
 // struct without a table entry does not silently vanish from the stream.
 //
-// EACH TABLE IS PINNED TO ITS STRUCT by an aggregate-arity static_assert: the
-// largest N for which the struct is brace-initializable with N arguments. Not
-// sizeof, which is padding-dependent.
+// EACH TABLE IS PINNED TO ITS STRUCT by an aggregate-arity static_assert (in
+// src/drivers/trace_writer.cpp): the largest N for which the struct is
+// brace-initializable with N arguments. Not sizeof, which is padding-dependent.
 //
 // TO ADD A COUNTER: declare it in the struct, add its `X(name)` here IN THE SAME
 // POSITION, and the assert passes again.
@@ -809,9 +808,6 @@ constexpr bool counters_offsets_increase(const std::size_t *offsets, std::size_t
 /// @brief `HVEN_SSN_COUNTERS_FIELDS`' entry count.
 inline constexpr std::size_t kSsnCountersFieldCount =
     0 HVEN_SSN_COUNTERS_FIELDS(HVEN_COUNTERS_COUNT_ONE);
-static_assert(::hven::detail::kAggregateArity<SsnCounters> == kSsnCountersFieldCount,
-              "SsnCounters and HVEN_SSN_COUNTERS_FIELDS disagree: give the new field an X() entry "
-              "in its declaration position (and the trace's golden line moves with it).");
 
 /// The SsnCounters table's field offsets, in table order. `offsetof` is only
 /// portable on a standard-layout type, so that is asserted first.
@@ -1348,9 +1344,6 @@ struct IpqpCounters {
 /// @brief `HVEN_IPQP_COUNTERS_FIELDS`' entry count.
 inline constexpr std::size_t kIpqpCountersFieldCount =
     0 HVEN_IPQP_COUNTERS_FIELDS(HVEN_COUNTERS_COUNT_ONE);
-static_assert(::hven::detail::kAggregateArity<IpqpCounters> == kIpqpCountersFieldCount,
-              "IpqpCounters and HVEN_IPQP_COUNTERS_FIELDS disagree: give the new field an X() "
-              "entry in its declaration position (and the trace's golden line moves with it).");
 
 /// The IpqpCounters table's field offsets, in table order. `offsetof` is only
 /// portable on a standard-layout type, so that is asserted first.
@@ -2374,49 +2367,11 @@ inline constexpr std::size_t kSqpCountersFieldCount =
 
 // PLUS TWO: `ssn` and `ipqp` are nested aggregates, each counted as ONE
 // initializer by the arity trick and serialized through its own table above, so
-// the table holds the 77 direct fields and the struct takes 79 initializers.
-// (37 -> 38 at M6 W5 T8.5, which appended `polish_ignored` after both nested
-// aggregates -- last in declaration order, so the table order below is still
-// the struct's and every pre-existing offset is unmoved. 38 -> 39 at M7 W2 M4,
-// which appended `start_point_clamps` the same way and for the same reason.
-// 39 -> 44 at M7 W2 M1, which appended the five-field subproblem-exit group the
-// same way and for the same reason. 44 -> 49 at M7 W2 M2, which appended the
-// five-field restoration excursion record the same way and for the same reason
-// -- and which is where the table first carries `double` entries outside the
-// two nested aggregates; they are 8-byte members like every `Index` above them,
-// so the offsets stay monotone and the check below is unchanged. 49 -> 50 at
-// M7 W2 M3a, which appended `restoration_sub_status` to that record the same
-// way and for the same reason. It is the SECOND enum in the table, after
-// `start_level_used`, and the first field NARROWER than 8 bytes: a 4-byte
-// `RestorationSubStatus` last in the struct, which the struct's own 8-byte
-// alignment then pads, so the offsets stay monotone and `sizeof` moves
-// 848 -> 856. Its type was a bare `SolveStatus` until M7 W2 M3a fix1 replaced
-// it with the ten-valued enum that has an explicit `kNotRun` -- the SAME
-// underlying type and therefore the SAME width, so that re-derivation moved
-// `sizeof` no further and no pre-existing offset at all. 50 -> 56 at M7 W2 E4
-// fix round 1, which appended the QP engine's six-field E4 group -- the EQP-site
-// residual check's two, the unregularized polish's one and the terminal polish's
-// three -- the same way and for the same reason. They are `Index` again, so they
-// land 8-byte-aligned after `restoration_sub_status`'s 4 bytes of padding and the
-// offsets stay monotone. 56 -> 57 at M7 W2 E4 fix round 2, which made that group
-// SEVEN with `eqp_row_drift_refusals` -- appended LAST in the struct and last in
-// the table on the declared additive-trailing-key route, so no pre-existing offset
-// moves and `sizeof` goes 904 -> 912. 57 -> 60 at M7 W2 R2, which appended the
-// failed-subproblem step group and `nonfinite_subproblems` the same way and for the
-// same reason: three `Index` fields last, `sizeof` 912 -> 936. 60 -> 61 at M7 W2 W1,
-// `nonfinite_box_projections`, the same way: `sizeof` 936 -> 944. 61 -> 63 at M7 W2
-// P1E, `elastic_last_rung_fallbacks` and `restoration_reduction_resumes`, the same way:
-// `sizeof` 944 -> 960. 63 -> 77 at M7 QN stage 3, `eval_hess_calls` and the thirteen-field
-// quasi-Newton group, the same way: `sizeof` 960 -> 1072. 77 -> 79 at the QN review and
-// riders, `qn_nonpd_seen` and `qn_dimension`; 79 -> 80 at M7 W2 R2-1,
-// `nonfinite_step_rollbacks`, the same way: `sizeof` 1088 -> 1096. 80 -> 81 at M7 W2 SNR,
-// `restoration_feas_out`, the same way: `sizeof` 1096 -> 1104. 81 -> 82 at M7 W2 SCL,
-// `scaled_convergence_refusals`, the same way: `sizeof` 1104 -> 1112. 82 -> 83 at M7 W2 RST,
-// `restoration_curvature_switches`, the same way: `sizeof` 1112 -> 1120.)
-static_assert(::hven::detail::kAggregateArity<SqpCounters> == kSqpCountersFieldCount + 2,
-              "SqpCounters and HVEN_SQP_COUNTERS_FIELDS disagree: give the new field an X() entry "
-              "in its declaration position, or -- if it is a new NESTED aggregate -- give it a "
-              "table of its own and raise the + 2 here.");
+// the struct takes `kSqpCountersFieldCount + 2` initializers.
+//
+// The three arity pins (SsnCounters, IpqpCounters, SqpCounters against their tables)
+// live in src/drivers/trace_writer.cpp, which already includes this header: a
+// struct-table mismatch still fails the library build.
 
 /// The SqpCounters table's field offsets, in table order. `offsetof` is only
 /// portable on a standard-layout type, so that is asserted first.

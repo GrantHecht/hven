@@ -60,6 +60,7 @@ endif()
 
 target_sources(hven PRIVATE
     model/assembly_declaration.cpp
+    model/validation_errors.cpp
     model/nlp_model_assembly.cpp
     model/nlp_problem_model.cpp
 )
@@ -565,7 +566,10 @@ endif()
 # 48 as of globalization/sqp/qn_models.cpp (M7 QN quality): the full-memory damped BFGS and
 # the nonlinear-variables-only restriction. NOT a PCH source, on the same unmeasured-default
 # footing.
-set(_hven_expected_source_count 48)
+# 49 as of model/validation_errors.cpp (M8 AP-2 B1): the cold throw-message paths of the model
+# contract's inline checks. NOT a PCH source, on the same unmeasured-default footing: it
+# includes fmt and the four model headers, a different set from src/hven_pch.h's prefix.
+set(_hven_expected_source_count 49)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.

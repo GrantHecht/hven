@@ -21,12 +21,29 @@
 
 #include <Eigen/Core>
 
-#include <fmt/format.h>
-
 #include "hven/core/pattern_hash.h"
 #include "hven/core/types.h"
 
 namespace hven::solvers {
+
+namespace detail {
+
+// Cold paths of this header's argument checks. Each throws std::invalid_argument;
+// the message is built out of line (src/model/validation_errors.cpp) so this
+// header needs no formatting library and the inline check stays small.
+[[noreturn]] void throw_candidate_primal_size(Eigen::Index size, Eigen::Index declared);
+[[noreturn]] void throw_candidate_equality_multiplier_size(Eigen::Index size, Eigen::Index rows);
+[[noreturn]] void throw_candidate_inequality_multiplier_size(Eigen::Index size, Eigen::Index rows);
+[[noreturn]] void throw_candidate_equality_residual_size(Eigen::Index size, Eigen::Index rows);
+[[noreturn]] void throw_candidate_inequality_residual_size(Eigen::Index size, Eigen::Index rows);
+[[noreturn]] void throw_candidate_objective_gradient_size(Eigen::Index size, Eigen::Index declared);
+[[noreturn]] void throw_candidate_adjoint_gradient_size(Eigen::Index size, Eigen::Index declared);
+[[noreturn]] void throw_illegal_eval_request(std::uint32_t request);
+[[noreturn]] void throw_candidate_equality_multipliers_absent(Eigen::Index size, Eigen::Index rows);
+[[noreturn]] void throw_candidate_inequality_multipliers_absent(Eigen::Index size,
+                                                                Eigen::Index rows);
+
+} // namespace detail
 
 /// Where an aggregate is evaluated.
 ///
@@ -79,24 +96,17 @@ struct CandidateFirstOrder {
 inline void validate_candidate_point(const CandidatePoint &point, Eigen::Index primal_vars,
                                      Eigen::Index equality_rows, Eigen::Index inequality_rows) {
     if (point.x_.size() != primal_vars) {
-        throw std::invalid_argument(
-            fmt::format("CandidatePoint: the primal block has {0} rows, but the aggregate "
-                        "declares {1} primal variables",
-                        point.x_.size(), primal_vars));
+        detail::throw_candidate_primal_size(point.x_.size(), primal_vars);
     }
     if (point.equality_multipliers_.size() != 0 &&
         point.equality_multipliers_.size() != equality_rows) {
-        throw std::invalid_argument(
-            fmt::format("CandidatePoint: the equality-multiplier block has {0} rows; it must be "
-                        "either empty or {1} rows",
-                        point.equality_multipliers_.size(), equality_rows));
+        detail::throw_candidate_equality_multiplier_size(point.equality_multipliers_.size(),
+                                                         equality_rows);
     }
     if (point.inequality_multipliers_.size() != 0 &&
         point.inequality_multipliers_.size() != inequality_rows) {
-        throw std::invalid_argument(
-            fmt::format("CandidatePoint: the inequality-multiplier block has {0} rows; it must be "
-                        "either empty or {1} rows",
-                        point.inequality_multipliers_.size(), inequality_rows));
+        detail::throw_candidate_inequality_multiplier_size(point.inequality_multipliers_.size(),
+                                                           inequality_rows);
     }
 }
 
@@ -106,16 +116,12 @@ inline void validate_candidate_point(const CandidatePoint &point, Eigen::Index p
 inline void validate_candidate_values(const CandidateValues &out, Eigen::Index equality_rows,
                                       Eigen::Index inequality_rows) {
     if (out.equality_residuals_.size() != equality_rows) {
-        throw std::invalid_argument(
-            fmt::format("CandidateValues: the equality-residual block has {0} rows, but the "
-                        "aggregate declares {1} equality rows",
-                        out.equality_residuals_.size(), equality_rows));
+        detail::throw_candidate_equality_residual_size(out.equality_residuals_.size(),
+                                                       equality_rows);
     }
     if (out.inequality_residuals_.size() != inequality_rows) {
-        throw std::invalid_argument(
-            fmt::format("CandidateValues: the inequality-residual block has {0} rows, but the "
-                        "aggregate declares {1} inequality rows",
-                        out.inequality_residuals_.size(), inequality_rows));
+        detail::throw_candidate_inequality_residual_size(out.inequality_residuals_.size(),
+                                                         inequality_rows);
     }
 }
 
@@ -127,16 +133,12 @@ inline void validate_candidate_first_order(const CandidateFirstOrder &out, Eigen
                                            Eigen::Index inequality_rows) {
     validate_candidate_values(out.values_, equality_rows, inequality_rows);
     if (out.objective_gradient_.size() != primal_vars) {
-        throw std::invalid_argument(
-            fmt::format("CandidateFirstOrder: the objective-gradient block has {0} rows, but the "
-                        "aggregate declares {1} primal variables",
-                        out.objective_gradient_.size(), primal_vars));
+        detail::throw_candidate_objective_gradient_size(out.objective_gradient_.size(),
+                                                        primal_vars);
     }
     if (out.constraint_adjoint_gradient_.size() != primal_vars) {
-        throw std::invalid_argument(fmt::format(
-            "CandidateFirstOrder: the constraint-adjoint-gradient block has {0} rows, but the "
-            "aggregate declares {1} primal variables",
-            out.constraint_adjoint_gradient_.size(), primal_vars));
+        detail::throw_candidate_adjoint_gradient_size(out.constraint_adjoint_gradient_.size(),
+                                                      primal_vars);
     }
 }
 
@@ -510,27 +512,7 @@ constexpr bool is_legal_request(EvalRequest request) noexcept {
 /// provider happened to tolerate it.
 inline void validate_eval_request(EvalRequest request) {
     if (!is_legal_request(request)) {
-        throw std::invalid_argument(fmt::format(
-            "EvalRequest: the flag combination 0x{0:x} is not one of the evaluation shapes this "
-            "contract maps. The legal sets are kRequestObjectiveOnly (0x{1:x}), "
-            "kRequestObjectiveAndConstraints (0x{2:x}), "
-            "kRequestObjectiveGradientAndConstraints (0x{3:x}), kRequestFirstOrderRhs (0x{4:x}), "
-            "kRequestConstraintResidualsAndJacobian (0x{5:x}), kRequestFirstOrderKkt (0x{6:x}), "
-            "kRequestConstraintKkt (0x{7:x}), kRequestFullKkt (0x{8:x}), "
-            "kRequestLagrangianHessian (0x{9:x}), kRequestGradientAndJacobians (0x{10:x}) and "
-            "kRequestConstraintJacobiansOnly (0x{11:x}); see the mapping table in "
-            "model/candidate_point.h",
-            static_cast<std::uint32_t>(request), static_cast<std::uint32_t>(kRequestObjectiveOnly),
-            static_cast<std::uint32_t>(kRequestObjectiveAndConstraints),
-            static_cast<std::uint32_t>(kRequestObjectiveGradientAndConstraints),
-            static_cast<std::uint32_t>(kRequestFirstOrderRhs),
-            static_cast<std::uint32_t>(kRequestConstraintResidualsAndJacobian),
-            static_cast<std::uint32_t>(kRequestFirstOrderKkt),
-            static_cast<std::uint32_t>(kRequestConstraintKkt),
-            static_cast<std::uint32_t>(kRequestFullKkt),
-            static_cast<std::uint32_t>(kRequestLagrangianHessian),
-            static_cast<std::uint32_t>(kRequestGradientAndJacobians),
-            static_cast<std::uint32_t>(kRequestConstraintJacobiansOnly)));
+        detail::throw_illegal_eval_request(static_cast<std::uint32_t>(request));
     }
 }
 
@@ -555,16 +537,12 @@ constexpr bool request_consumes_multipliers(EvalRequest request) noexcept {
 inline void validate_full_multipliers(const CandidatePoint &point, Eigen::Index equality_rows,
                                       Eigen::Index inequality_rows) {
     if (point.equality_multipliers_.size() != equality_rows) {
-        throw std::invalid_argument(fmt::format(
-            "CandidatePoint: this evaluation reads the multipliers, so the equality-multiplier "
-            "block must carry all {1} rows, but it has {0}",
-            point.equality_multipliers_.size(), equality_rows));
+        detail::throw_candidate_equality_multipliers_absent(point.equality_multipliers_.size(),
+                                                            equality_rows);
     }
     if (point.inequality_multipliers_.size() != inequality_rows) {
-        throw std::invalid_argument(fmt::format(
-            "CandidatePoint: this evaluation reads the multipliers, so the inequality-multiplier "
-            "block must carry all {1} rows, but it has {0}",
-            point.inequality_multipliers_.size(), inequality_rows));
+        detail::throw_candidate_inequality_multipliers_absent(point.inequality_multipliers_.size(),
+                                                              inequality_rows);
     }
 }
 
