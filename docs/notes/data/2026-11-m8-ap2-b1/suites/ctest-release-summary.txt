@@ -1,0 +1,14 @@
+3253/3256 Test #1942: EqpRefinementAb.FootprintRuleProbe .................................................................................................................................................................................***Not Run (Disabled)   0.00 sec
+          Start 1943: EqpRefinementAb.FullBattery
+3254/3256 Test #1943: EqpRefinementAb.FullBattery ........................................................................................................................................................................................***Not Run (Disabled)   0.00 sec
+3255/3256 Test #1533: EvalRequestMappingTable.ShapeElevenIsLegalAndDoesNotConsumeMultipliers .............................................................................................................................................   Passed    0.00 sec
+3256/3256 Test  #666: FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas .............................................................................................................................................***Skipped   0.00 sec
+
+100% tests passed, 0 tests failed out of 3254
+
+Total Test time (real) = 112.38 sec
+
+The following tests did not run:
+	666 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1942 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1943 - EqpRefinementAb.FullBattery (Disabled)
