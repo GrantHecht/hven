@@ -1,2 +1,2 @@
-?? docs/notes/data/2026-11-m8-ap2-b1/psym/head-sha.txt
-?? docs/notes/data/2026-11-m8-ap2-b1/psym/tree-status.txt
+ M docs/notes/data/2026-11-m8-ap2-b1/psym/head-sha.txt
+ M docs/notes/data/2026-11-m8-ap2-b1/psym/tree-status.txt
