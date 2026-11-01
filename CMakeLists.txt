@@ -44,6 +44,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 option(HVEN_BUILD_TESTS "Build the hven C++ unit test suite (requires Google Test via FetchContent)" ON)
 option(HVEN_BUILD_BENCH "Build the hven benchmark suite" OFF)
 option(HVEN_BUILD_BINDINGS "Build the hven Python bindings" OFF)
+option(HVEN_BUILD_EXAMPLES "Build the examples/ programs (one self-contained program per problem)" OFF)
 
 # bindings/ is an empty scaffolding directory today (no CMakeLists.txt yet)
 # — fail loudly rather than silently no-op if someone turns the option on
@@ -585,6 +586,15 @@ endif()
 # enforces wall deadlines by fork/exec.
 if(NOT WIN32 AND (HVEN_BUILD_TESTS OR HVEN_BUILD_BENCH))
     add_subdirectory(bench)
+endif()
+
+################################################################################
+# Examples. examples/CMakeLists.txt serves both ways it can be built: from here
+# (hven::hven is the in-tree alias) and as its own top-level project against an
+# install tree, the way a stranger would. Default OFF for now.
+################################################################################
+if(HVEN_BUILD_EXAMPLES)
+    add_subdirectory(examples)
 endif()
 
 ################################################################################
