@@ -50,8 +50,8 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
+#include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/qp/eqp_solve.h>
-#include <hven/drivers/sqp_solver.h>
 #include <hven/drivers/sqp_solver_types.h>
 #include <hven/model/nlp_model.h>
 

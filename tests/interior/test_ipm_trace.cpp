@@ -48,9 +48,9 @@
 // cannot be compiled on Windows, where this target is also built.
 #include "../common_support/console_capture.h"
 #include "hven/core/ledger.h"
+#include "hven/detail/drivers/sqp_solver_impl.h"
 #include "hven/drivers/console_trace_sink.h"
 #include "hven/drivers/ipm_solver.h"
-#include "hven/drivers/sqp_solver.h"
 #include "hven/drivers/trace_writer.h"
 #include "hven/model/nlp_model.h"
 #include "hven/model/nlp_triplet_model.h"

@@ -24,7 +24,7 @@
 #include <gtest/gtest.h>
 
 #include <hven/detail/drivers/equality_basis_testing.h>
-#include <hven/drivers/sqp_solver.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/drivers/sqp_solver_types.h>
 
 #include "../common_support/route_reference.h"

@@ -57,7 +57,7 @@
 #include <gtest/gtest.h>
 
 #include <hven/core/ledger.h>
-#include <hven/drivers/sqp_solver.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/drivers/sqp_solver_types.h>
 #include <hven/model/nlp_model.h>
 

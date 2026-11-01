@@ -6,7 +6,7 @@
 // reproduces are the free functions in drivers/sqp_solver.h, which this TU
 // includes for NlpEval (see the seam header's NOT SELF-CONTAINED note).
 
-#include <hven/drivers/sqp_solver.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
 
 #include "hven/detail/drivers/assembly_eval_seam.h"
 

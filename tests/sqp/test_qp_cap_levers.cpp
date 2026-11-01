@@ -34,8 +34,8 @@
 #include <gtest/gtest.h>
 
 #include <hven/core/solver_counters.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/drivers/solve_status.h>
-#include <hven/drivers/sqp_solver.h>
 #include <hven/drivers/trace_writer.h>
 #include <hven/model/nlp_model.h>
 #include <hven/qp/qp_types.h>

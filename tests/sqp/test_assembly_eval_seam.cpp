@@ -50,7 +50,7 @@
 
 #include <gtest/gtest.h>
 
-#include <hven/drivers/sqp_solver.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
 
 #include <hven/detail/drivers/assembly_eval_seam.h>
 #include <hven/model/nlp_model.h>

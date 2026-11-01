@@ -46,7 +46,7 @@
 // so if it is ever reformatted, this list has to be brought back into step
 // with it and the byte-identity check re-run.
 
-#include "hven/drivers/ipm_solver.h"
+#include "hven/detail/drivers/ipm_solver_impl.h"
 
 #include <algorithm>
 #include <cassert>

@@ -23,7 +23,7 @@
 #include <Eigen/Dense>
 #include <fmt/format.h>
 
-#include <hven/drivers/sqp_solver.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/drivers/sqp_solver_types.h>
 
 #include "qp_as_nlp_model.h"

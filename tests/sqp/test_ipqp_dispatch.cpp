@@ -18,7 +18,7 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
-#include <hven/drivers/sqp_solver.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
 
 #include "support/hs_problems.h"
 #include "support/ipqp_test_support.h"

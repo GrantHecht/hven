@@ -36,6 +36,8 @@ set(HVEN_DRIVERS_TEST_SOURCES
     test_print_tables.cpp
     test_solve_status.cpp
     test_solve_result.cpp
+    # AP-2 B1: the solvers are movable handles; a move preserves the engine.
+    test_solver_move.cpp
     test_threads.cpp
     test_warm_protocol.cpp
 )

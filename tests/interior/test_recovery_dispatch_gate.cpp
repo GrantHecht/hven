@@ -22,6 +22,7 @@
 #include "solver_test_utils.h"
 
 #include "hven/detail/drivers/ipm_solver_fwd.h"
+#include "hven/detail/drivers/ipm_solver_impl.h"
 #include "hven/detail/globalization/acceptance_strategy.h"
 #include "hven/detail/globalization/classic_adaptive_governor.h"
 #include "hven/detail/globalization/filter_acceptance.h"
@@ -428,7 +429,7 @@ TEST(RecoveryDispatchGate, ValidateAcceptsClassicMeritWithMonitoredGovernor) {
 // cases live at global scope instead of inside the anonymous namespace above.
 
 TEST(RecoveryDispatchGate, FunnelSelectionConstructsFunnelAcceptance) {
-    hven::solvers::IpmSolver solver;
+    hven::solvers::IpmSolverImpl solver;
     {
         auto o = solver.options();
         o.acceptance_strategy = hven::solvers::AcceptanceStrategies::funnel;
@@ -456,7 +457,7 @@ TEST(RecoveryDispatchGate, FunnelSelectionConstructsFunnelAcceptance) {
 }
 
 TEST(RecoveryDispatchGate, FilterSelectionConstructsFilterAcceptance) {
-    hven::solvers::IpmSolver solver;
+    hven::solvers::IpmSolverImpl solver;
     {
         auto o = solver.options();
         o.acceptance_strategy = hven::solvers::AcceptanceStrategies::filter;
@@ -502,7 +503,7 @@ TEST(RecoveryDispatchGate, FilterSelectionConstructsFilterAcceptance) {
 // governor_ member, so it is declared as a friend in ipm_solver.h and lives at
 // global scope (see the comment above for why).
 TEST(RecoveryDispatchGate, MonitoredSelectionConstructsMonitoredGovernor) {
-    hven::solvers::IpmSolver solver;
+    hven::solvers::IpmSolverImpl solver;
     {
         auto o = solver.options();
         o.barrier_governor = hven::solvers::BarrierGovernors::monitored;
@@ -523,7 +524,7 @@ TEST(RecoveryDispatchGate, MonitoredSelectionConstructsMonitoredGovernor) {
 // the selector rather than a separate mechanism.
 TEST(RecoveryDispatchGate, ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor) {
     {
-        hven::solvers::IpmSolver solver;
+        hven::solvers::IpmSolverImpl solver;
         auto o = solver.options();
         o.barrier_governor = hven::solvers::BarrierGovernors::classic_adaptive;
         // classic_adaptive under the DEFAULT acceptance strategy (filter) is
@@ -541,7 +542,7 @@ TEST(RecoveryDispatchGate, ClassicAdaptiveSelectionConstructsClassicAdaptiveGove
     {
         // A solver left entirely alone constructs the governor the shipped
         // default names, which since W2 D1 is the monitored one.
-        hven::solvers::IpmSolver solver;
+        hven::solvers::IpmSolverImpl solver;
         ASSERT_EQ(solver.options().barrier_governor, hven::solvers::BarrierGovernors::monitored);
         solver.rebuild_globalization_components();
         ASSERT_NE(dynamic_cast<hven::solvers::MonitoredBarrierGovernor *>(solver.governor_.get()),
@@ -578,7 +579,7 @@ TEST(RecoveryDispatchGate, MeritPenaltyRuleSelectionReachesTheStrategy) {
     };
 
     {
-        hven::solvers::IpmSolver solver;
+        hven::solvers::IpmSolverImpl solver;
         {
             auto o = solver.options();
             o.acceptance_strategy = hven::solvers::AcceptanceStrategies::merit;
@@ -594,7 +595,7 @@ TEST(RecoveryDispatchGate, MeritPenaltyRuleSelectionReachesTheStrategy) {
     }
 
     {
-        hven::solvers::IpmSolver solver;
+        hven::solvers::IpmSolverImpl solver;
         {
             auto o = solver.options();
             o.acceptance_strategy = hven::solvers::AcceptanceStrategies::merit;

@@ -34,7 +34,7 @@
 
 #include <hven/core/ledger.h>
 #include <hven/core/solver_status.h>
-#include <hven/drivers/sqp_solver.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
 
 #include "support/elastic_rung_vehicle.h"
 

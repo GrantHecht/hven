@@ -3,7 +3,7 @@
 
 #pragma once
 
-// THE RESULT CORE both engines report through (M6 W5 T8.4).
+// The result core both engines report through.
 //
 // Three things live here and nothing else does:
 //
@@ -36,10 +36,9 @@
 // WHY FROM A STASHED EVALUATION. This function evaluates NOTHING. Every model
 // quantity arrives as an argument, taken from the evaluation the engine already
 // performed at the point it is about to return. A fresh evaluation here would
-// move evals_full on every solve and break the identity proofs T8 rests on, so
-// the rule is absolute: where no finite evaluation of the returned point
-// exists, every diagnostic is NaN -- UNMEASURED -- and ce/ci are empty. Absent
-// is never zero-filled.
+// move the evaluation counters on every solve, so the rule is absolute: where no finite evaluation
+// of the returned point exists, every diagnostic is NaN -- UNMEASURED -- and ce/ci are empty.
+// Absent is never zero-filled.
 
 #include <functional>
 #include <limits>
@@ -52,8 +51,8 @@
 
 namespace hven::solvers {
 
-class IpmSolver;
-class SqpSolver;
+class IpmSolverImpl;
+class SqpSolverImpl;
 
 /// @brief The work ceiling for one solve call, on both engines.
 ///
@@ -191,8 +190,8 @@ struct SolveResult {
     // Protected rather than public because a result is a REPORT: a consumer
     // reads the snapshot, and nothing outside the producing engine may install
     // one.
-    friend class IpmSolver;
-    friend class SqpSolver;
+    friend class IpmSolverImpl;
+    friend class SqpSolverImpl;
 };
 
 /// @brief What a per-iteration callback asks the engine to do next.
@@ -202,48 +201,25 @@ enum class CallbackAction {
     kContinue = 0,
     /// Stop as soon as the engine can do so without spending work on an answer
     /// the caller no longer wants. Both engines then report kInterrupted at the
-    /// point they are standing on, with the ordinary cleanup and the ordinary
-    /// trace end event -- and the ordinary ledger record on both engines (the
-    /// interior-point engine gained one at W5 T8.7).
-    /// See each engine's set_iteration_callback() for the
+    /// point they are standing on, with the ordinary cleanup, trace end event
+    /// and ledger record. See each engine's set_iteration_callback() for the
     /// exact moment the stop takes effect and for the one case that outranks it
-    /// (a CONVERGED iterate still reports kOptimal -- converged beats stop).
+    /// (a converged iterate still reports kOptimal).
     kStop = 1,
 };
 
 /// @brief What an attached iteration callback asks its engine to PREPARE.
 ///
-/// A BIT MASK, declared at attachment (M7 W0 T2). The four vector views and the
-/// four declared diagnostics cost O(n) of engine work PER EVENT -- an expansion
-/// out of the engine's own space, a units map, and one pass over every declared
+/// A bit mask, declared at attachment. The four vector views and the four
+/// declared diagnostics cost O(n) of engine work per event -- an expansion out
+/// of the engine's own space, a units map, and one pass over every declared
 /// coordinate and constraint row -- prepared whether or not the consumer reads
-/// them. So the CONSUMER DECLARES what it reads, and an engine prepares nothing
-/// else.
+/// them. The consumer declares what it reads, and an engine prepares nothing
+/// else. On the interior-point engine this removes most of the attached cost; on
+/// the SQP engine, whose events are per major and few, it is carried for one
+/// surface across both engines.
 ///
-/// WHAT IT REMOVES, AND WHAT IT DOES NOT (M7 W0 T2,
-/// `docs/notes/data/2026-09-m7-w0-t2-callback-payload/`; the cost it was built
-/// against is W6 T6's, `docs/notes/data/2026-09-m6-w6-attached-cost/`). On the
-/// top-level interior-point corpus leg, a cheap callback at @ref kAll costs
-/// +1.376 %/+1.401 % instructions and the same callback at @ref kScalars costs
-/// +0.588 %/+0.618 %.
-///
-///   REMOVED -- 57 % of the attached cost, and it is the vector/diagnostic
-///   work this mask names: measured to scale with the problem (the saving
-///   rises 10.2x for a 13.5x rise in problem width), which is the shape that
-///   work has.
-///
-///   NOT REMOVED -- a residual of about +0.6 %, WHICH IS NOT UNDERSTOOD. It
-///   does not scale with the problem, so no wider mask reaches it; it is not
-///   the attach or the per-event dispatch (an attached trace sink on the same
-///   leg costs +0.04 %); and the O(1) work left on the kScalars path cannot
-///   account for its size. It is REGISTERED with its number, not explained.
-///   That reading's section 5 names one UNPROVED candidate and says plainly
-///   what the leg could not separate.
-///
-/// On the SQP engine both arms are FLAT, as they were before the mask existed.
-///
-/// The ONE-ARGUMENT set_iteration_callback() means @ref kAll on both engines,
-/// so nothing a caller wrote before this type existed changes.
+/// The one-argument set_iteration_callback() means @ref kAll on both engines.
 enum class IterationPayload : unsigned {
     /// The fields that cost only a copy, and that EVERY mask delivers:
     /// `iteration`, `phase`/`depth`, `f`, `step_norm`, `radius`/`mu` and
@@ -277,8 +253,8 @@ constexpr bool payload_requests(IterationPayload mask, IterationPayload part) no
 
 /// @brief One iteration, as both engines report it to a caller's callback.
 ///
-/// WHAT ARRIVES DEPENDS ON THE PAYLOAD MASK the callback was attached with
-/// (@ref IterationPayload, M7 W0 T2). Under the default @ref
+/// What arrives depends on the payload mask the callback was attached with
+/// (@ref IterationPayload). Under the default @ref
 /// IterationPayload::kAll -- which is what the one-argument
 /// set_iteration_callback() installs -- every field below is prepared, as it
 /// always was. Under a narrower mask the four vector views arrive EMPTY and/or
@@ -291,8 +267,8 @@ constexpr bool payload_requests(IterationPayload mask, IterationPayload part) no
 /// expanded, its internal fixing rows are sliced out of the equality block, and
 /// a scaled SQP solve's multipliers and prices carry no factor of the engine's.
 ///
-/// AT `depth` 1 THE SPACE IS THE RESTORATION SUB-PROBLEM'S, not the caller's
-/// (M6 W5 T8.6 fix1, the SQP lane's M4). A depth-1 event is the feasibility
+/// At `depth` 1 the space is the restoration sub-problem's, not the caller's.
+/// A depth-1 event is the feasibility
 /// sub-solve's OWN row: `x` is that problem's variable vector (whose width need
 /// not be the caller's `n`), `f` is its feasibility objective, and the four
 /// diagnostics are measured on it. Nothing is mapped back -- see @ref depth.

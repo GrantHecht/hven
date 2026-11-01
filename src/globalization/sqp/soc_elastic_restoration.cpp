@@ -15,7 +15,7 @@
 // include-what-you-use run: clang-format sorts `detail/globalization/...`
 // ahead of `drivers/...`, which would put the three headers BEFORE the
 // definition they depend on and fail to compile.
-#include <hven/drivers/sqp_solver.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
 
 namespace hven::solvers {
 

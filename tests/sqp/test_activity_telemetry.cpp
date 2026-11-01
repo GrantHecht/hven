@@ -28,7 +28,7 @@
 #include <Eigen/SparseCore>
 #include <gtest/gtest.h>
 
-#include <hven/drivers/sqp_solver.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/model/nlp_model.h>
 #include <hven/qp/qp_types.h>
 

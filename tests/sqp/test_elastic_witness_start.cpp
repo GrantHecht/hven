@@ -22,7 +22,7 @@
 
 #include <gtest/gtest.h>
 
-#include <hven/drivers/sqp_solver.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
 
 #include "../common_support/route_reference.h"
 #include "../qp/support/qp_dump.h"

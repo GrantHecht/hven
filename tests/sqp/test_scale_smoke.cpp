@@ -71,8 +71,8 @@
 #include <gtest/gtest.h>
 
 #include <hven/core/ledger.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/qp/qp_engine.h>
-#include <hven/drivers/sqp_solver.h>
 #include <hven/drivers/sqp_solver_types.h>
 
 #include "support/nlp_kkt_check.h"

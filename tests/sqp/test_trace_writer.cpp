@@ -39,11 +39,11 @@
 #include <gtest/gtest.h>
 
 #include <hven/core/detail/aggregate_arity.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/globalization/sqp/elastic.h>
 #include <hven/detail/qp/ipqp_engine.h>
 #include <hven/detail/qp/qp_engine.h>
 #include <hven/drivers/console_trace_sink.h>
-#include <hven/drivers/sqp_solver.h>
 #include <hven/drivers/trace_writer.h>
 #include <hven/model/nlp_model.h>
 

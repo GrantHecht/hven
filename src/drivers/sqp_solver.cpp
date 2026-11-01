@@ -31,7 +31,7 @@
 #include <Eigen/SparseCore>
 #include <fmt/format.h>
 
-#include <hven/drivers/sqp_solver.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
 
 // THE ONE TRANSLATION UNIT THAT COMPLETES THE SINK TYPES (M6 W5 T8.7 fix1, the
 // lane's M4). `sqp_solver.h` forward-declares `ConsoleTraceSink` and
@@ -832,8 +832,8 @@ SqpKkt evaluate_kkt(const AssemblyEvalSeam &seam, const NlpEval &ev, const Vec &
                                      x, lambda_e, lambda_i, bound_tol);
 }
 
-SqpKkt SqpSolver::measure_kkt(const AssemblyEvalSeam &seam, const NlpEval &ev, const Vec &x,
-                              const Vec &lambda_e, const Vec &lambda_i) const {
+SqpKkt SqpSolverImpl::measure_kkt(const AssemblyEvalSeam &seam, const NlpEval &ev, const Vec &x,
+                                  const Vec &lambda_e, const Vec &lambda_i) const {
     if (kkt_bound_tol_.size() == 0) {
         return evaluate_kkt(seam, ev, x, lambda_e, lambda_i, opts_.feas_tol);
     }
@@ -1910,7 +1910,7 @@ void accumulate_ipqp_counters(IpqpCounters &total, const IpqpCounters &one) {
     total.ipqp_ladder_zero_trial_skips += one.ipqp_ladder_zero_trial_skips;
 }
 
-SqpResult SqpSolver::solve(const NlpModel &model) {
+SqpResult SqpSolverImpl::solve(const NlpModel &model) {
     // The shared clock on THIS overload too (M6 W5 T8.4 fix1: the boundary is
     // stated per public entry). It has no argument refusal of its own, so the
     // clock starts first and the start_point() read it delegates through is
@@ -1922,14 +1922,14 @@ SqpResult SqpSolver::solve(const NlpModel &model) {
     return out;
 }
 
-void SqpSolver::attach_ledger(Ledger *ledger, std::string label_prefix) {
+void SqpSolverImpl::attach_ledger(Ledger *ledger, std::string label_prefix) {
     ledger_ = ledger;
     label_prefix_ = std::move(label_prefix);
     solve_counter_ = 0;
     engine_->attach_ledger(ledger, label_prefix_ + "_qp");
 }
 
-void SqpSolver::set_options(SqpOptions o) {
+void SqpSolverImpl::set_options(SqpOptions o) {
     if (solve_in_flight_) {
         throw std::logic_error(
             "SqpSolver::set_options: a solve is in flight on this driver; options may only be "
@@ -1997,16 +1997,16 @@ void SqpSolver::set_options(SqpOptions o) {
 // the FACTOR's validator ("SymmetricFactor: num_threads must be >= 0 ...")
 // rather than by `validate` ("SqpSolver: common.threads (-1) must
 // be >= 0 ..."). Same refusal, wrong message, and A10 asks for this one.
-const SqpOptions &SqpSolver::validated(const SqpOptions &opts) {
+const SqpOptions &SqpSolverImpl::validated(const SqpOptions &opts) {
     validate(opts);
     return opts;
 }
 
-SqpSolver::SqpSolver(const SqpOptions &opts)
+SqpSolverImpl::SqpSolverImpl(const SqpOptions &opts)
     : opts_(validated(opts)),
       engine_(std::make_unique<QpEngine>(engine_qp_options(opts), opts.common.threads)) {}
 
-SqpSolver::SqpSolver(const SqpOptions &opts, RestorationSubDriverTag)
+SqpSolverImpl::SqpSolverImpl(const SqpOptions &opts, RestorationSubDriverTag)
     : opts_(validated(opts)),
       engine_(std::make_unique<QpEngine>(engine_qp_options(opts), opts.common.threads)),
       allow_restoration_(false), is_restoration_sub_driver_(true) {}
@@ -2016,9 +2016,9 @@ SqpSolver::SqpSolver(const SqpOptions &opts, RestorationSubDriverTag)
 // deleters are instantiated at this point, where both types are complete, so no
 // consumer of `drivers/sqp_solver.h` has to see `drivers/console_trace_sink.h`
 // (or the `fmt/color.h` it pulls) to destroy a driver.
-SqpSolver::~SqpSolver() = default;
+SqpSolverImpl::~SqpSolverImpl() = default;
 
-void SqpSolver::attach_trace(TraceSink *sink) {
+void SqpSolverImpl::attach_trace(TraceSink *sink) {
     // BETWEEN SOLVES ONLY (M6 W5 T8.7), on `set_options`' rule: the effective
     // sink is composed at solve entry and fixed for the solve, so a change made
     // mid-solve -- from inside a callback -- could not take effect in it. This
@@ -2038,25 +2038,25 @@ void SqpSolver::attach_trace(TraceSink *sink) {
     }
 }
 
-void SqpSolver::emit_trace_route(const IpqpTraceRouteEvent &event) const {
+void SqpSolverImpl::emit_trace_route(const IpqpTraceRouteEvent &event) const {
     if (ipqp_trace_ != nullptr) {
         ipqp_trace_->on_ipqp_route(event);
     }
 }
 
-void SqpSolver::emit_trace_qp_mode(const QpModeTraceEvent &event) const {
+void SqpSolverImpl::emit_trace_qp_mode(const QpModeTraceEvent &event) const {
     if (ipqp_trace_ != nullptr) {
         ipqp_trace_->on_qp_mode(event);
     }
 }
 
-void SqpSolver::emit_trace_fallback_verdict(const SqpFallbackVerdictTraceEvent &event) const {
+void SqpSolverImpl::emit_trace_fallback_verdict(const SqpFallbackVerdictTraceEvent &event) const {
     if (ipqp_trace_ != nullptr) {
         ipqp_trace_->on_fallback_verdict(event);
     }
 }
 
-void SqpSolver::emit_trace_sqp_major(const SqpMajorTraceEvent &event) const {
+void SqpSolverImpl::emit_trace_sqp_major(const SqpMajorTraceEvent &event) const {
     if (ipqp_trace_ != nullptr) {
         ipqp_trace_->on_sqp_major(event);
     }
@@ -2073,11 +2073,11 @@ void SqpSolver::emit_trace_sqp_major(const SqpMajorTraceEvent &event) const {
 // per major. A caller who solves the same model repeatedly and does not want
 // to pay it can hold its own NlpModelAssembly and call the bridge-taking
 // overload directly, which is the whole reason that overload is public.
-SqpResult SqpSolver::solve(const NlpModel &model, const Vec &x0) {
+SqpResult SqpSolverImpl::solve(const NlpModel &model, const Vec &x0) {
     return solve(model, x0, SolveBudget{});
 }
 
-SqpResult SqpSolver::solve(const NlpModel &model, const Vec &x0, SolveBudget budget) {
+SqpResult SqpSolverImpl::solve(const NlpModel &model, const Vec &x0, SolveBudget budget) {
     require_declared_box(model);
     // THE SHARED CLOCK, at THIS public entry and immediately after the
     // argument check above (M6 W5 T8.4 fix1). The bridge lay below is real
@@ -2098,8 +2098,8 @@ SqpResult SqpSolver::solve(const NlpModel &model, const Vec &x0, SolveBudget bud
     return out;
 }
 
-SqpResult SqpSolver::solve(const NlpModel &model, const Vec &x0, const SqpWarmStart &warm,
-                           SolveBudget budget) {
+SqpResult SqpSolverImpl::solve(const NlpModel &model, const Vec &x0, const SqpWarmStart &warm,
+                               SolveBudget budget) {
     require_declared_box(model);
     // The shared clock, on the same boundary as the cold model overload above
     // and for the same reason: the bridge lay is this call's work.
@@ -2112,17 +2112,17 @@ SqpResult SqpSolver::solve(const NlpModel &model, const Vec &x0, const SqpWarmSt
     return out;
 }
 
-SqpResult SqpSolver::solve(NlpModelAssembly &bridge, const Vec &x0) {
+SqpResult SqpSolverImpl::solve(NlpModelAssembly &bridge, const Vec &x0) {
     return solve(bridge, x0, SolveBudget{});
 }
 
-SqpResult SqpSolver::solve(NlpModelAssembly &bridge, const Vec &x0, SolveBudget budget) {
+SqpResult SqpSolverImpl::solve(NlpModelAssembly &bridge, const Vec &x0, SolveBudget budget) {
     return solve_from_entry(bridge, x0, budget, std::nullopt);
 }
 
 SqpResult
-SqpSolver::solve_from_entry(NlpModelAssembly &bridge, const Vec &x0, SolveBudget budget,
-                            std::optional<std::chrono::steady_clock::time_point> outer_entry) {
+SqpSolverImpl::solve_from_entry(NlpModelAssembly &bridge, const Vec &x0, SolveBudget budget,
+                                std::optional<std::chrono::steady_clock::time_point> outer_entry) {
     // THE SHARED CLOCK'S START (design §2.3; placement corrected in M6 W5 T8.4
     // fix1): the FIRST statement of the public entry, this overload having no
     // argument refusal of its own -- the bridge validated its box when it laid
@@ -2173,15 +2173,15 @@ SqpSolver::solve_from_entry(NlpModelAssembly &bridge, const Vec &x0, SolveBudget
     return done;
 }
 
-SqpResult SqpSolver::solve(NlpModelAssembly &bridge, const Vec &x0, const SqpWarmStart &warm,
-                           SolveBudget budget) {
+SqpResult SqpSolverImpl::solve(NlpModelAssembly &bridge, const Vec &x0, const SqpWarmStart &warm,
+                               SolveBudget budget) {
     return solve_from_entry(bridge, x0, warm, budget, std::nullopt);
 }
 
 SqpResult
-SqpSolver::solve_from_entry(NlpModelAssembly &bridge, const Vec &x0, const SqpWarmStart &warm,
-                            SolveBudget budget,
-                            std::optional<std::chrono::steady_clock::time_point> outer_entry) {
+SqpSolverImpl::solve_from_entry(NlpModelAssembly &bridge, const Vec &x0, const SqpWarmStart &warm,
+                                SolveBudget budget,
+                                std::optional<std::chrono::steady_clock::time_point> outer_entry) {
     // THE NATIVE ROUTE BUILDS NO TIER SEED, so it must still CLEAR one: a
     // previous solve that armed one and never entered the tier would otherwise
     // seed this solve's first subproblem (fix round 1, F1). Same reason the
@@ -2222,8 +2222,8 @@ SqpSolver::solve_from_entry(NlpModelAssembly &bridge, const Vec &x0, const SqpWa
 // needs a PROBLEM -- the block lengths and the declaration stamp -- waits for
 // consume_payload, below the seam lay.
 
-SqpResult SqpSolver::solve(const NlpModel &model, const Vec &x0, const WarmStartData &warm,
-                           SolveBudget budget) {
+SqpResult SqpSolverImpl::solve(const NlpModel &model, const Vec &x0, const WarmStartData &warm,
+                               SolveBudget budget) {
     // THE MODEL'S OWN DEFECT FIRST, before the payload is looked at and before
     // the bridge lay: a model that cannot describe a problem is not worth a
     // derivative-pattern walk, and its diagnostic is the more actionable one.
@@ -2239,15 +2239,15 @@ SqpResult SqpSolver::solve(const NlpModel &model, const Vec &x0, const WarmStart
     return out;
 }
 
-SqpResult SqpSolver::solve(NlpModelAssembly &bridge, const Vec &x0, const WarmStartData &warm,
-                           SolveBudget budget) {
+SqpResult SqpSolverImpl::solve(NlpModelAssembly &bridge, const Vec &x0, const WarmStartData &warm,
+                               SolveBudget budget) {
     return solve_from_entry(bridge, x0, warm, budget, std::nullopt);
 }
 
 SqpResult
-SqpSolver::solve_from_entry(NlpModelAssembly &bridge, const Vec &x0, const WarmStartData &warm,
-                            SolveBudget budget,
-                            std::optional<std::chrono::steady_clock::time_point> outer_entry) {
+SqpSolverImpl::solve_from_entry(NlpModelAssembly &bridge, const Vec &x0, const WarmStartData &warm,
+                                SolveBudget budget,
+                                std::optional<std::chrono::steady_clock::time_point> outer_entry) {
     // THE HAND-OVER CHECKS, in the order the staging call ran them and with
     // the same messages, less the entry name: the core's own consistency (with
     // the multipliers-only seed named), finiteness on every core block, and the
@@ -2282,7 +2282,7 @@ SqpSolver::solve_from_entry(NlpModelAssembly &bridge, const Vec &x0, const WarmS
     return done;
 }
 
-SqpResult SqpSolver::record_solve(SqpResult out, double wall_seconds) {
+SqpResult SqpSolverImpl::record_solve(SqpResult out, double wall_seconds) {
     // THE WALL TIME, REPORTED. Written here rather than at each of
     // solve_impl's exits for the same reason the proximal carry below is:
     // this function is the ONE point every public solve() overload funnels
@@ -2376,7 +2376,7 @@ SqpResult SqpSolver::record_solve(SqpResult out, double wall_seconds) {
 
 // --- WARM-START CURRENCY: THE TWO PUBLIC ENTRIES AND THEIR TWO HOOKS ---
 
-WarmStartData SqpSolver::export_warm_start() const {
+WarmStartData SqpSolverImpl::export_warm_start() const {
     // REFUSED, not served empty. An empty payload would stage cleanly against
     // any problem and then silently cold-start, which is the wrong-but-
     // plausible shape this entry exists to rule out.
@@ -2389,9 +2389,9 @@ WarmStartData SqpSolver::export_warm_start() const {
     return completed_warm_;
 }
 
-SqpWarmStart SqpSolver::consume_payload(const AssemblyEvalSeam &seam,
-                                        const NlpModelAssembly &bridge, const Vec &x0,
-                                        const WarmStartData &data) {
+SqpWarmStart SqpSolverImpl::consume_payload(const AssemblyEvalSeam &seam,
+                                            const NlpModelAssembly &bridge, const Vec &x0,
+                                            const WarmStartData &data) {
     // The tier's seed is per solve and spent once; nothing may leak from the
     // previous one. Same for the polish-ignored count this call may raise.
     ipqp_staged_seed_.reset();
@@ -2572,8 +2572,8 @@ SqpWarmStart SqpSolver::consume_payload(const AssemblyEvalSeam &seam,
     return warm;
 }
 
-void SqpSolver::capture_completed_warm_start(SqpResult &out, const AssemblyEvalSeam &seam,
-                                             const NlpModelAssembly &bridge) {
+void SqpSolverImpl::capture_completed_warm_start(SqpResult &out, const AssemblyEvalSeam &seam,
+                                                 const NlpModelAssembly &bridge) {
     // A FAILED CHECK SKIPS THE CAPTURE rather than throwing: a throw here would
     // destroy a solved result the caller was about to receive, after
     // record_solve had already run, to report a defect in a side product.
@@ -2657,7 +2657,7 @@ void SqpSolver::capture_completed_warm_start(SqpResult &out, const AssemblyEvalS
 // export boundary this driver has.
 // ===========================================================================
 
-Index SqpSolver::install_solve_scaling(AssemblyEvalSeam &seam, const Vec &x0) const {
+Index SqpSolverImpl::install_solve_scaling(AssemblyEvalSeam &seam, const Vec &x0) const {
     // `force_row_scaling_` is the column layer's kAuto engagement (M7 W2 SCL): a solve
     // its gate called badly scaled runs the row/objective layer too.
     if (!opts_.enable_scaling && !force_row_scaling_) {
@@ -2694,9 +2694,9 @@ Index SqpSolver::install_solve_scaling(AssemblyEvalSeam &seam, const Vec &x0) co
 // members (sqp_solver.h).
 // ===========================================================================
 
-SqpResult SqpSolver::solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAssembly &bridge,
-                                         const Vec &x0, const SqpWarmStart &warm,
-                                         SolveBudget budget) {
+SqpResult SqpSolverImpl::solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAssembly &bridge,
+                                             const Vec &x0, const SqpWarmStart &warm,
+                                             SolveBudget budget) {
     if (opts_.column_scaling == SqpColumnScaling::kOff) {
         return solve_impl(seam, bridge, x0, warm, budget);
     }
@@ -2762,7 +2762,7 @@ SqpResult SqpSolver::solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAssembl
     // SSN prox block record_solve attaches from the four members below holds
     // scaled-space vectors on a fired solve, so it is cleared here too.
     struct Handoff {
-        SqpSolver &self;
+        SqpSolverImpl &self;
         bool fired;
         ~Handoff() {
             self.column_units_ = nullptr;
@@ -2838,7 +2838,7 @@ SqpResult SqpSolver::solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAssembl
     return out;
 }
 
-void SqpSolver::map_column_scaled_answer(SqpResult &out) {
+void SqpSolverImpl::map_column_scaled_answer(SqpResult &out) {
     AssemblyEvalSeam &seam = *column_caller_seam_;
     const Vec &d = *column_units_;
     const Index n = seam.n();
@@ -2899,8 +2899,8 @@ void SqpSolver::map_column_scaled_answer(SqpResult &out) {
     w.tr_radius = -1.0;
 }
 
-SqpResult SqpSolver::solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &bridge, const Vec &x0,
-                                const SqpWarmStart &warm, SolveBudget budget) {
+SqpResult SqpSolverImpl::solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &bridge, const Vec &x0,
+                                    const SqpWarmStart &warm, SolveBudget budget) {
     // THE IN-FLIGHT GUARD, AND THE ONE SITE IT IS SET FROM. The four public
     // solve() overloads NEST -- solve(model) -> solve(model, x0) -> solve(bridge,
     // x0) -> here -- so a flag set at each of them would double-set on the
@@ -3555,7 +3555,7 @@ void fold_restoration_qn_counters(SqpCounters &into, const SqpCounters &from) {
 // N. They are types rather than a flat run because each is written as a unit
 // by one piece of code and read as a unit by another.
 // ---------------------------------------------------------------------------
-struct SqpSolver::SolveState {
+struct SqpSolverImpl::SolveState {
     explicit SolveState(const IpqpOptions &iopts) : ipqp_ladder(iopts) {}
 
     // THE RESTORATION EXIT PAYLOAD, and the ONE authoritative copy of it:
@@ -3903,7 +3903,7 @@ struct SqpSolver::SolveState {
 // counter moves at all. The rest are empty vectors, empty optionals and
 // scalars.
 // ---------------------------------------------------------------------------
-struct SqpSolver::MajorState {
+struct SqpSolverImpl::MajorState {
     // ---- cut (b)'s FOUR ROUTING OUTPUTS, FIRST AND IN THEIR ORIGINAL ORDER --
     // THE ORDER IS LOAD-BEARING, and it is the only thing about this struct
     // that is. `route_through_ssn_tier` is not edited by cut (c) at all, and it
@@ -4030,9 +4030,9 @@ struct SqpSolver::MajorState {
 // initialisers on `SolveState` itself, where a reader can see them all at once
 // rather than hunting them out of 650 lines of setup.
 // ---------------------------------------------------------------------------
-void SqpSolver::prepare_solve(SolveState &st, AssemblyEvalSeam &seam, const Vec &x0,
-                              const SqpWarmStart &warm,
-                              std::unique_ptr<GlobalizationStrategy> strategy) {
+void SqpSolverImpl::prepare_solve(SolveState &st, AssemblyEvalSeam &seam, const Vec &x0,
+                                  const SqpWarmStart &warm,
+                                  std::unique_ptr<GlobalizationStrategy> strategy) {
     // POINTER IDENTITY, taken first: `full_step_funnel` will aim at this object.
     st.strategy = std::move(strategy);
 
@@ -4576,7 +4576,7 @@ void SqpSolver::prepare_solve(SolveState &st, AssemblyEvalSeam &seam, const Vec 
 // so there is exactly one consumption per execution -- the property this cut may
 // not break, and the property extracting the arm WHOLE is what preserves.
 // ---------------------------------------------------------------------------
-void SqpSolver::route_through_ssn_tier(SolveState &st, MajorState &mj) {
+void SqpSolverImpl::route_through_ssn_tier(SolveState &st, MajorState &mj) {
     // The names this arm knows the state by. ALIASES, not copies.
     SqpResult &out = st.out;
     QpProblem &qp = st.qp;
@@ -4880,9 +4880,9 @@ void SqpSolver::route_through_ssn_tier(SolveState &st, MajorState &mj) {
 // `walk_owns_this_qp` false. It is not one of the four routes the shared
 // successor serves and it is not folded into it (ownership doc section 6.2).
 // ---------------------------------------------------------------------------
-void SqpSolver::route_through_ipqp_tier(SolveState &st, MajorState &mj, AssemblyEvalSeam &seam,
-                                        Index iter, bool tr_shrink_retry,
-                                        const SolveOverrides &overrides) {
+void SqpSolverImpl::route_through_ipqp_tier(SolveState &st, MajorState &mj, AssemblyEvalSeam &seam,
+                                            Index iter, bool tr_shrink_retry,
+                                            const SolveOverrides &overrides) {
     // The names this arm knows the state by. ALIASES, not copies.
     SqpResult &out = st.out;
     QpProblem &qp = st.qp;
@@ -5167,8 +5167,9 @@ void SqpSolver::route_through_ipqp_tier(SolveState &st, MajorState &mj, Assembly
 // same engine, with `walk_owns_this_qp` false, and is deliberately left there
 // (ownership doc section 6.2).
 // ---------------------------------------------------------------------------
-void SqpSolver::solve_with_walk(SolveState &st, MajorState &mj, const SqpWarmStart &warm,
-                                const SolveOverrides &overrides, bool offer_hot, bool use_crash) {
+void SqpSolverImpl::solve_with_walk(SolveState &st, MajorState &mj, const SqpWarmStart &warm,
+                                    const SolveOverrides &overrides, bool offer_hot,
+                                    bool use_crash) {
     // The names this successor knows the state by. ALIASES, not copies.
     QpProblem &qp = st.qp;
     QpSolution &seed = st.seed;
@@ -5198,8 +5199,8 @@ void SqpSolver::solve_with_walk(SolveState &st, MajorState &mj, const SqpWarmSta
     }
 }
 
-QpProblem SqpSolver::build_qn_subproblem(SolveState &st, const SqpKkt &kkt,
-                                         AssemblyEvalSeam &seam) {
+QpProblem SqpSolverImpl::build_qn_subproblem(SolveState &st, const SqpKkt &kkt,
+                                             AssemblyEvalSeam &seam) {
     if (!st.qn) {
         const Index ns = qn_struct_vars_ >= 0 ? std::min(qn_struct_vars_, st.n) : st.n;
         // sigma_0 in the space the solve runs in (design section 3): the gradient scale over
@@ -5248,7 +5249,8 @@ QpProblem SqpSolver::build_qn_subproblem(SolveState &st, const SqpKkt &kkt,
                                                  st.qn->sigma());
 }
 
-void SqpSolver::qn_offer_committed_pair(SolveState &st, const Vec &x_old, const NlpEval &ev_old) {
+void SqpSolverImpl::qn_offer_committed_pair(SolveState &st, const Vec &x_old,
+                                            const NlpEval &ev_old) {
     if (!st.qn) {
         return;
     }
@@ -5324,10 +5326,9 @@ void record_restoration_excursion(SqpCounters &c, double h_in, double h_out, dou
 
 } // namespace
 
-SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, MajorState &mj,
-                                                           AssemblyEvalSeam &seam,
-                                                           NlpModelAssembly &bridge, Index iter,
-                                                           RestorationCandidate cand) {
+SqpSolverImpl::RestorationOutcome
+SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSeam &seam,
+                                 NlpModelAssembly &bridge, Index iter, RestorationCandidate cand) {
     // Reset every call: a solve may enter restoration more than
     // once (a resumed restoration followed by a second request),
     // and this flag must describe only THIS call's outcome. See
@@ -5599,7 +5600,7 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
                                bool stop_on_qp_failure) -> SqpResult {
         SqpOptions phase_opts = ropts;
         phase_opts.max_iter = max_iter;
-        SqpSolver sub(phase_opts, SqpSolver::RestorationSubDriverTag{});
+        SqpSolverImpl sub(phase_opts, SqpSolverImpl::RestorationSubDriverTag{});
         sub.stop_phase_on_qp_failure_ = stop_on_qp_failure;
         // THE SUB-SOLVE'S OWN QN INSTANCE (ruling C30 AMEND-7) acts on the wrapper's x-block only:
         // its slack columns carry no curvature.
@@ -5717,7 +5718,7 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
         // throws out of a depth-1 event unwinds through here, and a dangling
         // pointer to a destroyed sub-driver would be read by the next apply point.
         struct ActiveSubGuard {
-            SqpSolver *parent;
+            SqpSolverImpl *parent;
             ~ActiveSubGuard() { parent->restoration_sub_ = nullptr; }
         };
         restoration_sub_ = &sub;
@@ -6227,8 +6228,8 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
 // cannot mix the row's measurement with a point `enter_restoration` moved the
 // driver to afterwards. See MajorState::event_x.
 // ---------------------------------------------------------------------------
-void SqpSolver::fire_iteration_event(SolveState &st, const SqpIterate &exported,
-                                     const MajorState &mj) {
+void SqpSolverImpl::fire_iteration_event(SolveState &st, const SqpIterate &exported,
+                                         const MajorState &mj) {
     if (!iteration_callback_) {
         return;
     }
@@ -6273,7 +6274,7 @@ void SqpSolver::fire_iteration_event(SolveState &st, const SqpIterate &exported,
 // Every public solve entry applies it before it reads the callable, which is
 // where a throwing callback's deferral lands.
 // ---------------------------------------------------------------------------
-CallbackAction SqpSolver::invoke_iteration_callback(const IterationEvent &event) {
+CallbackAction SqpSolverImpl::invoke_iteration_callback(const IterationEvent &event) {
     callback_in_flight_ = true;
     CallbackAction action = CallbackAction::kContinue;
     try {
@@ -6287,7 +6288,7 @@ CallbackAction SqpSolver::invoke_iteration_callback(const IterationEvent &event)
     return action;
 }
 
-void SqpSolver::apply_pending_iteration_callback(bool at_solve_entry) {
+void SqpSolverImpl::apply_pending_iteration_callback(bool at_solve_entry) {
     if (!pending_callback_.has_value()) {
         return;
     }
@@ -6328,15 +6329,17 @@ void SqpSolver::apply_pending_iteration_callback(bool at_solve_entry) {
 // whatever sub-driver it currently has active, and a chain of any depth ends
 // at the first null.
 // ---------------------------------------------------------------------------
-void SqpSolver::push_payload_to_restoration_sub() {
-    for (SqpSolver *sub = restoration_sub_; sub != nullptr; sub = sub->restoration_sub_) {
+void SqpSolverImpl::push_payload_to_restoration_sub() {
+    for (SqpSolverImpl *sub = restoration_sub_; sub != nullptr; sub = sub->restoration_sub_) {
         sub->iteration_payload_ = iteration_payload_;
     }
 }
 
-SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, AssemblyEvalSeam &seam,
-                                             NlpModelAssembly &bridge, const SqpWarmStart &warm,
-                                             SolveBudget budget, Index iter) {
+SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState &mj,
+                                                     AssemblyEvalSeam &seam,
+                                                     NlpModelAssembly &bridge,
+                                                     const SqpWarmStart &warm, SolveBudget budget,
+                                                     Index iter) {
     // The QPs' equality rows changed (a new split, a refusal, a hand-off): every
     // warm state held in the previous rows' coordinates is dropped.
     auto drop_row_coordinate_carries = [this](SolveState &state) {
@@ -8117,9 +8120,10 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
     return MajorOutcome::kCommitAccepted;
 }
 
-SqpResult SqpSolver::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &bridge,
-                                     const Vec &x0, const SqpWarmStart &warm, SolveBudget budget,
-                                     std::unique_ptr<GlobalizationStrategy> strategy_in) {
+SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &bridge,
+                                         const Vec &x0, const SqpWarmStart &warm,
+                                         SolveBudget budget,
+                                         std::unique_ptr<GlobalizationStrategy> strategy_in) {
     // THE ARGUMENTS WERE VALIDATED BY `solve_impl`, the only caller, which
     // refuses before anything is written; `strategy_in` is the one it built.
 
@@ -8132,7 +8136,7 @@ SqpResult SqpSolver::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &b
                           : opts_.max_iter;
     prepare_solve(st, seam, x0, warm, std::move(strategy_in));
     struct BasisViewGuard {
-        SqpSolver *self;
+        SqpSolverImpl *self;
         ~BasisViewGuard() { self->eq_basis_view_ = nullptr; }
     };
     eq_basis_view_ = &st.eqb.basis;
@@ -8426,7 +8430,7 @@ SqpResult SqpSolver::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &b
     }
 }
 
-SolveStatus SqpSolver::map_status(QpStatus qp_status) {
+SolveStatus SqpSolverImpl::map_status(QpStatus qp_status) {
     switch (qp_status) {
     case QpStatus::kInfeasible:
         return SolveStatus::kInfeasible;
@@ -8438,20 +8442,20 @@ SolveStatus SqpSolver::map_status(QpStatus qp_status) {
     return SolveStatus::kNumericalError;
 }
 
-bool SqpSolver::shrink_hits_floor(double delta) const {
+bool SqpSolverImpl::shrink_hits_floor(double delta) const {
     return std::isfinite(delta) && delta * kTrShrinkFactor < opts_.tr_min;
 }
 
-double SqpSolver::shrunk_radius(double delta) const {
+double SqpSolverImpl::shrunk_radius(double delta) const {
     return std::isfinite(delta) ? delta * kTrShrinkFactor : opts_.tr_max;
 }
 
-double SqpSolver::restoration_restart_radius() const {
+double SqpSolverImpl::restoration_restart_radius() const {
     const double base = std::isfinite(opts_.tr_init) ? opts_.tr_init : opts_.tr_max;
     return std::max(opts_.tr_min, kRestoreRadiusFactor * base);
 }
 
-SsnEngine &SqpSolver::ssn_engine() {
+SsnEngine &SqpSolverImpl::ssn_engine() {
     if (ssn_engine_ == nullptr) {
         // THE THREAD COUNT REACHES THE LAZY TIER (M6 W5 T8.8): the tier holds
         // one persistent factor, configured once at construction, and
@@ -8462,7 +8466,7 @@ SsnEngine &SqpSolver::ssn_engine() {
     return *ssn_engine_;
 }
 
-SsnOptions SqpSolver::ssn_options(double prox_sigma_init) const {
+SsnOptions SqpSolverImpl::ssn_options(double prox_sigma_init) const {
     SsnOptions sopts;
     sopts.fb_tol = ssn_fb_tol_for(opts_.kkt_tol, opts_.feas_tol);
     sopts.prox_sigma_init = prox_sigma_init;
@@ -8476,7 +8480,7 @@ SsnOptions SqpSolver::ssn_options(double prox_sigma_init) const {
     return sopts;
 }
 
-IpqpEngine &SqpSolver::ipqp_engine() {
+IpqpEngine &SqpSolverImpl::ipqp_engine() {
     if (ipqp_engine_ == nullptr) {
         // The thread count reaches this tier too; see ssn_engine() above.
         ipqp_engine_ = std::make_unique<IpqpEngine>(engine_qp_options(opts_), opts_.common.threads);
@@ -8488,7 +8492,7 @@ IpqpEngine &SqpSolver::ipqp_engine() {
     return *ipqp_engine_;
 }
 
-IpqpEngine &SqpSolver::elastic_ipqp_engine() {
+IpqpEngine &SqpSolverImpl::elastic_ipqp_engine() {
     if (elastic_ipqp_engine_ == nullptr) {
         // HAZARD 2's FIX, AND THE ONLY PLACE IT CAN LIVE (M7 W0 T3 design section viii). The
         // tier reads a trust-region radius where the walk ignores one: `ipqp_effective_tr_radius`
@@ -8514,7 +8518,7 @@ IpqpEngine &SqpSolver::elastic_ipqp_engine() {
     return *elastic_ipqp_engine_;
 }
 
-QpEngine &SqpSolver::cap_retry_engine(Index cap) {
+QpEngine &SqpSolverImpl::cap_retry_engine(Index cap) {
     // REBUILT WHEN THE CAP MOVES, which within one solve it does not: the
     // derivation reads n, mi and the count of really-bounded columns, and none
     // of the three changes between the majors of a solve. Across solves on one
@@ -8543,7 +8547,7 @@ QpEngine &SqpSolver::cap_retry_engine(Index cap) {
     return *cap_retry_engine_;
 }
 
-IpqpEngine *SqpSolver::elastic_rung_tier() {
+IpqpEngine *SqpSolverImpl::elastic_rung_tier() {
     // THE ONE PLACE THE TOGGLE IS READ, so both ladder call sites -- the kIpm arm's certified
     // fallback and the walk route's own kInfeasible consumer -- resolve it identically. At the
     // shipped default this returns nullptr WITHOUT constructing anything, which is what makes
@@ -8563,7 +8567,7 @@ IpqpEngine *SqpSolver::elastic_rung_tier() {
         "dispatch -- SqpOptions validation should have refused it at construction");
 }
 
-IpqpOptions SqpSolver::ipqp_options(bool structure_epoch_moved) const {
+IpqpOptions SqpSolverImpl::ipqp_options(bool structure_epoch_moved) const {
     IpqpOptions iopts = opts_.ipqp;
     // A NARROWING ONLY (see the declaration's own note): the caller's kill switch, ANDed with
     // "the analysis this engine holds was taken at the epoch we are still in". `&&` rather
@@ -8572,10 +8576,10 @@ IpqpOptions SqpSolver::ipqp_options(bool structure_epoch_moved) const {
     return iopts;
 }
 
-bool SqpSolver::route_through_ssn_warm_grade(const QpProblem &qp, const IpqpResult &ires,
-                                             double delta, double &ssn_prox_ingested,
-                                             Index &ssn_budget_charge, SqpCounters &counters,
-                                             QpSolution &qs, detail::QnLiftBridge *qn) {
+bool SqpSolverImpl::route_through_ssn_warm_grade(const QpProblem &qp, const IpqpResult &ires,
+                                                 double delta, double &ssn_prox_ingested,
+                                                 Index &ssn_budget_charge, SqpCounters &counters,
+                                                 QpSolution &qs, detail::QnLiftBridge *qn) {
     ++counters.ipqp.ipqp_to_ssn;
     // THE PROXIMAL CARRY PARTICIPATES (settler ruling, fix round 1): `warm_start.h`'s
     // `prox_sigma` is the maximum over ANY SSN subproblem of the solve, and one reached
@@ -8693,12 +8697,13 @@ bool SqpSolver::route_through_ssn_warm_grade(const QpProblem &qp, const IpqpResu
     return false;
 }
 
-SqpWarmStart SqpSolver::make_warm_start(AssemblyEvalSeam &seam, const QpSolution *activity,
-                                        const QpProblem &qp, bool qp_built, const NlpEval *probe_ev,
-                                        const Vec *probe_x, double delta, double dual_mu_eff,
-                                        double primal_delta_eff,
-                                        const GlobalizationStrategy *strategy,
-                                        std::shared_ptr<const HotState> hot) {
+SqpWarmStart SqpSolverImpl::make_warm_start(AssemblyEvalSeam &seam, const QpSolution *activity,
+                                            const QpProblem &qp, bool qp_built,
+                                            const NlpEval *probe_ev, const Vec *probe_x,
+                                            double delta, double dual_mu_eff,
+                                            double primal_delta_eff,
+                                            const GlobalizationStrategy *strategy,
+                                            std::shared_ptr<const HotState> hot) {
     SqpWarmStart w;
     // TRUE ON EVERY EXIT BUT ONE -- see THE UNEVALUABLE EXIT above, and
     // warm_start.h's `valid` note, which documents that exception as the
@@ -8768,10 +8773,11 @@ SqpWarmStart SqpSolver::make_warm_start(AssemblyEvalSeam &seam, const QpSolution
     return w;
 }
 
-SqpResult SqpSolver::finish(AssemblyEvalSeam &seam, SqpResult out, SolveStatus status, const Vec &x,
-                            const Vec &lambda_e, const Vec &lambda_i, const SqpKkt &kkt, double f,
-                            SqpWarmStart warm, const DeclaredDiagnosticsStash &stash,
-                            bool multipliers_are_caller_scale) {
+SqpResult SqpSolverImpl::finish(AssemblyEvalSeam &seam, SqpResult out, SolveStatus status,
+                                const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
+                                const SqpKkt &kkt, double f, SqpWarmStart warm,
+                                const DeclaredDiagnosticsStash &stash,
+                                bool multipliers_are_caller_scale) {
     // A VALUE, NOT A REFERENCE INTO THE SEAM, and the distinction is
     // load-bearing rather than stylistic. The caller-scale re-measurement below
     // puts the seam back to the identity for the length of one evaluation; a
@@ -9016,6 +9022,110 @@ SqpResult SqpSolver::finish(AssemblyEvalSeam &seam, SqpResult out, SolveStatus s
         }
     }
     return out;
+}
+
+} // namespace hven::solvers
+
+// ---------------------------------------------------------------------------
+// The public handle: construction, transfer and forwarding. Everything the
+// engine does lives in SqpSolverImpl above; these bodies only reach it.
+// ---------------------------------------------------------------------------
+
+namespace hven::solvers {
+
+namespace {
+
+[[noreturn]] void throw_sqp_moved_from() {
+    throw std::logic_error("SqpSolver: the solver was moved from; it may only be destroyed or "
+                           "assigned to");
+}
+
+} // namespace
+
+SqpSolverImpl &SqpSolver::impl() {
+    if (impl_ == nullptr) [[unlikely]] {
+        throw_sqp_moved_from();
+    }
+    return *impl_;
+}
+
+const SqpSolverImpl &SqpSolver::impl() const {
+    if (impl_ == nullptr) [[unlikely]] {
+        throw_sqp_moved_from();
+    }
+    return *impl_;
+}
+
+SqpSolver::SqpSolver(const SqpOptions &opts) : impl_(std::make_unique<SqpSolverImpl>(opts)) {}
+
+SqpSolver::~SqpSolver() = default;
+SqpSolver::SqpSolver(SqpSolver &&) noexcept = default;
+SqpSolver &SqpSolver::operator=(SqpSolver &&) noexcept = default;
+
+const SqpOptions &SqpSolver::options() const noexcept { return impl_->options(); }
+
+void SqpSolver::set_options(SqpOptions o) { impl().set_options(std::move(o)); }
+
+int SqpSolver::ssn_tier_num_threads() const { return impl().ssn_tier_num_threads(); }
+
+int SqpSolver::ipqp_tier_num_threads() const { return impl().ipqp_tier_num_threads(); }
+
+SqpResult SqpSolver::solve(const NlpModel &model) { return impl().solve(model); }
+
+SqpResult SqpSolver::solve(const NlpModel &model, const Vec &x0) { return impl().solve(model, x0); }
+
+SqpResult SqpSolver::solve(const NlpModel &model, const Vec &x0, SolveBudget budget) {
+    return impl().solve(model, x0, budget);
+}
+
+SqpResult SqpSolver::solve(NlpModelAssembly &bridge, const Vec &x0) {
+    return impl().solve(bridge, x0);
+}
+
+SqpResult SqpSolver::solve(NlpModelAssembly &bridge, const Vec &x0, SolveBudget budget) {
+    return impl().solve(bridge, x0, budget);
+}
+
+SqpResult SqpSolver::solve(const NlpModel &model, const Vec &x0, const SqpWarmStart &warm,
+                           SolveBudget budget) {
+    return impl().solve(model, x0, warm, budget);
+}
+
+SqpResult SqpSolver::solve(NlpModelAssembly &bridge, const Vec &x0, const SqpWarmStart &warm,
+                           SolveBudget budget) {
+    return impl().solve(bridge, x0, warm, budget);
+}
+
+SqpResult SqpSolver::solve(const NlpModel &model, const Vec &x0, const WarmStartData &warm,
+                           SolveBudget budget) {
+    return impl().solve(model, x0, warm, budget);
+}
+
+SqpResult SqpSolver::solve(NlpModelAssembly &bridge, const Vec &x0, const WarmStartData &warm,
+                           SolveBudget budget) {
+    return impl().solve(bridge, x0, warm, budget);
+}
+
+WarmStartData SqpSolver::export_warm_start() const { return impl().export_warm_start(); }
+
+void SqpSolver::set_iteration_callback(IterationCallback cb) {
+    impl().set_iteration_callback(std::move(cb));
+}
+
+void SqpSolver::set_iteration_callback(IterationCallback cb, IterationPayload payload) {
+    impl().set_iteration_callback(std::move(cb), payload);
+}
+
+IterationPayload SqpSolver::iteration_payload() const noexcept {
+    return impl_->iteration_payload();
+}
+
+void SqpSolver::clear_iteration_callback() { impl().clear_iteration_callback(); }
+
+void SqpSolver::attach_trace(TraceSink *sink) { impl().attach_trace(sink); }
+
+void SqpSolver::attach_ledger(Ledger *ledger, std::string label_prefix) {
+    impl().attach_ledger(ledger, std::move(label_prefix));
 }
 
 } // namespace hven::solvers

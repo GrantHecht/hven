@@ -93,15 +93,11 @@ void expect_refused(const IpmOptions &o, const char *field) {
 // NEITHER ENGINE'S SOLVER OBJECT MOVES (design §2.1; fix round 1)
 // ---------------------------------------------------------------------------
 //
-// Both classes own live backend sessions -- IpmSolver its KktFactor
-// and its unique_ptr globalization components, SqpSolver its QpEngine and the
-// two lazy tiers -- and neither has defined transfer semantics. Before T8.3 the
-// SQP driver's by-value QpEngine member enforced HALF of that by accident:
-// QpEngine declares no assignment, so move ASSIGNMENT was implicitly deleted.
-// Holding the engine through a unique_ptr removed that accident, which is why
-// the four operations are now deleted by declaration on both classes. A
-// moved-from driver would hold a null engine_, and every use dereferences it
-// without a check.
+// Both solvers are handles over a heap-allocated private implementation: they
+// are movable (the implementation keeps its address, so the cross-references
+// inside it survive a move) and not copyable. A moved-from solver may only be
+// destroyed or assigned to; tests/drivers/test_solver_move.cpp pins the
+// behaviour of a move, not just its traits.
 //
 // These are static_asserts rather than a TEST body deliberately: what is being
 // pinned is a compile-time property, and a regression must fail the BUILD.
@@ -109,15 +105,17 @@ static_assert(!std::is_copy_constructible_v<hven::solvers::SqpSolver>,
               "SqpSolver must not be copy-constructible");
 static_assert(!std::is_copy_assignable_v<hven::solvers::SqpSolver>,
               "SqpSolver must not be copy-assignable");
-static_assert(!std::is_move_constructible_v<hven::solvers::SqpSolver>,
-              "SqpSolver must not be move-constructible");
-static_assert(!std::is_move_assignable_v<hven::solvers::SqpSolver>,
-              "SqpSolver must not be move-assignable");
+static_assert(std::is_nothrow_move_constructible_v<hven::solvers::SqpSolver>,
+              "SqpSolver must be nothrow move-constructible");
+static_assert(std::is_nothrow_move_assignable_v<hven::solvers::SqpSolver>,
+              "SqpSolver must be nothrow move-assignable");
 
 static_assert(!std::is_copy_constructible_v<IpmSolver>, "IpmSolver must not be copy-constructible");
 static_assert(!std::is_copy_assignable_v<IpmSolver>, "IpmSolver must not be copy-assignable");
-static_assert(!std::is_move_constructible_v<IpmSolver>, "IpmSolver must not be move-constructible");
-static_assert(!std::is_move_assignable_v<IpmSolver>, "IpmSolver must not be move-assignable");
+static_assert(std::is_nothrow_move_constructible_v<IpmSolver>,
+              "IpmSolver must be nothrow move-constructible");
+static_assert(std::is_nothrow_move_assignable_v<IpmSolver>,
+              "IpmSolver must be nothrow move-assignable");
 
 // The OPTIONS VALUES, by contrast, must move -- and SqpSolver::set_options()
 // relies on more than that: it assigns `opts_ = std::move(o)` AFTER the engine

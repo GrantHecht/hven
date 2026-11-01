@@ -107,10 +107,10 @@
 
 #include <Eigen/Core>
 
+#include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/interior/utils/thread_pool.h>
 #include <hven/drivers/ipm_solver.h>
 #include <hven/drivers/ipm_solver_types.h>
-#include <hven/drivers/sqp_solver.h>
 #include <hven/drivers/sqp_solver_types.h>
 #include <hven/model/make_nlp_program.h>
 #include <hven/model/nlp_model.h>

@@ -36,7 +36,7 @@
 #include <gtest/gtest.h>
 
 #include <hven/core/solver_status.h>
-#include <hven/drivers/sqp_solver.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/drivers/sqp_solver_types.h>
 #include <hven/drivers/trace.h>
 

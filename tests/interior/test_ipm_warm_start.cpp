@@ -43,6 +43,7 @@
 
 #include <fmt/format.h>
 
+#include "hven/detail/drivers/ipm_solver_impl.h"
 #include "hven/detail/globalization/l1_restoration.h"
 #include "hven/detail/globalization/recovery_chain.h"
 #include "hven/detail/model/nlp_adapter.h"
@@ -322,7 +323,7 @@ TEST(IpmWarmStart, AFreshSolverHasNoCompletedSolveAndNoResultToExportFrom) {
         solver.set_options(std::move(o));
     }
 
-    EXPECT_FALSE(solver.solve_completed_);
+    EXPECT_FALSE(hven::solvers::detail::IpmSolverAccess::impl(solver).solve_completed_);
     // There is no result to ask, so the pin is on the shape a caller would
     // hold: a default IpmResult -- which is all a solver that has run nothing
     // could ever hand back -- offers nothing.
@@ -359,7 +360,7 @@ TEST(IpmWarmStart, ASolveThatThrewIsNotACompletedSolve) {
     EXPECT_THROW(warm_optimize(solver, *solver_program, warm_eq_start(), seed),
                  std::invalid_argument);
 
-    EXPECT_FALSE(solver.solve_completed_);
+    EXPECT_FALSE(hven::solvers::detail::IpmSolverAccess::impl(solver).solve_completed_);
 }
 
 // --- Export: declared space and the stamp ---
@@ -1706,7 +1707,7 @@ TEST(IpmWarmStart, ARestorationActiveExitExportsTheCoreWithoutThePolishTag) {
     EXPECT_GT(result.recovery_depth_histogram[hven::solvers::kRecoveryDepthRestoration], 0);
 
     // The solve completed, so the currency is exportable and carries its core.
-    ASSERT_TRUE(solver.solve_completed_);
+    ASSERT_TRUE(hven::solvers::detail::IpmSolverAccess::impl(solver).solve_completed_);
     const WarmStartData warm = warm_export();
     EXPECT_EQ(warm.primal_.size(), 2);
     EXPECT_EQ(warm.eq_lmults_.size(), 1);

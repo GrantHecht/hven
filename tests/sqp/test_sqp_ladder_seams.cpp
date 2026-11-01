@@ -28,7 +28,7 @@
 #include <gtest/gtest.h>
 
 #include <hven/detail/drivers/ladder_testing.h>
-#include <hven/drivers/sqp_solver.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/drivers/sqp_solver_types.h>
 
 #include "support/qp_as_nlp_model.h"

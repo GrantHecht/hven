@@ -27,10 +27,10 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
+#include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/globalization/sqp/lbfgs_damped.h>
 #include <hven/detail/globalization/sqp/mixed_lift.h>
 #include <hven/detail/globalization/sqp/qn_lift_bridge.h>
-#include <hven/drivers/sqp_solver.h>
 #include <hven/drivers/sqp_solver_types.h>
 
 #include "support/hs_problems.h"

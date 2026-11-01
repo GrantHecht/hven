@@ -39,9 +39,9 @@
 
 #include <gtest/gtest.h>
 
+#include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/interior/iterate_info.h>
 #include <hven/drivers/console_trace_sink.h>
-#include <hven/drivers/sqp_solver.h>
 #include <hven/drivers/trace.h>
 
 namespace hven::solvers {

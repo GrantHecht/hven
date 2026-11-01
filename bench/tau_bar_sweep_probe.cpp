@@ -89,7 +89,7 @@
 
 #include <cstdio>
 
-#include <hven/drivers/sqp_solver.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
 
 #include "support/hs_sweeps.h"
 

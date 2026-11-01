@@ -36,7 +36,7 @@
 #include <hven/core/ledger.h>
 #include <hven/detail/drivers/column_scaling.h>
 #include <hven/detail/drivers/problem_scaling.h>
-#include <hven/drivers/sqp_solver.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/drivers/trace.h>
 
 #include "support/hs_problems.h"
