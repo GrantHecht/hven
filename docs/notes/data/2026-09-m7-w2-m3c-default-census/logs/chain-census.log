@@ -1,0 +1,580 @@
+CHAIN_CENSUS_START 2026-09-21T17:56:43-04:00
+=== HEAD 8e4c21a7  dirty-files=0 ===
+=== probe sha256:   14f40b250a3c82d8b6d5e46b137b2500b2f233b341b9d792cfa997265d1b14f5  /home/ghecht/Projects/hven/.scratch/m7w2m3c/probebuild/m3c_probe
+=== library sha256: 18a71b727533e9231fbdeb4e6bf0c9bb2d77aad6ab886a0f2e5729f1169eee10  /home/ghecht/Projects/hven/.scratch/m7w2m3c/install/lib64/libhven.a
+PGREP_BEFORE_LOCK ACOPP118: 
+FOREGROUND_START leg-ACOPP118 2026-09-21T17:56:43-04:00
+PGREP_EMPTY leg-ACOPP118: no foreign cell binary under my lock
+LEG ACOPP118   deadline=600   rc=0   wall_s=44.5 (INFORMATIONAL)
+    deadline_fired=0
+    status=numerical_error
+    f=129648.67425337316
+    feasibility_e=0.0065403173774409851
+    feasibility_i=0
+    major_iters=7
+    qp_minor_iters=19917
+    factorizations=20501
+    steps_accepted=3
+    rejected_steps=3
+    elastic_activations=0
+    qp_maxiter_exits=4
+    qp_numerical_exits=0
+    qp_failures_routed=3
+    qp_failures_in_a_row_peak=3
+    restoration_entries=0
+    restoration_sub_status=not_run
+    history_rows=7
+    ledger_qp_records=7
+FOREGROUND_END leg-ACOPP118 2026-09-21T17:57:27-04:00 rc=0
+WRAPPER_RC leg-ACOPP118 rc=0
+PGREP_BEFORE_LOCK ACOPP57: 
+FOREGROUND_START leg-ACOPP57 2026-09-21T17:57:28-04:00
+PGREP_EMPTY leg-ACOPP57: no foreign cell binary under my lock
+LEG ACOPP57    deadline=600   rc=0   wall_s=1.6 (INFORMATIONAL)
+    deadline_fired=0
+    status=numerical_error
+    f=41737.543107411046
+    feasibility_e=0.00011385871678863679
+    feasibility_i=0
+    major_iters=7
+    qp_minor_iters=7248
+    factorizations=128
+    steps_accepted=3
+    rejected_steps=3
+    elastic_activations=0
+    qp_maxiter_exits=4
+    qp_numerical_exits=0
+    qp_failures_routed=3
+    qp_failures_in_a_row_peak=3
+    restoration_entries=0
+    restoration_sub_status=not_run
+    history_rows=7
+    ledger_qp_records=7
+FOREGROUND_END leg-ACOPP57 2026-09-21T17:57:29-04:00 rc=0
+WRAPPER_RC leg-ACOPP57 rc=0
+PGREP_BEFORE_LOCK ACOPR57: 
+FOREGROUND_START leg-ACOPR57 2026-09-21T17:57:29-04:00
+PGREP_EMPTY leg-ACOPR57: no foreign cell binary under my lock
+LEG ACOPR57    deadline=600   rc=0   wall_s=10.4 (INFORMATIONAL)
+    deadline_fired=0
+    status=numerical_error
+    f=41737.784920103695
+    feasibility_e=0.053054942831474383
+    feasibility_i=0.019326699816629656
+    major_iters=15
+    qp_minor_iters=13874
+    factorizations=4848
+    steps_accepted=8
+    rejected_steps=6
+    elastic_activations=0
+    qp_maxiter_exits=5
+    qp_numerical_exits=0
+    qp_failures_routed=4
+    qp_failures_in_a_row_peak=3
+    restoration_entries=0
+    restoration_sub_status=not_run
+    history_rows=15
+    ledger_qp_records=17
+FOREGROUND_END leg-ACOPR57 2026-09-21T17:57:40-04:00 rc=0
+WRAPPER_RC leg-ACOPR57 rc=0
+PGREP_BEFORE_LOCK BRITGAS: 
+FOREGROUND_START leg-BRITGAS 2026-09-21T17:57:40-04:00
+PGREP_EMPTY leg-BRITGAS: no foreign cell binary under my lock
+LEG BRITGAS    deadline=600   rc=0   wall_s=275.2 (INFORMATIONAL)
+    deadline_fired=0
+    status=numerical_error
+    f=0.075494336118951622
+    feasibility_e=1.9982835739868769
+    feasibility_i=0
+    major_iters=4
+    qp_minor_iters=92309
+    factorizations=93749
+    steps_accepted=0
+    rejected_steps=3
+    elastic_activations=1
+    qp_maxiter_exits=9
+    qp_numerical_exits=0
+    qp_failures_routed=3
+    qp_failures_in_a_row_peak=3
+    restoration_entries=1
+    restoration_sub_status=numerical_error
+    history_rows=4
+    ledger_qp_records=5
+FOREGROUND_END leg-BRITGAS 2026-09-21T18:02:15-04:00 rc=0
+WRAPPER_RC leg-BRITGAS rc=0
+PGREP_BEFORE_LOCK DALLASM: 
+FOREGROUND_START leg-DALLASM 2026-09-21T18:02:15-04:00
+PGREP_EMPTY leg-DALLASM: no foreign cell binary under my lock
+LEG DALLASM    deadline=600   rc=0   wall_s=55.4 (INFORMATIONAL)
+    deadline_fired=0
+    status=numerical_error
+    f=61974881.482906975
+    feasibility_e=4.496403249731884e-14
+    feasibility_i=0
+    major_iters=5
+    qp_minor_iters=10583
+    factorizations=4919
+    steps_accepted=0
+    rejected_steps=3
+    elastic_activations=1
+    qp_maxiter_exits=4
+    qp_numerical_exits=0
+    qp_failures_routed=3
+    qp_failures_in_a_row_peak=3
+    restoration_entries=1
+    restoration_sub_status=optimal
+    history_rows=5
+    ledger_qp_records=6
+FOREGROUND_END leg-DALLASM 2026-09-21T18:03:10-04:00 rc=0
+WRAPPER_RC leg-DALLASM rc=0
+PGREP_BEFORE_LOCK NET3: 
+FOREGROUND_START leg-NET3 2026-09-21T18:03:10-04:00
+PGREP_EMPTY leg-NET3: no foreign cell binary under my lock
+LEG NET3       deadline=600   rc=0   wall_s=0.0 (INFORMATIONAL)
+    deadline_fired=0
+    status=numerical_error
+    f=-nan
+    feasibility_e=nan
+    feasibility_i=nan
+    major_iters=0
+    qp_minor_iters=0
+    factorizations=0
+    steps_accepted=0
+    rejected_steps=0
+    elastic_activations=0
+    qp_maxiter_exits=0
+    qp_numerical_exits=0
+    qp_failures_routed=0
+    qp_failures_in_a_row_peak=0
+    restoration_entries=0
+    restoration_sub_status=not_run
+    history_rows=1
+    ledger_qp_records=0
+FOREGROUND_END leg-NET3 2026-09-21T18:03:10-04:00 rc=0
+WRAPPER_RC leg-NET3 rc=0
+PGREP_BEFORE_LOCK STEENBRB: 
+FOREGROUND_START leg-STEENBRB 2026-09-21T18:03:10-04:00
+PGREP_EMPTY leg-STEENBRB: no foreign cell binary under my lock
+LEG STEENBRB   deadline=600   rc=0   wall_s=59.9 (INFORMATIONAL)
+    deadline_fired=0
+    status=numerical_error
+    f=4090860686442.3218
+    feasibility_e=2.2737367542337972e-13
+    feasibility_i=2.1316282072803006e-14
+    major_iters=5
+    qp_minor_iters=20637
+    factorizations=25973
+    steps_accepted=0
+    rejected_steps=3
+    elastic_activations=1
+    qp_maxiter_exits=4
+    qp_numerical_exits=0
+    qp_failures_routed=3
+    qp_failures_in_a_row_peak=3
+    restoration_entries=1
+    restoration_sub_status=optimal
+    history_rows=5
+    ledger_qp_records=6
+FOREGROUND_END leg-STEENBRB 2026-09-21T18:04:10-04:00 rc=0
+WRAPPER_RC leg-STEENBRB rc=0
+PGREP_BEFORE_LOCK STEENBRC: 
+FOREGROUND_START leg-STEENBRC 2026-09-21T18:04:10-04:00
+PGREP_EMPTY leg-STEENBRC: no foreign cell binary under my lock
+LEG STEENBRC   deadline=600   rc=0   wall_s=154.9 (INFORMATIONAL)
+    deadline_fired=0
+    status=numerical_error
+    f=183453796271334.12
+    feasibility_e=9.0949470177292824e-13
+    feasibility_i=9.0949470177292824e-13
+    major_iters=6
+    qp_minor_iters=35324
+    factorizations=42946
+    steps_accepted=0
+    rejected_steps=4
+    elastic_activations=1
+    qp_maxiter_exits=5
+    qp_numerical_exits=1
+    qp_failures_routed=4
+    qp_failures_in_a_row_peak=3
+    restoration_entries=1
+    restoration_sub_status=optimal
+    history_rows=6
+    ledger_qp_records=12
+FOREGROUND_END leg-STEENBRC 2026-09-21T18:06:45-04:00 rc=0
+WRAPPER_RC leg-STEENBRC rc=0
+PGREP_BEFORE_LOCK STEENBRD: 
+FOREGROUND_START leg-STEENBRD 2026-09-21T18:06:45-04:00
+PGREP_EMPTY leg-STEENBRD: no foreign cell binary under my lock
+LEG STEENBRD   deadline=600   rc=0   wall_s=0.0 (INFORMATIONAL)
+    deadline_fired=0
+    status=numerical_error
+    f=-nan
+    feasibility_e=nan
+    feasibility_i=nan
+    major_iters=0
+    qp_minor_iters=0
+    factorizations=0
+    steps_accepted=0
+    rejected_steps=0
+    elastic_activations=0
+    qp_maxiter_exits=0
+    qp_numerical_exits=0
+    qp_failures_routed=0
+    qp_failures_in_a_row_peak=0
+    restoration_entries=0
+    restoration_sub_status=not_run
+    history_rows=1
+    ledger_qp_records=0
+FOREGROUND_END leg-STEENBRD 2026-09-21T18:06:45-04:00 rc=0
+WRAPPER_RC leg-STEENBRD rc=0
+PGREP_BEFORE_LOCK STEENBRE: 
+FOREGROUND_START leg-STEENBRE 2026-09-21T18:06:45-04:00
+PGREP_EMPTY leg-STEENBRE: no foreign cell binary under my lock
+LEG STEENBRE   deadline=600   rc=0   wall_s=0.0 (INFORMATIONAL)
+    deadline_fired=0
+    status=numerical_error
+    f=-nan
+    feasibility_e=nan
+    feasibility_i=nan
+    major_iters=0
+    qp_minor_iters=0
+    factorizations=0
+    steps_accepted=0
+    rejected_steps=0
+    elastic_activations=0
+    qp_maxiter_exits=0
+    qp_numerical_exits=0
+    qp_failures_routed=0
+    qp_failures_in_a_row_peak=0
+    restoration_entries=0
+    restoration_sub_status=not_run
+    history_rows=1
+    ledger_qp_records=0
+FOREGROUND_END leg-STEENBRE 2026-09-21T18:06:45-04:00 rc=0
+WRAPPER_RC leg-STEENBRE rc=0
+PGREP_BEFORE_LOCK STEENBRG: 
+FOREGROUND_START leg-STEENBRG 2026-09-21T18:06:45-04:00
+PGREP_EMPTY leg-STEENBRG: no foreign cell binary under my lock
+LEG STEENBRG   deadline=600   rc=0   wall_s=155.3 (INFORMATIONAL)
+    deadline_fired=0
+    status=numerical_error
+    f=183453796271333.81
+    feasibility_e=9.0949470177292824e-13
+    feasibility_i=9.0949470177292824e-13
+    major_iters=6
+    qp_minor_iters=35429
+    factorizations=43096
+    steps_accepted=0
+    rejected_steps=4
+    elastic_activations=1
+    qp_maxiter_exits=5
+    qp_numerical_exits=1
+    qp_failures_routed=4
+    qp_failures_in_a_row_peak=3
+    restoration_entries=1
+    restoration_sub_status=optimal
+    history_rows=6
+    ledger_qp_records=12
+FOREGROUND_END leg-STEENBRG 2026-09-21T18:09:21-04:00 rc=0
+WRAPPER_RC leg-STEENBRG rc=0
+PGREP_BEFORE_LOCK YORKNET: 
+FOREGROUND_START leg-YORKNET 2026-09-21T18:09:21-04:00
+PGREP_EMPTY leg-YORKNET: no foreign cell binary under my lock
+LEG YORKNET    deadline=600   rc=0   wall_s=78.6 (INFORMATIONAL)
+    deadline_fired=0
+    status=infeasible
+    f=110670.29950761795
+    feasibility_e=4099.2829199999996
+    feasibility_i=131.08000000000001
+    major_iters=1
+    qp_minor_iters=50241
+    factorizations=52180
+    steps_accepted=0
+    rejected_steps=0
+    elastic_activations=19
+    qp_maxiter_exits=0
+    qp_numerical_exits=0
+    qp_failures_routed=0
+    qp_failures_in_a_row_peak=0
+    restoration_entries=1
+    restoration_sub_status=infeasible
+    history_rows=1
+    ledger_qp_records=8
+FOREGROUND_END leg-YORKNET 2026-09-21T18:10:39-04:00 rc=0
+WRAPPER_RC leg-YORKNET rc=0
+--- IDENTITY GATE over groups E and I (RULE.md section 4)
+M7 W2 M3c -- IDENTITY GATE (RULE.md section 4): this task's legs at HEAD
+against the harness's COMMITTED rows at the pin aeebdccc, read from their bytes.
+  results.csv   /home/ghecht/Projects/hven-bench/runs/2026-09-m7-w2-h-repin/run-A/results.csv
+  counters.csv  /home/ghecht/Projects/hven-bench/runs/2026-09-m7-w2-h-repin/run-A/cutest/counters-hven-sqp.csv
+  leg rows      /home/ghecht/Projects/hven/.scratch/m7w2m3c/out
+  near-ulp gate, residual class only: |a-b| <= 1e-12 * max(1,|a|,|b|)
+
+ACOPP118   STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+ACOPP118   24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY ACOPP118 PASS
+
+ACOPP57    STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+ACOPP57    24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY ACOPP57 PASS
+
+ACOPR57    STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+ACOPR57    24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY ACOPR57 PASS
+
+BRITGAS    STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+BRITGAS    24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY BRITGAS PASS
+
+DALLASM    STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+DALLASM    24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY DALLASM PASS
+
+NET3       STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+NET3       NaN SPELLING ACCEPTED f: -nan vs nan -- both are NaN; the sign bit of a NaN is not a value
+NET3       24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY NET3 PASS
+
+STEENBRB   STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+STEENBRB   24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY STEENBRB PASS
+
+STEENBRC   STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+STEENBRC   24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY STEENBRC PASS
+
+STEENBRD   STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+STEENBRD   NaN SPELLING ACCEPTED f: -nan vs nan -- both are NaN; the sign bit of a NaN is not a value
+STEENBRD   24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY STEENBRD PASS
+
+STEENBRE   STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+STEENBRE   NaN SPELLING ACCEPTED f: -nan vs nan -- both are NaN; the sign bit of a NaN is not a value
+STEENBRE   24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY STEENBRE PASS
+
+STEENBRG   STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+STEENBRG   24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY STEENBRG PASS
+
+YORKNET    STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+YORKNET    24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY YORKNET PASS
+
+IDENTITY_PASS=12
+IDENTITY_DIFFERS=0
+IDENTITY_REFUSED=0
+IDENTITY_NOT_COMPARABLE=0
+IDENTITY_COMPARABLE=12
+IDENTITY_VERDICT=ALL_COMPARABLE_CELLS_IDENTICAL
+IDENTITY_RC=0  (0 all identical, 1 differences are FINDINGS, 2 structural refusal, 3 RULE.md 3.2's bar)
+PGREP_BEFORE_LOCK ACOPR118: 
+FOREGROUND_START leg-ACOPR118 2026-09-21T18:10:39-04:00
+PGREP_EMPTY leg-ACOPR118: no foreign cell binary under my lock
+LEG ACOPR118   deadline=300   rc=0   wall_s=311.0 (INFORMATIONAL)
+    deadline_fired=1
+    status=interrupted
+    f=129584.10424074405
+    feasibility_e=0.32157129760892822
+    feasibility_i=0.056859427034183896
+    major_iters=6
+    qp_minor_iters=18614
+    factorizations=12262
+    steps_accepted=3
+    rejected_steps=3
+    elastic_activations=0
+    qp_maxiter_exits=1
+    qp_numerical_exits=0
+    qp_failures_routed=1
+    qp_failures_in_a_row_peak=1
+    restoration_entries=0
+    restoration_sub_status=not_run
+    history_rows=7
+    ledger_qp_records=8
+    TRUNCATED: the solver deadline fired -- counters reported, status UNRANKED
+FOREGROUND_END leg-ACOPR118 2026-09-21T18:15:51-04:00 rc=0
+WRAPPER_RC leg-ACOPR118 rc=0
+PGREP_BEFORE_LOCK BIGBANK: 
+FOREGROUND_START leg-BIGBANK 2026-09-21T18:15:51-04:00
+PGREP_EMPTY leg-BIGBANK: no foreign cell binary under my lock
+LEG BIGBANK    deadline=300   rc=0   wall_s=324.7 (INFORMATIONAL)
+    deadline_fired=1
+    status=interrupted
+    f=-13070.503587333713
+    feasibility_e=3.468336728928989e-13
+    feasibility_i=3.522043767745231e-13
+    major_iters=3
+    qp_minor_iters=1498
+    factorizations=1501
+    steps_accepted=3
+    rejected_steps=0
+    elastic_activations=0
+    qp_maxiter_exits=0
+    qp_numerical_exits=0
+    qp_failures_routed=0
+    qp_failures_in_a_row_peak=0
+    restoration_entries=0
+    restoration_sub_status=not_run
+    history_rows=4
+    ledger_qp_records=3
+    TRUNCATED: the solver deadline fired -- counters reported, status UNRANKED
+FOREGROUND_END leg-BIGBANK 2026-09-21T18:21:15-04:00 rc=0
+WRAPPER_RC leg-BIGBANK rc=0
+PGREP_BEFORE_LOCK MSS2: 
+FOREGROUND_START leg-MSS2 2026-09-21T18:21:15-04:00
+PGREP_EMPTY leg-MSS2: no foreign cell binary under my lock
+LEG MSS2       deadline=300   rc=124 wall_s=900.0 (INFORMATIONAL)
+    CENSORED: the 900 s outer stop fired -- NO ROW, never filled (RULE.md section 3.1)
+FOREGROUND_END leg-MSS2 2026-09-21T18:36:15-04:00 rc=1
+WRAPPER_RC leg-MSS2 rc=1
+PGREP_BEFORE_LOCK MSS3: 
+FOREGROUND_START leg-MSS3 2026-09-21T18:36:15-04:00
+PGREP_EMPTY leg-MSS3: no foreign cell binary under my lock
+LEG MSS3       deadline=300   rc=124 wall_s=900.1 (INFORMATIONAL)
+    CENSORED: the 900 s outer stop fired -- NO ROW, never filled (RULE.md section 3.1)
+FOREGROUND_END leg-MSS3 2026-09-21T18:51:15-04:00 rc=1
+WRAPPER_RC leg-MSS3 rc=1
+PGREP_BEFORE_LOCK READING8: 
+FOREGROUND_START leg-READING8 2026-09-21T18:51:15-04:00
+PGREP_EMPTY leg-READING8: no foreign cell binary under my lock
+LEG READING8   deadline=300   rc=124 wall_s=900.0 (INFORMATIONAL)
+    CENSORED: the 900 s outer stop fired -- NO ROW, never filled (RULE.md section 3.1)
+FOREGROUND_END leg-READING8 2026-09-21T19:06:15-04:00 rc=1
+WRAPPER_RC leg-READING8 rc=1
+PGREP_BEFORE_LOCK SAWPATH: 
+FOREGROUND_START leg-SAWPATH 2026-09-21T19:06:16-04:00
+PGREP_EMPTY leg-SAWPATH: no foreign cell binary under my lock
+LEG SAWPATH    deadline=300   rc=0   wall_s=350.9 (INFORMATIONAL)
+    deadline_fired=1
+    status=interrupted
+    f=1483.1937415552059
+    feasibility_e=0
+    feasibility_i=3.556
+    major_iters=1
+    qp_minor_iters=77037
+    factorizations=83624
+    steps_accepted=0
+    rejected_steps=0
+    elastic_activations=1
+    qp_maxiter_exits=4
+    qp_numerical_exits=0
+    qp_failures_routed=0
+    qp_failures_in_a_row_peak=0
+    restoration_entries=1
+    restoration_sub_status=numerical_error
+    history_rows=2
+    ledger_qp_records=7
+    TRUNCATED: the solver deadline fired -- counters reported, status UNRANKED
+FOREGROUND_END leg-SAWPATH 2026-09-21T19:12:06-04:00 rc=0
+WRAPPER_RC leg-SAWPATH rc=0
+PGREP_BEFORE_LOCK TAX213322: 
+FOREGROUND_START leg-TAX213322 2026-09-21T19:12:06-04:00
+PGREP_EMPTY leg-TAX213322: no foreign cell binary under my lock
+LEG TAX213322  deadline=300   rc=124 wall_s=900.1 (INFORMATIONAL)
+    CENSORED: the 900 s outer stop fired -- NO ROW, never filled (RULE.md section 3.1)
+FOREGROUND_END leg-TAX213322 2026-09-21T19:27:07-04:00 rc=1
+WRAPPER_RC leg-TAX213322 rc=1
+PGREP_BEFORE_LOCK TAX53322: 
+FOREGROUND_START leg-TAX53322 2026-09-21T19:27:07-04:00
+PGREP_EMPTY leg-TAX53322: no foreign cell binary under my lock
+LEG TAX53322   deadline=300   rc=124 wall_s=900.0 (INFORMATIONAL)
+    CENSORED: the 900 s outer stop fired -- NO ROW, never filled (RULE.md section 3.1)
+FOREGROUND_END leg-TAX53322 2026-09-21T19:42:07-04:00 rc=1
+WRAPPER_RC leg-TAX53322 rc=1
+--- IDENTITY GATE over all twenty (group W reports NOT COMPARABLE by construction)
+M7 W2 M3c -- IDENTITY GATE (RULE.md section 4): this task's legs at HEAD
+against the harness's COMMITTED rows at the pin aeebdccc, read from their bytes.
+  results.csv   /home/ghecht/Projects/hven-bench/runs/2026-09-m7-w2-h-repin/run-A/results.csv
+  counters.csv  /home/ghecht/Projects/hven-bench/runs/2026-09-m7-w2-h-repin/run-A/cutest/counters-hven-sqp.csv
+  leg rows      /home/ghecht/Projects/hven/.scratch/m7w2m3c/out
+  near-ulp gate, residual class only: |a-b| <= 1e-12 * max(1,|a|,|b|)
+
+ACOPP118   STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+ACOPP118   24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY ACOPP118 PASS
+
+ACOPP57    STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+ACOPP57    24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY ACOPP57 PASS
+
+ACOPR57    STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+ACOPR57    24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY ACOPR57 PASS
+
+BRITGAS    STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+BRITGAS    24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY BRITGAS PASS
+
+DALLASM    STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+DALLASM    24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY DALLASM PASS
+
+NET3       STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+NET3       NaN SPELLING ACCEPTED f: -nan vs nan -- both are NaN; the sign bit of a NaN is not a value
+NET3       24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY NET3 PASS
+
+STEENBRB   STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+STEENBRB   24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY STEENBRB PASS
+
+STEENBRC   STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+STEENBRC   24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY STEENBRC PASS
+
+STEENBRD   STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+STEENBRD   NaN SPELLING ACCEPTED f: -nan vs nan -- both are NaN; the sign bit of a NaN is not a value
+STEENBRD   24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY STEENBRD PASS
+
+STEENBRE   STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+STEENBRE   NaN SPELLING ACCEPTED f: -nan vs nan -- both are NaN; the sign bit of a NaN is not a value
+STEENBRE   24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY STEENBRE PASS
+
+STEENBRG   STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+STEENBRG   24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY STEENBRG PASS
+
+YORKNET    STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+YORKNET    24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY YORKNET PASS
+
+ACOPR118   STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+ACOPR118   NOT COMPARABLE (dnf_wall: the pin's row carries status=null and no counters -- there is nothing to reproduce; RULE.md section 4.1)
+IDENTITY ACOPR118 NOT_COMPARABLE
+
+BIGBANK    STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+BIGBANK    NOT COMPARABLE (dnf_wall: the pin's row carries status=null and no counters -- there is nothing to reproduce; RULE.md section 4.1)
+IDENTITY BIGBANK NOT_COMPARABLE
+
+REFUSED [missing] MSS2: no leg row at /home/ghecht/Projects/hven/.scratch/m7w2m3c/out/MSS2.txt -- a CENSORED leg has NO ROW and is reported as censored, never as agreement
+IDENTITY MSS2 REFUSED
+
+REFUSED [missing] MSS3: no leg row at /home/ghecht/Projects/hven/.scratch/m7w2m3c/out/MSS3.txt -- a CENSORED leg has NO ROW and is reported as censored, never as agreement
+IDENTITY MSS3 REFUSED
+
+REFUSED [missing] READING8: no leg row at /home/ghecht/Projects/hven/.scratch/m7w2m3c/out/READING8.txt -- a CENSORED leg has NO ROW and is reported as censored, never as agreement
+IDENTITY READING8 REFUSED
+
+SAWPATH    STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+SAWPATH    NOT COMPARABLE (dnf_wall: the pin's row carries status=null and no counters -- there is nothing to reproduce; RULE.md section 4.1)
+IDENTITY SAWPATH NOT_COMPARABLE
+
+REFUSED [missing] TAX213322: no leg row at /home/ghecht/Projects/hven/.scratch/m7w2m3c/out/TAX213322.txt -- a CENSORED leg has NO ROW and is reported as censored, never as agreement
+IDENTITY TAX213322 REFUSED
+
+REFUSED [missing] TAX53322: no leg row at /home/ghecht/Projects/hven/.scratch/m7w2m3c/out/TAX53322.txt -- a CENSORED leg has NO ROW and is reported as censored, never as agreement
+IDENTITY TAX53322 REFUSED
+
+IDENTITY_PASS=12
+IDENTITY_DIFFERS=0
+IDENTITY_REFUSED=5
+IDENTITY_NOT_COMPARABLE=3
+IDENTITY_COMPARABLE=17
+IDENTITY_VERDICT=STRUCTURAL_REFUSAL
+IDENTITY_ALL_RC=2
+CENSORED_LEGS=5
+CHAIN_INCOMPLETE: 5 leg(s) were CENSORED -- their rows were never filled,
+  so the census has a hole in it. The rows that DO exist stand.
+CHAIN_CENSUS_END 2026-09-21T19:42:07-04:00

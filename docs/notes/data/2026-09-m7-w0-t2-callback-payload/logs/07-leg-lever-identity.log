@@ -1,0 +1,39 @@
+LEG: bash -o pipefail -c 
+cd /home/ghecht/Projects/hven
+S=.scratch/m7t2/smoke
+rc=0
+for a in a-all a-scalars a-sink; do
+  python3 scripts/compare_replay.py $S/a00.csv $S/$a.csv "interior leg a00 vs $a"
+  r=$?; [ $r -gt $rc ] && rc=$r
+done
+echo "=== the wall column is the ONLY column that moves; diff of the non-wall fields ==="
+for a in a-all a-scalars a-sink; do
+  n=$(diff <(cut -d, -f1-29 $S/a00.csv) <(cut -d, -f1-29 $S/$a.csv) | grep -c "^[<>]")
+  echo "non-wall row-field differences a00 vs $a: $n"
+done
+echo "=== refusal of a bad payload spelling ==="
+env MKL_NUM_THREADS=1 HVEN_LEG_COUNT_CALLBACK=1 HVEN_LEG_CALLBACK_PAYLOAD=scalar build/bench/hven_sqp_corpus --engine interior --cells f7_n1000_bound_neutral --csv $S/refuse.csv > $S/refuse.out 2>&1
+echo "REFUSE_RC=$?"
+tail -3 $S/refuse.out
+echo "IDENTITY_WORST_RC=$rc"
+exit $rc
+
+PGREP_SEPARATE 2026-09-15T04:19:00Z
+PGREP_EMPTY
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-09-15T04:19:00Z
+=== interior leg a00 vs a-all === cells compared: 43  columns compared: 30  differences: 0
+=== interior leg a00 vs a-scalars === cells compared: 43  columns compared: 30  differences: 0
+=== interior leg a00 vs a-sink === cells compared: 43  columns compared: 30  differences: 0
+=== the wall column is the ONLY column that moves; diff of the non-wall fields ===
+non-wall row-field differences a00 vs a-all: 4
+non-wall row-field differences a00 vs a-scalars: 4
+non-wall row-field differences a00 vs a-sink: 4
+=== refusal of a bad payload spelling ===
+REFUSE_RC=1
+hven_sqp_corpus: error: HVEN_LEG_CALLBACK_PAYLOAD: 'scalar' is not one of all|scalars
+running f7_n1000_bound_neutral (N=1000, treatment MakeParameter)...
+IDENTITY_WORST_RC=0
+LEG_RC=0
+FOREGROUND_END 2026-09-15T04:19:00Z
+WRAPPER_EXIT=0

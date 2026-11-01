@@ -51,6 +51,67 @@ const char *to_string(SolveStatus status) {
         fmt::format("to_string(SolveStatus): unrecognized value ({})", static_cast<int>(status)));
 }
 
+// THE COUNTER'S OWN VOCABULARY (M7 W2 M3a fix1). Ten spellings: the nine above,
+// byte for byte -- a consumer must be able to compare this key against the end
+// line's `status` without a translation table -- plus the `not_run` the enum
+// exists for. The switch is exhaustive and has no default arm, so an enumerator
+// added without a spelling fails to compile rather than reaching the throw.
+const char *to_string(RestorationSubStatus status) {
+    switch (status) {
+    case RestorationSubStatus::kNotRun:
+        return "not_run";
+    case RestorationSubStatus::kOptimal:
+        return "optimal";
+    case RestorationSubStatus::kAcceptable:
+        return "acceptable";
+    case RestorationSubStatus::kMaxIter:
+        return "max_iter";
+    case RestorationSubStatus::kInfeasible:
+        return "infeasible";
+    case RestorationSubStatus::kStalled:
+        return "stalled";
+    case RestorationSubStatus::kDiverging:
+        return "diverging";
+    case RestorationSubStatus::kNumericalError:
+        return "numerical_error";
+    case RestorationSubStatus::kBudgetExhausted:
+        return "budget_exhausted";
+    case RestorationSubStatus::kInterrupted:
+        return "interrupted";
+    }
+    throw std::invalid_argument(fmt::format(
+        "to_string(RestorationSubStatus): unrecognized value ({})", static_cast<int>(status)));
+}
+
+// THE TOTAL MAP, and the reason the enum above carries all nine of SolveStatus's
+// values rather than the five a feasibility sub-solve can return: an exhaustive
+// switch with no default arm and no invented image. A sub-solve that returned a
+// status has, by construction, RUN -- so `kNotRun` is unreachable from here.
+RestorationSubStatus to_restoration_sub_status(SolveStatus status) {
+    switch (status) {
+    case SolveStatus::kOptimal:
+        return RestorationSubStatus::kOptimal;
+    case SolveStatus::kAcceptable:
+        return RestorationSubStatus::kAcceptable;
+    case SolveStatus::kMaxIter:
+        return RestorationSubStatus::kMaxIter;
+    case SolveStatus::kInfeasible:
+        return RestorationSubStatus::kInfeasible;
+    case SolveStatus::kStalled:
+        return RestorationSubStatus::kStalled;
+    case SolveStatus::kDiverging:
+        return RestorationSubStatus::kDiverging;
+    case SolveStatus::kNumericalError:
+        return RestorationSubStatus::kNumericalError;
+    case SolveStatus::kBudgetExhausted:
+        return RestorationSubStatus::kBudgetExhausted;
+    case SolveStatus::kInterrupted:
+        return RestorationSubStatus::kInterrupted;
+    }
+    throw std::invalid_argument(fmt::format(
+        "to_restoration_sub_status: unrecognized SolveStatus ({})", static_cast<int>(status)));
+}
+
 const char *to_string(IpmStopReason reason) {
     switch (reason) {
     case IpmStopReason::kNone:

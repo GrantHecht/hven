@@ -1,0 +1,84 @@
+START 2026-09-23T19:03:33-04:00 HEAD 89ee3e13290f9d4c8c64ff7c031de30f182e98da BEFORE 4858019e dirty=0
+FOREGROUND_START OFFLINE-G4 2026-09-23T19:07:33-04:00
+PGREP_EMPTY OFFLINE-G4: no foreign cell binary under my lock
+ran head-walk rc=0
+ran head-ssn rc=0
+ran head-ipm rc=0
+=== M6 CLOSE HEAD-ssn vs E1b fix1 HEAD-ssn (GATED 1e-5) === cells compared: 27  columns compared: 75  differences: 0  within gate: 0
+=== M6 CLOSE HEAD-ipm vs E1b fix1 HEAD-ipm (GATED 1e-5) === cells compared: 27  columns compared: 75  differences: 0  within gate: 0
+FOREGROUND_END OFFLINE-G4 2026-09-23T19:12:13-04:00 rc=0
+LEG_RC OFFLINE-G4 rc=0
+G5 args: CS=[src/drivers/equality_basis.cpp src/drivers/sqp_solver.cpp tests/sqp/test_equality_basis.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp ] CH=[include/hven/detail/drivers/equality_basis.h include/hven/detail/drivers/equality_basis_testing.h include/hven/drivers/sqp_solver_types.h ] MOV=[CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o CMakeFile
+FOREGROUND_START R5-psym-e1bfix1 2026-09-23T19:16:47-04:00
+PGREP_EMPTY R5-psym-e1bfix1: no foreign cell binary under my lock
+=== P-SYM Release  after=89ee3e13290f9d4c8c64ff7c031de30f182e98da  before=4858019e  declared differing=60 A=4 B=56
+CLEANDEAD_Release: 0 output(s) removed
+ASSERT OK   capture after-Release: rc=0, 151 object(s) in /home/ghecht/Projects/hven/.scratch/m7w2e1bfix1rehearsal/gates/psym/after-Release/.psym-manifest
+ASSERT OK   capture before-Release: rc=0, 151 object(s) in /home/ghecht/Projects/hven/.scratch/m7w2e1bfix1rehearsal/gates/psym/before-Release/.psym-manifest
+ASSERT OK   capture pair Release after = before + ADDED = 151
+ASSERT OK   outside-universe Release: tests/CMakeFiles/hven_sqp_seam_tests.dir/sqp/test_sqp_equality_basis_seams.cpp.o was BUILT in the after arm
+ASSERT OK   outside-universe Release: objects of tests/CMakeFiles/hven_sqp_seam_tests.dir in the after manifest = 0
+tree restored to m7 89ee3e13
+PSYM_COMPARE_RC_Release=1 (1 is EXPECTED; the gate is the classification)
+ASSERT OK   ONLY-AFTER Release: [] == the ADDED sources' objects
+CLASSIFY_RC_Release=4
+HEADER DERIVATION
+HEADER LIST ACCEPTED: ['include/hven/detail/drivers/equality_basis.h', 'include/hven/detail/drivers/equality_basis_testing.h', 'include/hven/drivers/sqp_solver_types.h']
+P-SYM: FAIL — differences outside the accepted noise class
+DIFFERING OBJECTS: 50
+REFUSED (R2): /home/ghecht/Projects/hven/.scratch/m7w2e1bfix1rehearsal/gates/psym/compare-Release.txt names 50 differing object(s) and this round DECLARED 60 -- a shape that is not the declared one is re-derived and declared again, never discovered
+ASSERT OK   P-SYM Release compare rc (declared 60 mover(s)) = 1
+ASSERT FAIL P-SYM Release classify rc: got '4', expected '0'
+ASSERT FAIL P-SYM Release: the classification is missing one of its five counts
+ASSERT OK   library ADDED Release: [] present after, absent before
+SECTIONS_RC_Release=1
+SECTIONS_Release_OBJECTS=44
+SECTIONS_Release_BYTE_IDENTICAL=41
+SECTIONS_Release_DEBUG_ONLY=0
+SECTIONS_Release_NON_DEBUG_MOVERS=3
+SECTIONS_Release_REFUSED=0
+SECTIONS_Release_RC=1
+NON_DEBUG_MOVERS_GOT_Release=[CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o ]  DECLARED=[CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o ]  REFUSED=0
+ASSERT FAIL sections Release: rc=1 (want 1), refused='0', movers [CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o ] != declared [CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o ]
+ASSERT OK   sections Release: DEBUG_ONLY=0, as declared
+=== P-SYM Debug  after=89ee3e13290f9d4c8c64ff7c031de30f182e98da  before=4858019e  declared differing=60 A=4 B=56
+CLEANDEAD_Debug: 0 output(s) removed
+ASSERT OK   capture after-Debug: rc=0, 151 object(s) in /home/ghecht/Projects/hven/.scratch/m7w2e1bfix1rehearsal/gates/psym/after-Debug/.psym-manifest
+ASSERT OK   capture before-Debug: rc=0, 151 object(s) in /home/ghecht/Projects/hven/.scratch/m7w2e1bfix1rehearsal/gates/psym/before-Debug/.psym-manifest
+ASSERT OK   capture pair Debug after = before + ADDED = 151
+ASSERT OK   outside-universe Debug: tests/CMakeFiles/hven_sqp_seam_tests.dir/sqp/test_sqp_equality_basis_seams.cpp.o was BUILT in the after arm
+ASSERT OK   outside-universe Debug: objects of tests/CMakeFiles/hven_sqp_seam_tests.dir in the after manifest = 0
+tree restored to m7 89ee3e13
+PSYM_COMPARE_RC_Debug=1 (1 is EXPECTED; the gate is the classification)
+ASSERT OK   ONLY-AFTER Debug: [] == the ADDED sources' objects
+CLASSIFY_RC_Debug=4
+HEADER DERIVATION
+HEADER LIST ACCEPTED: ['include/hven/detail/drivers/equality_basis.h', 'include/hven/detail/drivers/equality_basis_testing.h', 'include/hven/drivers/sqp_solver_types.h']
+P-SYM: FAIL — differences outside the accepted noise class
+DIFFERING OBJECTS: 50
+REFUSED (R2): /home/ghecht/Projects/hven/.scratch/m7w2e1bfix1rehearsal/gates/psym/compare-Debug.txt names 50 differing object(s) and this round DECLARED 60 -- a shape that is not the declared one is re-derived and declared again, never discovered
+ASSERT OK   P-SYM Debug compare rc (declared 60 mover(s)) = 1
+ASSERT FAIL P-SYM Debug classify rc: got '4', expected '0'
+ASSERT FAIL P-SYM Debug: the classification is missing one of its five counts
+ASSERT OK   library ADDED Debug: [] present after, absent before
+SECTIONS_RC_Debug=1
+DEBUG-ONLY       CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o
+SECTIONS_Debug_OBJECTS=44
+SECTIONS_Debug_BYTE_IDENTICAL=40
+SECTIONS_Debug_DEBUG_ONLY=1
+SECTIONS_Debug_NON_DEBUG_MOVERS=3
+SECTIONS_Debug_REFUSED=0
+SECTIONS_Debug_RC=1
+NON_DEBUG_MOVERS_GOT_Debug=[CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o ]  DECLARED=[CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o ]  REFUSED=0
+ASSERT FAIL sections Debug: rc=1 (want 1), refused='0', movers [CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o ] != declared [CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o ]
+ASSERT FAIL sections Debug: DEBUG_ONLY is '1' and this round DECLARED '4'
+ASSERT OK   P-SYM cross-config: class B sets equal (0 object(s))
+ASSERT FAIL P-SYM cross-config: Release carries no UNEXPLAINED count
+ASSERT FAIL P-SYM cross-config: Debug carries no UNEXPLAINED count
+ASSERT OK   P-SYM cross-config: Release class A (0) all changed-source
+ASSERT OK   P-SYM cross-config: Debug class A (0) all changed-source
+ASSERT OK   P-SYM cross-config: the two class A sets are identical
+G5_ASSERT_RC=1
+FOREGROUND_END R5-psym-e1bfix1 2026-09-23T19:42:58-04:00 rc=1
+LEG_RC R5-psym-e1bfix1 rc=1
+END 2026-09-23T19:42:58-04:00 tree=m7 89ee3e13 dirty=0

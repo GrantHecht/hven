@@ -1,0 +1,170 @@
+OBJECT | SOURCE CHANGED BETWEEN THE TWO COMMITS | DIFFERING SYMBOLS
+
+## CLASS A -- the ONLY differing symbol is SqpOptions::SqpOptions() (34 objects)
+  CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o   [source changed: no]
+  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_activity_telemetry.cpp.o   [source changed: no]
+  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_assembly_eval_seam.cpp.o   [source changed: no]
+  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_b1_gate.cpp.o   [source changed: no]
+  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_continuation.cpp.o   [source changed: no]
+  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_corpus_cells.cpp.o   [source changed: no]
+  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o   [source changed: no]
+  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_elastic_rung_vehicle.cpp.o   [source changed: no]
+  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_eqp_refine_ab.cpp.o   [source changed: no]
+  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_battery.cpp.o   [source changed: no]
+  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_sweeps.cpp.o   [source changed: no]
+  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_acceptance.cpp.o   [source changed: no]
+  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_dispatch.cpp.o   [source changed: no]
+  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_options.cpp.o   [source changed: no]
+  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_trace.cpp.o   [source changed: no]
+  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_warm_restart.cpp.o   [source changed: no]
+  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_mesh_transfer.cpp.o   [source changed: no]
+  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_parametric_families.cpp.o   [source changed: no]
+  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_predictor.cpp.o   [source changed: no]
+  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_mode_sites.cpp.o   [source changed: no]
+  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_scale_problems.cpp.o   [source changed: no]
+  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_scale_smoke.cpp.o   [source changed: no]
+  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_warm_start_battery.cpp.o   [source changed: no]
+  tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o   [source changed: no]
+  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o   [source changed: no]
+  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_concurrency.cpp.o   [source changed: no]
+  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_result.cpp.o   [source changed: no]
+  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_warm_protocol.cpp.o   [source changed: no]
+  bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o   [source changed: no]
+  bench/CMakeFiles/hven_sqp_bench.dir/bench_scale.cpp.o   [source changed: no]
+  bench/CMakeFiles/hven_sqp_f7_cold.dir/bench_f7_cold.cpp.o   [source changed: no]
+  bench/CMakeFiles/hven_sqp_tau_bar_sweep_probe.dir/tau_bar_sweep_probe.cpp.o   [source changed: no]
+  bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o   [source changed: no]
+  bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o   [source changed: no]
+
+## CLASS B -- something else differs too (13 objects)
+  CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o   [source changed: YES: src/drivers/sqp_options.cpp]
+      - hven::solvers::dump_options(hven::solvers::SqpOptions const&, std::basic_ostream<char, std::char_traits<char> >&)
+      - hven::solvers::sqp_preset(std::basic_string_view<char, std::char_traits<char> >)
+  CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o   [source changed: YES: src/drivers/sqp_solver.cpp]
+      - hven::solvers::(anonymous namespace)::assert_ipqp_hand_off_window(hven::solvers::IpqpBox const&, hven::solvers::IpqpResult const&)
+      - hven::solvers::(anonymous namespace)::assert_ssn_warm_grade_window(hven::solvers::IpqpResult const&, hven::solvers::SsnStart const&, hven::solvers::SolveOverrides const&, hven::solvers::QpOptions const&)
+      - hven::solvers::SqpSolver::invoke_iteration_callback(hven::solvers::IterationEvent const&)
+      - hven::solvers::SqpSolver::route_through_ipqp_tier(hven::solvers::SqpSolver::SolveState&, hven::solvers::SqpSolver::MajorState&, hven::solvers::AssemblyEvalSeam&, long, bool, hven::solvers::SolveOverrides const&)
+      - hven::solvers::SqpSolver::run_major(hven::solvers::SqpSolver::SolveState&, hven::solvers::SqpSolver::MajorState&, hven::solvers::AssemblyEvalSeam&, hven::solvers::NlpModelAssembly&, hven::solvers::SqpWarmStart const&, hven::solvers::SolveBudget, long)::$_2::operator()(hven::solvers::SqpIterate) const
+      - hven::solvers::SqpSolver::solve_impl_body(hven::solvers::AssemblyEvalSeam&, hven::solvers::NlpModelAssembly&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::SqpWarmStart const&, hven::solvers::SolveBudget, std::unique_ptr<hven::solvers::GlobalizationStrategy, std::default_delete<hven::solvers::GlobalizationStrategy> >)::$_0::operator()(long) const
+  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ledger.cpp.o   [source changed: no]
+      - (anonymous namespace)::Ledger_DriverSolveRecordsWallSeconds_Test::TestBody()
+  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_problem_scaling.cpp.o   [source changed: no]
+      - hven::solvers::ProblemScalingAcceptance_Hs25IsMeasuredWithScalingOn_Test::TestBody()
+      - hven::solvers::ProblemScalingHistory_AnUnscaledSolvesHistoryIsUntouched_Test::TestBody()
+      - hven::solvers::ProblemScalingOffPath_SettingTheRuleWithoutTheToggleChangesNothing_Test::TestBody()
+      - hven::solvers::ProblemScalingOffPath_TheDefaultIsOffAndReportsTheIdentity_Test::TestBody()
+      - hven::solvers::ProblemScalingRoundTrip_AScaledSolveReportsOnTheCallersScale_Test::TestBody()
+      - hven::solvers::ProblemScalingRoundTrip_TheBoundPricesAreTheReMeasurementsNotADivideBack_Test::TestBody()
+      - hven::solvers::ProblemScalingRoundTrip_TheMultipliersAreTheCallersNotTheEngines_Test::TestBody()
+      - hven::solvers::ProblemScalingWarmStart_AScaledSolvesExportIsAcceptedByAnUnscaledSolve_Test::TestBody()
+      - hven::solvers::SqpOptions::SqpOptions()
+  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o   [source changed: no]
+      - SqpDriverRadius_RejectsUnusableFloors_Test::TestBody()
+      - hven::solvers::SqpOptions::SqpOptions()
+  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o   [source changed: no]
+      - QpEngineStructuralViolation_T6bAFeasibleElasticCopyIsNoLongerCertifiedInfeasible_Test::TestBody()
+      - QpEngineStructuralViolation_T6bTheGENUINELYBlockedSiblingStaysKOptimalAndOPEN_Test::TestBody()
+      - QpEngineStructuralViolation_T6bTheInequalityBranchClosesWithItsResidueOnTheSafeSide_Test::TestBody()
+      - QpEngineStructuralViolation_T6bTheStiffFamilyClosesInBothAlgebras_Test::TestBody()
+      - QpEngineStructuralViolation_T6bTheStiffWALKSOwnPathologyAboveTheShippedDualMuIsUNCHANGED_Test::TestBody()
+      - QpEngineStructuralViolation_T7TheFeasibleCensusHalfOverTheFULLDualMuSet_Test::TestBody()
+      - SqpDriverCertifiedFallback_ADeclinedRungAAboveTheFloorIsRETRIEDThereExactlyOnce_Test::TestBody()
+      - SqpDriverCertifiedFallback_ANegativeOrNaNWindowIsREFUSEDAtBothPublicEntryPoints_Test::TestBody()
+      - SqpDriverCertifiedFallback_P1TheEvidencePlacesRungAsFirstRungBetweenTheFloorAndTheCeiling_Test::TestBody()
+      - SqpDriverCertifiedFallback_P2ClosedSlacksDisproveTheSuspicionAndCarryTheMultipliers_Test::TestBody()
+      - SqpDriverCertifiedFallback_P2bOpenButReducedSlacksReturnKOptimalWithMultipliersZEROED_Test::TestBody()
+      - SqpDriverCertifiedFallback_P3AnExhaustedLadderCertifiesInfeasibleWithItsReportAttached_Test::TestBody()
+      - SqpDriverCertifiedFallback_P3TheEscapeBranchCONSUMESTheAttachedLadderRatherThanRerunningIt_Test::TestBody()
+      - SqpDriverCertifiedFallback_P4ARefusedRungAReturnsTheColdWalkCounterForCounter_Test::TestBody()
+      - SqpDriverCertifiedFallback_P4OnAPrimedEngineCostsTheAnalysisRungADisplaces_Test::TestBody()
+      - SqpDriverCertifiedFallback_P4bTheCeilingDeclineIsGONEUnderThePlacementBound_Test::TestBody()
+      - SqpDriverCertifiedFallback_P5AnUnfiredEvidenceBlockNeverEntersRungAAtAll_Test::TestBody()
+      - SqpDriverCertifiedFallback_P6NoEvidenceContentMakesTheFallbackThrow_Test::TestBody()
+      - SqpDriverCertifiedFallback_P7TheVerdictReadsNothingFromTheEvidenceBeyondItsThreeInputs_Test::TestBody()
+      - SqpDriverCertifiedFallback_T3ARefusalWhoseWalkCertifiesInfeasibleCostsTwoActivations_Test::TestBody()
+      - SqpDriverCertifiedFallback_TheFallbackVerdictEventDescribesEVERYEntryIncludingTheUnfiredOne_Test::TestBody()
+      - SqpDriverContract_ColdCeilingSkipsTheWarmResolutionProbeEntirely_Test::TestBody()
+      - SqpDriverContract_ConvergedStartSolvesNoSubproblems_Test::TestBody()
+      - SqpDriverContract_MisSizedCallbackReturnsAreRejectedByName_Test::TestBody()
+      - SqpDriverContract_NonFiniteStartPointIsRejected_Test::TestBody()
+      - SqpDriverContract_RejectsUnusableOptionsAndStartPoints_Test::TestBody()
+      - SqpDriverContract_SeededCeilingSkipsTheWarmResolutionProbeEntirely_Test::TestBody()
+      - SqpDriverContract_WarmResolutionProbeIsValuesOnlyNeverFetchesAGradient_Test::TestBody()
+      - SqpDriverElasticSeed_ABlockThatNeverFIREDIsW1sLadderWhateverItsFieldsSay_Test::TestBody()
+      - SqpDriverElasticSeed_ADefaultConstructedEvidenceBlockIsW1sLadderExactly_Test::TestBody()
+      - SqpDriverElasticSeed_AnEvidenceNormAboveTheLaddersCeilingIsCAPPEDAtIt_Test::TestBody()
+      - SqpDriverElasticSeed_GeometricActivityEARNSItsMinorIterationsWhereTheGeometryIsThere_Test::TestBody()
+      - SqpDriverElasticSeed_T6bAClimbingConsistentLadderClosesAtEveryRung_Test::TestBody()
+      - SqpDriverElasticSeed_T6bCoversTheBandWhereThePlacementMarginIsUnachievable_Test::TestBody()
+      - SqpDriverElasticSeed_T6bTheBandsHIGHRungsRemainAPREEXISTINGResidue_Test::TestBody()
+      - SqpDriverElasticSeed_T6bTheLadderAboveLambda1e6ClosesToo_Test::TestBody()
+      - SqpDriverElasticSeed_TheDegradedPathIsSAFEOnFixturesWhereGeometryNamesNothing_Test::TestBody()
+      - SqpDriverElasticSeed_TheFirstRungsPenaltyIsFlooredAtTodaysStartAndPlacedByTheEvidence_Test::TestBody()
+      - SqpDriverElasticSeed_TheWorkingSetIsClassifiedAgainstTheWINDOWCLAMPEDBounds_Test::TestBody()
+      - SqpDriverElasticSeed_TheWorkingSetSeedIsSolutionIdenticalAndEarnsItsMinorIterations_Test::TestBody()
+      - SqpDriverEvalEconomics_HsSweepPoisonedHs40MatchesTheBaseProblemAtPZero_Test::TestBody()
+      - SqpDriverGlobalization_SubproblemInfeasibilityEndsTheSolveThroughTheElasticTier_Test::TestBody()
+      - SqpDriverSsnMode_TheLedgerCarriesTheSsnColumnsAndTheyAgreeWithTheCounters_Test::TestBody()
+      - hven::solvers::SqpOptions::SqpOptions()
+  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_warm_currency.cpp.o   [source changed: no]
+      - (anonymous namespace)::solve_fixture_cold(hven::solvers::NlpModel const&)
+      - SqpWarmCurrency_ACoreOnlyValueEntersAtTheSeededLevel_Test::TestBody()
+      - SqpWarmCurrency_ADeclarationWithAnExtraRowIsStaleAndIsRefused_Test::TestBody()
+      - SqpWarmCurrency_AForeignExtensionTagIsSkippedSilently_Test::TestBody()
+      - SqpWarmCurrency_AFreshDriverCannotExport_Test::TestBody()
+      - SqpWarmCurrency_APayloadAppliesToItsOwnCallAndTheOneAfterIsCold_Test::TestBody()
+      - SqpWarmCurrency_APolishMuAboveTheShippedCeilingIsClampedOutOfAdoption_Test::TestBody()
+      - SqpWarmCurrency_APolishMuUnderTheShippedCeilingIsStillAdopted_Test::TestBody()
+      - SqpWarmCurrency_APolishTaggedValueRoutesThroughTheCrossoverBridge_Test::TestBody()
+      - SqpWarmCurrency_ARefusedPayloadLeavesNothingBehindForTheNextSolve_Test::TestBody()
+      - SqpWarmCurrency_ASecondSolveOnOneDriverAnswersExactlyWhatAFreshDriverAnswers_Test::TestBody()
+      - SqpWarmCurrency_ASolveThatThrewIsNotACompletedSolve_Test::TestBody()
+      - SqpWarmCurrency_ASolveThatThrewLeavesAnEarlierExportStanding_Test::TestBody()
+      - SqpWarmCurrency_AWarmResolveOnAUsedDriverAnswersExactlyWhatAFreshDriverAnswers_Test::TestBody()
+      - SqpWarmCurrency_AZeroValuedPriceBlockIsStillAccepted_Test::TestBody()
+      - SqpWarmCurrency_ExportCarriesTheSolutionAtDeclaredWidthsAndTheBridgesKey_Test::TestBody()
+      - SqpWarmCurrency_ExportTracksTheLastCompletedSolve_Test::TestBody()
+      - SqpWarmCurrency_InteriorPointExportCrossesOverIntoTheSqpEngine_Test::TestBody()
+      - SqpWarmCurrency_KIpmRefusesAStampMismatchLikeKWalk_Test::TestBody()
+      - SqpWarmCurrency_KIpmRefusesAWrongSizedPayloadLikeKWalk_Test::TestBody()
+      - SqpWarmCurrency_PassingTheSameValueTwiceFromColdIsBitIdentical_Test::TestBody()
+      - SqpWarmCurrency_SolveEntryRefusesAPayloadAtTheWrongSizes_Test::TestBody()
+      - SqpWarmCurrency_SolveEntryRefusesAStagedValueUnderAnotherStampNamingBothDigests_Test::TestBody()
+      - SqpWarmCurrency_TheHandOverRefusesACoreThatDisagreesWithItself_Test::TestBody()
+      - SqpWarmCurrency_TheHandOverRefusesAMalformedPolishPayloadNamingTheTag_Test::TestBody()
+      - SqpWarmCurrency_TheHandOverRefusesANegativeLowerBoundPriceNamingTheTagAndTheBlock_Test::TestBody()
+      - SqpWarmCurrency_TheHandOverRefusesANegativeUpperBoundPriceNamingTheTagAndTheBlock_Test::TestBody()
+      - SqpWarmCurrency_TheHandOverRefusesANonFiniteBlock_Test::TestBody()
+      - SqpWarmCurrency_TheNativeAndPayloadOverloadsAreSelectedByArgumentType_Test::TestBody()
+      - hven::solvers::SqpOptions::SqpOptions()
+  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ssn_engine.cpp.o   [source changed: no]
+      - SsnEngineLocal_DriverSurfaceIsDeclaredButInert_Test::TestBody()
+      - SsnEngineLocal_FbTolDerivationAndItsBound_Test::TestBody()
+  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_trace_writer.cpp.o   [source changed: no]
+      - hven::solvers::(anonymous namespace)::SqpConsole_ACountingSinkSeesTheSameEventsWithPrintingOnAndOff_Test::TestBody()::$_0::operator()[abi:cxx11](int, bool) const
+      - hven::solvers::SqpOptions::SqpOptions()
+  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_warm_start.cpp.o   [source changed: no]
+      - (anonymous namespace)::WarmStart_NonFiniteObjectResolvesColdEvenWithAMatchingHash_Test::TestBody()
+      - (anonymous namespace)::WarmStart_SeededGateRejectsIncompatibleAndNonFiniteObjects_Test::TestBody()
+      - (anonymous namespace)::WarmStart_SeededRefusesFunnelTrustRegionAndFullStepState_Test::TestBody()
+      - hven::solvers::SqpOptions::SqpOptions()
+  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options.cpp.o   [source changed: no]
+      - (anonymous namespace)::sqp_default()
+      - Options_SqpPresetsReturnFullValues_Test::TestBody()
+      - Options_SqpSetOptionsDuringASolveThrowsLogicError_Test::TestBody()
+      - Options_SqpSetOptionsIsTransactional_Test::TestBody()
+      - Options_SqpValidateRefusesTheCommonFieldsAndWhatItAlwaysRefused_Test::TestBody()
+      - hven::solvers::SqpOptions::SqpOptions()
+  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options_dump.cpp.o   [source changed: YES: tests/drivers/test_options_dump.cpp]
+      - (anonymous namespace)::OptionsDump_APoisonedStreamProducesTheSameBytes_Test::TestBody()
+      - (anonymous namespace)::OptionsDump_EnumsPrintEnumeratorNames_Test::TestBody()
+      - (anonymous namespace)::OptionsDump_NoTrailingWhitespace_Test::TestBody()
+      - (anonymous namespace)::OptionsDump_SqpDumpsOneLinePerField_Test::TestBody()
+      - (anonymous namespace)::OptionsDump_SqpDumpsTheCommonDefaults_Test::TestBody()
+      - (anonymous namespace)::OptionsDump_WritesIntoAStreamTheCallerIsAlreadyUsing_Test::TestBody()
+      - std::locale::locale<(anonymous namespace)::GroupingPunct>(std::locale const&, (anonymous namespace)::GroupingPunct*)
+  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o   [source changed: no]
+      - Threads_ANegativeThreadCountIsRefusedByTheDriverConstructor_Test::TestBody()
+      - Threads_ZeroLeavesEveryFactorAtTheBackendDefault_Test::TestBody()
+      - hven::solvers::SqpOptions::SqpOptions()

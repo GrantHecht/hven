@@ -1,0 +1,547 @@
+--- a/src/qp/qp_engine.cpp
++++ b/src/qp/qp_engine.cpp
+@@ -32,6 +32,7 @@
+ // re-derivation.
+
+ #include <bit>
++#include <string>
+
+ #include <hven/detail/qp/qp_engine.h>
+
+@@ -683,8 +684,47 @@
+     std::unique_ptr<detail::KktFactor> diag_kkt;
+     EliminatedFace diag_face;
+ #endif
++    ++d2::solve_no();
++    if (d2::level() > 0) {
++        std::fprintf(stderr, "D2SOLVE solve=%ld n=%ld me=%ld mi=%ld warm=%d iws=%d\n", d2::solve_no(), (long)n, (long)me, (long)mi, (int)warm, (int)eff_opts.independent_working_set);
++    }
++    if (const char *dd = std::getenv("HVEN_D2_DUMPQP"); dd != nullptr && d2::on()) {
++        char path[1024];
++        std::snprintf(path, sizeof path, "%s/qp_%03ld.txt", dd, d2::solve_no());
++        std::FILE *f = std::fopen(path, "w");
++        std::fprintf(f, "n %ld me %ld mi %ld\nH\n", (long)qp.n(), (long)qp.me(), (long)qp.mi());
++        for (Index i = 0; i < qp.H.outerSize(); ++i) for (SpMatRM::InnerIterator it(qp.H, i); it; ++it) std::fprintf(f, "%ld %ld %.17g\n", (long)it.row(), (long)it.col(), it.value());
++        std::fprintf(f, "END\ng\n"); for (Index i = 0; i < qp.n(); ++i) std::fprintf(f, "%.17g ", qp.g(i));
++        std::fprintf(f, "\nAe\n");
++        for (Index i = 0; i < qp.me(); ++i) for (SpMatRM::InnerIterator it(qp.Ae, i); it; ++it) std::fprintf(f, "%ld %ld %.17g\n", (long)it.row(), (long)it.col(), it.value());
++        std::fprintf(f, "END\nbe\n"); for (Index i = 0; i < qp.me(); ++i) std::fprintf(f, "%.17g ", qp.be(i));
++        std::fprintf(f, "\nAi\n");
++        for (Index i = 0; i < qp.mi(); ++i) for (SpMatRM::InnerIterator it(qp.Ai, i); it; ++it) std::fprintf(f, "%ld %ld %.17g\n", (long)it.row(), (long)it.col(), it.value());
++        std::fprintf(f, "END\nbi\n"); for (Index i = 0; i < qp.mi(); ++i) std::fprintf(f, "%.17g ", qp.bi(i));
++        std::fprintf(f, "\nlower\n"); for (Index i = 0; i < qp.n(); ++i) std::fprintf(f, "%.17g ", qp.lower(i));
++        std::fprintf(f, "\nupper\n"); for (Index i = 0; i < qp.n(); ++i) std::fprintf(f, "%.17g ", qp.upper(i));
++        std::fprintf(f, "\n");
++        std::fclose(f);
++    }
+     for (Index iter = 0; !crossed_bounds && iter < eff_max_iter; ++iter) {
+         ++counters.minor_iters;
++        d2::iter_no() = iter;
++        if (const char *dw = std::getenv("HVEN_D2_DUMPWS"); dw != nullptr && d2::on() &&
++            std::string(std::getenv("HVEN_D2_ITERS") ? std::getenv("HVEN_D2_ITERS") : "").find("," + std::to_string(iter) + ",") != std::string::npos) {
++            char path[1024];
++            std::snprintf(path, sizeof path, "%s/ws_%03ld_%04ld.txt", dw, d2::solve_no(), (long)iter);
++            std::FILE *f = std::fopen(path, "w");
++            std::fprintf(f, "x\n"); for (Index i = 0; i < n; ++i) std::fprintf(f, "%.17g ", x(i));
++            std::fprintf(f, "\nbs\n"); for (Index i = 0; i < n; ++i) std::fprintf(f, "%d ", (int)ws.bound_state()[static_cast<std::size_t>(i)]);
++            std::fprintf(f, "\nW\n"); for (const Index r : ws.active_ineq()) std::fprintf(f, "%ld ", (long)r);
++            std::fprintf(f, "\nshift\n"); for (Index i = 0; i < mi; ++i) std::fprintf(f, "%.17g ", shift(i));
++            std::fprintf(f, "\n");
++            std::fclose(f);
++        }
++        if (d2::on()) {
++            std::fprintf(stderr, "D2P solve=%ld iter=%ld W=%zu pins=%ld me=%ld n=%ld elim_only=%d facts=%ld\n", d2::solve_no(), (long)iter,
++                         ws.active_ineq().size(), (long)(n - ws.num_free()), (long)me, (long)n, (int)eliminated_only, (long)counters.factorizations);
++        }
+ #ifdef HVEN_TESTING
+         // One declaration covers every exit this loop body has: the record is
+         // emitted by this object's DESTRUCTOR, so a `continue`, a `break` and
+@@ -831,6 +871,12 @@
+                                             seen.shift_refused, &removed)) {
+                     ++(entry_check_pending ? counters.entry_dependency_removals
+                                            : counters.dep_recheck_removals);
++                    if (d2::on()) {
++                        std::fprintf(stderr, "D2RM solve=%ld iter=%ld entry=%d over=%d removed=%c%ld deferred=%c%ld mark=%d\n", d2::solve_no(), (long)iter,
++                                     (int)entry_check_pending, (int)over, removed.kind == detail::WsMember::Kind::kRow ? 'R' : (removed.kind == detail::WsMember::Kind::kPin ? 'P' : 'E'), (long)removed.idx,
++                                     deferred_member.kind == detail::WsMember::Kind::kRow ? 'R' : 'P', (long)deferred_member.idx,
++                                     (int)(!entry_check_pending && deferred_member.kind == removed.kind && deferred_member.idx == removed.idx));
++                    }
+                     const bool removed_row = removed.kind == detail::WsMember::Kind::kRow;
+                     pt_release(seen, removed_row, removed.idx);
+                     if (!entry_check_pending && deferred_member.kind == removed.kind &&
+@@ -1422,16 +1468,44 @@
+                 const bool moves = alpha * p.lpNorm<Eigen::Infinity>() > step_tol;
+                 detail::DepTest t =
+                     test_candidate(qp, ws, pass_view, is_ineq, block_idx, counters, eff_opts);
++                bool refused = false;
+                 // A member the previous pass's re-check removed as a dependent
+                 // deferred add, blocking again at this same point (E2 fix1,
+                 // D3(b)): the detector's verdict was a proof, so only a
+                 // DECIDED dependent test (an exchange) may bring it back here.
+-                const bool known_dependent =
++                bool known_dependent =
+                     !moves && (pt_flags(seen, is_ineq, block_idx) & kPtKnownDependent) != 0;
+-                if (!t.dependent() && !known_dependent) {
++                {
++                    const Oriented o0 = oriented(is_ineq, block_idx, block_state);
++                    const double anorm = is_ineq ? qp.Ai.row(block_idx).norm() : 1.0;
++                    const double rate = std::abs(o0.cp) / (anorm * p.norm());
++                    if (d2::on()) {
++                        std::fprintf(stderr, "D2B solve=%ld iter=%ld blk=%c%ld side=%d alpha=%.3e moves=%d verdict=%d rho=%.3e screen=%d kd=%d cp=%.3e rate=%.3e viol=%.3e scale=%.3e |p|=%.3e\n",
++                                     d2::solve_no(), (long)iter, is_ineq ? 'R' : 'P', (long)block_idx, (int)block_state, alpha, (int)moves, (int)t.verdict, t.rho, (int)t.screen,
++                                     (int)known_dependent, o0.cp, rate, o0.cx - o0.d, o0.scale, p.norm());
++                    }
++                    if (d2::on() && d2::level() > 1) {
++                        double er = 0.0, wr = 0.0, pr = 0.0;
++                        const double pn = p.norm();
++                        for (Index r = 0; r < me; ++r) er = std::max(er, std::abs(qp.Ae.row(r).dot(p)) / (qp.Ae.row(r).norm() * pn));
++                        for (const Index r : ws.active_ineq()) wr = std::max(wr, std::abs(qp.Ai.row(r).dot(p)) / (qp.Ai.row(r).norm() * pn));
++                        for (Index i = 0; i < n; ++i) if (ws.bound_state()[static_cast<std::size_t>(i)] != BoundState::kFree) pr = std::max(pr, std::abs(p(i)) / pn);
++                        std::fprintf(stderr, "D2LEAK solve=%ld iter=%ld eq_rate=%.3e W_rate=%.3e pin_rate=%.3e mu=%.3e delta=%.3e lam_e=%.3e lam_i=%.3e\n", d2::solve_no(), (long)iter, er, wr, pr,
++                                     eff_opts.dual_mu, eff_opts.primal_delta, me > 0 ? lambda_e.lpNorm<Eigen::Infinity>() : 0.0, mi > 0 ? lambda_i.lpNorm<Eigen::Infinity>() : 0.0);
++                    }
++                    if (d2::cand() == 'D' && known_dependent) {
++                        if (rate <= detail::kDepTol) {
++                            if (d2::on()) std::fprintf(stderr, "D2SKIP\n");
++                            refused = true; // handled as noise skip below
++                        } else {
++                            if (d2::on()) std::fprintf(stderr, "D2STALE\n");
++                            known_dependent = false;
++                        }
++                    }
++                }
++                if (!t.dependent() && !known_dependent && !refused) {
+                     break; // the ordinary add
+                 }
+-                bool refused = false;
+                 if (t.verdict == detail::DepVerdict::kUndecidable && pass_view.schur != nullptr) {
+                     // (D3(a)) THE BORDER RETREAT for an undecidable test: a
+                     // stalled refinement on the border path is the swamped-C
+@@ -1451,7 +1525,10 @@
+                         ++counters.dep_structural_exact;
+                     }
+                 }
+-                if (t.verdict != detail::DepVerdict::kDependent && known_dependent) {
++                if (refused) {
++                    ++counters.dep_known_dependent_refusals;
++                    xpick = ExchangePick{};
++                } else if (t.verdict != detail::DepVerdict::kDependent && known_dependent) {
+                     // (D3(b)) Never re-admitted undecided at zero motion:
+                     // no coefficients, so no exchange and no certificate;
+                     // the pass-over (N2) or the end (N3) below.
+@@ -1481,6 +1558,10 @@
+                     // exchange mutates.
+                     xpick = select_exchange(qp, ws, shift, seen, t, is_ineq, block_idx, block_state,
+                                             lambda_e, lambda_i, z, moves);
++                    if (d2::on()) {
++                        std::fprintf(stderr, "D2X solve=%ld iter=%ld found=%d cond1=%d j=%c%ld verdict=%d\n", d2::solve_no(), (long)iter, (int)xpick.found, (int)xpick.cond1,
++                                     xpick.j_is_ineq ? 'R' : 'P', (long)xpick.j, (int)t.verdict);
++                    }
+                     if (xpick.found) {
+                         break; // the exchange
+                     }
+@@ -1522,6 +1603,9 @@
+                         within = false;
+                     }
+                 }
++                if (d2::on()) {
++                    std::fprintf(stderr, "D2PASS solve=%ld iter=%ld within=%d next=%d:%ld a2=%.3e\n", d2::solve_no(), (long)iter, (int)within, (int)k2, (long)i2, a2);
++                }
+                 if (!within) {
+                     add_exit = AddExit::kTerminate;
+                     break;
+@@ -1902,6 +1986,42 @@
+         }
+     }
+
++    if (d2::level() > 0) {
++        std::fprintf(stderr, "D2END solve=%ld status=%d minors=%ld facts=%ld recheck_rm=%ld kd_refusals=%ld passovers=%ld blk_term=%ld zm_cap=%ld deferred=%ld xch=%ld retreats=%ld cert=%ld\n",
++                     d2::solve_no(), (int)status, (long)counters.minor_iters, (long)counters.factorizations, (long)counters.dep_recheck_removals,
++                     (long)counters.dep_known_dependent_refusals, (long)counters.dep_passovers, (long)counters.dep_blocker_terminations,
++                     (long)counters.zero_motion_cap_hits, (long)counters.dep_deferred_adds, (long)counters.ws_exchanges, (long)counters.dep_border_retreats,
++                     (long)counters.dep_infeasible_certificates);
++    }
++    if (d2::on()) {
++        const Vec Hx = qp.H.selfadjointView<Eigen::Upper>() * x;
++        Vec r = Hx + qp.g;
++        if (me > 0) r += qp.Ae.transpose() * lambda_e;
++        if (mi > 0) r += qp.Ai.transpose() * lambda_i;
++        double stat = 0, bviol = 0, eqviol = 0, iviol = 0, lneg = 0;
++        for (Index i = 0; i < n; ++i) {
++            const double xi = x(i);
++            bviol = std::max({bviol, qp.lower(i) - xi, xi - qp.upper(i)});
++            const bool atl = qp.lower(i) > -1e19 && xi - qp.lower(i) <= 1e-9 * std::max(1.0, std::abs(qp.lower(i)));
++            const bool atu = qp.upper(i) < 1e19 && qp.upper(i) - xi <= 1e-9 * std::max(1.0, std::abs(qp.upper(i)));
++            if (atl && atu) continue;
++            if (atl) stat = std::max(stat, -r(i)); else if (atu) stat = std::max(stat, r(i)); else stat = std::max(stat, std::abs(r(i)));
++        }
++        if (me > 0) eqviol = (qp.Ae * x - qp.be).lpNorm<Eigen::Infinity>();
++        if (mi > 0) { const Vec ax = qp.Ai * x; for (Index j = 0; j < mi; ++j) { iviol = std::max(iviol, ax(j) - qp.bi(j)); lneg = std::max(lneg, -lambda_i(j)); } }
++        std::fprintf(stderr, "D2KKT solve=%ld status=%d obj=%.15e stat=%.3e eqviol=%.3e iviol=%.3e boxviol=%.3e lneg=%.3e |le|=%.3e |li|=%.3e\n", d2::solve_no(), (int)status,
++                     qp.g.dot(x) + 0.5 * x.dot(Hx), stat, eqviol, iviol, bviol, lneg, me > 0 ? lambda_e.lpNorm<Eigen::Infinity>() : 0.0, mi > 0 ? lambda_i.lpNorm<Eigen::Infinity>() : 0.0);
++        if (const char *dx = std::getenv("HVEN_D2_DUMPX"); dx != nullptr) {
++            char path[1024];
++            std::snprintf(path, sizeof path, "%s/x_%03ld.txt", dx, d2::solve_no());
++            std::FILE *f = std::fopen(path, "w");
++            for (Index i = 0; i < n; ++i) std::fprintf(f, "%.17g ", x(i));
++            std::fprintf(f, "\n"); for (Index i = 0; i < me; ++i) std::fprintf(f, "%.17g ", lambda_e(i));
++            std::fprintf(f, "\n"); for (Index i = 0; i < mi; ++i) std::fprintf(f, "%.17g ", lambda_i(i));
++            std::fprintf(f, "\n");
++            std::fclose(f);
++        }
++    }
+     QpSolution out;
+     out.status = status;
+     out.x = std::move(x);
+@@ -3064,7 +3184,8 @@
+         if (seq != nullptr) {
+             const bool shifted = m.kind == Kind::kRow && shift(m.idx) > 0.0;
+             constexpr Index kShiftedLast = Index{1} << 40;
+-            return (shifted ? kShiftedLast : 0) -
++            const Index pin_last = (d2::cand() == 'C' && m.kind == Kind::kPin) ? (Index{1} << 39) : 0;
++            return (shifted ? kShiftedLast : 0) + pin_last -
+                    (m.kind == Kind::kPin ? seq->bound_seq[si] : seq->ineq_seq[si]);
+         }
+         if (m.kind == Kind::kPin) {
+--- a/src/qp/ws_independence.cpp
++++ b/src/qp/ws_independence.cpp
+@@ -353,6 +353,7 @@
+         converged = d.null_residual <= kDepTol;
+     }
+     if (!converged) {
++        if (d2::on()) std::fprintf(stderr, "D2DETNC solve=%ld iter=%ld resid=%.3e solves=%ld\n", d2::solve_no(), d2::iter_no(), d.null_residual, (long)d.solves);
+         return d;
+     }
+     // rhs holds y_hat (unit norm) on the constraint components.
+@@ -372,7 +373,7 @@
+     // multipliers. Same threshold as the rows. (On the border path the pins
+     // are ledger components and already in `sys.comp`.)
+     Vec pin_coef;
+-    if (!sys.bordered) {
++    if (!sys.bordered && d2::cand() != 'N') {
+         pin_coef = sys.at_times(qp, rhs);
+         for (Index i = 0; i < qp.n(); ++i) {
+             if (bs[static_cast<std::size_t>(i)] != BoundState::kFree) {
+@@ -383,20 +384,81 @@
+     if (!(scaled_max > 0.0)) {
+         return d;
+     }
++    double rows_max = 0.0;
++    for (std::size_t k = 0; k < nc; ++k) rows_max = std::max(rows_max, scaled[k]);
++    const char cd = d2::cand();
++    // (B) the rows' threshold stays on the rows' own maximum
++    const double thr_max = (cd == 'B' && !sys.bordered && rows_max > 0.0) ? rows_max : scaled_max;
+     d.found = true;
+     for (std::size_t k = 0; k < nc; ++k) {
+-        if (scaled[k] >= kDepCoeffTol * scaled_max) {
++        if (scaled[k] >= kDepCoeffTol * thr_max) {
+             d.support.push_back(sys.comp[k]);
+         }
+     }
+-    if (!sys.bordered) {
++    bool rows_removable = false;
++    for (const WsMember &m : d.support) {
++        if (m.kind == WsMember::Kind::kRow ||
++            (m.kind == WsMember::Kind::kPin && bs[static_cast<std::size_t>(m.idx)] != BoundState::kFixed)) {
++            rows_removable = true;
++        }
++    }
++    const bool add_pins = !sys.bordered && cd != 'N' && !(cd == 'A' && rows_removable);
++    if (add_pins) {
+         for (Index i = 0; i < qp.n(); ++i) {
+             if (bs[static_cast<std::size_t>(i)] != BoundState::kFree &&
+-                std::abs(pin_coef(i)) >= kDepCoeffTol * scaled_max) {
++                std::abs(pin_coef(i)) >= kDepCoeffTol * thr_max) {
+                 d.support.push_back(WsMember{WsMember::Kind::kPin, i});
+             }
+         }
+     }
++    if (cd == 'E' || cd == 'F' || cd == 'G') {
++        // certified members only: rho_k = ||A_W^T y|| / (|y_k| ||a_k||) <= kDepUndecidable
++        const double resid_abs = d.null_residual * row_max;
++        const auto coef = [&](const WsMember &m) -> double {
++            if (m.kind == WsMember::Kind::kPin && !sys.bordered) return std::abs(pin_coef(m.idx));
++            for (std::size_t k = 0; k < nc; ++k) if (sys.comp[k].kind == m.kind && sys.comp[k].idx == m.idx) return scaled[k];
++            return 0.0;
++        };
++        std::vector<WsMember> cert;
++        bool any_removable = false;
++        for (const WsMember &m : d.support) {
++            const bool mand = m.kind == WsMember::Kind::kEq || (m.kind == WsMember::Kind::kPin && bs[static_cast<std::size_t>(m.idx)] == BoundState::kFixed);
++            const bool ok = coef(m) > 0.0 && resid_abs <= d2::dump_rho() * coef(m);
++            if (mand || ok) cert.push_back(m);
++            if (!mand && ok) any_removable = true;
++        }
++        if (d2::on()) std::fprintf(stderr, "D2CERT solve=%ld iter=%ld resid_abs=%.3e support=%zu certified=%zu any_removable=%d\n", d2::solve_no(), d2::iter_no(), resid_abs, d.support.size(), cert.size(), (int)any_removable);
++        if (!any_removable && cd == 'G') {
++            const WsMember *best = nullptr; double bc = 0.0;
++            for (const WsMember &m : d.support) {
++                const bool mand = m.kind == WsMember::Kind::kEq || (m.kind == WsMember::Kind::kPin && bs[static_cast<std::size_t>(m.idx)] == BoundState::kFixed);
++                if (!mand && coef(m) > bc) { bc = coef(m); best = &m; }
++            }
++            if (best != nullptr) { cert.push_back(*best); }
++            d.support = std::move(cert);
++        } else if (any_removable || cd == 'F') d.support = std::move(cert);
++    }
++    if (d2::on()) {
++        std::fprintf(stderr, "D2DET solve=%ld iter=%ld bordered=%d nc=%zu resid=%.3e scaled_max=%.6e rows_max=%.6e support:",
++                     d2::solve_no(), d2::iter_no(), (int)sys.bordered, nc, d.null_residual, scaled_max, rows_max);
++        for (std::size_t k = 0; k < nc; ++k) {
++            if (scaled[k] >= 1e-3 * kDepCoeffTol * scaled_max) {
++                const WsMember &m = sys.comp[k];
++                std::fprintf(stderr, " %c%ld=%.3e%s", m.kind == WsMember::Kind::kEq ? 'E' : (m.kind == WsMember::Kind::kRow ? 'R' : 'P'),
++                             (long)m.idx, scaled[k], scaled[k] >= kDepCoeffTol * thr_max ? "" : "(x)");
++            }
++        }
++        if (!sys.bordered && cd != 'N') {
++            for (Index i = 0; i < qp.n(); ++i) {
++                if (bs[static_cast<std::size_t>(i)] != BoundState::kFree && std::abs(pin_coef(i)) >= 1e-3 * kDepCoeffTol * scaled_max) {
++                    std::fprintf(stderr, " P%ld=%.3e%s%s", (long)i, std::abs(pin_coef(i)),
++                                 bs[static_cast<std::size_t>(i)] == BoundState::kFixed ? "F" : "",
++                                 (add_pins && std::abs(pin_coef(i)) >= kDepCoeffTol * thr_max) ? "" : "(x)");
++                }
++            }
++        }
++        std::fprintf(stderr, "\n");
++    }
+     return d;
+ }
+
+--- a/include/hven/detail/qp/ws_independence.h
++++ b/include/hven/detail/qp/ws_independence.h
+@@ -91,6 +91,19 @@
+ DepTest dependency_test(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f,
+                         const Vec &a, const QpOptions &opts);
+
++} // namespace hven::solvers::detail
++#include <cstdio>
++#include <cstdlib>
++namespace hven::solvers::d2 {
++inline int level() { static const int l = [] { const char *e = std::getenv("HVEN_D2"); return e ? std::atoi(e) : 0; }(); return l; }
++inline long trace_solve() { static const long v = [] { const char *e = std::getenv("HVEN_D2_TRACE"); return e ? std::atol(e) : -1L; }(); return v; }
++inline char cand() { static const char c = [] { const char *e = std::getenv("HVEN_D2_CAND"); return e ? e[0] : '0'; }(); return c; }
++inline long &solve_no() { static thread_local long v = -1; return v; }
++inline long &iter_no() { static thread_local long v = -1; return v; }
++inline bool on() { return level() > 0 && (trace_solve() < 0 || trace_solve() == solve_no()); }
++inline double dump_rho() { static const double v = [] { const char *e = std::getenv("HVEN_D2_TOL"); return e ? std::atof(e) : 1e-6; }(); return v; }
++} // namespace hven::solvers::d2
++namespace hven::solvers::detail {
+ struct EntryDetection {
+     bool found = false;
+     Index solves = 0;
+--- a/bench/CMakeLists.txt
++++ b/bench/CMakeLists.txt
+@@ -201,3 +201,7 @@
+     set_tests_properties(A4Gate.TheTaxonomyAtBothSizesUnderTheMeasuredDefault PROPERTIES
+         LABELS "a4_gate" TIMEOUT 5400 RUN_SERIAL TRUE)
+ endif()
++add_executable(zz_nsearch zz_nsearch.cpp)
++target_link_libraries(zz_nsearch PRIVATE hven::hven)
++target_compile_options(zz_nsearch PRIVATE ${COMPILE_FLAGS})
++target_include_directories(zz_nsearch PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests/sqp")
+--- a/tests/qp/test_qp_anti_cycling_arm.cpp
++++ b/tests/qp/test_qp_anti_cycling_arm.cpp
+@@ -46,6 +46,10 @@
+ // OFF walk really does cycle on them. A fixture that stopped cycling FAILS
+ // here rather than passing vacuously.
+
++#include <cstdio>
++#include <cstdlib>
++#include <iostream>
++#include <string>
+ #include <algorithm>
+ #include <array>
+ #include <bit>
+@@ -1627,3 +1631,176 @@
+         }
+     }
+ }
++
++// ZZZ-EXPLORE (temporary, removed before commit)
++#ifdef ZZZ_OLD
++#define ZZZ_NEWC(x) 0L
++#else
++#define ZZZ_NEWC(x) (long)(x)
++#endif
++namespace {
++double zzz_feas(const QpProblem &qp, const Vec &x) {
++    double v = 0.0;
++    for (Index i = 0; i < qp.n(); ++i) v = std::max({v, qp.lower(i) - x(i), x(i) - qp.upper(i)});
++    if (qp.me() > 0) v = std::max(v, (qp.Ae * x - qp.be).lpNorm<Eigen::Infinity>());
++    if (qp.mi() > 0) v = std::max(v, (qp.Ai * x - qp.bi).maxCoeff());
++    return v;
++}
++double zzz_kkt(const QpProblem &qp, const QpSolution &s) {
++    Vec r = qp.H.selfadjointView<Eigen::Upper>() * s.x + qp.g - s.z;
++    if (qp.me() > 0) r += qp.Ae.transpose() * s.lambda_e;
++    if (qp.mi() > 0) r += qp.Ai.transpose() * s.lambda_i;
++    double v = r.lpNorm<Eigen::Infinity>();
++    for (Index j = 0; j < qp.mi(); ++j) {
++        v = std::max(v, -s.lambda_i(j));
++        v = std::max(v, std::abs(s.lambda_i(j) * (qp.bi(j) - qp.Ai.row(j).dot(s.x))));
++    }
++    for (Index i = 0; i < qp.n(); ++i) {
++        if (s.z(i) > 0) v = std::max(v, s.z(i) * std::abs(s.x(i) - qp.lower(i)));
++        if (s.z(i) < 0) v = std::max(v, -s.z(i) * std::abs(s.x(i) - qp.upper(i)));
++    }
++    return std::max(v, zzz_feas(qp, s.x));
++}
++const QpProblem *zzz_qp = nullptr;
++void zzz_dump(const char *tag, const QpSolution &s) {
++    const QpCounters &c = s.counters;
++    if (zzz_qp != nullptr) std::printf("ZZZ %s kktres=%.1e feas=%.1e lam=%.1e\n", tag, zzz_kkt(*zzz_qp, s), zzz_feas(*zzz_qp, s.x),
++        std::max({s.lambda_e.size() ? s.lambda_e.lpNorm<Eigen::Infinity>() : 0.0, s.lambda_i.size() ? s.lambda_i.lpNorm<Eigen::Infinity>() : 0.0, s.z.lpNorm<Eigen::Infinity>()}));
++    std::printf("ZZZ %s status=%d minors=%ld tests=%ld dep=%ld undec=%ld defer=%ld recheck=%ld "
++                "entryrm=%ld mand=%ld xch=%ld cert=%ld rej=%ld pass=%ld term=%ld retreat=%ld "
++                "struct=%ld refuse=%ld zmcap=%ld x=",
++                tag, (int)s.status, (long)c.minor_iters, (long)c.dep_tests, (long)c.dep_dependent,
++                (long)c.dep_undecidable, (long)c.dep_deferred_adds, (long)c.dep_recheck_removals,
++                (long)c.entry_dependency_removals, (long)c.mandatory_dependent_entries,
++                (long)c.ws_exchanges, (long)c.dep_infeasible_certificates,
++                (long)c.dep_certificate_rejections, (long)c.dep_passovers,
++                (long)c.dep_blocker_terminations, (long)c.dep_border_retreats,
++                ZZZ_NEWC(c.dep_structural_exact), ZZZ_NEWC(c.dep_known_dependent_refusals),
++                (long)c.zero_motion_cap_hits);
++    for (Index i = 0; i < s.x.size(); ++i) std::printf("%.6g ", s.x(i));
++    std::printf("\n");
++}
++} // namespace
++
++struct ZzzGen {
++    std::uint64_t st;
++    double rnd() {
++        st = st * 6364136223846793005ull + 1442695040888963407ull;
++        return static_cast<double>((st >> 11) % 1000000) / 1000000.0;
++    }
++};
++QpProblem zzz_hand(int k) {
++    const std::vector<double> H5 = {-0.75, 0, -0.25, 0.75, 1.25, 0, 0, 0, 0, 0, -0.25, 0, 0.25, -0.25, -0.25, 0.75, 0, -0.25, 0, -0.25, 1.25, 0, -0.25, -0.25, -0.75};
++    QpProblem qp;
++    const Index n = 5;
++    Eigen::MatrixXd Hd = Eigen::Map<const Eigen::MatrixXd>(H5.data(), 5, 5);
++    Hd = Eigen::MatrixXd(Hd.selfadjointView<Eigen::Upper>());
++    if (k == 1) Hd = Eigen::MatrixXd::Identity(5, 5);
++    if (k == 2) { Hd = Eigen::MatrixXd::Identity(5, 5); Hd(1, 1) = -1; }
++    qp.H = Eigen::MatrixXd(Hd.triangularView<Eigen::Upper>()).sparseView();
++    qp.g = Vec(n); qp.g << 0.5, 0.5, 0.5, 0, -1;
++    Eigen::MatrixXd Ae = Eigen::MatrixXd::Zero(2, n);
++    Ae(0, 0) = -1; Ae(0, 3) = 1;   // -x0 + x3 = 0.5
++    Ae(1, 3) = 1; Ae(1, 2) = -1;   // x3 - x2 = 0
++    qp.Ae = Ae.sparseView(); qp.be = Vec(2); qp.be << 0.5, 0.0;
++    qp.Ai.resize(0, n); qp.bi = Vec(0);
++    qp.lower = Vec::Zero(n); qp.upper = Vec::Ones(n); qp.upper(0) = 0.0; qp.upper(2) = 0.25;
++    if (k >= 3) {
++        Ae.setZero(); Ae(0, 0) = -1; Ae(0, 2) = 1; Ae(1, 2) = 1; Ae(1, 3) = 1;
++        qp.Ae = Ae.sparseView(); qp.be << 0.5, (k == 3 ? 0.25 : 0.75);
++        qp.upper(2) = 1.0;
++        if (k == 5) { Eigen::MatrixXd Ai = Eigen::MatrixXd::Zero(1, n); Ai(0, 1) = 1; Ai(0, 4) = 1; qp.Ai = Ai.sparseView(); qp.bi = Vec(1); qp.bi << 1.5; }
++    }
++    return qp;
++}
++QpProblem zzz_gen(int trial, int family) {
++    if (family >= 10) return zzz_hand(trial);
++    ZzzGen G{0x9E3779B97F4A7C15ull + 7919ull * static_cast<std::uint64_t>(trial) +
++             104729ull * static_cast<std::uint64_t>(family)};
++    for (int k = 0; k < 5; ++k) G.rnd();
++    const Index n = 3 + static_cast<Index>(G.rnd() * 3);
++    const Index mi = static_cast<Index>(G.rnd() * 4);
++    const Index me = 1 + static_cast<Index>(G.rnd() * (family >= 3 ? 3 : 2));
++    Eigen::VectorXd l(n), l2(n);
++    for (Index i = 0; i < n; ++i) l(i) = G.rnd() < 0.4 ? 0.0 : std::round(4 * G.rnd() - 2) / 2;
++    for (Index i = 0; i < n; ++i) l2(i) = G.rnd() < 0.5 ? 0.0 : std::round(4 * G.rnd() - 2) / 2;
++    Eigen::MatrixXd Hd = l * l.transpose();
++    if (family >= 1) Hd -= l2 * l2.transpose();
++    QpProblem qp;
++    qp.H = Eigen::MatrixXd(Hd.triangularView<Eigen::Upper>()).sparseView();
++    qp.g = Vec(n);
++    for (Index i = 0; i < n; ++i) qp.g(i) = std::round(8 * G.rnd() - 4) / 2;
++    Eigen::MatrixXd Ae = Eigen::MatrixXd::Zero(me, n), Ai = Eigen::MatrixXd::Zero(mi, n);
++    qp.be = Vec(me);
++    qp.bi = Vec(mi);
++    for (Index r = 0; r < me; ++r) {
++        const Index a = static_cast<Index>(G.rnd() * n), b = (a + 1 + static_cast<Index>(G.rnd() * (n - 1))) % n;
++        Ae(r, a) = 1; Ae(r, b) = G.rnd() < 0.5 ? 1 : -1;
++        if (family >= 3) Ae(r, static_cast<Index>(G.rnd() * n)) += G.rnd() < 0.5 ? 1 : -1;
++        qp.be(r) = std::round(6 * G.rnd() - 3) / 2;
++    }
++    for (Index r = 0; r < mi; ++r) {
++        const Index a = static_cast<Index>(G.rnd() * n), b = (a + 1 + static_cast<Index>(G.rnd() * (n - 1))) % n;
++        Ai(r, a) = G.rnd() < 0.5 ? 1 : -1; Ai(r, b) = G.rnd() < 0.5 ? 1 : -1;
++        qp.bi(r) = std::round(6 * G.rnd() - 3) / 2;
++    }
++    qp.Ae = Ae.sparseView();
++    qp.Ai = Ai.sparseView();
++    const double lo = G.rnd() < 0.5 ? 0.0 : -1.0;
++    qp.lower = Vec::Constant(n, lo);
++    qp.upper = Vec::Constant(n, 1.0);
++    if (family >= 2 && G.rnd() < 0.7) { qp.lower(0) = 0.0; qp.upper(0) = 0.0; }
++    return qp;
++}
++void zzz_print(const QpProblem &qp) {
++    Eigen::IOFormat f(Eigen::FullPrecision, 0, ", ", ";\n", "[", "]");
++    std::cout << "H=\n" << Eigen::MatrixXd(qp.H) << "\ng=" << qp.g.transpose() << "\nAe=\n" << Eigen::MatrixXd(qp.Ae)
++              << "\nbe=" << qp.be.transpose() << "\nAi=\n" << Eigen::MatrixXd(qp.Ai) << "\nbi=" << qp.bi.transpose()
++              << "\nlo=" << qp.lower.transpose() << "\nhi=" << qp.upper.transpose() << "\n";
++}
++TEST(ZzzExplore, Shapes) {
++    const int fam = std::getenv("ZZZ_FAM") ? std::atoi(std::getenv("ZZZ_FAM")) : 0;
++    const int only = std::getenv("ZZZ_ONLY") ? std::atoi(std::getenv("ZZZ_ONLY")) : -1;
++    const int skip = std::getenv("ZZZ_SKIP") ? std::atoi(std::getenv("ZZZ_SKIP")) : -1;
++    const char *want = std::getenv("ZZZ_WANT");
++    for (int trial = 0; trial < 6000; ++trial) {
++        if (only >= 0 && trial != only) continue;
++        if (trial <= skip) continue;
++        const QpProblem qp = zzz_gen(trial, fam);
++        zzz_qp = &qp;
++        if (only >= 0) zzz_print(qp);
++        for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
++            std::fprintf(stderr, "TRIAL %d %s\n", trial, e2_name(alg));
++            QpSolution s;
++            if (fam == 10 && trial == 8) {
++                QpSolution seed;
++                seed.x = Vec(3); seed.x << -1, -1, 0;
++                seed.bound_state = {BoundState::kFree, BoundState::kFree, BoundState::kFixed};
++                QpEngine eng{e2_opts(alg, 200)};
++                s = eng.solve(qp, seed);
++            } else if (fam == 10 && trial == 7) {
++                QpSolution seed;
++                seed.x = Vec::Zero(4);
++                seed.bound_state = {BoundState::kFixed, BoundState::kFree, BoundState::kAtLower, BoundState::kFree};
++                seed.ineq_active = {};
++                QpEngine eng{e2_opts(alg, 200)};
++                s = eng.solve(qp, seed);
++            } else {
++                s = plain_solve(qp, e2_opts(alg, 200));
++            }
++            const QpCounters &c = s.counters;
++            bool hit = only >= 0 || std::getenv("ZZZ_ALL") != nullptr;
++            if (want == nullptr) hit = hit || c.dep_undecidable > 0 || ZZZ_NEWC(c.dep_known_dependent_refusals) > 0 || c.dep_deferred_adds > 0 || c.zero_motion_cap_hits > 0;
++            else if (std::string(want) == "defer") hit = hit || c.dep_deferred_adds > 0 || ZZZ_NEWC(c.dep_known_dependent_refusals) > 0;
++            else if (std::string(want) == "recheck") hit = hit || c.dep_recheck_removals > 0;
++            else if (std::string(want) == "new") hit = hit || ZZZ_NEWC(c.dep_structural_exact) > 0 || ZZZ_NEWC(c.dep_known_dependent_refusals) > 0;
++            if (hit) {
++                char tag[64];
++                std::snprintf(tag, sizeof tag, "t%d-%s", trial, e2_name(alg));
++                zzz_dump(tag, s);
++                std::fflush(stdout);
++            }
++        }
++    }
++}
++
+=== added: bench/zz_nsearch.cpp
+// E2-D2 scratch: F7 path/full-warm hop at arbitrary N, walk engine.
+#include <cstdio>
+#include <cstdlib>
+#include "corpus_cells.h"
+using namespace hven::solvers::corpus;
+int main(int argc, char **argv) {
+    for (int a = 1; a < argc; ++a) {
+        const hven::Index n = std::atol(argv[a]);
+        const CorpusCell cell{"zz", BenchFamily::kF7, n, detail::kPathInterfaceP0, detail::kPathInterfaceP, 0,
+                              StartTaxonomy::kFullWarm, ConstraintFamily::kPathInterface, false};
+        const CorpusRow r = run_cell(cell, "walk");
+        std::printf("N=%ld status=%d facts=%d minors=%d nqp=%zu\n", (long)n, (int)r.status, r.factorizations, r.qp_minors, r.qp_factorizations.size());
+        std::fflush(stdout);
+    }
+}

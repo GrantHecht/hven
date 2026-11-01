@@ -1,0 +1,14 @@
+=== NON-DEBUG SECTION COMPARISON (Release) -- FAIL-CLOSED
+DEBUG_CLASS_PREFIXES=.debug .zdebug .rela.debug .rel.debug
+BEFORE_DIR=/home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx/rehearsal/gates/psym/before-obj-Release
+AFTER_DIR=/home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx/rehearsal/gates/psym/after-obj-Release
+DIGEST=/home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx/rehearsal/section_digest_fix2.py
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o  sections=[.eh_frame,.gcc_except_table,.gcc_except_table._ZN4hven7solvers9SqpSolver10SolveStateC2ERKNS0_11IpqpOptionsE,.rela.eh_frame,.rela.rodata,.rela.text,.rela.text._ZN4hven7solvers9SqpSolver10SolveStateC2ERKNS0_11IpqpOptionsE,.rela.text._ZN4hven7solvers9SqpSolver10SolveStateD2Ev,.symtab,.text,.text._ZN4hven7solvers9SqpSolver10SolveStateC2ERKNS0_11IpqpOptionsE,.text._ZN4hven7solvers9SqpSolver10SolveStateD2Ev]
+SECTIONS_Release_OBJECTS=48
+SECTIONS_Release_BYTE_IDENTICAL=47
+SECTIONS_Release_DEBUG_ONLY=0
+SECTIONS_Release_NON_DEBUG_MOVERS=1
+SECTIONS_Release_REFUSED=0
+--- the non-debug movers, in full:
+CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o  [.eh_frame,.gcc_except_table,.gcc_except_table._ZN4hven7solvers9SqpSolver10SolveStateC2ERKNS0_11IpqpOptionsE,.rela.eh_frame,.rela.rodata,.rela.text,.rela.text._ZN4hven7solvers9SqpSolver10SolveStateC2ERKNS0_11IpqpOptionsE,.rela.text._ZN4hven7solvers9SqpSolver10SolveStateD2Ev,.symtab,.text,.text._ZN4hven7solvers9SqpSolver10SolveStateC2ERKNS0_11IpqpOptionsE,.text._ZN4hven7solvers9SqpSolver10SolveStateD2Ev]
+SECTIONS_Release_RC=1

@@ -557,7 +557,8 @@ TEST(F7ColdScaleSmoke, EmptyWindowColdSolveAtTenThousandVariables) {
     ASSERT_EQ(model.n(), 10000);
     ASSERT_LT(kP, model.p_activation()); // the empty-window branch, by construction
 
-    const SqpOptions opts = f7_smoke_options();
+    SqpOptions opts = f7_smoke_options();
+    opts.equality_basis = true; // the pre-check assertion below; the rows are full rank
     SqpSolver driver(opts);
     Ledger ledger;
     driver.attach_ledger(&ledger, "f7_1e4_empty");
@@ -575,12 +576,23 @@ TEST(F7ColdScaleSmoke, EmptyWindowColdSolveAtTenThousandVariables) {
     EXPECT_EQ(std::count(analytic.ineq_active.begin(), analytic.ineq_active.end(), 1), 0);
 
     EXPECT_EQ(sol.counters.major_iters, 1);
-    EXPECT_EQ(sol.counters.qp_minor_iters, 2);
+    // M7 W2 E4 fix round 1 (declared mover): 2 -> 3 minors. The TERMINAL POLISH
+    // (qp_engine.h section 5) re-solves this subproblem's certified point mu-free on
+    // its final face -- a strictly better point -- and the walk spends one more pass
+    // reaching it. `factorizations` is unmoved: the polish's own solve is charged to
+    // `terminal_polish_solves` (solver_counters.h).
+    EXPECT_EQ(sol.counters.qp_minor_iters, 3);
     EXPECT_EQ(sol.counters.factorizations, 1);
     EXPECT_EQ(sol.counters.steps_accepted, 1);
     EXPECT_EQ(sol.counters.rejected_steps, 0);
     EXPECT_EQ(sol.counters.elastic_activations, 0);
     EXPECT_EQ(sol.counters.restoration_iters, 0);
+    // The equality split is settled by the certificate without the reducing path.
+    EXPECT_TRUE(sol.equality_basis.computed);
+    // One split, full rank certified at t_lo (AMENDMENT 1: the chain has Gram
+    // eigenvalues in [t_lo, t_hi)): 2 factorizations, measured.
+    EXPECT_EQ(sol.equality_basis.gram_factorizations, 2);
+    EXPECT_TRUE(sol.equality_basis.dropped_rows.empty());
 
     RecordProperty(
         "wall_ms",

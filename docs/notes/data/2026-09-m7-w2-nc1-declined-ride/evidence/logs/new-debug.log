@@ -1,0 +1,30 @@
+PGREP_EMPTY new-debug 2026-09-25T16:31:28-04:00
+FOREGROUND_START new-debug 2026-09-25T16:31:28-04:00
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a21a2ab349204592e/.scratch/nc1-build-debug/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = *DeclinedRide*:*DependentRide*:*NullSpaceVetoed*:*PostDropPass*
+[==========] Running 7 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from QpWalkSeam
+[ RUN      ] QpWalkSeam.APostDropPassRecordsWhatWasReleasedAndWhyTheRideDidOrDidNotRun
+[       OK ] QpWalkSeam.APostDropPassRecordsWhatWasReleasedAndWhyTheRideDidOrDidNotRun (27 ms)
+[----------] 1 test from QpWalkSeam (27 ms total)
+
+[----------] 6 tests from QpE2WorkingSet
+[ RUN      ] QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp3
+[       OK ] QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp3 (192498 ms)
+[ RUN      ] QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp4
+[       OK ] QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp4 (74134 ms)
+[ RUN      ] QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp5
+[       OK ] QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp5 (74073 ms)
+[ RUN      ] QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp6
+[       OK ] QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp6 (73960 ms)
+[ RUN      ] QpE2WorkingSet.ADependentRideBlockerIsExchangedAndTheRideRetaken
+[       OK ] QpE2WorkingSet.ADependentRideBlockerIsExchangedAndTheRideRetaken (2 ms)
+[ RUN      ] QpE2WorkingSet.ANullSpaceVetoedRideNeverStepsBackIntoTheReleasedBound
+[       OK ] QpE2WorkingSet.ANullSpaceVetoedRideNeverStepsBackIntoTheReleasedBound (13 ms)
+[----------] 6 tests from QpE2WorkingSet (414683 ms total)
+
+[----------] Global test environment tear-down
+[==========] 7 tests from 2 test suites ran. (414710 ms total)
+[  PASSED  ] 7 tests.
+FOREGROUND_END new-debug 2026-09-25T16:38:23-04:00 rc=0

@@ -1,0 +1,18 @@
+FOREGROUND_START nsearch-0 2026-09-24T01:42:10-04:00
+PGREP_EMPTY
+N=800 status=6 facts=1115 minors=1627 nqp=4
+N=50 status=0 facts=2 minors=4 nqp=2
+N=100 status=0 facts=2 minors=7 nqp=2
+N=150 status=0 facts=2 minors=10 nqp=2
+N=200 status=0 facts=2 minors=12 nqp=2
+N=250 status=0 facts=2 minors=12 nqp=2
+N=300 status=0 facts=2 minors=12 nqp=2
+N=400 status=0 facts=2 minors=12 nqp=2
+N=500 status=6 facts=644 minors=1156 nqp=4
+N=600 rc=124
+FOREGROUND_END nsearch-0 2026-09-24T01:47:15-04:00
+# (appended) further N-search legs, same runner, transcribed from the session output:
+# cand 0 (b25ab7ed behaviour): N=420 status=6 facts=16 minors=220 nqp=4; N=450 rc=124 (150 s timeout); N=480 status=0 facts=2 minors=10
+# cand 0: N=330/360/380/400/410 all status=0 (Optimal), facts=2
+# cand G (the removal certificate): N=420 status=0 facts=2 minors=10; N=450 status=0 facts=2 minors=12; N=480 status=0 facts=2 minors=10; N=500 status=0 facts=2 minors=12; N=800 status=0 facts=2 minors=6 (N=420 wall 50 s Release, informational)
+# cand N (F2 off): N=500 status=0 facts=2 minors=12

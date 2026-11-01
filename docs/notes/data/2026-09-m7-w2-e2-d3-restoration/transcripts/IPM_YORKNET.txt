@@ -1,0 +1,11 @@
+# IPM_YORKNET -- hven 763cda00 + E2-D3 scratch instrumentation; harness ea1aa4e copy; MKL_NUM_THREADS=1, taskset -c 2, lane hven-ipm, --budget-iters 100
+status=max_iter
+outcome=dnf_budget
+iterations=100
+factorizations=190
+objective=16300.036577716241
+kkt_stationarity=132.47810461526961
+kkt_primal_eq=449.24674347970711
+kkt_primal_ineq=0
+kkt_complementarity=0.0019383802171723181
+# --- D3 trace (stderr) ---

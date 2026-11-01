@@ -1,0 +1,118 @@
+M7 W2 E2 (TASK B, STEP 3) FIX ROUND 1 -- THE GATE EXPECTATIONS, RE-DERIVED
+SUCCESSOR of psym-derivation-e2.txt, which is NOT edited (it declared the first
+chain, whose first leg has run). Written and committed BEFORE the fix1 chain was
+detached. RULE: nothing here may be adjusted after the chain's first leg.
+
+BASE   0747050c (the equality-basis gates record; branch m7)
+       b5325623 E2 step 1, 67a3fde6 E2 step 2, aa3ed096 merge re-pin (test-only),
+       aa349474 the first gate declaration (docs/notes/data only)
+       a100fbc3 style(m7): clang-format tests/sqp/test_warm_start_battery.cpp
+HEAD   the commit that carries this file (docs/notes/data only). Range
+       0747050c..a100fbc3 for every source/header derivation.
+RUNNER wrappers-gates/gates-e2-fix1.sh + chain_gates_e2_fix1.sh: copies of the
+       first declaration's runner and chain, re-pointed (scratch
+       .scratch/m7w2e2gatesfix1 -- ONE literal, in gates-e2-fix1.sh; the chain
+       asks it with --print-scratch; logs gates-e2-fix1.log, chain-fix1.log) and
+       carrying the re-derived P-SYM counts. The six emitted gate segments
+       g1-g6 are BYTE-IDENTICAL to the first chain's (cmp against
+       .scratch/m7w2e2gates/g*.sh). Literal check before the first leg:
+       grep 'm7w2e2gates\b' (not ...fix1), 'aa349474', 'aa3ed096' on both
+       copies -> no hit.
+
+§0 THE FIRST CHAIN (pid 197188, ended 15:19): G1=0 G2=0 G3=0 G4=0 G5=1 G6=1,
+   fold proofs 46/0. Two defects, both mechanical, neither behavioural.
+
+   G5 -- REFUSED (R2), 71 declared, 70 measured in BOTH configurations. The
+   declared object that did not differ does not exist as a 71st object: the
+   first declaration COUNTED ONE OBJECT TWICE,
+       tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_equality_basis.cpp.o
+   Its rehearsal compared 0747050c against 67a3fde6 (E2 step 2), where
+   tests/sqp/test_sqp_equality_basis.cpp was UNMODIFIED: the object moved only
+   through the changed headers, so the classifier put it in CLASS B (70 = 12 A
+   + 58 B; it is in the 58-name list of that declaration's §2). aa3ed096 then
+   MODIFIED its source, and the declaration added it as "the 13th class A
+   object" (+1 -> 71) WITHOUT removing it from class B. At the chain's head
+   (and at a100fbc3) it is class A, so the shape is 70 = 13 A + 57 B. By name:
+   the first chain's compare-{Release,Debug}.txt DIFFERS sets are the same 70
+   objects in both configurations and include that object; the declared class
+   B list less the fresh rehearsal's class B is EXACTLY {that object}.
+   The runner's pre-flight could not see it: its class-B-vs-MODIFIED refusal
+   covers the LIBRARY class B objects only; the test-object class B list lived
+   only in the derivation prose, and 71 = 13 + 58 was self-consistent.
+
+   G6 -- CLANG_FORMAT_RC=1: tests/sqp/test_warm_start_battery.cpp carried 29
+   pre-existing clang-format violations; the file is MODIFIED in the range so
+   the derived list includes it. Fixed in a100fbc3 by clang-format (repo
+   .clang-format, clang-format 22.1.8) on the whole file: 29 lines changed,
+   `git diff -w` EMPTY (whitespace/line-break only). `clang-format --dry-run
+   -Werror` is clean on all 25 .cpp/.h in `git diff --name-only 0747050c..a100fbc3`.
+
+§1 THE CHANGED SURFACE (`git diff --name-status 0747050c..a100fbc3`): as the
+   first declaration §1 -- 6 headers, 16 MODIFIED .cpp (3 outside the universe,
+   hven_qp_walk_seam_tests), 2 ADDED .cpp inside -- a100fbc3 touches one file
+   already MODIFIED in the range, so no count moves (pre-flight:
+   gates-e2-fix1/preflight.txt, PREFLIGHT_VALUE_OK "class A 16 - 3 outside ==
+   13/13; ADDED 2 == 2 (2 inside)").
+
+§2 THE P-SYM MOVER SHAPE, PER CONFIGURATION -- RE-MEASURED
+     Release  DIFFERING 70 = class A 13 + class B 57; UNEXPLAINED 0; control 71
+     Debug    DIFFERING 70 = class A 13 + class B 57; UNEXPLAINED 0; control 60
+     NOISE-ONLY 0 Release / 11 Debug (all explained); ONLY-AFTER (both) ==
+     {test_qp_ws_independence.cpp.o, ws_independence.cpp.o}; after 151 =
+     before 149 + ADDED 2.
+   MEASURED by a FRESH rehearsal at a100fbc3 against 0747050c, both
+   configurations, one hold of the box lock 15:24-15:57, PGREP_EMPTY
+   (gates-e2-fix1/rehearsal-psym-run.sh, rehearsal-psym.log): the first
+   declaration's g5 segment, extracted byte-for-byte, with the HYPOTHESIS
+   70/70, 13/13, 57/57 passed as its declaration. CLASSIFY_RC 0 in both;
+   G5_ASSERT_RC=0 (every assert OK, including the cross-config asserts).
+   Classifications: gates-e2-fix1/rehearsal-classification-{Release,Debug}.txt.
+   Class A (13, identical in both configurations) = the 16 MODIFIED .cpp less
+   the 3 outside:
+       CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o
+       CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+       tests/drivers/.../{test_options_dump,test_threads}.cpp.o
+       tests/sqp/.../{test_continuation,test_hs_battery,test_hs_sweeps,
+         test_qp_engine_indefinite,test_scale_problems,
+         test_sqp_equality_basis,test_sqp_restoration,test_sqp_solver,
+         test_warm_start_battery}.cpp.o
+   CLASS B IS SYMMETRIC: the Release and Debug class B sets are EQUAL, 57
+   objects = the first declaration's 58-name list MINUS
+   tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_equality_basis.cpp.o
+   (comm of the two lists: that one line, nothing else). Change (5')'s
+   Debug-only admission list stays EMPTY. The 70-object DIFFERS set of this
+   rehearsal is IDENTICAL, by name, to the first chain's, per configuration
+   (the style commit moved no object into or out of it).
+
+§3 TEST COUNTS: UNCHANGED -- Release 2803 (G3), Debug 2802 (G1), G2 1. The
+   first chain measured exactly these (G1=G3=0 under the same declaration);
+   a100fbc3 is whitespace-only (`git diff -w` empty), so no TEST/TEST_F/TEST_P
+   name or instantiation changes.
+
+§4 THE SECTION SHAPE (G5b): UNCHANGED, re-measured by the fix1 rehearsal
+   (gates-e2-fix1/rehearsal-sections-*.txt): NON-DEBUG-MOVER set 8 in both
+   configurations == {drivers/sqp_options.cpp.o, qp/qp_engine.cpp.o} (derived)
+   + {core/ledger, drivers/sqp_solver, globalization/sqp/soc_elastic_
+   restoration, qp/ipqp_engine, qp/ssn_engine, warmstart/continuation}.cpp.o
+   (declared); library ADDED {qp/ws_independence.cpp.o}; DEBUG_ONLY Release 0 /
+   Debug 4 (console_trace_sink, ipm_solver, sqp_print, trace_writer); REFUSED 0.
+
+§5 G4: UNCHANGED -- 27 cells x 75 columns x 3 engines, 0 differences under
+   `compare_replay.py --residual-gate 1e-5` (S22). The first chain measured G4=0;
+   a100fbc3 touches only a test source.
+
+§6 G6: expected CLEAN -- install smoke, export contract, clang-format on the
+   derived changed include/*.h, src/*.cpp, tests/*.cpp (clean at a100fbc3, §0),
+   git diff --check, DIRTY_FILES 0. Fold proofs 46/0.
+
+§7 PRE-FLIGHT (`gates-e2-fix1.sh --preflight-only`): gates-e2-fix1/preflight.txt
+   (PREFLIGHT_VALUE_OK, 6 SEGMENT_OK, PREFLIGHT_OK); every value refusal
+   exercised once against a wrong value (gates-e2-fix1/preflight-refusals.txt,
+   17 runs, each rc 2): BEFORE, class A (count, asymmetric), ADDED, universe
+   ADDED, ADDED-outside, class-A-outside (count, not MODIFIED, not in the
+   target), class B on a class A source, class B with no source, DIFFERING !=
+   A + B (the old 71), class B (the old 58), Debug != Release - long (x2),
+   DEBUG_ONLY not an integer, G4 gate != 1e-5.
+
+§8 G5 CHECKS THE MAIN TREE OUT TO 0747050c while it builds its before arm, once
+   per configuration: nothing may edit or commit in the main tree until CHAIN_END.

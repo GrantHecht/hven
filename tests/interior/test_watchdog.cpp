@@ -101,7 +101,7 @@ TEST(WatchdogStateArm, MuChangeResetsBeforeArming) {
 // 10 STRAIGHT rejections, no accepted iteration in between -- DOES arm.
 TEST(WatchdogStateArm, AcceptedIterationResetsConsecutiveCount) {
     static_assert(kWatchdogShortenedIterTrigger == 10,
-                 "test assumes the paper's 10-rejection trigger");
+                  "test assumes the paper's 10-rejection trigger");
 
     WatchdogState not_armed;
     for (int i = 0; i < kWatchdogShortenedIterTrigger - 1; ++i)
@@ -516,7 +516,7 @@ TEST(ChainedRecoveryOrdering, BothDeclineIsUnresolved) {
     WatchdogUnusedMechanism mechanism;
 
     ChainedRecovery chain(std::make_unique<WatchdogSpyRecovery>(Action::kAcceptAsIs),
-                         std::make_unique<WatchdogSpyRecovery>(Action::kAcceptAsIs));
+                          std::make_unique<WatchdogSpyRecovery>(Action::kAcceptAsIs));
 
     WatchdogChainDrive d;
     const Action action = watchdog_drive_chain(chain, d, ctx, acceptance, mechanism);
@@ -548,9 +548,9 @@ TEST(ChainedRecoveryOrdering, NotifyStepAcceptedPropagatesToBothLinks) {
 // any real KKT layout). `citer`/`resolved_depth`/`watchdog_activations` are
 // caller-owned so the test can inspect them after the call.
 Action drive_watchdog(WatchdogRecovery &watchdog, SolverContext &ctx,
-                     AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism,
-                     Eigen::VectorXd &v, IterateInfo &citer, double mu, double prim_obj,
-                     double &alpha, int &resolved_depth, int &watchdog_activations) {
+                      AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism,
+                      Eigen::VectorXd &v, IterateInfo &citer, double mu, double prim_obj,
+                      double &alpha, int &resolved_depth, int &watchdog_activations) {
     std::vector<IterateInfo> iters;
     double alphap = 1.0, alphad = 1.0;
     int soc_steps = 0;
@@ -616,7 +616,7 @@ TEST(WatchdogRecoveryDecorator, ArmsRelaxesThenReverts) {
         double alpha = 1.0;
         int resolved_depth = kRecoveryDepthUnresolved;
         drive_watchdog(watchdog, ctx, acceptance, mechanism, v, citer, kMu, /*prim_obj=*/10.0,
-                      alpha, resolved_depth, watchdog_activations);
+                       alpha, resolved_depth, watchdog_activations);
     }
     ASSERT_EQ(inner_ptr->calls_, kWatchdogShortenedIterTrigger - 1);
 
@@ -627,9 +627,9 @@ TEST(WatchdogRecoveryDecorator, ArmsRelaxesThenReverts) {
     IterateInfo citer1;
     double alpha1 = 1.0;
     int resolved_depth1 = kRecoveryDepthUnresolved;
-    Action action = drive_watchdog(watchdog, ctx, acceptance, mechanism, v1, citer1, kMu,
-                                   /*prim_obj=*/10.0, alpha1, resolved_depth1,
-                                   watchdog_activations);
+    Action action =
+        drive_watchdog(watchdog, ctx, acceptance, mechanism, v1, citer1, kMu,
+                       /*prim_obj=*/10.0, alpha1, resolved_depth1, watchdog_activations);
     EXPECT_EQ(action, Action::kAcceptAsIs);
     EXPECT_EQ(inner_ptr->calls_, kWatchdogShortenedIterTrigger - 1); // still not consulted
     EXPECT_EQ(resolved_depth1, kRecoveryDepthWatchdog);
@@ -687,7 +687,7 @@ TEST(WatchdogRecoveryDecorator, ProgressDisarmsAndDelegatesBack) {
         double alpha = 1.0;
         int resolved_depth = kRecoveryDepthUnresolved;
         drive_watchdog(watchdog, ctx, acceptance, mechanism, v, citer, kMu, /*prim_obj=*/10.0,
-                      alpha, resolved_depth, watchdog_activations);
+                       alpha, resolved_depth, watchdog_activations);
     }
     ASSERT_EQ(inner_ptr->calls_, kWatchdogShortenedIterTrigger - 1); // arming call bypassed inner
     ASSERT_EQ(watchdog_activations, 1);
@@ -699,10 +699,10 @@ TEST(WatchdogRecoveryDecorator, ProgressDisarmsAndDelegatesBack) {
     IterateInfo citer;
     double alpha = 1.0;
     int resolved_depth = kRecoveryDepthUnresolved;
-    const Action action = drive_watchdog(watchdog, ctx, acceptance, mechanism, v, citer, kMu,
-                                         /*prim_obj=*/5.0, alpha, resolved_depth,
-                                         watchdog_activations);
-    EXPECT_EQ(action, Action::kRetry); // inner's configured return value
+    const Action action =
+        drive_watchdog(watchdog, ctx, acceptance, mechanism, v, citer, kMu,
+                       /*prim_obj=*/5.0, alpha, resolved_depth, watchdog_activations);
+    EXPECT_EQ(action, Action::kRetry);                           // inner's configured return value
     EXPECT_EQ(inner_ptr->calls_, kWatchdogShortenedIterTrigger); // consulted this time
     EXPECT_EQ(watchdog_activations, 1);                          // no re-arm from this call
 }
@@ -725,7 +725,7 @@ TEST(WatchdogRecoveryDecorator, NotifyStepAcceptedResetsArmingCounter) {
     int watchdog_activations = 0;
 
     static_assert(kWatchdogShortenedIterTrigger == 10,
-                 "test assumes the paper's 10-rejection trigger");
+                  "test assumes the paper's 10-rejection trigger");
     for (int i = 0; i < kWatchdogShortenedIterTrigger - 1; ++i) {
         Eigen::VectorXd v(1);
         v << 1.0;
@@ -733,7 +733,7 @@ TEST(WatchdogRecoveryDecorator, NotifyStepAcceptedResetsArmingCounter) {
         double alpha = 1.0;
         int resolved_depth = kRecoveryDepthUnresolved;
         drive_watchdog(watchdog, ctx, acceptance, mechanism, v, citer, kMu, /*prim_obj=*/10.0,
-                      alpha, resolved_depth, watchdog_activations);
+                       alpha, resolved_depth, watchdog_activations);
     }
     ASSERT_EQ(inner_ptr->calls_, kWatchdogShortenedIterTrigger - 1);
     ASSERT_EQ(watchdog_activations, 0); // not yet armed
@@ -750,10 +750,10 @@ TEST(WatchdogRecoveryDecorator, NotifyStepAcceptedResetsArmingCounter) {
     IterateInfo citer;
     double alpha = 1.0;
     int resolved_depth = kRecoveryDepthUnresolved;
-    const Action action = drive_watchdog(watchdog, ctx, acceptance, mechanism, v, citer, kMu,
-                                         /*prim_obj=*/10.0, alpha, resolved_depth,
-                                         watchdog_activations);
-    EXPECT_EQ(action, Action::kAcceptAsIs); // inner's configured return value
+    const Action action =
+        drive_watchdog(watchdog, ctx, acceptance, mechanism, v, citer, kMu,
+                       /*prim_obj=*/10.0, alpha, resolved_depth, watchdog_activations);
+    EXPECT_EQ(action, Action::kAcceptAsIs);                      // inner's configured return value
     EXPECT_EQ(inner_ptr->calls_, kWatchdogShortenedIterTrigger); // consulted, not bypassed
     EXPECT_EQ(watchdog_activations, 0);                          // still not armed
 }

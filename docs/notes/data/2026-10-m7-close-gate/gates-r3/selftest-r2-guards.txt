@@ -1,0 +1,13 @@
+SELFTEST_OK   set-pin assertion: real committed pin vs the regenerated one (differs in exactly hven_pin_sha)  [rc=0]
+SELFTEST_OK   set-pin assertion: a second field differs (set_version)  [rc=1]
+SELFTEST_OK   set-pin assertion: a problem row missing in the regenerated set  [rc=1]
+SELFTEST_OK   set-pin assertion: the regenerated pin is not d4b8e84b  [rc=1]
+SELFTEST_OK   set-pin assertion: the committed pin is not 3904a477 (the stale-pin premise no longer holds)  [rc=1]
+SELFTEST_OK   set-pin assertion: no difference at all (the pin file was regenerated)  [rc=1]
+SELFTEST_OK   unittest assertion: the real r2 log (exactly the two stale-pin tests)  [rc=0]
+SELFTEST_OK   unittest assertion: a third failure appears  [rc=1]
+SELFTEST_OK   unittest assertion: an ERROR appears  [rc=1]
+SELFTEST_OK   unittest assertion: one of the two stale-pin failures is missing  [rc=1]
+SELFTEST_OK   unittest assertion: both missing (the suite went green)  [rc=1]
+SELFTEST_OK   unittest assertion: a different test fails in place of one  [rc=1]
+SELFTEST_FAILS=0

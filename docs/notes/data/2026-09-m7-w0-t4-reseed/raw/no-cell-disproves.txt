@@ -1,0 +1,16 @@
+# M7 W0 T4 -- WHY THE CELL HAD TO BE CONSTRUCTED.
+# Every frozen artifact under docs/notes/data/ that carries an
+# ipqp_suspicion_disproved column, read mechanically, plus the U0 replay's
+# tier-escape totals (that corpus has no such column at schema 76).
+# generated 2026-09-16T23:14:58-04:00 at 0be12ec390c59c7902e19a7a37c73617054a48a2
+
+## (1) files carrying the column, and the number of rows where it is > 0
+docs/notes/data/2026-09-m6-w2-acceptance/kipm-counters-debug.csv: rows=33 column=ipqp_suspicion_disproved rows_with_value>0=0
+docs/notes/data/2026-09-m6-w2-acceptance/kipm-counters-release.csv: rows=33 column=ipqp_suspicion_disproved rows_with_value>0=0
+docs/notes/data/2026-09-m6-w2-acceptance/replay/u0-reachability.csv: rows=81 column=ipqp_suspicion_disproved rows_with_value>0=0
+docs/notes/data/2026-09-m6-w2-t7-corpus-sweep/reachability-sweep.csv: rows=1200 column=suspicion_disproved rows_with_value>0=0
+
+## (2) the U0 27-cell replay: no disproved column, and no tier escape either
+head-walk.csv: cells=27 has_disproved_column=False sum(ipqp_escapes)=0 sum(ipqp_escape_infeasible_suspect)=0
+head-ssn.csv: cells=27 has_disproved_column=False sum(ipqp_escapes)=0 sum(ipqp_escape_infeasible_suspect)=0
+head-ipm.csv: cells=27 has_disproved_column=False sum(ipqp_escapes)=0 sum(ipqp_escape_infeasible_suspect)=0

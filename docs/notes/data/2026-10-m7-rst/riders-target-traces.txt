@@ -1,0 +1,69 @@
+### rider head a5c29790 YORKNET default (runs/r46diag)
+== depth 0: 40 major rows
+  verdicts {'accept_h': 24, 'reject': 10, 'restore': 1, 'accept_f': 5}
+  qp_status {'optimal': 37, 'numerical_error': 1, 'max_iter': 2}
+  minors 534 facts 1000 elastic 24 soc 0
+  qp.mode (site,outcome): count / iters
+     ('dispatch', 'escaped') 26 630
+     ('dispatch', 'optimal') 5 93
+     ('elastic_rung', 'escaped') 1 9
+     ('elastic_rung', 'optimal') 162 7867
+== depth 1: 24 major rows
+  verdicts {'accept_f': 11, 'reject': 5, 'accept_h': 8}
+  qp_status {'optimal': 23, 'numerical_error': 1}
+  minors 1595 facts 1863 elastic 0 soc 0
+  qp.mode (site,outcome): count / iters
+     ('dispatch', 'escaped') 1 62
+     ('dispatch', 'optimal') 21 1533
+     ('soc_resolve', 'escaped') 2 25
+"depth":1,"status":"numerical_error","majors":6,"counters":{"major_iters":6,"qp_minor_iters":806,"factorizations":1050
+"depth":1,"status":"optimal","majors":17,"counters":{"major_iters":17,"qp_minor_iters":814,"factorizations":852
+depth-0 restoration_curvature_switches: "restoration_curvature_switches":1
+### rider head a5c29790 BRITGAS default (runs/r46diag)
+== depth 0: 63 major rows
+  verdicts {'restore': 2, 'accept_f': 8, 'accept_h': 39, 'reject': 14}
+  qp_status {'numerical_error': 13, 'optimal': 20, 'max_iter': 30}
+  minors 57645 facts 72663 elastic 2 soc 1
+  qp.mode (site,outcome): count / iters
+     ('dispatch', 'escaped') 43 52363
+     ('dispatch', 'optimal') 19 5214
+     ('elastic_rung', 'escaped') 2 705
+     ('elastic_rung', 'optimal') 1 1564
+     ('soc_resolve', 'optimal') 6 1938
+== depth 1: 38 major rows
+  verdicts {'accept_f': 18, 'accept_h': 10, 'reject': 10}
+  qp_status {'optimal': 32, 'numerical_error': 2, 'max_iter': 4}
+  minors 30657 facts 32375 elastic 0 soc 0
+  qp.mode (site,outcome): count / iters
+     ('dispatch', 'escaped') 6 17171
+     ('dispatch', 'optimal') 31 13486
+     ('soc_resolve', 'escaped') 1 223
+     ('soc_resolve', 'optimal') 2 6228
+"depth":1,"status":"numerical_error","majors":9,"counters":{"major_iters":9,"qp_minor_iters":22396,"factorizations":24240
+"depth":1,"status":"numerical_error","majors":23,"counters":{"major_iters":23,"qp_minor_iters":13037,"factorizations":13079
+"depth":1,"status":"numerical_error","majors":2,"counters":{"major_iters":2,"qp_minor_iters":824,"factorizations":899
+"depth":1,"status":"optimal","majors":3,"counters":{"major_iters":3,"qp_minor_iters":851,"factorizations":877
+depth-0 restoration_curvature_switches: "restoration_curvature_switches":2
+### rider head a5c29790 NET3 default (runs/r46diag)
+== depth 0: 24 major rows
+  verdicts {'restore': 3, 'accept_f': 19, 'reject': 2}
+  qp_status {'numerical_error': 6, 'optimal': 18}
+  minors 824 facts 1426 elastic 5 soc 0
+  qp.mode (site,outcome): count / iters
+     ('dispatch', 'escaped') 8 68
+     ('dispatch', 'optimal') 15 308
+     ('elastic_rung', 'escaped') 3 423
+     ('elastic_rung', 'optimal') 5 109
+== depth 1: 48 major rows
+  verdicts {'reject': 17, 'accept_f': 23, 'accept_h': 8}
+  qp_status {'max_iter': 1, 'optimal': 47}
+  minors 24465 facts 24389 elastic 0 soc 16
+  qp.mode (site,outcome): count / iters
+     ('dispatch', 'escaped') 1 13325
+     ('dispatch', 'optimal') 44 11140
+     ('soc_resolve', 'optimal') 29 4583
+"depth":1,"status":"numerical_error","majors":1,"counters":{"major_iters":1,"qp_minor_iters":13325,"factorizations":13294
+"depth":1,"status":"optimal","majors":40,"counters":{"major_iters":40,"qp_minor_iters":13539,"factorizations":13693
+"depth":1,"status":"optimal","majors":3,"counters":{"major_iters":3,"qp_minor_iters":1194,"factorizations":1140
+"depth":1,"status":"optimal","majors":1,"counters":{"major_iters":1,"qp_minor_iters":990,"factorizations":902
+depth-0 restoration_curvature_switches: "restoration_curvature_switches":1

@@ -52,9 +52,8 @@ class Filter {
     void augment(double phi_current, double theta_current) {
         const double phi_add = phi_current - kFilterGammaPhi * theta_current;
         const double theta_add = (1.0 - kFilterGammaTheta) * theta_current;
-        std::erase_if(entries_, [&](const Entry &e) {
-            return phi_add <= e.phi && theta_add <= e.theta;
-        });
+        std::erase_if(entries_,
+                      [&](const Entry &e) { return phi_add <= e.phi && theta_add <= e.theta; });
         entries_.push_back({phi_add, theta_add});
     }
 
@@ -242,9 +241,9 @@ class FilterAcceptance final : public SwitchingAcceptance {
     Filter filter_;
 
     /// Reset-heuristic state; all zeroed by reset_bounds().
-    int successive_filter_rejections_ = 0;   
-    int n_filter_resets_ = 0;                
-    bool last_rejection_was_filter_ = false; 
+    int successive_filter_rejections_ = 0;
+    int n_filter_resets_ = 0;
+    bool last_rejection_was_filter_ = false;
 
     // Feasibility-restoration state: the PRESERVED optimality-phase working
     // state, stashed at entry and restored at exit; the exit test consults

@@ -1,0 +1,54 @@
+GATES_START 2026-09-24T10:38:32-04:00
+=== HEAD d1edc391  dirty-files=0 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.scratch/m7w2e2fix2gates ===
+=== BEFORE=763cda00  EXPECT_DEBUG_TESTS=2826  EXPECT_RELEASE_TESTS=2827 ===
+=== HEAD_AT_START=d1edc391e26d92982523964247d2492e5e71ad4e
+=== CHANGED HEADERS: include/hven/core/solver_counters.h include/hven/detail/qp/qp_engine.h include/hven/detail/qp/qp_problem.h include/hven/detail/qp/ws_independence.h 
+=== CHANGED SOURCES: src/qp/qp_engine.cpp src/qp/ws_independence.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/sqp/test_qp_ws_independence.cpp 
+=== MODIFIED C++ SOURCES: src/qp/qp_engine.cpp src/qp/ws_independence.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/sqp/test_qp_ws_independence.cpp 
+=== ADDED C++ SOURCES: 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): tests/qp/test_qp_anti_cycling_arm.cpp -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); differences declared 0
+=== CLASS_B_NAMES_OK: Release 36 / Debug 36 declared objects, none with a source modified in the range
+=== BY-NAME: baselines /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-e1-equality-basis/gates-e1b-fix3/suite-{debug,release}.txt (2819 / 2820 started names); 9 ADDED, each added by exactly one TEST line in the range; 0 TEST lines removed
+=== PREFLIGHT_VALUE_OK: class A 4 - 1 outside == declared 3/3; ADDED 0 == declared 0 (0 inside the universe == declared 0); class B library objects all unmodified; G4 gate 1e-5
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2fix2gates/g1.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2fix2gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2fix2gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2fix2gates/g2.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2fix2gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2fix2gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2fix2gates/g3.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2fix2gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2fix2gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2fix2gates/g4.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2fix2gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2fix2gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2fix2gates/g5.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2fix2gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2fix2gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2fix2gates/g6.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2fix2gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2fix2gates/gates
+=== PREFLIGHT_OK: 6 segments written and asserted against GATES_SCRATCH, before the first leg ===
+PREFLIGHT_ONLY: stopping before G1. No leg was run and no build tree was touched.
+
+=== REFUSALS EXERCISED against a wrong value (each rc 2) ===
+--- REFUSAL EXERCISE: a class B name whose source is modified (test_qp_ws_independence.cpp.o swapped in)
+REFUSED: rel class B tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_ws_independence.cpp.o has its source tests/sqp/test_qp_ws_independence.cpp MODIFIED in 763cda00..d1edc391e26d92982523964247d2492e5e71ad4e (it is class A)
+rc=2
+--- REFUSAL EXERCISE: class B 37/37 with a 36-name list
+REFUSED: rel class B names list has 36 objects, class B is DECLARED 37
+rc=2
+--- REFUSAL EXERCISE: Release 2826 against Debug 2826
+REFUSED: Debug 2826 != Release 2826 - long 1
+rc=2
+--- REFUSAL EXERCISE: BEFORE 6d123e75
+REFUSED: 8 modified .cpp (less 1 outside the universe), but class A is DECLARED 3/3
+rc=2
+--- REFUSAL EXERCISE: class A 4/4
+REFUSED: 4 modified .cpp (less 1 outside the universe), but class A is DECLARED 4/4
+rc=2
+
+=== OFFLINE BY-NAME CHECK (--check-names) against this round's measured suites at d1edc391 ===
+ASSERT OK   offline release by name: 2829 started names == the baseline's 2820 + the 9 declared ADDED, none removed
+rc=0
+ASSERT OK   offline debug by name: 2828 started names == the baseline's 2819 + the 9 declared ADDED, none removed
+rc=0
+--- negative control: the Release transcript checked as Debug
+ASSERT FAIL offline debug by name: 2829 started vs the baseline's 2819 + 9 ADDED; the difference (expected '<' tab-indented '>' this run):
+	Continuation.ProbeBudgetBoundsAFailingProposal
+rc=2

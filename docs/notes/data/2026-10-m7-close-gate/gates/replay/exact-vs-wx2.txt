@@ -1,0 +1,3 @@
+=== WX2 RECORD HEAD-walk vs M7 CLOSE HEAD-walk (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+=== WX2 RECORD HEAD-ssn vs M7 CLOSE HEAD-ssn (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+=== WX2 RECORD HEAD-ipm vs M7 CLOSE HEAD-ipm (EXACT) === cells compared: 27  columns compared: 75  differences: 0

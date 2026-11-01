@@ -1,0 +1,110 @@
+M7 WX -- THE GATE EXPECTATIONS, DERIVED.
+Written and committed BEFORE the chain was detached.
+
+RULE: nothing here, and no declared value in gates-wx.sh, may be adjusted after the chain's first leg. Every value is derived from the FINAL range
+1ff37db2..65c3a24b or measured on that pair by this declaration's own rehearsal (rehearsal/). No value is carried from the A3 declaration: where a number
+equals A3's it is a COMPARISON, stated as such. The A3 gate record (docs/notes/data/2026-10-m7-a3-gates/, 1ff37db2) is frozen, untouched. If a gate fails the
+declaration stays frozen; a fix gets a successor -r2 declaration and the failed record is filed under gates-run1/.
+
+BASE   1ff37db2 (the A3 gates record; code-identical to bb512d69 and to the A3 record's replay binary 45c253e564fe: `git diff 1ff37db2 bb512d69 -- include src tests
+       bench scripts cmake CMakeLists.txt` is empty, and the runner checks the record's csv-header binary commit against BEFORE by value). The by-name baseline is the A3
+       gates record's gates/suite-*.txt (newest gates/suite-release.txt added at or before BEFORE; the runner derives it and refuses unless it equals the declared path; no
+       test file changed between the record's parent and BEFORE, checked by value). The G4 exact arm and the E1 OFF baseline are the A3 gates record's replay/head-{walk,ssn,
+       ipm}.csv and e1/e1-off.csv (A3 asserted both equal to the toolchain re-baseline record's, so the chain 2026-10-27 toolchain record -> A3 -> WX is exact), DERIVED from
+       BEFORE by the runner (the toolchain-record path of A3's runner is replaced by the A3 record's path, a declared value; the derivation rule is unchanged).
+HEAD   65c3a24b. The declaration commit sits on top and is docs/data only, so every derivation sees 65c3a24b's sources.
+       Code commits (git log 1ff37db2..65c3a24b over include src tests bench scripts cmake CMakeLists.txt): aa19f364 (GCC: the corner lambda's infinity a static constexpr
+       local, behaviour-identical), 586e3103 + 5a8eee8b (W3, bench-only: bench_corpus.cpp --hs applies the --ssn-* levers, `# lever:` stamps, ten trailing HS columns),
+       8134b08a + 864f5814 + f50b6642 + b7f2b784 + adf19349 + b5bf469f + dfb9a5f0 (WX B0-B4: tests, tests/common_support/route_reference.h, the sentinel test, one library
+       line in include/hven/detail/interior/utils/accelerate_threads.h -- setenv overwrite 1 -> 0, Apple-only, not compiled on Linux), 7beb4801 + 99eeb8f3 (WX-R1: the SQP
+       convergence test gates NLP complementarity on every major; duals_ingested / duals_carried removed; the full-step watchdog ranks by max(stationarity, feasibility,
+       complementarity); riders are comments, docs and one dropped test assertion).
+       WX is claimed IDENTITY on every instrument this gate reads (U0 replay, E1 OFF); the implementer's own pre-landing TRAIN check moved ONE row (ACOPR118 25 -> 61 majors,
+       still optimal), which the gates do not cover (docs/notes/data/ WX-R1 records).
+RUNNER gates-wx.sh + chain_gates_wx.sh + preflight-wx.sh + e1_off_compare_wx.py + rehearsal/*-wx.sh: copies of A3's, re-pointed (NOT edited in place). Changes, and nothing else:
+       (a) names / scratch .scratch/gates-wx / BEFORE / by-name baseline / previous-record path; classifier a byte-identical copy (preflight F); (b) the changed surface (section 1);
+       (c) the name checks (section 3: 2 ADDED, 0 REMOVED); (d) the measured P-SYM slots (section 2); (e) three STRUCTURAL ADDITIONS, stated in the runner header: S1 the ADDED non-.cpp
+       test-file check admits the one declared test-support header; S2 the EXPECT_CLASS_A_IDENTICAL_{RELEASE,DEBUG} slots (a modified source with a byte-identical object),
+       proven offline by rehearsal/check-class-a-wx.sh; S3 the E1 comparator accepts an empty declared added-column set.
+       The offline rehearsal script ran with the A3 E1 argument (ipqp_ladder_zero_trial_skips) before S3 was written, so its own E1 comparison line reports rc 1 ("ADDED COLUMN SET IS
+       NOT THE DECLARED ONE" with 0 differences); the comparator was re-run by hand with the empty set, rc 0 (rehearsal/e1/e1-off-vs-previous-record.txt), and the committed offline
+       script carries the corrected argument. This is a rehearsal-script slip, not a gate deviation.
+ENVIRONMENT NOTE: the worktree (.claude/worktrees/wx-gates-wt, branch wx-gates) was created without its submodules; dep/eigen and dep/fmt were populated by copying the main
+       checkout's working trees (untracked; the copied .git pointer files removed). The rehearsal ran at a temporary docs-only commit above 65c3a24b (the wrappers), since reset away.
+
+-----------------------------------------------------------------------------
+1  THE CHANGED SURFACE of 1ff37db2..65c3a24b -- OBSERVED, derived from git (git diff --name-status 1ff37db2 65c3a24b -- include src tests bench scripts cmake CMakeLists.txt).
+
+   3 headers (all MODIFIED, under include/): detail/interior/utils/accelerate_threads.h, drivers/sqp_solver.h, drivers/sqp_solver_types.h. Bench header bench/corpus_cells.h
+   MODIFIED (a comment); tests/common_support/route_reference.h ADDED (not under include/, so not a classifier header; every includer is a modified or added source).
+   27 MODIFIED .cpp: 14 INSIDE the P-SYM universe -- library src/drivers/sqp_solver.cpp, src/qp/qp_engine.cpp; bench/bench_corpus.cpp; hven_drivers_tests test_threads;
+     hven_sqp_tests test_b1_gate, test_continuation, test_elastic_witness_start, test_hs_battery, test_hs_sweeps, test_ipqp_acceptance, test_ipqp_trace, test_sqp_restoration,
+     test_sqp_solver, test_warm_start_battery -- and 13 OUTSIDE it: tests/qp/test_qp_{anti_cycling_arm, ascent_guard, border_certificate, certificate_sign, convex_certificate,
+     latch_reason, rank_repair, refused_exchange, saddle_exit, saddle_shift, stagnation_stop, standstill_retreat}.cpp (hven_qp_walk_seam_tests) and tests/sqp/test_ipqp_seams.cpp
+     (hven_ipqp_seam_tests). EXPECT_CLASS_A_OUTSIDE_SRCS names the 13; the runner checks each is MODIFIED, a source of exactly ONE listed outside target, and named once in the build files.
+   1 ADDED .cpp, OUTSIDE the universe: tests/qp/test_route_reference.cpp (hven_qp_walk_seam_tests), with its one tests/CMakeLists.txt line. EXPECT_ADDED_CXX 1, EXPECT_ADDED_OUTSIDE
+     tests/qp/test_route_reference.cpp, EXPECT_PSYM_ADDED 0. No tests/sqp/CMakeLists.txt or src/CMakeLists.txt change. 1 ADDED non-.cpp test file: the header above (S1).
+   clang-format set: 32 files (3 headers + the test header + 2 library .cpp + 25 test .cpp + 1 bench .cpp; the runner prints it; bench/corpus_cells.h is outside its pathspec, a
+   carried property of the derivation, observed not changed here).
+   U0 cells are claimed untouched; the replay csv schema is UNCHANGED (the W3 columns are the --hs suite's, not the corpus replay's): the comparison stays 27 cells x 75 columns.
+   The E1 arm's csv is unchanged: 29 cells x 69 columns, the head adds NO column.
+
+-----------------------------------------------------------------------------
+2  THE P-SYM MOVER SHAPE, PER CONFIGURATION -- MEASURED on the final pair 1ff37db2/65c3a24b by a FRESH rehearsal.
+
+     Release  DIFFERING 6 = class A 6 + class B 0; UNEXPLAINED 0; NOISE-ONLY 9 (0 in the library); negative control 83; sections: 48 objects, 47 byte-identical,
+              DEBUG_ONLY 0, NON-DEBUG MOVERS 1, REFUSED 0
+     Debug    DIFFERING 7 = class A 7 + class B 0; UNEXPLAINED 0; NOISE-ONLY 58 (5 in the library); negative control 34; sections: 48 objects, 41 byte-identical,
+              DEBUG_ONLY 5, NON-DEBUG MOVERS 2, REFUSED 0
+
+   HOW MEASURED. rehearsal/rehearse-wx.sh ran THIS runner's g5 segment (EXTRACTED from the runner's text) at the temporary docs-only commit above 65c3a24b against 1ff37db2,
+   both configurations, one hold of the box lock (2026-10-29 15:09-15:31, PGREP_EMPTY under the hold; rehearsal/rehearsal-wx-log.txt). Its HYPOTHESIS declaration (class A 14/14,
+   class B 0) was REFUSED in both configurations by design (rehearsal/*-refused-at-14.txt), printing the measured shape (6 / 7 differing). Then rehearsal/offline-wx.sh 6 7: a fresh
+   Release build with g5's flags and the UNCAPPED classifier re-run on the compare files at the measured counts -- OFFLINE_CLASSIFY_RC 0 in BOTH configurations
+   (rehearsal/rehearsal-wx-classification-*.txt).
+   CLASS A, Release 6 = bench/bench_corpus, library drivers/sqp_solver, hven_sqp_tests test_b1_gate / test_elastic_witness_start / test_hs_sweeps / test_warm_start_battery.
+   Of the 14 in-universe MODIFIED sources, 7 are NOISE-ONLY in BOTH configurations (drivers_tests test_threads; sqp_tests test_continuation, test_hs_battery, test_ipqp_acceptance,
+   test_ipqp_trace, test_sqp_restoration, test_sqp_solver: their edits sit inside `#if HVEN_TEST_ROUTE_REFERENCE` arms or shift only __LINE__-class data) -- declared BY NAME in
+   EXPECT_CLASS_A_NOISE_ONLY_{RELEASE,DEBUG} -- and ONE, src/qp/qp_engine.cpp, is BYTE-IDENTICAL in Release (the compare names no line for it; the saved before/after library
+   objects are identical) but DIFFERS in Debug (3 symbols) -- declared in the NEW slot EXPECT_CLASS_A_IDENTICAL_RELEASE. 14 - 7 - 1 = 6 (Release); 14 - 7 = 7 (Debug, which adds qp_engine).
+   CLASS B: 0 in both configurations (EXPECT_CLASS_B_NAMES_* and EXPECT_LIB_CLASS_B_* EMPTY). No includer of the changed headers whose source is untouched moved beyond the NOISE-ONLY class:
+   the SolveState layout change moves only sqp_solver.cpp's own offsets. EXPECT_PSYM_B_DEBUG_ONLY and the mirror slot EMPTY. 9 / 58 NOISE-ONLY objects are listed in the
+   classifications; the 7 modified ones are the declared class A noise, the rest are unmodified-source objects that include a changed header or shift only in Debug line data.
+   NON-DEBUG-MOVER set: Release 1 (drivers/sqp_solver), Debug 2 (drivers/sqp_solver, qp/qp_engine) = the derived class A library objects less the IDENTICAL one per configuration.
+   DEBUG_ONLY Release 0 / Debug 5 (the five library objects NOISE-ONLY in Debug: sqp_options, sqp_print, trace_writer, ipqp_engine, continuation). No library object ADDED.
+
+-----------------------------------------------------------------------------
+3  TEST COUNTS -- derived against the by-name baseline.
+
+   BASELINE (the A3 record): ctest total Debug 3229 / Release 3230; started names 3231 / 3232. Skipped: Debug 7, Release 1.
+   ADDED = 2 instances by name, REMOVED = 0, OBSERVED with git diff 1ff37db2 65c3a24b over tests/*.cpp: two added TEST lines -- RouteReference.TheReferenceBuildRunsAtMklsAutoDispatch
+   (tests/qp/test_route_reference.cpp) and HsSweepRepair.WarmChainOnAQuarterGridCertifiesNoPointOffTheRow (tests/sqp/test_hs_sweeps.cpp); no TEST_F / TEST_P, no removed TEST
+   line. The sentinel carries a GTEST_SKIP, taken only off the reference build (HVEN_TEST_ROUTE_REFERENCE 0); this box is the reference build, so the skipped sets are unchanged and
+   DEBUG_ONLY_SKIPS_ADDED is EMPTY. The sentinel FAILS if MKL_CBWR is set (the chain runs with it unset).
+   EXPECTED SUITE COUNTS: Debug 3229 + 2 = 3231 (G1, the long test excluded); Release 3230 + 2 = 3232 (G3); G2 1. (The brief's 3230/3231 prediction carried one test too few: the A3 baseline is
+   3229/3230, so +2 gives 3231/3232.) The rehearsal build's `ctest -N` total is 3234 (rehearsal/ctest-N-startfmt-derived.txt, rewritten to the runner's "Start n: name" shape, the two
+   "(Disabled)" suffixes stripped as the baseline's derivation does; it passes the runner's by-name check in Release and Debug shape, preflight C/C2; a short listing and the baseline are
+   refused). Of the 3234 listed, 2 are Disabled: 3232 run.
+
+-----------------------------------------------------------------------------
+4  G4: 27 cells x 75 columns x 3 engines, plus E1 OFF.
+
+   MEASURED by the rehearsal's offline leg (a fresh Release build of 65c3a24b's sources, MKL_NUM_THREADS=1, taskset -c 2; rehearsal/rehearsal-wx-g4-comparison.txt):
+   vs the M6 close pin, GATED (1e-5 relative, 1e-13 floor): walk 17, ssn 13, ipm 13 = 43; the measured set EQUALS the declared 43-entry list (runner --check-g4, rc 0:
+   preflight B), and the toolchain record's own comparison-vs-m6-pin.txt also equals it (preflight B1). EXACT arm vs the A3 record's replay: walk 0, ssn 0, ipm 0 differences.
+   DECLARED 0 / 0 / 0 and ASSERTED rc 0 per engine by the chain's g4 segment (preflight B2: the comparator exits non-zero on a real difference).
+   E1 OFF (hven_sqp_ipqp_e1_arm --gate, taskset -c 2): rehearsal/e1/: rc 0; 29 cells x 69 common columns (wall_s excluded) 0 differences vs the A3 record's e1-off.csv; the head adds NO
+   column (the column set is UNCHANGED: derived by the comparator as head minus base = empty, and base minus head = empty). DECLARED the same and ASSERTED (arm rc 0, comparator rc 0 with
+   the empty declared set; preflight B3 shows the comparator refuses a changed common cell, an added column and a dropped column).
+
+-----------------------------------------------------------------------------
+5  G6: expected CLEAN: install smoke; export contract; clang-format over the DERIVED set (32 files); git diff --check; DIRTY_FILES 0.
+   Fold proofs: the count the gate-assert library produces, reported as observed.
+
+6  PRE-FLIGHT: preflight-wx.txt (generated by preflight-wx.sh), committed WITH this file and BEFORE the chain was detached: A full pre-flight PREFLIGHT_OK; B/B1
+   --check-g4 rc 0 (+ B2 the exact arm's teeth); C by-name reader (+ falsifiers); D skipped sets; E1-E12 falsifiers (E5c dropped; E8 turned round to a class B swap into an EMPTY
+   declared list; E10 now declares an unmodified qp source; E4 refuses on the Debug = Release - long consistency check first, as A3's did); B3 the E1 comparator's teeth (empty declared
+   set); F classifier byte-identical to A3's; G the class A NOISE-ONLY / IDENTICAL admission proven offline (check-class-a-wx.sh: H1 pass, H2-H5 falsifiers refused).
+
+7  G5 CHECKS THE WORKTREE OUT TO BEFORE while it builds its before arm, once per configuration: nothing may edit or commit in this worktree from the chain's launch
+   until CHAIN_END. WALL IS INFORMATIONAL.

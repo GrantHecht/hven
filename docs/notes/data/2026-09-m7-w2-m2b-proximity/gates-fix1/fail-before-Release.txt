@@ -1,0 +1,28 @@
+Running main() from /home/ghecht/Projects/hven/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = SqpDriverRestorationProximity.*
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from SqpDriverRestorationProximity
+[ RUN      ] SqpDriverRestorationProximity.TheCertificateIsGatedOnTheUncorrectedResidual
+[       OK ] SqpDriverRestorationProximity.TheCertificateIsGatedOnTheUncorrectedResidual (10 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheProxyWouldCertifyWhereTheExactResidualRefuses
+/home/ghecht/Projects/hven/tests/sqp/test_sqp_restoration.cpp:2582: Failure
+Value of: sol.infeasibility_certified
+  Actual: true
+Expected: false
+the returned point is NOT a certified infeasible stationary point of h: its exact subgradient residual is 8.128687836173043e-07 against a kkt_tol of 6.3e-07
+
+[  FAILED  ] SqpDriverRestorationProximity.TheProxyWouldCertifyWhereTheExactResidualRefuses (44 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheSeedGuardFiresAndTheStartObjectiveIsHPlusP
+[       OK ] SqpDriverRestorationProximity.TheSeedGuardFiresAndTheStartObjectiveIsHPlusP (44 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheRefusalsNameTheFieldTheValueAndTheRemedy
+[       OK ] SqpDriverRestorationProximity.TheRefusalsNameTheFieldTheValueAndTheRemedy (0 ms)
+[----------] 4 tests from SqpDriverRestorationProximity (98 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (98 ms total)
+[  PASSED  ] 3 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] SqpDriverRestorationProximity.TheProxyWouldCertifyWhereTheExactResidualRefuses
+
+ 1 FAILED TEST

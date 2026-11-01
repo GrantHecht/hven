@@ -55,7 +55,14 @@ struct QpEngineTestAccess {
                                         const WorkingSet &ws, detail::KktFactor &kkt,
                                         EliminatedFace &face, BorderState &border,
                                         QpCounters &counters, const QpOptions &opts) {
-        return eng.probe_inertia(qp, ws, kkt, face, border, counters, opts);
+        return eng.probe_inertia(qp, ws, Vec::Zero(qp.n()), kkt, face, border, counters, opts);
+    }
+    // M7 QN stage 2: the convex certificate's gate, read directly (the flag's one consumer).
+    static bool convex_overrules(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                                 const Vec &lambda_e, const Vec &lambda_i, QpCounters &counters,
+                                 const QpOptions &opts, detail::InertiaVerdict &verdict) {
+        return QpEngine::convex_overrules_wrong_inertia(qp, ws, x, lambda_e, lambda_i, counters,
+                                                        opts, verdict);
     }
 };
 } // namespace hven::solvers
@@ -2511,13 +2518,17 @@ TEST(QpEngineIndefinite, WeaklyActiveGeneralRowIsNotCertifiedEither) {
 // already spent and falls through to the certification branch. MEASURED: block
 // 1 (the one the restart repaired) lands on its minimizer while block 0 is left
 // at its saddle, and the solve exits kNumericalError with the multipliers
-// cleared, in both algebra modes.
+// cleared, in both algebra modes -- on the walk WITHOUT section 4c's SADDLE
+// EXIT (independent_working_set off). With it (the default, M7 W2 NC3), the
+// second dead end is ridden off along negative curvature instead, so the solve
+// reaches both minimizers: the restart is still spent exactly once, and
+// saddle_exits == 1 is what says the second dead end was not a second restart.
 //
 // This is also the shape SqpDriverQpFailure's fixtures are built on: a
 // reproducible kNumericalError WITH a finite, bound-feasible iterate is
 // precisely what the driver's shrink-retry routing needs to be exercised
-// against, and replication is the only way to get one now that a single copy
-// recovers.
+// against -- now from the option-off walk (test_sqp_solver.cpp,
+// twin_saddle_premise).
 TEST(QpEngineIndefinite, PostProbeRestartIsOneShotPerSolve) {
     // Two copies of indefinite_equality_and_row_qp (row tightened to -2) on
     // variables 0..2 and 3..5.
@@ -2551,8 +2562,27 @@ TEST(QpEngineIndefinite, PostProbeRestartIsOneShotPerSolve) {
          {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
         QpOptions opts;
         opts.ws_algebra = algebra;
-        const QpSolution sol = QpEngine{opts}.solve(qp);
         SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+
+        // THE DEFAULT WALK: the one restart repairs one block and the saddle exit
+        // leaves the other block's saddle -- both minimizers, certified.
+        {
+            const QpSolution on = QpEngine{opts}.solve(qp);
+            EXPECT_EQ(on.status, QpStatus::kOptimal);
+            EXPECT_EQ(on.counters.saddle_exits, 1)
+                << "the second dead end was answered by the saddle exit, not a second restart";
+            EXPECT_LT((on.x.segment(0, 3) - minimizer).lpNorm<Eigen::Infinity>(), 1e-8)
+                << "block 0 = " << on.x.segment(0, 3).transpose();
+            EXPECT_LT((on.x.segment(3, 3) - minimizer).lpNorm<Eigen::Infinity>(), 1e-8)
+                << "block 1 = " << on.x.segment(3, 3).transpose();
+            EXPECT_NEAR(objective(qp, on.x), -0.75, 1e-9);
+            expect_multipliers_consistent(qp, on, 1e-6);
+        }
+
+        // THE WALK WITHOUT THE SADDLE EXIT: the budget is directly observable.
+        opts.independent_working_set = false;
+        const QpSolution sol = QpEngine{opts}.solve(qp);
+        EXPECT_EQ(sol.counters.saddle_exits + sol.counters.saddle_exit_misses, 0);
 
         // The budget: one block repaired, one block not, so no certificate.
         EXPECT_EQ(sol.status, QpStatus::kNumericalError);
@@ -2697,40 +2727,70 @@ TEST(QpEngineIndefinite, T7Fix2AFailedStartRepairDoesNotRefineThroughTheProbedFa
     qp.upper = Vec(2);
     qp.upper << 1.0, 1e20;
 
-    for (const auto algebra :
-         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
-        QpOptions opts;
-        opts.ws_algebra = algebra;
-        QpEngine eng{opts};
+    // The stale-key path needs the repair to PROBE, i.e. to pin x0. x0's pin
+    // is dependent on Ae (both rows are e_0), so the independent working set
+    // (E2) skips it and never probes: the path is exercised with it off, and
+    // the on arm pins the skip.
+    for (const bool independent : {false, true})
+        for (const auto algebra :
+             {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+            SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border"
+                                                                          : "refactorize");
+            SCOPED_TRACE(independent ? "independent_working_set" : "pre-E2 walk");
+            QpOptions opts;
+            opts.ws_algebra = algebra;
+            opts.independent_working_set = independent;
+            QpEngine eng{opts};
 
-        const QpSolution cold = eng.solve(qp);
-        EXPECT_EQ(cold.status, QpStatus::kInfeasible);
+            const QpSolution cold = eng.solve(qp);
+            EXPECT_EQ(cold.status, QpStatus::kInfeasible);
 
-        // The WARM re-solve is the cell: at BASE it returned this status, and
-        // the stale-key defect turned it into a throw out of the public API.
-        QpSolution warm;
-        ASSERT_NO_THROW(warm = eng.solve(qp, cold));
-        EXPECT_EQ(warm.status, QpStatus::kInfeasible);
-        EXPECT_NEAR(warm.x(0), 0.5, 1e-9);
-        EXPECT_EQ(warm.x(1), 0.0);
-        EXPECT_EQ(warm.counters.verdict_refine_steps, 0);
+            // The WARM re-solve is the cell: at BASE it returned this status, and
+            // the stale-key defect turned it into a throw out of the public API.
+            QpSolution warm;
+            ASSERT_NO_THROW(warm = eng.solve(qp, cold));
+            EXPECT_EQ(warm.status, QpStatus::kInfeasible);
+            EXPECT_NEAR(warm.x(0), 0.5, 1e-9);
+            EXPECT_EQ(warm.x(1), 0.0);
+            EXPECT_EQ(warm.counters.verdict_refine_steps, 0);
 
-        // THE PRICE OF THE MISS (fix 1's rider 4): under kRefactorize the probes
-        // move the epoch, so the twin buys its own factorization and analysis
-        // instead of reusing a factorization of a differently-SIZED system.
-        //
-        // The 3 is candidate + ONE probe + the twin's miss, and the middle term
-        // is this fixture's: x1 is unbounded below in H and x0 is the only
-        // pinnable candidate, so the repair probes exactly once.
-        if (algebra == WorkingSetLinearAlgebra::kRefactorize) {
-            EXPECT_EQ(warm.counters.factorizations, 3);
-            EXPECT_EQ(warm.counters.symbolic_analyses, 1);
-        } else {
-            EXPECT_EQ(warm.counters.factorizations, 1);
-            EXPECT_EQ(warm.counters.symbolic_analyses, 0);
+            // THE PRICE OF THE MISS (fix 1's rider 4): under kRefactorize the probes
+            // move the epoch, so the twin buys its own factorization and analysis
+            // instead of reusing a factorization of a differently-SIZED system.
+            //
+            // The 3 is candidate + ONE probe + the twin's miss, and the middle term
+            // is this fixture's: x1 is unbounded below in H and x0 is the only
+            // pinnable candidate, so the repair probes exactly once.
+            if (independent) {
+                EXPECT_GE(warm.counters.dep_pin_skips, 1);
+                // M7 W2 E2 fix3 (declared mover, settler S29): 1 -> 3. The kWrong
+                // start verdict is re-read mu-free and, reading kSuspect, a second
+                // time at dual_mu (R-C'): two local eliminated factorizations.
+                // M7 W2 E2 fix4 (declared mover): 3 -> 4. The terminal x0 = 0.5 reads
+                // kInfeasible with the row footprint dual_mu * |lambda| open, so the
+                // face is re-solved mu-free once (one local factorization); the rows
+                // e_0 = 0 and e_0 = 1 are inconsistent, the refined point is not
+                // adopted, and the verdict and x stand.
+                // M7 W2 E2 fix9 (declared counter mover): border 4 -> 5. The rows are
+                // inconsistent, so the walk stands still off them on a kWrong border face and
+                // takes THE STANDSTILL RETREAT; the redone pass factorizes once on the
+                // eliminated path. Status and x above are unchanged.
+                const bool border = algebra == WorkingSetLinearAlgebra::kSchurBorder;
+                EXPECT_EQ(warm.counters.factorizations, border ? 5 : 4);
+                EXPECT_EQ(warm.counters.standstill_retreats, border ? 1 : 0);
+                EXPECT_EQ(warm.counters.dep_inertia_rereads, 1);
+                EXPECT_EQ(warm.counters.dep_inertia_reread_flips, 0);
+                EXPECT_EQ(warm.counters.terminal_mu_refines, 1);
+                EXPECT_EQ(warm.counters.terminal_mu_refine_rescues, 0);
+                EXPECT_EQ(warm.counters.symbolic_analyses, 0);
+            } else if (algebra == WorkingSetLinearAlgebra::kRefactorize) {
+                EXPECT_EQ(warm.counters.factorizations, 3);
+                EXPECT_EQ(warm.counters.symbolic_analyses, 1);
+            } else {
+                EXPECT_EQ(warm.counters.factorizations, 1);
+                EXPECT_EQ(warm.counters.symbolic_analyses, 0);
+            }
         }
-    }
 }
 
 // `dual_mu = 0` is legal (qp_types.h: 0 means no dual regularization), and with
@@ -2770,5 +2830,82 @@ TEST(QpEngineIndefinite, T7Fix2DualMuZeroOnARankDeficientFaceDoesNotEscapeSolve)
         ASSERT_NO_THROW(warm = eng.solve(qp, cold));
         EXPECT_EQ(warm.status, QpStatus::kInfeasible);
         EXPECT_TRUE(warm.x.allFinite());
+    }
+}
+
+// M7 QN stage 2: QpOptions::hessian_known_convex is the ONE caller assertion the walk's convex
+// certificate (section 4c) accepts in place of its structural test (a nonnegative DIAGONAL H).
+// The quasi-Newton lift's H is positive definite but not diagonal. The gate is read directly:
+// a trusted kWrong at a first-order point of a QP whose H = [[1,1],[1,1]] (PSD, off-diagonal).
+namespace {
+struct ConvexGateFixture {
+    QpProblem qp;
+    WorkingSet ws{2, 0};
+    Vec x{{1.0, 0.0}};
+    Vec none = Vec::Zero(0);
+    explicit ConvexGateFixture(double h01) {
+        qp.H = SpMatRM(2, 2);
+        qp.H.insert(0, 0) = 1.0;
+        qp.H.insert(0, 1) = h01;
+        qp.H.insert(1, 1) = 1.0;
+        qp.H.makeCompressed();
+        qp.g = Vec{{-1.0, -h01}}; // grad = H x + g = 0 at x = (1, 0): a first-order point
+        qp.Ae = Eigen::SparseMatrix<double, Eigen::RowMajor>(0, 2);
+        qp.Ai = Eigen::SparseMatrix<double, Eigen::RowMajor>(0, 2);
+        qp.be = Vec(0);
+        qp.bi = Vec(0);
+        qp.lower = Vec::Constant(2, -10.0);
+        qp.upper = Vec::Constant(2, 10.0);
+    }
+    bool gate(const QpOptions &o, QpCounters &c, detail::InertiaVerdict &v) const {
+        return QpEngineTestAccess::convex_overrules(qp, ws, x, none, none, c, o, v);
+    }
+};
+} // namespace
+
+TEST(QpEngineIndefinite, KnownConvexFlagStandsInForTheStructuralConvexTest) {
+    const ConvexGateFixture off_diag(1.0);
+    ASSERT_FALSE(detail::hessian_is_nonneg_diagonal(off_diag.qp.H));
+    for (const bool flag : {false, true}) {
+        QpOptions o;
+        o.hessian_known_convex = flag;
+        QpCounters c;
+        detail::InertiaVerdict v = detail::InertiaVerdict::kWrong;
+        const bool taken = off_diag.gate(o, c, v);
+        EXPECT_EQ(taken, flag) << "flag " << flag;
+        EXPECT_EQ(v == detail::InertiaVerdict::kSuspect, flag);
+        EXPECT_EQ(c.convex_certificates, flag ? 1 : 0);
+    }
+    // The flag is not a bypass: the first-order test still gates, the option-off walk is
+    // untouched, and a verdict other than kWrong is not rewritten.
+    {
+        QpOptions o;
+        o.hessian_known_convex = true;
+        ConvexGateFixture moved(1.0);
+        moved.x = Vec{{0.0, 0.0}}; // grad = g != 0: not a first-order point
+        QpCounters c;
+        detail::InertiaVerdict v = detail::InertiaVerdict::kWrong;
+        EXPECT_FALSE(moved.gate(o, c, v));
+        EXPECT_EQ(v, detail::InertiaVerdict::kWrong);
+        EXPECT_EQ(c.convex_certificates, 0);
+
+        o.independent_working_set = false;
+        v = detail::InertiaVerdict::kWrong;
+        EXPECT_FALSE(off_diag.gate(o, c, v));
+        o.independent_working_set = true;
+        v = detail::InertiaVerdict::kOk;
+        EXPECT_FALSE(off_diag.gate(o, c, v));
+        EXPECT_EQ(v, detail::InertiaVerdict::kOk);
+    }
+    // On a structurally convex (diagonal) H the flag changes nothing: taken either way.
+    const ConvexGateFixture diag(0.0);
+    ASSERT_TRUE(detail::hessian_is_nonneg_diagonal(diag.qp.H));
+    for (const bool flag : {false, true}) {
+        QpOptions o;
+        o.hessian_known_convex = flag;
+        QpCounters c;
+        detail::InertiaVerdict v = detail::InertiaVerdict::kWrong;
+        EXPECT_TRUE(diag.gate(o, c, v));
+        EXPECT_EQ(c.convex_certificates, 1);
     }
 }

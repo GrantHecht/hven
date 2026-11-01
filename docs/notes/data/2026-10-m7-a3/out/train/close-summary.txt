@@ -1,0 +1,15 @@
+determinism sqp-ipm hs: rc=0 :: 21 baseline cells, 21 fresh cells, 0 mismatches
+determinism sqp-ipm cutest: rc=0 :: 23 baseline cells, 23 fresh cells, 0 mismatches
+determinism sqp-ipm-slack1 hs: rc=0 :: 21 baseline cells, 21 fresh cells, 0 mismatches
+determinism sqp-ipm-slack1 cutest: rc=0 :: 23 baseline cells, 23 fresh cells, 0 mismatches
+determinism sqp-ipm-slack1e3 hs: rc=0 :: 21 baseline cells, 21 fresh cells, 0 mismatches
+determinism sqp-ipm-slack1e3 cutest: rc=0 :: 23 baseline cells, 23 fresh cells, 0 mismatches
+determinism sqp-ipm-skip1 hs: rc=0 :: 21 baseline cells, 21 fresh cells, 0 mismatches
+determinism sqp-ipm-skip1 cutest: rc=0 :: 23 baseline cells, 23 fresh cells, 0 mismatches
+determinism sqp-ipm-skipnever hs: rc=0 :: 21 baseline cells, 21 fresh cells, 0 mismatches
+determinism sqp-ipm-skipnever cutest: rc=0 :: 23 baseline cells, 23 fresh cells, 0 mismatches
+decide rc=0
+C-1 head vs base sqp-ipm hs: 0 cell(s) differing of 21
+C-2 (descriptive, toolchain) base new vs A2 old sqp-ipm hs: 0 cell(s) differing of 21
+C-1 head vs base sqp-ipm cutest: 0 cell(s) differing of 23
+C-2 (descriptive, toolchain) base new vs A2 old sqp-ipm cutest: 0 cell(s) differing of 23

@@ -1,0 +1,10 @@
+RUN Cs_READING6 rc=0 status=optimal iterations=8 objective=-144.65970057278273 factorizations=688 resto=0 wall_s=2.346360083
+RUN Cs_ZAMB2-8 rc=0 status=optimal iterations=8 objective=-0.15293592839676709 factorizations=154 resto=0 wall_s=.644546366
+RUN Cs_SMBANK rc=0 status=optimal iterations=29 objective=-7129292 factorizations=29 resto=0 wall_s=.080646443
+RUN Cs_ACOPR57 rc=0 status=optimal iterations=15 objective=41737.78496542733 factorizations=1207 resto=0 wall_s=1.242555203
+RUN Cs_ACOPR118 rc=0 status=optimal iterations=15 objective=129660.6833784326 factorizations=11136 resto=0 wall_s=63.232347869
+RUN Cs01_STEENBRB rc=0 status=interrupted iterations=1 objective=2789761.1893641427 factorizations=32011 resto=76 wall_s=300.707270134
+RUN Cs01_STEENBRC rc=0 status=interrupted iterations=1 objective=131521.78167975918 factorizations=17719 resto=23 wall_s=312.824007751
+CHAIN_DONE /home/ghecht/Projects/hven/.scratch/m7w2r1/tools/matrix3.txt 2026-09-25T15:42:24-04:00
+
+[exited with code 0]

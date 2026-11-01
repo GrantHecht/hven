@@ -1,0 +1,389 @@
+CHAIN_START 2026-09-22T14:14:46-04:00
+HEAD 25476030  dirty-files=0
+RULE  /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-m5-degeneracy-arms/RULE.md  (committed 0047c593, AMENDMENT 1 ae4d716b, both before this chain)
+EXE   /home/ghecht/Projects/hven/.scratch/m7w2m5arm/build/m5_arm_probe
+
+=========== STEP 0: THE PINS
+EXE_SHA256 eac445c0256e1b0af739f98e91a5d1cce586fedfa41562b7fb08684b145b43d4
+PIN_BINARY OK -- the smoked probe, unrebuilt
+--- the thirteen COPIED OFF rows, against their own manifest
+PIN_OFF_ROWS OK -- 13 rows verified
+PIN_OFF_ROWS_PROVENANCE OK -- all 13 are M4's committed rows, byte for byte
+--- the YORKNET parent trace against M4b's parent manifest
+PINNED_TRACE_SHA256  a69816b944ff79bfdd4c081bc5dce5a5c68b148228ccfadeb7152722dada5b95
+MEASURED_TRACE_SHA256 a69816b944ff79bfdd4c081bc5dce5a5c68b148228ccfadeb7152722dada5b95
+PIN_PARENT_TRACE OK
+--- the cell roster, checked before any leg
+all cell names are in the 35-name roster
+the EIGHT are inside the TEN; every armed cell has a copied OFF row
+
+=========== STEP 1: THE OFF CONTROLS ARE REUSED BY COPY, NOT RE-RUN
+RULE.md section 8 step 1. The thirteen rows in rows-off/ are M4's own,
+verified above against their manifest AND against M4's committed files.
+The binary's agreement with an OFF row is already MEASURED, at 152fe98b:
+ACOPP57 at --arm off reproduces M3c's committed pass-1 row on 58 of 58
+compared fields with ZERO near-ulp acceptances.
+    eceb9012aa8c797ded0ebea79291eea1600f58f9a260946cfa446e3f48aef319  off-ACOPP118.txt
+    d66f354aed8542f13eb1b9e9492fe7354dd7d83831586217c588ed369a98fdcc  off-ACOPP57.txt
+    7ab2fbad1b0aa32ae91e932d24bf361869631622aa4b5c3c625c38931c8fc34e  off-ACOPR57.txt
+    ... (13 rows)
+
+=========== STEP 2: A6's OFFLINE HALF, from the PINNED YORKNET trace
+Run BEFORE the dynamic leg, so the prediction is on the record before the
+solver moves. No solver runs in this step.
+A6_OFFLINE_RC=0
+    CELL YORKNET   trace /home/ghecht/Projects/hven/.scratch/m7w2m4/arm/traces/off-YORKNET.csv
+    ======================================================================
+      solve 7     core units 2538   (m4c_tails agrees: 2538)
+      CORE DROPS                 2538
+      the scaled test REFUSES    2538
+      the scaled test ADMITS     0
+      no scale published (arm A degrades to 1.0, counted here) 0
+    
+    ======================================================================
+    A6 OFFLINE -- THE PREDICTION AGAINST THE TRACES
+    ======================================================================
+      core drops examined              2538
+      the scaled test REFUSES          2538
+      the scaled test STILL ADMITS     0
+      passes with no published scale   0
+      |lambda| / (opt_tol*scale):  min 1.84849e-10  p50 1.84849e-10  p90 1.84849e-10  max 1.84849e-10
+    
+      VERDICT: A6's offline prediction HOLDS on these traces -- the scaled
+               test refuses every one of the 2538 recorded core drops.
+    
+      This is an OFFLINE replay over committed traces. It says what arm A's
+      test would have decided at each recorded drop; it does not say what a
+      walk that took different drops would then have done. That is the
+      DYNAMIC half, and it is the leg that follows.
+
+=========== STEP 3: ARM a ON YORKNET, ALONE (RULE.md section 8 step 2)
+LEG_START a-YORKNET 2026-09-22T14:14:50-04:00 deadline=600s
+PGREP_EMPTY a-YORKNET: no foreign cell binary under my lock
+FOREGROUND_START a-YORKNET 2026-09-22T14:14:50-04:00
+FOREGROUND_END a-YORKNET 2026-09-22T14:15:56-04:00 rc=0
+LEG_END a-YORKNET 2026-09-22T14:15:56-04:00 rc=0
+    status=numerical_error  deadline_fired=0  qp_minor_iters=42854  major_iters=5
+    indep_disarmed=0  indep_rank_violations=0  indep_leak_bound_exceeded=0  indep_max_cond_r=nan
+
+=========== STEP 4: ARM b1 ON THE EIGHT (RULE.md section 8 step 3)
+LEG_START b1-ACOPP118 2026-09-22T14:15:56-04:00 deadline=600s
+PGREP_EMPTY b1-ACOPP118: no foreign cell binary under my lock
+FOREGROUND_START b1-ACOPP118 2026-09-22T14:15:56-04:00
+FOREGROUND_END b1-ACOPP118 2026-09-22T14:16:46-04:00 rc=0
+LEG_END b1-ACOPP118 2026-09-22T14:16:46-04:00 rc=0
+    status=numerical_error  deadline_fired=0  qp_minor_iters=19872  major_iters=7
+    indep_disarmed=1  indep_rank_violations=5  indep_leak_bound_exceeded=0  indep_max_cond_r=74639661.621672601
+    UNSUPPORTED b1-ACOPP118 -- A9: the arm disarmed on a rank violation
+LEG_START b1-ACOPR57 2026-09-22T14:16:46-04:00 deadline=600s
+PGREP_EMPTY b1-ACOPR57: no foreign cell binary under my lock
+FOREGROUND_START b1-ACOPR57 2026-09-22T14:16:46-04:00
+FOREGROUND_END b1-ACOPR57 2026-09-22T14:16:55-04:00 rc=0
+LEG_END b1-ACOPR57 2026-09-22T14:16:55-04:00 rc=0
+    status=numerical_error  deadline_fired=0  qp_minor_iters=11649  major_iters=13
+    indep_disarmed=1  indep_rank_violations=14  indep_leak_bound_exceeded=1  indep_max_cond_r=47594968.300850123
+    UNSUPPORTED b1-ACOPR57 -- A10's bound was exceeded; cond(R) is beside it
+                and EXPLAINS it, never excuses it (RULE.md AMENDMENT 1)
+    UNSUPPORTED b1-ACOPR57 -- A9: the arm disarmed on a rank violation
+LEG_START b1-DALLASM 2026-09-22T14:16:55-04:00 deadline=600s
+PGREP_EMPTY b1-DALLASM: no foreign cell binary under my lock
+FOREGROUND_START b1-DALLASM 2026-09-22T14:16:55-04:00
+FOREGROUND_END b1-DALLASM 2026-09-22T14:16:59-04:00 rc=0
+LEG_END b1-DALLASM 2026-09-22T14:16:59-04:00 rc=0
+    status=numerical_error  deadline_fired=0  qp_minor_iters=8227  major_iters=5
+    indep_disarmed=1  indep_rank_violations=0  indep_leak_bound_exceeded=46  indep_max_cond_r=16.062378404208989
+    UNSUPPORTED b1-DALLASM -- A10's bound was exceeded; cond(R) is beside it
+                and EXPLAINS it, never excuses it (RULE.md AMENDMENT 1)
+    UNSUPPORTED b1-DALLASM -- A3: indep_refused_mandatory_dependent=5
+LEG_START b1-STEENBRB 2026-09-22T14:16:59-04:00 deadline=600s
+PGREP_EMPTY b1-STEENBRB: no foreign cell binary under my lock
+FOREGROUND_START b1-STEENBRB 2026-09-22T14:16:59-04:00
+FOREGROUND_END b1-STEENBRB 2026-09-22T14:24:39-04:00 rc=0
+LEG_END b1-STEENBRB 2026-09-22T14:24:39-04:00 rc=0
+    status=numerical_error  deadline_fired=0  qp_minor_iters=25348  major_iters=5
+    indep_disarmed=1  indep_rank_violations=0  indep_leak_bound_exceeded=1137  indep_max_cond_r=8000008.4999964889
+    UNSUPPORTED b1-STEENBRB -- A10's bound was exceeded; cond(R) is beside it
+                and EXPLAINS it, never excuses it (RULE.md AMENDMENT 1)
+    UNSUPPORTED b1-STEENBRB -- A3: indep_refused_mandatory_dependent=5
+LEG_START b1-STEENBRC 2026-09-22T14:24:39-04:00 deadline=600s
+PGREP_EMPTY b1-STEENBRC: no foreign cell binary under my lock
+FOREGROUND_START b1-STEENBRC 2026-09-22T14:24:39-04:00
+FOREGROUND_END b1-STEENBRC 2026-09-22T14:32:14-04:00 rc=0
+LEG_END b1-STEENBRC 2026-09-22T14:32:14-04:00 rc=0
+    status=numerical_error  deadline_fired=0  qp_minor_iters=33941  major_iters=6
+    indep_disarmed=1  indep_rank_violations=0  indep_leak_bound_exceeded=1477  indep_max_cond_r=40000003.699999996
+    UNSUPPORTED b1-STEENBRC -- A10's bound was exceeded; cond(R) is beside it
+                and EXPLAINS it, never excuses it (RULE.md AMENDMENT 1)
+    UNSUPPORTED b1-STEENBRC -- A3: indep_refused_mandatory_dependent=6
+LEG_START b1-STEENBRG 2026-09-22T14:32:14-04:00 deadline=600s
+PGREP_EMPTY b1-STEENBRG: no foreign cell binary under my lock
+FOREGROUND_START b1-STEENBRG 2026-09-22T14:32:14-04:00
+FOREGROUND_END b1-STEENBRG 2026-09-22T14:39:49-04:00 rc=0
+LEG_END b1-STEENBRG 2026-09-22T14:39:49-04:00 rc=0
+    status=numerical_error  deadline_fired=0  qp_minor_iters=34407  major_iters=6
+    indep_disarmed=1  indep_rank_violations=1  indep_leak_bound_exceeded=2839  indep_max_cond_r=15118585.988303484
+    UNSUPPORTED b1-STEENBRG -- A10's bound was exceeded; cond(R) is beside it
+                and EXPLAINS it, never excuses it (RULE.md AMENDMENT 1)
+    UNSUPPORTED b1-STEENBRG -- A9: the arm disarmed on a rank violation
+    UNSUPPORTED b1-STEENBRG -- A3: indep_refused_mandatory_dependent=6
+LEG_START b1-SAWPATH 2026-09-22T14:39:49-04:00 deadline=300s
+PGREP_EMPTY b1-SAWPATH: no foreign cell binary under my lock
+FOREGROUND_START b1-SAWPATH 2026-09-22T14:39:49-04:00
+FOREGROUND_END b1-SAWPATH 2026-09-22T14:45:43-04:00 rc=0
+LEG_END b1-SAWPATH 2026-09-22T14:45:43-04:00 rc=0
+    status=interrupted  deadline_fired=1  qp_minor_iters=77037  major_iters=1
+    indep_disarmed=1  indep_rank_violations=0  indep_leak_bound_exceeded=0  indep_max_cond_r=41530846.111354165
+    UNSUPPORTED b1-SAWPATH -- A3: indep_refused_mandatory_dependent=11
+LEG_START b1-ACOPP57 2026-09-22T14:45:43-04:00 deadline=600s
+PGREP_EMPTY b1-ACOPP57: no foreign cell binary under my lock
+FOREGROUND_START b1-ACOPP57 2026-09-22T14:45:43-04:00
+FOREGROUND_END b1-ACOPP57 2026-09-22T14:45:45-04:00 rc=0
+LEG_END b1-ACOPP57 2026-09-22T14:45:45-04:00 rc=0
+    status=numerical_error  deadline_fired=0  qp_minor_iters=7242  major_iters=7
+    indep_disarmed=0  indep_rank_violations=1  indep_leak_bound_exceeded=1  indep_max_cond_r=98906723.966360703
+    UNSUPPORTED b1-ACOPP57 -- A10's bound was exceeded; cond(R) is beside it
+                and EXPLAINS it, never excuses it (RULE.md AMENDMENT 1)
+    UNSUPPORTED b1-ACOPP57 -- A9: the arm disarmed on a rank violation
+
+=========== STEP 5: ARM a+b1 ON THE SAME EIGHT (RULE.md section 8 step 3)
+LEG_START a+b1-ACOPP118 2026-09-22T14:45:45-04:00 deadline=600s
+PGREP_EMPTY a+b1-ACOPP118: no foreign cell binary under my lock
+FOREGROUND_START a+b1-ACOPP118 2026-09-22T14:45:45-04:00
+FOREGROUND_END a+b1-ACOPP118 2026-09-22T14:46:34-04:00 rc=0
+LEG_END a+b1-ACOPP118 2026-09-22T14:46:34-04:00 rc=0
+    status=numerical_error  deadline_fired=0  qp_minor_iters=19872  major_iters=7
+    indep_disarmed=1  indep_rank_violations=5  indep_leak_bound_exceeded=0  indep_max_cond_r=74639661.621672601
+    UNSUPPORTED a+b1-ACOPP118 -- A9: the arm disarmed on a rank violation
+LEG_START a+b1-ACOPR57 2026-09-22T14:46:34-04:00 deadline=600s
+PGREP_EMPTY a+b1-ACOPR57: no foreign cell binary under my lock
+FOREGROUND_START a+b1-ACOPR57 2026-09-22T14:46:34-04:00
+FOREGROUND_END a+b1-ACOPR57 2026-09-22T14:46:43-04:00 rc=0
+LEG_END a+b1-ACOPR57 2026-09-22T14:46:43-04:00 rc=0
+    status=numerical_error  deadline_fired=0  qp_minor_iters=11649  major_iters=13
+    indep_disarmed=1  indep_rank_violations=14  indep_leak_bound_exceeded=1  indep_max_cond_r=47594968.300850123
+    UNSUPPORTED a+b1-ACOPR57 -- A10's bound was exceeded; cond(R) is beside it
+                and EXPLAINS it, never excuses it (RULE.md AMENDMENT 1)
+    UNSUPPORTED a+b1-ACOPR57 -- A9: the arm disarmed on a rank violation
+LEG_START a+b1-DALLASM 2026-09-22T14:46:43-04:00 deadline=600s
+PGREP_EMPTY a+b1-DALLASM: no foreign cell binary under my lock
+FOREGROUND_START a+b1-DALLASM 2026-09-22T14:46:43-04:00
+FOREGROUND_END a+b1-DALLASM 2026-09-22T14:46:48-04:00 rc=0
+LEG_END a+b1-DALLASM 2026-09-22T14:46:48-04:00 rc=0
+    status=numerical_error  deadline_fired=0  qp_minor_iters=8227  major_iters=5
+    indep_disarmed=1  indep_rank_violations=0  indep_leak_bound_exceeded=46  indep_max_cond_r=16.062378404208989
+    UNSUPPORTED a+b1-DALLASM -- A10's bound was exceeded; cond(R) is beside it
+                and EXPLAINS it, never excuses it (RULE.md AMENDMENT 1)
+    UNSUPPORTED a+b1-DALLASM -- A3: indep_refused_mandatory_dependent=5
+LEG_START a+b1-STEENBRB 2026-09-22T14:46:48-04:00 deadline=600s
+PGREP_EMPTY a+b1-STEENBRB: no foreign cell binary under my lock
+FOREGROUND_START a+b1-STEENBRB 2026-09-22T14:46:48-04:00
+FOREGROUND_END a+b1-STEENBRB 2026-09-22T14:54:27-04:00 rc=0
+LEG_END a+b1-STEENBRB 2026-09-22T14:54:27-04:00 rc=0
+    status=numerical_error  deadline_fired=0  qp_minor_iters=25105  major_iters=5
+    indep_disarmed=1  indep_rank_violations=0  indep_leak_bound_exceeded=727  indep_max_cond_r=6928210.735826103
+    UNSUPPORTED a+b1-STEENBRB -- A10's bound was exceeded; cond(R) is beside it
+                and EXPLAINS it, never excuses it (RULE.md AMENDMENT 1)
+    UNSUPPORTED a+b1-STEENBRB -- A3: indep_refused_mandatory_dependent=5
+LEG_START a+b1-STEENBRC 2026-09-22T14:54:27-04:00 deadline=600s
+PGREP_EMPTY a+b1-STEENBRC: no foreign cell binary under my lock
+FOREGROUND_START a+b1-STEENBRC 2026-09-22T14:54:27-04:00
+FOREGROUND_END a+b1-STEENBRC 2026-09-22T15:04:39-04:00 rc=0
+LEG_END a+b1-STEENBRC 2026-09-22T15:04:39-04:00 rc=0
+    status=interrupted  deadline_fired=1  qp_minor_iters=7276  major_iters=1
+    indep_disarmed=0  indep_rank_violations=0  indep_leak_bound_exceeded=1406  indep_max_cond_r=34641020.077359356
+    UNSUPPORTED a+b1-STEENBRC -- A10's bound was exceeded; cond(R) is beside it
+                and EXPLAINS it, never excuses it (RULE.md AMENDMENT 1)
+    UNSUPPORTED a+b1-STEENBRC -- A3: indep_refused_mandatory_dependent=1
+LEG_START a+b1-STEENBRG 2026-09-22T15:04:39-04:00 deadline=600s
+PGREP_EMPTY a+b1-STEENBRG: no foreign cell binary under my lock
+FOREGROUND_START a+b1-STEENBRG 2026-09-22T15:04:39-04:00
+FOREGROUND_END a+b1-STEENBRG 2026-09-22T15:14:47-04:00 rc=0
+LEG_END a+b1-STEENBRG 2026-09-22T15:14:47-04:00 rc=0
+    status=interrupted  deadline_fired=1  qp_minor_iters=7818  major_iters=1
+    indep_disarmed=0  indep_rank_violations=1  indep_leak_bound_exceeded=1  indep_max_cond_r=14886116.264064379
+    UNSUPPORTED a+b1-STEENBRG -- A10's bound was exceeded; cond(R) is beside it
+                and EXPLAINS it, never excuses it (RULE.md AMENDMENT 1)
+    UNSUPPORTED a+b1-STEENBRG -- A9: the arm disarmed on a rank violation
+    UNSUPPORTED a+b1-STEENBRG -- A3: indep_refused_mandatory_dependent=1
+LEG_START a+b1-SAWPATH 2026-09-22T15:14:47-04:00 deadline=300s
+PGREP_EMPTY a+b1-SAWPATH: no foreign cell binary under my lock
+FOREGROUND_START a+b1-SAWPATH 2026-09-22T15:14:48-04:00
+FOREGROUND_END a+b1-SAWPATH 2026-09-22T15:20:41-04:00 rc=0
+LEG_END a+b1-SAWPATH 2026-09-22T15:20:41-04:00 rc=0
+    status=interrupted  deadline_fired=1  qp_minor_iters=77037  major_iters=1
+    indep_disarmed=1  indep_rank_violations=0  indep_leak_bound_exceeded=0  indep_max_cond_r=41530846.111354165
+    UNSUPPORTED a+b1-SAWPATH -- A3: indep_refused_mandatory_dependent=11
+LEG_START a+b1-ACOPP57 2026-09-22T15:20:41-04:00 deadline=600s
+PGREP_EMPTY a+b1-ACOPP57: no foreign cell binary under my lock
+FOREGROUND_START a+b1-ACOPP57 2026-09-22T15:20:41-04:00
+FOREGROUND_END a+b1-ACOPP57 2026-09-22T15:20:43-04:00 rc=0
+LEG_END a+b1-ACOPP57 2026-09-22T15:20:43-04:00 rc=0
+    status=numerical_error  deadline_fired=0  qp_minor_iters=7242  major_iters=7
+    indep_disarmed=0  indep_rank_violations=1  indep_leak_bound_exceeded=1  indep_max_cond_r=98906723.966360703
+    UNSUPPORTED a+b1-ACOPP57 -- A10's bound was exceeded; cond(R) is beside it
+                and EXPLAINS it, never excuses it (RULE.md AMENDMENT 1)
+    UNSUPPORTED a+b1-ACOPP57 -- A9: the arm disarmed on a rank violation
+
+=========== STEP 6: ARM a+b1 ON BRITGAS AND YORKNET (RULE.md section 8 step 3)
+LEG_START a+b1-BRITGAS 2026-09-22T15:20:43-04:00 deadline=600s
+PGREP_EMPTY a+b1-BRITGAS: no foreign cell binary under my lock
+FOREGROUND_START a+b1-BRITGAS 2026-09-22T15:20:43-04:00
+FOREGROUND_END a+b1-BRITGAS 2026-09-22T15:27:33-04:00 rc=0
+LEG_END a+b1-BRITGAS 2026-09-22T15:27:33-04:00 rc=0
+    status=numerical_error  deadline_fired=0  qp_minor_iters=55926  major_iters=4
+    indep_disarmed=0  indep_rank_violations=5  indep_leak_bound_exceeded=426962  indep_max_cond_r=50240286.695535921
+    UNSUPPORTED a+b1-BRITGAS -- A10's bound was exceeded; cond(R) is beside it
+                and EXPLAINS it, never excuses it (RULE.md AMENDMENT 1)
+    UNSUPPORTED a+b1-BRITGAS -- A9: the arm disarmed on a rank violation
+LEG_START a+b1-YORKNET 2026-09-22T15:27:33-04:00 deadline=600s
+PGREP_EMPTY a+b1-YORKNET: no foreign cell binary under my lock
+FOREGROUND_START a+b1-YORKNET 2026-09-22T15:27:33-04:00
+FOREGROUND_END a+b1-YORKNET 2026-09-22T15:28:20-04:00 rc=0
+LEG_END a+b1-YORKNET 2026-09-22T15:28:20-04:00 rc=0
+    status=numerical_error  deadline_fired=0  qp_minor_iters=13892  major_iters=1
+    indep_disarmed=0  indep_rank_violations=1  indep_leak_bound_exceeded=12847  indep_max_cond_r=67437383.672533467
+    UNSUPPORTED a+b1-YORKNET -- A10's bound was exceeded; cond(R) is beside it
+                and EXPLAINS it, never excuses it (RULE.md AMENDMENT 1)
+    UNSUPPORTED a+b1-YORKNET -- A9: the arm disarmed on a rank violation
+
+=========== STEP 7: NEUTRALITY, DESCRIPTIVE AND EXTENDED (A7, section 8 step 4)
+READING6, SMBANK and ZAMB2-8 under a, b1 and a+b1. The reference is M4's
+COPIED off row for the same cell (rows-off/), and the reading is
+DESCRIPTIVE: status, f, FEASIBILITY and STATIONARITY side by side. No
+'production-ready' wording appears anywhere in this chain or its output.
+LEG_START a-READING6 2026-09-22T15:28:20-04:00 deadline=600s
+PGREP_EMPTY a-READING6: no foreign cell binary under my lock
+FOREGROUND_START a-READING6 2026-09-22T15:28:20-04:00
+FOREGROUND_END a-READING6 2026-09-22T15:28:45-04:00 rc=0
+LEG_END a-READING6 2026-09-22T15:28:45-04:00 rc=0
+    status=optimal  deadline_fired=0  qp_minor_iters=3820  major_iters=13
+    indep_disarmed=0  indep_rank_violations=0  indep_leak_bound_exceeded=0  indep_max_cond_r=nan
+LEG_START a-SMBANK 2026-09-22T15:28:45-04:00 deadline=600s
+PGREP_EMPTY a-SMBANK: no foreign cell binary under my lock
+FOREGROUND_START a-SMBANK 2026-09-22T15:28:45-04:00
+FOREGROUND_END a-SMBANK 2026-09-22T15:28:45-04:00 rc=0
+LEG_END a-SMBANK 2026-09-22T15:28:45-04:00 rc=0
+    status=optimal  deadline_fired=0  qp_minor_iters=334  major_iters=29
+    indep_disarmed=0  indep_rank_violations=0  indep_leak_bound_exceeded=0  indep_max_cond_r=nan
+LEG_START a-ZAMB2-8 2026-09-22T15:28:45-04:00 deadline=600s
+PGREP_EMPTY a-ZAMB2-8: no foreign cell binary under my lock
+FOREGROUND_START a-ZAMB2-8 2026-09-22T15:28:45-04:00
+FOREGROUND_END a-ZAMB2-8 2026-09-22T15:29:26-04:00 rc=0
+LEG_END a-ZAMB2-8 2026-09-22T15:29:26-04:00 rc=0
+    status=optimal  deadline_fired=0  qp_minor_iters=7686  major_iters=17
+    indep_disarmed=0  indep_rank_violations=0  indep_leak_bound_exceeded=0  indep_max_cond_r=nan
+LEG_START b1-READING6 2026-09-22T15:29:26-04:00 deadline=600s
+PGREP_EMPTY b1-READING6: no foreign cell binary under my lock
+FOREGROUND_START b1-READING6 2026-09-22T15:29:26-04:00
+FOREGROUND_END b1-READING6 2026-09-22T15:29:26-04:00 rc=0
+LEG_END b1-READING6 2026-09-22T15:29:26-04:00 rc=0
+    status=numerical_error  deadline_fired=0  qp_minor_iters=8  major_iters=4
+    indep_disarmed=0  indep_rank_violations=0  indep_leak_bound_exceeded=188  indep_max_cond_r=2.9421908466913771
+    UNSUPPORTED b1-READING6 -- A10's bound was exceeded; cond(R) is beside it
+                and EXPLAINS it, never excuses it (RULE.md AMENDMENT 1)
+LEG_START b1-SMBANK 2026-09-22T15:29:26-04:00 deadline=600s
+PGREP_EMPTY b1-SMBANK: no foreign cell binary under my lock
+FOREGROUND_START b1-SMBANK 2026-09-22T15:29:26-04:00
+FOREGROUND_END b1-SMBANK 2026-09-22T15:29:26-04:00 rc=0
+LEG_END b1-SMBANK 2026-09-22T15:29:26-04:00 rc=0
+    status=optimal  deadline_fired=0  qp_minor_iters=334  major_iters=29
+    indep_disarmed=1  indep_rank_violations=0  indep_leak_bound_exceeded=0  indep_max_cond_r=5.2849320617451774
+    UNSUPPORTED b1-SMBANK -- A3: indep_refused_mandatory_dependent=29
+LEG_START b1-ZAMB2-8 2026-09-22T15:29:26-04:00 deadline=600s
+PGREP_EMPTY b1-ZAMB2-8: no foreign cell binary under my lock
+FOREGROUND_START b1-ZAMB2-8 2026-09-22T15:29:26-04:00
+FOREGROUND_END b1-ZAMB2-8 2026-09-22T15:29:32-04:00 rc=0
+LEG_END b1-ZAMB2-8 2026-09-22T15:29:32-04:00 rc=0
+    status=numerical_error  deadline_fired=0  qp_minor_iters=3080  major_iters=5
+    indep_disarmed=0  indep_rank_violations=0  indep_leak_bound_exceeded=3617  indep_max_cond_r=69223.184763433906
+    UNSUPPORTED b1-ZAMB2-8 -- A10's bound was exceeded; cond(R) is beside it
+                and EXPLAINS it, never excuses it (RULE.md AMENDMENT 1)
+LEG_START a+b1-READING6 2026-09-22T15:29:32-04:00 deadline=600s
+PGREP_EMPTY a+b1-READING6: no foreign cell binary under my lock
+FOREGROUND_START a+b1-READING6 2026-09-22T15:29:32-04:00
+FOREGROUND_END a+b1-READING6 2026-09-22T15:29:32-04:00 rc=0
+LEG_END a+b1-READING6 2026-09-22T15:29:32-04:00 rc=0
+    status=numerical_error  deadline_fired=0  qp_minor_iters=8  major_iters=4
+    indep_disarmed=0  indep_rank_violations=0  indep_leak_bound_exceeded=188  indep_max_cond_r=2.9421908466913771
+    UNSUPPORTED a+b1-READING6 -- A10's bound was exceeded; cond(R) is beside it
+                and EXPLAINS it, never excuses it (RULE.md AMENDMENT 1)
+LEG_START a+b1-SMBANK 2026-09-22T15:29:32-04:00 deadline=600s
+PGREP_EMPTY a+b1-SMBANK: no foreign cell binary under my lock
+FOREGROUND_START a+b1-SMBANK 2026-09-22T15:29:32-04:00
+FOREGROUND_END a+b1-SMBANK 2026-09-22T15:29:32-04:00 rc=0
+LEG_END a+b1-SMBANK 2026-09-22T15:29:32-04:00 rc=0
+    status=optimal  deadline_fired=0  qp_minor_iters=334  major_iters=29
+    indep_disarmed=1  indep_rank_violations=0  indep_leak_bound_exceeded=0  indep_max_cond_r=5.2849320617451774
+    UNSUPPORTED a+b1-SMBANK -- A3: indep_refused_mandatory_dependent=29
+LEG_START a+b1-ZAMB2-8 2026-09-22T15:29:32-04:00 deadline=600s
+PGREP_EMPTY a+b1-ZAMB2-8: no foreign cell binary under my lock
+FOREGROUND_START a+b1-ZAMB2-8 2026-09-22T15:29:32-04:00
+FOREGROUND_END a+b1-ZAMB2-8 2026-09-22T15:29:36-04:00 rc=0
+LEG_END a+b1-ZAMB2-8 2026-09-22T15:29:36-04:00 rc=0
+    status=numerical_error  deadline_fired=0  qp_minor_iters=2963  major_iters=5
+    indep_disarmed=0  indep_rank_violations=0  indep_leak_bound_exceeded=3429  indep_max_cond_r=69223.184763433906
+    UNSUPPORTED a+b1-ZAMB2-8 -- A10's bound was exceeded; cond(R) is beside it
+                and EXPLAINS it, never excuses it (RULE.md AMENDMENT 1)
+
+--- THE NEUTRALITY READING, side by side with the COPIED off row
+    arm    cell       status             f                        feasibility_e            stationarity            
+    off    READING6   optimal            -144.65970057279054      2.7977620220553945e-13   1.2616574451840279e-12  
+    a      READING6   optimal            -144.65970057279054      2.7977620220553945e-13   1.2616574451840279e-12  
+    b1     READING6   numerical_error    0                        2.218                    0                       
+    a+b1   READING6   numerical_error    0                        2.218                    0                       
+    off    SMBANK     optimal            -7129292                 9.4587448984384537e-11   9.2748031187081952e-10  
+    a      SMBANK     optimal            -7129292                 9.4587448984384537e-11   9.2748031187081952e-10  
+    b1     SMBANK     optimal            -7129292                 9.4587448984384537e-11   9.2748031187081952e-10  
+    a+b1   SMBANK     optimal            -7129292                 9.4587448984384537e-11   9.2748031187081952e-10  
+    off    ZAMB2-8    optimal            -0.15293592733713887     1.7950063938010352e-07   1.0198462227847685e-10  
+    a      ZAMB2-8    optimal            -0.15293592838839792     7.2292827280051597e-10   6.2212644636057933e-12  
+    b1     ZAMB2-8    numerical_error    0.018068535257036302     2.3384617034999997       0.010979121771749999    
+    a+b1   ZAMB2-8    numerical_error    0.018068535257036302     2.3384617034999997       0.010979121771749999    
+    A CHANGE OF STATUS on any of the three is HARM and stops that arm's
+    verdicts being quoted (RULE.md section 8 step 4). This chain PRINTS
+    the four rows; it does not pronounce on them.
+
+=========== SUMMARY
+rows written:
+    a+b1-ACOPP118.txt
+    a+b1-ACOPP57.txt
+    a+b1-ACOPR57.txt
+    a+b1-BRITGAS.txt
+    a+b1-DALLASM.txt
+    a+b1-READING6.txt
+    a+b1-SAWPATH.txt
+    a+b1-SMBANK.txt
+    a+b1-STEENBRB.txt
+    a+b1-STEENBRC.txt
+    a+b1-STEENBRG.txt
+    a+b1-YORKNET.txt
+    a+b1-ZAMB2-8.txt
+    a-READING6.txt
+    a-SMBANK.txt
+    a-YORKNET.txt
+    a-ZAMB2-8.txt
+    b1-ACOPP118.txt
+    b1-ACOPP57.txt
+    b1-ACOPR57.txt
+    b1-DALLASM.txt
+    b1-READING6.txt
+    b1-SAWPATH.txt
+    b1-SMBANK.txt
+    b1-STEENBRB.txt
+    b1-STEENBRC.txt
+    b1-STEENBRG.txt
+    b1-ZAMB2-8.txt
+traces written: 28
+legs attempted: 28   rows surviving: 28   CENSORED: 0
+TRUNCATED (deadline_fired=1):
+    /home/ghecht/Projects/hven/.scratch/m7w2m5arm/rows/a+b1-SAWPATH.txt
+    /home/ghecht/Projects/hven/.scratch/m7w2m5arm/rows/a+b1-STEENBRC.txt
+    /home/ghecht/Projects/hven/.scratch/m7w2m5arm/rows/a+b1-STEENBRG.txt
+    /home/ghecht/Projects/hven/.scratch/m7w2m5arm/rows/b1-SAWPATH.txt
+UNSUPPORTED triggers across the surviving rows:
+    indep_rank_violations nonzero on 10 row(s)
+    indep_refused_mandatory_dependent nonzero on 12 row(s)
+    indep_leak_bound_exceeded nonzero on 18 row(s)
+    indep_enumeration_mismatches nonzero on 0 row(s)
+    scale_unavailable_passes nonzero on 0 row(s)
+CHAIN_END 2026-09-22T15:29:36-04:00

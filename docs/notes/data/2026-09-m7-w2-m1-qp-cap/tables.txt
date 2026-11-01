@@ -1,0 +1,186 @@
+# M7 W2 M1 — CUTEst TRAIN 23, SQP lane: OFF and the three arms
+
+
+## OFF identity against M7 W2 M4's committed OFF arm
+
+Columns that existed in M4's OFF arm and differ here: **0**  (identity holds)
+## BUDGET repeat agreement: 0 field differences
+
+## The budget arm against OFF
+
+| cell | OFF | budget | objective OFF | objective budget | moved? |
+|---|---|---|---|---|---|
+| `ACOPP118` **(M1)** | error | error | 129648.67425337316 | 129648.67425337316 | **MOVED** |
+| `ACOPP57` **(M1)** | error | error | 41737.543107411046 | 41737.543107411046 | **MOVED** |
+| `ACOPR118` *(M1-10th)* | dnf_wall | dnf_wall |  |  | unmoved |
+| `ACOPR57` **(M1)** | error | error | 41737.784920103695 | 41737.784920103695 | **MOVED** |
+| `BIGBANK` | dnf_wall | dnf_wall |  |  | unmoved |
+| `BRITGAS` **(M1)** | error | error | 0 | 0.075494336118951622 | **MOVED** |
+| `DALLASM` **(M1)** | error | error | 61974881.482906975 | 61974881.482906975 | **MOVED** |
+| `MSS2` | dnf_wall | dnf_wall |  |  | unmoved |
+| `MSS3` | dnf_wall | dnf_wall |  |  | unmoved |
+| `NET3` | error | error | nan | nan | unmoved |
+| `READING6` **(M1)** | error | optimal | 0 | -144.65970057279054 | **MOVED** |
+| `READING8` | dnf_wall | dnf_wall |  |  | unmoved |
+| `SAWPATH` | dnf_wall | dnf_wall |  |  | unmoved |
+| `SMBANK` | optimal | optimal | -7129292 | -7129292 | unmoved |
+| `STEENBRB` **(M1)** | error | error | 4090860686442.3218 | 4090860686442.3218 | **MOVED** |
+| `STEENBRC` **(M1)** | error | error | 183453796271334.12 | 183453796271334.12 | **MOVED** |
+| `STEENBRD` | error | error | nan | nan | unmoved |
+| `STEENBRE` | error | error | nan | nan | unmoved |
+| `STEENBRG` **(M1)** | error | error | 183453796271333.81 | 183453796271333.81 | **MOVED** |
+| `TAX213322` | dnf_wall | dnf_wall |  |  | unmoved |
+| `TAX53322` | dnf_wall | dnf_wall |  |  | unmoved |
+| `YORKNET` | infeasible | infeasible | 110670.29950761795 | 110670.29950761795 | unmoved |
+| `ZAMB2-8` | optimal | optimal | -0.15293592733713887 | -0.15293592733713887 | unmoved |
+
+### The nine M1 cells, budget arm
+
+**ACOPP118** — OFF `error` status `numerical_error` f=`129648.67425337316` iters=`5` facts=`11233`; budget `error` status `numerical_error` f=`129648.67425337316` iters=`7` facts=`20501`
+**ACOPP57** — OFF `error` status `numerical_error` f=`41737.543107411046` iters=`5` facts=`114`; budget `error` status `numerical_error` f=`41737.543107411046` iters=`7` facts=`128`
+**ACOPR57** — OFF `error` status `numerical_error` f=`41737.784920103695` iters=`13` facts=`4159`; budget `error` status `numerical_error` f=`41737.784920103695` iters=`15` facts=`4848`
+**BRITGAS** — OFF `error` status `numerical_error` f=`0` iters=`2` facts=`9265`; budget `error` status `numerical_error` f=`0.075494336118951622` iters=`4` facts=`93749`
+**DALLASM** — OFF `error` status `numerical_error` f=`61974881.482906975` iters=`3` facts=`4917`; budget `error` status `numerical_error` f=`61974881.482906975` iters=`5` facts=`4919`
+**READING6** — OFF `error` status `numerical_error` f=`0` iters=`3` facts=`3313`; budget `optimal` status `optimal` f=`-144.65970057279054` iters=`13` facts=`6837`
+**STEENBRB** — OFF `error` status `numerical_error` f=`4090860686442.3218` iters=`3` facts=`16582`; budget `error` status `numerical_error` f=`4090860686442.3218` iters=`5` facts=`25973`
+**STEENBRC** — OFF `error` status `numerical_error` f=`183453796271334.12` iters=`4` facts=`32137`; budget `error` status `numerical_error` f=`183453796271334.12` iters=`6` facts=`42946`
+**STEENBRG** — OFF `error` status `numerical_error` f=`183453796271333.81` iters=`4` facts=`32291`; budget `error` status `numerical_error` f=`183453796271333.81` iters=`6` facts=`43096`
+**ACOPR118** — OFF `dnf_wall` status `null` f=`` iters=`` facts=``; budget `dnf_wall` status `null` f=`` iters=`` facts=``
+
+### Cells outside the M1 list that moved, budget arm: **0**
+Censored (a `dnf_wall` on one side): []
+
+### The rule, budget arm
+
+- optimal count: OFF **2**, budget **3**  (OK)
+- new errors, counter currency: **0** []  (OK)
+- plus, CENSORED class (reported apart, not counted as a new error): 0 []
+- cells outside the M1 list that moved: **0**  (OK)
+
+**BUDGET DEFAULT = ON**
+## RETRY repeat agreement: 0 field differences
+
+## The retry arm against OFF
+
+| cell | OFF | retry | objective OFF | objective retry | moved? |
+|---|---|---|---|---|---|
+| `ACOPP118` **(M1)** | error | error | 129648.67425337316 | 129648.67425337316 | **MOVED** |
+| `ACOPP57` **(M1)** | error | error | 41737.543107411046 | 41737.543107411046 | **MOVED** |
+| `ACOPR118` *(M1-10th)* | dnf_wall | dnf_wall |  |  | unmoved |
+| `ACOPR57` **(M1)** | error | error | 41737.784920103695 | 41737.760176646727 | **MOVED** |
+| `BIGBANK` | dnf_wall | dnf_wall |  |  | unmoved |
+| `BRITGAS` **(M1)** | error | error | 0 | 0 | **MOVED** |
+| `DALLASM` **(M1)** | error | error | 61974881.482906975 | 61974881.482906975 | **MOVED** |
+| `MSS2` | dnf_wall | dnf_wall |  |  | unmoved |
+| `MSS3` | dnf_wall | dnf_wall |  |  | unmoved |
+| `NET3` | error | error | nan | nan | unmoved |
+| `READING6` **(M1)** | error | error | 0 | 0 | **MOVED** |
+| `READING8` | dnf_wall | dnf_wall |  |  | unmoved |
+| `SAWPATH` | dnf_wall | dnf_wall |  |  | unmoved |
+| `SMBANK` | optimal | optimal | -7129292 | -7129292 | unmoved |
+| `STEENBRB` **(M1)** | error | error | 4090860686442.3218 | 4090860686442.3218 | **MOVED** |
+| `STEENBRC` **(M1)** | error | error | 183453796271334.12 | 63298338059146 | **MOVED** |
+| `STEENBRD` | error | error | nan | nan | unmoved |
+| `STEENBRE` | error | error | nan | nan | unmoved |
+| `STEENBRG` **(M1)** | error | error | 183453796271333.81 | 63298338059145.68 | **MOVED** |
+| `TAX213322` | dnf_wall | dnf_wall |  |  | unmoved |
+| `TAX53322` | dnf_wall | dnf_wall |  |  | unmoved |
+| `YORKNET` | infeasible | infeasible | 110670.29950761795 | 110670.29950761795 | unmoved |
+| `ZAMB2-8` | optimal | optimal | -0.15293592733713887 | -0.15293592733713887 | **MOVED** |
+
+### The nine M1 cells, retry arm
+
+**ACOPP118** — OFF `error` status `numerical_error` f=`129648.67425337316` iters=`5` facts=`11233`; retry `error` status `numerical_error` f=`129648.67425337316` iters=`5` facts=`29921`
+**ACOPP57** — OFF `error` status `numerical_error` f=`41737.543107411046` iters=`5` facts=`114`; retry `error` status `numerical_error` f=`41737.543107411046` iters=`5` facts=`128`
+**ACOPR57** — OFF `error` status `numerical_error` f=`41737.784920103695` iters=`13` facts=`4159`; retry `error` status `numerical_error` f=`41737.760176646727` iters=`11` facts=`16597`
+**BRITGAS** — OFF `error` status `numerical_error` f=`0` iters=`2` facts=`9265`; retry `error` status `numerical_error` f=`0` iters=`2` facts=`27429`
+**DALLASM** — OFF `error` status `numerical_error` f=`61974881.482906975` iters=`3` facts=`4917`; retry `error` status `numerical_error` f=`61974881.482906975` iters=`3` facts=`4919`
+**READING6** — OFF `error` status `numerical_error` f=`0` iters=`3` facts=`3313`; retry `error` status `numerical_error` f=`0` iters=`3` facts=`9395`
+**STEENBRB** — OFF `error` status `numerical_error` f=`4090860686442.3218` iters=`3` facts=`16582`; retry `error` status `numerical_error` f=`4090860686442.3218` iters=`3` facts=`35339`
+**STEENBRC** — OFF `error` status `numerical_error` f=`183453796271334.12` iters=`4` facts=`32137`; retry `error` status `numerical_error` f=`63298338059146` iters=`3` facts=`52207`
+**STEENBRG** — OFF `error` status `numerical_error` f=`183453796271333.81` iters=`4` facts=`32291`; retry `error` status `numerical_error` f=`63298338059145.68` iters=`3` facts=`52275`
+**ACOPR118** — OFF `dnf_wall` status `null` f=`` iters=`` facts=``; retry `dnf_wall` status `null` f=`` iters=`` facts=``
+
+### Cells outside the M1 list that moved, retry arm: **1**
+   MOVED  ZAMB2-8      factorizations             8803 -> 17055
+   MOVED  ZAMB2-8      side.border_refine_steps   1290 -> 2684
+   MOVED  ZAMB2-8      side.factorizations        8803 -> 17055
+   MOVED  ZAMB2-8      side.qp_minor_iters        6666 -> 12180
+   MOVED  ZAMB2-8      side.symbolic_analyses     6 -> 7
+Censored (a `dnf_wall` on one side): []
+
+### The rule, retry arm
+
+- optimal count: OFF **2**, retry **2**  (OK)
+- new errors, counter currency: **0** []  (OK)
+- plus, CENSORED class (reported apart, not counted as a new error): 0 []
+- cells outside the M1 list that moved: **1**  (FAILS)
+
+**RETRY DEFAULT = OFF**
+## BOTH repeat agreement: 0 field differences
+
+## The both arm against OFF
+
+| cell | OFF | both | objective OFF | objective both | moved? |
+|---|---|---|---|---|---|
+| `ACOPP118` **(M1)** | error | error | 129648.67425337316 | 129648.67425337316 | **MOVED** |
+| `ACOPP57` **(M1)** | error | error | 41737.543107411046 | 41737.543107411046 | **MOVED** |
+| `ACOPR118` *(M1-10th)* | dnf_wall | dnf_wall |  |  | unmoved |
+| `ACOPR57` **(M1)** | error | error | 41737.784920103695 | 41737.760176646727 | **MOVED** |
+| `BIGBANK` | dnf_wall | dnf_wall |  |  | unmoved |
+| `BRITGAS` **(M1)** | error | dnf_wall | 0 |  | CENSORED |
+| `DALLASM` **(M1)** | error | error | 61974881.482906975 | 61974881.482906975 | **MOVED** |
+| `MSS2` | dnf_wall | dnf_wall |  |  | unmoved |
+| `MSS3` | dnf_wall | dnf_wall |  |  | unmoved |
+| `NET3` | error | error | nan | nan | unmoved |
+| `READING6` **(M1)** | error | optimal | 0 | -144.65970057279054 | **MOVED** |
+| `READING8` | dnf_wall | dnf_wall |  |  | unmoved |
+| `SAWPATH` | dnf_wall | dnf_wall |  |  | unmoved |
+| `SMBANK` | optimal | optimal | -7129292 | -7129292 | unmoved |
+| `STEENBRB` **(M1)** | error | error | 4090860686442.3218 | 4090860686442.3218 | **MOVED** |
+| `STEENBRC` **(M1)** | error | error | 183453796271334.12 | 63298338059146 | **MOVED** |
+| `STEENBRD` | error | error | nan | nan | unmoved |
+| `STEENBRE` | error | error | nan | nan | unmoved |
+| `STEENBRG` **(M1)** | error | error | 183453796271333.81 | 63298338059145.68 | **MOVED** |
+| `TAX213322` | dnf_wall | dnf_wall |  |  | unmoved |
+| `TAX53322` | dnf_wall | dnf_wall |  |  | unmoved |
+| `YORKNET` | infeasible | infeasible | 110670.29950761795 | 110670.29950761795 | unmoved |
+| `ZAMB2-8` | optimal | optimal | -0.15293592733713887 | -0.15293592733713887 | **MOVED** |
+
+### The nine M1 cells, both arm
+
+**ACOPP118** — OFF `error` status `numerical_error` f=`129648.67425337316` iters=`5` facts=`11233`; both `error` status `numerical_error` f=`129648.67425337316` iters=`7` facts=`57877`
+**ACOPP57** — OFF `error` status `numerical_error` f=`41737.543107411046` iters=`5` facts=`114`; both `error` status `numerical_error` f=`41737.543107411046` iters=`7` facts=`156`
+**ACOPR57** — OFF `error` status `numerical_error` f=`41737.784920103695` iters=`13` facts=`4159`; both `error` status `numerical_error` f=`41737.760176646727` iters=`13` facts=`33778`
+**BRITGAS** — OFF `error` status `numerical_error` f=`0` iters=`2` facts=`9265`; both `dnf_wall` status `null` f=`` iters=`` facts=``
+**DALLASM** — OFF `error` status `numerical_error` f=`61974881.482906975` iters=`3` facts=`4917`; both `error` status `numerical_error` f=`61974881.482906975` iters=`5` facts=`4923`
+**READING6** — OFF `error` status `numerical_error` f=`0` iters=`3` facts=`3313`; both `optimal` status `optimal` f=`-144.65970057279054` iters=`13` facts=`12923`
+**STEENBRB** — OFF `error` status `numerical_error` f=`4090860686442.3218` iters=`3` facts=`16582`; both `error` status `numerical_error` f=`4090860686442.3218` iters=`5` facts=`63482`
+**STEENBRC** — OFF `error` status `numerical_error` f=`183453796271334.12` iters=`4` facts=`32137`; both `error` status `numerical_error` f=`63298338059146` iters=`5` facts=`84613`
+**STEENBRG** — OFF `error` status `numerical_error` f=`183453796271333.81` iters=`4` facts=`32291`; both `error` status `numerical_error` f=`63298338059145.68` iters=`5` facts=`84691`
+**ACOPR118** — OFF `dnf_wall` status `null` f=`` iters=`` facts=``; both `dnf_wall` status `null` f=`` iters=`` facts=``
+
+### Cells outside the M1 list that moved, both arm: **1**
+   MOVED  ZAMB2-8      factorizations             8803 -> 17055
+   MOVED  ZAMB2-8      side.border_refine_steps   1290 -> 2684
+   MOVED  ZAMB2-8      side.factorizations        8803 -> 17055
+   MOVED  ZAMB2-8      side.qp_minor_iters        6666 -> 12180
+   MOVED  ZAMB2-8      side.symbolic_analyses     6 -> 7
+Censored (a `dnf_wall` on one side): ['BRITGAS']
+
+### The rule, both arm
+
+- optimal count: OFF **2**, both **3**  (OK)
+- new errors, counter currency: **0** []  (OK)
+- plus, CENSORED class (reported apart, not counted as a new error): 0 []
+- cells outside the M1 list that moved: **1**  (FAILS)
+
+**BOTH DEFAULT = OFF**
+
+## The defaults, per lever
+
+- **budget**: ON
+- **retry**: OFF
+- **both**: OFF
+
+(The `both` arm is the CONFIRMATION of a pair of levers that each won on its own arm, never the evidence for either.)

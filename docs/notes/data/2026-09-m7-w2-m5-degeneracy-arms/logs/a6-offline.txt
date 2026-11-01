@@ -1,0 +1,36 @@
+M7 W2 M5 -- AMENDMENT A6, THE OFFLINE HALF. No solver ran here.
+the scaled test admits iff |lambda| > opt_tol * scale; A6 predicts it
+REFUSES every recorded core drop.
+
+--- m4c_tails.py, run as itself (the authoritative core count)
+    /home/ghecht/miniconda3/bin/python3 /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-m5-degeneracy-arms/wrappers/m4c_tails.py /home/ghecht/Projects/hven/.scratch/m7w2m5arm/a6/m4c-tails /home/ghecht/Projects/hven/.scratch/m7w2m4/arm/traces/off-YORKNET.csv
+    rc=0
+    | solves with a RECURRENT tail: 2
+    | YORKNET    s7    N=5080   p=2   |T|=5077   units=2538  homo=True  a  {'a': 2538}
+    | YORKNET    s145  N=9000   p=4   |T|=7990   units=3994  homo=False b  {'d': 1997, 'b': 1997}
+
+======================================================================
+CELL YORKNET   trace /home/ghecht/Projects/hven/.scratch/m7w2m4/arm/traces/off-YORKNET.csv
+======================================================================
+  solve 7     core units 2538   (m4c_tails agrees: 2538)
+  CORE DROPS                 2538
+  the scaled test REFUSES    2538
+  the scaled test ADMITS     0
+  no scale published (arm A degrades to 1.0, counted here) 0
+
+======================================================================
+A6 OFFLINE -- THE PREDICTION AGAINST THE TRACES
+======================================================================
+  core drops examined              2538
+  the scaled test REFUSES          2538
+  the scaled test STILL ADMITS     0
+  passes with no published scale   0
+  |lambda| / (opt_tol*scale):  min 1.84849e-10  p50 1.84849e-10  p90 1.84849e-10  max 1.84849e-10
+
+  VERDICT: A6's offline prediction HOLDS on these traces -- the scaled
+           test refuses every one of the 2538 recorded core drops.
+
+  This is an OFFLINE replay over committed traces. It says what arm A's
+  test would have decided at each recorded drop; it does not say what a
+  walk that took different drops would then have done. That is the
+  DYNAMIC half, and it is the leg that follows.

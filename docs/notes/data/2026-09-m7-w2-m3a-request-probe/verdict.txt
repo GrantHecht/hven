@@ -1,0 +1,58 @@
+M7 W2 M3a -- THE VERDICT: RULE.md section 5, applied to stage 1.
+
+Machine-written by wrappers/summarise_m3a.py from rows/stage1/. No number
+below is transcribed by hand. RULE.md was committed at dbf55675, BEFORE any
+leg ran, and is applied here AS WRITTEN -- no clause is relaxed, widened or
+re-read in the light of what the legs said.
+
+THE PREDICATES, as the rule states them:
+  WINDOW_ARTEFACT(c,r) iff (A1) the major-0 request is GONE at (c,r)
+                       AND  (A2) rank(c,r) >= rank(c,control)
+                       AND  (A3) max(feasibility_e, feasibility_i) <= 1e-06
+  HARM(c,r)            iff (H1) rank(c,r) < rank(c,control)
+                       OR   (H2) factorizations(c,r) > 1.10 * factorizations(c,control)
+  request0             iff restoration_entries >= 1 AND x_k_source == start_point
+                          (RULE.md section 2.2)
+
+CENSORED LEGS: none. All 12 legs produced a row.
+TRUNCATED LEGS: none. deadline_fired=0 on every leg, so no leg's status
+is unranked and no verdict is UNDETERMINED on that ground.
+
+THE VERDICT TABLE (RULE.md section 5.2 and 5.3), cell x radius
+------------------------------------------------------------------------------
+cell     tr_init    req0 first_qp_plain_status  rest_entries rest_sub_status terminal status     max(h_e,h_i)  f                     majors minors  factorizations fact/control A1  A2  A3  WINDOW_ARTEFACT HARM              
+STEENBRB 1 (control)yes  infeasible (inferred)  1            optimal         numerical_error     2.27374e-13   4.090860686e+12       5      20637   25973          1.0000       --  --  --  --              --                
+STEENBRB 10         yes  infeasible (inferred)  1            optimal         numerical_error     6.82121e-13   3.45990574e+12        5      20545   23421          0.9017       NO  yes yes no              no                
+STEENBRB 1e2        no   infeasible (inferred)  0            (no phase)      numerical_error     1599.6        604199.9831           5      20404   20346          0.7834       yes yes NO  no              no                
+STEENBRB 1e3        no   max_iter               0            (no phase)      numerical_error     3.41061e-13   7577124.911           6      20368   15618          0.6013       yes yes yes YES             no                
+STEENBRB 1e4        no   max_iter               0            (no phase)      numerical_error     2000          2858.786135           4      18720   16             0.0006       yes yes NO  no              no                
+STEENBRB +inf       no   max_iter               0            (no phase)      numerical_error     2000          2858.786135           4      18720   16             0.0006       yes yes NO  no              no                
+
+YORKNET  1 (control)yes  infeasible (inferred)  1            infeasible      infeasible (cert=0) 4099.28       110670.2995           1      50241   52180          1.0000       --  --  --  --              --                
+YORKNET  10         no   max_iter               1            infeasible      infeasible (cert=0) 4099.28       110670.2995           4      59033   61028          1.1696       yes yes NO  no              HARM (H2)         
+YORKNET  1e2        no   max_iter               1            infeasible      infeasible (cert=0) 4099.28       110670.2995           4      23342   28513          0.5464       yes yes NO  no              no                
+YORKNET  1e3        no   max_iter               0            (no phase)      numerical_error     4099.28       110670.2995           4      10240   20470          0.3923       yes NO  NO  no              HARM (H1)         
+YORKNET  1e4        no   max_iter               0            (no phase)      numerical_error     4099.28       110670.2995           4      10240   20470          0.3923       yes NO  NO  no              HARM (H1)         
+YORKNET  +inf       no   max_iter               0            (no phase)      numerical_error     4099.28       110670.2995           4      10240   20466          0.3922       yes NO  NO  no              HARM (H1)         
+
+RULE.md section 5.2: 'Only a radius satisfying it on BOTH goes to stage 2.'
+  STEENBRB  qualifying radii: 1e3
+  YORKNET   qualifying radii: NONE
+  radii satisfying WINDOW_ARTEFACT on BOTH stage-1 cells: NONE
+
+  STEENBRB  radii showing HARM: none
+  YORKNET   radii showing HARM: 10, 1e3, 1e4, +inf
+
+VERDICT: NO RADIUS QUALIFIES ON BOTH STAGE-1 CELLS.
+
+RULE.md section 5.5, the failure path, applies VERBATIM: the task reports
+this table and the counters behind it and STOPS. STAGE 2 IS NOT RUN, and
+stage 3 -- whose trigger (section 5.4) is defined only at the stage-2
+radii -- is therefore not reached either. The hypothesis is recorded as
+NOT SUPPORTED at these radii on these cells. It is not re-tested at other
+radii, not widened to other cells, and not rescued by relaxing (A1)-(A3).
+
+NO DEFAULT IS CHANGED BY THIS TASK -- not tr_init, not
+restoration_proximity, not qp.tr_radius, not feas_tol (RULE.md section
+5.5, and section 1).
+

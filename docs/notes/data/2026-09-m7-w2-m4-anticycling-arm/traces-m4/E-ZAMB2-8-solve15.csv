@@ -1,0 +1,31 @@
+# M7 W2 M3b FIX ROUND 1 first-QP per-minor trace (discriminating fields)
+# cell=ZAMB2-8
+# tr_init=1
+# solve_index=32
+# solves_seen=33
+# m3c_pass2=1
+# warm=1
+# n=138
+# me=48
+# mi=0
+# max_iter=1380
+# incoming_ws_signature=10067238575638273932
+# incoming_ws_size=60
+# exit_status=optimal
+# exit_status_raw=0
+# truncated=0
+# allocation_failed=0
+# max_records=2000000
+# records=9947
+# SLICE of this task's flat neutrality trace (POST-HOC read-out)
+# slice_cell=ZAMB2-8
+# slice_arm=E
+# slice_solve=15
+# slice_kind=RECURRENT_UNION
+# slice_reason=RECURRENT under at least one arm on this cell
+# slice_source=.scratch/m7w2m4/arm/traces/E-ZAMB2-8.csv
+# slice_rows=3
+solve,minor,action,block,block_index,block_side,drop_route,bound_gap,alpha,p_inf,dx_inf,step_tol,degenerate,ride,raw_ratio,ratio_tied,ratio_capped,decision_multiplier,decision_tol,best_multiplier,drop_candidates,drop_tied,shift_adds,ws_size_in,ws_sig_in,ws_size_out,ws_sig_out,x_inf,x_l1,inertia_verdict,inertia_state,inertia_pos,inertia_neg,inertia_zero,inertia_zero_derived,inertia_perturbed,inertia_expected_pos,inertia_expected_neg,eqp_path,border_attempted,k0_rebuilt,border_latched,border_needs_refactorization,border_dim,eqp_call_refine_steps,pass_factorizations,pass_eqp_refine_steps,pass_border_refine_steps,pass_verdict_refine_steps,pass_schur_updates,post_drop,curvature_fired,curvature,curvature_tol,p_hp,p_sq,ride_outcome,ride_sign_chosen,ride_slope,ride_slope_tol,ride_leaves,ride_leaves_tol,released_block,released_index,released_side,p_released,released_directional,candidates_recorded,candidates,primal_delta,dual_mu,stat_free_inf,stat_scale,active_res_inf
+15,0,add,bound,8,lower,none,1,0.65574687093066186,0.76248934179492189,0.49999999999999994,2.8390000000000002e-09,0,0,0.65574687093066186,1,1,nan,nan,nan,0,0,0,227,15378625813666406256,228,896904335490561569,2.839,74.728166216999995,0,observed,49,48,0,1,0,49,48,eliminated,1,0,1,0,-1,0,1,0,0,0,0,0,0,nan,nan,nan,4.6127970804006875,not_attempted,0,nan,nan,nan,nan,none,-1,free,nan,nan,0,,1e-08,1e-08,2.5074562281137333e-08,148999999.99999994,0.82302785900000019
+15,1,move_only,none,-1,free,none,nan,1,0.28332991577198774,0.28332991577198774,2.8390000000000002e-09,0,0,1.1524455049503115,1,1,nan,nan,nan,0,0,0,228,896904335490561569,228,896904335490561569,2.839,83.192618519014303,0,observed,48,48,0,1,0,48,48,eliminated,1,0,1,0,-1,0,1,0,0,0,0,0,0,nan,nan,nan,0.55611441676613371,not_attempted,0,nan,nan,nan,nan,none,-1,free,nan,nan,0,,1e-08,1e-08,2.5074562281137333e-08,148999999.99999994,0.28332991577198796
+15,2,terminal,none,-1,free,none,nan,nan,0,nan,2.8390000000000002e-09,0,0,nan,0,1,nan,nan,nan,0,0,0,228,896904335490561569,228,896904335490561569,2.839,87.373786204039874,0,observed,48,48,0,1,0,48,48,eliminated,1,0,1,0,-1,0,43,0,0,0,0,0,0,nan,nan,nan,0,not_attempted,0,nan,nan,nan,nan,none,-1,free,nan,nan,0,,1e-08,1e-08,2.5074562281137333e-08,148999999.99999994,6.6613381477509392e-16

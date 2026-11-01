@@ -1,0 +1,160 @@
+F5SOLVE begin=0 n=344 me=236 mi=608 warm=0 seed=0 tr=1 delta=1e-08 mu=1e-08 maxit=5300 algebra=1 indep=1
+F5TERM solve=0 it=429 worst=0.000000e+00 refined=0 vrefine_steps=0 verdict=0 rows=19 pins=58 runaway=0 STATUS=continue_below
+F5SOLVE end=0 status=0 minors=430 facts=995 eqp_refine_iters=0 eqp_refusals=0 eqp_polish=289 drift_refusals=0 tp_solves=0 tp_rej=0 tp_adopt=0 susp_esc=0 vrefine=0 border_refine=42 cert=0 cert_rej=0 blk_term=0
+F5QP depth=0 major=0 delta=1 qp_status=0 owns=1 minors=430 facts=995 h=18.74479358 box=0 f=131321.9907 cert=0 blk=0 zm=0 certrej=0 e2route=0 ROUTE=ordinary
+F5SOC depth=0 major=0 SOC_ENTER h_old=18.74479358 h_new=233.7135564
+F5SOLVE begin=1 n=344 me=236 mi=608 warm=1 seed=1 tr=1 delta=1e-08 mu=1e-08 maxit=5300 algebra=1 indep=1
+F5REF site=eliminated solve=1 resid=1.309067e+01 ratio=2.153102e+00 iters=1 polish=0 ACTION=returned_to_walk
+F5ESC solve=1 it=380 refused=1 nonfinite=0 drifted=0 drift_only=0 esc_now=0 max=3 delta=1e-08 resid=1.309067e+01 ratio=2.153102e+00 BRANCH=escalate
+F5ADDEXIT solve=1 it=445 add_exit=1 rows=43 pins=65 STATUS=kInfeasible(add-exit CERTIFICATE)
+F5SOLVE end=1 status=2 minors=446 facts=958 eqp_refine_iters=1 eqp_refusals=1 eqp_polish=0 drift_refusals=0 tp_solves=0 tp_rej=0 tp_adopt=0 susp_esc=1 vrefine=0 border_refine=0 cert=1 cert_rej=0 blk_term=0
+F5DUMP seq=0 solve=1 status=2 n=344 me=236 mi=608 warm=1 tr=1 minors=446 facts=958 cert=1
+F5SOC depth=0 major=0 SOC_QP_FAILED status=2 minors=446 facts=958 cert=1 blk=0 ACTION=original_verdict_stands(no elastic,no restoration)
+F5MAJ depth=0 major=0 outcome=0 qp_status=0 verdict=2 elastic=0 h=18.74479358 f=131321.990723608 tr=1 step=1 minors=430 | d_eqp_it=1 d_refus=1 d_polish=289 d_drift=0 d_tp_s=0 d_tp_r=0 d_tp_a=0 d_susp=1 d_vref=0 d_rej=1 d_soc=1 d_elastic=0 d_resto=0 h_now=18.74479358
+F5SOLVE begin=2 n=344 me=236 mi=608 warm=1 seed=1 tr=0.5 delta=1e-08 mu=1e-08 maxit=5300 algebra=1 indep=1
+F5TERM solve=2 it=337 worst=0.000000e+00 refined=0 vrefine_steps=0 verdict=0 rows=14 pins=73 runaway=0 STATUS=continue_below
+F5SOLVE end=2 status=0 minors=338 facts=770 eqp_refine_iters=0 eqp_refusals=0 eqp_polish=215 drift_refusals=0 tp_solves=0 tp_rej=0 tp_adopt=0 susp_esc=0 vrefine=0 border_refine=0 cert=0 cert_rej=0 blk_term=0
+F5QP depth=0 major=1 delta=0.5 qp_status=0 owns=1 minors=338 facts=770 h=18.74479358 box=0 f=131321.9907 cert=0 blk=0 zm=0 certrej=0 e2route=0 ROUTE=ordinary
+F5MAJ depth=0 major=1 outcome=1 qp_status=0 verdict=0 elastic=0 h=18.74479358 f=131321.990723608 tr=0.5 step=0.5 minors=338 | d_eqp_it=0 d_refus=0 d_polish=215 d_drift=0 d_tp_s=0 d_tp_r=0 d_tp_a=0 d_susp=0 d_vref=0 d_rej=0 d_soc=0 d_elastic=0 d_resto=0 h_now=18.74479358
+F5SOLVE begin=3 n=344 me=236 mi=608 warm=1 seed=1 tr=1 delta=1e-08 mu=1e-08 maxit=5300 algebra=1 indep=1
+F5TERM solve=3 it=1069 worst=0.000000e+00 refined=0 vrefine_steps=0 verdict=0 rows=16 pins=38 runaway=0 STATUS=continue_below
+F5SOLVE end=3 status=0 minors=1070 facts=1013 eqp_refine_iters=0 eqp_refusals=0 eqp_polish=162 drift_refusals=0 tp_solves=0 tp_rej=0 tp_adopt=0 susp_esc=0 vrefine=0 border_refine=67 cert=0 cert_rej=0 blk_term=0
+F5QP depth=0 major=2 delta=1 qp_status=0 owns=1 minors=1070 facts=1013 h=52.72333333 box=0 f=128922.9569 cert=0 blk=0 zm=0 certrej=0 e2route=0 ROUTE=ordinary
+F5MAJ depth=0 major=2 outcome=1 qp_status=0 verdict=1 elastic=0 h=52.72333333 f=128922.95693892422 tr=1 step=0.75337 minors=1070 | d_eqp_it=0 d_refus=0 d_polish=162 d_drift=0 d_tp_s=0 d_tp_r=0 d_tp_a=0 d_susp=0 d_vref=0 d_rej=0 d_soc=0 d_elastic=0 d_resto=0 h_now=52.72333333
+F5SOLVE begin=4 n=344 me=236 mi=608 warm=1 seed=1 tr=1 delta=1e-08 mu=1e-08 maxit=5300 algebra=1 indep=1
+F5TERM solve=4 it=1167 worst=0.000000e+00 refined=0 vrefine_steps=0 verdict=0 rows=10 pins=32 runaway=0 STATUS=continue_below
+F5SOLVE end=4 status=0 minors=1168 facts=1119 eqp_refine_iters=0 eqp_refusals=0 eqp_polish=229 drift_refusals=0 tp_solves=0 tp_rej=0 tp_adopt=0 susp_esc=0 vrefine=0 border_refine=63 cert=0 cert_rej=0 blk_term=0
+F5QP depth=0 major=3 delta=1 qp_status=0 owns=1 minors=1168 facts=1119 h=60.89928042 box=1.387778781e-17 f=129099.0266 cert=0 blk=0 zm=0 certrej=0 e2route=0 ROUTE=ordinary
+F5MAJ depth=0 major=3 outcome=1 qp_status=0 verdict=1 elastic=0 h=60.89928042 f=129099.02662072075 tr=1 step=0.768001 minors=1168 | d_eqp_it=0 d_refus=0 d_polish=229 d_drift=0 d_tp_s=0 d_tp_r=0 d_tp_a=0 d_susp=0 d_vref=0 d_rej=0 d_soc=0 d_elastic=0 d_resto=0 h_now=60.89928042
+F5SOLVE begin=5 n=344 me=236 mi=608 warm=1 seed=1 tr=1 delta=1e-08 mu=1e-08 maxit=5300 algebra=1 indep=1
+F5REF site=eliminated solve=5 resid=2.041242e-01 ratio=1.544557e+00 iters=1 polish=0 ACTION=returned_to_walk
+F5TERM solve=5 it=691 worst=0.000000e+00 refined=0 vrefine_steps=0 verdict=0 rows=10 pins=31 runaway=0 STATUS=continue_below
+F5SOLVE end=5 status=0 minors=692 facts=69 eqp_refine_iters=1 eqp_refusals=1 eqp_polish=266 drift_refusals=0 tp_solves=0 tp_rej=0 tp_adopt=0 susp_esc=0 vrefine=0 border_refine=692 cert=0 cert_rej=0 blk_term=0
+F5QP depth=0 major=4 delta=1 qp_status=0 owns=1 minors=692 facts=69 h=7.064973629 box=0 f=129584.1045 cert=0 blk=0 zm=0 certrej=0 e2route=0 ROUTE=ordinary
+F5SOC depth=0 major=4 SOC_ENTER h_old=7.064973629 h_new=187.3925296
+F5SOLVE begin=6 n=344 me=236 mi=608 warm=1 seed=1 tr=1 delta=1e-08 mu=1e-08 maxit=5300 algebra=1 indep=1
+F5REF site=eliminated solve=6 resid=8.450493e-01 ratio=1.420077e+00 iters=1 polish=0 ACTION=returned_to_walk
+F5ADDEXIT solve=6 it=2183 add_exit=4 rows=45 pins=63 STATUS=kNumericalError(blocker/rejected)
+F5SOLVE end=6 status=3 minors=2184 facts=161 eqp_refine_iters=1 eqp_refusals=1 eqp_polish=0 drift_refusals=0 tp_solves=0 tp_rej=0 tp_adopt=0 susp_esc=0 vrefine=0 border_refine=2183 cert=0 cert_rej=0 blk_term=1
+F5DUMP seq=1 solve=6 status=3 n=344 me=236 mi=608 warm=1 tr=1 minors=2184 facts=161 cert=0
+F5SOC depth=0 major=4 SOC_QP_FAILED status=3 minors=2184 facts=161 cert=0 blk=1 ACTION=original_verdict_stands(no elastic,no restoration)
+F5MAJ depth=0 major=4 outcome=0 qp_status=0 verdict=2 elastic=0 h=7.064973629 f=129584.1045330101 tr=1 step=1 minors=692 | d_eqp_it=2 d_refus=2 d_polish=266 d_drift=0 d_tp_s=0 d_tp_r=0 d_tp_a=0 d_susp=0 d_vref=0 d_rej=1 d_soc=1 d_elastic=0 d_resto=0 h_now=7.064973629
+F5SOLVE begin=7 n=344 me=236 mi=608 warm=1 seed=1 tr=0.5 delta=1e-08 mu=1e-08 maxit=5300 algebra=1 indep=1
+F5REF site=eliminated solve=7 resid=1.522042e-01 ratio=1.151691e+00 iters=1 polish=0 ACTION=returned_to_walk
+F5TERM solve=7 it=924 worst=0.000000e+00 refined=0 vrefine_steps=0 verdict=0 rows=10 pins=32 runaway=0 STATUS=continue_below
+F5SOLVE end=7 status=0 minors=925 facts=72 eqp_refine_iters=1 eqp_refusals=1 eqp_polish=260 drift_refusals=0 tp_solves=0 tp_rej=0 tp_adopt=0 susp_esc=0 vrefine=0 border_refine=925 cert=0 cert_rej=0 blk_term=0
+F5QP depth=0 major=5 delta=0.5 qp_status=0 owns=1 minors=925 facts=72 h=7.064973629 box=0 f=129584.1045 cert=0 blk=0 zm=0 certrej=0 e2route=0 ROUTE=ordinary
+F5SOC depth=0 major=5 SOC_ENTER h_old=7.064973629 h_new=43.78586658
+F5SOLVE begin=8 n=344 me=236 mi=608 warm=1 seed=1 tr=0.5 delta=1e-08 mu=1e-08 maxit=5300 algebra=1 indep=1
+F5REF site=eliminated solve=8 resid=1.236014e+00 ratio=4.960628e+00 iters=1 polish=0 ACTION=returned_to_walk
+F5ADDEXIT solve=8 it=2941 add_exit=4 rows=40 pins=68 STATUS=kNumericalError(blocker/rejected)
+F5SOLVE end=8 status=3 minors=2942 facts=196 eqp_refine_iters=1 eqp_refusals=1 eqp_polish=0 drift_refusals=0 tp_solves=0 tp_rej=0 tp_adopt=0 susp_esc=0 vrefine=0 border_refine=2939 cert=0 cert_rej=0 blk_term=1
+F5DUMP seq=2 solve=8 status=3 n=344 me=236 mi=608 warm=1 tr=0.5 minors=2942 facts=196 cert=0
+F5SOC depth=0 major=5 SOC_QP_FAILED status=3 minors=2942 facts=196 cert=0 blk=1 ACTION=original_verdict_stands(no elastic,no restoration)
+F5MAJ depth=0 major=5 outcome=0 qp_status=0 verdict=2 elastic=0 h=7.064973629 f=129584.1045330101 tr=0.5 step=0.5 minors=925 | d_eqp_it=2 d_refus=2 d_polish=260 d_drift=0 d_tp_s=0 d_tp_r=0 d_tp_a=0 d_susp=0 d_vref=0 d_rej=1 d_soc=1 d_elastic=0 d_resto=0 h_now=7.064973629
+F5SOLVE begin=9 n=344 me=236 mi=608 warm=1 seed=1 tr=0.25 delta=1e-08 mu=1e-08 maxit=5300 algebra=1 indep=1
+F5REF site=eliminated solve=9 resid=2.201338e-01 ratio=1.665698e+00 iters=1 polish=0 ACTION=returned_to_walk
+F5TERM solve=9 it=1097 worst=0.000000e+00 refined=0 vrefine_steps=0 verdict=0 rows=9 pins=31 runaway=0 STATUS=continue_below
+F5SOLVE end=9 status=0 minors=1098 facts=74 eqp_refine_iters=1 eqp_refusals=1 eqp_polish=271 drift_refusals=0 tp_solves=0 tp_rej=0 tp_adopt=0 susp_esc=0 vrefine=0 border_refine=1098 cert=0 cert_rej=0 blk_term=0
+F5QP depth=0 major=6 delta=0.25 qp_status=0 owns=1 minors=1098 facts=74 h=7.064973629 box=0 f=129584.1045 cert=0 blk=0 zm=0 certrej=0 e2route=0 ROUTE=ordinary
+F5MAJ depth=0 major=6 outcome=1 qp_status=0 verdict=1 elastic=0 h=7.064973629 f=129584.1045330101 tr=0.25 step=0.25 minors=1098 | d_eqp_it=1 d_refus=1 d_polish=271 d_drift=0 d_tp_s=0 d_tp_r=0 d_tp_a=0 d_susp=0 d_vref=0 d_rej=0 d_soc=0 d_elastic=0 d_resto=0 h_now=7.064973629
+F5SOLVE begin=10 n=344 me=236 mi=608 warm=1 seed=1 tr=0.25 delta=1e-08 mu=1e-08 maxit=5300 algebra=1 indep=1
+F5TERM solve=10 it=959 worst=0.000000e+00 refined=0 vrefine_steps=0 verdict=0 rows=9 pins=31 runaway=0 STATUS=continue_below
+F5SOLVE end=10 status=0 minors=960 facts=940 eqp_refine_iters=0 eqp_refusals=0 eqp_polish=402 drift_refusals=0 tp_solves=0 tp_rej=0 tp_adopt=0 susp_esc=0 vrefine=0 border_refine=29 cert=0 cert_rej=0 blk_term=0
+F5QP depth=0 major=7 delta=0.25 qp_status=0 owns=1 minors=960 facts=940 h=6.882515769 box=0 f=129657.6065 cert=0 blk=0 zm=0 certrej=0 e2route=0 ROUTE=ordinary
+F5MAJ depth=0 major=7 outcome=1 qp_status=0 verdict=1 elastic=0 h=6.882515769 f=129657.60653828892 tr=0.25 step=0.25 minors=960 | d_eqp_it=0 d_refus=0 d_polish=402 d_drift=0 d_tp_s=0 d_tp_r=0 d_tp_a=0 d_susp=0 d_vref=0 d_rej=0 d_soc=0 d_elastic=0 d_resto=0 h_now=6.882515769
+F5SOLVE begin=11 n=344 me=236 mi=608 warm=1 seed=1 tr=0.25 delta=1e-08 mu=1e-08 maxit=5300 algebra=1 indep=1
+F5TERM solve=11 it=716 worst=0.000000e+00 refined=0 vrefine_steps=0 verdict=0 rows=9 pins=31 runaway=0 STATUS=continue_below
+F5SOLVE end=11 status=0 minors=717 facts=693 eqp_refine_iters=0 eqp_refusals=0 eqp_polish=294 drift_refusals=0 tp_solves=0 tp_rej=0 tp_adopt=0 susp_esc=0 vrefine=0 border_refine=35 cert=0 cert_rej=0 blk_term=0
+F5QP depth=0 major=8 delta=0.25 qp_status=0 owns=1 minors=717 facts=693 h=7.393744832 box=0 f=129660.4895 cert=0 blk=0 zm=0 certrej=0 e2route=0 ROUTE=ordinary
+F5MAJ depth=0 major=8 outcome=1 qp_status=0 verdict=1 elastic=0 h=7.393744832 f=129660.48947067733 tr=0.25 step=0.25 minors=717 | d_eqp_it=0 d_refus=0 d_polish=294 d_drift=0 d_tp_s=0 d_tp_r=0 d_tp_a=0 d_susp=0 d_vref=0 d_rej=0 d_soc=0 d_elastic=0 d_resto=0 h_now=7.393744832
+F5SOLVE begin=12 n=344 me=236 mi=608 warm=1 seed=1 tr=0.25 delta=1e-08 mu=1e-08 maxit=5300 algebra=1 indep=1
+F5TERM solve=12 it=818 worst=0.000000e+00 refined=0 vrefine_steps=0 verdict=0 rows=9 pins=31 runaway=0 STATUS=continue_below
+F5SOLVE end=12 status=0 minors=819 facts=795 eqp_refine_iters=0 eqp_refusals=0 eqp_polish=347 drift_refusals=0 tp_solves=0 tp_rej=0 tp_adopt=0 susp_esc=0 vrefine=0 border_refine=40 cert=0 cert_rej=0 blk_term=0
+F5QP depth=0 major=9 delta=0.25 qp_status=0 owns=1 minors=819 facts=795 h=7.357159959 box=0 f=129660.6772 cert=0 blk=0 zm=0 certrej=0 e2route=0 ROUTE=ordinary
+F5MAJ depth=0 major=9 outcome=1 qp_status=0 verdict=1 elastic=0 h=7.357159959 f=129660.67724502117 tr=0.25 step=0.25 minors=819 | d_eqp_it=0 d_refus=0 d_polish=347 d_drift=0 d_tp_s=0 d_tp_r=0 d_tp_a=0 d_susp=0 d_vref=0 d_rej=0 d_soc=0 d_elastic=0 d_resto=0 h_now=7.357159959
+F5SOLVE begin=13 n=344 me=236 mi=608 warm=1 seed=1 tr=0.25 delta=1e-08 mu=1e-08 maxit=5300 algebra=1 indep=1
+F5TERM solve=13 it=711 worst=0.000000e+00 refined=0 vrefine_steps=0 verdict=0 rows=9 pins=31 runaway=0 STATUS=continue_below
+F5SOLVE end=13 status=0 minors=712 facts=686 eqp_refine_iters=0 eqp_refusals=0 eqp_polish=279 drift_refusals=0 tp_solves=0 tp_rej=0 tp_adopt=0 susp_esc=0 vrefine=0 border_refine=35 cert=0 cert_rej=0 blk_term=0
+F5QP depth=0 major=10 delta=0.25 qp_status=0 owns=1 minors=712 facts=686 h=7.364501067 box=0 f=129660.6844 cert=0 blk=0 zm=0 certrej=0 e2route=0 ROUTE=ordinary
+F5MAJ depth=0 major=10 outcome=1 qp_status=0 verdict=1 elastic=0 h=7.364501067 f=129660.68441269976 tr=0.25 step=0.25 minors=712 | d_eqp_it=0 d_refus=0 d_polish=279 d_drift=0 d_tp_s=0 d_tp_r=0 d_tp_a=0 d_susp=0 d_vref=0 d_rej=0 d_soc=0 d_elastic=0 d_resto=0 h_now=7.364501067
+F5SOLVE begin=14 n=344 me=236 mi=608 warm=1 seed=1 tr=0.5 delta=1e-08 mu=1e-08 maxit=5300 algebra=1 indep=1
+F5TERM solve=14 it=559 worst=0.000000e+00 refined=0 vrefine_steps=0 verdict=0 rows=9 pins=30 runaway=0 STATUS=continue_below
+F5SOLVE end=14 status=0 minors=560 facts=532 eqp_refine_iters=0 eqp_refusals=0 eqp_polish=226 drift_refusals=0 tp_solves=0 tp_rej=0 tp_adopt=0 susp_esc=0 vrefine=0 border_refine=37 cert=0 cert_rej=0 blk_term=0
+F5QP depth=0 major=11 delta=0.5 qp_status=0 owns=1 minors=560 facts=532 h=7.593088657 box=0 f=129660.6839 cert=0 blk=0 zm=0 certrej=0 e2route=0 ROUTE=ordinary
+F5SOC depth=0 major=11 SOC_ENTER h_old=7.593088657 h_new=26.41202655
+F5SOLVE begin=15 n=344 me=236 mi=608 warm=1 seed=1 tr=0.5 delta=1e-08 mu=1e-08 maxit=5300 algebra=1 indep=1
+F5TERM solve=15 it=2243 worst=0.000000e+00 refined=1 vrefine_steps=6 verdict=0 rows=17 pins=34 runaway=0 STATUS=continue_below
+F5POLISH solve=15 ENTER before_stat=5.359179e-04 before_compl=1.022004e+00 before_rows=7.774898e-06 pass_polish=0 pass_refused=0
+F5POLISH solve=15 STAGE2_REJECTED cand_stat=2.854750e-01 cand_compl=2.510791e-09 cand_rows=1.910085e-14 r_polish=2 r_refused=0
+F5SOLVE end=15 status=0 minors=2244 facts=2215 eqp_refine_iters=0 eqp_refusals=0 eqp_polish=2 drift_refusals=0 tp_solves=1 tp_rej=1 tp_adopt=0 susp_esc=0 vrefine=6 border_refine=36 cert=0 cert_rej=0 blk_term=0
+F5MAJ depth=0 major=11 outcome=1 qp_status=0 verdict=1 elastic=0 h=7.593088657 f=129660.68392052651 tr=0.5 step=0.390017 minors=560 | d_eqp_it=0 d_refus=0 d_polish=228 d_drift=0 d_tp_s=1 d_tp_r=1 d_tp_a=0 d_susp=0 d_vref=6 d_rej=0 d_soc=1 d_elastic=0 d_resto=0 h_now=7.593088657
+F5SOLVE begin=16 n=344 me=236 mi=608 warm=1 seed=1 tr=0.5 delta=1e-08 mu=1e-08 maxit=5300 algebra=1 indep=1
+F5TERM solve=16 it=353 worst=0.000000e+00 refined=0 vrefine_steps=0 verdict=0 rows=7 pins=31 runaway=0 STATUS=continue_below
+F5SOLVE end=16 status=0 minors=354 facts=23 eqp_refine_iters=0 eqp_refusals=0 eqp_polish=334 drift_refusals=0 tp_solves=0 tp_rej=0 tp_adopt=0 susp_esc=0 vrefine=0 border_refine=354 cert=0 cert_rej=0 blk_term=0
+F5QP depth=0 major=12 delta=0.5 qp_status=0 owns=1 minors=354 facts=23 h=6.206970698 box=0 f=129793.0587 cert=0 blk=0 zm=0 certrej=0 e2route=0 ROUTE=ordinary
+F5SOC depth=0 major=12 SOC_ENTER h_old=6.206970698 h_new=44.03130474
+F5SOLVE begin=17 n=344 me=236 mi=608 warm=1 seed=1 tr=0.5 delta=1e-08 mu=1e-08 maxit=5300 algebra=1 indep=1
+F5ADDEXIT solve=17 it=487 add_exit=4 rows=46 pins=62 STATUS=kNumericalError(blocker/rejected)
+F5SOLVE end=17 status=3 minors=488 facts=50 eqp_refine_iters=0 eqp_refusals=0 eqp_polish=24 drift_refusals=0 tp_solves=0 tp_rej=0 tp_adopt=0 susp_esc=0 vrefine=0 border_refine=489 cert=0 cert_rej=0 blk_term=1
+F5DUMP seq=3 solve=17 status=3 n=344 me=236 mi=608 warm=1 tr=0.5 minors=488 facts=50 cert=0
+F5SOC depth=0 major=12 SOC_QP_FAILED status=3 minors=488 facts=50 cert=0 blk=1 ACTION=original_verdict_stands(no elastic,no restoration)
+F5MAJ depth=0 major=12 outcome=0 qp_status=0 verdict=2 elastic=0 h=6.206970698 f=129793.05869148127 tr=0.5 step=0.5 minors=354 | d_eqp_it=0 d_refus=0 d_polish=358 d_drift=0 d_tp_s=0 d_tp_r=0 d_tp_a=0 d_susp=0 d_vref=0 d_rej=1 d_soc=1 d_elastic=0 d_resto=0 h_now=6.206970698
+F5SOLVE begin=18 n=344 me=236 mi=608 warm=1 seed=1 tr=0.25 delta=1e-08 mu=1e-08 maxit=5300 algebra=1 indep=1
+F5TERM solve=18 it=381 worst=0.000000e+00 refined=0 vrefine_steps=0 verdict=0 rows=5 pins=37 runaway=0 STATUS=continue_below
+F5SOLVE end=18 status=0 minors=382 facts=21 eqp_refine_iters=0 eqp_refusals=0 eqp_polish=345 drift_refusals=0 tp_solves=0 tp_rej=0 tp_adopt=0 susp_esc=0 vrefine=0 border_refine=384 cert=0 cert_rej=0 blk_term=0
+F5QP depth=0 major=13 delta=0.25 qp_status=0 owns=1 minors=382 facts=21 h=6.206970698 box=0 f=129793.0587 cert=0 blk=0 zm=0 certrej=0 e2route=0 ROUTE=ordinary
+F5MAJ depth=0 major=13 outcome=1 qp_status=0 verdict=0 elastic=0 h=6.206970698 f=129793.05869148127 tr=0.25 step=0.25 minors=382 | d_eqp_it=0 d_refus=0 d_polish=345 d_drift=0 d_tp_s=0 d_tp_r=0 d_tp_a=0 d_susp=0 d_vref=0 d_rej=0 d_soc=0 d_elastic=0 d_resto=0 h_now=6.206970698
+F5SOLVE begin=19 n=344 me=236 mi=608 warm=1 seed=1 tr=0.5 delta=1e-08 mu=1e-08 maxit=5300 algebra=1 indep=1
+F5TERM solve=19 it=269 worst=0.000000e+00 refined=0 vrefine_steps=0 verdict=2 rows=9 pins=30 runaway=0 STATUS=continue_below
+F5SOLVE end=19 status=3 minors=270 facts=46 eqp_refine_iters=0 eqp_refusals=0 eqp_polish=237 drift_refusals=0 tp_solves=0 tp_rej=0 tp_adopt=0 susp_esc=0 vrefine=0 border_refine=291 cert=0 cert_rej=0 blk_term=0
+F5DUMP seq=4 solve=19 status=3 n=344 me=236 mi=608 warm=1 tr=0.5 minors=270 facts=46 cert=0
+F5QP depth=0 major=14 delta=0.5 qp_status=3 owns=1 minors=270 facts=46 h=5.714483264 box=0 f=129621.3012 cert=0 blk=0 zm=0 certrej=0 e2route=0 ROUTE=ordinary
+F5ROUTE depth=0 major=14 routed_failure 1/3 delta=0.5 floor=0
+F5MAJ depth=0 major=14 outcome=0 qp_status=3 verdict=2 elastic=0 h=5.714483264 f=129621.30115444813 tr=0.5 step=0.5 minors=270 | d_eqp_it=0 d_refus=0 d_polish=237 d_drift=0 d_tp_s=0 d_tp_r=0 d_tp_a=0 d_susp=0 d_vref=0 d_rej=1 d_soc=0 d_elastic=0 d_resto=0 h_now=5.714483264
+F5SOLVE begin=20 n=344 me=236 mi=608 warm=1 seed=1 tr=0.25 delta=1e-08 mu=1e-08 maxit=5300 algebra=1 indep=1
+F5TERM solve=20 it=654 worst=0.000000e+00 refined=0 vrefine_steps=0 verdict=0 rows=8 pins=36 runaway=0 STATUS=continue_below
+F5SOLVE end=20 status=0 minors=655 facts=67 eqp_refine_iters=0 eqp_refusals=0 eqp_polish=190 drift_refusals=0 tp_solves=0 tp_rej=0 tp_adopt=0 susp_esc=0 vrefine=0 border_refine=673 cert=0 cert_rej=0 blk_term=0
+F5QP depth=0 major=15 delta=0.25 qp_status=0 owns=1 minors=655 facts=67 h=5.714483264 box=0 f=129621.3012 cert=0 blk=0 zm=0 certrej=0 e2route=0 ROUTE=ordinary
+F5SOC depth=0 major=15 SOC_ENTER h_old=5.714483264 h_new=8.386258627
+F5SOLVE begin=21 n=344 me=236 mi=608 warm=1 seed=1 tr=0.25 delta=1e-08 mu=1e-08 maxit=5300 algebra=1 indep=1
+F5TERM solve=21 it=1424 worst=0.000000e+00 refined=0 vrefine_steps=0 verdict=0 rows=8 pins=36 runaway=0 STATUS=continue_below
+F5SOLVE end=21 status=0 minors=1425 facts=61 eqp_refine_iters=0 eqp_refusals=0 eqp_polish=333 drift_refusals=0 tp_solves=0 tp_rej=0 tp_adopt=0 susp_esc=0 vrefine=0 border_refine=1443 cert=0 cert_rej=0 blk_term=0
+F5MAJ depth=0 major=15 outcome=1 qp_status=0 verdict=1 elastic=0 h=5.714483264 f=129621.30115444813 tr=0.25 step=0.25 minors=655 | d_eqp_it=0 d_refus=0 d_polish=523 d_drift=0 d_tp_s=0 d_tp_r=0 d_tp_a=0 d_susp=0 d_vref=0 d_rej=0 d_soc=1 d_elastic=0 d_resto=0 h_now=5.714483264
+F5SOLVE begin=22 n=344 me=236 mi=608 warm=1 seed=1 tr=0.25 delta=1e-08 mu=1e-08 maxit=5300 algebra=1 indep=1
+F5TERM solve=22 it=301 worst=0.000000e+00 refined=0 vrefine_steps=0 verdict=0 rows=9 pins=32 runaway=0 STATUS=continue_below
+F5SOLVE end=22 status=0 minors=302 facts=25 eqp_refine_iters=0 eqp_refusals=0 eqp_polish=180 drift_refusals=0 tp_solves=0 tp_rej=0 tp_adopt=0 susp_esc=0 vrefine=0 border_refine=302 cert=0 cert_rej=0 blk_term=0
+F5QP depth=0 major=16 delta=0.25 qp_status=0 owns=1 minors=302 facts=25 h=3.819912993 box=0 f=129662.0822 cert=0 blk=0 zm=0 certrej=0 e2route=0 ROUTE=ordinary
+F5SOC depth=0 major=16 SOC_ENTER h_old=3.819912993 h_new=8.494175598
+F5SOLVE begin=23 n=344 me=236 mi=608 warm=1 seed=1 tr=0.25 delta=1e-08 mu=1e-08 maxit=5300 algebra=1 indep=1
+F5TERM solve=23 it=322 worst=0.000000e+00 refined=0 vrefine_steps=0 verdict=0 rows=9 pins=32 runaway=0 STATUS=continue_below
+F5SOLVE end=23 status=0 minors=323 facts=28 eqp_refine_iters=0 eqp_refusals=0 eqp_polish=264 drift_refusals=0 tp_solves=0 tp_rej=0 tp_adopt=0 susp_esc=0 vrefine=0 border_refine=323 cert=0 cert_rej=0 blk_term=0
+F5MAJ depth=0 major=16 outcome=1 qp_status=0 verdict=1 elastic=0 h=3.819912993 f=129662.08220214567 tr=0.25 step=0.25 minors=302 | d_eqp_it=0 d_refus=0 d_polish=444 d_drift=0 d_tp_s=0 d_tp_r=0 d_tp_a=0 d_susp=0 d_vref=0 d_rej=0 d_soc=1 d_elastic=0 d_resto=0 h_now=3.819912993
+F5SOLVE begin=24 n=344 me=236 mi=608 warm=1 seed=1 tr=0.25 delta=1e-08 mu=1e-08 maxit=5300 algebra=1 indep=1
+F5TERM solve=24 it=2 worst=0.000000e+00 refined=0 vrefine_steps=0 verdict=2 rows=9 pins=30 runaway=0 STATUS=continue_below
+F5SOLVE end=24 status=3 minors=3 facts=5 eqp_refine_iters=0 eqp_refusals=0 eqp_polish=13 drift_refusals=0 tp_solves=0 tp_rej=0 tp_adopt=0 susp_esc=0 vrefine=0 border_refine=73 cert=0 cert_rej=0 blk_term=0
+F5DUMP seq=5 solve=24 status=3 n=344 me=236 mi=608 warm=1 tr=0.25 minors=3 facts=5 cert=0
+F5QP depth=0 major=17 delta=0.25 qp_status=3 owns=1 minors=3 facts=5 h=0.4995017264 box=0 f=129660.5788 cert=0 blk=0 zm=0 certrej=0 e2route=0 ROUTE=ordinary
+F5ROUTE depth=0 major=17 routed_failure 1/3 delta=0.25 floor=0
+F5MAJ depth=0 major=17 outcome=0 qp_status=3 verdict=2 elastic=0 h=0.4995017264 f=129660.5787807497 tr=0.25 step=0.089937 minors=3 | d_eqp_it=0 d_refus=0 d_polish=13 d_drift=0 d_tp_s=0 d_tp_r=0 d_tp_a=0 d_susp=0 d_vref=0 d_rej=1 d_soc=0 d_elastic=0 d_resto=0 h_now=0.4995017264
+F5SOLVE begin=25 n=344 me=236 mi=608 warm=1 seed=1 tr=0.125 delta=1e-08 mu=1e-08 maxit=5300 algebra=1 indep=1
+F5TERM solve=25 it=1 worst=0.000000e+00 refined=0 vrefine_steps=0 verdict=2 rows=9 pins=30 runaway=0 STATUS=continue_below
+F5SOLVE end=25 status=3 minors=2 facts=5 eqp_refine_iters=0 eqp_refusals=0 eqp_polish=14 drift_refusals=0 tp_solves=0 tp_rej=0 tp_adopt=0 susp_esc=0 vrefine=0 border_refine=71 cert=0 cert_rej=0 blk_term=0
+F5DUMP seq=6 solve=25 status=3 n=344 me=236 mi=608 warm=1 tr=0.125 minors=2 facts=5 cert=0
+F5QP depth=0 major=18 delta=0.125 qp_status=3 owns=1 minors=2 facts=5 h=0.4995017264 box=0 f=129660.5788 cert=0 blk=0 zm=0 certrej=0 e2route=0 ROUTE=ordinary
+F5ROUTE depth=0 major=18 routed_failure 2/3 delta=0.125 floor=0
+F5MAJ depth=0 major=18 outcome=0 qp_status=3 verdict=2 elastic=0 h=0.4995017264 f=129660.5787807497 tr=0.125 step=0.089937 minors=2 | d_eqp_it=0 d_refus=0 d_polish=14 d_drift=0 d_tp_s=0 d_tp_r=0 d_tp_a=0 d_susp=0 d_vref=0 d_rej=1 d_soc=0 d_elastic=0 d_resto=0 h_now=0.4995017264
+F5SOLVE begin=26 n=344 me=236 mi=608 warm=1 seed=1 tr=0.0625 delta=1e-08 mu=1e-08 maxit=5300 algebra=1 indep=1
+F5TERM solve=26 it=2 worst=0.000000e+00 refined=0 vrefine_steps=0 verdict=2 rows=9 pins=30 runaway=0 STATUS=continue_below
+F5SOLVE end=26 status=3 minors=3 facts=5 eqp_refine_iters=0 eqp_refusals=0 eqp_polish=12 drift_refusals=0 tp_solves=0 tp_rej=0 tp_adopt=0 susp_esc=0 vrefine=0 border_refine=73 cert=0 cert_rej=0 blk_term=0
+F5DUMP seq=7 solve=26 status=3 n=344 me=236 mi=608 warm=1 tr=0.0625 minors=3 facts=5 cert=0
+F5QP depth=0 major=19 delta=0.0625 qp_status=3 owns=1 minors=3 facts=5 h=0.4995017264 box=0 f=129660.5788 cert=0 blk=0 zm=0 certrej=0 e2route=0 ROUTE=ordinary
+F5ROUTE depth=0 major=19 routed_failure 3/3 delta=0.0625 floor=0
+F5MAJ depth=0 major=19 outcome=0 qp_status=3 verdict=2 elastic=0 h=0.4995017264 f=129660.5787807497 tr=0.0625 step=0.0625 minors=3 | d_eqp_it=0 d_refus=0 d_polish=12 d_drift=0 d_tp_s=0 d_tp_r=0 d_tp_a=0 d_susp=0 d_vref=0 d_rej=1 d_soc=0 d_elastic=0 d_resto=0 h_now=0.4995017264
+F5SOLVE begin=27 n=344 me=236 mi=608 warm=1 seed=1 tr=0.03125 delta=1e-08 mu=1e-08 maxit=5300 algebra=1 indep=1
+F5TERM solve=27 it=2 worst=0.000000e+00 refined=0 vrefine_steps=0 verdict=2 rows=9 pins=30 runaway=0 STATUS=continue_below
+F5SOLVE end=27 status=3 minors=3 facts=5 eqp_refine_iters=0 eqp_refusals=0 eqp_polish=11 drift_refusals=0 tp_solves=0 tp_rej=0 tp_adopt=0 susp_esc=0 vrefine=0 border_refine=73 cert=0 cert_rej=0 blk_term=0
+F5DUMP seq=8 solve=27 status=3 n=344 me=236 mi=608 warm=1 tr=0.03125 minors=3 facts=5 cert=0
+F5QP depth=0 major=20 delta=0.03125 qp_status=3 owns=1 minors=3 facts=5 h=0.4995017264 box=0 f=129660.5788 cert=0 blk=0 zm=0 certrej=0 e2route=0 ROUTE=ordinary
+F5MAJ depth=0 major=20 outcome=5 qp_status=3 verdict=2 elastic=0 h=0.4995017264 f=129660.5787807497 tr=0.03125 step=0.03125 minors=3 | d_eqp_it=0 d_refus=0 d_polish=11 d_drift=0 d_tp_s=0 d_tp_r=0 d_tp_a=0 d_susp=0 d_vref=0 d_rej=0 d_soc=0 d_elastic=0 d_resto=0 h_now=0.4995017264
+F5FINISH depth=0 major=20 kFinishQpFailure qp_status=3 -> SolveStatus=6 f=129660.5787807497

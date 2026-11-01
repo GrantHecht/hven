@@ -1,0 +1,105 @@
+CHAIN_START 2026-10-30T11:04:27Z head=0de4ae7f19edde5e2c4755ff8a807213411646b9
+SELFTEST_FAILS=0
+PREFLIGHT_FAILS=0
+PREFLIGHT_GREEN
+STEP_START build-release 2026-10-30T11:04:28Z
+WRAPPER_EXIT=0  (log /home/ghecht/Projects/hven/.claude/worktrees/m7-close-gate/.scratch/m7-close/logs/leg-build-release.log)
+CHECK_CONFIGURE_RC=0
+STEP_OK build-release 2026-10-30T11:31:27Z
+STEP_START build-debug 2026-10-30T11:31:27Z
+WRAPPER_EXIT=0  (log /home/ghecht/Projects/hven/.claude/worktrees/m7-close-gate/.scratch/m7-close/logs/leg-build-debug.log)
+CHECK_CONFIGURE_RC=0
+STEP_OK build-debug 2026-10-30T11:49:15Z
+STEP_START suite-release 2026-10-30T11:49:15Z
+WRAPPER_EXIT=0  (log /home/ghecht/Projects/hven/.claude/worktrees/m7-close-gate/.scratch/m7-close/logs/leg-suite-release.log)
+CHECK_SUITE_RC=0
+STEP_OK suite-release 2026-10-30T11:51:30Z
+STEP_START suite-debug 2026-10-30T11:51:30Z
+WRAPPER_EXIT=0  (log /home/ghecht/Projects/hven/.claude/worktrees/m7-close-gate/.scratch/m7-close/logs/leg-suite-debug.log)
+CHECK_SUITE_RC=0
+STEP_OK suite-debug 2026-10-30T11:58:00Z
+STEP_START long-debug 2026-10-30T11:58:00Z
+WRAPPER_EXIT=0  (log /home/ghecht/Projects/hven/.claude/worktrees/m7-close-gate/.scratch/m7-close/logs/leg-long-debug.log)
+CHECK_SUITE_RC=0
+STEP_OK long-debug 2026-10-30T12:00:51Z
+STEP_START smoke 2026-10-30T12:00:51Z
+WRAPPER_EXIT=0  (log /home/ghecht/Projects/hven/.claude/worktrees/m7-close-gate/.scratch/m7-close/logs/leg-smoke.log)
+STEP_OK smoke 2026-10-30T12:07:31Z
+STEP_START rig-build 2026-10-30T12:07:31Z
+WRAPPER_EXIT=0  (log /home/ghecht/Projects/hven/.claude/worktrees/m7-close-gate/.scratch/m7-close/logs/leg-rig-build.log)
+3
+STEP_OK rig-build 2026-10-30T12:34:40Z
+STEP_START rig-run 2026-10-30T12:34:40Z
+WRAPPER_EXIT=0  (log /home/ghecht/Projects/hven/.claude/worktrees/m7-close-gate/.scratch/m7-close/logs/leg-rig-run.log)
+CHECK_RIG_RC=0
+STEP_OK rig-run 2026-10-30T12:36:55Z
+STEP_START replay 2026-10-30T12:36:55Z
+WRAPPER_EXIT=0  (log /home/ghecht/Projects/hven/.claude/worktrees/m7-close-gate/.scratch/m7-close/logs/leg-replay.log)
+EXACT_RC_walk=0
+GATED_WX2_RC_walk=0
+GATED_M6_RC_walk=1
+EXACT_RC_ssn=0
+GATED_WX2_RC_ssn=0
+GATED_M6_RC_ssn=1
+EXACT_RC_ipm=0
+GATED_WX2_RC_ipm=0
+GATED_M6_RC_ipm=1
+CHECK_REPLAY_EXACT_RC=0
+CHECK_REPLAY_M6_RC=0
+CHECK_REPLAY_EXACT_RC=0
+STEP_OK replay 2026-10-30T12:42:31Z
+STEP_START sv1-pin 2026-10-30T12:42:31Z
+WRAPPER_EXIT=0  (log /home/ghecht/Projects/hven/.claude/worktrees/m7-close-gate/.scratch/m7-close/logs/leg-sv1-pin.log)
+STEP_OK sv1-pin 2026-10-30T12:46:09Z
+STEP_START sv1-build 2026-10-30T12:46:09Z
+WRAPPER_EXIT=0  (log /home/ghecht/Projects/hven/.claude/worktrees/m7-close-gate/.scratch/m7-close/logs/leg-sv1-build.log)
+STEP_OK sv1-build 2026-10-30T12:47:29Z
+STEP_START sv1-guards 2026-10-30T12:47:29Z
+WRAPPER_EXIT=1  (log /home/ghecht/Projects/hven/.claude/worktrees/m7-close-gate/.scratch/m7-close/logs/leg-sv1-guards.log)
+CHAIN_STOP at sv1-guards: leg rc (a transcription guard)
+CHAIN_END 2026-10-30T12:47:32Z STOPPED
+CHAIN_R2_START 2026-10-30T12:49:23Z head=b9ccfaa65248c9496b67e6fa69e0e0ba3a449a26
+SELFTEST_FAILS=0
+PREFLIGHT_FAILS=0
+PREFLIGHT_GREEN
+STEP_START sv1-guards 2026-10-30T12:49:24Z
+WRAPPER_EXIT=0  (log /home/ghecht/Projects/hven/.claude/worktrees/m7-close-gate/.scratch/m7-close/logs/leg-sv1-guards.log)
+STEP_OK sv1-guards 2026-10-30T12:49:28Z
+STEP_START sv1-hs 2026-10-30T12:49:28Z
+WRAPPER_EXIT=1  (log /home/ghecht/Projects/hven/.claude/worktrees/m7-close-gate/.scratch/m7-close/logs/leg-sv1-hs.log)
+STEP_OK sv1-hs 2026-10-30T12:49:50Z
+STEP_START sv1-cutest 2026-10-30T12:49:50Z
+WRAPPER_EXIT=0  (log /home/ghecht/Projects/hven/.claude/worktrees/m7-close-gate/.scratch/m7-close/logs/leg-sv1-cutest.log)
+SUITEV1 hs: 88 rows; outcomes by lane {"hven-ipm": {"optimal": 22}, "hven-sqp": {"optimal": 22}, "ipopt": {"optimal": 22}, "snopt": {"optimal": 22}}
+SUITEV1 cutest: 92 rows; outcomes by lane {"hven-ipm": {"dnf_budget": 4, "dnf_wall": 2, "optimal": 17}, "hven-sqp": {"dnf_wall": 6, "error": 1, "optimal": 16}, "ipopt": {"dnf_budget": 3, "dnf_wall": 3, "error": 2, "optimal": 15}, "snopt": {"dnf_budget": 4, "dnf_wall": 1, "error": 3, "optimal": 15}}
+CHECK_SUITEV1_RC=0
+STEP_OK sv1-cutest 2026-10-30T14:13:24Z
+STEP_START census 2026-10-30T14:13:24Z
+WRAPPER_EXIT=0  (log /home/ghecht/Projects/hven/.claude/worktrees/m7-close-gate/.scratch/m7-close/logs/leg-census.log)
+CENSUS_GATED_RC=1
+CENSUS_VS_M6_EXACT_RC=1
+57 baseline cells, 57 fresh cells, 48 mismatches
+CHECK_FAIL census-gated UNDECLARED mover f7_n1000_bound_neutral: columns ['kkt_residual']
+CHECK_FAIL census-gated UNDECLARED mover f7_n1000_path_neutral: columns ['factorizations', 'qp_minors', 'qp_fact_per_qp']
+CHECK_FAIL census-gated UNDECLARED mover f7_n1000_path_physics: columns ['qp_minors', 'kkt_residual']
+CHECK_FAIL census-gated UNDECLARED mover f7_n1000_path_corrupted: columns ['factorizations', 'qp_minors', 'qp_subproblems', 'qp_fact_per_qp', 'kkt_residual']
+CHECK_FAIL census-gated UNDECLARED mover f7_n1000_path_activity: columns ['qp_minors', 'kkt_residual']
+CHECK_FAIL census-gated UNDECLARED mover f7_n2000_path_neutral: columns ['status', 'factorizations', 'qp_minors', 'qp_subproblems', 'qp_fact_per_qp', 'kkt_residual']
+CHECK_FAIL census-gated UNDECLARED mover f7_n2000_path_physics: columns ['factorizations', 'qp_minors', 'qp_fact_per_qp', 'kkt_residual']
+CHECK_FAIL census-gated UNDECLARED mover f7_n2000_path_corrupted: columns ['status', 'factorizations', 'qp_minors', 'qp_subproblems', 'qp_fact_per_qp']
+CHECK_FAIL census-gated UNDECLARED mover f7_n2000_path_activity: columns ['factorizations', 'qp_minors', 'qp_fact_per_qp', 'kkt_residual']
+CHECK_FAIL census-gated UNDECLARED mover f7_n2000_path_warm: columns ['factorizations', 'qp_minors', 'qp_fact_per_qp', 'kkt_residual']
+CHECK_FAIL census-gated UNDECLARED mover f7_n5000_path_neutral: columns ['status', 'factorizations', 'qp_minors', 'escapes', 'qp_subproblems', 'qp_fact_per_qp', 'kkt_residual']
+CHECK_FAIL census-gated UNDECLARED mover f7_n5000_path_physics: columns ['factorizations', 'qp_minors', 'qp_fact_per_qp', 'kkt_residual']
+CHECK_FAIL census-gated UNDECLARED mover f7_n5000_path_corrupted: columns ['status']
+CHECK_FAIL census-gated UNDECLARED mover f7_n5000_path_activity: columns ['factorizations', 'qp_minors', 'qp_fact_per_qp', 'kkt_residual']
+CHECK_FAIL census-gated UNDECLARED mover f7_n5000_path_warm: columns ['status', 'factorizations', 'qp_minors', 'escapes', 'qp_subproblems', 'qp_fact_per_qp', 'kkt_residual']
+CHECK_FAIL census-gated UNDECLARED mover f7_n10000_path_physics: columns ['status', 'factorizations', 'qp_minors', 'escapes', 'qp_subproblems', 'qp_fact_per_qp', 'kkt_residual']
+CHECK_FAIL census-gated UNDECLARED mover f7_n800_path_neutral: columns ['factorizations', 'qp_minors', 'qp_subproblems', 'qp_fact_per_qp', 'kkt_residual']
+CHECK_FAIL census-gated UNDECLARED mover f7_n800_path_physics: columns ['qp_minors', 'kkt_residual']
+CHECK_FAIL census-gated UNDECLARED mover f7_n800_path_corrupted: columns ['qp_minors', 'kkt_residual']
+CHECK_FAIL census-gated UNDECLARED mover f7_n750_path_neutral_control: columns ['factorizations', 'qp_minors', 'qp_fact_per_qp']
+CHECK_FAIL census-gated UNDECLARED mover f7_n825_path_neutral_control: columns ['factorizations', 'qp_minors', 'qp_fact_per_qp', 'kkt_residual']
+CHECK_CENSUS_GATED_RC=1
+CHAIN_STOP at census: census: an undeclared mover
+CHAIN_END 2026-10-30T20:14:38Z STOPPED

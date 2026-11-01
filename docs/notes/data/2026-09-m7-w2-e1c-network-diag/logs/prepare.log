@@ -1,0 +1,86 @@
+FOREGROUND_START e1c-prepare 2026-09-23T00:27:47-04:00
+PGREP_EMPTY e1c-prepare: no foreign cell binary under my lock
+=== HEAD fd7fd2a5  dirty-files=1
+--- the copied wrappers against their originals (bytes, measured)
+    replay_build_e1c.py == /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-m4-anticycling-arm/wrappers/replay_build_m4.py  7403158b6df12e3b206922e7979880e17be14c856692dc445d2d3329c5076610
+    readouts_m4.py == /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-m4-anticycling-arm/wrappers/readouts_m4.py  b98c67236917bf7f6713215457f2e998d65057ab96f80c71676ed469bc0757e0
+    m4c_tails.py == /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-m4c-drop-direction-study/wrappers/m4c_tails.py  91d400362bbc0f8b46c314cd6ac72558a531f3ddb7e2d01ddeaeaa0c22702daa
+    probe-CMakeLists.txt == /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-m3c-default-census/wrappers/probe-CMakeLists.txt  9c4642042e48de63ad85c4fef4b567ce6019866cf40dd74a95802e1477ce1918
+--- THE PIN
+INSTALL_LIB_SHA256=7156d57feb6ecdcf1d759e46841e021c45e0327870e290fb3ac97bfad98921cd
+BUILDTREE_LIB_SHA256=7156d57feb6ecdcf1d759e46841e021c45e0327870e290fb3ac97bfad98921cd
+--- THE HEAD-vs-PIN HEADER DELTA, derived from git and measured on disk
+    derived (43800aae882724e3133b05b1d72708c91131e585..HEAD -- include/): hven/detail/qp/qp_certificate_seam.h hven/detail/qp/qp_walk_trace.h
+    measured (HEAD include/ vs install): hven/detail/qp/qp_certificate_seam.h hven/detail/qp/qp_walk_trace.h
+HEAD_DELTA_OK -- exactly the E4-fix1 test-seam headers; the probe does NOT read HEAD's include/
+--- THE SOURCE TREE THE INSTALL COMMANDS NAME: /home/ghecht/Projects/hven/.claude/worktrees/e1-retake
+    dep/eigen gitlink@pin=bc3b39870ecb690a623a3f49149a358b95c5781d checkout=bc3b39870ecb690a623a3f49149a358b95c5781d dirty=0
+    dep/fmt gitlink@pin=407c905e45ad75fc29bf0f9bb7c5c2fd3475976f checkout=407c905e45ad75fc29bf0f9bb7c5c2fd3475976f dirty=0
+SRC_INCLUDE == INSTALL_INCLUDE (hven/)
+--- CONFIGURE the pass-1 probe tree against the pinned install (configure only)
+hven_DIR:PATH=/home/ghecht/Projects/hven-bench/.hven/install-43800aae8827/lib64/cmake/hven
+--- THE REPLAY BUILD (arm B == -DHVEN_TESTING=1 and nothing else)
+    declared to differ in: (nothing)
+    measured difference   : []
+    the two trees agree on all 134 other header(s); the difference is exactly this round's own
+
+
+--- THE PROBE'S OWN TUs, replayed from pass 1's probe build tree
+  PROBE TU m3c_probe.cpp
+      declared differences: source file, object path, dep file, -DHVEN_TESTING=1, -I/home/ghecht/Projects/hven/.claude/worktrees/e1-retake/include
+      no residual difference
+  BRIDGE   cutest_model.cpp
+      declared difference: -I/home/ghecht/Projects/hven/.claude/worktrees/e1-retake/include
+      no residual difference
+  BRIDGE   cutest_source.cpp
+      declared difference: -I/home/ghecht/Projects/hven/.claude/worktrees/e1-retake/include
+      no residual difference
+  BRIDGE   nlp_model_triplet_view.cpp
+      declared difference: -I/home/ghecht/Projects/hven/.claude/worktrees/e1-retake/include
+      no residual difference
+    4 probe-side objects produced
+
+--- THE LINK (RULE-P2A section 3.4 #3)
+    : && /usr/bin/clang++ -DMKL_LP64 -m64 -O3 -DNDEBUG -Wl,-rpath,/home/ghecht/Software/cutest/lib -Xlinker --dependency-file=CMakeFiles/m3c_probe.dir/link.d CMakeFiles/m3c_probe.dir/m3c_p2_probe.cpp.o CMakeFiles/m3c_probe.dir/home/ghecht/Projects/hven-bench/lanes/cutest/cutest_model.cpp.o CMakeFiles/m3c_probe.dir/home/ghecht/Projects/hven-bench/lanes/cutest/cutest_source.cpp.o CMakeFiles/m3c_probe.dir/home/ghecht/Projects/hven-bench/lanes/hven/nlp_model_triplet_view.cpp.o -o e1c_probe  -Wl,-rpath,/opt/intel/oneapi/mkl/latest/lib:/opt/intel/oneapi/compiler/latest/lib:/home/ghecht/Software/cutest/lib  /home/ghecht/Projects/hven/.scratch/m7w2e1c/build/libhven_p2a_armB.a  /home/ghecht/Software/cutest/lib/libcutest_double.so  -Wl,--start-group  /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a  /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a  /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a  /opt/intel/oneapi/compiler/latest/lib/libiomp5.so  -Wl,--end-group  -ldl  -lm && :
+    the link names this arm's own replayed archive and NOT the installed libhven.a
+    non-vacuity: the same test DOES match a constructed line naming the installed path
+    binary /home/ghecht/Projects/hven/.scratch/m7w2e1c/build/e1c_probe
+    sha256 3edc37dace4c961ba350f7dac7869134830670bdc0b51061a818b97a7998f09a
+    QpWalkObserver symbols in the binary: 23 (the probe's own TU defines them in every arm; see RULE-P2A section 1)
+ARM B BUILD OK
+
+ARM_B_BINARY=/home/ghecht/Projects/hven/.scratch/m7w2e1c/build/e1c_probe
+3edc37dace4c961ba350f7dac7869134830670bdc0b51061a818b97a7998f09a  /home/ghecht/Projects/hven/.scratch/m7w2e1c/build/e1c_probe
+--- ARGUMENT REFUSALS, EXERCISED
+refused as it should (unknown cell): m5_arm_probe: NOT_A_CELL is not in the cutest-nlp-35 roster
+refused as it should (trace without an out path): m5_arm_probe: --trace on requires --trace-out PATH
+refused as it should (an --equality-basis value that is neither on nor off): e1c_probe: --equality-basis takes on|off
+refused as it should (an arm label that is not one of M5's four): m5_arm_probe: --arm takes off|a|b1|a+b1
+--- THE SWITCH REACHES THE OPTION (1 s probes; only the keys are read)
+    --equality-basis on -> opt_equality_basis=1, eqb_computed=1
+    --equality-basis off -> opt_equality_basis=0, eqb_computed=0
+
+=========== THE SMOKE: ACOPP57 --arm off, basis at its DEFAULT, observer armed
+FOREGROUND_START smoke-ACOPP57 2026-09-23T00:28:23-04:00
+FOREGROUND_END smoke-ACOPP57 2026-09-23T00:28:25-04:00 rc=0
+M7 W2 E1c -- SMOKE IDENTITY: probe row vs the COMMITTED E1-retake harness row
+  results.csv   /home/ghecht/Projects/hven-bench/runs/2026-09-m7-w2-e1-retake/run-A/cutest/results.csv
+  counters.csv  /home/ghecht/Projects/hven-bench/runs/2026-09-m7-w2-e1-retake/run-A/cutest/counters-hven-sqp.csv
+  rows          /home/ghecht/Projects/hven/.scratch/m7w2e1c/smoke/rows
+  field map     identity_m3c.py (unmodified), 24 pairs: ['status', 'c_major_iters', 'c_qp_minor_iters', 'c_factorizations', 'f', 'c_steps_accepted', 'c_rejected_steps', 'c_soc_steps', 'c_soc_applied', 'c_elastic_activations', 'c_restoration_iters', 'c_eqp_refine_steps', 'c_border_refine_steps', 'c_verdict_refine_steps', 'c_suspect_escalations', 'c_symbolic_analyses', 'c_full_step_majors', 'c_watchdog_restores', 'c_evals_full', 'c_evals_values', 'stationarity', 'feasibility_e', 'feasibility_i', 'complementarity']
+  trace_out     a LABEL: not in the field map, never compared
+ACOPP57    STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+ACOPP57    24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+ACOPP57 FLOOR: 24 of 24 pairs compared (both sides present)
+ACOPP57 near-ulp acceptances (passed by tolerance, not by bytes): 0
+IDENTITY ACOPP57 REPRODUCES
+IDENTITY_RC=0
+GATE_SMOKE_RC=0
+eqb report on the smoke:
+    eqb_computed=1
+    eqb_undecidable=0
+    eqb_dropped_count=0
+    eqb_qr_factorizations=0
+=== E1c PREPARE OK 2026-09-23T00:28:25-04:00
+FOREGROUND_END e1c-prepare 2026-09-23T00:28:25-04:00 rc=0
+--- removed the re-materialized /home/ghecht/Projects/hven/.claude/worktrees/e1-retake (this script created it)

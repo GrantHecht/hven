@@ -1,0 +1,9 @@
+PGREP_EMPTY a2-sqp-ipm-mufloor-cutest-B-YORKNET
+PGREP_NO_UNCOVERED_CELL a2-sqp-ipm-mufloor-cutest-B-YORKNET 2026-10-23T15:52:56-04:00
+IN_LOCK_PGREP_EMPTY a2-sqp-ipm-mufloor-cutest-B-YORKNET 2026-10-23T15:52:56-04:00
+FOREGROUND_START a2-sqp-ipm-mufloor-cutest-B-YORKNET 2026-10-23T15:52:56-04:00
+w2_a4_sweep: sqp-ipm-mufloor / hven-sqp / cutest / run B-YORKNET -> /home/ghecht/Projects/hven/.claude/worktrees/agent-aa38d0451de957235/.scratch/a2/train/cells/hven-sqp/sqp-ipm-mufloor/cutest-run-B-YORKNET (ceiling 300s) [problems: YORKNET]
+run_serial: cutest/YORKNET/hven-sqp/sqp-ipm-mufloor
+run_serial: 1 cells -> /home/ghecht/Projects/hven/.claude/worktrees/agent-aa38d0451de957235/.scratch/a2/train/cells/hven-sqp/sqp-ipm-mufloor/cutest-run-B-YORKNET/results.csv
+w2_a4_sweep: RUNNER_EXIT 0
+FOREGROUND_END a2-sqp-ipm-mufloor-cutest-B-YORKNET 2026-10-23T15:53:29-04:00 rc=0

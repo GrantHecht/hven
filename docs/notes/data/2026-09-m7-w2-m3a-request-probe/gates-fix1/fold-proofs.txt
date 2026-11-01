@@ -1,0 +1,94 @@
+FOLD_PROOFS_START 2026-09-21T10:47:30-04:00
+root=/home/ghecht/Projects/hven build=/home/ghecht/Projects/hven/.scratch/m7w2m3a/gates-dbg
+HEAD ea0278040378830c014ad2791b9279d2276a980a  dirty-files=0
+-- wrapper identity: WORKTREE digest vs the digest of the SAME path AT HEAD.
+-- They must agree, or this transcript did not exercise what landed.
+gates-fix1.sh      sha256 5f270efbc7eec2c0154da63c84be2dfce608ff711d33fc860f4924cfde415276  (worktree == HEAD)
+gate_asserts.sh    sha256 fb3c0673d5e6c2efdac04c4f5d27a1e3267ca30e0444e786277763eac1e4267f  (worktree == HEAD)
+classify_psym_fix1.py sha256 b1127e5e34486b9f3d746631048f45938767fd7ef02a80c3ddbebc3997c7e0d6  (worktree == HEAD)
+fold_proofs_fix1.sh sha256 349e7f78875c7b87864aded9517856cdda2765be7937af16978aaf28fc7d9a92  (worktree == HEAD)
+
+FOLD 01  REFUSED (rc=3)  classifier R1: an EMPTY comparison file
+          REFUSED (R1): /tmp/m3a-fold-QJmxEG/empty.txt carries no `P-SYM: ` summary line -- the comparison is empty or malformed, and a classification of nothing is not a pass
+FOLD 02  REFUSED (rc=3)  classifier R1: a MALFORMED comparison (a usage error, no P-SYM summary)
+          REFUSED (R1): /tmp/m3a-fold-QJmxEG/malformed.txt carries no `P-SYM: ` summary line -- the comparison is empty or malformed, and a classification of nothing is not a pass
+FOLD 03  REFUSED (rc=3)  classifier R1: a comparison file that does not exist
+          REFUSED: no comparison file at /tmp/m3a-fold-QJmxEG/no-such-file.txt
+FOLD 04  REFUSED (rc=4)  classifier R2: a summary line and NO differing object (the vacuous pass)
+          REFUSED (R2): /tmp/m3a-fold-QJmxEG/vacuous.txt reports the summary 'P-SYM: OK - no differences' but names no DIFFERS object -- this round's comparison MUST have movers (three sources under src/ changed and the counters field changed type), so an empty differing set is a failed capture, not a clean one
+FOLD 05  REFUSED (rc=2)  classifier: a changed-header list that disagrees with the declared one
+          REFUSED: the round's changed-header list is ['include/hven/drivers/sqp_solver_types.h'] but this script declares ['include/hven/core/solver_counters.h', 'include/hven/core/solver_status.h']
+FOLD 06  REFUSED (rc=1)  classifier R4: a differing object with neither changed source nor changed header
+          REFUSED (R4): 1 differing objects are explained by neither a changed source nor a changed header
+FOLD 07  REFUSED (rc=5)  classifier R3: a negative control below the required minimum
+          REFUSED (R3): the negative control is 116 (< 999999) -- the differing set is 'everything that sees the header' and this classification explains nothing
+FOLD 08  REFUSED (rc=1)  assert_ctest: a ctest log with NO summary line (the zero-test green)
+          ASSERT FAIL fold: no CTest summary line in /tmp/m3a-fold-QJmxEG/zero-tests.log
+FOLD 09  REFUSED (rc=1)  assert_ctest: the right shape at the WRONG total
+          ASSERT FAIL fold total: got '2669', expected '2670'
+FOLD 10  REFUSED (rc=1)  assert_ctest: a nonzero failed count
+          ASSERT FAIL fold failed: got '7', expected '0'
+FOLD 11  REFUSED (rc=1)  assert_ctest: an empty log file
+          ASSERT FAIL fold: /tmp/m3a-fold-QJmxEG/missing.log is missing or empty -- no ctest summary to check
+FOLD 12  ACCEPTED (rc=0)  assert_ctest: the GOOD input is accepted
+FOLD 13  REFUSED (rc=1)  assert_replay: only two engine lines of three
+          ASSERT FAIL replay lines at 27/75/0: got '2', expected '3'
+ASSERT FAIL replay lines total: got '2', expected '3'
+FOLD 14  REFUSED (rc=1)  assert_replay: one engine with differences
+          ASSERT FAIL replay lines at 27/75/0: got '2', expected '3'
+FOLD 15  REFUSED (rc=1)  assert_replay: a missing comparison file
+          ASSERT FAIL replay: /tmp/m3a-fold-QJmxEG/no-such-comparison.txt is missing or empty
+FOLD 16  ACCEPTED (rc=0)  assert_replay: the GOOD input is accepted
+FOLD 17  REFUSED (rc=1)  assert_psym: a compare rc of 0 (nothing was compared)
+          ASSERT FAIL P-SYM Release compare rc: got '0', expected '1'
+FOLD 18  REFUSED (rc=1)  assert_psym: a classifier rc of 1
+          ASSERT FAIL P-SYM Release classify rc: got '1', expected '0'
+FOLD 19  REFUSED (rc=1)  assert_psym: movers not accounted for by class A + class B
+          ASSERT FAIL P-SYM Release class A + class B: got '45', expected '52'
+FOLD 20  REFUSED (rc=1)  assert_psym: a nonzero UNEXPLAINED
+          ASSERT FAIL P-SYM Release class A + class B: got '49', expected '52'
+ASSERT FAIL P-SYM Release unexplained: got '3', expected '0'
+FOLD 21  REFUSED (rc=1)  assert_psym: a ZERO negative control
+          ASSERT FAIL P-SYM Release negative control: got '0', expected >= 1
+FOLD 22  REFUSED (rc=1)  assert_psym: zero movers (the vacuous comparison, seen from the runner)
+          ASSERT FAIL P-SYM Release differing: got '0', expected >= 1
+FOLD 23  REFUSED (rc=1)  assert_psym: the right shape at the WRONG declared differing count
+          ASSERT FAIL P-SYM Release differing (declared): got '52', expected '51'
+FOLD 24  REFUSED (rc=1)  assert_psym: the declared class A does not match
+          ASSERT FAIL P-SYM Release class A (declared): got '5', expected '6'
+FOLD 25  REFUSED (rc=1)  assert_psym: the declared class B does not match (a header reached an includer)
+          ASSERT FAIL P-SYM Release class B (declared): got '47', expected '46'
+FOLD 26  ACCEPTED (rc=0)  assert_psym: the GOOD shape at the DECLARED counts is accepted
+FOLD 27  REFUSED (rc=1)  assert_capture: a capture that EXITED NONZERO (the first round discarded this rc)
+          ASSERT FAIL capture after-Release: psym_compare.sh capture exited 1
+FOLD 28  REFUSED (rc=1)  assert_capture: a snapshot directory that does not exist
+          ASSERT FAIL capture after-Release: no non-empty .psym-manifest under /tmp/m3a-fold-QJmxEG/cap-no-such-dir
+FOLD 29  REFUSED (rc=1)  assert_capture: an EMPTY manifest (the truncate-then-refuse window)
+          ASSERT FAIL capture after-Release: no non-empty .psym-manifest under /tmp/m3a-fold-QJmxEG/cap-empty
+FOLD 30  ACCEPTED (rc=0)  assert_capture: a good capture is accepted
+FOLD 31  REFUSED (rc=1)  assert_capture_pair: two arms of DIFFERENT size (one capture was partial)
+          ASSERT FAIL capture pair object count: got '3', expected '2'
+FOLD 32  REFUSED (rc=1)  assert_capture_pair: an arm with no manifest at all
+          ASSERT FAIL capture pair: one of the two manifests is missing or empty
+FOLD 33  ACCEPTED (rc=0)  assert_capture_pair: two arms of the same size are accepted
+FOLD 34  REFUSED (rc=1)  assert_same_classification: the two configs disagree
+          ASSERT FAIL P-SYM classification differs between configs:
+FOLD 35  ACCEPTED (rc=0)  assert_same_classification: identical files are accepted
+FOLD 36  REFUSED (rc=8)  ctest --no-tests=error over a filter that matches NO test (the wrong-binary shape)
+          No tests were found!!!
+Errors while running CTest
+FOLD 37  REFUSED (rc=1)  gates_aggregate: the final aggregate carries rc5 (G1..G4,G6 green, G5 red)
+          
+FOLD 38  REFUSED (rc=1)  gates_aggregate: a failing G1 alone fails the chain
+          
+FOLD 39  REFUSED (rc=1)  gates_aggregate: an UNSET return code is a refusal, not a zero
+          ASSERT FAIL gates aggregate: '' is not a return code
+FOLD 40  ACCEPTED (rc=0)  gates_aggregate: six green segments aggregate to 0
+FOLD 41  REFUSED (rc=1)  accumulate_rc: G6 carries a failed sub-gate through the later green ones
+          
+FOLD 42  REFUSED (rc=1)  accumulate_rc: a failure in the LAST sub-gate is not lost either
+          
+FOLD 43  ACCEPTED (rc=0)  accumulate_rc: an all-green G6 accumulates to 0
+
+FOLD_PROOFS_TOTAL=43  FOLD_PROOFS_FAILED=0
+FOLD_PROOFS_END 2026-09-21T10:47:31-04:00

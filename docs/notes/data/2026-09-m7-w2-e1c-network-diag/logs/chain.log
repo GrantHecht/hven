@@ -1,0 +1,90 @@
+CHAIN_START 2026-09-23T00:29:29-04:00
+HEAD ef171dcd  dirty-files=0
+EXE_SHA256 3edc37dace4c961ba350f7dac7869134830670bdc0b51061a818b97a7998f09a
+PIN_BINARY OK -- the smoked probe, unrebuilt
+all four cells are in the 35-name roster
+
+=========== ON (the option never assigned: hven's default)
+LEG_START on-DALLASM 2026-09-23T00:29:29-04:00
+PGREP_EMPTY on-DALLASM: no foreign cell binary under my lock
+FOREGROUND_START on-DALLASM 2026-09-23T00:29:29-04:00
+FOREGROUND_END on-DALLASM 2026-09-23T00:30:20-04:00 rc=0
+LEG_END on-DALLASM 2026-09-23T00:30:20-04:00 rc=0
+    status=numerical_error  deadline_fired=0  major_iters=7  qp_minor_iters=14604  feasibility_e=5.6843418860808015e-14
+    eqb_computed=1  eqb_dropped_count=1  eqb_dropped_peak=1  eqb_recomputes=0  eqb_switched_off=0  eqb_inconsistent_row=-1
+    eqb_ce_dropped_max_abs=2.1316282072803006e-14  eqb_ce_retained_max_abs=5.6843418860808015e-14  restoration_entries=1  summary_records=14604  summary_truncated=0
+LEG_START on-STEENBRB 2026-09-23T00:30:20-04:00
+PGREP_EMPTY on-STEENBRB: no foreign cell binary under my lock
+FOREGROUND_START on-STEENBRB 2026-09-23T00:30:20-04:00
+FOREGROUND_END on-STEENBRB 2026-09-23T00:30:28-04:00 rc=0
+LEG_END on-STEENBRB 2026-09-23T00:30:28-04:00 rc=0
+    status=numerical_error  deadline_fired=0  major_iters=4  qp_minor_iters=18720  feasibility_e=2000
+    eqb_computed=1  eqb_dropped_count=12  eqb_dropped_peak=12  eqb_recomputes=0  eqb_switched_off=0  eqb_inconsistent_row=-1
+    eqb_ce_dropped_max_abs=2000  eqb_ce_retained_max_abs=2000  restoration_entries=0  summary_records=18720  summary_truncated=0
+LEG_START on-STEENBRC 2026-09-23T00:30:29-04:00
+PGREP_EMPTY on-STEENBRC: no foreign cell binary under my lock
+FOREGROUND_START on-STEENBRC 2026-09-23T00:30:29-04:00
+FOREGROUND_END on-STEENBRC 2026-09-23T00:30:42-04:00 rc=0
+LEG_END on-STEENBRC 2026-09-23T00:30:42-04:00 rc=0
+    status=numerical_error  deadline_fired=0  major_iters=4  qp_minor_iters=21600  feasibility_e=10000
+    eqb_computed=1  eqb_dropped_count=14  eqb_dropped_peak=14  eqb_recomputes=0  eqb_switched_off=0  eqb_inconsistent_row=-1
+    eqb_ce_dropped_max_abs=2000  eqb_ce_retained_max_abs=10000  restoration_entries=0  summary_records=21600  summary_truncated=0
+LEG_START on-STEENBRG 2026-09-23T00:30:42-04:00
+PGREP_EMPTY on-STEENBRG: no foreign cell binary under my lock
+FOREGROUND_START on-STEENBRG 2026-09-23T00:30:42-04:00
+FOREGROUND_END on-STEENBRG 2026-09-23T00:30:54-04:00 rc=0
+LEG_END on-STEENBRG 2026-09-23T00:30:54-04:00 rc=0
+    status=numerical_error  deadline_fired=0  major_iters=4  qp_minor_iters=21600  feasibility_e=10000
+    eqb_computed=1  eqb_dropped_count=14  eqb_dropped_peak=14  eqb_recomputes=0  eqb_switched_off=0  eqb_inconsistent_row=-1
+    eqb_ce_dropped_max_abs=2000  eqb_ce_retained_max_abs=10000  restoration_entries=0  summary_records=21600  summary_truncated=0
+
+=========== OFF (--equality-basis off)
+LEG_START off-DALLASM 2026-09-23T00:30:54-04:00
+PGREP_EMPTY off-DALLASM: no foreign cell binary under my lock
+FOREGROUND_START off-DALLASM 2026-09-23T00:30:54-04:00
+FOREGROUND_END off-DALLASM 2026-09-23T00:31:50-04:00 rc=0
+LEG_END off-DALLASM 2026-09-23T00:31:50-04:00 rc=0
+    status=numerical_error  deadline_fired=0  major_iters=5  qp_minor_iters=10583  feasibility_e=4.496403249731884e-14
+    eqb_computed=0  eqb_dropped_count=0  eqb_dropped_peak=0  eqb_recomputes=0  eqb_switched_off=0  eqb_inconsistent_row=-1
+    eqb_ce_dropped_max_abs=nan  eqb_ce_retained_max_abs=4.496403249731884e-14  restoration_entries=1  summary_records=10583  summary_truncated=0
+LEG_START off-STEENBRB 2026-09-23T00:31:50-04:00
+PGREP_EMPTY off-STEENBRB: no foreign cell binary under my lock
+FOREGROUND_START off-STEENBRB 2026-09-23T00:31:50-04:00
+FOREGROUND_END off-STEENBRB 2026-09-23T00:32:51-04:00 rc=0
+LEG_END off-STEENBRB 2026-09-23T00:32:51-04:00 rc=0
+    status=numerical_error  deadline_fired=0  major_iters=5  qp_minor_iters=20637  feasibility_e=2.2737367542337972e-13
+    eqb_computed=0  eqb_dropped_count=0  eqb_dropped_peak=0  eqb_recomputes=0  eqb_switched_off=0  eqb_inconsistent_row=-1
+    eqb_ce_dropped_max_abs=nan  eqb_ce_retained_max_abs=2.2737367542337972e-13  restoration_entries=1  summary_records=20637  summary_truncated=0
+LEG_START off-STEENBRC 2026-09-23T00:32:51-04:00
+PGREP_EMPTY off-STEENBRC: no foreign cell binary under my lock
+FOREGROUND_START off-STEENBRC 2026-09-23T00:32:51-04:00
+FOREGROUND_END off-STEENBRC 2026-09-23T00:35:26-04:00 rc=0
+LEG_END off-STEENBRC 2026-09-23T00:35:26-04:00 rc=0
+    status=numerical_error  deadline_fired=0  major_iters=6  qp_minor_iters=35324  feasibility_e=9.0949470177292824e-13
+    eqb_computed=0  eqb_dropped_count=0  eqb_dropped_peak=0  eqb_recomputes=0  eqb_switched_off=0  eqb_inconsistent_row=-1
+    eqb_ce_dropped_max_abs=nan  eqb_ce_retained_max_abs=9.0949470177292824e-13  restoration_entries=1  summary_records=35324  summary_truncated=0
+LEG_START off-STEENBRG 2026-09-23T00:35:26-04:00
+PGREP_EMPTY off-STEENBRG: no foreign cell binary under my lock
+FOREGROUND_START off-STEENBRG 2026-09-23T00:35:26-04:00
+FOREGROUND_END off-STEENBRG 2026-09-23T00:38:01-04:00 rc=0
+LEG_END off-STEENBRG 2026-09-23T00:38:01-04:00 rc=0
+    status=numerical_error  deadline_fired=0  major_iters=6  qp_minor_iters=35429  feasibility_e=9.0949470177292824e-13
+    eqb_computed=0  eqb_dropped_count=0  eqb_dropped_peak=0  eqb_recomputes=0  eqb_switched_off=0  eqb_inconsistent_row=-1
+    eqb_ce_dropped_max_abs=nan  eqb_ce_retained_max_abs=9.0949470177292824e-13  restoration_entries=1  summary_records=35429  summary_truncated=0
+
+=========== SUMMARY
+    off-DALLASM.txt
+    off-STEENBRB.txt
+    off-STEENBRC.txt
+    off-STEENBRG.txt
+    on-DALLASM.txt
+    on-STEENBRB.txt
+    on-STEENBRC.txt
+    on-STEENBRG.txt
+legs attempted: 8   rows surviving: 8   CENSORED: 0
+TRUNCATED (deadline_fired=1):
+    (none)
+observer truncation (summary_truncated=1):
+    (none)
+CHAIN_DONE
+CHAIN_END 2026-09-23T00:38:01-04:00

@@ -1,0 +1,17 @@
+=== NON-DEBUG SECTION COMPARISON (Debug) -- FAIL-CLOSED
+DEBUG_CLASS_PREFIXES=.debug .zdebug .rela.debug .rel.debug
+BEFORE_DIR=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/rehearsal/gates/psym/before-obj-Debug
+AFTER_DIR=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/rehearsal/gates/psym/after-obj-Debug
+DIGEST=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/rehearsal/section_digest_fix2.py
+DEBUG-ONLY       CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+DEBUG-ONLY       CMakeFiles/hven.dir/src/drivers/ipm_solver_globalization.cpp.o
+DEBUG-ONLY       CMakeFiles/hven.dir/src/interior/utils/get_core_count.cpp.o
+DEBUG-ONLY       CMakeFiles/hven.dir/src/interior/utils/memory_management.cpp.o
+DEBUG-ONLY       CMakeFiles/hven.dir/src/interior/utils/thread_pool.cpp.o
+DEBUG-ONLY       CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o
+SECTIONS_Debug_OBJECTS=48
+SECTIONS_Debug_BYTE_IDENTICAL=42
+SECTIONS_Debug_DEBUG_ONLY=6
+SECTIONS_Debug_NON_DEBUG_MOVERS=0
+SECTIONS_Debug_REFUSED=0
+SECTIONS_Debug_RC=0

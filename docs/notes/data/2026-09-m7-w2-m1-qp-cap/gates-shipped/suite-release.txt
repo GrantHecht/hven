@@ -1,0 +1,3 @@
+=== RELEASE SUITE at the SHIPPED commit 3f2f6e35 ===
+100% tests passed, 0 tests failed out of 2656
+Total Test time (real) =  80.22 sec

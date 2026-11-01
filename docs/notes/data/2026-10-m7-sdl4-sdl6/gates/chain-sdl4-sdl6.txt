@@ -1,0 +1,27 @@
+CHAIN_START 2026-10-18T20:20:52-04:00
+HEAD 8a7b08e3  dirty-files=0
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/docs/notes/data/2026-10-m7-sdl4-sdl6/wrappers-gates/gates-sdl4-sdl6.sh
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers/gate_asserts_m3b.sh
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/docs/notes/data/2026-10-m7-sdl4-sdl6/wrappers-gates/classify_psym_m4_uncapped.py
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers/check_sections_fix2.sh
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers/section_digest_fix2.py
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers/fold_proofs_m3b.sh
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/scripts/psym_compare.sh
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/scripts/compare_replay.py
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/scripts/check_install_smoke.sh
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/scripts/check_export_contract.sh
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/docs/notes/data/2026-09-m6-close-gate/replay
+GATES_SDL4_SDL6_RC=0
+FOREGROUND_START fold-proofs 2026-10-18T21:20:23-04:00
+PGREP_EMPTY fold-proofs: no foreign cell binary under my lock
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers/fold_proofs_m3b.sh
+PATH_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-af8f96009574734c6/.scratch/m7sdl4sdl6gates/gates-dbg/CTestTestfile.cmake
+FOLD_PROOFS_RC=0
+FOREGROUND_END fold-proofs 2026-10-18T21:20:24-04:00
+FOLD_PROOFS_AGGREGATE_RC=0
+
+FOLD_PROOFS_TOTAL=46  FOLD_PROOFS_FAILED=0
+FOLD_PROOFS_END 2026-10-18T21:20:24-04:00
+CHAIN_END 2026-10-18T21:20:24-04:00
+CHAIN_SUMMARY gates=0 fold_proofs=0

@@ -1,0 +1,20 @@
+import sys, re, collections
+def load(fs):
+    d = {}
+    for f in fs:
+        for l in open(f):
+            m = re.match(r'ZZZ (t\d+-\w+) status=(\d)', l)
+            if m: d[(f.split('-')[-1], m.group(1))] = int(m.group(2))  # key by family-file suffix
+    return d
+def fam(files, f): return [x for x in files]
+S = {0:'Opt',1:'Max',2:'Inf',3:'Num'}
+base_dir, final_dir, cand_prefix = sys.argv[1], sys.argv[2], sys.argv[3]
+tot = collections.Counter(); vs_final = collections.Counter()
+for k in range(4):
+    b = load([f'{base_dir}/base-{k}.txt']); fl = load([f'{final_dir}/final-{k}.txt']); c = load([f'{cand_prefix}-{k}.txt'])
+    for key in b:
+        if key not in c or key not in fl: tot['missing'] += 1; continue
+        tot[f'base {S[b[key]]} -> cand {S[c[key]]}'] += (b[key] != c[key])
+        vs_final[f'final {S[fl[key]]} -> cand {S[c[key]]}'] += (fl[key] != c[key])
+print('vs BASE (changed only):'); [print('  ', k, v) for k, v in sorted(tot.items()) if v]
+print('vs FINAL b25ab7ed (changed only):'); [print('  ', k, v) for k, v in sorted(vs_final.items()) if v]

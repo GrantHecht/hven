@@ -1,0 +1,158 @@
+M7 W2 E1b (TASK B, STEP 3) -- THE GATE EXPECTATIONS, DERIVED FROM THIS ROUND'S OWN BASE..HEAD
+Written and committed BEFORE the gate chain was detached. Nothing here may be
+adjusted after the chain reports.
+
+BASE   01d214bf (the E1 ledger line; branch m7)
+       434129d0 step 1 (certificate, IPARM-SURFACE)   a117824c step 2 (lift K, T4-T7)
+       aa46f140 step 3 (equality_basis defaults ON; qr_factorizations -> gram_factorizations)
+HEAD   the declaration commit that carries this file (docs/notes/data only)
+RUNNER wrappers-e1b/gates-e1b.sh + chain_gates_e1b.sh (E1 fix1's, copied and
+       re-pointed; two DECLARED G5 changes, (4) and (5) below)
+
+§1 THE CHANGED SURFACE (`git diff --name-status 01d214bf..aa46f140`; the runner
+   re-derives every list itself at HEAD_AT_START and prints it):
+     headers   include/hven/detail/drivers/equality_basis.h
+               include/hven/detail/drivers/equality_basis_testing.h (ADDED; only
+                 the HVEN_TESTING seam target includes it)
+               include/hven/drivers/sqp_solver.h (SqpSolver gains the member
+                 eq_prox_lift_failures_)
+               include/hven/drivers/sqp_solver_types.h (SqpOptions::equality_basis
+                 default true; SqpEqualityBasisReport field renames)
+     MODIFIED  src/drivers/equality_basis.cpp, src/drivers/sqp_solver.cpp,
+               tests/drivers/test_options_dump.cpp, tests/sqp/{test_corpus_cells,
+               test_equality_basis, test_scale_smoke, test_sqp_equality_basis}.cpp
+                                                                         -> 7
+     ADDED     tests/sqp/test_sqp_equality_basis_seams.cpp               -> 1
+               (+ the headers tests/sqp/support/e1b_off_golden{,_data}.h)
+     other     tests/CMakeLists.txt (the new hven_sqp_seam_tests target),
+               docs/testing.md, the E1 README, e1b-off-golden/
+
+§2 THE P-SYM MOVER SHAPE, PER CONFIGURATION
+     Release  DIFFERING 49 = class A 7 + class B 42; UNEXPLAINED 0; control >= 1
+     Debug    DIFFERING 50 = class A 7 + class B 43; UNEXPLAINED 0; control >= 1
+     ONLY-AFTER (both) == {} ; after = before = 149 objects (no ADDED source
+     inside the universe)
+   Class A = every MODIFIED src/ and tests/ .cpp (7, derived from git by the
+   runner's value pre-flight). Class B: SqpOptions' default initializer changes,
+   the report's fields are renamed, and SqpSolver gains a member, so every TU
+   that constructs, copies or destroys one of them moves.
+
+   THE ADDED .cpp IS OUTSIDE THE UNIVERSE -- DERIVED, NOT ASSUMED. The STATE
+   note expected the new hven_sqp_seam_tests target's objects to land
+   ONLY-AFTER. They do not: P-SYM's universe is the inclusion list PSYM_GROUPS
+   in scripts/psym_compare.sh (hven, hven_sqp_tests, hven_interior_tests,
+   hven_model_tests, hven_tests, hven_drivers_tests and the bench targets one by
+   one), and the seam target is not
+   in it -- the same standing as hven_ipqp_seam_tests and
+   hven_fault_injection_tests, whose HVEN_TESTING recompiles of library TUs are
+   not the production code. The rehearsal measured it: 149 objects in both
+   arms, ONLY-AFTER [] in both configurations, the seam .cpp BUILT in the after
+   arm, 0 seam-target objects in the after manifest. E1b CHANGE (4) asserts
+   exactly that on every run, and the pre-flight refuses if the declared outside
+   source is not ADDED, is not a source of hven_sqp_seam_tests in
+   tests/CMakeLists.txt, or if that target's directory IS a P-SYM group
+   (each check falsified once before this commit).
+
+   THE CONFIGURATION-ASYMMETRIC CLASS B -- E1b CHANGE (5). Debug differs on ONE
+   more object than Release: bench/CMakeFiles/hven_sqp_f7_cold.dir/
+   bench_f7_cold.cpp.o. In Debug one function's frame offsets all shift by 8
+   (282 changed instructions, `mov %al,-0x1e51(%rbp)` -> `-0x1e59(%rbp)`: the
+   SqpSolver on its -O0 stack grew by the new member); in Release the same
+   object is NOISE-ONLY. The shared assert_psym_cross_config (gate_asserts_m3b.sh,
+   NOT edited: the fold proofs run it) requires EQUAL class B sets and has no
+   precedent for this. The runner therefore declares the object BY NAME and, in
+   g5.sh only, asserts fail-closed that (a) Debug B minus Release B is exactly
+   that list and Release B minus Debug B is empty, (b) it is NOISE-ONLY in the
+   Release classification, (c) the Debug copy handed to the shared assert
+   (classification-Debug.xcfg.txt, kept beside the original) drops exactly those
+   lines; then the unchanged shared assert runs over it. Dry-run over the
+   rehearsal's classifications: declared list -> all OK, rc 0; empty list ->
+   "class B sets differ", rc 1; a wrong name -> three FAILs, rc 1. THE SETTLER
+   SHOULD RULE on this admission; the per-config counts above still bind.
+
+   THE SHAPE WAS MEASURED BEFORE THIS DECLARATION by a rehearsal of this
+   round's own G5 segment (E1's method) at aa46f140, in scratch tree
+   .scratch/m7w2e1brehearsal, under the box lock (2026-09-23 06:17-06:43, run
+   by this task's previous implementer and reused here: same HEAD, same
+   segment plus change (4)), with a placeholder declaration (differing 1, A 7,
+   B 0) so that it printed the movers and failed by design. Transcripts,
+   committed beside this file: psym-rehearsal-run.sh (its invocation),
+   psym-rehearsal-g5.txt (the segment), psym-rehearsal-classification-
+   {Release,Debug}.txt (the classifier re-run, rc 0, with --expect-differing
+   49/50 over the rehearsal's own compare files; the includer map for BOTH is
+   `ninja -t deps` of the rehearsal's build tree, left at the Debug before arm
+   -- include graphs do not depend on the configuration). Negative control
+   measured 25 Release / 17 Debug. The chain re-measures from fresh builds and
+   must reproduce this shape EXACTLY.
+
+§3 TEST COUNTS: Release 2783 (G3), Debug 2782 (G1, the long test excluded),
+   G2 1. E1 fix1's gate measured 2777. By name (fix1's committed
+   suite-release.txt against the step-3 local Release suite,
+   .scratch/m7w2e1b2/suite-r-s3.log):
+     removed 3  EqualityBasis.GramSolveCheckRefusesTheSplit,
+                EqualityBasis.PreCheckFallsThroughOnARedundantRowAndSkipsTheQrWhenFullRank,
+                EqualityBasis.PreCheckSendsAGramHiddenDeficiencyToTheQr
+     added   9  EqualityBasis.{LiftSystemCheckRefusesTheSplit,
+                T1AdversarialGramSetIsDependentUnderTheCertificate,
+                T2ScaledDuplicateIsExact, T3CertificateFastPathIsOneFactorization,
+                T3PerturbedPivotRefusesTheCertificate,
+                T4NearCapMultiColumnLiftMeetsItsForwardBound},
+                SqpEqualityBasis.T5OffIsByteIdenticalToThePreE1BaseOnADependentQp,
+                SqpEqualityBasisSeam.{T6DisabledHandOffRunsF9ToMaxIter,
+                T7FailedProxCentreLiftIsCountedAndRefusesTheBasis}
+     renamed 1  OptionsDump.SqpDumpsTheEqualityBasisOff -> ...On
+   2777 - 3 + 9 = 2783. MEASURED before this declaration (local trees, same
+   sources, at aa46f140): Release 2783/2783, Debug 2783/2783 with the long test
+   (suite-{r,d}-s3.log). The only Debug test over 600 s is still
+   Continuation.ProbeBudgetBoundsAFailingProposal (870 s there; next 479 s).
+   Wall is informational.
+
+§4 THE SECTION SHAPE (G5b), per configuration (measured by the rehearsal):
+     NON-DEBUG-MOVER set == {drivers/equality_basis.cpp.o, drivers/sqp_solver.cpp.o}
+       (derived from the MODIFIED src/*.cpp) + {drivers/sqp_options.cpp.o,
+       qp/ipqp_engine.cpp.o} (declared class B, both configurations;
+       warmstart/continuation.cpp.o, a fix1 mover, does not move this round)
+     library ADDED == {} (derived)
+     DEBUG_ONLY  Release 0 / Debug 3 (drivers/sqp_print.cpp.o,
+       drivers/trace_writer.cpp.o, warmstart/continuation.cpp.o); REFUSED 0
+
+§5 G4, THE BEHAVIOURAL GATE: 27 cells x 75 columns x 3 engines, 0 differences
+   against the M6 close pin. SqpOptions::equality_basis now defaults ON; every
+   U0 cell is full rank, so the certificate's verdict is kFullRank, the basis
+   is the identity and every QP is the pre-E1 QP. No replay column reads the
+   equality-basis report (`grep` of bench/ and scripts/compare_replay.py for
+   qr_factorizations / gram_factorizations / lift_refusals / equality_basis:
+   no hit). E1 (a11846b3, basis ON) measured 0 differences against the same
+   pin. ANY moved cell is a DECLARED FINDING: recorded, not re-derived, and the
+   round STOPS for the settler.
+
+§6 G6: install smoke, export contract, clang-format on every changed
+   include/*.h, src/*.cpp and tests/*.cpp (derived), git diff --check,
+   DIRTY_FILES 0. Fold proofs (chain): gate_asserts_m3b.sh is unchanged, so its
+   46 proofs are expected 46/0.
+
+§7 PRE-FLIGHT, run before this commit (`gates-e1b.sh --preflight-only`):
+     GATES_START 2026-09-23T10:17:12-04:00
+     === HEAD aa46f140  dirty-files=1 ===
+     === PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+     === GATES_SCRATCH=/home/ghecht/Projects/hven/.scratch/m7w2e1bgates ===
+     === BEFORE=01d214bf  EXPECT_DEBUG_TESTS=2782  EXPECT_RELEASE_TESTS=2783 ===
+     === HEAD_AT_START=aa46f140ea428f5db1b82d9d101129e06f5ee279
+     === CHANGED HEADERS: include/hven/detail/drivers/equality_basis.h include/hven/detail/drivers/equality_basis_testing.h include/hven/drivers/sqp_solver.h include/hven/drivers/sqp_solver_types.h 
+     === CHANGED SOURCES: src/drivers/equality_basis.cpp src/drivers/sqp_solver.cpp tests/CMakeLists.txt tests/drivers/test_options_dump.cpp tests/sqp/support/e1b_off_golden.h tests/sqp/support/e1b_off_golden_data.h tests/sqp/test_corpus_cells.cpp tests/sqp/test_equality_basis.cpp tests/sqp/test_scale_smoke.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp 
+     === MODIFIED C++ SOURCES: src/drivers/equality_basis.cpp src/drivers/sqp_solver.cpp tests/drivers/test_options_dump.cpp tests/sqp/test_corpus_cells.cpp tests/sqp/test_equality_basis.cpp tests/sqp/test_scale_smoke.cpp tests/sqp/test_sqp_equality_basis.cpp 
+     === ADDED C++ SOURCES: tests/sqp/test_sqp_equality_basis_seams.cpp 
+     === ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): tests/sqp/test_sqp_equality_basis_seams.cpp -> tests/CMakeFiles/hven_sqp_seam_tests.dir
+     === ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+     === DECLARED NON-DEBUG MOVERS Release (derived class A + declared class B): CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o 
+     === DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared class B): CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o 
+     === DECLARED ADDED LIBRARY OBJECTS (derived): 
+     === PREFLIGHT_VALUE_OK: class A 7 == declared 7/7; ADDED 1 == declared 1 (0 inside the universe == declared 0); class B library objects all unmodified
+     SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e1bgates/g1.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e1bgates  G=/home/ghecht/Projects/hven/.scratch/m7w2e1bgates/gates
+     SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e1bgates/g2.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e1bgates  G=/home/ghecht/Projects/hven/.scratch/m7w2e1bgates/gates
+     SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e1bgates/g3.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e1bgates  G=/home/ghecht/Projects/hven/.scratch/m7w2e1bgates/gates
+     SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e1bgates/g4.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e1bgates  G=/home/ghecht/Projects/hven/.scratch/m7w2e1bgates/gates
+     SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e1bgates/g5.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e1bgates  G=/home/ghecht/Projects/hven/.scratch/m7w2e1bgates/gates
+     SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e1bgates/g6.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e1bgates  G=/home/ghecht/Projects/hven/.scratch/m7w2e1bgates/gates
+     === PREFLIGHT_OK: 6 segments written and asserted against GATES_SCRATCH, before the first leg ===
+     PREFLIGHT_ONLY: stopping before G1. No leg was run and no build tree was touched.

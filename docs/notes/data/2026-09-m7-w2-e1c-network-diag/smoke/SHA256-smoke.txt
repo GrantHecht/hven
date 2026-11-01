@@ -1,0 +1,2 @@
+19822007082eb396cc5cc3c553843466559a40cba3edbc7b89bdedc114ef44d1  smoke/on-ACOPP57.csv
+842c95c76c755838f511eb65818a9a50ea6fa7bc1ba8fa238da694e6dbbb841e  smoke/rows/ACOPP57.txt

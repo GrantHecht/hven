@@ -1,0 +1,197 @@
+M7 W2 M5 -- RULE.md APPLIED MECHANICALLY, CELL BY CELL AND ARM BY ARM
+======================================================================
+Written at the close of the task by `wrappers/verdict_m5.py`, from the
+rows and the chain transcript named on every line.  No solver ran to
+produce this file.  RULE.md was not edited.
+
+THE SUBJECT OF EVERY LINE BELOW
+-------------------------------
+"arms a, b1 and a+b1 as implemented in the pinned M5 probe"
+    .scratch/m7w2m5arm/build/m5_arm_probe
+    sha256 eac445c0256e1b0af739f98e91a5d1cce586fedfa41562b7fb08684b145b43d4
+NOT a production form of either arm, and NOT the Gill & Wong exchange,
+which RULE.md section 1 records as REGISTERED AND UNBUILT (A4/C5).
+
+THE CHAIN
+---------
+`logs/chain-m5.txt` (pid 3123140, detached 2026-09-22T14:14:38-04:00).
+    CHAIN_END 2026-09-22T15:29:36-04:00
+    PIN_BINARY OK; PIN_OFF_ROWS OK (13); PIN_OFF_ROWS_PROVENANCE OK;
+    PIN_PARENT_TRACE OK (a69816b9...)
+    legs attempted 28   rows surviving 28   CENSORED 0
+    TRUNCATED (deadline_fired=1): b1-SAWPATH, a+b1-SAWPATH,
+                                  a+b1-STEENBRC, a+b1-STEENBRG
+
+THE PRECEDENCE THIS FILE APPLIES, DECLARED BEFORE THE TABLE
+-----------------------------------------------------------
+RULE.md section 7 inherits M4 section 7 and adds six deviations.  Where
+two categories could both apply, this file applies them in the order the
+rule states them, and it PRINTS every category a cell meets rather than
+collapsing them:
+  1. TRUNCATED (deadline_fired=1) -- M4 section 7.2 and deviation 6: a
+     censored cell gets counters and NO CONVERTED/HARM verdict at all.
+  2. UNSUPPORTED (deviation 2) -- a b1 or a+b1 cell with a nonzero
+     `indep_rank_violations` (A9), `indep_refused_mandatory_dependent`
+     (A3) or `indep_leak_bound_exceeded` (A10).  Counters reported, no
+     CONVERTED and no HARM.
+  3. INFEASIBLE-EXIT (deviation 1, section 5.1) -- printed as a FLAG in
+     its own column.  It outranks CONVERTED and never becomes one.
+  4. Otherwise M4 sections 7.3/7.4/7.5 on the rank order: CONVERTED,
+     `improved, unverified`, HARM, none.
+  5. RULE.md section 8 step 4's NEUTRALITY rule is SEPARATE and is not
+     suppressed by UNSUPPORTED: a change of status on READING6, SMBANK or
+     ZAMB2-8 IS HARM and stops that arm's verdicts being quoted.  It is
+     printed in its own column and again below the table.
+
+M4 section 7.2's rank order: optimal 0, acceptable 1, max_iter 2,
+stalled 3, diverging 4, budget_exhausted 5, infeasible 6,
+numerical_error 7, interrupted NOT RANKED (a censoring, not a status).
+M4 section 7.2's own note applies unchanged: `infeasible` ranks below
+admitting defeat ON THIS CELL SET, not as a general matter of the enum,
+and the one cell it applies to is YORKNET.
+
+THE TABLE
+---------
+`triggers` is A9:<rank violations> A3:<mandatory-dependent refusals>
+A10:<leak-bound exceedances>; a dash means all three are zero.
+`INFEAS-EXIT` marks a leg whose RETURNED POINT violates its own printed
+`feasibility_e`/`feasibility_i` by more than 1e-6 (section 5.1); `+OFF`
+beside it means the OFF CONTROL of that cell does so too, so on that cell
+the flag is not an arm effect.  `NEUT-HARM` is section 8 step 4.
+
+cell      arm   OFF status       arm status       rank  triggers               flags                  SECTION 7 VERDICT
+--------- ----- ---------------- ---------------- ----- ---------------------- ---------------------- ----------------------------
+ACOPP118  b1    numerical_error  numerical_error  7>7   A9:5 A3:0 A10:0        INFEAS-EXIT+OFF        UNSUPPORTED
+ACOPP118  a+b1  numerical_error  numerical_error  7>7   A9:5 A3:0 A10:0        INFEAS-EXIT+OFF        UNSUPPORTED
+ACOPP57   b1    numerical_error  numerical_error  7>7   A9:1 A3:0 A10:1        INFEAS-EXIT+OFF        UNSUPPORTED
+ACOPP57   a+b1  numerical_error  numerical_error  7>7   A9:1 A3:0 A10:1        INFEAS-EXIT+OFF        UNSUPPORTED
+ACOPR57   b1    numerical_error  numerical_error  7>7   A9:14 A3:0 A10:1       INFEAS-EXIT+OFF        UNSUPPORTED
+ACOPR57   a+b1  numerical_error  numerical_error  7>7   A9:14 A3:0 A10:1       INFEAS-EXIT+OFF        UNSUPPORTED
+BRITGAS   a+b1  numerical_error  numerical_error  7>7   A9:5 A3:0 A10:426962   INFEAS-EXIT+OFF        UNSUPPORTED
+DALLASM   b1    numerical_error  numerical_error  7>7   A9:0 A3:5 A10:46       INFEAS-EXIT            UNSUPPORTED
+DALLASM   a+b1  numerical_error  numerical_error  7>7   A9:0 A3:5 A10:46       INFEAS-EXIT            UNSUPPORTED
+SAWPATH   b1    interrupted      interrupted      ->-   A9:0 A3:11 A10:0       INFEAS-EXIT+OFF        TRUNCATED
+SAWPATH   a+b1  interrupted      interrupted      ->-   A9:0 A3:11 A10:0       INFEAS-EXIT+OFF        TRUNCATED
+STEENBRB  b1    numerical_error  numerical_error  7>7   A9:0 A3:5 A10:1137     -                      UNSUPPORTED
+STEENBRB  a+b1  numerical_error  numerical_error  7>7   A9:0 A3:5 A10:727      -                      UNSUPPORTED
+STEENBRC  b1    numerical_error  numerical_error  7>7   A9:0 A3:6 A10:1477     -                      UNSUPPORTED
+STEENBRC  a+b1  numerical_error  interrupted      7>-   A9:0 A3:1 A10:1406     INFEAS-EXIT            TRUNCATED
+STEENBRG  b1    numerical_error  numerical_error  7>7   A9:1 A3:6 A10:2839     -                      UNSUPPORTED
+STEENBRG  a+b1  numerical_error  interrupted      7>-   A9:1 A3:1 A10:1        INFEAS-EXIT            TRUNCATED
+YORKNET   a     infeasible       numerical_error  6>7   -                      -                      HARM
+YORKNET   a+b1  infeasible       numerical_error  6>7   A9:1 A3:0 A10:12847    INFEAS-EXIT+OFF        UNSUPPORTED
+READING6  a     optimal          optimal          0>0   -                      -                      none
+READING6  b1    optimal          numerical_error  0>7   A9:0 A3:0 A10:188      INFEAS-EXIT,NEUT-HARM  UNSUPPORTED (+HARM, section 8 step 4)
+READING6  a+b1  optimal          numerical_error  0>7   A9:0 A3:0 A10:188      INFEAS-EXIT,NEUT-HARM  UNSUPPORTED (+HARM, section 8 step 4)
+SMBANK    a     optimal          optimal          0>0   -                      -                      none
+SMBANK    b1    optimal          optimal          0>0   A9:0 A3:29 A10:0       -                      UNSUPPORTED
+SMBANK    a+b1  optimal          optimal          0>0   A9:0 A3:29 A10:0       -                      UNSUPPORTED
+ZAMB2-8   a     optimal          optimal          0>0   -                      -                      none
+ZAMB2-8   b1    optimal          numerical_error  0>7   A9:0 A3:0 A10:3617     INFEAS-EXIT,NEUT-HARM  UNSUPPORTED (+HARM, section 8 step 4)
+ZAMB2-8   a+b1  optimal          numerical_error  0>7   A9:0 A3:0 A10:3429     INFEAS-EXIT,NEUT-HARM  UNSUPPORTED (+HARM, section 8 step 4)
+
+THE TOTALS
+----------
+    CONVERTED      0
+    improved,      0
+    HARM           1
+    none           3
+    TRUNCATED      4
+    UNSUPPORTED    20
+
+SECTION 7.3 -- CONVERTED
+------------------------
+Condition 1, rank(arm) < rank(OFF), is FALSE on EVERY cell x arm: no leg
+improved its cell's terminal status over the OFF control.  Conditions 2
+and 3 are therefore never reached and NO CELL IS CONVERTED.  The
+conversion total is 0, on both arms and on their combination.
+
+Two absences are recorded rather than papered over, both inherited from
+M4b's own record of them:
+  * condition 2's `feas_tol` is to be read from the leg's own printed
+    `opt_feas_tol`.  THIS PROBE DOES NOT PRINT IT.  It is not substituted
+    from M3c's committed row and not typed in from the rule.  Condition 2
+    was not evaluated on any cell; condition 1 fails first on all of them.
+  * section 7.1's restoration record asks for `restoration_h_in/out` and
+    `restoration_f_in/out`; those four are absent from this probe's row.
+    `restoration_entries`, `restoration_sub_status` and
+    `restoration_iters` ARE printed and ARE in `tables/arm.md`.
+
+SECTION 7.4 -- improved, unverified
+-----------------------------------
+Requires condition 1, which fails everywhere.  NO CELL IS `improved,
+unverified`.  Recorded for completeness from M3c's committed
+`tables/census.md`: STEENBRC and STEENBRG carry `ABSENT (no consensus)`
+there, so neither could ever have been better than `improved,
+unverified` even had condition 1 held.
+
+SECTION 7.5 -- HARM
+-------------------
+First clause, rank(arm) > rank(OFF): TRUE on YORKNET under `a` and under
+`a+b1` (OFF `infeasible`, rank 6 -> arm `numerical_error`, rank 7), and
+TRUE on READING6 and ZAMB2-8 under `b1` and `a+b1` (OFF `optimal`, rank 0
+-> `numerical_error`, rank 7).
+Second clause (equal ranks, a cell OFF already solved, minors > 1.10x
+OFF's): N/A on the TEN, because OFF solves none of them -- stated per
+section 7.5's own instruction rather than printed as a vacuous 0.  On the
+three neutrality cells the bar is section 8 step 4's, which is a change of
+STATUS, and it is applied in its own column above.
+
+DEVIATION 3 -- MORE THAN HALF THE CELLS DISARM (A9)
+---------------------------------------------------
+    arm b1: 9 of 11 cells disarmed (a rank violation or a
+        mandatory-dependent refusal), namely ACOPP118, ACOPP57, ACOPR57, DALLASM, SAWPATH, STEENBRB, STEENBRC, STEENBRG, SMBANK.
+        THAT IS MORE THAN HALF -> **THE ARM'S RESULT IS
+        UNSUPPORTED AS A WHOLE** (A9, deviation 3).
+    arm a+b1: 11 of 13 cells disarmed (a rank violation or a
+        mandatory-dependent refusal), namely ACOPP118, ACOPP57, ACOPR57, BRITGAS, DALLASM, SAWPATH, STEENBRB, STEENBRC, STEENBRG, YORKNET, SMBANK.
+        THAT IS MORE THAN HALF -> **THE ARM'S RESULT IS
+        UNSUPPORTED AS A WHOLE** (A9, deviation 3).
+
+DEVIATION 4 -- INVALIDATING COUNTERS
+------------------------------------
+`indep_enumeration_mismatches` is 0 on all 24 armed-b1 legs and
+`scale_unavailable_passes` is 0 on all 28 legs.  Deviation 4 never fires:
+no cell's read-out is invalidated by either counter.
+
+DEVIATION 6 -- TRUNCATION
+-------------------------
+Four legs fired the probe's own deadline and are TRUNCATED, with no
+verdict filled in later: b1-SAWPATH and a+b1-SAWPATH (300 s declared for
+SAWPATH; the OFF control is `interrupted` too), and a+b1-STEENBRC and
+a+b1-STEENBRG (600 s), whose OFF controls are NOT censored.  On the two
+STEENBR cells the arm reached ONE major and roughly a fifth of OFF's
+minors inside the same budget -- see `tables/arm.md` section 1 for the
+minors and `tables/arm.md` section 10 for the QR cost that consumed it.  Wall-clock
+is INFORMATIONAL (CLAUDE.md section 7) and no timing claim is made.
+
+SECTION 4 -- ARM A's OWN CONDITION, AND R1
+------------------------------------------
+`scale_unavailable_passes` = 0 on every leg, so no arm-A read-out is
+invalidated.  R1: the claim `terminates optimal under a` was to be made
+on YORKNET in leg 2 or NOT AT ALL.  Leg 2 returned `numerical_error`
+where OFF returns `infeasible`.  **THE CLAIM IS NOT MADE.**
+
+SECTION 8 STEP 4 -- NEUTRALITY
+------------------------------
+    arm a     : READING6 `optimal` -> `optimal`; SMBANK `optimal` ->
+                `optimal`; ZAMB2-8 `optimal` -> `optimal`.  NO status
+                change.  (f, feasibility and stationarity are in
+                `tables/arm.md` section 9; the minors ratios are
+                0.9966 / 1.0000 / 1.1530.)
+    arm b1    : READING6 and ZAMB2-8 change status to `numerical_error`.
+                **HARM. That arm's verdicts are not quoted.**
+    arm a+b1  : the same two cells, the same change.  **HARM. That arm's
+                verdicts are not quoted.**
+    SMBANK is unchanged under all three arms -- and under b1 and a+b1 its
+    flat trace is BYTE-IDENTICAL to the OFF control's, because the arm
+    refused to arm on 29 of 29 solves (A3).  That is neutrality by the
+    arm never running.  It is reported as such and not as evidence that
+    an armed walk is neutral.
+
+WHAT THIS FILE DOES NOT DECIDE
+------------------------------
+Nothing here is a statement about a production form of either arm, about
+the exchange (unbuilt), or about wall-clock.  RULE.md section 9 lists
+what a GREEN result would not have licensed; this result is not green,
+and the list stands unchanged.

@@ -1,0 +1,31 @@
+START 2026-10-28T22:33:11-04:00 HEAD c15030379d5117a15b05127ce4ee67ec45547385 BEFORE 96f3158e dirty=0
+FOREGROUND_START R-offline-a3 2026-10-28T23:00:31-04:00
+PGREP_EMPTY R-offline-a3: no foreign cell binary under my lock
+CTEST_N_RC=0
+OFFLINE_CLASSIFY_RC_Release=0
+OFFLINE_CLASSIFY_RC_Debug=0
+ran head-walk rc=0
+ran head-ssn rc=0
+ran head-ipm rc=0
+CMP_PIN_walk=1
+CMP_PREV_walk=0
+CMP_PREV_NOTE_walk=0 (expected 0: the previous record is the RST gates at the BEFORE sources)
+CMP_PIN_ssn=1
+CMP_PREV_ssn=0
+CMP_PREV_NOTE_ssn=0 (expected 0: the previous record is the RST gates at the BEFORE sources)
+CMP_PIN_ipm=1
+CMP_PREV_ipm=0
+CMP_PREV_NOTE_ipm=0 (expected 0: the previous record is the RST gates at the BEFORE sources)
+=== M6 CLOSE HEAD-walk vs M7 A3 HEAD-walk (GATED 1e-5) === cells compared: 27  columns compared: 75  differences: 17  within gate: 71
+=== PREVIOUS (toolchain re-baseline record) HEAD-walk vs M7 A3 HEAD-walk (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+=== M6 CLOSE HEAD-ssn vs M7 A3 HEAD-ssn (GATED 1e-5) === cells compared: 27  columns compared: 75  differences: 13  within gate: 68
+=== PREVIOUS (toolchain re-baseline record) HEAD-ssn vs M7 A3 HEAD-ssn (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+=== M6 CLOSE HEAD-ipm vs M7 A3 HEAD-ipm (GATED 1e-5) === cells compared: 27  columns compared: 75  differences: 13  within gate: 72
+=== PREVIOUS (toolchain re-baseline record) HEAD-ipm vs M7 A3 HEAD-ipm (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+E1_ARM_RC=0
+ADDED_COLUMNS ['ipqp_ladder_zero_trial_skips'] DECLARED ['ipqp_ladder_zero_trial_skips']
+E1_OFF cells=29 columns_compared=68 differences=0 added_columns=1 added_nonzero_rows=0
+E1_COMPARE_RC=0
+FOREGROUND_END R-offline-a3 2026-10-28T23:10:24-04:00 rc=0
+LEG_RC R-offline-a3 rc=0
+END 2026-10-28T23:10:24-04:00 tree=a3-gates c1503037 dirty=0

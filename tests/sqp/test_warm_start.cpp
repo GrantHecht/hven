@@ -2118,7 +2118,14 @@ TEST(WarmStart, BudgetModeOffMatchesMaxIterExactly) {
     // session.
     EXPECT_NEAR(sol.f, 0.0024386526444139557, 1e-12);
 #else
-    EXPECT_NEAR(sol.f, 0.0024386526357234916, 1e-12);
+    // M7 W2 E4 fix round 1 (declared mover): 0.0024386526357234916 ->
+    // 0.0024386526444118797 on MKL. HS26 is rank-deficient at its solution, and the
+    // UNREGULARIZED POLISH (eqp_solve.h's polish_eqp_core) takes the primal delta
+    // out of the truncated majors' answers; the structural assertions this test
+    // exists for -- kMaxIter, 3 majors, history size 4, sol.f == history.back().f --
+    // are unchanged, and the new MKL value agrees with the Accelerate one above to
+    // 2.1e-12, which is CLOSER than the 8.69e-12 the comment records for the pair.
+    EXPECT_NEAR(sol.f, 0.0024386526444118797, 1e-12);
 #endif
     Vec x_star(3);
     x_star << 0.88391769091059114, 0.88391769091059103, 1.1061399129348335;

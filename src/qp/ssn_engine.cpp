@@ -38,6 +38,7 @@
 // re-derivation.
 
 #include <algorithm>
+#include <cmath>
 #include <limits>
 
 #include <Eigen/SparseCore>
@@ -1074,8 +1075,17 @@ bool SsnEngine::bound_hint_active(const std::vector<BoundState> &hint,
 
 Vec SsnEngine::split_bound_multipliers(const QpProblem &qp, const Vec &z) const {
     const Index n = qp.n();
+    // THE ROUND-OFF BAND (YKN-S1): a price at round-off level against the seed's own
+    // scale on an absent side is a zero that arithmetic did not land exactly (a
+    // recombined or re-measured z), not a caller error. It has no row to go to, and
+    // the split below never reads it; only a price above the band throws.
+    const double zmax = n > 0 ? z.cwiseAbs().maxCoeff() : 0.0;
+    const double band = detail::kSsnAbsentPriceRoundoff * std::max(1.0, zmax);
     for (Index j = 0; j < n; ++j) {
         const double zj = z(j);
+        if (std::abs(zj) <= band) {
+            continue;
+        }
         if (zj > 0.0 && !(qp.lower(j) > -detail::kSsnInfBound)) {
             throw std::invalid_argument(fmt::format(
                 "SsnEngine::solve: start.z({}) = {} prices variable {}'s LOWER bound, but "

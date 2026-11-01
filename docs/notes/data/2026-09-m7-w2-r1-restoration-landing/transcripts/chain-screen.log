@@ -1,0 +1,9 @@
+RUN P1_STEENBRB rc=0 status=infeasible iterations=1 objective=49333084707.902573 factorizations=4694 resto=9 wall_s=21.778979767
+RUN P2_STEENBRB rc=0 status=infeasible iterations=1 objective=166777.9113945202 factorizations=4520 resto=3 wall_s=8.846040037
+RUN P3_STEENBRB rc=0 status=infeasible iterations=1 objective=2858.7861353626768 factorizations=4292 resto=1 wall_s=5.973786772
+RUN T1_STEENBRB rc=0 status=max_iter iterations=1 objective=4916261354.9796963 factorizations=35392 resto=99 wall_s=418.270488906
+RUN T2_STEENBRB rc=0 status=max_iter iterations=1 objective=861747053342.89905 factorizations=34533 resto=99 wall_s=434.591080829
+RUN C1_STEENBRB rc=0 status=numerical_error iterations=1 objective=2858.7861353626763 factorizations=30678 resto=4 wall_s=35.483634244
+CHAIN_DONE /home/ghecht/Projects/hven/.scratch/m7w2r1/tools/list1.txt 2026-09-25T12:51:16-04:00
+
+[exited with code 0]

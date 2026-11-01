@@ -1,0 +1,10 @@
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o  sections=[.eh_frame,.gcc_except_table,.gcc_except_table._ZN4hven7solvers6detail13EqualityBasis4ImplC2Ev,.gcc_except_table._ZNK4hv
+DEBUG-ONLY       CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o  sections=[SECTION-COUNT(10080->10108)]
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o  sections=[.eh_frame,.rela.text._ZN4hven7solvers22SqpEqualityBasisReportaSEOS1_,.rela.text._ZN4hven7solvers22SqpEqualityBasisRepor
+SECTIONS_Debug_OBJECTS=44
+SECTIONS_Debug_BYTE_IDENTICAL=40
+SECTIONS_Debug_DEBUG_ONLY=1
+SECTIONS_Debug_NON_DEBUG_MOVERS=3
+SECTIONS_Debug_REFUSED=0
+SECTIONS_Debug_RC=1

@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# usage: cell.sh <tag> <cell> [ENV=VAL ...]  -- one corpus cell under the box lock
+set -o pipefail
+tag=$1; cell=$2; shift 2
+D=/home/ghecht/Projects/hven/.scratch/m7w2e2d2; O=$D/runs; mkdir -p $O
+B=${BIN:-$D/tree/rel/bench/hven_sqp_corpus}
+flock /tmp/box-build.lock bash -c '
+  set -o pipefail
+  echo "FOREGROUND_START cell-'"$tag"' $(date -Is)"
+  f=$(pgrep -x hven_bench_cell | tr "\n" " "); [ -z "$f" ] && echo PGREP_EMPTY || echo "NOTE foreign: $f"
+  '"$*"' MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 timeout '"${TMO:-1200}"' taskset -c 2 '"$B"' --engine walk --cells '"$cell"' --csv '"$O/$tag-$cell"'.csv 2> '"$O/$tag-$cell"'.err > '"$O/$tag-$cell"'.log
+  echo "RC=$?"
+  echo "FOREGROUND_END cell-'"$tag"' $(date -Is)"
+' 2>&1 | tee -a $O/lock.log
+tail -1 $O/$tag-$cell.csv | cut -d, -f1-12

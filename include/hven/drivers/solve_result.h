@@ -211,7 +211,79 @@ enum class CallbackAction {
     kStop = 1,
 };
 
+/// @brief What an attached iteration callback asks its engine to PREPARE.
+///
+/// A BIT MASK, declared at attachment (M7 W0 T2). The four vector views and the
+/// four declared diagnostics cost O(n) of engine work PER EVENT -- an expansion
+/// out of the engine's own space, a units map, and one pass over every declared
+/// coordinate and constraint row -- prepared whether or not the consumer reads
+/// them. So the CONSUMER DECLARES what it reads, and an engine prepares nothing
+/// else.
+///
+/// WHAT IT REMOVES, AND WHAT IT DOES NOT (M7 W0 T2,
+/// `docs/notes/data/2026-09-m7-w0-t2-callback-payload/`; the cost it was built
+/// against is W6 T6's, `docs/notes/data/2026-09-m6-w6-attached-cost/`). On the
+/// top-level interior-point corpus leg, a cheap callback at @ref kAll costs
+/// +1.376 %/+1.401 % instructions and the same callback at @ref kScalars costs
+/// +0.588 %/+0.618 %.
+///
+///   REMOVED -- 57 % of the attached cost, and it is the vector/diagnostic
+///   work this mask names: measured to scale with the problem (the saving
+///   rises 10.2x for a 13.5x rise in problem width), which is the shape that
+///   work has.
+///
+///   NOT REMOVED -- a residual of about +0.6 %, WHICH IS NOT UNDERSTOOD. It
+///   does not scale with the problem, so no wider mask reaches it; it is not
+///   the attach or the per-event dispatch (an attached trace sink on the same
+///   leg costs +0.04 %); and the O(1) work left on the kScalars path cannot
+///   account for its size. It is REGISTERED with its number, not explained.
+///   That reading's section 5 names one UNPROVED candidate and says plainly
+///   what the leg could not separate.
+///
+/// On the SQP engine both arms are FLAT, as they were before the mask existed.
+///
+/// The ONE-ARGUMENT set_iteration_callback() means @ref kAll on both engines,
+/// so nothing a caller wrote before this type existed changes.
+enum class IterationPayload : unsigned {
+    /// The fields that cost only a copy, and that EVERY mask delivers:
+    /// `iteration`, `phase`/`depth`, `f`, `step_norm`, `radius`/`mu` and
+    /// `elapsed_seconds`. As a mask on its own it asks for nothing else.
+    kScalars = 0,
+    /// The four vector views -- `x`, `lambda_e`, `lambda_i`, `z`. Without this
+    /// bit all four arrive EMPTY (size 0).
+    kVectors = 1,
+    /// The four declared diagnostics -- `stationarity`, `feasibility_e`,
+    /// `feasibility_i`, `complementarity`. Without this bit all four arrive
+    /// NaN, which under this header's own rule reads as NOT MEASURED; under a
+    /// mask that omits them it means NOT REQUESTED, which is the same absence.
+    kDiagnostics = 2,
+    /// Everything: the shape every consumer got before the mask existed.
+    kAll = kVectors | kDiagnostics,
+};
+
+/// @brief The union of two payload selections.
+constexpr IterationPayload operator|(IterationPayload a, IterationPayload b) noexcept {
+    return static_cast<IterationPayload>(static_cast<unsigned>(a) | static_cast<unsigned>(b));
+}
+
+/// @brief True when @p mask asks for every bit of @p part.
+///
+/// `payload_requests(m, IterationPayload::kScalars)` is true for every mask:
+/// the scalars are not a bit and are always delivered.
+constexpr bool payload_requests(IterationPayload mask, IterationPayload part) noexcept {
+    return (static_cast<unsigned>(mask) & static_cast<unsigned>(part)) ==
+           static_cast<unsigned>(part);
+}
+
 /// @brief One iteration, as both engines report it to a caller's callback.
+///
+/// WHAT ARRIVES DEPENDS ON THE PAYLOAD MASK the callback was attached with
+/// (@ref IterationPayload, M7 W0 T2). Under the default @ref
+/// IterationPayload::kAll -- which is what the one-argument
+/// set_iteration_callback() installs -- every field below is prepared, as it
+/// always was. Under a narrower mask the four vector views arrive EMPTY and/or
+/// the four diagnostics arrive NaN, and the engine does not do the work that
+/// would have filled them. The scalars are delivered under every mask.
 ///
 /// AT `depth` 0 -- which is every interior-point event and every top-level SQP
 /// major -- EVERY field is in DECLARED space and CALLER units, exactly as
@@ -252,7 +324,9 @@ struct IterationEvent {
     /// A NON-ZERO DEPTH CHANGES THE SPACE THE EVENT IS IN. The restoration
     /// sub-solve runs the FEASIBILITY problem -- a different model, in its own
     /// variables, with its own objective -- and the forwarder that carries its
-    /// rows out stamps this field and maps nothing else. So a caller that
+    /// rows out stamps this field and maps nothing else, save that on an SQP
+    /// solve whose column scaling fired its first n entries of `x` and `z` (the
+    /// caller's variables) are in caller units, as at depth 0. So a caller that
     /// compares an event against the caller's own model, or against
     /// SqpResult's fields, must filter on `depth == 0`; the design's rule is
     /// that depth-1 rows are the sub-solve's own.

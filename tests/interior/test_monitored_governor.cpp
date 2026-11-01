@@ -203,7 +203,7 @@ TEST(MonGovHandoff, DecideSwitchesToMonotoneOnMonitorFailure) {
     const auto d = g.decide(current, /*mu_in=*/0.01, /*avgcomp=*/1e-3, /*bar_tol=*/1e-6,
                             /*kkt_tol=*/1e-6, /*min_mu=*/1e-12, /*max_mu=*/100.0);
     EXPECT_TRUE(d.monotone);
-    EXPECT_TRUE(d.mu_event); // handoff begins a new barrier subproblem.
+    EXPECT_TRUE(d.mu_event);      // handoff begins a new barrier subproblem.
     EXPECT_DOUBLE_EQ(d.mu, 8e-4); // 0.8 * 1e-3.
     EXPECT_TRUE(g.in_monotone_mode());
     EXPECT_DOUBLE_EQ(g.monotone_mu(), 8e-4);
@@ -369,10 +369,10 @@ TEST(MonGovDelegation, FreeModeForwardsToDelegateVerbatim) {
                                        /*avgcomp=*/0.55, /*mincomp=*/0.11, XSL, RHS, DXSL, Temp,
                                        mechanism, ctx, barr_obj, current, mu_event);
     EXPECT_EQ(fake->calls, 1);
-    EXPECT_DOUBLE_EQ(fake->seen_mu_in, 0.007);   // mu_in forwarded verbatim.
-    EXPECT_DOUBLE_EQ(fake->seen_avgcomp, 0.55);  // avgcomp forwarded verbatim.
-    EXPECT_DOUBLE_EQ(fake->seen_mincomp, 0.11);  // mincomp forwarded verbatim.
-    EXPECT_DOUBLE_EQ(mu, fake->return_mu);       // delegate's mu returned.
+    EXPECT_DOUBLE_EQ(fake->seen_mu_in, 0.007);      // mu_in forwarded verbatim.
+    EXPECT_DOUBLE_EQ(fake->seen_avgcomp, 0.55);     // avgcomp forwarded verbatim.
+    EXPECT_DOUBLE_EQ(fake->seen_mincomp, 0.11);     // mincomp forwarded verbatim.
+    EXPECT_DOUBLE_EQ(mu, fake->return_mu);          // delegate's mu returned.
     EXPECT_DOUBLE_EQ(barr_obj, fake->set_barr_obj); // delegate's barr_obj propagated.
     EXPECT_FALSE(mu_event); // delegate's inner event must NOT leak past the free path.
     EXPECT_FALSE(g.in_monotone_mode());

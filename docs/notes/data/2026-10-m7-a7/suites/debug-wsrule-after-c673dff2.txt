@@ -1,0 +1,6 @@
+[       OK ] WsAlgebraRule.TheTwinRecordsIntoTheLedgerSequence (2 ms)
+[----------] 9 tests from WsAlgebraRule (628 ms total)
+
+[----------] Global test environment tear-down
+[==========] 9 tests from 1 test suite ran. (628 ms total)
+[  PASSED  ] 9 tests.

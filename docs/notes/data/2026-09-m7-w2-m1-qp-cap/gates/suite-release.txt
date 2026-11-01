@@ -1,0 +1,40 @@
+          Start 1085: DeclaredDiagnostics.ClosesOnAKktPointOfHs071
+2642/2657 Test #1077: PrintTables.PredictorOutcomeFallbackBelongsToNoDeclaredValue ...................................................   Passed    0.01 sec
+2643/2657 Test #1058: Options.SqpCommonDefaultsAreTheStructsOwn ......................................................................   Passed    0.00 sec
+          Start 1083: SolveStatus.IpmPhaseResolutionSplitsTheCapExitByStopReason
+          Start 1086: DeclaredDiagnostics.TwoSidedBoundUsesCanonicalSplit
+2644/2657 Test #1047: FanOut.ForwardsEveryEventToBothHalvesFirstThenSecond ...........................................................   Passed    0.01 sec
+2645/2657 Test #1085: DeclaredDiagnostics.ClosesOnAKktPointOfHs071 ...................................................................   Passed    0.00 sec
+          Start 1079: VariableBoundCensusTable.ClassifiesEveryKindOfBoundedVariable
+          Start 1091: DeclaredDiagnostics.ANonFiniteEntryReportsUnmeasuredRatherThanANumber
+2646/2657 Test #1083: SolveStatus.IpmPhaseResolutionSplitsTheCapExitByStopReason .....................................................   Passed    0.01 sec
+2647/2657 Test #1086: DeclaredDiagnostics.TwoSidedBoundUsesCanonicalSplit ............................................................   Passed    0.00 sec
+          Start 1082: SolveStatus.SeverityIsTotalAndOrderedAsDocumented
+          Start 1080: VariableBoundCensusTable.AnEmptySideMeansUnboundedThereForEveryVariable
+2648/2657 Test #1079: VariableBoundCensusTable.ClassifiesEveryKindOfBoundedVariable ..................................................   Passed    0.01 sec
+2649/2657 Test #1091: DeclaredDiagnostics.ANonFiniteEntryReportsUnmeasuredRatherThanANumber ..........................................   Passed    0.00 sec
+          Start 1087: DeclaredDiagnostics.ExcludedCoordinateIsNotMeasured
+          Start  401: KktFactorizationFaultTest.AMalformedAssemblyIsACallerErrorAndStillThrows
+2650/2657 Test #1082: SolveStatus.SeverityIsTotalAndOrderedAsDocumented ..............................................................   Passed    0.01 sec
+2651/2657 Test #1080: VariableBoundCensusTable.AnEmptySideMeansUnboundedThereForEveryVariable ........................................   Passed    0.00 sec
+          Start  420: FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas
+          Start 1629: EqpRefinementAb.FootprintRuleProbe
+2652/2657 Test #1629: EqpRefinementAb.FootprintRuleProbe .............................................................................***Not Run (Disabled)   0.00 sec
+          Start 1630: EqpRefinementAb.FullBattery
+2653/2657 Test #1630: EqpRefinementAb.FullBattery ....................................................................................***Not Run (Disabled)   0.00 sec
+2654/2657 Test #1087: DeclaredDiagnostics.ExcludedCoordinateIsNotMeasured ............................................................   Passed    0.00 sec
+2655/2657 Test  #401: KktFactorizationFaultTest.AMalformedAssemblyIsACallerErrorAndStillThrows .......................................   Passed    0.00 sec
+          Start 2101: QpCapRetry.EachRetryAnnouncesItselfOnTheTraceAtItsOwnSite
+2656/2657 Test  #420: FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas .........................................***Skipped   0.00 sec
+2657/2657 Test #2101: QpCapRetry.EachRetryAnnouncesItselfOnTheTraceAtItsOwnSite ......................................................   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 2655
+
+Total Test time (real) =  80.82 sec
+
+The following tests did not run:
+	420 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1629 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1630 - EqpRefinementAb.FullBattery (Disabled)
+FOREGROUND_END stage1 2026-09-17T19:10:04-04:00 rc=0
+WRAPPER_RC stage1 rc=0

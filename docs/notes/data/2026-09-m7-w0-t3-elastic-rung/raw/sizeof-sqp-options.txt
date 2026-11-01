@@ -1,0 +1,46 @@
+# M7 W0 T3 fix round 2 -- sizeof(SqpOptions) SHOWN, not asserted.
+#
+# One 15-line TU (probe.cpp below) compiled twice: once against 60256f50's include/ tree
+# and once against 3d3145a8's, both extracted with `git archive <sha> include`, both under
+# the library's own flags (taken verbatim from build/compile_commands.json for
+# src/drivers/sqp_options.cpp, including -DEIGEN_MAX_ALIGN_BYTES=32, which a consumer that
+# forgets it would get wrong). Nothing links hven: the question is a layout question.
+#
+# compiler: clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+# flags:    -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO -DEIGEN_MAX_ALIGN_BYTES=32 -DFMT_HEADER_ONLY -DFMT_USE_LOCALE=0 -DHVEN_DEFAULT_ARENA_SIZE=256 -DHVEN_DEFAULT_QP_THREADS=8 -DHVEN_VERSION_STRING="0.1.0" -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 -march=native -mtune=native -ffast-math -fno-finite-math-only
+
+== 60256f50 (elastic_rung_engine present in sqp_solver_types.h: 0) ==
+sizeof(hven::solvers::SqpOptions)  = 376
+alignof(hven::solvers::SqpOptions) = 8
+sizeof(hven::solvers::QpOptions)   = 72
+sizeof(hven::solvers::IpqpOptions) = 152
+
+== 3d3145a8 (elastic_rung_engine present in sqp_solver_types.h: 1) ==
+sizeof(hven::solvers::SqpOptions)  = 384
+alignof(hven::solvers::SqpOptions) = 8
+sizeof(hven::solvers::QpOptions)   = 72
+sizeof(hven::solvers::IpqpOptions) = 152
+
+# THE READING: SqpOptions grows by 8 bytes, 376 -> 384, across the commit that adds the
+# one enum field; QpOptions and IpqpOptions are unchanged, which is why only the TUs that
+# embed an SqpOptions move in the P-SYM comparison. The T5 drift pin
+# (tests/drivers/test_options_dump.cpp:112) carries the same 384.
+
+# ---- probe.cpp, verbatim ----
+// M7 W0 T3 fix round 2 -- the sizeof(SqpOptions) probe. Header-only: it compiles
+// against ONE COMMIT'S include/ tree at a time and prints what that tree's
+// SqpOptions measures under the library's own flags.
+#include <cstddef>
+#include <cstdio>
+
+#include <hven/drivers/sqp_solver_types.h>
+
+int main() {
+    std::printf("sizeof(hven::solvers::SqpOptions)  = %zu\n",
+                sizeof(hven::solvers::SqpOptions));
+    std::printf("alignof(hven::solvers::SqpOptions) = %zu\n",
+                alignof(hven::solvers::SqpOptions));
+    std::printf("sizeof(hven::solvers::QpOptions)   = %zu\n", sizeof(hven::solvers::QpOptions));
+    std::printf("sizeof(hven::solvers::IpqpOptions) = %zu\n", sizeof(hven::solvers::IpqpOptions));
+    return 0;
+}

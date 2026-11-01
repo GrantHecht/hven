@@ -1,0 +1,31 @@
+PGREP_EMPTY phase-final 2026-09-26T13:18:09-04:00
+FOREGROUND_START phase-final 2026-09-26T13:18:09-04:00
+=== STEP build-debug 2026-09-26T13:18:09-04:00
+=== STEP build-release 2026-09-26T13:18:20-04:00
+BUILDS_OK
+=== STEP ctest-debug 2026-09-26T13:18:35-04:00
+ctest debug rc=0
+
+100% tests passed, 0 tests failed out of 2861
+
+Total Test time (real) = 862.55 sec
+
+The following tests did not run:
+	505 - QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder (Skipped)
+	518 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1733 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1734 - EqpRefinementAb.FullBattery (Disabled)
+=== STEP ctest-release 2026-09-26T13:32:58-04:00
+ctest release rc=0
+2864/2864 Test  #505: QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder .................................................   Passed   11.57 sec
+
+100% tests passed, 0 tests failed out of 2862
+
+Total Test time (real) = 102.12 sec
+
+The following tests did not run:
+	518 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1734 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1735 - EqpRefinementAb.FullBattery (Disabled)
+PHASE_FINAL_DONE
+FOREGROUND_END phase-final 2026-09-26T13:34:40-04:00 rc=0

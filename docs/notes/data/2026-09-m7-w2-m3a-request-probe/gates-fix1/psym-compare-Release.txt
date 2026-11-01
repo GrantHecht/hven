@@ -1,0 +1,520 @@
+P-SYM tool sha256 (runner):   2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM tool sha256 (captures): 2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM maps: object-map=none symbol-map=none exceptions=none
+
+SYMBOLS     CMakeFiles/hven.dir/src/core/enum_names.cpp.o: COVERAGE FINDINGS
+              ONLY-AFTER    hven::solvers::to_restoration_sub_status(hven::solvers::SolveStatus)
+              ONLY-AFTER    hven::solvers::to_string(hven::solvers::RestorationSubStatus)
+              LOCAL-FAMILY  .L.str: 57 before, 60 after
+              LOCAL-FAMILY  GCC_except_table: 23 before, 25 after
+DIFFERS     CMakeFiles/hven.dir/src/core/enum_names.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 495 alignment-pad lines vs 497 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 20685 lines vs 20799 -- instructions were added or removed
+PER-SYMBOL  CMakeFiles/hven.dir/src/core/enum_names.cpp.o: PERSYM 112 identical, 0 noise-only, 0 differing, 0 only-before, 2 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 813 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              ONLY-AFTER    hven::solvers::to_restoration_sub_status(hven::solvers::SolveStatus)
+              ONLY-AFTER    hven::solvers::to_string(hven::solvers::RestorationSubStatus)
+DIFFERS     CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 1641 alignment-pad lines vs 1640 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 70770 lines vs 70773 -- instructions were added or removed
+PER-SYMBOL  CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o: PERSYM 307 identical, 1 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 2 rank-tagged, 0 section moves, 4145 relocation records compared (0 through the symbol map), 2 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SqpSolver::enter_restoration(hven::solvers::SqpSolver::SolveState&, hven::solvers::SqpSolver::MajorState&, hven::solvers::AssemblyEvalSeam&, hven::solvers::NlpModelAssembly&, long, hven::solvers::SqpSolver::RestorationCandidate)
+                            PAD-ROUTE DECLINED: 75 alignment-pad lines vs 75 (784 -> 774 bytes); start 0x1f8a0 (mod 32 = 0) -> 0x1f8a0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 2782 lines vs 2788 -- instructions were added or removed
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::jacobian_values_finite(hven::solvers::NlpEval const&)
+                            COUNTS 641 insns; CHANGED 102; UNCLASSIFIED 0; DELTAS (pad-merged)
+            PAD-MERGED 58 alignment-pad lines vs 57 (599 -> 583 bytes, -16); 641 non-pad lines, 539 identical, 102 control-transfer targets shifted -16; 102 control-transfer target(s) resolved to the SAME instruction; start 0x22fc0 (mod 32 = 0) -> 0x22fd0 (mod 32 = 16)
+NOISE-ONLY  CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o
+            COUNTS 27870 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+RELOCATIONS CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o (the instruction stream is within the accepted noise class,
+            but the relocation targets are not literally equal; the PER-SYMBOL
+            line below is the verdict)
+PER-SYMBOL  CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o: PERSYM 134 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 1777 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::(anonymous namespace)::counters_object[abi:cxx11](hven::solvers::SqpCounters const&)
+                              UNCLASSIFIED  - RELOC R_X86_64_PLT32 hven::solvers::to_string(hven::solvers::SolveStatus) -0x4
+                                            + RELOC R_X86_64_PLT32 hven::solvers::to_string(hven::solvers::RestorationSubStatus) -0x4
+                            COUNTS 1999 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+SYMBOLS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_cap_levers.cpp.o: COVERAGE FINDINGS
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::RestorationSubStatus, hven::solvers::RestorationSubStatus>(char const*, char const*, hven::solvers::RestorationSubStatus const&, hven::solvers::RestorationSubStatus const&)
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::PrintToString<hven::solvers::RestorationSubStatus>(hven::solvers::RestorationSubStatus const&)
+              LOCAL-FAMILY  GCC_except_table: 61 before, 63 after
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_cap_levers.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 26829 lines vs 26964 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_cap_levers.cpp.o: PERSYM 126 identical, 0 noise-only, 3 differing, 0 only-before, 2 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 5010 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::QpCapRetry_OffNeverRetriesAndIsTodaysSolveExactly_Test::TestBody()
+                              UNCLASSIFIED  - RELOC R_X86_64_PLT32 testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::SolveStatus, hven::solvers::SolveStatus>(char const*, char const*, hven::solvers::SolveStatus const&, hven::solvers::SolveStatus const&) -0x4
+                                            + RELOC R_X86_64_PLT32 testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::RestorationSubStatus, hven::solvers::RestorationSubStatus>(char const*, char const*, hven::solvers::RestorationSubStatus const&, hven::solvers::RestorationSubStatus const&) -0x4
+                            COUNTS 3649 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       hven::solvers::QpCapRetry_ItChangesNothingOnASolveThatNeverHitsTheCap_Test::TestBody()
+                              UNCLASSIFIED  - RELOC R_X86_64_PLT32 testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::SolveStatus, hven::solvers::SolveStatus>(char const*, char const*, hven::solvers::SolveStatus const&, hven::solvers::SolveStatus const&) -0x4
+                                            + RELOC R_X86_64_PLT32 testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::RestorationSubStatus, hven::solvers::RestorationSubStatus>(char const*, char const*, hven::solvers::RestorationSubStatus const&, hven::solvers::RestorationSubStatus const&) -0x4
+                            COUNTS 3779 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       hven::solvers::QpCapBudget_ARaisedBudgetChangesNothingOnASolveThatNeverFails_Test::TestBody()
+                              UNCLASSIFIED  - RELOC R_X86_64_PLT32 testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::SolveStatus, hven::solvers::SolveStatus>(char const*, char const*, hven::solvers::SolveStatus const&, hven::solvers::SolveStatus const&) -0x4
+                                            + RELOC R_X86_64_PLT32 testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::RestorationSubStatus, hven::solvers::RestorationSubStatus>(char const*, char const*, hven::solvers::RestorationSubStatus const&, hven::solvers::RestorationSubStatus const&) -0x4
+                            COUNTS 3778 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::RestorationSubStatus, hven::solvers::RestorationSubStatus>(char const*, char const*, hven::solvers::RestorationSubStatus const&, hven::solvers::RestorationSubStatus const&)
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::PrintToString<hven::solvers::RestorationSubStatus>(hven::solvers::RestorationSubStatus const&)
+SYMBOLS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o: COVERAGE FINDINGS
+              ONLY-BEFORE   testing::AssertionResult testing::internal::CmpHelperOpFailure<hven::solvers::SolveStatus, hven::solvers::SolveStatus>(char const*, char const*, hven::solvers::SolveStatus const&, hven::solvers::SolveStatus const&, char const*)
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::PrintToString<hven::solvers::RestorationSubStatus>(hven::solvers::RestorationSubStatus const&)
+              ONLY-AFTER    vtable for testing::internal::TestFactoryImpl<SqpDriverRestorationExcursion_TheSubStatusDiscriminatesAtOneParentStatus_Test>
+              ONLY-AFTER    SqpDriverRestorationExcursion_TheSubStatusDiscriminatesAtOneParentStatus_Test::~SqpDriverRestorationExcursion_TheSubStatusDiscriminatesAtOneParentStatus_Test()
+              ONLY-AFTER    testing::internal::TestFactoryImpl<SqpDriverRestorationExcursion_TheSubStatusDiscriminatesAtOneParentStatus_Test>::CreateTest()
+              ONLY-AFTER    SqpDriverRestorationExcursion_TheSubStatusDiscriminatesAtOneParentStatus_Test::TestBody()
+              ONLY-AFTER    vtable for SqpDriverRestorationExcursion_TheSubStatusDiscriminatesAtOneParentStatus_Test
+              ONLY-AFTER    typeinfo for SqpDriverRestorationExcursion_TheSubStatusDiscriminatesAtOneParentStatus_Test
+              ONLY-AFTER    typeinfo name for SqpDriverRestorationExcursion_TheSubStatusDiscriminatesAtOneParentStatus_Test
+              ONLY-AFTER    testing::internal::TestFactoryImpl<SqpDriverRestorationExcursion_TheSubStatusDiscriminatesAtOneParentStatus_Test>::~TestFactoryImpl()
+              ONLY-AFTER    typeinfo for testing::internal::TestFactoryImpl<SqpDriverRestorationExcursion_TheSubStatusDiscriminatesAtOneParentStatus_Test>
+              ONLY-AFTER    typeinfo name for testing::internal::TestFactoryImpl<SqpDriverRestorationExcursion_TheSubStatusDiscriminatesAtOneParentStatus_Test>
+              ONLY-AFTER    SqpDriverRestorationExcursion_TheSubStatusDiscriminatesAtOneParentStatus_Test::test_info_
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperOpFailure<hven::solvers::RestorationSubStatus, hven::solvers::RestorationSubStatus>(char const*, char const*, hven::solvers::RestorationSubStatus const&, hven::solvers::RestorationSubStatus const&, char const*)
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::RestorationSubStatus, hven::solvers::RestorationSubStatus>(char const*, char const*, hven::solvers::RestorationSubStatus const&, hven::solvers::RestorationSubStatus const&)
+              LOCAL-FAMILY  .LCPI: 921 before, 931 after
+              LOCAL-FAMILY  .L.str: 572 before, 596 after
+              LOCAL-FAMILY  GCC_except_table: 483 before, 487 after
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 1681 alignment-pad lines vs 1683 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 110135 lines vs 111872 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o: PERSYM 910 identical, 8 noise-only, 12 differing, 1 only-before, 7 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 2 rank-tagged, 0 section moves, 15070 relocation records compared (0 through the symbol map), 2 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       _GLOBAL__sub_I_test_sqp_restoration.cpp
+                            STRUCTURAL: normalized listing is 4139 lines vs 4234 -- instructions were added or removed
+              DIFFERS       SqpDriverRestorationExcursion_TheSubStatusTellsACutOffSubSolveFromAConvergedOne_Test::TestBody()
+                              UNCLASSIFIED  - 	je     SELF+0x6c2 ;LEN=6
+                                            + 	je     SELF+0x6ac ;LEN=6
+                              UNCLASSIFIED  - 	jmp    SELF+0x6c9 ;LEN=5
+                                            + 	jmp    SELF+0x6b3 ;LEN=5
+                              UNCLASSIFIED  - 	jmp    SELF+0x6f6 ;LEN=5
+                                            + 	jmp    SELF+0x6e0 ;LEN=5
+                              UNCLASSIFIED  - 	je     SELF+0x685 ;LEN=2
+                                            + 	je     SELF+0x66f ;LEN=2
+                              UNCLASSIFIED  - 	cmpl   $0x0,0x11b8(%rsp) ;LEN=8
+                                            + 	cmpl   $0x1,0x11b8(%rsp) ;LEN=8
+                              ... and 68 more unclassified differences
+                            COUNTS 931 insns; CHANGED 86; UNCLASSIFIED 73; DELTAS +1(x2) +4(x11)
+              DIFFERS       SqpDriverRestoration_RestorationRecoversAndResumes_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x2417f(%rip),%rdx ;LEN=7
+                                            + 	lea    0x25fff(%rip),%rdx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x24118(%rip),%rcx ;LEN=7
+                                            + 	lea    0x25f98(%rip),%rcx ;LEN=7
+                            COUNTS 2218 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              NOISE-ONLY    SqpDriverRestorationProximity_TheZeroWeightCertifiesOnAScaledSolve_Test::TestBody()
+                            COUNTS 620 insns; CHANGED 9; UNCLASSIFIED 0; DELTAS +81(x9)
+              DIFFERS       SqpDriverRestoration_SecondRequestIsCappedAndReported_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x1f861(%rip),%rdx ;LEN=7
+                                            + 	lea    0x216e1(%rip),%rdx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x1f7fa(%rip),%rcx ;LEN=7
+                                            + 	lea    0x2167a(%rip),%rcx ;LEN=7
+                            COUNTS 850 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              NOISE-ONLY    SqpDriverRestorationProximity_TheRefusalsNameTheFieldTheValueAndTheRemedy_Test::TestBody()
+                            COUNTS 530 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +81(x2)
+              DIFFERS       SqpDriverRestoration_ZeroStepIsAcceptedAsAKktPoint_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x1e7b4(%rip),%rdx ;LEN=7
+                                            + 	lea    0x20634(%rip),%rdx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x1e58e(%rip),%rcx ;LEN=7
+                                            + 	lea    0x2040e(%rip),%rcx ;LEN=7
+                            COUNTS 776 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       SqpDriverRestorationExcursion_TheTerminalArmRecordsThePointItReports_Test::TestBody()
+                              UNCLASSIFIED  - 	cmpl   $0x0,0x680(%rsp) ;LEN=8
+                                            + 	cmpl   $0x1,0x680(%rsp) ;LEN=8
+                              UNCLASSIFIED  - 	je     SELF+0x9f5 ;LEN=2
+                                            + 	jne    SELF+0x9da ;LEN=2
+                              UNCLASSIFIED  - 	lea    0x680(%rsp),%rcx ;LEN=8
+                                            + 	lea    0x20(%rsp),%rdi ;LEN=5
+                              UNCLASSIFIED  - 	lea    0x0(%rip),%rsi ;LEN=7
+                                            + 	call   SELF+0x9d8 ;LEN=5
+                              UNCLASSIFIED  - RELOC R_X86_64_PC32 .L.str +LOCAL
+                                            + RELOC R_X86_64_PLT32 testing::AssertionSuccess() -0x4
+                              ... and 9 more unclassified differences
+                            COUNTS 674 insns; CHANGED 25; UNCLASSIFIED 14; DELTAS +1(x1) +3(x10)
+              NOISE-ONLY    SqpDriverRestorationProximity_TheProductionCentreIsTheRequestingIterateNotTheSeed_Test::TestBody()
+                            COUNTS 1960 insns; CHANGED 14; UNCLASSIFIED 0; DELTAS +81(x14)
+              NOISE-ONLY    SqpDriverRestorationProximity_TheProxyWouldCertifyWhereTheExactResidualRefuses_Test::TestBody()
+                            COUNTS 932 insns; CHANGED 8; UNCLASSIFIED 0; DELTAS +81(x8)
+              NOISE-ONLY    SqpDriverRestorationProximity_TheRefusalsNameTheFieldTheValueAndTheRemedy_Test::TestBody()::$_5::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const*) const
+                            COUNTS 160 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +81(x1)
+              DIFFERS       SqpDriverRestorationExcursion_ACleanSolveHoldsNoReading_Test::TestBody()
+                              UNCLASSIFIED  - RELOC R_X86_64_PLT32 testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::SolveStatus, hven::solvers::SolveStatus>(char const*, char const*, hven::solvers::SolveStatus const&, hven::solvers::SolveStatus const&) -0x4
+                                            + RELOC R_X86_64_PLT32 testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::RestorationSubStatus, hven::solvers::RestorationSubStatus>(char const*, char const*, hven::solvers::RestorationSubStatus const&, hven::solvers::RestorationSubStatus const&) -0x4
+                            COUNTS 571 insns; CHANGED 9; UNCLASSIFIED 1; DELTAS +3(x7) +4(x1)
+              DIFFERS       SqpDriverRestorationExcursion_ARefusedSecondRequestLeavesTheFirstEntrysRecord_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0xe1c8(%rip),%rdx ;LEN=7
+                                            + 	lea    0x10048(%rip),%rdx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0xe161(%rip),%rcx ;LEN=7
+                                            + 	lea    0xffe1(%rip),%rcx ;LEN=7
+                              UNCLASSIFIED  - 	cmpl   $0x0,0x6c0(%rsp) ;LEN=8
+                                            + 	cmpl   $0x1,0x6c0(%rsp) ;LEN=8
+                              UNCLASSIFIED  - 	je     SELF+0x7df ;LEN=2
+                                            + 	jne    SELF+0x7c4 ;LEN=2
+                              UNCLASSIFIED  - 	lea    0x6c0(%rsp),%rcx ;LEN=8
+                                            + 	lea    0x20(%rsp),%rdi ;LEN=5
+                              ... and 11 more unclassified differences
+                            COUNTS 549 insns; CHANGED 24; UNCLASSIFIED 16; DELTAS +1(x1) +3(x7)
+              DIFFERS       SqpDriverRestorationExcursion_TheResumeArmRecordsTheCallersOwnExcursion_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x10201(%rip),%rdx ;LEN=7
+                                            + 	lea    0x12081(%rip),%rdx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x1019a(%rip),%rcx ;LEN=7
+                                            + 	lea    0x1201a(%rip),%rcx ;LEN=7
+                              UNCLASSIFIED  - 	cmpl   $0x0,0x950(%rsp) ;LEN=8
+                                            + 	cmpl   $0x1,0x950(%rsp) ;LEN=8
+                              UNCLASSIFIED  - 	je     SELF+0xede ;LEN=2
+                                            + 	jne    SELF+0xec3 ;LEN=2
+                              UNCLASSIFIED  - 	lea    0x950(%rsp),%rcx ;LEN=8
+                                            + 	lea    0x138(%rsp),%rdi ;LEN=8
+                              ... and 11 more unclassified differences
+                            COUNTS 995 insns; CHANGED 18; UNCLASSIFIED 16; DELTAS +1(x1) +3(x1)
+              NOISE-ONLY    SqpDriverRestorationProximity_TheZeroWeightGateNeverReadsTheBundle_Test::TestBody()
+                            COUNTS 572 insns; CHANGED 5; UNCLASSIFIED 0; DELTAS +81(x5)
+              NOISE-ONLY    RestorationProximityOption_RefusesANegativeNanOrInfiniteWeightByNameAndValue_Test::TestBody()
+                            COUNTS 765 insns; CHANGED 7; UNCLASSIFIED 0; DELTAS +81(x7)
+              NOISE-ONLY    SqpDriverRestorationProximity_TheSeedGuardFiresAndTheStartObjectiveIsHPlusP_Test::TestBody()
+                            COUNTS 1270 insns; CHANGED 10; UNCLASSIFIED 0; DELTAS +81(x10)
+              DIFFERS       RestorationProximityOption_ShipsAtZeroAndCarriesADumpLineInDeclarationPosition_Test::TestBody()
+                            PAD-ROUTE DECLINED: 5 alignment-pad lines vs 6 (23 -> 39 bytes); start 0x2ac10 (mod 32 = 16) -> 0x2ca80 (mod 32 = 0) -- a non-pad line differs somewhere other than a control-transfer target (rule 3)
+                            STRUCTURAL: normalized listing is 767 lines vs 768 -- instructions were added or removed
+              DIFFERS       SqpDriverRadius_FloorRaisesTheRestorationRequest_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x1a8b2(%rip),%rdx ;LEN=7
+                                            + 	lea    0x1c732(%rip),%rdx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x1a84b(%rip),%rcx ;LEN=7
+                                            + 	lea    0x1c6cb(%rip),%rcx ;LEN=7
+                            COUNTS 1428 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       SqpDriverRestoration_RestorationIsIdleOnCleanProblems_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x207ef(%rip),%rdx ;LEN=7
+                                            + 	lea    0x2266f(%rip),%rdx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x20715(%rip),%rcx ;LEN=7
+                                            + 	lea    0x22595(%rip),%rcx ;LEN=7
+                            COUNTS 1452 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              ONLY-BEFORE   testing::AssertionResult testing::internal::CmpHelperOpFailure<hven::solvers::SolveStatus, hven::solvers::SolveStatus>(char const*, char const*, hven::solvers::SolveStatus const&, hven::solvers::SolveStatus const&, char const*)
+              ONLY-AFTER    SqpDriverRestorationExcursion_TheSubStatusDiscriminatesAtOneParentStatus_Test::~SqpDriverRestorationExcursion_TheSubStatusDiscriminatesAtOneParentStatus_Test()
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperOpFailure<hven::solvers::RestorationSubStatus, hven::solvers::RestorationSubStatus>(char const*, char const*, hven::solvers::RestorationSubStatus const&, hven::solvers::RestorationSubStatus const&, char const*)
+              ONLY-AFTER    testing::internal::TestFactoryImpl<SqpDriverRestorationExcursion_TheSubStatusDiscriminatesAtOneParentStatus_Test>::~TestFactoryImpl()
+              ONLY-AFTER    SqpDriverRestorationExcursion_TheSubStatusDiscriminatesAtOneParentStatus_Test::TestBody()
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::RestorationSubStatus, hven::solvers::RestorationSubStatus>(char const*, char const*, hven::solvers::RestorationSubStatus const&, hven::solvers::RestorationSubStatus const&)
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::PrintToString<hven::solvers::RestorationSubStatus>(hven::solvers::RestorationSubStatus const&)
+              ONLY-AFTER    testing::internal::TestFactoryImpl<SqpDriverRestorationExcursion_TheSubStatusDiscriminatesAtOneParentStatus_Test>::CreateTest()
+SYMBOLS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o: COVERAGE FINDINGS
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::PrintToString<hven::solvers::RestorationSubStatus>(hven::solvers::RestorationSubStatus const&)
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::RestorationSubStatus, hven::solvers::RestorationSubStatus>(char const*, char const*, hven::solvers::RestorationSubStatus const&, hven::solvers::RestorationSubStatus const&)
+              LOCAL-FAMILY  GCC_except_table: 891 before, 893 after
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 303519 lines vs 303654 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o: PERSYM 1767 identical, 0 noise-only, 1 differing, 0 only-before, 2 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 4 rank-tagged, 0 section moves, 49547 relocation records compared (0 through the symbol map), 4 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       (anonymous namespace)::w2_expect_same_sqp_counters(hven::solvers::SqpCounters const&, hven::solvers::SqpCounters const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+                              UNCLASSIFIED  - RELOC R_X86_64_PLT32 testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::SolveStatus, hven::solvers::SolveStatus>(char const*, char const*, hven::solvers::SolveStatus const&, hven::solvers::SolveStatus const&) -0x4
+                                            + RELOC R_X86_64_PLT32 testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::RestorationSubStatus, hven::solvers::RestorationSubStatus>(char const*, char const*, hven::solvers::RestorationSubStatus const&, hven::solvers::RestorationSubStatus const&) -0x4
+                            COUNTS 4723 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::PrintToString<hven::solvers::RestorationSubStatus>(hven::solvers::RestorationSubStatus const&)
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::RestorationSubStatus, hven::solvers::RestorationSubStatus>(char const*, char const*, hven::solvers::RestorationSubStatus const&, hven::solvers::RestorationSubStatus const&)
+SYMBOLS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_start_point_projection.cpp.o: COVERAGE FINDINGS
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::RestorationSubStatus, hven::solvers::RestorationSubStatus>(char const*, char const*, hven::solvers::RestorationSubStatus const&, hven::solvers::RestorationSubStatus const&)
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::PrintToString<hven::solvers::RestorationSubStatus>(hven::solvers::RestorationSubStatus const&)
+              LOCAL-FAMILY  GCC_except_table: 48 before, 50 after
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_start_point_projection.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 19946 lines vs 20081 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_start_point_projection.cpp.o: PERSYM 113 identical, 0 noise-only, 1 differing, 0 only-before, 2 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 3711 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::(anonymous namespace)::expect_same_counters(hven::solvers::SqpCounters const&, hven::solvers::SqpCounters const&, char const*)
+                              UNCLASSIFIED  - RELOC R_X86_64_PLT32 testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::SolveStatus, hven::solvers::SolveStatus>(char const*, char const*, hven::solvers::SolveStatus const&, hven::solvers::SolveStatus const&) -0x4
+                                            + RELOC R_X86_64_PLT32 testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::RestorationSubStatus, hven::solvers::RestorationSubStatus>(char const*, char const*, hven::solvers::RestorationSubStatus const&, hven::solvers::RestorationSubStatus const&) -0x4
+                            COUNTS 7410 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::RestorationSubStatus, hven::solvers::RestorationSubStatus>(char const*, char const*, hven::solvers::RestorationSubStatus const&, hven::solvers::RestorationSubStatus const&)
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::PrintToString<hven::solvers::RestorationSubStatus>(hven::solvers::RestorationSubStatus const&)
+SYMBOLS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_trace_writer.cpp.o: COVERAGE FINDINGS
+              ONLY-BEFORE   hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_20::operator()(hven::solvers::InertiaModes) const
+              ONLY-BEFORE   hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_19::operator()(hven::solvers::SolveStatus) const
+              ONLY-BEFORE   hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_21::operator()(hven::solvers::RestorationModes) const
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::PrintToString<hven::solvers::RestorationSubStatus>(hven::solvers::RestorationSubStatus const&)
+              ONLY-AFTER    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_21::operator()(hven::solvers::InertiaModes) const
+              ONLY-AFTER    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_20::operator()(hven::solvers::SolveStatus) const
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::RestorationSubStatus, hven::solvers::RestorationSubStatus>(char const*, char const*, hven::solvers::RestorationSubStatus const&, hven::solvers::RestorationSubStatus const&)
+              ONLY-AFTER    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_22::operator()(hven::solvers::RestorationModes) const
+              ONLY-AFTER    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_19::operator()(hven::solvers::RestorationSubStatus) const
+              LOCAL-FAMILY  .LCPI: 877 before, 879 after
+              LOCAL-FAMILY  .L.str: 1084 before, 1079 after
+              LOCAL-FAMILY  GCC_except_table: 627 before, 630 after
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_trace_writer.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 1605 alignment-pad lines vs 1606 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 134445 lines vs 134825 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_trace_writer.cpp.o: PERSYM 1041 identical, 100 noise-only, 3 differing, 3 only-before, 6 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 4 rank-tagged, 0 section moves, 19852 relocation records compared (0 through the symbol map), 4 global-var-init keyed by identity (0 unresolved)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_RoundTripReadsEveryGoldenLineBackBitEqual_Test::TestBody()
+                            COUNTS 1168 insns; CHANGED 5; UNCLASSIFIED 0; DELTAS +54(x5)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::SqpConsole_AttachTraceDuringASolveIsRefused_Test::TestBody()
+                            COUNTS 425 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +60(x2)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_SqpSolveEndCarriesTheWholeCountersObject_Test::TestBody()
+                            COUNTS 1457 insns; CHANGED 10; UNCLASSIFIED 0; DELTAS +54(x10)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_GoldenLineSqpMajorFirstBoolSignatureAndTheWalkMode_Test::TestBody()
+                            COUNTS 123 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +54(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_TheVerdictStreamReproducesTheWHOLEPartitionOnAFiveClassPopulation_Test::TestBody()
+                            COUNTS 1953 insns; CHANGED 14; UNCLASSIFIED 0; DELTAS +54(x14)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_16::operator()(hven::solvers::IpmKktFactorStatus) const
+                            COUNTS 242 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +31(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull_Test::TestBody()
+                            COUNTS 169 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +60(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_4::operator()(hven::solvers::IpqpTraceFinalInertia) const
+                            COUNTS 209 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +31(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_AnArmedExceptionMaskPropagatesOutOfTheSolveByDesign_Test::TestBody()
+                            COUNTS 318 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +54(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_GoldenLineFallbackVerdictClampedWithoutARetry_Test::TestBody()
+                            COUNTS 150 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +54(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::SqpConsole_TheUsersJsonStreamIsByteIdenticalWithAndWithoutTheConsole_Test::TestBody()::$_0::operator()[abi:cxx11](int) const
+                            COUNTS 279 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +60(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_SqpMajorReproducesTheHistoryOnTheRowThatSeedsRestoration_Test::TestBody()
+                            COUNTS 801 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +60(x4)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_TheIpmPairMovesNoDepthAndDoesNotDisturbTheSqpNesting_Test::TestBody()
+                            COUNTS 517 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +60(x4)
+              DIFFERS       hven::solvers::(anonymous namespace)::expect_end_line_counters(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, hven::solvers::SqpCounters const&)
+                            STRUCTURAL: normalized listing is 964 lines vs 963 -- instructions were added or removed
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_3::operator()(hven::solvers::IpqpTraceRouteTo) const
+                            COUNTS 208 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +31(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_AnArmedMaskFailingOnTheVERYLASTLinePropagatesRatherThanTerminating_Test::TestBody()
+                            COUNTS 715 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +60(x4)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::expect_counter_field(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const*, long, bool)
+                            COUNTS 381 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +54(x2)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_GoldenLineFallbackVerdictRetriedAtTheFloorWithoutAClamp_Test::TestBody()
+                            COUNTS 150 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +54(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_GoldenLineIpmPhaseExit_Test::TestBody()
+                            COUNTS 250 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +60(x2)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_GoldenLineIpmIterWithEverySentinelBearingFieldPresent_Test::TestBody()
+                            COUNTS 169 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +60(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_TheRowsModeAndTheDispatchRecordDifferOnTheSsnWarmGrade_Test::TestBody()
+                            COUNTS 784 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +60(x4)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_SqpSolveEndReadsTheReturnedSolutionAndNotAMovedFromLocal_Test::TestBody()
+                            COUNTS 686 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +60(x3)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_TheNestedSolvesActivityChurnStaysOutOfTheOuterTotals_Test::TestBody()
+                            COUNTS 722 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +54(x4)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_SqpMajorIsInCallerUnitsOnAScaledSolve_Test::TestBody()
+                            COUNTS 584 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +54(x4)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_1::operator()(hven::solvers::IpqpTraceRegReason) const
+                            COUNTS 209 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +31(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_GoldenLineSqpMajorThirdBoolSignatureAndTheIpqpMode_Test::TestBody()
+                            COUNTS 123 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +54(x1)
+              ONLY-BEFORE   hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_21::operator()(hven::solvers::RestorationModes) const
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_WholeSolveStreamCountsEqualTheCurrencyOnHS11AndHS38AtKIpm_Test::TestBody()
+                            COUNTS 1576 insns; CHANGED 15; UNCLASSIFIED 0; DELTAS +54(x15)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_GoldenLineIpmKktAnalysis_Test::TestBody()
+                            COUNTS 215 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +60(x2)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_6::operator()(hven::solvers::IpqpTraceOutcome) const
+                            COUNTS 364 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +31(x2)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_5::operator()(hven::solvers::IpqpTraceEscapeReason) const
+                            COUNTS 256 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +31(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_7::operator()(hven::solvers::QpModeSite) const
+                            COUNTS 226 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +31(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::SqpConsole_TheRestorationSubDriverIsTheOneDriverThatNeverPrints_Test::TestBody()
+                            COUNTS 921 insns; CHANGED 5; UNCLASSIFIED 0; DELTAS +60(x5)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_TheKktAnalysisFactorFiguresAreNullOnARefactorization_Test::TestBody()
+                            COUNTS 739 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS +60(x6)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::expect_counter_field(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const*, double, bool)
+                            COUNTS 225 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +54(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_GoldenLineIpmIterWithTheNonFiniteNewtonLadderMarker_Test::TestBody()
+                            COUNTS 169 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +60(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_TheNestedSolvesFirstRowCountsAgainstItsOwnEmptySet_Test::TestBody()
+                            COUNTS 938 insns; CHANGED 5; UNCLASSIFIED 0; DELTAS +54(x5)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_8::operator()(hven::solvers::SqpFallbackVerdict) const
+                            COUNTS 211 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +31(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_GoldenLineIpmRestorationExitRow_Test::TestBody()
+                            COUNTS 235 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +60(x2)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_RoundTripIsBitExactOnTheHardDoubles_Test::TestBody()
+                            COUNTS 360 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +54(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_QpModeOnAnSsnCellCountsTheArmAndItsHandOffs_Test::TestBody()
+                            COUNTS 634 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +54(x4)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_GoldenLineIpqpRestartSecondBoolSignature_Test::TestBody()
+                            COUNTS 147 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +54(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_UnderAnArmedMaskFlushThrows_Test::TestBody()
+                            COUNTS 287 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +54(x2)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_OnAWalkCellTheSinkChangesNoCounterAndWritesOnlyRows_Test::TestBody()
+                            COUNTS 866 insns; CHANGED 9; UNCLASSIFIED 0; DELTAS +54(x9)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_SeqCountsFromOneAndTheSolvePairMovesTheEnvelope_Test::TestBody()
+                            COUNTS 1183 insns; CHANGED 10; UNCLASSIFIED 0; DELTAS +54(x10)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_TheRequestingRowIsWrittenAFTERTheNestedSolveItAskedFor_Test::TestBody()
+                            COUNTS 672 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +60(x4)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_SqpSolveEndFiresOnEveryExitPathIncludingTheOnesThatSkipFinish_Test::TestBody()
+                            COUNTS 1322 insns; CHANGED 9; UNCLASSIFIED 0; DELTAS +54(x9)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::census(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+                            COUNTS 591 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +54(x4)
+              DIFFERS       hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()
+                            STRUCTURAL: normalized listing is 172 lines vs 192 -- instructions were added or removed
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_SqpSolveEndKeysAreExactlyTheTablesAndAllDistinct_Test::TestBody()
+                            COUNTS 779 insns; CHANGED 5; UNCLASSIFIED 0; DELTAS +1(x1) +60(x4)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_NoIpmLineCarriesAnUnknownEnumString_Test::TestBody()
+                            COUNTS 735 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +60(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_StringEscapingIsRfc8259AndUtf8PassesThrough_Test::TestBody()
+                            COUNTS 224 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +54(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_AStreamThatFailsMidSolveDoesNotChangeTheSolve_Test::TestBody()
+                            COUNTS 672 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +54(x4)
+              ONLY-BEFORE   hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_20::operator()(hven::solvers::InertiaModes) const
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_GoldenLineIpqpEscapeStallBranch_Test::TestBody()
+                            COUNTS 194 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +54(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::SqpConsole_ACountingSinkSeesTheSameEventsWithPrintingOnAndOff_Test::TestBody()
+                            COUNTS 363 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +60(x3)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::SqpConsole_TheLiveConsoleEqualsFormatIterationTable_Test::TestBody()
+                            COUNTS 595 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +60(x4)
+              ONLY-BEFORE   hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_19::operator()(hven::solvers::SolveStatus) const
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_GoldenLineIpmSolveBegin_Test::TestBody()
+                            COUNTS 228 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +60(x2)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_GoldenLineIpmSolveEnd_Test::TestBody()
+                            COUNTS 218 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +60(x2)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_13::operator()(hven::solvers::WorkingSetLinearAlgebra) const
+                            COUNTS 207 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +31(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_ResetNestingRecoversASinkAfterASolveThatThrewMidBody_Test::TestBody()
+                            COUNTS 1660 insns; CHANGED 11; UNCLASSIFIED 0; DELTAS +60(x11)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_UnderAnArmedMaskAFailingFlushATDESTRUCTIONIsSwallowed_Test::TestBody()
+                            COUNTS 328 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +54(x3)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_UnderTheDefaultMaskAFailingFlushSetsFailedAndDoesNotThrow_Test::TestBody()
+                            COUNTS 370 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +54(x3)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_OrderIsTheJoinKeyOnHS38AtKIpm_Test::TestBody()
+                            COUNTS 628 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +54(x4)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_18::operator()(hven::solvers::StartLevel) const
+                            COUNTS 221 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +31(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_GoldenLineIpqpEscapeExhaustionRouteWithoutFarkas_Test::TestBody()
+                            COUNTS 202 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +54(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_TheRestorationExitRowIsAdjacentToItsOwnIterLine_Test::TestBody()
+                            COUNTS 653 insns; CHANGED 5; UNCLASSIFIED 0; DELTAS +60(x5)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_ARefusedArgumentWritesNothingAndLeavesTheNextSolveAtDepthZero_Test::TestBody()
+                            COUNTS 1036 insns; CHANGED 8; UNCLASSIFIED 0; DELTAS +60(x8)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::SqpCountersFieldTables_EachTableEnumeratesItsWholeStruct_Test::TestBody()
+                            COUNTS 302 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS +54(x6)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_GoldenLineSqpSolveBegin_Test::TestBody()
+                            COUNTS 147 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +56(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_10::operator()(hven::solvers::QpStatus) const
+                            COUNTS 224 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +31(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_GoldenLineIpmPhaseBegin_Test::TestBody()
+                            COUNTS 214 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +60(x2)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_FlushSyncsOnceAndDestructionSyncsOnceMore_Test::TestBody()
+                            COUNTS 710 insns; CHANGED 7; UNCLASSIFIED 0; DELTAS +54(x7)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_15::operator()(hven::solvers::IpmStopReason) const
+                            COUNTS 242 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +31(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_9::operator()(hven::solvers::IpqpTraceQpMode) const
+                            COUNTS 222 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +31(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_GoldenLineIpmMessage_Test::TestBody()
+                            COUNTS 218 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +60(x2)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_12::operator()(hven::solvers::SolveStatus) const
+                            COUNTS 233 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +31(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_RoundTripReachesInsideTheNestedEvidenceObject_Test::TestBody()
+                            COUNTS 998 insns; CHANGED 7; UNCLASSIFIED 0; DELTAS +54(x7)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_ThePinnedDeclineIsWhyTheEntryCountSubtractsDeclinedPinned_Test::TestBody()
+                            COUNTS 690 insns; CHANGED 8; UNCLASSIFIED 0; DELTAS +54(x8)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_11::operator()(hven::solvers::StepVerdict) const
+                            COUNTS 224 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +31(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_TheInertiaMessageFillsEverySlotTheOtherKindsLeaveNull_Test::TestBody()
+                            COUNTS 1478 insns; CHANGED 14; UNCLASSIFIED 0; DELTAS +60(x14)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::only_line(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const*, char const*)
+                            COUNTS 331 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +54(x1)
+              DIFFERS       hven::solvers::(anonymous namespace)::expect_counters_identical(hven::solvers::SqpCounters const&, hven::solvers::SqpCounters const&)
+                              UNCLASSIFIED  - RELOC R_X86_64_PLT32 testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::SolveStatus, hven::solvers::SolveStatus>(char const*, char const*, hven::solvers::SolveStatus const&, hven::solvers::SolveStatus const&) -0x4
+                                            + RELOC R_X86_64_PLT32 testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::RestorationSubStatus, hven::solvers::RestorationSubStatus>(char const*, char const*, hven::solvers::RestorationSubStatus const&, hven::solvers::RestorationSubStatus const&) -0x4
+                            COUNTS 6875 insns; CHANGED 108; UNCLASSIFIED 1; DELTAS +54(x107)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_0::operator()(hven::solvers::IpqpTraceRegDir) const
+                            COUNTS 204 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +31(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_SqpSolvePartitionsTwoSolvesOnOneSinkAndSeqStaysContiguous_Test::TestBody()
+                            COUNTS 1267 insns; CHANGED 12; UNCLASSIFIED 0; DELTAS +54(x12)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_14::operator()(hven::solvers::IpmPhase) const
+                            COUNTS 206 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +31(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_2::operator()(hven::solvers::IpqpTraceRestartGrade) const
+                            COUNTS 205 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +31(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_TheNestedRestorationSolveIsBracketedAtDepthOne_Test::TestBody()
+                            COUNTS 1305 insns; CHANGED 12; UNCLASSIFIED 0; DELTAS +54(x12)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_17::operator()(hven::solvers::IpmMessageKind) const
+                            COUNTS 213 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +31(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::SqpConsole_TheSqpDefaultPrintLevelWritesNothing_Test::TestBody()
+                            COUNTS 429 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +60(x3)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::SqpConsole_ACountingSinkSeesTheSameEventsWithPrintingOnAndOff_Test::TestBody()::$_0::operator()[abi:cxx11](int, bool) const
+                            COUNTS 434 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +60(x1)
+              NOISE-ONLY    _GLOBAL__sub_I_test_trace_writer.cpp
+                            COUNTS 6555 insns; CHANGED 222; UNCLASSIFIED 0; DELTAS +31(x3) +54(x117) +56(x9) +60(x93)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_OnHS38AtKIpmTheSinkWritesHundredsOfLinesAndStillMovesNoCounter_Test::TestBody()
+                            COUNTS 565 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS +54(x6)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_FailedIsStickyAndSeqKeepsAdvancingPastTheFailure_Test::TestBody()
+                            COUNTS 702 insns; CHANGED 7; UNCLASSIFIED 0; DELTAS +54(x7)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_GoldenLineSqpMajorSecondBoolSignatureTheHardDoublesAndTheSsnMode_Test::TestBody()
+                            COUNTS 121 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +54(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_GoldenLineSqpSolveEndWithEveryCounterDistinct_Test::TestBody()
+                            COUNTS 222 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +1(x1) +56(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::SqpConsole_TheUsersJsonStreamIsByteIdenticalWithAndWithoutTheConsole_Test::TestBody()
+                            COUNTS 337 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +60(x3)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_SqpMajorReproducesTheHistoryRowByRowOnAWalkCellAndAKIpmCell_Test::TestBody()
+                            COUNTS 993 insns; CHANGED 5; UNCLASSIFIED 0; DELTAS +54(x5)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_QpModeOnAKIpmCellNamesTheTierAndTheDeclineRoutesToTheWalk_Test::TestBody()
+                            COUNTS 1351 insns; CHANGED 11; UNCLASSIFIED 0; DELTAS +54(x11)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_QpModeOnAWalkCellIsOneLinePerMajorAndNamesTheWalk_Test::TestBody()
+                            COUNTS 496 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +54(x4)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_GoldenLineSqpMajorEveryBoolTrue_Test::TestBody()
+                            COUNTS 123 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +54(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_TheThreeIpmIterGoldenLinesIsolateEverySentinelSlot_Test::TestBody()
+                            COUNTS 1649 insns; CHANGED 16; UNCLASSIFIED 0; DELTAS +60(x16)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_GoldenLineIpmIterWithBothMinusOneConventionsActive_Test::TestBody()
+                            COUNTS 170 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +60(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_GoldenLineIpmPhaseEnd_Test::TestBody()
+                            COUNTS 214 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +60(x2)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::expect_major_line_is_row(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, hven::solvers::SqpIterate const&, long, hven::solvers::IpqpTraceQpMode)
+                            COUNTS 2852 insns; CHANGED 21; UNCLASSIFIED 0; DELTAS +54(x21)
+              ONLY-AFTER    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_22::operator()(hven::solvers::RestorationModes) const
+              ONLY-AFTER    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_20::operator()(hven::solvers::SolveStatus) const
+              ONLY-AFTER    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_21::operator()(hven::solvers::InertiaModes) const
+              ONLY-AFTER    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_EveryEnumeratorHasItsSpecSpelling_Test::TestBody()::$_19::operator()(hven::solvers::RestorationSubStatus) const
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::RestorationSubStatus, hven::solvers::RestorationSubStatus>(char const*, char const*, hven::solvers::RestorationSubStatus const&, hven::solvers::RestorationSubStatus const&)
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::PrintToString<hven::solvers::RestorationSubStatus>(hven::solvers::RestorationSubStatus const&)
+SYMBOLS     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o: COVERAGE FINDINGS
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::RestorationSubStatus, hven::solvers::RestorationSubStatus>(char const*, char const*, hven::solvers::RestorationSubStatus const&, hven::solvers::RestorationSubStatus const&)
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::PrintToString<hven::solvers::RestorationSubStatus>(hven::solvers::RestorationSubStatus const&)
+              LOCAL-FAMILY  GCC_except_table: 204 before, 206 after
+DIFFERS     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 78368 lines vs 78493 -- instructions were added or removed
+PER-SYMBOL  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o: PERSYM 485 identical, 0 noise-only, 1 differing, 0 only-before, 2 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 12737 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       (anonymous namespace)::expect_same_counters(hven::solvers::SqpCounters const&, hven::solvers::SqpCounters const&)
+                              UNCLASSIFIED  - RELOC R_X86_64_PLT32 testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::SolveStatus, hven::solvers::SolveStatus>(char const*, char const*, hven::solvers::SolveStatus const&, hven::solvers::SolveStatus const&) -0x4
+                                            + RELOC R_X86_64_PLT32 testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::RestorationSubStatus, hven::solvers::RestorationSubStatus>(char const*, char const*, hven::solvers::RestorationSubStatus const&, hven::solvers::RestorationSubStatus const&) -0x4
+                            COUNTS 6671 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::RestorationSubStatus, hven::solvers::RestorationSubStatus>(char const*, char const*, hven::solvers::RestorationSubStatus const&, hven::solvers::RestorationSubStatus const&)
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::PrintToString<hven::solvers::RestorationSubStatus>(hven::solvers::RestorationSubStatus const&)
+SYMBOLS     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_status.cpp.o: COVERAGE FINDINGS
+              ONLY-AFTER    RestorationSubStatus_TheMapIsTotalAndTheSpellingsAreSolveStatusSPlusNotRun_Test::~RestorationSubStatus_TheMapIsTotalAndTheSpellingsAreSolveStatusSPlusNotRun_Test()
+              ONLY-AFTER    RestorationSubStatus_TheMapIsTotalAndTheSpellingsAreSolveStatusSPlusNotRun_Test::TestBody()
+              ONLY-AFTER    RestorationSubStatus_TheMapIsTotalAndTheSpellingsAreSolveStatusSPlusNotRun_Test::test_info_
+              ONLY-AFTER    typeinfo for RestorationSubStatus_TheMapIsTotalAndTheSpellingsAreSolveStatusSPlusNotRun_Test
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::PrintToString<hven::solvers::RestorationSubStatus>(hven::solvers::RestorationSubStatus const&)
+              ONLY-AFTER    vtable for testing::internal::TestFactoryImpl<RestorationSubStatus_TheMapIsTotalAndTheSpellingsAreSolveStatusSPlusNotRun_Test>
+              ONLY-AFTER    testing::internal::TestFactoryImpl<RestorationSubStatus_TheMapIsTotalAndTheSpellingsAreSolveStatusSPlusNotRun_Test>::CreateTest()
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperOpFailure<hven::solvers::RestorationSubStatus, hven::solvers::RestorationSubStatus>(char const*, char const*, hven::solvers::RestorationSubStatus const&, hven::solvers::RestorationSubStatus const&, char const*)
+              ONLY-AFTER    typeinfo name for testing::internal::TestFactoryImpl<RestorationSubStatus_TheMapIsTotalAndTheSpellingsAreSolveStatusSPlusNotRun_Test>
+              ONLY-AFTER    testing::internal::TestFactoryImpl<RestorationSubStatus_TheMapIsTotalAndTheSpellingsAreSolveStatusSPlusNotRun_Test>::~TestFactoryImpl()
+              ONLY-AFTER    typeinfo for testing::internal::TestFactoryImpl<RestorationSubStatus_TheMapIsTotalAndTheSpellingsAreSolveStatusSPlusNotRun_Test>
+              ONLY-AFTER    typeinfo name for RestorationSubStatus_TheMapIsTotalAndTheSpellingsAreSolveStatusSPlusNotRun_Test
+              ONLY-AFTER    vtable for RestorationSubStatus_TheMapIsTotalAndTheSpellingsAreSolveStatusSPlusNotRun_Test
+              LOCAL-FAMILY  .L.str: 103 before, 124 after
+              LOCAL-FAMILY  GCC_except_table: 23 before, 27 after
+DIFFERS     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_status.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 27 alignment-pad lines vs 34 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 4611 lines vs 6026 -- instructions were added or removed
+PER-SYMBOL  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_status.cpp.o: PERSYM 34 identical, 3 noise-only, 1 differing, 0 only-before, 6 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 1 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 883 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       _GLOBAL__sub_I_test_solve_status.cpp
+                            STRUCTURAL: normalized listing is 310 lines vs 406 -- instructions were added or removed
+              NOISE-ONLY    SolveStatus_TheNineDisplayNamesArePinnedLiterals_Test::TestBody()
+                            COUNTS 1270 insns; CHANGED 19; UNCLASSIFIED 0; DELTAS +1(x19)
+              NOISE-ONLY    SolveStatus_SeverityIsTotalAndOrderedAsDocumented_Test::TestBody()
+                            COUNTS 416 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +1(x4)
+              NOISE-ONLY    SolveStatus_IpmPhaseResolutionSplitsTheCapExitByStopReason_Test::TestBody()
+                            COUNTS 724 insns; CHANGED 11; UNCLASSIFIED 0; DELTAS +1(x11)
+              ONLY-AFTER    RestorationSubStatus_TheMapIsTotalAndTheSpellingsAreSolveStatusSPlusNotRun_Test::~RestorationSubStatus_TheMapIsTotalAndTheSpellingsAreSolveStatusSPlusNotRun_Test()
+              ONLY-AFTER    RestorationSubStatus_TheMapIsTotalAndTheSpellingsAreSolveStatusSPlusNotRun_Test::TestBody()
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::PrintToString<hven::solvers::RestorationSubStatus>(hven::solvers::RestorationSubStatus const&)
+              ONLY-AFTER    testing::internal::TestFactoryImpl<RestorationSubStatus_TheMapIsTotalAndTheSpellingsAreSolveStatusSPlusNotRun_Test>::CreateTest()
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperOpFailure<hven::solvers::RestorationSubStatus, hven::solvers::RestorationSubStatus>(char const*, char const*, hven::solvers::RestorationSubStatus const&, hven::solvers::RestorationSubStatus const&, char const*)
+              ONLY-AFTER    testing::internal::TestFactoryImpl<RestorationSubStatus_TheMapIsTotalAndTheSpellingsAreSolveStatusSPlusNotRun_Test>::~TestFactoryImpl()
+SYMBOLS     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o: COVERAGE FINDINGS
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::RestorationSubStatus, hven::solvers::RestorationSubStatus>(char const*, char const*, hven::solvers::RestorationSubStatus const&, hven::solvers::RestorationSubStatus const&)
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::PrintToString<hven::solvers::RestorationSubStatus>(hven::solvers::RestorationSubStatus const&)
+              LOCAL-FAMILY  GCC_except_table: 97 before, 99 after
+DIFFERS     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 29055 lines vs 29180 -- instructions were added or removed
+PER-SYMBOL  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o: PERSYM 188 identical, 0 noise-only, 1 differing, 0 only-before, 2 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 5192 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       (anonymous namespace)::expect_counters_identical(hven::solvers::SqpCounters const&, hven::solvers::SqpCounters const&)
+                              UNCLASSIFIED  - RELOC R_X86_64_PLT32 testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::SolveStatus, hven::solvers::SolveStatus>(char const*, char const*, hven::solvers::SolveStatus const&, hven::solvers::SolveStatus const&) -0x4
+                                            + RELOC R_X86_64_PLT32 testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::RestorationSubStatus, hven::solvers::RestorationSubStatus>(char const*, char const*, hven::solvers::RestorationSubStatus const&, hven::solvers::RestorationSubStatus const&) -0x4
+                            COUNTS 4643 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::RestorationSubStatus, hven::solvers::RestorationSubStatus>(char const*, char const*, hven::solvers::RestorationSubStatus const&, hven::solvers::RestorationSubStatus const&)
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::PrintToString<hven::solvers::RestorationSubStatus>(hven::solvers::RestorationSubStatus const&)
+ARCHIVE     libhven.a differs -- see its member objects above; archive
+            metadata (member timestamps, symbol index) is not instructions
+
+P-SYM: 146 objects — 134 byte-identical, 0 differing within the accepted noise class, 11 with unclassified differences, 0 matched by basename after a path move, 0 missing
+P-SYM coverage: 0 objects matched through the object map, 11 compared per symbol, 0 objects passed per symbol, 0 after-arm objects unaccounted for; symbols — 68747 matched (0 through the symbol map), 4 only-before, 45 only-after, 0 excepted, 0 collisions, 48 rank-tagged, 0 stale exceptions, 0 stale map entries; compiler-local label families — 580 matched by count, 15 differing (78665 before-arm and 78743 after-arm symbols accounted by family); relocations — 118737 records compared (0 through the symbol map)
+P-SYM: FAIL — differences outside the accepted noise class

@@ -1,0 +1,14 @@
+
+=== hs / hven-sqp ===
+label                  optimal dnf_budget dnf_wall   err infeasible  |B|  median-cost  verdict
+default                     21          0        0     0          0   21            1  default
+sqp-qn-wsrule               21          0        0     0          0   21            1  tie (default stands)
+  --> no label wins: the DEFAULT is the best fixed choice for this family and lane.
+
+=== cutest / hven-sqp ===
+label                  optimal dnf_budget dnf_wall   err infeasible  |B|  median-cost  verdict
+default                      8          3        7     5          0    8      1.46227  default
+sqp-qn-wsrule                8          3        7     5          0    8      1.46227  tie (default stands)
+  --> no label wins: the DEFAULT is the best fixed choice for this family and lane.
+
+w2_a4_decide: verdicts -> train/out/decisions-tree-qn.json

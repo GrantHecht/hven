@@ -1,0 +1,21 @@
+M7 W2 M3a ADDENDUM F -- NEUTRALITY (RULE-F.md section 3.2): every --ledger on leg vs its own committed
+stage-1 twin, on the identity check's machinery. The compared set covers the
+terminal status, f, the feasibilities and every printed SqpCounters field --
+'solver counters, status, f and h' stated by rule, not by a hand-picked subset.
+
+excluded by name (this addendum's new key): ['ledger']
+dropped by name (time-valued):              ['elapsed', 'elapsed_seconds', 'wall_seconds']
+near-ulp gate, residual class only:         |a-b| <= 1e-12 * max(1,|a|,|b|)
+the LEDGER block is NOT part of the key block and is NOT compared (RULE-F.md section 3.1)
+
+STEENBRB@F-trinf     vs STEENBRB@trinf.txt   keys  50 compared,   0 differing; rows   4 x 9 columns,   0 differing   IDENTICAL
+STEENBRB@F-trinf       keys only in the rebuilt probe: ['first_qp_factorizations', 'first_qp_minor_iters', 'ledger', 'qp_cap_retries', 'qp_cap_retry', 'qp_max_iter']
+STEENBRB@F-tr1       vs STEENBRB@tr1.txt     keys  52 compared,   0 differing; rows  17 x 9 columns,   0 differing   IDENTICAL
+STEENBRB@F-tr1         keys only in the rebuilt probe: ['first_qp_factorizations', 'first_qp_minor_iters', 'ledger', 'qp_cap_retries', 'qp_cap_retry', 'qp_max_iter']
+YORKNET@F-trinf      vs YORKNET@trinf.txt    keys  50 compared,   0 differing; rows   4 x 9 columns,   0 differing   IDENTICAL
+YORKNET@F-trinf        keys only in the rebuilt probe: ['first_qp_factorizations', 'first_qp_minor_iters', 'ledger', 'qp_cap_retries', 'qp_cap_retry', 'qp_max_iter']
+YORKNET@F-tr1        vs YORKNET@tr1.txt      keys  52 compared,   0 differing; rows  19 x 9 columns,   0 differing   IDENTICAL
+YORKNET@F-tr1          keys only in the rebuilt probe: ['first_qp_factorizations', 'first_qp_minor_iters', 'ledger', 'qp_cap_retries', 'qp_cap_retry', 'qp_max_iter']
+
+NEAR_ULP_TOLERATED=0
+IDENTITY_F_WORST=0

@@ -16,8 +16,8 @@ namespace hven::solvers {
 ///        min  f(x)   s.t.  g_lower <= g(x) <= g_upper,  x_lower <= x <= x_upper
 ///
 /// Subclass this (in C++ or Python), transcribe it with make_nlp_program(problem)
-/// (detail/model/nlp_adapter.h) and hand the program to
-/// IpmSolver::solve. Conventions are Ipopt's, verbatim: the Lagrangian
+/// (model/make_nlp_program.h -- a PUBLIC header since M7 W0 T5) and hand the
+/// program to IpmSolver::solve. Conventions are Ipopt's, verbatim: the Lagrangian
 /// is L = obj_factor*f + lambda^T g; eval_hess fills the LOWER TRIANGLE of
 /// grad^2 L (row >= col); lambda is in THIS problem's own row space in every
 /// signature here. Rows with g_lower == g_upper are equalities; +/-infinity

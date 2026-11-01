@@ -1,0 +1,264 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-release/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = -E4Fix2Scratch.*
+[==========] Running 90 tests from 5 test suites.
+[----------] Global test environment set-up.
+[----------] 20 tests from QpWalkSeam
+[ RUN      ] QpWalkSeam.AttachingTheObserverChangesNoCounterAndNoAnswer
+[       OK ] QpWalkSeam.AttachingTheObserverChangesNoCounterAndNoAnswer (9 ms)
+[ RUN      ] QpWalkSeam.TheObserverIsNeutralOnAWarmRESOLVETOO
+[       OK ] QpWalkSeam.TheObserverIsNeutralOnAWarmRESOLVETOO (1 ms)
+[ RUN      ] QpWalkSeam.TwoEnginesOnTwoThreadsOneArmedOneNot
+[       OK ] QpWalkSeam.TwoEnginesOnTwoThreadsOneArmedOneNot (63 ms)
+[ RUN      ] QpWalkSeam.TwoEnginesOnTwoThreadsBothArmed
+[       OK ] QpWalkSeam.TwoEnginesOnTwoThreadsBothArmed (64 ms)
+[ RUN      ] QpWalkSeam.ArmingOnOneThreadIsInvisibleOnAnother
+[       OK ] QpWalkSeam.ArmingOnOneThreadIsInvisibleOnAnother (0 ms)
+[ RUN      ] QpWalkSeam.CaptureSolveSelectsOneSolveAndTheRestAreNotRecorded
+[       OK ] QpWalkSeam.CaptureSolveSelectsOneSolveAndTheRestAreNotRecorded (0 ms)
+[ RUN      ] QpWalkSeam.TheTraceAgreesWithTheCountersItMustNotHaveTouched
+[       OK ] QpWalkSeam.TheTraceAgreesWithTheCountersItMustNotHaveTouched (3 ms)
+[ RUN      ] QpWalkSeam.TheWorkingSetSignatureTracksTheActionsThatChangeIt
+[       OK ] QpWalkSeam.TheWorkingSetSignatureTracksTheActionsThatChangeIt (4 ms)
+[ RUN      ] QpWalkSeam.ADropRecordsItsRouteItsMultiplierAndTheToleranceItWasComparedAgainst
+[       OK ] QpWalkSeam.ADropRecordsItsRouteItsMultiplierAndTheToleranceItWasComparedAgainst (0 ms)
+[ RUN      ] QpWalkSeam.ADegenerateStepIsAnAdditionThatMovedNoFurtherThanTheStepTolerance
+[       OK ] QpWalkSeam.ADegenerateStepIsAnAdditionThatMovedNoFurtherThanTheStepTolerance (3 ms)
+[ RUN      ] QpWalkSeam.EveryPassRecordsTheMainVerdictAndThePathThatProducedIt
+[       OK ] QpWalkSeam.EveryPassRecordsTheMainVerdictAndThePathThatProducedIt (3 ms)
+[ RUN      ] QpWalkSeam.TheBackendsInertiaAccessorAnswersTheSameThingTwiceOnThisPlatform
+[       OK ] QpWalkSeam.TheBackendsInertiaAccessorAnswersTheSameThingTwiceOnThisPlatform (0 ms)
+[ RUN      ] QpWalkSeam.ThePerPassCounterDeltasAreNonNegativeAndBoundedByTheSolvesTotals
+[       OK ] QpWalkSeam.ThePerPassCounterDeltasAreNonNegativeAndBoundedByTheSolvesTotals (3 ms)
+[ RUN      ] QpWalkSeam.APostDropPassRecordsWhatWasReleasedAndWhyTheRideDidOrDidNotRun
+[       OK ] QpWalkSeam.APostDropPassRecordsWhatWasReleasedAndWhyTheRideDidOrDidNotRun (3 ms)
+[ RUN      ] QpWalkSeam.TheDropCandidateSetIsRecordedLargestViolationFirst
+[       OK ] QpWalkSeam.TheDropCandidateSetIsRecordedLargestViolationFirst (3 ms)
+[ RUN      ] QpWalkSeam.TheRegularizationAndResidualsAreRecordedOnEveryPass
+[       OK ] QpWalkSeam.TheRegularizationAndResidualsAreRecordedOnEveryPass (3 ms)
+[ RUN      ] QpWalkSeam.TheSignatureIsOrderIndependentSideSensitiveAndIdentitySensitive
+[       OK ] QpWalkSeam.TheSignatureIsOrderIndependentSideSensitiveAndIdentitySensitive (0 ms)
+[ RUN      ] QpWalkSeam.ResetClearsEverythingTheObserverHolds
+[       OK ] QpWalkSeam.ResetClearsEverythingTheObserverHolds (0 ms)
+[ RUN      ] QpWalkSeam.TheRecordCapIsHonouredAndReported
+[       OK ] QpWalkSeam.TheRecordCapIsHonouredAndReported (0 ms)
+[ RUN      ] QpWalkSeam.TheNeutralityComparisonWouldCatchAMoveIfThereWereOne
+[       OK ] QpWalkSeam.TheNeutralityComparisonWouldCatchAMoveIfThereWereOne (0 ms)
+[----------] 20 tests from QpWalkSeam (173 ms total)
+
+[----------] 16 tests from QpAntiCyclingArm
+[ RUN      ] QpAntiCyclingArm.TheSwitchIsOffByDefaultAndItsParametersAreThePaperDerivedOnes
+[       OK ] QpAntiCyclingArm.TheSwitchIsOffByDefaultAndItsParametersAreThePaperDerivedOnes (0 ms)
+[ RUN      ] QpAntiCyclingArm.AnUnarmedSwitchWithTheObserverAttachedIsTheUnattachedRunBitForBit
+[       OK ] QpAntiCyclingArm.AnUnarmedSwitchWithTheObserverAttachedIsTheUnattachedRunBitForBit (1 ms)
+[ RUN      ] QpAntiCyclingArm.TheOffWalkOnThePeriodTwoFixtureTerminatesAtItsOptimum
+[       OK ] QpAntiCyclingArm.TheOffWalkOnThePeriodTwoFixtureTerminatesAtItsOptimum (0 ms)
+[ RUN      ] QpAntiCyclingArm.TheOffWalkOnThePeriodFourFixtureTerminatesAtItsOptimum
+[       OK ] QpAntiCyclingArm.TheOffWalkOnThePeriodFourFixtureTerminatesAtItsOptimum (0 ms)
+[ RUN      ] QpAntiCyclingArm.ArmEIsInertOnThePeriodTwoFixtureThatNoLongerCycles
+[ e4fix2 ] arm E inert: off 0/4 == on 0/4 ; switches min=2 pivot=1 lex_drop=0 lex_ratio=0
+[       OK ] QpAntiCyclingArm.ArmEIsInertOnThePeriodTwoFixtureThatNoLongerCycles (1 ms)
+[ RUN      ] QpAntiCyclingArm.ArmLIsInertOnThePeriodTwoFixtureThatNoLongerCycles
+[ e4fix2 ] arm L inert: off 0/4 == on 0/4 ; switches min=0 pivot=0 lex_drop=0 lex_ratio=1
+[       OK ] QpAntiCyclingArm.ArmLIsInertOnThePeriodTwoFixtureThatNoLongerCycles (1 ms)
+[ RUN      ] QpAntiCyclingArm.ArmEIsInertOnThePeriodFourFixtureThatNoLongerCycles
+[ e4fix2 ] arm E inert: off 0/4 == on 0/4 ; switches min=2 pivot=1 lex_drop=0 lex_ratio=0
+[       OK ] QpAntiCyclingArm.ArmEIsInertOnThePeriodFourFixtureThatNoLongerCycles (1 ms)
+[ RUN      ] QpAntiCyclingArm.ArmLIsInertOnThePeriodFourFixtureThatNoLongerCycles
+[ e4fix2 ] arm L inert: off 0/4 == on 0/4 ; switches min=0 pivot=0 lex_drop=0 lex_ratio=0
+[       OK ] QpAntiCyclingArm.ArmLIsInertOnThePeriodFourFixtureThatNoLongerCycles (1 ms)
+[ RUN      ] QpAntiCyclingArm.NeitherArmChangesAWalkWithNoTieAndNoZeroRatio
+[       OK ] QpAntiCyclingArm.NeitherArmChangesAWalkWithNoTieAndNoZeroRatio (0 ms)
+[ RUN      ] QpAntiCyclingArm.ArmEsKthIterationRunsAtTheExpandedToleranceAndTheResetFollowsIt
+[       OK ] QpAntiCyclingArm.ArmEsKthIterationRunsAtTheExpandedToleranceAndTheResetFollowsIt (0 ms)
+[ RUN      ] QpAntiCyclingArm.ArmEsResetCountsANontrivialReProjection
+[       OK ] QpAntiCyclingArm.ArmEsResetCountsANontrivialReProjection (0 ms)
+[ RUN      ] QpAntiCyclingArm.ArmEsResetSequenceIsReachableAndRestartsTheTolerance
+[       OK ] QpAntiCyclingArm.ArmEsResetSequenceIsReachableAndRestartsTheTolerance (0 ms)
+[ RUN      ] QpAntiCyclingArm.ArmingOnOneThreadIsInvisibleOnAnother
+[       OK ] QpAntiCyclingArm.ArmingOnOneThreadIsInvisibleOnAnother (1 ms)
+[ RUN      ] QpAntiCyclingArm.ArmEsFloorStepOnTheNegativeCurvatureRideIsNotRePinned
+[       OK ] QpAntiCyclingArm.ArmEsFloorStepOnTheNegativeCurvatureRideIsNotRePinned (0 ms)
+[ RUN      ] QpAntiCyclingArm.ArmEsNegligiblePivotParameterDecidesWhichConstraintsCanBlock
+[       OK ] QpAntiCyclingArm.ArmEsNegligiblePivotParameterDecidesWhichConstraintsCanBlock (0 ms)
+[ RUN      ] QpAntiCyclingArm.AnArmedSolveDoesNotReachIntoAnUnarmedOneRunningBesideIt
+[       OK ] QpAntiCyclingArm.AnArmedSolveDoesNotReachIntoAnUnarmedOneRunningBesideIt (0 ms)
+[----------] 16 tests from QpAntiCyclingArm (13 ms total)
+
+[----------] 24 tests from QpE2WorkingSet
+[ RUN      ] QpE2WorkingSet.ThePeriodTwoQpEndsAtItsOptimumInBothAlgebras
+[       OK ] QpE2WorkingSet.ThePeriodTwoQpEndsAtItsOptimumInBothAlgebras (1 ms)
+[ RUN      ] QpE2WorkingSet.ThePeriodFourQpEndsAtItsOptimumInBothAlgebras
+[       OK ] QpE2WorkingSet.ThePeriodFourQpEndsAtItsOptimumInBothAlgebras (1 ms)
+[ RUN      ] QpE2WorkingSet.ADependentBlockerIsExchangedForTheMemberItsCoefficientsName
+[       OK ] QpE2WorkingSet.ADependentBlockerIsExchangedForTheMemberItsCoefficientsName (0 ms)
+[ RUN      ] QpE2WorkingSet.NoAdmissibleMemberOnAnInfeasibleQpReturnsAVerifiedCertificate
+[       OK ] QpE2WorkingSet.NoAdmissibleMemberOnAnInfeasibleQpReturnsAVerifiedCertificate (0 ms)
+[ RUN      ] QpE2WorkingSet.NoAdmissibleMemberAndNoPassOverEndsInsideTheBox
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:1408: Failure
+The difference between s.x(0) and 0.5 is 0.10000000000017306, which exceeds 1e-12, where
+s.x(0) evaluates to 0.60000000000017306,
+0.5 evaluates to 0.5, and
+1e-12 evaluates to 9.9999999999999998e-13.
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:1390: refactorize
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:1409: Failure
+The difference between s.x(1) and 0.125 is 0.125, which exceeds 1e-12, where
+s.x(1) evaluates to 0,
+0.125 evaluates to 0.125, and
+1e-12 evaluates to 9.9999999999999998e-13.
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:1390: refactorize
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:1410: Failure
+The difference between s.x(2) and 0.375 is 0.025000000000115374, which exceeds 1e-12, where
+s.x(2) evaluates to 0.40000000000011537,
+0.375 evaluates to 0.375, and
+1e-12 evaluates to 9.9999999999999998e-13.
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:1390: refactorize
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:1408: Failure
+The difference between s.x(0) and 0.5 is 0.10000000000017306, which exceeds 1e-12, where
+s.x(0) evaluates to 0.60000000000017306,
+0.5 evaluates to 0.5, and
+1e-12 evaluates to 9.9999999999999998e-13.
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:1390: border
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:1409: Failure
+The difference between s.x(1) and 0.125 is 0.125, which exceeds 1e-12, where
+s.x(1) evaluates to 0,
+0.125 evaluates to 0.125, and
+1e-12 evaluates to 9.9999999999999998e-13.
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:1390: border
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:1410: Failure
+The difference between s.x(2) and 0.375 is 0.025000000000115374, which exceeds 1e-12, where
+s.x(2) evaluates to 0.40000000000011537,
+0.375 evaluates to 0.375, and
+1e-12 evaluates to 9.9999999999999998e-13.
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:1390: border
+
+[  FAILED  ] QpE2WorkingSet.NoAdmissibleMemberAndNoPassOverEndsInsideTheBox (0 ms)
+[ RUN      ] QpE2WorkingSet.TheBorderNoLongerNeedsItsRetreatAndStillEndsOptimal
+[       OK ] QpE2WorkingSet.TheBorderNoLongerNeedsItsRetreatAndStillEndsOptimal (0 ms)
+[ RUN      ] QpE2WorkingSet.ALockedPositiveMemberStillGetsTheVerifiedCertificate
+[       OK ] QpE2WorkingSet.ALockedPositiveMemberStillGetsTheVerifiedCertificate (0 ms)
+[ RUN      ] QpE2WorkingSet.TheUndecidableBorderPingPongRetreatsOnceAndEndsOptimal
+[       OK ] QpE2WorkingSet.TheUndecidableBorderPingPongRetreatsOnceAndEndsOptimal (1 ms)
+[ RUN      ] QpE2WorkingSet.AFullyPinnedRowDecidesAnUndecidablePinExactly
+[       OK ] QpE2WorkingSet.AFullyPinnedRowDecidesAnUndecidablePinExactly (0 ms)
+[ RUN      ] QpE2WorkingSet.ATolerancedCertificateOnAnUnboundedCoordinateEndsNumericalErrorInsideTheBox
+[       OK ] QpE2WorkingSet.ATolerancedCertificateOnAnUnboundedCoordinateEndsNumericalErrorInsideTheBox (0 ms)
+[ RUN      ] QpE2WorkingSet.AnExactlyDependentBlockerOnFreeVariablesIsCertifiedInfeasibleAfterRefinement
+[       OK ] QpE2WorkingSet.AnExactlyDependentBlockerOnFreeVariablesIsCertifiedInfeasibleAfterRefinement (0 ms)
+[ RUN      ] QpE2WorkingSet.AStructuralDependencyDecidesFirstOnTheSteenbrbElasticQp
+[       OK ] QpE2WorkingSet.AStructuralDependencyDecidesFirstOnTheSteenbrbElasticQp (1654 ms)
+[ RUN      ] QpE2WorkingSet.TheLockedVertexUnlocksOnTheAcopr57PrimalQps
+[       OK ] QpE2WorkingSet.TheLockedVertexUnlocksOnTheAcopr57PrimalQps (873 ms)
+[ RUN      ] QpE2WorkingSet.AMuFreeInertiaReReadCertifiesTheSingularPsdFaceOfAcopp57
+[       OK ] QpE2WorkingSet.AMuFreeInertiaReReadCertifiesTheSingularPsdFaceOfAcopp57 (7 ms)
+[ RUN      ] QpE2WorkingSet.AMuFreeSuspectReadDoesNotCertifyASaddle
+[       OK ] QpE2WorkingSet.AMuFreeSuspectReadDoesNotCertifyASaddle (1 ms)
+[ RUN      ] QpE2WorkingSet.AGreyReReadSolvesTheAcopr57RestorationQp
+[       OK ] QpE2WorkingSet.AGreyReReadSolvesTheAcopr57RestorationQp (6554 ms)
+[ RUN      ] QpE2WorkingSet.AConvergedGreyPinOnDallasmIsReReadDependent
+[       OK ] QpE2WorkingSet.AConvergedGreyPinOnDallasmIsReReadDependent (405 ms)
+[ RUN      ] QpE2WorkingSet.AGreyPinOnYorknetThatIsIndependentStaysIndependent
+[       OK ] QpE2WorkingSet.AGreyPinOnYorknetThatIsIndependentStaysIndependent (21501 ms)
+[ RUN      ] QpE2WorkingSet.TheDeclinedRideResolvesWithoutAnExchangeOnSteenbrbRestorationQp3
+[       OK ] QpE2WorkingSet.TheDeclinedRideResolvesWithoutAnExchangeOnSteenbrbRestorationQp3 (8565 ms)
+[ RUN      ] QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp4
+[       OK ] QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp4 (2309 ms)
+[ RUN      ] QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp5
+[       OK ] QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp5 (2280 ms)
+[ RUN      ] QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp6
+[       OK ] QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp6 (2265 ms)
+[ RUN      ] QpE2WorkingSet.TheRideNeedsNoExchangeOnceThePolishRemovesTheRowsFootprint
+[       OK ] QpE2WorkingSet.TheRideNeedsNoExchangeOnceThePolishRemovesTheRowsFootprint (0 ms)
+[ RUN      ] QpE2WorkingSet.TheNullSpaceVetoIsNotReachedOnceThePolishRemovesTheRowsFootprint
+[       OK ] QpE2WorkingSet.TheNullSpaceVetoIsNotReachedOnceThePolishRemovesTheRowsFootprint (0 ms)
+[----------] 24 tests from QpE2WorkingSet (46427 ms total)
+
+[----------] 22 tests from QpDegeneracyArm
+[ RUN      ] QpDegeneracyArm.TheSwitchIsOffByDefaultAndOffIsProduction
+[       OK ] QpDegeneracyArm.TheSwitchIsOffByDefaultAndOffIsProduction (1 ms)
+[ RUN      ] QpDegeneracyArm.TheOffWalkOnTheScaleCarrierFixtureTakesNoNoiseDropAndTerminates
+[       OK ] QpDegeneracyArm.TheOffWalkOnTheScaleCarrierFixtureTakesNoNoiseDropAndTerminates (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmAHasNoNoiseDropToRefuseAndIsInert
+[       OK ] QpDegeneracyArm.ArmAHasNoNoiseDropToRefuseAndIsInert (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmAIsBitIdenticalOnANonDegenerateQp
+[       OK ] QpDegeneracyArm.ArmAIsBitIdenticalOnANonDegenerateQp (0 ms)
+[ RUN      ] QpDegeneracyArm.TheDropScaleColumnHasNoDropPassToCheck
+[       OK ] QpDegeneracyArm.TheDropScaleColumnHasNoDropPassToCheck (0 ms)
+[ RUN      ] QpDegeneracyArm.ThePostDropInertiaDiagnosticHasNoDropPassToRunOnAndMovesNothing
+[       OK ] QpDegeneracyArm.ThePostDropInertiaDiagnosticHasNoDropPassToRunOnAndMovesNothing (1 ms)
+[ RUN      ] QpDegeneracyArm.TheDiagnosticColumnsStayAbsentBecauseNoDropPassRuns
+[       OK ] QpDegeneracyArm.TheDiagnosticColumnsStayAbsentBecauseNoDropPassRuns (0 ms)
+[ RUN      ] QpDegeneracyArm.WithoutTheSwitchThePostDropInertiaColumnsStayAbsent
+[       OK ] QpDegeneracyArm.WithoutTheSwitchThePostDropInertiaColumnsStayAbsent (0 ms)
+[ RUN      ] QpDegeneracyArm.AnArmedSolveDoesNotReachIntoAnUnarmedOneRunningBesideIt
+[       OK ] QpDegeneracyArm.AnArmedSolveDoesNotReachIntoAnUnarmedOneRunningBesideIt (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1IsInertOnTheFixtureThatNoLongerCycles
+[       OK ] QpDegeneracyArm.ArmB1IsInertOnTheFixtureThatNoLongerCycles (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1IsBitIdenticalWhereItPassesNothingOver
+[       OK ] QpDegeneracyArm.ArmB1IsBitIdenticalWhereItPassesNothingOver (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1HasNoPassOverToLeaveTheBoxWithAndTheCertificateIsNotReached
+[       OK ] QpDegeneracyArm.ArmB1HasNoPassOverToLeaveTheBoxWithAndTheCertificateIsNotReached (0 ms)
+[ RUN      ] QpDegeneracyArm.TheCertificatesBoundHalfPassesASolvedQpWithActiveBounds
+[       OK ] QpDegeneracyArm.TheCertificatesBoundHalfPassesASolvedQpWithActiveBounds (0 ms)
+[ RUN      ] QpDegeneracyArm.CertificateSeamIsInertUnarmedOnTheFixtureQp
+[       OK ] QpDegeneracyArm.CertificateSeamIsInertUnarmedOnTheFixtureQp (0 ms)
+[ RUN      ] QpDegeneracyArm.CertificateToleratesABoundViolationInsideAndOnTheStructuralMargin
+[       OK ] QpDegeneracyArm.CertificateToleratesABoundViolationInsideAndOnTheStructuralMargin (1 ms)
+[ RUN      ] QpDegeneracyArm.CertificateRefusesABoundViolationOutsideTheStructuralMargin
+[       OK ] QpDegeneracyArm.CertificateRefusesABoundViolationOutsideTheStructuralMargin (2 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1sColumnsAndCountersStayAbsentWhenItIsNotArmed
+[       OK ] QpDegeneracyArm.ArmB1sColumnsAndCountersStayAbsentWhenItIsNotArmed (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1sEnumerationAgreesWithProductionsRatioTestOnEveryPass
+[       OK ] QpDegeneracyArm.ArmB1sEnumerationAgreesWithProductionsRatioTestOnEveryPass (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1sEntryRepairRemovesDependentSeedMembersAndHoldsTheInvariant
+[       OK ] QpDegeneracyArm.ArmB1sEntryRepairRemovesDependentSeedMembersAndHoldsTheInvariant (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1sMuSweepFindsNoPassOverToLeakAtAnyMu
+[       OK ] QpDegeneracyArm.ArmB1sMuSweepFindsNoPassOverToLeakAtAnyMu (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1sSwitchIsPerThreadWithBothSolvesInFlight
+[       OK ] QpDegeneracyArm.ArmB1sSwitchIsPerThreadWithBothSolvesInFlight (0 ms)
+[ RUN      ] QpDegeneracyArm.CondROnTheQrIsFilledWhereADecompositionRanAndSizesTheConditioning
+[       OK ] QpDegeneracyArm.CondROnTheQrIsFilledWhereADecompositionRanAndSizesTheConditioning (0 ms)
+[----------] 22 tests from QpDegeneracyArm (16 ms total)
+
+[----------] 8 tests from QpNc2FlatFace
+[ RUN      ] QpNc2FlatFace.AWrongSignedDropOnAnLpFaceRidesTheRayToItsBlocker
+[       OK ] QpNc2FlatFace.AWrongSignedDropOnAnLpFaceRidesTheRayToItsBlocker (0 ms)
+[ RUN      ] QpNc2FlatFace.TheNoiseLevelMultiplierIsWithinTheScaledKktTestAndIsNotDropped
+[       OK ] QpNc2FlatFace.TheNoiseLevelMultiplierIsWithinTheScaledKktTestAndIsNotDropped (0 ms)
+[ RUN      ] QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeRefactorize
+[ nc2 ] R2_Cs_STEENBRB_qp2.txt refactorize status=0 f=-192.000445482 minors=1857 rides=40 zero_length=24 predicted_signs=0 vetoes=0 undos=0 zmexh=0 zmcap=0
+[       OK ] QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeRefactorize (408 ms)
+[ RUN      ] QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder
+[ nc2 ] R2_Cs_STEENBRB_qp2.txt border status=0 f=-192.000445482 minors=1857 rides=40 zero_length=24 predicted_signs=0 vetoes=0 undos=0 zmexh=0 zmcap=0
+[       OK ] QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder (9228 ms)
+[ RUN      ] QpNc2FlatFace.TheSteenbrbRestorationLpQp3NeverAscendsTheSlopeRefactorize
+[ nc2 ] R2_Cs_STEENBRB_qp3.txt refactorize status=0 f=-384.00031719 minors=2915 rides=65 zero_length=39 predicted_signs=0 vetoes=0 undos=0 zmexh=0 zmcap=0
+[       OK ] QpNc2FlatFace.TheSteenbrbRestorationLpQp3NeverAscendsTheSlopeRefactorize (571 ms)
+[ RUN      ] QpNc2FlatFace.TheSteenbrbRestorationLpQp3NeverAscendsTheSlopeBorder
+[ nc2 ] R2_Cs_STEENBRB_qp3.txt border status=0 f=-384.00031719 minors=2915 rides=65 zero_length=39 predicted_signs=0 vetoes=0 undos=0 zmexh=0 zmcap=0
+[       OK ] QpNc2FlatFace.TheSteenbrbRestorationLpQp3NeverAscendsTheSlopeBorder (4894 ms)
+[ RUN      ] QpNc2FlatFace.TheSteenbrbRestorationLpQp4NeverAscendsTheSlopeRefactorize
+[ nc2 ] R2_Cs_STEENBRB_qp4.txt refactorize status=0 f=-192.000158917 minors=411 rides=67 zero_length=35 predicted_signs=0 vetoes=0 undos=0 zmexh=0 zmcap=0
+[       OK ] QpNc2FlatFace.TheSteenbrbRestorationLpQp4NeverAscendsTheSlopeRefactorize (178 ms)
+[ RUN      ] QpNc2FlatFace.TheSteenbrbRestorationLpQp4NeverAscendsTheSlopeBorder
+[ nc2 ] R2_Cs_STEENBRB_qp4.txt border status=0 f=-192.000158917 minors=411 rides=67 zero_length=35 predicted_signs=0 vetoes=0 undos=0 zmexh=0 zmcap=0
+[       OK ] QpNc2FlatFace.TheSteenbrbRestorationLpQp4NeverAscendsTheSlopeBorder (4392 ms)
+[----------] 8 tests from QpNc2FlatFace (19674 ms total)
+
+[----------] Global test environment tear-down
+[==========] 90 tests from 5 test suites ran. (66306 ms total)
+[  PASSED  ] 89 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] QpE2WorkingSet.NoAdmissibleMemberAndNoPassOverEndsInsideTheBox
+
+ 1 FAILED TEST

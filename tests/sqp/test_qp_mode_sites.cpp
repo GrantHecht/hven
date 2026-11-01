@@ -161,6 +161,12 @@ void expect_site_identities(const SiteRun &r) {
     // One walk per correction ATTEMPT, which is what soc_steps counts.
     EXPECT_EQ(at(r.sites, "soc_resolve"), r.counters.soc_steps) << "soc_resolve == soc_steps";
 
+    // One walk per cap RETRY (M7 W2 M1). Exact, and identically 0 == 0 on every
+    // cell in the table below, which all run at `qp_cap_retry`'s default of
+    // false: the NON-VACUOUS reading of this site lives with the lever, in
+    // tests/sqp/test_qp_cap_levers.cpp, where a capped fixture turns it on.
+    EXPECT_EQ(at(r.sites, "cap_retry"), r.counters.qp_cap_retries) << "cap_retry == qp_cap_retries";
+
     // THE DISPATCH SITE IS BOUNDED, NOT EXACT, and the bound is the reading: a
     // major that solves a QP writes at least its own arm's line, and at most two
     // -- the handing arm's and the walk's, when an arm hands off.
@@ -186,8 +192,15 @@ TEST(QpModeSites, EveryKernelInvocationIsAccountedForBySite) {
         {24, QpMode::kWalk, nullptr}, // the baseline: dispatch and nothing else
         {33, QpMode::kSsn, nullptr},  // the same, through the SSN arm
         {11, QpMode::kIpm, "elastic_rung"},
-        {10, QpMode::kSsn, "elastic_rung"},    // a LONG climb (48 escalations)
-        {15, QpMode::kIpm, "fallback_rung_b"}, // an entry whose evidence never fired
+        {10, QpMode::kSsn, "elastic_rung"}, // a LONG climb (48 escalations)
+        // HS15's `fallback_rung_b` premise RETIRED at M7 W2 E4 fix round 2 (declared):
+        // E4's QP answers solve this subproblem, so the cell no longer reaches the
+        // certified fallback's rung B at all and `at(r.sites, "fallback_rung_b")` reads
+        // 0. The cell STAYS in the table without a required site -- the site identities
+        // `expect_site_identities` checks still run on it, which is the other half of
+        // this test -- and the site itself keeps its own required cell in HS38 below,
+        // the natural-stall one, which is unmoved.
+        {15, QpMode::kIpm, nullptr},
         {27, QpMode::kIpm, "ssn_warm_grade"},  // three sites on one cell
         {45, QpMode::kIpm, "ssn_warm_grade"},  // the grade three times over
         {38, QpMode::kIpm, "fallback_rung_b"}, // the natural-stall cell

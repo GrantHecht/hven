@@ -1,0 +1,17 @@
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/core/ledger.cpp.o  sections=[.text]
+DEBUG-ONLY       CMakeFiles/hven.dir/src/drivers/console_trace_sink.cpp.o
+DEBUG-ONLY       CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o  sections=[.text]
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o  sections=[SECTION-COUNT(10112->10128)]
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o  sections=[.eh_frame,.gcc_except_table,.group,.llvm_addrsig,.rela.data.DW.ref.__gxx_personality_v0,.re
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o  sections=[.eh_frame,.symtab,.text,.text._ZN4hven7solvers10QpCountersC2Ev,.text._
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o  sections=[.eh_frame,.symtab,.text,.text._ZN4hven7solvers10QpCountersC2Ev,.text._ZN4hven7solvers11SolveRecor
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o  sections=[SECTION-LIST]
+DEBUG-ONLY       CMakeFiles/hven.dir/src/qp/ssn_engine.cpp.o
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o  sections=[.eh_frame,.symtab,.text,.text._ZN4hven7solvers11SqpCountersC2Ev,.text._ZN4hven7solvers16C
+SECTIONS_Debug_OBJECTS=44
+SECTIONS_Debug_BYTE_IDENTICAL=33
+SECTIONS_Debug_DEBUG_ONLY=3
+SECTIONS_Debug_NON_DEBUG_MOVERS=8
+SECTIONS_Debug_REFUSED=0
+SECTIONS_Debug_RC=1

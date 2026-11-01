@@ -7,7 +7,9 @@
 //
 // Value-semantic, comparable, serializable; engine-independent by
 // construction. Nothing here reaches into either engine, and nothing here
-// interprets an extension's bytes.
+// interprets an extension's bytes. The SQP column-scaling decision
+// (SqpWarmStart::column_factors) is not part of this currency: a payload route
+// re-reads the rule.
 
 #include <cstddef>
 #include <cstdint>

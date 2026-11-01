@@ -1,0 +1,19 @@
+# f7 cells per candidate (scratch Release, b25ab7ed + env toggles; cell.sh under the box lock)
+candA f7_n800_path_warm,Optimal,2,6,0,2,1;1
+candA f7_n1000_path_warm,Optimal,2,12,0,2,1;1
+candB f7_n800_path_warm,NumericalError,1115,1627,0,4,278;279;279;279
+candB f7_n1000_path_warm,NumericalError,9984,10496,0,4,7199;929;928;928
+candC f7_n800_path_warm,NumericalError,1115,1627,0,4,278;279;279;279
+candC f7_n1000_path_warm,dnf_budget,-1,-1,-1,-1,
+candD cell_id,status,factorizations,qp_minors,escapes,qp_subproblems,qp_fact_per_qp
+candD cell_id,status,factorizations,qp_minors,escapes,qp_subproblems,qp_fact_per_qp
+candE f7_n800_path_warm,Optimal,2,6,0,2,1;1
+candE f7_n1000_path_warm,Optimal,2,12,0,2,1;1
+FOREGROUND_END cell-candD 2026-09-24T01:10:05-04:00
+FOREGROUND_START cell-candD 2026-09-24T01:10:05-04:00
+RC=143
+FOREGROUND_END cell-candD 2026-09-24T01:19:50-04:00
+RC=124
+RC=0
+RC=0
+RC=0

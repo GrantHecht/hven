@@ -1,0 +1,6 @@
+minors     0-   99 ws    1-> 101 obj +0.000000e+00 -> +0.000000e+00 deg 100 facts    1 | add:100 | border:100
+minors   100-  199 ws  101-> 201 obj +0.000000e+00 -> +0.000000e+00 deg 100 facts   72 | add:100 | border:28 elim:1 elimL:71
+minors   200-  299 ws  201-> 301 obj +0.000000e+00 -> -3.428337e-04 deg  95 facts  100 | add:100 | elimL:100
+minors   300-  399 ws  301-> 401 obj -4.448242e-04 -> -1.571130e+00 deg   0 facts  100 | add:100 | elimL:100
+minors   400-  499 ws  401-> 501 obj -1.582029e+00 -> -1.816431e+01 deg   0 facts  100 | add:100 | elimL:100
+minors   500-  525 ws  501-> 525 obj -1.830582e+01 -> -2.412460e+01 deg   0 facts   26 | add:24 move:1 term:1 | elimL:26

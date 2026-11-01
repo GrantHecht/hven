@@ -1,0 +1,23 @@
+cell                     R16                                NEW                                class
+ACOPP118-default         optimal/8 f=129660.6862 25.1s      optimal/8 f=129660.6862 24.7s      IDENTICAL
+ACOPP57-default          optimal/5 f=41737.78685 1.0s       optimal/5 f=41737.78685 0.5s       IDENTICAL
+ACOPR118-default         optimal/25 f=129660.6837 69.2s     optimal/25 f=129660.6837 69.0s     IDENTICAL
+ACOPR57-default          optimal/16 f=41737.78604 2.0s      optimal/16 f=41737.78604 2.0s      IDENTICAL
+BIGBANK-default          optimal/23 f=-4205693.3 25.1s      optimal/23 f=-4205693.3 24.7s      IDENTICAL
+BRITGAS-default          numerical_error/19 f=0 403.4s      optimal/34 f=0 244.2s              CONVERTED
+DALLASM-default          optimal/18 f=-48198.18819 2.0s     optimal/18 f=-48198.18819 1.5s     IDENTICAL
+MSS2-default             dnf_wall (300.1s)                  dnf_wall (300.2s)                  capped both
+MSS3-default             dnf_wall (300.2s)                  dnf_wall (300.4s)                  capped both
+NET3-default             numerical_error/8 f=6174466.762 401.4s max_iter/31 f=6095476.444 80.1s    status numerical_error->max_iter
+READING6-default         optimal/8 f=-144.6597006 1.0s      optimal/8 f=-144.6597006 1.0s      IDENTICAL
+READING8-default         dnf_wall (300.2s)                  dnf_wall (300.4s)                  capped both
+SAWPATH-default          optimal/9 f=750.4589468 1.0s       optimal/9 f=750.4589468 1.0s       IDENTICAL
+SMBANK-default           optimal/29 f=-7129292 1.0s         optimal/29 f=-7129292 0.5s         IDENTICAL
+STEENBRB-default         optimal/136 f=9075.855376 32.1s    optimal/111 f=9075.855376 24.7s    counter-only (60 fields)
+STEENBRC-default         optimal/102 f=27504.93682 51.2s    max_iter/4 f=3.109498516e+10 33.2s LOST
+STEENBRD-default         optimal/85 f=9030.081867 29.1s     optimal/72 f=9030.081867 30.7s     counter-only (69 fields)
+STEENBRE-default         optimal/80 f=27459.16331 30.1s     max_iter/4 f=2.649420287e+10 32.7s LOST
+STEENBRG-default         optimal/78 f=27420.92967 39.1s     max_iter/4 f=3.158036786e+10 33.7s LOST
+TAX213322-default        dnf_wall (300.2s)                  dnf_wall (300.3s)                  capped both
+YORKNET-default          numerical_error/30 f=14697.31795 42.1s numerical_error/48 f=14672.23157 47.8s same status, moved (69 fields)
+SCORE base {'default': 14} new {'default': 12}

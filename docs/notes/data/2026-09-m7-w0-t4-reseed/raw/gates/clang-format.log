@@ -1,0 +1,87 @@
+CO_RUN_DECLARED clang-format-gate 2026-09-17T01:52:43-04:00 -- box lock NOT taken; foreign lane:
+CO_RUN_TERMS MKL_NUM_THREADS=1 OMP_NUM_THREADS=1; counters/statuses only; no wall, no instructions quoted
+PGREP_NOT_EMPTY -- the foreign lane above was found by the pre-leg pgrep run in its own command; this leg CO-RUNS with it by declaration
+FOREGROUND_START clang-format-gate 2026-09-17T01:52:43-04:00
+## HEAD (39746705)
+36
+## BASE (0be12ec3)
+36
+## files violating at HEAD but not at BASE (NEW violations -- must be empty)
+## files violating at BASE but not at HEAD
+## the two lists, verbatim
+--- HEAD
+docs/notes/data/2026-08-21-m4-task3-legs/ab_probe.cpp 363
+docs/notes/data/2026-08-21-m4-task3-legs/ab_probe_modes.cpp 472
+docs/notes/data/2026-08-22-m4-transcribe-attribution/identity_probe.cpp 7
+docs/notes/data/2026-08-24-m4-task9-gate/identity_probe.cpp 274
+docs/notes/data/2026-08-m6-e1-acquisition/generator/e1_generate.cpp 9
+docs/notes/data/2026-09-m6-w2-acceptance/probes/kipm-counter-probe.cpp 2
+docs/notes/data/2026-09-m6-w2-acceptance/probes/u0-reachability-probe.cpp 20
+docs/notes/data/2026-09-m6-w5-t8-runtime/attribution-interior/t84/scripts/probe.cpp 1
+docs/notes/data/2026-09-m6-w5-t8-runtime/attribution-interior/t84/scripts/probe2.cpp 1
+docs/notes/data/m4-ipm-wall-leg/ipm_time.cpp 31
+docs/notes/data/m4-ipm-wall-leg/layout_time.cpp 1
+include/hven/detail/globalization/acceptance_strategy.h 5
+include/hven/detail/globalization/filter_acceptance.h 6
+include/hven/detail/globalization/globalization_mechanism.h 1
+include/hven/detail/globalization/modern_merit.h 3
+include/hven/detail/globalization/monitored_governor.h 10
+include/hven/detail/globalization/proximal_restoration.h 3
+include/hven/detail/globalization/restoration.h 11
+include/hven/detail/globalization/soc.h 2
+include/hven/detail/globalization/sqp/globalization.h 5
+include/hven/detail/globalization/switching_acceptance.h 1
+include/hven/detail/globalization/watchdog.h 1
+include/hven/detail/interior/sizing_specs.h 1
+include/hven/detail/interior/typedefs/super_scalar_traits.h 52
+include/hven/detail/interior/utils/memory_management.h 10
+include/hven/detail/interior/utils/thread_pool.h 5
+src/interior/utils/get_core_count.cpp 1
+src/model/non_linear_program.cpp 1
+tests/interior/test_filter_acceptance.cpp 5
+tests/interior/test_funnel_acceptance.cpp 10
+tests/interior/test_l1_restoration.cpp 4
+tests/interior/test_merit_rules.cpp 10
+tests/interior/test_monitored_governor.cpp 5
+tests/interior/test_recovery_dispatch_gate.cpp 1
+tests/interior/test_watchdog.cpp 20
+tests/sqp/test_warm_start_battery.cpp 29
+--- BASE
+docs/notes/data/2026-08-21-m4-task3-legs/ab_probe.cpp 363
+docs/notes/data/2026-08-21-m4-task3-legs/ab_probe_modes.cpp 472
+docs/notes/data/2026-08-22-m4-transcribe-attribution/identity_probe.cpp 7
+docs/notes/data/2026-08-24-m4-task9-gate/identity_probe.cpp 274
+docs/notes/data/2026-08-m6-e1-acquisition/generator/e1_generate.cpp 9
+docs/notes/data/2026-09-m6-w2-acceptance/probes/kipm-counter-probe.cpp 2
+docs/notes/data/2026-09-m6-w2-acceptance/probes/u0-reachability-probe.cpp 20
+docs/notes/data/2026-09-m6-w5-t8-runtime/attribution-interior/t84/scripts/probe.cpp 1
+docs/notes/data/2026-09-m6-w5-t8-runtime/attribution-interior/t84/scripts/probe2.cpp 1
+docs/notes/data/m4-ipm-wall-leg/ipm_time.cpp 31
+docs/notes/data/m4-ipm-wall-leg/layout_time.cpp 1
+include/hven/detail/globalization/acceptance_strategy.h 5
+include/hven/detail/globalization/filter_acceptance.h 6
+include/hven/detail/globalization/globalization_mechanism.h 1
+include/hven/detail/globalization/modern_merit.h 3
+include/hven/detail/globalization/monitored_governor.h 10
+include/hven/detail/globalization/proximal_restoration.h 3
+include/hven/detail/globalization/restoration.h 11
+include/hven/detail/globalization/soc.h 2
+include/hven/detail/globalization/sqp/globalization.h 5
+include/hven/detail/globalization/switching_acceptance.h 1
+include/hven/detail/globalization/watchdog.h 1
+include/hven/detail/interior/sizing_specs.h 1
+include/hven/detail/interior/typedefs/super_scalar_traits.h 52
+include/hven/detail/interior/utils/memory_management.h 10
+include/hven/detail/interior/utils/thread_pool.h 5
+src/interior/utils/get_core_count.cpp 1
+src/model/non_linear_program.cpp 1
+tests/interior/test_filter_acceptance.cpp 5
+tests/interior/test_funnel_acceptance.cpp 10
+tests/interior/test_l1_restoration.cpp 4
+tests/interior/test_merit_rules.cpp 10
+tests/interior/test_monitored_governor.cpp 5
+tests/interior/test_recovery_dispatch_gate.cpp 1
+tests/interior/test_watchdog.cpp 20
+tests/sqp/test_warm_start_battery.cpp 29
+FOREGROUND_END clang-format-gate 2026-09-17T01:53:03-04:00 rc=0
+WRAPPER_RC clang-format-gate 0

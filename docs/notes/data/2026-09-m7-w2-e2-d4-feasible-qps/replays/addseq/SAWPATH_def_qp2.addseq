@@ -1,0 +1,5 @@
+it=0 ADD pin 583  dist=9.693e-02 engine_rho=1.039e-01 structural=False 
+it=1 ADD pin 584  dist=4.988e-03 engine_rho=4.990e-03 structural=False 
+it=2 ADD pin 529  dist=1.512e-01 engine_rho=1.513e-01 structural=False 
+it=3 ADD pin 526  dist=9.055e-03 engine_rho=9.058e-03 structural=False 
+it=4 ADD pin 11  dist=3.381e-04 engine_rho=2.336e-04 structural=False 

@@ -1,0 +1,101 @@
+M7 A3 -- THE GATE EXPECTATIONS, DERIVED.
+Written and committed BEFORE the chain was detached.
+
+RULE: nothing here, and no declared value in gates-a3.sh, may be adjusted after the chain's first leg. Every value is derived from the FINAL range
+96f3158e..bb512d69 or measured on that pair by this declaration's own rehearsal (rehearsal/). No value is carried from the A2 declaration: where a number
+equals A2's it is a COMPARISON, stated as such. The A2 gate record (docs/notes/data/2026-10-m7-a2-gates/, a869e7f3) is frozen, untouched. If a gate fails the
+declaration stays frozen; a fix gets a successor -r2 declaration and the failed record is filed under gates-run1/.
+
+BASE   96f3158e (previous gated head; code-identical to the toolchain re-baseline record's tree: `git diff 9973a4fb 96f3158e -- include src tests bench scripts cmake
+       CMakeLists.txt` is empty, and the runner checks the record's csv-header binary commit a869e7f3 against BEFORE by value). The by-name baseline is the A2 gates
+       record's gates/suite-*.txt (newest gates/suite-release.txt added at or before BEFORE; the runner derives it and refuses unless it equals the declared path;
+       no test file changed between the record's head 45e0517a and BEFORE, checked by value). The G4 exact arm's and the E1 OFF baseline are the toolchain re-baseline
+       record docs/notes/data/2026-10-m7-toolchain-2026-10-27/ (replay/head-{walk,ssn,ipm}.csv, e1/e1-off.csv), DERIVED from BEFORE by the runner.
+HEAD   bb512d69. The declaration commit sits on top and is docs/data only, so every derivation sees bb512d69's sources.
+       Code commits (git log 96f3158e..bb512d69): 9bab04cc (IpqpOptions::ipqp_ladder_skip_after, default 3, formerly detail::kIpqpLadderSkipAfter; fire counter
+       IpqpCounters::ipqp_ladder_zero_trial_skips; options-dump line; the E1 arm's levers and --ladder instrument), 3a26a5dd (tests pinned on a fixture whose
+       trajectory agrees across Debug and Release), bb512d69 (comment-only riders). d3197960 and bf7bf098 are docs and data.
+       A3 is claimed IDENTITY AT THE DEFAULT on every instrument this gate reads: the exact arm vs the toolchain record is declared 0 / 0 / 0 and ASSERTED; E1 OFF is
+       declared 0 differences on the base's columns with the one added counter column 0 on every row (the A3 page's G2 / G4).
+RUNNER gates-a3.sh + chain_gates_a3.sh + preflight-a3.sh + e1_off_compare_a3.py: copies of A2's, re-pointed (NOT edited in place). Changes, and nothing else: (a) names /
+       scratch .scratch/gates-a3 / BEFORE / by-name baseline; classifier a byte-identical copy (preflight F); (b) the changed surface (section 1); (c) the name checks
+       (section 3: 8 ADDED, 0 REMOVED); (d) the measured P-SYM slots (section 2); (e) ONE STRUCTURAL ADDITION: previous replay record and E1 baseline derived from BEFORE
+       (see the runner header), and the E1 OFF arm in the g4 segment compared by e1_off_compare_a3.py (new; derived from the A1 i2_compare.py `repro` rule plus
+       the added-column treatment). The A2 TEST-line regex widening is carried; A2's E5c falsifier is dropped (no TEST_F in this range) and E10 is turned round.
+ENVIRONMENT NOTE: the worktree (.claude/worktrees/a3-gates-wt, branch a3-gates) was created without its submodules; dep/eigen and dep/fmt were populated by copying the
+       main checkout's working trees (untracked; the copied .git pointer files removed). It was first created under .scratch/, where the runner's own segment guard
+       (a CODE line naming `.scratch/`) refuses it, and moved with `git worktree move`; the rehearsal's logs carry the old path. The rehearsal ran at a temporary
+       docs-only commit above bb512d69 (the wrappers), since reset away.
+
+-----------------------------------------------------------------------------
+1  THE CHANGED SURFACE of 96f3158e..bb512d69 -- OBSERVED, derived from git (git diff --name-status 96f3158e bb512d69 -- include src tests bench scripts).
+
+   3 headers (all MODIFIED): core/solver_counters.h, detail/qp/ipqp_engine.h, drivers/sqp_solver_types.h. One MODIFIED test-support header
+   (tests/sqp/support/indefinite_fixtures.h; not under include/, so not a classifier header: its includers' objects are class A or ADDED, or show in the measured class B).
+   11 MODIFIED .cpp, ALL inside the P-SYM universe: library src/drivers/sqp_options.cpp, src/drivers/sqp_solver.cpp, src/qp/ipqp_engine.cpp; bench/ipqp_e1_arm.cpp;
+     hven_drivers_tests test_callback, test_options_dump, test_threads; hven_sqp_tests test_ipqp_certification, test_ipqp_counters, test_ipqp_dispatch, test_trace_writer.
+     No outside-universe source (tests/sqp/test_ipqp_seams.cpp is NOT modified): EXPECT_CLASS_A_OUTSIDE_SRCS empty. => class A = 11.
+   1 ADDED .cpp, INSIDE the universe: tests/sqp/test_ipqp_ladder_skip.cpp (hven_sqp_tests), with its one tests/sqp/CMakeLists.txt line (EXPECT_SQP_CMAKE_ADDS
+     test_ipqp_ladder_skip.cpp). EXPECT_ADDED_CXX 1, EXPECT_PSYM_ADDED 1. No ADDED fixture, no src/ or tests/CMakeLists.txt change.
+   clang-format set: 16 files (3 headers + the test-support header + 11 modified .cpp + 1 added .cpp; the runner prints it).
+   THE DECLARED MOVERS this range carries: IpqpOptions::ipqp_ladder_skip_after (default 3, was a constexpr of the same value), IpqpCounters::ipqp_ladder_zero_trial_skips,
+   one options-dump line. U0 cells are claimed untouched; the replay csv schema is unchanged (bench/bench_corpus.cpp is not in the range, and it prints an explicit
+   column list), so the counter adds NO column to the replay csvs: the comparison stays 27 cells x 75 columns. The E1 arm's csv DOES gain the counter column
+   (counters_header in bench/ipqp_e1_arm.cpp): handled by the E1 comparator as declared above.
+
+-----------------------------------------------------------------------------
+2  THE P-SYM MOVER SHAPE, PER CONFIGURATION -- MEASURED on the final pair 96f3158e/bb512d69 by a FRESH rehearsal.
+
+     Release  DIFFERING 66 = class A 11 + class B 55; UNEXPLAINED 0; NOISE-ONLY 0; negative control 107; sections: 48 objects, 40 byte-identical,
+              DEBUG_ONLY 0, NON-DEBUG MOVERS 8, REFUSED 0
+     Debug    DIFFERING 67 = class A 11 + class B 56; UNEXPLAINED 0; NOISE-ONLY 6 (3 in the library); negative control 99; sections: 48 objects, 37
+              byte-identical, DEBUG_ONLY 3, NON-DEBUG MOVERS 8, REFUSED 0
+
+   HOW MEASURED. rehearsal/rehearse-a3.sh ran THIS runner's g5 segment (EXTRACTED from the runner's text) at the temporary docs-only commit above bb512d69
+   against 96f3158e, both configurations, one hold of the box lock (2026-10-28 21:58-22:33, PGREP_EMPTY under the hold; rehearsal/rehearsal-a3-log.txt). Its
+   HYPOTHESIS declaration (class A only, 11/11, class B 0) was REFUSED in both configurations by design (rehearsal/*-refused-at-11.txt), printing the measured
+   shape (66 / 67 differing). Then rehearsal/offline-a3.sh 66 67: a fresh Release build with g5's flags and the UNCAPPED classifier re-run on the compare files at the
+   measured counts -- OFFLINE_CLASSIFY_RC 0 in BOTH configurations (rehearsal/rehearsal-a3-classification-*.txt).
+   CLASS A: 11 in both configurations = the in-universe MODIFIED .cpp of section 1 exactly. Both class-A noise-only slots EMPTY.
+   CLASS B: Release 55, Debug 56 (OBSERVED, by name, in the runner). THE SHAPE: the Debug set is the Release set PLUS ONE object,
+   tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_status.cpp.o, BYTE-IDENTICAL in Release -- the carried Debug-only admission (EXPECT_PSYM_B_DEBUG_ONLY),
+   the same single object as in A2 (a comparison). EXPECT_PSYM_B_RELEASE_ONLY (mirror) EMPTY. The admission was proven offline on this rehearsal's own
+   classifications (rehearsal/check-dbgonly-a3.sh, preflight G). Library class B (both configurations, 5): core/ledger, drivers/sqp_print, drivers/trace_writer,
+   globalization/sqp/qn_lift_bridge, warmstart/continuation (same five as A2: a comparison). NOISE-ONLY library objects in Debug (console_trace_sink, ipm_solver,
+   qp_engine) are not section movers.
+   NON-DEBUG-MOVER set 8 in BOTH configurations: the three class A library objects (drivers/sqp_options, drivers/sqp_solver, qp/ipqp_engine) + the five class B library
+   objects. DEBUG_ONLY Release 0 / Debug 3. No library object ADDED. Class B lists differ from A2's only through this range's different includers of the three headers
+   (the declared lists are the measured ones).
+
+-----------------------------------------------------------------------------
+3  TEST COUNTS -- derived against the by-name baseline.
+
+   BASELINE (the A2 record): ctest total Debug 3221 / Release 3222; started names 3223 / 3224. Skipped: Debug 7, Release 1.
+   ADDED = 8 instances by name, REMOVED = 0, OBSERVED with git diff 96f3158e bb512d69 -- tests: 8 `+TEST(` lines (IpqpLadderSkipOptions 3, IpqpLadderSkip 5, all in
+   the added tests/sqp/test_ipqp_ladder_skip.cpp); no TEST_P/TEST_F, no removed TEST line, no GTEST_SKIP / DISABLED_ added.
+   EXPECTED SUITE COUNTS: Debug 3221 + 8 = 3229 (G1, the long test excluded); Release 3222 + 8 = 3230 (G3); G2 1. These match the implementer's report, but are DERIVED here.
+   The rehearsal build's `ctest -N` total is 3232 (rehearsal/ctest-N-startfmt-derived.txt, rewritten to the runner's "Start n: name" shape, the two "(Disabled)"
+   suffixes stripped as the baseline's derivation does; it passes the runner's by-name check in Release and Debug shape, preflight C/C2; a short listing and the
+   baseline are refused). Of the 3232 listed, 2 are Disabled: 3230 run. None added is Release-only, so DEBUG_ONLY_SKIPS_ADDED is EMPTY.
+
+-----------------------------------------------------------------------------
+4  G4: 27 cells x 75 columns x 3 engines, plus E1 OFF.
+
+   MEASURED by the rehearsal's offline leg (a fresh Release build of bb512d69's sources, MKL_NUM_THREADS=1, taskset -c 2; rehearsal/rehearsal-a3-g4-comparison.txt):
+   vs the M6 close pin, GATED (1e-5 relative, 1e-13 floor): walk 17, ssn 13, ipm 13 = 43; the measured set EQUALS the declared 43-entry list (runner --check-g4, rc 0:
+   preflight B), and the toolchain record's own comparison-vs-m6-pin.txt also equals it (preflight B1). EXACT arm vs the toolchain record's replay: walk 0, ssn 0,
+   ipm 0 differences. DECLARED 0 / 0 / 0 and ASSERTED rc 0 per engine by the chain's g4 segment (preflight B2: the comparator exits non-zero on a real difference).
+   E1 OFF (hven_sqp_ipqp_e1_arm --gate, taskset -c 2): rehearsal/e1/: rc 0; 29 cells x 68 common columns (wall_s excluded) 0 differences vs the toolchain record's
+   e1-off.csv; the one added column ipqp_ladder_zero_trial_skips is 0 on 29/29 rows. DECLARED the same and ASSERTED (arm rc 0, comparator rc 0; preflight B3 shows the
+   comparator refuses a non-zero added value, a changed common cell, a missing added column, and a wrong declared column name).
+
+-----------------------------------------------------------------------------
+5  G6: expected CLEAN: install smoke; export contract; clang-format over the DERIVED set (16 files); git diff --check; DIRTY_FILES 0.
+   Fold proofs: the count the gate-assert library produces, reported as observed.
+
+6  PRE-FLIGHT: preflight-a3.txt (generated by preflight-a3.sh), committed WITH this file and BEFORE the chain was detached: A full pre-flight PREFLIGHT_OK; B/B1
+   --check-g4 rc 0 (+ B2 the exact arm's teeth); C by-name reader (+ falsifiers); D skipped sets; E1-E12 falsifiers (E5c dropped, E10 turned round); B3 the E1
+   comparator's teeth; F classifier byte-identical to A2's; G the Debug-only admission proven.
+
+7  G5 CHECKS THE WORKTREE OUT TO BEFORE while it builds its before arm, once per configuration: nothing may edit or commit in this worktree from the chain's launch
+   until CHAIN_END. WALL IS INFORMATIONAL.

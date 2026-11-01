@@ -1,0 +1,30 @@
+-- Build files have been written to: /home/ghecht/Projects/hven/.scratch/m7w2m2b/smoke-work/smoke-build
+== building the smoke consumer
+[1/21] Building CXX object CMakeFiles/hven_install_smoke.dir/include_make_nlp_program.cpp.o
+[2/21] Building CXX object CMakeFiles/hven_install_smoke.dir/include_nlp_triplet_model.cpp.o
+[3/21] Building CXX object CMakeFiles/hven_install_smoke.dir/include_ipqp_evidence.cpp.o
+[4/21] Building CXX object CMakeFiles/hven_install_smoke.dir/include_trace_writer.cpp.o
+[5/21] Building CXX object CMakeFiles/hven_install_smoke.dir/include_trace.cpp.o
+[6/21] Building CXX object CMakeFiles/hven_install_smoke.dir/include_nlp_assembly.cpp.o
+[7/21] Building CXX object CMakeFiles/hven_install_smoke.dir/include_solve_status.cpp.o
+[8/21] Building CXX object CMakeFiles/hven_install_smoke.dir/include_core_solver_status.cpp.o
+[9/21] Building CXX object CMakeFiles/hven_install_smoke.dir/include_assembly_declaration.cpp.o
+[10/21] Building CXX object CMakeFiles/hven_install_smoke.dir/include_nlp_model_assembly.cpp.o
+[11/21] Building CXX object CMakeFiles/hven_install_smoke.dir/include_common_options.cpp.o
+[12/21] Building CXX object CMakeFiles/hven_install_smoke.dir/include_solve_result.cpp.o
+[13/21] Building CXX object CMakeFiles/hven_install_smoke.dir/include_seeding.cpp.o
+[14/21] Building CXX object CMakeFiles/hven_install_smoke.dir/include_sqp_solver.cpp.o
+[15/21] Building CXX object CMakeFiles/hven_install_smoke.dir/include_compiler.cpp.o
+[16/21] Building CXX object CMakeFiles/hven_install_smoke.dir/include_ipm_solver.cpp.o
+[17/21] Building CXX object CMakeFiles/hven_install_smoke.dir/main.cpp.o
+[18/21] Building CXX object CMakeFiles/hven_install_smoke.dir/include_sqp_warm_start.cpp.o
+[19/21] Building CXX object CMakeFiles/hven_install_smoke.dir/include_ipm_solver_types.cpp.o
+[20/21] Building CXX object CMakeFiles/hven_install_smoke.dir/include_console_trace_sink.cpp.o
+[21/21] Linking CXX executable hven_install_smoke
+== running the smoke consumer
+install smoke: IpmSolver converged, objective = 17.0140174 (OK)
+install smoke: SqpSolver converged, objective = 17.0140173 (OK)
+install smoke: both solvers converged through one generic consumer; 19 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.scratch/m7w2m2b/smoke-work/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.scratch/m7w2m2b/smoke-work/hven-configure.log

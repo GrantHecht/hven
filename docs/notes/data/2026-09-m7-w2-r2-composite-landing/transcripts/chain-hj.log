@@ -1,0 +1,12 @@
+RUN A0r_STEENBRB rc=0 status=numerical_error iterations=6 objective=254663197234.54739 factorizations=13125 resto=11 wall_s=59.416893342
+RUN A0r_YORKNET rc=0 status=numerical_error iterations=1 objective=116845.30509255918 factorizations=47382 resto=9 wall_s=59.200984674
+RUN A0r_READING6 rc=0 status=optimal iterations=8 objective=-144.65970057278273 factorizations=688 resto=0 wall_s=2.372615010
+RUN A0r_ACOPR57 rc=0 status=optimal iterations=15 objective=41737.78496542733 factorizations=1207 resto=0 wall_s=1.238346613
+RUN A0roff_ZAMB2-8 rc=0 status=numerical_error iterations=2 objective=-0.082078613227650407 factorizations=8227 resto=8 wall_s=18.696631109
+RUN Hj_STEENBRB rc=0 status=numerical_error iterations=2 objective=522686040812939.88 factorizations=14587 resto=54 wall_s=245.809172814
+RUN Hj_STEENBRC rc=0 status=interrupted iterations=4 objective=106560078322468.17 factorizations=17758 resto=38 wall_s=302.381587671
+RUN Hj_STEENBRD rc=0 status=optimal iterations=49 objective=9144.724931235618 factorizations=16044 resto=14 wall_s=184.697359448
+RUN Hj_STEENBRE rc=0 status=numerical_error iterations=29 objective=1139605579.7996438 factorizations=77864 resto=15 wall_s=283.617717458
+RUN Hj_STEENBRG rc=0 status=interrupted iterations=1 objective=274079.35621482856 factorizations=15378 resto=25 wall_s=335.114647035
+RUN Hj_YORKNET rc=0 status=numerical_error iterations=1 objective=91561.764905788514 factorizations=43648 resto=10 wall_s=69.324461304
+CHAIN_DONE /home/ghecht/Projects/hven/.scratch/m7w2r2/tools/matrix-hj.txt 2026-09-25T22:47:24-04:00

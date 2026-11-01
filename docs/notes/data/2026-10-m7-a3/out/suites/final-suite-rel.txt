@@ -1,0 +1,10 @@
+Test project /home/ghecht/Projects/hven/.claude/worktrees/agent-afecbe0a5611f9eff/.scratch/a3/build-head-rel
+
+100% tests passed, 0 tests failed out of 3230
+
+Total Test time (real) = 110.07 sec
+
+The following tests did not run:
+	665 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1927 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1928 - EqpRefinementAb.FullBattery (Disabled)

@@ -1,0 +1,159 @@
+M7 W2 M3a FIX ROUND 1 -- THE P-SYM MOVER SHAPE, DERIVED BEFORE THE GATE RAN
+===========================================================================
+
+WHY THIS FILE EXISTS. `gates-fix1.sh` ASSERTS a P-SYM mover shape -- differing
+objects, class A, class B -- that must be DECLARED before the chain is detached
+and never discovered from the chain's own run. Task A could derive its shape by
+argument, because its change moved `sizeof(SqpCounters)` 848 -> 856 and the
+universe was "every TU that lays the struct out", measured once before at M7 W2
+M2 on the same struct (54 = 5 + 49, then 54 = 6 + 48).
+
+FIX ROUND 1'S CHANGE IS NOT THAT KIND. It moves NO offset and NO `sizeof`: the
+field `restoration_sub_status` changes TYPE from `SolveStatus` to
+`RestorationSubStatus`, same underlying type, same width, same padding. So the
+object-level footprint does not follow from the file list, and predicting it
+would have been a guess dressed as a derivation. It was MEASURED instead, on
+this box, at the two commits the gate compares, BEFORE `gates-fix1.sh` was
+written and committed. This file is that measurement.
+
+WHAT WAS RUN. One hold of /tmp/box-build.lock; no solver; `ctest` not involved.
+A Debug tree and a Release tree, both already built at the fix round's head,
+were hashed object by object; the tree was then checked out at the base commit
+and both trees REBUILT AT THE SAME BUILD PATHS (the P-SYM precondition), and
+hashed again. The branch was restored before anything else ran.
+
+  base commit (BEFORE)   11b066e8
+  head at derivation     b96795ff  (the fix round's two commits)
+  produced               2026-09-21T09:59:59-04:00
+  objects per tree       181 Debug, 181 Release
+                         (tests AND bench; the same universe the gate captures)
+
+===========================================================================
+STEP 1 -- THE CHANGED SURFACE, FROM GIT
+---------------------------------------------------------------------------
+$ git diff --name-only 11b066e8 -- include/
+    include/hven/core/solver_counters.h
+    include/hven/core/solver_status.h
+$ git diff --name-only 11b066e8 -- src/ tests/
+    src/core/enum_names.cpp
+    src/drivers/sqp_solver.cpp
+    src/drivers/trace_writer.cpp
+    tests/drivers/test_callback.cpp
+    tests/drivers/test_solve_status.cpp
+    tests/drivers/test_threads.cpp
+    tests/sqp/test_sqp_restoration.cpp
+    tests/sqp/test_trace_writer.cpp
+
+===========================================================================
+STEP 2 -- OBJECT BYTES, BOTH CONFIGS
+---------------------------------------------------------------------------
+No object appears in one arm and not the other, in either config:
+    ONLY_BEFORE_dbg=0   ONLY_AFTER_dbg=0
+    ONLY_BEFORE_rel=0   ONLY_AFTER_rel=0
+
+RELEASE -- 12 objects differ in BYTES:
+    CMakeFiles/hven.dir/src/core/enum_names.cpp.o
+    CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+    CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o
+    tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/core/enum_names.cpp.o
+    tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o
+    tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_status.cpp.o
+    tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o
+    tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_cap_levers.cpp.o
+    tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o
+    tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+    tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_start_point_projection.cpp.o
+    tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_trace_writer.cpp.o
+
+DEBUG -- 82 objects differ in BYTES. That is a much larger
+set, and the reason is debug information: both changed headers gained lines and
+the field's type NAME is in the DWARF of every TU that describes SqpCounters.
+P-SYM compares INSTRUCTIONS per symbol and does not read DWARF, so a byte
+difference here is an upper bound on the movers, not the mover set.
+
+===========================================================================
+STEP 3 -- PER-SYMBOL DISASSEMBLY, ON EVERY ONE OF THE DEBUG BYTE-DIFFERING
+OBJECTS
+---------------------------------------------------------------------------
+Each of the 82 was disassembled in both arms (`objdump -d --no-show-raw-insn`,
+addresses stripped) and the two texts hashed. This is a proxy for what P-SYM
+does -- coarser, since it cannot tell a DIFFERS from a NOISE-ONLY -- so an
+object whose disassembly text MATCHES is certainly IDENTICAL to P-SYM, and the
+matching set is what settles the question.
+
+DISASSEMBLY DIFFERS on 12 of the 82:
+    CMakeFiles/hven.dir/src/core/enum_names.cpp.o
+    CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+    CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o
+    tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/core/enum_names.cpp.o
+    tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o
+    tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_status.cpp.o
+    tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o
+    tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_cap_levers.cpp.o
+    tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o
+    tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+    tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_start_point_projection.cpp.o
+    tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_trace_writer.cpp.o
+
+The other 70 differ in bytes and NOT in instructions: debug information only.
+
+===========================================================================
+STEP 4 -- THE TWO CONFIGS AGREE, AND THE SHAPE FOLLOWS
+---------------------------------------------------------------------------
+The Release byte-differing set and the Debug disassembly-differing set are the
+SAME 12 OBJECTS, name for name. (diff: no output.)
+
+  DIFFERING 12 = class A 9 + class B 3
+
+  class A -- SOURCE CHANGED by this round (9 objects). `enum_names.cpp` is
+  compiled TWICE: once into libhven and once into the ipqp-seam test target,
+  which builds a second copy of it. The classifier keys class A on the object's
+  BASENAME against the changed-source list, so both copies land in class A.
+
+    CMakeFiles/hven.dir/src/core/enum_names.cpp.o
+    CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+    CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o
+    tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/core/enum_names.cpp.o
+    tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o
+    tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_status.cpp.o
+    tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o
+    tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o
+    tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_trace_writer.cpp.o
+
+  class B -- SOURCE UNTOUCHED, includes a changed header (3 objects):
+
+    tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_cap_levers.cpp.o
+    tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+    tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_start_point_projection.cpp.o
+
+  WHY EXACTLY THOSE THREE. They are the three TUs that expand
+  `HVEN_SQP_COUNTERS_FIELDS` into a gtest `EXPECT_EQ` per field without having
+  been edited by this round. An `EXPECT_EQ` on an enum instantiates template
+  symbols that carry the TYPE'S NAME -- `PrintToString<T>`, `CmpHelperEQ<T,T>`,
+  `UniversalPrint<T>`, `RawBytesPrinter::PrintValue<T,4>` and eight more --
+  so renaming the type ADDS symbols to precisely the objects that compare or
+  print that field. Counted directly, after the change:
+
+    test_qp_cap_levers.cpp.o                                               12 symbols naming RestorationSubStatus (Debug)
+    test_sqp_solver.cpp.o                                                  12 symbols naming RestorationSubStatus (Debug)
+    test_start_point_projection.cpp.o                                      12 symbols naming RestorationSubStatus (Debug)
+
+  and the OTHER 169 objects in each tree are byte-identical in Release and
+  instruction-identical in Debug. The many among them that DO include one of
+  the two changed headers are this round's NEGATIVE CONTROL -- the classifier
+  counts them itself -- and it is large rather than scraping the minimum of 1.
+
+===========================================================================
+WHAT THE GATE DOES WITH THIS
+---------------------------------------------------------------------------
+`gates-fix1.sh` declares EXPECT_PSYM_DIFFERING=12, EXPECT_PSYM_CLASS_A=9,
+EXPECT_PSYM_CLASS_B=3 and asserts them for EQUALITY in both configs, and
+`assert_same_classification` requires the two configs' classifications to be
+byte-identical. This derivation predicts both. If the gate reports anything
+else, the gate FAILS and the shape is re-derived and declared again -- it is
+not adjusted to whatever the run produced.
+
+A NOTE ON WHAT THIS IS NOT. This is not a P-SYM run: `psym_compare.sh` was not
+invoked, no capture was taken, and nothing here is offered as the gate's
+evidence. It is the DERIVATION of the number the gate will assert, recorded so
+that a reader can see the number was fixed, and how, before the chain ran.

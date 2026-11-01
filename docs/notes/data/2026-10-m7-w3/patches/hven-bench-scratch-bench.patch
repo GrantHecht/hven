@@ -1,0 +1,59 @@
+From de06a428565130cb98733865394d85c2fd763e0e Mon Sep 17 00:00:00 2001
+From: Grant Hecht <grantrhecht@icloud.com>
+Date: Wed, 28 Oct 2026 22:08:41 -0400
+Subject: [PATCH] SCRATCH (hven M7 W3, never pushed): pin move + three W3
+ labels (sqp-ssn + one field each)
+
+---
+ cmake/hven_pin.cmake           |  7 ++++---
+ lanes/hven/hven_bench_cell.cpp | 11 +++++++++++
+ 2 files changed, 15 insertions(+), 3 deletions(-)
+
+diff --git a/cmake/hven_pin.cmake b/cmake/hven_pin.cmake
+index f08495c..7b3b3b5 100644
+--- a/cmake/hven_pin.cmake
++++ b/cmake/hven_pin.cmake
+@@ -563,14 +563,15 @@
+ # from a clean clone of 6a2a58c7 at .scratch/retake18-wt by scripts/w2_retake18_build.sh.  Nothing under
+ # runs/ taken at an earlier pin is re-derived by this move; the per-cell predictions, MEASURED on this
+ # pin's own build, are in runs/2026-10-m7-w2-retake18/README.md.
+-set(HVEN_PIN_SHA "6a2a58c71ec7bc40a44fd78a7b8e947c6fc2874e")
++# SCRATCH CLONE ONLY (hven M7 W3, never pushed): the pin moved to hven w3 7187a255396609c7ab08a75531a52552a6fe5ce2, the W3 measured head (bench switch only; library identical to bb512d69)
++set(HVEN_PIN_SHA "7187a255396609c7ab08a75531a52552a6fe5ce2")
+ 
+ # The branch the sha was read from, for a reader tracing it back.  NOT a
+ # lookup key: the sha alone identifies the tree, and the branch will move.
+-set(HVEN_PIN_BRANCH "m7")
++set(HVEN_PIN_BRANCH "w3")
+ 
+ # The date the pin was taken (UTC, ISO-8601 date).
+-set(HVEN_PIN_DATE "2026-10-22")
++set(HVEN_PIN_DATE "2026-10-28")
+ 
+ # The install prefix the pin builds into, relative to the harness root.  The
+ # sha12 in the name is what makes two pins two prefixes, so a stale prefix is
+diff --git a/lanes/hven/hven_bench_cell.cpp b/lanes/hven/hven_bench_cell.cpp
+index 1afc7d1..fc3a02d 100644
+--- a/lanes/hven/hven_bench_cell.cpp
++++ b/lanes/hven/hven_bench_cell.cpp
+@@ -587,6 +587,17 @@ hven::solvers::SqpOptions sqp_options(const std::string &label) {
+     // "one coherent mode ... companion options at THEIR defaults only" means.
+     if (label == "sqp-ssn") {
+         o.qp_mode = hven::solvers::QpMode::kSsn;
++    } else if (label == "sqp-ssn-sigma-armed") {
++        // hven M7 W3 (scratch clone only, never pushed): `sqp-ssn` plus ONE field each
++        // (docs/notes/2026-10-m7-w3-ratification-design.md section 5.5).
++        o.qp_mode = hven::solvers::QpMode::kSsn;
++        o.ssn_sigma_rule = hven::solvers::SsnSigmaRule::kResidualArmed;
++    } else if (label == "sqp-ssn-farkas") {
++        o.qp_mode = hven::solvers::QpMode::kSsn;
++        o.ssn_infeasibility_rule = hven::solvers::SsnInfeasibilityRule::kFarkasGated;
++    } else if (label == "sqp-ssn-certify-face") {
++        o.qp_mode = hven::solvers::QpMode::kSsn;
++        o.ssn_certify_from_face = true;
+     } else if (label == "sqp-ipm") {
+         o.qp_mode = hven::solvers::QpMode::kIpm;
+     } else if (label == "equality-basis-off") {
+-- 
+2.56.0
+

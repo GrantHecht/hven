@@ -1,9 +1,13 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
+#include <bit>
 #include <cmath>
+#include <cstdint>
 #include <limits>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include <gtest/gtest.h>
 #include <hven/detail/kkt/schur_complement.h>
@@ -396,3 +400,243 @@ TEST(Schur, NearlySingularOneByOneNeedsRefactorization) {
     EXPECT_DOUBLE_EQ(sick.cond_estimate(), 1.0); // the ratio is blind, as designed
     EXPECT_TRUE(sick.needs_refactorization());   // ... and the magnitude check is not
 }
+
+// ---------------------------------------------------------------------------
+// M7 W2 P1 -- the incremental C and the batch path. The contract under test:
+// C and its factorization are BIT-IDENTICAL to a from-scratch assembly of the
+// current border list, however the stack got there.
+// ---------------------------------------------------------------------------
+namespace {
+
+// A deterministic symmetric indefinite K0 (n0 = 10) and a pool of border
+// columns; nothing here depends on a particular value, only on both sides of
+// each comparison seeing the same ones.
+struct IncrementalFixture {
+    static constexpr Index kN0 = 10;
+    SpMatRM K0;
+    std::vector<Vec> pool;
+    std::vector<double> diag;
+
+    IncrementalFixture() {
+        std::uint64_t s = 0x9E3779B97F4A7C15ull;
+        const auto next = [&s]() {
+            s = s * 6364136223846793005ull + 1442695040888963407ull;
+            return static_cast<double>((s >> 33) % 2001) / 1000.0 - 1.0; // [-1, 1]
+        };
+        Eigen::MatrixXd D = Eigen::MatrixXd::Zero(kN0, kN0);
+        for (Index i = 0; i < kN0; ++i) {
+            D(i, i) = (i < 7 ? 3.0 : -2.0) + 0.1 * next();
+            for (Index j = i + 1; j < kN0; ++j) {
+                if ((i + j) % 3 == 0) {
+                    D(i, j) = 0.4 * next();
+                }
+            }
+        }
+        K0 = upper_with_structural_diag(D);
+        for (int b = 0; b < 14; ++b) {
+            Vec v(kN0);
+            for (Index i = 0; i < kN0; ++i) {
+                v(i) = (b + i) % 4 == 0 ? 0.0 : next();
+            }
+            pool.push_back(v);
+            diag.push_back(b % 3 == 0 ? -1e-8 : 0.5 * next());
+        }
+    }
+};
+
+// Bitwise equality of two solves of the same rhs.
+void expect_same_bits(const Vec &a, const Vec &b) {
+    ASSERT_EQ(a.size(), b.size());
+    for (Index i = 0; i < a.size(); ++i) {
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(a(i)), std::bit_cast<std::uint64_t>(b(i)))
+            << "entry " << i;
+    }
+}
+
+// What the pre-P1 rebuild computed: C from scratch, factorized lower, evidence
+// read off. Returns {cond_estimate, neg_eigs}.
+std::pair<double, Index> reference_evidence(detail::KktFactor &kkt, const std::vector<Vec> &vs,
+                                            const std::vector<double> &ds) {
+    const auto m = static_cast<Index>(vs.size());
+    std::vector<Vec> kv;
+    for (const Vec &v : vs) {
+        kv.push_back(detail::solve_vec(kkt, v));
+    }
+    Eigen::MatrixXd c = Eigen::MatrixXd::Zero(m, m);
+    for (Index i = 0; i < m; ++i) {
+        for (Index j = 0; j < m; ++j) {
+            c(i, j) = -vs[static_cast<std::size_t>(i)].dot(kv[static_cast<std::size_t>(j)]);
+        }
+        c(i, i) += ds[static_cast<std::size_t>(i)];
+    }
+    hven::linear::DenseSymmetricFactor f;
+    EXPECT_EQ(f.try_factorize(c, hven::linear::Triangle::kLower),
+              hven::linear::DenseFactorizeOutcome::kOk);
+    const auto ev = f.block_evidence();
+    double mx = 0.0;
+    double mn = std::numeric_limits<double>::infinity();
+    for (const double e : ev->block_abs_eigs) {
+        mx = std::max(mx, e);
+        mn = std::min(mn, e);
+    }
+    return {mx / mn, static_cast<Index>(ev->neg_eigs)};
+}
+
+Vec probe_rhs(Index n0, Index m) {
+    Vec r(n0 + m);
+    for (Index i = 0; i < r.size(); ++i) {
+        r(i) = 0.3 + 0.17 * static_cast<double>(i) - 0.05 * static_cast<double>(i * i % 7);
+    }
+    return r;
+}
+
+} // namespace
+
+TEST(Schur, IncrementalCMatchesFromScratchAfterAddsAndDrops) {
+    IncrementalFixture fx;
+    QpOptions opts;
+    opts.schur_cap = 100;
+    opts.schur_cond_max = 1e300;
+    detail::KktFactor kkt;
+    detail::factorize_checked(kkt, fx.K0);
+    SchurComplement schur(kkt, opts);
+
+    // The live list mirrors the stack in add order.
+    std::vector<Vec> vs;
+    std::vector<double> ds;
+    const auto add = [&](std::size_t p) {
+        schur.add_border(fx.pool[p], fx.diag[p]);
+        vs.push_back(fx.pool[p]);
+        ds.push_back(fx.diag[p]);
+    };
+    const auto drop = [&](Index k) {
+        schur.drop_border(k);
+        vs.erase(vs.begin() + k);
+        ds.erase(ds.begin() + k);
+    };
+    const auto check = [&]() {
+        ASSERT_EQ(schur.dim(), static_cast<Index>(vs.size()));
+        if (vs.empty()) {
+            return;
+        }
+        ASSERT_FALSE(schur.needs_refactorization());
+        const auto [cond, neg] = reference_evidence(kkt, vs, ds);
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(schur.cond_estimate()),
+                  std::bit_cast<std::uint64_t>(cond));
+        EXPECT_EQ(schur.expected_neg_eigs_delta(), neg);
+
+        // And the solve against a stack built fresh from the same list.
+        SchurComplement fresh(kkt, opts);
+        for (std::size_t i = 0; i < vs.size(); ++i) {
+            fresh.add_border(vs[i], ds[i]);
+        }
+        const Vec rhs = probe_rhs(IncrementalFixture::kN0, schur.dim());
+        expect_same_bits(schur.solve(rhs), fresh.solve(rhs));
+    };
+
+    for (std::size_t p = 0; p < 6; ++p) {
+        add(p);
+        check();
+    }
+    drop(0);
+    check();
+    drop(2);
+    check();
+    drop(static_cast<Index>(vs.size()) - 1);
+    check();
+    for (std::size_t p = 6; p < 11; ++p) {
+        add(p);
+    }
+    check();
+    drop(1);
+    drop(1);
+    check();
+    while (!vs.empty()) {
+        drop(static_cast<Index>(vs.size()) - 1);
+        check();
+    }
+}
+
+TEST(Schur, BatchedAddsLeaveTheStatePerAddWouldHave) {
+    IncrementalFixture fx;
+    QpOptions opts;
+    opts.schur_cap = 100;
+    opts.schur_cond_max = 1e300;
+    detail::KktFactor kkt;
+    detail::factorize_checked(kkt, fx.K0);
+
+    SchurComplement per_add(kkt, opts);
+    SchurComplement batched(kkt, opts);
+    per_add.add_border(fx.pool[0], fx.diag[0]);
+    batched.add_border(fx.pool[0], fx.diag[0]);
+
+    batched.begin_batch();
+    for (std::size_t p = 1; p < 9; ++p) {
+        per_add.add_border(fx.pool[p], fx.diag[p]);
+        batched.add_border(fx.pool[p], fx.diag[p]);
+        // Inside the batch no reader may see a stale factorization.
+        EXPECT_TRUE(batched.needs_refactorization());
+        EXPECT_TRUE(std::isinf(batched.cond_estimate()));
+        EXPECT_THROW((void)batched.expected_neg_eigs_delta(), std::runtime_error);
+    }
+    EXPECT_THROW(batched.drop_border(0), std::logic_error);
+    EXPECT_THROW(batched.begin_batch(), std::logic_error);
+    batched.end_batch();
+
+    ASSERT_EQ(batched.dim(), per_add.dim());
+    EXPECT_EQ(std::bit_cast<std::uint64_t>(batched.cond_estimate()),
+              std::bit_cast<std::uint64_t>(per_add.cond_estimate()));
+    EXPECT_EQ(batched.expected_neg_eigs_delta(), per_add.expected_neg_eigs_delta());
+    const Vec rhs = probe_rhs(IncrementalFixture::kN0, batched.dim());
+    expect_same_bits(batched.solve(rhs), per_add.solve(rhs));
+
+    // An empty batch changes nothing, and the stack keeps working afterwards.
+    batched.begin_batch();
+    batched.end_batch();
+    batched.drop_border(3);
+    per_add.drop_border(3);
+    expect_same_bits(batched.solve(probe_rhs(IncrementalFixture::kN0, batched.dim())),
+                     per_add.solve(probe_rhs(IncrementalFixture::kN0, per_add.dim())));
+}
+
+#if !defined(__APPLE__)
+// A non-finite border inside a batch: the single factorization throws, and the
+// replay leaves the stack where the per-add path leaves it -- the first
+// non-finite add rolled back, every earlier add kept, the factorization
+// discarded. (MKL only: Apple demotes a non-finite C to kExactlySingular, see
+// NonFiniteBorderNeverLeavesAReadableEvidenceState.)
+TEST(Schur, BatchThatThrowsLeavesThePerAddStack) {
+    IncrementalFixture fx;
+    QpOptions opts;
+    detail::KktFactor kkt;
+    detail::factorize_checked(kkt, fx.K0);
+    const double nan_d = std::numeric_limits<double>::quiet_NaN();
+
+    SchurComplement per_add(kkt, opts);
+    per_add.add_border(fx.pool[0], fx.diag[0]);
+    per_add.add_border(fx.pool[1], fx.diag[1]);
+    EXPECT_THROW(per_add.add_border(fx.pool[2], nan_d), std::runtime_error);
+
+    SchurComplement batched(kkt, opts);
+    batched.add_border(fx.pool[0], fx.diag[0]);
+    batched.begin_batch();
+    batched.add_border(fx.pool[1], fx.diag[1]);
+    batched.add_border(fx.pool[2], nan_d);
+    batched.add_border(fx.pool[3], fx.diag[3]);
+    EXPECT_THROW(batched.end_batch(), std::runtime_error);
+
+    EXPECT_EQ(batched.dim(), per_add.dim());
+    EXPECT_EQ(batched.dim(), 2);
+    EXPECT_TRUE(batched.needs_refactorization());
+    EXPECT_TRUE(per_add.needs_refactorization());
+    EXPECT_THROW((void)batched.expected_neg_eigs_delta(), std::runtime_error);
+
+    // Both stacks keep their surviving borders at their original indices, and a
+    // later drop lands on the right one.
+    batched.drop_border(1);
+    per_add.drop_border(1);
+    EXPECT_EQ(batched.dim(), 1);
+    EXPECT_FALSE(batched.needs_refactorization());
+    EXPECT_FALSE(per_add.needs_refactorization());
+}
+#endif

@@ -1,0 +1,278 @@
+P-SYM: FAIL — differences outside the accepted noise class
+DIFFERING OBJECTS: 17
+  class A -- SOURCE CHANGED by this task: 6
+      CMakeFiles/hven.dir/src/drivers/ipm_options.cpp.o
+      bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+      bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options_dump.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_result.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/__/bench/ipm_corpus_leg.cpp.o
+  class B -- INCLUDERS of a changed header, source untouched: 10
+      bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_concurrency.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_warm_protocol.cpp.o
+      tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_0_cxx.cxx.o
+      tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o
+      tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_2_cxx.cxx.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_warm_currency.cpp.o
+  UNEXPLAINED: 1
+      tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_3_cxx.cxx.o
+
+  NEGATIVE CONTROL -- objects that ALSO include one of those headers and are byte-identical: 93
+      CMakeFiles/hven.dir/src/core/ledger.cpp.o
+      CMakeFiles/hven.dir/src/drivers/assembly_eval_seam.cpp.o
+      CMakeFiles/hven.dir/src/drivers/console_trace_sink.cpp.o
+      CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+      CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o
+      CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o
+      CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+      CMakeFiles/hven.dir/src/drivers/trace.cpp.o
+      CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o
+      CMakeFiles/hven.dir/src/globalization/sqp/funnel.cpp.o
+      CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o
+      CMakeFiles/hven.dir/src/kkt/kkt_calls.cpp.o
+      CMakeFiles/hven.dir/src/model/nlp_adapter.cpp.o
+      CMakeFiles/hven.dir/src/model/nlp_model_assembly.cpp.o
+      CMakeFiles/hven.dir/src/model/nlp_problem_model.cpp.o
+      CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o
+      CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+      CMakeFiles/hven.dir/src/qp/ssn_engine.cpp.o
+      CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+      CMakeFiles/hven.dir/src/warmstart/ipm_polish_extension.cpp.o
+      CMakeFiles/hven.dir/src/warmstart/warm_start.cpp.o
+      bench/CMakeFiles/hven_sqp_bench.dir/bench_scale.cpp.o
+      bench/CMakeFiles/hven_sqp_f7_cold.dir/bench_f7_cold.cpp.o
+      bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+      bench/CMakeFiles/hven_sqp_snopt_f7.dir/bench_snopt_f7.cpp.o
+      bench/CMakeFiles/hven_sqp_ssn_safeguard_probe.dir/ssn_safeguard_probe.cpp.o
+      bench/CMakeFiles/hven_sqp_tau_bar_sweep_probe.dir/tau_bar_sweep_probe.cpp.o
+      tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/core/ledger.cpp.o
+      tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/drivers/sqp_options.cpp.o
+      tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/drivers/trace.cpp.o
+      tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/qp/ipqp_engine.cpp.o
+      tests/CMakeFiles/hven_ipqp_seam_tests.dir/sqp/test_ipqp_seams.cpp.o
+      tests/CMakeFiles/hven_tests.dir/warmstart/test_ipm_polish_extension.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_console_sink.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_print_tables.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o
+      tests/model/CMakeFiles/hven_model_tests.dir/test_aggregate_contract.cpp.o
+      tests/model/CMakeFiles/hven_model_tests.dir/test_model_surface_kkt.cpp.o
+      tests/model/CMakeFiles/hven_model_tests.dir/test_nlp_model_assembly.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_activity_telemetry.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_assembly_eval_seam.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_b1_gate.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_bench_dump.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_border_ops.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_continuation.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_corpus_cells.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_dense_oracle.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_disproved_entry.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_elastic_rung_vehicle.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_eqp_refine_ab.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_eqp_solve.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_funnel.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_battery.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_sweeps.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_acceptance.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_certification.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_counters.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_dispatch.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_engine.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_math.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_options.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_trace.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_warm_restart.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_kkt_assembly.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_kkt_calls.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_kkt_inertia_probe.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_kkt_partial_solve.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ledger.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_mesh_transfer.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_nlp_kkt_check.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_nlp_model.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_parametric_families.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_predictor.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_problem_scaling.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_cap_levers.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine_border.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine_indefinite.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine_tr.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_mode_sites.cpp.o
+
+===========================================================================
+APPENDED BY HAND, 2026-09-18 — the one UNEXPLAINED object, RESOLVED BY CONTENT.
+The classifier's verdict above is kept verbatim; this record is append-only and
+supersedes only the CLASSIFICATION of that one object, not the line that made it.
+
+OBJECT
+  tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_3_cxx.cxx.o
+
+WHY THE CLASSIFIER COULD NOT PLACE IT. Two reasons compound.
+ 1. It is a CMake UNITY TU. Its "source" is a generated aggregate under the
+    build tree, so a class-A test that matches an object's source path against
+    this task's changed-source list can never match one.
+ 2. P-SYM itself left an instruction UNCLASSIFIED inside it, and the classifier
+    propagates that to UNEXPLAINED regardless of which class the object is in.
+
+THE MEMBERS, read from the generated aggregate in the build tree
+(psym-build/tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_3_cxx.cxx):
+    #include ".../tests/interior/test_switching_acceptance.cpp"
+    #include ".../tests/interior/test_watchdog.cpp"
+
+NEITHER IS A SOURCE THIS TASK EDITED, so the honest classification is CLASS B --
+an INCLUDER of a changed header with its source untouched -- and not class A.
+The dependency route is direct and the build's own dep database confirms it:
+`ninja -t deps` on this object lists both
+    include/hven/drivers/ipm_solver.h        (edited: the new friend declaration
+                                              and its forward declaration)
+    include/hven/drivers/ipm_solver_types.h  (edited: the three default
+                                              initialisers this event moves)
+and `test_watchdog.cpp` names `InertSolverContext` eleven times. That fixture
+(tests/interior/solver_test_utils.h:57) holds a DEFAULT-CONSTRUCTED IpmOptions
+as a member, so every construction of it in that TU materialises the three
+changed defaults inline. It is the same route that put unity_0, unity_1 and
+unity_2 in class B above; this object differs from them only in that P-SYM's
+instruction classifier had nothing to say about its particular delta.
+
+THE DELTA, and it is a codegen width change, not a behaviour change. The
+differing symbols are `test_watchdog.cpp`'s own, e.g.
+  (anonymous namespace)::WatchdogRecoveryDecorator_ProgressDisarmsAndDelegatesBack_Test::TestBody()
+and the UNCLASSIFIED line is
+    -   vmovaps 0x0(%rip),%xmm0 ;LEN=8
+    +   vmovaps 0x0(%rip),%ymm0 ;LEN=8
+-- a 16-byte SSE constant store widened to a 32-byte AVX one. Moving three
+default initialisers changes the constant image the compiler lays down for an
+IpmOptions member and therefore how it vectorises the stores that initialise it.
+Same instruction, wider register; no call, no branch, no ordering moved. PERSYM
+for the object: 212 identical, 10 differing, 0 only-before, 0 only-after,
+0 collisions.
+
+RECLASSIFIED: CLASS B (includer of a changed header). UNEXPLAINED becomes 0.
+Release therefore reads: 17 differing objects = 6 class A + 11 class B,
+0 unexplained, against a negative control of 93 byte-identical includers.
+
+WHY DEBUG NEEDED NO SUCH RECORD. Debug reports 7 differing objects = 5 class A +
+2 class B, 0 unexplained, with a 101-object negative control, and unity_3 is not
+among them: at -O0 the compiler emits the same scalar/narrow stores for the
+options aggregate whatever the initialiser values are, so the three literals
+move no instruction in that TU. The width choice the Release delta shows is an
+optimiser decision, which is exactly why it appears in one config and not the
+other -- and why it is noise about form rather than a difference in what the
+code does.
+===========================================================================
+
+===========================================================================
+APPENDED BY HAND, FIX ROUND 1, 2026-09-18 -- the classification above (both
+the classifier's verbatim run and the 2026-09-18 unity_3 record beneath it)
+was produced against the WRONG HEADER LIST. This record is append-only; it
+supersedes neither the classifier's verbatim output nor the unity_3 record
+above, both of which are kept exactly as run/written, but it is the one to
+read for the correct picture.
+
+THE DEFECT. `wrappers/classify_psym.py`'s `HEADERS` constant, at the time
+both runs above were made, read M1/M4's SQP list:
+    include/hven/core/solver_counters.h
+    include/hven/drivers/sqp_solver_types.h
+    include/hven/drivers/sqp_solver.h
+This task edited none of those three. `git diff --name-only 33f68b1e 5bf6760c
+-- include/` names the three it DID edit:
+    include/hven/detail/drivers/ipm_solver_presets.h
+    include/hven/drivers/ipm_solver.h
+    include/hven/drivers/ipm_solver_types.h
+`HEADERS` is a per-task input to the script, not a constant to inherit from
+the previous brief that used it, and it was not updated for this task.
+
+THE RECLASSIFICATION, pure Python against the existing compare-Release.txt
+and the existing psym-build ninja dep log -- no rebuild, no lock -- with
+`HEADERS` set to the three lines above and every other argument (including
+`--changed-sources`) held exactly as `chain_psym.sh` invoked them. Committed
+verbatim as `psym/classification-Release.corrected.txt`. THE RESULT STANDS:
+17 differing objects = 6 class A + 11 class B, 0 unexplained -- the same
+partition the wrong-header run reported, because every object the wrong list
+placed in class A is still source this task changed, and (see below) the
+object the wrong list could not place at all turns out to belong in class B
+by the SAME route the wrong list used to place ten other objects there, once
+the headers it is actually checked against are the ones this task edited.
+
+THE UNITY_3 RECORD'S TWO STATED CAUSES ARE BOTH WRONG, and the real cause is
+simpler: the wrong header list. (1) "A class-A path match can never match a
+unity TU" is not what blocked it -- class A was never on the table for any
+unity TU, by construction (a unity TU's "source" is a generated aggregate,
+matched against no `--changed-sources` entry), and unity_0, unity_1 and
+unity_2 landed in class B under the SAME wrong-header run, so being a unity
+TU did not block THEM from a class-B verdict either. (2) "P-SYM left an
+instruction UNCLASSIFIED and the classifier propagates that" is not how the
+tool works: `classify_psym.py` never reads UNCLASSIFIED/CHANGED/COUNTS lines
+at all -- only `DIFFERS <object>` lines (to build the differing-object list)
+and the ninja dep log (to test header inclusion). Re-run with the correct
+three IPM headers, `unity_3_cxx.cxx.o`'s dep-log entry lists
+`ipm_solver.h` and `ipm_solver_types.h` directly, and it lands in CLASS B
+automatically, by the classifier's own header-match logic, with no by-hand
+resolution needed at all. The 2026-09-18 record above did the right thing by
+the wrong list it had; a correct list needed no such record.
+
+THE NEGATIVE CONTROL IS MIS-SPECIFIED IN THE TEXT ABOVE, independent of which
+header list is used. "93" counted objects that include the SQP headers
+(`HEADERS` as it stood) and are byte-identical -- not, as the classifier's own
+docstring, this file's earlier text, README section 3 and commit 5bf6760c all
+say, "objects that ALSO include one of THOSE [this task's changed] headers."
+Reclassified against the three IPM headers, the properly specified negative
+control in Release is **5**, not 93:
+    CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+    CMakeFiles/hven.dir/src/drivers/ipm_solver_globalization.cpp.o
+    CMakeFiles/hven.dir/src/model/nlp_adapter.cpp.o
+    CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o
+    tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_corpus_cells.cpp.o
+Still a control -- five includers of the moved struct, byte-identical because
+none of the five materialises a default-constructed `IpmOptions` -- just an
+order of magnitude smaller than quoted, and the quoted 93 measures inclusion
+of a header set this task did not touch.
+
+THE DELTA DESCRIPTION IN THE 2026-09-18 RECORD IS NOT WHAT
+`psym/compare-Release.txt:904-968` (the unity_3 PER-SYMBOL block) SHOWS. That
+record describes "a constant store widened from xmm0 to ymm0 -- same
+instruction, wider register, no call, no branch, no ordering moved" as if it
+covered the whole delta; it is an accurate description of only ONE of the
+ten differing symbols, offered as the illustrative example. Counted directly
+from the PER-SYMBOL block (`PERSYM 212 identical, ... 10 differing`): of the
+ten, **7 are STRUCTURAL** ("instructions were added or removed" --
+`ExtendedBacktrackLadder_ContinuesFromLiveAlphaAndHonorsCap_Test`,
+`ChainedRecoveryOrdering_SocResolvesFirst_Test`,
+`ExtendedBacktrackGuards_DisabledDeclines_Test`,
+`WatchdogRecoveryDecorator_DelegatesWhileNotArmed_Test`,
+`ChainedRecoveryOrdering_ExtendedResolvesWhenSocDeclines_Test`,
+`ChainedRecoveryOrdering_BothDeclineIsUnresolved_Test`,
+`WatchdogRecoveryDecorator_ArmsRelaxesThenReverts_Test`), and 3 are
+instruction-content changes with no count change --
+`WatchdogRecoveryDecorator_ProgressDisarmsAndDelegatesBack_Test` (726 insns,
+113 changed), `WatchdogRecoveryDecorator_NotifyStepAcceptedResetsArmingCounter_Test`
+(791 insns, 114 changed), and
+`ExtendedBacktrackLadder_AcceptsAndStopsEarly_Test` (801 insns, **691
+changed** -- most of the symbol), which is where the illustrative xmm0/ymm0
+pair and the changed immediates (`movl $0x3` -> `movl $0x1`) and re-laid
+stores (`movl ... 0x2e8` -> `movb ... 0x2e4`) actually live. Ordering DID move
+for the seven structural symbols (that is what "instructions were added or
+removed" means); it did not move for the three non-structural ones. All ten
+are still the same underlying cause the 2026-09-18 record names correctly --
+the inline materialisation of `InertSolverContext`'s default-constructed
+`IpmOptions`, which three moved default initialisers changed the image and
+layout of -- and all ten are class B, benign, and consistent with every other
+unity TU's class-B membership in this classification.
+
+WHY DEBUG NEEDED NO MATCHING CORRECTION ON THE DELTA: `classification-Debug.txt`
+carries the same header-list and negative-control defects (see the correction
+appended there) but no unity_3-shaped record, because Debug's own
+classifier run placed unity_0 and unity_2 in class B directly and had no
+UNEXPLAINED object to begin with.
+
+THE RESULT, restated correctly: **Release 17 differing objects = 6 class A +
+11 class B, 0 unexplained**, negative control **5** byte-identical includers
+of this task's three changed headers. README sections 3 and 4 are corrected
+in place with a one-line "corrected in fix1" mark; this record and the
+2026-09-18 record above it are both kept, append-only, as the history of how
+that number was reached.
+===========================================================================

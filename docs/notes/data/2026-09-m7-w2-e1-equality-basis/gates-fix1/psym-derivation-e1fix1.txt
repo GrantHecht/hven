@@ -1,0 +1,104 @@
+M7 W2 E1 FIX ROUND 1 -- THE GATE EXPECTATIONS, DERIVED FROM THIS ROUND'S OWN BASE..HEAD
+Written and committed BEFORE the gate chain was detached. Nothing here may be
+adjusted after the chain reports.
+
+BASE   26e5c3b2 (this round's base; branch m7)
+       2eea86dd C1/I1/I2/M1   2714dc8f C2   ac4a8c68 I4   9b26bac9 I3
+       829ab3cb M3            b8d562fb M4   86dd16f6 C1 fixture (Release roundoff)
+HEAD   the declaration commit that carries this file (docs/notes/data only)
+
+§1 THE CHANGED SURFACE (`git diff --name-status 26e5c3b2..HEAD`; the runner
+   re-derives every list itself at HEAD_AT_START and prints it):
+     headers   include/hven/detail/drivers/equality_basis.h (checked solves,
+                 refusal enum, group bytes/columns, terse header text)
+               include/hven/drivers/sqp_solver.h      (one enum comment; line
+                                                       count unchanged)
+               include/hven/drivers/sqp_solver_types.h (SqpOptions::
+                 equality_basis default false + terse comment; the report
+                 gains nonfinite_refusals, gram_refusals, split_changes,
+                 handed_off)
+     MODIFIED  src/drivers/equality_basis.cpp, src/drivers/sqp_solver.cpp,
+               tests/drivers/test_options_dump.cpp, tests/sqp/{test_corpus_cells,
+               test_equality_basis, test_scale_smoke, test_sqp_equality_basis,
+               test_sqp_solver}.cpp                                   -> 8
+     ADDED     none (.gitattributes is not a source)                  -> 0
+     docs      README (E1 dir), the proposal note
+
+§2 THE P-SYM MOVER SHAPE, PER CONFIGURATION
+     Release  DIFFERING 51 = class A 8 + class B 43; UNEXPLAINED 0; control >= 1
+     Debug    DIFFERING 51 = class A 8 + class B 43; UNEXPLAINED 0; control >= 1
+     ONLY-AFTER (both) == {} ; after = before (no ADDED source)
+   Class A = every MODIFIED src/ and tests/ .cpp (8, derived from git by the
+   runner's value pre-flight). Class B is not empty: SqpResult's layout changes
+   (four report fields) and SqpOptions' default initializer changes, so every
+   TU that constructs, copies or destroys either struct moves. THE SHAPE WAS
+   MEASURED BEFORE THIS DECLARATION by a rehearsal of this round's own G5
+   segment (E1's method) at b8d562fb, in scratch tree
+   .scratch/m7w2e1fix1rehearsal, under the box lock (2026-09-23 01:47-02:12),
+   with a placeholder declaration (differing 1, A 8, B 0) so that it printed the
+   movers and failed by design. Transcripts, committed beside this file:
+   psym-rehearsal-g5.txt (the segment), psym-rehearsal-classification-
+   {Release,Debug}.txt (the classifier re-run with --expect-differing 51 over
+   the rehearsal's own compare files). The 43 class B objects are identical in
+   both configurations (diffed). Negative control measured 22 Release /
+   18 Debug. The rehearsal ran at b8d562fb; 86dd16f6 after it touches only
+   tests/sqp/test_equality_basis.cpp, already class A, so the shape holds. The chain re-measures from fresh builds and must reproduce this
+   shape EXACTLY.
+
+§3 TEST COUNTS: Release 2777 (G3), Debug 2776 (G1, the long test excluded),
+   G2 1. E1's gate measured 2767 at a11846b3. E4 fix1 added 3 TEST blocks
+   (QpDegeneracyArm.Certificate*, 1cf31011); E1c added none. This round adds 7:
+   test_equality_basis.cpp +4 (ExtremeScaling..., PreCheckSendsAGram...,
+   GramSolveCheck..., GroupBytes...), test_sqp_equality_basis.cpp +2 (F8, F9),
+   test_options_dump.cpp +1 (SqpDumpsTheEqualityBasisOff). 2767 + 3 + 7 = 2777.
+   Cross-checked by name: E1's committed suite-release.txt list against
+   `ctest -N` of a local Release tree at b8d562fb differs by exactly those
+   10 names. MEASURED before this declaration (local trees, same sources):
+   Debug 2777/2777 with the long test (.scratch/m7w2e1fix1/logs/suite-debug.log,
+   at b8d562fb); Release 2777/2777 at 86dd16f6 (suite-release-2.log) after the
+   Release-only fixture failure at b8d562fb that 86dd16f6 fixes.
+
+§4 THE SECTION SHAPE (G5b), per configuration:
+     NON-DEBUG-MOVER set == {drivers/equality_basis.cpp.o, drivers/sqp_solver.cpp.o}
+       (derived from the MODIFIED src/*.cpp) + {drivers/sqp_options.cpp.o,
+       qp/ipqp_engine.cpp.o, warmstart/continuation.cpp.o} (declared class B:
+       measured by the rehearsal in both configurations)
+     library ADDED == {} (derived)
+     DEBUG_ONLY  Release 0 / Debug 2 (drivers/sqp_print.cpp.o,
+       drivers/trace_writer.cpp.o: line tables only, measured); REFUSED 0
+
+§5 G4, THE BEHAVIOURAL GATE: 27 cells x 75 columns x 3 engines, 0 differences
+   against the M6 close pin. SqpOptions::equality_basis defaults OFF, so no U0
+   cell computes a split and every QP is the pre-E1 QP. E1 (a11846b3, basis
+   ON, every cell full rank) and E4 fix1 both measured 0 differences against the
+   same pin. ANY moved cell is a DECLARED FINDING. It is recorded, not
+   re-derived, and the round STOPS for the settler.
+
+§6 G6: install smoke PASSED, export contract OK (align 32), clang-format rc 0
+   on every changed .h/.cpp, git diff --check rc 0 (the working tree; the
+   range 26e5c3b2..HEAD and E1's 53676599..HEAD are rc 0 after 829ab3cb),
+   DIRTY_FILES 0. Fold proofs (chain): 46 total, 0 failed.
+
+§7 PRE-FLIGHT, run before this commit (`gates-e1fix1.sh --preflight-only`):
+     GATES_START 2026-09-23T02:32:42-04:00
+     === HEAD 86dd16f6  dirty-files=2 ===
+     === PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+     === GATES_SCRATCH=/home/ghecht/Projects/hven/.scratch/m7w2e1fix1gates ===
+     === BEFORE=26e5c3b2  EXPECT_DEBUG_TESTS=2776  EXPECT_RELEASE_TESTS=2777 ===
+     === HEAD_AT_START=86dd16f6a223a41e7ca4e14a381bb35b78f69a39
+     === CHANGED HEADERS: include/hven/detail/drivers/equality_basis.h include/hven/drivers/sqp_solver.h include/hven/drivers/sqp_solver_types.h 
+     === CHANGED SOURCES: src/drivers/equality_basis.cpp src/drivers/sqp_solver.cpp tests/drivers/test_options_dump.cpp tests/sqp/test_corpus_cells.cpp tests/sqp/test_equality_basis.cpp tests/sqp/test_scale_smoke.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_solver.cpp 
+     === MODIFIED C++ SOURCES: src/drivers/equality_basis.cpp src/drivers/sqp_solver.cpp tests/drivers/test_options_dump.cpp tests/sqp/test_corpus_cells.cpp tests/sqp/test_equality_basis.cpp tests/sqp/test_scale_smoke.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_solver.cpp 
+     === ADDED C++ SOURCES: 
+     === DECLARED NON-DEBUG MOVERS Release (derived class A + declared class B): CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o 
+     === DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared class B): CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o 
+     === DECLARED ADDED LIBRARY OBJECTS (derived): 
+     === PREFLIGHT_VALUE_OK: class A 8 == declared 8/8; ADDED 0 == declared 0; class B library objects all unmodified
+     SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e1fix1gates/g1.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e1fix1gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e1fix1gates/gates
+     SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e1fix1gates/g2.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e1fix1gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e1fix1gates/gates
+     SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e1fix1gates/g3.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e1fix1gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e1fix1gates/gates
+     SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e1fix1gates/g4.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e1fix1gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e1fix1gates/gates
+     SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e1fix1gates/g5.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e1fix1gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e1fix1gates/gates
+     SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e1fix1gates/g6.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e1fix1gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e1fix1gates/gates
+     === PREFLIGHT_OK: 6 segments written and asserted against GATES_SCRATCH, before the first leg ===
+     PREFLIGHT_ONLY: stopping before G1. No leg was run and no build tree was touched.

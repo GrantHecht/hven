@@ -1,0 +1,31 @@
+G-H1 HS walk: base cols 28, rows 27/27, differences 0 []
+G-H1 HS ssn: base cols 28, rows 27/27, differences 0 []
+G-H2 R5 HS rows whose factorizations moved: 24 (exactly OFF ssn_refinements on 24) -> PASS
+G-S farkas1e-4 OFF vs head OFF: corpus-44 diffs 0 []; HS-27 diffs 0 []
+
+R1: F-a PASS; F-b PASS
+    corpus-44 status Optimal off/arm 44/44; sum fact off/arm 729/729; rows differing (non-wall) 1
+    HS-27 optimal off/arm 27/27; sum fact off/arm 1490/1452; rows differing (non-wall) 14
+    corpus sum esc_infeasible_suspect off/arm 0/0; sum ssn_prox_updates off/arm 23/26; sum esc_budget off/arm 6/6
+    HS sum esc_infeasible_suspect off/arm 7/6; sum ssn_prox_updates off/arm 176/270; sum esc_budget off/arm 6/4
+    pred 'identical where OFF prox_updates==0': HS violations []; corpus violations []
+R4: F-a PASS; F-b PASS
+    corpus-44 status Optimal off/arm 44/44; sum fact off/arm 729/729; rows differing (non-wall) 0
+    HS-27 optimal off/arm 27/27; sum fact off/arm 1490/1514; rows differing (non-wall) 2
+    corpus sum esc_infeasible_suspect off/arm 0/0; sum ssn_prox_updates off/arm 23/23; sum esc_budget off/arm 6/6
+    HS sum esc_infeasible_suspect off/arm 7/4; sum ssn_prox_updates off/arm 176/196; sum esc_budget off/arm 6/6
+    pred 'identical where OFF suspect==0': HS violations []; corpus violations []
+R5: F-a PASS; F-b PASS
+    corpus-44 status Optimal off/arm 44/44; sum fact off/arm 729/666; rows differing (non-wall) 43
+    HS-27 optimal off/arm 27/27; sum fact off/arm 1490/1326; rows differing (non-wall) 24
+    corpus sum esc_infeasible_suspect off/arm 0/0; sum ssn_prox_updates off/arm 23/23; sum esc_budget off/arm 6/6
+    HS sum esc_infeasible_suspect off/arm 7/7; sum ssn_prox_updates off/arm 176/176; sum esc_budget off/arm 6/6
+    pred R5 HS: rows moving beyond factorizations []; rows whose saving != OFF ssn_refinements []
+    pred R5 corpus: rows moving beyond factorizations []; rows whose saving != OFF ssn_refinements []
+
+E-c PASS; corpus suspects 1e-6/1e-4 0/0; HS 4/7; rows differing corpus 0 HS 2
+probe probe-head-lever-farkas.txt: symptoms (QPs,diag,recall)=('10000', '5684', '56.8') farkas=('10000', '5567', '55.7') FP rows (falseKinf,refusals)=[('5567', '7'), ('0', '61'), ('0', '165'), ('0', '1548')]
+probe probe-f4-lever-farkas.txt: symptoms (QPs,diag,recall)=('10000', '5684', '56.8') farkas=('10000', '5684', '56.8') FP rows (falseKinf,refusals)=[('5684', '7'), ('0', '61'), ('0', '165'), ('0', '1548')]
+
+tau10: T-a PASS (U0 rows differing 2); T-b PASS (HS rows differing 4)
+tau1e3: T-a PASS (U0 rows differing 0); T-b PASS (HS rows differing 0)

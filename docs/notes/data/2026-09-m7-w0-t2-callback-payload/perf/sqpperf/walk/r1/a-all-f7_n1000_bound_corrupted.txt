@@ -1,0 +1,17 @@
+# started on Tue Sep 15 00:34:19 2026
+
+
+ Performance counter stats for '/home/ghecht/Projects/hven/.scratch/m7t2/build-release/bench/hven_sqp_corpus --internal-run-one f7_n1000_bound_corrupted --engine walk --internal-out /home/ghecht/Projects/hven/.scratch/m7t2/art/raw/sqpperf/walk/r1/a-all-f7_n1000_bound_corrupted.csv --callback count --trace off':
+
+       517,534,386      instructions:u                                                        
+        78,257,178      branches:u                                                            
+       170,011,954      cycles:u                                                              
+           571,936      branch-misses:u                                                       
+            28,556      L1-icache-load-misses:u                                               
+
+       0.063306630 seconds time elapsed
+
+       0.050987000 seconds user
+       0.011993000 seconds sys
+
+

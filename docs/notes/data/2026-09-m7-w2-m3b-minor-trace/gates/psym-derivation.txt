@@ -1,0 +1,185 @@
+M7 W2 M3b TASK A -- THE PRE-RUN P-SYM DERIVATION
+================================================================================
+Written BEFORE the six-gate chain ran, and BEFORE the declared mover shape was
+transcribed into wrappers/gates-m3b.sh. Produced by wrappers/derive_psym_m3b.sh
+(one configuration per lock hold) and wrappers/analyse_objects_m3b.sh, both
+committed at 8f54d714 / this commit; raw output at
+.scratch/m7w2m3b/derive-{Release,Debug}.txt and analyse-{Release,Debug}.txt.
+
+  after  = 8f54d714 (this task's tree: task A's code at 01a956a7, plus the
+           gate machinery)
+  before = 9fee5545 (M7 W2 M3a's close; the commit this task branched from)
+  toolchain: clang 22.1.8 (Fedora 22.1.8-4.fc44), CMake + Ninja, C++20
+  host: fedora, AMD Ryzen 7 5800X3D, Intel MKL (oneapi, lp64)
+  Both arms built in ONE build directory at ONE absolute path, CCACHE_DISABLE=1,
+  so no path or cache difference can enter the comparison.
+
+THE UNIVERSE, WHICH IS THE THING M3a FIX ROUND 1'S G5 GOT WRONG
+--------------------------------------------------------------------------------
+M3a fix1 declared a shape derived over EVERY object in a dev build tree (181)
+while `scripts/psym_compare.sh` captures a DECLARED SUBSET. Its G5 failed for
+that reason and the settler's addendum to this brief requires the expectation to
+be derived from the capture's OWN manifest. Measured here, on both arms and in
+both configurations:
+
+    MANIFEST_AFTER  = 146
+    MANIFEST_BEFORE = 146
+    objects of hven_qp_walk_seam_tests in the manifest = 0
+
+THE LAST LINE IS THE POINT. This task adds a THIRD target that recompiles
+library TUs under HVEN_TESTING, and `psym_compare.sh`'s header says in as many
+words that such targets are deliberately outside the capture set. Its objects
+therefore CANNOT appear in the differing set under any outcome, and nothing
+about `tests/qp/test_qp_walk_seam.cpp` may be predicted as a mover. The same
+sentence, written one round earlier, would have saved M3a fix1's G5.
+
+THE CHANGED SURFACE, DERIVED FROM GIT AND NOT TYPED
+--------------------------------------------------------------------------------
+    git diff --name-only 9fee5545 -- include/
+        include/hven/detail/qp/qp_engine.h        (one #include added)
+        include/hven/detail/qp/qp_walk_trace.h    (new; empty without HVEN_TESTING)
+    git diff --name-only 9fee5545 -- src/ tests/
+        src/qp/qp_engine.cpp                      (hooks, all #ifdef HVEN_TESTING)
+        tests/CMakeLists.txt                      (not compiled)
+        tests/qp/test_qp_walk_seam.cpp            (an uncaptured target's source)
+
+THE DECLARED SHAPE, PER CONFIGURATION
+--------------------------------------------------------------------------------
+                                    Release      Debug
+    psym_compare.sh compare rc            0          0     (PASS -- no mover)
+    classify rc                           0          0
+    DIFFERING                             0          0
+      class A (source changed)            0          0
+      class B (includes a changed header) 0          0
+      UNEXPLAINED                         0          0
+    NEGATIVE CONTROL                     70         70
+    capture rc, after / before          0/0        0/0
+    capture pair object count       146 = 146  146 = 146
+
+A ZERO DECLARATION IS A STRONGER CLAIM THAN A NON-ZERO ONE, not a weaker one,
+and what could make a false zero pass is a capture that compared nothing. Three
+independent things stand against that and all three are asserted by the gate:
+both capture return codes and non-empty manifests (`assert_capture`), equal
+object counts on the two arms (`assert_capture_pair`), and the NEGATIVE CONTROL
+of 70 -- seventy objects that DO include one of the two changed headers and are
+identical anyway. A declaration of 0 with a control of 0 fails the gate.
+
+WHAT P-SYM REPORTS BESIDE THE ZERO, AND WHY IT IS NOT A MOVER
+--------------------------------------------------------------------------------
+RELEASE: 146 objects -- 143 byte-identical, 3 differing within the accepted
+noise class, 0 with unclassified differences. The three are
+
+    bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+    bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+    bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+
+each reported `COUNTS ... insns; CHANGED 0; UNCLASSIFIED 0; DELTAS` with an
+EMPTY delta list -- every instruction identical. They are exactly the three
+targets `bench/CMakeLists.txt` gives a `*_GIT_DESCRIBE` compile definition
+(lines 92-102, 148, 162), and the `before` arm is a DETACHED CHECKOUT of
+9fee5545: this task changes `tests/CMakeLists.txt`, so checking out the before
+commit makes Ninja re-run CMake, which re-evaluates `git describe` at the
+checked-out commit and hands those three TUs a different string constant. The
+difference is .rodata string CONTENT, which is P-SYM's accepted noise class (b)
+by construction. It is a property of the two-checkout method, not of this
+task's code, and it is not in the production library.
+
+DEBUG: 146 objects -- 116 byte-identical, 29 differing within the accepted noise
+class, 0 with unclassified differences. The 29 are the three above plus the
+TUs that include `qp_engine.h`, which gained one line: a DWARF line programme
+that shifts is invisible to `objdump -d`, which is what P-SYM compares.
+
+In BOTH configurations: 0 `DIFFERS` lines and 0 `RELOCATIONS` lines, so the
+registered classifier defect this round fixed (a NOISE-ONLY object with a
+RELOCATIONS line escaping the harvest) has nothing to catch here -- the fix is
+in place and its fold proof is what shows it works, not this capture.
+
+THE PRODUCTION LIBRARY, THREE PROPERTIES, STATED SEPARATELY
+--------------------------------------------------------------------------------
+42 objects under CMakeFiles/hven.dir, compared object by object.
+
+RELEASE -- all three properties hold outright:
+    BYTE-identical        42 / 42
+    TEXT-identical        (no object differs at all)
+    RELOCATION-identical  (no object differs at all)
+    SYMBOL-identical      (no object differs at all)
+
+DEBUG -- byte-identity does NOT hold, and the reason is DWARF alone:
+    BYTE-identical        39 / 42
+    byte-differing         3:  src/drivers/sqp_solver.cpp.o
+                               src/qp/ipqp_engine.cpp.o
+                               src/qp/qp_engine.cpp.o
+    of those three, measured one property at a time:
+      TEXT (objdump -d --no-show-raw-insn, filename line removed)
+          IDENTICAL on all three -- 118293, 87238 and 118072 disassembly lines
+      SYMBOLS (nm -C, sorted)
+          IDENTICAL on all three -- 4334, 3027 and 3963 entries
+      RELOCATIONS (readelf -r, section file offsets normalised)
+          IDENTICAL on sqp_solver.cpp.o (53772 records) and on
+          ipqp_engine.cpp.o (42660 records).
+          On qp_engine.cpp.o there is EXACTLY ONE diff hunk, lines
+          51737-54769, and it lies ENTIRELY INSIDE `.rela.debug_line`
+          (that section begins at line 51532 and holds 3236 entries). Within
+          it, comparing every column but the first shows NO DIFFERENCE AT ALL:
+          the symbol, the type (`R_X86_64_64`) and the addend of all 3033
+          differing records are unchanged and only the r_offset moves,
+          because the `.debug_line` programme those relocations point into
+          grew. No relocation record outside `.rela.debug_line` differs.
+
+SO THE DEBUG CLAIM IS, EXACTLY: the production library's three qp_engine.h
+includers are identical in instructions, in symbols and in every relocation
+record outside the debug-line section; their bytes differ in debug information
+only, because a header gained a line.
+
+AND THE PLACEMENT DECISION IS NARROWED BY THIS MEASUREMENT (declared here rather
+than left standing as written). `qp_walk_trace.h`'s own note and docs/testing.md
+said, before this was measured, that including the seam header from
+`qp_engine.h` rather than from `qp_engine.cpp` keeps the byte-identity claim
+"exact in BOTH configurations". That is WRONG for Debug and is corrected in the
+same commit as this file. What the placement actually buys, and it is still
+worth buying, is the TEXT property: `src/qp/qp_engine.cpp` carries an `assert()`
+ABOVE the walk loop, `assert` materialises `__LINE__` as an immediate operand,
+and an `#include` at the top of that TU would have moved that immediate -- so
+the Debug object would differ in its INSTRUCTION STREAM and not only in its
+DWARF. Release is byte-identical either way (NDEBUG removes the assert). The
+narrowed claim is what the numbers above support and nothing more.
+
+NO SEAM SYMBOL REACHES THE LIBRARY
+--------------------------------------------------------------------------------
+    nm -C libhven.a | grep -c 'QpWalk'            = 0   (Release and Debug)
+    nm -C libhven.a | grep -c 'detail::testing'   = 0   (Release and Debug)
+
+THE TEST COUNTS THIS ROUND DECLARES
+--------------------------------------------------------------------------------
+Baseline at the M3a fix-round head `ea027804`, as that round's runner measured
+and its gates-fix1/README.md records: Debug 2678 run with the long test
+excluded, Release 2679 run with everything. Nothing between `ea027804` and
+`9fee5545` touches a test: `git log --oneline ea027804..9fee5545 --name-only`
+lists only `docs/notes/data/**` and `docs/notes/2026-09-m7-ledger.md`.
+
+This task adds exactly ELEVEN TEST() blocks, all of them in the new
+`hven_qp_walk_seam_tests` executable, and changes none in place. So
+    EXPECT_DEBUG_TESTS   = 2678 + 11 = 2689
+    EXPECT_RELEASE_TESTS = 2679 + 11 = 2690
+
+CROSS-CHECKED, not assumed: `ctest -N` on this task's own Debug and Release
+trees reports 2692 in each. The two-test offset M2b fix1 derived in full (a
+CTest summary line counts the one SKIPPED test but not the two DISABLED ones)
+puts the Release run total at 2692 - 2 = 2690, and the Debug run total with the
+long test excluded at 2690 - 1 = 2689. The two derivations agree.
+`ctest -N -R QpWalkSeam` reports 11.
+
+(The eleventh block was added after the P-SYM legs above ran and before this
+file was committed: `TheNeutralityComparisonWouldCatchAMoveIfThereWereOne`, the
+non-vacuity proof of the neutrality comparison itself. It changes
+`tests/qp/test_qp_walk_seam.cpp` only, which belongs to a target
+`scripts/psym_compare.sh` does not capture, so no number in the P-SYM sections
+above moves. Both configurations were rebuilt and all 11 blocks run green in
+each before this file was committed.)
+
+WHAT THIS FILE IS
+--------------------------------------------------------------------------------
+A DERIVATION. It declares nothing and asserts nothing. The numbers above are
+transcribed into wrappers/gates-m3b.sh as this round's declared expectations
+before that chain is detached; if the chain measures anything else, the gate
+FAILS and the shape is re-derived and declared again, never discovered.

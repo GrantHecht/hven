@@ -1,0 +1,391 @@
+P-SYM tool sha256 (runner):   2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM tool sha256 (captures): 2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM maps: object-map=none symbol-map=none exceptions=none
+
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o
+            COUNTS 67223 insns; CHANGED 106; UNCLASSIFIED 0; DELTAS +1(x101) +2(x4) +17(x1)
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_sweeps.cpp.o
+            COUNTS 86691 insns; CHANGED 194; UNCLASSIFIED 0; DELTAS -4(x2) -16(x64) -24(x1) +1(x127)
+SYMBOLS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_lift_oracle.cpp.o: COVERAGE FINDINGS
+              LOCAL-FAMILY  .L.str: 188 before, 189 after
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_lift_oracle.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 3800 alignment-pad lines vs 3799 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 138188 lines vs 138244 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_lift_oracle.cpp.o: PERSYM 431 identical, 13 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 7046 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              NOISE-ONLY    hven::solvers::QpLiftOracle_TheLiftedHessianIsPositiveDefiniteWhenBIs_Test::TestBody()
+                            COUNTS 652 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +19(x3)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::random_quasi_newton(std::mersenne_twister_engine<unsigned long, 32ul, 624ul, 397ul, 31ul, 2567483615ul, 11ul, 4294967295ul, 7ul, 2636928640ul, 15ul, 4022730752ul, 18ul, 1812433253ul>&, int)
+                            COUNTS 2027 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +1(x1)
+              NOISE-ONLY    hven::solvers::QpLiftOracle_AnEmptyLiftIsTheScalarHessian_Test::TestBody()
+                            COUNTS 782 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +19(x4)
+              NOISE-ONLY    hven::solvers::QpLiftOracle_TheToleranceDiscriminatesAWrongB_Test::TestBody()
+                            COUNTS 958 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +19(x3)
+              DIFFERS       hven::solvers::QpLiftOracle_LiftedSolutionMatchesTheDenseBOracleOnEveryEngineAndRadius_Test::TestBody()
+                            PAD-ROUTE DECLINED: 36 alignment-pad lines vs 35 (391 -> 368 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 2036 lines vs 2106 -- instructions were added or removed
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::expect_aux_free(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, hven::solvers::detail::MixedLift const&, hven::solvers::(anonymous namespace)::Out const&, double, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&)
+                            COUNTS 313 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x3)
+              NOISE-ONLY    hven::solvers::QpLiftOracle_TheConvexFlagIsDormantOnTheLiftedQp_Test::TestBody()
+                            COUNTS 2402 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS +19(x6)
+              NOISE-ONLY    hven::solvers::QpLiftOracle_ElasticAugmentedInputMatchesTheOracle_Test::TestBody()
+                            COUNTS 1080 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +19(x4)
+              NOISE-ONLY    hven::solvers::QpLiftOracle_ThePatternIsStableForAFixedRankPair_Test::TestBody()
+                            COUNTS 862 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +19(x3)
+              NOISE-ONLY    hven::solvers::QpLiftOracle_WarmSeedsRoundTripAndMatchTheOracle_Test::TestBody()
+                            COUNTS 3359 insns; CHANGED 14; UNCLASSIFIED 0; DELTAS +19(x14)
+              NOISE-ONLY    _GLOBAL__sub_I_test_qp_lift_oracle.cpp
+                            COUNTS 807 insns; CHANGED 30; UNCLASSIFIED 0; DELTAS +1(x3) +19(x27)
+              NOISE-ONLY    hven::solvers::QpLiftOracle_ValidationRejectsBadInputsAndSizes_Test::TestBody()
+                            COUNTS 2034 insns; CHANGED 14; UNCLASSIFIED 0; DELTAS +19(x14)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::compare(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, hven::solvers::QpProblem const&, hven::solvers::(anonymous namespace)::Quasi const&, hven::solvers::(anonymous namespace)::Pair const&, hven::solvers::QpOptions const&, hven::solvers::(anonymous namespace)::Mode)
+                            COUNTS 1915 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS +1(x6)
+              NOISE-ONLY    hven::solvers::QpLiftOracle_EliminatingTheAuxiliariesGivesExactlyTheDenseObjective_Test::TestBody()
+                            COUNTS 2272 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +19(x2)
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_equality_basis.cpp.o
+            COUNTS 97481 insns; CHANGED 166; UNCLASSIFIED 0; DELTAS +2(x124) +3(x5) +17(x37)
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o
+            COUNTS 135839 insns; CHANGED 546; UNCLASSIFIED 0; DELTAS +5(x1) +13(x1) -25(x1) -6(x1) +10(x73) +19(x332) -18(x123) -4(x2) -1(x2) -17(x4) -3(x1) -2(x3) -5(x2)
+SYMBOLS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o: COVERAGE FINDINGS
+              ONLY-AFTER    void std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::__resize_and_overwrite<std::__cxx11::to_string(int)::{lambda(char*, unsigned long)#1}>(unsigned long, std::__cxx11::to_string(int)::{lambda(char*, unsigned long)#1})
+              ONLY-AFTER    SqpDriverCertifiedFallback_T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnItsWorstFixture_Test::TestBody()::$_0::operator()(hven::solvers::SqpResult const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const*) const
+              LOCAL-FAMILY  .LCPI: 2630 before, 2631 after
+              LOCAL-FAMILY  .L.str: 2987 before, 2992 after
+              LOCAL-FAMILY  GCC_except_table: 968 before, 969 after
+              LOCAL-FAMILY  .L__const._ZNSt8__detail18__to_chars_10_implImEEvPcjT_.__digits: 1 before, 0 after
+              LOCAL-FAMILY  .L__const._ZNSt8__detail18__to_chars_10_implIjEEvPcjT_.__digits: 0 before, 1 after
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 3500 alignment-pad lines vs 3522 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 340717 lines vs 341772 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o: PERSYM 1792 identical, 113 noise-only, 15 differing, 0 only-before, 2 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 4 rank-tagged, 0 section moves, 55501 relocation records compared (0 through the symbol map), 4 global-var-init keyed by identity (0 unresolved)
+              NOISE-ONLY    SqpDriverCertifiedFallback_TheDriverEmitsOneFallbackVerdictPerEscapeAndHS38sNeverFIRED_Test::TestBody()
+                            COUNTS 1254 insns; CHANGED 16; UNCLASSIFIED 0; DELTAS +8(x16)
+              NOISE-ONLY    SqpDriverCrashBasis_SeededIngestWithNoActivityHintStillArmsTheCrashBasis_Test::TestBody()
+                            COUNTS 1934 insns; CHANGED 11; UNCLASSIFIED 0; DELTAS +8(x11)
+              NOISE-ONLY    QpEngineStructuralViolation_E2Fix4ARealTerminalViolationStillEndsInfeasible_Test::TestBody()
+                            COUNTS 808 insns; CHANGED 10; UNCLASSIFIED 0; DELTAS +34(x10)
+              NOISE-ONLY    SqpDriverCertifiedFallback_T7TheDisplacedPatternCostsONEAnalysisOnTheFollowingMajor_Test::TestBody()
+                            COUNTS 933 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS +34(x6)
+              DIFFERS       SqpDriverSoc_SocIsNotAttemptedWhenViolationDecreased_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0xb7846(%rip),%rdx ;LEN=7
+                                            + 	lea    0xb87a6(%rip),%rdx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0xb77df(%rip),%rcx ;LEN=7
+                                            + 	lea    0xb873f(%rip),%rcx ;LEN=7
+                            COUNTS 1012 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              NOISE-ONLY    SqpDriverSignSweep_ANonFinitePriceIsLeftForTheNonFiniteExitRatherThanQuietlyRepaired_Test::TestBody()
+                            COUNTS 293 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +8(x4)
+              NOISE-ONLY    SqpDriverElasticSeed_ABlockThatNeverFIREDIsW1sLadderWhateverItsFieldsSay_Test::TestBody()
+                            COUNTS 1468 insns; CHANGED 19; UNCLASSIFIED 0; DELTAS +8(x19)
+              NOISE-ONLY    SqpDriverSignSweep_ExactZeroIsNotNegativeAndAnEmptyVectorIsNotAnError_Test::TestBody()
+                            COUNTS 530 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS +8(x6)
+              NOISE-ONLY    SqpDriverCertifiedFallback_T7TheAttachedReportsRestorationOfferIsATROUNDINGNotAMargin_Test::TestBody()
+                            COUNTS 532 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS +56(x6)
+              NOISE-ONLY    SqpDriverW2Fixtures_TheEscapeHelperInvokesTheTierExactlyOncePerCall_Test::TestBody()
+                            COUNTS 1408 insns; CHANGED 20; UNCLASSIFIED 0; DELTAS +8(x20)
+              DIFFERS       SqpDriverSoc_SocDefeatsMaratos_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0xbaca6(%rip),%rdx ;LEN=7
+                                            + 	lea    0xbbc06(%rip),%rdx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0xbac23(%rip),%rcx ;LEN=7
+                                            + 	lea    0xbbb83(%rip),%rcx ;LEN=7
+                            COUNTS 2727 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              NOISE-ONLY    SqpDriverElasticSeed_GeometricActivityEARNSItsMinorIterationsWhereTheGeometryIsThere_Test::TestBody()
+                            COUNTS 1771 insns; CHANGED 12; UNCLASSIFIED 0; DELTAS +8(x12)
+              NOISE-ONLY    SqpDriverElasticSeed_TheWorkingSetIsClassifiedAgainstTheWINDOWCLAMPEDBounds_Test::TestBody()
+                            COUNTS 1477 insns; CHANGED 11; UNCLASSIFIED 0; DELTAS +8(x11)
+              NOISE-ONLY    SqpDriverElasticSeed_TheFirstRungsPenaltyIsFlooredAtTodaysStartAndPlacedByTheEvidence_Test::TestBody()
+                            COUNTS 773 insns; CHANGED 7; UNCLASSIFIED 0; DELTAS +8(x7)
+              DIFFERS       SqpDriverTrustRegion_RejectionCountReachesTheRestorationGate_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0xdf741(%rip),%rdx ;LEN=7
+                                            + 	lea    0xe06a1(%rip),%rdx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0xdf6da(%rip),%rcx ;LEN=7
+                                            + 	lea    0xe063a(%rip),%rcx ;LEN=7
+                            COUNTS 1050 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              NOISE-ONLY    (anonymous namespace)::w2_expect_same_sqp_counters(hven::solvers::SqpCounters const&, hven::solvers::SqpCounters const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+                            COUNTS 7017 insns; CHANGED 101; UNCLASSIFIED 0; DELTAS +8(x101)
+              NOISE-ONLY    QpEngineStructuralViolation_T6bTrueInfeasibilityStillReadsKInfeasibleInBothAlgebras_Test::TestBody()
+                            COUNTS 1370 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +8(x2)
+              NOISE-ONLY    SqpDriverCrashBasis_SeedsTheWholeAnalyticActiveSetAtABoundaryStart_Test::TestBody()
+                            COUNTS 1505 insns; CHANGED 9; UNCLASSIFIED 0; DELTAS +8(x9)
+              NOISE-ONLY    SqpDriverCertifiedFallback_ThePartitionOverFallbackEntriesIsCOMPLETEAndSumsToTheFiredOnes_Test::TestBody()
+                            COUNTS 1804 insns; CHANGED 16; UNCLASSIFIED 0; DELTAS +8(x16)
+              NOISE-ONLY    QpEngineStructuralViolation_E2Fix4TheTerminalMuPointIsRefinedBeforeAnInfeasibleVerdict_Test::TestBody()
+                            COUNTS 3606 insns; CHANGED 31; UNCLASSIFIED 0; DELTAS +34(x31)
+              NOISE-ONLY    QpEngineStructuralViolation_T6bAFeasibleElasticCopyIsNoLongerCertifiedInfeasible_Test::TestBody()
+                            COUNTS 2280 insns; CHANGED 11; UNCLASSIFIED 0; DELTAS +8(x11)
+              NOISE-ONLY    _GLOBAL__sub_I_test_sqp_solver.cpp
+                            COUNTS 14801 insns; CHANGED 321; UNCLASSIFIED 0; DELTAS +8(x279) +34(x27) +56(x15)
+              NOISE-ONLY    SqpDriverDiagnostics_HistoryRecordsTheFormalizedPerMajorContract_Test::TestBody()
+                            COUNTS 1040 insns; CHANGED 13; UNCLASSIFIED 0; DELTAS +8(x13)
+              NOISE-ONLY    QpEngineStructuralViolation_T6bTheStiffFamilyClosesInBothAlgebras_Test::TestBody()
+                            COUNTS 1855 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS +8(x6)
+              NOISE-ONLY    SqpDriverCertifiedFallback_P2ClosedSlacksDisproveTheSuspicionAndCarryTheMultipliers_Test::TestBody()
+                            COUNTS 1537 insns; CHANGED 12; UNCLASSIFIED 0; DELTAS +8(x12)
+              NOISE-ONLY    SqpDriverCertifiedFallback_T7TheT3ARouteIsREACHABLEAtTheDriverAndCostsOneExtraLadder_Test::TestBody()
+                            COUNTS 1079 insns; CHANGED 14; UNCLASSIFIED 0; DELTAS +56(x14)
+              NOISE-ONLY    SqpDriverSsnMode_CertifyFromFaceCostsExactlyOneFactorizationPerAcceptedRefinement_Test::TestBody()
+                            COUNTS 1580 insns; CHANGED 20; UNCLASSIFIED 0; DELTAS +8(x20)
+              NOISE-ONLY    QpEngineStructuralViolation_T6bTheGENUINELYBlockedSiblingStaysKOptimalAndOPEN_Test::TestBody()
+                            COUNTS 1379 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +8(x4)
+              NOISE-ONLY    SqpDriverSsnMode_SsnWorkIsNeverFoldedIntoTheWalksMinorCurrency_Test::TestBody()
+                            COUNTS 598 insns; CHANGED 7; UNCLASSIFIED 0; DELTAS +8(x7)
+              NOISE-ONLY    SqpDriverCertifiedFallback_T7F1TheSameInconsistentLinearizationInAllThreeModes_Test::TestBody()
+                            COUNTS 1598 insns; CHANGED 22; UNCLASSIFIED 0; DELTAS +56(x22)
+              NOISE-ONLY    SqpDriverSsnMode_TheAdaptiveMuScheduleIsDisabledUnderKSsn_Test::TestBody()
+                            COUNTS 623 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +8(x4)
+              NOISE-ONLY    SqpDriverSsnMode_RestorationStaysOnTheWalkUnderKSsn_Test::TestBody()
+                            COUNTS 640 insns; CHANGED 8; UNCLASSIFIED 0; DELTAS +8(x8)
+              NOISE-ONLY    SqpDriverCertifiedFallback_T7AnInfiniteOverridePlacesTheLadderAtItsCeiling_Test::TestBody()
+                            COUNTS 558 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +34(x4)
+              DIFFERS       SqpDriverTrustRegion_RadiusHoldsWhenEitherGrowthConjunctFails_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0xdbe57(%rip),%r12 ;LEN=7
+                                            + 	lea    0xdcdb7(%rip),%r12 ;LEN=7
+                              UNCLASSIFIED  - 	lea    0xdbdf0(%rip),%r13 ;LEN=7
+                                            + 	lea    0xdcd50(%rip),%r13 ;LEN=7
+                            COUNTS 1702 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              NOISE-ONLY    QpEngineStructuralViolation_T7ACertifiedInfeasibleExitRETURNSTheRefinedPointInBothAlgebras_Test::TestBody()
+                            COUNTS 2466 insns; CHANGED 22; UNCLASSIFIED 0; DELTAS +34(x22)
+              NOISE-ONLY    SqpDriverContract_TheTerminalKktMeasurementIsNaNAtAnUnevaluablePoint_Test::TestBody()
+                            COUNTS 620 insns; CHANGED 7; UNCLASSIFIED 0; DELTAS +8(x7)
+              NOISE-ONLY    SqpDriverSignSweep_ACorrectlySignedSolveSweepsNothingUnderEveryKernel_Test::TestBody()
+                            COUNTS 1401 insns; CHANGED 9; UNCLASSIFIED 0; DELTAS +8(x9)
+              NOISE-ONLY    SqpDriverDiagnostics_PrinterContainsPerIterationRowsAndFinalStatus_Test::TestBody()
+                            COUNTS 1092 insns; CHANGED 9; UNCLASSIFIED 0; DELTAS +8(x9)
+              NOISE-ONLY    QpEngineStructuralViolation_T6bTheInequalityBranchClosesWithItsResidueOnTheSafeSide_Test::TestBody()
+                            COUNTS 2344 insns; CHANGED 9; UNCLASSIFIED 0; DELTAS +8(x9)
+              NOISE-ONLY    SqpDriverContract_TheTerminalKktMeasurementOnACertifiedInfeasibleExitMeasuresTheNlp_Test::TestBody()
+                            COUNTS 560 insns; CHANGED 7; UNCLASSIFIED 0; DELTAS +8(x7)
+              NOISE-ONLY    (anonymous namespace)::w2_expect_same_qp_counters(hven::solvers::QpCounters const&, hven::solvers::QpCounters const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, bool)
+                            COUNTS 1328 insns; CHANGED 19; UNCLASSIFIED 0; DELTAS +8(x19)
+              NOISE-ONLY    SqpDriverElasticSeed_T6bTheLadderAboveLambda1e6ClosesToo_Test::TestBody()
+                            COUNTS 472 insns; CHANGED 5; UNCLASSIFIED 0; DELTAS +8(x5)
+              NOISE-ONLY    SqpDriverSsnMode_ARefusedFaceRefinementIsChargedEvenWhenTheCertificateIsWithdrawn_Test::TestBody()
+                            COUNTS 1651 insns; CHANGED 21; UNCLASSIFIED 0; DELTAS +8(x21)
+              NOISE-ONLY    SqpDriverSsnMode_TheProbeBudgetChargesSsnWorkThatTheWalkCurrencyCannotSee_Test::TestBody()
+                            COUNTS 1607 insns; CHANGED 14; UNCLASSIFIED 0; DELTAS +8(x14)
+              NOISE-ONLY    SqpDriverElasticSeed_T6bTheBandsHIGHRungsReachTheOptimum_Test::TestBody()
+                            COUNTS 657 insns; CHANGED 8; UNCLASSIFIED 0; DELTAS +8(x8)
+              NOISE-ONLY    SqpDriverAdaptiveMu_ScheduleIsIdleWhenDisabled_Test::TestBody()
+                            COUNTS 531 insns; CHANGED 5; UNCLASSIFIED 0; DELTAS +8(x5)
+              NOISE-ONLY    SqpDriverSsnMode_EveryHsProblemTheWalkCertifiesIsCertifiedUnderKSsn_Test::TestBody()
+                            COUNTS 1772 insns; CHANGED 20; UNCLASSIFIED 0; DELTAS +8(x20)
+              NOISE-ONLY    SqpDriverElasticSeed_T6bCoversTheBandWhereThePlacementMarginIsUnachievable_Test::TestBody()
+                            COUNTS 644 insns; CHANGED 8; UNCLASSIFIED 0; DELTAS +8(x8)
+              NOISE-ONLY    (anonymous namespace)::w2_expect_same_report(hven::solvers::ElasticLadderReport const&, hven::solvers::ElasticLadderReport const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+                            COUNTS 2124 insns; CHANGED 24; UNCLASSIFIED 0; DELTAS +8(x24)
+              NOISE-ONLY    QpEngineStructuralViolation_T7TheFeasibleCensusHalfOverTheFULLDualMuSet_Test::TestBody()
+                            COUNTS 1106 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS +34(x6)
+              NOISE-ONLY    SqpDriverSsnMode_TheSsnFbToleranceTracksTheTighterOfTheDriversTwoTolerances_Test::TestBody()
+                            COUNTS 595 insns; CHANGED 7; UNCLASSIFIED 0; DELTAS +8(x7)
+              DIFFERS       SqpDriverCertifiedFallback_T7TheEscapeBranchTernaryCONSUMESAnAttachedReportAtTheDriver_Test::TestBody()
+                            PAD-ROUTE DECLINED: 11 alignment-pad lines vs 23 (102 -> 208 bytes); start 0xed950 (mod 32 = 16) -> 0xed950 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1895 lines vs 2671 -- instructions were added or removed
+              NOISE-ONLY    SqpDriverElastic_InconsistentLinearizationRecoversUnderKSsn_Test::TestBody()
+                            COUNTS 956 insns; CHANGED 11; UNCLASSIFIED 0; DELTAS +8(x11)
+              NOISE-ONLY    SqpDriverCrashBasis_SeedBuilderReadsTheSubproblemsOwnGeometry_Test::TestBody()
+                            COUNTS 1193 insns; CHANGED 13; UNCLASSIFIED 0; DELTAS +8(x13)
+              NOISE-ONLY    SqpDriverCertifiedFallback_P1TheEvidencePlacesRungAsFirstRungBetweenTheFloorAndTheCeiling_Test::TestBody()
+                            COUNTS 2035 insns; CHANGED 20; UNCLASSIFIED 0; DELTAS +8(x20)
+              NOISE-ONLY    SqpDriverSsnMode_TheCentresHighWaterMarkIsClearedBetweenSolves_Test::TestBody()
+                            COUNTS 608 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS +8(x6)
+              DIFFERS       SqpDriverSoc_SocFiresOnACurvedActiveInequalityAndImprovesH_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0xb5066(%rip),%rdx ;LEN=7
+                                            + 	lea    0xb5fc6(%rip),%rdx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0xb4fff(%rip),%rcx ;LEN=7
+                                            + 	lea    0xb5f5f(%rip),%rcx ;LEN=7
+                            COUNTS 846 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              NOISE-ONLY    SqpDriverProbeBudget_ExhaustedBudgetStopsAtAnIterateAndSaysSo_Test::TestBody()
+                            COUNTS 967 insns; CHANGED 10; UNCLASSIFIED 0; DELTAS +8(x10)
+              NOISE-ONLY    SqpDriverSsnMode_TheRefusedFaceRefinementChargeIsFiveFieldsAndNoMore_Test::TestBody()
+                            COUNTS 583 insns; CHANGED 8; UNCLASSIFIED 0; DELTAS +8(x8)
+              NOISE-ONLY    SqpDriverContract_TheSolutionCarriesTheTerminalKktMeasurementAndAWallTime_Test::TestBody()
+                            COUNTS 959 insns; CHANGED 14; UNCLASSIFIED 0; DELTAS +8(x14)
+              NOISE-ONLY    SqpDriverSsnMode_AnEscapedSubproblemLandsInTheWalkAndStillCertifies_Test::TestBody()
+                            COUNTS 1172 insns; CHANGED 13; UNCLASSIFIED 0; DELTAS +8(x13)
+              NOISE-ONLY    SqpDriverSsnMode_TheCarriedProximalCentreIsNeverAnEscapedIterate_Test::TestBody()
+                            COUNTS 1529 insns; CHANGED 14; UNCLASSIFIED 0; DELTAS +8(x14)
+              NOISE-ONLY    SqpDriverCertifiedFallback_P4bTheCeilingDeclineIsGONEUnderThePlacementBound_Test::TestBody()
+                            COUNTS 1928 insns; CHANGED 19; UNCLASSIFIED 0; DELTAS +8(x19)
+              NOISE-ONLY    SqpDriverSsnMode_CounterAggregationSumsFiveFieldsAndPeaksTheSixth_Test::TestBody()
+                            COUNTS 412 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS +8(x6)
+              NOISE-ONLY    SqpDriverCertifiedFallback_T7TheDisprovedSuspicionCalibrationOverTheHsCorpusIsZERO_Test::TestBody()
+                            COUNTS 1197 insns; CHANGED 7; UNCLASSIFIED 0; DELTAS +34(x7)
+              NOISE-ONLY    SqpDriverProbeBudget_ConvergenceBeatsAnExhaustedBudget_Test::TestBody()
+                            COUNTS 506 insns; CHANGED 5; UNCLASSIFIED 0; DELTAS +8(x5)
+              NOISE-ONLY    SqpDriverCertifiedFallback_P3AnExhaustedLadderCertifiesInfeasibleWithItsReportAttached_Test::TestBody()
+                            COUNTS 1050 insns; CHANGED 13; UNCLASSIFIED 0; DELTAS +8(x13)
+              NOISE-ONLY    SqpDriverCertifiedFallback_P3TheEscapeBranchCONSUMESTheAttachedLadderRatherThanRerunningIt_Test::TestBody()
+                            COUNTS 651 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +8(x4)
+              NOISE-ONLY    SqpDriverDiagnostics_LedgerRecordsOneSqpSolveRecordPerDriverSolveAndQpRecordsStillWork_Test::TestBody()
+                            COUNTS 1060 insns; CHANGED 13; UNCLASSIFIED 0; DELTAS +8(x13)
+              NOISE-ONLY    SqpDriverAdaptiveMu_AdaptiveMuRecoversTailAccuracy_Test::TestBody()
+                            COUNTS 2119 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +5(x1)
+              NOISE-ONLY    SqpDriverCertifiedFallback_P7TheVerdictReadsNothingFromTheEvidenceBeyondItsThreeInputs_Test::TestBody()
+                            COUNTS 2400 insns; CHANGED 10; UNCLASSIFIED 0; DELTAS +8(x10)
+              DIFFERS       SqpDriverQpFailure_TheCappedSubproblemsOwnStepIsTakenAndKeepsTheMultipliers_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0xd2084(%rip),%rsi ;LEN=7
+                                            + 	lea    0xd2fe4(%rip),%rsi ;LEN=7
+                              UNCLASSIFIED  - 	lea    0xd204c(%rip),%rcx ;LEN=7
+                                            + 	lea    0xd2fac(%rip),%rcx ;LEN=7
+                              UNCLASSIFIED  - RELOC R_X86_64_PC32 .L__const.void std::__detail::__to_chars_10_impl<unsigned long>(char*, unsigned int, unsigned long).__digits +LOCAL
+                                            + RELOC R_X86_64_PC32 .L__const.void std::__detail::__to_chars_10_impl<unsigned int>(char*, unsigned int, unsigned int).__digits +LOCAL
+                              UNCLASSIFIED  - RELOC R_X86_64_PC32 .L__const.void std::__detail::__to_chars_10_impl<unsigned long>(char*, unsigned int, unsigned long).__digits +LOCAL
+                                            + RELOC R_X86_64_PC32 .L__const.void std::__detail::__to_chars_10_impl<unsigned int>(char*, unsigned int, unsigned int).__digits +LOCAL
+                            COUNTS 1624 insns; CHANGED 4; UNCLASSIFIED 4; DELTAS
+              NOISE-ONLY    SqpDriverElasticSeed_T6bTheUncontainedInBranchRouteNoLongerDeclines_Test::TestBody()
+                            COUNTS 1117 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS +8(x6)
+              NOISE-ONLY    SqpDriverSsnMode_AtTheShippedRestorationLeversThePhaseReEntersWithoutASwitch_Test::TestBody()
+                            COUNTS 725 insns; CHANGED 9; UNCLASSIFIED 0; DELTAS +8(x9)
+              NOISE-ONLY    (anonymous namespace)::w2_expect_same_sparse(Eigen::SparseMatrix<double, 1, int> const&, Eigen::SparseMatrix<double, 1, int> const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+                            COUNTS 850 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +8(x4)
+              DIFFERS       SqpDriverCertifiedFallback_T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnItsWorstFixture_Test::TestBody()
+                            PAD-ROUTE DECLINED: 8 alignment-pad lines vs 16 (84 -> 162 bytes); start 0xfda20 (mod 32 = 0) -> 0xfe6c0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1067 lines vs 1179 -- instructions were added or removed
+              NOISE-ONLY    SqpDriverSignSweep_EveryStrictlyNegativePriceIsClampedAndNothingElseMoves_Test::TestBody()
+                            COUNTS 700 insns; CHANGED 9; UNCLASSIFIED 0; DELTAS +8(x9)
+              NOISE-ONLY    (anonymous namespace)::w2_expect_same_ipqp_counters(hven::solvers::IpqpCounters const&, hven::solvers::IpqpCounters const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+                            COUNTS 2960 insns; CHANGED 43; UNCLASSIFIED 0; DELTAS +8(x43)
+              NOISE-ONLY    SqpDriverSsnMode_TheProximalCarryHasACommittedCounterExample_Test::TestBody()
+                            COUNTS 764 insns; CHANGED 5; UNCLASSIFIED 0; DELTAS +8(x5)
+              NOISE-ONLY    SqpDriverCertifiedFallback_AnOverriddenPlacementIsVALIDATEDAndClampedIntoTheLaddersRange_Test::TestBody()
+                            COUNTS 1164 insns; CHANGED 10; UNCLASSIFIED 0; DELTAS +8(x10)
+              NOISE-ONLY    SqpDriverSsnMode_TheUsabilityGateRefusesEveryEscapeAndAnOutOfRegionCertificate_Test::TestBody()
+                            COUNTS 727 insns; CHANGED 7; UNCLASSIFIED 0; DELTAS +8(x7)
+              DIFFERS       SqpDriverCertifiedFallback_T7TheCeilingFlagsTRUEArmOnADriverRowIsThePricedOne_Test::TestBody()
+                            PAD-ROUTE DECLINED: 2 alignment-pad lines vs 1 (18 -> 2 bytes); start 0xef710 (mod 32 = 16) -> 0xf03c0 (mod 32 = 0) -- a non-pad line differs somewhere other than a control-transfer target (rule 3)
+                            STRUCTURAL: normalized listing is 1108 lines vs 1107 -- instructions were added or removed
+              NOISE-ONLY    SqpDriverCertifiedFallback_P5AnUnfiredEvidenceBlockNeverEntersRungAAtAll_Test::TestBody()
+                            COUNTS 991 insns; CHANGED 9; UNCLASSIFIED 0; DELTAS +8(x9)
+              NOISE-ONLY    QpEngineStructuralViolation_T6bTheGuardContradictionsAreNotAbsorbedInEitherAlgebra_Test::TestBody()
+                            COUNTS 1379 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +8(x2)
+              NOISE-ONLY    SqpDriverCertifiedFallback_ANegativeOrNaNWindowIsREFUSEDAtBothPublicEntryPoints_Test::TestBody()
+                            COUNTS 1065 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +8(x4)
+              NOISE-ONLY    SqpDriverSsnMode_TheProximalCarryRoundTripsAndIsGatedOffByDefault_Test::TestBody()
+                            COUNTS 835 insns; CHANGED 8; UNCLASSIFIED 0; DELTAS +8(x8)
+              NOISE-ONLY    SqpDriverCrashBasis_IsInertOnAWarmIngest_Test::TestBody()
+                            COUNTS 985 insns; CHANGED 10; UNCLASSIFIED 0; DELTAS +8(x10)
+              DIFFERS       void std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::__resize_and_overwrite<std::__cxx11::to_string(long)::{lambda(char*, unsigned long)#1}>(unsigned long, std::__cxx11::to_string(long)::{lambda(char*, unsigned long)#1})
+                              UNCLASSIFIED  - RELOC R_X86_64_PC32 .L__const.void std::__detail::__to_chars_10_impl<unsigned long>(char*, unsigned int, unsigned long).__digits +LOCAL
+                                            + RELOC R_X86_64_PC32 .L__const.void std::__detail::__to_chars_10_impl<unsigned int>(char*, unsigned int, unsigned int).__digits +LOCAL
+                            COUNTS 110 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              NOISE-ONLY    SqpDriverSsnMode_TheSecondOrderCorrectionIsReachableUnderKSsnFromAnSsnSeed_Test::TestBody()
+                            COUNTS 675 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS +8(x6)
+              NOISE-ONLY    SqpDriverElasticSeed_TheWorkingSetSeedIsSolutionIdenticalAndEarnsItsMinorIterations_Test::TestBody()
+                            COUNTS 1801 insns; CHANGED 14; UNCLASSIFIED 0; DELTAS +8(x14)
+              NOISE-ONLY    SqpDriverW2Fixtures_TheEscapeHelperInvokesTheTierExactlyOncePerCall_Test::TestBody()::$_0::operator()(char const*, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+                            COUNTS 391 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +8(x2)
+              NOISE-ONLY    SqpDriverSsnMode_TheEscapedSubproblemsCostIsChargedInBothFields_Test::TestBody()
+                            COUNTS 271 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +8(x3)
+              NOISE-ONLY    SqpDriverCrashBasis_AnOverGenerousSeedCostsMoreThanNoSeed_Test::TestBody()
+                            COUNTS 1330 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS +8(x6)
+              NOISE-ONLY    SqpDriverElasticSeed_ADefaultConstructedEvidenceBlockIsW1sLadderExactly_Test::TestBody()
+                            COUNTS 670 insns; CHANGED 7; UNCLASSIFIED 0; DELTAS +8(x7)
+              NOISE-ONLY    SqpDriverEvalEconomics_RejectionHeavyHs40PoisonedFixtureCutsFullEvals_Test::TestBody()
+                            COUNTS 1107 insns; CHANGED 16; UNCLASSIFIED 0; DELTAS +8(x16)
+              NOISE-ONLY    SqpDriverElasticSeed_T6bAClimbingConsistentLadderClosesAtEveryRung_Test::TestBody()
+                            COUNTS 526 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS +8(x6)
+              NOISE-ONLY    SqpDriverSsnMode_TheProximalCarryLeverMovesTheLadderAndIsOffByDefault_Test::TestBody()
+                            COUNTS 1392 insns; CHANGED 13; UNCLASSIFIED 0; DELTAS +8(x13)
+              NOISE-ONLY    SqpDriverSsnMode_TheSsnStartMirrorsTheWalkSeedButNeverItsPrimal_Test::TestBody()
+                            COUNTS 921 insns; CHANGED 10; UNCLASSIFIED 0; DELTAS +8(x10)
+              NOISE-ONLY    SqpDriverSsnMode_TheSsnBoundActivityReachesTheHandOff_Test::TestBody()
+                            COUNTS 1050 insns; CHANGED 10; UNCLASSIFIED 0; DELTAS +8(x10)
+              NOISE-ONLY    SqpDriverProbeBudget_ZeroBudgetIsBitIdenticalToNoBudget_Test::TestBody()
+                            COUNTS 1024 insns; CHANGED 12; UNCLASSIFIED 0; DELTAS +8(x12)
+              NOISE-ONLY    SqpDriverCertifiedFallback_E1TheDependentInconsistentPairIsCertifiedByTheEqualityBasis_Test::TestBody()
+                            COUNTS 836 insns; CHANGED 10; UNCLASSIFIED 0; DELTAS +56(x10)
+              NOISE-ONLY    SqpDriverSsnMode_TheTightFinishIsReachedUnderKSsnExactlyAsUnderTheWalk_Test::TestBody()
+                            COUNTS 1121 insns; CHANGED 7; UNCLASSIFIED 0; DELTAS +8(x7)
+              NOISE-ONLY    SqpDriverAdaptiveMu_MuScheduleIsQuantizedAndMonotone_Test::TestBody()
+                            COUNTS 1270 insns; CHANGED 10; UNCLASSIFIED 0; DELTAS +8(x10)
+              NOISE-ONLY    QpEngineStructuralViolation_T6bTheStiffBorderWalkAboveTheShippedDualMuReachesTheOptimum_Test::TestBody()
+                            COUNTS 706 insns; CHANGED 9; UNCLASSIFIED 0; DELTAS +8(x9)
+              NOISE-ONLY    (anonymous namespace)::w2_expect_same_solution(hven::solvers::QpSolution const&, hven::solvers::QpSolution const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+                            COUNTS 701 insns; CHANGED 8; UNCLASSIFIED 0; DELTAS +8(x8)
+              NOISE-ONLY    SqpDriverSsnMode_TheEscapeReasonCensusPartitionsTheEscapeCount_Test::TestBody()
+                            COUNTS 1111 insns; CHANGED 11; UNCLASSIFIED 0; DELTAS +8(x11)
+              DIFFERS       SqpDriverTrustRegion_RejectionShrinksAndRetriesHotly_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0xe3a11(%rip),%rdx ;LEN=7
+                                            + 	lea    0xe4971(%rip),%rdx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0xe39aa(%rip),%rcx ;LEN=7
+                                            + 	lea    0xe490a(%rip),%rcx ;LEN=7
+                            COUNTS 2281 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              NOISE-ONLY    SqpDriverCertifiedFallback_P4OnAPrimedEngineCostsTheAnalysisRungADisplaces_Test::TestBody()
+                            COUNTS 820 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS +8(x6)
+              NOISE-ONLY    SqpDriverCertifiedFallback_P4ARefusedRungAReturnsTheColdWalkCounterForCounter_Test::TestBody()
+                            COUNTS 1754 insns; CHANGED 17; UNCLASSIFIED 0; DELTAS +8(x17)
+              NOISE-ONLY    SqpDriverCertifiedFallback_ARungAOwnedMajorIsAnElasticRowOnTheDriversOwnHistory_Test::TestBody()
+                            COUNTS 1112 insns; CHANGED 15; UNCLASSIFIED 0; DELTAS +8(x15)
+              NOISE-ONLY    SqpDriverSsnMode_TheProximalExportDoesNotLeakFromOneSolveToTheNext_Test::TestBody()
+                            COUNTS 757 insns; CHANGED 9; UNCLASSIFIED 0; DELTAS +8(x9)
+              NOISE-ONLY    QpEngineStructuralViolation_T6bTheMisfireCensusOverBothPopulationsAndBothAlgebras_Test::TestBody()
+                            COUNTS 785 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +8(x3)
+              NOISE-ONLY    SqpDriverCertifiedFallback_TheFallbackVerdictEventDescribesEVERYEntryIncludingTheUnfiredOne_Test::TestBody()
+                            COUNTS 1100 insns; CHANGED 13; UNCLASSIFIED 0; DELTAS +8(x13)
+              NOISE-ONLY    SqpDriverCertifiedFallback_P2bOpenButReducedSlacksReturnKOptimalWithMultipliersZEROED_Test::TestBody()
+                            COUNTS 938 insns; CHANGED 11; UNCLASSIFIED 0; DELTAS +8(x11)
+              NOISE-ONLY    SqpDriverElasticSeed_AnEvidenceNormAboveTheLaddersCeilingIsCAPPEDAtIt_Test::TestBody()
+                            COUNTS 1750 insns; CHANGED 19; UNCLASSIFIED 0; DELTAS +8(x19)
+              NOISE-ONLY    SqpDriverEvalEconomics_HsSweepPoisonedHs40MatchesTheBaseProblemAtPZero_Test::TestBody()
+                            COUNTS 482 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +8(x2)
+              NOISE-ONLY    SqpDriverCertifiedFallback_P6NoEvidenceContentMakesTheFallbackThrow_Test::TestBody()
+                            COUNTS 1686 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +8(x2)
+              NOISE-ONLY    SqpDriverCertifiedFallback_T3ARefusalWhoseWalkCertifiesInfeasibleCostsTwoActivations_Test::TestBody()
+                            COUNTS 1259 insns; CHANGED 9; UNCLASSIFIED 0; DELTAS +8(x9)
+              NOISE-ONLY    SqpDriverSignSweep_TheCountersAreCumulativeAcrossCallsAndThePeakIsAPeak_Test::TestBody()
+                            COUNTS 333 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +8(x4)
+              DIFFERS       SqpDriverContract_MisSizedCallbackReturnsAreRejectedByName_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0xf60f7(%rip),%rdx ;LEN=7
+                                            + 	lea    0xf7057(%rip),%rdx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0xf6120(%rip),%rcx ;LEN=7
+                                            + 	lea    0xf7080(%rip),%rcx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0xf5c34(%rip),%rdx ;LEN=7
+                                            + 	lea    0xf6b94(%rip),%rdx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0xf5c5d(%rip),%rcx ;LEN=7
+                                            + 	lea    0xf6bbd(%rip),%rcx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0xf54a7(%rip),%rdx ;LEN=7
+                                            + 	lea    0xf6407(%rip),%rdx ;LEN=7
+                              ... and 1 more unclassified differences
+                            COUNTS 1869 insns; CHANGED 6; UNCLASSIFIED 6; DELTAS
+              DIFFERS       SqpDriverTrustRegion_RejectionCountResetsWhenTheIterateMoves_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0xde33e(%rip),%rdx ;LEN=7
+                                            + 	lea    0xdf29e(%rip),%rdx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0xde068(%rip),%rcx ;LEN=7
+                                            + 	lea    0xdefc8(%rip),%rcx ;LEN=7
+                            COUNTS 537 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       SqpDriverContract_MisSizedUpgradeReturnsAreRejectedByName_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0xf3de2(%rip),%rdx ;LEN=7
+                                            + 	lea    0xf4d42(%rip),%rdx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0xf3df2(%rip),%rcx ;LEN=7
+                                            + 	lea    0xf4d52(%rip),%rcx ;LEN=7
+                            COUNTS 1232 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              NOISE-ONLY    SqpDriverSsnMode_CertifyFromFaceIsInertAtTheWalkDefault_Test::TestBody()
+                            COUNTS 779 insns; CHANGED 7; UNCLASSIFIED 0; DELTAS +8(x7)
+              DIFFERS       SqpDriverTrustRegion_StrategyIsPluggable_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0xddf00(%rip),%rcx ;LEN=7
+                                            + 	lea    0xdee60(%rip),%rcx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0xddde5(%rip),%rcx ;LEN=7
+                                            + 	lea    0xded45(%rip),%rcx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0xdda02(%rip),%rax ;LEN=7
+                                            + 	lea    0xde962(%rip),%rax ;LEN=7
+                              UNCLASSIFIED  - 	lea    0xdd9d1(%rip),%rax ;LEN=7
+                                            + 	lea    0xde931(%rip),%rax ;LEN=7
+                            COUNTS 626 insns; CHANGED 4; UNCLASSIFIED 4; DELTAS
+              NOISE-ONLY    SqpDriverCertifiedFallback_ADeclinedRungAAboveTheFloorIsRETRIEDThereExactlyOnce_Test::TestBody()
+                            COUNTS 1756 insns; CHANGED 19; UNCLASSIFIED 0; DELTAS +8(x19)
+              NOISE-ONLY    SqpDriverElasticSeed_TheDegradedPathIsSAFEOnFixturesWhereGeometryNamesNothing_Test::TestBody()
+                            COUNTS 1314 insns; CHANGED 5; UNCLASSIFIED 0; DELTAS +8(x5)
+              NOISE-ONLY    SqpDriverSsnMode_TheLedgerCarriesTheSsnColumnsAndTheyAgreeWithTheCounters_Test::TestBody()
+                            COUNTS 1015 insns; CHANGED 11; UNCLASSIFIED 0; DELTAS +8(x11)
+              NOISE-ONLY    SqpDriverCertifiedFallback_T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearization_Test::TestBody()
+                            COUNTS 1238 insns; CHANGED 16; UNCLASSIFIED 0; DELTAS +56(x16)
+              ONLY-AFTER    void std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::__resize_and_overwrite<std::__cxx11::to_string(int)::{lambda(char*, unsigned long)#1}>(unsigned long, std::__cxx11::to_string(int)::{lambda(char*, unsigned long)#1})
+              ONLY-AFTER    SqpDriverCertifiedFallback_T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnItsWorstFixture_Test::TestBody()::$_0::operator()(hven::solvers::SqpResult const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const*) const
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+            COUNTS 88241 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+            COUNTS 52444 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+            COUNTS 103921 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+
+P-SYM: 163 objects — 154 byte-identical, 7 differing within the accepted noise class, 2 with unclassified differences, 0 matched by basename after a path move, 0 missing
+P-SYM coverage: 0 objects matched through the object map, 2 compared per symbol, 0 objects passed per symbol, 0 after-arm objects unaccounted for; symbols — 77449 matched (0 through the symbol map), 0 only-before, 2 only-after, 0 excepted, 0 collisions, 50 rank-tagged, 0 stale exceptions, 0 stale map entries; compiler-local label families — 663 matched by count, 6 differing (90007 before-arm and 90015 after-arm symbols accounted by family); relocations — 62547 records compared (0 through the symbol map)
+P-SYM: FAIL — differences outside the accepted noise class

@@ -281,8 +281,14 @@ TEST(IpqpTrace, IterEventsCarryTheDriverSetMajorAndCrossCheckAgainstTheResult) {
 #ifndef USE_ACCELERATE_SPARSE
         EXPECT_TRUE(ev.zero_derived) << "MKL Pardiso always derives n_zero by subtraction";
 #endif
+#ifdef USE_ACCELERATE_SPARSE
+        // M7 WX B1 (design section 2.3, class D): Accelerate's declared state is an absent pivot
+        // count (`std::nullopt` by construction, symmetric_factor_accelerate.cpp).
+        EXPECT_FALSE(ev.perturbed.has_value()) << "Accelerate reports no pivot count";
+#else
         ASSERT_TRUE(ev.perturbed.has_value()) << "MKL always reports a pivot count";
         EXPECT_EQ(*ev.perturbed, 0) << "well-conditioned fixture, no perturbation";
+#endif
         min_alpha_p = std::min(min_alpha_p, ev.alpha_p);
         min_alpha_d = std::min(min_alpha_d, ev.alpha_d);
     }

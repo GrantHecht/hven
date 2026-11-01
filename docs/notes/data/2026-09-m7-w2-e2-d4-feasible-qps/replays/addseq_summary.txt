@@ -1,0 +1,33 @@
+PGREP_EMPTY addseq-all 2026-09-24T09:07:14-04:00
+FOREGROUND_START addseq-all 2026-09-24T09:07:14-04:00
+ACOPP57_def qp0 adds=0 first_exact: 
+ACOPP57_def qp1 adds=0 first_exact: 
+ACOPP57_def qp2 adds=0 first_exact: 
+ACOPP57_def qp3 adds=0 first_exact: 
+ACOPR57_def qp0 adds=0 first_exact: 
+ACOPR57_def qp1 adds=19 first_exact: 
+ACOPR57_def qp2 adds=2 first_exact: 
+ACOPR57_def qp3 adds=858 first_exact: 
+ACOPR57_def qp4 adds=24 first_exact: 
+ACOPR57_def qp5 adds=563 first_exact: 
+ACOPR57_def qp6 adds=612 first_exact: 
+ACOPR57_def qp7 adds=299 first_exact: 
+ACOPR57_def qp8 adds=23 first_exact: 
+DALLASM_def qp0 adds=4 first_exact: it=3 ADD pin 55  dist=2.379e-15 engine_rho=3.129e-06 structural=('eq', 49) EXACT-DEP
+DALLASM_def qp1 adds=4 first_exact: it=3 ADD pin 55  dist=2.379e-15 engine_rho=3.129e-06 structural=('eq', 49) EXACT-DEP
+DALLASM_def qp2 adds=4 first_exact: it=3 ADD pin 55  dist=2.379e-15 engine_rho=3.129e-06 structural=('eq', 49) EXACT-DEP
+DALLASM_def qp3 adds=4 first_exact: it=3 ADD pin 55  dist=2.379e-15 engine_rho=3.129e-06 structural=('eq', 49) EXACT-DEP
+DALLASM_f4 qp0 adds=4 first_exact: it=3 ADD pin 55  dist=2.379e-15 engine_rho=3.129e-06 structural=('eq', 49) EXACT-DEP
+DALLASM_f4 qp1 adds=49 first_exact: it=48 ADD pin 132  dist=2.873e-15 engine_rho=6.773e-06 structural=('eq', 103) EXACT-DEP
+DALLASM_f4 qp2 adds=4 first_exact: it=3 ADD pin 55  dist=2.379e-15 engine_rho=3.129e-06 structural=('eq', 49) EXACT-DEP
+DALLASM_f4 qp3 adds=4 first_exact: it=3 ADD pin 55  dist=2.379e-15 engine_rho=3.129e-06 structural=('eq', 49) EXACT-DEP
+SAWPATH_def qp0 adds=5 first_exact: 
+SAWPATH_def qp1 adds=262 first_exact: it=262 ADD pin 960  dist=9.009e-11 engine_rho=1.098e-03 structural=False EXACT-DEP
+SAWPATH_def qp2 adds=5 first_exact: 
+STEENBRB_def qp0 adds=235 first_exact: it=234 ADD pin 407  dist=4.819e-15 engine_rho=5.706e+10 structural=('eq', 63) EXACT-DEP
+STEENBRB_def qp1 adds=32 first_exact: it=31 ADD pin 55  dist=1.841e-15 engine_rho=6.219e-02 structural=('eq', 0) EXACT-DEP
+STEENBRB_def qp2 adds=18 first_exact: it=20 ADD pin 9  dist=6.855e-15 engine_rho=1.301e+18 structural=('eq', 24) EXACT-DEP
+STEENBRB_def qp3 adds=206 first_exact: it=208 ADD pin 18  dist=5.969e-15 engine_rho=5.470e-04 structural=('eq', 64) EXACT-DEP
+YORKNET_def qp0 adds=240 first_exact: 
+YORKNET_def qp1 adds=593 first_exact: 
+FOREGROUND_END addseq-all 2026-09-24T09:13:07-04:00 rc=0

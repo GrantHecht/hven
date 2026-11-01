@@ -1,0 +1,802 @@
+Running main() from /home/ghecht/Projects/hven/build-debug/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 371 tests from 18 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from Version
+[ RUN      ] Version.NonNullNonEmptyMatchesProjectVersion
+[       OK ] Version.NonNullNonEmptyMatchesProjectVersion (0 ms)
+[----------] 1 test from Version (0 ms total)
+
+[----------] 1 test from SparseBackendLink
+[ RUN      ] SparseBackendLink.MklGetVersionResolvesThroughPublicLinkage
+[       OK ] SparseBackendLink.MklGetVersionResolvesThroughPublicLinkage (0 ms)
+[----------] 1 test from SparseBackendLink (0 ms total)
+
+[----------] 19 tests from PatternHash
+[ RUN      ] PatternHash.SameMatrixSameHash
+[       OK ] PatternHash.SameMatrixSameHash (0 ms)
+[ RUN      ] PatternHash.StructurallyIdenticalDifferentValuesSameHash
+[       OK ] PatternHash.StructurallyIdenticalDifferentValuesSameHash (0 ms)
+[ RUN      ] PatternHash.OneMovedNonzeroDifferentHash
+[       OK ] PatternHash.OneMovedNonzeroDifferentHash (0 ms)
+[ RUN      ] PatternHash.DifferentDimsSameNnzDifferentHash
+[       OK ] PatternHash.DifferentDimsSameNnzDifferentHash (0 ms)
+[ RUN      ] PatternHash.EmptyMatrixWellDefined
+[       OK ] PatternHash.EmptyMatrixWellDefined (0 ms)
+[ RUN      ] PatternHash.UncompressedInputThrows
+[       OK ] PatternHash.UncompressedInputThrows (0 ms)
+[ RUN      ] PatternHash.Fnv1aFeedMixesRawBytesByteAtATime
+[       OK ] PatternHash.Fnv1aFeedMixesRawBytesByteAtATime (0 ms)
+[ RUN      ] PatternHash.LiteralValuePinnedForFixedFixture
+[       OK ] PatternHash.LiteralValuePinnedForFixedFixture (0 ms)
+[ RUN      ] PatternHash.CrossCheckAgainstIndependentFnv1aReference
+[       OK ] PatternHash.CrossCheckAgainstIndependentFnv1aReference (0 ms)
+[ RUN      ] PatternHash.Fnv1aFeedIndexMatchesTheByteAtATimeFormAtEveryMagnitude
+[       OK ] PatternHash.Fnv1aFeedIndexMatchesTheByteAtATimeFormAtEveryMagnitude (0 ms)
+[ RUN      ] PatternHash.Fnv1aFeedIndexPairsIsTheInterleavedPerElementStream
+[       OK ] PatternHash.Fnv1aFeedIndexPairsIsTheInterleavedPerElementStream (0 ms)
+[ RUN      ] PatternHash.Fnv1aFeedIndexRemainsAConstantExpression
+[       OK ] PatternHash.Fnv1aFeedIndexRemainsAConstantExpression (0 ms)
+[ RUN      ] PatternHash.TolerantPathReproducesThePinnedLiteralInBothStorageStates
+[       OK ] PatternHash.TolerantPathReproducesThePinnedLiteralInBothStorageStates (0 ms)
+[ RUN      ] PatternHash.TolerantPathAgreesWithCompressedOnEmptyOuterRows
+[       OK ] PatternHash.TolerantPathAgreesWithCompressedOnEmptyOuterRows (0 ms)
+[ RUN      ] PatternHash.TolerantPathAgreesWithCompressedOnLeadingAndTrailingEmptyRows
+[       OK ] PatternHash.TolerantPathAgreesWithCompressedOnLeadingAndTrailingEmptyRows (0 ms)
+[ RUN      ] PatternHash.GappedStructureDigestsMatchTheIndependentReference
+[       OK ] PatternHash.GappedStructureDigestsMatchTheIndependentReference (0 ms)
+[ RUN      ] PatternHash.CombinedKeyToleratesMixedStorageStates
+[       OK ] PatternHash.CombinedKeyToleratesMixedStorageStates (0 ms)
+[ RUN      ] PatternHash.CrossWidthStabilityAtThirtyTwoAndSixtyFourBitStorageIndices
+[       OK ] PatternHash.CrossWidthStabilityAtThirtyTwoAndSixtyFourBitStorageIndices (0 ms)
+[ RUN      ] PatternHash.CombinedKeyIsContinuedAccumulationNotAFoldOverDigests
+[       OK ] PatternHash.CombinedKeyIsContinuedAccumulationNotAFoldOverDigests (0 ms)
+[----------] 19 tests from PatternHash (1 ms total)
+
+[----------] 2 tests from CoreLayering
+[ RUN      ] CoreLayering.TheScanActuallyReadsTheCoreHeaders
+[       OK ] CoreLayering.TheScanActuallyReadsTheCoreHeaders (0 ms)
+[ RUN      ] CoreLayering.NoCoreHeaderDependsUpwardOnAnotherTier
+[       OK ] CoreLayering.NoCoreHeaderDependsUpwardOnAnotherTier (0 ms)
+[----------] 2 tests from CoreLayering (0 ms total)
+
+[----------] 16 tests from DenseSymmetricFactor
+[ RUN      ] DenseSymmetricFactor.Spd2x2ReproducesKnownInverse
+[       OK ] DenseSymmetricFactor.Spd2x2ReproducesKnownInverse (6 ms)
+[ RUN      ] DenseSymmetricFactor.Spd3x3ReproducesKnownInverse
+[       OK ] DenseSymmetricFactor.Spd3x3ReproducesKnownInverse (0 ms)
+[ RUN      ] DenseSymmetricFactor.SymmetricIndefinite3x3SolvesKnownSystem
+[       OK ] DenseSymmetricFactor.SymmetricIndefinite3x3SolvesKnownSystem (0 ms)
+[ RUN      ] DenseSymmetricFactor.MultiRhsSolveMatchesPerColumnSolve
+[       OK ] DenseSymmetricFactor.MultiRhsSolveMatchesPerColumnSolve (0 ms)
+[ RUN      ] DenseSymmetricFactor.IdentityMatrixSolveReproducesRhs
+[       OK ] DenseSymmetricFactor.IdentityMatrixSolveReproducesRhs (0 ms)
+[ RUN      ] DenseSymmetricFactor.NonContiguousXTakesScratchPathAndMatchesContiguousResult
+[       OK ] DenseSymmetricFactor.NonContiguousXTakesScratchPathAndMatchesContiguousResult (0 ms)
+[ RUN      ] DenseSymmetricFactor.ZeroColumnRhsIsAcceptedAndNoOp
+[       OK ] DenseSymmetricFactor.ZeroColumnRhsIsAcceptedAndNoOp (0 ms)
+[ RUN      ] DenseSymmetricFactor.SolveBeforeFactorizeThrows
+[       OK ] DenseSymmetricFactor.SolveBeforeFactorizeThrows (0 ms)
+[ RUN      ] DenseSymmetricFactor.NonSquareFactorizeThrows
+[       OK ] DenseSymmetricFactor.NonSquareFactorizeThrows (0 ms)
+[ RUN      ] DenseSymmetricFactor.EmptyFactorizeThrows
+[       OK ] DenseSymmetricFactor.EmptyFactorizeThrows (0 ms)
+[ RUN      ] DenseSymmetricFactor.RhsRowCountMismatchThrows
+[       OK ] DenseSymmetricFactor.RhsRowCountMismatchThrows (0 ms)
+[ RUN      ] DenseSymmetricFactor.XShapeMismatchThrows
+[       OK ] DenseSymmetricFactor.XShapeMismatchThrows (0 ms)
+[ RUN      ] DenseSymmetricFactor.SingularMatrixFactorizeThrowsWithInfoCode
+[       OK ] DenseSymmetricFactor.SingularMatrixFactorizeThrowsWithInfoCode (0 ms)
+[ RUN      ] DenseSymmetricFactor.RefactorizeWithDifferentDimLeavesNoStaleState
+[       OK ] DenseSymmetricFactor.RefactorizeWithDifferentDimLeavesNoStaleState (0 ms)
+[ RUN      ] DenseSymmetricFactor.ThreadCountDefaultsToTheBackendDefaultAndRefusesNegatives
+[       OK ] DenseSymmetricFactor.ThreadCountDefaultsToTheBackendDefaultAndRefusesNegatives (0 ms)
+[ RUN      ] DenseSymmetricFactor.ACallScopedThreadCountRestoresTheCallersOwnOverride
+[       OK ] DenseSymmetricFactor.ACallScopedThreadCountRestoresTheCallersOwnOverride (0 ms)
+[----------] 16 tests from DenseSymmetricFactor (6 ms total)
+
+[----------] 18 tests from DenseSymmetricFactorGrowth
+[ RUN      ] DenseSymmetricFactorGrowth.UpperOverloadIsTheSingleArgumentCall
+[       OK ] DenseSymmetricFactorGrowth.UpperOverloadIsTheSingleArgumentCall (0 ms)
+[ RUN      ] DenseSymmetricFactorGrowth.FactorizeStillThrowsOnExactSingularity
+[       OK ] DenseSymmetricFactorGrowth.FactorizeStillThrowsOnExactSingularity (0 ms)
+[ RUN      ] DenseSymmetricFactorGrowth.FactorizeLowerAlsoThrowsOnExactSingularity
+[       OK ] DenseSymmetricFactorGrowth.FactorizeLowerAlsoThrowsOnExactSingularity (0 ms)
+[ RUN      ] DenseSymmetricFactorGrowth.OverloadValidationThrowsAndNamesItsEntryPoint
+[       OK ] DenseSymmetricFactorGrowth.OverloadValidationThrowsAndNamesItsEntryPoint (0 ms)
+[ RUN      ] DenseSymmetricFactorGrowth.TryFactorizeReportsExactSingularityWithoutThrowing
+[       OK ] DenseSymmetricFactorGrowth.TryFactorizeReportsExactSingularityWithoutThrowing (0 ms)
+[ RUN      ] DenseSymmetricFactorGrowth.TryFactorizeOkMatchesFactorize
+[       OK ] DenseSymmetricFactorGrowth.TryFactorizeOkMatchesFactorize (0 ms)
+[ RUN      ] DenseSymmetricFactorGrowth.TryFactorizeSingularClearsAnEarlierUsableFactorization
+[       OK ] DenseSymmetricFactorGrowth.TryFactorizeSingularClearsAnEarlierUsableFactorization (0 ms)
+[ RUN      ] DenseSymmetricFactorGrowth.EachTriangleReadsOnlyItsOwnHalf
+[       OK ] DenseSymmetricFactorGrowth.EachTriangleReadsOnlyItsOwnHalf (0 ms)
+[ RUN      ] DenseSymmetricFactorGrowth.UpperAndLowerAgreeOnSolveAndInertia
+[       OK ] DenseSymmetricFactorGrowth.UpperAndLowerAgreeOnSolveAndInertia (0 ms)
+[ RUN      ] DenseSymmetricFactorGrowth.RefactorizeResetsTheTriangle
+[       OK ] DenseSymmetricFactorGrowth.RefactorizeResetsTheTriangle (0 ms)
+[ RUN      ] DenseSymmetricFactorGrowth.UnknownTriangleValueThrows
+[       OK ] DenseSymmetricFactorGrowth.UnknownTriangleValueThrows (0 ms)
+[ RUN      ] DenseSymmetricFactorGrowth.EvidenceIsAbsentBeforeAnyFactorization
+[       OK ] DenseSymmetricFactorGrowth.EvidenceIsAbsentBeforeAnyFactorization (0 ms)
+[ RUN      ] DenseSymmetricFactorGrowth.EvidenceOnDiagonalFixtureIsExact
+[       OK ] DenseSymmetricFactorGrowth.EvidenceOnDiagonalFixtureIsExact (0 ms)
+[ RUN      ] DenseSymmetricFactorGrowth.EvidenceDecodesAForced2x2Block
+[       OK ] DenseSymmetricFactorGrowth.EvidenceDecodesAForced2x2Block (0 ms)
+[ RUN      ] DenseSymmetricFactorGrowth.EvidenceMatchesDeterminantAndIndependentInertia
+[       OK ] DenseSymmetricFactorGrowth.EvidenceMatchesDeterminantAndIndependentInertia (0 ms)
+[ RUN      ] DenseSymmetricFactorGrowth.EvidenceOnAMixedBlockFixture
+[       OK ] DenseSymmetricFactorGrowth.EvidenceOnAMixedBlockFixture (0 ms)
+[ RUN      ] DenseSymmetricFactorGrowth.EvidenceDecodesA2x2BlockPastTheFirstIndex
+[       OK ] DenseSymmetricFactorGrowth.EvidenceDecodesA2x2BlockPastTheFirstIndex (0 ms)
+[ RUN      ] DenseSymmetricFactorGrowth.EvidenceIsAbsentAfterAFailedFactorize
+[       OK ] DenseSymmetricFactorGrowth.EvidenceIsAbsentAfterAFailedFactorize (0 ms)
+[----------] 18 tests from DenseSymmetricFactorGrowth (0 ms total)
+
+[----------] 5 tests from SymmetricFactorEvidenceInvariants
+[ RUN      ] SymmetricFactorEvidenceInvariants.ObservedEvidenceSatisfiesTheHonestyInvariants
+[       OK ] SymmetricFactorEvidenceInvariants.ObservedEvidenceSatisfiesTheHonestyInvariants (8 ms)
+[ RUN      ] SymmetricFactorEvidenceInvariants.PartialSolveUnsupportedBeforeAnyFactorization
+[       OK ] SymmetricFactorEvidenceInvariants.PartialSolveUnsupportedBeforeAnyFactorization (0 ms)
+[ RUN      ] SymmetricFactorEvidenceInvariants.AbsentPerturbedPivotsImpliesPartialSolveUnsupported
+[       OK ] SymmetricFactorEvidenceInvariants.AbsentPerturbedPivotsImpliesPartialSolveUnsupported (0 ms)
+[ RUN      ] SymmetricFactorEvidenceInvariants.ZeroClassDerivationMatchesTheBackendContract
+[       OK ] SymmetricFactorEvidenceInvariants.ZeroClassDerivationMatchesTheBackendContract (0 ms)
+[ RUN      ] SymmetricFactorEvidenceInvariants.DefaultOptionsMatchTheFreeCostlySplit
+[       OK ] SymmetricFactorEvidenceInvariants.DefaultOptionsMatchTheFreeCostlySplit (0 ms)
+[----------] 5 tests from SymmetricFactorEvidenceInvariants (8 ms total)
+
+[----------] 4 tests from SymmetricFactorThreadCount
+[ RUN      ] SymmetricFactorThreadCount.ANegativeCountIsRejectedAndLeavesTheCountAlone
+[       OK ] SymmetricFactorThreadCount.ANegativeCountIsRejectedAndLeavesTheCountAlone (0 ms)
+[ RUN      ] SymmetricFactorThreadCount.ANewCountCostsNoAnalysisNoSessionAndNoEpoch
+[       OK ] SymmetricFactorThreadCount.ANewCountCostsNoAnalysisNoSessionAndNoEpoch (0 ms)
+[ RUN      ] SymmetricFactorThreadCount.AdoptReportsTheCountSetAfterTheAnalysis
+[       OK ] SymmetricFactorThreadCount.AdoptReportsTheCountSetAfterTheAnalysis (0 ms)
+[ RUN      ] SymmetricFactorThreadCount.AnAdoptedEngineTracksACoOwnersLaterSet
+[       OK ] SymmetricFactorThreadCount.AnAdoptedEngineTracksACoOwnersLaterSet (0 ms)
+[----------] 4 tests from SymmetricFactorThreadCount (0 ms total)
+
+[----------] 1 test from SymmetricFactorFactorEvidence
+[ RUN      ] SymmetricFactorFactorEvidence.CollectFactorMflopsAddsTheCostlyFieldOnMkl
+[       OK ] SymmetricFactorFactorEvidence.CollectFactorMflopsAddsTheCostlyFieldOnMkl (0 ms)
+[----------] 1 test from SymmetricFactorFactorEvidence (0 ms total)
+
+[----------] 15 tests from SymmetricFactorPardisoOnlyOptions
+[ RUN      ] SymmetricFactorPardisoOnlyOptions.NonDefaultOrderingDoesNotThrowOnMkl
+[       OK ] SymmetricFactorPardisoOnlyOptions.NonDefaultOrderingDoesNotThrowOnMkl (0 ms)
+[ RUN      ] SymmetricFactorPardisoOnlyOptions.WeightedMatchingTrueDoesNotThrowOnMkl
+[       OK ] SymmetricFactorPardisoOnlyOptions.WeightedMatchingTrueDoesNotThrowOnMkl (0 ms)
+[ RUN      ] SymmetricFactorPardisoOnlyOptions.MatrixScalingTrueAloneThrowsOnMkl
+[       OK ] SymmetricFactorPardisoOnlyOptions.MatrixScalingTrueAloneThrowsOnMkl (0 ms)
+[ RUN      ] SymmetricFactorPardisoOnlyOptions.MatrixScalingTrueWithWeightedMatchingDoesNotThrowOnMkl
+[       OK ] SymmetricFactorPardisoOnlyOptions.MatrixScalingTrueWithWeightedMatchingDoesNotThrowOnMkl (0 ms)
+[ RUN      ] SymmetricFactorPardisoOnlyOptions.NonDefaultPivotStrategyDoesNotThrowOnMkl
+[       OK ] SymmetricFactorPardisoOnlyOptions.NonDefaultPivotStrategyDoesNotThrowOnMkl (0 ms)
+[ RUN      ] SymmetricFactorPardisoOnlyOptions.ClassicFactorizationAlgorithmDoesNotThrowOnMkl
+[       OK ] SymmetricFactorPardisoOnlyOptions.ClassicFactorizationAlgorithmDoesNotThrowOnMkl (0 ms)
+[ RUN      ] SymmetricFactorPardisoOnlyOptions.TwoLevelFactorizationAlgorithmDoesNotThrowWithCompatibleOrdering
+[       OK ] SymmetricFactorPardisoOnlyOptions.TwoLevelFactorizationAlgorithmDoesNotThrowWithCompatibleOrdering (0 ms)
+[ RUN      ] SymmetricFactorPardisoOnlyOptions.NonDefaultSolveParallelismDoesNotThrowOnMkl
+[       OK ] SymmetricFactorPardisoOnlyOptions.NonDefaultSolveParallelismDoesNotThrowOnMkl (0 ms)
+[ RUN      ] SymmetricFactorPardisoOnlyOptions.PositiveCnrThreadsDoesNotThrowOnMklWithCompatibleOrdering
+[       OK ] SymmetricFactorPardisoOnlyOptions.PositiveCnrThreadsDoesNotThrowOnMklWithCompatibleOrdering (0 ms)
+[ RUN      ] SymmetricFactorPardisoOnlyOptions.CollectFactorMflopsTrueDoesNotThrowOnMkl
+[       OK ] SymmetricFactorPardisoOnlyOptions.CollectFactorMflopsTrueDoesNotThrowOnMkl (0 ms)
+[ RUN      ] SymmetricFactorPardisoOnlyOptions.AccelerateZeroToleranceThrowsOnMkl
+[       OK ] SymmetricFactorPardisoOnlyOptions.AccelerateZeroToleranceThrowsOnMkl (0 ms)
+[ RUN      ] SymmetricFactorPardisoOnlyOptions.PositiveCnrThreadsThrowsWithIncompatibleOrderingOnMkl
+[       OK ] SymmetricFactorPardisoOnlyOptions.PositiveCnrThreadsThrowsWithIncompatibleOrderingOnMkl (0 ms)
+[ RUN      ] SymmetricFactorPardisoOnlyOptions.TwoLevelFactorizationAlgorithmThrowsWithIncompatibleOrderingOnMkl
+[       OK ] SymmetricFactorPardisoOnlyOptions.TwoLevelFactorizationAlgorithmThrowsWithIncompatibleOrderingOnMkl (0 ms)
+[ RUN      ] SymmetricFactorPardisoOnlyOptions.TwoLevelFactorizationAlgorithmThrowsWithScalingOnMkl
+[       OK ] SymmetricFactorPardisoOnlyOptions.TwoLevelFactorizationAlgorithmThrowsWithScalingOnMkl (0 ms)
+[ RUN      ] SymmetricFactorPardisoOnlyOptions.TwoLevelFactorizationAlgorithmThrowsWithMatchingOnMkl
+[       OK ] SymmetricFactorPardisoOnlyOptions.TwoLevelFactorizationAlgorithmThrowsWithMatchingOnMkl (0 ms)
+[----------] 15 tests from SymmetricFactorPardisoOnlyOptions (0 ms total)
+
+[----------] 6 tests from WarmStartValue
+[ RUN      ] WarmStartValue.DefaultIsEmptyAndEqualToAnotherDefault
+[       OK ] WarmStartValue.DefaultIsEmptyAndEqualToAnotherDefault (0 ms)
+[ RUN      ] WarmStartValue.ACopyEqualsItsOriginal
+[       OK ] WarmStartValue.ACopyEqualsItsOriginal (0 ms)
+[ RUN      ] WarmStartValue.EqualityIsFieldwiseOverEveryBlock
+[       OK ] WarmStartValue.EqualityIsFieldwiseOverEveryBlock (0 ms)
+[ RUN      ] WarmStartValue.EqualityIsFieldwiseOverBothStampConjuncts
+[       OK ] WarmStartValue.EqualityIsFieldwiseOverBothStampConjuncts (0 ms)
+[ RUN      ] WarmStartValue.EqualityIsFieldwiseOverTheExtensionList
+[       OK ] WarmStartValue.EqualityIsFieldwiseOverTheExtensionList (0 ms)
+[ RUN      ] WarmStartValue.EqualityIsExactSoANaNPayloadIsUnequalToItself
+[       OK ] WarmStartValue.EqualityIsExactSoANaNPayloadIsUnequalToItself (0 ms)
+[----------] 6 tests from WarmStartValue (0 ms total)
+
+[----------] 20 tests from WarmStartSerialization
+[ RUN      ] WarmStartSerialization.RoundTripsAPopulatedValue
+[       OK ] WarmStartSerialization.RoundTripsAPopulatedValue (0 ms)
+[ RUN      ] WarmStartSerialization.RoundTripsADefaultConstructedValue
+[       OK ] WarmStartSerialization.RoundTripsADefaultConstructedValue (0 ms)
+[ RUN      ] WarmStartSerialization.RoundTripsEmptyBlocksWithAPopulatedStamp
+[       OK ] WarmStartSerialization.RoundTripsEmptyBlocksWithAPopulatedStamp (0 ms)
+[ RUN      ] WarmStartSerialization.RoundTripsSpecialDoublesBitExactly
+[       OK ] WarmStartSerialization.RoundTripsSpecialDoublesBitExactly (0 ms)
+[ RUN      ] WarmStartSerialization.RoundTripsAwkwardExtensionsInOrder
+[       OK ] WarmStartSerialization.RoundTripsAwkwardExtensionsInOrder (0 ms)
+[ RUN      ] WarmStartSerialization.TheEncodingIsAFunctionOfTheValueAlone
+[       OK ] WarmStartSerialization.TheEncodingIsAFunctionOfTheValueAlone (0 ms)
+[ RUN      ] WarmStartSerialization.FrozenByteLayout
+[       OK ] WarmStartSerialization.FrozenByteLayout (0 ms)
+[ RUN      ] WarmStartSerialization.DecodesTheFrozenBytesBackToTheFrozenValue
+[       OK ] WarmStartSerialization.DecodesTheFrozenBytesBackToTheFrozenValue (0 ms)
+[ RUN      ] WarmStartSerialization.TheFormatVersionThisBuildWritesIsTwo
+[       OK ] WarmStartSerialization.TheFormatVersionThisBuildWritesIsTwo (0 ms)
+[ RUN      ] WarmStartSerialization.RefusesAVersionOnePayloadNamingBothVersions
+[       OK ] WarmStartSerialization.RefusesAVersionOnePayloadNamingBothVersions (0 ms)
+[ RUN      ] WarmStartSerialization.AVersionAboveThisBuildsIsNotBlamedOnThePreRulingStamp
+[       OK ] WarmStartSerialization.AVersionAboveThisBuildsIsNotBlamedOnThePreRulingStamp (0 ms)
+[ RUN      ] WarmStartSerialization.AVersionZeroPayloadGetsTheNumbersAndNoStory
+[       OK ] WarmStartSerialization.AVersionZeroPayloadGetsTheNumbersAndNoStory (0 ms)
+[ RUN      ] WarmStartSerialization.RefusesAnEmptyInput
+[       OK ] WarmStartSerialization.RefusesAnEmptyInput (0 ms)
+[ RUN      ] WarmStartSerialization.RefusesABadMagic
+[       OK ] WarmStartSerialization.RefusesABadMagic (0 ms)
+[ RUN      ] WarmStartSerialization.RefusesAVersionThisBuildDoesNotRead
+[       OK ] WarmStartSerialization.RefusesAVersionThisBuildDoesNotRead (0 ms)
+[ RUN      ] WarmStartSerialization.RefusesTrailingBytes
+[       OK ] WarmStartSerialization.RefusesTrailingBytes (0 ms)
+[ RUN      ] WarmStartSerialization.RefusesAVectorLengthTheInputCannotHold
+[       OK ] WarmStartSerialization.RefusesAVectorLengthTheInputCannotHold (0 ms)
+[ RUN      ] WarmStartSerialization.RefusesAnExtensionCountTheInputCannotHold
+[       OK ] WarmStartSerialization.RefusesAnExtensionCountTheInputCannotHold (0 ms)
+[ RUN      ] WarmStartSerialization.RefusesATagLengthTheInputCannotHold
+[       OK ] WarmStartSerialization.RefusesATagLengthTheInputCannotHold (0 ms)
+[ RUN      ] WarmStartSerialization.RefusesAPayloadLengthTheInputCannotHold
+[       OK ] WarmStartSerialization.RefusesAPayloadLengthTheInputCannotHold (0 ms)
+[----------] 20 tests from WarmStartSerialization (0 ms total)
+
+[----------] 9 tests from IpmPolishSerialization
+[ RUN      ] IpmPolishSerialization.RoundTripsAPopulatedPayload
+[       OK ] IpmPolishSerialization.RoundTripsAPopulatedPayload (0 ms)
+[ RUN      ] IpmPolishSerialization.RoundTripsADefaultConstructedPayload
+[       OK ] IpmPolishSerialization.RoundTripsADefaultConstructedPayload (0 ms)
+[ RUN      ] IpmPolishSerialization.RoundTripsSpecialDoublesBitExactly
+[       OK ] IpmPolishSerialization.RoundTripsSpecialDoublesBitExactly (0 ms)
+[ RUN      ] IpmPolishSerialization.FrozenByteLayout
+[       OK ] IpmPolishSerialization.FrozenByteLayout (0 ms)
+[ RUN      ] IpmPolishSerialization.DecodesTheFrozenBytesBackToTheFrozenValue
+[       OK ] IpmPolishSerialization.DecodesTheFrozenBytesBackToTheFrozenValue (0 ms)
+[ RUN      ] IpmPolishSerialization.RefusesAnEmptyInput
+[       OK ] IpmPolishSerialization.RefusesAnEmptyInput (0 ms)
+[ RUN      ] IpmPolishSerialization.RefusesABadMagic
+[       OK ] IpmPolishSerialization.RefusesABadMagic (0 ms)
+[ RUN      ] IpmPolishSerialization.RefusesTrailingBytes
+[       OK ] IpmPolishSerialization.RefusesTrailingBytes (0 ms)
+[ RUN      ] IpmPolishSerialization.RefusesALengthTheInputCannotHold
+[       OK ] IpmPolishSerialization.RefusesALengthTheInputCannotHold (0 ms)
+[----------] 9 tests from IpmPolishSerialization (0 ms total)
+
+[----------] 4 tests from IpmPolishLookup
+[ RUN      ] IpmPolishLookup.ReturnsNullOnACoreOnlyValue
+[       OK ] IpmPolishLookup.ReturnsNullOnACoreOnlyValue (0 ms)
+[ RUN      ] IpmPolishLookup.IgnoresForeignTagsIncludingANearMiss
+[       OK ] IpmPolishLookup.IgnoresForeignTagsIncludingANearMiss (0 ms)
+[ RUN      ] IpmPolishLookup.FindsTheTagAmongOthersAndReturnsItsBytesVerbatim
+[       OK ] IpmPolishLookup.FindsTheTagAmongOthersAndReturnsItsBytesVerbatim (0 ms)
+[ RUN      ] IpmPolishLookup.RefusesTheTagCarriedTwice
+[       OK ] IpmPolishLookup.RefusesTheTagCarriedTwice (0 ms)
+[----------] 4 tests from IpmPolishLookup (0 ms total)
+
+[----------] 7 tests from IpmPolishBridge
+[ RUN      ] IpmPolishBridge.MatchesFromInteriorPointHandedTheSameBlocks
+[       OK ] IpmPolishBridge.MatchesFromInteriorPointHandedTheSameBlocks (0 ms)
+[ RUN      ] IpmPolishBridge.ForwardsTheCrossoverOptions
+[       OK ] IpmPolishBridge.ForwardsTheCrossoverOptions (0 ms)
+[ RUN      ] IpmPolishBridge.RefusesACoreOnlyValueNamingTheTag
+[       OK ] IpmPolishBridge.RefusesACoreOnlyValueNamingTheTag (0 ms)
+[ RUN      ] IpmPolishBridge.RefusesAStampThatDoesNotMatchTheModel
+[       OK ] IpmPolishBridge.RefusesAStampThatDoesNotMatchTheModel (0 ms)
+[ RUN      ] IpmPolishBridge.RefusesAMalformedPayloadWithTheDecodesOwnMessage
+[       OK ] IpmPolishBridge.RefusesAMalformedPayloadWithTheDecodesOwnMessage (0 ms)
+[ RUN      ] IpmPolishBridge.RefusesAnExtensionWhoseWidthsDisagreeWithTheCore
+[       OK ] IpmPolishBridge.RefusesAnExtensionWhoseWidthsDisagreeWithTheCore (0 ms)
+[ RUN      ] IpmPolishBridge.RefusesBoundVectorsThatAreNotAtTheCoresWidth
+[       OK ] IpmPolishBridge.RefusesBoundVectorsThatAreNotAtTheCoresWidth (0 ms)
+[----------] 7 tests from IpmPolishBridge (0 ms total)
+
+[----------] 34 tests from SymmetricFactor
+[ RUN      ] SymmetricFactor.AnalyzeOnceFactorizeManyOnAFixedPattern
+[       OK ] SymmetricFactor.AnalyzeOnceFactorizeManyOnAFixedPattern (2 ms)
+[ RUN      ] SymmetricFactor.FactorizeRejectsAForeignPattern
+[       OK ] SymmetricFactor.FactorizeRejectsAForeignPattern (0 ms)
+[ RUN      ] SymmetricFactor.AnAssumedPatternSkipsTheGuardAndNothingElse
+[       OK ] SymmetricFactor.AnAssumedPatternSkipsTheGuardAndNothingElse (0 ms)
+[ RUN      ] SymmetricFactor.TheGuardCounterCountsRejectedCallsToo
+[       OK ] SymmetricFactor.TheGuardCounterCountsRejectedCallsToo (0 ms)
+[ RUN      ] SymmetricFactor.MisuseOrderingThrows
+[       OK ] SymmetricFactor.MisuseOrderingThrows (0 ms)
+[ RUN      ] SymmetricFactor.AnalyzeRejectsMalformedInput
+[       OK ] SymmetricFactor.AnalyzeRejectsMalformedInput (0 ms)
+[ RUN      ] SymmetricFactor.SolveRejectsSizeMismatch
+[       OK ] SymmetricFactor.SolveRejectsSizeMismatch (0 ms)
+[ RUN      ] SymmetricFactor.UnimplementedFactorKindsThrow
+[       OK ] SymmetricFactor.UnimplementedFactorKindsThrow (0 ms)
+[ RUN      ] SymmetricFactor.InertiaOfAnSpdMatrixIsAllPositive
+[       OK ] SymmetricFactor.InertiaOfAnSpdMatrixIsAllPositive (0 ms)
+[ RUN      ] SymmetricFactor.InertiaOfASaddlePointIsObserved
+[       OK ] SymmetricFactor.InertiaOfASaddlePointIsObserved (0 ms)
+[ RUN      ] SymmetricFactor.InertiaOfASingularMatrixDerivesItsZeroClass
+[       OK ] SymmetricFactor.InertiaOfASingularMatrixDerivesItsZeroClass (0 ms)
+[ RUN      ] SymmetricFactor.PartialSolvesComposeToTheFullSolve
+[       OK ] SymmetricFactor.PartialSolvesComposeToTheFullSolve (0 ms)
+[ RUN      ] SymmetricFactor.ConfiguredRefinementDoesNotLeakIntoPartialSolves
+[       OK ] SymmetricFactor.ConfiguredRefinementDoesNotLeakIntoPartialSolves (2 ms)
+[ RUN      ] SymmetricFactor.ComposedPartialsDivergeWhenTheGateIsClosed
+[       OK ] SymmetricFactor.ComposedPartialsDivergeWhenTheGateIsClosed (0 ms)
+[ RUN      ] SymmetricFactor.SupportsPartialSolveIsFalseBeforeAFactorization
+[       OK ] SymmetricFactor.SupportsPartialSolveIsFalseBeforeAFactorization (0 ms)
+[ RUN      ] SymmetricFactor.SupportsPartialSolveTracksPerturbedPivots
+[       OK ] SymmetricFactor.SupportsPartialSolveTracksPerturbedPivots (0 ms)
+[ RUN      ] SymmetricFactor.MultiRhsSolveMatchesPerColumnSolves
+[       OK ] SymmetricFactor.MultiRhsSolveMatchesPerColumnSolves (0 ms)
+[ RUN      ] SymmetricFactor.ZeroColumnSolveIsANoOpAndCountsAsNoWork
+[       OK ] SymmetricFactor.ZeroColumnSolveIsANoOpAndCountsAsNoWork (0 ms)
+[ RUN      ] SymmetricFactor.ExplicitThreadCountChangesNeitherCountersNorSolutions
+[       OK ] SymmetricFactor.ExplicitThreadCountChangesNeitherCountersNorSolutions (0 ms)
+[ RUN      ] SymmetricFactor.APerInstanceThreadCountRestoresTheCallersOwnThreadLocalOverride
+[       OK ] SymmetricFactor.APerInstanceThreadCountRestoresTheCallersOwnThreadLocalOverride (0 ms)
+[ RUN      ] SymmetricFactor.ANewThreadCountKeepsTheAnalysisTheSessionAndTheNumerics
+[       OK ] SymmetricFactor.ANewThreadCountKeepsTheAnalysisTheSessionAndTheNumerics (0 ms)
+[ RUN      ] SymmetricFactor.AThreadCountSetBeforeAnalyzeIsCarriedIntoTheSession
+[       OK ] SymmetricFactor.AThreadCountSetBeforeAnalyzeIsCarriedIntoTheSession (0 ms)
+[ RUN      ] SymmetricFactor.ANegativeThreadCountIsRejectedAndChangesNothing
+[       OK ] SymmetricFactor.ANegativeThreadCountIsRejectedAndChangesNothing (0 ms)
+[ RUN      ] SymmetricFactor.MinimumDegreeOrderingFactorizesAndSolvesCorrectly
+[       OK ] SymmetricFactor.MinimumDegreeOrderingFactorizesAndSolvesCorrectly (0 ms)
+[ RUN      ] SymmetricFactor.NestedDissectionOrderingFactorizesAndSolvesCorrectly
+[       OK ] SymmetricFactor.NestedDissectionOrderingFactorizesAndSolvesCorrectly (0 ms)
+[ RUN      ] SymmetricFactor.ParallelNestedDissectionOrderingFactorizesAndSolvesCorrectly
+[       OK ] SymmetricFactor.ParallelNestedDissectionOrderingFactorizesAndSolvesCorrectly (0 ms)
+[ RUN      ] SymmetricFactor.WeightedMatchingFactorizesAndSolvesCorrectly
+[       OK ] SymmetricFactor.WeightedMatchingFactorizesAndSolvesCorrectly (0 ms)
+[ RUN      ] SymmetricFactor.WeightedMatchingForcesSupportsPartialSolveFalse
+[       OK ] SymmetricFactor.WeightedMatchingForcesSupportsPartialSolveFalse (0 ms)
+[ RUN      ] SymmetricFactor.SharedHandleOutlivesItsOriginator
+[       OK ] SymmetricFactor.SharedHandleOutlivesItsOriginator (0 ms)
+[ RUN      ] SymmetricFactor.AdoptingACurrentHandleReusesItsNumerics
+[       OK ] SymmetricFactor.AdoptingACurrentHandleReusesItsNumerics (0 ms)
+[ RUN      ] SymmetricFactor.AdoptingAStaleHandleRefusesNumericsButKeepsTheSymbolic
+[       OK ] SymmetricFactor.AdoptingAStaleHandleRefusesNumericsButKeepsTheSymbolic (0 ms)
+[ RUN      ] SymmetricFactor.AdoptingAHandleForAnotherPatternRequiresAFreshAnalysis
+[       OK ] SymmetricFactor.AdoptingAHandleForAnotherPatternRequiresAFreshAnalysis (0 ms)
+[ RUN      ] SymmetricFactor.AdoptRejectsANullHandle
+[       OK ] SymmetricFactor.AdoptRejectsANullHandle (0 ms)
+[ RUN      ] SymmetricFactor.ReanalysisForksTheSessionAndTheSessionIdSeparatesTheBranches
+[       OK ] SymmetricFactor.ReanalysisForksTheSessionAndTheSessionIdSeparatesTheBranches (0 ms)
+[----------] 34 tests from SymmetricFactor (7 ms total)
+
+[----------] 129 tests from EveryProperPrefix/WarmStartTruncation
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/0
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/0 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/1
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/1 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/2
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/2 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/3
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/3 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/4
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/4 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/5
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/5 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/6
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/6 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/7
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/7 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/8
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/8 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/9
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/9 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/10
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/10 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/11
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/11 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/12
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/12 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/13
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/13 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/14
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/14 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/15
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/15 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/16
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/16 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/17
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/17 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/18
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/18 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/19
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/19 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/20
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/20 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/21
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/21 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/22
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/22 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/23
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/23 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/24
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/24 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/25
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/25 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/26
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/26 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/27
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/27 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/28
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/28 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/29
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/29 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/30
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/30 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/31
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/31 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/32
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/32 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/33
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/33 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/34
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/34 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/35
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/35 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/36
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/36 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/37
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/37 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/38
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/38 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/39
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/39 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/40
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/40 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/41
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/41 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/42
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/42 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/43
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/43 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/44
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/44 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/45
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/45 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/46
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/46 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/47
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/47 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/48
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/48 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/49
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/49 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/50
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/50 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/51
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/51 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/52
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/52 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/53
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/53 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/54
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/54 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/55
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/55 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/56
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/56 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/57
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/57 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/58
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/58 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/59
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/59 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/60
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/60 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/61
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/61 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/62
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/62 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/63
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/63 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/64
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/64 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/65
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/65 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/66
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/66 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/67
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/67 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/68
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/68 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/69
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/69 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/70
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/70 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/71
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/71 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/72
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/72 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/73
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/73 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/74
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/74 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/75
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/75 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/76
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/76 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/77
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/77 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/78
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/78 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/79
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/79 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/80
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/80 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/81
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/81 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/82
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/82 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/83
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/83 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/84
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/84 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/85
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/85 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/86
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/86 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/87
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/87 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/88
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/88 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/89
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/89 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/90
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/90 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/91
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/91 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/92
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/92 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/93
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/93 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/94
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/94 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/95
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/95 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/96
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/96 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/97
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/97 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/98
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/98 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/99
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/99 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/100
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/100 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/101
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/101 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/102
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/102 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/103
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/103 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/104
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/104 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/105
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/105 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/106
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/106 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/107
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/107 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/108
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/108 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/109
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/109 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/110
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/110 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/111
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/111 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/112
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/112 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/113
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/113 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/114
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/114 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/115
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/115 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/116
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/116 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/117
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/117 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/118
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/118 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/119
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/119 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/120
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/120 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/121
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/121 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/122
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/122 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/123
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/123 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/124
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/124 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/125
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/125 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/126
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/126 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/127
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/127 (0 ms)
+[ RUN      ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/128
+[       OK ] EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/128 (0 ms)
+[----------] 129 tests from EveryProperPrefix/WarmStartTruncation (2 ms total)
+
+[----------] 80 tests from EveryProperPrefix/IpmPolishTruncation
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/0
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/0 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/1
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/1 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/2
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/2 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/3
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/3 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/4
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/4 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/5
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/5 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/6
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/6 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/7
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/7 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/8
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/8 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/9
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/9 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/10
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/10 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/11
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/11 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/12
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/12 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/13
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/13 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/14
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/14 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/15
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/15 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/16
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/16 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/17
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/17 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/18
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/18 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/19
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/19 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/20
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/20 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/21
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/21 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/22
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/22 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/23
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/23 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/24
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/24 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/25
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/25 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/26
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/26 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/27
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/27 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/28
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/28 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/29
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/29 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/30
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/30 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/31
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/31 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/32
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/32 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/33
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/33 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/34
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/34 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/35
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/35 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/36
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/36 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/37
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/37 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/38
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/38 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/39
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/39 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/40
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/40 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/41
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/41 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/42
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/42 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/43
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/43 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/44
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/44 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/45
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/45 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/46
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/46 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/47
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/47 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/48
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/48 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/49
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/49 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/50
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/50 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/51
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/51 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/52
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/52 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/53
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/53 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/54
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/54 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/55
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/55 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/56
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/56 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/57
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/57 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/58
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/58 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/59
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/59 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/60
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/60 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/61
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/61 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/62
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/62 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/63
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/63 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/64
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/64 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/65
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/65 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/66
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/66 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/67
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/67 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/68
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/68 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/69
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/69 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/70
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/70 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/71
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/71 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/72
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/72 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/73
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/73 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/74
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/74 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/75
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/75 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/76
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/76 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/77
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/77 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/78
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/78 (0 ms)
+[ RUN      ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/79
+[       OK ] EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/79 (0 ms)
+[----------] 80 tests from EveryProperPrefix/IpmPolishTruncation (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 371 tests from 18 test suites ran. (32 ms total)
+[  PASSED  ] 371 tests.

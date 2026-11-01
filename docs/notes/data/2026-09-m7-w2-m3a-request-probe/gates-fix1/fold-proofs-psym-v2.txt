@@ -1,0 +1,63 @@
+PSYM_FOLD_PROOFS_V2_START 2026-09-21T10:57:13-04:00
+root=/home/ghecht/Projects/hven
+HEAD 79c31263e14b5d60c8775086d6f463af617468f0  dirty-files=0
+-- wrapper identity: WORKTREE digest vs the digest of the SAME path AT HEAD.
+-- They must agree, or this transcript did not exercise what landed.
+gate_asserts_v2.sh       sha256 4a904024eada90473471662900c6af940d22d64b5952f7e0a2d40022c4f4b150  (worktree == HEAD)
+psym_assert_only.sh      sha256 989370d3f00f2819e2b9b73f54261cf5e30b75b298443170e4624dc186d04eeb  (worktree == HEAD)
+fold_proofs_psym_v2.sh   sha256 1f5e67ef51cf9886ab21c4afd7a07effe83b70faf0406ca19f0f7941ef57df1d  (worktree == HEAD)
+
+-- the REAL captures these folds copy and break:
+   /home/ghecht/Projects/hven/.scratch/m7w2m3a/gates-fix1/psym/classification-Release.txt
+     sha256 757383dd987a850f3243e7b79076102bf8758118093b47d12958d6ea17ed90b3
+   /home/ghecht/Projects/hven/.scratch/m7w2m3a/gates-fix1/psym/classification-Debug.txt
+     sha256 c266f4865d39a0edceaac2075860dacec0ea0e541fd92bdaed852684406f1588
+
+-- the round's changed sources, from git:
+   src/core/enum_names.cpp src/drivers/sqp_solver.cpp src/drivers/trace_writer.cpp tests/drivers/test_callback.cpp tests/drivers/test_solve_status.cpp tests/drivers/test_threads.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_trace_writer.cpp 
+
+FOLD 01  ACCEPTED (rc=0)  the REAL capture pair passes the corrected layer (per-config shapes 10/7/3 and 11/8/3)
+FOLD 02  ACCEPTED (rc=0)  the REAL capture pair passes assert_psym_cross_config on its own
+FOLD 03  REFUSED (rc=1)  the round's ONE declared shape (12/9/3 for BOTH configs) is refused -- this is G5's own failure, reproduced from the transcripts alone
+          ASSERT FAIL P-SYM Release differing (declared): got '10', expected '12'
+ASSERT FAIL P-SYM Release class A (declared): got '7', expected '9'
+FOLD 04  REFUSED (rc=1)  PER-CONFIGURATION is real: Release asserted with Debug's shape (11/8/3)
+          ASSERT FAIL P-SYM Release differing (declared): got '10', expected '11'
+ASSERT FAIL P-SYM Release class A (declared): got '7', expected '8'
+FOLD 05  REFUSED (rc=1)  PER-CONFIGURATION is real, the other way: Debug asserted with Release's shape (10/7/3)
+          ASSERT FAIL P-SYM Debug differing (declared): got '11', expected '10'
+ASSERT FAIL P-SYM Debug class A (declared): got '8', expected '7'
+FOLD 06  REFUSED (rc=1)  cross-config clause 1: the two class B sets are NOT equal
+          ASSERT FAIL P-SYM cross-config: the class B sets differ (Release '<' vs Debug '>'):
+FOLD 07  REFUSED (rc=1)  cross-config clause 2: one UNEXPLAINED object in the RELEASE classification
+          ASSERT FAIL P-SYM Release unexplained: got '1', expected '0'
+ASSERT FAIL P-SYM cross-config: Release unexplained count '1', list:
+FOLD 08  REFUSED (rc=1)  cross-config clause 2: one UNEXPLAINED object in the DEBUG classification
+          ASSERT FAIL P-SYM Debug unexplained: got '1', expected '0'
+ASSERT FAIL P-SYM cross-config: Debug unexplained count '1', list:
+FOLD 09  REFUSED (rc=1)  cross-config clause 2, isolated: the cross-config rule alone refuses an unexplained object
+          ASSERT FAIL P-SYM cross-config: Release unexplained count '1', list:
+FOLD 10  REFUSED (rc=1)  cross-config clauses 3+4: class A differs on an object whose SOURCE this round did not change
+          ASSERT FAIL P-SYM cross-config: Debug class A names 'CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o', whose source
+ASSERT FAIL P-SYM cross-config: class A differs on 'CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o', whose source this round
+FOLD 11  REFUSED (rc=1)  the same stray class A object, through the whole layer, with the per-configuration shape DECLARED TO MATCH IT (12/9/3) so only the cross-config rule can refuse it
+          ASSERT FAIL P-SYM cross-config: Debug class A names 'CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o', whose source
+ASSERT FAIL P-SYM cross-config: class A differs on 'CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o', whose source this round
+FOLD 12  REFUSED (rc=1)  an EMPTY changed-source list -- the symmetric-difference clause would admit anything
+          ASSERT FAIL P-SYM cross-config: the changed-source list is EMPTY -- the 
+FOLD 13  REFUSED (rc=1)  a classification file that does not exist
+          ASSERT FAIL P-SYM Release: /tmp/m3a-psymfold-P7du03/no-such-file.txt is missing or empty
+ASSERT FAIL P-SYM cross-config: one of the two classifications is missing or empty
+FOLD 14  REFUSED (rc=1)  an EMPTY classification file
+          ASSERT FAIL P-SYM Debug: /tmp/m3a-psymfold-P7du03/empty.txt is missing or empty
+ASSERT FAIL P-SYM cross-config: one of the two classifications is missing or empty
+FOLD 15  REFUSED (rc=1)  a classification missing one of its five counts (UNEXPLAINED stripped)
+          ASSERT FAIL P-SYM Release: the classification is missing one of its five counts
+ASSERT FAIL P-SYM cross-config: Release carries no UNEXPLAINED count
+FOLD 16  REFUSED (rc=1)  a negative control of 0 -- the differing set IS everything that sees the header
+          ASSERT FAIL P-SYM Release negative control: got '0', expected >= 1
+FOLD 17  REFUSED (rc=1)  CONTRAST: version 1's assert_same_classification refuses the REAL, CORRECT capture pair
+          ASSERT FAIL P-SYM classification differs between configs:
+
+PSYM_FOLD_PROOFS_V2_TOTAL=17  PSYM_FOLD_PROOFS_V2_FAILED=0
+PSYM_FOLD_PROOFS_V2_END 2026-09-21T10:57:15-04:00

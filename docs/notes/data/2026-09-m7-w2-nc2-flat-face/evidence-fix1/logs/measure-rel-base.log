@@ -1,0 +1,10 @@
+PGREP_EMPTY measure-rel-base 2026-09-26T11:10:40-04:00
+FOREGROUND_START measure-rel-base 2026-09-26T11:10:40-04:00
+measure release qp1 border rc=0 secs=7
+measure release qp1 refactorize rc=0 secs=3
+measure release qp5 border rc=0 secs=7
+measure release qp5 refactorize rc=0 secs=3
+measure release qp6 border rc=0 secs=7
+measure release qp6 refactorize rc=0 secs=3
+MEASURE_OK
+FOREGROUND_END measure-rel-base 2026-09-26T11:11:10-04:00 rc=0

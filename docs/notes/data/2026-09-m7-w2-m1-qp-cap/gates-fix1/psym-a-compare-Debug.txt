@@ -1,0 +1,130 @@
+P-SYM tool sha256 (runner):   2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM tool sha256 (captures): 2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM maps: object-map=none symbol-map=none exceptions=none
+
+NOISE-ONLY  CMakeFiles/hven.dir/src/core/ledger.cpp.o
+            COUNTS 31511 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  CMakeFiles/hven.dir/src/drivers/console_trace_sink.cpp.o
+            COUNTS 37423 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+            COUNTS 110382 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o
+            COUNTS 31116 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+            COUNTS 104512 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o
+            COUNTS 36172 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o
+            COUNTS 77511 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+            COUNTS 105677 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+            COUNTS 80072 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/__/bench/ipm_corpus_leg.cpp.o
+            COUNTS 81211 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_activity_telemetry.cpp.o
+            COUNTS 104471 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_assembly_eval_seam.cpp.o
+            COUNTS 99751 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_b1_gate.cpp.o
+            COUNTS 127290 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_continuation.cpp.o
+            COUNTS 101904 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_corpus_cells.cpp.o
+            COUNTS 211860 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o
+            COUNTS 99800 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_disproved_entry.cpp.o
+            COUNTS 57946 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_elastic_rung_vehicle.cpp.o
+            COUNTS 67512 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_eqp_refine_ab.cpp.o
+            COUNTS 121378 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_battery.cpp.o
+            COUNTS 104070 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_sweeps.cpp.o
+            COUNTS 139608 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_acceptance.cpp.o
+            COUNTS 172965 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_counters.cpp.o
+            COUNTS 13233 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_dispatch.cpp.o
+            COUNTS 118118 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_engine.cpp.o
+            COUNTS 63436 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_trace.cpp.o
+            COUNTS 112896 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_warm_restart.cpp.o
+            COUNTS 69561 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ledger.cpp.o
+            COUNTS 70712 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_mesh_transfer.cpp.o
+            COUNTS 79622 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_nlp_kkt_check.cpp.o
+            COUNTS 20514 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_parametric_families.cpp.o
+            COUNTS 106953 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_predictor.cpp.o
+            COUNTS 138027 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_problem_scaling.cpp.o
+            COUNTS 88860 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_cap_levers.cpp.o
+            COUNTS 33350 insns; CHANGED 143; UNCLASSIFIED 0; DELTAS +2(x2) +6(x141)
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_mode_sites.cpp.o
+            COUNTS 91561 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_scale_problems.cpp.o
+            COUNTS 114010 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_scale_smoke.cpp.o
+            COUNTS 100534 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o
+            COUNTS 129448 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+            COUNTS 375391 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_warm_currency.cpp.o
+            COUNTS 99068 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ssn_engine.cpp.o
+            COUNTS 153735 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_start_point_projection.cpp.o
+            COUNTS 31365 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_trace_writer.cpp.o
+            COUNTS 186821 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_warm_start.cpp.o
+            COUNTS 183078 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_warm_start_battery.cpp.o
+            COUNTS 94692 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o
+            COUNTS 398807 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o
+            COUNTS 113859 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_concurrency.cpp.o
+            COUNTS 105071 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_console_sink.cpp.o
+            COUNTS 25802 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options.cpp.o
+            COUNTS 112018 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_result.cpp.o
+            COUNTS 124608 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o
+            COUNTS 48843 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_warm_protocol.cpp.o
+            COUNTS 51088 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+            COUNTS 145875 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o
+            COUNTS 81211 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_bench.dir/bench_scale.cpp.o
+            COUNTS 66874 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_f7_cold.dir/bench_f7_cold.cpp.o
+            COUNTS 58219 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_tau_bar_sweep_probe.dir/tau_bar_sweep_probe.cpp.o
+            COUNTS 79693 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+            COUNTS 81169 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+            COUNTS 150554 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+ARCHIVE     libhven.a differs -- see its member objects above; archive
+            metadata (member timestamps, symbol index) is not instructions
+
+P-SYM: 146 objects — 85 byte-identical, 60 differing within the accepted noise class, 0 with unclassified differences, 0 matched by basename after a path move, 0 missing
+P-SYM coverage: 0 objects matched through the object map, 0 compared per symbol, 0 objects passed per symbol, 0 after-arm objects unaccounted for; symbols — 351588 matched (0 through the symbol map), 0 only-before, 0 only-after, 0 excepted, 0 collisions, 2524 rank-tagged, 0 stale exceptions, 0 stale map entries; compiler-local label families — 12221 matched by count, 0 differing (110427 before-arm and 110427 after-arm symbols accounted by family); relocations — 0 records compared (0 through the symbol map)
+P-SYM: PASS — read the DELTAS summaries above before accepting (see this script's header)

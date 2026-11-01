@@ -1,0 +1,26 @@
+PGREP_EMPTY phase-reverify 2026-09-26T13:35:51-04:00
+FOREGROUND_START phase-reverify 2026-09-26T13:35:51-04:00
+=== STEP rebuild-release 2026-09-26T13:35:51-04:00
+=== STEP reverify-release 2026-09-26T13:35:58-04:00
+reverify release rc=0
+[ nc2 ] R2_Cs_STEENBRB_qp2.txt refactorize status=0 f=-192.000437989 minors=252 rides=60 zero_length=28 predicted_signs=0 vetoes=3 undos=3 zmexh=0 zmcap=0
+[ nc2 ] R2_Cs_STEENBRB_qp2.txt border status=0 f=-192.000437989 minors=252 rides=60 zero_length=28 predicted_signs=0 vetoes=3 undos=3 zmexh=0 zmcap=0
+[ nc2 ] R2_Cs_STEENBRB_qp3.txt refactorize status=1 f=-384.000271723 minors=6600 rides=1307 zero_length=13 predicted_signs=0 vetoes=1312 undos=1312 zmexh=0 zmcap=0
+[ nc2 ] R2_Cs_STEENBRB_qp3.txt border status=1 f=-384.000271723 minors=6600 rides=1307 zero_length=13 predicted_signs=0 vetoes=1312 undos=1312 zmexh=0 zmcap=0
+[ nc2 ] R2_Cs_STEENBRB_qp4.txt refactorize status=0 f=-192.000146263 minors=246 rides=51 zero_length=18 predicted_signs=0 vetoes=15 undos=15 zmexh=0 zmcap=0
+[ nc2 ] R2_Cs_STEENBRB_qp4.txt border status=0 f=-192.000146263 minors=246 rides=51 zero_length=18 predicted_signs=0 vetoes=15 undos=15 zmexh=0 zmcap=0
+[  PASSED  ] 8 tests.
+=== STEP rebuild-debug 2026-09-26T13:36:32-04:00
+=== STEP reverify-debug 2026-09-26T13:36:39-04:00
+reverify debug rc=0
+[ nc2 ] R2_Cs_STEENBRB_qp2.txt refactorize status=0 f=-192.000436939 minors=248 rides=52 zero_length=21 predicted_signs=0 vetoes=7 undos=7 zmexh=0 zmcap=0
+[  SKIPPED ] QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder (0 ms)
+[ nc2 ] R2_Cs_STEENBRB_qp3.txt refactorize status=1 f=-384.000279251 minors=6600 rides=1642 zero_length=12 predicted_signs=0 vetoes=809 undos=809 zmexh=0 zmcap=0
+[ nc2 ] R2_Cs_STEENBRB_qp3.txt border status=1 f=-384.000279251 minors=6600 rides=1642 zero_length=12 predicted_signs=0 vetoes=809 undos=809 zmexh=0 zmcap=0
+[ nc2 ] R2_Cs_STEENBRB_qp4.txt refactorize status=1 f=-192.000148966 minors=6600 rides=1320 zero_length=16 predicted_signs=0 vetoes=1288 undos=1288 zmexh=0 zmcap=0
+[ nc2 ] R2_Cs_STEENBRB_qp4.txt border status=1 f=-192.000148966 minors=6600 rides=1320 zero_length=16 predicted_signs=0 vetoes=1288 undos=1288 zmexh=0 zmcap=0
+[  PASSED  ] 7 tests.
+[  SKIPPED ] 1 test, listed below:
+[  SKIPPED ] QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder
+REVERIFY_DONE
+FOREGROUND_END phase-reverify 2026-09-26T13:49:04-04:00 rc=0

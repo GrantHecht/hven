@@ -1,0 +1,118 @@
+GATES_START 2026-09-20T23:26:55-04:00
+=== HEAD b1c153f6  dirty-files=0 ===
+=== BEFORE=cb8b88c7  EXPECT_DEBUG_TESTS=2672  EXPECT_RELEASE_TESTS=2673 ===
+=== CHANGED HEADERS: include/hven/detail/globalization/sqp/restoration.h include/hven/drivers/sqp_solver_types.h 
+=== CHANGED SOURCES: src/drivers/sqp_solver.cpp src/globalization/sqp/soc_elastic_restoration.cpp tests/sqp/test_sqp_restoration.cpp 
+FOREGROUND_START G1-debug 2026-09-20T23:29:30-04:00
+PGREP_EMPTY G1-debug: no foreign cell binary under my lock
+Total Test time (real) = 347.57 sec
+
+The following tests did not run:
+	420 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1631 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1632 - EqpRefinementAb.FullBattery (Disabled)
+FOREGROUND_END G1-debug 2026-09-20T23:36:38-04:00 rc=0
+WRAPPER_RC G1-debug rc=0
+ASSERT OK   G1 Debug suite failed = 0
+ASSERT OK   G1 Debug suite total = 2672
+FOREGROUND_START G2-debug-long 2026-09-20T23:51:38-04:00
+PGREP_EMPTY G2-debug-long: no foreign cell binary under my lock
+Test project /home/ghecht/Projects/hven/.scratch/m7w2m2bfix1/gates-dbg
+    Start 1486: Continuation.ProbeBudgetBoundsAFailingProposal
+1/1 Test #1486: Continuation.ProbeBudgetBoundsAFailingProposal ...   Passed  679.21 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) = 679.26 sec
+FOREGROUND_END G2-debug-long 2026-09-21T00:02:57-04:00 rc=0
+WRAPPER_RC G2-debug-long rc=0
+ASSERT OK   G2 long test failed = 0
+ASSERT OK   G2 long test total = 1
+FOREGROUND_START G3-release 2026-09-21T00:03:23-04:00
+PGREP_EMPTY G3-release: no foreign cell binary under my lock
+Total Test time (real) = 102.17 sec
+
+The following tests did not run:
+	420 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1632 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1633 - EqpRefinementAb.FullBattery (Disabled)
+FOREGROUND_END G3-release 2026-09-21T00:06:41-04:00 rc=0
+WRAPPER_RC G3-release rc=0
+ASSERT OK   G3 Release suite failed = 0
+ASSERT OK   G3 Release suite total = 2673
+FOREGROUND_START G4-replay 2026-09-21T00:06:44-04:00
+PGREP_EMPTY G4-replay: no foreign cell binary under my lock
+ran head-walk rc=0
+ran head-ssn rc=0
+ran head-ipm rc=0
+=== M6 CLOSE HEAD-walk vs M7 W2 M2b fix1 HEAD-walk === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+=== M6 CLOSE HEAD-ssn vs M7 W2 M2b fix1 HEAD-ssn === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+=== M6 CLOSE HEAD-ipm vs M7 W2 M2b fix1 HEAD-ipm === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+FOREGROUND_END G4-replay 2026-09-21T00:10:53-04:00 rc=0
+WRAPPER_RC G4-replay rc=0
+ASSERT OK   replay lines at 27/75/0 = 3
+ASSERT OK   replay lines total = 3
+FOREGROUND_START G5-psym 2026-09-21T00:10:56-04:00
+PGREP_EMPTY G5-psym: no foreign cell binary under my lock
+=== P-SYM Release  after=b1c153f6f11c884f7351bb1654db6d0d3fa5fff9  before=cb8b88c7
+tree restored to m7 b1c153f6
+PSYM_COMPARE_RC_Release=1 (1 is EXPECTED; the gate is the classification)
+CLASSIFY_RC_Release=0
+P-SYM: FAIL — differences outside the accepted noise class
+DIFFERING OBJECTS: 3
+  class A -- SOURCE CHANGED by this task: 3
+  class B -- INCLUDERS of a changed header, source untouched: 0
+  UNEXPLAINED: 0
+  NEGATIVE CONTROL -- objects that ALSO include one of those headers and are byte-identical: 72
+ASSERT OK   P-SYM Release compare rc = 1
+ASSERT OK   P-SYM Release classify rc = 0
+ASSERT OK   P-SYM Release differing = 3 (>= 1)
+ASSERT OK   P-SYM Release class A + class B = 3
+ASSERT OK   P-SYM Release unexplained = 0
+ASSERT OK   P-SYM Release negative control = 72 (>= 1)
+=== P-SYM Debug  after=b1c153f6f11c884f7351bb1654db6d0d3fa5fff9  before=cb8b88c7
+tree restored to m7 b1c153f6
+PSYM_COMPARE_RC_Debug=1 (1 is EXPECTED; the gate is the classification)
+CLASSIFY_RC_Debug=0
+P-SYM: FAIL — differences outside the accepted noise class
+DIFFERING OBJECTS: 3
+  class A -- SOURCE CHANGED by this task: 3
+  class B -- INCLUDERS of a changed header, source untouched: 0
+  UNEXPLAINED: 0
+  NEGATIVE CONTROL -- objects that ALSO include one of those headers and are byte-identical: 72
+ASSERT OK   P-SYM Debug compare rc = 1
+ASSERT OK   P-SYM Debug classify rc = 0
+ASSERT OK   P-SYM Debug differing = 3 (>= 1)
+ASSERT OK   P-SYM Debug class A + class B = 3
+ASSERT OK   P-SYM Debug unexplained = 0
+ASSERT OK   P-SYM Debug negative control = 72 (>= 1)
+ASSERT OK   P-SYM classification byte-identical between configs
+G5_ASSERT_RC=0
+FOREGROUND_END G5-psym 2026-09-21T00:25:32-04:00 rc=0
+WRAPPER_RC G5-psym rc=0
+=== CHANGED C++ FOR CLANG-FORMAT: include/hven/detail/globalization/sqp/restoration.h include/hven/drivers/sqp_solver_types.h src/drivers/sqp_solver.cpp src/globalization/sqp/soc_elastic_restoration.cpp tests/sqp/test_sqp_restoration.cpp 
+FOREGROUND_START G6-smoke 2026-09-21T00:27:12-04:00
+PGREP_EMPTY G6-smoke: no foreign cell binary under my lock
+INSTALL_SMOKE_RC=0
+install smoke: both solvers converged through one generic consumer; 19 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.scratch/m7w2m2bfix1/smoke-work/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.scratch/m7w2m2bfix1/smoke-work/hven-configure.log
+ALIGN_FROM_THIS_BUILDS_CONFIGURE_LOG=32
+-rw-r--r--. 1 ghecht ghecht 4314 Sep 21 00:27 /home/ghecht/Projects/hven/.scratch/m7w2m2bfix1/smoke-work/hven-install/lib64/cmake/hven/hvenTargets.cmake
+EXPORT_CONTRACT_RC=0
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+== export contract OK for platform=linux, align=32
+--- clang-format on this round's changed C++ files, derived from git
+CLANG_FORMAT_RC=0
+DIFF_CHECK_RC=0
+DIRTY_FILES=0
+G6_ASSERT_RC=0
+FOREGROUND_END G6-smoke 2026-09-21T00:27:52-04:00 rc=0
+WRAPPER_RC G6-smoke rc=0
+GATES_SUMMARY G1=0 G2=0 G3=0 G4=0 G5=0 G6=0
+GATES_END 2026-09-21T00:27:52-04:00

@@ -1,0 +1,323 @@
+GATES_START 2026-09-22T18:58:45-04:00
+=== ROOT=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857
+=== HEAD cdef9f5e  dirty-files=0 ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates ===
+=== BEFORE=53676599  EXPECT_DEBUG_TESTS=2736  EXPECT_RELEASE_TESTS=2737 ===
+=== HEAD_AT_START=cdef9f5e8b8167bc4d04184c600aa77bfe1a7ae0
+=== CHANGED HEADERS: include/hven/detail/qp/qp_certificate_seam.h include/hven/detail/qp/qp_walk_trace.h 
+=== CHANGED SOURCES: src/qp/qp_engine.cpp tests/qp/test_qp_degeneracy_arm.cpp 
+=== DERIVED CHANGED=include/hven/detail/qp/qp_certificate_seam.h include/hven/detail/qp/qp_walk_trace.h src/qp/qp_engine.cpp
+=== DERIVED NEW_HEADERS=include/hven/detail/qp/qp_certificate_seam.h
+=== DERIVED NON_DEBUG_MOVERS=
+=== DERIVED NON_DEBUG_MOVER_COUNT=0
+=== DERIVED DEBUG_ONLY_DEBUG=CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+=== DERIVED DEBUG_ONLY_DEBUG_COUNT=1
+=== DERIVED PRODUCTION_VISIBLE_HEADERS=
+=== DERIVED PRODUCTION_VISIBLE_HEADER_COUNT=0
+=== PREFLIGHT_VALUE_OK: movers non-debug 0, debug-only 1, visible headers 0
+=== TEST BLOCKS tests/qp/test_qp_degeneracy_arm.cpp: 19 -> 22
+=== PREFLIGHT_VALUE_OK: TEST() delta 3 == declared 3 (2733+3, 2734+3)
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates/build.sh: resolves ROOT=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857  S=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates  G=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates/chunk.sh: resolves ROOT=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857  S=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates  G=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates/g2.sh: resolves ROOT=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857  S=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates  G=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates/g4.sh: resolves ROOT=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857  S=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates  G=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates/g4cmp.sh: resolves ROOT=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857  S=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates  G=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates/g5.sh: resolves ROOT=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857  S=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates  G=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates/g6.sh: resolves ROOT=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857  S=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates  G=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates/gates
+=== PREFLIGHT_OK: 7 segments written and asserted against GATES_ROOT/GATES_SCRATCH, before the first leg ===
+FOREGROUND_START G1-debug-build 2026-09-22T19:08:18-04:00
+PGREP_EMPTY G1-debug-build: no foreign cell binary under my lock
+Total Tests: 2739
+FOREGROUND_END G1-debug-build 2026-09-22T19:09:43-04:00 rc=0
+WRAPPER_RC G1-debug-build rc=0
+=== debug: 2739 registered tests, chunks of 400
+FOREGROUND_START debug-suite-1-400 2026-09-22T19:14:19-04:00
+PGREP_EMPTY debug-suite-1-400: no foreign cell binary under my lock
+
+100% tests passed, 0 tests failed out of 400
+
+Total Test time (real) =   0.70 sec
+FOREGROUND_END debug-suite-1-400 2026-09-22T19:14:19-04:00 rc=0
+WRAPPER_RC debug-suite-1-400 rc=0
+FOREGROUND_START debug-suite-401-800 2026-09-22T19:20:55-04:00
+PGREP_EMPTY debug-suite-401-800: no foreign cell binary under my lock
+Total Test time (real) =  26.76 sec
+
+The following tests did not run:
+	478 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+FOREGROUND_END debug-suite-401-800 2026-09-22T19:21:22-04:00 rc=0
+WRAPPER_RC debug-suite-401-800 rc=0
+FOREGROUND_START debug-suite-801-1200 2026-09-22T20:30:15-04:00
+PGREP_EMPTY debug-suite-801-1200: no foreign cell binary under my lock
+
+100% tests passed, 0 tests failed out of 400
+
+Total Test time (real) =  33.82 sec
+FOREGROUND_END debug-suite-801-1200 2026-09-22T20:30:49-04:00 rc=0
+WRAPPER_RC debug-suite-801-1200 rc=0
+FOREGROUND_START debug-suite-1201-1600 2026-09-22T20:37:08-04:00
+PGREP_EMPTY debug-suite-1201-1600: no foreign cell binary under my lock
+
+100% tests passed, 0 tests failed out of 400
+
+Total Test time (real) = 292.07 sec
+FOREGROUND_END debug-suite-1201-1600 2026-09-22T20:42:00-04:00 rc=0
+WRAPPER_RC debug-suite-1201-1600 rc=0
+FOREGROUND_START debug-suite-1601-2000 2026-09-22T20:42:01-04:00
+PGREP_EMPTY debug-suite-1601-2000: no foreign cell binary under my lock
+
+The following tests did not run:
+	1690 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1691 - EqpRefinementAb.FullBattery (Disabled)
+FOREGROUND_END debug-suite-1601-2000 2026-09-22T20:42:43-04:00 rc=0
+WRAPPER_RC debug-suite-1601-2000 rc=0
+FOREGROUND_START debug-suite-2001-2400 2026-09-22T20:43:09-04:00
+PGREP_EMPTY debug-suite-2001-2400: no foreign cell binary under my lock
+
+100% tests passed, 0 tests failed out of 400
+
+Total Test time (real) =  59.73 sec
+FOREGROUND_END debug-suite-2001-2400 2026-09-22T20:44:09-04:00 rc=0
+WRAPPER_RC debug-suite-2001-2400 rc=0
+FOREGROUND_START debug-suite-2401-2739 2026-09-22T20:50:30-04:00
+PGREP_EMPTY debug-suite-2401-2739: no foreign cell binary under my lock
+
+100% tests passed, 0 tests failed out of 338
+
+Total Test time (real) =  74.70 sec
+FOREGROUND_END debug-suite-2401-2739 2026-09-22T20:51:45-04:00 rc=0
+WRAPPER_RC debug-suite-2401-2739 rc=0
+  chunk suite-debug-1.log: 400 tests, 0 failed
+  chunk suite-debug-401.log: 400 tests, 0 failed
+  chunk suite-debug-801.log: 400 tests, 0 failed
+  chunk suite-debug-1201.log: 400 tests, 0 failed
+  chunk suite-debug-1601.log: 398 tests, 0 failed
+  chunk suite-debug-2001.log: 400 tests, 0 failed
+  chunk suite-debug-2401.log: 338 tests, 0 failed
+ASSERT OK   debug suite chunks' total = 2736
+FOREGROUND_START G2-debug-long 2026-09-22T21:08:59-04:00
+PGREP_EMPTY G2-debug-long: no foreign cell binary under my lock
+Test project /home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates/gates-dbg
+    Start 1545: Continuation.ProbeBudgetBoundsAFailingProposal
+1/1 Test #1545: Continuation.ProbeBudgetBoundsAFailingProposal ...   Passed  674.12 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) = 674.18 sec
+FOREGROUND_END G2-debug-long 2026-09-22T21:20:13-04:00 rc=0
+WRAPPER_RC G2-debug-long rc=0
+ASSERT OK   G2 long test failed = 0
+ASSERT OK   G2 long test total = 1
+FOREGROUND_START G3-release-build 2026-09-22T21:33:39-04:00
+PGREP_EMPTY G3-release-build: no foreign cell binary under my lock
+Total Tests: 2739
+FOREGROUND_END G3-release-build 2026-09-22T21:35:42-04:00 rc=0
+WRAPPER_RC G3-release-build rc=0
+=== release: 2739 registered tests, chunks of 400
+FOREGROUND_START release-suite-1-400 2026-09-22T21:40:44-04:00
+PGREP_EMPTY release-suite-1-400: no foreign cell binary under my lock
+
+100% tests passed, 0 tests failed out of 400
+
+Total Test time (real) =   0.65 sec
+FOREGROUND_END release-suite-1-400 2026-09-22T21:40:45-04:00 rc=0
+WRAPPER_RC release-suite-1-400 rc=0
+FOREGROUND_START release-suite-401-800 2026-09-22T21:43:18-04:00
+PGREP_EMPTY release-suite-401-800: no foreign cell binary under my lock
+Total Test time (real) =  24.59 sec
+
+The following tests did not run:
+	478 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+FOREGROUND_END release-suite-401-800 2026-09-22T21:43:43-04:00 rc=0
+WRAPPER_RC release-suite-401-800 rc=0
+FOREGROUND_START release-suite-801-1200 2026-09-22T22:06:21-04:00
+PGREP_EMPTY release-suite-801-1200: no foreign cell binary under my lock
+
+100% tests passed, 0 tests failed out of 400
+
+Total Test time (real) =  38.45 sec
+FOREGROUND_END release-suite-801-1200 2026-09-22T22:06:59-04:00 rc=0
+WRAPPER_RC release-suite-801-1200 rc=0
+FOREGROUND_START release-suite-1201-1600 2026-09-22T22:06:59-04:00
+PGREP_EMPTY release-suite-1201-1600: no foreign cell binary under my lock
+
+100% tests passed, 0 tests failed out of 400
+
+Total Test time (real) =  13.48 sec
+FOREGROUND_END release-suite-1201-1600 2026-09-22T22:07:13-04:00 rc=0
+WRAPPER_RC release-suite-1201-1600 rc=0
+FOREGROUND_START release-suite-1601-2000 2026-09-22T22:09:47-04:00
+PGREP_EMPTY release-suite-1601-2000: no foreign cell binary under my lock
+
+The following tests did not run:
+	1691 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1692 - EqpRefinementAb.FullBattery (Disabled)
+FOREGROUND_END release-suite-1601-2000 2026-09-22T22:10:30-04:00 rc=0
+WRAPPER_RC release-suite-1601-2000 rc=0
+FOREGROUND_START release-suite-2001-2400 2026-09-22T22:22:47-04:00
+PGREP_EMPTY release-suite-2001-2400: no foreign cell binary under my lock
+
+100% tests passed, 0 tests failed out of 400
+
+Total Test time (real) =   5.93 sec
+FOREGROUND_END release-suite-2001-2400 2026-09-22T22:22:53-04:00 rc=0
+WRAPPER_RC release-suite-2001-2400 rc=0
+FOREGROUND_START release-suite-2401-2739 2026-09-22T22:39:11-04:00
+PGREP_EMPTY release-suite-2401-2739: no foreign cell binary under my lock
+
+100% tests passed, 0 tests failed out of 339
+
+Total Test time (real) =   3.47 sec
+FOREGROUND_END release-suite-2401-2739 2026-09-22T22:39:15-04:00 rc=0
+WRAPPER_RC release-suite-2401-2739 rc=0
+  chunk suite-release-1.log: 400 tests, 0 failed
+  chunk suite-release-401.log: 400 tests, 0 failed
+  chunk suite-release-801.log: 400 tests, 0 failed
+  chunk suite-release-1201.log: 400 tests, 0 failed
+  chunk suite-release-1601.log: 398 tests, 0 failed
+  chunk suite-release-2001.log: 400 tests, 0 failed
+  chunk suite-release-2401.log: 339 tests, 0 failed
+ASSERT OK   release suite chunks' total = 2737
+FOREGROUND_START G4-replay-walk 2026-09-22T22:43:56-04:00
+PGREP_EMPTY G4-replay-walk: no foreign cell binary under my lock
+ran head-walk rc=0
+FOREGROUND_END G4-replay-walk 2026-09-22T22:47:24-04:00 rc=0
+WRAPPER_RC G4-replay-walk rc=0
+FOREGROUND_START G4-replay-ssn 2026-09-22T22:52:01-04:00
+PGREP_EMPTY G4-replay-ssn: no foreign cell binary under my lock
+ran head-ssn rc=0
+FOREGROUND_END G4-replay-ssn 2026-09-22T22:52:19-04:00 rc=0
+WRAPPER_RC G4-replay-ssn rc=0
+FOREGROUND_START G4-replay-ipm 2026-09-22T23:14:58-04:00
+PGREP_EMPTY G4-replay-ipm: no foreign cell binary under my lock
+ran head-ipm rc=0
+FOREGROUND_END G4-replay-ipm 2026-09-22T23:15:21-04:00 rc=0
+WRAPPER_RC G4-replay-ipm rc=0
+=== M6 CLOSE HEAD-walk vs M7 W2 E4 FIX1 HEAD-walk === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+=== M6 CLOSE HEAD-ssn vs M7 W2 E4 FIX1 HEAD-ssn === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+=== M6 CLOSE HEAD-ipm vs M7 W2 E4 FIX1 HEAD-ipm === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+ASSERT OK   replay lines at 27/75/0 = 3
+ASSERT OK   replay lines total = 3
+FOREGROUND_START G5-psym-Release 2026-09-22T23:16:04-04:00
+PGREP_EMPTY G5-psym-Release: no foreign cell binary under my lock
+=== P-SYM Release  after=cdef9f5e8b8167bc4d04184c600aa77bfe1a7ae0  before=53676599
+ASSERT OK   capture after-Release: rc=0, 146 object(s) in /home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates/gates/psym/after-Release/.psym-manifest
+ASSERT OK   capture before-Release: rc=0, 146 object(s) in /home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates/gates/psym/before-Release/.psym-manifest
+ASSERT OK   capture pair object count = 146
+tree restored to worktree-agent-a7724c6ad1ce4c857 cdef9f5e
+PSYM_COMPARE_RC_Release=0 (0 is EXPECTED: zero movers declared)
+CLASSIFY_RC_Release=0
+HEADER DERIVATION
+  repo : /home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857
+  base : 53676599 -> 536765993b495d2c469a15a5389d42fb8af43e6f
+  head : cdef9f5e8b8167bc4d04184c600aa77bfe1a7ae0 -> cdef9f5e8b8167bc4d04184c600aa77bfe1a7ae0
+  cmd  : git -C /home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857 diff --name-only 53676599..cdef9f5e8b8167bc4d04184c600aa77bfe1a7ae0 -- include/
+  list : ['include/hven/detail/qp/qp_certificate_seam.h', 'include/hven/detail/qp/qp_walk_trace.h']
+HEADER LIST ACCEPTED: ['include/hven/detail/qp/qp_certificate_seam.h', 'include/hven/detail/qp/qp_walk_trace.h']
+P-SYM: PASS — read the DELTAS summaries above before accepting (see this script's header)
+DIFFERING OBJECTS: 0
+  class A -- SOURCE CHANGED by this task: 0
+  class B -- INCLUDERS of a changed header, source untouched: 0
+  UNEXPLAINED: 0
+  NEGATIVE CONTROL -- objects that ALSO include one of those headers and are BYTE-IDENTICAL (neither a mover nor NOISE-ONLY): 74
+ASSERT OK   P-SYM Release compare rc (declared 0 mover(s)) = 0
+ASSERT OK   P-SYM Release classify rc = 0
+ASSERT OK   P-SYM Release class A + class B = 0
+ASSERT OK   P-SYM Release unexplained = 0
+ASSERT OK   P-SYM Release negative control = 74 (>= 1)
+ASSERT OK   P-SYM Release differing (declared) = 0
+ASSERT OK   P-SYM Release class A (declared) = 0
+ASSERT OK   P-SYM Release class B (declared) = 0
+SECTIONS_RC_Release=0
+SECTIONS_Release_OBJECTS=42
+SECTIONS_Release_BYTE_IDENTICAL=42
+SECTIONS_Release_DEBUG_ONLY=0
+SECTIONS_Release_NON_DEBUG_MOVERS=0
+SECTIONS_Release_REFUSED=0
+SECTIONS_Release_RC=0
+NON_DEBUG_MOVERS_GOT_Release=[]  DECLARED=[]  REFUSED=0
+ASSERT OK   sections Release: the non-debug movers are EXACTLY the declared set, nothing refused
+ASSERT OK   sections Release: DEBUG_ONLY=0, as declared
+G5_Release_ASSERT_RC=0
+FOREGROUND_END G5-psym-Release 2026-09-22T23:19:41-04:00 rc=0
+WRAPPER_RC G5-psym-Release rc=0
+FOREGROUND_START G5-psym-Debug 2026-09-22T23:19:42-04:00
+PGREP_EMPTY G5-psym-Debug: no foreign cell binary under my lock
+=== P-SYM Debug  after=cdef9f5e8b8167bc4d04184c600aa77bfe1a7ae0  before=53676599
+ASSERT OK   capture after-Debug: rc=0, 146 object(s) in /home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates/gates/psym/after-Debug/.psym-manifest
+ASSERT OK   capture before-Debug: rc=0, 146 object(s) in /home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates/gates/psym/before-Debug/.psym-manifest
+ASSERT OK   capture pair object count = 146
+tree restored to worktree-agent-a7724c6ad1ce4c857 cdef9f5e
+PSYM_COMPARE_RC_Debug=0 (0 is EXPECTED: zero movers declared)
+CLASSIFY_RC_Debug=0
+HEADER DERIVATION
+  repo : /home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857
+  base : 53676599 -> 536765993b495d2c469a15a5389d42fb8af43e6f
+  head : cdef9f5e8b8167bc4d04184c600aa77bfe1a7ae0 -> cdef9f5e8b8167bc4d04184c600aa77bfe1a7ae0
+  cmd  : git -C /home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857 diff --name-only 53676599..cdef9f5e8b8167bc4d04184c600aa77bfe1a7ae0 -- include/
+  list : ['include/hven/detail/qp/qp_certificate_seam.h', 'include/hven/detail/qp/qp_walk_trace.h']
+HEADER LIST ACCEPTED: ['include/hven/detail/qp/qp_certificate_seam.h', 'include/hven/detail/qp/qp_walk_trace.h']
+P-SYM: PASS — read the DELTAS summaries above before accepting (see this script's header)
+DIFFERING OBJECTS: 0
+  class A -- SOURCE CHANGED by this task: 0
+  class B -- INCLUDERS of a changed header, source untouched: 0
+  UNEXPLAINED: 0
+  NEGATIVE CONTROL -- objects that ALSO include one of those headers and are BYTE-IDENTICAL (neither a mover nor NOISE-ONLY): 73
+ASSERT OK   P-SYM Debug compare rc (declared 0 mover(s)) = 0
+ASSERT OK   P-SYM Debug classify rc = 0
+ASSERT OK   P-SYM Debug class A + class B = 0
+ASSERT OK   P-SYM Debug unexplained = 0
+ASSERT OK   P-SYM Debug negative control = 73 (>= 1)
+ASSERT OK   P-SYM Debug differing (declared) = 0
+ASSERT OK   P-SYM Debug class A (declared) = 0
+ASSERT OK   P-SYM Debug class B (declared) = 0
+SECTIONS_RC_Debug=0
+DEBUG-ONLY       CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+SECTIONS_Debug_OBJECTS=42
+SECTIONS_Debug_BYTE_IDENTICAL=41
+SECTIONS_Debug_DEBUG_ONLY=1
+SECTIONS_Debug_NON_DEBUG_MOVERS=0
+SECTIONS_Debug_REFUSED=0
+SECTIONS_Debug_RC=0
+NON_DEBUG_MOVERS_GOT_Debug=[]  DECLARED=[]  REFUSED=0
+ASSERT OK   sections Debug: the non-debug movers are EXACTLY the declared set, nothing refused
+ASSERT OK   sections Debug: DEBUG_ONLY=1, as declared
+DEBUG-ONLY       CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+G5_Debug_ASSERT_RC=0
+FOREGROUND_END G5-psym-Debug 2026-09-22T23:22:39-04:00 rc=0
+WRAPPER_RC G5-psym-Debug rc=0
+ASSERT OK   sections Debug: the DEBUG-ONLY set is exactly the derived [CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o]
+ASSERT OK   P-SYM cross-config: class B sets equal (0 object(s))
+ASSERT OK   P-SYM cross-config: Release unexplained = 0 (count and list)
+ASSERT OK   P-SYM cross-config: Debug unexplained = 0 (count and list)
+ASSERT OK   P-SYM cross-config: Release class A (0) all changed-source
+ASSERT OK   P-SYM cross-config: Debug class A (0) all changed-source
+ASSERT OK   P-SYM cross-config: the two class A sets are identical
+G5_ASSERT_RC=0
+=== CHANGED C++ FOR CLANG-FORMAT: include/hven/detail/qp/qp_certificate_seam.h include/hven/detail/qp/qp_walk_trace.h src/qp/qp_engine.cpp tests/qp/test_qp_degeneracy_arm.cpp 
+FOREGROUND_START G6-smoke 2026-09-22T23:22:39-04:00
+PGREP_EMPTY G6-smoke: no foreign cell binary under my lock
+INSTALL_SMOKE_RC=0
+install smoke: both solvers converged through one generic consumer; 19 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates/smoke-work/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates/smoke-work/hven-configure.log
+ALIGN_FROM_THIS_BUILDS_CONFIGURE_LOG=32
+-rw-r--r--. 1 ghecht ghecht 4314 Sep 22 23:22 /home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates/smoke-work/hven-install/lib64/cmake/hven/hvenTargets.cmake
+EXPORT_CONTRACT_RC=0
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+== export contract OK for platform=linux, align=32
+--- clang-format on this round's changed C++ files, derived from git
+CLANG_FORMAT_RC=0
+DIFF_CHECK_RC=0
+DIRTY_FILES=0
+G6_ASSERT_RC=0
+FOREGROUND_END G6-smoke 2026-09-22T23:23:40-04:00 rc=0
+WRAPPER_RC G6-smoke rc=0
+GATES_SUMMARY G1=0 G2=0 G3=0 G4=0 G5=0 G6=0
+GATES_END 2026-09-22T23:23:40-04:00
+GATES_AGGREGATE rc=0 over [0 0 0 0 0 0]

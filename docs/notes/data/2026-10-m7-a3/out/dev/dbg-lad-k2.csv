@@ -1,0 +1,28 @@
+# artifact: hven IPQP E1 acceptance arm (M6 W1 T10, spec section 8 A4/Q4/A13/A14)
+# producer: bench/ipqp_e1_arm.cpp (hven_sqp_ipqp_e1_arm)
+# git describe: ac4b07e66c92
+# mode: ladder
+# date (UTC): 2026-10-28T15:42:24Z
+# MKL_NUM_THREADS: 1
+# OMP_NUM_THREADS: 1
+# cell recipe: docs/notes/data/2026-08-m6-e1-acquisition/generator/e1_generate.cpp
+# PIQP: NEVER run, linked or read as source here; its committed CSVs are the
+#       oracle this arm is compared against (CLAUDE.md section 6).
+# ipqp_init_mu: 1.000000e-02
+# ipqp_converge_slack: 1.000000e+02
+# ipqp_hard_iter_cap: 60
+# ipqp_max_iter: 0
+# ipqp_max_factorizations: 0
+# ipqp_mu0_rule: kFixed
+# ipqp_mu_residual_floor: false
+# ipqp_ladder_skip_after: 2
+# (shipped defaults: 1.000000e-02 / 1.000000e+02 / 60 / 0 / 0 / kFixed / false / 3;
+#  0 is the size-derived sentinel, NOT an unbounded budget)
+id,status,escape,wall_s,ipqp_iters,ipqp_factorizations,ipqp_symbolic_analyses,ipqp_solves,ipqp_pattern_verifies,ipqp_rho_demanded_max,ipqp_rho_demanded_last,ipqp_inertia_retries,ipqp_iters_at_elevated_rho,ipqp_ladder_reclimbs,ipqp_pivot_reroute_primal,ipqp_pivot_reroute_dual_fallback,ipqp_iters_ladder_armed_no_advance,ipqp_final_inertia_read,ipqp_reg_decreases,ipqp_reg_increases,ipqp_prox_center_updates,ipqp_restart_repairs,ipqp_restart_shift_max,ipqp_mu_adopted,ipqp_warm_restart_abandoned,ipqp_declined_pinned,ipqp_tier_retired_after,ipqp_face_uncertain,ipqp_refine_accepted,ipqp_refine_refused,ipqp_to_refine,ipqp_to_ssn,ipqp_to_walk,ipqp_escapes,ipqp_escape_budget,ipqp_escape_stall,ipqp_escape_indefinite,ipqp_escape_numerical,ipqp_escape_infeasible_suspect,ipqp_alpha_p_min,ipqp_alpha_d_min,ipqp_read_kept_tight_sides,ipqp_read_barrier_noise_sides,ipqp_mu0_derived,ipqp_mu0_fallbacks,ipqp_mu_floor_binds,ipqp_ladder_zero_trial_skips
+hs_indefinite_equality,optimal,0,8.129808e-03,31,41,1,62,0,1.000000e+02,5.968203e-09,9,30,3,1,0,25,0,5,9,5,0,0.000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1.035427e-03,8.010118e-04,0,0,0,0,0,28
+hs_indefinite_equality_and_row,optimal,0,1.464543e-03,14,21,1,28,0,2.666667e+00,8.888889e-01,6,3,1,0,0,2,0,5,6,5,0,0.000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4.421896e-03,1.236151e-05,0,0,0,0,0,0
+hs_two_negative_eigenvalue_row,optimal,0,2.367927e-03,27,37,1,54,0,1.000000e+02,4.834244e-07,9,26,4,0,0,20,0,6,9,6,0,0.000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1.837929e-03,3.312627e-02,0,0,0,0,0,24
+indefinite_box_family_c0,optimal,0,8.498160e-04,15,21,1,30,0,2.666667e+00,5.017804e-06,5,14,1,0,0,12,0,2,5,2,0,0.000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1.575903e-42,1.449832e-42,0,0,0,0,0,12
+indefinite_box_family_c1,optimal,0,1.202234e-03,22,29,1,44,0,1.000000e+02,2.294378e-07,6,21,1,1,0,17,0,4,6,4,0,0.000000e+00,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,4.078254e-06,9.945802e-01,0,0,0,0,0,19
+equality_null_space,numerical_error,3,1.981960e-03,30,49,1,60,0,1.000000e+02,2.403116e+00,18,29,13,1,0,24,1,5,18,5,0,0.000000e+00,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,1.000000e+00,9.950002e-01,0,0,0,0,0,27
+saddle,numerical_error,3,2.585190e-04,3,9,1,6,0,1.000000e+02,1.111111e+01,5,3,0,1,0,0,1,3,5,3,0,0.000000e+00,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,1.000000e+00,9.950001e-01,0,0,0,0,0,1

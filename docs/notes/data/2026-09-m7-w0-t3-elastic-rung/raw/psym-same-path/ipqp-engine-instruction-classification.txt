@@ -1,0 +1,80 @@
+# Instruction-level classification of the differing symbols in ipqp_engine.cpp.o
+# (same-path arms; normalisation: addresses, raw bytes and branch targets stripped;
+#  'displacement/immediate-only' means the two instructions are identical once every
+#  0x... displacement and $imm is blanked)
+
+== RELEASE  IpqpEngine::solve ==
+instructions: before=24522 after=24522
+changed pairs: 17  displacement/immediate-only: 8  other: 9
+removed-only: 3  added-only: 3
+   OTHER  - movq $0x0,0x3c8(%rsp) 
+          + movl $0x0,0x3c8(%rsp)
+   OTHER  - vmovaps %xmm0,0x3e0(%rsp) 
+          + vmovups %xmm0,0x3e8(%rsp)
+   OTHER  - vmovups %xmm0,0x478(%rsp) 
+          + vmovaps %xmm0,0x480(%rsp)
+   OTHER  - vmovups 0x73(%rcx),%ymm0 
+          + vmovups (%rcx),%ymm0
+   OTHER  - vmovdqu %ymm3,0x428(%rsp) 
+          + vmovups %ymm0,0x3d0(%rsp)
+   OTHER  - vmovups %ymm2,0x408(%rsp) 
+          + vmovups %ymm1,0x3f0(%rsp)
+   OTHER  - vmovupd %ymm0,0x3c8(%rsp) 
+          + vmovupd 0x73(%rcx),%ymm0
+   OTHER  - vmovups %ymm1,0x3e8(%rsp) 
+          + vmovups %ymm2,0x410(%rsp)
+   OTHER  - data16 data16 data16 data16 data16 cs nopw 0x0(%rax,%rax,1) 
+          + nopw 0x0(%rax,%rax,1)
+   REMOVED vmovups %ymm0,0x43b(%rsp)
+   REMOVED vmovupd (%rcx),%ymm0
+   REMOVED xchg %ax,%ax
+   ADDED   movq $0x0,0x3d0(%rsp)
+   ADDED   vmovupd %ymm0,0x443(%rsp)
+   ADDED   vmovdqu %ymm3,0x430(%rsp)
+
+== DEBUG  IpqpEngine::solve ==
+instructions: before=8960 after=8960
+changed pairs: 314  displacement/immediate-only: 314  other: 0
+removed-only: 18  added-only: 18
+   REMOVED mov -0x78(%rbp),%rdi
+   REMOVED call TARGET
+   REMOVED mov %rax,-0x220(%rbp)
+   REMOVED add -0x2b8(%rbp),%rcx
+   REMOVED mov %rdx,-0xac8(%rbp)
+   REMOVED lea -0x230(%rbp),%rdx
+   ADDED   mov -0x78(%rbp),%rdi
+   ADDED   call TARGET
+   ADDED   mov %rax,-0x238(%rbp)
+   ADDED   add -0x2c8(%rbp),%rcx
+   ADDED   lea -0x230(%rbp),%rdx
+   ADDED   mov %rdx,-0xac8(%rbp)
+
+== DEBUG  SqpOptions::SqpOptions()  (emitted in this TU because of the probe at ipqp_engine.cpp:763) ==
+instructions: before=48 after=49
+changed pairs: 9  displacement/immediate-only: 2  other: 7
+removed-only: 2  added-only: 3
+   OTHER  - add $0xa8,%rdi 
+          + movl $0x0,0xa8(%rdi)
+   OTHER  - call b3 <hven::solvers::SqpOptions::SqpOptions()+0xb3> 
+          + add $0xb0,%rdi
+   OTHER  - movb $0x0,0x150(%rdi) 
+          + movl $0x0,0x150(%rdi)
+   OTHER  - movsd 0x0(%rip),%xmm0 
+          + movl $0x0,0x154(%rdi)
+   OTHER  - movsd %xmm0,0x158(%rdi) 
+          + movb $0x0,0x158(%rdi)
+   OTHER  - add $0x168,%rdi 
+          + movsd 0x0(%rip),%xmm0
+   OTHER  - call 116 <hven::solvers::SqpOptions::SqpOptions()+0x116> 
+          + movsd %xmm0,0x168(%rdi)
+   REMOVED movl $0x0,0x144(%rdi)
+   REMOVED movl $0x0,0x148(%rdi)
+   ADDED   call bd <hven::solvers::SqpOptions::SqpOptions()+0xbd>
+   ADDED   add $0x170,%rdi
+   ADDED   call 120 <hven::solvers::SqpOptions::SqpOptions()+0x120>
+
+== frame size, both configs ==
+base release: $0xca0,%rsp
+base debug: $0x1e90,%rsp
+head release: $0xca0,%rsp
+head debug: $0x1e90,%rsp

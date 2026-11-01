@@ -1,0 +1,7 @@
+Test project /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx/gates-dbg
+    Start 1777: Continuation.ProbeBudgetBoundsAFailingProposal
+1/1 Test #1777: Continuation.ProbeBudgetBoundsAFailingProposal ...   Passed  168.31 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) = 168.38 sec

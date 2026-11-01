@@ -1,0 +1,71 @@
+M7 W2 M3a -- fix1 (settler adjudication R2) -- RE-RUN ON THE COMMITTED ROWS
+===========================================================================
+This is `python3 -B wrappers/identity_m3a.py ` re-run AFTER fix1 hardened the
+checker with its four structural refusals (sentinels, the pinned committed key
+set, the pinned new key set, the pinned ladder header), with the new-side root
+pointed at the COMMITTED rows tree through fix1's M3A_NEW_ROOT override rather
+than at the .scratch tree the chain uses. The committed rows are byte-identical
+to the scratch ones, so this re-derives the same verdict from the same bytes.
+
+NO SOLVER RAN. NO BINARY WAS BUILT. NO LOCK WAS HELD. This is file folding
+only. It neither replaces nor re-stamps the pinned report at the artifact root:
+`identity-stage1.txt` still stands as the report the chain produced, and this file
+exists to show the hardened checker reaches the same verdict on the same rows.
+
+  produced  2026-09-21T09:25:21-04:00
+  command   M3A_NEW_ROOT=<artifact>/rows python3 -B wrappers/identity_m3a.py 
+  exit      0
+
+--- BEGIN CHECKER OUTPUT ----------------------------------------------------
+M7 W2 M3a -- CONTROL IDENTITY: the tr_init = 1, zeta = 0 legs vs M2b's
+committed screen rows. RULE.md section 4. A DIFFERENCE IS A STOP, and a
+stop ABORTS the chain before any raised-radius leg runs.
+
+excluded by name (this task's new keys): 14
+dropped by name (time-valued):           ['elapsed', 'elapsed_seconds', 'wall_seconds']
+near-ulp gate, residual class only:      |a-b| <= 1e-12 * max(1,|a|,|b|)
+fix1 structural refusals:                ON -- sentinels, 38-key committed set, 52-key new set, 9-column ladder header
+
+STEENBRB   STRUCTURE OK (fix1): sentinels, key sets (38 committed / 52 new) and ladder header, both files
+STEENBRB   keys  38 compared,   0 differing; rows  17 x 9 columns,   0 differing   IDENTICAL
+STEENBRB     keys only in this probe (expected = the new ones): ['deadline_fired', 'deadline_seconds', 'elastic_from_ipqp_escape', 'first_qp_elastic_applied', 'first_qp_plain_status', 'first_qp_restoration_seed_used', 'first_qp_solved', 'first_qp_status', 'first_qp_tr_binding', 'first_qp_tr_radius', 'first_qp_verdict', 'history_rows', 'restoration_sub_status', 'tr_init']
+YORKNET    STRUCTURE OK (fix1): sentinels, key sets (38 committed / 52 new) and ladder header, both files
+YORKNET    keys  38 compared,   0 differing; rows  19 x 9 columns,   0 differing   IDENTICAL
+YORKNET      keys only in this probe (expected = the new ones): ['deadline_fired', 'deadline_seconds', 'elastic_from_ipqp_escape', 'first_qp_elastic_applied', 'first_qp_plain_status', 'first_qp_restoration_seed_used', 'first_qp_solved', 'first_qp_status', 'first_qp_tr_binding', 'first_qp_tr_radius', 'first_qp_verdict', 'history_rows', 'restoration_sub_status', 'tr_init']
+
+NEAR_ULP_TOLERATED=0
+IDENTITY_WORST=0
+--- END CHECKER OUTPUT ------------------------------------------------------
+
+RERUN_EXIT=0
+
+--- ACCOUNTING AGAINST THE PINNED REPORT ------------------------------------
+lines ADDED by fix1:   3
+lines REMOVED by fix1: 0
+lines CHANGED:         0 (a changed line would appear as one removal plus one
+                          addition; the removal count above is the check)
+
+Every added line is one of exactly two kinds, and neither is a verdict:
+  * one 'fix1 structural refusals: ON ...' line in the header block, stating
+    the refusals are armed and what they are pinned to;
+  * one 'STRUCTURE OK (fix1): ...' line per compared pair (2 here), stating
+    that pair passed all four refusals.
+NO verdict line, NO summary line, NO NEAR_ULP_TOLERATED or *_WORST line moved.
+Both *_WORST trailers still read 0 and the process still exits 0.
+
+--- UNIFIED DIFF ------------------------------------------------------------
+--- PINNED  identity-stage1.txt
++++ RE-RUN  fix1/identity-stage1.txt (checker output only)
+@@ -5,9 +5,12 @@
+ excluded by name (this task's new keys): 14
+ dropped by name (time-valued):           ['elapsed', 'elapsed_seconds', 'wall_seconds']
+ near-ulp gate, residual class only:      |a-b| <= 1e-12 * max(1,|a|,|b|)
++fix1 structural refusals:                ON -- sentinels, 38-key committed set, 52-key new set, 9-column ladder header
+ 
++STEENBRB   STRUCTURE OK (fix1): sentinels, key sets (38 committed / 52 new) and ladder header, both files
+ STEENBRB   keys  38 compared,   0 differing; rows  17 x 9 columns,   0 differing   IDENTICAL
+ STEENBRB     keys only in this probe (expected = the new ones): ['deadline_fired', 'deadline_seconds', 'elastic_from_ipqp_escape', 'first_qp_elastic_applied', 'first_qp_plain_status', 'first_qp_restoration_seed_used', 'first_qp_solved', 'first_qp_status', 'first_qp_tr_binding', 'first_qp_tr_radius', 'first_qp_verdict', 'history_rows', 'restoration_sub_status', 'tr_init']
++YORKNET    STRUCTURE OK (fix1): sentinels, key sets (38 committed / 52 new) and ladder header, both files
+ YORKNET    keys  38 compared,   0 differing; rows  19 x 9 columns,   0 differing   IDENTICAL
+ YORKNET      keys only in this probe (expected = the new ones): ['deadline_fired', 'deadline_seconds', 'elastic_from_ipqp_escape', 'first_qp_elastic_applied', 'first_qp_plain_status', 'first_qp_restoration_seed_used', 'first_qp_solved', 'first_qp_status', 'first_qp_tr_binding', 'first_qp_tr_radius', 'first_qp_verdict', 'history_rows', 'restoration_sub_status', 'tr_init']
+ 

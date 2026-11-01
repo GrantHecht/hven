@@ -36,6 +36,7 @@
 // at construction, at set_options() and again at run_phase_sequence() entry.
 
 #include <array>
+#include <iosfwd>
 #include <limits>
 #include <string>
 #include <string_view>
@@ -101,8 +102,15 @@ enum class PDStepStrategies { kPrimSlackEqSplitIq, kAllMinimum, kPrimSlackSplitE
 /// accepted or the previous one stays in force.
 struct IpmOptions {
     // --- Iteration limits ---
-    /// @brief Main iteration cap per phase. Default 500.
-    int max_iters = 500;
+    /// @brief Main iteration cap per phase. Default 1000.
+    ///
+    /// M7 W2 D1 (2026-09-18), the declared IPM-default event: 500 -> 1000. The
+    /// old value is not a value this cap was ever measured at in-tree -- every
+    /// bench leg pins its own -- and 500 against the reference solvers' 3000 was
+    /// not a like-for-like budget. At 1000 the CUTEst TRAIN set converts two
+    /// more cells and no cell's answer changes; see
+    /// docs/notes/data/2026-09-m7-w2-d1-ipm-default/.
+    int max_iters = 1000;
     /// @brief Classic backtracking ladder cap per rejected trial. Default 2.
     int max_ls_iters = 2;
     /// Number of consecutive trailing iterates that must ALL sit inside the
@@ -189,23 +197,33 @@ struct IpmOptions {
     /// Default kPrimSlackEqSplitIq.
     PDStepStrategies pd_step_strategy = PDStepStrategies::kPrimSlackEqSplitIq;
 
-    // --- Step-acceptance strategy (opt-in modernized merit) ---
-    /// classic_merit (the default) is the fused backtracking merit line
-    /// search; merit selects the modernized merit family, whose penalty rule
-    /// is merit_penalty_rule (read only under merit). Both enums live in
-    /// ipm_solver_fwd.h.
-    AcceptanceStrategies acceptance_strategy = AcceptanceStrategies::classic_merit;
+    // --- Step-acceptance strategy ---
+    /// filter (the default since M7 W2 D1, 2026-09-18) is the filter
+    /// acceptance test; classic_merit -- the default BEFORE that event -- is
+    /// the fused backtracking merit line search; merit selects the modernized
+    /// merit family, whose penalty rule is merit_penalty_rule (read only under
+    /// merit). All three enums live in ipm_solver_fwd.h.
+    ///
+    /// The default pairs with barrier_governor == monitored below, and the two
+    /// moved together as one declared re-derivation: filter is designed to
+    /// operate above a monotone safeguard, and validate() refuses it over the
+    /// free-only governor without an explicit opt-in. The pre-event pair is
+    /// still reachable, and bit-identically so, as ipm_preset("classic") with
+    /// max_iters = 500 -- pinned by
+    /// tests/interior/test_ipm_solver_presets.cpp.
+    AcceptanceStrategies acceptance_strategy = AcceptanceStrategies::filter;
     /// Merit penalty rule for the generic merit family; only read when
     /// acceptance_strategy == merit. Default wmno.
     MeritPenaltyRules merit_penalty_rule = MeritPenaltyRules::wmno;
 
-    // --- Barrier-parameter governor (opt-in monitored free<->monotone) ---
-    /// classic_adaptive (the default) is the PROBE/LOQO free-mode barrier
-    /// update; monitored selects the free<->monotone governor, which composes
-    /// a classic_adaptive delegate and so pairs with any acceptance_strategy.
-    /// validate() rejects funnel or filter over classic_adaptive unless
+    // --- Barrier-parameter governor ---
+    /// monitored (the default since M7 W2 D1, 2026-09-18) is the
+    /// free<->monotone governor, which composes a classic_adaptive delegate and
+    /// so pairs with any acceptance_strategy; classic_adaptive -- the default
+    /// BEFORE that event -- is the PROBE/LOQO free-mode barrier update on its
+    /// own. validate() rejects funnel or filter over classic_adaptive unless
     /// never_monotone is set. Enum in ipm_solver_fwd.h.
-    BarrierGovernors barrier_governor = BarrierGovernors::classic_adaptive;
+    BarrierGovernors barrier_governor = BarrierGovernors::monitored;
 
     /// Expert escape hatch mirroring Ipopt's never-monotone-mode: explicitly
     /// accepts running funnel/filter above the classic_adaptive (free-only)
@@ -213,6 +231,12 @@ struct IpmOptions {
     /// Contradictory when combined with barrier_governor == monitored (the
     /// monitored governor already provides the monotone fallback) —
     /// validate() rejects that combination.
+    ///
+    /// SINCE M7 W2 D1 THAT REFUSAL BITES A VALUE THAT LEAVES THE GOVERNOR
+    /// ALONE: monitored is now the default, so never_monotone = true on an
+    /// otherwise default IpmOptions is rejected. Setting the hatch means
+    /// setting barrier_governor = classic_adaptive alongside it, which is what
+    /// the hatch was always for and is now written rather than inherited.
     bool never_monotone = false;
 
     /// off (the default) constructs no RestorationStrategy at all, and every
@@ -295,6 +319,8 @@ struct IpmOptions {
     /// matrix each iteration, with the same ladder escalating on top; delta_c
     /// is suppressed while a nested l1 restoration phase is active. Closed-set
     /// enum, declared in ipm_solver_fwd.h.
+    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
     InertiaModes inertia_mode = InertiaModes::classic;
 
     // --- QP solver ---
@@ -349,6 +375,8 @@ struct IpmOptions {
     /// needed Hessian perturbation -- saving a factorization known to fail
     /// on a persistently near-singular problem, while the remaining 1 in 4
     /// iterations re-probes for recovered inertia. Default true.
+    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
     bool fast_factor_alg = true;
     /// Force a fresh symbolic sparsity analysis on every solve. The
     /// analysis normally runs once per solver instance and is latched
@@ -669,7 +697,9 @@ struct IpmResult : SolveResult {
 /// tols <= their respective acceptable tols <= their respective divergence
 /// tols), the two combination guards (acceptance_strategy funnel or filter with
 /// barrier_governor == classic_adaptive and !never_monotone; never_monotone with
-/// barrier_governor == monitored), and the two fields that moved into `common`
+/// barrier_governor == monitored -- and since M7 W2 D1 the SECOND of those two
+/// is the one an otherwise default value can trip, because monitored is now the
+/// default governor), and the two fields that moved into `common`
 /// (threads must be positive, print_level non-negative -- the same conditions
 /// qp_threads_ and print_level_ faced).
 ///
@@ -697,6 +727,48 @@ void validate(const IpmOptions &o);
 /// @throws std::invalid_argument, listing every valid name, if `name` is not in
 ///         the table.
 IpmOptions ipm_preset(std::string_view name);
+
+/// @brief Writes EVERY field of @p o to @p os, one `name = value` line each, in
+///        DECLARATION order.
+///
+/// What it is for: a run that records the options it used. hven has no options
+/// registry, no name->field map and no reflection (M7 W0 T5(b) is deliberately
+/// not the start of one) -- this is a hand-written printer pinned against the
+/// struct by tests/drivers/test_options_dump.cpp, which fails to compile if a
+/// field is added without a line here.
+///
+/// THE FORMAT, fixed so a diff of two dumps is a diff of two configurations:
+///  * one line per field, `name = value`, `\n`-terminated, no trailing space,
+///    no blank lines, no header and no footer;
+///  * DECLARATION order, which is the order the header reads in;
+///  * a nested struct is flattened with its member name as the prefix, so
+///    `common.threads`, and the nested block sits where the member is declared;
+///  * an enum prints its ENUMERATOR NAME (`kLoqo`, not `1`), so a renumbering
+///    cannot silently rewrite a recorded run;
+///  * a double prints at `{:.17g}` -- the trace schema's round-trip rule
+///    (docs/trace-schema-v0.md), so the text reads back as the same double;
+///  * a bool prints `true` / `false`;
+///  * `phases` -- the one sequence-valued field -- prints as `[kOptimize,
+///    kSolve]`, its enumerator names in order inside brackets, on ONE line.
+///
+/// DETERMINISTIC AND SIDE-EFFECT-FREE: the same value dumps the same bytes in
+/// any process, and nothing here reads or writes solver state. It does not
+/// validate; `validate(o)` is a separate call and a dump of a rejected value is
+/// still a faithful dump.
+///
+/// THE CALLER'S STREAM STATE REACHES NO BYTE OF THE OUTPUT (M7 W0 T5 fix round
+/// 1). Every line is rendered whole and written through an UNFORMATTED stream
+/// write, so `std::hex`, `showpos`, `uppercase`, `scientific`, a set
+/// `precision`, a non-zero `width` with its `fill`, and an imbued locale whose
+/// numpunct groups digits all leave the dump unchanged -- which is what makes
+/// the first sentence true for a caller that shares one stream between its
+/// report and its options record. The stream's own flags are not modified
+/// either: nothing here sets, saves or restores one, and an unformatted write
+/// does not even consume a pending `width()`.
+///
+/// @param o The options to write.
+/// @param os The stream, borrowed: this call neither flushes nor closes it.
+void dump_options(const IpmOptions &o, std::ostream &os);
 
 /// @brief Returns @p base prepared for a JET-WORKER context: one backend
 ///        thread, silent printing.

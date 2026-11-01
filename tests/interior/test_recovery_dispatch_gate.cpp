@@ -309,6 +309,14 @@ TEST(RecoveryDispatchGate, ValidateAcceptsFunnelWithWatchdog) {
 TEST(RecoveryDispatchGate, ValidateAcceptsFilterWithWatchdog) {
     IpmOptions settings;
     settings.acceptance_strategy = AcceptanceStrategies::filter;
+    // M7 W2 D1 (2026-09-18): the governor is written EXPLICITLY here, where it
+    // used to be inherited. This case is about the watchdog composing with a
+    // non-classic strategy above the FREE-ONLY governor, opted into by
+    // never_monotone -- and never_monotone is contradictory with the monitored
+    // governor, which is now the default. Writing classic_adaptive restores
+    // exactly the combination this test was written to exercise; leaving it out
+    // would silently turn the case into a refusal test.
+    settings.barrier_governor = BarrierGovernors::classic_adaptive;
     settings.never_monotone = true;
     settings.watchdog = true;
     EXPECT_NO_THROW(hven::solvers::validate(settings));
@@ -316,10 +324,11 @@ TEST(RecoveryDispatchGate, ValidateAcceptsFilterWithWatchdog) {
 
 // Settings::validate()'s barrier_governor/never_monotone truth table (see the
 // guard's comment in ipm_solver.cpp): funnel/filter with barrier_governor=
-// classic_adaptive (the default) and never_monotone=false rejects; either
-// opt-in (barrier_governor=monitored, or never_monotone=true) accepts; the two
-// opt-ins together are a direct contradiction and reject; classic_merit/merit
-// are unaffected in every combination.
+// classic_adaptive (monitored is the default since M7 W2 D1, 2026-09-18) and
+// never_monotone=false rejects; either opt-in (barrier_governor=monitored, or
+// never_monotone=true) accepts; the two opt-ins together are a direct
+// contradiction and reject; classic_merit/merit are unaffected in every
+// combination.
 
 TEST(RecoveryDispatchGate, ValidateRejectsFunnelWithClassicAdaptiveGovernor) {
     IpmOptions settings;
@@ -430,6 +439,13 @@ TEST(RecoveryDispatchGate, FunnelSelectionConstructsFunnelAcceptance) {
         // whole-struct check ever saw. never_monotone rather than a governor
         // change, so the only dispatch input that moves is the acceptance one
         // this test is about.
+        //
+        // M7 W2 D1 (2026-09-18) made the governor a WRITE rather than an
+        // inheritance, and that sentence above is why: the default governor is
+        // now monitored, never_monotone contradicts it, and the pre-event
+        // classic_adaptive has to be named for the acceptance strategy to stay
+        // the only moving dispatch input.
+        o.barrier_governor = hven::solvers::BarrierGovernors::classic_adaptive;
         o.never_monotone = true;
         solver.set_options(std::move(o));
     }
@@ -451,6 +467,13 @@ TEST(RecoveryDispatchGate, FilterSelectionConstructsFilterAcceptance) {
         // whole-struct check ever saw. never_monotone rather than a governor
         // change, so the only dispatch input that moves is the acceptance one
         // this test is about.
+        //
+        // M7 W2 D1 (2026-09-18): the governor is written, not inherited -- see
+        // the funnel case above for the reason. Note that `filter` is now the
+        // DEFAULT acceptance strategy, so this test would pass without the
+        // acceptance write; it is kept explicit because what it pins is the
+        // DISPATCH (selector -> constructed component), not the default.
+        o.barrier_governor = hven::solvers::BarrierGovernors::classic_adaptive;
         o.never_monotone = true;
         solver.set_options(std::move(o));
     }
@@ -460,10 +483,19 @@ TEST(RecoveryDispatchGate, FilterSelectionConstructsFilterAcceptance) {
     EXPECT_FALSE(acceptance->drives_classic_path());
 }
 
-// IpmOptions::barrier_governor = monitored must construct MonitoredBarrierGovernor
-// (the default, classic_adaptive, constructs ClassicAdaptiveGovernor -- covered
-// implicitly by every other test in this file, which never touches
-// barrier_governor and still solves/validates against the classic governor).
+// IpmOptions::barrier_governor = monitored must construct
+// MonitoredBarrierGovernor, and classic_adaptive must construct
+// ClassicAdaptiveGovernor. BOTH ARE ASSERTED DIRECTLY, and the second one is
+// asserted here because M7 W2 D1 (2026-09-18) made it impossible to leave to
+// inference.
+//
+// Until that event this comment read "the default, classic_adaptive,
+// constructs ClassicAdaptiveGovernor -- covered implicitly by every other test
+// in this file, which never touches barrier_governor and still
+// solves/validates against the classic governor". The event moved the default
+// to monitored, so every test that leaves the governor alone now exercises the
+// MONITORED path and the implicit coverage that sentence claimed is gone. The
+// free-only governor keeps a direct dispatch pin instead: a test that writes it.
 //
 // Test access: same pattern as the funnel/filter construction tests above --
 // calls the private rebuild_globalization_components() and reads the private
@@ -480,6 +512,41 @@ TEST(RecoveryDispatchGate, MonitoredSelectionConstructsMonitoredGovernor) {
     hven::solvers::BarrierGovernor *governor = solver.governor_.get();
     ASSERT_NE(dynamic_cast<hven::solvers::MonitoredBarrierGovernor *>(governor), nullptr);
     EXPECT_FALSE(governor->in_monotone_mode());
+}
+
+// The other half of that dispatch, direct since M7 W2 D1 (see the comment
+// above). classic_adaptive is no longer the default, so nothing else in this
+// file constructs it any more.
+//
+// The DEFAULT arm is asserted alongside it, in the same test, because the two
+// claims are one fact: the selector decides, and the default is one value of
+// the selector rather than a separate mechanism.
+TEST(RecoveryDispatchGate, ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor) {
+    {
+        hven::solvers::IpmSolver solver;
+        auto o = solver.options();
+        o.barrier_governor = hven::solvers::BarrierGovernors::classic_adaptive;
+        // classic_adaptive under the DEFAULT acceptance strategy (filter) is
+        // guard 1's refusal, so this arm also writes the pre-event acceptance
+        // strategy -- which is what the pair classic_adaptive + classic_merit
+        // was before the event, and the only combination in which the free-only
+        // governor needs no opt-in.
+        o.acceptance_strategy = hven::solvers::AcceptanceStrategies::classic_merit;
+        solver.set_options(std::move(o));
+        solver.rebuild_globalization_components();
+        hven::solvers::BarrierGovernor *governor = solver.governor_.get();
+        ASSERT_NE(dynamic_cast<hven::solvers::ClassicAdaptiveGovernor *>(governor), nullptr);
+        EXPECT_EQ(dynamic_cast<hven::solvers::MonitoredBarrierGovernor *>(governor), nullptr);
+    }
+    {
+        // A solver left entirely alone constructs the governor the shipped
+        // default names, which since W2 D1 is the monitored one.
+        hven::solvers::IpmSolver solver;
+        ASSERT_EQ(solver.options().barrier_governor, hven::solvers::BarrierGovernors::monitored);
+        solver.rebuild_globalization_components();
+        ASSERT_NE(dynamic_cast<hven::solvers::MonitoredBarrierGovernor *>(solver.governor_.get()),
+                  nullptr);
+    }
 }
 
 // Settings::merit_penalty_rule_ must reach the constructed ModernMeritAcceptance:
@@ -544,7 +611,7 @@ TEST(RecoveryDispatchGate, MeritPenaltyRuleSelectionReachesTheStrategy) {
         ASSERT_NE(merit, nullptr);
         EXPECT_TRUE(
             merit->is_iterate_acceptable(pm(1.0, 10.0), pm(0.5, 12.0), pm(1.0, -9.0), 1.0, 1.0));
-        EXPECT_DOUBLE_EQ(merit->wmno_penalty(), 11.0);                      // the WMNO rule ran
+        EXPECT_DOUBLE_EQ(merit->wmno_penalty(), 11.0);                     // the WMNO rule ran
         EXPECT_DOUBLE_EQ(merit->flex_pi_l(), hven::solvers::kFlexInitPiL); // flexible did not
     }
 }

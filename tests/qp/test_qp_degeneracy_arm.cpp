@@ -1,0 +1,1712 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
+// test_qp_degeneracy_arm.cpp — M7 W2 M5's DEGENERACY ARMS
+// (hven/detail/qp/qp_degeneracy_arm.h), on the `HVEN_TESTING` test-seam
+// convention docs/testing.md describes.
+//
+// IT COVERS ARM A, THE DIAGNOSTIC HALF, AND ARM B1 -- the
+// independence-preserving ratio test the settler's ruling R3 made arm B's
+// primary form. Arm b2, the classical exchange, is REGISTERED and not built
+// (`qp_degeneracy_arm.h`'s ARM B2 block says why), so the two columns it would
+// fill are asserted ABSENT throughout, which is the falsifiable form of "it
+// did not run".
+//
+// WHAT THIS FILE HAS TO PROVE:
+//
+//   (1) OFF IS PRODUCTION. Arm A off and the diagnostic off, the engine's
+//       answer and its counters are BIT-IDENTICAL to the run with nothing
+//       attached, on every fixture here.
+//   (2) ARM A REFUSES A DROP THE SCALE SAYS IS NOISE. On a constructed QP at
+//       a degenerate vertex whose OFF walk cycles on a wrong-sign multiplier
+//       far below `opt_tol * scale` while above `opt_tol`, the arm refuses the
+//       drop and the recurrence disappears. THIS FIXTURE'S refused multiplier
+//       is a REAL one (0.30137), small only relative to the scale carrier's
+//       inflated scale, so the walk correctly stops at a point it cannot
+//       certify and the armed solve reports `kNumericalError`, NOT
+//       `kOptimal` — that is a property of this fixture (it needed the
+//       dropped constraint), not a defect in the arm, and no fixture here
+//       licenses the claim that arm A returns the optimum (see the test
+//       body's own comment on why one was not found).
+//   (3) ARM A CHANGES NOTHING WHERE THERE IS NOTHING TO CHANGE. On a
+//       non-degenerate QP the armed run is bit-identical to the OFF run.
+//   (4) THE ARM SHARES THE SCALE RATHER THAN DERIVING ONE. The scale the drop
+//       rule used is the SAME number the trace records as `stat_scale` for
+//       that pass, asserted in BITS.
+//   (5) THE DIAGNOSTIC IS BIT-NEUTRAL. Its one extra factorization per drop
+//       pass moves no counter and changes no answer.
+//   (6) THE DIAGNOSTIC'S COLUMNS ARE REAL. The integer screen, the post-drop
+//       inertia and the per-add `aᵀp` / leak / rounding-floor columns are
+//       filled where the branch that owns them ran and ABSENT where it did
+//       not.
+//   (7) The switch is PER-THREAD — with two solves genuinely IN FLIGHT AT
+//       ONCE, released by a two-party barrier.
+//   (8) ARM B1, ON THE AMENDED DESIGN (settler amendments A1-A12): a
+//       rank-revealing QR of the UNREGULARIZED active rows is the sole
+//       dependency oracle, the invariant is RANK, one shared predicate covers
+//       every mutation site, and the seed set is repaired at entry. It ends a
+//       cycling walk, changes nothing in bits where it passes nothing over,
+//       and CARRIES A HAZARD that is asserted rather than described: a
+//       passed-over bound leaves the iterate outside its box. Since M7 W2 E4
+//       the engine's certificate reads the box and refuses it (kInfeasible).
+//       The block above those fixtures lists every claim.
+//
+// THE CYCLING FIXTURE IS M4's, EXTENDED. Its three-variable cycling block is
+// `tests/qp/test_qp_anti_cycling_arm.cpp`'s period-2 problem verbatim (found
+// by a randomized search over small convex QPs, not designed); this file adds
+// one DECOUPLED variable that carries a large gradient term and nothing else,
+// which is what puts the drop's multiplier far below `opt_tol * scale` while
+// leaving the cycling block's own conditioning exactly as M4 found it. The
+// fixture asserts that the OFF walk really does cycle on it; a fixture that
+// stopped cycling FAILS here rather than passing vacuously.
+
+#include <algorithm>
+#include <bit>
+#include <cmath>
+#include <condition_variable>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <mutex>
+#include <thread>
+#include <vector>
+
+#include <gtest/gtest.h>
+
+#include <hven/detail/qp/qp_engine.h>
+
+using namespace hven::solvers;
+using hven::Index;
+using hven::Vec;
+using Obs = hven::solvers::detail::testing::QpWalkObserver;
+using Deg = hven::solvers::detail::testing::QpDegeneracyArmState;
+using DegArm = hven::solvers::detail::testing::QpDegeneracyArm;
+
+namespace {
+
+// --------------------------------------------------------------------------
+// The problems
+// --------------------------------------------------------------------------
+
+/// A convex QP in the search's own parameterization: `H = M Mᵀ` with `M`
+/// n-by-k, a linear term, `mi` inequality rows `Ai x <= bi`, and the box
+/// `0 <= x <= 2`. Transcribed from `test_qp_anti_cycling_arm.cpp`, whose
+/// period-2 problem this file reuses; the two files are separate translation
+/// units and neither includes the other.
+QpProblem convex_qp(Index n, Index k, const std::vector<double> &m_rowmajor,
+                    const std::vector<double> &g, Index mi, const std::vector<double> &a_rowmajor,
+                    const std::vector<double> &b) {
+    Eigen::MatrixXd M(n, k);
+    for (Index r = 0; r < n; ++r) {
+        for (Index c = 0; c < k; ++c) {
+            M(r, c) = m_rowmajor[static_cast<std::size_t>(r * k + c)];
+        }
+    }
+    const Eigen::MatrixXd Hd = M * M.transpose();
+    Eigen::MatrixXd Aid(mi, n);
+    for (Index r = 0; r < mi; ++r) {
+        for (Index c = 0; c < n; ++c) {
+            Aid(r, c) = a_rowmajor[static_cast<std::size_t>(r * n + c)];
+        }
+    }
+    QpProblem qp;
+    qp.H = Hd.triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
+    qp.g = Vec(n);
+    for (Index i = 0; i < n; ++i) {
+        qp.g(i) = g[static_cast<std::size_t>(i)];
+    }
+    qp.Ae.resize(0, n);
+    qp.be = Vec(0);
+    qp.Ai = Aid.sparseView();
+    qp.bi = Vec(mi);
+    for (Index r = 0; r < mi; ++r) {
+        qp.bi(r) = b[static_cast<std::size_t>(r)];
+    }
+    qp.lower = Vec::Zero(n);
+    qp.upper = Vec::Constant(n, 2.0);
+    return qp;
+}
+
+/// M4's PERIOD-2 CYCLING FIXTURE, verbatim.
+QpProblem period2_cycle_qp() {
+    return convex_qp(3, 1, {1.0, 0.5, -0.5}, {-1.0, 1.0, -1.5}, 3,
+                     {0.0, -0.5, -1.0, -1.0, -0.5, -1.0, 0.5, 0.5, 0.5}, {1.0, 1.0, 0.0});
+}
+
+/// M4's NON-DEGENERATE FIXTURE, verbatim: a strictly convex box-and-rows QP
+/// whose OFF walk records no ratio tie, no drop tie and no degenerate step.
+QpProblem non_degenerate_qp() {
+    const Index kN = 12;
+    QpProblem qp;
+    Eigen::MatrixXd Hd = Eigen::MatrixXd::Zero(kN, kN);
+    for (Index i = 0; i < kN; ++i) {
+        Hd(i, i) = 2.0 + 0.37 * static_cast<double>(i);
+        if (i + 1 < kN) {
+            Hd(i, i + 1) = -0.41;
+            Hd(i + 1, i) = -0.41;
+        }
+    }
+    qp.H = Hd.triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
+    qp.g = Vec(kN);
+    for (Index i = 0; i < kN; ++i) {
+        qp.g(i) = -3.0 - 0.131 * static_cast<double>((i * 7) % 11);
+    }
+    qp.Ae.resize(0, kN);
+    qp.be = Vec(0);
+    Eigen::MatrixXd Aid = Eigen::MatrixXd::Zero(2, kN);
+    for (Index i = 0; i < kN; ++i) {
+        Aid(0, i) = 1.0 + 0.017 * static_cast<double>(i);
+        Aid(1, i) = (i % 2 == 0) ? 1.0 : -1.0 - 0.013 * static_cast<double>(i);
+    }
+    qp.Ai = Aid.sparseView();
+    qp.bi = Vec(2);
+    qp.bi << 5.3, 1.7;
+    qp.lower = Vec::Zero(kN);
+    qp.upper = Vec::Constant(kN, 4.0);
+    return qp;
+}
+
+/// The magnitude of the separable gradient term that sets the stationarity
+/// SCALE on the arm-A fixture.
+///
+/// 1e+06 AND NOT YORKNET'S 1.6e+11, AND THE REASON IS MEASURED, NOT CHOSEN.
+/// The carrier is invisible to the cycling walk only while the walk still
+/// cycles; swept over `{0, 1, 1e2 … 1e11}` on this fixture, the OFF walk
+/// reproduces M4's recurrence EXACTLY (200 minors, period 2, `tail = 198`,
+/// motion exactly 0, 98 Dantzig drops, largest violation 0.30137) at 0, 1,
+/// 1e+05 and 1e+06, and STOPS cycling at 1e+02..1e+04 and at 1e+07 and above,
+/// where the solve walks to its optimum in 5 minors with no drop at all. A
+/// fixture built on a magnitude in the second group would be asserting arm A's
+/// effect on a walk that had already stopped being the object of the
+/// experiment, so the largest magnitude in the FIRST group is the one used and
+/// the sweep is recorded here rather than left as a choice.
+constexpr double kScaleCarrier = 1e6;
+
+/// THE ARM-A FIXTURE: M4's period-2 cycling QP with ONE FIXED, SEPARABLE
+/// VARIABLE bolted on that carries a large gradient term and nothing else.
+///
+/// The carrier is variable `n-1`. Its Hessian row and column are ZERO, every
+/// inequality row has a zero coefficient on it, its gradient entry is
+/// `−kScaleCarrier`, and its bounds are `lower = upper = 0`. Three
+/// consequences, and the fixture rests on all three:
+///
+///   * IT CANNOT PERTURB THE CYCLING WALK. `lower == upper` makes it `kFixed`
+///     at `start_center`, so it is never free, never a drop candidate (the
+///     rule skips `kFixed`: it is not sign-constrained), never a
+///     zero-multiplier probe candidate, and never blocks; being non-free it is
+///     ELIMINATED from the reduced KKT, and being decoupled its substitution
+///     adds nothing to the right-hand side. MEASURED, not assumed: the
+///     fixture's OFF walk reproduces M4's period-2 recurrence field for field
+///     (see `kScaleCarrier`'s own note).
+///   * IT SETS THE SCALE. `free_block_stationarity` reports
+///     `scale = max(1, ‖Hx‖∞, ‖g‖∞, ‖Aeᵀλe‖∞, ‖Aiᵀλi‖∞)` over the WHOLE
+///     vectors, so `‖g‖∞ = kScaleCarrier` is the scale here. That is what the
+///     function computes; arm A's whole premise is to use exactly that
+///     quantity, so a fixture that moved it is a fixture that moves the arm's
+///     input.
+///   * IT DOES NOT MOVE THE ANSWER. Fixed at 0, it contributes nothing to the
+///     objective, to any multiplier of the cycling block, or to the solution
+///     beyond its own coordinate.
+///
+/// WHAT THIS FIXTURE DOES NOT REPRODUCE, DECLARED. YORKNET's refused
+/// multiplier is CANCELLATION RESIDUE — `2⁻²⁵` against a scale of 1.6e+11,
+/// below one rounding unit of the terms it is a difference of. This fixture's
+/// refused multiplier is a REAL multiplier (0.30137) made small only RELATIVE
+/// to an inflated scale. The two agree on the inequality arm A turns on
+/// (`opt_tol < |λ| ≤ opt_tol · scale`) and disagree on whether the refused
+/// drop was one the walk needed — which is why the armed run here does not
+/// certify `kOptimal` and the fixture does not claim it does. See
+/// `ArmAScaledDropRefusesTheDropAndEndsTheRecurrence`.
+QpProblem scale_carrier_cycle_qp() {
+    const QpProblem base = period2_cycle_qp();
+    const Index n = base.n() + 1;
+    const Index mi = base.mi();
+    Eigen::MatrixXd Hd = Eigen::MatrixXd::Zero(n, n);
+    // `base.H` stores the UPPER triangle only (qp_problem.h's contract), and
+    // the block written here is re-triangularized below, so the stored
+    // triangle is copied as-is rather than symmetrized and re-cut.
+    const Eigen::MatrixXd base_up = Eigen::MatrixXd(base.H);
+    Hd.topLeftCorner(base.n(), base.n()) =
+        base_up + base_up.transpose() - Eigen::MatrixXd(base_up.diagonal().asDiagonal());
+    Hd(n - 1, n - 1) = 0.0;
+    Eigen::MatrixXd Aid = Eigen::MatrixXd::Zero(mi, n);
+    Aid.leftCols(base.n()) = Eigen::MatrixXd(base.Ai);
+    QpProblem qp;
+    qp.H = Hd.triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
+    qp.g = Vec(n);
+    qp.g.head(base.n()) = base.g;
+    qp.g(n - 1) = -kScaleCarrier;
+    qp.Ae.resize(0, n);
+    qp.be = Vec(0);
+    qp.Ai = Aid.sparseView();
+    qp.bi = base.bi;
+    qp.lower = Vec::Zero(n);
+    qp.upper = Vec::Constant(n, 2.0);
+    qp.lower(n - 1) = 0.0;
+    qp.upper(n - 1) = 0.0;
+    return qp;
+}
+
+// --------------------------------------------------------------------------
+// Read-outs
+// --------------------------------------------------------------------------
+
+/// The longest exactly-periodic SUFFIX of the working-set signature sequence,
+/// searched over periods 1..`max_p`, and the period achieving it. M3c's own
+/// `p <= 64` recurrence read-out, recomputed over the seam's records.
+Index periodic_suffix(const std::vector<std::uint64_t> &sig, Index max_p, Index &period_out) {
+    period_out = 0;
+    const auto m = static_cast<Index>(sig.size());
+    Index best = 0;
+    for (Index p = 1; p <= max_p && 2 * p <= m; ++p) {
+        Index len = 0;
+        for (Index k = m - 1; k - p >= 0; --k) {
+            if (sig[static_cast<std::size_t>(k)] != sig[static_cast<std::size_t>(k - p)]) {
+                break;
+            }
+            ++len;
+        }
+        if (len > 0 && len + p > best) {
+            best = len + p;
+            period_out = p;
+        }
+    }
+    return best;
+}
+
+struct Walk {
+    QpSolution solution;
+    Index minors = 0;
+    Index period = 0;
+    Index tail = 0;
+    double tail_motion = 0.0;
+    std::vector<hven::solvers::detail::testing::QpWalkMinorRecord> records;
+};
+
+/// Solves with the observer ARMED and reports both the answer and the
+/// recurrence read-out. Whatever arm state the caller set is left alone: this
+/// helper arms the OBSERVER and nothing else.
+Walk observed_walk(const QpProblem &qp, const QpOptions &opts) {
+    Obs::reset();
+    Obs::active = true;
+    QpEngine engine{opts};
+    Walk w;
+    w.solution = engine.solve(qp);
+    w.minors = w.solution.counters.minor_iters;
+    std::vector<std::uint64_t> sig;
+    sig.reserve(Obs::records.size());
+    for (const auto &rec : Obs::records) {
+        sig.push_back(rec.ws_sig_out);
+    }
+    w.tail = periodic_suffix(sig, 64, w.period);
+    const auto tail_start = Obs::records.size() - static_cast<std::size_t>(w.tail);
+    for (std::size_t k = 0; k < Obs::records.size(); ++k) {
+        const double d = Obs::records[k].dx_inf;
+        if (d > 0.0 && k >= tail_start) {
+            w.tail_motion += d;
+        }
+    }
+    w.records = Obs::records;
+    Obs::active = false;
+    Obs::reset();
+    return w;
+}
+
+QpSolution plain_solve(const QpProblem &qp, const QpOptions &opts) {
+    QpEngine engine{opts};
+    return engine.solve(qp);
+}
+
+double objective(const QpProblem &qp, const Vec &x) {
+    return 0.5 * x.dot(qp.H.selfadjointView<Eigen::Upper>() * x) + qp.g.dot(x);
+}
+
+/// The QP's own KKT conditions, recomputed from the returned point. For a
+/// CONVEX QP they are necessary AND sufficient for a global minimum, so a
+/// point that passes this is an optimum of the problem independently of what
+/// the engine reported about itself. Transcribed from M4's file.
+::testing::AssertionResult is_a_kkt_point(const QpProblem &qp, const QpSolution &s, double tol) {
+    const Index n = qp.n();
+    const Index mi = qp.mi();
+    for (Index i = 0; i < n; ++i) {
+        if (s.x(i) < qp.lower(i) - tol || s.x(i) > qp.upper(i) + tol) {
+            return ::testing::AssertionFailure() << "x(" << i << ") = " << s.x(i) << " is outside ["
+                                                 << qp.lower(i) << ", " << qp.upper(i) << "]";
+        }
+    }
+    if (mi > 0) {
+        const Vec slack = qp.bi - qp.Ai * s.x;
+        for (Index r = 0; r < mi; ++r) {
+            if (slack(r) < -tol) {
+                return ::testing::AssertionFailure() << "row " << r << " violated by " << -slack(r);
+            }
+            if (s.lambda_i(r) < -tol) {
+                return ::testing::AssertionFailure()
+                       << "row " << r << " has a negative multiplier " << s.lambda_i(r);
+            }
+            if (std::abs(s.lambda_i(r) * slack(r)) > tol) {
+                return ::testing::AssertionFailure()
+                       << "row " << r << " fails complementarity: lambda = " << s.lambda_i(r)
+                       << ", slack = " << slack(r);
+            }
+        }
+    }
+    Vec r = qp.H.selfadjointView<Eigen::Upper>() * s.x + qp.g - s.z;
+    if (mi > 0) {
+        r += qp.Ai.transpose() * s.lambda_i;
+    }
+    if (r.lpNorm<Eigen::Infinity>() > tol) {
+        return ::testing::AssertionFailure()
+               << "stationarity residual " << r.lpNorm<Eigen::Infinity>() << " exceeds " << tol;
+    }
+    for (Index i = 0; i < n; ++i) {
+        const double zi = s.z(i);
+        if (zi > tol && std::abs(s.x(i) - qp.lower(i)) > tol) {
+            return ::testing::AssertionFailure() << "z(" << i << ") > 0 away from the lower bound";
+        }
+        if (zi < -tol && std::abs(s.x(i) - qp.upper(i)) > tol) {
+            return ::testing::AssertionFailure() << "z(" << i << ") < 0 away from the upper bound";
+        }
+    }
+    return ::testing::AssertionSuccess();
+}
+
+// --------------------------------------------------------------------------
+// Bit equality
+// --------------------------------------------------------------------------
+
+::testing::AssertionResult same_bits(const Vec &a, const Vec &b, const char *what) {
+    if (a.size() != b.size()) {
+        return ::testing::AssertionFailure()
+               << what << ": sizes " << a.size() << " vs " << b.size();
+    }
+    for (Index i = 0; i < a.size(); ++i) {
+        if (std::bit_cast<std::uint64_t>(a(i)) != std::bit_cast<std::uint64_t>(b(i))) {
+            return ::testing::AssertionFailure()
+                   << what << "(" << i << "): " << a(i) << " vs " << b(i) << " differ in BITS";
+        }
+    }
+    return ::testing::AssertionSuccess();
+}
+
+void expect_same_counters(const QpCounters &a, const QpCounters &b) {
+    EXPECT_EQ(a.minor_iters, b.minor_iters);
+    EXPECT_EQ(a.ws_adds, b.ws_adds);
+    EXPECT_EQ(a.ws_adds_bound, b.ws_adds_bound);
+    EXPECT_EQ(a.ws_drops, b.ws_drops);
+    EXPECT_EQ(a.ws_drops_bound, b.ws_drops_bound);
+    EXPECT_EQ(a.shift_adds, b.shift_adds);
+    EXPECT_EQ(a.ratio_ties, b.ratio_ties);
+    EXPECT_EQ(a.drop_ties, b.drop_ties);
+    EXPECT_EQ(a.degenerate_steps, b.degenerate_steps);
+    EXPECT_EQ(a.degenerate_run_max, b.degenerate_run_max);
+    EXPECT_EQ(a.factorizations, b.factorizations);
+    EXPECT_EQ(a.schur_updates, b.schur_updates);
+    EXPECT_EQ(a.eqp_refine_steps, b.eqp_refine_steps);
+    EXPECT_EQ(a.border_refine_steps, b.border_refine_steps);
+    EXPECT_EQ(a.verdict_refine_steps, b.verdict_refine_steps);
+    EXPECT_EQ(a.suspect_escalations, b.suspect_escalations);
+}
+
+void expect_same_solution(const QpSolution &a, const QpSolution &b) {
+    EXPECT_EQ(static_cast<int>(a.status), static_cast<int>(b.status));
+    EXPECT_TRUE(same_bits(a.x, b.x, "x"));
+    EXPECT_TRUE(same_bits(a.z, b.z, "z"));
+    EXPECT_TRUE(same_bits(a.lambda_i, b.lambda_i, "lambda_i"));
+    EXPECT_TRUE(same_bits(a.lambda_e, b.lambda_e, "lambda_e"));
+    expect_same_counters(a.counters, b.counters);
+}
+
+/// Every fixture starts from a known switch state and leaves one behind.
+struct DegArmGuard {
+    DegArmGuard() {
+        Obs::reset();
+        Deg::reset();
+    }
+    ~DegArmGuard() {
+        Deg::reset();
+        Obs::reset();
+    }
+};
+
+/// THE FIXTURES' OPTIONS. `max_iter` is M4's cap. `opt_tol` is RAISED from
+/// hven's 1e-9 default to 1e-6, and the reason is arithmetic: arm A refuses a
+/// candidate exactly when `opt_tol < |λ| ≤ opt_tol · scale`, so with this
+/// fixture's largest violation at 0.30137 the gap needs
+/// `opt_tol · kScaleCarrier > 0.30137`, i.e. `opt_tol > 3.0e-7`. The OFF walk
+/// is unchanged by the move — every candidate it admits at 1e-9 it also admits
+/// at 1e-6 — and the fixture asserts that it still cycles, field for field,
+/// rather than assuming it.
+QpOptions cycling_opts() {
+    QpOptions o;
+    o.max_iter = 200;
+    o.opt_tol = 1e-6;
+    // The premise "the old walk cycles" belongs to the pre-E2 walk: with the
+    // independent working set (M7 W2 E2) these QPs END (the E2 fixtures at the
+    // end of test_qp_anti_cycling_arm.cpp).
+    o.independent_working_set = false;
+    return o;
+}
+
+} // namespace
+
+// ===========================================================================
+// (1) OFF IS PRODUCTION
+// ===========================================================================
+
+TEST(QpDegeneracyArm, TheSwitchIsOffByDefaultAndOffIsProduction) {
+    DegArmGuard guard;
+    EXPECT_EQ(static_cast<int>(Deg::arm), static_cast<int>(DegArm::kOff));
+    EXPECT_FALSE(Deg::diag_post_drop_inertia);
+    EXPECT_FALSE(Deg::any_on());
+
+    const QpOptions opts = cycling_opts();
+    for (const QpProblem &qp :
+         {period2_cycle_qp(), non_degenerate_qp(), scale_carrier_cycle_qp()}) {
+        const QpSolution plain = plain_solve(qp, opts);
+        Deg::reset();
+        const Walk off = observed_walk(qp, opts);
+        expect_same_solution(plain, off.solution);
+        // The arm state stayed untouched by an unarmed run.
+        EXPECT_EQ(Deg::scaled_drops_made, 0);
+        EXPECT_EQ(Deg::scaled_candidates_refused, 0);
+        EXPECT_EQ(Deg::scaled_drops_prevented, 0);
+        EXPECT_EQ(Deg::scale_unavailable_passes, 0);
+        EXPECT_EQ(Deg::diag_factorizations, 0);
+    }
+}
+
+// ===========================================================================
+// THE RE-PREMISE (M7 W2 E4 fix round 2, ruling E4-19) -- READ THIS FIRST
+// ===========================================================================
+//
+// EVERY FIXTURE BELOW THAT NEEDED A CYCLING WALK HAS LOST ITS PREMISE, and it is
+// ONE fact that took them all: **the E4 walk does not take the noise-level drop
+// that drove the recurrence.** The recurrence these arms were built for is a drop
+// of a multiplier below `opt_tol * scale` -- believed by the pre-E4 walk, dropped,
+// and the same member re-added on the next pass -- and M7 W2 E4's proximal EQP
+// prices that multiplier differently: the primal regularization's own term is no
+// longer folded into it (NC2 fix round 1's `ride_sign` ruling), so the drop is
+// never made. With no drop there is no recurrence, nothing for arm A to refuse,
+// no pass-over for arm B1 to make, no out-of-box iterate for the certificate to
+// read, and no drop pass for the post-drop inertia diagnostic to run on.
+//
+// MEASURED at fix round 2 on `scale_carrier_cycle_qp()` and `period2_cycle_qp()`
+// under `cycling_opts()` (the pre-E2 walk, cap 200): both read **kOptimal**, the
+// periodic tail is 2 with period 1 -- ordinary termination -- and the walk
+// records NO Dantzig drop at all.
+//
+// **NO CELL IN THIS TREE STILL CYCLES.** Ruling E4-19(b) keeps the old premise
+// wherever one does; there is none, here or in test_qp_anti_cycling_arm.cpp. That
+// is a finding for the ledger and NOT a reason to delete the arms: they stay in
+// the tree, test-only, and what the fixtures assert now is that they are INERT
+// and that their columns stay honestly ABSENT. A regression that brings the
+// recurrence back fails these tests, which is the coverage that matters.
+//
+// THE RENAMES (E4-19(c)), old -> new:
+//   TheOffWalkOnTheScaleCarrierFixtureReallyDoesCycle
+//     -> TheOffWalkOnTheScaleCarrierFixtureTakesNoNoiseDropAndTerminates
+//   ArmAScaledDropRefusesTheDropAndEndsTheRecurrence
+//     -> ArmAHasNoNoiseDropToRefuseAndIsInert
+//   TheDropScaleIsTheSameNumberFreeBlockStationarityComputed
+//     -> TheDropScaleColumnHasNoDropPassToCheck
+//   ThePostDropInertiaDiagnosticMovesNoCounterAndNoAnswer
+//     -> ThePostDropInertiaDiagnosticHasNoDropPassToRunOnAndMovesNothing
+//   TheDiagnosticColumnsAreFilledWhereTheirBranchRan
+//     -> TheDiagnosticColumnsStayAbsentBecauseNoDropPassRuns
+//   ArmB1EndsTheCyclingWalkNearTheOptimumButOutsideItsBox
+//     -> ArmB1IsInertOnTheFixtureThatNoLongerCycles
+//   ArmB1CanLeaveTheIterateOutsideItsBoxAndTheCertificateRefusesIt
+//     -> ArmB1HasNoPassOverToLeaveTheBoxWithAndTheCertificateIsNotReached
+//   ArmB1sLeakRatioUnderTheMuSweepAmendmentA5Asks
+//     -> ArmB1sMuSweepFindsNoPassOverToLeakAtAnyMu
+// Two tests keep their names because the names are still what they assert -- the
+// per-thread isolation claims (`AnArmedSolveDoesNotReachIntoAnUnarmedOneRunning-
+// BesideIt`, `ArmB1sSwitchIsPerThreadWithBothSolvesInFlight`) -- and only their
+// armed-side premise is re-derived inside.
+
+// ===========================================================================
+// (2) ARM A REFUSES A DROP THE SCALE SAYS IS NOISE
+// ===========================================================================
+
+TEST(QpDegeneracyArm, TheOffWalkOnTheScaleCarrierFixtureTakesNoNoiseDropAndTerminates) {
+    DegArmGuard guard;
+    const QpProblem qp = scale_carrier_cycle_qp();
+    const Walk off = observed_walk(qp, cycling_opts());
+
+    // RE-PREMISED (see the note above). This test used to assert the recurrence:
+    // kMaxIter at the cap, a periodic tail longer than 8, and zero motion over
+    // it. MEASURED at E4 fix round 2: kOptimal, tail 2, period 1 -- ordinary
+    // termination -- because the noise-level drop that drove the recurrence is
+    // never made. What is asserted now is exactly that, so a regression back into
+    // the recurrence fails here.
+    EXPECT_EQ(static_cast<int>(off.solution.status), static_cast<int>(QpStatus::kOptimal))
+        << "the OFF walk no longer cycles on this fixture; a kMaxIter here is a regression";
+    EXPECT_LE(off.tail, 8) << "a long periodic tail is back: period " << off.period;
+
+    // AND THE DROP IS GONE AT ITS SOURCE. The fixture's whole mechanism was a
+    // Dantzig drop whose multiplier clears the ABSOLUTE bar and fails the SCALED
+    // one; the walk now records no Dantzig drop at all. Asserted as an absence,
+    // with the old per-drop checks kept INSIDE the loop so that a returning drop
+    // is measured against the same three facts rather than silently tolerated.
+    Index drops = 0;
+    for (const auto &rec : off.records) {
+        if (rec.drop_route != hven::solvers::detail::testing::QpWalkDropRoute::kDantzig) {
+            continue;
+        }
+        ++drops;
+        EXPECT_GT(rec.decision_multiplier, rec.decision_tol);
+        EXPECT_DOUBLE_EQ(rec.drop_scale, kScaleCarrier);
+        EXPECT_LT(rec.decision_multiplier, rec.drop_scaled_tol)
+            << "the fixture's drop is not below opt_tol*scale: " << rec.decision_multiplier
+            << " vs " << rec.drop_scaled_tol;
+        EXPECT_EQ(rec.drop_refused_by_scale, 0) << "nothing may be refused with the arm OFF";
+    }
+    EXPECT_EQ(drops, 0) << "the noise-level drop is back: " << drops << " Dantzig drops";
+}
+
+TEST(QpDegeneracyArm, ArmAHasNoNoiseDropToRefuseAndIsInert) {
+    DegArmGuard guard;
+    const QpProblem qp = scale_carrier_cycle_qp();
+    const QpOptions opts = cycling_opts();
+
+    const Walk off = observed_walk(qp, opts);
+    ASSERT_EQ(static_cast<int>(off.solution.status), static_cast<int>(QpStatus::kOptimal));
+
+    Deg::reset();
+    Deg::arm = DegArm::kScaledDrop;
+    const Walk on = observed_walk(qp, opts);
+
+    // RE-PREMISED (E4-19(a)). This test used to assert that arm A ENDED the
+    // recurrence -- fewer minors, a shorter tail, a nonzero refusal account, and
+    // the honest kNumericalError that refusing a needed drop leaves. There is no
+    // recurrence and no drop to refuse, so the claim it can still make is
+    // INERTNESS, and it is made as an equality rather than a bound.
+    EXPECT_EQ(static_cast<int>(on.solution.status), static_cast<int>(off.solution.status))
+        << "arm A changed the status of a walk with no noise-level drop in it";
+    EXPECT_EQ(on.minors, off.minors) << "arm A changed the minor count of such a walk";
+    EXPECT_EQ(on.tail, off.tail);
+
+    // THE ARM'S ACCOUNT IS EMPTY, and that is the statement: it refused nothing
+    // because there was nothing below opt_tol*scale to refuse. `scale_unavailable`
+    // stays 0 either way -- every armed pass still published a scale, which is
+    // the one part of the old read-out that never depended on the drop.
+    EXPECT_EQ(Deg::scaled_candidates_refused, 0)
+        << "arm A refused a candidate: the noise-level drop is back";
+    EXPECT_EQ(Deg::scaled_drops_prevented, 0);
+    EXPECT_EQ(Deg::scale_unavailable_passes, 0)
+        << "every armed pass must have had a published scale";
+
+    // WHAT IS NO LONGER CLAIMED, AND WHAT THAT COSTS THE ROUND. The old fixture
+    // recorded, at length, that arm A's honest outcome on THIS problem was
+    // kNumericalError rather than kOptimal, because the multiplier it refuses here
+    // is a REAL multiplier (0.30137) that is small only against a scale the
+    // carrier inflated -- and that the fixture which would show "terminates
+    // optimal under a" has to produce cancellation RESIDUE rather than simulate
+    // it, which no dispatch has found. That remains true and remains REGISTERED;
+    // this fixture can no longer witness it, because the walk it witnessed it on
+    // does not reach the drop any more.
+}
+
+// ===========================================================================
+// (3) ARM A CHANGES NOTHING WHERE THERE IS NOTHING TO CHANGE
+// ===========================================================================
+
+TEST(QpDegeneracyArm, ArmAIsBitIdenticalOnANonDegenerateQp) {
+    DegArmGuard guard;
+    const QpProblem qp = non_degenerate_qp();
+    const QpOptions opts = cycling_opts();
+
+    const Walk off = observed_walk(qp, opts);
+    // The fixture is only worth anything if it is genuinely non-degenerate.
+    EXPECT_EQ(off.solution.counters.ratio_ties, 0);
+    EXPECT_EQ(off.solution.counters.drop_ties, 0);
+    EXPECT_EQ(off.solution.counters.degenerate_steps, 0);
+
+    Deg::reset();
+    Deg::arm = DegArm::kScaledDrop;
+    const Walk on = observed_walk(qp, opts);
+    expect_same_solution(off.solution, on.solution);
+    EXPECT_EQ(Deg::scaled_candidates_refused, 0)
+        << "a non-degenerate walk has no residue-level multiplier to refuse";
+}
+
+// ===========================================================================
+// (4) THE ARM SHARES THE SCALE RATHER THAN DERIVING ONE
+// ===========================================================================
+
+TEST(QpDegeneracyArm, TheDropScaleColumnHasNoDropPassToCheck) {
+    DegArmGuard guard;
+    const QpProblem qp = scale_carrier_cycle_qp();
+    const Walk off = observed_walk(qp, cycling_opts());
+
+    Index checked = 0;
+    for (const auto &rec : off.records) {
+        if (rec.drop_route != hven::solvers::detail::testing::QpWalkDropRoute::kDantzig) {
+            continue;
+        }
+        // BITS, not a tolerance: the arm's internal-consistency argument is
+        // that its threshold IS the quantity `free_block_stationarity`
+        // computes, so anything short of bit equality would mean a second
+        // derivation had crept in.
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(rec.drop_scale),
+                  std::bit_cast<std::uint64_t>(rec.stat_scale));
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(rec.drop_scaled_tol),
+                  std::bit_cast<std::uint64_t>(rec.decision_tol * rec.stat_scale));
+        ++checked;
+    }
+    // RE-PREMISED (E4-19). The old assertion was `checked > 0` -- a non-vacuity
+    // premise, and a correct one while the walk took the noise-level drop. It
+    // takes none now, so there is no drop pass whose `drop_scale` column can be
+    // compared with `stat_scale`. The bit-equality checks above are KEPT inside
+    // the loop: the moment a drop pass returns, its column is checked the same
+    // way. The absence is asserted, so the change is pinned.
+    EXPECT_EQ(checked, 0) << "a Dantzig drop pass is back on this fixture: " << checked;
+}
+
+// ===========================================================================
+// (5) THE DIAGNOSTIC IS BIT-NEUTRAL
+// ===========================================================================
+
+TEST(QpDegeneracyArm, ThePostDropInertiaDiagnosticHasNoDropPassToRunOnAndMovesNothing) {
+    DegArmGuard guard;
+    const QpOptions opts = cycling_opts();
+    Index total_diag = 0;
+    for (const QpProblem &qp :
+         {period2_cycle_qp(), non_degenerate_qp(), scale_carrier_cycle_qp()}) {
+        Deg::reset();
+        const Walk without = observed_walk(qp, opts);
+
+        Deg::reset();
+        Deg::diag_post_drop_inertia = true;
+        const Walk with = observed_walk(qp, opts);
+
+        expect_same_solution(without.solution, with.solution);
+        // The cost is REAL, and it is counted rather than timed: none of the
+        // diagnostic's factorizations reached the engine's own counter.
+        EXPECT_EQ(Deg::diag_factorization_failures, 0);
+        EXPECT_EQ(without.solution.counters.factorizations, with.solution.counters.factorizations);
+        total_diag += Deg::diag_factorizations;
+    }
+    // RE-PREMISED (E4-19). The old assertion was `total_diag > 0` ACROSS the three
+    // fixtures -- the diagnostic had to run somewhere or the bit-neutrality claim
+    // above would be vacuous. None of the three takes a Dantzig drop under the E4
+    // walk, so the diagnostic has no pass to run on anywhere in this test, and the
+    // count is 0. WHAT SURVIVES IS THE CLAIM THIS TEST IS NAMED FOR, and it is the
+    // part that matters: with the diagnostic switched ON the solution and the
+    // engine's own `factorizations` are unchanged on all three problems
+    // (`expect_same_solution` above), so the diagnostic is bit-neutral. That is
+    // asserted against a real walk on each fixture; only the "it ran somewhere"
+    // premise is gone, and it is pinned as an absence rather than dropped.
+    EXPECT_EQ(total_diag, 0) << "a drop pass is back: the diagnostic ran " << total_diag
+                             << " factorizations";
+}
+
+// ===========================================================================
+// (6) THE DIAGNOSTIC'S COLUMNS ARE REAL
+// ===========================================================================
+
+TEST(QpDegeneracyArm, TheDiagnosticColumnsStayAbsentBecauseNoDropPassRuns) {
+    DegArmGuard guard;
+    Deg::diag_post_drop_inertia = true;
+    const QpProblem qp = scale_carrier_cycle_qp();
+    const Walk w = observed_walk(qp, cycling_opts());
+
+    Index drops = 0;
+    Index adds = 0;
+    for (const auto &rec : w.records) {
+        if (rec.drop_route == hven::solvers::detail::testing::QpWalkDropRoute::kDantzig) {
+            ++drops;
+            // The integer screen is free and is taken on every drop pass.
+            EXPECT_EQ(rec.dep_n, qp.n());
+            EXPECT_GE(rec.dep_rows_after_drop, 0);
+            EXPECT_EQ(rec.dep_screen_after_drop, rec.dep_rows_after_drop > qp.n() ? 1 : 0);
+            // The post-drop factorization ran and reported.
+            EXPECT_TRUE(rec.post_drop_factorized);
+            EXPECT_GE(rec.post_drop_verdict, 0);
+            EXPECT_GE(rec.post_drop_expected_pos, 0);
+            EXPECT_GE(rec.post_drop_expected_neg, 0);
+        }
+        if (rec.action == hven::solvers::detail::testing::QpWalkAction::kAdd) {
+            ++adds;
+            EXPECT_FALSE(std::isnan(rec.add_a_dot_p));
+            EXPECT_FALSE(std::isnan(rec.add_leak_bound));
+            EXPECT_FALSE(std::isnan(rec.add_round_floor));
+            EXPECT_GE(rec.add_leak_bound, 0.0);
+            EXPECT_GE(rec.add_round_floor, 0.0);
+            EXPECT_GE(rec.add_dep_rows, 0);
+            EXPECT_EQ(rec.add_dep_screen, rec.add_dep_rows + 1 > qp.n() ? 1 : 0);
+        }
+        // THIS FIXTURE ARMS NEITHER FORM OF ARM B, and the honest record of a
+        // test that did not run is an ABSENT column, not a zero.
+        EXPECT_TRUE(std::isnan(rec.add_dep_residual));
+        EXPECT_EQ(rec.add_dep_verdict, -1);
+        EXPECT_EQ(rec.add_exchanged_index, -1);
+        EXPECT_TRUE(std::isnan(rec.add_exchange_coefficient));
+    }
+    // RE-PREMISED (E4-19). `drops > 0` was the non-vacuity premise for the
+    // post-drop half of this read-out; with no Dantzig drop under the E4 walk the
+    // half has no pass to inspect, and the honest record of a branch that did not
+    // run is an ABSENT column -- which is what the per-record assertions above
+    // already check, and what this test is now named for. The ADD half is
+    // untouched: it never depended on the drop, and `adds > 0` still holds.
+    EXPECT_EQ(drops, 0) << "a drop pass is back on this fixture: " << drops;
+    EXPECT_GT(adds, 0);
+}
+
+TEST(QpDegeneracyArm, WithoutTheSwitchThePostDropInertiaColumnsStayAbsent) {
+    DegArmGuard guard;
+    const QpProblem qp = scale_carrier_cycle_qp();
+    const Walk w = observed_walk(qp, cycling_opts());
+    for (const auto &rec : w.records) {
+        EXPECT_FALSE(rec.post_drop_factorized);
+        EXPECT_EQ(rec.post_drop_verdict, -1);
+        EXPECT_EQ(rec.post_drop_inertia_pos, -1);
+        EXPECT_EQ(rec.post_drop_inertia_neg, -1);
+    }
+    EXPECT_EQ(Deg::diag_factorizations, 0);
+}
+
+// ===========================================================================
+// (7) PER-THREAD, WITH BOTH SOLVES IN FLIGHT AT ONCE
+// ===========================================================================
+
+namespace {
+
+/// A two-party start gate: neither side proceeds until both have arrived, so
+/// the two solves are genuinely overlapped rather than sequential. Same shape
+/// as `test_qp_anti_cycling_arm.cpp`'s.
+class StartGate {
+  public:
+    void arrive_and_wait() {
+        std::unique_lock<std::mutex> lock(m_);
+        if (++arrived_ == 2) {
+            open_ = true;
+            cv_.notify_all();
+            return;
+        }
+        cv_.wait(lock, [this] { return open_; });
+    }
+
+  private:
+    std::mutex m_;
+    std::condition_variable cv_;
+    int arrived_ = 0;
+    bool open_ = false;
+};
+
+} // namespace
+
+TEST(QpDegeneracyArm, AnArmedSolveDoesNotReachIntoAnUnarmedOneRunningBesideIt) {
+    DegArmGuard guard;
+    const QpOptions opts = cycling_opts();
+    // THE UNARMED THREAD TAKES THE NON-DEGENERATE QP, for the reason M4's own
+    // cross-thread fixture gives: a degenerate walk across two heaps turns a
+    // last-digit difference into a different pivot (CLAUDE.md §7), so the
+    // bit-identity claim is made on the problem where it is a claim about the
+    // SWITCH rather than about the allocator.
+    const QpProblem quiet = non_degenerate_qp();
+    const QpProblem loud = scale_carrier_cycle_qp();
+    const QpSolution solo = plain_solve(quiet, opts);
+
+    StartGate gate;
+    QpSolution quiet_result;
+    QpSolution loud_result;
+    Index loud_refused = 0;
+    Index quiet_refused = 0;
+    bool quiet_arm_seen = true;
+
+    std::thread armed([&] {
+        Deg::reset();
+        Deg::arm = DegArm::kScaledDrop;
+        Deg::diag_post_drop_inertia = true;
+        gate.arrive_and_wait();
+        QpEngine engine{opts};
+        loud_result = engine.solve(loud);
+        loud_refused = Deg::scaled_candidates_refused;
+        Deg::reset();
+    });
+    std::thread unarmed([&] {
+        Deg::reset();
+        quiet_arm_seen = Deg::any_on();
+        gate.arrive_and_wait();
+        QpEngine engine{opts};
+        quiet_result = engine.solve(quiet);
+        quiet_refused = Deg::scaled_candidates_refused;
+        Deg::reset();
+    });
+    armed.join();
+    unarmed.join();
+
+    EXPECT_FALSE(quiet_arm_seen) << "the arm leaked across threads before either solve began";
+    // RE-PREMISED (E4-19), NAME UNCHANGED: the claim is per-thread isolation and it
+    // is asserted in full. The armed side used to be required to refuse something
+    // and to end kNumericalError (`ArmAScaledDropRefusesTheDropAndEndsTheRecurrence`
+    // then, `ArmAHasNoNoiseDropToRefuseAndIsInert` now); with no noise-level drop on
+    // the fixture there is nothing to refuse and the armed walk ends kOptimal.
+    EXPECT_EQ(loud_refused, 0) << "the armed thread refused a candidate: the drop is back";
+    EXPECT_EQ(quiet_refused, 0) << "the unarmed thread counted a refusal it never made";
+    EXPECT_EQ(static_cast<int>(loud_result.status), static_cast<int>(QpStatus::kOptimal));
+    expect_same_solution(solo, quiet_result);
+}
+
+// ===========================================================================
+// (8) ARM B1 -- THE INDEPENDENCE-PRESERVING RATIO TEST
+// ===========================================================================
+//
+// WHAT THESE FIXTURES PROVE, AND THE ONE THEY DECLARE RATHER THAN CELEBRATE:
+//
+//   (8a) b1 TERMINATES THE CYCLING WALK. On M4's period-2 QP -- the SAME
+//        problem, without the scale carrier -- the OFF walk cycles to the
+//        iteration cap and b1 stops within 1e-6 of the problem's own optimum.
+//        Since M7 W2 E4 that end point is NOT certified: its pass-over leaves
+//        x(2) 9.3e-08 below its bound, 100x feas_tol, and the certificate's
+//        bound half exits kInfeasible there.
+//   (8b) b1 CHANGES NOTHING WHERE IT PASSES NOTHING OVER, in bits.
+//   (8c) THE ENTRY REPAIR (amendment A3) REMOVES A DEPENDENT SEED MEMBER, in
+//        the declared order, and the invariant holds from there on.
+//   (8c') THE mu SWEEP (amendment A5): the leak ratio stays inside a band
+//        declared before the numbers, and the sweep REFUTES the unqualified
+//        "the leak is O(mu)" reading below `dual_mu = 1e-8`, where the leak
+//        saturates on the rounding floor instead.
+//   (8d) THE HAZARD, DECLARED AND ASSERTED: passing over a blocking BOUND
+//        lets the walk step OUT OF ITS BOX. Until M7 W2 E4 the engine then
+//        certified the result `kOptimal`; the certificate now reads the
+//        returned x against its own box and exits `kInfeasible` instead. The
+//        excursion is a FINDING about the pre-registered rule, not a bug in
+//        its implementation, and it is asserted here so it cannot quietly stop
+//        being true. AMENDMENT A10's bound FAILS on that
+//        excursion, and not for the reason A10 expected: the incoming set was
+//        independent throughout.
+//   (8e) THE ARM'S OWN SELF-CHECK never fires: its re-enumeration of the ratio
+//        test's candidates begins with production's blocker on every pass of
+//        every fixture here.
+//   (8f) The columns stay ABSENT when the arm is not armed.
+//   (8g) The switch is PER-THREAD, with both solves in flight.
+
+namespace {
+
+/// The largest amount by which `x` sits outside its own box.
+double box_violation(const QpProblem &qp, const Vec &x) {
+    double worst = 0.0;
+    for (Index i = 0; i < qp.n(); ++i) {
+        worst = std::max(worst, std::max(qp.lower(i) - x(i), x(i) - qp.upper(i)));
+    }
+    return worst;
+}
+
+/// Every record the arm actually ran on.
+std::vector<hven::solvers::detail::testing::QpWalkMinorRecord>
+b1_records(const std::vector<hven::solvers::detail::testing::QpWalkMinorRecord> &recs) {
+    std::vector<hven::solvers::detail::testing::QpWalkMinorRecord> out;
+    for (const auto &r : recs) {
+        if (r.add_b1_examined >= 0) {
+            out.push_back(r);
+        }
+    }
+    return out;
+}
+
+} // namespace
+
+TEST(QpDegeneracyArm, ArmB1IsInertOnTheFixtureThatNoLongerCycles) {
+    DegArmGuard guard;
+    // M4's period-2 QP ITSELF -- no scale carrier. Arm A's fixture needed the
+    // carrier to move the drop rule's SCALE; b1 acts on the working set's
+    // RANK, which the cycling block already makes degenerate on its own.
+    const QpProblem qp = period2_cycle_qp();
+    const QpOptions opts = cycling_opts();
+
+    // RE-PREMISED (E4-19; see the note at the head of the arms section). This
+    // test used to open by ASSERTING M4's recurrence -- kMaxIter at the cap,
+    // period 2, a tail longer than 100, zero motion over it -- and then that arm
+    // B1 ENDED it. The E4 walk does not cycle here: the OFF walk reads kOptimal
+    // and the pass-over the arm's conversion rested on is never reached. What is
+    // asserted now is INERTNESS, as an equality against the unarmed walk.
+    const Walk off = observed_walk(qp, opts);
+    ASSERT_EQ(static_cast<int>(off.solution.status), static_cast<int>(QpStatus::kOptimal))
+        << "the OFF walk cycles again on this fixture: the E4 reading has changed";
+    ASSERT_LT(off.minors, 20);
+
+    Deg::reset();
+    Deg::arm = DegArm::kIndependentAdd;
+    const Walk on = observed_walk(qp, opts);
+
+    EXPECT_EQ(static_cast<int>(on.solution.status), static_cast<int>(off.solution.status))
+        << "arm B1 changed the status of a walk it passes nothing over on";
+    EXPECT_EQ(on.minors, off.minors) << "arm B1 changed the minor count of such a walk";
+    // AND THE END POINT IS INSIDE ITS BOX. Until E4 this walk's pass-over leaked
+    // x(2) to 9.33e-08 below its lower bound -- 100x feas_tol, which is why the
+    // certificate's bound half exited kInfeasible there (M7 W2 E4's own finding).
+    // With no pass-over there is no leak, and the absence is asserted: a returning
+    // leak fails here rather than passing as "kInfeasible, as documented".
+    EXPECT_LE(box_violation(qp, on.solution.x), opts.feas_tol)
+        << "the iterate is outside its box again: the pass-over leak is back";
+
+    // WHAT THE ARM DID: NOTHING, and every one of amendment A8's three
+    // mechanisms is asserted to be idle rather than merely unmentioned. The old
+    // read-out asserted the opposite of each: `acted > 0`,
+    // `indep_screen_and_qr_dependent > 0`, `indep_candidates_passed_over > 0`,
+    // `indep_no_blocker_passes > 0`, `indep_qr_builds > 0`, and a nonempty B1
+    // record scan with at least one switched pass. All of them rested on the
+    // recurrence's degenerate tie, which the E4 walk does not reach.
+    //
+    // WHAT SURVIVES, and it is the half worth keeping: the arm's INVARIANTS still
+    // have to hold on a walk it decides nothing on. A mismatch, a test failure, a
+    // rank violation, a refused mandatory member, a rank deficit or an exceeded
+    // leak bound would each be a defect whether or not the arm acted.
+    EXPECT_EQ(Deg::indep_enumeration_mismatches, 0);
+    EXPECT_EQ(Deg::indep_test_failures, 0);
+    EXPECT_EQ(Deg::indep_rank_violations, 0);
+    EXPECT_EQ(Deg::indep_refused_mandatory_dependent, 0);
+    EXPECT_EQ(Deg::indep_rank_deficit_max, 0);
+    EXPECT_EQ(Deg::indep_leak_bound_exceeded, 0);
+    EXPECT_EQ(Deg::indep_candidates_passed_over, 0)
+        << "arm B1 passed a candidate over: the degenerate tie is back";
+    EXPECT_EQ(Deg::indep_entry_members_removed, 0);
+
+    // AND b2, THE EXCHANGE, IS STILL REGISTERED AND NOT BUILT: its two columns
+    // stay absent on a trace taken with arm B armed, which never depended on the
+    // recurrence and is asserted unchanged.
+    for (const auto &r : on.records) {
+        EXPECT_EQ(r.add_exchanged_index, -1);
+        EXPECT_TRUE(std::isnan(r.add_exchange_coefficient));
+    }
+}
+
+TEST(QpDegeneracyArm, ArmB1IsBitIdenticalWhereItPassesNothingOver) {
+    DegArmGuard guard;
+    const QpProblem qp = non_degenerate_qp();
+    const QpOptions opts = cycling_opts();
+    const QpSolution plain = plain_solve(qp, opts);
+
+    Deg::reset();
+    Deg::arm = DegArm::kIndependentAdd;
+    const QpSolution armed = plain_solve(qp, opts);
+
+    // NOTHING WAS PASSED OVER, so the caller changed nothing at all -- which
+    // is what makes this identity structural rather than arithmetical.
+    EXPECT_EQ(Deg::indep_candidates_passed_over, 0);
+    EXPECT_EQ(Deg::indep_blocker_switched, 0);
+    EXPECT_EQ(Deg::indep_enumeration_mismatches, 0);
+    // The dependency test DID run and DID cost a factorization: this is not
+    // the vacuous case where the arm never looked.
+    //
+    // AND THE ORACLE GENUINELY RAN: this is not the vacuous case where the arm
+    // never looked. It asks for `indep_dep_tests` rather than
+    // `indep_qr_builds` DELIBERATELY -- on this problem the working set is
+    // empty on the passes that matter, and an empty set spans nothing, so
+    // every candidate is independent of it WITHOUT a decomposition. Demanding
+    // a decomposition here would be demanding arithmetic that has no question
+    // to answer.
+    EXPECT_GT(Deg::indep_candidates_examined, 0);
+    EXPECT_GT(Deg::indep_dep_tests, 0);
+    EXPECT_EQ(Deg::indep_rank_violations, 0);
+    EXPECT_EQ(Deg::indep_entry_members_removed, 0);
+    expect_same_solution(plain, armed);
+}
+
+TEST(QpDegeneracyArm, ArmB1HasNoPassOverToLeaveTheBoxWithAndTheCertificateIsNotReached) {
+    DegArmGuard guard;
+    // RE-PREMISED (E4-19; the note at the head of the arms section). WHAT THIS
+    // FIXTURE HELD, from M5 through E3: R3's rule ("if no independent blocker
+    // exists, take the full step and record every passed-over constraint's
+    // post-step violation") lets the walk step THROUGH a passed-over BOUND, and
+    // nothing downstream puts the iterate back, because `refresh_shifts` is about
+    // inequality ROWS. Before M7 W2 E4 the certification branch read only the
+    // rows and reported kOptimal at a point 5.59e-03 outside its box (M5's C7,
+    // Codex M5 review Critical 1); E4's certificate reads the box and exits
+    // kInfeasible there. It also held amendment A10's own finding: that ONE
+    // pass-over exceeded A10's pre-registered leak bound on an ill-conditioned
+    // working set, so the b1 verdict is UNSUPPORTED on a cell like this one.
+    //
+    // WHY IT CANNOT HOLD IT ANY MORE: the pass-over is never made. The E4 walk
+    // takes no noise-level drop on this fixture, so the degenerate tie the
+    // pass-over needs is never reached, the iterate never leaves its box, and the
+    // certificate's bound half is never the thing that decides the exit.
+    //
+    // WHAT IS ASSERTED NOW: the ABSENCE, every piece of it, so the hazard's return
+    // fails here. The hazard and A10's finding are NOT retracted -- they are
+    // statements about R3's rule that this walk can no longer exhibit, and the
+    // certificate's bound half keeps its own direct coverage in
+    // `TheCertificatesBoundHalfPassesASolvedQpWithActiveBounds`,
+    // `CertificateToleratesABoundViolationInsideAndOnTheStructuralMargin` and
+    // `CertificateRefusesABoundViolationOutsideTheStructuralMargin`, none of which
+    // needs a cycling walk.
+    const QpProblem qp = scale_carrier_cycle_qp();
+    const QpOptions opts = cycling_opts();
+
+    Deg::reset();
+    Deg::arm = DegArm::kIndependentAdd;
+    const Walk on = observed_walk(qp, opts);
+
+    EXPECT_EQ(static_cast<int>(on.solution.status), static_cast<int>(QpStatus::kOptimal))
+        << "the walk no longer leaves its box here; a kInfeasible means the pass-over is back";
+    EXPECT_LE(box_violation(qp, on.solution.x), opts.feas_tol)
+        << "the iterate is outside its box again: the M5 excursion has returned";
+    EXPECT_EQ(Deg::indep_candidates_passed_over, 0)
+        << "arm B1 passed a candidate over: the degenerate tie is back";
+    EXPECT_EQ(Deg::indep_max_passed_violation, 0.0);
+    // The per-pass column is filled wherever the arm EXAMINED a tie and recorded a
+    // candidate's post-step violation, which it still does on this fixture (two
+    // passes, MEASURED) -- it is not a pass-over record, and the assertion that
+    // belongs here is that every violation it recorded is inside feas_tol, i.e.
+    // nothing the arm looked at would have left the box had it been passed over.
+    for (const auto &r : on.records) {
+        if (!std::isnan(r.add_b1_passed_violation)) {
+            EXPECT_LE(r.add_b1_passed_violation, opts.feas_tol)
+                << "a recorded post-step violation is outside feas_tol: the excursion is back";
+        }
+    }
+    // A10's BOUND IS NOT EXCEEDED BECAUSE NOTHING WAS PASSED OVER -- asserted so
+    // that a returning excursion is caught by this counter as well as by the two
+    // above, and so that the 1 this fixture used to pin is visibly a 0 now.
+    EXPECT_EQ(Deg::indep_leak_bound_exceeded, 0);
+    // The invariants still have to hold on a walk the arm decides nothing on.
+    EXPECT_EQ(Deg::indep_rank_violations, 0);
+    EXPECT_EQ(Deg::indep_rank_deficit_max, 0);
+    EXPECT_EQ(Deg::indep_refused_mandatory_dependent, 0);
+    // AND THE POINT IS A KKT POINT of the problem, recomputed here -- the opposite
+    // of what this fixture used to assert, and the reason the exit is kOptimal.
+    // THE TOLERANCE IS SCALED BY THE CARRIER, and that is not a loosening: this
+    // fixture's objective carries a 1e+06 coefficient by construction
+    // (`kScaleCarrier`), the engine's own stationarity test is relative to the
+    // gradient's scale, and an ABSOLUTE 1e-06 on a problem whose gradient reaches
+    // 1e+06 is a 1e-12 relative demand that no double-precision solve of it can
+    // meet. MEASURED: absolute stationarity 0.333, i.e. 3.3e-07 relative.
+    EXPECT_TRUE(is_a_kkt_point(qp, on.solution, 1e-6 * kScaleCarrier));
+}
+
+TEST(QpDegeneracyArm, TheCertificatesBoundHalfPassesASolvedQpWithActiveBounds) {
+    DegArmGuard guard;
+    // THE OTHER SIDE OF E4's PREDICATE: a strictly convex QP whose optimum
+    // sits on BOTH sides of its box (x0 = 2 at its upper bound, x1 = 0 at its
+    // lower bound, x2 = 0.5 interior), solved with nothing armed, on both
+    // working-set algebras and at two regularization levels. Every solve must
+    // still certify kOptimal, at the analytic optimum, with the two bounds
+    // pinned and x inside its box to the rows' own tolerance class -- the
+    // check reads a bound through `violation_is_structural`, so a residue the
+    // regularization owns (at most dual_mu * |z|) is not a violation.
+    QpProblem qp;
+    const Index n = 3;
+    qp.H = Eigen::MatrixXd::Identity(n, n).sparseView();
+    qp.g = Vec(n);
+    qp.g << -5.0, 5.0, -0.5;
+    qp.Ae.resize(0, n);
+    qp.be = Vec(0);
+    qp.Ai.resize(0, n);
+    qp.bi = Vec(0);
+    qp.lower = Vec::Zero(n);
+    qp.upper = Vec::Constant(n, 2.0);
+
+    for (const WorkingSetLinearAlgebra algebra :
+         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+        for (const double mu : {1e-8, 1e-4}) {
+            QpOptions opts = cycling_opts();
+            opts.ws_algebra = algebra;
+            opts.dual_mu = mu;
+            const QpSolution s = plain_solve(qp, opts);
+            SCOPED_TRACE(::testing::Message()
+                         << "algebra=" << static_cast<int>(algebra) << " dual_mu=" << mu);
+            ASSERT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+            EXPECT_EQ(s.bound_state[0], BoundState::kAtUpper);
+            EXPECT_EQ(s.bound_state[1], BoundState::kAtLower);
+            EXPECT_EQ(s.bound_state[2], BoundState::kFree);
+            EXPECT_NEAR(s.x(0), 2.0, 1e-6);
+            EXPECT_NEAR(s.x(1), 0.0, 1e-6);
+            EXPECT_NEAR(s.x(2), 0.5, 1e-6);
+            // ON the bound, exactly: a pinned bound is held exactly, so the
+            // measured violation is +0.0 to the bit on all four solves. This
+            // fixture certifies ON the bound; the inside-the-margin case is
+            // the certificate seam's (below).
+            const double viol = box_violation(qp, s.x);
+            EXPECT_EQ(std::bit_cast<std::uint64_t>(viol), std::uint64_t{0})
+                << "violation " << viol << " is not exactly +0.0";
+            // And, separately, inside the tolerance class the predicate uses:
+            // the larger of feas_tol * scale and dual_mu * |z| (|z| = 3, 5).
+            const double tol = std::max(opts.feas_tol * 2.0, mu * 5.0);
+            EXPECT_LE(viol, tol);
+            EXPECT_TRUE(is_a_kkt_point(qp, s, 1e-6));
+        }
+    }
+}
+
+namespace {
+
+using Cert = hven::solvers::detail::testing::QpCertificateSeam;
+
+/// Every certificate-seam fixture starts disarmed and leaves the seam so.
+struct CertSeamGuard {
+    CertSeamGuard() {
+        Obs::reset();
+        Deg::reset();
+        Cert::reset();
+    }
+    ~CertSeamGuard() {
+        Cert::reset();
+        Deg::reset();
+        Obs::reset();
+    }
+};
+
+/// A strictly convex QP whose optimum is x = (0, 0, 0.5): x0 at its LOWER
+/// bound 0 (z0 = +5), x1 at its UPPER bound 0 (z1 = -5), x2 interior. Every
+/// violated bound is 0 and ||x||inf stays 0.5 for every point the fixtures
+/// present, so each bound's row_scale = max(1, |bound|, ||x||inf) is exactly 1
+/// and v = lower - x or x - upper is computed exactly.
+QpProblem certificate_box_qp() {
+    QpProblem qp;
+    const Index n = 3;
+    qp.H = Eigen::MatrixXd::Identity(n, n).sparseView();
+    qp.g = Vec(n);
+    qp.g << 5.0, -5.0, -0.5;
+    qp.Ae.resize(0, n);
+    qp.be = Vec(0);
+    qp.Ai.resize(0, n);
+    qp.bi = Vec(0);
+    qp.lower = Vec(n);
+    qp.lower << 0.0, -1.0, -1.0;
+    qp.upper = Vec(n);
+    qp.upper << 1.0, 0.0, 1.0;
+    return qp;
+}
+
+enum class CertSide : int { kLower = 0, kUpper = 1 };
+
+const char *cert_side_name(CertSide side) { return side == CertSide::kLower ? "lower" : "upper"; }
+
+const char *cert_algebra_name(WorkingSetLinearAlgebra a) {
+    return a == WorkingSetLinearAlgebra::kSchurBorder ? "kSchurBorder" : "kRefactorize";
+}
+
+/// The pair a fixture presents: the analytic optimum and its multipliers,
+/// with ONE bound violated by exactly `v` on `side`.
+void cert_presented(CertSide side, double v, Vec &x, Vec &z) {
+    x = Vec(3);
+    x << 0.0, 0.0, 0.5;
+    z = Vec(3);
+    z << 5.0, -5.0, 0.0;
+    if (side == CertSide::kLower) {
+        x(0) = -v; // lower(0) - x(0) = v, exactly
+    } else {
+        x(1) = v; // x(1) - upper(1) = v, exactly
+    }
+}
+
+/// THE PREDICATE'S TWO THRESHOLDS for a bound with row_scale 1 and multiplier
+/// `zval`, written with the production expressions' own operation order
+/// (QpEngine::row_tolerance, QpEngine::violation_is_structural), so each is
+/// the certificate's value to the bit rather than an approximation of it.
+struct CertThresholds {
+    double margin;        ///< v <= margin: tolerated, condition (a)
+    double residue_floor; ///< past the margin, structural iff v >= this
+};
+
+CertThresholds cert_thresholds(double feas_tol, double dual_mu, double zval) {
+    const double row_scale = 1.0;
+    const double t =
+        std::max(feas_tol * row_scale,
+                 std::min(dual_mu * std::abs(zval), detail::kInfeasibilityAbsorbTol * row_scale));
+    return {detail::kInfeasibilityMarginFactor * t,
+            detail::kStructuralResidualFrac * dual_mu * std::abs(zval)};
+}
+
+/// Presents (x, z) to the certificate of one fresh solve and returns it.
+QpSolution present_to_certificate(const QpProblem &qp, const QpOptions &opts, const Vec &x,
+                                  const Vec &z) {
+    Cert::reset();
+    Cert::x = x;
+    Cert::z = z;
+    Cert::armed = true;
+    QpSolution s = plain_solve(qp, opts);
+    Cert::armed = false;
+    return s;
+}
+
+/// One presented case, asserted: the seam was reached exactly once, under the
+/// options the thresholds were computed from; a tolerated point comes back
+/// kOptimal carrying the presented pair to the bit; a refused one comes back
+/// kNumericalError (SDL-4: kInfeasible before, on this feasible QP) carrying the
+/// presented x with every multiplier cleared.
+void expect_certificate_verdict(const QpProblem &qp, const QpOptions &opts, CertSide side, double v,
+                                bool want_refused, const char *label) {
+    SCOPED_TRACE(::testing::Message() << label << " side=" << cert_side_name(side) << " v=" << v);
+    Vec x;
+    Vec z;
+    cert_presented(side, v, x, z);
+    const QpSolution s = present_to_certificate(qp, opts, x, z);
+    ASSERT_EQ(Cert::presentations, 1) << "the certificate never read the presented pair";
+    EXPECT_EQ(Cert::eff_dual_mu, opts.dual_mu);
+    EXPECT_EQ(Cert::eff_feas_tol, opts.feas_tol);
+    EXPECT_EQ(box_violation(qp, s.x), v) << "the returned x is not the presented one";
+    EXPECT_TRUE(same_bits(s.x, x, "x"));
+    if (want_refused) {
+        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kNumericalError));
+        EXPECT_EQ(s.counters.certificate_bound_refusals, 1);
+        EXPECT_EQ(s.z.lpNorm<Eigen::Infinity>(), 0.0);
+        EXPECT_EQ(s.lambda_i.lpNorm<Eigen::Infinity>(), 0.0);
+    } else {
+        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+        EXPECT_EQ(s.counters.certificate_bound_refusals, 0);
+        EXPECT_TRUE(same_bits(s.z, z, "z"));
+    }
+}
+
+} // namespace
+
+TEST(QpDegeneracyArm, CertificateSeamIsInertUnarmedOnTheFixtureQp) {
+    CertSeamGuard guard;
+    // THE SEAM'S OWN NEUTRALITY on the problem the two fixtures below use:
+    // unarmed, the certificate is handed nothing, and the solve certifies the
+    // analytic optimum ON both bounds, exactly.
+    const QpProblem qp = certificate_box_qp();
+    for (const WorkingSetLinearAlgebra algebra :
+         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+        for (const double mu : {1e-8, 1e-4}) {
+            SCOPED_TRACE(::testing::Message()
+                         << "algebra=" << cert_algebra_name(algebra) << " dual_mu=" << mu);
+            QpOptions opts = cycling_opts();
+            opts.ws_algebra = algebra;
+            opts.dual_mu = mu;
+            const QpSolution s = plain_solve(qp, opts);
+            EXPECT_EQ(Cert::presentations, 0);
+            ASSERT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+            EXPECT_EQ(s.bound_state[0], BoundState::kAtLower);
+            EXPECT_EQ(s.bound_state[1], BoundState::kAtUpper);
+            EXPECT_EQ(s.bound_state[2], BoundState::kFree);
+            EXPECT_EQ(std::bit_cast<std::uint64_t>(box_violation(qp, s.x)), std::uint64_t{0});
+            EXPECT_NEAR(s.x(2), 0.5, 1e-6);
+        }
+    }
+}
+
+TEST(QpDegeneracyArm, CertificateToleratesABoundViolationInsideAndOnTheStructuralMargin) {
+    CertSeamGuard guard;
+    // E4's TOLERANCE-PRESERVING HALF (Codex E4 review, Important 1). A point
+    // OUTSIDE its box by a positive v that the rows' own structural test
+    // tolerates must still certify kOptimal: strictly INSIDE the margin
+    // (v = margin / 2) and ON it (v = margin, which condition (a)'s `<=`
+    // admits). Both sides of the box, both working-set algebras, and two
+    // dual_mu: 1e-8, where dual_mu * |z| = 5e-8 sets the margin, and 1e-4,
+    // where dual_mu * |z| = 5e-4 is capped at kInfeasibilityAbsorbTol. A
+    // predicate that refused any positive v fails every case here.
+    const QpProblem qp = certificate_box_qp();
+    for (const WorkingSetLinearAlgebra algebra :
+         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+        for (const double mu : {1e-8, 1e-4}) {
+            SCOPED_TRACE(::testing::Message()
+                         << "algebra=" << cert_algebra_name(algebra) << " dual_mu=" << mu);
+            QpOptions opts = cycling_opts();
+            opts.ws_algebra = algebra;
+            opts.dual_mu = mu;
+            const CertThresholds th = cert_thresholds(opts.feas_tol, mu, 5.0);
+            ASSERT_GT(th.margin, 0.0);
+            for (const CertSide side : {CertSide::kLower, CertSide::kUpper}) {
+                expect_certificate_verdict(qp, opts, side, 0.5 * th.margin, false, "inside");
+                expect_certificate_verdict(qp, opts, side, th.margin, false, "on-margin");
+            }
+        }
+    }
+}
+
+TEST(QpDegeneracyArm, CertificateRefusesABoundViolationOutsideTheStructuralMargin) {
+    CertSeamGuard guard;
+    // THE BOUNDARY, stated: past the margin a violation is structural iff it
+    // also reaches kStructuralResidualFrac * dual_mu * |z| (the residue the
+    // regularization could own), and a structural one exits kNumericalError
+    // (SDL-4; it read kInfeasible on this feasible QP before).
+    //   dual_mu 1e-8: the floor (5e-10) is below the margin (5e-7), so the
+    //     first double past the margin is already refused.
+    //   dual_mu 1e-4: the floor (5e-5) is above the margin (1e-5), so the
+    //     first double past the margin and the last one below the floor are
+    //     still TOLERATED, and the floor itself is refused.
+    // Plus a far-outside point (100x the larger threshold) in both. Both
+    // sides, both algebras.
+    const QpProblem qp = certificate_box_qp();
+    for (const WorkingSetLinearAlgebra algebra :
+         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+        for (const double mu : {1e-8, 1e-4}) {
+            SCOPED_TRACE(::testing::Message()
+                         << "algebra=" << cert_algebra_name(algebra) << " dual_mu=" << mu);
+            QpOptions opts = cycling_opts();
+            opts.ws_algebra = algebra;
+            opts.dual_mu = mu;
+            const CertThresholds th = cert_thresholds(opts.feas_tol, mu, 5.0);
+            const double past_margin = std::nextafter(th.margin, 1.0);
+            const double far = 100.0 * std::max(th.margin, th.residue_floor);
+            // Which regime each dual_mu is in is ASSERTED, so the two
+            // branches below cannot silently collapse into one.
+            if (mu == 1e-8) {
+                ASSERT_LE(th.residue_floor, th.margin);
+            } else {
+                ASSERT_GT(th.residue_floor, past_margin);
+            }
+            for (const CertSide side : {CertSide::kLower, CertSide::kUpper}) {
+                if (th.residue_floor <= past_margin) {
+                    expect_certificate_verdict(qp, opts, side, past_margin, true, "past-margin");
+                } else {
+                    expect_certificate_verdict(qp, opts, side, past_margin, false,
+                                               "past-margin-below-floor");
+                    expect_certificate_verdict(qp, opts, side,
+                                               std::nextafter(th.residue_floor, 0.0), false,
+                                               "just-below-floor");
+                    expect_certificate_verdict(qp, opts, side, th.residue_floor, true, "at-floor");
+                }
+                expect_certificate_verdict(qp, opts, side, far, true, "far-outside");
+            }
+        }
+    }
+}
+
+TEST(QpDegeneracyArm, ArmB1sColumnsAndCountersStayAbsentWhenItIsNotArmed) {
+    DegArmGuard guard;
+    const QpOptions opts = cycling_opts();
+    for (const QpProblem &qp :
+         {period2_cycle_qp(), non_degenerate_qp(), scale_carrier_cycle_qp()}) {
+        Deg::reset();
+        const Walk off = observed_walk(qp, opts);
+        for (const auto &r : off.records) {
+            EXPECT_EQ(r.add_b1_examined, -1);
+            EXPECT_EQ(r.add_b1_passed_over, -1);
+            EXPECT_EQ(r.add_b1_tie_size, -1);
+            EXPECT_EQ(r.add_b1_switched, -1);
+            EXPECT_EQ(r.add_b1_no_blocker, -1);
+            EXPECT_EQ(r.add_b1_mismatch, -1);
+            EXPECT_EQ(r.add_b1_rows_after, -1);
+            EXPECT_EQ(r.add_b1_rank, -1);
+            EXPECT_EQ(r.add_b1_rank_rows, -1);
+            EXPECT_EQ(r.add_b1_qr_builds, -1);
+            EXPECT_EQ(r.add_b1_screen_qr_passed, -1);
+            EXPECT_EQ(r.add_b1_qr_only_passed, -1);
+            EXPECT_EQ(r.add_b1_disarmed, -1);
+            EXPECT_EQ(r.add_b1_leak_bound_exceeded, -1);
+            EXPECT_TRUE(std::isnan(r.add_b1_max_retained_leak));
+            EXPECT_TRUE(std::isnan(r.add_b1_leak_bound));
+            EXPECT_TRUE(std::isnan(r.add_b1_passed_a_dot_p));
+            EXPECT_TRUE(std::isnan(r.add_b1_passed_a_dot_p_norm));
+            EXPECT_TRUE(std::isnan(r.add_b1_passed_leak_ratio));
+            EXPECT_TRUE(std::isnan(r.add_b1_passed_residual));
+            EXPECT_TRUE(std::isnan(r.add_b1_passed_coeff_residual));
+            EXPECT_TRUE(std::isnan(r.add_b1_passed_violation));
+            EXPECT_TRUE(std::isnan(r.add_dep_residual));
+            EXPECT_EQ(r.add_dep_verdict, -1);
+        }
+        EXPECT_EQ(Deg::indep_passes, 0);
+        EXPECT_EQ(Deg::indep_candidates_examined, 0);
+        EXPECT_EQ(Deg::indep_qr_builds, 0);
+        EXPECT_EQ(Deg::indep_dep_tests, 0);
+        EXPECT_EQ(Deg::indep_entry_members_removed, 0);
+        EXPECT_EQ(Deg::indep_rank_violations, 0);
+    }
+}
+
+TEST(QpDegeneracyArm, ArmB1sEnumerationAgreesWithProductionsRatioTestOnEveryPass) {
+    DegArmGuard guard;
+    const QpOptions opts = cycling_opts();
+    Index passes = 0;
+    for (const QpProblem &qp :
+         {period2_cycle_qp(), non_degenerate_qp(), scale_carrier_cycle_qp()}) {
+        Deg::reset();
+        Deg::arm = DegArm::kIndependentAdd;
+        const Walk on = observed_walk(qp, opts);
+        // THE SELF-CHECK: the arm re-enumerates the ratio test's candidates in
+        // production's scan order, and its FIRST candidate must be the blocker
+        // production just returned. A mismatch means the two enumerations
+        // disagree about the candidate SET, which would make every read-out
+        // below it meaningless -- so the arm refuses the pass and counts it,
+        // and this is where that count is asserted to be zero.
+        EXPECT_EQ(Deg::indep_enumeration_mismatches, 0);
+        for (const auto &r : on.records) {
+            if (r.add_b1_examined >= 0) {
+                ++passes;
+                EXPECT_EQ(r.add_b1_mismatch, 0);
+            }
+        }
+    }
+    EXPECT_GT(passes, 0);
+}
+
+TEST(QpDegeneracyArm, ArmB1sEntryRepairRemovesDependentSeedMembersAndHoldsTheInvariant) {
+    DegArmGuard guard;
+    // A SEED WORKING SET THAT IS DEPENDENT BEFORE THE WALK TAKES A SINGLE
+    // STEP. Two variables, both pinned, plus one inequality row active: three
+    // rows in R^2. Amendment A3's entry repair is the only thing in the arm
+    // that can see this, because no ADD site is ever asked about a member the
+    // seed brought in.
+    const QpProblem qp = convex_qp(2, 2, {1.0, 0.0, 0.0, 1.0}, {-1.0, -1.0}, 1, {1.0, 1.0}, {4.0});
+    const QpOptions opts = cycling_opts();
+
+    QpSolution seed;
+    seed.x = Vec::Zero(2);
+    seed.bound_state = {BoundState::kAtLower, BoundState::kAtLower};
+    seed.ineq_active = {1};
+
+    Deg::reset();
+    Deg::arm = DegArm::kIndependentAdd;
+    Obs::reset();
+    Obs::active = true;
+    QpEngine engine{opts};
+    const QpSolution armed = engine.solve(qp, seed);
+    Obs::active = false;
+
+    // THE REPAIR RAN, AND IT REMOVED EXACTLY THE MEMBERS THE ORDER SAYS IT
+    // SHOULD. The canonical order is rows, then pinned bounds ascending, and
+    // the repair keeps the EARLIER member of a dependent pair, so the row and
+    // the first pin survive and the SECOND pin -- dependent on the two of them
+    // together -- is the one that goes.
+    EXPECT_EQ(Deg::indep_entry_members_removed, 1);
+    EXPECT_EQ(Deg::indep_refused_mandatory_dependent, 0);
+    // AND THE INVARIANT HELD FROM THERE ON. Nothing disarmed, no incoming set
+    // was ever deficient again, and the walk finished on the problem's own
+    // optimum -- so the repair did not cost the answer.
+    EXPECT_EQ(Deg::indep_rank_violations, 0);
+    // AND THE HIGH-WATER DEFICIT IS THE ENTRY READING ITSELF -- 1, the one
+    // the repair then removed. `indep_rank_deficit_max` is a high-water mark
+    // over every set the oracle read, and the seed set BEFORE the repair is
+    // one of them; asserting 0 here would be asserting that the fixture's own
+    // premise never existed. What must be zero is `indep_rank_violations`,
+    // which counts deficient sets found AWAY from entry -- the ones A9
+    // disarms on -- and it is.
+    EXPECT_EQ(Deg::indep_rank_deficit_max, 1);
+    EXPECT_EQ(static_cast<int>(armed.status), static_cast<int>(QpStatus::kOptimal));
+    EXPECT_TRUE(is_a_kkt_point(qp, armed, 1e-6));
+
+    // AND UNARMED THE SAME SEED IS INGESTED WHOLE: the repair is the arm's,
+    // not the engine's, which is what makes it an experiment rather than a
+    // change.
+    Deg::reset();
+    QpEngine plain_engine{opts};
+    const QpSolution plain = plain_engine.solve(qp, seed);
+    EXPECT_EQ(Deg::indep_entry_members_removed, 0);
+    EXPECT_EQ(static_cast<int>(plain.status), static_cast<int>(QpStatus::kOptimal));
+    Obs::reset();
+}
+
+TEST(QpDegeneracyArm, ArmB1sMuSweepFindsNoPassOverToLeakAtAnyMu) {
+    DegArmGuard guard;
+    // RE-PREMISED (E4-19). WHAT AMENDMENT A5's mu SWEEP ESTABLISHED, and it
+    // stands as a finding: §B.0 derives the leak `a^T p = mu * y^T lambda_W` for a
+    // dependent candidate, a single observation of `a^T p` cannot establish an
+    // order in mu, so the fixture was run at `dual_mu \in {1e-6, 1e-8, 1e-10}` and
+    // the ratio `a^T p / (mu ||lambda_W||_inf)` read off each run. Measured then:
+    // -0.486, -3.11, -310.9 -- inside the band declared before the numbers, and
+    // REFUTING the unqualified "the leak is O(mu)" reading below `dual_mu = 1e-8`,
+    // where the leak saturated on the rounding floor (9.3276692556e-08 at 1e-8
+    // against 9.3277051744e-08 at 1e-10) instead of tracking mu. The consequence
+    // for the rule -- "the observed blocking is the leak" must be checked per cell
+    // against these columns rather than asserted from the derivation -- is
+    // unchanged and is recorded in the M4 ledger.
+    //
+    // WHY THE SWEEP CANNOT BE RE-RUN HERE: it needs a PASS-OVER to read a leak
+    // ratio off, and the E4 walk makes none on this fixture at any mu in the
+    // sweep, because it never reaches the degenerate tie (no noise-level drop).
+    // So the honest assertion is the absence, at every mu, which is also the
+    // falsifiable form of "the pass-over is gone": if one returns at any mu this
+    // test fails and the sweep can be reinstated from the history above.
+    const QpProblem qp = period2_cycle_qp();
+    for (const double mu : {1e-6, 1e-8, 1e-10}) {
+        QpOptions opts = cycling_opts();
+        opts.dual_mu = mu;
+        Deg::reset();
+        Deg::arm = DegArm::kIndependentAdd;
+        const Walk on = observed_walk(qp, opts);
+        EXPECT_EQ(static_cast<int>(on.solution.status), static_cast<int>(QpStatus::kOptimal))
+            << "the walk no longer terminates at dual_mu = " << mu;
+        EXPECT_EQ(Deg::indep_candidates_passed_over, 0)
+            << "a pass-over is back at dual_mu = " << mu << ": the sweep can be reinstated";
+        for (const auto &r : on.records) {
+            EXPECT_TRUE(std::isnan(r.add_b1_passed_leak_ratio))
+                << "a leak-ratio column is filled at dual_mu = " << mu;
+        }
+    }
+}
+
+TEST(QpDegeneracyArm, ArmB1sSwitchIsPerThreadWithBothSolvesInFlight) {
+    DegArmGuard guard;
+    const QpOptions opts = cycling_opts();
+    // The unarmed thread takes the non-degenerate QP, for the reason the
+    // arm-A cross-thread fixture above gives.
+    const QpProblem quiet = non_degenerate_qp();
+    const QpProblem loud = period2_cycle_qp();
+    const QpSolution solo = plain_solve(quiet, opts);
+
+    StartGate gate;
+    QpSolution quiet_result;
+    QpSolution loud_result;
+    Index loud_passed = 0;
+    Index quiet_passed = 0;
+    Index quiet_examined = 0;
+    bool quiet_arm_seen = true;
+
+    std::thread armed([&] {
+        Deg::reset();
+        Deg::arm = DegArm::kIndependentAdd;
+        gate.arrive_and_wait();
+        QpEngine engine{opts};
+        loud_result = engine.solve(loud);
+        loud_passed = Deg::indep_candidates_passed_over;
+        Deg::reset();
+    });
+    std::thread unarmed([&] {
+        Deg::reset();
+        quiet_arm_seen = Deg::any_on();
+        gate.arrive_and_wait();
+        QpEngine engine{opts};
+        quiet_result = engine.solve(quiet);
+        quiet_passed = Deg::indep_candidates_passed_over;
+        quiet_examined = Deg::indep_candidates_examined;
+        Deg::reset();
+    });
+    armed.join();
+    unarmed.join();
+
+    EXPECT_FALSE(quiet_arm_seen) << "the arm leaked across threads before either solve began";
+    // RE-PREMISED (E4-19), and the NAME STAYS because the claim does: this test is
+    // about the switch being PER-THREAD, and that is asserted in full below. Only
+    // the armed side's expected activity is re-derived. It used to require
+    // `loud_passed > 0` ("the armed thread was supposed to pass something over")
+    // and `kInfeasible` on the armed walk; the E4 walk makes no pass-over on
+    // `period2_cycle_qp()` -- no noise-level drop, no degenerate tie -- so it ends
+    // kOptimal inside its box. The ISOLATION claim is untouched and is the whole
+    // point: the unarmed thread must count nothing and must return, bit for bit,
+    // what it returns alone.
+    EXPECT_EQ(loud_passed, 0) << "a pass-over is back on the armed thread";
+    EXPECT_EQ(quiet_passed, 0) << "the unarmed thread counted a pass-over it never made";
+    EXPECT_EQ(quiet_examined, 0) << "the unarmed thread ran a dependency test it never armed";
+    EXPECT_EQ(static_cast<int>(loud_result.status), static_cast<int>(QpStatus::kOptimal));
+    expect_same_solution(solo, quiet_result);
+}
+
+// ===========================================================================
+// RULE.md AMENDMENT 1 (settler ruling on the C4 halt, 2026-09-22): cond(R).
+// ===========================================================================
+
+TEST(QpDegeneracyArm, CondROnTheQrIsFilledWhereADecompositionRanAndSizesTheConditioning) {
+    DegArmGuard guard;
+    namespace seam = hven::solvers::detail::testing;
+
+    // PART 1 -- THE STATISTIC ON TWO WORKING SETS WHOSE CONDITIONING IS KNOWN
+    // BY CONSTRUCTION, read off the SAME decomposition the dependency test
+    // uses. Both sets are FULL RANK at `dependency_tol`; what differs is how
+    // nearly parallel their rows are, which is exactly what cond(R) is for.
+    //
+    // WELL-CONDITIONED: the two rows are (1,0) and (0,1) -- orthonormal, so
+    // every pivot has the same magnitude and cond(R) is EXACTLY 1.
+    {
+        const QpProblem well = convex_qp(2, 2, {1.0, 0.0, 0.0, 1.0}, {-1.0, -1.0}, 2,
+                                         {1.0, 0.0, 0.0, 1.0}, {4.0, 4.0});
+        WorkingSet ws(2, 2);
+        ws.add_ineq(0);
+        ws.add_ineq(1);
+        Deg::reset();
+        Deg::arm = DegArm::kIndependentAdd;
+        seam::QpB1Rank rk;
+        ASSERT_TRUE(seam::b1_rank_refresh(well, ws, rk));
+        EXPECT_EQ(rk.rows, 2);
+        EXPECT_EQ(rk.rank, 2);
+        ASSERT_TRUE(std::isfinite(rk.cond_r));
+        EXPECT_NEAR(rk.cond_r, 1.0, 1e-12);
+        // AND THE PER-SOLVE COUNTER TOOK IT. One decomposition, so the
+        // high-water mark IS this reading.
+        EXPECT_EQ(Deg::indep_qr_builds, 1);
+        EXPECT_EQ(Deg::indep_max_cond_r, rk.cond_r);
+    }
+
+    // ILL-CONDITIONED: the rows are (1,0) and (1,1e-6) -- nearly parallel, but
+    // separated by far more than `dependency_tol = 1e-8`, so the set is still
+    // INDEPENDENT and rank 2. The trailing pivot is ~1e-6 against a leading
+    // pivot of ~1, so cond(R) lands near 1e6. THIS IS THE CASE C4 EXISTS FOR:
+    // `A_W p = mu*lambda` bounds `A_W p`, and a set like this is how `p`
+    // itself reaches a great deal further than that bound suggests.
+    {
+        const QpProblem ill = convex_qp(2, 2, {1.0, 0.0, 0.0, 1.0}, {-1.0, -1.0}, 2,
+                                        {1.0, 0.0, 1.0, 1e-6}, {4.0, 4.0});
+        WorkingSet ws(2, 2);
+        ws.add_ineq(0);
+        ws.add_ineq(1);
+        Deg::reset();
+        Deg::arm = DegArm::kIndependentAdd;
+        seam::QpB1Rank rk;
+        ASSERT_TRUE(seam::b1_rank_refresh(ill, ws, rk));
+        EXPECT_EQ(rk.rows, 2);
+        // STILL FULL RANK -- the fixture is about CONDITIONING, not about
+        // rank deficiency, and if this were rank 1 the reading below would be
+        // measuring something else.
+        EXPECT_EQ(rk.rank, 2);
+        ASSERT_TRUE(std::isfinite(rk.cond_r));
+        EXPECT_GT(rk.cond_r, 1e5);
+        EXPECT_LT(rk.cond_r, 1e7);
+        EXPECT_EQ(Deg::indep_max_cond_r, rk.cond_r);
+    }
+
+    // PART 2 -- ABSENT WHERE NO DECOMPOSITION RAN. The EMPTY working set spans
+    // nothing, so the oracle answers without arithmetic and takes no
+    // decomposition; cond(R) has nothing to be read off and is NaN, which is
+    // `kAbsent`. NaN here is NOT "well conditioned" and the fixture says so by
+    // asserting the build count is zero beside it.
+    {
+        const QpProblem qp = convex_qp(2, 2, {1.0, 0.0, 0.0, 1.0}, {-1.0, -1.0}, 2,
+                                       {1.0, 0.0, 0.0, 1.0}, {4.0, 4.0});
+        const WorkingSet empty(2, 2);
+        Deg::reset();
+        Deg::arm = DegArm::kIndependentAdd;
+        seam::QpB1Rank rk;
+        ASSERT_TRUE(seam::b1_rank_refresh(qp, empty, rk));
+        EXPECT_EQ(rk.rows, 0);
+        EXPECT_EQ(rk.rank, 0);
+        EXPECT_TRUE(std::isnan(rk.cond_r));
+        EXPECT_EQ(Deg::indep_qr_builds, 0);
+        EXPECT_TRUE(std::isnan(Deg::indep_max_cond_r));
+    }
+
+    // PART 3 -- ON A REAL ARMED WALK: the record column is filled on exactly
+    // the passes that took a decomposition with something in it, absent on
+    // every other pass, and the per-solve high-water mark bounds every
+    // reading the records carry.
+    {
+        const QpProblem qp = period2_cycle_qp();
+        const QpOptions opts = cycling_opts();
+        Deg::reset();
+        Deg::arm = DegArm::kIndependentAdd;
+        const Walk armed = observed_walk(qp, opts);
+        Index filled = 0;
+        double worst_on_a_record = 0.0;
+        for (const auto &r : armed.records) {
+            if (r.add_b1_rank > 0) {
+                ++filled;
+                ASSERT_FALSE(std::isnan(r.add_b1_cond_r));
+                // The pivoting orders the diagonal by magnitude, so the ratio
+                // is never below 1.
+                EXPECT_GE(r.add_b1_cond_r, 1.0);
+                if (std::isfinite(r.add_b1_cond_r)) {
+                    worst_on_a_record = std::max(worst_on_a_record, r.add_b1_cond_r);
+                }
+            } else {
+                // No rank reading means no decomposition on that pass --
+                // either the arm did not run or the set was empty.
+                EXPECT_TRUE(std::isnan(r.add_b1_cond_r));
+            }
+        }
+        EXPECT_GT(filled, 0);
+        ASSERT_FALSE(std::isnan(Deg::indep_max_cond_r));
+        // THE COUNTER IS A HIGH-WATER MARK OVER EVERY DECOMPOSITION THE SOLVE
+        // TOOK, and a record carries only its own pass's last one, so the
+        // counter BOUNDS the records rather than equalling them.
+        EXPECT_GE(Deg::indep_max_cond_r, worst_on_a_record);
+    }
+
+    // PART 4 -- UNARMED, THE COLUMN AND THE COUNTER STAY ABSENT. cond(R) is
+    // the arm's reading, not the engine's.
+    {
+        const QpProblem qp = period2_cycle_qp();
+        const QpOptions opts = cycling_opts();
+        Deg::reset();
+        const Walk off = observed_walk(qp, opts);
+        for (const auto &r : off.records) {
+            EXPECT_TRUE(std::isnan(r.add_b1_cond_r));
+        }
+        EXPECT_TRUE(std::isnan(Deg::indep_max_cond_r));
+        EXPECT_EQ(Deg::indep_qr_builds, 0);
+    }
+    Obs::reset();
+}

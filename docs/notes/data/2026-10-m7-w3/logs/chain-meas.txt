@@ -1,0 +1,243 @@
+MEAS CHAIN START 2026-10-29T00:34:19-04:00 pid=447445
+PGREP_EMPTY g1-u0-walk
+IN_LOCK_PGREP_EMPTY g1-u0-walk
+FOREGROUND_START g1-u0-walk 2026-10-29T00:34:19-04:00
+FOREGROUND_END g1-u0-walk rc=0 2026-10-29T00:39:04-04:00
+running f7_n1000_path_warm (N=1000, path, warm, engine walk, wall budget 900s per phase)...
+running f7_n800_path_warm (N=800, path, warm, engine walk, wall budget 900s per phase)...
+wrote 27 row(s) to /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/meas/u0-head-walk.csv
+g1-u0-walk rc=0 2026-10-29T00:39:04-04:00
+PGREP_EMPTY g1-u0-ssn
+IN_LOCK_PGREP_EMPTY g1-u0-ssn
+FOREGROUND_START g1-u0-ssn 2026-10-29T00:39:04-04:00
+FOREGROUND_END g1-u0-ssn rc=0 2026-10-29T00:39:24-04:00
+running f7_n1000_path_warm (N=1000, path, warm, engine ssn, wall budget 900s per phase)...
+running f7_n800_path_warm (N=800, path, warm, engine ssn, wall budget 900s per phase)...
+wrote 27 row(s) to /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/meas/u0-head-ssn.csv
+g1-u0-ssn rc=0 2026-10-29T00:39:24-04:00
+PGREP_EMPTY g1-u0-ipm
+IN_LOCK_PGREP_EMPTY g1-u0-ipm
+FOREGROUND_START g1-u0-ipm 2026-10-29T00:39:24-04:00
+FOREGROUND_END g1-u0-ipm rc=0 2026-10-29T00:39:50-04:00
+running f7_n1000_path_warm (N=1000, path, warm, engine ipm, wall budget 900s per phase)...
+running f7_n800_path_warm (N=800, path, warm, engine ipm, wall budget 900s per phase)...
+wrote 27 row(s) to /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/meas/u0-head-ipm.csv
+g1-u0-ipm rc=0 2026-10-29T00:39:50-04:00
+PGREP_EMPTY g2-e1
+IN_LOCK_PGREP_EMPTY g2-e1
+FOREGROUND_START g2-e1 2026-10-29T00:39:50-04:00
+FOREGROUND_END g2-e1 rc=0 2026-10-29T00:41:01-04:00
+  factorizations: tier 718, tier+polish 746 (PIQP: 9-18 iters/cell)
+  RED CELL: e1_f7_n20000_af30_m1e-6  (the ONE named exception)
+A4 VERDICT: GREEN but for the named exception
+g2-e1 rc=0 2026-10-29T00:41:01-04:00
+PGREP_EMPTY gh1-hs-head-walk
+IN_LOCK_PGREP_EMPTY gh1-hs-head-walk
+FOREGROUND_START gh1-hs-head-walk 2026-10-29T00:41:01-04:00
+FOREGROUND_END gh1-hs-head-walk rc=0 2026-10-29T00:41:01-04:00
+  cells with unstable counters across repeats: 0
+  elastic activations: 12   fallback rung B: 0
+wrote 27 row(s) to /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/meas/hs-head-walk-off.csv
+gh1-hs-head-walk rc=0 2026-10-29T00:41:01-04:00
+PGREP_EMPTY gh1-hs-base-walk
+IN_LOCK_PGREP_EMPTY gh1-hs-base-walk
+FOREGROUND_START gh1-hs-base-walk 2026-10-29T00:41:01-04:00
+FOREGROUND_END gh1-hs-base-walk rc=0 2026-10-29T00:41:01-04:00
+  cells with unstable counters across repeats: 0
+  elastic activations: 12   fallback rung B: 0
+wrote 27 row(s) to /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/meas/hs-base-walk-off.csv
+gh1-hs-base-walk rc=0 2026-10-29T00:41:01-04:00
+PGREP_EMPTY gh1-hs-head-ssn
+IN_LOCK_PGREP_EMPTY gh1-hs-head-ssn
+FOREGROUND_START gh1-hs-head-ssn 2026-10-29T00:41:01-04:00
+FOREGROUND_END gh1-hs-head-ssn rc=0 2026-10-29T00:41:01-04:00
+  cells with unstable counters across repeats: 0
+  elastic activations: 12   fallback rung B: 0
+wrote 27 row(s) to /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/meas/hs-head-ssn-off.csv
+gh1-hs-head-ssn rc=0 2026-10-29T00:41:01-04:00
+PGREP_EMPTY gh1-hs-base-ssn
+IN_LOCK_PGREP_EMPTY gh1-hs-base-ssn
+FOREGROUND_START gh1-hs-base-ssn 2026-10-29T00:41:01-04:00
+FOREGROUND_END gh1-hs-base-ssn rc=0 2026-10-29T00:41:01-04:00
+  cells with unstable counters across repeats: 0
+  elastic activations: 12   fallback rung B: 0
+wrote 27 row(s) to /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/meas/hs-base-ssn-off.csv
+gh1-hs-base-ssn rc=0 2026-10-29T00:41:01-04:00
+PGREP_EMPTY c44-head-off
+IN_LOCK_PGREP_EMPTY c44-head-off
+FOREGROUND_START c44-head-off 2026-10-29T00:41:01-04:00
+FOREGROUND_END c44-head-off rc=0 2026-10-29T00:49:09-04:00
+running f7_n750_path_neutral_control (N=750, path, neutral, engine ssn, wall budget 900s per phase)...
+running f7_n825_path_neutral_control (N=825, path, neutral, engine ssn, wall budget 900s per phase)...
+wrote 44 row(s) to /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/meas/c44-head-off.csv
+c44-head-off rc=0 2026-10-29T00:49:09-04:00
+PGREP_EMPTY c44-head-r1
+IN_LOCK_PGREP_EMPTY c44-head-r1
+FOREGROUND_START c44-head-r1 2026-10-29T00:49:09-04:00
+FOREGROUND_END c44-head-r1 rc=0 2026-10-29T00:57:16-04:00
+running f7_n750_path_neutral_control (N=750, path, neutral, engine ssn, wall budget 900s per phase)...
+running f7_n825_path_neutral_control (N=825, path, neutral, engine ssn, wall budget 900s per phase)...
+wrote 44 row(s) to /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/meas/c44-head-r1.csv
+c44-head-r1 rc=0 2026-10-29T00:57:16-04:00
+PGREP_EMPTY c44-head-r4
+IN_LOCK_PGREP_EMPTY c44-head-r4
+FOREGROUND_START c44-head-r4 2026-10-29T00:57:16-04:00
+FOREGROUND_END c44-head-r4 rc=0 2026-10-29T01:05:22-04:00
+running f7_n750_path_neutral_control (N=750, path, neutral, engine ssn, wall budget 900s per phase)...
+running f7_n825_path_neutral_control (N=825, path, neutral, engine ssn, wall budget 900s per phase)...
+wrote 44 row(s) to /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/meas/c44-head-r4.csv
+c44-head-r4 rc=0 2026-10-29T01:05:22-04:00
+PGREP_EMPTY c44-head-r5
+IN_LOCK_PGREP_EMPTY c44-head-r5
+FOREGROUND_START c44-head-r5 2026-10-29T01:05:22-04:00
+FOREGROUND_END c44-head-r5 rc=0 2026-10-29T01:13:28-04:00
+running f7_n750_path_neutral_control (N=750, path, neutral, engine ssn, wall budget 900s per phase)...
+running f7_n825_path_neutral_control (N=825, path, neutral, engine ssn, wall budget 900s per phase)...
+wrote 44 row(s) to /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/meas/c44-head-r5.csv
+c44-head-r5 rc=0 2026-10-29T01:13:28-04:00
+PGREP_EMPTY hs-head-r1
+IN_LOCK_PGREP_EMPTY hs-head-r1
+FOREGROUND_START hs-head-r1 2026-10-29T01:13:28-04:00
+FOREGROUND_END hs-head-r1 rc=0 2026-10-29T01:13:28-04:00
+  cells with unstable counters across repeats: 0
+  elastic activations: 12   fallback rung B: 0
+wrote 27 row(s) to /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/meas/hs-head-ssn-r1.csv
+hs-head-r1 rc=0 2026-10-29T01:13:28-04:00
+PGREP_EMPTY hs-head-r4
+IN_LOCK_PGREP_EMPTY hs-head-r4
+FOREGROUND_START hs-head-r4 2026-10-29T01:13:28-04:00
+FOREGROUND_END hs-head-r4 rc=0 2026-10-29T01:13:28-04:00
+  cells with unstable counters across repeats: 0
+  elastic activations: 12   fallback rung B: 0
+wrote 27 row(s) to /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/meas/hs-head-ssn-r4.csv
+hs-head-r4 rc=0 2026-10-29T01:13:28-04:00
+PGREP_EMPTY hs-head-r5
+IN_LOCK_PGREP_EMPTY hs-head-r5
+FOREGROUND_START hs-head-r5 2026-10-29T01:13:28-04:00
+FOREGROUND_END hs-head-r5 rc=0 2026-10-29T01:13:28-04:00
+  cells with unstable counters across repeats: 0
+  elastic activations: 12   fallback rung B: 0
+wrote 27 row(s) to /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/meas/hs-head-ssn-r5.csv
+hs-head-r5 rc=0 2026-10-29T01:13:28-04:00
+PGREP_EMPTY c44-f4-off
+IN_LOCK_PGREP_EMPTY c44-f4-off
+FOREGROUND_START c44-f4-off 2026-10-29T01:13:28-04:00
+FOREGROUND_END c44-f4-off rc=0 2026-10-29T01:21:37-04:00
+running f7_n750_path_neutral_control (N=750, path, neutral, engine ssn, wall budget 900s per phase)...
+running f7_n825_path_neutral_control (N=825, path, neutral, engine ssn, wall budget 900s per phase)...
+wrote 44 row(s) to /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/meas/c44-f4-off.csv
+c44-f4-off rc=0 2026-10-29T01:21:37-04:00
+PGREP_EMPTY c44-f4-r4
+IN_LOCK_PGREP_EMPTY c44-f4-r4
+FOREGROUND_START c44-f4-r4 2026-10-29T01:21:37-04:00
+FOREGROUND_END c44-f4-r4 rc=0 2026-10-29T01:29:44-04:00
+running f7_n750_path_neutral_control (N=750, path, neutral, engine ssn, wall budget 900s per phase)...
+running f7_n825_path_neutral_control (N=825, path, neutral, engine ssn, wall budget 900s per phase)...
+wrote 44 row(s) to /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/meas/c44-f4-r4.csv
+c44-f4-r4 rc=0 2026-10-29T01:29:44-04:00
+PGREP_EMPTY hs-f4-off
+IN_LOCK_PGREP_EMPTY hs-f4-off
+FOREGROUND_START hs-f4-off 2026-10-29T01:29:44-04:00
+FOREGROUND_END hs-f4-off rc=0 2026-10-29T01:29:45-04:00
+  cells with unstable counters across repeats: 0
+  elastic activations: 12   fallback rung B: 0
+wrote 27 row(s) to /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/meas/hs-f4-ssn-off.csv
+hs-f4-off rc=0 2026-10-29T01:29:45-04:00
+PGREP_EMPTY hs-f4-r4
+IN_LOCK_PGREP_EMPTY hs-f4-r4
+FOREGROUND_START hs-f4-r4 2026-10-29T01:29:45-04:00
+FOREGROUND_END hs-f4-r4 rc=0 2026-10-29T01:29:45-04:00
+  cells with unstable counters across repeats: 0
+  elastic activations: 12   fallback rung B: 0
+wrote 27 row(s) to /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/meas/hs-f4-ssn-r4.csv
+hs-f4-r4 rc=0 2026-10-29T01:29:45-04:00
+PGREP_EMPTY probe-head-farkas
+IN_LOCK_PGREP_EMPTY probe-head-farkas
+FOREGROUND_START probe-head-farkas 2026-10-29T01:29:45-04:00
+FOREGROUND_END probe-head-farkas rc=0 2026-10-29T01:31:37-04:00
+probe-head-farkas rc=0 2026-10-29T01:31:37-04:00
+PGREP_EMPTY probe-f4-farkas
+IN_LOCK_PGREP_EMPTY probe-f4-farkas
+FOREGROUND_START probe-f4-farkas 2026-10-29T01:31:37-04:00
+FOREGROUND_END probe-f4-farkas rc=0 2026-10-29T01:33:28-04:00
+probe-f4-farkas rc=0 2026-10-29T01:33:28-04:00
+PGREP_EMPTY probe-head-farkas-m11
+IN_LOCK_PGREP_EMPTY probe-head-farkas-m11
+FOREGROUND_START probe-head-farkas-m11 2026-10-29T01:33:29-04:00
+FOREGROUND_END probe-head-farkas-m11 rc=0 2026-10-29T01:33:38-04:00
+probe-head-farkas-m11 rc=0 2026-10-29T01:33:38-04:00
+PGREP_EMPTY probe-f4-farkas-m11
+IN_LOCK_PGREP_EMPTY probe-f4-farkas-m11
+FOREGROUND_START probe-f4-farkas-m11 2026-10-29T01:33:38-04:00
+FOREGROUND_END probe-f4-farkas-m11 rc=0 2026-10-29T01:33:47-04:00
+probe-f4-farkas-m11 rc=0 2026-10-29T01:33:47-04:00
+PGREP_EMPTY probe-head-sigma
+IN_LOCK_PGREP_EMPTY probe-head-sigma
+FOREGROUND_START probe-head-sigma 2026-10-29T01:33:47-04:00
+FOREGROUND_END probe-head-sigma rc=0 2026-10-29T01:35:51-04:00
+probe-head-sigma rc=0 2026-10-29T01:35:51-04:00
+PGREP_EMPTY u0-tau10-walk
+IN_LOCK_PGREP_EMPTY u0-tau10-walk
+FOREGROUND_START u0-tau10-walk 2026-10-29T01:35:51-04:00
+FOREGROUND_END u0-tau10-walk rc=0 2026-10-29T01:52:09-04:00
+running f7_n1000_path_warm (N=1000, path, warm, engine walk, wall budget 900s per phase)...
+running f7_n800_path_warm (N=800, path, warm, engine walk, wall budget 900s per phase)...
+wrote 27 row(s) to /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/meas/u0-tau10-walk.csv
+u0-tau10-walk rc=0 2026-10-29T01:52:09-04:00
+PGREP_EMPTY hs-tau10-walk
+IN_LOCK_PGREP_EMPTY hs-tau10-walk
+FOREGROUND_START hs-tau10-walk 2026-10-29T01:52:09-04:00
+FOREGROUND_END hs-tau10-walk rc=0 2026-10-29T01:52:09-04:00
+  cells with unstable counters across repeats: 0
+  elastic activations: 12   fallback rung B: 0
+wrote 27 row(s) to /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/meas/hs-tau10-walk.csv
+hs-tau10-walk rc=0 2026-10-29T01:52:09-04:00
+PGREP_EMPTY u0-tau1e3-walk
+IN_LOCK_PGREP_EMPTY u0-tau1e3-walk
+FOREGROUND_START u0-tau1e3-walk 2026-10-29T01:52:09-04:00
+FOREGROUND_END u0-tau1e3-walk rc=0 2026-10-29T01:56:54-04:00
+running f7_n1000_path_warm (N=1000, path, warm, engine walk, wall budget 900s per phase)...
+running f7_n800_path_warm (N=800, path, warm, engine walk, wall budget 900s per phase)...
+wrote 27 row(s) to /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/meas/u0-tau1e3-walk.csv
+u0-tau1e3-walk rc=0 2026-10-29T01:56:54-04:00
+PGREP_EMPTY hs-tau1e3-walk
+IN_LOCK_PGREP_EMPTY hs-tau1e3-walk
+FOREGROUND_START hs-tau1e3-walk 2026-10-29T01:56:54-04:00
+FOREGROUND_END hs-tau1e3-walk rc=0 2026-10-29T01:56:54-04:00
+  cells with unstable counters across repeats: 0
+  elastic activations: 12   fallback rung B: 0
+wrote 27 row(s) to /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/meas/hs-tau1e3-walk.csv
+hs-tau1e3-walk rc=0 2026-10-29T01:56:54-04:00
+PGREP_EMPTY tauprobe-head
+IN_LOCK_PGREP_EMPTY tauprobe-head
+FOREGROUND_START tauprobe-head 2026-10-29T01:56:54-04:00
+FOREGROUND_END tauprobe-head rc=0 2026-10-29T01:56:54-04:00
+tauprobe-head rc=0 2026-10-29T01:56:54-04:00
+PGREP_EMPTY tauprobe-tau10
+IN_LOCK_PGREP_EMPTY tauprobe-tau10
+FOREGROUND_START tauprobe-tau10 2026-10-29T01:56:54-04:00
+FOREGROUND_END tauprobe-tau10 rc=0 2026-10-29T01:56:54-04:00
+tauprobe-tau10 rc=0 2026-10-29T01:56:54-04:00
+PGREP_EMPTY tauprobe-tau1e3
+IN_LOCK_PGREP_EMPTY tauprobe-tau1e3
+FOREGROUND_START tauprobe-tau1e3 2026-10-29T01:56:54-04:00
+FOREGROUND_END tauprobe-tau1e3 rc=0 2026-10-29T01:56:55-04:00
+tauprobe-tau1e3 rc=0 2026-10-29T01:56:55-04:00
+PGREP_EMPTY tauprobe-recipe
+IN_LOCK_PGREP_EMPTY tauprobe-recipe
+FOREGROUND_START tauprobe-recipe 2026-10-29T01:56:55-04:00
+FOREGROUND_END tauprobe-recipe rc=93 2026-10-29T01:56:55-04:00
+88:inline constexpr double kFunnelTauBar = 100.0;
+/usr/bin/ccache: invalid option -- 'I'
+RECIPE BUILD FAILED SELFTEST
+tauprobe-recipe rc=93 2026-10-29T01:56:55-04:00
+MEAS CHAIN END 2026-10-29T01:56:55-04:00
+PGREP_EMPTY g3-suite-rel
+IN_LOCK_PGREP_EMPTY g3-suite-rel
+FOREGROUND_START g3-suite-rel 2026-10-29T01:56:55-04:00
+FOREGROUND_END g3-suite-rel rc=0 2026-10-29T01:59:10-04:00
+	665 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1927 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1928 - EqpRefinementAb.FullBattery (Disabled)
+g3-suite-rel rc=0 2026-10-29T01:59:10-04:00
+MEAS CHAIN END2 2026-10-29T01:59:10-04:00

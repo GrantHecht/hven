@@ -1,0 +1,8 @@
+STEENBRB_def qp2, mode 2: growth of the iterate and the onset of NaN
+ minor action              p_inf        x_inf            gp      rho_ref res_reg_unref
+     0 unset                 nan 1.4508016824862648e-13           nan 55910509609427.484 93114630611.483398
+     1 unset                 nan 1.4508016824862648e-13           nan 1.8390370180223297e+30 47351700833145024
+     2 unset                 nan 1.4508016824862648e-13           nan 3.7652211131166453e+26 1856744005466925.8
+     3 add          6.8056465271224818e+38 1.4508016824862648e-13 2.0352609269123163e+42 6.9241575703002581e+30 2.4527213405642096e+17
+first NaN at minor 0
+max finite x_inf 5.000000e-02   max finite p_inf 6.835159e+97   (unbounded-artifact scale 0.1/delta = 1.0e+07)

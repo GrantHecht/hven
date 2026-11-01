@@ -1,0 +1,114 @@
+dumpf2-f7_n800_path_warm.err:D2SOLVE solve=0 n=4000 me=2400 mi=800 warm=0 iws=1
+dumpf2-f7_n800_path_warm.err:D2END solve=0 status=0 minors=2 facts=1 recheck_rm=0 kd_refusals=0 passovers=0 blk_term=0 zm_cap=0 deferred=0 xch=0 retreats=0 cert=0
+dumpf2-f7_n800_path_warm.err:D2SOLVE solve=1 n=4000 me=2400 mi=800 warm=1 iws=1
+dumpf2-f7_n800_path_warm.err:D2RM solve=1 iter=214 entry=0 over=0 removed=P3768 deferred=P3768 mark=1
+dumpf2-f7_n800_path_warm.err:D2PASS solve=1 iter=215 within=0 next=2:3159 a2=1.407e-04
+dumpf2-f7_n800_path_warm.err:D2END solve=1 status=3 minors=216 facts=88 recheck_rm=1 kd_refusals=1 passovers=0 blk_term=1 zm_cap=0 deferred=1 xch=0 retreats=0 cert=0
+dumpf2-f7_n800_path_warm.err:D2KKT solve=1 status=3 obj=1.236935687387760e-01 stat=1.215e-03 eqviol=3.235e-05 iviol=4.206e-02 boxviol=0.000e+00 lneg=0.000e+00 |le|=0.000e+00 |li|=0.000e+00
+dumpf2-f7_n800_path_warm.err:D2SOLVE solve=2 n=4000 me=2400 mi=800 warm=1 iws=1
+dumpf2-f7_n800_path_warm.err:D2END solve=2 status=3 minors=112 facts=31 recheck_rm=1 kd_refusals=1 passovers=0 blk_term=1 zm_cap=0 deferred=1 xch=0 retreats=0 cert=0
+dumpf2-f7_n800_path_warm.err:D2SOLVE solve=3 n=4000 me=2400 mi=800 warm=1 iws=1
+dumpf2-f7_n800_path_warm.err:D2END solve=3 status=3 minors=102 facts=4 recheck_rm=1 kd_refusals=1 passovers=0 blk_term=1 zm_cap=0 deferred=1 xch=0 retreats=1 cert=0
+dumpf2-f7_n800_path_warm.err:D2SOLVE solve=4 n=4000 me=2400 mi=800 warm=1 iws=1
+dumpf2-f7_n800_path_warm.err:D2END solve=4 status=3 minors=102 facts=4 recheck_rm=1 kd_refusals=1 passovers=0 blk_term=1 zm_cap=0 deferred=1 xch=0 retreats=1 cert=0
+dumpf2-f7_n800_path_warm.err:D2SOLVE solve=5 n=4000 me=2400 mi=800 warm=1 iws=1
+dumpf2-f7_n800_path_warm.err:D2END solve=5 status=3 minors=406 facts=278 recheck_rm=1 kd_refusals=1 passovers=0 blk_term=1 zm_cap=0 deferred=5 xch=0 retreats=0 cert=0
+dumpf2-f7_n800_path_warm.err:D2SOLVE solve=6 n=4000 me=2400 mi=800 warm=1 iws=1
+dumpf2-f7_n800_path_warm.err:D2END solve=6 status=3 minors=407 facts=279 recheck_rm=1 kd_refusals=1 passovers=0 blk_term=1 zm_cap=0 deferred=5 xch=0 retreats=0 cert=0
+dumpf2-f7_n800_path_warm.err:D2SOLVE solve=7 n=4000 me=2400 mi=800 warm=1 iws=1
+dumpf2-f7_n800_path_warm.err:D2END solve=7 status=3 minors=407 facts=279 recheck_rm=1 kd_refusals=1 passovers=0 blk_term=1 zm_cap=0 deferred=5 xch=0 retreats=0 cert=0
+dumpf2-f7_n800_path_warm.err:D2SOLVE solve=8 n=4000 me=2400 mi=800 warm=1 iws=1
+dumpf2-f7_n800_path_warm.err:D2END solve=8 status=3 minors=407 facts=279 recheck_rm=1 kd_refusals=1 passovers=0 blk_term=1 zm_cap=0 deferred=5 xch=0 retreats=0 cert=0
+tr2-f7_n800_path_warm.err:D2SOLVE solve=0 n=4000 me=2400 mi=800 warm=0 iws=1
+tr2-f7_n800_path_warm.err:D2END solve=0 status=0 minors=2 facts=1 recheck_rm=0 kd_refusals=0 passovers=0 blk_term=0 zm_cap=0 deferred=0 xch=0 retreats=0 cert=0
+tr2-f7_n800_path_warm.err:D2SOLVE solve=1 n=4000 me=2400 mi=800 warm=1 iws=1
+tr2-f7_n800_path_warm.err:D2RM solve=1 iter=214 entry=0 over=0 removed=P3768 deferred=P3768 mark=1
+tr2-f7_n800_path_warm.err:D2PASS solve=1 iter=215 within=0 next=2:3159 a2=1.407e-04
+tr2-f7_n800_path_warm.err:D2END solve=1 status=3 minors=216 facts=88 recheck_rm=1 kd_refusals=1 passovers=0 blk_term=1 zm_cap=0 deferred=1 xch=0 retreats=0 cert=0
+tr2-f7_n800_path_warm.err:D2SOLVE solve=2 n=4000 me=2400 mi=800 warm=1 iws=1
+tr2-f7_n800_path_warm.err:D2RM solve=2 iter=110 entry=0 over=0 removed=P3769 deferred=P3769 mark=1
+tr2-f7_n800_path_warm.err:D2PASS solve=2 iter=111 within=0 next=2:99 a2=9.626e-05
+tr2-f7_n800_path_warm.err:D2END solve=2 status=3 minors=112 facts=31 recheck_rm=1 kd_refusals=1 passovers=0 blk_term=1 zm_cap=0 deferred=1 xch=0 retreats=0 cert=0
+tr2-f7_n800_path_warm.err:D2SOLVE solve=3 n=4000 me=2400 mi=800 warm=1 iws=1
+tr2-f7_n800_path_warm.err:D2RM solve=3 iter=100 entry=0 over=0 removed=P3769 deferred=P3769 mark=1
+tr2-f7_n800_path_warm.err:D2PASS solve=3 iter=101 within=0 next=2:3649 a2=1.769e-05
+tr2-f7_n800_path_warm.err:D2END solve=3 status=3 minors=102 facts=4 recheck_rm=1 kd_refusals=1 passovers=0 blk_term=1 zm_cap=0 deferred=1 xch=0 retreats=1 cert=0
+tr2-f7_n800_path_warm.err:D2SOLVE solve=4 n=4000 me=2400 mi=800 warm=1 iws=1
+tr2-f7_n800_path_warm.err:D2RM solve=4 iter=100 entry=0 over=0 removed=P3769 deferred=P3769 mark=1
+tr2-f7_n800_path_warm.err:D2PASS solve=4 iter=101 within=0 next=2:3649 a2=9.115e-06
+tr2-f7_n800_path_warm.err:D2END solve=4 status=3 minors=102 facts=4 recheck_rm=1 kd_refusals=1 passovers=0 blk_term=1 zm_cap=0 deferred=1 xch=0 retreats=1 cert=0
+tr2-f7_n800_path_warm.err:D2SOLVE solve=5 n=4000 me=2400 mi=800 warm=1 iws=1
+tr2-f7_n800_path_warm.err:D2RM solve=5 iter=404 entry=0 over=0 removed=P3249 deferred=P3249 mark=1
+tr2-f7_n800_path_warm.err:D2PASS solve=5 iter=405 within=0 next=2:1784 a2=1.690e-06
+tr2-f7_n800_path_warm.err:D2END solve=5 status=3 minors=406 facts=278 recheck_rm=1 kd_refusals=1 passovers=0 blk_term=1 zm_cap=0 deferred=5 xch=0 retreats=0 cert=0
+tr2-f7_n800_path_warm.err:D2SOLVE solve=6 n=4000 me=2400 mi=800 warm=1 iws=1
+tr2-f7_n800_path_warm.err:D2RM solve=6 iter=405 entry=0 over=0 removed=P3249 deferred=P3249 mark=1
+tr2-f7_n800_path_warm.err:D2PASS solve=6 iter=406 within=0 next=2:1839 a2=9.918e-07
+tr2-f7_n800_path_warm.err:D2END solve=6 status=3 minors=407 facts=279 recheck_rm=1 kd_refusals=1 passovers=0 blk_term=1 zm_cap=0 deferred=5 xch=0 retreats=0 cert=0
+tr2-f7_n800_path_warm.err:D2SOLVE solve=7 n=4000 me=2400 mi=800 warm=1 iws=1
+tr2-f7_n800_path_warm.err:D2RM solve=7 iter=405 entry=0 over=0 removed=P3249 deferred=P3249 mark=1
+tr2-f7_n800_path_warm.err:D2PASS solve=7 iter=406 within=0 next=2:1839 a2=2.850e-07
+tr2-f7_n800_path_warm.err:D2END solve=7 status=3 minors=407 facts=279 recheck_rm=1 kd_refusals=1 passovers=0 blk_term=1 zm_cap=0 deferred=5 xch=0 retreats=0 cert=0
+tr2-f7_n800_path_warm.err:D2SOLVE solve=8 n=4000 me=2400 mi=800 warm=1 iws=1
+tr2-f7_n800_path_warm.err:D2RM solve=8 iter=405 entry=0 over=0 removed=P3249 deferred=P3249 mark=1
+tr2-f7_n800_path_warm.err:D2PASS solve=8 iter=406 within=0 next=2:1839 a2=9.296e-08
+tr2-f7_n800_path_warm.err:D2END solve=8 status=3 minors=407 facts=279 recheck_rm=1 kd_refusals=1 passovers=0 blk_term=1 zm_cap=0 deferred=5 xch=0 retreats=0 cert=0
+base-f7_n800_path_warm.err:D2SOLVE solve=0 n=4000 me=2400 mi=800 warm=0 iws=1
+base-f7_n800_path_warm.err:D2END solve=0 status=0 minors=2 facts=1 recheck_rm=0 kd_refusals=0 passovers=0 blk_term=0 zm_cap=0 deferred=0 xch=0 retreats=0 cert=0
+base-f7_n800_path_warm.err:D2SOLVE solve=1 n=4000 me=2400 mi=800 warm=1 iws=1
+base-f7_n800_path_warm.err:D2RM solve=1 iter=214 entry=0 over=0 removed=R756 deferred=P3768 mark=0
+base-f7_n800_path_warm.err:D2RM solve=1 iter=270 entry=0 over=0 removed=R755 deferred=P3763 mark=0
+base-f7_n800_path_warm.err:D2RM solve=1 iter=439 entry=0 over=0 removed=R754 deferred=P3733 mark=0
+base-f7_n800_path_warm.err:D2RM solve=1 iter=441 entry=0 over=0 removed=R753 deferred=P3743 mark=0
+base-f7_n800_path_warm.err:D2RM solve=1 iter=448 entry=0 over=0 removed=R752 deferred=P3254 mark=0
+base-f7_n800_path_warm.err:D2RM solve=1 iter=485 entry=0 over=0 removed=R751 deferred=P3294 mark=0
+base-f7_n800_path_warm.err:D2RM solve=1 iter=498 entry=0 over=0 removed=R750 deferred=P3304 mark=0
+base-f7_n800_path_warm.err:D2RM solve=1 iter=528 entry=0 over=0 removed=R749 deferred=P3324 mark=0
+base-f7_n800_path_warm.err:D2RM solve=1 iter=544 entry=0 over=0 removed=R748 deferred=P3334 mark=0
+base-f7_n800_path_warm.err:D2RM solve=1 iter=573 entry=0 over=0 removed=R747 deferred=P3344 mark=0
+base-f7_n800_path_warm.err:D2RM solve=1 iter=593 entry=0 over=0 removed=R746 deferred=P3354 mark=0
+base-f7_n800_path_warm.err:D2RM solve=1 iter=625 entry=0 over=0 removed=R745 deferred=P3364 mark=0
+base-f7_n800_path_warm.err:D2RM solve=1 iter=649 entry=0 over=0 removed=R744 deferred=P3374 mark=0
+base-f7_n800_path_warm.err:D2RM solve=1 iter=681 entry=0 over=0 removed=R743 deferred=P3384 mark=0
+base-f7_n800_path_warm.err:D2RM solve=1 iter=770 entry=0 over=0 removed=R742 deferred=P3693 mark=0
+base-f7_n800_path_warm.err:D2RM solve=1 iter=924 entry=0 over=0 removed=R734 deferred=P-1 mark=0
+base-f7_n800_path_warm.err:D2RM solve=1 iter=926 entry=0 over=0 removed=R733 deferred=P-1 mark=0
+base-f7_n800_path_warm.err:D2END solve=1 status=0 minors=8497 facts=7965 recheck_rm=17 kd_refusals=0 passovers=0 blk_term=0 zm_cap=0 deferred=15 xch=22 retreats=0 cert=0
+base-f7_n800_path_warm.err:D2SOLVE solve=2 n=4000 me=2400 mi=800 warm=1 iws=1
+base-f7_n800_path_warm.err:D2END solve=2 status=0 minors=7 facts=1 recheck_rm=0 kd_refusals=0 passovers=0 blk_term=0 zm_cap=0 deferred=0 xch=0 retreats=0 cert=0
+base-f7_n800_path_warm.err:D2SOLVE solve=3 n=4000 me=2400 mi=800 warm=1 iws=1
+base-f7_n800_path_warm.err:D2END solve=3 status=0 minors=2 facts=1 recheck_rm=0 kd_refusals=0 passovers=0 blk_term=0 zm_cap=0 deferred=0 xch=0 retreats=0 cert=0
+base-f7_n800_path_warm.err:D2SOLVE solve=4 n=4000 me=2400 mi=800 warm=1 iws=1
+base-f7_n800_path_warm.err:D2END solve=4 status=0 minors=4 facts=1 recheck_rm=0 kd_refusals=0 passovers=0 blk_term=0 zm_cap=0 deferred=0 xch=0 retreats=0 cert=0
+base-f7_n800_path_warm.err:D2SOLVE solve=5 n=4000 me=2400 mi=800 warm=1 iws=1
+base-f7_n800_path_warm.err:D2END solve=5 status=0 minors=2 facts=1 recheck_rm=0 kd_refusals=0 passovers=0 blk_term=0 zm_cap=0 deferred=0 xch=0 retreats=0 cert=0
+dumpbase-f7_n800_path_warm.err:D2SOLVE solve=0 n=4000 me=2400 mi=800 warm=0 iws=1
+dumpbase-f7_n800_path_warm.err:D2END solve=0 status=0 minors=2 facts=1 recheck_rm=0 kd_refusals=0 passovers=0 blk_term=0 zm_cap=0 deferred=0 xch=0 retreats=0 cert=0
+dumpbase-f7_n800_path_warm.err:D2SOLVE solve=1 n=4000 me=2400 mi=800 warm=1 iws=1
+dumpbase-f7_n800_path_warm.err:D2RM solve=1 iter=214 entry=0 over=0 removed=R756 deferred=P3768 mark=0
+dumpbase-f7_n800_path_warm.err:D2RM solve=1 iter=270 entry=0 over=0 removed=R755 deferred=P3763 mark=0
+dumpbase-f7_n800_path_warm.err:D2RM solve=1 iter=439 entry=0 over=0 removed=R754 deferred=P3733 mark=0
+dumpbase-f7_n800_path_warm.err:D2RM solve=1 iter=441 entry=0 over=0 removed=R753 deferred=P3743 mark=0
+dumpbase-f7_n800_path_warm.err:D2RM solve=1 iter=448 entry=0 over=0 removed=R752 deferred=P3254 mark=0
+dumpbase-f7_n800_path_warm.err:D2RM solve=1 iter=485 entry=0 over=0 removed=R751 deferred=P3294 mark=0
+dumpbase-f7_n800_path_warm.err:D2RM solve=1 iter=498 entry=0 over=0 removed=R750 deferred=P3304 mark=0
+dumpbase-f7_n800_path_warm.err:D2RM solve=1 iter=528 entry=0 over=0 removed=R749 deferred=P3324 mark=0
+dumpbase-f7_n800_path_warm.err:D2RM solve=1 iter=544 entry=0 over=0 removed=R748 deferred=P3334 mark=0
+dumpbase-f7_n800_path_warm.err:D2RM solve=1 iter=573 entry=0 over=0 removed=R747 deferred=P3344 mark=0
+dumpbase-f7_n800_path_warm.err:D2RM solve=1 iter=593 entry=0 over=0 removed=R746 deferred=P3354 mark=0
+dumpbase-f7_n800_path_warm.err:D2RM solve=1 iter=625 entry=0 over=0 removed=R745 deferred=P3364 mark=0
+dumpbase-f7_n800_path_warm.err:D2RM solve=1 iter=649 entry=0 over=0 removed=R744 deferred=P3374 mark=0
+dumpbase-f7_n800_path_warm.err:D2RM solve=1 iter=681 entry=0 over=0 removed=R743 deferred=P3384 mark=0
+dumpbase-f7_n800_path_warm.err:D2RM solve=1 iter=770 entry=0 over=0 removed=R742 deferred=P3693 mark=0
+dumpbase-f7_n800_path_warm.err:D2RM solve=1 iter=924 entry=0 over=0 removed=R734 deferred=P-1 mark=0
+dumpbase-f7_n800_path_warm.err:D2RM solve=1 iter=926 entry=0 over=0 removed=R733 deferred=P-1 mark=0
+dumpbase-f7_n800_path_warm.err:D2END solve=1 status=0 minors=8497 facts=7965 recheck_rm=17 kd_refusals=0 passovers=0 blk_term=0 zm_cap=0 deferred=15 xch=22 retreats=0 cert=0
+dumpbase-f7_n800_path_warm.err:D2KKT solve=1 status=0 obj=1.224117341464336e-02 stat=1.989e-15 eqviol=3.493e-14 iviol=7.155e-14 boxviol=0.000e+00 lneg=0.000e+00 |le|=8.065e-03 |li|=2.062e-03
+dumpbase-f7_n800_path_warm.err:D2SOLVE solve=2 n=4000 me=2400 mi=800 warm=1 iws=1
+dumpbase-f7_n800_path_warm.err:D2END solve=2 status=0 minors=7 facts=1 recheck_rm=0 kd_refusals=0 passovers=0 blk_term=0 zm_cap=0 deferred=0 xch=0 retreats=0 cert=0
+dumpbase-f7_n800_path_warm.err:D2SOLVE solve=3 n=4000 me=2400 mi=800 warm=1 iws=1
+dumpbase-f7_n800_path_warm.err:D2END solve=3 status=0 minors=2 facts=1 recheck_rm=0 kd_refusals=0 passovers=0 blk_term=0 zm_cap=0 deferred=0 xch=0 retreats=0 cert=0
+dumpbase-f7_n800_path_warm.err:D2SOLVE solve=4 n=4000 me=2400 mi=800 warm=1 iws=1
+dumpbase-f7_n800_path_warm.err:D2END solve=4 status=0 minors=4 facts=1 recheck_rm=0 kd_refusals=0 passovers=0 blk_term=0 zm_cap=0 deferred=0 xch=0 retreats=0 cert=0
+dumpbase-f7_n800_path_warm.err:D2SOLVE solve=5 n=4000 me=2400 mi=800 warm=1 iws=1
+dumpbase-f7_n800_path_warm.err:D2END solve=5 status=0 minors=2 facts=1 recheck_rm=0 kd_refusals=0 passovers=0 blk_term=0 zm_cap=0 deferred=0 xch=0 retreats=0 cert=0

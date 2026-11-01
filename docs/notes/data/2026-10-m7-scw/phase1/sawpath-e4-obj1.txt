@@ -1,0 +1,4 @@
+SCW_COLS n 583 spread 6.87195e+10 min 3.8147e-06 max 262144 active 1
+SCW_ROWS gmax 1.94729e+06 obj 5.13534e-05
+SCW_RESULT cols=1 rows=1 spread=6.87195e+10 obj=5.13534e-05 rowmin=0.00038147 rowmax=1 refusals=0 evals_full=11
+CELL SAWPATH default rc=0 wall=1.0s

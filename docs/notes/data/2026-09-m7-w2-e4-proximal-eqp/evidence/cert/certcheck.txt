@@ -1,0 +1,34 @@
+==================== qp2 border
+CERTCHECK /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/docs/notes/data/2026-09-m7-w2-e2-d4-feasible-qps/dumps/DALLASM_def/qp2.txt
+  cert cert/DALLASM_def_qp2_border.cert
+  present=1 status=2 blocker=158 is_ineq=0 sign=+1
+  box_part re-derived: max|mine - engine's| = 0.000e+00
+  y_i sign discipline (must be <= 0): max y_i = 0.000e+00
+  implied re-derived = 0.90917024040392902   engine = 0.90917024040392902  diff = 0.000e+00
+  dropped (open-sided) entries: 0, ||dropped||2 = 0.000e+00  engine residual = 0.000e+00  exact_tol = 4.544e-12
+  limit = 0.25  margin = 1.000e-08  implied - limit = 0.65917
+  LP  min c'x over the feasible set: status=2 (The problem is infeasible. (HiGHS Status 8: model_status is Infeasible; primal_status is None))
+      the feasible set is EMPTY (HiGHS): the QP is infeasible, so the certificate
+      cannot be contradicted by any point, and the kInfeasible verdict is correct
+==================== qp1 refactorize
+CERTCHECK /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/docs/notes/data/2026-09-m7-w2-e2-d4-feasible-qps/dumps/DALLASM_def/qp1.txt
+  cert cert/DALLASM_def_qp1_refactorize.cert
+  present=1 status=2 blocker=158 is_ineq=0 sign=+1
+  box_part re-derived: max|mine - engine's| = 0.000e+00
+  y_i sign discipline (must be <= 0): max y_i = 0.000e+00
+  implied re-derived = 0.66534355373403964   engine = 0.66534355373403964  diff = 0.000e+00
+  dropped (open-sided) entries: 0, ||dropped||2 = 0.000e+00  engine residual = 0.000e+00  exact_tol = 4.524e-12
+  limit = 0.5  margin = 1.000e-08  implied - limit = 0.165344
+  LP  min c'x over the feasible set: status=2 (The problem is infeasible. (HiGHS Status 8: model_status is Infeasible; primal_status is None))
+      the feasible set is EMPTY (HiGHS): the QP is infeasible, so the certificate
+      cannot be contradicted by any point, and the kInfeasible verdict is correct
+==================== qp1 border
+CERTCHECK /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/docs/notes/data/2026-09-m7-w2-e2-d4-feasible-qps/dumps/DALLASM_def/qp1.txt
+  cert cert/DALLASM_def_qp1_border.cert
+  present=0 status=3 blocker=-1 is_ineq=0 sign=+1
+  NO CERTIFICATE -- nothing to check
+==================== qp2 refactorize
+CERTCHECK /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/docs/notes/data/2026-09-m7-w2-e2-d4-feasible-qps/dumps/DALLASM_def/qp2.txt
+  cert cert/DALLASM_def_qp2_refactorize.cert
+  present=0 status=3 blocker=-1 is_ineq=0 sign=+1
+  NO CERTIFICATE -- nothing to check

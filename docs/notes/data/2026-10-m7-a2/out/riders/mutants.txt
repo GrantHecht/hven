@@ -1,0 +1,39 @@
+=== MUTANT M7 high-water mark not restored
+build_rc=0
+[==========] 15 tests from 2 test suites ran. (6 ms total)
+[  PASSED  ] 14 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] IpqpMu0Rule.AFallbackLeavesTheLadderMemoryAsOffFindsIt
+
+ 1 FAILED TEST
+RESULT M7 high-water mark not restored: KILLED
+=== MUTANT M12a kUnreadable accepted
+build_rc=0
+[==========] 1 test from 1 test suite ran. (2 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] IpqpSeamTest.AnUnreadableMu0EstimateFallsBackAndTheEvidenceFlagStaysArmed
+
+ 1 FAILED TEST
+RESULT M12a kUnreadable accepted: KILLED
+=== MUTANT M12b evidence_failed restored
+build_rc=0
+[==========] 1 test from 1 test suite ran. (2 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] IpqpSeamTest.AnUnreadableMu0EstimateFallsBackAndTheEvidenceFlagStaysArmed
+
+ 1 FAILED TEST
+RESULT M12b evidence_failed restored: KILLED
+ M docs/notes/data/2026-10-m7-a2/README.md
+D  docs/notes/data/2026-10-m7-a2/logs/fam-m0.log
+D  docs/notes/data/2026-10-m7-a2/logs/fam-m0mf.log
+D  docs/notes/data/2026-10-m7-a2/logs/fam-mf.log
+D  docs/notes/data/2026-10-m7-a2/logs/fam-off.log
+ M include/hven/detail/qp/ipqp_engine.h
+ M include/hven/drivers/sqp_solver_types.h
+ M src/qp/ipqp_engine.cpp
+ M tests/sqp/test_ipqp_mu0_rule.cpp
+ M tests/sqp/test_ipqp_seams.cpp
+final_good_build_rc=0
+ M src/qp/ipqp_engine.cpp

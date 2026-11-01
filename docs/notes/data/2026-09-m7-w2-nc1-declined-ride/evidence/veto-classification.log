@@ -1,0 +1,30 @@
+PGREP_EMPTY veto-release 2026-09-25T16:51:12-04:00
+FOREGROUND_START veto-release 2026-09-25T16:51:12-04:00
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a21a2ab349204592e/.scratch/nc1-build-release/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = *NC1ClassifySignVetoes
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from QpE2WorkingSet
+[ RUN      ] QpE2WorkingSet.NC1ClassifySignVetoes
+NC1V ACOPR57_def/qp6.txt minor=84 ro=3 rel=260 side=0 slope=-1.372e-09 stol=4.530e-10 leaves=-8.102e-03 ltol=1.811e-12 curv=-5.874e-09 ctol=1.000e-12 p_rel=8.102e-03 action=12
+NC1V ACOPR57_def/qp6.txt minor=92 ro=3 rel=268 side=0 slope=-1.766e-08 stol=3.414e-10 leaves=-1.687e-02 ltol=1.309e-12 curv=-1.223e-07 ctol=1.000e-12 p_rel=1.687e-02 action=12
+NC1V ACOPR57_def/qp6.txt minor=108 ro=3 rel=250 side=0 slope=-3.079e-09 stol=2.900e-10 leaves=-1.016e-02 ltol=1.170e-12 curv=-5.469e-10 ctol=1.000e-12 p_rel=1.016e-02 action=12
+NC1V ACOPR57_def/qp6.txt minor=192 ro=3 rel=250 side=0 slope=-2.675e-09 stol=5.220e-10 leaves=-4.203e-03 ltol=2.107e-12 curv=-1.030e-07 ctol=1.000e-12 p_rel=4.203e-03 action=12
+NC1VSUM ACOPR57_def/qp6.txt status=1 minors=7100 flat=0 disagree=694 nullspace=0 max_released_mult=2.472e-06 signv=694 undo=694
+NC1V SAWPATH_def/qp1.txt minor=932 ro=2 rel=1571 side=1 slope=-2.607e-01 stol=2.732e+00 leaves=2.370e-09 ltol=6.816e-12 curv=0.000e+00 ctol=1.000e-12 p_rel=2.370e-09 action=12
+NC1V SAWPATH_def/qp1.txt minor=940 ro=2 rel=828 side=1 slope=7.591e+00 stol=8.464e+00 leaves=-7.981e-08 ltol=2.112e-11 curv=0.000e+00 ctol=1.000e-12 p_rel=-7.981e-08 action=12
+NC1V SAWPATH_def/qp1.txt minor=950 ro=2 rel=831 side=1 slope=1.243e+01 stol=1.263e+01 leaves=-1.111e-07 ltol=3.151e-11 curv=0.000e+00 ctol=1.000e-12 p_rel=-1.111e-07 action=12
+NC1V SAWPATH_def/qp1.txt minor=1054 ro=2 rel=855 side=1 slope=3.771e+00 stol=4.025e+00 leaves=-5.782e-09 ltol=1.004e-11 curv=0.000e+00 ctol=1.000e-12 p_rel=-5.782e-09 action=12
+NC1VSUM SAWPATH_def/qp1.txt status=1 minors=20350 flat=3863 disagree=0 nullspace=0 max_released_mult=1.808e+09 signv=3863 undo=3863
+NC1V ACOPR57_def/qp4.txt minor=320 ro=1 rel=215 side=1 slope=1.042e+02 stol=nan leaves=nan ltol=nan curv=-1.824e+01 ctol=1.519e-10 p_rel=-1.373e-02 action=12
+NC1V ACOPR57_def/qp4.txt minor=322 ro=1 rel=576 side=1 slope=1.043e+02 stol=nan leaves=nan ltol=nan curv=-1.824e+01 ctol=1.519e-10 p_rel=-1.383e-02 action=12
+NC1V ACOPR57_def/qp4.txt minor=324 ro=1 rel=323 side=1 slope=1.044e+02 stol=nan leaves=nan ltol=nan curv=-1.824e+01 ctol=1.519e-10 p_rel=-1.781e-02 action=12
+NC1V ACOPR57_def/qp4.txt minor=326 ro=1 rel=158 side=1 slope=1.044e+02 stol=nan leaves=nan ltol=nan curv=-1.824e+01 ctol=1.519e-10 p_rel=-1.953e-02 action=12
+NC1VSUM ACOPR57_def/qp4.txt status=0 minors=1736 flat=0 disagree=0 nullspace=205 max_released_mult=0.000e+00 signv=0 undo=205
+[       OK ] QpE2WorkingSet.NC1ClassifySignVetoes (138891 ms)
+[----------] 1 test from QpE2WorkingSet (138891 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (138891 ms total)
+[  PASSED  ] 1 test.
+FOREGROUND_END veto-release 2026-09-25T16:53:30-04:00 rc=0

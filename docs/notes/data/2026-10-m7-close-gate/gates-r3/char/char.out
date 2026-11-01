@@ -1,0 +1,4 @@
+hven_sqp_corpus: WARNING: a hidden TEST-ONLY wall-budget override is in force (setup=7200.000000000s, solve=7200.000000000s). These rows are NOT produced under the committed budget table and must never be cited as a baseline; the CSV's own provenance header records this.
+attached observers: callback=off trace=off
+running f7_n10000_path_physics (N=10000, path, physics, engine walk, wall budget 7200s per phase)...
+wrote 1 row(s) to /home/ghecht/Projects/hven/.claude/worktrees/m7-close-gate/.scratch/m7-close/r3/char/f7_n10000_path_physics_7200s.csv

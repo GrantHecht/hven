@@ -1,0 +1,193 @@
+it=0 ADD pin 0  dist=5.709e-01 engine_rho=9.926e-01 structural=False 
+it=1 ADD pin 1  dist=3.699e-01 engine_rho=9.989e-01 structural=False 
+it=2 ADD pin 2  dist=5.695e-01 engine_rho=9.970e-01 structural=False 
+it=3 ADD pin 3  dist=6.054e-01 engine_rho=9.959e-01 structural=False 
+it=4 ADD pin 14  dist=4.843e-01 engine_rho=1.000e+00 structural=False 
+it=5 ADD pin 16  dist=5.772e-01 engine_rho=9.999e-01 structural=False 
+it=6 ADD pin 196  dist=6.230e-01 engine_rho=1.426e+00 structural=False 
+it=7 ADD pin 197  dist=3.255e-01 engine_rho=1.016e+00 structural=False 
+it=8 ADD pin 198  dist=6.030e-01 engine_rho=9.957e-01 structural=False 
+it=9 ADD pin 200  dist=5.082e-01 engine_rho=6.906e-01 structural=False 
+it=10 ADD pin 201  dist=7.552e-01 engine_rho=1.726e+00 structural=False 
+it=11 ADD pin 202  dist=5.926e-01 engine_rho=1.000e+00 structural=False 
+it=12 ADD pin 203  dist=3.905e-01 engine_rho=1.513e+00 structural=False 
+it=13 ADD pin 204  dist=4.668e-01 engine_rho=8.498e-01 structural=False 
+it=14 ADD pin 205  dist=7.386e-01 engine_rho=1.841e+00 structural=False 
+it=15 ADD pin 206  dist=7.024e-01 engine_rho=1.668e+00 structural=False 
+it=16 ADD pin 208  dist=5.802e-01 engine_rho=9.587e-01 structural=False 
+it=17 ADD pin 209  dist=7.007e-01 engine_rho=1.754e+00 structural=False 
+it=18 ADD pin 210  dist=6.186e-01 engine_rho=1.671e+00 structural=False 
+it=19 ADD pin 212  dist=6.197e-01 engine_rho=1.000e+00 structural=False 
+it=20 ADD pin 213  dist=6.294e-01 engine_rho=1.321e+00 structural=False 
+it=21 ADD pin 214  dist=3.448e-01 engine_rho=8.622e-01 structural=False 
+it=22 ADD pin 35  dist=5.000e-01 engine_rho=9.699e-01 structural=False 
+it=23 ADD pin 61  dist=6.083e-01 engine_rho=8.867e-01 structural=False 
+it=24 ADD pin 72  dist=5.711e-01 engine_rho=1.354e+00 structural=False 
+it=25 ADD pin 75  dist=5.907e-01 engine_rho=1.174e+00 structural=False 
+it=26 ADD pin 179  dist=5.868e-01 engine_rho=1.095e+00 structural=False 
+it=27 ADD pin 94  dist=5.528e-01 engine_rho=8.076e-01 structural=False 
+it=28 ADD pin 79  dist=6.393e-01 engine_rho=9.245e-01 structural=False 
+it=29 ADD pin 158  dist=5.952e-01 engine_rho=8.877e-01 structural=False 
+it=30 ADD pin 110  dist=5.888e-01 engine_rho=1.109e+00 structural=False 
+it=31 ADD pin 119  dist=6.918e-01 engine_rho=1.275e+00 structural=False 
+it=32 ADD pin 157  dist=4.723e-01 engine_rho=7.965e-01 structural=False 
+it=33 ADD pin 168  dist=6.486e-01 engine_rho=1.160e+00 structural=False 
+it=34 ADD pin 141  dist=6.314e-01 engine_rho=7.675e-01 structural=False 
+it=35 ADD pin 17  dist=3.908e-01 engine_rho=7.686e-01 structural=False 
+it=36 ADD pin 143  dist=6.629e-01 engine_rho=8.743e-01 structural=False 
+it=37 ADD pin 135  dist=6.145e-01 engine_rho=1.100e+00 structural=False 
+it=38 ADD pin 152  dist=4.771e-01 engine_rho=8.866e-01 structural=False 
+it=39 ADD pin 115  dist=6.414e-01 engine_rho=8.659e-01 structural=False 
+it=40 ADD pin 96  dist=5.726e-01 engine_rho=8.451e-01 structural=False 
+it=41 ADD pin 129  dist=7.370e-01 engine_rho=1.000e+00 structural=False 
+it=42 ADD pin 46  dist=4.529e-01 engine_rho=9.653e-01 structural=False 
+it=43 ADD pin 67  dist=5.098e-01 engine_rho=9.253e-01 structural=False 
+it=44 ADD pin 19  dist=3.592e-01 engine_rho=9.341e-01 structural=False 
+it=45 ADD pin 92  dist=5.000e-01 engine_rho=6.304e-01 structural=False 
+it=46 ADD pin 81  dist=4.304e-01 engine_rho=7.763e-01 structural=False 
+it=47 ADD pin 169  dist=4.824e-01 engine_rho=1.125e+00 structural=False 
+it=48 ADD pin 132  dist=2.873e-15 engine_rho=6.773e-06 structural=('eq', 103) EXACT-DEP
+it=49 ADD pin 145  dist=5.006e-01 engine_rho=9.763e-01 structural=False 
+it=50 ADD pin 139  dist=5.455e-01 engine_rho=6.804e-01 structural=False 
+it=51 ADD pin 127  dist=2.532e-15 engine_rho=6.647e-06 structural=('eq', 104) EXACT-DEP
+it=52 ADD pin 173  dist=4.178e-01 engine_rho=5.479e-01 structural=False 
+it=53 ADD pin 21  dist=5.000e-01 engine_rho=8.567e-01 structural=False 
+it=54 ADD pin 108  dist=4.535e-01 engine_rho=7.936e-01 structural=False 
+it=55 ADD pin 45  dist=3.536e-01 engine_rho=8.368e-01 structural=False 
+it=56 ADD pin 128  dist=2.735e-15 engine_rho=6.627e-06 structural=('eq', 101) EXACT-DEP
+it=57 ADD pin 190  dist=2.869e-01 engine_rho=5.431e-01 structural=False 
+it=58 ADD pin 63  dist=4.376e-15 engine_rho=1.845e-05 structural=False EXACT-DEP
+it=59 ADD pin 62  dist=3.615e-15 engine_rho=6.151e-06 structural=('eq', 57) EXACT-DEP
+it=60 ADD pin 74  dist=6.279e-15 engine_rho=3.690e-05 structural=False EXACT-DEP
+it=61 ADD pin 114  dist=4.444e-01 engine_rho=6.406e-01 structural=False 
+it=62 ADD pin 87  dist=3.362e-01 engine_rho=9.675e-01 structural=False 
+it=63 ADD pin 125  dist=4.368e-01 engine_rho=7.667e-01 structural=False 
+it=64 ADD pin 136  dist=4.324e-01 engine_rho=6.886e-01 structural=False 
+it=65 ADD pin 83 (exch out pin110) dist=2.899e-01 engine_rho=7.286e-01 structural=False 
+it=66 ADD pin 95 (exch out pin75) dist=4.381e-01 engine_rho=9.513e-01 structural=False 
+it=67 ADD pin 75 (exch out pin213) dist=6.174e-15 engine_rho=2.594e-05 structural=False EXACT-DEP
+it=68 ADD pin 120 (exch out pin75) dist=3.048e-01 engine_rho=5.090e-01 structural=False 
+it=69 ADD pin 73 (exch out pin81) dist=3.162e-01 engine_rho=3.034e-05 structural=False 
+it=70 ADD pin 88 (exch out pin201) dist=2.933e-01 engine_rho=5.092e-05 structural=False 
+it=71 ADD pin 134 (exch out pin17) dist=5.508e-01 engine_rho=7.681e-01 structural=False 
+it=72 ADD pin 26 (exch out pin196) dist=2.848e-01 engine_rho=8.375e-01 structural=False 
+it=73 ADD pin 118 (exch out pin0) dist=3.450e-01 engine_rho=7.506e-01 structural=False 
+it=74 ADD pin 81 (exch out pin83) dist=4.124e-01 engine_rho=1.775e-06 structural=False 
+it=75 ADD pin 207 (exch out pin206) dist=6.242e-01 engine_rho=6.471e-01 structural=False 
+it=76 ADD pin 84 (exch out pin92) dist=3.292e-01 engine_rho=6.464e-01 structural=False 
+it=77 ADD pin 92 (exch out pin132) dist=2.449e-15 engine_rho=8.190e-06 structural=False EXACT-DEP
+it=78 ADD pin 132 (exch out pin127) dist=1.889e-15 engine_rho=6.496e-07 structural=('eq', 103) EXACT-DEP
+it=79 ADD pin 127 (exch out pin128) dist=2.315e-15 engine_rho=2.466e-07 structural=('eq', 104) EXACT-DEP
+it=80 ADD pin 196 (exch out pin87) dist=2.416e-01 engine_rho=9.613e-01 structural=False 
+it=81 ADD pin 128 (exch out pin127) dist=2.692e-15 engine_rho=7.960e-06 structural=False EXACT-DEP
+it=82 ADD pin 127 (exch out pin132) dist=4.077e-15 engine_rho=2.466e-07 structural=('eq', 101) EXACT-DEP
+it=83 ADD pin 132 (exch out pin92) dist=2.259e-15 engine_rho=6.496e-07 structural=('eq', 104) EXACT-DEP
+it=84 ADD pin 77 (exch out pin3) dist=3.139e-01 engine_rho=8.724e-01 structural=False 
+it=85 ADD pin 177 (exch out pin203) dist=3.570e-01 engine_rho=9.079e-01 structural=False 
+it=86 ADD pin 109 (exch out pin84) dist=3.498e-01 engine_rho=2.325e-05 structural=False 
+it=87 ADD pin 84 (exch out pin132) dist=5.304e-15 engine_rho=8.920e-06 structural=False EXACT-DEP
+it=88 ADD pin 132 (exch out pin127) dist=2.699e-15 engine_rho=4.705e-06 structural=False EXACT-DEP
+it=89 ADD pin 127 (exch out pin128) dist=2.602e-15 engine_rho=2.466e-07 structural=('eq', 104) EXACT-DEP
+it=90 ADD pin 92 (exch out pin84) dist=5.939e-15 engine_rho=5.824e-06 structural=('eq', 103) EXACT-DEP
+it=91 ADD pin 128 (exch out pin127) dist=3.401e-15 engine_rho=6.613e-06 structural=False EXACT-DEP
+it=92 ADD pin 84 (exch out pin109) dist=3.498e-01 engine_rho=4.532e-06 structural=False 
+it=93 ADD pin 109 (exch out pin120) dist=3.705e-15 engine_rho=1.776e-05 structural=False EXACT-DEP
+it=94 ADD pin 120 (exch out pin179) dist=3.015e-01 engine_rho=5.836e-01 structural=False 
+it=95 ADD pin 127 (exch out pin132) dist=2.135e-15 engine_rho=2.466e-07 structural=('eq', 101) EXACT-DEP
+it=96 ADD pin 206 (exch out pin207) dist=5.774e-01 engine_rho=1.087e-06 structural=False 
+it=97 ADD pin 132 (exch out pin127) dist=1.159e-14 engine_rho=6.496e-07 structural=('eq', 103) EXACT-DEP
+it=98 ADD pin 127 (exch out pin128) dist=1.857e-15 engine_rho=2.466e-07 structural=('eq', 104) EXACT-DEP
+it=99 ADD pin 128 (exch out pin109) dist=2.673e-15 engine_rho=5.209e-06 structural=('eq', 101) EXACT-DEP
+it=100 ADD pin 109 (exch out pin84) dist=3.735e-01 engine_rho=1.776e-05 structural=False 
+it=101 ADD pin 84 (exch out pin92) dist=4.946e-15 engine_rho=4.532e-06 structural=False EXACT-DEP
+it=102 ADD pin 123 (exch out pin125) dist=4.030e-01 engine_rho=3.422e-06 structural=False 
+it=103 ADD pin 92 (exch out pin132) dist=2.963e-15 engine_rho=5.495e-06 structural=False EXACT-DEP
+it=104 ADD pin 132 (exch out pin127) dist=4.976e-15 engine_rho=6.496e-07 structural=('eq', 103) EXACT-DEP
+it=105 ADD pin 127 (exch out pin128) dist=2.135e-15 engine_rho=2.466e-07 structural=('eq', 104) EXACT-DEP
+it=106 ADD pin 128 (exch out pin109) dist=2.719e-15 engine_rho=5.209e-06 structural=('eq', 101) EXACT-DEP
+it=107 ADD pin 109 (exch out pin84) dist=3.735e-01 engine_rho=1.776e-05 structural=False 
+it=108 ADD pin 207 (exch out pin206) dist=5.774e-01 engine_rho=4.660e-06 structural=False 
+it=109 ADD pin 84 (exch out pin109) dist=3.499e-01 engine_rho=4.532e-06 structural=False 
+it=110 ADD pin 109 (exch out pin128) dist=4.583e-15 engine_rho=1.776e-05 structural=False EXACT-DEP
+it=111 ADD pin 125 (exch out pin123) dist=4.030e-01 engine_rho=1.860e-07 structural=False 
+it=112 ADD pin 128 (exch out pin127) dist=3.239e-15 engine_rho=5.209e-06 structural=False EXACT-DEP
+it=113 ADD pin 127 (exch out pin132) dist=2.135e-15 engine_rho=2.466e-07 structural=('eq', 101) EXACT-DEP
+it=114 ADD pin 132 (exch out pin92) dist=2.123e-15 engine_rho=6.496e-07 structural=('eq', 104) EXACT-DEP
+it=115 ADD pin 206 (exch out pin61) dist=4.472e-01 engine_rho=1.087e-06 structural=False 
+it=116 ADD pin 211 (exch out pin197) dist=2.177e-01 engine_rho=3.956e-01 structural=False 
+it=117 ADD pin 92 (exch out pin132) dist=2.676e-15 engine_rho=5.495e-06 structural=False EXACT-DEP
+it=118 ADD pin 123 (exch out pin208) dist=2.602e-15 engine_rho=3.466e-06 structural=('eq', 99) EXACT-DEP
+it=119 ADD pin 132 (exch out pin127) dist=2.104e-15 engine_rho=6.496e-07 structural=('eq', 103) EXACT-DEP
+it=120 ADD pin 127 (exch out pin128) dist=2.511e-15 engine_rho=2.466e-07 structural=('eq', 104) EXACT-DEP
+it=121 ADD pin 128 (exch out pin109) dist=2.798e-15 engine_rho=5.209e-06 structural=('eq', 101) EXACT-DEP
+it=122 ADD pin 109 (exch out pin84) dist=3.265e-01 engine_rho=1.776e-05 structural=False 
+it=123 ADD pin 156 (exch out pin200) dist=3.258e-01 engine_rho=6.170e-01 structural=False 
+it=124 ADD pin 69 (exch out pin135) dist=3.944e-01 engine_rho=6.041e-01 structural=False 
+it=125 ADD pin 84 (exch out pin109) dist=2.981e-01 engine_rho=4.536e-06 structural=False 
+it=126 ADD pin 109 (exch out pin128) dist=4.214e-15 engine_rho=1.790e-05 structural=False EXACT-DEP
+it=127 ADD pin 128 (exch out pin127) dist=3.073e-15 engine_rho=5.209e-06 structural=False EXACT-DEP
+it=128 ADD pin 127 (exch out pin132) dist=6.901e-15 engine_rho=2.466e-07 structural=('eq', 101) EXACT-DEP
+it=129 ADD pin 132 (exch out pin92) dist=2.920e-15 engine_rho=6.496e-07 structural=('eq', 104) EXACT-DEP
+it=130 ADD pin 9 (exch out pin210) dist=2.724e-01 engine_rho=6.732e-01 structural=False 
+it=131 ADD pin 135 (exch out pin21) dist=3.812e-01 engine_rho=5.576e-01 structural=False 
+it=132 ADD pin 131 (exch out pin114) dist=4.040e-01 engine_rho=1.279e+00 structural=False 
+it=133 ADD pin 92 (exch out pin132) dist=2.733e-15 engine_rho=5.495e-06 structural=False EXACT-DEP
+it=134 ADD pin 132 (exch out pin127) dist=8.031e-15 engine_rho=6.496e-07 structural=('eq', 103) EXACT-DEP
+it=135 ADD pin 127 (exch out pin128) dist=2.179e-15 engine_rho=2.466e-07 structural=('eq', 104) EXACT-DEP
+it=136 ADD pin 128 (exch out pin109) dist=2.593e-15 engine_rho=5.209e-06 structural=('eq', 101) EXACT-DEP
+it=137 ADD pin 109 (exch out pin84) dist=3.024e-01 engine_rho=1.781e-05 structural=False 
+it=138 ADD pin 137 (exch out pin134) dist=2.186e-01 engine_rho=5.282e-01 structural=False 
+it=139 ADD pin 134 (exch out pin135) dist=5.667e-01 engine_rho=7.494e-01 structural=False 
+it=140 ADD pin 135 (exch out pin77) dist=3.560e-01 engine_rho=1.004e+00 structural=False 
+it=141 ADD pin 77 (exch out pin96) dist=4.019e-01 engine_rho=1.009e+00 structural=False 
+it=142 ADD pin 96 (exch out pin118) dist=3.603e-01 engine_rho=7.774e-01 structural=False 
+it=143 ADD pin 118 (exch out pin136) dist=3.712e-01 engine_rho=7.743e-01 structural=False 
+it=144 ADD pin 136 (exch out pin119) dist=4.667e-01 engine_rho=6.278e-01 structural=False 
+it=145 ADD pin 119 (exch out pin141) dist=5.948e-01 engine_rho=4.349e-01 structural=False 
+it=146 ADD pin 141 (exch out pin9) dist=2.556e-01 engine_rho=4.802e-01 structural=False 
+it=147 ADD pin 9 (exch out pin19) dist=3.892e-01 engine_rho=5.513e-01 structural=False 
+it=148 ADD pin 19 (exch out pin115) dist=3.805e-01 engine_rho=9.219e-01 structural=False 
+it=149 ADD pin 115 (exch out pin69) dist=2.218e-01 engine_rho=6.925e-01 structural=False 
+it=150 ADD pin 69 (exch out pin72) dist=4.528e-01 engine_rho=5.979e-01 structural=False 
+it=151 ADD pin 72 (exch out pin156) dist=3.187e-01 engine_rho=4.961e-01 structural=False 
+it=152 ADD pin 156 (exch out pin120) dist=3.473e-01 engine_rho=6.224e-01 structural=False 
+it=153 ADD pin 120 (exch out pin139) dist=3.775e-01 engine_rho=5.858e-01 structural=False 
+it=154 ADD pin 139 (exch out pin157) dist=5.076e-01 engine_rho=6.483e-01 structural=False 
+it=155 ADD pin 157 (exch out pin152) dist=3.889e-01 engine_rho=7.887e-01 structural=False 
+it=156 ADD pin 152 (exch out pin145) dist=4.564e-01 engine_rho=7.787e-01 structural=False 
+it=157 ADD pin 144 (exch out pin143) dist=5.154e-01 engine_rho=9.757e-01 structural=False 
+it=158 ADD pin 145 (exch out pin168) dist=3.743e-01 engine_rho=7.060e-01 structural=False 
+it=159 ADD pin 168 (exch out pin169) dist=6.474e-01 engine_rho=1.201e+00 structural=False 
+it=160 ADD pin 169 (exch out pin173) dist=5.049e-01 engine_rho=1.093e+00 structural=False 
+it=161 ADD pin 173 (exch out pin123) dist=4.720e-01 engine_rho=5.632e-01 structural=False 
+it=162 ADD pin 123 (exch out pin125) dist=3.669e-01 engine_rho=3.444e-06 structural=False 
+it=163 ADD pin 133 (exch out pin137) dist=3.445e-01 engine_rho=5.750e-01 structural=False 
+it=164 ADD pin 84 (exch out pin109) dist=3.002e-01 engine_rho=4.536e-06 structural=False 
+it=165 ADD pin 109 (exch out pin128) dist=4.334e-15 engine_rho=1.782e-05 structural=False EXACT-DEP
+it=166 ADD pin 125 (exch out pin123) dist=3.649e-01 engine_rho=1.860e-07 structural=False 
+it=167 ADD pin 128 (exch out pin127) dist=2.755e-15 engine_rho=5.209e-06 structural=False EXACT-DEP
+it=168 ADD pin 127 (exch out pin132) dist=2.105e-15 engine_rho=2.466e-07 structural=('eq', 101) EXACT-DEP
+it=169 ADD pin 132 (exch out pin92) dist=2.326e-15 engine_rho=6.496e-07 structural=('eq', 104) EXACT-DEP
+it=170 ADD pin 137 (exch out pin77) dist=2.055e-01 engine_rho=5.201e-01 structural=False 
+it=171 ADD pin 77 (exch out pin96) dist=4.010e-01 engine_rho=1.011e+00 structural=False 
+it=172 ADD pin 96 (exch out pin118) dist=3.603e-01 engine_rho=7.970e-01 structural=False 
+it=173 ADD pin 118 (exch out pin136) dist=3.649e-01 engine_rho=7.828e-01 structural=False 
+it=174 ADD pin 136 (exch out pin119) dist=4.667e-01 engine_rho=6.278e-01 structural=False 
+it=175 ADD pin 119 (exch out pin141) dist=5.948e-01 engine_rho=4.349e-01 structural=False 
+it=176 ADD pin 141 (exch out pin9) dist=2.556e-01 engine_rho=4.802e-01 structural=False 
+it=177 ADD pin 9 (exch out pin19) dist=3.892e-01 engine_rho=5.513e-01 structural=False 
+it=178 ADD pin 19 (exch out pin115) dist=3.766e-01 engine_rho=9.219e-01 structural=False 
+it=179 ADD pin 115 (exch out pin135) dist=2.198e-01 engine_rho=6.642e-01 structural=False 
+it=180 ADD pin 135 (exch out pin131) dist=3.390e-01 engine_rho=5.616e-01 structural=False 
+it=181 ADD pin 131 (exch out pin168) dist=3.925e-01 engine_rho=1.253e+00 structural=False 
+it=182 ADD pin 168 (exch out pin169) dist=6.474e-01 engine_rho=1.227e+00 structural=False 
+it=183 ADD pin 143 (exch out pin144) dist=3.997e-01 engine_rho=4.712e-07 structural=False 
+it=184 ADD pin 169 (exch out pin173) dist=4.986e-01 engine_rho=1.092e+00 structural=False 
+it=185 ADD pin 173 (exch out pin69) dist=4.717e-01 engine_rho=5.625e-01 structural=False 
+it=186 ADD pin 69 (exch out pin72) dist=4.523e-01 engine_rho=6.074e-01 structural=False 
+it=187 ADD pin 72 (exch out pin156) dist=3.185e-01 engine_rho=4.995e-01 structural=False 
+it=188 ADD pin 156 (exch out pin120) dist=3.453e-01 engine_rho=6.170e-01 structural=False 
+it=189 ADD pin 120 (exch out pin139) dist=3.708e-01 engine_rho=5.929e-01 structural=False 
+it=190 ADD pin 139 (exch out pin157) dist=5.076e-01 engine_rho=6.483e-01 structural=False 
+it=191 ADD pin 157 (exch out pin152) dist=3.889e-01 engine_rho=7.887e-01 structural=False 
+it=192 ADD pin 152 (exch out pin145) dist=4.564e-01 engine_rho=7.787e-01 structural=False 

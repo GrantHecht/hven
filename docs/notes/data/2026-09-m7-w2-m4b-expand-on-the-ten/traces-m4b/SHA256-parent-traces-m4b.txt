@@ -1,0 +1,28 @@
+M7 W2 M4b -- sha256 of the TWENTY PARENT FLAT TRACES the read-outs read.
+The flat traces are NOT committed (457 MB); the slices selected in SLICES.txt are.
+The ten OFF parents are M4's own, re-verified against M4's committed pin at
+read-out time -- see logs/pin-off-traces.txt.  No solver ran to produce this file.
+
+--- the ten E flat traces, written by this task's chain (pid 2891112)
+c0e667e12d021169bfe7dbde61308c5508e6a852ab273a439d11159b934fffc7  E-ACOPP118.csv
+48fc62f03141fbcc714c19b514847312e449555baf18732d8e2a87234dc132be  E-ACOPP57.csv
+6e28e80b89dad8fcc1e8367946ca301218368393ac01805ac0c27dc163bad6d7  E-ACOPR57.csv
+c48295d4afa06f14d6454fca4cf462bed8a91e224368b4592546601e12d87753  E-BRITGAS.csv
+3370602bb8081d4e33eabb159e9adc49aa932dd9fb914f8e8321821fa4588feb  E-DALLASM.csv
+b656e4799e83fea3babe1f76742f05b185a925baa097350b08c0c3ab7178adef  E-SAWPATH.csv
+0218e3235bfd71db731f22ef1e842a8934143f9d496d1b3a1bb0db54942ef49e  E-STEENBRB.csv
+6a32d7523ce687d20553dfb30741440254d5a3da99b0657a8f0aeafdd70e4b9b  E-STEENBRC.csv
+52c7749a24ba86c6436c6441b4c29831274acca6648106a4a226123a09b0af57  E-STEENBRG.csv
+d9e5a4eec026d7fbec892db828d7a3a924c5fcda38d9ca48f48fda8a9ff4dfe8  E-YORKNET.csv
+
+--- the ten OFF flat traces, M4's, unchanged
+19822007082eb396cc5cc3c553843466559a40cba3edbc7b89bdedc114ef44d1  off-ACOPP57.csv
+600f1cf053dc26412bc3535137964d5542496e9efdb0e599328402874c00bcc0  off-DALLASM.csv
+9ba7d30c2192681ecfdbe64e1425e0324a470025b9e70c4985a5146dcb1d3a4a  off-STEENBRB.csv
+0f369b21f0fa8e2514f724179b900c3e6a97dd54c64d062957a29ce64835ab56  off-ACOPP118.csv
+e8bc0af196516a772cd8dfdac14416564b62029aec2b793f8c70c11b69b35559  off-ACOPR57.csv
+b06a4db13e9a166a157d88e77ff331e4fc61558b80f9dc600f5034d7e866079d  off-STEENBRC.csv
+6862289cf135025b21ea421ab89d434a38b252faa50990684af3111b89f4ccee  off-STEENBRG.csv
+a69816b944ff79bfdd4c081bc5dce5a5c68b148228ccfadeb7152722dada5b95  off-YORKNET.csv
+5254d80b8a477eec3a60bdad981b6b8dffba3aa8cb8e95edea9b8672e03333b1  off-SAWPATH.csv
+7f0130215743b8b4c1da03ac2dcf0e799a6180af4ca0fcec2fdd37a752bec1cd  off-BRITGAS.csv

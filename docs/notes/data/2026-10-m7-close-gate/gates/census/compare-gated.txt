@@ -1,0 +1,101 @@
+MISMATCH f7_n1000_bound_neutral
+  base : f7_n1000_bound_neutral,F7,1000,bound,neutral,0,Optimal,1,2,0,1,1,6.295832335e-14
+  fresh: f7_n1000_bound_neutral,F7,1000,bound,neutral,0,Optimal,1,3,0,1,1,2.291628627e-16
+WITHIN-GATE f7_n1000_bound_physics kkt_residual base=1.168049964e-16 fresh=1.046850816e-16
+WITHIN-GATE f7_n1000_bound_corrupted kkt_residual base=9.157873527e-15 fresh=1.682850541e-16
+WITHIN-GATE f7_n1000_bound_activity kkt_residual base=1.168049964e-16 fresh=1.046850816e-16
+WITHIN-GATE f7_n1000_bound_warm kkt_residual base=4.198558725e-15 fresh=1.643802027e-16
+MISMATCH f7_n1000_path_neutral
+  base : f7_n1000_path_neutral,F7,1000,path,neutral,0,Optimal,9951,11043,0,4,1;9948;1;1,1.875412048e-10
+  fresh: f7_n1000_path_neutral,F7,1000,path,neutral,0,Optimal,11401,12593,0,4,1;11398;1;1,1.875412048e-10
+MISMATCH f7_n1000_path_physics
+  base : f7_n1000_path_physics,F7,1000,path,physics,0,Optimal,5,623,0,2,4;1,4.067571900e-10
+  fresh: f7_n1000_path_physics,F7,1000,path,physics,0,Optimal,5,620,0,2,4;1,4.067573174e-10
+MISMATCH f7_n1000_path_corrupted
+  base : f7_n1000_path_corrupted,F7,1000,path,corrupted,0,Optimal,2976,4049,0,3,2974;1;1,8.134399458e-12
+  fresh: f7_n1000_path_corrupted,F7,1000,path,corrupted,0,Optimal,29828,30001,0,4,19871;9955;1;1,8.699885755e-12
+MISMATCH f7_n1000_path_activity
+  base : f7_n1000_path_activity,F7,1000,path,activity,0,Optimal,4,548,0,2,3;1,5.823994991e-09
+  fresh: f7_n1000_path_activity,F7,1000,path,activity,0,Optimal,4,543,0,2,3;1,5.823995593e-09
+WITHIN-GATE f7_n1000_path_warm kkt_residual base=3.364060441e-10 fresh=3.364070937e-10
+MISMATCH f7_n2000_bound_neutral
+  base : f7_n2000_bound_neutral,F7,2000,bound,neutral,0,Optimal,1,2,0,1,1,1.259764344e-13
+  fresh: f7_n2000_bound_neutral,F7,2000,bound,neutral,0,Optimal,1,3,0,1,1,2.268490671e-16
+WITHIN-GATE f7_n2000_bound_physics kkt_residual base=2.168216410e-16 fresh=1.487729324e-16
+WITHIN-GATE f7_n2000_bound_corrupted kkt_residual base=1.834292390e-14 fresh=1.683245654e-16
+WITHIN-GATE f7_n2000_bound_activity kkt_residual base=2.168216410e-16 fresh=1.487729324e-16
+WITHIN-GATE f7_n2000_bound_warm kkt_residual base=8.394924906e-15 fresh=1.655051213e-16
+MISMATCH f7_n2000_path_neutral
+  base : f7_n2000_path_neutral,F7,2000,path,neutral,1,NumericalError,39744,40004,0,3,1;19871;19872,3.889087297e-01
+  fresh: f7_n2000_path_neutral,F7,2000,path,neutral,1,MaxIter,64059,64470,0,5,1;5716;19760;19988;18594,8.216474141e-03
+MISMATCH f7_n2000_path_physics
+  base : f7_n2000_path_physics,F7,2000,path,physics,1,Optimal,9,1396,0,2,8;1,2.290368260e-10
+  fresh: f7_n2000_path_physics,F7,2000,path,physics,1,Optimal,12,1638,0,2,8;4,5.411137094e-10
+MISMATCH f7_n2000_path_corrupted
+  base : f7_n2000_path_corrupted,F7,2000,path,corrupted,1,NumericalError,39783,40000,0,2,19911;19872,9.843817033e-02
+  fresh: f7_n2000_path_corrupted,F7,2000,path,corrupted,1,MaxIter,59745,60000,0,3,19872;20001;19872,9.843817033e-02
+MISMATCH f7_n2000_path_activity
+  base : f7_n2000_path_activity,F7,2000,path,activity,1,Optimal,8,1505,0,2,7;1,3.049823215e-09
+  fresh: f7_n2000_path_activity,F7,2000,path,activity,1,Optimal,18,1881,0,2,14;4,5.080005395e-09
+MISMATCH f7_n2000_path_warm
+  base : f7_n2000_path_warm,F7,2000,path,warm,1,Optimal,7,1615,0,3,5;1;1,4.904145803e-12
+  fresh: f7_n2000_path_warm,F7,2000,path,warm,1,Optimal,18,1101,0,3,11;4;3,3.696328799e-10
+MISMATCH f7_n5000_bound_neutral
+  base : f7_n5000_bound_neutral,F7,5000,bound,neutral,0,Optimal,1,2,0,1,1,3.150169743e-13
+  fresh: f7_n5000_bound_neutral,F7,5000,bound,neutral,0,Optimal,1,3,0,1,1,2.762562164e-16
+WITHIN-GATE f7_n5000_bound_physics kkt_residual base=5.167818090e-16 fresh=1.105340187e-16
+WITHIN-GATE f7_n5000_bound_corrupted kkt_residual base=4.592198241e-14 fresh=1.672772211e-16
+WITHIN-GATE f7_n5000_bound_activity kkt_residual base=5.167818090e-16 fresh=1.105340187e-16
+WITHIN-GATE f7_n5000_bound_warm kkt_residual base=2.098298050e-14 fresh=1.665917653e-16
+MISMATCH f7_n5000_path_neutral
+  base : f7_n5000_path_neutral,F7,5000,path,neutral,0,NumericalError,39744,40004,0,3,1;19871;19872,3.889087297e-01
+  fresh: f7_n5000_path_neutral,F7,5000,path,neutral,0,dnf_budget,-1,-1,-1,-1,,-1.0
+MISMATCH f7_n5000_path_physics
+  base : f7_n5000_path_physics,F7,5000,path,physics,0,Optimal,19,3656,0,2,18;1,1.450680211e-10
+  fresh: f7_n5000_path_physics,F7,5000,path,physics,0,Optimal,33,5370,0,2,18;15,1.003657379e-09
+MISMATCH f7_n5000_path_corrupted
+  base : f7_n5000_path_corrupted,F7,5000,path,corrupted,0,dnf_budget,-1,-1,-1,-1,,-1.0
+  fresh: f7_n5000_path_corrupted,F7,5000,path,corrupted,0,dnf_setup,-1,-1,-1,-1,,-1.0
+MISMATCH f7_n5000_path_activity
+  base : f7_n5000_path_activity,F7,5000,path,activity,0,Optimal,24,5250,0,2,23;1,1.890156979e-09
+  fresh: f7_n5000_path_activity,F7,5000,path,activity,0,Optimal,174,8214,0,2,159;15,2.723824945e-09
+MISMATCH f7_n5000_path_warm
+  base : f7_n5000_path_warm,F7,5000,path,warm,0,NumericalError,39744,40000,0,2,19872;19872,3.889087297e-01
+  fresh: f7_n5000_path_warm,F7,5000,path,warm,0,dnf_setup,-1,-1,-1,-1,,-1.0
+MISMATCH f7_n10000_bound_neutral
+  base : f7_n10000_bound_neutral,F7,10000,bound,neutral,0,Optimal,1,2,0,1,1,6.300386629e-13
+  fresh: f7_n10000_bound_neutral,F7,10000,bound,neutral,0,Optimal,1,3,0,1,1,2.577688827e-16
+WITHIN-GATE f7_n10000_bound_physics kkt_residual base=1.016559106e-15 fresh=1.526686123e-16
+WITHIN-GATE f7_n10000_bound_corrupted kkt_residual base=9.189172314e-14 fresh=1.671094944e-16
+WITHIN-GATE f7_n10000_bound_activity kkt_residual base=1.016559106e-15 fresh=1.526686123e-16
+WITHIN-GATE f7_n10000_bound_warm kkt_residual base=4.196022966e-14 fresh=1.662515014e-16
+MISMATCH f7_n10000_path_physics
+  base : f7_n10000_path_physics,F7,10000,path,physics,0,Optimal,8798,19311,0,2,8797;1,1.399675305e-10
+  fresh: f7_n10000_path_physics,F7,10000,path,physics,0,dnf_budget,-1,-1,-1,-1,,-1.0
+MISMATCH f7_n20000_bound_neutral
+  base : f7_n20000_bound_neutral,F7,20000,bound,neutral,0,Optimal,1,2,0,1,1,1.259925399e-12
+  fresh: f7_n20000_bound_neutral,F7,20000,bound,neutral,0,Optimal,1,3,0,1,1,2.736657446e-16
+WITHIN-GATE f7_n20000_bound_physics kkt_residual base=2.015847636e-15 fresh=1.493952834e-16
+MISMATCH f7_n20000_bound_corrupted
+  base : f7_n20000_bound_corrupted,F7,20000,bound,corrupted,0,Optimal,1,2,0,1,1,1.838068087e-13
+  fresh: f7_n20000_bound_corrupted,F7,20000,bound,corrupted,0,Optimal,1,2,0,1,1,1.666854227e-16
+WITHIN-GATE f7_n20000_bound_activity kkt_residual base=2.015847636e-15 fresh=1.493952834e-16
+WITHIN-GATE f7_n20000_bound_warm kkt_residual base=8.390643067e-14 fresh=1.658943444e-16
+MISMATCH f7_n800_path_neutral
+  base : f7_n800_path_neutral,F7,800,path,neutral,1,Optimal,29222,30165,0,5,1;19872;9347;1;1,1.874362887e-10
+  fresh: f7_n800_path_neutral,F7,800,path,neutral,1,Optimal,9637,10822,0,4,1;9634;1;1,1.874361777e-10
+MISMATCH f7_n800_path_physics
+  base : f7_n800_path_physics,F7,800,path,physics,1,Optimal,6,481,0,2,5;1,4.777161882e-10
+  fresh: f7_n800_path_physics,F7,800,path,physics,1,Optimal,6,476,0,2,5;1,4.777165030e-10
+MISMATCH f7_n800_path_corrupted
+  base : f7_n800_path_corrupted,F7,800,path,corrupted,1,Optimal,14,1795,0,3,12;1;1,8.379476637e-12
+  fresh: f7_n800_path_corrupted,F7,800,path,corrupted,1,Optimal,14,2310,0,3,12;1;1,8.379087355e-12
+WITHIN-GATE f7_n800_path_activity kkt_residual base=6.914595476e-09 fresh=6.914602326e-09
+WITHIN-GATE f7_n800_path_warm kkt_residual base=4.212497650e-10 fresh=4.212493723e-10
+MISMATCH f7_n750_path_neutral_control
+  base : f7_n750_path_neutral_control,F7,750,path,neutral,0,Optimal,7865,9297,0,4,1;7862;1;1,1.874010946e-10
+  fresh: f7_n750_path_neutral_control,F7,750,path,neutral,0,Optimal,8779,10298,0,4,1;8776;1;1,1.874010946e-10
+MISMATCH f7_n825_path_neutral_control
+  base : f7_n825_path_neutral_control,F7,825,path,neutral,0,Optimal,7605,9561,0,4,1;7601;2;1,1.874508326e-10
+  fresh: f7_n825_path_neutral_control,F7,825,path,neutral,0,Optimal,10440,10589,0,4,1;9745;693;1,1.874509437e-10
+57 baseline cells, 57 fresh cells, 26 mismatches (22 within gate)

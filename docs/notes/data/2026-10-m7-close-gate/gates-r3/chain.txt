@@ -1,0 +1,17 @@
+CHAIN_R3_START 2026-10-31T10:07:03Z head=7635a728138a3d82fa1926bd862e79fe535730f9
+SELFTEST_FAILS=0
+PREFLIGHT_R3_FAILS=0
+PREFLIGHT_R3_GREEN
+STEP_START census 2026-10-31T10:07:04Z
+WRAPPER_EXIT=0  (log /home/ghecht/Projects/hven/.claude/worktrees/m7-close-gate/.scratch/m7-close/r3/logs/leg-census.log)
+STEP_OK census 2026-10-31T16:08:18Z
+STEP_START census-check 2026-10-31T16:08:18Z
+CENSUS_GATED_VS_BASELINE_RC=1 (informational)
+CENSUS_GATED_VS_R2_RC=0 (informational)
+CENSUS_EXACT_VS_R2_RC=0 (informational)
+CHECK_CENSUS_R3_RC=0
+STEP_OK census-check 2026-10-31T16:08:18Z
+STEP_START char 2026-10-31T16:08:18Z
+WRAPPER_EXIT=0  (log /home/ghecht/Projects/hven/.claude/worktrees/m7-close-gate/.scratch/m7-close/r3/logs/leg-char.log)
+STEP_OK char 2026-10-31T17:20:52Z
+CHAIN_R3_END 2026-10-31T17:20:52Z ALL_STEPS_OK

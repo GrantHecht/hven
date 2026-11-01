@@ -1,0 +1,20 @@
+M7 W2 M3a ADDENDUM E -- THE WHOLE-SOLVE COUNTERS, leg by leg
+
+Machine-written by wrappers/summarise_m3a.py from rows/e/ and the committed
+stage-1 controls. Every column is a public counter printed verbatim by the
+probe; `max(h_e,h_i)` is max(feasibility_e, feasibility_i) and is the only
+arithmetic here. `QpCounters::schur_updates` is NOT on SqpCounters and has
+no column: it is absent, not substituted for (RULE-E.md section 4).
+restoration_sub_status is never printed without restoration_entries beside
+it, and reads '(no phase ran)' when that count is 0.
+
+cell     leg             deadline_fired majors hist_rows minors  qp_cap_retries  qp_maxiter_exits qp_numerical_exits qp_failures_routed qp_fail_row_peak steps_accepted rejected_steps factorizations symbolic border_refine_steps elastic_activations rest_entries restoration_sub_status terminal status  cert max(h_e,h_i)  f                     
+STEENBRB control @trinf  0              4      4         18720   n/a (absent)    4                0                  3                  3                0              3              16             1        84856               0                   0            (no phase ran)         numerical_error  0    2000          2858.786135           
+STEENBRB identity        0              4      4         18720   0               4                0                  3                  3                0              3              16             1        84856               0                   0            (no phase ran)         numerical_error  0    2000          2858.786135           
+STEENBRB E1              0              4      4         56160   4               4                0                  3                  3                0              3              28             2        239914              0                   0            (no phase ran)         numerical_error  0    2000          2858.786135           
+STEENBRB E2              1              4      4         187200  0               4                0                  3                  3                0              3              16             1        843016              0                   0            (no phase ran)         numerical_error  0    2000          2858.786135           
+
+YORKNET  control @trinf  0              4      4         10240   n/a (absent)    4                0                  3                  3                0              3              20466          1        9                   0                   0            (no phase ran)         numerical_error  0    4099.28       110670.2995           
+YORKNET  E1              0              4      4         30720   4               4                0                  3                  3                0              3              61426          2        9                   0                   0            (no phase ran)         numerical_error  0    4099.28       110670.2995           
+YORKNET  E2              1              2      3         51200   0               2                0                  2                  2                0              2              102386         1        9                   0                   0            (no phase ran)         interrupted      0    4099.28       110670.2995           
+

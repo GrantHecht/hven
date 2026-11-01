@@ -11,6 +11,9 @@
 // tag ("...v2"), never these bytes rearranged, and there is no version field
 // inside the payload; a reader that does not know a tag skips the whole
 // extension.
+//
+// The SQP column-scaling decision (SqpWarmStart::column_factors) does not travel
+// through this hand-off: the SqpWarmStart it bridges to re-reads the rule.
 
 #include <cstddef>
 #include <span>

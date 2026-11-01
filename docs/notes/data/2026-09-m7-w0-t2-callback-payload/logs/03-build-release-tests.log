@@ -1,0 +1,48 @@
+LEG: bash -o pipefail -c cd /home/ghecht/Projects/hven && cmake --build build -j 8 2>&1 | tail -40
+PGREP_SEPARATE 2026-09-15T04:15:13Z
+PGREP_EMPTY
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-09-15T04:15:13Z
+[36/75] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_warm_restart.cpp.o
+[37/75] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ledger.cpp.o
+[38/75] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_mesh_transfer.cpp.o
+[39/75] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_trace.cpp.o
+[40/75] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_parametric_families.cpp.o
+[41/75] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_problem_scaling.cpp.o
+[42/75] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_mode_sites.cpp.o
+[43/75] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_predictor.cpp.o
+[44/75] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_scale_smoke.cpp.o
+[45/75] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_scale_problems.cpp.o
+[46/75] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o
+[47/75] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_warm_currency.cpp.o
+[48/75] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ssn_engine.cpp.o
+[49/75] Building CXX object bench/CMakeFiles/hven_sqp_bench.dir/bench_scale.cpp.o
+[50/75] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_trace_writer.cpp.o
+[51/75] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/__/bench/ipm_corpus_leg.cpp.o
+[52/75] Building CXX object bench/CMakeFiles/hven_sqp_f7_cold.dir/bench_f7_cold.cpp.o
+[53/75] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_warm_start.cpp.o
+[54/75] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_warm_start_battery.cpp.o
+[55/75] Linking CXX executable tests/hven_tests
+[56/75] Linking CXX executable tests/hven_ipqp_seam_tests
+[57/75] Linking CXX executable tests/golden_rig/hven_golden_rig
+[58/75] Linking CXX executable tests/golden_rig/hven_golden_rig_report
+[59/75] Linking CXX executable tests/golden_rig/hven_golden_rig_audit
+[60/75] Linking CXX executable tests/model/hven_model_tests
+[61/75] Building CXX object bench/CMakeFiles/hven_sqp_tau_bar_sweep_probe.dir/tau_bar_sweep_probe.cpp.o
+[62/75] Linking CXX executable tests/interior/hven_interior_tests
+[63/75] Linking CXX executable tests/drivers/hven_drivers_tests
+[64/75] Linking CXX executable bench/hven_sqp_snopt_f7
+[65/75] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+[66/75] Linking CXX executable bench/hven_sqp_bench
+[67/75] Linking CXX executable bench/hven_sqp_f7_cold
+[68/75] Linking CXX executable bench/hven_sqp_tau_bar_sweep_probe
+[69/75] Linking CXX executable tests/sqp/hven_sqp_tests
+[70/75] Building CXX object bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+[71/75] Building CXX object bench/CMakeFiles/hven_sqp_ssn_safeguard_probe.dir/ssn_safeguard_probe.cpp.o
+[72/75] Linking CXX executable bench/hven_sqp_crossover
+[73/75] Linking CXX executable bench/hven_sqp_ssn_safeguard_probe
+[74/75] Building CXX object bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+[75/75] Linking CXX executable bench/hven_sqp_ipqp_e1_arm
+LEG_RC=0
+FOREGROUND_END 2026-09-15T04:16:23Z
+WRAPPER_EXIT=0

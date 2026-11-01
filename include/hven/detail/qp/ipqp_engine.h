@@ -63,8 +63,8 @@ namespace detail {
 //     kappa_w^-     = 1/3      -> kIpqpLadderDown      (the next trial)
 //
 // hven DEPARTS on two declared points: the bounds are spec 3.2's, not the paper's
-// 1e-20/1e40, and IC-1's unmodified trial is skipped only after `kIpqpLadderSkipAfter`
-// modified iterations.
+// 1e-20/1e40, and IC-1's unmodified trial is skipped only after
+// `IpqpOptions::ipqp_ladder_skip_after` modified iterations.
 
 /// @brief IC's `delta_w^0`: the first rung of a climb that starts from no
 /// memory at all. An ABSOLUTE magnitude, not a multiple of anything -- the
@@ -85,11 +85,6 @@ inline constexpr double kIpqpLadderUp = 8.0;
 /// `max(ipqp_reg_floor, rho_dem_last / kIpqpLadderDown)`. The ladder is therefore NOT
 /// monotone within a solve, deliberately -- a monotone floor makes an overshoot permanent.
 inline constexpr double kIpqpLadderDown = 3.0;
-
-/// @brief How many CONSECUTIVE preceding iterations must have needed a
-/// modification before the unmodified trial (IC-1) is skipped. Adaptation
-/// (ii) in the banner above.
-inline constexpr int kIpqpLadderSkipAfter = 3;
 
 /// @brief How many CONSECUTIVE primal escalations may answer a perturbed-pivot
 /// report before the ladder falls back to escalating the DUAL shift instead.
@@ -140,6 +135,12 @@ inline constexpr double kIpqpSlackInit = 1.0;
 /// different scales.
 inline constexpr double kIpqpRepairEps = 1.0e-8;
 inline constexpr double kIpqpRepairSlackEps = 1.0e-8;
+
+/// @brief A2's `ipqp_mu0_rule = kComplementarity` shifts (Mehrotra 1992 as PIQP section IV.A
+/// states them): the multipliers move by `1.5 * -min(z)` when negative, then by
+/// `0.5 * d'z / sum(d)`. Literature constants, not tuned.
+inline constexpr double kIpqpMu0ShiftFactor = 1.5;
+inline constexpr double kIpqpMu0CentreFraction = 0.5;
 
 /// @brief The SAY shift of 5.2 item 2 is applied ONLY to a seed that is not
 /// already centred (`min pair product < this * mu_0`), so a good warm seed
@@ -393,11 +394,15 @@ struct IpqpResult {
     /// FIVE WAYS TO GET HERE: four pair with an `ipqp_final_inertia_read` value
     /// (1 disagreed, 2 unusable evidence, 3 declined/budget-refused); the fifth is a
     /// MID-SOLVE evidence failure.
+    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian, or a caller-asserted
+    /// convex B, in which case this certifies B, not the NLP.
     bool certificate_downgraded = false;
 
     /// True iff section 2.2's evidence-failure policy was invoked ANYWHERE in this solve: some
     /// factorization SUCCEEDED but reported a state other than `kObserved`. Implies
     /// `certificate_downgraded`. Distinct from a FAILED factorization, which escapes at once.
+    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian, or a caller-asserted
+    /// convex B, in which case this certifies B, not the NLP.
     bool inertia_evidence_failed = false;
 
     /// True iff the item 4 read AGREED and, once every downgrade is applied,
@@ -442,6 +447,8 @@ struct IpqpResult {
     /// NOT the solve's high-water mark (`counters.ipqp_rho_demanded_max`) and NOT the ladder's
     /// memory (`counters.ipqp_rho_demanded_last`): it is the working value of the LAST step, so
     /// a solve that armed early and disarmed later reports `0.0` here and a nonzero max.
+    /// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian, or a caller-asserted
+    /// convex B, in which case this certifies B, not the NLP.
     double rho_mod = 0.0;
 
     // --- the face blocks (spec 2.3 item 2; the routing chain's input) -------

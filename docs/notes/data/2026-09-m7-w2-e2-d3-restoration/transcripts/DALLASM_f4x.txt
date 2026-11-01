@@ -1,0 +1,39 @@
+# DALLASM_f4x -- hven 763cda00 + E2-D3 scratch instrumentation; harness ea1aa4e copy; MKL_NUM_THREADS=1, taskset -c 2, --budget-iters 100
+status=infeasible
+outcome=infeasible
+iterations=2
+factorizations=701
+objective=61972694.254047789
+kkt_stationarity=89474.28830762775
+kkt_primal_eq=2.8421709430404007e-14
+kkt_primal_ineq=0
+kkt_complementarity=31964576.037508108
+side.major_iters=2
+side.qp_minor_iters=746
+side.elastic_activations=2
+side.restoration_iters=2
+side.sqp_infeasibility_certified=0
+side.harness_qpsum_dep_infeasible_certificates=0
+side.harness_qpsum_dep_certificate_rejections=0
+side.harness_qpsum_dep_blocker_terminations=4
+# --- D3 trace (stderr) ---
+D3START depth=0 n=196 out_of_box=0 max_box_viol=0 project=0
+D3QP depth=0 major=0 delta=1 status=3 minors=64 facts=2 h=12.456 f=61971710.59 blk_term=1 zmcap=0 cert=0 cert_rej=0 n=196 me=150 mi=0 f4route=1 resto_used=0
+D3RUNG rho=100 status=3 minors=194 facts=370 slack_l1=-1 slack_max=-1 viol_l1_in=12.456 blk_term=1 zmcap=0 cert=0 cert_rej=0
+D3LADDER rho0=100 final_rho=100 status=3 slack_l1=0 viol_l1_in=12.456 closed=0 reduced=0 promises_f=0 pred_dec=0 usable=0 step_inf=0 window=1
+D3RESTO_REQ depth=0 major=0 allow=1 used=0 h=12.456 cand=0
+D3START depth=1 n=496 out_of_box=0 max_box_viol=0 project=0
+D3QP depth=1 major=0 delta=1 status=0 minors=354 facts=273 h=0 f=12.456 blk_term=0 zmcap=0 cert=0 cert_rej=0 n=496 me=150 mi=0 f4route=0 resto_used=0
+D3MAJ depth=1 major=0 outcome=1 qp_status=0 verdict=0 elastic=0 viol=0 f=12.456 tr=1 step=1 minors=354 h_now=0
+D3QP depth=1 major=1 delta=2 status=0 minors=6 facts=52 h=2.377809222e-13 f=2.016 blk_term=0 zmcap=0 cert=0 cert_rej=0 n=496 me=150 mi=0 f4route=0 resto_used=0
+D3MAJ depth=1 major=1 outcome=1 qp_status=0 verdict=0 elastic=0 viol=2.377809222e-13 f=2.016 tr=2 step=0.56 minors=6 h_now=2.377809222e-13
+D3MAJ depth=1 major=2 outcome=3 qp_status=0 verdict=2 elastic=0 viol=3.353660688e-13 f=-3.30872245e-24 tr=2 step=0 minors=0 h_now=3.353660688e-13
+D3END depth=1 status=0 majors=2 resto_iters=0 certified=0 obj=-3.30872245e-24 feas=2.84217e-14 stat=1.30953e-22
+D3RESTO_END sub_status=0 sub_majors=2 sub_elastic=0 h_in=12.456 h_r=3.637877783e-13 f_r=61972694.25 |x_r-x|inf=1.52629 seed_used=0 sub_obj=-3.30872245e-24 sub_kkt_stat=1.30953e-22 sub_feas=2.84217e-14
+D3MAJ depth=0 major=0 outcome=0 qp_status=3 verdict=3 elastic=1 viol=12.456 f=61971710.59 tr=1 step=0 minors=194 h_now=3.637877783e-13
+D3QP depth=0 major=1 delta=0.1 status=3 minors=64 facts=2 h=3.637877783e-13 f=61972694.25 blk_term=1 zmcap=0 cert=0 cert_rej=0 n=196 me=150 mi=0 f4route=1 resto_used=1
+D3RUNG rho=100 status=3 minors=64 facts=2 slack_l1=-1 slack_max=-1 viol_l1_in=0 blk_term=1 zmcap=0 cert=0 cert_rej=0
+D3LADDER rho0=100 final_rho=100 status=3 slack_l1=0 viol_l1_in=0 closed=0 reduced=0 promises_f=0 pred_dec=0 usable=0 step_inf=0 window=0.1
+D3RESTO_REQ depth=0 major=1 allow=1 used=1 h=3.637877783e-13 cand=0
+D3MAJ depth=0 major=1 outcome=6 qp_status=3 verdict=3 elastic=1 viol=3.637877783e-13 f=61972694.25 tr=0.1 step=0 minors=64 h_now=3.637877783e-13
+D3END depth=0 status=3 majors=2 resto_iters=2 certified=0 obj=61972694.25 feas=2.84217e-14 stat=89474.3

@@ -1,0 +1,39 @@
+PGREP_EMPTY v1-release 2026-09-25T16:23:32-04:00
+FOREGROUND_START v1-release 2026-09-25T16:23:32-04:00
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a21a2ab349204592e/.scratch/nc1-build-release/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = *NC1ObserveDeclines
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from QpE2WorkingSet
+[ RUN      ] QpE2WorkingSet.NC1ObserveDeclines
+NC1 Cs_STEENBRB_qp3.txt mode=0 minor=502 rel=187 side=1 why=DEP sign=1 slope=-2.3718e+07 stol=4.473e-03 leaves=2.7903e+07 ltol=6.835e-05 curv=-2.1421e-18 action=9 blk=4 alpha=-0.000e+00
+NC1SUM Cs_STEENBRB_qp3.txt mode=0 status=0 minors=586 f=-11.5370634375 fired=29 stepped=28 dep=1 nullspace=0 flat=0 disagree=0 unb=0 dep_ride_blockers=1 rexch=1 undo=0 signv=0 passov=898 blkterm=0 zmcap=0 unlocks=0 zmexh=0
+NC1 Cs_STEENBRB_qp3.txt mode=1 minor=508 rel=187 side=1 why=DEP sign=1 slope=-2.3858e+07 stol=4.499e-03 leaves=2.8068e+07 ltol=6.875e-05 curv=-2.1421e-18 action=9 blk=4 alpha=-0.000e+00
+NC1 Cs_STEENBRB_qp3.txt mode=1 minor=577 rel=312 side=2 why=DEP sign=-1 slope=1.9649e+01 stol=2.575e-07 leaves=-3.9344e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=128 alpha=-0.000e+00
+NC1 Cs_STEENBRB_qp3.txt mode=1 minor=578 rel=312 side=2 why=DEP sign=-1 slope=1.9649e+01 stol=2.575e-07 leaves=-3.9344e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=207 alpha=-0.000e+00
+NC1SUM Cs_STEENBRB_qp3.txt mode=1 status=0 minors=603 f=-11.5370634375 fired=32 stepped=29 dep=3 nullspace=0 flat=0 disagree=0 unb=0 dep_ride_blockers=3 rexch=3 undo=0 signv=0 passov=1271 blkterm=0 zmcap=0 unlocks=0 zmexh=0
+NC1SUM Cs_STEENBRB_qp3.txt mode=2 status=0 minors=596 f=-11.5370634375 fired=24 stepped=24 dep=0 nullspace=0 flat=0 disagree=0 unb=0 dep_ride_blockers=0 rexch=0 undo=0 signv=0 passov=0 blkterm=0 zmcap=0 unlocks=0 zmexh=0
+NC1 Cs_STEENBRB_qp4.txt mode=0 minor=178 rel=312 side=2 why=DEP sign=-1 slope=1.9646e+01 stol=2.575e-07 leaves=-3.9342e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=362 alpha=-0.000e+00
+NC1 Cs_STEENBRB_qp4.txt mode=0 minor=179 rel=312 side=2 why=DEP sign=-1 slope=1.9646e+01 stol=2.575e-07 leaves=-3.9342e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=128 alpha=2.335e-05
+NC1SUM Cs_STEENBRB_qp4.txt mode=0 status=0 minors=202 f=-5.7690469472 fired=26 stepped=24 dep=2 nullspace=0 flat=0 disagree=0 unb=0 dep_ride_blockers=2 rexch=2 undo=0 signv=0 passov=10 blkterm=0 zmcap=0 unlocks=0 zmexh=0
+NC1 Cs_STEENBRB_qp4.txt mode=1 minor=178 rel=312 side=2 why=DEP sign=-1 slope=1.9646e+01 stol=2.575e-07 leaves=-3.9342e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=362 alpha=-0.000e+00
+NC1 Cs_STEENBRB_qp4.txt mode=1 minor=179 rel=312 side=2 why=DEP sign=-1 slope=1.9646e+01 stol=2.575e-07 leaves=-3.9342e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=128 alpha=2.335e-05
+NC1SUM Cs_STEENBRB_qp4.txt mode=1 status=0 minors=202 f=-5.7690469472 fired=26 stepped=24 dep=2 nullspace=0 flat=0 disagree=0 unb=0 dep_ride_blockers=2 rexch=2 undo=0 signv=0 passov=10 blkterm=0 zmcap=0 unlocks=0 zmexh=0
+NC1SUM Cs_STEENBRB_qp4.txt mode=2 status=0 minors=192 f=-5.7690469472 fired=25 stepped=25 dep=0 nullspace=0 flat=0 disagree=0 unb=0 dep_ride_blockers=0 rexch=0 undo=0 signv=0 passov=0 blkterm=0 zmcap=0 unlocks=0 zmexh=0
+NC1 Cs_STEENBRB_qp5.txt mode=0 minor=168 rel=312 side=2 why=DEP sign=-1 slope=1.9645e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=362 alpha=-0.000e+00
+NC1SUM Cs_STEENBRB_qp5.txt mode=0 status=0 minors=191 f=-2.8846522807 fired=24 stepped=23 dep=1 nullspace=0 flat=0 disagree=0 unb=0 dep_ride_blockers=1 rexch=1 undo=0 signv=0 passov=11 blkterm=0 zmcap=0 unlocks=0 zmexh=0
+NC1 Cs_STEENBRB_qp5.txt mode=1 minor=168 rel=312 side=2 why=DEP sign=-1 slope=1.9645e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=362 alpha=-0.000e+00
+NC1SUM Cs_STEENBRB_qp5.txt mode=1 status=0 minors=191 f=-2.8846522807 fired=24 stepped=23 dep=1 nullspace=0 flat=0 disagree=0 unb=0 dep_ride_blockers=1 rexch=1 undo=0 signv=0 passov=11 blkterm=0 zmcap=0 unlocks=0 zmexh=0
+NC1SUM Cs_STEENBRB_qp5.txt mode=2 status=0 minors=191 f=-2.8846522807 fired=26 stepped=26 dep=0 nullspace=0 flat=0 disagree=0 unb=0 dep_ride_blockers=0 rexch=0 undo=0 signv=0 passov=0 blkterm=0 zmcap=0 unlocks=0 zmexh=0
+NC1 Cs_STEENBRB_qp6.txt mode=0 minor=163 rel=312 side=2 why=DEP sign=-1 slope=1.9644e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=362 alpha=-0.000e+00
+NC1SUM Cs_STEENBRB_qp6.txt mode=0 status=0 minors=186 f=-1.4423583421 fired=26 stepped=25 dep=1 nullspace=0 flat=0 disagree=0 unb=0 dep_ride_blockers=1 rexch=1 undo=0 signv=0 passov=14 blkterm=0 zmcap=0 unlocks=0 zmexh=0
+NC1 Cs_STEENBRB_qp6.txt mode=1 minor=163 rel=312 side=2 why=DEP sign=-1 slope=1.9644e+01 stol=2.575e-07 leaves=-3.9340e+03 ltol=3.934e-09 curv=-1.2693e-06 action=9 blk=362 alpha=-0.000e+00
+NC1SUM Cs_STEENBRB_qp6.txt mode=1 status=0 minors=186 f=-1.4423583421 fired=26 stepped=25 dep=1 nullspace=0 flat=0 disagree=0 unb=0 dep_ride_blockers=1 rexch=1 undo=0 signv=0 passov=14 blkterm=0 zmcap=0 unlocks=0 zmexh=0
+NC1SUM Cs_STEENBRB_qp6.txt mode=2 status=0 minors=184 f=-1.4423583421 fired=26 stepped=26 dep=0 nullspace=0 flat=0 disagree=0 unb=0 dep_ride_blockers=0 rexch=0 undo=0 signv=0 passov=0 blkterm=0 zmcap=0 unlocks=0 zmexh=0
+[       OK ] QpE2WorkingSet.NC1ObserveDeclines (14926 ms)
+[----------] 1 test from QpE2WorkingSet (14926 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (14926 ms total)
+[  PASSED  ] 1 test.
+FOREGROUND_END v1-release 2026-09-25T16:23:47-04:00 rc=0

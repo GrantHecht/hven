@@ -1,0 +1,12 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-ad5e6e56c9da5d8a5/.scratch/a1i/build-rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = DISABLED_MeasurementArm.FinalPassExponentsOfCommittedRowsByTruth
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DISABLED_MeasurementArm
+[ RUN      ] DISABLED_MeasurementArm.FinalPassExponentsOfCommittedRowsByTruth
+[       OK ] DISABLED_MeasurementArm.FinalPassExponentsOfCommittedRowsByTruth (17333 ms)
+[----------] 1 test from DISABLED_MeasurementArm (17333 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (17334 ms total)
+[  PASSED  ] 1 test.

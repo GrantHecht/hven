@@ -1,0 +1,4 @@
+[1/4] Building CXX object CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests

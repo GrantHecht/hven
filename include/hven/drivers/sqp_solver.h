@@ -24,6 +24,8 @@
 
 #include <hven/core/ledger.h>
 #include <hven/detail/globalization/sqp/globalization.h>
+#include <hven/detail/globalization/sqp/qn_lift_bridge.h>
+#include <hven/detail/globalization/sqp/qn_models.h>
 #include <hven/detail/globalization/sqp/trust_region.h>
 #include <hven/detail/qp/ipqp_engine.h>
 #include <hven/detail/qp/qp_engine.h>
@@ -54,6 +56,9 @@ namespace hven::solvers {
 /// non-copyable and non-movable, so nothing else in this header instantiates their deleters.
 class ConsoleTraceSink;
 class FanOutTraceSink;
+namespace detail {
+class EqualityBasis;
+} // namespace detail
 
 /// @brief One model evaluation at one point: the five quantities a major
 ///        iteration reads, taken together so nothing is evaluated twice.
@@ -107,6 +112,17 @@ void upgrade_to_full(const NlpModel &model, const Vec &x, NlpEval &ev);
 ///         propagate deliberately rather than being swallowed here.
 double constraint_violation_l1(const NlpEval &ev);
 
+/// @brief The box half of the violation: sum_i max(0, l_i - x_i) + max(0, x_i - u_i).
+///
+/// Read beside constraint_violation_l1 wherever h DECIDES the ladder -- as its own
+/// conjunct in the sufficient-reduction resume, added to it in the E2-termination
+/// elastic guard (the restoration resume test reads `SqpKkt::feasibility`) -- and
+/// nowhere else: the funnel's iterates are x + p with p inside the QP's own box, so there
+/// the term is zero up to the rounding of x + (l - x), which it must not turn
+/// into a trajectory. 0 on an in-box point; NaN if x is NaN.
+/// @throws std::invalid_argument if the three sizes differ.
+double box_violation_l1(const Vec &x, const Vec &lo, const Vec &up);
+
 /// @brief The KKT measurement of one NLP iterate.
 struct SqpKkt {
     /// @brief inf-norm stationarity residual.
@@ -125,7 +141,8 @@ struct SqpKkt {
     ///        reading the residuals as numbers.
     bool finite = true;
 
-    /// @brief The single scalar the convergence and contraction tests read.
+    /// @brief The scalar the contraction test reads; the convergence test reads it
+    ///        and, separately, `complementarity` (WX-R1).
     /// @return max(stationarity, feasibility); NaN when `finite` is false.
     double residual() const { return std::max(stationarity, feasibility); }
 };
@@ -206,6 +223,16 @@ namespace detail {
 SqpKkt evaluate_kkt_over(Index n, Index me, Index mi, const Vec &lo, const Vec &up,
                          const NlpEval &ev, const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
                          double bound_tol);
+
+/// @brief The same measurement with a PER-VARIABLE activity tolerance (QC-1): variable i
+///        is bound-active within `bound_tol(i)`. The restoration sub-driver's entry, where
+///        a slack's tolerance is the violation tolerance in that slack's own units
+///        (RestorationModel::bound_activity_tolerance). At a constant vector it is the
+///        scalar overload's arithmetic exactly.
+/// @throws std::invalid_argument when @p bound_tol does not have @p n entries.
+SqpKkt evaluate_kkt_over(Index n, Index me, Index mi, const Vec &lo, const Vec &up,
+                         const NlpEval &ev, const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
+                         const Vec &bound_tol);
 
 } // namespace detail
 
@@ -432,6 +459,9 @@ void accumulate_ipqp_counters(IpqpCounters &total, const IpqpCounters &one);
 /// @param res   The tier's result.
 /// @param opts  The QpOptions the tier ran under -- its tolerances.
 /// @param iopts The IpqpOptions it ran under; `ipqp_converge_slack` is read.
+///
+/// CURVATURE SOURCE: the subproblem Hessian -- the exact model Hessian under kExact; under
+/// SqpHessianMode::kLbfgsDamped the PD quasi-Newton B, so this certifies B, not the NLP.
 bool ipqp_exit_is_a_usable_step(const IpqpResult &res, const QpOptions &opts,
                                 const IpqpOptions &iopts);
 
@@ -512,11 +542,25 @@ struct ElasticSeedSource {
 /// @return The ladder's report.
 /// @throws std::invalid_argument if `window` is negative or NaN, or if an
 ///         override is NaN or non-positive (+inf is legal and clamps).
+/// @param tier   Non-null hands EVERY rung to the interior-point kernel instead
+///               of @p engine (M7 W0 T3's `SqpOptions::elastic_rung_engine ==
+///               kTier`), with that engine's own `warm_carry()` as the
+///               rung-to-rung chain and its status derived from
+///               `ipqp_exit_is_a_usable_step`. NULL -- the default -- is the
+///               walk, unchanged in every respect. The engine passed here must
+///               carry `tr_radius = +inf` in its own QpOptions: the tier
+///               resolves the override sentinel to that field and would
+///               otherwise window the slack columns a second time.
+/// @param qn     Non-null under `SqpHessianMode::kLbfgsDamped`: every rung (walk or tier) is
+///               solved through the mixed lift, after the elastic augmentation (the slack
+///               columns carry no curvature), and the exhaustion test's predicted decrease
+///               reads B. NULL -- the default -- is the exact-Hessian ladder, unchanged.
 ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
                                        const ElasticSeedSource &seed, double window,
                                        const SqpOptions &opts, SqpCounters &out,
                                        std::optional<double> rho_0_override = std::nullopt,
-                                       TraceSink *sink = nullptr);
+                                       TraceSink *sink = nullptr, IpqpEngine *tier = nullptr,
+                                       detail::QnLiftBridge *qn = nullptr);
 
 /// @brief The escape branch's single entry: a bounded two-rung ladder. Rung A is
 ///        the elastic QP at the evidence's own rho_0; rung B is a cold walk,
@@ -542,17 +586,20 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
 /// @param sink      Optional trace sink; non-null makes rung B's cold walk write
 ///                  a `qp.mode` line at site `fallback_rung_b` at both of its
 ///                  return sites, and is forwarded into rung A's ladder.
+/// @param tier      Forwarded to rung A's ladder; see `run_elastic_ladder`.
+///                  RUNG B IS THE WALK WHATEVER THIS IS: it is the engine's
+///                  refusal path, and W1's body is what carries that refusal.
+/// @param qn        Forwarded to rung A's ladder, and rung B's cold walk goes through it;
+///                  see `run_elastic_ladder`.
 /// @return Rung A's step in the original variables, or rung B's walk solution
 ///         unchanged.
 /// @throws std::invalid_argument if `window` is negative or NaN.
-QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp, const NlpEval &ev,
-                                          const QpSolution *seed,
-                                          const IpqpInfeasibilityEvidence &evidence,
-                                          const SolveOverrides &overrides, const SqpOptions &opts,
-                                          double window, SqpCounters &out, SqpIterate &row,
-                                          std::optional<ElasticLadderReport> &fallback_report,
-                                          SqpFallbackVerdictTraceEvent &verdict,
-                                          TraceSink *sink = nullptr);
+QpSolution certified_feasibility_fallback(
+    QpEngine &engine, const QpProblem &qp, const NlpEval &ev, const QpSolution *seed,
+    const IpqpInfeasibilityEvidence &evidence, const SolveOverrides &overrides,
+    const SqpOptions &opts, double window, SqpCounters &out, SqpIterate &row,
+    std::optional<ElasticLadderReport> &fallback_report, SqpFallbackVerdictTraceEvent &verdict,
+    TraceSink *sink = nullptr, IpqpEngine *tier = nullptr, detail::QnLiftBridge *qn = nullptr);
 
 // --- Adaptive dual regularization -------------------------------------------
 //
@@ -782,8 +829,77 @@ class SqpSolver {
     ///
     /// @param cb The callback. An empty std::function is the same as clearing.
     void set_iteration_callback(IterationCallback cb) {
+        set_iteration_callback(std::move(cb), IterationPayload::kAll);
+    }
+
+    /// @brief Installs the per-iteration callback and DECLARES what it reads.
+    ///
+    /// Everything the one-argument overload documents holds here unchanged --
+    /// one event per history row, the caller's units, the depth stamping and
+    /// the restoration forwarding, what kStop does, the in-flight deferral,
+    /// the throw contract. This overload adds ONE thing: @p payload, the mask
+    /// of IterationEvent parts this consumer will actually read, and the
+    /// driver prepares nothing else.
+    ///
+    /// WHAT A SCALARS-ONLY CONSUMER GETS, AND WHAT IT SAVES. Under
+    /// IterationPayload::kScalars the event carries `iteration`, `depth`, `f`,
+    /// `step_norm`, `radius` and `elapsed_seconds`; `x`, `lambda_e`,
+    /// `lambda_i` and `z` are EMPTY views, and the four diagnostics are NaN --
+    /// which here means NOT REQUESTED rather than not measurable. The driver
+    /// then skips the measurement snapshot this engine takes behind its
+    /// callback guard: the iterate and its three price blocks copied out, the
+    /// engine->caller scaling map applied to them, and the declared-diagnostics
+    /// pass beside them. On THIS engine that preparation measured FLAT over
+    /// the 27-cell SQP corpus in all three modes
+    /// (`docs/notes/data/2026-09-m6-w6-attached-cost/reading.md` section 2) --
+    /// the events are per MAJOR and there are few of them -- so the mask is
+    /// carried here for ONE SURFACE across both engines rather than because
+    /// this engine needed it. The interior-point engine is where it pays.
+    ///
+    /// THE M7 W0 T2 RE-MEASUREMENT CONFIRMS BOTH HALVES
+    /// (`docs/notes/data/2026-09-m7-w0-t2-callback-payload/reading.md`): this
+    /// corpus is FLAT in both arms (whole-corpus ratios 1.00013 at kAll and
+    /// 1.00000 at kScalars, 0 of 27 cells outside 0.99-1.01), while on the
+    /// interior engine the same mask removes 57 % of the attached cost. It
+    /// does NOT remove all of it there: a residual of about +0.6 % is left
+    /// that is not understood and is registered with its number, not
+    /// explained. See IpmSolver::set_iteration_callback.
+    ///
+    /// WHO THE MASK IS FOR. A benchmark harness that wants per-iteration
+    /// COUNTS attaches with kScalars; a consumer that CAPTURES THE TRAJECTORY
+    /// keeps kAll, which is what the one-argument overload installs.
+    ///
+    /// THE MASK RIDES THE CALLABLE: stored beside it, parked through the same
+    /// in-flight guard, applied at the same safe point, reset to kAll by
+    /// clear_iteration_callback(), and FORWARDED into a restoration sub-solve
+    /// with the forwarder itself, so a depth-1 event carries the same payload
+    /// as a depth-0 one. Set from INSIDE the callback it takes effect at the
+    /// NEXT event, exactly as a replacement callable does.
+    ///
+    /// AND THAT RULE HOLDS AT DEPTH 1 TOO (M7 W0 T2 fix1). A mask changed from
+    /// inside a RESTORATION event reaches the sub-driver that is running: the
+    /// apply point pushes it down the active sub-driver chain, so the next
+    /// depth-1 event is prepared under the new mask, widening or narrowing.
+    /// An empty callable passed here is a clear, and like a clear it resets
+    /// the mask to kAll whatever this argument says.
+    ///
+    /// @param cb      The callback. An empty std::function is the same as
+    ///                clearing (and, like clearing, resets the mask).
+    /// @param payload What this callback reads. IterationPayload::kAll is the
+    ///                shape every consumer had before this overload existed.
+    void set_iteration_callback(IterationCallback cb, IterationPayload payload) {
+        // AN EMPTY CALLABLE NORMALISES THE MASK TO kAll (M7 W0 T2 fix1, the
+        // sol review's fourth Minor). An empty std::function IS a clear, and a
+        // clear resets the mask -- so storing a narrow mask beside one would
+        // leave this driver in a state its own contract says cannot exist.
+        // Normalised rather than refused: a caller that always routes through
+        // this overload with a stored mask may legitimately pass an empty
+        // callable to disarm, and a throw there would punish the idiom the
+        // one-argument form already allows.
+        const IterationPayload effective = cb ? payload : IterationPayload::kAll;
         if (callback_in_flight_ || solve_in_flight_) {
             pending_callback_ = std::move(cb);
+            pending_payload_ = effective;
             // WHICH SAFE POINT APPLIES IT (M6 W5 T8.7b, the lane's Q5, taken on
             // both engines). From inside the callback: the statement after that
             // invocation returns -- T8.6's contract, unchanged. From anywhere
@@ -816,15 +932,32 @@ class SqpSolver {
         pending_callback_.reset();
         pending_callback_at_entry_ = false;
         iteration_callback_ = std::move(cb);
+        iteration_payload_ = effective;
     }
-    /// @brief Removes the per-iteration callback.
+
+    /// @brief The payload mask the installed callback declared, or
+    ///        IterationPayload::kAll when none is installed.
+    ///
+    /// AN OBSERVATION POINT (M7 W0 T2 fix1), on ssn_tier_num_threads()'s own
+    /// footing: read-only, and it exists so a consumer -- and the suite -- can
+    /// see what this driver was told to prepare. It reads the ACTIVE mask, so
+    /// a value parked from inside a callback is not visible here until the
+    /// safe point applies it, which is the same next-event rule the setters
+    /// document.
+    IterationPayload iteration_payload() const noexcept { return iteration_payload_; }
+    /// @brief Removes the per-iteration callback, and resets the payload mask.
     ///
     /// Deferred to the safe point when called from INSIDE the callback; see
     /// set_iteration_callback(), whose ONE deferral slot this shares -- last
     /// write wins.
+    ///
+    /// THE MASK GOES BACK TO IterationPayload::kAll, so a later attach through
+    /// the one-argument overload delivers the full payload and no narrowing
+    /// survives a clear (M7 W0 T2).
     void clear_iteration_callback() {
         if (callback_in_flight_ || solve_in_flight_) {
             pending_callback_ = IterationCallback{};
+            pending_payload_ = IterationPayload::kAll;
             pending_callback_at_entry_ = !callback_in_flight_;
             return;
         }
@@ -832,6 +965,7 @@ class SqpSolver {
         pending_callback_.reset();
         pending_callback_at_entry_ = false;
         iteration_callback_ = nullptr;
+        iteration_payload_ = IterationPayload::kAll;
     }
 
     /// @brief Returns the options this driver runs under.
@@ -1239,6 +1373,17 @@ class SqpSolver {
     void solve_with_walk(SolveState &st, MajorState &mj, const SqpWarmStart &warm,
                          const SolveOverrides &overrides, bool offer_hot, bool use_crash);
 
+    /// @brief The subproblem at the current iterate under SqpHessianMode::kLbfgsDamped (M7
+    ///        QN stage 3): no eval_hess; H = sigma I on the structural block, the rest of B
+    ///        entering through the lift. Engages the QN instance at the first call, with
+    ///        sigma_0 = max(1, ||grad_x L||inf / Delta) on the structural block of @p kkt.
+    QpProblem build_qn_subproblem(SolveState &st, const SqpKkt &kkt, AssemblyEvalSeam &seam);
+
+    /// @brief Offers the step the major just committed to the QN window (accepted-only rule):
+    ///        s = x_new - x_old, y = grad_x L(x_new, lambda+) - grad_x L(x_old, lambda+) with
+    ///        lambda+ the committed multipliers. No-op under kExact.
+    void qn_offer_committed_pair(SolveState &st, const Vec &x_old, const NlpEval &ev_old);
+
     /// @brief What ONE MAJOR decided, and the only thing that crosses back out of
     ///        `run_major`.
     ///
@@ -1271,6 +1416,9 @@ class SqpSolver {
         /// A restoration exit whose requester's QP is in the original
         /// variables and still describes x unless restoration moved it.
         kFinishRestorationQp,
+        /// A redundant equality row found inconsistent on two-iterate evidence
+        /// (SqpOptions::equality_basis): kInfeasible at the current iterate.
+        kFinishInconsistentEqualities,
     };
 
     /// @brief What the restoration phase decided.
@@ -1449,6 +1597,60 @@ class SqpSolver {
     // the SSN tier were constructed with, so all three kernels read one
     // tolerance pair and one regularization pair.
     IpqpEngine &ipqp_engine();
+    // THE ELASTIC RUNG'S OWN TIER ENGINE (M7 W0 T3), constructed on first use and
+    // only under `elastic_rung_engine == kTier`. A SECOND INSTANCE, not
+    // `ipqp_engine()`, and the two reasons are the whole design:
+    //
+    // (1) A9. The elastic problem's pattern differs from the primary's in
+    //     dimension (`n + ns` columns), so sharing one instance would relay the
+    //     layout on entry to a rung AND relay it back on the next major's
+    //     primary solve -- two symbolic analyses per activation, and the pin's
+    //     "exactly one of {analyze, verify} per tier entry" broken by
+    //     construction. On its own instance the elastic analysis is the elastic
+    //     engine's, and the primary tier's hoist is untouched.
+    // (2) The cross-major carry. `IpqpEngine`'s `carry_` is committed at the end
+    //     of every solve that produced a finite iterate, so an elastic solve on
+    //     the shared instance would overwrite the primary's carry at the wrong
+    //     dimension, and the dispatch's size check would then drop it cold.
+    //
+    // ITS `QpOptions` CARRY `tr_radius = +inf`, deliberately and not as a
+    // default: the tier RESOLVES the `+inf` SolveOverrides sentinel to its own
+    // `opts.tr_radius` and then windows EVERY column, slacks included -- which
+    // the walk rung is immune to by construction (it passes a default override
+    // precisely so the slacks are not capped) and a tier rung is not. The
+    // driver has already folded this major's radius into the elastic box, so a
+    // second window here would cap the slack columns a second time and could
+    // cut off the relaxation's feasible-by-construction witness point.
+    IpqpEngine &elastic_ipqp_engine();
+
+    // The toggle, resolved: `nullptr` at kWalk (and nothing constructed), the
+    // elastic tier engine at kTier. Both of the ladder's call sites go through
+    // this, so one reading of `elastic_rung_engine` serves the kIpm arm's
+    // certified fallback and the walk route's own kInfeasible consumer alike.
+    IpqpEngine *elastic_rung_tier();
+
+    // THE CAP-RETRY'S OWN WALK ENGINE (M7 W2 M1), constructed on first use and
+    // only under `qp_cap_retry`, and A SECOND QpEngine INSTANCE for one reason:
+    // `QpOptions::max_iter` is read from the engine's OWN options copy, fixed at
+    // its construction, and `SolveOverrides` carries no per-solve cap. So the
+    // only way to re-solve a capped subproblem at a raised cap without inventing
+    // a new entry point is an engine whose options say so -- exactly the
+    // construction `elastic_ipqp_engine()` uses for its own one changed field.
+    // Every OTHER field is `opts_.qp` verbatim, so the retry reads the same
+    // tolerance pair and the same regularization pair as the solve it is
+    // retrying, and it runs the ordinary 3-argument warm `solve()` -- no new
+    // engine seam, no new overload.
+    //
+    // `cap` IS THE ABSOLUTE CAP THE RETRY IS GIVEN (a positive value, which
+    // `QpOptions::max_iter`'s own precedence rule makes win outright over the
+    // size-derived sentinel). The instance is rebuilt if a later retry asks for
+    // a different one; within a solve it never does, because the derivation
+    // reads dimensions that do not change between majors.
+    //
+    // AT THE SHIPPED DEFAULT (`qp_cap_retry == false`) THIS IS NEVER CALLED and
+    // nothing is constructed -- no second backend session, exactly as the
+    // elastic rung's toggle promises at ITS default.
+    QpEngine &cap_retry_engine(Index cap);
 
     // The IpqpOptions ONE subproblem is solved under: forwarded, not derived,
     // with one exception. `ipqp_hoist_symbolic` is forced false for one entry
@@ -1467,11 +1669,13 @@ class SqpSolver {
     /// @param ssn_budget_charge the probe budget's SSN accumulator, charged.
     /// @param counters the solve's running counters, updated.
     /// @param qs       written with the SSN's step iff one was usable.
+    /// @param qn       the quasi-Newton lift (SqpHessianMode::kLbfgsDamped), or nullptr.
     /// @return true iff the walk owns this subproblem after all (the SSN exit
     ///         was not usable), i.e. `walk_owns_this_qp`.
     bool route_through_ssn_warm_grade(const QpProblem &qp, const IpqpResult &ires, double delta,
                                       double &ssn_prox_ingested, Index &ssn_budget_charge,
-                                      SqpCounters &counters, QpSolution &qs);
+                                      SqpCounters &counters, QpSolution &qs,
+                                      detail::QnLiftBridge *qn);
 
     /// @brief Builds the SqpWarmStart every exit of solve_impl attaches to
     ///        SqpResult::warm_start.
@@ -1491,14 +1695,31 @@ class SqpSolver {
     /// @param primal_delta_eff  The effective primal regularization.
     /// @param strategy          The globalization strategy, read for its state.
     /// @param hot               The hot handle to carry, if any.
+    ///
+    /// CURVATURE SOURCE (M7 QN stage 3): the probe calls eval_hess under kExact (counted in
+    /// `SqpCounters::eval_hess_calls`, folded at `finish`) and NOT under kLbfgsDamped, where it
+    /// hashes the unlifted QN structure (ruling C30 AMEND-5).
+    ///
     /// @return The warm start to attach to `SqpResult::warm_start`.
     /// @see docs/notes/2026-09-header-prose-archive.md §sqp_solver.h
-    static SqpWarmStart make_warm_start(AssemblyEvalSeam &seam, const QpSolution *activity,
-                                        const QpProblem &qp, bool qp_built, const NlpEval *probe_ev,
-                                        const Vec *probe_x, double delta, double dual_mu_eff,
-                                        double primal_delta_eff,
-                                        const GlobalizationStrategy *strategy,
-                                        std::shared_ptr<const HotState> hot);
+    SqpWarmStart make_warm_start(AssemblyEvalSeam &seam, const QpSolution *activity,
+                                 const QpProblem &qp, bool qp_built, const NlpEval *probe_ev,
+                                 const Vec *probe_x, double delta, double dual_mu_eff,
+                                 double primal_delta_eff, const GlobalizationStrategy *strategy,
+                                 std::shared_ptr<const HotState> hot);
+
+    /// The QN structural block for a problem of @p n variables (qn_struct_vars_).
+    Index qn_probe_struct(Index n) const {
+        return qn_struct_vars_ >= 0 ? std::min(qn_struct_vars_, n) : n;
+    }
+
+    /// The major loop's KKT measurement: evaluate_kkt at `feas_tol`, or at the per-variable
+    /// tolerance `kkt_bound_tol_` on the restoration sub-driver (QC-1). That per-variable
+    /// tolerance applies to this convergence measurement only: the QP-side seeds
+    /// (crash_basis_seed, the elastic rung seeds) and qp_failure_is_retryable still read slacks
+    /// at feas_tol by design -- they are seeds and retry tests the QP re-prices, not verdicts.
+    SqpKkt measure_kkt(const AssemblyEvalSeam &seam, const NlpEval &ev, const Vec &x,
+                       const Vec &lambda_e, const Vec &lambda_i) const;
 
     /// @brief Assembles the final SqpResult at an exit -- status, x,
     ///        multipliers, KKT record, f, warm start -- and maps every exported
@@ -1541,7 +1762,73 @@ class SqpSolver {
     ///         caller to charge to its own counters.
     Index install_solve_scaling(AssemblyEvalSeam &seam, const Vec &x0) const;
 
+    /// @brief THE COLUMN LAYER'S ONE ENTRY (M7 W2 SCL): solve_impl, in the column-
+    ///        scaled variables when SqpOptions::column_scaling fires, in the caller's
+    ///        otherwise. Every public route calls this where it called solve_impl.
+    ///
+    /// Under kOff it IS solve_impl. A warm start that passes the ingest gate and
+    /// carries a usable decision (SqpWarmStart::column_factors) is solved under that
+    /// decision with no probe. Otherwise it evaluates the caller's Jacobians once
+    /// (counted in `evals_values`) at the point the solve's ingest gate admits --
+    /// warm.x when the warm start passes that gate, else x0, projected iff
+    /// SqpOptions::project_start_point -- computes the factors
+    /// (detail/drivers/column_scaling.h) and, when they are installed, solves a fresh
+    /// bridge and seam over a ColumnScaledModel of `bridge.model()` from x0 / d with
+    /// the warm start mapped in. The answer is mapped out by map_column_scaled_answer,
+    /// inside solve_impl and before its `sqp.solve.end` emission; the decision rides
+    /// the exported warm start (d, or all ones when unscaled).
+    /// The rule point is decided before the ingest's later checks: a kSeeded ingest
+    /// that the seeded dual clamp degrades to kCold stands on x0, but the factors were
+    /// read at warm.x and stay installed for that solve.
+    /// Argument refusals are solve_impl's: a mis-sized or non-finite x0, or a seam
+    /// and bridge over different providers, is handed to it unscaled to throw.
+    SqpResult solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAssembly &bridge, const Vec &x0,
+                                  const SqpWarmStart &warm, SolveBudget budget);
+
+    /// @brief The column-scaled solve's answer in the CALLER's units (M7 W2 SCL),
+    ///        called by solve_impl before the `sqp.solve.end` emission whenever
+    ///        `column_caller_seam_` is set, so the trace, the result and the ledger
+    ///        read one set of counters.
+    ///
+    /// x = d x~; the multipliers unchanged by the column layer (the row layer's own
+    /// map ran in the inner finish); z, the four sqp_* residuals and the shared
+    /// diagnostics re-measured on the caller's model at the returned point and
+    /// prices (+1 evals_full) -- except a bound price the inner finish exported FROM
+    /// THE FEASIBILITY PROBLEM (`finish_exported_feasibility_price_`), which is
+    /// mapped, z = z~ / d; the exported warm start mapped and stripped of
+    /// scaled-space state.
+    void map_column_scaled_answer(SqpResult &out);
+
     SqpOptions opts_;
+    // THE COLUMN LAYER'S HAND-OFF TO THE INNER solve_impl (M7 W2 SCL), set by
+    // solve_column_scaled for exactly the length of that call (a throw included) and
+    // null/false/0 otherwise. `column_units_` is d: the convergence test's
+    // caller-unit feasibility multiplies each box violation by it, and the iteration
+    // events (depth 0, and the first n entries at depth 1) map x and z through it.
+    // `column_caller_seam_` is the caller's seam, which map_column_scaled_answer
+    // re-measures on. `force_row_scaling_` is kAuto's engagement of the row/objective
+    // layer (install_solve_scaling reads it beside enable_scaling).
+    // `column_probe_evals_` is the rule's Jacobian probe, charged to `evals_values`
+    // by solve_impl before its emission (also when the gate did not fire). The
+    // restoration sub-solve is a different SqpSolver object and sees none of them.
+    const Vec *column_units_ = nullptr;
+    AssemblyEvalSeam *column_caller_seam_ = nullptr;
+    bool force_row_scaling_ = false;
+    Index column_probe_evals_ = 0;
+    // The column report (M7 W2 SCW): the rule's -- or the carried decision's --
+    // spread and extremes, written onto the result by solve_impl before its
+    // `sqp.solve.end` emission so the trace carries them; `column_report_set_` false
+    // means the layer did not run (kOff, or a refused call).
+    bool column_report_set_ = false;
+    double column_report_spread_ = 1.0;
+    double column_report_min_ = 1.0;
+    double column_report_max_ = 1.0;
+    // WHAT THIS SOLVE'S finish EXPORTED AS z (M7 W2 SCL): true when it was the
+    // restoration feasibility problem's own bound price (finish's
+    // `multipliers_are_caller_scale`), false when it was grad L's. Reset at
+    // solve_impl's entry; the non-finite-iterate exit, which bypasses finish,
+    // leaves it false.
+    bool finish_exported_feasibility_price_ = false;
     // ONE engine for the whole driver, deliberately: it is what makes warm seeding
     // possible across majors, and it makes SqpSolver exactly as thread-unsafe as
     // QpEngine -- use one driver per thread.
@@ -1560,12 +1847,27 @@ class SqpSolver {
     // same two reasons: a live backend session per driver, and one symbolic
     // analysis per solve.
     std::unique_ptr<IpqpEngine> ipqp_engine_;
+    // The elastic ladder's own tier engine (M7 W0 T3); see
+    // `elastic_ipqp_engine()` for why it is a second instance and why its
+    // QpOptions carry an infinite trust-region radius. Null unless a rung has
+    // actually been solved by the tier.
+    std::unique_ptr<IpqpEngine> elastic_ipqp_engine_;
+    // The cap-retry's own walk engine (M7 W2 M1); see `cap_retry_engine()` for
+    // why it is a second instance and why its QpOptions carry an explicit
+    // `max_iter`. Null unless a capped subproblem has actually been retried.
+    std::unique_ptr<QpEngine> cap_retry_engine_;
+    // The absolute cap `cap_retry_engine_` was built with, so a request for a
+    // different one rebuilds rather than silently running at the old cap.
+    // Meaningless while the pointer is null.
+    Index cap_retry_engine_cap_ = 0;
 
     // --- The console composition (M6 W5 T8.7) ---
     //
     // ON THE DRIVER, NOT ON AN ENGINE, and that matters: `set_options` drops
-    // both lazy engines, so anything held there would be rebuilt behind the
-    // caller's back. Neither sink type is copyable or movable and neither is
+    // every lazy engine -- all THREE of them since M7 W0 T3 added the elastic
+    // ladder's own tier instance (`ssn_engine_`, `ipqp_engine_`,
+    // `elastic_ipqp_engine_`) -- so anything held there would be rebuilt behind
+    // the caller's back. Neither sink type is copyable or movable and neither is
     // `SqpSolver`, so the pointers `fanout_` holds into this object are stable.
     //
     // Both are REBUILT at every solve entry from `opts_.common.print_level`,
@@ -1599,9 +1901,12 @@ class SqpSolver {
     void emit_trace_qp_mode(const QpModeTraceEvent &event) const;
     void emit_trace_fallback_verdict(const SqpFallbackVerdictTraceEvent &event) const;
     void emit_trace_sqp_major(const SqpMajorTraceEvent &event) const;
-    // The FIRST kIpm subproblem's seed, built from the staged currency's
-    // unflattened zL/zU/mu. Empty when nothing is staged, the mode is not kIpm,
-    // or the grade came out cold.
+    // The NEXT kIpm subproblem's seed, and the tier's one staging slot. Two
+    // writers: the staged currency's unflattened zL/zU/mu at solve entry (the
+    // FIRST subproblem's seed), and, under `ipqp_reseed_after_disproval`, rung
+    // A's certified solution on a disproval (M7 W0 T4). Empty when nothing is
+    // staged, the mode is not kIpm, or the grade came out cold. Spent at the
+    // next tier entry, whenever that is.
     std::optional<IpqpSeed> ipqp_staged_seed_;
     // The proximal level to EXPORT on this solve's SqpWarmStart, and the point it was
     // reached at (warm_start.h's `prox_sigma`/`prox_center_*` block). A member
@@ -1613,6 +1918,14 @@ class SqpSolver {
     // ones.
     double ssn_prox_center_sigma_out_ = 0.0;
     Vec ssn_prox_center_x_out_, ssn_prox_center_lambda_out_;
+    // The running solve's equality basis (SqpOptions::equality_basis), for the
+    // exports that lift a QP-sized multiplier outside `SolveState`'s reach.
+    // Non-null only inside `solve_impl_body`.
+    const detail::EqualityBasis *eq_basis_view_ = nullptr;
+    // Prox-centre lifts through eq_basis_view_ whose inflated a-posteriori estimate
+    // failed its check since the driver last folded them into
+    // SqpEqualityBasisReport::lift_refusals.
+    Index eq_prox_lift_failures_ = 0;
     // False on the driver the RESTORATION PHASE constructs for itself, which
     // bounds the recursion at one level. See the private constructor.
     bool allow_restoration_ = true;
@@ -1623,6 +1936,28 @@ class SqpSolver {
     // Every other driver -- restoration allowed or not -- builds its console at
     // the tiers the print level names.
     bool is_restoration_sub_driver_ = false;
+
+    // THE PER-VARIABLE BOUND-ACTIVITY TOLERANCE OF THE CONVERGENCE MEASUREMENT (QC-1), or
+    // empty for the scalar `feas_tol` every other driver uses. Set only by the restoration
+    // phase on its sub-driver: RestorationModel::bound_activity_tolerance, so a slack is
+    // bound-active only while the violation it carries is inside feas_tol. See
+    // `measure_kkt`.
+    Vec kkt_bound_tol_;
+
+    // THE QUASI-NEWTON STRUCTURAL BLOCK (M7 QN stage 3): the leading variables B acts on
+    // under SqpHessianMode::kLbfgsDamped, or -1 for all of them. Set only by the restoration
+    // phase on its sub-driver -- the wrapper's x-block, its slack columns carrying no
+    // curvature (ruling C30 AMEND-7).
+    Index qn_struct_vars_ = -1;
+    // THE PHASE'S CURVATURE SWITCH (M7 W2 RST): set only by the restoration phase on its
+    // sub-driver under SqpOptions::restoration_curvature == kModelThenRegularized. The
+    // first failed walk subproblem then ends this sub-solve at its iterate, and an exhausted
+    // elastic tier's refused nested request is counted the same way
+    // (`restoration_curvature_switches`), for the parent to restart on the regularized model.
+    bool stop_phase_on_qp_failure_ = false;
+    // eval_hess calls make_warm_start's exit probe made, folded by `finish` (whose arguments
+    // include that call, so the probe cannot write the result it is evaluated beside).
+    Index exit_probe_hess_calls_ = 0;
 
     // Is a public solve on THIS driver currently running? Set by an RAII guard
     // at solve_impl()'s entry -- the ONE place all four public solve() overloads
@@ -1676,6 +2011,14 @@ class SqpSolver {
     // depth and latches a stop on THIS driver.
     IterationCallback iteration_callback_;
 
+    // WHAT THAT CALLBACK DECLARED IT READS (M7 W0 T2), and the only thing
+    // `measure_iterate`'s snapshot prepares beyond the row's own scalars. kAll
+    // is what the one-argument set_iteration_callback() installs and what a
+    // clear resets to, so a driver with no callback carries no narrowing into
+    // the next attach. FORWARDED into the restoration sub-driver beside the
+    // forwarder itself (see enter_restoration).
+    IterationPayload iteration_payload_ = IterationPayload::kAll;
+
     // THE IN-FLIGHT GUARD AND THE DEFERRED CHANGE (M6 W5 T8.6 fix1, the SQP
     // lane's M1). `callback_in_flight_` is true for exactly the duration of one
     // invocation of `iteration_callback_`; a set_/clear_iteration_callback()
@@ -1686,6 +2029,23 @@ class SqpSolver {
     // replacement; disengaged is "nothing pending".
     bool callback_in_flight_ = false;
     std::optional<IterationCallback> pending_callback_;
+    // The mask parked beside `pending_callback_`, and engaged exactly when it
+    // is: the two are written together at every setter and applied together at
+    // every safe point, so a deferred attach cannot land with the previous
+    // consumer's mask (M7 W0 T2).
+    IterationPayload pending_payload_ = IterationPayload::kAll;
+    // THE RESTORATION SUB-DRIVER CURRENTLY SOLVING, or null (M7 W0 T2 fix1).
+    // NON-OWNING and valid for exactly the duration of that sub-solve: it is
+    // set immediately before `sub.solve(...)` in enter_restoration and cleared
+    // by a scope guard on every exit, a throw included. It exists for one
+    // purpose -- so the apply point can push a mask a depth-1 callback changed
+    // down to the driver that will prepare the next depth-1 event.
+    SqpSolver *restoration_sub_ = nullptr;
+    // Hands `iteration_payload_` to the active restoration sub-driver and to
+    // whatever sub-driver IT has active, to any depth. Called from the one
+    // apply point; see its definition for why this is an assignment and not a
+    // park.
+    void push_payload_to_restoration_sub();
     // WHICH SAFE POINT the parked value belongs to (M6 W5 T8.7b). False: the
     // statement after the running callback returns. True: the next solve's
     // entry, which is where a value parked by a SINK method is applied.
@@ -1725,7 +2085,10 @@ std::string format_iteration_table(const SqpResult &sol);
 std::string sqp_iteration_table_head();
 
 /// @brief One table row, newline-terminated. A row with `qp_solved == false`
-///        renders "-" in the verdict and the two QP columns.
+///        renders "-" in the verdict and the two QP columns -- the solve's
+///        stopped-AT row, or a non-finite step rollback row (`rolled_back`: the
+///        WD column then reads "r"; "*" is a watchdog restore). Rollback rows
+///        may sit mid-history and a solve may carry several.
 /// @param row The history row.
 std::string sqp_iteration_table_row(const SqpIterate &row);
 

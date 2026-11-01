@@ -1,0 +1,9 @@
+PGREP_EMPTY w3base-sqp-ssn-cutest-A-DALLASM
+PGREP_NO_UNCOVERED_CELL w3base-sqp-ssn-cutest-A-DALLASM 2026-10-29T10:39:01-04:00
+IN_LOCK_PGREP_EMPTY w3base-sqp-ssn-cutest-A-DALLASM 2026-10-29T10:39:01-04:00
+FOREGROUND_START w3base-sqp-ssn-cutest-A-DALLASM 2026-10-29T10:39:01-04:00
+w2_a4_sweep: sqp-ssn / hven-sqp / cutest / run A-DALLASM -> /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/train/cells-base/hven-sqp/sqp-ssn/cutest-run-A-DALLASM (ceiling 300s) [problems: DALLASM]
+run_serial: cutest/DALLASM/hven-sqp/sqp-ssn
+run_serial: 1 cells -> /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/train/cells-base/hven-sqp/sqp-ssn/cutest-run-A-DALLASM/results.csv
+w2_a4_sweep: RUNNER_EXIT 0
+FOREGROUND_END w3base-sqp-ssn-cutest-A-DALLASM 2026-10-29T10:39:02-04:00 rc=0

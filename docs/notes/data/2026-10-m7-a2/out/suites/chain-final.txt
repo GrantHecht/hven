@@ -1,0 +1,83 @@
+HEAD e924bbe2ad8381dbdd4144d188fd26c9010305fb DIRTY=0
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:45:36-04:00
+FOREGROUND_END rc=0 2026-10-23T07:45:52-04:00
+[59/61] Building CXX object bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+[60/61] Linking CXX executable bench/hven_sqp_corpus
+[61/61] Linking CXX executable bench/hven_sqp_ipqp_e1_arm
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:45:52-04:00
+FOREGROUND_END rc=0 2026-10-23T07:46:17-04:00
+[113/115] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/__/bench/ipm_corpus_leg.cpp.o
+[114/115] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_mu0_rule.cpp.o
+[115/115] Linking CXX executable tests/sqp/hven_sqp_tests
+HEAD e924bbe2ad8381dbdd4144d188fd26c9010305fb DIRTY=0
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:46:17-04:00
+FOREGROUND_END rc=0 2026-10-23T07:48:07-04:00
+100% tests passed, 0 tests failed out of 3220
+
+Total Test time (real) = 110.71 sec
+
+The following tests did not run:
+100% tests passed, 0 tests failed out of 3220
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:48:07-04:00
+FOREGROUND_END rc=0 2026-10-23T07:54:16-04:00
+100% tests passed, 0 tests failed out of 3219
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T07:54:16-04:00
+FOREGROUND_END rc=0 2026-10-23T07:57:05-04:00
+Test project /home/ghecht/Projects/hven/.claude/worktrees/agent-aa38d0451de957235/.scratch/a2/build-dbg
+    Start 1775: Continuation.ProbeBudgetBoundsAFailingProposal
+1/1 Test #1775: Continuation.ProbeBudgetBoundsAFailingProposal ...   Passed  168.52 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) = 168.59 sec
+100% tests passed, 0 tests failed out of 1
+SUITES_DONE fail=0 2026-10-23T07:57:05-04:00
+CHAIN_BUILD_SUITES_DONE fail=0 2026-10-23T07:57:05-04:00
+HEAD e924bbe2ad8381dbdd4144d188fd26c9010305fb DIRTY=0
+PGREP_EMPTY u0-walk
+FOREGROUND_START u0-walk 2026-10-23T07:57:05-04:00
+FOREGROUND_END u0-walk rc=0 2026-10-23T08:01:56-04:00
+PGREP_EMPTY u0-ssn
+FOREGROUND_START u0-ssn 2026-10-23T08:01:56-04:00
+FOREGROUND_END u0-ssn rc=0 2026-10-23T08:02:17-04:00
+PGREP_EMPTY u0-ipm
+FOREGROUND_START u0-ipm 2026-10-23T08:02:17-04:00
+FOREGROUND_END u0-ipm rc=0 2026-10-23T08:02:42-04:00
+PGREP_EMPTY e1-off
+FOREGROUND_START e1-off 2026-10-23T08:02:42-04:00
+FOREGROUND_END e1-off rc=0 2026-10-23T08:03:52-04:00
+e1-off gate rc=0
+PGREP_EMPTY e1-m0
+FOREGROUND_START e1-m0 2026-10-23T08:03:52-04:00
+FOREGROUND_END e1-m0 rc=0 2026-10-23T08:05:03-04:00
+e1-m0 gate rc=0
+PGREP_EMPTY e1-mf
+FOREGROUND_START e1-mf 2026-10-23T08:05:03-04:00
+FOREGROUND_END e1-mf rc=0 2026-10-23T08:06:05-04:00
+e1-mf gate rc=0
+PGREP_EMPTY e1-m0mf
+FOREGROUND_START e1-m0mf 2026-10-23T08:06:05-04:00
+FOREGROUND_END e1-m0mf rc=0 2026-10-23T08:07:09-04:00
+e1-m0mf gate rc=0
+PGREP_EMPTY fam-off
+FOREGROUND_START fam-off 2026-10-23T08:07:09-04:00
+FOREGROUND_END fam-off rc=0 2026-10-23T08:07:11-04:00
+PGREP_EMPTY fam-m0
+FOREGROUND_START fam-m0 2026-10-23T08:07:11-04:00
+FOREGROUND_END fam-m0 rc=0 2026-10-23T08:07:12-04:00
+PGREP_EMPTY fam-mf
+FOREGROUND_START fam-mf 2026-10-23T08:07:12-04:00
+FOREGROUND_END fam-mf rc=0 2026-10-23T08:11:41-04:00
+PGREP_EMPTY fam-m0mf
+FOREGROUND_START fam-m0mf 2026-10-23T08:11:41-04:00
+FOREGROUND_END fam-m0mf rc=0 2026-10-23T08:16:09-04:00
+u0-walk compare rc=0 :: === u0-walk === cells compared: 27  columns compared: 75  differences: 0
+u0-ssn compare rc=0 :: === u0-ssn === cells compared: 27  columns compared: 75  differences: 0
+u0-ipm compare rc=0 :: === u0-ipm === cells compared: 27  columns compared: 75  differences: 0
+CHAIN_MEAS_DONE fail=0 2026-10-23T08:16:09-04:00
+CHAIN_FINAL_DONE 2026-10-23T08:16:09-04:00

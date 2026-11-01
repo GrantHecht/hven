@@ -1,0 +1,31 @@
+LEG: bash -o pipefail -c cd /home/ghecht/Projects/hven && cmake --build build -j 8 --target hven 2>&1 | tail -30
+PGREP_SEPARATE 2026-09-15T04:10:24Z
+PGREP_EMPTY
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-09-15T04:10:24Z
+[1/19] Building CXX object CMakeFiles/hven.dir/src/drivers/solve_result.cpp.o
+[2/19] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o
+[3/19] Building CXX object CMakeFiles/hven.dir/cmake_pch.hxx.pch
+[4/19] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o
+[5/19] Building CXX object CMakeFiles/hven.dir/src/drivers/console_trace_sink.cpp.o
+[6/19] Building CXX object CMakeFiles/hven.dir/src/drivers/assembly_eval_seam.cpp.o
+[7/19] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_options.cpp.o
+[8/19] Building CXX object CMakeFiles/hven.dir/src/drivers/trace.cpp.o
+[9/19] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver_globalization.cpp.o
+[10/19] Building CXX object CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o
+[11/19] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+/home/ghecht/Projects/hven/src/drivers/sqp_solver.cpp:4497:13: warning: enumeration values 'kAcceptable', 'kStalled', and 'kDiverging' not handled in switch [-Wswitch]
+ 4497 |     switch (rs.status) {
+      |             ^~~~~~~~~
+1 warning generated.
+[12/19] Building CXX object CMakeFiles/hven.dir/src/model/nlp_adapter.cpp.o
+[13/19] Building CXX object CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o
+[14/19] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+[15/19] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o
+[16/19] Building CXX object CMakeFiles/hven.dir/src/qp/ssn_engine.cpp.o
+[17/19] Building CXX object CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+[18/19] Building CXX object CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o
+[19/19] Linking CXX static library libhven.a
+LEG_RC=0
+FOREGROUND_END 2026-09-15T04:10:39Z
+WRAPPER_EXIT=0

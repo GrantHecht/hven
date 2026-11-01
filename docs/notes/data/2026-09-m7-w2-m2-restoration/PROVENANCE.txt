@@ -1,0 +1,173 @@
+M7 W2 M2 -- THE RESTORATION EXCURSION LADDER, THE S5 RECORD AND THE READ'S CONTROL
+==================================================================================
+
+THE STAMP (CLAUDE.md section 7)
+-------------------------------
+repository      hven, branch m7
+commit measured 9a08a715  "feat(sqp): M7 W2 M2 -- the restoration excursion
+                record on SqpCounters (S5, shape (a) ...)"
+parent          aeebdccc  (the W2 D1 close; the P-SYM `before` arm)
+date            2026-09-18, America/New_York
+toolchain       clang version 22.1.8 (Fedora 22.1.8-4.fc44), CMake Ninja,
+                C++20, Release unless a leg says Debug
+host            fedora, AMD Ryzen 7 5800X3D 8-Core Processor, 8 physical cores
+backend         Intel MKL through hven's own installed FindMKL
+alignment       EIGEN_MAX_ALIGN_BYTES=32 on every TU consuming an installed hven
+
+APPLE / ACCELERATE: UNOBSERVED. No leg here ran on Mac hardware and no Apple
+value appears in this artifact, interpolated or otherwise.
+
+HOLDOUT: NOT RUN. Every cell named here is TRAIN.
+
+
+WHAT PRODUCED EACH NUMBER
+-------------------------
+THE LADDER (ladder/, ladder-off/, tables/, neutrality.txt) -- `m2_probe`, this
+task's own instrument, built against an hven installed from 9a08a715.
+
+    hven install      .../m7w2m2/install, from 9a08a715
+      libhven.a       d2e41c32170ce293bfebf45e6445e75e60c319881f9ae0535b2296c03b181c8b
+    m2_probe          3ba8570662506b131981e3a37703c6db5b27f443eb04cf1bba2d5d82841e637f
+
+    THE LIBRARY THE LADDER RAN ON AND THE LIBRARY THE GATES CERTIFIED ARE THE
+    SAME BYTES: the gate build's own libhven.a is
+    d2e41c32170ce293bfebf45e6445e75e60c319881f9ae0535b2296c03b181c8b, equal to
+    the install's above. The ladder is not measured on a library the suite never
+    saw.
+
+    A SECOND PROBE BINARY EXISTS IN THE TRANSCRIPTS AND PRODUCED NO COMMITTED
+    ROW: 46c9a519722e598009dad4c81aec6eeffc404dcf3629f1ec7ae04ed908375169, the
+    first build, whose `x_k` rule left `dx_inf` unmeasurable on the two cells
+    that enter restoration in major 0 (STEENBRB, YORKNET). Every leg in
+    `ladder/` and `ladder-off/` was RE-TAKEN with the binary above, so all
+    fourteen come from one binary. The superseded legs are not in this artifact.
+
+    The probe compiles three harness sources READ-ONLY -- lanes/cutest/
+    cutest_model.cpp, lanes/cutest/cutest_source.cpp and
+    lanes/hven/nlp_model_triplet_view.cpp -- out of hven-bench at
+
+        harness sha   eb26ead38b6877fd65ea502c620063e243d4e5bd
+
+    and links the installed hven itself. THE HARNESS'S OWN CMake IS NEVER
+    ENTERED (it refuses a find_package(hven) resolving outside its pinned
+    prefix, and this build deliberately links an hven ahead of that pin), so
+    NOTHING BUILT FOR THE LADDER CARRIES `HVEN_BENCH_PIN_SHA`. Rows in ladder/
+    are M2's ladder and are never harness rows.
+
+THE CONTROL (control/, control.txt) -- the HARNESS's own `hven_bench_cell`,
+built from the harness source at the sha H3's run-A names, against the harness's
+own pinned install for the A-SQP read's hven pin. The pair that produced the
+read's rows.
+
+    harness sha       348932f6ca02fbda61a338ffbb59796f50c784e3
+                      (obtained by `git archive | tar -x` into scratch: it READS
+                      the object database and writes nothing in that tree)
+    hven pin          3904a477771524b85b34678fb7d2ff55dd4768f1
+    pinned prefix     hven-bench/.hven/install-3904a4777715  (read-only; the
+                      harness's re-pin task verified it unmutated)
+      libhven.a       893b72b18f734cd0f92d4fceeb2def13627dd7e7b885e8db9b52336df3e0574f
+      its HVEN_PIN.txt: built 2026-09-15T04:00:27Z, clang 22.1.8,
+                      EIGEN_MAX_ALIGN_BYTES resolved to 32,
+                      -DHVEN_LINK_TIME_OPT=OFF
+    hven_bench_cell_read
+                      71c5e057333c3ae7e99836a62639ae798057f32dd1ac4eff5ff988458a39467e
+    resolved package  hven_DIR = .../install-3904a4777715/lib64/cmake/hven,
+                      printed into the chain log AND asserted to lie inside the
+                      pinned prefix before the build proceeded
+    Every control leg's own output carries
+    hven_pin_sha=3904a477771524b85b34678fb7d2ff55dd4768f1.
+
+THE GATES (gates/) -- a Release build and a Debug build of 9a08a715, each
+FRESHLY CONFIGURED (the bench binaries carry a configure-time git-describe, so a
+stamped leg re-configures rather than reusing a directory).
+
+    gates Release libhven.a   d2e41c32170ce293bfebf45e6445e75e60c319881f9ae0535b2296c03b181c8b
+    hven_sqp_corpus           1b9a69d6b6fbd3cbfed3ec0aabac83819a1a448b65e439dcc984fceb78cf0b41
+
+
+THE BOX PROTOCOL EVERY LEG RAN UNDER
+------------------------------------
+ONE CELL PER PROCESS, SERIAL, ALONE. Every measurement leg and every build ran
+inside `flock /tmp/box-build.lock` with NO TIMEOUT and NO FALLBACK, with
+FOREGROUND_START/END markers printed INSIDE the lock and `set -o pipefail` in
+every wrapper. `MKL_NUM_THREADS=1`, `OMP_NUM_THREADS=1`, `taskset -c 2` on every
+solver leg.
+
+A `pgrep -x hven_bench_cell` guard ran INSIDE the lock before every solver leg
+and would have aborted the chain had a foreign cell binary been alive -- which
+would mean something was running outside the lock. IT NEVER FIRED, in any chain.
+
+THE OTHER LANE. The harness lane worked the same box throughout, first its A4
+sweep and then its 1800 s re-pin tier, taking the lock for a whole cell at a
+time. The two interleaved leg by leg; the long chains here are SEGMENTED into
+several lock acquisitions for exactly that reason, so a single hour-long hold
+would not starve it. No process of this task's was ever signalled by anything
+but its own `timeout`, and no foreign process was signalled at all.
+
+WALL IS INFORMATIONAL (CLAUDE.md section 7) and no wall number here is a
+measurement. The ladder legs' walls are recorded in the chain transcripts for
+scheduling only. The 900 s per-leg cap is a SAFETY STOP, not a DNF condition:
+none of these seven cells is a wall cell in H3's run-A, so a leg that hit it
+would be a finding, reported as CENSORED and never as a row. NO LEG HIT IT --
+all fourteen ladder legs and all six control legs returned rc=0.
+
+THE RUN WINDOW, first leg to last: 2026-09-18T11:42:10-04:00 (the probe build)
+to 2026-09-18T18:58:54-04:00 (the gates).
+
+
+WHAT IS ASSERTED AND WHAT IS NOT
+--------------------------------
+ASSERTED: statuses, counters -- the five S5 fields included -- and the four
+declared residuals, all at MKL_NUM_THREADS=1, every leg alone under the lock.
+The caller-model `f` and `h` columns of the ladder are the PROBE's own
+recomputation from the model after the solve, not engine output, and are labelled
+as such in every table.
+
+NOT ASSERTED: every wall-clock number, anywhere.
+
+THE INSTRUMENT'S NEUTRALITY IS PROVED, NOT PRESUMED (neutrality.txt): (i) the
+same binary with `--callback on` and `--callback off`, 33 columns x 7 cells,
+0 differing; (ii) ZAMB2-8 against H3 run-A, 13/13 identical; (iii) the other six
+against M1's committed budget arm, 16/16 identical each.
+
+
+FILES
+-----
+ladder/<CELL>.txt        the probe, callback ON, verbatim stdout (7 cells)
+ladder-off/<CELL>.txt    the same cell, callback OFF -- proof (i)'s other arm
+tables/<CELL>.md         the cell's restoration ladder, machine-written
+tables/summary.md        the S5 record for all seven cells, one row each
+neutrality.txt           proofs (i), (ii) and (iii), per cell per column
+control/STEENBRC-b<k>.txt  the six budget-ladder control legs at the read's pin
+control.txt              the control against the read's published table, and the
+                         uncapped leg against run-A at full precision
+gates/                   the six gate segments' transcripts, both P-SYM
+                         classifications and both compare files, the replay CSVs
+wrappers/                every script and source that produced the above:
+                           m2_probe.cpp, probe-CMakeLists.txt
+                           summarise.py, control_compare.py, classify_psym.py
+                           chain1b.sh (build + suite)
+                           chain2b.sh (install + probe build + smoke)
+                           chain3.sh  (the first ladder run)
+                           chain4.sh  (the ladder re-take; its segments B/C are
+                                       SUPERSEDED -- see chain4b.sh)
+                           chain4b.sh (the control, on the harness's own CMake)
+                           gates.sh   (the six gate segments)
+
+THE PROBE'S CONFIGURE LINE, for reproduction from this tree:
+
+    cmake -S <hven> -B rel -G Ninja -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_INSTALL_PREFIX=install \
+      -DHVEN_BUILD_TESTS=OFF -DHVEN_BUILD_BENCH=OFF
+    cmake --build rel -j $(nproc) && cmake --install rel
+    rm -rf probebuild        # hven_DIR is a cache variable find_package reuses
+    cmake -S wrappers -B probebuild -G Ninja -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_PREFIX_PATH=install
+    cmake --build probebuild --target m2_probe -j $(nproc)
+    cd <hven-bench> && MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 taskset -c 2 \
+      probebuild/m2_probe --problem <CELL> --callback on
+
+(`probe-CMakeLists.txt` is the file named `CMakeLists.txt` in that source
+directory; it is renamed here only so the artifact's wrappers/ can hold it
+beside the scripts.) THE HARNESS ROOT MUST BE THE CWD -- the CUTEst bridge finds
+a decoded problem at `.scratch/h3/decoded/<PROBLEM>`, relative to it.

@@ -1,0 +1,13 @@
+# M7 W0 T3 fix1 -- the DIAGNOSTIC PATCH REVERTED: the same cells, re-read on the restored tree.
+# commit 40ef105f9e6c606750f35a203a736c68a2f6cbc6; the two patched files are byte-identical to the commit.
+# CO-RUN DECLARED: the hven-bench lane was running its own cells; counters only are read here.
+engine,N,n,me,mi,status,certified,majors,entries,rungs,rung_minors,rung_max_minors,rung_dnf,rung_facts,facts_attributed,solve_minors,solve_facts,escalations,ceiling_hits,floor_retries,rung_b,disproved,tier_iters,tier_facts,analyses,wall_s
+walk,100,500,302,100,max_iter,0,1,1,6,312,302,0,184,1,312,194,5,0,0,0,0,10,10,2,0.529911
+walk,200,1000,602,200,max_iter,0,1,1,6,612,602,0,484,1,612,494,5,0,0,0,0,10,10,2,2.000681
+walk,400,2000,1202,400,max_iter,0,1,1,6,1212,1202,0,1084,1,1212,1094,5,0,0,0,0,10,10,2,7.809634
+walk,800,4000,2402,800,max_iter,0,1,1,6,2409,2399,0,2281,1,2409,2291,5,0,0,0,0,10,10,2,30.505103
+tier,100,500,302,100,max_iter,0,1,2,5,71,20,3,73,1,73,84,2,0,1,1,0,10,10,3,0.045235
+tier,200,1000,602,200,max_iter,0,1,2,5,69,20,3,71,1,71,82,2,0,1,1,0,10,10,3,0.088939
+tier,400,2000,1202,400,max_iter,0,1,2,5,71,20,3,73,1,73,84,2,0,1,1,0,10,10,3,0.181664
+tier,800,4000,2402,800,max_iter,0,1,2,5,73,20,3,75,1,75,86,2,0,1,1,0,10,10,3,0.375745
+[  PASSED  ] 3 tests.

@@ -1,0 +1,158 @@
+==============================================================================
+OUTSIDE THE RULE -- YORKNET
+NOT pre-registered in RULE-G.md, NOT a verdict, and incapable of changing
+one. These are read-outs the settler asked for in order to RANK ENGINE
+WORK, and they are reported here, separately, for exactly that.
+==============================================================================
+
+(a) THE EXCESS NEGATIVE EIGENVALUE COUNT OVER THE WHOLE WALK
+    excess := inertia_neg - inertia_expected_neg, on the passes where the
+    backend observed an inertia. What the engine compares is NOT the
+    current reduced Hessian's own triple: on the border path it is K0's
+    backend triple against a structural expectation the Schur complement's
+    Haynsworth contribution has been backed out of (qp_engine.cpp,
+    border_inertia_verdict). The excess below is therefore the engine's own
+    indefiniteness signal, read exactly as the engine reads it.
+    at minor 0     action=start_repair   ws_size_in=0   border_dim=0   observed (311, 257)  expected (312, 256)  excess 1
+    at the FIRST drop (minor 73)  ws_size_in=73  observed (239, 256)  expected (239, 256)  excess 0
+    in the TAIL   state A excess 0   state D excess 0
+    histogram over the whole walk: {0: 2549, 1: 11}
+    unobserved passes: 0
+    the observed triple over the whole walk: {(255, 256): 1196, (256, 256): 1193, (238, 256): 11, (239, 256): 9, (237, 256): 9, (236, 256): 8}
+    the walk's first 8 passes, expectation against observation:
+      minor 0   ws_in 0   bdim 0   observed (311, 257)  expected (312, 256)  excess 1
+      minor 1   ws_in 1   bdim 1   observed (311, 257)  expected (311, 257)  excess 0
+      minor 2   ws_in 2   bdim 2   observed (311, 257)  expected (311, 257)  excess 0
+      minor 3   ws_in 3   bdim 3   observed (311, 257)  expected (311, 257)  excess 0
+      minor 4   ws_in 4   bdim 4   observed (311, 257)  expected (311, 257)  excess 0
+      minor 5   ws_in 5   bdim 5   observed (311, 257)  expected (311, 257)  excess 0
+      minor 6   ws_in 6   bdim 6   observed (311, 257)  expected (311, 257)  excess 0
+      minor 7   ws_in 7   bdim -1  observed (305, 256)  expected (305, 256)  excess 0
+
+(b) THE PRE-TAIL POST-DROP PASSES -- DID THE SAME THING HAPPEN, AND WHAT
+    DIFFERED WHEN THEY ESCAPED?
+    40 post-drop passes before t0=177.
+    minor  action        ride_outcome            slope            slope_tol        leaves           sign  p[released]      alpha        NEXT PASS
+    74     add           nullspace_veto          -2597.1559       nan              nan              0     3.031447         0.0633369    add dx_inf=25.565074795179257
+    78     add           nullspace_veto          -9.2775059e-12   nan              nan              0     0.82428993       0.262138     move_only dx_inf=4.6520280745962879
+    81     add           nullspace_veto          -4.0389678e-28   nan              nan              0     0.71436571       0.302475     move_only dx_inf=3.7780538237956733
+    84     move_only     nullspace_veto          5.6245091e-12    nan              nan              0     2.1383152        1            drop_dantzig dx_inf=ABSENT(nan)
+    86     add           nullspace_veto          -669.86734       nan              nan              0     7.6512541        0.000919414  add dx_inf=24.210217743344288
+    93     move_only     not_attempted           53681.887        nan              nan              0     1.5518302        1            drop_dantzig dx_inf=ABSENT(nan)
+    95     move_only     not_attempted           -173187.62       nan              nan              0     1.0802522        1            drop_dantzig dx_inf=ABSENT(nan)
+    97     add           not_attempted           167149.24        nan              nan              0     4.3833825        0.210549     add dx_inf=8.8418559082880146e-06
+    104    move_only     not_attempted           -99689.619       nan              nan              0     45.065651        1            drop_dantzig dx_inf=ABSENT(nan)
+    106    add           not_attempted           71126.181        nan              nan              0     3.9966399        0.619207     add dx_inf=5.8202487360520971e-06
+    113    move_only     nullspace_veto          0                nan              nan              0     42.84493         1            drop_dantzig dx_inf=ABSENT(nan)
+    115    move_only     nullspace_veto          0.45979815       nan              nan              0     42.84493         1            drop_dantzig dx_inf=ABSENT(nan)
+    117    move_only     not_attempted           -9238.5494       nan              nan              0     42.803636        1            drop_dantzig dx_inf=ABSENT(nan)
+    119    move_only     not_attempted           -13540.063       nan              nan              0     42.503587        1            drop_dantzig dx_inf=ABSENT(nan)
+    121    move_only     not_attempted           -0.60810874      nan              nan              0     1.365            1            drop_dantzig dx_inf=ABSENT(nan)
+    123    move_only     not_attempted           63.346476        nan              nan              0     0.41042947       1            drop_dantzig dx_inf=ABSENT(nan)
+    125    move_only     not_attempted           62.130259        nan              nan              0     0.41042947       1            drop_dantzig dx_inf=ABSENT(nan)
+    127    add           not_attempted           138188.88        nan              nan              0     1.3218005        0.936605     add dx_inf=3.3942079907639599e-13
+    131    move_only     nullspace_veto          0.0034989824     nan              nan              0     0.91             1            drop_dantzig dx_inf=ABSENT(nan)
+    133    move_only     not_attempted           0.058956419      nan              nan              0     0.6825           1            drop_dantzig dx_inf=ABSENT(nan)
+    135    move_only     not_attempted           -0.029750946     nan              nan              0     0.546            1            drop_dantzig dx_inf=ABSENT(nan)
+    137    move_only     nullspace_veto          0.011540149      nan              nan              0     0.455            1            drop_dantzig dx_inf=ABSENT(nan)
+    139    move_only     not_attempted           428.5009         nan              nan              0     0.80947799       1            drop_dantzig dx_inf=ABSENT(nan)
+    141    move_only     not_attempted           428.55699        nan              nan              0     0.80939903       1            drop_dantzig dx_inf=ABSENT(nan)
+    143    move_only     not_attempted           428.63623        nan              nan              0     0.80932009       1            drop_dantzig dx_inf=ABSENT(nan)
+    145    move_only     not_attempted           428.66729        nan              nan              0     0.80924116       1            drop_dantzig dx_inf=ABSENT(nan)
+    147    move_only     not_attempted           483.84271        nan              nan              0     0.80916225       1            drop_dantzig dx_inf=ABSENT(nan)
+    149    move_only     not_attempted           483.87547        nan              nan              0     0.80908335       1            drop_dantzig dx_inf=ABSENT(nan)
+    151    move_only     not_attempted           483.90819        nan              nan              0     0.80900447       1            drop_dantzig dx_inf=ABSENT(nan)
+    153    add           nullspace_veto          -123.71626       nan              nan              0     2.73             -0           move_only dx_inf=0.39000000000000146
+    156    add           nullspace_veto          -123.70741       nan              nan              0     2.73             -0           move_only dx_inf=0.34125000000000139
+    159    move_only     nullspace_veto          -0.0011000282    nan              nan              0     2.73             1            drop_dantzig dx_inf=ABSENT(nan)
+    161    move_only     not_attempted           2347.5981        nan              nan              0     0.036782719      1            drop_dantzig dx_inf=ABSENT(nan)
+    163    move_only     not_attempted           -0.00023175197   nan              nan              0     0.0065734739     1            drop_dantzig dx_inf=ABSENT(nan)
+    165    move_only     not_attempted           -0.00023175197   nan              nan              0     0.0065734739     1            drop_dantzig dx_inf=ABSENT(nan)
+    167    move_only     nullspace_veto          -0.00023175197   nan              nan              0     0.0065734739     1            drop_dantzig dx_inf=ABSENT(nan)
+    169    move_only     nullspace_veto          -7.2373442e-11   nan              nan              0     0.0065734739     1            drop_dantzig dx_inf=ABSENT(nan)
+    171    move_only     nullspace_veto          3.4106053e-13    nan              nan              0     0.0065734739     1            drop_dantzig dx_inf=ABSENT(nan)
+    173    move_only     nullspace_veto          7.5101927e-11    nan              nan              0     0.0065734739     1            drop_dantzig dx_inf=ABSENT(nan)
+    175    add           nullspace_veto          -0.00012974701   nan              nan              0     0.0065731972     0.000827423  move_only dx_inf=0.23918397025516924
+    every post-drop pass in the WHOLE walk, by (ride outcome, sign of g'p, action):
+      not_attempted            slope<0            move_only      8
+      not_attempted            slope>0            add            1194
+      not_attempted            slope>0            move_only      12
+      nullspace_veto           slope<0            add            7
+      nullspace_veto           slope<0            move_only      3
+      nullspace_veto           slope=0 or ABSENT  move_only      1
+      nullspace_veto           slope>0            move_only      6
+    move_only passes in the whole walk: 40 (last at minor 176)
+    rides that STEPPED: []
+
+(c) THE RESIDUALS OVER THE WALK, BY eqp_path AND BY post_drop
+    stat_rel := stat_free_inf / max(stat_scale, 1);  act_rel := active_res_inf / max(x_inf, 1)
+    path           post_drop   n      stat_rel min / median / max            act_rel min / median / max
+    border_schur   False       7      1.001      1.001      1.001            12.3       12.3       12.3
+    eliminated     False       1322   1.779e-18  3.738e-16  1.57e-05         4.344e-05  0.0001267  12.3
+    eliminated     True        1231   1.779e-18  0.4076     0.4076           4.344e-05  0.0001267  0.162
+    p[released] <  0  n=1191   stat_rel min 0.4076  median 0.4076  max 0.4076   passes with stat_rel <= 1e-6: 0
+    p[released] >= 0  n=40     stat_rel min 1.779e-18  median 6.237e-12  max 0.4076   passes with stat_rel <= 1e-6: 37
+    WHEN the stationarity residual is taken (qp_engine.cpp ~:700): at the
+    pass's STARTING iterate, over the FREE block, with the multipliers
+    `price` produced for the CURRENT working set. On a post-drop pass the
+    just-released variable is free and its own dual therefore ENTERS the
+    residual; a large value there is the drop's own signature, not a
+    statement about solve accuracy. The active-row residual carries no such
+    confound: it measures how far the iterate sits off the constraints the
+    EQP holds at equality, and it is identical on both tail states because
+    the tail does not move the iterate.
+    tail: act_res_inf = 0.019156471716399892   step_tol = 1.5118681370725051e-07   ratio 1.267e+05
+
+(d) THE DROP-CANDIDATE SET ON THE TAIL'S DROP PASS
+    candidates considered: 19   recorded (cap 8): 8   inside the tie window: 1
+    chosen: bound:291:lower  rank by violation: 1
+    margin of rank 1 over rank 2: absolute 1.69462e+06   relative 0.113771
+    DOES THE SAME CANDIDATE SET RECUR? distinct candidate strings over the 1192 tail drop passes: 1
+    distinct candidate strings over all 1232 drop passes in the walk: 41
+    drop_candidates over the whole walk: {19: 1193, 21: 1, 22: 2, 23: 2, 24: 4, 25: 11, 26: 1, 27: 3, 28: 4, 29: 3, 30: 3, 31: 2, 32: 1, 33: 1, 34: 1}
+
+(e) THE EXACT-ARITHMETIC DROP IDENTITY, CHECKED -- INFERRED, WITH ITS
+    PREMISES STATED. For an EXACT, UNREGULARIZED, FULL-RANK KKT system, and
+    with x an exact KKT point of the PRE-DROP working set, releasing a
+    constraint whose multiplier is z_i gives the next EQP direction p the
+    identity  z_i * (a_i' p) = -p'Hp.  This is NOT part of RULE-G.md and
+    decides nothing; it is reported because it is computable from recorded
+    fields and it is the narrowed form of the claim the M3b report
+    overstated. drop_worst (qp_engine.cpp ~:2247) stores the VIOLATION, and
+    for a bound held at its LOWER bound the violation is -z_i, so
+    z_i = -decision_multiplier there.
+    THE PREMISES, one by one:
+      exact arithmetic      VIOLATED -- primal_delta and dual_mu are the
+                            EFFECTIVE regularization printed in 7.7, and the
+                            solve is finite-precision.
+      full row rank         UNMEASURED -- RULE-G.md section 0 marks rank
+                            evidence for the released constraint ABSENT and
+                            it is not computed here.
+      x an exact KKT point  CHECKABLE -- state D's stat_free_inf and
+      of the PRE-DROP set   active_res_inf, printed in 7.7, are how close it
+                            is. Primal feasibility of the active set is the
+                            half that can fail while stationarity holds.
+    released bound:291:lower   violation = 14895027.940413455   z_i = -14895027.940413455
+    a_i' p (= p_released) = -44.41796875
+    LHS  z_i * a_i'p = 661606885.58766174
+    RHS  -p'Hp       = -3.7929431113745138
+    LHS/RHS = -1.74431e+08   signs DISAGREE
+    state D stat_free_inf/max(stat_scale,1) = 3.73776e-16;  active_res_inf/max(x_inf,1) = 0.000126707
+
+(f) SECTION 4b's ITER-0 TEMPORARY-VERTEX START REPAIR -- DID IT RUN, AND
+    DID IT CERTIFY A SECOND-ORDER-CONSISTENT WORKING SET?
+    The guard is `iter == 0 && verdict == kWrong && repair_temporary_vertex(...)`
+    (qp_engine.cpp ~:660), and the repair pins free variables at bounds in
+    order of most negative Hessian diagonal, probing the inertia after each,
+    until the verdict is kOk -- and REVERTS ENTIRELY if it never is
+    (qp_engine.cpp ~:2002-2062). This matters because every
+    inertia-controlling working-set method in the literature starts from a
+    second-order-consistent working set, and this is the machinery hven
+    already has for reaching one.
+    minor 0: action=start_repair  inertia_verdict=2 (kWrong)  observed (311, 257)  expected (312, 256)
+    pass_factorizations on that pass: 1
+    OBSERVED: the repair RAN and returned true -- the recorded action is
+    `start_repair`, which only the guard's third conjunct can produce.
+    excess at minor 0 = 1   excess at minor 1 = 0
+    later repairs in the walk: start_repair 1  post_probe_restart 0  suspect_escalation 0
+

@@ -1,0 +1,26 @@
+From 29f45772386d64eeb8100f10e9b470b82e43e0a0 Mon Sep 17 00:00:00 2001
+From: Grant Hecht <grantrhecht@icloud.com>
+Date: Wed, 28 Oct 2026 22:07:32 -0400
+Subject: [PATCH] SCRATCH (hven M7 W3, never merged, never pushed):
+ include/hven/detail/qp/ssn_engine.h kSsnFarkasResidualTol = 1e-4;
+
+---
+ include/hven/detail/qp/ssn_engine.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/include/hven/detail/qp/ssn_engine.h b/include/hven/detail/qp/ssn_engine.h
+index 25ca6e80..9c36e6ae 100644
+--- a/include/hven/detail/qp/ssn_engine.h
++++ b/include/hven/detail/qp/ssn_engine.h
+@@ -238,7 +238,7 @@ inline constexpr Index kSsnWatchdogQ = 1;
+ // be at most -kSsnFarkasGapTol. Both are relative only above 1: the max(1, .) in
+ // each denominator is an absolute floor, which is what stops a near-zero
+ // denominator from manufacturing a certificate out of rounding noise.
+-inline constexpr double kSsnFarkasResidualTol = 1e-6;
++inline constexpr double kSsnFarkasResidualTol = 1e-4;
+ inline constexpr double kSsnFarkasGapTol = 1e-8;
+ 
+ // The three-set partition of CHR 2015's scaffold. kUncertain is unreachable
+-- 
+2.56.0
+

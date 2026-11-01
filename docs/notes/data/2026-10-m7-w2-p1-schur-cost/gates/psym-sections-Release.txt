@@ -1,0 +1,20 @@
+=== NON-DEBUG SECTION COMPARISON (Release) -- FAIL-CLOSED
+DEBUG_CLASS_PREFIXES=.debug .zdebug .rela.debug .rel.debug
+BEFORE_DIR=/home/ghecht/Projects/hven/.scratch/m7w2p1gates/gates/psym/before-obj-Release
+AFTER_DIR=/home/ghecht/Projects/hven/.scratch/m7w2p1gates/gates/psym/after-obj-Release
+DIGEST=/home/ghecht/Projects/hven/.scratch/m7w2p1gates/section_digest_fix2.py
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o  sections=[.eh_frame,.rela.text._ZN4hven7solvers15SchurComplementD2Ev,.symtab,.text._ZN4hven7solvers11BorderStateC2Ei,.text._ZN4hven7solvers15SchurComplementD2Ev,.text._ZN4hven7solvers8QpEngineC2ERKNS0_9QpOptionsEi,.text._ZNSt23_Sp_counted_ptr_inplaceIN4hven7solvers11BorderStateESaIvELN9__gnu_cxx12_Lock_policyE2EE10_M_destroyEv,.text._ZNSt23_Sp_counted_ptr_inplaceIN4hven7solvers11BorderStateESaIvELN9__gnu_cxx12_Lock_policyE2EE10_M_disposeEv,.text._ZNSt23_Sp_counted_ptr_inplaceIN4hven7solvers11BorderStateESaIvELN9__gnu_cxx12_Lock_policyE2EED0Ev]
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o  sections=[SECTION-COUNT(864->879)]
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o  sections=[.text._ZNK4hven7solvers15SchurComplement5solveERKN5Eigen6MatrixIdLin1ELi1ELi0ELin1ELi1EEE]
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o  sections=[SECTION-COUNT(652->660)]
+SECTIONS_Release_OBJECTS=44
+SECTIONS_Release_BYTE_IDENTICAL=40
+SECTIONS_Release_DEBUG_ONLY=0
+SECTIONS_Release_NON_DEBUG_MOVERS=4
+SECTIONS_Release_REFUSED=0
+--- the non-debug movers, in full:
+CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o  [.eh_frame,.rela.text._ZN4hven7solvers15SchurComplementD2Ev,.symtab,.text._ZN4hven7solvers11BorderStateC2Ei,.text._ZN4hven7solvers15SchurComplementD2Ev,.text._ZN4hven7solvers8QpEngineC2ERKNS0_9QpOptionsEi,.text._ZNSt23_Sp_counted_ptr_inplaceIN4hven7solvers11BorderStateESaIvELN9__gnu_cxx12_Lock_policyE2EE10_M_destroyEv,.text._ZNSt23_Sp_counted_ptr_inplaceIN4hven7solvers11BorderStateESaIvELN9__gnu_cxx12_Lock_policyE2EE10_M_disposeEv,.text._ZNSt23_Sp_counted_ptr_inplaceIN4hven7solvers11BorderStateESaIvELN9__gnu_cxx12_Lock_policyE2EED0Ev]
+CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o  [SECTION-COUNT(864->879)]
+CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o  [.text._ZNK4hven7solvers15SchurComplement5solveERKN5Eigen6MatrixIdLin1ELi1ELi0ELin1ELi1EEE]
+CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o  [SECTION-COUNT(652->660)]
+SECTIONS_Release_RC=1

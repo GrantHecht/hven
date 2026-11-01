@@ -1,0 +1,104 @@
+START 2026-09-30T23:05:19-04:00 HEAD 212886d503acfb6502af830e3006c4dab162594a BEFORE 2b4c9fa8 dirty=0
+G5 args: CS=[src/qp/qp_engine.cpp src/qp/ws_independence.cpp tests/CMakeLists.txt tests/qp/fixtures/e2-d4/ACOPR118_e4_qp5.txt tests/qp/fixtures/e2-d4/ACOPR118_e4_qp6.txt tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_unrun_dependency_test.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_ws_independence.cpp ] CH=[include/hven/core/solver_counters.h include/hven/detail/qp/qp_engine.h include/hven/detail/qp/qp_walk_trace.h include/hven/detail/qp/ws_independence.h ] MOV=[CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o ] NMOD=4 ADD(in universe)=[] LADD=[] OUTS=[tests/qp/test_qp_unrun_dependency_test.cpp] OUTM=[tests/qp/test_qp_anti_cycling_arm.cpp] ODIR=tests/CMakeFiles/hven_qp_walk_seam_tests.dir
+FOREGROUND_START R-psym-e2f8 2026-09-30T23:05:19-04:00
+PGREP_EMPTY R-psym-e2f8: no foreign cell binary under my lock
+=== P-SYM Release  after=212886d503acfb6502af830e3006c4dab162594a  before=2b4c9fa8  declared differing=4 A=4 B=0
+CLEANDEAD_Release: 0 output(s) removed
+ASSERT OK   capture after-Release: rc=0, 151 object(s) in /home/ghecht/Projects/hven/.scratch/m7w2e2f8gates/rehearsal/gates/psym/after-Release/.psym-manifest
+ASSERT OK   capture before-Release: rc=0, 151 object(s) in /home/ghecht/Projects/hven/.scratch/m7w2e2f8gates/rehearsal/gates/psym/before-Release/.psym-manifest
+ASSERT OK   capture pair Release after = before + ADDED = 151
+ASSERT OK   outside-universe Release: tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_anti_cycling_arm.cpp.o was BUILT in the after arm
+ASSERT OK   outside-universe Release: tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_unrun_dependency_test.cpp.o was BUILT in the after arm
+ASSERT OK   outside-universe Release: objects of tests/CMakeFiles/hven_qp_walk_seam_tests.dir in the after manifest = 0
+tree restored to m7 212886d5
+PSYM_COMPARE_RC_Release=1 (1 is EXPECTED; the gate is the classification)
+ASSERT OK   ONLY-AFTER Release: [] == the ADDED sources' objects
+CLASSIFY_RC_Release=4
+HEADER DERIVATION
+  repo : /home/ghecht/Projects/hven
+  base : 2b4c9fa8 -> 2b4c9fa85bdffc06f47d8a43b28495d3a9fd2d5d
+  head : 212886d503acfb6502af830e3006c4dab162594a -> 212886d503acfb6502af830e3006c4dab162594a
+  cmd  : git -C /home/ghecht/Projects/hven diff --name-only 2b4c9fa8..212886d503acfb6502af830e3006c4dab162594a -- include/
+  list : ['include/hven/core/solver_counters.h', 'include/hven/detail/qp/qp_engine.h', 'include/hven/detail/qp/qp_walk_trace.h', 'include/hven/detail/qp/ws_independence.h']
+HEADER LIST ACCEPTED: ['include/hven/core/solver_counters.h', 'include/hven/detail/qp/qp_engine.h', 'include/hven/detail/qp/qp_walk_trace.h', 'include/hven/detail/qp/ws_independence.h']
+P-SYM: FAIL — differences outside the accepted noise class
+DIFFERING OBJECTS: 39
+REFUSED (R2): /home/ghecht/Projects/hven/.scratch/m7w2e2f8gates/rehearsal/gates/psym/compare-Release.txt names 39 differing object(s) and this round DECLARED 4 -- a shape that is not the declared one is re-derived and declared again, never discovered
+ASSERT OK   P-SYM Release compare rc (declared 4 mover(s)) = 1
+ASSERT FAIL P-SYM Release classify rc: got '4', expected '0'
+ASSERT FAIL P-SYM Release: the classification is missing one of its five counts
+ASSERT OK   library ADDED Release: [] present after, absent before
+SECTIONS_RC_Release=1
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/core/ledger.cpp.o  sections=[.text]
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o  sections=[.eh_frame,.gcc_except_table,.gcc_except_table._ZN4hven7solvers9SqpSolver10MajorStateC2Ev,.gcc_except_table._ZN4hven7solvers9SqpSolver10SolveStateC2ERKNS0_11IpqpOptionsE,.rela.eh_frame,.rela.rodata,.rela.text,.rela.text._ZN4hven7solvers9SqpSolver10MajorStateC2Ev,.rela.text._ZN4hven7solvers9SqpSolver10SolveStateC2ERKNS0_11IpqpOptionsE,.rela.text._ZN4hven7solvers9SqpSolver10SolveStateD2Ev,.symtab,.text,.text._ZN4hven7solvers10QpSolutionaSEOS1_,.text._ZN4hven7solvers10QpSolutionaSERKS1_,.text._ZN4hven7solvers10QpSolutionC2ERKS1_,.text._ZN4hven7solvers10QpSolutionD2Ev,.text._ZN4hven7solvers19ElasticLadderReportaSEOS1_,.text._ZN4hven7solvers19ElasticLadderReportC2EOS1_,.text._ZN4hven7solvers19ElasticLadderReportD2Ev,.text._ZN4hven7solvers9SqpSolver10MajorStateC2Ev,.text._ZN4hven7solvers9SqpSolver10MajorStateD2Ev,.text._ZN4hven7solvers9SqpSolver10SolveStateC2ERKNS0_11IpqpOptionsE,.text._ZN4hven7solvers9SqpSolver10SolveStateD2Ev,.text._ZNSt22_Optional_payload_baseIN4hven7solvers19ElasticLadderReportEE12_M_constructIJS2_EEEvDpOT_]
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o  sections=[.gcc_except_table,.rela.text,.text,.text._ZN4hven7solvers10QpSolutionD2Ev]
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o  sections=[.eh_frame,.gcc_except_table,.rela.eh_frame,.rela.text,.rela.text._ZNSt6vectorIN4hven7solvers11SolveRecordESaIS2_EE17_M_realloc_appendIJS2_EEEvDpOT_,.symtab,.text,.text._ZNSt6vectorIN4hven7solvers11SolveRecordESaIS2_EE17_M_realloc_appendIJS2_EEEvDpOT_]
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o  sections=[.eh_frame,.gcc_except_table,.group,.rela.eh_frame,.rela.gcc_except_table,.rela.rodata,.rela.text,.rela.text._ZN3fmt3v1212format_errorD0Ev,.rela.text._ZN3fmt3v126detail11write_fixedIcNS1_14digit_groupingIcEENS0_14basic_appenderIcEENS1_14big_decimal_fpEEET1_S8_RKT2_iT_RKNS0_12format_specsENS0_4signENS0_10locale_refE,.rela.text._ZN3fmt3v126detail11write_fixedIcNS1_14digit_groupingIcEENS0_14basic_appenderIcEENS1_9dragonbox10decimal_fpIdEEEET1_SA_RKT2_iT_RKNS0_12format_specsENS0_4signENS0_10locale_refE,.rela.text._ZN3fmt3v126detail11write_fixedIcNS1_14digit_groupingIcEENS0_14basic_appenderIcEENS1_9dragonbox10decimal_fpIfEEEET1_SA_RKT2_iT_RKNS0_12format_specsENS0_4signENS0_10locale_refE,.rela.text._ZN3fmt3v126detail14digit_groupingIcED2Ev,.rela.text._ZN4hven6linear20DenseSymmetricFactorD2Ev,.rela.text._ZN4hven7solvers10QpSolutionD2Ev,.rela.text._ZN4hven7solvers10WorkingSet8add_ineqEl,.rela.text._ZN4hven7solvers10WorkingSet9drop_ineqEl,.rela.text._ZN4hven7solvers10WorkingSetD2Ev,.rela.text._ZN4hven7solvers11BorderStateC2Ei,.rela.text._ZN4hven7solvers11KktAssemblyD2Ev,.rela.text._ZN4hven7solvers14BorderedSystemD2Ev,.rela.text._ZN4hven7solvers14EliminatedFaceD2Ev,.rela.text._ZN4hven7solvers15SchurComplement10add_borderERKN5Eigen6MatrixIdLin1ELi1ELi0ELin1ELi1EEEd,.rela.text._ZN4hven7solvers15SchurComplement11drop_borderEl,.rela.text._ZN4hven7solvers15SchurComplement11reserve_allEm,.rela.text._ZN4hven7solvers15SchurComplement13rebuild_schurEv,.rela.text._ZN4hven7solvers15SchurComplementC2ERNS0_6detail9KktFactorERKNS0_9QpOptionsEi,.rela.text._ZN4hven7solvers15SchurComplementD2Ev,.rela.text._ZN4hven7solvers18solve_bordered_eqpERKNS0_9QpProblemERKNS0_11KktAssemblyERKSt6vectorIlSaIlEERKNS0_15SchurComplementERKS7_INS0_17BorderLedgerEntryESaISF_EERKNS0_10WorkingSetERKN5Eigen6MatrixIdLin1ELi1ELi0ELin1ELi1EEERKNS0_9QpOptionsE,.rela.text._ZN4hven7solvers21build_bordered_systemERKNS0_9QpProblemERKNS0_11KktAssemblyERKSt6vectorIlSaIlEERKS7_INS0_17BorderLedgerEntryESaISC_EERKNS0_10WorkingSetERKN5Eigen6MatrixIdLin1ELi1ELi0ELin1ELi1EEERKNS0_9QpOptionsE,.rela.text._ZN4hven7solvers24polish_eqp_unregularizedERKNS0_9QpProblemERKNS0_10WorkingSetERNS0_6detail9KktFactorERKNS0_9QpOptionsElRNS0_9EqpResultE,.rela.text._ZN4hven7solvers6detail12terminal_kktERKNS0_9QpProblemERKNS0_10WorkingSetERKN5Eigen6MatrixIdLin1ELi1ELi0ELin1ELi1EEESC_SC_SC_,.rela.text._ZN4hven7solvers6detail17assemble_kkt_coreERKNS0_9QpProblemERKNS0_10WorkingSetERKNS0_9QpOptionsEbPKc,.rela.text._ZN4hven7solvers8HotStateD2Ev,.rela.text._ZN4hven7solvers8QpEngine10ProbeStateC2Ell,.rela.text._ZN4hven7solvers8QpEngine10ProbeStateD2Ev,.rela.text._ZN4hven7solvers8QpEngine8WalkSeenD2Ev,.rela.text._ZN4hven7solvers9BorderOps12add_ineq_rowERKNS0_9QpProblemEll,.rela.text._ZN4hven7solvers9BorderOps12pin_variableEll,.rela.text._ZN4hven7solvers9BorderOps13delete_k0_rowEllll,.rela.text._ZN4hven7solvers9solve_eqpERKNS0_9QpProblemERKNS0_10WorkingSetERKN5Eigen6MatrixIdLin1ELi1ELi0ELin1ELi1EEERNS0_6detail9KktFactorERKNS0_9QpOptionsEPNS0_9EqpResultE,.rela.text._ZNK4hven7solvers10WorkingSet9check_rowElPKc,.rela.text._ZNK4hven7solvers15SchurComplement23expected_neg_eigs_deltaEv,.rela.text._ZNK4hven7solvers15SchurComplement5solveERKN5Eigen6MatrixIdLin1ELi1ELi0ELin1ELi1EEE,.rela.text._ZNK4hven7solvers9QpProblem8validateEv,.rela.text._ZNSt13_Bvector_baseISaIbEED2Ev,.rela.text._ZNSt14_Optional_baseIN4hven6linear25BunchKaufmanBlockEvidenceELb0ELb0EED2Ev,.rela.text._ZNSt23_Sp_counted_ptr_inplaceIN4hven7solvers11BorderStateESaIvELN9__gnu_cxx12_Lock_policyE2EE10_M_destroyEv,.rela.text._ZNSt23_Sp_counted_ptr_inplaceIN4hven7solvers11BorderStateESaIvELN9__gnu_cxx12_Lock_policyE2EE10_M_disposeEv,.rela.text._ZNSt23_Sp_counted_ptr_inplaceIN4hven7solvers11BorderStateESaIvELN9__gnu_cxx12_Lock_policyE2EED0Ev,.rela.text._ZNSt23_Sp_counted_ptr_inplaceIN4hven7solvers8HotStateESaIvELN9__gnu_cxx12_Lock_policyE2EE10_M_destroyEv,.rela.text._ZNSt23_Sp_counted_ptr_inplaceIN4hven7solvers8HotStateESaIvELN9__gnu_cxx12_Lock_policyE2EE10_M_disposeEv,.rela.text._ZNSt23_Sp_counted_ptr_inplaceIN4hven7solvers8HotStateESaIvELN9__gnu_cxx12_Lock_policyE2EED0Ev,.rela.text._ZNSt6vectorIbSaIbEE14_M_fill_insertESt13_Bit_iteratormb,.rela.text._ZNSt6vectorIbSaIbEEaSERKS1_,.rela.text._ZNSt6vectorIdSaIdEE17_M_default_appendEm,.rela.text._ZNSt6vectorIdSaIdEE6insertEN9__gnu_cxx17__normal_iteratorIPKdS1_EERS4_,.rela.text._ZNSt6vectorIlSaIlEE6insertEN9__gnu_cxx17__normal_iteratorIPKlS1_EERS4_,.rela.text._ZNSt6vectorIlSaIlEEaSERKS1_,.rela.text._ZNSt6vectorIN4hven7solvers10BoundStateESaIS2_EEaSERKS4_,.rela.text._ZNSt6vectorIN4hven7solvers11SolveRecordESaIS2_EE17_M_realloc_appendIJS2_EEEvDpOT_,.rela.text._ZNSt6vectorIN5Eigen6MatrixIdLin1ELi1ELi0ELin1ELi1EEESaIS2_EE17_M_default_appendEm,.rela.text._ZNSt6vectorIN5Eigen6MatrixIdLin1ELi1ELi0ELin1ELi1EEESaIS2_EE17_M_realloc_appendIJRKS2_EEEvDpOT_,.rela.text._ZNSt6vectorIN5Eigen6MatrixIdLin1ELi1ELi0ELin1ELi1EEESaIS2_EE17_M_realloc_insertIJS2_EEEvN9__gnu_cxx17__normal_iteratorIPS2_S4_EEDpOT_,.rela.text._ZNSt6vectorIN5Eigen6MatrixIdLin1ELi1ELi0ELin1ELi1EEESaIS2_EED2Ev,.rela.text._ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE22__resize_and_overwriteIZNS_9to_stringElEUlPcmE_EEvmT_,.rela.text._ZSt11make_sharedIN4hven7solvers11BorderStateEJEESt10shared_ptrIT_EDpOT0_,.rela.text._ZSt12__str_concatINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEET_PKNS6_10value_typeENS6_9size_typeES9_SA_RKNS6_14allocator_typeE,.symtab,.text,.text._ZN4hven7solvers10QpSolutionaSERKS1_,.text._ZN4hven7solvers10QpSolutionD2Ev,.text._ZNSt6vectorIN4hven7solvers11SolveRecordESaIS2_EE17_M_realloc_appendIJS2_EEEvDpOT_]
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o  sections=[.rela.text,.text]
+SECTIONS_Release_OBJECTS=44
+SECTIONS_Release_BYTE_IDENTICAL=38
+SECTIONS_Release_DEBUG_ONLY=0
+SECTIONS_Release_NON_DEBUG_MOVERS=6
+SECTIONS_Release_REFUSED=0
+SECTIONS_Release_RC=1
+NON_DEBUG_MOVERS_GOT_Release=[CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o ]  DECLARED=[CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o ]  REFUSED=0
+ASSERT FAIL sections Release: rc=1 (want 1), refused='0', movers [CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o ] != declared [CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o ]
+ASSERT OK   sections Release: DEBUG_ONLY=0, as declared
+=== P-SYM Debug  after=212886d503acfb6502af830e3006c4dab162594a  before=2b4c9fa8  declared differing=4 A=4 B=0
+CLEANDEAD_Debug: 0 output(s) removed
+ASSERT OK   capture after-Debug: rc=0, 151 object(s) in /home/ghecht/Projects/hven/.scratch/m7w2e2f8gates/rehearsal/gates/psym/after-Debug/.psym-manifest
+ASSERT OK   capture before-Debug: rc=0, 151 object(s) in /home/ghecht/Projects/hven/.scratch/m7w2e2f8gates/rehearsal/gates/psym/before-Debug/.psym-manifest
+ASSERT OK   capture pair Debug after = before + ADDED = 151
+ASSERT OK   outside-universe Debug: tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_anti_cycling_arm.cpp.o was BUILT in the after arm
+ASSERT OK   outside-universe Debug: tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_unrun_dependency_test.cpp.o was BUILT in the after arm
+ASSERT OK   outside-universe Debug: objects of tests/CMakeFiles/hven_qp_walk_seam_tests.dir in the after manifest = 0
+tree restored to m7 212886d5
+PSYM_COMPARE_RC_Debug=1 (1 is EXPECTED; the gate is the classification)
+ASSERT OK   ONLY-AFTER Debug: [] == the ADDED sources' objects
+CLASSIFY_RC_Debug=4
+HEADER DERIVATION
+  repo : /home/ghecht/Projects/hven
+  base : 2b4c9fa8 -> 2b4c9fa85bdffc06f47d8a43b28495d3a9fd2d5d
+  head : 212886d503acfb6502af830e3006c4dab162594a -> 212886d503acfb6502af830e3006c4dab162594a
+  cmd  : git -C /home/ghecht/Projects/hven diff --name-only 2b4c9fa8..212886d503acfb6502af830e3006c4dab162594a -- include/
+  list : ['include/hven/core/solver_counters.h', 'include/hven/detail/qp/qp_engine.h', 'include/hven/detail/qp/qp_walk_trace.h', 'include/hven/detail/qp/ws_independence.h']
+HEADER LIST ACCEPTED: ['include/hven/core/solver_counters.h', 'include/hven/detail/qp/qp_engine.h', 'include/hven/detail/qp/qp_walk_trace.h', 'include/hven/detail/qp/ws_independence.h']
+P-SYM: FAIL — differences outside the accepted noise class
+DIFFERING OBJECTS: 39
+REFUSED (R2): /home/ghecht/Projects/hven/.scratch/m7w2e2f8gates/rehearsal/gates/psym/compare-Debug.txt names 39 differing object(s) and this round DECLARED 4 -- a shape that is not the declared one is re-derived and declared again, never discovered
+ASSERT OK   P-SYM Debug compare rc (declared 4 mover(s)) = 1
+ASSERT FAIL P-SYM Debug classify rc: got '4', expected '0'
+ASSERT FAIL P-SYM Debug: the classification is missing one of its five counts
+ASSERT OK   library ADDED Debug: [] present after, absent before
+SECTIONS_RC_Debug=1
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/core/ledger.cpp.o  sections=[.text]
+DEBUG-ONLY       CMakeFiles/hven.dir/src/drivers/console_trace_sink.cpp.o
+DEBUG-ONLY       CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+DEBUG-ONLY       CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o  sections=[.eh_frame,.gcc_except_table,.rela.eh_frame,.rela.rodata,.rela.text,.rela.text._ZN4hven7solvers9SqpSolver10MajorStateC2Ev,.rela.text._ZN4hven7solvers9SqpSolver10SolveStateC2ERKNS0_11IpqpOptionsE,.rela.text._ZN4hven7solvers9SqpSolver10SolveStateD2Ev,.rela.text._ZN5Eigen8internal10redux_implINS0_13scalar_max_opIddLi0EEENS0_15redux_evaluatorINS_12CwiseUnaryOpINS0_13scalar_abs_opIdEEKNS_13CwiseBinaryOpINS0_20scalar_difference_opIddEEKNS_6MatrixIdLin1ELi1ELi0ELin1ELi1EEESD_EEEEEELi3ELi0EE3runISG_EEdRKSH_RKS3_RKT_,.rela.text._ZN5Eigen8internal10redux_implINS0_13scalar_max_opIddLi0EEENS0_15redux_evaluatorINS_6MatrixIdLin1ELi1ELi0ELin1ELi1EEEEELi3ELi0EE3runIS6_EEdRKS7_RKS3_RKT_,.rela.text._ZN5Eigen8internal10redux_implINS0_13scalar_sum_opIiiEENS0_15redux_evaluatorINS_3MapIKNS_6MatrixIiLin1ELi1ELi0ELin1ELi1EEELi0ENS_6StrideILi0ELi0EEEEEEELi3ELi0EE3runISB_EEiRKSC_RKS3_RKT_,.symtab,.text,.text._ZN4hven7solvers10QpCountersC2Ev,.text._ZN4hven7solvers10QpSolutionaSEOS1_,.text._ZN4hven7solvers10QpSolutionaSERKS1_,.text._ZN4hven7solvers10QpSolutionC2EOS1_,.text._ZN4hven7solvers10QpSolutionC2ERKS1_,.text._ZN4hven7solvers10QpSolutionC2Ev,.text._ZN4hven7solvers10QpSolutionD2Ev,.text._ZN4hven7solvers19ElasticLadderReportaSEOS1_,.text._ZN4hven7solvers19ElasticLadderReportC2EOS1_,.text._ZN4hven7solvers19ElasticLadderReportC2Ev,.text._ZN4hven7solvers19ElasticLadderReportD2Ev,.text._ZN4hven7solvers9SqpSolver10MajorStateC2Ev,.text._ZN4hven7solvers9SqpSolver10MajorStateD2Ev,.text._ZN4hven7solvers9SqpSolver10SolveStateC2ERKNS0_11IpqpOptionsE,.text._ZN4hven7solvers9SqpSolver10SolveStateD2Ev,.text._ZNKSt14_Optional_baseIN4hven7solvers19ElasticLadderReportELb0ELb0EE13_M_is_engagedEv,.text._ZNSt22_Optional_payload_baseIN4hven7solvers19ElasticLadderReportEE10_M_destroyEv,.text._ZNSt22_Optional_payload_baseIN4hven7solvers19ElasticLadderReportEE12_M_constructIJS2_EEEvDpOT_,.text._ZNSt22_Optional_payload_baseIN4hven7solvers19ElasticLadderReportEE8_M_resetEv,.text._ZNSt22_Optional_payload_baseIN4hven7solvers19ElasticLadderReportEEC2Ev]
+DEBUG-ONLY       CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o  sections=[.eh_frame,.symtab,.text,.text._ZN4hven7solvers10QpCountersC2Ev,.text._ZN4hven7solvers10QpSolutionC2Ev,.text._ZN4hven7solvers10QpSolutionD2Ev]
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o  sections=[.eh_frame,.symtab,.text,.text._ZN4hven7solvers10QpCountersC2Ev,.text._ZN4hven7solvers11SolveRecordC2EOS1_,.text._ZNKSt6vectorIN4hven7solvers11SolveRecordESaIS2_EE4sizeEv,.text._ZNSt15__new_allocatorIN4hven7solvers11SolveRecordEE10deallocateEPS2_m,.text._ZNSt15__new_allocatorIN4hven7solvers11SolveRecordEE8allocateEmPKv,.text._ZNSt6vectorIN4hven7solvers11SolveRecordESaIS2_EE11_S_max_sizeERKS3_,.text._ZNSt6vectorIN4hven7solvers11SolveRecordESaIS2_EE12emplace_backIJS2_EEERS2_DpOT_,.text._ZNSt6vectorIN4hven7solvers11SolveRecordESaIS2_EE17_M_realloc_appendIJS2_EEEvDpOT_,.text._ZNSt6vectorIN4hven7solvers11SolveRecordESaIS2_EE4backEv,.text._ZSt14__relocate_a_1IPN4hven7solvers11SolveRecordES3_SaIS2_EET0_T_S6_S5_RT1_]
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o  sections=[SECTION-COUNT(9714->9716)]
+DEBUG-ONLY       CMakeFiles/hven.dir/src/qp/ssn_engine.cpp.o
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o  sections=[.eh_frame,.gcc_except_table,.gcc_except_table._ZN4hven7solvers6detail7DepTestC2Ev,.rela.text,.rela.text._ZN4hven7solvers6detail7DepTestC2Ev,.symtab,.text,.text._ZN4hven7solvers6detail7DepTestC2Ev]
+DEBUG-ONLY       CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+SECTIONS_Debug_OBJECTS=44
+SECTIONS_Debug_BYTE_IDENTICAL=32
+SECTIONS_Debug_DEBUG_ONLY=6
+SECTIONS_Debug_NON_DEBUG_MOVERS=6
+SECTIONS_Debug_REFUSED=0
+SECTIONS_Debug_RC=1
+NON_DEBUG_MOVERS_GOT_Debug=[CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o ]  DECLARED=[CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o ]  REFUSED=0
+ASSERT FAIL sections Debug: rc=1 (want 1), refused='0', movers [CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o ] != declared [CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o ]
+ASSERT FAIL sections Debug: DEBUG_ONLY is '6' and this round DECLARED '0'
+ASSERT OK   P-SYM cross-config: class B sets equal (0 object(s))
+ASSERT FAIL P-SYM cross-config: Release carries no UNEXPLAINED count
+ASSERT FAIL P-SYM cross-config: Debug carries no UNEXPLAINED count
+ASSERT OK   P-SYM cross-config: Release class A (0) all changed-source
+ASSERT OK   P-SYM cross-config: Debug class A (0) all changed-source
+ASSERT OK   P-SYM cross-config: the two class A sets are identical
+G5_ASSERT_RC=1
+FOREGROUND_END R-psym-e2f8 2026-09-30T23:33:32-04:00 rc=1
+LEG_RC R-psym-e2f8 rc=1
+END 2026-09-30T23:33:32-04:00 tree=m7 212886d5 dirty=0

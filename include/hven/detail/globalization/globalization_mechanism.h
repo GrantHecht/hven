@@ -69,7 +69,7 @@ class GlobalizationMechanism {
     /// iteration counts are unaffected (DXSL is discarded before the state
     /// commit on that path).
     virtual void max_primal_dual_step(Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, double bfrac,
-                                       double &alphap, double &alphad, const SolverContext &ctx) = 0;
+                                      double &alphap, double &alphad, const SolverContext &ctx) = 0;
 
     /// @brief Runs ONLY the acceptance backtrack on an already-scaled DXSL —
     /// compute_step's second half without its first. Recovery links (SOC /

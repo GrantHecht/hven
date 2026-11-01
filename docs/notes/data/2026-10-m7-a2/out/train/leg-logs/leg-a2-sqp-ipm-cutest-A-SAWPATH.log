@@ -1,0 +1,9 @@
+PGREP_EMPTY a2-sqp-ipm-cutest-A-SAWPATH
+PGREP_NO_UNCOVERED_CELL a2-sqp-ipm-cutest-A-SAWPATH 2026-10-23T12:44:30-04:00
+IN_LOCK_PGREP_EMPTY a2-sqp-ipm-cutest-A-SAWPATH 2026-10-23T12:44:30-04:00
+FOREGROUND_START a2-sqp-ipm-cutest-A-SAWPATH 2026-10-23T12:44:30-04:00
+w2_a4_sweep: sqp-ipm / hven-sqp / cutest / run A-SAWPATH -> /home/ghecht/Projects/hven/.claude/worktrees/agent-aa38d0451de957235/.scratch/a2/train/cells/hven-sqp/sqp-ipm/cutest-run-A-SAWPATH (ceiling 300s) [problems: SAWPATH]
+run_serial: cutest/SAWPATH/hven-sqp/sqp-ipm
+run_serial: 1 cells -> /home/ghecht/Projects/hven/.claude/worktrees/agent-aa38d0451de957235/.scratch/a2/train/cells/hven-sqp/sqp-ipm/cutest-run-A-SAWPATH/results.csv
+w2_a4_sweep: RUNNER_EXIT 0
+FOREGROUND_END a2-sqp-ipm-cutest-A-SAWPATH 2026-10-23T12:44:31-04:00 rc=0

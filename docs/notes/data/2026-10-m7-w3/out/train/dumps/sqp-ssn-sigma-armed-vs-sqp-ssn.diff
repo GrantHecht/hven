@@ -1,0 +1,4 @@
+55c55
+< ssn_sigma_rule = kLadder
+---
+> ssn_sigma_rule = kResidualArmed

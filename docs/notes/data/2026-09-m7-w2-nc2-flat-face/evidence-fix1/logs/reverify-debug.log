@@ -1,0 +1,36 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-debug/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpNc2FlatFace.*
+[==========] Running 8 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 8 tests from QpNc2FlatFace
+[ RUN      ] QpNc2FlatFace.AWrongSignedDropOnAnLpFaceRidesTheRayToItsBlocker
+[       OK ] QpNc2FlatFace.AWrongSignedDropOnAnLpFaceRidesTheRayToItsBlocker (2 ms)
+[ RUN      ] QpNc2FlatFace.ANoiseLevelDropIsUndoneAndCountedNotRidden
+[       OK ] QpNc2FlatFace.ANoiseLevelDropIsUndoneAndCountedNotRidden (1 ms)
+[ RUN      ] QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeRefactorize
+[ nc2 ] R2_Cs_STEENBRB_qp2.txt refactorize status=0 f=-192.000436939 minors=248 rides=52 zero_length=21 predicted_signs=0 vetoes=7 undos=7 zmexh=0 zmcap=0
+[       OK ] QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeRefactorize (905 ms)
+[ RUN      ] QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_flat_face_saddle.cpp:359: Skipped
+Debug border on this dump costs 745 s, over M6's 600 s per-fixture budget; asserted in Release and, under refactorize, in Debug
+
+[  SKIPPED ] QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder (0 ms)
+[ RUN      ] QpNc2FlatFace.TheSteenbrbRestorationLpQp3NeverAscendsTheSlopeRefactorize
+[ nc2 ] R2_Cs_STEENBRB_qp3.txt refactorize status=1 f=-384.000279251 minors=6600 rides=1642 zero_length=12 predicted_signs=0 vetoes=809 undos=809 zmexh=0 zmcap=0
+[       OK ] QpNc2FlatFace.TheSteenbrbRestorationLpQp3NeverAscendsTheSlopeRefactorize (23182 ms)
+[ RUN      ] QpNc2FlatFace.TheSteenbrbRestorationLpQp3NeverAscendsTheSlopeBorder
+[ nc2 ] R2_Cs_STEENBRB_qp3.txt border status=1 f=-384.000279251 minors=6600 rides=1642 zero_length=12 predicted_signs=0 vetoes=809 undos=809 zmexh=0 zmcap=0
+[       OK ] QpNc2FlatFace.TheSteenbrbRestorationLpQp3NeverAscendsTheSlopeBorder (354087 ms)
+[ RUN      ] QpNc2FlatFace.TheSteenbrbRestorationLpQp4NeverAscendsTheSlopeRefactorize
+[ nc2 ] R2_Cs_STEENBRB_qp4.txt refactorize status=1 f=-192.000148966 minors=6600 rides=1320 zero_length=16 predicted_signs=0 vetoes=1288 undos=1288 zmexh=0 zmcap=0
+[       OK ] QpNc2FlatFace.TheSteenbrbRestorationLpQp4NeverAscendsTheSlopeRefactorize (22126 ms)
+[ RUN      ] QpNc2FlatFace.TheSteenbrbRestorationLpQp4NeverAscendsTheSlopeBorder
+[ nc2 ] R2_Cs_STEENBRB_qp4.txt border status=1 f=-192.000148966 minors=6600 rides=1320 zero_length=16 predicted_signs=0 vetoes=1288 undos=1288 zmexh=0 zmcap=0
+[       OK ] QpNc2FlatFace.TheSteenbrbRestorationLpQp4NeverAscendsTheSlopeBorder (344604 ms)
+[----------] 8 tests from QpNc2FlatFace (744910 ms total)
+
+[----------] Global test environment tear-down
+[==========] 8 tests from 1 test suite ran. (744910 ms total)
+[  PASSED  ] 7 tests.
+[  SKIPPED ] 1 test, listed below:
+[  SKIPPED ] QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder

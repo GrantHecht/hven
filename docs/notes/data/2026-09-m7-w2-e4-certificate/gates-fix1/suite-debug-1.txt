@@ -1,0 +1,805 @@
+Test project /home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates/gates-dbg
+        Start   1: Version.NonNullNonEmptyMatchesProjectVersion
+        Start   2: SparseBackendLink.MklGetVersionResolvesThroughPublicLinkage
+        Start   3: PatternHash.SameMatrixSameHash
+        Start   4: PatternHash.StructurallyIdenticalDifferentValuesSameHash
+  1/400 Test   #1: Version.NonNullNonEmptyMatchesProjectVersion ..........................................................   Passed    0.01 sec
+        Start   5: PatternHash.OneMovedNonzeroDifferentHash
+  2/400 Test   #2: SparseBackendLink.MklGetVersionResolvesThroughPublicLinkage ...........................................   Passed    0.01 sec
+        Start   6: PatternHash.DifferentDimsSameNnzDifferentHash
+  3/400 Test   #3: PatternHash.SameMatrixSameHash ........................................................................   Passed    0.01 sec
+        Start   7: PatternHash.EmptyMatrixWellDefined
+  4/400 Test   #4: PatternHash.StructurallyIdenticalDifferentValuesSameHash ..............................................   Passed    0.01 sec
+        Start   8: PatternHash.UncompressedInputThrows
+  5/400 Test   #5: PatternHash.OneMovedNonzeroDifferentHash ..............................................................   Passed    0.01 sec
+        Start   9: PatternHash.Fnv1aFeedMixesRawBytesByteAtATime
+  6/400 Test   #6: PatternHash.DifferentDimsSameNnzDifferentHash .........................................................   Passed    0.01 sec
+        Start  10: PatternHash.LiteralValuePinnedForFixedFixture
+  7/400 Test   #7: PatternHash.EmptyMatrixWellDefined ....................................................................   Passed    0.01 sec
+        Start  11: PatternHash.CrossCheckAgainstIndependentFnv1aReference
+  8/400 Test   #8: PatternHash.UncompressedInputThrows ...................................................................   Passed    0.01 sec
+        Start  12: PatternHash.Fnv1aFeedIndexMatchesTheByteAtATimeFormAtEveryMagnitude
+  9/400 Test   #9: PatternHash.Fnv1aFeedMixesRawBytesByteAtATime .........................................................   Passed    0.01 sec
+        Start  13: PatternHash.Fnv1aFeedIndexPairsIsTheInterleavedPerElementStream
+ 10/400 Test  #10: PatternHash.LiteralValuePinnedForFixedFixture .........................................................   Passed    0.01 sec
+        Start  14: PatternHash.Fnv1aFeedIndexRemainsAConstantExpression
+ 11/400 Test  #11: PatternHash.CrossCheckAgainstIndependentFnv1aReference ................................................   Passed    0.01 sec
+        Start  15: PatternHash.TolerantPathReproducesThePinnedLiteralInBothStorageStates
+ 12/400 Test  #12: PatternHash.Fnv1aFeedIndexMatchesTheByteAtATimeFormAtEveryMagnitude ...................................   Passed    0.01 sec
+        Start  16: PatternHash.TolerantPathAgreesWithCompressedOnEmptyOuterRows
+ 13/400 Test  #13: PatternHash.Fnv1aFeedIndexPairsIsTheInterleavedPerElementStream .......................................   Passed    0.01 sec
+        Start  17: PatternHash.TolerantPathAgreesWithCompressedOnLeadingAndTrailingEmptyRows
+ 14/400 Test  #14: PatternHash.Fnv1aFeedIndexRemainsAConstantExpression ..................................................   Passed    0.01 sec
+        Start  18: PatternHash.GappedStructureDigestsMatchTheIndependentReference
+ 15/400 Test  #15: PatternHash.TolerantPathReproducesThePinnedLiteralInBothStorageStates .................................   Passed    0.01 sec
+        Start  19: PatternHash.CombinedKeyToleratesMixedStorageStates
+ 16/400 Test  #16: PatternHash.TolerantPathAgreesWithCompressedOnEmptyOuterRows ..........................................   Passed    0.01 sec
+        Start  20: PatternHash.CrossWidthStabilityAtThirtyTwoAndSixtyFourBitStorageIndices
+ 17/400 Test  #17: PatternHash.TolerantPathAgreesWithCompressedOnLeadingAndTrailingEmptyRows .............................   Passed    0.01 sec
+        Start  21: PatternHash.CombinedKeyIsContinuedAccumulationNotAFoldOverDigests
+ 18/400 Test  #18: PatternHash.GappedStructureDigestsMatchTheIndependentReference ........................................   Passed    0.01 sec
+        Start  22: CoreLayering.TheScanActuallyReadsTheCoreHeaders
+ 19/400 Test  #19: PatternHash.CombinedKeyToleratesMixedStorageStates ....................................................   Passed    0.01 sec
+        Start  23: CoreLayering.NoCoreHeaderDependsUpwardOnAnotherTier
+ 20/400 Test  #20: PatternHash.CrossWidthStabilityAtThirtyTwoAndSixtyFourBitStorageIndices ...............................   Passed    0.01 sec
+        Start  24: DenseSymmetricFactor.Spd2x2ReproducesKnownInverse
+ 21/400 Test  #21: PatternHash.CombinedKeyIsContinuedAccumulationNotAFoldOverDigests .....................................   Passed    0.01 sec
+        Start  25: DenseSymmetricFactor.Spd3x3ReproducesKnownInverse
+ 22/400 Test  #22: CoreLayering.TheScanActuallyReadsTheCoreHeaders .......................................................   Passed    0.01 sec
+        Start  26: DenseSymmetricFactor.SymmetricIndefinite3x3SolvesKnownSystem
+ 23/400 Test  #23: CoreLayering.NoCoreHeaderDependsUpwardOnAnotherTier ...................................................   Passed    0.01 sec
+        Start  27: DenseSymmetricFactor.MultiRhsSolveMatchesPerColumnSolve
+ 24/400 Test  #24: DenseSymmetricFactor.Spd2x2ReproducesKnownInverse .....................................................   Passed    0.01 sec
+        Start  28: DenseSymmetricFactor.IdentityMatrixSolveReproducesRhs
+ 25/400 Test  #25: DenseSymmetricFactor.Spd3x3ReproducesKnownInverse .....................................................   Passed    0.01 sec
+        Start  29: DenseSymmetricFactor.NonContiguousXTakesScratchPathAndMatchesContiguousResult
+ 26/400 Test  #26: DenseSymmetricFactor.SymmetricIndefinite3x3SolvesKnownSystem ..........................................   Passed    0.01 sec
+        Start  30: DenseSymmetricFactor.ZeroColumnRhsIsAcceptedAndNoOp
+ 27/400 Test  #27: DenseSymmetricFactor.MultiRhsSolveMatchesPerColumnSolve ...............................................   Passed    0.01 sec
+        Start  31: DenseSymmetricFactor.SolveBeforeFactorizeThrows
+ 28/400 Test  #30: DenseSymmetricFactor.ZeroColumnRhsIsAcceptedAndNoOp ...................................................   Passed    0.01 sec
+        Start  32: DenseSymmetricFactor.NonSquareFactorizeThrows
+ 29/400 Test  #31: DenseSymmetricFactor.SolveBeforeFactorizeThrows .......................................................   Passed    0.01 sec
+        Start  33: DenseSymmetricFactor.EmptyFactorizeThrows
+ 30/400 Test  #28: DenseSymmetricFactor.IdentityMatrixSolveReproducesRhs .................................................   Passed    0.01 sec
+ 31/400 Test  #29: DenseSymmetricFactor.NonContiguousXTakesScratchPathAndMatchesContiguousResult .........................   Passed    0.01 sec
+        Start  34: DenseSymmetricFactor.RhsRowCountMismatchThrows
+        Start  35: DenseSymmetricFactor.XShapeMismatchThrows
+ 32/400 Test  #32: DenseSymmetricFactor.NonSquareFactorizeThrows .........................................................   Passed    0.01 sec
+        Start  36: DenseSymmetricFactor.SingularMatrixFactorizeThrowsWithInfoCode
+ 33/400 Test  #33: DenseSymmetricFactor.EmptyFactorizeThrows .............................................................   Passed    0.01 sec
+        Start  37: DenseSymmetricFactor.RefactorizeWithDifferentDimLeavesNoStaleState
+ 34/400 Test  #34: DenseSymmetricFactor.RhsRowCountMismatchThrows ........................................................   Passed    0.01 sec
+        Start  38: DenseSymmetricFactor.ThreadCountDefaultsToTheBackendDefaultAndRefusesNegatives
+ 35/400 Test  #35: DenseSymmetricFactor.XShapeMismatchThrows .............................................................   Passed    0.01 sec
+        Start  39: DenseSymmetricFactor.ACallScopedThreadCountRestoresTheCallersOwnOverride
+ 36/400 Test  #36: DenseSymmetricFactor.SingularMatrixFactorizeThrowsWithInfoCode ........................................   Passed    0.01 sec
+        Start  40: DenseSymmetricFactorGrowth.UpperOverloadIsTheSingleArgumentCall
+ 37/400 Test  #38: DenseSymmetricFactor.ThreadCountDefaultsToTheBackendDefaultAndRefusesNegatives ........................   Passed    0.01 sec
+        Start  41: DenseSymmetricFactorGrowth.FactorizeStillThrowsOnExactSingularity
+ 38/400 Test  #37: DenseSymmetricFactor.RefactorizeWithDifferentDimLeavesNoStaleState ....................................   Passed    0.01 sec
+        Start  42: DenseSymmetricFactorGrowth.FactorizeLowerAlsoThrowsOnExactSingularity
+ 39/400 Test  #39: DenseSymmetricFactor.ACallScopedThreadCountRestoresTheCallersOwnOverride ..............................   Passed    0.01 sec
+        Start  43: DenseSymmetricFactorGrowth.OverloadValidationThrowsAndNamesItsEntryPoint
+ 40/400 Test  #40: DenseSymmetricFactorGrowth.UpperOverloadIsTheSingleArgumentCall .......................................   Passed    0.01 sec
+        Start  44: DenseSymmetricFactorGrowth.TryFactorizeReportsExactSingularityWithoutThrowing
+ 41/400 Test  #41: DenseSymmetricFactorGrowth.FactorizeStillThrowsOnExactSingularity .....................................   Passed    0.01 sec
+        Start  45: DenseSymmetricFactorGrowth.TryFactorizeOkMatchesFactorize
+ 42/400 Test  #42: DenseSymmetricFactorGrowth.FactorizeLowerAlsoThrowsOnExactSingularity .................................   Passed    0.01 sec
+        Start  46: DenseSymmetricFactorGrowth.TryFactorizeSingularClearsAnEarlierUsableFactorization
+ 43/400 Test  #43: DenseSymmetricFactorGrowth.OverloadValidationThrowsAndNamesItsEntryPoint ..............................   Passed    0.01 sec
+        Start  47: DenseSymmetricFactorGrowth.EachTriangleReadsOnlyItsOwnHalf
+ 44/400 Test  #44: DenseSymmetricFactorGrowth.TryFactorizeReportsExactSingularityWithoutThrowing .........................   Passed    0.01 sec
+        Start  48: DenseSymmetricFactorGrowth.UpperAndLowerAgreeOnSolveAndInertia
+ 45/400 Test  #46: DenseSymmetricFactorGrowth.TryFactorizeSingularClearsAnEarlierUsableFactorization .....................   Passed    0.01 sec
+        Start  49: DenseSymmetricFactorGrowth.RefactorizeResetsTheTriangle
+ 46/400 Test  #45: DenseSymmetricFactorGrowth.TryFactorizeOkMatchesFactorize .............................................   Passed    0.01 sec
+        Start  50: DenseSymmetricFactorGrowth.UnknownTriangleValueThrows
+ 47/400 Test  #47: DenseSymmetricFactorGrowth.EachTriangleReadsOnlyItsOwnHalf ............................................   Passed    0.01 sec
+        Start  51: DenseSymmetricFactorGrowth.EvidenceIsAbsentBeforeAnyFactorization
+ 48/400 Test  #48: DenseSymmetricFactorGrowth.UpperAndLowerAgreeOnSolveAndInertia ........................................   Passed    0.01 sec
+        Start  52: DenseSymmetricFactorGrowth.EvidenceOnDiagonalFixtureIsExact
+ 49/400 Test  #50: DenseSymmetricFactorGrowth.UnknownTriangleValueThrows .................................................   Passed    0.01 sec
+        Start  53: DenseSymmetricFactorGrowth.EvidenceDecodesAForced2x2Block
+ 50/400 Test  #49: DenseSymmetricFactorGrowth.RefactorizeResetsTheTriangle ...............................................   Passed    0.01 sec
+        Start  54: DenseSymmetricFactorGrowth.EvidenceMatchesDeterminantAndIndependentInertia
+ 51/400 Test  #51: DenseSymmetricFactorGrowth.EvidenceIsAbsentBeforeAnyFactorization .....................................   Passed    0.01 sec
+        Start  55: DenseSymmetricFactorGrowth.EvidenceOnAMixedBlockFixture
+ 52/400 Test  #52: DenseSymmetricFactorGrowth.EvidenceOnDiagonalFixtureIsExact ...........................................   Passed    0.01 sec
+        Start  56: DenseSymmetricFactorGrowth.EvidenceDecodesA2x2BlockPastTheFirstIndex
+ 53/400 Test  #53: DenseSymmetricFactorGrowth.EvidenceDecodesAForced2x2Block .............................................   Passed    0.01 sec
+        Start  57: DenseSymmetricFactorGrowth.EvidenceIsAbsentAfterAFailedFactorize
+ 54/400 Test  #54: DenseSymmetricFactorGrowth.EvidenceMatchesDeterminantAndIndependentInertia ............................   Passed    0.01 sec
+        Start  58: SymmetricFactorEvidenceInvariants.ObservedEvidenceSatisfiesTheHonestyInvariants
+ 55/400 Test  #55: DenseSymmetricFactorGrowth.EvidenceOnAMixedBlockFixture ...............................................   Passed    0.01 sec
+        Start  59: SymmetricFactorEvidenceInvariants.PartialSolveUnsupportedBeforeAnyFactorization
+ 56/400 Test  #56: DenseSymmetricFactorGrowth.EvidenceDecodesA2x2BlockPastTheFirstIndex ..................................   Passed    0.01 sec
+        Start  60: SymmetricFactorEvidenceInvariants.AbsentPerturbedPivotsImpliesPartialSolveUnsupported
+ 57/400 Test  #57: DenseSymmetricFactorGrowth.EvidenceIsAbsentAfterAFailedFactorize ......................................   Passed    0.01 sec
+        Start  61: SymmetricFactorEvidenceInvariants.ZeroClassDerivationMatchesTheBackendContract
+ 58/400 Test  #59: SymmetricFactorEvidenceInvariants.PartialSolveUnsupportedBeforeAnyFactorization .......................   Passed    0.01 sec
+        Start  62: SymmetricFactorEvidenceInvariants.DefaultOptionsMatchTheFreeCostlySplit
+ 59/400 Test  #58: SymmetricFactorEvidenceInvariants.ObservedEvidenceSatisfiesTheHonestyInvariants .......................   Passed    0.01 sec
+        Start  63: SymmetricFactorThreadCount.ANegativeCountIsRejectedAndLeavesTheCountAlone
+ 60/400 Test  #60: SymmetricFactorEvidenceInvariants.AbsentPerturbedPivotsImpliesPartialSolveUnsupported .................   Passed    0.01 sec
+        Start  64: SymmetricFactorThreadCount.ANewCountCostsNoAnalysisNoSessionAndNoEpoch
+ 61/400 Test  #61: SymmetricFactorEvidenceInvariants.ZeroClassDerivationMatchesTheBackendContract ........................   Passed    0.01 sec
+        Start  65: SymmetricFactorThreadCount.AdoptReportsTheCountSetAfterTheAnalysis
+ 62/400 Test  #63: SymmetricFactorThreadCount.ANegativeCountIsRejectedAndLeavesTheCountAlone .............................   Passed    0.01 sec
+        Start  66: SymmetricFactorThreadCount.AnAdoptedEngineTracksACoOwnersLaterSet
+ 63/400 Test  #62: SymmetricFactorEvidenceInvariants.DefaultOptionsMatchTheFreeCostlySplit ...............................   Passed    0.01 sec
+        Start  67: SymmetricFactorFactorEvidence.CollectFactorMflopsAddsTheCostlyFieldOnMkl
+ 64/400 Test  #64: SymmetricFactorThreadCount.ANewCountCostsNoAnalysisNoSessionAndNoEpoch ................................   Passed    0.01 sec
+        Start  68: SymmetricFactorPardisoOnlyOptions.NonDefaultOrderingDoesNotThrowOnMkl
+ 65/400 Test  #65: SymmetricFactorThreadCount.AdoptReportsTheCountSetAfterTheAnalysis ....................................   Passed    0.01 sec
+ 66/400 Test  #66: SymmetricFactorThreadCount.AnAdoptedEngineTracksACoOwnersLaterSet .....................................   Passed    0.01 sec
+        Start  69: SymmetricFactorPardisoOnlyOptions.WeightedMatchingTrueDoesNotThrowOnMkl
+        Start  70: SymmetricFactorPardisoOnlyOptions.MatrixScalingTrueAloneThrowsOnMkl
+ 67/400 Test  #67: SymmetricFactorFactorEvidence.CollectFactorMflopsAddsTheCostlyFieldOnMkl ..............................   Passed    0.01 sec
+ 68/400 Test  #68: SymmetricFactorPardisoOnlyOptions.NonDefaultOrderingDoesNotThrowOnMkl .................................   Passed    0.01 sec
+        Start  71: SymmetricFactorPardisoOnlyOptions.MatrixScalingTrueWithWeightedMatchingDoesNotThrowOnMkl
+        Start  72: SymmetricFactorPardisoOnlyOptions.NonDefaultPivotStrategyDoesNotThrowOnMkl
+ 69/400 Test  #69: SymmetricFactorPardisoOnlyOptions.WeightedMatchingTrueDoesNotThrowOnMkl ...............................   Passed    0.00 sec
+        Start  73: SymmetricFactorPardisoOnlyOptions.ClassicFactorizationAlgorithmDoesNotThrowOnMkl
+ 70/400 Test  #70: SymmetricFactorPardisoOnlyOptions.MatrixScalingTrueAloneThrowsOnMkl ...................................   Passed    0.01 sec
+        Start  74: SymmetricFactorPardisoOnlyOptions.TwoLevelFactorizationAlgorithmDoesNotThrowWithCompatibleOrdering
+ 71/400 Test  #71: SymmetricFactorPardisoOnlyOptions.MatrixScalingTrueWithWeightedMatchingDoesNotThrowOnMkl ..............   Passed    0.01 sec
+        Start  75: SymmetricFactorPardisoOnlyOptions.NonDefaultSolveParallelismDoesNotThrowOnMkl
+ 72/400 Test  #72: SymmetricFactorPardisoOnlyOptions.NonDefaultPivotStrategyDoesNotThrowOnMkl ............................   Passed    0.01 sec
+        Start  76: SymmetricFactorPardisoOnlyOptions.PositiveCnrThreadsDoesNotThrowOnMklWithCompatibleOrdering
+ 73/400 Test  #73: SymmetricFactorPardisoOnlyOptions.ClassicFactorizationAlgorithmDoesNotThrowOnMkl ......................   Passed    0.01 sec
+        Start  77: SymmetricFactorPardisoOnlyOptions.CollectFactorMflopsTrueDoesNotThrowOnMkl
+ 74/400 Test  #74: SymmetricFactorPardisoOnlyOptions.TwoLevelFactorizationAlgorithmDoesNotThrowWithCompatibleOrdering ....   Passed    0.01 sec
+        Start  78: SymmetricFactorPardisoOnlyOptions.AccelerateZeroToleranceThrowsOnMkl
+ 75/400 Test  #75: SymmetricFactorPardisoOnlyOptions.NonDefaultSolveParallelismDoesNotThrowOnMkl .........................   Passed    0.01 sec
+        Start  79: SymmetricFactorPardisoOnlyOptions.PositiveCnrThreadsThrowsWithIncompatibleOrderingOnMkl
+ 76/400 Test  #76: SymmetricFactorPardisoOnlyOptions.PositiveCnrThreadsDoesNotThrowOnMklWithCompatibleOrdering ...........   Passed    0.01 sec
+        Start  80: SymmetricFactorPardisoOnlyOptions.TwoLevelFactorizationAlgorithmThrowsWithIncompatibleOrderingOnMkl
+ 77/400 Test  #77: SymmetricFactorPardisoOnlyOptions.CollectFactorMflopsTrueDoesNotThrowOnMkl ............................   Passed    0.01 sec
+        Start  81: SymmetricFactorPardisoOnlyOptions.TwoLevelFactorizationAlgorithmThrowsWithScalingOnMkl
+ 78/400 Test  #78: SymmetricFactorPardisoOnlyOptions.AccelerateZeroToleranceThrowsOnMkl ..................................   Passed    0.01 sec
+        Start  82: SymmetricFactorPardisoOnlyOptions.TwoLevelFactorizationAlgorithmThrowsWithMatchingOnMkl
+ 79/400 Test  #79: SymmetricFactorPardisoOnlyOptions.PositiveCnrThreadsThrowsWithIncompatibleOrderingOnMkl ...............   Passed    0.01 sec
+        Start  83: WarmStartValue.DefaultIsEmptyAndEqualToAnotherDefault
+ 80/400 Test  #80: SymmetricFactorPardisoOnlyOptions.TwoLevelFactorizationAlgorithmThrowsWithIncompatibleOrderingOnMkl ...   Passed    0.01 sec
+        Start  84: WarmStartValue.ACopyEqualsItsOriginal
+ 81/400 Test  #81: SymmetricFactorPardisoOnlyOptions.TwoLevelFactorizationAlgorithmThrowsWithScalingOnMkl ................   Passed    0.01 sec
+        Start  85: WarmStartValue.EqualityIsFieldwiseOverEveryBlock
+ 82/400 Test  #82: SymmetricFactorPardisoOnlyOptions.TwoLevelFactorizationAlgorithmThrowsWithMatchingOnMkl ...............   Passed    0.01 sec
+        Start  86: WarmStartValue.EqualityIsFieldwiseOverBothStampConjuncts
+ 83/400 Test  #83: WarmStartValue.DefaultIsEmptyAndEqualToAnotherDefault .................................................   Passed    0.01 sec
+        Start  87: WarmStartValue.EqualityIsFieldwiseOverTheExtensionList
+ 84/400 Test  #84: WarmStartValue.ACopyEqualsItsOriginal .................................................................   Passed    0.01 sec
+        Start  88: WarmStartValue.EqualityIsExactSoANaNPayloadIsUnequalToItself
+ 85/400 Test  #85: WarmStartValue.EqualityIsFieldwiseOverEveryBlock ......................................................   Passed    0.01 sec
+        Start  89: WarmStartSerialization.RoundTripsAPopulatedValue
+ 86/400 Test  #86: WarmStartValue.EqualityIsFieldwiseOverBothStampConjuncts ..............................................   Passed    0.01 sec
+        Start  90: WarmStartSerialization.RoundTripsADefaultConstructedValue
+ 87/400 Test  #87: WarmStartValue.EqualityIsFieldwiseOverTheExtensionList ................................................   Passed    0.01 sec
+        Start  91: WarmStartSerialization.RoundTripsEmptyBlocksWithAPopulatedStamp
+ 88/400 Test  #88: WarmStartValue.EqualityIsExactSoANaNPayloadIsUnequalToItself ..........................................   Passed    0.01 sec
+        Start  92: WarmStartSerialization.RoundTripsSpecialDoublesBitExactly
+ 89/400 Test  #89: WarmStartSerialization.RoundTripsAPopulatedValue ......................................................   Passed    0.01 sec
+        Start  93: WarmStartSerialization.RoundTripsAwkwardExtensionsInOrder
+ 90/400 Test  #90: WarmStartSerialization.RoundTripsADefaultConstructedValue .............................................   Passed    0.01 sec
+        Start  94: WarmStartSerialization.TheEncodingIsAFunctionOfTheValueAlone
+ 91/400 Test  #91: WarmStartSerialization.RoundTripsEmptyBlocksWithAPopulatedStamp .......................................   Passed    0.01 sec
+        Start  95: WarmStartSerialization.FrozenByteLayout
+ 92/400 Test  #92: WarmStartSerialization.RoundTripsSpecialDoublesBitExactly .............................................   Passed    0.01 sec
+        Start  96: WarmStartSerialization.DecodesTheFrozenBytesBackToTheFrozenValue
+ 93/400 Test  #93: WarmStartSerialization.RoundTripsAwkwardExtensionsInOrder .............................................   Passed    0.01 sec
+        Start  97: WarmStartSerialization.TheFormatVersionThisBuildWritesIsTwo
+ 94/400 Test  #94: WarmStartSerialization.TheEncodingIsAFunctionOfTheValueAlone ..........................................   Passed    0.01 sec
+        Start  98: WarmStartSerialization.RefusesAVersionOnePayloadNamingBothVersions
+ 95/400 Test  #95: WarmStartSerialization.FrozenByteLayout ...............................................................   Passed    0.01 sec
+        Start  99: WarmStartSerialization.AVersionAboveThisBuildsIsNotBlamedOnThePreRulingStamp
+ 96/400 Test  #96: WarmStartSerialization.DecodesTheFrozenBytesBackToTheFrozenValue ......................................   Passed    0.01 sec
+        Start 100: WarmStartSerialization.AVersionZeroPayloadGetsTheNumbersAndNoStory
+ 97/400 Test  #97: WarmStartSerialization.TheFormatVersionThisBuildWritesIsTwo ...........................................   Passed    0.01 sec
+        Start 101: WarmStartSerialization.RefusesAnEmptyInput
+ 98/400 Test  #98: WarmStartSerialization.RefusesAVersionOnePayloadNamingBothVersions ....................................   Passed    0.01 sec
+        Start 102: WarmStartSerialization.RefusesABadMagic
+ 99/400 Test  #99: WarmStartSerialization.AVersionAboveThisBuildsIsNotBlamedOnThePreRulingStamp ..........................   Passed    0.01 sec
+        Start 103: WarmStartSerialization.RefusesAVersionThisBuildDoesNotRead
+100/400 Test #100: WarmStartSerialization.AVersionZeroPayloadGetsTheNumbersAndNoStory ....................................   Passed    0.01 sec
+        Start 104: WarmStartSerialization.RefusesTrailingBytes
+101/400 Test #101: WarmStartSerialization.RefusesAnEmptyInput ............................................................   Passed    0.01 sec
+        Start 105: WarmStartSerialization.RefusesAVectorLengthTheInputCannotHold
+102/400 Test #102: WarmStartSerialization.RefusesABadMagic ...............................................................   Passed    0.01 sec
+        Start 106: WarmStartSerialization.RefusesAnExtensionCountTheInputCannotHold
+103/400 Test #103: WarmStartSerialization.RefusesAVersionThisBuildDoesNotRead ............................................   Passed    0.01 sec
+        Start 107: WarmStartSerialization.RefusesATagLengthTheInputCannotHold
+104/400 Test #104: WarmStartSerialization.RefusesTrailingBytes ...........................................................   Passed    0.01 sec
+        Start 108: WarmStartSerialization.RefusesAPayloadLengthTheInputCannotHold
+105/400 Test #105: WarmStartSerialization.RefusesAVectorLengthTheInputCannotHold .........................................   Passed    0.01 sec
+        Start 109: IpmPolishSerialization.RoundTripsAPopulatedPayload
+106/400 Test #106: WarmStartSerialization.RefusesAnExtensionCountTheInputCannotHold ......................................   Passed    0.01 sec
+        Start 110: IpmPolishSerialization.RoundTripsADefaultConstructedPayload
+107/400 Test #107: WarmStartSerialization.RefusesATagLengthTheInputCannotHold ............................................   Passed    0.01 sec
+        Start 111: IpmPolishSerialization.RoundTripsSpecialDoublesBitExactly
+108/400 Test #108: WarmStartSerialization.RefusesAPayloadLengthTheInputCannotHold ........................................   Passed    0.01 sec
+        Start 112: IpmPolishSerialization.FrozenByteLayout
+109/400 Test #109: IpmPolishSerialization.RoundTripsAPopulatedPayload ....................................................   Passed    0.01 sec
+        Start 113: IpmPolishSerialization.DecodesTheFrozenBytesBackToTheFrozenValue
+110/400 Test #110: IpmPolishSerialization.RoundTripsADefaultConstructedPayload ...........................................   Passed    0.01 sec
+        Start 114: IpmPolishSerialization.RefusesAnEmptyInput
+111/400 Test #111: IpmPolishSerialization.RoundTripsSpecialDoublesBitExactly .............................................   Passed    0.01 sec
+        Start 115: IpmPolishSerialization.RefusesABadMagic
+112/400 Test #112: IpmPolishSerialization.FrozenByteLayout ...............................................................   Passed    0.01 sec
+        Start 116: IpmPolishSerialization.RefusesTrailingBytes
+113/400 Test #113: IpmPolishSerialization.DecodesTheFrozenBytesBackToTheFrozenValue ......................................   Passed    0.01 sec
+        Start 117: IpmPolishSerialization.RefusesALengthTheInputCannotHold
+114/400 Test #114: IpmPolishSerialization.RefusesAnEmptyInput ............................................................   Passed    0.01 sec
+        Start 118: IpmPolishLookup.ReturnsNullOnACoreOnlyValue
+115/400 Test #115: IpmPolishSerialization.RefusesABadMagic ...............................................................   Passed    0.01 sec
+        Start 119: IpmPolishLookup.IgnoresForeignTagsIncludingANearMiss
+116/400 Test #116: IpmPolishSerialization.RefusesTrailingBytes ...........................................................   Passed    0.01 sec
+        Start 120: IpmPolishLookup.FindsTheTagAmongOthersAndReturnsItsBytesVerbatim
+117/400 Test #117: IpmPolishSerialization.RefusesALengthTheInputCannotHold ...............................................   Passed    0.01 sec
+        Start 121: IpmPolishLookup.RefusesTheTagCarriedTwice
+118/400 Test #118: IpmPolishLookup.ReturnsNullOnACoreOnlyValue ...........................................................   Passed    0.01 sec
+        Start 122: IpmPolishBridge.MatchesFromInteriorPointHandedTheSameBlocks
+119/400 Test #119: IpmPolishLookup.IgnoresForeignTagsIncludingANearMiss ..................................................   Passed    0.01 sec
+        Start 123: IpmPolishBridge.ForwardsTheCrossoverOptions
+120/400 Test #120: IpmPolishLookup.FindsTheTagAmongOthersAndReturnsItsBytesVerbatim ......................................   Passed    0.01 sec
+        Start 124: IpmPolishBridge.RefusesACoreOnlyValueNamingTheTag
+121/400 Test #121: IpmPolishLookup.RefusesTheTagCarriedTwice .............................................................   Passed    0.01 sec
+        Start 125: IpmPolishBridge.RefusesAStampThatDoesNotMatchTheModel
+122/400 Test #122: IpmPolishBridge.MatchesFromInteriorPointHandedTheSameBlocks ...........................................   Passed    0.01 sec
+        Start 126: IpmPolishBridge.RefusesAMalformedPayloadWithTheDecodesOwnMessage
+123/400 Test #123: IpmPolishBridge.ForwardsTheCrossoverOptions ...........................................................   Passed    0.01 sec
+        Start 127: IpmPolishBridge.RefusesAnExtensionWhoseWidthsDisagreeWithTheCore
+124/400 Test #124: IpmPolishBridge.RefusesACoreOnlyValueNamingTheTag .....................................................   Passed    0.01 sec
+        Start 128: IpmPolishBridge.RefusesBoundVectorsThatAreNotAtTheCoresWidth
+125/400 Test #125: IpmPolishBridge.RefusesAStampThatDoesNotMatchTheModel .................................................   Passed    0.01 sec
+        Start 129: SymmetricFactor.AnalyzeOnceFactorizeManyOnAFixedPattern
+126/400 Test #126: IpmPolishBridge.RefusesAMalformedPayloadWithTheDecodesOwnMessage ......................................   Passed    0.01 sec
+        Start 130: SymmetricFactor.FactorizeRejectsAForeignPattern
+127/400 Test #127: IpmPolishBridge.RefusesAnExtensionWhoseWidthsDisagreeWithTheCore ......................................   Passed    0.01 sec
+        Start 131: SymmetricFactor.AnAssumedPatternSkipsTheGuardAndNothingElse
+128/400 Test #128: IpmPolishBridge.RefusesBoundVectorsThatAreNotAtTheCoresWidth ..........................................   Passed    0.01 sec
+        Start 132: SymmetricFactor.TheGuardCounterCountsRejectedCallsToo
+129/400 Test #129: SymmetricFactor.AnalyzeOnceFactorizeManyOnAFixedPattern ...............................................   Passed    0.01 sec
+        Start 133: SymmetricFactor.MisuseOrderingThrows
+130/400 Test #130: SymmetricFactor.FactorizeRejectsAForeignPattern .......................................................   Passed    0.01 sec
+        Start 134: SymmetricFactor.AnalyzeRejectsMalformedInput
+131/400 Test #131: SymmetricFactor.AnAssumedPatternSkipsTheGuardAndNothingElse ...........................................   Passed    0.01 sec
+        Start 135: SymmetricFactor.SolveRejectsSizeMismatch
+132/400 Test #132: SymmetricFactor.TheGuardCounterCountsRejectedCallsToo .................................................   Passed    0.01 sec
+        Start 136: SymmetricFactor.UnimplementedFactorKindsThrow
+133/400 Test #134: SymmetricFactor.AnalyzeRejectsMalformedInput ..........................................................   Passed    0.01 sec
+        Start 137: SymmetricFactor.InertiaOfAnSpdMatrixIsAllPositive
+134/400 Test #136: SymmetricFactor.UnimplementedFactorKindsThrow .........................................................   Passed    0.01 sec
+        Start 138: SymmetricFactor.InertiaOfASaddlePointIsObserved
+135/400 Test #133: SymmetricFactor.MisuseOrderingThrows ..................................................................   Passed    0.01 sec
+        Start 139: SymmetricFactor.InertiaOfASingularMatrixDerivesItsZeroClass
+136/400 Test #135: SymmetricFactor.SolveRejectsSizeMismatch ..............................................................   Passed    0.01 sec
+        Start 140: SymmetricFactor.PartialSolvesComposeToTheFullSolve
+137/400 Test #137: SymmetricFactor.InertiaOfAnSpdMatrixIsAllPositive .....................................................   Passed    0.01 sec
+        Start 141: SymmetricFactor.ConfiguredRefinementDoesNotLeakIntoPartialSolves
+138/400 Test #138: SymmetricFactor.InertiaOfASaddlePointIsObserved .......................................................   Passed    0.01 sec
+        Start 142: SymmetricFactor.ComposedPartialsDivergeWhenTheGateIsClosed
+139/400 Test #139: SymmetricFactor.InertiaOfASingularMatrixDerivesItsZeroClass ...........................................   Passed    0.01 sec
+        Start 143: SymmetricFactor.SupportsPartialSolveIsFalseBeforeAFactorization
+140/400 Test #140: SymmetricFactor.PartialSolvesComposeToTheFullSolve ....................................................   Passed    0.01 sec
+        Start 144: SymmetricFactor.SupportsPartialSolveTracksPerturbedPivots
+141/400 Test #141: SymmetricFactor.ConfiguredRefinementDoesNotLeakIntoPartialSolves ......................................   Passed    0.01 sec
+        Start 145: SymmetricFactor.MultiRhsSolveMatchesPerColumnSolves
+142/400 Test #142: SymmetricFactor.ComposedPartialsDivergeWhenTheGateIsClosed ............................................   Passed    0.01 sec
+        Start 146: SymmetricFactor.ZeroColumnSolveIsANoOpAndCountsAsNoWork
+143/400 Test #143: SymmetricFactor.SupportsPartialSolveIsFalseBeforeAFactorization .......................................   Passed    0.01 sec
+        Start 147: SymmetricFactor.ExplicitThreadCountChangesNeitherCountersNorSolutions
+144/400 Test #144: SymmetricFactor.SupportsPartialSolveTracksPerturbedPivots .............................................   Passed    0.01 sec
+        Start 148: SymmetricFactor.APerInstanceThreadCountRestoresTheCallersOwnThreadLocalOverride
+145/400 Test #145: SymmetricFactor.MultiRhsSolveMatchesPerColumnSolves ...................................................   Passed    0.01 sec
+        Start 149: SymmetricFactor.ANewThreadCountKeepsTheAnalysisTheSessionAndTheNumerics
+146/400 Test #146: SymmetricFactor.ZeroColumnSolveIsANoOpAndCountsAsNoWork ...............................................   Passed    0.01 sec
+        Start 150: SymmetricFactor.AThreadCountSetBeforeAnalyzeIsCarriedIntoTheSession
+147/400 Test #147: SymmetricFactor.ExplicitThreadCountChangesNeitherCountersNorSolutions .................................   Passed    0.01 sec
+        Start 151: SymmetricFactor.ANegativeThreadCountIsRejectedAndChangesNothing
+148/400 Test #148: SymmetricFactor.APerInstanceThreadCountRestoresTheCallersOwnThreadLocalOverride .......................   Passed    0.01 sec
+        Start 152: SymmetricFactor.MinimumDegreeOrderingFactorizesAndSolvesCorrectly
+149/400 Test #149: SymmetricFactor.ANewThreadCountKeepsTheAnalysisTheSessionAndTheNumerics ...............................   Passed    0.01 sec
+        Start 153: SymmetricFactor.NestedDissectionOrderingFactorizesAndSolvesCorrectly
+150/400 Test #150: SymmetricFactor.AThreadCountSetBeforeAnalyzeIsCarriedIntoTheSession ...................................   Passed    0.01 sec
+        Start 154: SymmetricFactor.ParallelNestedDissectionOrderingFactorizesAndSolvesCorrectly
+151/400 Test #151: SymmetricFactor.ANegativeThreadCountIsRejectedAndChangesNothing .......................................   Passed    0.01 sec
+        Start 155: SymmetricFactor.WeightedMatchingFactorizesAndSolvesCorrectly
+152/400 Test #152: SymmetricFactor.MinimumDegreeOrderingFactorizesAndSolvesCorrectly .....................................   Passed    0.01 sec
+        Start 156: SymmetricFactor.WeightedMatchingForcesSupportsPartialSolveFalse
+153/400 Test #153: SymmetricFactor.NestedDissectionOrderingFactorizesAndSolvesCorrectly ..................................   Passed    0.01 sec
+        Start 157: SymmetricFactor.SharedHandleOutlivesItsOriginator
+154/400 Test #154: SymmetricFactor.ParallelNestedDissectionOrderingFactorizesAndSolvesCorrectly ..........................   Passed    0.01 sec
+        Start 158: SymmetricFactor.AdoptingACurrentHandleReusesItsNumerics
+155/400 Test #155: SymmetricFactor.WeightedMatchingFactorizesAndSolvesCorrectly ..........................................   Passed    0.01 sec
+        Start 159: SymmetricFactor.AdoptingAStaleHandleRefusesNumericsButKeepsTheSymbolic
+156/400 Test #156: SymmetricFactor.WeightedMatchingForcesSupportsPartialSolveFalse .......................................   Passed    0.01 sec
+        Start 160: SymmetricFactor.AdoptingAHandleForAnotherPatternRequiresAFreshAnalysis
+157/400 Test #157: SymmetricFactor.SharedHandleOutlivesItsOriginator .....................................................   Passed    0.01 sec
+        Start 161: SymmetricFactor.AdoptRejectsANullHandle
+158/400 Test #158: SymmetricFactor.AdoptingACurrentHandleReusesItsNumerics ...............................................   Passed    0.01 sec
+        Start 162: SymmetricFactor.ReanalysisForksTheSessionAndTheSessionIdSeparatesTheBranches
+159/400 Test #159: SymmetricFactor.AdoptingAStaleHandleRefusesNumericsButKeepsTheSymbolic ................................   Passed    0.01 sec
+        Start 163: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/0
+160/400 Test #161: SymmetricFactor.AdoptRejectsANullHandle ...............................................................   Passed    0.01 sec
+        Start 164: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/1
+161/400 Test #163: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/0 ..................................   Passed    0.01 sec
+        Start 165: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/2
+162/400 Test #160: SymmetricFactor.AdoptingAHandleForAnotherPatternRequiresAFreshAnalysis ................................   Passed    0.01 sec
+163/400 Test #164: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/1 ..................................   Passed    0.01 sec
+        Start 166: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/3
+        Start 167: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/4
+164/400 Test #162: SymmetricFactor.ReanalysisForksTheSessionAndTheSessionIdSeparatesTheBranches ..........................   Passed    0.01 sec
+        Start 168: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/5
+165/400 Test #165: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/2 ..................................   Passed    0.01 sec
+        Start 169: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/6
+166/400 Test #166: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/3 ..................................   Passed    0.01 sec
+        Start 170: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/7
+167/400 Test #167: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/4 ..................................   Passed    0.01 sec
+        Start 171: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/8
+168/400 Test #168: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/5 ..................................   Passed    0.01 sec
+        Start 172: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/9
+169/400 Test #169: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/6 ..................................   Passed    0.01 sec
+        Start 173: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/10
+170/400 Test #170: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/7 ..................................   Passed    0.01 sec
+        Start 174: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/11
+171/400 Test #171: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/8 ..................................   Passed    0.01 sec
+        Start 175: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/12
+172/400 Test #172: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/9 ..................................   Passed    0.01 sec
+        Start 176: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/13
+173/400 Test #173: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/10 .................................   Passed    0.01 sec
+        Start 177: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/14
+174/400 Test #174: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/11 .................................   Passed    0.01 sec
+        Start 178: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/15
+175/400 Test #175: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/12 .................................   Passed    0.01 sec
+        Start 179: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/16
+176/400 Test #176: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/13 .................................   Passed    0.01 sec
+        Start 180: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/17
+177/400 Test #177: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/14 .................................   Passed    0.01 sec
+        Start 181: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/18
+178/400 Test #178: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/15 .................................   Passed    0.01 sec
+        Start 182: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/19
+179/400 Test #179: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/16 .................................   Passed    0.01 sec
+        Start 183: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/20
+180/400 Test #180: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/17 .................................   Passed    0.01 sec
+        Start 184: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/21
+181/400 Test #181: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/18 .................................   Passed    0.01 sec
+        Start 185: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/22
+182/400 Test #182: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/19 .................................   Passed    0.01 sec
+        Start 186: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/23
+183/400 Test #183: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/20 .................................   Passed    0.01 sec
+        Start 187: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/24
+184/400 Test #184: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/21 .................................   Passed    0.01 sec
+        Start 188: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/25
+185/400 Test #185: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/22 .................................   Passed    0.01 sec
+        Start 189: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/26
+186/400 Test #186: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/23 .................................   Passed    0.01 sec
+        Start 190: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/27
+187/400 Test #187: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/24 .................................   Passed    0.01 sec
+        Start 191: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/28
+188/400 Test #188: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/25 .................................   Passed    0.01 sec
+        Start 192: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/29
+189/400 Test #189: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/26 .................................   Passed    0.01 sec
+        Start 193: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/30
+190/400 Test #190: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/27 .................................   Passed    0.01 sec
+        Start 194: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/31
+191/400 Test #191: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/28 .................................   Passed    0.01 sec
+        Start 195: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/32
+192/400 Test #192: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/29 .................................   Passed    0.01 sec
+        Start 196: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/33
+193/400 Test #193: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/30 .................................   Passed    0.01 sec
+        Start 197: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/34
+194/400 Test #194: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/31 .................................   Passed    0.01 sec
+        Start 198: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/35
+195/400 Test #195: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/32 .................................   Passed    0.01 sec
+        Start 199: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/36
+196/400 Test #196: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/33 .................................   Passed    0.01 sec
+        Start 200: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/37
+197/400 Test #197: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/34 .................................   Passed    0.01 sec
+        Start 201: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/38
+198/400 Test #198: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/35 .................................   Passed    0.01 sec
+        Start 202: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/39
+199/400 Test #199: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/36 .................................   Passed    0.01 sec
+        Start 203: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/40
+200/400 Test #200: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/37 .................................   Passed    0.01 sec
+        Start 204: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/41
+201/400 Test #201: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/38 .................................   Passed    0.01 sec
+        Start 205: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/42
+202/400 Test #202: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/39 .................................   Passed    0.01 sec
+        Start 206: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/43
+203/400 Test #203: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/40 .................................   Passed    0.01 sec
+        Start 207: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/44
+204/400 Test #204: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/41 .................................   Passed    0.01 sec
+        Start 208: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/45
+205/400 Test #205: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/42 .................................   Passed    0.01 sec
+        Start 209: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/46
+206/400 Test #206: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/43 .................................   Passed    0.01 sec
+        Start 210: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/47
+207/400 Test #207: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/44 .................................   Passed    0.01 sec
+        Start 211: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/48
+208/400 Test #208: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/45 .................................   Passed    0.01 sec
+        Start 212: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/49
+209/400 Test #209: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/46 .................................   Passed    0.01 sec
+        Start 213: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/50
+210/400 Test #210: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/47 .................................   Passed    0.01 sec
+        Start 214: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/51
+211/400 Test #211: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/48 .................................   Passed    0.01 sec
+        Start 215: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/52
+212/400 Test #212: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/49 .................................   Passed    0.01 sec
+        Start 216: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/53
+213/400 Test #213: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/50 .................................   Passed    0.01 sec
+        Start 217: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/54
+214/400 Test #214: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/51 .................................   Passed    0.01 sec
+        Start 218: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/55
+215/400 Test #215: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/52 .................................   Passed    0.01 sec
+        Start 219: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/56
+216/400 Test #216: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/53 .................................   Passed    0.01 sec
+        Start 220: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/57
+217/400 Test #217: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/54 .................................   Passed    0.01 sec
+        Start 221: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/58
+218/400 Test #218: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/55 .................................   Passed    0.01 sec
+        Start 222: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/59
+219/400 Test #219: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/56 .................................   Passed    0.01 sec
+        Start 223: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/60
+220/400 Test #220: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/57 .................................   Passed    0.01 sec
+        Start 224: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/61
+221/400 Test #221: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/58 .................................   Passed    0.01 sec
+        Start 225: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/62
+222/400 Test #222: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/59 .................................   Passed    0.01 sec
+        Start 226: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/63
+223/400 Test #223: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/60 .................................   Passed    0.01 sec
+        Start 227: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/64
+224/400 Test #224: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/61 .................................   Passed    0.01 sec
+        Start 228: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/65
+225/400 Test #225: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/62 .................................   Passed    0.01 sec
+        Start 229: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/66
+226/400 Test #226: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/63 .................................   Passed    0.01 sec
+        Start 230: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/67
+227/400 Test #227: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/64 .................................   Passed    0.01 sec
+        Start 231: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/68
+228/400 Test #228: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/65 .................................   Passed    0.01 sec
+        Start 232: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/69
+229/400 Test #229: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/66 .................................   Passed    0.01 sec
+        Start 233: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/70
+230/400 Test #230: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/67 .................................   Passed    0.01 sec
+        Start 234: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/71
+231/400 Test #231: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/68 .................................   Passed    0.01 sec
+        Start 235: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/72
+232/400 Test #232: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/69 .................................   Passed    0.01 sec
+        Start 236: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/73
+233/400 Test #233: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/70 .................................   Passed    0.01 sec
+        Start 237: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/74
+234/400 Test #234: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/71 .................................   Passed    0.01 sec
+        Start 238: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/75
+235/400 Test #235: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/72 .................................   Passed    0.01 sec
+        Start 239: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/76
+236/400 Test #236: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/73 .................................   Passed    0.01 sec
+        Start 240: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/77
+237/400 Test #237: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/74 .................................   Passed    0.01 sec
+        Start 241: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/78
+238/400 Test #238: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/75 .................................   Passed    0.01 sec
+        Start 242: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/79
+239/400 Test #239: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/76 .................................   Passed    0.01 sec
+        Start 243: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/80
+240/400 Test #240: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/77 .................................   Passed    0.01 sec
+        Start 244: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/81
+241/400 Test #241: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/78 .................................   Passed    0.01 sec
+        Start 245: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/82
+242/400 Test #242: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/79 .................................   Passed    0.01 sec
+        Start 246: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/83
+243/400 Test #243: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/80 .................................   Passed    0.01 sec
+        Start 247: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/84
+244/400 Test #244: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/81 .................................   Passed    0.01 sec
+        Start 248: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/85
+245/400 Test #245: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/82 .................................   Passed    0.01 sec
+        Start 249: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/86
+246/400 Test #246: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/83 .................................   Passed    0.01 sec
+        Start 250: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/87
+247/400 Test #247: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/84 .................................   Passed    0.01 sec
+        Start 251: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/88
+248/400 Test #248: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/85 .................................   Passed    0.01 sec
+        Start 252: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/89
+249/400 Test #249: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/86 .................................   Passed    0.01 sec
+        Start 253: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/90
+250/400 Test #250: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/87 .................................   Passed    0.01 sec
+        Start 254: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/91
+251/400 Test #251: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/88 .................................   Passed    0.01 sec
+        Start 255: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/92
+252/400 Test #252: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/89 .................................   Passed    0.01 sec
+        Start 256: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/93
+253/400 Test #253: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/90 .................................   Passed    0.01 sec
+        Start 257: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/94
+254/400 Test #254: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/91 .................................   Passed    0.01 sec
+        Start 258: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/95
+255/400 Test #255: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/92 .................................   Passed    0.01 sec
+        Start 259: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/96
+256/400 Test #256: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/93 .................................   Passed    0.01 sec
+        Start 260: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/97
+257/400 Test #257: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/94 .................................   Passed    0.01 sec
+        Start 261: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/98
+258/400 Test #258: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/95 .................................   Passed    0.01 sec
+        Start 262: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/99
+259/400 Test #259: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/96 .................................   Passed    0.01 sec
+        Start 263: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/100
+260/400 Test #260: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/97 .................................   Passed    0.01 sec
+        Start 264: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/101
+261/400 Test #261: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/98 .................................   Passed    0.01 sec
+        Start 265: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/102
+262/400 Test #262: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/99 .................................   Passed    0.01 sec
+        Start 266: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/103
+263/400 Test #263: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/100 ................................   Passed    0.01 sec
+        Start 267: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/104
+264/400 Test #264: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/101 ................................   Passed    0.01 sec
+        Start 268: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/105
+265/400 Test #265: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/102 ................................   Passed    0.01 sec
+        Start 269: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/106
+266/400 Test #266: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/103 ................................   Passed    0.01 sec
+        Start 270: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/107
+267/400 Test #267: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/104 ................................   Passed    0.01 sec
+        Start 271: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/108
+268/400 Test #268: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/105 ................................   Passed    0.01 sec
+        Start 272: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/109
+269/400 Test #269: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/106 ................................   Passed    0.01 sec
+        Start 273: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/110
+270/400 Test #270: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/107 ................................   Passed    0.01 sec
+        Start 274: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/111
+271/400 Test #271: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/108 ................................   Passed    0.01 sec
+        Start 275: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/112
+272/400 Test #272: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/109 ................................   Passed    0.01 sec
+        Start 276: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/113
+273/400 Test #273: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/110 ................................   Passed    0.01 sec
+        Start 277: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/114
+274/400 Test #274: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/111 ................................   Passed    0.01 sec
+        Start 278: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/115
+275/400 Test #275: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/112 ................................   Passed    0.01 sec
+        Start 279: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/116
+276/400 Test #276: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/113 ................................   Passed    0.01 sec
+        Start 280: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/117
+277/400 Test #277: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/114 ................................   Passed    0.01 sec
+        Start 281: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/118
+278/400 Test #278: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/115 ................................   Passed    0.01 sec
+        Start 282: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/119
+279/400 Test #279: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/116 ................................   Passed    0.01 sec
+        Start 283: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/120
+280/400 Test #280: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/117 ................................   Passed    0.01 sec
+        Start 284: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/121
+281/400 Test #281: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/118 ................................   Passed    0.01 sec
+        Start 285: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/122
+282/400 Test #282: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/119 ................................   Passed    0.01 sec
+        Start 286: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/123
+283/400 Test #283: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/120 ................................   Passed    0.01 sec
+        Start 287: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/124
+284/400 Test #284: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/121 ................................   Passed    0.01 sec
+        Start 288: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/125
+285/400 Test #285: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/122 ................................   Passed    0.01 sec
+        Start 289: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/126
+286/400 Test #286: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/123 ................................   Passed    0.01 sec
+        Start 290: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/127
+287/400 Test #287: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/124 ................................   Passed    0.01 sec
+        Start 291: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/128
+288/400 Test #288: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/125 ................................   Passed    0.01 sec
+        Start 292: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/0
+289/400 Test #289: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/126 ................................   Passed    0.01 sec
+        Start 293: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/1
+290/400 Test #290: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/127 ................................   Passed    0.01 sec
+        Start 294: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/2
+291/400 Test #291: EveryProperPrefix/WarmStartTruncation.RefusesAndNamesWhereItRanOut/128 ................................   Passed    0.01 sec
+        Start 295: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/3
+292/400 Test #292: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/0 ..................................   Passed    0.01 sec
+        Start 296: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/4
+293/400 Test #293: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/1 ..................................   Passed    0.01 sec
+        Start 297: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/5
+294/400 Test #294: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/2 ..................................   Passed    0.01 sec
+        Start 298: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/6
+295/400 Test #295: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/3 ..................................   Passed    0.01 sec
+        Start 299: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/7
+296/400 Test #296: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/4 ..................................   Passed    0.01 sec
+        Start 300: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/8
+297/400 Test #297: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/5 ..................................   Passed    0.01 sec
+        Start 301: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/9
+298/400 Test #298: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/6 ..................................   Passed    0.01 sec
+        Start 302: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/10
+299/400 Test #299: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/7 ..................................   Passed    0.01 sec
+        Start 303: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/11
+300/400 Test #300: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/8 ..................................   Passed    0.01 sec
+        Start 304: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/12
+301/400 Test #301: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/9 ..................................   Passed    0.01 sec
+        Start 305: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/13
+302/400 Test #302: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/10 .................................   Passed    0.01 sec
+        Start 306: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/14
+303/400 Test #303: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/11 .................................   Passed    0.01 sec
+        Start 307: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/15
+304/400 Test #304: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/12 .................................   Passed    0.01 sec
+        Start 308: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/16
+305/400 Test #305: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/13 .................................   Passed    0.01 sec
+        Start 309: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/17
+306/400 Test #306: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/14 .................................   Passed    0.01 sec
+        Start 310: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/18
+307/400 Test #307: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/15 .................................   Passed    0.01 sec
+        Start 311: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/19
+308/400 Test #308: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/16 .................................   Passed    0.01 sec
+        Start 312: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/20
+309/400 Test #309: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/17 .................................   Passed    0.01 sec
+        Start 313: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/21
+310/400 Test #310: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/18 .................................   Passed    0.01 sec
+        Start 314: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/22
+311/400 Test #311: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/19 .................................   Passed    0.01 sec
+        Start 315: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/23
+312/400 Test #312: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/20 .................................   Passed    0.01 sec
+        Start 316: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/24
+313/400 Test #313: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/21 .................................   Passed    0.01 sec
+        Start 317: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/25
+314/400 Test #314: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/22 .................................   Passed    0.01 sec
+        Start 318: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/26
+315/400 Test #315: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/23 .................................   Passed    0.01 sec
+        Start 319: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/27
+316/400 Test #316: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/24 .................................   Passed    0.01 sec
+        Start 320: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/28
+317/400 Test #317: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/25 .................................   Passed    0.01 sec
+        Start 321: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/29
+318/400 Test #318: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/26 .................................   Passed    0.01 sec
+        Start 322: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/30
+319/400 Test #319: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/27 .................................   Passed    0.01 sec
+        Start 323: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/31
+320/400 Test #320: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/28 .................................   Passed    0.01 sec
+        Start 324: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/32
+321/400 Test #321: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/29 .................................   Passed    0.01 sec
+        Start 325: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/33
+322/400 Test #322: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/30 .................................   Passed    0.01 sec
+        Start 326: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/34
+323/400 Test #323: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/31 .................................   Passed    0.01 sec
+        Start 327: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/35
+324/400 Test #324: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/32 .................................   Passed    0.01 sec
+        Start 328: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/36
+325/400 Test #325: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/33 .................................   Passed    0.01 sec
+        Start 329: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/37
+326/400 Test #326: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/34 .................................   Passed    0.01 sec
+        Start 330: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/38
+327/400 Test #327: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/35 .................................   Passed    0.01 sec
+        Start 331: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/39
+328/400 Test #328: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/36 .................................   Passed    0.01 sec
+        Start 332: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/40
+329/400 Test #329: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/37 .................................   Passed    0.01 sec
+        Start 333: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/41
+330/400 Test #330: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/38 .................................   Passed    0.01 sec
+        Start 334: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/42
+331/400 Test #331: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/39 .................................   Passed    0.01 sec
+        Start 335: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/43
+332/400 Test #332: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/40 .................................   Passed    0.01 sec
+        Start 336: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/44
+333/400 Test #333: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/41 .................................   Passed    0.01 sec
+        Start 337: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/45
+334/400 Test #334: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/42 .................................   Passed    0.01 sec
+        Start 338: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/46
+335/400 Test #335: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/43 .................................   Passed    0.01 sec
+        Start 339: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/47
+336/400 Test #336: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/44 .................................   Passed    0.01 sec
+        Start 340: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/48
+337/400 Test #337: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/45 .................................   Passed    0.01 sec
+        Start 341: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/49
+338/400 Test #338: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/46 .................................   Passed    0.01 sec
+        Start 342: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/50
+339/400 Test #339: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/47 .................................   Passed    0.01 sec
+        Start 343: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/51
+340/400 Test #340: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/48 .................................   Passed    0.01 sec
+        Start 344: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/52
+341/400 Test #341: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/49 .................................   Passed    0.01 sec
+        Start 345: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/53
+342/400 Test #342: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/50 .................................   Passed    0.01 sec
+        Start 346: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/54
+343/400 Test #343: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/51 .................................   Passed    0.01 sec
+        Start 347: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/55
+344/400 Test #344: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/52 .................................   Passed    0.01 sec
+        Start 348: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/56
+345/400 Test #345: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/53 .................................   Passed    0.01 sec
+        Start 349: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/57
+346/400 Test #346: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/54 .................................   Passed    0.01 sec
+        Start 350: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/58
+347/400 Test #347: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/55 .................................   Passed    0.01 sec
+        Start 351: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/59
+348/400 Test #348: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/56 .................................   Passed    0.01 sec
+        Start 352: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/60
+349/400 Test #349: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/57 .................................   Passed    0.01 sec
+        Start 353: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/61
+350/400 Test #350: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/58 .................................   Passed    0.01 sec
+        Start 354: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/62
+351/400 Test #351: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/59 .................................   Passed    0.01 sec
+        Start 355: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/63
+352/400 Test #352: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/60 .................................   Passed    0.01 sec
+        Start 356: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/64
+353/400 Test #353: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/61 .................................   Passed    0.01 sec
+        Start 357: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/65
+354/400 Test #354: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/62 .................................   Passed    0.01 sec
+        Start 358: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/66
+355/400 Test #355: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/63 .................................   Passed    0.01 sec
+        Start 359: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/67
+356/400 Test #356: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/64 .................................   Passed    0.01 sec
+        Start 360: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/68
+357/400 Test #357: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/65 .................................   Passed    0.01 sec
+        Start 361: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/69
+358/400 Test #358: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/66 .................................   Passed    0.01 sec
+        Start 362: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/70
+359/400 Test #359: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/67 .................................   Passed    0.01 sec
+        Start 363: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/71
+360/400 Test #360: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/68 .................................   Passed    0.01 sec
+        Start 364: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/72
+361/400 Test #361: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/69 .................................   Passed    0.01 sec
+        Start 365: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/73
+362/400 Test #362: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/70 .................................   Passed    0.01 sec
+        Start 366: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/74
+363/400 Test #363: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/71 .................................   Passed    0.01 sec
+        Start 367: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/75
+364/400 Test #364: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/72 .................................   Passed    0.01 sec
+        Start 368: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/76
+365/400 Test #365: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/73 .................................   Passed    0.01 sec
+        Start 369: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/77
+366/400 Test #366: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/74 .................................   Passed    0.01 sec
+        Start 370: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/78
+367/400 Test #367: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/75 .................................   Passed    0.01 sec
+        Start 371: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/79
+368/400 Test #368: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/76 .................................   Passed    0.01 sec
+        Start 372: FailedFactorizeEvidencePin.InertiaReportsNonObservedAfterAFailedFactorize
+369/400 Test #369: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/77 .................................   Passed    0.01 sec
+        Start 373: MklFactorizeFaultInjection.FirstFactorizeFailureLeavesNoUsableNumericsAndDoesNotBumpEpoch
+370/400 Test #370: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/78 .................................   Passed    0.01 sec
+        Start 374: MklFactorizeFaultInjection.TheSameSessionFactorizesNormallyOnceTheInjectorIsDisengaged
+371/400 Test #371: EveryProperPrefix/IpmPolishTruncation.RefusesAndNamesWhereItRanOut/79 .................................   Passed    0.01 sec
+        Start 375: PardisoIparmObservation.DefaultOptionsLeaveOrderingAndMatchingAtThePardisoinitDefault
+372/400 Test #373: MklFactorizeFaultInjection.FirstFactorizeFailureLeavesNoUsableNumericsAndDoesNotBumpEpoch .............   Passed    0.01 sec
+        Start 376: PardisoIparmObservation.MatrixScalingTrueWritesExactly1
+373/400 Test #372: FailedFactorizeEvidencePin.InertiaReportsNonObservedAfterAFailedFactorize .............................   Passed    0.01 sec
+        Start 377: PardisoIparmObservation.PivotStrategyWritesItsOwnContractCode
+374/400 Test #375: PardisoIparmObservation.DefaultOptionsLeaveOrderingAndMatchingAtThePardisoinitDefault .................   Passed    0.01 sec
+        Start 378: PardisoIparmObservation.FactorizationAlgorithmWritesItsOwnContractCode
+375/400 Test #374: MklFactorizeFaultInjection.TheSameSessionFactorizesNormallyOnceTheInjectorIsDisengaged ................   Passed    0.01 sec
+        Start 379: PardisoIparmObservation.SolveParallelismWritesItsOwnContractCode
+376/400 Test #376: PardisoIparmObservation.MatrixScalingTrueWritesExactly1 ...............................................   Passed    0.01 sec
+        Start 380: PardisoIparmObservation.CnrThreadsWritesTheRequestedCount
+377/400 Test #377: PardisoIparmObservation.PivotStrategyWritesItsOwnContractCode .........................................   Passed    0.01 sec
+        Start 381: PardisoIparmObservation.CollectFactorMflopsTrueRequestsIparm18
+378/400 Test #378: PardisoIparmObservation.FactorizationAlgorithmWritesItsOwnContractCode ................................   Passed    0.01 sec
+        Start 382: PardisoIparmObservation.FactorNonzerosIsAlwaysPresentRegardlessOfCollectFactorMflops
+379/400 Test #379: PardisoIparmObservation.SolveParallelismWritesItsOwnContractCode ......................................   Passed    0.01 sec
+        Start 383: PardisoIparmObservation.MinimumDegreeOrderingWritesExactly0
+380/400 Test #380: PardisoIparmObservation.CnrThreadsWritesTheRequestedCount .............................................   Passed    0.01 sec
+        Start 384: PardisoIparmObservation.NestedDissectionOrderingWritesExactly2
+381/400 Test #381: PardisoIparmObservation.CollectFactorMflopsTrueRequestsIparm18 ........................................   Passed    0.01 sec
+        Start 385: PardisoIparmObservation.ParallelNestedDissectionOrderingWritesExactly3
+382/400 Test #382: PardisoIparmObservation.FactorNonzerosIsAlwaysPresentRegardlessOfCollectFactorMflops ..................   Passed    0.01 sec
+        Start 386: PardisoIparmObservation.WeightedMatchingTrueWritesExactly1
+383/400 Test #383: PardisoIparmObservation.MinimumDegreeOrderingWritesExactly0 ...........................................   Passed    0.01 sec
+        Start 387: PardisoIparmObservation.DefaultOptionsStillWriteRefinementCapZeroAndPivotPerturbEight
+384/400 Test #384: PardisoIparmObservation.NestedDissectionOrderingWritesExactly2 ........................................   Passed    0.01 sec
+        Start 388: PardisoIparmObservation.NulloptRefinementCapAndPivotPerturbExecuteNoWriteAtAll
+385/400 Test #385: PardisoIparmObservation.ParallelNestedDissectionOrderingWritesExactly3 ................................   Passed    0.01 sec
+        Start 389: PardisoIparmObservation.PresentRefinementCapAndPivotPerturbWriteTheRequestedValues
+386/400 Test #386: PardisoIparmObservation.WeightedMatchingTrueWritesExactly1 ............................................   Passed    0.01 sec
+        Start 390: BackendDefaultPremise.MklPardisoinitLeavesScalingAndCnrAtZero
+387/400 Test #387: PardisoIparmObservation.DefaultOptionsStillWriteRefinementCapZeroAndPivotPerturbEight .................   Passed    0.01 sec
+        Start 391: BackendDefaultPremise.MklPardisoinitDefaultsTheRefinementCapAndPivotPerturbExponent
+388/400 Test #388: PardisoIparmObservation.NulloptRefinementCapAndPivotPerturbExecuteNoWriteAtAll ........................   Passed    0.01 sec
+        Start 392: BackendDefaultPremise.MklPardisoinitAlreadyRequestsTheFactorNonzeroCount
+389/400 Test #389: PardisoIparmObservation.PresentRefinementCapAndPivotPerturbWriteTheRequestedValues ....................   Passed    0.01 sec
+        Start 393: ThreadCountObservation.ANewCountLandsInTheConfigTheNextSolveReadsWithoutReAnalyzing
+390/400 Test #390: BackendDefaultPremise.MklPardisoinitLeavesScalingAndCnrAtZero .........................................   Passed    0.01 sec
+        Start 394: ThreadScope.TheConfiguredCountReachesTheCallAndTheCallersOverrideIsBackAfterIt
+391/400 Test #391: BackendDefaultPremise.MklPardisoinitDefaultsTheRefinementCapAndPivotPerturbExponent ...................   Passed    0.01 sec
+        Start 395: ThreadScope.TheCallersOverrideSurvivesAnInjectedFactorizationFailureOutsideTheScope
+392/400 Test #392: BackendDefaultPremise.MklPardisoinitAlreadyRequestsTheFactorNonzeroCount ..............................   Passed    0.01 sec
+        Start 396: ThreadScope.TheCallersOverrideIsRestoredWhenAThrowUnwindsTheScope
+393/400 Test #393: ThreadCountObservation.ANewCountLandsInTheConfigTheNextSolveReadsWithoutReAnalyzing ...................   Passed    0.01 sec
+        Start 397: ThreadScope.AnUnengagedScopeWritesNothingWhenAThrowUnwindsIt
+394/400 Test #396: ThreadScope.TheCallersOverrideIsRestoredWhenAThrowUnwindsTheScope .....................................   Passed    0.00 sec
+        Start 398: KktFactorizationFaultTest.SymbolicFailureIsRecordedRatherThanPropagated
+395/400 Test #394: ThreadScope.TheConfiguredCountReachesTheCallAndTheCallersOverrideIsBackAfterIt ........................   Passed    0.01 sec
+        Start 399: KktFactorizationFaultTest.AnAbsentPerturbedPivotCountSurfacesAsNulloptNotZero
+396/400 Test #397: ThreadScope.AnUnengagedScopeWritesNothingWhenAThrowUnwindsIt ..........................................   Passed    0.00 sec
+        Start 400: KktFactorizationFaultTest.SymbolicFailureLeavesTheObjectAnalyzableAgain
+397/400 Test #395: ThreadScope.TheCallersOverrideSurvivesAnInjectedFactorizationFailureOutsideTheScope ...................   Passed    0.01 sec
+398/400 Test #398: KktFactorizationFaultTest.SymbolicFailureIsRecordedRatherThanPropagated ...............................   Passed    0.00 sec
+399/400 Test #399: KktFactorizationFaultTest.AnAbsentPerturbedPivotCountSurfacesAsNulloptNotZero .........................   Passed    0.01 sec
+400/400 Test #400: KktFactorizationFaultTest.SymbolicFailureLeavesTheObjectAnalyzableAgain ...............................   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 400
+
+Total Test time (real) =   0.70 sec

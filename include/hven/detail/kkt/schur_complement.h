@@ -17,7 +17,7 @@
 //     y  = C^-1 (rhs1 - Vt w)
 //     x0 = K0^-1 (rhs0 - V y)
 //
-// C is maintained dense and factored from scratch on every add_border/
+// C is kept assembled and dense (c_) and refactored on every add_border/
 // drop_border via hven::linear::DenseSymmetricFactor's symmetric indefinite
 // Bunch-Kaufman factorization (LAPACK dsytrf on the LOWER triangle) rather
 // than Eigen::LDLT -- deliberately: Eigen::LDLT has no pivoting strategy for
@@ -25,9 +25,16 @@
 // silently returns a wrong answer with no exception. The engine's active-set
 // updates can legitimately produce such a C (mixed-sign multipliers mid-
 // update), and Bunch-Kaufman's 2x2-pivot fallback is designed for exactly
-// that case. Recomputing from scratch is O(dim()^2 * n0) to rebuild C from
-// the cached K0^-1v columns plus O(dim()^3) to factorize; both are cheap
-// while dim() stays around schur_cap (128).
+// that case.
+//
+// INVARIANT (c_): its top-left dim() x dim() block holds, bit for bit, what a
+// from-scratch assembly of the current arrays would -- -v_[i].dot(k0inv_v_[j])
+// for every (i, j), plus d_[i] on the diagonal -- on EVERY path, including
+// after a throw. An add computes only its new row and column (each entry by
+// that same expression); a drop deletes a row and column. The factorization
+// is of that block, so it is also bit-identical to a from-scratch one. The
+// O(dim()^2 * n0) assembly is gone from the per-border cost; what remains is
+// O(dim() * n0) for the new row/column and O(dim()^3) for the factorization.
 //
 // NOTE dim() <= schur_cap is NOT an invariant this class enforces --
 // add_border always succeeds and this class never refuses one. schur_cap is
@@ -38,7 +45,7 @@
 // schur_cap + 1: the cap is detected by the add that crosses it, so one
 // border beyond the cap is always paid for. A caller that ignores
 // needs_refactorization() will simply grow C without bound and pay the
-// O(dim()^3) rebuild for it.
+// O(dim()^3) factorization for it.
 //
 // K0^-1 v_i is cached at add_border time (one K0 solve per border) so
 // `solve` costs exactly two K0 solves (for w and for x0), independent of
@@ -50,11 +57,18 @@
 // built whenever K0 is refactorized), so caching that gate would be safe.
 //
 // drop_border(k) removes the k-th added border (by add_border call order,
-// re-indexed after each drop) and recomputes C from the remaining cached
-// K0^-1v columns -- cheap and safe, and avoids having to reason about
-// deleting a row/column from an existing factorization.
+// re-indexed after each drop) and deletes its row and column of C.
+//
+// BATCHING. begin_batch()/end_batch() bracket a run of add_border calls whose
+// intermediate factorizations nobody reads (sync_borders): each add then only
+// extends C, and end_batch() factorizes once. Inside a batch the evidence is
+// absent (every reader refuses, as after a failed factorization). end_batch() keeps
+// the per-add contract under a throw: if the one factorization throws, the
+// batch's adds are replayed one at a time with their own factorizations, so
+// the throw and the stack it leaves are exactly the per-add ones.
 
 #include <algorithm>
+#include <cmath>
 #include <limits>
 #include <optional>
 #include <stdexcept>
@@ -85,6 +99,12 @@ namespace detail {
 // agree.
 constexpr double kSchurSingularEigFrac = 1e-12;
 
+// Steps near_null_direction() (inverse iteration on C's own factor) and dominant_direction()
+// (power iteration on C) take: each damps a direction whose |eigenvalue| is r times nearer the
+// other end of C's spectrum by 1/r. Few on purpose -- the reader wants every border the two
+// extreme directions could live on, and an unconverged direction only widens that set.
+constexpr int kConditionDirectionSteps = 2;
+
 } // namespace detail
 
 class SchurComplement {
@@ -110,43 +130,49 @@ class SchurComplement {
     int num_threads() const noexcept { return factor_.num_threads(); }
 
     // Borders K0 with column v (size K0.rows()) and diagonal entry d. Costs
-    // one K0 solve (to cache K0^-1 v) plus an O(dim()^2 * n0 +
-    // dim()^3) dense rebuild-and-factorize of C.
+    // one K0 solve (to cache K0^-1 v), the O(dim() * n0) dots of the new row
+    // and column of C, and an O(dim()^3) dense factorization of C (deferred to
+    // end_batch() inside a batch).
     //
     // ALL-OR-NOTHING ON THE BORDER STACK. If anything below throws -- the K0
-    // solve, an allocation, or rebuild_schur()'s own factorization -- this
-    // call leaves v_/k0inv_v_/d_ EXACTLY as it found them, so dim() never
-    // counts a border the call did not finish adding. The caller
-    // (qp_engine.h sync_borders) records each successful add in a parallel
-    // ledger AFTER this returns, and drop_border() indexes by add-order
-    // position; a border left behind by a throwing add would be invisible to
-    // that ledger forever and would shift every later drop onto the WRONG
-    // border -- a silent wrong bordered solve.
+    // solve, an allocation, or the dense factorization -- this call leaves
+    // v_/k0inv_v_/d_ EXACTLY as it found them, so dim() never counts a border
+    // the call did not finish adding. The caller (qp_engine.h sync_borders)
+    // records each successful add in a parallel ledger AFTER this returns, and
+    // drop_border() indexes by add-order position; a border left behind by a
+    // throwing add would be invisible to that ledger forever and would shift
+    // every later drop onto the WRONG border -- a silent wrong bordered solve.
+    // c_ needs no rollback: only its top-left dim() block is meaningful, and
+    // the shrink takes the half-written new row and column out of it.
     //
     // The cached C factorization is NOT restored -- it cannot be, short of
-    // re-running the rebuild that just failed. It is left DISCARDED instead,
-    // which makes needs_refactorization() true and every evidence reader
-    // refuse; the caller must rebuild K0 rather than keep bordering.
+    // re-running the factorization that just failed. It is left DISCARDED
+    // instead, which makes needs_refactorization() true and every evidence
+    // reader refuse; the caller must rebuild K0 rather than keep bordering.
     void add_border(const Vec &v, double d) {
         Vec k0inv_v = detail::solve_vec(kkt_, v);
 
-        // Every allocation the three pushes below could need is taken HERE,
-        // before any of them mutates anything, so the torn state of one
-        // push_back succeeding and a later one throwing bad_alloc cannot
-        // form. (drop_border's per-array erase and rebuild_schur's C
-        // assembly both index all three at dim(), so a length skew is an
-        // unguarded out-of-bounds read in Release, not a degraded answer.)
-        // Growing GEOMETRICALLY, not to the exact size needed:
-        // reserving base + 1 every time would turn push_back's amortized
-        // growth into a reallocation per add_border.
+        // Every allocation the pushes below and the growth of c_ could need is
+        // taken HERE, before anything mutates, so the torn state of one
+        // push_back succeeding and a later one throwing bad_alloc cannot form.
+        // (drop_border's per-array erase and the C assembly both index all
+        // three at dim(), so a length skew is an unguarded out-of-bounds read
+        // in Release, not a degraded answer.) Growing GEOMETRICALLY, not to
+        // the exact size needed: reserving base + 1 every time would turn
+        // push_back's amortized growth into a reallocation per add_border.
         reserve_all(v_.size() + 1);
 
         const std::size_t base = v_.size();
         try {
-            v_.push_back(v);
-            k0inv_v_.push_back(std::move(k0inv_v));
-            d_.push_back(d);
-            rebuild_schur();
+            append_border(v, std::move(k0inv_v), d);
+            if (batching_) {
+                // Factorization deferred: nothing may read C's old one.
+                singular_ = false;
+                evidence_.reset();
+                factor_pending_ = true;
+            } else {
+                factor_c();
+            }
         } catch (...) {
             // Shrinking three vectors to a size they already held: no
             // allocation, no reallocation, nothing here can throw.
@@ -157,29 +183,64 @@ class SchurComplement {
         }
     }
 
+    // Opens a batch: until end_batch(), add_border only extends C. No
+    // drop_border inside a batch. Not nestable.
+    void begin_batch() {
+        if (batching_) {
+            throw std::logic_error("SchurComplement::begin_batch: a batch is already open");
+        }
+        batching_ = true;
+        factor_pending_ = false;
+        batch_base_ = v_.size();
+    }
+
+    // Closes the batch and factorizes C once if it grew. The result is the
+    // state the same adds made one at a time would have left, bit for bit.
+    // If the single factorization throws, the batch's adds are replayed with a
+    // factorization each: the throw is then the one the per-add path raises
+    // (the first add whose C cannot be factorized), and the stack is left as
+    // that add's rollback leaves it -- the caller's ledger keeps only its first
+    // dim() entries. If the replay completes, the replay's state stands.
+    void end_batch() {
+        if (!batching_) {
+            return;
+        }
+        batching_ = false;
+        if (!factor_pending_) {
+            return;
+        }
+        factor_pending_ = false;
+        try {
+            factor_c();
+        } catch (...) {
+            replay_batch();
+        }
+    }
+
     // Removes the k-th added border (0-indexed in add_border call order,
     // shifting later indices down by one). Throws std::out_of_range if k is
     // outside [0, dim()).
     //
     // ALL-OR-NOTHING ON THE BORDER STACK, the exact mirror of add_border's
     // guarantee. The caller drops the border FIRST and erases the matching
-    // ledger entry SECOND, so a throw out of the rebuild_schur() below --
-    // after all three arrays are already shortened -- must not survive: it
-    // would leave a ledger entry naming a border that is gone, and every
-    // later drop would index one position too high, removing the WRONG
-    // border -- a silent wrong bordered solve rather than a reported
-    // failure.
+    // ledger entry SECOND, so a throw out of the factorization below -- after
+    // the arrays and c_ are already shortened -- must not survive: it would
+    // leave a ledger entry naming a border that is gone, and every later drop
+    // would index one position too high, removing the WRONG border -- a silent
+    // wrong bordered solve rather than a reported failure.
     //
     // THE FALLIBLE PART CANNOT BE HOISTED here the way add_border hoists its
-    // allocations: rebuild_schur() rebuilds C from the arrays as they stand
-    // AFTER the erase, so rollback is the available shape. Re-inserting into
-    // three vectors that were just erased from needs no allocation (erase
-    // does not shrink capacity) and moves only Eigen dynamic vectors, whose
-    // move assignment steals a pointer -- so nothing in the recovery can
-    // itself throw.
+    // allocations: the factorization is of C as it stands AFTER the deletion,
+    // so rollback is the available shape. Re-inserting into three vectors that
+    // were just erased from needs no allocation (erase does not shrink
+    // capacity) and moves only Eigen dynamic vectors, whose move assignment
+    // steals a pointer; c_'s deleted row and column are written back into
+    // storage c_ already has. Nothing in the recovery can itself throw. (The
+    // two saved copies of that row and column allocate, and are taken before
+    // anything mutates.)
     //
     // The cached C factorization is NOT restored, for add_border's reason:
-    // needs_refactorization() is true after a failed rebuild and every
+    // needs_refactorization() is true after a failed factorization and every
     // evidence reader refuses. What the rollback preserves is the STACK's
     // agreement with the caller's ledger, not the ability to keep bordering.
     void drop_border(Index k) {
@@ -187,27 +248,35 @@ class SchurComplement {
             throw std::out_of_range(fmt::format(
                 "SchurComplement::drop_border: index {} out of range [0, {})", k, dim()));
         }
+        if (batching_) {
+            throw std::logic_error("SchurComplement::drop_border: called inside a batch");
+        }
+        const Index m = dim();
         const auto idx = static_cast<std::size_t>(k);
         const auto at = static_cast<std::ptrdiff_t>(idx);
+        const Vec saved_col = c_.col(k).head(m);
+        const Vec saved_row = c_.row(k).head(m).transpose();
         Vec saved_v = std::move(v_[idx]);
         Vec saved_k0inv_v = std::move(k0inv_v_[idx]);
         const double saved_d = d_[idx];
         v_.erase(v_.begin() + at);
         k0inv_v_.erase(k0inv_v_.begin() + at);
         d_.erase(d_.begin() + at);
+        delete_c_row_col(k, m);
         try {
-            rebuild_schur();
+            factor_c();
         } catch (...) {
             v_.insert(v_.begin() + at, std::move(saved_v));
             k0inv_v_.insert(k0inv_v_.begin() + at, std::move(saved_k0inv_v));
             d_.insert(d_.begin() + at, saved_d);
+            restore_c_row_col(k, m, saved_col, saved_row);
             throw;
         }
     }
 
     // rhs_full sized K0.rows() + dim(); returns [x0; y] of the same size.
     // Throws std::runtime_error if C's last factorization found an exact
-    // zero pivot (see rebuild_schur()) -- needs_refactorization() would
+    // zero pivot (see factor_c()) -- needs_refactorization() would
     // already be true in that case, so this is a belt-and-suspenders guard
     // against a caller ignoring it.
     Vec solve(const Vec &rhs_full) const {
@@ -253,6 +322,31 @@ class SchurComplement {
     }
 
     Index dim() const { return static_cast<Index>(v_.size()); }
+
+    // C's two extreme directions, the ends cond_estimate() measures: the one
+    // nearest its null space (kConditionDirectionSteps steps of inverse
+    // iteration on the cached factor) and its dominant one (as many steps of
+    // power iteration on C), each from a fixed start and scaled to a largest
+    // |entry| of 1. Entry i belongs to the i-th border (add order). EMPTY when
+    // the direction cannot be read: dim() == 0, a step that is not finite or
+    // vanishes, and -- for the near-null one -- no usable factorization (an
+    // exactly singular C, or a rebuild that threw). Read by the walk's
+    // conditioning latch (qp_engine.h, section 4) for the borders that made C
+    // ill-conditioned; they change nothing here.
+    Vec near_null_direction() const {
+        if (dim() == 0 || !evidence_usable()) {
+            return {};
+        }
+        return iterate_direction([this](const Vec &y, Vec &z) { factor_.solve(y, z); });
+    }
+    Vec dominant_direction() const {
+        if (dim() == 0) {
+            return {};
+        }
+        const Index m = dim();
+        return iterate_direction(
+            [this, m](const Vec &y, Vec &z) { z.noalias() = c_.topLeftCorner(m, m) * y; });
+    }
 
     // Ratio of the largest to smallest |eigenvalue| among C's Bunch-Kaufman
     // diagonal blocks (1x1 blocks contribute |d_ii| directly; 2x2 blocks
@@ -338,13 +432,13 @@ class SchurComplement {
 
   private:
     // THE ONE GUARD BEHIND ALL THREE EVIDENCE READERS. `evidence_` is
-    // engaged exactly when the last rebuild_schur() ran to completion on a
+    // engaged exactly when the last factor_c() ran to completion on a
     // nonempty C and got a usable factorization out of it. Two states leave
     // it disengaged, and neither may be read through:
     //
     //   * singular_ -- try_factorize reported kExactlySingular, so the
     //     factor completed but carries nothing decodable.
-    //   * A throw out of rebuild_schur, which is a real path:
+    //   * A throw out of factor_c, which is a real path:
     //     DenseSymmetricFactor::try_factorize throws on LAPACKE info < 0,
     //     and LAPACKE's own NaN screen returns info < 0 for a C carrying a
     //     non-finite entry -- which one non-finite border value is enough to
@@ -360,33 +454,148 @@ class SchurComplement {
     // completed with its own std::runtime_error.
     bool evidence_usable() const noexcept { return !singular_ && evidence_.has_value(); }
 
-    // Grows all three border arrays to hold at least `want` entries, doing
-    // EVERY allocation before any of them is mutated -- see add_border.
-    void reserve_all(std::size_t want) {
-        if (v_.capacity() >= want && k0inv_v_.capacity() >= want && d_.capacity() >= want) {
-            return;
+    // The shared loop of near_null_direction() and dominant_direction(): `apply`
+    // maps y to the next unnormalized iterate z.
+    template <class Apply> Vec iterate_direction(const Apply &apply) const {
+        const Index m = dim();
+        Vec y(m);
+        for (Index i = 0; i < m; ++i) {
+            // A fixed start with no symmetry for an eigenvector to be orthogonal to.
+            y(i) = 1.0 + static_cast<double>(i) / static_cast<double>(m);
         }
-        const std::size_t grown = std::max(want, 2 * v_.size());
-        v_.reserve(grown);
-        k0inv_v_.reserve(grown);
-        d_.reserve(grown);
+        Vec z(m);
+        for (int step = 0; step < detail::kConditionDirectionSteps; ++step) {
+            apply(y, z);
+            const double s = z.lpNorm<Eigen::Infinity>();
+            if (!std::isfinite(s) || s == 0.0) {
+                return {};
+            }
+            y = z / s;
+        }
+        return y;
     }
 
-    // Rebuilds C = D - Vt K0^-1 V (dense, from the cached K0^-1v columns),
-    // factorizes it via DenseSymmetricFactor::try_factorize on the LOWER
-    // triangle (Bunch-Kaufman -- 'L' is float-load-bearing: 'U' eliminates
-    // in a different order and produces different rounding), and caches the
+    // Grows all three border arrays, and c_, to hold at least `want` entries,
+    // doing EVERY allocation before any of them is mutated -- see add_border.
+    void reserve_all(std::size_t want) {
+        const auto cap_c = static_cast<std::size_t>(c_.rows());
+        if (v_.capacity() < want || k0inv_v_.capacity() < want || d_.capacity() < want) {
+            const std::size_t grown = std::max(want, 2 * v_.size());
+            v_.reserve(grown);
+            k0inv_v_.reserve(grown);
+            d_.reserve(grown);
+        }
+        if (cap_c < want) {
+            const std::size_t grown = std::max(want, cap_c + cap_c / 2 + 8);
+            const auto m = static_cast<Index>(v_.size());
+            Eigen::MatrixXd bigger(static_cast<Index>(grown), static_cast<Index>(grown));
+            bigger.topLeftCorner(m, m) = c_.topLeftCorner(m, m);
+            c_.swap(bigger);
+        }
+    }
+
+    // Pushes the border onto the three arrays (capacity already reserved, so
+    // nothing here throws) and writes its row and column of C. Every entry is
+    // the expression a from-scratch assembly would evaluate for it, with its
+    // operands in the same order: c(i, j) = -v_i . k0inv_v_j for ALL i, j (C is
+    // symmetric only up to rounding, and the factorization reads one
+    // triangle), c(k, k) additionally + d_k.
+    void append_border(const Vec &v, Vec &&k0inv_v, double d) {
+        v_.push_back(v);
+        k0inv_v_.push_back(std::move(k0inv_v));
+        d_.push_back(d);
+        const Index k = dim() - 1;
+        const auto sk = static_cast<std::size_t>(k);
+        for (Index j = 0; j < k; ++j) {
+            const auto sj = static_cast<std::size_t>(j);
+            c_(k, j) = -v_[sk].dot(k0inv_v_[sj]);
+            c_(j, k) = -v_[sj].dot(k0inv_v_[sk]);
+        }
+        c_(k, k) = -v_[sk].dot(k0inv_v_[sk]);
+        c_(k, k) += d_[sk];
+    }
+
+    // Deletes row and column k of the m x m block, closing the gap. Plain
+    // loops: no temporary, so no allocation.
+    void delete_c_row_col(Index k, Index m) {
+        for (Index j = 0; j < m; ++j) {
+            for (Index i = k; i + 1 < m; ++i) {
+                c_(i, j) = c_(i + 1, j);
+            }
+        }
+        for (Index j = k; j + 1 < m; ++j) {
+            for (Index i = 0; i + 1 < m; ++i) {
+                c_(i, j) = c_(i, j + 1);
+            }
+        }
+    }
+
+    // The inverse of delete_c_row_col: reopens row and column k (undoing the
+    // two shifts in reverse order) and writes the saved ones back; the saved
+    // column and row are full length m and carry the diagonal entry at k.
+    void restore_c_row_col(Index k, Index m, const Vec &col, const Vec &row) {
+        for (Index j = m - 1; j > k; --j) {
+            for (Index i = 0; i + 1 < m; ++i) {
+                c_(i, j) = c_(i, j - 1);
+            }
+        }
+        for (Index j = 0; j < m; ++j) {
+            for (Index i = m - 1; i > k; --i) {
+                c_(i, j) = c_(i - 1, j);
+            }
+        }
+        for (Index i = 0; i < m; ++i) {
+            c_(i, k) = col(i);
+            c_(k, i) = row(i);
+        }
+    }
+
+    // After end_batch()'s one factorization threw: undoes the batch's adds and
+    // redoes each with its own factorization, exactly as add_border does, so
+    // the exception and the stack it leaves are the per-add path's. The cached
+    // K0^-1 v columns are reused; no K0 solve is repeated.
+    void replay_batch() {
+        const std::size_t base = batch_base_;
+        std::vector<Vec> tail_v(
+            std::make_move_iterator(v_.begin() + static_cast<std::ptrdiff_t>(base)),
+            std::make_move_iterator(v_.end()));
+        std::vector<Vec> tail_k(
+            std::make_move_iterator(k0inv_v_.begin() + static_cast<std::ptrdiff_t>(base)),
+            std::make_move_iterator(k0inv_v_.end()));
+        const std::vector<double> tail_d(d_.begin() + static_cast<std::ptrdiff_t>(base), d_.end());
+        v_.resize(base);
+        k0inv_v_.resize(base);
+        d_.resize(base);
+        for (std::size_t t = 0; t < tail_v.size(); ++t) {
+            const std::size_t before = v_.size();
+            try {
+                append_border(tail_v[t], std::move(tail_k[t]), tail_d[t]);
+                factor_c();
+            } catch (...) {
+                v_.resize(before);
+                k0inv_v_.resize(before);
+                d_.resize(before);
+                throw;
+            }
+        }
+    }
+
+    // Factorizes the current top-left block of c_ via
+    // DenseSymmetricFactor::try_factorize on the LOWER triangle
+    // (Bunch-Kaufman -- 'L' is float-load-bearing: 'U' eliminates in a
+    // different order and produces different rounding), and caches the
     // factor's block evidence used by cond_estimate() and
-    // expected_neg_eigs_delta(). See the header comment for why
-    // Bunch-Kaufman (not Eigen::LDLT) and why recomputed from scratch.
+    // expected_neg_eigs_delta(). See the header comment for why Bunch-Kaufman
+    // (not Eigen::LDLT).
     //
-    // THIS CAN THROW, and its throw is caught nowhere inside this class
-    // except by add_border's rollback. It clears the cached evidence FIRST,
-    // so an escape leaves the object with the border arrays intact (or
-    // restored) and no usable factorization -- the state evidence_usable()
-    // exists to describe. Every reader is written against that; do not add
-    // one that assumes evidence_ survives a failed rebuild.
-    void rebuild_schur() {
+    // THIS CAN THROW, and its throw is caught nowhere inside this class except
+    // by add_border's and drop_border's rollback (and end_batch's replay). It
+    // clears the cached evidence FIRST, so an escape leaves the object with
+    // the border arrays intact (or restored) and no usable factorization --
+    // the state evidence_usable() exists to describe. Every reader is written
+    // against that; do not add one that assumes evidence_ survives a failed
+    // factorization.
+    void factor_c() {
         const Index m = dim();
         singular_ = false;
         evidence_.reset();
@@ -394,26 +603,14 @@ class SchurComplement {
             return;
         }
 
-        // Column-major to match DenseSymmetricFactor's LAPACK_COL_MAJOR call
-        // / Eigen::MatrixXd's default storage directly (no transposition
-        // needed). Only the lower triangle is read (Triangle::kLower), but
-        // it's cheapest to just fill the whole symmetric matrix.
-        Eigen::MatrixXd c = Eigen::MatrixXd::Zero(m, m);
-        for (Index i = 0; i < m; ++i) {
-            for (Index j = 0; j < m; ++j) {
-                c(i, j) =
-                    -v_[static_cast<std::size_t>(i)].dot(k0inv_v_[static_cast<std::size_t>(j)]);
-            }
-            c(i, i) += d_[static_cast<std::size_t>(i)];
-        }
-
         // try_factorize, not factorize: an exact zero pivot is a reportable
         // STATE this class degrades on (needs_refactorization() reports it,
         // solve()/expected_neg_eigs_delta() throw), never an error to
         // propagate. An illegal-argument failure (info < 0) still throws
-        // from inside the dense factor.
+        // from inside the dense factor. The block is passed by reference
+        // (column-major, outer stride = c_'s capacity); the factor copies it.
         const hven::linear::DenseFactorizeOutcome outcome =
-            factor_.try_factorize(c, hven::linear::Triangle::kLower);
+            factor_.try_factorize(c_.topLeftCorner(m, m), hven::linear::Triangle::kLower);
         if (outcome == hven::linear::DenseFactorizeOutcome::kExactlySingular) {
             // C is exactly singular: the factorization ran to completion but
             // is not usable for solve() or for reading an inertia off of it.
@@ -433,7 +630,18 @@ class SchurComplement {
     std::vector<Vec> k0inv_v_;
     std::vector<double> d_;
 
-    // Bunch-Kaufman factor of C (lower triangle -- see rebuild_schur) and
+    // The assembled C, column-major, in a square buffer of capacity >=
+    // dim(); only the top-left dim() x dim() block is meaningful (see the
+    // INVARIANT in the header comment).
+    Eigen::MatrixXd c_;
+
+    // An open batch (begin_batch): the stack size it opened at, and whether
+    // an add since then left a factorization owed.
+    bool batching_ = false;
+    bool factor_pending_ = false;
+    std::size_t batch_base_ = 0;
+
+    // Bunch-Kaufman factor of C (lower triangle -- see factor_c) and
     // the block evidence read off it. The evidence is absent when singular_
     // AND whenever a rebuild threw partway; evidence_usable() is the single
     // test for both, and no reader may dereference evidence_ without it.

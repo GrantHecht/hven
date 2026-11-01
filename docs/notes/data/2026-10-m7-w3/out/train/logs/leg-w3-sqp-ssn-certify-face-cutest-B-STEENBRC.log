@@ -1,0 +1,10 @@
+PGREP_EMPTY w3-sqp-ssn-certify-face-cutest-B-STEENBRC
+PGREP_NO_UNCOVERED_CELL w3-sqp-ssn-certify-face-cutest-B-STEENBRC 2026-10-29T08:21:48-04:00
+IN_LOCK_PGREP_EMPTY w3-sqp-ssn-certify-face-cutest-B-STEENBRC 2026-10-29T08:21:48-04:00
+FOREGROUND_START w3-sqp-ssn-certify-face-cutest-B-STEENBRC 2026-10-29T08:21:48-04:00
+w2_a4_sweep: sqp-ssn-certify-face / hven-sqp / cutest / run B-STEENBRC -> /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/train/cells/hven-sqp/sqp-ssn-certify-face/cutest-run-B-STEENBRC (ceiling 300s) [problems: STEENBRC]
+run_serial: cutest/STEENBRC/hven-sqp/sqp-ssn-certify-face
+hven_bench_cell: SsnEngine::solve: start.z(51) = -0.23403637306244307 prices variable 51's UPPER bound, but that bound is absent (upper = inf, at or beyond the +/-1e+20 infinity sentinel) -- there is no row for that multiplier
+run_serial: CELL ERROR cutest/STEENBRC/hven-sqp/sqp-ssn-certify-face
+run_serial: 1 cells -> /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/train/cells/hven-sqp/sqp-ssn-certify-face/cutest-run-B-STEENBRC/results.csv
+FOREGROUND_END w3-sqp-ssn-certify-face-cutest-B-STEENBRC 2026-10-29T08:22:29-04:00 rc=1

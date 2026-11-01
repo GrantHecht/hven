@@ -68,8 +68,7 @@ inline constexpr double kRestoFailureFeasibilityFactor = 1.0e2;
 class ProximalSwitchRestoration final : public RestorationStrategy {
   public:
     void enter_restoration(const ProgressMeasures &reference,
-                            const Eigen::Ref<const Eigen::VectorXd> &primals,
-                            double mu) override;
+                           const Eigen::Ref<const Eigen::VectorXd> &primals, double mu) override;
 
     void exit_restoration() override { active_ = false; }
 
@@ -80,7 +79,7 @@ class ProximalSwitchRestoration final : public RestorationStrategy {
     double proximal_objective(const Eigen::Ref<const Eigen::VectorXd> &primals) const override;
 
     void add_proximal_gradient(const Eigen::Ref<const Eigen::VectorXd> &primals,
-                                Eigen::Ref<Eigen::VectorXd> grad_out) const override;
+                               Eigen::Ref<Eigen::VectorXd> grad_out) const override;
 
     const Eigen::VectorXd &proximal_diagonal() const override { return diagonal_; }
 

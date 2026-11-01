@@ -33,8 +33,11 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
+#include <functional>
 #include <limits>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -45,8 +48,10 @@
 #include <hven/drivers/sqp_solver.h>
 #include <hven/drivers/sqp_solver_types.h>
 
+#include "../common_support/route_reference.h"
 #include "support/derivative_check.h"
 #include "support/hs_problems.h"
+#include "support/nlp_kkt_check.h"
 
 #include "hven/core/compiler.h"
 
@@ -374,6 +379,7 @@ struct FunnelLog {
     std::vector<double> resets;  // h0 at each reset()
     std::vector<double> resumes; // h_restored at each resume_from_restoration()
     std::vector<double> width_after_resume;
+    std::vector<double> width_before_resume; // the width each resume found
     std::vector<StepVerdict> verdict;
     Index judged = 0;
 };
@@ -387,6 +393,7 @@ class RecordingFunnel final : public GlobalizationStrategy {
         log_->resets.push_back(h0);
     }
     void resume_from_restoration(double h) override {
+        log_->width_before_resume.push_back(inner_.width());
         inner_.resume_from_restoration(h);
         log_->resumes.push_back(h);
         log_->width_after_resume.push_back(inner_.width());
@@ -625,8 +632,488 @@ TEST(RestorationModel, ScalesSlackColumnsToTheirJacobianRow) {
         // AND THE OBJECTIVE STILL PRICES THE ACTUAL VIOLATION, which is what
         // keeps h -- not some rescaled surrogate -- the thing being minimized:
         // the slack VARIABLE is the violation in units of sigma, the objective
-        // COEFFICIENT is sigma, so the product is the violation itself.
-        EXPECT_DOUBLE_EQ(r.eval_f(r.start_point()), constraint_violation_l1(ev));
+        // COEFFICIENT is sigma, so the product is the violation itself. Read at
+        // the START's x, which is the entry clamped into [-3, 3] (M7 W2 ladder,
+        // L2: x1 = 0.5 s is outside for s >= 1e4); the sigmas stay the entry's.
+        const Vec xs = r.original_x(r.start_point());
+        EXPECT_DOUBLE_EQ(r.eval_f(r.start_point()), constraint_violation_l1(eval_nlp(model, xs)));
+    }
+}
+
+// QC-1 -- A SLACK'S BOUND ACTIVITY IS READ IN ITS OWN UNITS. One steep linear row,
+// c(x) = 100 (x0 - x1), entered at x = (2.5e-7, 0): the row misses by 2.5e-5, sigma = 100,
+// and the wrapper's start puts sm = 2.5e-7 -- inside feas_tol of its zero bound but outside
+// feas_tol / sigma. The scalar tolerance reads that slack as bound-active, `z` absorbs its
+// objective coefficient and the wrapper's stationarity is 0 at zero multipliers: the
+// sub-solve's major-0 "convergence" behind ACOPR57's false certificate. The per-variable
+// tolerance the driver hands its sub-driver reads it free, and the unpriced coefficient
+// sigma is the stationarity.
+class SteepRowModel final : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 1; }
+    Index mi() const override { return 0; }
+    double eval_f(const Vec &x) const override { return x(0) * x(0) + x(1) * x(1); }
+    Vec eval_grad(const Vec &x) const override { return 2.0 * x; }
+    Vec eval_ce(const Vec &x) const override { return Vec::Constant(1, 100.0 * (x(0) - x(1))); }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = 2.0 * obj_scale;
+        h.insert(1, 1) = 2.0 * obj_scale;
+        h.makeCompressed();
+        return h;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> j(1, 2);
+        j.insert(0, 0) = 100.0;
+        j.insert(0, 1) = -100.0;
+        j.makeCompressed();
+        return j;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &) const override {
+        return Eigen::SparseMatrix<double, Eigen::RowMajor>(0, 2);
+    }
+    const Vec &lower() const override {
+        static const Vec l = Vec::Constant(2, -10.0);
+        return l;
+    }
+    const Vec &upper() const override {
+        static const Vec u = Vec::Constant(2, 10.0);
+        return u;
+    }
+    Vec start_point() const override { return Vec::Zero(2); }
+};
+
+TEST(RestorationModel, BoundActivityIsTheViolationToleranceInEachSlacksUnits) {
+    constexpr double kTol = 1e-6;
+    SteepRowModel model;
+    Vec x(2);
+    x << 2.5e-7, 0.0;
+    const RestorationModel r(model, x, eval_nlp(model, x));
+    ASSERT_EQ(r.n(), 4); // (x0, x1, sp, sm)
+    ASSERT_DOUBLE_EQ(r.slack_scale_e()(0), 100.0);
+
+    const Vec t = r.bound_activity_tolerance(kTol);
+    ASSERT_EQ(t.size(), r.n());
+    EXPECT_EQ(t(0), kTol);
+    EXPECT_EQ(t(1), kTol);
+    EXPECT_EQ(t(2), kTol / 100.0);
+    EXPECT_EQ(t(3), kTol / 100.0);
+
+    const Vec y = r.start_point();
+    ASSERT_EQ(y(2), 0.0);
+    ASSERT_NEAR(y(3), 2.5e-7, 1e-20);
+    const NlpEval ev = eval_nlp(r, y);
+    const Vec le = Vec::Zero(1);
+    const Vec li = Vec(0);
+    const SqpKkt scalar =
+        detail::evaluate_kkt_over(r.n(), r.me(), r.mi(), r.lower(), r.upper(), ev, y, le, li, kTol);
+    const SqpKkt per =
+        detail::evaluate_kkt_over(r.n(), r.me(), r.mi(), r.lower(), r.upper(), ev, y, le, li, t);
+    EXPECT_EQ(scalar.stationarity, 0.0) << "the defect: sm reads bound-active, z absorbs sigma";
+    EXPECT_EQ(scalar.z(3), 100.0);
+    EXPECT_EQ(per.stationarity, 100.0) << "sm is free, so its coefficient sigma is unpriced";
+    EXPECT_EQ(per.z(3), 0.0);
+    EXPECT_EQ(per.z(2), 100.0) << "sp, at its bound exactly, is active under both";
+
+    // AT A CONSTANT VECTOR THE TWO OVERLOADS ARE ONE MEASUREMENT, field for field.
+    const SqpKkt same = detail::evaluate_kkt_over(r.n(), r.me(), r.mi(), r.lower(), r.upper(), ev,
+                                                  y, le, li, Vec::Constant(r.n(), kTol));
+    EXPECT_EQ(same.stationarity, scalar.stationarity);
+    EXPECT_EQ(same.feasibility, scalar.feasibility);
+    EXPECT_EQ(same.complementarity, scalar.complementarity);
+    EXPECT_EQ(same.z, scalar.z);
+    EXPECT_EQ(same.grad_lag, scalar.grad_lag);
+
+    // A MIS-SIZED TOLERANCE IS REFUSED AT THE BOUNDARY, not read past its end.
+    EXPECT_THROW(detail::evaluate_kkt_over(r.n(), r.me(), r.mi(), r.lower(), r.upper(), ev, y, le,
+                                           li, Vec::Constant(r.n() - 1, kTol)),
+                 std::invalid_argument);
+}
+
+// A model with BOTH row kinds and different row scales: cE = 10 x0 - 1 (sigma_e = 10),
+// cI = 3 x1 - 1 (sigma_i = 3), n = 2, me = mi = 1, wide box.
+class MixedScaleRowsModel final : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 1; }
+    Index mi() const override { return 1; }
+    double eval_f(const Vec &x) const override { return x.squaredNorm(); }
+    Vec eval_grad(const Vec &x) const override { return 2.0 * x; }
+    Vec eval_ce(const Vec &x) const override {
+        Vec c(1);
+        c << 10.0 * x(0) - 1.0;
+        return c;
+    }
+    Vec eval_ci(const Vec &x) const override {
+        Vec c(1);
+        c << 3.0 * x(1) - 1.0;
+        return c;
+    }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = 2.0 * obj_scale;
+        h.insert(1, 1) = 2.0 * obj_scale;
+        h.makeCompressed();
+        return h;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> j(1, 2);
+        j.insert(0, 0) = 10.0;
+        j.makeCompressed();
+        return j;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> j(1, 2);
+        j.insert(0, 1) = 3.0;
+        j.makeCompressed();
+        return j;
+    }
+    const Vec &lower() const override {
+        static const Vec l = Vec::Constant(2, -10.0);
+        return l;
+    }
+    const Vec &upper() const override {
+        static const Vec u = Vec::Constant(2, 10.0);
+        return u;
+    }
+    Vec start_point() const override { return Vec::Zero(2); }
+};
+
+// THE MIXED CASE (me >= 1 AND mi >= 1): every sp, sm and si slot carries tol over ITS row's
+// sigma, at the indices the wrapper's layout (x, sp, sm, si) gives. With sigma_e != sigma_i an
+// index slip anywhere in bound_activity_tolerance (e.g. si written at nx + me + j, which is the
+// sm block) puts the wrong sigma in a slot and fails here.
+TEST(RestorationModel, BoundActivityToleranceReachesEverySlackSlotWithBothRowKinds) {
+    constexpr double kTol = 1e-6;
+    MixedScaleRowsModel model;
+    Vec x(2);
+    x << 0.0, 0.0;
+    const RestorationModel r(model, x, eval_nlp(model, x));
+    ASSERT_EQ(r.me(), 1);
+    ASSERT_EQ(r.mi(), 1);
+    ASSERT_EQ(r.n(), 5); // (x0, x1, sp, sm, si)
+    const double se = r.slack_scale_e()(0);
+    const double si_scale = r.slack_scale_i()(0);
+    ASSERT_EQ(se, 10.0);
+    ASSERT_EQ(si_scale, 3.0);
+
+    const Index nx = model.n();
+    const Index sp = nx, sm = nx + r.me(), si = nx + 2 * r.me();
+    ASSERT_EQ(r.original_x(r.start_point()).size(), nx);
+    ASSERT_EQ(r.start_point().size(), r.n());
+
+    const Vec t = r.bound_activity_tolerance(kTol);
+    ASSERT_EQ(t.size(), r.n());
+    EXPECT_EQ(t(0), kTol);
+    EXPECT_EQ(t(1), kTol);
+    EXPECT_EQ(t(sp), kTol / se);
+    EXPECT_EQ(t(sm), kTol / se);
+    EXPECT_EQ(t(si), kTol / si_scale);
+}
+
+// =========================================================================
+// THE PROXIMITY TERM (M7 W2 M2b) -- the wrapper's half.
+//
+// `SqpOptions::restoration_proximity = zeta` puts
+// `(zeta/2) ||D (x - x_k)||^2` on the feasibility wrapper's OBJECTIVE, with
+// `d_i = min(1, 1/|x_{k,i}|)` and `x_k` the requesting iterate. The design page
+// is docs/notes/2026-09-m7-w2-m2-restoration-design.md section 3; the three
+// tests below are its test plan's items 1 and 2.
+// =========================================================================
+
+// ITEM 1 -- THE TERM IN ISOLATION, against hand-computed values, with d_i
+// exercised at all three of the IPM lane's branches (|x_k,i| == 0, < 1, > 1)
+// and at zeta == 0.
+TEST(RestorationModelProximity, IsTheHandComputedTermAtEveryScalingBranch) {
+    CircleInequalityModel model; // n = 2, me = 0, mi = 1
+    Vec x_entry(2);
+    x_entry << 2.0, 2.0;
+    const NlpEval ev = eval_nlp(model, x_entry);
+
+    // THE THREE BRANCHES ON ONE CENTRE IS IMPOSSIBLE AT n = 2, so the branches
+    // are read one pair at a time and the |x| == 0 branch gets its own centre.
+    {
+        Vec centre(2);
+        centre << 0.0, 0.5; // branch 1 (|x| == 0, no division) and branch 2 (< 1)
+        const RestorationModel r(model, x_entry, ev, centre, 3.0);
+        EXPECT_DOUBLE_EQ(r.proximity(), 3.0);
+        // d = (1, 1) -- min(1, 1/|x|) is 1 below 1 and AT the zero, where the
+        // first branch is what keeps 1/0 out of the arithmetic.
+        Vec y = r.start_point();
+        y(0) = 1.0; // x - centre = ( 1.0, -0.5 ) at d = (1, 1)
+        y(1) = 0.0;
+        // READ AS A DIFFERENCE between two points sharing a slack block, so the
+        // slack sum cancels and what is asserted is the TERM. P is NOT zero at
+        // the start point here: the centre is not the construction point, which
+        // is the fired-seed-guard case the sibling test below pins.
+        const double p_start = 0.5 * 3.0 * ((2.0 - 0.0) * (2.0 - 0.0) + (2.0 - 0.5) * (2.0 - 0.5));
+        const double p_y = 0.5 * 3.0 * (1.0 * 1.0 + 0.5 * 0.5);
+        EXPECT_DOUBLE_EQ(r.eval_f(y) - r.eval_f(r.start_point()), p_y - p_start);
+        EXPECT_DOUBLE_EQ(r.eval_f(r.start_point()), constraint_violation_l1(ev) + p_start);
+
+        const Vec g = r.eval_grad(y);
+        EXPECT_DOUBLE_EQ(g(0), 3.0 * 1.0 * 1.0 * (1.0 - 0.0));
+        EXPECT_DOUBLE_EQ(g(1), 3.0 * 1.0 * 1.0 * (0.0 - 0.5));
+        EXPECT_DOUBLE_EQ(g(2), r.slack_scale_i()(0)) << "the slack block is untouched by the term";
+    }
+    {
+        Vec centre(2);
+        // branch 3, twice: d = (0.4, 0.5). INSIDE the box [-3, 3]: the wrapper
+        // clamps its centre (M7 W2 ladder, L2), so an outside centre would be
+        // read at the box (RestorationModelClampedStart pins that).
+        centre << 2.5, 2.0;
+        const RestorationModel r(model, x_entry, ev, centre, 2.0);
+        Vec y = r.start_point();
+        y(0) = 0.0; // x - centre = (-2.5, -2)
+        y(1) = 0.0;
+        const double d0 = 0.4, d1 = 0.5;
+        const double p_y = 0.5 * 2.0 * ((d0 * -2.5) * (d0 * -2.5) + (d1 * -2.0) * (d1 * -2.0));
+        const double p_start = 0.5 * 2.0 * ((d0 * (2.0 - 2.5)) * (d0 * (2.0 - 2.5)) + 0.0 * 0.0);
+        EXPECT_DOUBLE_EQ(r.eval_f(y) - r.eval_f(r.start_point()), p_y - p_start);
+        const Vec g = r.eval_grad(y);
+        EXPECT_DOUBLE_EQ(g(0), 2.0 * d0 * d0 * (-2.5));
+        EXPECT_DOUBLE_EQ(g(1), 2.0 * d1 * d1 * (-2.0));
+
+        // THE CURVATURE IS THE TERM'S OWN SECOND DERIVATIVE, zeta*d_i^2 on the
+        // x-block diagonal and nothing anywhere else -- and it is the one thing
+        // on this wrapper `obj_scale` reaches.
+        const Vec lambda_i = Vec::Zero(1);
+        const Vec lambda_e = Vec::Zero(0);
+        const Eigen::MatrixXd H = Eigen::MatrixXd(r.eval_hess(y, 1.0, lambda_e, lambda_i));
+        EXPECT_DOUBLE_EQ(H(0, 0), 2.0 * d0 * d0);
+        EXPECT_DOUBLE_EQ(H(1, 1), 2.0 * d1 * d1);
+        EXPECT_DOUBLE_EQ(H(0, 1), 0.0);
+        for (Index i = 2; i < r.n(); ++i) {
+            EXPECT_DOUBLE_EQ(H(i, i), 0.0) << "no slack carries curvature";
+        }
+        const Eigen::MatrixXd H_half = Eigen::MatrixXd(r.eval_hess(y, 0.5, lambda_e, lambda_i));
+        EXPECT_DOUBLE_EQ(H_half(0, 0), 0.5 * 2.0 * d0 * d0)
+            << "obj_scale multiplies hess(f), and the proximity term IS part of f";
+    }
+    { // zeta == 0: the term is not there at all, whatever the centre says
+        Vec centre(2);
+        centre << 4.0, 2.0;
+        const RestorationModel r(model, x_entry, ev, centre, 0.0);
+        EXPECT_DOUBLE_EQ(r.proximity(), 0.0);
+        Vec y = r.start_point();
+        y(0) = 0.0;
+        y(1) = 0.0;
+        EXPECT_DOUBLE_EQ(r.eval_f(y), r.eval_f(r.start_point()));
+        EXPECT_DOUBLE_EQ(r.eval_grad(y)(0), 0.0);
+        EXPECT_DOUBLE_EQ(r.eval_grad(y)(1), 0.0);
+    }
+    // THE BOUNDARY REFUSES WHAT SqpOptions::validate REFUSES, at the wrapper's
+    // own door: this class is constructible by anyone holding an NlpModel.
+    Vec centre(2);
+    centre << 1.0, 1.0;
+    EXPECT_THROW(RestorationModel(model, x_entry, ev, centre, -1.0), std::invalid_argument);
+    EXPECT_THROW(
+        RestorationModel(model, x_entry, ev, centre, std::numeric_limits<double>::quiet_NaN()),
+        std::invalid_argument);
+    EXPECT_THROW(
+        RestorationModel(model, x_entry, ev, centre, std::numeric_limits<double>::infinity()),
+        std::invalid_argument);
+    EXPECT_THROW(RestorationModel(model, x_entry, ev, Vec::Ones(3), 1.0), std::invalid_argument);
+    // ...and a WRONG-SIZED centre at the OFF state is not an error, because the
+    // vector is never read there. Stated as a test so the asymmetry is
+    // deliberate rather than discovered.
+    EXPECT_NO_THROW(RestorationModel(model, x_entry, ev, Vec::Ones(3), 0.0));
+}
+
+// ITEM 2 -- THE OFF PROOF IN CODE, NOT ONLY IN ARITHMETIC. At zeta == 0 the
+// three evaluators must return today's values AND today's sparsity pattern: a
+// zero triplet would still enter the pattern and move the sub-solve's symbolic
+// analysis, so the OFF state has to be a BRANCH rather than an added zero. The
+// pattern is compared entry by entry, and the zeta > 0 arm shows what the
+// branch is hiding -- exactly nx_ new diagonal entries.
+TEST(RestorationModelProximity, AtZeroItIsTheWrapperThatShips) {
+    InfeasibleCircleLineModel model; // n = 2, me = 2, mi = 0: an inner Hessian with
+    Vec x_entry(2);                  // a diagonal the term would otherwise hide in
+    x_entry << 2.0, 2.0;
+    const NlpEval ev = eval_nlp(model, x_entry);
+    Vec centre(2);
+    centre << -3.0, 7.0; // DELIBERATELY far from x_entry: at OFF it must not matter
+
+    const RestorationModel ships(model, x_entry, ev);            // the 3-argument wrapper
+    const RestorationModel off(model, x_entry, ev, centre, 0.0); // the same thing, spelled long
+    const RestorationModel on(model, x_entry, ev, centre, 0.5);
+
+    Vec y = ships.start_point();
+    y(0) = 0.25;
+    y(1) = -1.5;
+    const Vec lambda_e = Vec::Constant(2, 0.5);
+    const Vec lambda_i = Vec(0);
+
+    EXPECT_DOUBLE_EQ(off.eval_f(y), ships.eval_f(y));
+    const Vec g_off = off.eval_grad(y);
+    const Vec g_ships = ships.eval_grad(y);
+    ASSERT_EQ(g_off.size(), g_ships.size());
+    for (Index i = 0; i < g_ships.size(); ++i) {
+        EXPECT_DOUBLE_EQ(g_off(i), g_ships(i)) << "gradient entry " << i;
+    }
+
+    const SpMatRM H_ships = ships.eval_hess(y, 1.0, lambda_e, lambda_i);
+    const SpMatRM H_off = off.eval_hess(y, 1.0, lambda_e, lambda_i);
+    const SpMatRM H_on = on.eval_hess(y, 1.0, lambda_e, lambda_i);
+
+    ASSERT_EQ(H_off.nonZeros(), H_ships.nonZeros());
+    for (Index k = 0; k < H_ships.nonZeros(); ++k) {
+        EXPECT_EQ(H_off.innerIndexPtr()[k], H_ships.innerIndexPtr()[k]) << "pattern entry " << k;
+        EXPECT_DOUBLE_EQ(H_off.valuePtr()[k], H_ships.valuePtr()[k]) << "value entry " << k;
+    }
+    for (Index r = 0; r <= H_ships.rows(); ++r) {
+        EXPECT_EQ(H_off.outerIndexPtr()[r], H_ships.outerIndexPtr()[r]) << "row pointer " << r;
+    }
+
+    // AND THE ON ARM IS WHAT THE BRANCH IS KEEPING OUT. This model's inner
+    // Hessian already carries both diagonal entries, so the term ADDS to them
+    // rather than extending the pattern -- setFromTriplets sums duplicates --
+    // which is the harder of the two cases to get right.
+    EXPECT_EQ(H_on.nonZeros(), H_ships.nonZeros())
+        << "the pattern is unchanged HERE because the inner diagonal already exists; the "
+           "sibling test below is the case where it grows";
+    const Eigen::MatrixXd D_on = Eigen::MatrixXd(H_on);
+    const Eigen::MatrixXd D_ships = Eigen::MatrixXd(H_ships);
+    const double d0 = 1.0 / 3.0; // min(1, 1/|-3|)
+    const double d1 = 1.0 / 7.0; // min(1, 1/|7|)
+    // Written as a SUM rather than as a difference: the term is three orders
+    // below the inner entry here, and `(a + x) - a` is not `x` in floating
+    // point at that ratio -- so the assertion is built the way the code builds
+    // the value (setFromTriplets sums the duplicate) and is exact.
+    EXPECT_DOUBLE_EQ(D_on(0, 0), D_ships(0, 0) + 0.5 * d0 * d0);
+    EXPECT_DOUBLE_EQ(D_on(1, 1), D_ships(1, 1) + 0.5 * d1 * d1);
+}
+
+// AND THE PATTERN REALLY DOES GROW when the inner Hessian has none of its own:
+// the same claim on a LINEAR model, whose Lagrangian Hessian is structurally
+// empty, where every one of the nx_ diagonal entries is new. That growth is a
+// change to the sub-solve's symbolic analysis and is the reason the OFF state
+// had to be a branch.
+namespace {
+// n = 2, one LINEAR equality, a linear objective: eval_hess is empty at every
+// argument, which is what makes it the right instrument here.
+class LinearPairModel final : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 1; }
+    Index mi() const override { return 0; }
+    double eval_f(const Vec &x) const override { return x(0) + x(1); }
+    Vec eval_grad(const Vec &) const override { return Vec::Ones(2); }
+    Vec eval_ce(const Vec &x) const override {
+        Vec c(1);
+        c << x(0) + x(1) - 2.0;
+        return c;
+    }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &, double, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.makeCompressed();
+        return h;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> j(1, 2);
+        j.insert(0, 0) = 1.0;
+        j.insert(0, 1) = 1.0;
+        j.makeCompressed();
+        return j;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &) const override {
+        return Eigen::SparseMatrix<double, Eigen::RowMajor>(0, 2);
+    }
+    const Vec &lower() const override {
+        static const Vec l = Vec::Constant(2, -kInfBound);
+        return l;
+    }
+    const Vec &upper() const override {
+        static const Vec u = Vec::Constant(2, kInfBound);
+        return u;
+    }
+    Vec start_point() const override { return Vec::Constant(2, 3.0); }
+};
+} // namespace
+
+TEST(RestorationModelProximity, AtAPositiveWeightThePatternGainsTheDiagonal) {
+    LinearPairModel model;
+    Vec x_entry(2);
+    x_entry << 3.0, 3.0;
+    const NlpEval ev = eval_nlp(model, x_entry);
+    Vec centre(2);
+    centre << 2.0, 0.5; // d = (0.5, 1): one of each branch
+
+    const RestorationModel off(model, x_entry, ev);
+    const RestorationModel on(model, x_entry, ev, centre, 0.25);
+    const Vec y = off.start_point();
+    const Vec lambda_e = Vec::Constant(1, 0.7);
+    const Vec lambda_i = Vec(0);
+
+    const SpMatRM H_off = off.eval_hess(y, 1.0, lambda_e, lambda_i);
+    const SpMatRM H_on = on.eval_hess(y, 1.0, lambda_e, lambda_i);
+    EXPECT_EQ(H_off.nonZeros(), 0)
+        << "the model is linear: the OFF wrapper has no curvature at all";
+    EXPECT_EQ(H_on.nonZeros() - H_off.nonZeros(), 2)
+        << "one new diagonal entry per ORIGINAL variable, and none on the slacks";
+    const Eigen::MatrixXd D_on = Eigen::MatrixXd(H_on);
+    EXPECT_DOUBLE_EQ(D_on(0, 0), 0.25 * 0.5 * 0.5);
+    EXPECT_DOUBLE_EQ(D_on(1, 1), 0.25 * 1.0 * 1.0);
+
+    // THE ENTRIES ARE STRUCTURAL, not value-dependent: nlp_model.h's PATTERN
+    // INVARIANCE precondition forbids a pattern that moves with the arguments,
+    // so obj_scale = 0 must emit the same nonZeros as obj_scale = 1.
+    const SpMatRM H_zero_scale = on.eval_hess(y, 0.0, lambda_e, lambda_i);
+    EXPECT_EQ(H_zero_scale.nonZeros(), H_on.nonZeros());
+    EXPECT_DOUBLE_EQ(Eigen::MatrixXd(H_zero_scale)(0, 0), 0.0);
+}
+
+// THE SMOOTH-l1 IDENTITY'S zeta > 0 SIBLING (the brief's fixture list; the
+// design page's section 7 pin). The wrapper's objective at its own start point
+// is h(x_entry) at zeta = 0 AND at zeta > 0 whenever the centre is the
+// construction point -- which is every solve whose seed guard did not fire. When
+// the guard DOES fire the two differ by P(x_entry) exactly, and that is the
+// price of centring the term on the REQUESTING ITERATE (restoration.h's class
+// note, and the ruling recorded in the design page's section 11 item 8).
+TEST(RestorationModel, IsTheSmoothL1FeasibilityProblemAtAPositiveProximity) {
+    InfeasibleCircleLineModel eq;
+    Vec x_entry(2);
+    x_entry << 2.0, 2.0;
+    const NlpEval ev = eval_nlp(eq, x_entry);
+    const double zeta = 4.0;
+
+    { // THE UNFIRED GUARD: centre == construction point, and the identity holds
+        const RestorationModel r(eq, x_entry, ev, x_entry, zeta);
+        const Vec y0 = r.start_point();
+        EXPECT_DOUBLE_EQ(constraint_violation_l1(ev), 9.0);
+        EXPECT_DOUBLE_EQ(r.eval_f(y0), 9.0) << "P(x_entry) = 0 when the centre IS x_entry";
+        // The wrapper is still FEASIBLE at its start point -- the term is on the
+        // objective and touches no constraint.
+        EXPECT_LT(r.eval_ce(y0).lpNorm<Eigen::Infinity>(), 1e-12);
+        // ...and the x-block of the gradient is now zero for a REASON -- y0's
+        // x-block is the centre -- rather than structurally.
+        EXPECT_DOUBLE_EQ(r.eval_grad(y0)(0), 0.0);
+        EXPECT_DOUBLE_EQ(r.eval_grad(y0)(1), 0.0);
+    }
+    { // THE FIRED GUARD: centre = the requesting iterate, construction at a seed
+        Vec x_k(2);
+        x_k << 3.0, 1.0;
+        const RestorationModel r(eq, x_entry, ev, x_k, zeta);
+        const Vec y0 = r.start_point();
+        const double d0 = 1.0 / 3.0, d1 = 1.0;
+        const double p0 =
+            0.5 * zeta *
+            ((d0 * (2.0 - 3.0)) * (d0 * (2.0 - 3.0)) + (d1 * (2.0 - 1.0)) * (d1 * (2.0 - 1.0)));
+        EXPECT_DOUBLE_EQ(r.eval_f(y0), 9.0 + p0)
+            << "the identity is a zeta = 0 fact, or an unfired-guard fact -- and this is the "
+               "exact, declared, amount by which it fails otherwise";
+        EXPECT_GT(p0, 0.0);
+        // WHAT DOES NOT MOVE: the reformulation's EXACTNESS. The term is part of
+        // the objective being minimized, not of the violation being measured, so
+        // the wrapper's constraints and its slack scaling are untouched.
+        EXPECT_LT(r.eval_ce(y0).lpNorm<Eigen::Infinity>(), 1e-12);
+        const RestorationModel ships(eq, x_entry, ev);
+        EXPECT_TRUE(
+            Eigen::MatrixXd(r.eval_jac_e(y0)).isApprox(Eigen::MatrixXd(ships.eval_jac_e(y0))));
+        EXPECT_TRUE(r.start_point().isApprox(ships.start_point()));
     }
 }
 
@@ -734,6 +1221,72 @@ TEST(SqpDriverRestoration, InfeasibleNlpCertifies) {
     }
 }
 
+// THE CERTIFICATE GATE AT A POSITIVE PROXIMITY WEIGHT (M7 W2 M2b; the design
+// page's sections 3.4 and 11 question 1). Three arms on the fixture directly
+// above, which is the project's certified exit:
+//
+//   zeta = 0        -- the gate is `0.0 <= kkt_tol` and the certified exit is
+//                      the one that ships, asserted here at the field's OFF
+//                      value written EXPLICITLY, so the OFF half of the gate is
+//                      pinned rather than inherited;
+//   zeta tiny       -- the phase moves, the residual stays under kkt_tol, and
+//                      the certificate SURVIVES. This arm is what makes the
+//                      gate a test of the RESIDUAL: a mutant reading
+//                      `certified = (zeta == 0)` passes the other two and dies
+//                      here;
+//   zeta = 1e-2     -- the residual is above kkt_tol and the flag is REFUSED
+//                      while the status stays kInfeasible. What the refusal
+//                      withholds is the CLAIM.
+//
+// The quantity is the UNCORRECTED residual `||J^T lambda - z_sub||_inf`, which
+// `check_certificate` already computes and which needs NO change for any of
+// this -- that helper is byte-identical across the three arms, and the
+// correction the design page's first draft proposed (subtracting grad P from z)
+// would have made it identically zero at every wrapper-stationary point, i.e.
+// certified everything.
+TEST(SqpDriverRestorationProximity, TheCertificateIsGatedOnTheUncorrectedResidual) {
+    struct Arm {
+        double zeta;
+        bool certified;
+        const char *what;
+    };
+    for (const Arm arm : {Arm{0.0, true, "OFF -- the exit that ships"},
+                          Arm{1e-12, true, "on, but not doing any work at the returned point"},
+                          Arm{1e-2, false, "on and doing work -- the claim is withheld"}}) {
+        SCOPED_TRACE(fmt::format("zeta={:g} ({})", arm.zeta, arm.what));
+        InfeasibleCircleLineModel model;
+        SqpOptions opts;
+        opts.max_iter = 200;
+        opts.restoration_proximity = arm.zeta;
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(model);
+
+        EXPECT_EQ(sol.status, SolveStatus::kInfeasible)
+            << "the STATUS is not what the term moves -- the flag is";
+        EXPECT_GE(sol.counters.restoration_iters, 1) << "the phase must have RUN";
+        EXPECT_EQ(sol.infeasibility_certified, arm.certified);
+
+        // AND THE GATE'S OWN QUANTITY, recomputed from the model by the same
+        // helper the certified exit has always been checked with.
+        const SubgradientCertificate c = check_certificate(model, sol, opts.feas_tol);
+        EXPECT_GT(c.h, opts.feas_tol) << "a certificate at a FEASIBLE point would be a "
+                                         "contradiction -- the h half is unmoved by the term";
+        if (arm.certified) {
+            EXPECT_LE(c.stationarity, opts.kkt_tol)
+                << "0 is a subgradient of h at the returned point";
+        } else {
+            EXPECT_GT(c.stationarity, opts.kkt_tol)
+                << "the returned point is stationary for h + P and NOT for h, and that gap is "
+                   "exactly what the driver refused to certify";
+        }
+        ::testing::Test::RecordProperty(
+            fmt::format("zeta_{:g}", arm.zeta),
+            fmt::format("certified={} stat={:.6g} h={:.6g} x=({:.8g},{:.8g}) majors={}+{}",
+                        sol.infeasibility_certified, c.stationarity, c.h, sol.x(0), sol.x(1),
+                        sol.counters.major_iters, sol.counters.restoration_iters));
+    }
+}
+
 // PHASE-5 TASK 4 -- THE MECHANISM BEHIND THE ALGEBRA-MODE STATUS DIVERGENCE
 // THE TEST ABOVE DOCUMENTS, characterized and ruled BENIGN. The Phase-3 close
 // carried it forward as "genuinely a distinct mechanism, still unexplained at
@@ -791,69 +1344,73 @@ TEST(SqpDriverRestoration, AlgebraModeDivergenceIsANonUniqueSubproblemOptimum) {
          {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
         InfeasibleCircleLineModel model;
         SqpOptions opts;
+        // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
+        opts.equality_basis = false;
+        // M7 W2 E2 (S7): the two algebras' different points on the face belong
+        // to the pre-E2 walk; with the independent working set both land on
+        // x0 + x1 = 2.25, the same point.
+        opts.qp.independent_working_set = false;
         opts.max_iter = 2;
         opts.qp.ws_algebra = algebra;
+        // M7 W2 R2: the restoration-route fixtures on this family pin the
+        // pre-R2 ROUTE, so the failed-subproblem step is off (see
+        // SqpDriverRestorationSeed.TheFailedStepKeepsTheCertifiedAnswer for the default).
+        opts.qp_failure_step = false;
         SqpSolver driver(opts);
         const SqpResult sol = driver.solve(model);
-#ifdef USE_ACCELERATE_SPARSE
-        if (algebra == WorkingSetLinearAlgebra::kSchurBorder) {
-            // Origin divergence entry D14. The note that carried it
-            // (docs/notes/2026-07-30-accelerate-at-head-results.md) did NOT
-            // migrate into hven, and the register that succeeds it here
-            // (docs/notes/2026-08-14-accelerate-divergence-register.md, "Why
-            // this file exists at this path") has no row for D14 -- the
-            // observation is quoted in full below and in the second D14 block
-            // further down, and those comments are its citable record here.
-            // What was observed: on
-            // Accelerate, border mode departs from the MKL mechanism at major
-            // 0 -- the first elastic subproblem exits QpStatus::kMaxIter with
-            // |p|inf == 0 instead of taking MKL's 0.125 elastic step, and the
-            // driver routes the failure into restoration immediately. At the
-            // max_iter = 2 cap the solve is therefore mid-restoration, not
-            // sitting in an open elastic relaxation, so lambda_e(0) here is a
-            // RESTORATION-PHASE multiplier and is not zero. Value is
-            // Accelerate-observed (macOS 26.5.2 / AppleClang 21) and will be
-            // re-verified on the next Mac session.
-            EXPECT_NEAR(sol.lambda_e(0), 0.25000000000000011, 1e-12)
-                << "mid-restoration multiplier at the max_iter=2 cap (Accelerate, D14)";
-        } else {
-            // Refactorize mode still matches the MKL mechanism on Accelerate.
-            EXPECT_EQ(sol.lambda_e(0), 0.0) << "an open elastic relaxation carries no multipliers";
-        }
-#else
+#if HVEN_TEST_ROUTE_REFERENCE
         // The multipliers the NEXT subproblem would be built from are zero,
         // which is what makes that subproblem's Hessian 2*lambda_e(0)*I == 0
         // and its optimum a face rather than a point.
         EXPECT_EQ(sol.lambda_e(0), 0.0) << "an open elastic relaxation carries no multipliers";
+#else
+        // Off the reference build the cap can land mid-restoration (origin divergence D14:
+        // the first elastic subproblem may exit with a zero step and route into the phase),
+        // where lambda_e(0) is a restoration-phase multiplier. The structural reading: it is
+        // exactly 0 (open relaxation) or the phase ran. No per-backend float is committed.
+        hven::test_support::record_off_reference_route(
+            std::string("algebra_divergence_lambda_e0_") +
+                (algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize"),
+            fmt::format("lambda_e0={:.17g} restoration_entries={}", sol.lambda_e(0),
+                        sol.counters.restoration_entries));
+        EXPECT_TRUE(sol.lambda_e(0) == 0.0 || sol.counters.restoration_entries >= 1)
+            << "lambda_e(0) is neither the open relaxation's 0 nor a restoration multiplier";
 #endif
         (algebra == WorkingSetLinearAlgebra::kSchurBorder ? x_border : x_refac) = sol.x;
     }
 
-#ifdef USE_ACCELERATE_SPARSE
-    // Origin divergence entry D14, second half (see the first block above for
-    // why the origin note is cited as not-migrated and this comment is the
-    // record): on Accelerate, border mode's iterate at the cap is mid-restoration
-    // -- x = (1.50000000031, 1.49999999969), sum 3.0000000000000004 -- not on
-    // the open-relaxation LP face x0 + x1 == 2 that MKL and refactorize mode
-    // both reach. Refactorize mode is unaffected. Values are
-    // Accelerate-observed (macOS 26.5.2 / AppleClang 21) and will be
-    // re-verified on the next Mac session; the x-components are quoted to 11
-    // significant digits in the origin note, hence the looser tolerance there
-    // than on the (full-precision) sum.
-    EXPECT_NEAR(x_border(0), 1.50000000031, 1e-9);
-    EXPECT_NEAR(x_border(1), 1.49999999969, 1e-9);
-    EXPECT_NEAR(x_border(0) + x_border(1), 3.0000000000000004, 1e-12)
-        << "mid-restoration point, not the LP face (Accelerate, D14)";
-    EXPECT_NEAR(x_refac(0) + x_refac(1), 2.0, 1e-12);
-    // Still the same CLASS of claim part (a) makes on MKL: the two modes land
-    // on materially different points, just for a different reason here (one
-    // is mid-restoration, not a different face point of the same relaxation).
-    EXPECT_GT((x_border - x_refac).lpNorm<Eigen::Infinity>(), 1e-3)
-        << "the two modes no longer diverge on this fixture; the mechanism "
-           "this test documents (as adapted for Accelerate, D14) has changed";
-#else
+#if !HVEN_TEST_ROUTE_REFERENCE
+    // Structural reading (WX design 2.5): each iterate lies on the open-relaxation face
+    // x0 + x1 = 2 or, mid-restoration, on the diagonal x0 = x1, at 1e-12 on an O(1) set.
+    // Which point of the face each algebra returns is the engines' last-digit choice and is
+    // reference-only; the pre-R2 separation claim is not asserted here.
+    hven::test_support::record_off_reference_route(
+        "algebra_divergence_iterates",
+        fmt::format("border=({:.17g},{:.17g}) refactorize=({:.17g},{:.17g})", x_border(0),
+                    x_border(1), x_refac(0), x_refac(1)));
+    // The diagonal disjunct is 1e-8, not 1e-12: the recorded D14 mid-restoration point sat
+    // 6.2e-10 off the diagonal (1.50000000031, 1.49999999969), a structural near-diagonal.
+    for (const Vec *x : {&x_border, &x_refac}) {
+        EXPECT_TRUE(std::abs((*x)(0) + (*x)(1) - 2.0) <= 1e-12 ||
+                    std::abs((*x)(0) - (*x)(1)) <= 1e-8)
+            << "iterate (" << (*x)(0) << ", " << (*x)(1)
+            << ") is on neither the face nor the diagonal";
+    }
+#else // HVEN_TEST_ROUTE_REFERENCE
+    // RE-DERIVED AT M7 W2 E4 FIX ROUND 2 (a declared mover), and the reading is now
+    // the one the Accelerate arm above already carried (origin divergence D14): at
+    // the cap the BORDER mode's iterate is MID-RESTORATION -- x = (1.125, 1.125),
+    // sum 2.2499999999999964 -- rather than on the open-relaxation LP face
+    // x0 + x1 == 2, which refactorize mode still reaches (1.9999999999999996).
+    // That is a different reason for the same divergence, and the fixture's claim --
+    // the two modes land on materially different points, which is a choice among
+    // answers and not a disagreement about one -- is asserted unchanged below.
+    // The border point is a symmetric interior point of the restoration's own path,
+    // so nothing about it is out of the box or off a row.
     // BOTH ITERATES SIT ON THE SAME OPTIMAL FACE x0 + x1 = 2 ...
-    EXPECT_NEAR(x_border(0) + x_border(1), 2.0, 1e-12);
+    EXPECT_NEAR(x_border(0), 1.125, 1e-12);
+    EXPECT_NEAR(x_border(1), 1.125, 1e-12);
+    EXPECT_NEAR(x_border(0) + x_border(1), 2.25, 1e-12) << "mid-restoration point, not the LP face";
     EXPECT_NEAR(x_refac(0) + x_refac(1), 2.0, 1e-12);
     // ... and they are DIFFERENT points of it. This is the divergence, stated
     // as what it is: a choice among equally optimal answers, not a
@@ -873,6 +1430,8 @@ TEST(SqpDriverRestoration, AlgebraModeDivergenceIsANonUniqueSubproblemOptimum) {
         SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
         InfeasibleCircleLineModel model(2.0, 1.999999);
         SqpOptions opts;
+        // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
+        opts.equality_basis = false;
         opts.max_iter = 200;
         opts.qp.ws_algebra = algebra;
         SqpSolver driver(opts);
@@ -1055,6 +1614,9 @@ TEST(SqpDriverRestoration, SecondRequestIsCappedAndReported) {
     SqpOptions opts;
     opts.tr_init = 8.0;
     opts.max_iter = 60;
+    // THE ONCE-PER-SOLVE RULE, which this test pins, is `restoration_max_entries = 1`
+    // since M7 W2 RST (SqpDriverRestorationEntries covers the cap above one).
+    opts.restoration_max_entries = 1;
     FunnelLog log;
     record_funnel_into(opts, &log);
     SqpSolver driver(opts);
@@ -1064,8 +1626,10 @@ TEST(SqpDriverRestoration, SecondRequestIsCappedAndReported) {
     EXPECT_EQ(log.resumes.size(), 1u);
     EXPECT_GE(sol.counters.restoration_iters, 1);
     EXPECT_GT(sol.counters.steps_accepted, 1) << "the resumed loop made real progress";
-    // ...and the second is reported rather than serviced.
-    EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
+    // ...and the second is reported rather than serviced -- as kNumericalError,
+    // never kInfeasible (M7 W2 ladder, L1; re-pinned from kInfeasible: this
+    // fixture's NLP is feasible, so kInfeasible was the wrong answer).
+    EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
     EXPECT_FALSE(sol.infeasibility_certified)
         << "the cap exit makes NO claim about the model -- and this fixture's NLP is in fact "
            "feasible, so a certificate here would be a wrong answer, not a conservative one";
@@ -1079,8 +1643,8 @@ TEST(SqpDriverRestoration, SecondRequestIsCappedAndReported) {
     // leaves kReject on its last row (sqp_solver.h's RESTORATION PHASE note
     // has the corrected decision table; SqpDriverRadius.
     // FloorRaisesTheRestorationRequest exercises that route). So neither
-    // field tells the three kInfeasible outcomes apart -- that is exactly why
-    // the flag exists (sqp_solver_types.h's SqpResult::infeasibility_certified).
+    // field says which exit this is -- the status and the flag do
+    // (sqp_solver_types.h's SqpResult::infeasibility_certified).
     EXPECT_GE(sol.counters.restoration_iters, 1);
     EXPECT_LT(sol.counters.major_iters, opts.max_iter)
         << "the cap must END the solve, not let it grind to the budget";
@@ -1249,7 +1813,29 @@ TEST(SqpDriverRestoration, ExhaustedElasticTierEntersRestorationUnderEveryMode) 
 //       value above it, so the floor was reached exactly and not overshot;
 //   (3) tr_min is a REAL KNOB: raising it by six orders of magnitude reaches
 //       the same verdict at the same point in 20 fewer majors.
-TEST(SqpDriverRadius, FloorRaisesTheRestorationRequest) {
+// RE-PREMISED AND RENAMED AT M7 W2 E4 FIX ROUND 2 (ruling E4-19's class; old name
+// `FloorRaisesTheRestorationRequest`), and this is the SECOND time this fixture's
+// trigger has moved out from under it -- the U0 note below records the first.
+//
+// WHAT HAPPENS NOW, MEASURED: on this model the E4 driver's first step is ACCEPTED
+// (verdict kAccept at tr_radius 1, h 1) and the elastic tier's exhaustion raises
+// the restoration request on the very next major (kRestore, tr_radius still 1). The
+// radius NEVER SHRINKS, so no floor value can be reached, and route (3) -- the
+// floor as a trigger -- is not exercised on this model at all. The U0 remedy (move
+// the floor above the radius at which route (2) fires) has no analogue here: there
+// is no grind to place a floor inside.
+//
+// WHAT IS ASSERTED NOW: that the solve reaches the SAME verdict, the same
+// certificate and the same point by route (2), that the funnel still never asks,
+// and that the radius never crosses the floor -- plus, explicitly, that the floor
+// was NOT the trigger, so a return of the grind fails this test and route (3)'s
+// read-out can be reinstated from the history above.
+//
+// REGISTERED (E4 fix round 2): route (3) -- the radius floor as a restoration
+// trigger -- has NO fixture on the E4 engine. It needs a model whose trial is
+// rejected often enough to grind the radius down; this one no longer is. The rule
+// itself is unchanged code.
+TEST(SqpDriverRadius, TheElasticExhaustionPreemptsTheRadiusFloorOnThisModel) {
     struct Run {
         double tr_min;
         Index majors = 0;
@@ -1283,12 +1869,27 @@ TEST(SqpDriverRadius, FloorRaisesTheRestorationRequest) {
 
         // (1) THE FUNNEL DID NOT ASK. Its signature never fired anywhere in
         // the solve, so every kRestore on this path came from the driver.
+#if HVEN_TEST_ROUTE_REFERENCE
         EXPECT_EQ(std::count(log.verdict.begin(), log.verdict.end(), StepVerdict::kRestore), 0)
             << "if the signature fires here this test is measuring the wrong trigger";
         ASSERT_FALSE(log.verdict.empty());
-        EXPECT_EQ(log.verdict.back(), StepVerdict::kReject);
+        // RE-DERIVED: kReject -> kAcceptH. The strategy's last verdict is an h-type ACCEPT
+        // now, because the step is taken and route (2) raises the request on the
+        // next major; the floor never escalates an ordinary rejection here.
+        EXPECT_EQ(log.verdict.back(), StepVerdict::kAcceptH);
         EXPECT_TRUE(log.resumes.empty()) << "this fixture is infeasible; there is nothing to "
                                             "resume to";
+#else
+        // Off the reference build WHICH trigger raised the restoration request (route (2),
+        // the elastic tier's exhaustion, or route (3), the radius floor -- WX design 4.4) is
+        // a route and is recorded, not pinned.
+        hven::test_support::record_off_reference_route(
+            fmt::format("radius_floor_trigger_tr_min_{:g}", run.tr_min),
+            fmt::format("restore_verdicts={} last_verdict={} resumes={} last_radius={:.17g}",
+                        std::count(log.verdict.begin(), log.verdict.end(), StepVerdict::kRestore),
+                        log.verdict.empty() ? -1 : static_cast<int>(log.verdict.back()),
+                        log.resumes.size(), run.last_radius));
+#endif
 
         // (2) THE FLOOR HELD, AND WAS REACHED. Every radius is >= tr_min, and
         // the last one is within one halving of it -- which is exactly the
@@ -1296,25 +1897,39 @@ TEST(SqpDriverRadius, FloorRaisesTheRestorationRequest) {
         for (const SqpIterate &h : sol.history) {
             EXPECT_GE(h.tr_radius, opts.tr_min) << "trial " << h.trial;
         }
-        EXPECT_LT(run.last_radius * 0.5, opts.tr_min)
-            << "the request must be raised AT the floor, not somewhere above it";
+#if HVEN_TEST_ROUTE_REFERENCE
+        // RE-DERIVED, AND THE SENSE IS REVERSED: the request is raised WELL ABOVE the
+        // floor, because it is route (2)'s and not route (3)'s. Asserted as the
+        // negation so that a grind back down to the floor fails here.
+        EXPECT_GE(run.last_radius * 0.5, opts.tr_min)
+            << "the radius reached the floor again: route (3) is back and this fixture's "
+               "original read-out can be reinstated";
+        EXPECT_EQ(run.last_radius, 1.0) << "the radius never shrank at all";
+#endif
 
         // And the phase ran, and produced the same verdict and the same
         // certificate as the elastic tier's route does (InfeasibleNlpCertifies).
         EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
         EXPECT_TRUE(sol.infeasibility_certified);
+#if HVEN_TEST_ROUTE_REFERENCE
         EXPECT_GE(sol.counters.restoration_iters, 1);
+#endif
         const SubgradientCertificate c = check_certificate(model, sol, opts.feas_tol);
         EXPECT_NEAR(c.h, 2.0 - std::sqrt(2.0), 1e-6);
         EXPECT_LE(c.stationarity, opts.kkt_tol);
         EXPECT_LE(c.selector, 1e-9);
     }
 
-    // (3) tr_min IS THE KNOB. Observed: 60 majors at 1e-10, 40 at 1e-4 -- the
-    // difference is exactly the log2(1e6)/1 = 20 halvings that the higher
-    // floor does not spend.
-    EXPECT_LT(runs[1].majors, runs[0].majors);
-    EXPECT_GT(runs[1].last_radius, runs[0].last_radius);
+    // (3) tr_min IS INERT ON THIS MODEL NOW, which is the same statement as "the
+    // floor is not the trigger" read from the knob's end: three orders of magnitude
+    // of tr_min buy nothing because no halving ever happens. RE-DERIVED from
+    // `LT`/`GT` (20 majors saved at the higher floor) to equality, so that a knob
+    // that starts biting again fails here.
+#if HVEN_TEST_ROUTE_REFERENCE
+    EXPECT_EQ(runs[1].majors, runs[0].majors) << "tr_min moved the trajectory: the floor is a "
+                                                 "trigger again on this model";
+    EXPECT_EQ(runs[1].last_radius, runs[0].last_radius);
+#endif
     ::testing::Test::RecordProperty(
         "floor_knob",
         fmt::format("tr_min=1e-10 -> {} majors (last delta {:.3g}); tr_min=1e-4 -> "
@@ -1606,21 +2221,113 @@ const char *seed_mode_name(QpMode m) {
 }
 } // namespace
 
+// ===========================================================================
+// THE SEED FAMILY'S RE-PREMISE (M7 W2 E4 fix round 2, ruling E4-21(b))
+// ===========================================================================
+//
+// SEVEN fixtures in this file and one in the proximity group read
+// `seeded_rows(sol) == 0` where they pinned 1. It is ONE ROUTE CHANGE, at one
+// line of `src/drivers/sqp_solver.cpp`: the seed guard takes an offered candidate
+// only when it MEASURES BETTER,
+//
+//     if (constraint_violation_l1(probe) < h_entry) { ... take = true; }
+//
+// and the margin it decides on is a KNIFE EDGE on every one of these fixtures.
+// Their own comments record it: `TheTakenCandidateIsRecordedOnTheRequestingRow`
+// measured h = 1.00143238 for the candidate against 1.00143320 for the entry
+// (8.2e-07 RELATIVE), `TheRadiusFloorSeedsFromTheRejectedTrial` 1.00053814
+// against 1.00053914 (1.0e-06), and `TheGuardAndThePhaseRunOnTheCallerScale`
+// 49999.999999992513 against 50000 (1.5e-13). M7 W2 E4 changes every QP answer in
+// the solve -- the proximal EQP, its unregularized polish, the terminal polish --
+// so the trial and ladder steps these candidates ARE differ, and on margins that
+// small the comparison goes the other way.
+//
+// THE GUARD IS NOT AT FAULT AND NOTHING IS LOST: the request is still raised, the
+// restoration phase still RUNS from the requesting iterate
+// (`restoration_iters >= 1`, asserted below where the fixture asserted it before),
+// and every one of these fixtures still reaches ITS OWN ANSWER -- kInfeasible,
+// certified, at the analytic point -- which is what the driver is judged on. What
+// is gone is a candidate measuring better on a knife edge, and a fixture cannot
+// hold a premise the arithmetic no longer supports.
+//
+// SO EACH IS RE-PREMISED AS A DECLARED EVENT, with the seed's own coverage kept
+// wherever it does not need a TAKEN candidate: the guard's refusal arms
+// (`ANonFiniteEvaluationAtTheCandidateIsRefused`, and the Jacobian screen's
+// M7-kill half) are unmoved, and the tests that needed a take are RENAMED to say
+// that the candidate is offered and refused.
+//   TheTakenCandidateIsRecordedOnTheRequestingRow
+//     -> TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTaken
+//   TheSeedIsNotGatedOnTheQpMode
+//     -> TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOne
+//   TheExhaustedLadderSiteSeedsFromItsOwnStep
+//     -> TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesIt
+//   TheRadiusFloorSeedsFromTheRejectedTrial
+//     -> TheRadiusFloorOffersTheRejectedTrialAndTheGuardRefusesIt
+//   TheGuardAndThePhaseRunOnTheCallerScale  (name unchanged: it still does)
+//   TheSeedsEvaluationIsCountedExactlyOnce  (name unchanged: counts re-derived)
+//   AJacobianPoisonedCandidateIsRefusedNotTaken (name unchanged: still true, and
+//     now at the h screen rather than at the Jacobian one)
+//   SqpDriverRestorationProximity.TheSeedGuardFiresAndTheStartObjectiveIsHPlusP
+//
+// M7 W2 R2, THE ROUTE WRITTEN OUT. On this model the walk fails on the way to the
+// request (kMaxIter / kNumericalError), and the R2 default judges the failed
+// subproblem's own step and often takes it, which moves WHERE the request is
+// raised and what the knife-edge candidate measures. The fixtures above pin the
+// ROUTE, so each sets `qp_failure_step = false` and keeps every pinned value; the
+// default's own reading on the same model is
+// SqpDriverRestorationSeed.TheFailedStepKeepsTheCertifiedAnswer (the same certified
+// kInfeasible at the same analytic point).
+
+// THE R2 DEFAULT ON THE FAMILY'S KNIFE-EDGE MODEL: whatever route the failed
+// subproblems' own steps take it by, the answer is the one the family pins --
+// kInfeasible, certified, at the analytic point -- on both walks.
+TEST(SqpDriverRestorationSeed, TheFailedStepKeepsTheCertifiedAnswer) {
+    for (const bool independent : {false, true}) {
+        SCOPED_TRACE(independent ? "independent working set" : "pre-E2 walk");
+        InfeasibleCircleLineModel model(2.0, 1.999999);
+        SqpOptions opts;
+        opts.qp.independent_working_set = independent;
+        opts.max_iter = 200;
+        ASSERT_TRUE(opts.qp_failure_step);
+        const SqpResult sol = SqpSolver(opts).solve(model);
+        EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
+        EXPECT_TRUE(sol.infeasibility_certified);
+        const double t = 1.0 / std::sqrt(2.0);
+        EXPECT_NEAR(sol.x(0), t, 1e-5);
+        EXPECT_NEAR(sol.x(1), t, 1e-5);
+        EXPECT_EQ(sol.counters.nonfinite_subproblems, 0);
+    }
+}
+
 // A CANDIDATE THAT MEASURES BETTER IS TAKEN, and the row that RAISED the
 // request records it. Measured at the exhaustion (Release, MKL, clang++): the
 // ladder's own step reads h = 1.00143238 against the entry's 1.00143320.
-TEST(SqpDriverRestorationSeed, TheTakenCandidateIsRecordedOnTheRequestingRow) {
+TEST(SqpDriverRestorationSeed, TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTaken) {
     InfeasibleCircleLineModel model(2.0, 1.999999);
     SqpOptions opts;
+    // M7 W2 E2 (S7): the taken candidate belongs to the pre-E2 walk (Release takes none with it
+    // on).
+    opts.qp.independent_working_set = false;
     opts.max_iter = 200;
+    opts.qp_failure_step = false; // M7 W2 R2: the pre-R2 route (see the family's note)
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(model);
 
-    ASSERT_EQ(1, seeded_rows(sol)) << "one request, and it took the candidate";
-    const SqpIterate *row = seeded_row(sol);
-    ASSERT_NE(nullptr, row);
-    EXPECT_TRUE(row->elastic_applied) << "an elastic solve supplied this major either way";
-    EXPECT_GE(sol.counters.restoration_iters, 1) << "and the phase RAN from the taken candidate";
+    // RE-PREMISED (see the family note above): 1 -> 0, the candidate is offered and
+    // the guard refuses it because it no longer measures better.
+    // (Whether the knife-edge candidate measures better, and that the phase ran, are the
+    // route: reference-only.)
+#if HVEN_TEST_ROUTE_REFERENCE
+    ASSERT_EQ(0, seeded_rows(sol)) << "the candidate measures better again: the guard took it";
+    EXPECT_EQ(nullptr, seeded_row(sol));
+    EXPECT_GE(sol.counters.restoration_iters, 1)
+        << "the phase RAN from the requesting iterate -- the half that never needed the seed";
+#else
+    hven::test_support::record_off_reference_route(
+        "seed_offered_not_taken",
+        fmt::format("seeded_rows={} restoration_iters={} status={}", seeded_rows(sol),
+                    sol.counters.restoration_iters, static_cast<int>(sol.status)));
+#endif
     // WHICH SITE offered it is build-arithmetic-dependent on this knife-edge
     // fixture -- Release reaches the ladder's exhaustion, Debug the radius floor
     // -- so the site is pinned elsewhere, on fixtures that agree in both.
@@ -1636,21 +2343,58 @@ TEST(SqpDriverRestorationSeed, TheTakenCandidateIsRecordedOnTheRequestingRow) {
 // AND THE SEED IS NOT GATED ON THE KERNEL (owner ruling Q-O3). The fixture is
 // the refactorize arm of InfeasibleNlpCertifies, MEASURED to take a trial-site
 // candidate in all three modes in BOTH configs -- so EQ(1) is falsifiable.
-TEST(SqpDriverRestorationSeed, TheSeedIsNotGatedOnTheQpMode) {
+TEST(SqpDriverRestorationSeed, TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOne) {
     for (const QpMode mode : kSeedModes) {
         SCOPED_TRACE(seed_mode_name(mode));
         InfeasibleCircleLineModel model;
         SqpOptions opts;
+        // M7 W2 E2: the entry repair releases a seed pin dependent on the
+        // equalities on this knife-edge model, and the candidate premise below
+        // belongs to the pre-E2 walk's trajectory (answer unchanged either way).
+        opts.qp.independent_working_set = false;
         opts.max_iter = 200;
         opts.qp.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
         opts.qp_mode = mode;
         SqpSolver driver(opts);
         const SqpResult sol = driver.solve(model);
 
-        // EQ, NOT LE: a `qp_mode == kWalk` gate on the candidate block leaves
-        // this at 0 on the other two kernels, in both configs (mutation-run
-        // evidence in docs/notes/data/2026-09-m6-w2-t4-r4/).
-        EXPECT_EQ(1, seeded_rows(sol)) << "the seed is taken in EVERY mode on this fixture";
+        // RE-PREMISED (the family note): 1 -> 0 in all three modes. The mutation
+        // evidence this pin rested on (a `qp_mode == kWalk` gate leaves the OTHER
+        // two kernels at 0, docs/notes/data/2026-09-m6-w2-t4-r4/) is no longer
+        // distinguishable here, because no mode takes a candidate. What IS still
+        // asserted per mode, and is the claim that matters for the ruling behind
+        // it (owner Q-O3), is that the OFFER and the ANSWER are mode-independent:
+        // every mode reaches the same certified point below.
+#if HVEN_TEST_ROUTE_REFERENCE
+        EXPECT_EQ(0, seeded_rows(sol)) << "a mode took the seed: the margins have moved back";
+#else
+        hven::test_support::record_off_reference_route(
+            std::string("seed_offer_") + seed_mode_name(mode),
+            fmt::format("seeded_rows={}", seeded_rows(sol)));
+#endif
+        EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
+        EXPECT_TRUE(sol.infeasibility_certified);
+        const double t = 1.0 / std::sqrt(2.0);
+        EXPECT_NEAR(sol.x(0), t, 1e-5);
+        EXPECT_NEAR(sol.x(1), t, 1e-5);
+    }
+}
+
+// M7 W2 E2 (settler S7): the seed fixtures on this model keep the pre-E2 walk
+// for their candidate premise; this one runs the SAME configuration with the
+// independent working set ON and asserts the ANSWER, so the on-path is
+// covered on the circle-line model too.
+TEST(SqpDriverRestorationSeed, TheIndependentWorkingSetReachesTheSameCertifiedAnswer) {
+    for (const QpMode mode : kSeedModes) {
+        SCOPED_TRACE(seed_mode_name(mode));
+        InfeasibleCircleLineModel model;
+        SqpOptions opts;
+        ASSERT_TRUE(opts.qp.independent_working_set);
+        opts.max_iter = 200;
+        opts.qp.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
+        opts.qp_mode = mode;
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(model);
         EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
         EXPECT_TRUE(sol.infeasibility_certified);
         const double t = 1.0 / std::sqrt(2.0);
@@ -1662,25 +2406,46 @@ TEST(SqpDriverRestorationSeed, TheSeedIsNotGatedOnTheQpMode) {
 // THE EXHAUSTED-LADDER SITE'S OWN TAKEN PIN, site-specific and config-stable:
 // the requesting row carries the ladder's kRestore verdict, so this is the
 // elastic route's arm and not the radius floor's.
-TEST(SqpDriverRestorationSeed, TheExhaustedLadderSiteSeedsFromItsOwnStep) {
+TEST(SqpDriverRestorationSeed, TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesIt) {
     for (const QpMode mode : kSeedModes) {
         SCOPED_TRACE(seed_mode_name(mode));
         InfeasibleCircleLineModel model(2.0, 1.999999);
         SqpOptions opts;
+        // M7 W2 E2 (S7): the taken seed on this knife-edge model belongs to the
+        // pre-E2 walk's trajectory (the ipm mode takes none with the option on).
+        opts.qp.independent_working_set = false;
         opts.max_iter = 200;
         opts.qp_mode = mode;
         // Scaling is what makes the ROUTE config-stable on this knife-edge
         // fixture (measured: kRestore in both configs with it, kReject in Debug
         // without); the seeding rule itself is the same at either site.
         opts.enable_scaling = true;
+        opts.qp_failure_step = false; // M7 W2 R2: the pre-R2 route (see the family's note)
         SqpSolver driver(opts);
         const SqpResult sol = driver.solve(model);
 
-        ASSERT_EQ(1, seeded_rows(sol));
-        const SqpIterate *row = seeded_row(sol);
-        ASSERT_NE(nullptr, row);
-        EXPECT_EQ(StepVerdict::kRestore, row->verdict) << "the ladder's exhaustion, not the floor";
-        EXPECT_TRUE(row->elastic_applied);
+        // RE-PREMISED (the family note): 1 -> 0. THE SITE IS STILL THE LADDER'S
+        // EXHAUSTION, which is this fixture's actual subject, and it is asserted
+        // directly off the history instead of through the seeded row.
+#if HVEN_TEST_ROUTE_REFERENCE
+        ASSERT_EQ(0, seeded_rows(sol));
+        EXPECT_EQ(nullptr, seeded_row(sol));
+        bool saw_restore = false;
+        for (const SqpIterate &r : sol.history) {
+            saw_restore = saw_restore || r.verdict == StepVerdict::kRestore;
+        }
+        EXPECT_TRUE(saw_restore) << "the ladder's exhaustion, not the floor";
+#else
+        {
+            Index restore_rows = 0;
+            for (const SqpIterate &r : sol.history) {
+                restore_rows += r.verdict == StepVerdict::kRestore ? 1 : 0;
+            }
+            hven::test_support::record_off_reference_route(
+                std::string("exhausted_ladder_") + seed_mode_name(mode),
+                fmt::format("seeded_rows={} restore_rows={}", seeded_rows(sol), restore_rows));
+        }
+#endif
         EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
         EXPECT_TRUE(sol.infeasibility_certified);
     }
@@ -1692,11 +2457,34 @@ TEST(SqpDriverRestorationSeed, TheExhaustedLadderSiteSeedsFromItsOwnStep) {
 TEST(SqpDriverRestorationSeed, AWorseElasticCandidateIsRefusedOnTheSameModel) {
     InfeasibleCircleLineModel model;
     SqpOptions opts;
+    // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
+    opts.equality_basis = false;
     opts.max_iter = 200;
+    opts.qp_failure_step = false; // M7 W2 R2: the pre-R2 route (see the family's note)
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(model);
 
+    // M7 W2 QC-8 (declared mover, Debug only): 0 -> 1. The implied blocker changes one of
+    // this model's walk QPs under Debug's rounding, and Debug's trajectory then reaches the
+    // ladder's exhaustion only at major 39 (40 rows, against Release's 4) from an iterate
+    // where the elastic candidate measures BETTER (h = 1.0000382 at the entry), so the guard
+    // takes it. The site is still reached with an offer under kRestore and the solve still
+    // ends certified kInfeasible (asserted below in both configs); the WORSE-candidate
+    // refusal this fixture is named for is Release's reading. Release unchanged.
+    // M7 W2 SNX (declared mover, Debug only): 1 -> 0. THE STAGNATION READING (qp_engine.h)
+    // takes Debug's walk off the idle run that delayed its request, and Debug reaches the
+    // ladder's exhaustion where Release does: the refusal is now both configurations' reading.
+    // WHICH candidate the ladder's exhaustion offers (and so whether the guard refuses it) is
+    // the route (WX B7: an AVX-512 MKL runner took one, seeded_rows = 1): the refusal is the
+    // reference build's reading, recorded elsewhere. The site reached with an offer and the
+    // certified verdict below are the portable contract.
+#if HVEN_TEST_ROUTE_REFERENCE
     EXPECT_EQ(0, seeded_rows(sol)) << "h(x + p_elastic) = 3 > 1 = h(x): refused";
+#else
+    hven::test_support::record_off_reference_route(
+        "worse_elastic_candidate_refused",
+        fmt::format("seeded_rows={} history_rows={}", seeded_rows(sol), sol.history.size()));
+#endif
     ASSERT_FALSE(sol.history.empty());
     EXPECT_TRUE(sol.history.back().elastic_applied) << "and the site was REACHED with an offer";
     EXPECT_EQ(StepVerdict::kRestore, sol.history.back().verdict);
@@ -1762,14 +2550,19 @@ TEST(SqpDriverRestorationSeed, AJacobianPoisonedCandidateIsRefusedNotTaken) {
         SCOPED_TRACE(fmt::format("k = {}", k));
         JacobianPoisonedAtOrdinalModel model(k);
         SqpOptions opts;
+        // M7 W2 E2: the entry repair releases a seed pin dependent on the
+        // equalities on this knife-edge model, and the candidate premise below
+        // belongs to the pre-E2 walk's trajectory (answer unchanged either way).
+        opts.qp.independent_working_set = false;
         opts.max_iter = 200;
         opts.qp.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
         SqpSolver driver(opts);
         const SqpResult sol = driver.solve(model);
 
-        const bool refused_signature = sol.status == SolveStatus::kInfeasible &&
-                                       sol.infeasibility_certified && seeded_rows(sol) == 0 &&
-                                       sol.counters.restoration_iters >= 1 && model.poisoned == 1;
+        const bool refused_signature =
+            sol.status == SolveStatus::kInfeasible && sol.infeasibility_certified &&
+            seeded_rows(sol) == 0 && sol.counters.restoration_iters >= 1 &&
+            sol.counters.nonfinite_step_rollbacks == 0 && model.poisoned == 1;
         // THE KILL: mutant M7 (jacobian_values_finite dropped) reaches this
         // signature at the candidate's own k -- taken, poisoned, sub-solve dies.
         const bool m7_signature = seeded_rows(sol) == 1 && model.poisoned >= 1 &&
@@ -1777,34 +2570,93 @@ TEST(SqpDriverRestorationSeed, AJacobianPoisonedCandidateIsRefusedNotTaken) {
                                   sol.counters.restoration_iters == 0;
         EXPECT_FALSE(m7_signature) << "the Jacobian screen let a poisoned candidate through and "
                                       "the sub-solve died on it (M7's signature)";
+        // RE-PREMISED (M7 W2 R2-1, 0a83158e; rulings C60/C61). BASE: k = 2..8 ended
+        // numerical_error at (1.118, 1.118) -- the poisoned point was stepped from.
+        // HEAD: the first major after the commit finds the poisoned Jacobian non-finite
+        // and rolls the step back (nonfinite_step_rollbacks >= 1); the solve then reaches
+        // the CORRECT certified kInfeasible at the analytic point (0.7071, 0.7071)
+        // without a non-finite subproblem. The poisoned ordinal is still fetched
+        // (poisoned >= 1), and the kill half above holds at every k.
+        if (k >= 2 && k <= 8) {
+            EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
+            EXPECT_TRUE(sol.infeasibility_certified);
+            EXPECT_NEAR(sol.x(0), std::sqrt(0.5), 1e-3);
+            EXPECT_NEAR(sol.x(1), std::sqrt(0.5), 1e-3);
+            EXPECT_EQ(sol.counters.nonfinite_subproblems, 0);
+            EXPECT_GE(model.poisoned, 1);
+            EXPECT_GE(sol.counters.nonfinite_step_rollbacks, 1);
+        }
         if (refused_signature) {
             found_refused_signature = true;
             refused_at_k = k;
         }
     }
-    EXPECT_TRUE(found_refused_signature)
-        << "no k in [1, 40) produced the refused-candidate signature";
-    // NAMED so a re-derive has a number to check, not only the existential
-    // claim: measured k = 20 in BOTH configs on this fixture.
-    EXPECT_EQ(20, refused_at_k);
+    // THE NAME IS KEPT (it appears in frozen inventories and mutant records): the Jacobian
+    // screen still refuses any poisoned candidate it is shown, and no k takes one.
+    // RE-PREMISED AGAIN (M7 W2 R2-1): the screen's refused-candidate signature is keyed on
+    // `nonfinite_step_rollbacks == 0` too -- a poisoned ordinal that the step rollback
+    // handles (k = 2..8, asserted in the loop) is not the screen refusing a candidate.
+    //
+    // RE-PREMISED (the family note). The refused-candidate signature required
+    // `model.poisoned == 1`, i.e. that the candidate's DERIVATIVES were fetched and
+    // the Jacobian screen then refused it. With the h comparison refusing the
+    // candidate first, no k in [1, 40) reaches the poisoned ordinal at all, so the
+    // existential premise is unreachable and is re-derived as its absence.
+    //
+    // THE SAFETY HALF IS UNCHANGED AND IS WHAT THIS TEST IS FOR: `m7_signature` is
+    // asserted FALSE at every k inside the loop, so mutant M7 (the
+    // `jacobian_values_finite` screen dropped) is still killed here -- a poisoned
+    // candidate taken, the sub-solve dying on it, seeded_rows 1 and
+    // restoration_iters 0 -- and the screen's own arm keeps that coverage. What the
+    // change costs is the demonstration that the screen is REACHED on this model,
+    // and that is stated rather than hidden.
+    EXPECT_FALSE(found_refused_signature)
+        << "a k in [1, 40) reached the Jacobian screen again (k = " << refused_at_k
+        << "): the h guard no longer refuses the candidate first, and the existential "
+           "premise above can be reinstated";
+    EXPECT_EQ(-1, refused_at_k);
 }
 
 // THE RADIUS FLOOR'S SITE, whose candidate is the REJECTED TRIAL and whose
 // violation is already judged (so the guard is free). Measured at the floor
 // (Release): the trial reads h = 1.00053814 against the entry's 1.00053914.
-TEST(SqpDriverRestorationSeed, TheRadiusFloorSeedsFromTheRejectedTrial) {
+TEST(SqpDriverRestorationSeed, TheOffDiagonalStartOffersTheLadderStepAndTheGuardRefusesIt) {
     InfeasibleCircleLineModel model(1.0, 0.0);
     SqpOptions opts;
     opts.tr_min = 1e-5;
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(model);
 
-    ASSERT_EQ(1, seeded_rows(sol));
-    const SqpIterate *row = seeded_row(sol);
-    ASSERT_NE(nullptr, row);
-    EXPECT_EQ(StepVerdict::kReject, row->verdict)
-        << "kReject on the REQUESTING row is the floor's own signature: the ladder's exhaustion "
-           "writes kRestore, and the funnel's signature never fires on this fixture";
+    // RE-PREMISED (the family note): 1 -> 0. The FLOOR'S OWN SIGNATURE -- a
+    // kReject verdict on the requesting row, where the ladder's exhaustion writes
+    // kRestore -- is this fixture's subject and is asserted off the history.
+#if HVEN_TEST_ROUTE_REFERENCE
+    ASSERT_EQ(0, seeded_rows(sol));
+    EXPECT_EQ(nullptr, seeded_row(sol));
+#endif
+    // RE-DERIVED WITH THE SITE (E4 fix round 2, and see
+    // `TheElasticExhaustionPreemptsTheRadiusFloorOnThisModel` for the measurement):
+    // on this model the radius never shrinks, so the floor is not the site any more.
+    // The request is raised by the elastic tier's exhaustion, whose signature on the
+    // requesting row is kRestore where the floor's is kReject, and the seed offered
+    // there is the LADDER's own step rather than a rejected trial. MEASURED: the
+    // whole history is kAccept then kRestore, with tr_radius 1 on both rows.
+    bool saw_restore_row = false;
+    bool saw_reject_row = false;
+    for (const SqpIterate &r : sol.history) {
+        saw_restore_row = saw_restore_row || r.verdict == StepVerdict::kRestore;
+        saw_reject_row = saw_reject_row || r.verdict == StepVerdict::kReject;
+    }
+#if HVEN_TEST_ROUTE_REFERENCE
+    EXPECT_TRUE(saw_restore_row) << "the ladder's exhaustion is the site now";
+    EXPECT_FALSE(saw_reject_row)
+        << "a kReject row is back: the radius floor is the site again and this fixture's "
+           "original read-out can be reinstated";
+#else
+    hven::test_support::record_off_reference_route(
+        "off_diagonal_site", fmt::format("seeded_rows={} saw_restore_row={} saw_reject_row={}",
+                                         seeded_rows(sol), saw_restore_row, saw_reject_row));
+#endif
     EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
     EXPECT_TRUE(sol.infeasibility_certified);
 }
@@ -1817,6 +2669,11 @@ TEST(SqpDriverRestorationSeed, TheGuardAndThePhaseRunOnTheCallerScale) {
         SCOPED_TRACE(seed_mode_name(mode));
         BoxWatchingSpreadModel model;
         SqpOptions opts;
+        // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
+        opts.equality_basis = false;
+        // M7 W2 E2 (S7): the taken seed belongs to the pre-E2 walk's trajectory
+        // (the ipm mode takes none with the option on).
+        opts.qp.independent_working_set = false;
         opts.max_iter = 60;
         opts.qp_mode = mode;
         opts.enable_scaling = true;
@@ -1829,10 +2686,21 @@ TEST(SqpDriverRestorationSeed, TheGuardAndThePhaseRunOnTheCallerScale) {
         EXPECT_NEAR(sol.scaling.row_min, 0.01, 1e-12);
         EXPECT_NEAR(sol.scaling.row_max, 1.0, 1e-12);
 
-        ASSERT_EQ(1, seeded_rows(sol));
-        const SqpIterate *row = seeded_row(sol);
-        ASSERT_NE(nullptr, row);
-        EXPECT_EQ(StepVerdict::kRestore, row->verdict);
+        // RE-PREMISED (the family note): 1 -> 0. The two scales' OPPOSITE ordering
+        // of the offer was a 1.5e-13 relative margin (50000 -> 49999.999999992513
+        // taken on the caller scale, 500 -> 500.00000000006105 refused on the
+        // engine's), which is the thinnest of the family's edges; E4's answers put
+        // both sides of it on the refusing side. What this fixture still asserts,
+        // and it is the ruling's own subject, is that the guard and the phase read
+        // the CALLER's scale: the phase minimizes the caller-scale h and lands at
+        // x0 = 1 where the engine-scale measure would have stopped at x0 = 0.
+        ASSERT_EQ(0, seeded_rows(sol));
+        EXPECT_EQ(nullptr, seeded_row(sol));
+        bool saw_restore_row = false;
+        for (const SqpIterate &r : sol.history) {
+            saw_restore_row = saw_restore_row || r.verdict == StepVerdict::kRestore;
+        }
+        EXPECT_TRUE(saw_restore_row);
         // AND THE TWO SCALES ORDER THE OFFER OPPOSITELY, which is what makes
         // this pin bite: measured caller 50000 -> 49999.999999992513 (taken) and
         // engine 500 -> 500.00000000006105 (refused), on a tiny x0 displacement.
@@ -1841,7 +2709,13 @@ TEST(SqpDriverRestorationSeed, TheGuardAndThePhaseRunOnTheCallerScale) {
         // the engine-scale measure would have stopped at x0 = 0.
         EXPECT_TRUE(sol.infeasibility_certified);
         EXPECT_NEAR(sol.x(0), 1.0, 1e-9);
-        EXPECT_NEAR(sol.x(1), 0.0, 1e-9);
+        // RE-PINNED (M7 W2 SDL, declared): x(1) was pinned at 0. On the box the
+        // caller-scale h is flat in x(1) wherever x(0) >= 0.001 x(1) (the two kFlat rows'
+        // x(1) terms cancel), so x(1) is any point of that face; walk and ssn reached 0
+        // through a restoration QP certified kOptimal with a lower pin priced -1e10, which
+        // the certificate's sign half now refuses, and they land at 0.5. Asserted: on the box.
+        EXPECT_GE(sol.x(1), 0.0);
+        EXPECT_LE(sol.x(1), 1.0);
 
         // AND NO POINT THE SOLVE EVALUATED LEFT THE BOX, the seeded start
         // included. The QP carries the box (build_subproblem), so the clamp on
@@ -1857,21 +2731,50 @@ TEST(SqpDriverRestorationSeed, TheGuardAndThePhaseRunOnTheCallerScale) {
 TEST(SqpDriverRestorationSeed, TheSeedsEvaluationIsCountedExactlyOnce) {
     SeedCountingModel model(2.0, 2.0);
     SqpOptions opts;
+    // M7 W2 E2: the entry repair releases a seed pin dependent on the
+    // equalities on this knife-edge model, and the candidate premise below
+    // belongs to the pre-E2 walk's trajectory (answer unchanged either way).
+    opts.qp.independent_working_set = false;
+    // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
+    opts.equality_basis = false;
     opts.max_iter = 200;
     opts.qp.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
+    // The PARTITION below counts row reads; the column rule's start-point Jacobian
+    // probe (default kAuto since M7 W2 SCW) is a counted query with none, pinned in
+    // test_column_scaling.cpp.
+    opts.column_scaling = SqpColumnScaling::kOff;
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(model);
 
+    // THE TAKE SURVIVES HERE -- this is the one fixture of the family whose
+    // candidate still measures better -- so the in-place upgrade still happens and
+    // the claim is unchanged. Only the two COUNTS are re-derived at M7 W2 E4 fix
+    // round 2 (a declared counter move, the trajectory being a different one):
+    // `evals_full` 27 -> 28 and `evals_values` 40/41 -> 36, with the PARTITION
+    // below -- the independent cross-check that no query is double-counted or lost
+    // -- unchanged and still asserted.
+    // The take, and the two counts, are the route (macOS: evals_values 17 against 36): the
+    // reference build's. The PARTITION identity below is pure bookkeeping -- every model query
+    // is charged to exactly one of the two counters -- and holds on any route, so it stays
+    // portable; with no take the in-place upgrade just is not exercised.
+#if HVEN_TEST_ROUTE_REFERENCE
     ASSERT_EQ(1, seeded_rows(sol)) << "fixture premise: a candidate was TAKEN";
-    // FULL IS EXACT AND CONFIG-STABLE (measured 27 in both): dropping the
-    // reclassification leaves 26, and the seeded trial then stays counted as a
-    // values-only query it no longer is.
-    EXPECT_EQ(27, sol.counters.evals_full);
-    // VALUES IS THE OTHER HALF, one lower than the un-upgraded count would be.
-    // The trajectory's length differs by one rejected trial between the configs
-    // (measured 41 Debug / 40 Release), so both observations are named here.
-    EXPECT_TRUE(sol.counters.evals_values == 41 || sol.counters.evals_values == 40)
-        << "evals_values was " << sol.counters.evals_values;
+    // `evals_values` is CONFIG-SPLIT (measured 36 Release / 35 Debug at E4 fix round 2;
+    // the trajectory's length differs by one rejected trial between the configs, which
+    // is what the pin this replaces already recorded as 41/40). `evals_full` is 28 in
+    // both, and the PARTITION below is what the test is for.
+    EXPECT_EQ(28, sol.counters.evals_full);
+#ifdef NDEBUG
+    EXPECT_EQ(36, sol.counters.evals_values) << "evals_values was " << sol.counters.evals_values;
+#else
+    EXPECT_EQ(35, sol.counters.evals_values) << "evals_values was " << sol.counters.evals_values;
+#endif
+#else
+    hven::test_support::record_off_reference_route(
+        "seed_eval_counted_once",
+        fmt::format("seeded_rows={} evals_full={} evals_values={} n_ce={}", seeded_rows(sol),
+                    sol.counters.evals_full, sol.counters.evals_values, model.n_ce));
+#endif
     // n_grad and n_jac_e do NOT equal evals_full (the wrapper's gradient is
     // constant, so a sub-solve's full query never reaches the inner one), which
     // is why the PARTITION is the independent cross-check.
@@ -1879,6 +2782,1762 @@ TEST(SqpDriverRestorationSeed, TheSeedsEvaluationIsCountedExactlyOnce) {
         << "the two counters PARTITION the model queries -- a fresh eval_nlp in place of the "
            "in-place upgrade adds an eval_ce and breaks this";
     EXPECT_GT(model.n_jac_e, 0);
+}
+
+// THE SAME FIXTURE UNDER THE SHIPPED DEFAULT (kAuto, M7 W2 SCW): below the gate the
+// solve is the kOff solve plus the rule's one Jacobian probe, charged to evals_values
+// and nothing else -- so the seed's evaluation is still counted exactly once.
+TEST(SqpDriverRestorationSeed, TheSeedsEvaluationIsCountedExactlyOnceUnderTheDefaultPlusProbe) {
+    SqpOptions opts;
+    opts.qp.independent_working_set = false;
+    opts.equality_basis = false;
+    opts.max_iter = 200;
+    opts.qp.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
+    SeedCountingModel off_model(2.0, 2.0);
+    SqpOptions off = opts;
+    off.column_scaling = SqpColumnScaling::kOff;
+    const SqpResult a = SqpSolver(off).solve(off_model);
+    SeedCountingModel model(2.0, 2.0);
+    const SqpResult b = SqpSolver(opts).solve(model);
+    ASSERT_FALSE(b.scaling.columns_active) << "fixture premise: below the gate";
+    // That a candidate was TAKEN is the route (see the sibling above); the probe's accounting
+    // below is bookkeeping that holds with or without a take.
+#if HVEN_TEST_ROUTE_REFERENCE
+    ASSERT_EQ(1, seeded_rows(b)) << "fixture premise: a candidate was TAKEN";
+#else
+    hven::test_support::record_off_reference_route(
+        "seed_eval_counted_once_plus_probe",
+        fmt::format("seeded_rows={} evals_full={} evals_values={}", seeded_rows(b),
+                    b.counters.evals_full, b.counters.evals_values));
+#endif
+    EXPECT_EQ(a.status, b.status);
+    EXPECT_EQ(a.counters.evals_full, b.counters.evals_full);
+    EXPECT_EQ(a.counters.evals_values + 1, b.counters.evals_values)
+        << "the probe is the only addition";
+    EXPECT_EQ(off_model.n_ce, model.n_ce) << "the probe reads Jacobians, not values";
+}
+
+// =========================================================================
+// THE RESTORATION EXCURSION RECORD (M7 W2 M2, the A0 signals page's S5).
+// =========================================================================
+//
+// FIVE COUNTERS AND NO BEHAVIOUR: `restoration_entries` plus the four
+// absolutes `(h_in, h_out, f_in, f_out)` of the LAST measured entry. The
+// A-SQP read's section M2 measured a restoration that bought feasibility at
+// eleven orders of objective and showed that NO counter said so -- the phase
+// produces no history row by contract, and `restoration_iters` is a count.
+// These four are that reading, and the tests below pin them AGAINST EVIDENCE
+// THE RECORD DOES NOT PRODUCE: the requesting row's own `violation_l1` and
+// `f`, the value the funnel is re-based on, the row at the restored point, and
+// a certificate's independently recomputed h. A record that agreed only with
+// itself would pin nothing.
+
+TEST(SqpDriverRestorationExcursion, TheResumeArmRecordsTheCallersOwnExcursion) {
+    StalledValleyModel model;
+    SqpOptions opts;
+    opts.tr_init = 8.0; // SqpDriverRestoration.RestorationRecoversAndResumes' options
+    opts.max_iter = 60;
+    FunnelLog log;
+    record_funnel_into(opts, &log);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
+
+    ASSERT_EQ(sol.status, SolveStatus::kOptimal);
+    ASSERT_EQ(log.resumes.size(), 1u) << "fixture premise: exactly one RESUME";
+    EXPECT_EQ(sol.counters.restoration_entries, 1)
+        << "one phase ran and was measured, whatever its iteration count";
+    EXPECT_GT(sol.counters.restoration_iters, 0);
+
+    // THE ENTRY HALF IS THE REQUESTING ITERATE'S OWN MEASUREMENT. Row 4 is the
+    // row that carries the kRestore verdict (the sibling test pins that), and
+    // its `violation_l1` and `f` are computed by the driver from the SAME
+    // bundle this record reads -- so the agreement is exact, not approximate,
+    // and a record taken at the wrong point (the seed, or the restored point)
+    // would break it.
+    ASSERT_GE(sol.history.size(), 6u);
+    ASSERT_EQ(sol.history[4].verdict, StepVerdict::kRestore);
+    EXPECT_DOUBLE_EQ(sol.counters.restoration_h_in, sol.history[4].violation_l1);
+    EXPECT_DOUBLE_EQ(sol.counters.restoration_f_in, sol.history[4].f);
+    EXPECT_GT(sol.counters.restoration_h_in, opts.feas_tol)
+        << "the phase was entered at an INFEASIBLE point -- that is what h_in is for";
+
+    // THE EXIT HALF. `h_out` is the `h_r` the funnel was re-based with; the
+    // resume decision read `restoration_feas_out` (M7 W2 SNR), the inf-norm
+    // the l1 `h_out` bounds, so both sit inside feas_tol on a resume.
+    EXPECT_LE(sol.counters.restoration_h_out, opts.feas_tol);
+    EXPECT_LE(sol.counters.restoration_feas_out, opts.feas_tol);
+    EXPECT_LE(sol.counters.restoration_feas_out, sol.counters.restoration_h_out);
+    EXPECT_DOUBLE_EQ(sol.counters.restoration_h_out, log.resumes[0]);
+    // And `f_out` is the objective the solve CARRIES FORWARD: the restored
+    // point becomes the iterate, so the first row after the resume reports it.
+    EXPECT_DOUBLE_EQ(sol.counters.restoration_f_out, sol.history[5].f);
+    // AND THE SUB-SOLVE'S OWN VERDICT (M7 W2 M3a). On THIS fixture the phase
+    // both converged and returned a point inside `feas_tol`, so the record
+    // names `kOptimal`. It is NOT the resume's cause: the parent takes that
+    // decision on `restoration_feas_out <= feas_tol` alone, before it looks at this
+    // status at all (fix1 corrected the note that said otherwise). Pinning it
+    // here is what makes the field's OTHER values evidence rather than
+    // decoration.
+    EXPECT_EQ(sol.counters.restoration_sub_status, RestorationSubStatus::kOptimal);
+    // THE EXCURSION THIS FIXTURE MADE, recorded rather than asserted as a
+    // bound: it is a recovery, and a benign one.
+    ::testing::Test::RecordProperty(
+        "excursion", fmt::format("entries={} h {:.10g} -> {:.10g}  f {:.10g} -> {:.10g}",
+                                 sol.counters.restoration_entries, sol.counters.restoration_h_in,
+                                 sol.counters.restoration_h_out, sol.counters.restoration_f_in,
+                                 sol.counters.restoration_f_out));
+}
+
+TEST(SqpDriverRestorationExcursion, TheTerminalArmRecordsThePointItReports) {
+    InfeasibleCircleLineModel model;
+    SqpOptions opts;
+    opts.max_iter = 200;
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
+
+    ASSERT_EQ(sol.status, SolveStatus::kInfeasible);
+    ASSERT_TRUE(sol.infeasibility_certified) << "fixture premise: the CERTIFIED terminal arm";
+    EXPECT_EQ(sol.counters.restoration_entries, 1);
+
+    // h_out ABOVE feas_tol is what says this entry took the other arm -- no
+    // second field is needed to tell the two apart.
+    EXPECT_GT(sol.counters.restoration_h_out, opts.feas_tol);
+    // AND IT IS THE h AT THE POINT THE RESULT REPORTS, recomputed from the
+    // model by the certificate helper and not by the engine.
+    const SubgradientCertificate c = check_certificate(model, sol, opts.feas_tol);
+    EXPECT_NEAR(sol.counters.restoration_h_out, c.h, 1e-12);
+    // `f_out` is the objective of that same reported point -- on this arm the
+    // result's own `f` (the solve is unscaled, so no map stands between them).
+    EXPECT_DOUBLE_EQ(sol.counters.restoration_f_out, sol.f);
+    // The entry half is the requesting row's, which on a terminal exit is the
+    // LAST row: the phase pushes none of its own.
+    ASSERT_FALSE(sol.history.empty());
+    EXPECT_DOUBLE_EQ(sol.counters.restoration_h_in, sol.history.back().violation_l1);
+    EXPECT_DOUBLE_EQ(sol.counters.restoration_f_in, sol.history.back().f);
+    // AND THE ARM IS NAMED, NOT INFERRED (M7 W2 M3a). A CERTIFIED terminal
+    // exit is reachable from the sub-solve's own `kOptimal` and from nothing
+    // else -- the gate that sets `infeasibility_certified` hangs off that
+    // switch arm -- so this pin and the `ASSERT_TRUE` above are two readings
+    // of one fact, taken from opposite ends of the phase.
+    EXPECT_EQ(sol.counters.restoration_sub_status, RestorationSubStatus::kOptimal);
+}
+
+TEST(SqpDriverRestorationExcursion, ARefusedSecondRequestLeavesTheFirstEntrysRecord) {
+    RunawayValleyModel model;
+    SqpOptions opts;
+    opts.tr_init = 8.0; // SqpDriverRestoration.SecondRequestIsCappedAndReported' options
+    opts.max_iter = 60;
+    opts.restoration_max_entries = 1;
+    FunnelLog log;
+    record_funnel_into(opts, &log);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
+
+    // kNumericalError since the M7 W2 ladder round (L1): a refused request is never
+    // spelled kInfeasible.
+    ASSERT_EQ(sol.status, SolveStatus::kNumericalError);
+    ASSERT_EQ(log.resumes.size(), 1u) << "fixture premise: one serviced request, one refused";
+    // THE CAP EXIT RAN NO PHASE AND MEASURED NOTHING, so it moves neither the
+    // count nor the four absolutes: this solve requested restoration TWICE and
+    // reports ONE entry.
+    EXPECT_EQ(sol.counters.restoration_entries, 1);
+    // And the record is still the SERVICED entry's -- which resumed, so its
+    // h_out is inside feas_tol even though the solve ends unsuccessfully. A
+    // reader that inferred the exit from the record alone would be wrong, and
+    // that is the point of `infeasibility_certified` being the field that says
+    // which exit this is.
+    EXPECT_LE(sol.counters.restoration_h_out, opts.feas_tol);
+    EXPECT_DOUBLE_EQ(sol.counters.restoration_h_out, log.resumes[0]);
+    EXPECT_FALSE(sol.infeasibility_certified);
+    // The sub-status is the SERVICED entry's too: the refusal ran no sub-solve,
+    // so there is no second status for it to overwrite this one with.
+    EXPECT_EQ(sol.counters.restoration_sub_status, RestorationSubStatus::kOptimal);
+}
+
+TEST(SqpDriverRestorationExcursion, ACleanSolveHoldsNoReading) {
+    const HsProblem p = make_hs(1);
+    SqpOptions opts;
+    opts.max_iter = 60;
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(*p.model);
+
+    ASSERT_EQ(sol.status, SolveStatus::kOptimal);
+    ASSERT_EQ(sol.counters.restoration_iters, 0) << "fixture premise: the phase never ran";
+    // THE ABSENCE READING IS THE COUNT, and the four absolutes hold their
+    // defaults -- which is why the count and not a sentinel is what a consumer
+    // asks: 0.0 is a legal observed violation and a legal observed objective.
+    EXPECT_EQ(sol.counters.restoration_entries, 0);
+    EXPECT_EQ(sol.counters.restoration_h_in, 0.0);
+    EXPECT_EQ(sol.counters.restoration_h_out, 0.0);
+    EXPECT_EQ(sol.counters.restoration_f_in, 0.0);
+    EXPECT_EQ(sol.counters.restoration_f_out, 0.0);
+    // AND THE SUB-STATUS SAYS SO ITSELF (M7 W2 M3a, corrected in fix1). It is
+    // the one field of this record that CAN: the four absolutes above have no
+    // spare value -- `0.0` is a legal violation and a legal objective -- so
+    // their absence is the count, while this field's own enum carries a
+    // `kNotRun` zero and spends it here. It shipped as a bare `SolveStatus`
+    // defaulting to `kOptimal`, which made this line read "the feasibility
+    // sub-solve converged" on a solve that never ran one; that is what fix1
+    // withdrew. THE ASSERTION IS THE WHOLE POINT OF THE CHANGE.
+    EXPECT_EQ(sol.counters.restoration_sub_status, RestorationSubStatus::kNotRun);
+}
+
+// M7 W2 M3a. THE FIELD IS NOT A CONSTANT, and this is the fixture that says so:
+// ONE model, ONE restoration phase, TWO different sub-solve outcomes, told apart
+// by this key and by nothing else the counters carry.
+//
+// `InfeasibleCircleLineModel` is the certified fixture above. Given room, its
+// feasibility sub-solve CONVERGES -- that is what makes the certificate gate
+// reachable at all. Given a budget of five majors for the whole solve, the
+// parent lends the sub-solve what is left (`ropts.max_iter = eff_max_iter -
+// spent`, sqp_solver.cpp) and the sub-solve spends it: it returns `kMaxIter`
+// from the same call site, at the same arm of the phase, having measured a
+// point the parent then reports.
+//
+// WHAT WAS UNOBSERVABLE BEFORE. The parent's own status is NOT this reading: it
+// spells the sub-solve's `kOptimal`-but-still-infeasible arm and the sub-solve's
+// own `kInfeasible` arm identically (`kInfeasible`), which is why M7 W2 M2b had
+// to infer its rows' arms from row shape. Here the two solves differ in the
+// parent status too -- but the pin that matters is that the RECORD names the
+// sub-solve's verdict, and the two records differ.
+TEST(SqpDriverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConvergedOne) {
+    InfeasibleCircleLineModel model;
+
+    SqpOptions roomy;
+    // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
+    roomy.equality_basis = false;
+    roomy.max_iter = 200;
+    roomy.qp_failure_step = false; // M7 W2 R2: the pre-R2 route (see the seed family's note)
+    const SqpResult converged = SqpSolver(roomy).solve(model);
+    // The fixture premise (the phase ran) is the route: asserted on the reference build; off it
+    // the sub-status block is skipped, with the route recorded, when the phase did not run.
+#if HVEN_TEST_ROUTE_REFERENCE
+    ASSERT_EQ(converged.status, SolveStatus::kInfeasible);
+    ASSERT_EQ(converged.counters.restoration_entries, 1);
+#else
+    if (converged.status == SolveStatus::kInfeasible) {
+        EXPECT_TRUE(converged.infeasibility_certified) << "an infeasibility verdict is certified";
+    }
+    if (converged.status != SolveStatus::kInfeasible ||
+        converged.counters.restoration_entries != 1) {
+        hven::test_support::record_off_reference_route(
+            "substatus_converged",
+            fmt::format("status={} restoration_entries={}", static_cast<int>(converged.status),
+                        converged.counters.restoration_entries));
+        return;
+    }
+#endif
+
+    SqpOptions cramped;
+    // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
+    cramped.equality_basis = false;
+    // CONFIG-SPLIT SINCE M7 W2 E4 FIX ROUND 2, for the reason
+    // `TheSubStatusDiscriminatesAtOneParentStatus` states in full: at 5 majors Debug
+    // never reaches the request (`restoration_entries` 0), so there is no cut-off
+    // sub-solve to tell from a converged one; one more major reaches it.
+    // M7 W2 QC-8 (declared, Debug only): 6 -> 43. Debug's trajectory now raises the
+    // request at major 40 (`AWorseElasticCandidateIsRefusedOnTheSameModel`'s note); the
+    // cut-off window measured at budgets 41-44 (sub kMaxIter, 1-4 sub-iterations), 45 on
+    // converges. 43 keeps the sub-solve's three iterations pinned below. Release unchanged.
+    // M7 W2 SNX (declared, Debug only): 43 -> 5. Debug's request falls where Release's does
+    // again (`AWorseElasticCandidateIsRefusedOnTheSameModel`'s note), so the split is gone.
+    cramped.max_iter = 5;
+    cramped.qp_failure_step = false; // M7 W2 R2: the pre-R2 route, as `roomy`
+    const SqpResult cut_off = SqpSolver(cramped).solve(model);
+#if HVEN_TEST_ROUTE_REFERENCE
+    ASSERT_EQ(cut_off.counters.restoration_entries, 1)
+        << "fixture premise: the phase RAN and was measured on this budget too";
+#else
+    if (cut_off.counters.restoration_entries != 1) {
+        hven::test_support::record_off_reference_route(
+            "substatus_cut_off",
+            fmt::format("status={} restoration_entries={}", static_cast<int>(cut_off.status),
+                        cut_off.counters.restoration_entries));
+        return;
+    }
+#endif
+
+    // THE TWO READINGS, AND THEY DISAGREE.
+    EXPECT_EQ(converged.counters.restoration_sub_status, RestorationSubStatus::kOptimal);
+    EXPECT_EQ(cut_off.counters.restoration_sub_status, RestorationSubStatus::kMaxIter);
+    EXPECT_NE(converged.counters.restoration_sub_status, cut_off.counters.restoration_sub_status);
+
+    // AND EACH AGREES WITH THE EXIT IT IMPLIES. The certificate gate hangs off
+    // the sub-solve's `kOptimal` arm, so a cut-off sub-solve cannot certify --
+    // and this is a REFUSAL BY ARM, not a refusal by residual.
+    EXPECT_TRUE(converged.infeasibility_certified);
+    EXPECT_FALSE(cut_off.infeasibility_certified);
+    EXPECT_EQ(cut_off.status, SolveStatus::kMaxIter);
+
+    // The record is the not-feasible-enough arm's on BOTH solves: neither
+    // resumed, and `restoration_feas_out` above `feas_tol` is what says so (the
+    // resume decision's reading since M7 W2 SNR; `h_out` is the l1 sum beside it).
+    EXPECT_GT(converged.counters.restoration_feas_out, roomy.feas_tol);
+    EXPECT_GT(cut_off.counters.restoration_feas_out, cramped.feas_tol);
+    EXPECT_GT(converged.counters.restoration_h_out, roomy.feas_tol);
+    EXPECT_GT(cut_off.counters.restoration_h_out, cramped.feas_tol);
+    // The sub-solve did real work before the budget ended it -- a phase that
+    // returned at once would make the pin above a statement about nothing.
+    // RE-DERIVED AT M7 W2 E4 FIX ROUND 2 (a declared counter move): `> 1` -> `== 1`.
+    // The cut-off arm's budget is `max_iter = 5` for the WHOLE solve, and E4's QP
+    // answers reach the request one major earlier, so the sub-solve gets one
+    // iteration of it instead of two before the budget ends. One iteration is still
+    // real work -- `restoration_sub_status` reads kMaxIter rather than kNotRun, which
+    // is the discrimination this test exists for and is asserted above -- and the
+    // pin is kept as an equality so the margin cannot quietly go to zero.
+    // M7 W2 BPS (declared mover, Debug only): 1 -> 3 on Debug's 6-major budget -- the
+    // bordered answer's certificate (bordered_eqp.h) brings the request forward there, so
+    // the sub-solve gets more of the budget; Release unchanged.
+    // M7 W2 SNX (declared, Debug only): 3 -> 1, with the budget above.
+#if HVEN_TEST_ROUTE_REFERENCE
+    EXPECT_EQ(cut_off.counters.restoration_iters, 1);
+#else
+    hven::test_support::record_off_reference_route(
+        "substatus_cut_off_iters",
+        fmt::format("restoration_iters={}", cut_off.counters.restoration_iters));
+#endif
+}
+
+// M7 W2 M3a fix1. THE PARENT'S STATUS DISCRIMINATES NONE OF THE THREE, and this
+// fixture is that statement made three times at ONE parent status.
+//
+// The fixture above tells two sub-solve outcomes apart, but its two solves
+// differ in the PARENT's status too (`infeasible` against `max_iter`), so a
+// reader could take the parent's status for the discriminator and be right by
+// accident. The review asked for the same reading at a FIXED parent status.
+// Here every solve ends `kMaxIter` and the three records read `not_run`,
+// `optimal` and `max_iter` -- so the field is carrying information that exists
+// nowhere else on the result.
+//
+// AND THE FIRST ARM IS THE ONE FIX1 ADDED (the settler's withdrawal of "default
+// kOptimal + restoration_entries == 0"). `RunawayValleyModel` on a five-major
+// budget REQUESTS restoration -- its last row carries `kRestore` -- and is
+// REFUSED for want of majors, which is one of the record's three refusals: the
+// phase never ran, nothing was measured, and the record says `not_run` rather
+// than a legal success value. Under the shipped-then-withdrawn representation
+// this solve reported `optimal` for a feasibility sub-solve it never started,
+// AT A PARENT STATUS THAT LOOKS EXACTLY LIKE THE ARM BELOW IT.
+TEST(SqpDriverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatus) {
+    // ARM 1 -- requested, refused for budget, NEVER RAN.
+    RunawayValleyModel valley_refused;
+    SqpOptions refused;
+    // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
+    refused.equality_basis = false;
+    refused.tr_init = 8.0;
+    refused.max_iter = 5;
+    const SqpResult never_ran = SqpSolver(refused).solve(valley_refused);
+    // The fixture premises of each arm are the route: asserted on the reference build; off it
+    // an arm whose premise does not hold records the route and ends the test (the arms below
+    // compare against each other, so they need all three).
+#if HVEN_TEST_ROUTE_REFERENCE
+    ASSERT_EQ(never_ran.status, SolveStatus::kMaxIter);
+    ASSERT_FALSE(never_ran.history.empty());
+    ASSERT_EQ(never_ran.history.back().verdict, StepVerdict::kRestore)
+        << "fixture premise: the request WAS raised on the last major -- the absence "
+           "below is a refused phase, not an uneventful solve";
+    ASSERT_EQ(never_ran.counters.restoration_entries, 0)
+        << "fixture premise: the refusal ran no phase and measured nothing";
+#else
+    if (never_ran.status != SolveStatus::kMaxIter || never_ran.history.empty() ||
+        never_ran.history.back().verdict != StepVerdict::kRestore ||
+        never_ran.counters.restoration_entries != 0) {
+        hven::test_support::record_off_reference_route(
+            "discriminates_arm1",
+            fmt::format("status={} rows={} restoration_entries={}",
+                        static_cast<int>(never_ran.status), never_ran.history.size(),
+                        never_ran.counters.restoration_entries));
+        return;
+    }
+#endif
+    EXPECT_EQ(never_ran.counters.restoration_iters, 0);
+    EXPECT_EQ(never_ran.counters.restoration_sub_status, RestorationSubStatus::kNotRun);
+
+    // ARM 2 -- the SAME model and the SAME options but five more majors: the
+    // phase runs, converges, and the parent RESUMES on `feas_out <= feas_tol`;
+    // the solve then spends the rest of its budget and ends at the same status
+    // as arm 1.
+    RunawayValleyModel valley_resumed;
+    SqpOptions resumed;
+    // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
+    resumed.equality_basis = false;
+    resumed.tr_init = 8.0;
+    resumed.max_iter = 10;
+    const SqpResult sub_optimal = SqpSolver(resumed).solve(valley_resumed);
+#if HVEN_TEST_ROUTE_REFERENCE
+    ASSERT_EQ(sub_optimal.status, SolveStatus::kMaxIter);
+    ASSERT_EQ(sub_optimal.counters.restoration_entries, 1);
+#else
+    if (sub_optimal.status != SolveStatus::kMaxIter ||
+        sub_optimal.counters.restoration_entries != 1) {
+        hven::test_support::record_off_reference_route(
+            "discriminates_arm2",
+            fmt::format("status={} restoration_entries={}", static_cast<int>(sub_optimal.status),
+                        sub_optimal.counters.restoration_entries));
+        return;
+    }
+#endif
+    EXPECT_EQ(sub_optimal.counters.restoration_sub_status, RestorationSubStatus::kOptimal);
+    EXPECT_LE(sub_optimal.counters.restoration_feas_out, resumed.feas_tol)
+        << "this entry RESUMED, and restoration_feas_out is the number that decision was "
+           "taken on";
+    EXPECT_LE(sub_optimal.counters.restoration_h_out, resumed.feas_tol);
+
+    // ARM 3 -- a phase that ran and was CUT OFF, at the same parent status
+    // again. `InfeasibleCircleLineModel` on five majors: the sub-solve spends
+    // the majors the parent lends it and returns `kMaxIter` with h still above
+    // feas_tol, so the parent reports that status as its own.
+    InfeasibleCircleLineModel circle;
+    SqpOptions cramped;
+    // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
+    cramped.equality_basis = false;
+    // THE BUDGET IS CONFIG-SPLIT SINCE M7 W2 E4 FIX ROUND 2 (declared), so that the
+    // CLAIM survives in BOTH configurations rather than only in Release. MEASURED: at
+    // 5 majors Debug's trajectory never reaches the request at all
+    // (`restoration_entries` 0, `restoration_sub_status` kNotRun), so arm 3 collapses
+    // into arm 1 and the three-record read-out becomes a two-record one. One more
+    // major reaches it. E4's QP answers changed where on this trajectory the request
+    // falls, and Debug's arithmetic puts it one major later than Release's; the ARM is
+    // the same arm -- a phase that RAN and was CUT OFF -- and that is what is asserted.
+    // M7 W2 QC-8 (declared, Debug only): 6 -> 43, as `TheSubStatusTellsACutOffSubSolve
+    // FromAConvergedOne` re-derives it (Debug's request now falls at major 40).
+    // M7 W2 SNX (declared, Debug only): 43 -> 5, as that test re-derives it.
+    cramped.max_iter = 5;
+    // M7 W2 R2: the pre-R2 route (see the seed family's note) -- with the
+    // failed-subproblem step this budget ends before the request is raised.
+    cramped.qp_failure_step = false;
+    const SqpResult sub_cut_off = SqpSolver(cramped).solve(circle);
+#if HVEN_TEST_ROUTE_REFERENCE
+    ASSERT_EQ(sub_cut_off.status, SolveStatus::kMaxIter);
+    ASSERT_EQ(sub_cut_off.counters.restoration_entries, 1);
+#else
+    if (sub_cut_off.status != SolveStatus::kMaxIter ||
+        sub_cut_off.counters.restoration_entries != 1) {
+        hven::test_support::record_off_reference_route(
+            "discriminates_arm3",
+            fmt::format("status={} restoration_entries={}", static_cast<int>(sub_cut_off.status),
+                        sub_cut_off.counters.restoration_entries));
+        return;
+    }
+#endif
+    EXPECT_EQ(sub_cut_off.counters.restoration_sub_status, RestorationSubStatus::kMaxIter);
+    EXPECT_GT(sub_cut_off.counters.restoration_feas_out, cramped.feas_tol) << "not resumed";
+    EXPECT_GT(sub_cut_off.counters.restoration_h_out, cramped.feas_tol);
+    EXPECT_FALSE(sub_cut_off.infeasibility_certified)
+        << "the certificate gate hangs off the sub-solve's kOptimal arm";
+
+    // THE POINT, STATED AS AN ASSERTION. One parent status, three records.
+    EXPECT_EQ(never_ran.status, sub_optimal.status);
+    EXPECT_EQ(never_ran.status, sub_cut_off.status);
+    EXPECT_NE(never_ran.counters.restoration_sub_status,
+              sub_optimal.counters.restoration_sub_status);
+    EXPECT_NE(never_ran.counters.restoration_sub_status,
+              sub_cut_off.counters.restoration_sub_status);
+    EXPECT_NE(sub_optimal.counters.restoration_sub_status,
+              sub_cut_off.counters.restoration_sub_status);
+}
+
+// ---------------------------------------------------------------------------
+// THE OPTION ITSELF (M7 W2 M2b): validation and the dump line.
+// ---------------------------------------------------------------------------
+
+TEST(RestorationProximityOption, RefusesANegativeNanOrInfiniteWeightByNameAndValue) {
+    SqpOptions o;
+    o.restoration_proximity = -1.0;
+    try {
+        SqpSolver driver(o);
+        FAIL() << "a negative proximity weight was accepted";
+    } catch (const std::invalid_argument &e) {
+        const std::string what = e.what();
+        EXPECT_NE(what.find("restoration_proximity"), std::string::npos) << what;
+        EXPECT_NE(what.find("-1"), std::string::npos) << what;
+    }
+    o.restoration_proximity = std::numeric_limits<double>::quiet_NaN();
+    EXPECT_THROW(SqpSolver{o}, std::invalid_argument)
+        << "the !(w >= 0) form is what catches the NaN";
+    o.restoration_proximity = std::numeric_limits<double>::infinity();
+    EXPECT_THROW(SqpSolver{o}, std::invalid_argument)
+        << "+inf is not 'very heavy': it is +inf everywhere but the centre";
+    // AND 0 IS ACCEPTED -- it is the term's OFF state and the shipped value,
+    // not an ill-formed one.
+    o.restoration_proximity = 0.0;
+    EXPECT_NO_THROW(SqpSolver{o});
+    o.restoration_proximity = 1e-3;
+    EXPECT_NO_THROW(SqpSolver{o});
+}
+
+TEST(RestorationProximityOption, ShipsAtZeroAndCarriesADumpLineInDeclarationPosition) {
+    EXPECT_DOUBLE_EQ(SqpOptions{}.restoration_proximity, 0.0)
+        << "NO DEFAULT MOVES at M7 W2 M2b: the term lands OFF and its weight is uncalibrated";
+    SqpOptions o;
+    o.restoration_proximity = 0.25;
+    std::ostringstream os;
+    dump_options(o, os);
+    const std::string text = os.str();
+    EXPECT_NE(text.find("restoration_proximity = 0.25\n"), std::string::npos) << text;
+    // DECLARATION POSITION: after M1's pair and before the `common.` block,
+    // which is what the drift pin's line count in tests/drivers/
+    // test_options_dump.cpp is counting.
+    EXPECT_LT(text.find("qp_cap_retry"), text.find("restoration_proximity"));
+    EXPECT_LT(text.find("restoration_proximity"), text.find("common.threads"));
+}
+
+// M7 W2 P1E -- the sufficient-reduction resume's boundary and its certificate guard.
+TEST(RestorationResumeReductionOption, RefusesAFractionOutsideTheUnitIntervalByNameAndValue) {
+    SqpOptions o;
+    EXPECT_DOUBLE_EQ(o.restoration_resume_reduction, 0.0) << "OFF by default";
+    for (const double bad : {-0.5, 1.0, 2.0, std::numeric_limits<double>::infinity(),
+                             std::numeric_limits<double>::quiet_NaN()}) {
+        o.restoration_resume_reduction = bad;
+        try {
+            SqpSolver driver(o);
+            FAIL() << "accepted " << bad;
+        } catch (const std::invalid_argument &e) {
+            EXPECT_NE(std::string(e.what()).find("restoration_resume_reduction"), std::string::npos)
+                << e.what();
+        }
+    }
+    for (const double good : {0.0, 1e-3, 0.999}) {
+        o.restoration_resume_reduction = good;
+        EXPECT_NO_THROW(SqpSolver{o}) << good;
+    }
+    o.restoration_resume_reduction = 0.25;
+    std::ostringstream os;
+    dump_options(o, os);
+    EXPECT_NE(os.str().find("restoration_resume_reduction = 0.25\n"), std::string::npos);
+}
+
+// A CERTIFYING kOptimal never resumes by reduction, however far it cut h.
+TEST(RestorationResumeReductionOption, ACertifyingSubSolveKeepsItsCertificate) {
+    InfeasibleCircleLineModel model;
+    SqpOptions opts;
+    opts.max_iter = 200;
+    opts.restoration_resume_reduction = 0.999;
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
+    ASSERT_EQ(sol.counters.restoration_entries, 1);
+    // THE PREMISE: the entry cut h below the fraction, so only the guard refuses it.
+    ASSERT_LE(sol.counters.restoration_h_out, 0.999 * sol.counters.restoration_h_in);
+    EXPECT_EQ(sol.counters.restoration_reduction_resumes, 0);
+    EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
+    EXPECT_TRUE(sol.infeasibility_certified);
+}
+
+// =========================================================================
+// FIX ROUND 1 (M7 W2 M2b) -- the certificate's finite-tolerance boundary, the
+// seed guard driven end to end, and the refusals' message content.
+// =========================================================================
+namespace {
+
+// The fixture model, WATCHING every point its values are asked for -- which is
+// how the requesting iterate and the seed the phase actually started from are
+// recovered from outside the driver. Only `eval_f`/`eval_ce` are hooked: those
+// two are what every values-or-full query on this model goes through, and the
+// derivative-only refresh the seed guard's MEASURED arm takes is deliberately
+// not counted as a new point.
+class WatchedCircleLineModel final : public InfeasibleCircleLineModel {
+  public:
+    explicit WatchedCircleLineModel(double s0 = 2.0, double s1 = 2.0)
+        : InfeasibleCircleLineModel(s0, s1) {}
+
+    double eval_f(const Vec &x) const override {
+        points.push_back(x);
+        return InfeasibleCircleLineModel::eval_f(x);
+    }
+    Vec eval_ce(const Vec &x) const override {
+        points.push_back(x);
+        return InfeasibleCircleLineModel::eval_ce(x);
+    }
+
+    mutable std::vector<Vec> points;
+};
+
+// THE PROXIMITY TERM'S OWN GRADIENT NORM, `zeta ||D^2 (x - x_k)||_inf`, lives
+// HERE and no longer in the wrapper: fix round 1 removed
+// `RestorationModel::proximity_residual_inf`, because the driver must not have
+// a cheap almost-right quantity within reach of the certificate. The test keeps
+// it, because the fixture below has to ASSERT that this is the quantity the old
+// gate would have passed.
+double proximity_gradient_inf(double zeta, const Vec &x, const Vec &x_k) {
+    double r = 0.0;
+    for (Index i = 0; i < x.size(); ++i) {
+        const double a = std::abs(x_k(i));
+        const double d = a > 1.0 ? 1.0 / a : 1.0;
+        r = std::max(r, std::abs(zeta * d * d * (x(i) - x_k(i))));
+    }
+    return r;
+}
+
+// The REQUESTING ITERATE `x_k`, recovered from the S5 excursion record: it is
+// the watched point whose h AND f both equal the record's entry half
+// (core/solver_counters.h -- `restoration_h_in`/`restoration_f_in` are taken at
+// the requesting iterate, before the seed guard can move the start). Searched
+// from the back so that the match nearest the request wins. Re-evaluated
+// through an UNWATCHED model so the search does not extend the list it walks.
+const Vec *recover_requesting_iterate(const std::vector<Vec> &pts, double h_in, double f_in,
+                                      double s0, double s1) {
+    const InfeasibleCircleLineModel plain(s0, s1);
+    for (std::size_t k = pts.size(); k-- > 0;) {
+        const NlpEval ev = eval_nlp(plain, pts[k]);
+        const double h = constraint_violation_l1(ev);
+        if (std::abs(h - h_in) <= 1e-12 * std::max(1.0, std::abs(h_in)) &&
+            std::abs(ev.f - f_in) <= 1e-12 * std::max(1.0, std::abs(f_in))) {
+            return &pts[k];
+        }
+    }
+    return nullptr;
+}
+
+// THE CANCELLATION FIXTURE'S TWO NUMBERS, and why they are these rather than
+// round ones. The fixture needs a point where the proxy `||grad P||_inf` sits
+// BELOW `kkt_tol` while the exact residual `||J^T lambda - z_sub||_inf` sits
+// ABOVE it, and the gap between them is the sub-solve's own terminal residual
+// `e`, which on this fixture is 3.5805e-07 and does NOT go to zero (that is why
+// the OTHER certificate fixture, whose sub-solve converges to 4.9e-11, cannot
+// see this defect at any weight).
+//
+// MEASURED, on both configurations, by a sweep over (zeta, kkt_tol) whose
+// transcript is in `gates-fix1/` and whose two axes behave differently:
+// `kkt_tol` does not move this fixture's trajectory at all in this range -- it
+// only moves the threshold -- while `zeta` does, and at most weights Debug and
+// Release then take different restoration paths. `zeta = 1.5e-06` is one of the
+// weights at which they do NOT: it leaves the path alone, so the two configs
+// agree to 1e-12 on the residual.
+//
+//     ||grad P||_inf  = 4.5482e-07   (the OLD gate's quantity)
+//     ||J^T l - z||   = 8.1287e-07   (Release) / 8.1278e-07 (Debug)
+//
+// `kkt_tol` is then placed at the MIDPOINT of that window, 6.3e-07, which gives
+// the two premises a margin of 28% and 29% respectively. Both are asserted
+// below, so a fixture that drifts out of its window FAILS here instead of
+// silently testing nothing.
+constexpr double kCancellationZeta = 1.5e-6;
+// RE-CALIBRATED AT M7 W2 E4 FIX ROUND 2 (a declared re-derivation of the
+// threshold, not of the claim). The window is the same two quantities and it is
+// still OPEN; E4 moved the exact residual down into it, so the midpoint moved with
+// it. MEASURED at this round's engine, Release:
+//
+//     ||grad P||_inf   = 4.3934000928e-07   (the OLD gate's quantity)
+//     ||J^T l - z||    = 5.3620559926e-07   (the exact residual)
+//
+// against 4.5482e-07 / 8.1287e-07 before. `kkt_tol` is placed at the midpoint
+// again, 4.88e-07, which leaves each premise a margin of 11 % where it had 28 %
+// and 29 %. The window NARROWED because the exact residual improved, which is the
+// round's own doing (the terminal polish reaches the face's mu-free answer), and
+// the fixture keeps its power exactly: both premises are asserted below, so a
+// fixture that drifts out of this narrower window fails here rather than testing
+// nothing. REGISTERED: at 11 % this is the thinnest the window has been, and a
+// future round that moves the residual another 20 % closes it -- the fixture then
+// needs a new point rather than a new threshold.
+// AND IT IS CONFIG-SPLIT since the same round, because the two configurations' windows
+// no longer overlap usefully. MEASURED:
+//
+//              proxy                exact residual        midpoint    margin
+//   Release    4.3933982708e-07*    5.3620559926e-07      4.88e-07    11 %
+//   Debug      4.3933982708e-07     4.5566300666e-07      4.475e-07   1.9 %
+//   (*Release's proxy is 4.3934000928e-07; the two agree to 4e-13.)
+//
+// Debug's exact residual is 15 % lower than Release's, so its window is 3.7 % wide and
+// any single threshold inside it has at most 1.9 % of margin on each premise. That is
+// thin, it is DECLARED thin, and it is still a pin rather than a skip: both values are
+// deterministic per build, and a drift of 2 % fails this test -- which is exactly what
+// the fixture is for. REGISTERED: Debug's window is the narrowest of the two and will
+// close first.
+#ifdef NDEBUG
+constexpr double kCancellationKktTol = 4.88e-7;
+#else
+constexpr double kCancellationKktTol = 4.475e-7;
+#endif
+
+} // namespace
+
+// THE FINITE-TOLERANCE CANCELLATION FIXTURE (fix round 1; the review's critical
+// finding). The first implementation gated `infeasibility_certified` on
+// `||grad P||_inf <= kkt_tol`, on the identity that at an EXACTLY stationary
+// point of the wrapper that norm IS `||J^T lambda - z_sub||_inf`. A sub-solve
+// returns kOptimal at a FINITE tolerance, so what it delivers is
+//
+//     e = grad P + J^T lambda - z_sub,   ||e||_inf <= kkt_tol,
+//
+// and the certificate needs `||e - grad P||_inf`, which the proxy bounds only
+// by `2*kkt_tol`. This fixture is a point where the two really do separate: the
+// proxy is BELOW kkt_tol and the exact residual is ABOVE it, so the old
+// expression certifies a point that is not a certified infeasible stationary
+// point of `h`. It FAILS on the pre-fix code (measured once, transcript in
+// `gates-fix1/`) and passes on the exact rule.
+//
+// The seeded variant of the fixture is used because its restoration sub-solve
+// terminates with a real residual -- 3.5805e-07 -- rather than at machine
+// precision: with `e` negligible the proxy and the exact residual coincide and
+// no separation exists at ANY weight, which is exactly why the first round's
+// three-arm fixture could not see the defect.
+TEST(SqpDriverRestorationProximity, TheProxyWouldCertifyWhereTheExactResidualRefuses) {
+    WatchedCircleLineModel model(2.0, 1.999999);
+    SqpOptions opts;
+    // M7 W2 E2: in Debug the E2 walk's end point satisfies the exact residual
+    // (5.5e-7 < 6.3e-7) and is then rightly certified; premise 2 belongs to the
+    // pre-E2 walk's trajectory.
+    opts.qp.independent_working_set = false;
+    opts.max_iter = 200;
+    opts.kkt_tol = kCancellationKktTol;
+    opts.restoration_proximity = kCancellationZeta;
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
+
+    ASSERT_EQ(SolveStatus::kInfeasible, sol.status);
+    ASSERT_GE(sol.counters.restoration_iters, 1) << "the phase must have RUN";
+    ASSERT_EQ(1, sol.counters.restoration_entries) << "one measured excursion to read x_k from";
+
+    const Vec *x_k = recover_requesting_iterate(model.points, sol.counters.restoration_h_in,
+                                                sol.counters.restoration_f_in, 2.0, 1.999999);
+    ASSERT_NE(nullptr, x_k) << "the requesting iterate must be recoverable from the S5 record";
+
+    // THE FIXTURE'S TWO PREMISES, MEASURED HERE rather than assumed, so that a
+    // drift out of the window fails this test instead of hollowing it out.
+    const double proxy = proximity_gradient_inf(kCancellationZeta, sol.x, *x_k);
+    const SubgradientCertificate c = check_certificate(model, sol, opts.feas_tol);
+    EXPECT_LE(proxy, opts.kkt_tol)
+        << "premise 1: the OLD proxy passes here (" << proxy << " vs " << opts.kkt_tol << ")";
+    EXPECT_GT(c.stationarity, opts.kkt_tol)
+        << "premise 2: the EXACT residual does not (" << c.stationarity << ")";
+    EXPECT_GT(c.h, opts.feas_tol) << "and the point is genuinely infeasible";
+
+    // THE VERDICT. The old expression sets this true; the exact rule refuses.
+    EXPECT_FALSE(sol.infeasibility_certified)
+        << "the returned point is NOT a certified infeasible stationary point of h: its exact "
+           "subgradient residual is "
+        << c.stationarity << " against a kkt_tol of " << opts.kkt_tol;
+
+    ::testing::Test::RecordProperty(
+        "cancellation", fmt::format("zeta={:g} proxy={:.6g} exact={:.6g} kkt_tol={:g} certified={}",
+                                    kCancellationZeta, proxy, c.stationarity, opts.kkt_tol,
+                                    sol.infeasibility_certified));
+}
+
+// THE SEED GUARD, DRIVEN END TO END AT zeta > 0 (fix round 1; the review's
+// "that test constructs the two points directly"). The sibling fixture
+// `RestorationModel.IsTheSmoothL1FeasibilityProblemAtAPositiveProximity` pins
+// the `h + P` start objective on HAND-MADE points. This one makes the driver's
+// own guard fire, recovers the requesting iterate from the S5 record and the
+// candidates the guard could have taken from the watched points, and pins the
+// identity on those.
+//
+// WHAT IT ASSERTS, and why it quantifies rather than guesses. The guard takes
+// an offered candidate iff h there is below h at the entry; which candidate was
+// offered is a property of the route (elastic ladder vs radius floor) and is
+// build-arithmetic-dependent on this knife-edge fixture, so the test asserts
+// the identity over EVERY watched point that the guard's own test admits. For
+// any such point the wrapper's start objective is h + P with P > 0 -- never h
+// -- and that is the declared price of centring on `x_k`
+// (detail/globalization/sqp/restoration.h's class note).
+TEST(SqpDriverRestorationProximity, TheSeedGuardFiresAndTheStartObjectiveIsHPlusP) {
+    WatchedCircleLineModel model(2.0, 1.999999);
+    SqpOptions opts;
+    // M7 W2 E2 (S7): the taken candidate belongs to the pre-E2 walk (Release takes none with it
+    // on).
+    opts.qp.independent_working_set = false;
+    opts.max_iter = 200;
+    opts.restoration_proximity = 0.25;
+    opts.qp_failure_step = false; // M7 W2 R2: the pre-R2 route (see the seed family's note)
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
+
+    // END TO END: the REAL guard fired, on the row that raised the request.
+    // RE-PREMISED (M7 W2 E4 fix round 2, ruling E4-21(b); see the seed family's note
+    // above): 1 -> 0. The offered candidate no longer measures better than the
+    // requesting iterate, so the guard refuses it and the phase starts where the
+    // request was raised. THE CLAIM THIS FIXTURE IS NAMED FOR IS UNCHANGED and is
+    // asserted below: the restoration objective the phase minimizes is h PLUS the
+    // proximity term P, centred on the REQUESTING iterate -- which is the same
+    // point either way, and is in fact easier to read now that the guard has not
+    // moved the start.
+    // The take (a margin comparison, macOS read 1) and that the phase ran are the route:
+    // reference-only. Off the reference build the test continues when the phase ran, and records
+    // the route and ends when it did not (there is no requesting iterate to recover).
+#if HVEN_TEST_ROUTE_REFERENCE
+    ASSERT_EQ(0, seeded_rows(sol)) << "the candidate measures better again: the guard took it";
+    EXPECT_EQ(nullptr, seeded_row(sol));
+    ASSERT_GE(sol.counters.restoration_iters, 1) << "the phase RAN from the requesting iterate";
+    ASSERT_EQ(1, sol.counters.restoration_entries);
+#else
+    // The identity below holds for every watched point the guard's own test admits, whether or
+    // not the guard took one, so a taken seed does not end the test; no phase does.
+    hven::test_support::record_off_reference_route(
+        "seed_guard_proximity",
+        fmt::format("seeded_rows={} restoration_iters={} restoration_entries={}", seeded_rows(sol),
+                    sol.counters.restoration_iters, sol.counters.restoration_entries));
+    if (sol.counters.restoration_iters < 1 || sol.counters.restoration_entries != 1) {
+        return;
+    }
+#endif
+
+    const Vec *x_k = recover_requesting_iterate(model.points, sol.counters.restoration_h_in,
+                                                sol.counters.restoration_f_in, 2.0, 1.999999);
+#if HVEN_TEST_ROUTE_REFERENCE
+    ASSERT_NE(nullptr, x_k);
+#else
+    if (x_k == nullptr) {
+        return; // the requesting iterate is not among the watched points on this route
+    }
+#endif
+
+    const InfeasibleCircleLineModel plain(2.0, 1.999999);
+    const double h_in = sol.counters.restoration_h_in;
+    Index candidates = 0;
+    for (const Vec &x_entry : model.points) {
+        const NlpEval ev = eval_nlp(plain, x_entry);
+        const double h_entry = constraint_violation_l1(ev);
+        if (!(h_entry < h_in)) {
+            continue; // not a point the guard's own test would have taken
+        }
+        ++candidates;
+        // THE SHIPPED (zeta = 0) WRAPPER: the objective at its own start point
+        // IS h(x_entry) -- the smooth-l1 identity, unconditional.
+        const RestorationModel off(plain, x_entry, ev);
+        EXPECT_DOUBLE_EQ(off.eval_f(off.start_point()), h_entry);
+
+        // THE zeta > 0 WRAPPER THE DRIVER BUILDS, centred on the REQUESTING
+        // iterate: the same objective plus exactly P(x_entry).
+        const RestorationModel on(plain, x_entry, ev, *x_k, opts.restoration_proximity);
+        double p = 0.0;
+        for (Index i = 0; i < x_entry.size(); ++i) {
+            const double a = std::abs((*x_k)(i));
+            const double d = a > 1.0 ? 1.0 / a : 1.0;
+            const double t = d * (x_entry(i) - (*x_k)(i));
+            p += t * t;
+        }
+        p *= 0.5 * opts.restoration_proximity;
+        EXPECT_GT(p, 0.0) << "a candidate the guard took is not the requesting iterate";
+        EXPECT_DOUBLE_EQ(on.eval_f(on.start_point()), h_entry + p)
+            << "the start-objective identity is a zeta = 0 fact, or an unfired-guard fact";
+        // AND THE EXACTNESS OF THE REFORMULATION IS UNTOUCHED: the term is on
+        // the objective being minimized, not on the violation being measured.
+        EXPECT_LT(on.eval_ce(on.start_point()).lpNorm<Eigen::Infinity>(), 1e-12);
+    }
+#if HVEN_TEST_ROUTE_REFERENCE
+    EXPECT_GE(candidates, 1) << "the guard fired, so at least one better-measuring point exists";
+#endif
+}
+
+// THE REFUSALS' MESSAGE CONTENT (fix round 1). CLAUDE.md section 4 requires a
+// library refusal to fold the diagnostic into the exception it throws; a test
+// that only checks the TYPE cannot tell a useful message from an empty one.
+// Both boundaries are checked: the options door and the wrapper's own.
+TEST(SqpDriverRestorationProximity, TheRefusalsNameTheFieldTheValueAndTheRemedy) {
+    auto message_of = [](const std::function<void()> &f) -> std::string {
+        try {
+            f();
+        } catch (const std::invalid_argument &e) {
+            return e.what();
+        } catch (const std::exception &e) {
+            return std::string("<wrong exception type: ") + e.what() + ">";
+        }
+        return "<no exception>";
+    };
+    auto says = [](const std::string &msg, const char *needle) {
+        EXPECT_NE(std::string::npos, msg.find(needle))
+            << "the message does not mention '" << needle << "':\n"
+            << msg;
+    };
+
+    for (const double bad : {-1.0, std::numeric_limits<double>::quiet_NaN(),
+                             std::numeric_limits<double>::infinity()}) {
+        SCOPED_TRACE(fmt::format("options, zeta={}", bad));
+        const std::string msg = message_of([bad] {
+            SqpOptions opts;
+            opts.restoration_proximity = bad;
+            SqpSolver driver(opts);
+        });
+        says(msg, "restoration_proximity"); // the FIELD
+        says(msg, "finite");                // what is wrong
+        says(msg, ">= 0");                  // the admissible set
+        says(msg, "0 is OFF");              // the remedy
+    }
+    { // and the value itself is in the message, not just the rule it broke
+        const std::string msg = message_of([] {
+            SqpOptions opts;
+            opts.restoration_proximity = -2.5;
+            SqpSolver driver(opts);
+        });
+        says(msg, "-2.5");
+    }
+
+    CircleInequalityModel model;
+    Vec x_entry(2);
+    x_entry << 2.0, 2.0;
+    const NlpEval ev = eval_nlp(model, x_entry);
+    Vec centre(2);
+    centre << 1.0, 1.0;
+    for (const double bad : {-1.0, std::numeric_limits<double>::quiet_NaN(),
+                             std::numeric_limits<double>::infinity()}) {
+        SCOPED_TRACE(fmt::format("wrapper, zeta={}", bad));
+        const std::string msg = message_of(
+            [&] { static_cast<void>(RestorationModel(model, x_entry, ev, centre, bad)); });
+        says(msg, "RestorationModel");
+        says(msg, "proximity");
+        says(msg, ">= 0");
+        says(msg, "0 = OFF");
+    }
+    { // the WRONG-SIZED CENTRE says both sizes and what the centre is for
+        const std::string msg = message_of(
+            [&] { static_cast<void>(RestorationModel(model, x_entry, ev, Vec::Ones(3), 1.0)); });
+        says(msg, "x_centre");
+        says(msg, "size 3");
+        says(msg, "expected 2");
+        says(msg, "requesting iterate");
+    }
+}
+
+// =========================================================================
+// FIX ROUND 2 (M7 W2 M2b) -- the OFF path made unchanged BY CONSTRUCTION, and
+// the production centre falsified rather than restated.
+// =========================================================================
+
+// THE OFF PATH TAKES NO FLOPS AND READS NO BUNDLE (fix round 2, the review's
+// remaining Important 1). Fix round 1 computed the certificate's residual
+// unconditionally, from a COPY of the engine-scale bundle divided back through
+// the row factors. That conversion is dimensionally right but is NOT floating-
+// point identity, so on a SCALED solve the recomputed number can differ in its
+// last bits from the raw one the sub-solve actually tested -- and at zeta = 0,
+// where the pre-M2b code certified on the sub-solve's own kOptimal alone, a
+// last-bit difference at the tolerance boundary could REFUSE a certificate that
+// used to be issued. Margin in the measured evidence is not a proof of that
+// boundary.
+//
+// So the OFF path no longer recomputes anything: `feasibility_subsolve_certifies`
+// returns true at zeta == 0 without touching the bundle. This test is the
+// STRUCTURAL guarantee of that, and it does not read like a comment: the bundle
+// handed to the gate is POISONED with NaN, so any route through
+// `subgradient_certificate_residual_inf` yields NaN, and `NaN <= kkt_tol` is
+// false. A gate that reads the bundle at zeta == 0 fails the first arm; a gate
+// that stops reading it at zeta > 0 fails the second.
+TEST(SqpDriverRestorationProximity, TheZeroWeightGateNeverReadsTheBundle) {
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const double kkt_tol = 1e-8;
+
+    Vec lambda_e(1), lambda_i, z(2);
+    lambda_e << 3.0;
+    z << 6.0, 0.0;
+
+    // Je = [2 0], so J^T lambda = (6, 0) and the CLEAN bundle's residual is
+    // exactly 0 -- the one number that makes the third arm's `true` mean "the
+    // residual was computed and passed" rather than "nothing was checked".
+    NlpEval clean;
+    clean.Je.resize(1, 2);
+    clean.Je.insert(0, 0) = 2.0;
+    clean.Je.makeCompressed();
+
+    NlpEval poisoned = clean;
+    poisoned.Je.coeffRef(0, 0) = nan;
+
+    Index reads = 0;
+    const auto poisoned_bundle = [&reads, &poisoned]() {
+        ++reads;
+        return poisoned;
+    };
+    const auto clean_bundle = [&reads, &clean]() {
+        ++reads;
+        return clean;
+    };
+
+    EXPECT_TRUE(
+        feasibility_subsolve_certifies(0.0, kkt_tol, lambda_e, lambda_i, z, poisoned_bundle))
+        << "at the shipped weight the sub-solve's own kOptimal IS the certificate";
+    EXPECT_EQ(0, reads) << "the OFF path must not read, copy or rescale the bundle at all -- a "
+                           "gate that routes zeta = 0 through the residual would have read it "
+                           "here, and would then have refused on the NaN";
+
+    EXPECT_FALSE(
+        feasibility_subsolve_certifies(1e-30, kkt_tol, lambda_e, lambda_i, z, poisoned_bundle))
+        << "at ANY positive weight the residual is what decides, and a NaN residual is not "
+           "<= kkt_tol";
+    EXPECT_EQ(1, reads) << "the ON path reads the bundle exactly once";
+
+    EXPECT_TRUE(feasibility_subsolve_certifies(1e-30, kkt_tol, lambda_e, lambda_i, z, clean_bundle))
+        << "and the ON path is the RESIDUAL, not a blanket refusal: this bundle's is 0";
+    EXPECT_EQ(2, reads);
+}
+
+// AND THE PIN THAT GOES WITH IT: a SCALED solve whose certified exit is
+// asserted at an EXPLICIT zeta = 0 (fix round 2). The structural test above
+// proves the gate's dispatch; this proves the shipped configuration the
+// dispatch protects -- non-trivial row factors, two orders apart, on the
+// fixture whose whole point is that the engine and caller scales order its
+// offers oppositely. If the OFF path ever routes through the rescaled copy
+// again, this is where a boundary refusal on a real scaled solve shows up.
+TEST(SqpDriverRestorationProximity, TheZeroWeightCertifiesOnAScaledSolve) {
+    BoxWatchingSpreadModel model;
+    SqpOptions opts;
+    // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
+    opts.equality_basis = false;
+    opts.max_iter = 60;
+    opts.enable_scaling = true;
+    opts.restoration_proximity = 0.0; // EXPLICIT: this is the field's OFF value
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
+
+    // THE FIXTURE'S PREMISE: scaling RAN, and the factors are not all 1.
+    ASSERT_TRUE(sol.scaling.active) << "an unscaled solve would test nothing here";
+    EXPECT_NEAR(sol.scaling.row_min, 0.01, 1e-12);
+    EXPECT_NEAR(sol.scaling.row_max, 1.0, 1e-12);
+    ASSERT_LT(sol.scaling.row_min, sol.scaling.row_max) << "the factors must be NON-TRIVIAL";
+
+    ASSERT_EQ(SolveStatus::kInfeasible, sol.status);
+    ASSERT_GE(sol.counters.restoration_iters, 1) << "the phase must have RUN";
+    EXPECT_TRUE(sol.infeasibility_certified)
+        << "a scaled OFF solve certifies exactly as it did before the proximity term existed";
+    EXPECT_NEAR(sol.x(0), 1.0, 1e-9);
+    EXPECT_NEAR(sol.x(1), 0.0, 1e-9);
+}
+
+// THE PRODUCTION CENTRE, FALSIFIED (fix round 2, the review's Important 3; the
+// fixture rebuilt in fix round 2b). The sibling fixture above drives the real
+// seed guard and then checks the `h + P` identity on a wrapper the TEST
+// constructs with `x_k`; that restates the wiring rather than observing it, so
+// a production regression to centring on `*x_start` -- the candidate the guard
+// moved the start to -- would not fail it.
+//
+// THIS ONE READS THE CENTRE OUT OF WHAT PRODUCTION RETURNED, with no seam and
+// no private access. A kOptimal sub-solve leaves its own x-block stationarity
+// residual
+//
+//     e(c) = grad P_c(x_r) + J(x_r)^T lambda - z,    ||e(c)||_inf <= kkt_tol
+//
+// where `c` is the centre the wrapper was built with. `x_r`, `lambda` and `z`
+// are all REPORTED fields, so `e(c)` is computable from outside for any
+// candidate centre -- and only the true centre makes it small. The verdict is
+// therefore two-sided: `e(x_k)` at tolerance, and `e` at every point the guard
+// could have started from instead an order of magnitude ABOVE it. `*x_start` is
+// one of those points, so a regression to it fails here.
+//
+// WHY THE FIXTURE IS PURPOSE-BUILT, AND NOT ONE OF THIS FILE'S CIRCLE/LINE
+// STARTS. `e(c) - e(x_k)` is `zeta * D^2 * (x_k - c)` componentwise, so the
+// verdict discriminates only in proportion to the SEPARATION between the
+// requesting iterate and the candidate centres. On a seeded circle/line start
+// that separation is whatever a knife-edge route happens to offer: restoration
+// is requested there only once the solve has stalled at an infeasible
+// stationary point, where every offer -- and every later point of the
+// restoration phase itself -- sits within microns of `x_k`. Fix round 2 chose
+// its start by SCANNING for one that separated, measured the scan in Debug, and
+// the scan then found nothing in Release (the circle/line route is a known
+// Debug/Release bifurcation), so the premise failed and the test could render
+// no verdict at all. The separation is now O(1) BY CONSTRUCTION:
+//
+//   * THE REQUEST IS AT MAJOR 0, at the start point, so `x_k` is known at
+//     design time and is asserted against the S5 record rather than recovered
+//     by search.
+//   * THE OFFER IS THE REJECTED TRIAL AT THE FULL RADIUS. `tr_min` is raised to
+//     5 against a `tr_init` of 8, so the FIRST rejection crosses the floor
+//     (8 * kTrShrinkFactor = 4 < 5) and the radius never collapses: the
+//     candidate the guard is handed is the major-0 trial, `tr_init` away from
+//     `x_k` in x1 and 2.06 away in x0.
+//   * THE TRIAL MEASURES BETTER AND IS STILL REFUSED, which is what makes the
+//     guard fire on it. `h` falls (1.65 -> 0.425, so the guard takes it) while
+//     `f` rises by 4088 against a predicted decrease of 8, so Eq. (11)'s Armijo
+//     test refuses the step -- an f-TYPE rejection, since `pred_df = 8` clears
+//     `kFunnelDelta * h_old^2 = 2.72`.
+//   * AND THE RESTORATION PHASE STAYS AWAY. The proximity weight is 0.2 against
+//     an h-slope of 0.8 at `x_k`, so the wrapper's minimizer is at x0 = -1,
+//     TWO away from `x_k`, and the phase runs from the seed to it without
+//     coming back: every point it evaluates keeps |x0 - 1| >= 1.93.
+//
+// MEASURED IN BOTH CONFIGURATIONS (Debug and Release, clang++, MKL; every run
+// records them as a test property, and the fix-round-2b transcripts carry them):
+// the ten evaluated points are the SAME ten in both, so
+//
+//     nearest admissible candidate   1.9375        (both)
+//     smallest wrong-centre residual 3.8750e-01    (both)
+//     right-centre residual          1.1102e-16 Debug / 1.6653e-16 Release
+//
+// The wrong-centre side clears its own `10 * kkt_tol` bar by 3.875e+04, and the
+// 100x margin below is ASSERTED rather than merely observed. The two configs
+// agreeing point-for-point is the property fix round 2 lacked: its start was
+// chosen by a Debug-only scan of a route that bifurcates.
+namespace {
+constexpr double kCentreZeta = 0.2;
+// The separation premise, asserted rather than scanned: the fixture's own
+// construction puts the nearest admissible candidate at 1.9375.
+constexpr double kCentreMinSeparation = 1.0;
+// And the wrong-centre verdict's margin over the bar it is asserted against.
+constexpr double kCentreWrongCentreMargin = 100.0;
+
+// THE FIXTURE ITSELF.
+//
+//     min  x1 + x1^4   s.t.  cE(x) = 0.1 (x0 + 3)^2 + 0.05 = 0,   x_start = (1, 0)
+//
+// cE is bounded below by 0.05, so the NLP is INFEASIBLE and the solve ends in
+// restoration; h(x) = cE(x) depends on x0 alone, with h(x_start) = 1.65.
+//
+// MAJOR 0, HAND-DERIVED (every number above comes from here).
+//   J = (0.2 (x0 + 3), 0) = (0.8, 0) at the start, so the linearized equality
+//   forces p0 = -1.65/0.8 = -2.0625 and leaves p1 to the objective. The
+//   Lagrangian Hessian is sigma * diag(0, 12 x1^2) + lambda * diag(0.2, 0),
+//   which is ZERO at the start (x1 = 0, lambda = 0), so the subproblem is an LP
+//   in p1 and p1 saturates the radius at -8.
+//     trial      x = (-1.0625, -8),  h = 0.42539  (< 1.65: the guard TAKES it)
+//     pred_df    = -g^T p = 8        (>= 0.999 * 1.65^2 = 2.7198: f-TYPE)
+//     actual_df  = 0 - 4088 = -4088  (< 1e-4 * 8: Eq. (11) REFUSES)
+//   so the verdict is kReject, rejections_at_iterate becomes 1, and
+//   shrink_hits_floor(8) is true because 8 * 0.5 = 4 < tr_min = 5. The floor
+//   site raises the request and offers the trial it just refused.
+//
+// THE RESTORATION PHASE, hand-derived the same way. The wrapper minimizes
+// cE(x) + (zeta/2) ||D (x - x_k)||^2 with D = I (both components of x_k are <= 1
+// in modulus), i.e. 0.1 (x0+3)^2 + 0.05 + 0.1 [(x0-1)^2 + x1^2], whose minimizer
+// is x* = ((zeta - 6a)/(2a + zeta), 0) = (-1, 0) at a = 0.1, zeta = 0.2 -- two
+// away from `x_k`, where h = 0.45 is still far above feas_tol. The phase reaches
+// it in three majors through (-0.9375, 0), so the closest it ever comes to `x_k`
+// is 1.9375, and the solve exits kInfeasible UNCERTIFIED: at a displacement of
+// two the uncorrected residual is `zeta * 2 = 0.4`, which is what M2b's gate
+// refuses (see the EXPECT_FALSE below).
+class SeparatedRestorationModel : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 1; }
+    Index mi() const override { return 0; }
+
+    double eval_f(const Vec &x) const override {
+        const double t = x(1);
+        return t + t * t * t * t;
+    }
+    Vec eval_grad(const Vec &x) const override {
+        Vec g(2);
+        g << 0.0, 1.0 + 4.0 * x(1) * x(1) * x(1);
+        return g;
+    }
+    Vec eval_ce(const Vec &x) const override {
+        Vec c(1);
+        c << kSepA * (x(0) + kSepShift) * (x(0) + kSepShift) + kSepFloor;
+        return c;
+    }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &lambda_e,
+                      const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = 2.0 * kSepA * lambda_e(0);
+        h.insert(1, 1) = obj_scale * 12.0 * x(1) * x(1);
+        h.makeCompressed();
+        return h;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &x) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> j(1, 2);
+        j.insert(0, 0) = 2.0 * kSepA * (x(0) + kSepShift);
+        j.insert(0, 1) = 0.0;
+        j.makeCompressed();
+        return j;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &) const override {
+        return Eigen::SparseMatrix<double, Eigen::RowMajor>(0, 2);
+    }
+    const Vec &lower() const override {
+        static const Vec l = Vec::Constant(2, -kInfBound);
+        return l;
+    }
+    const Vec &upper() const override {
+        static const Vec u = Vec::Constant(2, kInfBound);
+        return u;
+    }
+    Vec start_point() const override {
+        Vec x(2);
+        x << 1.0, 0.0;
+        return x;
+    }
+
+    static constexpr double kSepA = 0.1;
+    static constexpr double kSepShift = 3.0;
+    static constexpr double kSepFloor = 0.05;
+};
+
+// The same model, WATCHING: `eval_f` and `eval_ce` are what every values-or-full
+// query goes through, so the recorded list contains every point the solve --
+// the restoration phase included -- ever measured. Recovered from outside the
+// driver exactly as WatchedCircleLineModel's list is.
+class WatchedSeparatedRestorationModel final : public SeparatedRestorationModel {
+  public:
+    double eval_f(const Vec &x) const override {
+        points.push_back(x);
+        return SeparatedRestorationModel::eval_f(x);
+    }
+    Vec eval_ce(const Vec &x) const override {
+        points.push_back(x);
+        return SeparatedRestorationModel::eval_ce(x);
+    }
+
+    mutable std::vector<Vec> points;
+};
+} // namespace
+
+TEST(SqpDriverRestorationProximity, TheProductionCentreIsTheRequestingIterateNotTheSeed) {
+    WatchedSeparatedRestorationModel model;
+    SqpOptions opts;
+    opts.max_iter = 200;
+    // THE FLOOR, RAISED: this is what makes the offered candidate O(1) from the
+    // requesting iterate instead of a collapsed radius away from it.
+    opts.tr_init = 8.0;
+    opts.tr_min = 5.0;
+    opts.restoration_proximity = kCentreZeta;
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
+
+    // THE PREMISE THAT MAKES THE TWO CENTRES DISTINGUISHABLE AT ALL: the guard
+    // FIRED, so the wrapper's construction point is NOT the requesting iterate,
+    // and the phase ran once from it.
+    ASSERT_EQ(1, seeded_rows(sol)) << "the fixture's premise: the guard took the offered trial";
+    ASSERT_EQ(1, sol.counters.restoration_entries);
+    ASSERT_GE(sol.counters.restoration_iters, 1);
+    const SqpIterate *row = seeded_row(sol);
+    ASSERT_NE(nullptr, row);
+    EXPECT_EQ(StepVerdict::kReject, row->verdict)
+        << "kReject on the REQUESTING row is the radius floor's own signature";
+    EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
+    // AND THE CLAIM IS WITHHELD, which is this separation's own corollary and a
+    // second reading of it: what the sub-solve's kOptimal certifies is
+    // stationarity of `h + P`, and `||grad P||_inf = zeta * 2 = 0.4` here
+    // against a `kkt_tol` of 1e-6, so the M2b gate refuses the certificate
+    // while the status stays kInfeasible (solver_status.h's two shapes). A
+    // fixture whose two centres genuinely separate CANNOT also certify, and
+    // this line says so rather than leaving the reader to wonder.
+    EXPECT_FALSE(sol.infeasibility_certified)
+        << "at an O(1) proximity displacement the UNCORRECTED residual is zeta * 2, so the "
+           "M2b gate refuses the claim -- the separation and the refusal are one fact";
+
+    // AND `x_k` IS THE START POINT, because the request is at major 0 -- pinned
+    // against the S5 record's entry half rather than recovered by search.
+    const SeparatedRestorationModel plain;
+    const Vec x_k = plain.start_point();
+    const NlpEval ev_k = eval_nlp(plain, x_k);
+    ASSERT_NEAR(constraint_violation_l1(ev_k), sol.counters.restoration_h_in, 1e-12)
+        << "the excursion record's entry half is h at the START point: the request is major 0's";
+    ASSERT_NEAR(ev_k.f, sol.counters.restoration_f_in, 1e-12);
+
+    // `s = J^T lambda - z` at the RETURNED point, from the driver's own reported
+    // multipliers and bound price: the certificate's own vector, before any
+    // proximity gradient is added back to it.
+    Vec s = -sol.z;
+    s += Eigen::MatrixXd(plain.eval_jac_e(sol.x)).transpose() * sol.lambda_e;
+    const auto wrapper_residual = [&](const Vec &centre) {
+        double r = 0.0;
+        for (Index i = 0; i < sol.x.size(); ++i) {
+            const double a = std::abs(centre(i));
+            const double d = a > 1.0 ? 1.0 / a : 1.0;
+            r = std::max(r, std::abs(s(i) + kCentreZeta * d * d * (sol.x(i) - centre(i))));
+        }
+        return r;
+    };
+
+    Index rivals = 0;
+    double closest_rival = std::numeric_limits<double>::infinity();
+    double nearest_candidate = std::numeric_limits<double>::infinity();
+    for (const Vec &x_c : model.points) {
+        const double dist = (x_c - x_k).lpNorm<Eigen::Infinity>();
+        if (dist <= 0.0) {
+            continue; // the requesting iterate itself is not a rival centre
+        }
+        const NlpEval ev = eval_nlp(plain, x_c);
+        if (!(constraint_violation_l1(ev) < sol.counters.restoration_h_in)) {
+            continue; // not a point the guard's own test would have started from
+        }
+        ++rivals;
+        closest_rival = std::min(closest_rival, wrapper_residual(x_c));
+        nearest_candidate = std::min(nearest_candidate, dist);
+    }
+
+    // THE SEPARATION PREMISE, ASSERTED. Fix round 2 SKIPPED a start that failed
+    // this and moved on; the fixture is now built so that failing it is a
+    // regression in the fixture, which must be re-derived and declared.
+    ASSERT_GE(rivals, 1);
+    ASSERT_GE(nearest_candidate, kCentreMinSeparation)
+        << "the fixture's construction puts every admissible candidate O(1) from the requesting "
+           "iterate; a nearer one means the phase or the floor moved";
+
+    // THE VERDICT, two-sided.
+    const double at_x_k = wrapper_residual(x_k);
+    EXPECT_LE(at_x_k, opts.kkt_tol)
+        << "the returned point IS stationary for the wrapper centred on the REQUESTING "
+           "iterate -- which is what a kOptimal sub-solve on that wrapper means, and is the "
+           "half a regression to `*x_start` would break";
+    EXPECT_GT(closest_rival, 10.0 * opts.kkt_tol)
+        << "and it is NOT stationary for a wrapper centred on any candidate the guard could "
+           "have started from -- `*x_start` among them";
+    // AND THE MARGIN IS THE ASSERTION, not an observation left in a comment: a
+    // fixture that drifts to where the two centres barely differ fails HERE.
+    EXPECT_GE(closest_rival, kCentreWrongCentreMargin * 10.0 * opts.kkt_tol)
+        << "the wrong-centre side must clear its bar by " << kCentreWrongCentreMargin << "x";
+    ::testing::Test::RecordProperty("centre",
+                                    fmt::format("zeta={:g} at_x_k={:.4e} closest_rival={:.4e} "
+                                                "nearest_candidate={:.4e} rivals={} kkt_tol={:g}",
+                                                kCentreZeta, at_x_k, closest_rival,
+                                                nearest_candidate, rivals, opts.kkt_tol));
+}
+
+// =========================================================================
+// THE CLAMPED START (M7 W2 ladder, L2). An entry outside the box (E2-D3:
+// YORKNET's CUTEst x0, 40 components) made the sub-solve's first QP
+// box-infeasible. The wrapper's start is the entry CLAMPED into the box, with
+// the rows re-read there; an in-box entry is the wrapper that shipped.
+// =========================================================================
+namespace {
+// min 0  s.t.  x0 + x1 - 1 = 0,  x0 - x1 - 3 <= 0,  0 <= x <= 5.
+class BoxedLineModel : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 1; }
+    Index mi() const override { return 1; }
+    double eval_f(const Vec &) const override { return 0.0; }
+    Vec eval_grad(const Vec &) const override { return Vec::Zero(2); }
+    Vec eval_ce(const Vec &x) const override { return Vec::Constant(1, x(0) + x(1) - 1.0); }
+    Vec eval_ci(const Vec &x) const override { return Vec::Constant(1, x(0) - x(1) - 3.0); }
+    SpMatRM eval_hess(const Vec &, double, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.makeCompressed();
+        return h;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> j(1, 2);
+        j.insert(0, 0) = 1.0;
+        j.insert(0, 1) = 1.0;
+        j.makeCompressed();
+        return j;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> j(1, 2);
+        j.insert(0, 0) = 1.0;
+        j.insert(0, 1) = -1.0;
+        j.makeCompressed();
+        return j;
+    }
+    const Vec &lower() const override {
+        static const Vec l = Vec::Zero(2);
+        return l;
+    }
+    const Vec &upper() const override {
+        static const Vec u = Vec::Constant(2, 5.0);
+        return u;
+    }
+    Vec start_point() const override { return Vec::Ones(2); }
+};
+} // namespace
+
+TEST(RestorationModelClampedStart, AnOutOfBoxEntryStartsClampedWithItsRowsReadThere) {
+    BoxedLineModel model;
+    Vec x_entry(2);
+    x_entry << -2.0, 6.0; // both outside [0, 5]; the rows read 3 here, 4 at (0, 5)
+    const NlpEval ev = eval_nlp(model, x_entry);
+    ASSERT_DOUBLE_EQ(constraint_violation_l1(ev), 3.0);
+    const RestorationModel r(model, x_entry, ev);
+
+    EXPECT_EQ(r.start_clamps(), 2);
+    const Vec y = r.start_point();
+    ASSERT_EQ(y.size(), 5); // (x0, x1, sp, sm, si)
+    EXPECT_EQ(y(0), 0.0);
+    EXPECT_EQ(y(1), 5.0);
+    EXPECT_EQ(y(2), 0.0); // sp
+    EXPECT_EQ(y(3), 4.0); // sm: cE(0, 5) = 4, sigma 1
+    EXPECT_EQ(y(4), 0.0); // si: cI(0, 5) = -8
+    // The start is inside the wrapper's box and satisfies its rows.
+    for (Index i = 0; i < y.size(); ++i) {
+        EXPECT_GE(y(i), r.lower()(i));
+        EXPECT_LE(y(i), r.upper()(i));
+    }
+    EXPECT_DOUBLE_EQ(r.eval_ce(y)(0), 0.0);
+    EXPECT_LE(r.eval_ci(y)(0), 0.0);
+    // Its objective is h at the CLAMPED point, not at the entry.
+    EXPECT_DOUBLE_EQ(r.eval_f(y), 4.0);
+    // At zeta > 0 the centre is clamped too: the proximity gradient vanishes there.
+    const RestorationModel rp(model, x_entry, ev, x_entry, 2.0);
+    EXPECT_EQ(rp.start_clamps(), 2);
+    const Vec g = rp.eval_grad(rp.start_point());
+    EXPECT_EQ(g(0), 0.0);
+    EXPECT_EQ(g(1), 0.0);
+}
+
+// A model that cannot be evaluated AT its own bound keeps the entry: the sub-solve
+// throws on a non-finite start, and the entry's rows are finite.
+TEST(RestorationModelClampedStart, ANonFiniteClampedPointKeepsTheEntry) {
+    class SingularAtTheBoundModel : public BoxedLineModel {
+      public:
+        Vec eval_ce(const Vec &x) const override {
+            return Vec::Constant(1, x(0) == 0.0 ? std::numeric_limits<double>::quiet_NaN()
+                                                : x(0) + x(1) - 1.0);
+        }
+    };
+    SingularAtTheBoundModel model;
+    Vec x_entry(2);
+    x_entry << -2.0, 6.0;
+    const NlpEval ev = eval_nlp(model, x_entry);
+    ASSERT_TRUE(ev.all_finite);
+    const RestorationModel r(model, x_entry, ev);
+
+    EXPECT_EQ(r.start_clamps(), 0);
+    EXPECT_EQ(r.original_x(r.start_point()), x_entry);
+    EXPECT_TRUE(r.start_point().allFinite());
+    EXPECT_EQ(r.start_point()(3), 3.0); // sm from the ENTRY's cE = 3
+}
+
+TEST(RestorationModelClampedStart, AnInBoxEntryIsTheWrapperThatShipped) {
+    BoxedLineModel model;
+    Vec x_entry(2);
+    x_entry << 1.0, 2.0;
+    const NlpEval ev = eval_nlp(model, x_entry);
+    const RestorationModel r(model, x_entry, ev);
+
+    EXPECT_EQ(r.start_clamps(), 0);
+    // The pre-L2 formula, byte for byte: x_entry, then the slacks from `ev`.
+    Vec expect(5);
+    expect << x_entry(0), x_entry(1), std::max(0.0, -ev.ce(0)), std::max(0.0, ev.ce(0)),
+        std::max(0.0, ev.ci(0));
+    EXPECT_EQ(r.start_point(), expect);
+    // On a bound is not outside it.
+    Vec on_bound(2);
+    on_bound << 0.0, 5.0;
+    EXPECT_EQ(RestorationModel(model, on_bound, eval_nlp(model, on_bound)).start_clamps(), 0);
+}
+
+// =========================================================================
+// THE REGULARIZED CURVATURE (M7 W2 RST; SqpOptions::restoration_curvature ==
+// kRegularized; restoration.h's eval_hess note). B = mu(x) D^2 on the original
+// variables, mu(x) = min(1, h(x)), D = diag(min(1, 1/|x_i|)) at the start point,
+// nothing on the slacks, and the multipliers and the wrapped model's own
+// Hessian never read.
+// =========================================================================
+
+namespace {
+Eigen::MatrixXd dense(const SpMatRM &h) { return Eigen::MatrixXd(h); }
+} // namespace
+
+TEST(RestorationModelRegularized, IsTheResidualScaledDiagonalWithNoConstraintCurvature) {
+    InfeasibleCircleLineModel model;
+    Vec x_entry(2);
+    x_entry << 2.0, 0.5; // d = (1/2, 1): one coordinate of each branch
+    const NlpEval ev = eval_nlp(model, x_entry);
+    const RestorationModel reg(model, x_entry, ev, x_entry, 0.0, true);
+    ASSERT_TRUE(reg.regularized_curvature());
+    const Vec y = reg.start_point();
+    (void)reg.eval_ce(y); // the driver evaluates the rows before the Hessian
+    // h(x_entry) = |4 + 0.25 - 1| + |2.5 - 2| = 3.75 > 1, so mu = 1.
+    Vec lambda_a(2), lambda_b(2);
+    lambda_a << 0.7, -1.0;
+    lambda_b << -0.3, 0.9;
+    const SpMatRM Ha = reg.eval_hess(y, 1.0, lambda_a, Vec(0));
+    const SpMatRM Hb = reg.eval_hess(y, 1.0, lambda_b, Vec(0));
+    ASSERT_EQ(Ha.rows(), reg.n());
+    EXPECT_EQ(Ha.nonZeros(), 2) << "the x-block diagonal and nothing on the slacks";
+    EXPECT_DOUBLE_EQ(dense(Ha)(0, 0), 0.25);
+    EXPECT_DOUBLE_EQ(dense(Ha)(1, 1), 1.0);
+    EXPECT_EQ(dense(Ha), dense(Hb)) << "the multipliers are never read";
+    EXPECT_EQ(reg.curvature_residual_evals(), 0) << "h came from the memo";
+    // The exact wrapper's curvature at the same arguments is the circle's 2 lambda_0 I:
+    // the regularized one is NOT it.
+    const RestorationModel exact(model, x_entry, ev);
+    EXPECT_FALSE(exact.regularized_curvature());
+    EXPECT_DOUBLE_EQ(dense(exact.eval_hess(y, 1.0, lambda_a, Vec(0)))(0, 0), 1.4);
+}
+
+TEST(RestorationModelRegularized, MuIsTheViolationBelowOneAndVanishesWithIt) {
+    // Near the circle-line h-minimizer h = 2 - sqrt(2) < 1, so mu = h exactly.
+    InfeasibleCircleLineModel model;
+    const double t = 1.0 / std::sqrt(2.0);
+    Vec x(2);
+    x << t, t;
+    const NlpEval ev = eval_nlp(model, x);
+    const RestorationModel reg(model, x, ev, x, 0.0, true);
+    const Vec y = reg.start_point();
+    (void)reg.eval_ce(y);
+    const double h = std::abs(ev.ce(0)) + std::abs(ev.ce(1));
+    ASSERT_LT(h, 1.0);
+    const SpMatRM H = reg.eval_hess(y, 1.0, Vec::Zero(2), Vec(0));
+    EXPECT_DOUBLE_EQ(dense(H)(0, 0), h);
+    EXPECT_DOUBLE_EQ(dense(H)(1, 1), h);
+
+    // At a FEASIBLE point mu = 0, and the pattern is still the x-block diagonal
+    // (nlp_model.h's STRUCTURAL PATTERN INVARIANCE).
+    StalledValleyModel valley;
+    Vec xf(2);
+    xf << 0.0, 0.0;
+    const NlpEval evf = eval_nlp(valley, xf);
+    ASSERT_EQ(evf.ce(0), 0.0);
+    const RestorationModel regf(valley, xf, evf, xf, 0.0, true);
+    const Vec yf = regf.start_point();
+    (void)regf.eval_ce(yf);
+    const SpMatRM Hf = regf.eval_hess(yf, 1.0, Vec::Constant(1, 5.0), Vec(0));
+    EXPECT_EQ(Hf.nonZeros(), 2);
+    EXPECT_EQ(dense(Hf).norm(), 0.0) << "no curvature at a feasible point";
+}
+
+TEST(RestorationModelRegularized, ReadsHFromTheLastTwoEvaluatedPointsAndCountsEveryOtherRead) {
+    InfeasibleCircleLineModel model;
+    Vec x_entry(2);
+    x_entry << 0.5, 0.25;
+    const NlpEval ev = eval_nlp(model, x_entry);
+    const RestorationModel reg(model, x_entry, ev, x_entry, 0.0, true);
+    Vec y1 = reg.start_point(), y2 = y1, y3 = y1;
+    y2(0) = 0.4;
+    y3(0) = 0.3;
+    // Never evaluated: h is read by the wrapper itself, and counted.
+    (void)reg.eval_hess(y1, 1.0, Vec::Zero(2), Vec(0));
+    EXPECT_EQ(reg.curvature_residual_evals(), 1);
+    // The iterate and a trial are both remembered.
+    (void)reg.eval_ce(y1);
+    (void)reg.eval_ce(y2);
+    (void)reg.eval_hess(y1, 1.0, Vec::Zero(2), Vec(0));
+    (void)reg.eval_hess(y2, 1.0, Vec::Zero(2), Vec(0));
+    EXPECT_EQ(reg.curvature_residual_evals(), 1);
+    // A third point displaces the oldest.
+    (void)reg.eval_ce(y3);
+    (void)reg.eval_hess(y1, 1.0, Vec::Zero(2), Vec(0));
+    EXPECT_EQ(reg.curvature_residual_evals(), 2);
+    // And the memo's value is the model's: the same Hessian either way.
+    const RestorationModel fresh(model, x_entry, ev, x_entry, 0.0, true);
+    EXPECT_EQ(dense(fresh.eval_hess(y3, 1.0, Vec::Zero(2), Vec(0))),
+              dense(reg.eval_hess(y3, 1.0, Vec::Zero(2), Vec(0))));
+}
+
+// ONE VALUES QUERY PER POINT WITH BOTH ROW KINDS (M7 W2 RST rider M5): a point whose
+// equality and inequality rows are both missing from the memo is read through eval_ce AND
+// eval_ci, and charged once; a point missing only one block is charged once too.
+TEST(RestorationModelRegularized, ChargesOneValuesQueryPerPointWhateverBlocksItReads) {
+    MixedScaleRowsModel model;
+    Vec x_entry(2);
+    x_entry << 0.0, 0.0;
+    const RestorationModel reg(model, x_entry, eval_nlp(model, x_entry), x_entry, 0.0, true);
+    ASSERT_EQ(reg.me(), 1);
+    ASSERT_EQ(reg.mi(), 1);
+    Vec y1 = reg.start_point(), y2 = y1;
+    y1(0) = 0.5;
+    y2(0) = 0.25;
+    (void)reg.eval_hess(y1, 1.0, Vec::Zero(1), Vec::Zero(1));
+    EXPECT_EQ(reg.curvature_residual_evals(), 1) << "both blocks read, one query";
+    (void)reg.eval_ce(y2); // the equality rows in hand, the inequality rows not
+    (void)reg.eval_hess(y2, 1.0, Vec::Zero(1), Vec::Zero(1));
+    EXPECT_EQ(reg.curvature_residual_evals(), 2) << "one block read, one query";
+    (void)reg.eval_ci(y2);
+    (void)reg.eval_hess(y2, 1.0, Vec::Zero(1), Vec::Zero(1));
+    EXPECT_EQ(reg.curvature_residual_evals(), 2) << "both blocks in hand, no query";
+}
+
+TEST(RestorationModelRegularized, SumsTheProximityTermsOwnCurvatureOnItsScaling) {
+    LinearPairModel model;
+    Vec x_entry(2);
+    x_entry << 3.0, 3.0; // h = |6 - 2| = 4, so mu = 1
+    const NlpEval ev = eval_nlp(model, x_entry);
+    Vec centre(2);
+    centre << 2.0, 0.5; // the proximity term's d = (0.5, 1)
+    const RestorationModel reg(model, x_entry, ev, centre, 0.25, true);
+    const Vec y = reg.start_point();
+    (void)reg.eval_ce(y);
+    const SpMatRM H = reg.eval_hess(y, 1.0, Vec::Constant(1, 0.7), Vec(0));
+    EXPECT_DOUBLE_EQ(dense(H)(0, 0), (1.0 + 0.25) * 0.25);
+    EXPECT_DOUBLE_EQ(dense(H)(1, 1), (1.0 + 0.25) * 1.0);
+    const SpMatRM H0 = reg.eval_hess(y, 0.0, Vec::Constant(1, 0.7), Vec(0));
+    EXPECT_DOUBLE_EQ(dense(H0)(0, 0), 1.0 * 0.25) << "obj_scale reaches the term, not mu";
+}
+
+TEST(RestorationModelRegularized, OffIsTheWrapperThatShips) {
+    InfeasibleCircleLineModel model;
+    Vec x_entry(2);
+    x_entry << 2.0, 0.5;
+    const NlpEval ev = eval_nlp(model, x_entry);
+    const RestorationModel shipped(model, x_entry, ev);
+    const RestorationModel off(model, x_entry, ev, x_entry, 0.0, false);
+    const Vec y = shipped.start_point();
+    Vec lambda(2);
+    lambda << 0.7, -1.0;
+    EXPECT_EQ(off.start_point(), y);
+    EXPECT_EQ(dense(off.eval_hess(y, 1.0, lambda, Vec(0))),
+              dense(shipped.eval_hess(y, 1.0, lambda, Vec(0))));
+    EXPECT_EQ(off.eval_hess(y, 1.0, lambda, Vec(0)).nonZeros(),
+              shipped.eval_hess(y, 1.0, lambda, Vec(0)).nonZeros());
+    EXPECT_EQ(off.curvature_residual_evals(), 0);
+}
+
+// =========================================================================
+// THE ENTRY RULE (M7 W2 RST; SqpOptions::restoration_max_entries). A later
+// restoration request is serviced below the cap and only after the main loop
+// has accepted a step since the previous resume. RunawayValleyModel is the
+// fixture the once-per-solve rule was written for: restoration recovers a
+// feasible point and the unbounded objective walks the loop back out to the
+// next stall, so every serviced request is followed by another.
+// =========================================================================
+
+TEST(SqpDriverRestorationEntries, ASecondRequestAfterProgressIsServicedOnlyAboveACapOfOne) {
+    for (const Index cap : {Index{1}, Index{2}, Index{3}}) {
+        SCOPED_TRACE(fmt::format("restoration_max_entries = {}", cap));
+        RunawayValleyModel model;
+        SqpOptions opts;
+        opts.tr_init = 8.0;
+        opts.max_iter = 200;
+        opts.restoration_max_entries = cap;
+        FunnelLog log;
+        record_funnel_into(opts, &log);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(model);
+        // The first phase resumes and the loop makes progress before asking again; the
+        // second request is refused at a cap of one and serviced above it. On this
+        // fixture the second phase itself ends without a point inside feas_tol (its
+        // sub-solve numerical_error), so the solve ends there whatever the cap.
+#if HVEN_TEST_ROUTE_REFERENCE
+        EXPECT_EQ(log.resumes.size(), 1u);
+        EXPECT_GT(sol.counters.steps_accepted, 1) << "the resumed loop made real progress";
+        EXPECT_EQ(sol.counters.restoration_entries, cap == 1 ? 1 : 2);
+        EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
+#else
+        // The number of serviced entries and the ending are a route (macOS: 2 resumes and
+        // kOptimal at a cap of one's neighbours -- the better outcome): recorded, not pinned.
+        // PORTABLE: the cap itself -- no more phases than the cap, whatever the route -- and an
+        // honest status for a FEASIBLE NLP (never kInfeasible).
+        hven::test_support::record_off_reference_route(
+            fmt::format("entries_cap{}", cap),
+            fmt::format("resumes={} entries={} steps_accepted={} status={}", log.resumes.size(),
+                        sol.counters.restoration_entries, sol.counters.steps_accepted,
+                        static_cast<int>(sol.status)));
+        EXPECT_LE(sol.counters.restoration_entries, cap);
+        EXPECT_LE(static_cast<Index>(log.resumes.size()), cap);
+        EXPECT_NE(sol.status, SolveStatus::kInfeasible);
+        if (sol.status == SolveStatus::kOptimal) {
+            // A kOptimal on the valley is a KKT point of the NLP, checked against the model
+            // itself (the objective is not convex here, so no objective comparison).
+            const hven::solvers::test_support::NlpKktResidual chk =
+                hven::solvers::test_support::self_check_kkt(model, sol, opts.feas_tol);
+            EXPECT_LE(chk.stationarity, 10.0 * opts.kkt_tol);
+            EXPECT_LE(chk.primal, 10.0 * opts.feas_tol);
+            EXPECT_LE(chk.dual_sign, 1e-9);
+        }
+#endif
+        EXPECT_FALSE(sol.infeasibility_certified) << "the NLP is feasible: no claim is made";
+        EXPECT_LT(sol.counters.major_iters + sol.counters.restoration_iters, opts.max_iter);
+    }
+}
+
+// THE RE-BASED FUNNEL WIDTH ON A SECOND RESUME (M7 W2 RST rider L6). RunawayValleyModel
+// with a ten-times steeper valley wall (c = x1 + 1e4 x0^2) and a ten-times weaker pull
+// (f's x1 coefficient -1): restoration resumes, the loop runs out to the next stall, and the
+// second phase resumes too. Each resume re-bases the funnel from the width it FOUND, KLV
+// Algorithm 2: tau = (1 - kappa) h_restored + kappa tau_prev -- never the Eq. (9) reset.
+// (The recorder is a decorator, so the driver's FunnelStrategy-only hooks -- the
+// rejected-step retraction -- do not reach it; the figures below are this run's own.)
+class SteepRunawayValleyModel final : public RunawayValleyModel {
+  public:
+    double eval_f(const Vec &x) const override {
+        return -1.0 * x(1) - 0.01 * x(0) + 0.0005 * (x(0) * x(0) + x(1) * x(1));
+    }
+    Vec eval_grad(const Vec &x) const override {
+        Vec g(2);
+        g << 0.001 * x(0) - 0.01, 0.001 * x(1) - 1.0;
+        return g;
+    }
+    Vec eval_ce(const Vec &x) const override {
+        Vec c(1);
+        c << x(1) + 1.0e4 * x(0) * x(0);
+        return c;
+    }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &lambda_e,
+                      const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = obj_scale * 0.001 + lambda_e(0) * 2.0e4;
+        h.insert(1, 1) = obj_scale * 0.001;
+        h.makeCompressed();
+        return h;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &x) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> j(1, 2);
+        j.insert(0, 0) = 2.0e4 * x(0);
+        j.insert(0, 1) = 1.0;
+        j.makeCompressed();
+        return j;
+    }
+};
+
+TEST(SqpDriverRestorationEntries, TheSecondResumeReBasesTheFunnelFromTheWidthItFound) {
+    SteepRunawayValleyModel model;
+    SqpOptions opts;
+    opts.tr_init = 8.0;
+    opts.max_iter = 300;
+    ASSERT_EQ(opts.restoration_max_entries, 10);
+    FunnelLog log;
+    record_funnel_into(opts, &log);
+    const SqpResult sol = SqpSolver(opts).solve(model);
+    ASSERT_EQ(sol.counters.restoration_entries, 2);
+    ASSERT_EQ(log.resumes.size(), 2u) << "both phases resumed";
+    ASSERT_EQ(log.resets.size(), 1u) << "and neither through reset()";
+    for (std::size_t k = 0; k < 2; ++k) {
+        SCOPED_TRACE(k);
+        ASSERT_TRUE(std::isfinite(log.width_before_resume[k]));
+        EXPECT_LE(log.resumes[k], opts.feas_tol);
+        EXPECT_DOUBLE_EQ(log.width_after_resume[k],
+                         (1.0 - detail::kFunnelKappa) * log.resumes[k] +
+                             detail::kFunnelKappa * log.width_before_resume[k]);
+    }
+    // The second re-base starts from the width the resumed loop carried to its next stall.
+    EXPECT_LE(log.width_before_resume[1], log.width_after_resume[0]);
+    EXPECT_EQ(sol.status, SolveStatus::kOptimal) << "OBSERVED. MKL, clang++, Release.";
+}
+
+TEST(RestorationEntriesOption, RefusesFewerThanOnePhaseByNameAndValue) {
+    SqpOptions o;
+    for (const Index bad : {Index{0}, Index{-1}}) {
+        o.restoration_max_entries = bad;
+        try {
+            SqpSolver driver(o);
+            FAIL() << "accepted " << bad;
+        } catch (const std::invalid_argument &e) {
+            EXPECT_NE(std::string(e.what()).find("restoration_max_entries"), std::string::npos)
+                << e.what();
+            EXPECT_NE(std::string(e.what()).find(fmt::format("({})", bad)), std::string::npos)
+                << e.what();
+        }
+    }
+    o.restoration_max_entries = 1;
+    EXPECT_NO_THROW(SqpSolver{o});
+    o.restoration_curvature = SqpRestorationCurvature::kSqpRestorationCurvatureCount;
+    try {
+        SqpSolver driver(o);
+        FAIL() << "accepted the count sentinel";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("restoration_curvature"), std::string::npos)
+            << e.what();
+    }
+}
+
+TEST(RestorationEntriesOption, BothFieldsCarryADumpLineInDeclarationPosition) {
+    SqpOptions o;
+    o.restoration_curvature = SqpRestorationCurvature::kModel;
+    o.restoration_max_entries = 3;
+    std::ostringstream os;
+    dump_options(o, os);
+    const std::string text = os.str();
+    EXPECT_NE(text.find("restoration_curvature = kModel\n"), std::string::npos) << text;
+    EXPECT_NE(text.find("restoration_max_entries = 3\n"), std::string::npos) << text;
+    EXPECT_LT(text.find("qn_full_memory_max"), text.find("restoration_curvature"));
+    EXPECT_LT(text.find("restoration_curvature"), text.find("restoration_max_entries"));
+    EXPECT_LT(text.find("restoration_max_entries"), text.find("common.threads"));
+    o.restoration_curvature = SqpRestorationCurvature::kRegularized;
+    std::ostringstream os2;
+    dump_options(o, os2);
+    EXPECT_NE(os2.str().find("restoration_curvature = kRegularized\n"), std::string::npos);
+}
+
+// THE REGULARIZED CURVATURE IN THE DRIVER: the phase certifies the same infeasible
+// point with the same first-order certificate, and none of its curvature comes from
+// the caller's model -- the wrapper's eval_hess never calls the wrapped model's.
+TEST(SqpDriverRestorationCurvature, CertifiesTheSameInfeasibleNlpWithNoConstraintCurvature) {
+    for (const auto curvature :
+         {SqpRestorationCurvature::kModel, SqpRestorationCurvature::kRegularized}) {
+        SCOPED_TRACE(curvature == SqpRestorationCurvature::kModel ? "kModel" : "kRegularized");
+        InfeasibleCircleLineModel model;
+        SqpOptions opts;
+        opts.max_iter = 200;
+        opts.restoration_curvature = curvature;
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(model);
+        ASSERT_EQ(sol.status, SolveStatus::kInfeasible);
+        EXPECT_TRUE(sol.infeasibility_certified);
+        const double t = 1.0 / std::sqrt(2.0);
+        EXPECT_NEAR(sol.x(0), t, 1e-5);
+        EXPECT_NEAR(sol.x(1), t, 1e-5);
+        const SubgradientCertificate cert = check_certificate(model, sol, 1e-6);
+        EXPECT_LE(cert.stationarity, 1e-5);
+        EXPECT_LE(cert.selector, 1e-8);
+        EXPECT_LE(cert.sign_error, 1e-6);
+    }
 }
 
 HVEN_SUPPRESS_DEPRECATED_END

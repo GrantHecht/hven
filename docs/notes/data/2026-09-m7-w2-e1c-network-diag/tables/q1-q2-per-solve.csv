@@ -1,0 +1,105 @@
+leg,solve,role,major,N,period,t0,tail,tail_share,recurrent,sum_dx_inf_solve,sum_dx_inf_tail,tail_alpha_max_abs,tail_actions,tail_identities,DERIVED_overcount_tail_min,DERIVED_overcount_tail_max,DERIVED_overcount_solve_max,DERIVED_first_pass_overcount_gt0,m4c_class,m4c_unit_classes,m4c_units,m4c_core_readd_units,m4c_core_alpha_zero,m4c_rep_dropped,m4c_rep_added,m4c_why
+on-DALLASM,0,main,0,1960,2,175,1785,0.9107,True,8.424545641375628,0.0,0.0,add/drop_dantzig,bound:25:lower,31,32,52,46,b,{"b": 892},892,892,892,bound:25:lower,bound:25:lower,me+|W| = 227 > n = 196 AFTER the drop
+on-DALLASM,1,main,1,1960,2,220,1740,0.8878,True,7.913430783267126,0.0,0.0,add/drop_dantzig,bound:62:lower,24,25,60,41,b,{"b": 870},870,870,870,bound:62:lower,bound:62:lower,me+|W| = 220 > n = 196 AFTER the drop
+on-DALLASM,2,main(infeasible->elastic),2,295,None,None,0,0.0,False,7.485004333746054,0,None,,,None,None,67,41,,,,,,,,
+on-DALLASM,3,elastic_rung,2,2150,2,236,1914,0.8902,True,8.191104873314012,0.0,0.0,add/drop_dantzig,bound:0:upper,n/a,n/a,n/a,n/a,b,{"b": 956},956,956,956,bound:0:upper,bound:0:upper,me+|W| = 244 > n = 196 AFTER the drop
+on-DALLASM,4,restoration_qp,2,372,None,None,0,0.0,False,0.6222290364996127,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+on-DALLASM,5,restoration_qp,2,18,None,None,0,0.0,False,0.6724369779471088,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+on-DALLASM,6,restoration_qp,2,9,None,None,0,0.0,False,1.1327996553508421,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+on-DALLASM,7,main,3,1960,4,130,1830,0.9337,True,0.39131538949923206,0.0,0.0,add/drop_dantzig,bound:21:upper/bound:25:lower,53,55,58,46,b,"{"b": 458, "d": 457}",915,0,0,bound:25:lower,bound:21:upper,me+|W| = 249 > n = 196 AFTER the drop
+on-DALLASM,8,main,4,1960,2,125,1835,0.9362,True,0.18030087882412293,0.0,0.0,add/drop_dantzig,bound:91:lower,46,47,49,41,b,{"b": 917},917,917,917,bound:91:lower,bound:91:lower,me+|W| = 242 > n = 196 AFTER the drop
+on-DALLASM,9,main,5,1960,2,107,1853,0.9454,True,0.09030645177258251,0.0,0.0,add/drop_dantzig,bound:21:upper,49,50,51,41,b,{"b": 926},926,926,926,bound:21:upper,bound:21:upper,me+|W| = 245 > n = 196 AFTER the drop
+on-DALLASM,10,main,6,1960,2,125,1835,0.9362,True,0.04507538188792778,0.0,0.0,add/drop_dantzig,bound:91:lower,46,47,49,41,b,{"b": 917},917,917,917,bound:91:lower,bound:91:lower,me+|W| = 242 > n = 196 AFTER the drop
+on-STEENBRB,0,main,0,4680,4,622,4058,0.8671,True,104.45131669272598,0.0,0.0,add/drop_dantzig/ride_stepped,bound:201:upper/bound:250:upper,1,3,27,372,b,"{"b": 1015, "d": 1014}",2029,0,0,bound:201:upper,bound:250:upper,me+|W| = 469 > n = 468 AFTER the drop
+on-STEENBRB,1,main,1,4680,4,454,4226,0.903,True,56.43269432678934,0.0,0.0,add/drop_dantzig/ride_stepped,bound:116:upper/bound:448:upper,-6,-4,21,204,c,"{"c": 1056, "d": 1056}",2112,0,0,bound:448:upper,bound:116:upper,neg_excess = 1
+on-STEENBRB,2,main,2,4680,4,307,4373,0.9344,True,22.642747176666493,0.0,0.0,add/drop_dantzig/ride_stepped,bound:140:upper/bound:298:upper,7,9,28,143,b,"{"b": 1093, "d": 1093}",2186,0,0,bound:140:upper,bound:298:upper,me+|W| = 475 > n = 468 AFTER the drop
+on-STEENBRB,3,main,3,4680,4,287,4393,0.9387,True,10.970751404106666,0.0,0.0,add/drop_dantzig/ride_stepped,bound:250:upper/bound:444:lower,-5,-3,19,125,c,"{"c": 1098, "d": 1098}",2196,0,0,bound:444:lower,bound:250:upper,neg_excess = 1
+on-STEENBRC,0,main,0,5400,4,819,4581,0.8483,True,152.90166570442312,0.0,0.0,add/drop_dantzig/ride_stepped,bound:111:upper/bound:353:upper,1,3,46,428,b,"{"b": 1145, "d": 1145}",2290,0,0,bound:353:upper,bound:111:upper,me+|W| = 541 > n = 540 AFTER the drop
+on-STEENBRC,1,main,1,5400,4,498,4902,0.9078,True,62.279341093970416,0.0,0.0,add/drop_dantzig/ride_stepped,bound:228:lower/bound:286:upper,2,4,45,180,b,"{"b": 1225, "d": 1225}",2450,0,0,bound:228:lower,bound:286:upper,me+|W| = 542 > n = 540 AFTER the drop
+on-STEENBRC,2,main,2,5400,4,397,5003,0.9265,True,29.75191847985402,0.0,0.0,add/drop_dantzig/ride_stepped,bound:10:upper/bound:315:upper,3,5,44,128,b,"{"b": 1251, "d": 1250}",2501,0,0,bound:315:upper,bound:10:upper,me+|W| = 543 > n = 540 AFTER the drop
+on-STEENBRC,3,main,3,5400,4,263,5137,0.9513,True,12.111443229192242,0.0,0.0,add/drop_dantzig/ride_stepped,bound:10:upper/bound:315:upper,-1,1,24,119,d,"{"c": 1284, "d": 1284}",2568,0,0,bound:10:upper,bound:315:upper,||p||inf = 5.25e-13 <= step_tol 1e-09: the drop bought no direction
+on-STEENBRG,0,main,0,5400,4,814,4586,0.8493,True,166.51349744303866,0.0,0.0,add/drop_dantzig/ride_stepped,bound:335:upper/bound:405:upper,12,14,46,428,b,"{"b": 1147, "d": 1146}",2293,0,0,bound:405:upper,bound:335:upper,me+|W| = 552 > n = 540 AFTER the drop
+on-STEENBRG,1,main,1,5400,4,480,4920,0.9111,True,60.25610718011286,0.0,0.0,add/drop_dantzig/ride_stepped,bound:100:upper/bound:114:upper,8,10,37,181,d,"{"b": 1229, "d": 1230}",2459,0,0,bound:100:upper,bound:114:upper,||p||inf = 7.69e-13 <= step_tol 1e-09: the drop bought no direction
+on-STEENBRG,2,main,2,5400,4,335,5065,0.938,True,25.54747584343983,0.0,0.0,add/drop_dantzig/ride_stepped,bound:34:upper/bound:368:upper,9,11,34,127,b,"{"b": 1266, "d": 1266}",2532,0,0,bound:368:upper,bound:34:upper,me+|W| = 549 > n = 540 AFTER the drop
+on-STEENBRG,3,main,3,5400,4,281,5119,0.948,True,12.449459527209259,0.0,0.0,add/drop_dantzig/ride_stepped,bound:184:upper/bound:399:upper,8,10,30,117,b,"{"b": 1279, "d": 1279}",2558,0,0,bound:399:upper,bound:184:upper,me+|W| = 548 > n = 540 AFTER the drop
+off-DALLASM,0,main(infeasible->elastic),0,232,None,None,0,0.0,False,8.065368940395095,0,None,,,None,None,50,45,,,,,,,,
+off-DALLASM,1,elastic_rung,0,2150,2,160,1990,0.9256,True,7.465041945517456,0.0,0.0,add/drop_dantzig,bound:0:upper,n/a,n/a,n/a,n/a,b,{"b": 995},995,995,995,bound:0:upper,bound:0:upper,me+|W| = 253 > n = 196 AFTER the drop
+off-DALLASM,2,restoration_qp,0,347,None,None,0,0.0,False,1.346244137602193,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-DALLASM,3,restoration_qp,0,14,None,None,0,0.0,False,0.6822751148511011,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-DALLASM,4,main,1,1960,2,96,1864,0.951,True,0.39131389500825475,0.0,0.0,add/drop_dantzig,bound:21:upper,40,41,41,45,b,{"b": 931},931,931,931,bound:21:upper,bound:21:upper,me+|W| = 236 > n = 196 AFTER the drop
+off-DALLASM,5,main,2,1960,4,109,1851,0.9444,True,0.18030546441826462,0.0,0.0,add/drop_dantzig,bound:21:upper/bound:25:lower,49,51,53,40,b,"{"b": 463, "d": 462}",925,0,0,bound:25:lower,bound:21:upper,me+|W| = 245 > n = 196 AFTER the drop
+off-DALLASM,6,main,3,1960,2,107,1853,0.9454,True,0.0901527791666213,0.0,0.0,add/drop_dantzig,bound:21:upper,50,51,53,40,b,{"b": 926},926,926,926,bound:21:upper,bound:21:upper,me+|W| = 246 > n = 196 AFTER the drop
+off-DALLASM,7,main,4,1960,2,107,1853,0.9454,True,0.04507643440489304,0.0,0.0,add/drop_dantzig,bound:21:upper,50,51,53,40,b,{"b": 926},926,926,926,bound:21:upper,bound:21:upper,me+|W| = 246 > n = 196 AFTER the drop
+off-STEENBRB,0,main(infeasible->elastic),0,827,None,None,0,0.0,False,179.01987099843572,0,None,,,None,None,52,360,,,,,,,,
+off-STEENBRB,1,elastic_rung,0,414,None,None,0,0.0,False,74.52962140787511,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRB,2,restoration_qp,0,289,None,None,0,0.0,False,1.8078905541679768,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRB,3,restoration_qp,0,194,None,None,0,0.0,False,16.631510520596752,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRB,4,restoration_qp,0,25,None,None,0,0.0,False,11.526244524781164,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRB,5,restoration_qp,0,28,None,None,0,0.0,False,27.296899170753505,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRB,6,restoration_qp,0,27,None,None,0,0.0,False,57.686112768555574,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRB,7,restoration_qp,0,22,None,None,0,0.0,False,64.6941537294855,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRB,8,restoration_qp,0,19,None,None,0,0.0,False,142.36965842617545,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRB,9,restoration_qp,0,25,None,None,0,0.0,False,284.44922999891446,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRB,10,restoration_qp,0,22,None,None,0,0.0,False,600.0564732377529,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRB,11,restoration_qp,0,15,None,None,0,0.0,False,1487.8431328057652,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRB,12,restoration_qp,0,10,None,None,0,0.0,False,1677.1282113333984,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRB,13,main,1,4680,4,396,4284,0.9154,True,1.771765676076683,0.0,0.0,add/drop_dantzig/ride_stepped,bound:102:upper/bound:84:upper,17,19,19,360,d,"{"b": 1070, "d": 1071}",2141,0,0,bound:84:upper,bound:102:upper,||p||inf = 2.09e-13 <= step_tol 1e-09: the drop bought no direction
+off-STEENBRB,14,main,2,4680,4,131,4549,0.972,True,1.162163530820412,0.0,0.0,add/drop_dantzig/ride_stepped,bound:102:upper/bound:295:lower,31,33,37,29,b,"{"b": 1137, "d": 1137}",2274,0,0,bound:295:lower,bound:102:upper,me+|W| = 499 > n = 468 AFTER the drop
+off-STEENBRB,15,main,3,4680,2,169,4511,0.9639,True,1.3072811898524606,0.0,0.0,add/drop_dantzig,bound:269:upper,85,86,87,34,b,{"b": 2255},2255,2255,2255,bound:269:upper,bound:269:upper,me+|W| = 553 > n = 468 AFTER the drop
+off-STEENBRB,16,main,4,4680,2,149,4531,0.9682,True,0.4824039666465927,0.0,0.0,add/drop_dantzig,bound:232:upper,88,89,89,27,b,{"b": 2265},2265,2265,2265,bound:232:upper,bound:232:upper,me+|W| = 556 > n = 468 AFTER the drop
+off-STEENBRC,0,main,0,5400,4,808,4592,0.8504,True,176.61640091671987,0.0,0.0,add/drop_dantzig/ride_stepped,bound:322:upper/bound:514:upper,28,30,75,414,d,"{"b": 1147, "d": 1148}",2295,0,0,bound:514:upper,bound:322:upper,||p||inf = 6e-15 <= step_tol 1e-09: the drop bought no direction
+off-STEENBRC,1,main(infeasible->elastic),1,515,None,None,0,0.0,False,67.06443949851362,0,None,,,None,None,70,139,,,,,,,,
+off-STEENBRC,2,elastic_rung,1,438,None,None,0,0.0,False,51.47764553621949,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRC,3,elastic_rung,1,833,None,None,0,0.0,False,27.99999999999877,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRC,4,elastic_rung,1,3,None,None,0,0.0,False,0.9998199999609736,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRC,5,elastic_rung,1,3,None,None,0,0.0,False,0.9998199996003665,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRC,6,elastic_rung,1,23,None,None,0,0.0,False,0.9998199991936509,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRC,7,elastic_rung,1,5680,11,49,5631,0.9914,True,0.9998205302470886,5.307554999944841e-07,1.0,add/drop_dantzig/move_only,bound:244:lower/bound:42:lower/bound:461:lower/bound:475:lower/bound:55:lower,n/a,n/a,n/a,n/a,b,"{"b": 512, "d": 1535, "e": 512}",2559,0,0,bound:244:lower,bound:42:lower,me+|W| = 541 > n = 540 AFTER the drop
+off-STEENBRC,8,restoration_qp,1,244,None,None,0,0.0,False,0.5707922110920632,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRC,9,restoration_qp,1,169,None,None,0,0.0,False,2.297933740549869,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRC,10,restoration_qp,1,166,None,None,0,0.0,False,26.476868698602836,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRC,11,restoration_qp,1,33,None,None,0,0.0,False,19.110257340931177,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRC,12,restoration_qp,1,28,None,None,0,0.0,False,25.150889171713608,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRC,13,restoration_qp,1,24,None,None,0,0.0,False,26.829770054057047,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRC,14,restoration_qp,1,18,None,None,0,0.0,False,64.29494901849095,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRC,15,restoration_qp,1,26,None,None,0,0.0,False,161.66916462645776,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRC,16,restoration_qp,1,21,None,None,0,0.0,False,287.7760155854764,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRC,17,restoration_qp,1,12,None,None,0,0.0,False,496.42060060898785,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRC,18,restoration_qp,1,22,None,None,0,0.0,False,2001.6301067520794,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRC,19,restoration_qp,1,25,None,None,0,0.0,False,9012.418627992438,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRC,20,restoration_qp,1,5,None,None,0,0.0,False,3129.6977171996605,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRC,21,restoration_qp,1,5,None,None,0,0.0,False,8133.108099004889,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRC,22,restoration_qp,1,9,None,None,0,0.0,False,6530.570870146942,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRC,23,restoration_qp,1,22,None,None,0,0.0,False,16579.927709804622,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRC,24,main,2,5400,2,539,4861,0.9002,True,2.4250945656719765,0.0,0.0,add/drop_dantzig,bound:393:upper,34,35,38,414,b,{"b": 2430},2430,2430,2430,bound:393:upper,bound:393:upper,me+|W| = 574 > n = 540 AFTER the drop
+off-STEENBRC,25,main,3,5400,2,176,5224,0.9674,True,1.4043607211580658,0.0,0.0,add/drop_dantzig,bound:339:lower,37,38,40,40,b,{"b": 2611},2611,2611,2611,bound:339:lower,bound:339:lower,me+|W| = 577 > n = 540 AFTER the drop
+off-STEENBRC,26,main,4,5400,2,162,5238,0.97,True,0.9145564977803664,0.0,0.0,add/drop_dantzig,bound:163:lower,90,91,92,41,b,{"b": 2619},2619,2619,2619,bound:163:lower,bound:163:lower,me+|W| = 630 > n = 540 AFTER the drop
+off-STEENBRC,27,main,5,5400,2,167,5233,0.9691,True,0.5851006483936123,0.0,0.0,add/drop_dantzig,bound:487:lower,106,107,109,28,b,{"b": 2616},2616,2616,2616,bound:487:lower,bound:487:lower,me+|W| = 646 > n = 540 AFTER the drop
+off-STEENBRG,0,main,0,5400,4,823,4577,0.8476,True,166.06064715812406,0.0,0.0,add/drop_dantzig/ride_stepped,bound:113:upper/bound:273:upper,22,24,74,414,d,"{"b": 1144, "d": 1144}",2288,0,0,bound:113:upper,bound:273:upper,||p||inf = 4.22e-15 <= step_tol 1e-09: the drop bought no direction
+off-STEENBRG,1,main(infeasible->elastic),1,515,None,None,0,0.0,False,65.8371421841476,0,None,,,None,None,78,141,,,,,,,,
+off-STEENBRG,2,elastic_rung,1,466,None,None,0,0.0,False,55.60841103712179,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRG,3,elastic_rung,1,914,None,None,0,0.0,False,29.266849311150672,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRG,4,elastic_rung,1,3,None,None,0,0.0,False,0.9998199999778687,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRG,5,elastic_rung,1,3,None,None,0,0.0,False,0.999819999773519,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRG,6,elastic_rung,1,19,None,None,0,0.0,False,0.999819999248671,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRG,7,elastic_rung,1,5680,10,19,5661,0.9967,True,0.9998199998627051,0.0,0.0,add/drop_dantzig,bound:119:upper/bound:322:lower/bound:418:lower/bound:484:upper/bound:62:lower,n/a,n/a,n/a,n/a,d,"{"b": 566, "d": 2264}",2830,0,0,bound:322:lower,bound:484:upper,||p||inf = 7.72e-10 <= step_tol 1e-09: the drop bought no direction
+off-STEENBRG,8,restoration_qp,1,244,None,None,0,0.0,False,0.5707922110920632,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRG,9,restoration_qp,1,169,None,None,0,0.0,False,2.297933740549869,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRG,10,restoration_qp,1,166,None,None,0,0.0,False,26.476868698602836,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRG,11,restoration_qp,1,33,None,None,0,0.0,False,19.110257340931177,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRG,12,restoration_qp,1,28,None,None,0,0.0,False,25.150889171713608,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRG,13,restoration_qp,1,24,None,None,0,0.0,False,26.829770054057047,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRG,14,restoration_qp,1,18,None,None,0,0.0,False,64.29494901849095,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRG,15,restoration_qp,1,26,None,None,0,0.0,False,161.66916462645776,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRG,16,restoration_qp,1,21,None,None,0,0.0,False,287.7760155854764,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRG,17,restoration_qp,1,12,None,None,0,0.0,False,496.42060060898785,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRG,18,restoration_qp,1,22,None,None,0,0.0,False,2001.6301067520794,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRG,19,restoration_qp,1,25,None,None,0,0.0,False,9012.418627992438,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRG,20,restoration_qp,1,5,None,None,0,0.0,False,3129.6977171996605,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRG,21,restoration_qp,1,5,None,None,0,0.0,False,8133.108099004889,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRG,22,restoration_qp,1,9,None,None,0,0.0,False,6530.570870146942,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRG,23,restoration_qp,1,22,None,None,0,0.0,False,16579.927709804622,0,None,,,n/a,n/a,n/a,n/a,,,,,,,,
+off-STEENBRG,24,main,2,5400,8,578,4822,0.893,True,2.7696958336659114,0.0,0.0,add/drop_dantzig/ride_stepped,bound:85:lower/bound:94:upper/bound:96:upper/bound:9:lower,30,34,40,414,d,"{"b": 602, "d": 1807}",2409,0,0,bound:94:upper,bound:9:lower,||p||inf = 1.7e-13 <= step_tol 1e-09: the drop bought no direction
+off-STEENBRG,25,main,3,5400,10,201,5199,0.9628,True,1.2705749417587242,0.0,0.0,add/drop_dantzig/ride_stepped,bound:339:lower/bound:488:upper/bound:535:lower/bound:69:lower/bound:86:upper,34,39,39,48,d,"{"b": 519, "d": 2079}",2598,0,0,bound:339:lower,bound:69:lower,||p||inf = 1.26e-11 <= step_tol 1e-09: the drop bought no direction
+off-STEENBRG,26,main,4,5400,2,209,5191,0.9613,True,1.3601985814813924,0.0,0.0,add/drop_dantzig,bound:146:lower,92,93,93,40,b,{"b": 2595},2595,2595,2595,bound:146:lower,bound:146:lower,me+|W| = 632 > n = 540 AFTER the drop
+off-STEENBRG,27,main,5,5400,2,158,5242,0.9707,True,0.5312877600433158,0.0,0.0,add/drop_dantzig,bound:146:lower,101,102,102,32,b,{"b": 2621},2621,2621,2621,bound:146:lower,bound:146:lower,me+|W| = 641 > n = 540 AFTER the drop

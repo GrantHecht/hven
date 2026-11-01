@@ -1,0 +1,87 @@
+# THE r2 PRE-FLIGHT. Run on THIS committed copy at HEAD e212a308 (E4 fix round 4b) and pasted
+# verbatim. THREE transcripts:
+#
+#   A  `gates-e4-r2.sh --preflight-only`, every slot MEASURED on 84ea0385..e212a308. rc 0, ending
+#      PREFLIGHT_OK.
+#   B  `--check-g4` on THIS round's OWN offline replay transcript (the pin arm of
+#      rehearsal/rehearsal-r2-g4-comparison.txt). rc 0: the measured difference set equals the
+#      declared 43-entry list.
+#   C  `--check-names debug|release` against the fix-3 implementer's suite transcripts
+#      (../evidence/logs3/), the last runs taken on the engine these sources carry.
+#
+# Run 1's preflight.txt is NOT replaced and sits untouched beside this file, with its own
+# held-state falsification record (the hypothesis run, the UNMEASURED-sentinel refusal, and the G4
+# set gate's two falsifiers). The assertion those falsifiers exercise is byte-identical in this
+# runner, so they are not re-run here.
+#
+# `dirty-files=16` is this round's own untracked r2 files (the four the successor declaration adds
+# plus the two rehearsal scripts and their ten transcripts), untracked at the moment the run was
+# made. The mode says itself that it does not apply the clean-tree refusal; the chain does.
+#
+# ============================================================================
+# TRANSCRIPT A -- the r2 pre-flight in full. rc 0.
+# ============================================================================
+
+GATES_START 2026-09-27T15:43:29-04:00
+=== HEAD e212a308  dirty-files=17 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.scratch/m7w2e4gates-r2 ===
+=== BEFORE=84ea0385  EXPECT_DEBUG_TESTS=2869  EXPECT_RELEASE_TESTS=2870 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=e212a3084a0a1e3e98003b22fa7a3c761afff5e7
+=== CHANGED HEADERS: include/hven/core/solver_counters.h include/hven/detail/kkt/bordered_eqp.h include/hven/detail/qp/eqp_solve.h include/hven/detail/qp/qp_engine.h include/hven/detail/qp/qp_walk_trace.h include/hven/qp/qp_types.h 
+=== CHANGED SOURCES: bench/bench_scale.cpp src/CMakeLists.txt src/drivers/sqp_solver.cpp src/qp/qp_engine.cpp src/qp/ws_independence.cpp tests/drivers/test_callback.cpp tests/drivers/test_threads.cpp tests/qp/fixtures/e2-d4/A0_YORKNET_qp3.txt tests/qp/fixtures/e2-d4/R2_Cs_STEENBRB_qp1.txt tests/qp/fixtures/e2-d4/STEENBRB_def-qp2.txt tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_degeneracy_arm.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/sqp/support/border_test_utils.h tests/sqp/test_b1_gate.cpp tests/sqp/test_border_ops.cpp tests/sqp/test_corpus_cells.cpp tests/sqp/test_disproved_entry.cpp tests/sqp/test_eqp_refine_ab.cpp tests/sqp/test_eqp_solve.cpp tests/sqp/test_hs_battery.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_ipqp_acceptance.cpp tests/sqp/test_ipqp_dispatch.cpp tests/sqp/test_predictor.cpp tests/sqp/test_qp_engine.cpp tests/sqp/test_qp_engine_border.cpp tests/sqp/test_qp_engine_indefinite.cpp tests/sqp/test_qp_mode_sites.cpp tests/sqp/test_qp_ws_independence.cpp tests/sqp/test_scale_problems.cpp tests/sqp/test_scale_smoke.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_trace_writer.cpp tests/sqp/test_warm_start.cpp tests/sqp/test_warm_start_battery.cpp 
+=== MODIFIED C++ SOURCES: bench/bench_scale.cpp src/drivers/sqp_solver.cpp src/qp/qp_engine.cpp src/qp/ws_independence.cpp tests/drivers/test_callback.cpp tests/drivers/test_threads.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_degeneracy_arm.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/sqp/test_b1_gate.cpp tests/sqp/test_border_ops.cpp tests/sqp/test_corpus_cells.cpp tests/sqp/test_disproved_entry.cpp tests/sqp/test_eqp_refine_ab.cpp tests/sqp/test_eqp_solve.cpp tests/sqp/test_hs_battery.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_ipqp_acceptance.cpp tests/sqp/test_ipqp_dispatch.cpp tests/sqp/test_predictor.cpp tests/sqp/test_qp_engine.cpp tests/sqp/test_qp_engine_border.cpp tests/sqp/test_qp_engine_indefinite.cpp tests/sqp/test_qp_mode_sites.cpp tests/sqp/test_qp_ws_independence.cpp tests/sqp/test_scale_problems.cpp tests/sqp/test_scale_smoke.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_trace_writer.cpp tests/sqp/test_warm_start.cpp tests/sqp/test_warm_start_battery.cpp 
+=== ADDED C++ SOURCES: 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_degeneracy_arm.cpp tests/qp/test_qp_flat_face_saddle.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir
+=== ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); 43 DIFFERENCES DECLARED as a SET (walk 17 / ssn 13 / ipm 13), every cell a U0 cell, the one declared WORSE cell [ipm f7_n1000_path_warm kkt_stationarity] among them
+=== CLASS_B_NAMES_OK: Release 39 / Debug 40 declared objects, none with a source modified in the range
+=== BY-NAME: baselines /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-nc2-flat-face/gates/suite-{debug,release}.txt (2863 / 2864 started names); 32 ADDED, each added by exactly one TEST line in the range; 24 REMOVED, each removed by exactly one TEST line; 24 TEST lines removed
+=== ADDED TEST FILES (checked): non-.cpp [tests/qp/fixtures/e2-d4/A0_YORKNET_qp3.txt tests/qp/fixtures/e2-d4/R2_Cs_STEENBRB_qp1.txt tests/qp/fixtures/e2-d4/STEENBRB_def-qp2.txt ] == declared, under the fixture directory named once in hven_qp_walk_seam_tests's compile definitions; tests/CMakeLists.txt adds exactly [] and removes no non-comment line
+=== CLANG_FORMAT SET (derived, non-empty): 40 file(s) ===
+=== PREFLIGHT_VALUE_OK: class A 33 - 3 outside == declared 30/30; ADDED 0 == declared 0 (0 inside the universe == declared 0); class B library objects all unmodified; G4 gate 1e-5
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e4gates-r2/g1.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e4gates-r2  G=/home/ghecht/Projects/hven/.scratch/m7w2e4gates-r2/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e4gates-r2/g2.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e4gates-r2  G=/home/ghecht/Projects/hven/.scratch/m7w2e4gates-r2/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e4gates-r2/g3.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e4gates-r2  G=/home/ghecht/Projects/hven/.scratch/m7w2e4gates-r2/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e4gates-r2/g4.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e4gates-r2  G=/home/ghecht/Projects/hven/.scratch/m7w2e4gates-r2/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e4gates-r2/g5.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e4gates-r2  G=/home/ghecht/Projects/hven/.scratch/m7w2e4gates-r2/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e4gates-r2/g6.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e4gates-r2  G=/home/ghecht/Projects/hven/.scratch/m7w2e4gates-r2/gates
+=== PREFLIGHT_OK: 6 segments written and asserted against GATES_SCRATCH, before the first leg ===
+PREFLIGHT_ONLY: stopping before G1. No leg was run and no build tree was touched.
+
+TRANSCRIPT_A_RC=0 (PREFLIGHT_OK, as printed above)
+
+# ============================================================================
+# TRANSCRIPT B -- `--check-g4` on this round's own offline replay transcript, the pin arm only
+# (the EXACT arm against the previous gate record is recorded in the derivation, not asserted).
+# ============================================================================
+
+ASSERT OK   replay header lines = 3
+ASSERT OK   replay walk shape 27/75/17 declared = 1
+ASSERT OK   replay walk difference lines listed = 17
+ASSERT OK   replay ssn shape 27/75/13 declared = 1
+ASSERT OK   replay ssn difference lines listed = 13
+ASSERT OK   replay ipm shape 27/75/13 declared = 1
+ASSERT OK   replay ipm difference lines listed = 13
+ASSERT OK   replay: the MEASURED difference set EQUALS the DECLARED 43-entry list
+B_RC=0
+
+# ============================================================================
+# TRANSCRIPT C -- `--check-names`, the carried offline by-name mode, against the fix-3
+# implementer's own suite transcripts. It checks the FIXTURE RENAME EVENT (32 ADDED / 24 REMOVED)
+# against real ctest output. IT IS NOT THE GATE: the chain runs these same asserts on its own
+# suite logs at this head.
+# ============================================================================
+
+--- C1: Release. rc 0 expected.
+ASSERT OK   offline release by name: 2872 started names == the baseline's 2864 - the 24 declared REMOVED + the 32 declared ADDED
+C1_RC=0
+
+--- C2: Debug (the long test excluded by name, so one fewer started name). rc 0 expected.
+ASSERT OK   offline debug by name: 2871 started names == the baseline's 2863 - the 24 declared REMOVED + the 32 declared ADDED
+C2_RC=0

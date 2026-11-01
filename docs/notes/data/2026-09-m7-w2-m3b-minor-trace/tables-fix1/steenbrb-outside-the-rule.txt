@@ -1,0 +1,132 @@
+==============================================================================
+OUTSIDE THE RULE -- STEENBRB
+NOT pre-registered in RULE-G.md, NOT a verdict, and incapable of changing
+one. These are read-outs the settler asked for in order to RANK ENGINE
+WORK, and they are reported here, separately, for exactly that.
+==============================================================================
+
+(a) THE EXCESS NEGATIVE EIGENVALUE COUNT OVER THE WHOLE WALK
+    excess := inertia_neg - inertia_expected_neg, on the passes where the
+    backend observed an inertia. What the engine compares is NOT the
+    current reduced Hessian's own triple: on the border path it is K0's
+    backend triple against a structural expectation the Schur complement's
+    Haynsworth contribution has been backed out of (qp_engine.cpp,
+    border_inertia_verdict). The excess below is therefore the engine's own
+    indefiniteness signal, read exactly as the engine reads it.
+    at minor 0     action=add            ws_size_in=0   border_dim=0   observed (441, 135)  expected (468, 108)  excess 27
+    at the FIRST drop (minor 22)  ws_size_in=21  observed (441, 135)  expected (462, 114)  excess 21
+    in the TAIL   state A excess 22   state D excess 21
+    histogram over the whole walk: {21: 2357, 22: 2318, 23: 1, 24: 1, 25: 1, 26: 1, 27: 1}
+    unobserved passes: 0
+    the observed triple over the whole walk: {(441, 135): 4680}
+    the walk's first 8 passes, expectation against observation:
+      minor 0   ws_in 0   bdim 0   observed (441, 135)  expected (468, 108)  excess 27
+      minor 1   ws_in 1   bdim 1   observed (441, 135)  expected (467, 109)  excess 26
+      minor 2   ws_in 2   bdim 2   observed (441, 135)  expected (466, 110)  excess 25
+      minor 3   ws_in 3   bdim 3   observed (441, 135)  expected (465, 111)  excess 24
+      minor 4   ws_in 4   bdim 4   observed (441, 135)  expected (464, 112)  excess 23
+      minor 5   ws_in 5   bdim 5   observed (441, 135)  expected (463, 113)  excess 22
+      minor 6   ws_in 6   bdim 6   observed (441, 135)  expected (462, 114)  excess 21
+      minor 7   ws_in 7   bdim 7   observed (441, 135)  expected (462, 114)  excess 21
+
+(b) THE PRE-TAIL POST-DROP PASSES -- DID THE SAME THING HAPPEN, AND WHAT
+    DIFFERED WHEN THEY ESCAPED?
+    12 post-drop passes before t0=59.
+    minor  action        ride_outcome            slope            slope_tol        leaves           sign  p[released]      alpha        NEXT PASS
+    23     add           nullspace_veto          -6.00281e-05     nan              nan              0     -299.08727       -0           move_only dx_inf=0.091797761509440079
+    26     add           nullspace_veto          -4.5367926e-05   nan              nan              0     -106.70082       -0           move_only dx_inf=0.10372249610549034
+    29     add           sign_disagreement_veto  -0.00060526754   3.9717352e-06    -11185           0     -11185           -0           move_only dx_inf=0.09418050414251411
+    32     add           nullspace_veto          5.7338926e-05    nan              nan              0     -322.77451       -0           move_only dx_inf=0.089901545409816208
+    35     ride_stepped  stepped                 0.00016809834    3.9714266e-06    -11184.144       -1    -11184.144       0.0770869    add dx_inf=862.15150618161113
+    39     add           sign_disagreement_veto  -1.2667333e-05   3.651727e-06     -10283.935       0     -10283.935       -0           move_only dx_inf=0.12211720819937
+    42     add           nullspace_veto          -3.2070572e-05   nan              nan              0     -18.726816       -0           move_only dx_inf=0.14903526991039939
+    45     ride_stepped  stepped                 0.00022255136    3.651739e-06     -10283.917       -1    -10283.917       0.109601     add dx_inf=1127.1313578942211
+    49     add           nullspace_veto          8.9786295e-05    nan              nan              0     -314.08963       -0           move_only dx_inf=0.060038381029983157
+    52     move_only     nullspace_veto          -0.00015019311   nan              nan              0     109.63723        1            drop_dantzig dx_inf=ABSENT(nan)
+    54     add           nullspace_veto          -0.0001195166    nan              nan              0     -55.565623       -0           move_only dx_inf=0.095456358616729631
+    57     add           sign_disagreement_veto  -0.0020618056    5.1956058e-06    -14568.884       0     -14568.884       -0           move_only dx_inf=0.11812962208693989
+    every post-drop pass in the WHOLE walk, by (ride outcome, sign of g'p, action):
+      nullspace_veto           slope<0            add            4
+      nullspace_veto           slope<0            move_only      1
+      nullspace_veto           slope>0            add            2
+      sign_disagreement_veto   slope<0            add            2313
+      stepped                  slope>0            ride_stepped   2
+    move_only passes in the whole walk: 13 (last at minor 58)
+    rides that STEPPED: [35, 45]
+
+(c) THE RESIDUALS OVER THE WALK, BY eqp_path AND BY post_drop
+    stat_rel := stat_free_inf / max(stat_scale, 1);  act_rel := active_res_inf / max(x_inf, 1)
+    path           post_drop   n      stat_rel min / median / max            act_rel min / median / max
+    border_schur   False       2358   3.566e-06  6.708e-06  1                5.53e-09   1.103e-08  2000
+    border_schur   True        2322   3.733e-06  6.708e-06  2.957e-05        5.53e-09   1.103e-08  3.683e-08
+    p[released] <  0  n=2321   stat_rel min 3.733e-06  median 6.708e-06  max 2.957e-05   passes with stat_rel <= 1e-6: 0
+    p[released] >= 0  n=1      stat_rel min 1.798e-05  median 1.798e-05  max 1.798e-05   passes with stat_rel <= 1e-6: 0
+    WHEN the stationarity residual is taken (qp_engine.cpp ~:700): at the
+    pass's STARTING iterate, over the FREE block, with the multipliers
+    `price` produced for the CURRENT working set. On a post-drop pass the
+    just-released variable is free and its own dual therefore ENTERS the
+    residual; a large value there is the drop's own signature, not a
+    statement about solve accuracy. The active-row residual carries no such
+    confound: it measures how far the iterate sits off the constraints the
+    EQP holds at equality, and it is identical on both tail states because
+    the tail does not move the iterate.
+    tail: act_res_inf = 1.0075645633378372e-05   step_tol = 9.1356091549925712e-07   ratio 11.03
+
+(d) THE DROP-CANDIDATE SET ON THE TAIL'S DROP PASS
+    candidates considered: 10   recorded (cap 8): 8   inside the tie window: 1
+    chosen: bound:189:lower  rank by violation: 1
+    margin of rank 1 over rank 2: absolute 7.83409e-11   relative 6.66824e-08
+    DOES THE SAME CANDIDATE SET RECUR? distinct candidate strings over the 2311 tail drop passes: 1
+    distinct candidate strings over all 2323 drop passes in the walk: 13
+    drop_candidates over the whole walk: {2: 2, 5: 1, 6: 2, 9: 2, 10: 2313, 11: 1, 15: 1, 16: 1}
+
+(e) THE EXACT-ARITHMETIC DROP IDENTITY, CHECKED -- INFERRED, WITH ITS
+    PREMISES STATED. For an EXACT, UNREGULARIZED, FULL-RANK KKT system, and
+    with x an exact KKT point of the PRE-DROP working set, releasing a
+    constraint whose multiplier is z_i gives the next EQP direction p the
+    identity  z_i * (a_i' p) = -p'Hp.  This is NOT part of RULE-G.md and
+    decides nothing; it is reported because it is computable from recorded
+    fields and it is the narrowed form of the claim the M3b report
+    overstated. drop_worst (qp_engine.cpp ~:2247) stores the VIOLATION, and
+    for a bound held at its LOWER bound the violation is -z_i, so
+    z_i = -decision_multiplier there.
+    THE PREMISES, one by one:
+      exact arithmetic      VIOLATED -- primal_delta and dual_mu are the
+                            EFFECTIVE regularization printed in 7.7, and the
+                            solve is finite-precision.
+      full row rank         UNMEASURED -- RULE-G.md section 0 marks rank
+                            evidence for the released constraint ABSENT and
+                            it is not computed here.
+      x an exact KKT point  CHECKABLE -- state D's stat_free_inf and
+      of the PRE-DROP set   active_res_inf, printed in 7.7, are how close it
+                            is. Primal feasibility of the active set is the
+                            half that can fail while stationarity holds.
+    released bound:189:lower   violation = 0.0011748355559042523   z_i = -0.0011748355559042523
+    a_i' p (= p_released) = -14568.88377705458
+    LHS  z_i * a_i'p = 17.116042671120358
+    RHS  -p'Hp       = -2.0257050863392578e-05
+    LHS/RHS = -844942   signs DISAGREE
+    state D stat_free_inf/max(stat_scale,1) = 6.7076e-06;  active_res_inf/max(x_inf,1) = 1.1029e-08
+
+(f) SECTION 4b's ITER-0 TEMPORARY-VERTEX START REPAIR -- DID IT RUN, AND
+    DID IT CERTIFY A SECOND-ORDER-CONSISTENT WORKING SET?
+    The guard is `iter == 0 && verdict == kWrong && repair_temporary_vertex(...)`
+    (qp_engine.cpp ~:660), and the repair pins free variables at bounds in
+    order of most negative Hessian diagonal, probing the inertia after each,
+    until the verdict is kOk -- and REVERTS ENTIRELY if it never is
+    (qp_engine.cpp ~:2002-2062). This matters because every
+    inertia-controlling working-set method in the literature starts from a
+    second-order-consistent working set, and this is the machinery hven
+    already has for reaching one.
+    minor 0: action=add  inertia_verdict=2 (kWrong)  observed (441, 135)  expected (468, 108)
+    pass_factorizations on that pass: 4
+    OBSERVED: the verdict at iter 0 is kWrong and the action is NOT
+    `start_repair`.
+    INFERRED (from the guard, which is a conjunction): the first two
+    conjuncts held, so `repair_temporary_vertex` WAS CALLED and returned
+    FALSE -- it could not certify a kOk working set by pinning variables at
+    bounds, so it reverted its pins and the walk began from a working set
+    the engine itself had just judged wrong.
+    excess at minor 0 = 27   excess at minor 1 = 26
+    later repairs in the walk: start_repair 0  post_probe_restart 0  suspect_escalation 0
+

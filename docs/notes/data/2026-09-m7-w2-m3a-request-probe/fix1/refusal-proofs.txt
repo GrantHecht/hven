@@ -1,0 +1,207 @@
+M7 W2 M3a -- fix1 (settler adjudication R2) -- REFUSAL FOLD-PROOFS
+===================================================================
+
+WHAT THIS FILE IS. The round's review found the three identity checkers
+VACUOUS IN SHAPE: they compared only the INTERSECTION of the two key sets,
+treated a key present in the committed twin but MISSING from the new row as an
+informational note, and compared only the ladder columns present in BOTH
+headers. An empty, truncated or key-stripped "new" file therefore compared zero
+keys, found zero differences, and reported IDENTICAL. fix1 added four
+STRUCTURAL REFUSALS to each checker -- sentinels, the pinned committed key set,
+the pinned new key set, and the pinned ladder header -- and this file is those
+refusals being EXERCISED, once each, on deliberately broken input.
+
+HOW IT WAS PRODUCED. Every case below ran against a COPY of the committed rows
+tree, made under a session scratch directory, with exactly one mutation applied
+to exactly one file. NO FILE UNDER 2026-09-m7-w2-m3a-request-probe/rows/ WAS
+MODIFIED, READ-WRITE, OR TOUCHED IN ANY WAY -- the copies were made with `cp -r`
+and deleted at the end. The checkers were pointed at the mutated copy through
+the `M3A_NEW_ROOT` environment override fix1 added for exactly this purpose;
+the OLD (committed twin) side of every comparison is the real committed
+artifact, unmutated, read-only. No solver ran. No binary was built. The whole
+transcript is file folding.
+
+WHAT EACH CASE MUST SHOW. A non-zero exit, and a refusal line that NAMES the
+check that refused -- except case (iv), which mutates one counter VALUE and
+nothing structural, and must therefore still be caught by the PRE-EXISTING
+comparison as a plain DIFF with the structural checks reporting OK. That case is
+here to prove fix1 added refusals without displacing what was already working.
+
+COVERAGE. identity_m3a.py: cases (i) and (iv). identity_e.py: cases (ii) and
+(v). identity_f.py: cases (iii) and (vi), across two of its three modes. Every
+one of the three scripts is exercised.
+
+THE VACUITY, VISIBLE. In cases (i), (ii) and (v) the summary line still reports
+how many keys were compared, and it reads 0, 0 and 49 against a pinned 52, 55
+and 55. Before fix1 those three runs ended in "IDENTICAL" and exit 0. The
+refusal lines above each summary are the difference.
+
+  produced  2026-09-21T09:24:36-04:00
+  host      fedora
+  python    Python 3.13.12
+  ran       no solver, no build, no lock held -- pure file folding
+
+===========================================================================
+CASE: (i) EMPTY new file -- identity_m3a.py
+MUTATION: stage1/STEENBRB@tr1.txt truncated to zero bytes (YORKNET left untouched)
+COMMAND: M3A_NEW_ROOT=<scratch mutated tree> python3 -B wrappers/identity_m3a.py 
+---------------------------------------------------------------------------
+M7 W2 M3a -- CONTROL IDENTITY: the tr_init = 1, zeta = 0 legs vs M2b's
+committed screen rows. RULE.md section 4. A DIFFERENCE IS A STOP, and a
+stop ABORTS the chain before any raised-radius leg runs.
+
+excluded by name (this task's new keys): 14
+dropped by name (time-valued):           ['elapsed', 'elapsed_seconds', 'wall_seconds']
+near-ulp gate, residual class only:      |a-b| <= 1e-12 * max(1,|a|,|b|)
+fix1 structural refusals:                ON -- sentinels, 38-key committed set, 52-key new set, 9-column ladder header
+
+STEENBRB   REFUSED [sentinels] STEENBRB new: the file is EMPTY -- there is nothing to compare, and an empty file must never read as agreement (/tmp/claude-1000/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27/scratchpad/mutated/stage1/STEENBRB@tr1.txt)
+STEENBRB   REFUSED [new-key-set] STEENBRB new: key set has 0 keys, the pinned set has 52
+STEENBRB   REFUSED [new-key-set] STEENBRB new:   MISSING from this file: ['border_refine_steps', 'budget_iters_argument', 'callback', 'complementarity', 'deadline_fired', 'deadline_seconds', 'elastic_activations', 'elastic_escalations', 'elastic_floor_retries', 'elastic_from_ipqp_escape', 'elastic_rho0_ceiling_hits', 'f', 'factorizations', 'feasibility_e', 'feasibility_i', 'first_qp_elastic_applied', 'first_qp_plain_status', 'first_qp_restoration_seed_used', 'first_qp_solved', 'first_qp_status', 'first_qp_tr_binding', 'first_qp_tr_radius', 'first_qp_verdict', 'history_rows', 'infeasibility_certified', 'major_iters', 'me', 'mi', 'n', 'problem', 'proximity', 'qp_failures_in_a_row_peak', 'qp_failures_routed', 'qp_maxiter_exits', 'qp_minor_iters', 'qp_numerical_exits', 'rejected_steps', 'requesting_f', 'requesting_h', 'restoration_entries', 'restoration_f_in', 'restoration_f_out', 'restoration_h_in', 'restoration_h_out', 'restoration_iters', 'restoration_sub_status', 'stationarity', 'status', 'steps_accepted', 'symbolic_analyses', 'tr_init', 'x_k_source']
+STEENBRB   REFUSED [ladder-header] STEENBRB new: the file has NO LADDER block -- there is no ladder to compare
+STEENBRB   keys   0 compared,   0 differing; rows   0 x 0 columns,   1 differing   REFUSED -- STOP
+STEENBRB     keys only in M2b's row: ['border_refine_steps', 'budget_iters_argument', 'callback', 'complementarity', 'elastic_activations', 'elastic_escalations', 'elastic_floor_retries', 'elastic_rho0_ceiling_hits', 'f', 'factorizations', 'feasibility_e', 'feasibility_i', 'infeasibility_certified', 'major_iters', 'me', 'mi', 'n', 'problem', 'proximity', 'qp_failures_in_a_row_peak', 'qp_failures_routed', 'qp_maxiter_exits', 'qp_minor_iters', 'qp_numerical_exits', 'rejected_steps', 'requesting_f', 'requesting_h', 'restoration_entries', 'restoration_f_in', 'restoration_f_out', 'restoration_h_in', 'restoration_h_out', 'restoration_iters', 'stationarity', 'status', 'steps_accepted', 'symbolic_analyses', 'x_k_source']
+STEENBRB     DIFF <row count>: new=0  m2b=17
+YORKNET    STRUCTURE OK (fix1): sentinels, key sets (38 committed / 52 new) and ladder header, both files
+YORKNET    keys  38 compared,   0 differing; rows  19 x 9 columns,   0 differing   IDENTICAL
+YORKNET      keys only in this probe (expected = the new ones): ['deadline_fired', 'deadline_seconds', 'elastic_from_ipqp_escape', 'first_qp_elastic_applied', 'first_qp_plain_status', 'first_qp_restoration_seed_used', 'first_qp_solved', 'first_qp_status', 'first_qp_tr_binding', 'first_qp_tr_radius', 'first_qp_verdict', 'history_rows', 'restoration_sub_status', 'tr_init']
+
+NEAR_ULP_TOLERATED=0
+IDENTITY_WORST=1
+---------------------------------------------------------------------------
+EXIT=1
+
+===========================================================================
+CASE: (ii) key lines STRIPPED, ladder intact -- identity_e.py
+MUTATION: every 'k=v' line removed from e/STEENBRB@identity.txt; PROBE_BEGIN/END and the whole LADDER block left intact
+COMMAND: M3A_NEW_ROOT=<scratch mutated tree> python3 -B wrappers/identity_e.py 
+---------------------------------------------------------------------------
+M7 W2 M3a ADDENDUM E -- IDENTITY: the REBUILT probe at BOTH new options'
+defaults vs the committed stage-1 @trinf row. RULE-E.md section 3.
+A DIFFERENCE IS A STOP, and a stop ABORTS the chain before any E leg runs.
+
+excluded by name (this addendum's new keys): ['first_qp_factorizations', 'first_qp_minor_iters', 'qp_cap_retries', 'qp_cap_retry', 'qp_max_iter']
+dropped by name (time-valued):               ['elapsed', 'elapsed_seconds', 'wall_seconds']
+near-ulp gate, residual class only:          |a-b| <= 1e-12 * max(1,|a|,|b|)
+fix1 structural refusals:                    ON -- sentinels, 50-key committed set, 55-key new set, 9-column ladder header
+
+STEENBRB   REFUSED [new-key-set] STEENBRB new: key set has 0 keys, the pinned set has 55
+STEENBRB   REFUSED [new-key-set] STEENBRB new:   MISSING from this file: ['border_refine_steps', 'budget_iters_argument', 'callback', 'complementarity', 'deadline_fired', 'deadline_seconds', 'elastic_activations', 'elastic_escalations', 'elastic_floor_retries', 'elastic_from_ipqp_escape', 'elastic_rho0_ceiling_hits', 'f', 'factorizations', 'feasibility_e', 'feasibility_i', 'first_qp_elastic_applied', 'first_qp_factorizations', 'first_qp_minor_iters', 'first_qp_plain_status', 'first_qp_restoration_seed_used', 'first_qp_solved', 'first_qp_status', 'first_qp_tr_binding', 'first_qp_tr_radius', 'first_qp_verdict', 'history_rows', 'infeasibility_certified', 'major_iters', 'me', 'mi', 'n', 'problem', 'proximity', 'qp_cap_retries', 'qp_cap_retry', 'qp_failures_in_a_row_peak', 'qp_failures_routed', 'qp_max_iter', 'qp_maxiter_exits', 'qp_minor_iters', 'qp_numerical_exits', 'rejected_steps', 'restoration_entries', 'restoration_f_in', 'restoration_f_out', 'restoration_h_in', 'restoration_h_out', 'restoration_iters', 'restoration_sub_status', 'stationarity', 'status', 'steps_accepted', 'symbolic_analyses', 'tr_init', 'x_k_source']
+STEENBRB   keys   0 compared,   0 differing; rows   4 x 9 columns,   0 differing   REFUSED -- STOP
+STEENBRB     keys only in the stage-1 row: ['border_refine_steps', 'budget_iters_argument', 'callback', 'complementarity', 'deadline_fired', 'deadline_seconds', 'elastic_activations', 'elastic_escalations', 'elastic_floor_retries', 'elastic_from_ipqp_escape', 'elastic_rho0_ceiling_hits', 'f', 'factorizations', 'feasibility_e', 'feasibility_i', 'first_qp_elastic_applied', 'first_qp_plain_status', 'first_qp_restoration_seed_used', 'first_qp_solved', 'first_qp_status', 'first_qp_tr_binding', 'first_qp_tr_radius', 'first_qp_verdict', 'history_rows', 'infeasibility_certified', 'major_iters', 'me', 'mi', 'n', 'problem', 'proximity', 'qp_failures_in_a_row_peak', 'qp_failures_routed', 'qp_maxiter_exits', 'qp_minor_iters', 'qp_numerical_exits', 'rejected_steps', 'restoration_entries', 'restoration_f_in', 'restoration_f_out', 'restoration_h_in', 'restoration_h_out', 'restoration_iters', 'restoration_sub_status', 'stationarity', 'status', 'steps_accepted', 'symbolic_analyses', 'tr_init', 'x_k_source']
+
+NEAR_ULP_TOLERATED=0
+IDENTITY_E_WORST=1
+---------------------------------------------------------------------------
+EXIT=1
+
+===========================================================================
+CASE: (iii) LADDER HEADER altered (one column renamed) -- identity_f.py identity
+MUTATION: f/STEENBRB@identity-F.txt ladder header column 'prox_rel' renamed to 'proximity_rel'
+COMMAND: M3A_NEW_ROOT=<scratch mutated tree> python3 -B wrappers/identity_f.py identity
+---------------------------------------------------------------------------
+M7 W2 M3a ADDENDUM F -- IDENTITY (RULE-F.md section 3.1): the REBUILT probe at the new argument's
+DEFAULT (--ledger off) vs the committed stage-1 @trinf row.
+A DIFFERENCE IS A STOP, and a stop ABORTS the chain before any F leg runs.
+
+excluded by name (this addendum's new key): ['ledger']
+dropped by name (time-valued):              ['elapsed', 'elapsed_seconds', 'wall_seconds']
+near-ulp gate, residual class only:         |a-b| <= 1e-12 * max(1,|a|,|b|)
+the LEDGER block is NOT part of the key block and is NOT compared (RULE-F.md section 3.1)
+fix1 structural refusals:                   ON -- sentinels, the pinned committed key set per twin, that set + 6 declared new/inherited keys on the new side, 9-column ladder header
+
+STEENBRB@identity-F  REFUSED [ladder-header] STEENBRB@identity-F new: header is ['depth', 'event_iteration', 'f_event', 'radius', 'step_norm', 'f_main', 'h_main', 'dx_inf', 'proximity_rel'], expected exactly ['depth', 'event_iteration', 'f_event', 'radius', 'step_norm', 'f_main', 'h_main', 'dx_inf', 'prox_rel']
+STEENBRB@identity-F  vs STEENBRB@trinf.txt   keys  50 compared,   0 differing; rows   4 x 8 columns,   0 differing   REFUSED -- STOP
+STEENBRB@identity-F    keys only in the rebuilt probe: ['first_qp_factorizations', 'first_qp_minor_iters', 'ledger', 'qp_cap_retries', 'qp_cap_retry', 'qp_max_iter']
+
+NEAR_ULP_TOLERATED=0
+IDENTITY_F_WORST=1
+---------------------------------------------------------------------------
+EXIT=1
+
+===========================================================================
+CASE: (iv) ONE counter value altered -- identity_m3a.py (the PRE-EXISTING comparison)
+MUTATION: stage1/STEENBRB@tr1.txt: major_iters=5 changed to major_iters=6; nothing structural touched
+COMMAND: M3A_NEW_ROOT=<scratch mutated tree> python3 -B wrappers/identity_m3a.py 
+---------------------------------------------------------------------------
+M7 W2 M3a -- CONTROL IDENTITY: the tr_init = 1, zeta = 0 legs vs M2b's
+committed screen rows. RULE.md section 4. A DIFFERENCE IS A STOP, and a
+stop ABORTS the chain before any raised-radius leg runs.
+
+excluded by name (this task's new keys): 14
+dropped by name (time-valued):           ['elapsed', 'elapsed_seconds', 'wall_seconds']
+near-ulp gate, residual class only:      |a-b| <= 1e-12 * max(1,|a|,|b|)
+fix1 structural refusals:                ON -- sentinels, 38-key committed set, 52-key new set, 9-column ladder header
+
+STEENBRB   STRUCTURE OK (fix1): sentinels, key sets (38 committed / 52 new) and ladder header, both files
+STEENBRB   keys  38 compared,   1 differing; rows  17 x 9 columns,   0 differing   DIFFERS -- STOP
+STEENBRB     keys only in this probe (expected = the new ones): ['deadline_fired', 'deadline_seconds', 'elastic_from_ipqp_escape', 'first_qp_elastic_applied', 'first_qp_plain_status', 'first_qp_restoration_seed_used', 'first_qp_solved', 'first_qp_status', 'first_qp_tr_binding', 'first_qp_tr_radius', 'first_qp_verdict', 'history_rows', 'restoration_sub_status', 'tr_init']
+STEENBRB     DIFF major_iters: new=6  m2b=5
+YORKNET    STRUCTURE OK (fix1): sentinels, key sets (38 committed / 52 new) and ladder header, both files
+YORKNET    keys  38 compared,   0 differing; rows  19 x 9 columns,   0 differing   IDENTICAL
+YORKNET      keys only in this probe (expected = the new ones): ['deadline_fired', 'deadline_seconds', 'elastic_from_ipqp_escape', 'first_qp_elastic_applied', 'first_qp_plain_status', 'first_qp_restoration_seed_used', 'first_qp_solved', 'first_qp_status', 'first_qp_tr_binding', 'first_qp_tr_radius', 'first_qp_verdict', 'history_rows', 'restoration_sub_status', 'tr_init']
+
+NEAR_ULP_TOLERATED=0
+IDENTITY_WORST=1
+---------------------------------------------------------------------------
+EXIT=1
+
+===========================================================================
+CASE: (v) one EXPECTED KEY REMOVED -- identity_e.py (the old 'only_old' note)
+MUTATION: e/STEENBRB@identity.txt: the line 'symbolic_analyses=...' deleted -- a key the committed twin has and the new row now lacks
+COMMAND: M3A_NEW_ROOT=<scratch mutated tree> python3 -B wrappers/identity_e.py 
+---------------------------------------------------------------------------
+M7 W2 M3a ADDENDUM E -- IDENTITY: the REBUILT probe at BOTH new options'
+defaults vs the committed stage-1 @trinf row. RULE-E.md section 3.
+A DIFFERENCE IS A STOP, and a stop ABORTS the chain before any E leg runs.
+
+excluded by name (this addendum's new keys): ['first_qp_factorizations', 'first_qp_minor_iters', 'qp_cap_retries', 'qp_cap_retry', 'qp_max_iter']
+dropped by name (time-valued):               ['elapsed', 'elapsed_seconds', 'wall_seconds']
+near-ulp gate, residual class only:          |a-b| <= 1e-12 * max(1,|a|,|b|)
+fix1 structural refusals:                    ON -- sentinels, 50-key committed set, 55-key new set, 9-column ladder header
+
+STEENBRB   REFUSED [new-key-set] STEENBRB new: key set has 54 keys, the pinned set has 55
+STEENBRB   REFUSED [new-key-set] STEENBRB new:   MISSING from this file: ['symbolic_analyses']
+STEENBRB   keys  49 compared,   0 differing; rows   4 x 9 columns,   0 differing   REFUSED -- STOP
+STEENBRB     keys only in the rebuilt probe (expected = the new ones): ['first_qp_factorizations', 'first_qp_minor_iters', 'qp_cap_retries', 'qp_cap_retry', 'qp_max_iter']
+STEENBRB     keys only in the stage-1 row: ['symbolic_analyses']
+
+NEAR_ULP_TOLERATED=0
+IDENTITY_E_WORST=1
+---------------------------------------------------------------------------
+EXIT=1
+
+===========================================================================
+CASE: (vi) SENTINEL mutation: PROBE_END deleted -- identity_f.py neutral-first
+MUTATION: f/STEENBRB@F-trinf.txt: the closing 'PROBE_END' line deleted, as a probe killed mid-write would leave it
+COMMAND: M3A_NEW_ROOT=<scratch mutated tree> python3 -B wrappers/identity_f.py neutral-first
+---------------------------------------------------------------------------
+M7 W2 M3a ADDENDUM F -- NEUTRALITY, THE GATING LEG (RULE-F.md section 3.2): the FIRST --ledger on leg
+vs its own committed stage-1 twin. If any solver counter moved with the ledger
+ATTACHED, the chain ABORTS here and that is a finding ABOUT hven.
+
+excluded by name (this addendum's new key): ['ledger']
+dropped by name (time-valued):              ['elapsed', 'elapsed_seconds', 'wall_seconds']
+near-ulp gate, residual class only:         |a-b| <= 1e-12 * max(1,|a|,|b|)
+the LEDGER block is NOT part of the key block and is NOT compared (RULE-F.md section 3.1)
+fix1 structural refusals:                   ON -- sentinels, the pinned committed key set per twin, that set + 6 declared new/inherited keys on the new side, 9-column ladder header
+
+STEENBRB@F-trinf     REFUSED [sentinels] STEENBRB@F-trinf new: last non-empty line is 'LEDGER_END', expected 'PROBE_END' -- the row is TRUNCATED
+STEENBRB@F-trinf     REFUSED [sentinels] STEENBRB@F-trinf new: expected exactly one PROBE_BEGIN and one PROBE_END, found 1 and 0
+STEENBRB@F-trinf     vs STEENBRB@trinf.txt   keys  50 compared,   0 differing; rows   4 x 9 columns,   0 differing   REFUSED -- STOP
+STEENBRB@F-trinf       keys only in the rebuilt probe: ['first_qp_factorizations', 'first_qp_minor_iters', 'ledger', 'qp_cap_retries', 'qp_cap_retry', 'qp_max_iter']
+
+NEAR_ULP_TOLERATED=0
+IDENTITY_F_WORST=1
+---------------------------------------------------------------------------
+EXIT=1
+
+===========================================================================
+END OF TRANSCRIPT. Six cases, six invocations, six recorded exit codes:
+  (i)   EMPTY new file                  identity_m3a.py                EXIT=1
+  (ii)  key lines stripped              identity_e.py                  EXIT=1
+  (iii) ladder header altered           identity_f.py identity         EXIT=1
+  (iv)  one counter value altered       identity_m3a.py                EXIT=1  (plain DIFF, STRUCTURE OK)
+  (v)   one expected key removed        identity_e.py                  EXIT=1
+  (vi)  PROBE_END deleted               identity_f.py neutral-first    EXIT=1
+The mutated copies were deleted when the driver finished.

@@ -1,0 +1,1 @@
+=== SCW GATES RECORD HEAD-ssn vs RD8 HEAD-ssn (EXACT) === cells compared: 27  columns compared: 75  differences: 0

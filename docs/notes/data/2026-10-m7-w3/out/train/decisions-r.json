@@ -1,0 +1,272 @@
+{
+  "cutest": {
+    "hven-sqp": {
+      "_best": "sqp-ssn-certify-face",
+      "default": {
+        "b_cells": [
+          "ACOPP118",
+          "ACOPP57",
+          "ACOPR118",
+          "ACOPR57",
+          "BIGBANK",
+          "DALLASM",
+          "NET3",
+          "READING6",
+          "SAWPATH",
+          "SMBANK",
+          "STEENBRD",
+          "STEENBRE",
+          "STEENBRG",
+          "ZAMB2-8"
+        ],
+        "b_size": 14,
+        "counts": {
+          "dnf_budget": 0,
+          "dnf_wall": 5,
+          "error": 4,
+          "infeasible": 0,
+          "optimal": 14
+        },
+        "default_median_cost": 80.30434782608695,
+        "median_cost": 80.30434782608695,
+        "verdict": "default"
+      },
+      "sqp-ssn-certify-face": {
+        "b_cells": [
+          "ACOPP118",
+          "ACOPP57",
+          "ACOPR118",
+          "ACOPR57",
+          "BIGBANK",
+          "DALLASM",
+          "NET3",
+          "READING6",
+          "SAWPATH",
+          "SMBANK",
+          "STEENBRD",
+          "STEENBRE",
+          "STEENBRG",
+          "ZAMB2-8"
+        ],
+        "b_size": 14,
+        "counts": {
+          "dnf_budget": 0,
+          "dnf_wall": 5,
+          "error": 4,
+          "infeasible": 0,
+          "optimal": 14
+        },
+        "default_median_cost": 80.30434782608695,
+        "median_cost": 79.70652173913044,
+        "verdict": "WIN"
+      },
+      "sqp-ssn-farkas": {
+        "b_cells": [
+          "ACOPP118",
+          "ACOPP57",
+          "ACOPR118",
+          "ACOPR57",
+          "BIGBANK",
+          "DALLASM",
+          "NET3",
+          "READING6",
+          "SAWPATH",
+          "SMBANK",
+          "STEENBRD",
+          "STEENBRE",
+          "STEENBRG",
+          "ZAMB2-8"
+        ],
+        "b_size": 14,
+        "counts": {
+          "dnf_budget": 0,
+          "dnf_wall": 5,
+          "error": 4,
+          "infeasible": 0,
+          "optimal": 14
+        },
+        "default_median_cost": 80.30434782608695,
+        "median_cost": 80.49184782608695,
+        "verdict": "lose: median cost 80.4918 > 80.3043"
+      },
+      "sqp-ssn-sigma-armed": {
+        "b_cells": [
+          "ACOPP118",
+          "ACOPP57",
+          "ACOPR118",
+          "ACOPR57",
+          "BIGBANK",
+          "DALLASM",
+          "NET3",
+          "READING6",
+          "SAWPATH",
+          "SMBANK",
+          "STEENBRD",
+          "STEENBRE",
+          "STEENBRG",
+          "ZAMB2-8"
+        ],
+        "b_size": 14,
+        "counts": {
+          "dnf_budget": 0,
+          "dnf_wall": 5,
+          "error": 4,
+          "infeasible": 0,
+          "optimal": 14
+        },
+        "default_median_cost": 80.30434782608695,
+        "median_cost": 80.30434782608695,
+        "verdict": "tie (default stands)"
+      }
+    }
+  },
+  "hs": {
+    "hven-sqp": {
+      "_best": "sqp-ssn-certify-face",
+      "default": {
+        "b_cells": [
+          "hs003",
+          "hs005",
+          "hs006",
+          "hs007",
+          "hs010",
+          "hs011",
+          "hs012",
+          "hs014",
+          "hs022",
+          "hs025",
+          "hs026",
+          "hs027",
+          "hs028",
+          "hs030",
+          "hs033",
+          "hs035",
+          "hs039",
+          "hs043",
+          "hs045",
+          "hs077",
+          "hs079"
+        ],
+        "b_size": 21,
+        "counts": {
+          "dnf_budget": 0,
+          "dnf_wall": 0,
+          "error": 0,
+          "infeasible": 0,
+          "optimal": 21
+        },
+        "default_median_cost": 6.666666666666667,
+        "median_cost": 6.666666666666667,
+        "verdict": "default"
+      },
+      "sqp-ssn-certify-face": {
+        "b_cells": [
+          "hs003",
+          "hs005",
+          "hs006",
+          "hs007",
+          "hs010",
+          "hs011",
+          "hs012",
+          "hs014",
+          "hs022",
+          "hs025",
+          "hs026",
+          "hs027",
+          "hs028",
+          "hs030",
+          "hs033",
+          "hs035",
+          "hs039",
+          "hs043",
+          "hs045",
+          "hs077",
+          "hs079"
+        ],
+        "b_size": 21,
+        "counts": {
+          "dnf_budget": 0,
+          "dnf_wall": 0,
+          "error": 0,
+          "infeasible": 0,
+          "optimal": 21
+        },
+        "default_median_cost": 6.666666666666667,
+        "median_cost": 6.0,
+        "verdict": "WIN"
+      },
+      "sqp-ssn-farkas": {
+        "b_cells": [
+          "hs003",
+          "hs005",
+          "hs006",
+          "hs007",
+          "hs010",
+          "hs011",
+          "hs012",
+          "hs014",
+          "hs022",
+          "hs025",
+          "hs026",
+          "hs027",
+          "hs028",
+          "hs030",
+          "hs033",
+          "hs035",
+          "hs039",
+          "hs043",
+          "hs045",
+          "hs077",
+          "hs079"
+        ],
+        "b_size": 21,
+        "counts": {
+          "dnf_budget": 0,
+          "dnf_wall": 0,
+          "error": 0,
+          "infeasible": 0,
+          "optimal": 21
+        },
+        "default_median_cost": 6.666666666666667,
+        "median_cost": 6.666666666666667,
+        "verdict": "tie (default stands)"
+      },
+      "sqp-ssn-sigma-armed": {
+        "b_cells": [
+          "hs003",
+          "hs005",
+          "hs006",
+          "hs007",
+          "hs010",
+          "hs011",
+          "hs012",
+          "hs014",
+          "hs022",
+          "hs025",
+          "hs026",
+          "hs027",
+          "hs028",
+          "hs030",
+          "hs033",
+          "hs035",
+          "hs039",
+          "hs043",
+          "hs045",
+          "hs077",
+          "hs079"
+        ],
+        "b_size": 21,
+        "counts": {
+          "dnf_budget": 0,
+          "dnf_wall": 0,
+          "error": 0,
+          "infeasible": 0,
+          "optimal": 21
+        },
+        "default_median_cost": 6.666666666666667,
+        "median_cost": 6.666666666666667,
+        "verdict": "tie (default stands)"
+      }
+    }
+  }
+}

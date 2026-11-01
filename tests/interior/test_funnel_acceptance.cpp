@@ -370,8 +370,8 @@ TEST(FunnelAcceptance, NotifySwitchToFeasibilityStashesWidth) {
 // give +∞) — this pins re-base-on-restored.
 TEST(FunnelAcceptance, NotifySwitchToOptimalityReBasesRestoredWidth) {
     FunnelAcceptance a;
-    FunnelPrimeRejecting(a, 4.0, 10.0);                         // τ = 6.0
-    a.notify_switch_to_feasibility(pm(5.0, 0.0, 0.0));          // stash 6.0, working → +∞
+    FunnelPrimeRejecting(a, 4.0, 10.0);                // τ = 6.0
+    a.notify_switch_to_feasibility(pm(5.0, 0.0, 0.0)); // stash 6.0, working → +∞
     a.notify_switch_to_optimality(pm(2.0, 0.0, 0.0));
     EXPECT_FALSE(a.in_feasibility_phase());
     EXPECT_DOUBLE_EQ(a.funnel_width(), kFunnelKappa * 6.0 + (1.0 - kFunnelKappa) * 2.0); // 4.0
@@ -395,8 +395,8 @@ TEST(FunnelAcceptance, NotifySwitchToOptimalityAllowsReWidening) {
 // but would fail against 1.0.
 TEST(FunnelAcceptance, ExitTestReadsStashedWidthInPhase) {
     FunnelAcceptance a;
-    FunnelPrimeRejecting(a, 4.0, 10.0);                         // τ = 6.0
-    a.notify_switch_to_feasibility(pm(4.0, 0.0, 0.0));          // stash 6.0, working → +∞
+    FunnelPrimeRejecting(a, 4.0, 10.0);                // τ = 6.0
+    a.notify_switch_to_feasibility(pm(4.0, 0.0, 0.0)); // stash 6.0, working → +∞
     ASSERT_TRUE(a.in_feasibility_phase());
     FunnelPrimeRejecting(a, /*theta0=*/0.1, /*trial_outside=*/2.0); // working width → 1.0
     ASSERT_DOUBLE_EQ(a.funnel_width(), 1.0);
@@ -411,13 +411,13 @@ TEST(FunnelAcceptance, ExitTestReadsStashedWidthInPhase) {
 // survive so the exit test still consults the frozen optimality width.
 TEST(FunnelAcceptance, ResetMidPhasePreservesStashedWidth) {
     FunnelAcceptance a;
-    FunnelPrimeRejecting(a, 4.0, 10.0);                         // τ = 6.0
-    a.notify_switch_to_feasibility(pm(4.0, 0.0, 0.0));          // stash 6.0
-    FunnelPrimeRejecting(a, 0.1, 2.0);                          // working width → 1.0
-    a.reset();                                                 // μ-event mid-restoration
-    EXPECT_TRUE(a.in_feasibility_phase());            // flag survives
+    FunnelPrimeRejecting(a, 4.0, 10.0);                // τ = 6.0
+    a.notify_switch_to_feasibility(pm(4.0, 0.0, 0.0)); // stash 6.0
+    FunnelPrimeRejecting(a, 0.1, 2.0);                 // working width → 1.0
+    a.reset();                                         // μ-event mid-restoration
+    EXPECT_TRUE(a.in_feasibility_phase());             // flag survives
     EXPECT_TRUE(std::isinf(a.funnel_width()));         // working cleared to sentinel
-    EXPECT_DOUBLE_EQ(a.stashed_funnel_width(), 6.0);  // stash survives
+    EXPECT_DOUBLE_EQ(a.stashed_funnel_width(), 6.0);   // stash survives
 }
 
 // reset() OUTSIDE the phase drops the stash defensively.

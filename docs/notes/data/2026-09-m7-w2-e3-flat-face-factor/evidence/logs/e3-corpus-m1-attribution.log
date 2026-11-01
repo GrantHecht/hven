@@ -1,0 +1,26 @@
+ATTRIBUTION, border, E2 on: status by cell, base / mode1 / mode2   (only cells where any differ)
+  A0_YORKNET/qp1            num /  opt /  cap   minors    777 /    816 /   7680   f -21156.1781754 / -21156.1786123 / -20855.4011813
+  A0_YORKNET/qp2            cap /  num /  cap   minors   7680 /    455 /   7680   f -10828.4159537 / -10747.2537299 / -10432.7442634
+  A0_YORKNET/qp3            cap /  num /  cap   minors   7680 /    441 /   7680   f -10552.2812457 / -10760.9584871 / -10549.911928
+  A0_YORKNET/qp4            cap /  num /  cap   minors   7680 /    619 /   7680   f -5838.62938949 / -5837.09157116 / -5616.63029937
+  A0_YORKNET/qp6            cap /  num /  cap   minors   7680 /    743 /   7680   f -1518.80924226 / -1525.34332299 / -1468.78254744
+  ACOPP57_def/qp0           opt /  cap /  cap   minors      8 /   1795 /   1795   f 0.242644830751 / 0.242644830788 / 0.242644830788
+  ACOPP57_def/qp1           opt /  cap /  cap   minors      8 /   1795 /   1795   f 0.242644830751 / 0.242644830788 / 0.242644830788
+  ACOPP57_def/qp2           opt /  cap /  cap   minors      8 /   1795 /   1795   f 0.242644830751 / 0.242644830788 / 0.242644830788
+  ACOPP57_def/qp3           opt /  cap /  cap   minors      8 /   1795 /   1795   f 0.242644830751 / 0.242644830788 / 0.242644830788
+  ACOPR57_def/qp6           cap /  cap /  num   minors   7100 /   7100 /    240   f 2.40026120591e-09 / 2.15180866289e-09 / -3.00566538466e-09
+  ACOPR57_def/qp8           num /  cap /  num   minors     35 /   7100 /     46   f 0.0192203501279 / 0.0192203502124 / 0.0192203502176
+  Cs_STEENBRB/qp1           cap /  opt /  opt   minors   6600 /    199 /    232   f -1378.22272466 / -1378.22320088 / -1378.22320088
+  Cs_STEENBRB/qp3           cap /  opt /  opt   minors   6600 /   1097 /   2915   f -384.000271723 / -384.000299084 / -384.00031719
+  Cs_STEENBRB/qp4           opt /  num /  opt   minors    246 /    708 /   1536   f -192.000146263 / -192.000151739 / -192.000158958
+  Cs_STEENBRB/qp5           cap /  opt /  opt   minors   6600 /   1300 /   5147   f -192.000031467 / -192.000036822 / -192.000037958
+  Cs_STEENBRB/qp6           cap /  num /  opt   minors   6600 /   2481 /   6211   f -192.000007685 / -192.000011022 / -192.000015819
+  DALLASM_def/qp1           cap /  num /  num   minors   1960 /    690 /    913   f -457258.976337 / -457145.638028 / -457193.818219
+  DALLASM_def/qp2           num /  cap /  cap   minors   1657 /   1960 /   1960   f -228860.884737 / -228932.180835 / -228881.240096
+  Hj_STEENBRD/qp4           num /  num /  opt   minors    283 /    283 /    295   f -9.21780323474 / -9.21780323474 / -9.21780323474
+  STEENBRB_def/qp1          num /  opt /  cap   minors   1034 /    626 /   4680   f -991055299847 / -991055299831 / -991055299853
+  STEENBRB_def/qp2          cap /  cap /  num   minors   4680 /   4680 /    559   f -990591855583 / -990465464128 / -nan
+  YORKNET_def/qp1           num /  opt /  opt   minors    596 /    752 /    985   f 21565.8126714 / 664247.80146 / 664247.80146
+  mode1: kOptimal WON 6, LOST 5
+  mode2: kOptimal WON 6, LOST 4
+  NaN f: mode1 []  mode2 ['STEENBRB_def/qp2', 'STEENBRB_def/qp3']

@@ -1,0 +1,18 @@
+PGREP_EMPTY replay-hjd 2026-09-25T22:48:13-04:00
+FOREGROUND_START replay-hjd 2026-09-25T22:48:13-04:00
+Hj_STEENBRD qp1 on REPLAY status=3 minors=617 facts=620 f=-18.3265098462 eqv=3.231e-17 inv=0.000e+00 boxv=5.151e-15 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=54 deferred=0 undec=0 dep_tests=2473 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+Hj_STEENBRD qp1 off REPLAY status=1 minors=4680 facts=4764 f=-18.3376953753 eqv=5.151e-15 inv=0.000e+00 boxv=5.151e-15 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=0 deferred=0 undec=0 dep_tests=0 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+Hj_STEENBRD qp1 ron REPLAY status=3 minors=620 facts=622 f=-18.3265098462 eqv=3.231e-17 inv=0.000e+00 boxv=5.151e-15 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=51 deferred=0 undec=0 dep_tests=1313 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+Hj_STEENBRD qp1 roff REPLAY status=1 minors=4680 facts=4680 f=-18.3376953753 eqv=5.151e-15 inv=0.000e+00 boxv=5.151e-15 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=0 deferred=0 undec=0 dep_tests=0 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+Hj_STEENBRD qp1 oracle rc=0
+Hj_STEENBRD qp4 on REPLAY status=3 minors=283 facts=291 f=-9.21780323474 eqv=1.585e-17 inv=0.000e+00 boxv=1.718e-14 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=1 retreats=0 exch=61 deferred=1 undec=1 dep_tests=204 entry_rm=0 recheck_rm=1 untested=0 k0_reused=0
+Hj_STEENBRD qp4 off REPLAY status=1 minors=4680 facts=4686 f=-9.20981292563 eqv=6.442e-17 inv=0.000e+00 boxv=1.718e-14 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=0 deferred=0 undec=0 dep_tests=0 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+Hj_STEENBRD qp4 ron REPLAY status=3 minors=283 facts=290 f=-9.21780323474 eqv=1.585e-17 inv=0.000e+00 boxv=1.718e-14 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=1 retreats=0 exch=61 deferred=1 undec=1 dep_tests=204 entry_rm=0 recheck_rm=1 untested=0 k0_reused=0
+Hj_STEENBRD qp4 roff REPLAY status=1 minors=4680 facts=4685 f=-9.20981292563 eqv=6.442e-17 inv=0.000e+00 boxv=1.718e-14 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=0 deferred=0 undec=0 dep_tests=0 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+Hj_STEENBRD qp4 oracle rc=0
+Hj_STEENBRD qp9 on REPLAY status=3 minors=306 facts=309 f=-7639.72242841 eqv=4.083e-13 inv=0.000e+00 boxv=1.978e-12 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=152 deferred=0 undec=0 dep_tests=244 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+Hj_STEENBRD qp9 off REPLAY status=3 minors=194 facts=195 f=-7639.72242841 eqv=3.765e-13 inv=0.000e+00 boxv=8.527e-13 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=0 deferred=0 undec=0 dep_tests=0 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+Hj_STEENBRD qp9 ron REPLAY status=3 minors=306 facts=308 f=-7639.72242841 eqv=4.083e-13 inv=0.000e+00 boxv=1.978e-12 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=152 deferred=0 undec=0 dep_tests=244 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+Hj_STEENBRD qp9 roff REPLAY status=3 minors=194 facts=194 f=-7639.72242841 eqv=3.765e-13 inv=0.000e+00 boxv=8.527e-13 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=0 deferred=0 undec=0 dep_tests=0 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+Hj_STEENBRD qp9 oracle rc=0
+FOREGROUND_END replay-hjd 2026-09-25T22:48:36-04:00 rc=0

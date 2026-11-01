@@ -55,9 +55,14 @@ jobs:
           echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" \
             | sudo tee /etc/apt/sources.list.d/oneAPI.list
           sudo apt-get update
-          sudo apt-get install -y intel-oneapi-mkl-devel
+          sudo apt-get install -y intel-oneapi-mkl-devel-2026.2
           echo "ONEAPI_ROOT=/opt/intel/oneapi" >> "$GITHUB_ENV"
           echo "MKLROOT=/opt/intel/oneapi/mkl/latest" >> "$GITHUB_ENV"
+
+      - name: Runner CPU
+        # WX-R13: see linux-clang-release's "Runner CPU and MKL dispatch". The
+        # probe's verdict prints in the script's configure output.
+        run: lscpu
 
       - name: Coverage build, suite, and report
         # The script owns the whole path (configure/build/ctest/report) so
@@ -126,7 +131,7 @@ jobs:
           echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" \
             | sudo tee /etc/apt/sources.list.d/oneAPI.list
           sudo apt-get update
-          sudo apt-get install -y intel-oneapi-mkl-devel
+          sudo apt-get install -y intel-oneapi-mkl-devel-2026.2
           # cmake/FindMKL.cmake's only environment-free fallback paths are
           # /opt/intel/oneapi/mkl/latest/{include,lib,lib/intel64} and, for
           # libiomp5, /opt/intel/oneapi/compiler/latest/lib. Every other
@@ -148,6 +153,19 @@ jobs:
       # lane-vs-local pin divergence a stable, re-derivable finding.
       - name: Configure
         run: cmake --preset linux-clang-release -DHVEN_SIMD_ARCH=x86-64-v3
+
+      # WX-R13: the hosted pool mixes CPU models and MKL picks its kernels per
+      # CPU, so the exact route pins hold only where tests/CMakeLists.txt's
+      # configure-time probe found the derivation box's MKL dispatch (run
+      # 40985070468: the same commit and image passed on one runner and moved 39
+      # route cells on an AVX-512 one). The probe decides the arm; this step
+      # prints, every run, the CPU and the probe's verdict (vendor, AVX2/FMA/
+      # AVX-512F, mkl_cbwr_get_auto_branch, REFERENCE or not), so every lane
+      # result can be read against the hardware that produced it.
+      - name: Runner CPU and MKL dispatch
+        run: |
+          lscpu
+          cat build/tests/hven_mkl_dispatch.txt
 
       # `id` so the post-Test steps below can condition on THIS step rather
       # than on the default "nothing has failed yet" (M3 gate B, replicated
@@ -211,8 +229,11 @@ jobs:
 
       # Precompiled-header neutrality: builds hven twice (with and without
       # the PCH) and requires every object and libhven.a to come out
-      # byte-identical, plus asserts the PCH is actually engaged on exactly
-      # the six translation units it is opted in for.
+      # byte-identical, plus asserts the PCH is actually engaged on exactly the
+      # translation units it is opted in for -- the count is DERIVED from
+      # _hven_pch_sources in src/CMakeLists.txt by the script itself and never
+      # restated here, so this comment cannot go stale against that list the
+      # way its literal-count predecessor did (M7 W0 T5).
       #
       # This is the enforcement half of the PCH's licence to exist. The PCH
       # sits over engine headers and is permitted only because it changes
@@ -251,6 +272,19 @@ jobs:
       # the script returns so the next step can inspect the installed
       # hvenTargets.cmake and the hven configure log; a plain local run of
       # the script (no env var set) still self-cleans as before.
+      # TWO ARMS FROM M7 W0 T5(d). The first is the default front end (GCC on
+      # this runner, unpinned on purpose -- a consumer compiles with its own
+      # toolchain); the second passes -DCMAKE_CXX_COMPILER=clang++ through the
+      # script's existing passthrough. One run proves one front end, and after
+      # M6 W6 T3's LTO-archive finding that is load-bearing rather than
+      # hygienic: with HVEN_LINK_TIME_OPT=ON the installed archive's members are
+      # bitcode and the two front ends do not behave alike. LTO is OFF here, as
+      # it is in every lane -- the bitcode constraint is docs/build.md's "LTO
+      # installs" section and is not exercised by either arm.
+      #
+      # SEPARATE WORKDIRS: the export-contract step below inspects the DEFAULT
+      # arm's install tree and configure log, so the clang arm must not
+      # configure over them.
       - name: Run hven install smoke (configure/build/install/consume)
         id: install_smoke
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
@@ -258,6 +292,13 @@ jobs:
           HVEN_INSTALL_SMOKE_WORKDIR: ${{ runner.temp }}/hven-install-smoke
           HVEN_INSTALL_SMOKE_JOBS: "6"
         run: ./scripts/check_install_smoke.sh
+
+      - name: Run hven install smoke, clang front end (Linux)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        env:
+          HVEN_INSTALL_SMOKE_WORKDIR: ${{ runner.temp }}/hven-install-smoke-clang
+          HVEN_INSTALL_SMOKE_JOBS: "6"
+        run: ./scripts/check_install_smoke.sh -DCMAKE_CXX_COMPILER=clang++
 
       # Gated on the smoke step specifically, not `!cancelled()` alone, same
       # reason as the macOS lane: this step inspects the install tree the
@@ -389,15 +430,28 @@ jobs:
         # under this lane's current (unpinned) threading config. Changing it here
         # would be a re-observation decision, not a mechanical port of the Linux
         # fix, and is left to the gate reviewer.
+        #
+        # VECLIB_MAXIMUM_THREADS=1 (M7 WX B0, ruling R-4; register M3-8): the
+        # question above is now decided. Two runs of byte-identical code
+        # differed on 19 of 68 failing cells with Accelerate's threading
+        # unpinned, so the lane was not run-to-run deterministic on route
+        # counters. This sets the variable Accelerate itself reads, and the
+        # library respects a pre-set value (ensure_accelerate_initialized
+        # calls setenv with overwrite 0; num_threads is only the default when
+        # the variable is unset). It is a re-observation event for every
+        # Accelerate value recorded unpinned, declared in the register, not ported silently.
         env:
           GTEST_OUTPUT: "xml:${{ runner.temp }}/gtest-xml/"
+          VECLIB_MAXIMUM_THREADS: "1"
         run: ctest --test-dir build-macos --output-on-failure --timeout 300
 
       # Cheap half of the PCH check: assert the precompiled header is actually
-      # applied to exactly the six translation units it is opted in for, by
-      # reading this lane's own compile_commands.json. Catches "the PCH
-      # silently stopped applying on macOS" -- a build-time regression no
-      # test would notice -- for the cost of reading a JSON file.
+      # applied to exactly the translation units it is opted in for -- the count
+      # the script DERIVES from _hven_pch_sources in src/CMakeLists.txt, not a
+      # number repeated here -- by reading this lane's own
+      # compile_commands.json. Catches "the PCH silently stopped applying on
+      # macOS" -- a build-time regression no test would notice -- for the cost
+      # of reading a JSON file.
       #
       # The full two-build byte-identity comparison runs on the Linux lane
       # only; doing it here would double this lane's build. docs/build.md
@@ -577,7 +631,24 @@ jobs:
         # this repo needs (MKL devel + the OpenMP runtime) from it via the
         # embedded bootstrapper's --components= flag, but the download cost
         # is paid regardless of how few components are selected.
+        #
+        # WX-R10: run 40925068485 hung this step for the whole 6 h job timeout. A
+        # healthy cold install takes ~26 min (runs 40861914857, 40868557422,
+        # 40905599627: 25.6 / 26.9 / 26.5 min), so each attempt is capped at 50
+        # minutes and a hung or failed first attempt is retried once, by a second
+        # step (a step's timeout-minutes covers the whole step, so the retry has to
+        # be its own step). The retry is bounded: the job fails after the second
+        # attempt rather than hanging.
+        id: install-mkl-1
         if: steps.cache-oneapi-mkl.outputs.cache-hit != 'true'
+        timeout-minutes: 50
+        continue-on-error: true
+        shell: cmd
+        run: scripts\install_windows_mkl.bat
+
+      - name: Install Intel MKL (retry after a failed or timed-out first attempt)
+        if: steps.cache-oneapi-mkl.outputs.cache-hit != 'true' && steps.install-mkl-1.outcome != 'success'
+        timeout-minutes: 50
         shell: cmd
         run: scripts\install_windows_mkl.bat
 
@@ -658,10 +729,12 @@ jobs:
         run: ctest --test-dir build-windows --output-on-failure --timeout 300
 
       # Cheap half of the PCH check: assert the precompiled header is actually
-      # applied to exactly the six translation units it is opted in for, by
-      # reading this lane's own compile_commands.json. Catches "the PCH
-      # silently stopped applying on Windows" -- a build-time regression no
-      # test would notice -- for the cost of reading a JSON file.
+      # applied to exactly the translation units it is opted in for -- the count
+      # the script DERIVES from _hven_pch_sources in src/CMakeLists.txt, not a
+      # number repeated here -- by reading this lane's own
+      # compile_commands.json. Catches "the PCH silently stopped applying on
+      # Windows" -- a build-time regression no test would notice -- for the cost
+      # of reading a JSON file.
       #
       # The full two-build byte-identity comparison runs on the Linux lane
       # only; doing it here would double this lane's build. docs/build.md

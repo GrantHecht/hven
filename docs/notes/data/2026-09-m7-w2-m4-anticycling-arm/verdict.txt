@@ -1,0 +1,147 @@
+M7 W2 M4 -- THE PRE-REGISTERED VERDICTS OF RULE.md, APPLIED
+===========================================================
+Written at the close of the task, from the raw transcripts named on every line.
+No solver ran to produce this file. RULE.md was NOT edited.
+
+THE FORMAL OUTCOME, RULE.md SECTION 8
+-------------------------------------
+    ARM E   -- STOPPED by its neutrality leg.
+    ARM L   -- STOPPED by its neutrality leg.
+    ARM L+  -- STOPPED by its neutrality leg.
+    PHASE 3 RAN FOR NO ARM.
+
+Section 8's second row is the trigger in every case: "an arm's neutrality leg
+differs from that cell's own `off` leg on any compared field (section 5.5) ->
+that ARM stops, entirely, on every cell."  The stop is a FINDING and is reported
+with its differing fields, which is what the rest of this file does.
+
+Section 8's clause "the arm's partial results are reported as UNINTERPRETABLE
+rather than withheld" HAS NOTHING TO COVER.  It speaks of the phase-3 legs an
+arm had already run when its neutrality leg was gated.  This chain ran the
+neutrality legs BEFORE phase 3 (section 4.1's order), so at the moment each arm
+stopped it had no phase-3 leg at all.  Nothing is withheld because nothing was
+produced.  `logs/chain.log` records the three skips verbatim:
+
+    SKIPPING ARM E  -- stopped by its neutrality leg
+    SKIPPING ARM L  -- stopped by its neutrality leg
+    SKIPPING ARM L+ -- stopped by its neutrality leg
+
+NO CELL HAS A `CONVERTED`, `HARM` OR `improved, unverified` VERDICT
+------------------------------------------------------------------
+Sections 7.3, 7.4 and 7.5 are per-cell verdicts on an ARM LEG against its OFF
+control on section 1.1's TEN cells.  No arm leg was run on any of the ten, so
+none of the three predicates has an input.  There is no conversion total to
+report, not even a zero: the experiment that would have produced one did not
+run.  Section 9's two conditional extensions therefore do not run either, and
+section 9 says so itself: "If section 7 finds no conversion, neither extension
+runs and the report says so."  They did not run.  Section 7.7's SNOPT cost
+read-out is for CONVERTED cells only and has none.
+
+Section 7.5's second HARM clause is `N/A` on the ten because OFF solves none of
+them -- stated, per section 7.5's own instruction, rather than printed as a
+vacuous "0 harmed".
+
+PHASE 1 -- THE OFF CONTROLS (RULE.md section 5, transcript logs/gate-off.txt)
+----------------------------------------------------------------------------
+    REPRODUCES 10 / 10   DIFFERS 0   CENSORED 0   REFUSED 0   MISSING 0
+    near-ulp acceptances: 0
+    CELLS_CARRIED_FORWARD: ACOPP57 DALLASM STEENBRB ACOPP118 ACOPR57
+                           STEENBRC STEENBRG YORKNET SAWPATH BRITGAS
+No cell is `OFF_CONTROL_FAILED`.  Every one of the ten reproduced M3c's
+COMMITTED pass-1 row on every compared field, with no value passing by
+tolerance.  This is the one unqualified positive result of the task: the replay
+build, run at `--arm off`, IS M3c's binary as far as 10 cells x every printed
+field can see.
+
+PHASE 2 -- THE NEUTRALITY LEGS (RULE.md section 5.5, STRICT)
+------------------------------------------------------------
+Reference: that cell's OWN `off` leg from this chain.  Bar: EQUAL_BYTES on every
+compared field; a WITHIN is a difference.  Arm keys excluded by name under
+AMENDMENT 1 and reported beside each verdict.
+
+ARM E   (transcript logs/gate-neutral-E.txt)
+    READING6   DIFFERS   near-ulp accepted 0
+        border_refine_steps 592 -> 582
+        factorizations 6837 -> 5424
+        qp_failures_routed 3 -> 2
+        qp_maxiter_exits 3 -> 2
+        qp_minor_iters 3833 -> 3119
+        summary_records 3833 -> 3119
+        trace_out (the LEG LABEL -- see README section "the fourth process finding")
+        trace_records 3833 -> 3119
+        status `optimal` on both; f BYTE-EQUAL on both
+    SMBANK     DIFFERS   near-ulp accepted 1
+        border_refine_steps 334 -> 328
+        first_border_refine_steps 32 -> 34
+        first_degenerate_fraction 0 -> 0.029411764705882353
+        first_degenerate_run_max 0 -> 1
+        first_degenerate_steps 0 -> 1
+        first_distinct_bound_added 30 -> 31
+        first_minor_iters 32 -> 34
+        first_schur_updates 30 -> 32
+        first_ws_adds 30 -> 31 ; first_ws_adds_bound 30 -> 31
+        first_ws_drops 0 -> 1  ; first_ws_drops_bound 0 -> 1
+        qp_minor_iters 334 -> 328
+        stationarity 9.2748031187081952e-10 -> 9.2748034416649174e-10
+        summary_records 334 -> 328 ; trace_records 334 -> 328
+        trace_out (the LEG LABEL)
+        status `optimal` on both; f BYTE-EQUAL on both
+    ZAMB2-8    DIFFERS   near-ulp accepted 0
+        32 fields, including f -0.15293592733713887 -> -0.1529359281433445
+        (the 9th significant digit), major_iters 11 -> 9,
+        qp_minor_iters 6666 -> 9947, factorizations 8803 -> 12421,
+        first_ratio_ties 55 -> 39, steps_accepted 8 -> 7.
+        status `optimal` on both.
+    ARM_STOPPED E -- 0 of 3 cells reproduce their own off leg.
+
+ARM L   (transcript logs/gate-neutral-L.txt)
+    READING6   DIFFERS   in `trace_out` AND IN NOTHING ELSE
+    SMBANK     DIFFERS   in `trace_out` AND IN NOTHING ELSE
+    ZAMB2-8    DIFFERS   in 32 fields, status `optimal` -> `numerical_error`,
+                         f -0.15293592733713887 -> -0.093440994397389732,
+                         major_iters 11 -> 2, steps_accepted 8 -> 0.
+    ARM_STOPPED L -- 0 of 3 cells reproduce their own off leg.
+
+ARM L+  (transcript logs/gate-neutral-L+.txt)
+    READING6   DIFFERS   in 32 fields, status `optimal` -> `numerical_error`,
+                         major_iters 13 -> 1, steps_accepted 9 -> 0,
+                         restoration_sub_status not_run -> numerical_error.
+    SMBANK     DIFFERS   in `trace_out` AND IN NOTHING ELSE
+    ZAMB2-8    DIFFERS   in 42 fields, status `optimal` -> `infeasible`,
+                         feasibility_i 0 -> 2.839, major_iters 11 -> 2.
+    ARM_STOPPED L+ -- 0 of 3 cells reproduce their own off leg.
+
+THE POST-HOC RE-GATE, AND WHY IT CHANGES NO VERDICT ABOVE
+---------------------------------------------------------
+`trace_out` is the PATH the leg wrote its trace to.  It carries the arm's name,
+so it differs on every neutrality leg for a reason that is not about the walk --
+the same defect AMENDMENT 1 was written to fix for the `arm`/`arm_*` keys, in a
+field AMENDMENT 1 did not name.  It was found AFTER the chain ran.  RULE.md is
+not edited; the transcripts above are the gate that ran and stand.
+
+gates/neutral-posthoc-no-traceout-{E,L,L+}.txt re-run the same gate with an
+OPT-IN `--exclude-label trace_out`, and the exclusion is printed with both
+values on every leg:
+
+    E   READING6 DIFFERS   SMBANK DIFFERS   ZAMB2-8 DIFFERS
+    L   READING6 REPRODUCES  SMBANK REPRODUCES  ZAMB2-8 DIFFERS
+    L+  READING6 DIFFERS   SMBANK REPRODUCES  ZAMB2-8 DIFFERS
+
+EVERY ARM IS STILL STOPPED.  Section 5.5 requires every neutrality cell to
+reproduce; each arm still fails at least one, so the formal outcome at the top
+of this file is unchanged by the defect.  gates/default-unchanged.txt proves the
+flag is opt-in: the amended gate, re-run at its DEFAULTS with the chain's own
+arguments, reproduces all three committed transcripts and the OFF-control
+transcript line for line, differing only by the five FOLD lines the new folds
+add.
+
+WHAT SECTION 10 SAYS THIS LICENSES
+-----------------------------------
+Nothing ships.  This is an UNSUPPORTED result in section 10's terms, and section
+10 fixes its worth in advance: "that the mechanism M3c named is real and that
+breaking it, in the two forms tried here at these parameters, did not make the
+shipped QPs solve, is a finding about hven's walk and not a failure of the
+experiment."  The finding is stronger than that and narrower: the two forms were
+never tried on the shipped QPs at all, because both failed the gate that stands
+in front of them -- and, on the cells where they were tried, L and L+ BREAK a
+cell hven already solves.  See README.md.

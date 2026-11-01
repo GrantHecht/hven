@@ -1,0 +1,123 @@
+D1SOLVE 0 begin n=196 me=150 mi=0 D=1.000000e+00 ind=1 warm=0 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x1a9840e0 maxit=0
+D1PASS s=0[main] it=50 me=150 rows=0 pins=46 n=196 |p|=3.471e+01 step_tol=1.000e-09 elim_only=0 schur=1 verdict=0 |x|=1.000000e+00 drop_prev=0:-1
+D1TEST it=50 blk=pin:132 side=2 alpha=0.000000e+00 |p|=3.471e+01 verdict=1 rho=1.242067e-06 screen=1 solves=1 me+|W|=196 n=196 usable=1 elim=0 schur=1
+D1XPICK it=50 found=1 cond1=0 j=pin:92 sigma=1.549e+05 g=-1.252054e-06 sign=1 moves=0 pos_coeff_members=3 of_which_entered_at_point=2 |v_e|=5.455e-01 |v_w|=0.000e+00 |v_pin|=4.545e-01
+D1STEP it=50 kind=2 idx=132 side=2 alpha=0.000000e+00 dx=0.000e+00 xch=1 j=pin:92
+D1PASS s=0[main] it=51 me=150 rows=0 pins=46 n=196 |p|=3.471e+01 step_tol=1.000e-09 elim_only=0 schur=1 verdict=0 |x|=1.000000e+00 drop_prev=0:-1
+D1TEST it=51 blk=pin:92 side=2 alpha=0.000000e+00 |p|=3.471e+01 verdict=1 rho=1.135001e-05 screen=1 solves=1 me+|W|=196 n=196 usable=1 elim=0 schur=1
+D1XPICK it=51 found=0 cond1=0 j=pin:-1 sigma=0.000e+00 g=-1.154169e-05 sign=1 moves=0 pos_coeff_members=3 of_which_entered_at_point=3 |v_e|=1.000e+00 |v_w|=0.000e+00 |v_pin|=6.250e-01
+D1N2 it=51 n_passed=1 next=2:44 a2=3.258288e-03 within=1 feas_tol=1.0e-09
+D1TEST it=51 blk=pin:44 side=2 alpha=3.258288e-03 |p|=3.471e+01 verdict=1 rho=1.599875e-07 screen=1 solves=1 me+|W|=196 n=196 usable=1 elim=0 schur=1
+D1XPICK it=51 found=1 cond1=0 j=pin:50 sigma=2.620e+02 g=-7.957839e-08 sign=1 moves=1 pos_coeff_members=1 of_which_entered_at_point=0 |v_e|=1.000e+00 |v_w|=0.000e+00 |v_pin|=1.000e+00
+D1STEP it=51 kind=2 idx=44 side=2 alpha=3.258288e-03 dx=1.131e-01 xch=1 j=pin:50
+D1PASS s=0[main] it=52 me=150 rows=0 pins=46 n=196 |p|=3.460e+01 step_tol=1.000e-09 elim_only=0 schur=1 verdict=0 |x|=1.000000e+00 drop_prev=0:-1
+D1TEST it=52 blk=pin:50 side=2 alpha=0.000000e+00 |p|=3.460e+01 verdict=1 rho=2.607404e-07 screen=1 solves=1 me+|W|=196 n=196 usable=1 elim=0 schur=1
+D1XPICK it=52 found=1 cond1=0 j=pin:14 sigma=1.653e+02 g=-1.951806e-07 sign=1 moves=0 pos_coeff_members=2 of_which_entered_at_point=1 |v_e|=1.000e+00 |v_w|=0.000e+00 |v_pin|=1.000e+00
+D1STEP it=52 kind=2 idx=50 side=2 alpha=0.000000e+00 dx=0.000e+00 xch=1 j=pin:14
+D1PASS s=0[main] it=53 me=150 rows=0 pins=46 n=196 |p|=3.460e+01 step_tol=1.000e-09 elim_only=0 schur=1 verdict=0 |x|=1.000000e+00 drop_prev=0:-1
+D1TEST it=53 blk=pin:14 side=2 alpha=0.000000e+00 |p|=3.460e+01 verdict=1 rho=4.885200e-04 screen=1 solves=1 me+|W|=196 n=196 usable=1 elim=0 schur=1
+D1XPICK it=53 found=0 cond1=0 j=pin:-1 sigma=0.000e+00 g=1.776259e-07 sign=1 moves=0 pos_coeff_members=1 of_which_entered_at_point=1 |v_e|=9.995e-01 |v_w|=0.000e+00 |v_pin|=9.995e-01
+D1N2 it=53 n_passed=1 next=2:92 a2=0.000000e+00 within=1 feas_tol=1.0e-09
+D1TEST it=53 blk=pin:92 side=2 alpha=0.000000e+00 |p|=3.460e+01 verdict=1 rho=1.135001e-05 screen=1 solves=1 me+|W|=196 n=196 usable=1 elim=0 schur=1
+D1XPICK it=53 found=1 cond1=0 j=pin:132 sigma=1.076e+05 g=-1.154169e-05 sign=1 moves=0 pos_coeff_members=3 of_which_entered_at_point=0 |v_e|=1.000e+00 |v_w|=0.000e+00 |v_pin|=6.250e-01
+D1STEP it=53 kind=2 idx=92 side=2 alpha=0.000000e+00 dx=0.000e+00 xch=1 j=pin:132
+D1PASS s=0[main] it=54 me=150 rows=0 pins=46 n=196 |p|=3.460e+01 step_tol=1.000e-09 elim_only=0 schur=1 verdict=0 |x|=1.000000e+00 drop_prev=0:-1
+D1TEST it=54 blk=pin:14 side=2 alpha=0.000000e+00 |p|=3.460e+01 verdict=1 rho=4.885200e-04 screen=1 solves=1 me+|W|=196 n=196 usable=1 elim=0 schur=1
+D1XPICK it=54 found=0 cond1=0 j=pin:-1 sigma=0.000e+00 g=1.776259e-07 sign=1 moves=0 pos_coeff_members=1 of_which_entered_at_point=1 |v_e|=9.995e-01 |v_w|=0.000e+00 |v_pin|=9.995e-01
+D1N2 it=54 n_passed=1 next=2:132 a2=0.000000e+00 within=1 feas_tol=1.0e-09
+D1TEST it=54 blk=pin:132 side=2 alpha=0.000000e+00 |p|=3.460e+01 verdict=1 rho=1.242067e-06 screen=1 solves=1 me+|W|=196 n=196 usable=1 elim=0 schur=1
+D1XPICK it=54 found=1 cond1=0 j=pin:127 sigma=1.093e+05 g=-1.252054e-06 sign=1 moves=0 pos_coeff_members=3 of_which_entered_at_point=1 |v_e|=5.455e-01 |v_w|=0.000e+00 |v_pin|=4.545e-01
+D1STEP it=54 kind=2 idx=132 side=2 alpha=0.000000e+00 dx=0.000e+00 xch=1 j=pin:127
+D1PASS s=0[main] it=55 me=150 rows=0 pins=46 n=196 |p|=3.460e+01 step_tol=1.000e-09 elim_only=0 schur=1 verdict=0 |x|=1.000000e+00 drop_prev=0:-1
+D1TEST it=55 blk=pin:14 side=2 alpha=0.000000e+00 |p|=3.460e+01 verdict=1 rho=4.885200e-04 screen=1 solves=1 me+|W|=196 n=196 usable=1 elim=0 schur=1
+D1XPICK it=55 found=0 cond1=0 j=pin:-1 sigma=0.000e+00 g=1.776259e-07 sign=1 moves=0 pos_coeff_members=1 of_which_entered_at_point=1 |v_e|=9.995e-01 |v_w|=0.000e+00 |v_pin|=9.995e-01
+D1N2 it=55 n_passed=1 next=2:127 a2=-0.000000e+00 within=1 feas_tol=1.0e-09
+D1TEST it=55 blk=pin:127 side=1 alpha=-0.000000e+00 |p|=3.460e+01 verdict=1 rho=5.906290e-07 screen=1 solves=1 me+|W|=196 n=196 usable=1 elim=0 schur=1
+D1XPICK it=55 found=1 cond1=0 j=pin:128 sigma=1.290e+05 g=-3.774323e-07 sign=-1 moves=0 pos_coeff_members=3 of_which_entered_at_point=2 |v_e|=5.455e-01 |v_w|=0.000e+00 |v_pin|=4.545e-01
+D1STEP it=55 kind=2 idx=127 side=1 alpha=-0.000000e+00 dx=-0.000e+00 xch=1 j=pin:128
+D1PASS s=0[main] it=56 me=150 rows=0 pins=46 n=196 |p|=3.460e+01 step_tol=1.000e-09 elim_only=0 schur=1 verdict=0 |x|=1.000000e+00 drop_prev=0:-1
+D1TEST it=56 blk=pin:14 side=2 alpha=0.000000e+00 |p|=3.460e+01 verdict=1 rho=4.885200e-04 screen=1 solves=1 me+|W|=196 n=196 usable=1 elim=0 schur=1
+D1XPICK it=56 found=0 cond1=0 j=pin:-1 sigma=0.000e+00 g=1.776259e-07 sign=1 moves=0 pos_coeff_members=1 of_which_entered_at_point=1 |v_e|=9.995e-01 |v_w|=0.000e+00 |v_pin|=9.995e-01
+D1N2 it=56 n_passed=1 next=2:128 a2=0.000000e+00 within=1 feas_tol=1.0e-09
+D1TEST it=56 blk=pin:128 side=2 alpha=0.000000e+00 |p|=3.460e+01 verdict=1 rho=1.077875e-05 screen=1 solves=1 me+|W|=196 n=196 usable=1 elim=0 schur=1
+D1XPICK it=56 found=0 cond1=0 j=pin:-1 sigma=0.000e+00 g=-1.017901e-05 sign=1 moves=0 pos_coeff_members=3 of_which_entered_at_point=3 |v_e|=1.000e+00 |v_w|=0.000e+00 |v_pin|=6.250e-01
+D1N2 it=56 n_passed=2 next=2:37 a2=1.632586e-05 within=1 feas_tol=1.0e-09
+D1TEST it=56 blk=pin:37 side=2 alpha=1.632586e-05 |p|=3.460e+01 verdict=1 rho=5.428002e-05 screen=1 solves=1 me+|W|=196 n=196 usable=1 elim=0 schur=1
+D1XPICK it=56 found=1 cond1=0 j=pin:50 sigma=1.653e+02 g=-2.868265e-08 sign=1 moves=1 pos_coeff_members=2 of_which_entered_at_point=2 |v_e|=1.000e+00 |v_w|=0.000e+00 |v_pin|=9.999e-01
+D1STEP it=56 kind=2 idx=37 side=2 alpha=1.632586e-05 dx=5.648e-04 xch=1 j=pin:50
+D1PASS s=0[main] it=57 me=150 rows=0 pins=46 n=196 |p|=3.459e+01 step_tol=1.000e-09 elim_only=0 schur=1 verdict=0 |x|=1.000000e+00 drop_prev=0:-1
+D1TEST it=57 blk=pin:14 side=2 alpha=0.000000e+00 |p|=3.459e+01 verdict=1 rho=5.427705e-04 screen=1 solves=1 me+|W|=196 n=196 usable=1 elim=0 schur=1
+D1XPICK it=57 found=0 cond1=0 j=pin:-1 sigma=0.000e+00 g=2.254116e-07 sign=1 moves=0 pos_coeff_members=1 of_which_entered_at_point=1 |v_e|=9.995e-01 |v_w|=0.000e+00 |v_pin|=9.995e-01
+D1N2 it=57 n_passed=1 next=2:50 a2=0.000000e+00 within=1 feas_tol=1.0e-09
+D1TEST it=57 blk=pin:50 side=2 alpha=0.000000e+00 |p|=3.459e+01 verdict=1 rho=1.085541e-04 screen=1 solves=1 me+|W|=196 n=196 usable=1 elim=0 schur=1
+D1XPICK it=57 found=1 cond1=0 j=pin:44 sigma=8.902e+05 g=4.630530e-08 sign=1 moves=0 pos_coeff_members=2 of_which_entered_at_point=1 |v_e|=9.999e-01 |v_w|=0.000e+00 |v_pin|=9.999e-01
+D1STEP it=57 kind=2 idx=50 side=2 alpha=0.000000e+00 dx=0.000e+00 xch=1 j=pin:44
+D1PASS s=0[main] it=58 me=150 rows=0 pins=46 n=196 |p|=3.459e+01 step_tol=1.000e-09 elim_only=0 schur=1 verdict=0 |x|=1.000000e+00 drop_prev=0:-1
+D1TEST it=58 blk=pin:44 side=2 alpha=0.000000e+00 |p|=3.459e+01 verdict=1 rho=9.991705e-01 screen=1 solves=1 me+|W|=196 n=196 usable=1 elim=0 schur=1
+D1XPICK it=58 found=0 cond1=0 j=pin:-1 sigma=0.000e+00 g=-4.734934e-04 sign=1 moves=0 pos_coeff_members=2 of_which_entered_at_point=2 |v_e|=9.996e-01 |v_w|=0.000e+00 |v_pin|=6.665e-01
+D1N2 it=58 n_passed=1 next=2:128 a2=0.000000e+00 within=1 feas_tol=1.0e-09
+D1TEST it=58 blk=pin:128 side=2 alpha=0.000000e+00 |p|=3.459e+01 verdict=1 rho=1.077875e-05 screen=1 solves=1 me+|W|=196 n=196 usable=1 elim=0 schur=1
+D1XPICK it=58 found=1 cond1=0 j=pin:127 sigma=9.063e+04 g=-1.017901e-05 sign=1 moves=0 pos_coeff_members=3 of_which_entered_at_point=0 |v_e|=1.000e+00 |v_w|=0.000e+00 |v_pin|=6.250e-01
+D1STEP it=58 kind=2 idx=128 side=2 alpha=0.000000e+00 dx=0.000e+00 xch=1 j=pin:127
+D1PASS s=0[main] it=59 me=150 rows=0 pins=46 n=196 |p|=3.459e+01 step_tol=1.000e-09 elim_only=0 schur=1 verdict=0 |x|=1.000000e+00 drop_prev=0:-1
+D1TEST it=59 blk=pin:44 side=2 alpha=0.000000e+00 |p|=3.459e+01 verdict=1 rho=9.991705e-01 screen=1 solves=1 me+|W|=196 n=196 usable=1 elim=0 schur=1
+D1XPICK it=59 found=0 cond1=0 j=pin:-1 sigma=0.000e+00 g=-4.734934e-04 sign=1 moves=0 pos_coeff_members=2 of_which_entered_at_point=2 |v_e|=9.996e-01 |v_w|=0.000e+00 |v_pin|=6.665e-01
+D1N2 it=59 n_passed=1 next=2:127 a2=-0.000000e+00 within=1 feas_tol=1.0e-09
+D1TEST it=59 blk=pin:127 side=1 alpha=-0.000000e+00 |p|=3.459e+01 verdict=1 rho=5.906290e-07 screen=1 solves=1 me+|W|=196 n=196 usable=1 elim=0 schur=1
+D1XPICK it=59 found=1 cond1=0 j=pin:132 sigma=1.173e+05 g=-3.774323e-07 sign=-1 moves=0 pos_coeff_members=3 of_which_entered_at_point=1 |v_e|=5.455e-01 |v_w|=0.000e+00 |v_pin|=4.545e-01
+D1STEP it=59 kind=2 idx=127 side=1 alpha=-0.000000e+00 dx=-0.000e+00 xch=1 j=pin:132
+D1PASS s=0[main] it=60 me=150 rows=0 pins=46 n=196 |p|=3.459e+01 step_tol=1.000e-09 elim_only=0 schur=1 verdict=0 |x|=1.000000e+00 drop_prev=0:-1
+D1TEST it=60 blk=pin:44 side=2 alpha=0.000000e+00 |p|=3.459e+01 verdict=1 rho=9.991705e-01 screen=1 solves=1 me+|W|=196 n=196 usable=1 elim=0 schur=1
+D1XPICK it=60 found=0 cond1=0 j=pin:-1 sigma=0.000e+00 g=-4.734934e-04 sign=1 moves=0 pos_coeff_members=2 of_which_entered_at_point=2 |v_e|=9.996e-01 |v_w|=0.000e+00 |v_pin|=6.665e-01
+D1N2 it=60 n_passed=1 next=2:132 a2=0.000000e+00 within=1 feas_tol=1.0e-09
+D1TEST it=60 blk=pin:132 side=2 alpha=0.000000e+00 |p|=3.459e+01 verdict=1 rho=1.242067e-06 screen=1 solves=1 me+|W|=196 n=196 usable=1 elim=0 schur=1
+D1XPICK it=60 found=1 cond1=0 j=pin:92 sigma=1.549e+05 g=-1.252054e-06 sign=1 moves=0 pos_coeff_members=3 of_which_entered_at_point=2 |v_e|=5.455e-01 |v_w|=0.000e+00 |v_pin|=4.545e-01
+D1STEP it=60 kind=2 idx=132 side=2 alpha=0.000000e+00 dx=0.000e+00 xch=1 j=pin:92
+D1PASS s=0[main] it=61 me=150 rows=0 pins=46 n=196 |p|=3.459e+01 step_tol=1.000e-09 elim_only=0 schur=1 verdict=0 |x|=1.000000e+00 drop_prev=0:-1
+D1TEST it=61 blk=pin:44 side=2 alpha=0.000000e+00 |p|=3.459e+01 verdict=1 rho=9.991705e-01 screen=1 solves=1 me+|W|=196 n=196 usable=1 elim=0 schur=1
+D1XPICK it=61 found=0 cond1=0 j=pin:-1 sigma=0.000e+00 g=-4.734934e-04 sign=1 moves=0 pos_coeff_members=2 of_which_entered_at_point=2 |v_e|=9.996e-01 |v_w|=0.000e+00 |v_pin|=6.665e-01
+D1N2 it=61 n_passed=1 next=2:92 a2=0.000000e+00 within=1 feas_tol=1.0e-09
+D1TEST it=61 blk=pin:92 side=2 alpha=0.000000e+00 |p|=3.459e+01 verdict=1 rho=1.135001e-05 screen=1 solves=1 me+|W|=196 n=196 usable=1 elim=0 schur=1
+D1XPICK it=61 found=0 cond1=0 j=pin:-1 sigma=0.000e+00 g=-1.154169e-05 sign=1 moves=0 pos_coeff_members=3 of_which_entered_at_point=3 |v_e|=1.000e+00 |v_w|=0.000e+00 |v_pin|=6.250e-01
+D1N2 it=61 n_passed=2 next=2:46 a2=1.703017e-11 within=1 feas_tol=1.0e-09
+D1TEST it=61 blk=pin:46 side=2 alpha=1.703017e-11 |p|=3.459e+01 verdict=1 rho=9.991705e-01 screen=1 solves=1 me+|W|=196 n=196 usable=1 elim=0 schur=1
+D1XPICK it=61 found=1 cond1=0 j=pin:48 sigma=2.779e+02 g=-4.735173e-04 sign=1 moves=0 pos_coeff_members=2 of_which_entered_at_point=1 |v_e|=9.996e-01 |v_w|=0.000e+00 |v_pin|=9.995e-01
+D1STEP it=61 kind=2 idx=46 side=2 alpha=1.703017e-11 dx=5.892e-10 xch=1 j=pin:48
+D1PASS s=0[main] it=62 me=150 rows=0 pins=46 n=196 |p|=3.459e+01 step_tol=1.000e-09 elim_only=0 schur=1 verdict=0 |x|=1.000000e+00 drop_prev=0:-1
+D1TEST it=62 blk=pin:48 side=1 alpha=-0.000000e+00 |p|=3.459e+01 verdict=1 rho=9.996378e-01 screen=1 solves=1 me+|W|=196 n=196 usable=1 elim=0 schur=1
+D1XPICK it=62 found=0 cond1=0 j=pin:-1 sigma=0.000e+00 g=-4.473099e-06 sign=-1 moves=0 pos_coeff_members=2 of_which_entered_at_point=2 |v_e|=9.996e-01 |v_w|=0.000e+00 |v_pin|=1.000e+00
+D1N2 it=62 n_passed=1 next=2:92 a2=0.000000e+00 within=1 feas_tol=1.0e-09
+D1TEST it=62 blk=pin:92 side=2 alpha=0.000000e+00 |p|=3.459e+01 verdict=1 rho=1.135001e-05 screen=1 solves=1 me+|W|=196 n=196 usable=1 elim=0 schur=1
+D1XPICK it=62 found=0 cond1=0 j=pin:-1 sigma=0.000e+00 g=-1.154169e-05 sign=1 moves=0 pos_coeff_members=3 of_which_entered_at_point=3 |v_e|=1.000e+00 |v_w|=0.000e+00 |v_pin|=6.250e-01
+D1N2 it=62 n_passed=2 next=2:14 a2=2.160435e-12 within=1 feas_tol=1.0e-09
+D1TEST it=62 blk=pin:14 side=2 alpha=2.160435e-12 |p|=3.459e+01 verdict=1 rho=9.996378e-01 screen=1 solves=1 me+|W|=196 n=196 usable=1 elim=0 schur=1
+D1XPICK it=62 found=0 cond1=0 j=pin:-1 sigma=0.000e+00 g=-4.422208e-06 sign=1 moves=0 pos_coeff_members=1 of_which_entered_at_point=1 |v_e|=3.623e-04 |v_w|=0.000e+00 |v_pin|=1.193e-04
+D1N2 it=62 n_passed=3 next=2:1 a2=7.331249e-04 within=0 feas_tol=1.0e-09
+D1EXIT it=62 add_exit=3(1=infeas,2=rejected,3=terminate) schur=1
+D1PASS s=0[main] it=63 me=150 rows=0 pins=46 n=196 |p|=3.459e+01 step_tol=1.000e-09 elim_only=1 schur=0 verdict=0 |x|=1.000000e+00 drop_prev=0:-1
+D1TEST it=63 blk=pin:48 side=1 alpha=-0.000000e+00 |p|=3.459e+01 verdict=1 rho=9.996378e-01 screen=1 solves=1 me+|W|=196 n=196 usable=1 elim=1 schur=0
+D1XPICK it=63 found=0 cond1=0 j=pin:-1 sigma=0.000e+00 g=-4.447753e-06 sign=-1 moves=0 pos_coeff_members=2 of_which_entered_at_point=2 |v_e|=9.996e-01 |v_w|=0.000e+00 |v_pin|=1.000e+00
+D1N2 it=63 n_passed=1 next=2:92 a2=0.000000e+00 within=1 feas_tol=1.0e-09
+D1TEST it=63 blk=pin:92 side=2 alpha=0.000000e+00 |p|=3.459e+01 verdict=1 rho=7.005666e-06 screen=1 solves=1 me+|W|=196 n=196 usable=1 elim=1 schur=0
+D1XPICK it=63 found=0 cond1=0 j=pin:-1 sigma=0.000e+00 g=-7.122627e-06 sign=1 moves=0 pos_coeff_members=2 of_which_entered_at_point=2 |v_e|=1.000e+00 |v_w|=0.000e+00 |v_pin|=1.000e+00
+D1N2 it=63 n_passed=2 next=2:14 a2=2.160435e-12 within=1 feas_tol=1.0e-09
+D1TEST it=63 blk=pin:14 side=2 alpha=2.160435e-12 |p|=3.459e+01 verdict=1 rho=9.996378e-01 screen=1 solves=1 me+|W|=196 n=196 usable=1 elim=1 schur=0
+D1XPICK it=63 found=0 cond1=0 j=pin:-1 sigma=0.000e+00 g=-4.422209e-06 sign=1 moves=0 pos_coeff_members=1 of_which_entered_at_point=1 |v_e|=3.623e-04 |v_w|=0.000e+00 |v_pin|=3.570e-04
+D1N2 it=63 n_passed=3 next=2:1 a2=7.331249e-04 within=0 feas_tol=1.0e-09
+D1EXIT it=63 add_exit=3(1=infeas,2=rejected,3=terminate) schur=0
+D1CNT MAIN status=kNumericalError minors=64 facts=2 adds=62 drops=16 dep_tests=80 dep_dep=34 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=16 xch_b=16 xch_sh=0 cert=0 cert_rej=0 passover=16 blk_term=1 deferred=0 retreat=1 reentry=8 zm_exh=0 zm_cap=0
+--- OFF twin tail ---
+D1STEP it=1954 kind=2 idx=151 side=2 alpha=0.000000e+00 dx=0.000e+00 xch=0 j=pin:-1
+D1PASS s=0[twin] it=1955 me=150 rows=0 pins=90 n=196 |p|=0.000e+00 step_tol=1.000e-09 elim_only=0 schur=0 verdict=0 |x|=1.000000e+00 drop_prev=0:-1
+D1DROP it=1955 dropped=1 is_ineq=0 idx=151 exempt_worst=0.000e+00
+D1PASS s=0[twin] it=1956 me=150 rows=0 pins=89 n=196 |p|=2.505e-07 step_tol=1.000e-09 elim_only=0 schur=0 verdict=0 |x|=1.000000e+00 drop_prev=2:151
+D1STEP it=1956 kind=2 idx=151 side=2 alpha=0.000000e+00 dx=0.000e+00 xch=0 j=pin:-1
+D1PASS s=0[twin] it=1957 me=150 rows=0 pins=90 n=196 |p|=0.000e+00 step_tol=1.000e-09 elim_only=0 schur=0 verdict=0 |x|=1.000000e+00 drop_prev=0:-1
+D1DROP it=1957 dropped=1 is_ineq=0 idx=151 exempt_worst=0.000e+00
+D1PASS s=0[twin] it=1958 me=150 rows=0 pins=89 n=196 |p|=2.505e-07 step_tol=1.000e-09 elim_only=0 schur=0 verdict=0 |x|=1.000000e+00 drop_prev=2:151
+D1STEP it=1958 kind=2 idx=151 side=2 alpha=0.000000e+00 dx=0.000e+00 xch=0 j=pin:-1
+D1PASS s=0[twin] it=1959 me=150 rows=0 pins=90 n=196 |p|=0.000e+00 step_tol=1.000e-09 elim_only=0 schur=0 verdict=0 |x|=1.000000e+00 drop_prev=0:-1
+D1DROP it=1959 dropped=1 is_ineq=0 idx=151 exempt_worst=0.000e+00
+D1CNT TWIN_OFF status=kMaxIter minors=1960 facts=1 adds=1018 drops=929 dep_tests=0 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT TWIN_OFF status=kMaxIter obj=-8.601944492300e+05 stat=5.739e+03(scale 8.947e+04) eqviol=2.987e-01 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=30 atup=62 |x|inf=1.000000e+00 KKT@tol1e-09=NO
+D1DIFF |x_main - x_off|inf=9.681e-01

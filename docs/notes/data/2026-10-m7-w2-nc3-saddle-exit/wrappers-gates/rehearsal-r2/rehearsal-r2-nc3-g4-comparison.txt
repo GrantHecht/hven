@@ -1,0 +1,263 @@
+=== NC3 RUN 1 GATE RECORD HEAD-walk vs M7 W2 NC3 R2 HEAD-walk (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+=== M6 CLOSE HEAD-walk vs M7 W2 NC3 R2 HEAD-walk (GATED 1e-5) === cells compared: 27  columns compared: 75  differences: 17  within gate: 71
+    f7_n10000_bound_neutral          qp_minors                          A=2  B=3
+    f7_n10000_bound_neutral          kkt_residual                       A=6.300386629e-13  B=2.577688827e-16
+    f7_n10000_bound_neutral          kkt_stationarity                   A=6.300386629e-13  B=4.157740631e-20
+    f7_n10000_bound_neutral          kkt_primal                         A=1.938683814e-13  B=2.577688827e-16
+    f7_n1000_bound_neutral           qp_minors                          A=2  B=3
+    f7_n20000_bound_corrupted        kkt_residual                       A=1.838068087e-13  B=1.666854227e-16
+    f7_n20000_bound_corrupted        kkt_stationarity                   A=1.838068087e-13  B=1.929109266e-20
+    f7_n20000_bound_neutral          qp_minors                          A=2  B=3
+    f7_n20000_bound_neutral          kkt_residual                       A=1.259925399e-12  B=2.736657446e-16
+    f7_n20000_bound_neutral          kkt_stationarity                   A=1.259925399e-12  B=1.842627533e-20
+    f7_n20000_bound_neutral          kkt_primal                         A=3.876288913e-13  B=2.736657446e-16
+    f7_n2000_bound_neutral           qp_minors                          A=2  B=3
+    f7_n2000_bound_neutral           kkt_residual                       A=1.259764344e-13  B=2.268490671e-16
+    f7_n2000_bound_neutral           kkt_stationarity                   A=1.259764344e-13  B=1.906353527e-19
+    f7_n5000_bound_neutral           qp_minors                          A=2  B=3
+    f7_n5000_bound_neutral           kkt_residual                       A=3.150169743e-13  B=2.762562164e-16
+    f7_n5000_bound_neutral           kkt_stationarity                   A=3.150169743e-13  B=6.107901643e-20
+    WITHIN-GATE f7_n10000_bound_activity kkt_residual A=1.016559106e-15  B=1.526686123e-16
+    WITHIN-GATE f7_n10000_bound_activity kkt_stationarity A=1.016559106e-15  B=3.214754733e-20
+    WITHIN-GATE f7_n10000_bound_activity kkt_primal A=1.151644575e-16  B=1.526686123e-16
+    WITHIN-GATE f7_n10000_bound_corrupted kkt_residual A=9.189172314e-14  B=1.671094944e-16
+    WITHIN-GATE f7_n10000_bound_corrupted kkt_stationarity A=9.189172314e-14  B=3.930762271e-20
+    WITHIN-GATE f7_n10000_bound_corrupted kkt_primal A=2.698456180e-14  B=1.671094944e-16
+    WITHIN-GATE f7_n10000_bound_physics kkt_residual A=1.016559106e-15  B=1.526686123e-16
+    WITHIN-GATE f7_n10000_bound_physics kkt_stationarity A=1.016559106e-15  B=3.214754733e-20
+    WITHIN-GATE f7_n10000_bound_physics kkt_primal A=1.151644575e-16  B=1.526686123e-16
+    WITHIN-GATE f7_n10000_bound_warm kkt_residual A=4.196022966e-14  B=1.662515014e-16
+    WITHIN-GATE f7_n10000_bound_warm kkt_stationarity A=4.196022966e-14  B=4.093882288e-20
+    WITHIN-GATE f7_n10000_bound_warm kkt_primal A=2.701549016e-14  B=1.662515014e-16
+    WITHIN-GATE f7_n1000_bound_activity kkt_residual A=1.168049964e-16  B=1.046850816e-16
+    WITHIN-GATE f7_n1000_bound_activity kkt_stationarity A=1.168049964e-16  B=3.093787840e-19
+    WITHIN-GATE f7_n1000_bound_activity kkt_primal A=1.079633839e-16  B=1.046850816e-16
+    WITHIN-GATE f7_n1000_bound_corrupted kkt_residual A=9.157873527e-15  B=1.682850541e-16
+    WITHIN-GATE f7_n1000_bound_corrupted kkt_stationarity A=9.157873527e-15  B=3.308987148e-19
+    WITHIN-GATE f7_n1000_bound_corrupted kkt_primal A=2.734932492e-15  B=1.682850541e-16
+    WITHIN-GATE f7_n1000_bound_neutral kkt_residual A=6.295832335e-14  B=2.291628627e-16
+    WITHIN-GATE f7_n1000_bound_neutral kkt_stationarity A=6.295832335e-14  B=4.550684509e-19
+    WITHIN-GATE f7_n1000_bound_neutral kkt_primal A=1.937883159e-14  B=2.291628627e-16
+    WITHIN-GATE f7_n1000_bound_physics kkt_residual A=1.168049964e-16  B=1.046850816e-16
+    WITHIN-GATE f7_n1000_bound_physics kkt_stationarity A=1.168049964e-16  B=3.093787840e-19
+    WITHIN-GATE f7_n1000_bound_physics kkt_primal A=1.079633839e-16  B=1.046850816e-16
+    WITHIN-GATE f7_n1000_bound_warm kkt_residual A=4.198558725e-15  B=1.643802027e-16
+    WITHIN-GATE f7_n1000_bound_warm kkt_stationarity A=4.198558725e-15  B=4.012818588e-19
+    WITHIN-GATE f7_n1000_bound_warm kkt_primal A=2.759659681e-15  B=1.643802027e-16
+    WITHIN-GATE f7_n1000_path_warm kkt_residual A=3.364060441e-10  B=3.364070057e-10
+    WITHIN-GATE f7_n1000_path_warm kkt_stationarity A=3.364060441e-10  B=3.364070057e-10
+    WITHIN-GATE f7_n1000_path_warm kkt_primal A=4.445677160e-11  B=4.445654955e-11
+    WITHIN-GATE f7_n1000_path_warm kkt_complementarity A=1.081515277e-15  B=1.081543198e-15
+    WITHIN-GATE f7_n20000_bound_activity kkt_residual A=2.015847636e-15  B=1.493952834e-16
+    WITHIN-GATE f7_n20000_bound_activity kkt_stationarity A=2.015847636e-15  B=1.855986499e-20
+    WITHIN-GATE f7_n20000_bound_activity kkt_primal A=1.365272909e-16  B=1.493952834e-16
+    WITHIN-GATE f7_n20000_bound_corrupted kkt_primal A=5.392944711e-14  B=1.666854227e-16
+    WITHIN-GATE f7_n20000_bound_physics kkt_residual A=2.015847636e-15  B=1.493952834e-16
+    WITHIN-GATE f7_n20000_bound_physics kkt_stationarity A=2.015847636e-15  B=1.855986499e-20
+    WITHIN-GATE f7_n20000_bound_physics kkt_primal A=1.365272909e-16  B=1.493952834e-16
+    WITHIN-GATE f7_n20000_bound_warm kkt_residual A=8.390643067e-14  B=1.658943444e-16
+    WITHIN-GATE f7_n20000_bound_warm kkt_stationarity A=8.390643067e-14  B=1.894326321e-20
+    WITHIN-GATE f7_n20000_bound_warm kkt_primal A=5.394909349e-14  B=1.658943444e-16
+    WITHIN-GATE f7_n2000_bound_activity kkt_residual A=2.168216410e-16  B=1.487729324e-16
+    WITHIN-GATE f7_n2000_bound_activity kkt_stationarity A=2.168216410e-16  B=1.753093503e-19
+    WITHIN-GATE f7_n2000_bound_activity kkt_primal A=1.105729050e-16  B=1.487729324e-16
+    WITHIN-GATE f7_n2000_bound_corrupted kkt_residual A=1.834292390e-14  B=1.683245654e-16
+    WITHIN-GATE f7_n2000_bound_corrupted kkt_stationarity A=1.834292390e-14  B=2.308164781e-19
+    WITHIN-GATE f7_n2000_bound_corrupted kkt_primal A=5.425851090e-15  B=1.683245654e-16
+    WITHIN-GATE f7_n2000_bound_neutral kkt_primal A=3.878155499e-14  B=2.268490671e-16
+    WITHIN-GATE f7_n2000_bound_physics kkt_residual A=2.168216410e-16  B=1.487729324e-16
+    WITHIN-GATE f7_n2000_bound_physics kkt_stationarity A=2.168216410e-16  B=1.753093503e-19
+    WITHIN-GATE f7_n2000_bound_physics kkt_primal A=1.105729050e-16  B=1.487729324e-16
+    WITHIN-GATE f7_n2000_bound_warm kkt_residual A=8.394924906e-15  B=1.655051213e-16
+    WITHIN-GATE f7_n2000_bound_warm kkt_stationarity A=8.394924906e-15  B=2.246490195e-19
+    WITHIN-GATE f7_n2000_bound_warm kkt_primal A=5.419408507e-15  B=1.655051213e-16
+    WITHIN-GATE f7_n5000_bound_activity kkt_residual A=5.167818090e-16  B=1.105340187e-16
+    WITHIN-GATE f7_n5000_bound_activity kkt_stationarity A=5.167818090e-16  B=6.456310117e-20
+    WITHIN-GATE f7_n5000_bound_activity kkt_primal A=1.110891234e-16  B=1.105340187e-16
+    WITHIN-GATE f7_n5000_bound_corrupted kkt_residual A=4.592198241e-14  B=1.672772211e-16
+    WITHIN-GATE f7_n5000_bound_corrupted kkt_stationarity A=4.592198241e-14  B=7.350657795e-20
+    WITHIN-GATE f7_n5000_bound_corrupted kkt_primal A=1.351772635e-14  B=1.672772211e-16
+    WITHIN-GATE f7_n5000_bound_neutral kkt_primal A=9.692247005e-14  B=2.762562164e-16
+    WITHIN-GATE f7_n5000_bound_physics kkt_residual A=5.167818090e-16  B=1.105340187e-16
+    WITHIN-GATE f7_n5000_bound_physics kkt_stationarity A=5.167818090e-16  B=6.456310117e-20
+    WITHIN-GATE f7_n5000_bound_physics kkt_primal A=1.110891234e-16  B=1.105340187e-16
+    WITHIN-GATE f7_n5000_bound_warm kkt_residual A=2.098298050e-14  B=1.665917653e-16
+    WITHIN-GATE f7_n5000_bound_warm kkt_stationarity A=2.098298050e-14  B=7.130958625e-20
+    WITHIN-GATE f7_n5000_bound_warm kkt_primal A=1.353613753e-14  B=1.665917653e-16
+    WITHIN-GATE f7_n800_path_warm kkt_residual A=4.212497650e-10  B=4.212494012e-10
+    WITHIN-GATE f7_n800_path_warm kkt_stationarity A=4.212497650e-10  B=4.212494012e-10
+    WITHIN-GATE f7_n800_path_warm kkt_primal A=4.285150013e-11  B=4.285172217e-11
+    WITHIN-GATE f7_n800_path_warm kkt_complementarity A=1.295715293e-15  B=1.295709534e-15
+=== PREVIOUS (P1) GATE RECORD HEAD-walk vs M7 W2 NC3 R2 HEAD-walk (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+=== NC3 RUN 1 GATE RECORD HEAD-ssn vs M7 W2 NC3 R2 HEAD-ssn (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+=== M6 CLOSE HEAD-ssn vs M7 W2 NC3 R2 HEAD-ssn (GATED 1e-5) === cells compared: 27  columns compared: 75  differences: 13  within gate: 68
+    f7_n10000_bound_neutral          kkt_residual                       A=6.300386629e-13  B=2.539471419e-16
+    f7_n10000_bound_neutral          kkt_stationarity                   A=6.300386629e-13  B=5.708319475e-17
+    f7_n10000_bound_neutral          kkt_primal                         A=1.938683814e-13  B=2.539471419e-16
+    f7_n20000_bound_corrupted        kkt_residual                       A=1.838068087e-13  B=1.667907073e-16
+    f7_n20000_bound_corrupted        kkt_stationarity                   A=1.838068087e-13  B=1.864258306e-20
+    f7_n20000_bound_neutral          kkt_residual                       A=1.259925399e-12  B=2.718505842e-16
+    f7_n20000_bound_neutral          kkt_stationarity                   A=1.259925399e-12  B=4.861257742e-20
+    f7_n20000_bound_neutral          kkt_primal                         A=3.876288913e-13  B=2.718505842e-16
+    f7_n2000_bound_neutral           kkt_residual                       A=1.259764344e-13  B=2.814958196e-16
+    f7_n2000_bound_neutral           kkt_stationarity                   A=1.259764344e-13  B=1.819532650e-19
+    f7_n5000_bound_neutral           kkt_residual                       A=3.150169743e-13  B=2.837686285e-16
+    f7_n5000_bound_neutral           kkt_stationarity                   A=3.150169743e-13  B=6.898272718e-20
+    f7_n800_path_warm                kkt_stationarity                   A=1.759608197e-09  B=1.759468081e-09
+    WITHIN-GATE f7_n10000_bound_activity kkt_residual A=1.016559106e-15  B=1.526686123e-16
+    WITHIN-GATE f7_n10000_bound_activity kkt_stationarity A=1.016559106e-15  B=3.342802291e-20
+    WITHIN-GATE f7_n10000_bound_activity kkt_primal A=1.151644575e-16  B=1.526686123e-16
+    WITHIN-GATE f7_n10000_bound_corrupted kkt_residual A=9.189172314e-14  B=1.665490275e-16
+    WITHIN-GATE f7_n10000_bound_corrupted kkt_stationarity A=9.189172314e-14  B=3.842915690e-20
+    WITHIN-GATE f7_n10000_bound_corrupted kkt_primal A=2.698456180e-14  B=1.665490275e-16
+    WITHIN-GATE f7_n10000_bound_physics kkt_residual A=1.016559106e-15  B=1.526686123e-16
+    WITHIN-GATE f7_n10000_bound_physics kkt_stationarity A=1.016559106e-15  B=3.342802291e-20
+    WITHIN-GATE f7_n10000_bound_physics kkt_primal A=1.151644575e-16  B=1.526686123e-16
+    WITHIN-GATE f7_n10000_bound_warm kkt_residual A=4.196022966e-14  B=1.661297193e-16
+    WITHIN-GATE f7_n10000_bound_warm kkt_stationarity A=4.196022966e-14  B=3.726944968e-20
+    WITHIN-GATE f7_n10000_bound_warm kkt_primal A=2.701549016e-14  B=1.661297193e-16
+    WITHIN-GATE f7_n1000_bound_activity kkt_residual A=1.168049964e-16  B=1.046850816e-16
+    WITHIN-GATE f7_n1000_bound_activity kkt_stationarity A=1.168049964e-16  B=3.392366954e-19
+    WITHIN-GATE f7_n1000_bound_activity kkt_primal A=1.079633839e-16  B=1.046850816e-16
+    WITHIN-GATE f7_n1000_bound_corrupted kkt_residual A=9.157873527e-15  B=1.584702630e-16
+    WITHIN-GATE f7_n1000_bound_corrupted kkt_stationarity A=9.157873527e-15  B=3.525774643e-19
+    WITHIN-GATE f7_n1000_bound_corrupted kkt_primal A=2.734932492e-15  B=1.584702630e-16
+    WITHIN-GATE f7_n1000_bound_neutral kkt_residual A=6.295832335e-14  B=2.640559144e-16
+    WITHIN-GATE f7_n1000_bound_neutral kkt_stationarity A=6.295832335e-14  B=4.243635066e-19
+    WITHIN-GATE f7_n1000_bound_neutral kkt_primal A=1.937883159e-14  B=2.640559144e-16
+    WITHIN-GATE f7_n1000_bound_physics kkt_residual A=1.168049964e-16  B=1.046850816e-16
+    WITHIN-GATE f7_n1000_bound_physics kkt_stationarity A=1.168049964e-16  B=3.392366954e-19
+    WITHIN-GATE f7_n1000_bound_physics kkt_primal A=1.079633839e-16  B=1.046850816e-16
+    WITHIN-GATE f7_n1000_bound_warm kkt_residual A=4.198558725e-15  B=1.603659630e-16
+    WITHIN-GATE f7_n1000_bound_warm kkt_stationarity A=4.198558725e-15  B=3.841294416e-19
+    WITHIN-GATE f7_n1000_bound_warm kkt_primal A=2.759659681e-15  B=1.603659630e-16
+    WITHIN-GATE f7_n1000_path_warm kkt_residual A=3.737114082e-10  B=3.737121456e-10
+    WITHIN-GATE f7_n1000_path_warm kkt_stationarity A=5.051869825e-07  B=5.051903958e-07
+    WITHIN-GATE f7_n1000_path_warm kkt_primal A=3.392465198e-10  B=3.392461867e-10
+    WITHIN-GATE f7_n1000_path_warm kkt_complementarity A=2.152414444e-15  B=2.152435045e-15
+    WITHIN-GATE f7_n20000_bound_activity kkt_residual A=2.015847636e-15  B=1.493938956e-16
+    WITHIN-GATE f7_n20000_bound_activity kkt_stationarity A=2.015847636e-15  B=1.814999700e-20
+    WITHIN-GATE f7_n20000_bound_activity kkt_primal A=1.365272909e-16  B=1.493938956e-16
+    WITHIN-GATE f7_n20000_bound_corrupted kkt_primal A=5.392944711e-14  B=1.667907073e-16
+    WITHIN-GATE f7_n20000_bound_physics kkt_residual A=2.015847636e-15  B=1.493938956e-16
+    WITHIN-GATE f7_n20000_bound_physics kkt_stationarity A=2.015847636e-15  B=1.814999700e-20
+    WITHIN-GATE f7_n20000_bound_physics kkt_primal A=1.365272909e-16  B=1.493938956e-16
+    WITHIN-GATE f7_n20000_bound_warm kkt_residual A=8.390643067e-14  B=1.668159170e-16
+    WITHIN-GATE f7_n20000_bound_warm kkt_stationarity A=8.390643067e-14  B=1.886881695e-20
+    WITHIN-GATE f7_n20000_bound_warm kkt_primal A=5.394909349e-14  B=1.668159170e-16
+    WITHIN-GATE f7_n2000_bound_activity kkt_residual A=2.168216410e-16  B=1.487729324e-16
+    WITHIN-GATE f7_n2000_bound_activity kkt_stationarity A=2.168216410e-16  B=1.753887596e-19
+    WITHIN-GATE f7_n2000_bound_activity kkt_primal A=1.105729050e-16  B=1.487729324e-16
+    WITHIN-GATE f7_n2000_bound_corrupted kkt_residual A=1.834292390e-14  B=1.680968078e-16
+    WITHIN-GATE f7_n2000_bound_corrupted kkt_stationarity A=1.834292390e-14  B=1.952410943e-19
+    WITHIN-GATE f7_n2000_bound_corrupted kkt_primal A=5.425851090e-15  B=1.680968078e-16
+    WITHIN-GATE f7_n2000_bound_neutral kkt_primal A=3.878155499e-14  B=2.814958196e-16
+    WITHIN-GATE f7_n2000_bound_physics kkt_residual A=2.168216410e-16  B=1.487729324e-16
+    WITHIN-GATE f7_n2000_bound_physics kkt_stationarity A=2.168216410e-16  B=1.753887596e-19
+    WITHIN-GATE f7_n2000_bound_physics kkt_primal A=1.105729050e-16  B=1.487729324e-16
+    WITHIN-GATE f7_n2000_bound_warm kkt_residual A=8.394924906e-15  B=1.629943962e-16
+    WITHIN-GATE f7_n2000_bound_warm kkt_stationarity A=8.394924906e-15  B=2.398426730e-19
+    WITHIN-GATE f7_n2000_bound_warm kkt_primal A=5.419408507e-15  B=1.629943962e-16
+    WITHIN-GATE f7_n5000_bound_activity kkt_residual A=5.167818090e-16  B=1.090455168e-16
+    WITHIN-GATE f7_n5000_bound_activity kkt_stationarity A=5.167818090e-16  B=6.641929447e-20
+    WITHIN-GATE f7_n5000_bound_activity kkt_primal A=1.110891234e-16  B=1.090455168e-16
+    WITHIN-GATE f7_n5000_bound_corrupted kkt_residual A=4.592198241e-14  B=1.666331436e-16
+    WITHIN-GATE f7_n5000_bound_corrupted kkt_stationarity A=4.592198241e-14  B=6.331571281e-20
+    WITHIN-GATE f7_n5000_bound_corrupted kkt_primal A=1.351772635e-14  B=1.666331436e-16
+    WITHIN-GATE f7_n5000_bound_neutral kkt_primal A=9.692247005e-14  B=2.837686285e-16
+    WITHIN-GATE f7_n5000_bound_physics kkt_residual A=5.167818090e-16  B=1.090455168e-16
+    WITHIN-GATE f7_n5000_bound_physics kkt_stationarity A=5.167818090e-16  B=6.641929447e-20
+    WITHIN-GATE f7_n5000_bound_physics kkt_primal A=1.110891234e-16  B=1.090455168e-16
+    WITHIN-GATE f7_n5000_bound_warm kkt_residual A=2.098298050e-14  B=1.666001360e-16
+    WITHIN-GATE f7_n5000_bound_warm kkt_stationarity A=2.098298050e-14  B=6.730272336e-20
+    WITHIN-GATE f7_n5000_bound_warm kkt_primal A=1.353613753e-14  B=1.666001360e-16
+    WITHIN-GATE f7_n800_path_warm kkt_complementarity A=1.241564460e-14  B=1.241564905e-14
+=== PREVIOUS (P1) GATE RECORD HEAD-ssn vs M7 W2 NC3 R2 HEAD-ssn (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+=== NC3 RUN 1 GATE RECORD HEAD-ipm vs M7 W2 NC3 R2 HEAD-ipm (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+=== M6 CLOSE HEAD-ipm vs M7 W2 NC3 R2 HEAD-ipm (GATED 1e-5) === cells compared: 27  columns compared: 75  differences: 13  within gate: 72
+    f7_n10000_bound_neutral          kkt_residual                       A=6.300386629e-13  B=2.667901461e-16
+    f7_n10000_bound_neutral          kkt_stationarity                   A=6.300386629e-13  B=1.112051623e-16
+    f7_n10000_bound_neutral          kkt_primal                         A=1.938683814e-13  B=2.667901461e-16
+    f7_n1000_path_warm               kkt_stationarity                   A=3.449707634e-07  B=3.449751647e-07
+    f7_n20000_bound_corrupted        kkt_residual                       A=1.838068087e-13  B=1.668623676e-16
+    f7_n20000_bound_corrupted        kkt_stationarity                   A=1.838068087e-13  B=4.605576215e-20
+    f7_n20000_bound_neutral          kkt_residual                       A=1.259925399e-12  B=2.784929608e-16
+    f7_n20000_bound_neutral          kkt_stationarity                   A=1.259925399e-12  B=2.300294158e-19
+    f7_n20000_bound_neutral          kkt_primal                         A=3.876288913e-13  B=2.784929608e-16
+    f7_n2000_bound_neutral           kkt_residual                       A=1.259764344e-13  B=2.657684518e-16
+    f7_n2000_bound_neutral           kkt_stationarity                   A=1.259764344e-13  B=1.923823581e-19
+    f7_n5000_bound_neutral           kkt_residual                       A=3.150169743e-13  B=2.757401620e-16
+    f7_n5000_bound_neutral           kkt_stationarity                   A=3.150169743e-13  B=6.700824706e-20
+    WITHIN-GATE f7_n10000_bound_activity kkt_residual A=1.016559106e-15  B=1.482059397e-16
+    WITHIN-GATE f7_n10000_bound_activity kkt_stationarity A=1.016559106e-15  B=6.567979500e-20
+    WITHIN-GATE f7_n10000_bound_activity kkt_primal A=1.151644575e-16  B=1.482059397e-16
+    WITHIN-GATE f7_n10000_bound_corrupted kkt_residual A=9.189172314e-14  B=1.670270043e-16
+    WITHIN-GATE f7_n10000_bound_corrupted kkt_stationarity A=9.189172314e-14  B=3.869550906e-20
+    WITHIN-GATE f7_n10000_bound_corrupted kkt_primal A=2.698456180e-14  B=1.670270043e-16
+    WITHIN-GATE f7_n10000_bound_corrupted ipqp_alpha_d_min A=9.928393328e-01  B=9.928393327e-01
+    WITHIN-GATE f7_n10000_bound_physics kkt_residual A=1.016559106e-15  B=1.482059397e-16
+    WITHIN-GATE f7_n10000_bound_physics kkt_stationarity A=1.016559106e-15  B=6.567979500e-20
+    WITHIN-GATE f7_n10000_bound_physics kkt_primal A=1.151644575e-16  B=1.482059397e-16
+    WITHIN-GATE f7_n10000_bound_warm kkt_residual A=4.196022966e-14  B=1.657592712e-16
+    WITHIN-GATE f7_n10000_bound_warm kkt_stationarity A=4.196022966e-14  B=3.476474678e-20
+    WITHIN-GATE f7_n10000_bound_warm kkt_primal A=2.701549016e-14  B=1.657592712e-16
+    WITHIN-GATE f7_n1000_bound_activity kkt_residual A=1.168049964e-16  B=1.047965245e-16
+    WITHIN-GATE f7_n1000_bound_activity kkt_stationarity A=1.168049964e-16  B=5.071609772e-19
+    WITHIN-GATE f7_n1000_bound_activity kkt_primal A=1.079633839e-16  B=1.047965245e-16
+    WITHIN-GATE f7_n1000_bound_corrupted kkt_residual A=9.157873527e-15  B=1.682583696e-16
+    WITHIN-GATE f7_n1000_bound_corrupted kkt_stationarity A=9.157873527e-15  B=3.919644963e-19
+    WITHIN-GATE f7_n1000_bound_corrupted kkt_primal A=2.734932492e-15  B=1.682583696e-16
+    WITHIN-GATE f7_n1000_bound_neutral kkt_residual A=6.295832335e-14  B=2.168486497e-16
+    WITHIN-GATE f7_n1000_bound_neutral kkt_stationarity A=6.295832335e-14  B=4.169519683e-19
+    WITHIN-GATE f7_n1000_bound_neutral kkt_primal A=1.937883159e-14  B=2.168486497e-16
+    WITHIN-GATE f7_n1000_bound_physics kkt_residual A=1.168049964e-16  B=1.047965245e-16
+    WITHIN-GATE f7_n1000_bound_physics kkt_stationarity A=1.168049964e-16  B=5.071609772e-19
+    WITHIN-GATE f7_n1000_bound_physics kkt_primal A=1.079633839e-16  B=1.047965245e-16
+    WITHIN-GATE f7_n1000_bound_warm kkt_residual A=4.198558725e-15  B=1.579180283e-16
+    WITHIN-GATE f7_n1000_bound_warm kkt_stationarity A=4.198558725e-15  B=3.953526281e-19
+    WITHIN-GATE f7_n1000_bound_warm kkt_primal A=2.759659681e-15  B=1.579180283e-16
+    WITHIN-GATE f7_n1000_path_warm kkt_residual A=4.052819191e-10  B=4.052811420e-10
+    WITHIN-GATE f7_n1000_path_warm kkt_primal A=4.052819191e-10  B=4.052811420e-10
+    WITHIN-GATE f7_n1000_path_warm kkt_complementarity A=2.159522079e-15  B=2.159529114e-15
+    WITHIN-GATE f7_n20000_bound_activity kkt_residual A=2.015847636e-15  B=1.529842578e-16
+    WITHIN-GATE f7_n20000_bound_activity kkt_stationarity A=2.015847636e-15  B=3.039921838e-19
+    WITHIN-GATE f7_n20000_bound_activity kkt_primal A=1.365272909e-16  B=1.529842578e-16
+    WITHIN-GATE f7_n20000_bound_corrupted kkt_primal A=5.392944711e-14  B=1.668623676e-16
+    WITHIN-GATE f7_n20000_bound_physics kkt_residual A=2.015847636e-15  B=1.529842578e-16
+    WITHIN-GATE f7_n20000_bound_physics kkt_stationarity A=2.015847636e-15  B=3.039921838e-19
+    WITHIN-GATE f7_n20000_bound_physics kkt_primal A=1.365272909e-16  B=1.529842578e-16
+    WITHIN-GATE f7_n20000_bound_warm kkt_residual A=8.390643067e-14  B=1.668327670e-16
+    WITHIN-GATE f7_n20000_bound_warm kkt_stationarity A=8.390643067e-14  B=2.200962174e-20
+    WITHIN-GATE f7_n20000_bound_warm kkt_primal A=5.394909349e-14  B=1.668327670e-16
+    WITHIN-GATE f7_n2000_bound_activity kkt_residual A=2.168216410e-16  B=1.487729324e-16
+    WITHIN-GATE f7_n2000_bound_activity kkt_stationarity A=2.168216410e-16  B=1.672360675e-19
+    WITHIN-GATE f7_n2000_bound_activity kkt_primal A=1.105729050e-16  B=1.487729324e-16
+    WITHIN-GATE f7_n2000_bound_corrupted kkt_residual A=1.834292390e-14  B=1.650181098e-16
+    WITHIN-GATE f7_n2000_bound_corrupted kkt_stationarity A=1.834292390e-14  B=2.545466355e-19
+    WITHIN-GATE f7_n2000_bound_corrupted kkt_primal A=5.425851090e-15  B=1.650181098e-16
+    WITHIN-GATE f7_n2000_bound_neutral kkt_primal A=3.878155499e-14  B=2.657684518e-16
+    WITHIN-GATE f7_n2000_bound_physics kkt_residual A=2.168216410e-16  B=1.487729324e-16
+    WITHIN-GATE f7_n2000_bound_physics kkt_stationarity A=2.168216410e-16  B=1.672360675e-19
+    WITHIN-GATE f7_n2000_bound_physics kkt_primal A=1.105729050e-16  B=1.487729324e-16
+    WITHIN-GATE f7_n2000_bound_warm kkt_residual A=8.394924906e-15  B=1.692050709e-16
+    WITHIN-GATE f7_n2000_bound_warm kkt_stationarity A=8.394924906e-15  B=1.718153394e-19
+    WITHIN-GATE f7_n2000_bound_warm kkt_primal A=5.419408507e-15  B=1.692050709e-16
+    WITHIN-GATE f7_n5000_bound_activity kkt_residual A=5.167818090e-16  B=1.100174737e-16
+    WITHIN-GATE f7_n5000_bound_activity kkt_stationarity A=5.167818090e-16  B=6.946662784e-20
+    WITHIN-GATE f7_n5000_bound_activity kkt_primal A=1.110891234e-16  B=1.100174737e-16
+    WITHIN-GATE f7_n5000_bound_corrupted kkt_residual A=4.592198241e-14  B=1.664110621e-16
+    WITHIN-GATE f7_n5000_bound_corrupted kkt_stationarity A=4.592198241e-14  B=6.651855614e-20
+    WITHIN-GATE f7_n5000_bound_corrupted kkt_primal A=1.351772635e-14  B=1.664110621e-16
+    WITHIN-GATE f7_n5000_bound_neutral kkt_primal A=9.692247005e-14  B=2.757401620e-16
+    WITHIN-GATE f7_n5000_bound_physics kkt_residual A=5.167818090e-16  B=1.100174737e-16
+    WITHIN-GATE f7_n5000_bound_physics kkt_stationarity A=5.167818090e-16  B=6.946662784e-20
+    WITHIN-GATE f7_n5000_bound_physics kkt_primal A=1.110891234e-16  B=1.100174737e-16
+    WITHIN-GATE f7_n5000_bound_warm kkt_residual A=2.098298050e-14  B=1.670443027e-16
+    WITHIN-GATE f7_n5000_bound_warm kkt_stationarity A=2.098298050e-14  B=7.414847011e-20
+    WITHIN-GATE f7_n5000_bound_warm kkt_primal A=1.353613753e-14  B=1.670443027e-16
+    WITHIN-GATE f7_n800_path_warm kkt_residual A=4.193246102e-10  B=4.193231574e-10
+    WITHIN-GATE f7_n800_path_warm kkt_stationarity A=4.193246102e-10  B=4.193231574e-10
+    WITHIN-GATE f7_n800_path_warm kkt_primal A=4.286759836e-11  B=4.286770938e-11
+    WITHIN-GATE f7_n800_path_warm kkt_complementarity A=1.296276061e-15  B=1.296270044e-15
+    WITHIN-GATE f7_n800_path_warm ipqp_restart_shift_max A=9.700753218e-08  B=9.700753219e-08
+=== PREVIOUS (P1) GATE RECORD HEAD-ipm vs M7 W2 NC3 R2 HEAD-ipm (EXACT) === cells compared: 27  columns compared: 75  differences: 0

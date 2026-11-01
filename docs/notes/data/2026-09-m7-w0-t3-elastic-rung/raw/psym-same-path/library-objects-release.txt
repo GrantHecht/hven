@@ -1,0 +1,409 @@
+# P-SYM same-path, release: 60256f50 vs 3d3145a8
+
+## the four LIBRARY objects, per symbol
+
+PER-SYMBOL  CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o: PERSYM 110 identical, 0 noise-only, 3 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 1 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 1095 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::dump_options(hven::solvers::SqpOptions const&, std::basic_ostream<char, std::char_traits<char> >&)
+                            STRUCTURAL: normalized listing is 340 lines vs 352 -- instructions were added or removed
+              DIFFERS       hven::solvers::validate(hven::solvers::SqpOptions const&)
+                            STRUCTURAL: normalized listing is 1128 lines vs 1142 -- instructions were added or removed
+              DIFFERS       hven::solvers::sqp_preset(std::basic_string_view<char, std::char_traits<char> >)
+                            STRUCTURAL: normalized listing is 126 lines vs 127 -- instructions were added or removed
+SYMBOLS     CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o: COVERAGE FINDINGS
+              ONLY-BEFORE   hven::solvers::certified_feasibility_fallback(hven::solvers::QpEngine&, hven::solvers::QpProblem const&, hven::solvers::NlpEval const&, hven::solvers::QpSolution const*, hven::solvers::IpqpInfeasibilityEvidence const&, hven::solvers::SolveOverrides const&, hven::solvers::SqpOptions const&, double, hven::solvers::SqpCounters&, hven::solvers::SqpIterate&, std::optional<hven::solvers::ElasticLadderReport>&, hven::solvers::SqpFallbackVerdictTraceEvent&, hven::solvers::TraceSink*)
+              ONLY-BEFORE   hven::solvers::run_elastic_ladder(hven::solvers::QpEngine&, hven::solvers::QpProblem const&, hven::solvers::ElasticSeedSource const&, double, hven::solvers::SqpOptions const&, hven::solvers::SqpCounters&, std::optional<double>, hven::solvers::TraceSink*)
+              ONLY-AFTER    hven::solvers::run_elastic_ladder(hven::solvers::QpEngine&, hven::solvers::QpProblem const&, hven::solvers::ElasticSeedSource const&, double, hven::solvers::SqpOptions const&, hven::solvers::SqpCounters&, std::optional<double>, hven::solvers::TraceSink*, hven::solvers::IpqpEngine*)
+              ONLY-AFTER    hven::solvers::SqpSolver::elastic_rung_tier()
+              ONLY-AFTER    hven::solvers::certified_feasibility_fallback(hven::solvers::QpEngine&, hven::solvers::QpProblem const&, hven::solvers::NlpEval const&, hven::solvers::QpSolution const*, hven::solvers::IpqpInfeasibilityEvidence const&, hven::solvers::SolveOverrides const&, hven::solvers::SqpOptions const&, double, hven::solvers::SqpCounters&, hven::solvers::SqpIterate&, std::optional<hven::solvers::ElasticLadderReport>&, hven::solvers::SqpFallbackVerdictTraceEvent&, hven::solvers::TraceSink*, hven::solvers::IpqpEngine*)
+              ONLY-AFTER    hven::solvers::SqpSolver::elastic_ipqp_engine()
+              LOCAL-FAMILY  .L.str: 95 before, 96 after
+              LOCAL-FAMILY  GCC_except_table: 98 before, 100 after
+
+PER-SYMBOL  CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o: PERSYM 259 identical, 1 noise-only, 40 differing, 2 only-before, 4 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 1 with unequal trailing alignment padding, 0 duplicate copies identical, 2 rank-tagged, 0 section moves, 3816 relocation records compared (0 through the symbol map), 2 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SqpSolver::route_through_ipqp_tier(hven::solvers::SqpSolver::SolveState&, hven::solvers::SqpSolver::MajorState&, hven::solvers::AssemblyEvalSeam&, long, bool, hven::solvers::SolveOverrides const&)
+                            PAD-ROUTE DECLINED: 8 alignment-pad lines vs 11 (62 -> 100 bytes); start 0x1b360 (mod 32 = 0) -> 0x1be60 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 981 lines vs 1021 -- instructions were added or removed
+              DIFFERS       hven::solvers::SqpSolver::SqpSolver(hven::solvers::SqpOptions const&)
+                              UNCLASSIFIED  - 	vmovups 0x154(%r15),%ymm0 ;LEN=9
+                                            + 	vmovups 0x15c(%r15),%ymm0 ;LEN=9
+                              UNCLASSIFIED  - 	vmovups %ymm0,0x154(%rbx) ;LEN=8
+                                            + 	vmovups %ymm0,0x15c(%rbx) ;LEN=8
+                              UNCLASSIFIED  - 	mov    0x168(%r15),%edx ;LEN=7
+                                            + 	mov    0x170(%r15),%edx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x2a8(%rbx),%rax ;LEN=7
+                                            + 	lea    0x2b8(%rbx),%rax ;LEN=7
+                              UNCLASSIFIED  - 	mov    %r12,0x178(%rbx) ;LEN=7
+                                            + 	mov    %r12,0x180(%rbx) ;LEN=7
+                              ... and 24 more unclassified differences
+                            COUNTS 118 insns; CHANGED 29; UNCLASSIFIED 29; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::run_major(hven::solvers::SqpSolver::SolveState&, hven::solvers::SqpSolver::MajorState&, hven::solvers::AssemblyEvalSeam&, hven::solvers::NlpModelAssembly&, hven::solvers::SqpWarmStart const&, hven::solvers::SolveBudget, long)::$_2::operator()(hven::solvers::SqpIterate) const
+                              UNCLASSIFIED  - 	mov    0x1a8(%r14),%rdi ;LEN=7
+                                            + 	mov    0x1b8(%r14),%rdi ;LEN=7
+                              UNCLASSIFIED  - 	cmpq   $0x0,0x348(%r14) ;LEN=8
+                                            + 	cmpq   $0x0,0x358(%r14) ;LEN=8
+                              UNCLASSIFIED  - 	cmpq   $0x0,0x348(%r14) ;LEN=8
+                                            + 	cmpq   $0x0,0x358(%r14) ;LEN=8
+                            COUNTS 240 insns; CHANGED 3; UNCLASSIFIED 3; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::fire_iteration_event(hven::solvers::SqpSolver::SolveState&, hven::solvers::SqpIterate const&, hven::solvers::SqpSolver::MajorState const&)
+                              UNCLASSIFIED  - 	cmpq   $0x0,0x348(%rdi) ;LEN=8
+                                            + 	cmpq   $0x0,0x358(%rdi) ;LEN=8
+                              UNCLASSIFIED  - 	sub    0x3a0(%r14),%rax ;LEN=7
+                                            + 	sub    0x3b0(%r14),%rax ;LEN=7
+                            COUNTS 89 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::solve_from_entry(hven::solvers::NlpModelAssembly&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::SolveBudget, std::optional<std::chrono::time_point<std::chrono::_V2::steady_clock, std::chrono::duration<long, std::ratio<1l, 1000000000l> > > >)
+                              UNCLASSIFIED  - 	mov    %rax,0x3a0(%r12) ;LEN=8
+                                            + 	mov    %rax,0x3b0(%r12) ;LEN=8
+                              UNCLASSIFIED  - 	movzbl 0x250(%r12),%eax ;LEN=9
+                                            + 	movzbl 0x260(%r12),%eax ;LEN=9
+                              UNCLASSIFIED  - 	movb   $0x0,0x250(%r12) ;LEN=9
+                                            + 	movb   $0x0,0x260(%r12) ;LEN=9
+                              UNCLASSIFIED  - 	lea    0x1b0(%r12),%rdi ;LEN=8
+                                            + 	lea    0x1c0(%r12),%rdi ;LEN=8
+                              UNCLASSIFIED  - 	movq   $0x0,0x330(%r12) ;LEN=12
+                                            + 	movq   $0x0,0x340(%r12) ;LEN=12
+                            COUNTS 263 insns; CHANGED 5; UNCLASSIFIED 5; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::emit_trace_fallback_verdict(hven::solvers::SqpFallbackVerdictTraceEvent const&) const
+                              UNCLASSIFIED  - 	mov    0x1a8(%rdi),%rdi ;LEN=7
+                                            + 	mov    0x1b8(%rdi),%rdi ;LEN=7
+                            COUNTS 7 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::enter_restoration(hven::solvers::SqpSolver::SolveState&, hven::solvers::SqpSolver::MajorState&, hven::solvers::AssemblyEvalSeam&, hven::solvers::NlpModelAssembly&, long, hven::solvers::SqpSolver::RestorationCandidate)
+                            PAD-ROUTE DECLINED: 66 alignment-pad lines vs 67 (732 -> 747 bytes); start 0x1dc50 (mod 32 = 16) -> 0x1e880 (mod 32 = 0) -- a non-pad line differs somewhere other than a control-transfer target (rule 3)
+                            STRUCTURAL: normalized listing is 2620 lines vs 2621 -- instructions were added or removed
+              DIFFERS       hven::solvers::SqpSolver::run_major(hven::solvers::SqpSolver::SolveState&, hven::solvers::SqpSolver::MajorState&, hven::solvers::AssemblyEvalSeam&, hven::solvers::NlpModelAssembly&, hven::solvers::SqpWarmStart const&, hven::solvers::SolveBudget, long)
+                            PAD-ROUTE DECLINED: 50 alignment-pad lines vs 52 (525 -> 565 bytes); start 0x22120 (mod 32 = 0) -> 0x22d60 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 3384 lines vs 3415 -- instructions were added or removed
+              DIFFERS       hven::solvers::SqpSolver::invoke_iteration_callback(hven::solvers::IterationEvent const&)
+                              UNCLASSIFIED  - 	movb   $0x1,0x35c(%rdi) ;LEN=7
+                                            + 	movb   $0x1,0x36c(%rdi) ;LEN=7
+                              UNCLASSIFIED  - 	cmpq   $0x0,0x348(%rdi) ;LEN=8
+                                            + 	cmpq   $0x0,0x358(%rdi) ;LEN=8
+                              UNCLASSIFIED  - 	lea    0x338(%rbx),%rdi ;LEN=7
+                                            + 	lea    0x348(%rbx),%rdi ;LEN=7
+                              UNCLASSIFIED  - 	call   *0x350(%rbx) ;LEN=6
+                                            + 	call   *0x360(%rbx) ;LEN=6
+                              UNCLASSIFIED  - 	movb   $0x0,0x35c(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x36c(%rbx) ;LEN=7
+                              ... and 1 more unclassified differences
+                            COUNTS 30 insns; CHANGED 6; UNCLASSIFIED 6; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::ipqp_engine()
+                              UNCLASSIFIED  - 	mov    0x188(%rdi),%rax ;LEN=7
+                                            + 	mov    0x190(%rdi),%rax ;LEN=7
+                              UNCLASSIFIED  - 	mov    0x168(%rbx),%edx ;LEN=6
+                                            + 	mov    0x170(%rbx),%edx ;LEN=6
+                              UNCLASSIFIED  - 	mov    0x188(%rbx),%r15 ;LEN=7
+                                            + 	mov    0x190(%rbx),%r15 ;LEN=7
+                              UNCLASSIFIED  - 	mov    %r14,0x188(%rbx) ;LEN=7
+                                            + 	mov    %r14,0x190(%rbx) ;LEN=7
+                              UNCLASSIFIED  - 	mov    0x188(%rbx),%r14 ;LEN=7
+                                            + 	mov    0x190(%rbx),%r14 ;LEN=7
+                              ... and 2 more unclassified differences
+                            COUNTS 43 insns; CHANGED 7; UNCLASSIFIED 7; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::record_solve(hven::solvers::SqpResult, double)
+                              UNCLASSIFIED  - 	mov    0x330(%rsi),%rax ;LEN=7
+                                            + 	mov    0x340(%rsi),%rax ;LEN=7
+                              UNCLASSIFIED  - 	vmovsd 0x258(%rsi),%xmm0 ;LEN=8
+                                            + 	vmovsd 0x268(%rsi),%xmm0 ;LEN=8
+                              UNCLASSIFIED  - 	mov    0x268(%r15),%r12 ;LEN=7
+                                            + 	mov    0x278(%r15),%r12 ;LEN=7
+                              UNCLASSIFIED  - 	mov    0x270(%r15),%rsi ;LEN=7
+                                            + 	mov    0x280(%r15),%rsi ;LEN=7
+                              UNCLASSIFIED  - 	mov    0x278(%r15),%r12 ;LEN=7
+                                            + 	mov    0x288(%r15),%r12 ;LEN=7
+                              ... and 6 more unclassified differences
+                            COUNTS 451 insns; CHANGED 11; UNCLASSIFIED 11; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::capture_completed_warm_start(hven::solvers::SqpResult&, hven::solvers::AssemblyEvalSeam const&, hven::solvers::NlpModelAssembly const&)
+                              UNCLASSIFIED  - 	mov    0x2c0(%rbx),%rax ;LEN=7
+                                            + 	mov    0x2d0(%rbx),%rax ;LEN=7
+                              UNCLASSIFIED  - 	mov    %rcx,0x2c0(%rbx) ;LEN=7
+                                            + 	mov    %rcx,0x2d0(%rbx) ;LEN=7
+                              UNCLASSIFIED  - 	mov    0x2c8(%rbx),%rax ;LEN=7
+                                            + 	mov    0x2d8(%rbx),%rax ;LEN=7
+                              UNCLASSIFIED  - 	mov    %rcx,0x2c8(%rbx) ;LEN=7
+                                            + 	mov    %rcx,0x2d8(%rbx) ;LEN=7
+                              UNCLASSIFIED  - 	mov    0x2d0(%rbx),%rax ;LEN=7
+                                            + 	mov    0x2e0(%rbx),%rax ;LEN=7
+                              ... and 19 more unclassified differences
+                            COUNTS 580 insns; CHANGED 24; UNCLASSIFIED 24; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::capture_completed_warm_start(hven::solvers::SqpResult&, hven::solvers::AssemblyEvalSeam const&, hven::solvers::NlpModelAssembly const&)::$_0::operator()() const
+                              UNCLASSIFIED  - 	mov    0x2c0(%rdi),%rax ;LEN=7
+                                            + 	mov    0x2d0(%rdi),%rax ;LEN=7
+                              UNCLASSIFIED  - 	movq   $0x0,0x2c0(%rdi) ;LEN=11
+                                            + 	movq   $0x0,0x2d0(%rdi) ;LEN=11
+                              UNCLASSIFIED  - 	mov    0x2c8(%rdi),%rax ;LEN=7
+                                            + 	mov    0x2d8(%rdi),%rax ;LEN=7
+                              UNCLASSIFIED  - 	movq   $0x0,0x2c8(%rdi) ;LEN=11
+                                            + 	movq   $0x0,0x2d8(%rdi) ;LEN=11
+                              UNCLASSIFIED  - 	mov    0x2d0(%rdi),%rax ;LEN=7
+                                            + 	mov    0x2e0(%rdi),%rax ;LEN=7
+                              ... and 18 more unclassified differences
+                            COUNTS 79 insns; CHANGED 23; UNCLASSIFIED 23; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::export_warm_start() const
+                              UNCLASSIFIED  - 	cmpb   $0x0,0x328(%rsi) ;LEN=7
+                                            + 	cmpb   $0x0,0x338(%rsi) ;LEN=7
+                              UNCLASSIFIED  - 	add    $0x2c0,%rsi ;LEN=7
+                                            + 	add    $0x2d0,%rsi ;LEN=7
+                            COUNTS 28 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       std::_Function_handler<hven::solvers::CallbackAction (hven::solvers::IterationEvent const&), hven::solvers::SqpSolver::enter_restoration(hven::solvers::SqpSolver::SolveState&, hven::solvers::SqpSolver::MajorState&, hven::solvers::AssemblyEvalSeam&, hven::solvers::NlpModelAssembly&, long, hven::solvers::SqpSolver::RestorationCandidate)::$_0>::_M_invoke(std::_Any_data const&, hven::solvers::IterationEvent const&)
+                              UNCLASSIFIED  - 	sub    0x3a0(%rbx),%rax ;LEN=7
+                                            + 	sub    0x3b0(%rbx),%rax ;LEN=7
+                            COUNTS 93 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::set_iteration_callback(std::function<hven::solvers::CallbackAction (hven::solvers::IterationEvent const&)>, hven::solvers::IterationPayload)
+                              UNCLASSIFIED  - 	movzbl 0x380(%rbx),%ecx ;LEN=7
+                                            + 	movzbl 0x390(%rbx),%ecx ;LEN=7
+                              UNCLASSIFIED  - 	add    $0x360,%rdi ;LEN=7
+                                            + 	add    $0x370,%rdi ;LEN=7
+                              UNCLASSIFIED  - 	cmpb   $0x0,0x35c(%rbx) ;LEN=7
+                                            + 	cmpb   $0x0,0x36c(%rbx) ;LEN=7
+                              UNCLASSIFIED  - 	cmpb   $0x0,0x28a(%rbx) ;LEN=7
+                                            + 	cmpb   $0x0,0x29a(%rbx) ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x380(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x390(%rbx) ;LEN=7
+                              ... and 18 more unclassified differences
+                            COUNTS 113 insns; CHANGED 23; UNCLASSIFIED 23; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::attach_ledger(hven::solvers::Ledger*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >)
+                              UNCLASSIFIED  - 	mov    %rsi,0x290(%rdi) ;LEN=7
+                                            + 	mov    %rsi,0x2a0(%rdi) ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x2a8(%rdi),%r8 ;LEN=7
+                                            + 	lea    0x2b8(%rdi),%r8 ;LEN=7
+                              UNCLASSIFIED  - 	mov    0x298(%rdi),%rax ;LEN=7
+                                            + 	mov    0x2a8(%rdi),%rax ;LEN=7
+                              UNCLASSIFIED  - 	mov    %rsi,0x298(%rdi) ;LEN=7
+                                            + 	mov    %rsi,0x2a8(%rdi) ;LEN=7
+                              UNCLASSIFIED  - 	mov    %rsi,0x2a0(%rdi) ;LEN=7
+                                            + 	mov    %rsi,0x2b0(%rdi) ;LEN=7
+                              ... and 8 more unclassified differences
+                            COUNTS 95 insns; CHANGED 13; UNCLASSIFIED 13; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::apply_pending_iteration_callback(bool)
+                            PAD-ROUTE DECLINED: 2 alignment-pad lines vs 1 (21 -> 5 bytes); start 0xd630 (mod 32 = 16) -> 0xe140 (mod 32 = 0) -- a non-pad line differs somewhere other than a control-transfer target (rule 3)
+                            STRUCTURAL: normalized listing is 85 lines vs 84 -- instructions were added or removed
+              DIFFERS       hven::solvers::SqpSolver::attach_trace(hven::solvers::TraceSink*)
+                              UNCLASSIFIED  - 	cmpb   $0x1,0x28a(%rdi) ;LEN=7
+                                            + 	cmpb   $0x1,0x29a(%rdi) ;LEN=7
+                              UNCLASSIFIED  - 	mov    %rsi,0x1a0(%rdi) ;LEN=7
+                                            + 	mov    %rsi,0x1b0(%rdi) ;LEN=7
+                              UNCLASSIFIED  - 	mov    %rsi,0x1a8(%rdi) ;LEN=7
+                                            + 	mov    %rsi,0x1b8(%rdi) ;LEN=7
+                              UNCLASSIFIED  - 	mov    0x188(%rdi),%rdi ;LEN=7
+                                            + 	mov    0x190(%rdi),%rdi ;LEN=7
+                            COUNTS 32 insns; CHANGED 4; UNCLASSIFIED 4; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::solve_impl(hven::solvers::AssemblyEvalSeam&, hven::solvers::NlpModelAssembly&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::SqpWarmStart const&, hven::solvers::SolveBudget)
+                              UNCLASSIFIED  - 	movb   $0x1,0x28a(%rsi) ;LEN=7
+                                            + 	movb   $0x1,0x29a(%rsi) ;LEN=7
+                              UNCLASSIFIED  - 	mov    0x190(%rbx),%r15 ;LEN=7
+                                            + 	mov    0x1a0(%rbx),%r15 ;LEN=7
+                              UNCLASSIFIED  - 	movq   $0x0,0x190(%rbx) ;LEN=11
+                                            + 	movq   $0x0,0x1a0(%rbx) ;LEN=11
+                              UNCLASSIFIED  - 	mov    0x198(%rbx),%r15 ;LEN=7
+                                            + 	mov    0x1a8(%rbx),%r15 ;LEN=7
+                              UNCLASSIFIED  - 	movq   $0x0,0x198(%rbx) ;LEN=11
+                                            + 	movq   $0x0,0x1a8(%rbx) ;LEN=11
+                              ... and 24 more unclassified differences
+                            COUNTS 375 insns; CHANGED 29; UNCLASSIFIED 29; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::ssn_engine()
+                              UNCLASSIFIED  - 	mov    0x180(%rdi),%rbx ;LEN=7
+                                            + 	mov    0x188(%rdi),%rbx ;LEN=7
+                              UNCLASSIFIED  - 	mov    0x168(%r14),%eax ;LEN=7
+                                            + 	mov    0x170(%r14),%eax ;LEN=7
+                              UNCLASSIFIED  - 	mov    0x180(%r14),%r15 ;LEN=7
+                                            + 	mov    0x188(%r14),%r15 ;LEN=7
+                              UNCLASSIFIED  - 	mov    %rbx,0x180(%r14) ;LEN=7
+                                            + 	mov    %rbx,0x188(%r14) ;LEN=7
+                              UNCLASSIFIED  - 	mov    0x180(%r14),%rbx ;LEN=7
+                                            + 	mov    0x188(%r14),%rbx ;LEN=7
+                            COUNTS 92 insns; CHANGED 5; UNCLASSIFIED 5; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::solve_impl_body(hven::solvers::AssemblyEvalSeam&, hven::solvers::NlpModelAssembly&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::SqpWarmStart const&, hven::solvers::SolveBudget, std::unique_ptr<hven::solvers::GlobalizationStrategy, std::default_delete<hven::solvers::GlobalizationStrategy> >)
+                              UNCLASSIFIED  - 	add    $0xa8,%rsi ;LEN=7
+                                            + 	add    $0xb0,%rsi ;LEN=7
+                              UNCLASSIFIED  - 	mov    0x178(%r15),%rsi ;LEN=7
+                                            + 	mov    0x180(%r15),%rsi ;LEN=7
+                              UNCLASSIFIED  - 	mov    0x178(%r15),%rsi ;LEN=7
+                                            + 	mov    0x180(%r15),%rsi ;LEN=7
+                              UNCLASSIFIED  - 	mov    0x178(%r15),%rsi ;LEN=7
+                                            + 	mov    0x180(%r15),%rsi ;LEN=7
+                              UNCLASSIFIED  - 	mov    0x178(%r15),%rsi ;LEN=7
+                                            + 	mov    0x180(%r15),%rsi ;LEN=7
+                              ... and 1 more unclassified differences
+                            COUNTS 2768 insns; CHANGED 6; UNCLASSIFIED 6; DELTAS
+              NOISE-ONLY    hven::solvers::census_major_activity(hven::solvers::QpProblem const&, hven::solvers::QpSolution const&, std::vector<bool, std::allocator<bool> > const&, std::vector<hven::solvers::BoundState, std::allocator<hven::solvers::BoundState> > const&, Eigen::Matrix<double, -1, 1, 0, -1, 1>&, hven::solvers::SqpIterate&)
+                            COUNTS 993 insns; CHANGED 127; UNCLASSIFIED 0; DELTAS (pad-merged)
+            PAD-MERGED 32 alignment-pad lines vs 33 (328 -> 344 bytes, +16); 993 non-pad lines, 866 identical, 127 control-transfer targets shifted +16; 132 control-transfer target(s) resolved to the SAME instruction; start 0xa340 (mod 32 = 0) -> 0xadf0 (mod 32 = 16)
+              DIFFERS       hven::solvers::SqpSolver::emit_trace_qp_mode(hven::solvers::QpModeTraceEvent const&) const
+                              UNCLASSIFIED  - 	mov    0x1a8(%rdi),%rdi ;LEN=7
+                                            + 	mov    0x1b8(%rdi),%rdi ;LEN=7
+                            COUNTS 7 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::emit_trace_sqp_major(hven::solvers::SqpMajorTraceEvent const&) const
+                              UNCLASSIFIED  - 	mov    0x1a8(%rdi),%rdi ;LEN=7
+                                            + 	mov    0x1b8(%rdi),%rdi ;LEN=7
+                            COUNTS 7 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::consume_payload(hven::solvers::AssemblyEvalSeam const&, hven::solvers::NlpModelAssembly const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::WarmStartData const&)
+                              UNCLASSIFIED  - 	movzbl 0x250(%rsi),%eax ;LEN=7
+                                            + 	movzbl 0x260(%rsi),%eax ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x1b0(%rsi),%rbx ;LEN=7
+                                            + 	lea    0x1c0(%rsi),%rbx ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x250(%rsi) ;LEN=7
+                                            + 	movb   $0x0,0x260(%rsi) ;LEN=7
+                              UNCLASSIFIED  - 	movq   $0x0,0x330(%rbp) ;LEN=11
+                                            + 	movq   $0x0,0x340(%rbp) ;LEN=11
+                              UNCLASSIFIED  - 	incq   0x330(%rbp) ;LEN=7
+                                            + 	incq   0x340(%rbp) ;LEN=7
+                            COUNTS 2144 insns; CHANGED 5; UNCLASSIFIED 5; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::ssn_options(double) const
+                              UNCLASSIFIED  - 	movzbl 0x141(%rbx),%eax ;LEN=7
+                                            + 	movzbl 0x149(%rbx),%eax ;LEN=7
+                              UNCLASSIFIED  - 	mov    0x144(%rbx),%rax ;LEN=7
+                                            + 	mov    0x14c(%rbx),%rax ;LEN=7
+                              UNCLASSIFIED  - 	mov    0x14c(%rbx),%eax ;LEN=6
+                                            + 	mov    0x154(%rbx),%eax ;LEN=6
+                            COUNTS 29 insns; CHANGED 3; UNCLASSIFIED 3; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::set_options(hven::solvers::SqpOptions)
+                            STRUCTURAL: normalized listing is 206 lines vs 217 -- instructions were added or removed
+              DIFFERS       hven::solvers::SqpSolver::emit_trace_route(hven::solvers::IpqpTraceRouteEvent const&) const
+                              UNCLASSIFIED  - 	mov    0x1a8(%rdi),%rdi ;LEN=7
+                                            + 	mov    0x1b8(%rdi),%rdi ;LEN=7
+                            COUNTS 7 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::prepare_solve(hven::solvers::SqpSolver::SolveState&, hven::solvers::AssemblyEvalSeam&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::SqpWarmStart const&, std::unique_ptr<hven::solvers::GlobalizationStrategy, std::default_delete<hven::solvers::GlobalizationStrategy> >)
+                              UNCLASSIFIED  - 	mov    0x188(%rbp),%rdi ;LEN=7
+                                            + 	mov    0x190(%rbp),%rdi ;LEN=7
+                              UNCLASSIFIED  - 	mov    0x268(%rbp),%rax ;LEN=7
+                                            + 	mov    0x278(%rbp),%rax ;LEN=7
+                              UNCLASSIFIED  - 	vmovups %ymm0,0x258(%rbp) ;LEN=8
+                                            + 	vmovups %ymm0,0x268(%rbp) ;LEN=8
+                              UNCLASSIFIED  - 	mov    0x278(%rbp),%rax ;LEN=7
+                                            + 	mov    0x288(%rbp),%rax ;LEN=7
+                              UNCLASSIFIED  - 	vmovups %xmm0,0x278(%rbp) ;LEN=8
+                                            + 	vmovups %xmm0,0x288(%rbp) ;LEN=8
+                              ... and 5 more unclassified differences
+                            COUNTS 1853 insns; CHANGED 10; UNCLASSIFIED 10; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::~SqpSolver()
+                            STRUCTURAL: normalized listing is 128 lines vs 139 -- instructions were added or removed
+              DIFFERS       hven::solvers::SqpSolver::route_through_ssn_warm_grade(hven::solvers::QpProblem const&, hven::solvers::IpqpResult const&, double, double&, long&, hven::solvers::SqpCounters&, hven::solvers::QpSolution&)
+                              UNCLASSIFIED  - 	mov    0x144(%r15),%rax ;LEN=7
+                                            + 	mov    0x14c(%r15),%rax ;LEN=7
+                              UNCLASSIFIED  - 	mov    0x14c(%r15),%eax ;LEN=7
+                                            + 	mov    0x154(%r15),%eax ;LEN=7
+                              UNCLASSIFIED  - 	vmaxsd 0x258(%r13),%xmm0,%xmm0 ;LEN=9
+                                            + 	vmaxsd 0x268(%r13),%xmm0,%xmm0 ;LEN=9
+                              UNCLASSIFIED  - 	vmovsd %xmm0,0x258(%r13) ;LEN=9
+                                            + 	vmovsd %xmm0,0x268(%r13) ;LEN=9
+                              UNCLASSIFIED  - 	mov    0x1a8(%r13),%rdi ;LEN=7
+                                            + 	mov    0x1b8(%r13),%rdi ;LEN=7
+                              ... and 14 more unclassified differences
+                            COUNTS 998 insns; CHANGED 19; UNCLASSIFIED 19; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::solve_from_entry(hven::solvers::NlpModelAssembly&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::WarmStartData const&, hven::solvers::SolveBudget, std::optional<std::chrono::time_point<std::chrono::_V2::steady_clock, std::chrono::duration<long, std::ratio<1l, 1000000000l> > > >)
+                              UNCLASSIFIED  - 	mov    %rax,0x3a0(%r12) ;LEN=8
+                                            + 	mov    %rax,0x3b0(%r12) ;LEN=8
+                            COUNTS 1149 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::ipqp_options(bool) const
+                              UNCLASSIFIED  - 	vmovups 0x120(%rsi),%ymm0 ;LEN=8
+                                            + 	vmovups 0x128(%rsi),%ymm0 ;LEN=8
+                              UNCLASSIFIED  - 	vmovups 0xa8(%rsi),%ymm0 ;LEN=8
+                                            + 	vmovups 0xb0(%rsi),%ymm0 ;LEN=8
+                              UNCLASSIFIED  - 	vmovups 0xc8(%rsi),%ymm1 ;LEN=8
+                                            + 	vmovups 0xd0(%rsi),%ymm1 ;LEN=8
+                              UNCLASSIFIED  - 	vmovups 0xe8(%rsi),%ymm2 ;LEN=8
+                                            + 	vmovups 0xf0(%rsi),%ymm2 ;LEN=8
+                              UNCLASSIFIED  - 	vmovups 0x108(%rsi),%ymm3 ;LEN=8
+                                            + 	vmovups 0x110(%rsi),%ymm3 ;LEN=8
+                            COUNTS 15 insns; CHANGED 5; UNCLASSIFIED 5; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::install_solve_scaling(hven::solvers::AssemblyEvalSeam&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+                              UNCLASSIFIED  - 	cmpb   $0x1,0x150(%rdi) ;LEN=7
+                                            + 	cmpb   $0x1,0x158(%rdi) ;LEN=7
+                              UNCLASSIFIED  - 	vmovups 0x158(%r14),%xmm0 ;LEN=9
+                                            + 	vmovups 0x160(%r14),%xmm0 ;LEN=9
+                            COUNTS 93 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              ONLY-BEFORE   hven::solvers::certified_feasibility_fallback(hven::solvers::QpEngine&, hven::solvers::QpProblem const&, hven::solvers::NlpEval const&, hven::solvers::QpSolution const*, hven::solvers::IpqpInfeasibilityEvidence const&, hven::solvers::SolveOverrides const&, hven::solvers::SqpOptions const&, double, hven::solvers::SqpCounters&, hven::solvers::SqpIterate&, std::optional<hven::solvers::ElasticLadderReport>&, hven::solvers::SqpFallbackVerdictTraceEvent&, hven::solvers::TraceSink*)
+              DIFFERS       hven::solvers::SqpSolver::route_through_ssn_tier(hven::solvers::SqpSolver::SolveState&, hven::solvers::SqpSolver::MajorState&)
+                              UNCLASSIFIED  - 	movzbl 0x141(%r14),%eax ;LEN=8
+                                            + 	movzbl 0x149(%r14),%eax ;LEN=8
+                              UNCLASSIFIED  - 	mov    0x144(%r14),%rax ;LEN=7
+                                            + 	mov    0x14c(%r14),%rax ;LEN=7
+                              UNCLASSIFIED  - 	mov    0x14c(%r14),%eax ;LEN=7
+                                            + 	mov    0x154(%r14),%eax ;LEN=7
+                              UNCLASSIFIED  - 	vmaxsd 0x258(%r14),%xmm2,%xmm3 ;LEN=9
+                                            + 	vmaxsd 0x268(%r14),%xmm2,%xmm3 ;LEN=9
+                              UNCLASSIFIED  - 	vmovsd %xmm3,0x258(%r14) ;LEN=9
+                                            + 	vmovsd %xmm3,0x268(%r14) ;LEN=9
+                              ... and 16 more unclassified differences
+                            COUNTS 820 insns; CHANGED 21; UNCLASSIFIED 21; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::SqpSolver(hven::solvers::SqpOptions const&, hven::solvers::SqpSolver::RestorationSubDriverTag)
+                              UNCLASSIFIED  - 	vmovups 0x154(%r15),%ymm0 ;LEN=9
+                                            + 	vmovups 0x15c(%r15),%ymm0 ;LEN=9
+                              UNCLASSIFIED  - 	vmovups %ymm0,0x154(%rbx) ;LEN=8
+                                            + 	vmovups %ymm0,0x15c(%rbx) ;LEN=8
+                              UNCLASSIFIED  - 	mov    0x168(%r15),%edx ;LEN=7
+                                            + 	mov    0x170(%r15),%edx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x2a8(%rbx),%rax ;LEN=7
+                                            + 	lea    0x2b8(%rbx),%rax ;LEN=7
+                              UNCLASSIFIED  - 	mov    %r12,0x178(%rbx) ;LEN=7
+                                            + 	mov    %r12,0x180(%rbx) ;LEN=7
+                              ... and 23 more unclassified differences
+                            COUNTS 117 insns; CHANGED 28; UNCLASSIFIED 28; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::run_major(hven::solvers::SqpSolver::SolveState&, hven::solvers::SqpSolver::MajorState&, hven::solvers::AssemblyEvalSeam&, hven::solvers::NlpModelAssembly&, hven::solvers::SqpWarmStart const&, hven::solvers::SolveBudget, long)::$_1::operator()() const
+                            PAD-ROUTE DECLINED: 50 alignment-pad lines vs 49 (550 -> 534 bytes); start 0x266e0 (mod 32 = 0) -> 0x273b0 (mod 32 = 16) -- a non-pad line differs somewhere other than a control-transfer target (rule 3)
+                            STRUCTURAL: normalized listing is 1445 lines vs 1444 -- instructions were added or removed
+              DIFFERS       hven::solvers::SqpSolver::solve_from_entry(hven::solvers::NlpModelAssembly&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::SqpWarmStart const&, hven::solvers::SolveBudget, std::optional<std::chrono::time_point<std::chrono::_V2::steady_clock, std::chrono::duration<long, std::ratio<1l, 1000000000l> > > >)
+                              UNCLASSIFIED  - 	movzbl 0x250(%rsi),%eax ;LEN=7
+                                            + 	movzbl 0x260(%rsi),%eax ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x250(%rsi) ;LEN=7
+                                            + 	movb   $0x0,0x260(%rsi) ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x1b0(%r15),%rdi ;LEN=7
+                                            + 	lea    0x1c0(%r15),%rdi ;LEN=7
+                              UNCLASSIFIED  - 	movq   $0x0,0x330(%r15) ;LEN=11
+                                            + 	movq   $0x0,0x340(%r15) ;LEN=11
+                              UNCLASSIFIED  - 	mov    %rax,0x3a0(%r15) ;LEN=7
+                                            + 	mov    %rax,0x3b0(%r15) ;LEN=7
+                            COUNTS 250 insns; CHANGED 5; UNCLASSIFIED 5; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::solve_with_walk(hven::solvers::SqpSolver::SolveState&, hven::solvers::SqpSolver::MajorState&, hven::solvers::SqpWarmStart const&, hven::solvers::SolveOverrides const&, bool, bool)
+                              UNCLASSIFIED  - 	mov    0x178(%r14),%rsi ;LEN=7
+                                            + 	mov    0x180(%r14),%rsi ;LEN=7
+                              UNCLASSIFIED  - 	mov    0x178(%r14),%rax ;LEN=7
+                                            + 	mov    0x180(%r14),%rax ;LEN=7
+                              UNCLASSIFIED  - 	mov    0x1a8(%r14),%rdi ;LEN=7
+                                            + 	mov    0x1b8(%r14),%rdi ;LEN=7
+                            COUNTS 80 insns; CHANGED 3; UNCLASSIFIED 3; DELTAS
+              ONLY-BEFORE   hven::solvers::run_elastic_ladder(hven::solvers::QpEngine&, hven::solvers::QpProblem const&, hven::solvers::ElasticSeedSource const&, double, hven::solvers::SqpOptions const&, hven::solvers::SqpCounters&, std::optional<double>, hven::solvers::TraceSink*)
+              DIFFERS       hven::solvers::SqpSolver::push_payload_to_restoration_sub()
+                              UNCLASSIFIED  - 	mov    0x390(%rdi),%rax ;LEN=7
+                                            + 	mov    0x3a0(%rdi),%rax ;LEN=7
+                              UNCLASSIFIED  - 	mov    0x358(%rdi),%ecx ;LEN=6
+                                            + 	mov    0x368(%rdi),%ecx ;LEN=6
+                              UNCLASSIFIED  - 	mov    %ecx,0x358(%rax) ;LEN=6
+                                            + 	mov    %ecx,0x368(%rax) ;LEN=6
+                              UNCLASSIFIED  - 	mov    0x390(%rax),%rax ;LEN=7
+                                            + 	mov    0x3a0(%rax),%rax ;LEN=7
+                            COUNTS 10 insns; CHANGED 4; UNCLASSIFIED 4; DELTAS
+              ONLY-AFTER    hven::solvers::run_elastic_ladder(hven::solvers::QpEngine&, hven::solvers::QpProblem const&, hven::solvers::ElasticSeedSource const&, double, hven::solvers::SqpOptions const&, hven::solvers::SqpCounters&, std::optional<double>, hven::solvers::TraceSink*, hven::solvers::IpqpEngine*)
+              ONLY-AFTER    hven::solvers::SqpSolver::elastic_rung_tier()
+              ONLY-AFTER    hven::solvers::certified_feasibility_fallback(hven::solvers::QpEngine&, hven::solvers::QpProblem const&, hven::solvers::NlpEval const&, hven::solvers::QpSolution const*, hven::solvers::IpqpInfeasibilityEvidence const&, hven::solvers::SolveOverrides const&, hven::solvers::SqpOptions const&, double, hven::solvers::SqpCounters&, hven::solvers::SqpIterate&, std::optional<hven::solvers::ElasticLadderReport>&, hven::solvers::SqpFallbackVerdictTraceEvent&, hven::solvers::TraceSink*, hven::solvers::IpqpEngine*)
+              ONLY-AFTER    hven::solvers::SqpSolver::elastic_ipqp_engine()
+
+PER-SYMBOL  CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o: PERSYM 172 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 2377 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::IpqpEngine::solve(hven::solvers::QpProblem const&, hven::solvers::IpqpSeed const*, hven::solvers::IpqpOptions const&, hven::solvers::SolveOverrides const&)
+                            PAD-ROUTE DECLINED: 449 alignment-pad lines vs 448 (4425 -> 4414 bytes); start 0x1240 (mod 32 = 0) -> 0x1240 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                              UNCLASSIFIED  - 	movq   $0x0,0x3c1(%rsp) ;LEN=12
+                                            + 	movq   $0x0,0x3d0(%rsp) ;LEN=12
+                              UNCLASSIFIED  - 	movq   $0x0,0x3c8(%rsp) ;LEN=12
+                                            + 	movq   $0x0,0x3c1(%rsp) ;LEN=12
+                              UNCLASSIFIED  - 	movq   $0x3c,0x3d0(%rsp) ;LEN=12
+                                            + 	movl   $0x0,0x3c8(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movabs $0x4020000000000000,%rax ;LEN=10
+                                            + 	movq   $0x0,0x3e0(%rsp) ;LEN=12
+                              UNCLASSIFIED  - 	vmovaps %xmm0,0x3e0(%rsp) ;LEN=9
+                                            + 	movabs $0x4020000000000000,%rax ;LEN=10
+                              ... and 336 more unclassified differences
+                            COUNTS 15369 insns; CHANGED 342; UNCLASSIFIED 341; DELTAS +60(x1)
+
+PER-SYMBOL  CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o: PERSYM 184 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 2453 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::run_continuation(hven::solvers::ParametricNlpModel&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::SqpSolver&, hven::solvers::ContinuationOptions const&)
+                              UNCLASSIFIED  - 	mov    0x168(%rax),%eax ;LEN=6
+                                            + 	mov    0x170(%rax),%eax ;LEN=6
+                            COUNTS 1460 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+
+## the run's own verdict lines
+
+P-SYM tool sha256 (runner):   2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM tool sha256 (captures): 2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM maps: object-map=none symbol-map=none exceptions=none
+P-SYM: 143 objects — 94 byte-identical, 0 differing within the accepted noise class, 48 with unclassified differences, 0 matched by basename after a path move, 0 missing
+P-SYM coverage: 0 objects matched through the object map, 48 compared per symbol, 0 objects passed per symbol, 0 after-arm objects unaccounted for; symbols — 67567 matched (0 through the symbol map), 14 only-before, 53 only-after, 0 excepted, 0 collisions, 46 rank-tagged, 0 stale exceptions, 0 stale map entries; compiler-local label families — 572 matched by count, 13 differing (76289 before-arm and 76401 after-arm symbols accounted by family); relocations — 426015 records compared (0 through the symbol map)
+P-SYM: FAIL — differences outside the accepted noise class

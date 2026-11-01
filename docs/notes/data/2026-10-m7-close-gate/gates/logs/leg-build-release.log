@@ -1,0 +1,16 @@
+LEG: bash -o pipefail /home/ghecht/Projects/hven/.claude/worktrees/m7-close-gate/docs/notes/data/2026-10-m7-close-gate/wrappers-close/legs.sh build-release
+PGREP_SEPARATE 2026-10-30T11:04:28Z
+PGREP_EMPTY_BEFORE_LOCK
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-10-30T11:04:28Z
+CONFIGURE_RC_release=0
+REFERENCE_LINES=1 OFF_REFERENCE_LINES=0
+-- hven tests: MKL dispatch vendor=AuthenticAMD avx2=1 fma=1 avx512f=0 mkl_auto_branch=2 (MKL_CBWR_AUTO=2) -> REFERENCE (route pins asserted)
+REFERENCE_CHECK_RC_release=0
+-- hven: EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+BUILD_RC_release=0
+error:/FAILED lines in build-release.log: 0
+LEG_BODY_RC=0
+LEG_RC=0
+FOREGROUND_END 2026-10-30T11:31:27Z
+WRAPPER_EXIT=0

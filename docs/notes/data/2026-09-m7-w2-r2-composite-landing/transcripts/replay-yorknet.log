@@ -1,0 +1,36 @@
+PGREP_EMPTY replay-yk1 2026-09-25T21:51:29-04:00
+FOREGROUND_START replay-yk1 2026-09-25T21:51:29-04:00
+A0_YORKNET qp1 on REPLAY status=3 minors=777 facts=1044 f=-21156.1781754 eqv=1.561e-13 inv=0.000e+00 boxv=6.661e-16 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=1 retreats=0 exch=53 deferred=0 undec=0 dep_tests=587 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+A0_YORKNET qp1 off REPLAY status=1 minors=7680 facts=7985 f=-20953.6220903 eqv=1.519e-13 inv=0.000e+00 boxv=8.216e-15 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=0 deferred=0 undec=0 dep_tests=0 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+A0_YORKNET qp1 ron REPLAY status=3 minors=777 facts=1043 f=-21156.1781754 eqv=1.561e-13 inv=0.000e+00 boxv=6.661e-16 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=1 retreats=0 exch=53 deferred=0 undec=0 dep_tests=587 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+A0_YORKNET qp1 roff REPLAY status=1 minors=7680 facts=7984 f=-20953.6220903 eqv=1.519e-13 inv=0.000e+00 boxv=8.216e-15 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=0 deferred=0 undec=0 dep_tests=0 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+A0_YORKNET qp1 oracle rc=0
+A0_YORKNET qp2 on REPLAY status=1 minors=7680 facts=7951 f=-10830.1674936 eqv=2.515e-03 inv=0.000e+00 boxv=4.441e-16 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=354 deferred=0 undec=0 dep_tests=1063 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+A0_YORKNET qp2 off REPLAY status=1 minors=7680 facts=7991 f=-10632.2211201 eqv=9.237e-14 inv=0.000e+00 boxv=9.992e-16 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=0 deferred=0 undec=0 dep_tests=0 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+A0_YORKNET qp2 ron REPLAY status=1 minors=7680 facts=7950 f=-10830.1674936 eqv=2.515e-03 inv=0.000e+00 boxv=4.441e-16 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=354 deferred=0 undec=0 dep_tests=1063 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+A0_YORKNET qp2 roff REPLAY status=1 minors=7680 facts=7990 f=-10632.2211201 eqv=9.237e-14 inv=0.000e+00 boxv=9.992e-16 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=0 deferred=0 undec=0 dep_tests=0 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+A0_YORKNET qp2 oracle rc=0
+A0_YORKNET qp3 on REPLAY status=1 minors=7680 facts=7979 f=-10552.2812457 eqv=2.502e-01 inv=0.000e+00 boxv=3.775e-15 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=3771 deferred=0 undec=0 dep_tests=5340 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+A0_YORKNET qp3 off REPLAY status=1 minors=7680 facts=8031 f=-10616.6639793 eqv=4.538e-14 inv=0.000e+00 boxv=3.553e-15 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=0 deferred=0 undec=0 dep_tests=0 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+A0_YORKNET qp3 ron REPLAY status=1 minors=7680 facts=7978 f=-10552.2812457 eqv=2.502e-01 inv=0.000e+00 boxv=3.775e-15 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=3771 deferred=0 undec=0 dep_tests=5340 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+A0_YORKNET qp3 roff REPLAY status=1 minors=7680 facts=8030 f=-10616.6639793 eqv=4.538e-14 inv=0.000e+00 boxv=3.553e-15 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=0 deferred=0 undec=0 dep_tests=0 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+A0_YORKNET qp3 oracle rc=0
+FOREGROUND_END replay-yk1 2026-09-25T21:52:38-04:00 rc=0
+PGREP_EMPTY replay-yk2 2026-09-25T21:57:51-04:00
+FOREGROUND_START replay-yk2 2026-09-25T21:57:51-04:00
+A0_YORKNET qp4 on REPLAY status=1 minors=7680 facts=7957 f=-5838.62938949 eqv=5.172e+00 inv=0.000e+00 boxv=3.608e-15 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=2371 deferred=0 undec=0 dep_tests=4408 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+A0_YORKNET qp4 off REPLAY status=1 minors=7680 facts=8017 f=-5659.24082591 eqv=2.317e-02 inv=0.000e+00 boxv=3.608e-15 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=0 deferred=0 undec=0 dep_tests=0 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+A0_YORKNET qp4 ron REPLAY status=1 minors=7680 facts=7956 f=-5838.62938949 eqv=5.172e+00 inv=0.000e+00 boxv=3.608e-15 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=2371 deferred=0 undec=0 dep_tests=4408 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+A0_YORKNET qp4 roff REPLAY status=1 minors=7680 facts=8016 f=-5659.24082591 eqv=2.317e-02 inv=0.000e+00 boxv=3.608e-15 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=0 deferred=0 undec=0 dep_tests=0 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+A0_YORKNET qp4 oracle rc=0
+A0_YORKNET qp5 on REPLAY status=1 minors=7680 facts=7991 f=-3013.37677544 eqv=2.104e-14 inv=0.000e+00 boxv=5.551e-17 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=1416 deferred=0 undec=0 dep_tests=3317 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+A0_YORKNET qp5 off REPLAY status=1 minors=7680 facts=8033 f=-2899.55747343 eqv=1.740e-14 inv=0.000e+00 boxv=4.996e-15 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=0 deferred=0 undec=0 dep_tests=0 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+A0_YORKNET qp5 ron REPLAY status=1 minors=7680 facts=7990 f=-3013.37677544 eqv=2.104e-14 inv=0.000e+00 boxv=5.551e-17 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=1416 deferred=0 undec=0 dep_tests=3317 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+A0_YORKNET qp5 roff REPLAY status=1 minors=7680 facts=8032 f=-2899.55747343 eqv=1.740e-14 inv=0.000e+00 boxv=4.996e-15 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=0 deferred=0 undec=0 dep_tests=0 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+A0_YORKNET qp5 oracle rc=0
+A0_YORKNET qp6 on REPLAY status=1 minors=7680 facts=8005 f=-1518.80924226 eqv=7.812e-03 inv=0.000e+00 boxv=3.553e-15 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=839 deferred=0 undec=0 dep_tests=2872 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+A0_YORKNET qp6 off REPLAY status=0 minors=941 facts=1311 f=-1530.21964864 eqv=4.552e-15 inv=0.000e+00 boxv=1.388e-17 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=0 deferred=0 undec=0 dep_tests=0 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+A0_YORKNET qp6 ron REPLAY status=1 minors=7680 facts=8004 f=-1518.80924226 eqv=7.812e-03 inv=0.000e+00 boxv=3.553e-15 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=839 deferred=0 undec=0 dep_tests=2872 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+A0_YORKNET qp6 roff REPLAY status=0 minors=941 facts=1310 f=-1530.21964864 eqv=4.552e-15 inv=0.000e+00 boxv=1.388e-17 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=0 deferred=0 undec=0 dep_tests=0 entry_rm=0 recheck_rm=0 untested=0 k0_reused=0
+A0_YORKNET qp6 oracle rc=0
+FOREGROUND_END replay-yk2 2026-09-25T21:58:58-04:00 rc=0

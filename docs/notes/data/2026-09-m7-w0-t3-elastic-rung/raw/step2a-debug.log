@@ -1,0 +1,18 @@
+Running main() from /home/ghecht/Projects/hven/build-debug/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = M7T3ElasticRungVehicle.*
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from M7T3ElasticRungVehicle
+[ RUN      ] M7T3ElasticRungVehicle.TheAddedPairIsContradictoryAtEveryPoint
+[       OK ] M7T3ElasticRungVehicle.TheAddedPairIsContradictoryAtEveryPoint (5 ms)
+[ RUN      ] M7T3ElasticRungVehicle.TheConstructedCellFiresTheElasticRungAndPricesTheWalksRungA
+# M7 W0 T3 step 2a -- the WALK's cost on rung A (counters asserted, wall informational)
+N,n,me,mi,status,majors,entries,rungs,rung_minors,rung_max_minors,rung_dnf,rung_facts,facts_attributed,solve_minors,solve_facts,escalations,ceiling_hits,floor_retries,tier_iters,tier_facts,wall_s
+100,500,302,100,max_iter,1,1,6,312,302,0,184,1,312,194,5,0,0,10,10,11.729796
+200,1000,602,200,max_iter,1,1,6,612,602,0,484,1,612,494,5,0,0,10,10,25.440444
+[       OK ] M7T3ElasticRungVehicle.TheConstructedCellFiresTheElasticRungAndPricesTheWalksRungA (37173 ms)
+[----------] 2 tests from M7T3ElasticRungVehicle (37178 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (37178 ms total)
+[  PASSED  ] 2 tests.

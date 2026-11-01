@@ -1,0 +1,26 @@
+HEADER DERIVATION
+  repo : /home/ghecht/Projects/hven
+  base : 7ab88b81 -> 7ab88b81a83d432a1aa5e34ee8cb8ae5632d7483
+  head : 92e6a12cba4af0fb8f03f8718dd1c46a8cc53fc0 -> 92e6a12cba4af0fb8f03f8718dd1c46a8cc53fc0
+  cmd  : git -C /home/ghecht/Projects/hven diff --name-only 7ab88b81..92e6a12cba4af0fb8f03f8718dd1c46a8cc53fc0 -- include/
+  list : ['include/hven/detail/drivers/equality_basis.h', 'include/hven/detail/drivers/equality_basis_testing.h']
+HEADER LIST ACCEPTED: ['include/hven/detail/drivers/equality_basis.h', 'include/hven/detail/drivers/equality_basis_testing.h']
+P-SYM: FAIL — differences outside the accepted noise class
+DIFFERING OBJECTS: 1
+  class A -- SOURCE CHANGED by this task: 1
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_equality_basis.cpp.o
+  class B -- INCLUDERS of a changed header, source untouched: 0
+  UNEXPLAINED: 0
+
+  NOISE-ONLY -- objects whose BYTES DIFFER and whose every disassembly difference P-SYM classified as __LINE__-class noise: 6 (2 of them in the PRODUCTION LIBRARY, 3 explained by this round's changed source or header)
+      LIB   CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o
+      LIB   CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+      test  bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+      test  bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+      test  bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+      test  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_equality_basis.cpp.o
+
+  NEGATIVE CONTROL -- objects that ALSO include one of those headers and are BYTE-IDENTICAL (neither a mover nor NOISE-ONLY): 3
+      tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/equality_basis.cpp.o
+      tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/sqp_solver.cpp.o
+      tests/CMakeFiles/hven_sqp_seam_tests.dir/sqp/test_sqp_equality_basis_seams.cpp.o

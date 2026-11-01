@@ -1,0 +1,39 @@
+{
+ "dump": "/home/ghecht/Projects/hven/.scratch/m7w2r2/dumps/Cs_STEENBRB/qp4.txt",
+ "n": 660,
+ "me": 96,
+ "mi": 0,
+ "tr": 16.0,
+ "result": {
+  "status": "3",
+  "minors": "250",
+  "facts": "251",
+  "blk_term": "0",
+  "cert": "0",
+  "cert_rej": "0",
+  "zmcap": "0",
+  "zmexh": "1",
+  "retreats": "0",
+  "exch": "0",
+  "deferred": "0",
+  "undec": "0",
+  "maxiter": "6600"
+ },
+ "phase1_status": 0,
+ "phase1_min_l1_violation": 0.0,
+ "H_eig_min": 0.0,
+ "H_eig_max": 0.0,
+ "final_ws": {
+  "rows": 0,
+  "pins": 529,
+  "rank": 625,
+  "count": 625
+ },
+ "redH_final_min": 0.0,
+ "clarabel_status": "Solved",
+ "f_star": -192.00015855712186,
+ "active_star": {
+  "rows": 0,
+  "pins": 192
+ }
+}

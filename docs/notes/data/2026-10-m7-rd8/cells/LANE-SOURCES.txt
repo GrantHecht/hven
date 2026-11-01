@@ -1,0 +1,2 @@
+sources: copy of /home/ghecht/Projects/hven/.claude/worktrees/agent-af791fbc982c20d3f (head ba3fbf24 diff e3b0c44298fc) patch=0
+bench: working-tree copy of hven-bench (40bb726) + overlay 45ad46951d9a

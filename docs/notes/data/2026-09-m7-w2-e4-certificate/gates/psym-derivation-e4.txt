@@ -1,0 +1,82 @@
+M7 W2 E4 -- THE GATE EXPECTATIONS, DERIVED FROM THIS TASK'S OWN BASE..HEAD
+Written and committed BEFORE the gate chain was detached. Nothing here may be
+adjusted after the chain reports.
+
+BASE   2a5b11f7 (this task's base; branch m7)
+FIX    45e114d4  fix(m7): W2 E4 the QP certificate reads the returned iterate's box
+TESTS  99334900  test(m7): W2 E4 the certificate fixtures
+HEAD   the declaration commit that carries this file (docs/notes/data only)
+
+§1 THE CHANGED SURFACE, from `git diff --name-only 2a5b11f7..HEAD` (the runner
+   re-derives both lists itself at HEAD_AT_START and prints them):
+     include/hven/detail/qp/qp_engine.h      3 lines replaced by 3:
+                                             LINE-COUNT-NEUTRAL, comment only
+                                             (section 5's status contract)
+     src/qp/qp_engine.cpp                    one hunk, @@ -990 +990,20 @@ --
+                                             the kOptimal branch only; below the
+                                             TU's one assert() (line 447)
+     tests/qp/test_qp_degeneracy_arm.cpp     hven_qp_walk_seam_tests only; that
+                                             target is outside the P-SYM universe
+   The header hunks are @@ -223 +223,2 @@ and @@ -225,2 +226 @@: net 0 lines,
+   so no line in qp_engine.h at or after 223 moves. No includer can move.
+   Checked: the Debug objects carry DWARF 5 line tables with NO file MD5
+   (`llvm-dwarfdump --debug-line` on M5 run 2's Debug sqp_solver.cpp.o: 0 md5
+   entries), so a comment edit that moves no line leaves every includer
+   byte-identical.
+
+§2 THE P-SYM MOVER SHAPE (both configurations)
+     DIFFERING 1 = class A 1 + class B 0; `psym_compare.sh compare` rc 1
+     class A = CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+   Derivation: class A is keyed on the changed sources' basenames. In the
+   P-SYM universe (scripts/psym_compare.sh PSYM_GROUPS) the only
+   object whose basename is `qp_engine.cpp` is the production one; the
+   test_qp_engine*.cpp.o objects have different basenames, and
+   test_qp_degeneracy_arm.cpp.o lives in hven_qp_walk_seam_tests, which is not a
+   P-SYM group. The fix changes instructions, so the object DIFFERS (not
+   NOISE-ONLY) in Release and in Debug.
+   Negative control: every other includer of qp_engine.h (sqp_solver.cpp,
+   ipqp_engine.cpp, the test_qp_engine*.cpp objects, ...) must be byte-identical;
+   declared minimum 1.
+
+§3 TEST COUNTS: 2733 Debug (G1, long test excluded) / 2734 Release (G3); G2 1.
+   M5 run 2 MEASURED 2732 / 2733 at e5f1c15b. `git diff --name-only e5f1c15b
+   2a5b11f7 -- tests/ src/ include/ bench/ cmake/ CMakeLists.txt` is EMPTY.
+   E4 adds ONE TEST() block (grep -c '^TEST(' test_qp_degeneracy_arm.cpp:
+   18 at base, 19 at head) and renames two (count-neutral). 2732+1, 2733+1.
+
+§4 THE SECTION SHAPE (G5b), both configurations:
+     NON-DEBUG-MOVER set == {CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o}
+       (derived by the runner from the changed src/*.cpp; the pre-flight
+       refuses unless its count equals the declared class A, 1)
+     DEBUG_ONLY 0, REFUSED 0, BYTE-IDENTICAL 41 of 42
+   The checker (M3b fix2's check_sections_fix2.sh) is reused unchanged and
+   exits 1 on the mover; the runner asserts rc 1 AND the exact set.
+
+§5 G4, THE BEHAVIOURAL GATE: 27 cells x 75 columns x 3 engines, 0 differences.
+   The predicate is a pure read of the returned point, so it can only move a
+   cell whose earlier kOptimal was false. ANY moved cell is a DECLARED FINDING:
+   it is recorded as such, not re-derived, and the round STOPS for the settler.
+
+§6 G6: install smoke PASSED, export contract OK (align 32), clang-format rc 0
+   on the three changed C++ files, git diff --check rc 0, DIRTY_FILES 0.
+   Fold proofs (chain): 46 total, 0 failed.
+
+§7 PRE-FLIGHT, run before this commit (`gates-e4.sh --preflight-only`):
+     GATES_START 2026-09-22T17:12:40-04:00
+     === HEAD 99334900  dirty-files=1 ===
+     === PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+     === GATES_SCRATCH=/home/ghecht/Projects/hven/.scratch/m7w2e4gates ===
+     === BEFORE=2a5b11f7  EXPECT_DEBUG_TESTS=2733  EXPECT_RELEASE_TESTS=2734 ===
+     === HEAD_AT_START=993349006acecdc4490a645e3f5ad87963b43673
+     === CHANGED HEADERS: include/hven/detail/qp/qp_engine.h 
+     === CHANGED SOURCES: src/qp/qp_engine.cpp tests/qp/test_qp_degeneracy_arm.cpp 
+     === DECLARED NON-DEBUG MOVERS (derived): CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o 
+     === PREFLIGHT_VALUE_OK: derived mover count 1 == declared class A 1
+     SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e4gates/g1.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e4gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e4gates/gates
+     SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e4gates/g2.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e4gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e4gates/gates
+     SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e4gates/g3.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e4gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e4gates/gates
+     SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e4gates/g4.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e4gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e4gates/gates
+     SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e4gates/g5.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e4gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e4gates/gates
+     SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e4gates/g6.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e4gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e4gates/gates
+     === PREFLIGHT_OK: 6 segments written and asserted against GATES_SCRATCH, before the first leg ===
+     PREFLIGHT_ONLY: stopping before G1. No leg was run and no build tree was touched.

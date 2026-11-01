@@ -1,0 +1,16 @@
+PGREP_EMPTY (checked in its own command before this leg; only the self-match)
+FOREGROUND_START debug-continuation-alone 2026-09-17T01:52:28-04:00
+Running main() from /home/ghecht/Projects/hven/build-debug/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Continuation.ProbeBudgetBoundsAFailingProposal
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Continuation
+[ RUN      ] Continuation.ProbeBudgetBoundsAFailingProposal
+[       OK ] Continuation.ProbeBudgetBoundsAFailingProposal (691299 ms)
+[----------] 1 test from Continuation (691299 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (691299 ms total)
+[  PASSED  ] 1 test.
+FOREGROUND_END debug-continuation-alone 2026-09-17T02:04:00-04:00 rc=0
+WRAPPER_RC debug-continuation-alone 0

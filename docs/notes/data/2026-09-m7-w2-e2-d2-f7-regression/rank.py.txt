@@ -1,0 +1,23 @@
+# Independent rank check of the working set (rows restricted to free columns == [rows; pins] rank).
+import sys, numpy as np, scipy.linalg as sl
+def load_qp(p):
+    L = open(p).read().split('\n'); i = 0
+    n, me, mi = [int(v) for v in L[0].split()[1::2]]; i = 1
+    def mat(i, rows):
+        assert L[i] in ('H','Ae','Ai'); i += 1; M = np.zeros((rows, n))
+        while L[i] != 'END':
+            r, c, v = L[i].split(); M[int(r), int(c)] = float(v); i += 1
+        return M, i + 1
+    H, i = mat(i, n)
+    assert L[i] == 'g'; g = np.array(L[i+1].split(), float); i += 2
+    Ae, i = mat(i, me)
+    assert L[i] == 'be'; be = np.array(L[i+1].split(), float); i += 2
+    Ai, i = mat(i, mi)
+    assert L[i] == 'bi'; bi = np.array(L[i+1].split(), float); i += 2
+    lo = np.array(L[i+1].split(), float); up = np.array(L[i+3].split(), float)
+    return dict(n=n, me=me, mi=mi, H=H, g=g, Ae=Ae, be=be, Ai=Ai, bi=bi, lo=lo, up=up)
+def load_ws(p):
+    L = open(p).read().split('\n')
+    x = np.array(L[1].split(), float); bs = np.array(L[3].split(), int)
+    W = np.array(L[5].split(), int) if L[5].strip() else np.array([], int)
+    return x, bs, W

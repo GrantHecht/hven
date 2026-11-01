@@ -9,7 +9,10 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <sstream>
 #include <stdexcept>
+#include <string>
+#include <string_view>
 #include <utility>
 
 #include <fmt/format.h>
@@ -22,6 +25,7 @@
 #include <hven/warmstart/ipm_polish_extension.h>
 #include <hven/warmstart/warm_start_data.h>
 
+#include "counting_trace_sink.h"
 #include "crossover_legs.h"
 
 namespace hven::solvers::corpus {
@@ -274,6 +278,37 @@ const char *restoration_tag(RestorationModes mode) {
         fmt::format("restoration_tag: unrecognized mode ({})", static_cast<int>(mode)));
 }
 
+// M7 W0 T2 -- THE COUNTING CALLBACK'S PAYLOAD LEVER, `HVEN_LEG_CALLBACK_PAYLOAD`.
+//
+// `all` (the DEFAULT, and what an unset variable means) is the shape W6 T6
+// measured: the one-argument attach, IterationPayload::kAll, the whole
+// attached-only payload prepared for every event. `scalars` is the remedy arm
+// -- the same counting callback, declared under IterationPayload::kScalars, so
+// the engine prepares no vectors and no diagnostics for it.
+//
+// IT IS ONLY READ WHEN A CALLBACK IS INSTALLED, but its SPELLING is validated
+// whenever it is set: a typo that silently fell back to `all` would mislabel a
+// measurement arm, which is the one failure this lever must not have. Refused
+// by name, like the corpus's own value parsers.
+const char *leg_callback_payload_tag() {
+    const char *const raw = std::getenv("HVEN_LEG_CALLBACK_PAYLOAD");
+    if (raw == nullptr) {
+        return "all";
+    }
+    const std::string value(raw);
+    if (value == "all" || value == "scalars") {
+        return value == "all" ? "all" : "scalars";
+    }
+    throw std::invalid_argument(
+        fmt::format("HVEN_LEG_CALLBACK_PAYLOAD: '{}' is not one of all|scalars", value));
+}
+
+hven::solvers::IterationPayload leg_callback_payload() {
+    return std::string(leg_callback_payload_tag()) == "scalars"
+               ? hven::solvers::IterationPayload::kScalars
+               : hven::solvers::IterationPayload::kAll;
+}
+
 } // namespace
 
 const char *interior_treatment_tag(FixedVariableTreatments treatment) {
@@ -479,6 +514,31 @@ void configure_interior_solver(IpmSolver &ipm, FixedVariableTreatments treatment
     // make_nlp_program() instead. The PHASE SEQUENCE is a field now too, set
     // from the variant's entry rather than by which entry point is called.
     IpmOptions o = ipm.options();
+
+    // THE PRE-EVENT DEFAULT PIN (M7 W2 D1, 2026-09-18), a declared probe and
+    // never a product path. With HVEN_LEG_IPM_PRE_D1_DEFAULTS set in the
+    // environment, the three fields the declared IPM-default event moved are
+    // written back to the values IpmOptions{} carried before it:
+    //
+    //     acceptance_strategy   filter    -> classic_merit
+    //     barrier_governor      monitored -> classic_adaptive
+    //     max_iters             1000      -> 500
+    //
+    // The first two are exactly ipm_preset("classic")'s values for them; the
+    // third is not a preset field. Written HERE, ABOVE the levers and the
+    // variant overrides, so every explicit lever still wins exactly as it did --
+    // in particular this leg's own max_iters lever (200) overwrites the 500 on
+    // the very next lines, which is precisely what the committed baseline ran.
+    // What the pin restores is the DEFAULTS and nothing else, which is what
+    // makes this arm's CSV the "old default still reachable" evidence:
+    // byte-identical to bench/baselines/2026-09-t8-ipm-leg/interior_baseline.csv
+    // outside wall_s. See docs/notes/data/2026-09-m7-w2-d1-ipm-default/.
+    if (std::getenv("HVEN_LEG_IPM_PRE_D1_DEFAULTS") != nullptr) {
+        o.acceptance_strategy = AcceptanceStrategies::classic_merit;
+        o.barrier_governor = BarrierGovernors::classic_adaptive;
+        o.max_iters = 500;
+    }
+
     o.phases = phases_for(variant.entry);
     o.common.threads = levers.qp_threads;
     o.common.print_level = levers.print_level;
@@ -636,12 +696,39 @@ InteriorRow run_interior_problem(const std::shared_ptr<NlpTripletModel> &problem
     // OFF BY DEFAULT AND FREE WHEN OFF: an unset variable installs nothing, so
     // the baseline capture is the same code path it always was.
     const bool count_events = std::getenv("HVEN_LEG_COUNT_CALLBACK") != nullptr;
+    // READ UNCONDITIONALLY, so the SPELLING is validated whether or not a
+    // callback is installed (M7 W0 T2 fix1, the sol review's second Minor).
+    // Round 1 called this from inside the `if` below, so a typo was silently
+    // ignored when HVEN_LEG_COUNT_CALLBACK was absent while the comment on the
+    // parser claimed otherwise. A mislabelled measurement arm is the one
+    // failure this lever must not have, and the claim now matches the code.
+    const hven::solvers::IterationPayload leg_payload = leg_callback_payload();
     long long events_seen = 0;
     if (count_events) {
-        ipm.set_iteration_callback([&events_seen](const hven::solvers::IterationEvent &) {
-            ++events_seen;
-            return hven::solvers::CallbackAction::kContinue;
-        });
+        ipm.set_iteration_callback(
+            [&events_seen](const hven::solvers::IterationEvent &) {
+                ++events_seen;
+                return hven::solvers::CallbackAction::kContinue;
+            },
+            leg_payload);
+    }
+
+    // M7 W0 T2 -- THE SINK ARM THIS LEG DID NOT HAVE. W6 T6 could measure the
+    // attached CALLBACK here but not the attached SINK, because this leg
+    // exposed no lever for `IpmSolver::attach_trace` and its six guarded emit
+    // sites; that was T6's declared omission
+    // (docs/notes/data/2026-09-m6-w6-attached-cost/reading.md section 3) and
+    // this is it closed. SAME SHAPE AS THE CALLBACK LEVER ABOVE: unset
+    // installs nothing and the leg is the code path it always was; set
+    // attaches the corpus's OWN CountingTraceSink -- reused from
+    // bench/counting_trace_sink.h, not rewritten, so the SQP corpus's
+    // `--trace sink` arm and this one attach the same observer -- for this
+    // row's measured solve alone. The count goes to STDERR; the CSV and its
+    // schema do not move for an instrument.
+    const bool attach_sink = std::getenv("HVEN_LEG_TRACE_SINK") != nullptr;
+    CountingTraceSink leg_sink;
+    if (attach_sink) {
+        ipm.attach_trace(&leg_sink);
     }
 
     // THE SEQUENCE IS AN OPTION SINCE M6 W5 T8.4, and since M6 W5 T8.9 this leg
@@ -751,8 +838,19 @@ InteriorRow run_interior_problem(const std::shared_ptr<NlpTripletModel> &problem
     // large-scale proof of can be read straight off the transcript. STDERR, so
     // the CSV and its schema are untouched.
     if (count_events) {
-        fmt::print(stderr, "callback-events row={} events={} iter_num={}\n", interior_row_key(row),
-                   events_seen, row.iter_num);
+        fmt::print(stderr, "callback-events row={} payload={} events={} iter_num={}\n",
+                   interior_row_key(row), leg_callback_payload_tag(), events_seen, row.iter_num);
+    }
+    // M7 W0 T2. The sink's own count, on the same footing and for the same
+    // reason: the ROW'S key makes the number attributable, and stderr keeps
+    // the CSV's bytes identical under every lever setting. Every event this
+    // engine emits -- `ipm.iter`, `ipm.solve.begin`, `ipm.solve.end` and the
+    // IPQP sites the tier may emit -- lands in the sink's unnamed bucket; the
+    // five NAMED counters are `qp.mode` sites, which no interior-point solve
+    // emits, so they would read zero and say nothing.
+    if (attach_sink) {
+        fmt::print(stderr, "trace-sink-events row={} events={} iter_num={}\n",
+                   interior_row_key(row), leg_sink.unnamed_events(), row.iter_num);
     }
     return row;
 }
@@ -858,6 +956,43 @@ std::string interior_row_key(const InteriorRow &row) {
         return fmt::format("{}/{}", row.cell_id, row.fixed_treatment);
     }
     return fmt::format("{}/{}/{}", row.cell_id, row.fixed_treatment, row.variant);
+}
+
+std::string interior_globalization_stamp() {
+    // The value configure_interior_solver() starts from, with the pin applied
+    // exactly as that function applies it -- so this line reports what the run
+    // actually used rather than what the struct declares.
+    const bool pinned = std::getenv("HVEN_LEG_IPM_PRE_D1_DEFAULTS") != nullptr;
+    IpmOptions o;
+    if (pinned) {
+        o.acceptance_strategy = AcceptanceStrategies::classic_merit;
+        o.barrier_governor = BarrierGovernors::classic_adaptive;
+        o.max_iters = 500;
+    }
+
+    // Read the two enumerator spellings off dump_options() rather than
+    // switching on the enums a second time: the printer is the one place in the
+    // library that names these values, and a renumbering or a rename must not
+    // be able to make this header disagree with a recorded options dump.
+    std::ostringstream dump;
+    dump_options(o, dump);
+    const std::string text = dump.str();
+    const auto field = [&text](std::string_view name) {
+        const std::string key = std::string(name) + " = ";
+        std::istringstream lines(text);
+        std::string line;
+        while (std::getline(lines, line)) {
+            if (line.rfind(key, 0) == 0) {
+                return line.substr(key.size());
+            }
+        }
+        return std::string("<absent>");
+    };
+
+    return fmt::format("acceptance_strategy={} barrier_governor={} "
+                       "(LIBRARY DEFAULTS, not set by this leg) pre_d1_default_pin={}",
+                       field("acceptance_strategy"), field("barrier_governor"),
+                       pinned ? "on" : "off");
 }
 
 std::string interior_csv_header() {

@@ -1,0 +1,52 @@
+G2 E1 OFF vs committed: 29 cells x 65 columns, 0 differences
+E1 OFF: red=['e1_f7_n20000_af30_m1e-6'] e2e=12 tier_contract=13 tier+polish facts=746
+E1 m0: red=['e1_f7_n20000_af30_m1e-6'] e2e=12 tier_contract=13 facts=775 | E1-a PASS  E1-b FAIL  E1-c PASS  E1-d FAIL | derived=0 fallbacks=29 floor_binds=0 | RED cell max_iter iters=60
+   cells whose end-to-end reading moved under m0: 0
+E1 mf: red=[] e2e=8 tier_contract=12 facts=656 | E1-a PASS  E1-b PASS  E1-c FAIL  E1-d PASS | derived=0 fallbacks=0 floor_binds=546 | RED cell optimal iters=19
+   cells whose end-to-end reading moved under mf: 15
+     e1_f7_n4000_af01_m1e-4 e2e 0/2 -> 0/3 res_comp 9.994660e-12->9.237589e-10 iters 25->24
+     e1_f7_n4000_af01_m1e-6 e2e 0/0 -> 14/0 res_comp 4.256344e-11->3.312143e-09 iters 34->22
+     e1_f7_n4000_af10_m1e-4 e2e 0/0 -> 0/13 res_comp 1.389707e-12->6.850719e-10 iters 22->21
+     e1_f7_n4000_af10_m1e-6 e2e 12/0 -> 68/0 res_comp 2.881770e-10->2.143359e-09 iters 23->19
+     e1_f7_n4000_af30_m1e-4 e2e 0/56 -> 0/90 res_comp 6.719208e-10->4.646366e-09 iters 15->13
+     e1_f7_n4000_af30_m1e-6 e2e 0/0 -> 548/0 res_comp 3.339195e-10->3.484879e-09 iters 17->23
+     e1_f7_n20000_af01_m1e-4 e2e 0/4 -> 0/66 res_comp 1.819397e-12->2.423279e-09 iters 32->27
+     e1_f7_n20000_af01_m1e-6 e2e 129/0 -> 3/0 res_comp 2.341170e-10->1.209517e-09 iters 29->29
+     e1_f7_n20000_af10_m1e-4 e2e 0/65 -> 0/165 res_comp 4.100356e-10->2.770210e-09 iters 22->26
+     e1_f7_n20000_af10_m1e-6 e2e 0/0 -> 115/0 res_comp 8.334043e-11->9.280000e-10 iters 28->22
+     e1_f7_n20000_af30_m1e-4 e2e 0/17 -> 5527/0 res_comp 2.353133e-10->1.222407e-08 iters 16->13
+     e1_f7_n20000_af30_m1e-6 e2e 178/5124 -> 1630/0 res_comp 3.331293e-08->1.889224e-09 iters 60->19
+     e1blk_f7_n20000_af01_m1e-6 e2e 29/0 -> 104/0 res_comp 5.624664e-10->1.968152e-09 iters 20->18
+     e1blk_f7_n20000_af10_m1e-6 e2e 848/0 -> 1094/0 res_comp 2.182255e-10->2.266964e-09 iters 24->19
+     e1blk_f7_n20000_af30_m1e-6 e2e 2/0 -> 3305/0 res_comp 1.042535e-10->2.435661e-09 iters 18->18
+E1 m0mf: red=[] e2e=8 tier_contract=12 facts=685 | E1-a PASS  E1-b PASS  E1-c FAIL  E1-d PASS | derived=0 fallbacks=29 floor_binds=546 | RED cell optimal iters=19
+   cells whose end-to-end reading moved under m0mf: 15
+     e1_f7_n4000_af01_m1e-4 e2e 0/2 -> 0/3 res_comp 9.994660e-12->9.237589e-10 iters 25->24
+     e1_f7_n4000_af01_m1e-6 e2e 0/0 -> 14/0 res_comp 4.256344e-11->3.312143e-09 iters 34->22
+     e1_f7_n4000_af10_m1e-4 e2e 0/0 -> 0/13 res_comp 1.389707e-12->6.850719e-10 iters 22->21
+     e1_f7_n4000_af10_m1e-6 e2e 12/0 -> 68/0 res_comp 2.881770e-10->2.143359e-09 iters 23->19
+     e1_f7_n4000_af30_m1e-4 e2e 0/56 -> 0/90 res_comp 6.719208e-10->4.646366e-09 iters 15->13
+     e1_f7_n4000_af30_m1e-6 e2e 0/0 -> 548/0 res_comp 3.339195e-10->3.484879e-09 iters 17->23
+     e1_f7_n20000_af01_m1e-4 e2e 0/4 -> 0/66 res_comp 1.819397e-12->2.423279e-09 iters 32->27
+     e1_f7_n20000_af01_m1e-6 e2e 129/0 -> 3/0 res_comp 2.341170e-10->1.209517e-09 iters 29->29
+     e1_f7_n20000_af10_m1e-4 e2e 0/65 -> 0/165 res_comp 4.100356e-10->2.770210e-09 iters 22->26
+     e1_f7_n20000_af10_m1e-6 e2e 0/0 -> 115/0 res_comp 8.334043e-11->9.280000e-10 iters 28->22
+     e1_f7_n20000_af30_m1e-4 e2e 0/17 -> 5527/0 res_comp 2.353133e-10->1.222407e-08 iters 16->13
+     e1_f7_n20000_af30_m1e-6 e2e 178/5124 -> 1630/0 res_comp 3.331293e-08->1.889224e-09 iters 60->19
+     e1blk_f7_n20000_af01_m1e-6 e2e 29/0 -> 104/0 res_comp 5.624664e-10->1.968152e-09 iters 20->18
+     e1blk_f7_n20000_af10_m1e-6 e2e 848/0 -> 1094/0 res_comp 2.182255e-10->2.266964e-09 iters 24->19
+     e1blk_f7_n20000_af30_m1e-6 e2e 2/0 -> 3305/0 res_comp 1.042535e-10->2.435661e-09 iters 18->18
+G4 E1 OFF: sum of the three A2 counters = 0
+FAMILIES (status, ipqp_iters, ipqp_factorizations, derived/fallbacks/binds):
+  hs10 :: off optimal 25 25 0/0/0 | m0 optimal 25 28 0/3/0 | mf optimal 41 42 0/0/11 | m0mf optimal 41 45 0/3/11
+  hs24 :: off optimal 37 46 0/0/0 | m0 optimal 37 47 0/1/0 | mf optimal 30 41 0/0/29 | m0mf optimal 30 42 0/1/29
+  hs33 :: off optimal 80 112 0/0/0 | m0 optimal 80 116 0/1/0 | mf optimal 61 89 0/0/47 | m0mf optimal 61 93 0/1/47
+  indefinite_equality :: off optimal 14 20 0/0/0 | m0 optimal 14 21 0/1/0 | mf optimal 33 47 0/0/30 | m0mf optimal 33 48 0/1/30
+  indefinite_equality_and_row :: off optimal 14 21 0/0/0 | m0 optimal 14 22 0/1/0 | mf optimal 10 16 0/0/9 | m0mf optimal 10 17 0/1/9
+  two_negative_eigenvalue_row :: off optimal 27 38 0/0/0 | m0 optimal 27 39 0/1/0 | mf max_iter 60 95 0/0/47 | m0mf max_iter 60 96 0/1/47
+  f7_n800_path_warm :: off optimal 37 39 0/0/0 | m0 optimal 37 40 0/1/0 | mf optimal 14 16 0/0/10 | m0mf optimal 14 17 0/1/10
+  f7_n1000_path_warm :: off optimal 31 33 0/0/0 | m0 optimal 31 34 0/1/0 | mf optimal 15 17 0/0/10 | m0mf optimal 15 18 0/1/10
+T m0: T-a PASS  T-b HS facts 191 vs OFF 183: FAIL
+T mf: T-a FAIL ['two_negative_eigenvalue_row']  T-b HS facts 172 vs OFF 183: PASS
+T m0mf: T-a FAIL ['two_negative_eigenvalue_row']  T-b HS facts 180 vs OFF 183: PASS
+G4 families OFF: sum of the three A2 counters = 0

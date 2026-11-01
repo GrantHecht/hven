@@ -3,10 +3,17 @@
 
 // Named IpmSolver configuration presets: five mechanism-named
 // globalization configurations, each a pure Settings field assignment (no
-// algorithm code is touched). `classic` is the stock Settings{} baseline,
-// pinned here as literals rather than read off a default-constructed Settings
-// so this table keeps its mechanism meaning even if a future change moves the
-// struct's own defaults.
+// algorithm code is touched). `classic` is THE PRE-2026-09-18 DEFAULT, PINNED
+// HERE AS LITERALS -- not read off a default-constructed Settings -- so this
+// table keeps its mechanism meaning independently of the struct's own defaults.
+//
+// That independence stopped being hypothetical at M7 W2 D1 (2026-09-18), the
+// declared IPM-default event: IpmOptions{} moved to filter acceptance over the
+// monitored governor with max_iters = 1000, and `classic` did NOT move with it.
+// The table is therefore the thing that keeps the old default REACHABLE:
+// ipm_preset("classic") with max_iters = 500 reconstructs it exactly, and
+// tests/interior/test_ipm_solver_presets.cpp pins that reconstruction field by
+// field and dump line by dump line.
 //
 // Every preset assigns exactly the same nine globalization fields (the full
 // set IpmSolver::apply_preset() touches): acceptance_strategy_,
@@ -51,9 +58,11 @@ struct InteriorPointSolverPresetEntry {
 
 // clang-format off
 inline constexpr std::array<InteriorPointSolverPresetEntry, 5> kInteriorPointSolverPresets = {{
-    // classic — the stock Settings{} baseline (bit-identical default path).
-    // Pinned as literals (not read off Settings{}) so this preset keeps its
-    // mechanism meaning independent of the struct's own defaults.
+    // classic — the pre-2026-09-18 default, pinned as literals. It was the
+    // stock Settings{} baseline until M7 W2 D1 moved the struct's own defaults;
+    // it is pinned here (not read off Settings{}) so it keeps that mechanism
+    // meaning, and with max_iters = 500 written on it, it reconstructs the old
+    // default path bit-identically.
     {"classic", InteriorPointSolverPresetFields{
         /*acceptance_strategy_=*/AcceptanceStrategies::classic_merit,
         /*merit_penalty_rule_=*/MeritPenaltyRules::wmno,

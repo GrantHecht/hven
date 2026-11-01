@@ -1,0 +1,10 @@
+determinism sqp-ipm hs: rc=0 :: 21 baseline cells, 21 fresh cells, 0 mismatches
+determinism sqp-ipm cutest: rc=0 :: 23 baseline cells, 23 fresh cells, 0 mismatches
+determinism sqp-ipm-mu0c hs: rc=0 :: 21 baseline cells, 21 fresh cells, 0 mismatches
+determinism sqp-ipm-mu0c cutest: rc=0 :: 23 baseline cells, 23 fresh cells, 0 mismatches
+determinism sqp-ipm-mufloor hs: rc=0 :: 21 baseline cells, 21 fresh cells, 0 mismatches
+determinism sqp-ipm-mufloor cutest: rc=0 :: 23 baseline cells, 23 fresh cells, 0 mismatches
+determinism sqp-ipm-mu1e-3 hs: rc=0 :: 21 baseline cells, 21 fresh cells, 0 mismatches
+decide rc=0
+control default vs RETAKE18: 0 cell(s) differing of 23
+control sqp-qn vs RETAKE18: 0 cell(s) differing of 23

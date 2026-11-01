@@ -1,0 +1,632 @@
+GATES_START 2026-10-30T01:18:10-04:00
+=== HEAD 17408463  dirty-files=0 ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2 ===
+=== BEFORE=fcd2574f  EXPECT_DEBUG_TESTS=3231  EXPECT_RELEASE_TESTS=3232 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=1740846301ff763eeb11fd96335aa10e513a7906
+=== CHANGED HEADERS: include/hven/detail/globalization/acceptance_strategy.h include/hven/detail/globalization/filter_acceptance.h include/hven/detail/globalization/globalization_mechanism.h include/hven/detail/globalization/modern_merit.h include/hven/detail/globalization/monitored_governor.h include/hven/detail/globalization/proximal_restoration.h include/hven/detail/globalization/restoration.h include/hven/detail/globalization/soc.h include/hven/detail/globalization/switching_acceptance.h include/hven/detail/globalization/watchdog.h include/hven/detail/interior/sizing_specs.h include/hven/detail/interior/typedefs/super_scalar_traits.h include/hven/detail/interior/utils/memory_management.h include/hven/detail/interior/utils/thread_pool.h 
+=== CHANGED SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/CMakeLists.txt tests/common_support/mkl_dispatch_probe.cpp tests/common_support/mkl_dispatch_signature.h tests/common_support/route_reference.h tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES with NO OBJECT (declared, checked: try_run only): [tests/common_support/mkl_dispatch_probe.cpp]; ADDED with an object: []
+=== MODIFIED C++ SOURCES: src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES: 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_sqp_equality_basis_seams.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared NOISE-ONLY + declared class B): 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared NOISE-ONLY + declared class B): 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); 43 DIFFERENCES DECLARED as a SET (walk 17 / ssn 13 / ipm 13), every cell a U0 cell, the one declared WORSE cell [ipm f7_n1000_path_warm kkt_stationarity] among them
+=== CLASS_B_NAMES_OK: Release 0 / Debug 0 declared objects, none with a source modified in the range
+=== RELEASE-ONLY (Debug GTEST_SKIP) DECLARED: 0 name(s), each a declared ADDED name ===
+=== RE-DECLARED (TEST line removed and re-added under the same name): 0 name(s), each removed once and added once, net unchanged by name ===
+=== BY-NAME: baselines /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/docs/notes/data/2026-10-m7-wx-gates/gates/suite-{debug,release}.txt (3233 / 3234 started names); 0 ADDED, each added by exactly one TEST line in the range; 0 REMOVED, each removed by exactly one TEST line; 0 TEST lines removed (0 of them RE-DECLARED)
+=== tests/sqp/CMakeLists.txt (checked): adds exactly the declared 0 non-comment line(s), removes none
+=== src/CMakeLists.txt (checked): adds exactly the declared 0 non-comment line(s), removes exactly the declared 0
+=== ADDED TEST FILES (checked): non-.cpp [tests/common_support/mkl_dispatch_signature.h ] == declared, under the fixture directory named in the two declared readers' compile definitions (hven_qp_walk_seam_tests, hven_sqp_tests); tests/CMakeLists.txt adds exactly ["${CMAKE_CURRENT_BINARY_DIR}/mkl_dispatch_probe" "${CMAKE_CURRENT_SOURCE_DIR}/common_support/mkl_dispatch_probe.cpp" "${_hven_dispatch_signature}\nHVEN_TEST_REFERENCE_DISPATCH=${_hven_reference_dispatch}\n") "'${HVEN_TEST_ROUTE_REFERENCE_DISPATCH}'") "Route-pin reference dispatch: AUTO probes the configuring host's MKL dispatch; OFF forces the off-reference (portable) arms") "off-reference:\n${_hven_dispatch_compile_out}") AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND NOT APPLE AND MKL_FOUND AND NOT CMAKE_CROSSCOMPILING) CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${INCLUDE_DIRS}" COMPILE_OUTPUT_VARIABLE _hven_dispatch_compile_out CXX_STANDARD 20 LINK_LIBRARIES ${LINK_LIBS} RUN_OUTPUT_VARIABLE _hven_dispatch_run_out) add_compile_definitions(HVEN_TEST_REFERENCE_DISPATCH=${_hven_reference_dispatch}) else() else() else() elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64)$" elseif(NOT HVEN_TEST_ROUTE_REFERENCE_DISPATCH STREQUAL "AUTO") elseif(_hven_dispatch_run STREQUAL "0") endif() endif() endif() file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/hven_mkl_dispatch.txt" if(HVEN_TEST_ROUTE_REFERENCE_DISPATCH STREQUAL "OFF") if(NOT _hven_dispatch_compile) if(_hven_reference_dispatch) message(FATAL_ERROR "HVEN_TEST_ROUTE_REFERENCE_DISPATCH must be AUTO or OFF, got " message(STATUS "hven tests: MKL dispatch ${_hven_dispatch_signature} -> OFF-REFERENCE (portable arms)") message(STATUS "hven tests: MKL dispatch ${_hven_dispatch_signature} -> REFERENCE (route pins asserted)") message(WARNING "hven tests: the MKL dispatch probe did not compile, so this build is " set(HVEN_TEST_ROUTE_REFERENCE_DISPATCH "AUTO" CACHE STRING set(_hven_dispatch_signature "${_hven_dispatch_run_out} (exit ${_hven_dispatch_run})") set(_hven_dispatch_signature "${_hven_dispatch_run_out}") set(_hven_dispatch_signature "forced OFF by HVEN_TEST_ROUTE_REFERENCE_DISPATCH") set(_hven_dispatch_signature "not Linux x86-64 clang MKL") set(_hven_dispatch_signature "not probed") set(_hven_dispatch_signature "probe did not compile") set(_hven_reference_dispatch 0) set(_hven_reference_dispatch 1) set_property(CACHE HVEN_TEST_ROUTE_REFERENCE_DISPATCH PROPERTY STRINGS AUTO OFF) string(STRIP "${_hven_dispatch_run_out}" _hven_dispatch_run_out) try_run(_hven_dispatch_run _hven_dispatch_compile unset(_hven_dispatch_compile CACHE) unset(_hven_dispatch_run CACHE) ] and removes no non-comment line
+=== CLANG_FORMAT SET (derived, non-empty): 35 file(s) ===
+=== PREFLIGHT_VALUE_OK: class A 18 - 4 outside == declared 2/2; ADDED 0 == declared 0 (0 inside the universe == declared 0); class B library objects all unmodified; G4 gate 1e-5
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/g1.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2  G=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/g2.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2  G=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/g3.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2  G=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/g4.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2  G=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/g5.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2  G=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/g6.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2  G=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/gates
+=== PREFLIGHT_OK: 6 segments written and asserted against GATES_SCRATCH, before the first leg ===
+FOREGROUND_START G1-debug 2026-10-30T01:24:05-04:00
+PGREP_EMPTY G1-debug: no foreign cell binary under my lock
+	529 - QpE2Fix9StandstillRetreat.Acopp118Qp0Border (Skipped)
+	530 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	531 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	666 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1927 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1928 - EqpRefinementAb.FullBattery (Disabled)
+FOREGROUND_END G1-debug 2026-10-30T01:32:49-04:00 rc=0
+WRAPPER_RC G1-debug rc=0
+ASSERT OK   G1 Debug suite failed = 0
+ASSERT OK   G1 Debug suite total = 3231
+ASSERT OK   G1 Debug configure: reference dispatch, once, never off-reference: hven tests: MKL dispatch vendor=AuthenticAMD avx2=1 fma=1 avx512f=0 mkl_auto_branch=2 (MKL_CBWR_AUTO=2) -> REFERENCE (route pins asserted)
+ASSERT OK   G1 Debug build: no build step names mkl_dispatch_probe (try_run only)
+ASSERT OK   G1 Debug suite by name: 3233 started names == the baseline's 3233 - the 0 declared REMOVED + the 0 declared ADDED
+ASSERT OK   G1 Debug suite skips by name: 7 Skipped == the baseline's 7 + the 0 declared Release-only
+FOREGROUND_START G2-debug-long 2026-10-30T01:38:13-04:00
+PGREP_EMPTY G2-debug-long: no foreign cell binary under my lock
+Test project /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/gates-dbg
+    Start 1777: Continuation.ProbeBudgetBoundsAFailingProposal
+1/1 Test #1777: Continuation.ProbeBudgetBoundsAFailingProposal ...   Passed  168.22 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) = 168.29 sec
+FOREGROUND_END G2-debug-long 2026-10-30T01:41:01-04:00 rc=0
+WRAPPER_RC G2-debug-long rc=0
+ASSERT OK   G2 long test failed = 0
+ASSERT OK   G2 long test total = 1
+FOREGROUND_START G3-release 2026-10-30T01:41:01-04:00
+PGREP_EMPTY G3-release: no foreign cell binary under my lock
+Total Test time (real) = 134.92 sec
+
+The following tests did not run:
+	666 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1928 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1929 - EqpRefinementAb.FullBattery (Disabled)
+FOREGROUND_END G3-release 2026-10-30T01:46:31-04:00 rc=0
+WRAPPER_RC G3-release rc=0
+ASSERT OK   G3 Release suite failed = 0
+ASSERT OK   G3 Release suite total = 3232
+ASSERT OK   G3 Release configure: reference dispatch, once, never off-reference: hven tests: MKL dispatch vendor=AuthenticAMD avx2=1 fma=1 avx512f=0 mkl_auto_branch=2 (MKL_CBWR_AUTO=2) -> REFERENCE (route pins asserted)
+ASSERT OK   G3 Release build: no build step names mkl_dispatch_probe (try_run only)
+ASSERT OK   G3 Release suite by name: 3234 started names == the baseline's 3234 - the 0 declared REMOVED + the 0 declared ADDED
+ASSERT OK   G3 Release suite skips by name: 1 Skipped == the baseline's 1 + the 0 declared Release-only
+FOREGROUND_START G4-replay 2026-10-30T01:46:31-04:00
+PGREP_EMPTY G4-replay: no foreign cell binary under my lock
+ran head-walk rc=0
+ran head-ssn rc=0
+ran head-ipm rc=0
+=== M6 CLOSE HEAD-walk vs M7 WX HEAD-walk (GATED 1e-5) === cells compared: 27  columns compared: 75  differences: 17  within gate: 71
+    f7_n10000_bound_neutral          qp_minors                          A=2  B=3
+    f7_n10000_bound_neutral          kkt_residual                       A=6.300386629e-13  B=2.577688827e-16
+    f7_n10000_bound_neutral          kkt_stationarity                   A=6.300386629e-13  B=4.157740631e-20
+    f7_n10000_bound_neutral          kkt_primal                         A=1.938683814e-13  B=2.577688827e-16
+    f7_n1000_bound_neutral           qp_minors                          A=2  B=3
+    f7_n20000_bound_corrupted        kkt_residual                       A=1.838068087e-13  B=1.666854227e-16
+    f7_n20000_bound_corrupted        kkt_stationarity                   A=1.838068087e-13  B=1.929109266e-20
+    f7_n20000_bound_neutral          qp_minors                          A=2  B=3
+    f7_n20000_bound_neutral          kkt_residual                       A=1.259925399e-12  B=2.736657446e-16
+    f7_n20000_bound_neutral          kkt_stationarity                   A=1.259925399e-12  B=1.842627533e-20
+    f7_n20000_bound_neutral          kkt_primal                         A=3.876288913e-13  B=2.736657446e-16
+    f7_n2000_bound_neutral           qp_minors                          A=2  B=3
+    f7_n2000_bound_neutral           kkt_residual                       A=1.259764344e-13  B=2.268490671e-16
+    f7_n2000_bound_neutral           kkt_stationarity                   A=1.259764344e-13  B=1.906353527e-19
+    f7_n5000_bound_neutral           qp_minors                          A=2  B=3
+    f7_n5000_bound_neutral           kkt_residual                       A=3.150169743e-13  B=2.762562164e-16
+    f7_n5000_bound_neutral           kkt_stationarity                   A=3.150169743e-13  B=6.107901643e-20
+    WITHIN-GATE f7_n10000_bound_activity kkt_residual A=1.016559106e-15  B=1.526686123e-16
+    WITHIN-GATE f7_n10000_bound_activity kkt_stationarity A=1.016559106e-15  B=3.214754733e-20
+    WITHIN-GATE f7_n10000_bound_activity kkt_primal A=1.151644575e-16  B=1.526686123e-16
+    WITHIN-GATE f7_n10000_bound_corrupted kkt_residual A=9.189172314e-14  B=1.671094944e-16
+    WITHIN-GATE f7_n10000_bound_corrupted kkt_stationarity A=9.189172314e-14  B=3.930762271e-20
+    WITHIN-GATE f7_n10000_bound_corrupted kkt_primal A=2.698456180e-14  B=1.671094944e-16
+    WITHIN-GATE f7_n10000_bound_physics kkt_residual A=1.016559106e-15  B=1.526686123e-16
+    WITHIN-GATE f7_n10000_bound_physics kkt_stationarity A=1.016559106e-15  B=3.214754733e-20
+    WITHIN-GATE f7_n10000_bound_physics kkt_primal A=1.151644575e-16  B=1.526686123e-16
+    WITHIN-GATE f7_n10000_bound_warm kkt_residual A=4.196022966e-14  B=1.662515014e-16
+    WITHIN-GATE f7_n10000_bound_warm kkt_stationarity A=4.196022966e-14  B=4.093882288e-20
+    WITHIN-GATE f7_n10000_bound_warm kkt_primal A=2.701549016e-14  B=1.662515014e-16
+    WITHIN-GATE f7_n1000_bound_activity kkt_residual A=1.168049964e-16  B=1.046850816e-16
+    WITHIN-GATE f7_n1000_bound_activity kkt_stationarity A=1.168049964e-16  B=3.093787840e-19
+    WITHIN-GATE f7_n1000_bound_activity kkt_primal A=1.079633839e-16  B=1.046850816e-16
+    WITHIN-GATE f7_n1000_bound_corrupted kkt_residual A=9.157873527e-15  B=1.682850541e-16
+    WITHIN-GATE f7_n1000_bound_corrupted kkt_stationarity A=9.157873527e-15  B=3.308987148e-19
+    WITHIN-GATE f7_n1000_bound_corrupted kkt_primal A=2.734932492e-15  B=1.682850541e-16
+    WITHIN-GATE f7_n1000_bound_neutral kkt_residual A=6.295832335e-14  B=2.291628627e-16
+    WITHIN-GATE f7_n1000_bound_neutral kkt_stationarity A=6.295832335e-14  B=4.550684509e-19
+    WITHIN-GATE f7_n1000_bound_neutral kkt_primal A=1.937883159e-14  B=2.291628627e-16
+    WITHIN-GATE f7_n1000_bound_physics kkt_residual A=1.168049964e-16  B=1.046850816e-16
+    WITHIN-GATE f7_n1000_bound_physics kkt_stationarity A=1.168049964e-16  B=3.093787840e-19
+    WITHIN-GATE f7_n1000_bound_physics kkt_primal A=1.079633839e-16  B=1.046850816e-16
+    WITHIN-GATE f7_n1000_bound_warm kkt_residual A=4.198558725e-15  B=1.643802027e-16
+    WITHIN-GATE f7_n1000_bound_warm kkt_stationarity A=4.198558725e-15  B=4.012818588e-19
+    WITHIN-GATE f7_n1000_bound_warm kkt_primal A=2.759659681e-15  B=1.643802027e-16
+    WITHIN-GATE f7_n1000_path_warm kkt_residual A=3.364060441e-10  B=3.364070937e-10
+    WITHIN-GATE f7_n1000_path_warm kkt_stationarity A=3.364060441e-10  B=3.364070937e-10
+    WITHIN-GATE f7_n1000_path_warm kkt_primal A=4.445677160e-11  B=4.445643853e-11
+    WITHIN-GATE f7_n1000_path_warm kkt_complementarity A=1.081515277e-15  B=1.081545754e-15
+    WITHIN-GATE f7_n20000_bound_activity kkt_residual A=2.015847636e-15  B=1.493952834e-16
+    WITHIN-GATE f7_n20000_bound_activity kkt_stationarity A=2.015847636e-15  B=1.855986499e-20
+    WITHIN-GATE f7_n20000_bound_activity kkt_primal A=1.365272909e-16  B=1.493952834e-16
+    WITHIN-GATE f7_n20000_bound_corrupted kkt_primal A=5.392944711e-14  B=1.666854227e-16
+    WITHIN-GATE f7_n20000_bound_physics kkt_residual A=2.015847636e-15  B=1.493952834e-16
+    WITHIN-GATE f7_n20000_bound_physics kkt_stationarity A=2.015847636e-15  B=1.855986499e-20
+    WITHIN-GATE f7_n20000_bound_physics kkt_primal A=1.365272909e-16  B=1.493952834e-16
+    WITHIN-GATE f7_n20000_bound_warm kkt_residual A=8.390643067e-14  B=1.658943444e-16
+    WITHIN-GATE f7_n20000_bound_warm kkt_stationarity A=8.390643067e-14  B=1.894326321e-20
+    WITHIN-GATE f7_n20000_bound_warm kkt_primal A=5.394909349e-14  B=1.658943444e-16
+    WITHIN-GATE f7_n2000_bound_activity kkt_residual A=2.168216410e-16  B=1.487729324e-16
+    WITHIN-GATE f7_n2000_bound_activity kkt_stationarity A=2.168216410e-16  B=1.753093503e-19
+    WITHIN-GATE f7_n2000_bound_activity kkt_primal A=1.105729050e-16  B=1.487729324e-16
+    WITHIN-GATE f7_n2000_bound_corrupted kkt_residual A=1.834292390e-14  B=1.683245654e-16
+    WITHIN-GATE f7_n2000_bound_corrupted kkt_stationarity A=1.834292390e-14  B=2.308164781e-19
+    WITHIN-GATE f7_n2000_bound_corrupted kkt_primal A=5.425851090e-15  B=1.683245654e-16
+    WITHIN-GATE f7_n2000_bound_neutral kkt_primal A=3.878155499e-14  B=2.268490671e-16
+    WITHIN-GATE f7_n2000_bound_physics kkt_residual A=2.168216410e-16  B=1.487729324e-16
+    WITHIN-GATE f7_n2000_bound_physics kkt_stationarity A=2.168216410e-16  B=1.753093503e-19
+    WITHIN-GATE f7_n2000_bound_physics kkt_primal A=1.105729050e-16  B=1.487729324e-16
+    WITHIN-GATE f7_n2000_bound_warm kkt_residual A=8.394924906e-15  B=1.655051213e-16
+    WITHIN-GATE f7_n2000_bound_warm kkt_stationarity A=8.394924906e-15  B=2.246490195e-19
+    WITHIN-GATE f7_n2000_bound_warm kkt_primal A=5.419408507e-15  B=1.655051213e-16
+    WITHIN-GATE f7_n5000_bound_activity kkt_residual A=5.167818090e-16  B=1.105340187e-16
+    WITHIN-GATE f7_n5000_bound_activity kkt_stationarity A=5.167818090e-16  B=6.456310117e-20
+    WITHIN-GATE f7_n5000_bound_activity kkt_primal A=1.110891234e-16  B=1.105340187e-16
+    WITHIN-GATE f7_n5000_bound_corrupted kkt_residual A=4.592198241e-14  B=1.672772211e-16
+    WITHIN-GATE f7_n5000_bound_corrupted kkt_stationarity A=4.592198241e-14  B=7.350657795e-20
+    WITHIN-GATE f7_n5000_bound_corrupted kkt_primal A=1.351772635e-14  B=1.672772211e-16
+    WITHIN-GATE f7_n5000_bound_neutral kkt_primal A=9.692247005e-14  B=2.762562164e-16
+    WITHIN-GATE f7_n5000_bound_physics kkt_residual A=5.167818090e-16  B=1.105340187e-16
+    WITHIN-GATE f7_n5000_bound_physics kkt_stationarity A=5.167818090e-16  B=6.456310117e-20
+    WITHIN-GATE f7_n5000_bound_physics kkt_primal A=1.110891234e-16  B=1.105340187e-16
+    WITHIN-GATE f7_n5000_bound_warm kkt_residual A=2.098298050e-14  B=1.665917653e-16
+    WITHIN-GATE f7_n5000_bound_warm kkt_stationarity A=2.098298050e-14  B=7.130958625e-20
+    WITHIN-GATE f7_n5000_bound_warm kkt_primal A=1.353613753e-14  B=1.665917653e-16
+    WITHIN-GATE f7_n800_path_warm kkt_residual A=4.212497650e-10  B=4.212493723e-10
+    WITHIN-GATE f7_n800_path_warm kkt_stationarity A=4.212497650e-10  B=4.212493723e-10
+    WITHIN-GATE f7_n800_path_warm kkt_primal A=4.285150013e-11  B=4.285183319e-11
+    WITHIN-GATE f7_n800_path_warm kkt_complementarity A=1.295715293e-15  B=1.295699806e-15
+  CMP_RC=1
+=== M6 CLOSE HEAD-ssn vs M7 WX HEAD-ssn (GATED 1e-5) === cells compared: 27  columns compared: 75  differences: 13  within gate: 68
+    f7_n10000_bound_neutral          kkt_residual                       A=6.300386629e-13  B=2.539471419e-16
+    f7_n10000_bound_neutral          kkt_stationarity                   A=6.300386629e-13  B=5.708319475e-17
+    f7_n10000_bound_neutral          kkt_primal                         A=1.938683814e-13  B=2.539471419e-16
+    f7_n20000_bound_corrupted        kkt_residual                       A=1.838068087e-13  B=1.667907073e-16
+    f7_n20000_bound_corrupted        kkt_stationarity                   A=1.838068087e-13  B=1.864258306e-20
+    f7_n20000_bound_neutral          kkt_residual                       A=1.259925399e-12  B=2.718505842e-16
+    f7_n20000_bound_neutral          kkt_stationarity                   A=1.259925399e-12  B=4.861257742e-20
+    f7_n20000_bound_neutral          kkt_primal                         A=3.876288913e-13  B=2.718505842e-16
+    f7_n2000_bound_neutral           kkt_residual                       A=1.259764344e-13  B=2.814958196e-16
+    f7_n2000_bound_neutral           kkt_stationarity                   A=1.259764344e-13  B=1.819532650e-19
+    f7_n5000_bound_neutral           kkt_residual                       A=3.150169743e-13  B=2.837686285e-16
+    f7_n5000_bound_neutral           kkt_stationarity                   A=3.150169743e-13  B=6.898272718e-20
+    f7_n800_path_warm                kkt_stationarity                   A=1.759608197e-09  B=1.759468081e-09
+    WITHIN-GATE f7_n10000_bound_activity kkt_residual A=1.016559106e-15  B=1.526686123e-16
+    WITHIN-GATE f7_n10000_bound_activity kkt_stationarity A=1.016559106e-15  B=3.342802291e-20
+    WITHIN-GATE f7_n10000_bound_activity kkt_primal A=1.151644575e-16  B=1.526686123e-16
+    WITHIN-GATE f7_n10000_bound_corrupted kkt_residual A=9.189172314e-14  B=1.665490275e-16
+    WITHIN-GATE f7_n10000_bound_corrupted kkt_stationarity A=9.189172314e-14  B=3.842915690e-20
+    WITHIN-GATE f7_n10000_bound_corrupted kkt_primal A=2.698456180e-14  B=1.665490275e-16
+    WITHIN-GATE f7_n10000_bound_physics kkt_residual A=1.016559106e-15  B=1.526686123e-16
+    WITHIN-GATE f7_n10000_bound_physics kkt_stationarity A=1.016559106e-15  B=3.342802291e-20
+    WITHIN-GATE f7_n10000_bound_physics kkt_primal A=1.151644575e-16  B=1.526686123e-16
+    WITHIN-GATE f7_n10000_bound_warm kkt_residual A=4.196022966e-14  B=1.661297193e-16
+    WITHIN-GATE f7_n10000_bound_warm kkt_stationarity A=4.196022966e-14  B=3.726944968e-20
+    WITHIN-GATE f7_n10000_bound_warm kkt_primal A=2.701549016e-14  B=1.661297193e-16
+    WITHIN-GATE f7_n1000_bound_activity kkt_residual A=1.168049964e-16  B=1.046850816e-16
+    WITHIN-GATE f7_n1000_bound_activity kkt_stationarity A=1.168049964e-16  B=3.392366954e-19
+    WITHIN-GATE f7_n1000_bound_activity kkt_primal A=1.079633839e-16  B=1.046850816e-16
+    WITHIN-GATE f7_n1000_bound_corrupted kkt_residual A=9.157873527e-15  B=1.584702630e-16
+    WITHIN-GATE f7_n1000_bound_corrupted kkt_stationarity A=9.157873527e-15  B=3.525774643e-19
+    WITHIN-GATE f7_n1000_bound_corrupted kkt_primal A=2.734932492e-15  B=1.584702630e-16
+    WITHIN-GATE f7_n1000_bound_neutral kkt_residual A=6.295832335e-14  B=2.640559144e-16
+    WITHIN-GATE f7_n1000_bound_neutral kkt_stationarity A=6.295832335e-14  B=4.243635066e-19
+    WITHIN-GATE f7_n1000_bound_neutral kkt_primal A=1.937883159e-14  B=2.640559144e-16
+    WITHIN-GATE f7_n1000_bound_physics kkt_residual A=1.168049964e-16  B=1.046850816e-16
+    WITHIN-GATE f7_n1000_bound_physics kkt_stationarity A=1.168049964e-16  B=3.392366954e-19
+    WITHIN-GATE f7_n1000_bound_physics kkt_primal A=1.079633839e-16  B=1.046850816e-16
+    WITHIN-GATE f7_n1000_bound_warm kkt_residual A=4.198558725e-15  B=1.603659630e-16
+    WITHIN-GATE f7_n1000_bound_warm kkt_stationarity A=4.198558725e-15  B=3.841294416e-19
+    WITHIN-GATE f7_n1000_bound_warm kkt_primal A=2.759659681e-15  B=1.603659630e-16
+    WITHIN-GATE f7_n1000_path_warm kkt_residual A=3.737114082e-10  B=3.737121456e-10
+    WITHIN-GATE f7_n1000_path_warm kkt_stationarity A=5.051869825e-07  B=5.051903958e-07
+    WITHIN-GATE f7_n1000_path_warm kkt_primal A=3.392465198e-10  B=3.392461867e-10
+    WITHIN-GATE f7_n1000_path_warm kkt_complementarity A=2.152414444e-15  B=2.152435045e-15
+    WITHIN-GATE f7_n20000_bound_activity kkt_residual A=2.015847636e-15  B=1.493938956e-16
+    WITHIN-GATE f7_n20000_bound_activity kkt_stationarity A=2.015847636e-15  B=1.814999700e-20
+    WITHIN-GATE f7_n20000_bound_activity kkt_primal A=1.365272909e-16  B=1.493938956e-16
+    WITHIN-GATE f7_n20000_bound_corrupted kkt_primal A=5.392944711e-14  B=1.667907073e-16
+    WITHIN-GATE f7_n20000_bound_physics kkt_residual A=2.015847636e-15  B=1.493938956e-16
+    WITHIN-GATE f7_n20000_bound_physics kkt_stationarity A=2.015847636e-15  B=1.814999700e-20
+    WITHIN-GATE f7_n20000_bound_physics kkt_primal A=1.365272909e-16  B=1.493938956e-16
+    WITHIN-GATE f7_n20000_bound_warm kkt_residual A=8.390643067e-14  B=1.668159170e-16
+    WITHIN-GATE f7_n20000_bound_warm kkt_stationarity A=8.390643067e-14  B=1.886881695e-20
+    WITHIN-GATE f7_n20000_bound_warm kkt_primal A=5.394909349e-14  B=1.668159170e-16
+    WITHIN-GATE f7_n2000_bound_activity kkt_residual A=2.168216410e-16  B=1.487729324e-16
+    WITHIN-GATE f7_n2000_bound_activity kkt_stationarity A=2.168216410e-16  B=1.753887596e-19
+    WITHIN-GATE f7_n2000_bound_activity kkt_primal A=1.105729050e-16  B=1.487729324e-16
+    WITHIN-GATE f7_n2000_bound_corrupted kkt_residual A=1.834292390e-14  B=1.680968078e-16
+    WITHIN-GATE f7_n2000_bound_corrupted kkt_stationarity A=1.834292390e-14  B=1.952410943e-19
+    WITHIN-GATE f7_n2000_bound_corrupted kkt_primal A=5.425851090e-15  B=1.680968078e-16
+    WITHIN-GATE f7_n2000_bound_neutral kkt_primal A=3.878155499e-14  B=2.814958196e-16
+    WITHIN-GATE f7_n2000_bound_physics kkt_residual A=2.168216410e-16  B=1.487729324e-16
+    WITHIN-GATE f7_n2000_bound_physics kkt_stationarity A=2.168216410e-16  B=1.753887596e-19
+    WITHIN-GATE f7_n2000_bound_physics kkt_primal A=1.105729050e-16  B=1.487729324e-16
+    WITHIN-GATE f7_n2000_bound_warm kkt_residual A=8.394924906e-15  B=1.629943962e-16
+    WITHIN-GATE f7_n2000_bound_warm kkt_stationarity A=8.394924906e-15  B=2.398426730e-19
+    WITHIN-GATE f7_n2000_bound_warm kkt_primal A=5.419408507e-15  B=1.629943962e-16
+    WITHIN-GATE f7_n5000_bound_activity kkt_residual A=5.167818090e-16  B=1.090455168e-16
+    WITHIN-GATE f7_n5000_bound_activity kkt_stationarity A=5.167818090e-16  B=6.641929447e-20
+    WITHIN-GATE f7_n5000_bound_activity kkt_primal A=1.110891234e-16  B=1.090455168e-16
+    WITHIN-GATE f7_n5000_bound_corrupted kkt_residual A=4.592198241e-14  B=1.666331436e-16
+    WITHIN-GATE f7_n5000_bound_corrupted kkt_stationarity A=4.592198241e-14  B=6.331571281e-20
+    WITHIN-GATE f7_n5000_bound_corrupted kkt_primal A=1.351772635e-14  B=1.666331436e-16
+    WITHIN-GATE f7_n5000_bound_neutral kkt_primal A=9.692247005e-14  B=2.837686285e-16
+    WITHIN-GATE f7_n5000_bound_physics kkt_residual A=5.167818090e-16  B=1.090455168e-16
+    WITHIN-GATE f7_n5000_bound_physics kkt_stationarity A=5.167818090e-16  B=6.641929447e-20
+    WITHIN-GATE f7_n5000_bound_physics kkt_primal A=1.110891234e-16  B=1.090455168e-16
+    WITHIN-GATE f7_n5000_bound_warm kkt_residual A=2.098298050e-14  B=1.666001360e-16
+    WITHIN-GATE f7_n5000_bound_warm kkt_stationarity A=2.098298050e-14  B=6.730272336e-20
+    WITHIN-GATE f7_n5000_bound_warm kkt_primal A=1.353613753e-14  B=1.666001360e-16
+    WITHIN-GATE f7_n800_path_warm kkt_complementarity A=1.241564460e-14  B=1.241564905e-14
+  CMP_RC=1
+=== M6 CLOSE HEAD-ipm vs M7 WX HEAD-ipm (GATED 1e-5) === cells compared: 27  columns compared: 75  differences: 13  within gate: 72
+    f7_n10000_bound_neutral          kkt_residual                       A=6.300386629e-13  B=2.667901461e-16
+    f7_n10000_bound_neutral          kkt_stationarity                   A=6.300386629e-13  B=1.112051623e-16
+    f7_n10000_bound_neutral          kkt_primal                         A=1.938683814e-13  B=2.667901461e-16
+    f7_n1000_path_warm               kkt_stationarity                   A=3.449707634e-07  B=3.449751647e-07
+    f7_n20000_bound_corrupted        kkt_residual                       A=1.838068087e-13  B=1.668623676e-16
+    f7_n20000_bound_corrupted        kkt_stationarity                   A=1.838068087e-13  B=4.605576215e-20
+    f7_n20000_bound_neutral          kkt_residual                       A=1.259925399e-12  B=2.784929608e-16
+    f7_n20000_bound_neutral          kkt_stationarity                   A=1.259925399e-12  B=2.300294158e-19
+    f7_n20000_bound_neutral          kkt_primal                         A=3.876288913e-13  B=2.784929608e-16
+    f7_n2000_bound_neutral           kkt_residual                       A=1.259764344e-13  B=2.657684518e-16
+    f7_n2000_bound_neutral           kkt_stationarity                   A=1.259764344e-13  B=1.923823581e-19
+    f7_n5000_bound_neutral           kkt_residual                       A=3.150169743e-13  B=2.757401620e-16
+    f7_n5000_bound_neutral           kkt_stationarity                   A=3.150169743e-13  B=6.700824706e-20
+    WITHIN-GATE f7_n10000_bound_activity kkt_residual A=1.016559106e-15  B=1.482059397e-16
+    WITHIN-GATE f7_n10000_bound_activity kkt_stationarity A=1.016559106e-15  B=6.567979500e-20
+    WITHIN-GATE f7_n10000_bound_activity kkt_primal A=1.151644575e-16  B=1.482059397e-16
+    WITHIN-GATE f7_n10000_bound_corrupted kkt_residual A=9.189172314e-14  B=1.670270043e-16
+    WITHIN-GATE f7_n10000_bound_corrupted kkt_stationarity A=9.189172314e-14  B=3.869550906e-20
+    WITHIN-GATE f7_n10000_bound_corrupted kkt_primal A=2.698456180e-14  B=1.670270043e-16
+    WITHIN-GATE f7_n10000_bound_corrupted ipqp_alpha_d_min A=9.928393328e-01  B=9.928393327e-01
+    WITHIN-GATE f7_n10000_bound_physics kkt_residual A=1.016559106e-15  B=1.482059397e-16
+    WITHIN-GATE f7_n10000_bound_physics kkt_stationarity A=1.016559106e-15  B=6.567979500e-20
+    WITHIN-GATE f7_n10000_bound_physics kkt_primal A=1.151644575e-16  B=1.482059397e-16
+    WITHIN-GATE f7_n10000_bound_warm kkt_residual A=4.196022966e-14  B=1.657592712e-16
+    WITHIN-GATE f7_n10000_bound_warm kkt_stationarity A=4.196022966e-14  B=3.476474678e-20
+    WITHIN-GATE f7_n10000_bound_warm kkt_primal A=2.701549016e-14  B=1.657592712e-16
+    WITHIN-GATE f7_n1000_bound_activity kkt_residual A=1.168049964e-16  B=1.047965245e-16
+    WITHIN-GATE f7_n1000_bound_activity kkt_stationarity A=1.168049964e-16  B=5.071609772e-19
+    WITHIN-GATE f7_n1000_bound_activity kkt_primal A=1.079633839e-16  B=1.047965245e-16
+    WITHIN-GATE f7_n1000_bound_corrupted kkt_residual A=9.157873527e-15  B=1.682583696e-16
+    WITHIN-GATE f7_n1000_bound_corrupted kkt_stationarity A=9.157873527e-15  B=3.919644963e-19
+    WITHIN-GATE f7_n1000_bound_corrupted kkt_primal A=2.734932492e-15  B=1.682583696e-16
+    WITHIN-GATE f7_n1000_bound_neutral kkt_residual A=6.295832335e-14  B=2.168486497e-16
+    WITHIN-GATE f7_n1000_bound_neutral kkt_stationarity A=6.295832335e-14  B=4.169519683e-19
+    WITHIN-GATE f7_n1000_bound_neutral kkt_primal A=1.937883159e-14  B=2.168486497e-16
+    WITHIN-GATE f7_n1000_bound_physics kkt_residual A=1.168049964e-16  B=1.047965245e-16
+    WITHIN-GATE f7_n1000_bound_physics kkt_stationarity A=1.168049964e-16  B=5.071609772e-19
+    WITHIN-GATE f7_n1000_bound_physics kkt_primal A=1.079633839e-16  B=1.047965245e-16
+    WITHIN-GATE f7_n1000_bound_warm kkt_residual A=4.198558725e-15  B=1.579180283e-16
+    WITHIN-GATE f7_n1000_bound_warm kkt_stationarity A=4.198558725e-15  B=3.953526281e-19
+    WITHIN-GATE f7_n1000_bound_warm kkt_primal A=2.759659681e-15  B=1.579180283e-16
+    WITHIN-GATE f7_n1000_path_warm kkt_residual A=4.052819191e-10  B=4.052811420e-10
+    WITHIN-GATE f7_n1000_path_warm kkt_primal A=4.052819191e-10  B=4.052811420e-10
+    WITHIN-GATE f7_n1000_path_warm kkt_complementarity A=2.159522079e-15  B=2.159529114e-15
+    WITHIN-GATE f7_n20000_bound_activity kkt_residual A=2.015847636e-15  B=1.529842578e-16
+    WITHIN-GATE f7_n20000_bound_activity kkt_stationarity A=2.015847636e-15  B=3.039921838e-19
+    WITHIN-GATE f7_n20000_bound_activity kkt_primal A=1.365272909e-16  B=1.529842578e-16
+    WITHIN-GATE f7_n20000_bound_corrupted kkt_primal A=5.392944711e-14  B=1.668623676e-16
+    WITHIN-GATE f7_n20000_bound_physics kkt_residual A=2.015847636e-15  B=1.529842578e-16
+    WITHIN-GATE f7_n20000_bound_physics kkt_stationarity A=2.015847636e-15  B=3.039921838e-19
+    WITHIN-GATE f7_n20000_bound_physics kkt_primal A=1.365272909e-16  B=1.529842578e-16
+    WITHIN-GATE f7_n20000_bound_warm kkt_residual A=8.390643067e-14  B=1.668327670e-16
+    WITHIN-GATE f7_n20000_bound_warm kkt_stationarity A=8.390643067e-14  B=2.200962174e-20
+    WITHIN-GATE f7_n20000_bound_warm kkt_primal A=5.394909349e-14  B=1.668327670e-16
+    WITHIN-GATE f7_n2000_bound_activity kkt_residual A=2.168216410e-16  B=1.487729324e-16
+    WITHIN-GATE f7_n2000_bound_activity kkt_stationarity A=2.168216410e-16  B=1.672360675e-19
+    WITHIN-GATE f7_n2000_bound_activity kkt_primal A=1.105729050e-16  B=1.487729324e-16
+    WITHIN-GATE f7_n2000_bound_corrupted kkt_residual A=1.834292390e-14  B=1.650181098e-16
+    WITHIN-GATE f7_n2000_bound_corrupted kkt_stationarity A=1.834292390e-14  B=2.545466355e-19
+    WITHIN-GATE f7_n2000_bound_corrupted kkt_primal A=5.425851090e-15  B=1.650181098e-16
+    WITHIN-GATE f7_n2000_bound_neutral kkt_primal A=3.878155499e-14  B=2.657684518e-16
+    WITHIN-GATE f7_n2000_bound_physics kkt_residual A=2.168216410e-16  B=1.487729324e-16
+    WITHIN-GATE f7_n2000_bound_physics kkt_stationarity A=2.168216410e-16  B=1.672360675e-19
+    WITHIN-GATE f7_n2000_bound_physics kkt_primal A=1.105729050e-16  B=1.487729324e-16
+    WITHIN-GATE f7_n2000_bound_warm kkt_residual A=8.394924906e-15  B=1.692050709e-16
+    WITHIN-GATE f7_n2000_bound_warm kkt_stationarity A=8.394924906e-15  B=1.718153394e-19
+    WITHIN-GATE f7_n2000_bound_warm kkt_primal A=5.419408507e-15  B=1.692050709e-16
+    WITHIN-GATE f7_n5000_bound_activity kkt_residual A=5.167818090e-16  B=1.100174737e-16
+    WITHIN-GATE f7_n5000_bound_activity kkt_stationarity A=5.167818090e-16  B=6.946662784e-20
+    WITHIN-GATE f7_n5000_bound_activity kkt_primal A=1.110891234e-16  B=1.100174737e-16
+    WITHIN-GATE f7_n5000_bound_corrupted kkt_residual A=4.592198241e-14  B=1.664110621e-16
+    WITHIN-GATE f7_n5000_bound_corrupted kkt_stationarity A=4.592198241e-14  B=6.651855614e-20
+    WITHIN-GATE f7_n5000_bound_corrupted kkt_primal A=1.351772635e-14  B=1.664110621e-16
+    WITHIN-GATE f7_n5000_bound_neutral kkt_primal A=9.692247005e-14  B=2.757401620e-16
+    WITHIN-GATE f7_n5000_bound_physics kkt_residual A=5.167818090e-16  B=1.100174737e-16
+    WITHIN-GATE f7_n5000_bound_physics kkt_stationarity A=5.167818090e-16  B=6.946662784e-20
+    WITHIN-GATE f7_n5000_bound_physics kkt_primal A=1.110891234e-16  B=1.100174737e-16
+    WITHIN-GATE f7_n5000_bound_warm kkt_residual A=2.098298050e-14  B=1.670443027e-16
+    WITHIN-GATE f7_n5000_bound_warm kkt_stationarity A=2.098298050e-14  B=7.414847011e-20
+    WITHIN-GATE f7_n5000_bound_warm kkt_primal A=1.353613753e-14  B=1.670443027e-16
+    WITHIN-GATE f7_n800_path_warm kkt_residual A=4.193246102e-10  B=4.193231574e-10
+    WITHIN-GATE f7_n800_path_warm kkt_stationarity A=4.193246102e-10  B=4.193231574e-10
+    WITHIN-GATE f7_n800_path_warm kkt_primal A=4.286759836e-11  B=4.286770938e-11
+    WITHIN-GATE f7_n800_path_warm kkt_complementarity A=1.296276061e-15  B=1.296270044e-15
+    WITHIN-GATE f7_n800_path_warm ipqp_restart_shift_max A=9.700753218e-08  B=9.700753219e-08
+  CMP_RC=1
+=== PREVIOUS (gates record) GATE RECORD HEAD-walk vs M7 WX HEAD-walk (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+  EXACT_RC_walk=0 (ASSERTED 0)
+=== PREVIOUS (gates record) GATE RECORD HEAD-ssn vs M7 WX HEAD-ssn (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+  EXACT_RC_ssn=0 (ASSERTED 0)
+=== PREVIOUS (gates record) GATE RECORD HEAD-ipm vs M7 WX HEAD-ipm (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+  EXACT_RC_ipm=0 (ASSERTED 0)
+  E1_ARM_RC=0 (ASSERTED 0)
+ADDED_COLUMNS [] DECLARED []
+E1_OFF cells=29 columns_compared=69 differences=0 added_columns=0 added_nonzero_rows=0
+  E1_COMPARE_RC=0 (ASSERTED 0)
+FOREGROUND_END G4-replay 2026-10-30T01:53:18-04:00 rc=0
+WRAPPER_RC G4-replay rc=0
+ASSERT OK   replay header lines = 3
+ASSERT OK   replay walk shape 27/75/17 declared = 1
+ASSERT OK   replay walk difference lines listed = 17
+ASSERT OK   replay ssn shape 27/75/13 declared = 1
+ASSERT OK   replay ssn difference lines listed = 13
+ASSERT OK   replay ipm shape 27/75/13 declared = 1
+ASSERT OK   replay ipm difference lines listed = 13
+ASSERT OK   replay: the MEASURED difference set EQUALS the DECLARED 43-entry list
+FOREGROUND_START G5-psym 2026-10-30T01:53:18-04:00
+PGREP_EMPTY G5-psym: no foreign cell binary under my lock
+=== P-SYM Release  after=1740846301ff763eeb11fd96335aa10e513a7906  before=fcd2574f  declared differing=2 A=2 B=0
+CLEANDEAD_Release: 0 output(s) removed
+ASSERT OK   capture after-Release: rc=0, 163 object(s) in /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/gates/psym/after-Release/.psym-manifest
+ASSERT OK   capture before-Release: rc=0, 163 object(s) in /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/gates/psym/before-Release/.psym-manifest
+ASSERT OK   capture pair Release after = before + ADDED = 163
+ASSERT OK   outside-universe Release: tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_flat_face_saddle.cpp.o was BUILT in the after arm
+ASSERT OK   outside-universe Release: tests/qp/test_qp_flat_face_saddle.cpp compiled in exactly one listed outside target = 1
+ASSERT OK   outside-universe Release: tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_rank_repair.cpp.o was BUILT in the after arm
+ASSERT OK   outside-universe Release: tests/qp/test_qp_rank_repair.cpp compiled in exactly one listed outside target = 1
+ASSERT OK   outside-universe Release: tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_route_reference.cpp.o was BUILT in the after arm
+ASSERT OK   outside-universe Release: tests/qp/test_route_reference.cpp compiled in exactly one listed outside target = 1
+ASSERT OK   outside-universe Release: tests/CMakeFiles/hven_sqp_seam_tests.dir/sqp/test_sqp_equality_basis_seams.cpp.o was BUILT in the after arm
+ASSERT OK   outside-universe Release: tests/sqp/test_sqp_equality_basis_seams.cpp compiled in exactly one listed outside target = 1
+ASSERT OK   outside-universe Release: objects of [tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir] in the after manifest = 0
+tree restored to wx2-gates 17408463
+PSYM_COMPARE_RC_Release=1 (1 is EXPECTED; the gate is the classification)
+ASSERT OK   ONLY-AFTER Release: [] == the ADDED sources' objects
+CLASSIFY_RC_Release=0
+HEADER DERIVATION
+  repo : /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt
+  base : fcd2574f -> fcd2574fdf33071e7e86e82266a582aa684af760
+  head : 1740846301ff763eeb11fd96335aa10e513a7906 -> 1740846301ff763eeb11fd96335aa10e513a7906
+  cmd  : git -C /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt diff --name-only fcd2574f..1740846301ff763eeb11fd96335aa10e513a7906 -- include/
+  list : ['include/hven/detail/globalization/acceptance_strategy.h', 'include/hven/detail/globalization/filter_acceptance.h', 'include/hven/detail/globalization/globalization_mechanism.h', 'include/hven/detail/globalization/modern_merit.h', 'include/hven/detail/globalization/monitored_governor.h', 'include/hven/detail/globalization/proximal_restoration.h', 'include/hven/detail/globalization/restoration.h', 'include/hven/detail/globalization/soc.h', 'include/hven/detail/globalization/switching_acceptance.h', 'include/hven/detail/globalization/watchdog.h', 'include/hven/detail/interior/sizing_specs.h', 'include/hven/detail/interior/typedefs/super_scalar_traits.h', 'include/hven/detail/interior/utils/memory_management.h', 'include/hven/detail/interior/utils/thread_pool.h']
+HEADER LIST ACCEPTED: ['include/hven/detail/globalization/acceptance_strategy.h', 'include/hven/detail/globalization/filter_acceptance.h', 'include/hven/detail/globalization/globalization_mechanism.h', 'include/hven/detail/globalization/modern_merit.h', 'include/hven/detail/globalization/monitored_governor.h', 'include/hven/detail/globalization/proximal_restoration.h', 'include/hven/detail/globalization/restoration.h', 'include/hven/detail/globalization/soc.h', 'include/hven/detail/globalization/switching_acceptance.h', 'include/hven/detail/globalization/watchdog.h', 'include/hven/detail/interior/sizing_specs.h', 'include/hven/detail/interior/typedefs/super_scalar_traits.h', 'include/hven/detail/interior/utils/memory_management.h', 'include/hven/detail/interior/utils/thread_pool.h']
+P-SYM: FAIL — differences outside the accepted noise class
+DIFFERING OBJECTS: 2
+  class A -- SOURCE CHANGED by this task: 2
+  class B -- INCLUDERS of a changed header, source untouched: 0
+  UNEXPLAINED: 0
+  NEGATIVE CONTROL -- objects that ALSO include one of those headers and are BYTE-IDENTICAL (neither a mover nor NOISE-ONLY): 41
+ASSERT OK   P-SYM Release compare rc (declared 2 mover(s)) = 1
+ASSERT OK   P-SYM Release classify rc = 0
+ASSERT OK   P-SYM Release differing = 2 (>= 1)
+ASSERT OK   P-SYM Release class A + class B = 2
+ASSERT OK   P-SYM Release unexplained = 0
+ASSERT OK   P-SYM Release negative control = 41 (>= 1)
+ASSERT OK   P-SYM Release differing (declared) = 2
+ASSERT OK   P-SYM Release class A (declared) = 2
+ASSERT OK   P-SYM Release class B (declared) = 0
+ASSERT OK   library ADDED Release: [] present after, absent before
+SECTIONS_RC_Release=0
+SECTIONS_Release_OBJECTS=48
+SECTIONS_Release_BYTE_IDENTICAL=48
+SECTIONS_Release_DEBUG_ONLY=0
+SECTIONS_Release_NON_DEBUG_MOVERS=0
+SECTIONS_Release_REFUSED=0
+SECTIONS_Release_RC=0
+NON_DEBUG_MOVERS_GOT_Release=[]  DECLARED=[]  REFUSED=0
+ASSERT OK   sections Release: the non-debug movers are EXACTLY the declared set, nothing refused
+ASSERT OK   sections Release: DEBUG_ONLY=0, as declared
+=== P-SYM Debug  after=1740846301ff763eeb11fd96335aa10e513a7906  before=fcd2574f  declared differing=2 A=2 B=0
+CLEANDEAD_Debug: 0 output(s) removed
+ASSERT OK   capture after-Debug: rc=0, 163 object(s) in /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/gates/psym/after-Debug/.psym-manifest
+ASSERT OK   capture before-Debug: rc=0, 163 object(s) in /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/gates/psym/before-Debug/.psym-manifest
+ASSERT OK   capture pair Debug after = before + ADDED = 163
+ASSERT OK   outside-universe Debug: tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_flat_face_saddle.cpp.o was BUILT in the after arm
+ASSERT OK   outside-universe Debug: tests/qp/test_qp_flat_face_saddle.cpp compiled in exactly one listed outside target = 1
+ASSERT OK   outside-universe Debug: tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_rank_repair.cpp.o was BUILT in the after arm
+ASSERT OK   outside-universe Debug: tests/qp/test_qp_rank_repair.cpp compiled in exactly one listed outside target = 1
+ASSERT OK   outside-universe Debug: tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_route_reference.cpp.o was BUILT in the after arm
+ASSERT OK   outside-universe Debug: tests/qp/test_route_reference.cpp compiled in exactly one listed outside target = 1
+ASSERT OK   outside-universe Debug: tests/CMakeFiles/hven_sqp_seam_tests.dir/sqp/test_sqp_equality_basis_seams.cpp.o was BUILT in the after arm
+ASSERT OK   outside-universe Debug: tests/sqp/test_sqp_equality_basis_seams.cpp compiled in exactly one listed outside target = 1
+ASSERT OK   outside-universe Debug: objects of [tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir] in the after manifest = 0
+tree restored to wx2-gates 17408463
+PSYM_COMPARE_RC_Debug=1 (1 is EXPECTED; the gate is the classification)
+ASSERT OK   ONLY-AFTER Debug: [] == the ADDED sources' objects
+CLASSIFY_RC_Debug=0
+HEADER DERIVATION
+  repo : /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt
+  base : fcd2574f -> fcd2574fdf33071e7e86e82266a582aa684af760
+  head : 1740846301ff763eeb11fd96335aa10e513a7906 -> 1740846301ff763eeb11fd96335aa10e513a7906
+  cmd  : git -C /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt diff --name-only fcd2574f..1740846301ff763eeb11fd96335aa10e513a7906 -- include/
+  list : ['include/hven/detail/globalization/acceptance_strategy.h', 'include/hven/detail/globalization/filter_acceptance.h', 'include/hven/detail/globalization/globalization_mechanism.h', 'include/hven/detail/globalization/modern_merit.h', 'include/hven/detail/globalization/monitored_governor.h', 'include/hven/detail/globalization/proximal_restoration.h', 'include/hven/detail/globalization/restoration.h', 'include/hven/detail/globalization/soc.h', 'include/hven/detail/globalization/switching_acceptance.h', 'include/hven/detail/globalization/watchdog.h', 'include/hven/detail/interior/sizing_specs.h', 'include/hven/detail/interior/typedefs/super_scalar_traits.h', 'include/hven/detail/interior/utils/memory_management.h', 'include/hven/detail/interior/utils/thread_pool.h']
+HEADER LIST ACCEPTED: ['include/hven/detail/globalization/acceptance_strategy.h', 'include/hven/detail/globalization/filter_acceptance.h', 'include/hven/detail/globalization/globalization_mechanism.h', 'include/hven/detail/globalization/modern_merit.h', 'include/hven/detail/globalization/monitored_governor.h', 'include/hven/detail/globalization/proximal_restoration.h', 'include/hven/detail/globalization/restoration.h', 'include/hven/detail/globalization/soc.h', 'include/hven/detail/globalization/switching_acceptance.h', 'include/hven/detail/globalization/watchdog.h', 'include/hven/detail/interior/sizing_specs.h', 'include/hven/detail/interior/typedefs/super_scalar_traits.h', 'include/hven/detail/interior/utils/memory_management.h', 'include/hven/detail/interior/utils/thread_pool.h']
+P-SYM: FAIL — differences outside the accepted noise class
+DIFFERING OBJECTS: 2
+  class A -- SOURCE CHANGED by this task: 2
+  class B -- INCLUDERS of a changed header, source untouched: 0
+  UNEXPLAINED: 0
+  NEGATIVE CONTROL -- objects that ALSO include one of those headers and are BYTE-IDENTICAL (neither a mover nor NOISE-ONLY): 31
+ASSERT OK   P-SYM Debug compare rc (declared 2 mover(s)) = 1
+ASSERT OK   P-SYM Debug classify rc = 0
+ASSERT OK   P-SYM Debug differing = 2 (>= 1)
+ASSERT OK   P-SYM Debug class A + class B = 2
+ASSERT OK   P-SYM Debug unexplained = 0
+ASSERT OK   P-SYM Debug negative control = 31 (>= 1)
+ASSERT OK   P-SYM Debug differing (declared) = 2
+ASSERT OK   P-SYM Debug class A (declared) = 2
+ASSERT OK   P-SYM Debug class B (declared) = 0
+ASSERT OK   library ADDED Debug: [] present after, absent before
+SECTIONS_RC_Debug=0
+DEBUG-ONLY       CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+DEBUG-ONLY       CMakeFiles/hven.dir/src/drivers/ipm_solver_globalization.cpp.o
+DEBUG-ONLY       CMakeFiles/hven.dir/src/interior/utils/get_core_count.cpp.o
+DEBUG-ONLY       CMakeFiles/hven.dir/src/interior/utils/memory_management.cpp.o
+DEBUG-ONLY       CMakeFiles/hven.dir/src/interior/utils/thread_pool.cpp.o
+DEBUG-ONLY       CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o
+SECTIONS_Debug_OBJECTS=48
+SECTIONS_Debug_BYTE_IDENTICAL=42
+SECTIONS_Debug_DEBUG_ONLY=6
+SECTIONS_Debug_NON_DEBUG_MOVERS=0
+SECTIONS_Debug_REFUSED=0
+SECTIONS_Debug_RC=0
+NON_DEBUG_MOVERS_GOT_Debug=[]  DECLARED=[]  REFUSED=0
+ASSERT OK   sections Debug: the non-debug movers are EXACTLY the declared set, nothing refused
+ASSERT OK   sections Debug: DEBUG_ONLY=6, as declared
+ASSERT OK   P-SYM cross-config: class B sets equal (0 object(s))
+ASSERT OK   P-SYM cross-config: Release unexplained = 0 (count and list)
+ASSERT OK   P-SYM cross-config: Debug unexplained = 0 (count and list)
+ASSERT OK   P-SYM cross-config: Release class A (2) all changed-source
+ASSERT OK   P-SYM cross-config: Debug class A (2) all changed-source
+ASSERT OK   P-SYM cross-config: the two class A sets are identical
+G5_ASSERT_RC=0
+FOREGROUND_END G5-psym 2026-10-30T02:13:36-04:00 rc=0
+WRAPPER_RC G5-psym rc=0
+ASSERT OK   G5 Release after-arm configure: reference dispatch, once, never off-reference: hven tests: MKL dispatch vendor=AuthenticAMD avx2=1 fma=1 avx512f=0 mkl_auto_branch=2 (MKL_CBWR_AUTO=2) -> REFERENCE (route pins asserted)
+ASSERT OK   G5 Release after-arm build: no build step names mkl_dispatch_probe (try_run only)
+ASSERT OK   G5 Debug after-arm configure: reference dispatch, once, never off-reference: hven tests: MKL dispatch vendor=AuthenticAMD avx2=1 fma=1 avx512f=0 mkl_auto_branch=2 (MKL_CBWR_AUTO=2) -> REFERENCE (route pins asserted)
+ASSERT OK   G5 Debug after-arm build: no build step names mkl_dispatch_probe (try_run only)
+ASSERT OK   Release UNITY class A source tests/interior/test_filter_acceptance.cpp: unity object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_0_cxx.cxx.o is in both manifests and is not a mover
+ASSERT OK   Release UNITY class A source tests/interior/test_funnel_acceptance.cpp: unity object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_0_cxx.cxx.o is in both manifests and is not a mover
+ASSERT OK   Release UNITY class A source tests/interior/test_l1_restoration.cpp: unity object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o is in both manifests and is not a mover
+ASSERT OK   Release UNITY class A source tests/interior/test_merit_rules.cpp: unity object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o is in both manifests and is not a mover
+ASSERT OK   Release UNITY class A source tests/interior/test_monitored_governor.cpp: unity object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o is in both manifests and is not a mover
+ASSERT OK   Release UNITY class A source tests/interior/test_watchdog.cpp: unity object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_3_cxx.cxx.o is in both manifests and is not a mover
+ASSERT OK   Debug UNITY class A source tests/interior/test_filter_acceptance.cpp: unity object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_0_cxx.cxx.o is in both manifests and is not a mover
+ASSERT OK   Debug UNITY class A source tests/interior/test_funnel_acceptance.cpp: unity object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_0_cxx.cxx.o is in both manifests and is not a mover
+ASSERT OK   Debug UNITY class A source tests/interior/test_l1_restoration.cpp: unity object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o is in both manifests and is not a mover
+ASSERT OK   Debug UNITY class A source tests/interior/test_merit_rules.cpp: unity object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o is in both manifests and is not a mover
+ASSERT OK   Debug UNITY class A source tests/interior/test_monitored_governor.cpp: unity object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o is in both manifests and is not a mover
+ASSERT OK   Debug UNITY class A source tests/interior/test_watchdog.cpp: unity object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_3_cxx.cxx.o is in both manifests and is not a mover
+CENSUS_Release objects=277 universe=162 command_delta=216 eigen_delta=50 differing=14 differing_outside_universe=5
+CENSUS_DIFFERS Release universe BS bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+CENSUS_DIFFERS Release universe BS bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+CENSUS_DIFFERS Release universe S bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+CENSUS_DIFFERS Release outside MC tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_flat_face_saddle.cpp.o
+CENSUS_DIFFERS Release outside MC tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_rank_repair.cpp.o
+CENSUS_DIFFERS Release outside MC tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_route_reference.cpp.o
+CENSUS_DIFFERS Release outside M tests/CMakeFiles/hven_sqp_seam_tests.dir/sqp/test_sqp_equality_basis_seams.cpp.o
+CENSUS_DIFFERS Release outside CS tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/trace_support.cpp.o
+CENSUS_DIFFERS Release universe MB tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o
+CENSUS_DIFFERS Release universe M tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_sweeps.cpp.o
+CENSUS_DIFFERS Release universe M tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_lift_oracle.cpp.o
+CENSUS_DIFFERS Release universe M tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_equality_basis.cpp.o
+CENSUS_DIFFERS Release universe M tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o
+CENSUS_DIFFERS Release universe M tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+CENSUS_Release C_differing=4 C_identical=46 C_pure_differing=0 UNEXPLAINED=0
+CENSUS_Release_OK
+ASSERT OK   object census Release: every differing object carries a class; EIGEN_DELTA 50 and C_PURE_DIFFERING 0 as declared
+CENSUS_Debug objects=277 universe=162 command_delta=216 eigen_delta=50 differing=71 differing_outside_universe=51
+CENSUS_DIFFERS Debug universe B CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+CENSUS_DIFFERS Debug universe B CMakeFiles/hven.dir/src/drivers/ipm_solver_globalization.cpp.o
+CENSUS_DIFFERS Debug universe M CMakeFiles/hven.dir/src/interior/utils/get_core_count.cpp.o
+CENSUS_DIFFERS Debug universe B CMakeFiles/hven.dir/src/interior/utils/memory_management.cpp.o
+CENSUS_DIFFERS Debug universe B CMakeFiles/hven.dir/src/interior/utils/thread_pool.cpp.o
+CENSUS_DIFFERS Debug universe MB CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o
+CENSUS_DIFFERS Debug universe BS bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+CENSUS_DIFFERS Debug universe BS bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+CENSUS_DIFFERS Debug universe S bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_fault_injection_tests.dir/__/src/core/pattern_hash.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_fault_injection_tests.dir/__/src/interior/kkt_factorization.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_fault_injection_tests.dir/__/src/linear/pardiso_session.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_fault_injection_tests.dir/__/src/linear/symmetric_factor_mkl.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_fault_injection_tests.dir/interior/test_kkt_factorization_faults.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_fault_injection_tests.dir/linear/test_fault_injection.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/core/pattern_hash.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/drivers/trace.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/interior/kkt_factorization.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/linear/pardiso_session.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/linear/symmetric_factor_mkl.cpp.o
+CENSUS_DIFFERS Debug outside CB tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/qp/ipqp_engine.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/qp/ipqp_kkt_layout.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_ipqp_seam_tests.dir/sqp/test_ipqp_seams.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/core/pattern_hash.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/interior/kkt_factorization.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/kkt/kkt_calls.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/linear/dense_symmetric_factor.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/linear/pardiso_session.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/linear/symmetric_factor_mkl.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/qp/qp_engine.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/qp/ws_independence.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_anti_cycling_arm.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_ascent_guard.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_border_certificate.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_certificate_sign.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_convex_certificate.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_degeneracy_arm.cpp.o
+CENSUS_DIFFERS Debug outside MC tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_flat_face_saddle.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_implied_blocker.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_latch_reason.cpp.o
+CENSUS_DIFFERS Debug outside MC tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_rank_repair.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_refused_exchange.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_saddle_exit.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_saddle_shift.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_stagnation_stop.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_standstill_retreat.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_unrun_dependency_test.cpp.o
+CENSUS_DIFFERS Debug outside C tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_walk_seam.cpp.o
+CENSUS_DIFFERS Debug outside MC tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_route_reference.cpp.o
+CENSUS_DIFFERS Debug outside B tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/ipm_solver.cpp.o
+CENSUS_DIFFERS Debug outside B tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/ipm_solver_globalization.cpp.o
+CENSUS_DIFFERS Debug outside M tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/interior/utils/get_core_count.cpp.o
+CENSUS_DIFFERS Debug outside B tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/interior/utils/memory_management.cpp.o
+CENSUS_DIFFERS Debug outside B tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/interior/utils/thread_pool.cpp.o
+CENSUS_DIFFERS Debug outside MB tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/model/non_linear_program.cpp.o
+CENSUS_DIFFERS Debug outside M tests/CMakeFiles/hven_sqp_seam_tests.dir/sqp/test_sqp_equality_basis_seams.cpp.o
+CENSUS_DIFFERS Debug universe B tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_concurrency.cpp.o
+CENSUS_DIFFERS Debug outside CS tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/recipes.cpp.o
+CENSUS_DIFFERS Debug outside CS tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/seam_native.cpp.o
+CENSUS_DIFFERS Debug outside CS tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/seam_registry.cpp.o
+CENSUS_DIFFERS Debug outside CS tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/trace_support.cpp.o
+CENSUS_DIFFERS Debug universe MB tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_0_cxx.cxx.o
+CENSUS_DIFFERS Debug universe MB tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o
+CENSUS_DIFFERS Debug universe B tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_2_cxx.cxx.o
+CENSUS_DIFFERS Debug universe MB tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_3_cxx.cxx.o
+CENSUS_DIFFERS Debug universe MB tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o
+CENSUS_DIFFERS Debug universe M tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_sweeps.cpp.o
+CENSUS_DIFFERS Debug universe M tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_lift_oracle.cpp.o
+CENSUS_DIFFERS Debug universe M tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_equality_basis.cpp.o
+CENSUS_DIFFERS Debug universe M tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o
+CENSUS_DIFFERS Debug universe M tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+CENSUS_Debug C_differing=44 C_identical=6 C_pure_differing=36 UNEXPLAINED=0
+CENSUS_Debug_OK
+ASSERT OK   object census Debug: every differing object carries a class; EIGEN_DELTA 50 and C_PURE_DIFFERING 36 as declared
+ASSERT OK   class B by name Release: the measured set equals the declared list []
+ASSERT OK   class B by name Debug: the measured set equals the declared list []
+ASSERT OK   class A by source Release: [tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_solver.cpp ]
+ASSERT OK   class A by source Debug: [tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_solver.cpp ]
+ASSERT OK   Release NOISE-ONLY class A: tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o
+ASSERT OK   Release NOISE-ONLY class A: tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_sweeps.cpp.o
+ASSERT OK   Release NOISE-ONLY class A: tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_equality_basis.cpp.o
+ASSERT OK   Release NOISE-ONLY class A: tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o
+ASSERT OK   Debug NOISE-ONLY class A: tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o
+ASSERT OK   Debug NOISE-ONLY class A: tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_sweeps.cpp.o
+ASSERT OK   Debug NOISE-ONLY class A: tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_equality_basis.cpp.o
+ASSERT OK   Debug NOISE-ONLY class A: tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o
+ASSERT OK   Debug NOISE-ONLY class A: CMakeFiles/hven.dir/src/interior/utils/get_core_count.cpp.o
+ASSERT OK   Debug NOISE-ONLY class A: CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o
+ASSERT OK   Release IDENTICAL class A (modified source, byte-identical object): CMakeFiles/hven.dir/src/interior/utils/get_core_count.cpp.o
+ASSERT OK   Release IDENTICAL class A (modified source, byte-identical object): CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o
+=== CHANGED C++ FOR CLANG-FORMAT: include/hven/detail/globalization/acceptance_strategy.h include/hven/detail/globalization/filter_acceptance.h include/hven/detail/globalization/globalization_mechanism.h include/hven/detail/globalization/modern_merit.h include/hven/detail/globalization/monitored_governor.h include/hven/detail/globalization/proximal_restoration.h include/hven/detail/globalization/restoration.h include/hven/detail/globalization/soc.h include/hven/detail/globalization/switching_acceptance.h include/hven/detail/globalization/watchdog.h include/hven/detail/interior/sizing_specs.h include/hven/detail/interior/typedefs/super_scalar_traits.h include/hven/detail/interior/utils/memory_management.h include/hven/detail/interior/utils/thread_pool.h src/interior/utils/get_core_count.cpp src/model/non_linear_program.cpp tests/common_support/mkl_dispatch_probe.cpp tests/common_support/mkl_dispatch_signature.h tests/common_support/route_reference.h tests/interior/test_filter_acceptance.cpp tests/interior/test_funnel_acceptance.cpp tests/interior/test_l1_restoration.cpp tests/interior/test_merit_rules.cpp tests/interior/test_monitored_governor.cpp tests/interior/test_watchdog.cpp tests/qp/test_qp_flat_face_saddle.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_route_reference.cpp tests/sqp/test_crossover_legs.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_qp_lift_oracle.cpp tests/sqp/test_sqp_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp 
+FOREGROUND_START G6-smoke 2026-10-30T02:13:37-04:00
+PGREP_EMPTY G6-smoke: no foreign cell binary under my lock
+INSTALL_SMOKE_RC=0
+install smoke: both solvers converged through one generic consumer; 19 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/smoke-work/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/smoke-work/hven-configure.log
+ALIGN_FROM_THIS_BUILDS_CONFIGURE_LOG=32
+-rw-r--r--. 1 ghecht ghecht 4314 Oct 30 02:13 /home/ghecht/Projects/hven/.claude/worktrees/wx2-gates-wt/.scratch/gates-wx2/smoke-work/hven-install/lib64/cmake/hven/hvenTargets.cmake
+EXPORT_CONTRACT_RC=0
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+== export contract OK for platform=linux, align=32
+--- clang-format on this round's changed C++ files, derived from git
+CLANG_FORMAT_RC=0
+DIFF_CHECK_RC=0
+DIRTY_FILES=0
+G6_ASSERT_RC=0
+FOREGROUND_END G6-smoke 2026-10-30T02:15:02-04:00 rc=0
+WRAPPER_RC G6-smoke rc=0
+GATES_SUMMARY G1=0 G2=0 G3=0 G4=0 G5=0 G6=0
+GATES_END 2026-10-30T02:15:02-04:00
+GATES_AGGREGATE rc=0 over [0 0 0 0 0 0]

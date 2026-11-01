@@ -1,0 +1,65 @@
+-- section 1: the view against the oracle
+ok   num_vars
+ok   num_cons
+ok   num_jac_nonzeros
+ok   num_hess_nonzeros
+ok   x_lower(0)
+ok   x_upper(0)
+ok   x_lower(1)
+ok   x_upper(1)
+ok   x_lower(2)
+ok   x_upper(2)
+ok   x_lower(3)
+ok   x_upper(3)
+ok   g_lower(0)
+ok   g_upper(0)
+ok   g_lower(1)
+ok   g_upper(1)
+ok   g_lower(2)
+ok   g_upper(2)
+ok   x3's GENUINE FINITE upper bound of 1e20 survives the bridge
+ok   x1 is free, spelled with real infinities
+ok   x2 is FIXED at 1.0
+ok   the equality row is declared at gl = gu = 0
+ok   both inequality rows are declared (-inf, 0], i.e. cI(x) <= 0
+ok   eval_f at x_a
+ok   eval_grad_f(0) at x_a
+ok   eval_grad_f(1) at x_a
+ok   eval_grad_f(2) at x_a
+ok   eval_grad_f(3) at x_a
+ok   eval_g(0) at x_a
+ok   eval_g(1) at x_a
+ok   eval_g(2) at x_a
+ok   Jacobian values at x_a (8 entries)
+ok   Hessian values at obj_factor=0.5, lambda=(-1.25,0.75,-2.5) at x_a (5 entries)
+ok   Hessian values at obj_factor=0 (the constraint part alone) at x_a (5 entries)
+ok   eval_f at x_b
+ok   eval_grad_f(0) at x_b
+ok   eval_grad_f(1) at x_b
+ok   eval_grad_f(2) at x_b
+ok   eval_grad_f(3) at x_b
+ok   eval_g(0) at x_b
+ok   eval_g(1) at x_b
+ok   eval_g(2) at x_b
+ok   Jacobian values at x_b (8 entries)
+ok   Hessian values at obj_factor=0.5, lambda=(-1.25,0.75,-2.5) at x_b (5 entries)
+ok   Hessian values at obj_factor=0 (the constraint part alone) at x_b (5 entries)
+ok   Jacobian coordinates (8 entries)
+ok   Hessian coordinates (5 entries)
+ok   every Hessian coordinate is in the LOWER triangle (row >= col)
+ok   the declared pattern is unchanged after evaluating at two different x
+ok   eval_f costs exactly one eval_f and nothing else
+ok   eval_grad_f costs exactly one eval_grad_in_place and nothing else
+ok   eval_g costs exactly one eval_ce and one eval_ci
+ok   eval_jac costs exactly one eval_jac_e and one eval_jac_i
+ok   eval_hess costs exactly one eval_hess_in_place and nothing else
+-- section 2: the HS absent-bound normalisation, where it belongs
+ok   section 1 proved the un-normalised route keeps a finite 1e20
+ok   the HS decorator reads 1e20 as ABSENT and writes +inf
+ok   the HS decorator leaves a real bound alone
+ok   ...on the lower side too
+ok   ...and leaves a FIXED variable fixed
+ok   ...on both sides
+ok   a real -inf stays -inf
+ok   no bound at or beyond 1e20 survives on any of the 27 registered problems
+BRIDGE ORACLE CHECK: all assertions passed

@@ -1,0 +1,24 @@
+=== NON-DEBUG SECTION COMPARISON (Debug) -- FAIL-CLOSED
+DEBUG_CLASS_PREFIXES=.debug .zdebug .rela.debug .rel.debug
+BEFORE_DIR=/home/ghecht/Projects/hven/.scratch/m7w2e1fix1gates/gates/psym/before-obj-Debug
+AFTER_DIR=/home/ghecht/Projects/hven/.scratch/m7w2e1fix1gates/gates/psym/after-obj-Debug
+DIGEST=/home/ghecht/Projects/hven/.scratch/m7w2e1fix1gates/section_digest_fix2.py
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o  sections=[SECTION-COUNT(7777->8824)]
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o  sections=[.text]
+DEBUG-ONLY       CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o  sections=[SECTION-COUNT(9990->10060)]
+DEBUG-ONLY       CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o  sections=[.text._ZN4hven7solvers10SqpOptionsC2Ev]
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o  sections=[.eh_frame,.symtab,.text,.text._ZN4hven7solvers22SqpEqualityBasisReportaSEOS1_,.text._ZN4hven7solvers22SqpEqualityBasisReportD2Ev,.text._ZN4hven7solvers9SqpResultaSEOS1_,.text._ZN4hven7solvers9SqpResultD2Ev]
+SECTIONS_Debug_OBJECTS=43
+SECTIONS_Debug_BYTE_IDENTICAL=36
+SECTIONS_Debug_DEBUG_ONLY=2
+SECTIONS_Debug_NON_DEBUG_MOVERS=5
+SECTIONS_Debug_REFUSED=0
+--- the non-debug movers, in full:
+CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o  [SECTION-COUNT(7777->8824)]
+CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o  [.text]
+CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o  [SECTION-COUNT(9990->10060)]
+CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o  [.text._ZN4hven7solvers10SqpOptionsC2Ev]
+CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o  [.eh_frame,.symtab,.text,.text._ZN4hven7solvers22SqpEqualityBasisReportaSEOS1_,.text._ZN4hven7solvers22SqpEqualityBasisReportD2Ev,.text._ZN4hven7solvers9SqpResultaSEOS1_,.text._ZN4hven7solvers9SqpResultD2Ev]
+SECTIONS_Debug_RC=1

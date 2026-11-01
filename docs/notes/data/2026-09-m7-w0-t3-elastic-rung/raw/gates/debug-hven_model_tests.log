@@ -1,0 +1,654 @@
+Running main() from /home/ghecht/Projects/hven/build-debug/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 258 tests from 44 test suites.
+[----------] Global test environment set-up.
+[----------] 2 tests from AggregatePieceConcept
+[ RUN      ] AggregatePieceConcept.IsSatisfiedByAMinimalPieceAndByTheExistingPieces
+[       OK ] AggregatePieceConcept.IsSatisfiedByAMinimalPieceAndByTheExistingPieces (0 ms)
+[ RUN      ] AggregatePieceConcept.TheObjectiveKindIsNoWeakerThanTheSeamThatStoresOne
+[       OK ] AggregatePieceConcept.TheObjectiveKindIsNoWeakerThanTheSeamThatStoresOne (0 ms)
+[----------] 2 tests from AggregatePieceConcept (0 ms total)
+
+[----------] 12 tests from AggregateDeclarationTest
+[ RUN      ] AggregateDeclarationTest.AcceptsAConsistentDeclaration
+[       OK ] AggregateDeclarationTest.AcceptsAConsistentDeclaration (0 ms)
+[ RUN      ] AggregateDeclarationTest.AcceptsRowCountsWhenNoPiecesAreDeclared
+[       OK ] AggregateDeclarationTest.AcceptsRowCountsWhenNoPiecesAreDeclared (0 ms)
+[ RUN      ] AggregateDeclarationTest.RejectsANonPositivePartitionCount
+[       OK ] AggregateDeclarationTest.RejectsANonPositivePartitionCount (0 ms)
+[ RUN      ] AggregateDeclarationTest.RejectsANegativeDimension
+[       OK ] AggregateDeclarationTest.RejectsANegativeDimension (0 ms)
+[ RUN      ] AggregateDeclarationTest.RejectsABoundOutsideTheVariableRange
+[       OK ] AggregateDeclarationTest.RejectsABoundOutsideTheVariableRange (0 ms)
+[ RUN      ] AggregateDeclarationTest.RejectsANotANumberBound
+[       OK ] AggregateDeclarationTest.RejectsANotANumberBound (0 ms)
+[ RUN      ] AggregateDeclarationTest.AcceptsAnInRangeBound
+[       OK ] AggregateDeclarationTest.AcceptsAnInRangeBound (0 ms)
+[ RUN      ] AggregateDeclarationTest.RejectsAnInvertedBoundRecord
+[       OK ] AggregateDeclarationTest.RejectsAnInvertedBoundRecord (0 ms)
+[ RUN      ] AggregateDeclarationTest.RejectsABoundHistoryWhoseIntersectionIsEmpty
+[       OK ] AggregateDeclarationTest.RejectsABoundHistoryWhoseIntersectionIsEmpty (0 ms)
+[ RUN      ] AggregateDeclarationTest.AcceptsABoundHistoryThatMerelyNarrows
+[       OK ] AggregateDeclarationTest.AcceptsABoundHistoryThatMerelyNarrows (0 ms)
+[ RUN      ] AggregateDeclarationTest.MaterializesOneRecordPerVariableTightestWins
+[       OK ] AggregateDeclarationTest.MaterializesOneRecordPerVariableTightestWins (0 ms)
+[ RUN      ] AggregateDeclarationTest.MaterializationRejectsWhatValidationRejects
+[       OK ] AggregateDeclarationTest.MaterializationRejectsWhatValidationRejects (0 ms)
+[----------] 12 tests from AggregateDeclarationTest (0 ms total)
+
+[----------] 7 tests from CandidateStorageValidation
+[ RUN      ] CandidateStorageValidation.ValuesBlocksMustMatchTheirDimensions
+[       OK ] CandidateStorageValidation.ValuesBlocksMustMatchTheirDimensions (0 ms)
+[ RUN      ] CandidateStorageValidation.TheMessageNamesTheBlockAndBothNumbers
+[       OK ] CandidateStorageValidation.TheMessageNamesTheBlockAndBothNumbers (0 ms)
+[ RUN      ] CandidateStorageValidation.FirstOrderBlocksMustMatchTheirDimensions
+[       OK ] CandidateStorageValidation.FirstOrderBlocksMustMatchTheirDimensions (0 ms)
+[ RUN      ] CandidateStorageValidation.MultiplierBlocksAreEitherEmptyOrExact
+[       OK ] CandidateStorageValidation.MultiplierBlocksAreEitherEmptyOrExact (0 ms)
+[ RUN      ] CandidateStorageValidation.ThePrimalBlockIsNeverOptional
+[       OK ] CandidateStorageValidation.ThePrimalBlockIsNeverOptional (0 ms)
+[ RUN      ] CandidateStorageValidation.MultipliersMustBeFullLengthWhereTheyAreRead
+[       OK ] CandidateStorageValidation.MultipliersMustBeFullLengthWhereTheyAreRead (0 ms)
+[ RUN      ] CandidateStorageValidation.TheFullMultiplierMessageNamesTheBlockAndBothSizes
+[       OK ] CandidateStorageValidation.TheFullMultiplierMessageNamesTheBlockAndBothSizes (0 ms)
+[----------] 7 tests from CandidateStorageValidation (0 ms total)
+
+[----------] 5 tests from KktLocationTableTest
+[ RUN      ] KktLocationTableTest.PublishesLocationsClashMarksAndLocksTogether
+[       OK ] KktLocationTableTest.PublishesLocationsClashMarksAndLocksTogether (0 ms)
+[ RUN      ] KktLocationTableTest.IsEmptyWhenNothingWasClaimed
+[       OK ] KktLocationTableTest.IsEmptyWhenNothingWasClaimed (0 ms)
+[ RUN      ] KktLocationTableTest.RejectsAClashMarkOutsideTheLockVector
+[       OK ] KktLocationTableTest.RejectsAClashMarkOutsideTheLockVector (0 ms)
+[ RUN      ] KktLocationTableTest.RejectsAMissingIndexArray
+[       OK ] KktLocationTableTest.RejectsAMissingIndexArray (0 ms)
+[ RUN      ] KktLocationTableTest.RejectsAClashMarkBelowTheSentinel
+[       OK ] KktLocationTableTest.RejectsAClashMarkBelowTheSentinel (0 ms)
+[----------] 5 tests from KktLocationTableTest (0 ms total)
+
+[----------] 3 tests from RhsLocationTableTest
+[ RUN      ] RhsLocationTableTest.MapsClaimSlotsToArenaRows
+[       OK ] RhsLocationTableTest.MapsClaimSlotsToArenaRows (0 ms)
+[ RUN      ] RhsLocationTableTest.RejectsARowBelowTheSentinel
+[       OK ] RhsLocationTableTest.RejectsARowBelowTheSentinel (0 ms)
+[ RUN      ] RhsLocationTableTest.ADroppedRowIsSpelledAsNegativeOne
+[       OK ] RhsLocationTableTest.ADroppedRowIsSpelledAsNegativeOne (0 ms)
+[----------] 3 tests from RhsLocationTableTest (0 ms total)
+
+[----------] 1 test from ScatterViewTest
+[ RUN      ] ScatterViewTest.DefaultConstructedViewsAreEmpty
+[       OK ] ScatterViewTest.DefaultConstructedViewsAreEmpty (0 ms)
+[----------] 1 test from ScatterViewTest (0 ms total)
+
+[----------] 15 tests from AggregateAssembleContract
+[ RUN      ] AggregateAssembleContract.AnObjectiveOnlyRequestWritesOnlyTheObjectiveSlot
+[       OK ] AggregateAssembleContract.AnObjectiveOnlyRequestWritesOnlyTheObjectiveSlot (0 ms)
+[ RUN      ] AggregateAssembleContract.TheConstraintKktShapeWritesNoObjectiveOutput
+[       OK ] AggregateAssembleContract.TheConstraintKktShapeWritesNoObjectiveOutput (0 ms)
+[ RUN      ] AggregateAssembleContract.AnArenaTheRequestDoesNotNameMayBeLeftEmpty
+[       OK ] AggregateAssembleContract.AnArenaTheRequestDoesNotNameMayBeLeftEmpty (0 ms)
+[ RUN      ] AggregateAssembleContract.AnArenaTheRequestDoesNameMayNotBeLeftEmpty
+[       OK ] AggregateAssembleContract.AnArenaTheRequestDoesNameMayNotBeLeftEmpty (0 ms)
+[ RUN      ] AggregateAssembleContract.AZeroLengthGradientViewIsRefusedEvenWithStorage
+[       OK ] AggregateAssembleContract.AZeroLengthGradientViewIsRefusedEvenWithStorage (0 ms)
+[ RUN      ] AggregateAssembleContract.AKktBearingRequestMayNotBeGivenAnEmptyKktView
+[       OK ] AggregateAssembleContract.AKktBearingRequestMayNotBeGivenAnEmptyKktView (0 ms)
+[ RUN      ] AggregateAssembleContract.ABoundProviderRefusesAViewNamingAnotherDestination
+[       OK ] AggregateAssembleContract.ABoundProviderRefusesAViewNamingAnotherDestination (0 ms)
+[ RUN      ] AggregateAssembleContract.AnUnboundProviderAcceptsWhateverDestinationItIsGiven
+[       OK ] AggregateAssembleContract.AnUnboundProviderAcceptsWhateverDestinationItIsGiven (0 ms)
+[ RUN      ] AggregateAssembleContract.RequestMaskingMovesNeitherLayoutNorDigestNorEpoch
+[       OK ] AggregateAssembleContract.RequestMaskingMovesNeitherLayoutNorDigestNorEpoch (0 ms)
+[ RUN      ] AggregateAssembleContract.SuccessiveCallsAccumulateIntoOneDestination
+[       OK ] AggregateAssembleContract.SuccessiveCallsAccumulateIntoOneDestination (0 ms)
+[ RUN      ] AggregateAssembleContract.AnRhsArenaIsAccumulatedIntoNotAssigned
+[       OK ] AggregateAssembleContract.AnRhsArenaIsAccumulatedIntoNotAssigned (0 ms)
+[ RUN      ] AggregateAssembleContract.AKktArenaClaimIsAccumulatedIntoNotAssigned
+[       OK ] AggregateAssembleContract.AKktArenaClaimIsAccumulatedIntoNotAssigned (0 ms)
+[ RUN      ] AggregateAssembleContract.AnUnmappedRequestIsRefusedBeforeAnythingIsWritten
+[       OK ] AggregateAssembleContract.AnUnmappedRequestIsRefusedBeforeAnythingIsWritten (0 ms)
+[ RUN      ] AggregateAssembleContract.AnAdjointRequestWithEmptyMultipliersIsRefused
+[       OK ] AggregateAssembleContract.AnAdjointRequestWithEmptyMultipliersIsRefused (0 ms)
+[ RUN      ] AggregateAssembleContract.AValuesOnlyRequestStillAcceptsEmptyMultipliers
+[       OK ] AggregateAssembleContract.AValuesOnlyRequestStillAcceptsEmptyMultipliers (0 ms)
+[----------] 15 tests from AggregateAssembleContract (0 ms total)
+
+[----------] 3 tests from AggregateCandidateContract
+[ RUN      ] AggregateCandidateContract.TheCandidateEntriesAssignRatherThanAccumulate
+[       OK ] AggregateCandidateContract.TheCandidateEntriesAssignRatherThanAccumulate (0 ms)
+[ RUN      ] AggregateCandidateContract.FirstOrderAlwaysRequiresFullMultipliers
+[       OK ] AggregateCandidateContract.FirstOrderAlwaysRequiresFullMultipliers (0 ms)
+[ RUN      ] AggregateCandidateContract.TheValuesPathStillAcceptsEmptyMultipliers
+[       OK ] AggregateCandidateContract.TheValuesPathStillAcceptsEmptyMultipliers (0 ms)
+[----------] 3 tests from AggregateCandidateContract (0 ms total)
+
+[----------] 2 tests from AggregateNonVirtualEntryContract
+[ RUN      ] AggregateNonVirtualEntryContract.ValidationIsAPropertyOfTheTypeNotOfTheImplementation
+[       OK ] AggregateNonVirtualEntryContract.ValidationIsAPropertyOfTheTypeNotOfTheImplementation (0 ms)
+[ RUN      ] AggregateNonVirtualEntryContract.TheProbeInheritsTheValuesEntrysValidation
+[       OK ] AggregateNonVirtualEntryContract.TheProbeInheritsTheValuesEntrysValidation (0 ms)
+[----------] 2 tests from AggregateNonVirtualEntryContract (0 ms total)
+
+[----------] 1 test from AggregateCapabilityContract
+[ RUN      ] AggregateCapabilityContract.AnAggregateDeclaresNothingUnlessItSaysOtherwise
+[       OK ] AggregateCapabilityContract.AnAggregateDeclaresNothingUnlessItSaysOtherwise (0 ms)
+[----------] 1 test from AggregateCapabilityContract (0 ms total)
+
+[----------] 2 tests from AggregateContract
+[ RUN      ] AggregateContract.TheStructureKeyIsReachableThroughTheFreeFunctionSpelling
+[       OK ] AggregateContract.TheStructureKeyIsReachableThroughTheFreeFunctionSpelling (0 ms)
+[ RUN      ] AggregateContract.TheAdoptedPartitionCountIsTheKeysPartitionConjunct
+[       OK ] AggregateContract.TheAdoptedPartitionCountIsTheKeysPartitionConjunct (0 ms)
+[----------] 2 tests from AggregateContract (0 ms total)
+
+[----------] 11 tests from AdoptDeclaration
+[ RUN      ] AdoptDeclaration.LaysWhatAHandAssembledProblemLays
+[       OK ] AdoptDeclaration.LaysWhatAHandAssembledProblemLays (30 ms)
+[ RUN      ] AdoptDeclaration.RoundTripsExactlyWithFixingRowsInstalled
+[       OK ] AdoptDeclaration.RoundTripsExactlyWithFixingRowsInstalled (83 ms)
+[ RUN      ] AdoptDeclaration.ReportsTheAdoptedPartitionCountNotTheRequestedOne
+[       OK ] AdoptDeclaration.ReportsTheAdoptedPartitionCountNotTheRequestedOne (27 ms)
+[ RUN      ] AdoptDeclaration.ClaimOrderIsAFunctionOfTheDeclaredThreadModes
+[       OK ] AdoptDeclaration.ClaimOrderIsAFunctionOfTheDeclaredThreadModes (54 ms)
+[ RUN      ] AdoptDeclaration.AThreadModeWriteAfterTheLayIsRefused
+[       OK ] AdoptDeclaration.AThreadModeWriteAfterTheLayIsRefused (16 ms)
+[ RUN      ] AdoptDeclaration.ARefusedAdoptionLeavesTheProblemUnchanged
+[       OK ] AdoptDeclaration.ARefusedAdoptionLeavesTheProblemUnchanged (16 ms)
+[ RUN      ] AdoptDeclaration.AModeSetOnTheDeclarationSurvivesTheLayAndIsFrozenAgain
+[       OK ] AdoptDeclaration.AModeSetOnTheDeclarationSurvivesTheLayAndIsFrozenAgain (25 ms)
+[ RUN      ] AdoptDeclaration.RefusesADeclarationWithRowsAndNoPiecesToClaimThem
+[       OK ] AdoptDeclaration.RefusesADeclarationWithRowsAndNoPiecesToClaimThem (16 ms)
+[ RUN      ] AdoptDeclaration.RefusesAFixingRowThatWritesOutsideTheInternalBand
+[       OK ] AdoptDeclaration.RefusesAFixingRowThatWritesOutsideTheInternalBand (16 ms)
+[ RUN      ] AdoptDeclaration.TheNextTreatmentRederivesTheFixingRowsTheAdoptionCarried
+[       OK ] AdoptDeclaration.TheNextTreatmentRederivesTheFixingRowsTheAdoptionCarried (66 ms)
+[ RUN      ] AdoptDeclaration.TheLayMarkerEntriesAreNotReachableFromOutsideTheLay
+[       OK ] AdoptDeclaration.TheLayMarkerEntriesAreNotReachableFromOutsideTheLay (0 ms)
+[----------] 11 tests from AdoptDeclaration (353 ms total)
+
+[----------] 1 test from AggregateDeclarationValidation
+[ RUN      ] AggregateDeclarationValidation.RefusesAFixingRowCountThatIsNotPartOfTheEqualityRows
+[       OK ] AggregateDeclarationValidation.RefusesAFixingRowCountThatIsNotPartOfTheEqualityRows (0 ms)
+[----------] 1 test from AggregateDeclarationValidation (0 ms total)
+
+[----------] 8 tests from AggregateDeclarationOvercount
+[ RUN      ] AggregateDeclarationOvercount.AcceptsPiecesThatClaimMoreRowsThanDeclaredWhenTheExcessIsStated
+[       OK ] AggregateDeclarationOvercount.AcceptsPiecesThatClaimMoreRowsThanDeclaredWhenTheExcessIsStated (15 ms)
+[ RUN      ] AggregateDeclarationOvercount.RefusesTheSameSharingWithTheExcessUnstated
+[       OK ] AggregateDeclarationOvercount.RefusesTheSameSharingWithTheExcessUnstated (16 ms)
+[ RUN      ] AggregateDeclarationOvercount.RefusesAnExcessThatIsNotACount
+[       OK ] AggregateDeclarationOvercount.RefusesAnExcessThatIsNotACount (32 ms)
+[ RUN      ] AggregateDeclarationOvercount.RefusesAnExcessOnADeclarationWithNoPieces
+[       OK ] AggregateDeclarationOvercount.RefusesAnExcessOnADeclarationWithNoPieces (0 ms)
+[ RUN      ] AggregateDeclarationOvercount.IsNotAStructuralKeyConjunct
+[       OK ] AggregateDeclarationOvercount.IsNotAStructuralKeyConjunct (17 ms)
+[ RUN      ] AggregateDeclarationOvercount.ALayoutWithSharedRowsEmitsTheExcessItActuallyCarries
+[       OK ] AggregateDeclarationOvercount.ALayoutWithSharedRowsEmitsTheExcessItActuallyCarries (15 ms)
+[ RUN      ] AggregateDeclarationOvercount.SurvivesAdoptionAndComesBackOutOfTheDeclarationItEmits
+[       OK ] AggregateDeclarationOvercount.SurvivesAdoptionAndComesBackOutOfTheDeclarationItEmits (40 ms)
+[ RUN      ] AggregateDeclarationOvercount.IsZeroOnALayoutWhosePiecesClaimDisjointRows
+[       OK ] AggregateDeclarationOvercount.IsZeroOnALayoutWhosePiecesClaimDisjointRows (16 ms)
+[----------] 8 tests from AggregateDeclarationOvercount (153 ms total)
+
+[----------] 10 tests from ClaimStreamRestatement
+[ RUN      ] ClaimStreamRestatement.ThePublishedStreamEqualsAnIndependentReference
+[       OK ] ClaimStreamRestatement.ThePublishedStreamEqualsAnIndependentReference (180 ms)
+[ RUN      ] ClaimStreamRestatement.TheThreeBlocksPartitionTheArenaInDomainOrder
+[       OK ] ClaimStreamRestatement.TheThreeBlocksPartitionTheArenaInDomainOrder (153 ms)
+[ RUN      ] ClaimStreamRestatement.TheOffsetTablesAreWellFormedOnEveryShape
+[       OK ] ClaimStreamRestatement.TheOffsetTablesAreWellFormedOnEveryShape (153 ms)
+[ RUN      ] ClaimStreamRestatement.TheClaimConventionHoldsSlotForSlot
+[       OK ] ClaimStreamRestatement.TheClaimConventionHoldsSlotForSlot (175 ms)
+[ RUN      ] ClaimStreamRestatement.PublishingTheStreamMovesNoRawArray
+[       OK ] ClaimStreamRestatement.PublishingTheStreamMovesNoRawArray (163 ms)
+[ RUN      ] ClaimStreamRestatement.TheClaimDigestStillHashesTheRawSlotsInEmissionOrder
+[       OK ] ClaimStreamRestatement.TheClaimDigestStillHashesTheRawSlotsInEmissionOrder (156 ms)
+[ RUN      ] ClaimStreamRestatement.AnEliminationOnlyRelayLeavesTheDeclarationSpaceStreamStanding
+[       OK ] ClaimStreamRestatement.AnEliminationOnlyRelayLeavesTheDeclarationSpaceStreamStanding (0 ms)
+[ RUN      ] ClaimStreamRestatement.AMakeConstraintSwitchRestatesAgainstTheNewRowSpace
+[       OK ] ClaimStreamRestatement.AMakeConstraintSwitchRestatesAgainstTheNewRowSpace (1 ms)
+[ RUN      ] ClaimStreamRestatement.APartitionRenegotiationRestatesAgainstTheNewOrder
+[       OK ] ClaimStreamRestatement.APartitionRenegotiationRestatesAgainstTheNewOrder (68 ms)
+[ RUN      ] ClaimStreamRestatement.ARepeatedLayRestatesAgainstTheProblemAsItNowStands
+[       OK ] ClaimStreamRestatement.ARepeatedLayRestatesAgainstTheProblemAsItNowStands (0 ms)
+[----------] 10 tests from ClaimStreamRestatement (1054 ms total)
+
+[----------] 16 tests from ClaimStreamState
+[ RUN      ] ClaimStreamState.AnEliminationOnlyRelayRetainsTheStreamAndItsEpoch
+[       OK ] ClaimStreamState.AnEliminationOnlyRelayRetainsTheStreamAndItsEpoch (0 ms)
+[ RUN      ] ClaimStreamState.RestoringFromAnEliminationRetainsToo
+[       OK ] ClaimStreamState.RestoringFromAnEliminationRetainsToo (1 ms)
+[ RUN      ] ClaimStreamState.APartitionRenegotiationRebuildsAndBumpsBothEpochs
+[       OK ] ClaimStreamState.APartitionRenegotiationRebuildsAndBumpsBothEpochs (54 ms)
+[ RUN      ] ClaimStreamState.AMakeConstraintTreatmentRebuildsBecauseTheRowSpaceMoved
+[       OK ] ClaimStreamState.AMakeConstraintTreatmentRebuildsBecauseTheRowSpaceMoved (0 ms)
+[ RUN      ] ClaimStreamState.ASwitchFromMakeConstraintToMakeParameterRebuilds
+[       OK ] ClaimStreamState.ASwitchFromMakeConstraintToMakeParameterRebuilds (1 ms)
+[ RUN      ] ClaimStreamState.ARepeatedLayAtIdenticalCountsStillRebuilds
+[       OK ] ClaimStreamState.ARepeatedLayAtIdenticalCountsStillRebuilds (0 ms)
+[ RUN      ] ClaimStreamState.APieceSwapAtIdenticalCountsRebuildsAndMovesTheStream
+[       OK ] ClaimStreamState.APieceSwapAtIdenticalCountsRebuildsAndMovesTheStream (0 ms)
+[ RUN      ] ClaimStreamState.AdoptingADeclarationWithFixingRowsRestatesOnBothRebuilds
+[       OK ] ClaimStreamState.AdoptingADeclarationWithFixingRowsRestatesOnBothRebuilds (1 ms)
+[ RUN      ] ClaimStreamState.AnUnlaidProblemHasNoClaimStreamAndSaysSo
+[       OK ] ClaimStreamState.AnUnlaidProblemHasNoClaimStreamAndSaysSo (0 ms)
+[ RUN      ] ClaimStreamState.AStampThatMovesWhileReducedDropsTheStreamRatherThanGuessing
+[       OK ] ClaimStreamState.AStampThatMovesWhileReducedDropsTheStreamRatherThanGuessing (125 ms)
+[ RUN      ] ClaimStreamState.ARelayThatThrowsLeavesThePreviouslyPublishedViewsStanding
+[       OK ] ClaimStreamState.ARelayThatThrowsLeavesThePreviouslyPublishedViewsStanding (0 ms)
+[ RUN      ] ClaimStreamState.ThePublishedDimensionsAreTheOnesTheStreamWasBuiltAgainst
+[       OK ] ClaimStreamState.ThePublishedDimensionsAreTheOnesTheStreamWasBuiltAgainst (1 ms)
+[ RUN      ] ClaimStreamState.AnEqualWidthRebuildAllocatesNothing
+[       OK ] ClaimStreamState.AnEqualWidthRebuildAllocatesNothing (1 ms)
+[ RUN      ] ClaimStreamState.APieceWrittenIntoAMasterListWithoutARelayIsNotRetainedAcross
+[       OK ] ClaimStreamState.APieceWrittenIntoAMasterListWithoutARelayIsNotRetainedAcross (0 ms)
+[ RUN      ] ClaimStreamState.AFirstLayThatCannotRestateSaysThatAndNotSomethingAboutElimination
+[       OK ] ClaimStreamState.AFirstLayThatCannotRestateSaysThatAndNotSomethingAboutElimination (0 ms)
+[ RUN      ] ClaimStreamState.ARefusedRelayLeavesTheLayoutReportingItselfUnanalysed
+[       OK ] ClaimStreamState.ARefusedRelayLeavesTheLayoutReportingItselfUnanalysed (0 ms)
+[----------] 16 tests from ClaimStreamState (192 ms total)
+
+[----------] 8 tests from ClaimStreamRefusals
+[ RUN      ] ClaimStreamRefusals.TheWellFormedFixtureRestates
+[       OK ] ClaimStreamRefusals.TheWellFormedFixtureRestates (0 ms)
+[ RUN      ] ClaimStreamRefusals.AClaimedSlackRowIsRefused
+[       OK ] ClaimStreamRefusals.AClaimedSlackRowIsRefused (0 ms)
+[ RUN      ] ClaimStreamRefusals.ANegativeCoordinateInAnUnreducedLayoutIsRefused
+[       OK ] ClaimStreamRefusals.ANegativeCoordinateInAnUnreducedLayoutIsRefused (0 ms)
+[ RUN      ] ClaimStreamRefusals.AGradientRowOutsideTheDeclaredVariablesIsRefused
+[       OK ] ClaimStreamRefusals.AGradientRowOutsideTheDeclaredVariablesIsRefused (0 ms)
+[ RUN      ] ClaimStreamRefusals.AColumnOutsideTheDeclaredVariablesIsRefused
+[       OK ] ClaimStreamRefusals.AColumnOutsideTheDeclaredVariablesIsRefused (0 ms)
+[ RUN      ] ClaimStreamRefusals.AConstraintRowOutsideItsOwnDomainBandIsRefused
+[       OK ] ClaimStreamRefusals.AConstraintRowOutsideItsOwnDomainBandIsRefused (0 ms)
+[ RUN      ] ClaimStreamRefusals.MalformedMarkTablesAreRefused
+[       OK ] ClaimStreamRefusals.MalformedMarkTablesAreRefused (0 ms)
+[ RUN      ] ClaimStreamRefusals.AnEmptyPartitionGivesEqualAdjacentOffsets
+[       OK ] ClaimStreamRefusals.AnEmptyPartitionGivesEqualAdjacentOffsets (0 ms)
+[----------] 8 tests from ClaimStreamRefusals (0 ms total)
+
+[----------] 6 tests from ClaimDomainSetTest
+[ RUN      ] ClaimDomainSetTest.EmptyByDefault
+[       OK ] ClaimDomainSetTest.EmptyByDefault (0 ms)
+[ RUN      ] ClaimDomainSetTest.ASingleDomainConvertsToItsOwnSet
+[       OK ] ClaimDomainSetTest.ASingleDomainConvertsToItsOwnSet (0 ms)
+[ RUN      ] ClaimDomainSetTest.UnionCollectsEveryDomain
+[       OK ] ClaimDomainSetTest.UnionCollectsEveryDomain (0 ms)
+[ RUN      ] ClaimDomainSetTest.IntersectionKeepsTheCommonDomains
+[       OK ] ClaimDomainSetTest.IntersectionKeepsTheCommonDomains (0 ms)
+[ RUN      ] ClaimDomainSetTest.UnionIsIdempotentAndComparable
+[       OK ] ClaimDomainSetTest.UnionIsIdempotentAndComparable (0 ms)
+[ RUN      ] ClaimDomainSetTest.AllCarriesEveryDomain
+[       OK ] ClaimDomainSetTest.AllCarriesEveryDomain (0 ms)
+[----------] 6 tests from ClaimDomainSetTest (0 ms total)
+
+[----------] 1 test from KktStorageTest
+[ RUN      ] KktStorageTest.AClaimSpaceResolvesStorageAtClaimTimeNotOnTheHotPath
+[       OK ] KktStorageTest.AClaimSpaceResolvesStorageAtClaimTimeNotOnTheHotPath (0 ms)
+[----------] 1 test from KktStorageTest (0 ms total)
+
+[----------] 5 tests from AggregateCapabilityTest
+[ RUN      ] AggregateCapabilityTest.NoneCarriesNothing
+[       OK ] AggregateCapabilityTest.NoneCarriesNothing (0 ms)
+[ RUN      ] AggregateCapabilityTest.ProbingForNothingIsVacuouslyTrue
+[       OK ] AggregateCapabilityTest.ProbingForNothingIsVacuouslyTrue (0 ms)
+[ RUN      ] AggregateCapabilityTest.HasCapabilityRequiresEveryProbedBit
+[       OK ] AggregateCapabilityTest.HasCapabilityRequiresEveryProbedBit (0 ms)
+[ RUN      ] AggregateCapabilityTest.IntersectionKeepsTheCommonBits
+[       OK ] AggregateCapabilityTest.IntersectionKeepsTheCommonBits (0 ms)
+[ RUN      ] AggregateCapabilityTest.InPlaceUnionAndMaskingBothCompile
+[       OK ] AggregateCapabilityTest.InPlaceUnionAndMaskingBothCompile (0 ms)
+[----------] 5 tests from AggregateCapabilityTest (0 ms total)
+
+[----------] 5 tests from EvalRequestTest
+[ RUN      ] EvalRequestTest.NoneNamesNoOutput
+[       OK ] EvalRequestTest.NoneNamesNoOutput (0 ms)
+[ RUN      ] EvalRequestTest.UnionAndIntersection
+[       OK ] EvalRequestTest.UnionAndIntersection (0 ms)
+[ RUN      ] EvalRequestTest.HasRequestRequiresEveryProbedFlag
+[       OK ] EvalRequestTest.HasRequestRequiresEveryProbedFlag (0 ms)
+[ RUN      ] EvalRequestTest.InPlaceUnionAndMaskingBothCompile
+[       OK ] EvalRequestTest.InPlaceUnionAndMaskingBothCompile (0 ms)
+[ RUN      ] EvalRequestTest.TheAdjointRequestsAreTheOnesThatConsumeTheMultipliers
+[       OK ] EvalRequestTest.TheAdjointRequestsAreTheOnesThatConsumeTheMultipliers (0 ms)
+[----------] 5 tests from EvalRequestTest (0 ms total)
+
+[----------] 14 tests from EvalRequestMappingTable
+[ RUN      ] EvalRequestMappingTable.AllMappedSetsAreDistinct
+[       OK ] EvalRequestMappingTable.AllMappedSetsAreDistinct (0 ms)
+[ RUN      ] EvalRequestMappingTable.NoMappedSetIsEmpty
+[       OK ] EvalRequestMappingTable.NoMappedSetIsEmpty (0 ms)
+[ RUN      ] EvalRequestMappingTable.TheObjectiveOnlyShapeNamesNothingElse
+[       OK ] EvalRequestMappingTable.TheObjectiveOnlyShapeNamesNothingElse (0 ms)
+[ RUN      ] EvalRequestMappingTable.TheConstraintOnlyShapesNameNoObjectiveOutput
+[       OK ] EvalRequestMappingTable.TheConstraintOnlyShapesNameNoObjectiveOutput (0 ms)
+[ RUN      ] EvalRequestMappingTable.OnlyTheFullKktShapeNamesTheObjectiveHessianAmongInteriorOwnedShapes
+[       OK ] EvalRequestMappingTable.OnlyTheFullKktShapeNamesTheObjectiveHessianAmongInteriorOwnedShapes (0 ms)
+[ RUN      ] EvalRequestMappingTable.EveryShapeThatNamesADerivativeAlsoNamesItsValues
+[       OK ] EvalRequestMappingTable.EveryShapeThatNamesADerivativeAlsoNamesItsValues (0 ms)
+[ RUN      ] EvalRequestMappingTable.TheFullKktShapeSubsumesEveryOtherMappedShape
+[       OK ] EvalRequestMappingTable.TheFullKktShapeSubsumesEveryOtherMappedShape (0 ms)
+[ RUN      ] EvalRequestMappingTable.ExactlyTheMappedSetsAreLegal
+[       OK ] EvalRequestMappingTable.ExactlyTheMappedSetsAreLegal (0 ms)
+[ RUN      ] EvalRequestMappingTable.AnUnmappedCombinationIsRefusedByName
+[       OK ] EvalRequestMappingTable.AnUnmappedCombinationIsRefusedByName (0 ms)
+[ RUN      ] EvalRequestMappingTable.TheEmptyRequestIsNotLegal
+[       OK ] EvalRequestMappingTable.TheEmptyRequestIsNotLegal (0 ms)
+[ RUN      ] EvalRequestMappingTable.ShapeNineIsLegalAndConsumesMultipliers
+[       OK ] EvalRequestMappingTable.ShapeNineIsLegalAndConsumesMultipliers (0 ms)
+[ RUN      ] EvalRequestMappingTable.ShapeTenIsLegalAndDoesNotConsumeMultipliers
+[       OK ] EvalRequestMappingTable.ShapeTenIsLegalAndDoesNotConsumeMultipliers (0 ms)
+[ RUN      ] EvalRequestMappingTable.ShapeElevenIsLegalAndDoesNotConsumeMultipliers
+[       OK ] EvalRequestMappingTable.ShapeElevenIsLegalAndDoesNotConsumeMultipliers (0 ms)
+[ RUN      ] EvalRequestMappingTable.TheThreeSqpOwnedSetsAreMutuallyDistinct
+[       OK ] EvalRequestMappingTable.TheThreeSqpOwnedSetsAreMutuallyDistinct (0 ms)
+[----------] 14 tests from EvalRequestMappingTable (0 ms total)
+
+[----------] 4 tests from IdentityProbeTest
+[ RUN      ] IdentityProbeTest.EqualHalvesCompareEqual
+[       OK ] IdentityProbeTest.EqualHalvesCompareEqual (0 ms)
+[ RUN      ] IdentityProbeTest.SameDigestUnderADifferentEpochIsNotTheSameProbe
+[       OK ] IdentityProbeTest.SameDigestUnderADifferentEpochIsNotTheSameProbe (0 ms)
+[ RUN      ] IdentityProbeTest.SameEpochWithADifferentDigestIsNotTheSameProbe
+[       OK ] IdentityProbeTest.SameEpochWithADifferentDigestIsNotTheSameProbe (0 ms)
+[ RUN      ] IdentityProbeTest.DefaultsToNothingLaidAndNoValues
+[       OK ] IdentityProbeTest.DefaultsToNothingLaidAndNoValues (0 ms)
+[----------] 4 tests from IdentityProbeTest (0 ms total)
+
+[----------] 5 tests from CandidateValueDigestTest
+[ RUN      ] CandidateValueDigestTest.SameValuesHashEqual
+[       OK ] CandidateValueDigestTest.SameValuesHashEqual (0 ms)
+[ RUN      ] CandidateValueDigestTest.ADifferentObjectiveMovesTheDigest
+[       OK ] CandidateValueDigestTest.ADifferentObjectiveMovesTheDigest (0 ms)
+[ RUN      ] CandidateValueDigestTest.ADifferentResidualMovesTheDigest
+[       OK ] CandidateValueDigestTest.ADifferentResidualMovesTheDigest (0 ms)
+[ RUN      ] CandidateValueDigestTest.TheBlockSplitIsPartOfTheStream
+[       OK ] CandidateValueDigestTest.TheBlockSplitIsPartOfTheStream (0 ms)
+[ RUN      ] CandidateValueDigestTest.TheDigestIsBitwiseNotNumeric
+[       OK ] CandidateValueDigestTest.TheDigestIsBitwiseNotNumeric (0 ms)
+[----------] 5 tests from CandidateValueDigestTest (0 ms total)
+
+[----------] 3 tests from AggregateProbeContract
+[ RUN      ] AggregateProbeContract.TheProbeCarriesTheCurrentStructureEpoch
+[       OK ] AggregateProbeContract.TheProbeCarriesTheCurrentStructureEpoch (0 ms)
+[ RUN      ] AggregateProbeContract.TheProbeIsAValuesEvaluationPlusAHash
+[       OK ] AggregateProbeContract.TheProbeIsAValuesEvaluationPlusAHash (0 ms)
+[ RUN      ] AggregateProbeContract.ADifferentPointMovesTheValueHalf
+[       OK ] AggregateProbeContract.ADifferentPointMovesTheValueHalf (0 ms)
+[----------] 3 tests from AggregateProbeContract (0 ms total)
+
+[----------] 7 tests from ModelStructureKeyTest
+[ RUN      ] ModelStructureKeyTest.EqualFieldsCompareEqual
+[       OK ] ModelStructureKeyTest.EqualFieldsCompareEqual (0 ms)
+[ RUN      ] ModelStructureKeyTest.DefaultsToAKeyOfNothing
+[       OK ] ModelStructureKeyTest.DefaultsToAKeyOfNothing (0 ms)
+[ RUN      ] ModelStructureKeyTest.PartitionCountIsAConjunct
+[       OK ] ModelStructureKeyTest.PartitionCountIsAConjunct (0 ms)
+[ RUN      ] ModelStructureKeyTest.ClaimDigestIsAConjunct
+[       OK ] ModelStructureKeyTest.ClaimDigestIsAConjunct (0 ms)
+[ RUN      ] ModelStructureKeyTest.BoundDigestIsAConjunct
+[       OK ] ModelStructureKeyTest.BoundDigestIsAConjunct (0 ms)
+[ RUN      ] ModelStructureKeyTest.DigestIsStableAcrossCalls
+[       OK ] ModelStructureKeyTest.DigestIsStableAcrossCalls (0 ms)
+[ RUN      ] ModelStructureKeyTest.TheFoldedDigestIsNotAnyOneConjunct
+[       OK ] ModelStructureKeyTest.TheFoldedDigestIsNotAnyOneConjunct (0 ms)
+[----------] 7 tests from ModelStructureKeyTest (0 ms total)
+
+[----------] 7 tests from ClaimStreamDigest
+[ RUN      ] ClaimStreamDigest.OrderIsSignificant
+[       OK ] ClaimStreamDigest.OrderIsSignificant (0 ms)
+[ RUN      ] ClaimStreamDigest.DistinctClaimsHashDistinctly
+[       OK ] ClaimStreamDigest.DistinctClaimsHashDistinctly (0 ms)
+[ RUN      ] ClaimStreamDigest.TheSameStreamHashesEqual
+[       OK ] ClaimStreamDigest.TheSameStreamHashesEqual (0 ms)
+[ RUN      ] ClaimStreamDigest.TheDimensionPreambleIsPartOfTheStream
+[       OK ] ClaimStreamDigest.TheDimensionPreambleIsPartOfTheStream (0 ms)
+[ RUN      ] ClaimStreamDigest.EachDimensionOfThePreambleIsAConjunct
+[       OK ] ClaimStreamDigest.EachDimensionOfThePreambleIsAConjunct (0 ms)
+[ RUN      ] ClaimStreamDigest.AnEmptyStreamStillCarriesItsDimensions
+[       OK ] ClaimStreamDigest.AnEmptyStreamStillCarriesItsDimensions (0 ms)
+[ RUN      ] ClaimStreamDigest.RejectsAHalfClaimStream
+[       OK ] ClaimStreamDigest.RejectsAHalfClaimStream (0 ms)
+[----------] 7 tests from ClaimStreamDigest (0 ms total)
+
+[----------] 8 tests from BoundStructureDigest
+[ RUN      ] BoundStructureDigest.IsTakenOverTheMaterializedStructure
+[       OK ] BoundStructureDigest.IsTakenOverTheMaterializedStructure (0 ms)
+[ RUN      ] BoundStructureDigest.AnIntersectionThatFixesAVariableRekeys
+[       OK ] BoundStructureDigest.AnIntersectionThatFixesAVariableRekeys (0 ms)
+[ RUN      ] BoundStructureDigest.AValueNudgeWithinOneStructureDoesNotRekey
+[       OK ] BoundStructureDigest.AValueNudgeWithinOneStructureDoesNotRekey (0 ms)
+[ RUN      ] BoundStructureDigest.AnIntersectionThatMakesASideFiniteRekeys
+[       OK ] BoundStructureDigest.AnIntersectionThatMakesASideFiniteRekeys (0 ms)
+[ RUN      ] BoundStructureDigest.TwoHistoriesWithTheSameIntersectionKeyTheSame
+[       OK ] BoundStructureDigest.TwoHistoriesWithTheSameIntersectionKeyTheSame (0 ms)
+[ RUN      ] BoundStructureDigest.WhichVariableIsBoundedIsPartOfTheStructure
+[       OK ] BoundStructureDigest.WhichVariableIsBoundedIsPartOfTheStructure (0 ms)
+[ RUN      ] BoundStructureDigest.ThePerVariableRecordCarriesSideAndFixedness
+[       OK ] BoundStructureDigest.ThePerVariableRecordCarriesSideAndFixedness (0 ms)
+[ RUN      ] BoundStructureDigest.OrderIsSignificant
+[       OK ] BoundStructureDigest.OrderIsSignificant (0 ms)
+[----------] 8 tests from BoundStructureDigest (0 ms total)
+
+[----------] 8 tests from ModelSurfaceKkt
+[ RUN      ] ModelSurfaceKkt.KnownKktPointIsNearUlpZero
+[       OK ] ModelSurfaceKkt.KnownKktPointIsNearUlpZero (0 ms)
+[ RUN      ] ModelSurfaceKkt.DeclaredFixedVariableGarbageRowIsExcluded
+[       OK ] ModelSurfaceKkt.DeclaredFixedVariableGarbageRowIsExcluded (0 ms)
+[ RUN      ] ModelSurfaceKkt.PerturbedPointResidualsMove
+[       OK ] ModelSurfaceKkt.PerturbedPointResidualsMove (0 ms)
+[ RUN      ] ModelSurfaceKkt.RunsAgainstBareNlpModelAggregateWithNoEngineInTheLink
+[       OK ] ModelSurfaceKkt.RunsAgainstBareNlpModelAggregateWithNoEngineInTheLink (0 ms)
+[ RUN      ] ModelSurfaceKkt.MismatchedZSizeThrows
+[       OK ] ModelSurfaceKkt.MismatchedZSizeThrows (0 ms)
+[ RUN      ] ModelSurfaceKkt.ANanGradientRowScoresInfiniteRatherThanPerfect
+[       OK ] ModelSurfaceKkt.ANanGradientRowScoresInfiniteRatherThanPerfect (0 ms)
+[ RUN      ] ModelSurfaceKkt.ANanInACallerSuppliedBlockScoresInfinite
+[       OK ] ModelSurfaceKkt.ANanInACallerSuppliedBlockScoresInfinite (0 ms)
+[ RUN      ] ModelSurfaceKkt.AnInfiniteBoundIsNotPoison
+[       OK ] ModelSurfaceKkt.AnInfiniteBoundIsNotPoison (0 ms)
+[----------] 8 tests from ModelSurfaceKkt (0 ms total)
+
+[----------] 5 tests from NlpModelAggregateDeclaration
+[ RUN      ] NlpModelAggregateDeclaration.CarriesTheModelsDimensionsAndOnePartition
+[       OK ] NlpModelAggregateDeclaration.CarriesTheModelsDimensionsAndOnePartition (0 ms)
+[ RUN      ] NlpModelAggregateDeclaration.RecordsOneBoundRecordPerVariableVerbatim
+[       OK ] NlpModelAggregateDeclaration.RecordsOneBoundRecordPerVariableVerbatim (0 ms)
+[ RUN      ] NlpModelAggregateDeclaration.CarriesNoEnginePieces
+[       OK ] NlpModelAggregateDeclaration.CarriesNoEnginePieces (0 ms)
+[ RUN      ] NlpModelAggregateDeclaration.PassesTheContractsOwnValidation
+[       OK ] NlpModelAggregateDeclaration.PassesTheContractsOwnValidation (0 ms)
+[ RUN      ] NlpModelAggregateDeclaration.RefusesANullModel
+[       OK ] NlpModelAggregateDeclaration.RefusesANullModel (0 ms)
+[----------] 5 tests from NlpModelAggregateDeclaration (0 ms total)
+
+[----------] 4 tests from NlpModelAggregateClaims
+[ RUN      ] NlpModelAggregateClaims.SplitsTheModelsReturnsIntoThreeBlocks
+[       OK ] NlpModelAggregateClaims.SplitsTheModelsReturnsIntoThreeBlocks (0 ms)
+[ RUN      ] NlpModelAggregateClaims.NamesTheUpperTriangleAndTheOffsetConstraintRows
+[       OK ] NlpModelAggregateClaims.NamesTheUpperTriangleAndTheOffsetConstraintRows (0 ms)
+[ RUN      ] NlpModelAggregateClaims.ArenasAreClaimedWholeInRowOrder
+[       OK ] NlpModelAggregateClaims.ArenasAreClaimedWholeInRowOrder (0 ms)
+[ RUN      ] NlpModelAggregateClaims.LayoutIsDeterministicAcrossSeparateBridges
+[       OK ] NlpModelAggregateClaims.LayoutIsDeterministicAcrossSeparateBridges (0 ms)
+[----------] 4 tests from NlpModelAggregateClaims (0 ms total)
+
+[----------] 2 tests from NlpModelAggregateKey
+[ RUN      ] NlpModelAggregateKey.IsTheThreeConjunctsAtOnePartition
+[       OK ] NlpModelAggregateKey.IsTheThreeConjunctsAtOnePartition (0 ms)
+[ RUN      ] NlpModelAggregateKey.DiffersFromAModelWithDifferentBoundStructure
+[       OK ] NlpModelAggregateKey.DiffersFromAModelWithDifferentBoundStructure (0 ms)
+[----------] 2 tests from NlpModelAggregateKey (0 ms total)
+
+[----------] 5 tests from NlpModelAggregateEpoch
+[ RUN      ] NlpModelAggregateEpoch.TheFirstLayIsAStructuralEvent
+[       OK ] NlpModelAggregateEpoch.TheFirstLayIsAStructuralEvent (0 ms)
+[ RUN      ] NlpModelAggregateEpoch.ARenegotiationBumpsEvenAtTheCountAlreadyInForce
+[       OK ] NlpModelAggregateEpoch.ARenegotiationBumpsEvenAtTheCountAlreadyInForce (0 ms)
+[ RUN      ] NlpModelAggregateEpoch.EvaluationDoesNotBump
+[       OK ] NlpModelAggregateEpoch.EvaluationDoesNotBump (0 ms)
+[ RUN      ] NlpModelAggregateEpoch.ARefusedPartitionRequestNeitherLaysNorBumps
+[       OK ] NlpModelAggregateEpoch.ARefusedPartitionRequestNeitherLaysNorBumps (0 ms)
+[ RUN      ] NlpModelAggregateEpoch.AFailedLayLeavesTheStructuresOnHandUntouched
+[       OK ] NlpModelAggregateEpoch.AFailedLayLeavesTheStructuresOnHandUntouched (0 ms)
+[----------] 5 tests from NlpModelAggregateEpoch (0 ms total)
+
+[----------] 1 test from NlpModelAggregatePartitions
+[ RUN      ] NlpModelAggregatePartitions.CapsEveryPositiveRequestToOne
+[       OK ] NlpModelAggregatePartitions.CapsEveryPositiveRequestToOne (0 ms)
+[----------] 1 test from NlpModelAggregatePartitions (0 ms total)
+
+[----------] 1 test from NlpModelAggregateThreads
+[ RUN      ] NlpModelAggregateThreads.ReportsOneAndRefusesANonPositiveRequest
+[       OK ] NlpModelAggregateThreads.ReportsOneAndRefusesANonPositiveRequest (0 ms)
+[----------] 1 test from NlpModelAggregateThreads (0 ms total)
+
+[----------] 2 tests from NlpModelAggregateCapabilities
+[ RUN      ] NlpModelAggregateCapabilities.DeclaresTheValuesFastPathAndNothingElse
+[       OK ] NlpModelAggregateCapabilities.DeclaresTheValuesFastPathAndNothingElse (0 ms)
+[ RUN      ] NlpModelAggregateCapabilities.BindsNoKktDestination
+[       OK ] NlpModelAggregateCapabilities.BindsNoKktDestination (0 ms)
+[----------] 2 tests from NlpModelAggregateCapabilities (0 ms total)
+
+[----------] 4 tests from NlpModelAggregateValuesPath
+[ RUN      ] NlpModelAggregateValuesPath.ReachesEvalValuesAndNoDerivativeEvaluator
+[       OK ] NlpModelAggregateValuesPath.ReachesEvalValuesAndNoDerivativeEvaluator (0 ms)
+[ RUN      ] NlpModelAggregateValuesPath.TheProbeIsTheValuesPathPlusAHash
+[       OK ] NlpModelAggregateValuesPath.TheProbeIsTheValuesPathPlusAHash (0 ms)
+[ RUN      ] NlpModelAggregateValuesPath.ReportsTheModelsValuesScaledByThePointsScale
+[       OK ] NlpModelAggregateValuesPath.ReportsTheModelsValuesScaledByThePointsScale (0 ms)
+[ RUN      ] NlpModelAggregateValuesPath.TwiceAtOnePointAssignsRatherThanDoubles
+[       OK ] NlpModelAggregateValuesPath.TwiceAtOnePointAssignsRatherThanDoubles (0 ms)
+[----------] 4 tests from NlpModelAggregateValuesPath (0 ms total)
+
+[----------] 2 tests from NlpModelAggregateFirstOrder
+[ RUN      ] NlpModelAggregateFirstOrder.TwiceAtOnePointAssignsRatherThanDoubles
+[       OK ] NlpModelAggregateFirstOrder.TwiceAtOnePointAssignsRatherThanDoubles (0 ms)
+[ RUN      ] NlpModelAggregateFirstOrder.ComposesTheAdjointGradientFromBothJacobians
+[       OK ] NlpModelAggregateFirstOrder.ComposesTheAdjointGradientFromBothJacobians (0 ms)
+[----------] 2 tests from NlpModelAggregateFirstOrder (0 ms total)
+
+[----------] 14 tests from NlpModelAggregateEvaluatorSets
+[ RUN      ] NlpModelAggregateEvaluatorSets.ObjectiveOnlyRunsEvalFAlone
+[       OK ] NlpModelAggregateEvaluatorSets.ObjectiveOnlyRunsEvalFAlone (0 ms)
+[ RUN      ] NlpModelAggregateEvaluatorSets.ObjectiveAndConstraintsRunsEvalValuesAlone
+[       OK ] NlpModelAggregateEvaluatorSets.ObjectiveAndConstraintsRunsEvalValuesAlone (0 ms)
+[ RUN      ] NlpModelAggregateEvaluatorSets.ObjectiveGradientAndConstraintsAddsEvalGrad
+[       OK ] NlpModelAggregateEvaluatorSets.ObjectiveGradientAndConstraintsAddsEvalGrad (0 ms)
+[ RUN      ] NlpModelAggregateEvaluatorSets.FirstOrderRhsAddsBothJacobiansAndNoHessian
+[       OK ] NlpModelAggregateEvaluatorSets.FirstOrderRhsAddsBothJacobiansAndNoHessian (0 ms)
+[ RUN      ] NlpModelAggregateEvaluatorSets.ConstraintResidualsAndJacobianSkipsTheObjectiveEvaluators
+[       OK ] NlpModelAggregateEvaluatorSets.ConstraintResidualsAndJacobianSkipsTheObjectiveEvaluators (0 ms)
+[ RUN      ] NlpModelAggregateEvaluatorSets.FirstOrderKktRunsTheSameSetAsTheFirstOrderRhs
+[       OK ] NlpModelAggregateEvaluatorSets.FirstOrderKktRunsTheSameSetAsTheFirstOrderRhs (0 ms)
+[ RUN      ] NlpModelAggregateEvaluatorSets.ConstraintKktAddsTheHessianAndStillNoObjective
+[       OK ] NlpModelAggregateEvaluatorSets.ConstraintKktAddsTheHessianAndStillNoObjective (0 ms)
+[ RUN      ] NlpModelAggregateEvaluatorSets.FullKktRunsEveryEvaluatorExactlyOnce
+[       OK ] NlpModelAggregateEvaluatorSets.FullKktRunsEveryEvaluatorExactlyOnce (0 ms)
+[ RUN      ] NlpModelAggregateEvaluatorSets.LagrangianHessianRunsEvalHessAloneAndNothingElse
+[       OK ] NlpModelAggregateEvaluatorSets.LagrangianHessianRunsEvalHessAloneAndNothingElse (0 ms)
+[ RUN      ] NlpModelAggregateEvaluatorSets.GradientAndJacobiansRunsGradPlusBothJacobiansAndNoValues
+[       OK ] NlpModelAggregateEvaluatorSets.GradientAndJacobiansRunsGradPlusBothJacobiansAndNoValues (0 ms)
+[ RUN      ] NlpModelAggregateEvaluatorSets.ConstraintJacobiansOnlyRunsBothJacobiansAloneAndNoGradient
+[       OK ] NlpModelAggregateEvaluatorSets.ConstraintJacobiansOnlyRunsBothJacobiansAloneAndNoGradient (0 ms)
+[ RUN      ] NlpModelAggregateEvaluatorSets.AConstantConstraintBlockStillReachesItsJacobianEvaluator
+[       OK ] NlpModelAggregateEvaluatorSets.AConstantConstraintBlockStillReachesItsJacobianEvaluator (0 ms)
+[ RUN      ] NlpModelAggregateEvaluatorSets.TheConstraintOnlyKktAsksForTheHessianAtZeroObjectiveScale
+[       OK ] NlpModelAggregateEvaluatorSets.TheConstraintOnlyKktAsksForTheHessianAtZeroObjectiveScale (0 ms)
+[ RUN      ] NlpModelAggregateEvaluatorSets.TheFullKktAsksForTheHessianAtThePointsObjectiveScale
+[       OK ] NlpModelAggregateEvaluatorSets.TheFullKktAsksForTheHessianAtThePointsObjectiveScale (0 ms)
+[----------] 14 tests from NlpModelAggregateEvaluatorSets (0 ms total)
+
+[----------] 10 tests from NlpModelAggregateEquivalence
+[ RUN      ] NlpModelAggregateEquivalence.FullKktOnAModelWithBothConstraintKinds
+[       OK ] NlpModelAggregateEquivalence.FullKktOnAModelWithBothConstraintKinds (0 ms)
+[ RUN      ] NlpModelAggregateEquivalence.FullKktOnAnInequalityOnlyModelAtANonUnitScale
+[       OK ] NlpModelAggregateEquivalence.FullKktOnAnInequalityOnlyModelAtANonUnitScale (0 ms)
+[ RUN      ] NlpModelAggregateEquivalence.FullKktOnAnEqualityOnlyModel
+[       OK ] NlpModelAggregateEquivalence.FullKktOnAnEqualityOnlyModel (0 ms)
+[ RUN      ] NlpModelAggregateEquivalence.ConstraintKktAssemblesTheAdjointHessianAlone
+[       OK ] NlpModelAggregateEquivalence.ConstraintKktAssemblesTheAdjointHessianAlone (0 ms)
+[ RUN      ] NlpModelAggregateEquivalence.ConstraintResidualsAndJacobianWritesNoHessianSlot
+[       OK ] NlpModelAggregateEquivalence.ConstraintResidualsAndJacobianWritesNoHessianSlot (0 ms)
+[ RUN      ] NlpModelAggregateEquivalence.LagrangianHessianAloneMatchesEvalHessComposedLagrangian
+[       OK ] NlpModelAggregateEquivalence.LagrangianHessianAloneMatchesEvalHessComposedLagrangian (0 ms)
+[ RUN      ] NlpModelAggregateEquivalence.GradientAndJacobiansFillsTheGradientArenaAndBothJacobianClaims
+[       OK ] NlpModelAggregateEquivalence.GradientAndJacobiansFillsTheGradientArenaAndBothJacobianClaims (0 ms)
+[ RUN      ] NlpModelAggregateEquivalence.ConstraintJacobiansOnlyFillsTheJacobianClaimsAndLeavesTheGradientArenaUntouched
+[       OK ] NlpModelAggregateEquivalence.ConstraintJacobiansOnlyFillsTheJacobianClaimsAndLeavesTheGradientArenaUntouched (0 ms)
+[ RUN      ] NlpModelAggregateEquivalence.ClaimsLandWhereTheTableSendsThemUnderEitherOrder
+[       OK ] NlpModelAggregateEquivalence.ClaimsLandWhereTheTableSendsThemUnderEitherOrder (0 ms)
+[ RUN      ] NlpModelAggregateEquivalence.AssembleAccumulatesRatherThanAssigns
+[       OK ] NlpModelAggregateEquivalence.AssembleAccumulatesRatherThanAssigns (0 ms)
+[----------] 10 tests from NlpModelAggregateEquivalence (0 ms total)
+
+[----------] 10 tests from NlpModelAggregateBoundary
+[ RUN      ] NlpModelAggregateBoundary.RefusesAGradientArenaSizedOtherThanTheLaidWidth
+[       OK ] NlpModelAggregateBoundary.RefusesAGradientArenaSizedOtherThanTheLaidWidth (0 ms)
+[ RUN      ] NlpModelAggregateBoundary.RefusesAKktTableThatDoesNotCoverTheClaimStream
+[       OK ] NlpModelAggregateBoundary.RefusesAKktTableThatDoesNotCoverTheClaimStream (0 ms)
+[ RUN      ] NlpModelAggregateBoundary.RefusesAModelWhoseSparsityPatternCollapses
+[       OK ] NlpModelAggregateBoundary.RefusesAModelWhoseSparsityPatternCollapses (0 ms)
+[ RUN      ] NlpModelAggregateBoundary.RefusesAReturnWhosePatternMovesAtTheSameCount
+[       OK ] NlpModelAggregateBoundary.RefusesAReturnWhosePatternMovesAtTheSameCount (0 ms)
+[ RUN      ] NlpModelAggregateBoundary.RefusesAReturnThatPresentsItsElementsInAnotherOrder
+[       OK ] NlpModelAggregateBoundary.RefusesAReturnThatPresentsItsElementsInAnotherOrder (0 ms)
+[ RUN      ] NlpModelAggregateBoundary.RefusesAModelWhoseSparseBlockIsNotTheShapeItDeclares
+[       OK ] NlpModelAggregateBoundary.RefusesAModelWhoseSparseBlockIsNotTheShapeItDeclares (0 ms)
+[ RUN      ] NlpModelAggregateBoundary.RefusesADimensionThatChangesAfterTheClaimPass
+[       OK ] NlpModelAggregateBoundary.RefusesADimensionThatChangesAfterTheClaimPass (0 ms)
+[ RUN      ] NlpModelAggregateBoundary.RefusesASparsityPatternThatGrowsAfterTheClaimPass
+[       OK ] NlpModelAggregateBoundary.RefusesASparsityPatternThatGrowsAfterTheClaimPass (0 ms)
+[ RUN      ] NlpModelAggregateBoundary.RefusesAHessianEntryBelowTheDiagonal
+[       OK ] NlpModelAggregateBoundary.RefusesAHessianEntryBelowTheDiagonal (0 ms)
+[ RUN      ] NlpModelAggregateBoundary.RefusesADeclarationWhoseBoundsIntersectToNothing
+[       OK ] NlpModelAggregateBoundary.RefusesADeclarationWhoseBoundsIntersectToNothing (0 ms)
+[----------] 10 tests from NlpModelAggregateBoundary (0 ms total)
+
+[----------] 2 tests from StructureEpochType
+[ RUN      ] StructureEpochType.DefaultsToNothingLaidYet
+[       OK ] StructureEpochType.DefaultsToNothingLaidYet (0 ms)
+[ RUN      ] StructureEpochType.ComparesByValueOnly
+[       OK ] StructureEpochType.ComparesByValueOnly (0 ms)
+[----------] 2 tests from StructureEpochType (0 ms total)
+
+[----------] 6 tests from StructureEpochCounterTest
+[ RUN      ] StructureEpochCounterTest.StartsBeforeTheFirstLayout
+[       OK ] StructureEpochCounterTest.StartsBeforeTheFirstLayout (0 ms)
+[ RUN      ] StructureEpochCounterTest.FirstBumpLandsOnOne
+[       OK ] StructureEpochCounterTest.FirstBumpLandsOnOne (0 ms)
+[ RUN      ] StructureEpochCounterTest.BumpIsMonotoneAcrossManyCalls
+[       OK ] StructureEpochCounterTest.BumpIsMonotoneAcrossManyCalls (0 ms)
+[ RUN      ] StructureEpochCounterTest.CurrentDoesNotAdvanceTheCounter
+[       OK ] StructureEpochCounterTest.CurrentDoesNotAdvanceTheCounter (0 ms)
+[ RUN      ] StructureEpochCounterTest.StructuresPublishedBeforeABumpAreVisibleAfterIt
+[       OK ] StructureEpochCounterTest.StructuresPublishedBeforeABumpAreVisibleAfterIt (0 ms)
+[ RUN      ] StructureEpochCounterTest.ConcurrentReadsNeverObserveARegression
+[       OK ] StructureEpochCounterTest.ConcurrentReadsNeverObserveARegression (0 ms)
+[----------] 6 tests from StructureEpochCounterTest (1 ms total)
+
+[----------] 10 tests from AggregateEpochContract
+[ RUN      ] AggregateEpochContract.TheFirstLayoutLeavesTheNothingLaidYetValue
+[       OK ] AggregateEpochContract.TheFirstLayoutLeavesTheNothingLaidYetValue (0 ms)
+[ RUN      ] AggregateEpochContract.ARelayIsVisibleBeforeAnyEvaluationOfTheNewStructures
+[       OK ] AggregateEpochContract.ARelayIsVisibleBeforeAnyEvaluationOfTheNewStructures (0 ms)
+[ RUN      ] AggregateEpochContract.PartitionRenegotiationBumpsEvenWithUnchangedClaims
+[       OK ] AggregateEpochContract.PartitionRenegotiationBumpsEvenWithUnchangedClaims (0 ms)
+[ RUN      ] AggregateEpochContract.NegotiationReportsTheAdoptedCountNotTheRequest
+[       OK ] AggregateEpochContract.NegotiationReportsTheAdoptedCountNotTheRequest (0 ms)
+[ RUN      ] AggregateEpochContract.ANonPositiveNegotiationIsRefusedNotCorrected
+[       OK ] AggregateEpochContract.ANonPositiveNegotiationIsRefusedNotCorrected (0 ms)
+[ RUN      ] AggregateEpochContract.ARejectedReconfigurationBumpsTheEpoch
+[       OK ] AggregateEpochContract.ARejectedReconfigurationBumpsTheEpoch (0 ms)
+[ RUN      ] AggregateEpochContract.RestoredStructuresAreVisibleUnderTheNewEpoch
+[       OK ] AggregateEpochContract.RestoredStructuresAreVisibleUnderTheNewEpoch (0 ms)
+[ RUN      ] AggregateEpochContract.ARematerializationFlippingFixednessBumpsTheEpoch
+[       OK ] AggregateEpochContract.ARematerializationFlippingFixednessBumpsTheEpoch (0 ms)
+[ RUN      ] AggregateEpochContract.ARematerializationInsideOneStructureStillBumpsButDoesNotRekey
+[       OK ] AggregateEpochContract.ARematerializationInsideOneStructureStillBumpsButDoesNotRekey (0 ms)
+[ RUN      ] AggregateEpochContract.EveryStructuralEventAdvancesTheEpochOnceMore
+[       OK ] AggregateEpochContract.EveryStructuralEventAdvancesTheEpochOnceMore (0 ms)
+[----------] 10 tests from AggregateEpochContract (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 258 tests from 44 test suites ran. (1762 ms total)
+[  PASSED  ] 258 tests.

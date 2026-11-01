@@ -1,0 +1,3 @@
+UNMUTATED rc=0
+M6c both inert-on-refactorize tests removed: KILLED by WsAlgebraRule.InertUnderAConfiguredRefactorize
+M15c the rule always on (both gates): KILLED by WsAlgebraRule.AChurningBorderSwitchesOnceAndCostsLess, WsAlgebraRule.EverySolveStartsOnTheConfiguredAlgebra, WsAlgebraRule.SetOptionsUndoesTheSwitch

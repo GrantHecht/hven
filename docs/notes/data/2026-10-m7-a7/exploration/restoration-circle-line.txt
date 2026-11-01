@@ -1,0 +1,12 @@
+EXPLR cond=1e+09 cap=128 OFF status=3 maj=36 rest=5 entries=1 facts=76 sw=0 swq=0
+EXPLR cond=1e+09 cap=128 ON  status=3 maj=36 rest=5 entries=1 facts=76 sw=0 swq=0
+EXPLR cond=1e+09 cap=0 OFF status=3 maj=2 rest=6 entries=1 facts=63 sw=0 swq=0
+EXPLR cond=1e+09 cap=0 ON  status=3 maj=2 rest=6 entries=1 facts=63 sw=0 swq=0
+EXPLR cond=10 cap=128 OFF status=3 maj=36 rest=5 entries=1 facts=86 sw=0 swq=0
+EXPLR cond=10 cap=128 ON  status=3 maj=36 rest=5 entries=1 facts=86 sw=0 swq=0
+EXPLR cond=10 cap=0 OFF status=3 maj=2 rest=6 entries=1 facts=63 sw=0 swq=0
+EXPLR cond=10 cap=0 ON  status=3 maj=2 rest=6 entries=1 facts=63 sw=0 swq=0
+EXPLR cond=1 cap=128 OFF status=3 maj=36 rest=5 entries=1 facts=97 sw=0 swq=0
+EXPLR cond=1 cap=128 ON  status=3 maj=36 rest=5 entries=1 facts=91 sw=1 swq=4
+EXPLR cond=1 cap=0 OFF status=3 maj=2 rest=6 entries=1 facts=63 sw=0 swq=0
+EXPLR cond=1 cap=0 ON  status=3 maj=2 rest=6 entries=1 facts=63 sw=0 swq=0

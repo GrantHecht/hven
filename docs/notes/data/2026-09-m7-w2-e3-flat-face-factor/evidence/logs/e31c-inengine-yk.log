@@ -1,0 +1,32 @@
+==== A0_YORKNET qp3: the factor solving its OWN regularized system ====
+  passes with ||rhs-K y0||inf > 1e-4: 5053 of 7680
+   minor     5 act= 9 ||rhs-Ky0||inf=1.3514e+04 rho_unref=1.352e+04 rho_ref=1.543e+04 row_ref=7.365e-06 p_inf=8.1596e+08 alpha=-0 delta=1.0e-08
+   minor     1 act= 9 ||rhs-Ky0||inf=6.1411e+03 rho_unref=6.152e+03 rho_ref=1.140e+04 row_ref=1.232e-05 p_inf=2.0815e+09 alpha=-0 delta=1.0e-08
+   minor     3 act= 9 ||rhs-Ky0||inf=5.7968e+03 rho_unref=5.801e+03 rho_ref=3.343e+03 row_ref=6.226e-06 p_inf=8.1596e+08 alpha=-0 delta=1.0e-08
+   minor   177 act= 9 ||rhs-Ky0||inf=2.5652e+02 rho_unref=2.313e-07 rho_ref=3.200e-07 row_ref=7.109e+02 p_inf=2.3514e+01 alpha=0.00043960901104220603 delta=1.0e-08
+   minor   183 act= 9 ||rhs-Ky0||inf=2.5652e+02 rho_unref=2.313e-07 rho_ref=3.200e-07 row_ref=7.109e+02 p_inf=2.3514e+01 alpha=0.00043996677536912245 delta=1.0e-08
+   minor   189 act= 9 ||rhs-Ky0||inf=2.5652e+02 rho_unref=2.313e-07 rho_ref=3.200e-07 row_ref=7.109e+02 p_inf=2.3514e+01 alpha=0.00043996677536912245 delta=1.0e-08
+  --- minors 174..180 ---
+   minor   174 act=10 p_inf=4.953699e-09 alpha=1 ||rhs-Ky0||inf=1.1369e-13 rho_unref=5.000e-09 rho_ref=1.463e-13 row_unref/ref=4.891e-14 gp=-3.8409e-15 delta=1.0e-08
+   minor   175 act= 3 p_inf=0.000000e+00 alpha=nan ||rhs-Ky0||inf=1.1369e-13 rho_unref=5.000e-09 rho_ref=1.463e-13 row_unref/ref=4.891e-14 gp=0.0000e+00 delta=1.0e-08
+   minor   176 act= 7 p_inf=1.012341e+08 alpha=4.939049625215149e-09 ||rhs-Ky0||inf=4.2526e-03 rho_unref=5.064e-01 rho_ref=5.062e-01 row_unref/ref=7.026e-10 gp=-1.0260e+08 delta=1.0e-08
+   minor   177 act= 9 p_inf=2.351447e+01 alpha=0.00043960901104220603 ||rhs-Ky0||inf=2.5652e+02 rho_unref=2.313e-07 rho_ref=3.200e-07 row_unref/ref=7.109e+02 gp=5.6977e+02 delta=1.0e-08
+   minor   178 act= 9 p_inf=1.033717e-02 alpha=-0 ||rhs-Ky0||inf=1.1369e-13 rho_unref=5.103e-09 rho_ref=1.463e-13 row_unref/ref=4.891e-14 gp=-1.0337e-01 delta=1.0e-08
+   minor   179 act= 9 p_inf=1.033717e-02 alpha=0.19999999999999785 ||rhs-Ky0||inf=1.1369e-13 rho_unref=5.083e-09 rho_ref=1.463e-13 row_unref/ref=4.891e-14 gp=2.2980e-01 delta=1.0e-08
+   minor   180 act=10 p_inf=8.278155e-03 alpha=1 ||rhs-Ky0||inf=1.4740e+01 rho_unref=5.000e-09 rho_ref=1.300e-08 row_unref/ref=2.544e-04 gp=-2.0057e-01 delta=1.0e-08
+==== A0_YORKNET qp4: the factor solving its OWN regularized system ====
+  passes with ||rhs-K y0||inf > 1e-4: 2404 of 7680
+   minor   159 act= 9 ||rhs-Ky0||inf=1.3399e+14 rho_unref=4.873e+05 rho_ref=4.398e+04 row_ref=1.039e+12 p_inf=3.4360e+10 alpha=-0 delta=1.0e-08
+   minor   298 act=12 ||rhs-Ky0||inf=1.6360e+13 rho_unref=1.446e+04 rho_ref=5.498e+03 row_ref=2.597e+11 p_inf=8.5899e+09 alpha=nan delta=1.0e-08
+   minor     3 act= 9 ||rhs-Ky0||inf=9.4860e+05 rho_unref=9.483e+05 rho_ref=5.902e+05 row_ref=3.201e-04 p_inf=6.8081e+10 alpha=-0 delta=1.0e-08
+   minor     5 act= 9 ||rhs-Ky0||inf=5.2089e+04 rho_unref=5.206e+04 rho_ref=6.814e+04 row_ref=3.361e-05 p_inf=5.6075e+09 alpha=-0 delta=1.0e-08
+   minor     2 act= 9 ||rhs-Ky0||inf=2.6400e+04 rho_unref=2.637e+04 rho_ref=3.275e+04 row_ref=4.237e-05 p_inf=5.6003e+09 alpha=-0 delta=1.0e-08
+   minor   202 act= 7 ||rhs-Ky0||inf=7.4388e+03 rho_unref=5.418e+03 rho_ref=7.448e+04 row_ref=2.556e-03 p_inf=4.0421e+11 alpha=2.5573506109089089e-15 delta=1.0e-08
+  --- minors 174..180 ---
+   minor   174 act=10 p_inf=6.780479e-09 alpha=1 ||rhs-Ky0||inf=1.1369e-13 rho_unref=2.500e-09 rho_ref=1.542e-13 row_unref/ref=2.049e-14 gp=-1.5267e-16 delta=1.0e-08
+   minor   175 act= 3 p_inf=0.000000e+00 alpha=nan ||rhs-Ky0||inf=1.1369e-13 rho_unref=2.500e-09 rho_ref=1.542e-13 row_unref/ref=2.049e-14 gp=0.0000e+00 delta=1.0e-08
+   minor   176 act= 7 p_inf=1.490953e+02 alpha=0 ||rhs-Ky0||inf=8.5265e-14 rho_unref=1.493e-06 rho_ref=3.005e-13 row_unref/ref=3.206e-13 gp=3.3233e+03 delta=1.0e-08
+   minor   177 act=10 p_inf=2.141064e-09 alpha=1 ||rhs-Ky0||inf=1.1369e-13 rho_unref=2.500e-09 rho_ref=1.542e-13 row_unref/ref=2.049e-14 gp=2.9068e-13 delta=1.0e-08
+   minor   178 act= 3 p_inf=0.000000e+00 alpha=nan ||rhs-Ky0||inf=1.1369e-13 rho_unref=2.500e-09 rho_ref=1.542e-13 row_unref/ref=2.049e-14 gp=0.0000e+00 delta=1.0e-08
+   minor   179 act= 7 p_inf=6.087027e+01 alpha=2.7814728534806677e-16 ||rhs-Ky0||inf=1.8985e-13 rho_unref=6.112e-07 rho_ref=1.542e-13 row_unref/ref=5.057e-14 gp=1.7701e+03 delta=1.0e-08
+   minor   180 act= 3 p_inf=4.974400e-10 alpha=nan ||rhs-Ky0||inf=1.1369e-13 rho_unref=2.500e-09 rho_ref=1.542e-13 row_unref/ref=2.049e-14 gp=1.9987e-13 delta=1.0e-08

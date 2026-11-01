@@ -1,0 +1,72 @@
+PGREP_EMPTY cfg-build-debug 2026-09-25T15:59:26-04:00
+FOREGROUND_START cfg-build-debug 2026-09-25T15:59:26-04:00
+[14/18] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_walk_seam.cpp.o
+[15/18] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_degeneracy_arm.cpp.o
+[16/18] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/qp/qp_engine.cpp.o
+[17/18] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_anti_cycling_arm.cpp.o
+[18/18] Linking CXX executable tests/hven_qp_walk_seam_tests
+FOREGROUND_END cfg-build-debug 2026-09-25T15:59:41-04:00 rc=0
+PGREP_EMPTY corpus-nc1-border 2026-09-25T16:41:40-04:00
+FOREGROUND_START corpus-nc1-border 2026-09-25T16:41:40-04:00
+corpus nc1-border rc=0 secs=212
+FOREGROUND_END corpus-nc1-border 2026-09-25T16:45:12-04:00 rc=0
+PGREP_EMPTY corpus-nc1-refac 2026-09-25T16:45:17-04:00
+FOREGROUND_START corpus-nc1-refac 2026-09-25T16:45:17-04:00
+corpus nc1-refactorize rc=0 secs=60
+FOREGROUND_END corpus-nc1-refac 2026-09-25T16:46:17-04:00 rc=0
+PGREP_EMPTY corpus-off-border 2026-09-25T16:46:22-04:00
+FOREGROUND_START corpus-off-border 2026-09-25T16:46:22-04:00
+corpus off-border rc=0 secs=209
+FOREGROUND_END corpus-off-border 2026-09-25T16:49:51-04:00 rc=0
+PGREP_EMPTY u0-walk 2026-09-25T16:54:08-04:00
+FOREGROUND_START u0-walk 2026-09-25T16:54:08-04:00
+ran nc1-walk rc=0 secs=250
+  CMP_RC=0
+  EXACT_RC=0
+FOREGROUND_END u0-walk 2026-09-25T16:58:18-04:00 rc=0
+PGREP_EMPTY u0-ssn 2026-09-25T16:58:28-04:00
+FOREGROUND_START u0-ssn 2026-09-25T16:58:28-04:00
+ran nc1-ssn rc=0 secs=19
+  CMP_RC=0
+  EXACT_RC=0
+FOREGROUND_END u0-ssn 2026-09-25T16:58:47-04:00 rc=0
+PGREP_EMPTY u0-ipm 2026-09-25T16:58:52-04:00
+FOREGROUND_START u0-ipm 2026-09-25T16:58:52-04:00
+ran nc1-ipm rc=0 secs=25
+  CMP_RC=0
+  EXACT_RC=0
+FOREGROUND_END u0-ipm 2026-09-25T16:59:17-04:00 rc=0
+PGREP_EMPTY suite-rel 2026-09-25T17:01:20-04:00
+FOREGROUND_START suite-rel 2026-09-25T17:01:20-04:00
+suite-rel rc=8
+	1727 - EqpRefinementAb.FullBattery (Disabled)
+
+The following tests FAILED:
+	1815 - HsSweepCorpus.Corpus (Failed)
+Errors while running CTest
+FOREGROUND_END suite-rel 2026-09-25T17:03:15-04:00 rc=8
+PGREP_EMPTY suite-rel2 2026-09-25T17:11:43-04:00
+FOREGROUND_START suite-rel2 2026-09-25T17:11:43-04:00
+suite-rel2 rc=0
+
+The following tests did not run:
+	510 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1726 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1727 - EqpRefinementAb.FullBattery (Disabled)
+FOREGROUND_END suite-rel2 2026-09-25T17:13:14-04:00 rc=0
+PGREP_EMPTY suite-dbg 2026-09-25T17:13:25-04:00
+FOREGROUND_START suite-dbg 2026-09-25T17:13:25-04:00
+suite-dbg rc=0
+
+The following tests did not run:
+	510 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1725 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1726 - EqpRefinementAb.FullBattery (Disabled)
+FOREGROUND_END suite-dbg 2026-09-25T17:23:00-04:00 rc=0
+PGREP_EMPTY suite-dbg-long 2026-09-25T17:23:11-04:00
+FOREGROUND_START suite-dbg-long 2026-09-25T17:23:11-04:00
+long rc=0
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) = 548.56 sec
+FOREGROUND_END suite-dbg-long 2026-09-25T17:32:19-04:00 rc=0

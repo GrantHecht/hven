@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# usage: nsearch.sh <cand> <N...> -- one F7 hop per N under the box lock (per-N timeout 150 s)
+set -o pipefail
+c=$1; shift
+flock /tmp/box-build.lock bash -c '
+  echo "FOREGROUND_START nsearch-'"$c"' $(date -Is)"
+  f=$(pgrep -x hven_bench_cell | tr "\n" " "); [ -z "$f" ] && echo PGREP_EMPTY || echo "NOTE foreign: $f"
+  for n in '"$*"'; do
+    HVEN_D2_CAND='"$c"' HVEN_D2_TOL=1e-3 MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 timeout 150 taskset -c 2 /home/ghecht/Projects/hven/.scratch/m7w2e2d2/tree/rel/bench/zz_nsearch $n 2>/dev/null || echo "N=$n rc=$?"
+  done
+  echo "FOREGROUND_END nsearch-'"$c"' $(date -Is)"'

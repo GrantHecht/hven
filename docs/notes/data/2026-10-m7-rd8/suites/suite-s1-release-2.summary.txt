@@ -1,0 +1,4 @@
+99% tests passed, 1 tests failed out of 802
+	1925 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1926 - EqpRefinementAb.FullBattery (Disabled)
+	1921 - SqpElasticWitnessStart.YorknetMajor0RungSolvesFromItsWitness (Failed)

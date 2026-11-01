@@ -1,0 +1,59 @@
+CUTEST BOUND MAP -- the H3-F10 mapping
+
+1. THE SENTINEL BECOMES AN INFINITY
+  +1e20 (CUTE_INF exactly) -> +inf                         ok
+  -1e20 (CUTE_INF exactly) -> -inf                         ok
+  +1e21 (beyond the sentinel) -> +inf                      ok
+  -1e21 (beyond the sentinel) -> -inf                      ok
+  +inf (already infinite) -> +inf                          ok
+  -inf (already infinite) -> -inf                          ok
+
+2. EVERY BOUND STRICTLY INSIDE THE SENTINEL SURVIVES, BIT FOR BIT
+  0 survives                                               ok
+  -0 survives                                              ok
+  1 survives                                               ok
+  -1 survives                                              ok
+  1e-300 survives                                          ok
+  -1e-300 survives                                         ok
+  1000000 survives                                         ok
+  -1000000 survives                                        ok
+  9.99e+19 survives                                        ok
+  -9.99e+19 survives                                       ok
+  9.9999999999999984e+19 survives                          ok
+  -9.9999999999999984e+19 survives                         ok
+
+3. THE SENTINEL IS NOT DISTINGUISHABLE FROM A GENUINE 1e20
+  exactly +1e20 reads as ABSENT (CUTEst carries no flag to tell) ok
+  one ulp inside it is a genuine bound and survives        ok
+
+4. THE MAPPING IS THE ONLY THING THAT MOVES
+  a NaN stays a NaN (never promoted to an infinity)        ok
+
+5. CUTEst's VARIABLE TYPE CODES ARE NAMED THE WAY CUTEst NAMES THEM
+  0 -> continuous                                          ok
+  1 -> zero-one (NOT integer)                              ok
+  2 -> integer (NOT zero-one)                              ok
+  an unknown code is not guessed at                        ok
+
+CUTEST BOUND MAP: all checks passed
+
+decode_cutest: 0 decoded, 3 already current, under /home/ghecht/Projects/hven-bench/.scratch/h3/decoded
+
+DERIV cutest/GROUPING  n=100 m=125 jac_nnz=300 hess_nnz=1050 equality_rows=125 free_rows=0
+BOUNDS cutest/GROUPING no sentinel bound survives: yes
+DERIV cutest/GROUPING ok
+SELFTEST cutest/GROUPING wrong-gradient rejected: yes -- eval_grad_f mismatch at index 0: analytic=23.9695 fd=21.7904 |diff|=2.17904 > 2.39941e-05 (ratio 90815.9)
+
+DERIV cutest/READING6  n=102 m=50 jac_nnz=1376 hess_nnz=153 equality_rows=50 free_rows=0
+BOUNDS cutest/READING6 no sentinel bound survives: yes
+SKIPPED cutest/READING6 2 of 102 components too narrow for an in-box central stencil (interval < 2h); they are not checked
+DERIV cutest/READING6 ok
+SELFTEST cutest/READING6 wrong-gradient rejected: yes -- eval_grad_f mismatch at index 2: analytic=-0.0397772 fd=-0.0361611 |diff|=0.00361611 > 1.00022e-06 (ratio 3615.33)
+
+DERIV cutest/ZAMB2-8  n=138 m=48 jac_nnz=240 hess_nnz=208 equality_rows=48 free_rows=0
+BOUNDS cutest/ZAMB2-8 no sentinel bound survives: yes
+SKIPPED cutest/ZAMB2-8 12 of 138 components too narrow for an in-box central stencil (interval < 2h); they are not checked
+DERIV cutest/ZAMB2-8 ok
+SELFTEST cutest/ZAMB2-8 wrong-gradient rejected: yes -- eval_grad_f mismatch at index 7: analytic=-3.66374e-05 fd=-3.33067e-05 |diff|=3.33066e-06 > 1.00034e-06 (ratio 3.32952)
+
+CUTEST GUARDS: 3/3 instances passed, bound map passed

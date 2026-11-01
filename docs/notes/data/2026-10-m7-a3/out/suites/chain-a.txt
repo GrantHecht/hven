@@ -1,0 +1,154 @@
+CHAIN_A_START 2026-10-28T11:20:56-04:00 HEAD ac4b07e66c92d4fc7ee55d65a120a0c8d19900a9 DIRTY=0
+SRC /home/ghecht/Projects/hven/.claude/worktrees/agent-afecbe0a5611f9eff HEAD ac4b07e66c92d4fc7ee55d65a120a0c8d19900a9 DIRTY=0
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T11:20:56-04:00
+FOREGROUND_END rc=0 2026-10-28T11:21:11-04:00
+[23/24] Linking CXX executable bench/hven_sqp_corpus
+[24/24] Linking CXX executable bench/hven_sqp_ipqp_e1_arm
+SRC /home/ghecht/Projects/hven/.claude/worktrees/agent-afecbe0a5611f9eff HEAD ac4b07e66c92d4fc7ee55d65a120a0c8d19900a9 DIRTY=0
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T11:21:11-04:00
+FOREGROUND_END rc=0 2026-10-28T11:23:28-04:00
+[301/302] Linking CXX executable bench/hven_sqp_ipqp_e1_arm
+[302/302] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T11:23:28-04:00
+FOREGROUND_END rc=0 2026-10-28T11:26:17-04:00
+100% tests passed, 0 tests failed out of 3230
+
+Total Test time (real) = 135.02 sec
+
+The following tests did not run:
+	665 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1927 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1928 - EqpRefinementAb.FullBattery (Disabled)
+100% tests passed, 0 tests failed out of 3230
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T11:26:17-04:00
+FOREGROUND_END rc=8 2026-10-28T11:33:31-04:00
+	531 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	665 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1926 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1927 - EqpRefinementAb.FullBattery (Disabled)
+
+The following tests FAILED:
+	2183 - IpqpLadderSkip.TheCountOnGateSevensFixtureTracksTheThreshold (Failed)
+Errors while running CTest
+99% tests passed, 1 tests failed out of 3229
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T11:33:31-04:00
+FOREGROUND_END rc=0 2026-10-28T11:36:53-04:00
+Test project /home/ghecht/Projects/hven/.claude/worktrees/agent-afecbe0a5611f9eff/.scratch/a3/build-head-dbg
+    Start 1776: Continuation.ProbeBudgetBoundsAFailingProposal
+1/1 Test #1776: Continuation.ProbeBudgetBoundsAFailingProposal ...   Passed  166.22 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) = 166.29 sec
+100% tests passed, 0 tests failed out of 1
+SUITES_DONE fail=1 2026-10-28T11:36:53-04:00
+HEAD ac4b07e66c92d4fc7ee55d65a120a0c8d19900a9 DIRTY=0
+BASE 534bc87f4ba78a115ee0439216307b2c91e3480d DIRTY=0
+PGREP_EMPTY u0-base-walk
+FOREGROUND_START u0-base-walk 2026-10-28T11:36:53-04:00
+FOREGROUND_END u0-base-walk rc=0 2026-10-28T11:41:58-04:00
+PGREP_EMPTY u0-base-ssn
+FOREGROUND_START u0-base-ssn 2026-10-28T11:41:58-04:00
+FOREGROUND_END u0-base-ssn rc=0 2026-10-28T11:42:44-04:00
+PGREP_EMPTY u0-base-ipm
+FOREGROUND_START u0-base-ipm 2026-10-28T11:42:44-04:00
+FOREGROUND_END u0-base-ipm rc=0 2026-10-28T11:43:12-04:00
+PGREP_EMPTY u0-head-walk
+FOREGROUND_START u0-head-walk 2026-10-28T11:43:12-04:00
+FOREGROUND_END u0-head-walk rc=0 2026-10-28T11:49:13-04:00
+PGREP_EMPTY u0-head-ssn
+FOREGROUND_START u0-head-ssn 2026-10-28T11:49:13-04:00
+FOREGROUND_END u0-head-ssn rc=0 2026-10-28T11:49:37-04:00
+PGREP_EMPTY u0-head-ipm
+FOREGROUND_START u0-head-ipm 2026-10-28T11:49:37-04:00
+FOREGROUND_END u0-head-ipm rc=0 2026-10-28T11:50:28-04:00
+PGREP_EMPTY e1-base-off
+FOREGROUND_START e1-base-off 2026-10-28T11:50:28-04:00
+FOREGROUND_END e1-base-off rc=0 2026-10-28T11:57:56-04:00
+e1-base-off gate rc=0
+PGREP_EMPTY fam-base-off
+FOREGROUND_START fam-base-off 2026-10-28T11:57:56-04:00
+FOREGROUND_END fam-base-off rc=0 2026-10-28T11:58:00-04:00
+PGREP_EMPTY e1-head-off
+FOREGROUND_START e1-head-off 2026-10-28T11:58:00-04:00
+FOREGROUND_END e1-head-off rc=0 2026-10-28T12:04:11-04:00
+e1-head-off gate rc=0
+PGREP_EMPTY fam-head-off
+FOREGROUND_START fam-head-off 2026-10-28T12:04:11-04:00
+FOREGROUND_END fam-head-off rc=0 2026-10-28T12:09:13-04:00
+PGREP_EMPTY lad-head-off
+FOREGROUND_START lad-head-off 2026-10-28T12:09:13-04:00
+FOREGROUND_END lad-head-off rc=0 2026-10-28T12:10:51-04:00
+PGREP_EMPTY e1-head-s1
+FOREGROUND_START e1-head-s1 2026-10-28T12:10:51-04:00
+FOREGROUND_END e1-head-s1 rc=0 2026-10-28T12:12:05-04:00
+e1-head-s1 gate rc=0
+PGREP_EMPTY fam-head-s1
+FOREGROUND_START fam-head-s1 2026-10-28T12:12:05-04:00
+FOREGROUND_END fam-head-s1 rc=0 2026-10-28T12:12:07-04:00
+PGREP_EMPTY lad-head-s1
+FOREGROUND_START lad-head-s1 2026-10-28T12:12:07-04:00
+FOREGROUND_END lad-head-s1 rc=0 2026-10-28T12:17:08-04:00
+PGREP_EMPTY e1-head-s3
+FOREGROUND_START e1-head-s3 2026-10-28T12:17:08-04:00
+FOREGROUND_END e1-head-s3 rc=0 2026-10-28T12:18:17-04:00
+e1-head-s3 gate rc=0
+PGREP_EMPTY fam-head-s3
+FOREGROUND_START fam-head-s3 2026-10-28T12:18:17-04:00
+FOREGROUND_END fam-head-s3 rc=0 2026-10-28T12:22:46-04:00
+PGREP_EMPTY lad-head-s3
+FOREGROUND_START lad-head-s3 2026-10-28T12:22:46-04:00
+FOREGROUND_END lad-head-s3 rc=0 2026-10-28T12:23:18-04:00
+PGREP_EMPTY e1-head-k1
+FOREGROUND_START e1-head-k1 2026-10-28T12:23:18-04:00
+FOREGROUND_END e1-head-k1 rc=0 2026-10-28T12:24:29-04:00
+e1-head-k1 gate rc=0
+PGREP_EMPTY fam-head-k1
+FOREGROUND_START fam-head-k1 2026-10-28T12:24:29-04:00
+FOREGROUND_END fam-head-k1 rc=0 2026-10-28T12:25:22-04:00
+PGREP_EMPTY lad-head-k1
+FOREGROUND_START lad-head-k1 2026-10-28T12:25:22-04:00
+FOREGROUND_END lad-head-k1 rc=0 2026-10-28T12:25:52-04:00
+PGREP_EMPTY e1-head-kn
+FOREGROUND_START e1-head-kn 2026-10-28T12:25:52-04:00
+FOREGROUND_END e1-head-kn rc=0 2026-10-28T12:27:33-04:00
+e1-head-kn gate rc=0
+PGREP_EMPTY fam-head-kn
+FOREGROUND_START fam-head-kn 2026-10-28T12:27:33-04:00
+FOREGROUND_END fam-head-kn rc=0 2026-10-28T12:28:14-04:00
+PGREP_EMPTY lad-head-kn
+FOREGROUND_START lad-head-kn 2026-10-28T12:28:14-04:00
+FOREGROUND_END lad-head-kn rc=0 2026-10-28T12:33:14-04:00
+u0-walk compare rc=0 :: === u0-walk === cells compared: 27  columns compared: 75  differences: 0
+u0-ssn compare rc=0 :: === u0-ssn === cells compared: 27  columns compared: 75  differences: 0
+u0-ipm compare rc=0 :: === u0-ipm === cells compared: 27  columns compared: 75  differences: 0
+CHAIN_MEAS_DONE fail=0 2026-10-28T12:33:14-04:00
+patched /home/ghecht/Projects/hven/.claude/worktrees/agent-afecbe0a5611f9eff/.scratch/a3/probe-pu/src/qp/ipqp_engine.cpp with pu
+84429 /home/ghecht/Projects/hven-bench/build/lanes/hven/hven_bench_cell --lane hven-sqp --problem TAX53322 --options default --budget-iters 0 --options-dump /home/ghecht/Projects/hven-bench/runs/2026-10-m7-w2-retake19/measured/TAX53322-default.dump --assert-reference
+PGREP_NONEMPTY probe-build-pu
+FOREGROUND_START probe-build-pu 2026-10-28T12:33:16-04:00
+FOREGROUND_END probe-build-pu rc=0 2026-10-28T12:38:54-04:00
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T12:38:54-04:00
+FOREGROUND_END rc=0 2026-10-28T12:39:30-04:00
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T12:39:30-04:00
+FOREGROUND_END rc=0 2026-10-28T12:39:33-04:00
+patched /home/ghecht/Projects/hven/.claude/worktrees/agent-afecbe0a5611f9eff/.scratch/a3/probe-pc/src/qp/ipqp_engine.cpp with pc
+88931 /home/ghecht/Projects/hven-bench/build/lanes/hven/hven_bench_cell --lane hven-sqp --problem ACOPP118 --options sqp-qn --budget-iters 0 --options-dump /home/ghecht/Projects/hven-bench/runs/2026-10-m7-w2-retake19/measured/ACOPP118-sqp-qn.dump --assert-reference
+PGREP_NONEMPTY probe-build-pc
+FOREGROUND_START probe-build-pc 2026-10-28T12:39:35-04:00
+FOREGROUND_END probe-build-pc rc=0 2026-10-28T12:40:18-04:00
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T12:40:18-04:00
+FOREGROUND_END rc=0 2026-10-28T12:40:19-04:00
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T12:40:19-04:00
+FOREGROUND_END rc=0 2026-10-28T12:40:21-04:00
+score rc=0
+CHAIN_A_DONE fail=1 2026-10-28T12:40:21-04:00

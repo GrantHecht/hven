@@ -44,7 +44,7 @@ namespace hven::solvers {
 /// @brief Type-erasure spec: query the Input/Output rows of a type-erased
 /// vector function, plus its name and thread safety.
 struct SizableSpec {
-    struct Concept { 
+    struct Concept {
         virtual ~Concept() = default;
         virtual std::string name() const = 0;
 

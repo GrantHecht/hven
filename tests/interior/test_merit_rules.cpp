@@ -297,18 +297,18 @@ TEST(ModernMeritRestoration, StashFreezeRestore) {
     // Entry: stash (11, 0.5), working reinitialized to fresh construction.
     a.notify_switch_to_feasibility(pm(9.0, 1.0, 0.0));
     EXPECT_TRUE(a.in_feasibility_phase());
-    EXPECT_DOUBLE_EQ(a.wmno_penalty(), kWmnoInitPenalty);              // working reset
-    EXPECT_TRUE(std::isinf(a.smallest_known_infeasibility()));         // working reset
-    EXPECT_DOUBLE_EQ(a.stashed_wmno_penalty(), 11.0);                  // frozen
-    EXPECT_DOUBLE_EQ(a.stashed_smallest_known_infeasibility(), 0.5);   // frozen
+    EXPECT_DOUBLE_EQ(a.wmno_penalty(), kWmnoInitPenalty);            // working reset
+    EXPECT_TRUE(std::isinf(a.smallest_known_infeasibility()));       // working reset
+    EXPECT_DOUBLE_EQ(a.stashed_wmno_penalty(), 11.0);                // frozen
+    EXPECT_DOUBLE_EQ(a.stashed_smallest_known_infeasibility(), 0.5); // frozen
 
     // A feasibility-phase accept: cur(θ=8,f=10), tri(θ=2,f=4), pred(m_θ=3,m_f=6)
     // ⇒ τ<1 ⇒ ν stays 1; ACCEPT ⇒ working smallest = 2. The STASH is untouched.
     ASSERT_TRUE(a.is_iterate_acceptable(pm(8.0, 10.0, 0.0), pm(2.0, 4.0, 0.0), pm(3.0, 6.0, 0.0),
                                         1.0, 1.0));
-    EXPECT_DOUBLE_EQ(a.wmno_penalty(), 1.0);                          // working evolved
+    EXPECT_DOUBLE_EQ(a.wmno_penalty(), 1.0);                         // working evolved
     EXPECT_DOUBLE_EQ(a.smallest_known_infeasibility(), 2.0);         // working evolved
-    EXPECT_DOUBLE_EQ(a.stashed_wmno_penalty(), 11.0);               // still frozen
+    EXPECT_DOUBLE_EQ(a.stashed_wmno_penalty(), 11.0);                // still frozen
     EXPECT_DOUBLE_EQ(a.stashed_smallest_known_infeasibility(), 0.5); // still frozen
 
     // Exit: restore the frozen optimality-phase state.
@@ -347,10 +347,10 @@ TEST(ModernMeritRestoration, ResetMidPhasePreservesStash) {
                                         1.0, 1.0));     // smallest=3
     a.notify_switch_to_feasibility(pm(6.0, 10.0, 0.0)); // stash 3
 
-    a.reset(); // μ-event mid-restoration
-    EXPECT_TRUE(a.in_feasibility_phase());                            // flag survives
-    EXPECT_TRUE(std::isinf(a.smallest_known_infeasibility()));        // working cleared
-    EXPECT_DOUBLE_EQ(a.stashed_smallest_known_infeasibility(), 3.0);  // stash survives
+    a.reset();                                                       // μ-event mid-restoration
+    EXPECT_TRUE(a.in_feasibility_phase());                           // flag survives
+    EXPECT_TRUE(std::isinf(a.smallest_known_infeasibility()));       // working cleared
+    EXPECT_DOUBLE_EQ(a.stashed_smallest_known_infeasibility(), 3.0); // stash survives
 
     const ProgressMeasures ref = pm(100.0, 0.0, 0.0);
     EXPECT_TRUE(a.is_infeasibility_sufficiently_reduced(ref, pm(2.6, 0.0, 0.0)));

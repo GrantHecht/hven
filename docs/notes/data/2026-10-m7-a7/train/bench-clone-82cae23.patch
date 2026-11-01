@@ -1,0 +1,119 @@
+From 82cae23eee55c54a944f67af2ed4a699ee44e0b8 Mon Sep 17 00:00:00 2001
+From: Grant Hecht <grantrhecht@icloud.com>
+Date: Fri, 23 Oct 2026 19:15:45 -0400
+Subject: [PATCH] scratch(a7): hven M7 W2 A7 TRAIN clone -- pin w2-a7 3ef44544;
+ labels sqp-wsrule / sqp-qn-wsrule (each its base + ws_algebra_rule =
+ kMeasuredCost); A7_FIRE_LOG observation hook; sqp-qn-wsrule provenance none.
+ Never pushed.
+
+---
+ cmake/hven_pin.cmake           |  7 ++++---
+ lanes/hven/hven_bench_cell.cpp | 26 ++++++++++++++++++++++----
+ schema/columns.py              |  1 +
+ 3 files changed, 27 insertions(+), 7 deletions(-)
+
+diff --git a/cmake/hven_pin.cmake b/cmake/hven_pin.cmake
+index f08495c..a889982 100644
+--- a/cmake/hven_pin.cmake
++++ b/cmake/hven_pin.cmake
+@@ -563,14 +563,15 @@
+ # from a clean clone of 6a2a58c7 at .scratch/retake18-wt by scripts/w2_retake18_build.sh.  Nothing under
+ # runs/ taken at an earlier pin is re-derived by this move; the per-cell predictions, MEASURED on this
+ # pin's own build, are in runs/2026-10-m7-w2-retake18/README.md.
+-set(HVEN_PIN_SHA "6a2a58c71ec7bc40a44fd78a7b8e947c6fc2874e")
++# SCRATCH CLONE ONLY (hven M7 W2 A7, never pushed): the pin is the w2-a7 implementation head.
++set(HVEN_PIN_SHA "3ef44544ea7a6b7abdc23fb301b402dfbd9980ab")
+ 
+ # The branch the sha was read from, for a reader tracing it back.  NOT a
+ # lookup key: the sha alone identifies the tree, and the branch will move.
+-set(HVEN_PIN_BRANCH "m7")
++set(HVEN_PIN_BRANCH "w2-a7")
+ 
+ # The date the pin was taken (UTC, ISO-8601 date).
+-set(HVEN_PIN_DATE "2026-10-22")
++set(HVEN_PIN_DATE "2026-10-23")
+ 
+ # The install prefix the pin builds into, relative to the harness root.  The
+ # sha12 in the name is what makes two pins two prefixes, so a stale prefix is
+diff --git a/lanes/hven/hven_bench_cell.cpp b/lanes/hven/hven_bench_cell.cpp
+index 1afc7d1..2b7d3e0 100644
+--- a/lanes/hven/hven_bench_cell.cpp
++++ b/lanes/hven/hven_bench_cell.cpp
+@@ -40,6 +40,7 @@
+ #include <array>
+ #include <cmath>
+ #include <cstdio>
++#include <cstdlib>
+ #include <cstring>
+ #include <fstream>
+ #include <sstream>
+@@ -576,10 +577,16 @@ hven::solvers::SqpOptions sqp_options(const std::string &label) {
+     // option is in the options dump (`column_scaling = kAuto`, `column_scaling_threshold =
+     // 1000`), so both labels' `options_digest` values move
+     // (runs/2026-10-m7-w2-retake16/README.md).  The other labels are the library's own.
+-    if (label == "default" || label == "sqp-qn") {
++    if (label == "default" || label == "sqp-qn" || label == "sqp-wsrule" ||
++        label == "sqp-qn-wsrule") {
+         o.column_scaling = hven::solvers::SqpColumnScaling::kAuto;
+     }
+-    if (label == "default") {
++    // hven M7 W2 A7 (scratch clone only): `sqp-wsrule` / `sqp-qn-wsrule` are `default` /
++    // `sqp-qn` plus ONE field, SqpOptions::ws_algebra_rule = kMeasuredCost.
++    if (label == "sqp-wsrule" || label == "sqp-qn-wsrule") {
++        o.ws_algebra_rule = hven::solvers::SqpWsAlgebraRule::kMeasuredCost;
++    }
++    if (label == "default" || label == "sqp-wsrule") {
+         return o;
+     }
+     // `qp_mode` is the ONE field each; the kIpm tier's own `ipqp` block and the
+@@ -605,7 +612,7 @@ hven::solvers::SqpOptions sqp_options(const std::string &label) {
+         // not an A4-0 sweep label: sets/options-labels.json records it in its
+         // own event, outside the scored roster.
+         o.qp.independent_working_set = false;
+-    } else if (label == "sqp-qn") {
++    } else if (label == "sqp-qn" || label == "sqp-qn-wsrule") {
+         // M7 W2 RETAKE14, a DECLARED OPTIONS EVENT (owner ruling): the SNOPT comparison's
+         // second hven-sqp configuration.  ONE field moves from `default`:
+         // `hessian_mode = kLbfgsDamped`, hven's quasi-Newton Hessian (the model's eval_hess
+@@ -628,7 +635,7 @@ hven::solvers::SqpOptions sqp_options(const std::string &label) {
+ /// table this mirrors (the runner builds the results row from it).
+ std::string lane_hessian_provenance(const std::string &lane, const std::string &label,
+                                     const std::string &declared) {
+-    if (lane == "hven-sqp" && label == "sqp-qn") {
++    if (lane == "hven-sqp" && (label == "sqp-qn" || label == "sqp-qn-wsrule")) {
+         return "none";
+     }
+     return declared;
+@@ -1424,6 +1431,17 @@ CellReport run_sqp(const ProblemSource &source, const std::string &options_label
+     fill_shared(sqp_result, report);
+ 
+     report.factorizations = static_cast<long long>(sqp_result.counters.factorizations);
++    // hven M7 W2 A7 OBSERVATION HOOK (scratch clone only): whether the rule fired, appended to
++    // the file A7_FIRE_LOG names. No row, column or dump reads it.
++    if (const char *fire_log = std::getenv("A7_FIRE_LOG"); fire_log != nullptr) {
++        if (std::FILE *f = std::fopen(fire_log, "a"); f != nullptr) {
++            std::fprintf(f, "%s %s ws_algebra_switches=%lld ws_algebra_switched_qps=%lld\n",
++                         source.problem().c_str(), options_label.c_str(),
++                         static_cast<long long>(sqp_result.counters.ws_algebra_switches),
++                         static_cast<long long>(sqp_result.counters.ws_algebra_switched_qps));
++            std::fclose(f);
++        }
++    }
+ 
+     const auto &c = sqp_result.counters;
+     add_side(report, "major_iters", static_cast<long long>(c.major_iters));
+diff --git a/schema/columns.py b/schema/columns.py
+index 204f720..c534c59 100644
+--- a/schema/columns.py
++++ b/schema/columns.py
+@@ -94,6 +94,7 @@ LANE_HESSIAN_PROVENANCE = {
+ # so the measured rows and the runner's rows agree.
+ LABEL_HESSIAN_PROVENANCE = {
+     ("hven-sqp", "sqp-qn"): "none",
++    ("hven-sqp", "sqp-qn-wsrule"): "none",  # hven M7 W2 A7 scratch clone: sqp-qn + one field
+ }
+ 
+ 
+-- 
+2.56.0
+

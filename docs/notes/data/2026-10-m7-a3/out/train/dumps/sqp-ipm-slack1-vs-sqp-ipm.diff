@@ -1,0 +1,4 @@
+40c40
+< ipqp.ipqp_converge_slack = 100
+---
+> ipqp.ipqp_converge_slack = 1

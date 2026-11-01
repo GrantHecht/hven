@@ -1,0 +1,22 @@
+LEG: bash -o pipefail -c 
+cd /home/ghecht/Projects/hven
+rm -rf .scratch/m7t2/psym-before .scratch/m7t2/psym-after
+scripts/psym_compare.sh capture .scratch/m7t2/psym-before .scratch/m7t2/psym-old-build > .scratch/m7t2/logs/72f-capture-old.out 2>&1; echo "CAP_OLD_RC=$?"
+scripts/psym_compare.sh capture .scratch/m7t2/psym-after  .scratch/m7t2/psym-new-build > .scratch/m7t2/logs/72f-capture-new.out 2>&1; echo "CAP_NEW_RC=$?"
+scripts/psym_compare.sh compare .scratch/m7t2/psym-before .scratch/m7t2/psym-after > .scratch/m7t2/logs/72f-psym.out 2>&1
+echo "PSYM_RC=$?"
+tail -4 .scratch/m7t2/logs/72f-psym.out
+PGREP_SEPARATE 2026-09-15T07:17:40Z
+PGREP_EMPTY
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-09-15T07:17:40Z
+CAP_OLD_RC=0
+CAP_NEW_RC=0
+PSYM_RC=1
+
+P-SYM: 142 objects — 46 byte-identical, 76 differing within the accepted noise class, 19 with unclassified differences, 0 matched by basename after a path move, 0 missing
+P-SYM coverage: 0 objects matched through the object map, 19 compared per symbol, 0 objects passed per symbol, 0 after-arm objects unaccounted for; symbols — 67041 matched (0 through the symbol map), 35 only-before, 190 only-after, 0 excepted, 0 collisions, 47 rank-tagged, 0 stale exceptions, 0 stale map entries; compiler-local label families — 572 matched by count, 9 differing (75304 before-arm and 75488 after-arm symbols accounted by family); relocations — 197539 records compared (0 through the symbol map)
+P-SYM: FAIL — differences outside the accepted noise class
+LEG_RC=0
+FOREGROUND_END 2026-09-15T07:20:06Z
+WRAPPER_EXIT=0

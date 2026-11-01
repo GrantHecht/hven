@@ -1,0 +1,63 @@
+CHAIN_P2_START 2026-09-21T20:07:43-04:00
+=== HEAD 176da6cf  dirty-files=2
+=== probe sha256: 48c4fdea48c43ed27982d2b55a8eadf3fe7054a9030c23c244a4d552bec23bfd  /home/ghecht/Projects/hven/.scratch/m7w2m3c/p2/probebuild/m3c_p2_probe
+
+PGREP_BEFORE_LOCK ACOPP57: 
+FOREGROUND_START leg-ACOPP57 2026-09-21T20:07:43-04:00
+PGREP_EMPTY leg-ACOPP57: no foreign cell binary under my lock
+LEG ACOPP57   deadline=600   rc=0   wall_s=1.699137007 (INFORMATIONAL)
+    status=numerical_error
+    major_iters=7
+    qp_minor_iters=7248
+    factorizations=128
+    deadline_fired=0
+    tr_init_touched=0
+    capture_solve_arg=-1
+    summary_solves_seen=7
+    summary_records=7248
+    summary_truncated=0
+    summary_allocation_failed=0
+    trace_bytes=4434866
+FOREGROUND_END leg-ACOPP57 2026-09-21T20:07:45-04:00 rc=0
+WRAPPER_RC leg-ACOPP57 rc=0  (group)
+
+PGREP_BEFORE_LOCK E: 
+FOREGROUND_START leg-E 2026-09-21T20:07:45-04:00
+PGREP_EMPTY leg-E: no foreign cell binary under my lock
+LEG E   deadline=E   rc=2   wall_s=.004640897 (INFORMATIONAL)
+CENSORED E: rc=2 -- the row and the trace are DELETED and are never reconstructed
+m3c_p2_probe: --deadline takes a finite value > 0
+FOREGROUND_END leg-E 2026-09-21T20:07:45-04:00 rc=2
+WRAPPER_RC leg-E rc=2  (E)
+
+PGREP_BEFORE_LOCK DALLASM: 
+FOREGROUND_START leg-DALLASM 2026-09-21T20:07:45-04:00
+PGREP_EMPTY leg-DALLASM: no foreign cell binary under my lock
+LEG DALLASM   deadline=600   rc=0   wall_s=56.038122101 (INFORMATIONAL)
+    status=numerical_error
+    major_iters=5
+    qp_minor_iters=10584
+    factorizations=5104
+    deadline_fired=0
+    tr_init_touched=0
+    capture_solve_arg=-1
+    summary_solves_seen=8
+    summary_records=10584
+    summary_truncated=0
+    summary_allocation_failed=0
+    trace_bytes=6877542
+FOREGROUND_END leg-DALLASM 2026-09-21T20:08:41-04:00 rc=0
+WRAPPER_RC leg-DALLASM rc=0  (group)
+
+PGREP_BEFORE_LOCK E: 
+FOREGROUND_START leg-E 2026-09-21T20:08:41-04:00
+PGREP_EMPTY leg-E: no foreign cell binary under my lock
+LEG E   deadline=E   rc=2   wall_s=.004864617 (INFORMATIONAL)
+CENSORED E: rc=2 -- the row and the trace are DELETED and are never reconstructed
+m3c_p2_probe: --deadline takes a finite value > 0
+FOREGROUND_END leg-E 2026-09-21T20:08:41-04:00 rc=2
+WRAPPER_RC leg-E rc=2  (E)
+
+PGREP_BEFORE_LOCK STEENBRB: 
+FOREGROUND_START leg-STEENBRB 2026-09-21T20:08:41-04:00
+PGREP_EMPTY leg-STEENBRB: no foreign cell binary under my lock

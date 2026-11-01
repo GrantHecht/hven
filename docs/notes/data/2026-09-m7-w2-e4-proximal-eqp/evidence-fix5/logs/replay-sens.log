@@ -1,0 +1,16 @@
+PGREP_NO_UNCOVERED_CELL fix5-replay-sens 2026-09-27T20:57:08-04:00
+IN_LOCK_PGREP_EMPTY fix5-replay-sens 2026-09-27T20:57:08-04:00
+FOREGROUND_START fix5-replay-sens 2026-09-27T20:57:08-04:00
+----- E4 arm: --algebra border --e2 1 -----
+qp5 status=3 minors=3 facts=5 f=0.1054162515 eq=1.87e-16 in=6.07e-18 box=0.00e+00 stat=1.00e+00 sgn=0.00e+00 comp=0.00e+00 sfirst=0 unlocks=0 rereads=2 flips=0 exch=0 zmexh=0 zmcap=0 blk=0 retreats=0 
+----- E4 arm: --algebra refactorize --e2 1 -----
+qp5 status=3 minors=3 facts=77 f=0.105416246754 eq=3.01e-14 in=3.75e-14 box=0.00e+00 stat=1.00e+00 sgn=0.00e+00 comp=0.00e+00 sfirst=0 unlocks=0 rereads=2 flips=0 exch=0 zmexh=0 zmcap=0 blk=0 retreats
+----- E4 arm: --algebra border --e2 0 -----
+qp5 status=0 minors=682 facts=36 f=-0.154376254009 eq=5.41e-14 in=3.75e-14 box=0.00e+00 stat=1.77e-14 sgn=0.00e+00 comp=4.87e-15 sfirst=0 unlocks=0 rereads=0 flips=0 exch=0 zmexh=0 zmcap=0 blk=0 retre
+----- E4 arm: --algebra refactorize --e2 0 -----
+qp5 status=0 minors=539 facts=689 f=-0.154376247307 eq=8.10e-15 in=2.78e-17 box=0.00e+00 stat=2.32e-14 sgn=0.00e+00 comp=3.90e-18 sfirst=0 unlocks=0 rereads=0 flips=0 exch=0 zmexh=0 zmcap=0 blk=0 retr
+----- RT8 arm: --algebra border --e2 1 -----
+qp5 status=3 minors=3 facts=5 f=0.105091462705 eq=1.94e-09 in=3.45e-10 box=0.00e+00 stat=1.00e+00 sgn=0.00e+00 comp=0.00e+00 sfirst=0 unlocks=0 rereads=2 flips=0 exch=0 zmexh=0 zmcap=0 blk=0 retreats=
+----- RT8 arm: --algebra refactorize --e2 1 -----
+qp5 status=3 minors=3 facts=77 f=0.105135453334 eq=1.25e-09 in=3.44e-10 box=0.00e+00 stat=1.00e+00 sgn=0.00e+00 comp=0.00e+00 sfirst=0 unlocks=0 rereads=2 flips=0 exch=0 zmexh=0 zmcap=0 blk=0 retreats
+FOREGROUND_END fix5-replay-sens 2026-09-27T20:57:12-04:00 rc=0

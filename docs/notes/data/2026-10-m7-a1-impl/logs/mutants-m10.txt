@@ -1,0 +1,24 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:46:44-04:00
+FOREGROUND_END rc=0 2026-10-23T06:46:50-04:00
+[6/8] Linking CXX executable tests/hven_ipqp_seam_tests
+[7/8] Linking CXX executable bench/hven_sqp_corpus
+[8/8] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:46:50-04:00
+FOREGROUND_END rc=1 2026-10-23T06:46:50-04:00
+[  PASSED  ] 2 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] IpqpMarginSeams.AtAnUninformativeFinalPassOn2DemotesByTheBandAndOn2xDoesNot
+
+ 1 FAILED TEST
+MUTANT M10 ON-2X demotes by the band at an uninformative final pass: KILLED by IpqpMarginSeams.AtAnUninformativeFinalPassOn2DemotesByTheBandAndOn2xDoesNot
+SUMMARY
+  M10 ON-2X demotes by the band at an uninformative final pass: KILLED by IpqpMarginSeams.AtAnUninformativeFinalPassOn2DemotesByTheBandAndOn2xDoesNot
+PGREP_EMPTY
+FOREGROUND_START 2026-10-23T06:46:50-04:00
+FOREGROUND_END rc=0 2026-10-23T06:46:56-04:00
+[4/6] Linking CXX executable tests/hven_ipqp_seam_tests
+[5/6] Linking CXX executable bench/hven_sqp_corpus
+[6/6] Linking CXX executable tests/sqp/hven_sqp_tests
+RESTORED_BUILD rc=0

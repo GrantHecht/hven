@@ -1,0 +1,18 @@
+# problems.requested: ACOPR118
+# schema: v1
+# harness.sha: c8caa998de1ce6330694e73a58f5711994f572f6
+# hven.pin.sha: 0483a46f9c976ade80bfb83bb8f3cff1e7309abc
+# hven.pin.compiler: clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+# host.name: fedora
+# host.cpu: AMD Ryzen 7 5800X3D 8-Core Processor
+# host.physical_cores: 8
+# generated.utc: 2026-10-29T19:02:24Z
+# mkl.num_threads: 1
+# run.mode: serial
+# split.policy: split-v1
+# apple.accelerate: UNOBSERVED
+# windows: UNOBSERVED
+# external.cutest: 2.7.1 (d76788ae042785ff6518378478057191ed884e53)
+# external.sifdecode: 3.1.1 (979967c923241c136c35f17630cfdcf614e6df17)
+cell_id,problem_set,problem,set_version,set_digest,split,lane,options_label,options_digest,hessian_provenance,budget_iters,budget_facts,budget_wall_s,status,outcome,iterations,factorizations,eval_f,eval_g,eval_jac,eval_hess,objective,kkt_stationarity,kkt_primal_eq,kkt_primal_ineq,kkt_complementarity,wall_s
+cutest/ACOPR118/hven-sqp/default,cutest,ACOPR118,cutest-nlp-35 v1,c7c1d41e35ea6da2d08ddb2452d5321794677f4a153baefdc8f15c4aee57557b,TRAIN,hven-sqp,default,9ee700d32575e2ee9f8e689f15eecbd28e7ea81d9b82f714075d913a90025394,exact,300,null,300,optimal,optimal,25,14802,null,null,null,null,129660.68370269192,1.1449026852218237e-09,1.86518942513203e-08,4.1760623292752541e-09,2.9864508761910608e-06,67.772031011001673

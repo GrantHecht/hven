@@ -1,0 +1,102 @@
+M7 W2 E2 FIX ROUNDS 1 + 1b -- THE GATE EXPECTATIONS, DERIVED
+Written and committed BEFORE the chain was detached. RULE: nothing here may be
+adjusted after the chain's first leg. Every value is derived from the FINAL range;
+nothing is carried or added to an earlier count (the E2 fix1 lesson).
+
+BASE   6d123e75 (readout(m7): W2 E2-D1 -- REPORT.md; branch m7)
+       b25ab7ed fix(m7): W2 E2 fix1 -- F1-F3 of the E2-D1 diagnosis (never gated alone:
+                its offline G4 found the two f7 walk movers, see the E2 STATE)
+       bf37c305 fix(m7): W2 E2 fix1b -- removal certificate (E2-D2)
+       b2dfe97a readout(m7): W2 E2-D2 -- transcripts (docs/notes/data only)
+HEAD   the commit that carries this file (docs/notes/data only). Range
+       6d123e75..b2dfe97a for every source/header derivation.
+RUNNER wrappers-gates-fix1/gates-e2fix1.sh + chain_gates_e2fix1.sh: copies of the
+       E1b fix-round-1 runner and chain (docs/notes/data/2026-09-m7-w2-e1-equality-basis/
+       wrappers-e1b-fix1/), re-pointed (scratch .scratch/m7w2e2fix1gates -- ONE literal,
+       in gates-e2fix1.sh; the chain asks it with --print-scratch; logs
+       gates-e2fix1.log, chain-e2fix1.log) and carrying the values below. The emitted
+       segments are the E1b fix1 chain's with the g4 comparison label changed only.
+       Literal check before the first leg: grep 'e1b', 'E1B', '4858019e', '89ee3e13',
+       'm7w2e1b' on both copies -> provenance comments only (gates-e2fix1.sh:6, the
+       file it was copied from; chain_gates_e2fix1.sh:8, likewise); no path, sha or
+       scratch literal.
+
+§1 THE CHANGED SURFACE (`git diff --name-status 6d123e75..b2dfe97a`):
+   3 headers  include/hven/core/solver_counters.h,
+              include/hven/detail/qp/qp_engine.h,
+              include/hven/detail/qp/ws_independence.h
+   4 MODIFIED .cpp  src/qp/qp_engine.cpp, src/qp/ws_independence.cpp,
+              tests/sqp/test_qp_ws_independence.cpp,
+              tests/qp/test_qp_anti_cycling_arm.cpp (OUTSIDE the universe:
+              hven_qp_walk_seam_tests, an HVEN_TESTING recompile target, not a
+              PSYM_GROUPS entry)
+   0 ADDED .cpp; docs: the E2 README, the E2-D2 readout directory.
+
+§2 THE P-SYM MOVER SHAPE, PER CONFIGURATION -- MEASURED on the final pair
+     Release  DIFFERING 39 = class A 3 + class B 36; UNEXPLAINED 0; control 104;
+              NOISE-ONLY 2 (0 in the library)
+     Debug    DIFFERING 39 = class A 3 + class B 36; UNEXPLAINED 0; control 69;
+              NOISE-ONLY 37 (6 in the library; all explained)
+     after 151 = before 151 in both; ONLY-AFTER {}.
+   MEASURED by a FRESH rehearsal at b2dfe97a against 6d123e75, both configurations,
+   one hold of the box lock 02:35:42-03:03:41 (2026-09-24), PGREP_EMPTY
+   (rehearsal/offline-g4-and-rehearsal.sh, rehearsal/rehearsal-log-summary.txt): the
+   E2 fix1 rehearsal's g5 segment, with a HYPOTHESIS (60 = 3 + 57) passed as its
+   declaration. It refused as designed (39 measured); the classifier was re-run
+   offline over the same compare files with --expect-differing 39: CLASSIFY rc 0 in
+   both configurations (rehearsal/rehearsal-classification-{Release,Debug}.txt).
+   The earlier rehearsal on (6d123e75, b25ab7ed) is NOT used.
+   Class A (3, identical in both) = the 4 MODIFIED .cpp less the 1 outside:
+       CMakeFiles/hven.dir/src/qp/{qp_engine,ws_independence}.cpp.o
+       tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_ws_independence.cpp.o
+   CLASS B IS SYMMETRIC: the Release and Debug sets are EQUAL, 36 objects, declared
+   BY NAME in the runner (EXPECT_CLASS_B_NAMES_{RELEASE,DEBUG}); the library objects
+   among them are src/core/ledger.cpp.o, src/drivers/sqp_solver.cpp.o,
+   src/globalization/sqp/soc_elastic_restoration.cpp.o, src/qp/ipqp_engine.cpp.o.
+   None has a source modified in the range (the unity TU
+   tests/interior/Unity/unity_1_cxx.cxx: no source under tests/interior modified).
+   The asymmetry admission list stays EMPTY.
+
+§3 TEST COUNTS: Release 2818 (G3), Debug 2817 (G1), G2 1. By name against E1b fix 1's
+   2808/2807: the measured Release suite at bf37c305 (2818/2818 passed,
+   .scratch/m7w2e2d2/suites/suite-rel-full.log) differs from the E1b fix1 chain's
+   suite-release.log by exactly ten new instances, none removed:
+     fix 1:  QpE2WorkingSet.{ALockedPositiveMemberStillGetsTheVerifiedCertificate,
+             TheUndecidableBorderPingPongRetreatsOnceAndEndsOptimal,
+             AFullyPinnedRowDecidesAnUndecidablePinExactly},
+             BothAlgebras/WsIndependence.AnOptionalPinInADependentEqualityChainIsRemoved/{0,1},
+             WsIndependenceDetector.TheEliminatedSupportNamesThePinsTheDependencyUses;
+     fix 1b: WsIndependenceDetector.{APinInTheSupportByASmallCoefficientIsNotOfferedForRemoval,
+             WithNoRemovableMemberCertifiedTheBestCertifiedOneIsOfferedAlone},
+             BothAlgebras/WsIndependence.AnUncertifiedPinIsKeptAndACertifiedRowRemoved/{0,1}.
+   Debug at bf37c305: 2817/2817 without the long test, the long test 1/1.
+
+§4 THE SECTION SHAPE (G5b), measured by the same rehearsal: NON-DEBUG-MOVER set 6 in
+   both configurations == {qp/qp_engine.cpp.o, qp/ws_independence.cpp.o} (derived) +
+   {core/ledger.cpp.o, drivers/sqp_solver.cpp.o,
+   globalization/sqp/soc_elastic_restoration.cpp.o, qp/ipqp_engine.cpp.o} (declared);
+   no library ADDED; DEBUG_ONLY Release 0 / Debug 6 (drivers/console_trace_sink,
+   drivers/ipm_solver, drivers/sqp_print, drivers/trace_writer, qp/ssn_engine,
+   warmstart/continuation); REFUSED 0.
+
+§5 G4: 27 cells x 75 columns x 3 engines, 0 differences under
+   `compare_replay.py --residual-gate 1e-5`. VERIFIED OFFLINE before declaring, twice
+   at the same code: at bf37c305 (build/ Release, lock 02:23:43-02:28:23) and at
+   b2dfe97a inside the rehearsal (lock 02:31:02-02:35:42,
+   rehearsal/offline-g4-comparison.txt): walk 0 differences (7 within the gate,
+   residual-class last digits on f7_n800/f7_n1000_path_warm, the same count E1b
+   recorded), ssn 0, ipm 0. The two f7 cells are back at their M6 values (Optimal,
+   factorizations 2, minors 6/12); no walk-counter mover remains in any column family.
+
+§6 G6: expected CLEAN -- install smoke, export contract, clang-format on the derived
+   changed include/*.h, src/*.cpp, tests/*.cpp (clean at bf37c305), git diff --check,
+   DIRTY_FILES 0. Fold proofs 46/0.
+
+§7 PRE-FLIGHT (`gates-e2fix1.sh --preflight-only`): preflight.txt (CLASS_B_NAMES_OK
+   36/36, PREFLIGHT_VALUE_OK, 6 SEGMENT_OK, PREFLIGHT_OK). Refusals exercised against a
+   wrong value, each rc 2 (recorded at the end of preflight.txt): a class B name whose
+   source is modified (test_qp_ws_independence.cpp.o swapped in), class B 37 with a
+   36-name list, Release 2813 against Debug 2817, BEFORE b25ab7ed, class A 4/4.
+
+§8 G5 CHECKS THE MAIN TREE OUT TO 6d123e75 while it builds its before arm, once per
+   configuration: nothing may edit or commit in the main tree until CHAIN_END.

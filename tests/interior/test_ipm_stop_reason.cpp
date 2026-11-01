@@ -32,6 +32,8 @@
 namespace stop_reason_test {
 namespace {
 
+using hven::solvers::AcceptanceStrategies;
+using hven::solvers::BarrierGovernors;
 using hven::solvers::IpmSolver;
 using hven::solvers::RestorationModes;
 
@@ -169,6 +171,29 @@ hven_interior_tests::IpmCase make_stall_solver(int max_iters, bool lift_div_tols
         o.phases = {hven::solvers::IpmPhase::kSolve}; // what solve() ran
         o.common.print_level = 10;
         o.common.threads = 1;
+        // M7 W2 D1 (2026-09-18): THE PRE-EVENT GLOBALIZATION, PINNED, because
+        // this fixture is a tuned instrument for one door and the tuning is
+        // trajectory-specific. The comment above says what the tuning is for in
+        // so many words -- "the loosened tolerances keep that episode's exit the
+        // near-feasible one rather than a local-infeasibility declaration" --
+        // and that balance is what lets the stage go on to run out of
+        // iterations and leave through kStageStalled.
+        //
+        // Under the shipped default (filter over the monitored governor) it
+        // does not hold: the restoration episode on this problem is classified
+        // LOCALLY INFEASIBLE instead, so last_stop_reason() reads
+        // kRestorationLocallyInfeasible and the stage-stalled door is never
+        // reached here. The status still resolves to kStalled, so what moved is
+        // WHICH LABELLED DOOR THIS FIXTURE TAKES, not whether the door works --
+        // and re-tuning four tolerances to chase the new trajectory would be
+        // re-deriving the instrument rather than the measurement. The old pair
+        // is written instead, which is exactly the trajectory every pin in this
+        // file was measured on. (Registered beside the IPM stall detector: the
+        // flip is a datum about restoration's near-feasible test under the
+        // monitored governor, recorded in
+        // docs/notes/data/2026-09-m7-w2-d1-ipm-default/.)
+        o.acceptance_strategy = AcceptanceStrategies::classic_merit;
+        o.barrier_governor = BarrierGovernors::classic_adaptive;
         o.max_iters = max_iters;
         o.kkt_tol = 1.0e-8;
         o.econ_tol = 0.02;

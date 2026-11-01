@@ -1,0 +1,270 @@
+CHAINF_START 2026-09-21T08:33:44-04:00
+=== HEAD bb29174f  dirty-files=0 ===
+=== probe sha256 recorded at prepare: 882e9d80cae63ab265d3f7f68ce91cf22e85c4309882d405c0405d3b1e244543  /home/ghecht/Projects/hven/.scratch/m7w2m3a/probebuild/m3a_probe
+=== library sha256: c79f404fd377f7ecdefc8ab016a71d65a8cba026a498b4f1f65ce303a72d5cd3  /home/ghecht/Projects/hven/.scratch/m7w2m3a/install/lib64/libhven.a
+PGREP_BEFORE_LOCK STEENBRB@identity-F: 
+FOREGROUND_START leg-STEENBRB@identity-F 2026-09-21T08:33:44-04:00
+PGREP_EMPTY leg-STEENBRB@identity-F: no foreign cell binary under my lock
+LEG STEENBRB@identity-F  rc=0   wall_s=31.9 (INFORMATIONAL)  args: --tr-init inf --ledger off
+    tr_init=inf
+    ledger=off
+    deadline_fired=0
+    status=numerical_error
+    feasibility_e=2000
+    feasibility_i=0
+    infeasibility_certified=0
+    major_iters=4
+    restoration_iters=0
+    qp_minor_iters=18720
+    factorizations=16
+    symbolic_analyses=1
+    steps_accepted=0
+    rejected_steps=3
+    elastic_activations=0
+    qp_maxiter_exits=4
+    border_refine_steps=84856
+    restoration_entries=0
+    history_rows=4
+    first_qp_status=max_iter
+    first_qp_plain_status=max_iter
+    first_qp_minor_iters=4680
+    x_k_source=none (no restoration phase ran)
+FOREGROUND_END leg-STEENBRB@identity-F 2026-09-21T08:34:15-04:00 rc=0
+WRAPPER_RC leg-STEENBRB@identity-F rc=0
+--- IDENTITY ON THE REBUILT PROBE (RULE-F.md section 3.1)
+M7 W2 M3a ADDENDUM F -- IDENTITY (RULE-F.md section 3.1): the REBUILT probe at the new argument's
+DEFAULT (--ledger off) vs the committed stage-1 @trinf row.
+A DIFFERENCE IS A STOP, and a stop ABORTS the chain before any F leg runs.
+
+excluded by name (this addendum's new key): ['ledger']
+dropped by name (time-valued):              ['elapsed', 'elapsed_seconds', 'wall_seconds']
+near-ulp gate, residual class only:         |a-b| <= 1e-12 * max(1,|a|,|b|)
+the LEDGER block is NOT part of the key block and is NOT compared (RULE-F.md section 3.1)
+
+STEENBRB@identity-F  vs STEENBRB@trinf.txt   keys  50 compared,   0 differing; rows   4 x 9 columns,   0 differing   IDENTICAL
+STEENBRB@identity-F    keys only in the rebuilt probe: ['first_qp_factorizations', 'first_qp_minor_iters', 'ledger', 'qp_cap_retries', 'qp_cap_retry', 'qp_max_iter']
+
+NEAR_ULP_TOLERATED=0
+IDENTITY_F_WORST=0
+IDENTITY_F_RC=0
+PGREP_BEFORE_LOCK STEENBRB@F-trinf: 
+FOREGROUND_START leg-STEENBRB@F-trinf 2026-09-21T08:34:16-04:00
+PGREP_EMPTY leg-STEENBRB@F-trinf: no foreign cell binary under my lock
+LEG STEENBRB@F-trinf     rc=0   wall_s=31.6 (INFORMATIONAL)  args: --tr-init inf --ledger on
+    tr_init=inf
+    ledger=on
+    deadline_fired=0
+    status=numerical_error
+    feasibility_e=2000
+    feasibility_i=0
+    infeasibility_certified=0
+    major_iters=4
+    restoration_iters=0
+    qp_minor_iters=18720
+    factorizations=16
+    symbolic_analyses=1
+    steps_accepted=0
+    rejected_steps=3
+    elastic_activations=0
+    qp_maxiter_exits=4
+    border_refine_steps=84856
+    restoration_entries=0
+    history_rows=4
+    first_qp_status=max_iter
+    first_qp_plain_status=max_iter
+    first_qp_minor_iters=4680
+    x_k_source=none (no restoration phase ran)
+    ledger_qp_records=4
+    ledger_records_print_truncated=0
+    first_label=f_qp_0
+    first_qp_record_status=max_iter
+    first_schur_updates=4849
+    first_minor_iters=4680
+    first_suspect_escalations=0
+    first_ws_adds=2344
+    first_ws_drops=2323
+    first_degenerate_steps=2319
+    first_degenerate_run_max=2310
+    first_drop_ties=0
+    first_ratio_ties=0
+    first_degenerate_fraction=0.49551282051282053
+    first_ws_adds_minus_drops=21
+    first_ws_net_change=21
+FOREGROUND_END leg-STEENBRB@F-trinf 2026-09-21T08:34:47-04:00 rc=0
+WRAPPER_RC leg-STEENBRB@F-trinf rc=0
+--- NEUTRALITY, THE GATING LEG (RULE-F.md section 3.2)
+M7 W2 M3a ADDENDUM F -- NEUTRALITY, THE GATING LEG (RULE-F.md section 3.2): the FIRST --ledger on leg
+vs its own committed stage-1 twin. If any solver counter moved with the ledger
+ATTACHED, the chain ABORTS here and that is a finding ABOUT hven.
+
+excluded by name (this addendum's new key): ['ledger']
+dropped by name (time-valued):              ['elapsed', 'elapsed_seconds', 'wall_seconds']
+near-ulp gate, residual class only:         |a-b| <= 1e-12 * max(1,|a|,|b|)
+the LEDGER block is NOT part of the key block and is NOT compared (RULE-F.md section 3.1)
+
+STEENBRB@F-trinf     vs STEENBRB@trinf.txt   keys  50 compared,   0 differing; rows   4 x 9 columns,   0 differing   IDENTICAL
+STEENBRB@F-trinf       keys only in the rebuilt probe: ['first_qp_factorizations', 'first_qp_minor_iters', 'ledger', 'qp_cap_retries', 'qp_cap_retry', 'qp_max_iter']
+
+NEAR_ULP_TOLERATED=0
+IDENTITY_F_WORST=0
+NEUTRAL_FIRST_RC=0
+PGREP_BEFORE_LOCK STEENBRB@F-tr1: 
+FOREGROUND_START leg-STEENBRB@F-tr1 2026-09-21T08:34:47-04:00
+PGREP_EMPTY leg-STEENBRB@F-tr1: no foreign cell binary under my lock
+LEG STEENBRB@F-tr1       rc=0   wall_s=60.4 (INFORMATIONAL)  args: --tr-init 1 --ledger on
+    tr_init=1
+    ledger=on
+    deadline_fired=0
+    status=numerical_error
+    feasibility_e=2.2737367542337972e-13
+    feasibility_i=2.1316282072803006e-14
+    infeasibility_certified=0
+    major_iters=5
+    restoration_iters=11
+    qp_minor_iters=20637
+    factorizations=25973
+    symbolic_analyses=4
+    steps_accepted=0
+    rejected_steps=3
+    elastic_activations=1
+    qp_maxiter_exits=4
+    border_refine_steps=972
+    restoration_entries=1
+    history_rows=5
+    first_qp_status=numerical_error
+    first_qp_plain_status=infeasible (inferred)
+    first_qp_minor_iters=414
+    x_k_source=start_point (the phase was entered in major 0)
+    ledger_qp_records=6
+    ledger_records_print_truncated=0
+    first_label=f_qp_0
+    first_qp_record_status=infeasible
+    first_schur_updates=333
+    first_minor_iters=827
+    first_suspect_escalations=0
+    first_ws_adds=587
+    first_ws_drops=225
+    first_degenerate_steps=18
+    first_degenerate_run_max=3
+    first_drop_ties=19
+    first_ratio_ties=10
+    first_degenerate_fraction=0.021765417170495769
+    first_ws_adds_minus_drops=362
+    first_ws_net_change=362
+FOREGROUND_END leg-STEENBRB@F-tr1 2026-09-21T08:35:48-04:00 rc=0
+WRAPPER_RC leg-STEENBRB@F-tr1 rc=0
+PGREP_BEFORE_LOCK YORKNET@F-trinf: 
+FOREGROUND_START leg-YORKNET@F-trinf 2026-09-21T08:35:48-04:00
+PGREP_EMPTY leg-YORKNET@F-trinf: no foreign cell binary under my lock
+LEG YORKNET@F-trinf      rc=0   wall_s=96.6 (INFORMATIONAL)  args: --tr-init inf --ledger on
+    tr_init=inf
+    ledger=on
+    deadline_fired=0
+    status=numerical_error
+    feasibility_e=4099.2829199999996
+    feasibility_i=131.08000000000001
+    infeasibility_certified=0
+    major_iters=4
+    restoration_iters=0
+    qp_minor_iters=10240
+    factorizations=20466
+    symbolic_analyses=1
+    steps_accepted=0
+    rejected_steps=3
+    elastic_activations=0
+    qp_maxiter_exits=4
+    border_refine_steps=9
+    restoration_entries=0
+    history_rows=4
+    first_qp_status=max_iter
+    first_qp_plain_status=max_iter
+    first_qp_minor_iters=2560
+    x_k_source=none (no restoration phase ran)
+    ledger_qp_records=4
+    ledger_records_print_truncated=0
+    first_label=f_qp_0
+    first_qp_record_status=max_iter
+    first_schur_updates=144684
+    first_minor_iters=2560
+    first_suspect_escalations=0
+    first_ws_adds=1287
+    first_ws_drops=1232
+    first_degenerate_steps=1257
+    first_degenerate_run_max=1191
+    first_drop_ties=12
+    first_ratio_ties=52
+    first_degenerate_fraction=0.49101562500000001
+    first_ws_adds_minus_drops=55
+    first_ws_net_change=55
+FOREGROUND_END leg-YORKNET@F-trinf 2026-09-21T08:37:24-04:00 rc=0
+WRAPPER_RC leg-YORKNET@F-trinf rc=0
+PGREP_BEFORE_LOCK YORKNET@F-tr1: 
+FOREGROUND_START leg-YORKNET@F-tr1 2026-09-21T08:37:24-04:00
+PGREP_EMPTY leg-YORKNET@F-tr1: no foreign cell binary under my lock
+LEG YORKNET@F-tr1        rc=0   wall_s=78.8 (INFORMATIONAL)  args: --tr-init 1 --ledger on
+    tr_init=1
+    ledger=on
+    deadline_fired=0
+    status=infeasible
+    feasibility_e=4099.2829199999996
+    feasibility_i=131.08000000000001
+    infeasibility_certified=0
+    major_iters=1
+    restoration_iters=18
+    qp_minor_iters=50241
+    factorizations=52180
+    symbolic_analyses=38
+    steps_accepted=0
+    rejected_steps=0
+    elastic_activations=19
+    qp_maxiter_exits=0
+    border_refine_steps=140
+    restoration_entries=1
+    history_rows=1
+    first_qp_status=max_iter
+    first_qp_plain_status=infeasible (inferred)
+    first_qp_minor_iters=5080
+    x_k_source=start_point (the phase was entered in major 0)
+    ledger_qp_records=8
+    ledger_records_print_truncated=0
+    first_label=f_qp_0
+    first_qp_record_status=infeasible
+    first_schur_updates=8239
+    first_minor_iters=397
+    first_suspect_escalations=0
+    first_ws_adds=346
+    first_ws_drops=45
+    first_degenerate_steps=161
+    first_degenerate_run_max=48
+    first_drop_ties=27
+    first_ratio_ties=101
+    first_degenerate_fraction=0.40554156171284633
+    first_ws_adds_minus_drops=301
+    first_ws_net_change=301
+FOREGROUND_END leg-YORKNET@F-tr1 2026-09-21T08:38:43-04:00 rc=0
+WRAPPER_RC leg-YORKNET@F-tr1 rc=0
+--- NEUTRALITY, ALL FOUR MEASURED LEGS (RULE-F.md section 3.2)
+M7 W2 M3a ADDENDUM F -- NEUTRALITY (RULE-F.md section 3.2): every --ledger on leg vs its own committed
+stage-1 twin, on the identity check's machinery. The compared set covers the
+terminal status, f, the feasibilities and every printed SqpCounters field --
+'solver counters, status, f and h' stated by rule, not by a hand-picked subset.
+
+excluded by name (this addendum's new key): ['ledger']
+dropped by name (time-valued):              ['elapsed', 'elapsed_seconds', 'wall_seconds']
+near-ulp gate, residual class only:         |a-b| <= 1e-12 * max(1,|a|,|b|)
+the LEDGER block is NOT part of the key block and is NOT compared (RULE-F.md section 3.1)
+
+STEENBRB@F-trinf     vs STEENBRB@trinf.txt   keys  50 compared,   0 differing; rows   4 x 9 columns,   0 differing   IDENTICAL
+STEENBRB@F-trinf       keys only in the rebuilt probe: ['first_qp_factorizations', 'first_qp_minor_iters', 'ledger', 'qp_cap_retries', 'qp_cap_retry', 'qp_max_iter']
+STEENBRB@F-tr1       vs STEENBRB@tr1.txt     keys  52 compared,   0 differing; rows  17 x 9 columns,   0 differing   IDENTICAL
+STEENBRB@F-tr1         keys only in the rebuilt probe: ['first_qp_factorizations', 'first_qp_minor_iters', 'ledger', 'qp_cap_retries', 'qp_cap_retry', 'qp_max_iter']
+YORKNET@F-trinf      vs YORKNET@trinf.txt    keys  50 compared,   0 differing; rows   4 x 9 columns,   0 differing   IDENTICAL
+YORKNET@F-trinf        keys only in the rebuilt probe: ['first_qp_factorizations', 'first_qp_minor_iters', 'ledger', 'qp_cap_retries', 'qp_cap_retry', 'qp_max_iter']
+YORKNET@F-tr1        vs YORKNET@tr1.txt      keys  52 compared,   0 differing; rows  19 x 9 columns,   0 differing   IDENTICAL
+YORKNET@F-tr1          keys only in the rebuilt probe: ['first_qp_factorizations', 'first_qp_minor_iters', 'ledger', 'qp_cap_retries', 'qp_cap_retry', 'qp_max_iter']
+
+NEAR_ULP_TOLERATED=0
+IDENTITY_F_WORST=0
+NEUTRALITY_F_RC=0
+LEGS_F_WORST=0  (1 means at least one leg was CENSORED; see its LEG line)
+CHAINF_END 2026-09-21T08:38:43-04:00

@@ -1,0 +1,21 @@
+RUN A0_STEENBRB rc=0     resto= wall=rc=0
+RUN A0_STEENBRB rc=0 status=numerical_error iterations=4 objective=2971213264321.6846 factorizations=18722 resto=11 wall_s=53.453033982
+RUN A0_STEENBRC rc=0 status=numerical_error iterations=5 objective=84475671814521.031 factorizations=26434 resto=14 wall_s=122.828311451
+RUN A0_STEENBRE rc=0 status=numerical_error iterations=5 objective=83538217419898.75 factorizations=24121 resto=14 wall_s=122.957219132
+RUN A0_STEENBRG rc=0 status=numerical_error iterations=5 objective=84475671814520.688 factorizations=22432 resto=14 wall_s=120.340934982
+RUN A0_STEENBRD rc=0 status=numerical_error iterations=2 objective=2103916084161.5469 factorizations=9480 resto=11 wall_s=49.390804077
+RUN A0_YORKNET rc=0 status=numerical_error iterations=1 objective=110481.69950761796 factorizations=31027 resto=4 wall_s=35.779528952
+RUN A0_ZAMB2-8 rc=0 status=optimal iterations=8 objective=-0.15293592839676709 factorizations=154 resto=0 wall_s=.647937544
+RUN A0_READING6 rc=0 status=optimal iterations=8 objective=-144.65970057278273 factorizations=688 resto=0 wall_s=2.350560651
+RUN A0_SMBANK rc=0 status=optimal iterations=29 objective=-7129292 factorizations=29 resto=0 wall_s=.079396401
+RUN A0_ACOPR57 rc=0 status=optimal iterations=15 objective=41737.78496542733 factorizations=1207 resto=0 wall_s=1.243712648
+RUN A0off_ZAMB2-8 rc=0 status=numerical_error iterations=2 objective=-0.082078613227650407 factorizations=8227 resto=8 wall_s=18.776269353
+RUN P1_STEENBRB rc=0 status=infeasible iterations=1 objective=49333084707.902573 factorizations=4694 resto=9 wall_s=21.778979767
+RUN P2_STEENBRB rc=0 status=infeasible iterations=1 objective=166777.9113945202 factorizations=4520 resto=3 wall_s=8.846040037
+RUN P3_STEENBRB rc=0 status=infeasible iterations=1 objective=2858.7861353626768 factorizations=4292 resto=1 wall_s=5.973786772
+RUN T1_STEENBRB rc=0 status=max_iter iterations=1 objective=4916261354.9796963 factorizations=35392 resto=99 wall_s=418.270488906
+RUN T2_STEENBRB rc=0 status=max_iter iterations=1 objective=861747053342.89905 factorizations=34533 resto=99 wall_s=434.591080829
+RUN C1_STEENBRB rc=0 status=numerical_error iterations=1 objective=2858.7861353626763 factorizations=30678 resto=4 wall_s=35.483634244
+RUN A0w_STEENBRB rc=0 status=numerical_error iterations=4 objective=2971213264321.6846 factorizations=18722 resto=11 wall_s=53.314417756
+RUN Cn_STEENBRB rc=0 status=interrupted iterations=11 objective=13785.693215025445 factorizations=64782 resto=45 wall_s=300.176970350
+RUN Cs_STEENBRB rc=0 status=numerical_error iterations=5 objective=43474.929413762598 factorizations=16626 resto=36 wall_s=207.217733315

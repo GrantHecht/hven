@@ -1,0 +1,163 @@
+# M7 W2 M4 — CUTEst TRAIN 23, SQP lane, OFF vs ON
+
+## OFF repeat agreement: 0 field differences
+## ON repeat agreement: 0 field differences
+
+## The outcome table
+
+| cell | OFF | ON | objective OFF | objective ON | moved? |
+|---|---|---|---|---|---|
+| `ACOPP118` | error | error | 129648.67425337316 | 129648.67425337316 | unmoved |
+| `ACOPP57` | error | error | 41737.543107411046 | 41063.259756456144 | **MOVED** |
+| `ACOPR118` | dnf_wall | dnf_wall |  |  | unmoved |
+| `ACOPR57` | error | error | 41737.784920103695 | 41737.784920103695 | unmoved |
+| `BIGBANK` | dnf_wall | dnf_wall |  |  | unmoved |
+| `BRITGAS` | error | error | 0 | 0 | unmoved |
+| `DALLASM` | error | error | 61974881.482906975 | 61974881.482906975 | unmoved |
+| `MSS2` | dnf_wall | dnf_wall |  |  | unmoved |
+| `MSS3` | dnf_wall | dnf_wall |  |  | unmoved |
+| `NET3` **(target)** | error | error | nan | 218961.90061283048 | **MOVED** |
+| `READING6` | error | error | 0 | 0 | unmoved |
+| `READING8` | dnf_wall | dnf_wall |  |  | unmoved |
+| `SAWPATH` | dnf_wall | error |  | 1470.5486055552058 | CENSORED |
+| `SMBANK` | optimal | optimal | -7129292 | -7129292 | unmoved |
+| `STEENBRB` | error | error | 4090860686442.3218 | 4090860686442.3218 | unmoved |
+| `STEENBRC` | error | error | 183453796271334.12 | 183453796271334.12 | unmoved |
+| `STEENBRD` **(target)** | error | error | nan | 2855083055442.6714 | **MOVED** |
+| `STEENBRE` **(target)** | error | error | nan | 181871779564741.69 | **MOVED** |
+| `STEENBRG` | error | error | 183453796271333.81 | 183453796271333.81 | unmoved |
+| `TAX213322` | dnf_wall | dnf_wall |  |  | unmoved |
+| `TAX53322` | dnf_wall | dnf_wall |  |  | unmoved |
+| `YORKNET` | infeasible | error | 110670.29950761795 | 110481.69950761796 | **MOVED** |
+| `ZAMB2-8` | optimal | error | -0.15293592733713887 | -0.082078613227650407 | **MOVED** |
+
+## The three target cells
+
+**NET3** — OFF `error` status `numerical_error` f=`nan` iters=`0` facts=`0`; ON `error` status `numerical_error` f=`218961.90061283048` iters=`1` facts=`37093`
+**STEENBRD** — OFF `error` status `numerical_error` f=`nan` iters=`0` facts=`0`; ON `error` status `numerical_error` f=`2855083055442.6714` iters=`3` facts=`16869`
+**STEENBRE** — OFF `error` status `numerical_error` f=`nan` iters=`0` facts=`0`; ON `error` status `numerical_error` f=`181871779564741.69` iters=`4` facts=`31017`
+
+## Every other cell
+
+Cells other than the three targets that MOVED: **3**
+   MOVED  ACOPP57      factorizations             114 -> 3726
+   MOVED  ACOPP57      iterations                 5 -> 3
+   MOVED  ACOPP57      kkt_primal_eq              0.00011385871678863679 -> 0.21770439209349757
+   MOVED  ACOPP57      kkt_stationarity           0.6386400287759757 -> 4819.8666526212883
+   MOVED  ACOPP57      objective                  41737.543107411046 -> 41063.259756456144
+   MOVED  ACOPP57      side.border_refine_steps   3658 -> 1810
+   MOVED  ACOPP57      side.evals_full            4 -> 2
+   MOVED  ACOPP57      side.factorizations        114 -> 3726
+   MOVED  ACOPP57      side.harness_eval_f        4 -> 2
+   MOVED  ACOPP57      side.harness_eval_g        4 -> 2
+   MOVED  ACOPP57      side.harness_eval_grad_f   4 -> 2
+   MOVED  ACOPP57      side.harness_eval_hess     5 -> 3
+   MOVED  ACOPP57      side.harness_eval_jac      5 -> 3
+   MOVED  ACOPP57      side.major_iters           5 -> 3
+   MOVED  ACOPP57      side.qp_minor_iters        3658 -> 3641
+   MOVED  ACOPP57      side.sqp_feasibility       0.00011385871678863679 -> 0.21770439209349757
+   MOVED  ACOPP57      side.sqp_kkt_residual      0.6386400287759757 -> 4819.8666526212883
+   MOVED  ACOPP57      side.sqp_stationarity      0.6386400287759757 -> 4819.8666526212883
+   MOVED  ACOPP57      side.steps_accepted        3 -> 1
+   MOVED  YORKNET      factorizations             52180 -> 22165
+   MOVED  YORKNET      kkt_primal_eq              4099.2829199999996 -> 1612.2498000000001
+   MOVED  YORKNET      kkt_primal_ineq            131.08000000000001 -> 0
+   MOVED  YORKNET      objective                  110670.29950761795 -> 110481.69950761796
+   MOVED  YORKNET      outcome                    infeasible -> error
+   MOVED  YORKNET      side.elastic_activations   19 -> 1
+   MOVED  YORKNET      side.evals_values          17 -> 0
+   MOVED  YORKNET      side.factorizations        52180 -> 22165
+   MOVED  YORKNET      side.harness_eval_g        19 -> 1
+   MOVED  YORKNET      side.harness_eval_jac      3 -> 2
+   MOVED  YORKNET      side.qp_minor_iters        50241 -> 21909
+   MOVED  YORKNET      side.restoration_iters     18 -> 2
+   MOVED  YORKNET      side.sqp_feasibility       4099.2829199999996 -> 1612.2498000000001
+   MOVED  YORKNET      side.sqp_kkt_residual      4099.2829199999996 -> 1959.2999458312988
+   MOVED  YORKNET      side.symbolic_analyses     38 -> 3
+   MOVED  YORKNET      status                     infeasible -> numerical_error
+   MOVED  ZAMB2-8      factorizations             8803 -> 7825
+   MOVED  ZAMB2-8      iterations                 11 -> 2
+   MOVED  ZAMB2-8      kkt_complementarity        0 -> 0.00192936171957096
+   MOVED  ZAMB2-8      kkt_primal_eq              1.7950063938010352e-07 -> 1.5198387270736449
+   MOVED  ZAMB2-8      kkt_stationarity           1.0198462227847685e-10 -> 0.99249502063151629
+   MOVED  ZAMB2-8      objective                  -0.15293592733713887 -> -0.082078613227650407
+   MOVED  ZAMB2-8      outcome                    optimal -> error
+   MOVED  ZAMB2-8      side.border_refine_steps   1290 -> 266
+   MOVED  ZAMB2-8      side.elastic_activations   2 -> 1
+   MOVED  ZAMB2-8      side.evals_full            20 -> 7
+   MOVED  ZAMB2-8      side.factorizations        8803 -> 7825
+   MOVED  ZAMB2-8      side.harness_eval_f        10 -> 2
+   MOVED  ZAMB2-8      side.harness_eval_g        18 -> 5
+   MOVED  ZAMB2-8      side.harness_eval_grad_f   10 -> 2
+   MOVED  ZAMB2-8      side.harness_eval_hess     20 -> 8
+   MOVED  ZAMB2-8      side.harness_eval_jac      19 -> 6
+   MOVED  ZAMB2-8      side.major_iters           11 -> 2
+   MOVED  ZAMB2-8      side.qp_minor_iters        6666 -> 6456
+   MOVED  ZAMB2-8      side.rejected_steps        2 -> 1
+   MOVED  ZAMB2-8      side.restoration_iters     11 -> 6
+   MOVED  ZAMB2-8      side.sqp_feasibility       1.7950063938010352e-07 -> 1.5198387270736449
+   MOVED  ZAMB2-8      side.sqp_kkt_residual      1.7950063938010352e-07 -> 1.5198387270736449
+   MOVED  ZAMB2-8      side.sqp_stationarity      1.0198462227847685e-10 -> 0.99249502063151629
+   MOVED  ZAMB2-8      side.steps_accepted        8 -> 0
+   MOVED  ZAMB2-8      side.symbolic_analyses     6 -> 3
+   MOVED  ZAMB2-8      status                     optimal -> numerical_error
+Cells whose only difference involves a `dnf_wall` (CENSORED): 1
+   CENSOR SAWPATH      budget_iters                -> 100
+   CENSOR SAWPATH      factorizations              -> 48786
+   CENSOR SAWPATH      hessian_provenance          -> exact
+   CENSOR SAWPATH      iterations                  -> 1
+   CENSOR SAWPATH      kkt_complementarity         -> 0
+   CENSOR SAWPATH      kkt_primal_eq               -> 3.556
+   CENSOR SAWPATH      kkt_primal_ineq             -> 0
+   CENSOR SAWPATH      kkt_stationarity            -> 10.81874
+   CENSOR SAWPATH      lane                        -> hven-sqp
+   CENSOR SAWPATH      objective                   -> 1470.5486055552058
+   CENSOR SAWPATH      options_label               -> default
+   CENSOR SAWPATH      outcome                    dnf_wall -> error
+   CENSOR SAWPATH      problem_set                 -> cutest
+   CENSOR SAWPATH      reference_abs_err           -> null
+   CENSOR SAWPATH      reference_bound             -> null
+   CENSOR SAWPATH      reference_objective         -> null
+   CENSOR SAWPATH      reference_ok                -> null
+   CENSOR SAWPATH      set_version                 -> cutest-nlp-35 v1
+   CENSOR SAWPATH      side.border_refine_steps    -> 671
+   CENSOR SAWPATH      side.elastic_activations    -> 1
+   CENSOR SAWPATH      side.eqp_refine_steps       -> 0
+   CENSOR SAWPATH      side.evals_full             -> 3
+   CENSOR SAWPATH      side.evals_values           -> 0
+   CENSOR SAWPATH      side.factorizations         -> 48786
+   CENSOR SAWPATH      side.full_step_majors       -> 0
+   CENSOR SAWPATH      side.harness_dual_sign_violation  -> 0
+   CENSOR SAWPATH      side.harness_eval_f         -> 2
+   CENSOR SAWPATH      side.harness_eval_g         -> 1
+   CENSOR SAWPATH      side.harness_eval_grad_f    -> 2
+   CENSOR SAWPATH      side.harness_eval_hess      -> 4
+   CENSOR SAWPATH      side.harness_eval_jac       -> 1
+   CENSOR SAWPATH      side.major_iters            -> 1
+   CENSOR SAWPATH      side.qp_minor_iters         -> 42198
+   CENSOR SAWPATH      side.rejected_steps         -> 0
+   CENSOR SAWPATH      side.restoration_iters      -> 2
+   CENSOR SAWPATH      side.soc_applied            -> 0
+   CENSOR SAWPATH      side.soc_steps              -> 0
+   CENSOR SAWPATH      side.sqp_complementarity    -> 0
+   CENSOR SAWPATH      side.sqp_feasibility        -> 3.556
+   CENSOR SAWPATH      side.sqp_infeasibility_certified  -> 0
+   CENSOR SAWPATH      side.sqp_kkt_residual       -> 10.81874
+   CENSOR SAWPATH      side.sqp_stationarity       -> 10.81874
+   CENSOR SAWPATH      side.steps_accepted         -> 0
+   CENSOR SAWPATH      side.suspect_escalations    -> 0
+   CENSOR SAWPATH      side.symbolic_analyses      -> 3
+   CENSOR SAWPATH      side.verdict_refine_steps   -> 0
+   CENSOR SAWPATH      side.watchdog_restores      -> 0
+   CENSOR SAWPATH      status                     null -> numerical_error
+   CENSOR SAWPATH      threw                       -> 0
+
+## The decision
+
+- optimal count: OFF **2**, ON **1**  (FAILS the rule)
+- new errors at ON, counter currency: **2** ['YORKNET', 'ZAMB2-8']  (FAILS the rule)
+- plus, in the CENSORED class (a dnf_wall on one arm, reported apart and not counted as a new error): 1 ['SAWPATH']
+- other cells moved: **3**  (FAILS the rule)
+- repeat disagreements: OFF 0, ON 0
+
+**DEFAULT = OFF (false)**

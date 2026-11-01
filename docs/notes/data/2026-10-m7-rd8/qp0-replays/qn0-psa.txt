@@ -1,0 +1,9 @@
+RD8 /home/ghecht/Projects/hven/.claude/worktrees/agent-af791fbc982c20d3f/.scratch/rd8/runs/dump0qn/entry0.txt n=2002 me=1000 mi=0 cap=128 algebra=border status=0 minors=526 facts=399 schur=129 analyses=1 adds=524 drops=0 degen=295 wall=89.365 q=-2.412459853664e+01 pins=525 xinf=2.6047e-01
+CNT repair_pins=0 repair_budget=0 repair_restarts=0 latch_cap=1 latch_cond=0 releases=0 holds=0 standstill=0 stag_drops=0 stag_stops=0 zm_ex=0 zm_cap=0 ride_vetoes=0 ascent=0 saddle=0 saddle_miss=0 rank_rep=0 dep_tests=524
+PATH border+attempted+k0rebuilt|pf=1                    1
+PATH border+attempted|pf=0                              127
+PATH elim+attempted|pf=1                                1
+PATH elim+latched|pf=1                                  397
+ACT 7 1
+ACT 10 524
+ACT 11 1

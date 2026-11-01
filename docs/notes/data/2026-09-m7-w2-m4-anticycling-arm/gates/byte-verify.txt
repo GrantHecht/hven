@@ -1,0 +1,37 @@
+BYTE_VERIFY_START 2026-09-22T07:09:06-04:00
+psym dir: /home/ghecht/Projects/hven/.scratch/m7w2m4gates/gates/psym
+
+=== Release   declared exceptions: (none)
+ASSERT OK   Release: the P-SYM comparison carries 0 DIFFERS lines
+ASSERT OK   Release: before and after manifests name the same 146 object(s)
+  Release: 42 library objects -- 42 byte-identical, 0 differing
+ASSERT OK   Release: the differing set is exactly the declared one
+  CONTROL Release  BYTE-IDENTICAL  CMakeFiles/hven.dir/src/drivers/assembly_eval_seam.cpp.o
+  CONTROL Release  BYTE-IDENTICAL  CMakeFiles/hven.dir/src/drivers/console_trace_sink.cpp.o
+  CONTROL Release  BYTE-IDENTICAL  CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o
+  CONTROL Release  BYTE-IDENTICAL  CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+  CONTROL Release  BYTE-IDENTICAL  CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o
+  CONTROL Release  BYTE-IDENTICAL  CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o
+  CONTROL Release  BYTE-IDENTICAL  CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+  CONTROL Release  BYTE-IDENTICAL  CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+ASSERT OK   Release: 8 of the 8 qp_walk_trace.h includers are byte-identical (declared 8)
+
+=== Debug   declared exceptions: CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+ASSERT OK   Debug: the P-SYM comparison carries 0 DIFFERS lines
+ASSERT OK   Debug: before and after manifests name the same 146 object(s)
+  Debug: 42 library objects -- 41 byte-identical, 1 differing
+ASSERT OK   Debug: the differing set is exactly the declared one
+  Debug: CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o -- sections that moved: .debug_info .debug_line .debug_str .rela.debug_line 
+ASSERT OK   Debug: CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o moved in DEBUG SECTIONS ONLY (0 non-debug section(s))
+  CONTROL Debug  BYTE-IDENTICAL  CMakeFiles/hven.dir/src/drivers/assembly_eval_seam.cpp.o
+  CONTROL Debug  BYTE-IDENTICAL  CMakeFiles/hven.dir/src/drivers/console_trace_sink.cpp.o
+  CONTROL Debug  BYTE-IDENTICAL  CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o
+  CONTROL Debug  BYTE-IDENTICAL  CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+  CONTROL Debug  BYTE-IDENTICAL  CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o
+  CONTROL Debug  BYTE-IDENTICAL  CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o
+  CONTROL Debug  DIFFERS         CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+  CONTROL Debug  BYTE-IDENTICAL  CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+ASSERT OK   Debug: 7 of the 8 qp_walk_trace.h includers are byte-identical (declared 7)
+
+BYTE_VERIFY_RC=0
+BYTE_VERIFY_END 2026-09-22T07:09:06-04:00

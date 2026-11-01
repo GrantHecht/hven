@@ -1,0 +1,46 @@
+ACOPP118-default cols=0 rows=0 spread=512
+ACOPP118-sqp-qn cols=0 rows=0 spread=512
+ACOPP57-default cols=0 rows=0 spread=64
+ACOPP57-sqp-qn cols=0 rows=0 spread=64
+ACOPR118-default cols=0 rows=0 spread=512
+ACOPR118-sqp-qn cols=0 rows=0 spread=512
+ACOPR57-default cols=0 rows=0 spread=64
+ACOPR57-sqp-qn cols=0 rows=0 spread=64
+BIGBANK-default cols=0 rows=0 spread=1
+BIGBANK-sqp-qn cols=0 rows=0 spread=1
+BRITGAS-default cols=0 rows=0 spread=8
+BRITGAS-sqp-qn cols=0 rows=0 spread=8
+DALLASM-default cols=0 rows=0 spread=1
+DALLASM-sqp-qn cols=0 rows=0 spread=1
+MSS2-default capped
+MSS2-sqp-qn cols=0 rows=0 spread=1
+MSS3-default capped
+MSS3-sqp-qn capped
+NET3-default cols=0 rows=0 spread=256
+NET3-sqp-qn cols=0 rows=0 spread=256
+READING6-default cols=0 rows=0 spread=1
+READING6-sqp-qn cols=0 rows=0 spread=1
+READING8-default capped
+READING8-sqp-qn capped
+SAWPATH-default cols=1 rows=1 spread=6.87195e+10
+SAWPATH-sqp-qn cols=1 rows=1 spread=6.87195e+10
+SMBANK-default cols=0 rows=0 spread=1
+SMBANK-sqp-qn cols=0 rows=0 spread=1
+STEENBRB-default cols=0 rows=0 spread=1
+STEENBRB-sqp-qn cols=0 rows=0 spread=1
+STEENBRC-default cols=0 rows=0 spread=1
+STEENBRC-sqp-qn cols=0 rows=0 spread=1
+STEENBRD-default cols=0 rows=0 spread=1
+STEENBRD-sqp-qn cols=0 rows=0 spread=1
+STEENBRE-default cols=0 rows=0 spread=1
+STEENBRE-sqp-qn cols=0 rows=0 spread=1
+STEENBRG-default cols=0 rows=0 spread=1
+STEENBRG-sqp-qn cols=0 rows=0 spread=1
+TAX213322-default capped
+TAX213322-sqp-qn capped
+TAX53322-default capped
+TAX53322-sqp-qn capped
+YORKNET-default cols=0 rows=0 spread=32
+YORKNET-sqp-qn cols=0 rows=0 spread=32
+ZAMB2-8-default cols=0 rows=0 spread=1
+ZAMB2-8-sqp-qn cols=0 rows=0 spread=1

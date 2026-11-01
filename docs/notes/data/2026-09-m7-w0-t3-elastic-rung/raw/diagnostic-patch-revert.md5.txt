@@ -1,0 +1,22 @@
+# M7 W0 T3 — the throwaway DECLINE-DIAGNOSTIC patch, and the proof that it left nothing behind
+# (fix round 2, 2026-09-16: this file copies into the artifact the check that fix round 1 ran
+#  in scratch. reading.md section 5 has the patch itself; raw/post-revert-verify.log has the
+#  counters re-read on the restored tree.)
+
+## (1) BEFORE the patch was applied -- .scratch/m7t3-fix1/diagbak/pre.md5, captured at
+##     2026-09-16T21:45:52 local, i.e. before the first diagnostic build
+02d8b9354e8a274770d8b59c3f844e43  src/drivers/sqp_solver.cpp
+70b15624d2f2900a3dd40e46e6afa2dc  tests/sqp/test_elastic_rung_vehicle.cpp
+
+## (2) AFTER the revert -- the same two files, re-hashed now at 0d358386
+02d8b9354e8a274770d8b59c3f844e43  src/drivers/sqp_solver.cpp
+70b15624d2f2900a3dd40e46e6afa2dc  tests/sqp/test_elastic_rung_vehicle.cpp
+
+## (3) The stronger check git can make: the working file IS the committed blob.
+src/drivers/sqp_solver.cpp                   worktree 417fe982a3fd98ff7e0e0ff39d3c45b583736ae9
+                                             HEAD     417fe982a3fd98ff7e0e0ff39d3c45b583736ae9
+tests/sqp/test_elastic_rung_vehicle.cpp      worktree 1811583ae7cf8362612217b8b6d1b9900ed836ed
+                                             HEAD     1811583ae7cf8362612217b8b6d1b9900ed836ed
+
+## (4) git status --porcelain for those two paths (no output = clean):
+## (end -- nothing above this line printed means the two paths are clean)

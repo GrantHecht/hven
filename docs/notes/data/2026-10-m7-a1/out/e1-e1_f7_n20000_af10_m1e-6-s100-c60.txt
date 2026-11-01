@@ -1,0 +1,32 @@
+iter it=1 mu=1.000e-02 res_p=1.283e+00 res_d=9.991e-01 res_c=1.000e-02 sigma=1.027e-04 alpha_p=7.939e-01 alpha_d=9.951e-01 rho=8.000e+00
+iter it=2 mu=4.288e-04 res_p=1.237e+00 res_d=1.001e+00 res_c=2.333e-03 sigma=7.377e-01 alpha_p=3.581e-01 alpha_d=1.000e+00 rho=8.000e-01
+iter it=3 mu=6.026e-04 res_p=1.067e+00 res_d=3.862e-01 res_c=2.849e-01 sigma=1.192e-01 alpha_p=5.399e-01 alpha_d=1.000e+00 rho=8.000e-01
+iter it=4 mu=2.900e-04 res_p=8.219e-01 res_d=3.883e-01 res_c=9.611e-02 sigma=1.308e-01 alpha_p=6.633e-01 alpha_d=1.000e+00 rho=8.000e-01
+iter it=5 mu=1.242e-04 res_p=6.505e-01 res_d=3.886e-01 res_c=2.915e-02 sigma=7.783e-01 alpha_p=5.009e-01 alpha_d=2.593e-01 rho=8.000e-02
+iter it=6 mu=2.388e-04 res_p=3.722e-01 res_d=2.866e-01 res_c=1.373e-01 sigma=9.204e-01 alpha_p=3.550e-01 alpha_d=4.617e-01 rho=8.000e-02
+iter it=7 mu=3.166e-04 res_p=2.402e-01 res_d=1.430e-01 res_c=9.512e-02 sigma=5.041e-01 alpha_p=3.693e-01 alpha_d=8.039e-01 rho=8.000e-02
+iter it=8 mu=3.028e-04 res_p=1.459e-01 res_d=3.197e-02 res_c=5.235e-02 sigma=2.420e-01 alpha_p=4.075e-01 alpha_d=1.000e+00 rho=8.000e-02
+iter it=9 mu=1.735e-04 res_p=9.029e-02 res_d=3.647e-02 res_c=2.858e-02 sigma=2.056e-01 alpha_p=4.724e-01 alpha_d=1.000e+00 rho=8.000e-02
+iter it=10 mu=9.174e-05 res_p=7.070e-02 res_d=3.645e-02 res_c=1.304e-02 sigma=1.018e-01 alpha_p=6.195e-01 alpha_d=1.000e+00 rho=8.000e-02
+iter it=11 mu=3.205e-05 res_p=6.431e-02 res_d=3.644e-02 res_c=4.813e-03 sigma=2.483e-01 alpha_p=5.890e-01 alpha_d=6.182e-01 rho=8.000e-03
+iter it=12 mu=1.766e-05 res_p=2.673e-02 res_d=1.413e-02 res_c=2.066e-03 sigma=5.749e-01 alpha_p=5.755e-01 alpha_d=6.616e-01 rho=8.000e-03
+iter it=13 mu=1.323e-05 res_p=1.119e-02 res_d=5.016e-03 res_c=9.028e-04 sigma=1.407e-01 alpha_p=5.070e-01 alpha_d=9.414e-01 rho=8.000e-03
+iter it=14 mu=4.731e-06 res_p=5.663e-03 res_d=1.263e-03 res_c=8.001e-04 sigma=2.142e-02 alpha_p=8.656e-01 alpha_d=1.000e+00 rho=8.000e-04
+iter it=15 mu=4.806e-07 res_p=7.633e-04 res_d=3.496e-05 res_c=1.077e-04 sigma=5.066e-01 alpha_p=6.538e-01 alpha_d=5.126e-01 rho=8.000e-05
+iter it=16 mu=3.224e-07 res_p=2.623e-04 res_d=1.765e-05 res_c=3.868e-05 sigma=5.840e-01 alpha_p=3.596e-01 alpha_d=2.299e-01 rho=8.000e-06
+iter it=17 mu=3.013e-07 res_p=1.678e-04 res_d=1.357e-05 res_c=2.540e-05 sigma=2.715e-01 alpha_p=3.410e-01 alpha_d=2.024e-01 rho=8.000e-06
+iter it=18 mu=2.533e-07 res_p=1.107e-04 res_d=1.094e-05 res_c=1.726e-05 sigma=4.414e-01 alpha_p=3.697e-01 alpha_d=5.645e-03 rho=8.000e-07
+iter it=19 mu=2.410e-07 res_p=6.978e-05 res_d=2.758e-05 res_c=1.547e-05 sigma=9.617e-01 alpha_p=7.849e-02 alpha_d=4.206e-02 rho=8.000e-07
+iter it=20 mu=2.425e-07 res_p=6.430e-05 res_d=2.560e-05 res_c=1.007e-04 sigma=9.027e-01 alpha_p=2.370e-01 alpha_d=2.242e-01 rho=8.000e-07
+iter it=21 mu=2.433e-07 res_p=4.906e-05 res_d=1.947e-05 res_c=2.351e-04 sigma=2.459e-01 alpha_p=3.569e-01 alpha_d=4.243e-01 rho=8.000e-08
+iter it=22 mu=1.724e-07 res_p=3.155e-05 res_d=1.272e-05 res_c=1.098e-04 sigma=2.873e-01 alpha_p=3.942e-01 alpha_d=3.112e-01 rho=8.000e-08
+iter it=23 mu=1.329e-07 res_p=1.911e-05 res_d=7.750e-06 res_c=7.046e-05 sigma=5.174e-01 alpha_p=4.861e-01 alpha_d=3.700e-01 rho=8.000e-09
+iter it=24 mu=1.074e-07 res_p=9.822e-06 res_d=4.206e-06 res_c=4.125e-05 sigma=1.355e-01 alpha_p=4.458e-01 alpha_d=2.221e-01 rho=8.000e-09
+iter it=25 mu=8.355e-08 res_p=5.444e-06 res_d=3.161e-06 res_c=2.942e-05 sigma=3.803e-02 alpha_p=4.500e-01 alpha_d=4.054e-01 rho=8.000e-10
+iter it=26 mu=5.059e-08 res_p=2.994e-06 res_d=2.091e-06 res_c=1.693e-05 sigma=1.425e-02 alpha_p=8.385e-01 alpha_d=4.302e-01 rho=8.000e-10
+iter it=27 mu=2.698e-08 res_p=4.836e-07 res_d=2.404e-06 res_c=9.181e-06 sigma=1.960e-04 alpha_p=9.358e-01 alpha_d=9.326e-01 rho=1.000e-10
+iter it=28 mu=1.940e-09 res_p=3.106e-08 res_d=1.637e-07 res_c=6.260e-07 sigma=6.682e-03 alpha_p=9.861e-01 alpha_d=9.695e-01 rho=1.000e-10
+result id=e1_f7_n20000_af10_m1e-6 slack=1e+02 cap=60 status=0 escape=0 iters=28 facts=29 mu=8.334e-11 sqrt_mu=9.129e-06 res_p=3.690e-10 res_d=5.375e-09 res_c=1.853e-08
+face active_true=2000 over_committed=6809 under_committed=0 uncertain=11055 uncertain_truly_active=0 min_inactive_slack_abs=4.763e-09
+overcommit z*s_true/mu median=1.668e+00 max=5.610e+01 ; s_true/row_scale median=1.851e-06 max=1.206e-04
+e2e usable=1 polished=0 rule_a=2000 rule_a_missed=0 rule_a_fp=0 e2e_rule_a_missed=0 e2e_rule_a_fp=0 e2e_factorizations=30

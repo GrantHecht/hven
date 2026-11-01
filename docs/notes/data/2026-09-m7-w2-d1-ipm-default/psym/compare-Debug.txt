@@ -1,0 +1,948 @@
+P-SYM tool sha256 (runner):   2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM tool sha256 (captures): 2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM maps: object-map=none symbol-map=none exceptions=none
+
+NOISE-ONLY  CMakeFiles/hven.dir/src/drivers/ipm_options.cpp.o
+            COUNTS 35123 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+NOISE-ONLY  CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+            COUNTS 110382 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+NOISE-ONLY  CMakeFiles/hven.dir/src/drivers/ipm_solver_globalization.cpp.o
+            COUNTS 75821 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+SYMBOLS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/__/bench/ipm_corpus_leg.cpp.o: COVERAGE FINDINGS
+              ONLY-AFTER    hven::solvers::IpmOptions::IpmOptions()
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::rfind(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, unsigned long) const
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::substr(unsigned long, unsigned long) const
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > std::operator+<char, std::char_traits<char>, std::allocator<char> >(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&&, char const*)
+              ONLY-AFTER    hven::solvers::corpus::interior_globalization_stamp[abi:cxx11]()
+              ONLY-AFTER    hven::solvers::corpus::interior_globalization_stamp[abi:cxx11]()::$_0::operator()[abi:cxx11](std::basic_string_view<char, std::char_traits<char> >) const
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::rfind(char const*, unsigned long, unsigned long) const
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::basic_string(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, unsigned long, unsigned long)
+              LOCAL-FAMILY  .L.str: 219 before, 228 after
+              LOCAL-FAMILY  GCC_except_table: 250 before, 254 after
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/__/bench/ipm_corpus_leg.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 190 alignment-pad lines vs 192 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 91706 lines vs 92324 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/__/bench/ipm_corpus_leg.cpp.o: PERSYM 2710 identical, 1 noise-only, 9 differing, 0 only-before, 8 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 2 rank-tagged, 0 section moves, 8782 relocation records compared (0 through the symbol map), 2 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::corpus::interior_treatment_from_tag(std::basic_string_view<char, std::char_traits<char> >)
+                              UNCLASSIFIED  - 	jmp    8ea5 ;LEN=2
+                                            + 	jmp    8ed5 ;LEN=2
+                            COUNTS 131 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       hven::solvers::corpus::configure_interior_solver(hven::solvers::IpmSolver&, hven::solvers::FixedVariableTreatments, hven::solvers::corpus::InteriorLevers const&, hven::solvers::corpus::InteriorVariant const&)
+                            STRUCTURAL: normalized listing is 154 lines vs 163 -- instructions were added or removed
+              NOISE-ONLY    std::__detail::_MakeUniq<hven::solvers::IpmSolver>::__single_object std::make_unique<hven::solvers::IpmSolver>()
+                            COUNTS 139 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              DIFFERS       hven::solvers::corpus::run_interior_single_row(std::basic_string_view<char, std::char_traits<char> >, hven::solvers::FixedVariableTreatments, hven::solvers::corpus::InteriorLevers const&)
+                              UNCLASSIFIED  - 	jmp    921d ;LEN=5
+                                            + 	jmp    924d ;LEN=5
+                            COUNTS 164 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       hven::solvers::corpus::interior_partition_stamp(hven::solvers::corpus::CorpusCell const&, int)
+                              UNCLASSIFIED  - 	jmp    463e ;LEN=5
+                                            + 	jmp    466e ;LEN=5
+                            COUNTS 202 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       hven::solvers::corpus::run_interior_cell(hven::solvers::corpus::CorpusCell const&, hven::solvers::FixedVariableTreatments, hven::solvers::corpus::InteriorLevers const&, hven::solvers::corpus::InteriorVariant const&)
+                              UNCLASSIFIED  - 	jmp    4c54 ;LEN=5
+                                            + 	jmp    4c84 ;LEN=5
+                            COUNTS 252 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       hven::solvers::corpus::run_interior_problem(std::shared_ptr<hven::solvers::NlpTripletModel> const&, hven::solvers::corpus::InteriorRowIdentity const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::FixedVariableTreatments, hven::solvers::corpus::InteriorLevers const&, hven::solvers::corpus::InteriorVariant const&)
+                              UNCLASSIFIED  - 	jmp    36c2 ;LEN=5
+                                            + 	jmp    36f2 ;LEN=5
+                              UNCLASSIFIED  - 	jmp    36c2 ;LEN=5
+                                            + 	jmp    36f2 ;LEN=5
+                              UNCLASSIFIED  - 	jmp    36c2 ;LEN=5
+                                            + 	jmp    36f2 ;LEN=5
+                              UNCLASSIFIED  - 	jmp    36c2 ;LEN=5
+                                            + 	jmp    36f2 ;LEN=5
+                              UNCLASSIFIED  - 	jmp    36c2 ;LEN=5
+                                            + 	jmp    36f2 ;LEN=5
+                            COUNTS 1252 insns; CHANGED 5; UNCLASSIFIED 5; DELTAS
+              DIFFERS       hven::solvers::corpus::(anonymous namespace)::leg_callback_payload_tag()
+                              UNCLASSIFIED  - 	jmp    3e8a ;LEN=2
+                                            + 	jmp    3eba ;LEN=2
+                            COUNTS 138 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       hven::solvers::corpus::CountingTraceSink::on_qp_mode(hven::solvers::QpModeTraceEvent const&)
+                            STRUCTURAL: normalized listing is 43 lines vs 48 -- instructions were added or removed
+              DIFFERS       hven::solvers::corpus::run_interior_infeasible(std::basic_string_view<char, std::char_traits<char> >, hven::solvers::FixedVariableTreatments, hven::solvers::corpus::InteriorLevers const&, hven::solvers::corpus::InteriorVariant const&)
+                              UNCLASSIFIED  - 	jmp    6f01 ;LEN=5
+                                            + 	jmp    6f31 ;LEN=5
+                            COUNTS 224 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              ONLY-AFTER    hven::solvers::IpmOptions::IpmOptions()
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::rfind(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, unsigned long) const
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::substr(unsigned long, unsigned long) const
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > std::operator+<char, std::char_traits<char>, std::allocator<char> >(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&&, char const*)
+              ONLY-AFTER    hven::solvers::corpus::interior_globalization_stamp[abi:cxx11]()
+              ONLY-AFTER    hven::solvers::corpus::interior_globalization_stamp[abi:cxx11]()::$_0::operator()[abi:cxx11](std::basic_string_view<char, std::char_traits<char> >) const
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::rfind(char const*, unsigned long, unsigned long) const
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::basic_string(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, unsigned long, unsigned long)
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_corpus_cells.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+              UNCLASSIFIED  - 000000000000c200 <__cxx_global_var_init.1254>:
+                            + 000000000000c200 <__cxx_global_var_init.1253>:
+              UNCLASSIFIED  - 000000000000c400 <__cxx_global_var_init.1286>:
+                            + 000000000000c400 <__cxx_global_var_init.1285>:
+              UNCLASSIFIED  - 000000000000c600 <__cxx_global_var_init.1307>:
+                            + 000000000000c600 <__cxx_global_var_init.1306>:
+              UNCLASSIFIED  - 000000000000c800 <__cxx_global_var_init.1331>:
+                            + 000000000000c800 <__cxx_global_var_init.1330>:
+              UNCLASSIFIED  - 000000000000ca00 <__cxx_global_var_init.1355>:
+                            + 000000000000ca00 <__cxx_global_var_init.1354>:
+              ... and 12 more unclassified differences
+            COUNTS 211860 insns; CHANGED 212; UNCLASSIFIED 17; DELTAS +11(x195)
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_corpus_cells.cpp.o: PERSYM 5281 identical, 22 noise-only, 1 differing, 16 only-before, 16 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 133 rank-tagged, 0 section moves, 30287 relocation records compared (0 through the symbol map), 4 global-var-init keyed by identity (129 unresolved)
+              ONLY-BEFORE   __cxx_global_var_init[#46]
+              NOISE-ONLY    (anonymous namespace)::CorpusTask6bPhaseB_TheShippedKSsnConfigurationIsUnmovedByTheFourLevers_Test::TestBody()::$_0::operator()(double, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const*) const
+                            COUNTS 392 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +11(x3)
+              NOISE-ONLY    (anonymous namespace)::CorpusTask6bRepair_TheKSsnArmMovesTheFourCrashingCellsAndNothingElse_Test::TestBody()
+                            COUNTS 2459 insns; CHANGED 19; UNCLASSIFIED 0; DELTAS +11(x19)
+              ONLY-BEFORE   __cxx_global_var_init[#58]
+              ONLY-BEFORE   __cxx_global_var_init[#54]
+              ONLY-BEFORE   __cxx_global_var_init[#50]
+              ONLY-BEFORE   __cxx_global_var_init[#66]
+              ONLY-BEFORE   __cxx_global_var_init[#62]
+              ONLY-BEFORE   __cxx_global_var_init[#39]
+              ONLY-BEFORE   __cxx_global_var_init[#35]
+              NOISE-ONLY    __cxx_global_var_init[#31]
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +11(x3)
+              NOISE-ONLY    (anonymous namespace)::CorpusTask6bRepair_ThePostRepairArtifactsCarryTheCensusAndRescoreCleanly_Test::TestBody()
+                            COUNTS 1160 insns; CHANGED 10; UNCLASSIFIED 0; DELTAS +11(x10)
+              NOISE-ONLY    (anonymous namespace)::CorpusCells_TheSingleRowInteriorModeProducesTheLegsOwnRow_Test::TestBody()
+                            COUNTS 949 insns; CHANGED 7; UNCLASSIFIED 0; DELTAS +11(x7)
+              NOISE-ONLY    (anonymous namespace)::CorpusCells_TheThreeTreatmentsAgreeOnTheDeclaredDiagnostics_Test::TestBody()
+                            COUNTS 1327 insns; CHANGED 9; UNCLASSIFIED 0; DELTAS +11(x9)
+              NOISE-ONLY    (anonymous namespace)::CorpusCells_TheTwoPartitionRowsMatchTheirOnePartitionRows_Test::TestBody()::$_0::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const
+                            COUNTS 166 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +11(x1)
+              NOISE-ONLY    (anonymous namespace)::CorpusBaseline_TheCommittedWalkBaselineScoresToItsDocumentedVerdict_Test::TestBody()
+                            COUNTS 299 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +11(x2)
+              ONLY-BEFORE   __cxx_global_var_init[#48]
+              ONLY-BEFORE   __cxx_global_var_init[#44]
+              NOISE-ONLY    (anonymous namespace)::CorpusCells_TheWarmRowsShowThePayloadAndTheSeedReachedTheSolve_Test::TestBody()::$_0::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const
+                            COUNTS 264 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +11(x2)
+              DIFFERS       _GLOBAL__sub_I_test_corpus_cells.cpp
+                              UNCLASSIFIED  - 	call   __cxx_global_var_init.1254+0x0 ;LEN=5
+                                            + 	call   __cxx_global_var_init.1253+0x0 ;LEN=5
+                              UNCLASSIFIED  - 	call   __cxx_global_var_init.1286+0x0 ;LEN=5
+                                            + 	call   __cxx_global_var_init.1285+0x0 ;LEN=5
+                              UNCLASSIFIED  - 	call   __cxx_global_var_init.1307+0x0 ;LEN=5
+                                            + 	call   __cxx_global_var_init.1306+0x0 ;LEN=5
+                              UNCLASSIFIED  - 	call   __cxx_global_var_init.1331+0x0 ;LEN=5
+                                            + 	call   __cxx_global_var_init.1330+0x0 ;LEN=5
+                              UNCLASSIFIED  - 	call   __cxx_global_var_init.1355+0x0 ;LEN=5
+                                            + 	call   __cxx_global_var_init.1354+0x0 ;LEN=5
+                              ... and 12 more unclassified differences
+                            COUNTS 118 insns; CHANGED 17; UNCLASSIFIED 17; DELTAS
+              NOISE-ONLY    (anonymous namespace)::CorpusTask6bPhaseB_TheShippedKSsnConfigurationIsUnmovedByTheFourLevers_Test::TestBody()
+                            COUNTS 2864 insns; CHANGED 26; UNCLASSIFIED 0; DELTAS +11(x26)
+              NOISE-ONLY    (anonymous namespace)::CorpusBaseline_TheWalkArmCarriesNoNegativeMultiplierAnywhere_Test::TestBody()
+                            COUNTS 357 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +11(x3)
+              ONLY-BEFORE   __cxx_global_var_init[#56]
+              NOISE-ONLY    (anonymous namespace)::CorpusCells_InteriorArtifactCheckRejectsAnIncompleteArtifact_Test::TestBody()
+                            COUNTS 414 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +11(x3)
+              ONLY-BEFORE   __cxx_global_var_init[#64]
+              ONLY-BEFORE   __cxx_global_var_init[#60]
+              ONLY-BEFORE   __cxx_global_var_init[#37]
+              ONLY-BEFORE   __cxx_global_var_init[#33]
+              ONLY-BEFORE   __cxx_global_var_init[#41]
+              NOISE-ONLY    (anonymous namespace)::CorpusCells_InteriorArtifactCheckRejectsDuplicateAndMalformedRows_Test::TestBody()
+                            COUNTS 622 insns; CHANGED 5; UNCLASSIFIED 0; DELTAS +11(x5)
+              NOISE-ONLY    (anonymous namespace)::CorpusCells_TheTwoPartitionRowsMatchTheirOnePartitionRows_Test::TestBody()
+                            COUNTS 1139 insns; CHANGED 10; UNCLASSIFIED 0; DELTAS +11(x10)
+              NOISE-ONLY    (anonymous namespace)::CorpusBaseline_TheReSweptWalkArmIsCounterIdenticalToTheFrozenPreU0Baseline_Test::TestBody()
+                            COUNTS 786 insns; CHANGED 7; UNCLASSIFIED 0; DELTAS +11(x7)
+              NOISE-ONLY    (anonymous namespace)::CorpusCells_TheMultiPhaseRowsCarryAPerPhaseAccountThatSums_Test::TestBody()
+                            COUNTS 1444 insns; CHANGED 14; UNCLASSIFIED 0; DELTAS +11(x14)
+              NOISE-ONLY    (anonymous namespace)::CorpusTask6bRepair_TheWalkArmIsCounterIdenticalAcrossTheD0Repair_Test::TestBody()
+                            COUNTS 865 insns; CHANGED 7; UNCLASSIFIED 0; DELTAS +11(x7)
+              NOISE-ONLY    (anonymous namespace)::CorpusCells_TheWarmRowsShowThePayloadAndTheSeedReachedTheSolve_Test::TestBody()
+                            COUNTS 1153 insns; CHANGED 8; UNCLASSIFIED 0; DELTAS +11(x8)
+              NOISE-ONLY    (anonymous namespace)::interior_test::write_probe_artifact(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > const&)
+                            COUNTS 357 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +11(x2)
+              NOISE-ONLY    (anonymous namespace)::CorpusBaseline_TheCommittedSsnBatteryScoresToItsDocumentedVerdict_Test::TestBody()
+                            COUNTS 299 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +11(x2)
+              NOISE-ONLY    (anonymous namespace)::CorpusCells_InteriorBaselineRescoresOffline_Test::TestBody()
+                            COUNTS 230 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +11(x2)
+              NOISE-ONLY    (anonymous namespace)::CorpusBaseline_TheCommittedWalkBaselineCarriesTheCommittedBudgetTableHash_Test::TestBody()
+                            COUNTS 274 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +11(x2)
+              ONLY-AFTER    __cxx_global_var_init[#47]
+              ONLY-AFTER    __cxx_global_var_init[#43]
+              ONLY-AFTER    __cxx_global_var_init[#59]
+              ONLY-AFTER    __cxx_global_var_init[#55]
+              ONLY-AFTER    __cxx_global_var_init[#63]
+              ONLY-AFTER    __cxx_global_var_init[#36]
+              ONLY-AFTER    __cxx_global_var_init[#32]
+              ONLY-AFTER    __cxx_global_var_init[#40]
+              ONLY-AFTER    __cxx_global_var_init[#49]
+              ONLY-AFTER    __cxx_global_var_init[#45]
+              ONLY-AFTER    __cxx_global_var_init[#57]
+              ONLY-AFTER    __cxx_global_var_init[#53]
+              ONLY-AFTER    __cxx_global_var_init[#65]
+              ONLY-AFTER    __cxx_global_var_init[#61]
+              ONLY-AFTER    __cxx_global_var_init[#38]
+              ONLY-AFTER    __cxx_global_var_init[#34]
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o
+            COUNTS 99800 insns; CHANGED 9; UNCLASSIFIED 0; DELTAS +1(x3) +3(x3) +500(x3)
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_warm_currency.cpp.o
+            COUNTS 99068 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+SYMBOLS     tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_0_cxx.cxx.o: COVERAGE FINDINGS
+              ONLY-BEFORE   typeinfo name for testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test>
+              ONLY-BEFORE   typeinfo for InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test
+              ONLY-BEFORE   testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test>::TestFactoryImpl()
+              ONLY-BEFORE   InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test::~InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test()[D0]
+              ONLY-BEFORE   testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test>::~TestFactoryImpl()[D2]
+              ONLY-BEFORE   InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test::TestBody()
+              ONLY-BEFORE   testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test>::CreateTest()
+              ONLY-BEFORE   InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test::InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test()
+              ONLY-BEFORE   vtable for testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test>
+              ONLY-BEFORE   typeinfo for testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test>
+              ONLY-BEFORE   InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test::~InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test()[D2]
+              ONLY-BEFORE   testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test>::~TestFactoryImpl()[D0]
+              ONLY-BEFORE   typeinfo name for InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test
+              ONLY-BEFORE   vtable for InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test
+              ONLY-BEFORE   InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test::test_info_
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::internal::FormatForComparisonFailureMessage<char [38], std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >(char const (&) [38], std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+              ONLY-AFTER    typeinfo name for InteriorPointSolverPresetsTest_PresetGateClassicDiffersFromTheDefaultInExactlyTheTwoGlobalizationFields_Test
+              ONLY-AFTER    (anonymous namespace)::pre_d1_default()
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::internal::FormatForComparisonFailureMessage<char [70], std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >(char const (&) [70], std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [70]>(char const*, char const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const (&) [70])
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > std::operator+<char, std::char_traits<char>, std::allocator<char> >(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const*)
+              ONLY-AFTER    InteriorPointSolverPresetsTest_PresetGateThePreEventDefaultStillValidates_Test::~InteriorPointSolverPresetsTest_PresetGateThePreEventDefaultStillValidates_Test()[D0]
+              ONLY-AFTER    typeinfo for testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateThePreEventDefaultStillValidates_Test>
+              ONLY-AFTER    testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateThePreEventDefaultStillValidates_Test>::TestFactoryImpl()
+              ONLY-AFTER    testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicPlusFiveHundredReconstructsThePreEventDefault_Test>::CreateTest()
+              ONLY-AFTER    typeinfo for testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicDiffersFromTheDefaultInExactlyTheTwoGlobalizationFields_Test>
+              ONLY-AFTER    (anonymous namespace)::lines_of(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+              ONLY-AFTER    ipm_option_variants::(anonymous namespace)::pin_pre_d1_globalization(hven::solvers::IpmOptions&)
+              ONLY-AFTER    typeinfo name for InteriorPointSolverPresetsTest_PresetGateThePreEventDefaultStillValidates_Test
+              ONLY-AFTER    InteriorPointSolverPresetsTest_PresetGateClassicDiffersFromTheDefaultInExactlyTheTwoGlobalizationFields_Test::TestBody()
+              ONLY-AFTER    testing::Message& testing::Message::operator<< <char [51]>(char const (&) [51])
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQ<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [70]>(char const*, char const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const (&) [70])
+              ONLY-AFTER    testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicDiffersFromTheDefaultInExactlyTheTwoGlobalizationFields_Test>::~TestFactoryImpl()[D0]
+              ONLY-AFTER    InteriorPointSolverPresetsTest_PresetGateClassicPlusFiveHundredReconstructsThePreEventDefault_Test::~InteriorPointSolverPresetsTest_PresetGateClassicPlusFiveHundredReconstructsThePreEventDefault_Test()[D0]
+              ONLY-AFTER    InteriorPointSolverPresetsTest_PresetGateClassicPlusFiveHundredReconstructsThePreEventDefault_Test::TestBody()
+              ... and 48 more symbols present only in the after arm
+              LOCAL-FAMILY  __cxx_global_var_init: 135 before, 137 after
+              LOCAL-FAMILY  .L.str: 890 before, 919 after
+              LOCAL-FAMILY  GCC_except_table: 794 before, 805 after
+DIFFERS     tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_0_cxx.cxx.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 1187 alignment-pad lines vs 1194 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 204658 lines vs 207218 -- instructions were added or removed
+PER-SYMBOL  tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_0_cxx.cxx.o: PERSYM 4873 identical, 88 noise-only, 12 differing, 9 only-before, 50 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 1 with unequal trailing alignment padding, 0 duplicate copies identical, 188 rank-tagged, 0 section moves, 29077 relocation records compared (0 through the symbol map), 115 global-var-init keyed by identity (73 unresolved)
+              NOISE-ONLY    IpmSolverEntry_RosenbrockConvergesToKnownOptimum_Test::TestBody()
+                            COUNTS 423 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    WorkerOptions_JetPreparationEquivalent_Test::TestBody()
+                            COUNTS 904 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              DIFFERS       std::function<hven::solvers::CallbackAction (hven::solvers::IterationEvent const&)>::function<ipm_option_variants::(anonymous namespace)::run_hs071<IpmSolverEntry_TheLagrangianMeritLineSearchSolvesHs071OnItsOwnTrajectory_Test::TestBody()::$_0>(IpmSolverEntry_TheLagrangianMeritLineSearchSolvesHs071OnItsOwnTrajectory_Test::TestBody()::$_0&&)::{lambda(hven::solvers::IterationEvent const&)#1}, void>(IpmSolverEntry_TheLagrangianMeritLineSearchSolvesHs071OnItsOwnTrajectory_Test::TestBody()::$_0&&)
+                              UNCLASSIFIED  - 	lea    0x60(%rip),%rcx ;LEN=7
+                                            + 	lea    0x90(%rip),%rcx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x85(%rip),%rcx ;LEN=7
+                                            + 	lea    0xb5(%rip),%rcx ;LEN=7
+                            COUNTS 30 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              NOISE-ONLY    IpmSolverEntry_PartitionCountAndQpThreadCountAreSetIndependently_Test::TestBody()
+                            COUNTS 1487 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    IpmStopReason_TheProximalArmReEntersRestorationOnlyAfterLeavingIt_Test::TestBody()
+                            COUNTS 352 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +25(x4)
+              NOISE-ONLY    IpmSolverEntry_RangeRowActiveAtUpperWithPositiveIpoptMultiplier_Test::TestBody()
+                            COUNTS 494 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    IpmStopReason_WithDefaultDivergenceThresholdsTheSameFixtureDiverges_Test::TestBody()
+                            COUNTS 332 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +25(x4)
+              NOISE-ONLY    IpmSolverEntry_AConvergedSolveRecordsNoStopReason_Test::TestBody()
+                            COUNTS 674 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              DIFFERS       IpmSolverEntry_TheL1MeritLineSearchSolvesHs071OnItsOwnTrajectory_Test::TestBody()::$_0::operator()(hven::solvers::IpmOptions&) const
+                            STRUCTURAL: normalized listing is 6 lines vs 10 -- instructions were added or removed
+              NOISE-ONLY    (anonymous namespace)::PresetGateExpectFieldsMatch(hven::solvers::IpmOptions const&, hven::solvers::InteriorPointSolverPresetFields const&)
+                            COUNTS 557 insns; CHANGED 9; UNCLASSIFIED 0; DELTAS +79(x9)
+              NOISE-ONLY    IpmSolverEntry_AMultiPhaseCapIsLabelledByThePhaseThatHitIt_Test::TestBody()
+                            COUNTS 1481 insns; CHANGED 24; UNCLASSIFIED 0; DELTAS +15(x17) +3(x1) -3(x4) +500(x1) +1(x1)
+              DIFFERS       IpmStopReason_TheDoorsMarkerFollowsItsOwnIterLineOnALiveSolve_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1600 lines vs 1591 -- instructions were added or removed
+              NOISE-ONLY    IpmSolverEntry_OneIterationShortOfConvergenceRecordsTheCap_Test::TestBody()
+                            COUNTS 338 insns; CHANGED 5; UNCLASSIFIED 0; DELTAS +15(x5)
+              NOISE-ONLY    ipm_option_variants::(anonymous namespace)::VariantRun ipm_option_variants::(anonymous namespace)::run_hs071<IpmSolverEntry_TheLagrangianMeritLineSearchSolvesHs071OnItsOwnTrajectory_Test::TestBody()::$_0>(IpmSolverEntry_TheLagrangianMeritLineSearchSolvesHs071OnItsOwnTrajectory_Test::TestBody()::$_0&&)
+                            COUNTS 306 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    IpmSolverEntry_AnInBoxStartPointIsUnchangedByTheSameSolve_Test::TestBody()
+                            COUNTS 365 insns; CHANGED 5; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +43(x2) +500(x1)
+              NOISE-ONLY    IpmSolverEntry_LowerBoundedRowActiveWithNegativeIpoptMultiplier_Test::TestBody()
+                            COUNTS 494 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    IpmSolverEntry_TheIterationCapIsTheRecordedStopReason_Test::TestBody()
+                            COUNTS 463 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              DIFFERS       _GLOBAL__sub_I_unity_0_cxx.cxx
+                            STRUCTURAL: normalized listing is 139 lines vs 141 -- instructions were added or removed
+              DIFFERS       IpmSolverEntry_TheLagrangianMeritLineSearchSolvesHs071OnItsOwnTrajectory_Test::TestBody()::$_1::operator()(hven::solvers::IpmOptions&) const
+                            STRUCTURAL: normalized listing is 8 lines vs 12 -- instructions were added or removed
+              DIFFERS       IpmStopReason_TheInterruptDoorStillPrintsNoSolutionFoundAndCarriesItsMessage_Test::TestBody()
+                              UNCLASSIFIED  - 	mov    %rax,-0x20(%rbp) ;LEN=4
+                                            + 	mov    %rax,-0x28(%rbp) ;LEN=4
+                              UNCLASSIFIED  - 	mov    %rax,-0x28(%rbp) ;LEN=4
+                                            + 	mov    %rax,-0x30(%rbp) ;LEN=4
+                              UNCLASSIFIED  - 	mov    -0x20(%rbp),%rax ;LEN=4
+                                            + 	mov    -0x28(%rbp),%rax ;LEN=4
+                              UNCLASSIFIED  - 	mov    -0x28(%rbp),%rcx ;LEN=4
+                                            + 	mov    -0x30(%rbp),%rcx ;LEN=4
+                              UNCLASSIFIED  - 	mov    %rax,-0x30(%rbp) ;LEN=4
+                                            + 	mov    %rax,-0x20(%rbp) ;LEN=4
+                              ... and 1 more unclassified differences
+                            COUNTS 1268 insns; CHANGED 16; UNCLASSIFIED 6; DELTAS +25(x10)
+              NOISE-ONLY    hven::solvers::IpmOptions::IpmOptions()
+                            COUNTS 109 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    ipm_option_variants::(anonymous namespace)::VariantRun ipm_option_variants::(anonymous namespace)::run_hs071<IpmSolverEntry_TheProbeBarrierOracleSolvesHs071OnItsOwnBarrierSchedule_Test::TestBody()::$_0>(IpmSolverEntry_TheProbeBarrierOracleSolvesHs071OnItsOwnBarrierSchedule_Test::TestBody()::$_0&&)
+                            COUNTS 306 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    IpmStopReason_TheStalledDoorStillPrintsNoSolutionFoundAndCarriesItsMessage_Test::TestBody()
+                            COUNTS 1611 insns; CHANGED 15; UNCLASSIFIED 0; DELTAS +25(x15)
+              DIFFERS       stop_reason_test::(anonymous namespace)::lines_named(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+                              UNCLASSIFIED  - 	mov    %rax,-0x20(%rbp) ;LEN=4
+                                            + 	mov    %rax,-0x28(%rbp) ;LEN=4
+                              UNCLASSIFIED  - 	mov    %rax,-0x28(%rbp) ;LEN=4
+                                            + 	mov    %rax,-0x30(%rbp) ;LEN=4
+                              UNCLASSIFIED  - 	mov    -0x20(%rbp),%rax ;LEN=4
+                                            + 	mov    -0x28(%rbp),%rax ;LEN=4
+                              UNCLASSIFIED  - 	mov    -0x28(%rbp),%rcx ;LEN=4
+                                            + 	mov    -0x30(%rbp),%rcx ;LEN=4
+                              UNCLASSIFIED  - 	mov    %rax,-0x30(%rbp) ;LEN=4
+                                            + 	mov    %rax,-0x20(%rbp) ;LEN=4
+                              ... and 1 more unclassified differences
+                            COUNTS 157 insns; CHANGED 6; UNCLASSIFIED 6; DELTAS
+              ONLY-BEFORE   testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test>::TestFactoryImpl()
+              NOISE-ONLY    ipm_option_variants::(anonymous namespace)::VariantRun ipm_option_variants::(anonymous namespace)::run_hs071<IpmSolverEntry_TheProbeBarrierOracleSolvesHs071OnItsOwnBarrierSchedule_Test::TestBody()::$_1>(IpmSolverEntry_TheProbeBarrierOracleSolvesHs071OnItsOwnBarrierSchedule_Test::TestBody()::$_1&&)
+                            COUNTS 306 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI60IpmStopReason_AStallOnTheCapIterationKeepsTheStallLabel_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN60IpmStopReason_AStallOnTheCapIterationKeepsTheStallLabel_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +25(x3)
+              ONLY-BEFORE   InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test::~InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test()[D0]
+              NOISE-ONLY    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI69IpmSolverEntry_TheL1MeritLineSearchSolvesHs071OnItsOwnTrajectory_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN69IpmSolverEntry_TheL1MeritLineSearchSolvesHs071OnItsOwnTrajectory_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +40(x3)
+              NOISE-ONLY    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI65IpmStopReason_ARestorationLocalInfeasibilityIsRecordedAsSuch_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN65IpmStopReason_ARestorationLocalInfeasibilityIsRecordedAsSuch_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +25(x3)
+              NOISE-ONLY    std::__detail::_MakeUniq<hven::solvers::IpmSolver>::__single_object std::make_unique<hven::solvers::IpmSolver>()
+                            COUNTS 139 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              DIFFERS       IpmSolverEntry_TheLagrangianMeritLineSearchSolvesHs071OnItsOwnTrajectory_Test::TestBody()::$_0::operator()(hven::solvers::IpmOptions&) const
+                            STRUCTURAL: normalized listing is 6 lines vs 10 -- instructions were added or removed
+              NOISE-ONLY    IpmStopReason_NoSolveHasHappenedYet_Test::TestBody()
+                            COUNTS 86 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +25(x1)
+              ONLY-BEFORE   testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test>::~TestFactoryImpl()[D2]
+              NOISE-ONLY    IpmSolverEntry_FixedVariableTreatmentIsRecordedOnSolveResult_Test::TestBody()
+                            COUNTS 1002 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS +1(x2) +3(x2) +500(x2)
+              NOISE-ONLY    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI59IpmStopReason_AStalledFeasibilityStageIsRecordedAsSuch_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN59IpmStopReason_AStalledFeasibilityStageIsRecordedAsSuch_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +25(x3)
+              NOISE-ONLY    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI80IpmSolverEntry_AnOutOfBoxStartPointIsPushedInteriorBeforeTheFirstEvaluation_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN80IpmSolverEntry_AnOutOfBoxStartPointIsPushedInteriorBeforeTheFirstEvaluation_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +43(x3)
+              NOISE-ONLY    IpmSolverEntry_Hs071ConvergesToKnownOptimum_Test::TestBody()
+                            COUNTS 444 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    IpmSolverEntry_EqualityMultiplierHasIpoptSign_Test::TestBody()
+                            COUNTS 421 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    IpmPhases_TheFiveRetiredJobModesAreFivePhaseSequences_Test::TestBody()
+                            COUNTS 786 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI60IpmStopReason_TheL1MeritVariantAbsorbsUnevaluableTrials_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN60IpmStopReason_TheL1MeritVariantAbsorbsUnevaluableTrials_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +25(x3)
+              NOISE-ONLY    IpmSolverEntry_ASecondSolveTranscribesNothingAndSpendsNoFurtherSetupEvaluation_Test::TestBody()
+                            COUNTS 977 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI65IpmStopReason_OnlyResolutionEverProducesStalledOrInterrupted_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN65IpmStopReason_OnlyResolutionEverProducesStalledOrInterrupted_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +25(x3)
+              NOISE-ONLY    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI66IpmStopReason_TheDoorsMarkerFollowsItsOwnIterLineOnALiveSolve_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN66IpmStopReason_TheDoorsMarkerFollowsItsOwnIterLineOnALiveSolve_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +25(x3)
+              NOISE-ONLY    IpmSolverEntry_AFaultedTranscriptionCommitsNothingAndRetriesCleanly_Test::TestBody()
+                            COUNTS 1081 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              DIFFERS       std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > >::back()
+                              UNCLASSIFIED  - 	mov    %rax,-0x28(%rbp) ;LEN=4
+                                            + 	mov    %rax,-0x20(%rbp) ;LEN=4
+                              UNCLASSIFIED  - 	movq   $0x1,-0x30(%rbp) ;LEN=8
+                                            + 	movq   $0x1,-0x28(%rbp) ;LEN=8
+                              UNCLASSIFIED  - 	mov    -0x28(%rbp),%rax ;LEN=4
+                                            + 	mov    -0x20(%rbp),%rax ;LEN=4
+                              UNCLASSIFIED  - 	sub    -0x30(%rbp),%rcx ;LEN=4
+                                            + 	sub    -0x28(%rbp),%rcx ;LEN=4
+                              UNCLASSIFIED  - 	mov    %rax,-0x38(%rbp) ;LEN=4
+                                            + 	mov    %rax,-0x30(%rbp) ;LEN=4
+                              ... and 5 more unclassified differences
+                            COUNTS 50 insns; CHANGED 10; UNCLASSIFIED 10; DELTAS
+              NOISE-ONLY    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI75IpmSolverEntry_TheProbeBarrierOracleSolvesHs071OnItsOwnBarrierSchedule_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN75IpmSolverEntry_TheProbeBarrierOracleSolvesHs071OnItsOwnBarrierSchedule_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +43(x3)
+              NOISE-ONLY    IpmStopReason_OnlyResolutionEverProducesStalledOrInterrupted_Test::TestBody()
+                            COUNTS 366 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +25(x2)
+              NOISE-ONLY    hven::solvers::FilterAcceptance::FilterAcceptance()
+                            COUNTS 144 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    expect_variant_absorbs_unevaluable_trials(hven::solvers::LineSearchModes, char const*)
+                            COUNTS 294 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +25(x3)
+              NOISE-ONLY    IpmStopReason_AStallOnTheCapIterationKeepsTheStallLabel_Test::TestBody()
+                            COUNTS 488 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +25(x4)
+              NOISE-ONLY    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI62IpmSolverEntry_AnInBoxStartPointIsUnchangedByTheSameSolve_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN62IpmSolverEntry_AnInBoxStartPointIsUnchangedByTheSameSolve_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +43(x3)
+              NOISE-ONLY    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI89IpmStopReason_TheLocallyInfeasibleDoorStillPrintsNoSolutionFoundAndCarriesItsMessage_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN89IpmStopReason_TheLocallyInfeasibleDoorStillPrintsNoSolutionFoundAndCarriesItsMessage_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +25(x3)
+              NOISE-ONLY    IpmStopReason_TheLocallyInfeasibleDoorFiresItsRowOnBothStreams_Test::TestBody()
+                            COUNTS 704 insns; CHANGED 8; UNCLASSIFIED 0; DELTAS +25(x8)
+              NOISE-ONLY    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI67IpmStopReason_TheLocallyInfeasibleDoorFiresItsRowOnBothStreams_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN67IpmStopReason_TheLocallyInfeasibleDoorFiresItsRowOnBothStreams_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +25(x3)
+              NOISE-ONLY    IpmStopReason_AStalledFeasibilityStageIsRecordedAsSuch_Test::TestBody()
+                            COUNTS 332 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +25(x4)
+              NOISE-ONLY    IpmStopReason_AnUnevaluableStepWithRestorationAvailableEntersItThroughTheRecoveryChain_Test::TestBody()
+                            COUNTS 470 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +25(x4)
+              ONLY-BEFORE   InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test::TestBody()
+              NOISE-ONLY    hs071_cap_boundary::(anonymous namespace)::converging_loop_index()
+                            COUNTS 405 insns; CHANGED 5; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +15(x2) +500(x1)
+              ONLY-BEFORE   testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test>::CreateTest()
+              DIFFERS       IpmStopReason_TheLocallyInfeasibleDoorStillPrintsNoSolutionFoundAndCarriesItsMessage_Test::TestBody()
+                              UNCLASSIFIED  - 	mov    %rax,-0x20(%rbp) ;LEN=4
+                                            + 	mov    %rax,-0x28(%rbp) ;LEN=4
+                              UNCLASSIFIED  - 	mov    %rax,-0x28(%rbp) ;LEN=4
+                                            + 	mov    %rax,-0x30(%rbp) ;LEN=4
+                              UNCLASSIFIED  - 	mov    -0x20(%rbp),%rax ;LEN=4
+                                            + 	mov    -0x28(%rbp),%rax ;LEN=4
+                              UNCLASSIFIED  - 	mov    -0x28(%rbp),%rcx ;LEN=4
+                                            + 	mov    -0x30(%rbp),%rcx ;LEN=4
+                              UNCLASSIFIED  - 	mov    %rax,-0x30(%rbp) ;LEN=4
+                                            + 	mov    %rax,-0x20(%rbp) ;LEN=4
+                              ... and 1 more unclassified differences
+                            COUNTS 1477 insns; CHANGED 18; UNCLASSIFIED 6; DELTAS +25(x12)
+              NOISE-ONLY    IpmSolverEntry_Hs071BoundDualsMatchActiveLowerBound_Test::TestBody()
+                            COUNTS 669 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    InteriorPointSolverSettingsTest_NaNRejectedBySiteNamedSetters_Test::TestBody()
+                            COUNTS 2140 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    IpmSolverEntry_ZIsDeclaredWidthAndZeroAtAnEliminatedCoordinate_Test::TestBody()
+                            COUNTS 662 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    hs071_cap_boundary::(anonymous namespace)::run_capped(int)
+                            COUNTS 293 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    IpmStopReason_AnUnevaluableStepAtAnAcceptableIterateExitsAtTheAcceptableLevel_Test::TestBody()
+                            COUNTS 278 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +25(x3)
+              NOISE-ONLY    ipm_option_variants::(anonymous namespace)::VariantRun ipm_option_variants::(anonymous namespace)::run_hs071<IpmSolverEntry_TheLagrangianMeritLineSearchSolvesHs071OnItsOwnTrajectory_Test::TestBody()::$_1>(IpmSolverEntry_TheLagrangianMeritLineSearchSolvesHs071OnItsOwnTrajectory_Test::TestBody()::$_1&&)
+                            COUNTS 306 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              ONLY-BEFORE   InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test::InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test()
+              NOISE-ONLY    IpmSolverEntry_TheLagrangianMeritLineSearchSolvesHs071OnItsOwnTrajectory_Test::TestBody()
+                            COUNTS 106 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI77IpmSolverEntry_TheLagrangianMeritLineSearchSolvesHs071OnItsOwnTrajectory_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN77IpmSolverEntry_TheLagrangianMeritLineSearchSolvesHs071OnItsOwnTrajectory_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +37(x3)
+              NOISE-ONLY    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI79IpmStopReason_TheStalledDoorStillPrintsNoSolutionFoundAndCarriesItsMessage_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN79IpmStopReason_TheStalledDoorStillPrintsNoSolutionFoundAndCarriesItsMessage_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +25(x3)
+              NOISE-ONLY    IpmSolverEntry_TheProbeBarrierOracleSolvesHs071OnItsOwnBarrierSchedule_Test::TestBody()
+                            COUNTS 106 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +43(x1)
+              NOISE-ONLY    IpmSolverEntry_AStartPointOfTheWrongSizeIsRefused_Test::TestBody()
+                            COUNTS 595 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI40IpmStopReason_NoSolveHasHappenedYet_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN40IpmStopReason_NoSolveHasHappenedYet_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +25(x3)
+              NOISE-ONLY    InteriorPointSolverSettingsTest_InfRejectedByGreaterThanSetters_Test::TestBody()
+                            COUNTS 868 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              ONLY-BEFORE   InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test::~InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test()[D2]
+              NOISE-ONLY    IpmStopReason_ARestorationLocalInfeasibilityIsRecordedAsSuch_Test::TestBody()
+                            COUNTS 324 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +25(x4)
+              NOISE-ONLY    IpmSolverEntry_TheReportedKktResidualsDescribeTheIterateTheResultDescribes_Test::TestBody()
+                            COUNTS 1029 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    IpmSolverEntry_NonFiniteStartingMultipliersThrow_Test::TestBody()
+                            COUNTS 381 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    (anonymous namespace)::run_with_phase_sink(std::vector<hven::solvers::IpmPhase, std::allocator<hven::solvers::IpmPhase> > const&, int, hven::solvers::SolveStatus*)
+                            COUNTS 308 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI91IpmStopReason_AnUnevaluableStepWithRestorationAvailableEntersItThroughTheRecoveryChain_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN91IpmStopReason_AnUnevaluableStepWithRestorationAvailableEntersItThroughTheRecoveryChain_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +25(x3)
+              ONLY-BEFORE   testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test>::~TestFactoryImpl()[D0]
+              NOISE-ONLY    IpmSolverEntry_SeededSolveConverges_Test::TestBody()
+                            COUNTS 507 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    ipm_option_variants::(anonymous namespace)::expect_reaches_the_known_optimum(ipm_option_variants::(anonymous namespace)::VariantRun const&, char const*)
+                            COUNTS 326 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +15(x4)
+              ONLY-BEFORE   __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI80InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN80InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+              NOISE-ONLY    ipm_option_variants::(anonymous namespace)::VariantRun ipm_option_variants::(anonymous namespace)::run_hs071<IpmSolverEntry_TheL1MeritLineSearchSolvesHs071OnItsOwnTrajectory_Test::TestBody()::$_0>(IpmSolverEntry_TheL1MeritLineSearchSolvesHs071OnItsOwnTrajectory_Test::TestBody()::$_0&&)
+                            COUNTS 306 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI68IpmStopReason_TheLagrangianMeritVariantAbsorbsUnevaluableTrials_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN68IpmStopReason_TheLagrangianMeritVariantAbsorbsUnevaluableTrials_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +25(x3)
+              NOISE-ONLY    ipm_option_variants::(anonymous namespace)::VariantRun ipm_option_variants::(anonymous namespace)::run_hs071<IpmSolverEntry_TheL1MeritLineSearchSolvesHs071OnItsOwnTrajectory_Test::TestBody()::$_1>(IpmSolverEntry_TheL1MeritLineSearchSolvesHs071OnItsOwnTrajectory_Test::TestBody()::$_1&&)
+                            COUNTS 306 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI84IpmStopReason_AnUnevaluableStepAtAnUnacceptableIterateAbortsWithTheLatchedError_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN84IpmStopReason_AnUnevaluableStepAtAnUnacceptableIterateAbortsWithTheLatchedError_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +25(x3)
+              NOISE-ONLY    IpmSolverEntry_TheL1MeritLineSearchSolvesHs071OnItsOwnTrajectory_Test::TestBody()
+                            COUNTS 102 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +43(x1)
+              NOISE-ONLY    IpmSolverEntry_TheProgramsPartitionCountIsWhatEvaluationsSee_Test::TestBody()
+                            COUNTS 754 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    IpmPhases_TheEmptySequenceIsRefusedByValidate_Test::TestBody()
+                            COUNTS 501 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    IpmSolverEntry_AConvergenceOnTheCapIterationRecordsNoStopReason_Test::TestBody()
+                            COUNTS 405 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS +15(x6)
+              NOISE-ONLY    IpmSolverEntry_TwoSolvesFromTheSameStartPointAgree_Test::TestBody()
+                            COUNTS 653 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS +1(x2) +3(x2) +500(x2)
+              NOISE-ONLY    IpmStopReason_AnUnevaluableStepAtAnUnacceptableIterateAbortsWithTheLatchedError_Test::TestBody()
+                            COUNTS 296 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +25(x3)
+              NOISE-ONLY    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI72IpmStopReason_WithDefaultDivergenceThresholdsTheSameFixtureDiverges_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN72IpmStopReason_WithDefaultDivergenceThresholdsTheSameFixtureDiverges_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +25(x3)
+              NOISE-ONLY    IpmSolverEntry_FixedVariableSolvesExactlyAtItsFixedValue_Test::TestBody()
+                            COUNTS 463 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    IpmSolverEntry_TheReportedKktResidualsAreTheOnesTheConvergenceTestGated_Test::TestBody()
+                            COUNTS 1590 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    IpmSolverEntry_AnOutOfBoxStartPointIsPushedInteriorBeforeTheFirstEvaluation_Test::TestBody()
+                            COUNTS 832 insns; CHANGED 11; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +43(x8) +500(x1)
+              NOISE-ONLY    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI70IpmStopReason_TheProximalArmReEntersRestorationOnlyAfterLeavingIt_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN70IpmStopReason_TheProximalArmReEntersRestorationOnlyAfterLeavingIt_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +25(x3)
+              NOISE-ONLY    IpmSolverEntry_FreeRowDroppedFromTranscriptionReadsZeroMultiplier_Test::TestBody()
+                            COUNTS 493 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI84IpmStopReason_TheProximalArmLeavesRestorationWhereTheL1ArmDeclaresInfeasibility_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN84IpmStopReason_TheProximalArmLeavesRestorationWhereTheL1ArmDeclaresInfeasibility_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +25(x3)
+              NOISE-ONLY    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI68IpmSolverEntry_AConvergenceOnTheCapIterationRecordsNoStopReason_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN68IpmSolverEntry_AConvergenceOnTheCapIterationRecordsNoStopReason_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +15(x3)
+              NOISE-ONLY    IpmStopReason_TheProximalArmLeavesRestorationWhereTheL1ArmDeclaresInfeasibility_Test::TestBody()
+                            COUNTS 646 insns; CHANGED 8; UNCLASSIFIED 0; DELTAS +25(x8)
+              NOISE-ONLY    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI81IpmStopReason_TheInterruptDoorStillPrintsNoSolutionFoundAndCarriesItsMessage_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN81IpmStopReason_TheInterruptDoorStillPrintsNoSolutionFoundAndCarriesItsMessage_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +25(x3)
+              DIFFERS       stop_reason_test::(anonymous namespace)::make_stall_solver(int, bool)
+                            STRUCTURAL: normalized listing is 293 lines vs 295 -- instructions were added or removed
+              NOISE-ONLY    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI63IpmSolverEntry_OneIterationShortOfConvergenceRecordsTheCap_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN63IpmSolverEntry_OneIterationShortOfConvergenceRecordsTheCap_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +15(x3)
+              NOISE-ONLY    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI82IpmStopReason_AnUnevaluableStepAtAnAcceptableIterateExitsAtTheAcceptableLevel_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN82IpmStopReason_AnUnevaluableStepAtAnAcceptableIterateExitsAtTheAcceptableLevel_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +25(x3)
+              DIFFERS       IpmSolverEntry_TheL1MeritLineSearchSolvesHs071OnItsOwnTrajectory_Test::TestBody()::$_1::operator()(hven::solvers::IpmOptions&) const
+                            STRUCTURAL: normalized listing is 8 lines vs 12 -- instructions were added or removed
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::internal::FormatForComparisonFailureMessage<char [38], std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >(char const (&) [38], std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+              ONLY-AFTER    (anonymous namespace)::pre_d1_default()
+              ONLY-AFTER    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI78InteriorPointSolverPresetsTest_PresetGateThePreEventDefaultStillValidates_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN78InteriorPointSolverPresetsTest_PresetGateThePreEventDefaultStillValidates_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::internal::FormatForComparisonFailureMessage<char [70], std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >(char const (&) [70], std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [70]>(char const*, char const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const (&) [70])
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > std::operator+<char, std::char_traits<char>, std::allocator<char> >(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const*)
+              ONLY-AFTER    InteriorPointSolverPresetsTest_PresetGateThePreEventDefaultStillValidates_Test::~InteriorPointSolverPresetsTest_PresetGateThePreEventDefaultStillValidates_Test()[D0]
+              ONLY-AFTER    testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateThePreEventDefaultStillValidates_Test>::TestFactoryImpl()
+              ONLY-AFTER    testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicPlusFiveHundredReconstructsThePreEventDefault_Test>::CreateTest()
+              ONLY-AFTER    (anonymous namespace)::lines_of(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+              ONLY-AFTER    ipm_option_variants::(anonymous namespace)::pin_pre_d1_globalization(hven::solvers::IpmOptions&)
+              ONLY-AFTER    InteriorPointSolverPresetsTest_PresetGateClassicDiffersFromTheDefaultInExactlyTheTwoGlobalizationFields_Test::TestBody()
+              ONLY-AFTER    testing::Message& testing::Message::operator<< <char [51]>(char const (&) [51])
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQ<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [70]>(char const*, char const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const (&) [70])
+              ONLY-AFTER    testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicDiffersFromTheDefaultInExactlyTheTwoGlobalizationFields_Test>::~TestFactoryImpl()[D0]
+              ONLY-AFTER    InteriorPointSolverPresetsTest_PresetGateClassicPlusFiveHundredReconstructsThePreEventDefault_Test::~InteriorPointSolverPresetsTest_PresetGateClassicPlusFiveHundredReconstructsThePreEventDefault_Test()[D0]
+              ONLY-AFTER    InteriorPointSolverPresetsTest_PresetGateClassicPlusFiveHundredReconstructsThePreEventDefault_Test::TestBody()
+              ONLY-AFTER    testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicPlusFiveHundredReconstructsThePreEventDefault_Test>::~TestFactoryImpl()[D2]
+              ONLY-AFTER    testing::internal::FormatForComparison<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [38]>::Format(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+              ONLY-AFTER    InteriorPointSolverPresetsTest_PresetGateClassicDiffersFromTheDefaultInExactlyTheTwoGlobalizationFields_Test::~InteriorPointSolverPresetsTest_PresetGateClassicDiffersFromTheDefaultInExactlyTheTwoGlobalizationFields_Test()[D0]
+              ONLY-AFTER    (anonymous namespace)::dump_to_string[abi:cxx11](hven::solvers::IpmOptions const&)
+              ONLY-AFTER    _ZN7testing8internal8EqHelper7CompareINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEA38_cTnPNSt9enable_ifIXoontsr3std11is_integralIT_EE5valuentsr3std10is_pointerIT0_EE5valueEvE4typeELPv0EEENS_15AssertionResultEPKcSJ_RKSB_RKSC_
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [38]>(char const*, char const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const (&) [38])
+              ONLY-AFTER    InteriorPointSolverPresetsTest_PresetGateThePreEventDefaultStillValidates_Test::TestBody()
+              ONLY-AFTER    testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicPlusFiveHundredReconstructsThePreEventDefault_Test>::TestFactoryImpl()
+              ONLY-AFTER    (anonymous namespace)::preset_fields_of(hven::solvers::IpmOptions const&)
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::internal::FormatForComparisonFailureMessage<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [38]>(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const (&) [38])
+              ONLY-AFTER    InteriorPointSolverPresetsTest_PresetGateClassicDiffersFromTheDefaultInExactlyTheTwoGlobalizationFields_Test::InteriorPointSolverPresetsTest_PresetGateClassicDiffersFromTheDefaultInExactlyTheTwoGlobalizationFields_Test()
+              ONLY-AFTER    testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateThePreEventDefaultStillValidates_Test>::~TestFactoryImpl()[D2]
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQ<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [38]>(char const*, char const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const (&) [38])
+              ONLY-AFTER    testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateThePreEventDefaultStillValidates_Test>::CreateTest()
+              ONLY-AFTER    InteriorPointSolverPresetsTest_PresetGateClassicPlusFiveHundredReconstructsThePreEventDefault_Test::InteriorPointSolverPresetsTest_PresetGateClassicPlusFiveHundredReconstructsThePreEventDefault_Test()
+              ONLY-AFTER    testing::Message& testing::Message::operator<< <char [50]>(char const (&) [50])
+              ONLY-AFTER    testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicDiffersFromTheDefaultInExactlyTheTwoGlobalizationFields_Test>::TestFactoryImpl()
+              ONLY-AFTER    testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicDiffersFromTheDefaultInExactlyTheTwoGlobalizationFields_Test>::CreateTest()
+              ONLY-AFTER    InteriorPointSolverPresetsTest_PresetGateThePreEventDefaultStillValidates_Test::~InteriorPointSolverPresetsTest_PresetGateThePreEventDefaultStillValidates_Test()[D2]
+              ONLY-AFTER    testing::internal::FormatForComparison<char [38], std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >::Format(char const*)
+              ONLY-AFTER    testing::internal::FormatForComparison<char [70], std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >::Format(char const*)
+              ONLY-AFTER    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI98InteriorPointSolverPresetsTest_PresetGateClassicPlusFiveHundredReconstructsThePreEventDefault_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN98InteriorPointSolverPresetsTest_PresetGateClassicPlusFiveHundredReconstructsThePreEventDefault_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+              ONLY-AFTER    _ZN7testing8internal8EqHelper7CompareINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEA70_cTnPNSt9enable_ifIXoontsr3std11is_integralIT_EE5valuentsr3std10is_pointerIT0_EE5valueEvE4typeELPv0EEENS_15AssertionResultEPKcSJ_RKSB_RKSC_
+              ONLY-AFTER    InteriorPointSolverPresetsTest_PresetGateThePreEventDefaultStillValidates_Test::InteriorPointSolverPresetsTest_PresetGateThePreEventDefaultStillValidates_Test()
+              ONLY-AFTER    testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicDiffersFromTheDefaultInExactlyTheTwoGlobalizationFields_Test>::~TestFactoryImpl()[D2]
+              ONLY-AFTER    InteriorPointSolverPresetsTest_PresetGateClassicPlusFiveHundredReconstructsThePreEventDefault_Test::~InteriorPointSolverPresetsTest_PresetGateClassicPlusFiveHundredReconstructsThePreEventDefault_Test()[D2]
+              ONLY-AFTER    testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicPlusFiveHundredReconstructsThePreEventDefault_Test>::~TestFactoryImpl()[D0]
+              ONLY-AFTER    InteriorPointSolverPresetsTest_PresetGateClassicDiffersFromTheDefaultInExactlyTheTwoGlobalizationFields_Test::~InteriorPointSolverPresetsTest_PresetGateClassicDiffersFromTheDefaultInExactlyTheTwoGlobalizationFields_Test()[D2]
+              ONLY-AFTER    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI108InteriorPointSolverPresetsTest_PresetGateClassicDiffersFromTheDefaultInExactlyTheTwoGlobalizationFields_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN108InteriorPointSolverPresetsTest_PresetGateClassicDiffersFromTheDefaultInExactlyTheTwoGlobalizationFields_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > std::operator+<char, std::char_traits<char>, std::allocator<char> >(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+              ONLY-AFTER    testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateThePreEventDefaultStillValidates_Test>::~TestFactoryImpl()[D0]
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::internal::FormatForComparisonFailureMessage<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [70]>(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const (&) [70])
+              ONLY-AFTER    testing::internal::FormatForComparison<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [70]>::Format(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+NOISE-ONLY  tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o
+            COUNTS 398807 insns; CHANGED 228; UNCLASSIFIED 0; DELTAS +1(x76) +3(x76) +500(x76)
+SYMBOLS     tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_2_cxx.cxx.o: COVERAGE FINDINGS
+              ONLY-AFTER    testing::internal::UniversalPrinter<hven::solvers::BarrierGovernors>::Print(hven::solvers::BarrierGovernors const&, std::basic_ostream<char, std::char_traits<char> >*)
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::internal::FormatForComparisonFailureMessage<hven::solvers::ClassicAdaptiveGovernor*, decltype(nullptr)>(hven::solvers::ClassicAdaptiveGovernor* const&, decltype(nullptr) const&)
+              ONLY-AFTER    typeinfo for RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::internal::FormatForComparisonFailureMessage<hven::solvers::BarrierGovernors, hven::solvers::BarrierGovernors>(hven::solvers::BarrierGovernors const&, hven::solvers::BarrierGovernors const&)
+              ONLY-AFTER    void testing::internal::PrintTo<hven::solvers::BarrierGovernors>(hven::solvers::BarrierGovernors const&, std::basic_ostream<char, std::char_traits<char> >*)
+              ONLY-AFTER    RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test::TestBody()
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::PrintToString<hven::solvers::BarrierGovernors>(hven::solvers::BarrierGovernors const&)
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQ<hven::solvers::MonitoredBarrierGovernor*, decltype(nullptr)>(char const*, char const*, hven::solvers::MonitoredBarrierGovernor* const&, decltype(nullptr) const&)
+              ONLY-AFTER    void testing::internal::PrintTo<hven::solvers::ClassicAdaptiveGovernor*>(hven::solvers::ClassicAdaptiveGovernor* const&, std::basic_ostream<char, std::char_traits<char> >*)
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::MonitoredBarrierGovernor*, decltype(nullptr)>(char const*, char const*, hven::solvers::MonitoredBarrierGovernor* const&, decltype(nullptr) const&)
+              ONLY-AFTER    RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test::~RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test()[D0]
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperOpFailure<hven::solvers::ClassicAdaptiveGovernor*, decltype(nullptr)>(char const*, char const*, hven::solvers::ClassicAdaptiveGovernor* const&, decltype(nullptr) const&, char const*)
+              ONLY-AFTER    _ZN7testing8internal8EqHelper7CompareIPN4hven7solvers24MonitoredBarrierGovernorEDnTnPNSt9enable_ifIXoontsr3std11is_integralIT_EE5valuentsr3std10is_pointerIT0_EE5valueEvE4typeELPv0EEENS_15AssertionResultEPKcSG_RKS8_RKS9_
+              ONLY-AFTER    testing::internal::FormatForComparison<decltype(nullptr), hven::solvers::ClassicAdaptiveGovernor*>::Format[abi:cxx11](decltype(nullptr) const&)
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::PrintToString<hven::solvers::ClassicAdaptiveGovernor*>(hven::solvers::ClassicAdaptiveGovernor* const&)
+              ONLY-AFTER    void testing::internal::PointerPrinter::PrintValue<hven::solvers::ClassicAdaptiveGovernor>(hven::solvers::ClassicAdaptiveGovernor*, std::basic_ostream<char, std::char_traits<char> >*)
+              ONLY-AFTER    testing::internal::UniversalPrinter<hven::solvers::ClassicAdaptiveGovernor*>::Print(hven::solvers::ClassicAdaptiveGovernor* const&, std::basic_ostream<char, std::char_traits<char> >*)
+              ONLY-AFTER    RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test::RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test()
+              ONLY-AFTER    void testing::internal::PrintWithFallback<hven::solvers::ClassicAdaptiveGovernor*>(hven::solvers::ClassicAdaptiveGovernor* const&, std::basic_ostream<char, std::char_traits<char> >*)
+              ONLY-AFTER    testing::internal::TestFactoryImpl<RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test>::~TestFactoryImpl()[D2]
+              ... and 23 more symbols present only in the after arm
+              LOCAL-FAMILY  .L.str: 1009 before, 1014 after
+              LOCAL-FAMILY  GCC_except_table: 842 before, 850 after
+              LOCAL-FAMILY  __cxx_global_var_init: 123 before, 124 after
+DIFFERS     tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_2_cxx.cxx.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 1498 alignment-pad lines vs 1499 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 230346 lines vs 231973 -- instructions were added or removed
+PER-SYMBOL  tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_2_cxx.cxx.o: PERSYM 6052 identical, 54 noise-only, 5 differing, 18 only-before, 55 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 161 rank-tagged, 0 section moves, 30468 relocation records compared (0 through the symbol map), 79 global-var-init keyed by identity (82 unresolved)
+              ONLY-BEFORE   __cxx_global_var_init[#116]
+              ONLY-BEFORE   __cxx_global_var_init[#112]
+              NOISE-ONLY    EarlyCallbackViews_TheThreeVectorsAreTheModelsOwnNumbersAtThisIterationsEvaluation_Test::TestBody()
+                            COUNTS 399 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    (anonymous namespace)::RecoveryDispatchGate_ValidateAcceptsFunnelWithNeverMonotone_Test::TestBody()
+                            COUNTS 183 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +8(x1)
+              ONLY-BEFORE   __cxx_global_var_init[#124]
+              NOISE-ONLY    __cxx_global_var_init[#89]
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +8(x3)
+              DIFFERS       _GLOBAL__sub_I_unity_2_cxx.cxx
+                            STRUCTURAL: normalized listing is 127 lines vs 128 -- instructions were added or removed
+              NOISE-ONLY    ObjectiveScaleReporting_AnActiveBoundMultiplierDoesNotMoveWithTheScale_Test::TestBody()
+                            COUNTS 562 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    hven::solvers::IpmOptions::IpmOptions()
+                            COUNTS 109 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    NLPMultiplierSeedingTest_TheUnseededPathBuildsNoPayload_Test::TestBody()
+                            COUNTS 420 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    NLPMultiplierSeedingTest_SeededSolveOptimizeReachesOptPhase_Test::TestBody()
+                            COUNTS 963 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS +1(x2) +3(x2) +500(x2)
+              DIFFERS       __cxx_global_var_init[#132]
+                              UNCLASSIFIED  - RELOC R_X86_64_PLT32 testing::internal::TestFactoryImpl<(anonymous namespace)::SocRecovery_ResetIsAStatelessNoOp_Test>::TestFactoryImpl() -0x4
+                                            + RELOC R_X86_64_PLT32 testing::internal::TestFactoryImpl<(anonymous namespace)::SocRecovery_AnUnevaluableSeedOfUnknownTypeDeclinesAndLogsTheSentinel_Test>::TestFactoryImpl() -0x4
+                            COUNTS 115 insns; CHANGED 4; UNCLASSIFIED 1; DELTAS -17(x3)
+              NOISE-ONLY    __cxx_global_var_init[#97]
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +8(x3)
+              NOISE-ONLY    __cxx_global_var_init[#93]
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +8(x3)
+              ONLY-BEFORE   __cxx_global_var_init[#109]
+              ONLY-BEFORE   __cxx_global_var_init[#105]
+              NOISE-ONLY    StructureEpochGating_ASolveThatHandsOutTheKktMatrixVerifiesThePatternThroughout_Test::TestBody()
+                            COUNTS 1083 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS +1(x2) +3(x2) +500(x2)
+              NOISE-ONLY    (anonymous namespace)::RecoveryDispatchGate_ValidateRejectsFunnelWithClassicAdaptiveGovernor_Test::TestBody()
+                            COUNTS 189 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +8(x1)
+              NOISE-ONLY    ObjectiveScaleReporting_TheScaleACallRanAtIsTheScaleItsOutputsAreReportedOn_Test::TestBody()
+                            COUNTS 938 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    RecoveryDispatchGate_MeritPenaltyRuleSelectionReachesTheStrategy_Test::TestBody()
+                            COUNTS 929 insns; CHANGED 13; UNCLASSIFIED 0; DELTAS +1(x2) +3(x2) +66(x7) +500(x2)
+              ONLY-BEFORE   __cxx_global_var_init[#129]
+              NOISE-ONLY    StructureEpochGating_APartitionRenegotiationBetweenSolvesForcesAFreshAnalysis_Test::TestBody()
+                            COUNTS 1114 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              ONLY-BEFORE   __cxx_global_var_init[#121]
+              NOISE-ONLY    (anonymous namespace)::RecoveryDispatchGate_ValidateAcceptsMeritWithClassicAdaptiveGovernor_Test::TestBody()
+                            COUNTS 183 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +8(x1)
+              NOISE-ONLY    ObjectiveScaleReporting_ANegativeScaleIsRefusedByValidate_Test::TestBody()
+                            COUNTS 1339 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    StructureEpochGating_TheEpochStopsVouchingForThePatternAcrossARelay_Test::TestBody()
+                            COUNTS 635 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    NLPMultiplierSeedingTest_ADecliningProblemSolvesColdThroughTheWrapper_Test::TestBody()
+                            COUNTS 474 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    __cxx_global_var_init[#94]
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +8(x3)
+              NOISE-ONLY    __cxx_global_var_init[#90]
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +8(x3)
+              NOISE-ONLY    (anonymous namespace)::RecoveryDispatchGate_ValidateAcceptsFilterWithNeverMonotone_Test::TestBody()
+                            COUNTS 183 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +8(x1)
+              NOISE-ONLY    StructureEpochGating_TheVerdictOnTheGuardIsTakenOnceAtEntryAndHeldForTheCall_Test::TestBody()
+                            COUNTS 554 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    NLPMultiplierSeedingTest_FixedVariableConstraintRowStaysOutOfTheReportedMultipliers_Test::TestBody()
+                            COUNTS 1079 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    (anonymous namespace)::RecoveryDispatchGate_ValidateRejectsNeverMonotoneWithMonitoredGovernor_Test::TestBody()
+                            COUNTS 189 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +8(x1)
+              NOISE-ONLY    (anonymous namespace)::RecoveryDispatchGate_ValidateAcceptsClassicMeritWithClassicAdaptiveGovernor_Test::TestBody()
+                            COUNTS 183 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +8(x1)
+              NOISE-ONLY    (anonymous namespace)::RecoveryDispatchGate_ValidateRejectsFilterWithClassicAdaptiveGovernor_Test::TestBody()
+                            COUNTS 189 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +8(x1)
+              NOISE-ONLY    NLPMultiplierSeedingTest_SeededSolveWithMakeConstraintFixedVarConverges_Test::TestBody()
+                            COUNTS 449 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    RecoveryDispatchGate_MonitoredSelectionConstructsMonitoredGovernor_Test::TestBody()
+                            COUNTS 332 insns; CHANGED 5; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +31(x2) +500(x1)
+              NOISE-ONLY    NLPMultiplierSeedingTest_OversizedIqSeedIsCapped_Test::TestBody()
+                            COUNTS 383 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    StructureEpochGating_AWholeSolveRunsNoFullKktPatternHash_Test::TestBody()
+                            COUNTS 500 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              DIFFERS       RecoveryDispatchGate_FilterSelectionConstructsFilterAcceptance_Test::TestBody()
+                            STRUCTURAL: normalized listing is 387 lines vs 388 -- instructions were added or removed
+              NOISE-ONLY    StructureEpochGating_AnEarlyCallbackArmedFromInsideTheLateCallbackVerifiesFromThatHandOutOn_Test::TestBody()
+                            COUNTS 917 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS +1(x2) +3(x2) +500(x2)
+              NOISE-ONLY    (anonymous namespace)::RecoveryDispatchGate_ValidateAcceptsFilterWithMonitoredGovernor_Test::TestBody()
+                            COUNTS 182 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +8(x1)
+              NOISE-ONLY    (anonymous namespace)::obj_scale_installed_seed(double)
+                            COUNTS 399 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    ObjectiveScaleReporting_AnUnconstrainedCallReportsNoConstraintBlocks_Test::TestBody()
+                            COUNTS 1054 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              ONLY-BEFORE   __cxx_global_var_init[#126]
+              ONLY-BEFORE   __cxx_global_var_init[#122]
+              DIFFERS       RecoveryDispatchGate_FunnelSelectionConstructsFunnelAcceptance_Test::TestBody()
+                            STRUCTURAL: normalized listing is 387 lines vs 388 -- instructions were added or removed
+              ONLY-BEFORE   __cxx_global_var_init[#138]
+              ONLY-BEFORE   __cxx_global_var_init[#134]
+              ONLY-BEFORE   __cxx_global_var_init[#130]
+              NOISE-ONLY    __cxx_global_var_init[#95]
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +8(x3)
+              NOISE-ONLY    __cxx_global_var_init[#91]
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +8(x3)
+              ONLY-BEFORE   __cxx_global_var_init[#107]
+              ONLY-BEFORE   __cxx_global_var_init[#103]
+              NOISE-ONLY    NLPMultiplierSeedingTest_NegativeIqSeedIsClamped_Test::TestBody()
+                            COUNTS 371 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    StructureEpochGating_ASecondSolveAgainstUnmovedStructuresRunsNoFreshAnalysis_Test::TestBody()
+                            COUNTS 974 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    NLPMultiplierSeedingTest_OversizedSeedIsCapped_Test::TestBody()
+                            COUNTS 379 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    NLPMultiplierSeedingTest_NaNSeedThrows_Test::TestBody()
+                            COUNTS 453 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    EarlyCallbackViews_TheEarlyAndLateViewsOfOneIterationAreTheSameIterate_Test::TestBody()
+                            COUNTS 813 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI67RecoveryDispatchGate_FilterSelectionConstructsFilterAcceptance_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN67RecoveryDispatchGate_FilterSelectionConstructsFilterAcceptance_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +15(x3)
+              ONLY-BEFORE   __cxx_global_var_init[#119]
+              ONLY-BEFORE   __cxx_global_var_init[#115]
+              ONLY-BEFORE   __cxx_global_var_init[#111]
+              NOISE-ONLY    NLPMultiplierSeedingTest_SeededSolveMatchesUnseededSolution_Test::TestBody()
+                            COUNTS 681 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS +1(x2) +3(x2) +500(x2)
+              NOISE-ONLY    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI67RecoveryDispatchGate_FunnelSelectionConstructsFunnelAcceptance_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN67RecoveryDispatchGate_FunnelSelectionConstructsFunnelAcceptance_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +8(x3)
+              NOISE-ONLY    (anonymous namespace)::RecoveryDispatchGate_ValidateAcceptsClassicMeritWithMonitoredGovernor_Test::TestBody()
+                            COUNTS 182 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +8(x1)
+              NOISE-ONLY    __cxx_global_var_init[#88]
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +8(x3)
+              NOISE-ONLY    (anonymous namespace)::RecoveryDispatchGate_ValidateAcceptsFunnelWithMonitoredGovernor_Test::TestBody()
+                            COUNTS 182 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +8(x1)
+              NOISE-ONLY    StructureEpochGating_AnEarlyCallbackThatScalesAStoredCoefficientMovesTheStepItProduces_Test::TestBody()
+                            COUNTS 1144 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS +1(x2) +3(x2) +500(x2)
+              NOISE-ONLY    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI71RecoveryDispatchGate_MonitoredSelectionConstructsMonitoredGovernor_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN71RecoveryDispatchGate_MonitoredSelectionConstructsMonitoredGovernor_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +31(x3)
+              NOISE-ONLY    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI69RecoveryDispatchGate_MeritPenaltyRuleSelectionReachesTheStrategy_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN69RecoveryDispatchGate_MeritPenaltyRuleSelectionReachesTheStrategy_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +66(x3)
+              ONLY-BEFORE   __cxx_global_var_init[#131]
+              NOISE-ONLY    __cxx_global_var_init[#96]
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +8(x3)
+              NOISE-ONLY    __cxx_global_var_init[#92]
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +8(x3)
+              NOISE-ONLY    NLPMultiplierSeedingTest_SeedSizeMismatchThrowsAndTheNextSolveIsUnaffected_Test::TestBody()
+                            COUNTS 668 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    ObjectiveScaleReporting_TheReportedObjectiveAndMultipliersDoNotMoveWithTheScale_Test::TestBody()
+                            COUNTS 644 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              DIFFERS       (anonymous namespace)::RecoveryDispatchGate_ValidateAcceptsFilterWithWatchdog_Test::TestBody()
+                            STRUCTURAL: normalized listing is 227 lines vs 228 -- instructions were added or removed
+              ONLY-AFTER    testing::internal::UniversalPrinter<hven::solvers::BarrierGovernors>::Print(hven::solvers::BarrierGovernors const&, std::basic_ostream<char, std::char_traits<char> >*)
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::internal::FormatForComparisonFailureMessage<hven::solvers::ClassicAdaptiveGovernor*, decltype(nullptr)>(hven::solvers::ClassicAdaptiveGovernor* const&, decltype(nullptr) const&)
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::internal::FormatForComparisonFailureMessage<hven::solvers::BarrierGovernors, hven::solvers::BarrierGovernors>(hven::solvers::BarrierGovernors const&, hven::solvers::BarrierGovernors const&)
+              ONLY-AFTER    __cxx_global_var_init[#128]
+              ONLY-AFTER    __cxx_global_var_init[#120]
+              ONLY-AFTER    void testing::internal::PrintTo<hven::solvers::BarrierGovernors>(hven::solvers::BarrierGovernors const&, std::basic_ostream<char, std::char_traits<char> >*)
+              ONLY-AFTER    __cxx_global_var_init[#136]
+              ONLY-AFTER    RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test::TestBody()
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::PrintToString<hven::solvers::BarrierGovernors>(hven::solvers::BarrierGovernors const&)
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQ<hven::solvers::MonitoredBarrierGovernor*, decltype(nullptr)>(char const*, char const*, hven::solvers::MonitoredBarrierGovernor* const&, decltype(nullptr) const&)
+              ONLY-AFTER    void testing::internal::PrintTo<hven::solvers::ClassicAdaptiveGovernor*>(hven::solvers::ClassicAdaptiveGovernor* const&, std::basic_ostream<char, std::char_traits<char> >*)
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::MonitoredBarrierGovernor*, decltype(nullptr)>(char const*, char const*, hven::solvers::MonitoredBarrierGovernor* const&, decltype(nullptr) const&)
+              ONLY-AFTER    __cxx_global_var_init[#117]
+              ONLY-AFTER    __cxx_global_var_init[#113]
+              ONLY-AFTER    RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test::~RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test()[D0]
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperOpFailure<hven::solvers::ClassicAdaptiveGovernor*, decltype(nullptr)>(char const*, char const*, hven::solvers::ClassicAdaptiveGovernor* const&, decltype(nullptr) const&, char const*)
+              ONLY-AFTER    _ZN7testing8internal8EqHelper7CompareIPN4hven7solvers24MonitoredBarrierGovernorEDnTnPNSt9enable_ifIXoontsr3std11is_integralIT_EE5valuentsr3std10is_pointerIT0_EE5valueEvE4typeELPv0EEENS_15AssertionResultEPKcSG_RKS8_RKS9_
+              ONLY-AFTER    testing::internal::FormatForComparison<decltype(nullptr), hven::solvers::ClassicAdaptiveGovernor*>::Format[abi:cxx11](decltype(nullptr) const&)
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::PrintToString<hven::solvers::ClassicAdaptiveGovernor*>(hven::solvers::ClassicAdaptiveGovernor* const&)
+              ONLY-AFTER    void testing::internal::PointerPrinter::PrintValue<hven::solvers::ClassicAdaptiveGovernor>(hven::solvers::ClassicAdaptiveGovernor*, std::basic_ostream<char, std::char_traits<char> >*)
+              ONLY-AFTER    testing::internal::UniversalPrinter<hven::solvers::ClassicAdaptiveGovernor*>::Print(hven::solvers::ClassicAdaptiveGovernor* const&, std::basic_ostream<char, std::char_traits<char> >*)
+              ONLY-AFTER    RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test::RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test()
+              ONLY-AFTER    __cxx_global_var_init[#125]
+              ONLY-AFTER    void testing::internal::PrintWithFallback<hven::solvers::ClassicAdaptiveGovernor*>(hven::solvers::ClassicAdaptiveGovernor* const&, std::basic_ostream<char, std::char_traits<char> >*)
+              ONLY-AFTER    testing::internal::TestFactoryImpl<RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test>::~TestFactoryImpl()[D2]
+              ONLY-AFTER    testing::internal::FormatForComparison<hven::solvers::BarrierGovernors, hven::solvers::BarrierGovernors>::Format[abi:cxx11](hven::solvers::BarrierGovernors const&)
+              ONLY-AFTER    testing::internal::TestFactoryImpl<RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test>::CreateTest()
+              ONLY-AFTER    __cxx_global_var_init[#137]
+              ONLY-AFTER    __cxx_global_var_init[#133]
+              ONLY-AFTER    __cxx_global_var_init[#106]
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::internal::FormatForComparisonFailureMessage<decltype(nullptr), hven::solvers::ClassicAdaptiveGovernor*>(decltype(nullptr) const&, hven::solvers::ClassicAdaptiveGovernor* const&)
+              ONLY-AFTER    void testing::internal::UniversalPrint<hven::solvers::BarrierGovernors>(hven::solvers::BarrierGovernors const&, std::basic_ostream<char, std::char_traits<char> >*)
+              ONLY-AFTER    __cxx_global_var_init[#118]
+              ONLY-AFTER    __cxx_global_var_init[#114]
+              ONLY-AFTER    __cxx_global_var_init[#110]
+              ONLY-AFTER    _ZN7testing8internal8EqHelper7CompareIN4hven7solvers16BarrierGovernorsES5_TnPNSt9enable_ifIXoontsr3std11is_integralIT_EE5valuentsr3std10is_pointerIT0_EE5valueEvE4typeELPv0EEENS_15AssertionResultEPKcSF_RKS7_RKS8_
+              ONLY-AFTER    __cxx_global_var_init{_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_-0x4,_ZN7testing8internal12CodeLocationC2ENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi-0x4,_ZN7testing8internal13GetTestTypeIdEv-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE19GetSetUpCaseOrSuiteEPKci-0x4,_ZN7testing8internal16SuiteApiResolverINS_4TestEE22GetTearDownCaseOrSuiteEPKci-0x4,_Znwm-0x4,_ZN7testing8internal15TestFactoryImplI83RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_TestEC2Ev-0x4,_ZN7testing8internal23MakeAndRegisterTestInfoENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPKcS8_S8_NS0_12CodeLocationEPKvPFvvESD_PNS0_15TestFactoryBaseE-0x4,_ZN7testing8internal12CodeLocationD2Ev-0x4,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEED2Ev-0x4,_ZN83RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test10test_info_E-0x4,_ZdlPvm-0x4,_Unwind_Resume-0x4}
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperNE<hven::solvers::ClassicAdaptiveGovernor*, decltype(nullptr)>(char const*, char const*, hven::solvers::ClassicAdaptiveGovernor* const&, decltype(nullptr) const&)
+              ONLY-AFTER    void testing::internal::PrintWithFallback<hven::solvers::BarrierGovernors>(hven::solvers::BarrierGovernors const&, std::basic_ostream<char, std::char_traits<char> >*)
+              ONLY-AFTER    RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test::~RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test()[D2]
+              ONLY-AFTER    testing::internal::TestFactoryImpl<RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test>::TestFactoryImpl()
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQ<hven::solvers::BarrierGovernors, hven::solvers::BarrierGovernors>(char const*, char const*, hven::solvers::BarrierGovernors const&, hven::solvers::BarrierGovernors const&)
+              ONLY-AFTER    __cxx_global_var_init[#127]
+              ONLY-AFTER    __cxx_global_var_init[#123]
+              ONLY-AFTER    testing::internal::UniversalTersePrinter<hven::solvers::ClassicAdaptiveGovernor*>::Print(hven::solvers::ClassicAdaptiveGovernor* const&, std::basic_ostream<char, std::char_traits<char> >*)
+              ONLY-AFTER    void testing::internal::RawBytesPrinter::PrintValue<hven::solvers::BarrierGovernors, 4ul>(hven::solvers::BarrierGovernors const&, std::basic_ostream<char, std::char_traits<char> >*)
+              ONLY-AFTER    testing::internal::TestFactoryImpl<RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test>::~TestFactoryImpl()[D0]
+              ONLY-AFTER    testing::internal::UniversalTersePrinter<hven::solvers::BarrierGovernors>::Print(hven::solvers::BarrierGovernors const&, std::basic_ostream<char, std::char_traits<char> >*)
+              ONLY-AFTER    testing::internal::FormatForComparison<hven::solvers::ClassicAdaptiveGovernor*, decltype(nullptr)>::Format[abi:cxx11](hven::solvers::ClassicAdaptiveGovernor* const&)
+              ONLY-AFTER    __cxx_global_var_init[#139]
+              ONLY-AFTER    __cxx_global_var_init[#135]
+              ONLY-AFTER    __cxx_global_var_init[#108]
+              ONLY-AFTER    __cxx_global_var_init[#104]
+              ONLY-AFTER    void testing::internal::UniversalPrint<hven::solvers::ClassicAdaptiveGovernor*>(hven::solvers::ClassicAdaptiveGovernor* const&, std::basic_ostream<char, std::char_traits<char> >*)
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::BarrierGovernors, hven::solvers::BarrierGovernors>(char const*, char const*, hven::solvers::BarrierGovernors const&, hven::solvers::BarrierGovernors const&)
+NOISE-ONLY  tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_3_cxx.cxx.o
+            COUNTS 34628 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+NOISE-ONLY  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o
+            COUNTS 113859 insns; CHANGED 75; UNCLASSIFIED 0; DELTAS +1(x25) +3(x25) +500(x25)
+NOISE-ONLY  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_concurrency.cpp.o
+            COUNTS 105071 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+NOISE-ONLY  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options.cpp.o
+            COUNTS 112018 insns; CHANGED 33; UNCLASSIFIED 0; DELTAS +1(x11) +3(x11) +500(x11)
+SYMBOLS     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options_dump.cpp.o: COVERAGE FINDINGS
+              ONLY-BEFORE   testing::internal::FormatForComparison<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [170]>::Format(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+              ONLY-BEFORE   _ZN7testing8internal8EqHelper7CompareINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEA170_cTnPNSt9enable_ifIXoontsr3std11is_integralIT_EE5valuentsr3std10is_pointerIT0_EE5valueEvE4typeELPv0EEENS_15AssertionResultEPKcSJ_RKSB_RKSC_
+              ONLY-BEFORE   testing::AssertionResult testing::internal::CmpHelperEQFailure<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [170]>(char const*, char const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const (&) [170])
+              ONLY-BEFORE   std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::internal::FormatForComparisonFailureMessage<char [170], std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >(char const (&) [170], std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+              ONLY-BEFORE   testing::internal::FormatForComparison<char [170], std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >::Format(char const*)
+              ONLY-BEFORE   testing::AssertionResult testing::internal::CmpHelperEQ<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [170]>(char const*, char const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const (&) [170])
+              ONLY-BEFORE   std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::internal::FormatForComparisonFailureMessage<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [170]>(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const (&) [170])
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::internal::FormatForComparisonFailureMessage<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [171]>(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const (&) [171])
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::internal::FormatForComparisonFailureMessage<char [171], std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >(char const (&) [171], std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+              ONLY-AFTER    testing::internal::FormatForComparison<char [171], std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >::Format(char const*)
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [171]>(char const*, char const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const (&) [171])
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQ<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [171]>(char const*, char const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const (&) [171])
+              ONLY-AFTER    testing::internal::FormatForComparison<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [171]>::Format(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+              ONLY-AFTER    _ZN7testing8internal8EqHelper7CompareINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEA171_cTnPNSt9enable_ifIXoontsr3std11is_integralIT_EE5valuentsr3std10is_pointerIT0_EE5valueEvE4typeELPv0EEENS_15AssertionResultEPKcSJ_RKSB_RKSC_
+DIFFERS     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options_dump.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+              UNCLASSIFIED  - Disassembly of section .text._ZN7testing8internal8EqHelper7CompareINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEA170_cTnPNSt9enable_ifIXoontsr3std11is_integralIT_EE5valuentsr3std10is_pointerIT0_EE5valueEvE4typeELPv0EEENS_15AssertionResultEPKcSJ_RKSB_RKSC_:
+                            + Disassembly of section .text._ZN7testing8internal8EqHelper7CompareINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEA171_cTnPNSt9enable_ifIXoontsr3std11is_integralIT_EE5valuentsr3std10is_pointerIT0_EE5valueEvE4typeELPv0EEENS_15AssertionResultEPKcSJ_RKSB_RKSC_:
+              UNCLASSIFIED  - 0000000000000000 <_ZN7testing8internal8EqHelper7CompareINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEA170_cTnPNSt9enable_ifIXoontsr3std11is_integralIT_EE5valuentsr3std10is_pointerIT0_EE5valueEvE4typeELPv0EEENS_15AssertionResultEPKcSJ_RKSB_RKSC_>:
+                            + 0000000000000000 <_ZN7testing8internal8EqHelper7CompareINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEA171_cTnPNSt9enable_ifIXoontsr3std11is_integralIT_EE5valuentsr3std10is_pointerIT0_EE5valueEvE4typeELPv0EEENS_15AssertionResultEPKcSJ_RKSB_RKSC_>:
+              UNCLASSIFIED  - Disassembly of section .text._ZN7testing8internal11CmpHelperEQINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEA170_cEENS_15AssertionResultEPKcSB_RKT_RKT0_:
+                            + Disassembly of section .text._ZN7testing8internal11CmpHelperEQINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEA171_cEENS_15AssertionResultEPKcSB_RKT_RKT0_:
+              UNCLASSIFIED  - 0000000000000000 <_ZN7testing8internal11CmpHelperEQINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEA170_cEENS_15AssertionResultEPKcSB_RKT_RKT0_>:
+                            + 0000000000000000 <_ZN7testing8internal11CmpHelperEQINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEA171_cEENS_15AssertionResultEPKcSB_RKT_RKT0_>:
+              UNCLASSIFIED  - Disassembly of section .text._ZN7testing8internal18CmpHelperEQFailureINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEA170_cEENS_15AssertionResultEPKcSB_RKT_RKT0_:
+                            + Disassembly of section .text._ZN7testing8internal18CmpHelperEQFailureINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEA171_cEENS_15AssertionResultEPKcSB_RKT_RKT0_:
+              ... and 9 more unclassified differences
+            COUNTS 14232 insns; CHANGED 73; UNCLASSIFIED 14; DELTAS +1(x7) +3(x7) +6(x38) +500(x7)
+PER-SYMBOL  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options_dump.cpp.o: PERSYM 400 identical, 14 noise-only, 1 differing, 7 only-before, 7 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 10 rank-tagged, 0 section moves, 1961 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (10 unresolved)
+              DIFFERS       (anonymous namespace)::OptionsDump_IpmDumpHeadIsVerbatim_Test::TestBody()
+                              UNCLASSIFIED  - RELOC R_X86_64_PLT32 _ZN7testing8internal8EqHelper7CompareINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEA170_cTnPNSt9enable_ifIXoontsr3std11is_integralIT_EE5valuentsr3std10is_pointerIT0_EE5valueEvE4typeELPv0EEENS_15AssertionResultEPKcSJ_RKSB_RKSC_ -0x4
+                                            + RELOC R_X86_64_PLT32 _ZN7testing8internal8EqHelper7CompareINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEA171_cTnPNSt9enable_ifIXoontsr3std11is_integralIT_EE5valuentsr3std10is_pointerIT0_EE5valueEvE4typeELPv0EEENS_15AssertionResultEPKcSJ_RKSB_RKSC_ -0x4
+                            COUNTS 233 insns; CHANGED 5; UNCLASSIFIED 1; DELTAS +1(x1) +3(x1) +6(x1) +500(x1)
+              ONLY-BEFORE   testing::internal::FormatForComparison<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [170]>::Format(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+              NOISE-ONLY    __cxx_global_var_init[#2]
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +6(x3)
+              ONLY-BEFORE   _ZN7testing8internal8EqHelper7CompareINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEA170_cTnPNSt9enable_ifIXoontsr3std11is_integralIT_EE5valuentsr3std10is_pointerIT0_EE5valueEvE4typeELPv0EEENS_15AssertionResultEPKcSJ_RKSB_RKSC_
+              ONLY-BEFORE   testing::AssertionResult testing::internal::CmpHelperEQFailure<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [170]>(char const*, char const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const (&) [170])
+              ONLY-BEFORE   std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::internal::FormatForComparisonFailureMessage<char [170], std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >(char const (&) [170], std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+              NOISE-ONLY    (anonymous namespace)::OptionsDump_ReadsTheValueItWasGiven_Test::TestBody()
+                            COUNTS 443 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +6(x4)
+              NOISE-ONLY    __cxx_global_var_init[#6]
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +6(x3)
+              NOISE-ONLY    (anonymous namespace)::OptionsDump_EnumsPrintEnumeratorNames_Test::TestBody()
+                            COUNTS 1119 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    __cxx_global_var_init[#8]
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +6(x3)
+              NOISE-ONLY    (anonymous namespace)::OptionsDump_WritesIntoAStreamTheCallerIsAlreadyUsing_Test::TestBody()
+                            COUNTS 328 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +6(x1)
+              ONLY-BEFORE   testing::internal::FormatForComparison<char [170], std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >::Format(char const*)
+              ONLY-BEFORE   testing::AssertionResult testing::internal::CmpHelperEQ<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [170]>(char const*, char const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const (&) [170])
+              NOISE-ONLY    (anonymous namespace)::OptionsDump_APoisonedStreamProducesTheSameBytes_Test::TestBody()
+                            COUNTS 846 insns; CHANGED 11; UNCLASSIFIED 0; DELTAS +1(x2) +3(x2) +6(x5) +500(x2)
+              NOISE-ONLY    (anonymous namespace)::OptionsDump_NoTrailingWhitespace_Test::TestBody()
+                            COUNTS 842 insns; CHANGED 10; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +6(x7) +500(x1)
+              NOISE-ONLY    (anonymous namespace)::OptionsDump_IsDeterministic_Test::TestBody()
+                            COUNTS 205 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +6(x2)
+              NOISE-ONLY    __cxx_global_var_init[#7]
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +6(x3)
+              ONLY-BEFORE   std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::internal::FormatForComparisonFailureMessage<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [170]>(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const (&) [170])
+              NOISE-ONLY    __cxx_global_var_init[#9]
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +6(x3)
+              NOISE-ONLY    (anonymous namespace)::OptionsDump_IpmDumpsOneLinePerField_Test::TestBody()
+                            COUNTS 198 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              NOISE-ONLY    __cxx_global_var_init[#10]
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +6(x3)
+              NOISE-ONLY    hven::solvers::IpmOptions::IpmOptions()
+                            COUNTS 109 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::internal::FormatForComparisonFailureMessage<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [171]>(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const (&) [171])
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::internal::FormatForComparisonFailureMessage<char [171], std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >(char const (&) [171], std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+              ONLY-AFTER    testing::internal::FormatForComparison<char [171], std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >::Format(char const*)
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [171]>(char const*, char const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const (&) [171])
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQ<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [171]>(char const*, char const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const (&) [171])
+              ONLY-AFTER    testing::internal::FormatForComparison<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [171]>::Format(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+              ONLY-AFTER    _ZN7testing8internal8EqHelper7CompareINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEA171_cTnPNSt9enable_ifIXoontsr3std11is_integralIT_EE5valuentsr3std10is_pointerIT0_EE5valueEvE4typeELPv0EEENS_15AssertionResultEPKcSJ_RKSB_RKSC_
+NOISE-ONLY  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_result.cpp.o
+            COUNTS 124608 insns; CHANGED 245; UNCLASSIFIED 0; DELTAS +3(x1) -3(x1) +1(x1) +9(x241) +500(x1)
+NOISE-ONLY  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_warm_protocol.cpp.o
+            COUNTS 51088 insns; CHANGED 42; UNCLASSIFIED 0; DELTAS +1(x14) +3(x14) +500(x14)
+SYMBOLS     bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o: COVERAGE FINDINGS
+              LOCAL-FAMILY  .L.str: 537 before, 538 after
+DIFFERS     bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 163426 lines vs 163491 -- instructions were added or removed
+PER-SYMBOL  bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o: PERSYM 4431 identical, 0 noise-only, 7 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 5 rank-tagged, 0 section moves, 16864 relocation records compared (0 through the symbol map), 5 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       (anonymous namespace)::read_internal_row(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, hven::solvers::corpus::CorpusCell const&)
+                              UNCLASSIFIED  - 	jmp    1da5f ;LEN=5
+                                            + 	jmp    1dbbf ;LEN=5
+                            COUNTS 138 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       (anonymous namespace)::run_internal_one(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, hven::solvers::corpus::detail::EngineConfig const&, bool, bool)::$_0::operator()() const
+                              UNCLASSIFIED  - 	jmp    1c0c2 ;LEN=2
+                                            + 	jmp    1c222 ;LEN=2
+                            COUNTS 61 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       (anonymous namespace)::write_interior_provenance_head(std::basic_ostream<char, std::char_traits<char> >&, int, char**, hven::solvers::corpus::InteriorLevers const&)
+                            STRUCTURAL: normalized listing is 719 lines vs 788 -- instructions were added or removed
+              DIFFERS       hven::solvers::corpus::CountingTraceSink::on_qp_mode(hven::solvers::QpModeTraceEvent const&)
+                            STRUCTURAL: normalized listing is 43 lines vs 48 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::parse_double_field(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+                              UNCLASSIFIED  - 	jmp    1d27a ;LEN=5
+                                            + 	jmp    1d3da ;LEN=5
+                              UNCLASSIFIED  - 	jmp    1d27a ;LEN=2
+                                            + 	jmp    1d3da ;LEN=2
+                            COUNTS 132 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       (anonymous namespace)::parse_status(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+                              UNCLASSIFIED  - 	jmp    1d488 ;LEN=2
+                                            + 	jmp    1d5e8 ;LEN=2
+                            COUNTS 114 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       (anonymous namespace)::write_model_surface_sidecar(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, hven::solvers::corpus::CorpusRow const&)
+                              UNCLASSIFIED  - 	jmp    1bc9f ;LEN=5
+                                            + 	jmp    1bdff ;LEN=5
+                            COUNTS 189 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+SYMBOLS     bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o: COVERAGE FINDINGS
+              ONLY-AFTER    hven::solvers::IpmOptions::IpmOptions()
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::rfind(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, unsigned long) const
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::substr(unsigned long, unsigned long) const
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > std::operator+<char, std::char_traits<char>, std::allocator<char> >(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&&, char const*)
+              ONLY-AFTER    hven::solvers::corpus::interior_globalization_stamp[abi:cxx11]()
+              ONLY-AFTER    hven::solvers::corpus::interior_globalization_stamp[abi:cxx11]()::$_0::operator()[abi:cxx11](std::basic_string_view<char, std::char_traits<char> >) const
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::rfind(char const*, unsigned long, unsigned long) const
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::basic_string(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, unsigned long, unsigned long)
+              LOCAL-FAMILY  .L.str: 219 before, 228 after
+              LOCAL-FAMILY  GCC_except_table: 250 before, 254 after
+DIFFERS     bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 190 alignment-pad lines vs 192 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 91706 lines vs 92324 -- instructions were added or removed
+PER-SYMBOL  bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o: PERSYM 2710 identical, 1 noise-only, 9 differing, 0 only-before, 8 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 2 rank-tagged, 0 section moves, 8782 relocation records compared (0 through the symbol map), 2 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::corpus::interior_treatment_from_tag(std::basic_string_view<char, std::char_traits<char> >)
+                              UNCLASSIFIED  - 	jmp    8ea5 ;LEN=2
+                                            + 	jmp    8ed5 ;LEN=2
+                            COUNTS 131 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       hven::solvers::corpus::configure_interior_solver(hven::solvers::IpmSolver&, hven::solvers::FixedVariableTreatments, hven::solvers::corpus::InteriorLevers const&, hven::solvers::corpus::InteriorVariant const&)
+                            STRUCTURAL: normalized listing is 154 lines vs 163 -- instructions were added or removed
+              NOISE-ONLY    std::__detail::_MakeUniq<hven::solvers::IpmSolver>::__single_object std::make_unique<hven::solvers::IpmSolver>()
+                            COUNTS 139 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+              DIFFERS       hven::solvers::corpus::run_interior_single_row(std::basic_string_view<char, std::char_traits<char> >, hven::solvers::FixedVariableTreatments, hven::solvers::corpus::InteriorLevers const&)
+                              UNCLASSIFIED  - 	jmp    921d ;LEN=5
+                                            + 	jmp    924d ;LEN=5
+                            COUNTS 164 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       hven::solvers::corpus::interior_partition_stamp(hven::solvers::corpus::CorpusCell const&, int)
+                              UNCLASSIFIED  - 	jmp    463e ;LEN=5
+                                            + 	jmp    466e ;LEN=5
+                            COUNTS 202 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       hven::solvers::corpus::run_interior_cell(hven::solvers::corpus::CorpusCell const&, hven::solvers::FixedVariableTreatments, hven::solvers::corpus::InteriorLevers const&, hven::solvers::corpus::InteriorVariant const&)
+                              UNCLASSIFIED  - 	jmp    4c54 ;LEN=5
+                                            + 	jmp    4c84 ;LEN=5
+                            COUNTS 252 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       hven::solvers::corpus::run_interior_problem(std::shared_ptr<hven::solvers::NlpTripletModel> const&, hven::solvers::corpus::InteriorRowIdentity const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::FixedVariableTreatments, hven::solvers::corpus::InteriorLevers const&, hven::solvers::corpus::InteriorVariant const&)
+                              UNCLASSIFIED  - 	jmp    36c2 ;LEN=5
+                                            + 	jmp    36f2 ;LEN=5
+                              UNCLASSIFIED  - 	jmp    36c2 ;LEN=5
+                                            + 	jmp    36f2 ;LEN=5
+                              UNCLASSIFIED  - 	jmp    36c2 ;LEN=5
+                                            + 	jmp    36f2 ;LEN=5
+                              UNCLASSIFIED  - 	jmp    36c2 ;LEN=5
+                                            + 	jmp    36f2 ;LEN=5
+                              UNCLASSIFIED  - 	jmp    36c2 ;LEN=5
+                                            + 	jmp    36f2 ;LEN=5
+                            COUNTS 1252 insns; CHANGED 5; UNCLASSIFIED 5; DELTAS
+              DIFFERS       hven::solvers::corpus::(anonymous namespace)::leg_callback_payload_tag()
+                              UNCLASSIFIED  - 	jmp    3e8a ;LEN=2
+                                            + 	jmp    3eba ;LEN=2
+                            COUNTS 138 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       hven::solvers::corpus::CountingTraceSink::on_qp_mode(hven::solvers::QpModeTraceEvent const&)
+                            STRUCTURAL: normalized listing is 43 lines vs 48 -- instructions were added or removed
+              DIFFERS       hven::solvers::corpus::run_interior_infeasible(std::basic_string_view<char, std::char_traits<char> >, hven::solvers::FixedVariableTreatments, hven::solvers::corpus::InteriorLevers const&, hven::solvers::corpus::InteriorVariant const&)
+                              UNCLASSIFIED  - 	jmp    6f01 ;LEN=5
+                                            + 	jmp    6f31 ;LEN=5
+                            COUNTS 224 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              ONLY-AFTER    hven::solvers::IpmOptions::IpmOptions()
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::rfind(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, unsigned long) const
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::substr(unsigned long, unsigned long) const
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > std::operator+<char, std::char_traits<char>, std::allocator<char> >(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&&, char const*)
+              ONLY-AFTER    hven::solvers::corpus::interior_globalization_stamp[abi:cxx11]()
+              ONLY-AFTER    hven::solvers::corpus::interior_globalization_stamp[abi:cxx11]()::$_0::operator()[abi:cxx11](std::basic_string_view<char, std::char_traits<char> >) const
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::rfind(char const*, unsigned long, unsigned long) const
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::basic_string(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, unsigned long, unsigned long)
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+            COUNTS 81169 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x1) +3(x1) +500(x1)
+ARCHIVE     libhven.a differs -- see its member objects above; archive
+            metadata (member timestamps, symbol index) is not instructions
+
+P-SYM: 146 objects — 125 byte-identical, 13 differing within the accepted noise class, 7 with unclassified differences, 0 matched by basename after a path move, 0 missing
+P-SYM coverage: 0 objects matched through the object map, 7 compared per symbol, 0 objects passed per symbol, 0 after-arm objects unaccounted for; symbols — 351566 matched (0 through the symbol map), 22 only-before, 134 only-after, 0 excepted, 0 collisions, 2633 rank-tagged, 0 stale exceptions, 0 stale map entries; compiler-local label families — 12210 matched by count, 11 differing (110427 before-arm and 110510 after-arm symbols accounted by family); relocations — 126221 records compared (0 through the symbol map)
+P-SYM: FAIL — differences outside the accepted noise class

@@ -1,0 +1,1099 @@
+D1SOLVE 0 begin n=128 me=114 mi=274 D=1.000000e+00 ind=1 warm=0 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x35c640e0 maxit=0
+D1TERM s=0 it=39 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=124 n=128
+D1CNT MAIN status=kOptimal minors=40 facts=72 adds=20 drops=11 dep_tests=20 dep_dep=2 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=2 xch_b=2 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=1.319587906225e+04 stat=3.577e-11(scale 4.000e+03) eqviol=3.343e-09 iviol=5.676e-10 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=2 atup=6 |x|inf=1.000000e+00 KKT@tol1e-09=YES
+D1SOLVE 0 end
+D1SOLVE 1 begin n=128 me=114 mi=274 D=1.000000e+00 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x35c640e0 maxit=0
+D1OVER s=1 it=0 count=177 n=128 det.found=1 solves=3 null_res=5.266e-07 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=1 count=176 n=128 det.found=1 solves=3 null_res=4.865e-07 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=2 count=175 n=128 det.found=1 solves=2 null_res=9.589e-07 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=3 count=174 n=128 det.found=1 solves=3 null_res=3.991e-07 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=4 count=173 n=128 det.found=1 solves=3 null_res=4.544e-07 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=5 count=172 n=128 det.found=0 solves=4 null_res=2.360e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=6 count=171 n=128 det.found=0 solves=4 null_res=2.376e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=7 count=170 n=128 det.found=0 solves=4 null_res=2.310e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=8 count=169 n=128 det.found=0 solves=4 null_res=2.366e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=9 count=168 n=128 det.found=0 solves=4 null_res=2.543e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=10 count=167 n=128 det.found=0 solves=4 null_res=2.606e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=11 count=166 n=128 det.found=0 solves=4 null_res=2.353e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=12 count=165 n=128 det.found=0 solves=4 null_res=2.061e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=13 count=164 n=128 det.found=0 solves=4 null_res=2.049e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=14 count=163 n=128 det.found=0 solves=4 null_res=2.062e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=15 count=162 n=128 det.found=0 solves=4 null_res=2.145e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=16 count=161 n=128 det.found=0 solves=4 null_res=2.141e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=17 count=160 n=128 det.found=0 solves=4 null_res=2.176e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=18 count=159 n=128 det.found=0 solves=4 null_res=2.354e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=19 count=158 n=128 det.found=0 solves=4 null_res=2.633e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=20 count=157 n=128 det.found=0 solves=4 null_res=2.736e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=21 count=156 n=128 det.found=0 solves=4 null_res=2.729e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=22 count=155 n=128 det.found=0 solves=4 null_res=2.785e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=23 count=154 n=128 det.found=0 solves=4 null_res=2.815e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=24 count=153 n=128 det.found=0 solves=4 null_res=2.791e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=25 count=152 n=128 det.found=0 solves=4 null_res=2.772e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=26 count=151 n=128 det.found=0 solves=4 null_res=2.829e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=27 count=150 n=128 det.found=0 solves=4 null_res=2.797e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=28 count=149 n=128 det.found=0 solves=4 null_res=2.768e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=29 count=148 n=128 det.found=0 solves=4 null_res=2.800e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=30 count=147 n=128 det.found=0 solves=4 null_res=2.970e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=31 count=146 n=128 det.found=0 solves=4 null_res=2.969e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=32 count=145 n=128 det.found=0 solves=4 null_res=3.013e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=33 count=144 n=128 det.found=0 solves=4 null_res=3.050e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=34 count=143 n=128 det.found=0 solves=4 null_res=3.090e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=35 count=142 n=128 det.found=0 solves=4 null_res=2.999e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=36 count=141 n=128 det.found=0 solves=4 null_res=3.127e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=37 count=140 n=128 det.found=0 solves=4 null_res=3.315e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=38 count=139 n=128 det.found=0 solves=4 null_res=5.292e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=39 count=138 n=128 det.found=0 solves=4 null_res=7.712e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=40 count=137 n=128 det.found=0 solves=4 null_res=8.273e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=41 count=136 n=128 det.found=0 solves=4 null_res=7.919e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=42 count=135 n=128 det.found=0 solves=4 null_res=6.988e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=43 count=134 n=128 det.found=0 solves=4 null_res=6.917e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=44 count=133 n=128 det.found=0 solves=4 null_res=6.818e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=45 count=132 n=128 det.found=0 solves=4 null_res=3.844e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=46 count=131 n=128 det.found=0 solves=4 null_res=7.919e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=47 count=130 n=128 det.found=0 solves=4 null_res=8.002e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=1 it=48 count=129 n=128 det.found=0 solves=4 null_res=8.358e-06 shift_adds=55 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1CNT MAIN status=kNumericalError minors=51 facts=2 adds=0 drops=0 dep_tests=6 dep_dep=6 undec=0 entry_rm=49 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=49 untested=44 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=4 blk_term=1 deferred=0 retreat=1 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kNumericalError obj=0.000000000000e+00 stat=4.348e+03(scale 4.348e+03) eqviol=4.066e+00 iviol=8.508e-01 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=0 atup=6 |x|inf=0.000000e+00 KKT@tol1e-09=NO
+D1SOLVE 1 end
+D1SOLVE 2 begin n=128 me=114 mi=274 D=5.000000e-01 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x35c640e0 maxit=0
+D1OVER s=2 it=0 count=171 n=128 det.found=0 solves=4 null_res=2.376e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=1 count=170 n=128 det.found=0 solves=4 null_res=2.310e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=2 count=169 n=128 det.found=0 solves=4 null_res=2.366e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=3 count=168 n=128 det.found=0 solves=4 null_res=2.543e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=4 count=167 n=128 det.found=0 solves=4 null_res=2.606e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=5 count=166 n=128 det.found=0 solves=4 null_res=2.353e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=6 count=165 n=128 det.found=0 solves=4 null_res=2.061e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=7 count=164 n=128 det.found=0 solves=4 null_res=2.049e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=8 count=163 n=128 det.found=0 solves=4 null_res=2.062e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=9 count=162 n=128 det.found=0 solves=4 null_res=2.145e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=10 count=161 n=128 det.found=0 solves=4 null_res=2.141e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=11 count=160 n=128 det.found=0 solves=4 null_res=2.176e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=12 count=159 n=128 det.found=0 solves=4 null_res=2.354e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=13 count=158 n=128 det.found=0 solves=4 null_res=2.633e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=14 count=157 n=128 det.found=0 solves=4 null_res=2.736e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=15 count=156 n=128 det.found=0 solves=4 null_res=2.729e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=16 count=155 n=128 det.found=0 solves=4 null_res=2.785e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=17 count=154 n=128 det.found=0 solves=4 null_res=2.815e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=18 count=153 n=128 det.found=0 solves=4 null_res=2.791e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=19 count=152 n=128 det.found=0 solves=4 null_res=2.772e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=20 count=151 n=128 det.found=0 solves=4 null_res=2.829e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=21 count=150 n=128 det.found=0 solves=4 null_res=2.797e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=22 count=149 n=128 det.found=0 solves=4 null_res=2.768e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=23 count=148 n=128 det.found=0 solves=4 null_res=2.800e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=24 count=147 n=128 det.found=0 solves=4 null_res=2.970e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=25 count=146 n=128 det.found=0 solves=4 null_res=2.969e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=26 count=145 n=128 det.found=0 solves=4 null_res=3.013e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=27 count=144 n=128 det.found=0 solves=4 null_res=3.050e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=28 count=143 n=128 det.found=0 solves=4 null_res=3.090e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=29 count=142 n=128 det.found=0 solves=4 null_res=2.999e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=30 count=141 n=128 det.found=0 solves=4 null_res=3.127e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=31 count=140 n=128 det.found=0 solves=4 null_res=3.315e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=32 count=139 n=128 det.found=0 solves=4 null_res=5.292e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=33 count=138 n=128 det.found=0 solves=4 null_res=7.712e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=34 count=137 n=128 det.found=0 solves=4 null_res=8.273e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=35 count=136 n=128 det.found=0 solves=4 null_res=7.919e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=36 count=135 n=128 det.found=0 solves=4 null_res=6.988e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=37 count=134 n=128 det.found=0 solves=4 null_res=6.917e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=38 count=133 n=128 det.found=0 solves=4 null_res=6.818e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=39 count=132 n=128 det.found=0 solves=4 null_res=3.844e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=40 count=131 n=128 det.found=0 solves=4 null_res=7.919e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=41 count=130 n=128 det.found=0 solves=4 null_res=8.002e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=42 count=129 n=128 det.found=0 solves=4 null_res=8.358e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=63 count=149 n=128 det.found=1 solves=3 null_res=3.905e-07 shift_adds=65 ws_adds=17 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=64 count=148 n=128 det.found=0 solves=4 null_res=1.865e-06 shift_adds=65 ws_adds=17 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=65 count=147 n=128 det.found=0 solves=4 null_res=1.752e-06 shift_adds=65 ws_adds=17 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=66 count=146 n=128 det.found=0 solves=4 null_res=2.162e-06 shift_adds=65 ws_adds=17 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=67 count=145 n=128 det.found=0 solves=4 null_res=2.133e-06 shift_adds=65 ws_adds=17 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=68 count=144 n=128 det.found=0 solves=4 null_res=2.515e-06 shift_adds=65 ws_adds=17 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=69 count=143 n=128 det.found=0 solves=4 null_res=3.391e-06 shift_adds=65 ws_adds=17 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=70 count=142 n=128 det.found=0 solves=4 null_res=4.601e-06 shift_adds=65 ws_adds=17 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=71 count=141 n=128 det.found=0 solves=4 null_res=4.173e-06 shift_adds=65 ws_adds=17 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=72 count=140 n=128 det.found=0 solves=4 null_res=2.061e-06 shift_adds=65 ws_adds=17 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=73 count=139 n=128 det.found=0 solves=4 null_res=2.357e-06 shift_adds=65 ws_adds=17 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=74 count=138 n=128 det.found=0 solves=4 null_res=2.539e-06 shift_adds=65 ws_adds=17 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=75 count=137 n=128 det.found=0 solves=4 null_res=6.635e-06 shift_adds=65 ws_adds=17 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=76 count=136 n=128 det.found=0 solves=4 null_res=5.865e-06 shift_adds=65 ws_adds=17 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=77 count=135 n=128 det.found=0 solves=4 null_res=5.470e-06 shift_adds=65 ws_adds=17 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=78 count=134 n=128 det.found=0 solves=4 null_res=5.323e-06 shift_adds=65 ws_adds=17 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=79 count=133 n=128 det.found=0 solves=4 null_res=5.439e-06 shift_adds=65 ws_adds=17 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=80 count=132 n=128 det.found=0 solves=4 null_res=5.429e-06 shift_adds=65 ws_adds=17 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=81 count=131 n=128 det.found=0 solves=4 null_res=7.106e-06 shift_adds=65 ws_adds=17 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=82 count=130 n=128 det.found=0 solves=4 null_res=6.142e-06 shift_adds=65 ws_adds=17 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=83 count=129 n=128 det.found=0 solves=4 null_res=5.889e-06 shift_adds=65 ws_adds=17 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=85 count=130 n=128 det.found=0 solves=4 null_res=3.954e-06 shift_adds=67 ws_adds=18 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=1
+D1OVER s=2 it=86 count=129 n=128 det.found=0 solves=4 null_res=5.738e-06 shift_adds=67 ws_adds=18 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=1
+D1CNT MAIN status=kNumericalError minors=90 facts=12 adds=19 drops=20 dep_tests=21 dep_dep=21 undec=0 entry_rm=43 mand_dep=0 recheck_rm=23 ride_decl=0 pin_skip=0 cnt_viol=66 untested=65 xch=19 xch_b=17 xch_sh=8 cert=0 cert_rej=0 passover=0 blk_term=1 deferred=0 retreat=1 reentry=7 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kNumericalError obj=6.344316793069e+02 stat=4.627e+03(scale 4.348e+03) eqviol=2.334e-06 iviol=1.418e-01 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=2 atup=5 |x|inf=5.000000e-01 KKT@tol1e-09=NO
+D1SOLVE 2 end
+D1SOLVE 3 begin n=128 me=114 mi=274 D=2.500000e-01 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x35c640e0 maxit=0
+D1OVER s=3 it=0 count=171 n=128 det.found=0 solves=4 null_res=2.376e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=1 count=170 n=128 det.found=0 solves=4 null_res=2.310e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=2 count=169 n=128 det.found=0 solves=4 null_res=2.366e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=3 count=168 n=128 det.found=0 solves=4 null_res=2.543e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=4 count=167 n=128 det.found=0 solves=4 null_res=2.606e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=5 count=166 n=128 det.found=0 solves=4 null_res=2.353e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=6 count=165 n=128 det.found=0 solves=4 null_res=2.061e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=7 count=164 n=128 det.found=0 solves=4 null_res=2.049e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=8 count=163 n=128 det.found=0 solves=4 null_res=2.062e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=9 count=162 n=128 det.found=0 solves=4 null_res=2.145e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=10 count=161 n=128 det.found=0 solves=4 null_res=2.141e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=11 count=160 n=128 det.found=0 solves=4 null_res=2.176e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=12 count=159 n=128 det.found=0 solves=4 null_res=2.354e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=13 count=158 n=128 det.found=0 solves=4 null_res=2.633e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=14 count=157 n=128 det.found=0 solves=4 null_res=2.736e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=15 count=156 n=128 det.found=0 solves=4 null_res=2.729e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=16 count=155 n=128 det.found=0 solves=4 null_res=2.785e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=17 count=154 n=128 det.found=0 solves=4 null_res=2.815e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=18 count=153 n=128 det.found=0 solves=4 null_res=2.791e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=19 count=152 n=128 det.found=0 solves=4 null_res=2.772e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=20 count=151 n=128 det.found=0 solves=4 null_res=2.829e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=21 count=150 n=128 det.found=0 solves=4 null_res=2.797e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=22 count=149 n=128 det.found=0 solves=4 null_res=2.768e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=23 count=148 n=128 det.found=0 solves=4 null_res=2.800e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=24 count=147 n=128 det.found=0 solves=4 null_res=2.970e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=25 count=146 n=128 det.found=0 solves=4 null_res=2.969e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=26 count=145 n=128 det.found=0 solves=4 null_res=3.013e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=27 count=144 n=128 det.found=0 solves=4 null_res=3.050e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=28 count=143 n=128 det.found=0 solves=4 null_res=3.090e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=29 count=142 n=128 det.found=0 solves=4 null_res=2.999e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=30 count=141 n=128 det.found=0 solves=4 null_res=3.127e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=31 count=140 n=128 det.found=0 solves=4 null_res=3.315e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=32 count=139 n=128 det.found=0 solves=4 null_res=5.292e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=33 count=138 n=128 det.found=0 solves=4 null_res=7.712e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=34 count=137 n=128 det.found=0 solves=4 null_res=8.273e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=35 count=136 n=128 det.found=0 solves=4 null_res=7.919e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=36 count=135 n=128 det.found=0 solves=4 null_res=6.988e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=37 count=134 n=128 det.found=0 solves=4 null_res=6.917e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=38 count=133 n=128 det.found=0 solves=4 null_res=6.818e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=39 count=132 n=128 det.found=0 solves=4 null_res=3.844e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=40 count=131 n=128 det.found=0 solves=4 null_res=7.919e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=41 count=130 n=128 det.found=0 solves=4 null_res=8.002e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=3 it=42 count=129 n=128 det.found=0 solves=4 null_res=8.358e-06 shift_adds=43 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1CNT MAIN status=kNumericalError minors=47 facts=4 adds=2 drops=2 dep_tests=4 dep_dep=4 undec=0 entry_rm=43 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=43 untested=43 xch=2 xch_b=2 xch_sh=2 cert=0 cert_rej=0 passover=0 blk_term=1 deferred=0 retreat=1 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kNumericalError obj=0.000000000000e+00 stat=4.348e+03(scale 4.348e+03) eqviol=4.066e+00 iviol=8.508e-01 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=0 atup=6 |x|inf=0.000000e+00 KKT@tol1e-09=NO
+D1SOLVE 3 end
+D1SOLVE 4 begin n=128 me=114 mi=274 D=1.250000e-01 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x35c640e0 maxit=0
+D1OVER s=4 it=0 count=173 n=128 det.found=0 solves=4 null_res=1.470e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=1 count=172 n=128 det.found=0 solves=4 null_res=2.003e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=2 count=171 n=128 det.found=0 solves=4 null_res=2.376e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=3 count=170 n=128 det.found=0 solves=4 null_res=2.310e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=4 count=169 n=128 det.found=0 solves=4 null_res=2.366e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=5 count=168 n=128 det.found=0 solves=4 null_res=2.543e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=6 count=167 n=128 det.found=0 solves=4 null_res=2.606e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=7 count=166 n=128 det.found=0 solves=4 null_res=2.353e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=8 count=165 n=128 det.found=0 solves=4 null_res=2.061e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=9 count=164 n=128 det.found=0 solves=4 null_res=2.049e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=10 count=163 n=128 det.found=0 solves=4 null_res=2.062e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=11 count=162 n=128 det.found=0 solves=4 null_res=2.145e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=12 count=161 n=128 det.found=0 solves=4 null_res=2.141e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=13 count=160 n=128 det.found=0 solves=4 null_res=2.176e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=14 count=159 n=128 det.found=0 solves=4 null_res=2.354e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=15 count=158 n=128 det.found=0 solves=4 null_res=2.633e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=16 count=157 n=128 det.found=0 solves=4 null_res=2.736e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=17 count=156 n=128 det.found=0 solves=4 null_res=2.729e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=18 count=155 n=128 det.found=0 solves=4 null_res=2.785e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=19 count=154 n=128 det.found=0 solves=4 null_res=2.815e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=20 count=153 n=128 det.found=0 solves=4 null_res=2.791e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=21 count=152 n=128 det.found=0 solves=4 null_res=2.772e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=22 count=151 n=128 det.found=0 solves=4 null_res=2.829e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=23 count=150 n=128 det.found=0 solves=4 null_res=2.797e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=24 count=149 n=128 det.found=0 solves=4 null_res=2.768e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=25 count=148 n=128 det.found=0 solves=4 null_res=2.800e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=26 count=147 n=128 det.found=0 solves=4 null_res=2.970e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=27 count=146 n=128 det.found=0 solves=4 null_res=2.969e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=28 count=145 n=128 det.found=0 solves=4 null_res=3.013e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=29 count=144 n=128 det.found=0 solves=4 null_res=3.050e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=30 count=143 n=128 det.found=0 solves=4 null_res=3.090e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=31 count=142 n=128 det.found=0 solves=4 null_res=2.999e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=32 count=141 n=128 det.found=0 solves=4 null_res=3.127e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=33 count=140 n=128 det.found=0 solves=4 null_res=3.315e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=34 count=139 n=128 det.found=0 solves=4 null_res=5.292e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=35 count=138 n=128 det.found=0 solves=4 null_res=7.712e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=36 count=137 n=128 det.found=0 solves=4 null_res=8.273e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=37 count=136 n=128 det.found=0 solves=4 null_res=7.919e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=38 count=135 n=128 det.found=0 solves=4 null_res=6.988e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=39 count=134 n=128 det.found=0 solves=4 null_res=6.917e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=40 count=133 n=128 det.found=0 solves=4 null_res=6.818e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=41 count=132 n=128 det.found=0 solves=4 null_res=3.844e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=42 count=131 n=128 det.found=0 solves=4 null_res=7.919e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=43 count=130 n=128 det.found=0 solves=4 null_res=8.002e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1OVER s=4 it=44 count=129 n=128 det.found=0 solves=4 null_res=8.358e-06 shift_adds=45 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=1
+D1CNT MAIN status=kInfeasible minors=108 facts=14 adds=62 drops=62 dep_tests=63 dep_dep=63 undec=0 entry_rm=45 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=45 untested=45 xch=62 xch_b=62 xch_sh=14 cert=1 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=30 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kInfeasible obj=3.096171808983e+02 stat=4.847e+03(scale 4.348e+03) eqviol=1.833e+00 iviol=3.917e-01 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=5 atup=9 |x|inf=1.250000e-01 KKT@tol1e-09=NO
+D1CERT blocker=var:114 sign=1 stored_implied=2.046043044658e+01 stored_limit=1.250000000000e-01 margin=1.000e-08 residual=0.000e+00 | REDERIVED implied=2.046043044658e+01 limit=1.250000000000e-01 gap=2.033543e+01 max(y_i)=0.000e+00 |box_part-stored|=0.000e+00 unbounded_nnz=0 unbounded_norm=0.000e+00 |y_e|=6.701e+00 |y_i|=5.046e+01 nnz(y_i<0)=1
+D1SOLVE 4 end
+D1SOLVE 5 begin n=299 me=114 mi=274 D=inf ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=-1.000e+00 delta=-1.000e+00 engine=0x35c640e0 maxit=0
+D1REPAIR s=5 it=0 attempting start repair (pin_skips before=0)
+D1TERM s=5 it=379 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=283 n=299
+D1CNT MAIN status=kOptimal minors=380 facts=889 adds=213 drops=108 dep_tests=284 dep_dep=16 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=16 xch_b=16 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-2.068957111557e+03 stat=5.969e-12(scale 4.348e+03) eqviol=2.767e-11 iviol=1.705e-11 boxviol=0.000e+00 lneg=0.000e+00 comp=2.220e-14 mult=1 atlo=91 atup=24 |x|inf=7.371494e-01 KKT@tol1e-09=YES
+D1SOLVE 5 end
+D1SOLVE 6 begin n=299 me=114 mi=274 D=inf ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=-1.000e+00 delta=-1.000e+00 engine=0x35c640e0 maxit=0
+D1TERM s=6 it=285 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=296 n=299
+D1CNT MAIN status=kOptimal minors=286 facts=330 adds=192 drops=181 dep_tests=192 dep_dep=127 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=127 xch_b=127 xch_sh=1 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=48 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=1.056984035625e+04 stat=1.887e-11(scale 4.348e+03) eqviol=1.425e-09 iviol=1.110e-16 boxviol=0.000e+00 lneg=0.000e+00 comp=1.110e-13 mult=1 atlo=104 atup=25 |x|inf=7.447804e-01 KKT@tol1e-09=YES
+D1SOLVE 6 end
+D1SOLVE 7 begin n=299 me=114 mi=274 D=inf ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=-1.000e+00 delta=-1.000e+00 engine=0x35c640e0 maxit=0
+D1TERM s=7 it=25 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=298 n=299
+D1CNT MAIN status=kOptimal minors=26 facts=27 adds=17 drops=16 dep_tests=17 dep_dep=12 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=12 xch_b=12 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=1 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=1.342321600397e+05 stat=1.746e-10(scale 4.066e+04) eqviol=5.224e-09 iviol=1.110e-16 boxviol=0.000e+00 lneg=0.000e+00 comp=1.110e-12 mult=1 atlo=104 atup=27 |x|inf=5.630711e-01 KKT@tol1e-09=YES
+D1SOLVE 7 end
+D1SOLVE 8 begin n=299 me=114 mi=274 D=inf ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=-1.000e+00 delta=-1.000e+00 engine=0x35c640e0 maxit=0
+D1TERM s=8 it=34 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=299 n=299
+D1CNT MAIN status=kOptimal minors=35 facts=36 adds=33 drops=33 dep_tests=33 dep_dep=33 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=33 xch_b=33 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=11 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=1.352385098011e+06 stat=1.455e-09(scale 4.066e+05) eqviol=5.840e-08 iviol=5.281e-08 boxviol=0.000e+00 lneg=0.000e+00 comp=1.110e-11 mult=1 atlo=105 atup=26 |x|inf=5.088966e-01 KKT@tol1e-09=YES
+D1SOLVE 8 end
+D1SOLVE 9 begin n=299 me=114 mi=274 D=inf ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=-1.000e+00 delta=-1.000e+00 engine=0x35c640e0 maxit=0
+D1TERM s=9 it=1 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=299 n=299
+D1CNT MAIN status=kOptimal minors=2 facts=2 adds=0 drops=0 dep_tests=0 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=1.352732618698e+07 stat=1.094e-08(scale 4.066e+06) eqviol=5.835e-07 iviol=5.279e-07 boxviol=0.000e+00 lneg=0.000e+00 comp=1.110e-10 mult=1 atlo=105 atup=26 |x|inf=5.088959e-01 KKT@tol1e-09=YES
+D1SOLVE 9 end
+D1SOLVE 10 begin n=299 me=114 mi=274 D=inf ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=-1.000e+00 delta=-1.000e+00 engine=0x35c640e0 maxit=0
+D1TERM s=10 it=1 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=299 n=299
+D1CNT MAIN status=kOptimal minors=2 facts=2 adds=0 drops=0 dep_tests=0 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=1.352763978715e+08 stat=7.451e-08(scale 4.066e+07) eqviol=5.835e-06 iviol=5.279e-06 boxviol=0.000e+00 lneg=0.000e+00 comp=1.110e-09 mult=1 atlo=105 atup=26 |x|inf=5.088894e-01 KKT@tol1e-09=NO
+D1SOLVE 10 end
+D1SOLVE 11 begin n=299 me=114 mi=274 D=inf ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=-1.000e+00 delta=-1.000e+00 engine=0x35c640e0 maxit=0
+D1OVER s=11 it=6 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=1 ws_adds=4 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=12 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=2 ws_adds=7 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=18 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=3 ws_adds=10 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=24 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=4 ws_adds=13 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=30 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=5 ws_adds=16 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=36 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=6 ws_adds=19 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=42 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=7 ws_adds=22 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=48 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=8 ws_adds=25 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=54 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=9 ws_adds=28 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=60 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=10 ws_adds=31 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=66 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=11 ws_adds=34 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=72 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=12 ws_adds=37 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=78 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=13 ws_adds=40 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=84 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=14 ws_adds=43 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=90 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=15 ws_adds=46 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=96 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=16 ws_adds=49 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=102 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=17 ws_adds=52 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=108 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=18 ws_adds=55 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=114 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=19 ws_adds=58 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=120 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=20 ws_adds=61 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=126 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=21 ws_adds=64 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=132 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=22 ws_adds=67 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=138 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=23 ws_adds=70 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=144 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=24 ws_adds=73 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=150 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=25 ws_adds=76 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=156 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=26 ws_adds=79 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=162 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=27 ws_adds=82 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=168 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=28 ws_adds=85 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=174 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=29 ws_adds=88 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=180 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=30 ws_adds=91 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=186 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=31 ws_adds=94 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=192 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=32 ws_adds=97 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=198 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=33 ws_adds=100 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=204 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=34 ws_adds=103 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=210 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=35 ws_adds=106 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=216 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=36 ws_adds=109 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=222 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=37 ws_adds=112 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=228 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=38 ws_adds=115 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=234 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=39 ws_adds=118 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=240 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=40 ws_adds=121 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=246 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=41 ws_adds=124 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=252 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=42 ws_adds=127 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=258 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=43 ws_adds=130 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=264 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=44 ws_adds=133 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=270 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=45 ws_adds=136 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=276 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=46 ws_adds=139 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=282 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=47 ws_adds=142 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=288 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=48 ws_adds=145 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=294 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=49 ws_adds=148 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=300 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=50 ws_adds=151 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=306 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=51 ws_adds=154 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=312 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=52 ws_adds=157 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=318 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=53 ws_adds=160 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=324 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=54 ws_adds=163 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=330 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=55 ws_adds=166 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=336 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=56 ws_adds=169 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=342 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=57 ws_adds=172 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=348 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=58 ws_adds=175 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=354 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=59 ws_adds=178 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=360 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=60 ws_adds=181 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=366 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=61 ws_adds=184 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=372 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=62 ws_adds=187 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=378 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=63 ws_adds=190 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=384 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=64 ws_adds=193 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=390 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=65 ws_adds=196 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=396 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=66 ws_adds=199 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=402 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=67 ws_adds=202 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=408 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=68 ws_adds=205 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=414 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=69 ws_adds=208 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=420 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=70 ws_adds=211 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=426 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=71 ws_adds=214 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=432 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=72 ws_adds=217 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=438 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=73 ws_adds=220 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=444 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=74 ws_adds=223 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=450 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=75 ws_adds=226 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=456 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=76 ws_adds=229 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=462 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=77 ws_adds=232 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=468 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=78 ws_adds=235 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=474 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=79 ws_adds=238 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=480 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=80 ws_adds=241 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=486 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=81 ws_adds=244 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=492 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=82 ws_adds=247 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=498 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=83 ws_adds=250 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=504 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=84 ws_adds=253 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=510 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=85 ws_adds=256 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=516 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=86 ws_adds=259 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=522 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=87 ws_adds=262 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=528 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=88 ws_adds=265 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=534 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=89 ws_adds=268 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=540 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=90 ws_adds=271 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=546 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=91 ws_adds=274 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=552 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=92 ws_adds=277 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=558 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=93 ws_adds=280 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=564 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=94 ws_adds=283 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=570 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=95 ws_adds=286 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=576 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=96 ws_adds=289 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=582 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=97 ws_adds=292 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=588 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=98 ws_adds=295 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=594 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=99 ws_adds=298 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=600 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=100 ws_adds=301 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=606 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=101 ws_adds=304 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=612 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=102 ws_adds=307 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=618 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=103 ws_adds=310 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=624 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=104 ws_adds=313 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=630 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=105 ws_adds=316 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=636 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=106 ws_adds=319 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=642 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=107 ws_adds=322 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=648 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=108 ws_adds=325 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=654 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=109 ws_adds=328 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=660 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=110 ws_adds=331 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=666 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=111 ws_adds=334 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=672 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=112 ws_adds=337 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=678 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=113 ws_adds=340 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=684 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=114 ws_adds=343 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=690 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=115 ws_adds=346 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=696 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=116 ws_adds=349 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=702 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=117 ws_adds=352 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=708 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=118 ws_adds=355 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=714 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=119 ws_adds=358 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=720 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=120 ws_adds=361 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=726 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=121 ws_adds=364 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=732 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=122 ws_adds=367 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=738 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=123 ws_adds=370 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=744 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=124 ws_adds=373 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=750 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=125 ws_adds=376 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=756 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=126 ws_adds=379 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=762 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=127 ws_adds=382 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=768 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=128 ws_adds=385 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=774 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=129 ws_adds=388 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=780 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=130 ws_adds=391 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=786 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=131 ws_adds=394 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=792 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=132 ws_adds=397 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=798 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=133 ws_adds=400 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=804 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=134 ws_adds=403 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=810 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=135 ws_adds=406 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=816 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=136 ws_adds=409 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=822 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=137 ws_adds=412 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=828 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=138 ws_adds=415 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=834 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=139 ws_adds=418 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=840 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=140 ws_adds=421 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=846 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=141 ws_adds=424 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=852 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=142 ws_adds=427 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=858 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=143 ws_adds=430 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=864 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=144 ws_adds=433 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=870 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=145 ws_adds=436 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=876 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=146 ws_adds=439 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=882 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=147 ws_adds=442 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=888 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=148 ws_adds=445 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=894 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=149 ws_adds=448 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=900 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=150 ws_adds=451 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=906 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=151 ws_adds=454 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=912 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=152 ws_adds=457 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=918 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=153 ws_adds=460 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=924 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=154 ws_adds=463 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=930 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=155 ws_adds=466 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=936 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=156 ws_adds=469 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=942 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=157 ws_adds=472 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=948 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=158 ws_adds=475 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=954 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=159 ws_adds=478 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=960 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=160 ws_adds=481 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=966 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=161 ws_adds=484 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=972 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=162 ws_adds=487 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=978 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=163 ws_adds=490 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=984 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=164 ws_adds=493 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=990 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=165 ws_adds=496 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=996 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=166 ws_adds=499 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1002 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=167 ws_adds=502 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1008 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=168 ws_adds=505 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1014 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=169 ws_adds=508 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1020 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=170 ws_adds=511 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1026 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=171 ws_adds=514 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1032 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=172 ws_adds=517 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1038 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=173 ws_adds=520 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1044 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=174 ws_adds=523 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1050 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=175 ws_adds=526 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1056 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=176 ws_adds=529 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1062 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=177 ws_adds=532 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1068 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=178 ws_adds=535 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1074 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=179 ws_adds=538 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1080 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=180 ws_adds=541 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1086 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=181 ws_adds=544 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1092 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=182 ws_adds=547 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1098 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=183 ws_adds=550 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1104 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=184 ws_adds=553 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1110 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=185 ws_adds=556 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1116 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=186 ws_adds=559 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1122 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=187 ws_adds=562 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1128 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=188 ws_adds=565 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1134 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=189 ws_adds=568 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1140 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=190 ws_adds=571 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1146 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=191 ws_adds=574 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1152 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=192 ws_adds=577 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1158 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=193 ws_adds=580 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1164 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=194 ws_adds=583 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1170 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=195 ws_adds=586 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1176 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=196 ws_adds=589 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1182 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=197 ws_adds=592 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1188 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=198 ws_adds=595 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1194 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=199 ws_adds=598 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1200 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=200 ws_adds=601 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1206 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=201 ws_adds=604 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1212 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=202 ws_adds=607 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1218 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=203 ws_adds=610 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1224 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=204 ws_adds=613 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1230 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=205 ws_adds=616 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1236 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=206 ws_adds=619 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1242 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=207 ws_adds=622 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1248 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=208 ws_adds=625 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1254 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=209 ws_adds=628 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1260 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=210 ws_adds=631 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1266 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=211 ws_adds=634 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1272 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=212 ws_adds=637 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1278 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=213 ws_adds=640 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1284 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=214 ws_adds=643 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1290 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=215 ws_adds=646 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1296 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=216 ws_adds=649 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1302 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=217 ws_adds=652 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1308 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=218 ws_adds=655 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1314 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=219 ws_adds=658 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1320 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=220 ws_adds=661 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1326 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=221 ws_adds=664 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1332 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=222 ws_adds=667 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1338 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=223 ws_adds=670 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1344 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=224 ws_adds=673 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1350 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=225 ws_adds=676 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1356 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=226 ws_adds=679 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1362 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=227 ws_adds=682 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1368 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=228 ws_adds=685 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1374 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=229 ws_adds=688 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1380 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=230 ws_adds=691 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1386 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=231 ws_adds=694 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1392 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=232 ws_adds=697 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1398 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=233 ws_adds=700 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1404 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=234 ws_adds=703 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1410 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=235 ws_adds=706 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1416 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=236 ws_adds=709 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1422 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=237 ws_adds=712 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1428 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=238 ws_adds=715 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1434 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=239 ws_adds=718 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1440 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=240 ws_adds=721 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1446 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=241 ws_adds=724 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1452 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=242 ws_adds=727 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1458 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=243 ws_adds=730 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1464 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=244 ws_adds=733 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1470 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=245 ws_adds=736 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1476 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=246 ws_adds=739 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1482 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=247 ws_adds=742 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1488 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=248 ws_adds=745 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1494 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=249 ws_adds=748 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1500 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=250 ws_adds=751 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1506 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=251 ws_adds=754 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1512 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=252 ws_adds=757 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1518 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=253 ws_adds=760 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1524 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=254 ws_adds=763 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1530 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=255 ws_adds=766 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1536 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=256 ws_adds=769 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1542 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=257 ws_adds=772 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1548 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=258 ws_adds=775 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1554 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=259 ws_adds=778 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1560 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=260 ws_adds=781 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1566 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=261 ws_adds=784 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1572 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=262 ws_adds=787 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1578 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=263 ws_adds=790 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1584 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=264 ws_adds=793 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1590 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=265 ws_adds=796 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1596 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=266 ws_adds=799 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1602 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=267 ws_adds=802 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1608 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=268 ws_adds=805 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1614 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=269 ws_adds=808 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1620 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=270 ws_adds=811 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1626 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=271 ws_adds=814 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1632 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=272 ws_adds=817 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1638 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=273 ws_adds=820 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1644 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=274 ws_adds=823 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1650 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=275 ws_adds=826 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1656 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=276 ws_adds=829 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1662 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=277 ws_adds=832 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1668 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=278 ws_adds=835 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1674 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=279 ws_adds=838 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1680 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=280 ws_adds=841 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1686 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=281 ws_adds=844 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1692 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=282 ws_adds=847 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1698 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=283 ws_adds=850 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1704 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=284 ws_adds=853 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1710 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=285 ws_adds=856 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1716 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=286 ws_adds=859 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1722 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=287 ws_adds=862 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1728 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=288 ws_adds=865 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1734 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=289 ws_adds=868 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1740 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=290 ws_adds=871 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1746 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=291 ws_adds=874 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1752 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=292 ws_adds=877 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1758 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=293 ws_adds=880 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1764 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=294 ws_adds=883 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1770 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=295 ws_adds=886 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1776 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=296 ws_adds=889 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1782 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=297 ws_adds=892 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1788 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=298 ws_adds=895 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1794 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=299 ws_adds=898 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1800 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=300 ws_adds=901 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1806 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=301 ws_adds=904 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1812 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=302 ws_adds=907 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1818 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=303 ws_adds=910 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1824 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=304 ws_adds=913 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1830 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=305 ws_adds=916 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1836 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=306 ws_adds=919 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1842 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=307 ws_adds=922 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1848 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=308 ws_adds=925 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1854 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=309 ws_adds=928 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1860 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=310 ws_adds=931 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1866 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=311 ws_adds=934 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1872 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=312 ws_adds=937 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1878 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=313 ws_adds=940 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1884 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=314 ws_adds=943 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1890 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=315 ws_adds=946 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1896 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=316 ws_adds=949 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1902 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=317 ws_adds=952 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1908 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=318 ws_adds=955 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1914 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=319 ws_adds=958 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1920 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=320 ws_adds=961 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1926 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=321 ws_adds=964 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1932 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=322 ws_adds=967 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1938 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=323 ws_adds=970 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1944 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=324 ws_adds=973 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1950 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=325 ws_adds=976 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1956 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=326 ws_adds=979 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1962 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=327 ws_adds=982 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1968 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=328 ws_adds=985 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1974 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=329 ws_adds=988 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1980 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=330 ws_adds=991 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1986 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=331 ws_adds=994 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1992 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=332 ws_adds=997 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=1998 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=333 ws_adds=1000 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2004 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=334 ws_adds=1003 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2010 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=335 ws_adds=1006 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2016 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=336 ws_adds=1009 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2022 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=337 ws_adds=1012 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2028 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=338 ws_adds=1015 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2034 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=339 ws_adds=1018 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2040 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=340 ws_adds=1021 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2046 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=341 ws_adds=1024 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2052 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=342 ws_adds=1027 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2058 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=343 ws_adds=1030 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2064 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=344 ws_adds=1033 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2070 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=345 ws_adds=1036 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2076 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=346 ws_adds=1039 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2082 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=347 ws_adds=1042 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2088 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=348 ws_adds=1045 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2094 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=349 ws_adds=1048 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2100 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=350 ws_adds=1051 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2106 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=351 ws_adds=1054 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2112 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=352 ws_adds=1057 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2118 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=353 ws_adds=1060 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2124 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=354 ws_adds=1063 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2130 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=355 ws_adds=1066 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2136 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=356 ws_adds=1069 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2142 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=357 ws_adds=1072 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2148 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=358 ws_adds=1075 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2154 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=359 ws_adds=1078 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2160 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=360 ws_adds=1081 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2166 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=361 ws_adds=1084 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2172 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=362 ws_adds=1087 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2178 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=363 ws_adds=1090 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2184 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=364 ws_adds=1093 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2190 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=365 ws_adds=1096 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2196 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=366 ws_adds=1099 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2202 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=367 ws_adds=1102 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2208 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=368 ws_adds=1105 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2214 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=369 ws_adds=1108 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2220 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=370 ws_adds=1111 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2226 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=371 ws_adds=1114 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2232 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=372 ws_adds=1117 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2238 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=373 ws_adds=1120 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2244 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=374 ws_adds=1123 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2250 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=375 ws_adds=1126 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2256 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=376 ws_adds=1129 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2262 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=377 ws_adds=1132 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2268 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=378 ws_adds=1135 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2274 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=379 ws_adds=1138 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2280 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=380 ws_adds=1141 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2286 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=381 ws_adds=1144 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2292 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=382 ws_adds=1147 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2298 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=383 ws_adds=1150 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2304 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=384 ws_adds=1153 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2310 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=385 ws_adds=1156 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2316 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=386 ws_adds=1159 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2322 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=387 ws_adds=1162 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2328 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=388 ws_adds=1165 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2334 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=389 ws_adds=1168 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2340 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=390 ws_adds=1171 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2346 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=391 ws_adds=1174 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2352 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=392 ws_adds=1177 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2358 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=393 ws_adds=1180 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2364 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=394 ws_adds=1183 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2370 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=395 ws_adds=1186 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2376 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=396 ws_adds=1189 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2382 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=397 ws_adds=1192 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2388 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=398 ws_adds=1195 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2394 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=399 ws_adds=1198 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2400 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=400 ws_adds=1201 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2406 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=401 ws_adds=1204 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2412 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=402 ws_adds=1207 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2418 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=403 ws_adds=1210 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2424 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=404 ws_adds=1213 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2430 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=405 ws_adds=1216 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2436 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=406 ws_adds=1219 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2442 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=407 ws_adds=1222 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2448 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=408 ws_adds=1225 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2454 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=409 ws_adds=1228 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2460 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=410 ws_adds=1231 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2466 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=411 ws_adds=1234 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2472 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=412 ws_adds=1237 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2478 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=413 ws_adds=1240 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2484 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=414 ws_adds=1243 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2490 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=415 ws_adds=1246 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2496 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=416 ws_adds=1249 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2502 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=417 ws_adds=1252 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2508 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=418 ws_adds=1255 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2514 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=419 ws_adds=1258 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2520 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=420 ws_adds=1261 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2526 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=421 ws_adds=1264 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2532 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=422 ws_adds=1267 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2538 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=423 ws_adds=1270 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2544 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=424 ws_adds=1273 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2550 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=425 ws_adds=1276 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2556 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=426 ws_adds=1279 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2562 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=427 ws_adds=1282 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2568 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=428 ws_adds=1285 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2574 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=429 ws_adds=1288 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2580 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=430 ws_adds=1291 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2586 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=431 ws_adds=1294 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2592 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=432 ws_adds=1297 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2598 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=433 ws_adds=1300 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2604 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=434 ws_adds=1303 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2610 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=435 ws_adds=1306 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2616 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=436 ws_adds=1309 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2622 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=437 ws_adds=1312 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2628 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=438 ws_adds=1315 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2634 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=439 ws_adds=1318 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2640 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=440 ws_adds=1321 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2646 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=441 ws_adds=1324 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2652 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=442 ws_adds=1327 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2658 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=443 ws_adds=1330 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2664 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=444 ws_adds=1333 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2670 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=445 ws_adds=1336 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2676 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=446 ws_adds=1339 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2682 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=447 ws_adds=1342 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2688 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=448 ws_adds=1345 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2694 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=449 ws_adds=1348 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2700 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=450 ws_adds=1351 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2706 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=451 ws_adds=1354 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2712 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=452 ws_adds=1357 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2718 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=453 ws_adds=1360 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2724 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=454 ws_adds=1363 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2730 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=455 ws_adds=1366 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2736 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=456 ws_adds=1369 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2742 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=457 ws_adds=1372 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2748 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=458 ws_adds=1375 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2754 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=459 ws_adds=1378 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2760 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=460 ws_adds=1381 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2766 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=461 ws_adds=1384 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2772 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=462 ws_adds=1387 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2778 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=463 ws_adds=1390 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2784 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=464 ws_adds=1393 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2790 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=465 ws_adds=1396 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2796 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=466 ws_adds=1399 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2802 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=467 ws_adds=1402 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2808 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=468 ws_adds=1405 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2814 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=469 ws_adds=1408 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2820 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=470 ws_adds=1411 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2826 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=471 ws_adds=1414 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2832 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=472 ws_adds=1417 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2838 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=473 ws_adds=1420 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2844 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=474 ws_adds=1423 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2850 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=475 ws_adds=1426 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2856 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=476 ws_adds=1429 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2862 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=477 ws_adds=1432 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2868 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=478 ws_adds=1435 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2874 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=479 ws_adds=1438 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2880 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=480 ws_adds=1441 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2886 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=481 ws_adds=1444 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2892 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=482 ws_adds=1447 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2898 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=483 ws_adds=1450 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2904 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=484 ws_adds=1453 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2910 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=485 ws_adds=1456 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2916 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=486 ws_adds=1459 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2922 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=487 ws_adds=1462 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2928 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=488 ws_adds=1465 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2934 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=489 ws_adds=1468 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2940 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=490 ws_adds=1471 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2946 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=491 ws_adds=1474 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2952 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=492 ws_adds=1477 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2958 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=493 ws_adds=1480 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2964 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=494 ws_adds=1483 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2970 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=495 ws_adds=1486 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2976 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=496 ws_adds=1489 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2982 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=497 ws_adds=1492 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2988 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=498 ws_adds=1495 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=2994 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=499 ws_adds=1498 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3000 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=500 ws_adds=1501 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3006 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=501 ws_adds=1504 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3012 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=502 ws_adds=1507 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3018 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=503 ws_adds=1510 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3024 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=504 ws_adds=1513 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3030 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=505 ws_adds=1516 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3036 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=506 ws_adds=1519 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3042 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=507 ws_adds=1522 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3048 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=508 ws_adds=1525 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3054 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=509 ws_adds=1528 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3060 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=510 ws_adds=1531 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3066 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=511 ws_adds=1534 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3072 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=512 ws_adds=1537 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3078 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=513 ws_adds=1540 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3084 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=514 ws_adds=1543 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3090 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=515 ws_adds=1546 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3096 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=516 ws_adds=1549 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3102 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=517 ws_adds=1552 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3108 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=518 ws_adds=1555 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3114 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=519 ws_adds=1558 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3120 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=520 ws_adds=1561 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3126 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=521 ws_adds=1564 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3132 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=522 ws_adds=1567 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3138 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=523 ws_adds=1570 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3144 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=524 ws_adds=1573 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3150 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=525 ws_adds=1576 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3156 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=526 ws_adds=1579 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3162 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=527 ws_adds=1582 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3168 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=528 ws_adds=1585 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3174 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=529 ws_adds=1588 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3180 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=530 ws_adds=1591 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3186 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=531 ws_adds=1594 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3192 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=532 ws_adds=1597 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3198 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=533 ws_adds=1600 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3204 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=534 ws_adds=1603 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3210 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=535 ws_adds=1606 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3216 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=536 ws_adds=1609 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3222 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=537 ws_adds=1612 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3228 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=538 ws_adds=1615 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3234 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=539 ws_adds=1618 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3240 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=540 ws_adds=1621 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3246 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=541 ws_adds=1624 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3252 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=542 ws_adds=1627 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3258 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=543 ws_adds=1630 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3264 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=544 ws_adds=1633 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3270 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=545 ws_adds=1636 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3276 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=546 ws_adds=1639 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3282 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=547 ws_adds=1642 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3288 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=548 ws_adds=1645 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3294 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=549 ws_adds=1648 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3300 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=550 ws_adds=1651 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3306 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=551 ws_adds=1654 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3312 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=552 ws_adds=1657 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3318 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=553 ws_adds=1660 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3324 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=554 ws_adds=1663 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3330 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=555 ws_adds=1666 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3336 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=556 ws_adds=1669 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3342 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=557 ws_adds=1672 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3348 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=558 ws_adds=1675 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3354 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=559 ws_adds=1678 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3360 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=560 ws_adds=1681 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3366 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=561 ws_adds=1684 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3372 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=562 ws_adds=1687 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3378 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=563 ws_adds=1690 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3384 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=564 ws_adds=1693 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3390 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=565 ws_adds=1696 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3396 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=566 ws_adds=1699 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3402 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=567 ws_adds=1702 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3408 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=568 ws_adds=1705 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3414 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=569 ws_adds=1708 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3420 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=570 ws_adds=1711 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3426 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=571 ws_adds=1714 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3432 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=572 ws_adds=1717 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3438 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=573 ws_adds=1720 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3444 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=574 ws_adds=1723 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3450 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=575 ws_adds=1726 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3456 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=576 ws_adds=1729 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3462 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=577 ws_adds=1732 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3468 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=578 ws_adds=1735 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3474 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=579 ws_adds=1738 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3480 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=580 ws_adds=1741 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3486 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=581 ws_adds=1744 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3492 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=582 ws_adds=1747 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3498 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=583 ws_adds=1750 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3504 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=584 ws_adds=1753 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3510 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=585 ws_adds=1756 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3516 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=586 ws_adds=1759 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3522 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=587 ws_adds=1762 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3528 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=588 ws_adds=1765 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3534 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=589 ws_adds=1768 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3540 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=590 ws_adds=1771 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3546 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=591 ws_adds=1774 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3552 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=592 ws_adds=1777 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3558 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=593 ws_adds=1780 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3564 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=594 ws_adds=1783 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3570 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=595 ws_adds=1786 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3576 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=596 ws_adds=1789 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3582 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=597 ws_adds=1792 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3588 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=598 ws_adds=1795 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3594 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=599 ws_adds=1798 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3600 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=600 ws_adds=1801 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3606 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=601 ws_adds=1804 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3612 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=602 ws_adds=1807 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3618 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=603 ws_adds=1810 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3624 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=604 ws_adds=1813 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3630 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=605 ws_adds=1816 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3636 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=606 ws_adds=1819 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3642 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=607 ws_adds=1822 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3648 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=608 ws_adds=1825 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3654 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=609 ws_adds=1828 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3660 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=610 ws_adds=1831 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3666 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=611 ws_adds=1834 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3672 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=612 ws_adds=1837 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3678 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=613 ws_adds=1840 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3684 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=614 ws_adds=1843 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3690 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=615 ws_adds=1846 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3696 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=616 ws_adds=1849 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3702 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=617 ws_adds=1852 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3708 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=618 ws_adds=1855 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3714 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=619 ws_adds=1858 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3720 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=620 ws_adds=1861 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3726 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=621 ws_adds=1864 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3732 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=622 ws_adds=1867 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3738 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=623 ws_adds=1870 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3744 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=624 ws_adds=1873 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3750 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=625 ws_adds=1876 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3756 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=626 ws_adds=1879 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3762 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=627 ws_adds=1882 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3768 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=628 ws_adds=1885 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3774 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=629 ws_adds=1888 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3780 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=630 ws_adds=1891 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3786 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=631 ws_adds=1894 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3792 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=632 ws_adds=1897 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3798 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=633 ws_adds=1900 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3804 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=634 ws_adds=1903 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3810 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=635 ws_adds=1906 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3816 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=636 ws_adds=1909 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3822 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=637 ws_adds=1912 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3828 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=638 ws_adds=1915 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3834 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=639 ws_adds=1918 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3840 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=640 ws_adds=1921 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3846 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=641 ws_adds=1924 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3852 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=642 ws_adds=1927 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3858 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=643 ws_adds=1930 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3864 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=644 ws_adds=1933 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3870 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=645 ws_adds=1936 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3876 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=646 ws_adds=1939 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3882 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=647 ws_adds=1942 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3888 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=648 ws_adds=1945 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3894 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=649 ws_adds=1948 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3900 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=650 ws_adds=1951 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3906 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=651 ws_adds=1954 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3912 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=652 ws_adds=1957 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3918 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=653 ws_adds=1960 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3924 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=654 ws_adds=1963 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3930 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=655 ws_adds=1966 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3936 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=656 ws_adds=1969 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3942 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=657 ws_adds=1972 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3948 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=658 ws_adds=1975 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3954 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=659 ws_adds=1978 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3960 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=660 ws_adds=1981 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3966 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=661 ws_adds=1984 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3972 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=662 ws_adds=1987 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3978 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=663 ws_adds=1990 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3984 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=664 ws_adds=1993 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3990 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=665 ws_adds=1996 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=3996 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=666 ws_adds=1999 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4002 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=667 ws_adds=2002 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4008 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=668 ws_adds=2005 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4014 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=669 ws_adds=2008 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4020 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=670 ws_adds=2011 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4026 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=671 ws_adds=2014 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4032 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=672 ws_adds=2017 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4038 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=673 ws_adds=2020 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4044 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=674 ws_adds=2023 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4050 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=675 ws_adds=2026 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4056 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=676 ws_adds=2029 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4062 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=677 ws_adds=2032 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4068 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=678 ws_adds=2035 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4074 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=679 ws_adds=2038 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4080 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=680 ws_adds=2041 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4086 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=681 ws_adds=2044 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4092 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=682 ws_adds=2047 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4098 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=683 ws_adds=2050 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4104 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=684 ws_adds=2053 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4110 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=685 ws_adds=2056 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4116 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=686 ws_adds=2059 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4122 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=687 ws_adds=2062 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4128 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=688 ws_adds=2065 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4134 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=689 ws_adds=2068 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4140 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=690 ws_adds=2071 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4146 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=691 ws_adds=2074 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4152 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=692 ws_adds=2077 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4158 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=693 ws_adds=2080 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4164 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=694 ws_adds=2083 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4170 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=695 ws_adds=2086 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4176 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=696 ws_adds=2089 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4182 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=697 ws_adds=2092 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4188 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=698 ws_adds=2095 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4194 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=699 ws_adds=2098 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4200 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=700 ws_adds=2101 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4206 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=701 ws_adds=2104 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4212 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=702 ws_adds=2107 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4218 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=703 ws_adds=2110 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4224 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=704 ws_adds=2113 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4230 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=705 ws_adds=2116 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4236 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=706 ws_adds=2119 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4242 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=707 ws_adds=2122 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4248 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=708 ws_adds=2125 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4254 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=709 ws_adds=2128 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4260 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=710 ws_adds=2131 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4266 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=711 ws_adds=2134 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4272 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=712 ws_adds=2137 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4278 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=713 ws_adds=2140 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4284 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=714 ws_adds=2143 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4290 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=715 ws_adds=2146 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4296 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=716 ws_adds=2149 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4302 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=717 ws_adds=2152 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4308 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=718 ws_adds=2155 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4314 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=719 ws_adds=2158 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4320 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=720 ws_adds=2161 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4326 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=721 ws_adds=2164 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4332 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=722 ws_adds=2167 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4338 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=723 ws_adds=2170 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4344 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=724 ws_adds=2173 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4350 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=725 ws_adds=2176 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=11 it=4356 count=300 n=299 det.found=1 solves=2 null_res=5.007e-10 shift_adds=726 ws_adds=2179 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1CNT MAIN status=kMaxIter minors=4360 facts=4360 adds=2180 drops=2181 dep_tests=2180 dep_dep=1454 undec=0 entry_rm=0 mand_dep=0 recheck_rm=726 ride_decl=0 pin_skip=0 cnt_viol=726 untested=0 xch=1454 xch_b=1454 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=1453 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kMaxIter obj=1.352737316517e+09 stat=7.750e+07(scale 4.066e+08) eqviol=5.839e-05 iviol=3.331e-16 boxviol=0.000e+00 lneg=0.000e+00 comp=2.220e-08 mult=1 atlo=104 atup=27 |x|inf=5.088234e-01 KKT@tol1e-09=NO
+D1SOLVE 11 end
+D1SOLVE 12 begin n=630 me=114 mi=274 D=1.250000e-01 ind=1 warm=0 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x35e68170 maxit=0
+D1TERM s=12 it=880 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=630 n=630
+D1CNT MAIN status=kOptimal minors=881 facts=725 adds=698 drops=182 dep_tests=698 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-3.171628231831e+01 stat=7.298e-15(scale 1.595e+02) eqviol=1.930e-15 iviol=5.938e-17 boxviol=0.000e+00 lneg=0.000e+00 comp=1.599e-16 mult=1 atlo=468 atup=22 |x|inf=1.250000e-01 KKT@tol1e-09=YES
+D1SOLVE 12 end
+D1SOLVE 13 begin n=630 me=114 mi=274 D=2.500000e-01 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x35e68170 maxit=0
+D1REPAIR s=13 it=0 attempting start repair (pin_skips before=0)
+D1CNT MAIN status=kNumericalError minors=27 facts=126 adds=24 drops=6 dep_tests=104 dep_dep=37 undec=0 entry_rm=0 mand_dep=0 recheck_rm=1 ride_decl=0 pin_skip=30 cnt_viol=0 untested=0 xch=6 xch_b=6 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=1 deferred=0 retreat=0 reentry=2 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kNumericalError obj=-1.582292626068e+02 stat=7.142e+01(scale 1.595e+02) eqviol=5.976e+01 iviol=4.801e-01 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=442 atup=26 |x|inf=2.500000e-01 KKT@tol1e-09=NO
+D1SOLVE 13 end
+D1SOLVE 14 begin n=630 me=114 mi=274 D=1.250000e-01 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x35e68170 maxit=0
+D1REPAIR s=14 it=0 attempting start repair (pin_skips before=0)
+D1TERM s=14 it=976 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=1.975e+04 me+|W|=630 n=630
+D1CNT MAIN status=kNumericalError minors=977 facts=1018 adds=526 drops=486 dep_tests=585 dep_dep=61 undec=1 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=171 cnt_viol=0 untested=0 xch=41 xch_b=41 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=1 retreat=0 reentry=352 zm_exh=1 zm_cap=0
+D1KKT MAIN status=kNumericalError obj=-1.252706285328e+01 stat=1.192e+02(scale 1.595e+02) eqviol=2.321e-07 iviol=1.436e-06 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=461 atup=13 |x|inf=1.250000e-01 KKT@tol1e-09=NO
+D1SOLVE 14 end
+D1SOLVE 15 begin n=630 me=114 mi=274 D=6.250000e-02 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x35e68170 maxit=0
+D1REPAIR s=15 it=0 attempting start repair (pin_skips before=0)
+D1CNT MAIN status=kNumericalError minors=21 facts=90 adds=19 drops=6 dep_tests=80 dep_dep=33 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=26 cnt_viol=0 untested=0 xch=6 xch_b=6 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=1 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kNumericalError obj=-9.175612046369e+00 stat=7.142e+01(scale 1.595e+02) eqviol=1.494e+01 iviol=1.098e-01 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=460 atup=17 |x|inf=6.250000e-02 KKT@tol1e-09=NO
+D1SOLVE 15 end
+D1SOLVE 16 begin n=630 me=114 mi=274 D=3.125000e-02 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x35e68170 maxit=0
+D1REPAIR s=16 it=0 attempting start repair (pin_skips before=0)
+D1TERM s=16 it=573 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=630 n=630
+D1CNT MAIN status=kOptimal minors=574 facts=621 adds=356 drops=350 dep_tests=379 dep_dep=149 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=149 xch_b=149 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=30 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-3.855320436748e+00 stat=1.421e-14(scale 1.595e+02) eqviol=6.106e-16 iviol=2.949e-16 boxviol=0.000e+00 lneg=0.000e+00 comp=1.010e-15 mult=1 atlo=482 atup=17 |x|inf=3.125000e-02 KKT@tol1e-09=YES
+D1SOLVE 16 end
+D1SOLVE 17 begin n=630 me=114 mi=274 D=6.250000e-02 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x35e68170 maxit=0
+D1REPAIR s=17 it=0 attempting start repair (pin_skips before=0)
+D1TERM s=17 it=1007 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=630 n=630
+D1CNT MAIN status=kOptimal minors=1008 facts=1077 adds=574 drops=535 dep_tests=623 dep_dep=147 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=15 cnt_viol=0 untested=0 xch=132 xch_b=132 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=70 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-7.724413446571e+00 stat=1.421e-14(scale 1.595e+02) eqviol=1.084e-15 iviol=6.939e-17 boxviol=0.000e+00 lneg=0.000e+00 comp=1.191e-16 mult=1 atlo=496 atup=10 |x|inf=6.250000e-02 KKT@tol1e-09=YES
+D1SOLVE 17 end
+D1SOLVE 18 begin n=630 me=114 mi=274 D=1.250000e-01 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x35e68170 maxit=0
+D1REPAIR s=18 it=0 attempting start repair (pin_skips before=0)
+D1OVER s=18 it=74 count=631 n=630 det.found=1 solves=1 null_res=1.007e-09 shift_adds=6 ws_adds=72 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=18 it=96 count=631 n=630 det.found=1 solves=1 null_res=1.674e-09 shift_adds=7 ws_adds=93 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=18 it=122 count=631 n=630 det.found=1 solves=1 null_res=3.422e-09 shift_adds=8 ws_adds=118 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=18 it=125 count=631 n=630 det.found=1 solves=1 null_res=7.541e-10 shift_adds=9 ws_adds=120 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=18 it=128 count=631 n=630 det.found=1 solves=1 null_res=7.677e-10 shift_adds=10 ws_adds=122 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=18 it=133 count=631 n=630 det.found=1 solves=1 null_res=5.972e-10 shift_adds=11 ws_adds=126 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1TERM s=18 it=546 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=627 n=630
+D1CNT MAIN status=kOptimal minors=547 facts=568 adds=328 drops=282 dep_tests=345 dep_dep=91 undec=0 entry_rm=0 mand_dep=0 recheck_rm=7 ride_decl=0 pin_skip=7 cnt_viol=6 untested=0 xch=84 xch_b=84 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=13 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-7.147128304181e+00 stat=1.527e-15(scale 1.595e+02) eqviol=9.994e-16 iviol=1.044e-15 boxviol=0.000e+00 lneg=0.000e+00 comp=3.509e-16 mult=1 atlo=503 atup=8 |x|inf=1.250000e-01 KKT@tol1e-09=YES
+D1SOLVE 18 end
+D1SOLVE 19 begin n=630 me=114 mi=274 D=2.500000e-01 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x35e68170 maxit=0
+D1TERM s=19 it=36 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=619 n=630
+D1CNT MAIN status=kOptimal minors=37 facts=38 adds=12 drops=12 dep_tests=12 dep_dep=0 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-2.970555311679e-01 stat=6.559e-14(scale 1.595e+02) eqviol=8.684e-17 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=9.418e-19 mult=1 atlo=503 atup=1 |x|inf=1.400096e-01 KKT@tol1e-09=YES
+D1SOLVE 19 end
+D1SOLVE 20 begin n=630 me=114 mi=274 D=2.500000e-01 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x35e68170 maxit=0
+D1REPAIR s=20 it=0 attempting start repair (pin_skips before=0)
+D1OVER s=20 it=1 count=632 n=630 det.found=1 solves=0 null_res=0.000e+00 shift_adds=3 ws_adds=0 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1OVER s=20 it=2 count=631 n=630 det.found=1 solves=1 null_res=3.150e-09 shift_adds=3 ws_adds=0 deferred=0 entry_pending=0 recheck_pending_was=0 path_schur=0
+D1TERM s=20 it=139 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=627 n=630
+D1CNT MAIN status=kOptimal minors=140 facts=163 adds=95 drops=98 dep_tests=136 dep_dep=96 undec=0 entry_rm=0 mand_dep=0 recheck_rm=2 ride_decl=0 pin_skip=30 cnt_viol=2 untested=0 xch=66 xch_b=66 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=2 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-1.322671231616e-07 stat=5.729e-11(scale 1.595e+02) eqviol=1.249e-16 iviol=1.559e-16 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=506 atup=6 |x|inf=2.500000e-01 KKT@tol1e-09=YES
+D1SOLVE 20 end
+D1SOLVE 21 begin n=630 me=114 mi=274 D=2.500000e-01 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x35e68170 maxit=0
+D1REPAIR s=21 it=0 attempting start repair (pin_skips before=0)
+D1TERM s=21 it=56 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=1.640e-09 me+|W|=629 n=630
+D1CNT MAIN status=kOptimal minors=57 facts=68 adds=30 drops=25 dep_tests=34 dep_dep=10 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=10 xch_b=10 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=6 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-4.905774232499e-09 stat=6.859e-09(scale 1.595e+02) eqviol=2.498e-16 iviol=4.510e-17 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=506 atup=8 |x|inf=2.500000e-01 KKT@tol1e-09=YES
+D1SOLVE 21 end
+D1SOLVE 22 begin n=630 me=114 mi=274 D=2.500000e-01 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x35e68170 maxit=0
+D1REPAIR s=22 it=0 attempting start repair (pin_skips before=0)
+D1TERM s=22 it=22 worst=0.000e+00 runaway=0 verdict=1 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=630 n=630
+D1TERM s=22 it=24 worst=0.000e+00 runaway=0 verdict=1 probe_drop_made=1 restart_spent=0 exempt_worst=0.000e+00 me+|W|=630 n=630
+D1TERM s=22 it=26 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=1 restart_spent=0 exempt_worst=0.000e+00 me+|W|=630 n=630
+D1TERM s=22 it=28 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=1 restart_spent=0 exempt_worst=0.000e+00 me+|W|=630 n=630
+D1TERM s=22 it=30 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=1 restart_spent=0 exempt_worst=0.000e+00 me+|W|=630 n=630
+D1TERM s=22 it=32 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=1 restart_spent=0 exempt_worst=0.000e+00 me+|W|=630 n=630
+D1TERM s=22 it=34 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=1 restart_spent=0 exempt_worst=0.000e+00 me+|W|=630 n=630
+D1TERM s=22 it=36 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=1 restart_spent=0 exempt_worst=0.000e+00 me+|W|=630 n=630
+D1TERM s=22 it=38 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=1 restart_spent=0 exempt_worst=0.000e+00 me+|W|=630 n=630
+D1CNT MAIN status=kOptimal minors=39 facts=71 adds=26 drops=20 dep_tests=30 dep_dep=10 undec=0 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=10 xch_b=10 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=5 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-8.139363831336e-09 stat=8.308e-10(scale 1.595e+02) eqviol=2.247e-15 iviol=5.551e-16 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=507 atup=8 |x|inf=2.500000e-01 KKT@tol1e-09=YES
+D1SOLVE 22 end
+D1SOLVE 23 begin n=630 me=114 mi=274 D=2.500000e-01 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x35e68170 maxit=0
+D1OVER s=23 it=0 count=633 n=630 det.found=1 solves=1 null_res=1.060e-11 shift_adds=13 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=0
+D1OVER s=23 it=1 count=632 n=630 det.found=1 solves=1 null_res=1.334e-11 shift_adds=13 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=0
+D1OVER s=23 it=2 count=631 n=630 det.found=1 solves=1 null_res=4.661e-12 shift_adds=13 ws_adds=0 deferred=0 entry_pending=1 recheck_pending_was=0 path_schur=0
+D1REPAIR s=23 it=5 attempting start repair (pin_skips before=0)
+D1TERM s=23 it=104 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=0 restart_spent=0 exempt_worst=0.000e+00 me+|W|=630 n=630
+D1TERM s=23 it=106 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=1 restart_spent=0 exempt_worst=0.000e+00 me+|W|=630 n=630
+D1TERM s=23 it=108 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=1 restart_spent=0 exempt_worst=0.000e+00 me+|W|=630 n=630
+D1TERM s=23 it=110 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=1 restart_spent=0 exempt_worst=0.000e+00 me+|W|=630 n=630
+D1TERM s=23 it=114 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=1 restart_spent=0 exempt_worst=5.120e-09 me+|W|=630 n=630
+D1TERM s=23 it=116 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=1 restart_spent=0 exempt_worst=5.120e-09 me+|W|=630 n=630
+D1TERM s=23 it=120 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=1 restart_spent=0 exempt_worst=0.000e+00 me+|W|=630 n=630
+D1TERM s=23 it=122 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=1 restart_spent=0 exempt_worst=0.000e+00 me+|W|=630 n=630
+D1TERM s=23 it=124 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=1 restart_spent=0 exempt_worst=0.000e+00 me+|W|=630 n=630
+D1TERM s=23 it=126 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=1 restart_spent=0 exempt_worst=0.000e+00 me+|W|=630 n=630
+D1TERM s=23 it=128 worst=0.000e+00 runaway=0 verdict=0 probe_drop_made=1 restart_spent=0 exempt_worst=0.000e+00 me+|W|=630 n=630
+D1CNT MAIN status=kOptimal minors=129 facts=151 adds=78 drops=77 dep_tests=79 dep_dep=35 undec=0 entry_rm=5 mand_dep=0 recheck_rm=1 ride_decl=0 pin_skip=0 cnt_viol=3 untested=0 xch=35 xch_b=35 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=0 retreat=0 reentry=9 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kOptimal obj=-1.553517130550e-09 stat=5.894e-10(scale 1.595e+02) eqviol=2.026e-15 iviol=4.996e-16 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=509 atup=6 |x|inf=2.500000e-01 KKT@tol1e-09=YES
+D1SOLVE 23 end
+D1SOLVE 24 begin n=630 me=114 mi=274 D=2.500000e-01 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x35e68170 maxit=0
+D1CNT MAIN status=kNumericalError minors=1815 facts=1815 adds=906 drops=0 dep_tests=906 dep_dep=905 undec=905 entry_rm=3 mand_dep=0 recheck_rm=905 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=905 retreat=0 reentry=904 zm_exh=0 zm_cap=1
+D1KKT MAIN status=kNumericalError obj=6.147710865291e-13 stat=1.744e-10(scale 1.595e+02) eqviol=2.902e-01 iviol=5.252e-02 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=505 atup=2 |x|inf=2.500000e-01 KKT@tol1e-09=NO
+D1SOLVE 24 end
+D1SOLVE 25 begin n=630 me=114 mi=274 D=1.250000e-01 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x35e68170 maxit=0
+D1CNT MAIN status=kNumericalError minors=1814 facts=1814 adds=906 drops=0 dep_tests=906 dep_dep=905 undec=905 entry_rm=2 mand_dep=0 recheck_rm=905 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=905 retreat=0 reentry=904 zm_exh=0 zm_cap=1
+D1KKT MAIN status=kNumericalError obj=1.536927716323e-13 stat=8.721e-11(scale 1.595e+02) eqviol=2.907e-01 iviol=5.262e-02 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=505 atup=2 |x|inf=1.250000e-01 KKT@tol1e-09=NO
+D1SOLVE 25 end
+D1SOLVE 26 begin n=630 me=114 mi=274 D=6.250000e-02 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x35e68170 maxit=0
+D1CNT MAIN status=kNumericalError minors=1814 facts=1814 adds=906 drops=0 dep_tests=906 dep_dep=905 undec=905 entry_rm=2 mand_dep=0 recheck_rm=905 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=905 retreat=0 reentry=904 zm_exh=0 zm_cap=1
+D1KKT MAIN status=kNumericalError obj=3.842319290807e-14 stat=4.361e-11(scale 1.595e+02) eqviol=2.910e-01 iviol=5.266e-02 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=505 atup=2 |x|inf=6.250000e-02 KKT@tol1e-09=NO
+D1SOLVE 26 end
+D1SOLVE 27 begin n=630 me=114 mi=274 D=3.125000e-02 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0x35e68170 maxit=0
+D1CNT MAIN status=kNumericalError minors=1814 facts=1814 adds=906 drops=0 dep_tests=906 dep_dep=905 undec=905 entry_rm=2 mand_dep=0 recheck_rm=905 ride_decl=0 pin_skip=0 cnt_viol=0 untested=0 xch=0 xch_b=0 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=0 deferred=905 retreat=0 reentry=904 zm_exh=0 zm_cap=1
+D1KKT MAIN status=kNumericalError obj=9.605798227018e-15 stat=2.180e-11(scale 1.595e+02) eqviol=2.911e-01 iviol=5.269e-02 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=505 atup=2 |x|inf=3.125000e-02 KKT@tol1e-09=NO
+D1SOLVE 27 end

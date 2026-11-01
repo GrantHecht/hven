@@ -1,0 +1,225 @@
+OLD: .scratch/m7t2/psym-old-build/CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+NEW: .scratch/m7t2/psym-new-build/CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+
+LAYOUT   hven::solvers::(anonymous namespace)::drop_scaled_space_state(hven::solvers::SqpWarmStart&)
+  pads 1 -> 1; non-pad instructions 63 -> 63
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::(anonymous namespace)::jacobian_values_finite(hven::solvers::NlpEval const&)
+  pads 58 -> 58; non-pad instructions 641 -> 641
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::(anonymous namespace)::require_declared_box(hven::solvers::NlpModel const&)
+  pads 1 -> 1; non-pad instructions 82 -> 82
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::(anonymous namespace)::validate_staged_polish(hven::solvers::WarmStartData const&)::$_2::operator()(char const*, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+  pads 3 -> 3; non-pad instructions 72 -> 72
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::DeclaredDiagnosticsStash::DeclaredDiagnosticsStash(hven::solvers::DeclaredDiagnosticsStash const&)
+  pads 0 -> 0; non-pad instructions 230 -> 230
+  compiler-local label renumberings: 1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::QpProblem::QpProblem(hven::solvers::QpProblem&&)
+  pads 0 -> 0; non-pad instructions 173 -> 173
+  compiler-local label renumberings: 1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+DIFFERS  hven::solvers::SqpSolver::SqpSolver(hven::solvers::SqpOptions const&)
+  pads 1 -> 1; non-pad instructions 114 -> 117
+  OTHER: the non-pad instruction COUNT changed -- instructions were added or removed
+
+DIFFERS  hven::solvers::SqpSolver::SqpSolver(hven::solvers::SqpOptions const&, hven::solvers::SqpSolver::RestorationSubDriverTag)
+  pads 1 -> 1; non-pad instructions 113 -> 116
+  OTHER: the non-pad instruction COUNT changed -- instructions were added or removed
+
+DIFFERS  hven::solvers::SqpSolver::apply_pending_iteration_callback(bool)
+  pads 1 -> 1; non-pad instructions 64 -> 69
+  OTHER: the non-pad instruction COUNT changed -- instructions were added or removed
+
+LAYOUT   hven::solvers::SqpSolver::attach_trace(hven::solvers::TraceSink*)
+  pads 1 -> 1; non-pad instructions 32 -> 32
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::capture_completed_warm_start(hven::solvers::SqpResult&, hven::solvers::AssemblyEvalSeam const&, hven::solvers::NlpModelAssembly const&)
+  pads 12 -> 12; non-pad instructions 569 -> 569
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::capture_completed_warm_start(hven::solvers::SqpResult&, hven::solvers::AssemblyEvalSeam const&, hven::solvers::NlpModelAssembly const&)::$_0::operator()() const
+  pads 2 -> 2; non-pad instructions 78 -> 78
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::consume_payload(hven::solvers::AssemblyEvalSeam const&, hven::solvers::NlpModelAssembly const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::WarmStartData const&)
+  pads 48 -> 48; non-pad instructions 2097 -> 2097
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::emit_trace_fallback_verdict(hven::solvers::SqpFallbackVerdictTraceEvent const&) const
+  pads 1 -> 1; non-pad instructions 7 -> 7
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::emit_trace_qp_mode(hven::solvers::QpModeTraceEvent const&) const
+  pads 1 -> 1; non-pad instructions 7 -> 7
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::emit_trace_route(hven::solvers::IpqpTraceRouteEvent const&) const
+  pads 1 -> 1; non-pad instructions 7 -> 7
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::emit_trace_sqp_major(hven::solvers::SqpMajorTraceEvent const&) const
+  pads 1 -> 1; non-pad instructions 7 -> 7
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+DIFFERS  hven::solvers::SqpSolver::enter_restoration(hven::solvers::SqpSolver::SolveState&, hven::solvers::SqpSolver::MajorState&, hven::solvers::AssemblyEvalSeam&, hven::solvers::NlpModelAssembly&, long, hven::solvers::SqpSolver::RestorationCandidate)
+  pads 66 -> 66; non-pad instructions 2410 -> 2411
+  OTHER: the non-pad instruction COUNT changed -- instructions were added or removed
+
+LAYOUT   hven::solvers::SqpSolver::export_warm_start() const
+  pads 1 -> 1; non-pad instructions 28 -> 28
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::finish(hven::solvers::AssemblyEvalSeam&, hven::solvers::SqpResult, hven::solvers::SolveStatus, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::SqpKkt const&, double, hven::solvers::SqpWarmStart, hven::solvers::DeclaredDiagnosticsStash const&, bool)
+  pads 70 -> 70; non-pad instructions 2242 -> 2242
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::fire_iteration_event(hven::solvers::SqpSolver::SolveState&, hven::solvers::SqpIterate const&, hven::solvers::SqpSolver::MajorState const&)
+  pads 0 -> 0; non-pad instructions 89 -> 89
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::install_solve_scaling(hven::solvers::AssemblyEvalSeam&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+  pads 1 -> 1; non-pad instructions 93 -> 93
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::invoke_iteration_callback(hven::solvers::IterationEvent const&)
+  pads 1 -> 1; non-pad instructions 30 -> 30
+  member-displacement pairs: +4 x3
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::ipqp_engine()
+  pads 1 -> 1; non-pad instructions 43 -> 43
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::make_warm_start(hven::solvers::AssemblyEvalSeam&, hven::solvers::QpSolution const*, hven::solvers::QpProblem const&, bool, hven::solvers::NlpEval const*, Eigen::Matrix<double, -1, 1, 0, -1, 1> const*, double, double, double, hven::solvers::GlobalizationStrategy const*, std::shared_ptr<hven::solvers::HotState const>)
+  pads 4 -> 4; non-pad instructions 384 -> 384
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::prepare_solve(hven::solvers::SqpSolver::SolveState&, hven::solvers::AssemblyEvalSeam&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::SqpWarmStart const&, std::unique_ptr<hven::solvers::GlobalizationStrategy, std::default_delete<hven::solvers::GlobalizationStrategy> >)
+  pads 46 -> 46; non-pad instructions 1808 -> 1808
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::record_solve(hven::solvers::SqpResult, double)
+  pads 10 -> 10; non-pad instructions 442 -> 442
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::restoration_restart_radius() const
+  pads 1 -> 1; non-pad instructions 11 -> 11
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::route_through_ipqp_tier(hven::solvers::SqpSolver::SolveState&, hven::solvers::SqpSolver::MajorState&, hven::solvers::AssemblyEvalSeam&, long, bool, hven::solvers::SolveOverrides const&)
+  pads 9 -> 9; non-pad instructions 897 -> 897
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::route_through_ssn_tier(hven::solvers::SqpSolver::SolveState&, hven::solvers::SqpSolver::MajorState&)
+  pads 17 -> 17; non-pad instructions 804 -> 804
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::route_through_ssn_warm_grade(hven::solvers::QpProblem const&, hven::solvers::IpqpResult const&, double, double&, long&, hven::solvers::SqpCounters&, hven::solvers::QpSolution&)
+  pads 28 -> 28; non-pad instructions 971 -> 971
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+DIFFERS  hven::solvers::SqpSolver::run_major(hven::solvers::SqpSolver::SolveState&, hven::solvers::SqpSolver::MajorState&, hven::solvers::AssemblyEvalSeam&, hven::solvers::NlpModelAssembly&, hven::solvers::SqpWarmStart const&, hven::solvers::SolveBudget, long)
+  pads 51 -> 51; non-pad instructions 3189 -> 3189
+  OTHER differences: 2
+    mov    %rbx,0x498(%rsp) || mov    %r14,0x498(%rsp)
+    mov    %r14,0x4a0(%rsp) || mov    %rbx,0x4a0(%rsp)
+
+DIFFERS  hven::solvers::SqpSolver::run_major(hven::solvers::SqpSolver::SolveState&, hven::solvers::SqpSolver::MajorState&, hven::solvers::AssemblyEvalSeam&, hven::solvers::NlpModelAssembly&, hven::solvers::SqpWarmStart const&, hven::solvers::SolveBudget, long)::$_1::operator()() const
+  pads 46 -> 51; non-pad instructions 1318 -> 1336
+  OTHER: the non-pad instruction COUNT changed -- instructions were added or removed
+
+LAYOUT   hven::solvers::SqpSolver::run_major(hven::solvers::SqpSolver::SolveState&, hven::solvers::SqpSolver::MajorState&, hven::solvers::AssemblyEvalSeam&, hven::solvers::NlpModelAssembly&, hven::solvers::SqpWarmStart const&, hven::solvers::SolveBudget, long)::$_2::operator()(hven::solvers::SqpIterate) const
+  pads 2 -> 2; non-pad instructions 239 -> 239
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::shrunk_radius(double) const
+  pads 1 -> 1; non-pad instructions 10 -> 10
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::solve(hven::solvers::NlpModel const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::SolveBudget)
+  pads 1 -> 1; non-pad instructions 88 -> 88
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::solve(hven::solvers::NlpModel const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::SqpWarmStart const&, hven::solvers::SolveBudget)
+  pads 1 -> 1; non-pad instructions 92 -> 92
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::solve(hven::solvers::NlpModel const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::WarmStartData const&, hven::solvers::SolveBudget)
+  pads 1 -> 1; non-pad instructions 92 -> 92
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::solve(hven::solvers::NlpModelAssembly&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&)
+  pads 1 -> 1; non-pad instructions 13 -> 13
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::solve(hven::solvers::NlpModelAssembly&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::SolveBudget)
+  pads 1 -> 1; non-pad instructions 11 -> 11
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::solve(hven::solvers::NlpModelAssembly&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::SqpWarmStart const&, hven::solvers::SolveBudget)
+  pads 1 -> 1; non-pad instructions 13 -> 13
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::solve(hven::solvers::NlpModelAssembly&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::WarmStartData const&, hven::solvers::SolveBudget)
+  pads 1 -> 1; non-pad instructions 13 -> 13
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::solve_from_entry(hven::solvers::NlpModelAssembly&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::SolveBudget, std::optional<std::chrono::time_point<std::chrono::_V2::steady_clock, std::chrono::duration<long, std::ratio<1l, 1000000000l> > > >)
+  pads 1 -> 1; non-pad instructions 263 -> 263
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::solve_from_entry(hven::solvers::NlpModelAssembly&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::SqpWarmStart const&, hven::solvers::SolveBudget, std::optional<std::chrono::time_point<std::chrono::_V2::steady_clock, std::chrono::duration<long, std::ratio<1l, 1000000000l> > > >)
+  pads 1 -> 1; non-pad instructions 250 -> 250
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::solve_from_entry(hven::solvers::NlpModelAssembly&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::WarmStartData const&, hven::solvers::SolveBudget, std::optional<std::chrono::time_point<std::chrono::_V2::steady_clock, std::chrono::duration<long, std::ratio<1l, 1000000000l> > > >)
+  pads 11 -> 11; non-pad instructions 1139 -> 1139
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::solve_impl(hven::solvers::AssemblyEvalSeam&, hven::solvers::NlpModelAssembly&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::SqpWarmStart const&, hven::solvers::SolveBudget)
+  pads 2 -> 2; non-pad instructions 373 -> 373
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::solve_impl_body(hven::solvers::AssemblyEvalSeam&, hven::solvers::NlpModelAssembly&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::SqpWarmStart const&, hven::solvers::SolveBudget, std::unique_ptr<hven::solvers::GlobalizationStrategy, std::default_delete<hven::solvers::GlobalizationStrategy> >)
+  pads 26 -> 26; non-pad instructions 2743 -> 2743
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::solve_with_walk(hven::solvers::SqpSolver::SolveState&, hven::solvers::SqpSolver::MajorState&, hven::solvers::SqpWarmStart const&, hven::solvers::SolveOverrides const&, bool, bool)
+  pads 1 -> 1; non-pad instructions 80 -> 80
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::ssn_engine()
+  pads 1 -> 1; non-pad instructions 92 -> 92
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::ssn_options(double) const
+  pads 1 -> 1; non-pad instructions 29 -> 29
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::SqpSolver::~SqpSolver()
+  pads 1 -> 1; non-pad instructions 111 -> 111
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   std::_Function_handler<hven::solvers::CallbackAction (hven::solvers::IterationEvent const&), hven::solvers::SqpSolver::enter_restoration(hven::solvers::SqpSolver::SolveState&, hven::solvers::SqpSolver::MajorState&, hven::solvers::AssemblyEvalSeam&, hven::solvers::NlpModelAssembly&, long, hven::solvers::SqpSolver::RestorationCandidate)::$_0>::_M_invoke(std::_Any_data const&, hven::solvers::IterationEvent const&)
+  pads 1 -> 1; non-pad instructions 93 -> 93
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   std::_Function_handler<hven::solvers::CallbackAction (hven::solvers::IterationEvent const&), hven::solvers::SqpSolver::enter_restoration(hven::solvers::SqpSolver::SolveState&, hven::solvers::SqpSolver::MajorState&, hven::solvers::AssemblyEvalSeam&, hven::solvers::NlpModelAssembly&, long, hven::solvers::SqpSolver::RestorationCandidate)::$_0>::_M_manager(std::_Any_data&, std::_Any_data const&, std::_Manager_operation)
+  pads 1 -> 1; non-pad instructions 17 -> 17
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+ONLY-BEFORE  hven::solvers::SqpSolver::set_iteration_callback(std::function<hven::solvers::CallbackAction (hven::solvers::IterationEvent const&)>)
+ONLY-AFTER   hven::solvers::SqpSolver::run_major(hven::solvers::SqpSolver::SolveState&, hven::solvers::SqpSolver::MajorState&, hven::solvers::AssemblyEvalSeam&, hven::solvers::NlpModelAssembly&, hven::solvers::SqpWarmStart const&, hven::solvers::SolveBudget, long)::$_1::operator()() const::{lambda()#1}::operator()() const
+ONLY-AFTER   hven::solvers::SqpSolver::set_iteration_callback(std::function<hven::solvers::CallbackAction (hven::solvers::IterationEvent const&)>, hven::solvers::IterationPayload)
+
+TOTAL: 246 byte-identical, 47 layout-only, 6 differing, 1 only-before, 2 only-after

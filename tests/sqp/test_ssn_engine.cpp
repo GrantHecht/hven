@@ -660,6 +660,53 @@ TEST(SsnEngineLocal, SeededZOnAnAbsentBoundThrows) {
     EXPECT_NO_THROW(engine.solve(qp, priced, SsnOptions{}, &res));
 }
 
+// YKN-S1: the YORKNET seed, z(13) = -1.8e-26 on an absent upper bound, is round-off,
+// not mass. It is accepted and changes nothing; a price just above the relative band
+// still throws.
+TEST(SsnEngineLocal, ARoundOffPriceOnAnAbsentBoundIsZero) {
+    const QpProblem qp = two_row_qp(); // both bounds at the +/-1e20 sentinel
+    SsnEngine engine(default_opts());
+    SsnResult clean;
+    engine.solve(qp, SsnStart{}, SsnOptions{}, &clean);
+
+    SsnStart noisy;
+    noisy.z = Vec::Zero(2);
+    noisy.z(1) = -1.8e-26;
+    noisy.z(0) = 1.8e-26;
+    SsnResult res;
+    ASSERT_NO_THROW(engine.solve(qp, noisy, SsnOptions{}, &res));
+    EXPECT_EQ(res.status, clean.status);
+    EXPECT_EQ(res.x, clean.x);
+    EXPECT_EQ(res.z, clean.z);
+
+    // The band is relative to the seed's own scale, with a floor of 1.
+    SsnStart above;
+    above.z = Vec::Zero(2);
+    above.z(1) = -4.0 * hven::solvers::detail::kSsnAbsentPriceRoundoff;
+    EXPECT_THROW(engine.solve(qp, above, SsnOptions{}, &res), std::invalid_argument);
+    SsnStart at_band;
+    at_band.z = Vec::Zero(2);
+    at_band.z(1) = -hven::solvers::detail::kSsnAbsentPriceRoundoff;
+    EXPECT_NO_THROW(engine.solve(qp, at_band, SsnOptions{}, &res));
+}
+
+// The band scales with the seed: a 1e6 price on variable 0's finite lower bound lifts it
+// to ~2.3e-7, so -1e-8 on variable 1's absent side is round-off and -1e-6 is mass.
+TEST(SsnEngineLocal, TheAbsentPriceBandScalesWithTheSeedsOwnMagnitude) {
+    QpProblem qp = two_row_qp();
+    qp.lower(0) = -5.0; // variable 0 has its lower bound; variable 1 has neither
+    SsnEngine engine(default_opts());
+    SsnResult res;
+    SsnStart in_band;
+    in_band.z = Vec::Zero(2);
+    in_band.z(0) = 1e6;
+    in_band.z(1) = -1e-8;
+    EXPECT_NO_THROW(engine.solve(qp, in_band, SsnOptions{}, &res));
+    SsnStart above = in_band;
+    above.z(1) = -1e-6;
+    EXPECT_THROW(engine.solve(qp, above, SsnOptions{}, &res), std::invalid_argument);
+}
+
 // =============================================================================
 // THE PER-SOLVE TRUST-REGION SEAM (Fable kernel review, I1)
 // =============================================================================
@@ -2471,8 +2518,16 @@ TEST(SsnEngineLocal, FeasibleButBadlyScaledIsNeverReportedInfeasible) {
 TEST(SsnEngineLocal, StallWindowGuardsKeepABrutallyScaledFeasibleQpHonest) {
     const QpProblem qp = brutally_scaled_feasible_qp();
 
-    const QpSolution walk = walk_solution(qp);
-    ASSERT_EQ(walk.status, QpStatus::kOptimal) << "the fixture must be FEASIBLE";
+    // FEASIBLE by construction: (3, -1.8) meets both rows and the box. The walk no longer
+    // certifies it kOptimal (it ends kNumericalError: the SDL sign half reads the row it used to
+    // exempt at the false point (2.083, 3), where the multiplier is -2.4e9), and may not call it
+    // infeasible either.
+    Vec feasible(2);
+    feasible << 3.0, -1.8;
+    ASSERT_TRUE(((qp.Ai * feasible - qp.bi).array() <= 0.0).all());
+    ASSERT_TRUE(((feasible - qp.upper).array() <= 0.0).all() &&
+                ((qp.lower - feasible).array() <= 0.0).all());
+    EXPECT_NE(walk_solution(qp).status, QpStatus::kInfeasible);
 
     SsnEngine engine(default_opts());
     SsnResult res;

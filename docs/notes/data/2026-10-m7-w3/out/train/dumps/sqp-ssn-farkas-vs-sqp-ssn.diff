@@ -1,0 +1,4 @@
+57c57
+< ssn_infeasibility_rule = kSymptoms
+---
+> ssn_infeasibility_rule = kFarkasGated

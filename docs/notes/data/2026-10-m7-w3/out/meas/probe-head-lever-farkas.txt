@@ -1,0 +1,14 @@
+# hven_sqp_ssn_safeguard_probe mode=lever-farkas count=10000 seed=20260807
+# R4 (a) recall on INFEASIBLE-BY-CONSTRUCTION QPs (routes generator)
+arm                  QPs       diagnosed     recall    fact(diag)  fact(total) farkas refusals
+shipped symptoms     10000     5684          56.8     % 7.59        111651      0
+R4 Farkas-gated      10000     5567          55.7     % 7.58        112921      233
+
+# R4 (b) false kInfeasible on FEASIBLE-BY-CONSTRUCTION badly-scaled QPs
+population                                 arm                  QPs       false kInf    rate      farkas refusals
+feasible, objective x 1e6                  shipped symptoms     9971      47            0.47     % 0
+feasible, objective x 1e6                  R4 Farkas-gated      9971      0             0.00     % 61
+feasible, objective x 1e9                  shipped symptoms     8194      118           1.44     % 0
+feasible, objective x 1e9                  R4 Farkas-gated      8194      0             0.00     % 165
+feasible, obj x 1e9 AND H over 10^{+-3}    shipped symptoms     8356      203           2.43     % 0
+feasible, obj x 1e9 AND H over 10^{+-3}    R4 Farkas-gated      8356      0             0.00     % 1548

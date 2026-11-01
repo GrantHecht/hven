@@ -1,0 +1,9 @@
+PGREP_EMPTY w3t1e3-default-hs-B-hs007
+PGREP_NO_UNCOVERED_CELL w3t1e3-default-hs-B-hs007 2026-10-29T09:54:20-04:00
+IN_LOCK_PGREP_EMPTY w3t1e3-default-hs-B-hs007 2026-10-29T09:54:20-04:00
+FOREGROUND_START w3t1e3-default-hs-B-hs007 2026-10-29T09:54:20-04:00
+w2_a4_sweep: default / hven-sqp / hs / run B-hs007 -> /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/train/cells-tau1e3/hven-sqp/default/hs-run-B-hs007 (ceiling 600s) [problems: hs007]
+run_serial: hs/hs007/hven-sqp/default
+run_serial: 1 cells -> /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/train/cells-tau1e3/hven-sqp/default/hs-run-B-hs007/results.csv
+w2_a4_sweep: RUNNER_EXIT 0
+FOREGROUND_END w3t1e3-default-hs-B-hs007 2026-10-29T09:54:20-04:00 rc=0

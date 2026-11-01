@@ -1,0 +1,39 @@
+FOLD 01  ACCEPTED want=0 got=0  identity: two identical record-0 blocks
+          DIFFERING: 0 -- the rebuilt HVEN_TESTING binary reproduces M3a's committed record 0 on all 20 fields and the status
+FOLD 02  REFUSED  want=1 got=1  identity: ONE field moved (ws_adds 10 -> 11)
+          DIFFERING: 1
+          REFUSED (R5): the traced solve is NOT M3a's record 0 -- RULE.md section 2.1 ABORTS the leg
+FOLD 03  REFUSED  want=1 got=1  identity: the STATUS moved (max_iter -> optimal)
+          DIFFERING: 1
+          REFUSED (R5): the traced solve is NOT M3a's record 0 -- RULE.md section 2.1 ABORTS the leg
+FOLD 04  REFUSED  want=4 got=4  identity: a row missing one of the twenty keys
+          REFUSED (R3): the comparison would cover 20 of 21 keys -- missing from the M3a row [], from the probe row ['first_ratio_ties']
+FOLD 05  REFUSED  want=3 got=3  identity: a row with no LEDGER_FIRST block
+          REFUSED (R1/R2): probe row /tmp/tmpy153tnt4/noblock.txt: carries no LEDGER_FIRST_BEGIN block -- there is no record 0 in it
+FOLD 06  REFUSED  want=3 got=3  identity: an EMPTY file (no PROBE_BEGIN)
+          REFUSED (R1/R2): probe row /tmp/tmpy153tnt4/empty.txt: carries no PROBE_BEGIN -- this is not a probe row
+FOLD 07  REFUSED  want=3 got=3  identity: a file that does not exist
+          REFUSED (R1/R2): probe row /tmp/tmpy153tnt4/nope.txt: no such file
+FOLD 08  ACCEPTED want=0 got=0  trace: five records against minor_iters=5
+FOLD 09  REFUSED  want=5 got=5  trace: FOUR records against minor_iters=5 (a pass went unrecorded)
+          PROBLEM: the trace has 4 records and record 0 reports minor_iters=5 -- a pass went unrecorded
+          REFUSED (R6): RULE.md section 2.2 ABORTS the leg
+FOLD 10  REFUSED  want=5 got=5  trace: an `unset` action
+          PROBLEM: 5 record(s) carry the `unset` action, which is an instrumentation bug
+          REFUSED (R6): RULE.md section 2.2 ABORTS the leg
+FOLD 11  REFUSED  want=5 got=5  trace: truncated=1
+          PROBLEM: the observer reports truncated=1
+          REFUSED (R6): RULE.md section 2.2 ABORTS the leg
+FOLD 12  REFUSED  want=5 got=5  trace: the walk exited optimal, not max_iter
+          PROBLEM: the walk exited optimal -- RULE.md section 2.2 requires max_iter
+          REFUSED (R6): RULE.md section 2.2 ABORTS the leg
+FOLD 13  REFUSED  want=5 got=5  trace: a WARM traced solve
+          PROBLEM: the traced solve reports warm=1 -- this must be the cold first subproblem
+          REFUSED (R6): RULE.md section 2.2 ABORTS the leg
+FOLD 14  REFUSED  want=5 got=5  trace: records belonging to another solve
+          PROBLEM: 5 record(s) do not belong to solve 0
+          REFUSED (R6): RULE.md section 2.2 ABORTS the leg
+FOLD 15  REFUSED  want=5 got=5  trace: a trace file that does not exist
+          REFUSED (R6): no trace at /tmp/tmpy153tnt4/nope.csv
+
+IDENTITY_FOLDS_TOTAL=15  IDENTITY_FOLDS_FAILED=0

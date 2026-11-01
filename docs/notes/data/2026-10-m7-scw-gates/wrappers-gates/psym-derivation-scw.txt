@@ -1,0 +1,124 @@
+M7 SCW -- THE GATE EXPECTATIONS, DERIVED.
+Written and committed BEFORE the chain was detached.
+
+RULE: nothing here, and no declared value in gates-scw.sh, may be adjusted after the chain's first leg. Every value is derived from the FINAL
+range 91dd3f64..9f48ed94 or measured on that pair by this declaration's own rehearsal (rehearsal/). No value is carried from the RST
+declaration: where a number equals a previous record's it is a COMPARISON, stated as such. The previous gate run (RST, docs/notes/data/
+2026-10-m7-rst-gates/, record 91dd3f64) is frozen, untouched. If a gate fails the declaration stays frozen; a fix gets a successor -r2
+declaration and the failed record is filed under gates-run1/.
+
+BASE   91dd3f64 (the RST gates record, the previous GREEN gate record; no source differs between it and 3e90d587, RST's head -- verified:
+       `git diff --name-only 3e90d587 91dd3f64 -- include src tests bench scripts cmake CMakeLists.txt` is empty).
+HEAD   9f48ed94. The declaration commit sits on top and is docs only, so every derivation sees 9f48ed94's sources.
+       Commits in the range: 03903d55 (RST-I1: a consumer stop on the switch row is honoured before the regularized restart), 8965d973
+       (YKN: the YORKNET diagnosis record -- data only), 03f14cba (YKN-S1: a round-off bound price on an absent side is zero, not a caller
+       error; src/qp/ssn_engine.cpp), 59939b29 (SCW: column scaling on by default -- SqpOptions::column_scaling kOff -> kAuto, threshold
+       1e3 -> 2^26; SqpWarmStart::column_factors; the caller-unit stationarity ceiling; the trace keys), eb6d4509 (SCW record -- data only),
+       9f48ed94 (SCW riders: carried factors range-checked and refused on a non-finite scaled point; three new pins).
+       The commit messages' own measurements (3199/3199 suites, U0 exact 0/0/0) are the implementer's, not this run's; this run measures its own.
+RUNNER gates-scw.sh + chain_gates_scw.sh: copies of RST's, re-pointed (NOT edited in place). Changes, and nothing else: (a) names /
+       scratch .scratch/gates-scw / G4 label / BEFORE 91dd3f64 / by-name baseline and G4 exact arm pinned to the RST gates record (BEFORE-
+       bounded, preflight E1; the exact arm directory DERIVED from the baseline directory, ASSERTED rc 0 per engine); classifier a byte-
+       identical copy (preflight F); (b) the changed surface (section 1); (c) the name checks (section 3: 11 ADDED, 1 REMOVED);
+       (d) the measured P-SYM slots (section 2); (e) ONE STRUCTURAL ADDITION: the class B MIRROR admission, EXPECT_PSYM_B_RELEASE_ONLY in
+       the runner and the block between BEGIN_MIRROR_BLOCK / END_MIRROR_BLOCK in its g5 segment (section 2). The rehearsal's g5 predates it
+       (the rehearsal measured the shape that made it necessary); it is proven offline on the rehearsal's own classifications by
+       rehearsal/check-mirror-scw.sh (preflight G: the carried rule alone REFUSES the measured pair, the block with the declared list passes,
+       two falsifiers are refused). rehearse-scw.sh is kept as run (it passes 16 g5 arguments; g5 reads the 17th as optional).
+       ENVIRONMENT NOTE: the worktree was created without its submodules; dep/eigen and dep/fmt were populated by copying the main checkout's
+       working trees (untracked content; the copied .git pointer files removed so git works; the tree stays clean). `git checkout -b scw-gates
+       9f48ed94` was run on the clean worktree. The rehearsal ran at a temporary docs-only commit above 9f48ed94 (the wrappers), since reset away.
+
+-----------------------------------------------------------------------------
+1  THE CHANGED SURFACE of 91dd3f64..9f48ed94 -- OBSERVED, derived from git (git diff --name-status 91dd3f64 9f48ed94 -- include src tests bench).
+
+   9 headers (all MODIFIED, none added): core/solver_counters.h, detail/drivers/problem_scaling.h, detail/qp/ssn_engine.h, drivers/sqp_solver.h,
+     drivers/sqp_solver_types.h, drivers/trace.h, warmstart/ipm_polish_extension.h, warmstart/sqp_warm_start.h, warmstart/warm_start_data.h.
+   10 MODIFIED .cpp: 9 INSIDE the P-SYM universe -- library src/drivers/problem_scaling.cpp, sqp_solver.cpp, trace_writer.cpp, src/qp/ssn_engine.cpp;
+     hven_sqp_tests test_column_scaling, test_sqp_restoration, test_sqp_solver, test_ssn_engine, test_trace_writer -- and 1 OUTSIDE it:
+     tests/sqp/test_sqp_ladder_seams.cpp, a source of hven_sqp_seam_tests (the HVEN_TESTING recompile target;
+     EXPECT_CLASS_A_OUTSIDE_SRCS). => class A = 9.
+   0 ADDED .cpp, 0 ADDED fixtures, no CMakeLists change: EXPECT_ADDED_CXX 0, EXPECT_ADDED_OUTSIDE_UNIVERSE empty, EXPECT_PSYM_ADDED 0,
+     EXPECT_SQP_CMAKE_ADDS / EXPECT_SRC_CMAKE_* empty. Other range files: docs/counters.md, docs/trace-schema-v0.md (docs only) and the data
+     commits' docs/notes/data directories (not touched here).
+   clang-format set: 19 files (9 headers + 10 .cpp; the runner prints it, preflight A).
+
+   THE DECLARED MOVERS this range carries (read from the commit messages and the diff; the suites and G4 are what prove them):
+   - SqpOptions::column_scaling default kOff -> kAuto, column_scaling_threshold 1e3 -> 2^26 (the shipped default is auto at the half-precision
+     gate); the U0 cells are claimed untouched (exact arm 0 / 0 / 0, asserted).
+   - SqpWarmStart gains column_factors (the decision travels with the warm start), range-checked and refused on a non-finite scaled point.
+   - a caller-unit stationarity ceiling on the scaled convergence guard; trace keys for the decision.
+   - SsnEngine: a round-off bound price on an absent side is zero (YKN-S1).
+   - RST-I1: a consumer stop on the switch row ends the solve before the regularized restart.
+   Fold proofs: the count the gate-assert library produces, reported as observed.
+
+-----------------------------------------------------------------------------
+2  THE P-SYM MOVER SHAPE, PER CONFIGURATION -- MEASURED on the final pair 91dd3f64/9f48ed94 by a FRESH rehearsal.
+
+     Release  DIFFERING 62 = class A 9 + class B 53; UNEXPLAINED 0; NOISE-ONLY 0; negative control 120; sections: 48 objects, 40
+              byte-identical, DEBUG_ONLY 0, NON-DEBUG MOVERS 8, REFUSED 0
+     Debug    DIFFERING 60 = class A 9 + class B 51; UNEXPLAINED 0; NOISE-ONLY 28 (14 in the library); negative control 94; sections: 48
+              objects, 28 byte-identical, DEBUG_ONLY 12, NON-DEBUG MOVERS 8, REFUSED 0
+
+   HOW MEASURED. rehearsal/rehearse-scw.sh ran THIS runner's g5 segment (EXTRACTED from the runner's text) at a temporary docs-only commit
+   above 9f48ed94 (since reset away) against 91dd3f64, both configurations, one hold of the box lock (2026-10-22 19:40-20:14, PGREP_EMPTY
+   under the hold; rehearsal/rehearsal-scw-log.txt). Its HYPOTHESIS declaration (class A only, 9/9, class B 0) was REFUSED in both
+   configurations by design (rehearsal/*-refused-at-9.txt), printing the measured shape (62 / 60 differing). Then rehearsal/offline-scw.sh
+   62 60 (its own hold, 20:14-20:23): a fresh Release build with g5's flags and the UNCAPPED classifier re-run on the compare files at the
+   measured counts -- OFFLINE_CLASSIFY_RC 0 in BOTH configurations. The capture-pair asserts (after = before + ADDED = 161 objects; ONLY-AFTER
+   empty; outside-universe: test_sqp_ladder_seams.cpp built in hven_sqp_seam_tests only) held in both configurations.
+   CLASS A: 9 in both configurations = the in-universe MODIFIED .cpp of section 1 exactly, the same 9 objects (OBSERVED). Both class-A
+   noise-only slots are EMPTY.
+   CLASS B: Release 53, Debug 51 (OBSERVED, by name). THE SHAPE IS THE MIRROR OF THE RST AND SCL ROUNDS': the Debug set is the Release set
+   LESS two objects, both library objects with unmodified sources -- src/drivers/sqp_options.cpp.o and src/qp/ipqp_engine.cpp.o -- which are
+   class B movers in Release and NOISE-ONLY in Debug (rehearsal-scw-classification-Debug.txt, NOISE-ONLY list). EXPECT_PSYM_B_DEBUG_ONLY is
+   therefore EMPTY and the new EXPECT_PSYM_B_RELEASE_ONLY carries those two (section header (e) above). Library class B (Release 4: sqp_options,
+   ipqp_engine, continuation, warm_start; Debug 2: continuation, warm_start).
+   NON-DEBUG-MOVER set 8 in BOTH configurations: the four class A library objects (drivers/problem_scaling, drivers/sqp_solver,
+   drivers/trace_writer, qp/ssn_engine) + four unmodified library objects: Release = the four class B (sqp_options, ipqp_engine,
+   continuation, warm_start); Debug = class B (continuation, warm_start) + the two NOISE-ONLY library movers (sqp_options, ipqp_engine:
+   their bytes do move in Debug's .text, and the classifier reads them as __LINE__-class noise; EXPECT_LIB_NOISE_MOVERS_DEBUG, checked
+   NOISE-ONLY in the Debug compare, unmodified in the range). DEBUG_ONLY Release 0 / Debug 12. No library object ADDED.
+   COMPARISON WITH RST (a comparison, not the derivation): RST measured 63/64 = 10 + 53/54 on 7 headers; this range changes 9 headers and 9
+   in-universe sources.
+
+-----------------------------------------------------------------------------
+3  TEST COUNTS -- derived against the by-name baseline.
+
+   THE BASELINE IS DERIVED, NOT NAMED, AND CHECKED AGAINST ITS DECLARATION: the newest gates record at or before 91dd3f64 is
+   docs/notes/data/2026-10-m7-rst-gates/gates/suite-release.txt (commit 91dd3f64) == the declared EXPECT_NAMES_BASE_REL (falsified with
+   BEFORE=d5984ea2, preflight E1). BASELINE (the RST record): ctest total Debug 3191 / Release 3192; started names 3193 / 3194. Skipped:
+   Debug 7, Release 1.
+   ADDED = 11 instances by name, REMOVED = 1, OBSERVED with git diff 91dd3f64 9f48ed94 -- include src tests: 11 `+TEST(` lines, 1 `-TEST(` line,
+   no TEST_F / TEST_P; the removed line is a RENAME (ColumnScalingOption.TheShippedDefaultIsOff ->
+   ColumnScalingOption.TheShippedDefaultIsAutoAtTheHalfPrecisionGate), so the new name is ADDED and the old one REMOVED (not RE-DECLARED);
+   the other ten are new. By suite: ColumnScalingDefault 1, ColumnScalingDriver 1, ColumnScalingOption 1 (the rename), ColumnScalingWarmChain 2,
+   ScaledConvergenceGuard 2, SqpDriverRestorationSeed 1, SqpLadderSeam 1, SsnEngineLocal 2. 0 GTEST_SKIP / DISABLED_ lines.
+   EXPECTED SUITE COUNTS: Debug 3191 + 11 - 1 = 3201 (G1, the long test excluded); Release 3192 + 11 - 1 = 3202 (G3); G2 1. Started names Debug
+   3193 + 10 = 3203 (+ the long test = 3204 listed), Release 3194 + 10 = 3204 (the rehearsal build's `ctest -N` total is 3204: rehearsal/
+   ctest-N-startfmt-derived.txt, the ctest -N listing rewritten to the runner's "Start n: name" shape with the two "(Disabled)" suffixes
+   stripped as the baseline's derivation does; it passes the runner's by-name check in Release and Debug shape, preflight C/C2; a short
+   listing and the baseline are refused). Of the 3204 listed, 2 are Disabled (EqpRefinementAb.FootprintRuleProbe, .FullBattery): 3202 run.
+   None added is Release-only, so DEBUG_ONLY_SKIPS_ADDED is EMPTY and the SKIPPED sets must equal the baseline's by name (Debug 7, Release 1).
+
+-----------------------------------------------------------------------------
+4  G4: 27 cells x 75 columns x 3 engines.
+
+   MEASURED by the rehearsal's offline leg (a fresh Release build of 9f48ed94's sources, MKL_NUM_THREADS=1, taskset -c 2;
+   rehearsal/rehearsal-scw-g4-comparison.txt): vs the M6 close pin, GATED (1e-5 relative, 1e-13 floor): walk 17 differences, ssn 13, ipm 13 =
+   43; the measured (engine, cell, column) SET EQUALS the declared 43-entry list (runner --check-g4, rc 0, all eight asserts OK: preflight B) --
+   the same set the RST rounds declared (a comparison). EXACT arm vs the RST record's gates/replay: walk 0, ssn 0, ipm 0 differences
+   (rehearsal, rc 0 each). The exact arm is DECLARED 0 / 0 / 0 and ASSERTED rc 0 per engine by the chain's g4 segment (preflight B2 shows the
+   comparator exits non-zero on a real difference). The chain's own replay moving beyond the declared 43-set, or the exact arm moving at all,
+   fails G4; it is reported, never re-declared.
+
+-----------------------------------------------------------------------------
+5  G6: expected CLEAN: install smoke; export contract; clang-format over the DERIVED set (19 files); git diff --check; DIRTY_FILES 0.
+   Fold proofs: the count the gate-assert library produces, reported as observed.
+
+6  PRE-FLIGHT: preflight-scw.txt (generated by preflight-scw.sh), committed WITH this file and BEFORE the chain was detached: A full
+   pre-flight PREFLIGHT_OK; B --check-g4 rc 0 (+ B2 the exact arm's teeth); C by-name reader (+ falsifiers); D skipped sets; E1-E12 falsifiers
+   (E5b: the rename's REMOVED name undeclared is refused; E11/E12 new); F classifier byte-identical to RST's; G the mirror admission proven.
+
+7  G5 CHECKS THE WORKTREE OUT TO BEFORE while it builds its before arm, once per configuration: nothing may edit or commit in this worktree
+   from the chain's launch until CHAIN_END. WALL IS INFORMATIONAL.

@@ -1,0 +1,24 @@
+D3START depth=0 n=128 out_of_box=1 max_box_viol=0.004 project=0
+D3QP depth=0 major=0 delta=1 status=0 minors=47 facts=90 h=6.696265564 f=27866.99859 blk_term=0 zmcap=0 cert=0 cert_rej=0 n=128 me=114 mi=160 f4route=0 resto_used=0
+D3MAJ depth=0 major=0 outcome=1 qp_status=0 verdict=1 elastic=0 viol=6.696265564 f=27866.99859 tr=1 step=1 minors=47 h_now=6.696265564
+D3QP depth=0 major=1 delta=1 status=0 minors=15 facts=1 h=1.344544855 f=41063.38571 blk_term=0 zmcap=0 cert=0 cert_rej=0 n=128 me=114 mi=160 f4route=0 resto_used=0
+D3MAJ depth=0 major=1 outcome=1 qp_status=0 verdict=1 elastic=0 viol=1.344544855 f=41063.38571 tr=1 step=0.691757 minors=15 h_now=1.344544855
+D3QP depth=0 major=2 delta=1 status=0 minors=2 facts=1 h=0.1199476447 f=41660.93893 blk_term=0 zmcap=0 cert=0 cert_rej=0 n=128 me=114 mi=160 f4route=0 resto_used=0
+D3MAJ depth=0 major=2 outcome=1 qp_status=0 verdict=1 elastic=0 viol=0.1199476447 f=41660.93893 tr=1 step=0.0393202 minors=2 h_now=0.1199476447
+D4DUMP seq=0 solve=3 status=3 n=128 me=114 mi=160 warm=1 tr=1 minors=2 facts=1 blk_term=0 cert_rej=0 zmcap=0 retreats=0 k0_reused=0
+D3QP depth=0 major=3 delta=1 status=3 minors=2 facts=1 h=0.0004170933733 f=41737.54311 blk_term=0 zmcap=0 cert=0 cert_rej=0 n=128 me=114 mi=160 f4route=0 resto_used=0
+D3ROUTE depth=0 major=3 routed failure 1/3 delta=1 floor=0
+D3MAJ depth=0 major=3 outcome=0 qp_status=3 verdict=2 elastic=0 viol=0.0004170933733 f=41737.54311 tr=1 step=0.000115396 minors=2 h_now=0.0004170933733
+D4DUMP seq=1 solve=4 status=3 n=128 me=114 mi=160 warm=1 tr=0.5 minors=2 facts=1 blk_term=0 cert_rej=0 zmcap=0 retreats=0 k0_reused=0
+D3QP depth=0 major=4 delta=0.5 status=3 minors=2 facts=1 h=0.0004170933733 f=41737.54311 blk_term=0 zmcap=0 cert=0 cert_rej=0 n=128 me=114 mi=160 f4route=0 resto_used=0
+D3ROUTE depth=0 major=4 routed failure 2/3 delta=0.5 floor=0
+D3MAJ depth=0 major=4 outcome=0 qp_status=3 verdict=2 elastic=0 viol=0.0004170933733 f=41737.54311 tr=0.5 step=0.000115396 minors=2 h_now=0.0004170933733
+D4DUMP seq=2 solve=5 status=3 n=128 me=114 mi=160 warm=1 tr=0.25 minors=2 facts=1 blk_term=0 cert_rej=0 zmcap=0 retreats=0 k0_reused=0
+D3QP depth=0 major=5 delta=0.25 status=3 minors=2 facts=1 h=0.0004170933733 f=41737.54311 blk_term=0 zmcap=0 cert=0 cert_rej=0 n=128 me=114 mi=160 f4route=0 resto_used=0
+D3ROUTE depth=0 major=5 routed failure 3/3 delta=0.25 floor=0
+D3MAJ depth=0 major=5 outcome=0 qp_status=3 verdict=2 elastic=0 viol=0.0004170933733 f=41737.54311 tr=0.25 step=0.000115396 minors=2 h_now=0.0004170933733
+D4DUMP seq=3 solve=6 status=3 n=128 me=114 mi=160 warm=1 tr=0.125 minors=2 facts=1 blk_term=0 cert_rej=0 zmcap=0 retreats=0 k0_reused=0
+D3QP depth=0 major=6 delta=0.125 status=3 minors=2 facts=1 h=0.0004170933733 f=41737.54311 blk_term=0 zmcap=0 cert=0 cert_rej=0 n=128 me=114 mi=160 f4route=0 resto_used=0
+D3ROUTE depth=0 major=6 kFinishQpFailure status=3 failures_in_a_row=3 retryable=1
+D3MAJ depth=0 major=6 outcome=5 qp_status=3 verdict=2 elastic=0 viol=0.0004170933733 f=41737.54311 tr=0.125 step=0.000115396 minors=2 h_now=0.0004170933733
+D3END depth=0 status=6 majors=7 resto_iters=0 certified=0 obj=41737.54311 feas=0.000113859 stat=0.63864

@@ -1,0 +1,77 @@
+M7 W2 E1b FIX ROUND 2, r2 -- THE REDUCED GATE'S EXPECTATIONS, CARRIED AND RE-DERIVED
+Written and committed BEFORE the r2 chain was detached. RULE: nothing here may be
+adjusted after the chain's first leg. psym-derivation-e1bfix2.txt (the first
+declaration, 68501337) is NOT edited; this file is its successor.
+
+WHY r2. The first chain (chain_gates_e1bfix2.sh, 2026-09-24 04:40:59 - 05:14:00, at
+68501337; logs .scratch/m7w2e1bfix2gates/logs/{chain,gates}-e1bfix2.log) ended
+GATES_SUMMARY G1=0 G3=0 G5=1 G6=0, folds 46/0. Its gates log carries exactly TWO
+`ASSERT FAIL` lines, both the post-G5 class B by-name check:
+    ASSERT FAIL class B by name Release: measured [] != declared [ ]
+    ASSERT FAIL class B by name Debug: measured [] != declared [ ]
+Every other assertion in the transcript is ASSERT OK: G1 Debug failed 0 / total 2817 /
+2819 names == baseline; G3 Release failed 0 / total 2818 / 2820 names == baseline;
+G5 (the g5 segment, G5_ASSERT_RC=0): captures 151/151 both configs, outside-universe,
+ONLY-AFTER [], P-SYM differing 1 = A 1 + B 0, unexplained 0, control 6 Rel / 3 Dbg,
+library no mover, sections non-debug movers as declared, DEBUG_ONLY 0 Rel / 2 Dbg
+(both comment-only sources' own objects), cross-config class B equal (0), class A
+identical; WRAPPER_RC 0 for G1, G3, G5-psym and G6; G6 smoke/export/format/diff-check
+0, DIRTY_FILES 0. The failure is a spelling of the empty list: `printf '%s\n' $names`
+over an EMPTY declared list prints one empty line, which `tr '\n' ' '` turns into
+` `, while the empty measured set turns into ``. Not a P-SYM finding.
+
+THE FIX (gates-e1bfix2-r2.sh, E1BFR2 (i)): `class_b_names_check` compares NORMALIZED
+SORTED NAME SETS (whitespace-split, blank dropped, LC_ALL=C sort -u, one space
+between names): empty == empty; a missing classification or one without its class B
+header stays a refusal. Runnable offline: `gates-e1bfix2-r2.sh --check-class-b-names
+CFG FILE` (rc 0 pass, rc 2 refusal); the post-G5 loop calls the same function.
+Exercised before the first leg (2026-09-24, main tree at 68501337 + the r2 files):
+  first chain's measured classification-{Release,Debug}.txt, declared empty:  rc 0 / rc 0
+  rehearsal/rehearsal-classification-{Release,Debug}.txt, declared empty:      rc 0 / rc 0
+  declared spelled " " (the first chain's spelling) vs measured empty:         rc 0
+  NON-EMPTY measured (a copy of the Release classification with one class B
+    object, test_sqp_equality_basis.cpp.o) vs declared empty:                  rc 2 (REFUSED)
+  the same non-empty measured vs the same name declared:                       rc 0
+  declared non-empty vs measured empty:                                        rc 2 (REFUSED)
+  missing classification file:                                                 rc 2 (REFUSED)
+
+THE VALUES: CARRIED FROM psym-derivation-e1bfix2.txt BY RE-DERIVATION.
+  Same range, same head: BASE 7ab88b81 (7ab88b81a83d432a1aa5e34ee8cb8ae5632d7483),
+  code head 92e6a12c (92e6a12cba4af0fb8f03f8718dd1c46a8cc53fc0); the commits above it
+  (68501337, this file's commit) are docs/notes/data only.
+  `git diff --name-status 7ab88b81..92e6a12c` re-run: the same 8 paths as the first
+  declaration §1 (2 headers comments-only, src/drivers/{equality_basis,sqp_solver}.cpp
+  comments-only, tests/sqp/test_equality_basis.cpp the only code change,
+  tests/sqp/test_sqp_equality_basis_seams.cpp outside the universe, docs/testing.md,
+  the E1 README).
+  The runner's 28 declared-value assignments (BEFORE, EXPECT_*, MIN_NEGATIVE_CONTROL,
+  NAMES_BASE_DIR, OUTSIDE_TARGET, OUTSIDE_DIR) are IDENTICAL between gates-e1bfix2.sh
+  and gates-e1bfix2-r2.sh (mechanical diff of the assignment lines: empty). Hence, as
+  in the first declaration:
+    §2 P-SYM per configuration: DIFFERING 1/1 = class A 1/1 + class B 0/0;
+       UNEXPLAINED 0; class A = tests/sqp/CMakeFiles/hven_sqp_tests.dir/
+       test_equality_basis.cpp.o in both; class B EMPTY in both (by name: the empty
+       set); asymmetry admission list EMPTY; no library P-SYM mover.
+    §3 tests: Release 2818 (G3), Debug 2817 (G1); by name 2820 / 2819 started names
+       == gates-e2-fix1b/suite-{release,debug}.txt.
+    §4 sections: NON-DEBUG-MOVERS empty both; no library ADDED; DEBUG_ONLY 0 Rel /
+       2 Dbg (drivers/equality_basis, drivers/sqp_solver, comment-only); REFUSED 0.
+    §5 G2 and G4 NOT RUN (declared; reason re-checked by value in the pre-flight).
+    §6 G6 expected clean; fold proofs 46/0 (gate-assert library unchanged).
+    §8 G5 checks the main tree out to 7ab88b81 during its before arms: nothing edits
+       or commits in the main tree until CHAIN_END.
+  The P-SYM rehearsal at 92e6a12c vs 7ab88b81 (rehearsal/, 04:27:45-04:38:01) STANDS
+  and is cited, not re-run; the first chain's own G5 re-measured the same shape.
+
+PRE-FLIGHT (`gates-e1bfix2-r2.sh --preflight-only`, 2026-09-24 05:18:33, HEAD
+68501337 + the uncommitted r2 files): PREFLIGHT_RC 0 -- COMMENT_ONLY_OK,
+CLASS_B_NAMES_OK 0/0, BY-NAME BASELINES 2819/2820, PREFLIGHT_VALUE_OK, SEGMENT_OK x4
+resolving S=.scratch/m7w2e1bfix2gates-r2, PREFLIGHT_OK. The pre-flight's refusals
+exercised in the first declaration (preflight.txt) run the same unchanged code.
+
+LITERAL CHECK before the first leg: the ONE scratch literal is
+`.scratch/m7w2e1bfix2gates-r2` (gates-e1bfix2-r2.sh:75; the chain asks it with
+--print-scratch). `grep m7w2e1bfix2gates` on both copies: only :45 (this round's
+header prose, naming the r2 tree) and :75 (the definition); the old tree
+`.scratch/m7w2e1bfix2gates` appears nowhere. Old runner/log names appear only in
+provenance comments (chain :3, :9, :12; runner :40).

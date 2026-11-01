@@ -199,6 +199,10 @@ inline KktAssembly assemble_kkt_core(const QpProblem &qp, const WorkingSet &ws,
     // means a free row (p) with fixed col (q) contributes via H(p,q), and a
     // fixed row (p) with free col (q) contributes via the SAME stored
     // value H(p,q) but attributed to free row q (since H(q,p) == H(p,q)).
+    // H is taken from the provider-laid arena here; the arena is ONE source of the engine's
+    // current Hessian (M9 constraint: nothing assumes H's sparsity is fixed by the model;
+    // heuristics read the handle, never the arena). A CONSTRAINT STATED, NOT A HANDLE BUILT:
+    // the 2026-08-31 amendment retracted the seam it would have been reserved by (H-5).
     for (Index i = 0; i < n; ++i) {
         for (SpMatRM::InnerIterator it(qp.H, i); it; ++it) {
             const Index j = it.col();

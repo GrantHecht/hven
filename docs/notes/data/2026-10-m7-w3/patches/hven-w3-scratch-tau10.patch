@@ -1,0 +1,26 @@
+From bc7635a6435792ec528cd8a9cc203625aeee47fd Mon Sep 17 00:00:00 2001
+From: Grant Hecht <grantrhecht@icloud.com>
+Date: Wed, 28 Oct 2026 22:07:35 -0400
+Subject: [PATCH] SCRATCH (hven M7 W3, never merged, never pushed):
+ include/hven/detail/globalization/sqp/globalization.h kFunnelTauBar = 10.0;
+
+---
+ include/hven/detail/globalization/sqp/globalization.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/include/hven/detail/globalization/sqp/globalization.h b/include/hven/detail/globalization/sqp/globalization.h
+index 4937f5ea..c2f22372 100644
+--- a/include/hven/detail/globalization/sqp/globalization.h
++++ b/include/hven/detail/globalization/sqp/globalization.h
+@@ -85,7 +85,7 @@ namespace hven::solvers {
+ // those stated with the equation using each constant.
+ 
+ /// tau_bar > 0: absolute floor on the initial width (Eq. (9); Table 1 = 100).
+-inline constexpr double kFunnelTauBar = 100.0;
++inline constexpr double kFunnelTauBar = 10.0;
+ /// kappa_bar > 1: multiplier on h_0 (Eq. (9); Table 1 = 1.25) — strictly > 1
+ /// so the start point lies strictly inside its own funnel.
+ inline constexpr double kFunnelKappaBar = 1.25;
+-- 
+2.56.0
+

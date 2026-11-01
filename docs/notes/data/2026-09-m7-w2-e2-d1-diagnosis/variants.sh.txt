@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Run one problem under several experiment variants, sequentially (one solver process at a time).
+set -o pipefail
+D=/home/ghecht/Projects/hven/.scratch/m7w2e2d1; R=$D/runs
+prob="$1"; shift
+for v in "$@"; do
+  envs=(HVEN_D1=1 HVEN_D1_TRACE=-3)
+  label=default
+  case "$v" in
+    on) ;;
+    off) label=independent-working-set-off ;;
+    fixpin) envs+=(HVEN_D1_FIXPIN=1) ;;
+    n3admit) envs+=(HVEN_D1_N3ADMIT=1) ;;
+    boxcert) envs+=(HVEN_D1_BOXCERT=1) ;;
+    fixpin_n3admit) envs+=(HVEN_D1_FIXPIN=1 HVEN_D1_N3ADMIT=1) ;;
+    fixpin_boxcert) envs+=(HVEN_D1_FIXPIN=1 HVEN_D1_BOXCERT=1) ;;
+    all) envs+=(HVEN_D1_FIXPIN=1 HVEN_D1_BOXCERT=1 HVEN_D1_N3ADMIT=1) ;;
+    undec) envs+=(HVEN_D1_UNDEC_RETREAT=1) ;;
+    n3el) envs+=(HVEN_D1_N3ELASTIC=1) ;;
+    n3el_undec) envs+=(HVEN_D1_N3ELASTIC=1 HVEN_D1_UNDEC_RETREAT=1) ;;
+    n3el_all) envs+=(HVEN_D1_N3ELASTIC=1 HVEN_D1_UNDEC_RETREAT=1 HVEN_D1_FIXPIN=1 HVEN_D1_BOXCERT=1) ;;
+    fb_undec) envs+=(HVEN_D1_FIXPIN=1 HVEN_D1_BOXCERT=1 HVEN_D1_UNDEC_RETREAT=1) ;;
+  esac
+  s=$(date +%s.%N)
+  $D/cell.sh $R/${prob}_$v $prob $label "${envs[@]}" >/dev/null
+  e=$(date +%s.%N)
+  st=$(grep -m1 '^status=' $R/${prob}_$v.out); it=$(grep -m1 '^iterations=' $R/${prob}_$v.out); ob=$(grep -m1 '^objective=' $R/${prob}_$v.out)
+  nq=$(grep -c '^D1SOLVE .* begin' $R/${prob}_$v.err); bt=$(grep -c 'blk_term=[1-9]' $R/${prob}_$v.err); zc=$(grep -c 'zm_cap=[1-9]' $R/${prob}_$v.err); ce=$(grep -c 'cert=[1-9]' $R/${prob}_$v.err); el=$(grep -c 'D1N3ELASTIC' $R/${prob}_$v.err)
+  printf 'VARIANT %s %s %s %s %s qp_solves=%s blk_term_solves=%s zmcap_solves=%s cert_solves=%s n3elastic=%s wall=%.2f\n' "$prob" "$v" "$st" "$it" "$ob" "$nq" "$bt" "$zc" "$ce" "$el" "$(echo "$e - $s" | bc)"
+done

@@ -89,37 +89,11 @@ QpProblem convex_qp() {
     return qp;
 }
 
-/// THE A11 PARAMETRIC INDEFINITE FAMILY at QP level: min 1/2 x0^2 - x1^2 - c x0 + 1/4 x1 on
-/// [-1, 1]^2. The KKT residual vanishes at BOTH the minimizer (c, -1) and the interior saddle
-/// (c, 1/8), so only a section 2.2 item 4 inertia read separates them.
-QpProblem indefinite_box_qp(double c) {
-    QpProblem qp;
-    qp.H = dense_upper({{1.0, 0.0}, {0.0, -2.0}});
-    qp.g = vec({-c, 0.25});
-    qp.Ae = dense_rows({}, 2);
-    qp.be = Vec(0);
-    qp.Ai = dense_rows({}, 2);
-    qp.bi = Vec(0);
-    qp.lower = vec({-1.0, -1.0});
-    qp.upper = vec({1.0, 1.0});
-    return qp;
-}
-
-/// The saddle fixture task 4's `TheFinalReadCatchesASaddle...` uses: `H =
-/// diag(2, -1)`, `g = 0`, a SYMMETRIC box, so the origin is an exact KKT point
-/// of the barrier problem at every `mu` and the tier converges to it.
-QpProblem saddle_qp() {
-    QpProblem qp;
-    qp.H = dense_upper({{2.0, 0.0}, {0.0, -1.0}});
-    qp.g = vec({0.0, 0.0});
-    qp.Ae = dense_rows({}, 2);
-    qp.be = Vec(0);
-    qp.Ai = dense_rows({}, 2);
-    qp.bi = Vec(0);
-    qp.lower = vec({-10.0, -10.0});
-    qp.upper = vec({10.0, 10.0});
-    return qp;
-}
+// `indefinite_box_qp`, `saddle_qp` and `equality_null_space_indefinite_qp` live in
+// support/indefinite_fixtures.h (moved at M7 W2 A3 for the `--ladder` instrument).
+using test_support::equality_null_space_indefinite_qp;
+using test_support::indefinite_box_qp;
+using test_support::saddle_qp;
 
 /// How many of the five census fields are nonzero.
 Index census_entries(const IpqpCounters &c) {
@@ -509,22 +483,6 @@ TEST(IpqpA11Test, TheConvexTwinOfTheFamilyCertifiesAndLeavesTheLadderInert) {
 // ---------------------------------------------------------------------------
 
 namespace {
-
-/// T4b close gate 7's fixture: min 1/2 (x0^2 + lam x1^2) s.t. x0 = 0.5, x in [-10, 10]^2. The
-/// equality eliminates x0, so the REDUCED Hessian is the scalar `lam`, known analytically; `g1 =
-/// 0` and a symmetric box make the SADDLE `x1 = 0` an exact barrier KKT point at every `mu`.
-QpProblem equality_null_space_indefinite_qp(double lam) {
-    QpProblem qp;
-    qp.H = dense_upper({{1.0, 0.0}, {0.0, lam}});
-    qp.g = vec({0.0, 0.0});
-    qp.Ae = dense_rows({{1.0, 0.0}}, 2);
-    qp.be = vec({0.5});
-    qp.Ai = dense_rows({}, 2);
-    qp.bi = Vec(0);
-    qp.lower = vec({-10.0, -10.0});
-    qp.upper = vec({10.0, 10.0});
-    return qp;
-}
 
 /// T4b close gate 8's fixture: `H = diag(2, h)`, `g = 0`, a SYMMETRIC box of half-width `s` on
 /// x1, so `x1 = 0` is an exact barrier KKT point at every `mu` with `Sigma = 2 mu / s^2`.

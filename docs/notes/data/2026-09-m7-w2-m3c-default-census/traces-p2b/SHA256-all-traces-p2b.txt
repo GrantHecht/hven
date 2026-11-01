@@ -1,0 +1,31 @@
+# sha256 of every FULL pass-2B flat trace produced by the RE-TAKE chain (pid
+# 2743689, 2026-09-21T21:33:58 -> 21:53:51), under arm C's build.
+#
+# The full traces are NOT committed: together they are 217 MB, and RULE-P2.md
+# §3 says so in advance -- only the SELECTED solves' slices are committed
+# (traces-p2b/<CELL>-solve<k>.csv). This manifest is what makes those slices
+# auditable: a reader with the scratch tree can check that the slice they read
+# came out of the bytes named here.
+#
+# ORIGINALS, on the box that produced them, not in git:
+#   /home/ghecht/Projects/hven/.scratch/m7w2m3c/p2b/traces/<CELL>-all.csv
+#
+# These are the traces RULE-P2 §6 is read out on. The EARLIER pass-2 traces
+# (.scratch/m7w2m3c/p2/traces/, manifest traces-p2/SHA256-all-traces.txt) were
+# STOPPED by RULE-P2 §5.1's identity gate and are evidence only; they are not
+# read as traces of the pass-1 rows.
+#
+# sha256  bytes  file
+0f369b21f0fa8e2514f724179b900c3e6a97dd54c64d062957a29ce64835ab56  12318628  ACOPP118-all.csv
+19822007082eb396cc5cc3c553843466559a40cba3edbc7b89bdedc114ef44d1  4240840  ACOPP57-all.csv
+e8bc0af196516a772cd8dfdac14416564b62029aec2b793f8c70c11b69b35559  8055310  ACOPR57-all.csv
+7f0130215743b8b4c1da03ac2dcf0e799a6180af4ca0fcec2fdd37a752bec1cd  57892042  BRITGAS-all.csv
+600f1cf053dc26412bc3535137964d5542496e9efdb0e599328402874c00bcc0  6760863  DALLASM-all.csv
+5254d80b8a477eec3a60bdad981b6b8dffba3aa8cb8e95edea9b8672e03333b1  44656851  SAWPATH-all.csv
+9ba7d30c2192681ecfdbe64e1425e0324a470025b9e70c4985a5146dcb1d3a4a  13343601  STEENBRB-all.csv
+b06a4db13e9a166a157d88e77ff331e4fc61558b80f9dc600f5034d7e866079d  22672148  STEENBRC-all.csv
+6862289cf135025b21ea421ab89d434a38b252faa50990684af3111b89f4ccee  22927499  STEENBRG-all.csv
+a69816b944ff79bfdd4c081bc5dce5a5c68b148228ccfadeb7152722dada5b95  29634381  YORKNET-all.csv
+#
+# the instrument that wrote them (arm C = arm B's binary, ARMED):
+cad3cbf6aaa2c771ce42e2f9059378e70049b4e7e4e7981ef85f1add5a8d808a  /home/ghecht/Projects/hven/.scratch/m7w2m3c/p2a/armB/m3c_p2a_probe_armB

@@ -1,0 +1,80 @@
+LEG: bash -o pipefail -c cd /home/ghecht/Projects/hven && ./build/tests/drivers/hven_drivers_tests --gtest_filter="CallbackPayload.*:Callback.*" 2>&1 | tail -60
+PGREP_SEPARATE 2026-09-15T04:16:31Z
+PGREP_NONEMPTY
+742966 /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1789327155142-mv806j.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'cd /home/ghecht/Projects/hven-bench && flock -w 540 /tmp/box-build.lock .scratch/h2/leg.sh leg-01-configure-build bash -c '"'"'./configure.sh >/dev/null && cmake --build build -j8'"'"' 2>&1 | tail -40; echo "OUTER_RC=$?"' < /dev/null && pwd -P >| /tmp/claude-4214-cwd
+742968 flock -w 540 /tmp/box-build.lock .scratch/h2/leg.sh leg-01-configure-build bash -c ./configure.sh >/dev/null && cmake --build build -j8
+742970 bash .scratch/h2/leg.sh leg-01-configure-build bash -c ./configure.sh >/dev/null && cmake --build build -j8
+742971 bash .scratch/h2/leg.sh leg-01-configure-build bash -c ./configure.sh >/dev/null && cmake --build build -j8
+742974 cmake --build build -j8
+742981 /usr/bin/ninja-build -j 8
+743006 /usr/bin/clang++ -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO -DEIGEN_MAX_ALIGN_BYTES=32 -DFMT_HEADER_ONLY -DFMT_USE_LOCALE=0 -DHVEN_BENCH_PIN_SHA="3904a477771524b85b34678fb7d2ff55dd4768f1" -DHVEN_DEFAULT_QP_THREADS=8 -I/home/ghecht/Projects/hven-bench/lanes/hven -I/home/ghecht/Projects/hven-bench -isystem /home/ghecht/Projects/hven-bench/.hven/install-3904a4777715/include -isystem /opt/intel/oneapi/mkl/latest/include -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 -MD -MT sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs030.cpp.o -MF sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs030.cpp.o.d -o sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs030.cpp.o -c /home/ghecht/Projects/hven-bench/sets/hs/hs030.cpp
+743007 /usr/bin/clang++ -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO -DEIGEN_MAX_ALIGN_BYTES=32 -DFMT_HEADER_ONLY -DFMT_USE_LOCALE=0 -DHVEN_BENCH_PIN_SHA="3904a477771524b85b34678fb7d2ff55dd4768f1" -DHVEN_DEFAULT_QP_THREADS=8 -I/home/ghecht/Projects/hven-bench/lanes/hven -I/home/ghecht/Projects/hven-bench -isystem /home/ghecht/Projects/hven-bench/.hven/install-3904a4777715/include -isystem /opt/intel/oneapi/mkl/latest/include -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 -MD -MT sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs033.cpp.o -MF sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs033.cpp.o.d -o sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs033.cpp.o -c /home/ghecht/Projects/hven-bench/sets/hs/hs033.cpp
+743008 /usr/bin/clang++ -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO -DEIGEN_MAX_ALIGN_BYTES=32 -DFMT_HEADER_ONLY -DFMT_USE_LOCALE=0 -DHVEN_BENCH_PIN_SHA="3904a477771524b85b34678fb7d2ff55dd4768f1" -DHVEN_DEFAULT_QP_THREADS=8 -I/home/ghecht/Projects/hven-bench/lanes/hven -I/home/ghecht/Projects/hven-bench -isystem /home/ghecht/Projects/hven-bench/.hven/install-3904a4777715/include -isystem /opt/intel/oneapi/mkl/latest/include -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 -MD -MT sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs035.cpp.o -MF sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs035.cpp.o.d -o sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs035.cpp.o -c /home/ghecht/Projects/hven-bench/sets/hs/hs035.cpp
+743009 /usr/bin/clang++ -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO -DEIGEN_MAX_ALIGN_BYTES=32 -DFMT_HEADER_ONLY -DFMT_USE_LOCALE=0 -DHVEN_BENCH_PIN_SHA="3904a477771524b85b34678fb7d2ff55dd4768f1" -DHVEN_DEFAULT_QP_THREADS=8 -I/home/ghecht/Projects/hven-bench/lanes/hven -I/home/ghecht/Projects/hven-bench -isystem /home/ghecht/Projects/hven-bench/.hven/install-3904a4777715/include -isystem /opt/intel/oneapi/mkl/latest/include -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 -MD -MT sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs038.cpp.o -MF sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs038.cpp.o.d -o sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs038.cpp.o -c /home/ghecht/Projects/hven-bench/sets/hs/hs038.cpp
+743010 /usr/bin/clang++ -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO -DEIGEN_MAX_ALIGN_BYTES=32 -DFMT_HEADER_ONLY -DFMT_USE_LOCALE=0 -DHVEN_BENCH_PIN_SHA="3904a477771524b85b34678fb7d2ff55dd4768f1" -DHVEN_DEFAULT_QP_THREADS=8 -I/home/ghecht/Projects/hven-bench/lanes/hven -I/home/ghecht/Projects/hven-bench -isystem /home/ghecht/Projects/hven-bench/.hven/install-3904a4777715/include -isystem /opt/intel/oneapi/mkl/latest/include -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 -MD -MT sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs039.cpp.o -MF sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs039.cpp.o.d -o sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs039.cpp.o -c /home/ghecht/Projects/hven-bench/sets/hs/hs039.cpp
+743011 /usr/bin/clang++ -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO -DEIGEN_MAX_ALIGN_BYTES=32 -DFMT_HEADER_ONLY -DFMT_USE_LOCALE=0 -DHVEN_BENCH_PIN_SHA="3904a477771524b85b34678fb7d2ff55dd4768f1" -DHVEN_DEFAULT_QP_THREADS=8 -I/home/ghecht/Projects/hven-bench/lanes/hven -I/home/ghecht/Projects/hven-bench -isystem /home/ghecht/Projects/hven-bench/.hven/install-3904a4777715/include -isystem /opt/intel/oneapi/mkl/latest/include -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 -MD -MT sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs040.cpp.o -MF sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs040.cpp.o.d -o sets/hs/CMakeFiles/hven_bench_set_hs.dir/hs040.cpp.o -c /home/ghecht/Projects/hven-bench/sets/hs/hs040.cpp
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-09-15T04:16:37Z
+[ RUN      ] Callback.SqpConvergedBeatsStop
+[       OK ] Callback.SqpConvergedBeatsStop (2 ms)
+[ RUN      ] Callback.SqpStopInsideRestorationLatchesAndReachesTheParent
+[       OK ] Callback.SqpStopInsideRestorationLatchesAndReachesTheParent (2 ms)
+[ RUN      ] Callback.SqpStopInsideRestorationArrivesAsTheSubSolvesOwnVerdict
+[       OK ] Callback.SqpStopInsideRestorationArrivesAsTheSubSolvesOwnVerdict (5 ms)
+[ RUN      ] Callback.SqpEventXIsTheRowsOwnPointAcrossRestoration
+[       OK ] Callback.SqpEventXIsTheRowsOwnPointAcrossRestoration (4 ms)
+[ RUN      ] Callback.ASolveWithNoCallbackSnapshotsNothing
+[       OK ] Callback.ASolveWithNoCallbackSnapshotsNothing (1 ms)
+[ RUN      ] Callback.SqpStopOnANonConvergedCapTerminalRowIsANoOp
+[       OK ] Callback.SqpStopOnANonConvergedCapTerminalRowIsANoOp (1 ms)
+[ RUN      ] Callback.SqpStopOnTheRestorationsConvergedRowInterruptsAndKeepsTheCertificate
+[       OK ] Callback.SqpStopOnTheRestorationsConvergedRowInterruptsAndKeepsTheCertificate (5 ms)
+[ RUN      ] Callback.ClearingTheCallbackFromInsideItIsSafe
+[       OK ] Callback.ClearingTheCallbackFromInsideItIsSafe (772 ms)
+[ RUN      ] Callback.ADirectSetAfterAThrownDeferralSupersedesIt
+[       OK ] Callback.ADirectSetAfterAThrownDeferralSupersedesIt (5 ms)
+[ RUN      ] Callback.ZeroMajorExitFiresOnceOrNever
+[       OK ] Callback.ZeroMajorExitFiresOnceOrNever (0 ms)
+[ RUN      ] Callback.IpmContinuingEventObservesTheCommittedPoint
+[       OK ] Callback.IpmContinuingEventObservesTheCommittedPoint (0 ms)
+[ RUN      ] Callback.IpmTerminalRowStillFires
+[       OK ] Callback.IpmTerminalRowStillFires (0 ms)
+[ RUN      ] Callback.IpmStopEndsThePhaseSequence
+[       OK ] Callback.IpmStopEndsThePhaseSequence (0 ms)
+[ RUN      ] Callback.IpmTerminalEventDiagnosticsAreTheResultsOwn
+[       OK ] Callback.IpmTerminalEventDiagnosticsAreTheResultsOwn (1 ms)
+[ RUN      ] Callback.IpmEventObjectiveIsNaNOnANonObjectiveBearingPhase
+[       OK ] Callback.IpmEventObjectiveIsNaNOnANonObjectiveBearingPhase (0 ms)
+[ RUN      ] Callback.IpmTerminalEventDescribesTheReturnedPointUnderReturnBest
+[       OK ] Callback.IpmTerminalEventDescribesTheReturnedPointUnderReturnBest (0 ms)
+[ RUN      ] Callback.ThrowingCallbackPropagatesAndTheSolverIsReusable
+[       OK ] Callback.ThrowingCallbackPropagatesAndTheSolverIsReusable (4 ms)
+[ RUN      ] Callback.AReadOnlyCallbackChangesNothingOnEitherEngine
+[       OK ] Callback.AReadOnlyCallbackChangesNothingOnEitherEngine (3 ms)
+[ RUN      ] Callback.ClearingTheCallbackStopsTheEvents
+[       OK ] Callback.ClearingTheCallbackStopsTheEvents (2 ms)
+[----------] 22 tests from Callback (827 ms total)
+
+[----------] 7 tests from CallbackPayload
+[ RUN      ] CallbackPayload.TheOneArgumentOverloadStillDeliversEverything
+[       OK ] CallbackPayload.TheOneArgumentOverloadStillDeliversEverything (3 ms)
+[ RUN      ] CallbackPayload.ScalarsDeliversTheScalarsAndNothingElse
+[       OK ] CallbackPayload.ScalarsDeliversTheScalarsAndNothingElse (3 ms)
+[ RUN      ] CallbackPayload.VectorsAloneDeliversTheViewsAndNaNDiagnostics
+[       OK ] CallbackPayload.VectorsAloneDeliversTheViewsAndNaNDiagnostics (3 ms)
+[ RUN      ] CallbackPayload.DiagnosticsAloneDeliversTheDiagnosticsAndEmptyViews
+[       OK ] CallbackPayload.DiagnosticsAloneDeliversTheDiagnosticsAndEmptyViews (3 ms)
+[ RUN      ] CallbackPayload.ClearingResetsTheMask
+[       OK ] CallbackPayload.ClearingResetsTheMask (2 ms)
+[ RUN      ] CallbackPayload.AMaskSetFromInsideTheCallbackTakesEffectAtTheNextEvent
+[       OK ] CallbackPayload.AMaskSetFromInsideTheCallbackTakesEffectAtTheNextEvent (1 ms)
+[ RUN      ] CallbackPayload.ANarrowingSetFromInsideTheCallbackEmptiesTheLaterEvents
+[       OK ] CallbackPayload.ANarrowingSetFromInsideTheCallbackEmptiesTheLaterEvents (0 ms)
+[----------] 7 tests from CallbackPayload (17 ms total)
+
+[----------] Global test environment tear-down
+[==========] 29 tests from 2 test suites ran. (846 ms total)
+[  PASSED  ] 29 tests.
+LEG_RC=0
+FOREGROUND_END 2026-09-15T04:16:38Z
+WRAPPER_EXIT=0

@@ -1,0 +1,61 @@
+Running main() from /home/ghecht/Projects/hven/build-debug/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = SqpDriverRestorationProximity.*:RestorationModel*.*:SqpDriverRestorationSeed.*
+[==========] Running 21 tests from 4 test suites.
+[----------] Global test environment set-up.
+[----------] 4 tests from RestorationModel
+[ RUN      ] RestorationModel.IsTheSmoothL1FeasibilityProblem
+[       OK ] RestorationModel.IsTheSmoothL1FeasibilityProblem (0 ms)
+[ RUN      ] RestorationModel.DerivativesMatchFiniteDifferences
+[       OK ] RestorationModel.DerivativesMatchFiniteDifferences (0 ms)
+[ RUN      ] RestorationModel.ScalesSlackColumnsToTheirJacobianRow
+[       OK ] RestorationModel.ScalesSlackColumnsToTheirJacobianRow (0 ms)
+[ RUN      ] RestorationModel.IsTheSmoothL1FeasibilityProblemAtAPositiveProximity
+[       OK ] RestorationModel.IsTheSmoothL1FeasibilityProblemAtAPositiveProximity (0 ms)
+[----------] 4 tests from RestorationModel (1 ms total)
+
+[----------] 3 tests from RestorationModelProximity
+[ RUN      ] RestorationModelProximity.IsTheHandComputedTermAtEveryScalingBranch
+[       OK ] RestorationModelProximity.IsTheHandComputedTermAtEveryScalingBranch (0 ms)
+[ RUN      ] RestorationModelProximity.AtZeroItIsTheWrapperThatShips
+[       OK ] RestorationModelProximity.AtZeroItIsTheWrapperThatShips (0 ms)
+[ RUN      ] RestorationModelProximity.AtAPositiveWeightThePatternGainsTheDiagonal
+[       OK ] RestorationModelProximity.AtAPositiveWeightThePatternGainsTheDiagonal (0 ms)
+[----------] 3 tests from RestorationModelProximity (0 ms total)
+
+[----------] 4 tests from SqpDriverRestorationProximity
+[ RUN      ] SqpDriverRestorationProximity.TheCertificateIsGatedOnTheUncorrectedResidual
+[       OK ] SqpDriverRestorationProximity.TheCertificateIsGatedOnTheUncorrectedResidual (27 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheProxyWouldCertifyWhereTheExactResidualRefuses
+[       OK ] SqpDriverRestorationProximity.TheProxyWouldCertifyWhereTheExactResidualRefuses (187 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheSeedGuardFiresAndTheStartObjectiveIsHPlusP
+[       OK ] SqpDriverRestorationProximity.TheSeedGuardFiresAndTheStartObjectiveIsHPlusP (189 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheRefusalsNameTheFieldTheValueAndTheRemedy
+[       OK ] SqpDriverRestorationProximity.TheRefusalsNameTheFieldTheValueAndTheRemedy (0 ms)
+[----------] 4 tests from SqpDriverRestorationProximity (404 ms total)
+
+[----------] 10 tests from SqpDriverRestorationSeed
+[ RUN      ] SqpDriverRestorationSeed.TheTakenCandidateIsRecordedOnTheRequestingRow
+[       OK ] SqpDriverRestorationSeed.TheTakenCandidateIsRecordedOnTheRequestingRow (186 ms)
+[ RUN      ] SqpDriverRestorationSeed.TheSeedIsNotGatedOnTheQpMode
+[       OK ] SqpDriverRestorationSeed.TheSeedIsNotGatedOnTheQpMode (515 ms)
+[ RUN      ] SqpDriverRestorationSeed.TheExhaustedLadderSiteSeedsFromItsOwnStep
+[       OK ] SqpDriverRestorationSeed.TheExhaustedLadderSiteSeedsFromItsOwnStep (491 ms)
+[ RUN      ] SqpDriverRestorationSeed.AWorseElasticCandidateIsRefusedOnTheSameModel
+[       OK ] SqpDriverRestorationSeed.AWorseElasticCandidateIsRefusedOnTheSameModel (8 ms)
+[ RUN      ] SqpDriverRestorationSeed.AZeroElasticStepIsNotACandidate
+[       OK ] SqpDriverRestorationSeed.AZeroElasticStepIsNotACandidate (19 ms)
+[ RUN      ] SqpDriverRestorationSeed.ANonFiniteEvaluationAtTheCandidateIsRefused
+[       OK ] SqpDriverRestorationSeed.ANonFiniteEvaluationAtTheCandidateIsRefused (78 ms)
+[ RUN      ] SqpDriverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTaken
+[       OK ] SqpDriverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTaken (3368 ms)
+[ RUN      ] SqpDriverRestorationSeed.TheRadiusFloorSeedsFromTheRejectedTrial
+[       OK ] SqpDriverRestorationSeed.TheRadiusFloorSeedsFromTheRejectedTrial (128 ms)
+[ RUN      ] SqpDriverRestorationSeed.TheGuardAndThePhaseRunOnTheCallerScale
+[       OK ] SqpDriverRestorationSeed.TheGuardAndThePhaseRunOnTheCallerScale (20 ms)
+[ RUN      ] SqpDriverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce
+[       OK ] SqpDriverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce (145 ms)
+[----------] 10 tests from SqpDriverRestorationSeed (4962 ms total)
+
+[----------] Global test environment tear-down
+[==========] 21 tests from 4 test suites ran. (5368 ms total)
+[  PASSED  ] 21 tests.

@@ -1,0 +1,99 @@
+PGREP_BEFORE_LOCK: 
+FOREGROUND_START m3c-smoke 2026-09-21T17:55:48-04:00
+PGREP_EMPTY m3c-smoke: no foreign cell binary under my lock
+probe sha256: 14f40b250a3c82d8b6d5e46b137b2500b2f233b341b9d792cfa997265d1b14f5  /home/ghecht/Projects/hven/.scratch/m7w2m3c/probebuild/m3c_probe
+SMOKE STEENBRD           rc=0   wall_s=0.0 (INFORMATIONAL)  args: --problem STEENBRD --ladder off --ledger on --deadline 600
+      problem=STEENBRD
+      ledger=on
+      ladder=off
+      history_tail=12
+      deadline_fired=0
+      status=numerical_error
+      major_iters=0
+      qp_minor_iters=0
+      factorizations=0
+      x_k_source=n/a (--ladder off: the callback copied no iterate)
+      opt_tr_min=1e-10
+      opt_qp_failure_budget=3
+      c_field_count=49
+      h_field_count=29
+      h_rows_total=1
+      h_rows_printed=1
+      ledger_qp_records=0
+SMOKE SMBANK-ladder-off  rc=0   wall_s=0.1 (INFORMATIONAL)  args: --problem SMBANK --ladder off --ledger on --deadline 600
+      problem=SMBANK
+      ledger=on
+      ladder=off
+      history_tail=12
+      deadline_fired=0
+      status=optimal
+      major_iters=29
+      qp_minor_iters=334
+      factorizations=29
+      x_k_source=n/a (--ladder off: the callback copied no iterate)
+      opt_tr_min=1e-10
+      opt_qp_failure_budget=3
+      c_field_count=49
+      h_field_count=29
+      h_rows_total=30
+      h_rows_printed=12
+      ledger_qp_records=29
+SMOKE SMBANK-ladder-on   rc=0   wall_s=0.1 (INFORMATIONAL)  args: --problem SMBANK --ladder on --ledger on --deadline 600
+      problem=SMBANK
+      ledger=on
+      ladder=on
+      history_tail=12
+      deadline_fired=0
+      status=optimal
+      major_iters=29
+      qp_minor_iters=334
+      factorizations=29
+      x_k_source=none (no restoration phase ran)
+      opt_tr_min=1e-10
+      opt_qp_failure_budget=3
+      c_field_count=49
+      h_field_count=29
+      h_rows_total=30
+      h_rows_printed=12
+      ledger_qp_records=29
+FOREGROUND_END m3c-smoke 2026-09-21T17:55:48-04:00 rc=0
+WRAPPER_RC m3c-smoke rc=0
+--- IDENTITY GATE on the smoke's STEENBRD row (RULE.md section 4)
+M7 W2 M3c -- IDENTITY GATE (RULE.md section 4): this task's legs at HEAD
+against the harness's COMMITTED rows at the pin aeebdccc, read from their bytes.
+  results.csv   /home/ghecht/Projects/hven-bench/runs/2026-09-m7-w2-h-repin/run-A/results.csv
+  counters.csv  /home/ghecht/Projects/hven-bench/runs/2026-09-m7-w2-h-repin/run-A/cutest/counters-hven-sqp.csv
+  leg rows      /home/ghecht/Projects/hven/.scratch/m7w2m3c/smoke
+  near-ulp gate, residual class only: |a-b| <= 1e-12 * max(1,|a|,|b|)
+
+STEENBRD   STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+STEENBRD   24 fields compared, 1 differing (1 of them CORE), 0 near-ulp accepted   DIFFERS
+STEENBRD     DIFF f: head=-nan  pin=nan
+IDENTITY STEENBRD DIFFERS
+
+IDENTITY_PASS=0
+IDENTITY_DIFFERS=1
+IDENTITY_REFUSED=0
+IDENTITY_NOT_COMPARABLE=0
+IDENTITY_COMPARABLE=1
+IDENTITY_VERDICT=DIFFERENCES_ARE_FINDINGS (RULE.md section 4.4)
+SMOKE_IDENTITY_RC=1
+M7 W2 M3c -- IDENTITY GATE (RULE.md section 4): this task's legs at HEAD
+against the harness's COMMITTED rows at the pin aeebdccc, read from their bytes.
+  results.csv   /home/ghecht/Projects/hven-bench/runs/2026-09-m7-w2-h-repin/run-A/results.csv
+  counters.csv  /home/ghecht/Projects/hven-bench/runs/2026-09-m7-w2-h-repin/run-A/cutest/counters-hven-sqp.csv
+  leg rows      .scratch/m7w2m3c/smoke
+  near-ulp gate, residual class only: |a-b| <= 1e-12 * max(1,|a|,|b|)
+
+STEENBRD   STRUCTURE OK: sentinels, 58-key block, 5 blocks, 49 counters, 29 iterate fields
+STEENBRD   NaN SPELLING ACCEPTED f: -nan vs nan -- both are NaN; the sign bit of a NaN is not a value
+STEENBRD   24 fields compared, 0 differing (0 of them CORE), 0 near-ulp accepted   PASS
+IDENTITY STEENBRD PASS
+
+IDENTITY_PASS=1
+IDENTITY_DIFFERS=0
+IDENTITY_REFUSED=0
+IDENTITY_NOT_COMPARABLE=0
+IDENTITY_COMPARABLE=1
+IDENTITY_VERDICT=ALL_COMPARABLE_CELLS_IDENTICAL
+SMOKE_IDENTITY_RERUN_RC=0 (after the NaN-spelling normalization)

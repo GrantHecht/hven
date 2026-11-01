@@ -271,7 +271,16 @@ TEST(IpmPhases, EachPhaseCarriesItsOwnVerdict) {
     // optimize phase leaves the feasibility phase's own verdict standing beside
     // it rather than overwriting it.
     o.phases = {hven::solvers::IpmPhase::kSolve, hven::solvers::IpmPhase::kOptimize};
-    o.max_iters = 10;
+    // RE-DERIVED at M7 W2 D1 (2026-09-18), the declared IPM-default event: 10
+    // became 7. The cap here is an instrument, not a claim -- it exists to stop
+    // the optimality phase while leaving the feasibility phase's own verdict
+    // standing -- and the trajectory it is tuned against moved. Measured
+    // uncapped at the shipped default (filter over the monitored governor),
+    // this HS071 pair runs 6 then 8 iterations; under the old default the
+    // optimality phase ran past 10, which is what made 10 the right cap then
+    // and the wrong one now. 7 is the only value that stops the second phase
+    // (it needs 8) while leaving the first (it needs 6) short of the cap.
+    o.max_iters = 7;
     hven::solvers::IpmSolver solver(o);
 
     const auto model =

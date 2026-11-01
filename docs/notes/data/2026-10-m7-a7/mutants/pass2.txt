@@ -1,0 +1,6 @@
+UNMUTATED rc=0
+M6 inert-on-refactorize test removed (before): SURVIVED
+M15 the rule always on: SURVIVED
+M6b inert-on-refactorize test removed (after): SURVIVED
+M15b the rule always on (after): SURVIVED
+M16 the reset does not swap back: KILLED by WsAlgebraRule.EverySolveStartsOnTheConfiguredAlgebra

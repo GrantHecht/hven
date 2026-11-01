@@ -1,0 +1,72 @@
+PGREP_EMPTY e3-phase4 2026-09-26T19:50:45-04:00
+FOREGROUND_START e3-phase4 2026-09-26T19:50:45-04:00
+=== STEP build-release-all 2026-09-26T19:50:45-04:00
+BUILD_REL_OK
+=== STEP census-hs-mode0 2026-09-26T19:52:14-04:00
+census/hs mode0 rc=0
+[==========] Running 0 tests from 0 test suites.
+[==========] 0 tests from 0 test suites ran. (0 ms total)
+[  PASSED  ] 0 tests.
+=== STEP census-hs-mode2 2026-09-26T19:52:14-04:00
+census/hs mode2 rc=0
+[==========] Running 0 tests from 0 test suites.
+[==========] 0 tests from 0 test suites ran. (0 ms total)
+[  PASSED  ] 0 tests.
+=== STEP ctest-release-mode0 2026-09-26T19:52:14-04:00
+ctest release mode0 rc=8
+
+The following tests FAILED:
+	510 - E3.MeasureOrdinaryStep (Failed)
+Errors while running CTest
+Output from these tests are in: /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-release/Testing/Temporary/LastTest.log
+Use "--rerun-failed --output-on-failure" to re-run the failed cases verbosely.
+=== STEP ctest-release-mode2 2026-09-26T19:53:54-04:00
+ctest release mode2 rc=8
+	2574 - SqpDriverRestorationExcursion.TheSubStatusTellsACutOffSubSolveFromAConvergedOne (Failed)
+	2823 - WarmStartBattery.Corpus (Failed)
+	2825 - WarmStartBattery.CrossoverChainOnTheBridgeFamilyBeatsCold (Failed)
+Errors while running CTest
+Output from these tests are in: /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-release/Testing/Temporary/LastTest.log
+Use "--rerun-failed --output-on-failure" to re-run the failed cases verbosely.
+=== STEP u0-mode0 2026-09-26T19:55:29-04:00
+u0 mode0 rc=0
+ran head-walk rc=0
+ran head-ssn rc=0
+ran head-ipm rc=0
+=== M6 CLOSE HEAD-walk vs M7 W2 NC2 HEAD-walk (GATED 1e-5) === cells compared: 27  columns compared: 75  differences: 0  within gate: 7
+    WITHIN-GATE f7_n1000_path_warm kkt_residual A=3.364060441e-10  B=3.364059856e-10
+    WITHIN-GATE f7_n1000_path_warm kkt_stationarity A=3.364060441e-10  B=3.364059856e-10
+    WITHIN-GATE f7_n1000_path_warm kkt_primal A=4.445677160e-11  B=4.445666058e-11
+    WITHIN-GATE f7_n1000_path_warm kkt_complementarity A=1.081515277e-15  B=1.081513503e-15
+    WITHIN-GATE f7_n800_path_warm kkt_residual A=4.212497650e-10  B=4.212497485e-10
+    WITHIN-GATE f7_n800_path_warm kkt_stationarity A=4.212497650e-10  B=4.212497485e-10
+    WITHIN-GATE f7_n800_path_warm kkt_complementarity A=1.295715293e-15  B=1.295710416e-15
+  CMP_RC=0
+=== M6 CLOSE HEAD-ssn vs M7 W2 NC2 HEAD-ssn (GATED 1e-5) === cells compared: 27  columns compared: 75  differences: 0  within gate: 0
+  CMP_RC=0
+=== M6 CLOSE HEAD-ipm vs M7 W2 NC2 HEAD-ipm (GATED 1e-5) === cells compared: 27  columns compared: 75  differences: 0  within gate: 0
+  CMP_RC=0
+=== STEP u0-mode2 2026-09-26T20:00:22-04:00
+u0 mode2 rc=1
+    WITHIN-GATE f7_n5000_bound_activity kkt_stationarity A=5.167818090e-16  B=7.095224422e-20
+    WITHIN-GATE f7_n5000_bound_activity kkt_primal A=1.110891234e-16  B=1.549517610e-16
+    WITHIN-GATE f7_n5000_bound_corrupted kkt_residual A=4.592198241e-14  B=1.632576293e-16
+    WITHIN-GATE f7_n5000_bound_corrupted kkt_stationarity A=4.592198241e-14  B=2.171408665e-18
+    WITHIN-GATE f7_n5000_bound_corrupted kkt_primal A=1.351772635e-14  B=1.632576293e-16
+    WITHIN-GATE f7_n5000_bound_neutral kkt_primal A=9.692247005e-14  B=2.784772467e-16
+    WITHIN-GATE f7_n5000_bound_physics kkt_residual A=5.167818090e-16  B=1.549517610e-16
+    WITHIN-GATE f7_n5000_bound_physics kkt_stationarity A=5.167818090e-16  B=7.095224422e-20
+    WITHIN-GATE f7_n5000_bound_physics kkt_primal A=1.110891234e-16  B=1.549517610e-16
+    WITHIN-GATE f7_n5000_bound_warm kkt_residual A=2.098298050e-14  B=1.672770754e-16
+    WITHIN-GATE f7_n5000_bound_warm kkt_stationarity A=2.098298050e-14  B=9.401139272e-19
+    WITHIN-GATE f7_n5000_bound_warm kkt_primal A=1.353613753e-14  B=1.672770754e-16
+    WITHIN-GATE f7_n800_path_warm kkt_residual A=4.212497650e-10  B=4.212498369e-10
+    WITHIN-GATE f7_n800_path_warm kkt_stationarity A=4.212497650e-10  B=4.212498369e-10
+    WITHIN-GATE f7_n800_path_warm kkt_complementarity A=1.295715293e-15  B=1.295710127e-15
+  CMP_RC=1
+=== M6 CLOSE HEAD-ssn vs M7 W2 NC2 HEAD-ssn (GATED 1e-5) === cells compared: 27  columns compared: 75  differences: 0  within gate: 0
+  CMP_RC=0
+=== M6 CLOSE HEAD-ipm vs M7 W2 NC2 HEAD-ipm (GATED 1e-5) === cells compared: 27  columns compared: 75  differences: 0  within gate: 0
+  CMP_RC=0
+PHASE4_OK
+FOREGROUND_END e3-phase4 2026-09-26T20:05:46-04:00 rc=0

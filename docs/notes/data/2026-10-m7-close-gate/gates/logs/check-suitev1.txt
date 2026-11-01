@@ -1,0 +1,3 @@
+SUITEV1 hs: 88 rows; outcomes by lane {"hven-ipm": {"optimal": 22}, "hven-sqp": {"optimal": 22}, "ipopt": {"optimal": 22}, "snopt": {"optimal": 22}}
+SUITEV1 cutest: 92 rows; outcomes by lane {"hven-ipm": {"dnf_budget": 4, "dnf_wall": 2, "optimal": 17}, "hven-sqp": {"dnf_wall": 6, "error": 1, "optimal": 16}, "ipopt": {"dnf_budget": 3, "dnf_wall": 3, "error": 2, "optimal": 15}, "snopt": {"dnf_budget": 4, "dnf_wall": 1, "error": 3, "optimal": 15}}
+CHECK_SUITEV1_RC=0

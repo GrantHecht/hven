@@ -178,6 +178,39 @@ QpSolution elastic_seed(const ElasticQp &e, const QpSolution &failed) {
     return s;
 }
 
+void place_elastic_seed_at_witness(const ElasticQp &e, const QpProblem &qp, QpSolution &seed) {
+    const Index n = e.n_orig;
+    const Index n2 = e.qp.n();
+    if (seed.x.size() != n2 || static_cast<Index>(seed.bound_state.size()) != n2 || qp.n() != n) {
+        return;
+    }
+    // The residuals build_elastic_subproblem relaxed, re-measured at the same point.
+    const Vec eq_res = qp.me() > 0 ? Vec(qp.be - qp.Ae * e.p_ref) : Vec(0);
+    const Vec in_res = qp.mi() > 0 ? Vec(qp.Ai * e.p_ref - qp.bi) : Vec(0);
+    seed.x.head(n) = e.p_ref;
+    seed.x.tail(n2 - n).setZero();
+    for (Index k = 0; k < qp.me(); ++k) {
+        const Index col = e.eq_slack[static_cast<std::size_t>(k)];
+        if (col != kNoSlack) {
+            seed.x(col) = std::abs(eq_res(k)) / e.slack_scale(col - n);
+        }
+    }
+    for (Index j = 0; j < qp.mi(); ++j) {
+        const Index col = e.ineq_slack[static_cast<std::size_t>(j)];
+        if (col != kNoSlack) {
+            seed.x(col) = in_res(j) / e.slack_scale(col - n);
+        }
+    }
+    for (Index i = 0; i < n2; ++i) {
+        BoundState &bs = seed.bound_state[static_cast<std::size_t>(i)];
+        const bool keep = (bs == BoundState::kAtLower && e.qp.lower(i) == seed.x(i)) ||
+                          (bs == BoundState::kAtUpper && e.qp.upper(i) == seed.x(i));
+        if ((bs == BoundState::kAtLower || bs == BoundState::kAtUpper) && !keep) {
+            bs = BoundState::kFree;
+        }
+    }
+}
+
 QpSolution elastic_project(const ElasticQp &e, const QpProblem &qp, const QpSolution &aug,
                            bool carry_multipliers) {
     const Index n = e.n_orig;
@@ -220,13 +253,59 @@ QpSolution elastic_project(const ElasticQp &e, const QpProblem &qp, const QpSolu
 }
 
 RestorationModel::RestorationModel(const NlpModel &model, const Vec &x_entry, const NlpEval &ev)
-    : model_(model), nx_(model.n()), me_(model.me()), mi_(model.mi()) {
+    : RestorationModel(model, x_entry, ev, x_entry, 0.0) {}
+
+RestorationModel::RestorationModel(const NlpModel &model, const Vec &x_entry, const NlpEval &ev,
+                                   const Vec &x_centre, double proximity)
+    : RestorationModel(model, x_entry, ev, x_centre, proximity, false) {}
+
+RestorationModel::RestorationModel(const NlpModel &model, const Vec &x_entry, const NlpEval &ev,
+                                   const Vec &x_centre, double proximity,
+                                   bool regularized_curvature)
+    : model_(model), nx_(model.n()), me_(model.me()), mi_(model.mi()),
+      regularized_(regularized_curvature) {
     if (x_entry.size() != nx_) {
         throw std::invalid_argument(
             fmt::format("RestorationModel: x_entry has size {}, expected {} (= model.n())",
                         x_entry.size(), nx_));
     }
+    // THE PROXIMITY TERM'S VALIDATION IS AT THIS BOUNDARY TOO, not only at
+    // SqpOptions::validate: this wrapper is constructible by anyone holding an
+    // NlpModel, and a centre of the wrong length or a negative/non-finite
+    // weight would otherwise be discovered as an Eigen assert in Debug and as
+    // nothing at all in Release (CLAUDE.md section 4).
+    if (!(proximity >= 0.0) || !std::isfinite(proximity)) {
+        throw std::invalid_argument(
+            fmt::format("RestorationModel: proximity ({}) must be a finite value >= 0 (0 = OFF, "
+                        "the shipped state)",
+                        proximity));
+    }
+    if (proximity > 0.0 && x_centre.size() != nx_) {
+        throw std::invalid_argument(
+            fmt::format("RestorationModel: x_centre has size {}, expected {} (= model.n()); it is "
+                        "the requesting iterate the proximity term is centred on",
+                        x_centre.size(), nx_));
+    }
     n_ = nx_ + 2 * me_ + mi_;
+
+    // COMPUTED ONCE, FROM DATA ALREADY IN HAND, and only when the term is on:
+    // at the shipped OFF nothing is stored and nothing is copied. d_i =
+    // min(1, 1/|x_{k,i}|) is the interior-point lane's own per-coordinate
+    // scaling (detail/globalization/proximal_restoration.h): a coordinate with
+    // |x_{k,i}| <= 1 is unscaled, a larger one shrinks in proportion to the
+    // centre's magnitude so the proximal curvature stays bounded near a large
+    // centre, and |x_{k,i}| == 0 takes the first branch without a division.
+    if (proximity > 0.0) {
+        zeta_ = proximity;
+        // THE CENTRE IS CLAMPED INTO THE BOX (M7 W2 ladder, L2), like the start
+        // below: a term pulling x toward an out-of-box point would pull it out.
+        centre_ = x_centre.cwiseMax(model.lower()).cwiseMin(model.upper());
+        d_ = Vec::Ones(nx_);
+        for (Index i = 0; i < nx_; ++i) {
+            const double a = std::abs(centre_(i));
+            d_(i) = a > 1.0 ? 1.0 / a : 1.0;
+        }
+    }
 
     sigma_e_ = Vec::Ones(me_);
     for (Index k = 0; k < me_; ++k) {
@@ -251,19 +330,71 @@ RestorationModel::RestorationModel(const NlpModel &model, const Vec &x_entry, co
     upper_.head(nx_) = model.upper();
 
     // THE START POINT IS FEASIBLE FOR THIS WRAPPER BY CONSTRUCTION, with
-    // objective exactly h(x_entry): put each row's whole violation into
+    // objective exactly h(x_start): put each row's whole violation into
     // the slack that absorbs it, in that slack's own units.
+    //
+    // x_start IS x_entry CLAMPED INTO THE BOX (M7 W2 ladder, L2). An
+    // out-of-box entry (E2-D3: YORKNET's CUTEst x0, 40 components) made the
+    // sub-solve's first QP box-infeasible. Only then are the rows re-evaluated,
+    // once, at the clamped point; the sigmas stay the entry's. An in-box entry
+    // takes the original arithmetic, with no model call.
+    const Vec &lo = model.lower();
+    const Vec &up = model.upper();
+    for (Index i = 0; i < nx_; ++i) {
+        if (x_entry(i) < lo(i) || x_entry(i) > up(i)) {
+            ++start_clamps_;
+        }
+    }
     start_ = Vec::Zero(n_);
-    start_.head(nx_) = x_entry;
+    Vec ce_start, ci_start;
+    if (start_clamps_ > 0) {
+        start_.head(nx_) = x_entry.cwiseMax(lo).cwiseMin(up);
+        const Vec xs = start_.head(nx_);
+        if (me_ > 0) {
+            model.eval_ce_in_place(xs, ce_start);
+        }
+        if (mi_ > 0) {
+            model.eval_ci_in_place(xs, ci_start);
+        }
+        // A model that cannot be evaluated at its own bound keeps the entry: the
+        // sub-solve refuses a non-finite start by throwing, and the entry's rows
+        // are finite (the driver requests restoration only from a measured point).
+        if (!ce_start.allFinite() || !ci_start.allFinite()) {
+            start_clamps_ = 0;
+            start_.head(nx_) = x_entry;
+        }
+    } else {
+        start_.head(nx_) = x_entry;
+    }
+    const Vec &ce = start_clamps_ > 0 ? ce_start : ev.ce;
+    const Vec &ci = start_clamps_ > 0 ? ci_start : ev.ci;
+    if (ce.size() != me_ || ci.size() != mi_) {
+        throw std::invalid_argument(
+            fmt::format("RestorationModel: the start point's rows are {} / {}, expected {} / {}",
+                        ce.size(), ci.size(), me_, mi_));
+    }
     for (Index k = 0; k < me_; ++k) {
-        const double c = ev.ce(k);
+        const double c = ce(k);
         start_(nx_ + k) = std::max(0.0, -c) / sigma_e_(k);      // sp
         start_(nx_ + me_ + k) = std::max(0.0, c) / sigma_e_(k); // sm
     }
     for (Index j = 0; j < mi_; ++j) {
-        start_(nx_ + 2 * me_ + j) = std::max(0.0, ev.ci(j)) / sigma_i_(j); // si
+        start_(nx_ + 2 * me_ + j) = std::max(0.0, ci(j)) / sigma_i_(j); // si
+    }
+    // THE REGULARIZED CURVATURE'S SCALING (M7 W2 RST): the proximity term's own d
+    // when that term is on, else the same rule read at the start point -- a
+    // coordinate with |x_i| <= 1 unscaled, a larger one in proportion, so the model
+    // curvature is in the variable's own units. Computed once, O(n), no model call.
+    if (regularized_ && zeta_ == 0.0) {
+        d_ = Vec::Ones(nx_);
+        for (Index i = 0; i < nx_; ++i) {
+            const double a = std::abs(start_(i));
+            d_(i) = a > 1.0 ? 1.0 / a : 1.0;
+        }
     }
 }
+
+Index RestorationModel::start_clamps() const { return start_clamps_; }
 
 Index RestorationModel::n() const { return n_; }
 
@@ -279,6 +410,70 @@ const Vec &RestorationModel::slack_scale_e() const { return sigma_e_; }
 
 const Vec &RestorationModel::slack_scale_i() const { return sigma_i_; }
 
+Vec RestorationModel::bound_activity_tolerance(double tol) const {
+    Vec t = Vec::Constant(n_, tol);
+    for (Index k = 0; k < me_; ++k) {
+        t(nx_ + k) = tol / sigma_e_(k);       // sp
+        t(nx_ + me_ + k) = tol / sigma_e_(k); // sm
+    }
+    for (Index j = 0; j < mi_; ++j) {
+        t(nx_ + 2 * me_ + j) = tol / sigma_i_(j); // si
+    }
+    return t;
+}
+
+double RestorationModel::proximity() const { return zeta_; }
+
+bool RestorationModel::regularized_curvature() const { return regularized_; }
+
+Index RestorationModel::curvature_residual_evals() const { return curvature_evals_; }
+
+namespace {
+
+// The memo's lookup: an exact match on the point (the driver evaluates the
+// Hessian at a point whose rows it has just evaluated), never an approximate one.
+const double *memo_lookup(const Vec &x, const auto &memo) {
+    for (const auto &m : memo) {
+        if (m.valid && m.x.size() == x.size() && m.x == x) {
+            return &m.value;
+        }
+    }
+    return nullptr;
+}
+
+} // namespace
+
+double RestorationModel::curvature_violation(const Vec &x) const {
+    double h = 0.0;
+    // ONE values query per point, however many row blocks it had to read (the
+    // evals_values convention: a model query is a point, not a block).
+    bool queried = false;
+    if (me_ > 0) {
+        if (const double *v = memo_lookup(x, memo_e_)) {
+            h += *v;
+        } else {
+            Vec c;
+            model_.eval_ce_in_place(x, c);
+            queried = true;
+            h += c.lpNorm<1>();
+        }
+    }
+    if (mi_ > 0) {
+        if (const double *v = memo_lookup(x, memo_i_)) {
+            h += *v;
+        } else {
+            Vec c;
+            model_.eval_ci_in_place(x, c);
+            queried = true;
+            h += c.cwiseMax(0.0).sum();
+        }
+    }
+    if (queried) {
+        ++curvature_evals_;
+    }
+    return h;
+}
+
 double RestorationModel::eval_f(const Vec &y) const {
     double s = 0.0;
     for (Index k = 0; k < me_; ++k) {
@@ -287,14 +482,33 @@ double RestorationModel::eval_f(const Vec &y) const {
     for (Index j = 0; j < mi_; ++j) {
         s += sigma_i_(j) * y(nx_ + 2 * me_ + j);
     }
+    // THE PROXIMITY TERM, BRANCHED OUT AT OFF (class note): at zeta == 0 this
+    // function is the linear violation sum that has always shipped, to the byte.
+    if (zeta_ > 0.0) {
+        double p = 0.0;
+        for (Index i = 0; i < nx_; ++i) {
+            const double t = d_(i) * (y(i) - centre_(i));
+            p += t * t;
+        }
+        s += 0.5 * zeta_ * p;
+    }
     return s;
 }
 
-Vec RestorationModel::eval_grad(const Vec &) const {
+Vec RestorationModel::eval_grad(const Vec &y) const {
     Vec g = Vec::Zero(n_);
     g.segment(nx_, me_) = sigma_e_;
     g.segment(nx_ + me_, me_) = sigma_e_;
     g.segment(nx_ + 2 * me_, mi_) = sigma_i_;
+    // AND ITS GRADIENT, on the x-block alone -- the slacks enter the term not at
+    // all, so their coefficients above are untouched at every weight. At
+    // zeta == 0 the x-block stays the structural zero the class note's
+    // stationarity argument rests on, and `y` is not read.
+    if (zeta_ > 0.0) {
+        for (Index i = 0; i < nx_; ++i) {
+            g(i) = zeta_ * d_(i) * d_(i) * (y(i) - centre_(i));
+        }
+    }
     return g;
 }
 
@@ -303,7 +517,15 @@ Vec RestorationModel::eval_ce(const Vec &y) const {
         return Vec(0);
     }
     Vec c;
-    model_.eval_ce_in_place(original_x(y), c);
+    const Vec x = original_x(y);
+    model_.eval_ce_in_place(x, c);
+    if (regularized_) {
+        ViolationMemo &m = memo_e_[memo_e_next_];
+        memo_e_next_ = 1 - memo_e_next_;
+        m.x = x;
+        m.value = c.lpNorm<1>();
+        m.valid = true;
+    }
     for (Index k = 0; k < me_; ++k) {
         c(k) += sigma_e_(k) * (y(nx_ + k) - y(nx_ + me_ + k));
     }
@@ -315,22 +537,61 @@ Vec RestorationModel::eval_ci(const Vec &y) const {
         return Vec(0);
     }
     Vec c;
-    model_.eval_ci_in_place(original_x(y), c);
+    const Vec x = original_x(y);
+    model_.eval_ci_in_place(x, c);
+    if (regularized_) {
+        ViolationMemo &m = memo_i_[memo_i_next_];
+        memo_i_next_ = 1 - memo_i_next_;
+        m.x = x;
+        m.value = c.cwiseMax(0.0).sum();
+        m.valid = true;
+    }
     for (Index j = 0; j < mi_; ++j) {
         c(j) -= sigma_i_(j) * y(nx_ + 2 * me_ + j);
     }
     return c;
 }
 
-SpMatRM RestorationModel::eval_hess(const Vec &y, double, const Vec &lambda_e,
+SpMatRM RestorationModel::eval_hess(const Vec &y, double obj_scale, const Vec &lambda_e,
                                     const Vec &lambda_i) const {
+    if (regularized_) {
+        // THE REGULARIZED CURVATURE (header note): the x-block diagonal, emitted for
+        // every original coordinate at every call (the pattern invariance), with the
+        // proximity term's exact curvature summed in when that term is on.
+        const double mu = std::min(1.0, curvature_violation(original_x(y)));
+        // mu is not weighted by obj_scale: it models h's curvature, not the objective's,
+        // and the phase's sub-solve runs unscaled (enable_scaling = false), so no factor is owed.
+        const double w = zeta_ > 0.0 ? mu + obj_scale * zeta_ : mu;
+        std::vector<Eigen::Triplet<double>> t;
+        t.reserve(static_cast<std::size_t>(nx_));
+        for (Index i = 0; i < nx_; ++i) {
+            t.emplace_back(i, i, w * d_(i) * d_(i));
+        }
+        SpMatRM H(n_, n_);
+        H.setFromTriplets(t.begin(), t.end());
+        H.makeCompressed();
+        return H;
+    }
     SpMatRM inner;
     model_.eval_hess_in_place(original_x(y), 0.0, lambda_e, lambda_i, inner);
     std::vector<Eigen::Triplet<double>> t;
-    t.reserve(static_cast<std::size_t>(inner.nonZeros()));
+    t.reserve(static_cast<std::size_t>(inner.nonZeros()) +
+              (zeta_ > 0.0 ? static_cast<std::size_t>(nx_) : std::size_t{0}));
     for (Index i = 0; i < nx_; ++i) {
         for (SpMatRM::InnerIterator it(inner, i); it; ++it) {
             t.emplace_back(it.row(), it.col(), it.value());
+        }
+    }
+    // THE PROXIMITY TERM'S OWN CURVATURE, and it is the ONE thing on this
+    // wrapper that `obj_scale` reaches (header note). Emitted for EVERY original
+    // coordinate whenever the term is on -- never skipped on a zero value or a
+    // zero obj_scale -- because nlp_model.h's STRUCTURAL PATTERN INVARIANCE
+    // precondition makes the pattern a property of the model and not of the
+    // arguments. setFromTriplets SUMS duplicates, so a diagonal entry the inner
+    // model already emitted is added to rather than replaced.
+    if (zeta_ > 0.0) {
+        for (Index i = 0; i < nx_; ++i) {
+            t.emplace_back(i, i, obj_scale * zeta_ * d_(i) * d_(i));
         }
     }
     SpMatRM H(n_, n_);
@@ -385,5 +646,32 @@ const Vec &RestorationModel::lower() const { return lower_; }
 const Vec &RestorationModel::upper() const { return upper_; }
 
 Vec RestorationModel::start_point() const { return start_; }
+
+// COMPUTED, NOT INFERRED, AND THAT IS THE WHOLE POINT OF THIS FUNCTION (M7 W2
+// M2b, fix round 1). The first implementation gated the certificate on
+// `||grad P||_inf` instead, on the identity that the two coincide at an EXACTLY
+// stationary point of the wrapper. A sub-solve returns kOptimal at a FINITE
+// tolerance, so what it delivers is `grad P + J^T lambda - z = e` with
+// `||e||_inf <= kkt_tol`, and the quantity the certificate needs is
+// `e - grad P`: bounding `||grad P||_inf` bounds it only by `2*kkt_tol`, and
+// the two terms can reinforce, so a point whose true residual is ABOVE
+// tolerance could be certified. A certificate that can be false is not a
+// certificate. The header states the rule; the design page's section 3.4 states
+// why the correction the first draft proposed is refused.
+//
+// It is the quantity tests/sqp/test_sqp_restoration.cpp's `check_certificate`
+// recomputes from the model, which is what makes that helper an independent
+// oracle rather than a restatement.
+double subgradient_certificate_residual_inf(const NlpEval &ev, const Vec &lambda_e,
+                                            const Vec &lambda_i, const Vec &z) {
+    Vec r = -z;
+    if (ev.Je.rows() > 0) {
+        r += ev.Je.transpose() * lambda_e;
+    }
+    if (ev.Ji.rows() > 0) {
+        r += ev.Ji.transpose() * lambda_i;
+    }
+    return r.lpNorm<Eigen::Infinity>();
+}
 
 } // namespace hven::solvers

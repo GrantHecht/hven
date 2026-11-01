@@ -1,0 +1,63 @@
+CENSUS_Release objects=277 universe=162 command_delta=216 eigen_delta=50 differing=14 differing_outside_universe=5
+CENSUS_DIFFERS Release universe BS bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+CENSUS_DIFFERS Release universe BS bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+CENSUS_DIFFERS Release universe S bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+CENSUS_DIFFERS Release outside MC tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_flat_face_saddle.cpp.o
+CENSUS_DIFFERS Release outside MC tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_rank_repair.cpp.o
+CENSUS_DIFFERS Release outside MC tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_route_reference.cpp.o
+CENSUS_DIFFERS Release outside M tests/CMakeFiles/hven_sqp_seam_tests.dir/sqp/test_sqp_equality_basis_seams.cpp.o
+CENSUS_DIFFERS Release outside CS tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/trace_support.cpp.o
+CENSUS_DIFFERS Release universe MB tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o
+CENSUS_DIFFERS Release universe M tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_sweeps.cpp.o
+CENSUS_DIFFERS Release universe M tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_lift_oracle.cpp.o
+CENSUS_DIFFERS Release universe M tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_equality_basis.cpp.o
+CENSUS_DIFFERS Release universe M tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o
+CENSUS_DIFFERS Release universe M tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_fault_injection_tests.dir/__/src/core/pattern_hash.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_fault_injection_tests.dir/__/src/interior/kkt_factorization.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_fault_injection_tests.dir/__/src/linear/pardiso_session.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_fault_injection_tests.dir/__/src/linear/symmetric_factor_mkl.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_fault_injection_tests.dir/interior/test_kkt_factorization_faults.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_fault_injection_tests.dir/linear/test_fault_injection.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/core/enum_names.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/core/ledger.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/core/pattern_hash.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/drivers/sqp_options.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/drivers/trace.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/interior/kkt_factorization.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/linear/pardiso_session.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/linear/symmetric_factor_mkl.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/qp/ipqp_engine.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/qp/ipqp_kkt_layout.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_ipqp_seam_tests.dir/sqp/test_ipqp_seams.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/core/enum_names.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/core/ledger.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/core/pattern_hash.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/interior/kkt_factorization.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/kkt/kkt_calls.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/linear/dense_symmetric_factor.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/linear/pardiso_session.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/linear/symmetric_factor_mkl.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/qp/qp_engine.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/qp/ws_independence.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_anti_cycling_arm.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_ascent_guard.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_border_certificate.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_certificate_sign.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_convex_certificate.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_degeneracy_arm.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_implied_blocker.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_latch_reason.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_refused_exchange.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_saddle_exit.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_saddle_shift.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_stagnation_stop.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_standstill_retreat.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_unrun_dependency_test.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_walk_seam.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/expected_table.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/recipes.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/seam_native.cpp.o
+CENSUS_C_IDENTICAL Release outside tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/seam_registry.cpp.o
+CENSUS_Release C_differing=4 C_identical=46 C_pure_differing=0 UNEXPLAINED=0
+CENSUS_Release_OK

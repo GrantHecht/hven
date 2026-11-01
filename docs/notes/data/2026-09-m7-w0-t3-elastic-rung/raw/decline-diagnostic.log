@@ -1,0 +1,27 @@
+# M7 W0 T3 fix1 -- THE DECLINE DIAGNOSTIC (throwaway build; reverted, never committed).
+# THE PATCH, two places:
+#   src/drivers/sqp_solver.cpp   a file-scope TraceSink* the test sets, attached to the
+#                                ELASTIC engine alone at its construction;
+#   tests/sqp/test_elastic_rung_vehicle.cpp   an ElasticDiagSink recording on_ipqp_escape,
+#                                set around each solve, plus an HVEN_M7T3_IPQP_MAX_ITER override.
+# elastic_engine_escapes are THAT ENGINE S OWN -- no attribution by event ordering is needed.
+# CO-RUN DECLARED (CLAUDE.md section 7): the hven-bench harness lane was running its own
+# cells on this box during this leg. Only COUNTERS and the escape CLASSIFICATION are read
+# here, at MKL_NUM_THREADS=1 -- scheduling-invariant; no wall number from this leg is quoted.
+engine,N,n,me,mi,status,certified,majors,entries,rungs,rung_minors,rung_max_minors,rung_dnf,rung_facts,facts_attributed,solve_minors,solve_facts,escalations,ceiling_hits,floor_retries,rung_b,disproved,tier_iters,tier_facts,analyses,wall_s
+DIAG,walk,100,declined_rungs=0,driver_stream_escapes=1,elastic_engine_escapes=0,driver[0]=infeasible_suspect,ipqp_max_iter_opt=0
+walk,100,500,302,100,max_iter,0,1,1,6,312,302,0,184,1,312,194,5,0,0,0,0,10,10,2,0.535360
+DIAG,walk,200,declined_rungs=0,driver_stream_escapes=1,elastic_engine_escapes=0,driver[0]=infeasible_suspect,ipqp_max_iter_opt=0
+walk,200,1000,602,200,max_iter,0,1,1,6,612,602,0,484,1,612,494,5,0,0,0,0,10,10,2,1.974534
+DIAG,walk,400,declined_rungs=0,driver_stream_escapes=1,elastic_engine_escapes=0,driver[0]=infeasible_suspect,ipqp_max_iter_opt=0
+walk,400,2000,1202,400,max_iter,0,1,1,6,1212,1202,0,1084,1,1212,1094,5,0,0,0,0,10,10,2,7.810729
+DIAG,walk,800,declined_rungs=0,driver_stream_escapes=1,elastic_engine_escapes=0,driver[0]=infeasible_suspect,ipqp_max_iter_opt=0
+walk,800,4000,2402,800,max_iter,0,1,1,6,2409,2399,0,2281,1,2409,2291,5,0,0,0,0,10,10,2,31.141627
+DIAG,tier,100,declined_rungs=3,driver_stream_escapes=1,elastic_engine_escapes=3,elastic[0]=infeasible_suspect,elastic[1]=infeasible_suspect,elastic[2]=infeasible_suspect,driver[0]=infeasible_suspect,ipqp_max_iter_opt=0
+tier,100,500,302,100,max_iter,0,1,2,5,71,20,3,73,1,73,84,2,0,1,1,0,10,10,3,0.045078
+DIAG,tier,200,declined_rungs=3,driver_stream_escapes=1,elastic_engine_escapes=3,elastic[0]=infeasible_suspect,elastic[1]=infeasible_suspect,elastic[2]=infeasible_suspect,driver[0]=infeasible_suspect,ipqp_max_iter_opt=0
+tier,200,1000,602,200,max_iter,0,1,2,5,69,20,3,71,1,71,82,2,0,1,1,0,10,10,3,0.089574
+DIAG,tier,400,declined_rungs=3,driver_stream_escapes=1,elastic_engine_escapes=3,elastic[0]=infeasible_suspect,elastic[1]=infeasible_suspect,elastic[2]=infeasible_suspect,driver[0]=infeasible_suspect,ipqp_max_iter_opt=0
+tier,400,2000,1202,400,max_iter,0,1,2,5,71,20,3,73,1,73,84,2,0,1,1,0,10,10,3,0.181930
+DIAG,tier,800,declined_rungs=3,driver_stream_escapes=1,elastic_engine_escapes=3,elastic[0]=infeasible_suspect,elastic[1]=infeasible_suspect,elastic[2]=infeasible_suspect,driver[0]=infeasible_suspect,ipqp_max_iter_opt=0
+tier,800,4000,2402,800,max_iter,0,1,2,5,73,20,3,75,1,75,86,2,0,1,1,0,10,10,3,0.382465

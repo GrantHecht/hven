@@ -1,0 +1,7 @@
+solves with a RECURRENT tail: 6
+STEENBRG   s0    N=5400   p=4   |T|=4577   units=2288  homo=False d  {'b': 1144, 'd': 1144}
+STEENBRG   s7    N=5680   p=10  |T|=5661   units=2830  homo=False d  {'b': 566, 'd': 2264}
+STEENBRG   s24   N=5400   p=8   |T|=4822   units=2409  homo=False d  {'d': 1807, 'b': 602}
+STEENBRG   s25   N=5400   p=10  |T|=5199   units=2598  homo=False d  {'d': 2079, 'b': 519}
+STEENBRG   s26   N=5400   p=2   |T|=5191   units=2595  homo=True  b  {'b': 2595}
+STEENBRG   s27   N=5400   p=2   |T|=5242   units=2621  homo=True  b  {'b': 2621}

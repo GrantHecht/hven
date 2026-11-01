@@ -1,0 +1,8 @@
+=== SCW GATES RECORD HEAD-walk vs RD8 HEAD-walk (EXACT) === cells compared: 27  columns compared: 75  differences: 7
+    f7_n1000_path_warm               kkt_residual                       A=3.364070937e-10  B=3.364071019e-10
+    f7_n1000_path_warm               kkt_stationarity                   A=3.364070937e-10  B=3.364071019e-10
+    f7_n1000_path_warm               kkt_primal                         A=4.445643853e-11  B=4.445654955e-11
+    f7_n1000_path_warm               kkt_complementarity                A=1.081545754e-15  B=1.081549784e-15
+    f7_n800_path_warm                kkt_residual                       A=4.212493723e-10  B=4.212493770e-10
+    f7_n800_path_warm                kkt_stationarity                   A=4.212493723e-10  B=4.212493770e-10
+    f7_n800_path_warm                kkt_complementarity                A=1.295699806e-15  B=1.295704332e-15

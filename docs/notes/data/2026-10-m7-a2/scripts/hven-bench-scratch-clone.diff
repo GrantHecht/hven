@@ -1,0 +1,48 @@
+diff --git a/cmake/hven_pin.cmake b/cmake/hven_pin.cmake
+index f08495c..c664aa3 100644
+--- a/cmake/hven_pin.cmake
++++ b/cmake/hven_pin.cmake
+@@ -563,14 +563,16 @@
+ # from a clean clone of 6a2a58c7 at .scratch/retake18-wt by scripts/w2_retake18_build.sh.  Nothing under
+ # runs/ taken at an earlier pin is re-derived by this move; the per-cell predictions, MEASURED on this
+ # pin's own build, are in runs/2026-10-m7-w2-retake18/README.md.
+-set(HVEN_PIN_SHA "6a2a58c71ec7bc40a44fd78a7b8e947c6fc2874e")
++# SCRATCH CLONE ONLY (hven M7 W2 A2, never pushed): the pin moved to hven w2-a2 e924bbe2, the A2
++# implementation head (IpqpOptions::ipqp_mu0_rule / ipqp_mu_residual_floor, both OFF by default).
++set(HVEN_PIN_SHA "e924bbe2ad8381dbdd4144d188fd26c9010305fb")
+ 
+ # The branch the sha was read from, for a reader tracing it back.  NOT a
+ # lookup key: the sha alone identifies the tree, and the branch will move.
+-set(HVEN_PIN_BRANCH "m7")
++set(HVEN_PIN_BRANCH "w2-a2")
+ 
+ # The date the pin was taken (UTC, ISO-8601 date).
+-set(HVEN_PIN_DATE "2026-10-22")
++set(HVEN_PIN_DATE "2026-10-23")
+ 
+ # The install prefix the pin builds into, relative to the harness root.  The
+ # sha12 in the name is what makes two pins two prefixes, so a stale prefix is
+diff --git a/lanes/hven/hven_bench_cell.cpp b/lanes/hven/hven_bench_cell.cpp
+index 1afc7d1..25e23e1 100644
+--- a/lanes/hven/hven_bench_cell.cpp
++++ b/lanes/hven/hven_bench_cell.cpp
+@@ -589,6 +589,19 @@ hven::solvers::SqpOptions sqp_options(const std::string &label) {
+         o.qp_mode = hven::solvers::QpMode::kSsn;
+     } else if (label == "sqp-ipm") {
+         o.qp_mode = hven::solvers::QpMode::kIpm;
++    } else if (label == "sqp-ipm-mu0c") {
++        // hven M7 W2 A2 (scratch clone only, never pushed): `sqp-ipm` plus ONE field, the
++        // complementarity-derived mu_0 (docs/notes/2026-10-m7-w2-a2-mu0-design.md section 6.4).
++        o.qp_mode = hven::solvers::QpMode::kIpm;
++        o.ipqp.ipqp_mu0_rule = hven::solvers::IpqpMu0Rule::kComplementarity;
++    } else if (label == "sqp-ipm-mufloor") {
++        // hven M7 W2 A2: `sqp-ipm` plus the residual-proportional mu floor (A1-R1).
++        o.qp_mode = hven::solvers::QpMode::kIpm;
++        o.ipqp.ipqp_mu_residual_floor = true;
++    } else if (label == "sqp-ipm-mu1e-3") {
++        // hven M7 W2 A2: `sqp-ipm` plus the per-family table's HS entry, measured.
++        o.qp_mode = hven::solvers::QpMode::kIpm;
++        o.ipqp.ipqp_init_mu = 1e-3;
+     } else if (label == "equality-basis-off") {
+         // M7 W2 E1B-RETAKE: the IDENTITY CONTROL for hven's E1b default event.
+         // `equality_basis` is ON by default at the E1b pin; this label turns the

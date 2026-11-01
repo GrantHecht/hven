@@ -1,0 +1,6 @@
+solves with a RECURRENT tail: 5
+DALLASM    s1    N=2150   p=2   |T|=1990   units=995   homo=True  b  {'b': 995}
+DALLASM    s4    N=1960   p=2   |T|=1864   units=931   homo=True  b  {'b': 931}
+DALLASM    s5    N=1960   p=4   |T|=1851   units=925   homo=False b  {'b': 463, 'd': 462}
+DALLASM    s6    N=1960   p=2   |T|=1853   units=926   homo=True  b  {'b': 926}
+DALLASM    s7    N=1960   p=2   |T|=1853   units=926   homo=True  b  {'b': 926}

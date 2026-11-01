@@ -1,0 +1,39 @@
+{
+ "dump": "/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/docs/notes/data/2026-09-m7-w2-e2-d4-feasible-qps/dumps/DALLASM_def/qp2.txt",
+ "n": 196,
+ "me": 150,
+ "mi": 0,
+ "tr": 0.25,
+ "result": {
+  "status": "3",
+  "minors": "64",
+  "facts": "2",
+  "blk_term": "1",
+  "cert": "0",
+  "cert_rej": "0",
+  "zmcap": "0",
+  "zmexh": "0",
+  "retreats": "1",
+  "exch": "16",
+  "deferred": "0",
+  "undec": "0",
+  "maxiter": "1960"
+ },
+ "phase1_status": 0,
+ "phase1_min_l1_violation": 6.024000000000003,
+ "H_eig_min": 0.0,
+ "H_eig_max": 5430.653360368355,
+ "final_ws": {
+  "rows": 0,
+  "pins": 46,
+  "rank": 190,
+  "count": 196
+ },
+ "redH_final_min": 63.691189949346914,
+ "clarabel_status": "PrimalInfeasible",
+ "f_star": -7.468309739381192e-06,
+ "active_star": {
+  "rows": 0,
+  "pins": 50
+ }
+}

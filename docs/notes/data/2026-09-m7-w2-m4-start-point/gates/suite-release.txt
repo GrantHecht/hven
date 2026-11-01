@@ -1,0 +1,4 @@
+FOREGROUND_START stage1b 2026-09-17T12:43:10-04:00
+100% tests passed, 0 tests failed out of 2642
+FOREGROUND_END stage1b 2026-09-17T12:44:44-04:00 rc=0
+WRAPPER_RC stage1b rc=0

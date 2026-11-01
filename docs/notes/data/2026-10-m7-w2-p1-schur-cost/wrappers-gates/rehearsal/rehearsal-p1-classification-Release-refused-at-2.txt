@@ -1,0 +1,35 @@
+HEADER DERIVATION
+  repo : /home/ghecht/Projects/hven
+  base : baddb728 -> baddb72889abd60b51c53f20a31362888cbb865f
+  head : 1f46e34dc52ef1146b5dd401cb178853c5e95c34 -> 1f46e34dc52ef1146b5dd401cb178853c5e95c34
+  cmd  : git -C /home/ghecht/Projects/hven diff --name-only baddb728..1f46e34dc52ef1146b5dd401cb178853c5e95c34 -- include/
+  list : ['include/hven/detail/kkt/schur_complement.h']
+HEADER LIST ACCEPTED: ['include/hven/detail/kkt/schur_complement.h']
+P-SYM: FAIL — differences outside the accepted noise class
+DIFFERING OBJECTS: 25
+      CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+      CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+      CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o
+      CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+      bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+      bench/CMakeFiles/hven_sqp_ssn_safeguard_probe.dir/ssn_safeguard_probe.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_border_ops.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_battery.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_acceptance.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_dispatch.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_engine.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ledger.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_predictor.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine_border.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine_indefinite.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine_tr.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_warm_start.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_ws_independence.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_scale_smoke.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_schur.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ssn_engine.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_trace_writer.cpp.o
+REFUSED (R2): /home/ghecht/Projects/hven/.scratch/m7w2p1gates/rehearsal/gates/psym/compare-Release.txt names 25 differing object(s) and this round DECLARED 2 -- a shape that is not the declared one is re-derived and declared again, never discovered

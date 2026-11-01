@@ -1,0 +1,395 @@
+# range 1ff37db2..2bd776c6 (HEAD sources == 65c3a24b's); by-name baseline record commit 1ff37db2
+
+=== A: --preflight-only
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/replay (binary 45c253e564fe, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/e1/e1-off.csv
+GATES_START 2026-10-29T15:44:25-04:00
+=== HEAD 2bd776c6  dirty-files=19 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx ===
+=== BEFORE=1ff37db2  EXPECT_DEBUG_TESTS=3231  EXPECT_RELEASE_TESTS=3232 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=2bd776c6ce6af507b1bcaef600ef1df4a4fe43bd
+=== CHANGED HEADERS: include/hven/detail/interior/utils/accelerate_threads.h include/hven/drivers/sqp_solver.h include/hven/drivers/sqp_solver_types.h 
+=== CHANGED SOURCES: bench/bench_corpus.cpp bench/corpus_cells.h src/drivers/sqp_solver.cpp src/qp/qp_engine.cpp tests/CMakeLists.txt tests/common_support/route_reference.h tests/drivers/test_threads.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_ascent_guard.cpp tests/qp/test_qp_border_certificate.cpp tests/qp/test_qp_certificate_sign.cpp tests/qp/test_qp_convex_certificate.cpp tests/qp/test_qp_latch_reason.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_qp_refused_exchange.cpp tests/qp/test_qp_saddle_exit.cpp tests/qp/test_qp_saddle_shift.cpp tests/qp/test_qp_stagnation_stop.cpp tests/qp/test_qp_standstill_retreat.cpp tests/qp/test_route_reference.cpp tests/sqp/test_b1_gate.cpp tests/sqp/test_continuation.cpp tests/sqp/test_elastic_witness_start.cpp tests/sqp/test_hs_battery.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_ipqp_acceptance.cpp tests/sqp/test_ipqp_seams.cpp tests/sqp/test_ipqp_trace.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_warm_start_battery.cpp 
+=== MODIFIED C++ SOURCES: bench/bench_corpus.cpp src/drivers/sqp_solver.cpp src/qp/qp_engine.cpp tests/drivers/test_threads.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_ascent_guard.cpp tests/qp/test_qp_border_certificate.cpp tests/qp/test_qp_certificate_sign.cpp tests/qp/test_qp_convex_certificate.cpp tests/qp/test_qp_latch_reason.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_qp_refused_exchange.cpp tests/qp/test_qp_saddle_exit.cpp tests/qp/test_qp_saddle_shift.cpp tests/qp/test_qp_stagnation_stop.cpp tests/qp/test_qp_standstill_retreat.cpp tests/sqp/test_b1_gate.cpp tests/sqp/test_continuation.cpp tests/sqp/test_elastic_witness_start.cpp tests/sqp/test_hs_battery.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_ipqp_acceptance.cpp tests/sqp/test_ipqp_seams.cpp tests/sqp/test_ipqp_trace.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_warm_start_battery.cpp 
+=== ADDED C++ SOURCES: tests/qp/test_route_reference.cpp 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_ascent_guard.cpp tests/qp/test_qp_border_certificate.cpp tests/qp/test_qp_certificate_sign.cpp tests/qp/test_qp_convex_certificate.cpp tests/qp/test_qp_latch_reason.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_qp_refused_exchange.cpp tests/qp/test_qp_saddle_exit.cpp tests/qp/test_qp_saddle_shift.cpp tests/qp/test_qp_stagnation_stop.cpp tests/qp/test_qp_standstill_retreat.cpp tests/sqp/test_ipqp_seams.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_route_reference.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); 43 DIFFERENCES DECLARED as a SET (walk 17 / ssn 13 / ipm 13), every cell a U0 cell, the one declared WORSE cell [ipm f7_n1000_path_warm kkt_stationarity] among them
+=== CLASS_B_NAMES_OK: Release 0 / Debug 0 declared objects, none with a source modified in the range
+=== RELEASE-ONLY (Debug GTEST_SKIP) DECLARED: 0 name(s), each a declared ADDED name ===
+=== RE-DECLARED (TEST line removed and re-added under the same name): 0 name(s), each removed once and added once, net unchanged by name ===
+=== BY-NAME: baselines /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/suite-{debug,release}.txt (3231 / 3232 started names); 2 ADDED, each added by exactly one TEST line in the range; 0 REMOVED, each removed by exactly one TEST line; 0 TEST lines removed (0 of them RE-DECLARED)
+=== tests/sqp/CMakeLists.txt (checked): adds exactly the declared 0 non-comment line(s), removes none
+=== src/CMakeLists.txt (checked): adds exactly the declared 0 non-comment line(s), removes exactly the declared 0
+=== ADDED TEST FILES (checked): non-.cpp [tests/common_support/route_reference.h ] == declared, under the fixture directory named in the two declared readers' compile definitions (hven_qp_walk_seam_tests, hven_sqp_tests); tests/CMakeLists.txt adds exactly [qp/test_route_reference.cpp ] and removes no non-comment line
+=== CLANG_FORMAT SET (derived, non-empty): 32 file(s) ===
+=== PREFLIGHT_VALUE_OK: class A 27 - 13 outside == declared 6/7; ADDED 1 == declared 1 (0 inside the universe == declared 0); class B library objects all unmodified; G4 gate 1e-5
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx/g1.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx  G=/home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx/g2.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx  G=/home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx/g3.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx  G=/home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx/g4.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx  G=/home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx/g5.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx  G=/home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx/g6.sh: resolves S=/home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx  G=/home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx/gates
+=== PREFLIGHT_OK: 6 segments written and asserted against GATES_SCRATCH, before the first leg ===
+PREFLIGHT_ONLY: stopping before G1. No leg was run and no build tree was touched.
+rc=0
+
+=== B: --check-g4 (pin arms of the rehearsal comparison)
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/replay (binary 45c253e564fe, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/e1/e1-off.csv
+ASSERT OK   replay header lines = 3
+ASSERT OK   replay walk shape 27/75/17 declared = 1
+ASSERT OK   replay walk difference lines listed = 17
+ASSERT OK   replay ssn shape 27/75/13 declared = 1
+ASSERT OK   replay ssn difference lines listed = 13
+ASSERT OK   replay ipm shape 27/75/13 declared = 1
+ASSERT OK   replay ipm difference lines listed = 13
+ASSERT OK   replay: the MEASURED difference set EQUALS the DECLARED 43-entry list
+rc=0
+
+=== B1: --check-g4 on the toolchain record's own comparison-vs-m6-pin.txt (the declared 43-set equals the new-toolchain baseline's measured set)
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/replay (binary 45c253e564fe, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/e1/e1-off.csv
+ASSERT OK   replay header lines = 3
+ASSERT OK   replay walk shape 27/75/17 declared = 1
+ASSERT OK   replay walk difference lines listed = 17
+ASSERT OK   replay ssn shape 27/75/13 declared = 1
+ASSERT OK   replay ssn difference lines listed = 13
+ASSERT OK   replay ipm shape 27/75/13 declared = 1
+ASSERT OK   replay ipm difference lines listed = 13
+ASSERT OK   replay: the MEASURED difference set EQUALS the DECLARED 43-entry list
+rc=0
+
+=== B2: the exact arm has teeth (the comparator exits non-zero on any difference): the M6 pin vs the previous record, EXACT, no gate
+=== falsifier: M6 pin vs the A3 record, EXACT === cells compared: 27  columns compared: 75  differences: 88
+rc=1 (non-zero: a real difference fails the asserted exact arm)
+=== control: the A3 record vs itself, EXACT === cells compared: 27  columns compared: 75  differences: 0
+rc=0 (zero)
+
+=== C: --check-names release on the rehearsal listing
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/replay (binary 45c253e564fe, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/e1/e1-off.csv
+ASSERT OK   offline release by name: 3234 started names == the baseline's 3232 - the 0 declared REMOVED + the 2 declared ADDED
+rc=0
+
+=== C2: --check-names debug on the listing less the long test (G1 excludes it by -E)
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/replay (binary 45c253e564fe, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/e1/e1-off.csv
+ASSERT OK   offline debug by name: 3233 started names == the baseline's 3231 - the 0 declared REMOVED + the 2 declared ADDED
+rc=0
+
+=== C3 falsifier: listing short one test
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/replay (binary 45c253e564fe, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/e1/e1-off.csv
+ASSERT FAIL offline release by name: 3233 started vs the baseline's 3232 - 0 REMOVED + 2 ADDED; the difference (expected '<' tab-indented '>' this run):
+Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/ordinal-24
+rc=2
+
+=== C4 falsifier: the previous record's own suite (the baseline) is refused
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/replay (binary 45c253e564fe, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/e1/e1-off.csv
+ASSERT FAIL offline release by name: ADDED HsSweepRepair.WarmChainOnAQuarterGridCertifiesNoPointOffTheRow is named 0 time(s) in the baseline (want 0) and 0 in this run (want 1)
+rc=2
+
+=== D: --check-skips baseline vs baseline (debug)
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/replay (binary 45c253e564fe, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/e1/e1-off.csv
+ASSERT OK   offline debug skips by name: 7 Skipped == the baseline's 7 + the 0 declared Release-only
+rc=0
+
+=== D1: --check-skips baseline vs baseline (release)
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/replay (binary 45c253e564fe, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/e1/e1-off.csv
+ASSERT OK   offline release skips by name: 1 Skipped == the baseline's 1 + the 0 declared Release-only
+rc=0
+
+=== D2 falsifier: release log vs debug expectation
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/replay (binary 45c253e564fe, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/e1/e1-off.csv
+ASSERT FAIL offline debug skips by name: 1 Skipped vs the baseline's 7 + 0 declared; the difference (expected '<' tab-indented '>' this run):
+QpE2Fix9StandstillRetreat.Acopp118Qp0Border
+QpE2Fix9StandstillRetreat.Acopp118Qp1Border
+QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize
+QpE2WorkingSet.AGreyPinOnYorknetThatIsIndependentStaysIndependent
+QpE4ProximalEqp.TheYorknetRestorationQpIsDriftFreeAndOptimal
+QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder
+rc=2
+
+=== E1 falsifier: wrong BEFORE (96f3158e, the A3 base)
+REFUSED: the by-name baseline resolved to [docs/notes/data/2026-10-m7-a2-gates/gates/suite-release.txt], declared [docs/notes/data/2026-10-m7-a3-gates/gates/suite-release.txt]
+rc=2
+
+=== E2 falsifier: UNMEASURED sentinel in a class A slot
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/replay (binary 45c253e564fe, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/e1/e1-off.csv
+GATES_START 2026-10-29T15:44:27-04:00
+=== HEAD 2bd776c6  dirty-files=19 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx ===
+=== BEFORE=1ff37db2  EXPECT_DEBUG_TESTS=3231  EXPECT_RELEASE_TESTS=3232 ===
+REFUSED: EXPECT_PSYM_CLASS_A still carries the UNMEASURED sentinel -- the FINAL pair has not been
+         rehearsed, so this round has no measured P-SYM shape to gate against.
+rc=2
+
+=== E3 falsifier: class A declared 6/6
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/replay (binary 45c253e564fe, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/e1/e1-off.csv
+GATES_START 2026-10-29T15:44:27-04:00
+=== HEAD 2bd776c6  dirty-files=19 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx ===
+=== BEFORE=1ff37db2  EXPECT_DEBUG_TESTS=3231  EXPECT_RELEASE_TESTS=3232 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=2bd776c6ce6af507b1bcaef600ef1df4a4fe43bd
+=== CHANGED HEADERS: include/hven/detail/interior/utils/accelerate_threads.h include/hven/drivers/sqp_solver.h include/hven/drivers/sqp_solver_types.h 
+=== CHANGED SOURCES: bench/bench_corpus.cpp bench/corpus_cells.h src/drivers/sqp_solver.cpp src/qp/qp_engine.cpp tests/CMakeLists.txt tests/common_support/route_reference.h tests/drivers/test_threads.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_ascent_guard.cpp tests/qp/test_qp_border_certificate.cpp tests/qp/test_qp_certificate_sign.cpp tests/qp/test_qp_convex_certificate.cpp tests/qp/test_qp_latch_reason.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_qp_refused_exchange.cpp tests/qp/test_qp_saddle_exit.cpp tests/qp/test_qp_saddle_shift.cpp tests/qp/test_qp_stagnation_stop.cpp tests/qp/test_qp_standstill_retreat.cpp tests/qp/test_route_reference.cpp tests/sqp/test_b1_gate.cpp tests/sqp/test_continuation.cpp tests/sqp/test_elastic_witness_start.cpp tests/sqp/test_hs_battery.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_ipqp_acceptance.cpp tests/sqp/test_ipqp_seams.cpp tests/sqp/test_ipqp_trace.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_warm_start_battery.cpp 
+=== MODIFIED C++ SOURCES: bench/bench_corpus.cpp src/drivers/sqp_solver.cpp src/qp/qp_engine.cpp tests/drivers/test_threads.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_ascent_guard.cpp tests/qp/test_qp_border_certificate.cpp tests/qp/test_qp_certificate_sign.cpp tests/qp/test_qp_convex_certificate.cpp tests/qp/test_qp_latch_reason.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_qp_refused_exchange.cpp tests/qp/test_qp_saddle_exit.cpp tests/qp/test_qp_saddle_shift.cpp tests/qp/test_qp_stagnation_stop.cpp tests/qp/test_qp_standstill_retreat.cpp tests/sqp/test_b1_gate.cpp tests/sqp/test_continuation.cpp tests/sqp/test_elastic_witness_start.cpp tests/sqp/test_hs_battery.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_ipqp_acceptance.cpp tests/sqp/test_ipqp_seams.cpp tests/sqp/test_ipqp_trace.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_warm_start_battery.cpp 
+=== ADDED C++ SOURCES: tests/qp/test_route_reference.cpp 
+REFUSED: 27 modified .cpp (less 13 outside the universe; Release less 8 and Debug less 7 declared NOISE-ONLY or IDENTICAL), but class A is DECLARED 6/6
+rc=2
+
+=== E4 falsifier: Debug test count 3230 (one short of the declared 3231 = 3229 + 2 ADDED - 0 REMOVED)
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/replay (binary 45c253e564fe, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/e1/e1-off.csv
+GATES_START 2026-10-29T15:44:27-04:00
+=== HEAD 2bd776c6  dirty-files=19 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx ===
+=== BEFORE=1ff37db2  EXPECT_DEBUG_TESTS=3230  EXPECT_RELEASE_TESTS=3232 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=2bd776c6ce6af507b1bcaef600ef1df4a4fe43bd
+=== CHANGED HEADERS: include/hven/detail/interior/utils/accelerate_threads.h include/hven/drivers/sqp_solver.h include/hven/drivers/sqp_solver_types.h 
+=== CHANGED SOURCES: bench/bench_corpus.cpp bench/corpus_cells.h src/drivers/sqp_solver.cpp src/qp/qp_engine.cpp tests/CMakeLists.txt tests/common_support/route_reference.h tests/drivers/test_threads.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_ascent_guard.cpp tests/qp/test_qp_border_certificate.cpp tests/qp/test_qp_certificate_sign.cpp tests/qp/test_qp_convex_certificate.cpp tests/qp/test_qp_latch_reason.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_qp_refused_exchange.cpp tests/qp/test_qp_saddle_exit.cpp tests/qp/test_qp_saddle_shift.cpp tests/qp/test_qp_stagnation_stop.cpp tests/qp/test_qp_standstill_retreat.cpp tests/qp/test_route_reference.cpp tests/sqp/test_b1_gate.cpp tests/sqp/test_continuation.cpp tests/sqp/test_elastic_witness_start.cpp tests/sqp/test_hs_battery.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_ipqp_acceptance.cpp tests/sqp/test_ipqp_seams.cpp tests/sqp/test_ipqp_trace.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_warm_start_battery.cpp 
+=== MODIFIED C++ SOURCES: bench/bench_corpus.cpp src/drivers/sqp_solver.cpp src/qp/qp_engine.cpp tests/drivers/test_threads.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_ascent_guard.cpp tests/qp/test_qp_border_certificate.cpp tests/qp/test_qp_certificate_sign.cpp tests/qp/test_qp_convex_certificate.cpp tests/qp/test_qp_latch_reason.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_qp_refused_exchange.cpp tests/qp/test_qp_saddle_exit.cpp tests/qp/test_qp_saddle_shift.cpp tests/qp/test_qp_stagnation_stop.cpp tests/qp/test_qp_standstill_retreat.cpp tests/sqp/test_b1_gate.cpp tests/sqp/test_continuation.cpp tests/sqp/test_elastic_witness_start.cpp tests/sqp/test_hs_battery.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_ipqp_acceptance.cpp tests/sqp/test_ipqp_seams.cpp tests/sqp/test_ipqp_trace.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_warm_start_battery.cpp 
+=== ADDED C++ SOURCES: tests/qp/test_route_reference.cpp 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_ascent_guard.cpp tests/qp/test_qp_border_certificate.cpp tests/qp/test_qp_certificate_sign.cpp tests/qp/test_qp_convex_certificate.cpp tests/qp/test_qp_latch_reason.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_qp_refused_exchange.cpp tests/qp/test_qp_saddle_exit.cpp tests/qp/test_qp_saddle_shift.cpp tests/qp/test_qp_stagnation_stop.cpp tests/qp/test_qp_standstill_retreat.cpp tests/sqp/test_ipqp_seams.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_route_reference.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+REFUSED: Debug 3230 != Release 3232 - long 1
+rc=2
+
+=== E5 falsifier: a REMOVED name declared that the range does not remove (a scratch copy of the runner: REMOVED_TEST_NAMES is not an environment slot)
+1
+=== RELEASE-ONLY (Debug GTEST_SKIP) DECLARED: 0 name(s), each a declared ADDED name ===
+REFUSED: REMOVED FunnelHType.RetractionUndoesOnlyTheLastJudgement: its TEST line (FunnelHType, RetractionUndoesOnlyTheLastJudgement) is removed 0 time(s) in the range, want 1
+rc=2
+
+=== E5b falsifier: a declared ADDED name omitted (a scratch copy with the last ADDED name dropped; counts then disagree with the declared totals)
+0
+=== RE-DECLARED (TEST line removed and re-added under the same name): 0 name(s), each removed once and added once, net unchanged by name ===
+REFUSED: debug declared 3231 != the baseline's 3229 + 1 ADDED - 0 REMOVED
+rc=2
+
+=== E5c (A2) DROPPED: the TEST_F-blind reader falsifier has nothing to refuse in this range (no TEST_F is added; the widened TEST(_[FP])? regex is carried unchanged from A2, where E5c proved it necessary)
+
+=== E6 falsifier: an ADDED fixture declared that the range does not add
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/replay (binary 45c253e564fe, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/e1/e1-off.csv
+GATES_START 2026-10-29T15:44:29-04:00
+=== HEAD 2bd776c6  dirty-files=19 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx ===
+=== BEFORE=1ff37db2  EXPECT_DEBUG_TESTS=3231  EXPECT_RELEASE_TESTS=3232 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=2bd776c6ce6af507b1bcaef600ef1df4a4fe43bd
+=== CHANGED HEADERS: include/hven/detail/interior/utils/accelerate_threads.h include/hven/drivers/sqp_solver.h include/hven/drivers/sqp_solver_types.h 
+=== CHANGED SOURCES: bench/bench_corpus.cpp bench/corpus_cells.h src/drivers/sqp_solver.cpp src/qp/qp_engine.cpp tests/CMakeLists.txt tests/common_support/route_reference.h tests/drivers/test_threads.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_ascent_guard.cpp tests/qp/test_qp_border_certificate.cpp tests/qp/test_qp_certificate_sign.cpp tests/qp/test_qp_convex_certificate.cpp tests/qp/test_qp_latch_reason.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_qp_refused_exchange.cpp tests/qp/test_qp_saddle_exit.cpp tests/qp/test_qp_saddle_shift.cpp tests/qp/test_qp_stagnation_stop.cpp tests/qp/test_qp_standstill_retreat.cpp tests/qp/test_route_reference.cpp tests/sqp/test_b1_gate.cpp tests/sqp/test_continuation.cpp tests/sqp/test_elastic_witness_start.cpp tests/sqp/test_hs_battery.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_ipqp_acceptance.cpp tests/sqp/test_ipqp_seams.cpp tests/sqp/test_ipqp_trace.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_warm_start_battery.cpp 
+=== MODIFIED C++ SOURCES: bench/bench_corpus.cpp src/drivers/sqp_solver.cpp src/qp/qp_engine.cpp tests/drivers/test_threads.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_ascent_guard.cpp tests/qp/test_qp_border_certificate.cpp tests/qp/test_qp_certificate_sign.cpp tests/qp/test_qp_convex_certificate.cpp tests/qp/test_qp_latch_reason.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_qp_refused_exchange.cpp tests/qp/test_qp_saddle_exit.cpp tests/qp/test_qp_saddle_shift.cpp tests/qp/test_qp_stagnation_stop.cpp tests/qp/test_qp_standstill_retreat.cpp tests/sqp/test_b1_gate.cpp tests/sqp/test_continuation.cpp tests/sqp/test_elastic_witness_start.cpp tests/sqp/test_hs_battery.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_ipqp_acceptance.cpp tests/sqp/test_ipqp_seams.cpp tests/sqp/test_ipqp_trace.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_warm_start_battery.cpp 
+=== ADDED C++ SOURCES: tests/qp/test_route_reference.cpp 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_ascent_guard.cpp tests/qp/test_qp_border_certificate.cpp tests/qp/test_qp_certificate_sign.cpp tests/qp/test_qp_convex_certificate.cpp tests/qp/test_qp_latch_reason.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_qp_refused_exchange.cpp tests/qp/test_qp_saddle_exit.cpp tests/qp/test_qp_saddle_shift.cpp tests/qp/test_qp_stagnation_stop.cpp tests/qp/test_qp_standstill_retreat.cpp tests/sqp/test_ipqp_seams.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_route_reference.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); 43 DIFFERENCES DECLARED as a SET (walk 17 / ssn 13 / ipm 13), every cell a U0 cell, the one declared WORSE cell [ipm f7_n1000_path_warm kkt_stationarity] among them
+=== CLASS_B_NAMES_OK: Release 0 / Debug 0 declared objects, none with a source modified in the range
+=== RELEASE-ONLY (Debug GTEST_SKIP) DECLARED: 0 name(s), each a declared ADDED name ===
+=== RE-DECLARED (TEST line removed and re-added under the same name): 0 name(s), each removed once and added once, net unchanged by name ===
+=== BY-NAME: baselines /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/suite-{debug,release}.txt (3231 / 3232 started names); 2 ADDED, each added by exactly one TEST line in the range; 0 REMOVED, each removed by exactly one TEST line; 0 TEST lines removed (0 of them RE-DECLARED)
+REFUSED: the ADDED non-.cpp test files [tests/common_support/route_reference.h ] != declared [tests/qp/fixtures/e2-d4/RLA_BRITGAS_qp0.txt ]
+rc=2
+
+=== E7 falsifier: an added in-universe source count declared that the range does not add (EXPECT_PSYM_ADDED=2)
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/replay (binary 45c253e564fe, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/e1/e1-off.csv
+GATES_START 2026-10-29T15:44:30-04:00
+=== HEAD 2bd776c6  dirty-files=19 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx ===
+=== BEFORE=1ff37db2  EXPECT_DEBUG_TESTS=3231  EXPECT_RELEASE_TESTS=3232 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=2bd776c6ce6af507b1bcaef600ef1df4a4fe43bd
+=== CHANGED HEADERS: include/hven/detail/interior/utils/accelerate_threads.h include/hven/drivers/sqp_solver.h include/hven/drivers/sqp_solver_types.h 
+=== CHANGED SOURCES: bench/bench_corpus.cpp bench/corpus_cells.h src/drivers/sqp_solver.cpp src/qp/qp_engine.cpp tests/CMakeLists.txt tests/common_support/route_reference.h tests/drivers/test_threads.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_ascent_guard.cpp tests/qp/test_qp_border_certificate.cpp tests/qp/test_qp_certificate_sign.cpp tests/qp/test_qp_convex_certificate.cpp tests/qp/test_qp_latch_reason.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_qp_refused_exchange.cpp tests/qp/test_qp_saddle_exit.cpp tests/qp/test_qp_saddle_shift.cpp tests/qp/test_qp_stagnation_stop.cpp tests/qp/test_qp_standstill_retreat.cpp tests/qp/test_route_reference.cpp tests/sqp/test_b1_gate.cpp tests/sqp/test_continuation.cpp tests/sqp/test_elastic_witness_start.cpp tests/sqp/test_hs_battery.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_ipqp_acceptance.cpp tests/sqp/test_ipqp_seams.cpp tests/sqp/test_ipqp_trace.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_warm_start_battery.cpp 
+=== MODIFIED C++ SOURCES: bench/bench_corpus.cpp src/drivers/sqp_solver.cpp src/qp/qp_engine.cpp tests/drivers/test_threads.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_ascent_guard.cpp tests/qp/test_qp_border_certificate.cpp tests/qp/test_qp_certificate_sign.cpp tests/qp/test_qp_convex_certificate.cpp tests/qp/test_qp_latch_reason.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_qp_refused_exchange.cpp tests/qp/test_qp_saddle_exit.cpp tests/qp/test_qp_saddle_shift.cpp tests/qp/test_qp_stagnation_stop.cpp tests/qp/test_qp_standstill_retreat.cpp tests/sqp/test_b1_gate.cpp tests/sqp/test_continuation.cpp tests/sqp/test_elastic_witness_start.cpp tests/sqp/test_hs_battery.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_ipqp_acceptance.cpp tests/sqp/test_ipqp_seams.cpp tests/sqp/test_ipqp_trace.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_warm_start_battery.cpp 
+=== ADDED C++ SOURCES: tests/qp/test_route_reference.cpp 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_ascent_guard.cpp tests/qp/test_qp_border_certificate.cpp tests/qp/test_qp_certificate_sign.cpp tests/qp/test_qp_convex_certificate.cpp tests/qp/test_qp_latch_reason.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_qp_refused_exchange.cpp tests/qp/test_qp_saddle_exit.cpp tests/qp/test_qp_saddle_shift.cpp tests/qp/test_qp_stagnation_stop.cpp tests/qp/test_qp_standstill_retreat.cpp tests/sqp/test_ipqp_seams.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_route_reference.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+REFUSED: 0 added .cpp inside the universe, but the universe's ADDED is DECLARED 2
+rc=2
+
+=== E7b falsifier: a source declared ADDED outside the universe that the range does not add
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/replay (binary 45c253e564fe, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/e1/e1-off.csv
+GATES_START 2026-10-29T15:44:30-04:00
+=== HEAD 2bd776c6  dirty-files=19 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx ===
+=== BEFORE=1ff37db2  EXPECT_DEBUG_TESTS=3231  EXPECT_RELEASE_TESTS=3232 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=2bd776c6ce6af507b1bcaef600ef1df4a4fe43bd
+=== CHANGED HEADERS: include/hven/detail/interior/utils/accelerate_threads.h include/hven/drivers/sqp_solver.h include/hven/drivers/sqp_solver_types.h 
+=== CHANGED SOURCES: bench/bench_corpus.cpp bench/corpus_cells.h src/drivers/sqp_solver.cpp src/qp/qp_engine.cpp tests/CMakeLists.txt tests/common_support/route_reference.h tests/drivers/test_threads.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_ascent_guard.cpp tests/qp/test_qp_border_certificate.cpp tests/qp/test_qp_certificate_sign.cpp tests/qp/test_qp_convex_certificate.cpp tests/qp/test_qp_latch_reason.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_qp_refused_exchange.cpp tests/qp/test_qp_saddle_exit.cpp tests/qp/test_qp_saddle_shift.cpp tests/qp/test_qp_stagnation_stop.cpp tests/qp/test_qp_standstill_retreat.cpp tests/qp/test_route_reference.cpp tests/sqp/test_b1_gate.cpp tests/sqp/test_continuation.cpp tests/sqp/test_elastic_witness_start.cpp tests/sqp/test_hs_battery.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_ipqp_acceptance.cpp tests/sqp/test_ipqp_seams.cpp tests/sqp/test_ipqp_trace.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_warm_start_battery.cpp 
+=== MODIFIED C++ SOURCES: bench/bench_corpus.cpp src/drivers/sqp_solver.cpp src/qp/qp_engine.cpp tests/drivers/test_threads.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_ascent_guard.cpp tests/qp/test_qp_border_certificate.cpp tests/qp/test_qp_certificate_sign.cpp tests/qp/test_qp_convex_certificate.cpp tests/qp/test_qp_latch_reason.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_qp_refused_exchange.cpp tests/qp/test_qp_saddle_exit.cpp tests/qp/test_qp_saddle_shift.cpp tests/qp/test_qp_stagnation_stop.cpp tests/qp/test_qp_standstill_retreat.cpp tests/sqp/test_b1_gate.cpp tests/sqp/test_continuation.cpp tests/sqp/test_elastic_witness_start.cpp tests/sqp/test_hs_battery.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_ipqp_acceptance.cpp tests/sqp/test_ipqp_seams.cpp tests/sqp/test_ipqp_trace.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_warm_start_battery.cpp 
+=== ADDED C++ SOURCES: tests/qp/test_route_reference.cpp 
+REFUSED: declared outside source tests/sqp/test_ipqp_seams.cpp is not ADDED against 1ff37db2
+rc=2
+
+=== E10 falsifier: an outside-universe MODIFIED source declared that the range does not modify (tests/qp/test_qp_degeneracy_arm.cpp)
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/replay (binary 45c253e564fe, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/e1/e1-off.csv
+GATES_START 2026-10-29T15:44:30-04:00
+=== HEAD 2bd776c6  dirty-files=19 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx ===
+=== BEFORE=1ff37db2  EXPECT_DEBUG_TESTS=3231  EXPECT_RELEASE_TESTS=3232 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=2bd776c6ce6af507b1bcaef600ef1df4a4fe43bd
+=== CHANGED HEADERS: include/hven/detail/interior/utils/accelerate_threads.h include/hven/drivers/sqp_solver.h include/hven/drivers/sqp_solver_types.h 
+=== CHANGED SOURCES: bench/bench_corpus.cpp bench/corpus_cells.h src/drivers/sqp_solver.cpp src/qp/qp_engine.cpp tests/CMakeLists.txt tests/common_support/route_reference.h tests/drivers/test_threads.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_ascent_guard.cpp tests/qp/test_qp_border_certificate.cpp tests/qp/test_qp_certificate_sign.cpp tests/qp/test_qp_convex_certificate.cpp tests/qp/test_qp_latch_reason.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_qp_refused_exchange.cpp tests/qp/test_qp_saddle_exit.cpp tests/qp/test_qp_saddle_shift.cpp tests/qp/test_qp_stagnation_stop.cpp tests/qp/test_qp_standstill_retreat.cpp tests/qp/test_route_reference.cpp tests/sqp/test_b1_gate.cpp tests/sqp/test_continuation.cpp tests/sqp/test_elastic_witness_start.cpp tests/sqp/test_hs_battery.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_ipqp_acceptance.cpp tests/sqp/test_ipqp_seams.cpp tests/sqp/test_ipqp_trace.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_warm_start_battery.cpp 
+=== MODIFIED C++ SOURCES: bench/bench_corpus.cpp src/drivers/sqp_solver.cpp src/qp/qp_engine.cpp tests/drivers/test_threads.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_ascent_guard.cpp tests/qp/test_qp_border_certificate.cpp tests/qp/test_qp_certificate_sign.cpp tests/qp/test_qp_convex_certificate.cpp tests/qp/test_qp_latch_reason.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_qp_refused_exchange.cpp tests/qp/test_qp_saddle_exit.cpp tests/qp/test_qp_saddle_shift.cpp tests/qp/test_qp_stagnation_stop.cpp tests/qp/test_qp_standstill_retreat.cpp tests/sqp/test_b1_gate.cpp tests/sqp/test_continuation.cpp tests/sqp/test_elastic_witness_start.cpp tests/sqp/test_hs_battery.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_ipqp_acceptance.cpp tests/sqp/test_ipqp_seams.cpp tests/sqp/test_ipqp_trace.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_warm_start_battery.cpp 
+=== ADDED C++ SOURCES: tests/qp/test_route_reference.cpp 
+REFUSED: 27 modified .cpp (less 1 outside the universe; Release less 8 and Debug less 7 declared NOISE-ONLY or IDENTICAL), but class A is DECLARED 6/7
+rc=2
+
+=== E7c falsifier: tests/sqp/CMakeLists.txt add declared that the range does not make
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/replay (binary 45c253e564fe, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/e1/e1-off.csv
+GATES_START 2026-10-29T15:44:30-04:00
+=== HEAD 2bd776c6  dirty-files=19 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx ===
+=== BEFORE=1ff37db2  EXPECT_DEBUG_TESTS=3231  EXPECT_RELEASE_TESTS=3232 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=2bd776c6ce6af507b1bcaef600ef1df4a4fe43bd
+=== CHANGED HEADERS: include/hven/detail/interior/utils/accelerate_threads.h include/hven/drivers/sqp_solver.h include/hven/drivers/sqp_solver_types.h 
+=== CHANGED SOURCES: bench/bench_corpus.cpp bench/corpus_cells.h src/drivers/sqp_solver.cpp src/qp/qp_engine.cpp tests/CMakeLists.txt tests/common_support/route_reference.h tests/drivers/test_threads.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_ascent_guard.cpp tests/qp/test_qp_border_certificate.cpp tests/qp/test_qp_certificate_sign.cpp tests/qp/test_qp_convex_certificate.cpp tests/qp/test_qp_latch_reason.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_qp_refused_exchange.cpp tests/qp/test_qp_saddle_exit.cpp tests/qp/test_qp_saddle_shift.cpp tests/qp/test_qp_stagnation_stop.cpp tests/qp/test_qp_standstill_retreat.cpp tests/qp/test_route_reference.cpp tests/sqp/test_b1_gate.cpp tests/sqp/test_continuation.cpp tests/sqp/test_elastic_witness_start.cpp tests/sqp/test_hs_battery.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_ipqp_acceptance.cpp tests/sqp/test_ipqp_seams.cpp tests/sqp/test_ipqp_trace.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_warm_start_battery.cpp 
+=== MODIFIED C++ SOURCES: bench/bench_corpus.cpp src/drivers/sqp_solver.cpp src/qp/qp_engine.cpp tests/drivers/test_threads.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_ascent_guard.cpp tests/qp/test_qp_border_certificate.cpp tests/qp/test_qp_certificate_sign.cpp tests/qp/test_qp_convex_certificate.cpp tests/qp/test_qp_latch_reason.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_qp_refused_exchange.cpp tests/qp/test_qp_saddle_exit.cpp tests/qp/test_qp_saddle_shift.cpp tests/qp/test_qp_stagnation_stop.cpp tests/qp/test_qp_standstill_retreat.cpp tests/sqp/test_b1_gate.cpp tests/sqp/test_continuation.cpp tests/sqp/test_elastic_witness_start.cpp tests/sqp/test_hs_battery.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_ipqp_acceptance.cpp tests/sqp/test_ipqp_seams.cpp tests/sqp/test_ipqp_trace.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_warm_start_battery.cpp 
+=== ADDED C++ SOURCES: tests/qp/test_route_reference.cpp 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_ascent_guard.cpp tests/qp/test_qp_border_certificate.cpp tests/qp/test_qp_certificate_sign.cpp tests/qp/test_qp_convex_certificate.cpp tests/qp/test_qp_latch_reason.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_qp_refused_exchange.cpp tests/qp/test_qp_saddle_exit.cpp tests/qp/test_qp_saddle_shift.cpp tests/qp/test_qp_stagnation_stop.cpp tests/qp/test_qp_standstill_retreat.cpp tests/sqp/test_ipqp_seams.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_route_reference.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); 43 DIFFERENCES DECLARED as a SET (walk 17 / ssn 13 / ipm 13), every cell a U0 cell, the one declared WORSE cell [ipm f7_n1000_path_warm kkt_stationarity] among them
+=== CLASS_B_NAMES_OK: Release 0 / Debug 0 declared objects, none with a source modified in the range
+=== RELEASE-ONLY (Debug GTEST_SKIP) DECLARED: 0 name(s), each a declared ADDED name ===
+=== RE-DECLARED (TEST line removed and re-added under the same name): 0 name(s), each removed once and added once, net unchanged by name ===
+=== BY-NAME: baselines /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/suite-{debug,release}.txt (3231 / 3232 started names); 2 ADDED, each added by exactly one TEST line in the range; 0 REMOVED, each removed by exactly one TEST line; 0 TEST lines removed (0 of them RE-DECLARED)
+REFUSED: tests/sqp/CMakeLists.txt adds [] (declared [test_column_scaling.cpp|]) and removes 0 (declared 0)
+rc=2
+
+=== E8 falsifier: a class B name declared whose source is in the range (this range declares class B EMPTY, so the falsifier declares ONE object, test_b1_gate.cpp.o, whose source is MODIFIED, with class B 1/1 and DIFFERING 7/8 so the count checks pass first)
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); 43 DIFFERENCES DECLARED as a SET (walk 17 / ssn 13 / ipm 13), every cell a U0 cell, the one declared WORSE cell [ipm f7_n1000_path_warm kkt_stationarity] among them
+REFUSED: rel class B tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_b1_gate.cpp.o has its source tests/sqp/test_b1_gate.cpp MODIFIED in 1ff37db2..2bd776c6ce6af507b1bcaef600ef1df4a4fe43bd (it is class A)
+rc=2
+
+=== E9 falsifier: sqp_solver.cpp.o (class A) declared as library class B (the declared list is empty)
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); 43 DIFFERENCES DECLARED as a SET (walk 17 / ssn 13 / ipm 13), every cell a U0 cell, the one declared WORSE cell [ipm f7_n1000_path_warm kkt_stationarity] among them
+REFUSED: CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o is declared a class B library mover but its source src/drivers/sqp_solver.cpp is MODIFIED (class A)
+rc=2
+
+=== B3: the E1 OFF comparator has teeth (synthetic heads built from the A3 record's e1-off.csv; the declared added-column set is EMPTY)
+E1_OFF cells=29 columns_compared=69 differences=0 added_columns=0 added_nonzero_rows=0
+good rc=0 (want: good 0; mutated 1; added 1; dropped 1)
+E1_OFF cells=29 columns_compared=69 differences=1 added_columns=0 added_nonzero_rows=0
+mutated rc=1 (want: good 0; mutated 1; added 1; dropped 1)
+E1_OFF cells=29 columns_compared=69 differences=0 added_columns=1 added_nonzero_rows=0
+added rc=1 (want: good 0; mutated 1; added 1; dropped 1)
+E1_OFF cells=29 columns_compared=68 differences=0 added_columns=0 added_nonzero_rows=0
+dropped rc=1 (want: good 0; mutated 1; added 1; dropped 1)
+E1_OFF cells=29 columns_compared=69 differences=0 added_columns=1 added_nonzero_rows=0
+added-and-declared rc=0 (want 0: the comparator still accepts a declared column that is 0 on every row)
+
+=== F: classifier byte-identical to the A3 record's
+cmp A3: IDENTICAL
+
+=== E11 falsifier: class B declared 1/0 (DIFFERING 6/7 != A + B)
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/replay (binary 45c253e564fe, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/e1/e1-off.csv
+GATES_START 2026-10-29T15:44:32-04:00
+=== HEAD 2bd776c6  dirty-files=19 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx ===
+=== BEFORE=1ff37db2  EXPECT_DEBUG_TESTS=3231  EXPECT_RELEASE_TESTS=3232 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=2bd776c6ce6af507b1bcaef600ef1df4a4fe43bd
+=== CHANGED HEADERS: include/hven/detail/interior/utils/accelerate_threads.h include/hven/drivers/sqp_solver.h include/hven/drivers/sqp_solver_types.h 
+=== CHANGED SOURCES: bench/bench_corpus.cpp bench/corpus_cells.h src/drivers/sqp_solver.cpp src/qp/qp_engine.cpp tests/CMakeLists.txt tests/common_support/route_reference.h tests/drivers/test_threads.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_ascent_guard.cpp tests/qp/test_qp_border_certificate.cpp tests/qp/test_qp_certificate_sign.cpp tests/qp/test_qp_convex_certificate.cpp tests/qp/test_qp_latch_reason.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_qp_refused_exchange.cpp tests/qp/test_qp_saddle_exit.cpp tests/qp/test_qp_saddle_shift.cpp tests/qp/test_qp_stagnation_stop.cpp tests/qp/test_qp_standstill_retreat.cpp tests/qp/test_route_reference.cpp tests/sqp/test_b1_gate.cpp tests/sqp/test_continuation.cpp tests/sqp/test_elastic_witness_start.cpp tests/sqp/test_hs_battery.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_ipqp_acceptance.cpp tests/sqp/test_ipqp_seams.cpp tests/sqp/test_ipqp_trace.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_warm_start_battery.cpp 
+=== MODIFIED C++ SOURCES: bench/bench_corpus.cpp src/drivers/sqp_solver.cpp src/qp/qp_engine.cpp tests/drivers/test_threads.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_ascent_guard.cpp tests/qp/test_qp_border_certificate.cpp tests/qp/test_qp_certificate_sign.cpp tests/qp/test_qp_convex_certificate.cpp tests/qp/test_qp_latch_reason.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_qp_refused_exchange.cpp tests/qp/test_qp_saddle_exit.cpp tests/qp/test_qp_saddle_shift.cpp tests/qp/test_qp_stagnation_stop.cpp tests/qp/test_qp_standstill_retreat.cpp tests/sqp/test_b1_gate.cpp tests/sqp/test_continuation.cpp tests/sqp/test_elastic_witness_start.cpp tests/sqp/test_hs_battery.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_ipqp_acceptance.cpp tests/sqp/test_ipqp_seams.cpp tests/sqp/test_ipqp_trace.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_warm_start_battery.cpp 
+=== ADDED C++ SOURCES: tests/qp/test_route_reference.cpp 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_ascent_guard.cpp tests/qp/test_qp_border_certificate.cpp tests/qp/test_qp_certificate_sign.cpp tests/qp/test_qp_convex_certificate.cpp tests/qp/test_qp_latch_reason.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_qp_refused_exchange.cpp tests/qp/test_qp_saddle_exit.cpp tests/qp/test_qp_saddle_shift.cpp tests/qp/test_qp_stagnation_stop.cpp tests/qp/test_qp_standstill_retreat.cpp tests/sqp/test_ipqp_seams.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_route_reference.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+REFUSED: rel DIFFERING 6 != class A 6 + class B 1
+rc=2
+
+=== E12 falsifier: a MODIFIED library source (sqp_solver.cpp.o) declared a Debug NOISE-ONLY library mover
+=== PREV REPLAY RECORD (derived): /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/replay (binary 45c253e564fe, code-identical to BEFORE); E1 OFF baseline /home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/docs/notes/data/2026-10-m7-a3-gates/gates/e1/e1-off.csv
+GATES_START 2026-10-29T15:44:32-04:00
+=== HEAD 2bd776c6  dirty-files=19 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.claude/worktrees/wx-gates-wt/.scratch/gates-wx ===
+=== BEFORE=1ff37db2  EXPECT_DEBUG_TESTS=3231  EXPECT_RELEASE_TESTS=3232 ===
+=== UNMEASURED_SLOTS_OK: every P-SYM slot carries a value ===
+=== HEAD_AT_START=2bd776c6ce6af507b1bcaef600ef1df4a4fe43bd
+=== CHANGED HEADERS: include/hven/detail/interior/utils/accelerate_threads.h include/hven/drivers/sqp_solver.h include/hven/drivers/sqp_solver_types.h 
+=== CHANGED SOURCES: bench/bench_corpus.cpp bench/corpus_cells.h src/drivers/sqp_solver.cpp src/qp/qp_engine.cpp tests/CMakeLists.txt tests/common_support/route_reference.h tests/drivers/test_threads.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_ascent_guard.cpp tests/qp/test_qp_border_certificate.cpp tests/qp/test_qp_certificate_sign.cpp tests/qp/test_qp_convex_certificate.cpp tests/qp/test_qp_latch_reason.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_qp_refused_exchange.cpp tests/qp/test_qp_saddle_exit.cpp tests/qp/test_qp_saddle_shift.cpp tests/qp/test_qp_stagnation_stop.cpp tests/qp/test_qp_standstill_retreat.cpp tests/qp/test_route_reference.cpp tests/sqp/test_b1_gate.cpp tests/sqp/test_continuation.cpp tests/sqp/test_elastic_witness_start.cpp tests/sqp/test_hs_battery.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_ipqp_acceptance.cpp tests/sqp/test_ipqp_seams.cpp tests/sqp/test_ipqp_trace.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_warm_start_battery.cpp 
+=== MODIFIED C++ SOURCES: bench/bench_corpus.cpp src/drivers/sqp_solver.cpp src/qp/qp_engine.cpp tests/drivers/test_threads.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_ascent_guard.cpp tests/qp/test_qp_border_certificate.cpp tests/qp/test_qp_certificate_sign.cpp tests/qp/test_qp_convex_certificate.cpp tests/qp/test_qp_latch_reason.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_qp_refused_exchange.cpp tests/qp/test_qp_saddle_exit.cpp tests/qp/test_qp_saddle_shift.cpp tests/qp/test_qp_stagnation_stop.cpp tests/qp/test_qp_standstill_retreat.cpp tests/sqp/test_b1_gate.cpp tests/sqp/test_continuation.cpp tests/sqp/test_elastic_witness_start.cpp tests/sqp/test_hs_battery.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_ipqp_acceptance.cpp tests/sqp/test_ipqp_seams.cpp tests/sqp/test_ipqp_trace.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_sqp_solver.cpp tests/sqp/test_warm_start_battery.cpp 
+=== ADDED C++ SOURCES: tests/qp/test_route_reference.cpp 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_qp_anti_cycling_arm.cpp tests/qp/test_qp_ascent_guard.cpp tests/qp/test_qp_border_certificate.cpp tests/qp/test_qp_certificate_sign.cpp tests/qp/test_qp_convex_certificate.cpp tests/qp/test_qp_latch_reason.cpp tests/qp/test_qp_rank_repair.cpp tests/qp/test_qp_refused_exchange.cpp tests/qp/test_qp_saddle_exit.cpp tests/qp/test_qp_saddle_shift.cpp tests/qp/test_qp_stagnation_stop.cpp tests/qp/test_qp_standstill_retreat.cpp tests/sqp/test_ipqp_seams.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_route_reference.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir tests/CMakeFiles/hven_sqp_seam_tests.dir tests/CMakeFiles/hven_ipqp_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+REFUSED: CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o is declared a NOISE-ONLY library mover but its source src/drivers/sqp_solver.cpp is MODIFIED (class A)
+rc=2
+
+=== G: the class A NOISE-ONLY / IDENTICAL admission, proven offline on the rehearsal's own classifications and compares (this range has no Debug-only class B: EXPECT_PSYM_B_DEBUG_ONLY and the mirror slot are EMPTY)
+block lines: 65
+=== H1: the declared slots
+ASSERT OK   class A by source Release: [bench/bench_corpus.cpp src/drivers/sqp_solver.cpp tests/sqp/test_b1_gate.cpp tests/sqp/test_elastic_witness_start.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_warm_start_battery.cpp ]
+ASSERT OK   class A by source Debug: [bench/bench_corpus.cpp src/drivers/sqp_solver.cpp src/qp/qp_engine.cpp tests/sqp/test_b1_gate.cpp tests/sqp/test_elastic_witness_start.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_warm_start_battery.cpp ]
+ASSERT OK   Release NOISE-ONLY class A: tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o
+ASSERT OK   Release NOISE-ONLY class A: tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_continuation.cpp.o
+ASSERT OK   Release NOISE-ONLY class A: tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_battery.cpp.o
+ASSERT OK   Release NOISE-ONLY class A: tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_acceptance.cpp.o
+ASSERT OK   Release NOISE-ONLY class A: tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_trace.cpp.o
+ASSERT OK   Release NOISE-ONLY class A: tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o
+ASSERT OK   Release NOISE-ONLY class A: tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+ASSERT OK   Debug NOISE-ONLY class A: tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o
+ASSERT OK   Debug NOISE-ONLY class A: tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_continuation.cpp.o
+ASSERT OK   Debug NOISE-ONLY class A: tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_battery.cpp.o
+ASSERT OK   Debug NOISE-ONLY class A: tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_acceptance.cpp.o
+ASSERT OK   Debug NOISE-ONLY class A: tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_trace.cpp.o
+ASSERT OK   Debug NOISE-ONLY class A: tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o
+ASSERT OK   Debug NOISE-ONLY class A: tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+ASSERT OK   Release IDENTICAL class A (modified source, byte-identical object): CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+RC5=0
+=== H2: falsifier, qp_engine.cpp.o declared IDENTICAL in Debug (it DIFFERS there)
+ASSERT FAIL class A by source Debug: measured [bench/bench_corpus.cpp src/drivers/sqp_solver.cpp src/qp/qp_engine.cpp tests/sqp/test_b1_gate.cpp tests/sqp/test_elastic_witness_start.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_warm_start_battery.cpp ] != de
+ASSERT FAIL Debug IDENTICAL class A: CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o is not byte-identical / is named by the compare / is missing from a manifest
+RC5=1
+=== H3: falsifier, sqp_solver.cpp.o (a real mover) declared IDENTICAL in Release
+ASSERT FAIL class A by source Release: measured [bench/bench_corpus.cpp src/drivers/sqp_solver.cpp tests/sqp/test_b1_gate.cpp tests/sqp/test_elastic_witness_start.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_warm_start_battery.cpp ] != derived [bench/bench_
+ASSERT FAIL Release IDENTICAL class A: CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o is not byte-identical / is named by the compare / is missing from a manifest
+RC5=1
+=== H4: falsifier, the IDENTICAL slot emptied (qp_engine.cpp.o becomes an unaccounted class A source in Release)
+ASSERT FAIL class A by source Release: measured [bench/bench_corpus.cpp src/drivers/sqp_solver.cpp tests/sqp/test_b1_gate.cpp tests/sqp/test_elastic_witness_start.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_warm_start_battery.cpp ] != derived [bench/bench_
+RC5=1
+=== H5: falsifier, bench_corpus.cpp.o (a real DIFFERS) declared NOISE-ONLY in Release
+ASSERT FAIL class A by source Release: measured [bench/bench_corpus.cpp src/drivers/sqp_solver.cpp tests/sqp/test_b1_gate.cpp tests/sqp/test_elastic_witness_start.cpp tests/sqp/test_hs_sweeps.cpp tests/sqp/test_warm_start_battery.cpp ] != derived [src/drivers/
+ASSERT FAIL Release NOISE-ONLY class A: bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o is not NOISE-ONLY in the Release compare
+RC5=1
+H1=0 (want 0) H2=1 H3=1 H4=1 H5=1 (want 1 each)
+CLASS_A_CHECK_OK
+rc=0

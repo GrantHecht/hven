@@ -1,0 +1,133 @@
+GATES_START 2026-09-22T06:26:55-04:00
+=== HEAD 196f0ef0  dirty-files=0 ===
+=== BEFORE=f5205770  EXPECT_DEBUG_TESTS=2709  EXPECT_RELEASE_TESTS=2710 ===
+=== CHANGED HEADERS: include/hven/detail/qp/qp_anti_cycling_arm.h include/hven/detail/qp/qp_walk_trace.h 
+=== CHANGED SOURCES: src/qp/qp_engine.cpp tests/CMakeLists.txt tests/qp/test_qp_anti_cycling_arm.cpp 
+FOREGROUND_START G1-debug 2026-09-22T06:26:55-04:00
+PGREP_EMPTY G1-debug: no foreign cell binary under my lock
+Total Test time (real) = 346.09 sec
+
+The following tests did not run:
+	451 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1663 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1664 - EqpRefinementAb.FullBattery (Disabled)
+FOREGROUND_END G1-debug 2026-09-22T06:34:04-04:00 rc=0
+WRAPPER_RC G1-debug rc=0
+ASSERT OK   G1 Debug suite failed = 0
+ASSERT OK   G1 Debug suite total = 2709
+FOREGROUND_START G2-debug-long 2026-09-22T06:34:04-04:00
+PGREP_EMPTY G2-debug-long: no foreign cell binary under my lock
+Test project /home/ghecht/Projects/hven/.scratch/m7w2m4gates/gates-dbg
+    Start 1518: Continuation.ProbeBudgetBoundsAFailingProposal
+1/1 Test #1518: Continuation.ProbeBudgetBoundsAFailingProposal ...   Passed  671.65 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) = 671.70 sec
+FOREGROUND_END G2-debug-long 2026-09-22T06:45:16-04:00 rc=0
+WRAPPER_RC G2-debug-long rc=0
+ASSERT OK   G2 long test failed = 0
+ASSERT OK   G2 long test total = 1
+FOREGROUND_START G3-release 2026-09-22T06:45:16-04:00
+PGREP_EMPTY G3-release: no foreign cell binary under my lock
+Total Test time (real) = 102.07 sec
+
+The following tests did not run:
+	451 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1664 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1665 - EqpRefinementAb.FullBattery (Disabled)
+FOREGROUND_END G3-release 2026-09-22T06:48:37-04:00 rc=0
+WRAPPER_RC G3-release rc=0
+ASSERT OK   G3 Release suite failed = 0
+ASSERT OK   G3 Release suite total = 2710
+FOREGROUND_START G4-replay 2026-09-22T06:48:37-04:00
+PGREP_EMPTY G4-replay: no foreign cell binary under my lock
+ran head-walk rc=0
+ran head-ssn rc=0
+ran head-ipm rc=0
+=== M6 CLOSE HEAD-walk vs M7 W2 M4 HEAD-walk === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+=== M6 CLOSE HEAD-ssn vs M7 W2 M4 HEAD-ssn === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+=== M6 CLOSE HEAD-ipm vs M7 W2 M4 HEAD-ipm === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+FOREGROUND_END G4-replay 2026-09-22T06:52:46-04:00 rc=0
+WRAPPER_RC G4-replay rc=0
+ASSERT OK   replay lines at 27/75/0 = 3
+ASSERT OK   replay lines total = 3
+FOREGROUND_START G5-psym 2026-09-22T06:52:46-04:00
+PGREP_EMPTY G5-psym: no foreign cell binary under my lock
+=== P-SYM Release  after=196f0ef0032b66552cd4a1c50edb1fcce1568c24  before=f5205770
+ASSERT OK   capture after-Release: rc=0, 146 object(s) in /home/ghecht/Projects/hven/.scratch/m7w2m4gates/gates/psym/after-Release/.psym-manifest
+ASSERT OK   capture before-Release: rc=0, 146 object(s) in /home/ghecht/Projects/hven/.scratch/m7w2m4gates/gates/psym/before-Release/.psym-manifest
+ASSERT OK   capture pair object count = 146
+tree restored to m7 196f0ef0
+PSYM_COMPARE_RC_Release=0 (1 is EXPECTED; the gate is the classification)
+CLASSIFY_RC_Release=2
+REFUSED: the round's changed-header list is ['include/hven/detail/qp/qp_anti_cycling_arm.h', 'include/hven/detail/qp/qp_walk_trace.h'] but this script declares ['include/hven/detail/qp/qp_walk_trace.h']
+ASSERT OK   P-SYM Release compare rc (declared 0 mover(s)) = 0
+ASSERT FAIL P-SYM Release classify rc: got '2', expected '0'
+ASSERT FAIL P-SYM Release: the classification is missing one of its five counts
+SECTIONS_RC_Release=0
+SECTIONS_Release_OBJECTS=42
+SECTIONS_Release_BYTE_IDENTICAL=42
+SECTIONS_Release_DEBUG_ONLY=0
+SECTIONS_Release_NON_DEBUG_MOVERS=0
+SECTIONS_Release_REFUSED=0
+SECTIONS_Release_RC=0
+ASSERT OK   sections Release: every library object is BYTE-IDENTICAL or DEBUG-ONLY, on both arms
+ASSERT OK   sections Release: DEBUG_ONLY=0, as declared
+=== P-SYM Debug  after=196f0ef0032b66552cd4a1c50edb1fcce1568c24  before=f5205770
+ASSERT OK   capture after-Debug: rc=0, 146 object(s) in /home/ghecht/Projects/hven/.scratch/m7w2m4gates/gates/psym/after-Debug/.psym-manifest
+ASSERT OK   capture before-Debug: rc=0, 146 object(s) in /home/ghecht/Projects/hven/.scratch/m7w2m4gates/gates/psym/before-Debug/.psym-manifest
+ASSERT OK   capture pair object count = 146
+tree restored to m7 196f0ef0
+PSYM_COMPARE_RC_Debug=0 (1 is EXPECTED; the gate is the classification)
+CLASSIFY_RC_Debug=2
+REFUSED: the round's changed-header list is ['include/hven/detail/qp/qp_anti_cycling_arm.h', 'include/hven/detail/qp/qp_walk_trace.h'] but this script declares ['include/hven/detail/qp/qp_walk_trace.h']
+ASSERT OK   P-SYM Debug compare rc (declared 0 mover(s)) = 0
+ASSERT FAIL P-SYM Debug classify rc: got '2', expected '0'
+ASSERT FAIL P-SYM Debug: the classification is missing one of its five counts
+SECTIONS_RC_Debug=0
+DEBUG-ONLY       CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+SECTIONS_Debug_OBJECTS=42
+SECTIONS_Debug_BYTE_IDENTICAL=41
+SECTIONS_Debug_DEBUG_ONLY=1
+SECTIONS_Debug_NON_DEBUG_MOVERS=0
+SECTIONS_Debug_REFUSED=0
+SECTIONS_Debug_RC=0
+ASSERT OK   sections Debug: every library object is BYTE-IDENTICAL or DEBUG-ONLY, on both arms
+ASSERT OK   sections Debug: DEBUG_ONLY=1, as declared
+ASSERT OK   P-SYM cross-config: class B sets equal (0 object(s))
+ASSERT FAIL P-SYM cross-config: Release carries no UNEXPLAINED count
+ASSERT FAIL P-SYM cross-config: Debug carries no UNEXPLAINED count
+ASSERT OK   P-SYM cross-config: Release class A (0) all changed-source
+ASSERT OK   P-SYM cross-config: Debug class A (0) all changed-source
+ASSERT OK   P-SYM cross-config: the two class A sets are identical
+G5_ASSERT_RC=1
+FOREGROUND_END G5-psym 2026-09-22T07:00:02-04:00 rc=1
+WRAPPER_RC G5-psym rc=1
+=== CHANGED C++ FOR CLANG-FORMAT: include/hven/detail/qp/qp_anti_cycling_arm.h include/hven/detail/qp/qp_walk_trace.h src/qp/qp_engine.cpp tests/qp/test_qp_anti_cycling_arm.cpp 
+FOREGROUND_START G6-smoke 2026-09-22T07:00:02-04:00
+PGREP_EMPTY G6-smoke: no foreign cell binary under my lock
+INSTALL_SMOKE_RC=0
+install smoke: both solvers converged through one generic consumer; 19 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.scratch/m7w2m4gates/smoke-work/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.scratch/m7w2m4gates/smoke-work/hven-configure.log
+ALIGN_FROM_THIS_BUILDS_CONFIGURE_LOG=32
+-rw-r--r--. 1 ghecht ghecht 4314 Sep 22 07:00 /home/ghecht/Projects/hven/.scratch/m7w2m4gates/smoke-work/hven-install/lib64/cmake/hven/hvenTargets.cmake
+EXPORT_CONTRACT_RC=0
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+== export contract OK for platform=linux, align=32
+--- clang-format on this round's changed C++ files, derived from git
+CLANG_FORMAT_RC=0
+DIFF_CHECK_RC=0
+DIRTY_FILES=0
+G6_ASSERT_RC=0
+FOREGROUND_END G6-smoke 2026-09-22T07:00:33-04:00 rc=0
+WRAPPER_RC G6-smoke rc=0
+GATES_SUMMARY G1=0 G2=0 G3=0 G4=0 G5=1 G6=0
+GATES_END 2026-09-22T07:00:33-04:00
+GATES_AGGREGATE rc=1 over [0 0 0 0 1 0]

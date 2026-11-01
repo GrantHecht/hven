@@ -1,0 +1,41 @@
+# gates-e2fix4.sh --preflight-only at HEAD 6c368913 (the fix commit; the declaration files uncommitted), 2026-09-24
+GATES_START 2026-09-24T20:32:12-04:00
+=== HEAD 6c368913  dirty-files=1 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.scratch/m7w2e2fix4gates ===
+=== BEFORE=ef3b5225  EXPECT_DEBUG_TESTS=2832  EXPECT_RELEASE_TESTS=2833 ===
+=== HEAD_AT_START=6c3689136cf5e70c572293e2e0392a19818bf6f5
+=== CHANGED HEADERS: include/hven/core/solver_counters.h include/hven/detail/qp/qp_engine.h 
+=== CHANGED SOURCES: src/qp/qp_engine.cpp tests/sqp/test_qp_engine_indefinite.cpp tests/sqp/test_sqp_solver.cpp 
+=== MODIFIED C++ SOURCES: src/qp/qp_engine.cpp tests/sqp/test_qp_engine_indefinite.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES: 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked):  -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); differences declared 0
+=== CLASS_B_NAMES_OK: Release 35 / Debug 35 declared objects, none with a source modified in the range
+=== BY-NAME: baselines /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-e2-working-set/gates-e2-fix3/suite-{debug,release}.txt (2832 / 2833 started names); 2 ADDED, each added by exactly one TEST line in the range; 0 TEST lines removed
+=== ADDED TEST FILES (checked): none; tests/CMakeLists.txt unchanged
+=== PREFLIGHT_VALUE_OK: class A 3 - 0 outside == declared 3/3; ADDED 0 == declared 0 (0 inside the universe == declared 0); class B library objects all unmodified; G4 gate 1e-5
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2fix4gates/g1.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2fix4gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2fix4gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2fix4gates/g2.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2fix4gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2fix4gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2fix4gates/g3.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2fix4gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2fix4gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2fix4gates/g4.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2fix4gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2fix4gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2fix4gates/g5.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2fix4gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2fix4gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2fix4gates/g6.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2fix4gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2fix4gates/gates
+=== PREFLIGHT_OK: 6 segments written and asserted against GATES_SCRATCH, before the first leg ===
+PREFLIGHT_ONLY: stopping before G1. No leg was run and no build tree was touched.
+
+# REFUSAL CONTROLS (each a --preflight-only run with ONE declared value made wrong by env override; rc 2 = refused) and the offline by-name checks
+CONTROL [class B name whose source is modified (test_sqp_solver.cpp.o swapped in for test_hs_battery.cpp.o, Release)] rc=2 :: REFUSED: rel class B tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o has its source tests/sqp/test_sqp_solver.cpp MODIFIED in ef3b5225..6c3689136cf5e70c572293e2e0392a19818bf6f5 (it is class A)
+CONTROL [class B 36 with a 35-name list] rc=2 :: REFUSED: rel class B names list has 35 objects, class B is DECLARED 36
+CONTROL [Release 2832 against Debug 2832] rc=2 :: REFUSED: Debug 2832 != Release 2832 - long 1
+CONTROL [BEFORE a47753a8] rc=2 :: REFUSED: 5 modified .cpp (less 0 outside the universe), but class A is DECLARED 3/3
+CONTROL [class A 4/4] rc=2 :: REFUSED: 3 modified .cpp (less 0 outside the universe), but class A is DECLARED 4/4
+ASSERT OK   offline debug by name: 2834 started names == the baseline's 2832 + the 2 declared ADDED, none removed
+CHECK-NAMES debug (m1 Debug transcript) rc=0
+ASSERT OK   offline release by name: 2835 started names == the baseline's 2833 + the 2 declared ADDED, none removed
+CHECK-NAMES release (m1 Release transcript) rc=0
+NEGATIVE CONTROL check-names debug on the RELEASE transcript rc=2 :: ASSERT FAIL offline debug by name: 2835 started vs the baseline's 2832 + 2 ADDED; the difference (expected '<' tab-indented '>' this run):

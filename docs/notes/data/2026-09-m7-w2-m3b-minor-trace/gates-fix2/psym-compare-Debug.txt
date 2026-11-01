@@ -1,0 +1,12 @@
+P-SYM tool sha256 (runner):   2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM tool sha256 (captures): 2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM maps: object-map=none symbol-map=none exceptions=none
+
+NOISE-ONLY  CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+            COUNTS 105677 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+ARCHIVE     libhven.a differs -- see its member objects above; archive
+            metadata (member timestamps, symbol index) is not instructions
+
+P-SYM: 146 objects — 144 byte-identical, 1 differing within the accepted noise class, 0 with unclassified differences, 0 matched by basename after a path move, 0 missing
+P-SYM coverage: 0 objects matched through the object map, 0 compared per symbol, 0 objects passed per symbol, 0 after-arm objects unaccounted for; symbols — 352619 matched (0 through the symbol map), 0 only-before, 0 only-after, 0 excepted, 0 collisions, 2547 rank-tagged, 0 stale exceptions, 0 stale map entries; compiler-local label families — 12241 matched by count, 0 differing (111161 before-arm and 111161 after-arm symbols accounted by family); relocations — 0 records compared (0 through the symbol map)
+P-SYM: PASS — read the DELTAS summaries above before accepting (see this script's header)

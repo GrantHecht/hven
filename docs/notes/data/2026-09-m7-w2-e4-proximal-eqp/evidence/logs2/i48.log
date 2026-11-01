@@ -1,0 +1,53 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-release/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpE4ProximalEqp.*
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from QpE4ProximalEqp
+[ RUN      ] QpE4ProximalEqp.TheYorknetRestorationQpIsDriftFreeAndOptimal
+[       OK ] QpE4ProximalEqp.TheYorknetRestorationQpIsDriftFreeAndOptimal (32746 ms)
+[ RUN      ] QpE4ProximalEqp.TheAcopp57PrimaryQpCostsTwoMinorsOnBothAlgebras
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:2475: Failure
+Expected: (k.eq) <= (1e-12), actual: 1.9711222597922617e-12 vs 9.9999999999999998e-13
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:2470: refactorize
+
+[  FAILED  ] QpE4ProximalEqp.TheAcopp57PrimaryQpCostsTwoMinorsOnBothAlgebras (7 ms)
+[ RUN      ] QpE4ProximalEqp.TheSteenbrbRestorationQp2ExitsFiniteAndSaysWhy
+[       OK ] QpE4ProximalEqp.TheSteenbrbRestorationQp2ExitsFiniteAndSaysWhy (2654 ms)
+[ RUN      ] QpE4ProximalEqp.NoOrdinaryStepAscendsItsOwnObjectiveOnTheFlatFaceCells
+[ e4 ] R2_Cs_STEENBRB_qp2.txt moved=1790 ascending=0 worst_rise=0.000e+00 status=0
+[ e4 ] R2_Cs_STEENBRB_qp3.txt moved=2828 ascending=9 worst_rise=1.857e-08 status=0
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_flat_face_saddle.cpp:490: Failure
+Expected equality of these values:
+  t.ascending
+    Which is: 9
+  0
+an ordinary step ascended its own objective by up to 1.857412200229456e-08 relative, over 2828 moving passes
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_flat_face_saddle.cpp:477: R2_Cs_STEENBRB_qp3.txt
+
+[ e4 ] R2_Cs_STEENBRB_qp4.txt moved=304 ascending=6 worst_rise=2.767e-08 status=0
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_flat_face_saddle.cpp:490: Failure
+Expected equality of these values:
+  t.ascending
+    Which is: 6
+  0
+an ordinary step ascended its own objective by up to 2.7665870438229359e-08 relative, over 304 moving passes
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_flat_face_saddle.cpp:477: R2_Cs_STEENBRB_qp4.txt
+
+[  FAILED  ] QpE4ProximalEqp.NoOrdinaryStepAscendsItsOwnObjectiveOnTheFlatFaceCells (18209 ms)
+[ RUN      ] QpE4ProximalEqp.TheSteenbrbRestorationLpQp1ReachesTheClarabelOptimum
+[ e4 ] R2_Cs_STEENBRB_qp1 refactorize status=0 minors=232 f=-1378.22320088448
+[ e4 ] R2_Cs_STEENBRB_qp1 border status=0 minors=232 f=-1378.22320088448
+[       OK ] QpE4ProximalEqp.TheSteenbrbRestorationLpQp1ReachesTheClarabelOptimum (4370 ms)
+[----------] 5 tests from QpE4ProximalEqp (57988 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (57988 ms total)
+[  PASSED  ] 3 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] QpE4ProximalEqp.TheAcopp57PrimaryQpCostsTwoMinorsOnBothAlgebras
+[  FAILED  ] QpE4ProximalEqp.NoOrdinaryStepAscendsItsOwnObjectiveOnTheFlatFaceCells
+
+ 2 FAILED TESTS

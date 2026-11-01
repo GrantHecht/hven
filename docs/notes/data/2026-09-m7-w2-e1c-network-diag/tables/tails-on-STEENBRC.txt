@@ -1,0 +1,5 @@
+solves with a RECURRENT tail: 4
+STEENBRC   s0    N=5400   p=4   |T|=4581   units=2290  homo=False b  {'d': 1145, 'b': 1145}
+STEENBRC   s1    N=5400   p=4   |T|=4902   units=2450  homo=False b  {'d': 1225, 'b': 1225}
+STEENBRC   s2    N=5400   p=4   |T|=5003   units=2501  homo=False b  {'b': 1251, 'd': 1250}
+STEENBRC   s3    N=5400   p=4   |T|=5137   units=2568  homo=False d  {'c': 1284, 'd': 1284}

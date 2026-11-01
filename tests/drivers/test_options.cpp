@@ -734,7 +734,7 @@ TEST(Options, SqpAnOptionReplacementDoesNotRestartTheLedgerLabelSequence) {
 // EVERY field of QpOptions, plus the thread count, must move the hash. A field
 // left out is a hole in the hot-handle reuse gate: an engine built under one
 // value would adopt a K0 factorized under another. This test flips each of the
-// nine fields ALONE from a default value and requires the fingerprint to move;
+// fields ALONE from a default value and requires the fingerprint to move;
 // add a field to QpOptions and this test is where the omission surfaces.
 TEST(Options, TheOptionsFingerprintCoversEveryQpOptionsField) {
     using hven::solvers::options_fingerprint;
@@ -764,6 +764,10 @@ TEST(Options, TheOptionsFingerprintCoversEveryQpOptionsField) {
     EXPECT_TRUE(moved([](QpOptions &o) { o.ws_algebra = WorkingSetLinearAlgebra::kRefactorize; }))
         << "ws_algebra";
     EXPECT_TRUE(moved([](QpOptions &o) { o.tr_radius = 1.0; })) << "tr_radius";
+    EXPECT_TRUE(moved([](QpOptions &o) { o.independent_working_set = false; }))
+        << "independent_working_set";
+    EXPECT_TRUE(moved([](QpOptions &o) { o.hessian_known_convex = true; }))
+        << "hessian_known_convex";
 
     // And the thread count, which is not a QpOptions field but IS part of what a
     // factorization was built under. Carried and not applied by the SQP engine

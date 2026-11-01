@@ -1,0 +1,143 @@
+D1SOLVE 0 begin n=102 me=50 mi=0 D=1.000000e+00 ind=1 warm=0 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0xdcb70e0 maxit=0
+D1ENTRY it=0 over=0 untested=1 entry_pending=1 det.found=0 det.solves=4 null_res=1.704e-01 support=0 trim=0
+D1PIN 0 state=3 x=0.000000000e+00 l=0.000000000e+00 u=0.000000000e+00
+D1PASS s=0[main] it=0 me=50 rows=0 pins=1 n=102 |p|=6.363e+00 step_tol=1.000e-09 elim_only=0 schur=0 verdict=2 |x|=0.000000e+00 drop_prev=0:-1
+D1TEST it=0 blk=pin:5 side=1 alpha=1.571668e-01 |p|=6.363e+00 verdict=2 rho=nan screen=0 solves=0 me+|W|=51 n=102 usable=0 elim=0 schur=0
+D1STEP it=0 kind=2 idx=5 side=1 alpha=1.571668e-01 dx=1.000e+00 xch=0 j=pin:-1
+D1ENTRY it=1 over=0 untested=1 entry_pending=0 det.found=1 det.solves=1 null_res=1.547e-15 support=5 trim=0
+D1SUPPORT kind=0(0eq,1row,2pin) idx=0 state=-1
+D1SUPPORT kind=0(0eq,1row,2pin) idx=1 state=-1
+D1SUPPORT kind=0(0eq,1row,2pin) idx=2 state=-1
+D1SUPPORT kind=0(0eq,1row,2pin) idx=3 state=-1
+D1SUPPORT kind=0(0eq,1row,2pin) idx=4 state=-1
+D1PIN 0 state=3 x=0.000000000e+00 l=0.000000000e+00 u=0.000000000e+00
+D1PIN 5 state=1 x=-1.000000000e+00 l=-1.000000000e+00 u=1.000000000e+00
+D1PASS s=0[main] it=1 me=50 rows=0 pins=2 n=102 |p|=4.277e+00 step_tol=1.000e-09 elim_only=0 schur=0 verdict=0 |x|=1.000000e+00 drop_prev=0:-1
+D1TEST it=1 blk=pin:6 side=1 alpha=7.885527e-03 |p|=4.277e+00 verdict=1 rho=2.701661e-16 screen=0 solves=1 me+|W|=52 n=102 usable=1 elim=1 schur=0
+D1XPICK it=1 found=1 cond1=0 j=pin:5 sigma=6.144e+08 g=1.155809e+00 sign=-1 moves=1 pos_coeff_members=2 of_which_entered_at_point=1 |v_e|=9.526e-01 |v_w|=0.000e+00 |v_pin|=7.736e-01
+D1V pin 0 st=3 v=6.527554e-02 z=-1.185476e+08 flags=0
+D1V pin 5 st=1 v=7.735714e-01 z=4.752853e+08 flags=2
+D1V eq 0 v=7.233778e-02 lam=1.313734e+08
+D1V eq 1 v=6.834654e-02 lam=2.118195e+08
+D1V eq 2 v=4.566547e-02 lam=3.018772e+08
+D1V eq 3 v=-1.650150e-03 lam=3.892245e+08
+D1V eq 4 v=-8.199059e-02 lam=4.527773e+08
+D1V eq 5 v=-9.526431e-01 lam=-1.257315e-21
+D1V eq 6 v=2.831483e-16 lam=-1.257315e-21
+D1V eq 7 v=2.273355e-16 lam=-1.270549e-21
+D1V eq 8 v=1.766030e-16 lam=-1.270549e-21
+D1V eq 9 v=1.351669e-16 lam=-1.297019e-21
+D1V eq 10 v=1.047218e-16 lam=-1.297019e-21
+D1V eq 11 v=8.514445e-17 lam=-1.376429e-21
+D1V eq 12 v=7.511780e-17 lam=-1.402898e-21
+D1V eq 13 v=7.255000e-17 lam=-1.429368e-21
+D1V eq 14 v=7.494551e-17 lam=-1.482308e-21
+D1V eq 15 v=8.001750e-17 lam=-1.482308e-21
+D1V eq 16 v=8.598883e-17 lam=-1.482308e-21
+D1V eq 17 v=9.161238e-17 lam=-1.455838e-21
+D1V eq 18 v=9.614573e-17 lam=-1.455838e-21
+D1V eq 19 v=9.928347e-17 lam=-1.402898e-21
+D1V eq 20 v=1.010904e-16 lam=-1.349959e-21
+D1V eq 21 v=1.018086e-16 lam=-1.323489e-21
+D1V eq 22 v=1.017506e-16 lam=-1.297019e-21
+D1V eq 23 v=1.012534e-16 lam=-1.217610e-21
+D1V eq 24 v=1.005983e-16 lam=-1.191140e-21
+D1V eq 25 v=9.994919e-17 lam=-1.138201e-21
+D1V eq 26 v=9.935802e-17 lam=-1.085261e-21
+D1V eq 27 v=9.874738e-17 lam=-1.032321e-21
+D1V eq 28 v=9.788974e-17 lam=-1.005852e-21
+D1V eq 29 v=9.645912e-17 lam=-9.793818e-22
+D1V eq 30 v=9.408636e-17 lam=-9.529121e-22
+D1V eq 31 v=9.042899e-17 lam=-9.529121e-22
+D1V eq 32 v=8.522315e-17 lam=-8.999725e-22
+D1V eq 33 v=7.835462e-17 lam=-8.205632e-22
+D1V eq 34 v=6.993451e-17 lam=-8.073283e-22
+D1V eq 35 v=6.031612e-17 lam=-7.808585e-22
+D1V eq 36 v=5.008338e-17 lam=-7.411538e-22
+D1V eq 37 v=4.001301e-17 lam=-7.279189e-22
+D1V eq 38 v=3.099039e-17 lam=-7.279189e-22
+D1V eq 39 v=2.386829e-17 lam=-7.411538e-22
+D1V eq 40 v=1.933981e-17 lam=-7.279189e-22
+D1V eq 41 v=1.780464e-17 lam=-7.146840e-22
+D1V eq 42 v=1.924753e-17 lam=-7.080666e-22
+D1V eq 43 v=2.315302e-17 lam=-7.213015e-22
+D1V eq 44 v=2.850181e-17 lam=-6.981404e-22
+D1V eq 45 v=3.385965e-17 lam=-6.650532e-22
+D1V eq 46 v=3.744659e-17 lam=-5.906070e-22
+D1V eq 47 v=3.730547e-17 lam=-4.896909e-22
+D1V eq 48 v=3.162176e-17 lam=-3.540333e-22
+D1V eq 49 v=1.917186e-17 lam=-1.885972e-22
+D1STEP it=1 kind=2 idx=6 side=1 alpha=7.885527e-03 dx=3.373e-02 xch=1 j=pin:5
+D1PASS s=0[main] it=2 me=50 rows=0 pins=2 n=102 |p|=4.261e+00 step_tol=1.000e-09 elim_only=0 schur=0 verdict=0 |x|=1.000000e+00 drop_prev=0:-1
+D1TEST it=2 blk=pin:5 side=1 alpha=-0.000000e+00 |p|=4.261e+00 verdict=1 rho=1.623948e-16 screen=0 solves=1 me+|W|=52 n=102 usable=1 elim=1 schur=0
+D1XPICK it=2 found=0 cond1=0 j=pin:-1 sigma=0.000e+00 g=1.295556e+00 sign=-1 moves=0 pos_coeff_members=1 of_which_entered_at_point=1 |v_e|=7.305e-01 |v_w|=0.000e+00 |v_pin|=7.668e-01
+D1V pin 0 st=3 v=-1.515292e-01 z=-5.949139e+07 flags=0
+D1V pin 6 st=1 v=7.667696e-01 z=4.659713e+08 flags=2
+D1V eq 0 v=-1.679233e-01 lam=6.592783e+07
+D1V eq 1 v=-2.337256e-01 lam=1.287989e+08
+D1V eq 2 v=-2.934248e-01 lam=2.076685e+08
+D1V eq 3 v=-3.319147e-01 lam=2.959615e+08
+D1V eq 4 v=-3.247140e-01 lam=3.815970e+08
+D1V eq 5 v=7.304577e-01 lam=4.439044e+08
+D1V eq 6 v=3.416554e-17 lam=-1.270549e-21
+D1V eq 7 v=2.723534e-17 lam=-1.257315e-21
+D1V eq 8 v=3.052089e-17 lam=-1.297019e-21
+D1V eq 9 v=4.022743e-17 lam=-1.349959e-21
+D1V eq 10 v=5.314634e-17 lam=-1.376429e-21
+D1V eq 11 v=6.674743e-17 lam=-1.376429e-21
+D1V eq 12 v=7.919193e-17 lam=-1.402898e-21
+D1V eq 13 v=8.941926e-17 lam=-1.429368e-21
+D1V eq 14 v=9.718156e-17 lam=-1.482308e-21
+D1V eq 15 v=1.026702e-16 lam=-1.482308e-21
+D1V eq 16 v=1.062468e-16 lam=-1.482308e-21
+D1V eq 17 v=1.083550e-16 lam=-1.455838e-21
+D1V eq 18 v=1.094322e-16 lam=-1.429368e-21
+D1V eq 19 v=1.098419e-16 lam=-1.376429e-21
+D1V eq 20 v=1.097857e-16 lam=-1.376429e-21
+D1V eq 21 v=1.093612e-16 lam=-1.376429e-21
+D1V eq 22 v=1.085791e-16 lam=-1.297019e-21
+D1V eq 23 v=1.073350e-16 lam=-1.244080e-21
+D1V eq 24 v=1.054379e-16 lam=-1.191140e-21
+D1V eq 25 v=1.026532e-16 lam=-1.138201e-21
+D1V eq 26 v=9.871708e-17 lam=-1.085261e-21
+D1V eq 27 v=9.339085e-17 lam=-1.058791e-21
+D1V eq 28 v=8.654130e-17 lam=-1.005852e-21
+D1V eq 29 v=7.817725e-17 lam=-9.793818e-22
+D1V eq 30 v=6.848355e-17 lam=-9.264423e-22
+D1V eq 31 v=5.784175e-17 lam=-8.735027e-22
+D1V eq 32 v=4.682429e-17 lam=-8.205632e-22
+D1V eq 33 v=3.615196e-17 lam=-7.940934e-22
+D1V eq 34 v=2.662483e-17 lam=-7.808585e-22
+D1V eq 35 v=1.904196e-17 lam=-7.808585e-22
+D1V eq 36 v=1.410843e-17 lam=-7.411538e-22
+D1V eq 37 v=1.236059e-17 lam=-7.411538e-22
+D1V eq 38 v=1.408684e-17 lam=-7.411538e-22
+D1V eq 39 v=1.925017e-17 lam=-7.543887e-22
+D1V eq 40 v=2.746178e-17 lam=-7.676236e-22
+D1V eq 41 v=3.795832e-17 lam=-7.543887e-22
+D1V eq 42 v=4.959798e-17 lam=-7.477713e-22
+D1V eq 43 v=6.085214e-17 lam=-7.213015e-22
+D1V eq 44 v=6.989455e-17 lam=-7.014492e-22
+D1V eq 45 v=7.483371e-17 lam=-6.534727e-22
+D1V eq 46 v=7.393042e-17 lam=-5.790264e-22
+D1V eq 47 v=6.587239e-17 lam=-4.797648e-22
+D1V eq 48 v=5.013695e-17 lam=-3.507246e-22
+D1V eq 49 v=2.739042e-17 lam=-1.885972e-22
+D1N2 it=2 n_passed=1 next=2:4 a2=2.024603e-02 within=0 feas_tol=1.0e-09
+D1N2   passed pin:5 cx-d=0.000000e+00 cp=1.295556e+00 viol_at_a2=2.622985e-02 limit=1.000000e-09
+D1EXIT it=2 add_exit=3(1=infeas,2=rejected,3=terminate) schur=0
+D1CNT MAIN status=kNumericalError minors=3 facts=4 adds=2 drops=1 dep_tests=104 dep_dep=53 undec=1 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=50 cnt_viol=0 untested=0 xch=1 xch_b=1 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=1 deferred=1 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kNumericalError obj=0.000000000000e+00 stat=0.000e+00(scale 1.000e+00) eqviol=1.860e+00 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=53 atup=0 |x|inf=1.000000e+00 KKT@tol1e-09=NO
+D1SOLVE 0 end
+D1SOLVE 1 begin n=102 me=50 mi=0 D=5.000000e-01 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0xdcb70e0 maxit=0
+D1CNT MAIN status=kNumericalError minors=3 facts=4 adds=2 drops=1 dep_tests=104 dep_dep=53 undec=1 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=50 cnt_viol=0 untested=0 xch=1 xch_b=1 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=1 deferred=1 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kNumericalError obj=0.000000000000e+00 stat=0.000e+00(scale 1.000e+00) eqviol=2.039e+00 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=53 atup=0 |x|inf=5.000000e-01 KKT@tol1e-09=NO
+D1SOLVE 1 end
+D1SOLVE 2 begin n=102 me=50 mi=0 D=2.500000e-01 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0xdcb70e0 maxit=0
+D1CNT MAIN status=kNumericalError minors=3 facts=4 adds=2 drops=1 dep_tests=104 dep_dep=53 undec=1 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=50 cnt_viol=0 untested=0 xch=1 xch_b=1 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=1 deferred=1 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kNumericalError obj=0.000000000000e+00 stat=0.000e+00(scale 1.000e+00) eqviol=2.128e+00 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=53 atup=0 |x|inf=2.500000e-01 KKT@tol1e-09=NO
+D1SOLVE 2 end
+D1SOLVE 3 begin n=102 me=50 mi=0 D=1.250000e-01 ind=1 warm=1 hot=0 seed_x_inf=0.000e+00 mu=1.000e-08 delta=-1.000e+00 engine=0xdcb70e0 maxit=0
+D1CNT MAIN status=kNumericalError minors=3 facts=4 adds=2 drops=1 dep_tests=104 dep_dep=53 undec=1 entry_rm=0 mand_dep=0 recheck_rm=0 ride_decl=0 pin_skip=50 cnt_viol=0 untested=0 xch=1 xch_b=1 xch_sh=0 cert=0 cert_rej=0 passover=0 blk_term=1 deferred=1 retreat=0 reentry=0 zm_exh=0 zm_cap=0
+D1KKT MAIN status=kNumericalError obj=0.000000000000e+00 stat=0.000e+00(scale 1.000e+00) eqviol=2.173e+00 iviol=0.000e+00 boxviol=0.000e+00 lneg=0.000e+00 comp=0.000e+00 mult=1 atlo=53 atup=0 |x|inf=1.250000e-01 KKT@tol1e-09=NO
+D1SOLVE 3 end

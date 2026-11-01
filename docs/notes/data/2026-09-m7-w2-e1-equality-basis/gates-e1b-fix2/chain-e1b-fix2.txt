@@ -1,0 +1,24 @@
+CHAIN_START 2026-09-24T05:19:29-04:00
+HEAD d37c2dfb  dirty-files=0
+PATH_OK /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-e1-equality-basis/wrappers-e1b-fix2/gates-e1bfix2-r2.sh
+PATH_OK /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers/gate_asserts_m3b.sh
+PATH_OK /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-m4-anticycling-arm/wrappers/classify_psym_m4.py
+PATH_OK /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers/check_sections_fix2.sh
+PATH_OK /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers/section_digest_fix2.py
+PATH_OK /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers/fold_proofs_m3b.sh
+PATH_OK /home/ghecht/Projects/hven/scripts/psym_compare.sh
+PATH_OK /home/ghecht/Projects/hven/scripts/check_install_smoke.sh
+PATH_OK /home/ghecht/Projects/hven/scripts/check_export_contract.sh
+GATES_E1BFIX2_R2_RC=0
+FOREGROUND_START fold-proofs 2026-09-24T05:53:57-04:00
+PGREP_EMPTY fold-proofs: no foreign cell binary under my lock
+PATH_OK /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers/fold_proofs_m3b.sh
+PATH_OK /home/ghecht/Projects/hven/.scratch/m7w2e1bfix2gates-r2/gates-dbg/CTestTestfile.cmake
+FOLD_PROOFS_RC=0
+FOREGROUND_END fold-proofs 2026-09-24T05:53:58-04:00
+FOLD_PROOFS_AGGREGATE_RC=0
+
+FOLD_PROOFS_TOTAL=46  FOLD_PROOFS_FAILED=0
+FOLD_PROOFS_END 2026-09-24T05:53:58-04:00
+CHAIN_END 2026-09-24T05:53:58-04:00
+CHAIN_SUMMARY gates=0 fold_proofs=0

@@ -1,0 +1,435 @@
+CHAINB_START 2026-09-18T20:34:38-04:00
+FOREGROUND_START chainB-seg0 2026-09-18T20:34:38-04:00
+=== HEAD 57742341  dirty-files=0 ===
+--- LIBRARY SHA256 (Fedora installs to lib64)
+fed6243691970e4d3433e0818abaf9bb28cd2f9a1e9c84366fb5dfa84a9d93fc  /home/ghecht/Projects/hven/.scratch/m7w2m2b/install/lib64/libhven.a
+872:    double restoration_proximity = 0.0;
+918:///         NaN or infinite `restoration_proximity`.
+1354:    /// AND AT `SqpOptions::restoration_proximity > 0` THE PHASE'S OWN KKT TEST
+--- THE hven PACKAGE THIS PROBE RESOLVED
+hven_DIR:PATH=/home/ghecht/Projects/hven/.scratch/m7w2m2b/install/lib64/cmake/hven
+--- PROBE SHA256
+79c464b7a634081c55d99f371dc42dafd436de58df5a3f3c242979511ef7a640  /home/ghecht/Projects/hven/.scratch/m7w2m2b/probebuild/m2b_probe
+--- SMOKE: ZAMB2-8 at zeta = 0 and at candidate 2
+    zeta=0 rc=0
+      problem=ZAMB2-8
+      proximity=0
+      status=optimal
+      f=-0.15293592733713887
+      infeasibility_certified=0
+      restoration_entries=1
+      restoration_h_in=24.643618798749973
+      restoration_h_out=1.209356876794021e-11
+    zeta=0.02464361879874997 rc=0
+      problem=ZAMB2-8
+      proximity=0.024643618798749971
+      status=infeasible
+      f=-0.11894077487670816
+      infeasibility_certified=0
+      restoration_entries=1
+      restoration_h_in=24.643618798749973
+      restoration_h_out=1.3783867488762098e-06
+FOREGROUND_END chainB-seg0 2026-09-18T20:35:41-04:00 rc=0
+WRAPPER_RC chainB-seg0 rc=0
+=== ARM screen:  STEENBRB:0 STEENBRC:0 STEENBRG:0 ZAMB2-8:0 YORKNET:0 BRITGAS:0 READING6:0
+FOREGROUND_START chainB-screen 2026-09-18T20:35:41-04:00
+probe sha256: 79c464b7a634081c55d99f371dc42dafd436de58df5a3f3c242979511ef7a640  /home/ghecht/Projects/hven/.scratch/m7w2m2b/probebuild/m2b_probe
+hven library sha256: fed6243691970e4d3433e0818abaf9bb28cd2f9a1e9c84366fb5dfa84a9d93fc  /home/ghecht/Projects/hven/.scratch/m7w2m2b/install/lib64/libhven.a
+LEG STEENBRB   zeta=0                   rc=0   wall_s=60.0 (INFORMATIONAL)
+    proximity=0
+    status=numerical_error
+    infeasibility_certified=0
+    restoration_iters=11
+    restoration_entries=1
+    restoration_h_in=19800
+    restoration_h_out=1.6303669053986523e-12
+    restoration_f_out=4090860686442.3218
+LEG STEENBRC   zeta=0                   rc=0   wall_s=155.2 (INFORMATIONAL)
+    proximity=0
+    status=numerical_error
+    infeasibility_certified=0
+    restoration_iters=16
+    restoration_entries=1
+    restoration_h_in=41800
+    restoration_h_out=4.8902304088678286e-12
+    restoration_f_out=183453796271334.12
+LEG STEENBRG   zeta=0                   rc=0   wall_s=155.0 (INFORMATIONAL)
+    proximity=0
+    status=numerical_error
+    infeasibility_certified=0
+    restoration_iters=16
+    restoration_entries=1
+    restoration_h_in=41800
+    restoration_h_out=4.8902304088678286e-12
+    restoration_f_out=183453796271333.81
+LEG ZAMB2-8    zeta=0                   rc=0   wall_s=25.1 (INFORMATIONAL)
+    proximity=0
+    status=optimal
+    infeasibility_certified=0
+    restoration_iters=11
+    restoration_entries=1
+    restoration_h_in=24.643618798749973
+    restoration_h_out=1.209356876794021e-11
+    restoration_f_out=-0.069042214516419051
+LEG YORKNET    zeta=0                   rc=0   wall_s=78.6 (INFORMATIONAL)
+    proximity=0
+    status=infeasible
+    infeasibility_certified=0
+    restoration_iters=18
+    restoration_entries=1
+    restoration_h_in=48491.383947016526
+    restoration_h_out=48491.383947016526
+    restoration_f_out=110670.29950761795
+LEG BRITGAS    zeta=0                   rc=0   wall_s=276.0 (INFORMATIONAL)
+    proximity=0
+    status=numerical_error
+    infeasibility_certified=0
+    restoration_iters=7
+    restoration_entries=1
+    restoration_h_in=115.03999999999996
+    restoration_h_out=110.10740647336283
+    restoration_f_out=0.075494336118951622
+LEG READING6   zeta=0                   rc=0   wall_s=25.1 (INFORMATIONAL)
+    proximity=0
+    status=optimal
+    infeasibility_certified=0
+    restoration_iters=0
+    restoration_entries=0
+    restoration_h_in=0
+    restoration_h_out=0
+    restoration_f_out=0
+FOREGROUND_END chainB-screen 2026-09-18T20:48:36-04:00 rc=0
+WRAPPER_RC chainB-screen rc=0
+=== ARM c1:  STEENBRB:0.04230769230769231 STEENBRC:0.07740740740740741 STEENBRG:0.07740740740740741 ZAMB2-8:0.00017857694781702878 YORKNET:0.15542110239428375 BRITGAS:0.0002556444444444444 READING6:0
+FOREGROUND_START chainB-c1 2026-09-18T20:48:36-04:00
+probe sha256: 79c464b7a634081c55d99f371dc42dafd436de58df5a3f3c242979511ef7a640  /home/ghecht/Projects/hven/.scratch/m7w2m2b/probebuild/m2b_probe
+hven library sha256: fed6243691970e4d3433e0818abaf9bb28cd2f9a1e9c84366fb5dfa84a9d93fc  /home/ghecht/Projects/hven/.scratch/m7w2m2b/install/lib64/libhven.a
+LEG STEENBRB   zeta=0.04230769230769231 rc=0   wall_s=16.1 (INFORMATIONAL)
+    proximity=0.04230769230769231
+    status=infeasible
+    infeasibility_certified=0
+    restoration_iters=7
+    restoration_entries=1
+    restoration_h_in=19800
+    restoration_h_out=17719.877402598126
+    restoration_f_out=1499105716.0718784
+LEG STEENBRC   zeta=0.07740740740740741 rc=0   wall_s=31.1 (INFORMATIONAL)
+    proximity=0.077407407407407411
+    status=infeasible
+    infeasibility_certified=0
+    restoration_iters=7
+    restoration_entries=1
+    restoration_h_in=41800
+    restoration_h_out=40550.431196832804
+    restoration_f_out=335120225.09654319
+LEG STEENBRG   zeta=0.07740740740740741 rc=0   wall_s=31.2 (INFORMATIONAL)
+    proximity=0.077407407407407411
+    status=infeasible
+    infeasibility_certified=0
+    restoration_iters=7
+    restoration_entries=1
+    restoration_h_in=41800
+    restoration_h_out=40550.431196832804
+    restoration_f_out=335120224.78031546
+LEG ZAMB2-8    zeta=0.00017857694781702878 rc=0   wall_s=19.2 (INFORMATIONAL)
+    proximity=0.00017857694781702878
+    status=optimal
+    infeasibility_certified=0
+    restoration_iters=8
+    restoration_entries=1
+    restoration_h_in=24.643618798749973
+    restoration_h_out=2.4100386690093997e-07
+    restoration_f_out=-0.11894078688302066
+LEG YORKNET    zeta=0.15542110239428375 rc=0   wall_s=79.7 (INFORMATIONAL)
+    proximity=0.15542110239428375
+    status=infeasible
+    infeasibility_certified=0
+    restoration_iters=20
+    restoration_entries=1
+    restoration_h_in=48491.383947016526
+    restoration_h_out=48491.383947016526
+    restoration_f_out=110670.29950761795
+LEG BRITGAS    zeta=0.0002556444444444444 rc=0   wall_s=433.1 (INFORMATIONAL)
+    proximity=0.00025564444444444438
+    status=numerical_error
+    infeasibility_certified=0
+    restoration_iters=12
+    restoration_entries=1
+    restoration_h_in=115.03999999999996
+    restoration_h_out=98.878381658676091
+    restoration_f_out=0.13104071282482865
+LEG READING6   zeta=0                   rc=0   wall_s=25.1 (INFORMATIONAL)
+    proximity=0
+    status=optimal
+    infeasibility_certified=0
+    restoration_iters=0
+    restoration_entries=0
+    restoration_h_in=0
+    restoration_h_out=0
+    restoration_f_out=0
+FOREGROUND_END chainB-c1 2026-09-18T20:59:12-04:00 rc=0
+WRAPPER_RC chainB-c1 rc=0
+=== ARM c2:  STEENBRB:19.8 STEENBRC:41.8 STEENBRG:41.8 ZAMB2-8:0.02464361879874997 YORKNET:48.49138394701652 BRITGAS:0.11503999999999996 READING6:0
+FOREGROUND_START chainB-c2 2026-09-18T20:59:12-04:00
+probe sha256: 79c464b7a634081c55d99f371dc42dafd436de58df5a3f3c242979511ef7a640  /home/ghecht/Projects/hven/.scratch/m7w2m2b/probebuild/m2b_probe
+hven library sha256: fed6243691970e4d3433e0818abaf9bb28cd2f9a1e9c84366fb5dfa84a9d93fc  /home/ghecht/Projects/hven/.scratch/m7w2m2b/install/lib64/libhven.a
+LEG STEENBRB   zeta=19.8                rc=0   wall_s=2.1 (INFORMATIONAL)
+    proximity=19.800000000000001
+    status=infeasible
+    infeasibility_certified=0
+    restoration_iters=1
+    restoration_entries=1
+    restoration_h_in=19800
+    restoration_h_out=19791.165117008597
+    restoration_f_out=2860.5370999622487
+LEG STEENBRC   zeta=41.8                rc=0   wall_s=9.0 (INFORMATIONAL)
+    proximity=41.799999999999997
+    status=infeasible
+    infeasibility_certified=0
+    restoration_iters=1
+    restoration_entries=1
+    restoration_h_in=41800
+    restoration_h_out=41795.417819912094
+    restoration_f_out=4528.3061353626763
+LEG STEENBRG   zeta=41.8                rc=0   wall_s=9.3 (INFORMATIONAL)
+    proximity=41.799999999999997
+    status=infeasible
+    infeasibility_certified=0
+    restoration_iters=1
+    restoration_entries=1
+    restoration_h_in=41800
+    restoration_h_out=41795.417819912094
+    restoration_f_out=4527.9899075966596
+LEG ZAMB2-8    zeta=0.02464361879874997 rc=0   wall_s=18.4 (INFORMATIONAL)
+    proximity=0.024643618798749971
+    status=infeasible
+    infeasibility_certified=0
+    restoration_iters=7
+    restoration_entries=1
+    restoration_h_in=24.643618798749973
+    restoration_h_out=1.3783867488762098e-06
+    restoration_f_out=-0.11894077487670816
+LEG YORKNET    zeta=48.49138394701652   rc=0   wall_s=138.2 (INFORMATIONAL)
+    proximity=48.491383947016523
+    status=infeasible
+    infeasibility_certified=0
+    restoration_iters=34
+    restoration_entries=1
+    restoration_h_in=48491.383947016526
+    restoration_h_out=48491.383947016526
+    restoration_f_out=110670.29950761795
+LEG BRITGAS    zeta=0.11503999999999996 rc=0   wall_s=370.7 (INFORMATIONAL)
+    proximity=0.11503999999999996
+    status=numerical_error
+    infeasibility_certified=0
+    restoration_iters=11
+    restoration_entries=1
+    restoration_h_in=115.03999999999996
+    restoration_h_out=83.628190128633761
+    restoration_f_out=0.14514830234996567
+LEG READING6   zeta=0                   rc=0   wall_s=25.0 (INFORMATIONAL)
+    proximity=0
+    status=optimal
+    infeasibility_certified=0
+    restoration_iters=0
+    restoration_entries=0
+    restoration_h_in=0
+    restoration_h_out=0
+    restoration_f_out=0
+FOREGROUND_END chainB-c2 2026-09-18T21:08:45-04:00 rc=0
+WRAPPER_RC chainB-c2 rc=0
+=== ARM c3:  STEENBRB:42.30769230769231 STEENBRC:77.4074074074074 STEENBRG:77.4074074074074 ZAMB2-8:0.1785769478170288 YORKNET:155.42110239428374 BRITGAS:0.25564444444444434 READING6:0
+FOREGROUND_START chainB-c3 2026-09-18T21:08:45-04:00
+probe sha256: 79c464b7a634081c55d99f371dc42dafd436de58df5a3f3c242979511ef7a640  /home/ghecht/Projects/hven/.scratch/m7w2m2b/probebuild/m2b_probe
+hven library sha256: fed6243691970e4d3433e0818abaf9bb28cd2f9a1e9c84366fb5dfa84a9d93fc  /home/ghecht/Projects/hven/.scratch/m7w2m2b/install/lib64/libhven.a
+LEG STEENBRB   zeta=42.30769230769231   rc=0   wall_s=2.1 (INFORMATIONAL)
+    proximity=42.307692307692307
+    status=infeasible
+    infeasibility_certified=0
+    restoration_iters=1
+    restoration_entries=1
+    restoration_h_in=19800
+    restoration_h_out=19795.86149294184
+    restoration_f_out=2858.7861353626772
+LEG STEENBRC   zeta=77.4074074074074    rc=0   wall_s=9.0 (INFORMATIONAL)
+    proximity=77.407407407407405
+    status=infeasible
+    infeasibility_certified=0
+    restoration_iters=1
+    restoration_entries=1
+    restoration_h_in=41800
+    restoration_h_out=41797.525622752531
+    restoration_f_out=4528.3061353626754
+LEG STEENBRG   zeta=77.4074074074074    rc=0   wall_s=9.3 (INFORMATIONAL)
+    proximity=77.407407407407405
+    status=infeasible
+    infeasibility_certified=0
+    restoration_iters=1
+    restoration_entries=1
+    restoration_h_in=41800
+    restoration_h_out=41797.525622752531
+    restoration_f_out=4527.9899075966587
+LEG ZAMB2-8    zeta=0.1785769478170288  rc=0   wall_s=19.0 (INFORMATIONAL)
+    proximity=0.17857694781702879
+    status=optimal
+    infeasibility_certified=0
+    restoration_iters=7
+    restoration_entries=1
+    restoration_h_in=24.643618798749973
+    restoration_h_out=2.433309120560348e-08
+    restoration_f_out=-0.118940783234877
+LEG YORKNET    zeta=155.42110239428374  rc=0   wall_s=83.9 (INFORMATIONAL)
+    proximity=155.42110239428374
+    status=infeasible
+    infeasibility_certified=0
+    restoration_iters=19
+    restoration_entries=1
+    restoration_h_in=48491.383947016526
+    restoration_h_out=48491.383947016526
+    restoration_f_out=110670.29950761795
+LEG BRITGAS    zeta=0.25564444444444434 rc=0   wall_s=417.6 (INFORMATIONAL)
+    proximity=0.25564444444444434
+    status=infeasible
+    infeasibility_certified=0
+    restoration_iters=14
+    restoration_entries=1
+    restoration_h_in=115.03999999999996
+    restoration_h_out=31.994266962475322
+    restoration_f_out=0.20691043127647593
+LEG READING6   zeta=0                   rc=0   wall_s=25.0 (INFORMATIONAL)
+    proximity=0
+    status=optimal
+    infeasibility_certified=0
+    restoration_iters=0
+    restoration_entries=0
+    restoration_h_in=0
+    restoration_h_out=0
+    restoration_f_out=0
+FOREGROUND_END chainB-c3 2026-09-18T21:18:11-04:00 rc=0
+WRAPPER_RC chainB-c3 rc=0
+=== ARM c4:  STEENBRB:19800 STEENBRC:41800 STEENBRG:41800 ZAMB2-8:24.643618798749973 YORKNET:48491.383947016526 BRITGAS:115.03999999999996 READING6:0
+FOREGROUND_START chainB-c4 2026-09-18T21:18:11-04:00
+probe sha256: 79c464b7a634081c55d99f371dc42dafd436de58df5a3f3c242979511ef7a640  /home/ghecht/Projects/hven/.scratch/m7w2m2b/probebuild/m2b_probe
+hven library sha256: fed6243691970e4d3433e0818abaf9bb28cd2f9a1e9c84366fb5dfa84a9d93fc  /home/ghecht/Projects/hven/.scratch/m7w2m2b/install/lib64/libhven.a
+LEG STEENBRB   zeta=19800               rc=0   wall_s=4.4 (INFORMATIONAL)
+    proximity=19800
+    status=infeasible
+    infeasibility_certified=0
+    restoration_iters=1
+    restoration_entries=1
+    restoration_h_in=19800
+    restoration_h_out=19799.991157036209
+    restoration_f_out=2858.7861353626772
+LEG STEENBRC   zeta=41800               rc=0   wall_s=10.6 (INFORMATIONAL)
+    proximity=41800
+    status=infeasible
+    infeasibility_certified=0
+    restoration_iters=1
+    restoration_entries=1
+    restoration_h_in=41800
+    restoration_h_out=41799.995417819926
+    restoration_f_out=4528.3061353626754
+LEG STEENBRG   zeta=41800               rc=0   wall_s=10.7 (INFORMATIONAL)
+    proximity=41800
+    status=infeasible
+    infeasibility_certified=0
+    restoration_iters=1
+    restoration_entries=1
+    restoration_h_in=41800
+    restoration_h_out=41799.995417819926
+    restoration_f_out=4527.9899075966587
+LEG ZAMB2-8    zeta=24.643618798749973  rc=0   wall_s=21.0 (INFORMATIONAL)
+    proximity=24.643618798749973
+    status=infeasible
+    infeasibility_certified=0
+    restoration_iters=7
+    restoration_entries=1
+    restoration_h_in=24.643618798749973
+    restoration_h_out=2.4119148960706682
+    restoration_f_out=-0.12191948560206088
+LEG YORKNET    zeta=48491.383947016526  rc=0   wall_s=80.1 (INFORMATIONAL)
+    proximity=48491.383947016526
+    status=infeasible
+    infeasibility_certified=0
+    restoration_iters=19
+    restoration_entries=1
+    restoration_h_in=48491.383947016526
+    restoration_h_out=48491.383947016526
+    restoration_f_out=110670.29950761795
+LEG BRITGAS    zeta=115.03999999999996  rc=0   wall_s=77.1 (INFORMATIONAL)
+    proximity=115.03999999999996
+    status=infeasible
+    infeasibility_certified=0
+    restoration_iters=3
+    restoration_entries=1
+    restoration_h_in=115.03999999999996
+    restoration_h_out=112.22238436925579
+    restoration_f_out=0.045114707056621593
+LEG READING6   zeta=0                   rc=0   wall_s=25.1 (INFORMATIONAL)
+    proximity=0
+    status=optimal
+    infeasibility_certified=0
+    restoration_iters=0
+    restoration_entries=0
+    restoration_h_in=0
+    restoration_h_out=0
+    restoration_f_out=0
+FOREGROUND_END chainB-c4 2026-09-18T21:22:00-04:00 rc=0
+WRAPPER_RC chainB-c4 rc=0
+LEGS_WORST=0
+--- SUMMARISE (outside the lock: no solver runs, pure file folding)
+M7 W2 M2b -- OFF IDENTITY: the screen arm (zeta = 0) vs M2's committed ladder
+A DIFFERENCE IS A STOP. `proximity` is this task's new key and `prox_rel` is its
+new column; both are excluded by name, and nothing else is.
+
+STEENBRB   keys  37 compared,   0 differing; rows  17 x 8 columns, 0 differing   IDENTICAL
+STEENBRC   keys  37 compared,   0 differing; rows  23 x 8 columns, 0 differing   IDENTICAL
+STEENBRG   keys  37 compared,   0 differing; rows  23 x 8 columns, 0 differing   IDENTICAL
+ZAMB2-8    keys  37 compared,   0 differing; rows  24 x 8 columns, 0 differing   IDENTICAL
+YORKNET    keys  37 compared,   0 differing; rows  19 x 8 columns, 0 differing   IDENTICAL
+BRITGAS    keys  37 compared,   0 differing; rows  11 x 8 columns, 0 differing   IDENTICAL
+READING6   keys  35 compared,   0 differing; rows  14 x 8 columns, 0 differing   IDENTICAL
+
+OFF_IDENTITY_WORST=0
+
+M7 W2 M2b -- THE VERDICT: RULE.md section 2, applied to the screen arm (zeta = 0)
+Clause (a) is INCREMENTAL on the final step and must REFUSE by >= 10x.
+Clauses (b),(c) are CUMULATIVE at the returned point and must ADMIT by >= 10x.
+
+--- member 1: zeta = h_k/(n*rho)
+  (a) STEENBRB   zeta=0.04230769230769231      ratio=22.1664466314806         margin=22.1664466314806         PASS   [penalty=129939.71015373923 gain=5861.999999999998 dprox=6142604.479994945]
+  (a) STEENBRC   zeta=0.07740740740740741      ratio=1739.6958387684965       margin=1739.6958387684965       PASS   [penalty=6292479.848825661 gain=3617.0000000000055 dprox=162580819.06056732]
+  (a) STEENBRG   zeta=0.07740740740740741      ratio=1739.6958387684965       margin=1739.6958387684965       PASS   [penalty=6292479.848825661 gain=3617.0000000000055 dprox=162580819.06056732]
+  (b) ZAMB2-8    zeta=0.00017857694781702878   ratio=0.00022944093898311956   margin=4358.420099011067        PASS   [penalty=0.005654255037124476 gain=24.64361879873788 prox_rel(x_r)=63.32569915930992]
+  (c) BRITGAS    zeta=0.0002556444444444444    ratio=6.206332758373893e-06    margin=161125.7467061769        PASS   [penalty=3.0613316788111056e-05 gain=4.932593526637135 prox_rel(x_r)=0.2394991751503821]
+  MEMBER 1 QUALIFIES
+
+--- member 2: zeta = h_k/rho
+  (a) STEENBRB   zeta=19.8                     ratio=10373.89702353292        margin=10373.89702353292        PASS   [penalty=60811784.35194996 gain=5861.999999999998 dprox=6142604.479994945]
+  (a) STEENBRC   zeta=41.8                     ratio=939435.752934988         margin=939435.752934988         PASS   [penalty=3397939118.3658566 gain=3617.0000000000055 dprox=162580819.06056732]
+  (a) STEENBRG   zeta=41.8                     ratio=939435.752934988         margin=939435.752934988         PASS   [penalty=3397939118.3658566 gain=3617.0000000000055 dprox=162580819.06056732]
+  (b) ZAMB2-8    zeta=0.02464361879874997      ratio=0.03166284957967049      margin=31.58275434065991        PASS   [penalty=0.7802871951231776 gain=24.64361879873788 prox_rel(x_r)=63.32569915930992]
+  (c) BRITGAS    zeta=0.11503999999999996      ratio=0.0027928497412682517    margin=358.0572149026153        PASS   [penalty=0.013775992554649974 gain=4.932593526637135 prox_rel(x_r)=0.2394991751503821]
+  MEMBER 2 QUALIFIES
+
+--- member 3: zeta = h_k/n
+  (a) STEENBRB   zeta=42.30769230769231        ratio=22166.446631480598       margin=22166.446631480598       PASS   [penalty=129939710.15373923 gain=5861.999999999998 dprox=6142604.479994945]
+  (a) STEENBRC   zeta=77.4074074074074         ratio=1739695.8387684964       margin=1739695.8387684964       PASS   [penalty=6292479848.825661 gain=3617.0000000000055 dprox=162580819.06056732]
+  (a) STEENBRG   zeta=77.4074074074074         ratio=1739695.8387684964       margin=1739695.8387684964       PASS   [penalty=6292479848.825661 gain=3617.0000000000055 dprox=162580819.06056732]
+  (b) ZAMB2-8    zeta=0.1785769478170288       ratio=0.22944093898311957      margin=4.358420099011067        FAIL   [penalty=5.654255037124476 gain=24.64361879873788 prox_rel(x_r)=63.32569915930992]
+  (c) BRITGAS    zeta=0.25564444444444434      ratio=0.006206332758373892     margin=161.12574670617693       PASS   [penalty=0.03061331678811105 gain=4.932593526637135 prox_rel(x_r)=0.2394991751503821]
+  MEMBER 3 does not qualify
+
+--- member 4: zeta = h_k
+  (a) STEENBRB   zeta=19800.0                  ratio=10373897.02353292        margin=10373897.02353292        PASS   [penalty=60811784351.94996 gain=5861.999999999998 dprox=6142604.479994945]
+  (a) STEENBRC   zeta=41800.0                  ratio=939435752.934988         margin=939435752.934988         PASS   [penalty=3397939118365.857 gain=3617.0000000000055 dprox=162580819.06056732]
+  (a) STEENBRG   zeta=41800.0                  ratio=939435752.934988         margin=939435752.934988         PASS   [penalty=3397939118365.857 gain=3617.0000000000055 dprox=162580819.06056732]
+  (b) ZAMB2-8    zeta=24.643618798749973       ratio=31.662849579670496       margin=0.03158275434065991      FAIL   [penalty=780.2871951231776 gain=24.64361879873788 prox_rel(x_r)=63.32569915930992]
+  (c) BRITGAS    zeta=115.03999999999996       ratio=2.7928497412682516       margin=0.35805721490261533      FAIL   [penalty=13.775992554649974 gain=4.932593526637135 prox_rel(x_r)=0.2394991751503821]
+  MEMBER 4 does not qualify
+
+VERDICT: member 1, zeta = h_k/(n*rho) -- the smallest member clearing every clause by the pre-registered factor of 10.
+RECORDED AS A RECOMMENDATION FOR M2c. NO DEFAULT MOVES IN THIS TASK.
+
+SUMMARISE_RC=0
+CHAINB_END 2026-09-18T21:22:00-04:00

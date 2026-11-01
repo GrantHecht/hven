@@ -1,0 +1,12 @@
+PGREP_FOREIGN_BEGIN
+1182269 /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1789567559992-kakuwb.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID=
+1186620 python3 runners/run_serial.py --problem-set cutest --split TRAIN --lanes hven-ipm --options ipm-acc-filter --budget-wall-s 300 --out /home/ghecht/Projec
+1186777 /home/ghecht/Projects/hven-bench/build/lanes/hven/hven_bench_cell --lane hven-ipm --problem MSS3 --options ipm-acc-filter --budget-iters 0 --options-dum
+PGREP_FOREIGN_END
+LEG_START 2026-09-17T10:36:02-04:00
+LOCK=corun
+CELL problem=MSS3 lane=hven-sqp label=default budget_iters=1 pin_cpu=7 timeout_s=300
+BINARY /home/ghecht/Projects/hven-bench/build/lanes/hven/hven_bench_cell
+CELL_RC=124
+LEG_END 2026-09-17T10:41:02-04:00
+LEG_RC=124

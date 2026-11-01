@@ -1,0 +1,129 @@
+M7 W2 M3a -- fix1 (settler adjudication R2) -- THE FOLD'S OWN REFUSAL, FOLD-PROVEN
+=================================================================================
+
+WHAT THIS FILE IS. `fix1/refusal-proofs.txt` beside it proves the three identity
+CHECKERS' new structural refusals. This file proves the FOURTH refusal R2 asked
+for, which lives somewhere else: in the machine fold, `wrappers/summarise_m3a.py`.
+
+THE DEFECT. RULE-F.md section 3 makes the identity and neutrality checks a
+PRECONDITION of the H-DEG verdict. The fold RE-RUNS both checks itself, on the
+committed rows, and until fix1 it printed
+
+    "A SOLVER COUNTER MOVED WITH THE LEDGER ATTACHED -- RULE-F.md section
+     3.2's STOP. That is a FINDING ABOUT hven; no H-DEG verdict is taken."
+
+and then went straight on to compute the verdict table, write verdict-F.txt and
+exit 0 -- so the sentence "no H-DEG verdict is taken" stood immediately above a
+computed H-DEG verdict, and nothing downstream could tell the two runs apart.
+The review's finding, at summarise_m3a.py:1179.
+
+THE FIX. The fold RETURNS at the STOP: no verdict table is computed, the
+transcript ends with a STOP block, and the non-zero return reaches the process's
+exit status (`main()` now returns `fold_f`'s code and `sys.exit(main())` carries
+it out). `tables/f-neutrality.txt` is still written, because it is the evidence
+of WHICH pair failed and on which keys.
+
+HOW THIS WAS PRODUCED. A COPY of the whole artifact directory was made under a
+session scratch directory (`cp -r`), and every mutation below was applied to that
+COPY. NO FILE UNDER THE COMMITTED ARTIFACT WAS MODIFIED. No solver ran, no binary
+was built, no lock was held: the fold is file folding.
+
+  produced  2026-09-21T09:34:30-04:00
+  python    Python 3.13.12
+  copy      <session scratchpad>/foldproof/art (deleted after this transcript)
+
+===========================================================================
+CASE 0 -- THE CONTROL. The unmutated copy, so the two cases below are read
+against a known-good run of the same code on the same rows.
+---------------------------------------------------------------------------
+COMMAND: python3 -B wrappers/summarise_m3a.py <scratch copy>
+EXIT:    0
+verdict-F.txt: 1 verdict table computed; VERDICT: MIXED ON BOTH CELLS.
+
+===========================================================================
+CASE A -- A NEUTRALITY FAILURE. One counter altered on ONE measured leg:
+`factorizations` on rows/f/STEENBRB@F-tr1.txt set to 999999, which is what a
+ledger that had perturbed the solve would look like.
+---------------------------------------------------------------------------
+COMMAND: python3 -B wrappers/summarise_m3a.py <scratch copy>
+EXIT:    3   (was 0 before fix1)
+
+--- what it wrote into verdict-F.txt, from the check table on ---
+THE TWO CHECKS ON THE REBUILT PROBE (RULE-F.md section 3), re-run by this
+fold on the COMMITTED rows -- an independent re-check of the same files the
+chain's own reports (identity-f.txt, neutral-first-f.txt, neutrality-f.txt)
+cover. Compared: every shared key but `ledger` and the time-valued names,
+and the whole ladder block, as STRINGS.
+  STEENBRB@identity-F    vs STEENBRB@trinf.txt      50 keys, 0 differing; ladder 0 differing   IDENTICAL
+  STEENBRB@F-trinf       vs STEENBRB@trinf.txt      50 keys, 0 differing; ladder 0 differing   IDENTICAL
+  STEENBRB@F-tr1         vs STEENBRB@tr1.txt        52 keys, 1 differing; ladder 0 differing   DIFFERS -- STOP
+  YORKNET@F-trinf        vs YORKNET@trinf.txt       50 keys, 0 differing; ladder 0 differing   IDENTICAL
+  YORKNET@F-tr1          vs YORKNET@tr1.txt         52 keys, 0 differing; ladder 0 differing   IDENTICAL
+  NEAR_ULP_TOLERATED=0   F_CHECK_WORST=1
+  A SOLVER COUNTER MOVED WITH THE LEDGER ATTACHED -- RULE-F.md section
+  3.2's STOP. That is a FINDING ABOUT hven; no H-DEG verdict is taken.
+
+==============================================================================
+THE FOLD STOPS HERE -- NO H-DEG VERDICT IS COMPUTED
+==============================================================================
+
+RULE-F.md section 3 makes the identity and neutrality checks a
+PRECONDITION of the verdict, not a report beside it. One of them
+failed above, so this fold computes no verdict table, writes no
+verdict, and exits non-zero. The failing pair and its differing keys
+are in the table above and in tables/f-neutrality.txt.
+
+Nothing here is a judgement about H-DEG. It is the refusal to make
+one on evidence whose own precondition did not hold.
+
+===========================================================================
+CASE B -- AN IDENTITY FAILURE. The identity leg's own terminal status altered
+on rows/f/STEENBRB@identity-F.txt (`numerical_error` -> `max_iter`), which is
+what a `--ledger off` arm that was NOT stage 1's solve would look like.
+---------------------------------------------------------------------------
+COMMAND: python3 -B wrappers/summarise_m3a.py <scratch copy>
+EXIT:    3   (was 0 before fix1)
+
+--- what it wrote into verdict-F.txt, from the check table on ---
+THE TWO CHECKS ON THE REBUILT PROBE (RULE-F.md section 3), re-run by this
+fold on the COMMITTED rows -- an independent re-check of the same files the
+chain's own reports (identity-f.txt, neutral-first-f.txt, neutrality-f.txt)
+cover. Compared: every shared key but `ledger` and the time-valued names,
+and the whole ladder block, as STRINGS.
+  STEENBRB@identity-F    vs STEENBRB@trinf.txt      50 keys, 1 differing; ladder 0 differing   DIFFERS -- STOP
+  STEENBRB@F-trinf       vs STEENBRB@trinf.txt      50 keys, 0 differing; ladder 0 differing   IDENTICAL
+  STEENBRB@F-tr1         vs STEENBRB@tr1.txt        52 keys, 0 differing; ladder 0 differing   IDENTICAL
+  YORKNET@F-trinf        vs YORKNET@trinf.txt       50 keys, 0 differing; ladder 0 differing   IDENTICAL
+  YORKNET@F-tr1          vs YORKNET@tr1.txt         52 keys, 0 differing; ladder 0 differing   IDENTICAL
+  NEAR_ULP_TOLERATED=0   F_CHECK_WORST=1
+  A SOLVER COUNTER MOVED WITH THE LEDGER ATTACHED -- RULE-F.md section
+  3.2's STOP. That is a FINDING ABOUT hven; no H-DEG verdict is taken.
+
+==============================================================================
+THE FOLD STOPS HERE -- NO H-DEG VERDICT IS COMPUTED
+==============================================================================
+
+RULE-F.md section 3 makes the identity and neutrality checks a
+PRECONDITION of the verdict, not a report beside it. One of them
+failed above, so this fold computes no verdict table, writes no
+verdict, and exits non-zero. The failing pair and its differing keys
+are in the table above and in tables/f-neutrality.txt.
+
+Nothing here is a judgement about H-DEG. It is the refusal to make
+one on evidence whose own precondition did not hold.
+
+===========================================================================
+WHAT THE THREE RUNS SHOW TOGETHER
+---------------------------------------------------------------------------
+  control  exit 0   "THE VERDICT TABLE" occurrences in the written verdict-F.txt: 1
+  caseA    exit 3   "THE VERDICT TABLE" occurrences in the written verdict-F.txt: 0
+  caseB    exit 3   "THE VERDICT TABLE" occurrences in the written verdict-F.txt: 0
+  (exits: control 0, caseA 3, caseB 3 -- the run log of each is in the session
+  scratchpad and the codes are reproduced at each case above.)
+
+In BOTH mutated cases the string "THE VERDICT TABLE" does not appear in the
+written verdict-F.txt at all, so no H-DEG verdict was COMPUTED -- not merely
+suppressed in the printing. In the control it appears once.
+
+AND THE COMMITTED ARTIFACT IS UNCHANGED BY ANY OF THIS. The run that produced
+the committed verdict-F.txt is the control's: same code, same rows, exit 0.

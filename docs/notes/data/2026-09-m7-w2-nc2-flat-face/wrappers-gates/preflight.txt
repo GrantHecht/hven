@@ -1,0 +1,34 @@
+# `bash gates-nc2.sh --preflight-only`, run on THIS committed copy at HEAD 0fa59cdc and pasted
+# verbatim. rc 0, ending PREFLIGHT_OK. `dirty-files=1` is this task directory, still untracked at
+# the moment the pre-flight ran -- the mode says so itself, and the chain applies the clean-tree
+# refusal that this mode does not.
+
+GATES_START 2026-09-26T14:56:29-04:00
+=== HEAD 0fa59cdc  dirty-files=1 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.scratch/m7w2nc2gates ===
+=== BEFORE=828dc917  EXPECT_DEBUG_TESTS=2861  EXPECT_RELEASE_TESTS=2862 ===
+=== HEAD_AT_START=0fa59cdc8e132dc7a0268860e01d02732f5dcca1
+=== CHANGED HEADERS: include/hven/core/solver_counters.h include/hven/detail/qp/qp_engine.h 
+=== CHANGED SOURCES: src/qp/qp_engine.cpp tests/CMakeLists.txt tests/qp/fixtures/e2-d4/R2_Cs_STEENBRB_qp2.txt tests/qp/fixtures/e2-d4/R2_Cs_STEENBRB_qp3.txt tests/qp/fixtures/e2-d4/R2_Cs_STEENBRB_qp4.txt tests/qp/test_qp_flat_face_saddle.cpp 
+=== MODIFIED C++ SOURCES: src/qp/qp_engine.cpp 
+=== ADDED C++ SOURCES: tests/qp/test_qp_flat_face_saddle.cpp 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir
+=== ADDED OUTSIDE THE P-SYM UNIVERSE (declared, checked): [tests/qp/test_qp_flat_face_saddle.cpp] -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared NOISE-ONLY + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); differences declared 0
+=== CLASS_B_NAMES_OK: Release 37 / Debug 37 declared objects, none with a source modified in the range
+=== BY-NAME: baselines /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-nc1-declined-ride/gates/suite-{debug,release}.txt (2855 / 2856 started names); 8 ADDED, each added by exactly one TEST line in the range; 0 REMOVED, each removed by exactly one TEST line; 0 TEST lines removed
+=== ADDED TEST FILES (checked): non-.cpp [tests/qp/fixtures/e2-d4/R2_Cs_STEENBRB_qp2.txt tests/qp/fixtures/e2-d4/R2_Cs_STEENBRB_qp3.txt tests/qp/fixtures/e2-d4/R2_Cs_STEENBRB_qp4.txt ] == declared, under the fixture directory named once in hven_qp_walk_seam_tests's compile definitions; tests/CMakeLists.txt adds exactly [qp/test_qp_flat_face_saddle.cpp ] and removes no non-comment line
+=== PREFLIGHT_VALUE_OK: class A 1 - 0 outside == declared 1/1; ADDED 1 == declared 1 (0 inside the universe == declared 0); class B library objects all unmodified; G4 gate 1e-5
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2nc2gates/g1.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2nc2gates  G=/home/ghecht/Projects/hven/.scratch/m7w2nc2gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2nc2gates/g2.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2nc2gates  G=/home/ghecht/Projects/hven/.scratch/m7w2nc2gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2nc2gates/g3.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2nc2gates  G=/home/ghecht/Projects/hven/.scratch/m7w2nc2gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2nc2gates/g4.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2nc2gates  G=/home/ghecht/Projects/hven/.scratch/m7w2nc2gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2nc2gates/g5.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2nc2gates  G=/home/ghecht/Projects/hven/.scratch/m7w2nc2gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2nc2gates/g6.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2nc2gates  G=/home/ghecht/Projects/hven/.scratch/m7w2nc2gates/gates
+=== PREFLIGHT_OK: 6 segments written and asserted against GATES_SCRATCH, before the first leg ===
+PREFLIGHT_ONLY: stopping before G1. No leg was run and no build tree was touched.

@@ -1,0 +1,12 @@
+ORACLE /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/e4-fix5/dumps/ACOPR118_e4/qp0.txt n=344 me=236 mi=608 tr=1 in-cell: status=2 minors=446 facts=958 blk_term=0 cert=1 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=401 deferred=1 undec=8 maxiter=5300
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=16.50110172408627
+  H eig min=0.0000e+00 max=5.0000e+04 n_neg=0 n_zero=290
+  Z'HZ on null(Ae): dim=108 rank(Ae)=236 eig min=-5.0233e-12
+  WALK final: f=1636.36980151 viol eq/in/box=(85.89299796133253, 2.2586294314046707, 0.0) |W| rows=43 pins=65 me+|W|=344 rank=337 n=344
+    working-set normalized singular values: min=9.899e-17 (smallest 3: [9.89880959e-17 1.46437892e-16 1.46437892e-16])
+    Z'HZ on the final working set's null space: dim=7 eig min=1.9548e+02 (next 2.6383e+02) max=4.9177e+03
+  OPTIMUM (Clarabel) status=PrimalInfeasible f*=6.27560595976e-06 viol=(8.978286423522983, 1.2598639023380045, 0.0) active rows=0 pins=35
+    walk final vs x*: |dx|inf=1.0000e+00  f_walk - f* = 1.6364e+03
+    rows in W not active at x*: [np.int64(373), np.int64(378), np.int64(387), np.int64(399), np.int64(405), np.int64(409), np.int64(418), np.int64(424), np.int64(425), np.int64(427), np.int64(429), np.int64(432), np.int64(433), np.int64(444), np.int64(447), np.int64(451), np.int64(453), np.int64(457), np.int64(463), np.int64(477), np.int64(488), np.int64(492), np.int64(497), np.int64(508), np.int64(514), np.int64(515), np.int64(516), np.int64(519), np.int64(544), np.int64(548)] ; active at x* not in W: []
+    pins in W not at that bound at x*: 41 [(16, 'L'), (237, 'U'), (239, 'L'), (241, 'L'), (243, 'U'), (244, 'L'), (251, 'U'), (253, 'U'), (256, 'L'), (258, 'L'), (259, 'L'), (262, 'L'), (264, 'U'), (265, 'U'), (267, 'L'), (269, 'L'), (277, 'L'), (280, 'U'), (281, 'L'), (282, 'U'), (283, 'L'), (285, 'L'), (288, 'U'), (289, 'L'), (290, 'L'), (294, 'L'), (295, 'L'), (297, 'U'), (303, 'U'), (305, 'U')]
+    bounds active at x* not pinned in W: 7 [(236, 'L'), (252, 'L'), (270, 'L'), (272, 'L'), (302, 'L'), (304, 'L'), (332, 'L')]

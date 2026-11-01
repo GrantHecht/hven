@@ -1,0 +1,809 @@
+Test project /home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates/gates-dbg
+        Start 1601: CorpusRunnerProcess.ScoreModelSurfaceWritesTheCensusArtifactAndLeavesTheMainCsvUnchanged
+        Start 1602: CorpusRunnerProcess.ScoreGatesRunsEndToEndOnRealCells
+        Start 1603: CorpusRunnerProcess.FromCsvRoundTripsAnArtifactAndOrdersItByCensus
+        Start 1604: CorpusRunnerProcess.FromCsvRejectsAnInternallyInconsistentRow
+  1/400 Test #1604: CorpusRunnerProcess.FromCsvRejectsAnInternallyInconsistentRow ..................................   Passed    0.01 sec
+        Start 1605: CorpusRunnerProcess.FromCsvRejectsARowWhoseStoredKktVerdictContradictsItsOwnResiduals
+  2/400 Test #1605: CorpusRunnerProcess.FromCsvRejectsARowWhoseStoredKktVerdictContradictsItsOwnResiduals ..........   Passed    0.02 sec
+        Start 1606: CorpusRunnerProcess.FromCsvAcceptsBothSchemasAndCallsAnAbsentCensusAbsent
+  3/400 Test #1606: CorpusRunnerProcess.FromCsvAcceptsBothSchemasAndCallsAnAbsentCensusAbsent ......................   Passed    0.01 sec
+        Start 1607: CorpusRunnerProcess.FromCsvRefusesAWidthThatIsNoKnownSchema
+  4/400 Test #1607: CorpusRunnerProcess.FromCsvRefusesAWidthThatIsNoKnownSchema ....................................   Passed    0.01 sec
+        Start 1608: CorpusRunnerProcess.FromCsvRejectsACensusThatDoesNotPartitionTheEscapeCount
+  5/400 Test #1608: CorpusRunnerProcess.FromCsvRejectsACensusThatDoesNotPartitionTheEscapeCount ....................   Passed    0.02 sec
+        Start 1609: CorpusRunnerProcess.TheSsnArmGoesThroughTheSameWallDeadlineAsTheWalkArm
+  6/400 Test #1601: CorpusRunnerProcess.ScoreModelSurfaceWritesTheCensusArtifactAndLeavesTheMainCsvUnchanged .......   Passed    0.46 sec
+        Start 1610: CorpusRunnerProcess.AnEngineThatTHROWSBecomesAScoredRowNotALostCell
+  7/400 Test #1609: CorpusRunnerProcess.TheSsnArmGoesThroughTheSameWallDeadlineAsTheWalkArm ........................   Passed    0.46 sec
+        Start 1611: CorpusRunnerProcess.AnEngineErrorRowRoundTripsThroughFromCsvAndIsStillChargedWorstCase
+  8/400 Test #1611: CorpusRunnerProcess.AnEngineErrorRowRoundTripsThroughFromCsvAndIsStillChargedWorstCase .........   Passed    0.01 sec
+        Start 1612: CorpusRunnerProcess.ASignalKilledChildIsAHardErrorAndNeverAMeasurement
+  9/400 Test #1603: CorpusRunnerProcess.FromCsvRoundTripsAnArtifactAndOrdersItByCensus .............................   Passed    0.60 sec
+        Start 1613: CorpusRunnerProcess.TheProxCarryLeverReachesTheSOLVEAndNotJustTheHeader
+ 10/400 Test #1602: CorpusRunnerProcess.ScoreGatesRunsEndToEndOnRealCells ..........................................   Passed    0.62 sec
+        Start 1614: CorpusRunnerProcess.TheProxCarryLeverIsStampedIntoTheProvenanceHeader
+ 11/400 Test #1610: CorpusRunnerProcess.AnEngineThatTHROWSBecomesAScoredRowNotALostCell ............................   Passed    0.25 sec
+        Start 1615: CorpusRunnerProcess.FromCsvRefusesToBeCombinedWithARunRequest
+ 12/400 Test #1615: CorpusRunnerProcess.FromCsvRefusesToBeCombinedWithARunRequest ..................................   Passed    0.01 sec
+        Start 1616: CorpusRunnerProcess.FromCsvRefusesToBeCombinedWithScoreModelSurface
+ 13/400 Test #1616: CorpusRunnerProcess.FromCsvRefusesToBeCombinedWithScoreModelSurface ............................   Passed    0.01 sec
+        Start 1617: CorpusRunnerProcess.DumpQpWritesAParseableTripletFileMatchingTheCellsFirstQp
+ 14/400 Test #1612: CorpusRunnerProcess.ASignalKilledChildIsAHardErrorAndNeverAMeasurement .........................   Passed    0.21 sec
+        Start 1618: CorpusRunnerProcess.DumpQpRejectsAnUnknownCellId
+ 15/400 Test #1618: CorpusRunnerProcess.DumpQpRejectsAnUnknownCellId ...............................................   Passed    0.01 sec
+        Start 1619: CorpusRunnerProcess.DumpQpRequiresDumpQpOut
+ 16/400 Test #1619: CorpusRunnerProcess.DumpQpRequiresDumpQpOut ....................................................   Passed    0.01 sec
+        Start 1620: CorpusRunnerProcess.DumpQpCannotBeCombinedWithARunRequest
+ 17/400 Test #1620: CorpusRunnerProcess.DumpQpCannotBeCombinedWithARunRequest ......................................   Passed    0.01 sec
+        Start 1621: CorpusResidualGate.AcceptsEveryRecordedSpreadAndRefusesARealMove
+ 18/400 Test #1621: CorpusResidualGate.AcceptsEveryRecordedSpreadAndRefusesARealMove ...............................   Passed    0.01 sec
+        Start 1622: CorpusGates.MedianAndP95AreNearestRankOnASmallVector
+ 19/400 Test #1622: CorpusGates.MedianAndP95AreNearestRankOnASmallVector ...........................................   Passed    0.01 sec
+        Start 1623: CorpusGates.PercentileAtQuantileZeroDoesNotUnderflow
+ 20/400 Test #1623: CorpusGates.PercentileAtQuantileZeroDoesNotUnderflow ...........................................   Passed    0.01 sec
+        Start 1624: CorpusGates.G1G2PassAtTheExactThreshold
+ 21/400 Test #1624: CorpusGates.G1G2PassAtTheExactThreshold ........................................................   Passed    0.01 sec
+        Start 1625: CorpusGates.G2PassesAtExactlyTwentyFive
+ 22/400 Test #1625: CorpusGates.G2PassesAtExactlyTwentyFive ........................................................   Passed    0.01 sec
+        Start 1626: CorpusGates.G1FailsOneOverTheThreshold
+ 23/400 Test #1626: CorpusGates.G1FailsOneOverTheThreshold .........................................................   Passed    0.01 sec
+        Start 1627: CorpusGates.G2FailsOneOverTheThreshold
+ 24/400 Test #1627: CorpusGates.G2FailsOneOverTheThreshold .........................................................   Passed    0.01 sec
+        Start 1628: CorpusGates.G3GrowthIsMedianOfPairedDeltasAndPassesAtZeroOrNegative
+ 25/400 Test #1628: CorpusGates.G3GrowthIsMedianOfPairedDeltasAndPassesAtZeroOrNegative ............................   Passed    0.01 sec
+        Start 1629: CorpusGates.G3FailsOnPositiveMedianGrowth
+ 26/400 Test #1629: CorpusGates.G3FailsOnPositiveMedianGrowth ......................................................   Passed    0.01 sec
+        Start 1630: CorpusGates.G3PassesAtExactlyZeroGrowth
+ 27/400 Test #1630: CorpusGates.G3PassesAtExactlyZeroGrowth ........................................................   Passed    0.01 sec
+        Start 1631: CorpusGates.G4RateIsANumeratorOverADenominator
+ 28/400 Test #1631: CorpusGates.G4RateIsANumeratorOverADenominator .................................................   Passed    0.01 sec
+        Start 1632: CorpusGates.G4FailsAtOrAboveTwoPercent
+ 29/400 Test #1632: CorpusGates.G4FailsAtOrAboveTwoPercent .........................................................   Passed    0.01 sec
+        Start 1633: CorpusGates.EmptyInputsAreVacuouslyClean
+ 30/400 Test #1633: CorpusGates.EmptyInputsAreVacuouslyClean .......................................................   Passed    0.01 sec
+        Start 1634: CorpusGatePopulation.G1G2ReadPathInterfaceWarmAndActivityCellsOnly
+ 31/400 Test #1634: CorpusGatePopulation.G1G2ReadPathInterfaceWarmAndActivityCellsOnly .............................   Passed    0.01 sec
+        Start 1635: CorpusGatePopulation.G1G2PoolPerQpValuesAndIgnoreOutOfPopulationRows
+ 32/400 Test #1635: CorpusGatePopulation.G1G2PoolPerQpValuesAndIgnoreOutOfPopulationRows ...........................   Passed    0.01 sec
+        Start 1636: CorpusGatePopulation.ADnfIsScoredAsTheWorstCaseNotSkipped
+ 33/400 Test #1636: CorpusGatePopulation.ADnfIsScoredAsTheWorstCaseNotSkipped ......................................   Passed    0.01 sec
+        Start 1637: CorpusGatePopulation.BothDnfPhasesScoreIdentically
+ 34/400 Test #1617: CorpusRunnerProcess.DumpQpWritesAParseableTripletFileMatchingTheCellsFirstQp ...................   Passed    0.22 sec
+        Start 1638: CorpusGatePopulation.ATimingOutEngineNeverOutscoresAFinishingOne
+ 35/400 Test #1637: CorpusGatePopulation.BothDnfPhasesScoreIdentically .............................................   Passed    0.01 sec
+        Start 1639: CorpusGatePopulation.G3PairsMatchOnWindowAndTaxonomyAcrossTheTwoMeshes
+ 36/400 Test #1638: CorpusGatePopulation.ATimingOutEngineNeverOutscoresAFinishingOne ...............................   Passed    0.01 sec
+        Start 1640: CorpusGatePopulation.G3ExcludesEmptyWindowPairsNoEngineCanFail
+ 37/400 Test #1639: CorpusGatePopulation.G3PairsMatchOnWindowAndTaxonomyAcrossTheTwoMeshes .........................   Passed    0.01 sec
+        Start 1641: CorpusGatePopulation.G3TreatsADnfOnEitherSideAsGrowth
+ 38/400 Test #1640: CorpusGatePopulation.G3ExcludesEmptyWindowPairsNoEngineCanFail .................................   Passed    0.01 sec
+        Start 1642: CorpusGatePopulation.G4CountsEscapesPerQpSubproblemNotPerRow
+ 39/400 Test #1641: CorpusGatePopulation.G3TreatsADnfOnEitherSideAsGrowth ..........................................   Passed    0.01 sec
+        Start 1643: CorpusGatePopulation.G4ExcludesDegenerateCellsAndChargesADnfAsAllEscaping
+ 40/400 Test #1642: CorpusGatePopulation.G4CountsEscapesPerQpSubproblemNotPerRow ...................................   Passed    0.01 sec
+        Start 1644: CorpusGatePopulation.AWrongAnswerRowIsChargedTheWorstCaseExactlyAsADnfIs
+ 41/400 Test #1643: CorpusGatePopulation.G4ExcludesDegenerateCellsAndChargesADnfAsAllEscaping ......................   Passed    0.01 sec
+        Start 1645: CorpusGatePopulation.AWrongAnsweringEngineNeverOutscoresACorrectOne
+ 42/400 Test #1644: CorpusGatePopulation.AWrongAnswerRowIsChargedTheWorstCaseExactlyAsADnfIs .......................   Passed    0.01 sec
+        Start 1646: CorpusGatePopulation.G1G2ReportBothKCorruptedReadingsFromTheSameRows
+ 43/400 Test #1645: CorpusGatePopulation.AWrongAnsweringEngineNeverOutscoresACorrectOne ............................   Passed    0.01 sec
+        Start 1647: CorpusKktGate.AClaimedOptimumWithACleanQuadrupleIsOk
+ 44/400 Test #1646: CorpusGatePopulation.G1G2ReportBothKCorruptedReadingsFromTheSameRows ...........................   Passed    0.01 sec
+        Start 1648: CorpusKktGate.EachOfTheThreeGatedQuantitiesCanFailOnItsOwn
+ 45/400 Test #1647: CorpusKktGate.AClaimedOptimumWithACleanQuadrupleIsOk ...........................................   Passed    0.01 sec
+        Start 1649: CorpusKktGate.DualSignIsMeasuredAndReportedButIsNOTGATED
+ 46/400 Test #1648: CorpusKktGate.EachOfTheThreeGatedQuantitiesCanFailOnItsOwn .....................................   Passed    0.01 sec
+        Start 1650: CorpusKktGate.TheThresholdIsRELATIVEToTheRowsOwnScale
+ 47/400 Test #1649: CorpusKktGate.DualSignIsMeasuredAndReportedButIsNOTGATED .......................................   Passed    0.01 sec
+        Start 1651: CorpusKktGate.OnlyRowsThatCLAIMOptimalAreJudged
+ 48/400 Test #1650: CorpusKktGate.TheThresholdIsRELATIVEToTheRowsOwnScale ..........................................   Passed    0.01 sec
+        Start 1652: CorpusBaseline.TheCommittedIpmBaselinePinsTheTwoWarmRestartAcceptanceRows
+ 49/400 Test #1651: CorpusKktGate.OnlyRowsThatCLAIMOptimalAreJudged ................................................   Passed    0.01 sec
+        Start 1653: CorpusBaseline.TheCommittedWalkBaselineScoresToItsDocumentedVerdict
+ 50/400 Test #1652: CorpusBaseline.TheCommittedIpmBaselinePinsTheTwoWarmRestartAcceptanceRows ......................   Passed    0.02 sec
+        Start 1654: CorpusBaseline.TheCommittedSsnBatteryScoresToItsDocumentedVerdict
+ 51/400 Test #1653: CorpusBaseline.TheCommittedWalkBaselineScoresToItsDocumentedVerdict ............................   Passed    0.02 sec
+        Start 1655: CorpusBaseline.TheReSweptWalkArmIsCounterIdenticalToTheFrozenPreU0Baseline
+ 52/400 Test #1655: CorpusBaseline.TheReSweptWalkArmIsCounterIdenticalToTheFrozenPreU0Baseline .....................   Passed    0.01 sec
+        Start 1656: CorpusBaseline.TheWalkArmCarriesNoNegativeMultiplierAnywhere
+ 53/400 Test #1654: CorpusBaseline.TheCommittedSsnBatteryScoresToItsDocumentedVerdict ..............................   Passed    0.01 sec
+        Start 1657: CorpusBaseline.TheCommittedWalkBaselineCarriesTheCommittedBudgetTableHash
+ 54/400 Test #1656: CorpusBaseline.TheWalkArmCarriesNoNegativeMultiplierAnywhere ...................................   Passed    0.01 sec
+        Start 1658: CorpusTask6bRepair.TheWalkArmIsCounterIdenticalAcrossTheD0Repair
+ 55/400 Test #1657: CorpusBaseline.TheCommittedWalkBaselineCarriesTheCommittedBudgetTableHash ......................   Passed    0.01 sec
+        Start 1659: CorpusTask6bRepair.TheKSsnArmMovesTheFourCrashingCellsAndNothingElse
+ 56/400 Test #1658: CorpusTask6bRepair.TheWalkArmIsCounterIdenticalAcrossTheD0Repair ...............................   Passed    0.01 sec
+        Start 1660: CorpusTask6bRepair.ThePostRepairArtifactsCarryTheCensusAndRescoreCleanly
+ 57/400 Test #1659: CorpusTask6bRepair.TheKSsnArmMovesTheFourCrashingCellsAndNothingElse ...........................   Passed    0.01 sec
+        Start 1661: CorpusTask6bPhaseB.TheShippedKSsnConfigurationIsUnmovedByTheFourLevers
+ 58/400 Test #1660: CorpusTask6bRepair.ThePostRepairArtifactsCarryTheCensusAndRescoreCleanly .......................   Passed    0.02 sec
+        Start 1662: CrossoverAdapter.StatesTheSameProblemAsTheModelItWraps
+ 59/400 Test #1662: CrossoverAdapter.StatesTheSameProblemAsTheModelItWraps .........................................   Passed    0.01 sec
+        Start 1663: CrossoverAdapter.RefusesAModelWhosePatternMoves
+ 60/400 Test #1663: CrossoverAdapter.RefusesAModelWhosePatternMoves ................................................   Passed    0.01 sec
+        Start 1664: CrossoverAdapter.TwoLaidPartitionsSolveTheSameProblemAsOne
+ 61/400 Test #1614: CorpusRunnerProcess.TheProxCarryLeverIsStampedIntoTheProvenanceHeader ..........................   Passed    0.98 sec
+        Start 1665: CrossoverLegs.BothEnginesKeyOneDeclarationTheSameWay
+ 62/400 Test #1665: CrossoverLegs.BothEnginesKeyOneDeclarationTheSameWay ...........................................   Passed    0.01 sec
+        Start 1666: CrossoverLegs.TheExportStagesIntoBothWarmLegs
+ 63/400 Test #1664: CrossoverAdapter.TwoLaidPartitionsSolveTheSameProblemAsOne .....................................   Passed    0.89 sec
+        Start 1667: CrossoverLegs.TheDualBindPartitionIsTheOneTheArtifactDocuments
+ 64/400 Test #1667: CrossoverLegs.TheDualBindPartitionIsTheOneTheArtifactDocuments .................................   Passed    0.01 sec
+        Start 1668: CrossoverLegs.RunningANonDualBindingCellIsRefused
+ 65/400 Test #1668: CrossoverLegs.RunningANonDualBindingCellIsRefused ..............................................   Passed    0.01 sec
+        Start 1669: CrossoverLegs.AKilledCellsAggregateRowReportsEachLegsOwnOutcome
+ 66/400 Test #1669: CrossoverLegs.AKilledCellsAggregateRowReportsEachLegsOwnOutcome ................................   Passed    0.01 sec
+        Start 1670: CrossoverLegs.ACellWithNoLegAtAllIsAbsentInEveryColumn
+ 67/400 Test #1670: CrossoverLegs.ACellWithNoLegAtAllIsAbsentInEveryColumn .........................................   Passed    0.01 sec
+        Start 1671: CrossoverLegs.MarginsAreColdMinusWarmAndAbsentWhenUndefined
+ 68/400 Test #1671: CrossoverLegs.MarginsAreColdMinusWarmAndAbsentWhenUndefined ....................................   Passed    0.01 sec
+        Start 1672: DenseOracle.KnownSolution
+ 69/400 Test #1672: DenseOracle.KnownSolution ......................................................................   Passed    0.01 sec
+        Start 1673: DenseOracle.EqualityOnly
+ 70/400 Test #1673: DenseOracle.EqualityOnly .......................................................................   Passed    0.01 sec
+        Start 1674: DenseOracle.EqualityPlusActiveInequality
+ 71/400 Test #1674: DenseOracle.EqualityPlusActiveInequality .......................................................   Passed    0.01 sec
+        Start 1675: DenseOracle.EqualityPlusActiveBound
+ 72/400 Test #1675: DenseOracle.EqualityPlusActiveBound ............................................................   Passed    0.01 sec
+        Start 1676: DenseOracle.InfeasibleThrows
+ 73/400 Test #1676: DenseOracle.InfeasibleThrows ...................................................................   Passed    0.01 sec
+        Start 1677: DenseOracle.CombinatoricsGuardThrows
+ 74/400 Test #1677: DenseOracle.CombinatoricsGuardThrows ...........................................................   Passed    0.01 sec
+        Start 1678: QpProblem.ValidateRejectsLowerTriangleHEntries
+ 75/400 Test #1678: QpProblem.ValidateRejectsLowerTriangleHEntries .................................................   Passed    0.01 sec
+        Start 1679: SqpDriverDisprovedEntry.TheVehicleEscapesInfeasibleSuspectOnAConsistentSubproblem
+ 76/400 Test #1679: SqpDriverDisprovedEntry.TheVehicleEscapesInfeasibleSuspectOnAConsistentSubproblem ..............   Passed    0.02 sec
+        Start 1680: SqpDriverDisprovedEntry.OneDisprovalChargesTheTallyAndAtKEqualsOneRetiresTheTier
+ 77/400 Test #1680: SqpDriverDisprovedEntry.OneDisprovalChargesTheTallyAndAtKEqualsOneRetiresTheTier ...............   Passed    0.02 sec
+        Start 1681: SqpDriverDisprovedEntry.ThreeConsecutiveDisprovalsRetireTheTierAtTheShippedThreshold
+ 78/400 Test #1681: SqpDriverDisprovedEntry.ThreeConsecutiveDisprovalsRetireTheTierAtTheShippedThreshold ...........   Passed    0.02 sec
+        Start 1682: SqpDriverDisprovedEntry.TheDefaultIsOffAndOffIsTodaysColdRestart
+ 79/400 Test #1682: SqpDriverDisprovedEntry.TheDefaultIsOffAndOffIsTodaysColdRestart ...............................   Passed    0.02 sec
+        Start 1683: SqpDriverDisprovedEntry.TheReseedMakesTheNextEntryBaseWarmAndTheTierStopsEscaping
+ 80/400 Test #1683: SqpDriverDisprovedEntry.TheReseedMakesTheNextEntryBaseWarmAndTheTierStopsEscaping ..............   Passed    0.02 sec
+        Start 1684: SqpDriverDisprovedEntry.TheReseedIsInertWhereNothingIsDisproved
+ 81/400 Test #1684: SqpDriverDisprovedEntry.TheReseedIsInertWhereNothingIsDisproved ................................   Passed    0.02 sec
+        Start 1685: M7T4DisprovedEntry.TheReseedMeasuredOff
+ 82/400 Test #1685: M7T4DisprovedEntry.TheReseedMeasuredOff ........................................................   Passed    0.03 sec
+        Start 1686: M7T4DisprovedEntry.TheReseedMeasuredOn
+ 83/400 Test #1686: M7T4DisprovedEntry.TheReseedMeasuredOn .........................................................   Passed    0.03 sec
+        Start 1687: M7T3ElasticRungVehicle.TheAddedPairIsContradictoryAtEveryPoint
+ 84/400 Test #1687: M7T3ElasticRungVehicle.TheAddedPairIsContradictoryAtEveryPoint .................................   Passed    0.02 sec
+        Start 1688: M7T3ElasticRungVehicle.TheTierRungIsImmuneToTheDriversTrustRegionRadius
+ 85/400 Test #1666: CrossoverLegs.TheExportStagesIntoBothWarmLegs ..................................................   Passed    1.04 sec
+        Start 1689: M7T3ElasticRungVehicle.TheConstructedCellFiresTheElasticRungAndPricesBothEngines
+ 86/400 Test #1661: CorpusTask6bPhaseB.TheShippedKSsnConfigurationIsUnmovedByTheFourLevers .........................   Passed    1.67 sec
+        Start 1690: EqpRefinementAb.FootprintRuleProbe
+ 87/400 Test #1690: EqpRefinementAb.FootprintRuleProbe .............................................................***Not Run (Disabled)   0.00 sec
+        Start 1691: EqpRefinementAb.FullBattery
+ 88/400 Test #1691: EqpRefinementAb.FullBattery ....................................................................***Not Run (Disabled)   0.00 sec
+        Start 1692: EqpRefinementAb.SecondCeilingFixtureReproducesTheAdaptiveMuRuling
+ 89/400 Test #1692: EqpRefinementAb.SecondCeilingFixtureReproducesTheAdaptiveMuRuling ..............................   Passed    0.15 sec
+        Start 1693: EqpRefinementAb.EveryCellSolvesTheBorderReproProblem
+ 90/400 Test #1693: EqpRefinementAb.EveryCellSolvesTheBorderReproProblem ...........................................   Passed    0.03 sec
+        Start 1694: EqpSolve.MatchesOracleOnItsOptimalWorkingSet
+ 91/400 Test #1694: EqpSolve.MatchesOracleOnItsOptimalWorkingSet ...................................................   Passed    0.02 sec
+        Start 1695: EqpSolve.MatchesOracleOnEqualityOnlyProblem
+ 92/400 Test #1695: EqpSolve.MatchesOracleOnEqualityOnlyProblem ....................................................   Passed    0.02 sec
+        Start 1696: EqpSolve.FixedVariableWithEqualityRefinementImprovesAccuracy
+ 93/400 Test #1696: EqpSolve.FixedVariableWithEqualityRefinementImprovesAccuracy ...................................   Passed    0.01 sec
+        Start 1697: FunnelConstants.MatchKlvTableOne
+ 94/400 Test #1697: FunnelConstants.MatchKlvTableOne ...............................................................   Passed    0.01 sec
+        Start 1698: FunnelConstants.LieInTheirStatedRanges
+ 95/400 Test #1698: FunnelConstants.LieInTheirStatedRanges .........................................................   Passed    0.01 sec
+        Start 1699: FunnelConstants.TheoremOneContractionFactorIsInZeroOne
+ 96/400 Test #1699: FunnelConstants.TheoremOneContractionFactorIsInZeroOne .........................................   Passed    0.01 sec
+        Start 1700: FunnelInit.WidthIsMaxOfFloorAndScaledInitialViolation
+ 97/400 Test #1700: FunnelInit.WidthIsMaxOfFloorAndScaledInitialViolation ..........................................   Passed    0.01 sec
+        Start 1701: FunnelInit.CrossoverBetweenTheFloorAndTheScaledTerm
+ 98/400 Test #1701: FunnelInit.CrossoverBetweenTheFloorAndTheScaledTerm ............................................   Passed    0.01 sec
+        Start 1702: FunnelInit.InitialPointIsStrictlyInsideItsOwnFunnel
+ 99/400 Test #1702: FunnelInit.InitialPointIsStrictlyInsideItsOwnFunnel ............................................   Passed    0.01 sec
+        Start 1703: FunnelInit.JudgeBeforeResetThrows
+100/400 Test #1703: FunnelInit.JudgeBeforeResetThrows ..............................................................   Passed    0.01 sec
+        Start 1704: FunnelInit.RejectsAnUnusableInitialViolation
+101/400 Test #1704: FunnelInit.RejectsAnUnusableInitialViolation ...................................................   Passed    0.01 sec
+        Start 1705: FunnelHType.AcceptanceShrinksTheWidthByEquationThirteen
+102/400 Test #1705: FunnelHType.AcceptanceShrinksTheWidthByEquationThirteen ........................................   Passed    0.01 sec
+        Start 1706: FunnelHType.SufficientDecreaseBoundaryIsInclusive
+103/400 Test #1706: FunnelHType.SufficientDecreaseBoundaryIsInclusive ..............................................   Passed    0.01 sec
+        Start 1707: FunnelHType.KappaRoleIsUnobservableAtOneHalf
+104/400 Test #1707: FunnelHType.KappaRoleIsUnobservableAtOneHalf ...................................................   Passed    0.01 sec
+        Start 1708: FunnelHType.ObjectiveIsNotConsultedOnTheHTypePath
+105/400 Test #1708: FunnelHType.ObjectiveIsNotConsultedOnTheHTypePath ..............................................   Passed    0.01 sec
+        Start 1709: FunnelFType.SwitchingPlusArmijoAcceptsAndLeavesTheWidthUntouched
+106/400 Test #1709: FunnelFType.SwitchingPlusArmijoAcceptsAndLeavesTheWidthUntouched ...............................   Passed    0.01 sec
+        Start 1710: FunnelFType.ArmijoFailureRejectsWithoutFallingBackToTheHTypeBranch
+107/400 Test #1710: FunnelFType.ArmijoFailureRejectsWithoutFallingBackToTheHTypeBranch .............................   Passed    0.01 sec
+        Start 1711: FunnelFType.SwitchingAndArmijoBoundariesAreInclusive
+108/400 Test #1711: FunnelFType.SwitchingAndArmijoBoundariesAreInclusive ...........................................   Passed    0.01 sec
+        Start 1712: FunnelFType.SwitchingConditionScalesWithTheSquareOfInfeasibility
+109/400 Test #1712: FunnelFType.SwitchingConditionScalesWithTheSquareOfInfeasibility ...............................   Passed    0.01 sec
+        Start 1713: FunnelFType.SwitchingConditionReadsTheCurrentIterateNotTheTrial
+110/400 Test #1713: FunnelFType.SwitchingConditionReadsTheCurrentIterateNotTheTrial ................................   Passed    0.01 sec
+        Start 1714: FunnelMembership.ViolationAboveTheWidthIsRejected
+111/400 Test #1714: FunnelMembership.ViolationAboveTheWidthIsRejected ..............................................   Passed    0.01 sec
+        Start 1715: FunnelMembership.OutranksAnOtherwisePerfectFTypeStep
+112/400 Test #1715: FunnelMembership.OutranksAnOtherwisePerfectFTypeStep ...........................................   Passed    0.01 sec
+        Start 1716: FunnelMembership.BoundaryIsInclusive
+113/400 Test #1716: FunnelMembership.BoundaryIsInclusive ...........................................................   Passed    0.01 sec
+        Start 1717: FunnelRestore.InfeasibleStationarySignatureRequestsRestoration
+114/400 Test #1717: FunnelRestore.InfeasibleStationarySignatureRequestsRestoration .................................   Passed    0.01 sec
+        Start 1718: FunnelRestore.NearMissModelStillPredictsDecrease
+115/400 Test #1718: FunnelRestore.NearMissModelStillPredictsDecrease ...............................................   Passed    0.01 sec
+        Start 1719: FunnelRestore.NearMissCurrentPointIsEssentiallyFeasible
+116/400 Test #1719: FunnelRestore.NearMissCurrentPointIsEssentiallyFeasible ........................................   Passed    0.01 sec
+        Start 1720: FunnelRestore.NearMissStepStillImprovesFeasibility
+117/400 Test #1720: FunnelRestore.NearMissStepStillImprovesFeasibility .............................................   Passed    0.01 sec
+        Start 1721: FunnelRestore.HealthyOvershootIsRejectedNotRestored
+118/400 Test #1721: FunnelRestore.HealthyOvershootIsRejectedNotRestored ............................................   Passed    0.01 sec
+        Start 1722: FunnelRestore.NearMissRadiusHasNotBeenShrunkYet
+119/400 Test #1722: FunnelRestore.NearMissRadiusHasNotBeenShrunkYet ................................................   Passed    0.01 sec
+        Start 1723: FunnelRestore.NearMissTrialIsInsideTheFunnel
+120/400 Test #1723: FunnelRestore.NearMissTrialIsInsideTheFunnel ...................................................   Passed    0.01 sec
+        Start 1724: FunnelInvariant.WidthIsMonotoneAndContractsOnlyOnHTypeAccepts
+121/400 Test #1724: FunnelInvariant.WidthIsMonotoneAndContractsOnlyOnHTypeAccepts ..................................   Passed    0.01 sec
+        Start 1725: FunnelInvariant.WidthIsMonotoneOverManyScriptedSequences
+122/400 Test #1725: FunnelInvariant.WidthIsMonotoneOverManyScriptedSequences .......................................   Passed    0.01 sec
+        Start 1726: FunnelInvariant.ResetClearsState
+123/400 Test #1726: FunnelInvariant.ResetClearsState ...............................................................   Passed    0.01 sec
+        Start 1727: FunnelInvariant.VerdictDoesNotDependOnTrActive
+124/400 Test #1727: FunnelInvariant.VerdictDoesNotDependOnTrActive .................................................   Passed    0.01 sec
+        Start 1728: FunnelInvariant.NonFiniteTrialIsRejected
+125/400 Test #1728: FunnelInvariant.NonFiniteTrialIsRejected .......................................................   Passed    0.01 sec
+        Start 1729: FunnelInvariant.DrivesThroughTheGlobalizationStrategyInterface
+126/400 Test #1729: FunnelInvariant.DrivesThroughTheGlobalizationStrategyInterface .................................   Passed    0.01 sec
+        Start 1730: FunnelResume.RebasesByEqThirteenAndNotByEqNine
+127/400 Test #1730: FunnelResume.RebasesByEqThirteenAndNotByEqNine .................................................   Passed    0.01 sec
+        Start 1731: FunnelResume.WideningIsOnlyPossibleAboveTheCurrentWidth
+128/400 Test #1731: FunnelResume.WideningIsOnlyPossibleAboveTheCurrentWidth ........................................   Passed    0.01 sec
+        Start 1732: FunnelResume.RejectsGarbageAndUninitializedUse
+129/400 Test #1732: FunnelResume.RejectsGarbageAndUninitializedUse .................................................   Passed    0.01 sec
+        Start 1733: FunnelResume.DefaultImplementationIsAReset
+130/400 Test #1733: FunnelResume.DefaultImplementationIsAReset .....................................................   Passed    0.01 sec
+        Start 1734: FunnelFullStep.AcceptsWhatTheFunnelWouldRejectWithoutMovingTheWidth
+131/400 Test #1734: FunnelFullStep.AcceptsWhatTheFunnelWouldRejectWithoutMovingTheWidth ............................   Passed    0.01 sec
+        Start 1735: FunnelFullStep.StillRejectsANonFiniteTrial
+132/400 Test #1735: FunnelFullStep.StillRejectsANonFiniteTrial .....................................................   Passed    0.01 sec
+        Start 1736: FunnelFullStep.ResumeFromRestorationClearsTheModeAndRebases
+133/400 Test #1736: FunnelFullStep.ResumeFromRestorationClearsTheModeAndRebases ....................................   Passed    0.01 sec
+        Start 1737: FunnelFullStep.ArmingBeforeResetThrows
+134/400 Test #1737: FunnelFullStep.ArmingBeforeResetThrows .........................................................   Passed    0.01 sec
+        Start 1738: FunnelMeasure.IsTheL1ConstraintViolation
+135/400 Test #1738: FunnelMeasure.IsTheL1ConstraintViolation .......................................................   Passed    0.01 sec
+        Start 1739: FunnelMeasure.IsZeroAtAFeasiblePointAndOnEmptyBlocks
+136/400 Test #1739: FunnelMeasure.IsZeroAtAFeasiblePointAndOnEmptyBlocks ...........................................   Passed    0.01 sec
+        Start 1740: FunnelMeasure.ReducesToTheL1NormWhenThereAreNoInequalities
+137/400 Test #1740: FunnelMeasure.ReducesToTheL1NormWhenThereAreNoInequalities .....................................   Passed    0.01 sec
+        Start 1741: FunnelMeasure.PropagatesNonFiniteConstraintValues
+138/400 Test #1741: FunnelMeasure.PropagatesNonFiniteConstraintValues ..............................................   Passed    0.01 sec
+        Start 1742: HsBattery.BorderMode
+139/400 Test #1742: HsBattery.BorderMode ...........................................................................   Passed    0.11 sec
+        Start 1743: HsBattery.RefactorizeMode
+140/400 Test #1743: HsBattery.RefactorizeMode ......................................................................   Passed    0.10 sec
+        Start 1744: HsBattery.ModeStatusDivergenceIsEmpty
+141/400 Test #1744: HsBattery.ModeStatusDivergenceIsEmpty ..........................................................   Passed    0.19 sec
+        Start 1745: HsBattery.BorderModeFalseInfeasible
+142/400 Test #1745: HsBattery.BorderModeFalseInfeasible ............................................................   Passed    0.02 sec
+        Start 1746: HsBattery.RefinementStepCountersOnBorderRepro
+143/400 Test #1746: HsBattery.RefinementStepCountersOnBorderRepro ..................................................   Passed    0.02 sec
+        Start 1747: HsBattery.SocIsRareAndUnprofitableAcrossTheBattery
+144/400 Test #1747: HsBattery.SocIsRareAndUnprofitableAcrossTheBattery .............................................   Passed    0.11 sec
+        Start 1748: HsBattery.EveryElasticActivationRunsTheRhoLadderToItsCeiling
+145/400 Test #1688: M7T3ElasticRungVehicle.TheTierRungIsImmuneToTheDriversTrustRegionRadius ........................   Passed    1.65 sec
+        Start 1749: HsBattery.AdaptiveMuNeverSharesAMajorWithSocOrElastic
+146/400 Test #1748: HsBattery.EveryElasticActivationRunsTheRhoLadderToItsCeiling ...................................   Passed    0.11 sec
+        Start 1750: HsBattery.FeasibleStartsEndFeasibleDespiteTheLooseFunnelWidth
+147/400 Test #1749: HsBattery.AdaptiveMuNeverSharesAMajorWithSocOrElastic ..........................................   Passed    0.11 sec
+        Start 1751: HsBattery.NoBatteryProblemEverCertifiesInfeasibility
+148/400 Test #1750: HsBattery.FeasibleStartsEndFeasibleDespiteTheLooseFunnelWidth ..................................   Passed    0.10 sec
+        Start 1752: HsBattery.AggregateCostIsRecordedAndBounded
+149/400 Test #1751: HsBattery.NoBatteryProblemEverCertifiesInfeasibility ...........................................   Passed    0.19 sec
+        Start 1753: HsBattery.CrashBasisIsANullResultOnTheBatteryWithTwoBoundSeededExceptions
+150/400 Test #1752: HsBattery.AggregateCostIsRecordedAndBounded ....................................................   Passed    0.10 sec
+        Start 1754: HsBattery.TableCoversEveryShippedProblem
+151/400 Test #1754: HsBattery.TableCoversEveryShippedProblem .......................................................   Passed    0.01 sec
+        Start 1755: HsSweepModels.DerivativesAgreeWithFiniteDifferencesAtEveryParameterValue
+152/400 Test #1755: HsSweepModels.DerivativesAgreeWithFiniteDifferencesAtEveryParameterValue .......................   Passed    0.01 sec
+        Start 1756: HsSweepModels.SparsityPatternIsIndependentOfBothXAndP
+153/400 Test #1756: HsSweepModels.SparsityPatternIsIndependentOfBothXAndP ..........................................   Passed    0.01 sec
+        Start 1757: HsSweepModels.AtPZeroTheWrapperIsThePublishedProblem
+154/400 Test #1757: HsSweepModels.AtPZeroTheWrapperIsThePublishedProblem ...........................................   Passed    0.01 sec
+        Start 1758: HsSweepModels.MovingPMovesExactlyTheShiftedRowsAndTheTiltedObjective
+155/400 Test #1758: HsSweepModels.MovingPMovesExactlyTheShiftedRowsAndTheTiltedObjective ...........................   Passed    0.01 sec
+        Start 1759: HsSweepModels.ParameterContractViolationsThrowWithTheirSizesInTheMessage
+156/400 Test #1759: HsSweepModels.ParameterContractViolationsThrowWithTheirSizesInTheMessage .......................   Passed    0.01 sec
+        Start 1760: HsSweepModels.Hs15BranchEndsAtAPointWhereLicqFails
+157/400 Test #1760: HsSweepModels.Hs15BranchEndsAtAPointWhereLicqFails .............................................   Passed    0.01 sec
+        Start 1761: HsSweepCorpus.Corpus
+158/400 Test #1613: CorpusRunnerProcess.TheProxCarryLeverReachesTheSOLVEAndNotJustTheHeader ........................   Passed    3.85 sec
+        Start 1762: HsSweepRepair.WarmSolveOnAReleasedRowNoLongerCertifiesTheOldPoint
+159/400 Test #1753: HsBattery.CrashBasisIsANullResultOnTheBatteryWithTwoBoundSeededExceptions ......................   Passed    0.20 sec
+        Start 1763: IpqpAcceptanceA1.TheBoundArcRegimeHasNoJunctionToReadAndThePathInterfaceWindowHasTwo
+160/400 Test #1762: HsSweepRepair.WarmSolveOnAReleasedRowNoLongerCertifiesTheOldPoint ..............................   Passed    0.06 sec
+        Start 1764: IpqpAcceptanceA1.TheWindowAtF7sOwnJunctionsIsRecoveredExactly
+161/400 Test #1763: IpqpAcceptanceA1.TheBoundArcRegimeHasNoJunctionToReadAndThePathInterfaceWindowHasTwo ...........   Passed    0.05 sec
+        Start 1765: IpqpAcceptanceA1.TwoBlocksOneAtEachJunctionAreRecoveredExactly
+162/400 Test #1764: IpqpAcceptanceA1.TheWindowAtF7sOwnJunctionsIsRecoveredExactly ..................................   Passed    0.10 sec
+        Start 1766: IpqpAcceptanceA2.ARealMidSolveSubproblemRoundTripsTheDumpSeamAndAgreesWithTheWalk
+163/400 Test #1766: IpqpAcceptanceA2.ARealMidSolveSubproblemRoundTripsTheDumpSeamAndAgreesWithTheWalk ..............   Passed    0.07 sec
+        Start 1767: IpqpAcceptanceA3.BothSetsAndTheBoundMultiplierSignsAreRecoveredAtEveryMarginClass
+164/400 Test #1765: IpqpAcceptanceA1.TwoBlocksOneAtEachJunctionAreRecoveredExactly .................................   Passed    0.17 sec
+        Start 1768: IpqpAcceptanceA5.AColdWideWindowSubproblemAtSizeIsSolvedInBudget
+165/400 Test #1767: IpqpAcceptanceA3.BothSetsAndTheBoundMultiplierSignsAreRecoveredAtEveryMarginClass ..............   Passed    0.50 sec
+        Start 1769: IpqpAcceptanceA11.TheIndefiniteHsRowsSolveUnderKIpmAndCertifyHonestly
+166/400 Test #1769: IpqpAcceptanceA11.TheIndefiniteHsRowsSolveUnderKIpmAndCertifyHonestly ..........................   Passed    0.06 sec
+        Start 1770: IpqpAcceptanceA11.TheIndefiniteQpFamilyArmsTheLadderAndReachesTheFinalRead
+167/400 Test #1770: IpqpAcceptanceA11.TheIndefiniteQpFamilyArmsTheLadderAndReachesTheFinalRead .....................   Passed    0.02 sec
+        Start 1771: IpqpAcceptanceWarm.AWarmContinuationHopCostsFewerBarrierIterationsAndKillsNothing
+168/400 Test #1768: IpqpAcceptanceA5.AColdWideWindowSubproblemAtSizeIsSolvedInBudget ...............................   Passed    0.69 sec
+        Start 1772: IpqpAcceptanceCensus.AnArmedRunIsNeverMistakenForAStallAcrossTheHsBattery
+169/400 Test #1772: IpqpAcceptanceCensus.AnArmedRunIsNeverMistakenForAStallAcrossTheHsBattery ......................   Passed    0.29 sec
+        Start 1773: IpqpAcceptanceCensus.TheNaturalStallIsChargedToASubproblemThatNeverArmedTheLadder
+170/400 Test #1773: IpqpAcceptanceCensus.TheNaturalStallIsChargedToASubproblemThatNeverArmedTheLadder ..............   Passed    0.09 sec
+        Start 1774: IpqpAcceptanceA4.TheArmsTaxonomyIsE1sOwnTwentyNineCellsWithTheSweepScriptsSeeds
+171/400 Test #1774: IpqpAcceptanceA4.TheArmsTaxonomyIsE1sOwnTwentyNineCellsWithTheSweepScriptsSeeds ................   Passed    0.01 sec
+        Start 1775: IpqpAcceptanceA4.ATwoHundredNodeSmokeOfTheArmsMechanicsWhichIsNotTheGate
+172/400 Test #1771: IpqpAcceptanceWarm.AWarmContinuationHopCostsFewerBarrierIterationsAndKillsNothing ..............   Passed    0.69 sec
+        Start 1776: IpqpAcceptanceA4.TheCommittedGateCsvScoresRedOnThreeOfFourAtTheShippedDefaults
+173/400 Test #1776: IpqpAcceptanceA4.TheCommittedGateCsvScoresRedOnThreeOfFourAtTheShippedDefaults .................   Passed    0.02 sec
+        Start 1777: IpqpAcceptanceA4.TheGateAtTheMeasuredDefaultIsGreenButForOneNamedCell
+174/400 Test #1777: IpqpAcceptanceA4.TheGateAtTheMeasuredDefaultIsGreenButForOneNamedCell ..........................   Passed    0.01 sec
+        Start 1778: IpqpCertificationTest.ADowngradedCertificateReportsNumericalErrorAndNotANewQpStatus
+175/400 Test #1778: IpqpCertificationTest.ADowngradedCertificateReportsNumericalErrorAndNotANewQpStatus ............   Passed    0.02 sec
+        Start 1779: IpqpCertificationTest.TheFinalReadVerifiesDirectionsOffAWeaklyActiveBoundInsteadOfMasking
+176/400 Test #1779: IpqpCertificationTest.TheFinalReadVerifiesDirectionsOffAWeaklyActiveBoundInsteadOfMasking ......   Passed    0.02 sec
+        Start 1780: IpqpCertificationTest.AHealthySolveNeverArmsTheEvidenceFailurePath
+177/400 Test #1780: IpqpCertificationTest.AHealthySolveNeverArmsTheEvidenceFailurePath .............................   Passed    0.02 sec
+        Start 1781: IpqpCertificationTest.T4cKeptTightNonVacuity
+178/400 Test #1781: IpqpCertificationTest.T4cKeptTightNonVacuity ...................................................   Passed    0.02 sec
+        Start 1782: IpqpCertificationTest.T4cFGapBoundedByMuStop
+179/400 Test #1782: IpqpCertificationTest.T4cFGapBoundedByMuStop ...................................................   Passed    0.02 sec
+        Start 1783: IpqpCertificationTest.FewerThanTwoAcceptedIteratesFallsBackToTheBandPath
+180/400 Test #1783: IpqpCertificationTest.FewerThanTwoAcceptedIteratesFallsBackToTheBandPath .......................   Passed    0.02 sec
+        Start 1784: IpqpCertificationTest.AKilledWarmAttemptsHistoryNeverReachesTheColdRestartsRead
+181/400 Test #1784: IpqpCertificationTest.AKilledWarmAttemptsHistoryNeverReachesTheColdRestartsRead ................   Passed    0.02 sec
+        Start 1785: IpqpCensusTest.EveryEscapeIncrementsExactlyOneCensusFieldAndIpqpEscapes
+182/400 Test #1785: IpqpCensusTest.EveryEscapeIncrementsExactlyOneCensusFieldAndIpqpEscapes ........................   Passed    0.02 sec
+        Start 1786: IpqpCensusTest.ADeclinedSubproblemIsNotAnEscapeAndCensusesNothing
+183/400 Test #1786: IpqpCensusTest.ADeclinedSubproblemIsNotAnEscapeAndCensusesNothing ..............................   Passed    0.01 sec
+        Start 1787: IpqpA11Test.TheIndefiniteFamilyRidesNegativeCurvatureToABoundAndCertifiesHonestly
+184/400 Test #1787: IpqpA11Test.TheIndefiniteFamilyRidesNegativeCurvatureToABoundAndCertifiesHonestly ..............   Passed    0.02 sec
+        Start 1788: IpqpA11Test.TheHSIndefiniteRowsConvergeAndReachTheRequiredFinalRead
+185/400 Test #1775: IpqpAcceptanceA4.ATwoHundredNodeSmokeOfTheArmsMechanicsWhichIsNotTheGate .......................   Passed    0.41 sec
+        Start 1789: IpqpA11Test.TheFinalReadIsReachedOnAConstrainedIndefiniteKkt
+186/400 Test #1789: IpqpA11Test.TheFinalReadIsReachedOnAConstrainedIndefiniteKkt ...................................   Passed    0.01 sec
+        Start 1790: IpqpA11Test.TheConvexTwinOfTheFamilyCertifiesAndLeavesTheLadderInert
+187/400 Test #1788: IpqpA11Test.TheHSIndefiniteRowsConvergeAndReachTheRequiredFinalRead ............................   Passed    0.03 sec
+        Start 1791: IpqpLadderBandTest.TheSettledModificationSitsInsideAlgorithmICsOwnBand
+188/400 Test #1790: IpqpA11Test.TheConvexTwinOfTheFamilyCertifiesAndLeavesTheLadderInert ...........................   Passed    0.02 sec
+        Start 1792: IpqpLadderTest.AFixedPointOfTheExecutedMapIsAPointTheGateCanSee
+189/400 Test #1791: IpqpLadderBandTest.TheSettledModificationSitsInsideAlgorithmICsOwnBand .........................   Passed    0.04 sec
+        Start 1793: IpqpLadderTest.ALongArmedWalkWithNoGateAdvanceStillConvergesInsideTheBudget
+190/400 Test #1792: IpqpLadderTest.AFixedPointOfTheExecutedMapIsAPointTheGateCanSee ................................   Passed    0.03 sec
+        Start 1794: IpqpLadderTest.AConvexSubproblemLeavesTheInertiaMachineryProvablyInert
+191/400 Test #1794: IpqpLadderTest.AConvexSubproblemLeavesTheInertiaMachineryProvablyInert .........................   Passed    0.02 sec
+        Start 1795: IpqpLadderTest.AnIndefiniteSubproblemArmsTheLadderAndWalksToTheBound
+192/400 Test #1795: IpqpLadderTest.AnIndefiniteSubproblemArmsTheLadderAndWalksToTheBound ...........................   Passed    0.02 sec
+        Start 1796: IpqpLadderTest.TheICTrialIsRefusedAndTheReclimbIsCounted
+193/400 Test #1793: IpqpLadderTest.ALongArmedWalkWithNoGateAdvanceStillConvergesInsideTheBudget ....................   Passed    0.05 sec
+        Start 1797: IpqpLadderTest.TheABSOLUTEFloorIsNeitherADecreaseNorAnythingElse
+194/400 Test #1796: IpqpLadderTest.TheICTrialIsRefusedAndTheReclimbIsCounted .......................................   Passed    0.02 sec
+        Start 1798: IpqpLadderTest.TheIdentityHoldsOnALongConvexSolveThatNeverArmsTheLadder
+195/400 Test #1797: IpqpLadderTest.TheABSOLUTEFloorIsNeitherADecreaseNorAnythingElse ...............................   Passed    0.02 sec
+        Start 1799: IpqpLadderTest.TheFinalReadCatchesASaddleTheLadderWouldOtherwiseCertify
+196/400 Test #1798: IpqpLadderTest.TheIdentityHoldsOnALongConvexSolveThatNeverArmsTheLadder ........................   Passed    0.02 sec
+        Start 1800: IpqpLadderTest.TheFinalReadDropsToTheSCHEDULEFLOORNotToWhereverTheScheduleStopped
+197/400 Test #1799: IpqpLadderTest.TheFinalReadCatchesASaddleTheLadderWouldOtherwiseCertify ........................   Passed    0.02 sec
+        Start 1801: IpqpLadderTest.AnExhaustedLadderStopsAtTheCeilingExactlyAndReportsIndefinite
+198/400 Test #1800: IpqpLadderTest.TheFinalReadDropsToTheSCHEDULEFLOORNotToWhereverTheScheduleStopped ..............   Passed    0.02 sec
+        Start 1802: IpqpStallTest.TheStallEscapeCarriesAllThreeConjunctValuesInOneEvidenceBlock
+199/400 Test #1801: IpqpLadderTest.AnExhaustedLadderStopsAtTheCeilingExactlyAndReportsIndefinite ...................   Passed    0.02 sec
+        Start 1803: IpqpStallTest.AHealthySolveNeverTripsConjunctThreeOnOneTinyAlphaStep
+200/400 Test #1802: IpqpStallTest.TheStallEscapeCarriesAllThreeConjunctValuesInOneEvidenceBlock ....................   Passed    0.02 sec
+        Start 1804: IpqpInfeasibleSuspectTest.TheSignatureEscapesAsASUSPICIONAndNeverAsACertificate
+201/400 Test #1803: IpqpStallTest.AHealthySolveNeverTripsConjunctThreeOnOneTinyAlphaStep ...........................   Passed    0.02 sec
+        Start 1805: IpqpInfeasibleSuspectTest.TheFarkasGateArmsTheReportAndNeverWithdrawsIt
+202/400 Test #1804: IpqpInfeasibleSuspectTest.TheSignatureEscapesAsASUSPICIONAndNeverAsACertificate ................   Passed    0.02 sec
+        Start 1806: IpqpInfeasibleSuspectTest.TheExhaustionRouteMeasuresGrowthPerStepAgainstTheStartPoint
+203/400 Test #1805: IpqpInfeasibleSuspectTest.TheFarkasGateArmsTheReportAndNeverWithdrawsIt ........................   Passed    0.02 sec
+        Start 1807: IpqpInfeasibleSuspectTest.AFeasibleSolveNeverRaisesTheSignature
+204/400 Test #1806: IpqpInfeasibleSuspectTest.TheExhaustionRouteMeasuresGrowthPerStepAgainstTheStartPoint ..........   Passed    0.02 sec
+        Start 1808: IpqpInfeasibleSuspectTest.TheEvidenceCarriesTheDualsOfTheLeastInfeasiblePointITSELF
+205/400 Test #1807: IpqpInfeasibleSuspectTest.AFeasibleSolveNeverRaisesTheSignature ................................   Passed    0.02 sec
+        Start 1809: IpqpInfeasibleSuspectTest.TheEvidencesDualNormsAreRecordedAFTERTheRuizUnscale
+206/400 Test #1808: IpqpInfeasibleSuspectTest.TheEvidenceCarriesTheDualsOfTheLeastInfeasiblePointITSELF ............   Passed    0.02 sec
+        Start 1810: IpqpInfeasibleSuspectTest.TheCallerUnitPinSeesALambdaIRescaleOnANonAntisymmetricFixture
+207/400 Test #1809: IpqpInfeasibleSuspectTest.TheEvidencesDualNormsAreRecordedAFTERTheRuizUnscale ..................   Passed    0.02 sec
+        Start 1811: IpqpEscapeLadderTest.ThreeConsecutiveEscapesRetireTheTierAtThatMajor
+208/400 Test #1811: IpqpEscapeLadderTest.ThreeConsecutiveEscapesRetireTheTierAtThatMajor ...........................   Passed    0.01 sec
+        Start 1812: IpqpEscapeLadderTest.AnySuccessResetsTheCountIncludingADowngradedOne
+209/400 Test #1810: IpqpInfeasibleSuspectTest.TheCallerUnitPinSeesALambdaIRescaleOnANonAntisymmetricFixture ........   Passed    0.02 sec
+        Start 1813: IpqpEscapeLadderTest.ADeclineIsNeutralAndNeitherAdvancesNorResetsTheTally
+210/400 Test #1812: IpqpEscapeLadderTest.AnySuccessResetsTheCountIncludingADowngradedOne ...........................   Passed    0.01 sec
+        Start 1814: IpqpEscapeLadderTest.TheThresholdIsTheOptionAndIsValidatedAtTheBoundary
+211/400 Test #1813: IpqpEscapeLadderTest.ADeclineIsNeutralAndNeitherAdvancesNorResetsTheTally ......................   Passed    0.01 sec
+        Start 1815: IpqpEscapeLadderTest.TheLadderIsDrivenByRealTierOutcomesAndNotOnlyByHandBuiltOnes
+212/400 Test #1814: IpqpEscapeLadderTest.TheThresholdIsTheOptionAndIsValidatedAtTheBoundary ........................   Passed    0.01 sec
+        Start 1816: IpqpCounters.DefaultConstructedIsZeroInitialized
+213/400 Test #1815: IpqpEscapeLadderTest.TheLadderIsDrivenByRealTierOutcomesAndNotOnlyByHandBuiltOnes ..............   Passed    0.02 sec
+        Start 1817: IpqpCounters.SqpCountersCarriesAZeroInitializedIpqpFieldBesideSsn
+214/400 Test #1816: IpqpCounters.DefaultConstructedIsZeroInitialized ...............................................   Passed    0.01 sec
+        Start 1818: IpqpCounters.EscapeCensusHelperAcceptsAConsistentCensus
+215/400 Test #1817: IpqpCounters.SqpCountersCarriesAZeroInitializedIpqpFieldBesideSsn ..............................   Passed    0.01 sec
+        Start 1819: IpqpCounters.EscapeCensusHelperAcceptsTheVacuousAllZeroCase
+216/400 Test #1818: IpqpCounters.EscapeCensusHelperAcceptsAConsistentCensus ........................................   Passed    0.01 sec
+        Start 1820: IpqpCounters.EscapeCensusHelperCatchesAViolation
+217/400 Test #1819: IpqpCounters.EscapeCensusHelperAcceptsTheVacuousAllZeroCase ....................................   Passed    0.01 sec
+        Start 1821: AccumulateIpqpCounters.RhoDemandedMaxFoldsByMaxAcrossSubproblems
+218/400 Test #1820: IpqpCounters.EscapeCensusHelperCatchesAViolation ...............................................   Passed    0.01 sec
+        Start 1822: AccumulateIpqpCounters.RestartShiftMaxFoldsByMaxAcrossSubproblems
+219/400 Test #1821: AccumulateIpqpCounters.RhoDemandedMaxFoldsByMaxAcrossSubproblems ...............................   Passed    0.01 sec
+        Start 1823: AccumulateIpqpCounters.TierRetiredAfterFoldsByMaxNotSumOrOverwrite
+220/400 Test #1822: AccumulateIpqpCounters.RestartShiftMaxFoldsByMaxAcrossSubproblems ..............................   Passed    0.01 sec
+        Start 1824: AccumulateIpqpCounters.AlphaPMinFoldsByMinAcrossSubproblems
+221/400 Test #1823: AccumulateIpqpCounters.TierRetiredAfterFoldsByMaxNotSumOrOverwrite .............................   Passed    0.01 sec
+        Start 1825: AccumulateIpqpCounters.AlphaDMinFoldsByMinAcrossSubproblems
+222/400 Test #1824: AccumulateIpqpCounters.AlphaPMinFoldsByMinAcrossSubproblems ....................................   Passed    0.01 sec
+        Start 1826: AccumulateIpqpCounters.RhoDemandedLastIsOverwrittenByTheMostRecentSubproblem
+223/400 Test #1825: AccumulateIpqpCounters.AlphaDMinFoldsByMinAcrossSubproblems ....................................   Passed    0.01 sec
+        Start 1827: AccumulateIpqpCounters.FinalInertiaReadIsOverwrittenByTheMostRecentSubproblem
+224/400 Test #1826: AccumulateIpqpCounters.RhoDemandedLastIsOverwrittenByTheMostRecentSubproblem ...................   Passed    0.01 sec
+        Start 1828: AccumulateIpqpCounters.EveryOtherIndexFieldSumsAcrossSubproblems
+225/400 Test #1827: AccumulateIpqpCounters.FinalInertiaReadIsOverwrittenByTheMostRecentSubproblem ..................   Passed    0.01 sec
+        Start 1829: AccumulateIpqpCounters.TotalStartingFromANonzeroBaseFoldsCorrectly
+226/400 Test #1828: AccumulateIpqpCounters.EveryOtherIndexFieldSumsAcrossSubproblems ...............................   Passed    0.01 sec
+        Start 1830: IpqpDispatch.EveryIpqpCounterIsStructurallyZeroAtKWalkAndKSsn
+227/400 Test #1829: AccumulateIpqpCounters.TotalStartingFromANonzeroBaseFoldsCorrectly .............................   Passed    0.01 sec
+        Start 1831: IpqpDispatch.KIpmValidatesAndSolves
+228/400 Test #1831: IpqpDispatch.KIpmValidatesAndSolves ............................................................   Passed    0.02 sec
+        Start 1832: IpqpDispatch.AZeroWidthEffectivePairDeclinesToTheWalkAndChargesNothing
+229/400 Test #1830: IpqpDispatch.EveryIpqpCounterIsStructurallyZeroAtKWalkAndKSsn ..................................   Passed    0.04 sec
+        Start 1833: IpqpDispatch.TheRoutingTableIsExercisedAndItsIdentitiesHoldOnEverySolve
+230/400 Test #1832: IpqpDispatch.AZeroWidthEffectivePairDeclinesToTheWalkAndChargesNothing .........................   Passed    0.02 sec
+        Start 1834: IpqpDispatch.AnInfeasibleSuspectExitsEvidenceReachesTheW2Hook
+231/400 Test #1834: IpqpDispatch.AnInfeasibleSuspectExitsEvidenceReachesTheW2Hook ..................................   Passed    0.04 sec
+        Start 1835: IpqpDispatch.AnEscapedSubproblemIsAnsweredByTheWalkAndItsCostIsStillCharged
+232/400 Test #1835: IpqpDispatch.AnEscapedSubproblemIsAnsweredByTheWalkAndItsCostIsStillCharged ....................   Passed    0.03 sec
+        Start 1836: IpqpDispatch.RetirementStopsEveryLaterMajorFromConsultingTheTier
+233/400 Test #1836: IpqpDispatch.RetirementStopsEveryLaterMajorFromConsultingTheTier ...............................   Passed    0.03 sec
+        Start 1837: IpqpDispatch.ASuccessfulSubproblemResetsTheConsecutiveEscapeTally
+234/400 Test #1761: HsSweepCorpus.Corpus ...........................................................................   Passed    2.32 sec
+        Start 1838: IpqpDispatch.OneAnalysisPerSolveAndOneVerifyPerLaterTierEntry
+235/400 Test #1837: IpqpDispatch.ASuccessfulSubproblemResetsTheConsecutiveEscapeTally ..............................   Passed    0.04 sec
+        Start 1839: IpqpDispatch.EverySqpSolveAnalysesOnceOnItsOwnAccount
+236/400 Test #1838: IpqpDispatch.OneAnalysisPerSolveAndOneVerifyPerLaterTierEntry ..................................   Passed    0.04 sec
+        Start 1840: IpqpDispatch.NoNegativeFacePriceEscapesUnderKIpmEither
+237/400 Test #1839: IpqpDispatch.EverySqpSolveAnalysesOnceOnItsOwnAccount ..........................................   Passed    0.04 sec
+        Start 1841: IpqpDispatch.TheSsnWarmGradeRouteIsReachableAndPricesOnlyRealBounds
+238/400 Test #1841: IpqpDispatch.TheSsnWarmGradeRouteIsReachableAndPricesOnlyRealBounds ............................   Passed    0.02 sec
+        Start 1842: IpqpDispatch.ASaddleSuspectExitRoutesToTheSsnWarmGradeAndNotToTheWalk
+239/400 Test #1842: IpqpDispatch.ASaddleSuspectExitRoutesToTheSsnWarmGradeAndNotToTheWalk ..........................   Passed    0.02 sec
+        Start 1843: IpqpDispatch.TheTierCarriesItsStateAcrossTheMajorsOfOneSolve
+240/400 Test #1843: IpqpDispatch.TheTierCarriesItsStateAcrossTheMajorsOfOneSolve ...................................   Passed    0.04 sec
+        Start 1844: IpqpDispatch.AnIndefiniteEscapeDropsTheCarry
+241/400 Test #1833: IpqpDispatch.TheRoutingTableIsExercisedAndItsIdentitiesHoldOnEverySolve ........................   Passed    0.29 sec
+        Start 1845: IpqpDispatch.TheCarryDoesNotLeakBetweenSolvesOnOneDriver
+242/400 Test #1844: IpqpDispatch.AnIndefiniteEscapeDropsTheCarry ...................................................   Passed    0.03 sec
+        Start 1846: IpqpDispatch.ThreeConsecutiveConvergedBudgetExitsDoNotRetireTheTier
+243/400 Test #1845: IpqpDispatch.TheCarryDoesNotLeakBetweenSolvesOnOneDriver .......................................   Passed    0.04 sec
+        Start 1847: IpqpDispatch.AUsableSsnWarmGradeExitIsRefinedOnItsOwnFace
+244/400 Test #1846: IpqpDispatch.ThreeConsecutiveConvergedBudgetExitsDoNotRetireTheTier ............................   Passed    0.03 sec
+        Start 1848: IpqpDispatch.ASolveTheTierNeverRunsIsTheWalkWithTheCallersOwnLevers
+245/400 Test #1847: IpqpDispatch.AUsableSsnWarmGradeExitIsRefinedOnItsOwnFace ......................................   Passed    0.02 sec
+        Start 1849: IpqpDispatch.TheSsnWarmGradeExportsTheProximalCarry
+246/400 Test #1848: IpqpDispatch.ASolveTheTierNeverRunsIsTheWalkWithTheCallersOwnLevers ............................   Passed    0.02 sec
+        Start 1850: IpqpDispatch.TheRoutingPartitionHelperHoldsOnTheRowsFixturesDoNotReach
+247/400 Test #1850: IpqpDispatch.TheRoutingPartitionHelperHoldsOnTheRowsFixturesDoNotReach .........................   Passed    0.01 sec
+        Start 1851: IpqpDispatch.TheFeasibilityHookTakesTheEvidenceAndRunsItsTwoRungLadder
+248/400 Test #1849: IpqpDispatch.TheSsnWarmGradeExportsTheProximalCarry ............................................   Passed    0.03 sec
+        Start 1852: IpqpDispatch.TheQpSolutionMappingCarriesTheWholeFaceIncludingTrActive
+249/400 Test #1852: IpqpDispatch.TheQpSolutionMappingCarriesTheWholeFaceIncludingTrActive ..........................   Passed    0.01 sec
+        Start 1853: IpqpDispatch.TheUsabilityGateAcceptsADowngradedCertificateAndARefusedFinalRead
+250/400 Test #1851: IpqpDispatch.TheFeasibilityHookTakesTheEvidenceAndRunsItsTwoRungLadder .........................   Passed    0.02 sec
+        Start 1854: IpqpDispatch.KIpmAndKWalkAgreeOnTheAnswerAcrossTheHsBattery
+251/400 Test #1853: IpqpDispatch.TheUsabilityGateAcceptsADowngradedCertificateAndARefusedFinalRead .................   Passed    0.01 sec
+        Start 1855: IpqpBoxTest.TheCentreIsRefineOnFacesOwnClampedOrigin
+252/400 Test #1855: IpqpBoxTest.TheCentreIsRefineOnFacesOwnClampedOrigin ...........................................   Passed    0.01 sec
+        Start 1856: IpqpBoxTest.AnInfiniteRadiusReproducesTheDeclaredBoxExactly
+253/400 Test #1856: IpqpBoxTest.AnInfiniteRadiusReproducesTheDeclaredBoxExactly ....................................   Passed    0.01 sec
+        Start 1857: IpqpBoxTest.MakeIpqpBoundsRefusesABoxWhoseBlocksDisagree
+254/400 Test #1857: IpqpBoxTest.MakeIpqpBoundsRefusesABoxWhoseBlocksDisagree .......................................   Passed    0.01 sec
+        Start 1858: IpqpBoxTest.MalformedRadiiAreRefusedAtTheBoundary
+255/400 Test #1858: IpqpBoxTest.MalformedRadiiAreRefusedAtTheBoundary ..............................................   Passed    0.01 sec
+        Start 1859: IpqpDomainGateTest.ADeclarationPinnedVariableDeclinesAndIsNotAnEscape
+256/400 Test #1859: IpqpDomainGateTest.ADeclarationPinnedVariableDeclinesAndIsNotAnEscape ..........................   Passed    0.01 sec
+        Start 1860: IpqpDomainGateTest.AZeroRadiusRetryDeclines
+257/400 Test #1840: IpqpDispatch.NoNegativeFacePriceEscapesUnderKIpmEither .........................................   Passed    0.30 sec
+        Start 1861: IpqpDomainGateTest.ACrossedDeclaredBoxDeclinesRatherThanThrowing
+258/400 Test #1860: IpqpDomainGateTest.AZeroRadiusRetryDeclines ....................................................   Passed    0.02 sec
+        Start 1862: IpqpConvergenceTest.BoxConstrainedInteriorSolutionAgreesWithTheWalk
+259/400 Test #1861: IpqpDomainGateTest.ACrossedDeclaredBoxDeclinesRatherThanThrowing ...............................   Passed    0.01 sec
+        Start 1863: IpqpConvergenceTest.BoxConstrainedActiveSolutionAgreesWithTheWalk
+260/400 Test #1862: IpqpConvergenceTest.BoxConstrainedInteriorSolutionAgreesWithTheWalk ............................   Passed    0.02 sec
+        Start 1864: IpqpConvergenceTest.OneInequalityRowAgreesWithTheWalk
+261/400 Test #1863: IpqpConvergenceTest.BoxConstrainedActiveSolutionAgreesWithTheWalk ..............................   Passed    0.02 sec
+        Start 1865: IpqpConvergenceTest.OneEqualityRowAgreesWithTheWalk
+262/400 Test #1864: IpqpConvergenceTest.OneInequalityRowAgreesWithTheWalk ..........................................   Passed    0.02 sec
+        Start 1866: IpqpConvergenceTest.BothRowBlocksAgreeWithTheWalk
+263/400 Test #1865: IpqpConvergenceTest.OneEqualityRowAgreesWithTheWalk ............................................   Passed    0.02 sec
+        Start 1867: IpqpConvergenceTest.ATrustRegionWindowIsHonouredAndAgreesWithTheWalk
+264/400 Test #1866: IpqpConvergenceTest.BothRowBlocksAgreeWithTheWalk ..............................................   Passed    0.02 sec
+        Start 1868: IpqpBudgetTest.TheFactorizationCapIsCheckedBeforeEVERYFactorizationLadderRungsIncluded
+265/400 Test #1867: IpqpConvergenceTest.ATrustRegionWindowIsHonouredAndAgreesWithTheWalk ...........................   Passed    0.02 sec
+        Start 1869: IpqpBudgetTest.TheHardCapIsTheBudgetOfLastResortAndReportsMaxIter
+266/400 Test #1868: IpqpBudgetTest.TheFactorizationCapIsCheckedBeforeEVERYFactorizationLadderRungsIncluded .........   Passed    0.02 sec
+        Start 1870: IpqpBudgetTest.TheFactorizationCapBindsIndependentlyOfTheIterationCap
+267/400 Test #1869: IpqpBudgetTest.TheHardCapIsTheBudgetOfLastResortAndReportsMaxIter ..............................   Passed    0.02 sec
+        Start 1871: IpqpBudgetTest.AFinalReadTheBudgetREFUSEDIsNotPerformedRatherThanUnreadable
+268/400 Test #1870: IpqpBudgetTest.TheFactorizationCapBindsIndependentlyOfTheIterationCap ..........................   Passed    0.02 sec
+        Start 1872: IpqpFactorizationTest.EachTierEntryPaysExactlyOneSymbolicPassOrOnePatternVerify
+269/400 Test #1871: IpqpBudgetTest.AFinalReadTheBudgetREFUSEDIsNotPerformedRatherThanUnreadable ....................   Passed    0.02 sec
+        Start 1873: IpqpFactorizationTest.PredictorAndCorrectorShareOneFactorizationPerIteration
+270/400 Test #1872: IpqpFactorizationTest.EachTierEntryPaysExactlyOneSymbolicPassOrOnePatternVerify ................   Passed    0.02 sec
+        Start 1874: IpqpFactorizationTest.DisablingTheFinalReadDowngradesUnconditionallyAndSavesTheFactorization
+271/400 Test #1873: IpqpFactorizationTest.PredictorAndCorrectorShareOneFactorizationPerIteration ...................   Passed    0.02 sec
+        Start 1875: IpqpDeterminismTest.TwoColdSolvesOfTheSameProblemAgreeBitForBit
+272/400 Test #1874: IpqpFactorizationTest.DisablingTheFinalReadDowngradesUnconditionallyAndSavesTheFactorization ...   Passed    0.02 sec
+        Start 1876: IpqpRuizTest.EquilibrationRoundTripsAndBothArmsLandOnTheWalksOwnPoint
+273/400 Test #1875: IpqpDeterminismTest.TwoColdSolvesOfTheSameProblemAgreeBitForBit ................................   Passed    0.02 sec
+        Start 1877: IpqpRuizTest.ABadlyScaledSubproblemStillAgreesWithTheWalk
+274/400 Test #1876: IpqpRuizTest.EquilibrationRoundTripsAndBothArmsLandOnTheWalksOwnPoint ..........................   Passed    0.02 sec
+        Start 1878: IpqpRuizTest.TheRelativeStoppingRuleIsFOLDEDGLOBALLYAndThatHasAMeasuredPrice
+275/400 Test #1877: IpqpRuizTest.ABadlyScaledSubproblemStillAgreesWithTheWalk ......................................   Passed    0.02 sec
+        Start 1879: IpqpFaceTest.AnActiveBoundIsClassifiedActiveAndAnInactiveOneInactive
+276/400 Test #1878: IpqpRuizTest.TheRelativeStoppingRuleIsFOLDEDGLOBALLYAndThatHasAMeasuredPrice ...................   Passed    0.02 sec
+        Start 1880: IpqpFaceTest.ATrustRegionPinIsReportedThroughTrActiveAndNotThroughBoundState
+277/400 Test #1879: IpqpFaceTest.AnActiveBoundIsClassifiedActiveAndAnInactiveOneInactive ...........................   Passed    0.02 sec
+        Start 1881: IpqpFaceTest.AFreeVariableCarriesExactlyZeroAndAnAbsentBoundIsNeverPriced
+278/400 Test #1880: IpqpFaceTest.ATrustRegionPinIsReportedThroughTrActiveAndNotThroughBoundState ...................   Passed    0.02 sec
+        Start 1882: IpqpFaceTest.AnAbsentRealBoundIsNeverPricedEvenWhenTheTrustRegionSuppliesOne
+279/400 Test #1881: IpqpFaceTest.AFreeVariableCarriesExactlyZeroAndAnAbsentBoundIsNeverPriced ......................   Passed    0.02 sec
+        Start 1883: IpqpBoundaryTest.AWarmSeedIsRefusedRatherThanSilentlyIgnored
+280/400 Test #1883: IpqpBoundaryTest.AWarmSeedIsRefusedRatherThanSilentlyIgnored ...................................   Passed    0.01 sec
+        Start 1884: IpqpBoundaryTest.MalformedOptionsAndOverridesAreRefused
+281/400 Test #1882: IpqpFaceTest.AnAbsentRealBoundIsNeverPricedEvenWhenTheTrustRegionSuppliesOne ...................   Passed    0.02 sec
+        Start 1885: IpqpBoundaryTest.TheLedgerRecordsOneRowPerSolveAndNoneForAThrow
+282/400 Test #1884: IpqpBoundaryTest.MalformedOptionsAndOverridesAreRefused ........................................   Passed    0.01 sec
+        Start 1886: IpqpCounterTest.TheRoutingAndWarmGroupsStayAtZeroBecauseTheyAreDriverScale
+283/400 Test #1885: IpqpBoundaryTest.TheLedgerRecordsOneRowPerSolveAndNoneForAThrow ................................   Passed    0.02 sec
+        Start 1887: IpqpCounterTest.TheEscapeCensusCountsABudgetEscapeExactlyOnce
+284/400 Test #1886: IpqpCounterTest.TheRoutingAndWarmGroupsStayAtZeroBecauseTheyAreDriverScale .....................   Passed    0.02 sec
+        Start 1888: IpqpCounterTest.TheAlphaFloorsAreObservedAndStayInsideTheUnitInterval
+285/400 Test #1887: IpqpCounterTest.TheEscapeCensusCountsABudgetEscapeExactlyOnce ..................................   Passed    0.02 sec
+        Start 1889: IpqpCounterTest.TheGatedScheduleMovesAndAdvancesTheProximalCentre
+286/400 Test #1888: IpqpCounterTest.TheAlphaFloorsAreObservedAndStayInsideTheUnitInterval ..........................   Passed    0.02 sec
+        Start 1890: IpqpKktLayoutTest.DimensionAndBlockBasesFollowTheKktVectorOrder
+287/400 Test #1890: IpqpKktLayoutTest.DimensionAndBlockBasesFollowTheKktVectorOrder ................................   Passed    0.01 sec
+        Start 1891: IpqpKktLayoutTest.BothAssemblyPathsAreByteIdenticalToASetFromTripletsReference
+288/400 Test #1889: IpqpCounterTest.TheGatedScheduleMovesAndAdvancesTheProximalCentre ..............................   Passed    0.02 sec
+        Start 1892: IpqpKktLayoutTest.AReusedPlanScattersNewValuesWithoutRelayingOutThePattern
+289/400 Test #1891: IpqpKktLayoutTest.BothAssemblyPathsAreByteIdenticalToASetFromTripletsReference .................   Passed    0.01 sec
+        Start 1893: IpqpKktLayoutTest.APatternChangeRelaysTheStructureOut
+290/400 Test #1892: IpqpKktLayoutTest.AReusedPlanScattersNewValuesWithoutRelayingOutThePattern .....................   Passed    0.01 sec
+        Start 1894: IpqpKktLayoutTest.DiagonalSlotsAddressTheEntriesTheyClaimTo
+291/400 Test #1893: IpqpKktLayoutTest.APatternChangeRelaysTheStructureOut ..........................................   Passed    0.01 sec
+        Start 1895: IpqpKktLayoutTest.PrimalDiagSourceCarriesHsOwnDiagonalAndZeroWhereHHasNone
+292/400 Test #1894: IpqpKktLayoutTest.DiagonalSlotsAddressTheEntriesTheyClaimTo ....................................   Passed    0.01 sec
+        Start 1896: IpqpKktLayoutTest.TheAssembledSystemFactorizesToTheSpecifiedInertiaTarget
+293/400 Test #1895: IpqpKktLayoutTest.PrimalDiagSourceCarriesHsOwnDiagonalAndZeroWhereHHasNone .....................   Passed    0.01 sec
+        Start 1897: IpqpKktLayoutTest.PerturbingARecordedDiagonalSlotMovesTheObservedInertia
+294/400 Test #1896: IpqpKktLayoutTest.TheAssembledSystemFactorizesToTheSpecifiedInertiaTarget ......................   Passed    0.02 sec
+        Start 1898: IpqpKktLayoutTest.PredictorAndCorrectorSolveAgainstOneFactorization
+295/400 Test #1897: IpqpKktLayoutTest.PerturbingARecordedDiagonalSlotMovesTheObservedInertia .......................   Passed    0.02 sec
+        Start 1899: IpqpKktLayoutTest.MalformedInputsAreRefusedAtTheBoundary
+296/400 Test #1898: IpqpKktLayoutTest.PredictorAndCorrectorSolveAgainstOneFactorization ............................   Passed    0.02 sec
+        Start 1900: IpqpKktLayoutTest.AFreshLayoutRefusesEverySlotAccessor
+297/400 Test #1899: IpqpKktLayoutTest.MalformedInputsAreRefusedAtTheBoundary .......................................   Passed    0.01 sec
+        Start 1901: IpqpKktLayoutTest.AFailedResyncLeavesTheObjectOnItsPreviousPlan
+298/400 Test #1854: IpqpDispatch.KIpmAndKWalkAgreeOnTheAnswerAcrossTheHsBattery ....................................   Passed    0.39 sec
+        Start 1902: IpqpKktLayoutTest.TheEmptyProblemLaysOutAnEmptyMatrix
+299/400 Test #1900: IpqpKktLayoutTest.AFreshLayoutRefusesEverySlotAccessor .........................................   Passed    0.01 sec
+        Start 1903: IpqpKktLayoutTest.ADiagonalIndexOutsideItsBlockIsRefused
+300/400 Test #1901: IpqpKktLayoutTest.AFailedResyncLeavesTheObjectOnItsPreviousPlan ................................   Passed    0.01 sec
+        Start 1904: IpqpMathTest.BoundBarrierObjectiveMirrorsTheNlpKernel
+301/400 Test #1902: IpqpKktLayoutTest.TheEmptyProblemLaysOutAnEmptyMatrix ..........................................   Passed    0.01 sec
+        Start 1905: IpqpMathTest.BoundBarrierObjectiveMovesWhenAnInputMoves
+302/400 Test #1903: IpqpKktLayoutTest.ADiagonalIndexOutsideItsBlockIsRefused .......................................   Passed    0.01 sec
+        Start 1906: IpqpMathTest.BoundBarrierGradientMirrorsTheNlpKernel
+303/400 Test #1904: IpqpMathTest.BoundBarrierObjectiveMirrorsTheNlpKernel ..........................................   Passed    0.01 sec
+        Start 1907: IpqpMathTest.BoundDualTermsMirrorTheNlpKernel
+304/400 Test #1905: IpqpMathTest.BoundBarrierObjectiveMovesWhenAnInputMoves ........................................   Passed    0.01 sec
+        Start 1908: IpqpMathTest.BoundDualTermsReproduceTheMirrorsGroupingBitForBit
+305/400 Test #1906: IpqpMathTest.BoundBarrierGradientMirrorsTheNlpKernel ...........................................   Passed    0.01 sec
+        Start 1909: IpqpMathTest.BoundDualTermsIgnoreWhateverSitsAtAnAbsentBound
+306/400 Test #1907: IpqpMathTest.BoundDualTermsMirrorTheNlpKernel ..................................................   Passed    0.01 sec
+        Start 1910: IpqpMathTest.BoundSigmaMirrorsTheNlpKernel
+307/400 Test #1908: IpqpMathTest.BoundDualTermsReproduceTheMirrorsGroupingBitForBit ................................   Passed    0.01 sec
+        Start 1911: IpqpMathTest.AugmentBoundComplementarityMirrorsTheNlpKernel
+308/400 Test #1909: IpqpMathTest.BoundDualTermsIgnoreWhateverSitsAtAnAbsentBound ...................................   Passed    0.01 sec
+        Start 1912: IpqpMathTest.AugmentBoundComplementarityLeavesAnUnboundedProblemAlone
+309/400 Test #1910: IpqpMathTest.BoundSigmaMirrorsTheNlpKernel .....................................................   Passed    0.01 sec
+        Start 1913: IpqpMathTest.SlackComplementarityReducesInTheDeclaredOrder
+310/400 Test #1911: IpqpMathTest.AugmentBoundComplementarityMirrorsTheNlpKernel ....................................   Passed    0.01 sec
+        Start 1914: IpqpMathTest.SlackComplementarityOnAnEmptyBlockIsZero
+311/400 Test #1912: IpqpMathTest.AugmentBoundComplementarityLeavesAnUnboundedProblemAlone ..........................   Passed    0.01 sec
+        Start 1915: IpqpMathTest.TheTwoReductionsComposeIntoOneUnionAggregate
+312/400 Test #1913: IpqpMathTest.SlackComplementarityReducesInTheDeclaredOrder .....................................   Passed    0.01 sec
+        Start 1916: IpqpMathTest.TheAbsentBoundSentinelMatchesTheEnginesOwn
+313/400 Test #1914: IpqpMathTest.SlackComplementarityOnAnEmptyBlockIsZero ..........................................   Passed    0.01 sec
+        Start 1917: IpqpMathTest.TheCriticalConeSigmaDropsWeaklyActiveSidesAndNothingElse
+314/400 Test #1915: IpqpMathTest.TheTwoReductionsComposeIntoOneUnionAggregate ......................................   Passed    0.01 sec
+        Start 1918: IpqpBarrierNoiseTest.ASideTrackingTheBarrierExactlyIsSuspectWithExponentOne
+315/400 Test #1916: IpqpMathTest.TheAbsentBoundSentinelMatchesTheEnginesOwn ........................................   Passed    0.01 sec
+        Start 1919: IpqpBarrierNoiseTest.ASideHoldingItsPriceIsPricedWithExponentNearZero
+316/400 Test #1917: IpqpMathTest.TheCriticalConeSigmaDropsWeaklyActiveSidesAndNothingElse ..........................   Passed    0.01 sec
+        Start 1920: IpqpBarrierNoiseTest.NoPriorAcceptedIterateIsUninformative
+317/400 Test #1918: IpqpBarrierNoiseTest.ASideTrackingTheBarrierExactlyIsSuspectWithExponentOne ....................   Passed    0.01 sec
+        Start 1921: IpqpBarrierNoiseTest.AMuRatioAboveOneHalfIsUninformative
+318/400 Test #1919: IpqpBarrierNoiseTest.ASideHoldingItsPriceIsPricedWithExponentNearZero ..........................   Passed    0.01 sec
+        Start 1922: IpqpBarrierNoiseTest.ASideThatJustBecameActiveIsUninformativeNeverSuspectNeverPriced
+319/400 Test #1920: IpqpBarrierNoiseTest.NoPriorAcceptedIterateIsUninformative .....................................   Passed    0.01 sec
+        Start 1923: IpqpBarrierNoiseTest.NonfiniteInputsAreUninformative
+320/400 Test #1921: IpqpBarrierNoiseTest.AMuRatioAboveOneHalfIsUninformative .......................................   Passed    0.01 sec
+        Start 1924: IpqpBarrierNoiseTest.MuRatioUnderflowIsUninformativeNotAFiniteNegativeZero
+321/400 Test #1922: IpqpBarrierNoiseTest.ASideThatJustBecameActiveIsUninformativeNeverSuspectNeverPriced ...........   Passed    0.01 sec
+        Start 1925: IpqpBarrierNoiseTest.MuRatioUnderflowWithADecreasingZStillClassifiesUninformative
+322/400 Test #1923: IpqpBarrierNoiseTest.NonfiniteInputsAreUninformative ...........................................   Passed    0.01 sec
+        Start 1926: IpqpBarrierNoiseTest.ZRatioUnderflowIsUninformative
+323/400 Test #1924: IpqpBarrierNoiseTest.MuRatioUnderflowIsUninformativeNotAFiniteNegativeZero .....................   Passed    0.01 sec
+        Start 1927: IpqpBarrierNoiseTest.BothRatiosUnderflowIsUninformative
+324/400 Test #1925: IpqpBarrierNoiseTest.MuRatioUnderflowWithADecreasingZStillClassifiesUninformative ..............   Passed    0.01 sec
+        Start 1928: IpqpBarrierNoiseFlagTest.AnAmbiguousPerSideVerdictFiresEvenInAnInformativeSolve
+325/400 Test #1926: IpqpBarrierNoiseTest.ZRatioUnderflowIsUninformative ............................................   Passed    0.01 sec
+        Start 1929: IpqpOptions.TheFieldsAreValidatedAtEveryModeIncludingTheDefault
+326/400 Test #1927: IpqpBarrierNoiseTest.BothRatiosUnderflowIsUninformative ........................................   Passed    0.01 sec
+        Start 1930: IpqpOptions.TheElasticRungEngineDefaultsToTheWalkAndRefusesTheCountSentinel
+327/400 Test #1928: IpqpBarrierNoiseFlagTest.AnAmbiguousPerSideVerdictFiresEvenInAnInformativeSolve ................   Passed    0.01 sec
+        Start 1931: IpqpOptions.HardIterCapMustBePositive
+328/400 Test #1929: IpqpOptions.TheFieldsAreValidatedAtEveryModeIncludingTheDefault ................................   Passed    0.01 sec
+        Start 1932: IpqpOptions.MuBandMustBeWellFormed
+329/400 Test #1930: IpqpOptions.TheElasticRungEngineDefaultsToTheWalkAndRefusesTheCountSentinel ....................   Passed    0.01 sec
+        Start 1933: IpqpOptions.RegularizationFloorAndCeilingMustBeWellFormed
+330/400 Test #1931: IpqpOptions.HardIterCapMustBePositive ..........................................................   Passed    0.01 sec
+        Start 1934: IpqpOptions.RhoInitMustStartInsideTheRegularizationBand
+331/400 Test #1932: IpqpOptions.MuBandMustBeWellFormed .............................................................   Passed    0.01 sec
+        Start 1935: IpqpOptions.DeltaInitMustBePositiveAndNoLargerThanTheCeilingButIsNotTiedToTheFloor
+332/400 Test #1933: IpqpOptions.RegularizationFloorAndCeilingMustBeWellFormed ......................................   Passed    0.01 sec
+        Start 1936: IpqpOptions.RegDecreaseMustBeAStrictFraction
+333/400 Test #1934: IpqpOptions.RhoInitMustStartInsideTheRegularizationBand ........................................   Passed    0.01 sec
+        Start 1937: IpqpOptions.TauMustBeAStrictFractionToBoundaryParameter
+334/400 Test #1935: IpqpOptions.DeltaInitMustBePositiveAndNoLargerThanTheCeilingButIsNotTiedToTheFloor .............   Passed    0.01 sec
+        Start 1938: IpqpOptions.FaceKappaMustLieStrictlyBetweenZeroAndOne
+335/400 Test #1936: IpqpOptions.RegDecreaseMustBeAStrictFraction ...................................................   Passed    0.01 sec
+        Start 1939: IpqpOptions.ConvergeSlackMustBeAtLeastOne
+336/400 Test #1937: IpqpOptions.TauMustBeAStrictFractionToBoundaryParameter ........................................   Passed    0.01 sec
+        Start 1940: IpqpOptions.WarmIterBudgetMustBeNonNegative
+337/400 Test #1938: IpqpOptions.FaceKappaMustLieStrictlyBetweenZeroAndOne ..........................................   Passed    0.01 sec
+        Start 1941: IpqpOptions.MuAdoptFactorMustBeFiniteAndNonNegative
+338/400 Test #1939: IpqpOptions.ConvergeSlackMustBeAtLeastOne ......................................................   Passed    0.01 sec
+        Start 1942: IpqpOptions.StallWindowMustBePositive
+339/400 Test #1940: IpqpOptions.WarmIterBudgetMustBeNonNegative ....................................................   Passed    0.01 sec
+        Start 1943: IpqpOptions.RetireAfterMustBePositive
+340/400 Test #1941: IpqpOptions.MuAdoptFactorMustBeFiniteAndNonNegative ............................................   Passed    0.01 sec
+        Start 1944: IpqpOptions.TheShippedDefaultsValidate
+341/400 Test #1942: IpqpOptions.StallWindowMustBePositive ..........................................................   Passed    0.01 sec
+        Start 1945: IpqpTrace.LedgerRecordsOneSolveRecordPerSubproblemWithTheIpqpPrefix
+342/400 Test #1943: IpqpOptions.RetireAfterMustBePositive ..........................................................   Passed    0.01 sec
+        Start 1946: IpqpTrace.IterEventsCarryTheDriverSetMajorAndCrossCheckAgainstTheResult
+343/400 Test #1944: IpqpOptions.TheShippedDefaultsValidate .........................................................   Passed    0.01 sec
+        Start 1947: IpqpTrace.RegEventsPartitionIntoTheLadderClimbAndTheScheduleDecrease
+344/400 Test #1945: IpqpTrace.LedgerRecordsOneSolveRecordPerSubproblemWithTheIpqpPrefix ............................   Passed    0.02 sec
+        Start 1948: IpqpTrace.RestartEventReportsTheGradeAndTheRepairFactsAsMeasured
+345/400 Test #1946: IpqpTrace.IterEventsCarryTheDriverSetMajorAndCrossCheckAgainstTheResult ........................   Passed    0.02 sec
+        Start 1949: IpqpTrace.CertifyEventReportsTheFinalReadAndFiresOnlyWhenOneWasTaken
+346/400 Test #1947: IpqpTrace.RegEventsPartitionIntoTheLadderClimbAndTheScheduleDecrease ...........................   Passed    0.02 sec
+        Start 1950: IpqpTrace.EscapeEventReportsTheReasonAndFiresOnlyOnAGenuineEscape
+347/400 Test #1948: IpqpTrace.RestartEventReportsTheGradeAndTheRepairFactsAsMeasured ...............................   Passed    0.02 sec
+        Start 1951: IpqpTrace.EscapeEventCarriesTheFullEvidenceBlockVerbatim
+348/400 Test #1949: IpqpTrace.CertifyEventReportsTheFinalReadAndFiresOnlyWhenOneWasTaken ...........................   Passed    0.02 sec
+        Start 1952: IpqpTrace.DriverRouteAndQpModeEventsMatchTheRoutingCounters
+349/400 Test #1950: IpqpTrace.EscapeEventReportsTheReasonAndFiresOnlyOnAGenuineEscape ..............................   Passed    0.02 sec
+        Start 1953: IpqpTrace.RouteEventFaceRowsAndFaceBoundsAreSwapFalsifiable
+350/400 Test #1951: IpqpTrace.EscapeEventCarriesTheFullEvidenceBlockVerbatim .......................................   Passed    0.02 sec
+        Start 1954: IpqpTrace.FallbackVerdictEventsReproduceThePartitionCountersWithoutAFilter
+351/400 Test #1953: IpqpTrace.RouteEventFaceRowsAndFaceBoundsAreSwapFalsifiable ....................................   Passed    0.02 sec
+        Start 1955: IpqpWarmRestart.AMalformedSeedIsRefusedAtTheBoundary
+352/400 Test #1955: IpqpWarmRestart.AMalformedSeedIsRefusedAtTheBoundary ...........................................   Passed    0.02 sec
+        Start 1956: IpqpWarmRestart.AColdSolveReportsTheColdGradeAndTouchesNoWarmCounter
+353/400 Test #1952: IpqpTrace.DriverRouteAndQpModeEventsMatchTheRoutingCounters ....................................   Passed    0.05 sec
+        Start 1957: IpqpWarmRestart.TheFullGradeCarriesTheTwoSidedSplitUnflattened
+354/400 Test #1956: IpqpWarmRestart.AColdSolveReportsTheColdGradeAndTouchesNoWarmCounter ...........................   Passed    0.01 sec
+        Start 1958: IpqpWarmRestart.TheBaseGradeConvergesButLosesTheSplit
+355/400 Test #1957: IpqpWarmRestart.TheFullGradeCarriesTheTwoSidedSplitUnflattened .................................   Passed    0.02 sec
+        Start 1959: IpqpWarmRestart.ThePayloadMuIsAdoptedOnlyWhenItRaisesTheMeasuredFloor
+356/400 Test #1958: IpqpWarmRestart.TheBaseGradeConvergesButLosesTheSplit ..........................................   Passed    0.01 sec
+        Start 1960: IpqpWarmRestart.ThePayloadMuCanNeverRaiseMuAboveTheColdDefault
+357/400 Test #1959: IpqpWarmRestart.ThePayloadMuIsAdoptedOnlyWhenItRaisesTheMeasuredFloor ..........................   Passed    0.01 sec
+        Start 1961: IpqpWarmRestart.AStaleSeedIsAbandonedAtTheClampedBudgetAndColdRecovers
+358/400 Test #1960: IpqpWarmRestart.ThePayloadMuCanNeverRaiseMuAboveTheColdDefault .................................   Passed    0.02 sec
+        Start 1962: IpqpWarmRestart.TheWarmBudgetIsClampedButStillPreemptsTheOrdinaryEscape
+359/400 Test #1961: IpqpWarmRestart.AStaleSeedIsAbandonedAtTheClampedBudgetAndColdRecovers .........................   Passed    0.02 sec
+        Start 1963: IpqpWarmRestart.TheColdRestartGetsTheOrdinaryBudgetAndNotItsRemainder
+360/400 Test #1954: IpqpTrace.FallbackVerdictEventsReproduceThePartitionCountersWithoutAFilter .....................   Passed    0.09 sec
+        Start 1964: IpqpWarmRestart.AZeroWarmBudgetKillsBeforeTheFirstStepAndRunsTheColdTrajectory
+361/400 Test #1962: IpqpWarmRestart.TheWarmBudgetIsClampedButStillPreemptsTheOrdinaryEscape ........................   Passed    0.02 sec
+        Start 1965: IpqpWarmRestart.TheCarryIsArmedByASolveAndSpentByTheNextOne
+362/400 Test #1963: IpqpWarmRestart.TheColdRestartGetsTheOrdinaryBudgetAndNotItsRemainder ..........................   Passed    0.02 sec
+        Start 1966: IpqpWarmRestart.ASolveThatProducedNothingLeavesThePreviousCarryStanding
+363/400 Test #1964: IpqpWarmRestart.AZeroWarmBudgetKillsBeforeTheFirstStepAndRunsTheColdTrajectory .................   Passed    0.02 sec
+        Start 1967: IpqpWarmRestart.RepairOffDegradesADefectiveSeedColdInsteadOfConsumingIt
+364/400 Test #1965: IpqpWarmRestart.TheCarryIsArmedByASolveAndSpentByTheNextOne ....................................   Passed    0.02 sec
+        Start 1968: IpqpWarmRestart.AdoptionIsCountedOnTheRepairOffBranchToo
+365/400 Test #1966: IpqpWarmRestart.ASolveThatProducedNothingLeavesThePreviousCarryStanding ........................   Passed    0.02 sec
+        Start 1969: IpqpWarmRestart.AHighBarrierSeedIsNotTrustedAtIterationZero
+366/400 Test #1967: IpqpWarmRestart.RepairOffDegradesADefectiveSeedColdInsteadOfConsumingIt ........................   Passed    0.02 sec
+        Start 1970: IpqpWarmRestart.TheBoxClampCountsAsARepair
+367/400 Test #1968: IpqpWarmRestart.AdoptionIsCountedOnTheRepairOffBranchToo .......................................   Passed    0.02 sec
+        Start 1971: IpqpWarmRestart.TheSameSeedTwiceProducesBitIdenticalResults
+368/400 Test #1969: IpqpWarmRestart.AHighBarrierSeedIsNotTrustedAtIterationZero ....................................   Passed    0.02 sec
+        Start 1972: IpqpWarmRestart.TheRepairClampsAWrongSignedPriceAndRecordsItsLargestShift
+369/400 Test #1970: IpqpWarmRestart.TheBoxClampCountsAsARepair .....................................................   Passed    0.02 sec
+        Start 1973: IpqpWarmRestart.APerturbedContinuationAcrossAnActivationThresholdIsAbandonedAndRecovers
+370/400 Test #1971: IpqpWarmRestart.TheSameSeedTwiceProducesBitIdenticalResults ....................................   Passed    0.02 sec
+        Start 1974: KktAssembly.DimensionsAndRegularization
+371/400 Test #1972: IpqpWarmRestart.TheRepairClampsAWrongSignedPriceAndRecordsItsLargestShift ......................   Passed    0.02 sec
+372/400 Test #1974: KktAssembly.DimensionsAndRegularization ........................................................   Passed    0.01 sec
+        Start 1975: KktAssembly.HessianEliminationShift
+        Start 1976: KktAssembly.MismatchedWorkingSetThrows
+373/400 Test #1975: KktAssembly.HessianEliminationShift ............................................................   Passed    0.01 sec
+        Start 1977: KktAssembly.MismatchedBoundVectorsThrow
+374/400 Test #1976: KktAssembly.MismatchedWorkingSetThrows .........................................................   Passed    0.01 sec
+        Start 1978: KktAssembly.MirroredHessianEliminationShift
+375/400 Test #1977: KktAssembly.MismatchedBoundVectorsThrow ........................................................   Passed    0.01 sec
+        Start 1979: WorkingSet.AddDropThrowAndSort
+376/400 Test #1978: KktAssembly.MirroredHessianEliminationShift ....................................................   Passed    0.01 sec
+        Start 1980: SqpKktOptions.MatchesTheApprovedKktConfiguration
+377/400 Test #1979: WorkingSet.AddDropThrowAndSort .................................................................   Passed    0.01 sec
+        Start 1981: SqpKktOptions.TheThreadCountHandedInIsTheOneThatComesOut
+378/400 Test #1980: SqpKktOptions.MatchesTheApprovedKktConfiguration ...............................................   Passed    0.01 sec
+        Start 1982: SqpKktOptions.ARankDeficientKktIsPerturbedRatherThanFailedOnThisBackend
+379/400 Test #1981: SqpKktOptions.TheThreadCountHandedInIsTheOneThatComesOut .......................................   Passed    0.01 sec
+        Start 1983: KktFactor.IsConstructedAtTheThreadCountItIsGiven
+380/400 Test #1973: IpqpWarmRestart.APerturbedContinuationAcrossAnActivationThresholdIsAbandonedAndRecovers ........   Passed    0.06 sec
+        Start 1984: KktFactor.FreshAnalyzeFactorizeAndSolve
+381/400 Test #1982: SqpKktOptions.ARankDeficientKktIsPerturbedRatherThanFailedOnThisBackend ........................   Passed    0.02 sec
+        Start 1985: KktFactor.RefactorizesAValueChangeWithoutReanalyzing
+382/400 Test #1983: KktFactor.IsConstructedAtTheThreadCountItIsGiven ...............................................   Passed    0.01 sec
+        Start 1986: KktFactor.NeedsAnalysisPreservesCallSiteCounting
+383/400 Test #1984: KktFactor.FreshAnalyzeFactorizeAndSolve ........................................................   Passed    0.02 sec
+        Start 1987: InertiaProbe.NearSingularReducedHessian
+384/400 Test #1985: KktFactor.RefactorizesAValueChangeWithoutReanalyzing ...........................................   Passed    0.02 sec
+        Start 1988: InertiaProbe.ExactlySingular
+385/400 Test #1986: KktFactor.NeedsAnalysisPreservesCallSiteCounting ...............................................   Passed    0.02 sec
+        Start 1989: KktPartialSolve.ComposedPartialsMatchFullSolve
+386/400 Test #1987: InertiaProbe.NearSingularReducedHessian ........................................................   Passed    0.02 sec
+        Start 1990: KktPartialSolve.GateClosesOnPerturbedPivots
+387/400 Test #1988: InertiaProbe.ExactlySingular ...................................................................   Passed    0.01 sec
+        Start 1991: Ledger.ColdWarmPairRecordsAndSummary
+388/400 Test #1989: KktPartialSolve.ComposedPartialsMatchFullSolve .................................................   Passed    0.02 sec
+        Start 1992: Ledger.ExceptionDoesNotAdvanceCounter
+389/400 Test #1990: KktPartialSolve.GateClosesOnPerturbedPivots ....................................................   Passed    0.02 sec
+        Start 1993: Ledger.DriverSolveRecordsWallSeconds
+390/400 Test #1991: Ledger.ColdWarmPairRecordsAndSummary ...........................................................   Passed    0.02 sec
+        Start 1994: MeshTransfer.TransferredMultipliersMatchFineSolve
+391/400 Test #1992: Ledger.ExceptionDoesNotAdvanceCounter ..........................................................   Passed    0.02 sec
+        Start 1995: MeshTransfer.InteriorErrorIsSecondOrder
+392/400 Test #1993: Ledger.DriverSolveRecordsWallSeconds ...........................................................   Passed    0.02 sec
+        Start 1996: MeshTransfer.ActivityInheritanceRule
+393/400 Test #1996: MeshTransfer.ActivityInheritanceRule ...........................................................   Passed    0.01 sec
+        Start 1997: MeshTransfer.WarmSolveOnFineMeshBeatsCold
+394/400 Test #1994: MeshTransfer.TransferredMultipliersMatchFineSolve ..............................................   Passed    0.03 sec
+        Start 1998: MeshTransfer.SeededTransferRidesTheDualsAndCostsFewerMinors
+395/400 Test #1997: MeshTransfer.WarmSolveOnFineMeshBeatsCold ......................................................   Passed    0.04 sec
+        Start 1999: MeshTransfer.CoarseningTransferPreservesCostates
+396/400 Test #1998: MeshTransfer.SeededTransferRidesTheDualsAndCostsFewerMinors ....................................   Passed    0.04 sec
+        Start 2000: MeshTransfer.RejectsMalformedInput
+397/400 Test #2000: MeshTransfer.RejectsMalformedInput .............................................................   Passed    0.01 sec
+398/400 Test #1995: MeshTransfer.InteriorErrorIsSecondOrder ........................................................   Passed    0.08 sec
+399/400 Test #1999: MeshTransfer.CoarseningTransferPreservesCostates ...............................................   Passed    0.03 sec
+400/400 Test #1689: M7T3ElasticRungVehicle.TheConstructedCellFiresTheElasticRungAndPricesBothEngines ...............   Passed   39.34 sec
+
+100% tests passed, 0 tests failed out of 398
+
+Total Test time (real) =  42.06 sec
+
+The following tests did not run:
+	1690 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1691 - EqpRefinementAb.FullBattery (Disabled)

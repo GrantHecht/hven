@@ -1,0 +1,9 @@
+SELFTEST_OK   positive control (23 TRAIN x 4 lanes)  [accepted]
+SELFTEST_OK   a row missing  [refused: cutest: row set != TRAIN x lanes (91 vs 92): missing [('ACOPP118', 'hven-ipm')] extra []]
+SELFTEST_OK   a duplicated row  [refused: cutest: row set != TRAIN x lanes (93 vs 92): missing [] extra [('ZAMB2-8', 'snopt')]]
+SELFTEST_OK   the wrong pin  [refused: provenance hven.pin.sha = 'aeebdccc6f456455538a0e70bf6b0e7d54430f3c' != 'fffffffffffffffff]
+SELFTEST_OK   a HOLDOUT-labelled row  [refused: cutest/READING8/hven-ipm/default: split HOLDOUT]
+SELFTEST_OK   empty hessian_provenance  [refused: cutest/BIGBANK/hven-ipm/default: empty hessian_provenance]
+SELFTEST_OK   stamp line removed  [refused: provenance hven.pin.sha missing]
+SELFTEST_OK   the hs set against a cutest file  [refused: hs: row set != TRAIN x lanes (92 vs 88): missing [('hs003', 'hven-ipm'), ('hs003', 'hven-s]
+SELFTEST_FAILS=0

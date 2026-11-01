@@ -532,6 +532,8 @@ const char *spec_spelling(QpModeSite v) {
         return "\"elastic_rung\"";
     case QpModeSite::kSocResolve:
         return "\"soc_resolve\"";
+    case QpModeSite::kCapRetry:
+        return "\"cap_retry\"";
     }
     return kUnspelled;
 }
@@ -645,6 +647,37 @@ const char *spec_spelling(hven::solvers::SolveStatus v) {
     case hven::solvers::SolveStatus::kBudgetExhausted:
         return "\"budget_exhausted\"";
     case hven::solvers::SolveStatus::kInterrupted:
+        return "\"interrupted\"";
+    }
+    return kUnspelled;
+}
+
+// M7 W2 M3a fix1. THE COUNTER'S TEN, in an independent copy like every other
+// alphabet here: `not_run` plus SolveStatus's nine, spelled EXACTLY as the
+// overload above spells them -- written out again rather than forwarded,
+// because a forwarding "spec" would agree with the writer by construction and
+// pin nothing.
+const char *spec_spelling(hven::solvers::RestorationSubStatus v) {
+    switch (v) {
+    case hven::solvers::RestorationSubStatus::kNotRun:
+        return "\"not_run\"";
+    case hven::solvers::RestorationSubStatus::kOptimal:
+        return "\"optimal\"";
+    case hven::solvers::RestorationSubStatus::kAcceptable:
+        return "\"acceptable\"";
+    case hven::solvers::RestorationSubStatus::kMaxIter:
+        return "\"max_iter\"";
+    case hven::solvers::RestorationSubStatus::kInfeasible:
+        return "\"infeasible\"";
+    case hven::solvers::RestorationSubStatus::kStalled:
+        return "\"stalled\"";
+    case hven::solvers::RestorationSubStatus::kDiverging:
+        return "\"diverging\"";
+    case hven::solvers::RestorationSubStatus::kNumericalError:
+        return "\"numerical_error\"";
+    case hven::solvers::RestorationSubStatus::kBudgetExhausted:
+        return "\"budget_exhausted\"";
+    case hven::solvers::RestorationSubStatus::kInterrupted:
         return "\"interrupted\"";
     }
     return kUnspelled;
@@ -1032,6 +1065,29 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     start_level(StartLevel::kSeeded);
     start_level(StartLevel::kWarm);
     start_level(StartLevel::kHot);
+
+    // M7 W2 M3a fix1's alphabet: the counters object's SECOND enum, all TEN
+    // values including the `not_run` that is the reason the enum exists. Driven
+    // through the same end event, so this covers the `key_value` overload the
+    // field's own type selects.
+    const auto sub_status = [](hven::solvers::RestorationSubStatus v) {
+        SqpCounters counters;
+        counters.restoration_sub_status = v;
+        std::ostringstream os;
+        JsonLinesTraceSink s(os);
+        s.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kOptimal, 0, counters});
+        EXPECT_EQ(raw_field(os.str(), "restoration_sub_status"), spec_spelling(v));
+    };
+    sub_status(hven::solvers::RestorationSubStatus::kNotRun);
+    sub_status(hven::solvers::RestorationSubStatus::kOptimal);
+    sub_status(hven::solvers::RestorationSubStatus::kAcceptable);
+    sub_status(hven::solvers::RestorationSubStatus::kMaxIter);
+    sub_status(hven::solvers::RestorationSubStatus::kInfeasible);
+    sub_status(hven::solvers::RestorationSubStatus::kStalled);
+    sub_status(hven::solvers::RestorationSubStatus::kDiverging);
+    sub_status(hven::solvers::RestorationSubStatus::kNumericalError);
+    sub_status(hven::solvers::RestorationSubStatus::kBudgetExhausted);
+    sub_status(hven::solvers::RestorationSubStatus::kInterrupted);
 
     // W4 T4: the interior-point driver's three alphabets. `SolveStatus` is
     // that driver's own exit status; the two mode selectors shape the run.
@@ -1700,6 +1756,105 @@ TEST(JsonLinesTraceSink, AnArmedExceptionMaskPropagatesOutOfTheSolveByDesign) {
 }
 
 // ===========================================================================
+// M7 W0 T5(c) -- flush(), and the destructor's guarded flush
+// ===========================================================================
+
+/// @brief A `streambuf` that COUNTS syncs and can be made to refuse them.
+///
+/// `sync()` is what `std::ostream::flush()` reaches through `pubsync()`, so the
+/// counter is a direct reading of "how many times was this stream flushed", and
+/// `fail_sync` is the only way to make a flush -- as opposed to a write -- fail.
+/// Writes always succeed here, which keeps the two failure paths apart.
+class CountingSyncBuf : public std::streambuf {
+  public:
+    int syncs = 0;
+    bool fail_sync = false;
+    std::string taken;
+
+  protected:
+    int sync() override {
+        ++syncs;
+        return fail_sync ? -1 : 0;
+    }
+    std::streamsize xsputn(const char *s, std::streamsize n) override {
+        taken.append(s, static_cast<std::size_t>(n));
+        return n;
+    }
+    int_type overflow(int_type c) override {
+        if (!traits_type::eq_int_type(c, traits_type::eof())) {
+            taken.push_back(static_cast<char>(c));
+        }
+        return traits_type::not_eof(c);
+    }
+};
+
+TEST(JsonLinesTraceSink, FlushSyncsOnceAndDestructionSyncsOnceMore) {
+    CountingSyncBuf buf;
+    std::ostream out(&buf);
+    std::string after_flush;
+    {
+        JsonLinesTraceSink sink(out);
+        sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
+        EXPECT_EQ(buf.syncs, 0) << "the sink does not flush per line";
+        sink.flush();
+        EXPECT_EQ(buf.syncs, 1);
+        EXPECT_FALSE(sink.failed());
+        EXPECT_EQ(sink.lines_written(), 1) << "a flush writes no line and moves no seq";
+        after_flush = buf.taken;
+    }
+    EXPECT_EQ(buf.syncs, 2) << "destruction flushes once more";
+    EXPECT_EQ(buf.taken, after_flush) << "flushing changes no byte of the artifact";
+    EXPECT_EQ(count_lines(buf.taken), 1);
+}
+
+TEST(JsonLinesTraceSink, UnderTheDefaultMaskAFailingFlushSetsFailedAndDoesNotThrow) {
+    CountingSyncBuf buf;
+    buf.fail_sync = true;
+    std::ostream out(&buf);
+    JsonLinesTraceSink sink(out);
+    sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
+    EXPECT_FALSE(sink.failed()) << "the WRITE succeeded; only the flush will fail";
+    EXPECT_NO_THROW(sink.flush());
+    EXPECT_TRUE(sink.failed()) << "a flush failure reads exactly like a write failure";
+}
+
+TEST(JsonLinesTraceSink, UnderAnArmedMaskFlushThrows) {
+    // THE FIRST HALF of the armed contract: flush() is an emitting call like any
+    // `on_*`, and a caller who armed a mask is told.
+    CountingSyncBuf buf;
+    buf.fail_sync = true;
+    std::ostream out(&buf);
+    out.exceptions(std::ios::badbit);
+    JsonLinesTraceSink sink(out);
+    sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
+    EXPECT_THROW(sink.flush(), std::ios_base::failure);
+    EXPECT_EQ(buf.syncs, 1);
+    // The sink is destroyed at the end of this test. Its flush finds the stream
+    // ALREADY bad, so `std::ostream::flush`'s sentry refuses before reaching
+    // `pubsync` and nothing is thrown to swallow -- which is why the destructor
+    // is exercised against a stream that is still good in the test below.
+}
+
+TEST(JsonLinesTraceSink, UnderAnArmedMaskAFailingFlushATDESTRUCTIONIsSwallowed) {
+    // THE REASON THE DESTRUCTOR'S FLUSH IS GUARDED, proven rather than asserted:
+    // the stream is GOOD when the sink goes out of scope and the flush fails
+    // there for the first time, so the destructor really does face a live
+    // `std::ios_base::failure`. Unguarded, that would propagate out of a
+    // destructor; here it is dropped and this test simply returns.
+    CountingSyncBuf buf;
+    std::ostream out(&buf);
+    out.exceptions(std::ios::badbit);
+    {
+        JsonLinesTraceSink sink(out);
+        sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
+        ASSERT_TRUE(out.good()) << "non-vacuous: the write itself succeeded";
+        buf.fail_sync = true;
+    }
+    EXPECT_EQ(buf.syncs, 1) << "destruction did reach the stream";
+    EXPECT_TRUE(out.bad()) << "and the failure it swallowed is still visible on the stream";
+}
+
+// ===========================================================================
 // R6 -- the null-sink comparison on the arm where the sink actually writes
 // ===========================================================================
 
@@ -2022,6 +2177,7 @@ SqpIterate golden_major_d() {
     r.active_rows = 18;
     r.active_lower_sides = 19;
     r.active_upper_sides = 20;
+    r.rolled_back = true;
     return r;
 }
 
@@ -2043,7 +2199,7 @@ TEST(JsonLinesTraceSink, GoldenLineSqpMajorFirstBoolSignatureAndTheWalkMode) {
               "true,\"elastic_applied\":false,\"elastic_rho0_ceiling_hit\":true,\"restoration_seed_"
               "used\":false,\"watchdog_restored\":true,\"active_set_delta\":17,\"weak_active_"
               "rows\":1,\"near_active_rows\":2,\"active_rows\":3,\"active_lower_sides\":5,\"active_"
-              "upper_sides\":8,\"major\":4,\"mode\":\"walk\"}\n");
+              "upper_sides\":8,\"rolled_back\":false,\"major\":4,\"mode\":\"walk\"}\n");
 }
 
 TEST(JsonLinesTraceSink, GoldenLineSqpMajorSecondBoolSignatureTheHardDoublesAndTheSsnMode) {
@@ -2058,7 +2214,7 @@ TEST(JsonLinesTraceSink, GoldenLineSqpMajorSecondBoolSignatureTheHardDoublesAndT
         "applied\":true,\"elastic_applied\":false,\"elastic_rho0_ceiling_hit\":false,\"restoration_"
         "seed_used\":true,\"watchdog_restored\":true,\"active_set_delta\":6,\"weak_active_rows\":5,"
         "\"near_active_rows\":4,\"active_rows\":3,\"active_lower_sides\":2,\"active_upper_sides\":"
-        "1,\"major\":0,\"mode\":\"ssn\"}\n");
+        "1,\"rolled_back\":false,\"major\":0,\"mode\":\"ssn\"}\n");
 }
 
 TEST(JsonLinesTraceSink, GoldenLineSqpMajorThirdBoolSignatureAndTheIpqpMode) {
@@ -2072,7 +2228,8 @@ TEST(JsonLinesTraceSink, GoldenLineSqpMajorThirdBoolSignatureAndTheIpqpMode) {
         "factorizations\":13,\"tr_binding\":false,\"verdict\":\"accept_h\",\"soc_applied\":false,"
         "\"elastic_applied\":true,\"elastic_rho0_ceiling_hit\":true,\"restoration_seed_used\":true,"
         "\"watchdog_restored\":true,\"active_set_delta\":101,\"weak_active_rows\":0,\"near_active_"
-        "rows\":7,\"active_rows\":0,\"active_lower_sides\":9,\"active_upper_sides\":0,\"major\":11,"
+        "rows\":7,\"active_rows\":0,\"active_lower_sides\":9,\"active_upper_sides\":0,\"rolled_"
+        "back\":false,\"major\":11,"
         "\"mode\":\"ipqp\"}\n");
 }
 
@@ -2087,7 +2244,7 @@ TEST(JsonLinesTraceSink, GoldenLineSqpMajorEveryBoolTrue) {
         "\"elastic_applied\":true,\"elastic_rho0_ceiling_hit\":true,\"restoration_seed_used\":true,"
         "\"watchdog_restored\":true,\"active_set_delta\":15,\"weak_active_rows\":16,\"near_active_"
         "rows\":17,\"active_rows\":18,\"active_lower_sides\":19,\"active_upper_sides\":20,"
-        "\"major\":2,\"mode\":\"walk\"}\n");
+        "\"rolled_back\":true,\"major\":2,\"mode\":\"walk\"}\n");
 }
 
 // ===========================================================================
@@ -2101,7 +2258,7 @@ TEST(JsonLinesTraceSink, GoldenLineSqpMajorEveryBoolTrue) {
 /// well as at the writer, so the pin cannot silently stop covering the row.
 void expect_major_line_is_row(const std::string &line, const SqpIterate &r, Index major,
                               IpqpTraceQpMode mode) {
-    static_assert(::hven::detail::kAggregateArity<SqpIterate> == 29,
+    static_assert(::hven::detail::kAggregateArity<SqpIterate> == 30,
                   "SqpIterate gained a field: compare it below, and in the writer's own key list.");
     EXPECT_EQ(raw_field(line, "trial"), std::to_string(r.trial)) << line;
     expect_double_field(line, "f", r.f);
@@ -2134,6 +2291,7 @@ void expect_major_line_is_row(const std::string &line, const SqpIterate &r, Inde
     EXPECT_EQ(raw_field(line, "active_rows"), std::to_string(r.active_rows));
     EXPECT_EQ(raw_field(line, "active_lower_sides"), std::to_string(r.active_lower_sides));
     EXPECT_EQ(raw_field(line, "active_upper_sides"), std::to_string(r.active_upper_sides));
+    EXPECT_EQ(raw_field(line, "rolled_back"), r.rolled_back ? "true" : "false");
     EXPECT_EQ(raw_field(line, "major"), std::to_string(major));
     EXPECT_EQ(raw_field(line, "mode"), spec_spelling(mode));
 }
@@ -2371,12 +2529,87 @@ TEST(SqpCountersFieldTables, EachTableEnumeratesItsWholeStruct) {
     // These read the same numbers back at run time, so a reader sees what they
     // are and a table edited to a different length is named here too.
     EXPECT_EQ(kSsnCountersFieldCount, 18u);
-    EXPECT_EQ(kIpqpCountersFieldCount, 39u);
+    // 39 -> 42 at M7 W2 A2, which appended the three `ipqp_mu*` fire counters LAST in
+    // IpqpCounters: both golden lines below gain those three keys at the end of the `ipqp`
+    // object, re-derived ONCE (docs/trace-schema-v0.md section 8: declared additive trailing
+    // keys). Nothing else moved. 42 -> 43 at M7 W2 A3 (`ipqp_ladder_zero_trial_skips`, the
+    // same route, one key).
+    EXPECT_EQ(kIpqpCountersFieldCount, 43u);
     // 37 -> 38 at M6 W5 T8.5, which appended `polish_ignored` LAST -- after
     // both nested aggregates -- so every pre-existing field offset is unmoved
     // and the two golden lines below gain exactly one key, at the end of the
     // SqpCounters object. DECLARED: the counters JSON is a trace surface.
-    EXPECT_EQ(kSqpCountersFieldCount, 38u);
+    //
+    // 38 -> 39 at M7 W2 M4, which appended `start_point_clamps` the same way
+    // and for the same reason, and re-derived the same two golden lines by the
+    // same one key. Equally DECLARED (docs/trace-schema-v0.md section 8: a
+    // frozen event's golden line moves only by a declared additive TRAILING
+    // key, which is what this is).
+    //
+    // 39 -> 44 at M7 W2 M1, which appended the FIVE-field subproblem-exit group
+    // (`qp_maxiter_exits`, `qp_numerical_exits`, `qp_failures_routed`,
+    // `qp_failures_in_a_row_peak`, `qp_cap_retries`) the same way and for the
+    // same reason, and re-derived the same two golden lines ONCE, by five keys
+    // -- one re-derivation for the task, not one per field.
+    //
+    // 44 -> 49 at M7 W2 M2, which appended the FIVE-field restoration excursion
+    // record (`restoration_entries` and the four absolutes
+    // `restoration_h_in`/`_h_out`/`_f_in`/`_f_out`) the same way and for the
+    // same reason, and re-derived the same two golden lines ONCE, by five keys.
+    // It is the first table entry group whose members are `double`s rather than
+    // `Index`es; the arity and offset asserts are indifferent to that, and the
+    // count below is the same kind of statement it always was.
+    //
+    // 49 -> 50 at M7 W2 M3a, which appended ONE field to that same restoration
+    // record -- `restoration_sub_status`, the feasibility sub-solve's own
+    // terminal status -- the same way and for the same reason, and re-derived
+    // the same two golden lines ONCE, by one key. It is the table's SECOND
+    // enum (after `start_level_used`) and its first sub-8-byte field; the
+    // arity and offset asserts are indifferent to both, and the count below is
+    // the same kind of statement it always was.
+    //
+    // 50 -> 56 at M7 W2 E4 fix round 1, which appended the QP engine's six-field
+    // E4 GROUP -- `eqp_refine_iters`, `eqp_residual_refusals`, `eqp_polish_steps`,
+    // `terminal_polish_solves`, `terminal_polish_rejected`,
+    // `terminal_polish_adopted` -- the same way and for the same reason, and
+    // re-derived the same two golden lines ONCE, by six keys. They are `Index`
+    // again, appended after the table's only sub-8-byte field, so the arity and
+    // offset asserts are indifferent and the count below is the same kind of
+    // statement it always was.
+    //
+    // 56 -> 57 at M7 W2 E4 fix round 2, which made that group SEVEN by appending
+    // `eqp_row_drift_refusals` -- the same refusal in the STEP's currency -- on
+    // the same DECLARED ADDITIVE TRAILING KEY route: it is last in the table and
+    // last in the struct, so no existing key's value or bytes move and the two
+    // golden lines are re-derived ONCE, by one key, at the end of the direct
+    // block. Its place in `QpCounters` is beside its residual twin, where the
+    // meaning reads; the TABLE's order is what this count is about.
+    //
+    // 57 -> 60 at M7 W2 R2, which appended `qp_failure_steps_judged`,
+    // `qp_failure_steps_accepted` and `nonfinite_subproblems` on the same DECLARED
+    // ADDITIVE TRAILING KEY route, re-deriving the same two golden lines ONCE, by
+    // three keys.
+    //
+    // 60 -> 61 at M7 W2 W1, `nonfinite_box_projections`, the same route, by one key.
+    //
+    // 61 -> 63 at M7 W2 P1E, `elastic_last_rung_fallbacks` and
+    // `restoration_reduction_resumes`, the same route, by two keys.
+    //
+    // 63 -> 77 at M7 QN stage 3, `eval_hess_calls` and the thirteen-field quasi-Newton
+    // group, the same route, by fourteen keys.
+    //
+    // 77 -> 78 at the QN stages 1-3 review, `qn_nonpd_seen`, the same route, by one key.
+    //
+    // 78 -> 79 at the QN-quality riders, `qn_dimension`, the same route, by one key.
+    //
+    // 79 -> 80 at M7 W2 R2-1, `nonfinite_step_rollbacks`, the same route, by one key.
+    //
+    // 80 -> 81 at M7 W2 SNR, `restoration_feas_out`, the same route, by one key.
+    //
+    // 81 -> 82 at M7 W2 SCL, `scaled_convergence_refusals`, the same route, by one key.
+    //
+    // 82 -> 83 at M7 W2 RST, `restoration_curvature_switches`, the same route, by one key.
+    EXPECT_EQ(kSqpCountersFieldCount, 83u);
     EXPECT_EQ(::hven::detail::kAggregateArity<SsnCounters>, kSsnCountersFieldCount);
     EXPECT_EQ(::hven::detail::kAggregateArity<IpqpCounters>, kIpqpCountersFieldCount);
     // PLUS TWO: `ssn` and `ipqp` are nested aggregates, one initializer each.
@@ -2404,6 +2637,11 @@ void expect_counter_field(const std::string &line, const char *k, double v, bool
 }
 
 void expect_counter_field(const std::string &line, const char *k, StartLevel v, bool) {
+    EXPECT_EQ(raw_field(line, k), spec_spelling(v)) << k;
+}
+
+void expect_counter_field(const std::string &line, const char *k,
+                          hven::solvers::RestorationSubStatus v, bool) {
     EXPECT_EQ(raw_field(line, k), spec_spelling(v)) << k;
 }
 
@@ -2848,6 +3086,16 @@ void assign_distinct(StartLevel &field, Index &next) {
     field = StartLevel::kHot;
     ++next;
 }
+// An enum has no distinct integer to take, so it takes a value that is NOT its
+// default -- `kNotRun` is `restoration_sub_status`'s default (it was `kOptimal`
+// until M7 W2 M3a fix1 gave the field an enum with a not-run zero), and a
+// golden line that could not tell the filled counters from the empty ones at
+// this key would pin nothing here. `kBudgetExhausted` was a non-default value
+// under BOTH enums, so this line's bytes did not move with the type.
+void assign_distinct(hven::solvers::RestorationSubStatus &field, Index &next) {
+    field = hven::solvers::RestorationSubStatus::kBudgetExhausted;
+    ++next;
+}
 
 /// @brief `SqpCounters` with every field distinct, filled THROUGH the tables.
 ///
@@ -2916,7 +3164,7 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveBegin) {
 }
 
 TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWithEveryCounterDistinct) {
-    // THE 95 COUNTERS IN TABLE ORDER -- 38 direct + 18 ssn + 39 ipqp, as the
+    // THE 106 COUNTERS IN TABLE ORDER -- 49 direct + 18 ssn + 39 ipqp, as the
     // arity asserts read back -- so a reorder or a drop moves these bytes.
     //
     // Declared re-derivable while v0 is open (plan section 2 rule 6).
@@ -2932,43 +3180,142 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWithEveryCounterDistinct) {
     // RE-DERIVED AT M6 W5 T8.7, which appended the FIVE scaling fields the
     // console's `Scaling:` trailer reads. They are LAST on the line, after the
     // counters object, each with its own value.
+    //
+    // RE-DERIVED AT M7 W2 M4 (a DECLARED ADDITIVE TRAILING KEY,
+    // docs/trace-schema-v0.md section 8), which appended `start_point_clamps`
+    // to `SqpCounters` -- how many components of the caller's `x0` lay strictly
+    // outside the declared box. It is LAST in the direct table, so the line
+    // gains exactly one key between `polish_ignored` and the `ssn` object, and
+    // the two nested tables' distinct values shift up by one. Nothing else
+    // moved.
+    //
+    // RE-DERIVED AT M7 W2 M1 (the same declared additive-trailing-key route),
+    // which appended the five-field subproblem-exit group -- what a failed
+    // subproblem failed OF, and what the driver did about it. All five are LAST
+    // in the direct table, so the line gains exactly five keys between
+    // `start_point_clamps` and the `ssn` object and the two nested tables'
+    // distinct values shift up by five. ONE re-derivation for the task, as the
+    // W2 contract's clause 4 asks, rather than one per field.
+    //
+    // RE-DERIVED AT M7 W2 M2 (the same route again), which appended the
+    // five-field restoration excursion record -- how far the last measured
+    // restoration phase moved h and f, which no counter said before. All five
+    // are LAST in the direct table, so the line gains exactly five keys between
+    // `qp_cap_retries` and the `ssn` object and the two nested tables' distinct
+    // values shift up by five again. FOUR OF THE FIVE ARE `double`s, the first
+    // in the direct block: `assign_distinct` gives them their ordinal like any
+    // other field and the writer's double overload spells 45 as `45`, so the
+    // line's shape is unchanged by the type.
+    //
+    // RE-DERIVED AT M7 W2 M3a (a DECLARED ADDITIVE TRAILING KEY,
+    // docs/trace-schema-v0.md section 8), which appended `restoration_sub_status`
+    // to that record -- the feasibility sub-solve's own terminal status. It is
+    // LAST in the direct table, so the line gains exactly one key between
+    // `restoration_f_out` and the `ssn` object and the two nested tables'
+    // distinct values shift up by one again. It is an ENUM, the table's second:
+    // `assign_distinct` cannot give it an ordinal, so it takes
+    // `kBudgetExhausted` -- not its `kOptimal` default -- and this line would
+    // not tell a filled record from an empty one at this key otherwise.
+    //
+    // RE-DERIVED AT M7 W2 R2 (the same declared additive-trailing-key route),
+    // which appended `qp_failure_steps_judged`, `qp_failure_steps_accepted` and
+    // `nonfinite_subproblems`: the line gains exactly three keys between
+    // `eqp_row_drift_refusals` and the `ssn` object, and the two nested tables'
+    // distinct values shift up by three. Nothing else moved.
+    //
+    // RE-DERIVED AT M7 W2 W1, the same route: `nonfinite_box_projections`, one key
+    // between `nonfinite_subproblems` and the `ssn` object; the nested tables'
+    // distinct values shift up by one.
+    //
+    // RE-DERIVED AT M7 W2 P1E, the same route: `elastic_last_rung_fallbacks` and
+    // `restoration_reduction_resumes`, two keys between `nonfinite_box_projections`
+    // and the `ssn` object; the nested tables' distinct values shift up by two.
+    //
+    // RE-DERIVED AT M7 QN stage 3, the same route: `eval_hess_calls` and the thirteen
+    // `qn_*` keys after `restoration_reduction_resumes`; the nested tables' distinct
+    // values shift up by fourteen.
+    //
+    // RE-DERIVED AT the QN stages 1-3 review, the same route: `qn_nonpd_seen` after
+    // `qn_kwrong_seen`; the nested tables' distinct values shift up by one.
+    //
+    // RE-DERIVED AT the QN-quality riders, the same route: `qn_dimension` after
+    // `qn_nonpd_seen`; the nested tables' distinct values shift up by one again.
+    //
+    // RE-DERIVED AT M7 W2 R2-1, the same route: `nonfinite_step_rollbacks` after
+    // `qn_dimension`; the nested tables' distinct values shift up by one again.
+    //
+    // RE-DERIVED AT M7 W2 SNR, the same route: `restoration_feas_out` after
+    // `nonfinite_step_rollbacks`; the nested tables' distinct values shift up by one again.
+    //
+    // RE-DERIVED AT M7 W2 SCL, the same route: `scaled_convergence_refusals` after
+    // `restoration_feas_out`; the nested tables' distinct values shift up by one again.
+    //
+    // RE-DERIVED AT M7 W2 RST, the same route: `restoration_curvature_switches` after
+    // `scaled_convergence_refusals`; the nested tables' distinct values shift up by one again.
+    //
+    // EXTENDED AT M7 W2 SCW: the column layer's `columns_active` and `col_spread`
+    // trail the scaling block (a declared trace-schema event).
+    //
+    // RE-DERIVED AT M7 W2 A2, the declared additive route: the three `ipqp_mu*` keys after
+    // `ipqp_read_barrier_noise_sides`, LAST in the `ipqp` object, 141-143; nothing shifts.
     sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kBudgetExhausted, 42, c,
-                                                /*scaling_active=*/true, 0.25, 0.5, 4.0, 7.5e-09});
+                                                /*scaling_active=*/true, 0.25, 0.5, 4.0, 7.5e-09,
+                                                /*columns_active=*/true, 2048.0});
     EXPECT_EQ(os.str(),
-              "{\"v\":0,\"ev\":\"sqp.solve.end\",\"seq\":1,\"depth\":0,\"status\":\"budget_exhauste"
-              "d\",\"majors\":42,\"counters\":{\"major_iters\":1,\"qp_minor_iters\":2,\"factorizati"
-              "ons\":3,\"steps_accepted\":4,\"rejected_steps\":5,\"soc_steps\":6,\"soc_applied\":7,"
-              "\"soc_qp_infeasible\":8,\"soc_rejected\":9,\"elastic_activations\":10,\"elastic_esca"
-              "lations\":11,\"restoration_iters\":12,\"elastic_from_ipqp_escape\":13,\"ipqp_suspici"
-              "on_disproved\":14,\"ipqp_fallback_rung_b\":15,\"elastic_rho0_ceiling_hits\":16,\"ela"
-              "stic_floor_retries\":17,\"eqp_refine_steps\":18,\"border_refine_steps\":19,\"verdict"
-              "_refine_steps\":20,\"suspect_escalations\":21,\"symbolic_analyses\":22,\"start_level"
-              "_used\":\"hot\",\"full_step_majors\":24,\"watchdog_restores\":25,\"evals_full\":26,"
-              "\"evals_values\":27,\"probe_budget_stops\":28,\"crash_seeded_rows\":29,\"crash_seede"
-              "d_bounds\":30,\"n_seeded\":31,\"seeded_clamped\":32,\"ip_activity_inferred\":33,\"ac"
-              "tive_set_delta_total\":34,\"active_set_delta_peak\":35,\"weak_active_peak\":36,\"nea"
-              "r_active_peak\":37,\"polish_ignored\":38,\"ssn\":{\"ssn_iters\":39,\"ssn_bulk_flips"
-              "\":40,\"ssn_backtracks\":41,\"ssn_prox_updates\":42,\"ssn_escapes\":43,\"ssn_uncerta"
-              "in_peak\":44,\"ssn_refinements\":45,\"ssn_refine_refused\":46,\"ssn_refine_factoriza"
-              "tions\":47,\"ssn_refine_neg_duals\":48,\"ssn_sign_swept\":49,\"ssn_sign_sweep_max\":"
-              "50,\"ssn_escape_budget\":51,\"ssn_escape_singular\":52,\"ssn_escape_no_contraction\""
-              ":53,\"ssn_escape_infeasible_suspect\":54,\"ssn_escape_indefinite\":55,\"ssn_escape_g"
-              "ate_refused\":56},\"ipqp\":{\"ipqp_iters\":57,\"ipqp_factorizations\":58,\"ipqp_symb"
-              "olic_analyses\":59,\"ipqp_solves\":60,\"ipqp_pattern_verifies\":61,\"ipqp_rho_demand"
-              "ed_max\":62,\"ipqp_rho_demanded_last\":63,\"ipqp_inertia_retries\":64,\"ipqp_iters_a"
-              "t_elevated_rho\":65,\"ipqp_ladder_reclimbs\":66,\"ipqp_pivot_reroute_primal\":67,\"i"
-              "pqp_pivot_reroute_dual_fallback\":68,\"ipqp_iters_ladder_armed_no_advance\":69,\"ipq"
-              "p_final_inertia_read\":70,\"ipqp_reg_decreases\":71,\"ipqp_reg_increases\":72,\"ipqp"
-              "_prox_center_updates\":73,\"ipqp_restart_repairs\":74,\"ipqp_restart_shift_max\":75,"
-              "\"ipqp_mu_adopted\":76,\"ipqp_warm_restart_abandoned\":77,\"ipqp_declined_pinned\":7"
-              "8,\"ipqp_tier_retired_after\":79,\"ipqp_face_uncertain\":80,\"ipqp_refine_accepted\""
-              ":81,\"ipqp_refine_refused\":82,\"ipqp_to_refine\":83,\"ipqp_to_ssn\":84,\"ipqp_to_wa"
-              "lk\":85,\"ipqp_escapes\":86,\"ipqp_escape_budget\":87,\"ipqp_escape_stall\":88,\"ipq"
-              "p_escape_indefinite\":89,\"ipqp_escape_numerical\":90,\"ipqp_escape_infeasible_suspe"
-              "ct\":91,\"ipqp_alpha_p_min\":92,\"ipqp_alpha_d_min\":93,\"ipqp_read_kept_tight_sides"
-              "\":94,\"ipqp_read_barrier_noise_sides\":95}},\"scaling_active\":true,\"obj_scale\":0"
-              ".25,\"row_scale_min\":0.5,\"row_scale_max\":4,\"scaled_kkt_residual\":7.499999999999"
-              "9993e-09}\n");
+              "{\"v\":0,\"ev\":\"sqp.solve.end\",\"seq\":1,\"depth\":0,\"status\":\"budget_exha"
+              "usted\",\"majors\":42,\"counters\":{\"major_iters\":1,\"qp_minor_iters\":2,\"fac"
+              "torizations\":3,\"steps_accepted\":4,\"rejected_steps\":5,\"soc_steps\":6,\"soc_"
+              "applied\":7,\"soc_qp_infeasible\":8,\"soc_rejected\":9,\"elastic_activations\":1"
+              "0,\"elastic_escalations\":11,\"restoration_iters\":12,\"elastic_from_ipqp_escape"
+              "\":13,\"ipqp_suspicion_disproved\":14,\"ipqp_fallback_rung_b\":15,\"elastic_rho0"
+              "_ceiling_hits\":16,\"elastic_floor_retries\":17,\"eqp_refine_steps\":18,\"border"
+              "_refine_steps\":19,\"verdict_refine_steps\":20,\"suspect_escalations\":21,\"symb"
+              "olic_analyses\":22,\"start_level_used\":\"hot\",\"full_step_majors\":24,\"watchd"
+              "og_restores\":25,\"evals_full\":26,\"evals_values\":27,\"probe_budget_stops\":28"
+              ",\"crash_seeded_rows\":29,\"crash_seeded_bounds\":30,\"n_seeded\":31,\"seeded_cl"
+              "amped\":32,\"ip_activity_inferred\":33,\"active_set_delta_total\":34,\"active_se"
+              "t_delta_peak\":35,\"weak_active_peak\":36,\"near_active_peak\":37,\"polish_ignor"
+              "ed\":38,\"start_point_clamps\":39,\"qp_maxiter_exits\":40,\"qp_numerical_exits\""
+              ":41,\"qp_failures_routed\":42,\"qp_failures_in_a_row_peak\":43,\"qp_cap_retries"
+              "\":44,\"restoration_entries\":45,\"restoration_h_in\":46,\"restoration_h_out\":4"
+              "7,\"restoration_f_in\":48,\"restoration_f_out\":49,\"restoration_sub_status\":\""
+              "budget_exhausted\",\"eqp_refine_iters\":51,\"eqp_residual_refusals\":52,\"eqp_po"
+              "lish_steps\":53,\"terminal_polish_solves\":54,\"terminal_polish_rejected\":55,\""
+              "terminal_polish_adopted\":56,\"eqp_row_drift_refusals\":57,\"qp_failure_steps_ju"
+              "dged\":58,\"qp_failure_steps_accepted\":59,\"nonfinite_subproblems\":60,\"nonfin"
+              "ite_box_projections\":61,\"elastic_last_rung_fallbacks\":62,\"restoration_reduct"
+              "ion_resumes\":63,\"eval_hess_calls\":64,\"qn_updates\":65,\"qn_damped\":66,\"qn_"
+              "skipped_nonfinite\":67,\"qn_skipped_zero_step\":68,\"qn_skipped_curvature\":69,"
+              "\"qn_skipped_conditioning\":70,\"qn_rank_dropped\":71,\"qn_resets_consecutive_sk"
+              "ips\":72,\"qn_resets_radius_floor\":73,\"qn_resets_restoration_resume\":74,\"qn_"
+              "pairs_peak\":75,\"qn_lift_rank_peak\":76,\"qn_kwrong_seen\":77,\"qn_nonpd_seen\""
+              ":78,\"qn_dimension\":79,\"nonfinite_step_rollbacks\":80,\"restoration_feas_out\""
+              ":81,\"scaled_convergence_refusals\":82,\"restoration_curvature_switches\":83,\"s"
+              "sn\":{\"ssn_iters\":84,\"ssn_bulk_flips\":85,\"ssn_backtracks\":86,\"ssn_prox_up"
+              "dates\":87,\"ssn_escapes\":88,\"ssn_uncertain_peak\":89,\"ssn_refinements\":90,"
+              "\"ssn_refine_refused\":91,\"ssn_refine_factorizations\":92,\"ssn_refine_neg_dual"
+              "s\":93,\"ssn_sign_swept\":94,\"ssn_sign_sweep_max\":95,\"ssn_escape_budget\":96,"
+              "\"ssn_escape_singular\":97,\"ssn_escape_no_contraction\":98,\"ssn_escape_infeasi"
+              "ble_suspect\":99,\"ssn_escape_indefinite\":100,\"ssn_escape_gate_refused\":101},"
+              "\"ipqp\":{\"ipqp_iters\":102,\"ipqp_factorizations\":103,\"ipqp_symbolic_analyse"
+              "s\":104,\"ipqp_solves\":105,\"ipqp_pattern_verifies\":106,\"ipqp_rho_demanded_ma"
+              "x\":107,\"ipqp_rho_demanded_last\":108,\"ipqp_inertia_retries\":109,\"ipqp_iters"
+              "_at_elevated_rho\":110,\"ipqp_ladder_reclimbs\":111,\"ipqp_pivot_reroute_primal"
+              "\":112,\"ipqp_pivot_reroute_dual_fallback\":113,\"ipqp_iters_ladder_armed_no_adv"
+              "ance\":114,\"ipqp_final_inertia_read\":115,\"ipqp_reg_decreases\":116,\"ipqp_reg"
+              "_increases\":117,\"ipqp_prox_center_updates\":118,\"ipqp_restart_repairs\":119,"
+              "\"ipqp_restart_shift_max\":120,\"ipqp_mu_adopted\":121,\"ipqp_warm_restart_aband"
+              "oned\":122,\"ipqp_declined_pinned\":123,\"ipqp_tier_retired_after\":124,\"ipqp_f"
+              "ace_uncertain\":125,\"ipqp_refine_accepted\":126,\"ipqp_refine_refused\":127,\"i"
+              "pqp_to_refine\":128,\"ipqp_to_ssn\":129,\"ipqp_to_walk\":130,\"ipqp_escapes\":13"
+              "1,\"ipqp_escape_budget\":132,\"ipqp_escape_stall\":133,\"ipqp_escape_indefinite"
+              "\":134,\"ipqp_escape_numerical\":135,\"ipqp_escape_infeasible_suspect\":136,\"ip"
+              "qp_alpha_p_min\":137,\"ipqp_alpha_d_min\":138,\"ipqp_read_kept_tight_sides\":139"
+              ",\"ipqp_read_barrier_noise_sides\":140,\"ipqp_mu0_derived\":141,\"ipqp_mu0_fal"
+              "lbacks\":142,\"ipqp_mu_floor_binds\":143,\"ipqp_ladder_zero_trial_skips\":144}},"
+              "\"scaling_active\":true,\"obj_scale\":0"
+              ".25,\"row_scale_min\":0.5,\"row_scale_max\":4,\"scaled_kkt_residual\":7.49999999"
+              "99999993e-09,\"columns_active\":true,\"col_spread\":2048}\n");
 }
 
 TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull) {
@@ -2980,47 +3327,102 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull) {
     // every one read `null`, not a value.
     //
     // RE-DERIVED AT M6 W5 T8.5 for the reason the line above was: one new key,
-    // `polish_ignored`, whose own absence sentinel is simply 0.
+    // `polish_ignored`, whose own absence sentinel is simply 0. RE-DERIVED
+    // AGAIN AT M7 W2 M4 for the same reason, for `start_point_clamps`, whose
+    // absence reading is also simply 0. AND AGAIN AT M7 W2 M1 for the five
+    // subproblem-exit fields, whose absence readings are all simply 0 -- no
+    // subproblem failed, so nothing was counted and nothing was routed.
+    //
+    // AND AGAIN AT M7 W2 M2 for the five restoration-excursion fields, which
+    // read 0 here for a REASON WORTH STATING rather than by the same rule: the
+    // four absolutes carry no sentinel BECAUSE `0.0` is a legal observation of
+    // three of them, and their absence is read off `restoration_entries == 0`
+    // instead. A `null` on any of the five would be this line's way of claiming
+    // a sentinel the counters deliberately do not have.
+    //
+    // AND RE-DERIVED ONCE MORE AT M7 W2 M3a fix1, FOR THE OPPOSITE REASON.
+    // The record's sixth field, `restoration_sub_status`, read `"optimal"`
+    // here when it shipped: it was a bare `SolveStatus`, whose zero is
+    // `kOptimal`, and its absence was left to `restoration_entries == 0` on the
+    // four absolutes' rule. But `"optimal"` READ WITHOUT THE COUNT claims a
+    // converged feasibility sub-solve on a solve that ran none, and unlike the
+    // four `double`s this field HAD a value to spare. It now carries
+    // `RestorationSubStatus`, whose zero is `kNotRun`, so THIS line -- the
+    // defaults line, the one a never-restored solve emits -- reads
+    // `"not_run"`. That is the only byte that moved, here or anywhere on the
+    // trace. A `null` would still be wrong: `not_run` is a VALUE of this
+    // counter, not a sentinel the stream maps.
     const SqpCounters c;
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     // The default scaling block rides here (M6 W5 T8.7): `active` false and the
     // three factors at 1.0, which is the INACTIVE report's identity -- a reader
     // never has to branch on `active` to use it.
+    // RE-DERIVED AT M7 W2 R2: the three appended keys, each 0 on this line.
+    // RE-DERIVED AT M7 W2 W1: `nonfinite_box_projections`, 0 on this line.
+    // RE-DERIVED AT M7 W2 P1E: the two appended keys, each 0 on this line.
+    // RE-DERIVED AT M7 QN stage 3: the fourteen appended keys, each 0 on this line.
+    // RE-DERIVED AT the QN stages 1-3 review: `qn_nonpd_seen`, 0 on this line.
+    // RE-DERIVED AT the QN-quality riders: `qn_dimension`, 0 on this line.
+    // RE-DERIVED AT M7 W2 R2-1: `nonfinite_step_rollbacks`, 0 on this line.
+    // RE-DERIVED AT M7 W2 SNR: `restoration_feas_out`, 0 on this line.
+    // RE-DERIVED AT M7 W2 SCL: `scaled_convergence_refusals`, 0 on this line.
+    // RE-DERIVED AT M7 W2 RST: `restoration_curvature_switches`, 0 on this line.
+    // RE-DERIVED AT M7 W2 A2: the three `ipqp_mu*` keys, each 0 on this line.
     sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kNumericalError, 0, c});
     EXPECT_EQ(os.str(),
-              "{\"v\":0,\"ev\":\"sqp.solve.end\",\"seq\":1,\"depth\":0,\"status\":\"numerical_error"
-              "\",\"majors\":0,\"counters\":{\"major_iters\":0,\"qp_minor_iters\":0,\"factorization"
-              "s\":0,\"steps_accepted\":0,\"rejected_steps\":0,\"soc_steps\":0,\"soc_applied\":0,\""
-              "soc_qp_infeasible\":0,\"soc_rejected\":0,\"elastic_activations\":0,\"elastic_escalat"
-              "ions\":0,\"restoration_iters\":0,\"elastic_from_ipqp_escape\":0,\"ipqp_suspicion_dis"
-              "proved\":0,\"ipqp_fallback_rung_b\":0,\"elastic_rho0_ceiling_hits\":0,\"elastic_floo"
-              "r_retries\":0,\"eqp_refine_steps\":0,\"border_refine_steps\":0,\"verdict_refine_step"
-              "s\":0,\"suspect_escalations\":0,\"symbolic_analyses\":0,\"start_level_used\":\"cold"
-              "\",\"full_step_majors\":0,\"watchdog_restores\":0,\"evals_full\":0,\"evals_values\":"
-              "0,\"probe_budget_stops\":0,\"crash_seeded_rows\":0,\"crash_seeded_bounds\":0,\"n_see"
-              "ded\":0,\"seeded_clamped\":0,\"ip_activity_inferred\":0,\"active_set_delta_total\":0"
-              ",\"active_set_delta_peak\":0,\"weak_active_peak\":0,\"near_active_peak\":0,\"polish_"
-              "ignored\":0,\"ssn\":{\"ssn_iters\":0,\"ssn_bulk_flips\":0,\"ssn_backtracks\":0,\"ssn"
-              "_prox_updates\":0,\"ssn_escapes\":0,\"ssn_uncertain_peak\":0,\"ssn_refinements\":0,"
-              "\"ssn_refine_refused\":0,\"ssn_refine_factorizations\":0,\"ssn_refine_neg_duals\":0,"
-              "\"ssn_sign_swept\":0,\"ssn_sign_sweep_max\":0,\"ssn_escape_budget\":0,\"ssn_escape_s"
-              "ingular\":0,\"ssn_escape_no_contraction\":0,\"ssn_escape_infeasible_suspect\":0,\"ss"
-              "n_escape_indefinite\":0,\"ssn_escape_gate_refused\":0},\"ipqp\":{\"ipqp_iters\":0,\""
-              "ipqp_factorizations\":0,\"ipqp_symbolic_analyses\":0,\"ipqp_solves\":0,\"ipqp_patter"
-              "n_verifies\":0,\"ipqp_rho_demanded_max\":0,\"ipqp_rho_demanded_last\":0,\"ipqp_inert"
-              "ia_retries\":0,\"ipqp_iters_at_elevated_rho\":0,\"ipqp_ladder_reclimbs\":0,\"ipqp_pi"
-              "vot_reroute_primal\":0,\"ipqp_pivot_reroute_dual_fallback\":0,\"ipqp_iters_ladder_ar"
-              "med_no_advance\":0,\"ipqp_final_inertia_read\":0,\"ipqp_reg_decreases\":0,\"ipqp_reg"
-              "_increases\":0,\"ipqp_prox_center_updates\":0,\"ipqp_restart_repairs\":0,\"ipqp_rest"
-              "art_shift_max\":0,\"ipqp_mu_adopted\":0,\"ipqp_warm_restart_abandoned\":0,\"ipqp_dec"
-              "lined_pinned\":0,\"ipqp_tier_retired_after\":null,\"ipqp_face_uncertain\":0,\"ipqp_r"
-              "efine_accepted\":0,\"ipqp_refine_refused\":0,\"ipqp_to_refine\":0,\"ipqp_to_ssn\":0,"
-              "\"ipqp_to_walk\":0,\"ipqp_escapes\":0,\"ipqp_escape_budget\":0,\"ipqp_escape_stall\""
-              ":0,\"ipqp_escape_indefinite\":0,\"ipqp_escape_numerical\":0,\"ipqp_escape_infeasible"
-              "_suspect\":0,\"ipqp_alpha_p_min\":null,\"ipqp_alpha_d_min\":null,\"ipqp_read_kept_ti"
-              "ght_sides\":0,\"ipqp_read_barrier_noise_sides\":0}},\"scaling_active\":false,\"obj_s"
-              "cale\":1,\"row_scale_min\":1,\"row_scale_max\":1,\"scaled_kkt_residual\":0}\n");
+              "{\"v\":0,\"ev\":\"sqp.solve.end\",\"seq\":1,\"depth\":0,\"status\":\"numerical_e"
+              "rror\",\"majors\":0,\"counters\":{\"major_iters\":0,\"qp_minor_iters\":0,\"facto"
+              "rizations\":0,\"steps_accepted\":0,\"rejected_steps\":0,\"soc_steps\":0,\"soc_ap"
+              "plied\":0,\"soc_qp_infeasible\":0,\"soc_rejected\":0,\"elastic_activations\":0,"
+              "\"elastic_escalations\":0,\"restoration_iters\":0,\"elastic_from_ipqp_escape\":0"
+              ",\"ipqp_suspicion_disproved\":0,\"ipqp_fallback_rung_b\":0,\"elastic_rho0_ceilin"
+              "g_hits\":0,\"elastic_floor_retries\":0,\"eqp_refine_steps\":0,\"border_refine_st"
+              "eps\":0,\"verdict_refine_steps\":0,\"suspect_escalations\":0,\"symbolic_analyses"
+              "\":0,\"start_level_used\":\"cold\",\"full_step_majors\":0,\"watchdog_restores\":"
+              "0,\"evals_full\":0,\"evals_values\":0,\"probe_budget_stops\":0,\"crash_seeded_ro"
+              "ws\":0,\"crash_seeded_bounds\":0,\"n_seeded\":0,\"seeded_clamped\":0,\"ip_activi"
+              "ty_inferred\":0,\"active_set_delta_total\":0,\"active_set_delta_peak\":0,\"weak_"
+              "active_peak\":0,\"near_active_peak\":0,\"polish_ignored\":0,\"start_point_clamps"
+              "\":0,\"qp_maxiter_exits\":0,\"qp_numerical_exits\":0,\"qp_failures_routed\":0,\""
+              "qp_failures_in_a_row_peak\":0,\"qp_cap_retries\":0,\"restoration_entries\":0,\"r"
+              "estoration_h_in\":0,\"restoration_h_out\":0,\"restoration_f_in\":0,\"restoration"
+              "_f_out\":0,\"restoration_sub_status\":\"not_run\",\"eqp_refine_iters\":0,\"eqp_r"
+              "esidual_refusals\":0,\"eqp_polish_steps\":0,\"terminal_polish_solves\":0,\"termi"
+              "nal_polish_rejected\":0,\"terminal_polish_adopted\":0,\"eqp_row_drift_refusals\""
+              ":0,\"qp_failure_steps_judged\":0,\"qp_failure_steps_accepted\":0,\"nonfinite_sub"
+              "problems\":0,\"nonfinite_box_projections\":0,\"elastic_last_rung_fallbacks\":0,"
+              "\"restoration_reduction_resumes\":0,\"eval_hess_calls\":0,\"qn_updates\":0,\"qn_"
+              "damped\":0,\"qn_skipped_nonfinite\":0,\"qn_skipped_zero_step\":0,\"qn_skipped_cu"
+              "rvature\":0,\"qn_skipped_conditioning\":0,\"qn_rank_dropped\":0,\"qn_resets_cons"
+              "ecutive_skips\":0,\"qn_resets_radius_floor\":0,\"qn_resets_restoration_resume\":"
+              "0,\"qn_pairs_peak\":0,\"qn_lift_rank_peak\":0,\"qn_kwrong_seen\":0,\"qn_nonpd_se"
+              "en\":0,\"qn_dimension\":0,\"nonfinite_step_rollbacks\":0,\"restoration_feas_out"
+              "\":0,\"scaled_convergence_refusals\":0,\"restoration_curvature_switches\":0,\"ss"
+              "n\":{\"ssn_iters\":0,\"ssn_bulk_flips\":0,\"ssn_backtracks\":0,\"ssn_prox_update"
+              "s\":0,\"ssn_escapes\":0,\"ssn_uncertain_peak\":0,\"ssn_refinements\":0,\"ssn_ref"
+              "ine_refused\":0,\"ssn_refine_factorizations\":0,\"ssn_refine_neg_duals\":0,\"ssn"
+              "_sign_swept\":0,\"ssn_sign_sweep_max\":0,\"ssn_escape_budget\":0,\"ssn_escape_si"
+              "ngular\":0,\"ssn_escape_no_contraction\":0,\"ssn_escape_infeasible_suspect\":0,"
+              "\"ssn_escape_indefinite\":0,\"ssn_escape_gate_refused\":0},\"ipqp\":{\"ipqp_iter"
+              "s\":0,\"ipqp_factorizations\":0,\"ipqp_symbolic_analyses\":0,\"ipqp_solves\":0,"
+              "\"ipqp_pattern_verifies\":0,\"ipqp_rho_demanded_max\":0,\"ipqp_rho_demanded_last"
+              "\":0,\"ipqp_inertia_retries\":0,\"ipqp_iters_at_elevated_rho\":0,\"ipqp_ladder_r"
+              "eclimbs\":0,\"ipqp_pivot_reroute_primal\":0,\"ipqp_pivot_reroute_dual_fallback\""
+              ":0,\"ipqp_iters_ladder_armed_no_advance\":0,\"ipqp_final_inertia_read\":0,\"ipqp"
+              "_reg_decreases\":0,\"ipqp_reg_increases\":0,\"ipqp_prox_center_updates\":0,\"ipq"
+              "p_restart_repairs\":0,\"ipqp_restart_shift_max\":0,\"ipqp_mu_adopted\":0,\"ipqp_"
+              "warm_restart_abandoned\":0,\"ipqp_declined_pinned\":0,\"ipqp_tier_retired_after"
+              "\":null,\"ipqp_face_uncertain\":0,\"ipqp_refine_accepted\":0,\"ipqp_refine_refus"
+              "ed\":0,\"ipqp_to_refine\":0,\"ipqp_to_ssn\":0,\"ipqp_to_walk\":0,\"ipqp_escapes"
+              "\":0,\"ipqp_escape_budget\":0,\"ipqp_escape_stall\":0,\"ipqp_escape_indefinite\""
+              ":0,\"ipqp_escape_numerical\":0,\"ipqp_escape_infeasible_suspect\":0,\"ipqp_alpha"
+              "_p_min\":null,\"ipqp_alpha_d_min\":null,\"ipqp_read_kept_tight_sides\":0,\"ipqp_"
+              "read_barrier_noise_sides\":0,\"ipqp_mu0_derived\":0,\"ipqp_mu0_fallbacks\":0,"
+              "\"ipqp_mu_floor_binds\":0,\"ipqp_ladder_zero_trial_skips\":0}},"
+              "\"scaling_active\":false,\"obj_scale\":1,\"row_sc"
+              "ale_min\":1,\"row_scale_max\":1,\"scaled_kkt_residual\":0,\"columns_active\":false,"
+              "\"col_spread\":1}\n");
 }
 
 TEST(JsonLinesTraceSink, SqpSolveEndKeysAreExactlyTheTablesAndAllDistinct) {

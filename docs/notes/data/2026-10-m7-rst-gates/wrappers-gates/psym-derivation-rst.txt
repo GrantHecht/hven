@@ -1,0 +1,115 @@
+M7 W2 RST -- THE GATE EXPECTATIONS, DERIVED.
+Written and committed BEFORE the chain was detached.
+
+RULE: nothing here, and no declared value in gates-rst.sh, may be adjusted after the chain's first leg. Every value is derived from the FINAL
+range d5984ea2..3e90d587 or measured on that pair by this declaration's own rehearsal (rehearsal/). No value is carried from the SCL
+declaration: where a number equals a previous record's it is a COMPARISON, stated as such. The previous gate run (SCL, docs/notes/data/
+2026-10-m7-scl/, record 0dc2f1aa) is frozen, untouched. If a gate fails the declaration stays frozen; a fix gets a successor -r2
+declaration and the failed record is filed under gates-run1/.
+
+BASE   d5984ea2 (ledger-only commit on top of the SCL record 0dc2f1aa, the previous GREEN gate record; no source differs between them).
+HEAD   3e90d587. The declaration commit sits on top and is docs only, so every derivation sees 3e90d587's sources.
+       Commits in the range: b95532f5 (RST: the restoration phase's curvature and entry rule: SqpOptions::restoration_curvature
+       {kModel, kRegularized, kModelThenRegularized} and restoration_max_entries; SqpCounters::restoration_curvature_switches; the
+       regularized restoration model in detail/globalization/sqp/restoration.h; the ladder test seam knobs fail_restoration_walk_qps and
+       exhaust_restoration_elastic), 3bca9c33 (riders C110: the switch's second trigger, one charge per point, contract text); data commits
+       003d5a5f and 3e90d587 (docs/notes/data/2026-10-m7-rst/, the implementer's record -- untouched here); d5984ea2 ledger-only (excluded).
+       The commit messages' own measurements (U0 0/0/0, 46 TRAIN cells) are the implementer's, not this run's; this run measures its own.
+RUNNER gates-rst.sh + chain_gates_rst.sh: copies of SCL's, re-pointed (NOT edited in place). Changes, and nothing else: (a) names /
+       scratch .scratch/gates-rst / G4 label / BEFORE d5984ea2 / by-name baseline and G4 exact arm pinned to the SCL gates/ record (BEFORE-
+       bounded, preflight E1; the exact arm directory DERIVED from the baseline directory, ASSERTED rc 0 per engine); classifier a byte-
+       identical copy (preflight F); (b) the changed surface (section 1); (c) the name checks (section 3); (d) the measured P-SYM slots (section 2).
+       ENVIRONMENT NOTE: the worktree was created without its submodules; dep/eigen and dep/fmt were populated by copying the main checkout's
+       working trees (untracked content; the copied .git pointer files removed so git works; the tree stays clean). `git checkout -b gates-rst
+       3e90d587` was run on the clean worktree.
+
+-----------------------------------------------------------------------------
+1  THE CHANGED SURFACE of d5984ea2..3e90d587 -- OBSERVED, derived from git (git diff --name-status d5984ea2 3e90d587 -- include src tests bench).
+
+   7 headers (all MODIFIED, none added): core/solver_counters.h, core/solver_status.h, detail/drivers/ladder_testing.h,
+     detail/globalization/sqp/globalization.h, detail/globalization/sqp/restoration.h, drivers/sqp_solver.h, drivers/sqp_solver_types.h.
+   11 MODIFIED .cpp: 10 INSIDE the P-SYM universe -- library src/drivers/sqp_options.cpp, sqp_solver.cpp,
+     src/globalization/sqp/soc_elastic_restoration.cpp; hven_drivers_tests test_callback, test_options_dump, test_threads; hven_sqp_tests
+     test_sqp_qn_mode, test_sqp_restoration, test_sqp_solver, test_trace_writer -- and 1 OUTSIDE it: tests/sqp/test_sqp_ladder_seams.cpp, a
+     source of hven_sqp_seam_tests (the HVEN_TESTING recompile target; EXPECT_CLASS_A_OUTSIDE_SRCS). => class A = 10.
+   0 ADDED .cpp, 0 ADDED fixtures, no CMakeLists change (tests/sqp/CMakeLists.txt, src/CMakeLists.txt, tests/CMakeLists.txt unchanged):
+     EXPECT_ADDED_CXX 0, EXPECT_ADDED_OUTSIDE_UNIVERSE empty, EXPECT_PSYM_ADDED 0, EXPECT_SQP_CMAKE_ADDS empty. Other range files:
+     docs/counters.md, docs/testing.md, docs/trace-schema-v0.md (docs only).
+   clang-format set: 18 files (7 headers + 11 .cpp; the runner prints it, preflight A).
+
+   THE DECLARED MOVERS this range carries, each VERIFIED against the diff:
+   - SqpOptions: 43 -> 45 fields (restoration_curvature, restoration_max_entries), sizeof 488 -> 504, dump 76 -> 78 lines
+     (tests/drivers/test_options_dump.cpp kSqpOptionsFields 45, sizeof 504, kSqpDumpLines 78).
+   - SqpCounters: 82 -> 83 fields (restoration_curvature_switches appended last, counter_never_absent, FOLDED from the restoration
+     sub-solve), sizeof 1112 -> 1120 (tests/drivers/test_callback.cpp, test_threads.cpp; tests/sqp/test_trace_writer.cpp kSqpCountersFieldCount 83).
+   - two sqp.solve.end golden lines re-derived in tests/sqp/test_trace_writer.cpp (the nested tables' distinct values shift up by one).
+   - eval_hess_calls documented to count the folded exact-Hessian calls of the regularized phase.
+   - ladder test seam: new knobs fail_restoration_walk_qps and exhaust_restoration_elastic (ladder_testing.h; reset in the seam's reset).
+   Fold proofs: the new key is FOLDED, so the gate-assert library's fold-proof count may differ from SCL's 46/0; reported as observed.
+
+-----------------------------------------------------------------------------
+2  THE P-SYM MOVER SHAPE, PER CONFIGURATION -- MEASURED on the final pair d5984ea2/3e90d587 by a FRESH rehearsal.
+
+     Release  DIFFERING 63 = class A 10 + class B 53; UNEXPLAINED 0; NOISE-ONLY 0; negative control 122; sections: 48 objects, 40
+              byte-identical, DEBUG_ONLY 0, NON-DEBUG MOVERS 8, REFUSED 0
+     Debug    DIFFERING 64 = class A 10 + class B 54; UNEXPLAINED 0; NOISE-ONLY 14 (7 in the library: core/enum_names, drivers/
+              console_trace_sink, ipm_solver, ipm_solver_globalization, solve_status, globalization/sqp/funnel, qp/qp_engine -- the seven
+              DEBUG_ONLY objects); negative control 107; sections: 48 objects, 33 byte-identical, DEBUG_ONLY 7, NON-DEBUG MOVERS 8, REFUSED 0
+
+   HOW MEASURED. rehearsal/rehearse-rst.sh ran THIS runner's g5 segment (EXTRACTED from the runner's text) at a temporary docs-only commit
+   above 3e90d587 (since reset away) against d5984ea2, both configurations, one hold of the box lock (2026-10-22 08:12-08:43, PGREP_EMPTY
+   under the hold; rehearsal/rehearsal-rst-log.txt). Its HYPOTHESIS declaration (class A only, 10/10, class B 0) was REFUSED in both
+   configurations by design (rehearsal/*-refused-at-10.txt), printing the measured shape (63 / 64 differing). Then rehearsal/offline-rst.sh 63 64
+   (its own hold, 08:43-08:52): a fresh Release build with g5's flags and the UNCAPPED classifier re-run on the compare files at the measured
+   counts -- OFFLINE_CLASSIFY_RC 0 in BOTH configurations. The capture-pair asserts (after = before + ADDED = 161 objects; ONLY-AFTER empty;
+   outside-universe: test_sqp_ladder_seams.cpp built in hven_sqp_seam_tests only) held in both configurations.
+   CLASS A: 10 in both configurations = the in-universe MODIFIED .cpp of section 1 exactly, the same 10 objects (OBSERVED). Both class-A
+   noise-only slots are EMPTY.
+   CLASS B: Release 53, Debug 54 (OBSERVED, by name): the Debug set is the Release set plus ONE object, tests/drivers/CMakeFiles/
+   hven_drivers_tests.dir/test_solve_status.cpp.o, byte-identical in Release (in its negative control), a mover in Debug
+   (EXPECT_PSYM_B_DEBUG_ONLY; the same object the SCL declaration named -- a comparison, re-measured here). Library class B (5, both
+   configs, all unmodified): core/ledger, drivers/sqp_print, drivers/trace_writer, qp/ipqp_engine, warmstart/continuation. Falsifiers E8
+   (test_trace_writer.cpp.o as a declared class B) and E9 (sqp_solver.cpp.o as library class B) in the pre-flight.
+   COMPARISON WITH SCL (a comparison, not the derivation): SCL measured 62/63 = 7 + 55/56 on 5 headers; this range changes 7 headers and 10
+   in-universe sources, so more fans out.
+   NON-DEBUG-MOVER set 8 in BOTH configurations: the three class A library objects (drivers/sqp_options, drivers/sqp_solver, globalization/sqp/
+   soc_elastic_restoration) + the five class B library objects above. DEBUG_ONLY Release 0 / Debug 7. No library object ADDED.
+
+-----------------------------------------------------------------------------
+3  TEST COUNTS -- derived against the by-name baseline.
+
+   THE BASELINE IS DERIVED, NOT NAMED, AND CHECKED AGAINST ITS DECLARATION: the newest gates record at or before d5984ea2 is
+   docs/notes/data/2026-10-m7-scl/gates/suite-release.txt (commit 0dc2f1aa) == the declared EXPECT_NAMES_BASE_REL (falsified with
+   BEFORE=d9bfbb27, preflight E1). BASELINE (the SCL record): ctest total Debug 3172 / Release 3173; started names 3174 / 3175. Skipped:
+   Debug 7, Release 1.
+   ADDED = 19 instances by name, OBSERVED with git diff d5984ea2 3e90d587 -- include src tests: 19 `+TEST(` lines (SqpLadderSeam 6,
+   SqpQnRestoration 1, RestorationModelRegularized 6, SqpDriverRestorationEntries 2, RestorationEntriesOption 2,
+   SqpDriverRestorationCurvature 1, SqpDriverSsnMode 1), all names new, no TEST_F / TEST_P; 0 GTEST_SKIP / DISABLED_ lines.
+   REMOVED = 0 (no `-TEST(` line). RE-DECLARED = 0.
+   EXPECTED SUITE COUNTS: Debug 3172 + 19 = 3191 (G1, the long test excluded); Release 3173 + 19 = 3192 (G3); G2 1. Started names Debug
+   3174 + 19 = 3193 (+ the long test = 3194 listed), Release 3175 + 19 = 3194 (the rehearsal build's `ctest -N` total is 3194: rehearsal/
+   ctest-N-startfmt-derived.txt, the ctest -N listing rewritten to the runner's "Start n: name" shape with the two "(Disabled)" suffixes
+   stripped as the baseline's derivation does; it passes the runner's by-name check in Release and Debug shape, preflight C/C2; a short
+   listing and the baseline are refused). Of the 3194 listed, 2 are Disabled (EqpRefinementAb.FootprintRuleProbe, .FullBattery): 3192 run.
+   None added is Release-only, so DEBUG_ONLY_SKIPS_ADDED is EMPTY and the SKIPPED sets must equal the baseline's by name (Debug 7, Release 1).
+
+-----------------------------------------------------------------------------
+4  G4: 27 cells x 75 columns x 3 engines.
+
+   MEASURED by the rehearsal's offline leg (a fresh Release build of 3e90d587's sources, MKL_NUM_THREADS=1, taskset -c 2;
+   rehearsal/rehearsal-rst-g4-comparison.txt): vs the M6 close pin, GATED (1e-5 relative, 1e-13 floor): walk 17 differences, ssn 13, ipm 13 =
+   43; the measured (engine, cell, column) SET EQUALS the declared 43-entry list (runner --check-g4, rc 0, all eight asserts OK: preflight B).
+   EXACT arm vs the SCL record's gates/replay: walk 0, ssn 0, ipm 0 differences (rehearsal, rc 0 each). The exact arm is DECLARED 0 / 0 / 0
+   and ASSERTED rc 0 per engine by the chain's g4 segment (preflight B2 shows the comparator exits non-zero on a real difference). The chain's
+   own replay moving beyond the declared 43-set, or the exact arm moving at all, fails G4; it is reported, never re-declared.
+
+-----------------------------------------------------------------------------
+5  G6: expected CLEAN: install smoke; export contract; clang-format over the DERIVED set (18 files); git diff --check; DIRTY_FILES 0.
+   Fold proofs: the count the gate-assert library produces, reported as observed.
+
+6  PRE-FLIGHT: preflight-rst.txt (generated by preflight-rst.sh), committed WITH this file and BEFORE the chain was detached: A full
+   pre-flight PREFLIGHT_OK; B --check-g4 rc 0 (+ B2 the exact arm's teeth); C by-name reader (+ falsifiers); D skipped sets; E1-E10 falsifiers;
+   F classifier byte-identical to SCL's.
+
+7  G5 CHECKS THE WORKTREE OUT TO BEFORE while it builds its before arm, once per configuration: nothing may edit or commit in this worktree
+   from the chain's launch until CHAIN_END. WALL IS INFORMATIONAL.

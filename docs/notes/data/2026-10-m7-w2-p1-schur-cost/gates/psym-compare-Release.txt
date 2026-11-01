@@ -1,0 +1,1551 @@
+P-SYM tool sha256 (runner):   2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM tool sha256 (captures): 2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM maps: object-map=none symbol-map=none exceptions=none
+
+DIFFERS     CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 1737 alignment-pad lines vs 1738 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 77923 lines vs 77931 -- instructions were added or removed
+PER-SYMBOL  CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o: PERSYM 331 identical, 3 noise-only, 3 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 2 rank-tagged, 0 section moves, 4653 relocation records compared (0 through the symbol map), 2 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SchurComplement::~SchurComplement()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 4 (42 -> 47 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 100 lines vs 109 -- instructions were added or removed
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_destroy()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::~_Sp_counted_ptr_inplace()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              DIFFERS       std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_dispose()
+                              UNCLASSIFIED  - 	movzbl 0x270(%rdi),%eax ;LEN=7
+                                            + 	movzbl 0x298(%rdi),%eax ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x270(%rdi) ;LEN=7
+                                            + 	movb   $0x0,0x298(%rdi) ;LEN=7
+                            COUNTS 26 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       hven::solvers::BorderState::BorderState(int)
+                              UNCLASSIFIED  - 	movb   $0x0,0x260(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x288(%rbx) ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x268(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x290(%rbx) ;LEN=7
+                            COUNTS 78 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              NOISE-ONLY    hven::solvers::QpEngine::QpEngine(hven::solvers::QpOptions const&, int)
+                            COUNTS 67 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+SYMBOLS     CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o: COVERAGE FINDINGS
+              ONLY-BEFORE   hven::solvers::SchurComplement::rebuild_schur()
+              ONLY-AFTER    hven::solvers::SchurComplement::append_border(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1>&&, double)
+              ONLY-AFTER    hven::solvers::SchurComplement::factor_c()
+              ONLY-AFTER    std::vector<hven::solvers::BorderLedgerEntry, std::allocator<hven::solvers::BorderLedgerEntry> >::erase(__gnu_cxx::__normal_iterator<hven::solvers::BorderLedgerEntry const*, std::vector<hven::solvers::BorderLedgerEntry, std::allocator<hven::solvers::BorderLedgerEntry> > >, __gnu_cxx::__normal_iterator<hven::solvers::BorderLedgerEntry const*, std::vector<hven::solvers::BorderLedgerEntry, std::allocator<hven::solvers::BorderLedgerEntry> > >)
+              ONLY-AFTER    void std::vector<Eigen::Matrix<double, -1, 1, 0, -1, 1>, std::allocator<Eigen::Matrix<double, -1, 1, 0, -1, 1> > >::_M_realloc_append<Eigen::Matrix<double, -1, 1, 0, -1, 1> >(Eigen::Matrix<double, -1, 1, 0, -1, 1>&&)
+              ONLY-AFTER    hven::solvers::SchurComplement::restore_c_row_col(long, long, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&)
+              ONLY-AFTER    hven::solvers::SchurComplement::replay_batch()
+              ONLY-AFTER    hven::solvers::QpEngine::sync_borders(hven::solvers::QpProblem const&, hven::solvers::WorkingSet const&, hven::solvers::BorderState&, hven::solvers::QpCounters&, hven::solvers::QpOptions const&) const::$_0::operator()() const
+              LOCAL-FAMILY  .LCPI: 214 before, 215 after
+              LOCAL-FAMILY  .L.str: 74 before, 76 after
+              LOCAL-FAMILY  GCC_except_table: 108 before, 110 after
+DIFFERS     CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 2881 alignment-pad lines vs 2983 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 92358 lines vs 94864 -- instructions were added or removed
+PER-SYMBOL  CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o: PERSYM 299 identical, 5 noise-only, 18 differing, 1 only-before, 7 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 4361 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SchurComplement::~SchurComplement()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 4 (42 -> 47 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 100 lines vs 109 -- instructions were added or removed
+              DIFFERS       hven::solvers::QpEngine::border_candidate(hven::solvers::QpProblem const&, hven::solvers::WorkingSet const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::detail::KktFactor&, hven::solvers::EliminatedFace&, hven::solvers::BorderState&, hven::solvers::QpCounters&, hven::solvers::detail::InertiaVerdict&, hven::solvers::QpOptions const&) const
+                              UNCLASSIFIED  - 	cmpb   $0x1,0x268(%rbp) ;LEN=7
+                                            + 	cmpb   $0x1,0x290(%rbp) ;LEN=7
+                              UNCLASSIFIED  - 	cmpb   $0x1,0x260(%rbp) ;LEN=7
+                                            + 	cmpb   $0x1,0x288(%rbp) ;LEN=7
+                              UNCLASSIFIED  - 	cmpb   $0x1,0x260(%rbp) ;LEN=7
+                                            + 	cmpb   $0x1,0x288(%rbp) ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x268(%rbp) ;LEN=7
+                                            + 	movb   $0x0,0x290(%rbp) ;LEN=7
+                            COUNTS 253 insns; CHANGED 4; UNCLASSIFIED 4; DELTAS
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_destroy()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              DIFFERS       hven::solvers::QpEngine::repair_temporary_vertex(hven::solvers::QpProblem const&, hven::solvers::WorkingSet&, Eigen::Matrix<double, -1, 1, 0, -1, 1>&, hven::solvers::detail::KktFactor&, hven::solvers::EliminatedFace&, hven::solvers::BorderState&, hven::solvers::QpCounters&, hven::solvers::QpOptions const&) const
+                              UNCLASSIFIED  - 	cmpb   $0x1,0x260(%rax) ;LEN=7
+                                            + 	cmpb   $0x1,0x288(%rax) ;LEN=7
+                            COUNTS 970 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       hven::solvers::QpEngine::run(hven::solvers::QpProblem const&, hven::solvers::QpSolution const*, bool, hven::solvers::SolveOverrides const&, std::shared_ptr<hven::solvers::HotState const> const&) const
+                              UNCLASSIFIED  - 	movzbl 0x260(%rdi),%eax ;LEN=7
+                                            + 	movzbl 0x288(%rdi),%eax ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x260(%rdi) ;LEN=7
+                                            + 	movb   $0x0,0x288(%rdi) ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x268(%rdi) ;LEN=7
+                                            + 	movb   $0x0,0x290(%rdi) ;LEN=7
+                              UNCLASSIFIED  - 	movzbl 0x260(%rdi),%eax ;LEN=7
+                                            + 	movzbl 0x288(%rdi),%eax ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x260(%rdi) ;LEN=7
+                                            + 	movb   $0x0,0x288(%rdi) ;LEN=7
+                              ... and 8 more unclassified differences
+                            COUNTS 9742 insns; CHANGED 17; UNCLASSIFIED 13; DELTAS +40(x4)
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::~_Sp_counted_ptr_inplace()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    hven::solvers::QpEngine::ride_sign(hven::solvers::QpProblem const&, hven::solvers::QpEngine::DropRecord const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, bool*) const
+                            COUNTS 1122 insns; CHANGED 188; UNCLASSIFIED 0; DELTAS (pad-merged)
+            PAD-MERGED 48 alignment-pad lines vs 49 (444 -> 460 bytes, +16); 1122 non-pad lines, 934 identical, 188 control-transfer targets shifted +16; 195 control-transfer target(s) resolved to the SAME instruction; start 0x2cdc0 (mod 32 = 0) -> 0x2cff0 (mod 32 = 16)
+              DIFFERS       hven::solvers::SchurComplement::SchurComplement(hven::solvers::detail::KktFactor&, hven::solvers::QpOptions const&, int)
+                            STRUCTURAL: normalized listing is 58 lines vs 68 -- instructions were added or removed
+              NOISE-ONLY    std::shared_ptr<hven::solvers::BorderState> std::make_shared<hven::solvers::BorderState>()
+                            COUNTS 31 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              DIFFERS       hven::solvers::SchurComplement::reserve_all(unsigned long)
+                            PAD-ROUTE DECLINED: 2 alignment-pad lines vs 8 (17 -> 86 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 156 lines vs 467 -- instructions were added or removed
+              DIFFERS       hven::solvers::SchurComplement::drop_border(long)
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 45 (39 -> 483 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 249 lines vs 1026 -- instructions were added or removed
+              DIFFERS       hven::solvers::QpEngine::rebuild_k0(hven::solvers::QpProblem const&, hven::solvers::WorkingSet const&, hven::solvers::BorderState&, hven::solvers::QpCounters&, hven::solvers::QpOptions const&) const
+                              UNCLASSIFIED  - 	movzbl 0x260(%rbx),%eax ;LEN=7
+                                            + 	movzbl 0x288(%rbx),%eax ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x260(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x288(%rbx) ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x1,0x260(%rbx) ;LEN=7
+                                            + 	movb   $0x1,0x288(%rbx) ;LEN=7
+                            COUNTS 181 insns; CHANGED 3; UNCLASSIFIED 3; DELTAS
+              DIFFERS       hven::solvers::SchurComplement::add_border(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, double)
+                            PAD-ROUTE DECLINED: 2 alignment-pad lines vs 0 (23 -> 0 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 211 lines vs 100 -- instructions were added or removed
+              DIFFERS       hven::solvers::QpEngine::dep_factor_view(hven::solvers::WorkingSet const&, hven::solvers::detail::KktFactor const&, hven::solvers::EliminatedFace const&, hven::solvers::BorderState const&)
+                              UNCLASSIFIED  - 	cmpb   $0x1,0x260(%r14) ;LEN=8
+                                            + 	cmpb   $0x1,0x288(%r14) ;LEN=8
+                            COUNTS 44 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       hven::solvers::SchurComplement::needs_refactorization() const
+                              UNCLASSIFIED  - 	cmpb   $0x0,0xe8(%rdi) ;LEN=7
+                                            + 	cmpb   $0x0,0x110(%rdi) ;LEN=7
+                              UNCLASSIFIED  - 	cmpb   $0x0,0x110(%rdi) ;LEN=7
+                                            + 	cmpb   $0x0,0x138(%rdi) ;LEN=7
+                              UNCLASSIFIED  - 	cmpb   $0x0,0xe8(%rdi) ;LEN=7
+                                            + 	cmpb   $0x0,0x110(%rdi) ;LEN=7
+                              UNCLASSIFIED  - 	cmpb   $0x0,0x110(%rdi) ;LEN=7
+                                            + 	cmpb   $0x0,0x138(%rdi) ;LEN=7
+                              UNCLASSIFIED  - 	mov    0xf0(%rdi),%rdx ;LEN=7
+                                            + 	mov    0x118(%rdi),%rdx ;LEN=7
+                              ... and 3 more unclassified differences
+                            COUNTS 81 insns; CHANGED 8; UNCLASSIFIED 8; DELTAS
+              DIFFERS       std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_dispose()
+                              UNCLASSIFIED  - 	movzbl 0x270(%rdi),%eax ;LEN=7
+                                            + 	movzbl 0x298(%rdi),%eax ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x270(%rdi) ;LEN=7
+                                            + 	movb   $0x0,0x298(%rdi) ;LEN=7
+                            COUNTS 26 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       hven::solvers::QpEngine::border_solve_or_fall_back(hven::solvers::QpProblem const&, hven::solvers::WorkingSet const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::detail::KktFactor&, hven::solvers::EliminatedFace&, hven::solvers::BorderState&, hven::solvers::QpCounters&, hven::solvers::detail::InertiaVerdict&, bool, hven::solvers::QpOptions const&) const
+                              UNCLASSIFIED  - 	movb   $0x1,0x268(%r15) ;LEN=8
+                                            + 	movb   $0x1,0x290(%r15) ;LEN=8
+                              UNCLASSIFIED  - 	mov    %al,0x268(%r15) ;LEN=7
+                                            + 	mov    %al,0x290(%r15) ;LEN=7
+                            COUNTS 315 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       hven::solvers::BorderState::BorderState(int)
+                              UNCLASSIFIED  - 	movb   $0x0,0x260(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x288(%rbx) ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x268(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x290(%rbx) ;LEN=7
+                            COUNTS 78 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              NOISE-ONLY    hven::solvers::QpEngine::border_inertia_verdict(hven::solvers::QpProblem const&, hven::solvers::BorderState const&) const
+                            COUNTS 198 insns; CHANGED 14; UNCLASSIFIED 0; DELTAS (pad-merged)
+            PAD-MERGED 5 alignment-pad lines vs 4 (53 -> 37 bytes, -16); 198 non-pad lines, 184 identical, 14 control-transfer targets shifted -16; 19 control-transfer target(s) resolved to the SAME instruction; start 0x26af0 (mod 32 = 16) -> 0x26c60 (mod 32 = 0)
+              DIFFERS       hven::solvers::SchurComplement::expected_neg_eigs_delta() const
+                              UNCLASSIFIED  - 	cmpb   $0x0,0xe8(%rdi) ;LEN=7
+                                            + 	cmpb   $0x0,0x110(%rdi) ;LEN=7
+                              UNCLASSIFIED  - 	cmpb   $0x0,0x110(%rdi) ;LEN=7
+                                            + 	cmpb   $0x0,0x138(%rdi) ;LEN=7
+                              UNCLASSIFIED  - 	mov    0x108(%rdi),%rax ;LEN=7
+                                            + 	mov    0x130(%rdi),%rax ;LEN=7
+                              UNCLASSIFIED  - 	cmpb   $0x0,0xe8(%r14) ;LEN=8
+                                            + 	cmpb   $0x0,0x110(%r14) ;LEN=8
+                            COUNTS 67 insns; CHANGED 4; UNCLASSIFIED 4; DELTAS
+              ONLY-BEFORE   hven::solvers::SchurComplement::rebuild_schur()
+              DIFFERS       hven::solvers::QpEngine::sync_borders(hven::solvers::QpProblem const&, hven::solvers::WorkingSet const&, hven::solvers::BorderState&, hven::solvers::QpCounters&, hven::solvers::QpOptions const&) const
+                            PAD-ROUTE DECLINED: 33 alignment-pad lines vs 31 (314 -> 294 bytes); start 0x25990 (mod 32 = 16) -> 0x25990 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 745 lines vs 851 -- instructions were added or removed
+              DIFFERS       hven::solvers::QpEngine::refine_face_for_verdict(hven::solvers::QpProblem const&, hven::solvers::WorkingSet const&, Eigen::Matrix<double, -1, 1, 0, -1, 1>&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::BorderState&, hven::solvers::QpCounters&, hven::solvers::QpOptions const&) const
+                              UNCLASSIFIED  - 	cmpb   $0x1,0x260(%r13) ;LEN=8
+                                            + 	cmpb   $0x1,0x288(%r13) ;LEN=8
+                            COUNTS 616 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       hven::solvers::SchurComplement::solve(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+                              UNCLASSIFIED  - 	cmpb   $0x1,0xe8(%r12) ;LEN=9
+                                            + 	cmpb   $0x1,0x110(%r12) ;LEN=9
+                              UNCLASSIFIED  - 	lea    0xa0(%r12),%rdi ;LEN=8
+                                            + 	lea    0xc8(%r12),%rdi ;LEN=8
+                            COUNTS 1051 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              ONLY-AFTER    hven::solvers::SchurComplement::append_border(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1>&&, double)
+              ONLY-AFTER    hven::solvers::SchurComplement::factor_c()
+              ONLY-AFTER    std::vector<hven::solvers::BorderLedgerEntry, std::allocator<hven::solvers::BorderLedgerEntry> >::erase(__gnu_cxx::__normal_iterator<hven::solvers::BorderLedgerEntry const*, std::vector<hven::solvers::BorderLedgerEntry, std::allocator<hven::solvers::BorderLedgerEntry> > >, __gnu_cxx::__normal_iterator<hven::solvers::BorderLedgerEntry const*, std::vector<hven::solvers::BorderLedgerEntry, std::allocator<hven::solvers::BorderLedgerEntry> > >)
+              ONLY-AFTER    void std::vector<Eigen::Matrix<double, -1, 1, 0, -1, 1>, std::allocator<Eigen::Matrix<double, -1, 1, 0, -1, 1> > >::_M_realloc_append<Eigen::Matrix<double, -1, 1, 0, -1, 1> >(Eigen::Matrix<double, -1, 1, 0, -1, 1>&&)
+              ONLY-AFTER    hven::solvers::SchurComplement::restore_c_row_col(long, long, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&)
+              ONLY-AFTER    hven::solvers::SchurComplement::replay_batch()
+              ONLY-AFTER    hven::solvers::QpEngine::sync_borders(hven::solvers::QpProblem const&, hven::solvers::WorkingSet const&, hven::solvers::BorderState&, hven::solvers::QpCounters&, hven::solvers::QpOptions const&) const::$_0::operator()() const
+DIFFERS     CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+              UNCLASSIFIED  - 	cmpb   $0x1,0xe8(%r12)
+                            + 	cmpb   $0x1,0x110(%r12)
+              UNCLASSIFIED  - 	lea    0xa0(%r12),%rdi
+                            + 	lea    0xc8(%r12),%rdi
+            COUNTS 32815 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+PER-SYMBOL  CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o: PERSYM 140 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 1411 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SchurComplement::solve(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+                              UNCLASSIFIED  - 	cmpb   $0x1,0xe8(%r12) ;LEN=9
+                                            + 	cmpb   $0x1,0x110(%r12) ;LEN=9
+                              UNCLASSIFIED  - 	lea    0xa0(%r12),%rdi ;LEN=8
+                                            + 	lea    0xc8(%r12),%rdi ;LEN=8
+                            COUNTS 1051 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+SYMBOLS     CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o: COVERAGE FINDINGS
+              ONLY-BEFORE   hven::solvers::SchurComplement::rebuild_schur()
+              ONLY-AFTER    hven::solvers::SchurComplement::append_border(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1>&&, double)
+              ONLY-AFTER    hven::solvers::SchurComplement::factor_c()
+              ONLY-AFTER    void std::vector<Eigen::Matrix<double, -1, 1, 0, -1, 1>, std::allocator<Eigen::Matrix<double, -1, 1, 0, -1, 1> > >::_M_realloc_append<Eigen::Matrix<double, -1, 1, 0, -1, 1> >(Eigen::Matrix<double, -1, 1, 0, -1, 1>&&)
+              ONLY-AFTER    hven::solvers::SchurComplement::restore_c_row_col(long, long, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&)
+              LOCAL-FAMILY  .LCPI: 37 before, 38 after
+              LOCAL-FAMILY  .L.str: 77 before, 78 after
+DIFFERS     CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 980 alignment-pad lines vs 1071 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 41816 lines vs 43797 -- instructions were added or removed
+PER-SYMBOL  CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o: PERSYM 178 identical, 0 noise-only, 7 differing, 1 only-before, 4 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 2448 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SchurComplement::~SchurComplement()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 4 (42 -> 47 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 100 lines vs 109 -- instructions were added or removed
+              DIFFERS       hven::solvers::SchurComplement::SchurComplement(hven::solvers::detail::KktFactor&, hven::solvers::QpOptions const&, int)
+                            STRUCTURAL: normalized listing is 58 lines vs 68 -- instructions were added or removed
+              DIFFERS       hven::solvers::SchurComplement::reserve_all(unsigned long)
+                            PAD-ROUTE DECLINED: 2 alignment-pad lines vs 8 (17 -> 86 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 156 lines vs 467 -- instructions were added or removed
+              DIFFERS       hven::solvers::SchurComplement::drop_border(long)
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 45 (39 -> 483 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 249 lines vs 1026 -- instructions were added or removed
+              DIFFERS       hven::solvers::SchurComplement::add_border(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, double)
+                            PAD-ROUTE DECLINED: 2 alignment-pad lines vs 0 (23 -> 0 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 211 lines vs 100 -- instructions were added or removed
+              DIFFERS       hven::solvers::predict(hven::solvers::ParametricNlpModel&, hven::solvers::SqpWarmStart const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::PredictorOptions const&, hven::solvers::PredictorOutcome*, double*, int)
+                            PAD-ROUTE DECLINED: 158 alignment-pad lines vs 157 (1586 -> 1572 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line differs somewhere other than a control-transfer target (rule 3)
+                            STRUCTURAL: normalized listing is 6909 lines vs 6908 -- instructions were added or removed
+              ONLY-BEFORE   hven::solvers::SchurComplement::rebuild_schur()
+              DIFFERS       hven::solvers::SchurComplement::solve(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+                              UNCLASSIFIED  - 	cmpb   $0x1,0xe8(%r12) ;LEN=9
+                                            + 	cmpb   $0x1,0x110(%r12) ;LEN=9
+                              UNCLASSIFIED  - 	lea    0xa0(%r12),%rdi ;LEN=8
+                                            + 	lea    0xc8(%r12),%rdi ;LEN=8
+                            COUNTS 1051 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              ONLY-AFTER    hven::solvers::SchurComplement::append_border(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1>&&, double)
+              ONLY-AFTER    hven::solvers::SchurComplement::factor_c()
+              ONLY-AFTER    void std::vector<Eigen::Matrix<double, -1, 1, 0, -1, 1>, std::allocator<Eigen::Matrix<double, -1, 1, 0, -1, 1> > >::_M_realloc_append<Eigen::Matrix<double, -1, 1, 0, -1, 1> >(Eigen::Matrix<double, -1, 1, 0, -1, 1>&&)
+              ONLY-AFTER    hven::solvers::SchurComplement::restore_c_row_col(long, long, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&)
+SYMBOLS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_border_ops.cpp.o: COVERAGE FINDINGS
+              ONLY-BEFORE   hven::solvers::SchurComplement::rebuild_schur()
+              ONLY-AFTER    hven::solvers::SchurComplement::append_border(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1>&&, double)
+              ONLY-AFTER    hven::solvers::SchurComplement::factor_c()
+              ONLY-AFTER    void std::vector<Eigen::Matrix<double, -1, 1, 0, -1, 1>, std::allocator<Eigen::Matrix<double, -1, 1, 0, -1, 1> > >::_M_realloc_append<Eigen::Matrix<double, -1, 1, 0, -1, 1> >(Eigen::Matrix<double, -1, 1, 0, -1, 1>&&)
+              ONLY-AFTER    hven::solvers::SchurComplement::restore_c_row_col(long, long, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&)
+              LOCAL-FAMILY  .LCPI: 112 before, 113 after
+              LOCAL-FAMILY  .L.str: 112 before, 113 after
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_border_ops.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 1388 alignment-pad lines vs 1480 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 53075 lines vs 55057 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_border_ops.cpp.o: PERSYM 224 identical, 0 noise-only, 11 differing, 1 only-before, 4 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 3468 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SchurComplement::~SchurComplement()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 4 (42 -> 47 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 100 lines vs 109 -- instructions were added or removed
+              DIFFERS       BorderOps_DeleteK0RowMatchesDirect_Test::TestBody()
+                              UNCLASSIFIED  - 	sub    $0x588,%rsp ;LEN=7
+                                            + 	sub    $0x5a8,%rsp ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x460(%rsp),%rdi ;LEN=8
+                                            + 	lea    0x480(%rsp),%rdi ;LEN=8
+                              UNCLASSIFIED  - 	mov    0x4b0(%rsp),%r15 ;LEN=8
+                                            + 	mov    0x4d0(%rsp),%r15 ;LEN=8
+                              UNCLASSIFIED  - 	mov    0x508(%rsp),%rcx ;LEN=8
+                                            + 	mov    0x528(%rsp),%rcx ;LEN=8
+                              UNCLASSIFIED  - 	mov    %r15,0x1a0(%rsp) ;LEN=8
+                                            + 	mov    %r15,0x198(%rsp) ;LEN=8
+                              ... and 110 more unclassified differences
+                            COUNTS 1645 insns; CHANGED 115; UNCLASSIFIED 115; DELTAS
+              DIFFERS       hven::solvers::SchurComplement::SchurComplement(hven::solvers::detail::KktFactor&, hven::solvers::QpOptions const&, int)
+                            STRUCTURAL: normalized listing is 58 lines vs 68 -- instructions were added or removed
+              DIFFERS       hven::solvers::SchurComplement::reserve_all(unsigned long)
+                            PAD-ROUTE DECLINED: 2 alignment-pad lines vs 8 (17 -> 86 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 156 lines vs 467 -- instructions were added or removed
+              DIFFERS       hven::solvers::SchurComplement::drop_border(long)
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 45 (39 -> 483 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 249 lines vs 1026 -- instructions were added or removed
+              DIFFERS       hven::solvers::SchurComplement::add_border(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, double)
+                            PAD-ROUTE DECLINED: 2 alignment-pad lines vs 0 (23 -> 0 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 211 lines vs 100 -- instructions were added or removed
+              DIFFERS       BorderOps_AddIneqRowMatchesDirect_Test::TestBody()
+                              UNCLASSIFIED  - 	sub    $0x588,%rsp ;LEN=7
+                                            + 	sub    $0x5a8,%rsp ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x460(%rsp),%rdi ;LEN=8
+                                            + 	lea    0x480(%rsp),%rdi ;LEN=8
+                              UNCLASSIFIED  - 	mov    0x4b0(%rsp),%r15 ;LEN=8
+                                            + 	mov    0x4d0(%rsp),%r15 ;LEN=8
+                              UNCLASSIFIED  - 	mov    0x508(%rsp),%rcx ;LEN=8
+                                            + 	mov    0x528(%rsp),%rcx ;LEN=8
+                              UNCLASSIFIED  - 	mov    %r15,0x1a0(%rsp) ;LEN=8
+                                            + 	mov    %r15,0x198(%rsp) ;LEN=8
+                              ... and 102 more unclassified differences
+                            COUNTS 1536 insns; CHANGED 107; UNCLASSIFIED 107; DELTAS
+              DIFFERS       BorderOps_PinVariableMatchesEliminated_Test::TestBody()
+                              UNCLASSIFIED  - 	sub    $0x638,%rsp ;LEN=7
+                                            + 	sub    $0x658,%rsp ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x468(%rsp),%rdi ;LEN=8
+                                            + 	lea    0x488(%rsp),%rdi ;LEN=8
+                              UNCLASSIFIED  - 	mov    0x4b8(%rsp),%r15 ;LEN=8
+                                            + 	mov    0x4d8(%rsp),%r15 ;LEN=8
+                              UNCLASSIFIED  - 	mov    0x510(%rsp),%rcx ;LEN=8
+                                            + 	mov    0x530(%rsp),%rcx ;LEN=8
+                              UNCLASSIFIED  - 	lea    0x2e0(%rsp),%rdi ;LEN=8
+                                            + 	lea    0x2d8(%rsp),%rdi ;LEN=8
+                              ... and 59 more unclassified differences
+                            COUNTS 1386 insns; CHANGED 64; UNCLASSIFIED 64; DELTAS
+              ONLY-BEFORE   hven::solvers::SchurComplement::rebuild_schur()
+              DIFFERS       BorderOps_ComposedDeleteAndAddBorders_Test::TestBody()
+                              UNCLASSIFIED  - 	sub    $0x608,%rsp ;LEN=7
+                                            + 	sub    $0x638,%rsp ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x2d0(%rsp),%rdi ;LEN=8
+                                            + 	lea    0x2d8(%rsp),%rdi ;LEN=8
+                              UNCLASSIFIED  - 	vmovaps %xmm0,0x560(%rsp) ;LEN=9
+                                            + 	vmovaps %xmm0,0x450(%rsp) ;LEN=9
+                              UNCLASSIFIED  - 	movq   $0x0,0x570(%rsp) ;LEN=12
+                                            + 	movq   $0x0,0x460(%rsp) ;LEN=12
+                              UNCLASSIFIED  - 	lea    0x560(%rsp),%rcx ;LEN=8
+                                            + 	lea    0x450(%rsp),%rcx ;LEN=8
+                              ... and 122 more unclassified differences
+                            COUNTS 1971 insns; CHANGED 127; UNCLASSIFIED 127; DELTAS
+              DIFFERS       BorderOps_AddThenDropRoundTrip_Test::TestBody()
+                              UNCLASSIFIED  - 	sub    $0x4a0,%rsp ;LEN=7
+                                            + 	sub    $0x4c0,%rsp ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x378(%rsp),%rdi ;LEN=8
+                                            + 	lea    0x398(%rsp),%rdi ;LEN=8
+                              UNCLASSIFIED  - 	mov    0x3c8(%rsp),%r15 ;LEN=8
+                                            + 	mov    0x3e8(%rsp),%r15 ;LEN=8
+                              UNCLASSIFIED  - 	mov    0x420(%rsp),%rcx ;LEN=8
+                                            + 	mov    0x440(%rsp),%rcx ;LEN=8
+                              UNCLASSIFIED  - 	mov    %r15,0xb8(%rsp) ;LEN=8
+                                            + 	mov    %r15,0xb0(%rsp) ;LEN=8
+                              ... and 94 more unclassified differences
+                            COUNTS 781 insns; CHANGED 99; UNCLASSIFIED 99; DELTAS
+              DIFFERS       hven::solvers::SchurComplement::solve(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+                              UNCLASSIFIED  - 	cmpb   $0x1,0xe8(%r12) ;LEN=9
+                                            + 	cmpb   $0x1,0x110(%r12) ;LEN=9
+                              UNCLASSIFIED  - 	lea    0xa0(%r12),%rdi ;LEN=8
+                                            + 	lea    0xc8(%r12),%rdi ;LEN=8
+                            COUNTS 1051 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              ONLY-AFTER    hven::solvers::SchurComplement::append_border(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1>&&, double)
+              ONLY-AFTER    hven::solvers::SchurComplement::factor_c()
+              ONLY-AFTER    void std::vector<Eigen::Matrix<double, -1, 1, 0, -1, 1>, std::allocator<Eigen::Matrix<double, -1, 1, 0, -1, 1> > >::_M_realloc_append<Eigen::Matrix<double, -1, 1, 0, -1, 1> >(Eigen::Matrix<double, -1, 1, 0, -1, 1>&&)
+              ONLY-AFTER    hven::solvers::SchurComplement::restore_c_row_col(long, long, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&)
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_battery.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 945 alignment-pad lines vs 946 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 62650 lines vs 62658 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_battery.cpp.o: PERSYM 639 identical, 4 noise-only, 3 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 2 rank-tagged, 0 section moves, 6826 relocation records compared (0 through the symbol map), 2 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SchurComplement::~SchurComplement()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 4 (42 -> 47 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 100 lines vs 109 -- instructions were added or removed
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_destroy()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    HsBattery_BorderModeFalseInfeasible_Test::TestBody()
+                            COUNTS 2226 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +40(x4)
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::~_Sp_counted_ptr_inplace()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    HsBattery_RefinementStepCountersOnBorderRepro_Test::TestBody()
+                            COUNTS 1391 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +40(x4)
+              DIFFERS       std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_dispose()
+                              UNCLASSIFIED  - 	movzbl 0x270(%rdi),%eax ;LEN=7
+                                            + 	movzbl 0x298(%rdi),%eax ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x270(%rdi) ;LEN=7
+                                            + 	movb   $0x0,0x298(%rdi) ;LEN=7
+                            COUNTS 26 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       hven::solvers::BorderState::BorderState(int)
+                              UNCLASSIFIED  - 	movb   $0x0,0x260(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x288(%rbx) ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x268(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x290(%rbx) ;LEN=7
+                            COUNTS 78 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_acceptance.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 2942 alignment-pad lines vs 2943 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 129660 lines vs 129668 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_acceptance.cpp.o: PERSYM 803 identical, 5 noise-only, 3 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 2 rank-tagged, 0 section moves, 11883 relocation records compared (0 through the symbol map), 2 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SchurComplement::~SchurComplement()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 4 (42 -> 47 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 100 lines vs 109 -- instructions were added or removed
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_destroy()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::~_Sp_counted_ptr_inplace()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    hven::solvers::IpqpAcceptanceA5_AColdWideWindowSubproblemAtSizeIsSolvedInBudget_Test::TestBody()
+                            COUNTS 1347 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    hven::solvers::e1arm::solve(hven::solvers::e1arm::Cell const&, hven::solvers::IpqpOptions const&)
+                            COUNTS 2739 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    hven::solvers::IpqpAcceptanceA2_ARealMidSolveSubproblemRoundTripsTheDumpSeamAndAgreesWithTheWalk_Test::TestBody()
+                            COUNTS 4391 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              DIFFERS       std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_dispose()
+                              UNCLASSIFIED  - 	movzbl 0x270(%rdi),%eax ;LEN=7
+                                            + 	movzbl 0x298(%rdi),%eax ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x270(%rdi) ;LEN=7
+                                            + 	movb   $0x0,0x298(%rdi) ;LEN=7
+                            COUNTS 26 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       hven::solvers::BorderState::BorderState(int)
+                              UNCLASSIFIED  - 	movb   $0x0,0x260(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x288(%rbx) ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x268(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x290(%rbx) ;LEN=7
+                            COUNTS 78 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_dispatch.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 1021 alignment-pad lines vs 1022 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 73514 lines vs 73522 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_dispatch.cpp.o: PERSYM 735 identical, 3 noise-only, 3 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 2 rank-tagged, 0 section moves, 9383 relocation records compared (0 through the symbol map), 2 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SchurComplement::~SchurComplement()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 4 (42 -> 47 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 100 lines vs 109 -- instructions were added or removed
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_destroy()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::~_Sp_counted_ptr_inplace()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::IpqpDispatch_TheFeasibilityHookTakesTheEvidenceAndRunsItsTwoRungLadder_Test::TestBody()
+                            COUNTS 2245 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              DIFFERS       std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_dispose()
+                              UNCLASSIFIED  - 	movzbl 0x270(%rdi),%eax ;LEN=7
+                                            + 	movzbl 0x298(%rdi),%eax ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x270(%rdi) ;LEN=7
+                                            + 	movb   $0x0,0x298(%rdi) ;LEN=7
+                            COUNTS 26 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       hven::solvers::BorderState::BorderState(int)
+                              UNCLASSIFIED  - 	movb   $0x0,0x260(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x288(%rbx) ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x268(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x290(%rbx) ;LEN=7
+                            COUNTS 78 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_engine.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 273 alignment-pad lines vs 274 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 44417 lines vs 44425 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_engine.cpp.o: PERSYM 252 identical, 7 noise-only, 3 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 8037 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SchurComplement::~SchurComplement()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 4 (42 -> 47 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 100 lines vs 109 -- instructions were added or removed
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_destroy()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    hven::solvers::IpqpConvergenceTest_ATrustRegionWindowIsHonouredAndAgreesWithTheWalk_Test::TestBody()
+                            COUNTS 690 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::expect_agrees_with_walk(hven::solvers::QpProblem const&, double)
+                            COUNTS 675 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    hven::solvers::IpqpRuizTest_EquilibrationRoundTripsAndBothArmsLandOnTheWalksOwnPoint_Test::TestBody()
+                            COUNTS 1198 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::~_Sp_counted_ptr_inplace()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              DIFFERS       std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_dispose()
+                              UNCLASSIFIED  - 	movzbl 0x270(%rdi),%eax ;LEN=7
+                                            + 	movzbl 0x298(%rdi),%eax ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x270(%rdi) ;LEN=7
+                                            + 	movb   $0x0,0x298(%rdi) ;LEN=7
+                            COUNTS 26 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       hven::solvers::BorderState::BorderState(int)
+                              UNCLASSIFIED  - 	movb   $0x0,0x260(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x288(%rbx) ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x268(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x290(%rbx) ;LEN=7
+                            COUNTS 78 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              NOISE-ONLY    hven::solvers::IpqpRuizTest_ABadlyScaledSubproblemStillAgreesWithTheWalk_Test::TestBody()
+                            COUNTS 703 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    hven::solvers::IpqpRuizTest_TheRelativeStoppingRuleIsFOLDEDGLOBALLYAndThatHasAMeasuredPrice_Test::TestBody()
+                            COUNTS 1108 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ledger.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 1035 alignment-pad lines vs 1036 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 42510 lines vs 42518 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ledger.cpp.o: PERSYM 226 identical, 4 noise-only, 3 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 2483 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SchurComplement::~SchurComplement()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 4 (42 -> 47 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 100 lines vs 109 -- instructions were added or removed
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_destroy()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::~_Sp_counted_ptr_inplace()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    (anonymous namespace)::Ledger_ExceptionDoesNotAdvanceCounter_Test::TestBody()
+                            COUNTS 984 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    (anonymous namespace)::Ledger_ColdWarmPairRecordsAndSummary_Test::TestBody()
+                            COUNTS 1290 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              DIFFERS       std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_dispose()
+                              UNCLASSIFIED  - 	movzbl 0x270(%rdi),%eax ;LEN=7
+                                            + 	movzbl 0x298(%rdi),%eax ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x270(%rdi) ;LEN=7
+                                            + 	movb   $0x0,0x298(%rdi) ;LEN=7
+                            COUNTS 26 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       hven::solvers::BorderState::BorderState(int)
+                              UNCLASSIFIED  - 	movb   $0x0,0x260(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x288(%rbx) ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x268(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x290(%rbx) ;LEN=7
+                            COUNTS 78 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+SYMBOLS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_predictor.cpp.o: COVERAGE FINDINGS
+              ONLY-BEFORE   hven::solvers::SchurComplement::rebuild_schur()
+              ONLY-AFTER    hven::solvers::SchurComplement::append_border(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1>&&, double)
+              ONLY-AFTER    hven::solvers::SchurComplement::factor_c()
+              ONLY-AFTER    void std::vector<Eigen::Matrix<double, -1, 1, 0, -1, 1>, std::allocator<Eigen::Matrix<double, -1, 1, 0, -1, 1> > >::_M_realloc_append<Eigen::Matrix<double, -1, 1, 0, -1, 1> >(Eigen::Matrix<double, -1, 1, 0, -1, 1>&&)
+              ONLY-AFTER    hven::solvers::SchurComplement::restore_c_row_col(long, long, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&)
+              LOCAL-FAMILY  .LCPI: 506 before, 507 after
+              LOCAL-FAMILY  .L.str: 393 before, 394 after
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_predictor.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 2102 alignment-pad lines vs 2193 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 105077 lines vs 107058 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_predictor.cpp.o: PERSYM 502 identical, 0 noise-only, 7 differing, 1 only-before, 4 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 10799 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SchurComplement::~SchurComplement()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 4 (42 -> 47 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 100 lines vs 109 -- instructions were added or removed
+              DIFFERS       hven::solvers::SchurComplement::SchurComplement(hven::solvers::detail::KktFactor&, hven::solvers::QpOptions const&, int)
+                            STRUCTURAL: normalized listing is 58 lines vs 68 -- instructions were added or removed
+              DIFFERS       hven::solvers::SchurComplement::reserve_all(unsigned long)
+                            PAD-ROUTE DECLINED: 2 alignment-pad lines vs 8 (17 -> 86 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 156 lines vs 467 -- instructions were added or removed
+              DIFFERS       hven::solvers::SchurComplement::drop_border(long)
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 45 (39 -> 483 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 249 lines vs 1026 -- instructions were added or removed
+              DIFFERS       hven::solvers::SchurComplement::add_border(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, double)
+                            PAD-ROUTE DECLINED: 2 alignment-pad lines vs 0 (23 -> 0 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 211 lines vs 100 -- instructions were added or removed
+              DIFFERS       hven::solvers::predict(hven::solvers::ParametricNlpModel&, hven::solvers::SqpWarmStart const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::PredictorOptions const&, hven::solvers::PredictorOutcome*, double*, int)
+                            PAD-ROUTE DECLINED: 158 alignment-pad lines vs 157 (1586 -> 1572 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line differs somewhere other than a control-transfer target (rule 3)
+                            STRUCTURAL: normalized listing is 6909 lines vs 6908 -- instructions were added or removed
+              ONLY-BEFORE   hven::solvers::SchurComplement::rebuild_schur()
+              DIFFERS       hven::solvers::SchurComplement::solve(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+                              UNCLASSIFIED  - 	cmpb   $0x1,0xe8(%r12) ;LEN=9
+                                            + 	cmpb   $0x1,0x110(%r12) ;LEN=9
+                              UNCLASSIFIED  - 	lea    0xa0(%r12),%rdi ;LEN=8
+                                            + 	lea    0xc8(%r12),%rdi ;LEN=8
+                            COUNTS 1051 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              ONLY-AFTER    hven::solvers::SchurComplement::append_border(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1>&&, double)
+              ONLY-AFTER    hven::solvers::SchurComplement::factor_c()
+              ONLY-AFTER    void std::vector<Eigen::Matrix<double, -1, 1, 0, -1, 1>, std::allocator<Eigen::Matrix<double, -1, 1, 0, -1, 1> > >::_M_realloc_append<Eigen::Matrix<double, -1, 1, 0, -1, 1> >(Eigen::Matrix<double, -1, 1, 0, -1, 1>&&)
+              ONLY-AFTER    hven::solvers::SchurComplement::restore_c_row_col(long, long, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&)
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 1984 alignment-pad lines vs 1985 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 91580 lines vs 91588 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine.cpp.o: PERSYM 355 identical, 35 noise-only, 5 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 8380 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SchurComplement::~SchurComplement()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 4 (42 -> 47 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 100 lines vs 109 -- instructions were added or removed
+              NOISE-ONLY    QpEngine_BoundPinnedLargeSolutionKeepsItsBoundLabel_Test::TestBody()
+                            COUNTS 342 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineFaceRefine_ATrustRegionPinIsHonouredAsPartOfTheFaceAndPricesNothing_Test::TestBody()
+                            COUNTS 793 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngine_UnboundedProblemIsReportedAsNumericalErrorNotOptimal_Test::TestBody()
+                            COUNTS 792 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngine_EqualityOutsideTheBoxIsInfeasible_Test::TestBody()
+                            COUNTS 649 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineFaceRefine_AFullyPinnedFaceIsRefusedAndCostsNothing_Test::TestBody()
+                            COUNTS 438 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    (anonymous namespace)::expect_objective_inflated_1e3_cell(hven::solvers::QpOptions const&)
+                            COUNTS 601 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +40(x4)
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_destroy()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    QpEngineFaceRefine_AFaceThatLeavesTheBoxIsRefusedAndTheCallerKeepsItsAnswer_Test::TestBody()
+                            COUNTS 534 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngine_RandomizedAgainstOracle_Test::TestBody()
+                            COUNTS 658 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngine_T6bANonFiniteDualMuLeavesTheRowToleranceFinite_Test::TestBody()
+                            COUNTS 558 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +40(x4)
+              NOISE-ONLY    QpEngineFaceRefine_AnOverDeterminedFaceIsRefusedWithoutFactorizing_Test::TestBody()
+                            COUNTS 448 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineFaceRefine_AFaceThatViolatesARowItLeftOffIsRefused_Test::TestBody()
+                            COUNTS 1156 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::~_Sp_counted_ptr_inplace()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    QpEngine_IllScaledFeasibleRowsAreNotDeclaredInfeasible_Test::TestBody()
+                            COUNTS 782 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +40(x4)
+              NOISE-ONLY    QpEngine_RunawayWithActiveRowClearsItsMultipliers_Test::TestBody()
+                            COUNTS 985 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngine_OracleBattery_Test::TestBody()
+                            COUNTS 1887 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngine_ContradictoryInequalityRowsAreInfeasible_Test::TestBody()
+                            COUNTS 998 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngine_T6bObjectiveInflatedMultiplierBehavesTheSameInBothAlgebras_Test::TestBody()
+                            COUNTS 429 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +40(x4)
+              NOISE-ONLY    QpEngine_FixedVariableReachesOptimalWithPricedMultiplier_Test::TestBody()
+                            COUNTS 440 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngine_ObjectiveInflatedMultiplierContradictionIsCertifiedOnTheIndependentWorkingSet_Test::TestBody()
+                            COUNTS 452 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +40(x3)
+              NOISE-ONLY    QpEngine_ContradictoryInequalitiesWithEqualitiesPresentAreInfeasible_Test::TestBody()
+                            COUNTS 626 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngine_DegenerateDuplicateRowsAgreeOnMultiplierSum_Test::TestBody()
+                            COUNTS 1239 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineExportInvariant_AFreeVariableCarriesNoBoundPriceAtACappedExit_Test::TestBody()
+                            COUNTS 1033 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineFaceRefine_AnIndefiniteFaceIsRefusedByTheInertiaGate_Test::TestBody()
+                            COUNTS 891 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngine_MaxIterBudgetIsReported_Test::TestBody()
+                            COUNTS 293 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngine_BadlyScaledRowIsNotMistakenForInfeasibility_Test::TestBody()
+                            COUNTS 522 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineFaceRefine_AnExactFaceSolveLandsOnTheAnalyticEqpAnswer_Test::TestBody()
+                            COUNTS 799 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngine_WarmStartFromOptimalSolutionConvergesImmediately_Test::TestBody()
+                            COUNTS 907 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +40(x4)
+              DIFFERS       std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_dispose()
+                              UNCLASSIFIED  - 	movzbl 0x270(%rdi),%eax ;LEN=7
+                                            + 	movzbl 0x298(%rdi),%eax ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x270(%rdi) ;LEN=7
+                                            + 	movb   $0x0,0x298(%rdi) ;LEN=7
+                            COUNTS 26 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              NOISE-ONLY    QpEngine_EffectivelyInfiniteBoundsStillDetectTheRunaway_Test::TestBody()
+                            COUNTS 379 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngine_DropRuleRunsBeforeInfeasibilityIsDeclared_Test::TestBody()
+                            COUNTS 1036 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngine_LargeButLegitimateSolutionsAreOptimalNotNumericalError_Test::TestBody()
+                            COUNTS 1397 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              DIFFERS       hven::solvers::BorderState::BorderState(int)
+                              UNCLASSIFIED  - 	movb   $0x0,0x260(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x288(%rbx) ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x268(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x290(%rbx) ;LEN=7
+                            COUNTS 78 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       QpEngineExportInvariant_HoldsOnEveryBatteryFixtureAndEveryStatus_Test::TestBody()
+                              UNCLASSIFIED  - 	movb   $0x0,0x270(%r14) ;LEN=8
+                                            + 	movb   $0x0,0x298(%r14) ;LEN=8
+                              UNCLASSIFIED  - 	movb   $0x0,0x278(%r14) ;LEN=8
+                                            + 	movb   $0x0,0x2a0(%r14) ;LEN=8
+                            COUNTS 924 insns; CHANGED 4; UNCLASSIFIED 2; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineSizeDerivedCap_AnExplicitCapWinsOutrightAndTheSentinelDerives_Test::TestBody()
+                            COUNTS 1194 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +40(x4)
+              NOISE-ONLY    QpEngine_InconsistentEqualitiesAreInfeasible_Test::TestBody()
+                            COUNTS 323 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngine_StartInfeasibleDrivesShiftsToZero_Test::TestBody()
+                            COUNTS 499 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              DIFFERS       QpEngine_RandomizedWithEqualityRowAgainstOracle_Test::TestBody()
+                              UNCLASSIFIED  - 	movb   $0x0,0x270(%r14) ;LEN=8
+                                            + 	movb   $0x0,0x298(%r14) ;LEN=8
+                              UNCLASSIFIED  - 	movb   $0x0,0x278(%r14) ;LEN=8
+                                            + 	movb   $0x0,0x2a0(%r14) ;LEN=8
+                            COUNTS 4883 insns; CHANGED 4; UNCLASSIFIED 2; DELTAS +40(x2)
+              NOISE-ONLY    QpEngine_CrossedBoundsAreInfeasibleNotCertifiedOptimal_Test::TestBody()
+                            COUNTS 1021 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+SYMBOLS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine_border.cpp.o: COVERAGE FINDINGS
+              ONLY-BEFORE   hven::solvers::SchurComplement::rebuild_schur()
+              ONLY-AFTER    hven::solvers::SchurComplement::append_border(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1>&&, double)
+              ONLY-AFTER    hven::solvers::SchurComplement::factor_c()
+              ONLY-AFTER    void std::vector<Eigen::Matrix<double, -1, 1, 0, -1, 1>, std::allocator<Eigen::Matrix<double, -1, 1, 0, -1, 1> > >::_M_realloc_append<Eigen::Matrix<double, -1, 1, 0, -1, 1> >(Eigen::Matrix<double, -1, 1, 0, -1, 1>&&)
+              LOCAL-FAMILY  .LCPI: 201 before, 202 after
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine_border.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 2004 alignment-pad lines vs 2028 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 82749 lines vs 83474 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine_border.cpp.o: PERSYM 330 identical, 11 noise-only, 8 differing, 1 only-before, 3 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 6493 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SchurComplement::~SchurComplement()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 4 (42 -> 47 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 100 lines vs 109 -- instructions were added or removed
+              NOISE-ONLY    QpEngineBorder_LatchedBorderModeDoesNotThrashOnRowChanges_Test::TestBody()
+                            COUNTS 1754 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +40(x4)
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_destroy()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    QpEngineBorder_BorderModeWithNonDefaultOptions_Test::TestBody()
+                            COUNTS 945 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +40(x4)
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::~_Sp_counted_ptr_inplace()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    QpEngineBorder_BorderModeMatchesRefactorizeModeFromOverfullWarmStart_Test::TestBody()
+                            COUNTS 1555 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +40(x4)
+              DIFFERS       hven::solvers::SchurComplement::SchurComplement(hven::solvers::detail::KktFactor&, hven::solvers::QpOptions const&, int)
+                            STRUCTURAL: normalized listing is 58 lines vs 68 -- instructions were added or removed
+              DIFFERS       hven::solvers::SchurComplement::reserve_all(unsigned long)
+                            PAD-ROUTE DECLINED: 2 alignment-pad lines vs 8 (17 -> 86 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 156 lines vs 467 -- instructions were added or removed
+              NOISE-ONLY    QpEngineBorder_PinsPastSchurCapDoNotRebuildQuadratically_Test::TestBody()
+                            COUNTS 821 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +40(x4)
+              DIFFERS       hven::solvers::SchurComplement::add_border(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, double)
+                            PAD-ROUTE DECLINED: 2 alignment-pad lines vs 0 (23 -> 0 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 211 lines vs 100 -- instructions were added or removed
+              NOISE-ONLY    QpEngineBorder_BorderModeCountsUpdates_Test::TestBody()
+                            COUNTS 344 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineBorder_BorderModeMatchesRefactorizeModeWarmStarted_Test::TestBody()
+                            COUNTS 953 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS +40(x6)
+              DIFFERS       QpEngineBorder_BorderPinEquivalence_Test::TestBody()
+                              UNCLASSIFIED  - 	sub    $0x628,%rsp ;LEN=7
+                                            + 	sub    $0x648,%rsp ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x500(%rsp),%rdi ;LEN=8
+                                            + 	lea    0x520(%rsp),%rdi ;LEN=8
+                              UNCLASSIFIED  - 	mov    0x550(%rsp),%r15 ;LEN=8
+                                            + 	mov    0x570(%rsp),%r15 ;LEN=8
+                              UNCLASSIFIED  - 	mov    0x5a8(%rsp),%rcx ;LEN=8
+                                            + 	mov    0x5c8(%rsp),%rcx ;LEN=8
+                              UNCLASSIFIED  - 	mov    %r15,0x200(%rsp) ;LEN=8
+                                            + 	mov    %r15,0x1f8(%rsp) ;LEN=8
+                              ... and 168 more unclassified differences
+                            COUNTS 1656 insns; CHANGED 173; UNCLASSIFIED 173; DELTAS
+              DIFFERS       std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_dispose()
+                              UNCLASSIFIED  - 	movzbl 0x270(%rdi),%eax ;LEN=7
+                                            + 	movzbl 0x298(%rdi),%eax ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x270(%rdi) ;LEN=7
+                                            + 	movb   $0x0,0x298(%rdi) ;LEN=7
+                            COUNTS 26 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       hven::solvers::BorderState::BorderState(int)
+                              UNCLASSIFIED  - 	movb   $0x0,0x260(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x288(%rbx) ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x268(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x290(%rbx) ;LEN=7
+                            COUNTS 78 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              ONLY-BEFORE   hven::solvers::SchurComplement::rebuild_schur()
+              NOISE-ONLY    QpEngineBorder_SingularBorderTriggersRebuild_Test::TestBody()
+                            COUNTS 1402 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +40(x4)
+              DIFFERS       hven::solvers::SchurComplement::solve(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+                              UNCLASSIFIED  - 	cmpb   $0x1,0xe8(%r12) ;LEN=9
+                                            + 	cmpb   $0x1,0x110(%r12) ;LEN=9
+                              UNCLASSIFIED  - 	lea    0xa0(%r12),%rdi ;LEN=8
+                                            + 	lea    0xc8(%r12),%rdi ;LEN=8
+                            COUNTS 1051 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              NOISE-ONLY    QpEngineBorder_BorderModeMatchesRefactorizeMode_Test::TestBody()
+                            COUNTS 2296 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +40(x4)
+              NOISE-ONLY    QpEngineBorder_RebuildUnderTinySchurCapMatchesRefactorize_Test::TestBody()
+                            COUNTS 1450 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +40(x4)
+              ONLY-AFTER    hven::solvers::SchurComplement::append_border(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1>&&, double)
+              ONLY-AFTER    hven::solvers::SchurComplement::factor_c()
+              ONLY-AFTER    void std::vector<Eigen::Matrix<double, -1, 1, 0, -1, 1>, std::allocator<Eigen::Matrix<double, -1, 1, 0, -1, 1> > >::_M_realloc_append<Eigen::Matrix<double, -1, 1, 0, -1, 1> >(Eigen::Matrix<double, -1, 1, 0, -1, 1>&&)
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine_indefinite.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 3408 alignment-pad lines vs 3409 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 147723 lines vs 147731 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine_indefinite.cpp.o: PERSYM 478 identical, 24 noise-only, 9 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 13168 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              NOISE-ONLY    QpEngineIndefinite_SuspectStallIsNotCertifiedOptimal_Test::TestBody()
+                            COUNTS 1287 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              DIFFERS       hven::solvers::SchurComplement::~SchurComplement()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 4 (42 -> 47 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 100 lines vs 109 -- instructions were added or removed
+              NOISE-ONLY    QpEngineIndefinite_IndefiniteStartRepairsToVertex_Test::TestBody()
+                            COUNTS 674 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineIndefinite_SuspectLoopStillCertifiesAStationaryPoint_Test::TestBody()
+                            COUNTS 572 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineIndefinite_T7Fix2DualMuZeroOnARankDeficientFaceDoesNotEscapeSolve_Test::TestBody()
+                            COUNTS 1454 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineIndefinite_RideIsANoOpOnAConvexDrop_Test::TestBody()
+                            COUNTS 985 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineIndefinite_RideWithNoBlockerReportsNumericalError_Test::TestBody()
+                            COUNTS 1184 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_destroy()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    QpEngineIndefinite_InertiaGateRefusesPerturbedFactorization_Test::TestBody()
+                            COUNTS 1076 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::~_Sp_counted_ptr_inplace()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    QpEngineIndefinite_GateIsANoOpOnAConvexFixture_Test::TestBody()
+                            COUNTS 1415 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +40(x4)
+              NOISE-ONLY    QpEngineIndefinite_NegativeCurvatureRideToBound_Test::TestBody()
+                            COUNTS 986 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineIndefinite_PostProbeRestartIsOneShotPerSolve_Test::TestBody()
+                            COUNTS 2079 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineIndefinite_WeaklyActiveGeneralRowIsNotCertifiedEither_Test::TestBody()
+                            COUNTS 3176 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineIndefinite_RideOnAZeroHessianLpFindsTheVertex_Test::TestBody()
+                            COUNTS 1004 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              DIFFERS       QpEngineIndefinite_T7Fix3ProbeInertiaLeavesTheKeyOnTheProbedSetOrDisarmed_Test::TestBody()
+                              UNCLASSIFIED  - 	sub    $0x988,%rsp ;LEN=7
+                                            + 	sub    $0x9a8,%rsp ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x608(%rsp),%r13 ;LEN=8
+                                            + 	lea    0x628(%rsp),%r13 ;LEN=8
+                              UNCLASSIFIED  - 	mov    0x658(%rsp),%r15 ;LEN=8
+                                            + 	mov    0x678(%rsp),%r15 ;LEN=8
+                              UNCLASSIFIED  - 	mov    0x6b0(%rsp),%rax ;LEN=8
+                                            + 	mov    0x6d0(%rsp),%rax ;LEN=8
+                              UNCLASSIFIED  - 	movl   $0x8,0x2f8(%rsp) ;LEN=11
+                                            + 	movl   $0x8,0x2f0(%rsp) ;LEN=11
+                              ... and 47 more unclassified differences
+                            COUNTS 1541 insns; CHANGED 54; UNCLASSIFIED 52; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineIndefinite_TrustworthyWrongInertiaRepairsToVertex_Test::TestBody()
+                            COUNTS 986 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineIndefinite_RideDeclinesAFlatDirectionOnAPsdSingularQp_Test::TestBody()
+                            COUNTS 1816 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              DIFFERS       QpEngineIndefinite_ZeroMultiplierProbeIsANoOpOnStrictComplementarity_Test::TestBody()
+                              UNCLASSIFIED  - 	movb   $0x0,0x270(%r14) ;LEN=8
+                                            + 	movb   $0x0,0x298(%r14) ;LEN=8
+                              UNCLASSIFIED  - 	movb   $0x0,0x278(%r14) ;LEN=8
+                                            + 	movb   $0x0,0x2a0(%r14) ;LEN=8
+                            COUNTS 2980 insns; CHANGED 4; UNCLASSIFIED 2; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineIndefinite_SaddleWithGeneralConstraint_Test::TestBody()
+                            COUNTS 1499 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              DIFFERS       QpEngineIndefinite_RandomizedIndefiniteBatteryLandsOnLocalMinimizers_Test::TestBody()
+                              UNCLASSIFIED  - 	movb   $0x0,0x270(%r15) ;LEN=8
+                                            + 	movb   $0x0,0x298(%r15) ;LEN=8
+                              UNCLASSIFIED  - 	movb   $0x0,0x278(%r15) ;LEN=8
+                                            + 	movb   $0x0,0x2a0(%r15) ;LEN=8
+                            COUNTS 4765 insns; CHANGED 4; UNCLASSIFIED 2; DELTAS +40(x2)
+              DIFFERS       QpEngineIndefinite_T7Fix2AFailedStartRepairDoesNotRefineThroughTheProbedFactorization_Test::TestBody()
+                              UNCLASSIFIED  - 	movb   $0x0,0x270(%r14) ;LEN=8
+                                            + 	movb   $0x0,0x298(%r14) ;LEN=8
+                              UNCLASSIFIED  - 	movb   $0x0,0x278(%r14) ;LEN=8
+                                            + 	movb   $0x0,0x2a0(%r14) ;LEN=8
+                            COUNTS 2884 insns; CHANGED 4; UNCLASSIFIED 2; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineIndefinite_RepairedVertexWarmStartsWithoutRepeatingTheRepair_Test::TestBody()
+                            COUNTS 728 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              DIFFERS       std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_dispose()
+                              UNCLASSIFIED  - 	movzbl 0x270(%rdi),%eax ;LEN=7
+                                            + 	movzbl 0x298(%rdi),%eax ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x270(%rdi) ;LEN=7
+                                            + 	movb   $0x0,0x298(%rdi) ;LEN=7
+                            COUNTS 26 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              NOISE-ONLY    QpEngineIndefinite_WeaklyActiveBoundIsNotCertifiedOptimal_Test::TestBody()
+                            COUNTS 2931 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineIndefinite_RideDeclinesADirectionThatLeavesTheWorkingSet_Test::TestBody()
+                            COUNTS 1383 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineIndefinite_UnpinnableNegativeCurvatureIsNotCertifiedOptimal_Test::TestBody()
+                            COUNTS 890 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineIndefinite_RideOnAWideBoxLpReachesTheTrueMinimizer_Test::TestBody()
+                            COUNTS 913 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineIndefinite_DiagonalIndefiniteBoxReachesTheNegativeCurvatureBound_Test::TestBody()
+                            COUNTS 706 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineIndefinite_UnboundedIndefiniteReportsNumericalError_Test::TestBody()
+                            COUNTS 975 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              DIFFERS       hven::solvers::BorderState::BorderState(int)
+                              UNCLASSIFIED  - 	movb   $0x0,0x260(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x288(%rbx) ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x268(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x290(%rbx) ;LEN=7
+                            COUNTS 78 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       QpEngineIndefinite_EngineLandsOnALocalMinimizer_Test::TestBody()
+                              UNCLASSIFIED  - 	movb   $0x0,0x270(%r15) ;LEN=8
+                                            + 	movb   $0x0,0x298(%r15) ;LEN=8
+                              UNCLASSIFIED  - 	movb   $0x0,0x278(%r15) ;LEN=8
+                                            + 	movb   $0x0,0x2a0(%r15) ;LEN=8
+                            COUNTS 3431 insns; CHANGED 4; UNCLASSIFIED 2; DELTAS +40(x2)
+              DIFFERS       hven::solvers::BorderState::~BorderState()
+                              UNCLASSIFIED  - 	movzbl 0x260(%rdi),%eax ;LEN=7
+                                            + 	movzbl 0x288(%rdi),%eax ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x260(%rdi) ;LEN=7
+                                            + 	movb   $0x0,0x288(%rdi) ;LEN=7
+                            COUNTS 25 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine_tr.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 2297 alignment-pad lines vs 2298 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 95938 lines vs 95946 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine_tr.cpp.o: PERSYM 360 identical, 23 noise-only, 3 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 7404 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              NOISE-ONLY    QpEngineTr_TrInsideRealBounds_Test::TestBody()
+                            COUNTS 882 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              DIFFERS       hven::solvers::SchurComplement::~SchurComplement()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 4 (42 -> 47 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 100 lines vs 109 -- instructions were added or removed
+              NOISE-ONLY    QpEngineTr_StoredRadiusValidationRejectsNaNOnPlainOverloads_Test::TestBody()
+                            COUNTS 284 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineTr_StoredRegularizationValidationRejectsNaNOnPlainOverloads_Test::TestBody()
+                            COUNTS 547 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +40(x4)
+              NOISE-ONLY    QpEngineTr_StoredRadiusValidationLeavesWellFormedRadiiUntouched_Test::TestBody()
+                            COUNTS 335 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineTr_SameInstanceWarmSolveWithShiftedTrWindow_Test::TestBody()
+                            COUNTS 1480 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineTr_TrClampsTheStep_Test::TestBody()
+                            COUNTS 791 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_destroy()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    QpEngineTr_StoredRegularizationIsNotCheckedWhenAnOverrideSupersedesIt_Test::TestBody()
+                            COUNTS 233 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineTr_TrOffIsBitIdenticalDefault_Test::TestBody()
+                            COUNTS 1072 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +40(x4)
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::~_Sp_counted_ptr_inplace()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    QpEngineTr_OverrideValidationRejectsNaN_Test::TestBody()
+                            COUNTS 536 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineTr_StoredRegularizationValidationRejectsNegativeOnPlainOverloads_Test::TestBody()
+                            COUNTS 1031 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS +40(x6)
+              NOISE-ONLY    QpEngineTr_StoredRegularizationValidationLeavesWellFormedValuesUntouched_Test::TestBody()
+                            COUNTS 1474 insns; CHANGED 8; UNCLASSIFIED 0; DELTAS +40(x8)
+              NOISE-ONLY    QpEngineTr_IndefiniteInteractionWithSaddleBox_Test::TestBody()
+                            COUNTS 1644 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineTr_PlainOverloadsForwardDefaultOverridesByteIdentically_Test::TestBody()
+                            COUNTS 1839 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +40(x4)
+              NOISE-ONLY    QpEngineTr_WarmSeedIgnoresTrActivity_Test::TestBody()
+                            COUNTS 1306 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +40(x4)
+              NOISE-ONLY    QpEngineTr_ShrinkRadiusRetryReusesHotStart_Test::TestBody()
+                            COUNTS 1588 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineTr_OverrideValidationRejectsNegativeRadius_Test::TestBody()
+                            COUNTS 663 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              DIFFERS       std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_dispose()
+                              UNCLASSIFIED  - 	movzbl 0x270(%rdi),%eax ;LEN=7
+                                            + 	movzbl 0x298(%rdi),%eax ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x270(%rdi) ;LEN=7
+                                            + 	movb   $0x0,0x298(%rdi) ;LEN=7
+                            COUNTS 26 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              NOISE-ONLY    QpEngineTr_StoredRadiusValidationRejectsNegativeRadiusOnPlainOverloads_Test::TestBody()
+                            COUNTS 777 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              DIFFERS       hven::solvers::BorderState::BorderState(int)
+                              UNCLASSIFIED  - 	movb   $0x0,0x260(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x288(%rbx) ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x268(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x290(%rbx) ;LEN=7
+                            COUNTS 78 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              NOISE-ONLY    QpEngineTr_SeededOppositeBoundPinDoesNotRecenterTheWindow_Test::TestBody()
+                            COUNTS 2186 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    hven::solvers::QpEngine::QpEngine(hven::solvers::QpOptions const&, int)
+                            COUNTS 66 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineTr_ShrinkRadiusRetryWithALiveRealBoundPinChainsAndReuses_Test::TestBody()
+                            COUNTS 1585 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    QpEngineTr_OverridesResolveCorrectlyUnderRefactorizeMode_Test::TestBody()
+                            COUNTS 581 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_warm_start.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 1581 alignment-pad lines vs 1582 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 64714 lines vs 64722 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_warm_start.cpp.o: PERSYM 263 identical, 13 noise-only, 3 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 4326 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              NOISE-ONLY    (anonymous namespace)::QpWarmStart_WarmResolveWithUnchangedHReusesFactorization_Test::TestBody()
+                            COUNTS 717 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              DIFFERS       hven::solvers::SchurComplement::~SchurComplement()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 4 (42 -> 47 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 100 lines vs 109 -- instructions were added or removed
+              NOISE-ONLY    (anonymous namespace)::QpWarmStart_HChangeForcesRefactorization_Test::TestBody()
+                            COUNTS 717 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_destroy()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::~_Sp_counted_ptr_inplace()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    (anonymous namespace)::QpWarmStart_HotStateEmitsCommittedIdentityNotLive_Test::TestBody()
+                            COUNTS 1087 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +40(x4)
+              NOISE-ONLY    (anonymous namespace)::QpWarmStart_PerturbedSequenceCollapsesMinorIterations_Test::TestBody()
+                            COUNTS 701 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    (anonymous namespace)::QpWarmStart_StaleSeedStillConverges_Test::TestBody()
+                            COUNTS 1015 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    (anonymous namespace)::QpWarmStart_SeedWorkingSetMismatchForcesRefactorization_Test::TestBody()
+                            COUNTS 856 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    (anonymous namespace)::QpWarmStart_StructureChangeAtConstantValueBytesForcesRefactorization_Test::TestBody()
+                            COUNTS 1379 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    (anonymous namespace)::QpWarmStart_ExceptionBetweenSolvesInvalidatesReuseCache_Test::TestBody()
+                            COUNTS 889 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              DIFFERS       std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_dispose()
+                              UNCLASSIFIED  - 	movzbl 0x270(%rdi),%eax ;LEN=7
+                                            + 	movzbl 0x298(%rdi),%eax ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x270(%rdi) ;LEN=7
+                                            + 	movb   $0x0,0x298(%rdi) ;LEN=7
+                            COUNTS 26 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              NOISE-ONLY    (anonymous namespace)::QpWarmStart_DeltaMuOverrideForcesRefactorization_Test::TestBody()
+                            COUNTS 723 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    (anonymous namespace)::QpWarmStart_WarmStartMarginAtBusierOptimum_Test::TestBody()
+                            COUNTS 703 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              DIFFERS       hven::solvers::BorderState::BorderState(int)
+                              UNCLASSIFIED  - 	movb   $0x0,0x260(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x288(%rbx) ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x268(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x290(%rbx) ;LEN=7
+                            COUNTS 78 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              NOISE-ONLY    (anonymous namespace)::QpWarmStart_InfeasibleExitInvalidatesReuseCache_Test::TestBody()
+                            COUNTS 1014 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+SYMBOLS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_ws_independence.cpp.o: COVERAGE FINDINGS
+              ONLY-BEFORE   hven::solvers::SchurComplement::rebuild_schur()
+              ONLY-AFTER    hven::solvers::SchurComplement::append_border(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1>&&, double)
+              ONLY-AFTER    hven::solvers::SchurComplement::factor_c()
+              ONLY-AFTER    void std::vector<Eigen::Matrix<double, -1, 1, 0, -1, 1>, std::allocator<Eigen::Matrix<double, -1, 1, 0, -1, 1> > >::_M_realloc_append<Eigen::Matrix<double, -1, 1, 0, -1, 1> >(Eigen::Matrix<double, -1, 1, 0, -1, 1>&&)
+              LOCAL-FAMILY  .LCPI: 199 before, 200 after
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_ws_independence.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 1535 alignment-pad lines vs 1560 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 75271 lines vs 76011 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_ws_independence.cpp.o: PERSYM 368 identical, 11 noise-only, 16 differing, 1 only-before, 3 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 7644 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SchurComplement::~SchurComplement()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 4 (42 -> 47 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 100 lines vs 109 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::RowsView::RowsView(hven::solvers::QpProblem, double, std::vector<long, std::allocator<long> > const&, std::vector<long, std::allocator<long> > const&, bool)
+                              UNCLASSIFIED  - 	movb   $0x0,0x420(%r13) ;LEN=8
+                                            + 	movb   $0x0,0x448(%r13) ;LEN=8
+                              UNCLASSIFIED  - 	movzbl 0x420(%r13),%eax ;LEN=8
+                                            + 	movzbl 0x448(%r13),%eax ;LEN=8
+                              UNCLASSIFIED  - 	movb   $0x0,0x420(%r13) ;LEN=8
+                                            + 	movb   $0x0,0x448(%r13) ;LEN=8
+                              UNCLASSIFIED  - 	movb   $0x1,0x420(%r13) ;LEN=8
+                                            + 	movb   $0x1,0x448(%r13) ;LEN=8
+                              UNCLASSIFIED  - 	movzbl 0x420(%rbx),%eax ;LEN=7
+                                            + 	movzbl 0x448(%rbx),%eax ;LEN=7
+                              ... and 1 more unclassified differences
+                            COUNTS 492 insns; CHANGED 6; UNCLASSIFIED 6; DELTAS
+              NOISE-ONLY    (anonymous namespace)::WsIndependence_EntryDetectorClearsOverCount_Test::TestBody()
+                            COUNTS 1046 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +40(x4)
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_destroy()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              DIFFERS       (anonymous namespace)::WsIndependenceCalibration_AStalledRefinementAboveTheUndecidableBandIsAdmittedAndFlagged_Test::TestBody()
+                              UNCLASSIFIED  - 	sub    $0x628,%rsp ;LEN=7
+                                            + 	sub    $0x648,%rsp ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x200(%rsp),%rax ;LEN=8
+                                            + 	lea    0x1f8(%rsp),%rax ;LEN=8
+                              UNCLASSIFIED  - 	lea    0x200(%rsp),%rdi ;LEN=8
+                                            + 	lea    0x1f8(%rsp),%rdi ;LEN=8
+                              UNCLASSIFIED  - 	lea    0xd8(%rsp),%rdi ;LEN=8
+                                            + 	lea    0xd0(%rsp),%rdi ;LEN=8
+                              UNCLASSIFIED  - 	lea    0xd8(%rsp),%r12 ;LEN=8
+                                            + 	lea    0xd0(%rsp),%r12 ;LEN=8
+                              ... and 9 more unclassified differences
+                            COUNTS 465 insns; CHANGED 14; UNCLASSIFIED 14; DELTAS
+              DIFFERS       (anonymous namespace)::WsIndependenceCalibration_AGreyReReadNeverFlipsACandidateAboveKDepTol_Test::TestBody()
+                              UNCLASSIFIED  - 	sub    $0xea8,%rsp ;LEN=7
+                                            + 	sub    $0xef8,%rsp ;LEN=7
+                              UNCLASSIFIED  - 	vmovdqa %xmm1,0x5e0(%rsp) ;LEN=9
+                                            + 	vmovdqa %xmm1,0x600(%rsp) ;LEN=9
+                              UNCLASSIFIED  - 	movq   $0x0,0x5f0(%rsp) ;LEN=12
+                                            + 	movq   $0x0,0x610(%rsp) ;LEN=12
+                              UNCLASSIFIED  - 	mov    %rax,0x5e0(%rsp) ;LEN=8
+                                            + 	mov    %rax,0x600(%rsp) ;LEN=8
+                              UNCLASSIFIED  - 	movq   $0x3,0x5e8(%rsp) ;LEN=12
+                                            + 	movq   $0x3,0x608(%rsp) ;LEN=12
+                              ... and 40 more unclassified differences
+                            COUNTS 1544 insns; CHANGED 45; UNCLASSIFIED 45; DELTAS
+              NOISE-ONLY    (anonymous namespace)::WsIndependence_AnOptionalPinInADependentEqualityChainIsRemoved_Test::TestBody()
+                            COUNTS 1187 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    (anonymous namespace)::WsIndependence_CleanStartIsUntouched_Test::TestBody()
+                            COUNTS 845 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +40(x4)
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::~_Sp_counted_ptr_inplace()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    (anonymous namespace)::WsIndependence_DependentShiftAddIsRefused_Test::TestBody()
+                            COUNTS 736 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              DIFFERS       hven::solvers::SchurComplement::SchurComplement(hven::solvers::detail::KktFactor&, hven::solvers::QpOptions const&, int)
+                            STRUCTURAL: normalized listing is 58 lines vs 68 -- instructions were added or removed
+              DIFFERS       hven::solvers::SchurComplement::reserve_all(unsigned long)
+                            PAD-ROUTE DECLINED: 2 alignment-pad lines vs 8 (17 -> 86 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 156 lines vs 467 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::WsIndependenceReadOnly_TestAndDetectorWriteNothing_Test::TestBody()
+                              UNCLASSIFIED  - 	sub    $0x748,%rsp ;LEN=7
+                                            + 	sub    $0x768,%rsp ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x328(%rsp),%rdi ;LEN=8
+                                            + 	lea    0x320(%rsp),%rdi ;LEN=8
+                              UNCLASSIFIED  - 	lea    0x4e0(%rsp),%rbx ;LEN=8
+                                            + 	lea    0x4d8(%rsp),%rbx ;LEN=8
+                              UNCLASSIFIED  - 	mov    %rax,0x108(%rsp) ;LEN=8
+                                            + 	mov    %rax,0x100(%rsp) ;LEN=8
+                              UNCLASSIFIED  - 	mov    0x688(%rsp),%rcx ;LEN=8
+                                            + 	mov    0x680(%rsp),%rcx ;LEN=8
+                              ... and 109 more unclassified differences
+                            COUNTS 706 insns; CHANGED 114; UNCLASSIFIED 114; DELTAS
+              DIFFERS       hven::solvers::SchurComplement::add_border(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, double)
+                            PAD-ROUTE DECLINED: 2 alignment-pad lines vs 0 (23 -> 0 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 211 lines vs 100 -- instructions were added or removed
+              NOISE-ONLY    (anonymous namespace)::WsIndependence_TheUncertifiedFallbackStillEndsAtAFirstOrderPoint_Test::TestBody()
+                            COUNTS 1390 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              DIFFERS       (anonymous namespace)::BorderedView::~BorderedView()
+                              UNCLASSIFIED  - 	movzbl 0x418(%rdi),%eax ;LEN=7
+                                            + 	movzbl 0x440(%rdi),%eax ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x418(%rdi) ;LEN=7
+                                            + 	movb   $0x0,0x440(%rdi) ;LEN=7
+                            COUNTS 39 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       (anonymous namespace)::RowsView::~RowsView()
+                              UNCLASSIFIED  - 	movzbl 0x420(%rdi),%eax ;LEN=7
+                                            + 	movzbl 0x448(%rdi),%eax ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x420(%rdi) ;LEN=7
+                                            + 	movb   $0x0,0x448(%rdi) ;LEN=7
+                            COUNTS 39 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       (anonymous namespace)::WsIndependenceCalibration_AConvergedRhoBetweenKDepTolAndKDepUndecidableIsIndependent_Test::TestBody()
+                              UNCLASSIFIED  - 	sub    $0x978,%rsp ;LEN=7
+                                            + 	sub    $0x9a8,%rsp ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x728(%rsp),%rdi ;LEN=8
+                                            + 	lea    0x758(%rsp),%rdi ;LEN=8
+                              UNCLASSIFIED  - 	lea    0x850(%rsp),%r15 ;LEN=8
+                                            + 	lea    0x880(%rsp),%r15 ;LEN=8
+                              UNCLASSIFIED  - 	lea    0x850(%rsp),%r15 ;LEN=8
+                                            + 	lea    0x880(%rsp),%r15 ;LEN=8
+                              UNCLASSIFIED  - 	lea    0x728(%rsp),%rsi ;LEN=8
+                                            + 	lea    0x758(%rsp),%rsi ;LEN=8
+                              ... and 4 more unclassified differences
+                            COUNTS 1082 insns; CHANGED 9; UNCLASSIFIED 9; DELTAS
+              NOISE-ONLY    (anonymous namespace)::WsIndependence_AStalledTestAboveTheUndecidableBandIsAdmittedAndCounted_Test::TestBody()
+                            COUNTS 1520 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              DIFFERS       std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_dispose()
+                              UNCLASSIFIED  - 	movzbl 0x270(%rdi),%eax ;LEN=7
+                                            + 	movzbl 0x298(%rdi),%eax ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x270(%rdi) ;LEN=7
+                                            + 	movb   $0x0,0x298(%rdi) ;LEN=7
+                            COUNTS 26 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              NOISE-ONLY    (anonymous namespace)::WsIndependence_AnUncertifiedPinIsKeptAndACertifiedRowRemoved_Test::TestBody()
+                            COUNTS 1792 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    (anonymous namespace)::WsIndependence_EntryDetectorRemovesDuplicatedSeedRow_Test::TestBody()
+                            COUNTS 1204 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +40(x4)
+              NOISE-ONLY    (anonymous namespace)::WsIndependence_MandatoryDependencyIsCountedNotRemoved_Test::TestBody()
+                            COUNTS 707 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              DIFFERS       hven::solvers::BorderState::BorderState(int)
+                              UNCLASSIFIED  - 	movb   $0x0,0x260(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x288(%rbx) ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x268(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x290(%rbx) ;LEN=7
+                            COUNTS 78 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       (anonymous namespace)::BorderedView::BorderedView(double, double)
+                              UNCLASSIFIED  - 	movb   $0x0,0x418(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x440(%rbx) ;LEN=7
+                              UNCLASSIFIED  - 	movzbl 0x418(%rbx),%eax ;LEN=7
+                                            + 	movzbl 0x440(%rbx),%eax ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x418(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x440(%rbx) ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x1,0x418(%rbx) ;LEN=7
+                                            + 	movb   $0x1,0x440(%rbx) ;LEN=7
+                              UNCLASSIFIED  - 	movzbl 0x418(%rbx),%eax ;LEN=7
+                                            + 	movzbl 0x440(%rbx),%eax ;LEN=7
+                              ... and 3 more unclassified differences
+                            COUNTS 619 insns; CHANGED 8; UNCLASSIFIED 8; DELTAS
+              ONLY-BEFORE   hven::solvers::SchurComplement::rebuild_schur()
+              DIFFERS       (anonymous namespace)::WsIndependenceCalibration_RefinedStatisticSeparatesBordered_Test::TestBody()
+                            PAD-ROUTE DECLINED: 22 alignment-pad lines vs 23 (239 -> 243 bytes); start 0x111d0 (mod 32 = 16) -> 0x111d0 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1593 lines vs 1602 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::WsIndependenceCalibration_RefinedStatisticSeparatesAtARowRatioOf1e10BothAlgebras_Test::TestBody()
+                            PAD-ROUTE DECLINED: 36 alignment-pad lines vs 36 (355 -> 359 bytes); start 0x13b30 (mod 32 = 16) -> 0x13b50 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 3370 lines vs 3378 -- instructions were added or removed
+              ONLY-AFTER    hven::solvers::SchurComplement::append_border(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1>&&, double)
+              ONLY-AFTER    hven::solvers::SchurComplement::factor_c()
+              ONLY-AFTER    void std::vector<Eigen::Matrix<double, -1, 1, 0, -1, 1>, std::allocator<Eigen::Matrix<double, -1, 1, 0, -1, 1> > >::_M_realloc_append<Eigen::Matrix<double, -1, 1, 0, -1, 1> >(Eigen::Matrix<double, -1, 1, 0, -1, 1>&&)
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_scale_smoke.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 1752 alignment-pad lines vs 1753 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 68784 lines vs 68792 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_scale_smoke.cpp.o: PERSYM 270 identical, 3 noise-only, 3 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 4865 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SchurComplement::~SchurComplement()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 4 (42 -> 47 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 100 lines vs 109 -- instructions were added or removed
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_destroy()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::~_Sp_counted_ptr_inplace()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              DIFFERS       std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_dispose()
+                              UNCLASSIFIED  - 	movzbl 0x270(%rdi),%eax ;LEN=7
+                                            + 	movzbl 0x298(%rdi),%eax ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x270(%rdi) ;LEN=7
+                                            + 	movb   $0x0,0x298(%rdi) ;LEN=7
+                            COUNTS 26 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       hven::solvers::BorderState::BorderState(int)
+                              UNCLASSIFIED  - 	movb   $0x0,0x260(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x288(%rbx) ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x268(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x290(%rbx) ;LEN=7
+                            COUNTS 78 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              NOISE-ONLY    QpScaleSmoke_ModerateScaleBorderModeMatchesRefactorizeAndReusesHotStart_Test::TestBody()
+                            COUNTS 4697 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +40(x4)
+SYMBOLS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_schur.cpp.o: COVERAGE FINDINGS
+              ONLY-BEFORE   hven::solvers::SchurComplement::rebuild_schur()
+              ONLY-AFTER    (anonymous namespace)::IncrementalFixture::~IncrementalFixture()
+              ONLY-AFTER    testing::internal::TestFactoryImpl<Schur_IncrementalCMatchesFromScratchAfterAddsAndDrops_Test>::~TestFactoryImpl()
+              ONLY-AFTER    hven::solvers::SchurComplement::append_border(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1>&&, double)
+              ONLY-AFTER    typeinfo name for Schur_IncrementalCMatchesFromScratchAfterAddsAndDrops_Test
+              ONLY-AFTER    Schur_BatchedAddsLeaveTheStatePerAddWouldHave_Test::test_info_
+              ONLY-AFTER    (anonymous namespace)::IncrementalFixture::IncrementalFixture()
+              ONLY-AFTER    Schur_BatchThatThrowsLeavesThePerAddStack_Test::test_info_
+              ONLY-AFTER    hven::solvers::SchurComplement::factor_c()
+              ONLY-AFTER    typeinfo for testing::internal::TestFactoryImpl<Schur_BatchThatThrowsLeavesThePerAddStack_Test>
+              ONLY-AFTER    Schur_IncrementalCMatchesFromScratchAfterAddsAndDrops_Test::test_info_
+              ONLY-AFTER    vtable for testing::internal::TestFactoryImpl<Schur_BatchedAddsLeaveTheStatePerAddWouldHave_Test>
+              ONLY-AFTER    Schur_BatchedAddsLeaveTheStatePerAddWouldHave_Test::TestBody()
+              ONLY-AFTER    typeinfo for testing::internal::TestFactoryImpl<Schur_BatchedAddsLeaveTheStatePerAddWouldHave_Test>
+              ONLY-AFTER    vtable for Schur_IncrementalCMatchesFromScratchAfterAddsAndDrops_Test
+              ONLY-AFTER    Schur_BatchThatThrowsLeavesThePerAddStack_Test::TestBody()
+              ONLY-AFTER    void std::vector<Eigen::Matrix<double, -1, 1, 0, -1, 1>, std::allocator<Eigen::Matrix<double, -1, 1, 0, -1, 1> > >::_M_realloc_append<Eigen::Matrix<double, -1, 1, 0, -1, 1> >(Eigen::Matrix<double, -1, 1, 0, -1, 1>&&)
+              ONLY-AFTER    typeinfo name for Schur_BatchThatThrowsLeavesThePerAddStack_Test
+              ONLY-AFTER    Schur_IncrementalCMatchesFromScratchAfterAddsAndDrops_Test::TestBody()
+              ONLY-AFTER    Schur_IncrementalCMatchesFromScratchAfterAddsAndDrops_Test::~Schur_IncrementalCMatchesFromScratchAfterAddsAndDrops_Test()
+              ONLY-AFTER    typeinfo for testing::internal::TestFactoryImpl<Schur_IncrementalCMatchesFromScratchAfterAddsAndDrops_Test>
+              ... and 27 more symbols present only in the after arm
+              LOCAL-FAMILY  .LCPI: 171 before, 197 after
+              LOCAL-FAMILY  .L.str: 107 before, 148 after
+              LOCAL-FAMILY  GCC_except_table: 97 before, 111 after
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_schur.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 1790 alignment-pad lines vs 2000 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 68690 lines vs 77132 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_schur.cpp.o: PERSYM 272 identical, 0 noise-only, 22 differing, 1 only-before, 26 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 1 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 3738 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SchurComplement::~SchurComplement()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 4 (42 -> 47 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 100 lines vs 109 -- instructions were added or removed
+              DIFFERS       Schur_NonFiniteBorderNeverLeavesAReadableEvidenceState_Test::TestBody()
+                              UNCLASSIFIED  - 	sub    $0x318,%rsp ;LEN=7
+                                            + 	sub    $0x348,%rsp ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x228(%rsp),%rdi ;LEN=8
+                                            + 	lea    0x258(%rsp),%rdi ;LEN=8
+                              UNCLASSIFIED  - 	movl   $0x8,0xc8(%rsp) ;LEN=11
+                                            + 	movl   $0x8,0xd0(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0xd0(%rsp) ;LEN=11
+                                            + 	movl   $0x0,0xd8(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0xd8(%rsp) ;LEN=11
+                                            + 	movl   $0x0,0xe0(%rsp) ;LEN=11
+                              ... and 64 more unclassified differences
+                            COUNTS 1131 insns; CHANGED 81; UNCLASSIFIED 69; DELTAS +4(x12)
+              DIFFERS       _GLOBAL__sub_I_test_schur.cpp
+                            STRUCTURAL: normalized listing is 931 lines vs 1195 -- instructions were added or removed
+              DIFFERS       Schur_RefactorizationTriggerFires_Test::TestBody()
+                              UNCLASSIFIED  - 	sub    $0x320,%rsp ;LEN=7
+                                            + 	sub    $0x340,%rsp ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x230(%rsp),%rdi ;LEN=8
+                                            + 	lea    0x250(%rsp),%rdi ;LEN=8
+                              UNCLASSIFIED  - 	movl   $0x8,0xd0(%rsp) ;LEN=11
+                                            + 	movl   $0x8,0xc8(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0xd8(%rsp) ;LEN=11
+                                            + 	movl   $0x0,0xd0(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0xe0(%rsp) ;LEN=11
+                                            + 	movl   $0x0,0xd8(%rsp) ;LEN=11
+                              ... and 72 more unclassified differences
+                            COUNTS 584 insns; CHANGED 80; UNCLASSIFIED 77; DELTAS +4(x3)
+              DIFFERS       hven::solvers::SchurComplement::SchurComplement(hven::solvers::detail::KktFactor&, hven::solvers::QpOptions const&, int)
+                            STRUCTURAL: normalized listing is 58 lines vs 68 -- instructions were added or removed
+              DIFFERS       hven::solvers::SchurComplement::reserve_all(unsigned long)
+                            PAD-ROUTE DECLINED: 2 alignment-pad lines vs 8 (17 -> 86 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 156 lines vs 467 -- instructions were added or removed
+              DIFFERS       Schur_DropBorderMatchesDirectFactorizationOfSurvivor_Test::TestBody()
+                              UNCLASSIFIED  - 	sub    $0x3a8,%rsp ;LEN=7
+                                            + 	sub    $0x3d8,%rsp ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x150(%rsp),%rdi ;LEN=8
+                                            + 	lea    0x158(%rsp),%rdi ;LEN=8
+                              UNCLASSIFIED  - 	movl   $0x8,0x1f0(%rsp) ;LEN=11
+                                            + 	movl   $0x8,0x1f8(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0x1f8(%rsp) ;LEN=11
+                                            + 	movl   $0x0,0x200(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0x200(%rsp) ;LEN=11
+                                            + 	movl   $0x0,0x208(%rsp) ;LEN=11
+                              ... and 56 more unclassified differences
+                            COUNTS 963 insns; CHANGED 64; UNCLASSIFIED 61; DELTAS +4(x3)
+              DIFFERS       hven::solvers::SchurComplement::drop_border(long)
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 45 (39 -> 483 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 249 lines vs 1026 -- instructions were added or removed
+              DIFFERS       hven::solvers::SchurComplement::add_border(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, double)
+                            PAD-ROUTE DECLINED: 2 alignment-pad lines vs 0 (23 -> 0 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 211 lines vs 100 -- instructions were added or removed
+              DIFFERS       Schur_SingularOneByOneSchurBlockThrowsOnInertiaQuery_Test::TestBody()
+                              UNCLASSIFIED  - 	sub    $0x310,%rsp ;LEN=7
+                                            + 	sub    $0x330,%rsp ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x220(%rsp),%rdi ;LEN=8
+                                            + 	lea    0x240(%rsp),%rdi ;LEN=8
+                              UNCLASSIFIED  - 	movl   $0x8,0xc0(%rsp) ;LEN=11
+                                            + 	movl   $0x8,0xb8(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0xc8(%rsp) ;LEN=11
+                                            + 	movl   $0x0,0xc0(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0xd0(%rsp) ;LEN=11
+                                            + 	movl   $0x0,0xc8(%rsp) ;LEN=11
+                              ... and 63 more unclassified differences
+                            COUNTS 676 insns; CHANGED 71; UNCLASSIFIED 68; DELTAS +4(x3)
+              DIFFERS       Schur_IndefiniteSchurSolveMatchesDirect_Test::TestBody()
+                              UNCLASSIFIED  - 	sub    $0x540,%rsp ;LEN=7
+                                            + 	sub    $0x560,%rsp ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x2d0(%rsp),%rdi ;LEN=8
+                                            + 	lea    0x2c8(%rsp),%rdi ;LEN=8
+                              UNCLASSIFIED  - 	movl   $0x8,0x370(%rsp) ;LEN=11
+                                            + 	movl   $0x8,0x368(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0x378(%rsp) ;LEN=11
+                                            + 	movl   $0x0,0x370(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0x380(%rsp) ;LEN=11
+                                            + 	movl   $0x0,0x378(%rsp) ;LEN=11
+                              ... and 57 more unclassified differences
+                            COUNTS 2013 insns; CHANGED 66; UNCLASSIFIED 62; DELTAS +4(x4)
+              DIFFERS       Schur_AntiDiagonalSchurBlock_Test::TestBody()
+                              UNCLASSIFIED  - 	sub    $0x3b8,%rsp ;LEN=7
+                                            + 	sub    $0x3e8,%rsp ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x160(%rsp),%rdi ;LEN=8
+                                            + 	lea    0x168(%rsp),%rdi ;LEN=8
+                              UNCLASSIFIED  - 	movl   $0x8,0x1b0(%rsp) ;LEN=11
+                                            + 	movl   $0x8,0x1b8(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0x1b8(%rsp) ;LEN=11
+                                            + 	movl   $0x0,0x1c0(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0x1c0(%rsp) ;LEN=11
+                                            + 	movl   $0x0,0x1c8(%rsp) ;LEN=11
+                              ... and 63 more unclassified differences
+                            COUNTS 1503 insns; CHANGED 72; UNCLASSIFIED 68; DELTAS +4(x4)
+              DIFFERS       make_kkt3()
+                            PAD-ROUTE DECLINED: 11 alignment-pad lines vs 0 (90 -> 0 bytes); start 0xb2d0 (mod 32 = 16) -> 0xf1d0 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 336 lines vs 63 -- instructions were added or removed
+              DIFFERS       hven::solvers::SchurComplement::cond_estimate() const
+                              UNCLASSIFIED  - 	cmpb   $0x0,0xe8(%rdi) ;LEN=7
+                                            + 	cmpb   $0x0,0x110(%rdi) ;LEN=7
+                              UNCLASSIFIED  - 	cmpb   $0x0,0x110(%rdi) ;LEN=7
+                                            + 	cmpb   $0x0,0x138(%rdi) ;LEN=7
+                              UNCLASSIFIED  - 	mov    0xf0(%rdi),%rax ;LEN=7
+                                            + 	mov    0x118(%rdi),%rax ;LEN=7
+                              UNCLASSIFIED  - 	mov    0xf8(%rdi),%rcx ;LEN=7
+                                            + 	mov    0x120(%rdi),%rcx ;LEN=7
+                            COUNTS 32 insns; CHANGED 4; UNCLASSIFIED 4; DELTAS
+              DIFFERS       Schur_BorderedSolveMatchesDirectFactorization_Test::TestBody()
+                              UNCLASSIFIED  - 	sub    $0x398,%rsp ;LEN=7
+                                            + 	sub    $0x3c8,%rsp ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x140(%rsp),%rdi ;LEN=8
+                                            + 	lea    0x148(%rsp),%rdi ;LEN=8
+                              UNCLASSIFIED  - 	movl   $0x8,0x1e0(%rsp) ;LEN=11
+                                            + 	movl   $0x8,0x1e8(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0x1e8(%rsp) ;LEN=11
+                                            + 	movl   $0x0,0x1f0(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0x1f0(%rsp) ;LEN=11
+                                            + 	movl   $0x0,0x1f8(%rsp) ;LEN=11
+                              ... and 52 more unclassified differences
+                            COUNTS 839 insns; CHANGED 59; UNCLASSIFIED 57; DELTAS +4(x2)
+              DIFFERS       hven::solvers::SchurComplement::needs_refactorization() const
+                              UNCLASSIFIED  - 	cmpb   $0x0,0xe8(%rdi) ;LEN=7
+                                            + 	cmpb   $0x0,0x110(%rdi) ;LEN=7
+                              UNCLASSIFIED  - 	cmpb   $0x0,0x110(%rdi) ;LEN=7
+                                            + 	cmpb   $0x0,0x138(%rdi) ;LEN=7
+                              UNCLASSIFIED  - 	cmpb   $0x0,0xe8(%rdi) ;LEN=7
+                                            + 	cmpb   $0x0,0x110(%rdi) ;LEN=7
+                              UNCLASSIFIED  - 	cmpb   $0x0,0x110(%rdi) ;LEN=7
+                                            + 	cmpb   $0x0,0x138(%rdi) ;LEN=7
+                              UNCLASSIFIED  - 	mov    0xf0(%rdi),%rdx ;LEN=7
+                                            + 	mov    0x118(%rdi),%rdx ;LEN=7
+                              ... and 3 more unclassified differences
+                            COUNTS 81 insns; CHANGED 8; UNCLASSIFIED 8; DELTAS
+              DIFFERS       Schur_NearlySingularOneByOneNeedsRefactorization_Test::TestBody()
+                              UNCLASSIFIED  - 	sub    $0x428,%rsp ;LEN=7
+                                            + 	sub    $0x478,%rsp ;LEN=7
+                              UNCLASSIFIED  - 	vmovupd %ymm0,0x218(%rsp) ;LEN=9
+                                            + 	vmovupd %ymm0,0x240(%rsp) ;LEN=9
+                              UNCLASSIFIED  - 	movq   $0x0,0x238(%rsp) ;LEN=12
+                                            + 	movq   $0x0,0x260(%rsp) ;LEN=12
+                              UNCLASSIFIED  - 	movq   $0x80,0x240(%rsp) ;LEN=12
+                                            + 	movq   $0x80,0x268(%rsp) ;LEN=12
+                              UNCLASSIFIED  - 	mov    %rax,0x248(%rsp) ;LEN=8
+                                            + 	mov    %rax,0x270(%rsp) ;LEN=8
+                              ... and 57 more unclassified differences
+                            COUNTS 627 insns; CHANGED 65; UNCLASSIFIED 62; DELTAS +4(x3)
+              DIFFERS       hven::solvers::SchurComplement::nearly_singular() const
+                              UNCLASSIFIED  - 	cmpb   $0x0,0xe8(%rdi) ;LEN=7
+                                            + 	cmpb   $0x0,0x110(%rdi) ;LEN=7
+                              UNCLASSIFIED  - 	cmpb   $0x0,0x110(%rdi) ;LEN=7
+                                            + 	cmpb   $0x0,0x138(%rdi) ;LEN=7
+                              UNCLASSIFIED  - 	mov    0xf0(%rdi),%rax ;LEN=7
+                                            + 	mov    0x118(%rdi),%rax ;LEN=7
+                              UNCLASSIFIED  - 	mov    0xf8(%rdi),%rcx ;LEN=7
+                                            + 	mov    0x120(%rdi),%rcx ;LEN=7
+                            COUNTS 31 insns; CHANGED 4; UNCLASSIFIED 4; DELTAS
+              DIFFERS       Schur_DropBorderThrowsOnOutOfRange_Test::TestBody()
+                              UNCLASSIFIED  - 	sub    $0x300,%rsp ;LEN=7
+                                            + 	sub    $0x320,%rsp ;LEN=7
+                              UNCLASSIFIED  - 	lea    0xf8(%rsp),%rdi ;LEN=8
+                                            + 	lea    0xf0(%rsp),%rdi ;LEN=8
+                              UNCLASSIFIED  - 	movl   $0x8,0x148(%rsp) ;LEN=11
+                                            + 	movl   $0x8,0x140(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0x150(%rsp) ;LEN=11
+                                            + 	movl   $0x0,0x148(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0x158(%rsp) ;LEN=11
+                                            + 	movl   $0x0,0x150(%rsp) ;LEN=11
+                              ... and 42 more unclassified differences
+                            COUNTS 495 insns; CHANGED 50; UNCLASSIFIED 47; DELTAS +4(x3)
+              DIFFERS       Schur_InertiaBookkeepingPinnedVariable_Test::TestBody()
+                              UNCLASSIFIED  - 	sub    $0x2e0,%rsp ;LEN=7
+                                            + 	sub    $0x300,%rsp ;LEN=7
+                              UNCLASSIFIED  - 	lea    0xd8(%rsp),%rdi ;LEN=8
+                                            + 	lea    0xd0(%rsp),%rdi ;LEN=8
+                              UNCLASSIFIED  - 	movl   $0x8,0x128(%rsp) ;LEN=11
+                                            + 	movl   $0x8,0x120(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0x130(%rsp) ;LEN=11
+                                            + 	movl   $0x0,0x128(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0x138(%rsp) ;LEN=11
+                                            + 	movl   $0x0,0x130(%rsp) ;LEN=11
+                              ... and 88 more unclassified differences
+                            COUNTS 198 insns; CHANGED 94; UNCLASSIFIED 93; DELTAS +4(x1)
+              DIFFERS       hven::solvers::SchurComplement::expected_neg_eigs_delta() const
+                              UNCLASSIFIED  - 	cmpb   $0x0,0xe8(%rdi) ;LEN=7
+                                            + 	cmpb   $0x0,0x110(%rdi) ;LEN=7
+                              UNCLASSIFIED  - 	cmpb   $0x0,0x110(%rdi) ;LEN=7
+                                            + 	cmpb   $0x0,0x138(%rdi) ;LEN=7
+                              UNCLASSIFIED  - 	mov    0x108(%rdi),%rax ;LEN=7
+                                            + 	mov    0x130(%rdi),%rax ;LEN=7
+                              UNCLASSIFIED  - 	cmpb   $0x0,0xe8(%r14) ;LEN=8
+                                            + 	cmpb   $0x0,0x110(%r14) ;LEN=8
+                            COUNTS 67 insns; CHANGED 4; UNCLASSIFIED 4; DELTAS
+              ONLY-BEFORE   hven::solvers::SchurComplement::rebuild_schur()
+              DIFFERS       hven::solvers::SchurComplement::solve(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+                              UNCLASSIFIED  - 	cmpb   $0x1,0xe8(%r12) ;LEN=9
+                                            + 	cmpb   $0x1,0x110(%r12) ;LEN=9
+                              UNCLASSIFIED  - 	lea    0xa0(%r12),%rdi ;LEN=8
+                                            + 	lea    0xc8(%r12),%rdi ;LEN=8
+                            COUNTS 1051 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              ONLY-AFTER    (anonymous namespace)::IncrementalFixture::~IncrementalFixture()
+              ONLY-AFTER    testing::internal::TestFactoryImpl<Schur_IncrementalCMatchesFromScratchAfterAddsAndDrops_Test>::~TestFactoryImpl()
+              ONLY-AFTER    hven::solvers::SchurComplement::append_border(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1>&&, double)
+              ONLY-AFTER    (anonymous namespace)::IncrementalFixture::IncrementalFixture()
+              ONLY-AFTER    hven::solvers::SchurComplement::factor_c()
+              ONLY-AFTER    Schur_BatchedAddsLeaveTheStatePerAddWouldHave_Test::TestBody()
+              ONLY-AFTER    Schur_BatchThatThrowsLeavesThePerAddStack_Test::TestBody()
+              ONLY-AFTER    void std::vector<Eigen::Matrix<double, -1, 1, 0, -1, 1>, std::allocator<Eigen::Matrix<double, -1, 1, 0, -1, 1> > >::_M_realloc_append<Eigen::Matrix<double, -1, 1, 0, -1, 1> >(Eigen::Matrix<double, -1, 1, 0, -1, 1>&&)
+              ONLY-AFTER    Schur_IncrementalCMatchesFromScratchAfterAddsAndDrops_Test::TestBody()
+              ONLY-AFTER    Schur_IncrementalCMatchesFromScratchAfterAddsAndDrops_Test::~Schur_IncrementalCMatchesFromScratchAfterAddsAndDrops_Test()
+              ONLY-AFTER    Schur_BatchedAddsLeaveTheStatePerAddWouldHave_Test::~Schur_BatchedAddsLeaveTheStatePerAddWouldHave_Test()
+              ONLY-AFTER    testing::internal::TestFactoryImpl<Schur_BatchThatThrowsLeavesThePerAddStack_Test>::~TestFactoryImpl()
+              ONLY-AFTER    hven::solvers::SchurComplement::restore_c_row_col(long, long, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&)
+              ONLY-AFTER    Schur_BatchThatThrowsLeavesThePerAddStack_Test::~Schur_BatchThatThrowsLeavesThePerAddStack_Test()
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::PrintToString<hven::linear::DenseFactorizeOutcome>(hven::linear::DenseFactorizeOutcome const&)
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::linear::DenseFactorizeOutcome, hven::linear::DenseFactorizeOutcome>(char const*, char const*, hven::linear::DenseFactorizeOutcome const&, hven::linear::DenseFactorizeOutcome const&)
+              ONLY-AFTER    Schur_IncrementalCMatchesFromScratchAfterAddsAndDrops_Test::TestBody()::$_0::operator()(unsigned long) const
+              ONLY-AFTER    hven::solvers::SchurComplement::replay_batch()
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<unsigned long, unsigned long>(char const*, char const*, unsigned long const&, unsigned long const&)
+              ONLY-AFTER    upper_with_structural_diag(Eigen::Matrix<double, -1, -1, 0, -1, -1> const&)
+              ONLY-AFTER    Schur_IncrementalCMatchesFromScratchAfterAddsAndDrops_Test::TestBody()::$_2::operator()() const
+              ONLY-AFTER    testing::internal::TestFactoryImpl<Schur_BatchedAddsLeaveTheStatePerAddWouldHave_Test>::~TestFactoryImpl()
+              ONLY-AFTER    testing::internal::TestFactoryImpl<Schur_BatchThatThrowsLeavesThePerAddStack_Test>::CreateTest()
+              ONLY-AFTER    testing::internal::TestFactoryImpl<Schur_BatchedAddsLeaveTheStatePerAddWouldHave_Test>::CreateTest()
+              ONLY-AFTER    (anonymous namespace)::expect_same_bits(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&)
+              ONLY-AFTER    testing::internal::TestFactoryImpl<Schur_IncrementalCMatchesFromScratchAfterAddsAndDrops_Test>::CreateTest()
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 3310 alignment-pad lines vs 3311 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 315960 lines vs 315968 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o: PERSYM 1766 identical, 20 noise-only, 3 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 4 rank-tagged, 0 section moves, 51498 relocation records compared (0 through the symbol map), 4 global-var-init keyed by identity (0 unresolved)
+              NOISE-ONLY    (anonymous namespace)::w2t7_plain_walk(hven::solvers::QpProblem const&, double, hven::solvers::WorkingSetLinearAlgebra, long)
+                            COUNTS 220 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    SqpDriverCertifiedFallback_ThePartitionOverFallbackEntriesIsCOMPLETEAndSumsToTheFiredOnes_Test::TestBody()
+                            COUNTS 1781 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              DIFFERS       std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_dispose()
+                              UNCLASSIFIED  - 	movzbl 0x270(%rdi),%eax ;LEN=7
+                                            + 	movzbl 0x298(%rdi),%eax ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x270(%rdi) ;LEN=7
+                                            + 	movb   $0x0,0x298(%rdi) ;LEN=7
+                            COUNTS 26 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              NOISE-ONLY    (anonymous namespace)::w2_walk_elastic(hven::solvers::QpProblem const&, double, double, hven::solvers::WorkingSetLinearAlgebra)
+                            COUNTS 588 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    (anonymous namespace)::w2_run_fallback(hven::solvers::QpProblem const&, hven::solvers::IpqpInfeasibilityEvidence const&, double, double, hven::solvers::SqpIterate const&, bool, double)
+                            COUNTS 325 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    SqpDriverCertifiedFallback_T7AnInfiniteOverridePlacesTheLadderAtItsCeiling_Test::TestBody()
+                            COUNTS 536 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    (anonymous namespace)::w2_run_ladder(hven::solvers::QpProblem const&, hven::solvers::IpqpInfeasibilityEvidence const*, double, double)
+                            COUNTS 288 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::~_Sp_counted_ptr_inplace()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              DIFFERS       hven::solvers::SchurComplement::~SchurComplement()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 4 (42 -> 47 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 100 lines vs 109 -- instructions were added or removed
+              NOISE-ONLY    SqpDriverCertifiedFallback_P4bTheCeilingDeclineIsGONEUnderThePlacementBound_Test::TestBody()
+                            COUNTS 1883 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    SqpDriverCertifiedFallback_P3TheEscapeBranchCONSUMESTheAttachedLadderRatherThanRerunningIt_Test::TestBody()
+                            COUNTS 625 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              DIFFERS       hven::solvers::BorderState::BorderState(int)
+                              UNCLASSIFIED  - 	movb   $0x0,0x260(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x288(%rbx) ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x268(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x290(%rbx) ;LEN=7
+                            COUNTS 78 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              NOISE-ONLY    SqpDriverElasticSeed_T6bTheUncontainedInBranchRouteNoLongerDeclines_Test::TestBody()
+                            COUNTS 1095 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    SqpDriverCertifiedFallback_AnOverriddenPlacementIsVALIDATEDAndClampedIntoTheLaddersRange_Test::TestBody()
+                            COUNTS 1138 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    (anonymous namespace)::w2_fix4_solve(hven::solvers::QpProblem const&, double, hven::solvers::WorkingSetLinearAlgebra)
+                            COUNTS 169 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    SqpDriverCertifiedFallback_ANegativeOrNaNWindowIsREFUSEDAtBothPublicEntryPoints_Test::TestBody()
+                            COUNTS 1015 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    (anonymous namespace)::w2_cold_walk(hven::solvers::QpProblem const&, double, bool)
+                            COUNTS 221 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    SqpDriverElastic_ElasticReformulationRecoversAFeasibleQpsSolution_Test::TestBody()
+                            COUNTS 1862 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    SqpDriverSoc_SocSeedMustBeZeroedNotToRecenterTheWindow_Test::TestBody()
+                            COUNTS 1270 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    (anonymous namespace)::replay_cold_vs_warm(hven::solvers::NlpModel const&, hven::solvers::SqpOptions const&, long, std::vector<double, std::allocator<double> > const&)
+                            COUNTS 1348 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +40(x4)
+              NOISE-ONLY    SqpDriverCertifiedFallback_T3ARefusalWhoseWalkCertifiesInfeasibleCostsTwoActivations_Test::TestBody()
+                            COUNTS 1219 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +40(x4)
+              NOISE-ONLY    (anonymous namespace)::w2_plain_verdict(hven::solvers::QpProblem const&, double, hven::solvers::WorkingSetLinearAlgebra)
+                            COUNTS 170 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_destroy()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ssn_engine.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 1509 alignment-pad lines vs 1510 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 124285 lines vs 124293 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ssn_engine.cpp.o: PERSYM 465 identical, 5 noise-only, 3 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 17677 relocation records compared (0 through the symbol map), 1 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SchurComplement::~SchurComplement()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 4 (42 -> 47 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 100 lines vs 109 -- instructions were added or removed
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_destroy()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    SsnEngineLocal_TheFarkasGateKeepsTheDiagnosisAndRefusesTheFeasibleTrap_Test::TestBody()
+                            COUNTS 2811 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +40(x3)
+              NOISE-ONLY    (anonymous namespace)::walk_solution(hven::solvers::QpProblem const&)
+                            COUNTS 163 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::~_Sp_counted_ptr_inplace()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    SsnEngineLocal_TrustRegionPinsAreSeparatedFromRealBounds_Test::TestBody()
+                            COUNTS 1402 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              DIFFERS       std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_dispose()
+                              UNCLASSIFIED  - 	movzbl 0x270(%rdi),%eax ;LEN=7
+                                            + 	movzbl 0x298(%rdi),%eax ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x270(%rdi) ;LEN=7
+                                            + 	movb   $0x0,0x298(%rdi) ;LEN=7
+                            COUNTS 26 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       hven::solvers::BorderState::BorderState(int)
+                              UNCLASSIFIED  - 	movb   $0x0,0x260(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x288(%rbx) ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x268(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x290(%rbx) ;LEN=7
+                            COUNTS 78 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_trace_writer.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 1609 alignment-pad lines vs 1610 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 136320 lines vs 136328 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_trace_writer.cpp.o: PERSYM 1145 identical, 3 noise-only, 3 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 2 rank-tagged, 0 section moves, 20281 relocation records compared (0 through the symbol map), 2 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SchurComplement::~SchurComplement()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 4 (42 -> 47 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 100 lines vs 109 -- instructions were added or removed
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::JsonLinesTraceSink_TheVerdictStreamReproducesTheWHOLEPartitionOnAFiveClassPopulation_Test::TestBody()
+                            COUNTS 1952 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_destroy()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::~_Sp_counted_ptr_inplace()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              DIFFERS       std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_dispose()
+                              UNCLASSIFIED  - 	movzbl 0x270(%rdi),%eax ;LEN=7
+                                            + 	movzbl 0x298(%rdi),%eax ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x270(%rdi) ;LEN=7
+                                            + 	movb   $0x0,0x298(%rdi) ;LEN=7
+                            COUNTS 26 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       hven::solvers::BorderState::BorderState(int)
+                              UNCLASSIFIED  - 	movb   $0x0,0x260(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x288(%rbx) ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x268(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x290(%rbx) ;LEN=7
+                            COUNTS 78 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+DIFFERS     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 29992 lines vs 29999 -- instructions were added or removed
+PER-SYMBOL  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o: PERSYM 182 identical, 4 noise-only, 5 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 5355 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SchurComplement::~SchurComplement()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 3 (37 -> 42 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 92 lines vs 100 -- instructions were added or removed
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_destroy()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::~_Sp_counted_ptr_inplace()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              DIFFERS       Threads_NonZeroReachesTheDenseBorderFactor_Test::TestBody()
+                              UNCLASSIFIED  - 	movzbl 0x260(%rax),%eax ;LEN=7
+                                            + 	movzbl 0x288(%rax),%eax ;LEN=7
+                            COUNTS 499 insns; CHANGED 2; UNCLASSIFIED 1; DELTAS +40(x1)
+              NOISE-ONLY    Threads_ZeroLeavesEveryFactorAtTheBackendDefault_Test::TestBody()
+                            COUNTS 1851 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              DIFFERS       Threads_ZeroLeavesTheDenseBorderFactorAtTheBackendDefault_Test::TestBody()
+                              UNCLASSIFIED  - 	movzbl 0x260(%rax),%eax ;LEN=7
+                                            + 	movzbl 0x288(%rax),%eax ;LEN=7
+                            COUNTS 425 insns; CHANGED 2; UNCLASSIFIED 1; DELTAS +40(x1)
+              DIFFERS       std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_dispose()
+                              UNCLASSIFIED  - 	cmpb   $0x1,0x270(%rdi) ;LEN=7
+                                            + 	cmpb   $0x1,0x298(%rdi) ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x270(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x298(%rbx) ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x270(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x298(%rbx) ;LEN=7
+                            COUNTS 27 insns; CHANGED 3; UNCLASSIFIED 3; DELTAS
+              NOISE-ONLY    Threads_NonZeroReachesEveryFactorTier_Test::TestBody()
+                            COUNTS 2495 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              DIFFERS       hven::solvers::BorderState::BorderState(int)
+                              UNCLASSIFIED  - 	movb   $0x0,0x260(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x288(%rbx) ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x268(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x290(%rbx) ;LEN=7
+                            COUNTS 71 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+            COUNTS 87923 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+DIFFERS     bench/CMakeFiles/hven_sqp_ssn_safeguard_probe.dir/ssn_safeguard_probe.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 2019 alignment-pad lines vs 2020 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 74403 lines vs 74411 -- instructions were added or removed
+PER-SYMBOL  bench/CMakeFiles/hven_sqp_ssn_safeguard_probe.dir/ssn_safeguard_probe.cpp.o: PERSYM 233 identical, 3 noise-only, 3 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 3540 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SchurComplement::~SchurComplement()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 4 (42 -> 47 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 100 lines vs 109 -- instructions were added or removed
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_destroy()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::~_Sp_counted_ptr_inplace()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    (anonymous namespace)::walk_answer(hven::solvers::QpProblem const&)
+                            COUNTS 163 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              DIFFERS       std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_dispose()
+                              UNCLASSIFIED  - 	movzbl 0x270(%rdi),%eax ;LEN=7
+                                            + 	movzbl 0x298(%rdi),%eax ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x270(%rdi) ;LEN=7
+                                            + 	movb   $0x0,0x298(%rdi) ;LEN=7
+                            COUNTS 26 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       hven::solvers::BorderState::BorderState(int)
+                              UNCLASSIFIED  - 	movb   $0x0,0x260(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x288(%rbx) ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x268(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x290(%rbx) ;LEN=7
+                            COUNTS 78 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+            COUNTS 52415 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+DIFFERS     bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 2742 alignment-pad lines vs 2743 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 104245 lines vs 104253 -- instructions were added or removed
+PER-SYMBOL  bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o: PERSYM 704 identical, 3 noise-only, 3 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 2 rank-tagged, 0 section moves, 7827 relocation records compared (0 through the symbol map), 2 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SchurComplement::~SchurComplement()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 4 (42 -> 47 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 100 lines vs 109 -- instructions were added or removed
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_destroy()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::~_Sp_counted_ptr_inplace()
+                            COUNTS 2 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +40(x1)
+              NOISE-ONLY    hven::solvers::e1arm::solve(hven::solvers::e1arm::Cell const&, hven::solvers::IpqpOptions const&)
+                            COUNTS 2739 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +40(x2)
+              DIFFERS       std::_Sp_counted_ptr_inplace<hven::solvers::BorderState, std::allocator<void>, (__gnu_cxx::_Lock_policy)2>::_M_dispose()
+                              UNCLASSIFIED  - 	movzbl 0x270(%rdi),%eax ;LEN=7
+                                            + 	movzbl 0x298(%rdi),%eax ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x270(%rdi) ;LEN=7
+                                            + 	movb   $0x0,0x298(%rdi) ;LEN=7
+                            COUNTS 26 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       hven::solvers::BorderState::BorderState(int)
+                              UNCLASSIFIED  - 	movb   $0x0,0x260(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x288(%rbx) ;LEN=7
+                              UNCLASSIFIED  - 	movb   $0x0,0x268(%rbx) ;LEN=7
+                                            + 	movb   $0x0,0x290(%rbx) ;LEN=7
+                            COUNTS 78 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+ARCHIVE     libhven.a differs -- see its member objects above; archive
+            metadata (member timestamps, symbol index) is not instructions
+
+P-SYM: 151 objects — 123 byte-identical, 2 differing within the accepted noise class, 25 with unclassified differences, 0 matched by basename after a path move, 0 missing
+P-SYM coverage: 0 objects matched through the object map, 25 compared per symbol, 0 objects passed per symbol, 0 after-arm objects unaccounted for; symbols — 71254 matched (0 through the symbol map), 7 only-before, 72 only-after, 0 excepted, 0 collisions, 46 rank-tagged, 0 stale exceptions, 0 stale map entries; compiler-local label families — 605 matched by count, 14 differing (82009 before-arm and 82103 after-arm symbols accounted by family); relocations — 227948 records compared (0 through the symbol map)
+P-SYM: FAIL — differences outside the accepted noise class

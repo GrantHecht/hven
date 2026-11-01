@@ -59,8 +59,8 @@ inline bool soc_should_trigger(const IterateInfo &citer, double current_infeasib
 /// rejected correction, keep correcting only while the cap has not been
 /// reached AND the corrected trial's violation is still dropping by at least
 /// kSocViolationDecrease versus the previous violation.
-inline bool soc_should_continue(double trial_violation, double prev_violation,
-                                int corrections_done, int max_soc) {
+inline bool soc_should_continue(double trial_violation, double prev_violation, int corrections_done,
+                                int max_soc) {
     if (corrections_done >= max_soc)
         return false;
     return trial_violation <= kSocViolationDecrease * prev_violation;

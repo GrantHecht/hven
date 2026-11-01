@@ -1,0 +1,62 @@
+From cd00cc3e3e6394cd8295ff3f0f81caf0c1cb0b88 Mon Sep 17 00:00:00 2001
+From: Grant Hecht <grantrhecht@icloud.com>
+Date: Wed, 28 Oct 2026 11:21:15 -0400
+Subject: [PATCH] SCRATCH (hven M7 W2 A3, never pushed): pin -> hven w2-a3
+ ac4b07e6; four A3 labels (sqp-ipm + one field each)
+
+---
+ cmake/hven_pin.cmake           |  7 ++++---
+ lanes/hven/hven_bench_cell.cpp | 14 ++++++++++++++
+ 2 files changed, 18 insertions(+), 3 deletions(-)
+
+diff --git a/cmake/hven_pin.cmake b/cmake/hven_pin.cmake
+index f08495c..625abd3 100644
+--- a/cmake/hven_pin.cmake
++++ b/cmake/hven_pin.cmake
+@@ -563,14 +563,15 @@
+ # from a clean clone of 6a2a58c7 at .scratch/retake18-wt by scripts/w2_retake18_build.sh.  Nothing under
+ # runs/ taken at an earlier pin is re-derived by this move; the per-cell predictions, MEASURED on this
+ # pin's own build, are in runs/2026-10-m7-w2-retake18/README.md.
+-set(HVEN_PIN_SHA "6a2a58c71ec7bc40a44fd78a7b8e947c6fc2874e")
++# SCRATCH CLONE ONLY (hven M7 W2 A3, never pushed): the pin moved to hven w2-a3 ac4b07e6, the A3 implementation head (IpqpOptions::ipqp_ladder_skip_after, default 3; ipqp_converge_slack unchanged).
++set(HVEN_PIN_SHA "ac4b07e66c92d4fc7ee55d65a120a0c8d19900a9")
+ 
+ # The branch the sha was read from, for a reader tracing it back.  NOT a
+ # lookup key: the sha alone identifies the tree, and the branch will move.
+-set(HVEN_PIN_BRANCH "m7")
++set(HVEN_PIN_BRANCH "w2-a3")
+ 
+ # The date the pin was taken (UTC, ISO-8601 date).
+-set(HVEN_PIN_DATE "2026-10-22")
++set(HVEN_PIN_DATE "2026-10-28")
+ 
+ # The install prefix the pin builds into, relative to the harness root.  The
+ # sha12 in the name is what makes two pins two prefixes, so a stale prefix is
+diff --git a/lanes/hven/hven_bench_cell.cpp b/lanes/hven/hven_bench_cell.cpp
+index 1afc7d1..7db0db7 100644
+--- a/lanes/hven/hven_bench_cell.cpp
++++ b/lanes/hven/hven_bench_cell.cpp
+@@ -589,6 +589,20 @@ hven::solvers::SqpOptions sqp_options(const std::string &label) {
+         o.qp_mode = hven::solvers::QpMode::kSsn;
+     } else if (label == "sqp-ipm") {
+         o.qp_mode = hven::solvers::QpMode::kIpm;
++    } else if (label == "sqp-ipm-slack1") {
++        // hven M7 W2 A3 (scratch clone only, never pushed): `sqp-ipm` plus ONE field each
++        // (docs/notes/2026-10-m7-w2-a3-ipqp-levers-design.md section 5.3).
++        o.qp_mode = hven::solvers::QpMode::kIpm;
++        o.ipqp.ipqp_converge_slack = 1.0;
++    } else if (label == "sqp-ipm-slack1e3") {
++        o.qp_mode = hven::solvers::QpMode::kIpm;
++        o.ipqp.ipqp_converge_slack = 1000.0;
++    } else if (label == "sqp-ipm-skip1") {
++        o.qp_mode = hven::solvers::QpMode::kIpm;
++        o.ipqp.ipqp_ladder_skip_after = 1;
++    } else if (label == "sqp-ipm-skipnever") {
++        o.qp_mode = hven::solvers::QpMode::kIpm;
++        o.ipqp.ipqp_ladder_skip_after = 1000000;
+     } else if (label == "equality-basis-off") {
+         // M7 W2 E1B-RETAKE: the IDENTITY CONTROL for hven's E1b default event.
+         // `equality_basis` is ON by default at the E1b pin; this label turns the
+-- 
+2.56.0
+

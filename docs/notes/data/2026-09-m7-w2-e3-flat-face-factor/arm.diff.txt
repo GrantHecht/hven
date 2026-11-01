@@ -1,0 +1,593 @@
+// NOT MERGEABLE: test-only arm reading getenv from library code (E3-2..E3-4). Kept for the settler to read the code the E3 numbers came from.
+// git -C <worktree> diff c864b8a6 cce88386, branch e3, worktree agent-a69f46e11796560b9.
+diff --git a/include/hven/detail/kkt/bordered_eqp.h b/include/hven/detail/kkt/bordered_eqp.h
+index d9f3d6c2..04febfe6 100644
+--- a/include/hven/detail/kkt/bordered_eqp.h
++++ b/include/hven/detail/kkt/bordered_eqp.h
+@@ -74,6 +74,7 @@
+ #include <hven/detail/kkt/border_ops.h>
+ #include <hven/detail/kkt/kkt_assembly.h>
+ #include <hven/detail/kkt/schur_complement.h>
++#include <hven/detail/qp/e3_prox_arm.h>
+ #include <hven/detail/qp/eqp_solve.h>
+ #include <hven/detail/qp/qp_problem.h>
+ #include <hven/detail/qp/working_set.h>
+@@ -93,7 +94,10 @@ inline Vec bordered_regularization(Index n0, Index var_count, const std::vector<
+                                    const QpOptions &opts) {
+     const Index m = static_cast<Index>(border_d.size());
+     Vec reg = Vec::Zero(n0 + m);
+-    reg.head(var_count).setConstant(opts.primal_delta);
++    // E3 SCRATCH ARM mode 2/3: see eqp_solve.h. A pinned variable's own
++    // delta*x_i is cancelled by delta*x_k,i (x_k sits at its pins), so the
++    // unmasked form matches the eliminated path's.
++    reg.head(var_count).setConstant(detail::e3::prox_refine() ? 0.0 : opts.primal_delta);
+     reg.segment(var_count, n0 - var_count).setConstant(-opts.dual_mu);
+     for (Index i = 0; i < m; ++i) {
+         reg(n0 + i) = border_d[static_cast<std::size_t>(i)];
+@@ -295,6 +299,12 @@ inline BorderedSystem build_bordered_system(const QpProblem &qp, const KktAssemb
+     // all-zero in full mode, so there is nothing to subtract.
+     sys.rhs = Vec::Zero(n0 + m);
+     sys.rhs.head(n) = -qp.g;
++    // E3 SCRATCH ARM: the proximal term, on every variable row (a pinned
++    // variable's contribution is absorbed by its pin border, which holds
++    // x_i == x_k,i).
++    if (detail::e3::prox_rhs() && detail::e3::centre->size() == n) {
++        sys.rhs.head(n) += opts.primal_delta * (*detail::e3::centre);
++    }
+     for (Index r = 0; r < me; ++r) {
+         sys.rhs(n + r) = qp.be(r);
+     }
+diff --git a/include/hven/detail/qp/e3_prox_arm.h b/include/hven/detail/qp/e3_prox_arm.h
+new file mode 100644
+index 00000000..e64c0377
+--- /dev/null
++++ b/include/hven/detail/qp/e3_prox_arm.h
+@@ -0,0 +1,67 @@
++// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
++// (see LICENSE).
++
++#pragma once
++
++// e3_prox_arm.h -- M7 W2 E3 SCRATCH ARM (test-only, env-toggled, NEVER shipped
++// in this form). PROXIMAL CENTRING of the primal regularization: the EQP is
++// solved with the penalty (delta/2)||x_F - x_k,F||^2 in place of the shipped
++// (delta/2)||x_F||^2, which makes the regularized answer a DESCENT direction
++// for the face's model by construction and drives the stationarity residual at
++// a converged point to -delta*p -> 0.
++//
++// Only the RIGHT-HAND SIDE changes: the stationarity row of the proximal
++// problem is (H_FF + delta I) x_F + C' lam = -g_F - shift + delta*x_k,F, so K
++// is bit-identical to the shipped assembly and the factorization is untouched.
++//
++// MODES (env E3_PROX, read once per solve):
++//   0  OFF -- the shipped behaviour: centring at 0, refinement against the
++//      FULLY unregularized system.
++//   1  proximal rhs, refinement unchanged (still against the fully
++//      unregularized system).
++//   2  proximal rhs AND refinement against the PROXIMAL system: the primal
++//      delta is part of the MODEL now, so only the dual mu is backed out.
++//   3  CONTROL: absolute centring with mode 2's refinement target, to separate
++//      the two halves of mode 2.
++
++#include <cstdlib>
++
++#include <hven/core/types.h>
++
++namespace hven::solvers::detail::e3 {
++
++inline thread_local int mode = 0;
++/// The current iterate x_k. Null means "no centre available", which falls back
++/// to the shipped absolute centring whatever `mode` says.
++inline thread_local const Vec *centre = nullptr;
++
++inline int mode_from_env() {
++    const char *v = std::getenv("E3_PROX");
++    return v != nullptr ? std::atoi(v) : 0;
++}
++
++/// True iff the rhs carries the proximal term on this call.
++inline bool prox_rhs() { return (mode == 1 || mode == 2) && centre != nullptr; }
++/// True iff refinement targets the PROXIMAL system (delta kept, dual mu out).
++inline bool prox_refine() { return mode == 2 || mode == 3; }
++
++/// Sets the centre for the duration of one walk and restores the previous one.
++class CentreGuard {
++  public:
++    explicit CentreGuard(const Vec *x) : prev_(centre), prev_mode_(mode) {
++        centre = x;
++        mode = mode_from_env();
++    }
++    CentreGuard(const CentreGuard &) = delete;
++    CentreGuard &operator=(const CentreGuard &) = delete;
++    ~CentreGuard() {
++        centre = prev_;
++        mode = prev_mode_;
++    }
++
++  private:
++    const Vec *prev_;
++    int prev_mode_;
++};
++
++} // namespace hven::solvers::detail::e3
+diff --git a/include/hven/detail/qp/eqp_solve.h b/include/hven/detail/qp/eqp_solve.h
+index 8c19daf7..1683a571 100644
+--- a/include/hven/detail/qp/eqp_solve.h
++++ b/include/hven/detail/qp/eqp_solve.h
+@@ -85,9 +85,13 @@
+ 
+ #include <hven/detail/kkt/kkt_assembly.h>
+ #include <hven/detail/kkt/kkt_calls.h>
++#include <hven/detail/qp/e3_prox_arm.h>
+ #include <hven/detail/qp/qp_problem.h>
+ #include <hven/detail/qp/working_set.h>
+ #include <hven/qp/qp_types.h>
++#ifdef HVEN_TESTING
++#include <hven/detail/qp/qp_walk_trace.h>
++#endif
+ 
+ namespace hven::solvers {
+ 
+@@ -190,6 +194,15 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, detail::Kk
+         rhs(n_free + me + k) = qp.bi(row) - asm_.rhs_shift(n_free + me + k);
+     }
+ 
++    // M7 W2 E3 SCRATCH ARM: PROXIMAL CENTRING. K is untouched; the free
++    // block's rhs gains +delta*x_k,F, which is the stationarity row of
++    // min (1/2)x'Hx + g'x + (delta/2)||x_F - x_k,F||^2 on this face.
++    if (detail::e3::prox_rhs() && detail::e3::centre->size() == n) {
++        const Vec &xk = *detail::e3::centre;
++        for (Index k = 0; k < n_free; ++k) {
++            rhs(k) += opts.primal_delta * xk(asm_.free_of_full[static_cast<std::size_t>(k)]);
++        }
++    }
+     detail::factorize_checked(kkt, asm_.K);
+     Vec y = detail::solve_vec(kkt, rhs);
+ 
+@@ -212,7 +225,9 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, detail::Kk
+     // r = rhs - K0*y = (rhs - K*y) + diag(reg)*y, solved with the same
+     // (already-factorized) regularized system.
+     Vec reg = Vec::Zero(dim);
+-    reg.head(n_free).setConstant(opts.primal_delta);
++    // E3 SCRATCH ARM mode 2/3: the primal delta is part of the MODEL (the
++    // proximal term), so refinement backs out only the DUAL regularization.
++    reg.head(n_free).setConstant(detail::e3::prox_refine() ? 0.0 : opts.primal_delta);
+     reg.segment(n_free, me + n_working).setConstant(-opts.dual_mu);
+ 
+     const auto residual_of = [&](const Vec &yy) {
+@@ -220,7 +235,43 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, detail::Kk
+         return Vec((rhs - Kyy) + reg.cwiseProduct(yy));
+     };
+ 
++#ifdef HVEN_TESTING
++    const Vec e3_y0 = y;
++#endif
+     y = y + detail::solve_vec(kkt, residual_of(y));
++#ifdef HVEN_TESTING
++    // M7 W2 E3 SCRATCH, record-only: how well the factor solved its OWN
++    // (regularized) system, and what the one unregularized refinement step
++    // actually contracted. No solve, no factorization; two mat-vecs.
++    {
++        const auto Kv = [&](const Vec &yy) {
++            return Vec(asm_.K.template selfadjointView<Eigen::Upper>() * yy);
++        };
++        const Vec reg_u = Vec(rhs - Kv(e3_y0));
++        const Vec reg_r = Vec(rhs - Kv(y));
++        const Vec unr_u = residual_of(e3_y0);
++        const Vec unr_r = residual_of(y);
++        const Index nc = me + n_working;
++        const double lam_inf = nc > 0 ? y.segment(n_free, nc).lpNorm<Eigen::Infinity>() : 0.0;
++        detail::testing::qp_walk_note_eqp([&](detail::testing::QpWalkEqpEvidence &s) {
++            s.e3_res_reg_unref = reg_u.lpNorm<Eigen::Infinity>();
++            s.e3_res_reg_ref = reg_r.lpNorm<Eigen::Infinity>();
++            s.e3_res_unreg_unref = unr_u.lpNorm<Eigen::Infinity>();
++            s.e3_res_unreg_ref = unr_r.lpNorm<Eigen::Infinity>();
++            s.e3_rho_unref = n_free > 0 ? unr_u.head(n_free).lpNorm<Eigen::Infinity>() : 0.0;
++            s.e3_rho_ref = n_free > 0 ? unr_r.head(n_free).lpNorm<Eigen::Infinity>() : 0.0;
++            s.e3_row_unref = nc > 0 ? unr_u.segment(n_free, nc).lpNorm<Eigen::Infinity>() : 0.0;
++            s.e3_row_ref = nc > 0 ? unr_r.segment(n_free, nc).lpNorm<Eigen::Infinity>() : 0.0;
++            s.e3_rhs_inf = rhs.lpNorm<Eigen::Infinity>();
++            s.e3_lam_inf = lam_inf;
++            s.e3_dim = dim;
++            s.e3_n_free = n_free;
++        });
++        if (detail::testing::QpWalkObserver::capturing) {
++            detail::testing::QpWalkObserver::e3_unrefined_x = scatter(e3_y0).x;
++        }
++    }
++#endif
+ 
+     EqpResult out = scatter(y);
+     out.refine_steps = 0; // no iterated loop on this path -- see the header note
+diff --git a/include/hven/detail/qp/qp_walk_trace.h b/include/hven/detail/qp/qp_walk_trace.h
+index a740f30f..bd4ed916 100644
+--- a/include/hven/detail/qp/qp_walk_trace.h
++++ b/include/hven/detail/qp/qp_walk_trace.h
+@@ -762,6 +762,38 @@ struct QpWalkMinorRecord {
+     /// FINDING -- the candidate was not merely leaking -- and makes that
+     /// solve's b1 verdict UNSUPPORTED.
+     Index add_b1_leak_bound_exceeded = -1;
++
++    // ---- M7 W2 E3 SCRATCH: the flat-face centring ---------------------------
++    // Every column here is a dot product or a norm of vectors the pass already
++    // holds, computed into this record and read by nothing.
++    /// `(Hx + g)'(eqp.x - x)` -- the ORDINARY step's slope, on EVERY pass (the
++    /// existing `ride_slope` is the ride site's own and is absent elsewhere).
++    double e3_ord_gp = kAbsent;
++    double e3_ord_php = kAbsent;
++    /// `(delta/2)(||x_F||^2 - ||eqp.x_F||^2)`: what the absolute centring at 0
++    /// permits the ordinary step to ascend by.
++    double e3_ord_centre = kAbsent;
++    /// The same three for the PRE-refinement (regularized) answer.
++    double e3_ord_gp_unref = kAbsent;
++    double e3_ord_php_unref = kAbsent;
++    double e3_ord_centre_unref = kAbsent;
++    double e3_unref_dx = kAbsent;
++    /// `||x_F||^2` and `||eqp.x_F||^2` themselves.
++    double e3_x_free_sq = kAbsent;
++    double e3_eqp_free_sq = kAbsent;
++    // ---- the EQP solve's own residuals (ELIMINATED path only) --------------
++    double e3_res_reg_unref = kAbsent;
++    double e3_res_reg_ref = kAbsent;
++    double e3_res_unreg_unref = kAbsent;
++    double e3_res_unreg_ref = kAbsent;
++    double e3_rho_unref = kAbsent;
++    double e3_rho_ref = kAbsent;
++    double e3_row_unref = kAbsent;
++    double e3_row_ref = kAbsent;
++    double e3_rhs_inf = kAbsent;
++    double e3_lam_inf = kAbsent;
++    Index e3_dim = -1;
++    Index e3_n_free = -1;
+ };
+ 
+ /// WHAT ONE CALL OF THE EQP CANDIDATE SITE REPORTED ABOUT ITSELF. A scratch
+@@ -785,6 +817,20 @@ struct QpWalkEqpEvidence {
+     bool latched = false;
+     bool needs_refactorization = false;
+     Index border_dim = -1;
++
++    // ---- M7 W2 E3 SCRATCH: the EQP solve's own residuals -------------------
++    double e3_res_reg_unref = std::numeric_limits<double>::quiet_NaN();
++    double e3_res_reg_ref = std::numeric_limits<double>::quiet_NaN();
++    double e3_res_unreg_unref = std::numeric_limits<double>::quiet_NaN();
++    double e3_res_unreg_ref = std::numeric_limits<double>::quiet_NaN();
++    double e3_rho_unref = std::numeric_limits<double>::quiet_NaN();
++    double e3_rho_ref = std::numeric_limits<double>::quiet_NaN();
++    double e3_row_unref = std::numeric_limits<double>::quiet_NaN();
++    double e3_row_ref = std::numeric_limits<double>::quiet_NaN();
++    double e3_rhs_inf = std::numeric_limits<double>::quiet_NaN();
++    double e3_lam_inf = std::numeric_limits<double>::quiet_NaN();
++    Index e3_dim = -1;
++    Index e3_n_free = -1;
+ };
+ 
+ /// THE OBSERVER. Static, like every other observer on this seam, because the
+@@ -863,6 +909,10 @@ struct QpWalkObserver {
+     /// loop before its own call and snapshotted immediately after it.
+     static inline thread_local QpWalkEqpEvidence eqp{};
+ 
++    /// M7 W2 E3 SCRATCH: the PRE-refinement EQP point of the pass's own call.
++    /// Empty when the call did not produce one (border path, empty system).
++    static inline thread_local Vec e3_unrefined_x{};
++
+     static void reset() {
+         active = false;
+         solves = 0;
+@@ -1014,6 +1064,18 @@ class QpWalkMinorScope {
+         rec_.border_latched = e.latched;
+         rec_.border_needs_refactorization = e.needs_refactorization;
+         rec_.border_dim = e.border_dim;
++        rec_.e3_res_reg_unref = e.e3_res_reg_unref;
++        rec_.e3_res_reg_ref = e.e3_res_reg_ref;
++        rec_.e3_res_unreg_unref = e.e3_res_unreg_unref;
++        rec_.e3_res_unreg_ref = e.e3_res_unreg_ref;
++        rec_.e3_rho_unref = e.e3_rho_unref;
++        rec_.e3_rho_ref = e.e3_rho_ref;
++        rec_.e3_row_unref = e.e3_row_unref;
++        rec_.e3_row_ref = e.e3_row_ref;
++        rec_.e3_rhs_inf = e.e3_rhs_inf;
++        rec_.e3_lam_inf = e.e3_lam_inf;
++        rec_.e3_dim = e.e3_dim;
++        rec_.e3_n_free = e.e3_n_free;
+     }
+ 
+   private:
+@@ -1053,6 +1115,7 @@ template <typename Fn> inline void qp_walk_note_eqp(Fn &&fn) {
+ inline void qp_walk_reset_eqp() {
+     if (QpWalkObserver::capturing) {
+         QpWalkObserver::eqp = QpWalkEqpEvidence{};
++        QpWalkObserver::e3_unrefined_x.resize(0);
+     }
+ }
+ 
+diff --git a/src/qp/qp_engine.cpp b/src/qp/qp_engine.cpp
+index 47c14efd..5afc326d 100644
+--- a/src/qp/qp_engine.cpp
++++ b/src/qp/qp_engine.cpp
+@@ -418,6 +418,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+     // see start_center/ingest_seed_working_set and section 6's
+     // WINDOW-CONSISTENCY RULE.
+     Vec x = start_center(qp_in, seed, ws);
++    // M7 W2 E3 SCRATCH ARM: this walk's proximal centre is its own iterate.
++    const detail::e3::CentreGuard e3_centre_guard(&x);
+ 
+     // --- Section 6: trust-region effective bounds (see header contract) ---
+     //
+@@ -927,6 +929,39 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+             detail::testing::QpWalkMinorRecord &r = walk_obs.record();
+             r.p_sq = p.squaredNorm();
+ 
++            // ---- M7 W2 E3 SCRATCH: the ORDINARY step's slope and the
++            // centring term, for the refined and the unrefined answer.
++            {
++                const Vec grad = Vec(qp.H.selfadjointView<Eigen::Upper>() * x) + qp.g;
++                r.e3_ord_gp = grad.dot(p);
++                r.e3_ord_php = p.dot(Vec(qp.H.selfadjointView<Eigen::Upper>() * p));
++                double xfsq = 0.0;
++                double efsq = 0.0;
++                for (Index i = 0; i < qp.n(); ++i) {
++                    if (ws.bound_state()[static_cast<std::size_t>(i)] == BoundState::kFree) {
++                        xfsq += x(i) * x(i);
++                        efsq += eqp.x(i) * eqp.x(i);
++                    }
++                }
++                r.e3_x_free_sq = xfsq;
++                r.e3_eqp_free_sq = efsq;
++                r.e3_ord_centre = 0.5 * eff_opts.primal_delta * (xfsq - efsq);
++                const Vec &ux = detail::testing::QpWalkObserver::e3_unrefined_x;
++                if (ux.size() == qp.n()) {
++                    const Vec pu = ux - x;
++                    r.e3_ord_gp_unref = grad.dot(pu);
++                    r.e3_ord_php_unref = pu.dot(Vec(qp.H.selfadjointView<Eigen::Upper>() * pu));
++                    double ufsq = 0.0;
++                    for (Index i = 0; i < qp.n(); ++i) {
++                        if (ws.bound_state()[static_cast<std::size_t>(i)] == BoundState::kFree) {
++                            ufsq += ux(i) * ux(i);
++                        }
++                    }
++                    r.e3_ord_centre_unref = 0.5 * eff_opts.primal_delta * (xfsq - ufsq);
++                    r.e3_unref_dx = (ux - eqp.x).lpNorm<Eigen::Infinity>();
++                }
++            }
++
+             // The UNREGULARIZED first-order residual over the free block, at
+             // the iterate this pass started from, with the multipliers `price`
+             // just produced. `stat_scale` is the largest term that went into it.
+@@ -2466,6 +2501,14 @@ bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const Wor
+     for (Index k = 0; k < n_free; ++k) {
+         rhs(k) = -qp.g(assembly.free_of_full[static_cast<std::size_t>(k)]) - assembly.rhs_shift(k);
+     }
++    // E3 SCRATCH ARM: the SAME rhs solve_eqp solved, proximal term included --
++    // this site's own note says the two must stay in step.
++    if (detail::e3::prox_rhs() && detail::e3::centre->size() == n) {
++        const Vec &xk = *detail::e3::centre;
++        for (Index k = 0; k < n_free; ++k) {
++            rhs(k) += opts.primal_delta * xk(assembly.free_of_full[static_cast<std::size_t>(k)]);
++        }
++    }
+     for (Index r = 0; r < me; ++r) {
+         rhs(n_free + r) = qp.be(r) - assembly.rhs_shift(n_free + r);
+     }
+@@ -2475,7 +2518,7 @@ bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const Wor
+     }
+ 
+     Vec reg = Vec::Zero(dim);
+-    reg.head(n_free).setConstant(opts.primal_delta);
++    reg.head(n_free).setConstant(detail::e3::prox_refine() ? 0.0 : opts.primal_delta);
+     reg.segment(n_free, me + n_working).setConstant(-opts.dual_mu);
+     const auto residual_of = [&](const Vec &yy) {
+         const Vec Kyy = assembly.K.template selfadjointView<Eigen::Upper>() * yy;
+diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
+index 42763727..9d244c57 100644
+--- a/tests/CMakeLists.txt
++++ b/tests/CMakeLists.txt
+@@ -389,6 +389,7 @@ add_executable(hven_qp_walk_seam_tests
+     qp/test_qp_anti_cycling_arm.cpp
+     qp/test_qp_degeneracy_arm.cpp
+     qp/test_qp_flat_face_saddle.cpp
++    qp/test_qp_e3_measure.cpp
+ )
+ 
+ if(NOT APPLE)
+diff --git a/tests/qp/test_qp_e3_measure.cpp b/tests/qp/test_qp_e3_measure.cpp
+new file mode 100644
+index 00000000..ca1704d2
+--- /dev/null
++++ b/tests/qp/test_qp_e3_measure.cpp
+@@ -0,0 +1,195 @@
++// M7 W2 E3 SCRATCH MEASUREMENT -- never committed. The ORDINARY step on a flat face:
++// g'(eqp.x - x) against the absolute centring's own term (delta/2)(||x_F||^2 - ||eqp.x_F||^2),
++// for the refined and the PRE-refinement answer, plus the EQP solve's own residuals.
++// Env: E3_DUMP (abs path), E3_ALG (border|refactorize), E3_ORD (per-pass CSV), E3_TAIL
++// (trailing passes the summary covers; default 400), E3_DELTA / E3_MU / E3_MAXITER overrides.
++
++#include <algorithm>
++#include <cmath>
++#include <cstdio>
++#include <cstdlib>
++#include <limits>
++#include <string>
++#include <vector>
++
++#include <gtest/gtest.h>
++
++#include <hven/detail/qp/qp_engine.h>
++
++#include "support/qp_dump.h"
++
++using namespace hven::solvers;
++using hven::Index;
++using Obs = hven::solvers::detail::testing::QpWalkObserver;
++using Action = hven::solvers::detail::testing::QpWalkAction;
++
++namespace {
++double med(std::vector<double> v) {
++    if (v.empty()) {
++        return std::numeric_limits<double>::quiet_NaN();
++    }
++    std::sort(v.begin(), v.end());
++    return v[v.size() / 2];
++}
++double mx(const std::vector<double> &v) {
++    double m = 0.0;
++    for (const double t : v) {
++        m = std::max(m, t);
++    }
++    return m;
++}
++} // namespace
++
++TEST(E3, MeasureOrdinaryStep) {
++    const char *dump = std::getenv("E3_DUMP");
++    const char *algs = std::getenv("E3_ALG");
++    ASSERT_NE(dump, nullptr);
++    ASSERT_NE(algs, nullptr);
++    hven::test_support::QpDump d = hven::test_support::load_qp_dump(dump);
++    QpOptions o = d.opts;
++    o.ws_algebra = std::string(algs) == "border" ? WorkingSetLinearAlgebra::kSchurBorder
++                                                 : WorkingSetLinearAlgebra::kRefactorize;
++    if (const char *v = std::getenv("E3_DELTA"); v != nullptr) {
++        o.primal_delta = std::atof(v);
++        d.overrides.primal_delta = -1.0;
++    }
++    if (const char *v = std::getenv("E3_MU"); v != nullptr) {
++        o.dual_mu = std::atof(v);
++        d.overrides.dual_mu = std::atof(v);
++    }
++    if (const char *v = std::getenv("E3_MAXITER"); v != nullptr) {
++        o.max_iter = std::atol(v);
++    }
++    Obs::reset();
++    Obs::active = true;
++    const QpSolution s = hven::test_support::solve_qp_dump(d, o);
++    const std::vector<detail::testing::QpWalkMinorRecord> recs = Obs::records;
++    Obs::active = false;
++    Obs::reset();
++    const double f = hven::test_support::qp_dump_objective(d, s.x);
++
++    FILE *csv = nullptr;
++    if (const char *p = std::getenv("E3_ORD"); p != nullptr) {
++        csv = std::fopen(p, "w");
++        std::fprintf(csv, "minor,action,alpha,p_inf,dx_inf,step_tol,gp,php,centre,df_full,"
++                          "df_step,gp_unref,php_unref,centre_unref,unref_dx,x_free_sq,"
++                          "eqp_free_sq,delta,mu,path,res_reg_unref,res_reg_ref,res_unreg_unref,"
++                          "res_unreg_ref,rho_unref,rho_ref,row_unref,row_ref,rhs_inf,lam_inf,"
++                          "dim,n_free,stat_free_inf,active_res,x_inf,ws_sig_in,ws_size_in\n");
++    }
++    // EVERY pass, with the ride site's own slope and sign beside the ordinary
++    // one, so the objective change over a cycle is decidable by action.
++    FILE *all = nullptr;
++    if (const char *p = std::getenv("E3_ALL"); p != nullptr) {
++        all = std::fopen(p, "w");
++        std::fprintf(all, "minor,action,alpha,p_inf,dx_inf,step_tol,gp,php,centre,ride,"
++                          "ride_sign,ride_slope,delta,x_inf,x_l1,ws_sig_in,ws_size_in,"
++                          "post_drop,rho_unref,rho_ref,res_reg_unref,row_ref\n");
++        for (const auto &r : recs) {
++            std::fprintf(all,
++                         "%ld,%d,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%d,%d,%.17g,%.17g,"
++                         "%.17g,%.17g,%llu,%ld,%d,%.17g,%.17g,%.17g,%.17g\n",
++                         static_cast<long>(r.minor), static_cast<int>(r.action), r.alpha, r.p_inf,
++                         r.dx_inf, r.step_tol, r.e3_ord_gp, r.e3_ord_php, r.e3_ord_centre,
++                         r.ride ? 1 : 0, r.ride_sign_chosen, r.ride_slope, r.primal_delta, r.x_inf,
++                         r.x_l1, static_cast<unsigned long long>(r.ws_sig_in),
++                         static_cast<long>(r.ws_size_in), r.post_drop ? 1 : 0, r.e3_rho_unref,
++                         r.e3_rho_ref, r.e3_res_reg_unref, r.e3_row_ref);
++        }
++        std::fclose(all);
++    }
++    const long tail_n =
++        std::getenv("E3_TAIL") != nullptr ? std::atol(std::getenv("E3_TAIL")) : 400L;
++    const long first_tail = static_cast<long>(recs.size()) - tail_n;
++    long ord = 0, ord_tail = 0, asc = 0, asc_tail = 0, asc_unref_tail = 0;
++    double df_sum = 0.0, df_up = 0.0;
++    std::vector<double> t_gp, t_centre, t_ratio, t_contract, t_contract_full, t_relres, t_rho_u,
++        t_rho_r, t_row_r, t_gp_unref;
++    for (const auto &r : recs) {
++        const bool ordinary = r.action == Action::kMoveOnly || r.action == Action::kAdd;
++        if (!ordinary) {
++            continue;
++        }
++        ++ord;
++        const double a = r.alpha;
++        const double df_full = r.e3_ord_gp + 0.5 * r.e3_ord_php;
++        const double df_step = a * r.e3_ord_gp + 0.5 * a * a * r.e3_ord_php;
++        df_sum += df_step;
++        if (df_step > 0.0) {
++            ++asc;
++            df_up += df_step;
++        }
++        if (csv != nullptr) {
++            std::fprintf(csv,
++                         "%ld,%d,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,"
++                         "%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%d,%.17g,%.17g,%.17g,%.17g,"
++                         "%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%ld,%ld,%.17g,%.17g,%.17g,%llu,%ld\n",
++                         static_cast<long>(r.minor), static_cast<int>(r.action), a, r.p_inf,
++                         r.dx_inf, r.step_tol, r.e3_ord_gp, r.e3_ord_php, r.e3_ord_centre, df_full,
++                         df_step, r.e3_ord_gp_unref, r.e3_ord_php_unref, r.e3_ord_centre_unref,
++                         r.e3_unref_dx, r.e3_x_free_sq, r.e3_eqp_free_sq, r.primal_delta, r.dual_mu,
++                         static_cast<int>(r.eqp_path), r.e3_res_reg_unref, r.e3_res_reg_ref,
++                         r.e3_res_unreg_unref, r.e3_res_unreg_ref, r.e3_rho_unref, r.e3_rho_ref,
++                         r.e3_row_unref, r.e3_row_ref, r.e3_rhs_inf, r.e3_lam_inf,
++                         static_cast<long>(r.e3_dim), static_cast<long>(r.e3_n_free),
++                         r.stat_free_inf, r.active_res_inf, r.x_inf,
++                         static_cast<unsigned long long>(r.ws_sig_in),
++                         static_cast<long>(r.ws_size_in));
++        }
++        if (static_cast<long>(&r - recs.data()) < first_tail) {
++            continue;
++        }
++        ++ord_tail;
++        if (df_step > 0.0) {
++            ++asc_tail;
++        }
++        if (r.e3_ord_gp_unref == r.e3_ord_gp_unref && r.e3_ord_gp_unref > 0.0) {
++            ++asc_unref_tail;
++        }
++        t_gp.push_back(r.e3_ord_gp);
++        t_gp_unref.push_back(r.e3_ord_gp_unref);
++        t_centre.push_back(r.e3_ord_centre);
++        if (r.e3_ord_centre != 0.0) {
++            t_ratio.push_back(r.e3_ord_gp / r.e3_ord_centre);
++        }
++        if (r.e3_rho_unref > 0.0) {
++            t_contract.push_back(r.e3_rho_ref / r.e3_rho_unref);
++        }
++        if (r.e3_res_unreg_unref > 0.0) {
++            t_contract_full.push_back(r.e3_res_unreg_ref / r.e3_res_unreg_unref);
++        }
++        if (r.e3_rhs_inf > 0.0) {
++            t_relres.push_back(r.e3_res_reg_ref / r.e3_rhs_inf);
++        }
++        t_rho_u.push_back(r.e3_rho_unref);
++        t_rho_r.push_back(r.e3_rho_ref);
++        t_row_r.push_back(r.e3_row_ref);
++    }
++    if (csv != nullptr) {
++        std::fclose(csv);
++    }
++    std::printf("[E3] dump=%s alg=%s status=%d minors=%ld f=%.12g records=%zu\n", dump, algs,
++                static_cast<int>(s.status), static_cast<long>(s.counters.minor_iters), f,
++                recs.size());
++    std::printf("[E3] ordinary=%ld ascending=%ld df_sum=%.6e df_up=%.6e   tail=%ld "
++                "tail_ordinary=%ld tail_ascending=%ld tail_ascending_unrefined=%ld\n",
++                ord, asc, df_sum, df_up, tail_n, ord_tail, asc_tail, asc_unref_tail);
++    std::printf("[E3] tail median: g'p=%.6e centre=%.6e g'p/centre=%.6e   g'p_unref=%.6e\n",
++                med(t_gp), med(t_centre), med(t_ratio), med(t_gp_unref));
++    std::printf("[E3] tail rho: median unref=%.6e ref=%.6e contraction(free)=%.6e "
++                "contraction(full)=%.6e   max ref=%.6e\n",
++                med(t_rho_u), med(t_rho_r), med(t_contract), med(t_contract_full), mx(t_rho_r));
++    std::printf("[E3] tail rows: median ||row resid||inf(ref)=%.6e   median "
++                "||rhs-Ky||inf/||rhs||inf(ref)=%.6e max=%.6e\n",
++                med(t_row_r), med(t_relres), mx(t_relres));
++    std::printf("[E3] counters: eqviol=%ld ws_adds=%ld ws_drops=%ld exch=%ld zmexh=%ld "
++                "predsign=%ld signv=%ld\n",
++                static_cast<long>(s.counters.eq_drift_violations),
++                static_cast<long>(s.counters.ws_adds), static_cast<long>(s.counters.ws_drops),
++                static_cast<long>(s.counters.ws_exchanges),
++                static_cast<long>(s.counters.zero_motion_exhausted),
++                static_cast<long>(s.counters.ride_predicted_signs),
++                static_cast<long>(s.counters.ride_sign_vetoes));
++    std::printf("[E3] truncated=%d allocation_failed=%d\n", Obs::truncated ? 1 : 0,
++                Obs::allocation_failed ? 1 : 0);
++}

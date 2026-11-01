@@ -1,0 +1,48 @@
+LEG: bash -o pipefail -c 
+cd /home/ghecht/Projects/hven
+cmake --build build -j 8 --target hven_sqp_corpus 2>&1 | tail -1
+S=.scratch/m7t2-fix1/smoke; mkdir -p $S
+B=build/bench/hven_sqp_corpus
+echo "=== a bad spelling is now refused with NO callback lever set ==="
+env MKL_NUM_THREADS=1 HVEN_LEG_CALLBACK_PAYLOAD=scalar $B --engine interior --cells f7_n1000_bound_neutral --csv $S/r1.csv > $S/r1.out 2>&1; echo "RC_no_callback_lever=$?"; grep -m1 "error:" $S/r1.out
+echo "=== and still refused WITH it set ==="
+env MKL_NUM_THREADS=1 HVEN_LEG_COUNT_CALLBACK=1 HVEN_LEG_CALLBACK_PAYLOAD=scalar $B --engine interior --cells f7_n1000_bound_neutral --csv $S/r2.csv > $S/r2.out 2>&1; echo "RC_with_callback_lever=$?"; grep -m1 "error:" $S/r2.out
+echo "=== and the DEFAULT arm is unchanged: a00 vs each lever, 43x30 ==="
+C="$(sed -n "3p" docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt)"
+run() { n=$1; shift; env MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 "$@" $B --engine interior --cells "$C" --csv $S/$n.csv > $S/$n.out 2>&1; echo "RC_$n=$?"; }
+run a00
+run a-all HVEN_LEG_COUNT_CALLBACK=1
+run a-scalars HVEN_LEG_COUNT_CALLBACK=1 HVEN_LEG_CALLBACK_PAYLOAD=scalars
+run a-sink HVEN_LEG_TRACE_SINK=1
+w=0
+for a in a-all a-scalars a-sink; do python3 scripts/compare_replay.py $S/a00.csv $S/$a.csv "fix1 leg a00 vs $a"; rc=$?; [ $rc -gt $w ] && w=$rc; done
+echo "=== and against the COMMITTED capture, which the fix must not have moved ==="
+python3 scripts/compare_replay.py docs/notes/data/2026-09-m7-w0-t2-callback-payload/raw/ipmleg2/perf-a00-r2.csv $S/a00.csv "fix1 binary vs the captured a00"
+rc=$?; [ $rc -gt $w ] && w=$rc
+echo "LEG_VALIDATION_WORST_RC=$w"
+exit $w
+PGREP_SEPARATE 2026-09-15T08:02:32Z
+PGREP_EMPTY
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-09-15T08:02:32Z
+[2/2] Linking CXX executable bench/hven_sqp_corpus
+=== a bad spelling is now refused with NO callback lever set ===
+RC_no_callback_lever=1
+hven_sqp_corpus: error: HVEN_LEG_CALLBACK_PAYLOAD: 'scalar' is not one of all|scalars
+=== and still refused WITH it set ===
+RC_with_callback_lever=1
+hven_sqp_corpus: error: HVEN_LEG_CALLBACK_PAYLOAD: 'scalar' is not one of all|scalars
+=== and the DEFAULT arm is unchanged: a00 vs each lever, 43x30 ===
+RC_a00=0
+RC_a-all=0
+RC_a-scalars=0
+RC_a-sink=0
+=== fix1 leg a00 vs a-all === cells compared: 43  columns compared: 30  differences: 0
+=== fix1 leg a00 vs a-scalars === cells compared: 43  columns compared: 30  differences: 0
+=== fix1 leg a00 vs a-sink === cells compared: 43  columns compared: 30  differences: 0
+=== and against the COMMITTED capture, which the fix must not have moved ===
+=== fix1 binary vs the captured a00 === cells compared: 43  columns compared: 30  differences: 0
+LEG_VALIDATION_WORST_RC=0
+LEG_RC=0
+FOREGROUND_END 2026-09-15T08:03:29Z
+WRAPPER_EXIT=0

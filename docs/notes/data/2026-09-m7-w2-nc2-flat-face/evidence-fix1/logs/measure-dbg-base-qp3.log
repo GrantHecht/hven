@@ -1,0 +1,6 @@
+PGREP_EMPTY measure-dbg-base-qp3 2026-09-26T11:18:54-04:00
+FOREGROUND_START measure-dbg-base-qp3 2026-09-26T11:18:54-04:00
+measure debug qp3 border rc=0 secs=357
+measure debug qp3 refactorize rc=0 secs=26
+MEASURE_OK
+FOREGROUND_END measure-dbg-base-qp3 2026-09-26T11:25:17-04:00 rc=0

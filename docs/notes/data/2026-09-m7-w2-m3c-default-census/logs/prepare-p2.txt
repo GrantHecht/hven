@@ -1,0 +1,26 @@
+FOREGROUND_START prepare-p2-2 2026-09-21T20:04:21-04:00
+PGREP_EMPTY prepare-p2-2: no foreign cell binary under my lock
+=== M3c PASS 2 PREPARE 2026-09-21T20:04:21-04:00
+=== HEAD 1f536068  dirty-files=5
+--- CONFIGURE
+-- m3c_p2_probe: recompiling 42 hven source(s) with HVEN_TESTING=1
+--- BUILD
+--- PROBE SHA256
+48c4fdea48c43ed27982d2b55a8eadf3fe7054a9030c23c244a4d552bec23bfd  /home/ghecht/Projects/hven/.scratch/m7w2m3c/p2/probebuild/m3c_p2_probe
+--- NO hven::hven IN THE LINK (M3b fix1's REPAIRED check, copied)
+the link line (from build.ninja, 4728 bytes) names no libhven.a and no -lhven
+--- NON-VACUITY OF THAT CHECK: the same grep FINDS libhven when one is there
+the refusal pattern matches a link line that DOES name libhven.a
+--- THE OBSERVER IS IN THIS BINARY
+QpWalkObserver symbols: 22
+--- AND IS IN NO PRODUCTION LIBRARY (pass 1's own installed libhven.a, at the same HEAD)
+QpWalkObserver symbols in libhven.a: 0
+--- USAGE LINE
+usage: m3c_p2_probe --problem NAME [--tr-init r] [--deadline s] [--capture-solve K|-1] [--max-records N] [--trace on|off] [--trace-out PATH] [--stop-after-first-qp on|off] [--ledger on|off]
+--- ARGUMENT REFUSALS, exercised (a checker never seen to refuse is not a checker)
+refused as it should: --problem STEENBRB --trace on  --  m3c_p2_probe: --trace on requires --trace-out PATH
+refused as it should: --problem NOT_A_CELL  --  m3c_p2_probe: NOT_A_CELL is not in the cutest-nlp-35 roster
+refused as it should: --problem STEENBRB --capture-solve -7  --  m3c_p2_probe: --capture-solve takes -1 or a non-negative index
+refused as it should: --problem STEENBRB --trace on --trace-out /tmp/x --stop-after-first-qp on --capture-solve 3  --  m3c_p2_probe: --stop-after-first-qp on needs --capture-solve 0 (its stop condition is solve 0's own completion)
+=== M3c PASS 2 PREPARE OK 2026-09-21T20:04:27-04:00
+FOREGROUND_END prepare-p2-2 2026-09-21T20:04:27-04:00 rc=0

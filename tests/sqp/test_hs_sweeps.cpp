@@ -28,9 +28,9 @@
 // THE MECHANISM IN FOUR LINES, all of them citations rather than claims:
 //   1. sqp_solver.h line ~3126 seeds `lambda_e`/`lambda_i` FROM THE WARM START
 //      when a warm ingest resolves -- i.e. from a solve of a DIFFERENT problem.
-//   2. The convergence test (line ~3549) is
+//   2. The convergence test (line ~3549) was
 //      `kkt.stationarity <= kkt_tol && kkt.feasibility <= feas_tol`. NLP
-//      complementarity is measured but NOT gated.
+//      complementarity was measured but NOT gated (it is gated since WX-R1).
 //   3. sqp_solver.h's CONVERGENCE TEST note justified (2) by
 //      "|lambda_i(j) cI_j| = |lambda_i(j) (Ji p)(j)| = O(||lambda_i|| ||p||),
 //      which goes to zero with the step". THAT ARGUMENT PRESUPPOSES A
@@ -119,6 +119,7 @@
 #include <hven/model/nlp_model.h>
 #include <hven/qp/qp_types.h>
 
+#include "../common_support/route_reference.h"
 #include "support/derivative_check.h"
 #include "support/hs_sweeps.h"
 #include "support/nlp_kkt_check.h"
@@ -433,7 +434,8 @@ void fold(SweepCell &c, const SqpSolveRecord &r) {
 // measured as tolerance-limited at 1e-6 already; asking for 1e-8 would be
 // asking the corpus to spend its majors on a convergence tail rather than on
 // the globalization behaviour the adjudications are about.
-SqpOptions sweep_options(StartLevel level, bool full_step, bool enable_soc, Index max_iter) {
+SqpOptions sweep_options(StartLevel level, bool full_step, bool enable_soc, Index max_iter,
+                         bool failure_step = false) {
     SqpOptions opts;
     opts.kkt_tol = 1e-6;
     opts.feas_tol = 1e-6;
@@ -442,6 +444,15 @@ SqpOptions sweep_options(StartLevel level, bool full_step, bool enable_soc, Inde
     opts.common.start_level = level;
     opts.warm_full_step = full_step;
     opts.enable_soc = enable_soc;
+    // THE FAILED-SUBPROBLEM STEP IS OFF (M7 W2 R2, declared). It is gated off in
+    // the full-step mode by design -- the full-step funnel accepts every trial
+    // unjudged -- so with it on the KD lever would differ in TWO things, not one.
+    // MEASURED with it on: the only cell that moves is HS15's warm KD-off arm
+    // (the one failing subproblem chain in the corpus): 30 -> 34 majors, 91 -> 99
+    // minors, 31 -> 39 factorizations, 3 -> 7 rejections, the same answers and the
+    // same status counts. Every other cell, and every KD-on cell, is unchanged.
+    // That reading is pinned by HsSweepCorpus.Hs15WarmKdOffWithTheFailedSubproblemStep.
+    opts.qp_failure_step = failure_step;
     return opts;
 }
 
@@ -477,9 +488,11 @@ std::vector<double> spec_grid(const HsSweepSpec &spec) {
 
 // The warm arm: one run_continuation sweep on one driver, so the hand-off
 // chain is the thing under test.
-SweepCell run_warm_sweep(const HsSweepSpec &spec, bool full_step, bool enable_soc) {
+SweepCell run_warm_sweep(const HsSweepSpec &spec, bool full_step, bool enable_soc,
+                         bool failure_step = false) {
     auto model = make_hs_sweep(spec.number);
-    SqpSolver driver(sweep_options(StartLevel::kWarm, full_step, enable_soc, spec.max_iter));
+    SqpSolver driver(
+        sweep_options(StartLevel::kWarm, full_step, enable_soc, spec.max_iter, failure_step));
     Ledger ledger;
     driver.attach_ledger(&ledger, "sweep");
     const auto t0 = std::chrono::steady_clock::now();
@@ -1100,10 +1113,35 @@ void check_full_step_lever_on_the_sound_warm_arms() {
     // control saying the repair did not disturb the equality-only third.
     EXPECT_EQ(26, problem("HS10").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(40, problem("HS10").cell[kArmWarm][kOn][kOn].majors);
-    EXPECT_EQ(21, problem("HS15").cell[kArmWarm][kOn][kOn].full_step_majors);
-    EXPECT_EQ(28, problem("HS15").cell[kArmWarm][kOn][kOn].majors);
+    // RE-DERIVED, M7 W2 M1 (a DECLARED break, CLAUDE.md section 7): 21/28 ->
+    // 23/30. The shipped `SqpOptions::qp_failure_budget` moved from 1 to 3 on
+    // the CUTEst TRAIN reading (docs/notes/data/2026-09-m7-w2-m1-qp-cap/), and
+    // HS15's warm arm is the one cell in this corpus that routes a subproblem
+    // failure at all: two more failures are now routed at the iterate that used
+    // to end the chain, so the arm performs two more majors -- both of them full
+    // steps -- before the elastic tier engages as it did before. NOTHING ELSE IN
+    // THE CORPUS MOVES, which is the control that says this is the routing gate
+    // and not a trajectory change: HS10, HS26, HS33, HS40 and HS77 hold at their
+    // Task-7b values, and every cold arm is untouched.
+    EXPECT_EQ(23, problem("HS15").cell[kArmWarm][kOn][kOn].full_step_majors);
+    EXPECT_EQ(30, problem("HS15").cell[kArmWarm][kOn][kOn].majors);
+    // HS26's TWO COLUMNS ARE CONFIG-SPLIT SINCE M7 W2 E4 FIX ROUND 2 (declared).
+    // MEASURED: Release holds at 12 / 29 and Debug reads 13 / 30 -- one more major, a
+    // full step, on the warm arm. This problem is rank-deficient at its solution
+    // (`WarmStart.BudgetModeOffMatchesMaxIterExactly`'s own note says so and its `f`
+    // pin moved at fix round 1 for the same reason), so which side of the KKT test the
+    // last pass falls on is exactly the kind of thing -O0 against -O3 under
+    // `-ffast-math` decides differently. Every other problem in this read-out --
+    // HS15, HS33, HS40, HS77 and all five cold arms -- holds in BOTH configurations,
+    // which is the control that says this is one cell's rounding and not a routing
+    // change.
+#ifdef NDEBUG
     EXPECT_EQ(12, problem("HS26").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(29, problem("HS26").cell[kArmWarm][kOn][kOn].majors);
+#else
+    EXPECT_EQ(13, problem("HS26").cell[kArmWarm][kOn][kOn].full_step_majors);
+    EXPECT_EQ(30, problem("HS26").cell[kArmWarm][kOn][kOn].majors);
+#endif
     EXPECT_EQ(12, problem("HS33").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(16, problem("HS33").cell[kArmWarm][kOn][kOn].majors);
     EXPECT_EQ(12, problem("HS40").cell[kArmWarm][kOn][kOn].full_step_majors);
@@ -1221,8 +1259,24 @@ void check_soc_costs_what_it_costs() {
     // rather than an accident: every SOC attempt in this corpus is on a cell
     // the repair does not touch (the cold arm) or on HS77's warm arm, which was
     // sound all along.
-    EXPECT_EQ(23, extra_minors) << corpus_table();
-    EXPECT_EQ(4, extra_factorizations) << corpus_table();
+#if HVEN_TEST_ROUTE_REFERENCE
+    // M7 W2 E2 step 2 (declared mover, S20): 23 -> 22 extra minors and 4 -> 3
+    // extra factorizations. The majors stay identical in every cell (asserted
+    // above); the SOC-on walks are shorter under the add-site exchange and the
+    // zero-motion re-entry rule, so what SOC costs shrinks with them.
+    EXPECT_EQ(22, extra_minors) << corpus_table();
+    EXPECT_EQ(3, extra_factorizations) << corpus_table();
+#else
+    // OFF THE REFERENCE BUILD (WX B6): the SOC cost numerator is a route pin. The macOS lane
+    // reads 22 / 3 here (the reference values; the stale pre-E2 23 / 4 arm that stood here was
+    // never observed and is retired). The portable contract is the per-cell bookkeeping
+    // asserted above (majors identical with SOC off; SOC on never cheaper than SOC off).
+    hven::test_support::record_off_reference_route(
+        "HsSweepCorpus.soc_cost",
+        fmt::format("extra_minors={} extra_factorizations={}", extra_minors, extra_factorizations));
+    EXPECT_GE(extra_minors, 0);
+    EXPECT_GE(extra_factorizations, 0);
+#endif
     // The denominator the note's percentage is computed against, pinned so the
     // percentage is reproducible rather than recomputed by hand.
     //
@@ -1241,29 +1295,72 @@ void check_soc_costs_what_it_costs() {
     // before the decoupling, when HS15's cold arm was still shortened to 1095
     // minors by its warm arm's truncation. It is superseded and appears only in
     // the note's revision history.)
-#ifdef USE_ACCELERATE_SPARSE
-    // Origin divergence entry D17. The note that carried it
-    // (docs/notes/2026-07-31-accelerate-second-pass-results.md) did NOT
-    // migrate into hven, and the register that succeeds it here
-    // (docs/notes/2026-08-14-accelerate-divergence-register.md, "Why this
-    // file exists at this path") has no row for D17 -- the observation is
-    // quoted in full below, and this comment is its citable record here.
-    // What was observed: this is
-    // the corpus's ONLY failing assertion on Accelerate. Every abridged row
-    // is byte-identical to the Linux measurement except HS26, which forks by
-    // exactly one minor in each of its two SOC-on cells (cold 88/190/88 ->
-    // 88/191/88 on MKL, warm 29/60/29 -> 29/61/29 on MKL) -- the same single
-    // HS26 trajectory fork that dominates origin entry D16 (quoted at
-    // tests/sqp/test_b1_gate.cpp's own Accelerate arm, same not-migrated
-    // origin). Majors and factorizations are
-    // unchanged in both cells, and the SOC numerator this test also pins
-    // (extra_minors == 23, extra_factorizations == 4, two lines above) holds
-    // EXACTLY on this backend -- the fork is confined to the denominator.
-    // The origin's quoted 23/3719 = 0.62 % is unaffected at its own precision
-    // by the -2 total here (23/3717 = 0.62 % also).
-    EXPECT_EQ(3717, total_minors) << corpus_table();
+#if HVEN_TEST_ROUTE_REFERENCE
+    // RE-DERIVED, M7 W2 M1 (a DECLARED break): 3719 -> 3737, +18, all of it
+    // HS15's warm arm (92 -> 110) for the reason given at the engagement pins
+    // above -- two more routed failures, two more majors. The SOC numerator does
+    // not move (23 and 4 are unchanged two blocks up), so 23/3737 = 0.62 % still
+    // rounds as the note quotes it.
+    // RE-DERIVED, M7 W2 E2 (a DECLARED break): 3737 -> 3725, -12, all of it
+    // HS15: cold 1160 -> 1157 and 1154 -> 1151 (-3), warm 110 -> 101 (-9);
+    // factorizations and every other cell's row identical. The detector
+    // resolves dependent seeds and re-checks (structural pinned-row check,
+    // un-gated inverse iteration). independent_working_set = false
+    // reproduces 3737. UNOBSERVED on Accelerate (the arm above).
+    // RE-DERIVED, M7 W2 E2 step 2 (declared mover, S20): 3725 -> 3371, -354.
+    // Cause: the add-site exchange replaces admit-then-remove for a dependent
+    // blocker, and the zero-motion re-entry rule stops release/re-entry churn
+    // at fixed points; the majors are unchanged in every SOC pair (asserted
+    // above) and every status holds. 22/3371 = 0.65 %.
+    // RE-DERIVED, M7 W2 NC1 (declared mover): 3371 -> 3365, -6, all of it
+    // HS15's warm arm (99 -> 93 minors, 38 -> 31 factorizations in each KD/SOC
+    // cell). Three of its QPs (n 2, two rows) take a null-space-vetoed ride
+    // whose EQP step re-enters the released constraint: the drop is now undone
+    // (qp_engine.h 4c, THE DECLINED RIDE) instead of the ordinary step, and each
+    // ends kNumericalError at 4 minors instead of 6 -- the same status. Majors,
+    // statuses and every other row identical. 22/3365 = 0.65 %.
+    // RE-DERIVED, M7 W2 E4 fix round 1 (declared mover): 3365 -> 3340, -25, and it
+    // is the same event that CLOSED this test's B-1 assertion at line 938 (the
+    // complementarity term read 0.177 under c46485d8 and reads beneath 1e-6 here).
+    // Cause: the UNREGULARIZED POLISH (eqp_solve.h's polish_eqp_core) takes the
+    // proximal answer's O(primal_delta) bias out of every EQP answer, so the extra
+    // pass per face it used to cost is gone, and the TERMINAL POLISH (qp_engine.h
+    // section 5) re-solves a certified point mu-free on its final face. Majors,
+    // statuses and every KKT column hold. 22/3340 = 0.66 %.
+    // RE-DERIVED, M7 W2 E2 FIX ROUND 8 (declared mover; settler S40, THE BOUNDED REPAIR):
+    // 3340 -> 3342, +2, ALL OF IT HS15's COLD ARM (1067 -> 1069 in the two SOC-on KD/SOC
+    // cells, 1062 -> 1064 in the two SOC-off cells; every other problem/arm row is
+    // byte-identical, and on HS15 cold the majors 86, factorizations 185, acc/rej 70/16,
+    // SOC 0/0/2/2, elastic 48/288, restoration 0, watchdog 0, levels 7/0/0 and fail 0 all
+    // hold).
+    // CAUSE, measured to the mechanism: HS15's sub-QPs have n = 2, so the integer screen
+    // (me + |W| + 1 > n) fires on the FIRST repair candidate -- and until fix8 it skipped
+    // BOTH of them, so the temporary-vertex repair pinned NOTHING and failed. The screen
+    // proves the family {A_W, e_i} dependent, not e_i in span(A_W), and at n = 2 that
+    // distinction is the whole of it. Now the first candidate is TRIED (inside the repair's
+    // budget, max(kRepairPinFloor, ceil(n/2)) = 8 pins there), ONE pin repairs the inertia,
+    // and the walk spends two more minors on the face it can now certify. Six such repairs
+    // over the sweep, all HS15, all n = 2: base FAIL tried=0 screen_pins=2, fix8 OK tried=1
+    // screen_pins=1 (the RPX measurement, .scratch/e2fix8/rpx/). The other rule of the
+    // round, fix7's un-run verdict, moves NO cell of this corpus at all -- measured by
+    // running each rule off on its own. 22/3342 = 0.66 %.
+    // M7 W2 BPS (declared mover): 3342 -> 3340 (Release). The bordered answer's certificate
+    // (bordered_eqp.h) refines answers whose step is undecided at the zero-motion scale; the
+    // corpus total moves by 2 minors and every status in the table is unchanged.
+    // Debug's corpus does not move: CONFIG-SPLIT from here.
+#ifdef NDEBUG
+    EXPECT_EQ(3340, total_minors) << corpus_table();
 #else
-    EXPECT_EQ(3719, total_minors) << corpus_table();
+    EXPECT_EQ(3342, total_minors) << corpus_table();
+#endif
+#else
+    // OFF THE REFERENCE BUILD (WX B6): the corpus total is a route pin (the macOS lane reads
+    // 3338 against the reference 3340; the retired Accelerate arm's 3717 was an unobserved
+    // pre-E2 value). Recorded, not pinned. (The D17 comment that stood here is in git history
+    // at c1cc9891.)
+    hven::test_support::record_off_reference_route("HsSweepCorpus.total_minors",
+                                                   fmt::format("total_minors={}", total_minors));
+    EXPECT_GT(total_minors, 0);
 #endif
 }
 
@@ -1414,6 +1511,50 @@ TEST(HsSweepCorpus, Corpus) {
     std::cout << corpus_table() << std::endl;
 }
 
+// THE HOLD-OFF ABOVE, MEASURED (M7 W2 R2 fix 1, RIDER-6): HS15's warm KD-off arm
+// with the shipped `qp_failure_step = true`, beside the corpus's held-off cell. The
+// failed subproblems' own steps cost majors here and change neither the answers nor
+// the status count.
+TEST(HsSweepCorpus, Hs15WarmKdOffWithTheFailedSubproblemStep) {
+    ASSERT_TRUE(SqpOptions{}.qp_failure_step) << "the shipped default this row pins";
+    const HsSweepSpec *spec = nullptr;
+    for (const HsSweepSpec &sp : hs_sweep_specs()) {
+        if (sp.name == std::string("HS15")) {
+            spec = &sp;
+        }
+    }
+    ASSERT_NE(spec, nullptr);
+    const SweepCell off = run_warm_sweep(*spec, /*full_step=*/false, /*soc=*/true);
+    const SweepCell on = run_warm_sweep(*spec, false, true, /*failure_step=*/true);
+    const auto row = [](const SweepCell &c) {
+        return fmt::format("majors {} minors {} fact {} rej {} fail {}", c.majors, c.minors,
+                           c.factorizations, c.rejected, c.status_failures);
+    };
+    SCOPED_TRACE("held off: " + row(off) + " | default: " + row(on));
+    // MEASURED (MKL, clang++), majors / minors / factorizations / rejections. CONFIG-SPLIT
+    // like HS26's pin above: Release holds off at 30 / 91 / 31 / 3 and reads 34 / 99 / 39 / 7
+    // with the step; Debug holds off at 30 / 89 / 32 / 3 and reads 33 / 95 / 38 / 6.
+    // M7 W2 BPS (declared mover): Release's step arm 34 / 99 / 39 / 7 -> 33 / 95 / 38 / 6, now
+    // Debug's own reading; the held-off arm, the failure count and every objective unchanged.
+    EXPECT_EQ(off.majors, 30);
+#ifdef NDEBUG
+    EXPECT_EQ(on.majors, 33);
+    EXPECT_EQ(on.minors, 95);
+    EXPECT_EQ(on.factorizations, 38);
+    EXPECT_EQ(on.rejected, 6);
+#else
+    EXPECT_EQ(on.majors, 33);
+    EXPECT_EQ(on.minors, 95);
+    EXPECT_EQ(on.factorizations, 38);
+    EXPECT_EQ(on.rejected, 6);
+#endif
+    EXPECT_EQ(on.status_failures, off.status_failures);
+    EXPECT_EQ(on.fvals.size(), off.fvals.size());
+    for (std::size_t i = 0; i < std::min(on.fvals.size(), off.fvals.size()); ++i) {
+        EXPECT_NEAR(on.fvals[i], off.fvals[i], 1e-6 * std::max(1.0, std::abs(off.fvals[i])));
+    }
+}
+
 // ---------------------------------------------------------------------
 // THE MINIMAL REPRODUCTION of the defect this file's WHAT THIS CORPUS FOUND
 // FIRST note describes, NOW ASSERTING ITS REPAIR: TWO SOLVES, no continuation
@@ -1484,10 +1625,9 @@ TEST(HsSweepRepair, WarmSolveOnAReleasedRowNoLongerCertifiesTheOldPoint) {
     EXPECT_LT(r.complementarity, 1e-6)
         << "... whose COMPLEMENTARITY is now at tolerance. Pre-repair this read 0.25: "
            "lambda_i = 0.5 priced against cI = -0.5, on a term the convergence test "
-           "does not gate. The repair does not gate it either -- it makes the ingested "
-           "multipliers complementary BY CONSTRUCTION (sqp_solver.h's THE INGESTED "
-           "MULTIPLIERS ARE MADE COMPLEMENTARY), which is what restores the "
-           "stationarity/feasibility pair to a complete KKT test at that point.";
+           "did not gate then. The repair makes the ingested multipliers complementary "
+           "BY CONSTRUCTION (sqp_solver.h's THE INGESTED MULTIPLIERS ARE MADE "
+           "COMPLEMENTARY); since WX-R1 the convergence test gates the term as well.";
 
     // THE TRUTH, from a cold solve of the same problem: x*(0.5) = (0, sqrt(1.5)).
     SqpSolver d2(sweep_options(StartLevel::kCold, true, true, 60));
@@ -1498,6 +1638,44 @@ TEST(HsSweepRepair, WarmSolveOnAReleasedRowNoLongerCertifiesTheOldPoint) {
     EXPECT_LT(rc.complementarity, 1e-6);
     // The 18 % relative objective error is gone; the two arms now agree.
     EXPECT_LT(std::abs(s1.f - s2.f) / std::abs(s2.f), 1e-6) << "pre-repair this read 0.1835";
+}
+
+// ---------------------------------------------------------------------
+// WX-R1: A QP-PRICED MULTIPLIER IS NOT A CERTIFICATE EITHER. The B-1 repair
+// above clears the INGESTED price on a released row, and that clear works here
+// too -- but on HS10's warm chain at dp = 0.25 the solve at p = 2.25 then got
+// the same stale point back from its own first QP: a zero step, priced at
+// lambda_i = 1/(2 sqrt 3) on the row the new parameter had released by 0.25
+// (the walk's KKT-point test reads only the violated side of a working
+// inequality row). With the complementarity conjunct armed only while the
+// multipliers were ingested or carried, the next major certified that point:
+// kOptimal in ONE major at the p = 2 optimum f = -sqrt(3), complementarity
+// 0.0722, against a truth of -sqrt(3.25). MEASURED ON MKL, before the fix; the
+// macOS lane's HS10 p = 3 false optimum (complementarity 0.1336, dp = 0.5) is the
+// same signature on the corpus's own grid.
+//
+// The truth along the whole grid is analytic: HS10 widened by p has its optimum
+// on the scaled ellipse at f*(p) = -sqrt(1 + p), with the row active.
+// ---------------------------------------------------------------------
+TEST(HsSweepRepair, WarmChainOnAQuarterGridCertifiesNoPointOffTheRow) {
+    HsSweepSpec spec = hs_sweep_spec(10);
+    spec.dp = 0.25;
+    const std::vector<ChainPoint> chain = run_warm_chain(spec);
+    ASSERT_EQ(13u, chain.size()) << "the chain stopped early: a link was not certified";
+    Index warm_points = 0;
+    for (const ChainPoint &pt : chain) {
+        SCOPED_TRACE(fmt::format("HS10 at p = {}", pt.p));
+        ASSERT_EQ(SolveStatus::kOptimal, pt.status);
+        if (pt.level != StartLevel::kCold) {
+            ++warm_points;
+        }
+        EXPECT_NEAR(-std::sqrt(1.0 + pt.p), pt.f, 1e-6)
+            << "pre-WX-R1, p = 2.25 read -sqrt(3), the p = 2 answer";
+        EXPECT_LT(pt.kkt.stationarity, 1e-5);
+        EXPECT_LT(pt.kkt.primal, 1e-5);
+        EXPECT_LT(pt.kkt.complementarity, 1e-6) << "pre-WX-R1, p = 2.25 read 0.0722";
+    }
+    EXPECT_EQ(12, warm_points);
 }
 
 // ---------------------------------------------------------------------

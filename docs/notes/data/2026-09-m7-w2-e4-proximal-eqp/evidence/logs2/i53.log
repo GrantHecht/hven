@@ -1,0 +1,173 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-debug/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = SqpDriverRestorationProximity.*:SqpDriverRestorationExcursion.*:SqpDriverRestorationSeed.*:CorpusTask6bPhaseB.*:IpqpAcceptanceCensus.*:SqpDriverCertifiedFallback.*:SqpDriverQpFailure.*
+[==========] Running 65 tests from 7 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from CorpusTask6bPhaseB
+[ RUN      ] CorpusTask6bPhaseB.TheShippedKSsnConfigurationIsUnmovedByTheFourLevers
+[       OK ] CorpusTask6bPhaseB.TheShippedKSsnConfigurationIsUnmovedByTheFourLevers (1715 ms)
+[----------] 1 test from CorpusTask6bPhaseB (1715 ms total)
+
+[----------] 2 tests from IpqpAcceptanceCensus
+[ RUN      ] IpqpAcceptanceCensus.AnArmedRunIsNeverMistakenForAStallAcrossTheHsBattery
+[       OK ] IpqpAcceptanceCensus.AnArmedRunIsNeverMistakenForAStallAcrossTheHsBattery (275 ms)
+[ RUN      ] IpqpAcceptanceCensus.TheNaturalStallIsChargedToASubproblemThatNeverArmedTheLadder
+[       OK ] IpqpAcceptanceCensus.TheNaturalStallIsChargedToASubproblemThatNeverArmedTheLadder (78 ms)
+[----------] 2 tests from IpqpAcceptanceCensus (354 ms total)
+
+[----------] 8 tests from SqpDriverQpFailure
+[ RUN      ] SqpDriverQpFailure.RetryabilityIsFinitenessAndTheBox
+[       OK ] SqpDriverQpFailure.RetryabilityIsFinitenessAndTheBox (0 ms)
+[ RUN      ] SqpDriverQpFailure.QpNumericalErrorShrinksInsteadOfAborting
+[       OK ] SqpDriverQpFailure.QpNumericalErrorShrinksInsteadOfAborting (18 ms)
+[ RUN      ] SqpDriverQpFailure.SuspectEscalationsAggregateToTheDriver
+[       OK ] SqpDriverQpFailure.SuspectEscalationsAggregateToTheDriver (22 ms)
+[ RUN      ] SqpDriverQpFailure.RepeatedQpNumericalErrorStillPropagates
+[       OK ] SqpDriverQpFailure.RepeatedQpNumericalErrorStillPropagates (21 ms)
+[ RUN      ] SqpDriverQpFailure.TheShippedBudgetRoutesMoreAndThisFixtureThenSolves
+[       OK ] SqpDriverQpFailure.TheShippedBudgetRoutesMoreAndThisFixtureThenSolves (42 ms)
+[ RUN      ] SqpDriverQpFailure.QpMaxIterTakesTheSameShrinkRetryPath
+[       OK ] SqpDriverQpFailure.QpMaxIterTakesTheSameShrinkRetryPath (7 ms)
+[ RUN      ] SqpDriverQpFailure.RepeatedQpMaxIterStillPropagates
+[       OK ] SqpDriverQpFailure.RepeatedQpMaxIterStillPropagates (2 ms)
+[ RUN      ] SqpDriverQpFailure.RoutedFailuresCountTowardTheRestorationGate
+[       OK ] SqpDriverQpFailure.RoutedFailuresCountTowardTheRestorationGate (2 ms)
+[----------] 8 tests from SqpDriverQpFailure (118 ms total)
+
+[----------] 30 tests from SqpDriverCertifiedFallback
+[ RUN      ] SqpDriverCertifiedFallback.P1TheEvidencePlacesRungAsFirstRungBetweenTheFloorAndTheCeiling
+[       OK ] SqpDriverCertifiedFallback.P1TheEvidencePlacesRungAsFirstRungBetweenTheFloorAndTheCeiling (7 ms)
+[ RUN      ] SqpDriverCertifiedFallback.P2ClosedSlacksDisproveTheSuspicionAndCarryTheMultipliers
+[       OK ] SqpDriverCertifiedFallback.P2ClosedSlacksDisproveTheSuspicionAndCarryTheMultipliers (0 ms)
+[ RUN      ] SqpDriverCertifiedFallback.P2bOpenButReducedSlacksReturnKOptimalWithMultipliersZEROED
+[       OK ] SqpDriverCertifiedFallback.P2bOpenButReducedSlacksReturnKOptimalWithMultipliersZEROED (3 ms)
+[ RUN      ] SqpDriverCertifiedFallback.P3AnExhaustedLadderCertifiesInfeasibleWithItsReportAttached
+[       OK ] SqpDriverCertifiedFallback.P3AnExhaustedLadderCertifiesInfeasibleWithItsReportAttached (3 ms)
+[ RUN      ] SqpDriverCertifiedFallback.P3TheEscapeBranchCONSUMESTheAttachedLadderRatherThanRerunningIt
+[       OK ] SqpDriverCertifiedFallback.P3TheEscapeBranchCONSUMESTheAttachedLadderRatherThanRerunningIt (5 ms)
+[ RUN      ] SqpDriverCertifiedFallback.P4ARefusedRungAReturnsTheColdWalkCounterForCounter
+[       OK ] SqpDriverCertifiedFallback.P4ARefusedRungAReturnsTheColdWalkCounterForCounter (5 ms)
+[ RUN      ] SqpDriverCertifiedFallback.P4bTheCeilingDeclineIsGONEUnderThePlacementBound
+[       OK ] SqpDriverCertifiedFallback.P4bTheCeilingDeclineIsGONEUnderThePlacementBound (2 ms)
+[ RUN      ] SqpDriverCertifiedFallback.AnOverriddenPlacementIsVALIDATEDAndClampedIntoTheLaddersRange
+[       OK ] SqpDriverCertifiedFallback.AnOverriddenPlacementIsVALIDATEDAndClampedIntoTheLaddersRange (1 ms)
+[ RUN      ] SqpDriverCertifiedFallback.P4OnAPrimedEngineCostsTheAnalysisRungADisplaces
+[       OK ] SqpDriverCertifiedFallback.P4OnAPrimedEngineCostsTheAnalysisRungADisplaces (5 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T3ARefusalWhoseWalkCertifiesInfeasibleCostsTwoActivations
+[       OK ] SqpDriverCertifiedFallback.T3ARefusalWhoseWalkCertifiesInfeasibleCostsTwoActivations (12 ms)
+[ RUN      ] SqpDriverCertifiedFallback.P5AnUnfiredEvidenceBlockNeverEntersRungAAtAll
+[       OK ] SqpDriverCertifiedFallback.P5AnUnfiredEvidenceBlockNeverEntersRungAAtAll (4 ms)
+[ RUN      ] SqpDriverCertifiedFallback.P6NoEvidenceContentMakesTheFallbackThrow
+[       OK ] SqpDriverCertifiedFallback.P6NoEvidenceContentMakesTheFallbackThrow (22 ms)
+[ RUN      ] SqpDriverCertifiedFallback.P7TheVerdictReadsNothingFromTheEvidenceBeyondItsThreeInputs
+[       OK ] SqpDriverCertifiedFallback.P7TheVerdictReadsNothingFromTheEvidenceBeyondItsThreeInputs (60 ms)
+[ RUN      ] SqpDriverCertifiedFallback.ANegativeOrNaNWindowIsREFUSEDAtBothPublicEntryPoints
+[       OK ] SqpDriverCertifiedFallback.ANegativeOrNaNWindowIsREFUSEDAtBothPublicEntryPoints (3 ms)
+[ RUN      ] SqpDriverCertifiedFallback.ThePartitionOverFallbackEntriesIsCOMPLETEAndSumsToTheFiredOnes
+[       OK ] SqpDriverCertifiedFallback.ThePartitionOverFallbackEntriesIsCOMPLETEAndSumsToTheFiredOnes (9 ms)
+[ RUN      ] SqpDriverCertifiedFallback.ADeclinedRungAAboveTheFloorIsRETRIEDThereExactlyOnce
+[       OK ] SqpDriverCertifiedFallback.ADeclinedRungAAboveTheFloorIsRETRIEDThereExactlyOnce (7 ms)
+[ RUN      ] SqpDriverCertifiedFallback.TheFallbackVerdictEventDescribesEVERYEntryIncludingTheUnfiredOne
+[       OK ] SqpDriverCertifiedFallback.TheFallbackVerdictEventDescribesEVERYEntryIncludingTheUnfiredOne (0 ms)
+[ RUN      ] SqpDriverCertifiedFallback.ARungAOwnedMajorIsAnElasticRowOnTheDriversOwnHistory
+[       OK ] SqpDriverCertifiedFallback.ARungAOwnedMajorIsAnElasticRowOnTheDriversOwnHistory (10 ms)
+[ RUN      ] SqpDriverCertifiedFallback.TheDriverEmitsOneFallbackVerdictPerEscapeAndHS38sNeverFIRED
+[       OK ] SqpDriverCertifiedFallback.TheDriverEmitsOneFallbackVerdictPerEscapeAndHS38sNeverFIRED (60 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T7TheEscapeBranchTernaryCONSUMESAnAttachedReportAtTheDriver
+[       OK ] SqpDriverCertifiedFallback.T7TheEscapeBranchTernaryCONSUMESAnAttachedReportAtTheDriver (12 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T7TheCeilingFlagsTRUEArmOnADriverRowIsThePricedOne
+[       OK ] SqpDriverCertifiedFallback.T7TheCeilingFlagsTRUEArmOnADriverRowIsThePricedOne (10 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T7TheDisprovedSuspicionCalibrationOverTheHsCorpusIsZERO
+[       OK ] SqpDriverCertifiedFallback.T7TheDisprovedSuspicionCalibrationOverTheHsCorpusIsZERO (276 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T7TheDisplacedPatternCostsONEAnalysisOnTheFollowingMajor
+[       OK ] SqpDriverCertifiedFallback.T7TheDisplacedPatternCostsONEAnalysisOnTheFollowingMajor (385 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T7AnInfiniteOverridePlacesTheLadderAtItsCeiling
+[       OK ] SqpDriverCertifiedFallback.T7AnInfiniteOverridePlacesTheLadderAtItsCeiling (0 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnItsWorstFixture
+[       OK ] SqpDriverCertifiedFallback.T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnItsWorstFixture (348 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T7TheT3ARouteIsREACHABLEAtTheDriverAndCostsOneExtraLadder
+[       OK ] SqpDriverCertifiedFallback.T7TheT3ARouteIsREACHABLEAtTheDriverAndCostsOneExtraLadder (10 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T7TheAttachedReportsRestorationOfferIsATROUNDINGNotAMargin
+[       OK ] SqpDriverCertifiedFallback.T7TheAttachedReportsRestorationOfferIsATROUNDINGNotAMargin (12 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T7F1TheSameInconsistentLinearizationInAllThreeModes
+[       OK ] SqpDriverCertifiedFallback.T7F1TheSameInconsistentLinearizationInAllThreeModes (20 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearization
+[       OK ] SqpDriverCertifiedFallback.T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearization (24 ms)
+[ RUN      ] SqpDriverCertifiedFallback.E1TheDependentInconsistentPairIsCertifiedByTheEqualityBasis
+[       OK ] SqpDriverCertifiedFallback.E1TheDependentInconsistentPairIsCertifiedByTheEqualityBasis (2 ms)
+[----------] 30 tests from SqpDriverCertifiedFallback (1334 ms total)
+
+[----------] 7 tests from SqpDriverRestorationProximity
+[ RUN      ] SqpDriverRestorationProximity.TheCertificateIsGatedOnTheUncorrectedResidual
+[       OK ] SqpDriverRestorationProximity.TheCertificateIsGatedOnTheUncorrectedResidual (466 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheProxyWouldCertifyWhereTheExactResidualRefuses
+[ e4fix2 ] cancellation window: proxy=4.3933982708e-07 exact=4.5566300666e-07
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_restoration.cpp:3005: Failure
+Expected: (c.stationarity) > (opts.kkt_tol), actual: 4.556630066598899e-07 vs 4.88e-07
+premise 2: the EXACT residual does not (4.556630066598899e-07)
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_restoration.cpp:3010: Failure
+Value of: sol.infeasibility_certified
+  Actual: true
+Expected: false
+the returned point is NOT a certified infeasible stationary point of h: its exact subgradient residual is 4.556630066598899e-07 against a kkt_tol of 4.8800000000000003e-07
+
+[  FAILED  ] SqpDriverRestorationProximity.TheProxyWouldCertifyWhereTheExactResidualRefuses (271 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheSeedGuardFiresAndTheStartObjectiveIsHPlusP
+[       OK ] SqpDriverRestorationProximity.TheSeedGuardFiresAndTheStartObjectiveIsHPlusP (272 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheRefusalsNameTheFieldTheValueAndTheRemedy
+[       OK ] SqpDriverRestorationProximity.TheRefusalsNameTheFieldTheValueAndTheRemedy (0 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheZeroWeightGateNeverReadsTheBundle
+[       OK ] SqpDriverRestorationProximity.TheZeroWeightGateNeverReadsTheBundle (0 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheZeroWeightCertifiesOnAScaledSolve
+[       OK ] SqpDriverRestorationProximity.TheZeroWeightCertifiesOnAScaledSolve (20 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheProductionCentreIsTheRequestingIterateNotTheSeed
+[       OK ] SqpDriverRestorationProximity.TheProductionCentreIsTheRequestingIterateNotTheSeed (2 ms)
+[----------] 7 tests from SqpDriverRestorationProximity (1034 ms total)
+
+[----------] 11 tests from SqpDriverRestorationSeed
+[ RUN      ] SqpDriverRestorationSeed.TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTaken
+[       OK ] SqpDriverRestorationSeed.TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTaken (272 ms)
+[ RUN      ] SqpDriverRestorationSeed.TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOne
+[       OK ] SqpDriverRestorationSeed.TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOne (346 ms)
+[ RUN      ] SqpDriverRestorationSeed.TheIndependentWorkingSetReachesTheSameCertifiedAnswer
+[       OK ] SqpDriverRestorationSeed.TheIndependentWorkingSetReachesTheSameCertifiedAnswer (428 ms)
+[ RUN      ] SqpDriverRestorationSeed.TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesIt
+[       OK ] SqpDriverRestorationSeed.TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesIt (381 ms)
+[ RUN      ] SqpDriverRestorationSeed.AWorseElasticCandidateIsRefusedOnTheSameModel
+[       OK ] SqpDriverRestorationSeed.AWorseElasticCandidateIsRefusedOnTheSameModel (96 ms)
+[ RUN      ] SqpDriverRestorationSeed.AZeroElasticStepIsNotACandidate
+[       OK ] SqpDriverRestorationSeed.AZeroElasticStepIsNotACandidate (35 ms)
+[ RUN      ] SqpDriverRestorationSeed.ANonFiniteEvaluationAtTheCandidateIsRefused
+[       OK ] SqpDriverRestorationSeed.ANonFiniteEvaluationAtTheCandidateIsRefused (153 ms)
+[ RUN      ] SqpDriverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTaken
+[       OK ] SqpDriverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTaken (2599 ms)
+[ RUN      ] SqpDriverRestorationSeed.TheOffDiagonalStartOffersTheLadderStepAndTheGuardRefusesIt
+[       OK ] SqpDriverRestorationSeed.TheOffDiagonalStartOffersTheLadderStepAndTheGuardRefusesIt (12 ms)
+[ RUN      ] SqpDriverRestorationSeed.TheGuardAndThePhaseRunOnTheCallerScale
+[       OK ] SqpDriverRestorationSeed.TheGuardAndThePhaseRunOnTheCallerScale (34 ms)
+[ RUN      ] SqpDriverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce
+[       OK ] SqpDriverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce (174 ms)
+[----------] 11 tests from SqpDriverRestorationSeed (4534 ms total)
+
+[----------] 6 tests from SqpDriverRestorationExcursion
+[ RUN      ] SqpDriverRestorationExcursion.TheResumeArmRecordsTheCallersOwnExcursion
+[       OK ] SqpDriverRestorationExcursion.TheResumeArmRecordsTheCallersOwnExcursion (10 ms)
+[ RUN      ] SqpDriverRestorationExcursion.TheTerminalArmRecordsThePointItReports
+[       OK ] SqpDriverRestorationExcursion.TheTerminalArmRecordsThePointItReports (155 ms)
+[ RUN      ] SqpDriverRestorationExcursion.ARefusedSecondRequestLeavesTheFirstEntrysRecord
+[       OK ] SqpDriverRestorationExcursion.ARefusedSecondRequestLeavesTheFirstEntrysRecord (31 ms)
+[ RUN      ] SqpDriverRestorationExcursion.ACleanSolveHoldsNoReading
+[       OK ] SqpDriverRestorationExcursion.ACleanSolveHoldsNoReading (8 ms)
+[ RUN      ] SqpDriverRestorationExcursion.TheSubStatusTellsACutOffSubSolveFromAConvergedOne
+[       OK ] SqpDriverRestorationExcursion.TheSubStatusTellsACutOffSubSolveFromAConvergedOne (190 ms)
+[ RUN      ] SqpDriverRestorationExcursion.TheSubStatusDiscriminatesAtOneParentStatus
+[       OK ] SqpDriverRestorationExcursion.TheSubStatusDiscriminatesAtOneParentStatus (105 ms)
+[----------] 6 tests from SqpDriverRestorationExcursion (502 ms total)
+
+[----------] Global test environment tear-down
+[==========] 65 tests from 7 test suites ran. (9594 ms total)
+[  PASSED  ] 64 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] SqpDriverRestorationProximity.TheProxyWouldCertifyWhereTheExactResidualRefuses
+
+ 1 FAILED TEST

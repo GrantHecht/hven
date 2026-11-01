@@ -1,0 +1,40 @@
+-- Configuring done (2.6s)
+-- Generating done (0.1s)
+-- Build files have been written to: /home/ghecht/Projects/hven/.scratch/m7w2m1/dbg
+[196/205] Linking CXX executable bench/hven_sqp_tau_bar_sweep_probe
+[197/205] Linking CXX executable tests/drivers/hven_drivers_tests
+[198/205] Linking CXX executable tests/interior/hven_interior_tests
+[199/205] Building CXX object bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+[200/205] Building CXX object bench/CMakeFiles/hven_sqp_ssn_safeguard_probe.dir/ssn_safeguard_probe.cpp.o
+[201/205] Building CXX object bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+[202/205] Linking CXX executable bench/hven_sqp_ssn_safeguard_probe
+[203/205] Linking CXX executable bench/hven_sqp_crossover
+[204/205] Linking CXX executable bench/hven_sqp_ipqp_e1_arm
+[205/205] Linking CXX executable tests/sqp/hven_sqp_tests
+2647/2656 Test #2648: WarmStart.CrossoverFalseActiveGuardDegradesAtTheOperativeBarrierLevel ..........................................   Passed    0.24 sec
+          Start 2651: WarmStartBattery.ZeroMajorStepKeepsTheWarmStartChain
+2648/2656 Test #2651: WarmStartBattery.ZeroMajorStepKeepsTheWarmStartChain ...........................................................   Passed    0.02 sec
+          Start 2652: WarmStartBattery.CrossoverChainOnTheBridgeFamilyBeatsCold
+2649/2656 Test #2650: WarmStartBattery.Corpus ........................................................................................   Passed    4.08 sec
+          Start 2653: SnoptBridgeGate.ColdSolveLandsOnTheManufacturedOptimum
+2650/2656 Test #2653: SnoptBridgeGate.ColdSolveLandsOnTheManufacturedOptimum .........................................................   Passed    0.02 sec
+          Start 2654: SnoptBridgeGate.AccuracyTracksTheRequestedToleranceWithNoFloor
+2651/2656 Test #2654: SnoptBridgeGate.AccuracyTracksTheRequestedToleranceWithNoFloor .................................................   Passed    0.03 sec
+          Start 2655: SnoptBridgeGate.RowTranscriptionMatchesTheModelAtTheSolution
+2652/2656 Test #2655: SnoptBridgeGate.RowTranscriptionMatchesTheModelAtTheSolution ...................................................   Passed    0.02 sec
+          Start 2656: SnoptBridgeGate.WarmBasisReSolveLandsOnTheOptimumAtTheNewParameter
+2653/2656 Test #2656: SnoptBridgeGate.WarmBasisReSolveLandsOnTheOptimumAtTheNewParameter .............................................   Passed    0.02 sec
+2654/2656 Test #2203: QpScaleSmoke.ModerateScaleBorderModeMatchesRefactorizeAndReusesHotStart ........................................   Passed   47.00 sec
+2655/2656 Test #2652: WarmStartBattery.CrossoverChainOnTheBridgeFamilyBeatsCold ......................................................   Passed   69.77 sec
+2656/2656 Test #1484: Continuation.GrowthSuspensionSkipsTheStepAfterAFailure .........................................................   Passed  291.29 sec
+
+100% tests passed, 0 tests failed out of 2654
+
+Total Test time (real) = 346.17 sec
+
+The following tests did not run:
+	420 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1628 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1629 - EqpRefinementAb.FullBattery (Disabled)
+FOREGROUND_END debug 2026-09-17T19:19:21-04:00 rc=0
+WRAPPER_RC debug rc=0

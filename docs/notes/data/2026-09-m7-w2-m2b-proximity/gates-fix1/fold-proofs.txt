@@ -1,0 +1,62 @@
+FOLD_PROOFS_START 2026-09-20T23:24:03-04:00
+root=/home/ghecht/Projects/hven build=/home/ghecht/Projects/hven/build-debug
+classify_psym.py sha256 9e2d4bbc8d945593aaf83c7d647acc5aa213600ba50b7197a3a0dc240f263d30
+gate_asserts.sh   sha256 28cd5dce975c8037cd40c13ac7f0cbe0910f629111518a72274a168beb7f6027
+gates.sh          sha256 c7e6a8704535c6f057fb8416bd2b9d77426814302c28de0c814d1f325a666e8a
+
+FOLD 01  REFUSED (rc=3)  classifier R1: an EMPTY comparison file
+          REFUSED (R1): /tmp/m2b-fold-mmpPPZ/empty.txt carries no `P-SYM: ` summary line -- the comparison is empty or malformed, and a classification of nothing is not a pass
+FOLD 02  REFUSED (rc=3)  classifier R1: a MALFORMED comparison (a usage error, no P-SYM summary)
+          REFUSED (R1): /tmp/m2b-fold-mmpPPZ/malformed.txt carries no `P-SYM: ` summary line -- the comparison is empty or malformed, and a classification of nothing is not a pass
+FOLD 03  REFUSED (rc=3)  classifier R1: a comparison file that does not exist
+          REFUSED: no comparison file at /tmp/m2b-fold-mmpPPZ/no-such-file.txt
+FOLD 04  REFUSED (rc=4)  classifier R2: a summary line and NO differing object (the vacuous pass)
+          REFUSED (R2): /tmp/m2b-fold-mmpPPZ/vacuous.txt reports the summary 'P-SYM: OK - no differences' but names no DIFFERS object -- this task's comparison MUST have movers (the options struct grew), so an empty differing set is a failed capture, not a clean one
+FOLD 05  REFUSED (rc=2)  classifier: a changed-header list that disagrees with the declared one
+          REFUSED: the round's changed-header list is ['include/hven/core/solver_counters.h'] but this script declares ['include/hven/detail/globalization/sqp/restoration.h', 'include/hven/drivers/sqp_solver_types.h']
+FOLD 06  REFUSED (rc=1)  classifier R4: a differing object with neither changed source nor changed header
+          REFUSED (R4): 1 differing objects are explained by neither a changed source nor a changed header
+FOLD 07  REFUSED (rc=5)  classifier R3: a negative control below the required minimum
+          REFUSED (R3): the negative control is 74 (< 999999) -- the differing set is 'everything that sees the header' and this classification explains nothing
+FOLD 08  REFUSED (rc=1)  assert_ctest: a ctest log with NO summary line (the zero-test green)
+          ASSERT FAIL fold: no CTest summary line in /tmp/m2b-fold-mmpPPZ/zero-tests.log
+FOLD 09  REFUSED (rc=1)  assert_ctest: the right shape at the WRONG total
+          ASSERT FAIL fold total: got '2669', expected '2670'
+FOLD 10  REFUSED (rc=1)  assert_ctest: a nonzero failed count
+          ASSERT FAIL fold failed: got '7', expected '0'
+FOLD 11  REFUSED (rc=1)  assert_ctest: an empty log file
+          ASSERT FAIL fold: /tmp/m2b-fold-mmpPPZ/missing.log is missing or empty -- no ctest summary to check
+FOLD 12  ACCEPTED (rc=0)  assert_ctest: the GOOD input is accepted
+FOLD 13  REFUSED (rc=1)  assert_replay: only two engine lines of three
+          ASSERT FAIL replay lines at 27/75/0: got '2', expected '3'
+ASSERT FAIL replay lines total: got '2', expected '3'
+FOLD 14  REFUSED (rc=1)  assert_replay: one engine with differences
+          ASSERT FAIL replay lines at 27/75/0: got '2', expected '3'
+FOLD 15  REFUSED (rc=1)  assert_replay: a missing comparison file
+          ASSERT FAIL replay: /tmp/m2b-fold-mmpPPZ/no-such-comparison.txt is missing or empty
+FOLD 16  ACCEPTED (rc=0)  assert_replay: the GOOD input is accepted
+FOLD 17  REFUSED (rc=1)  assert_psym: a compare rc of 0 (nothing was compared)
+          ASSERT FAIL P-SYM Release compare rc: got '0', expected '1'
+FOLD 18  REFUSED (rc=1)  assert_psym: a classifier rc of 1
+          ASSERT FAIL P-SYM Release classify rc: got '1', expected '0'
+FOLD 19  REFUSED (rc=1)  assert_psym: movers not accounted for by class A + class B
+          ASSERT FAIL P-SYM Release class A + class B: got '45', expected '52'
+FOLD 20  REFUSED (rc=1)  assert_psym: a nonzero UNEXPLAINED
+          ASSERT FAIL P-SYM Release class A + class B: got '49', expected '52'
+ASSERT FAIL P-SYM Release unexplained: got '3', expected '0'
+FOLD 21  REFUSED (rc=1)  assert_psym: a ZERO negative control
+          ASSERT FAIL P-SYM Release negative control: got '0', expected >= 1
+FOLD 22  REFUSED (rc=1)  assert_psym: zero movers (the vacuous comparison, seen from the runner)
+          ASSERT FAIL P-SYM Release differing: got '0', expected >= 1
+FOLD 23  ACCEPTED (rc=0)  assert_psym: the GOOD shape is accepted
+FOLD 24  REFUSED (rc=1)  assert_same_classification: the two configs disagree
+          ASSERT FAIL P-SYM classification differs between configs:
+FOLD 25  ACCEPTED (rc=0)  assert_same_classification: identical files are accepted
+FOLD 26  REFUSED (rc=8)  ctest --no-tests=error over a filter that matches NO test (the wrong-binary shape)
+          No tests were found!!!
+Errors while running CTest
+FOLD 27  REFUSED (rc=1)  the final aggregate carries rc5 (G1..G4,G6 green, G5 red)
+FOLD 28  REFUSED (rc=1)  G6 propagates a failed sub-gate through the later green ones
+
+FOLD_PROOFS_TOTAL=28  FOLD_PROOFS_FAILED=0
+FOLD_PROOFS_END 2026-09-20T23:24:04-04:00

@@ -1,0 +1,9 @@
+TOOLS_OK
+FOREGROUND_END j1-tools 2026-09-27T03:43:40-04:00 rc=0
+corpus j1-border-old36 [] rc=0 secs=212
+corpus j1-border-new15 [] rc=0 secs=228
+corpus j1-refactorize-old36 [] rc=0 secs=52
+corpus j1-refactorize-new15 [] rc=0 secs=9
+corpus j1off-border-old36 [] rc=0 secs=222
+corpus j1off-border-new15 [] rc=0 secs=123
+CORPUS_DONE

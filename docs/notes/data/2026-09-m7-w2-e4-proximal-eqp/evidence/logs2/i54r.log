@@ -1,0 +1,295 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-release/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = SqpDriverRestorationProximity.*:SqpDriverRestorationExcursion.*:SqpDriverRestorationSeed.*:CorpusTask6bPhaseB.*:IpqpAcceptanceCensus.*:SqpDriverCertifiedFallback.*:SqpDriverQpFailure.*:HsSweepCorpus.*:WarmStartBattery.*
+[==========] Running 69 tests from 9 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from CorpusTask6bPhaseB
+[ RUN      ] CorpusTask6bPhaseB.TheShippedKSsnConfigurationIsUnmovedByTheFourLevers
+[       OK ] CorpusTask6bPhaseB.TheShippedKSsnConfigurationIsUnmovedByTheFourLevers (359 ms)
+[----------] 1 test from CorpusTask6bPhaseB (359 ms total)
+
+[----------] 1 test from HsSweepCorpus
+[ RUN      ] HsSweepCorpus.Corpus
+
+prob   arm   KD   SOC  solves majors minors fact   acc/rej  soc a/i/r/n   elas a/e  restor fsMaj  wd  lvl c/w/h fail
+HS10   cold  on   on   7      96     1284   152    96/0     0/0/0/0       56/336    0      0      0   7/0/0    0
+HS10   cold  on   off  7      96     1284   152    96/0     0/0/0/0       56/336    0      0      0   7/0/0    0
+HS10   cold  off  on   7      96     1284   152    96/0     0/0/0/0       56/336    0      0      0   7/0/0    0
+HS10   cold  off  off  7      96     1284   152    96/0     0/0/0/0       56/336    0      0      0   7/0/0    0
+HS10   warm  on   on   7      40     232    48     40/0     0/0/0/0       8/48      0      26     0   1/6/0    0
+HS10   warm  on   off  7      40     232    48     40/0     0/0/0/0       8/48      0      26     0   1/6/0    0
+HS10   warm  off  on   7      40     232    48     40/0     0/0/0/0       8/48      0      0      0   1/6/0    0
+HS10   warm  off  off  7      40     232    48     40/0     0/0/0/0       8/48      0      0      0   1/6/0    0
+HS15   cold  on   on   7      86     1067   185    70/16    0/0/2/2       48/288    0      0      0   7/0/0    0
+HS15   cold  on   off  7      86     1062   185    70/16    0/0/0/0       48/288    0      0      0   7/0/0    0
+HS15   cold  off  on   7      86     1067   185    70/16    0/0/2/2       48/288    0      0      0   7/0/0    0
+HS15   cold  off  off  7      86     1062   185    70/16    0/0/0/0       48/288    0      0      0   7/0/0    0
+HS15   warm  on   on   5      30     91     31     26/3     0/0/0/0       1/6       0      23     0   1/4/0    1
+HS15   warm  on   off  5      30     91     31     26/3     0/0/0/0       1/6       0      23     0   1/4/0    1
+HS15   warm  off  on   5      30     91     31     26/3     0/0/0/0       1/6       0      0      0   1/4/0    1
+HS15   warm  off  off  5      30     91     31     26/3     0/0/0/0       1/6       0      0      0   1/4/0    1
+HS26   cold  on   on   5      88     190    88     88/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS26   cold  on   off  5      88     190    88     88/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS26   cold  off  on   5      88     190    88     88/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS26   cold  off  off  5      88     190    88     88/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS26   warm  on   on   5      29     60     29     29/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS26   warm  on   off  5      29     60     29     29/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS26   warm  off  on   5      29     60     29     29/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS26   warm  off  off  5      29     60     29     29/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS33   cold  on   on   5      22     84     54     22/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS33   cold  on   off  5      22     84     54     22/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS33   cold  off  on   5      22     84     54     22/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS33   cold  off  off  5      22     84     54     22/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS33   warm  on   on   5      16     52     38     16/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS33   warm  on   off  5      16     52     38     16/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS33   warm  off  on   5      16     52     38     16/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS33   warm  off  off  5      16     52     38     16/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS40   cold  on   on   5      28     59     32     28/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS40   cold  on   off  5      28     59     32     28/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS40   cold  off  on   5      28     59     32     28/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS40   cold  off  off  5      28     59     32     28/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS40   warm  on   on   5      16     32     16     16/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS40   warm  on   off  5      16     32     16     16/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS40   warm  off  on   5      16     32     16     16/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS40   warm  off  off  5      16     32     16     16/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS77   cold  on   on   5      56     134    55     48/8     0/0/5/5       0/0       0      0      0   5/0/0    0
+HS77   cold  on   off  5      56     121    52     48/8     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS77   cold  off  on   5      56     134    55     48/8     0/0/5/5       0/0       0      0      0   5/0/0    0
+HS77   cold  off  off  5      56     121    52     48/8     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS77   warm  on   on   5      25     55     23     23/2     0/0/2/2       0/0       0      13     0   1/4/0    0
+HS77   warm  on   off  5      25     51     23     23/2     0/0/0/0       0/0       0      13     0   1/4/0    0
+HS77   warm  off  on   5      25     55     23     23/2     0/0/2/2       0/0       0      0      0   1/4/0    0
+HS77   warm  off  off  5      25     51     23     23/2     0/0/0/0       0/0       0      0      0   1/4/0    0
+
+[       OK ] HsSweepCorpus.Corpus (1295 ms)
+[----------] 1 test from HsSweepCorpus (1295 ms total)
+
+[----------] 2 tests from IpqpAcceptanceCensus
+[ RUN      ] IpqpAcceptanceCensus.AnArmedRunIsNeverMistakenForAStallAcrossTheHsBattery
+[       OK ] IpqpAcceptanceCensus.AnArmedRunIsNeverMistakenForAStallAcrossTheHsBattery (45 ms)
+[ RUN      ] IpqpAcceptanceCensus.TheNaturalStallIsChargedToASubproblemThatNeverArmedTheLadder
+[       OK ] IpqpAcceptanceCensus.TheNaturalStallIsChargedToASubproblemThatNeverArmedTheLadder (10 ms)
+[----------] 2 tests from IpqpAcceptanceCensus (55 ms total)
+
+[----------] 8 tests from SqpDriverQpFailure
+[ RUN      ] SqpDriverQpFailure.RetryabilityIsFinitenessAndTheBox
+[       OK ] SqpDriverQpFailure.RetryabilityIsFinitenessAndTheBox (0 ms)
+[ RUN      ] SqpDriverQpFailure.QpNumericalErrorShrinksInsteadOfAborting
+[       OK ] SqpDriverQpFailure.QpNumericalErrorShrinksInsteadOfAborting (5 ms)
+[ RUN      ] SqpDriverQpFailure.SuspectEscalationsAggregateToTheDriver
+[       OK ] SqpDriverQpFailure.SuspectEscalationsAggregateToTheDriver (6 ms)
+[ RUN      ] SqpDriverQpFailure.RepeatedQpNumericalErrorStillPropagates
+[       OK ] SqpDriverQpFailure.RepeatedQpNumericalErrorStillPropagates (5 ms)
+[ RUN      ] SqpDriverQpFailure.TheShippedBudgetRoutesMoreAndThisFixtureThenSolves
+[       OK ] SqpDriverQpFailure.TheShippedBudgetRoutesMoreAndThisFixtureThenSolves (9 ms)
+[ RUN      ] SqpDriverQpFailure.QpMaxIterTakesTheSameShrinkRetryPath
+[       OK ] SqpDriverQpFailure.QpMaxIterTakesTheSameShrinkRetryPath (2 ms)
+[ RUN      ] SqpDriverQpFailure.RepeatedQpMaxIterStillPropagates
+[       OK ] SqpDriverQpFailure.RepeatedQpMaxIterStillPropagates (0 ms)
+[ RUN      ] SqpDriverQpFailure.RoutedFailuresCountTowardTheRestorationGate
+[       OK ] SqpDriverQpFailure.RoutedFailuresCountTowardTheRestorationGate (0 ms)
+[----------] 8 tests from SqpDriverQpFailure (31 ms total)
+
+[----------] 30 tests from SqpDriverCertifiedFallback
+[ RUN      ] SqpDriverCertifiedFallback.P1TheEvidencePlacesRungAsFirstRungBetweenTheFloorAndTheCeiling
+[       OK ] SqpDriverCertifiedFallback.P1TheEvidencePlacesRungAsFirstRungBetweenTheFloorAndTheCeiling (1 ms)
+[ RUN      ] SqpDriverCertifiedFallback.P2ClosedSlacksDisproveTheSuspicionAndCarryTheMultipliers
+[       OK ] SqpDriverCertifiedFallback.P2ClosedSlacksDisproveTheSuspicionAndCarryTheMultipliers (0 ms)
+[ RUN      ] SqpDriverCertifiedFallback.P2bOpenButReducedSlacksReturnKOptimalWithMultipliersZEROED
+[       OK ] SqpDriverCertifiedFallback.P2bOpenButReducedSlacksReturnKOptimalWithMultipliersZEROED (0 ms)
+[ RUN      ] SqpDriverCertifiedFallback.P3AnExhaustedLadderCertifiesInfeasibleWithItsReportAttached
+[       OK ] SqpDriverCertifiedFallback.P3AnExhaustedLadderCertifiesInfeasibleWithItsReportAttached (0 ms)
+[ RUN      ] SqpDriverCertifiedFallback.P3TheEscapeBranchCONSUMESTheAttachedLadderRatherThanRerunningIt
+[       OK ] SqpDriverCertifiedFallback.P3TheEscapeBranchCONSUMESTheAttachedLadderRatherThanRerunningIt (1 ms)
+[ RUN      ] SqpDriverCertifiedFallback.P4ARefusedRungAReturnsTheColdWalkCounterForCounter
+[       OK ] SqpDriverCertifiedFallback.P4ARefusedRungAReturnsTheColdWalkCounterForCounter (1 ms)
+[ RUN      ] SqpDriverCertifiedFallback.P4bTheCeilingDeclineIsGONEUnderThePlacementBound
+[       OK ] SqpDriverCertifiedFallback.P4bTheCeilingDeclineIsGONEUnderThePlacementBound (0 ms)
+[ RUN      ] SqpDriverCertifiedFallback.AnOverriddenPlacementIsVALIDATEDAndClampedIntoTheLaddersRange
+[       OK ] SqpDriverCertifiedFallback.AnOverriddenPlacementIsVALIDATEDAndClampedIntoTheLaddersRange (0 ms)
+[ RUN      ] SqpDriverCertifiedFallback.P4OnAPrimedEngineCostsTheAnalysisRungADisplaces
+[       OK ] SqpDriverCertifiedFallback.P4OnAPrimedEngineCostsTheAnalysisRungADisplaces (1 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T3ARefusalWhoseWalkCertifiesInfeasibleCostsTwoActivations
+[       OK ] SqpDriverCertifiedFallback.T3ARefusalWhoseWalkCertifiesInfeasibleCostsTwoActivations (3 ms)
+[ RUN      ] SqpDriverCertifiedFallback.P5AnUnfiredEvidenceBlockNeverEntersRungAAtAll
+[       OK ] SqpDriverCertifiedFallback.P5AnUnfiredEvidenceBlockNeverEntersRungAAtAll (1 ms)
+[ RUN      ] SqpDriverCertifiedFallback.P6NoEvidenceContentMakesTheFallbackThrow
+[       OK ] SqpDriverCertifiedFallback.P6NoEvidenceContentMakesTheFallbackThrow (6 ms)
+[ RUN      ] SqpDriverCertifiedFallback.P7TheVerdictReadsNothingFromTheEvidenceBeyondItsThreeInputs
+[       OK ] SqpDriverCertifiedFallback.P7TheVerdictReadsNothingFromTheEvidenceBeyondItsThreeInputs (16 ms)
+[ RUN      ] SqpDriverCertifiedFallback.ANegativeOrNaNWindowIsREFUSEDAtBothPublicEntryPoints
+[       OK ] SqpDriverCertifiedFallback.ANegativeOrNaNWindowIsREFUSEDAtBothPublicEntryPoints (0 ms)
+[ RUN      ] SqpDriverCertifiedFallback.ThePartitionOverFallbackEntriesIsCOMPLETEAndSumsToTheFiredOnes
+[       OK ] SqpDriverCertifiedFallback.ThePartitionOverFallbackEntriesIsCOMPLETEAndSumsToTheFiredOnes (2 ms)
+[ RUN      ] SqpDriverCertifiedFallback.ADeclinedRungAAboveTheFloorIsRETRIEDThereExactlyOnce
+[       OK ] SqpDriverCertifiedFallback.ADeclinedRungAAboveTheFloorIsRETRIEDThereExactlyOnce (1 ms)
+[ RUN      ] SqpDriverCertifiedFallback.TheFallbackVerdictEventDescribesEVERYEntryIncludingTheUnfiredOne
+[       OK ] SqpDriverCertifiedFallback.TheFallbackVerdictEventDescribesEVERYEntryIncludingTheUnfiredOne (0 ms)
+[ RUN      ] SqpDriverCertifiedFallback.ARungAOwnedMajorIsAnElasticRowOnTheDriversOwnHistory
+[       OK ] SqpDriverCertifiedFallback.ARungAOwnedMajorIsAnElasticRowOnTheDriversOwnHistory (1 ms)
+[ RUN      ] SqpDriverCertifiedFallback.TheDriverEmitsOneFallbackVerdictPerEscapeAndHS38sNeverFIRED
+[       OK ] SqpDriverCertifiedFallback.TheDriverEmitsOneFallbackVerdictPerEscapeAndHS38sNeverFIRED (8 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T7TheEscapeBranchTernaryCONSUMESAnAttachedReportAtTheDriver
+[       OK ] SqpDriverCertifiedFallback.T7TheEscapeBranchTernaryCONSUMESAnAttachedReportAtTheDriver (3 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T7TheCeilingFlagsTRUEArmOnADriverRowIsThePricedOne
+[       OK ] SqpDriverCertifiedFallback.T7TheCeilingFlagsTRUEArmOnADriverRowIsThePricedOne (1 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T7TheDisprovedSuspicionCalibrationOverTheHsCorpusIsZERO
+[       OK ] SqpDriverCertifiedFallback.T7TheDisprovedSuspicionCalibrationOverTheHsCorpusIsZERO (45 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T7TheDisplacedPatternCostsONEAnalysisOnTheFollowingMajor
+[       OK ] SqpDriverCertifiedFallback.T7TheDisplacedPatternCostsONEAnalysisOnTheFollowingMajor (99 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T7AnInfiniteOverridePlacesTheLadderAtItsCeiling
+[       OK ] SqpDriverCertifiedFallback.T7AnInfiniteOverridePlacesTheLadderAtItsCeiling (0 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnItsWorstFixture
+[       OK ] SqpDriverCertifiedFallback.T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnItsWorstFixture (64 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T7TheT3ARouteIsREACHABLEAtTheDriverAndCostsOneExtraLadder
+[       OK ] SqpDriverCertifiedFallback.T7TheT3ARouteIsREACHABLEAtTheDriverAndCostsOneExtraLadder (2 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T7TheAttachedReportsRestorationOfferIsATROUNDINGNotAMargin
+[       OK ] SqpDriverCertifiedFallback.T7TheAttachedReportsRestorationOfferIsATROUNDINGNotAMargin (3 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T7F1TheSameInconsistentLinearizationInAllThreeModes
+[       OK ] SqpDriverCertifiedFallback.T7F1TheSameInconsistentLinearizationInAllThreeModes (6 ms)
+[ RUN      ] SqpDriverCertifiedFallback.T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearization
+[       OK ] SqpDriverCertifiedFallback.T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearization (3 ms)
+[ RUN      ] SqpDriverCertifiedFallback.E1TheDependentInconsistentPairIsCertifiedByTheEqualityBasis
+[       OK ] SqpDriverCertifiedFallback.E1TheDependentInconsistentPairIsCertifiedByTheEqualityBasis (0 ms)
+[----------] 30 tests from SqpDriverCertifiedFallback (284 ms total)
+
+[----------] 7 tests from SqpDriverRestorationProximity
+[ RUN      ] SqpDriverRestorationProximity.TheCertificateIsGatedOnTheUncorrectedResidual
+[       OK ] SqpDriverRestorationProximity.TheCertificateIsGatedOnTheUncorrectedResidual (121 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheProxyWouldCertifyWhereTheExactResidualRefuses
+[       OK ] SqpDriverRestorationProximity.TheProxyWouldCertifyWhereTheExactResidualRefuses (31 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheSeedGuardFiresAndTheStartObjectiveIsHPlusP
+[       OK ] SqpDriverRestorationProximity.TheSeedGuardFiresAndTheStartObjectiveIsHPlusP (31 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheRefusalsNameTheFieldTheValueAndTheRemedy
+[       OK ] SqpDriverRestorationProximity.TheRefusalsNameTheFieldTheValueAndTheRemedy (0 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheZeroWeightGateNeverReadsTheBundle
+[       OK ] SqpDriverRestorationProximity.TheZeroWeightGateNeverReadsTheBundle (0 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheZeroWeightCertifiesOnAScaledSolve
+[       OK ] SqpDriverRestorationProximity.TheZeroWeightCertifiesOnAScaledSolve (5 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheProductionCentreIsTheRequestingIterateNotTheSeed
+[       OK ] SqpDriverRestorationProximity.TheProductionCentreIsTheRequestingIterateNotTheSeed (0 ms)
+[----------] 7 tests from SqpDriverRestorationProximity (190 ms total)
+
+[----------] 11 tests from SqpDriverRestorationSeed
+[ RUN      ] SqpDriverRestorationSeed.TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTaken
+[       OK ] SqpDriverRestorationSeed.TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTaken (32 ms)
+[ RUN      ] SqpDriverRestorationSeed.TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOne
+[       OK ] SqpDriverRestorationSeed.TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOne (117 ms)
+[ RUN      ] SqpDriverRestorationSeed.TheIndependentWorkingSetReachesTheSameCertifiedAnswer
+[       OK ] SqpDriverRestorationSeed.TheIndependentWorkingSetReachesTheSameCertifiedAnswer (118 ms)
+[ RUN      ] SqpDriverRestorationSeed.TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesIt
+[       OK ] SqpDriverRestorationSeed.TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesIt (97 ms)
+[ RUN      ] SqpDriverRestorationSeed.AWorseElasticCandidateIsRefusedOnTheSameModel
+[       OK ] SqpDriverRestorationSeed.AWorseElasticCandidateIsRefusedOnTheSameModel (17 ms)
+[ RUN      ] SqpDriverRestorationSeed.AZeroElasticStepIsNotACandidate
+[       OK ] SqpDriverRestorationSeed.AZeroElasticStepIsNotACandidate (8 ms)
+[ RUN      ] SqpDriverRestorationSeed.ANonFiniteEvaluationAtTheCandidateIsRefused
+[       OK ] SqpDriverRestorationSeed.ANonFiniteEvaluationAtTheCandidateIsRefused (40 ms)
+[ RUN      ] SqpDriverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTaken
+[       OK ] SqpDriverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTaken (896 ms)
+[ RUN      ] SqpDriverRestorationSeed.TheOffDiagonalStartOffersTheLadderStepAndTheGuardRefusesIt
+[       OK ] SqpDriverRestorationSeed.TheOffDiagonalStartOffersTheLadderStepAndTheGuardRefusesIt (2 ms)
+[ RUN      ] SqpDriverRestorationSeed.TheGuardAndThePhaseRunOnTheCallerScale
+[       OK ] SqpDriverRestorationSeed.TheGuardAndThePhaseRunOnTheCallerScale (10 ms)
+[ RUN      ] SqpDriverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce
+[       OK ] SqpDriverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce (58 ms)
+[----------] 11 tests from SqpDriverRestorationSeed (1401 ms total)
+
+[----------] 6 tests from SqpDriverRestorationExcursion
+[ RUN      ] SqpDriverRestorationExcursion.TheResumeArmRecordsTheCallersOwnExcursion
+[       OK ] SqpDriverRestorationExcursion.TheResumeArmRecordsTheCallersOwnExcursion (3 ms)
+[ RUN      ] SqpDriverRestorationExcursion.TheTerminalArmRecordsThePointItReports
+[       OK ] SqpDriverRestorationExcursion.TheTerminalArmRecordsThePointItReports (40 ms)
+[ RUN      ] SqpDriverRestorationExcursion.ARefusedSecondRequestLeavesTheFirstEntrysRecord
+[       OK ] SqpDriverRestorationExcursion.ARefusedSecondRequestLeavesTheFirstEntrysRecord (8 ms)
+[ RUN      ] SqpDriverRestorationExcursion.ACleanSolveHoldsNoReading
+[       OK ] SqpDriverRestorationExcursion.ACleanSolveHoldsNoReading (2 ms)
+[ RUN      ] SqpDriverRestorationExcursion.TheSubStatusTellsACutOffSubSolveFromAConvergedOne
+[       OK ] SqpDriverRestorationExcursion.TheSubStatusTellsACutOffSubSolveFromAConvergedOne (35 ms)
+[ RUN      ] SqpDriverRestorationExcursion.TheSubStatusDiscriminatesAtOneParentStatus
+[       OK ] SqpDriverRestorationExcursion.TheSubStatusDiscriminatesAtOneParentStatus (20 ms)
+[----------] 6 tests from SqpDriverRestorationExcursion (110 ms total)
+
+[----------] 3 tests from WarmStartBattery
+[ RUN      ] WarmStartBattery.Corpus
+
+family    arm        full  steps  majors  minors  fact   saved  wd  fullstep  brdref  lvl c/w/h  pred c/d  secs
+F1        cold       on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       on    5      5       16      1      0      0   4         20      1/4/0      0/0       0.001
+F1        warm+pred  on    5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        on    5      5       16      1      4      0   4         20      1/0/4      0/0       0.001
+F1        cold@pred  on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        cold       off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       off   5      5       16      1      0      0   0         20      1/4/0      0/0       0.001
+F1        warm+pred  off   5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        off   5      5       16      1      4      0   0         20      1/0/4      0/0       0.001
+F1        cold@pred  off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F2        cold       on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        warm+pred  on    5      7       14      7      0      0   6         14      1/4/0      4/0       0.001
+F2        hot        on    5      8       17      8      0      0   7         17      1/4/0      0/0       0.001
+F2        cold@pred  on    5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        cold       off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2        warm       off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        warm+pred  off   5      7       14      7      0      0   0         14      1/4/0      4/0       0.001
+F2        hot        off   5      8       17      8      0      0   0         17      1/4/0      0/0       0.001
+F2        cold@pred  off   5      8       16      8      0      0   0         16      5/0/0      0/0       0.001
+F2far     cold       on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     warm+pred  on    5      9       40      10     0      0   6         40      1/4/0      4/0       0.002
+F2far     hot        on    5      10      43      11     0      0   7         43      1/4/0      0/0       0.002
+F2far     cold@pred  on    5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     cold       off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F2far     warm       off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     warm+pred  off   5      9       40      10     0      0   0         40      1/4/0      4/0       0.002
+F2far     hot        off   5      10      43      11     0      0   0         43      1/4/0      0/0       0.002
+F2far     cold@pred  off   5      19      148     24     0      0   0         149     5/0/0      0/0       0.009
+F3n50     cold       on    4      19      57      19     0      0   0         57      4/0/0      0/0       0.007
+F3n50     warm       on    4      12      34      9      0      0   8         34      1/3/0      0/0       0.005
+F3n50     warm+pred  on    4      6       16      5      0      0   2         16      1/3/0      3/0       0.003
+F3n50     hot        on    4      12      34      9      3      0   8         34      1/0/3      0/0       0.004
+F3n50     cold@pred  on    4      19      57      19     0      0   0         57      4/0/0      0/0       0.007
+F3n50     cold       off   4      19      57      19     0      0   0         57      4/0/0      0/0       0.007
+F3n50     warm       off   4      12      34      9      0      0   0         34      1/3/0      0/0       0.004
+F3n50     warm+pred  off   4      6       16      5      0      0   0         16      1/3/0      3/0       0.003
+F3n50     hot        off   4      12      34      9      3      0   0         34      1/0/3      0/0       0.004
+F3n50     cold@pred  off   4      19      57      19     0      0   0         57      4/0/0      0/0       0.007
+F3n1000   cold       on    6      53      162     53     0      0   0         162     6/0/0      0/0       0.225
+F3n1000   warm       on    6      30      89      25     0      0   22        89      1/5/0      0/0       0.123
+F3n1000   warm+pred  on    4      10      32      9      0      0   2         32      1/3/0      3/0       0.047
+F3n1000   hot        on    6      30      89      25     5      0   22        89      1/0/5      0/0       0.122
+F3n1000   cold@pred  on    4      35      107     35     0      0   0         107     4/0/0      0/0       0.148
+F3n1000   cold       off   6      53      162     53     0      0   0         162     6/0/0      0/0       0.225
+F3n1000   warm       off   6      30      89      25     0      0   0         89      1/5/0      0/0       0.122
+F3n1000   warm+pred  off   (not run -- see THE RUNTIME BUDGET)
+F3n1000   hot        off   6      30      89      25     5      0   0         89      1/0/5      0/0       0.123
+F3n1000   cold@pred  off   (not run -- see THE RUNTIME BUDGET)
+F3stress  cold       on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+F3stress  warm       on    5      15      39      11     0      0   10        39      1/4/0      0/0       0.014
+F3stress  warm+pred  on    5      8       21      6      0      0   3         21      1/4/0      4/0       0.009
+F3stress  hot        on    5      15      39      11     4      0   10        39      1/0/4      0/0       0.014
+F3stress  cold@pred  on    5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+F3stress  cold       off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+F3stress  warm       off   5      15      39      11     0      0   0         39      1/4/0      0/0       0.014
+F3stress  warm+pred  off   5      8       21      6      0      0   0         21      1/4/0      4/0       0.009
+F3stress  hot        off   5      15      39      11     4      0   0         39      1/0/4      0/0       0.014
+F3stress  cold@pred  off   5      33      99      33     0      0   0         99      5/0/0      0/0       0.033
+[       OK ] WarmStartBattery.Corpus (1456 ms)
+[ RUN      ] WarmStartBattery.ZeroMajorStepKeepsTheWarmStartChain
+[       OK ] WarmStartBattery.ZeroMajorStepKeepsTheWarmStartChain (0 ms)
+[ RUN      ] WarmStartBattery.CrossoverChainOnTheBridgeFamilyBeatsCold
+crossover chain, F7 N=100 nx=500 p=0.9 mu=1e-08 activity_rel_tol=0.0001
+  |dx|inf   arm      level   majors  minors  fact
+     1e-09  cold     Cold         1      71       1
+     1e-09  seeded   Seeded       0       0       0
+     1e-07  cold     Cold         1      48       1
+     1e-07  seeded   Seeded       1       2       1
+     1e-05  cold     Cold         2      48       2
+     1e-05  seeded   Seeded       2       4       2
+     0.001  cold     Cold         2      49       2
+     0.001  seeded   Seeded       2       4       2
+[       OK ] WarmStartBattery.CrossoverChainOnTheBridgeFamilyBeatsCold (2798 ms)
+[----------] 3 tests from WarmStartBattery (4254 ms total)
+
+[----------] Global test environment tear-down
+[==========] 69 tests from 9 test suites ran. (7984 ms total)
+[  PASSED  ] 69 tests.

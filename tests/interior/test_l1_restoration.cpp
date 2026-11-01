@@ -318,10 +318,10 @@ TEST(L1RestoScaling, DrSquaredTruthTable) {
     r.enter_nested(ref, xr, empty, empty, /*outer_mu=*/1.0);
 
     ASSERT_EQ(r.dr2().size(), 4);
-    EXPECT_DOUBLE_EQ(r.dr2()[0], 1.0);          // |xr| < 1 -> d = 1
-    EXPECT_DOUBLE_EQ(r.dr2()[1], 0.0625);       // |xr| > 1 -> d = 1/4
-    EXPECT_DOUBLE_EQ(r.dr2()[2], 1.0);          // |xr| = 0 -> d = 1 (no divide-by-zero)
-    EXPECT_DOUBLE_EQ(r.dr2()[3], 0.015625);     // |xr| = 8 -> d = 1/8
+    EXPECT_DOUBLE_EQ(r.dr2()[0], 1.0);      // |xr| < 1 -> d = 1
+    EXPECT_DOUBLE_EQ(r.dr2()[1], 0.0625);   // |xr| > 1 -> d = 1/4
+    EXPECT_DOUBLE_EQ(r.dr2()[2], 1.0);      // |xr| = 0 -> d = 1 (no divide-by-zero)
+    EXPECT_DOUBLE_EQ(r.dr2()[3], 0.015625); // |xr| = 8 -> d = 1/8
 }
 
 // =============================================================================

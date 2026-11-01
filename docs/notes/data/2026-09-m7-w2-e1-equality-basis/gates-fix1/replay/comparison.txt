@@ -1,0 +1,3 @@
+=== M6 CLOSE HEAD-walk vs M7 W2 E1 FIX1 HEAD-walk === cells compared: 27  columns compared: 75  differences: 0
+=== M6 CLOSE HEAD-ssn vs M7 W2 E1 FIX1 HEAD-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== M6 CLOSE HEAD-ipm vs M7 W2 E1 FIX1 HEAD-ipm === cells compared: 27  columns compared: 75  differences: 0

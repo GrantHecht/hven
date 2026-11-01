@@ -1,0 +1,4 @@
+52c52
+< ipqp.ipqp_ladder_skip_after = 3
+---
+> ipqp.ipqp_ladder_skip_after = 1000000

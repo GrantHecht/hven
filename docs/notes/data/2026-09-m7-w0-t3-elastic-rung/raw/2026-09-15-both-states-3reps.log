@@ -1,0 +1,33 @@
+# M7 W0 T3 -- rung A on the walk vs the tier. Three replicates, all four sizes, both states.
+# host: Linux 7.2.4-200.fc44.x86_64 x86_64; MKL_NUM_THREADS=1; OMP_NUM_THREADS=1; taskset -c 2; solo under the box lock
+# hven sha (pre-commit working tree on top of): 60256f50
+## replicate 1
+engine,N,n,me,mi,status,certified,majors,entries,rungs,rung_minors,rung_max_minors,rung_dnf,rung_facts,facts_attributed,solve_minors,solve_facts,escalations,ceiling_hits,floor_retries,rung_b,disproved,tier_iters,tier_facts,analyses,wall_s
+walk,100,500,302,100,max_iter,0,1,1,6,312,302,0,184,1,312,194,5,0,0,0,0,10,10,2,0.536281
+walk,200,1000,602,200,max_iter,0,1,1,6,612,602,0,484,1,612,494,5,0,0,0,0,10,10,2,2.011902
+walk,400,2000,1202,400,max_iter,0,1,1,6,1212,1202,0,1084,1,1212,1094,5,0,0,0,0,10,10,2,7.781389
+walk,800,4000,2402,800,max_iter,0,1,1,6,2409,2399,0,2281,1,2409,2291,5,0,0,0,0,10,10,2,31.382095
+tier,100,500,302,100,max_iter,0,1,2,5,71,20,3,73,1,73,84,2,0,1,1,0,10,10,3,0.045107
+tier,200,1000,602,200,max_iter,0,1,2,5,69,20,3,71,1,71,82,2,0,1,1,0,10,10,3,0.088777
+tier,400,2000,1202,400,max_iter,0,1,2,5,71,20,3,73,1,73,84,2,0,1,1,0,10,10,3,0.181216
+tier,800,4000,2402,800,max_iter,0,1,2,5,73,20,3,75,1,75,86,2,0,1,1,0,10,10,3,0.375041
+## replicate 2
+engine,N,n,me,mi,status,certified,majors,entries,rungs,rung_minors,rung_max_minors,rung_dnf,rung_facts,facts_attributed,solve_minors,solve_facts,escalations,ceiling_hits,floor_retries,rung_b,disproved,tier_iters,tier_facts,analyses,wall_s
+walk,100,500,302,100,max_iter,0,1,1,6,312,302,0,184,1,312,194,5,0,0,0,0,10,10,2,0.538104
+walk,200,1000,602,200,max_iter,0,1,1,6,612,602,0,484,1,612,494,5,0,0,0,0,10,10,2,2.010456
+walk,400,2000,1202,400,max_iter,0,1,1,6,1212,1202,0,1084,1,1212,1094,5,0,0,0,0,10,10,2,7.798799
+walk,800,4000,2402,800,max_iter,0,1,1,6,2409,2399,0,2281,1,2409,2291,5,0,0,0,0,10,10,2,31.369366
+tier,100,500,302,100,max_iter,0,1,2,5,71,20,3,73,1,73,84,2,0,1,1,0,10,10,3,0.044943
+tier,200,1000,602,200,max_iter,0,1,2,5,69,20,3,71,1,71,82,2,0,1,1,0,10,10,3,0.088654
+tier,400,2000,1202,400,max_iter,0,1,2,5,71,20,3,73,1,73,84,2,0,1,1,0,10,10,3,0.181147
+tier,800,4000,2402,800,max_iter,0,1,2,5,73,20,3,75,1,75,86,2,0,1,1,0,10,10,3,0.374008
+## replicate 3
+engine,N,n,me,mi,status,certified,majors,entries,rungs,rung_minors,rung_max_minors,rung_dnf,rung_facts,facts_attributed,solve_minors,solve_facts,escalations,ceiling_hits,floor_retries,rung_b,disproved,tier_iters,tier_facts,analyses,wall_s
+walk,100,500,302,100,max_iter,0,1,1,6,312,302,0,184,1,312,194,5,0,0,0,0,10,10,2,0.536471
+walk,200,1000,602,200,max_iter,0,1,1,6,612,602,0,484,1,612,494,5,0,0,0,0,10,10,2,2.009654
+walk,400,2000,1202,400,max_iter,0,1,1,6,1212,1202,0,1084,1,1212,1094,5,0,0,0,0,10,10,2,7.782552
+walk,800,4000,2402,800,max_iter,0,1,1,6,2409,2399,0,2281,1,2409,2291,5,0,0,0,0,10,10,2,31.353729
+tier,100,500,302,100,max_iter,0,1,2,5,71,20,3,73,1,73,84,2,0,1,1,0,10,10,3,0.044861
+tier,200,1000,602,200,max_iter,0,1,2,5,69,20,3,71,1,71,82,2,0,1,1,0,10,10,3,0.089001
+tier,400,2000,1202,400,max_iter,0,1,2,5,71,20,3,73,1,73,84,2,0,1,1,0,10,10,3,0.180469
+tier,800,4000,2402,800,max_iter,0,1,2,5,73,20,3,75,1,75,86,2,0,1,1,0,10,10,3,0.372651

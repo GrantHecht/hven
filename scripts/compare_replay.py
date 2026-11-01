@@ -90,9 +90,14 @@ fails, agreement to within `<rel>` RELATIVE with an ABSOLUTE FLOOR of 1e-13 --
 
     |a - b| <= max(rel * max(|a|, |b|), 1e-13)
 
--- which is tests/sqp/test_corpus_cells.cpp:981-1012 (the relative half, with
-the derivation of 1e-5 at :908-935) together with the floor at :3618-3623 (its
-derivation at :3607-3617).  Non-numeric and non-finite spellings NEVER pass the
+-- which is tests/sqp/test_corpus_cells.cpp:981-1037, `residual_columns_agree`,
+with the derivation of 1e-5 at :908-935 and the floor's own derivation in
+`CorpusTask6bRepair.TheKSsnArmMovesTheFourCrashingCellsAndNothingElse` (cited by
+TEST NAME because the :NNN cite for it, :3607-3617/:3618-3623 here until M7 W2 E4
+fix round 4, had drifted again).  THAT C++ SITE CARRIED ONLY THE RELATIVE HALF
+until that round, which is why the wording here used to split the rule across two
+places; it now applies the whole rule, the same one this file always has.
+Non-numeric and non-finite spellings NEVER pass the
 gate: they fall back to the byte comparison, so an `inf` or a `nan` is reported,
 not waved through (:998-1006).  (Every one of those line numbers except :908-935
 moved by +60 at M6 W6 T6b and is repaired here at T6 fix1; :908-935 sits above

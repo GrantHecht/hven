@@ -1,0 +1,10 @@
+RD8_REPAIR pinned=1001 verdict=2 budget=1001
+RD8 /home/ghecht/Projects/hven/.claude/worktrees/agent-af791fbc982c20d3f/.scratch/rd8/runs/dump0/entry0.txt n=2002 me=1000 mi=0 cap=128 algebra=border status=1 minors=300 facts=179 schur=258 analyses=1 adds=299 drops=0 degen=261 wall=53.230 q=9.245035294201e-03 pins=300 xinf=2.0667e-03
+CNT repair_pins=0 repair_budget=1 repair_restarts=1 latch_cap=2 latch_cond=0 releases=1 holds=0 standstill=0 stag_drops=0 stag_stops=0 zm_ex=0 zm_cap=0 ride_vetoes=0 ascent=0 saddle=0 saddle_miss=0 rank_rep=0 dep_tests=310
+PATH border+attempted+k0rebuilt|pf=3                    1
+PATH border+attempted|pf=0                              127
+PATH border+latched+k0rebuilt|pf=1                      1
+PATH elim+attempted|pf=1                                1
+PATH elim+latched|pf=1                                  170
+ACT 2 1
+ACT 10 299

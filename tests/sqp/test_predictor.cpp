@@ -1054,7 +1054,11 @@ TEST(PredictorRatioTest, InheritsTheTrueActivitySetAcrossAnActivationThreshold) 
     const SqpResult boosted = seeded.solve(model, pred.x, pred);
     ASSERT_EQ(boosted.status, SolveStatus::kOptimal);
     EXPECT_EQ(boosted.counters.major_iters, 1);
-    EXPECT_EQ(boosted.counters.qp_minor_iters, 2);
+    // M7 W2 E4 fix round 1 (declared mover): 2 -> 3 minors, majors and
+    // factorizations unmoved. The terminal polish (qp_engine.h section 5) re-solves
+    // the certified point mu-free on its final face; the O-2 cost claim this pins is
+    // one major and a handful of minors either way.
+    EXPECT_EQ(boosted.counters.qp_minor_iters, 3);
     EXPECT_EQ(boosted.counters.factorizations, 1);
 
     model.set_parameters(p_vec(kP + kDp));

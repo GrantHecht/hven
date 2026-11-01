@@ -1,0 +1,39 @@
+RULE-G.md section 6 -- THE FOLD PROOFS
+Each row is an input the classifier MUST land in its REGISTERED class. A
+classifier that returns one outcome for all of them classifies nothing, and
+that is the failure this mode exists to forbid.
+
+  #   want_rc got_rc  want_outcome                      got_outcome                       label
+  1   0       0       RIDE_VETOED                       RIDE_VETOED                       OK   OUTCOME RIDE_VETOED (the base tail: neg excess, gate fired, sign veto)
+  2   0       0       INDEFINITE_IGNORED                INDEFINITE_IGNORED                OK   OUTCOME INDEFINITE_IGNORED (neg excess, p_hp ABSENT, ride not attempted)
+  3   0       0       CURVATURE_GATE_SILENT             CURVATURE_GATE_SILENT             OK   OUTCOME CURVATURE_GATE_SILENT (neg excess, curvature present, gate silent)
+  4   0       0       NUMERICAL_DIRECTION               NUMERICAL_DIRECTION               OK   OUTCOME NUMERICAL_DIRECTION / RESIDUAL (inertia as expected, stat ratio over)
+  5   0       0       INERTIA_AS_EXPECTED_UNEXPLAINED   INERTIA_AS_EXPECTED_UNEXPLAINED   OK   OUTCOME INERTIA_AS_EXPECTED_UNEXPLAINED (as expected, everything clean)
+  6   0       0       MIXED                             MIXED                             OK   OUTCOME MIXED (neg excess, gate fired, the ride STEPPED -- the contradiction)
+  7   0       0       NUMERICAL_DIRECTION               NUMERICAL_DIRECTION               OK   OUTCOME NUMERICAL_DIRECTION / RANK_OR_ZERO (adverse, neither expected nor excess)
+  8   0       0       NUMERICAL_DIRECTION               NUMERICAL_DIRECTION               OK   OUTCOME NUMERICAL_DIRECTION / UNOBSERVED_INERTIA (no usable verdict)
+  9   6       6       ABORTED                           ABORTED                           OK   REFUSAL: a trace file that does not exist
+  10  6       6       ABORTED                           ABORTED                           OK   REFUSAL: an EMPTY trace file
+  11  6       6       ABORTED                           ABORTED                           OK   REFUSAL: an unparseable trace (a row shorter than the header)
+  12  6       6       ABORTED                           ABORTED                           OK   REFUSAL: a header missing a field the rule reads (ride_outcome)
+  13  5       5       ABORTED                           ABORTED                           OK   REFUSAL: truncated=1
+  14  5       5       ABORTED                           ABORTED                           OK   REFUSAL: allocation_failed=1 (RULE-G 2.2's addition; the M3b checker does not know this field)
+  15  5       5       ABORTED                           ABORTED                           OK   REFUSAL: len(records) != minor_iters (a pass went unrecorded)
+  16  5       5       ABORTED                           ABORTED                           OK   REFUSAL: a record carrying action == unset
+  17  1       1       ABORTED                           ABORTED                           OK   REFUSAL: the identity gate fails (one QpCounters field moved)
+  18  3       3       ABORTED                           ABORTED                           OK   REFUSAL: a probe row with no LEDGER_FIRST block
+  19  7       7       ABORTED_NO_TAIL                   ABORTED_NO_TAIL                   OK   REFUSAL: a tail below the size conditions (ABORTED_NO_TAIL)
+  20  8       8       MULTIPLE                          MULTIPLE                          OK   REFUSAL: MORE THAN ONE OUTCOME holds (4.1 and 4.2 made to overlap)
+  21  9       9       ABORTED                           ABORTED                           OK   REFUSAL: neutrality evidence not green (one concurrent fixture missing)
+  22  9       9       ABORTED                           ABORTED                           OK   REFUSAL: no neutrality transcript named at all
+  23  0       0       NUMERICAL_DIRECTION               NUMERICAL_DIRECTION               OK   BAR 1e-6, stat ratio ABOVE (1.0000001e-06) -> NUMERICAL_DIRECTION
+  24  0       0       INERTIA_AS_EXPECTED_UNEXPLAINED   INERTIA_AS_EXPECTED_UNEXPLAINED   OK   BAR 1e-6, stat ratio BELOW (9.9e-07) -> INERTIA_AS_EXPECTED_UNEXPLAINED
+  25  0       0       NUMERICAL_DIRECTION               NUMERICAL_DIRECTION               OK   BAR 1e-6, active-row ratio ABOVE (1.0000001e-06) -> NUMERICAL_DIRECTION
+  26  0       0       INERTIA_AS_EXPECTED_UNEXPLAINED   INERTIA_AS_EXPECTED_UNEXPLAINED   OK   BAR 1e-6, active-row ratio BELOW (9.9e-07) -> INERTIA_AS_EXPECTED_UNEXPLAINED
+  27  0       0       INERTIA_AS_EXPECTED_UNEXPLAINED   INERTIA_AS_EXPECTED_UNEXPLAINED   OK   BAR eqp_call_refine_steps = 9 (below the cap) -> INERTIA_AS_EXPECTED_UNEXPLAINED
+  28  0       0       NUMERICAL_DIRECTION               NUMERICAL_DIRECTION               OK   BAR eqp_call_refine_steps = 10 (the cap) -> NUMERICAL_DIRECTION
+  29  0       0       MIXED                             MIXED                             OK   BAR share = 0.89 (below 0.90) -> MIXED
+  30  0       0       RIDE_VETOED                       RIDE_VETOED                       OK   BAR share = 0.90 (at the bar) -> RIDE_VETOED
+
+RULE_G_FOLDS_TOTAL=30  RULE_G_FOLDS_FAILED=0
+RULE_G_FOLDS_DISTINCT_OUTCOMES=9

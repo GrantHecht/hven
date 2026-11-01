@@ -1,0 +1,54 @@
+M7 W2 M3c -- IDENTITY GATE FOLD PROOFS (RULE.md section 4.3)
+checker: /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-m3c-default-census/wrappers/identity_m3c.py
+
+ok   fold  1: a good row matching the committed harness row
+        expected rc=0 verdicts={'STEENBRB': 'PASS'}; got rc=0
+ok   fold  2: a counter moved by one -- a FINDING, not a refusal
+        expected rc=1 verdicts={'STEENBRB': 'DIFFERS'}; got rc=1
+ok   fold  3: the terminal status moved
+        expected rc=1 verdicts={'STEENBRB': 'DIFFERS'}; got rc=1
+ok   fold  4: the objective moved well past the near-ulp gate
+        expected rc=1 verdicts={'STEENBRB': 'DIFFERS'}; got rc=1
+ok   fold  5: the objective moved WITHIN the near-ulp gate -- accepted, still PASS
+        expected rc=0 verdicts={'STEENBRB': 'PASS'}; got rc=0
+ok   fold  6: a nan objective against the pin's nan -- a BYTE fact, PASS
+        expected rc=0 verdicts={'STEENBRD': 'PASS'}; got rc=0
+ok   fold  7: a -nan objective against the pin's nan -- both are NaN, PASS
+        expected rc=0 verdicts={'STEENBRE': 'PASS'}; got rc=0
+ok   fold  8: a nan objective against a FINITE pin value -- still DIFFERS
+        expected rc=1 verdicts={'STEENBRB': 'DIFFERS'}; got rc=1
+ok   fold  9: an inf objective against the pin's nan -- NOT the same token, DIFFERS
+        expected rc=1 verdicts={'STEENBRE': 'DIFFERS'}; got rc=1
+ok   fold 10: no leg row at all -- CENSORED is never agreement
+        expected rc=2 verdicts={'STEENBRB': 'REFUSED'}; got rc=2
+ok   fold 11: an EMPTY leg row
+        expected rc=2 verdicts={'STEENBRB': 'REFUSED'}; got rc=2
+ok   fold 12: a row with no PROBE_END -- truncated mid-write
+        expected rc=2 verdicts={'STEENBRB': 'REFUSED'}; got rc=2
+ok   fold 13: a row with two PROBE_BEGINs
+        expected rc=2 verdicts={'STEENBRB': 'REFUSED'}; got rc=2
+ok   fold 14: a row missing the HISTORY block
+        expected rc=2 verdicts={'STEENBRB': 'REFUSED'}; got rc=2
+ok   fold 15: a row missing the LEDGER block
+        expected rc=2 verdicts={'STEENBRB': 'REFUSED'}; got rc=2
+ok   fold 16: a key STRIPPED from the key block
+        expected rc=2 verdicts={'STEENBRB': 'REFUSED'}; got rc=2
+ok   fold 17: an UNEXPECTED key in the key block
+        expected rc=2 verdicts={'STEENBRB': 'REFUSED'}; got rc=2
+ok   fold 18: a short COUNTERS block (c_field_count wrong)
+        expected rc=2 verdicts={'STEENBRB': 'REFUSED'}; got rc=2
+ok   fold 19: a short HISTORY block (h_field_count wrong)
+        expected rc=2 verdicts={'STEENBRB': 'REFUSED'}; got rc=2
+ok   fold 20: a group-W cell -- NOT COMPARABLE, never PASS
+        expected rc=0 verdicts={'SAWPATH': 'NOT_COMPARABLE'}; got rc=0
+ok   fold 21: EVERY comparable cell differing -- RULE.md 3.2's structural bar
+        expected rc=3 verdicts={'STEENBRB': 'DIFFERS', 'YORKNET': 'DIFFERS'}; got rc=3
+ok   fold 22: one cell differing, one passing -- a FINDING, not the bar
+        expected rc=1 verdicts={'STEENBRB': 'DIFFERS', 'YORKNET': 'PASS'}; got rc=1
+ok   fold 23: the same two failing cells WITHOUT the bar -- still only a FINDING
+        expected rc=1 verdicts={'STEENBRB': 'DIFFERS', 'YORKNET': 'DIFFERS'}; got rc=1
+ok   fold 24: a TAMPERED harness header -- the gate refuses to parse by position
+        expected rc=2 verdicts={}; got rc=2
+
+FOLDS=24  FAILED=0  DISTINCT_VERDICTS=['DIFFERS', 'NOT_COMPARABLE', 'PASS', 'REFUSED']
+REFUSAL_FOLDS=11  (a gate with no reachable refusal is not a gate)

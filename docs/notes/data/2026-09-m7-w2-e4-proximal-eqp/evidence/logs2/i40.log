@@ -1,0 +1,217 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-release/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = CorpusTask6bPhaseB.*:SqpEqualityBasis.*
+[==========] Running 10 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from CorpusTask6bPhaseB
+[ RUN      ] CorpusTask6bPhaseB.TheShippedKSsnConfigurationIsUnmovedByTheFourLevers
+[       OK ] CorpusTask6bPhaseB.TheShippedKSsnConfigurationIsUnmovedByTheFourLevers (361 ms)
+[----------] 1 test from CorpusTask6bPhaseB (361 ms total)
+
+[----------] 9 tests from SqpEqualityBasis
+[ RUN      ] SqpEqualityBasis.F4MovingNonlinearDependenceRecomputes
+[       OK ] SqpEqualityBasis.F4MovingNonlinearDependenceRecomputes (0 ms)
+[ RUN      ] SqpEqualityBasis.F4ConstantNonlinearDependenceNeverRecomputes
+[       OK ] SqpEqualityBasis.F4ConstantNonlinearDependenceNeverRecomputes (0 ms)
+[ RUN      ] SqpEqualityBasis.F5FixedArcsSplitTheNetworkIntoThreePieces
+[       OK ] SqpEqualityBasis.F5FixedArcsSplitTheNetworkIntoThreePieces (0 ms)
+[ RUN      ] SqpEqualityBasis.F8SameCardinalityRowSwapDropsTheRowCarries
+[       OK ] SqpEqualityBasis.F8SameCardinalityRowSwapDropsTheRowCarries (5 ms)
+[ RUN      ] SqpEqualityBasis.F9ZeroStepAtAnInconsistencyHandsOffToTheLadder
+[       OK ] SqpEqualityBasis.F9ZeroStepAtAnInconsistencyHandsOffToTheLadder (4 ms)
+[ RUN      ] SqpEqualityBasis.F6RestorationRunsOverTheRetainedRowsAndResumes
+[       OK ] SqpEqualityBasis.F6RestorationRunsOverTheRetainedRowsAndResumes (0 ms)
+[ RUN      ] SqpEqualityBasis.T5OffIsByteIdenticalToThePreE1BaseOnADependentQp
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:746: Failure
+Expected: (std::abs(gv - wv)) <= (1e-12 * std::max({1.0, std::abs(gv), std::abs(wv)})), actual: 1.268826310685256e-08 vs 9.9999999999999998e-13
+lambda_e word 1: bfb42e69c51a4ef7 vs bfb42e698e9b6a67
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:722: kWalk lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe20a06fc bfd7bc6567be0423 3fdb94beffc4d5b3 3ff7ccc55089424b 3fee2a481b718ca3 bfc308ec25ff508c
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:746: Failure
+Expected: (std::abs(gv - wv)) <= (1e-12 * std::max({1.0, std::abs(gv), std::abs(wv)})), actual: 6.3441315534262799e-09 vs 9.9999999999999998e-13
+lambda_e word 2: bfc308ec339f09b0 vs bfc308ec25ff508c
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:722: kWalk lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe20a06fc bfd7bc6567be0423 3fdb94beffc4d5b3 3ff7ccc55089424b 3fee2a481b718ca3 bfc308ec25ff508c
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:746: Failure
+Expected: (std::abs(gv - wv)) <= (1e-12 * std::max({1.0, std::abs(gv), std::abs(wv)})), actual: 1.2688263134608135e-08 vs 9.9999999999999998e-13
+lambda_e word 3: bfc0862f41721474 vs bfc0862f2632a22b
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:722: kWalk lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe20a06fc bfd7bc6567be0423 3fdb94beffc4d5b3 3ff7ccc55089424b 3fee2a481b718ca3 bfc308ec25ff508c
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:746: Failure
+Expected: (std::abs(gv - wv)) <= (1e-12 * std::max({1.0, std::abs(gv), std::abs(wv)})), actual: 1.2688263217874862e-08 vs 9.9999999999999998e-13
+lambda_e word 4: 3fd6d3282bcf22cf vs 3fd6d328396edbf5
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:722: kWalk lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe20a06fc bfd7bc6567be0423 3fdb94beffc4d5b3 3ff7ccc55089424b 3fee2a481b718ca3 bfc308ec25ff508c
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:746: Failure
+Expected: (std::abs(gv - wv)) <= (1e-12 * std::max({1.0, std::abs(gv), std::abs(wv)})), actual: 1.3877787807814457e-10 vs 2.4902341519131924e-12
+lambda_e word 5: c003ebffe20ecbb0 vs c003ebffe20a06fc
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:722: kWalk lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe20a06fc bfd7bc6567be0423 3fdb94beffc4d5b3 3ff7ccc55089424b 3fee2a481b718ca3 bfc308ec25ff508c
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:746: Failure
+Expected: (std::abs(gv - wv)) <= (1e-12 * std::max({1.0, std::abs(gv), std::abs(wv)})), actual: 1.3877782256699334e-10 vs 9.9999999999999998e-13
+lambda_e word 6: bfd7bc6567e429c2 vs bfd7bc6567be0423
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:722: kWalk lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe20a06fc bfd7bc6567be0423 3fdb94beffc4d5b3 3ff7ccc55089424b 3fee2a481b718ca3 bfc308ec25ff508c
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:746: Failure
+Expected: (std::abs(gv - wv)) <= (1e-12 * std::max({1.0, std::abs(gv), std::abs(wv)})), actual: 1.3877787807814457e-10 vs 9.9999999999999998e-13
+lambda_e word 7: 3fdb94beff9eb013 vs 3fdb94beffc4d5b3
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:722: kWalk lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe20a06fc bfd7bc6567be0423 3fdb94beffc4d5b3 3ff7ccc55089424b 3fee2a481b718ca3 bfc308ec25ff508c
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:746: Failure
+Expected: (std::abs(gv - wv)) <= (1e-12 * std::max({1.0, std::abs(gv), std::abs(wv)})), actual: 1.3877810012274949e-10 vs 1.4874928613609365e-12
+lambda_e word 8: 3ff7ccc5507fb8e2 vs 3ff7ccc55089424b
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:722: kWalk lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe20a06fc bfd7bc6567be0423 3fdb94beffc4d5b3 3ff7ccc55089424b 3fee2a481b718ca3 bfc308ec25ff508c
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:746: Failure
+Expected: (std::abs(gv - wv)) <= (1e-12 * std::max({1.0, std::abs(gv), std::abs(wv)})), actual: 1.3877798910044703e-10 vs 9.9999999999999998e-13
+lambda_e word 9: 3fee2a481b5e79d2 vs 3fee2a481b718ca3
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:722: kWalk lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe20a06fc bfd7bc6567be0423 3fdb94beffc4d5b3 3ff7ccc55089424b 3fee2a481b718ca3 bfc308ec25ff508c
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:746: Failure
+Expected: (std::abs(gv - wv)) <= (1e-12 * std::max({1.0, std::abs(gv), std::abs(wv)})), actual: 6.3441315534262799e-09 vs 9.9999999999999998e-13
+lambda_e word 10: bfc308ec339f09b0 vs bfc308ec25ff508c
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:722: kWalk lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe20a06fc bfd7bc6567be0423 3fdb94beffc4d5b3 3ff7ccc55089424b 3fee2a481b718ca3 bfc308ec25ff508c
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:746: Failure
+Expected: (std::abs(gv - wv)) <= (1e-12 * std::max({1.0, std::abs(gv), std::abs(wv)})), actual: 1.9032394646401052e-08 vs 9.9999999999999998e-13
+lambda_e word 1: bfb42e69e059c13e vs bfb42e698e9b6a67
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:722: kSsn lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe1c01e16 bfd7bc65656ebcf2 3fdb94bf02141ce3 3ff7ccc5511d1417 3fee2a481c993039 bfc308ec25ff508c
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:746: Failure
+Expected: (std::abs(gv - wv)) <= (1e-12 * std::max({1.0, std::abs(gv), std::abs(wv)})), actual: 9.5161973578949954e-09 vs 9.9999999999999998e-13
+lambda_e word 2: bfc308ec3a6ee643 vs bfc308ec25ff508c
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:722: kSsn lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe1c01e16 bfd7bc65656ebcf2 3fdb94bf02141ce3 3ff7ccc5511d1417 3fee2a481c993039 bfc308ec25ff508c
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:746: Failure
+Expected: (std::abs(gv - wv)) <= (1e-12 * std::max({1.0, std::abs(gv), std::abs(wv)})), actual: 1.9032394688034415e-08 vs 9.9999999999999998e-13
+lambda_e word 3: bfc0862f4f11cd98 vs bfc0862f2632a22b
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:722: kSsn lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe1c01e16 bfd7bc65656ebcf2 3fdb94bf02141ce3 3ff7ccc5511d1417 3fee2a481c993039 bfc308ec25ff508c
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:746: Failure
+Expected: (std::abs(gv - wv)) <= (1e-12 * std::max({1.0, std::abs(gv), std::abs(wv)})), actual: 1.9032394882323445e-08 vs 9.9999999999999998e-13
+lambda_e word 4: 3fd6d32824ff463b vs 3fd6d328396edbf5
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:722: kSsn lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe1c01e16 bfd7bc65656ebcf2 3fdb94bf02141ce3 3ff7ccc5511d1417 3fee2a481c993039 bfc308ec25ff508c
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:746: Failure
+Expected: (std::abs(gv - wv)) <= (1e-12 * std::max({1.0, std::abs(gv), std::abs(wv)})), actual: 6.8001160258290838e-09 vs 2.4902341564234734e-12
+lambda_e word 5: c003ebffe2a9c48a vs c003ebffe1c01e16
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:722: kSsn lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe1c01e16 bfd7bc65656ebcf2 3fdb94bf02141ce3 3ff7ccc5511d1417 3fee2a481c993039 bfc308ec25ff508c
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:746: Failure
+Expected: (std::abs(gv - wv)) <= (1e-12 * std::max({1.0, std::abs(gv), std::abs(wv)})), actual: 6.8001161368513863e-09 vs 9.9999999999999998e-13
+lambda_e word 6: bfd7bc656cbbf094 vs bfd7bc65656ebcf2
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:722: kSsn lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe1c01e16 bfd7bc65656ebcf2 3fdb94bf02141ce3 3ff7ccc5511d1417 3fee2a481c993039 bfc308ec25ff508c
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:746: Failure
+Expected: (std::abs(gv - wv)) <= (1e-12 * std::max({1.0, std::abs(gv), std::abs(wv)})), actual: 6.800116081340235e-09 vs 9.9999999999999998e-13
+lambda_e word 7: 3fdb94befac6e942 vs 3fdb94bf02141ce3
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:722: kSsn lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe1c01e16 bfd7bc65656ebcf2 3fdb94bf02141ce3 3ff7ccc5511d1417 3fee2a481c993039 bfc308ec25ff508c
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:746: Failure
+Expected: (std::abs(gv - wv)) <= (1e-12 * std::max({1.0, std::abs(gv), std::abs(wv)})), actual: 6.8001162478736887e-09 vs 1.4874928635119937e-12
+lambda_e word 8: 3ff7ccc54f49c72e vs 3ff7ccc5511d1417
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:722: kSsn lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe1c01e16 bfd7bc65656ebcf2 3fdb94bf02141ce3 3ff7ccc5511d1417 3fee2a481c993039 bfc308ec25ff508c
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:746: Failure
+Expected: (std::abs(gv - wv)) <= (1e-12 * std::max({1.0, std::abs(gv), std::abs(wv)})), actual: 6.8001160258290838e-09 vs 9.9999999999999998e-13
+lambda_e word 9: 3fee2a4818f29669 vs 3fee2a481c993039
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:722: kSsn lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe1c01e16 bfd7bc65656ebcf2 3fdb94bf02141ce3 3ff7ccc5511d1417 3fee2a481c993039 bfc308ec25ff508c
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:746: Failure
+Expected: (std::abs(gv - wv)) <= (1e-12 * std::max({1.0, std::abs(gv), std::abs(wv)})), actual: 9.5161973578949954e-09 vs 9.9999999999999998e-13
+lambda_e word 10: bfc308ec3a6ee643 vs bfc308ec25ff508c
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:722: kSsn lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe1c01e16 bfd7bc65656ebcf2 3fdb94bf02141ce3 3ff7ccc5511d1417 3fee2a481c993039 bfc308ec25ff508c
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:746: Failure
+Expected: (std::abs(gv - wv)) <= (1e-12 * std::max({1.0, std::abs(gv), std::abs(wv)})), actual: 2.220446043699198e-08 vs 9.9999999999999998e-13
+lambda_e word 1: bfb42e69edf97a63 vs bfb42e698e9b6a67
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:722: kIpm lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe1c01e16 bfd7bc65656ebcf2 3fdb94bf02141ce3 3ff7ccc5511d1417 3fee2a481c993039 bfc308ec25ff508c
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:746: Failure
+Expected: (std::abs(gv - wv)) <= (1e-12 * std::max({1.0, std::abs(gv), std::abs(wv)})), actual: 1.1102230246251565e-08 vs 9.9999999999999998e-13
+lambda_e word 2: bfc308ec3dd6d48c vs bfc308ec25ff508c
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:722: kIpm lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe1c01e16 bfd7bc65656ebcf2 3fdb94bf02141ce3 3ff7ccc5511d1417 3fee2a481c993039 bfc308ec25ff508c
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:746: Failure
+Expected: (std::abs(gv - wv)) <= (1e-12 * std::max({1.0, std::abs(gv), std::abs(wv)})), actual: 2.2204460464747555e-08 vs 9.9999999999999998e-13
+lambda_e word 3: bfc0862f55e1aa2a vs bfc0862f2632a22b
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:722: kIpm lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe1c01e16 bfd7bc65656ebcf2 3fdb94bf02141ce3 3ff7ccc5511d1417 3fee2a481c993039 bfc308ec25ff508c
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:746: Failure
+Expected: (std::abs(gv - wv)) <= (1e-12 * std::max({1.0, std::abs(gv), std::abs(wv)})), actual: 2.2204460659036585e-08 vs 9.9999999999999998e-13
+lambda_e word 4: 3fd6d328219757f2 vs 3fd6d328396edbf5
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:722: kIpm lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe1c01e16 bfd7bc65656ebcf2 3fdb94bf02141ce3 3ff7ccc5511d1417 3fee2a481c993039 bfc308ec25ff508c
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:746: Failure
+Expected: (std::abs(gv - wv)) <= (1e-12 * std::max({1.0, std::abs(gv), std::abs(wv)})), actual: 8.9511735801295345e-09 vs 2.4902341585745308e-12
+lambda_e word 5: c003ebffe2f3ad71 vs c003ebffe1c01e16
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:722: kIpm lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe1c01e16 bfd7bc65656ebcf2 3fdb94bf02141ce3 3ff7ccc5511d1417 3fee2a481c993039 bfc308ec25ff508c
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:746: Failure
+Expected: (std::abs(gv - wv)) <= (1e-12 * std::max({1.0, std::abs(gv), std::abs(wv)})), actual: 8.9511731360403246e-09 vs 9.9999999999999998e-13
+lambda_e word 6: bfd7bc656f0b37c2 vs bfd7bc65656ebcf2
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:722: kIpm lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe1c01e16 bfd7bc65656ebcf2 3fdb94bf02141ce3 3ff7ccc5511d1417 3fee2a481c993039 bfc308ec25ff508c
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:746: Failure
+Expected: (std::abs(gv - wv)) <= (1e-12 * std::max({1.0, std::abs(gv), std::abs(wv)})), actual: 8.9511728584845685e-09 vs 9.9999999999999998e-13
+lambda_e word 7: 3fdb94bef877a218 vs 3fdb94bf02141ce3
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:722: kIpm lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe1c01e16 bfd7bc65656ebcf2 3fdb94bf02141ce3 3ff7ccc5511d1417 3fee2a481c993039 bfc308ec25ff508c
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:746: Failure
+Expected: (std::abs(gv - wv)) <= (1e-12 * std::max({1.0, std::abs(gv), std::abs(wv)})), actual: 8.9511731360403246e-09 vs 1.4874928635119937e-12
+lambda_e word 8: 3ff7ccc54eb5f563 vs 3ff7ccc5511d1417
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:722: kIpm lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe1c01e16 bfd7bc65656ebcf2 3fdb94bf02141ce3 3ff7ccc5511d1417 3fee2a481c993039 bfc308ec25ff508c
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:746: Failure
+Expected: (std::abs(gv - wv)) <= (1e-12 * std::max({1.0, std::abs(gv), std::abs(wv)})), actual: 8.9511731360403246e-09 vs 9.9999999999999998e-13
+lambda_e word 9: 3fee2a4817caf2d1 vs 3fee2a481c993039
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:722: kIpm lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe1c01e16 bfd7bc65656ebcf2 3fdb94bf02141ce3 3ff7ccc5511d1417 3fee2a481c993039 bfc308ec25ff508c
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:746: Failure
+Expected: (std::abs(gv - wv)) <= (1e-12 * std::max({1.0, std::abs(gv), std::abs(wv)})), actual: 1.1102230246251565e-08 vs 9.9999999999999998e-13
+lambda_e word 10: bfc308ec3dd6d48c vs bfc308ec25ff508c
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_equality_basis.cpp:722: kIpm lambda_e bfb42e698e9b6a67 bfc308ec25ff508c bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe1c01e16 bfd7bc65656ebcf2 3fdb94bf02141ce3 3ff7ccc5511d1417 3fee2a481c993039 bfc308ec25ff508c
+
+[  FAILED  ] SqpEqualityBasis.T5OffIsByteIdenticalToThePreE1BaseOnADependentQp (2 ms)
+[ RUN      ] SqpEqualityBasis.F7OffComputesNothing
+[       OK ] SqpEqualityBasis.F7OffComputesNothing (0 ms)
+[ RUN      ] SqpEqualityBasis.RowSubsetModelRestrictsTheEqualityBlock
+[       OK ] SqpEqualityBasis.RowSubsetModelRestrictsTheEqualityBlock (0 ms)
+[----------] 9 tests from SqpEqualityBasis (15 ms total)
+
+[----------] Global test environment tear-down
+[==========] 10 tests from 2 test suites ran. (376 ms total)
+[  PASSED  ] 9 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] SqpEqualityBasis.T5OffIsByteIdenticalToThePreE1BaseOnADependentQp
+
+ 1 FAILED TEST

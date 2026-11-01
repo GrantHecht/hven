@@ -52,7 +52,7 @@ struct DispatchContext {
     // caller's stack, so the size cost is bounded.
     static constexpr int kMaxCaptured = 16; ///< @internal Maximum number of captured exceptions.
 
-    std::latch done;           ///< @internal Countdown latch; each worker calls count_down().
+    std::latch done;                ///< @internal Countdown latch; each worker calls count_down().
     std::atomic<int> captured{0};   ///< @internal Number of exceptions stored so far.
     std::atomic<int> suppressed{0}; ///< @internal Count of exceptions beyond kMaxCaptured.
     std::array<std::exception_ptr, kMaxCaptured> exceptions{}; ///< @internal Stored exceptions.
@@ -401,9 +401,9 @@ class ThreadPool {
                     try {
                         f();
                     } catch (const std::exception &e) {
-                        std::fprintf(
-                            stderr, "[hven] FATAL: unhandled exception in enqueue_work task: %s\n",
-                            e.what());
+                        std::fprintf(stderr,
+                                     "[hven] FATAL: unhandled exception in enqueue_work task: %s\n",
+                                     e.what());
                         std::terminate();
                     } catch (...) {
                         std::fprintf(
@@ -651,8 +651,7 @@ template <typename F> void parallel_blocks(int count, F &&func, int nparts) {
             throw std::logic_error(
                 "hven::utils::parallel_blocks: nested dispatch from pool worker");
         if (pool_configuring())
-            throw std::logic_error(
-                "hven::utils::parallel_blocks: dispatch during set_num_threads");
+            throw std::logic_error("hven::utils::parallel_blocks: dispatch during set_num_threads");
         int pool_tasks = nparts - 1;
         detail::DispatchContext ctx(pool_tasks);
         int block_size = count / nparts;

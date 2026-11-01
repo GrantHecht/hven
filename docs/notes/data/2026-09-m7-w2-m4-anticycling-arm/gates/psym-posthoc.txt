@@ -1,0 +1,71 @@
+POSTHOC_START 2026-09-22T07:08:02-04:00
+BASE=f5205770  HEAD=196f0ef0
+RUNNER-DERIVED CHANGED HEADERS: include/hven/detail/qp/qp_anti_cycling_arm.h include/hven/detail/qp/qp_walk_trace.h 
+RUNNER-DERIVED CHANGED SOURCES: src/qp/qp_engine.cpp tests/CMakeLists.txt tests/qp/test_qp_anti_cycling_arm.cpp 
+
+=== POST-HOC P-SYM Release   compare=/home/ghecht/Projects/hven/.scratch/m7w2m4gates/gates/psym/compare-Release.txt   deps=/home/ghecht/Projects/hven/.scratch/m7w2m4gates/gates-rel
+RECORDED_PSYM_COMPARE_RC_Release=0 (read from logs/gates-m4.log)
+POSTHOC_CLASSIFY_RC_Release=0
+HEADER DERIVATION
+  repo : /home/ghecht/Projects/hven
+  base : f5205770 -> f520577079dbe09e3ad08fe844d0f89eee8ed37b
+  head : 196f0ef0 -> 196f0ef0032b66552cd4a1c50edb1fcce1568c24
+  cmd  : git -C /home/ghecht/Projects/hven diff --name-only f5205770..196f0ef0 -- include/
+  list : ['include/hven/detail/qp/qp_anti_cycling_arm.h', 'include/hven/detail/qp/qp_walk_trace.h']
+HEADER LIST ACCEPTED: ['include/hven/detail/qp/qp_anti_cycling_arm.h', 'include/hven/detail/qp/qp_walk_trace.h']
+P-SYM: PASS — read the DELTAS summaries above before accepting (see this script's header)
+DIFFERING OBJECTS: 0
+  class A -- SOURCE CHANGED by this task: 0
+  class B -- INCLUDERS of a changed header, source untouched: 0
+  UNEXPLAINED: 0
+  NEGATIVE CONTROL -- objects that ALSO include one of those headers and are BYTE-IDENTICAL (neither a mover nor NOISE-ONLY): 70
+ASSERT OK   P-SYM Release compare rc (declared 0 mover(s)) = 0
+ASSERT OK   P-SYM Release classify rc = 0
+ASSERT OK   P-SYM Release class A + class B = 0
+ASSERT OK   P-SYM Release unexplained = 0
+ASSERT OK   P-SYM Release negative control = 70 (>= 1)
+ASSERT OK   P-SYM Release differing (declared) = 0
+ASSERT OK   P-SYM Release class A (declared) = 0
+ASSERT OK   P-SYM Release class B (declared) = 0
+CONTROL_IN_CAPTURED_UNIVERSE_Release=8  (library includers 8, of which NOISE-ONLY 0)
+ASSERT OK   post-hoc Release: restricted negative control = 8 (>= 1)
+
+=== POST-HOC P-SYM Debug   compare=/home/ghecht/Projects/hven/.scratch/m7w2m4gates/gates/psym/compare-Debug.txt   deps=/home/ghecht/Projects/hven/.scratch/m7w2m4gates/gates-dbg
+RECORDED_PSYM_COMPARE_RC_Debug=0 (read from logs/gates-m4.log)
+POSTHOC_CLASSIFY_RC_Debug=0
+HEADER DERIVATION
+  repo : /home/ghecht/Projects/hven
+  base : f5205770 -> f520577079dbe09e3ad08fe844d0f89eee8ed37b
+  head : 196f0ef0 -> 196f0ef0032b66552cd4a1c50edb1fcce1568c24
+  cmd  : git -C /home/ghecht/Projects/hven diff --name-only f5205770..196f0ef0 -- include/
+  list : ['include/hven/detail/qp/qp_anti_cycling_arm.h', 'include/hven/detail/qp/qp_walk_trace.h']
+HEADER LIST ACCEPTED: ['include/hven/detail/qp/qp_anti_cycling_arm.h', 'include/hven/detail/qp/qp_walk_trace.h']
+P-SYM: PASS — read the DELTAS summaries above before accepting (see this script's header)
+DIFFERING OBJECTS: 0
+  class A -- SOURCE CHANGED by this task: 0
+  class B -- INCLUDERS of a changed header, source untouched: 0
+  UNEXPLAINED: 0
+  NEGATIVE CONTROL -- objects that ALSO include one of those headers and are BYTE-IDENTICAL (neither a mover nor NOISE-ONLY): 69
+ASSERT OK   P-SYM Debug compare rc (declared 0 mover(s)) = 0
+ASSERT OK   P-SYM Debug classify rc = 0
+ASSERT OK   P-SYM Debug class A + class B = 0
+ASSERT OK   P-SYM Debug unexplained = 0
+ASSERT OK   P-SYM Debug negative control = 69 (>= 1)
+ASSERT OK   P-SYM Debug differing (declared) = 0
+ASSERT OK   P-SYM Debug class A (declared) = 0
+ASSERT OK   P-SYM Debug class B (declared) = 0
+CONTROL_IN_CAPTURED_UNIVERSE_Debug=7  (library includers 8, of which NOISE-ONLY 1)
+ASSERT OK   post-hoc Debug: restricted negative control = 7 (>= 1)
+
+ASSERT OK   P-SYM cross-config: class B sets equal (0 object(s))
+ASSERT OK   P-SYM cross-config: Release unexplained = 0 (count and list)
+ASSERT OK   P-SYM cross-config: Debug unexplained = 0 (count and list)
+ASSERT OK   P-SYM cross-config: Release class A (0) all changed-source
+ASSERT OK   P-SYM cross-config: Debug class A (0) all changed-source
+ASSERT OK   P-SYM cross-config: the two class A sets are identical
+POSTHOC_ASSERT_RC=0
+POSTHOC_END 2026-09-22T07:08:03-04:00
+
+AND G5 IS STILL FAILED. This record does not change that: the gate that
+ran on 2026-09-22 ran a classifier carrying the wrong list, and a gate is
+judged by the run it had, not by the reading it got afterwards.

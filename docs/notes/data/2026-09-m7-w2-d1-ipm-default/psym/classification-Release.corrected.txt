@@ -1,0 +1,41 @@
+# M7 W2 D1 fix1 (2026-09-18) -- classify_psym.py RE-RUN against this task's
+# own three changed headers (include/hven/detail/drivers/ipm_solver_presets.h,
+# include/hven/drivers/ipm_solver.h, include/hven/drivers/ipm_solver_types.h),
+# in place of the stale M1/M4 SQP header list the original run used. Same
+# compare-Release.txt, same psym-build ninja dep log, same --changed-sources as
+# chain_psym.sh; only HEADERS changed. Pure Python re-classification, no rebuild.
+#
+# invocation: python3 -B wrappers/classify_psym.py --compare psym/compare-Release.txt \
+#   --build .scratch/m7w2d1/psym-build --changed-sources $CHANGED   (HEADERS edited
+#   in a scratch copy of the script to the three lines above; the committed
+#   wrappers/classify_psym.py is kept verbatim per the settler's adjudication)
+#
+P-SYM: FAIL — differences outside the accepted noise class
+DIFFERING OBJECTS: 17
+  class A -- SOURCE CHANGED by this task: 6
+      CMakeFiles/hven.dir/src/drivers/ipm_options.cpp.o
+      bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+      bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options_dump.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_result.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/__/bench/ipm_corpus_leg.cpp.o
+  class B -- INCLUDERS of a changed header, source untouched: 11
+      bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_concurrency.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_warm_protocol.cpp.o
+      tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_0_cxx.cxx.o
+      tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o
+      tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_2_cxx.cxx.o
+      tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_3_cxx.cxx.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_warm_currency.cpp.o
+  UNEXPLAINED: 0
+
+  NEGATIVE CONTROL -- objects that ALSO include one of those headers and are byte-identical: 5
+      CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+      CMakeFiles/hven.dir/src/drivers/ipm_solver_globalization.cpp.o
+      CMakeFiles/hven.dir/src/model/nlp_adapter.cpp.o
+      CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_corpus_cells.cpp.o

@@ -68,6 +68,10 @@ struct ScalingRule {
     /// Symmetric clamp: every factor is confined to [1/factor_limit,
     /// factor_limit]. Must be >= 1.
     double factor_limit = 1e12;
+    /// Whether the OBJECTIVE factor may exceed 1 (the TWO-SIDED objective rule
+    /// below). False is IPOPT's one-sided `min(1, g_max/||g||inf)`, the form the
+    /// column layer's kAuto engagement uses (SqpOptions::column_scaling).
+    bool amplify_objective = true;
 };
 
 /// @brief One solve's factors: strictly positive, finite, and fixed once set.
@@ -112,6 +116,9 @@ struct ProblemScaling {
 ///     cost is that a start point which is genuinely near-stationary has its
 ///     gradient amplified too; `factor_limit` bounds the damage and every
 ///     factor is reported on the solution, so the choice is visible.
+///     The automatic engagement does not amplify (`amplify_objective` false): a
+///     gate the caller did not ask for must not tighten the caller's kkt_tol.
+///     Evidence: docs/notes/data/2026-10-m7-scw/README.md.
 ///   * A ROW is never scaled up. Amplifying a row whose Jacobian is small at
 ///     the start point -- because the row is nearly inactive there, not because
 ///     its units are wrong -- multiplies its residual by up to `factor_limit`

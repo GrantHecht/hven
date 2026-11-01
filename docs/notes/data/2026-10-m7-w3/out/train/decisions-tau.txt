@@ -1,0 +1,16 @@
+
+=== hs / hven-sqp ===
+label                  optimal dnf_budget dnf_wall   err infeasible  |B|  median-cost  verdict
+default                     21          0        0     0          0   21            1  default
+tau10                       21          0        0     0          0   21            1  tie (default stands)
+tau1e3                      21          0        0     0          0   21            1  tie (default stands)
+  --> no label wins: the DEFAULT is the best fixed choice for this family and lane.
+
+=== cutest / hven-sqp ===
+label                  optimal dnf_budget dnf_wall   err infeasible  |B|  median-cost  verdict
+default                     16          0        6     1          0   16      191.313  default
+tau10                       14          0        7     2          0   14      105.416  lose: errors 2 > 1
+tau1e3                      16          0        6     1          0   15        148.7  lose: median cost 148.7 > 139.957
+  --> no label wins: the DEFAULT is the best fixed choice for this family and lane.
+
+w2_a4_decide: verdicts -> train/out/decisions-tau.json

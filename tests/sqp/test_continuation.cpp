@@ -1147,6 +1147,17 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
         // testing the PROBE BUDGET, which is what this test is about, on the
         // failure they were pinned against.
         opts.qp.max_iter = 500;
+        // THE SAME CORRECTION, ONE TASK LATER (M7 W2 M1). This line is NEW for
+        // the same reason the one above is: the failure-routing gate's budget
+        // was 1 when this fixture's numbers were pinned, and the CUTEst TRAIN
+        // reading raised the SHIPPED default to 3
+        // (docs/notes/data/2026-09-m7-w2-m1-qp-cap/). At 3 the failing proposal
+        // costs 5 majors / 2002 minors instead of 3 / 1002 -- two more
+        // shrink-and-retry passes at the same iterate -- which would move every
+        // "cap-pinned" number below and the M6-vs-OFF minor comparisons with
+        // them. This fixture is about the PROBE BUDGET, not about the routing
+        // gate, so it writes the gate out at the value it was pinned against.
+        opts.qp_failure_budget = 1;
         return opts;
     };
     const auto make_continuation_options = [](int probe_budget) {
@@ -1205,15 +1216,20 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
     // still applies unchanged. Arms D and E below are NEW and are MKL-observed
     // only -- they have no Apple value yet and must not be given one until a
     // Mac pass produces it.
-#ifdef USE_ACCELERATE_SPARSE
-    EXPECT_EQ(off.steps[1].counters.factorizations, 304)
-        << "Apple Accelerate (origin D19, re-adjudicated as M3-2); MKL Pardiso reads 303\n"
+    // M7 W2 E2 step 2 (declared mover, S20): 303 -> 200 on MKL. The failed,
+    // cap-pinned proposal's walks are shorter under the add-site exchange and
+    // the zero-motion re-entry rule. The Accelerate arm above keeps its
+    // pre-E2 observed 304: UNOBSERVED under E2 (CLAUDE.md section 6).
+    // E2 fix6 (declared mover): 200 -> 18 on MKL -- the grey re-read (R-E)
+    // reads the cap-pinned QPs' converged grey admissions dependent; majors,
+    // minors and statuses unchanged. Accelerate UNOBSERVED.
+    EXPECT_EQ(off.steps[1].counters.factorizations, 18)
+        << "MKL Pardiso (303 before M7 W2 E2); Accelerate observed 304 pre-E2 (origin D19, "
+           "re-adjudicated as M3-2)\n"
         << trajectory(off);
-#else
-    EXPECT_EQ(off.steps[1].counters.factorizations, 303)
-        << "MKL Pardiso; Accelerate observed 304 (origin D19, re-adjudicated as M3-2)\n"
-        << trajectory(off);
-#endif
+    // M7 WX B1 collapse (design section 2.4): the Accelerate arm (304; then 303 -> 18 UNOBSERVED
+    // under E2) is deleted -- macOS run 40905599627 (head 864f5814, Accelerate pinned to one
+    // thread) reads 18 here, MKL's value. Register entry M3-2 carries the LATER DISPOSITION.
     EXPECT_EQ(off.steps[1].counters.probe_budget_stops, 0);
 
     // ---- ARM B: the default probe budget ---------------------------------
@@ -1244,13 +1260,18 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
         << trajectory(on);
     EXPECT_LT(on.steps[1].counters.major_iters, off.steps[1].counters.major_iters)
         << trajectory(on);
-    // OBSERVED: 2 majors / 502 minors / 14 factorizations against 3 / 1002 /
-    // 303 -- the budget here is the floor (continuation_detail::
+    // OBSERVED: 2 majors / 502 minors / 11 factorizations against 3 / 1002 /
+    // 200 -- the budget here is the floor (continuation_detail::
     // kProbeBudgetFloor = 200; the cold step at p = 0.3 costs 2 minors, so
     // the ratio term is 4), and the crossing major is a cap-pinned QP.
+    // M7 W2 E2 step 2 (declared mover, S20): factorizations 14 -> 11 (and the
+    // arm-A comparator 303 -> 200), same cause as arm A; majors and minors
+    // unchanged. MKL-observed; no Accelerate value exists for this line.
+    // E2 fix6 (declared mover): factorizations 11 -> 9 (the arm-A comparator
+    // 200 -> 18), the grey re-read (R-E); majors and minors unchanged.
     EXPECT_EQ(on.steps[1].counters.major_iters, 2) << trajectory(on);
     EXPECT_EQ(on.steps[1].counters.qp_minor_iters, 502) << trajectory(on);
-    EXPECT_EQ(on.steps[1].counters.factorizations, 14) << trajectory(on);
+    EXPECT_EQ(on.steps[1].counters.factorizations, 9) << trajectory(on);
 
     // ---- ARM C: the same budget under SqpOptions::budget_mode -------------
     // THE TWO BUDGETS MUST NOT FIGHT (sqp_solver.h's PROBE BUDGET note, part

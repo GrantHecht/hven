@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.24)
+project(f5_replay CXX)
+set(CMAKE_CXX_STANDARD 20)
+find_package(hven REQUIRED)
+add_executable(dump_replay dump_replay.cpp)
+target_include_directories(dump_replay PRIVATE /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp)
+target_link_libraries(dump_replay PRIVATE hven::hven)

@@ -1,0 +1,11 @@
+PGREP_EMPTY phase-long 2026-09-26T13:49:19-04:00
+FOREGROUND_START phase-long 2026-09-26T13:49:19-04:00
+ctest debug long rc=0
+Test project /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-debug
+    Start 1587: Continuation.ProbeBudgetBoundsAFailingProposal
+1/1 Test #1587: Continuation.ProbeBudgetBoundsAFailingProposal ...   Passed  562.04 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) = 562.10 sec
+FOREGROUND_END phase-long 2026-09-26T13:58:41-04:00 rc=0

@@ -1,0 +1,210 @@
+{
+  "cutest": {
+    "hven-sqp": {
+      "_best": "default",
+      "default": {
+        "b_cells": [
+          "ACOPP118",
+          "ACOPP57",
+          "ACOPR118",
+          "ACOPR57",
+          "BIGBANK",
+          "DALLASM",
+          "NET3",
+          "READING6",
+          "SAWPATH",
+          "SMBANK",
+          "STEENBRB",
+          "STEENBRC",
+          "STEENBRD",
+          "STEENBRE",
+          "STEENBRG",
+          "ZAMB2-8"
+        ],
+        "b_size": 16,
+        "counts": {
+          "dnf_budget": 0,
+          "dnf_wall": 6,
+          "error": 1,
+          "infeasible": 0,
+          "optimal": 16
+        },
+        "default_median_cost": 191.31281969309464,
+        "median_cost": 191.31281969309464,
+        "verdict": "default"
+      },
+      "tau10": {
+        "b_cells": [
+          "ACOPP118",
+          "ACOPP57",
+          "ACOPR57",
+          "BIGBANK",
+          "DALLASM",
+          "READING6",
+          "SAWPATH",
+          "SMBANK",
+          "STEENBRB",
+          "STEENBRC",
+          "STEENBRD",
+          "STEENBRE",
+          "STEENBRG",
+          "ZAMB2-8"
+        ],
+        "b_size": 14,
+        "counts": {
+          "dnf_budget": 0,
+          "dnf_wall": 7,
+          "error": 2,
+          "infeasible": 0,
+          "optimal": 14
+        },
+        "default_median_cost": 120.54076086956522,
+        "median_cost": 105.41576086956522,
+        "verdict": "lose: errors 2 > 1"
+      },
+      "tau1e3": {
+        "b_cells": [
+          "ACOPP118",
+          "ACOPP57",
+          "ACOPR118",
+          "ACOPR57",
+          "BIGBANK",
+          "DALLASM",
+          "READING6",
+          "SAWPATH",
+          "SMBANK",
+          "STEENBRB",
+          "STEENBRC",
+          "STEENBRD",
+          "STEENBRE",
+          "STEENBRG",
+          "ZAMB2-8"
+        ],
+        "b_size": 15,
+        "counts": {
+          "dnf_budget": 0,
+          "dnf_wall": 6,
+          "error": 1,
+          "infeasible": 0,
+          "optimal": 16
+        },
+        "default_median_cost": 139.95652173913044,
+        "median_cost": 148.7,
+        "verdict": "lose: median cost 148.7 > 139.957"
+      }
+    }
+  },
+  "hs": {
+    "hven-sqp": {
+      "_best": "default",
+      "default": {
+        "b_cells": [
+          "hs003",
+          "hs005",
+          "hs006",
+          "hs007",
+          "hs010",
+          "hs011",
+          "hs012",
+          "hs014",
+          "hs022",
+          "hs025",
+          "hs026",
+          "hs027",
+          "hs028",
+          "hs030",
+          "hs033",
+          "hs035",
+          "hs039",
+          "hs043",
+          "hs045",
+          "hs077",
+          "hs079"
+        ],
+        "b_size": 21,
+        "counts": {
+          "dnf_budget": 0,
+          "dnf_wall": 0,
+          "error": 0,
+          "infeasible": 0,
+          "optimal": 21
+        },
+        "default_median_cost": 1.0,
+        "median_cost": 1.0,
+        "verdict": "default"
+      },
+      "tau10": {
+        "b_cells": [
+          "hs003",
+          "hs005",
+          "hs006",
+          "hs007",
+          "hs010",
+          "hs011",
+          "hs012",
+          "hs014",
+          "hs022",
+          "hs025",
+          "hs026",
+          "hs027",
+          "hs028",
+          "hs030",
+          "hs033",
+          "hs035",
+          "hs039",
+          "hs043",
+          "hs045",
+          "hs077",
+          "hs079"
+        ],
+        "b_size": 21,
+        "counts": {
+          "dnf_budget": 0,
+          "dnf_wall": 0,
+          "error": 0,
+          "infeasible": 0,
+          "optimal": 21
+        },
+        "default_median_cost": 1.0,
+        "median_cost": 1.0,
+        "verdict": "tie (default stands)"
+      },
+      "tau1e3": {
+        "b_cells": [
+          "hs003",
+          "hs005",
+          "hs006",
+          "hs007",
+          "hs010",
+          "hs011",
+          "hs012",
+          "hs014",
+          "hs022",
+          "hs025",
+          "hs026",
+          "hs027",
+          "hs028",
+          "hs030",
+          "hs033",
+          "hs035",
+          "hs039",
+          "hs043",
+          "hs045",
+          "hs077",
+          "hs079"
+        ],
+        "b_size": 21,
+        "counts": {
+          "dnf_budget": 0,
+          "dnf_wall": 0,
+          "error": 0,
+          "infeasible": 0,
+          "optimal": 21
+        },
+        "default_median_cost": 1.0,
+        "median_cost": 1.0,
+        "verdict": "tie (default stands)"
+      }
+    }
+  }
+}

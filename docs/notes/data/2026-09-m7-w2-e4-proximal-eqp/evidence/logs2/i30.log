@@ -1,0 +1,180 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-release/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = SqpDriverRestorationSeed.*:SqpDriverRestorationProximity.*:SqpDriverRestorationExcursion.*:SqpDriverRadius.*:SqpDriverRestoration.*
+[==========] Running 36 tests from 5 test suites.
+[----------] Global test environment set-up.
+[----------] 9 tests from SqpDriverRestoration
+[ RUN      ] SqpDriverRestoration.InfeasibleNlpCertifies
+[       OK ] SqpDriverRestoration.InfeasibleNlpCertifies (85 ms)
+[ RUN      ] SqpDriverRestoration.AlgebraModeDivergenceIsANonUniqueSubproblemOptimum
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_restoration.cpp:1238: Failure
+The difference between x_border(0) + x_border(1) and 2.0 is 0.24999999999999645, which exceeds 1e-12, where
+x_border(0) + x_border(1) evaluates to 2.2499999999999964,
+2.0 evaluates to 2, and
+1e-12 evaluates to 9.9999999999999998e-13.
+
+[  FAILED  ] SqpDriverRestoration.AlgebraModeDivergenceIsANonUniqueSubproblemOptimum (103 ms)
+[ RUN      ] SqpDriverRestoration.RestorationRecoversAndResumes
+[       OK ] SqpDriverRestoration.RestorationRecoversAndResumes (5 ms)
+[ RUN      ] SqpDriverRestoration.RestorationIsIdleOnCleanProblems
+[       OK ] SqpDriverRestoration.RestorationIsIdleOnCleanProblems (8 ms)
+[ RUN      ] SqpDriverRestoration.SecondRequestIsCappedAndReported
+[       OK ] SqpDriverRestoration.SecondRequestIsCappedAndReported (8 ms)
+[ RUN      ] SqpDriverRestoration.ZeroStepIsAcceptedAsAKktPoint
+[       OK ] SqpDriverRestoration.ZeroStepIsAcceptedAsAKktPoint (0 ms)
+[ RUN      ] SqpDriverRestoration.ExhaustedElasticTierEntersRestoration
+[       OK ] SqpDriverRestoration.ExhaustedElasticTierEntersRestoration (2 ms)
+[ RUN      ] SqpDriverRestoration.TheSharedDiagnosticsOfACertifiedExitUseTheReturnedPrices
+[       OK ] SqpDriverRestoration.TheSharedDiagnosticsOfACertifiedExitUseTheReturnedPrices (2 ms)
+[ RUN      ] SqpDriverRestoration.ExhaustedElasticTierEntersRestorationUnderEveryMode
+[       OK ] SqpDriverRestoration.ExhaustedElasticTierEntersRestorationUnderEveryMode (5 ms)
+[----------] 9 tests from SqpDriverRestoration (223 ms total)
+
+[----------] 7 tests from SqpDriverRestorationProximity
+[ RUN      ] SqpDriverRestorationProximity.TheCertificateIsGatedOnTheUncorrectedResidual
+[       OK ] SqpDriverRestorationProximity.TheCertificateIsGatedOnTheUncorrectedResidual (120 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheProxyWouldCertifyWhereTheExactResidualRefuses
+[ e4fix2 ] cancellation window: proxy=4.3934000928e-07 exact=5.3620559926e-07 h=5.8578648990e-01
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_restoration.cpp:2900: Failure
+Expected: (c.stationarity) > (opts.kkt_tol), actual: 5.3620559925526834e-07 vs 6.3e-07
+premise 2: the EXACT residual does not (5.3620559925526834e-07)
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_restoration.cpp:2905: Failure
+Value of: sol.infeasibility_certified
+  Actual: true
+Expected: false
+the returned point is NOT a certified infeasible stationary point of h: its exact subgradient residual is 5.3620559925526834e-07 against a kkt_tol of 6.3e-07
+
+[  FAILED  ] SqpDriverRestorationProximity.TheProxyWouldCertifyWhereTheExactResidualRefuses (31 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheSeedGuardFiresAndTheStartObjectiveIsHPlusP
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_restoration.cpp:2944: Failure
+Expected equality of these values:
+  1
+  seeded_rows(sol)
+    Which is: 0
+the fixture's premise: one request, and it took a candidate
+
+[  FAILED  ] SqpDriverRestorationProximity.TheSeedGuardFiresAndTheStartObjectiveIsHPlusP (31 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheRefusalsNameTheFieldTheValueAndTheRemedy
+[       OK ] SqpDriverRestorationProximity.TheRefusalsNameTheFieldTheValueAndTheRemedy (0 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheZeroWeightGateNeverReadsTheBundle
+[       OK ] SqpDriverRestorationProximity.TheZeroWeightGateNeverReadsTheBundle (0 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheZeroWeightCertifiesOnAScaledSolve
+[       OK ] SqpDriverRestorationProximity.TheZeroWeightCertifiesOnAScaledSolve (5 ms)
+[ RUN      ] SqpDriverRestorationProximity.TheProductionCentreIsTheRequestingIterateNotTheSeed
+[       OK ] SqpDriverRestorationProximity.TheProductionCentreIsTheRequestingIterateNotTheSeed (0 ms)
+[----------] 7 tests from SqpDriverRestorationProximity (189 ms total)
+
+[----------] 3 tests from SqpDriverRadius
+[ RUN      ] SqpDriverRadius.FloorRaisesTheRestorationRequest
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_restoration.cpp:1675: Failure
+Expected equality of these values:
+  log.verdict.back()
+    Which is: 4-byte object <01-00 00-00>
+  StepVerdict::kReject
+    Which is: 4-byte object <02-00 00-00>
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_restoration.cpp:1658: tr_min 1e-05
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_restoration.cpp:1685: Failure
+Expected: (run.last_radius * 0.5) < (opts.tr_min), actual: 0.5 vs 1e-05
+the request must be raised AT the floor, not somewhere above it
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_restoration.cpp:1658: tr_min 1e-05
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_restoration.cpp:1675: Failure
+Expected equality of these values:
+  log.verdict.back()
+    Which is: 4-byte object <01-00 00-00>
+  StepVerdict::kReject
+    Which is: 4-byte object <02-00 00-00>
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_restoration.cpp:1658: tr_min 0.01
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_restoration.cpp:1685: Failure
+Expected: (run.last_radius * 0.5) < (opts.tr_min), actual: 0.5 vs 0.01
+the request must be raised AT the floor, not somewhere above it
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_restoration.cpp:1658: tr_min 0.01
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_restoration.cpp:1702: Failure
+Expected: (runs[1].majors) < (runs[0].majors), actual: 2 vs 2
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_restoration.cpp:1703: Failure
+Expected: (runs[1].last_radius) > (runs[0].last_radius), actual: 1 vs 1
+
+[  FAILED  ] SqpDriverRadius.FloorRaisesTheRestorationRequest (5 ms)
+[ RUN      ] SqpDriverRadius.InfiniteInitialRadiusShrinksToTrMax
+[       OK ] SqpDriverRadius.InfiniteInitialRadiusShrinksToTrMax (8 ms)
+[ RUN      ] SqpDriverRadius.RejectsUnusableFloors
+[       OK ] SqpDriverRadius.RejectsUnusableFloors (0 ms)
+[----------] 3 tests from SqpDriverRadius (14 ms total)
+
+[----------] 11 tests from SqpDriverRestorationSeed
+[ RUN      ] SqpDriverRestorationSeed.TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTaken
+[       OK ] SqpDriverRestorationSeed.TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTaken (32 ms)
+[ RUN      ] SqpDriverRestorationSeed.TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOne
+[       OK ] SqpDriverRestorationSeed.TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOne (115 ms)
+[ RUN      ] SqpDriverRestorationSeed.TheIndependentWorkingSetReachesTheSameCertifiedAnswer
+[       OK ] SqpDriverRestorationSeed.TheIndependentWorkingSetReachesTheSameCertifiedAnswer (116 ms)
+[ RUN      ] SqpDriverRestorationSeed.TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesIt
+[       OK ] SqpDriverRestorationSeed.TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesIt (97 ms)
+[ RUN      ] SqpDriverRestorationSeed.AWorseElasticCandidateIsRefusedOnTheSameModel
+[       OK ] SqpDriverRestorationSeed.AWorseElasticCandidateIsRefusedOnTheSameModel (17 ms)
+[ RUN      ] SqpDriverRestorationSeed.AZeroElasticStepIsNotACandidate
+[       OK ] SqpDriverRestorationSeed.AZeroElasticStepIsNotACandidate (8 ms)
+[ RUN      ] SqpDriverRestorationSeed.ANonFiniteEvaluationAtTheCandidateIsRefused
+[       OK ] SqpDriverRestorationSeed.ANonFiniteEvaluationAtTheCandidateIsRefused (40 ms)
+[ RUN      ] SqpDriverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTaken
+[       OK ] SqpDriverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTaken (878 ms)
+[ RUN      ] SqpDriverRestorationSeed.TheRadiusFloorOffersTheRejectedTrialAndTheGuardRefusesIt
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_restoration.cpp:2307: Failure
+Value of: saw_reject
+  Actual: false
+Expected: true
+kReject on the REQUESTING row is the floor's own signature: the ladder's exhaustion writes kRestore, and the funnel's signature never fires on this fixture
+
+[  FAILED  ] SqpDriverRestorationSeed.TheRadiusFloorOffersTheRejectedTrialAndTheGuardRefusesIt (2 ms)
+[ RUN      ] SqpDriverRestorationSeed.TheGuardAndThePhaseRunOnTheCallerScale
+[       OK ] SqpDriverRestorationSeed.TheGuardAndThePhaseRunOnTheCallerScale (10 ms)
+[ RUN      ] SqpDriverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_restoration.cpp:2398: Failure
+Expected equality of these values:
+  0
+  seeded_rows(sol)
+    Which is: 1
+the candidate was taken again: the margin has moved back
+
+[  FAILED  ] SqpDriverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce (58 ms)
+[----------] 11 tests from SqpDriverRestorationSeed (1378 ms total)
+
+[----------] 6 tests from SqpDriverRestorationExcursion
+[ RUN      ] SqpDriverRestorationExcursion.TheResumeArmRecordsTheCallersOwnExcursion
+[       OK ] SqpDriverRestorationExcursion.TheResumeArmRecordsTheCallersOwnExcursion (3 ms)
+[ RUN      ] SqpDriverRestorationExcursion.TheTerminalArmRecordsThePointItReports
+[       OK ] SqpDriverRestorationExcursion.TheTerminalArmRecordsThePointItReports (40 ms)
+[ RUN      ] SqpDriverRestorationExcursion.ARefusedSecondRequestLeavesTheFirstEntrysRecord
+[       OK ] SqpDriverRestorationExcursion.ARefusedSecondRequestLeavesTheFirstEntrysRecord (8 ms)
+[ RUN      ] SqpDriverRestorationExcursion.ACleanSolveHoldsNoReading
+[       OK ] SqpDriverRestorationExcursion.ACleanSolveHoldsNoReading (2 ms)
+[ RUN      ] SqpDriverRestorationExcursion.TheSubStatusTellsACutOffSubSolveFromAConvergedOne
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_sqp_restoration.cpp:2627: Failure
+Expected: (cut_off.counters.restoration_iters) > (1), actual: 1 vs 1
+
+[  FAILED  ] SqpDriverRestorationExcursion.TheSubStatusTellsACutOffSubSolveFromAConvergedOne (35 ms)
+[ RUN      ] SqpDriverRestorationExcursion.TheSubStatusDiscriminatesAtOneParentStatus
+[       OK ] SqpDriverRestorationExcursion.TheSubStatusDiscriminatesAtOneParentStatus (20 ms)
+[----------] 6 tests from SqpDriverRestorationExcursion (109 ms total)
+
+[----------] Global test environment tear-down
+[==========] 36 tests from 5 test suites ran. (1916 ms total)
+[  PASSED  ] 29 tests.
+[  FAILED  ] 7 tests, listed below:
+[  FAILED  ] SqpDriverRestoration.AlgebraModeDivergenceIsANonUniqueSubproblemOptimum
+[  FAILED  ] SqpDriverRestorationProximity.TheProxyWouldCertifyWhereTheExactResidualRefuses
+[  FAILED  ] SqpDriverRestorationProximity.TheSeedGuardFiresAndTheStartObjectiveIsHPlusP
+[  FAILED  ] SqpDriverRadius.FloorRaisesTheRestorationRequest
+[  FAILED  ] SqpDriverRestorationSeed.TheRadiusFloorOffersTheRejectedTrialAndTheGuardRefusesIt
+[  FAILED  ] SqpDriverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce
+[  FAILED  ] SqpDriverRestorationExcursion.TheSubStatusTellsACutOffSubSolveFromAConvergedOne
+
+ 7 FAILED TESTS

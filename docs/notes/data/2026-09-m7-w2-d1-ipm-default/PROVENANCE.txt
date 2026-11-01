@@ -1,0 +1,22 @@
+M7 W2 D1 — PROVENANCE (CLAUDE.md §7: toolchain, hardware, date, commit)
+
+date_utc:        2026-09-18T13:41:38+00:00
+host:            Linux 7.2.4-200.fc44.x86_64  16 logical cores
+cpu:             AMD Ryzen 7 5800X3D 8-Core Processor
+compiler:        clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+cmake:           cmake version 4.3.0
+hven branch:     m7
+gate HEAD:       806ca757 (suites, legs, smoke, export — chain3)
+baseline HEAD:   2a75cecd (the re-capture at the baseline's own cell scope)
+P-SYM HEAD:      2a75cecd  vs  33f68b1e (the pre-event HEAD)
+tree state:      CLEAN (0 modified paths) at every stamped leg; the 5 paths present when
+                 this stamp was taken are this artifact itself, committed next
+MKL threads:     MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 in every measured process
+pinning:         taskset -c 2, one cell at a time, inside flock /tmp/box-build.lock, no timeout
+corpus binary:   d2984f285bf971b71ccc9e30de4de422c97bbf18a9f327cc6e99460d16b27db0
+libhven.a:       a2840d3a5eaff83cc1a4a23beecce2661edba7a466cc98324e9b3540fc5d92a1
+
+NO CO-RUN PROTOCOL IS DECLARED: every leg here ran alone in its own lock hold.
+No wall-clock number in this directory is quoted as a measurement; the asserted
+currency is counters, statuses and the residual columns the comparator gates.
+Apple/Accelerate values are UNOBSERVED and are not adjusted anywhere here.

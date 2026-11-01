@@ -1,0 +1,9 @@
+ORACLE /home/ghecht/Projects/hven/.scratch/m7w2r1/dumps/CsP_STEENBRB/qp6.txt n=468 me=96 mi=0 tr=6.4 in-cell: status=1 minors=4680 facts=4684 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=0 deferred=0 undec=0 maxiter=4680
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=-2.3730e-04 max=1.2269e-01 n_neg=36 n_zero=401
+  Z'HZ on null(Ae): dim=372 rank(Ae)=96 eig min=-2.3730e-04
+  WALK final: f=-610.622727199 viol eq/in/box=(4.533038124518409e-15, 0.0, 1.670838478281399e-14) |W| rows=0 pins=388 me+|W|=484 rank=467 n=468
+    working-set normalized singular values: min=5.678e-15 (smallest 3: [5.67787533e-15 6.80632976e-02 6.80632976e-02])
+    Z'HZ on the final working set's null space: dim=1 eig min=-1.0007e-05 (next nan) max=-1.0007e-05
+  H is not PSD on null(Ae): no global oracle; only local checks
+  POINT /home/ghecht/Projects/hven/.scratch/m7w2r1/replays/CsP_STEENBRB_qp6.off.sol: status=1 f=-610.622727199 viol=(4.533038124518409e-15, 0.0, 1.670838478281399e-14)

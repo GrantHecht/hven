@@ -1,0 +1,14 @@
+LEG: bash -o pipefail -c cd /home/ghecht/Projects/hven && cmake --build build -j 8 2>&1 | tail -6
+PGREP_SEPARATE 2026-09-15T04:17:23Z
+PGREP_EMPTY
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-09-15T04:17:23Z
+[15/20] Linking CXX executable bench/hven_sqp_f7_cold
+[16/20] Linking CXX executable bench/hven_sqp_tau_bar_sweep_probe
+[17/20] Linking CXX executable bench/hven_sqp_ssn_safeguard_probe
+[18/20] Linking CXX executable bench/hven_sqp_crossover
+[19/20] Linking CXX executable bench/hven_sqp_ipqp_e1_arm
+[20/20] Linking CXX executable tests/sqp/hven_sqp_tests
+LEG_RC=0
+FOREGROUND_END 2026-09-15T04:17:35Z
+WRAPPER_EXIT=0

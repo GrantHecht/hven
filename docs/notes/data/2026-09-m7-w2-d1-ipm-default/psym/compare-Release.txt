@@ -1,0 +1,1364 @@
+P-SYM tool sha256 (runner):   2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM tool sha256 (captures): 2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM maps: object-map=none symbol-map=none exceptions=none
+
+DIFFERS     CMakeFiles/hven.dir/src/drivers/ipm_options.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 502 alignment-pad lines vs 503 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 22894 lines vs 22893 -- instructions were added or removed
+PER-SYMBOL  CMakeFiles/hven.dir/src/drivers/ipm_options.cpp.o: PERSYM 117 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 1 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 1242 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::ipm_preset(std::basic_string_view<char, std::char_traits<char> >)
+                            STRUCTURAL: normalized listing is 332 lines vs 330 -- instructions were added or removed
+SYMBOLS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/__/bench/ipm_corpus_leg.cpp.o: COVERAGE FINDINGS
+              ONLY-AFTER    hven::solvers::corpus::interior_globalization_stamp[abi:cxx11]()::$_0::operator()[abi:cxx11](std::basic_string_view<char, std::char_traits<char> >) const
+              ONLY-AFTER    hven::solvers::corpus::interior_globalization_stamp[abi:cxx11]()
+              LOCAL-FAMILY  .LCPI: 106 before, 116 after
+              LOCAL-FAMILY  .L.str: 123 before, 129 after
+              LOCAL-FAMILY  GCC_except_table: 84 before, 86 after
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/__/bench/ipm_corpus_leg.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 1376 alignment-pad lines vs 1382 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 51801 lines vs 52356 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/__/bench/ipm_corpus_leg.cpp.o: PERSYM 321 identical, 0 noise-only, 3 differing, 0 only-before, 2 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 3057 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::corpus::CountingTraceSink::on_qp_mode(hven::solvers::QpModeTraceEvent const&)
+                              UNCLASSIFIED  - 	cmp    $0x4,%rax ;LEN=4
+                                            + 	cmp    $0x5,%rax ;LEN=4
+                            COUNTS 7 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       hven::solvers::corpus::configure_interior_solver(hven::solvers::IpmSolver&, hven::solvers::FixedVariableTreatments, hven::solvers::corpus::InteriorLevers const&, hven::solvers::corpus::InteriorVariant const&)
+                            STRUCTURAL: normalized listing is 223 lines vs 247 -- instructions were added or removed
+              DIFFERS       std::__detail::_MakeUniq<hven::solvers::IpmSolver>::__single_object std::make_unique<hven::solvers::IpmSolver>()
+                            STRUCTURAL: normalized listing is 101 lines vs 100 -- instructions were added or removed
+              ONLY-AFTER    hven::solvers::corpus::interior_globalization_stamp[abi:cxx11]()::$_0::operator()[abi:cxx11](std::basic_string_view<char, std::char_traits<char> >) const
+              ONLY-AFTER    hven::solvers::corpus::interior_globalization_stamp[abi:cxx11]()
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_corpus_cells.cpp.o
+            COUNTS 157766 insns; CHANGED 194; UNCLASSIFIED 0; DELTAS +11(x194)
+RELOCATIONS tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_corpus_cells.cpp.o (the instruction stream is within the accepted noise class,
+            but the relocation targets are not literally equal; the PER-SYMBOL
+            line below is the verdict)
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_corpus_cells.cpp.o: PERSYM 871 identical, 22 noise-only, 0 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 21040 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              NOISE-ONLY    (anonymous namespace)::CorpusTask6bRepair_TheWalkArmIsCounterIdenticalAcrossTheD0Repair_Test::TestBody()
+                            COUNTS 1461 insns; CHANGED 7; UNCLASSIFIED 0; DELTAS +11(x7)
+              NOISE-ONLY    (anonymous namespace)::CorpusTask6bRepair_ThePostRepairArtifactsCarryTheCensusAndRescoreCleanly_Test::TestBody()
+                            COUNTS 1861 insns; CHANGED 10; UNCLASSIFIED 0; DELTAS +11(x10)
+              NOISE-ONLY    (anonymous namespace)::CorpusCells_InteriorBaselineRescoresOffline_Test::TestBody()
+                            COUNTS 332 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +11(x2)
+              NOISE-ONLY    (anonymous namespace)::CorpusBaseline_TheWalkArmCarriesNoNegativeMultiplierAnywhere_Test::TestBody()
+                            COUNTS 402 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +11(x3)
+              NOISE-ONLY    (anonymous namespace)::CorpusBaseline_TheReSweptWalkArmIsCounterIdenticalToTheFrozenPreU0Baseline_Test::TestBody()
+                            COUNTS 1107 insns; CHANGED 7; UNCLASSIFIED 0; DELTAS +11(x7)
+              NOISE-ONLY    (anonymous namespace)::CorpusBaseline_TheCommittedWalkBaselineCarriesTheCommittedBudgetTableHash_Test::TestBody()
+                            COUNTS 391 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +11(x2)
+              NOISE-ONLY    (anonymous namespace)::CorpusCells_TheMultiPhaseRowsCarryAPerPhaseAccountThatSums_Test::TestBody()
+                            COUNTS 1661 insns; CHANGED 14; UNCLASSIFIED 0; DELTAS +11(x14)
+              NOISE-ONLY    (anonymous namespace)::CorpusTask6bRepair_TheKSsnArmMovesTheFourCrashingCellsAndNothingElse_Test::TestBody()
+                            COUNTS 2787 insns; CHANGED 19; UNCLASSIFIED 0; DELTAS +11(x19)
+              NOISE-ONLY    (anonymous namespace)::CorpusCells_TheTwoPartitionRowsMatchTheirOnePartitionRows_Test::TestBody()
+                            COUNTS 1224 insns; CHANGED 10; UNCLASSIFIED 0; DELTAS +11(x10)
+              NOISE-ONLY    (anonymous namespace)::interior_test::write_probe_artifact(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > const&)
+                            COUNTS 268 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +11(x2)
+              NOISE-ONLY    (anonymous namespace)::CorpusBaseline_TheCommittedSsnBatteryScoresToItsDocumentedVerdict_Test::TestBody()
+                            COUNTS 400 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +11(x2)
+              NOISE-ONLY    (anonymous namespace)::CorpusCells_InteriorArtifactCheckRejectsAnIncompleteArtifact_Test::TestBody()
+                            COUNTS 705 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +11(x3)
+              NOISE-ONLY    (anonymous namespace)::CorpusCells_TheWarmRowsShowThePayloadAndTheSeedReachedTheSolve_Test::TestBody()::$_0::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const
+                            COUNTS 285 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +11(x2)
+              NOISE-ONLY    (anonymous namespace)::CorpusTask6bPhaseB_TheShippedKSsnConfigurationIsUnmovedByTheFourLevers_Test::TestBody()::$_0::operator()(double, char const*, char const*) const
+                            COUNTS 491 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +11(x2)
+              NOISE-ONLY    (anonymous namespace)::CorpusCells_TheTwoPartitionRowsMatchTheirOnePartitionRows_Test::TestBody()::$_0::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const
+                            COUNTS 184 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +11(x1)
+              NOISE-ONLY    (anonymous namespace)::CorpusCells_TheSingleRowInteriorModeProducesTheLegsOwnRow_Test::TestBody()
+                            COUNTS 865 insns; CHANGED 7; UNCLASSIFIED 0; DELTAS +11(x7)
+              NOISE-ONLY    (anonymous namespace)::CorpusCells_InteriorArtifactCheckRejectsDuplicateAndMalformedRows_Test::TestBody()
+                            COUNTS 917 insns; CHANGED 5; UNCLASSIFIED 0; DELTAS +11(x5)
+              NOISE-ONLY    (anonymous namespace)::CorpusCells_TheThreeTreatmentsAgreeOnTheDeclaredDiagnostics_Test::TestBody()
+                            COUNTS 1578 insns; CHANGED 9; UNCLASSIFIED 0; DELTAS +11(x9)
+              NOISE-ONLY    (anonymous namespace)::CorpusTask6bPhaseB_TheShippedKSsnConfigurationIsUnmovedByTheFourLevers_Test::TestBody()
+                            COUNTS 4529 insns; CHANGED 26; UNCLASSIFIED 0; DELTAS +11(x26)
+              NOISE-ONLY    (anonymous namespace)::CorpusCells_TheWarmRowsShowThePayloadAndTheSeedReachedTheSolve_Test::TestBody()
+                            COUNTS 1360 insns; CHANGED 8; UNCLASSIFIED 0; DELTAS +11(x8)
+              NOISE-ONLY    _GLOBAL__sub_I_test_corpus_cells.cpp
+                            COUNTS 8513 insns; CHANGED 51; UNCLASSIFIED 0; DELTAS +11(x51)
+              NOISE-ONLY    (anonymous namespace)::CorpusBaseline_TheCommittedWalkBaselineScoresToItsDocumentedVerdict_Test::TestBody()
+                            COUNTS 400 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +11(x2)
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 1490 alignment-pad lines vs 1492 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 68461 lines vs 68459 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o: PERSYM 361 identical, 0 noise-only, 3 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 5672 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::crossover::run_cell_legs(hven::solvers::corpus::CorpusCell const&, hven::solvers::crossover::LegOptions const&, std::function<void (hven::solvers::crossover::CellLegs const&, hven::solvers::crossover::LegStage)> const&)
+                            PAD-ROUTE DECLINED: 2 alignment-pad lines vs 3 (10 -> 19 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                              UNCLASSIFIED  - 	vmovdqa 0x0(%rip),%ymm1 ;LEN=8
+                                            + 	movabs $0x3ff0000000000000,%rax ;LEN=10
+                              UNCLASSIFIED  - RELOC R_X86_64_PC32 .LCPI +LOCAL
+                                            + 	vmovaps %xmm0,0x4b0(%rsp) ;LEN=9
+                              UNCLASSIFIED  - 	vmovaps 0x0(%rip),%ymm5 ;LEN=8
+                                            + 	vbroadcastsd 0x0(%rip),%ymm0 ;LEN=9
+                              UNCLASSIFIED  - 	vmovaps 0x0(%rip),%ymm4 ;LEN=8
+                                            + 	movq   $0x0,0x4c0(%rsp) ;LEN=12
+                              UNCLASSIFIED  - RELOC R_X86_64_PC32 .LCPI +LOCAL
+                                            + 	movb   $0x0,0x4c8(%rsp) ;LEN=8
+                              ... and 223 more unclassified differences
+                            COUNTS 1163 insns; CHANGED 228; UNCLASSIFIED 228; DELTAS
+              DIFFERS       CrossoverAdapter_TwoLaidPartitionsSolveTheSameProblemAsOne_Test::TestBody()::$_0::operator()(hven::solvers::NonLinearProgram&) const
+                            STRUCTURAL: normalized listing is 173 lines vs 171 -- instructions were added or removed
+              DIFFERS       CrossoverLegs_TheExportStagesIntoBothWarmLegs_Test::TestBody()
+                            PAD-ROUTE DECLINED: 1 alignment-pad lines vs 2 (13 -> 22 bytes); start 0x3e60 (mod 32 = 0) -> 0x3e60 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                              UNCLASSIFIED  - 	je     SELF+0x68d ;LEN=6
+                                            + 	je     SELF+0x684 ;LEN=6
+                              UNCLASSIFIED  - 	je     SELF+0x6a0 ;LEN=6
+                                            + 	je     SELF+0x697 ;LEN=6
+                              UNCLASSIFIED  - 	je     SELF+0x7fe ;LEN=6
+                                            + 	je     SELF+0x7f5 ;LEN=6
+                              UNCLASSIFIED  - 	je     SELF+0x811 ;LEN=6
+                                            + 	je     SELF+0x808 ;LEN=6
+                              UNCLASSIFIED  - 	vmovapd 0x0(%rip),%ymm1 ;LEN=8
+                                            + 	movabs $0x3ff0000000000000,%rax ;LEN=10
+                              ... and 973 more unclassified differences
+                            COUNTS 1745 insns; CHANGED 978; UNCLASSIFIED 978; DELTAS
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_warm_currency.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 887 alignment-pad lines vs 886 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 69240 lines vs 69238 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_warm_currency.cpp.o: PERSYM 442 identical, 1 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 8280 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       SqpWarmCurrency_InteriorPointExportCrossesOverIntoTheSqpEngine_Test::TestBody()
+                            STRUCTURAL: normalized listing is 2618 lines vs 2617 -- instructions were added or removed
+              NOISE-ONLY    SqpWarmCurrency_TheSamePayloadStagedTwiceGivesBitIdenticalKIpmSolves_Test::TestBody()
+                            COUNTS 1050 insns; CHANGED 214; UNCLASSIFIED 0; DELTAS (pad-merged)
+            PAD-MERGED 2 alignment-pad lines vs 1 (27 -> 11 bytes, -16); 1050 non-pad lines, 836 identical, 214 control-transfer targets shifted -16; 255 control-transfer target(s) resolved to the SAME instruction; start 0x1a6c0 (mod 32 = 0) -> 0x1a6b0 (mod 32 = 16)
+SYMBOLS     tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_0_cxx.cxx.o: COVERAGE FINDINGS
+              ONLY-BEFORE   typeinfo name for testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test>
+              ONLY-BEFORE   typeinfo for InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test
+              ONLY-BEFORE   InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test::TestBody()
+              ONLY-BEFORE   testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test>::CreateTest()
+              ONLY-BEFORE   testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test>::~TestFactoryImpl()
+              ONLY-BEFORE   vtable for testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test>
+              ONLY-BEFORE   typeinfo for testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test>
+              ONLY-BEFORE   InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test::~InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test()
+              ONLY-BEFORE   typeinfo name for InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test
+              ONLY-BEFORE   vtable for InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test
+              ONLY-BEFORE   InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test::test_info_
+              ONLY-AFTER    typeinfo name for InteriorPointSolverPresetsTest_PresetGateClassicDiffersFromTheDefaultInExactlyTheTwoGlobalizationFields_Test
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [70]>(char const*, char const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const (&) [70])
+              ONLY-AFTER    InteriorPointSolverPresetsTest_PresetGateThePreEventDefaultStillValidates_Test::~InteriorPointSolverPresetsTest_PresetGateThePreEventDefaultStillValidates_Test()
+              ONLY-AFTER    typeinfo for testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateThePreEventDefaultStillValidates_Test>
+              ONLY-AFTER    testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicPlusFiveHundredReconstructsThePreEventDefault_Test>::CreateTest()
+              ONLY-AFTER    typeinfo for testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicDiffersFromTheDefaultInExactlyTheTwoGlobalizationFields_Test>
+              ONLY-AFTER    (anonymous namespace)::lines_of(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+              ONLY-AFTER    typeinfo name for InteriorPointSolverPresetsTest_PresetGateThePreEventDefaultStillValidates_Test
+              ONLY-AFTER    InteriorPointSolverPresetsTest_PresetGateClassicDiffersFromTheDefaultInExactlyTheTwoGlobalizationFields_Test::TestBody()
+              ONLY-AFTER    InteriorPointSolverPresetsTest_PresetGateClassicPlusFiveHundredReconstructsThePreEventDefault_Test::TestBody()
+              ONLY-AFTER    (anonymous namespace)::dump_to_string[abi:cxx11](hven::solvers::IpmOptions const&)
+              ONLY-AFTER    typeinfo for testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicPlusFiveHundredReconstructsThePreEventDefault_Test>
+              ONLY-AFTER    vtable for testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateThePreEventDefaultStillValidates_Test>
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [38]>(char const*, char const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const (&) [38])
+              ONLY-AFTER    InteriorPointSolverPresetsTest_PresetGateThePreEventDefaultStillValidates_Test::TestBody()
+              ONLY-AFTER    typeinfo name for testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicDiffersFromTheDefaultInExactlyTheTwoGlobalizationFields_Test>
+              ONLY-AFTER    typeinfo name for testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateThePreEventDefaultStillValidates_Test>
+              ONLY-AFTER    vtable for InteriorPointSolverPresetsTest_PresetGateClassicDiffersFromTheDefaultInExactlyTheTwoGlobalizationFields_Test
+              ONLY-AFTER    testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateThePreEventDefaultStillValidates_Test>::CreateTest()
+              ONLY-AFTER    typeinfo for InteriorPointSolverPresetsTest_PresetGateClassicDiffersFromTheDefaultInExactlyTheTwoGlobalizationFields_Test
+              ... and 17 more symbols present only in the after arm
+              LOCAL-FAMILY  .LCPI: 781 before, 813 after
+              LOCAL-FAMILY  .L.str: 776 before, 805 after
+              LOCAL-FAMILY  GCC_except_table: 406 before, 414 after
+DIFFERS     tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_0_cxx.cxx.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 1230 alignment-pad lines vs 1242 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 127976 lines vs 130138 -- instructions were added or removed
+PER-SYMBOL  tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_0_cxx.cxx.o: PERSYM 1108 identical, 18 noise-only, 50 differing, 4 only-before, 16 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 1 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 19489 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              NOISE-ONLY    IpmStopReason_ARestorationLocalInfeasibilityIsRecordedAsSuch_Test::TestBody()
+                            COUNTS 402 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +25(x4)
+              DIFFERS       IpmStopReason_AStalledFeasibilityStageIsRecordedAsSuch_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x2c5fa(%rip),%rax ;LEN=7
+                                            + 	lea    0x2c97a(%rip),%rax ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x2c5fe(%rip),%rcx ;LEN=7
+                                            + 	lea    0x2c97e(%rip),%rcx ;LEN=7
+                            COUNTS 440 insns; CHANGED 6; UNCLASSIFIED 2; DELTAS +25(x4)
+              NOISE-ONLY    IpmStopReason_TheLocallyInfeasibleDoorStillPrintsNoSolutionFoundAndCarriesItsMessage_Test::TestBody()
+                            COUNTS 1880 insns; CHANGED 12; UNCLASSIFIED 0; DELTAS +25(x12)
+              DIFFERS       IpmSolverEntry_TheL1MeritLineSearchSolvesHs071OnItsOwnTrajectory_Test::TestBody()
+                            PAD-ROUTE DECLINED: 5 alignment-pad lines vs 3 (53 -> 26 bytes); start 0x293d0 (mod 32 = 16) -> 0x2afb0 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1200 lines vs 1223 -- instructions were added or removed
+              NOISE-ONLY    IpmStopReason_AnUnevaluableStepWithRestorationAvailableEntersItThroughTheRecoveryChain_Test::TestBody()
+                            COUNTS 568 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +25(x4)
+              DIFFERS       IpmPhases_TheFiveRetiredJobModesAreFivePhaseSequences_Test::TestBody()
+                            PAD-ROUTE DECLINED: 13 alignment-pad lines vs 10 (125 -> 88 bytes); start 0x1e950 (mod 32 = 16) -> 0x20470 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 927 lines vs 926 -- instructions were added or removed
+              DIFFERS       IpmSolverEntry_FixedVariableTreatmentIsRecordedOnSolveResult_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1465 lines vs 1463 -- instructions were added or removed
+              DIFFERS       IpmSolverEntry_RosenbrockConvergesToKnownOptimum_Test::TestBody()
+                            PAD-ROUTE DECLINED: 5 alignment-pad lines vs 5 (54 -> 48 bytes); start 0x4ee0 (mod 32 = 0) -> 0x6af0 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 840 lines vs 839 -- instructions were added or removed
+              DIFFERS       IpmStopReason_WithDefaultDivergenceThresholdsTheSameFixtureDiverges_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x2bedd(%rip),%rax ;LEN=7
+                                            + 	lea    0x2c25d(%rip),%rax ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x2bee1(%rip),%rcx ;LEN=7
+                                            + 	lea    0x2c261(%rip),%rcx ;LEN=7
+                            COUNTS 440 insns; CHANGED 6; UNCLASSIFIED 2; DELTAS +25(x4)
+              DIFFERS       IpmPhases_TheEmptySequenceIsRefusedByValidate_Test::TestBody()
+                            STRUCTURAL: normalized listing is 638 lines vs 636 -- instructions were added or removed
+              DIFFERS       IpmSolverEntry_ZIsDeclaredWidthAndZeroAtAnEliminatedCoordinate_Test::TestBody()
+                            STRUCTURAL: normalized listing is 977 lines vs 976 -- instructions were added or removed
+              DIFFERS       stop_reason_test::(anonymous namespace)::make_stall_solver(int, bool)
+                            STRUCTURAL: normalized listing is 475 lines vs 481 -- instructions were added or removed
+              NOISE-ONLY    expect_variant_absorbs_unevaluable_trials(hven::solvers::LineSearchModes, char const*)
+                            COUNTS 380 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +25(x3)
+              NOISE-ONLY    (anonymous namespace)::IterateRecordingSink::on_ipm_iter(hven::solvers::IpmIterTraceEvent const&)
+                            COUNTS 113 insns; CHANGED 7; UNCLASSIFIED 0; DELTAS (pad-merged)
+            PAD-MERGED 1 alignment-pad lines vs 0 (12 -> 0 bytes, -12); 113 non-pad lines, 106 identical, 7 control-transfer targets shifted -16; 1 control transfer(s) re-encoded -4 bytes; 9 control-transfer target(s) resolved to the SAME instruction; start 0x54ff0 (mod 32 = 16) -> 0x57000 (mod 32 = 0)
+              ONLY-BEFORE   InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test::~InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test()
+              DIFFERS       (anonymous namespace)::run_with_phase_sink(std::vector<hven::solvers::IpmPhase, std::allocator<hven::solvers::IpmPhase> > const&, int, hven::solvers::SolveStatus*)
+                            STRUCTURAL: normalized listing is 603 lines vs 602 -- instructions were added or removed
+              DIFFERS       IpmSolverEntry_AFaultedTranscriptionCommitsNothingAndRetriesCleanly_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1728 lines vs 1727 -- instructions were added or removed
+              DIFFERS       IpmSolverEntry_NonFiniteStartingMultipliersThrow_Test::TestBody()
+                            STRUCTURAL: normalized listing is 654 lines vs 653 -- instructions were added or removed
+              NOISE-ONLY    IpmStopReason_TheProximalArmLeavesRestorationWhereTheL1ArmDeclaresInfeasibility_Test::TestBody()
+                            COUNTS 893 insns; CHANGED 8; UNCLASSIFIED 0; DELTAS +25(x8)
+              DIFFERS       IpmSolverEntry_LowerBoundedRowActiveWithNegativeIpoptMultiplier_Test::TestBody()
+                            STRUCTURAL: normalized listing is 735 lines vs 734 -- instructions were added or removed
+              NOISE-ONLY    IpmStopReason_AnUnevaluableStepAtAnUnacceptableIterateAbortsWithTheLatchedError_Test::TestBody()
+                            COUNTS 316 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +25(x3)
+              NOISE-ONLY    IpmSolverEntry_AConvergenceOnTheCapIterationRecordsNoStopReason_Test::TestBody()
+                            COUNTS 390 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS +15(x6)
+              DIFFERS       _GLOBAL__sub_I_unity_0_cxx.cxx
+                            STRUCTURAL: normalized listing is 12875 lines vs 13078 -- instructions were added or removed
+              DIFFERS       IpmSolverEntry_TheLagrangianMeritLineSearchSolvesHs071OnItsOwnTrajectory_Test::TestBody()
+                            PAD-ROUTE DECLINED: 6 alignment-pad lines vs 5 (65 -> 54 bytes); start 0x27ed0 (mod 32 = 16) -> 0x299c0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1205 lines vs 1229 -- instructions were added or removed
+              DIFFERS       IpmSolverEntry_FixedVariableSolvesExactlyAtItsFixedValue_Test::TestBody()
+                            STRUCTURAL: normalized listing is 784 lines vs 783 -- instructions were added or removed
+              ONLY-BEFORE   testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test>::CreateTest()
+              DIFFERS       IpmSolverEntry_PartitionCountAndQpThreadCountAreSetIndependently_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1944 lines vs 1943 -- instructions were added or removed
+              DIFFERS       IpmSolverEntry_AnInBoxStartPointIsUnchangedByTheSameSolve_Test::TestBody()
+                            STRUCTURAL: normalized listing is 533 lines vs 532 -- instructions were added or removed
+              DIFFERS       IpmSolverEntry_TheProgramsPartitionCountIsWhatEvaluationsSee_Test::TestBody()
+                            PAD-ROUTE DECLINED: 2 alignment-pad lines vs 3 (25 -> 34 bytes); start 0x204b0 (mod 32 = 16) -> 0x21fb0 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                              UNCLASSIFIED  - 	je     SELF+0x5b5 ;LEN=6
+                                            + 	je     SELF+0x5ac ;LEN=6
+                              UNCLASSIFIED  - 	je     SELF+0x5c8 ;LEN=6
+                                            + 	je     SELF+0x5bf ;LEN=6
+                              UNCLASSIFIED  - 	vmovaps 0x0(%rip),%xmm0 ;LEN=8
+                                            + 	vmovaps 0x0(%rip),%ymm0 ;LEN=8
+                              UNCLASSIFIED  - 	vmovups %xmm0,0x108(%rsp) ;LEN=9
+                                            + 	vmovups %ymm0,0x108(%rsp) ;LEN=9
+                              UNCLASSIFIED  - 	movl   $0x3,0x118(%rsp) ;LEN=11
+                                            + 	movl   $0x1,0x128(%rsp) ;LEN=11
+                              ... and 459 more unclassified differences
+                            COUNTS 811 insns; CHANGED 464; UNCLASSIFIED 464; DELTAS
+              NOISE-ONLY    IpmStopReason_AnUnevaluableStepAtAnAcceptableIterateExitsAtTheAcceptableLevel_Test::TestBody()
+                            COUNTS 335 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +25(x3)
+              DIFFERS       IpmSolverEntry_ASecondSolveTranscribesNothingAndSpendsNoFurtherSetupEvaluation_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1344 lines vs 1343 -- instructions were added or removed
+              DIFFERS       IpmSolverEntry_RangeRowActiveAtUpperWithPositiveIpoptMultiplier_Test::TestBody()
+                            STRUCTURAL: normalized listing is 735 lines vs 734 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::ClassicMeritRestoration_TheGenericAcceptanceQuestionIsRefusedNotAnswered_Test::TestBody()
+                            STRUCTURAL: normalized listing is 575 lines vs 574 -- instructions were added or removed
+              NOISE-ONLY    IpmStopReason_TheStalledDoorStillPrintsNoSolutionFoundAndCarriesItsMessage_Test::TestBody()
+                            COUNTS 1953 insns; CHANGED 15; UNCLASSIFIED 0; DELTAS +25(x15)
+              DIFFERS       IpmSolverEntry_AMultiPhaseCapIsLabelledByThePhaseThatHitIt_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1810 lines vs 1809 -- instructions were added or removed
+              DIFFERS       IpmSolverEntry_EqualityMultiplierHasIpoptSign_Test::TestBody()
+                            STRUCTURAL: normalized listing is 691 lines vs 690 -- instructions were added or removed
+              NOISE-ONLY    IpmStopReason_NoSolveHasHappenedYet_Test::TestBody()
+                            COUNTS 121 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +25(x1)
+              DIFFERS       (anonymous namespace)::ClassicMeritRestoration_FloorTracksSettingsEconTol_Test::TestBody()
+                            STRUCTURAL: normalized listing is 250 lines vs 249 -- instructions were added or removed
+              DIFFERS       hs071_cap_boundary::(anonymous namespace)::converging_loop_index()
+                            STRUCTURAL: normalized listing is 668 lines vs 667 -- instructions were added or removed
+              DIFFERS       IpmStopReason_TheLocallyInfeasibleDoorFiresItsRowOnBothStreams_Test::TestBody()
+                            PAD-ROUTE DECLINED: 6 alignment-pad lines vs 5 (68 -> 52 bytes); start 0x2ec90 (mod 32 = 16) -> 0x30940 (mod 32 = 0) -- a non-pad line differs somewhere other than a control-transfer target (rule 3)
+                            STRUCTURAL: normalized listing is 887 lines vs 886 -- instructions were added or removed
+              DIFFERS       IpmSolverEntry_AStartPointOfTheWrongSizeIsRefused_Test::TestBody()
+                            STRUCTURAL: normalized listing is 859 lines vs 858 -- instructions were added or removed
+              NOISE-ONLY    IpmStopReason_TheProximalArmReEntersRestorationOnlyAfterLeavingIt_Test::TestBody()
+                            COUNTS 490 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +25(x4)
+              NOISE-ONLY    ipm_option_variants::(anonymous namespace)::expect_reaches_the_known_optimum(ipm_option_variants::(anonymous namespace)::VariantRun const&, char const*)
+                            COUNTS 386 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +15(x4)
+              DIFFERS       IpmSolverEntry_TwoSolvesFromTheSameStartPointAgree_Test::TestBody()
+                            PAD-ROUTE DECLINED: 5 alignment-pad lines vs 5 (50 -> 52 bytes); start 0xd3a0 (mod 32 = 0) -> 0xef40 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1242 lines vs 1240 -- instructions were added or removed
+              DIFFERS       IpmSolverEntry_TheProbeBarrierOracleSolvesHs071OnItsOwnBarrierSchedule_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1204 lines vs 1202 -- instructions were added or removed
+              NOISE-ONLY    (anonymous namespace)::FilterAcceptance_MultipleFilterRejectionsBeforeAcceptCountOnce_Test::TestBody()
+                            COUNTS 446 insns; CHANGED 94; UNCLASSIFIED 0; DELTAS (pad-merged)
+            PAD-MERGED 1 alignment-pad lines vs 2 (1 -> 17 bytes, +16); 446 non-pad lines, 352 identical, 94 control-transfer targets shifted +16; 112 control-transfer target(s) resolved to the SAME instruction; start 0x464d0 (mod 32 = 16) -> 0x48140 (mod 32 = 0)
+              DIFFERS       (anonymous namespace)::ClassicMeritRestoration_RelativeFloorBoundary_Test::TestBody()
+                            STRUCTURAL: normalized listing is 407 lines vs 406 -- instructions were added or removed
+              DIFFERS       hs071_cap_boundary::(anonymous namespace)::run_capped(int)
+                            STRUCTURAL: normalized listing is 527 lines vs 526 -- instructions were added or removed
+              DIFFERS       WorkerOptions_JetPreparationEquivalent_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1285 lines vs 1283 -- instructions were added or removed
+              DIFFERS       IpmStopReason_TheInterruptDoorStillPrintsNoSolutionFoundAndCarriesItsMessage_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x245cf(%rip),%rax ;LEN=7
+                                            + 	lea    0x2496f(%rip),%rax ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x245e0(%rip),%rcx ;LEN=7
+                                            + 	lea    0x24980(%rip),%rcx ;LEN=7
+                            COUNTS 1639 insns; CHANGED 12; UNCLASSIFIED 2; DELTAS +25(x10)
+              NOISE-ONLY    IpmStopReason_TheDoorsMarkerFollowsItsOwnIterLineOnALiveSolve_Test::TestBody()::$_0::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const
+                            COUNTS 223 insns; CHANGED 27; UNCLASSIFIED 0; DELTAS (pad-merged)
+            PAD-MERGED 3 alignment-pad lines vs 4 (36 -> 52 bytes, +16); 223 non-pad lines, 196 identical, 27 control-transfer targets shifted +16; 42 control-transfer target(s) resolved to the SAME instruction; start 0x59f60 (mod 32 = 0) -> 0x5bf90 (mod 32 = 16)
+              NOISE-ONLY    IpmStopReason_OnlyResolutionEverProducesStalledOrInterrupted_Test::TestBody()
+                            COUNTS 718 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +25(x2)
+              DIFFERS       IpmSolverEntry_Hs071ConvergesToKnownOptimum_Test::TestBody()
+                            PAD-ROUTE DECLINED: 5 alignment-pad lines vs 6 (50 -> 72 bytes); start 0x3280 (mod 32 = 0) -> 0x4e90 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                              UNCLASSIFIED  - 	je     SELF+0xc10 ;LEN=6
+                                            + 	je     SELF+0xc20 ;LEN=6
+                              UNCLASSIFIED  - 	je     SELF+0xc23 ;LEN=6
+                                            + 	je     SELF+0xc33 ;LEN=6
+                              UNCLASSIFIED  - 	je     SELF+0xc30 ;LEN=6
+                                            + 	je     SELF+0xc40 ;LEN=6
+                              UNCLASSIFIED  - 	je     SELF+0xc43 ;LEN=6
+                                            + 	je     SELF+0xc53 ;LEN=6
+                              UNCLASSIFIED  - 	vmovapd 0x0(%rip),%xmm0 ;LEN=8
+                                            + 	vmovaps 0x0(%rip),%ymm0 ;LEN=8
+                              ... and 466 more unclassified differences
+                            COUNTS 737 insns; CHANGED 471; UNCLASSIFIED 471; DELTAS
+              DIFFERS       IpmSolverEntry_AConvergedSolveRecordsNoStopReason_Test::TestBody()
+                            STRUCTURAL: normalized listing is 967 lines vs 966 -- instructions were added or removed
+              DIFFERS       IpmSolverEntry_TheReportedKktResidualsDescribeTheIterateTheResultDescribes_Test::TestBody()
+                            PAD-ROUTE DECLINED: 1 alignment-pad lines vs 2 (13 -> 23 bytes); start 0x1cd70 (mod 32 = 16) -> 0x1e890 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                              UNCLASSIFIED  - 	vmovapd 0x0(%rip),%xmm0 ;LEN=8
+                                            + 	vmovaps 0x0(%rip),%ymm0 ;LEN=8
+                              UNCLASSIFIED  - 	vmovupd %xmm0,0x388(%rsp) ;LEN=9
+                                            + 	vmovups %ymm0,0x388(%rsp) ;LEN=9
+                              UNCLASSIFIED  - 	movl   $0x3,0x398(%rsp) ;LEN=11
+                                            + 	movl   $0x1,0x3a8(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0x3b0(%rsp) ;LEN=11
+                                            + 	movb   $0x0,0x3ac(%rsp) ;LEN=8
+                              UNCLASSIFIED  - 	vxorpd %xmm0,%xmm0,%xmm0 ;LEN=4
+                                            + 	movl   $0x0,0x3b0(%rsp) ;LEN=11
+                              ... and 436 more unclassified differences
+                            COUNTS 1169 insns; CHANGED 441; UNCLASSIFIED 441; DELTAS
+              DIFFERS       IpmSolverEntry_TheIterationCapIsTheRecordedStopReason_Test::TestBody()
+                            STRUCTURAL: normalized listing is 690 lines vs 689 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::ClassicMeritRestoration_ToleranceFloorWaivesRelativeWhenRefTiny_Test::TestBody()
+                            STRUCTURAL: normalized listing is 329 lines vs 328 -- instructions were added or removed
+              NOISE-ONLY    IpmStopReason_TheDoorsMarkerFollowsItsOwnIterLineOnALiveSolve_Test::TestBody()
+                            COUNTS 1530 insns; CHANGED 10; UNCLASSIFIED 0; DELTAS +25(x10)
+              DIFFERS       std::__detail::_MakeUniq<hven::solvers::IpmSolver>::__single_object std::make_unique<hven::solvers::IpmSolver>()
+                            STRUCTURAL: normalized listing is 101 lines vs 100 -- instructions were added or removed
+              DIFFERS       IpmSolverEntry_FreeRowDroppedFromTranscriptionReadsZeroMultiplier_Test::TestBody()
+                            STRUCTURAL: normalized listing is 733 lines vs 732 -- instructions were added or removed
+              ONLY-BEFORE   testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test>::~TestFactoryImpl()
+              ONLY-BEFORE   InteriorPointSolverPresetsTest_PresetGateClassicMatchesFreshDefaultSettings_Test::TestBody()
+              DIFFERS       IpmSolverEntry_Hs071BoundDualsMatchActiveLowerBound_Test::TestBody()
+                            STRUCTURAL: normalized listing is 877 lines vs 876 -- instructions were added or removed
+              DIFFERS       InteriorPointSolverSettingsTest_NaNRejectedBySiteNamedSetters_Test::TestBody()
+                            STRUCTURAL: normalized listing is 2654 lines vs 2653 -- instructions were added or removed
+              DIFFERS       IpmStopReason_AStallOnTheCapIterationKeepsTheStallLabel_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x28726(%rip),%rax ;LEN=7
+                                            + 	lea    0x28ab6(%rip),%rax ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x2872a(%rip),%rcx ;LEN=7
+                                            + 	lea    0x28aba(%rip),%rcx ;LEN=7
+                            COUNTS 689 insns; CHANGED 6; UNCLASSIFIED 2; DELTAS +25(x4)
+              DIFFERS       IpmSolverEntry_TheReportedKktResidualsAreTheOnesTheConvergenceTestGated_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1934 lines vs 1933 -- instructions were added or removed
+              DIFFERS       InteriorPointSolverSettingsTest_InfRejectedByGreaterThanSetters_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1091 lines vs 1090 -- instructions were added or removed
+              NOISE-ONLY    IpmSolverEntry_OneIterationShortOfConvergenceRecordsTheCap_Test::TestBody()
+                            COUNTS 321 insns; CHANGED 5; UNCLASSIFIED 0; DELTAS +15(x5)
+              DIFFERS       IpmSolverEntry_AnOutOfBoxStartPointIsPushedInteriorBeforeTheFirstEvaluation_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1036 lines vs 1035 -- instructions were added or removed
+              DIFFERS       hven::solvers::IpmOptions::IpmOptions()
+                            STRUCTURAL: normalized listing is 79 lines vs 78 -- instructions were added or removed
+              DIFFERS       InteriorPointSolverSettingsTest_NaNRejectedByValidateForEveryHelperFamily_Test::TestBody()
+                            STRUCTURAL: normalized listing is 910 lines vs 909 -- instructions were added or removed
+              DIFFERS       IpmSolverEntry_SeededSolveConverges_Test::TestBody()
+                            PAD-ROUTE DECLINED: 6 alignment-pad lines vs 6 (61 -> 70 bytes); start 0xc5a0 (mod 32 = 0) -> 0xe140 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 860 lines vs 859 -- instructions were added or removed
+              ONLY-AFTER    InteriorPointSolverPresetsTest_PresetGateClassicDiffersFromTheDefaultInExactlyTheTwoGlobalizationFields_Test::TestBody()
+              ONLY-AFTER    testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicPlusFiveHundredReconstructsThePreEventDefault_Test>::~TestFactoryImpl()
+              ONLY-AFTER    (anonymous namespace)::lines_of(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+              ONLY-AFTER    testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateThePreEventDefaultStillValidates_Test>::~TestFactoryImpl()
+              ONLY-AFTER    InteriorPointSolverPresetsTest_PresetGateClassicDiffersFromTheDefaultInExactlyTheTwoGlobalizationFields_Test::~InteriorPointSolverPresetsTest_PresetGateClassicDiffersFromTheDefaultInExactlyTheTwoGlobalizationFields_Test()
+              ONLY-AFTER    InteriorPointSolverPresetsTest_PresetGateThePreEventDefaultStillValidates_Test::TestBody()
+              ONLY-AFTER    InteriorPointSolverPresetsTest_PresetGateClassicPlusFiveHundredReconstructsThePreEventDefault_Test::TestBody()
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [70]>(char const*, char const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const (&) [70])
+              ONLY-AFTER    InteriorPointSolverPresetsTest_PresetGateThePreEventDefaultStillValidates_Test::~InteriorPointSolverPresetsTest_PresetGateThePreEventDefaultStillValidates_Test()
+              ONLY-AFTER    InteriorPointSolverPresetsTest_PresetGateClassicPlusFiveHundredReconstructsThePreEventDefault_Test::~InteriorPointSolverPresetsTest_PresetGateClassicPlusFiveHundredReconstructsThePreEventDefault_Test()
+              ONLY-AFTER    testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicPlusFiveHundredReconstructsThePreEventDefault_Test>::CreateTest()
+              ONLY-AFTER    testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateThePreEventDefaultStillValidates_Test>::CreateTest()
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [38]>(char const*, char const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const (&) [38])
+              ONLY-AFTER    testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicDiffersFromTheDefaultInExactlyTheTwoGlobalizationFields_Test>::CreateTest()
+              ONLY-AFTER    (anonymous namespace)::dump_to_string[abi:cxx11](hven::solvers::IpmOptions const&)
+              ONLY-AFTER    testing::internal::TestFactoryImpl<InteriorPointSolverPresetsTest_PresetGateClassicDiffersFromTheDefaultInExactlyTheTwoGlobalizationFields_Test>::~TestFactoryImpl()
+DIFFERS     tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 2569 alignment-pad lines vs 2581 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 267431 lines vs 267381 -- instructions were added or removed
+PER-SYMBOL  tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o: PERSYM 1791 identical, 3 noise-only, 71 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 6 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 40881 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::(anonymous namespace)::IpmTrace_ARefusedCallWritesNoLineAtAll_Test::TestBody()
+                            STRUCTURAL: normalized listing is 886 lines vs 885 -- instructions were added or removed
+              DIFFERS       hven::solvers::(anonymous namespace)::IpmTrace_SeqIsContiguousAcrossAnSqpSolveThenAnIpmSolveOnOneSinkAtDepthZero_Test::TestBody()
+                            PAD-ROUTE DECLINED: 15 alignment-pad lines vs 16 (127 -> 137 bytes); start 0x70cd0 (mod 32 = 16) -> 0x70b70 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                              UNCLASSIFIED  - 	je     SELF+0xf1f ;LEN=6
+                                            + 	je     SELF+0xf15 ;LEN=6
+                              UNCLASSIFIED  - 	je     SELF+0xf32 ;LEN=6
+                                            + 	je     SELF+0xf28 ;LEN=6
+                              UNCLASSIFIED  - 	vpmovsxbd 0x0(%rip),%xmm0 ;LEN=9
+                                            + 	vmovaps 0x0(%rip),%ymm0 ;LEN=8
+                              UNCLASSIFIED  - 	vmovdqu %xmm0,0x5f0(%rsp) ;LEN=9
+                                            + 	vmovups %ymm0,0x5f0(%rsp) ;LEN=9
+                              UNCLASSIFIED  - 	movl   $0x3,0x600(%rsp) ;LEN=11
+                                            + 	movl   $0x1,0x610(%rsp) ;LEN=11
+                              ... and 465 more unclassified differences
+                            COUNTS 2155 insns; CHANGED 470; UNCLASSIFIED 470; DELTAS
+              DIFFERS       hven::solvers::(anonymous namespace)::IpmTrace_IterCountEqualsTheReportedIterationsAndTheCallbackInvocations_Test::TestBody()
+                            PAD-ROUTE DECLINED: 2 alignment-pad lines vs 2 (20 -> 30 bytes); start 0x59a70 (mod 32 = 16) -> 0x59970 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 975 lines vs 974 -- instructions were added or removed
+              DIFFERS       IpmWarmStart_TheSizeRefusalNamesTheBlockAndBothCountsAtSolveEntry_Test::TestBody()
+                            STRUCTURAL: normalized listing is 935 lines vs 934 -- instructions were added or removed
+              DIFFERS       hven::solvers::(anonymous namespace)::IpmTrace_EveryIterLineIsTheRecordTheCallbackSawInTheSameOrder_Test::TestBody()
+                            PAD-ROUTE DECLINED: 19 alignment-pad lines vs 19 (206 -> 216 bytes); start 0x5bbc0 (mod 32 = 0) -> 0x5bac0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 2000 lines vs 1999 -- instructions were added or removed
+              DIFFERS       IpmWarmStart_TheStampIsCapturedAtSolveCompletionNotAtExport_Test::TestBody()
+                            STRUCTURAL: normalized listing is 743 lines vs 742 -- instructions were added or removed
+              DIFFERS       IpmWarmStart_AnEmptyPrimalWithNonEmptyBoundDualsIsRefusedAtHandOver_Test::TestBody()
+                            STRUCTURAL: normalized listing is 989 lines vs 988 -- instructions were added or removed
+              DIFFERS       hven::solvers::(anonymous namespace)::IpmTrace_TheTwoProximalShiftsAreNullOnTheClassicPathAndNumbersUnderProximalMode_Test::TestBody()
+                            PAD-ROUTE DECLINED: 9 alignment-pad lines vs 8 (98 -> 68 bytes); start 0x5f850 (mod 32 = 16) -> 0x5f750 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1908 lines vs 1905 -- instructions were added or removed
+              DIFFERS       hven::solvers::(anonymous namespace)::IpmTrace_AConvergedSolveLeavesThroughTheConvergeCheckSiteAndAMaxItersSolveDoesNot_Test::TestBody()
+                            PAD-ROUTE DECLINED: 7 alignment-pad lines vs 8 (95 -> 97 bytes); start 0x61a60 (mod 32 = 0) -> 0x61940 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1929 lines vs 1928 -- instructions were added or removed
+              DIFFERS       hven::solvers::IpmOptions::IpmOptions()
+                            STRUCTURAL: normalized listing is 79 lines vs 78 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::KktFactorizationTest_AThreadCountChangedAfterTranscriptionStillSolves_Test::TestBody()
+                            STRUCTURAL: normalized listing is 590 lines vs 589 -- instructions were added or removed
+              DIFFERS       std::__detail::_MakeUniq<hven::solvers::IpmSolver>::__single_object std::make_unique<hven::solvers::IpmSolver>()
+                            STRUCTURAL: normalized listing is 101 lines vs 100 -- instructions were added or removed
+              DIFFERS       IpmWarmStart_TheHandOverRefusesANonFiniteBlock_Test::TestBody()
+                            STRUCTURAL: normalized listing is 747 lines vs 746 -- instructions were added or removed
+              DIFFERS       IpmWarmStart_AFreshSolverHasNoCompletedSolveAndNoResultToExportFrom_Test::TestBody()
+                            STRUCTURAL: normalized listing is 453 lines vs 452 -- instructions were added or removed
+              DIFFERS       IpmWarmStart_ASolveThatThrewIsNotACompletedSolve_Test::TestBody()
+                            STRUCTURAL: normalized listing is 697 lines vs 696 -- instructions were added or removed
+              DIFFERS       hven::solvers::(anonymous namespace)::IpmTrace_DetachingMidLifetimeStopsTheStreamAndChangesNothingElse_Test::TestBody()
+                            STRUCTURAL: normalized listing is 895 lines vs 894 -- instructions were added or removed
+              DIFFERS       IpmWarmStart_AZeroValuedPriceBlockIsStillAcceptedAndSolves_Test::TestBody()
+                            STRUCTURAL: normalized listing is 575 lines vs 574 -- instructions were added or removed
+              DIFFERS       hven::solvers::(anonymous namespace)::IpmTrace_ThePerturbedPivotCountIsTheBackendsOwnAndNeverAFabricatedZero_Test::TestBody()
+                            PAD-ROUTE DECLINED: 6 alignment-pad lines vs 7 (55 -> 65 bytes); start 0x642f0 (mod 32 = 16) -> 0x641d0 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                              UNCLASSIFIED  - 	vmovaps 0x0(%rip),%xmm0 ;LEN=8
+                                            + 	vmovaps 0x0(%rip),%ymm0 ;LEN=8
+                              UNCLASSIFIED  - 	vmovups %xmm0,0x108(%rsp) ;LEN=9
+                                            + 	vmovups %ymm0,0x108(%rsp) ;LEN=9
+                              UNCLASSIFIED  - 	movl   $0x3,0x118(%rsp) ;LEN=11
+                                            + 	movl   $0x1,0x128(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0x130(%rsp) ;LEN=11
+                                            + 	movb   $0x0,0x12c(%rsp) ;LEN=8
+                              UNCLASSIFIED  - 	vxorps %xmm0,%xmm0,%xmm0 ;LEN=4
+                                            + 	movl   $0x0,0x130(%rsp) ;LEN=11
+                              ... and 376 more unclassified differences
+                            COUNTS 1064 insns; CHANGED 381; UNCLASSIFIED 381; DELTAS
+              DIFFERS       hven::solvers::(anonymous namespace)::IpmTrace_AttachingASinkMovesNoResultField_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1706 lines vs 1704 -- instructions were added or removed
+              DIFFERS       IpmWarmStart_EveryTruncationOfThePolishPayloadRefusesAtTheHandOverNamingTheOffset_Test::TestBody()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 3 (25 -> 34 bytes); start 0x1d340 (mod 32 = 0) -> 0x1d260 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 893 lines vs 892 -- instructions were added or removed
+              DIFFERS       IpmWarmStart_AForeignExtensionTagIsIgnoredAtTheHandOverAndAtSolve_Test::TestBody()
+                            STRUCTURAL: normalized listing is 592 lines vs 591 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::KktFactorizationTest_MklRejectsAnUndocumentedPivotingStrategyCode_Test::TestBody()
+                            STRUCTURAL: normalized listing is 528 lines vs 527 -- instructions were added or removed
+              DIFFERS       hven::solvers::(anonymous namespace)::IpmConsole_AttachTraceDuringASolveIsRefusedAndTheConsoleRunsOnUnbroken_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1096 lines vs 1095 -- instructions were added or removed
+              DIFFERS       IpmWarmStart_ThePointFormAndTheSeedFormAreTheSameArgument_Test::TestBody()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 2 (30 -> 5 bytes); start 0x12560 (mod 32 = 0) -> 0x12510 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 2019 lines vs 2013 -- instructions were added or removed
+              DIFFERS       hven::solvers::(anonymous namespace)::IpmPhaseEvents_TheExitEventEmbedsTheReportTheSolveReturns_Test::TestBody()
+                            PAD-ROUTE DECLINED: 37 alignment-pad lines vs 38 (368 -> 378 bytes); start 0x86cd0 (mod 32 = 16) -> 0x86b50 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                              UNCLASSIFIED  - 	vmovaps 0x0(%rip),%xmm0 ;LEN=8
+                                            + 	vmovaps 0x0(%rip),%ymm0 ;LEN=8
+                              UNCLASSIFIED  - 	vmovups %xmm0,0x3e8(%rsp) ;LEN=9
+                                            + 	vmovups %ymm0,0x3e8(%rsp) ;LEN=9
+                              UNCLASSIFIED  - 	movl   $0x3,0x3f8(%rsp) ;LEN=11
+                                            + 	movl   $0x1,0x408(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0x410(%rsp) ;LEN=11
+                                            + 	movb   $0x0,0x40c(%rsp) ;LEN=8
+                              UNCLASSIFIED  - 	vxorps %xmm0,%xmm0,%xmm0 ;LEN=4
+                                            + 	movl   $0x0,0x410(%rsp) ;LEN=11
+                              ... and 472 more unclassified differences
+                            COUNTS 2100 insns; CHANGED 477; UNCLASSIFIED 477; DELTAS
+              DIFFERS       IpmWarmStart_AnUnchangedEpochResolveAnswersExactlyWhatAFreshEngineAnswers_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1978 lines vs 1976 -- instructions were added or removed
+              NOISE-ONLY    IpmWarmStart_ExportCarriesThePolishTagOnABoundedProblem_Test::TestBody()
+                            COUNTS 1179 insns; CHANGED 76; UNCLASSIFIED 0; DELTAS (pad-merged)
+            PAD-MERGED 2 alignment-pad lines vs 1 (25 -> 9 bytes, -16); 1179 non-pad lines, 1103 identical, 76 control-transfer targets shifted -16; 310 control-transfer target(s) resolved to the SAME instruction; start 0x15600 (mod 32 = 0) -> 0x15590 (mod 32 = 16)
+              DIFFERS       IpmWarmStart_TheHandOverRefusesANegativeLowerBoundPriceNamingTheTagAndTheBlock_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1022 lines vs 1021 -- instructions were added or removed
+              DIFFERS       hven::solvers::(anonymous namespace)::IpmTrace_SolveBeginCarriesHs071sDimensionsCensusAndSettings_Test::TestBody()
+                            PAD-ROUTE DECLINED: 2 alignment-pad lines vs 2 (17 -> 27 bytes); start 0x66fa0 (mod 32 = 0) -> 0x66e60 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 2078 lines vs 2077 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::MonGovDelegation_FreeModeForwardsToDelegateVerbatim_Test::TestBody()
+                            STRUCTURAL: normalized listing is 862 lines vs 861 -- instructions were added or removed
+              DIFFERS       IpmWarmStart_ExportIsStampedAndDeclaredWidthOnAnEliminatingProblem_Test::TestBody()
+                            STRUCTURAL: normalized listing is 2243 lines vs 2242 -- instructions were added or removed
+              DIFFERS       hven::solvers::(anonymous namespace)::IpmConsole_ASinkThatDetachesItselfInsideOnIpmIterThrowsRatherThanCrashing_Test::TestBody()
+                            STRUCTURAL: normalized listing is 731 lines vs 730 -- instructions were added or removed
+              DIFFERS       IpmWarmStart_ARestorationActiveExitExportsTheCoreWithoutThePolishTag_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1232 lines vs 1231 -- instructions were added or removed
+              DIFFERS       IpmWarmStart_APayloadAppliesToItsOwnCallAndTheNextSolveIsCold_Test::TestBody()
+                            STRUCTURAL: normalized listing is 785 lines vs 784 -- instructions were added or removed
+              DIFFERS       hven::solvers::(anonymous namespace)::IpmPhaseEvents_TheLineCountIsTheDeclaredArithmeticOnThreePhaseShapes_Test::TestBody()::$_0::operator()(int) const
+                            STRUCTURAL: normalized listing is 1148 lines vs 1147 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::MonGovSequence_FiaccoMcCormickGateAdvancesOnSatisfyingCall_Test::TestBody()
+                            PAD-ROUTE DECLINED: 0 alignment-pad lines vs 1 (0 -> 9 bytes); start 0xca080 (mod 32 = 0) -> 0xc9ec0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                              UNCLASSIFIED  - 	vmovaps 0x0(%rip),%xmm0 ;LEN=8
+                                            + 	vmovaps 0x0(%rip),%ymm0 ;LEN=8
+                              UNCLASSIFIED  - 	vmovups %xmm0,0x2c0(%rsp) ;LEN=9
+                                            + 	vmovups %ymm0,0x2c0(%rsp) ;LEN=9
+                              UNCLASSIFIED  - 	movl   $0x3,0x2d0(%rsp) ;LEN=11
+                                            + 	movl   $0x1,0x2e0(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0x2e8(%rsp) ;LEN=11
+                                            + 	movb   $0x0,0x2e4(%rsp) ;LEN=8
+                              UNCLASSIFIED  - 	vxorps %xmm0,%xmm0,%xmm0 ;LEN=4
+                                            + 	movl   $0x0,0x2e8(%rsp) ;LEN=11
+                              ... and 78 more unclassified differences
+                            COUNTS 917 insns; CHANGED 83; UNCLASSIFIED 83; DELTAS
+              DIFFERS       IpmWarmStart_ExportCarriesNoExtensionWhenTheProblemHasNoFiniteBounds_Test::TestBody()
+                            STRUCTURAL: normalized listing is 643 lines vs 642 -- instructions were added or removed
+              DIFFERS       hven::solvers::(anonymous namespace)::IpmConsole_TheWideLayoutIsTheSolversOwnOptionAndReachesItsConsole_Test::TestBody()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 3 (25 -> 35 bytes); start 0x98760 (mod 32 = 0) -> 0x985a0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 879 lines vs 878 -- instructions were added or removed
+              DIFFERS       IpmWarmStart_ARebindToADifferentStructureRefusesAtSolveEntry_Test::TestBody()
+                            STRUCTURAL: normalized listing is 967 lines vs 965 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::MonGovSequence_SufficientProgressVerdictFlipsWithPassedCurrent_Test::TestBody()
+                            PAD-ROUTE DECLINED: 1 alignment-pad lines vs 2 (4 -> 29 bytes); start 0xc8da0 (mod 32 = 0) -> 0xc8bd0 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                              UNCLASSIFIED  - 	vmovaps 0x0(%rip),%xmm0 ;LEN=8
+                                            + 	vmovaps 0x0(%rip),%ymm0 ;LEN=8
+                              UNCLASSIFIED  - 	vmovups %xmm0,0x3c0(%rsp) ;LEN=9
+                                            + 	vmovups %ymm0,0x3c0(%rsp) ;LEN=9
+                              UNCLASSIFIED  - 	movl   $0x3,0x3d0(%rsp) ;LEN=11
+                                            + 	movl   $0x1,0x3e0(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0x3e8(%rsp) ;LEN=11
+                                            + 	movb   $0x0,0x3e4(%rsp) ;LEN=8
+                              UNCLASSIFIED  - 	vxorps %xmm0,%xmm0,%xmm0 ;LEN=4
+                                            + 	movl   $0x0,0x3e8(%rsp) ;LEN=11
+                              ... and 304 more unclassified differences
+                            COUNTS 936 insns; CHANGED 309; UNCLASSIFIED 309; DELTAS
+              DIFFERS       IpmWarmStart_TheHandOverRefusesAPolishBlockThatIsNotAtTheDeclaredWidth_Test::TestBody()
+                            STRUCTURAL: normalized listing is 877 lines vs 876 -- instructions were added or removed
+              DIFFERS       IpmWarmStart_APayloadSurvivesAnIdenticalStampRelayAndIsTheSolveStart_Test::TestBody()
+                            STRUCTURAL: normalized listing is 822 lines vs 821 -- instructions were added or removed
+              DIFFERS       IpmWarmStart_ARefusedPayloadLeavesNothingBehindForTheNextSolve_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1120 lines vs 1119 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::run_warm(hven::solvers::WarmStartData const&)
+                            STRUCTURAL: normalized listing is 586 lines vs 585 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::L1RestoEntryPermitted_NearFeasibleGuardBoundary_Test::TestBody()
+                            STRUCTURAL: normalized listing is 374 lines vs 373 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::KktFactorizationTest_MklRejectsBackendMessageOutput_Test::TestBody()
+                            STRUCTURAL: normalized listing is 528 lines vs 527 -- instructions were added or removed
+              DIFFERS       hven::solvers::(anonymous namespace)::IpmTrace_SolveOptimizeReportsTwoPhasesAndNumbersItsIterLinesByPhase_Test::TestBody()
+                            PAD-ROUTE DECLINED: 18 alignment-pad lines vs 19 (202 -> 212 bytes); start 0x68f20 (mod 32 = 0) -> 0x68de0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                              UNCLASSIFIED  - 	je     SELF+0xaca ;LEN=6
+                                            + 	je     SELF+0xac0 ;LEN=6
+                              UNCLASSIFIED  - 	je     SELF+0xadd ;LEN=6
+                                            + 	je     SELF+0xad3 ;LEN=6
+                              UNCLASSIFIED  - 	vmovaps 0x0(%rip),%xmm0 ;LEN=8
+                                            + 	vmovaps 0x0(%rip),%ymm0 ;LEN=8
+                              UNCLASSIFIED  - 	vmovups %xmm0,0x3a8(%rsp) ;LEN=9
+                                            + 	vmovups %ymm0,0x3a8(%rsp) ;LEN=9
+                              UNCLASSIFIED  - 	movl   $0x3,0x3b8(%rsp) ;LEN=11
+                                            + 	movl   $0x1,0x3c8(%rsp) ;LEN=11
+                              ... and 603 more unclassified differences
+                            COUNTS 1535 insns; CHANGED 608; UNCLASSIFIED 608; DELTAS
+              DIFFERS       IpmWarmStart_PassingTheSamePayloadTwiceFromColdGivesBitIdenticalFirstIterates_Test::TestBody()
+                            PAD-ROUTE DECLINED: 12 alignment-pad lines vs 13 (130 -> 144 bytes); start 0xa010 (mod 32 = 16) -> 0x9fc0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1332 lines vs 1331 -- instructions were added or removed
+              DIFFERS       IpmWarmStart_ARestorationEntryZeroesTheEqualityMultipliersAndRaisesMuToTheEntryFloor_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1389 lines vs 1388 -- instructions were added or removed
+              DIFFERS       IpmWarmStart_MakeConstraintExportDropsTheTreatmentsInternalFixingRow_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1837 lines vs 1836 -- instructions were added or removed
+              DIFFERS       hven::solvers::(anonymous namespace)::IpmTrace_SolveEndReportsTheDriversOwnStatusOnTwoDifferentExits_Test::TestBody()
+                            PAD-ROUTE DECLINED: 4 alignment-pad lines vs 4 (40 -> 42 bytes); start 0x6ac70 (mod 32 = 16) -> 0x6ab30 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 2073 lines vs 2071 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::L1RestoEntryPermitted_ZeroBudgetAlwaysRefuses_Test::TestBody()
+                            STRUCTURAL: normalized listing is 206 lines vs 205 -- instructions were added or removed
+              DIFFERS       hven::solvers::(anonymous namespace)::IpmDeferral_TheLastWriteWinsWhenASinkAndACallbackBothSetInOneSolve_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1245 lines vs 1244 -- instructions were added or removed
+              DIFFERS       IpmWarmStart_TheHandOverRefusesANegativeUpperBoundPriceNamingTheTagAndTheBlock_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1022 lines vs 1021 -- instructions were added or removed
+              DIFFERS       hven::solvers::(anonymous namespace)::IpmTrace_TheLastIterLineEqualsTheLastRecordTheCallbackSaw_Test::TestBody()
+                            PAD-ROUTE DECLINED: 1 alignment-pad lines vs 2 (13 -> 23 bytes); start 0x5e510 (mod 32 = 16) -> 0x5e410 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                              UNCLASSIFIED  - 	je     SELF+0xa64 ;LEN=6
+                                            + 	je     SELF+0xa5a ;LEN=6
+                              UNCLASSIFIED  - 	je     SELF+0xa77 ;LEN=6
+                                            + 	je     SELF+0xa6d ;LEN=6
+                              UNCLASSIFIED  - 	vmovapd 0x0(%rip),%xmm0 ;LEN=8
+                                            + 	vmovaps 0x0(%rip),%ymm0 ;LEN=8
+                              UNCLASSIFIED  - 	vmovupd %xmm0,0x3d0(%rsp) ;LEN=9
+                                            + 	vmovups %ymm0,0x3d0(%rsp) ;LEN=9
+                              UNCLASSIFIED  - 	movl   $0x3,0x3e0(%rsp) ;LEN=11
+                                            + 	movl   $0x1,0x3f0(%rsp) ;LEN=11
+                              ... and 714 more unclassified differences
+                            COUNTS 968 insns; CHANGED 719; UNCLASSIFIED 719; DELTAS
+              DIFFERS       IpmWarmStart_TheHandOverRefusesAMalformedPayloadUnderTheKnownTagNamingIt_Test::TestBody()
+                            STRUCTURAL: normalized listing is 796 lines vs 795 -- instructions were added or removed
+              DIFFERS       IpmWarmStart_ABoundedOptimalExitUnderTheSamePresetKeepsThePolishTag_Test::TestBody()
+                            STRUCTURAL: normalized listing is 738 lines vs 737 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::L1RestoEntryPermitted_BudgetExhaustionCountsNestedEntries_Test::TestBody()
+                            STRUCTURAL: normalized listing is 709 lines vs 708 -- instructions were added or removed
+              DIFFERS       IpmWarmStart_AnEliminatingExportStagesIntoAFreshEngineWithTheSameSettings_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1821 lines vs 1819 -- instructions were added or removed
+              DIFFERS       hven::solvers::(anonymous namespace)::IpmTrace_SolveBeginCarriesTheEightFieldsTheConsoleTableNeeds_Test::TestBody()
+                            PAD-ROUTE DECLINED: 0 alignment-pad lines vs 1 (0 -> 10 bytes); start 0x7ddb0 (mod 32 = 16) -> 0x7dc50 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                              UNCLASSIFIED  - 	je     SELF+0xa4b ;LEN=6
+                                            + 	je     SELF+0xa41 ;LEN=6
+                              UNCLASSIFIED  - 	je     SELF+0xa5e ;LEN=6
+                                            + 	je     SELF+0xa54 ;LEN=6
+                              UNCLASSIFIED  - 	vmovapd 0x0(%rip),%xmm0 ;LEN=8
+                                            + 	vmovaps 0x0(%rip),%ymm0 ;LEN=8
+                              UNCLASSIFIED  - 	vmovupd %xmm0,0x3d0(%rsp) ;LEN=9
+                                            + 	vmovups %ymm0,0x3d0(%rsp) ;LEN=9
+                              UNCLASSIFIED  - 	movl   $0x3,0x3e0(%rsp) ;LEN=11
+                                            + 	movl   $0x1,0x3f0(%rsp) ;LEN=11
+                              ... and 1482 more unclassified differences
+                            COUNTS 1708 insns; CHANGED 1487; UNCLASSIFIED 1487; DELTAS
+              DIFFERS       IpmWarmStart_ValuesAtEliminatedVariablesAreIgnoredOnApplication_Test::TestBody()
+                            PAD-ROUTE DECLINED: 8 alignment-pad lines vs 9 (85 -> 94 bytes); start 0xc2e0 (mod 32 = 0) -> 0xc2a0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                              UNCLASSIFIED  - 	vmovapd 0x0(%rip),%xmm0 ;LEN=8
+                                            + 	vmovaps 0x0(%rip),%ymm0 ;LEN=8
+                              UNCLASSIFIED  - 	vmovupd %xmm0,0x220(%rsp) ;LEN=9
+                                            + 	vmovups %ymm0,0x220(%rsp) ;LEN=9
+                              UNCLASSIFIED  - 	movl   $0x3,0x230(%rsp) ;LEN=11
+                                            + 	movl   $0x1,0x240(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0x248(%rsp) ;LEN=11
+                                            + 	movb   $0x0,0x244(%rsp) ;LEN=8
+                              UNCLASSIFIED  - 	vxorpd %xmm0,%xmm0,%xmm0 ;LEN=4
+                                            + 	movl   $0x0,0x248(%rsp) ;LEN=11
+                              ... and 219 more unclassified differences
+                            COUNTS 783 insns; CHANGED 224; UNCLASSIFIED 224; DELTAS
+              DIFFERS       IpmWarmStart_AnExportUnderOneTreatmentStagesAndAppliesUnderAnother_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1620 lines vs 1618 -- instructions were added or removed
+              NOISE-ONLY    IpmWarmStart_ThePolishPairSeedsTheBoundDualsAndACoreOnlyValueDoesNot_Test::TestBody()
+                            COUNTS 428 insns; CHANGED 108; UNCLASSIFIED 0; DELTAS (pad-merged)
+            PAD-MERGED 1 alignment-pad lines vs 2 (9 -> 25 bytes, +16); 428 non-pad lines, 320 identical, 108 control-transfer targets shifted +16; 109 control-transfer target(s) resolved to the SAME instruction; start 0x230e0 (mod 32 = 0) -> 0x22fd0 (mod 32 = 16)
+              DIFFERS       IpmWarmStart_AnExportPayloadRoundTripStartsAtTheExportingSolvesTerminalPoint_Test::TestBody()
+                            STRUCTURAL: normalized listing is 816 lines vs 815 -- instructions were added or removed
+              DIFFERS       hven::solvers::(anonymous namespace)::IpmTrace_SolveWritesExactlyOnePairPerEntryPointAndBracketsEveryIterLine_Test::TestBody()
+                            PAD-ROUTE DECLINED: 10 alignment-pad lines vs 9 (109 -> 87 bytes); start 0x657b0 (mod 32 = 16) -> 0x65690 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1421 lines vs 1419 -- instructions were added or removed
+              DIFFERS       hven::solvers::(anonymous namespace)::IpmConsole_PrintLevelZeroWritesTheTableAndTenWritesNothing_Test::TestBody()
+                            PAD-ROUTE DECLINED: 8 alignment-pad lines vs 8 (67 -> 61 bytes); start 0x90eb0 (mod 32 = 16) -> 0x90d20 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1842 lines vs 1841 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::WarmBoundedSolve::WarmBoundedSolve()
+                            PAD-ROUTE DECLINED: 1 alignment-pad lines vs 1 (4 -> 13 bytes); start 0x9cba0 (mod 32 = 0) -> 0x9c9e0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 507 lines vs 506 -- instructions were added or removed
+              DIFFERS       hven::solvers::(anonymous namespace)::IpmConsole_AttachTraceDuringASolveIsRefusedAndTheConsoleRunsOnUnbroken_Test::TestBody()::$_0::operator()[abi:cxx11](bool) const
+                            STRUCTURAL: normalized listing is 974 lines vs 973 -- instructions were added or removed
+              DIFFERS       IpmWarmStart_TheHandOverRefusesThePolishTagCarriedTwiceNamingTheEntry_Test::TestBody()
+                            STRUCTURAL: normalized listing is 912 lines vs 911 -- instructions were added or removed
+              DIFFERS       hven::solvers::(anonymous namespace)::IpmConsole_TheConsoleDoesNotDisplaceAUserSink_Test::TestBody()::$_0::operator()[abi:cxx11](int) const
+                            STRUCTURAL: normalized listing is 710 lines vs 709 -- instructions were added or removed
+              DIFFERS       IpmWarmStart_ARelayThatEmptiesTheBoundSetLeavesNoBoundStoryOnTheSameInstance_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1741 lines vs 1740 -- instructions were added or removed
+              NOISE-ONLY    (anonymous namespace)::L1RestoSlackInit_TruthTablePositiveNegativeZeroResiduals_Test::TestBody()
+                            COUNTS 535 insns; CHANGED 122; UNCLASSIFIED 0; DELTAS (pad-merged)
+            PAD-MERGED 4 alignment-pad lines vs 5 (43 -> 59 bytes, +16); 535 non-pad lines, 413 identical, 122 control-transfer targets shifted +16; 122 control-transfer target(s) resolved to the SAME instruction; start 0xa8950 (mod 32 = 16) -> 0xa8780 (mod 32 = 0)
+              DIFFERS       hven::solvers::(anonymous namespace)::IpmPhaseEvents_TheOrderIsAnalysisThenTheBracketWithTheExitInsideIt_Test::TestBody()
+                            PAD-ROUTE DECLINED: 24 alignment-pad lines vs 23 (265 -> 243 bytes); start 0x83850 (mod 32 = 16) -> 0x836f0 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 3147 lines vs 3145 -- instructions were added or removed
+              DIFFERS       IpmWarmStart_ARelayBetweenExportAndSolvingRefusesAtSolveEntry_Test::TestBody()
+                            STRUCTURAL: normalized listing is 843 lines vs 842 -- instructions were added or removed
+SYMBOLS     tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_2_cxx.cxx.o: COVERAGE FINDINGS
+              ONLY-AFTER    typeinfo for RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test
+              ONLY-AFTER    RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test::TestBody()
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::PrintToString<hven::solvers::BarrierGovernors>(hven::solvers::BarrierGovernors const&)
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::MonitoredBarrierGovernor*, decltype(nullptr)>(char const*, char const*, hven::solvers::MonitoredBarrierGovernor* const&, decltype(nullptr) const&)
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperOpFailure<hven::solvers::ClassicAdaptiveGovernor*, decltype(nullptr)>(char const*, char const*, hven::solvers::ClassicAdaptiveGovernor* const&, decltype(nullptr) const&, char const*)
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::PrintToString<hven::solvers::ClassicAdaptiveGovernor*>(hven::solvers::ClassicAdaptiveGovernor* const&)
+              ONLY-AFTER    testing::internal::TestFactoryImpl<RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test>::CreateTest()
+              ONLY-AFTER    typeinfo for testing::internal::TestFactoryImpl<RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test>
+              ONLY-AFTER    typeinfo name for RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test
+              ONLY-AFTER    RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test::test_info_
+              ONLY-AFTER    typeinfo name for testing::internal::TestFactoryImpl<RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test>
+              ONLY-AFTER    testing::internal::TestFactoryImpl<RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test>::~TestFactoryImpl()
+              ONLY-AFTER    vtable for RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test
+              ONLY-AFTER    RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test::~RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test()
+              ONLY-AFTER    vtable for testing::internal::TestFactoryImpl<RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test>
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::BarrierGovernors, hven::solvers::BarrierGovernors>(char const*, char const*, hven::solvers::BarrierGovernors const&, hven::solvers::BarrierGovernors const&)
+              LOCAL-FAMILY  .LCPI: 876 before, 886 after
+              LOCAL-FAMILY  .L.str: 848 before, 853 after
+              LOCAL-FAMILY  GCC_except_table: 396 before, 403 after
+DIFFERS     tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_2_cxx.cxx.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 1485 alignment-pad lines vs 1491 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 129649 lines vs 130712 -- instructions were added or removed
+PER-SYMBOL  tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_2_cxx.cxx.o: PERSYM 1360 identical, 1 noise-only, 59 differing, 0 only-before, 9 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 5 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 19209 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       EarlyCallbackViews_TheThreeVectorsAreTheModelsOwnNumbersAtThisIterationsEvaluation_Test::TestBody()
+                            STRUCTURAL: normalized listing is 706 lines vs 705 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::RecoveryDispatchGate_ValidateAcceptsMeritWithMaxSoc_Test::TestBody()
+                            STRUCTURAL: normalized listing is 264 lines vs 263 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::RecoveryDispatchGate_StubAcceptanceDrivesHook_Test::TestBody()
+                            STRUCTURAL: normalized listing is 410 lines vs 409 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::RecoveryDispatchGate_ValidateAcceptsFunnelWithNeverMonotone_Test::TestBody()
+                            STRUCTURAL: normalized listing is 264 lines vs 263 -- instructions were added or removed
+              NOISE-ONLY    hven::solvers::RecoveryChain::Action hven::solvers::soc_run_loop<(anonymous namespace)::SocScriptedPrimitive&>(double, int, int&, (anonymous namespace)::SocScriptedPrimitive&)
+                            COUNTS 175 insns; CHANGED 24; UNCLASSIFIED 0; DELTAS (pad-merged)
+            PAD-MERGED 3 alignment-pad lines vs 4 (29 -> 45 bytes, +16); 175 non-pad lines, 151 identical, 24 control-transfer targets shifted +16; 24 control-transfer target(s) resolved to the SAME instruction; start 0x4cfa0 (mod 32 = 0) -> 0x4d8d0 (mod 32 = 16)
+              DIFFERS       _GLOBAL__sub_I_unity_2_cxx.cxx
+                            STRUCTURAL: normalized listing is 11988 lines vs 12088 -- instructions were added or removed
+              DIFFERS       ObjectiveScaleReporting_AnActiveBoundMultiplierDoesNotMoveWithTheScale_Test::TestBody()
+                            PAD-ROUTE DECLINED: 15 alignment-pad lines vs 18 (163 -> 222 bytes); start 0x21730 (mod 32 = 16) -> 0x21730 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 842 lines vs 849 -- instructions were added or removed
+              DIFFERS       hven::solvers::IpmOptions::IpmOptions()
+                            STRUCTURAL: normalized listing is 79 lines vs 78 -- instructions were added or removed
+              DIFFERS       NLPMultiplierSeedingTest_TheUnseededPathBuildsNoPayload_Test::TestBody()
+                            STRUCTURAL: normalized listing is 702 lines vs 701 -- instructions were added or removed
+              DIFFERS       NLPMultiplierSeedingTest_SeededSolveOptimizeReachesOptPhase_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1681 lines vs 1679 -- instructions were added or removed
+              DIFFERS       StructureEpochGating_ASolveThatHandsOutTheKktMatrixVerifiesThePatternThroughout_Test::TestBody()
+                            PAD-ROUTE DECLINED: 2 alignment-pad lines vs 2 (19 -> 21 bytes); start 0x2e7e0 (mod 32 = 0) -> 0x2f240 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1816 lines vs 1814 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::RecoveryDispatchGate_ValidateRejectsFunnelWithClassicAdaptiveGovernor_Test::TestBody()
+                            STRUCTURAL: normalized listing is 253 lines vs 252 -- instructions were added or removed
+              DIFFERS       ObjectiveScaleReporting_TheScaleACallRanAtIsTheScaleItsOutputsAreReportedOn_Test::TestBody()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 3 (32 -> 41 bytes); start 0x25620 (mod 32 = 0) -> 0x25680 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1299 lines vs 1298 -- instructions were added or removed
+              DIFFERS       RecoveryDispatchGate_MeritPenaltyRuleSelectionReachesTheStrategy_Test::TestBody()
+                            STRUCTURAL: normalized listing is 965 lines vs 963 -- instructions were added or removed
+              DIFFERS       StructureEpochGating_APartitionRenegotiationBetweenSolvesForcesAFreshAnalysis_Test::TestBody()
+                            PAD-ROUTE DECLINED: 2 alignment-pad lines vs 1 (28 -> 6 bytes); start 0x29a30 (mod 32 = 16) -> 0x2a4d0 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1598 lines vs 1596 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::RecoveryDispatchGate_ValidateAcceptsMeritWithClassicAdaptiveGovernor_Test::TestBody()
+                            STRUCTURAL: normalized listing is 264 lines vs 263 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::RecoveryDispatchGate_ValidateAcceptsZeroMaxFeasRest_Test::TestBody()
+                            STRUCTURAL: normalized listing is 262 lines vs 261 -- instructions were added or removed
+              DIFFERS       ObjectiveScaleReporting_ANegativeScaleIsRefusedByValidate_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1534 lines vs 1533 -- instructions were added or removed
+              DIFFERS       StructureEpochGating_TheEpochStopsVouchingForThePatternAcrossARelay_Test::TestBody()
+                            STRUCTURAL: normalized listing is 939 lines vs 938 -- instructions were added or removed
+              DIFFERS       NLPMultiplierSeedingTest_ADecliningProblemSolvesColdThroughTheWrapper_Test::TestBody()
+                            PAD-ROUTE DECLINED: 4 alignment-pad lines vs 5 (43 -> 49 bytes); start 0x6d90 (mod 32 = 16) -> 0x6d50 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                              UNCLASSIFIED  - 	je     SELF+0x8aa ;LEN=6
+                                            + 	je     SELF+0x8a0 ;LEN=6
+                              UNCLASSIFIED  - 	je     SELF+0x8bd ;LEN=6
+                                            + 	je     SELF+0x8b3 ;LEN=6
+                              UNCLASSIFIED  - 	je     SELF+0x8ca ;LEN=6
+                                            + 	je     SELF+0x8c0 ;LEN=6
+                              UNCLASSIFIED  - 	je     SELF+0x8dd ;LEN=6
+                                            + 	je     SELF+0x8d3 ;LEN=6
+                              UNCLASSIFIED  - 	vmovapd 0x0(%rip),%xmm0 ;LEN=8
+                                            + 	vmovaps 0x0(%rip),%ymm0 ;LEN=8
+                              ... and 482 more unclassified differences
+                            COUNTS 799 insns; CHANGED 487; UNCLASSIFIED 487; DELTAS
+              DIFFERS       (anonymous namespace)::RecoveryDispatchGate_ValidateAcceptsFilterWithMaxSoc_Test::TestBody()
+                            STRUCTURAL: normalized listing is 264 lines vs 263 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::RecoveryDispatchGate_ValidateAcceptsFilterWithNeverMonotone_Test::TestBody()
+                            STRUCTURAL: normalized listing is 264 lines vs 263 -- instructions were added or removed
+              DIFFERS       StructureEpochGating_TheVerdictOnTheGuardIsTakenOnceAtEntryAndHeldForTheCall_Test::TestBody()
+                            STRUCTURAL: normalized listing is 944 lines vs 943 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::RecoveryDispatchGate_ValidateAcceptsFunnelWithLsExtendedIters_Test::TestBody()
+                            STRUCTURAL: normalized listing is 264 lines vs 263 -- instructions were added or removed
+              DIFFERS       NLPMultiplierSeedingTest_FixedVariableConstraintRowStaysOutOfTheReportedMultipliers_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1459 lines vs 1458 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::RecoveryDispatchGate_ValidateRejectsNeverMonotoneWithMonitoredGovernor_Test::TestBody()
+                            STRUCTURAL: normalized listing is 253 lines vs 252 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::RecoveryDispatchGate_ValidateAcceptsClassicMeritWithClassicAdaptiveGovernor_Test::TestBody()
+                            STRUCTURAL: normalized listing is 264 lines vs 263 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::RecoveryDispatchGate_ValidateRejectsFilterWithClassicAdaptiveGovernor_Test::TestBody()
+                            STRUCTURAL: normalized listing is 253 lines vs 252 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::RecoveryDispatchGate_ValidateAcceptsRestorationWithClassicMerit_Test::TestBody()
+                            STRUCTURAL: normalized listing is 263 lines vs 262 -- instructions were added or removed
+              DIFFERS       NLPMultiplierSeedingTest_SeededSolveWithMakeConstraintFixedVarConverges_Test::TestBody()
+                            STRUCTURAL: normalized listing is 817 lines vs 816 -- instructions were added or removed
+              DIFFERS       RecoveryDispatchGate_MonitoredSelectionConstructsMonitoredGovernor_Test::TestBody()
+                            STRUCTURAL: normalized listing is 376 lines vs 375 -- instructions were added or removed
+              DIFFERS       NLPMultiplierSeedingTest_OversizedIqSeedIsCapped_Test::TestBody()
+                            STRUCTURAL: normalized listing is 637 lines vs 636 -- instructions were added or removed
+              DIFFERS       StructureEpochGating_AWholeSolveRunsNoFullKktPatternHash_Test::TestBody()
+                            STRUCTURAL: normalized listing is 796 lines vs 795 -- instructions were added or removed
+              DIFFERS       RecoveryDispatchGate_FilterSelectionConstructsFilterAcceptance_Test::TestBody()
+                              UNCLASSIFIED  - 	vmovaps 0x0(%rip),%xmm0 ;LEN=8
+                                            + 	vmovaps 0x0(%rip),%ymm0 ;LEN=8
+                              UNCLASSIFIED  - 	vmovups %xmm0,0xc8(%rsp) ;LEN=9
+                                            + 	vmovups %ymm0,0xc8(%rsp) ;LEN=9
+                              UNCLASSIFIED  - 	movl   $0x3,0xd8(%rsp) ;LEN=11
+                                            + 	movl   $0x1,0xe8(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0xf0(%rsp) ;LEN=11
+                                            + 	movb   $0x0,0xec(%rsp) ;LEN=8
+                              UNCLASSIFIED  - 	vxorps %xmm0,%xmm0,%xmm0 ;LEN=4
+                                            + 	movl   $0x0,0xf0(%rsp) ;LEN=11
+                              ... and 173 more unclassified differences
+                            COUNTS 323 insns; CHANGED 180; UNCLASSIFIED 178; DELTAS +22(x2)
+              DIFFERS       StructureEpochGating_AnEarlyCallbackArmedFromInsideTheLateCallbackVerifiesFromThatHandOutOn_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1541 lines vs 1539 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::RecoveryDispatchGate_ValidateAcceptsFilterWithMonitoredGovernor_Test::TestBody()
+                            STRUCTURAL: normalized listing is 263 lines vs 262 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::obj_scale_installed_seed(double)
+                            PAD-ROUTE DECLINED: 2 alignment-pad lines vs 1 (26 -> 3 bytes); start 0x3d590 (mod 32 = 16) -> 0x3dfd0 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 652 lines vs 650 -- instructions were added or removed
+              DIFFERS       ObjectiveScaleReporting_AnUnconstrainedCallReportsNoConstraintBlocks_Test::TestBody()
+                            PAD-ROUTE DECLINED: 2 alignment-pad lines vs 3 (28 -> 37 bytes); start 0x23e40 (mod 32 = 0) -> 0x23ea0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                              UNCLASSIFIED  - 	vmovaps 0x0(%rip),%xmm0 ;LEN=8
+                                            + 	vmovaps 0x0(%rip),%ymm0 ;LEN=8
+                              UNCLASSIFIED  - 	vmovups %xmm0,0x3c0(%rsp) ;LEN=9
+                                            + 	vmovups %ymm0,0x3c0(%rsp) ;LEN=9
+                              UNCLASSIFIED  - 	movl   $0x3,0x3d0(%rsp) ;LEN=11
+                                            + 	movl   $0x1,0x3e0(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0x3e8(%rsp) ;LEN=11
+                                            + 	movb   $0x0,0x3e4(%rsp) ;LEN=8
+                              UNCLASSIFIED  - 	vxorps %xmm0,%xmm0,%xmm0 ;LEN=4
+                                            + 	movl   $0x0,0x3e8(%rsp) ;LEN=11
+                              ... and 128 more unclassified differences
+                            COUNTS 1305 insns; CHANGED 133; UNCLASSIFIED 133; DELTAS
+              DIFFERS       (anonymous namespace)::RecoveryDispatchGate_ValidateAcceptsClassicMeritWithMaxSoc_Test::TestBody()
+                            STRUCTURAL: normalized listing is 264 lines vs 263 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::RecoveryDispatchGate_ValidateAcceptsFunnelWithWatchdog_Test::TestBody()
+                            STRUCTURAL: normalized listing is 264 lines vs 263 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::RecoveryDispatchGate_ValidateRejectsNegativeMaxFeasRest_Test::TestBody()
+                            STRUCTURAL: normalized listing is 251 lines vs 250 -- instructions were added or removed
+              DIFFERS       RecoveryDispatchGate_FunnelSelectionConstructsFunnelAcceptance_Test::TestBody()
+                              UNCLASSIFIED  - 	vmovaps 0x0(%rip),%xmm0 ;LEN=8
+                                            + 	vmovaps 0x0(%rip),%ymm0 ;LEN=8
+                              UNCLASSIFIED  - 	vmovups %xmm0,0xc8(%rsp) ;LEN=9
+                                            + 	vmovups %ymm0,0xc8(%rsp) ;LEN=9
+                              UNCLASSIFIED  - 	movl   $0x3,0xd8(%rsp) ;LEN=11
+                                            + 	movl   $0x1,0xe8(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0xf0(%rsp) ;LEN=11
+                                            + 	movb   $0x0,0xec(%rsp) ;LEN=8
+                              UNCLASSIFIED  - 	vxorps %xmm0,%xmm0,%xmm0 ;LEN=4
+                                            + 	movl   $0x0,0xf0(%rsp) ;LEN=11
+                              ... and 173 more unclassified differences
+                            COUNTS 323 insns; CHANGED 180; UNCLASSIFIED 178; DELTAS +15(x2)
+              DIFFERS       NLPMultiplierSeedingTest_NegativeIqSeedIsClamped_Test::TestBody()
+                            STRUCTURAL: normalized listing is 605 lines vs 604 -- instructions were added or removed
+              DIFFERS       StructureEpochGating_ASecondSolveAgainstUnmovedStructuresRunsNoFreshAnalysis_Test::TestBody()
+                            PAD-ROUTE DECLINED: 4 alignment-pad lines vs 4 (47 -> 57 bytes); start 0x2b2c0 (mod 32 = 0) -> 0x2bd40 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1520 lines vs 1519 -- instructions were added or removed
+              DIFFERS       NLPMultiplierSeedingTest_OversizedSeedIsCapped_Test::TestBody()
+                            STRUCTURAL: normalized listing is 667 lines vs 666 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::ProxRestoEntryPermitted_ZeroBudgetAlwaysRefuses_Test::TestBody()
+                            STRUCTURAL: normalized listing is 218 lines vs 217 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::ProxRestoEntryPermitted_NearFeasibleGuardBoundary_Test::TestBody()
+                            STRUCTURAL: normalized listing is 382 lines vs 381 -- instructions were added or removed
+              DIFFERS       NLPMultiplierSeedingTest_NaNSeedThrows_Test::TestBody()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 4 (30 -> 40 bytes); start 0x7d10 (mod 32 = 16) -> 0x7cd0 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                              UNCLASSIFIED  - 	je     SELF+0x6f4 ;LEN=6
+                                            + 	je     SELF+0x6ea ;LEN=6
+                              UNCLASSIFIED  - 	je     SELF+0x707 ;LEN=6
+                                            + 	je     SELF+0x6fd ;LEN=6
+                              UNCLASSIFIED  - 	je     SELF+0x714 ;LEN=6
+                                            + 	je     SELF+0x70a ;LEN=6
+                              UNCLASSIFIED  - 	je     SELF+0x727 ;LEN=6
+                                            + 	je     SELF+0x71d ;LEN=6
+                              UNCLASSIFIED  - 	vmovapd 0x0(%rip),%xmm0 ;LEN=8
+                                            + 	vmovaps 0x0(%rip),%ymm0 ;LEN=8
+                              ... and 291 more unclassified differences
+                            COUNTS 756 insns; CHANGED 296; UNCLASSIFIED 296; DELTAS
+              DIFFERS       EarlyCallbackViews_TheEarlyAndLateViewsOfOneIterationAreTheSameIterate_Test::TestBody()
+                            PAD-ROUTE DECLINED: 12 alignment-pad lines vs 13 (139 -> 149 bytes); start 0x35d90 (mod 32 = 16) -> 0x367d0 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                              UNCLASSIFIED  - 	vpmovsxbd 0x0(%rip),%xmm0 ;LEN=9
+                                            + 	vmovaps 0x0(%rip),%ymm0 ;LEN=8
+                              UNCLASSIFIED  - 	vmovdqu %xmm0,0x408(%rsp) ;LEN=9
+                                            + 	vmovups %ymm0,0x408(%rsp) ;LEN=9
+                              UNCLASSIFIED  - 	movl   $0x3,0x418(%rsp) ;LEN=11
+                                            + 	movl   $0x1,0x428(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0x430(%rsp) ;LEN=11
+                                            + 	movb   $0x0,0x42c(%rsp) ;LEN=8
+                              UNCLASSIFIED  - 	vpxor  %xmm0,%xmm0,%xmm0 ;LEN=4
+                                            + 	movl   $0x0,0x430(%rsp) ;LEN=11
+                              ... and 471 more unclassified differences
+                            COUNTS 1117 insns; CHANGED 476; UNCLASSIFIED 476; DELTAS
+              DIFFERS       NLPMultiplierSeedingTest_SeededSolveMatchesUnseededSolution_Test::TestBody()
+                            PAD-ROUTE DECLINED: 5 alignment-pad lines vs 5 (53 -> 55 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1223 lines vs 1221 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::RecoveryDispatchGate_ValidateAcceptsFilterWithLsExtendedIters_Test::TestBody()
+                            STRUCTURAL: normalized listing is 264 lines vs 263 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::RecoveryDispatchGate_ValidateAcceptsFunnelWithMaxSoc_Test::TestBody()
+                            STRUCTURAL: normalized listing is 264 lines vs 263 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::RecoveryDispatchGate_ValidateAcceptsClassicMeritWithMonitoredGovernor_Test::TestBody()
+                            STRUCTURAL: normalized listing is 263 lines vs 262 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::RecoveryDispatchGate_ValidateAcceptsFunnelWithMonitoredGovernor_Test::TestBody()
+                            STRUCTURAL: normalized listing is 263 lines vs 262 -- instructions were added or removed
+              DIFFERS       StructureEpochGating_AnEarlyCallbackThatScalesAStoredCoefficientMovesTheStepItProduces_Test::TestBody()
+                            PAD-ROUTE DECLINED: 4 alignment-pad lines vs 3 (39 -> 25 bytes); start 0x330d0 (mod 32 = 16) -> 0x33b20 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1896 lines vs 1893 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::ProxRestoEntryPermitted_BudgetExhaustionAfterMaxEntries_Test::TestBody()
+                            STRUCTURAL: normalized listing is 606 lines vs 605 -- instructions were added or removed
+              DIFFERS       NLPMultiplierSeedingTest_SeedSizeMismatchThrowsAndTheNextSolveIsUnaffected_Test::TestBody()
+                            PAD-ROUTE DECLINED: 7 alignment-pad lines vs 6 (74 -> 52 bytes); start 0x1650 (mod 32 = 16) -> 0x1650 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1226 lines vs 1224 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::RecoveryDispatchGate_ValidateAcceptsRestorationWithFilterMonitored_Test::TestBody()
+                            STRUCTURAL: normalized listing is 264 lines vs 263 -- instructions were added or removed
+              DIFFERS       ObjectiveScaleReporting_TheReportedObjectiveAndMultipliersDoNotMoveWithTheScale_Test::TestBody()
+                            PAD-ROUTE DECLINED: 18 alignment-pad lines vs 22 (194 -> 254 bytes); start 0x20830 (mod 32 = 16) -> 0x207d0 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 929 lines vs 937 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::RecoveryDispatchGate_ValidateAcceptsFilterWithWatchdog_Test::TestBody()
+                              UNCLASSIFIED  - 	vmovaps 0x0(%rip),%xmm0 ;LEN=8
+                                            + 	vmovaps 0x0(%rip),%ymm0 ;LEN=8
+                              UNCLASSIFIED  - 	vmovups %xmm0,0xd8(%rsp) ;LEN=9
+                                            + 	vmovups %ymm0,0xd8(%rsp) ;LEN=9
+                              UNCLASSIFIED  - 	movl   $0x3,0xe8(%rsp) ;LEN=11
+                                            + 	movl   $0x1,0xf8(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0x100(%rsp) ;LEN=11
+                                            + 	movb   $0x0,0xfc(%rsp) ;LEN=8
+                              UNCLASSIFIED  - 	vxorps %xmm0,%xmm0,%xmm0 ;LEN=4
+                                            + 	movl   $0x0,0x100(%rsp) ;LEN=11
+                              ... and 94 more unclassified differences
+                            COUNTS 217 insns; CHANGED 100; UNCLASSIFIED 99; DELTAS +8(x1)
+              ONLY-AFTER    RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test::TestBody()
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::PrintToString<hven::solvers::BarrierGovernors>(hven::solvers::BarrierGovernors const&)
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::MonitoredBarrierGovernor*, decltype(nullptr)>(char const*, char const*, hven::solvers::MonitoredBarrierGovernor* const&, decltype(nullptr) const&)
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperOpFailure<hven::solvers::ClassicAdaptiveGovernor*, decltype(nullptr)>(char const*, char const*, hven::solvers::ClassicAdaptiveGovernor* const&, decltype(nullptr) const&, char const*)
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::PrintToString<hven::solvers::ClassicAdaptiveGovernor*>(hven::solvers::ClassicAdaptiveGovernor* const&)
+              ONLY-AFTER    testing::internal::TestFactoryImpl<RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test>::CreateTest()
+              ONLY-AFTER    testing::internal::TestFactoryImpl<RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test>::~TestFactoryImpl()
+              ONLY-AFTER    RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test::~RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test()
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<hven::solvers::BarrierGovernors, hven::solvers::BarrierGovernors>(char const*, char const*, hven::solvers::BarrierGovernors const&, hven::solvers::BarrierGovernors const&)
+DIFFERS     tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_3_cxx.cxx.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 225 alignment-pad lines vs 228 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 23683 lines vs 23676 -- instructions were added or removed
+PER-SYMBOL  tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_3_cxx.cxx.o: PERSYM 212 identical, 0 noise-only, 10 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 1 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 4284 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       (anonymous namespace)::WatchdogRecoveryDecorator_ProgressDisarmsAndDelegatesBack_Test::TestBody()
+                            PAD-ROUTE DECLINED: 2 alignment-pad lines vs 3 (22 -> 31 bytes); start 0x11f70 (mod 32 = 16) -> 0x11f30 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                              UNCLASSIFIED  - 	vmovaps 0x0(%rip),%xmm0 ;LEN=8
+                                            + 	vmovaps 0x0(%rip),%ymm0 ;LEN=8
+                              UNCLASSIFIED  - 	vmovups %xmm0,0x2c0(%rsp) ;LEN=9
+                                            + 	vmovups %ymm0,0x2c0(%rsp) ;LEN=9
+                              UNCLASSIFIED  - 	movl   $0x3,0x2d0(%rsp) ;LEN=11
+                                            + 	movl   $0x1,0x2e0(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0x2e8(%rsp) ;LEN=11
+                                            + 	movb   $0x0,0x2e4(%rsp) ;LEN=8
+                              UNCLASSIFIED  - 	vxorps %xmm0,%xmm0,%xmm0 ;LEN=4
+                                            + 	movl   $0x0,0x2e8(%rsp) ;LEN=11
+                              ... and 108 more unclassified differences
+                            COUNTS 726 insns; CHANGED 113; UNCLASSIFIED 113; DELTAS
+              DIFFERS       (anonymous namespace)::ExtendedBacktrackLadder_ContinuesFromLiveAlphaAndHonorsCap_Test::TestBody()
+                            PAD-ROUTE DECLINED: 2 alignment-pad lines vs 2 (16 -> 25 bytes); start 0xb580 (mod 32 = 0) -> 0xb580 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 883 lines vs 882 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::ChainedRecoveryOrdering_SocResolvesFirst_Test::TestBody()
+                            STRUCTURAL: normalized listing is 549 lines vs 548 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::ExtendedBacktrackGuards_DisabledDeclines_Test::TestBody()
+                            STRUCTURAL: normalized listing is 480 lines vs 479 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::ExtendedBacktrackLadder_AcceptsAndStopsEarly_Test::TestBody()
+                            PAD-ROUTE DECLINED: 2 alignment-pad lines vs 3 (22 -> 31 bytes); start 0xc630 (mod 32 = 16) -> 0xc630 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                              UNCLASSIFIED  - 	vmovaps 0x0(%rip),%xmm0 ;LEN=8
+                                            + 	vmovaps 0x0(%rip),%ymm0 ;LEN=8
+                              UNCLASSIFIED  - 	vmovups %xmm0,0x300(%rsp) ;LEN=9
+                                            + 	vmovups %ymm0,0x300(%rsp) ;LEN=9
+                              UNCLASSIFIED  - 	movl   $0x3,0x310(%rsp) ;LEN=11
+                                            + 	movl   $0x1,0x320(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0x328(%rsp) ;LEN=11
+                                            + 	movb   $0x0,0x324(%rsp) ;LEN=8
+                              UNCLASSIFIED  - 	vxorps %xmm0,%xmm0,%xmm0 ;LEN=4
+                                            + 	movl   $0x0,0x328(%rsp) ;LEN=11
+                              ... and 686 more unclassified differences
+                            COUNTS 801 insns; CHANGED 691; UNCLASSIFIED 691; DELTAS
+              DIFFERS       (anonymous namespace)::WatchdogRecoveryDecorator_DelegatesWhileNotArmed_Test::TestBody()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 2 (41 -> 18 bytes); start 0xf730 (mod 32 = 16) -> 0xf710 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 579 lines vs 577 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::WatchdogRecoveryDecorator_NotifyStepAcceptedResetsArmingCounter_Test::TestBody()
+                            PAD-ROUTE DECLINED: 1 alignment-pad lines vs 2 (10 -> 19 bytes); start 0x12dd0 (mod 32 = 16) -> 0x12d90 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                              UNCLASSIFIED  - 	vmovaps 0x0(%rip),%xmm0 ;LEN=8
+                                            + 	vmovaps 0x0(%rip),%ymm0 ;LEN=8
+                              UNCLASSIFIED  - 	vmovups %xmm0,0x2e0(%rsp) ;LEN=9
+                                            + 	vmovups %ymm0,0x2e0(%rsp) ;LEN=9
+                              UNCLASSIFIED  - 	movl   $0x3,0x2f0(%rsp) ;LEN=11
+                                            + 	movl   $0x1,0x300(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0x308(%rsp) ;LEN=11
+                                            + 	movb   $0x0,0x304(%rsp) ;LEN=8
+                              UNCLASSIFIED  - 	vxorps %xmm0,%xmm0,%xmm0 ;LEN=4
+                                            + 	movl   $0x0,0x308(%rsp) ;LEN=11
+                              ... and 109 more unclassified differences
+                            COUNTS 791 insns; CHANGED 114; UNCLASSIFIED 114; DELTAS
+              DIFFERS       (anonymous namespace)::ChainedRecoveryOrdering_ExtendedResolvesWhenSocDeclines_Test::TestBody()
+                            STRUCTURAL: normalized listing is 549 lines vs 548 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::ChainedRecoveryOrdering_BothDeclineIsUnresolved_Test::TestBody()
+                            STRUCTURAL: normalized listing is 404 lines vs 403 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::WatchdogRecoveryDecorator_ArmsRelaxesThenReverts_Test::TestBody()
+                            PAD-ROUTE DECLINED: 1 alignment-pad lines vs 1 (4 -> 13 bytes); start 0x10190 (mod 32 = 16) -> 0x10150 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1787 lines vs 1786 -- instructions were added or removed
+SYMBOLS     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o: COVERAGE FINDINGS
+              LOCAL-FAMILY  .LCPI: 398 before, 397 after
+DIFFERS     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 719 alignment-pad lines vs 718 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 77971 lines vs 77961 -- instructions were added or removed
+PER-SYMBOL  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o: PERSYM 459 identical, 1 noise-only, 26 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 12671 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       Callback_AReadOnlyCallbackChangesNothingOnEitherEngine_Test::TestBody()
+                            STRUCTURAL: normalized listing is 2498 lines vs 2496 -- instructions were added or removed
+              DIFFERS       Callback_ZeroMajorExitFiresOnceOrNever_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x20a41(%rip),%rax ;LEN=7
+                                            + 	lea    0x20a21(%rip),%rax ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x20af5(%rip),%rcx ;LEN=7
+                                            + 	lea    0x20ad5(%rip),%rcx ;LEN=7
+                            COUNTS 750 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       Callback_SqpStopOnTheRestorationsConvergedRowInterruptsAndKeepsTheCertificate_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x2712f(%rip),%rax ;LEN=7
+                                            + 	lea    0x270ef(%rip),%rax ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x271e0(%rip),%rcx ;LEN=7
+                                            + 	lea    0x271a0(%rip),%rcx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x26da1(%rip),%rax ;LEN=7
+                                            + 	lea    0x26d61(%rip),%rax ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x26dc5(%rip),%rcx ;LEN=7
+                                            + 	lea    0x26d85(%rip),%rcx ;LEN=7
+                            COUNTS 674 insns; CHANGED 4; UNCLASSIFIED 4; DELTAS
+              DIFFERS       Callback_ThrowingCallbackPropagatesAndTheSolverIsReusable_Test::TestBody()
+                            PAD-ROUTE DECLINED: 17 alignment-pad lines vs 17 (146 -> 147 bytes); start 0x1cb30 (mod 32 = 16) -> 0x1cb10 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 5629 lines vs 5627 -- instructions were added or removed
+              DIFFERS       Callback_IpmEventObjectiveIsNaNOnANonObjectiveBearingPhase_Test::TestBody()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 2 (41 -> 18 bytes); start 0x19670 (mod 32 = 16) -> 0x19650 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1292 lines vs 1290 -- instructions were added or removed
+              DIFFERS       Callback_ClearingTheCallbackFromInsideItIsSafe_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1960 lines vs 1958 -- instructions were added or removed
+              DIFFERS       Callback_SqpStopInsideRestorationArrivesAsTheSubSolvesOwnVerdict_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x2af03(%rip),%rax ;LEN=7
+                                            + 	lea    0x2aec3(%rip),%rax ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x2af17(%rip),%rcx ;LEN=7
+                                            + 	lea    0x2aed7(%rip),%rcx ;LEN=7
+                            COUNTS 654 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       Callback_ADirectSetAfterAThrownDeferralSupersedesIt_Test::TestBody()
+                            STRUCTURAL: normalized listing is 4865 lines vs 4857 -- instructions were added or removed
+              DIFFERS       Callback_IpmTerminalRowStillFires_Test::TestBody()
+                            STRUCTURAL: normalized listing is 741 lines vs 740 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::ipm_run_under(std::optional<hven::solvers::IterationPayload>)
+                            STRUCTURAL: normalized listing is 680 lines vs 679 -- instructions were added or removed
+              DIFFERS       Callback_IpmContinuingEventObservesTheCommittedPoint_Test::TestBody()
+                            PAD-ROUTE DECLINED: 19 alignment-pad lines vs 20 (190 -> 199 bytes); start 0x13e90 (mod 32 = 16) -> 0x13e70 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                              UNCLASSIFIED  - 	je     SELF+0x754 ;LEN=6
+                                            + 	je     SELF+0x74b ;LEN=6
+                              UNCLASSIFIED  - 	je     SELF+0x767 ;LEN=6
+                                            + 	je     SELF+0x75e ;LEN=6
+                              UNCLASSIFIED  - 	je     SELF+0x774 ;LEN=6
+                                            + 	je     SELF+0x76b ;LEN=6
+                              UNCLASSIFIED  - 	je     SELF+0x787 ;LEN=6
+                                            + 	je     SELF+0x77e ;LEN=6
+                              UNCLASSIFIED  - 	vmovapd 0x0(%rip),%xmm0 ;LEN=8
+                                            + 	vmovaps 0x0(%rip),%ymm0 ;LEN=8
+                              ... and 755 more unclassified differences
+                            COUNTS 1337 insns; CHANGED 760; UNCLASSIFIED 760; DELTAS
+              DIFFERS       CallbackPayload_AMaskSetFromInsideTheCallbackTakesEffectAtTheNextEvent_Test::TestBody()
+                            PAD-ROUTE DECLINED: 13 alignment-pad lines vs 13 (115 -> 124 bytes); start 0x2a8c0 (mod 32 = 0) -> 0x2a880 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1521 lines vs 1520 -- instructions were added or removed
+              DIFFERS       CallbackPayload_ClearingResetsTheMask_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1564 lines vs 1563 -- instructions were added or removed
+              DIFFERS       Callback_SqpStopOnANonConvergedCapTerminalRowIsANoOp_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x27cc9(%rip),%rax ;LEN=7
+                                            + 	lea    0x27c89(%rip),%rax ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x27d9d(%rip),%rcx ;LEN=7
+                                            + 	lea    0x27d5d(%rip),%rcx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x277cc(%rip),%rax ;LEN=7
+                                            + 	lea    0x2778c(%rip),%rax ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x277e0(%rip),%rcx ;LEN=7
+                                            + 	lea    0x277a0(%rip),%rcx ;LEN=7
+                            COUNTS 656 insns; CHANGED 4; UNCLASSIFIED 4; DELTAS
+              DIFFERS       Callback_IpmStopEndsThePhaseSequence_Test::TestBody()
+                            STRUCTURAL: normalized listing is 2200 lines vs 2198 -- instructions were added or removed
+              DIFFERS       Callback_ClearingTheCallbackStopsTheEvents_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1183 lines vs 1182 -- instructions were added or removed
+              DIFFERS       Callback_IpmTerminalEventDiagnosticsAreTheResultsOwn_Test::TestBody()
+                            STRUCTURAL: normalized listing is 910 lines vs 908 -- instructions were added or removed
+              DIFFERS       Callback_SqpStopInsideRestorationLatchesAndReachesTheParent_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x2b918(%rip),%rax ;LEN=7
+                                            + 	lea    0x2b8d8(%rip),%rax ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x2ba19(%rip),%rdx ;LEN=7
+                                            + 	lea    0x2b9d9(%rip),%rdx ;LEN=7
+                            COUNTS 823 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       Callback_SqpTerminalEventDiagnosticsAreTheResultsOwn_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x2d5e3(%rip),%rax ;LEN=7
+                                            + 	lea    0x2d5a3(%rip),%rax ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x2d694(%rip),%rcx ;LEN=7
+                                            + 	lea    0x2d654(%rip),%rcx ;LEN=7
+                            COUNTS 595 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       CallbackPayload_AnEmptyCallableNormalisesTheMaskToAll_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1344 lines vs 1343 -- instructions were added or removed
+              NOISE-ONLY    CallbackPayload_TheOneArgumentOverloadStillDeliversEverything_Test::TestBody()
+                            COUNTS 616 insns; CHANGED 151; UNCLASSIFIED 0; DELTAS (pad-merged)
+            PAD-MERGED 10 alignment-pad lines vs 9 (120 -> 104 bytes, -16); 616 non-pad lines, 465 identical, 151 control-transfer targets shifted -16; 151 control-transfer target(s) resolved to the SAME instruction; start 0x26020 (mod 32 = 0) -> 0x25ff0 (mod 32 = 16)
+              DIFFERS       Callback_SqpEventRowsEqualHistoryInCallerUnits_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x30977(%rip),%rax ;LEN=7
+                                            + 	lea    0x30937(%rip),%rax ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x30a28(%rip),%rcx ;LEN=7
+                                            + 	lea    0x309e8(%rip),%rcx ;LEN=7
+                            COUNTS 2938 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       CallbackPayload_TheObservationPointReadsTheActiveMask_Test::TestBody()
+                            STRUCTURAL: normalized listing is 671 lines vs 670 -- instructions were added or removed
+              DIFFERS       Callback_SqpStopReturnsInterruptedAtTheCurrentPoint_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x2d384(%rip),%rax ;LEN=7
+                                            + 	lea    0x2d344(%rip),%rax ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x2d438(%rip),%rcx ;LEN=7
+                                            + 	lea    0x2d3f8(%rip),%rcx ;LEN=7
+                            COUNTS 962 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       Callback_SqpConvergedBeatsStop_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x2c068(%rip),%rax ;LEN=7
+                                            + 	lea    0x2c028(%rip),%rax ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x2c06c(%rip),%rcx ;LEN=7
+                                            + 	lea    0x2c02c(%rip),%rcx ;LEN=7
+                            COUNTS 708 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       Callback_SqpEventXIsTheRowsOwnPointAcrossRestoration_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x2a58a(%rip),%rax ;LEN=7
+                                            + 	lea    0x2a54a(%rip),%rax ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x2a63b(%rip),%rcx ;LEN=7
+                                            + 	lea    0x2a5fb(%rip),%rcx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x296aa(%rip),%rax ;LEN=7
+                                            + 	lea    0x2966a(%rip),%rax ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x2975b(%rip),%rcx ;LEN=7
+                                            + 	lea    0x2971b(%rip),%rcx ;LEN=7
+                            COUNTS 1969 insns; CHANGED 4; UNCLASSIFIED 4; DELTAS
+              DIFFERS       Callback_IpmTerminalEventDescribesTheReturnedPointUnderReturnBest_Test::TestBody()
+                            PAD-ROUTE DECLINED: 19 alignment-pad lines vs 19 (185 -> 195 bytes); start 0x1aa70 (mod 32 = 16) -> 0x1aa30 (mod 32 = 16) -- a non-pad line differs somewhere other than a control-transfer target (rule 3)
+                              UNCLASSIFIED  - 	sub    $0x22b8,%rsp ;LEN=7
+                                            + 	sub    $0x22f8,%rsp ;LEN=7
+                              UNCLASSIFIED  - 	xor    %eax,%eax ;LEN=2
+                                            + 	vbroadcastsd 0x0(%rip),%ymm0 ;LEN=9
+                              UNCLASSIFIED  - 	lea    0x0(%rip),%rcx ;LEN=7
+                                            + RELOC R_X86_64_PC32 .LCPI +LOCAL
+                              UNCLASSIFIED  - RELOC R_X86_64_PC32 .rodata +LOCAL
+                                            + 	vmovups %ymm0,0x250(%rsp) ;LEN=9
+                              UNCLASSIFIED  - 	xor    %ebx,%ebx ;LEN=2
+                                            + 	vbroadcastsd 0x0(%rip),%ymm0 ;LEN=9
+                              ... and 742 more unclassified differences
+                            COUNTS 1688 insns; CHANGED 747; UNCLASSIFIED 747; DELTAS
+DIFFERS     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_concurrency.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 750 alignment-pad lines vs 751 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 49710 lines vs 49707 -- instructions were added or removed
+PER-SYMBOL  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_concurrency.cpp.o: PERSYM 673 identical, 0 noise-only, 2 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 1 with unequal trailing alignment padding, 0 duplicate copies identical, 2 rank-tagged, 0 section moves, 5298 relocation records compared (0 through the symbol map), 2 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       (anonymous namespace)::run_fanout_cell((anonymous namespace)::FanOutCell const&)
+                            PAD-ROUTE DECLINED: 1 alignment-pad lines vs 1 (1 -> 14 bytes); start 0x9070 (mod 32 = 16) -> 0x9070 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 548 lines vs 546 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::run_ipm_cell(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&)
+                            STRUCTURAL: normalized listing is 384 lines vs 382 -- instructions were added or removed
+DIFFERS     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 180 alignment-pad lines vs 182 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 29402 lines vs 29381 -- instructions were added or removed
+PER-SYMBOL  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options.cpp.o: PERSYM 218 identical, 0 noise-only, 6 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 2 rank-tagged, 0 section moves, 4634 relocation records compared (0 through the symbol map), 2 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       Options_IpmTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1121 lines vs 1120 -- instructions were added or removed
+              DIFFERS       Options_PresetsReturnFullValues_Test::TestBody()
+                            PAD-ROUTE DECLINED: 24 alignment-pad lines vs 26 (246 -> 334 bytes); start 0xb200 (mod 32 = 0) -> 0xb100 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1271 lines vs 1260 -- instructions were added or removed
+              DIFFERS       Options_IpmSetOptionsDuringASolveThrowsLogicError_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1370 lines vs 1369 -- instructions were added or removed
+              DIFFERS       Options_IpmSetOptionsIsTransactional_Test::TestBody()
+                            STRUCTURAL: normalized listing is 759 lines vs 757 -- instructions were added or removed
+              DIFFERS       Options_IpmValidateRefusesWhatSettingsValidateRefused_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1667 lines vs 1611 -- instructions were added or removed
+              DIFFERS       Options_IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve_Test::TestBody()
+                            STRUCTURAL: normalized listing is 5111 lines vs 5110 -- instructions were added or removed
+SYMBOLS     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options_dump.cpp.o: COVERAGE FINDINGS
+              ONLY-BEFORE   testing::AssertionResult testing::internal::CmpHelperEQFailure<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [170]>(char const*, char const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const (&) [170])
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [171]>(char const*, char const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const (&) [171])
+DIFFERS     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options_dump.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 67 alignment-pad lines vs 70 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 8110 lines vs 8107 -- instructions were added or removed
+PER-SYMBOL  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options_dump.cpp.o: PERSYM 63 identical, 2 noise-only, 7 differing, 1 only-before, 1 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 1 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 1419 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       (anonymous namespace)::OptionsDump_NoTrailingWhitespace_Test::TestBody()
+                            PAD-ROUTE DECLINED: 19 alignment-pad lines vs 19 (189 -> 198 bytes); start 0x2f60 (mod 32 = 0) -> 0x2f60 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 995 lines vs 994 -- instructions were added or removed
+              NOISE-ONLY    _GLOBAL__sub_I_test_options_dump.cpp
+                            COUNTS 769 insns; CHANGED 18; UNCLASSIFIED 0; DELTAS +6(x18)
+              DIFFERS       (anonymous namespace)::OptionsDump_IpmDumpsOneLinePerField_Test::TestBody()
+                            PAD-ROUTE DECLINED: 1 alignment-pad lines vs 2 (8 -> 17 bytes); start 0x80 (mod 32 = 0) -> 0x80 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                              UNCLASSIFIED  - 	vmovaps 0x0(%rip),%xmm0 ;LEN=8
+                                            + 	vmovaps 0x0(%rip),%ymm0 ;LEN=8
+                              UNCLASSIFIED  - 	vmovups %xmm0,0xb8(%rsp) ;LEN=9
+                                            + 	vmovups %ymm0,0xb8(%rsp) ;LEN=9
+                              UNCLASSIFIED  - 	movl   $0x3,0xc8(%rsp) ;LEN=11
+                                            + 	movl   $0x1,0xd8(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0xe0(%rsp) ;LEN=11
+                                            + 	movb   $0x0,0xdc(%rsp) ;LEN=8
+                              UNCLASSIFIED  - 	vxorps %xmm0,%xmm0,%xmm0 ;LEN=4
+                                            + 	movl   $0x0,0xe0(%rsp) ;LEN=11
+                              ... and 49 more unclassified differences
+                            COUNTS 174 insns; CHANGED 54; UNCLASSIFIED 54; DELTAS
+              DIFFERS       (anonymous namespace)::OptionsDump_ReadsTheValueItWasGiven_Test::TestBody()
+                            PAD-ROUTE DECLINED: 1 alignment-pad lines vs 2 (10 -> 19 bytes); start 0x5ce0 (mod 32 = 0) -> 0x5d20 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                              UNCLASSIFIED  - 	vmovaps 0x0(%rip),%xmm0 ;LEN=8
+                                            + 	vmovaps 0x0(%rip),%ymm0 ;LEN=8
+                              UNCLASSIFIED  - 	vmovups %xmm0,0xe0(%rsp) ;LEN=9
+                                            + 	vmovups %ymm0,0xe0(%rsp) ;LEN=9
+                              UNCLASSIFIED  - 	movl   $0x3,0xf0(%rsp) ;LEN=11
+                                            + 	movl   $0x1,0x100(%rsp) ;LEN=11
+                              UNCLASSIFIED  - 	movl   $0x0,0x108(%rsp) ;LEN=11
+                                            + 	movb   $0x0,0x104(%rsp) ;LEN=8
+                              UNCLASSIFIED  - 	vxorps %xmm0,%xmm0,%xmm0 ;LEN=4
+                                            + 	movl   $0x0,0x108(%rsp) ;LEN=11
+                              ... and 370 more unclassified differences
+                            COUNTS 497 insns; CHANGED 376; UNCLASSIFIED 375; DELTAS +6(x1)
+              DIFFERS       (anonymous namespace)::OptionsDump_EnumsPrintEnumeratorNames_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1017 lines vs 1016 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::OptionsDump_APoisonedStreamProducesTheSameBytes_Test::TestBody()
+                            STRUCTURAL: normalized listing is 977 lines vs 975 -- instructions were added or removed
+              NOISE-ONLY    (anonymous namespace)::OptionsDump_WritesIntoAStreamTheCallerIsAlreadyUsing_Test::TestBody()
+                            COUNTS 394 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +6(x1)
+              ONLY-BEFORE   testing::AssertionResult testing::internal::CmpHelperEQFailure<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [170]>(char const*, char const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const (&) [170])
+              DIFFERS       (anonymous namespace)::OptionsDump_IsDeterministic_Test::TestBody()
+                            STRUCTURAL: normalized listing is 398 lines vs 397 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::OptionsDump_IpmDumpHeadIsVerbatim_Test::TestBody()
+                            STRUCTURAL: normalized listing is 298 lines vs 297 -- instructions were added or removed
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char [171]>(char const*, char const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const (&) [171])
+SYMBOLS     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_result.cpp.o: COVERAGE FINDINGS
+              LOCAL-FAMILY  .LCPI: 247 before, 246 after
+DIFFERS     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_result.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 243 alignment-pad lines vs 247 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 40984 lines vs 40951 -- instructions were added or removed
+PER-SYMBOL  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_result.cpp.o: PERSYM 264 identical, 9 noise-only, 14 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 2 with unequal trailing alignment padding, 0 duplicate copies identical, 2 rank-tagged, 0 section moves, 6838 relocation records compared (0 through the symbol map), 2 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       IpmIntrospection_PatternQueryTakesTheModel_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1699 lines vs 1697 -- instructions were added or removed
+              NOISE-ONLY    DeclaredDiagnostics_RefusesEveryMalformedDeclaredBlock_Test::TestBody()
+                            COUNTS 1382 insns; CHANGED 10; UNCLASSIFIED 0; DELTAS +9(x10)
+              DIFFERS       SolveResult_AnObjectiveBearingLastPhaseReportsAllFour_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1007 lines vs 1006 -- instructions were added or removed
+              DIFFERS       SolveResult_ExportIsASnapshotIndependentOfLaterEdits_Test::TestBody()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 3 (18 -> 31 bytes); start 0x90d0 (mod 32 = 16) -> 0x9050 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1203 lines vs 1201 -- instructions were added or removed
+              DIFFERS       IpmIntrospection_AnalysisIdentityOutlivesTheAnalysingSolver_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1272 lines vs 1263 -- instructions were added or removed
+              NOISE-ONLY    SolveBudget_TheSqpTakesABudgetOnEveryPublicOverload_Test::TestBody()
+                            COUNTS 969 insns; CHANGED 9; UNCLASSIFIED 0; DELTAS +9(x9)
+              DIFFERS       SolveResult_TheIpmFillsTheSharedDiagnosticsAtItsReturnedPoint_Test::TestBody()
+                            PAD-ROUTE DECLINED: 4 alignment-pad lines vs 5 (26 -> 39 bytes); start 0xa390 (mod 32 = 16) -> 0xa310 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 2224 lines vs 2223 -- instructions were added or removed
+              NOISE-ONLY    _GLOBAL__sub_I_test_solve_result.cpp
+                            COUNTS 1906 insns; CHANGED 60; UNCLASSIFIED 0; DELTAS +9(x60)
+              DIFFERS       SolveResult_AnActiveRestorationExitEmptiesTheResidualBlocks_Test::TestBody()
+                            STRUCTURAL: normalized listing is 896 lines vs 894 -- instructions were added or removed
+              DIFFERS       SolveBudget_IpmClampsBeforeNarrowing_Test::TestBody()
+                            STRUCTURAL: normalized listing is 706 lines vs 704 -- instructions were added or removed
+              DIFFERS       IpmPhases_EmptySequenceIsRefused_Test::TestBody()
+                            STRUCTURAL: normalized listing is 448 lines vs 447 -- instructions were added or removed
+              DIFFERS       SolveResult_ReturnBestReportsTheBestIterateSObjective_Test::TestBody()
+                            PAD-ROUTE DECLINED: 13 alignment-pad lines vs 16 (138 -> 144 bytes); start 0x13600 (mod 32 = 0) -> 0x13570 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1169 lines vs 1167 -- instructions were added or removed
+              DIFFERS       SolveBudget_IpmMaxIterationsCapsEachPhase_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1311 lines vs 1304 -- instructions were added or removed
+              NOISE-ONLY    DeclaredDiagnostics_ANonFiniteEntryReportsUnmeasuredRatherThanANumber_Test::TestBody()::$_0::operator()(hven::solvers::DeclaredDiagnostics const&, char const*) const
+                            COUNTS 304 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +9(x4)
+              NOISE-ONLY    SolveResult_TheSqpFillsTheSharedDiagnosticsAtItsReturnedPoint_Test::TestBody()
+                            COUNTS 1609 insns; CHANGED 19; UNCLASSIFIED 0; DELTAS +9(x19)
+              NOISE-ONLY    SolveBudget_SqpRestorationIsBudgetedFromTheEffectiveCap_Test::TestBody()
+                            COUNTS 991 insns; CHANGED 8; UNCLASSIFIED 0; DELTAS +9(x8)
+              NOISE-ONLY    DeclaredDiagnostics_TheGradLagDoorChecksItsOwnBlockWidths_Test::TestBody()
+                            COUNTS 1863 insns; CHANGED 11; UNCLASSIFIED 0; DELTAS +9(x11)
+              DIFFERS       IpmPhases_EachPhaseCarriesItsOwnVerdict_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1164 lines vs 1163 -- instructions were added or removed
+              NOISE-ONLY    SolveResult_UnmeasuredExitsReportNaNAndEmptyVectors_Test::TestBody()
+                            COUNTS 867 insns; CHANGED 12; UNCLASSIFIED 0; DELTAS +9(x12)
+              DIFFERS       SolveResult_TheIpmClockRunsFromThePublicEntry_Test::TestBody()
+                            PAD-ROUTE DECLINED: 1 alignment-pad lines vs 1 (13 -> 10 bytes); start 0x16b40 (mod 32 = 0) -> 0x169d0 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 843 lines vs 841 -- instructions were added or removed
+              DIFFERS       IpmPhases_TrailingSolveIsConditionalOnThePrecedingOptimize_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1660 lines vs 1653 -- instructions were added or removed
+              DIFFERS       SolveResult_AFeasibilityOnlyLastPhaseReportsStationarityUnmeasured_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1147 lines vs 1145 -- instructions were added or removed
+              NOISE-ONLY    DeclaredDiagnostics_TheRefusalFixtureIsItselfWellFormed_Test::TestBody()
+                            COUNTS 749 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +9(x4)
+DIFFERS     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_warm_protocol.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 172 alignment-pad lines vs 175 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 34740 lines vs 34735 -- instructions were added or removed
+PER-SYMBOL  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_warm_protocol.cpp.o: PERSYM 192 identical, 2 noise-only, 11 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 1 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 5539 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       WarmProtocol_ColdCeilingIgnoresAndCountsThePayload_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1037 lines vs 1036 -- instructions were added or removed
+              DIFFERS       WarmProtocol_TheSolveFamilyKeepsItsSeedlessAndItsPayloadEntries_Test::TestBody()
+                            STRUCTURAL: normalized listing is 2949 lines vs 2947 -- instructions were added or removed
+              DIFFERS       WarmProtocol_ColdCeilingStillRefusesAWrongStampAtTheRightDimensions_Test::TestBody()
+                            PAD-ROUTE DECLINED: 8 alignment-pad lines vs 9 (93 -> 109 bytes); start 0xd5b0 (mod 32 = 16) -> 0xd580 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                              UNCLASSIFIED  - 	sub    $0x2228,%rsp ;LEN=7
+                                            + 	sub    $0x2268,%rsp ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x16d8(%rsp),%rdi ;LEN=8
+                                            + 	lea    0x1718(%rsp),%rdi ;LEN=8
+                              UNCLASSIFIED  - 	lea    0x21c0(%rsp),%rsi ;LEN=8
+                                            + 	lea    0x2200(%rsp),%rsi ;LEN=8
+                              UNCLASSIFIED  - 	mov    0x21c8(%rsp),%rcx ;LEN=8
+                                            + 	mov    0x2208(%rsp),%rcx ;LEN=8
+                              UNCLASSIFIED  - 	lea    0x988(%rsp),%rdi ;LEN=8
+                                            + 	lea    0x9c8(%rsp),%rdi ;LEN=8
+                              ... and 912 more unclassified differences
+                            COUNTS 1250 insns; CHANGED 917; UNCLASSIFIED 917; DELTAS
+              NOISE-ONLY    (anonymous namespace)::expect_same_reported_numbers(hven::solvers::IpmResult const&, hven::solvers::IpmResult const&, char const*)
+                            COUNTS 3017 insns; CHANGED 284; UNCLASSIFIED 0; DELTAS (pad-merged)
+            PAD-MERGED 12 alignment-pad lines vs 13 (123 -> 139 bytes, +16); 3017 non-pad lines, 2733 identical, 284 control-transfer targets shifted +16; 804 control-transfer target(s) resolved to the SAME instruction; start 0x19c70 (mod 32 = 16) -> 0x19c40 (mod 32 = 0)
+              DIFFERS       WarmProtocol_ColdCeilingIgnoresAndCountsThePayload_Test::TestBody()::$_0::operator()(hven::solvers::StartLevel, hven::solvers::WarmStartData const*) const
+                            STRUCTURAL: normalized listing is 408 lines vs 407 -- instructions were added or removed
+              DIFFERS       WarmProtocol_RoundTripIpmToSqpToIpmStillWorks_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1432 lines vs 1431 -- instructions were added or removed
+              DIFFERS       WarmProtocol_PayloadStampMismatchRefusesOnBothEngines_Test::TestBody()
+                            PAD-ROUTE DECLINED: 2 alignment-pad lines vs 1 (26 -> 3 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1136 lines vs 1134 -- instructions were added or removed
+              DIFFERS       WarmProtocol_MultipliersOnlySeedIgnoresAPolishExtension_Test::TestBody()
+                            STRUCTURAL: normalized listing is 2940 lines vs 2938 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::Hs071Export::Hs071Export()
+                            PAD-ROUTE DECLINED: 1 alignment-pad lines vs 1 (11 -> 4 bytes); start 0x17410 (mod 32 = 16) -> 0x17400 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 670 lines vs 669 -- instructions were added or removed
+              NOISE-ONLY    WarmProtocol_ThePolishIgnoredCountAgreesAcrossTraceResultAndLedger_Test::TestBody()
+                            COUNTS 2892 insns; CHANGED 659; UNCLASSIFIED 0; DELTAS (pad-merged)
+            PAD-MERGED 15 alignment-pad lines vs 16 (155 -> 171 bytes, +16); 2892 non-pad lines, 2233 identical, 659 control-transfer targets shifted +16; 671 control-transfer target(s) resolved to the SAME instruction; start 0xfcd0 (mod 32 = 16) -> 0xfcc0 (mod 32 = 0)
+              DIFFERS       WarmProtocol_EmptyPrimalWithNonEmptyBoundDualsIsRefusedAtHandOver_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1557 lines vs 1555 -- instructions were added or removed
+              DIFFERS       WarmProtocol_TheIpmCeilingHasFourRungs_Test::TestBody()::$_0::operator()(hven::solvers::StartLevel) const
+                            STRUCTURAL: normalized listing is 343 lines vs 342 -- instructions were added or removed
+              DIFFERS       WarmProtocol_TheSolveFamilyKeepsItsSeedlessAndItsPayloadEntries_Test::TestBody()::$_0::operator()(hven::solvers::WarmStartData const&, bool) const
+                            STRUCTURAL: normalized listing is 412 lines vs 411 -- instructions were added or removed
+SYMBOLS     bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o: COVERAGE FINDINGS
+              LOCAL-FAMILY  .L.str: 421 before, 422 after
+DIFFERS     bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 1586 alignment-pad lines vs 1585 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 90506 lines vs 90607 -- instructions were added or removed
+PER-SYMBOL  bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o: PERSYM 727 identical, 0 noise-only, 3 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 3 rank-tagged, 0 section moves, 8610 relocation records compared (0 through the symbol map), 3 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       main
+                              UNCLASSIFIED  - 	lea    0x162e2(%rip),%rax ;LEN=7
+                                            + 	lea    0x16462(%rip),%rax ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x162b7(%rip),%rax ;LEN=7
+                                            + 	lea    0x16437(%rip),%rax ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x160f7(%rip),%r10 ;LEN=7
+                                            + 	lea    0x16277(%rip),%r10 ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x161c0(%rip),%r9 ;LEN=7
+                                            + 	lea    0x16340(%rip),%r9 ;LEN=7
+                            COUNTS 10129 insns; CHANGED 4; UNCLASSIFIED 4; DELTAS
+              DIFFERS       hven::solvers::corpus::CountingTraceSink::on_qp_mode(hven::solvers::QpModeTraceEvent const&)
+                              UNCLASSIFIED  - 	cmp    $0x4,%rax ;LEN=4
+                                            + 	cmp    $0x5,%rax ;LEN=4
+                            COUNTS 7 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       (anonymous namespace)::write_interior_provenance_head(std::basic_ostream<char, std::char_traits<char> >&, int, char**, hven::solvers::corpus::InteriorLevers const&)
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 2 (41 -> 24 bytes); start 0x16f60 (mod 32 = 0) -> 0x16f60 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1020 lines vs 1135 -- instructions were added or removed
+SYMBOLS     bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o: COVERAGE FINDINGS
+              ONLY-AFTER    hven::solvers::corpus::interior_globalization_stamp[abi:cxx11]()::$_0::operator()[abi:cxx11](std::basic_string_view<char, std::char_traits<char> >) const
+              ONLY-AFTER    hven::solvers::corpus::interior_globalization_stamp[abi:cxx11]()
+              LOCAL-FAMILY  .LCPI: 106 before, 116 after
+              LOCAL-FAMILY  .L.str: 123 before, 129 after
+              LOCAL-FAMILY  GCC_except_table: 84 before, 86 after
+DIFFERS     bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 1376 alignment-pad lines vs 1382 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 51801 lines vs 52356 -- instructions were added or removed
+PER-SYMBOL  bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o: PERSYM 321 identical, 0 noise-only, 3 differing, 0 only-before, 2 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 3057 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::corpus::CountingTraceSink::on_qp_mode(hven::solvers::QpModeTraceEvent const&)
+                              UNCLASSIFIED  - 	cmp    $0x4,%rax ;LEN=4
+                                            + 	cmp    $0x5,%rax ;LEN=4
+                            COUNTS 7 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       hven::solvers::corpus::configure_interior_solver(hven::solvers::IpmSolver&, hven::solvers::FixedVariableTreatments, hven::solvers::corpus::InteriorLevers const&, hven::solvers::corpus::InteriorVariant const&)
+                            STRUCTURAL: normalized listing is 223 lines vs 247 -- instructions were added or removed
+              DIFFERS       std::__detail::_MakeUniq<hven::solvers::IpmSolver>::__single_object std::make_unique<hven::solvers::IpmSolver>()
+                            STRUCTURAL: normalized listing is 101 lines vs 100 -- instructions were added or removed
+              ONLY-AFTER    hven::solvers::corpus::interior_globalization_stamp[abi:cxx11]()::$_0::operator()[abi:cxx11](std::basic_string_view<char, std::char_traits<char> >) const
+              ONLY-AFTER    hven::solvers::corpus::interior_globalization_stamp[abi:cxx11]()
+DIFFERS     bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 1381 alignment-pad lines vs 1382 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+              UNCLASSIFIED  - 	vmovdqa 0x0(%rip),%ymm1
+                            + 	movabs $0x3ff0000000000000,%rax
+              UNCLASSIFIED  - 	vmovaps 0x0(%rip),%ymm5
+                            + 	vmovaps %xmm0,0x4b0(%rsp)
+              UNCLASSIFIED  - 	vmovaps 0x0(%rip),%ymm4
+                            + 	vbroadcastsd 0x0(%rip),%ymm0
+              UNCLASSIFIED  - 	vmovaps 0x0(%rip),%xmm3
+                            + 	movq   $0x0,0x4c0(%rsp)
+              UNCLASSIFIED  - 	vmovaps 0x0(%rip),%xmm2
+                            + 	movb   $0x0,0x4c8(%rsp)
+              ... and 201 more unclassified differences
+            COUNTS 52394 insns; CHANGED 206; UNCLASSIFIED 206; DELTAS
+PER-SYMBOL  bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o: PERSYM 251 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 3265 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::crossover::run_cell_legs(hven::solvers::corpus::CorpusCell const&, hven::solvers::crossover::LegOptions const&, std::function<void (hven::solvers::crossover::CellLegs const&, hven::solvers::crossover::LegStage)> const&)
+                            PAD-ROUTE DECLINED: 2 alignment-pad lines vs 3 (10 -> 19 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                              UNCLASSIFIED  - 	vmovdqa 0x0(%rip),%ymm1 ;LEN=8
+                                            + 	movabs $0x3ff0000000000000,%rax ;LEN=10
+                              UNCLASSIFIED  - RELOC R_X86_64_PC32 .LCPI +LOCAL
+                                            + 	vmovaps %xmm0,0x4b0(%rsp) ;LEN=9
+                              UNCLASSIFIED  - 	vmovaps 0x0(%rip),%ymm5 ;LEN=8
+                                            + 	vbroadcastsd 0x0(%rip),%ymm0 ;LEN=9
+                              UNCLASSIFIED  - 	vmovaps 0x0(%rip),%ymm4 ;LEN=8
+                                            + 	movq   $0x0,0x4c0(%rsp) ;LEN=12
+                              UNCLASSIFIED  - RELOC R_X86_64_PC32 .LCPI +LOCAL
+                                            + 	movb   $0x0,0x4c8(%rsp) ;LEN=8
+                              ... and 223 more unclassified differences
+                            COUNTS 1163 insns; CHANGED 228; UNCLASSIFIED 228; DELTAS
+ARCHIVE     libhven.a differs -- see its member objects above; archive
+            metadata (member timestamps, symbol index) is not instructions
+
+P-SYM: 146 objects — 127 byte-identical, 1 differing within the accepted noise class, 17 with unclassified differences, 0 matched by basename after a path move, 0 missing
+P-SYM coverage: 0 objects matched through the object map, 18 compared per symbol, 0 objects passed per symbol, 0 after-arm objects unaccounted for; symbols — 68398 matched (0 through the symbol map), 12 only-before, 58 only-after, 0 excepted, 0 collisions, 47 rank-tagged, 0 stale exceptions, 0 stale map entries; compiler-local label families — 580 matched by count, 15 differing (77909 before-arm and 78035 after-arm symbols accounted by family); relocations — 174485 records compared (0 through the symbol map)
+P-SYM: FAIL — differences outside the accepted noise class

@@ -1,0 +1,17 @@
+PGREP_EMPTY w3-head-pin
+PGREP_NO_UNCOVERED_CELL w3-head-pin 2026-10-28T23:55:06-04:00
+IN_LOCK_PGREP_EMPTY w3-head-pin 2026-10-29T00:29:45-04:00
+FOREGROUND_START w3-head-pin 2026-10-29T00:29:45-04:00
+FOREGROUND_START build_hven_pin 7187a2553966 2026-10-29T04:29:45Z
+Cloning into '/home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/bench/.hven/src'...
+done.
+build_hven_pin: installed 7187a2553966 into /home/ghecht/Projects/hven/.claude/worktrees/w3/.scratch/w3/bench/.hven/install-7187a2553966
+HVEN_PIN_SHA 7187a255396609c7ab08a75531a52552a6fe5ce2
+HVEN_PIN_BRANCH w3
+HVEN_PIN_DATE 2026-10-28
+HVEN_BUILT_UTC 2026-10-29T04:30:20Z
+HVEN_CXX_COMPILER clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+HVEN_EIGEN_ALIGN EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+HVEN_CMAKE_ARGS -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang++ -DHVEN_BUILD_TESTS=OFF -DHVEN_BUILD_BENCH=OFF -DHVEN_LINK_TIME_OPT=OFF
+FOREGROUND_END build_hven_pin 7187a2553966 2026-10-29T04:30:20Z
+FOREGROUND_END w3-head-pin 2026-10-29T00:30:20-04:00 rc=0

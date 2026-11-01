@@ -1,0 +1,12 @@
+RUN Cs_STEENBRB rc=0 status=interrupted iterations=2 objective=30560.678125846942 factorizations=33039 resto=44 wall_s=305.075379109
+RUN Cs_STEENBRC rc=0 status=interrupted iterations=4 objective=60801.637574531815 factorizations=13763 resto=24 wall_s=313.618248894
+RUN Cs_READING6 rc=0 status=optimal iterations=8 objective=-144.65970057278273 factorizations=688 resto=0 wall_s=2.353910741
+RUN Cs_ZAMB2-8 rc=0 status=optimal iterations=8 objective=-0.15293592839676776 factorizations=160 resto=0 wall_s=.621352208
+RUN Cs_SMBANK rc=0 status=optimal iterations=29 objective=-7129292 factorizations=29 resto=0 wall_s=.079708355
+RUN Cs_ACOPR57 rc=0 status=optimal iterations=15 objective=41737.78496542733 factorizations=1207 resto=0 wall_s=1.242686378
+RUN Cs_ACOPR118 rc=0 status=optimal iterations=15 objective=129660.6833784326 factorizations=11136 resto=0 wall_s=63.270751478
+RUN CsOff_ZAMB2-8 rc=0 status=numerical_error iterations=2 objective=-0.25032397429556641 factorizations=12317 resto=11 wall_s=20.816827426
+RUN Cs_STEENBRD rc=0 status=interrupted iterations=18 objective=11413.838981145829 factorizations=25199 resto=43 wall_s=302.227081204
+RUN Cs_STEENBRE rc=0 status=interrupted iterations=1 objective=7233.0814214719376 factorizations=17857 resto=42 wall_s=308.491547484
+RUN Cs_STEENBRG rc=0 status=interrupted iterations=1 objective=456389.91818015132 factorizations=27673 resto=50 wall_s=301.190526422
+CHAIN_DONE /home/ghecht/Projects/hven/.scratch/m7w2r2/tools/matrix-cs.txt 2026-09-25T22:15:39-04:00

@@ -1,0 +1,27 @@
+IDENTITY GATE  M3a=STEENBRB@F-trinf.txt  probe=STEENBRB@trace-G.txt
+  fields compared: 21  (20 QpCounters fields + the record status)
+    first_factorizations                          5
+    first_schur_updates                        4849
+    first_minor_iters                          4680
+    first_eqp_refine_steps                        0
+    first_border_refine_steps                 18904
+    first_verdict_refine_steps                    0
+    first_suspect_escalations                     0
+    first_k0_reused                               0
+    first_symbolic_analyses                       1
+    first_ws_adds                              2344
+    first_ws_drops                             2323
+    first_shift_adds                              0
+    first_degenerate_steps                     2319
+    first_degenerate_run_max                   2310
+    first_ws_adds_bound                        2344
+    first_ws_drops_bound                       2323
+    first_distinct_ineq_added                     0
+    first_distinct_bound_added                   23
+    first_drop_ties                               0
+    first_ratio_ties                              0
+    first_qp_record_status                 max_iter
+  DIFFERING: 0 -- the rebuilt HVEN_TESTING binary reproduces M3a's committed record 0 on all 20 fields and the status
+TRACE INTEGRITY  STEENBRB@trace-G.csv
+  records=4680  minor_iters=4680  truncated=0  exit=max_iter  warm=0  solve_index=0  incoming_ws_size=0  solves_seen=1
+  OK -- one record per pass, nothing truncated, the cold first subproblem, exited on the cap

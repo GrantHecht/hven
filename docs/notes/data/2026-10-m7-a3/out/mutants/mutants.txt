@@ -1,0 +1,153 @@
+SRC /home/ghecht/Projects/hven/.claude/worktrees/agent-afecbe0a5611f9eff HEAD 70f8d393f3cc6223102dbf25a47e7bca0b1139e9 DIRTY=1
+118472 /home/ghecht/Projects/hven-bench/build/lanes/hven/hven_bench_cell --lane hven-sqp --problem MSS2 --options sqp-qn --budget-iters 0 --options-dump /home/ghecht/Projects/hven-bench/runs/2026-10-m7-w2-retake19/measured/MSS2-sqp-qn.dump --assert-reference
+PGREP_NONEMPTY
+FOREGROUND_START 2026-10-28T13:07:18-04:00
+FOREGROUND_END rc=0 2026-10-28T13:09:20-04:00
+[5/6] Linking CXX executable bench/hven_sqp_corpus
+[6/6] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T13:09:20-04:00
+FOREGROUND_END rc=1 2026-10-28T13:14:20-04:00
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] IpqpLadderSkip.NeverSkippingCountsNothingAndPaysTheZeroTrialEveryModifiedIteration
+[  FAILED  ] IpqpLadderSkip.TheCountTracksTheThresholdOnTheTwoNegativeEigenvalueRow
+
+ 2 FAILED TESTS
+MUTANT K1 the field read replaced by the old literal 3: KILLED by IpqpLadderSkip.NeverSkippingCountsNothingAndPaysTheZeroTrialEveryModifiedIteration;IpqpLadderSkip.TheCountTracksTheThresholdOnTheTwoNegativeEigenvalueRow
+SRC /home/ghecht/Projects/hven/.claude/worktrees/agent-afecbe0a5611f9eff HEAD 70f8d393f3cc6223102dbf25a47e7bca0b1139e9 DIRTY=1
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T13:14:21-04:00
+FOREGROUND_END rc=0 2026-10-28T13:15:58-04:00
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T13:15:58-04:00
+FOREGROUND_END rc=1 2026-10-28T13:15:59-04:00
+[  PASSED  ] 7 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] IpqpLadderSkip.TheCountTracksTheThresholdOnTheTwoNegativeEigenvalueRow
+
+ 1 FAILED TEST
+MUTANT K2 >= becomes >: KILLED by IpqpLadderSkip.TheCountTracksTheThresholdOnTheTwoNegativeEigenvalueRow
+SRC /home/ghecht/Projects/hven/.claude/worktrees/agent-afecbe0a5611f9eff HEAD 70f8d393f3cc6223102dbf25a47e7bca0b1139e9 DIRTY=1
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T13:15:59-04:00
+FOREGROUND_END rc=0 2026-10-28T13:16:13-04:00
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T13:16:13-04:00
+FOREGROUND_END rc=1 2026-10-28T13:21:13-04:00
+[  PASSED  ] 7 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] IpqpLadderSkip.TheCounterIsZeroOnAConvexSubproblemAtEveryValue
+
+ 1 FAILED TEST
+MUTANT K3 the memory condition dropped: KILLED by IpqpLadderSkip.TheCounterIsZeroOnAConvexSubproblemAtEveryValue
+SRC /home/ghecht/Projects/hven/.claude/worktrees/agent-afecbe0a5611f9eff HEAD 70f8d393f3cc6223102dbf25a47e7bca0b1139e9 DIRTY=1
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T13:21:13-04:00
+FOREGROUND_END rc=0 2026-10-28T13:21:56-04:00
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T13:21:56-04:00
+FOREGROUND_END rc=1 2026-10-28T13:22:01-04:00
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] IpqpLadderSkip.TheShippedValueFiresOnTheLadderFixtures
+[  FAILED  ] IpqpLadderSkip.TheCountTracksTheThresholdOnTheTwoNegativeEigenvalueRow
+
+ 2 FAILED TESTS
+MUTANT K4 the counter is not incremented: KILLED by IpqpLadderSkip.TheCountTracksTheThresholdOnTheTwoNegativeEigenvalueRow;IpqpLadderSkip.TheShippedValueFiresOnTheLadderFixtures
+SRC /home/ghecht/Projects/hven/.claude/worktrees/agent-afecbe0a5611f9eff HEAD 70f8d393f3cc6223102dbf25a47e7bca0b1139e9 DIRTY=1
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T13:22:01-04:00
+FOREGROUND_END rc=0 2026-10-28T13:22:14-04:00
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T13:22:14-04:00
+FOREGROUND_END rc=1 2026-10-28T13:22:36-04:00
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] IpqpLadderSkip.TheShippedValueFiresOnTheLadderFixtures
+[  FAILED  ] IpqpLadderSkip.TheCountTracksTheThresholdOnTheTwoNegativeEigenvalueRow
+
+ 2 FAILED TESTS
+MUTANT K5 the counter moved to the A2 estimate site: KILLED by IpqpLadderSkip.TheCountTracksTheThresholdOnTheTwoNegativeEigenvalueRow;IpqpLadderSkip.TheShippedValueFiresOnTheLadderFixtures
+SRC /home/ghecht/Projects/hven/.claude/worktrees/agent-afecbe0a5611f9eff HEAD 70f8d393f3cc6223102dbf25a47e7bca0b1139e9 DIRTY=1
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T13:22:36-04:00
+FOREGROUND_END rc=0 2026-10-28T13:23:40-04:00
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T13:23:40-04:00
+FOREGROUND_END rc=1 2026-10-28T13:24:18-04:00
+[  FAILED  ] IpqpLadderSkip.NeverSkippingCountsNothingAndPaysTheZeroTrialEveryModifiedIteration
+[  FAILED  ] IpqpLadderSkip.TheShippedValueFiresOnTheLadderFixtures
+[  FAILED  ] IpqpLadderSkip.TheCountTracksTheThresholdOnTheTwoNegativeEigenvalueRow
+
+ 4 FAILED TESTS
+MUTANT K6 the counter counts every iteration: KILLED by IpqpLadderSkip.NeverSkippingCountsNothingAndPaysTheZeroTrialEveryModifiedIteration;IpqpLadderSkip.TheCountTracksTheThresholdOnTheTwoNegativeEigenvalueRow;IpqpLadderSkip.TheCounterIsZeroOnAConvexSubproblemAtEveryValue;IpqpLadderSkip.TheShippedValueFiresOnTheLadderFixtures
+SRC /home/ghecht/Projects/hven/.claude/worktrees/agent-afecbe0a5611f9eff HEAD 70f8d393f3cc6223102dbf25a47e7bca0b1139e9 DIRTY=1
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T13:24:18-04:00
+FOREGROUND_END rc=0 2026-10-28T13:24:27-04:00
+[4/5] Linking CXX executable bench/hven_sqp_corpus
+[5/5] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T13:24:27-04:00
+FOREGROUND_END rc=1 2026-10-28T13:25:21-04:00
+[  PASSED  ] 7 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] IpqpLadderSkipOptions.ValidateRefusesANegativeCountByName
+
+ 1 FAILED TEST
+MUTANT K7 validation admits a negative count: KILLED by IpqpLadderSkipOptions.ValidateRefusesANegativeCountByName
+SRC /home/ghecht/Projects/hven/.claude/worktrees/agent-afecbe0a5611f9eff HEAD 70f8d393f3cc6223102dbf25a47e7bca0b1139e9 DIRTY=1
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T13:25:21-04:00
+FOREGROUND_END rc=0 2026-10-28T13:26:15-04:00
+[3/4] Linking CXX executable bench/hven_sqp_corpus
+[4/4] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T13:26:15-04:00
+FOREGROUND_END rc=1 2026-10-28T13:31:15-04:00
+[  PASSED  ] 7 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] IpqpLadderSkipOptions.TheDumpCarriesTheLine
+
+ 1 FAILED TEST
+MUTANT K8 the dump line dropped: KILLED by IpqpLadderSkipOptions.TheDumpCarriesTheLine
+SRC /home/ghecht/Projects/hven/.claude/worktrees/agent-afecbe0a5611f9eff HEAD 70f8d393f3cc6223102dbf25a47e7bca0b1139e9 DIRTY=1
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T13:31:15-04:00
+FOREGROUND_END rc=0 2026-10-28T13:31:31-04:00
+[4/5] Linking CXX executable bench/hven_sqp_corpus
+[5/5] Linking CXX executable tests/sqp/hven_sqp_tests
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T13:31:31-04:00
+FOREGROUND_END rc=1 2026-10-28T13:36:32-04:00
+[  PASSED  ] 8 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] AccumulateIpqpCounters.EveryOtherIndexFieldSumsAcrossSubproblems
+
+ 1 FAILED TEST
+MUTANT K9 the fold overwrites ipqp_ladder_zero_trial_skips: KILLED by AccumulateIpqpCounters.EveryOtherIndexFieldSumsAcrossSubproblems
+SUMMARY
+  K1 the field read replaced by the old literal 3: KILLED by IpqpLadderSkip.NeverSkippingCountsNothingAndPaysTheZeroTrialEveryModifiedIteration;IpqpLadderSkip.TheCountTracksTheThresholdOnTheTwoNegativeEigenvalueRow
+  K2 >= becomes >: KILLED by IpqpLadderSkip.TheCountTracksTheThresholdOnTheTwoNegativeEigenvalueRow
+  K3 the memory condition dropped: KILLED by IpqpLadderSkip.TheCounterIsZeroOnAConvexSubproblemAtEveryValue
+  K4 the counter is not incremented: KILLED by IpqpLadderSkip.TheCountTracksTheThresholdOnTheTwoNegativeEigenvalueRow;IpqpLadderSkip.TheShippedValueFiresOnTheLadderFixtures
+  K5 the counter moved to the A2 estimate site: KILLED by IpqpLadderSkip.TheCountTracksTheThresholdOnTheTwoNegativeEigenvalueRow;IpqpLadderSkip.TheShippedValueFiresOnTheLadderFixtures
+  K6 the counter counts every iteration: KILLED by IpqpLadderSkip.NeverSkippingCountsNothingAndPaysTheZeroTrialEveryModifiedIteration;IpqpLadderSkip.TheCountTracksTheThresholdOnTheTwoNegativeEigenvalueRow;IpqpLadderSkip.TheCounterIsZeroOnAConvexSubproblemAtEveryValue;IpqpLadderSkip.TheShippedValueFiresOnTheLadderFixtures
+  K7 validation admits a negative count: KILLED by IpqpLadderSkipOptions.ValidateRefusesANegativeCountByName
+  K8 the dump line dropped: KILLED by IpqpLadderSkipOptions.TheDumpCarriesTheLine
+  K9 the fold overwrites ipqp_ladder_zero_trial_skips: KILLED by AccumulateIpqpCounters.EveryOtherIndexFieldSumsAcrossSubproblems
+SRC /home/ghecht/Projects/hven/.claude/worktrees/agent-afecbe0a5611f9eff HEAD 70f8d393f3cc6223102dbf25a47e7bca0b1139e9 DIRTY=0
+PGREP_EMPTY
+FOREGROUND_START 2026-10-28T13:36:32-04:00
+FOREGROUND_END rc=0 2026-10-28T13:42:58-04:00
+[5/6] Linking CXX executable bench/hven_sqp_corpus
+[6/6] Linking CXX executable tests/sqp/hven_sqp_tests
+RESTORED_BUILD rc=0

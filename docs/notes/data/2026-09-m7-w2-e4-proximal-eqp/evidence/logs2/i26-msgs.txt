@@ -1,0 +1,465 @@
+#### B1Gate.AScaledStalePriceIsRefusedAtIngest
+tests/sqp/test_b1_gate.cpp:1213: Failure
+Expected: (converged_complementarity) > (1e-6), actual: 3.2282543202213381e-13 vs 1e-06
+the every-major scope this rules out would have refused this very point
+
+#### B1Gate.EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair
+tests/sqp/test_b1_gate.cpp:836: Failure
+Expected equality of these values:
+  c.x0
+    Which is: 3.4794942110708625e-10
+  second.x(0)
+    Which is: 3.4794942110750977e-10
+bit-identical to the pre-repair reading
+Google Test trace:
+tests/sqp/test_b1_gate.cpp:820: HS7
+tests/sqp/test_b1_gate.cpp:835: Failure
+Expected equality of these values:
+  c.f
+    Which is: 2.2822014587976076e-12
+  second.f
+    Which is: 2.2822012684305021e-12
+bit-identical to the pre-repair reading
+Google Test trace:
+tests/sqp/test_b1_gate.cpp:820: HS26
+tests/sqp/test_b1_gate.cpp:836: Failure
+Expected equality of these values:
+  c.x0
+    Which is: 0.99938512958694969
+  second.x(0)
+    Which is: 0.99938512959978909
+bit-identical to the pre-repair reading
+Google Test trace:
+tests/sqp/test_b1_gate.cpp:820: HS26
+
+#### B1Gate.KSsnMatchesTheWalksComplementarityOnceTheFaceIsRefined
+tests/sqp/test_b1_gate.cpp:1564: Failure
+The difference between 5.0010e-07 and ssn.x(0) is 9.9999999677182081e-11, which exceeds 1e-11, where
+5.0010e-07 evaluates to 5.0009999999999998e-07,
+ssn.x(0) evaluates to 5.000000000003228e-07, and
+1e-11 evaluates to 9.9999999999999994e-12.
+OBSERVED. MKL, clang++, Release. x* = 5e-07. The unrepaired arm reported -1.310745e-07 -- the wrong side of zero.
+tests/sqp/test_b1_gate.cpp:1567: Failure
+The difference between 1.0000e-04 and ssn_r.complementarity is 9.999999967717458e-05, which exceeds 1e-8, where
+1.0000e-04 evaluates to 0.0001,
+ssn_r.complementarity evaluates to 3.2282543202213381e-13, and
+1e-8 evaluates to 1e-08.
+OBSERVED. MKL, clang++, Release. THE REPAIR: the unrepaired arm read 6.311e-01, which is 0.63 of the fb_tol * ||lambda||inf = 1 bound. See this test's banner.
+
+#### B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers
+tests/sqp/test_b1_gate.cpp:1370: Failure
+Value of: restored
+  Actual: false
+Expected: true
+fixture premise: kWarmFullStepWindow must fire on this solve; if this fails the fixture has stopped testing what it claims
+tests/sqp/test_b1_gate.cpp:1372: Failure
+Expected: (sol.counters.major_iters) > (kWarmFullStepWindow), actual: 1 vs 5
+fixture premise: the post-refusal solve must outlast the window
+tests/sqp/test_b1_gate.cpp:1386: Failure
+The difference between model.f_star() and sol.f is 0.79999999999967997, which exceeds 1e-3, where
+model.f_star() evaluates to -0.79999999999967997,
+sol.f evaluates to 0, and
+1e-3 evaluates to 0.001.
+THE PIN: dropping fs_best_duals_ingested reports f = 0 here
+tests/sqp/test_b1_gate.cpp:1388: Failure
+The difference between model.x_star() and sol.x(0) is 7.9999999999999996e-07, which exceeds 1e-9, where
+model.x_star() evaluates to 7.9999999999999996e-07,
+sol.x(0) evaluates to 0, and
+1e-9 evaluates to 1.0000000000000001e-09.
+tests/sqp/test_b1_gate.cpp:1389: Failure
+Expected: (std::abs(sol.f)) > (0.5), actual: 0 vs 0.5
+the wrong answer this guards against is f
+
+#### CorpusTask6bPhaseB.TheShippedKSsnConfigurationIsUnmovedByTheFourLevers
+tests/sqp/test_corpus_cells.cpp:3955: Failure
+Expected: (std::abs(observed - want)) <= (bound), actual: 3.3674948183683712e-12 vs 3.2209504739481839e-12
+kkt_stationarity on cell f7_n1000_path_neutral: observed 3.220950474e-07, derivation machine 3.220916799e-07
+Google Test trace:
+tests/sqp/test_corpus_cells.cpp:3748: f7_n1000_path_neutral
+
+#### EqpRefinementAb.SecondCeilingFixtureReproducesTheAdaptiveMuRuling
+tests/sqp/test_eqp_refine_ab.cpp:760: Failure
+Expected equality of these values:
+  sol.status
+    Which is: 4-byte object <00-00 00-00>
+  SolveStatus::kMaxIter
+    Which is: 4-byte object <02-00 00-00>
+the fixed-mu ceiling must still block certification
+Google Test trace:
+tests/sqp/test_eqp_refine_ab.cpp:734: mu=off alg=border
+tests/sqp/test_eqp_refine_ab.cpp:762: Failure
+Expected: (err) > (1e-8), actual: 9.7980412186621743e-16 vs 1e-08
+observed 4.4062e-06 -- the ceiling itself
+Google Test trace:
+tests/sqp/test_eqp_refine_ab.cpp:734: mu=off alg=border
+tests/sqp/test_eqp_refine_ab.cpp:760: Failure
+Expected equality of these values:
+  sol.status
+    Which is: 4-byte object <00-00 00-00>
+  SolveStatus::kMaxIter
+    Which is: 4-byte object <02-00 00-00>
+the fixed-mu ceiling must still block certification
+Google Test trace:
+tests/sqp/test_eqp_refine_ab.cpp:734: mu=off alg=refactorize
+tests/sqp/test_eqp_refine_ab.cpp:762: Failure
+Expected: (err) > (1e-8), actual: 9.7980412186621743e-16 vs 1e-08
+observed 4.4062e-06 -- the ceiling itself
+Google Test trace:
+tests/sqp/test_eqp_refine_ab.cpp:73
+
+#### IpqpDispatch.ASuccessfulSubproblemResetsTheConsecutiveEscapeTally
+tests/sqp/test_ipqp_dispatch.cpp:382: Failure
+Expected: (c.ipqp_escapes) >= (2), actual: 1 vs 2
+the fixture must escape at least K times, or nothing is tested -- a solve with one escape cannot show a reset
+
+#### QpEngine.T6bANonFiniteDualMuLeavesTheRowToleranceFinite
+tests/sqp/test_qp_engine.cpp:897: Failure
+Expected equality of these values:
+  QpEngine{opts}.solve(inconsistent_equalities_qp()).status
+    Which is: 4-byte object <03-00 00-00>
+  QpStatus::kMaxIter
+    Which is: 4-byte object <01-00 00-00>
+tests/sqp/test_qp_engine.cpp:898: Failure
+Expected equality of these values:
+  QpEngine{opts}.solve(infeasible_bounds_qp()).status
+    Which is: 4-byte object <03-00 00-00>
+  QpStatus::kMaxIter
+    Which is: 4-byte object <01-00 00-00>
+
+#### QpEngineStructuralViolation.T6bAFeasibleElasticCopyIsNoLongerCertifiedInfeasible
+tests/sqp/test_sqp_solver.cpp:10351: Failure
+Expected: (bordered.verdict_refine_steps) > (0), actual: 0 vs 0
+and the refinement is what bought it
+Google Test trace:
+tests/sqp/test_sqp_solver.cpp:10346: T3 cell rho 10000000.000000
+tests/sqp/test_sqp_solver.cpp:10351: Failure
+Expected: (bordered.verdict_refine_steps) > (0), actual: 0 vs 0
+and the refinement is what bought it
+Google Test trace:
+tests/sqp/test_sqp_solver.cpp:10346: T3 cell rho 100000000.000000
+
+#### QpEngineStructuralViolation.T6bTheInequalityBranchClosesWithItsResidueOnTheSafeSide
+tests/sqp/test_sqp_solver.cpp:10400: Failure
+Expected: (bordered.signed_ineq_resid) <= (0.0), actual: 8.8817841970012523e-16 vs 0
+Google Test trace:
+tests/sqp/test_sqp_solver.cpp:10397: signed residue at rho 100000000.000000
+tests/sqp/test_sqp_solver.cpp:10401: Failure
+Expected equality of these values:
+  bordered.worst_resid
+    Which is: 8.8817841970012523e-16
+  0.0
+    Which is: 0
+so `v > 0` short-circuits the branch
+Google Test trace:
+tests/sqp/test_sqp_solver.cpp:10397: signed residue at rho 100000000.000000
+
+#### QpModeSites.EveryKernelInvocationIsAccountedForBySite
+tests/sqp/test_qp_mode_sites.cpp:210: Failure
+Expected: (at(r.sites, c.exercises)) > (0), actual: 0 vs 0
+this cell's own reason for being here
+Google Test trace:
+tests/sqp/test_qp_mode_sites.cpp:206: HS15 mode 2
+
+#### SqpDriverAdaptiveMu.AdaptiveMuRecoversTailAccuracy
+tests/sqp/test_sqp_solver.cpp:5740: Failure
+Expected equality of these values:
+  sol.status
+    Which is: 4-byte object <00-00 00-00>
+  SolveStatus::kMaxIter
+    Which is: 4-byte object <02-00 00-00>
+the regularization footprint at the engine's fixed default mu never clears 1e-10 on this fixture -- that IS the ceiling
+tests/sqp/test_sqp_solver.cpp:5747: Failure
+Expected: (err) > (1e-6), actual: 0 vs 1e-06
+fixed-mu ceiling, relative error
+tests/sqp/test_sqp_solver.cpp:5782: Failure
+Expected: (distinct_mu.size()) >= (2u), actual: 1 vs 2
+the schedule must have actually shrunk mu at least once on this fixture, or the test is not exercising the mechanism at all
+
+#### SqpDriverAdaptiveMu.MuScheduleIsQuantizedAndMonotone
+tests/sqp/test_sqp_solver.cpp:5912: Failure
+Value of: saw_decade_drop
+  Actual: false
+Expected: true
+this fixture is only interesting if mu actually moved
+
+#### SqpDriverCertifiedFallback.T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearization
+tests/sqp/test_sqp_solver.cpp:11546: Failure
+Expected equality of these values:
+  tier_rung.status
+    Which is: 4-byte object <03-00 00-00>
+  SolveStatus::kNumericalError
+    Which is: 4-byte object <06-00 00-00>
+no certificate on the tier arm, so no kInfeasible (L1)
+tests/sqp/test_sqp_solver.cpp:11548: Failure
+Value of: tier_rung.infeasibility_certified
+  Actual: true
+Expected: false
+
+#### SqpDriverCertifiedFallback.T7TheAttachedReportsRestorationOfferIsATROUNDINGNotAMargin
+tests/sqp/test_sqp_solver.cpp:11406: Failure
+Expected: (requesting.step_norm) > (0.0), actual: 0 vs 0
+an offer WAS made -- this is not the zero-step case
+
+#### SqpDriverCertifiedFallback.T7TheDisprovedSuspicionCalibrationOverTheHsCorpusIsZERO
+tests/sqp/test_sqp_solver.cpp:10888: Failure
+Expected equality of these values:
+  entries
+    Which is: 8
+  9
+the population itself is half the calibration
+
+#### SqpDriverCertifiedFallback.T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnItsWorstFixture
+tests/sqp/test_sqp_solver.cpp:11324: Failure
+Expected equality of these values:
+  sol.counters.verdict_refine_steps
+    Which is: 0
+  15
+mode-independent, config-stable
+Google Test trace:
+tests/sqp/test_sqp_solver.cpp:11316: walk
+tests/sqp/test_sqp_solver.cpp:11324: Failure
+Expected equality of these values:
+  sol.counters.verdict_refine_steps
+    Which is: 0
+  15
+mode-independent, config-stable
+Google Test trace:
+tests/sqp/test_sqp_solver.cpp:11316: ssn
+tests/sqp/test_sqp_solver.cpp:11324: Failure
+Expected equality of these values:
+  sol.counters.verdict_refine_steps
+    Which is: 0
+  15
+mode-independent, config-stable
+Google Test trace:
+tests/sqp/test_sqp_solver.cpp:11316: ipm
+tests/sqp/test_sqp_solver.cpp:11335: Failure
+Expected equality of these values:
+  worst
+    Which is: 0
+  15
+the ceiling on the fixture set
+
+#### SqpDriverDisprovedEntry.TheDefaultIsOffAndOffIsTodaysColdRestart
+tests/sqp/test_disproved_entry.cpp:303: Failure
+Expected equality of these values:
+  off.sol.status
+    Which is: 4-byte object <00-00 00-00>
+  SolveStatus::kMaxIter
+    Which is: 4-byte object <02-00 00-00>
+
+#### SqpDriverElastic.EarlyExitOnADegenerateRelaxationStillCertifiesCorrectly
+tests/sqp/test_sqp_solver.cpp:5594: Failure
+Expected: (on.counters.major_iters) < (off.counters.major_iters), actual: 2 vs 2
+
+#### SqpDriverElastic.InconsistentLinearizationRecovers
+tests/sqp/test_sqp_solver.cpp:5238: Failure
+Expected equality of these values:
+  sol.history[1].violation_l1
+    Which is: 2.2204460492503131e-16
+  0.0
+    Which is: 0
+the elastic step landed exactly on the feasible set
+Google Test trace:
+tests/sqp/test_sqp_solver.cpp:5153: border
+
+#### SqpDriverElasticSeed.T6bTheBandsHIGHRungsReachTheOptimum
+tests/sqp/test_sqp_solver.cpp:10617: Failure
+Expected: (high.worst_resid) < (1.0e-6), actual: 15 vs 1e-06
+and the row is satisfied
+tests/sqp/test_sqp_solver.cpp:10618: Failure
+Expected: (high.unlocks) >= (1), actual: 0 vs 1
+tests/sqp/test_sqp_solver.cpp:10619: Failure
+The difference between high.x_orig(0) and 2.5 is 7.5, which exceeds 1.0e-6, where
+high.x_orig(0) evaluates to 10,
+2.5 evaluates to 2.5, and
+1.0e-6 evaluates to 9.9999999999999995e-07.
+tests/sqp/test_sqp_solver.cpp:10620: Failure
+The difference between high.x_orig(1) and 2.5 is 7.5, which exceeds 1.0e-6, where
+high.x_orig(1) evaluates to 10,
+2.5 evaluates to 2.5, and
+1.0e-6 evaluates to 9.9999999999999995e-07.
+
+#### SqpDriverRadius.FloorRaisesTheRestorationRequest
+tests/sqp/test_sqp_restoration.cpp:1674: Failure
+Expected equality of these values:
+  log.verdict.back()
+    Which is: 4-byte object <01-00 00-00>
+  StepVerdict::kReject
+    Which is: 4-byte object <02-00 00-00>
+Google Test trace:
+tests/sqp/test_sqp_restoration.cpp:1657: tr_min 1e-05
+tests/sqp/test_sqp_restoration.cpp:1684: Failure
+Expected: (run.last_radius * 0.5) < (opts.tr_min), actual: 0.5 vs 1e-05
+the request must be raised AT the floor, not somewhere above it
+Google Test trace:
+tests/sqp/test_sqp_restoration.cpp:1657: tr_min 1e-05
+tests/sqp/test_sqp_restoration.cpp:1674: Failure
+Expected equality of these values:
+  log.verdict.back()
+    Which is: 4-byte object <01-00 00-00>
+  StepVerdict::kReject
+    Which is: 4-byte object <02-00 00-00>
+Google Test trace:
+tests/sqp/test_sqp_restoration.cpp:1657: tr_min 0.01
+tests/sqp/test_sqp_restoration.cpp:1684: Failure
+Expected: (run.last_radius * 0.5) < (opts.tr_min), actual: 0.5 vs 0.01
+the request must be raised AT the floor, not somewhere above it
+Google Test trace:
+tests/sqp/test_sqp_restoration.cpp:1657: tr_min 0.01
+tests/sqp/test_sq
+
+#### SqpDriverRestoration.AlgebraModeDivergenceIsANonUniqueSubproblemOptimum
+tests/sqp/test_sqp_restoration.cpp:1237: Failure
+The difference between x_border(0) + x_border(1) and 2.0 is 0.24999999999999645, which exceeds 1e-12, where
+x_border(0) + x_border(1) evaluates to 2.2499999999999964,
+2.0 evaluates to 2, and
+1e-12 evaluates to 9.9999999999999998e-13.
+
+#### SqpDriverRestorationExcursion.TheSubStatusTellsACutOffSubSolveFromAConvergedOne
+tests/sqp/test_sqp_restoration.cpp:2536: Failure
+Expected: (cut_off.counters.restoration_iters) > (1), actual: 1 vs 1
+
+#### SqpDriverRestorationProximity.TheProxyWouldCertifyWhereTheExactResidualRefuses
+tests/sqp/test_sqp_restoration.cpp:2807: Failure
+Expected: (c.stationarity) > (opts.kkt_tol), actual: 5.3620559925526834e-07 vs 6.3e-07
+premise 2: the EXACT residual does not (5.3620559925526834e-07)
+tests/sqp/test_sqp_restoration.cpp:2812: Failure
+Value of: sol.infeasibility_certified
+  Actual: true
+Expected: false
+the returned point is NOT a certified infeasible stationary point of h: its exact subgradient residual is 5.3620559925526834e-07 against a kkt_tol of 6.3e-07
+
+#### SqpDriverRestorationProximity.TheSeedGuardFiresAndTheStartObjectiveIsHPlusP
+tests/sqp/test_sqp_restoration.cpp:2851: Failure
+Expected equality of these values:
+  1
+  seeded_rows(sol)
+    Which is: 0
+the fixture's premise: one request, and it took a candidate
+
+#### SqpDriverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTaken
+tests/sqp/test_sqp_restoration.cpp:2209: Failure
+Value of: found_refused_signature
+  Actual: false
+Expected: true
+no k in [1, 40) produced the refused-candidate signature
+tests/sqp/test_sqp_restoration.cpp:2213: Failure
+Expected equality of these values:
+  20
+  refused_at_k
+    Which is: -1
+
+#### SqpDriverRestorationSeed.TheExhaustedLadderSiteSeedsFromItsOwnStep
+tests/sqp/test_sqp_restoration.cpp:2097: Failure
+Expected equality of these values:
+  1
+  seeded_rows(sol)
+    Which is: 0
+Google Test trace:
+tests/sqp/test_sqp_restoration.cpp:2082: walk
+
+#### SqpDriverRestorationSeed.TheGuardAndThePhaseRunOnTheCallerScale
+tests/sqp/test_sqp_restoration.cpp:2261: Failure
+Expected equality of these values:
+  1
+  seeded_rows(sol)
+    Which is: 0
+Google Test trace:
+tests/sqp/test_sqp_restoration.cpp:2241: walk
+
+#### SqpDriverRestorationSeed.TheRadiusFloorSeedsFromTheRejectedTrial
+tests/sqp/test_sqp_restoration.cpp:2226: Failure
+Expected equality of these values:
+  1
+  seeded_rows(sol)
+    Which is: 0
+
+#### SqpDriverRestorationSeed.TheSeedIsNotGatedOnTheQpMode
+tests/sqp/test_sqp_restoration.cpp:2045: Failure
+Expected equality of these values:
+  1
+  seeded_rows(sol)
+    Which is: 0
+the seed is taken in EVERY mode on this fixture
+Google Test trace:
+tests/sqp/test_sqp_restoration.cpp:2029: walk
+tests/sqp/test_sqp_restoration.cpp:2045: Failure
+Expected equality of these values:
+  1
+  seeded_rows(sol)
+    Which is: 0
+the seed is taken in EVERY mode on this fixture
+Google Test trace:
+tests/sqp/test_sqp_restoration.cpp:2029: ssn
+tests/sqp/test_sqp_restoration.cpp:2045: Failure
+Expected equality of these values:
+  1
+  seeded_rows(sol)
+    Which is: 0
+the seed is taken in EVERY mode on this fixture
+Google Test trace:
+tests/sqp/test_sqp_restoration.cpp:2029: ipm
+
+#### SqpDriverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce
+tests/sqp/test_sqp_restoration.cpp:2304: Failure
+Expected equality of these values:
+  27
+  sol.counters.evals_full
+    Which is: 28
+tests/sqp/test_sqp_restoration.cpp:2308: Failure
+Value of: sol.counters.evals_values == 41 || sol.counters.evals_values == 40
+  Actual: false
+Expected: true
+evals_values was 36
+
+#### SqpDriverRestorationSeed.TheTakenCandidateIsRecordedOnTheRequestingRow
+tests/sqp/test_sqp_restoration.cpp:2007: Failure
+Expected equality of these values:
+  1
+  seeded_rows(sol)
+    Which is: 0
+one request, and it took the candidate
+
+#### SqpEqualityBasis.T5OffIsByteIdenticalToThePreE1BaseOnADependentQp
+tests/sqp/test_sqp_equality_basis.cpp:684: Failure
+Expected equality of these values:
+  got
+    Which is: "kWalk status 0\nkWalk counters 2 6 2 2 0 0\nkWalk x 3fe901571ed3c507 3fe9d26de7dfd51c 3fe8d116c90c1015 3fcbfaa384b0ebe4 3fde5dd26de7dfd5 3ff0f47335124678 3fd181f94652c01a 3fd181f94652c01c bfdc2e332bb6e61e 3fee171995db730e 3fd24fd38df659c3\nkWalk lambda_e bfb42e69c51a4ef7 bfc308ec339f09b0 bfc0862f41721474 3fd6d3282bcf22cf c003ebffe20ecbb0 bfd7bc6567e429c2 3fdb94beff9eb013 3ff7ccc5507fb8e2 3fee2a481b5e79d2 bfc308ec339f09b0\nkSsn status 0\nkSsn counters 2 0 11 2 0 0\nkSsn x 3fe901571ed3c506 3fe9d26de7dfd51d 3fe8d116c90c1015 3fcbfaa384b0ebe4 3fde5dd26de7dfd3 3ff0f47335124678 3fd181f94652c01b 3fd181f94652c01c bfdc2e332bb6e61e 3fee171995db730e 3fd24fd38df659c3\nkSsn lambda_e bfb42e69e059c13e bfc308ec3a6ee643 bfc0862f4f11cd98 3fd6d32824ff463b c003ebffe2a9c48a bfd7bc656cbbf094 3fdb94befac6e942 3ff7ccc54f49c72e 3fee2a4818f29669 bfc308ec3a6ee643\nkIpm status 0\nkIpm counters 2 0 30 2 0 0\nkIpm x 3fe901571ed3c506 3fe9d26de7dfd51c 3fe8d116c90c1015 3fcbfaa384b0ebe4 3fde5dd26de7dfd4 3ff0f4733
+
+#### WarmStart.FullStepModeInheritsElasticAndRestoration
+tests/sqp/test_warm_start.cpp:1832: Failure
+The difference between sol.f and cold.f is 0.2500000000031779, which exceeds 1e-6, where
+sol.f evaluates to 6.7537129268473545e-19,
+cold.f evaluates to -0.2500000000031779, and
+1e-6 evaluates to 9.9999999999999995e-07.
+the restoration phase moves the iterate, so this lands on HS40's optimum to the phase's own accuracy rather than to the 1e-8 the un-restored runs hit
+tests/sqp/test_warm_start.cpp:1841: Failure
+Expected: (sol.counters.restoration_iters) >= (1), actual: 0 vs 1
+and the elastic tier's exhaustion raised a restoration request the driver serviced
+tests/sqp/test_warm_start.cpp:1844: Failure
+Expected equality of these values:
+  sol.counters.suspect_escalations
+    Which is: 3
+  0
+tests/sqp/test_warm_start.cpp:1859: Failure
+Expected: (restore_row) < (sol.history.size()), actual: 25 vs 25
+the fixture must actually reach a kRestore row
+
+#### WarmStartBattery.Corpus
+tests/sqp/test_warm_start_battery.cpp:1337: Failure
+Expected equality of these values:
+  c.minors
+    Which is: 57
+  p.minors
+    Which is: 38
+family    arm        full  steps  majors  minors  fact   saved  wd  fullstep  brdref  lvl c/w/h  pred c/d  secs
+F1        cold       on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       on    5      5       16      1      0      0   4         20      1/4/0      0/0       0.001
+F1        warm+pred  on    5      1       3       1      0      0   0         4       1/4/0      4/0       0.000
+F1        hot        on    5      5       16      1      4      0   4         20      1/0/4      0/0       0.001
+F1        cold@pred  on    5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        cold       off   5      5       13      5      0      0   0         17      5/0/0      0/0       0.001
+F1        warm       off   5      5       16      1      0      0   0         20      1/4/0      0/0       0.001
+F1        warm+pred  off   5      1       3       1   
+

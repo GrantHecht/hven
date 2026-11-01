@@ -1,0 +1,130 @@
+{
+  "cutest": {
+    "hven-sqp": {
+      "_best": "default",
+      "default": {
+        "b_cells": [
+          "ACOPP118",
+          "ACOPP57",
+          "ACOPR57",
+          "BRITGAS",
+          "DALLASM",
+          "READING6",
+          "SMBANK",
+          "ZAMB2-8"
+        ],
+        "b_size": 8,
+        "counts": {
+          "dnf_budget": 3,
+          "dnf_wall": 7,
+          "error": 5,
+          "infeasible": 0,
+          "optimal": 8
+        },
+        "default_median_cost": 1.4622727272727274,
+        "median_cost": 1.4622727272727274,
+        "verdict": "default"
+      },
+      "sqp-qn-wsrule": {
+        "b_cells": [
+          "ACOPP118",
+          "ACOPP57",
+          "ACOPR57",
+          "BRITGAS",
+          "DALLASM",
+          "READING6",
+          "SMBANK",
+          "ZAMB2-8"
+        ],
+        "b_size": 8,
+        "counts": {
+          "dnf_budget": 3,
+          "dnf_wall": 7,
+          "error": 5,
+          "infeasible": 0,
+          "optimal": 8
+        },
+        "default_median_cost": 1.4622727272727274,
+        "median_cost": 1.4622727272727274,
+        "verdict": "tie (default stands)"
+      }
+    }
+  },
+  "hs": {
+    "hven-sqp": {
+      "_best": "default",
+      "default": {
+        "b_cells": [
+          "hs003",
+          "hs005",
+          "hs006",
+          "hs007",
+          "hs010",
+          "hs011",
+          "hs012",
+          "hs014",
+          "hs022",
+          "hs025",
+          "hs026",
+          "hs027",
+          "hs028",
+          "hs030",
+          "hs033",
+          "hs035",
+          "hs039",
+          "hs043",
+          "hs045",
+          "hs077",
+          "hs079"
+        ],
+        "b_size": 21,
+        "counts": {
+          "dnf_budget": 0,
+          "dnf_wall": 0,
+          "error": 0,
+          "infeasible": 0,
+          "optimal": 21
+        },
+        "default_median_cost": 1.0,
+        "median_cost": 1.0,
+        "verdict": "default"
+      },
+      "sqp-qn-wsrule": {
+        "b_cells": [
+          "hs003",
+          "hs005",
+          "hs006",
+          "hs007",
+          "hs010",
+          "hs011",
+          "hs012",
+          "hs014",
+          "hs022",
+          "hs025",
+          "hs026",
+          "hs027",
+          "hs028",
+          "hs030",
+          "hs033",
+          "hs035",
+          "hs039",
+          "hs043",
+          "hs045",
+          "hs077",
+          "hs079"
+        ],
+        "b_size": 21,
+        "counts": {
+          "dnf_budget": 0,
+          "dnf_wall": 0,
+          "error": 0,
+          "infeasible": 0,
+          "optimal": 21
+        },
+        "default_median_cost": 1.0,
+        "median_cost": 1.0,
+        "verdict": "tie (default stands)"
+      }
+    }
+  }
+}

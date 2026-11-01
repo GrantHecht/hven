@@ -1,0 +1,4 @@
+FOREGROUND_START debug 2026-09-17T12:45:06-04:00
+100% tests passed, 0 tests failed out of 2641
+FOREGROUND_END debug 2026-09-17T12:52:20-04:00 rc=0
+WRAPPER_RC debug rc=0

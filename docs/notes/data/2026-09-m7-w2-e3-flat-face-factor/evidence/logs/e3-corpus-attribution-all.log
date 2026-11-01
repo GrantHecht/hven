@@ -1,0 +1,75 @@
+===== border: base / m1 (prox rhs) / m2 (prox rhs + prox refine) / m3 (prox refine ONLY)
+  A0_YORKNET/qp1           num / opt / cap / opt    minors 777 / 816 / 7680 / 819
+  A0_YORKNET/qp2           cap / num / cap / opt    minors 7680 / 455 / 7680 / 778
+  A0_YORKNET/qp3           cap / num / cap / opt    minors 7680 / 441 / 7680 / 838
+  A0_YORKNET/qp4           cap / num / cap / opt    minors 7680 / 619 / 7680 / 842
+  A0_YORKNET/qp5           cap / cap / cap / opt    minors 7680 / 7680 / 7680 / 822
+  A0_YORKNET/qp6           cap / num / cap / opt    minors 7680 / 743 / 7680 / 866
+  ACOPP57_def/qp0          opt / cap / cap / opt    minors 8 / 1795 / 1795 / 8
+  ACOPP57_def/qp1          opt / cap / cap / opt    minors 8 / 1795 / 1795 / 8
+  ACOPP57_def/qp2          opt / cap / cap / opt    minors 8 / 1795 / 1795 / 8
+  ACOPP57_def/qp3          opt / cap / cap / opt    minors 8 / 1795 / 1795 / 8
+  ACOPR57_def/qp6          cap / cap / num / cap    minors 7100 / 7100 / 240 / 7100
+  ACOPR57_def/qp8          num / cap / num / num    minors 35 / 7100 / 46 / 35
+  Cs_STEENBRB/qp1          cap / opt / opt / opt    minors 6600 / 199 / 232 / 326
+  Cs_STEENBRB/qp2          opt / opt / opt / cap    minors 252 / 745 / 560 / 6600
+  Cs_STEENBRB/qp3          cap / opt / opt / cap    minors 6600 / 1097 / 2915 / 6600
+  Cs_STEENBRB/qp4          opt / num / opt / cap    minors 246 / 708 / 1536 / 6600
+  Cs_STEENBRB/qp5          cap / opt / opt / cap    minors 6600 / 1300 / 5147 / 6600
+  Cs_STEENBRB/qp6          cap / num / opt / cap    minors 6600 / 2481 / 6211 / 6600
+  DALLASM_def/qp1          cap / num / num / num    minors 1960 / 690 / 913 / 1008
+  DALLASM_def/qp2          num / cap / cap / num    minors 1657 / 1960 / 1960 / 990
+  Hj_STEENBRD/qp1          num / num / num / opt    minors 617 / 580 / 574 / 578
+  Hj_STEENBRD/qp4          num / num / opt / opt    minors 283 / 283 / 295 / 295
+  STEENBRB_def/qp1         num / opt / cap / opt    minors 1034 / 626 / 4680 / 883
+  STEENBRB_def/qp2         cap / cap / num / num    minors 4680 / 4680 / 559 / 602
+  YORKNET_def/qp1          num / opt / opt / opt    minors 596 / 752 / 985 / 757
+  m1: WON 6, LOST 5 ['ACOPP57_def/qp0', 'ACOPP57_def/qp1', 'ACOPP57_def/qp2', 'ACOPP57_def/qp3', 'Cs_STEENBRB/qp4'], NaN 0 [], moved 48/51
+  m2: WON 6, LOST 4 ['ACOPP57_def/qp0', 'ACOPP57_def/qp1', 'ACOPP57_def/qp2', 'ACOPP57_def/qp3'], NaN 2 ['STEENBRB_def/qp2', 'STEENBRB_def/qp3'], moved 49/51
+  m3: WON 11, LOST 2 ['Cs_STEENBRB/qp2', 'Cs_STEENBRB/qp4'], NaN 1 ['STEENBRB_def/qp3'], moved 49/51
+  --- m3 equality residual / eqviol on the drift family
+    A0_YORKNET/qp1       eq 1.56e-13 -> 1.56e-13   eqviol 7 -> 3   f -21156.1781754 -> -21156.1786123
+    A0_YORKNET/qp2       eq 5.68e-14 -> 8.53e-14   eqviol 2875 -> 8   f -10828.4159537 -> -10857.1018889
+    A0_YORKNET/qp3       eq 2.50e-01 -> 8.86e-14   eqviol 7502 -> 14   f -10552.2812457 -> -10933.5674026
+    A0_YORKNET/qp4       eq 5.17e+00 -> 3.83e-14   eqviol 2351 -> 5   f -5838.62938949 -> -5840.56376515
+    A0_YORKNET/qp5       eq 2.10e-14 -> 2.10e-14   eqviol 2 -> 24   f -3013.37677544 -> -3013.72053087
+    A0_YORKNET/qp6       eq 7.81e-03 -> 4.52e-15   eqviol 4798 -> 11   f -1518.80924226 -> -1530.21964864
+    SAWPATH_def/qp1      eq 1.42e-14 -> 4.55e-13   eqviol 5775 -> 0   f 176.466989234 -> 1269.19179959
+===== refactorize: base / m1 (prox rhs) / m2 (prox rhs + prox refine) / m3 (prox refine ONLY)
+  A0_YORKNET/qp1           num / opt / cap / opt    minors 777 / 816 / 7680 / 819
+  A0_YORKNET/qp2           cap / num / cap / opt    minors 7680 / 455 / 7680 / 778
+  A0_YORKNET/qp3           cap / num / cap / opt    minors 7680 / 441 / 7680 / 838
+  A0_YORKNET/qp4           cap / num / cap / opt    minors 7680 / 619 / 7680 / 842
+  A0_YORKNET/qp5           cap / cap / cap / opt    minors 7680 / 7680 / 7680 / 822
+  A0_YORKNET/qp6           cap / num / cap / opt    minors 7680 / 743 / 7680 / 866
+  ACOPP57_def/qp0          opt / opt / cap / opt    minors 2 / 31 / 1795 / 2
+  ACOPP57_def/qp1          opt / opt / cap / opt    minors 2 / 31 / 1795 / 2
+  ACOPP57_def/qp2          opt / opt / cap / opt    minors 2 / 31 / 1795 / 2
+  ACOPP57_def/qp3          opt / opt / cap / opt    minors 2 / 31 / 1795 / 2
+  ACOPR57_def/qp6          cap / cap / num / cap    minors 7100 / 7100 / 240 / 7100
+  ACOPR57_def/qp8          num / cap / num / num    minors 35 / 7100 / 46 / 35
+  Cs_STEENBRB/qp1          cap / opt / opt / opt    minors 6600 / 199 / 232 / 326
+  Cs_STEENBRB/qp2          opt / opt / opt / cap    minors 252 / 745 / 560 / 6600
+  Cs_STEENBRB/qp3          cap / opt / opt / cap    minors 6600 / 1097 / 2915 / 6600
+  Cs_STEENBRB/qp4          opt / num / opt / cap    minors 246 / 708 / 1536 / 6600
+  Cs_STEENBRB/qp5          cap / opt / opt / cap    minors 6600 / 1300 / 5147 / 6600
+  Cs_STEENBRB/qp6          cap / num / opt / cap    minors 6600 / 2481 / 6211 / 6600
+  DALLASM_def/qp2          num / num / cap / num    minors 342 / 342 / 1960 / 342
+  DALLASM_def/qp3          num / cap / cap / num    minors 1652 / 1960 / 1960 / 671
+  DALLASM_f4/qp2           cap / num / num / num    minors 1960 / 578 / 449 / 449
+  DALLASM_f4/qp3           cap / num / num / num    minors 1960 / 578 / 449 / 449
+  Hj_STEENBRD/qp4          num / num / opt / opt    minors 283 / 283 / 295 / 295
+  STEENBRB_def/qp1         num / opt / num / cap    minors 1129 / 1767 / 955 / 4680
+  STEENBRB_def/qp2         cap / cap / num / num    minors 4680 / 4680 / 559 / 602
+  YORKNET_def/qp1          num / opt / opt / opt    minors 596 / 752 / 985 / 757
+  m1: WON 6, LOST 1 ['Cs_STEENBRB/qp4'], NaN 0 [], moved 48/51
+  m2: WON 6, LOST 4 ['ACOPP57_def/qp0', 'ACOPP57_def/qp1', 'ACOPP57_def/qp2', 'ACOPP57_def/qp3'], NaN 2 ['STEENBRB_def/qp2', 'STEENBRB_def/qp3'], moved 49/51
+  m3: WON 9, LOST 2 ['Cs_STEENBRB/qp2', 'Cs_STEENBRB/qp4'], NaN 1 ['STEENBRB_def/qp3'], moved 49/51
+  --- m3 equality residual / eqviol on the drift family
+    A0_YORKNET/qp1       eq 1.56e-13 -> 1.56e-13   eqviol 7 -> 3   f -21156.1781754 -> -21156.1786123
+    A0_YORKNET/qp2       eq 5.68e-14 -> 8.53e-14   eqviol 2875 -> 8   f -10828.4159537 -> -10857.1018889
+    A0_YORKNET/qp3       eq 2.50e-01 -> 8.86e-14   eqviol 7502 -> 14   f -10552.2812457 -> -10933.5674026
+    A0_YORKNET/qp4       eq 5.17e+00 -> 3.83e-14   eqviol 2351 -> 5   f -5838.62938949 -> -5840.56376515
+    A0_YORKNET/qp5       eq 2.10e-14 -> 2.10e-14   eqviol 2 -> 24   f -3013.37677544 -> -3013.72053087
+    A0_YORKNET/qp6       eq 7.81e-03 -> 4.52e-15   eqviol 4798 -> 11   f -1518.80924226 -> -1530.21964864
+    SAWPATH_def/qp1      eq 1.42e-14 -> 4.55e-13   eqviol 5775 -> 0   f 176.466989234 -> 1269.19179959

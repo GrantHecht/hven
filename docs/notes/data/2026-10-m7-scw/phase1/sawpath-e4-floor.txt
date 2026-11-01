@@ -1,0 +1,3 @@
+SCW_COLS n 583 spread 1.34218e+08 min 3.8147e-06 max 512 active 1
+SCW_ROWS gmax 2559.19 obj 0.0390748
+CELL SAWPATH default CAPPED wall=120.4s

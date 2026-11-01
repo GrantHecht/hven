@@ -1,0 +1,388 @@
+MODE sqp-qn: @sqp-qn (baseline: the previous re-take's `6a2a58c7-rt19` column) vs @ed412253-sqp-qn; declared digest c1eb1e260373a8f7551e0a20496bcbc0985e35a65f1a6e8c8adfa912d03c1d2f (sha256 of declared-dumps/hven-sqp/sqp-qn.txt); appended columns: (none: no schema event)
+MEASURED IDENTITY (rule L10, derived from the committed files: measured row == baseline row, every field): ACOPP118 ACOPP57 ACOPR57 BRITGAS DALLASM MSS2 NET3 READING6 SAWPATH SMBANK STEENBRB STEENBRC STEENBRD STEENBRE STEENBRG ZAMB2-8
+MEASURED ROWS: 19 of 23 cells finished in the measuring run; 4 did not (capped)
+STOP FINDING -- options_digest differs from the DECLARED c1eb1e260373a8f7551e0a20496bcbc0985e35a65f1a6e8c8adfa912d03c1d2f on ['ACOPP118', 'ACOPP57', 'ACOPR118', 'ACOPR57', 'BIGBANK', 'BRITGAS', 'DALLASM', 'MSS2', 'MSS3', 'NET3', 'READING6', 'READING8', 'SAWPATH', 'SMBANK', 'STEENBRB', 'STEENBRC', 'STEENBRD', 'STEENBRE', 'STEENBRG', 'TAX213322', 'TAX53322', 'YORKNET', 'ZAMB2-8']
+
+ACOPP118   MEASURED row REPRODUCED (every field the measured row carries) (wall_s 6.2264709860028233 informational)
+    status                       baseline optimal -> optimal
+    outcome                      baseline optimal -> optimal
+    iterations                   baseline 119 -> 119
+    factorizations               baseline 106 -> 106
+    objective                    baseline 129660.686196043 -> 129660.686196043
+    kkt_primal                   baseline <no column> -> <no column>
+    major_iters                  baseline 119 -> 119
+    qp_minor_iters               baseline 680 -> 680
+    steps_accepted               baseline 99 -> 99
+    rejected_steps               baseline 20 -> 20
+    elastic_activations          baseline 0 -> 0
+    restoration_iters            baseline 0 -> 0
+    sqp_feasibility              baseline 1.1368683772161603e-13 -> 1.1368683772161603e-13
+    sqp_kkt_residual             baseline 6.59007267581719e-07 -> 6.59007267581719e-07
+    sqp_infeasibility_certified  baseline 0 -> 0
+ACOPP57    MEASURED row REPRODUCED (every field the measured row carries) (wall_s 0.16129215902765281 informational)
+    status                       baseline optimal -> optimal
+    outcome                      baseline optimal -> optimal
+    iterations                   baseline 34 -> 34
+    factorizations               baseline 29 -> 29
+    objective                    baseline 41737.786850017314 -> 41737.786850017314
+    kkt_primal                   baseline <no column> -> <no column>
+    major_iters                  baseline 34 -> 34
+    qp_minor_iters               baseline 100 -> 100
+    steps_accepted               baseline 28 -> 28
+    rejected_steps               baseline 6 -> 6
+    elastic_activations          baseline 0 -> 0
+    restoration_iters            baseline 0 -> 0
+    sqp_feasibility              baseline 1.7763568394002505e-14 -> 1.7763568394002505e-14
+    sqp_kkt_residual             baseline 5.846552658683296e-07 -> 5.846552658683296e-07
+    sqp_infeasibility_certified  baseline 0 -> 0
+ACOPR118   dnf_wall on a NEAR-WALL measured cell (solo wall 415.5 s of 300 s) -- READ (wall-clock-dependent, s7; re-run ALONE); READ -- near-wall measured cell ended at the wall (wall_s 300.10350324297906 informational)
+    status                       baseline null -> null
+    outcome                      baseline dnf_wall -> dnf_wall
+    iterations                   baseline null -> null
+    factorizations               baseline null -> null
+    objective                    baseline null -> null
+    kkt_primal                   baseline <no counters row> -> <no counters row>
+    major_iters                  baseline <no counters row> -> <no counters row>
+    qp_minor_iters               baseline <no counters row> -> <no counters row>
+    steps_accepted               baseline <no counters row> -> <no counters row>
+    rejected_steps               baseline <no counters row> -> <no counters row>
+    elastic_activations          baseline <no counters row> -> <no counters row>
+    restoration_iters            baseline <no counters row> -> <no counters row>
+    sqp_feasibility              baseline <no counters row> -> <no counters row>
+    sqp_kkt_residual             baseline <no counters row> -> <no counters row>
+    sqp_infeasibility_certified  baseline <no counters row> -> <no counters row>
+    <no counters row>
+ACOPR57    MEASURED row REPRODUCED (every field the measured row carries); READ -- qn_kwrong_seen 4 (hven's bug flag; counted, never acted on) (wall_s 2.3208541900094133 informational)
+    status                       baseline optimal -> optimal
+    outcome                      baseline optimal -> optimal
+    iterations                   baseline 264 -> 264
+    factorizations               baseline 450 -> 450
+    objective                    baseline 41737.786035180863 -> 41737.786035180863
+    kkt_primal                   baseline <no column> -> <no column>
+    major_iters                  baseline 264 -> 264
+    qp_minor_iters               baseline 1593 -> 1593
+    steps_accepted               baseline 160 -> 160
+    rejected_steps               baseline 103 -> 103
+    elastic_activations          baseline 1 -> 1
+    restoration_iters            baseline 0 -> 0
+    sqp_feasibility              baseline 1.4210854715202004e-14 -> 1.4210854715202004e-14
+    sqp_kkt_residual             baseline 1.7176527949158641e-07 -> 1.7176527949158641e-07
+    sqp_infeasibility_certified  baseline 0 -> 0
+BIGBANK    dnf_wall on a NEAR-WALL measured cell (solo wall 484.7 s of 300 s) -- READ (wall-clock-dependent, s7; re-run ALONE); READ -- near-wall measured cell ended at the wall (wall_s 300.01866502402117 informational)
+    status                       baseline null -> null
+    outcome                      baseline dnf_wall -> dnf_wall
+    iterations                   baseline null -> null
+    factorizations               baseline null -> null
+    objective                    baseline null -> null
+    kkt_primal                   baseline <no counters row> -> <no counters row>
+    major_iters                  baseline <no counters row> -> <no counters row>
+    qp_minor_iters               baseline <no counters row> -> <no counters row>
+    steps_accepted               baseline <no counters row> -> <no counters row>
+    rejected_steps               baseline <no counters row> -> <no counters row>
+    elastic_activations          baseline <no counters row> -> <no counters row>
+    restoration_iters            baseline <no counters row> -> <no counters row>
+    sqp_feasibility              baseline <no counters row> -> <no counters row>
+    sqp_kkt_residual             baseline <no counters row> -> <no counters row>
+    sqp_infeasibility_certified  baseline <no counters row> -> <no counters row>
+    <no counters row>
+BRITGAS    MEASURED row REPRODUCED (every field the measured row carries) (wall_s 15.583327267988352 informational)
+    status                       baseline optimal -> optimal
+    outcome                      baseline optimal -> optimal
+    iterations                   baseline 16 -> 16
+    factorizations               baseline 3990 -> 3990
+    objective                    baseline 0 -> 0
+    kkt_primal                   baseline <no column> -> <no column>
+    major_iters                  baseline 16 -> 16
+    qp_minor_iters               baseline 4412 -> 4412
+    steps_accepted               baseline 15 -> 15
+    rejected_steps               baseline 0 -> 0
+    elastic_activations          baseline 1 -> 1
+    restoration_iters            baseline 20 -> 20
+    sqp_feasibility              baseline 1.7763568394002505e-15 -> 1.7763568394002505e-15
+    sqp_kkt_residual             baseline 1.7698950605154983e-12 -> 1.7698950605154983e-12
+    sqp_infeasibility_certified  baseline 0 -> 0
+DALLASM    MEASURED row REPRODUCED (every field the measured row carries) (wall_s 7.7889909470104612 informational)
+    status                       baseline optimal -> optimal
+    outcome                      baseline optimal -> optimal
+    iterations                   baseline 142 -> 142
+    factorizations               baseline 549 -> 549
+    objective                    baseline -48198.188192052992 -> -48198.188192052992
+    kkt_primal                   baseline <no column> -> <no column>
+    major_iters                  baseline 142 -> 142
+    qp_minor_iters               baseline 2426 -> 2426
+    steps_accepted               baseline 102 -> 102
+    rejected_steps               baseline 39 -> 39
+    elastic_activations          baseline 2 -> 2
+    restoration_iters            baseline 3 -> 3
+    sqp_feasibility              baseline 3.5527136788005009e-15 -> 3.5527136788005009e-15
+    sqp_kkt_residual             baseline 5.5667956289084941e-07 -> 5.5667956289084941e-07
+    sqp_infeasibility_certified  baseline 0 -> 0
+MSS2       MEASURED row REPRODUCED (every field the measured row carries) (wall_s 101.84526923700469 informational)
+    status                       baseline numerical_error -> numerical_error
+    outcome                      baseline error -> error
+    iterations                   baseline 10 -> 10
+    factorizations               baseline 6183 -> 6183
+    objective                    baseline -2.234774541233735 -> -2.234774541233735
+    kkt_primal                   baseline <no column> -> <no column>
+    major_iters                  baseline 10 -> 10
+    qp_minor_iters               baseline 6737 -> 6737
+    steps_accepted               baseline 5 -> 5
+    rejected_steps               baseline 3 -> 3
+    elastic_activations          baseline 3 -> 3
+    restoration_iters            baseline 35 -> 35
+    sqp_feasibility              baseline 1.157587895360409e-09 -> 1.157587895360409e-09
+    sqp_kkt_residual             baseline 2.8415453325928244 -> 2.8415453325928244
+    sqp_infeasibility_certified  baseline 0 -> 0
+MSS3       dnf_wall as measured (the measuring run was capped too) (wall_s 300.07926723899436 informational)
+    status                       baseline null -> null
+    outcome                      baseline dnf_wall -> dnf_wall
+    iterations                   baseline null -> null
+    factorizations               baseline null -> null
+    objective                    baseline null -> null
+    kkt_primal                   baseline <no counters row> -> <no counters row>
+    major_iters                  baseline <no counters row> -> <no counters row>
+    qp_minor_iters               baseline <no counters row> -> <no counters row>
+    steps_accepted               baseline <no counters row> -> <no counters row>
+    rejected_steps               baseline <no counters row> -> <no counters row>
+    elastic_activations          baseline <no counters row> -> <no counters row>
+    restoration_iters            baseline <no counters row> -> <no counters row>
+    sqp_feasibility              baseline <no counters row> -> <no counters row>
+    sqp_kkt_residual             baseline <no counters row> -> <no counters row>
+    sqp_infeasibility_certified  baseline <no counters row> -> <no counters row>
+    <no counters row>
+NET3       MEASURED row REPRODUCED (every field the measured row carries) (wall_s 82.323309748986503 informational)
+    status                       baseline max_iter -> max_iter
+    outcome                      baseline dnf_budget -> dnf_budget
+    iterations                   baseline 7 -> 7
+    factorizations               baseline 13555 -> 13555
+    objective                    baseline 6409199.3858827297 -> 6409199.3858827297
+    kkt_primal                   baseline <no column> -> <no column>
+    major_iters                  baseline 7 -> 7
+    qp_minor_iters               baseline 13913 -> 13913
+    steps_accepted               baseline 3 -> 3
+    rejected_steps               baseline 2 -> 2
+    elastic_activations          baseline 2 -> 2
+    restoration_iters            baseline 293 -> 293
+    sqp_feasibility              baseline 1.6994863472064026e-07 -> 1.6994863472064026e-07
+    sqp_kkt_residual             baseline 5505.988090888578 -> 5505.988090888578
+    sqp_infeasibility_certified  baseline 0 -> 0
+READING6   MEASURED row REPRODUCED (every field the measured row carries) (wall_s 0.87053484100033529 informational)
+    status                       baseline optimal -> optimal
+    outcome                      baseline optimal -> optimal
+    iterations                   baseline 50 -> 50
+    factorizations               baseline 61 -> 61
+    objective                    baseline -144.65970057278562 -> -144.65970057278562
+    kkt_primal                   baseline <no column> -> <no column>
+    major_iters                  baseline 50 -> 50
+    qp_minor_iters               baseline 815 -> 815
+    steps_accepted               baseline 34 -> 34
+    rejected_steps               baseline 16 -> 16
+    elastic_activations          baseline 2 -> 2
+    restoration_iters            baseline 0 -> 0
+    sqp_feasibility              baseline 9.9920072216264089e-16 -> 9.9920072216264089e-16
+    sqp_kkt_residual             baseline 3.408651068070867e-07 -> 3.408651068070867e-07
+    sqp_infeasibility_certified  baseline 0 -> 0
+READING8   dnf_wall as measured (the measuring run was capped too) (wall_s 300.133290371974 informational)
+    status                       baseline null -> null
+    outcome                      baseline dnf_wall -> dnf_wall
+    iterations                   baseline null -> null
+    factorizations               baseline null -> null
+    objective                    baseline null -> null
+    kkt_primal                   baseline <no counters row> -> <no counters row>
+    major_iters                  baseline <no counters row> -> <no counters row>
+    qp_minor_iters               baseline <no counters row> -> <no counters row>
+    steps_accepted               baseline <no counters row> -> <no counters row>
+    rejected_steps               baseline <no counters row> -> <no counters row>
+    elastic_activations          baseline <no counters row> -> <no counters row>
+    restoration_iters            baseline <no counters row> -> <no counters row>
+    sqp_feasibility              baseline <no counters row> -> <no counters row>
+    sqp_kkt_residual             baseline <no counters row> -> <no counters row>
+    sqp_infeasibility_certified  baseline <no counters row> -> <no counters row>
+    <no counters row>
+SAWPATH    MEASURED row REPRODUCED (every field the measured row carries); READ -- qn_kwrong_seen 9 (hven's bug flag; counted, never acted on) (wall_s 28.38781563800876 informational)
+    status                       baseline numerical_error -> numerical_error
+    outcome                      baseline error -> error
+    iterations                   baseline 16 -> 16
+    factorizations               baseline 4457 -> 4457
+    objective                    baseline 5198.122401693613 -> 5198.122401693613
+    kkt_primal                   baseline <no column> -> <no column>
+    major_iters                  baseline 16 -> 16
+    qp_minor_iters               baseline 4620 -> 4620
+    steps_accepted               baseline 1 -> 1
+    rejected_steps               baseline 14 -> 14
+    elastic_activations          baseline 19 -> 19
+    restoration_iters            baseline 7 -> 7
+    sqp_feasibility              baseline 3.1059389648437499 -> 3.1059389648437499
+    sqp_kkt_residual             baseline 36.714252676086062 -> 36.714252676086062
+    sqp_infeasibility_certified  baseline 0 -> 0
+SMBANK     MEASURED row REPRODUCED (every field the measured row carries) (wall_s 4.5024151380057447 informational)
+    status                       baseline optimal -> optimal
+    outcome                      baseline optimal -> optimal
+    iterations                   baseline 194 -> 194
+    factorizations               baseline 216 -> 216
+    objective                    baseline -7129292 -> -7129292
+    kkt_primal                   baseline <no column> -> <no column>
+    major_iters                  baseline 194 -> 194
+    qp_minor_iters               baseline 5233 -> 5233
+    steps_accepted               baseline 124 -> 124
+    rejected_steps               baseline 70 -> 70
+    elastic_activations          baseline 0 -> 0
+    restoration_iters            baseline 0 -> 0
+    sqp_feasibility              baseline 5.8207660913467407e-11 -> 5.8207660913467407e-11
+    sqp_kkt_residual             baseline 9.9678192675568702e-07 -> 9.9678192675568702e-07
+    sqp_infeasibility_certified  baseline 0 -> 0
+STEENBRB   MEASURED row REPRODUCED (every field the measured row carries) (wall_s 20.752826601004926 informational)
+    status                       baseline numerical_error -> numerical_error
+    outcome                      baseline error -> error
+    iterations                   baseline 64 -> 64
+    factorizations               baseline 18244 -> 18244
+    objective                    baseline 46510529.562034786 -> 46510529.562034786
+    kkt_primal                   baseline <no column> -> <no column>
+    major_iters                  baseline 64 -> 64
+    qp_minor_iters               baseline 17177 -> 17177
+    steps_accepted               baseline 26 -> 26
+    rejected_steps               baseline 37 -> 37
+    elastic_activations          baseline 59 -> 59
+    restoration_iters            baseline 16 -> 16
+    sqp_feasibility              baseline 2.2737367544323206e-13 -> 2.2737367544323206e-13
+    sqp_kkt_residual             baseline 1550646.3810447489 -> 1550646.3810447489
+    sqp_infeasibility_certified  baseline 0 -> 0
+STEENBRC   MEASURED row REPRODUCED (every field the measured row carries) (wall_s 49.905858276004437 informational)
+    status                       baseline numerical_error -> numerical_error
+    outcome                      baseline error -> error
+    iterations                   baseline 66 -> 66
+    factorizations               baseline 58184 -> 58184
+    objective                    baseline 3164122027.6027775 -> 3164122027.6027775
+    kkt_primal                   baseline <no column> -> <no column>
+    major_iters                  baseline 66 -> 66
+    qp_minor_iters               baseline 56325 -> 56325
+    steps_accepted               baseline 26 -> 26
+    rejected_steps               baseline 32 -> 32
+    elastic_activations          baseline 45 -> 45
+    restoration_iters            baseline 32 -> 32
+    sqp_feasibility              baseline 0.0079407896653360486 -> 0.0079407896653360486
+    sqp_kkt_residual             baseline 150362691.99918064 -> 150362691.99918064
+    sqp_infeasibility_certified  baseline 0 -> 0
+STEENBRD   MEASURED row REPRODUCED (every field the measured row carries) (wall_s 36.524749125004746 informational)
+    status                       baseline max_iter -> max_iter
+    outcome                      baseline dnf_budget -> dnf_budget
+    iterations                   baseline 284 -> 284
+    factorizations               baseline 22189 -> 22189
+    objective                    baseline 9265.8148155042254 -> 9265.8148155042254
+    kkt_primal                   baseline <no column> -> <no column>
+    major_iters                  baseline 284 -> 284
+    qp_minor_iters               baseline 20892 -> 20892
+    steps_accepted               baseline 190 -> 190
+    rejected_steps               baseline 94 -> 94
+    elastic_activations          baseline 59 -> 59
+    restoration_iters            baseline 16 -> 16
+    sqp_feasibility              baseline 1.5027764843346397e-14 -> 1.5027764843346397e-14
+    sqp_kkt_residual             baseline 0.16509158671620838 -> 0.16509158671620838
+    sqp_infeasibility_certified  baseline 0 -> 0
+STEENBRE   MEASURED row REPRODUCED (every field the measured row carries) (wall_s 51.739490278996527 informational)
+    status                       baseline max_iter -> max_iter
+    outcome                      baseline dnf_budget -> dnf_budget
+    iterations                   baseline 277 -> 277
+    factorizations               baseline 32972 -> 32972
+    objective                    baseline 28608.165058138973 -> 28608.165058138973
+    kkt_primal                   baseline <no column> -> <no column>
+    major_iters                  baseline 277 -> 277
+    qp_minor_iters               baseline 30578 -> 30578
+    steps_accepted               baseline 176 -> 176
+    rejected_steps               baseline 100 -> 100
+    elastic_activations          baseline 38 -> 38
+    restoration_iters            baseline 23 -> 23
+    sqp_feasibility              baseline 3.0703250272073879e-14 -> 3.0703250272073879e-14
+    sqp_kkt_residual             baseline 0.33362878011575003 -> 0.33362878011575003
+    sqp_infeasibility_certified  baseline 0 -> 0
+STEENBRG   MEASURED row REPRODUCED (every field the measured row carries) (wall_s 43.351290572987637 informational)
+    status                       baseline numerical_error -> numerical_error
+    outcome                      baseline error -> error
+    iterations                   baseline 64 -> 64
+    factorizations               baseline 46235 -> 46235
+    objective                    baseline 3164345527.5795503 -> 3164345527.5795503
+    kkt_primal                   baseline <no column> -> <no column>
+    major_iters                  baseline 64 -> 64
+    qp_minor_iters               baseline 44760 -> 44760
+    steps_accepted               baseline 26 -> 26
+    rejected_steps               baseline 30 -> 30
+    elastic_activations          baseline 43 -> 43
+    restoration_iters            baseline 32 -> 32
+    sqp_feasibility              baseline 0.0079509087507656576 -> 0.0079509087507656576
+    sqp_kkt_residual             baseline 150386704.69059831 -> 150386704.69059831
+    sqp_infeasibility_certified  baseline 0 -> 0
+TAX213322  dnf_wall as measured (the measuring run was capped too) (wall_s 300.17906043698895 informational)
+    status                       baseline null -> null
+    outcome                      baseline dnf_wall -> dnf_wall
+    iterations                   baseline null -> null
+    factorizations               baseline null -> null
+    objective                    baseline null -> null
+    kkt_primal                   baseline <no counters row> -> <no counters row>
+    major_iters                  baseline <no counters row> -> <no counters row>
+    qp_minor_iters               baseline <no counters row> -> <no counters row>
+    steps_accepted               baseline <no counters row> -> <no counters row>
+    rejected_steps               baseline <no counters row> -> <no counters row>
+    elastic_activations          baseline <no counters row> -> <no counters row>
+    restoration_iters            baseline <no counters row> -> <no counters row>
+    sqp_feasibility              baseline <no counters row> -> <no counters row>
+    sqp_kkt_residual             baseline <no counters row> -> <no counters row>
+    sqp_infeasibility_certified  baseline <no counters row> -> <no counters row>
+    <no counters row>
+TAX53322   dnf_wall as measured (the measuring run was capped too) (wall_s 300.10739811399253 informational)
+    status                       baseline null -> null
+    outcome                      baseline dnf_wall -> dnf_wall
+    iterations                   baseline null -> null
+    factorizations               baseline null -> null
+    objective                    baseline null -> null
+    kkt_primal                   baseline <no counters row> -> <no counters row>
+    major_iters                  baseline <no counters row> -> <no counters row>
+    qp_minor_iters               baseline <no counters row> -> <no counters row>
+    steps_accepted               baseline <no counters row> -> <no counters row>
+    rejected_steps               baseline <no counters row> -> <no counters row>
+    elastic_activations          baseline <no counters row> -> <no counters row>
+    restoration_iters            baseline <no counters row> -> <no counters row>
+    sqp_feasibility              baseline <no counters row> -> <no counters row>
+    sqp_kkt_residual             baseline <no counters row> -> <no counters row>
+    sqp_infeasibility_certified  baseline <no counters row> -> <no counters row>
+    <no counters row>
+YORKNET    dnf_wall on a NEAR-WALL measured cell (solo wall 380.3 s of 300 s) -- READ (wall-clock-dependent, s7; re-run ALONE); READ -- near-wall measured cell ended at the wall (wall_s 300.1057666070119 informational)
+    status                       baseline null -> null
+    outcome                      baseline dnf_wall -> dnf_wall
+    iterations                   baseline null -> null
+    factorizations               baseline null -> null
+    objective                    baseline null -> null
+    kkt_primal                   baseline <no counters row> -> <no counters row>
+    major_iters                  baseline <no counters row> -> <no counters row>
+    qp_minor_iters               baseline <no counters row> -> <no counters row>
+    steps_accepted               baseline <no counters row> -> <no counters row>
+    rejected_steps               baseline <no counters row> -> <no counters row>
+    elastic_activations          baseline <no counters row> -> <no counters row>
+    restoration_iters            baseline <no counters row> -> <no counters row>
+    sqp_feasibility              baseline <no counters row> -> <no counters row>
+    sqp_kkt_residual             baseline <no counters row> -> <no counters row>
+    sqp_infeasibility_certified  baseline <no counters row> -> <no counters row>
+    <no counters row>
+ZAMB2-8    MEASURED row REPRODUCED (every field the measured row carries) (wall_s 1.1219389420002699 informational)
+    status                       baseline optimal -> optimal
+    outcome                      baseline optimal -> optimal
+    iterations                   baseline 34 -> 34
+    factorizations               baseline 165 -> 165
+    objective                    baseline -0.15293592764282651 -> -0.15293592764282651
+    kkt_primal                   baseline <no column> -> <no column>
+    major_iters                  baseline 34 -> 34
+    qp_minor_iters               baseline 804 -> 804
+    steps_accepted               baseline 22 -> 22
+    rejected_steps               baseline 12 -> 12
+    elastic_activations          baseline 5 -> 5
+    restoration_iters            baseline 0 -> 0
+    sqp_feasibility              baseline 1.1960036017111264e-09 -> 1.1960036017111264e-09
+    sqp_kkt_residual             baseline 9.7397123081672393e-07 -> 9.7397123081672393e-07
+    sqp_infeasibility_certified  baseline 0 -> 0
+
+SCHEMA: no appended columns this round; the side file's 153 columns are the baseline's, in order.
+CHANGED vs the baseline column of this label (a measured finished cell that differs in any field): ACOPR118 BIGBANK YORKNET
+
+OPTIMAL: 8 of 23 ['ACOPP118', 'ACOPP57', 'ACOPR57', 'BRITGAS', 'DALLASM', 'READING6', 'SMBANK', 'ZAMB2-8']  (measured rows optimal: 8 of 23 ['ACOPP118', 'ACOPP57', 'ACOPR57', 'BRITGAS', 'DALLASM', 'READING6', 'SMBANK', 'ZAMB2-8'])
+
+SUMMARY: mode sqp-qn; measured-finished 19; conversions vs baseline 0 []; lost vs baseline 0 []; SQP infeasible ends []; 23 STOP FINDINGS ['digest:ACOPP118', 'digest:ACOPP57', 'digest:ACOPR118', 'digest:ACOPR57', 'digest:BIGBANK', 'digest:BRITGAS', 'digest:DALLASM', 'digest:MSS2', 'digest:MSS3', 'digest:NET3', 'digest:READING6', 'digest:READING8', 'digest:SAWPATH', 'digest:SMBANK', 'digest:STEENBRB', 'digest:STEENBRC', 'digest:STEENBRD', 'digest:STEENBRE', 'digest:STEENBRG', 'digest:TAX213322', 'digest:TAX53322', 'digest:YORKNET', 'digest:ZAMB2-8']; 5 READ FINDINGS ['ACOPR118', 'ACOPR57', 'BIGBANK', 'SAWPATH', 'YORKNET']
+RESULT: STOP FINDING -- a cell broke its declaration; the round STOPS for the settler

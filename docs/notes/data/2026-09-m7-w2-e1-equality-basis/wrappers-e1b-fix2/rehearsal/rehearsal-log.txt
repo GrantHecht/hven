@@ -1,0 +1,110 @@
+START 2026-09-24T04:27:45-04:00 HEAD 92e6a12cba4af0fb8f03f8718dd1c46a8cc53fc0 BEFORE 7ab88b81 dirty=0
+G5 args: CS=[src/drivers/equality_basis.cpp src/drivers/sqp_solver.cpp tests/sqp/test_equality_basis.cpp tests/sqp/test_sqp_equality_basis_seams.cpp ] CH=[include/hven/detail/drivers/equality_basis.h include/hven/detail/drivers/equality_basis_testing.h ] OUTS=[tests/sqp/test_sqp_equality_basis_seams.cpp] COS=[src/drivers/equality_basis.cpp src/drivers/sqp_solver.cpp]
+FOREGROUND_START R5-psym-e1bfix2 2026-09-24T04:27:45-04:00
+PGREP_EMPTY R5-psym-e1bfix2: no foreign cell binary under my lock
+=== P-SYM Release  after=92e6a12cba4af0fb8f03f8718dd1c46a8cc53fc0  before=7ab88b81  declared differing=1 A=1 B=0
+CLEANDEAD_Release: 0 output(s) removed
+ASSERT OK   capture after-Release: rc=0, 151 object(s) in /home/ghecht/Projects/hven/.scratch/m7w2e1bfix2rehearsal/gates/psym/after-Release/.psym-manifest
+ASSERT OK   capture before-Release: rc=0, 151 object(s) in /home/ghecht/Projects/hven/.scratch/m7w2e1bfix2rehearsal/gates/psym/before-Release/.psym-manifest
+ASSERT OK   capture pair Release after = before + ADDED = 151
+ASSERT OK   outside-universe Release: tests/CMakeFiles/hven_sqp_seam_tests.dir/sqp/test_sqp_equality_basis_seams.cpp.o was BUILT in the after arm
+ASSERT OK   outside-universe Release: objects of tests/CMakeFiles/hven_sqp_seam_tests.dir in the after manifest = 0
+tree restored to m7 92e6a12c
+PSYM_COMPARE_RC_Release=1 (1 is EXPECTED; the gate is the classification)
+ASSERT OK   ONLY-AFTER Release: [] == the ADDED sources' objects
+CLASSIFY_RC_Release=0
+HEADER DERIVATION
+  repo : /home/ghecht/Projects/hven
+  base : 7ab88b81 -> 7ab88b81a83d432a1aa5e34ee8cb8ae5632d7483
+  head : 92e6a12cba4af0fb8f03f8718dd1c46a8cc53fc0 -> 92e6a12cba4af0fb8f03f8718dd1c46a8cc53fc0
+  cmd  : git -C /home/ghecht/Projects/hven diff --name-only 7ab88b81..92e6a12cba4af0fb8f03f8718dd1c46a8cc53fc0 -- include/
+  list : ['include/hven/detail/drivers/equality_basis.h', 'include/hven/detail/drivers/equality_basis_testing.h']
+HEADER LIST ACCEPTED: ['include/hven/detail/drivers/equality_basis.h', 'include/hven/detail/drivers/equality_basis_testing.h']
+P-SYM: FAIL — differences outside the accepted noise class
+DIFFERING OBJECTS: 1
+  class A -- SOURCE CHANGED by this task: 1
+  class B -- INCLUDERS of a changed header, source untouched: 0
+  UNEXPLAINED: 0
+  NEGATIVE CONTROL -- objects that ALSO include one of those headers and are BYTE-IDENTICAL (neither a mover nor NOISE-ONLY): 6
+ASSERT OK   P-SYM Release compare rc (declared 1 mover(s)) = 1
+ASSERT OK   P-SYM Release classify rc = 0
+ASSERT OK   P-SYM Release differing = 1 (>= 1)
+ASSERT OK   P-SYM Release class A + class B = 1
+ASSERT OK   P-SYM Release unexplained = 0
+ASSERT OK   P-SYM Release negative control = 6 (>= 1)
+ASSERT OK   P-SYM Release differing (declared) = 1
+ASSERT OK   P-SYM Release class A (declared) = 1
+ASSERT OK   P-SYM Release class B (declared) = 0
+ASSERT OK   library ADDED Release: [] present after, absent before
+SECTIONS_RC_Release=0
+SECTIONS_Release_OBJECTS=44
+SECTIONS_Release_BYTE_IDENTICAL=44
+SECTIONS_Release_DEBUG_ONLY=0
+SECTIONS_Release_NON_DEBUG_MOVERS=0
+SECTIONS_Release_REFUSED=0
+SECTIONS_Release_RC=0
+NON_DEBUG_MOVERS_GOT_Release=[]  DECLARED=[]  REFUSED=0
+ASSERT OK   sections Release: the non-debug movers are EXACTLY the declared set, nothing refused
+ASSERT OK   library Release: no production-library object is a P-SYM mover (DIFFERS/RELOCATIONS)
+INFO comment-only source Release: CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o -> BYTE-IDENTICAL-OR-UNREPORTED
+INFO comment-only source Release: CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o -> BYTE-IDENTICAL-OR-UNREPORTED
+ASSERT OK   sections Release: DEBUG_ONLY=0, as declared
+=== P-SYM Debug  after=92e6a12cba4af0fb8f03f8718dd1c46a8cc53fc0  before=7ab88b81  declared differing=1 A=1 B=0
+CLEANDEAD_Debug: 0 output(s) removed
+ASSERT OK   capture after-Debug: rc=0, 151 object(s) in /home/ghecht/Projects/hven/.scratch/m7w2e1bfix2rehearsal/gates/psym/after-Debug/.psym-manifest
+ASSERT OK   capture before-Debug: rc=0, 151 object(s) in /home/ghecht/Projects/hven/.scratch/m7w2e1bfix2rehearsal/gates/psym/before-Debug/.psym-manifest
+ASSERT OK   capture pair Debug after = before + ADDED = 151
+ASSERT OK   outside-universe Debug: tests/CMakeFiles/hven_sqp_seam_tests.dir/sqp/test_sqp_equality_basis_seams.cpp.o was BUILT in the after arm
+ASSERT OK   outside-universe Debug: objects of tests/CMakeFiles/hven_sqp_seam_tests.dir in the after manifest = 0
+tree restored to m7 92e6a12c
+PSYM_COMPARE_RC_Debug=1 (1 is EXPECTED; the gate is the classification)
+ASSERT OK   ONLY-AFTER Debug: [] == the ADDED sources' objects
+CLASSIFY_RC_Debug=0
+HEADER DERIVATION
+  repo : /home/ghecht/Projects/hven
+  base : 7ab88b81 -> 7ab88b81a83d432a1aa5e34ee8cb8ae5632d7483
+  head : 92e6a12cba4af0fb8f03f8718dd1c46a8cc53fc0 -> 92e6a12cba4af0fb8f03f8718dd1c46a8cc53fc0
+  cmd  : git -C /home/ghecht/Projects/hven diff --name-only 7ab88b81..92e6a12cba4af0fb8f03f8718dd1c46a8cc53fc0 -- include/
+  list : ['include/hven/detail/drivers/equality_basis.h', 'include/hven/detail/drivers/equality_basis_testing.h']
+HEADER LIST ACCEPTED: ['include/hven/detail/drivers/equality_basis.h', 'include/hven/detail/drivers/equality_basis_testing.h']
+P-SYM: FAIL — differences outside the accepted noise class
+DIFFERING OBJECTS: 1
+  class A -- SOURCE CHANGED by this task: 1
+  class B -- INCLUDERS of a changed header, source untouched: 0
+  UNEXPLAINED: 0
+  NEGATIVE CONTROL -- objects that ALSO include one of those headers and are BYTE-IDENTICAL (neither a mover nor NOISE-ONLY): 3
+ASSERT OK   P-SYM Debug compare rc (declared 1 mover(s)) = 1
+ASSERT OK   P-SYM Debug classify rc = 0
+ASSERT OK   P-SYM Debug differing = 1 (>= 1)
+ASSERT OK   P-SYM Debug class A + class B = 1
+ASSERT OK   P-SYM Debug unexplained = 0
+ASSERT OK   P-SYM Debug negative control = 3 (>= 1)
+ASSERT OK   P-SYM Debug differing (declared) = 1
+ASSERT OK   P-SYM Debug class A (declared) = 1
+ASSERT OK   P-SYM Debug class B (declared) = 0
+ASSERT OK   library ADDED Debug: [] present after, absent before
+SECTIONS_RC_Debug=0
+DEBUG-ONLY       CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o
+DEBUG-ONLY       CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+SECTIONS_Debug_OBJECTS=44
+SECTIONS_Debug_BYTE_IDENTICAL=42
+SECTIONS_Debug_DEBUG_ONLY=2
+SECTIONS_Debug_NON_DEBUG_MOVERS=0
+SECTIONS_Debug_REFUSED=0
+SECTIONS_Debug_RC=0
+NON_DEBUG_MOVERS_GOT_Debug=[]  DECLARED=[]  REFUSED=0
+ASSERT OK   sections Debug: the non-debug movers are EXACTLY the declared set, nothing refused
+ASSERT OK   library Debug: no production-library object is a P-SYM mover (DIFFERS/RELOCATIONS)
+INFO comment-only source Debug: CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o -> NOISE-ONLY
+INFO comment-only source Debug: CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o -> NOISE-ONLY
+ASSERT FAIL sections Debug: DEBUG_ONLY is '2' and this round DECLARED '0'
+ASSERT OK   P-SYM cross-config: class B sets equal (0 object(s))
+ASSERT OK   P-SYM cross-config: Release unexplained = 0 (count and list)
+ASSERT OK   P-SYM cross-config: Debug unexplained = 0 (count and list)
+ASSERT OK   P-SYM cross-config: Release class A (1) all changed-source
+ASSERT OK   P-SYM cross-config: Debug class A (1) all changed-source
+ASSERT OK   P-SYM cross-config: the two class A sets are identical
+G5_ASSERT_RC=1
+FOREGROUND_END R5-psym-e1bfix2 2026-09-24T04:38:01-04:00 rc=1
+LEG_RC R5-psym-e1bfix2 rc=1
+END 2026-09-24T04:38:01-04:00 tree=m7 92e6a12c dirty=0

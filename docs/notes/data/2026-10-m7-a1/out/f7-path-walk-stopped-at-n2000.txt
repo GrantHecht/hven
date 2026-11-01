@@ -1,0 +1,2 @@
+f7 engine=walk cell=f7_n1000_path_neutral mi_nodes=1000 status=0 majors=5 weak_peak=0 near_peak=10 majors_qp=4 majors_near_gt0=2 majors_weak_gt0=0 near_sum=11 active_rows_sum=2647 ipqp_band=0 ipqp_noise=0 ipqp_uncertain=0
+f7 engine=walk cell=f7_n1000_path_physics mi_nodes=1000 status=0 majors=3 weak_peak=1 near_peak=273 majors_qp=2 majors_near_gt0=1 majors_weak_gt0=1 near_sum=273 active_rows_sum=1499 ipqp_band=0 ipqp_noise=0 ipqp_uncertain=0

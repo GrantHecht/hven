@@ -1,0 +1,24 @@
+PGREP_EMPTY oracle-D 2026-09-24T12:35:58-04:00
+FOREGROUND_START oracle-D 2026-09-24T12:35:58-04:00
+ORACLE dumps/YORKNET_def/qp0.txt n=508 me=256 mi=0 tr=inf in-cell: status=3 minors=242 facts=247 blk_term=1 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=0 deferred=0 undec=0 maxiter=5080
+  OPTIMUM (Clarabel) status=Solved f*=1964037.12937 viol=(8.162359677044151e-13, 0.0, 0.0) active rows=0 pins=249
+  POINT replays/focus-structfirst+greys+greyd+unlock+f5+f5s+screenadmit/YORKNET_def_qp0.sol: status=0 f=1964037.12937 viol=(9.476863738200336e-13, 0.0, 1.8953727476400672e-12) f-f*=-5.0501e-07 |dx|inf=6.529e-01
+ORACLE dumps/YORKNET_def/qp1.txt n=900 me=256 mi=0 tr=inf in-cell: status=3 minors=594 facts=595 blk_term=1 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=359 deferred=0 undec=0 maxiter=9000
+  OPTIMUM (Clarabel) status=Solved f*=664247.80146 viol=(2.016601254609145e-12, 0.0, 6.27520257978631e-12) active rows=0 pins=669
+  POINT replays/focus-structfirst+greys+greyd+unlock+f5+f5s+screenadmit/YORKNET_def_qp1.sol: status=0 f=664247.80146 viol=(4.3900570290134055e-13, 0.0, 4.440892098500626e-16) f-f*=-2.3260e-07 |dx|inf=4.387e-01
+ORACLE dumps/STEENBRB_def/qp0.txt n=492 me=96 mi=0 tr=inf in-cell: status=3 minors=908 facts=990 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=1 retreats=0 exch=119 deferred=1 undec=1 maxiter=4920
+  H is not PSD on null(Ae): no global oracle; only local checks
+  POINT replays/focus-structfirst+greys+greyd+unlock+f5+f5s+screenadmit/STEENBRB_def_qp0.sol: status=0 f=1974445.19088 viol=(4.547473508864641e-13, 0.0, 1.4943601911454607e-13)
+ORACLE dumps/ACOPR57_def/qp0.txt n=128 me=114 mi=274 tr=1 in-cell: status=3 minors=51 facts=31 blk_term=1 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=1 exch=0 deferred=0 undec=0 maxiter=2080
+  OPTIMUM (Clarabel) status=Solved f*=432.674974172 viol=(6.483702463810914e-14, 0.0, 0.0) active rows=4 pins=4
+  POINT replays/focus-structfirst+greys+greyd+unlock+f5+f5s+screenadmit/ACOPR57_def_qp0.sol: status=0 f=432.660936979 viol=(6.144412475483918e-07, 3.071421459388546e-07, 0.0) f-f*=-1.4037e-02 |dx|inf=1.756e-04
+ORACLE dumps/ACOPR57_def/qp1.txt n=128 me=114 mi=274 tr=0.5 in-cell: status=3 minors=90 facts=16 blk_term=1 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=1 exch=19 deferred=0 undec=0 maxiter=2080
+  OPTIMUM (Clarabel) status=AlmostSolved f*=501.805584074 viol=(9.425171754173789e-11, 5.452527318539069e-12, 2.3257460765667656e-11) active rows=2 pins=6
+  POINT replays/focus-structfirst+greys+greyd+unlock+f5+f5s+screenadmit/ACOPR57_def_qp1.sol: status=0 f=501.804570752 viol=(2.5417061344512604e-08, 1.6630080201807118e-08, 0.0) f-f*=-1.0133e-03 |dx|inf=1.118e-06
+ORACLE dumps/ACOPR57_def/qp4.txt n=630 me=114 mi=274 tr=0.25 in-cell: status=3 minors=27 facts=126 blk_term=1 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=6 deferred=0 undec=0 maxiter=7100
+  H is not PSD on null(Ae): no global oracle; only local checks
+  POINT replays/focus-structfirst+greys+greyd+unlock+f5+f5s+screenadmit/ACOPR57_def_qp4.sol: status=0 f=-18.3950535429 viol=(3.316791286067655e-15, 7.45931094670027e-17, 0.0)
+ORACLE dumps/ACOPP57_def/qp0.txt n=128 me=114 mi=160 tr=1 in-cell: status=3 minors=2 facts=1 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=0 deferred=0 undec=0 maxiter=1795
+  OPTIMUM (Clarabel) status=Solved f*=0.243742606211 viol=(5.572685240644087e-15, 0.0, 8.4300619039199175e-16) active rows=0 pins=3
+  POINT replays/focus-structfirst+greys+greyd+unlock+f5+f5s+screenadmit/ACOPP57_def_qp0.sol: status=0 f=0.242644830751 viol=(4.0319961599568637e-07, 0.0, 0.0) f-f*=-1.0978e-03 |dx|inf=1.710e-04
+FOREGROUND_END oracle-D 2026-09-24T12:36:02-04:00 rc=0

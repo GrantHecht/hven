@@ -1,0 +1,22 @@
+# WX-R1 MKL hunt: HS sweep corpus x qp_mode{0=walk,1=ssn,2=ipm} x warm_full_step x adaptive_mu x dp*{1,.5,.25,2,.3,.7}, warm chains, MKL_NUM_THREADS=1
+# old = m7 0483a46f library, new = wx-r1 ae151b87 library; FALSEOPT = kOptimal with self-checked comp > 1e-6 or stat/primal > 1e-5
+optimal points: old 4280 new 4280
+FALSEOPT: old 6 new 0
+optimal points lost: 0  gained: 0
+moved (f or majors): 16
+  HS10 mode=0 fs=0 ad=0 dp=0.25 p=2.25 | FALSEOPT f -1.732050808 majors 1 comp 0.0722 -> ok f -1.802775638 majors 4 comp 9.25e-14
+  HS10 mode=0 fs=0 ad=0 dp=0.125 p=2.38 | FALSEOPT f -1.802775638 majors 1 comp 0.0347 -> ok f -1.837117336 majors 3 comp 2.91e-08
+  HS10 mode=0 fs=0 ad=0 dp=0.125 p=2.5 | ok f -1.870828693 majors 4 comp 3.01e-13 -> ok f -1.87082875 majors 3 comp 5.66e-08
+  HS10 mode=0 fs=0 ad=0 dp=0.125 p=2.62 | ok f -1.903943326 majors 3 comp 4.99e-08 -> ok f -1.903943276 majors 6 comp 2.27e-12
+  HS10 mode=0 fs=0 ad=0 dp=0.125 p=2.75 | ok f -1.936491673 majors 6 comp 1.53e-12 -> ok f -1.936491717 majors 3 comp 4.34e-08
+  HS10 mode=0 fs=0 ad=0 dp=0.125 p=2.88 | ok f -1.968502007 majors 3 comp 3.89e-08 -> ok f -1.968501969 majors 6 comp 1.04e-12
+  HS10 mode=0 fs=0 ad=0 dp=0.125 p=3 | ok f -2 majors 6 comp 7.17e-13 -> ok f -2.000000035 majors 3 comp 3.49e-08
+  HS10 mode=0 fs=0 ad=1 dp=0.25 p=2.25 | FALSEOPT f -1.732050808 majors 1 comp 0.0722 -> ok f -1.802775638 majors 4 comp 9.25e-14
+  HS10 mode=0 fs=1 ad=0 dp=0.25 p=2.25 | FALSEOPT f -1.732050808 majors 1 comp 0.0722 -> ok f -1.802775638 majors 4 comp 9.25e-14
+  HS10 mode=0 fs=1 ad=0 dp=0.125 p=2.38 | FALSEOPT f -1.802775638 majors 1 comp 0.0347 -> ok f -1.837117336 majors 3 comp 2.91e-08
+  HS10 mode=0 fs=1 ad=0 dp=0.125 p=2.5 | ok f -1.870828693 majors 4 comp 3.01e-13 -> ok f -1.87082875 majors 3 comp 5.66e-08
+  HS10 mode=0 fs=1 ad=0 dp=0.125 p=2.62 | ok f -1.903943326 majors 3 comp 4.99e-08 -> ok f -1.903943276 majors 6 comp 2.27e-12
+  HS10 mode=0 fs=1 ad=0 dp=0.125 p=2.75 | ok f -1.936491673 majors 6 comp 1.53e-12 -> ok f -1.936491717 majors 3 comp 4.34e-08
+  HS10 mode=0 fs=1 ad=0 dp=0.125 p=2.88 | ok f -1.968502007 majors 3 comp 3.89e-08 -> ok f -1.968501969 majors 6 comp 1.04e-12
+  HS10 mode=0 fs=1 ad=0 dp=0.125 p=3 | ok f -2 majors 6 comp 7.17e-13 -> ok f -2.000000035 majors 3 comp 3.49e-08
+  HS10 mode=0 fs=1 ad=1 dp=0.25 p=2.25 | FALSEOPT f -1.732050808 majors 1 comp 0.0722 -> ok f -1.802775638 majors 4 comp 9.25e-14

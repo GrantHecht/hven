@@ -1,0 +1,30 @@
+release tests listed: 3189
+ctest rel rc=0 secs=90
+100% tests passed, 0 tests failed out of 1595
+ctest rel rc=0 secs=52
+100% tests passed, 0 tests failed out of 1591
+ctest rel rc=0 secs=9
+100% tests passed, 0 tests failed out of 1
+debug tests listed: 3189, 10 legs of 319
+ctest dbg rc=0 secs=0
+100% tests passed, 0 tests failed out of 319
+ctest dbg rc=0 secs=197
+100% tests passed, 0 tests failed out of 319
+ctest dbg rc=0 secs=25
+100% tests passed, 0 tests failed out of 319
+ctest dbg rc=0 secs=34
+100% tests passed, 0 tests failed out of 319
+ctest dbg rc=0 secs=7
+100% tests passed, 0 tests failed out of 319
+ctest dbg rc=0 secs=88
+100% tests passed, 0 tests failed out of 319
+ctest dbg rc=0 secs=55
+100% tests passed, 0 tests failed out of 317
+ctest dbg rc=0 secs=12
+100% tests passed, 0 tests failed out of 319
+ctest dbg rc=0 secs=42
+100% tests passed, 0 tests failed out of 319
+ctest dbg rc=0 secs=42
+100% tests passed, 0 tests failed out of 317
+ctest dbg rc=0 secs=168
+100% tests passed, 0 tests failed out of 1

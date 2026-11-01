@@ -1,0 +1,88 @@
+START 2026-09-24T10:07:33-04:00 HEAD d1edc391e26d92982523964247d2492e5e71ad4e BEFORE 763cda00 dirty=0
+G5 args: CS=[src/qp/qp_engine.cpp src/qp/ws_independence.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/sqp/test_qp_ws_independence.cpp ] CH=[include/hven/core/solver_counters.h include/hven/detail/qp/qp_engine.h include/hven/detail/qp/qp_problem.h include/hven/detail/qp/ws_independence.h ] MOV=[CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o ] ADD=[] LADD=[] OUTS=[tests/qp/test_qp_anti_cycling_arm.cpp]
+FOREGROUND_START R5-psym-e2fix2 2026-09-24T10:07:55-04:00
+PGREP_EMPTY R5-psym-e2fix2: no foreign cell binary under my lock
+=== P-SYM Release  after=d1edc391e26d92982523964247d2492e5e71ad4e  before=763cda00  declared differing=39 A=3 B=36
+CLEANDEAD_Release: 0 output(s) removed
+ASSERT OK   capture after-Release: rc=0, 151 object(s) in /home/ghecht/Projects/hven/.scratch/m7w2e2fix2s/rehearsal/gates/psym/after-Release/.psym-manifest
+ASSERT OK   capture before-Release: rc=0, 151 object(s) in /home/ghecht/Projects/hven/.scratch/m7w2e2fix2s/rehearsal/gates/psym/before-Release/.psym-manifest
+ASSERT OK   capture pair Release after = before + ADDED = 151
+ASSERT OK   outside-universe Release: tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_anti_cycling_arm.cpp.o was BUILT in the after arm
+ASSERT OK   outside-universe Release: objects of tests/CMakeFiles/hven_qp_walk_seam_tests.dir in the after manifest = 0
+tree restored to m7 d1edc391
+PSYM_COMPARE_RC_Release=1 (1 is EXPECTED; the gate is the classification)
+ASSERT OK   ONLY-AFTER Release: [] == the ADDED sources' objects
+CLASSIFY_RC_Release=0
+P-SYM: FAIL — differences outside the accepted noise class
+DIFFERING OBJECTS: 39
+  class A -- SOURCE CHANGED by this task: 3
+  class B -- INCLUDERS of a changed header, source untouched: 36
+  UNEXPLAINED: 0
+  NEGATIVE CONTROL -- objects that ALSO include one of those headers and are BYTE-IDENTICAL (neither a mover nor NOISE-ONLY): 104
+ASSERT OK   P-SYM Release compare rc (declared 39 mover(s)) = 1
+ASSERT OK   P-SYM Release classify rc = 0
+ASSERT OK   P-SYM Release differing = 39 (>= 1)
+ASSERT OK   P-SYM Release class A + class B = 39
+ASSERT OK   P-SYM Release unexplained = 0
+ASSERT OK   P-SYM Release negative control = 104 (>= 1)
+ASSERT OK   P-SYM Release differing (declared) = 39
+ASSERT OK   P-SYM Release class A (declared) = 3
+ASSERT OK   P-SYM Release class B (declared) = 36
+ASSERT OK   library ADDED Release: [] present after, absent before
+SECTIONS_RC_Release=1
+SECTIONS_Release_OBJECTS=44
+SECTIONS_Release_BYTE_IDENTICAL=38
+SECTIONS_Release_DEBUG_ONLY=0
+SECTIONS_Release_NON_DEBUG_MOVERS=6
+SECTIONS_Release_REFUSED=0
+SECTIONS_Release_RC=1
+NON_DEBUG_MOVERS_GOT_Release=[CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o ]  DECLARED=[CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o ]  REFUSED=0
+ASSERT FAIL sections Release: rc=1 (want 1), refused='0', movers [CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o ] != declared [CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o ]
+ASSERT OK   sections Release: DEBUG_ONLY=0, as declared
+=== P-SYM Debug  after=d1edc391e26d92982523964247d2492e5e71ad4e  before=763cda00  declared differing=39 A=3 B=36
+CLEANDEAD_Debug: 0 output(s) removed
+ASSERT OK   capture after-Debug: rc=0, 151 object(s) in /home/ghecht/Projects/hven/.scratch/m7w2e2fix2s/rehearsal/gates/psym/after-Debug/.psym-manifest
+ASSERT OK   capture before-Debug: rc=0, 151 object(s) in /home/ghecht/Projects/hven/.scratch/m7w2e2fix2s/rehearsal/gates/psym/before-Debug/.psym-manifest
+ASSERT OK   capture pair Debug after = before + ADDED = 151
+ASSERT OK   outside-universe Debug: tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_anti_cycling_arm.cpp.o was BUILT in the after arm
+ASSERT OK   outside-universe Debug: objects of tests/CMakeFiles/hven_qp_walk_seam_tests.dir in the after manifest = 0
+tree restored to m7 d1edc391
+PSYM_COMPARE_RC_Debug=1 (1 is EXPECTED; the gate is the classification)
+ASSERT OK   ONLY-AFTER Debug: [] == the ADDED sources' objects
+CLASSIFY_RC_Debug=0
+P-SYM: FAIL — differences outside the accepted noise class
+DIFFERING OBJECTS: 39
+  class A -- SOURCE CHANGED by this task: 3
+  class B -- INCLUDERS of a changed header, source untouched: 36
+  UNEXPLAINED: 0
+  NEGATIVE CONTROL -- objects that ALSO include one of those headers and are BYTE-IDENTICAL (neither a mover nor NOISE-ONLY): 69
+ASSERT OK   P-SYM Debug compare rc (declared 39 mover(s)) = 1
+ASSERT OK   P-SYM Debug classify rc = 0
+ASSERT OK   P-SYM Debug differing = 39 (>= 1)
+ASSERT OK   P-SYM Debug class A + class B = 39
+ASSERT OK   P-SYM Debug unexplained = 0
+ASSERT OK   P-SYM Debug negative control = 69 (>= 1)
+ASSERT OK   P-SYM Debug differing (declared) = 39
+ASSERT OK   P-SYM Debug class A (declared) = 3
+ASSERT OK   P-SYM Debug class B (declared) = 36
+ASSERT OK   library ADDED Debug: [] present after, absent before
+SECTIONS_RC_Debug=1
+SECTIONS_Debug_OBJECTS=44
+SECTIONS_Debug_BYTE_IDENTICAL=32
+SECTIONS_Debug_DEBUG_ONLY=6
+SECTIONS_Debug_NON_DEBUG_MOVERS=6
+SECTIONS_Debug_REFUSED=0
+SECTIONS_Debug_RC=1
+NON_DEBUG_MOVERS_GOT_Debug=[CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o ]  DECLARED=[CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o ]  REFUSED=0
+ASSERT FAIL sections Debug: rc=1 (want 1), refused='0', movers [CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o ] != declared [CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o ]
+ASSERT OK   sections Debug: DEBUG_ONLY=6, as declared
+ASSERT OK   P-SYM cross-config: class B sets equal (36 object(s))
+ASSERT OK   P-SYM cross-config: Release unexplained = 0 (count and list)
+ASSERT OK   P-SYM cross-config: Debug unexplained = 0 (count and list)
+ASSERT OK   P-SYM cross-config: Release class A (3) all changed-source
+ASSERT OK   P-SYM cross-config: Debug class A (3) all changed-source
+ASSERT OK   P-SYM cross-config: the two class A sets are identical
+G5_ASSERT_RC=1
+FOREGROUND_END R5-psym-e2fix2 2026-09-24T10:35:59-04:00 rc=1
+LEG_RC R5-psym-e2fix2 rc=1
+END 2026-09-24T10:35:59-04:00 tree=m7 d1edc391 dirty=0

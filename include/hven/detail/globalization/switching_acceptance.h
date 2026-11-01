@@ -161,7 +161,7 @@ class SwitchingAcceptance : public AcceptanceStrategy {
                       const ProgressMeasures &predicted_reduction) const;
 
     /// Lazy-init flag; re-armed by reset().
-    bool bounds_initialized_ = false; 
+    bool bounds_initialized_ = false;
     double theta_min_ = 0.0;
     double theta_max_ = 0.0;
 };

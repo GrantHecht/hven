@@ -1,0 +1,14 @@
+[1/10] Building CXX object CMakeFiles/hven.dir/src/drivers/console_trace_sink.cpp.o
+[2/10] Building CXX object CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o
+[3/10] Building CXX object CMakeFiles/hven.dir/src/drivers/assembly_eval_seam.cpp.o
+[4/10] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o
+[5/10] Building CXX object CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+[6/10] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o
+[7/10] Building CXX object CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o
+[8/10] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/src/drivers/sqp_solver.cpp:5247:13: warning: enumeration values 'kAcceptable', 'kStalled', and 'kDiverging' not handled in switch [-Wswitch]
+ 5247 |     switch (rs.status) {
+      |             ^~~~~~~~~
+1 warning generated.
+[9/10] Building CXX object CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+[10/10] Linking CXX static library libhven.a

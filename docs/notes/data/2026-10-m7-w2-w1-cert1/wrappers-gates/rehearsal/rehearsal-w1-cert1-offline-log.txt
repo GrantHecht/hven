@@ -1,0 +1,32 @@
+START 2026-10-03T10:42:47-04:00 HEAD d70cd8af0387c8b3d391c44a17f20b06062d6809 BEFORE 2d2f92b1 dirty=0
+FOREGROUND_START R-offline-w1-cert1 2026-10-03T10:42:47-04:00
+PGREP_EMPTY R-offline-w1-cert1: no foreign cell binary under my lock
+OFFLINE_CLASSIFY_RC_Release=0
+OFFLINE_CLASSIFY_RC_Debug=0
+ran head-walk rc=0
+ran head-ssn rc=0
+ran head-ipm rc=0
+CMP_RUN1_walk=0 (RECORDED, not asserted)
+CMP_PIN_walk=1
+CMP_PREV_walk=0
+CMP_PREV_NOTE_walk=0 (RECORDED, not asserted: the previous record is NC3 r2 gates-r2 at the BEFORE sources)
+CMP_RUN1_ssn=0 (RECORDED, not asserted)
+CMP_PIN_ssn=1
+CMP_PREV_ssn=0
+CMP_PREV_NOTE_ssn=0 (RECORDED, not asserted: the previous record is NC3 r2 gates-r2 at the BEFORE sources)
+CMP_RUN1_ipm=0 (RECORDED, not asserted)
+CMP_PIN_ipm=1
+CMP_PREV_ipm=0
+CMP_PREV_NOTE_ipm=0 (RECORDED, not asserted: the previous record is NC3 r2 gates-r2 at the BEFORE sources)
+=== NC3 RUN 1 GATE RECORD (sources 054e4c78) HEAD-walk vs M7 W2 W1 CERT1 HEAD-walk (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+=== M6 CLOSE HEAD-walk vs M7 W2 W1 CERT1 HEAD-walk (GATED 1e-5) === cells compared: 27  columns compared: 75  differences: 17  within gate: 71
+=== PREVIOUS (NC3 R2) GATE RECORD HEAD-walk vs M7 W2 W1 CERT1 HEAD-walk (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+=== NC3 RUN 1 GATE RECORD (sources 054e4c78) HEAD-ssn vs M7 W2 W1 CERT1 HEAD-ssn (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+=== M6 CLOSE HEAD-ssn vs M7 W2 W1 CERT1 HEAD-ssn (GATED 1e-5) === cells compared: 27  columns compared: 75  differences: 13  within gate: 68
+=== PREVIOUS (NC3 R2) GATE RECORD HEAD-ssn vs M7 W2 W1 CERT1 HEAD-ssn (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+=== NC3 RUN 1 GATE RECORD (sources 054e4c78) HEAD-ipm vs M7 W2 W1 CERT1 HEAD-ipm (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+=== M6 CLOSE HEAD-ipm vs M7 W2 W1 CERT1 HEAD-ipm (GATED 1e-5) === cells compared: 27  columns compared: 75  differences: 13  within gate: 72
+=== PREVIOUS (NC3 R2) GATE RECORD HEAD-ipm vs M7 W2 W1 CERT1 HEAD-ipm (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+FOREGROUND_END R-offline-w1-cert1 2026-10-03T10:51:06-04:00 rc=0
+LEG_RC R-offline-w1-cert1 rc=0
+END 2026-10-03T10:51:06-04:00 tree=worktree-agent-a21119447c8eb6f78 d70cd8af dirty=0

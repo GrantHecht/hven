@@ -1,0 +1,6 @@
+=== SCW RECORD HEAD-walk vs A1 HEAD-walk (EXACT, field kOff) === cells compared: 27  columns compared: 75  differences: 0
+EXACT_RC_walk=0
+=== SCW RECORD HEAD-ssn vs A1 HEAD-ssn (EXACT, field kOff) === cells compared: 27  columns compared: 75  differences: 0
+EXACT_RC_ssn=0
+=== SCW RECORD HEAD-ipm vs A1 HEAD-ipm (EXACT, field kOff) === cells compared: 27  columns compared: 75  differences: 0
+EXACT_RC_ipm=0

@@ -1,0 +1,376 @@
+OLD: .scratch/m7t2/psym-old-build/CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+NEW: .scratch/m7t2/psym-new-build/CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+
+LAYOUT   __clang_call_terminate
+  pads 0 -> 0; non-pad instructions 3 -> 3
+  compiler-local label renumberings: 1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   char const* fmt::v12::detail::parse_arg_id<char, fmt::v12::detail::dynamic_spec_handler<char> >(char const*, char const*, fmt::v12::detail::dynamic_spec_handler<char>&&)
+  pads 1 -> 1; non-pad instructions 101 -> 101
+  compiler-local label renumberings: 1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   char const* fmt::v12::detail::parse_format_specs<char>(char const*, char const*, fmt::v12::detail::dynamic_format_specs<char>&, fmt::v12::parse_context<char>&, fmt::v12::detail::type)
+  pads 3 -> 3; non-pad instructions 295 -> 295
+  branch-target shifts: +12 x1
+  compiler-local label renumberings: 1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   fmt::v12::basic_appender<char> fmt::v12::detail::write_padded<char, (fmt::v12::align)1, fmt::v12::basic_appender<char>, fmt::v12::detail::write_bytes<char, (fmt::v12::align)1, fmt::v12::basic_appender<char> >(fmt::v12::basic_appender<char>, fmt::v12::basic_string_view<char>, fmt::v12::format_specs const&)::{lambda(fmt::v12::basic_appender<char>)#1}&>(fmt::v12::basic_appender<char>, fmt::v12::format_specs const&, unsigned long, unsigned long, fmt::v12::detail::write_bytes<char, (fmt::v12::align)1, fmt::v12::basic_appender<char> >(fmt::v12::basic_appender<char>, fmt::v12::basic_string_view<char>, fmt::v12::format_specs const&)::{lambda(fmt::v12::basic_appender<char>)#1}&)
+  pads 6 -> 6; non-pad instructions 170 -> 170
+  compiler-local label renumberings: 1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   fmt::v12::basic_appender<char> fmt::v12::detail::write_padded<char, (fmt::v12::align)2, fmt::v12::basic_appender<char>, fmt::v12::detail::write_bytes<char, (fmt::v12::align)2, fmt::v12::basic_appender<char> >(fmt::v12::basic_appender<char>, fmt::v12::basic_string_view<char>, fmt::v12::format_specs const&)::{lambda(fmt::v12::basic_appender<char>)#1}&>(fmt::v12::basic_appender<char>, fmt::v12::format_specs const&, unsigned long, unsigned long, fmt::v12::detail::write_bytes<char, (fmt::v12::align)2, fmt::v12::basic_appender<char> >(fmt::v12::basic_appender<char>, fmt::v12::basic_string_view<char>, fmt::v12::format_specs const&)::{lambda(fmt::v12::basic_appender<char>)#1}&)
+  pads 6 -> 6; non-pad instructions 170 -> 170
+  compiler-local label renumberings: 1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   fmt::v12::basic_appender<char> fmt::v12::detail::write_padded<char, (fmt::v12::align)2, fmt::v12::basic_appender<char>, fmt::v12::detail::write_fixed<char, fmt::v12::detail::digit_grouping<char>, fmt::v12::basic_appender<char>, fmt::v12::detail::big_decimal_fp>(fmt::v12::basic_appender<char>, fmt::v12::detail::big_decimal_fp const&, int, char, fmt::v12::format_specs const&, fmt::v12::sign, fmt::v12::locale_ref)::{lambda(fmt::v12::basic_appender<char>)#2}&>(fmt::v12::basic_appender<char>, fmt::v12::format_specs const&, unsigned long, unsigned long, fmt::v12::detail::write_fixed<char, fmt::v12::detail::digit_grouping<char>, fmt::v12::basic_appender<char>, fmt::v12::detail::big_decimal_fp>(fmt::v12::basic_appender<char>, fmt::v12::detail::big_decimal_fp const&, int, char, fmt::v12::format_specs const&, fmt::v12::sign, fmt::v12::locale_ref)::{lambda(fmt::v12::basic_appender<char>)#2}&)
+  pads 2 -> 2; non-pad instructions 108 -> 108
+  compiler-local label renumberings: 1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   fmt::v12::basic_appender<char> fmt::v12::detail::write_padded<char, (fmt::v12::align)2, fmt::v12::basic_appender<char>, fmt::v12::detail::write_fixed<char, fmt::v12::detail::digit_grouping<char>, fmt::v12::basic_appender<char>, fmt::v12::detail::dragonbox::decimal_fp<double> >(fmt::v12::basic_appender<char>, fmt::v12::detail::dragonbox::decimal_fp<double> const&, int, char, fmt::v12::format_specs const&, fmt::v12::sign, fmt::v12::locale_ref)::{lambda(fmt::v12::basic_appender<char>)#2}&>(fmt::v12::basic_appender<char>, fmt::v12::format_specs const&, unsigned long, unsigned long, fmt::v12::detail::write_fixed<char, fmt::v12::detail::digit_grouping<char>, fmt::v12::basic_appender<char>, fmt::v12::detail::dragonbox::decimal_fp<double> >(fmt::v12::basic_appender<char>, fmt::v12::detail::dragonbox::decimal_fp<double> const&, int, char, fmt::v12::format_specs const&, fmt::v12::sign, fmt::v12::locale_ref)::{lambda(fmt::v12::basic_appender<char>)#2}&)
+  pads 2 -> 2; non-pad instructions 108 -> 108
+  compiler-local label renumberings: 1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   fmt::v12::basic_appender<char> fmt::v12::detail::write_padded<char, (fmt::v12::align)2, fmt::v12::basic_appender<char>, fmt::v12::detail::write_fixed<char, fmt::v12::detail::digit_grouping<char>, fmt::v12::basic_appender<char>, fmt::v12::detail::dragonbox::decimal_fp<float> >(fmt::v12::basic_appender<char>, fmt::v12::detail::dragonbox::decimal_fp<float> const&, int, char, fmt::v12::format_specs const&, fmt::v12::sign, fmt::v12::locale_ref)::{lambda(fmt::v12::basic_appender<char>)#2}&>(fmt::v12::basic_appender<char>, fmt::v12::format_specs const&, unsigned long, unsigned long, fmt::v12::detail::write_fixed<char, fmt::v12::detail::digit_grouping<char>, fmt::v12::basic_appender<char>, fmt::v12::detail::dragonbox::decimal_fp<float> >(fmt::v12::basic_appender<char>, fmt::v12::detail::dragonbox::decimal_fp<float> const&, int, char, fmt::v12::format_specs const&, fmt::v12::sign, fmt::v12::locale_ref)::{lambda(fmt::v12::basic_appender<char>)#2}&)
+  pads 2 -> 2; non-pad instructions 108 -> 108
+  compiler-local label renumberings: 1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   fmt::v12::basic_appender<char> fmt::v12::detail::write_padded<char, (fmt::v12::align)2, fmt::v12::basic_appender<char>, fmt::v12::detail::write_fixed<char, fmt::v12::detail::fallback_digit_grouping<char>, fmt::v12::basic_appender<char>, fmt::v12::detail::dragonbox::decimal_fp<double> >(fmt::v12::basic_appender<char>, fmt::v12::detail::dragonbox::decimal_fp<double> const&, int, char, fmt::v12::format_specs const&, fmt::v12::sign, fmt::v12::locale_ref)::{lambda(fmt::v12::basic_appender<char>)#2}&>(fmt::v12::basic_appender<char>, fmt::v12::format_specs const&, unsigned long, unsigned long, fmt::v12::detail::write_fixed<char, fmt::v12::detail::fallback_digit_grouping<char>, fmt::v12::basic_appender<char>, fmt::v12::detail::dragonbox::decimal_fp<double> >(fmt::v12::basic_appender<char>, fmt::v12::detail::dragonbox::decimal_fp<double> const&, int, char, fmt::v12::format_specs const&, fmt::v12::sign, fmt::v12::locale_ref)::{lambda(fmt::v12::basic_appender<char>)#2}&)
+  pads 2 -> 2; non-pad instructions 107 -> 107
+  compiler-local label renumberings: 1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   fmt::v12::basic_appender<char> fmt::v12::detail::write_padded<char, (fmt::v12::align)2, fmt::v12::basic_appender<char>, fmt::v12::detail::write_fixed<char, fmt::v12::detail::fallback_digit_grouping<char>, fmt::v12::basic_appender<char>, fmt::v12::detail::dragonbox::decimal_fp<float> >(fmt::v12::basic_appender<char>, fmt::v12::detail::dragonbox::decimal_fp<float> const&, int, char, fmt::v12::format_specs const&, fmt::v12::sign, fmt::v12::locale_ref)::{lambda(fmt::v12::basic_appender<char>)#2}&>(fmt::v12::basic_appender<char>, fmt::v12::format_specs const&, unsigned long, unsigned long, fmt::v12::detail::write_fixed<char, fmt::v12::detail::fallback_digit_grouping<char>, fmt::v12::basic_appender<char>, fmt::v12::detail::dragonbox::decimal_fp<float> >(fmt::v12::basic_appender<char>, fmt::v12::detail::dragonbox::decimal_fp<float> const&, int, char, fmt::v12::format_specs const&, fmt::v12::sign, fmt::v12::locale_ref)::{lambda(fmt::v12::basic_appender<char>)#2}&)
+  pads 2 -> 2; non-pad instructions 107 -> 107
+  compiler-local label renumberings: 1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   fmt::v12::basic_appender<char> fmt::v12::detail::write_significand<fmt::v12::basic_appender<char>, char, char const*, fmt::v12::detail::digit_grouping<char> >(fmt::v12::basic_appender<char>, char const*, int, int, char, fmt::v12::detail::digit_grouping<char> const&)
+  pads 0 -> 0; non-pad instructions 121 -> 121
+  compiler-local label renumberings: 1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   fmt::v12::detail::format_handler<char>::on_format_specs(int, char const*, char const*)
+  pads 1 -> 1; non-pad instructions 271 -> 271
+  branch-target shifts: +12 x1
+  compiler-local label renumberings: 1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   fmt::v12::detail::parse_dynamic_spec_result<char> fmt::v12::detail::parse_dynamic_spec<char>(char const*, char const*, int&, fmt::v12::detail::arg_ref<char>&, fmt::v12::parse_context<char>&)
+  pads 2 -> 2; non-pad instructions 89 -> 89
+  compiler-local label renumberings: 1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   fmt::v12::detail::vformat_to(fmt::v12::detail::buffer<char>&, fmt::v12::basic_string_view<char>, fmt::v12::basic_format_args<fmt::v12::context>, fmt::v12::locale_ref)
+  pads 0 -> 0; non-pad instructions 110 -> 110
+  compiler-local label renumberings: 1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+DIFFERS  hven::solvers::IpmSolver::IpmSolver(hven::solvers::IpmOptions)
+  pads 1 -> 1; non-pad instructions 443 -> 445
+  OTHER: the non-pad instruction COUNT changed -- instructions were added or removed
+
+LAYOUT   hven::solvers::IpmSolver::alg_impl(hven::solvers::AlgorithmModes, hven::solvers::BarrierModes, hven::solvers::LineSearchModes, double, double, Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1>, 0, Eigen::InnerStride<1> >)
+  pads 208 -> 207; non-pad instructions 7502 -> 7502
+  branch-target shifts: -16 x1091
+  member-displacement pairs: +8 x39
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::analysis_matches(hven::solvers::NonLinearProgram const&) const
+  pads 1 -> 1; non-pad instructions 45 -> 45
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::analyze_kkt_sparsity()
+  pads 1 -> 1; non-pad instructions 35 -> 35
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+DIFFERS  hven::solvers::IpmSolver::apply_pending_iteration_callback(bool)
+  pads 1 -> 1; non-pad instructions 64 -> 69
+  OTHER: the non-pad instruction COUNT changed -- instructions were added or removed
+
+LAYOUT   hven::solvers::IpmSolver::apply_pending_kkt_hook(bool)
+  pads 1 -> 1; non-pad instructions 48 -> 48
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::apply_polish_bound_duals(hven::solvers::IpmPolishData const&)
+  pads 1 -> 1; non-pad instructions 430 -> 430
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::apply_polish_bound_duals(hven::solvers::IpmPolishData const&)::$_0::operator()(Eigen::Matrix<int, -1, 1, 0, -1, 1> const&, std::vector<long, std::allocator<long> >&) const
+  pads 3 -> 3; non-pad instructions 147 -> 147
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::apply_staged_multipliers(Eigen::Matrix<double, -1, 1, 0, -1, 1>&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&)
+  pads 12 -> 12; non-pad instructions 578 -> 578
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::attach_ledger(hven::solvers::Ledger*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >)
+  pads 1 -> 1; non-pad instructions 62 -> 62
+  member-displacement pairs: +8 x10
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::attach_trace(hven::solvers::TraceSink*)
+  pads 1 -> 1; non-pad instructions 26 -> 26
+  member-displacement pairs: +8 x3
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::build_polish_extension(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::WarmExtension&) const
+  pads 11 -> 11; non-pad instructions 441 -> 441
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::build_restoration_exit_measures(double, double, Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1> const, 0, Eigen::InnerStride<1> > const&, double)
+  pads 1 -> 1; non-pad instructions 18 -> 18
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::capture_completed_warm_start()
+  pads 22 -> 22; non-pad instructions 871 -> 871
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::capture_completed_warm_start()::$_0::operator()() const
+  pads 2 -> 2; non-pad instructions 78 -> 78
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::clear_reported_constraint_blocks()
+  pads 1 -> 1; non-pad instructions 56 -> 56
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::constraint_violation_l1(hven::solvers::ConstKKTVector const&) const
+  pads 10 -> 10; non-pad instructions 202 -> 202
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::converge_check(std::vector<hven::solvers::IterateInfo, std::allocator<hven::solvers::IterateInfo> >&)
+  pads 3 -> 3; non-pad instructions 226 -> 226
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::declared_diagnostics_from_reduced_grad_lag(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, double, bool) const
+  pads 7 -> 7; non-pad instructions 454 -> 454
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::dispatch_restoration_entry(Eigen::Matrix<double, -1, 1, 0, -1, 1>&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, double, double, double&, double, hven::solvers::FeasibilityStallDetector&)
+  pads 1 -> 1; non-pad instructions 9 -> 9
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::emit_message(hven::solvers::IpmMessageTraceEvent const&)
+  pads 1 -> 1; non-pad instructions 7 -> 7
+  member-displacement pairs: +8 x1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::ensure_solver_initialized()
+  pads 1 -> 1; non-pad instructions 29 -> 29
+  member-displacement pairs: +8 x1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::enter_feasibility_restoration(Eigen::Matrix<double, -1, 1, 0, -1, 1>&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, double, double, double&)
+  pads 32 -> 32; non-pad instructions 951 -> 951
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::eval_nlp(hven::solvers::AlgorithmModes, double, Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1> const, 0, Eigen::InnerStride<1> > const&, double&, Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1>, 0, Eigen::InnerStride<1> >, Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1>, 0, Eigen::InnerStride<1> >, Eigen::SparseMatrix<double, 1, int>&, double)
+  pads 55 -> 55; non-pad instructions 2241 -> 2241
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::exit_feasibility_restoration_nested(Eigen::Matrix<double, -1, 1, 0, -1, 1>&, double, double, double, double&)
+  pads 72 -> 72; non-pad instructions 1638 -> 1638
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::factor_impl(bool, bool, double, double, double, double&, double&, double, double, bool&)
+  pads 43 -> 43; non-pad instructions 1129 -> 1129
+  member-displacement pairs: +8 x14
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::fill_iter_info(hven::solvers::KKTVector&, hven::solvers::KKTVector&, double, double, double, hven::solvers::IterateInfo&) const
+  pads 1 -> 1; non-pad instructions 20 -> 20
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::fill_residual_info(hven::solvers::KKTVector&, hven::solvers::KKTVector&, double, hven::solvers::IterateInfo&) const
+  pads 36 -> 37; non-pad instructions 772 -> 772
+  branch-target shifts: +16 x88
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+DIFFERS  hven::solvers::IpmSolver::fire_iteration_event(hven::solvers::IterateInfo const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, double, double, double)
+  pads 49 -> 52; non-pad instructions 2130 -> 2187
+  OTHER: the non-pad instruction COUNT changed -- instructions were added or removed
+
+LAYOUT   hven::solvers::IpmSolver::init_impl(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, double, bool)
+  pads 28 -> 28; non-pad instructions 1159 -> 1159
+  member-displacement pairs: +8 x1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::kkt_pattern_check() const
+  pads 1 -> 1; non-pad instructions 50 -> 50
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::kkt_pattern_is_analyzed(hven::solvers::NonLinearProgram const&) const
+  pads 1 -> 1; non-pad instructions 48 -> 48
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::leave_restoration(hven::solvers::ProgressMeasures const&, bool, double&)
+  pads 1 -> 1; non-pad instructions 25 -> 25
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::original_infeasibility_inf() const
+  pads 14 -> 14; non-pad instructions 291 -> 291
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::phase_steps() const
+  pads 6 -> 6; non-pad instructions 238 -> 238
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::primal_dual_error(hven::solvers::KKTVector&, hven::solvers::KKTVector&, Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1> const, 0, Eigen::InnerStride<1> > const&, double) const
+  pads 26 -> 26; non-pad instructions 552 -> 552
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::rebuild_globalization_components()
+  pads 1 -> 1; non-pad instructions 373 -> 373
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::record_solve(hven::solvers::IpmResult const&, long)
+  pads 3 -> 3; non-pad instructions 264 -> 264
+  member-displacement pairs: +8 x6
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::refresh_nlp_dimensions()
+  pads 1 -> 1; non-pad instructions 71 -> 71
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::run_phase_sequence(hven::solvers::NonLinearProgram&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, std::vector<hven::solvers::IpmSolver::PhaseStep, std::allocator<hven::solvers::IpmSolver::PhaseStep> > const&, hven::solvers::SolveBudget, hven::solvers::WarmStartData const*)
+  pads 59 -> 59; non-pad instructions 2729 -> 2729
+  member-displacement pairs: +8 x35
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::set_options(hven::solvers::IpmOptions)
+  pads 1 -> 1; non-pad instructions 79 -> 79
+  member-displacement pairs: +8 x1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::set_qp_params()
+  pads 1 -> 1; non-pad instructions 190 -> 190
+  member-displacement pairs: +8 x1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::solve(hven::solvers::NonLinearProgram&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::SolveBudget)
+  pads 1 -> 1; non-pad instructions 125 -> 125
+  member-displacement pairs: +8 x2
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::solve(hven::solvers::NonLinearProgram&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::WarmStartData const&, hven::solvers::SolveBudget)
+  pads 0 -> 0; non-pad instructions 161 -> 161
+  member-displacement pairs: +8 x2
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::track_best_iterate(hven::solvers::IterateInfo const&, int, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, double&, int&)
+  pads 9 -> 9; non-pad instructions 196 -> 196
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::transcribe_bound_program()
+  pads 1 -> 1; non-pad instructions 98 -> 98
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::try_recenter_elastics(double)
+  pads 1 -> 1; non-pad instructions 62 -> 62
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::try_soft_feasibility_step(hven::solvers::AlgorithmModes, double, double, Eigen::Matrix<double, -1, 1, 0, -1, 1>&, Eigen::Matrix<double, -1, 1, 0, -1, 1>&, Eigen::Matrix<double, -1, 1, 0, -1, 1>&, Eigen::Matrix<double, -1, 1, 0, -1, 1>&, Eigen::Matrix<double, -1, 1, 0, -1, 1>&, Eigen::Matrix<double, -1, 1, 0, -1, 1>&)
+  pads 10 -> 10; non-pad instructions 436 -> 436
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::unscale_reported_outputs()
+  pads 11 -> 11; non-pad instructions 209 -> 209
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::validate_staged_multipliers(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&)
+  pads 5 -> 5; non-pad instructions 208 -> 208
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::validate_staged_polish(hven::solvers::WarmStartData const&, char const*) const
+  pads 1 -> 1; non-pad instructions 304 -> 304
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::validate_staged_polish(hven::solvers::WarmStartData const&, char const*) const::$_1::operator()(char const*, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+  pads 2 -> 2; non-pad instructions 114 -> 114
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::validate_staged_polish(hven::solvers::WarmStartData const&, char const*) const::$_2::operator()(char const*, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+  pads 4 -> 4; non-pad instructions 77 -> 77
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::validate_warm_start_dimensions(hven::solvers::WarmStartData const&, char const*) const
+  pads 1 -> 1; non-pad instructions 159 -> 159
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::validate_warm_start_finiteness(hven::solvers::WarmStartData const&, char const*) const
+  pads 8 -> 8; non-pad instructions 360 -> 360
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::IpmSolver::~IpmSolver()
+  pads 1 -> 1; non-pad instructions 363 -> 363
+  member-displacement pairs: +8 x6
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::NoopRecovery::~NoopRecovery()
+  pads 0 -> 0; non-pad instructions 2 -> 2
+  compiler-local label renumberings: 1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::WarmExtension* std::__do_uninit_copy<__gnu_cxx::__normal_iterator<hven::solvers::WarmExtension const*, std::vector<hven::solvers::WarmExtension, std::allocator<hven::solvers::WarmExtension> > >, __gnu_cxx::__normal_iterator<hven::solvers::WarmExtension const*, std::vector<hven::solvers::WarmExtension, std::allocator<hven::solvers::WarmExtension> > >, hven::solvers::WarmExtension*>(__gnu_cxx::__normal_iterator<hven::solvers::WarmExtension const*, std::vector<hven::solvers::WarmExtension, std::allocator<hven::solvers::WarmExtension> > >, __gnu_cxx::__normal_iterator<hven::solvers::WarmExtension const*, std::vector<hven::solvers::WarmExtension, std::allocator<hven::solvers::WarmExtension> > >, hven::solvers::WarmExtension*)
+  pads 5 -> 5; non-pad instructions 97 -> 97
+  compiler-local label renumberings: 1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::WarmExtension* std::__do_uninit_copy<hven::solvers::WarmExtension*, hven::solvers::WarmExtension*, hven::solvers::WarmExtension*>(hven::solvers::WarmExtension*, hven::solvers::WarmExtension*, hven::solvers::WarmExtension*)
+  pads 5 -> 5; non-pad instructions 97 -> 97
+  compiler-local label renumberings: 1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::detail::require_residual_arena(hven::solvers::RhsArenaView const&, long, char const*)
+  pads 0 -> 0; non-pad instructions 98 -> 98
+  compiler-local label renumberings: 1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::solvers::validate_candidate_point(hven::solvers::CandidatePoint const&, long, long, long)
+  pads 0 -> 0; non-pad instructions 118 -> 118
+  compiler-local label renumberings: 1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   hven::utils::task::task<hven::utils::parallel_blocks<hven::solvers::NonLinearProgram::fill_solver_coeffs(Eigen::SparseMatrix<double, 1, int>&)::{lambda(int, int)#1}&>(int, hven::solvers::NonLinearProgram::fill_solver_coeffs(Eigen::SparseMatrix<double, 1, int>&)::{lambda(int, int)#1}&, int)::{lambda()#1}>(hven::solvers::NonLinearProgram::fill_solver_coeffs(Eigen::SparseMatrix<double, 1, int>&)::{lambda(int, int)#1}&) requires std::invocable<hven::solvers::NonLinearProgram::fill_solver_coeffs(Eigen::SparseMatrix<double, 1, int>&)::{lambda(int, int)#1}&>::{lambda(void*)#1}::__invoke(void*)
+  pads 0 -> 0; non-pad instructions 109 -> 109
+  compiler-local label renumberings: 1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   int fmt::v12::detail::format_float<double>(double, int, fmt::v12::format_specs const&, bool, fmt::v12::detail::buffer<char>&)
+  pads 6 -> 6; non-pad instructions 500 -> 500
+  branch-target shifts: +12 x1
+  compiler-local label renumberings: 1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   std::vector<hven::solvers::IpmPhaseReport, std::allocator<hven::solvers::IpmPhaseReport> >::_M_default_append(unsigned long)
+  pads 9 -> 9; non-pad instructions 194 -> 194
+  branch-target shifts: -12 x1
+  compiler-local label renumberings: 1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   std::vector<hven::solvers::WarmExtension, std::allocator<hven::solvers::WarmExtension> >::operator=(std::vector<hven::solvers::WarmExtension, std::allocator<hven::solvers::WarmExtension> > const&)
+  pads 11 -> 11; non-pad instructions 269 -> 269
+  branch-target shifts: -12 x1
+  compiler-local label renumberings: 1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   void std::vector<hven::solvers::IpmSolveRecord, std::allocator<hven::solvers::IpmSolveRecord> >::_M_realloc_append<hven::solvers::IpmSolveRecord>(hven::solvers::IpmSolveRecord&&)
+  pads 2 -> 2; non-pad instructions 120 -> 120
+  compiler-local label renumberings: 1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+LAYOUT   void std::vector<hven::solvers::WarmExtension, std::allocator<hven::solvers::WarmExtension> >::_M_realloc_append<hven::solvers::WarmExtension>(hven::solvers::WarmExtension&&)
+  pads 1 -> 1; non-pad instructions 119 -> 119
+  compiler-local label renumberings: 1
+  VERDICT: LAYOUT ONLY (pad count, a constant branch-target shift, a CONSTANT member-displacement shift, compiler-local label renumberings)
+
+ONLY-AFTER   Eigen::Matrix<double, -1, 1, 0, -1, 1>::Matrix(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&)
+
+TOTAL: 163 byte-identical, 78 layout-only, 3 differing, 0 only-before, 1 only-after

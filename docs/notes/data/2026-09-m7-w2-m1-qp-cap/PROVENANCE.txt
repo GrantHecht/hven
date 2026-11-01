@@ -1,0 +1,93 @@
+date_utc:        2026-09-18T10:19:02+00:00
+host:            Linux 7.2.4-200.fc44.x86_64  16 logical cores
+cpu:             AMD Ryzen 7 5800X3D 8-Core Processor
+compiler:        clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+cmake:           cmake version 4.3.0
+hven commit:     3f2f6e35743f8dd3a8a20e748a1815503397728d
+hven branch:     m7
+hven tree state: 12 modified paths (0 = clean) -- ALL TWELVE ARE THIS FILE'S OWN
+                 SIBLINGS, the untracked evidence being written into this directory as
+                 the stamp is taken; the tree was CLEAN at every stamped LEG (each
+                 wrapper prints its own dirty-file count inside the lock, and the P-SYM
+                 runner REFUSES a dirty tree outright)
+harness commit:  76bc96c88f4b0fd5b8b5442a4f8d6a7e25595264 (READ ONLY; not modified)
+harness pin:     3904a477771524b85b34678fb7d2ff55dd4768f1 (the stamp these binaries carry, and it is FALSE for them -- see section 2)
+MKL threads:     MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 in every cell process
+wall ceiling:    300 s per cell (sets/cutest-nlp.json run_terms.budget_wall_s)
+hs leg ceiling:  600 s per cell (sets/hs-27.json run_terms.budget_wall_s); the hs TRAIN split is 21 of that set's 27 under split-v1, and no hs cell runs a second
+budget-iters:    0 (the engine's own SqpOptions::max_iter = 100)
+arm off header sha256:  4d98c44b63edbaeb488065b2534e675942f052cc69ac78e8498a53fbc2166531
+arm off defaults:       Index qp_failure_budget = 1;  bool qp_cap_retry = false;
+arm off cell sha256:    66a9fc8d99e5d7b1045593f89d9575d08f53880bbbb45b6767f17ba45ced85f5
+arm budget header sha256:  c13e2cbfe1cb2ee04b6c16d787e08784a2cf126a981f358f3ae141fd1b9fbbc8
+arm budget defaults:       Index qp_failure_budget = 3;  bool qp_cap_retry = false;
+arm budget cell sha256:    083bb671f3b4c36162aed86f273804ceb98cfe7d6837680aa251e73837b8552f
+arm retry header sha256:  d3e125c5c5b904d3962bbaa79cb9b2902328e434f9cf6da23d1b177de1fffff6
+arm retry defaults:       Index qp_failure_budget = 1;  bool qp_cap_retry = true;
+arm retry cell sha256:    fe8abd759ae6cd5362fa6b3cbdb94cf2e779277d7b25e826bbda929a3f277790
+arm both header sha256:  3ddca7ffc3b67e56b270cca2ed1387dcd4ace1582d7251ef10e0fa276101c849
+arm both defaults:       Index qp_failure_budget = 3;  bool qp_cap_retry = true;
+arm both cell sha256:    5bdb4b0dd4e80113bbef286d2d2087de6660f84a8005cd7467a636baad349ba1
+
+=== FIX ROUND 1 (2026-09-18): THE TWO REPLAY SETS, RE-TAKEN CLEAN ===
+why:             review finding MEDIUM-1. `HVEN_SQP_CORPUS_GIT_DESCRIBE` resolves at
+                 CONFIGURE time (bench/CMakeLists.txt:81-95, and its own comment names
+                 this trap). The first take reused a bench build directory that had been
+                 configured while the M1 edits were still uncommitted, so `replay/` stamped
+                 `ff5bf143e852-dirty` and `replay-shipped/` stamped `1334884a371e-dirty`
+                 -- both FALSE about binaries that in fact ran at a clean, committed tree
+                 (the wrapper logs' own dirty-file counts were 0). A stale stamp is
+                 re-taken, not waived (the T3/T4 precedent).
+what was re-taken: `replay/` and `replay-shipped/`, each a fresh U0 27-cell three-arm
+                 replay from a build directory REMOVED AND RE-CONFIGURED INSIDE THE LEG
+                 (wrappers/retake_replay.sh), under the shared box lock with no timeout,
+                 `MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 taskset -c 2` as before. The
+                 seven-CSV cell measurement was NOT re-run; it is not in question.
+replay/:         built from a git worktree detached at 4d27fb02 (the OFF-default head)
+                 under .scratch/m7w2m1/wt-off, removed after the leg. dirty-files=0.
+                 stamp now `4d27fb022b88`.  leg stdout: replay/wrapper-stdout.txt
+                 libhven.a sha256:       5aba2c68667639fd1e7ed69a85df7b82c4b657f9801495fc1f05ffd07d203d8e
+                 hven_sqp_corpus sha256: a12e18e33521c2582625bb0523969b77d92180708f1b216b34b9b121e571f331
+replay-shipped/: built from the main tree at HEAD 9400690e, dirty-files=0.
+                 stamp now `9400690ec1a0`.  leg stdout: replay-shipped/wrapper-stdout.txt
+                 libhven.a sha256:       c3af7c1e2674eb363db359522df4de44b6652982bd2a4ac2cb06de54e8875824
+                 hven_sqp_corpus sha256: 7d9d41f21c95113942ef86e0a5ef36aaca9205f67f1bb3a2dfbcf69f0a1a47ee
+                 THE LIBRARY BYTES ARE THE SHIPPED COMMIT'S, PROVED TWO WAYS: `git diff
+                 --name-only 3f2f6e35 9400690e` touches docs/notes/** only, and this clean
+                 build's libhven.a sha256 EQUALS the one the superseded leg's own build
+                 directory still holds (c3af7c1e...), whose hven_sqp_corpus sha256
+                 5e16804a... is the one gates-shipped/gates.txt and
+                 replay-shipped/comparison.txt record. Only the corpus BINARY differs, by
+                 exactly the configure-time stamp string baked into it -- which is the
+                 defect being fixed.
+the rows:        unchanged in every asserted column. replay-retake-fix1.txt is the
+                 machine-written comparison against the superseded bytes: 27 rows x 3
+                 engines x 2 sets, 75 of 76 data columns identical, the single mover
+                 `wall_s` (informational, CLAUDE.md section 7, asserted nowhere here), plus
+                 the three header lines that must move (stamp, invocation path, generation
+                 timestamp). Both legs reproduce 27 cells / 75 columns / 0 differences
+                 against the M6 close pin, and the OFF-vs-shipped B comparison re-derives
+                 the same 27/75/0 x3 on the re-taken bytes.
+gates/gates.txt: the wrapper's own `=== HEAD 4d27fb02  dirty-files=0 ===` line, recovered
+                 verbatim from .scratch/m7w2m1/logs/gates.log:2 and prepended, so the
+                 OFF-default gates transcript is no longer only a hand summary.
+
+=== FIX ROUND 1, THE TREE-SIDE HALF (2026-09-18) ===
+what:            review LOW-2 and LOW-4, comment and prose only (the cap retry's row
+                 convention, and "capped subproblem ATTEMPTS" scoped to the exits that
+                 reach the routing site), commit 6e2d53c9; then three unused includes
+                 dropped from tests/sqp/test_qp_cap_levers.cpp, commit 783fd855.
+gate:            gates-fix1/. P-SYM in BOTH configs, TWICE -- once for the comment-only
+                 round (before 3653d27c, after 6e2d53c9) and once for the include round
+                 (before 6e2d53c9, after 783fd855) -- plus the Release suite after each.
+                 0 objects with an unclassified difference in all four runs; the library
+                 and every TU but the edited test one byte-identical. That TU's changes
+                 are line-number immediates only: +2(x2) +6(x141) for the comment round,
+                 -3(x250) for the include round, in both configs. In Debug the comment
+                 round also moves 59 objects with ZERO changed instructions -- DWARF line
+                 tables citing the edited header.
+suites:          Release 2656/2656 rc 0 at 6e2d53c9 and again at 783fd855.
+box:             every leg inside `flock /tmp/box-build.lock` with no timeout, markers
+                 inside the lock, interleaved leg by leg with the harness lane's CUTEst
+                 preset sweep, which held the lock for its own cells throughout. Nothing
+                 foreign was signalled.

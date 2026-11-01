@@ -47,9 +47,11 @@ fails, agreement to within `<rel>` RELATIVE with an ABSOLUTE FLOOR of 1e-13 --
 
     |a - b| <= max(rel * max(|a|, |b|), 1e-13)
 
--- which is `tests/sqp/test_corpus_cells.cpp:981-1012` (the relative half, with
-its derivation of 1e-5 at :908-935) together with the floor at :3618-3623 (its
-derivation at :3607-3617: these are residual norms formed by cancellation from
+-- which is `tests/sqp/test_corpus_cells.cpp:981-1037` (`residual_columns_agree`,
+which carried only the relative half until M7 W2 E4 fix round 4 and now applies
+the whole rule; its derivation of 1e-5 at :908-935) together with the floor's own
+derivation in `CorpusTask6bRepair.TheKSsnArmMovesTheFourCrashingCellsAndNothingElse`
+-- cited by TEST NAME because that :NNN cite had drifted again: these are residual norms formed by cancellation from
 O(1) data, so their absolute accuracy is a few ulps of 1.0 no matter how small
 the norm is, and a purely relative test below ~1e-15 measures noise against
 noise).  Non-numeric and non-finite spellings NEVER pass the gate: they fall
@@ -121,8 +123,9 @@ def is_residual_column(i):
 def residual_columns_agree(a, b, rel):
     """True when two spellings are byte-equal or agree to within the gate.
 
-    Mirrors tests/sqp/test_corpus_cells.cpp:981-1012 with the absolute floor of
-    :3618-3623.  A column that does not parse as a finite number is NOT quietly
+    Mirrors tests/sqp/test_corpus_cells.cpp:981-1037, which as of M7 W2 E4 fix
+    round 4 carries the same absolute floor rather than the relative half alone.
+    A column that does not parse as a finite number is NOT quietly
     waved through: it falls back to the byte comparison the caller reports.
     """
     if a == b:

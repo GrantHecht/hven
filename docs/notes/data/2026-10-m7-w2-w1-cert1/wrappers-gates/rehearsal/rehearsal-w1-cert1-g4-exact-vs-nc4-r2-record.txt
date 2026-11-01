@@ -1,0 +1,6 @@
+=== NC4 R2 GATE RECORD (2d2f92b1) HEAD-walk vs M7 W2 W1 CERT1 HEAD-walk (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+rc=0
+=== NC4 R2 GATE RECORD (2d2f92b1) HEAD-ssn vs M7 W2 W1 CERT1 HEAD-ssn (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+rc=0
+=== NC4 R2 GATE RECORD (2d2f92b1) HEAD-ipm vs M7 W2 W1 CERT1 HEAD-ipm (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+rc=0

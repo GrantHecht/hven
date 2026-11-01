@@ -1,0 +1,9 @@
+PGREP_EMPTY a3-sqp-ipm-cutest-B-READING8
+PGREP_NO_UNCOVERED_CELL a3-sqp-ipm-cutest-B-READING8 2026-10-28T18:29:02-04:00
+IN_LOCK_PGREP_EMPTY a3-sqp-ipm-cutest-B-READING8 2026-10-28T18:29:02-04:00
+FOREGROUND_START a3-sqp-ipm-cutest-B-READING8 2026-10-28T18:29:02-04:00
+w2_a4_sweep: sqp-ipm / hven-sqp / cutest / run B-READING8 -> /home/ghecht/Projects/hven/.claude/worktrees/agent-afecbe0a5611f9eff/.scratch/a3/train/cells/hven-sqp/sqp-ipm/cutest-run-B-READING8 (ceiling 300s) [problems: READING8]
+run_serial: cutest/READING8/hven-sqp/sqp-ipm
+run_serial: 1 cells -> /home/ghecht/Projects/hven/.claude/worktrees/agent-afecbe0a5611f9eff/.scratch/a3/train/cells/hven-sqp/sqp-ipm/cutest-run-B-READING8/results.csv
+w2_a4_sweep: RUNNER_EXIT 0
+FOREGROUND_END a3-sqp-ipm-cutest-B-READING8 2026-10-28T18:34:02-04:00 rc=0

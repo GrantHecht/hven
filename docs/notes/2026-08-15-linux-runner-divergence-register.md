@@ -350,3 +350,31 @@ The Accelerate register records cross-backend divergences observed on the
 macOS lane under its current configuration; entries there that re-derive under
 U0's flag change are that event's concern. This register's class is orthogonal:
 same backend, same platform, different runner silicon.
+
+## Windows lane
+
+### W-1 -- Windows MKL is a second MKL build, not a second MKL version (M7 WX)
+
+Source: `docs/notes/2026-10-m7-wx-ci-design.md` section 1.2; CI runs 40861914857 and
+40868557422 (Windows job `123407040529` / `123429421347`; the same three cells fail and are
+byte-identical across both runs).
+
+The Windows lane (oneAPI 2026.1.0.191, clang-cl 20.1.8, `mkl_intel_thread`, UCRT libm,
+`MKL_NUM_THREADS=1`) fails three cells that pass on the Linux lane (apt MKL 2026.2, clang 18.1.3,
+glibc): `QpNc4ConvexCertificate.BritgasRestorationLpQp4` (border minors 805, `convex_certificates=1
+rereads=3` against the pin's 0 / 1), `QpE2WorkingSet.AStructuralDependencyDecidesFirstOnTheSteenbrbElasticQp`,
+and `QpE4ProximalEqp.TheSteenbrbRestorationQp2ExitsFiniteAndSaysWhy` (reads kOptimal).
+
+- **The MKL version is ruled out.** The same tree built on the Linux box against MKL 2026.1
+  (static, `MKLROOT` swapped) passes all 68 WX cells and every printed counter, objective and
+  residual is bit-identical to the 2026.2 build; only wall-clock columns differ, also under
+  `MKL_CBWR=AVX2`.
+- **The kernel path is ruled in.** Forcing an MKL CBWR branch on the box moves exactly the class
+  of fixture Windows moves (`COMPATIBLE`: 16 cells; `SSE4_2` / `AVX` / `AVX2`: the same 10), all
+  three Windows failures lie inside that set, and their values match neither build (the BRITGAS
+  cell reads border minors 805 on Windows, 965 under `AVX2`, 889 under `COMPATIBLE`).
+
+Disposition: "per-backend" is really "per-build". Exact route pins are owned by the reference
+build (Linux x86-64 clang MKL at AUTO dispatch, `HVEN_TEST_ROUTE_REFERENCE`); Windows asserts the
+portable contract and records the route, with no Windows counter arm. The Linux lane now pins MKL
+2026.2 (`intel-oneapi-mkl-devel-2026.2`) so the reference build names its MKL (WX-R7).

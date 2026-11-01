@@ -1,10 +1,10 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/drivers/test_concurrency.cpp -- THE CONCURRENCY CONTRACT'S ONE PIN
-// (M6 W6 T4).
+// tests/drivers/test_concurrency.cpp -- THE CONCURRENCY CONTRACT'S TWO PINS
+// (M6 W6 T4, and the shared-pool fan-out pin added at M7 W0 T1).
 //
-// The owner's ruling of 2026-09-11 (docs/notes/2026-08-m6-ledger.md:4419-4432,
+// The owner's ruling of 2026-09-11 (docs/notes/2026-08-m6-ledger.md:4421-4431,
 // the jet ruling) is that hven provides THREAD-SAFE SOLVES and no
 // parallel-solve facility, and it registered exactly one pin for W6: N solver
 // instances on N threads at `threads = 1` produce results bit-identical to the
@@ -28,16 +28,48 @@
 // deliberately: a test that set the environment would be pinning the process
 // rather than exercising the contract.
 //
-// WHAT THE PIN AVOIDS, AND WHY THAT IS NOT A DODGE. The ruling names three
-// process-global exceptions; `docs/concurrency.md` names them as audited. The
-// one that could reach these cells is the interior-point engine's EVALUATION
-// POOL (`hven::utils::set_num_threads`, src/interior/utils/thread_pool.cpp),
-// which is process-global by design. These cells avoid it BY CONSTRUCTION
-// rather than by arrangement: `make_nlp_program` defaults to one partition, and
-// `parallel_sequence` (include/hven/detail/interior/utils/thread_pool.h:698)
-// runs inline whenever `nparts <= 1`, so the pool is never dispatched to and
-// never even constructed. That premise is ASSERTED below (the adopted partition
-// count, and the pool width unmoved across the whole test) rather than assumed.
+// WHAT THE FIRST PIN AVOIDS, AND WHY THAT IS NOT A DODGE. The ruling names
+// three process-global exceptions; `docs/concurrency.md` names them as audited.
+// The one that could reach those cells is the interior-point engine's
+// EVALUATION POOL (`hven::utils::set_num_threads`,
+// src/interior/utils/thread_pool.cpp), which is process-global by design. Those
+// cells avoid it BY CONSTRUCTION rather than by arrangement: `make_nlp_program`
+// defaults to one partition, and `parallel_sequence`
+// (include/hven/detail/interior/utils/thread_pool.h) runs inline whenever
+// `nparts <= 1`, so the pool is never dispatched to by these cells (and, when
+// they run first in the process, not yet constructed -- a test-order fact, not
+// a guarantee: the fan-out pin below constructs it).
+// That premise is ASSERTED below (the adopted partition count, and the pool
+// width unmoved across the whole test) rather than assumed.
+//
+// THE SECOND PIN IS THE SHAPE THE FIRST ONE AVOIDS (M7 W0 T1 --
+// `Concurrency.TwoPartitionedProgramsOnTwoThreadsMatchSerial`). The W6 T4
+// review found `docs/concurrency.md`'s recipe for N instances each fanning out
+// into the ONE process-global pool resting on the pool's own DESIGN STATEMENT
+// ("Per-dispatch latches make concurrent dispatches from separate threads
+// inherently safe", thread_pool.h) and on nothing measured, and that is the
+// shape a consumer's map actually runs. So: two DIFFERENT programs, each built
+// through the public `make_nlp_program(problem, num_partitions)` with a count
+// above 1 that the layout ACTUALLY ADOPTS (asserted, because the count is
+// clamped rather than refused), solved once serially and once with each program
+// on its own `std::thread` -- both dispatching into the same pool at the same
+// time. The comparison is the first pin's, helper for helper.
+//
+// WHAT THAT SECOND PIN DOES AND DOES NOT EXERCISE, stated here so nobody reads
+// more into it than it measured. `make_nlp_program`'s own doc comment says
+// PARTITIONS THROUGH THIS ADAPTER ARE LAYOUT ONLY: all three pieces are
+// ThreadingFlags::MainThread, and analyze_partitioning forces every MainThread
+// function into the LAST partition, which parallel_sequence runs INLINE on the
+// calling thread. So the user's eval_f / eval_jac / eval_hess still run on the
+// dispatching thread. What genuinely goes concurrent is the DISPATCH ITSELF --
+// two threads enqueueing into one pool's work-stealing queues, each waiting on
+// its own per-dispatch latch, with pool workers running the other partitions'
+// (empty) bodies and writing into each program's own `vals_scratch_` -- plus
+// the `parallel_blocks` passes over the KKT triplet fill, which are sized by
+// num_partitions_ too. That is exactly the claim the design statement makes and
+// exactly what was unmeasured. GENUINE partitioned EVALUATION over an
+// NlpTripletModel needs a thread-safe adapter and is registered for M7; when it
+// lands, this test's model is already the right size for it.
 //
 // THE ASSERTION IS IN TWO STEPS, and the order matters (plan §1 W6.T4, A3).
 //
@@ -49,7 +81,7 @@
 //
 //   STEP TWO -- ASSERT. Counters and statuses EXACT; the floating-point
 //   measures through the 1e-5 relative gate with the 1e-13 absolute floor. That
-//   is the rule tests/sqp/test_corpus_cells.cpp:908-944 states and :3558 floors,
+//   is the rule tests/sqp/test_corpus_cells.cpp:908-944 states and :3618 floors,
 //   and the reason it applies here is §7's own: MKL's kernels are
 //   address-sensitive, and two runs of the same solve at different addresses --
 //   which is exactly what a heap touched by four threads produces -- may differ
@@ -59,11 +91,16 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <atomic>
 #include <bit>
 #include <cmath>
 #include <cstdint>
+#include <exception>
 #include <iostream>
+#include <limits>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <thread>
 #include <vector>
@@ -71,12 +108,14 @@
 #include <Eigen/Core>
 
 #include <hven/detail/interior/utils/thread_pool.h>
-#include <hven/detail/model/nlp_adapter.h>
 #include <hven/drivers/ipm_solver.h>
 #include <hven/drivers/ipm_solver_types.h>
 #include <hven/drivers/sqp_solver.h>
 #include <hven/drivers/sqp_solver_types.h>
+#include <hven/model/make_nlp_program.h>
 #include <hven/model/nlp_model.h>
+#include <hven/model/nlp_triplet_model.h>
+#include <hven/model/non_linear_program.h>
 
 #include "sqp/support/hs_problems.h"
 #include "support/hs071_problem.h"
@@ -84,7 +123,7 @@
 namespace {
 
 // The residual-class gate and its absolute floor, carried verbatim from
-// tests/sqp/test_corpus_cells.cpp:935 and :3558 rather than re-derived: the
+// tests/sqp/test_corpus_cells.cpp:935 and :3618 rather than re-derived: the
 // same measures, the same reason, so the same numbers.
 constexpr double kResidualRelativeGate = 1.0e-5;
 constexpr double kResidualAbsFloor = 1.0e-13;
@@ -182,24 +221,15 @@ CellReading run_sqp_cell(int hs_number) {
     return out;
 }
 
-CellReading run_ipm_cell(const std::string &label, const Eigen::VectorXd &x0) {
-    hven::solvers::IpmOptions o;
-    o.common.threads = 1;      // THE PIN.
-    o.common.print_level = 10; // Silent -- this engine's default is 0, i.e. loud.
-    hven::solvers::IpmSolver solver(o);
-
-    const auto program =
-        hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
-    const hven::solvers::IpmResult r = solver.solve(*program, x0);
-
-    CellReading out;
-    out.cell = "ipm/" + label;
-    push_shared_result_columns(r, out);
-    // THE PREMISE THAT KEEPS THIS CELL CLEAR OF THE EVALUATION POOL, carried as
-    // a column so it is compared between the two runs as well as asserted once
-    // on the main thread: one partition means parallel_sequence runs inline and
-    // the process-global pool is never reached.
-    out.exact.push_back({"partitions", static_cast<long long>(program->num_partitions_)});
+// Everything an interior-point reading carries beyond the shared result core.
+// The ADOPTED PARTITION COUNT leads, as a column rather than as a side check, so
+// that it is compared between the two runs as well as asserted once on the main
+// thread -- the first test needs it to be 1 (the pool is never reached) and the
+// second needs it to be >= 2 (the pool is reached from both threads at once), and
+// both read it from the same place.
+void push_ipm_result_columns(const hven::solvers::NonLinearProgram &program,
+                             const hven::solvers::IpmResult &r, CellReading &out) {
+    out.exact.push_back({"partitions", static_cast<long long>(program.num_partitions_)});
     out.exact.push_back({"phases", static_cast<long long>(r.phases.size())});
     out.exact.push_back(
         {"kkt_analyses_this_call", static_cast<long long>(r.kkt_analyses_this_call)});
@@ -216,6 +246,26 @@ CellReading run_ipm_cell(const std::string &label, const Eigen::VectorXd &x0) {
     out.measures.push_back({"barr_inf", r.barr_inf});
     out.measures.push_back({"econ_inf", r.econ_inf});
     out.measures.push_back({"icon_inf", r.icon_inf});
+}
+
+CellReading run_ipm_cell(const std::string &label, const Eigen::VectorXd &x0) {
+    hven::solvers::IpmOptions o;
+    o.common.threads = 1;      // THE PIN.
+    o.common.print_level = 10; // Silent -- this engine's default is 0, i.e. loud.
+    hven::solvers::IpmSolver solver(o);
+
+    // ONE PARTITION, the default: THE PREMISE THAT KEEPS THIS CELL CLEAR OF THE
+    // EVALUATION POOL. parallel_sequence runs inline whenever nparts <= 1, so
+    // the process-global pool is never dispatched to by these cells (constructed
+    // or not is a test-order fact; see the header).
+    const auto program =
+        hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    const hven::solvers::IpmResult r = solver.solve(*program, x0);
+
+    CellReading out;
+    out.cell = "ipm/" + label;
+    push_shared_result_columns(r, out);
+    push_ipm_result_columns(*program, r, out);
     return out;
 }
 
@@ -244,58 +294,56 @@ CellReading run_cell(int index) {
     }
 }
 
-} // namespace
-
-// The ONE pin the jet ruling registered. `docs/concurrency.md` names this test.
-TEST(Concurrency, NInstancesOnNThreadsMatchSerial) {
-    // The process-global evaluation-pool width, read before anything runs. It
-    // is never set by this test and must be unmoved by every solve in it --
-    // see this file's header on why these cells stay clear of the pool.
-    const int pool_width_before = hven::utils::get_num_threads();
-
-    // ---------------------------------------------------------------------
-    // (1) THE SERIAL RUN, FIRST, IN THIS PROCESS. Same cells, same order.
-    // ---------------------------------------------------------------------
-    std::vector<CellReading> serial;
-    serial.reserve(kCellCount);
-    for (int i = 0; i < kCellCount; ++i) {
-        serial.push_back(run_cell(i));
-    }
-
-    // The pin is not allowed to be vacuous: every cell must have solved
-    // something. A cell that refused at the boundary would compare equal to
-    // itself and prove nothing.
-    for (int i = 0; i < kCellCount; ++i) {
-        ASSERT_EQ(serial[i].exact[0].name, "status");
-        ASSERT_EQ(serial[i].exact[0].value,
-                  static_cast<long long>(hven::solvers::SolveStatus::kOptimal))
-            << "PREMISE: cell " << serial[i].cell << " must actually converge";
-        ASSERT_EQ(serial[i].exact[1].name, "iterations");
-        ASSERT_GT(serial[i].exact[1].value, 0)
-            << "PREMISE: cell " << serial[i].cell << " must actually iterate";
-    }
-
-    // ---------------------------------------------------------------------
-    // (2) THE CONCURRENT RUN: N instances on N std::threads, one cell each.
-    // ---------------------------------------------------------------------
-    std::vector<CellReading> concurrent(kCellCount);
+// Run `body(i)` for every i in [0, n) on its own std::thread, JOIN THEM ALL,
+// and only then rethrow, on the joining thread, whatever the first failing
+// worker threw (M7 W0 T1, the W6 T4 review's fourth minor).
+//
+// WHY THIS AND NOT A BARE LAMBDA. An exception that escapes a std::thread's
+// entry function calls std::terminate, so a solve that threw on a worker used
+// to take the whole hven_drivers_tests process down -- every other test in the
+// binary reported as lost, with no indication of which cell threw. Caught per
+// worker into a std::exception_ptr and rethrown here, the same throw fails THIS
+// test and nothing else. Concurrency.AWorkerThatThrowsFailsOnlyItsOwnTest is the
+// negative check that the mechanism works.
+//
+// THE JOIN COMES FIRST, unconditionally, and that ordering is the whole point:
+// rethrowing before joining would leave joinable threads whose destructors call
+// std::terminate -- the failure mode this helper exists to remove.
+template <typename F> void run_on_threads(int n, F &&body) {
+    std::vector<std::exception_ptr> failures(static_cast<std::size_t>(n));
     {
         std::vector<std::thread> workers;
-        workers.reserve(kCellCount);
-        for (int i = 0; i < kCellCount; ++i) {
-            workers.emplace_back([i, &concurrent]() { concurrent[i] = run_cell(i); });
+        workers.reserve(static_cast<std::size_t>(n));
+        for (int i = 0; i < n; ++i) {
+            workers.emplace_back([i, &failures, &body]() {
+                try {
+                    body(i);
+                } catch (...) {
+                    failures[static_cast<std::size_t>(i)] = std::current_exception();
+                }
+            });
         }
         for (std::thread &w : workers) {
             w.join();
         }
     }
+    for (const std::exception_ptr &failure : failures) {
+        if (failure) {
+            std::rethrow_exception(failure);
+        }
+    }
+}
 
-    EXPECT_EQ(hven::utils::get_num_threads(), pool_width_before)
-        << "no solve, serial or concurrent, may move the process-global evaluation-pool width";
+// ---------------------------------------------------------------------------
+// THE TWO STEPS, factored out so both pins in this file run the SAME record and
+// the SAME assertion over their own readings rather than two copies that can
+// drift apart (M7 W0 T1).
+// ---------------------------------------------------------------------------
 
-    // ---------------------------------------------------------------------
-    // (3) STEP ONE -- RECORD the byte-equality finding, per column class.
-    // ---------------------------------------------------------------------
+// What STEP ONE records. Every field is a count of columns or a move between
+// them, so this is an aggregate and its members are bare snake_case
+// (CLAUDE.md section 4).
+struct Finding {
     int exact_columns = 0;
     int exact_byte_equal = 0;
     int measure_columns = 0;
@@ -303,7 +351,19 @@ TEST(Concurrency, NInstancesOnNThreadsMatchSerial) {
     double worst_relative_move = 0.0;
     std::string worst_column = "(none)";
 
-    for (int i = 0; i < kCellCount; ++i) {
+    bool all_byte_equal() const {
+        return (exact_byte_equal == exact_columns) && (measure_byte_equal == measure_columns);
+    }
+};
+
+// STEP ONE -- RECORD. Whether the concurrent readings are BYTE-EQUAL to the
+// serial ones, per column class, is a FINDING either way. Nothing is asserted
+// from it; the two ASSERT_EQs below are on the SHAPE of the comparison (same
+// cells, same columns), without which the finding would be meaningless.
+void record_finding(const std::vector<CellReading> &serial,
+                    const std::vector<CellReading> &concurrent, Finding &out) {
+    ASSERT_EQ(serial.size(), concurrent.size());
+    for (std::size_t i = 0; i < serial.size(); ++i) {
         const CellReading &s = serial[i];
         const CellReading &c = concurrent[i];
         ASSERT_EQ(s.cell, c.cell) << "the two runs must have run the same cells in the same order";
@@ -311,58 +371,65 @@ TEST(Concurrency, NInstancesOnNThreadsMatchSerial) {
         ASSERT_EQ(s.measures.size(), c.measures.size());
 
         for (std::size_t k = 0; k < s.exact.size(); ++k) {
-            ++exact_columns;
+            ++out.exact_columns;
             if (s.exact[k].value == c.exact[k].value) {
-                ++exact_byte_equal;
+                ++out.exact_byte_equal;
             }
         }
         for (std::size_t k = 0; k < s.measures.size(); ++k) {
-            ++measure_columns;
+            ++out.measure_columns;
             const double a = s.measures[k].value;
             const double b = c.measures[k].value;
             if (bits_equal(a, b)) {
-                ++measure_byte_equal;
+                ++out.measure_byte_equal;
                 continue;
             }
             if (std::isfinite(a) && std::isfinite(b)) {
                 const double scale = std::max(std::abs(a), std::abs(b));
                 const double rel = scale > 0.0 ? std::abs(a - b) / scale : 0.0;
-                if (rel > worst_relative_move) {
-                    worst_relative_move = rel;
-                    worst_column = s.cell + " " + s.measures[k].name;
+                if (rel > out.worst_relative_move) {
+                    out.worst_relative_move = rel;
+                    out.worst_column = s.cell + " " + s.measures[k].name;
                 }
             }
             std::cout << "[ MOVED    ] " << s.cell << " " << s.measures[k].name << ": serial "
                       << std::scientific << a << " concurrent " << b << "\n";
         }
     }
+}
 
-    const bool all_byte_equal =
-        (exact_byte_equal == exact_columns) && (measure_byte_equal == measure_columns);
+// The finding, to RecordProperty and to the test's own output. `cells` is the
+// cell count the reading covers; `what` names the shape that was run, because
+// two pins in one binary write into the same property namespace.
+void report_finding(const Finding &f, int cells, const char *what) {
+    ::testing::Test::RecordProperty("shape", what);
+    ::testing::Test::RecordProperty("cells", cells);
+    ::testing::Test::RecordProperty("exact_columns", f.exact_columns);
+    ::testing::Test::RecordProperty("exact_columns_byte_equal", f.exact_byte_equal);
+    ::testing::Test::RecordProperty("measure_columns", f.measure_columns);
+    ::testing::Test::RecordProperty("measure_columns_byte_equal", f.measure_byte_equal);
+    ::testing::Test::RecordProperty("bit_identical", f.all_byte_equal() ? "yes" : "no");
+    ::testing::Test::RecordProperty("worst_relative_move",
+                                    std::to_string(f.worst_relative_move).c_str());
+    ::testing::Test::RecordProperty("worst_moved_column", f.worst_column.c_str());
 
-    RecordProperty("cells", kCellCount);
-    RecordProperty("exact_columns", exact_columns);
-    RecordProperty("exact_columns_byte_equal", exact_byte_equal);
-    RecordProperty("measure_columns", measure_columns);
-    RecordProperty("measure_columns_byte_equal", measure_byte_equal);
-    RecordProperty("bit_identical", all_byte_equal ? "yes" : "no");
-    RecordProperty("worst_relative_move", std::to_string(worst_relative_move).c_str());
-    RecordProperty("worst_moved_column", worst_column.c_str());
-
-    std::cout << "[ FINDING  ] the ruling's literal bit-identity, as observed on this box:\n"
-              << "[ FINDING  ]   counters and statuses byte-equal: " << exact_byte_equal << "/"
-              << exact_columns << "\n"
-              << "[ FINDING  ]   floating measures byte-equal:     " << measure_byte_equal << "/"
-              << measure_columns << "\n"
+    std::cout << "[ FINDING  ] the ruling's literal bit-identity, as observed on this box (" << what
+              << "):\n"
+              << "[ FINDING  ]   counters and statuses byte-equal: " << f.exact_byte_equal << "/"
+              << f.exact_columns << "\n"
+              << "[ FINDING  ]   floating measures byte-equal:     " << f.measure_byte_equal << "/"
+              << f.measure_columns << "\n"
               << "[ FINDING  ]   bit-identical overall:            "
-              << (all_byte_equal ? "YES" : "NO") << "\n"
+              << (f.all_byte_equal() ? "YES" : "NO") << "\n"
               << "[ FINDING  ]   worst relative move:              " << std::scientific
-              << worst_relative_move << " (" << worst_column << ")\n";
+              << f.worst_relative_move << " (" << f.worst_column << ")\n";
+}
 
-    // ---------------------------------------------------------------------
-    // (4) STEP TWO -- ASSERT. Counters and statuses exact; measures gated.
-    // ---------------------------------------------------------------------
-    for (int i = 0; i < kCellCount; ++i) {
+// STEP TWO -- ASSERT. Counters and statuses EXACT; the floating-point measures
+// through the 1e-5 relative gate with the 1e-13 absolute floor.
+void assert_readings_match(const std::vector<CellReading> &serial,
+                           const std::vector<CellReading> &concurrent) {
+    for (std::size_t i = 0; i < serial.size(); ++i) {
         const CellReading &s = serial[i];
         const CellReading &c = concurrent[i];
         for (std::size_t k = 0; k < s.exact.size(); ++k) {
@@ -381,28 +448,285 @@ TEST(Concurrency, NInstancesOnNThreadsMatchSerial) {
                    "permitted here and nothing else is.";
         }
     }
+}
+
+// Every cell must have solved something: a cell that refused at the boundary
+// would compare equal to itself and prove nothing.
+void assert_cells_are_not_vacuous(const std::vector<CellReading> &serial) {
+    for (const CellReading &s : serial) {
+        ASSERT_EQ(s.exact[0].name, "status");
+        ASSERT_EQ(s.exact[0].value, static_cast<long long>(hven::solvers::SolveStatus::kOptimal))
+            << "PREMISE: cell " << s.cell << " must actually converge";
+        ASSERT_EQ(s.exact[1].name, "iterations");
+        ASSERT_GT(s.exact[1].value, 0) << "PREMISE: cell " << s.cell << " must actually iterate";
+    }
+}
+
+// Read one exact column out of a reading by name; -1 if it is not there (which
+// every caller below treats as a failure, because it would mean the reading's
+// own shape moved).
+long long exact_column(const CellReading &r, const std::string &name) {
+    for (const ExactColumn &col : r.exact) {
+        if (col.name == name) {
+            return col.value;
+        }
+    }
+    return -1;
+}
+
+// ---------------------------------------------------------------------------
+// THE SHARED-POOL FAN-OUT PIN's model (M7 W0 T1).
+//
+// A PARAMETRIC, STRICTLY CONVEX QCQP, written here rather than borrowed because
+// nothing this suite already carries is BIG ENOUGH. The adopted partition count
+// is clamped at num_user_kkt_elems_ / kMinKktElementsPerPartition (1000;
+// src/model/non_linear_program.cpp:414-426), and num_user_kkt_elems_ through
+// this adapter is the Jacobian nonzeros plus the Lagrangian Hessian's, counted
+// once (nlp_adapter.h:372 and :511 -- exactly one piece owns the Hessian). HS071
+// contributes 18 and would ADOPT ONE partition however many were asked for,
+// which is the shape the first pin already covers. The brief's instruction on
+// this point is explicit: do not lower the threshold, build a model that clears
+// it. So this family is sized, not tuned.
+//
+//   min  sum_i 0.5 * w_i * (x_i - t_i)^2
+//   s.t. x_{2k} + x_{2k+1} = 2.5                    (K equality rows)
+//        x_{2k}^2 + x_{2k+1}^2 <= 4.0               (K inequality rows)
+//        0.1 <= x_i <= 10                           (never active at the optimum)
+//
+// with w_i = 1 + 0.25*(i mod 4), t_{2k} = 2.0 + 0.05*(k mod 3) + shift and
+// t_{2k+1} = 0.4. The objective is separable and strictly convex, the equality
+// rows are affine, the inequality rows are convex, and the pair targets are
+// deliberately lopsided (2.0 against 0.4) so that the ball rows are ACTIVE at
+// the solution rather than decorative. n = 2K variables, 4K Jacobian nonzeros,
+// 2K Hessian nonzeros (the Hessian is DIAGONAL: the objective is separable and
+// each ball row touches only its own pair), so num_user_kkt_elems_ = 6K and the
+// adopted count is 6K/1000 capped by the request.
+//
+// x = 1.25 everywhere is strictly inside every bound, satisfies every equality
+// row exactly and leaves every ball row slack (3.125 < 4.0), so the start is
+// strictly feasible. eval_jac and eval_hess are polynomials and are therefore
+// total at the projected origin transcription evaluates them at (x = 0.1).
+// ---------------------------------------------------------------------------
+
+inline constexpr double kChainInf = std::numeric_limits<double>::infinity();
+inline constexpr double kChainPairSum = 2.5;
+inline constexpr double kChainBallCap = 4.0;
+
+class PartitionedChainProblem final : public hven::solvers::NlpTripletModel {
+  public:
+    PartitionedChainProblem(int pairs, double target_shift)
+        : pairs_(pairs), target_shift_(target_shift) {}
+
+    int num_vars() const override { return 2 * pairs_; }
+    int num_cons() const override { return 2 * pairs_; } // K equality + K ball rows
+    int num_jac_nonzeros() const override { return 4 * pairs_; }
+    int num_hess_nonzeros() const override { return 2 * pairs_; }
+
+    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
+                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+        xl.setConstant(0.1);
+        xu.setConstant(10.0);
+        for (int k = 0; k < pairs_; ++k) {
+            gl[k] = kChainPairSum; // gl == gu: an equality row
+            gu[k] = kChainPairSum;
+            gl[pairs_ + k] = -kChainInf; // one-sided: no internal split
+            gu[pairs_ + k] = kChainBallCap;
+        }
+    }
+
+    void eval_f(hven::ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+        double v = 0.0;
+        for (int i = 0; i < 2 * pairs_; ++i) {
+            const double d = x[i] - target(i);
+            v += 0.5 * weight(i) * d * d;
+        }
+        f = v;
+    }
+
+    void eval_grad_f(hven::ConstEigenRef<Eigen::VectorXd> x,
+                     Eigen::Ref<Eigen::VectorXd> g) const override {
+        for (int i = 0; i < 2 * pairs_; ++i) {
+            g[i] = weight(i) * (x[i] - target(i));
+        }
+    }
+
+    void eval_g(hven::ConstEigenRef<Eigen::VectorXd> x,
+                Eigen::Ref<Eigen::VectorXd> g) const override {
+        for (int k = 0; k < pairs_; ++k) {
+            g[k] = x[2 * k] + x[2 * k + 1];
+            g[pairs_ + k] = x[2 * k] * x[2 * k] + x[2 * k + 1] * x[2 * k + 1];
+        }
+    }
+
+    // Slot order: the 2K equality entries first, then the 2K ball entries.
+    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
+                       Eigen::Ref<Eigen::VectorXi> c) const override {
+        for (int k = 0; k < pairs_; ++k) {
+            r[2 * k] = k;
+            c[2 * k] = 2 * k;
+            r[2 * k + 1] = k;
+            c[2 * k + 1] = 2 * k + 1;
+            r[2 * pairs_ + 2 * k] = pairs_ + k;
+            c[2 * pairs_ + 2 * k] = 2 * k;
+            r[2 * pairs_ + 2 * k + 1] = pairs_ + k;
+            c[2 * pairs_ + 2 * k + 1] = 2 * k + 1;
+        }
+    }
+
+    // The Lagrangian Hessian is diagonal, so the lower triangle is the diagonal.
+    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
+                        Eigen::Ref<Eigen::VectorXi> c) const override {
+        for (int i = 0; i < 2 * pairs_; ++i) {
+            r[i] = i;
+            c[i] = i;
+        }
+    }
+
+    void eval_jac(hven::ConstEigenRef<Eigen::VectorXd> x,
+                  Eigen::Ref<Eigen::VectorXd> v) const override {
+        for (int k = 0; k < pairs_; ++k) {
+            v[2 * k] = 1.0;
+            v[2 * k + 1] = 1.0;
+            v[2 * pairs_ + 2 * k] = 2.0 * x[2 * k];
+            v[2 * pairs_ + 2 * k + 1] = 2.0 * x[2 * k + 1];
+        }
+    }
+
+    void eval_hess(hven::ConstEigenRef<Eigen::VectorXd> x, double obj_factor,
+                   hven::ConstEigenRef<Eigen::VectorXd> lambda,
+                   Eigen::Ref<Eigen::VectorXd> v) const override {
+        (void)x; // every second derivative here is constant in x
+        for (int i = 0; i < 2 * pairs_; ++i) {
+            // Variable i belongs to pair i/2, whose ball row is pairs_ + i/2.
+            // The equality rows are affine and contribute nothing.
+            v[i] = obj_factor * weight(i) + 2.0 * lambda[pairs_ + i / 2];
+        }
+    }
+
+    std::string name() const override { return "PartitionedChainProblem"; }
+
+  private:
+    double weight(int i) const { return 1.0 + 0.25 * static_cast<double>(i % 4); }
+    double target(int i) const {
+        if (i % 2 == 1) {
+            return 0.4;
+        }
+        return 2.0 + 0.05 * static_cast<double>((i / 2) % 3) + target_shift_;
+    }
+
+    int pairs_ = 0;
+    double target_shift_ = 0.0;
+};
+
+// One fan-out cell: a size, a data shift and a REQUESTED partition count. The
+// adopted count is read off the built program and asserted, never assumed.
+struct FanOutCell {
+    std::string label;
+    int pairs = 0;
+    double target_shift = 0.0;
+    int requested_partitions = 0;
+};
+
+const std::vector<FanOutCell> &fanout_cells() {
+    // 500 pairs -> 6*500 = 3000 user KKT elements -> a cap of 3, so a request of
+    // 2 is ADOPTED as 2. 700 pairs -> 4200 -> a cap of 4, so a request of 3 is
+    // ADOPTED as 3. The two cells therefore fan out to DIFFERENT widths into the
+    // one pool, which is a sharper reading of "concurrent dispatches from
+    // separate threads" than two identical dispatches would be.
+    static const std::vector<FanOutCell> cells = {
+        {"chain500@p2", 500, 0.0, 2},
+        {"chain700@p3", 700, 0.2, 3},
+    };
+    return cells;
+}
+
+CellReading run_fanout_cell(const FanOutCell &cell) {
+    hven::solvers::IpmOptions o;
+    o.common.threads = 1;      // THE PIN, unchanged: one backend thread per instance.
+    o.common.print_level = 10; // Silent: a console table is process-wide output.
+    hven::solvers::IpmSolver solver(o);
+
+    // THROUGH THE PUBLIC ENTRY, with a count above 1 that the layout ACTUALLY
+    // ADOPTS -- which is what puts every eval_kkt / eval_aug / eval_soe of this
+    // solve through parallel_sequence's pool arm rather than its inline one.
+    const auto program = hven::solvers::make_nlp_program(
+        std::make_shared<PartitionedChainProblem>(cell.pairs, cell.target_shift),
+        cell.requested_partitions);
+
+    const Eigen::VectorXd x0 = Eigen::VectorXd::Constant(2 * cell.pairs, 1.25);
+    const hven::solvers::IpmResult r = solver.solve(*program, x0);
+
+    CellReading out;
+    out.cell = "ipm-fanout/" + cell.label;
+    push_shared_result_columns(r, out);
+    push_ipm_result_columns(*program, r, out);
+    out.exact.push_back(
+        {"requested_partitions", static_cast<long long>(cell.requested_partitions)});
+    out.exact.push_back({"user_kkt_elems", static_cast<long long>(program->num_user_kkt_elems_)});
+    return out;
+}
+
+} // namespace
+
+// The ONE pin the jet ruling registered. `docs/concurrency.md` names this test.
+TEST(Concurrency, NInstancesOnNThreadsMatchSerial) {
+    // The process-global evaluation-pool width, read before anything runs. It
+    // is never set by this test and must be unmoved by every solve in it --
+    // see this file's header on why these cells stay clear of the pool.
+    const int pool_width_before = hven::utils::get_num_threads();
+
+    // ---------------------------------------------------------------------
+    // (1) THE SERIAL RUN, FIRST, IN THIS PROCESS. Same cells, same order.
+    // ---------------------------------------------------------------------
+    std::vector<CellReading> serial;
+    serial.reserve(kCellCount);
+    for (int i = 0; i < kCellCount; ++i) {
+        serial.push_back(run_cell(i));
+    }
+
+    // The pin is not allowed to be vacuous. (ASSERT_NO_FATAL_FAILURE because a
+    // fatal assertion inside a helper returns from the HELPER; the wrapper is
+    // what turns it back into an abort of this test.)
+    ASSERT_NO_FATAL_FAILURE(assert_cells_are_not_vacuous(serial));
+
+    // ---------------------------------------------------------------------
+    // (2) THE CONCURRENT RUN: N instances on N std::threads, one cell each.
+    // ---------------------------------------------------------------------
+    std::vector<CellReading> concurrent(kCellCount);
+    run_on_threads(kCellCount, [&concurrent](int i) { concurrent[i] = run_cell(i); });
+
+    EXPECT_EQ(hven::utils::get_num_threads(), pool_width_before)
+        << "no solve, serial or concurrent, may move the process-global evaluation-pool width";
+
+    // ---------------------------------------------------------------------
+    // (3) STEP ONE -- RECORD the byte-equality finding, per column class.
+    // (4) STEP TWO -- ASSERT. Counters and statuses exact; measures gated.
+    // ---------------------------------------------------------------------
+    Finding finding;
+    ASSERT_NO_FATAL_FAILURE(record_finding(serial, concurrent, finding));
+    report_finding(finding, kCellCount, "N instances on N threads, one partition each");
+    assert_readings_match(serial, concurrent);
 
     // The premise that the cells stay clear of the process-global evaluation
     // pool, asserted on the main thread as well as compared above.
     for (int i = 2; i < kCellCount; ++i) {
-        bool saw_partitions = false;
-        for (const ExactColumn &col : serial[i].exact) {
-            if (col.name == "partitions") {
-                saw_partitions = true;
-                EXPECT_EQ(col.value, 1)
-                    << serial[i].cell
-                    << ": this cell must adopt ONE partition, so parallel_sequence runs inline and "
-                       "the process-global evaluation pool is never dispatched to";
-            }
-        }
-        EXPECT_TRUE(saw_partitions) << "the interior-point cells must report their adopted count";
+        EXPECT_EQ(exact_column(serial[i], "partitions"), 1)
+            << serial[i].cell
+            << ": this cell must adopt ONE partition, so parallel_sequence runs inline and "
+               "the process-global evaluation pool is never dispatched to (-1 means the cell "
+               "did not report its adopted count at all)";
     }
 
     // The four cells must be four DIFFERENT solves, or the pin would be one
-    // solve run four times and its breadth would be imaginary. The labels are
-    // distinct by construction; the two SQP cells are two different problems,
-    // which their objectives say, and the two interior-point cells are one
-    // problem from two different starts, which their iteration counts say.
+    // solve run four times and its breadth would be imaginary. TWO THINGS ARE
+    // ASSERTED AND THE COMMENT SAYS ONLY THOSE TWO (M7 W0 T1, the W6 T4 review's
+    // third minor: this paragraph used to claim the two interior-point cells are
+    // told apart by their iteration counts, which nothing here tests). The
+    // labels are distinct, below; and the two SQP cells are two different
+    // problems, which their objectives say. The two interior-point cells are one
+    // problem from two different starts -- that is true BY CONSTRUCTION at
+    // run_cell, where the two branches pass different x0 vectors, and it is not
+    // asserted here.
     for (int i = 0; i < kCellCount; ++i) {
         for (int j = i + 1; j < kCellCount; ++j) {
             EXPECT_NE(serial[i].cell, serial[j].cell) << "the four cells must be four cells";
@@ -422,4 +746,151 @@ TEST(Concurrency, NInstancesOnNThreadsMatchSerial) {
     }
     EXPECT_GT(std::abs(f_sqp_a - f_sqp_b), 1.0)
         << "the two SQP cells must be two different problems, not one twice";
+}
+
+// THE SHARED-POOL FAN-OUT PIN (M7 W0 T1; the M7-3 / D23 registration, and the
+// W6 T4 review's Important-1). See this file's header for what it adds to the
+// pin above and, just as importantly, for what it does NOT reach.
+TEST(Concurrency, TwoPartitionedProgramsOnTwoThreadsMatchSerial) {
+    // The process-global evaluation-pool width, read before anything runs. This
+    // test NEVER sets it -- setting it would pin the process rather than
+    // exercise the contract -- and it must be unmoved at the end.
+    const int pool_width_before = hven::utils::get_num_threads();
+    ::testing::Test::RecordProperty("evaluation_pool_width", pool_width_before);
+    std::cout << "[ PREMISE  ] process-global evaluation-pool width: " << pool_width_before << "\n";
+
+    // PREMISE ONE -- THERE IS A POOL TO CONTEND FOR AT ALL. parallel_sequence
+    // takes its pool arm only when use_thread_pool() holds, which is the
+    // process-global width being above 1 (thread_pool.h, use_thread_pool). On a
+    // one-core box the shape this test pins DOES NOT EXIST: every dispatch runs
+    // inline and nothing about it is concurrent. That is a SKIP and not a pass,
+    // because a green cell there would claim evidence the run never produced.
+    if (pool_width_before <= 1) {
+        ::testing::Test::RecordProperty("skipped", "evaluation-pool width is 1: no fan-out here");
+        GTEST_SKIP() << "the process-global evaluation width is " << pool_width_before
+                     << ", so parallel_sequence runs every dispatch inline and there is no "
+                        "fan-out to pin on this box";
+    }
+
+    // PREMISE TWO -- THE POOL REALLY DISPATCHES OFF-THREAD, OBSERVED rather than
+    // argued from the source. parallel_sequence(n) enqueues indices [0, n-1) to
+    // the pool and runs index n-1 inline on the caller; that sentence is checked
+    // here, once, through the very helper every evaluation below goes through.
+    // Without it the rest of this test would rest on a code reading.
+    {
+        const std::thread::id caller = std::this_thread::get_id();
+        std::vector<std::thread::id> ran_on(2);
+        hven::utils::parallel_sequence(2, [&ran_on](int i) {
+            ran_on[static_cast<std::size_t>(i)] = std::this_thread::get_id();
+        });
+        ASSERT_NE(ran_on[0], caller)
+            << "PREMISE: index 0 of a two-way parallel_sequence must run on a POOL thread";
+        ASSERT_EQ(ran_on[1], caller)
+            << "PREMISE: the last index must run inline on the calling thread";
+    }
+
+    const std::vector<FanOutCell> &cells = fanout_cells();
+    const int cell_count = static_cast<int>(cells.size());
+    ASSERT_EQ(cell_count, 2) << "this pin is the TWO-program shape";
+
+    // ---------------------------------------------------------------------
+    // (1) THE SERIAL RUN, FIRST, IN THIS PROCESS. Both programs solved one
+    //     after the other on the calling thread, each fanning into the pool.
+    // ---------------------------------------------------------------------
+    std::vector<CellReading> serial;
+    serial.reserve(cells.size());
+    for (const FanOutCell &cell : cells) {
+        serial.push_back(run_fanout_cell(cell));
+    }
+
+    ASSERT_NO_FATAL_FAILURE(assert_cells_are_not_vacuous(serial));
+
+    // PREMISE THREE -- THE REQUESTED PARTITIONS ARE ACTUALLY ADOPTED. The count
+    // is CLAMPED, not refused (make_nlp_program's own doc comment), so a request
+    // of 2 on a small model is silently adopted as 1 and this whole test would
+    // become the first one again, passing while pinning nothing. The adopted
+    // count is read off the built program and asserted; it is not assumed.
+    std::string adopted_summary;
+    for (int i = 0; i < cell_count; ++i) {
+        const long long adopted = exact_column(serial[i], "partitions");
+        const long long requested = exact_column(serial[i], "requested_partitions");
+        const long long elems = exact_column(serial[i], "user_kkt_elems");
+        std::cout << "[ PREMISE  ] " << serial[i].cell << ": requested " << requested
+                  << " partitions, ADOPTED " << adopted << ", over " << elems
+                  << " user KKT elements\n";
+        adopted_summary += (i == 0 ? "" : ",") + serial[i].cell + "=" + std::to_string(adopted) +
+                           "/" + std::to_string(requested);
+        ASSERT_GE(adopted, 2)
+            << serial[i].cell << ": this cell must ADOPT at least two partitions (it requested "
+            << requested << " over " << elems
+            << " user KKT elements, and the cap is one partition per 1000 of those). At one "
+               "partition parallel_sequence runs inline and this test would pin nothing.";
+    }
+    ::testing::Test::RecordProperty("adopted_partitions", adopted_summary.c_str());
+
+    // ---------------------------------------------------------------------
+    // (2) THE CONCURRENT RUN: each program on its own std::thread, both fanning
+    //     into the SAME process-global pool at the same time.
+    // ---------------------------------------------------------------------
+    std::vector<CellReading> concurrent(cells.size());
+    run_on_threads(cell_count, [&cells, &concurrent](int i) {
+        concurrent[static_cast<std::size_t>(i)] =
+            run_fanout_cell(cells[static_cast<std::size_t>(i)]);
+    });
+
+    EXPECT_EQ(hven::utils::get_num_threads(), pool_width_before)
+        << "no solve, serial or concurrent, may move the process-global evaluation-pool width";
+
+    // ---------------------------------------------------------------------
+    // (3) STEP ONE -- RECORD the byte-equality finding, per column class.
+    // (4) STEP TWO -- ASSERT. Counters and statuses exact; measures gated.
+    // ---------------------------------------------------------------------
+    Finding finding;
+    ASSERT_NO_FATAL_FAILURE(record_finding(serial, concurrent, finding));
+    report_finding(finding, cell_count,
+                   "two partitioned programs fanning into one shared pool from two threads");
+    assert_readings_match(serial, concurrent);
+
+    // The two cells must be two DIFFERENT solves, for the first test's reason:
+    // otherwise the pin is one solve run twice and its breadth is imaginary.
+    // They differ in size and in data, which their objectives say.
+    EXPECT_NE(serial[0].cell, serial[1].cell) << "the two cells must be two cells";
+    double f_a = 0.0;
+    double f_b = 0.0;
+    for (const MeasureColumn &m : serial[0].measures) {
+        if (m.name == "f") {
+            f_a = m.value;
+        }
+    }
+    for (const MeasureColumn &m : serial[1].measures) {
+        if (m.name == "f") {
+            f_b = m.value;
+        }
+    }
+    EXPECT_GT(std::abs(f_a - f_b), 1.0)
+        << "the two fan-out cells must be two different problems, not one twice";
+}
+
+// THE NEGATIVE CHECK for run_on_threads (M7 W0 T1). It is an assertion about
+// the harness the two pins above run on, not a fifth cell: a worker that throws
+// must fail its own test and nothing else, which is only visible if the throw
+// arrives on the joining thread. A test that actually terminated the process
+// could not report anything, so this is the shape the check has to take.
+TEST(Concurrency, AWorkerThatThrowsFailsOnlyItsOwnTest) {
+    std::atomic<int> entered{0};
+    EXPECT_THROW(run_on_threads(3,
+                                [&entered](int i) {
+                                    entered.fetch_add(1);
+                                    if (i == 1) {
+                                        throw std::runtime_error(
+                                            "deliberate: a solve that throws on a worker thread");
+                                    }
+                                }),
+                 std::runtime_error)
+        << "a worker's exception must arrive on the JOINING thread";
+
+    // Every worker still ran and was joined: the rethrow happens after the join
+    // loop, never in place of it.
+    EXPECT_EQ(entered.load(), 3)
+        << "all three workers must have run and been joined before the rethrow";
 }

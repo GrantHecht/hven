@@ -1,0 +1,54 @@
+# gates-e2fix5.sh --preflight-only at 34e100de (the fix5 engine commit), before the declaration commit:
+GATES_START 2026-09-24T22:53:08-04:00
+=== HEAD 34e100de  dirty-files=1 ===
+=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ===
+=== GATES_SCRATCH=/home/ghecht/Projects/hven/.scratch/m7w2e2fix5gates ===
+=== BEFORE=0447288f  EXPECT_DEBUG_TESTS=2832  EXPECT_RELEASE_TESTS=2833 ===
+=== HEAD_AT_START=34e100de329ce74c511dd9d32ea1ab5f6c04f6d1
+=== CHANGED HEADERS: include/hven/core/solver_counters.h include/hven/detail/qp/qp_engine.h 
+=== CHANGED SOURCES: src/qp/qp_engine.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/sqp/test_sqp_solver.cpp 
+=== MODIFIED C++ SOURCES: src/qp/qp_engine.cpp tests/qp/test_qp_anti_cycling_arm.cpp tests/sqp/test_sqp_solver.cpp 
+=== ADDED C++ SOURCES: 
+=== MODIFIED OUTSIDE THE P-SYM UNIVERSE (declared, checked): tests/qp/test_qp_anti_cycling_arm.cpp -> tests/CMakeFiles/hven_qp_walk_seam_tests.dir
+=== ADDED INSIDE THE P-SYM UNIVERSE (derived): 
+=== DECLARED NON-DEBUG MOVERS Release (derived class A + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o 
+=== DECLARED NON-DEBUG MOVERS Debug   (derived class A + declared class B): CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o 
+=== DECLARED ADDED LIBRARY OBJECTS (derived): 
+=== G4 RESIDUAL GATE: 1e-5 (checked); differences declared 0
+=== CLASS_B_NAMES_OK: Release 36 / Debug 36 declared objects, none with a source modified in the range
+=== BY-NAME: baselines /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-e2-working-set/gates-e2-fix4/suite-{debug,release}.txt (2834 / 2835 started names); 3 ADDED, each added by exactly one TEST line in the range; 3 REMOVED, each removed by exactly one TEST line; 3 TEST lines removed
+=== ADDED TEST FILES (checked): none; tests/CMakeLists.txt unchanged
+=== PREFLIGHT_VALUE_OK: class A 3 - 1 outside == declared 2/2; ADDED 0 == declared 0 (0 inside the universe == declared 0); class B library objects all unmodified; G4 gate 1e-5
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2fix5gates/g1.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2fix5gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2fix5gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2fix5gates/g2.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2fix5gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2fix5gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2fix5gates/g3.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2fix5gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2fix5gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2fix5gates/g4.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2fix5gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2fix5gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2fix5gates/g5.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2fix5gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2fix5gates/gates
+SEGMENT_OK /home/ghecht/Projects/hven/.scratch/m7w2e2fix5gates/g6.sh: resolves S=/home/ghecht/Projects/hven/.scratch/m7w2e2fix5gates  G=/home/ghecht/Projects/hven/.scratch/m7w2e2fix5gates/gates
+=== PREFLIGHT_OK: 6 segments written and asserted against GATES_SCRATCH, before the first leg ===
+PREFLIGHT_ONLY: stopping before G1. No leg was run and no build tree was touched.
+
+# Offline by-name checks and refusal controls (each control must be refused, rc 2):
+ASSERT OK   offline debug by name: 2834 started names == the baseline's 2834 - the 3 declared REMOVED + the 3 declared ADDED
+check-names debug (rb-suite-dbg.log) rc=0
+ASSERT OK   offline release by name: 2835 started names == the baseline's 2835 - the 3 declared REMOVED + the 3 declared ADDED
+check-names release (rb-suite-rel.log) rc=0
+ASSERT FAIL offline debug by name: 2835 started vs the baseline's 2834 - 3 REMOVED + 3 ADDED; the difference (expected '<' tab-indented '>' this run):
+	Continuation.ProbeBudgetBoundsAFailingProposal
+NEGATIVE CONTROL check-names debug on the Release transcript rc=2
+ASSERT FAIL offline release by name: ADDED QpE2WorkingSet.TheLockedVertexUnlocksOnTheAcopr57PrimalQps is named 0 time(s) in the baseline (want 0) and 0 in this run (want 1)
+NEGATIVE CONTROL check-names release on the baseline itself (no rename) rc=2
+REFUSED: rel class B tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o has its source tests/sqp/test_sqp_solver.cpp MODIFIED in 0447288f..34e100de329ce74c511dd9d32ea1ab5f6c04f6d1 (it is class A)
+CONTROL class B name with a modified source (test_sqp_solver.cpp.o for test_qp_engine_indefinite.cpp.o) rc=2
+REFUSED: rel class B names list has 36 objects, class B is DECLARED 37
+CONTROL class B 37/37 with a 36-name list rc=2
+REFUSED: Debug 2832 != Release 2832 - long 1
+CONTROL Release 2832 against Debug 2832 rc=2
+REFUSED: 4 modified .cpp (less 1 outside the universe), but class A is DECLARED 2/2
+CONTROL BEFORE 1742b645 rc=2
+REFUSED: 3 modified .cpp (less 1 outside the universe), but class A is DECLARED 3/3
+CONTROL class A 3/3 rc=2
+REFUSED: 3 modified .cpp (less 0 outside the universe), but class A is DECLARED 2/2
+CONTROL outside-universe list emptied rc=2
+REFUSED: 3 TEST line(s) removed in the range; this round declares 2
+CONTROL REMOVED list short one name (a copy with the ACOPR57 old name dropped) rc=2

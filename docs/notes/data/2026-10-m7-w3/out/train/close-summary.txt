@@ -1,0 +1,19 @@
+determinism sqp-ssn-hs: rc=0 :: 21 baseline cells, 21 fresh cells, 0 mismatches
+determinism sqp-ssn-cutest: rc=0 :: 23 baseline cells, 23 fresh cells, 0 mismatches
+determinism sqp-ssn-sigma-armed-hs: rc=0 :: 21 baseline cells, 21 fresh cells, 0 mismatches
+determinism sqp-ssn-sigma-armed-cutest: rc=0 :: 23 baseline cells, 23 fresh cells, 0 mismatches
+determinism sqp-ssn-farkas-hs: rc=0 :: 21 baseline cells, 21 fresh cells, 0 mismatches
+determinism sqp-ssn-farkas-cutest: rc=0 :: 23 baseline cells, 23 fresh cells, 0 mismatches
+determinism sqp-ssn-certify-face-hs: rc=0 :: 21 baseline cells, 21 fresh cells, 0 mismatches
+determinism sqp-ssn-certify-face-cutest: rc=0 :: 23 baseline cells, 23 fresh cells, 0 mismatches
+decide r rc=0
+determinism head-default-hs: rc=0 :: 21 baseline cells, 21 fresh cells, 0 mismatches
+determinism head-default-cutest: rc=0 :: 23 baseline cells, 23 fresh cells, 0 mismatches
+determinism tau10-default-hs: rc=0 :: 21 baseline cells, 21 fresh cells, 0 mismatches
+determinism tau10-default-cutest: rc=0 :: 23 baseline cells, 23 fresh cells, 0 mismatches
+determinism tau1e3-default-hs: rc=0 :: 21 baseline cells, 21 fresh cells, 0 mismatches
+determinism tau1e3-default-cutest: rc=0 :: 23 baseline cells, 23 fresh cells, 0 mismatches
+decide tau rc=0
+C-1 head vs base sqp-ssn hs: 0 cell(s) differing of 21
+C-1 head vs base sqp-ssn cutest: 0 cell(s) differing of 23
+C-2 (descriptive) head default cutest vs RETAKE19 default: 0 cell(s) differing of 23

@@ -1,0 +1,21 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-debug/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Nc2Fix1.MeasureZeroLengthRides
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Nc2Fix1
+[ RUN      ] Nc2Fix1.MeasureZeroLengthRides
+[NC2FIX1-RHO] postdrop=47 tail=400 tail_postdrop=47 both_resolve=47 disagree=0
+[NC2FIX1-RHO] median |rho'p|=4.440892e-16 |s|=7.975701e-01 |g'p|=7.975701e-01 ||rho||inf=3.047693e-07   max |rho'p|=4.440892e-15 ||rho||inf=5.489453e-07
+[NC2FIX1-RHO] median ||rho||inf/(delta*||x||inf)=2.381010e-01   median active_res/mu=4.263256e-06
+[NC2FIX1] dump=/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/docs/notes/data/2026-09-m7-w2-r2-composite-landing/dumps/Cs_STEENBRB/qp1.txt alg=refactorize status=0 minors=192 f=-1378.22295732 records=192
+[NC2FIX1] rides=47 zero_rides=22 moving_rides=25 uphill=0 df_sum=-3.539394e-01 df_up=0.000000e+00 worst_moving_dx=1.280000e+02
+[NC2FIX1] adds=94 zero_adds=29 undone=0 flatveto=0 disagree=0 nsveto=0 measured_unresolved_rides=0
+[NC2FIX1] counters predsign=0 vetoes=0 undos=0 zmexh=0 zmcap=0 reentry=0 ws_adds=141 ws_drops=50 exch=3 eqviol=0
+[NC2FIX1] DESCENT_INVARIANT ascending_rides=0 (0 required)
+[NC2FIX1] truncated=0 allocation_failed=0
+[       OK ] Nc2Fix1.MeasureZeroLengthRides (768 ms)
+[----------] 1 test from Nc2Fix1 (768 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (768 ms total)
+[  PASSED  ] 1 test.

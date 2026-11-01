@@ -1,0 +1,327 @@
+#### QpAntiCyclingArm.ArmEEscapesThePeriodFourCycleAndReturnsTheOptimum
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:484: Failure
+Expected equality of these values:
+  static_cast<int>(off.solution.status)
+    Which is: 0
+  static_cast<int>(QpStatus::kMaxIter)
+    Which is: 1
+the OFF walk did not spend its budget: this fixture no longer cycles
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:486: Failure
+Expected equality of these values:
+  off.minors
+    Which is: 4
+  kCycleCap
+    Which is: 200
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:487: Failure
+
+#### QpAntiCyclingArm.ArmEEscapesThePeriodTwoCycleAndReturnsTheOptimum
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:484: Failure
+Expected equality of these values:
+  static_cast<int>(off.solution.status)
+    Which is: 0
+  static_cast<int>(QpStatus::kMaxIter)
+    Which is: 1
+the OFF walk did not spend its budget: this fixture no longer cycles
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:486: Failure
+Expected equality of these values:
+  off.minors
+    Which is: 4
+  kCycleCap
+    Which is: 200
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:487: Failure
+
+#### QpAntiCyclingArm.ArmLEscapesThePeriodFourCycleAndReturnsTheOptimum
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:484: Failure
+Expected equality of these values:
+  static_cast<int>(off.solution.status)
+    Which is: 0
+  static_cast<int>(QpStatus::kMaxIter)
+    Which is: 1
+the OFF walk did not spend its budget: this fixture no longer cycles
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:486: Failure
+Expected equality of these values:
+  off.minors
+    Which is: 4
+  kCycleCap
+    Which is: 200
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:487: Failure
+
+#### QpAntiCyclingArm.ArmLEscapesThePeriodTwoCycleAndReturnsTheOptimum
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:484: Failure
+Expected equality of these values:
+  static_cast<int>(off.solution.status)
+    Which is: 0
+  static_cast<int>(QpStatus::kMaxIter)
+    Which is: 1
+the OFF walk did not spend its budget: this fixture no longer cycles
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:486: Failure
+Expected equality of these values:
+  off.minors
+    Which is: 4
+  kCycleCap
+    Which is: 200
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:487: Failure
+
+#### QpAntiCyclingArm.TheOffWalkCyclesAtPeriodFourWithExactlyZeroMotion
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:484: Failure
+Expected equality of these values:
+  static_cast<int>(off.solution.status)
+    Which is: 0
+  static_cast<int>(QpStatus::kMaxIter)
+    Which is: 1
+the OFF walk did not spend its budget: this fixture no longer cycles
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:486: Failure
+Expected equality of these values:
+  off.minors
+    Which is: 4
+  kCycleCap
+    Which is: 200
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:487: Failure
+
+#### QpAntiCyclingArm.TheOffWalkCyclesAtPeriodTwoWithExactlyZeroMotion
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:484: Failure
+Expected equality of these values:
+  static_cast<int>(off.solution.status)
+    Which is: 0
+  static_cast<int>(QpStatus::kMaxIter)
+    Which is: 1
+the OFF walk did not spend its budget: this fixture no longer cycles
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:486: Failure
+Expected equality of these values:
+  off.minors
+    Which is: 4
+  kCycleCap
+    Which is: 200
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:487: Failure
+
+#### QpDegeneracyArm.AnArmedSolveDoesNotReachIntoAnUnarmedOneRunningBesideIt
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_degeneracy_arm.cpp:769: Failure
+Expected: (loud_refused) > (0), actual: 0 vs 0
+the armed thread was supposed to refuse something
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_degeneracy_arm.cpp:774: Failure
+Expected equality of these values:
+  static_cast<int>(loud_result.status)
+    Which is: 0
+  static_cast<int>(QpStatus::kNumericalError)
+    Which is: 3
+
+#### QpDegeneracyArm.ArmAScaledDropRefusesTheDropAndEndsTheRecurrence
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_degeneracy_arm.cpp:520: Failure
+Expected equality of these values:
+  static_cast<int>(off.solution.status)
+    Which is: 0
+  static_cast<int>(QpStatus::kMaxIter)
+    Which is: 1
+
+#### QpDegeneracyArm.ArmB1CanLeaveTheIterateOutsideItsBoxAndTheCertificateRefusesIt
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_degeneracy_arm.cpp:1000: Failure
+Expected equality of these values:
+  static_cast<int>(on.solution.status)
+    Which is: 0
+  static_cast<int>(QpStatus::kInfeasible)
+    Which is: 2
+the certificate passed a point outside its own box
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_degeneracy_arm.cpp:1004: Failure
+Expected equality of these values:
+  on.solution.lambda_i.lpNorm<Eigen::Infinity>()
+    Which is: 2.6666666666666665
+  0.0
+    Which is: 0
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_degeneracy_arm.cpp:1005: Failure
+
+#### QpDegeneracyArm.ArmB1EndsTheCyclingWalkNearTheOptimumButOutsideItsBox
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_degeneracy_arm.cpp:846: Failure
+Expected equality of these values:
+  static_cast<int>(off.solution.status)
+    Which is: 0
+  static_cast<int>(QpStatus::kMaxIter)
+    Which is: 1
+the fixture stopped cycling: it is no longer the object of this experiment
+
+#### QpDegeneracyArm.ArmB1sLeakRatioUnderTheMuSweepAmendmentA5Asks
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_degeneracy_arm.cpp:1483: Failure
+Value of: std::isnan(ratio)
+  Actual: true
+Expected: false
+no pass-over at dual_mu = 9.9999999999999995e-07: the sweep has nothing to read
+
+#### QpDegeneracyArm.ArmB1sSwitchIsPerThreadWithBothSolvesInFlight
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_degeneracy_arm.cpp:1558: Failure
+Expected: (loud_passed) > (0), actual: 0 vs 0
+the armed thread was supposed to pass something over
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_degeneracy_arm.cpp:1563: Failure
+Expected equality of these values:
+  static_cast<int>(loud_result.status)
+    Which is: 0
+  static_cast<int>(QpStatus::kInfeasible)
+    Which is: 2
+
+#### QpDegeneracyArm.TheDiagnosticColumnsAreFilledWhereTheirBranchRan
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_degeneracy_arm.cpp:680: Failure
+Expected: (drops) > (0), actual: 0 vs 0
+
+#### QpDegeneracyArm.TheDropScaleIsTheSameNumberFreeBlockStationarityComputed
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_degeneracy_arm.cpp:605: Failure
+Expected: (checked) > (0), actual: 0 vs 0
+
+#### QpDegeneracyArm.TheOffWalkOnTheScaleCarrierFixtureReallyDoesCycle
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_degeneracy_arm.cpp:490: Failure
+Expected equality of these values:
+  static_cast<int>(off.solution.status)
+    Which is: 0
+  static_cast<int>(QpStatus::kMaxIter)
+    Which is: 1
+the OFF walk is supposed to spend its whole cap in the recurrence
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_degeneracy_arm.cpp:492: Failure
+Expected: (off.tail) > (8), actual: 2 vs 8
+no periodic tail: period 1
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_degeneracy_arm.cpp:511: Failure
+Value of: saw_a_drop
+  Actual: false
+Expected: true
+
+#### QpDegeneracyArm.ThePostDropInertiaDiagnosticMovesNoCounterAndNoAnswer
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_degeneracy_arm.cpp:635: Failure
+Expected: (total_diag) > (0), actual: 0 vs 0
+
+#### QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp3
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:2083: Failure
+Expected: (s.counters.dep_ride_blockers) >= (1), actual: 0 vs 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:2076: refactorize
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:2084: Failure
+Expected: (s.counters.ride_exchanges) >= (1), actual: 0 vs 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:2076: refactorize
+
+#### QpE2WorkingSet.ADependentRideBlockerIsExchangedAndTheRideRetaken
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:2187: Failure
+Expected: (s.counters.dep_ride_blockers) >= (1), actual: 0 vs 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:2179: refactorize
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:2187: Failure
+Expected: (s.counters.dep_ride_blockers) >= (1), actual: 0 vs 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:2179: border
+
+#### QpE2WorkingSet.ANullSpaceVetoedRideNeverStepsBackIntoTheReleasedBound
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:2242: Failure
+Expected: (w.solution.counters.ride_declines_fallthrough_blocked) >= (1), actual: 0 vs 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:2238: refactorize
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:2242: Failure
+Expected: (w.solution.counters.ride_declines_fallthrough_blocked) >= (1), actual: 0 vs 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:2238: border
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:2272: Failure
+Value of: fell_through
+  Actual: false
+Expected: true
+the option-off contrast: the saddle step re-enters at alpha 0
+
+#### QpE2WorkingSet.AStructuralDependencyDecidesFirstOnTheSteenbrbElasticQp
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:1835: Failure
+Expected: (s.counters.dep_structural_first) >= (1), actual: 0 vs 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:1826: border
+
+#### QpE2WorkingSet.NoAdmissibleMemberAndNoPassOverEndsInsideTheBox
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:1322: Failure
+Expected equality of these values:
+  s.counters.dep_blocker_terminations
+    Which is: 0
+  1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:1317: refactorize
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:1322: Failure
+Expected equality of these values:
+  s.counters.dep_blocker_terminations
+    Which is: 0
+  1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:1317: border
+
+#### QpE2WorkingSet.TheBorderRetreatsExactlyOnceAndEndsOptimal
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:1361: Failure
+Expected equality of these values:
+  s.counters.dep_border_retreats
+    Which is: 0
+  1
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:1362: Failure
+Expected equality of these values:
+  retreat_records
+    Which is: 0
+  1
+
+#### QpE2WorkingSet.TheLockedVertexUnlocksOnTheAcopr57PrimalQps
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:1803: Failure
+Expected equality of these values:
+  static_cast<int>(s.status)
+    Which is: 3
+  static_cast<int>(QpStatus::kOptimal)
+    Which is: 0
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:1872: refactorize
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:1861: ACOPR57_def-qp0.txt
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:1808: Failure
+Expected: (k.stationarity) <= (1e-6), actual: 1.2392252279467626 vs 1e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:1872: refactorize
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:1861: ACOPR57_def-qp0.txt
+
+#### QpE2WorkingSet.ThePeriodFourQpEndsAtItsOptimumInBothAlgebras
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:1230: Failure
+Expected equality of these values:
+  c.dep_border_retreats
+    Which is: 0
+  alg == WorkingSetLinearAlgebra::kSchurBorder ? 1 : 0
+    Which is: 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:1214: border
+
+#### QpE2WorkingSet.ThePeriodTwoQpEndsAtItsOptimumInBothAlgebras
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:1230: Failure
+Expected equality of these values:
+  c.dep_border_retreats
+    Which is: 0
+  alg == WorkingSetLinearAlgebra::kSchurBorder ? 1 : 0
+    Which is: 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_anti_cycling_arm.cpp:1214: border
+
+#### QpNc2FlatFace.ANoiseLevelDropIsUndoneAndCountedNotRidden
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_flat_face_saddle.cpp:219: Failure
+Expected equality of these values:
+  s.counters.ride_sign_vetoes
+    Which is: 0
+  1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_flat_face_saddle.cpp:214: refactorize
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_flat_face_saddle.cpp:220: Failure
+Expected equality of these values:
+  s.counters.ride_declines_fallthrough_blocked
+    Which is: 0
+  1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_flat_face_saddle.cpp:214: refactorize
+
+#### QpNc2FlatFace.TheSteenbrbRestorationLpQp3NeverAscendsTheSlopeBorder
+[ nc2 ] R2_Cs_STEENBRB_qp3.txt border status=0 f=-384.00031719 minors=2915 rides=65 zero_length=39 predicted_signs=0 vetoes=0 undos=0 zmexh=0 zmcap=0
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_flat_face_saddle.cpp:320: Failure
+Expected equality of these values:
+  static_cast<int>(s.status)
+    Which is: 0
+  static_cast<int>(expected)
+    Which is: 1
+measured per configuration in NC2 fix round 1
+
+#### QpNc2FlatFace.TheSteenbrbRestorationLpQp3NeverAscendsTheSlopeRefactorize
+[ nc2 ] R2_Cs_STEENBRB_qp3.txt refactorize status=0 f=-384.00031719 minors=2915 rides=65 zero_length=39 predicted_signs=0 vetoes=0 undos=0 zmexh=0 zmcap=0
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/qp/test_qp_flat_face_saddle.cpp:320: Failure
+Expected equality of these values:
+  static_cast<int>(s.status)
+    Which is: 0
+  static_cast<int>(expected)
+    Which is: 1
+measured per configuration in NC2 fix round 1
+

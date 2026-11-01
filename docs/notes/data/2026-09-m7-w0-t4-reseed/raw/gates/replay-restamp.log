@@ -1,0 +1,25 @@
+PGREP_EMPTY (checked in its own command before this leg; only the self-match)
+FOREGROUND_START replay-restamp 2026-09-17T02:17:43-04:00
+# tree at this leg: 39746705438c404026dbd9d690c992c43987404a  describe: 39746705438c
+# git status --porcelain (untracked artifact dir does not make describe dirty):
+#   ?? docs/notes/data/2026-09-m7-w0-t4-reseed/
+[2/3] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+[3/3] Linking CXX executable bench/hven_sqp_corpus
+walk # binary: 39746705438c
+walk # schema: 76
+walk # budget_table_hash: 0x357aee91dee27391
+ssn # binary: 39746705438c
+ssn # schema: 76
+ssn # budget_table_hash: 0x357aee91dee27391
+ipm # binary: 39746705438c
+ipm # schema: 76
+ipm # budget_table_hash: 0x357aee91dee27391
+=== T4-walk === cells compared: 27  columns compared: 75  differences: 0
+=== T4-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== T4-ipm === cells compared: 27  columns compared: 75  differences: 0
+# and the stale-stamped arm agrees cell for cell:
+=== T4-walk-stale-vs-restamped === cells compared: 27  columns compared: 75  differences: 0
+=== T4-ssn-stale-vs-restamped === cells compared: 27  columns compared: 75  differences: 0
+=== T4-ipm-stale-vs-restamped === cells compared: 27  columns compared: 75  differences: 0
+FOREGROUND_END replay-restamp 2026-09-17T02:22:06-04:00 rc=0
+WRAPPER_RC replay-restamp 0

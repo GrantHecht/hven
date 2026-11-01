@@ -1,0 +1,26 @@
+REPRO of ACOPR118 at pin ff02789b, direct hven_bench_cell, taskset -c 2, MKL_NUM_THREADS=1, under /tmp/box-build.lock
+side-file counter keys: 115  reproduced side. keys: 115
+keys missing from repro: []
+keys extra in repro: []
+DIFFERING VALUES: 0 []
+
+results-row fields (repro):
+    status = numerical_error
+    outcome = error
+    iterations = 21
+    factorizations = 11629
+    objective = 129660.5787807497
+    kkt_stationarity = 125.63036678886341
+    kkt_primal_eq = 0.028299340877029344
+    kkt_primal_ineq = 0
+    kkt_complementarity = 4.6718101338902809
+results-row fields (RT9 side):
+    status = numerical_error
+    outcome = error
+    iterations = 21
+    factorizations = 11629
+    objective = 129660.5787807497
+    kkt_stationarity = 125.63036678886341
+    kkt_primal_eq = 0.028299340877029344
+    kkt_primal_ineq = 0
+    kkt_complementarity = 4.6718101338902809

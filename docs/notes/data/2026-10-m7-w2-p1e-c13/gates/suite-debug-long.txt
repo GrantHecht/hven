@@ -1,0 +1,7 @@
+Test project /home/ghecht/Projects/hven/.claude/worktrees/agent-ab4a6adaeff5494bc/.scratch/m7w2p1ec13gates/gates-dbg
+    Start 1641: Continuation.ProbeBudgetBoundsAFailingProposal
+1/1 Test #1641: Continuation.ProbeBudgetBoundsAFailingProposal ...   Passed  157.11 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) = 157.17 sec

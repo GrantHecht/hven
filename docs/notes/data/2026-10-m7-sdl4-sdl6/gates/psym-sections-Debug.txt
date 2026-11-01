@@ -1,0 +1,20 @@
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/core/ledger.cpp.o  sections=[.text]
+DEBUG-ONLY       CMakeFiles/hven.dir/src/drivers/console_trace_sink.cpp.o
+DEBUG-ONLY       CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+DEBUG-ONLY       CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o  sections=[.eh_frame,.gcc_except_table,.rela.eh_frame,.rela.rodata,.rela.text,.rela.text._ZN4hven7solvers9SqpSolver10MajorStateC2Ev,.r
+DEBUG-ONLY       CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/globalization/sqp/mixed_lift.cpp.o  sections=[.eh_frame,.symtab,.text,.text._ZN4hven7solvers10QpCountersC2Ev,.text._ZN4hven7solvers10QpSolutionC2ERKS1_,.text._
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/globalization/sqp/qn_lift_bridge.cpp.o  sections=[.eh_frame,.symtab,.text,.text._ZN4hven7solvers10QpCountersC2Ev,.text._ZN4hven7solvers10QpSolutionaSEOS1_,.tex
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o  sections=[.eh_frame,.symtab,.text,.text._ZN4hven7solvers10QpCountersC2Ev,.text._ZN4hven7solvers10QpSolutionC2E
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o  sections=[.eh_frame,.symtab,.text,.text._ZN4hven7solvers10QpCountersC2Ev,.text._ZN4hven7solvers11SolveRecordC2EOS1_,.text._ZNKSt6vectorIN
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o  sections=[SECTION-COUNT(10942->11466)]
+DEBUG-ONLY       CMakeFiles/hven.dir/src/qp/ssn_engine.cpp.o
+NON-DEBUG-MOVER  CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o  sections=[SECTION-COUNT(18464->18611)]
+DEBUG-ONLY       CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+SECTIONS_Debug_OBJECTS=48
+SECTIONS_Debug_BYTE_IDENTICAL=34
+SECTIONS_Debug_DEBUG_ONLY=6
+SECTIONS_Debug_NON_DEBUG_MOVERS=8
+SECTIONS_Debug_REFUSED=0
+SECTIONS_Debug_RC=1

@@ -1,0 +1,3 @@
+demote id=e1_f7_n20000_af30_m1e-4 slack=1e+00 cap=60 iters=17 mu=2.335e-12 band_z=1.528e-03 variant=none usable=1 demoted=0 demoted_true_active=0 face_rows=6000 active_true=6000 polished=1 polish_facts=1 e2e_rule_a_missed=0 e2e_rule_a_fp=0
+demote id=e1_f7_n20000_af30_m1e-4 slack=1e+00 cap=60 iters=17 mu=2.335e-12 band_z=1.528e-03 variant=band usable=1 demoted=0 demoted_true_active=0 face_rows=6000 active_true=6000 polished=1 polish_facts=1 e2e_rule_a_missed=0 e2e_rule_a_fp=0
+demote id=e1_f7_n20000_af30_m1e-4 slack=1e+00 cap=60 iters=17 mu=2.335e-12 band_z=1.528e-03 variant=oracle usable=1 demoted=0 demoted_true_active=0 face_rows=6000 active_true=6000 polished=1 polish_facts=1 e2e_rule_a_missed=0 e2e_rule_a_fp=0

@@ -1,0 +1,683 @@
+Test project /home/ghecht/Projects/hven/.claude/worktrees/agent-a7724c6ad1ce4c857/.scratch/m7w2e4fix1gates/gates-rel
+        Start 2401: SqpDriverElasticSeed.TheWorkingSetIsClassifiedAgainstTheWINDOWCLAMPEDBounds
+        Start 2402: SqpDriverElasticSeed.AnEvidenceNormAboveTheLaddersCeilingIsCAPPEDAtIt
+        Start 2403: SqpDriverElasticSeed.ABlockThatNeverFIREDIsW1sLadderWhateverItsFieldsSay
+        Start 2404: SqpDriverElasticSeed.ADefaultConstructedEvidenceBlockIsW1sLadderExactly
+  1/339 Test #2401: SqpDriverElasticSeed.TheWorkingSetIsClassifiedAgainstTheWINDOWCLAMPEDBounds ...................   Passed    0.01 sec
+        Start 2405: SqpDriverElasticSeed.T6bAClimbingConsistentLadderClosesAtEveryRung
+  2/339 Test #2403: SqpDriverElasticSeed.ABlockThatNeverFIREDIsW1sLadderWhateverItsFieldsSay ......................   Passed    0.01 sec
+        Start 2406: SqpDriverElasticSeed.T6bTheLadderAboveLambda1e6ClosesToo
+  3/339 Test #2402: SqpDriverElasticSeed.AnEvidenceNormAboveTheLaddersCeilingIsCAPPEDAtIt .........................   Passed    0.01 sec
+        Start 2407: SqpDriverElasticSeed.T6bTheUncontainedInBranchRouteNoLongerDeclines
+  4/339 Test #2404: SqpDriverElasticSeed.ADefaultConstructedEvidenceBlockIsW1sLadderExactly .......................   Passed    0.01 sec
+        Start 2408: SqpDriverElasticSeed.T6bCoversTheBandWhereThePlacementMarginIsUnachievable
+  5/339 Test #2405: SqpDriverElasticSeed.T6bAClimbingConsistentLadderClosesAtEveryRung ............................   Passed    0.01 sec
+        Start 2409: SqpDriverElasticSeed.T6bTheBandsHIGHRungsRemainAPREEXISTINGResidue
+  6/339 Test #2406: SqpDriverElasticSeed.T6bTheLadderAboveLambda1e6ClosesToo ......................................   Passed    0.01 sec
+        Start 2410: SqpDriverCertifiedFallback.P1TheEvidencePlacesRungAsFirstRungBetweenTheFloorAndTheCeiling
+  7/339 Test #2407: SqpDriverElasticSeed.T6bTheUncontainedInBranchRouteNoLongerDeclines ...........................   Passed    0.01 sec
+        Start 2411: SqpDriverCertifiedFallback.P2ClosedSlacksDisproveTheSuspicionAndCarryTheMultipliers
+  8/339 Test #2408: SqpDriverElasticSeed.T6bCoversTheBandWhereThePlacementMarginIsUnachievable ....................   Passed    0.01 sec
+        Start 2412: SqpDriverCertifiedFallback.P2bOpenButReducedSlacksReturnKOptimalWithMultipliersZEROED
+  9/339 Test #2409: SqpDriverElasticSeed.T6bTheBandsHIGHRungsRemainAPREEXISTINGResidue ............................   Passed    0.01 sec
+        Start 2413: SqpDriverCertifiedFallback.P3AnExhaustedLadderCertifiesInfeasibleWithItsReportAttached
+ 10/339 Test #2410: SqpDriverCertifiedFallback.P1TheEvidencePlacesRungAsFirstRungBetweenTheFloorAndTheCeiling .....   Passed    0.01 sec
+        Start 2414: SqpDriverCertifiedFallback.P3TheEscapeBranchCONSUMESTheAttachedLadderRatherThanRerunningIt
+ 11/339 Test #2411: SqpDriverCertifiedFallback.P2ClosedSlacksDisproveTheSuspicionAndCarryTheMultipliers ...........   Passed    0.01 sec
+        Start 2415: SqpDriverCertifiedFallback.P4ARefusedRungAReturnsTheColdWalkCounterForCounter
+ 12/339 Test #2412: SqpDriverCertifiedFallback.P2bOpenButReducedSlacksReturnKOptimalWithMultipliersZEROED .........   Passed    0.01 sec
+        Start 2416: SqpDriverCertifiedFallback.P4bTheCeilingDeclineIsGONEUnderThePlacementBound
+ 13/339 Test #2413: SqpDriverCertifiedFallback.P3AnExhaustedLadderCertifiesInfeasibleWithItsReportAttached ........   Passed    0.01 sec
+        Start 2417: SqpDriverCertifiedFallback.AnOverriddenPlacementIsVALIDATEDAndClampedIntoTheLaddersRange
+ 14/339 Test #2414: SqpDriverCertifiedFallback.P3TheEscapeBranchCONSUMESTheAttachedLadderRatherThanRerunningIt ....   Passed    0.01 sec
+        Start 2418: SqpDriverCertifiedFallback.P4OnAPrimedEngineCostsTheAnalysisRungADisplaces
+ 15/339 Test #2415: SqpDriverCertifiedFallback.P4ARefusedRungAReturnsTheColdWalkCounterForCounter .................   Passed    0.01 sec
+        Start 2419: SqpDriverCertifiedFallback.T3ARefusalWhoseWalkCertifiesInfeasibleCostsTwoActivations
+ 16/339 Test #2416: SqpDriverCertifiedFallback.P4bTheCeilingDeclineIsGONEUnderThePlacementBound ...................   Passed    0.01 sec
+        Start 2420: SqpDriverCertifiedFallback.P5AnUnfiredEvidenceBlockNeverEntersRungAAtAll
+ 17/339 Test #2417: SqpDriverCertifiedFallback.AnOverriddenPlacementIsVALIDATEDAndClampedIntoTheLaddersRange ......   Passed    0.01 sec
+        Start 2421: SqpDriverCertifiedFallback.P6NoEvidenceContentMakesTheFallbackThrow
+ 18/339 Test #2418: SqpDriverCertifiedFallback.P4OnAPrimedEngineCostsTheAnalysisRungADisplaces ....................   Passed    0.01 sec
+        Start 2422: SqpDriverCertifiedFallback.P7TheVerdictReadsNothingFromTheEvidenceBeyondItsThreeInputs
+ 19/339 Test #2419: SqpDriverCertifiedFallback.T3ARefusalWhoseWalkCertifiesInfeasibleCostsTwoActivations ..........   Passed    0.01 sec
+        Start 2423: SqpDriverCertifiedFallback.ANegativeOrNaNWindowIsREFUSEDAtBothPublicEntryPoints
+ 20/339 Test #2420: SqpDriverCertifiedFallback.P5AnUnfiredEvidenceBlockNeverEntersRungAAtAll ......................   Passed    0.01 sec
+        Start 2424: SqpDriverCertifiedFallback.ThePartitionOverFallbackEntriesIsCOMPLETEAndSumsToTheFiredOnes
+ 21/339 Test #2421: SqpDriverCertifiedFallback.P6NoEvidenceContentMakesTheFallbackThrow ...........................   Passed    0.01 sec
+        Start 2425: SqpDriverCertifiedFallback.ADeclinedRungAAboveTheFloorIsRETRIEDThereExactlyOnce
+ 22/339 Test #2423: SqpDriverCertifiedFallback.ANegativeOrNaNWindowIsREFUSEDAtBothPublicEntryPoints ...............   Passed    0.01 sec
+        Start 2426: SqpDriverCertifiedFallback.TheFallbackVerdictEventDescribesEVERYEntryIncludingTheUnfiredOne
+ 23/339 Test #2424: SqpDriverCertifiedFallback.ThePartitionOverFallbackEntriesIsCOMPLETEAndSumsToTheFiredOnes .....   Passed    0.01 sec
+        Start 2427: SqpDriverCertifiedFallback.ARungAOwnedMajorIsAnElasticRowOnTheDriversOwnHistory
+ 24/339 Test #2422: SqpDriverCertifiedFallback.P7TheVerdictReadsNothingFromTheEvidenceBeyondItsThreeInputs ........   Passed    0.02 sec
+        Start 2428: SqpDriverCertifiedFallback.TheDriverEmitsOneFallbackVerdictPerEscapeAndHS38sNeverFIRED
+ 25/339 Test #2425: SqpDriverCertifiedFallback.ADeclinedRungAAboveTheFloorIsRETRIEDThereExactlyOnce ...............   Passed    0.01 sec
+        Start 2429: SqpDriverCertifiedFallback.T7TheEscapeBranchTernaryCONSUMESAnAttachedReportAtTheDriver
+ 26/339 Test #2426: SqpDriverCertifiedFallback.TheFallbackVerdictEventDescribesEVERYEntryIncludingTheUnfiredOne ...   Passed    0.01 sec
+        Start 2430: SqpDriverCertifiedFallback.T7TheCeilingFlagsTRUEArmOnADriverRowIsThePricedOne
+ 27/339 Test #2427: SqpDriverCertifiedFallback.ARungAOwnedMajorIsAnElasticRowOnTheDriversOwnHistory ...............   Passed    0.01 sec
+        Start 2431: SqpDriverCertifiedFallback.T7TheDisprovedSuspicionCalibrationOverTheHsCorpusIsZERO
+ 28/339 Test #2430: SqpDriverCertifiedFallback.T7TheCeilingFlagsTRUEArmOnADriverRowIsThePricedOne .................   Passed    0.01 sec
+        Start 2432: SqpDriverCertifiedFallback.T7TheDisplacedPatternCostsONEAnalysisOnTheFollowingMajor
+ 29/339 Test #2428: SqpDriverCertifiedFallback.TheDriverEmitsOneFallbackVerdictPerEscapeAndHS38sNeverFIRED ........   Passed    0.02 sec
+        Start 2433: SqpDriverCertifiedFallback.T7AnInfiniteOverridePlacesTheLadderAtItsCeiling
+ 30/339 Test #2433: SqpDriverCertifiedFallback.T7AnInfiniteOverridePlacesTheLadderAtItsCeiling ....................   Passed    0.01 sec
+        Start 2434: SqpDriverCertifiedFallback.T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnItsWorstFixture
+ 31/339 Test #2429: SqpDriverCertifiedFallback.T7TheEscapeBranchTernaryCONSUMESAnAttachedReportAtTheDriver ........   Passed    0.03 sec
+        Start 2435: SqpDriverCertifiedFallback.T7TheT3ARouteIsREACHABLEAtTheDriverAndCostsOneExtraLadder
+ 32/339 Test #2435: SqpDriverCertifiedFallback.T7TheT3ARouteIsREACHABLEAtTheDriverAndCostsOneExtraLadder ..........   Passed    0.01 sec
+        Start 2436: SqpDriverCertifiedFallback.T7TheAttachedReportsRestorationOfferIsATROUNDINGNotAMargin
+ 33/339 Test #2431: SqpDriverCertifiedFallback.T7TheDisprovedSuspicionCalibrationOverTheHsCorpusIsZERO ............   Passed    0.05 sec
+        Start 2437: SqpDriverCertifiedFallback.T7F1TheSameInconsistentLinearizationInAllThreeModes
+ 34/339 Test #2436: SqpDriverCertifiedFallback.T7TheAttachedReportsRestorationOfferIsATROUNDINGNotAMargin .........   Passed    0.03 sec
+        Start 2438: SqpDriverCertifiedFallback.T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearization
+ 35/339 Test #2437: SqpDriverCertifiedFallback.T7F1TheSameInconsistentLinearizationInAllThreeModes ................   Passed    0.01 sec
+        Start 2439: QpEngineStructuralViolation.T6bTrueInfeasibilityStillReadsKInfeasibleInBothAlgebras
+ 36/339 Test #2432: SqpDriverCertifiedFallback.T7TheDisplacedPatternCostsONEAnalysisOnTheFollowingMajor ...........   Passed    0.06 sec
+        Start 2440: QpEngineStructuralViolation.T6bTheGuardContradictionsAreNotAbsorbedInEitherAlgebra
+ 37/339 Test #2438: SqpDriverCertifiedFallback.T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearization .....   Passed    0.02 sec
+        Start 2441: QpEngineStructuralViolation.T6bAFeasibleElasticCopyIsNoLongerCertifiedInfeasible
+ 38/339 Test #2439: QpEngineStructuralViolation.T6bTrueInfeasibilityStillReadsKInfeasibleInBothAlgebras ...........   Passed    0.02 sec
+        Start 2442: QpEngineStructuralViolation.T6bTheStiffFamilyClosesInBothAlgebras
+ 39/339 Test #2440: QpEngineStructuralViolation.T6bTheGuardContradictionsAreNotAbsorbedInEitherAlgebra ............   Passed    0.02 sec
+        Start 2443: QpEngineStructuralViolation.T6bTheInequalityBranchClosesWithItsResidueOnTheSafeSide
+ 40/339 Test #2441: QpEngineStructuralViolation.T6bAFeasibleElasticCopyIsNoLongerCertifiedInfeasible ..............   Passed    0.01 sec
+        Start 2444: QpEngineStructuralViolation.T6bTheGENUINELYBlockedSiblingStaysKOptimalAndOPEN
+ 41/339 Test #2434: SqpDriverCertifiedFallback.T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnItsWorstFixture .......   Passed    0.08 sec
+        Start 2445: QpEngineStructuralViolation.T6bTheMisfireCensusOverBothPopulationsAndBothAlgebras
+ 42/339 Test #2443: QpEngineStructuralViolation.T6bTheInequalityBranchClosesWithItsResidueOnTheSafeSide ...........   Passed    0.01 sec
+        Start 2446: QpEngineStructuralViolation.T6bTheStiffWALKSOwnPathologyAboveTheShippedDualMuIsUNCHANGED
+ 43/339 Test #2442: QpEngineStructuralViolation.T6bTheStiffFamilyClosesInBothAlgebras .............................   Passed    0.02 sec
+        Start 2447: QpEngineStructuralViolation.T7ACertifiedInfeasibleExitRETURNSTheRefinedPointInBothAlgebras
+ 44/339 Test #2444: QpEngineStructuralViolation.T6bTheGENUINELYBlockedSiblingStaysKOptimalAndOPEN .................   Passed    0.01 sec
+        Start 2448: QpEngineStructuralViolation.T7TheFeasibleCensusHalfOverTheFULLDualMuSet
+ 45/339 Test #2446: QpEngineStructuralViolation.T6bTheStiffWALKSOwnPathologyAboveTheShippedDualMuIsUNCHANGED ......   Passed    0.01 sec
+        Start 2449: RestorationModel.IsTheSmoothL1FeasibilityProblem
+ 46/339 Test #2449: RestorationModel.IsTheSmoothL1FeasibilityProblem ..............................................   Passed    0.01 sec
+        Start 2450: RestorationModel.DerivativesMatchFiniteDifferences
+ 47/339 Test #2445: QpEngineStructuralViolation.T6bTheMisfireCensusOverBothPopulationsAndBothAlgebras .............   Passed    0.02 sec
+        Start 2451: RestorationModel.ScalesSlackColumnsToTheirJacobianRow
+ 48/339 Test #2450: RestorationModel.DerivativesMatchFiniteDifferences ............................................   Passed    0.01 sec
+        Start 2452: RestorationModel.IsTheSmoothL1FeasibilityProblemAtAPositiveProximity
+ 49/339 Test #2451: RestorationModel.ScalesSlackColumnsToTheirJacobianRow .........................................   Passed    0.01 sec
+        Start 2453: RestorationModelProximity.IsTheHandComputedTermAtEveryScalingBranch
+ 50/339 Test #2448: QpEngineStructuralViolation.T7TheFeasibleCensusHalfOverTheFULLDualMuSet .......................   Passed    0.02 sec
+        Start 2454: RestorationModelProximity.AtZeroItIsTheWrapperThatShips
+ 51/339 Test #2452: RestorationModel.IsTheSmoothL1FeasibilityProblemAtAPositiveProximity ..........................   Passed    0.01 sec
+        Start 2455: RestorationModelProximity.AtAPositiveWeightThePatternGainsTheDiagonal
+ 52/339 Test #2453: RestorationModelProximity.IsTheHandComputedTermAtEveryScalingBranch ...........................   Passed    0.01 sec
+        Start 2456: SqpDriverRestoration.InfeasibleNlpCertifies
+ 53/339 Test #2454: RestorationModelProximity.AtZeroItIsTheWrapperThatShips .......................................   Passed    0.01 sec
+        Start 2457: SqpDriverRestoration.AlgebraModeDivergenceIsANonUniqueSubproblemOptimum
+ 54/339 Test #2455: RestorationModelProximity.AtAPositiveWeightThePatternGainsTheDiagonal .........................   Passed    0.01 sec
+        Start 2458: SqpDriverRestoration.RestorationRecoversAndResumes
+ 55/339 Test #2447: QpEngineStructuralViolation.T7ACertifiedInfeasibleExitRETURNSTheRefinedPointInBothAlgebras ....   Passed    0.05 sec
+        Start 2459: SqpDriverRestoration.RestorationIsIdleOnCleanProblems
+ 56/339 Test #2458: SqpDriverRestoration.RestorationRecoversAndResumes ............................................   Passed    0.02 sec
+        Start 2460: SqpDriverRestoration.SecondRequestIsCappedAndReported
+ 57/339 Test #2459: SqpDriverRestoration.RestorationIsIdleOnCleanProblems .........................................   Passed    0.01 sec
+        Start 2461: SqpDriverRestoration.ZeroStepIsAcceptedAsAKktPoint
+ 58/339 Test #2460: SqpDriverRestoration.SecondRequestIsCappedAndReported .........................................   Passed    0.02 sec
+        Start 2462: SqpDriverRestoration.ExhaustedElasticTierEntersRestoration
+ 59/339 Test #2461: SqpDriverRestoration.ZeroStepIsAcceptedAsAKktPoint ............................................   Passed    0.01 sec
+        Start 2463: SqpDriverRestoration.TheSharedDiagnosticsOfACertifiedExitUseTheReturnedPrices
+ 60/339 Test #2462: SqpDriverRestoration.ExhaustedElasticTierEntersRestoration ....................................   Passed    0.01 sec
+        Start 2464: SqpDriverRestoration.ExhaustedElasticTierEntersRestorationUnderEveryMode
+ 61/339 Test #2463: SqpDriverRestoration.TheSharedDiagnosticsOfACertifiedExitUseTheReturnedPrices .................   Passed    0.01 sec
+        Start 2465: SqpDriverRestorationProximity.TheCertificateIsGatedOnTheUncorrectedResidual
+ 62/339 Test #2464: SqpDriverRestoration.ExhaustedElasticTierEntersRestorationUnderEveryMode ......................   Passed    0.02 sec
+        Start 2466: SqpDriverRestorationProximity.TheProxyWouldCertifyWhereTheExactResidualRefuses
+ 63/339 Test #2456: SqpDriverRestoration.InfeasibleNlpCertifies ...................................................   Passed    0.07 sec
+        Start 2467: SqpDriverRestorationProximity.TheSeedGuardFiresAndTheStartObjectiveIsHPlusP
+ 64/339 Test #2465: SqpDriverRestorationProximity.TheCertificateIsGatedOnTheUncorrectedResidual ...................   Passed    0.02 sec
+        Start 2468: SqpDriverRestorationProximity.TheRefusalsNameTheFieldTheValueAndTheRemedy
+ 65/339 Test #2468: SqpDriverRestorationProximity.TheRefusalsNameTheFieldTheValueAndTheRemedy .....................   Passed    0.02 sec
+        Start 2469: SqpDriverRestorationProximity.TheZeroWeightGateNeverReadsTheBundle
+ 66/339 Test #2469: SqpDriverRestorationProximity.TheZeroWeightGateNeverReadsTheBundle ............................   Passed    0.01 sec
+        Start 2470: SqpDriverRestorationProximity.TheZeroWeightCertifiesOnAScaledSolve
+ 67/339 Test #2457: SqpDriverRestoration.AlgebraModeDivergenceIsANonUniqueSubproblemOptimum .......................   Passed    0.10 sec
+        Start 2471: SqpDriverRestorationProximity.TheProductionCentreIsTheRequestingIterateNotTheSeed
+ 68/339 Test #2470: SqpDriverRestorationProximity.TheZeroWeightCertifiesOnAScaledSolve ............................   Passed    0.01 sec
+        Start 2472: SqpDriverRadius.FloorRaisesTheRestorationRequest
+ 69/339 Test #2471: SqpDriverRestorationProximity.TheProductionCentreIsTheRequestingIterateNotTheSeed .............   Passed    0.01 sec
+        Start 2473: SqpDriverRadius.InfiniteInitialRadiusShrinksToTrMax
+ 70/339 Test #2466: SqpDriverRestorationProximity.TheProxyWouldCertifyWhereTheExactResidualRefuses ................   Passed    0.05 sec
+        Start 2474: SqpDriverRadius.RejectsUnusableFloors
+ 71/339 Test #2474: SqpDriverRadius.RejectsUnusableFloors .........................................................   Passed    0.01 sec
+        Start 2475: SqpDriverRestorationSeed.TheTakenCandidateIsRecordedOnTheRequestingRow
+ 72/339 Test #2467: SqpDriverRestorationProximity.TheSeedGuardFiresAndTheStartObjectiveIsHPlusP ...................   Passed    0.06 sec
+        Start 2476: SqpDriverRestorationSeed.TheSeedIsNotGatedOnTheQpMode
+ 73/339 Test #2473: SqpDriverRadius.InfiniteInitialRadiusShrinksToTrMax ...........................................   Passed    0.02 sec
+        Start 2477: SqpDriverRestorationSeed.TheExhaustedLadderSiteSeedsFromItsOwnStep
+ 74/339 Test #2475: SqpDriverRestorationSeed.TheTakenCandidateIsRecordedOnTheRequestingRow ........................   Passed    0.06 sec
+        Start 2478: SqpDriverRestorationSeed.AWorseElasticCandidateIsRefusedOnTheSameModel
+ 75/339 Test #2472: SqpDriverRadius.FloorRaisesTheRestorationRequest ..............................................   Passed    0.07 sec
+        Start 2479: SqpDriverRestorationSeed.AZeroElasticStepIsNotACandidate
+ 76/339 Test #2478: SqpDriverRestorationSeed.AWorseElasticCandidateIsRefusedOnTheSameModel ........................   Passed    0.01 sec
+        Start 2480: SqpDriverRestorationSeed.ANonFiniteEvaluationAtTheCandidateIsRefused
+ 77/339 Test #2479: SqpDriverRestorationSeed.AZeroElasticStepIsNotACandidate ......................................   Passed    0.02 sec
+        Start 2481: SqpDriverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTaken
+ 78/339 Test #2480: SqpDriverRestorationSeed.ANonFiniteEvaluationAtTheCandidateIsRefused ..........................   Passed    0.04 sec
+        Start 2482: SqpDriverRestorationSeed.TheRadiusFloorSeedsFromTheRejectedTrial
+ 79/339 Test #2477: SqpDriverRestorationSeed.TheExhaustedLadderSiteSeedsFromItsOwnStep ............................   Passed    0.15 sec
+        Start 2483: SqpDriverRestorationSeed.TheGuardAndThePhaseRunOnTheCallerScale
+ 80/339 Test #2482: SqpDriverRestorationSeed.TheRadiusFloorSeedsFromTheRejectedTrial ..............................   Passed    0.05 sec
+        Start 2484: SqpDriverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce
+ 81/339 Test #2483: SqpDriverRestorationSeed.TheGuardAndThePhaseRunOnTheCallerScale ...............................   Passed    0.02 sec
+        Start 2485: SqpDriverRestorationExcursion.TheResumeArmRecordsTheCallersOwnExcursion
+ 82/339 Test #2485: SqpDriverRestorationExcursion.TheResumeArmRecordsTheCallersOwnExcursion .......................   Passed    0.01 sec
+        Start 2486: SqpDriverRestorationExcursion.TheTerminalArmRecordsThePointItReports
+ 83/339 Test #2476: SqpDriverRestorationSeed.TheSeedIsNotGatedOnTheQpMode .........................................   Passed    0.19 sec
+        Start 2487: SqpDriverRestorationExcursion.ARefusedSecondRequestLeavesTheFirstEntrysRecord
+ 84/339 Test #2486: SqpDriverRestorationExcursion.TheTerminalArmRecordsThePointItReports ..........................   Passed    0.01 sec
+        Start 2488: SqpDriverRestorationExcursion.ACleanSolveHoldsNoReading
+ 85/339 Test #2487: SqpDriverRestorationExcursion.ARefusedSecondRequestLeavesTheFirstEntrysRecord .................   Passed    0.02 sec
+        Start 2489: SqpDriverRestorationExcursion.TheSubStatusTellsACutOffSubSolveFromAConvergedOne
+ 86/339 Test #2488: SqpDriverRestorationExcursion.ACleanSolveHoldsNoReading .......................................   Passed    0.01 sec
+        Start 2490: SqpDriverRestorationExcursion.TheSubStatusDiscriminatesAtOneParentStatus
+ 87/339 Test #2489: SqpDriverRestorationExcursion.TheSubStatusTellsACutOffSubSolveFromAConvergedOne ...............   Passed    0.02 sec
+        Start 2491: RestorationProximityOption.RefusesANegativeNanOrInfiniteWeightByNameAndValue
+ 88/339 Test #2491: RestorationProximityOption.RefusesANegativeNanOrInfiniteWeightByNameAndValue ..................   Passed    0.01 sec
+        Start 2492: RestorationProximityOption.ShipsAtZeroAndCarriesADumpLineInDeclarationPosition
+ 89/339 Test #2484: SqpDriverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce ...............................   Passed    0.07 sec
+        Start 2493: SqpWarmCurrency.AFreshDriverCannotExport
+ 90/339 Test #2490: SqpDriverRestorationExcursion.TheSubStatusDiscriminatesAtOneParentStatus ......................   Passed    0.02 sec
+        Start 2494: SqpWarmCurrency.ASolveThatThrewIsNotACompletedSolve
+ 91/339 Test #2492: RestorationProximityOption.ShipsAtZeroAndCarriesADumpLineInDeclarationPosition ................   Passed    0.01 sec
+        Start 2495: SqpWarmCurrency.ASolveThatThrewLeavesAnEarlierExportStanding
+ 92/339 Test #2493: SqpWarmCurrency.AFreshDriverCannotExport ......................................................   Passed    0.01 sec
+        Start 2496: SqpWarmCurrency.ExportCarriesTheSolutionAtDeclaredWidthsAndTheBridgesKey
+ 93/339 Test #2494: SqpWarmCurrency.ASolveThatThrewIsNotACompletedSolve ...........................................   Passed    0.01 sec
+        Start 2497: SqpWarmCurrency.ExportTracksTheLastCompletedSolve
+ 94/339 Test #2495: SqpWarmCurrency.ASolveThatThrewLeavesAnEarlierExportStanding ..................................   Passed    0.01 sec
+        Start 2498: SqpWarmCurrency.TheHandOverRefusesANonFiniteBlock
+ 95/339 Test #2496: SqpWarmCurrency.ExportCarriesTheSolutionAtDeclaredWidthsAndTheBridgesKey ......................   Passed    0.01 sec
+        Start 2499: SqpWarmCurrency.TheHandOverRefusesACoreThatDisagreesWithItself
+ 96/339 Test #2497: SqpWarmCurrency.ExportTracksTheLastCompletedSolve .............................................   Passed    0.01 sec
+        Start 2500: SqpWarmCurrency.TheHandOverRefusesAMalformedPolishPayloadNamingTheTag
+ 97/339 Test #2498: SqpWarmCurrency.TheHandOverRefusesANonFiniteBlock .............................................   Passed    0.01 sec
+        Start 2501: SqpWarmCurrency.TheHandOverRefusesANegativeLowerBoundPriceNamingTheTagAndTheBlock
+ 98/339 Test #2499: SqpWarmCurrency.TheHandOverRefusesACoreThatDisagreesWithItself ................................   Passed    0.01 sec
+        Start 2502: SqpWarmCurrency.TheHandOverRefusesANegativeUpperBoundPriceNamingTheTagAndTheBlock
+ 99/339 Test #2500: SqpWarmCurrency.TheHandOverRefusesAMalformedPolishPayloadNamingTheTag .........................   Passed    0.01 sec
+        Start 2503: SqpWarmCurrency.AZeroValuedPriceBlockIsStillAccepted
+100/339 Test #2501: SqpWarmCurrency.TheHandOverRefusesANegativeLowerBoundPriceNamingTheTagAndTheBlock .............   Passed    0.01 sec
+        Start 2504: SqpWarmCurrency.AForeignExtensionTagIsSkippedSilently
+101/339 Test #2502: SqpWarmCurrency.TheHandOverRefusesANegativeUpperBoundPriceNamingTheTagAndTheBlock .............   Passed    0.01 sec
+        Start 2505: SqpWarmCurrency.ARefusedPayloadLeavesNothingBehindForTheNextSolve
+102/339 Test #2503: SqpWarmCurrency.AZeroValuedPriceBlockIsStillAccepted ..........................................   Passed    0.01 sec
+        Start 2506: SqpWarmCurrency.SolveEntryRefusesAPayloadAtTheWrongSizes
+103/339 Test #2504: SqpWarmCurrency.AForeignExtensionTagIsSkippedSilently .........................................   Passed    0.01 sec
+        Start 2507: SqpWarmCurrency.SolveEntryRefusesAStagedValueUnderAnotherStampNamingBothDigests
+104/339 Test #2505: SqpWarmCurrency.ARefusedPayloadLeavesNothingBehindForTheNextSolve .............................   Passed    0.01 sec
+        Start 2508: SqpWarmCurrency.APayloadAppliesToItsOwnCallAndTheOneAfterIsCold
+105/339 Test #2506: SqpWarmCurrency.SolveEntryRefusesAPayloadAtTheWrongSizes ......................................   Passed    0.01 sec
+        Start 2509: SqpWarmCurrency.TheNativeAndPayloadOverloadsAreSelectedByArgumentType
+106/339 Test #2507: SqpWarmCurrency.SolveEntryRefusesAStagedValueUnderAnotherStampNamingBothDigests ...............   Passed    0.01 sec
+        Start 2510: SqpWarmCurrency.ACoreOnlyValueEntersAtTheSeededLevel
+107/339 Test #2508: SqpWarmCurrency.APayloadAppliesToItsOwnCallAndTheOneAfterIsCold ...............................   Passed    0.01 sec
+        Start 2511: SqpWarmCurrency.APolishTaggedValueRoutesThroughTheCrossoverBridge
+108/339 Test #2509: SqpWarmCurrency.TheNativeAndPayloadOverloadsAreSelectedByArgumentType .........................   Passed    0.01 sec
+        Start 2512: SqpWarmCurrency.PassingTheSameValueTwiceFromColdIsBitIdentical
+109/339 Test #2510: SqpWarmCurrency.ACoreOnlyValueEntersAtTheSeededLevel ..........................................   Passed    0.01 sec
+        Start 2513: SqpWarmCurrency.InteriorPointExportCrossesOverIntoTheSqpEngine
+110/339 Test #2511: SqpWarmCurrency.APolishTaggedValueRoutesThroughTheCrossoverBridge .............................   Passed    0.01 sec
+        Start 2514: SqpWarmCurrency.ADeclarationWithAnExtraRowIsStaleAndIsRefused
+111/339 Test #2512: SqpWarmCurrency.PassingTheSameValueTwiceFromColdIsBitIdentical ................................   Passed    0.01 sec
+        Start 2515: SqpWarmCurrency.ASecondSolveOnOneDriverAnswersExactlyWhatAFreshDriverAnswers
+112/339 Test #2514: SqpWarmCurrency.ADeclarationWithAnExtraRowIsStaleAndIsRefused .................................   Passed    0.01 sec
+        Start 2516: SqpWarmCurrency.AWarmResolveOnAUsedDriverAnswersExactlyWhatAFreshDriverAnswers
+113/339 Test #2515: SqpWarmCurrency.ASecondSolveOnOneDriverAnswersExactlyWhatAFreshDriverAnswers ..................   Passed    0.01 sec
+        Start 2517: SqpWarmCurrency.KIpmRefusesAWrongSizedPayloadLikeKWalk
+114/339 Test #2516: SqpWarmCurrency.AWarmResolveOnAUsedDriverAnswersExactlyWhatAFreshDriverAnswers ................   Passed    0.01 sec
+        Start 2518: SqpWarmCurrency.KIpmRefusesAStampMismatchLikeKWalk
+115/339 Test #2517: SqpWarmCurrency.KIpmRefusesAWrongSizedPayloadLikeKWalk ........................................   Passed    0.01 sec
+        Start 2519: SqpWarmCurrency.ANonFiniteExtensionMuDegradesTheTierColdAndStagesInEveryMode
+116/339 Test #2518: SqpWarmCurrency.KIpmRefusesAStampMismatchLikeKWalk ............................................   Passed    0.01 sec
+        Start 2520: SqpWarmCurrency.TheSamePayloadStagedTwiceGivesBitIdenticalKIpmSolves
+117/339 Test #2519: SqpWarmCurrency.ANonFiniteExtensionMuDegradesTheTierColdAndStagesInEveryMode ..................   Passed    0.01 sec
+        Start 2521: SqpWarmCurrency.AStagedTierSeedDoesNotSurviveIntoTheNextSolve
+118/339 Test #2520: SqpWarmCurrency.TheSamePayloadStagedTwiceGivesBitIdenticalKIpmSolves ..........................   Passed    0.01 sec
+        Start 2522: SqpWarmCurrency.ThePayloadPathDeliversThePolishSplitWithoutFlattening
+119/339 Test #2521: SqpWarmCurrency.AStagedTierSeedDoesNotSurviveIntoTheNextSolve .................................   Passed    0.01 sec
+        Start 2523: SqpWarmCurrency.APolishMuAboveTheShippedCeilingIsClampedOutOfAdoption
+120/339 Test #2522: SqpWarmCurrency.ThePayloadPathDeliversThePolishSplitWithoutFlattening .........................   Passed    0.01 sec
+        Start 2524: SqpWarmCurrency.APolishMuUnderTheShippedCeilingIsStillAdopted
+121/339 Test #2523: SqpWarmCurrency.APolishMuAboveTheShippedCeilingIsClampedOutOfAdoption .........................   Passed    0.01 sec
+        Start 2525: SsnEngineLocal.CorrectHintFromExactPrimalIsOneIteration
+122/339 Test #2524: SqpWarmCurrency.APolishMuUnderTheShippedCeilingIsStillAdopted .................................   Passed    0.01 sec
+        Start 2526: SsnEngineLocal.ExactPrimalDualSeedCostsNoStep
+123/339 Test #2525: SsnEngineLocal.CorrectHintFromExactPrimalIsOneIteration .......................................   Passed    0.01 sec
+        Start 2527: SsnEngineLocal.SaddleSeedIsNotCertifiedWithoutInertiaEvidence
+124/339 Test #2526: SsnEngineLocal.ExactPrimalDualSeedCostsNoStep .................................................   Passed    0.01 sec
+        Start 2528: SsnEngineLocal.CorrectHintFromInteriorSeedSnapsOntoTheConstraint
+125/339 Test #2527: SsnEngineLocal.SaddleSeedIsNotCertifiedWithoutInertiaEvidence .................................   Passed    0.01 sec
+        Start 2529: SsnEngineLocal.WrongHintRecoversWithABulkFlip
+126/339 Test #2528: SsnEngineLocal.CorrectHintFromInteriorSeedSnapsOntoTheConstraint ..............................   Passed    0.01 sec
+        Start 2530: SsnEngineLocal.BoxQpFromScrambledHint
+127/339 Test #2529: SsnEngineLocal.WrongHintRecoversWithABulkFlip .................................................   Passed    0.01 sec
+        Start 2531: SsnEngineLocal.EqualityOnlyIsOneKktSolve
+128/339 Test #2530: SsnEngineLocal.BoxQpFromScrambledHint .........................................................   Passed    0.01 sec
+        Start 2532: SsnEngineLocal.MixedEqualityInequalityAndBoundsMatchesTheWalk
+129/339 Test #2531: SsnEngineLocal.EqualityOnlyIsOneKktSolve ......................................................   Passed    0.01 sec
+        Start 2533: SsnEngineLocal.ActivityExportAgreesWithTheWalk
+130/339 Test #2532: SsnEngineLocal.MixedEqualityInequalityAndBoundsMatchesTheWalk .................................   Passed    0.01 sec
+        Start 2534: SsnEngineLocal.ActivityExportIsPopulatedOnEveryExit
+131/339 Test #2533: SsnEngineLocal.ActivityExportAgreesWithTheWalk ................................................   Passed    0.01 sec
+        Start 2535: SsnEngineLocal.SeededZOnAnAbsentBoundThrows
+132/339 Test #2534: SsnEngineLocal.ActivityExportIsPopulatedOnEveryExit ...........................................   Passed    0.01 sec
+        Start 2536: SsnEngineLocal.TheBoxCentreIsHonouredAndIsNotTheStartPoint
+133/339 Test #2535: SsnEngineLocal.SeededZOnAnAbsentBoundThrows ...................................................   Passed    0.01 sec
+        Start 2537: SsnEngineLocal.ADisengagedBoxCentreIsBitIdenticalToTheCentreAtTheStartPoint
+134/339 Test #2536: SsnEngineLocal.TheBoxCentreIsHonouredAndIsNotTheStartPoint ....................................   Passed    0.01 sec
+        Start 2538: SsnEngineLocal.AnEngagedBoxCentreIsSizeCheckedAndMustBeFinite
+135/339 Test #2537: SsnEngineLocal.ADisengagedBoxCentreIsBitIdenticalToTheCentreAtTheStartPoint ...................   Passed    0.01 sec
+        Start 2539: SsnEngineLocal.TheStartPointIsTheFirstIterate
+136/339 Test #2538: SsnEngineLocal.AnEngagedBoxCentreIsSizeCheckedAndMustBeFinite .................................   Passed    0.01 sec
+        Start 2540: SsnEngineLocal.TrustRegionPinsAreSeparatedFromRealBounds
+137/339 Test #2539: SsnEngineLocal.TheStartPointIsTheFirstIterate .................................................   Passed    0.01 sec
+        Start 2541: SsnEngineLocal.TrustRegionIsSoftAndTheExitContractSaysSo
+138/339 Test #2540: SsnEngineLocal.TrustRegionPinsAreSeparatedFromRealBounds ......................................   Passed    0.01 sec
+        Start 2542: SsnEngineLocal.LooseTrustRegionIsBitIdenticalToNoOverride
+139/339 Test #2541: SsnEngineLocal.TrustRegionIsSoftAndTheExitContractSaysSo ......................................   Passed    0.01 sec
+        Start 2543: SsnEngineLocal.TrustRegionRadiusIsNotPartOfTheStructureKey
+140/339 Test #2542: SsnEngineLocal.LooseTrustRegionIsBitIdenticalToNoOverride .....................................   Passed    0.01 sec
+        Start 2544: SsnEngineLocal.RegularizerOverridesResolveLikeTheWalks
+141/339 Test #2543: SsnEngineLocal.TrustRegionRadiusIsNotPartOfTheStructureKey ....................................   Passed    0.01 sec
+        Start 2545: SsnEngineLocal.PrimalDeltaOverrideChangesWhetherTheSolveConverges
+142/339 Test #2544: SsnEngineLocal.RegularizerOverridesResolveLikeTheWalks ........................................   Passed    0.01 sec
+        Start 2546: SsnEngineLocal.OverrideValidationMatchesTheWalksPrecondition
+143/339 Test #2545: SsnEngineLocal.PrimalDeltaOverrideChangesWhetherTheSolveConverges .............................   Passed    0.01 sec
+        Start 2547: SsnEngineLocal.FbIsEvaluatedWithoutCancellation
+144/339 Test #2547: SsnEngineLocal.FbIsEvaluatedWithoutCancellation ...............................................   Passed    0.01 sec
+        Start 2548: SsnEngineLocal.ContradictoryFixedHintRecovers
+145/339 Test #2546: SsnEngineLocal.OverrideValidationMatchesTheWalksPrecondition ..................................   Passed    0.01 sec
+        Start 2549: SsnEngineLocal.FixedVariableHintIsHonouredAsBothRowsActive
+146/339 Test #2548: SsnEngineLocal.ContradictoryFixedHintRecovers .................................................   Passed    0.01 sec
+        Start 2550: SsnEngineLocal.SymbolicAnalysisIsPaidOncePerStructure
+147/339 Test #2549: SsnEngineLocal.FixedVariableHintIsHonouredAsBothRowsActive ....................................   Passed    0.01 sec
+        Start 2551: SsnEngineLocal.BranchChangeDoesNotChangeThePattern
+148/339 Test #2550: SsnEngineLocal.SymbolicAnalysisIsPaidOncePerStructure .........................................   Passed    0.01 sec
+        Start 2552: SsnEngineLocal.PatternIsReusedAcrossSolvesOfTheSameStructure
+149/339 Test #2551: SsnEngineLocal.BranchChangeDoesNotChangeThePattern ............................................   Passed    0.01 sec
+        Start 2553: SsnEngineLocal.PatternKeyIsExactForUncompressedInput
+150/339 Test #2552: SsnEngineLocal.PatternIsReusedAcrossSolvesOfTheSameStructure ..................................   Passed    0.01 sec
+        Start 2554: SsnEngineLocal.PatternKeySeparatesBoundLayoutsOfEqualSize
+151/339 Test #2553: SsnEngineLocal.PatternKeyIsExactForUncompressedInput ..........................................   Passed    0.01 sec
+        Start 2555: SsnEngineLocal.SignFlipAtConstantBoundLayoutForcesRebuild
+152/339 Test #2554: SsnEngineLocal.PatternKeySeparatesBoundLayoutsOfEqualSize .....................................   Passed    0.01 sec
+        Start 2556: SsnEngineLocal.BoxQpCountGrowsSlowlyInN
+153/339 Test #2555: SsnEngineLocal.SignFlipAtConstantBoundLayoutForcesRebuild .....................................   Passed    0.01 sec
+        Start 2557: SsnEngineLocal.HardBudgetStopsWithABudgetEscape
+154/339 Test #2557: SsnEngineLocal.HardBudgetStopsWithABudgetEscape ...............................................   Passed    0.01 sec
+        Start 2558: SsnEngineLocal.NonFiniteStepIsReportedNotThrown
+155/339 Test #2558: SsnEngineLocal.NonFiniteStepIsReportedNotThrown ...............................................   Passed    0.01 sec
+        Start 2559: SsnEngineLocal.DualRegularizationPicksTheMinimumNormMultiplier
+156/339 Test #2556: SsnEngineLocal.BoxQpCountGrowsSlowlyInN .......................................................   Passed    0.03 sec
+        Start 2560: SsnEngineLocal.FbTolDerivationAndItsBound
+157/339 Test #2560: SsnEngineLocal.FbTolDerivationAndItsBound .....................................................   Passed    0.01 sec
+        Start 2561: SsnEngineLocal.CallerErrorsThrow
+158/339 Test #2559: SsnEngineLocal.DualRegularizationPicksTheMinimumNormMultiplier ................................   Passed    0.01 sec
+        Start 2562: SsnEngineLocal.BareModeReproducesTheTask3Trajectories
+159/339 Test #2561: SsnEngineLocal.CallerErrorsThrow ..............................................................   Passed    0.01 sec
+        Start 2563: SsnEngineLocal.ChrCyclingBareCyclesAndSafeguardedConverges
+160/339 Test #2562: SsnEngineLocal.BareModeReproducesTheTask3Trajectories .........................................   Passed    0.01 sec
+        Start 2564: SsnEngineLocal.WeaklyActiveRowFinishesUncertain
+161/339 Test #2563: SsnEngineLocal.ChrCyclingBareCyclesAndSafeguardedConverges ....................................   Passed    0.01 sec
+        Start 2565: SsnEngineLocal.InfeasibleQpIsSuspectedNotCertified
+162/339 Test #2564: SsnEngineLocal.WeaklyActiveRowFinishesUncertain ...............................................   Passed    0.01 sec
+        Start 2566: SsnEngineLocal.InfeasibilityIsReachedByBothRoutesAndOnBothShapes
+163/339 Test #2565: SsnEngineLocal.InfeasibleQpIsSuspectedNotCertified ............................................   Passed    0.01 sec
+        Start 2567: SsnEngineLocal.FeasibleButBadlyScaledIsNeverReportedInfeasible
+164/339 Test #2566: SsnEngineLocal.InfeasibilityIsReachedByBothRoutesAndOnBothShapes ..............................   Passed    0.01 sec
+        Start 2568: SsnEngineLocal.StallWindowGuardsKeepABrutallyScaledFeasibleQpHonest
+165/339 Test #2567: SsnEngineLocal.FeasibleButBadlyScaledIsNeverReportedInfeasible ................................   Passed    0.01 sec
+        Start 2569: SsnEngineLocal.TheVerificationAttemptMovesNoStepCounter
+166/339 Test #2568: SsnEngineLocal.StallWindowGuardsKeepABrutallyScaledFeasibleQpHonest ...........................   Passed    0.01 sec
+        Start 2570: SsnEngineLocal.BudgetsAreEnforcedAndCountersAreTruthful
+167/339 Test #2569: SsnEngineLocal.TheVerificationAttemptMovesNoStepCounter .......................................   Passed    0.01 sec
+        Start 2571: SsnEngineLocal.LineSearchExemptsAHintedFirstStepInBothPolarities
+168/339 Test #2570: SsnEngineLocal.BudgetsAreEnforcedAndCountersAreTruthful .......................................   Passed    0.01 sec
+        Start 2572: SsnEngineLocal.DualProjectionKeepsMultipliersFeasible
+169/339 Test #2571: SsnEngineLocal.LineSearchExemptsAHintedFirstStepInBothPolarities ..............................   Passed    0.01 sec
+        Start 2573: SsnEngineLocal.IndefiniteHessianEscapesRatherThanCertifyingASaddle
+170/339 Test #2572: SsnEngineLocal.DualProjectionKeepsMultipliersFeasible .........................................   Passed    0.01 sec
+        Start 2574: SsnEngineLocal.UncertainBandGeometryAndValidation
+171/339 Test #2573: SsnEngineLocal.IndefiniteHessianEscapesRatherThanCertifyingASaddle ............................   Passed    0.01 sec
+        Start 2575: SsnEngineLocal.SafeguardsAreFreeOnTheBenignFixtures
+172/339 Test #2574: SsnEngineLocal.UncertainBandGeometryAndValidation .............................................   Passed    0.01 sec
+        Start 2576: SsnEngineLocal.TheEscapeReasonCensusMatchesTheReportedReason
+173/339 Test #2575: SsnEngineLocal.SafeguardsAreFreeOnTheBenignFixtures ...........................................   Passed    0.02 sec
+        Start 2577: SsnEngineLocal.SafeguardCountersAreLive
+174/339 Test #2576: SsnEngineLocal.TheEscapeReasonCensusMatchesTheReportedReason ..................................   Passed    0.02 sec
+        Start 2578: SsnEngineLocal.DriverSurfaceIsDeclaredButInert
+175/339 Test #2578: SsnEngineLocal.DriverSurfaceIsDeclaredButInert ................................................   Passed    0.01 sec
+        Start 2579: SsnEngineLocal.DeferredCertificationRelocatesExactlyOneFactorization
+176/339 Test #2577: SsnEngineLocal.SafeguardCountersAreLive .......................................................   Passed    0.01 sec
+        Start 2580: SsnEngineLocal.DeferredCertificationWithdrawsTheSaddleCertificate
+177/339 Test #2579: SsnEngineLocal.DeferredCertificationRelocatesExactlyOneFactorization ..........................   Passed    0.01 sec
+        Start 2581: SsnEngineLocal.APendingDeferredCertificationMayNotBeAbandoned
+178/339 Test #2580: SsnEngineLocal.DeferredCertificationWithdrawsTheSaddleCertificate .............................   Passed    0.01 sec
+        Start 2582: SsnEngineLocal.TheResidualSigmaRuleIsInertUntilTheLadderArms
+179/339 Test #2581: SsnEngineLocal.APendingDeferredCertificationMayNotBeAbandoned .................................   Passed    0.01 sec
+        Start 2583: SsnEngineLocal.TheResidualSigmaRuleKeepsTheLadderAsAMonotoneFloor
+180/339 Test #2582: SsnEngineLocal.TheResidualSigmaRuleIsInertUntilTheLadderArms ..................................   Passed    0.01 sec
+        Start 2584: SsnEngineLocal.TheWatchdogIsInvisibleOnACorrectHintAndReturnsOnAWrongOne
+181/339 Test #2583: SsnEngineLocal.TheResidualSigmaRuleKeepsTheLadderAsAMonotoneFloor .............................   Passed    0.01 sec
+        Start 2585: SsnEngineLocal.TheFarkasGateKeepsTheDiagnosisAndRefusesTheFeasibleTrap
+182/339 Test #2584: SsnEngineLocal.TheWatchdogIsInvisibleOnACorrectHintAndReturnsOnAWrongOne ......................   Passed    0.01 sec
+        Start 2586: StartPointProjection.OffTakesAnOutOfBoxStartVerbatimAndExitsNumericalErrorAtIterationZero
+183/339 Test #2586: StartPointProjection.OffTakesAnOutOfBoxStartVerbatimAndExitsNumericalErrorAtIterationZero .....   Passed    0.01 sec
+        Start 2587: StartPointProjection.OffIsUnchangedOnAnInBoxStart
+184/339 Test #2585: SsnEngineLocal.TheFarkasGateKeepsTheDiagnosisAndRefusesTheFeasibleTrap ........................   Passed    0.02 sec
+        Start 2588: StartPointProjection.OnSolvesTheOutOfBoxStartAndCountsBothComponents
+185/339 Test #2587: StartPointProjection.OffIsUnchangedOnAnInBoxStart .............................................   Passed    0.01 sec
+        Start 2589: StartPointProjection.OnCountsOnlyTheComponentsStrictlyOutsideTheBox
+186/339 Test #2588: StartPointProjection.OnSolvesTheOutOfBoxStartAndCountsBothComponents ..........................   Passed    0.01 sec
+        Start 2590: StartPointProjection.OnLeavesAnInBoxStartByteIdenticalToOff
+187/339 Test #2589: StartPointProjection.OnCountsOnlyTheComponentsStrictlyOutsideTheBox ...........................   Passed    0.01 sec
+        Start 2591: StartPointProjection.OnLandsAFixedVariableExactlyOnItsValueAndLeavesInfiniteBoundsAlone
+188/339 Test #2591: StartPointProjection.OnLandsAFixedVariableExactlyOnItsValueAndLeavesInfiniteBoundsAlone .......   Passed    0.01 sec
+        Start 2592: StartPointProjection.OnMovesNothingWhereTheBoundIsInfinite
+189/339 Test #2590: StartPointProjection.OnLeavesAnInBoxStartByteIdenticalToOff ...................................   Passed    0.01 sec
+        Start 2593: StartPointProjection.OnStillRefusesANonFiniteStartPoint
+190/339 Test #2593: StartPointProjection.OnStillRefusesANonFiniteStartPoint .......................................   Passed    0.01 sec
+        Start 2594: StartPointProjection.TheOptionsValidatorAcceptsBothStatesAndTheDumpCarriesTheField
+191/339 Test #2592: StartPointProjection.OnMovesNothingWhereTheBoundIsInfinite ....................................   Passed    0.01 sec
+        Start 2595: JsonLinesTraceSink.GoldenLineIpqpIterWithInertiaPerturbedAndAnEscapedFactsString
+192/339 Test #2594: StartPointProjection.TheOptionsValidatorAcceptsBothStatesAndTheDumpCarriesTheField ............   Passed    0.01 sec
+        Start 2596: JsonLinesTraceSink.GoldenLineIpqpIterWithBothOptionalsAbsentAndTheThreeNonFiniteDoubles
+193/339 Test #2595: JsonLinesTraceSink.GoldenLineIpqpIterWithInertiaPerturbedAndAnEscapedFactsString ..............   Passed    0.01 sec
+        Start 2597: JsonLinesTraceSink.GoldenLineIpqpReg
+194/339 Test #2596: JsonLinesTraceSink.GoldenLineIpqpIterWithBothOptionalsAbsentAndTheThreeNonFiniteDoubles .......   Passed    0.01 sec
+        Start 2598: JsonLinesTraceSink.GoldenLineIpqpRestart
+195/339 Test #2597: JsonLinesTraceSink.GoldenLineIpqpReg ..........................................................   Passed    0.01 sec
+        Start 2599: JsonLinesTraceSink.GoldenLineIpqpRoute
+196/339 Test #2598: JsonLinesTraceSink.GoldenLineIpqpRestart ......................................................   Passed    0.00 sec
+        Start 2600: JsonLinesTraceSink.GoldenLineIpqpCertify
+197/339 Test #2599: JsonLinesTraceSink.GoldenLineIpqpRoute ........................................................   Passed    0.01 sec
+        Start 2601: JsonLinesTraceSink.GoldenLineIpqpEscapeCarriesBothTypedEvidenceBlocksAndNoVector
+198/339 Test #2600: JsonLinesTraceSink.GoldenLineIpqpCertify ......................................................   Passed    0.01 sec
+        Start 2602: JsonLinesTraceSink.GoldenLineQpMode
+199/339 Test #2601: JsonLinesTraceSink.GoldenLineIpqpEscapeCarriesBothTypedEvidenceBlocksAndNoVector ..............   Passed    0.00 sec
+        Start 2603: JsonLinesTraceSink.GoldenLineQpModeAtANonDispatchSite
+200/339 Test #2602: JsonLinesTraceSink.GoldenLineQpMode ...........................................................   Passed    0.00 sec
+        Start 2604: JsonLinesTraceSink.GoldenLineFallbackVerdictWithAPlacement
+201/339 Test #2603: JsonLinesTraceSink.GoldenLineQpModeAtANonDispatchSite .........................................   Passed    0.01 sec
+        Start 2605: JsonLinesTraceSink.GoldenLineFallbackVerdictUnfiredWritesRhoZeroAsNull
+202/339 Test #2604: JsonLinesTraceSink.GoldenLineFallbackVerdictWithAPlacement ....................................   Passed    0.01 sec
+        Start 2606: JsonLinesTraceSink.EveryEnumeratorHasItsSpecSpelling
+203/339 Test #2605: JsonLinesTraceSink.GoldenLineFallbackVerdictUnfiredWritesRhoZeroAsNull ........................   Passed    0.01 sec
+        Start 2607: JsonLinesTraceSink.StringEscapingIsRfc8259AndUtf8PassesThrough
+204/339 Test #2606: JsonLinesTraceSink.EveryEnumeratorHasItsSpecSpelling ..........................................   Passed    0.01 sec
+        Start 2608: JsonLinesTraceSink.SeqCountsFromOneAndTheSolvePairMovesTheEnvelope
+205/339 Test #2607: JsonLinesTraceSink.StringEscapingIsRfc8259AndUtf8PassesThrough ................................   Passed    0.01 sec
+        Start 2609: JsonLinesTraceSink.RoundTripIsBitExactOnTheHardDoubles
+206/339 Test #2608: JsonLinesTraceSink.SeqCountsFromOneAndTheSolvePairMovesTheEnvelope ............................   Passed    0.01 sec
+        Start 2610: JsonLinesTraceSink.RoundTripReadsEveryGoldenLineBackBitEqual
+207/339 Test #2609: JsonLinesTraceSink.RoundTripIsBitExactOnTheHardDoubles ........................................   Passed    0.01 sec
+        Start 2611: JsonLinesTraceSink.RoundTripReachesInsideTheNestedEvidenceObject
+208/339 Test #2610: JsonLinesTraceSink.RoundTripReadsEveryGoldenLineBackBitEqual ..................................   Passed    0.01 sec
+        Start 2612: JsonLinesTraceSink.WholeSolveStreamCountsEqualTheCurrencyOnHS11AndHS38AtKIpm
+209/339 Test #2611: JsonLinesTraceSink.RoundTripReachesInsideTheNestedEvidenceObject ..............................   Passed    0.01 sec
+        Start 2613: JsonLinesTraceSink.OnAWalkCellTheSinkChangesNoCounterAndWritesOnlyRows
+210/339 Test #2613: JsonLinesTraceSink.OnAWalkCellTheSinkChangesNoCounterAndWritesOnlyRows ........................   Passed    0.01 sec
+        Start 2614: JsonLinesTraceSink.GoldenLineIpqpRestartSecondBoolSignature
+211/339 Test #2614: JsonLinesTraceSink.GoldenLineIpqpRestartSecondBoolSignature ...................................   Passed    0.00 sec
+        Start 2615: JsonLinesTraceSink.GoldenLineFallbackVerdictClampedWithoutARetry
+212/339 Test #2612: JsonLinesTraceSink.WholeSolveStreamCountsEqualTheCurrencyOnHS11AndHS38AtKIpm ..................   Passed    0.02 sec
+        Start 2616: JsonLinesTraceSink.GoldenLineFallbackVerdictRetriedAtTheFloorWithoutAClamp
+213/339 Test #2615: JsonLinesTraceSink.GoldenLineFallbackVerdictClampedWithoutARetry ..............................   Passed    0.01 sec
+        Start 2617: JsonLinesTraceSink.GoldenLineIpqpEscapeStallBranch
+214/339 Test #2616: JsonLinesTraceSink.GoldenLineFallbackVerdictRetriedAtTheFloorWithoutAClamp ....................   Passed    0.01 sec
+        Start 2618: JsonLinesTraceSink.GoldenLineIpqpEscapeExhaustionRouteWithoutFarkas
+215/339 Test #2617: JsonLinesTraceSink.GoldenLineIpqpEscapeStallBranch ............................................   Passed    0.01 sec
+        Start 2619: JsonLinesTraceSink.FailedIsStickyAndSeqKeepsAdvancingPastTheFailure
+216/339 Test #2618: JsonLinesTraceSink.GoldenLineIpqpEscapeExhaustionRouteWithoutFarkas ...........................   Passed    0.01 sec
+        Start 2620: JsonLinesTraceSink.AStreamThatFailsMidSolveDoesNotChangeTheSolve
+217/339 Test #2619: JsonLinesTraceSink.FailedIsStickyAndSeqKeepsAdvancingPastTheFailure ...........................   Passed    0.00 sec
+        Start 2621: JsonLinesTraceSink.AnArmedExceptionMaskPropagatesOutOfTheSolveByDesign
+218/339 Test #2621: JsonLinesTraceSink.AnArmedExceptionMaskPropagatesOutOfTheSolveByDesign ........................   Passed    0.01 sec
+        Start 2622: JsonLinesTraceSink.FlushSyncsOnceAndDestructionSyncsOnceMore
+219/339 Test #2622: JsonLinesTraceSink.FlushSyncsOnceAndDestructionSyncsOnceMore ..................................   Passed    0.01 sec
+        Start 2623: JsonLinesTraceSink.UnderTheDefaultMaskAFailingFlushSetsFailedAndDoesNotThrow
+220/339 Test #2620: JsonLinesTraceSink.AStreamThatFailsMidSolveDoesNotChangeTheSolve ..............................   Passed    0.02 sec
+        Start 2624: JsonLinesTraceSink.UnderAnArmedMaskFlushThrows
+221/339 Test #2623: JsonLinesTraceSink.UnderTheDefaultMaskAFailingFlushSetsFailedAndDoesNotThrow ..................   Passed    0.01 sec
+        Start 2625: JsonLinesTraceSink.UnderAnArmedMaskAFailingFlushATDESTRUCTIONIsSwallowed
+222/339 Test #2624: JsonLinesTraceSink.UnderAnArmedMaskFlushThrows ................................................   Passed    0.01 sec
+        Start 2626: JsonLinesTraceSink.OnHS38AtKIpmTheSinkWritesHundredsOfLinesAndStillMovesNoCounter
+223/339 Test #2625: JsonLinesTraceSink.UnderAnArmedMaskAFailingFlushATDESTRUCTIONIsSwallowed ......................   Passed    0.01 sec
+        Start 2627: JsonLinesTraceSink.ThePinnedDeclineIsWhyTheEntryCountSubtractsDeclinedPinned
+224/339 Test #2627: JsonLinesTraceSink.ThePinnedDeclineIsWhyTheEntryCountSubtractsDeclinedPinned ..................   Passed    0.01 sec
+        Start 2628: JsonLinesTraceSink.TheVerdictStreamReproducesTheWHOLEPartitionOnAFiveClassPopulation
+225/339 Test #2626: JsonLinesTraceSink.OnHS38AtKIpmTheSinkWritesHundredsOfLinesAndStillMovesNoCounter .............   Passed    0.03 sec
+        Start 2629: JsonLinesTraceSink.GoldenLineSqpMajorFirstBoolSignatureAndTheWalkMode
+226/339 Test #2628: JsonLinesTraceSink.TheVerdictStreamReproducesTheWHOLEPartitionOnAFiveClassPopulation ..........   Passed    0.01 sec
+        Start 2630: JsonLinesTraceSink.GoldenLineSqpMajorSecondBoolSignatureTheHardDoublesAndTheSsnMode
+227/339 Test #2629: JsonLinesTraceSink.GoldenLineSqpMajorFirstBoolSignatureAndTheWalkMode .........................   Passed    0.01 sec
+        Start 2631: JsonLinesTraceSink.GoldenLineSqpMajorThirdBoolSignatureAndTheIpqpMode
+228/339 Test #2630: JsonLinesTraceSink.GoldenLineSqpMajorSecondBoolSignatureTheHardDoublesAndTheSsnMode ...........   Passed    0.01 sec
+        Start 2632: JsonLinesTraceSink.GoldenLineSqpMajorEveryBoolTrue
+229/339 Test #2631: JsonLinesTraceSink.GoldenLineSqpMajorThirdBoolSignatureAndTheIpqpMode .........................   Passed    0.01 sec
+        Start 2633: JsonLinesTraceSink.SqpMajorReproducesTheHistoryRowByRowOnAWalkCellAndAKIpmCell
+230/339 Test #2632: JsonLinesTraceSink.GoldenLineSqpMajorEveryBoolTrue ............................................   Passed    0.01 sec
+        Start 2634: JsonLinesTraceSink.SqpMajorIsInCallerUnitsOnAScaledSolve
+231/339 Test #2634: JsonLinesTraceSink.SqpMajorIsInCallerUnitsOnAScaledSolve ......................................   Passed    0.01 sec
+        Start 2635: JsonLinesTraceSink.QpModeOnAWalkCellIsOneLinePerMajorAndNamesTheWalk
+232/339 Test #2633: JsonLinesTraceSink.SqpMajorReproducesTheHistoryRowByRowOnAWalkCellAndAKIpmCell ................   Passed    0.02 sec
+        Start 2636: JsonLinesTraceSink.QpModeOnAnSsnCellCountsTheArmAndItsHandOffs
+233/339 Test #2635: JsonLinesTraceSink.QpModeOnAWalkCellIsOneLinePerMajorAndNamesTheWalk ..........................   Passed    0.01 sec
+        Start 2637: JsonLinesTraceSink.QpModeOnAKIpmCellNamesTheTierAndTheDeclineRoutesToTheWalk
+234/339 Test #2636: JsonLinesTraceSink.QpModeOnAnSsnCellCountsTheArmAndItsHandOffs ................................   Passed    0.01 sec
+        Start 2638: JsonLinesTraceSink.SqpSolveEndCarriesTheWholeCountersObject
+235/339 Test #2637: JsonLinesTraceSink.QpModeOnAKIpmCellNamesTheTierAndTheDeclineRoutesToTheWalk ..................   Passed    0.02 sec
+        Start 2639: JsonLinesTraceSink.SqpSolvePartitionsTwoSolvesOnOneSinkAndSeqStaysContiguous
+236/339 Test #2638: JsonLinesTraceSink.SqpSolveEndCarriesTheWholeCountersObject ...................................   Passed    0.02 sec
+        Start 2640: JsonLinesTraceSink.OrderIsTheJoinKeyOnHS38AtKIpm
+237/339 Test #2639: JsonLinesTraceSink.SqpSolvePartitionsTwoSolvesOnOneSinkAndSeqStaysContiguous ..................   Passed    0.01 sec
+        Start 2641: JsonLinesTraceSink.SqpSolveEndFiresOnEveryExitPathIncludingTheOnesThatSkipFinish
+238/339 Test #2640: JsonLinesTraceSink.OrderIsTheJoinKeyOnHS38AtKIpm ..............................................   Passed    0.02 sec
+        Start 2642: JsonLinesTraceSink.TheNestedSolvesFirstRowCountsAgainstItsOwnEmptySet
+239/339 Test #2513: SqpWarmCurrency.InteriorPointExportCrossesOverIntoTheSqpEngine ................................   Passed    0.73 sec
+        Start 2643: JsonLinesTraceSink.TheNestedSolvesActivityChurnStaysOutOfTheOuterTotals
+240/339 Test #2641: JsonLinesTraceSink.SqpSolveEndFiresOnEveryExitPathIncludingTheOnesThatSkipFinish ..............   Passed    0.05 sec
+        Start 2644: JsonLinesTraceSink.TheNestedRestorationSolveIsBracketedAtDepthOne
+241/339 Test #2642: JsonLinesTraceSink.TheNestedSolvesFirstRowCountsAgainstItsOwnEmptySet .........................   Passed    0.05 sec
+        Start 2645: JsonLinesTraceSink.GoldenLineSqpSolveBegin
+242/339 Test #2645: JsonLinesTraceSink.GoldenLineSqpSolveBegin ....................................................   Passed    0.00 sec
+        Start 2646: JsonLinesTraceSink.GoldenLineSqpSolveEndWithEveryCounterDistinct
+243/339 Test #2646: JsonLinesTraceSink.GoldenLineSqpSolveEndWithEveryCounterDistinct ..............................   Passed    0.01 sec
+        Start 2647: JsonLinesTraceSink.GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull
+244/339 Test #2647: JsonLinesTraceSink.GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull .......................   Passed    0.01 sec
+        Start 2648: JsonLinesTraceSink.SqpSolveEndKeysAreExactlyTheTablesAndAllDistinct
+245/339 Test #2648: JsonLinesTraceSink.SqpSolveEndKeysAreExactlyTheTablesAndAllDistinct ...........................   Passed    0.01 sec
+        Start 2649: JsonLinesTraceSink.SqpSolveEndReadsTheReturnedSolutionAndNotAMovedFromLocal
+246/339 Test #2643: JsonLinesTraceSink.TheNestedSolvesActivityChurnStaysOutOfTheOuterTotals .......................   Passed    0.05 sec
+        Start 2650: JsonLinesTraceSink.AnArmedMaskFailingOnTheVERYLASTLinePropagatesRatherThanTerminating
+247/339 Test #2644: JsonLinesTraceSink.TheNestedRestorationSolveIsBracketedAtDepthOne .............................   Passed    0.05 sec
+        Start 2651: JsonLinesTraceSink.ARefusedArgumentWritesNothingAndLeavesTheNextSolveAtDepthZero
+248/339 Test #2650: JsonLinesTraceSink.AnArmedMaskFailingOnTheVERYLASTLinePropagatesRatherThanTerminating .........   Passed    0.01 sec
+        Start 2652: JsonLinesTraceSink.ResetNestingRecoversASinkAfterASolveThatThrewMidBody
+249/339 Test #2649: JsonLinesTraceSink.SqpSolveEndReadsTheReturnedSolutionAndNotAMovedFromLocal ...................   Passed    0.02 sec
+        Start 2653: JsonLinesTraceSink.SqpMajorReproducesTheHistoryOnTheRowThatSeedsRestoration
+250/339 Test #2651: JsonLinesTraceSink.ARefusedArgumentWritesNothingAndLeavesTheNextSolveAtDepthZero ..............   Passed    0.01 sec
+        Start 2654: JsonLinesTraceSink.TheRowsModeAndTheDispatchRecordDifferOnTheSsnWarmGrade
+251/339 Test #2652: JsonLinesTraceSink.ResetNestingRecoversASinkAfterASolveThatThrewMidBody .......................   Passed    0.01 sec
+        Start 2655: JsonLinesTraceSink.TheRequestingRowIsWrittenAFTERTheNestedSolveItAskedFor
+252/339 Test #2654: JsonLinesTraceSink.TheRowsModeAndTheDispatchRecordDifferOnTheSsnWarmGrade .....................   Passed    0.01 sec
+        Start 2656: JsonLinesTraceSink.GoldenLineIpmIterWithBothMinusOneConventionsActive
+253/339 Test #2656: JsonLinesTraceSink.GoldenLineIpmIterWithBothMinusOneConventionsActive .........................   Passed    0.01 sec
+        Start 2657: JsonLinesTraceSink.GoldenLineIpmIterWithEverySentinelBearingFieldPresent
+254/339 Test #2657: JsonLinesTraceSink.GoldenLineIpmIterWithEverySentinelBearingFieldPresent ......................   Passed    0.01 sec
+        Start 2658: JsonLinesTraceSink.GoldenLineIpmIterWithTheNonFiniteNewtonLadderMarker
+255/339 Test #2658: JsonLinesTraceSink.GoldenLineIpmIterWithTheNonFiniteNewtonLadderMarker ........................   Passed    0.01 sec
+        Start 2659: JsonLinesTraceSink.TheThreeIpmIterGoldenLinesIsolateEverySentinelSlot
+256/339 Test #2659: JsonLinesTraceSink.TheThreeIpmIterGoldenLinesIsolateEverySentinelSlot .........................   Passed    0.01 sec
+        Start 2660: JsonLinesTraceSink.GoldenLineIpmSolveBegin
+257/339 Test #2660: JsonLinesTraceSink.GoldenLineIpmSolveBegin ....................................................   Passed    0.01 sec
+        Start 2661: JsonLinesTraceSink.GoldenLineIpmSolveEnd
+258/339 Test #2653: JsonLinesTraceSink.SqpMajorReproducesTheHistoryOnTheRowThatSeedsRestoration ...................   Passed    0.05 sec
+        Start 2662: JsonLinesTraceSink.GoldenLineIpmRestorationExitRow
+259/339 Test #2661: JsonLinesTraceSink.GoldenLineIpmSolveEnd ......................................................   Passed    0.01 sec
+        Start 2663: JsonLinesTraceSink.TheRestorationExitRowIsAdjacentToItsOwnIterLine
+260/339 Test #2662: JsonLinesTraceSink.GoldenLineIpmRestorationExitRow ............................................   Passed    0.01 sec
+        Start 2664: JsonLinesTraceSink.GoldenLineIpmPhaseBegin
+261/339 Test #2655: JsonLinesTraceSink.TheRequestingRowIsWrittenAFTERTheNestedSolveItAskedFor .....................   Passed    0.04 sec
+        Start 2665: JsonLinesTraceSink.GoldenLineIpmPhaseEnd
+262/339 Test #2663: JsonLinesTraceSink.TheRestorationExitRowIsAdjacentToItsOwnIterLine ............................   Passed    0.01 sec
+        Start 2666: JsonLinesTraceSink.GoldenLineIpmKktAnalysis
+263/339 Test #2664: JsonLinesTraceSink.GoldenLineIpmPhaseBegin ....................................................   Passed    0.01 sec
+        Start 2667: JsonLinesTraceSink.TheKktAnalysisFactorFiguresAreNullOnARefactorization
+264/339 Test #2665: JsonLinesTraceSink.GoldenLineIpmPhaseEnd ......................................................   Passed    0.01 sec
+        Start 2668: JsonLinesTraceSink.GoldenLineIpmPhaseExit
+265/339 Test #2666: JsonLinesTraceSink.GoldenLineIpmKktAnalysis ...................................................   Passed    0.01 sec
+        Start 2669: JsonLinesTraceSink.GoldenLineIpmMessage
+266/339 Test #2667: JsonLinesTraceSink.TheKktAnalysisFactorFiguresAreNullOnARefactorization .......................   Passed    0.01 sec
+        Start 2670: JsonLinesTraceSink.TheInertiaMessageFillsEverySlotTheOtherKindsLeaveNull
+267/339 Test #2668: JsonLinesTraceSink.GoldenLineIpmPhaseExit .....................................................   Passed    0.01 sec
+        Start 2671: JsonLinesTraceSink.TheIpmPairMovesNoDepthAndDoesNotDisturbTheSqpNesting
+268/339 Test #2669: JsonLinesTraceSink.GoldenLineIpmMessage .......................................................   Passed    0.01 sec
+        Start 2672: JsonLinesTraceSink.NoIpmLineCarriesAnUnknownEnumString
+269/339 Test #2670: JsonLinesTraceSink.TheInertiaMessageFillsEverySlotTheOtherKindsLeaveNull ......................   Passed    0.01 sec
+        Start 2673: SqpCountersFieldTables.EachTableEnumeratesItsWholeStruct
+270/339 Test #2671: JsonLinesTraceSink.TheIpmPairMovesNoDepthAndDoesNotDisturbTheSqpNesting .......................   Passed    0.01 sec
+        Start 2674: SqpConsole.TheUsersJsonStreamIsByteIdenticalWithAndWithoutTheConsole
+271/339 Test #2672: JsonLinesTraceSink.NoIpmLineCarriesAnUnknownEnumString ........................................   Passed    0.01 sec
+        Start 2675: SqpConsole.TheLiveConsoleEqualsFormatIterationTable
+272/339 Test #2673: SqpCountersFieldTables.EachTableEnumeratesItsWholeStruct ......................................   Passed    0.01 sec
+        Start 2676: SqpConsole.TheSqpDefaultPrintLevelWritesNothing
+273/339 Test #2676: SqpConsole.TheSqpDefaultPrintLevelWritesNothing ...............................................   Passed    0.01 sec
+        Start 2677: SqpConsole.ACountingSinkSeesTheSameEventsWithPrintingOnAndOff
+274/339 Test #2675: SqpConsole.TheLiveConsoleEqualsFormatIterationTable ...........................................   Passed    0.04 sec
+        Start 2678: SqpConsole.TheRestorationSubDriverIsTheOneDriverThatNeverPrints
+275/339 Test #2677: SqpConsole.ACountingSinkSeesTheSameEventsWithPrintingOnAndOff .................................   Passed    0.03 sec
+        Start 2679: SqpConsole.AttachTraceDuringASolveIsRefused
+276/339 Test #2679: SqpConsole.AttachTraceDuringASolveIsRefused ...................................................   Passed    0.02 sec
+        Start 2680: Types.DefaultsMatchSpec
+277/339 Test #2680: Types.DefaultsMatchSpec .......................................................................   Passed    0.01 sec
+        Start 2681: WarmStart.SolvedHs7PopulatesEveryField
+278/339 Test #2674: SqpConsole.TheUsersJsonStreamIsByteIdenticalWithAndWithoutTheConsole ..........................   Passed    0.08 sec
+        Start 2682: WarmStart.MaxIterSolveEmitsValidWarmObjectAtBestKnownIterate
+279/339 Test #2681: WarmStart.SolvedHs7PopulatesEveryField ........................................................   Passed    0.01 sec
+        Start 2683: WarmStart.StructureHashMatchesSameModelDiffersAcrossModels
+280/339 Test #2682: WarmStart.MaxIterSolveEmitsValidWarmObjectAtBestKnownIterate ..................................   Passed    0.02 sec
+        Start 2684: WarmStart.ZeroMajorSolveEmitsTheSameStructureHashAsABuiltSubproblem
+281/339 Test #2678: SqpConsole.TheRestorationSubDriverIsTheOneDriverThatNeverPrints ...............................   Passed    0.05 sec
+        Start 2685: WarmStart.WarmMatchesColdOnIdenticalProblem
+282/339 Test #2683: WarmStart.StructureHashMatchesSameModelDiffersAcrossModels ....................................   Passed    0.02 sec
+        Start 2686: WarmStart.LedgerRecordsColdVsWarmStartLevel
+283/339 Test #2684: WarmStart.ZeroMajorSolveEmitsTheSameStructureHashAsABuiltSubproblem ...........................   Passed    0.01 sec
+        Start 2687: WarmStart.StaleWarmIsSafe
+284/339 Test #2685: WarmStart.WarmMatchesColdOnIdenticalProblem ...................................................   Passed    0.01 sec
+        Start 2688: WarmStart.PerturbedWarmBeatsCold
+285/339 Test #2686: WarmStart.LedgerRecordsColdVsWarmStartLevel ...................................................   Passed    0.01 sec
+        Start 2689: WarmStart.ActivityMappingMarksKnownActiveRowsOnHs76
+286/339 Test #2688: WarmStart.PerturbedWarmBeatsCold ..............................................................   Passed    0.01 sec
+        Start 2690: WarmStart.HotReusesFactorization
+287/339 Test #2689: WarmStart.ActivityMappingMarksKnownActiveRowsOnHs76 ...........................................   Passed    0.01 sec
+        Start 2691: WarmStart.AnIdenticalOptionsRebuildStillAdoptsAHotHandle
+288/339 Test #2687: WarmStart.StaleWarmIsSafe .....................................................................   Passed    0.02 sec
+        Start 2692: WarmStart.AChangedQpOptionRefusesAHotHandle
+289/339 Test #2690: WarmStart.HotReusesFactorization ..............................................................   Passed    0.01 sec
+        Start 2693: WarmStart.AChangedThreadCountRefusesAHotHandle
+290/339 Test #2691: WarmStart.AnIdenticalOptionsRebuildStillAdoptsAHotHandle ......................................   Passed    0.01 sec
+        Start 2694: WarmStart.AFailedOptionReplacementLeavesHotReuseIntact
+291/339 Test #2692: WarmStart.AChangedQpOptionRefusesAHotHandle ...................................................   Passed    0.01 sec
+        Start 2695: WarmStart.TheLiveCacheCarriesTheChainAcrossAnIdenticalOptionsRebuild
+292/339 Test #2693: WarmStart.AChangedThreadCountRefusesAHotHandle ................................................   Passed    0.01 sec
+        Start 2696: WarmStart.AFailedReplacementLeavesTheDriversOwnLiveCacheInForce
+293/339 Test #2694: WarmStart.AFailedOptionReplacementLeavesHotReuseIntact ........................................   Passed    0.01 sec
+        Start 2697: WarmStart.HotReuseIsNeverAnswerObservable
+294/339 Test #2695: WarmStart.TheLiveCacheCarriesTheChainAcrossAnIdenticalOptionsRebuild ..........................   Passed    0.01 sec
+        Start 2698: WarmStart.ChangedHValueDegradesToWarmWithRefactorization
+295/339 Test #2696: WarmStart.AFailedReplacementLeavesTheDriversOwnLiveCacheInForce ...............................   Passed    0.01 sec
+        Start 2699: WarmStart.LedgerFactorizationsSavedTracksHotVsDegradedWarm
+296/339 Test #2697: WarmStart.HotReuseIsNeverAnswerObservable .....................................................   Passed    0.01 sec
+        Start 2700: WarmStart.ProducerSolvingAgainBeforeHandleConsumedDegradesToWarm
+297/339 Test #2698: WarmStart.ChangedHValueDegradesToWarmWithRefactorization ......................................   Passed    0.01 sec
+        Start 2701: WarmStart.RefusedAdoptionDoesNotCorruptProducersOwnState
+298/339 Test #2699: WarmStart.LedgerFactorizationsSavedTracksHotVsDegradedWarm ....................................   Passed    0.01 sec
+        Start 2702: WarmStart.NeverSharedSolvePaysOneSymbolicAnalysis
+299/339 Test #2700: WarmStart.ProducerSolvingAgainBeforeHandleConsumedDegradesToWarm ..............................   Passed    0.01 sec
+        Start 2703: WarmStart.WarmFullStepConvergesInFewMajors
+300/339 Test #2701: WarmStart.RefusedAdoptionDoesNotCorruptProducersOwnState ......................................   Passed    0.01 sec
+        Start 2704: WarmStart.WatchdogRestoresOnDivergence
+301/339 Test #2702: WarmStart.NeverSharedSolvePaysOneSymbolicAnalysis .............................................   Passed    0.01 sec
+        Start 2705: WarmStart.WatchdogStallExitBreaksAFullStepCycle
+302/339 Test #2703: WarmStart.WarmFullStepConvergesInFewMajors ....................................................   Passed    0.02 sec
+        Start 2706: WarmStart.WatchdogRebaseNeverWidensTheFunnel
+303/339 Test #2704: WarmStart.WatchdogRestoresOnDivergence ........................................................   Passed    0.02 sec
+        Start 2707: WarmStart.FullStepModeInheritsElasticAndRestoration
+304/339 Test #2705: WarmStart.WatchdogStallExitBreaksAFullStepCycle ...............................................   Passed    0.01 sec
+        Start 2708: WarmStart.FullStepDisabledMatchesTask3
+305/339 Test #2706: WarmStart.WatchdogRebaseNeverWidensTheFunnel ..................................................   Passed    0.02 sec
+        Start 2709: WarmStart.BudgetReturnsUsableIterate
+306/339 Test #2708: WarmStart.FullStepDisabledMatchesTask3 ........................................................   Passed    0.01 sec
+        Start 2710: WarmStart.ChainedBudgetSolvesReachOptimal
+307/339 Test #2709: WarmStart.BudgetReturnsUsableIterate ..........................................................   Passed    0.01 sec
+        Start 2711: WarmStart.BudgetModeOffMatchesMaxIterExactly
+308/339 Test #2710: WarmStart.ChainedBudgetSolvesReachOptimal .....................................................   Passed    0.01 sec
+        Start 2712: WarmStart.CrossoverRecoversExactSolveHs14
+309/339 Test #2707: WarmStart.FullStepModeInheritsElasticAndRestoration ...........................................   Passed    0.03 sec
+        Start 2713: WarmStart.CrossoverRecoversExactSolveF1
+310/339 Test #2711: WarmStart.BudgetModeOffMatchesMaxIterExactly ..................................................   Passed    0.01 sec
+        Start 2714: WarmStart.CrossoverDegenerateRowLeftFree
+311/339 Test #2713: WarmStart.CrossoverRecoversExactSolveF1 .......................................................   Passed    0.01 sec
+        Start 2715: WarmStart.CrossoverDimensionMismatchesThrow
+312/339 Test #2714: WarmStart.CrossoverDegenerateRowLeftFree ......................................................   Passed    0.01 sec
+        Start 2716: WarmStart.CrossoverWrongSignDualLeavesRowFree
+313/339 Test #2712: WarmStart.CrossoverRecoversExactSolveHs14 .....................................................   Passed    0.01 sec
+        Start 2717: WarmStart.SeededGrossWrongSignPriceDegradesToCold
+314/339 Test #2715: WarmStart.CrossoverDimensionMismatchesThrow ...................................................   Passed    0.01 sec
+        Start 2718: WarmStart.SeededDualClampBoundaryIsExactOnBothSides
+315/339 Test #2716: WarmStart.CrossoverWrongSignDualLeavesRowFree .................................................   Passed    0.01 sec
+        Start 2719: WarmStart.SeededB1ClearRunsBeforeTheSignClampAndTheOrderIsObservable
+316/339 Test #2481: SqpDriverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTaken ..........................   Passed    1.32 sec
+        Start 2720: WarmStart.SeededGateRejectsIncompatibleAndNonFiniteObjects
+317/339 Test #2717: WarmStart.SeededGrossWrongSignPriceDegradesToCold .............................................   Passed    0.01 sec
+        Start 2721: WarmStart.NonFiniteObjectResolvesColdEvenWithAMatchingHash
+318/339 Test #2718: WarmStart.SeededDualClampBoundaryIsExactOnBothSides ...........................................   Passed    0.01 sec
+        Start 2722: WarmStart.SeededRefusesFunnelTrustRegionAndFullStepState
+319/339 Test #2719: WarmStart.SeededB1ClearRunsBeforeTheSignClampAndTheOrderIsObservable ..........................   Passed    0.01 sec
+        Start 2723: WarmStart.LedgerLevelHistogramCountsEveryResolvedLevel
+320/339 Test #2720: WarmStart.SeededGateRejectsIncompatibleAndNonFiniteObjects ....................................   Passed    0.02 sec
+        Start 2724: WarmStart.CrossoverActivityInferenceRecoversTheCollocationActiveSet
+321/339 Test #2721: WarmStart.NonFiniteObjectResolvesColdEvenWithAMatchingHash ....................................   Passed    0.02 sec
+322/339 Test #2722: WarmStart.SeededRefusesFunnelTrustRegionAndFullStepState ......................................   Passed    0.02 sec
+        Start 2725: WarmStart.CrossoverActivityInferenceHoldsUnderMeshRefinement
+        Start 2726: WarmStart.CrossoverLooseIpIterateDoesNotOverInfer
+323/339 Test #2723: WarmStart.LedgerLevelHistogramCountsEveryResolvedLevel ........................................   Passed    0.01 sec
+        Start 2727: WarmStart.CrossoverActivityRepairBakeOffRecordsTheRejectedCandidate
+324/339 Test #2724: WarmStart.CrossoverActivityInferenceRecoversTheCollocationActiveSet ...........................   Passed    0.01 sec
+        Start 2728: WarmStart.CrossoverAllZeroDualsInferNothingAndStillResolveSeeded
+325/339 Test #2726: WarmStart.CrossoverLooseIpIterateDoesNotOverInfer .............................................   Passed    0.01 sec
+        Start 2729: WarmStart.CrossoverExtremeDualAgainstALargeResidualIsRefused
+326/339 Test #2725: WarmStart.CrossoverActivityInferenceHoldsUnderMeshRefinement ..................................   Passed    0.01 sec
+        Start 2730: WarmStart.CrossoverBoundActivityIsInferredAtCollocationScale
+327/339 Test #2727: WarmStart.CrossoverActivityRepairBakeOffRecordsTheRejectedCandidate ...........................   Passed    0.01 sec
+        Start 2731: WarmStart.CrossoverFalseActiveGuardDegradesAtTheOperativeBarrierLevel
+328/339 Test #2729: WarmStart.CrossoverExtremeDualAgainstALargeResidualIsRefused ..................................   Passed    0.01 sec
+        Start 2732: WarmStartProxCarry.TheCarryIsHashGatedAndIsNeverEmittedByAWalkSolve
+329/339 Test #2730: WarmStart.CrossoverBoundActivityIsInferredAtCollocationScale ..................................   Passed    0.01 sec
+        Start 2733: WarmStartBattery.Corpus
+330/339 Test #2728: WarmStart.CrossoverAllZeroDualsInferNothingAndStillResolveSeeded ..............................   Passed    0.01 sec
+        Start 2734: WarmStartBattery.ZeroMajorStepKeepsTheWarmStartChain
+331/339 Test #2731: WarmStart.CrossoverFalseActiveGuardDegradesAtTheOperativeBarrierLevel .........................   Passed    0.02 sec
+        Start 2735: WarmStartBattery.CrossoverChainOnTheBridgeFamilyBeatsCold
+332/339 Test #2734: WarmStartBattery.ZeroMajorStepKeepsTheWarmStartChain ..........................................   Passed    0.01 sec
+        Start 2736: SnoptBridgeGate.ColdSolveLandsOnTheManufacturedOptimum
+333/339 Test #2732: WarmStartProxCarry.TheCarryIsHashGatedAndIsNeverEmittedByAWalkSolve ...........................   Passed    0.02 sec
+        Start 2737: SnoptBridgeGate.AccuracyTracksTheRequestedToleranceWithNoFloor
+334/339 Test #2736: SnoptBridgeGate.ColdSolveLandsOnTheManufacturedOptimum ........................................   Passed    0.01 sec
+        Start 2738: SnoptBridgeGate.RowTranscriptionMatchesTheModelAtTheSolution
+335/339 Test #2738: SnoptBridgeGate.RowTranscriptionMatchesTheModelAtTheSolution ..................................   Passed    0.01 sec
+        Start 2739: SnoptBridgeGate.WarmBasisReSolveLandsOnTheOptimumAtTheNewParameter
+336/339 Test #2737: SnoptBridgeGate.AccuracyTracksTheRequestedToleranceWithNoFloor ................................   Passed    0.02 sec
+337/339 Test #2739: SnoptBridgeGate.WarmBasisReSolveLandsOnTheOptimumAtTheNewParameter ............................   Passed    0.01 sec
+338/339 Test #2733: WarmStartBattery.Corpus .......................................................................   Passed    0.66 sec
+339/339 Test #2735: WarmStartBattery.CrossoverChainOnTheBridgeFamilyBeatsCold .....................................   Passed    1.59 sec
+
+100% tests passed, 0 tests failed out of 339
+
+Total Test time (real) =   3.47 sec

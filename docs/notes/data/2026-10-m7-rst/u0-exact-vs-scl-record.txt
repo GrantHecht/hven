@@ -1,0 +1,3 @@
+=== SCL GATE RECORD HEAD-walk vs RST HEAD-walk (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+=== SCL GATE RECORD HEAD-ssn vs RST HEAD-ssn (EXACT) === cells compared: 27  columns compared: 75  differences: 0
+=== SCL GATE RECORD HEAD-ipm vs RST HEAD-ipm (EXACT) === cells compared: 27  columns compared: 75  differences: 0

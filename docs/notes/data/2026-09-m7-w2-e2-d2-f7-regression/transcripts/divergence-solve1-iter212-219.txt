@@ -1,0 +1,29 @@
+=== tr2 (tr2 = b25ab7ed behaviour, base = F2 off); solve 1 iters 212-219, supports abbreviated
+D2P solve=1 iter=212 W=698 pins=212 me=2400 n=4000 elim_only=0 facts=84
+D2B solve=1 iter=212 blk=P3169 side=2 alpha=1.135e-05 moves=1 verdict=0 rho=9.592e-01 screen=0 kd=0 cp=1.601e+01 rate=5.955e-02 viol=-1.817e-04 scale=1.000e+00 |p|=2.689e+02
+D2P solve=1 iter=213 W=698 pins=213 me=2400 n=4000 elim_only=0 facts=85
+D2B solve=1 iter=213 blk=P3768 side=2 alpha=2.629e-04 moves=1 verdict=2 rho=6.264e-04 screen=0 kd=0 cp=7.405e-01 rate=2.754e-03 viol=-1.947e-04 scale=1.000e+00 |p|=2.689e+02
+D2P solve=1 iter=214 W=698 pins=214 me=2400 n=4000 elim_only=0 facts=86
+D2DET solve=1 iter=214 bordered=0 nc=3098 resid=9.301e-07 scaled_max=4.499731e-01 rows_max=4.499731e-01 support: [2400 E members] R59=3.262e-01 R60=1.243e-01 R61=4.045e-02 R62=1.041e-02 R63=1.337e-01 R64=2.666e-01 R65=2.079e-03 R66=2.059e-03 R67=2.044e-03 R68=2.034e-03 R69=2.026e-03 R70=2.013e-03 R71=1.996e-03 R72=1.974e-03 R73=1.948e-03 R74=1.921e-03 R75=1.896e-03 R76=1.874e-03 R77=1.854e-03 R78=
+D2RM solve=1 iter=214 entry=0 over=0 removed=P3768 deferred=P3768 mark=1
+D2P solve=1 iter=215 W=698 pins=213 me=2400 n=4000 elim_only=0 facts=87
+D2B solve=1 iter=215 blk=P3768 side=2 alpha=0.000e+00 moves=0 verdict=2 rho=6.264e-04 screen=0 kd=1 cp=7.403e-01 rate=2.754e-03 viol=0.000e+00 scale=1.000e+00 |p|=2.689e+02
+D2PASS solve=1 iter=215 within=0 next=2:3159 a2=1.407e-04
+=== base (tr2 = b25ab7ed behaviour, base = F2 off); solve 1 iters 212-219, supports abbreviated
+D2P solve=1 iter=212 W=698 pins=212 me=2400 n=4000 elim_only=0 facts=84
+D2B solve=1 iter=212 blk=P3169 side=2 alpha=1.135e-05 moves=1 verdict=0 rho=9.592e-01 screen=0 kd=0 cp=1.601e+01 rate=5.955e-02 viol=-1.817e-04 scale=1.000e+00 |p|=2.689e+02
+D2P solve=1 iter=213 W=698 pins=213 me=2400 n=4000 elim_only=0 facts=85
+D2B solve=1 iter=213 blk=P3768 side=2 alpha=2.629e-04 moves=1 verdict=2 rho=6.264e-04 screen=0 kd=0 cp=7.405e-01 rate=2.754e-03 viol=-1.947e-04 scale=1.000e+00 |p|=2.689e+02
+D2P solve=1 iter=214 W=698 pins=214 me=2400 n=4000 elim_only=0 facts=86
+D2DET solve=1 iter=214 bordered=0 nc=3098 resid=9.301e-07 scaled_max=4.499731e-01 rows_max=4.499731e-01 support: [2400 E members] R59=3.262e-01 R60=1.243e-01 R61=4.045e-02 R62=1.041e-02 R63=1.337e-01 R64=2.666e-01 R65=2.079e-03 R66=2.059e-03 R67=2.044e-03 R68=2.034e-03 R69=2.026e-03 R70=2.013e-03 R71=1.996e-03 R72=1.974e-03 R73=1.948e-03 R74=1.921e-03 R75=1.896e-03 R76=1.874e-03 R77=1.854e-03 R78=
+D2RM solve=1 iter=214 entry=0 over=0 removed=R756 deferred=P3768 mark=0
+D2P solve=1 iter=215 W=697 pins=214 me=2400 n=4000 elim_only=0 facts=87
+D2B solve=1 iter=215 blk=P3159 side=2 alpha=1.491e-04 moves=1 verdict=0 rho=9.593e-01 screen=0 kd=0 cp=1.506e+01 rate=5.809e-02 viol=-2.245e-03 scale=1.000e+00 |p|=2.592e+02
+D2P solve=1 iter=216 W=697 pins=215 me=2400 n=4000 elim_only=0 facts=88
+D2B solve=1 iter=216 blk=P3149 side=2 alpha=4.310e-04 moves=1 verdict=0 rho=9.593e-01 screen=0 kd=0 cp=1.500e+01 rate=5.788e-02 viol=-6.467e-03 scale=1.000e+00 |p|=2.592e+02
+D2P solve=1 iter=217 W=697 pins=216 me=2400 n=4000 elim_only=0 facts=89
+D2B solve=1 iter=217 blk=P3313 side=1 alpha=8.192e-05 moves=1 verdict=0 rho=4.740e-01 screen=0 kd=0 cp=7.033e+00 rate=2.714e-02 viol=-5.761e-04 scale=1.000e+00 |p|=2.592e+02
+D2P solve=1 iter=218 W=697 pins=217 me=2400 n=4000 elim_only=0 facts=90
+D2B solve=1 iter=218 blk=P143 side=2 alpha=2.570e-04 moves=1 verdict=0 rho=1.098e+00 screen=0 kd=0 cp=1.740e+00 rate=6.717e-03 viol=-4.471e-04 scale=1.000e+00 |p|=2.590e+02
+D2P solve=1 iter=219 W=697 pins=218 me=2400 n=4000 elim_only=0 facts=91
+D2B solve=1 iter=219 blk=P3139 side=2 alpha=9.558e-05 moves=1 verdict=0 rho=9.593e-01 screen=0 kd=0 cp=1.494e+01 rate=5.772e-02 viol=-1.428e-03 scale=1.000e+00 |p|=2.589e+02

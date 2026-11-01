@@ -1,0 +1,4 @@
+76c76
+< ws_algebra_rule = kFixed
+---
+> ws_algebra_rule = kMeasuredCost

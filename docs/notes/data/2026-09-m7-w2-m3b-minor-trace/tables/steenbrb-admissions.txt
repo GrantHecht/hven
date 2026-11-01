@@ -1,0 +1,25 @@
+# M7 W2 M3b -- STEENBRB -- RULE.md 5.2, the FULL per-identity admission table
+# block index admissions readmissions bound_gap
+bound     189       2314         2313  inf
+bound     205          3            2  inf
+bound     167          3            2  inf
+bound      83          2            1  inf
+bound     264          2            1  inf
+bound     158          2            1  inf
+bound     217          2            1  inf
+bound     206          1            0  inf
+bound     190          1            0  inf
+bound     375          1            0  inf
+bound     376          1            0  inf
+bound     348          1            0  inf
+bound     135          1            0  inf
+bound     219          1            0  inf
+bound       2          1            0  inf
+bound     210          1            0  inf
+bound     107          1            0  inf
+bound      29          1            0  inf
+bound     133          1            0  inf
+bound     374          1            0  inf
+bound     322          1            0  inf
+bound     163          1            0  inf
+bound     191          1            0  inf

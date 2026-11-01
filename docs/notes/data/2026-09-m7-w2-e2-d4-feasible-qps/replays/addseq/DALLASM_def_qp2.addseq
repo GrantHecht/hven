@@ -1,0 +1,4 @@
+it=0 ADD pin 14  dist=3.935e-01 engine_rho=9.996e-01 structural=False 
+it=1 ADD pin 72  dist=5.896e-01 engine_rho=1.890e+00 structural=False 
+it=2 ADD pin 75  dist=5.932e-01 engine_rho=1.180e+00 structural=False 
+it=3 ADD pin 55  dist=2.379e-15 engine_rho=3.129e-06 structural=('eq', 49) EXACT-DEP

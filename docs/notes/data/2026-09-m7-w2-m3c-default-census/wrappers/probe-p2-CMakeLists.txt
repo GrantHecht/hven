@@ -1,0 +1,217 @@
+# M7 W2 M3b FIX ROUND 1's TRACE PROBE, built by RECOMPILING hven's own sources a
+# SECOND time with HVEN_TESTING -- NOT by linking an installed hven.
+#
+# THIS IS A COPY OF `probe-CMakeLists.txt` BESIDE IT, WHICH IS NEVER EDITED: it
+# built the probe that produced M3b's committed traces. The only differences
+# are the project name, the target name and the source file; every argument
+# below -- the flag harvest, the non-vacuity checks, the SOURCES-property read,
+# the 30-TU floor, the alignment assertion -- is that file's and is unchanged.
+#
+# WHY IT CANNOT LINK AN INSTALLED hven, which is the one structural difference
+# from M3a's `probe-CMakeLists.txt`. The instrument this probe reads is
+# `hven::solvers::detail::testing::QpWalkObserver`
+# (include/hven/detail/qp/qp_walk_trace.h). That header's ENTIRE body is inside
+# `#ifdef HVEN_TESTING`, and HVEN_TESTING is never defined on the production
+# library -- that is the property the seam convention exists to guarantee and
+# the property `gates/psym-derivation.txt` measures (0 `QpWalk` symbols in
+# libhven.a, both configurations). An installed hven therefore has nothing to
+# attach to. CLAUDE.md section 8's convention names the remedy exactly: "a
+# standalone test executable that recompiles those TUs a second time and does
+# not link `hven::hven`". `tests/CMakeLists.txt` already builds three such
+# targets (`hven_fault_injection_tests`, `hven_ipqp_seam_tests`,
+# `hven_qp_walk_seam_tests`); this is a fourth, and it lives OUTSIDE the
+# repository's own build so that it adds no target, no object and no test to it.
+#
+# NOTHING UNDER src/ OR include/ IS TOUCHED, and neither is `src/CMakeLists.txt`
+# or `tests/CMakeLists.txt`. No accessor was added to the SQP driver: the walk
+# observer's members are STATIC (qp_walk_trace.h says why), so arming it before
+# `SqpSolver::solve` reaches the driver's own main walk engine through the
+# public surface.
+#
+# HOW THE FLAGS ARE OBTAINED, and why they are DERIVED rather than retyped.
+# This project `add_subdirectory`s the hven tree (tycho's own consumption mode,
+# CLAUDE.md section 1) with its tests and bench OFF, and then reads hven's own
+# `hven` target's properties -- COMPILE_OPTIONS, COMPILE_DEFINITIONS, the
+# INTERFACE_* pair, INCLUDE_DIRECTORIES and LINK_LIBRARIES -- plus the
+# CMAKE_CXX_FLAGS of hven's own directory scope, which `cmake/FindMKL.cmake`
+# mutates with `-DMKL_LP64` and the ABI flag. Retyping any of those here would
+# be a second, driftable copy of the build hven actually uses; reading them off
+# the target cannot drift.
+#
+# EIGEN_MAX_ALIGN_BYTES comes with them: hven sets it PUBLIC from its own
+# configure-time probe (32 on this host, and `gates/export-contract.txt` shows
+# the export contract agreeing), so it arrives through
+# INTERFACE_COMPILE_DEFINITIONS and is applied to EVERY TU here, hven's
+# recompiled sources and the harness bridge sources alike. A mixed alignment
+# across TUs sharing Eigen types is an ABI break, not a warning (M7 H3 fix1).
+#
+# THE HARNESS TREE IS READ-ONLY AND ITS CMake IS NEVER ENTERED. Three bridge
+# sources are compiled out of /home/ghecht/Projects/hven-bench, exactly the
+# three M3a's probe compiled and for the same reason its header gives.
+# CONSEQUENCE, unchanged from M3a: nothing built here carries
+# `HVEN_BENCH_PIN_SHA`, and rows from this binary are M3b's TRACE PROBE, never
+# cited as harness rows.
+
+cmake_minimum_required(VERSION 3.24)
+project(hven_m7w2m3c_p2_probe CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+set(HVEN_ROOT "/home/ghecht/Projects/hven"
+    CACHE PATH "The hven source tree whose sources are recompiled here under HVEN_TESTING")
+set(HVEN_BENCH_ROOT "/home/ghecht/Projects/hven-bench"
+    CACHE PATH "The harness tree, READ-ONLY: three bridge sources are compiled out of it")
+set(HVEN_BENCH_CUTEST_ROOT "$ENV{HOME}/Software/cutest"
+    CACHE PATH "The CUTEst install prefix (external; neither vendored nor built here)")
+
+# hven's own suite and bench are not built here: this project needs hven's
+# CONFIGURE-time results (the backend, the flags, the alignment probe, the
+# vendored Eigen/fmt targets), not its test binaries. CMP0077 makes these
+# normal variables win over the `option()` calls in hven's root CMakeLists,
+# which is the same mechanism tycho relies on.
+set(HVEN_BUILD_TESTS OFF)
+set(HVEN_BUILD_BENCH OFF)
+set(HVEN_BUILD_BINDINGS OFF)
+add_subdirectory("${HVEN_ROOT}" hven-tree)
+
+# `Threads::Threads` is an IMPORTED target and `find_package(Threads)` inside
+# hven's own directory creates it DIRECTORY-SCOPED, so it is not visible here
+# even though hven's link list names it. Re-finding it in this scope is how a
+# consumer gets the same target; it is the same package, not a second one.
+find_package(Threads REQUIRED)
+
+if(NOT TARGET hven)
+    message(FATAL_ERROR "m3c_p2_probe: add_subdirectory(${HVEN_ROOT}) did not create the hven target")
+endif()
+
+# --- hven's OWN build settings, read off hven's OWN target and directory -----
+# A property that is not set reads back as `<name>-NOTFOUND`; each is cleared
+# so it cannot land on a command line as a literal.
+foreach(_prop COMPILE_OPTIONS COMPILE_DEFINITIONS INTERFACE_COMPILE_DEFINITIONS
+              INCLUDE_DIRECTORIES INTERFACE_INCLUDE_DIRECTORIES
+              LINK_LIBRARIES INTERFACE_LINK_LIBRARIES)
+    get_target_property(_hven_${_prop} hven ${_prop})
+    if(NOT _hven_${_prop})
+        set(_hven_${_prop} "")
+    endif()
+endforeach()
+
+# cmake/FindMKL.cmake appends `-DMKL_LP64` and the ABI flag to CMAKE_CXX_FLAGS
+# in hven's directory scope with a bare set(), so they are NOT on the target and
+# NOT visible in this (parent) scope. Read them from that scope by name rather
+# than re-deriving them.
+get_directory_property(_hven_cxx_flags DIRECTORY "${HVEN_ROOT}" DEFINITION CMAKE_CXX_FLAGS)
+separate_arguments(_hven_cxx_flags_list NATIVE_COMMAND "${_hven_cxx_flags}")
+
+message(STATUS "m3c_p2_probe: hven directory CMAKE_CXX_FLAGS = ${_hven_cxx_flags}")
+message(STATUS "m3c_p2_probe: hven COMPILE_OPTIONS = ${_hven_COMPILE_OPTIONS}")
+message(STATUS "m3c_p2_probe: hven INTERFACE_COMPILE_DEFINITIONS = ${_hven_INTERFACE_COMPILE_DEFINITIONS}")
+
+# A NON-VACUITY CHECK ON THE FLAG HARVEST ITSELF. If the properties above came
+# back empty this project would still configure and build -- with DIFFERENT
+# flags from hven's own, silently. The alignment definition is the one that is
+# an ABI quantity, so its presence is asserted rather than hoped for.
+string(FIND "${_hven_INTERFACE_COMPILE_DEFINITIONS}" "EIGEN_MAX_ALIGN_BYTES" _align_at)
+if(_align_at LESS 0)
+    message(FATAL_ERROR
+        "m3c_p2_probe: hven's INTERFACE_COMPILE_DEFINITIONS carries no EIGEN_MAX_ALIGN_BYTES "
+        "('${_hven_INTERFACE_COMPILE_DEFINITIONS}'). The flag harvest is broken and this "
+        "probe would be built at a different Eigen alignment from the library it recompiles.")
+endif()
+if(_hven_COMPILE_OPTIONS STREQUAL "")
+    message(FATAL_ERROR "m3c_p2_probe: hven's COMPILE_OPTIONS came back empty -- the flag harvest is broken")
+endif()
+
+# --- CUTEst, external: neither vendored nor built here -----------------------
+find_path(CUTEST_INCLUDE_DIR cutest.h
+          HINTS "${HVEN_BENCH_CUTEST_ROOT}/include" NO_DEFAULT_PATH)
+find_library(CUTEST_LIBRARY cutest_double
+             HINTS "${HVEN_BENCH_CUTEST_ROOT}/lib" NO_DEFAULT_PATH)
+if(NOT CUTEST_INCLUDE_DIR OR NOT CUTEST_LIBRARY)
+    message(FATAL_ERROR "m3c_p2_probe: CUTEst not found under ${HVEN_BENCH_CUTEST_ROOT}")
+endif()
+
+# --- hven's sources, compiled a SECOND time with HVEN_TESTING ---------------
+# THE LIST IS NOT TRANSCRIBED. CLAUDE.md section 1 says `src/CMakeLists.txt` is
+# the authority on what compiles, so the list is READ OFF THE `hven` TARGET'S
+# OWN `SOURCES` PROPERTY -- which is that file's result, platform split and all.
+# A transcription would be a second copy that could drift (the first draft of
+# this file transcribed it, missed `interior/utils/get_core_count.cpp`, and the
+# link failed; the failure is why this reads the property instead).
+get_target_property(_hven_sources hven SOURCES)
+if(NOT _hven_sources)
+    message(FATAL_ERROR "m3c_p2_probe: hven's SOURCES property came back empty")
+endif()
+set(HVEN_TESTING_SOURCES "")
+foreach(_s IN LISTS _hven_sources)
+    if(IS_ABSOLUTE "${_s}")
+        set(_abs "${_s}")
+    elseif(EXISTS "${HVEN_ROOT}/src/${_s}")
+        set(_abs "${HVEN_ROOT}/src/${_s}")
+    elseif(EXISTS "${HVEN_ROOT}/${_s}")
+        set(_abs "${HVEN_ROOT}/${_s}")
+    else()
+        message(FATAL_ERROR "m3c_p2_probe: cannot resolve hven source '${_s}' under ${HVEN_ROOT}")
+    endif()
+    if(NOT EXISTS "${_abs}")
+        message(FATAL_ERROR "m3c_p2_probe: resolved hven source '${_abs}' does not exist")
+    endif()
+    list(APPEND HVEN_TESTING_SOURCES "${_abs}")
+endforeach()
+list(LENGTH HVEN_TESTING_SOURCES _n_hven_sources)
+message(STATUS "m3c_p2_probe: recompiling ${_n_hven_sources} hven source(s) with HVEN_TESTING=1")
+# A FLOOR, so a property that came back with one entry cannot pass for the
+# library. src/CMakeLists.txt listed 39 TUs on this platform when this was
+# written; 30 is a floor, not a pin, so an ordinary addition does not fail it.
+if(_n_hven_sources LESS 30)
+    message(FATAL_ERROR
+        "m3c_p2_probe: hven's SOURCES property yielded only ${_n_hven_sources} file(s) -- "
+        "that is not the library, and linking would fail late instead of here")
+endif()
+
+add_library(hven_testing_objs OBJECT ${HVEN_TESTING_SOURCES})
+# TARGET-WIDE, exactly as tests/CMakeLists.txt defines it on the three seam
+# targets: the observer must be visible both to the walk TU that guards its
+# hooks with `#ifdef HVEN_TESTING` and to this probe's own source.
+target_compile_definitions(hven_testing_objs PRIVATE
+    HVEN_TESTING=1
+    ${_hven_COMPILE_DEFINITIONS}
+    ${_hven_INTERFACE_COMPILE_DEFINITIONS})
+target_include_directories(hven_testing_objs PRIVATE
+    ${_hven_INCLUDE_DIRECTORIES}
+    ${_hven_INTERFACE_INCLUDE_DIRECTORIES})
+target_compile_options(hven_testing_objs PRIVATE
+    ${_hven_cxx_flags_list}
+    ${_hven_COMPILE_OPTIONS})
+target_link_libraries(hven_testing_objs PRIVATE
+    ${_hven_LINK_LIBRARIES}
+    ${_hven_INTERFACE_LINK_LIBRARIES})
+
+# --- the probe itself --------------------------------------------------------
+add_executable(m3c_p2_probe
+    m3c_p2_probe.cpp
+    "${HVEN_BENCH_ROOT}/lanes/cutest/cutest_model.cpp"
+    "${HVEN_BENCH_ROOT}/lanes/cutest/cutest_source.cpp"
+    "${HVEN_BENCH_ROOT}/lanes/hven/nlp_model_triplet_view.cpp"
+    $<TARGET_OBJECTS:hven_testing_objs>)
+
+target_compile_definitions(m3c_p2_probe PRIVATE
+    HVEN_TESTING=1
+    HVEN_BENCH_HAS_CUTEST=1
+    ${_hven_INTERFACE_COMPILE_DEFINITIONS})
+target_include_directories(m3c_p2_probe PRIVATE
+    ${_hven_INCLUDE_DIRECTORIES}
+    ${_hven_INTERFACE_INCLUDE_DIRECTORIES}
+    "${HVEN_BENCH_ROOT}"
+    "${HVEN_BENCH_ROOT}/lanes/hven"
+    "${CUTEST_INCLUDE_DIR}")
+target_compile_options(m3c_p2_probe PRIVATE ${_hven_cxx_flags_list})
+# hven::hven is NOT linked. Its dependencies are, because this target carries
+# hven's own objects and needs exactly what they need.
+target_link_libraries(m3c_p2_probe PRIVATE
+    ${_hven_LINK_LIBRARIES}
+    ${_hven_INTERFACE_LINK_LIBRARIES}
+    "${CUTEST_LIBRARY}")
+target_link_options(m3c_p2_probe PRIVATE "-Wl,-rpath,${HVEN_BENCH_CUTEST_ROOT}/lib")

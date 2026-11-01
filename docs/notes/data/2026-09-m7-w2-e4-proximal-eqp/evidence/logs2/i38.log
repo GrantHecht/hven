@@ -1,0 +1,94 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-release/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = EqpRefinementAb.*:IpqpDispatch.*:QpModeSites.*:SqpDriverDisprovedEntry.*
+[==========] Running 35 tests from 4 test suites.
+[----------] Global test environment set-up.
+[----------] 6 tests from SqpDriverDisprovedEntry
+[ RUN      ] SqpDriverDisprovedEntry.TheVehicleEscapesInfeasibleSuspectOnAConsistentSubproblem
+[       OK ] SqpDriverDisprovedEntry.TheVehicleEscapesInfeasibleSuspectOnAConsistentSubproblem (2 ms)
+[ RUN      ] SqpDriverDisprovedEntry.OneDisprovalChargesTheTallyAndAtKEqualsOneRetiresTheTier
+[       OK ] SqpDriverDisprovedEntry.OneDisprovalChargesTheTallyAndAtKEqualsOneRetiresTheTier (1 ms)
+[ RUN      ] SqpDriverDisprovedEntry.ThreeConsecutiveDisprovalsRetireTheTierAtTheShippedThreshold
+[       OK ] SqpDriverDisprovedEntry.ThreeConsecutiveDisprovalsRetireTheTierAtTheShippedThreshold (1 ms)
+[ RUN      ] SqpDriverDisprovedEntry.TheDefaultIsOffAndOffIsTodaysColdRestart
+[       OK ] SqpDriverDisprovedEntry.TheDefaultIsOffAndOffIsTodaysColdRestart (1 ms)
+[ RUN      ] SqpDriverDisprovedEntry.TheReseedMakesTheNextEntryBaseWarmAndTheTierStopsEscaping
+[       OK ] SqpDriverDisprovedEntry.TheReseedMakesTheNextEntryBaseWarmAndTheTierStopsEscaping (2 ms)
+[ RUN      ] SqpDriverDisprovedEntry.TheReseedIsInertWhereNothingIsDisproved
+[       OK ] SqpDriverDisprovedEntry.TheReseedIsInertWhereNothingIsDisproved (0 ms)
+[----------] 6 tests from SqpDriverDisprovedEntry (10 ms total)
+
+[----------] 2 tests from EqpRefinementAb
+[ DISABLED ] EqpRefinementAb.DISABLED_FootprintRuleProbe
+[ DISABLED ] EqpRefinementAb.DISABLED_FullBattery
+[ RUN      ] EqpRefinementAb.SecondCeilingFixtureReproducesTheAdaptiveMuRuling
+[       OK ] EqpRefinementAb.SecondCeilingFixtureReproducesTheAdaptiveMuRuling (14 ms)
+[ RUN      ] EqpRefinementAb.EveryCellSolvesTheBorderReproProblem
+[       OK ] EqpRefinementAb.EveryCellSolvesTheBorderReproProblem (7 ms)
+[----------] 2 tests from EqpRefinementAb (22 ms total)
+
+[----------] 25 tests from IpqpDispatch
+[ RUN      ] IpqpDispatch.EveryIpqpCounterIsStructurallyZeroAtKWalkAndKSsn
+[       OK ] IpqpDispatch.EveryIpqpCounterIsStructurallyZeroAtKWalkAndKSsn (8 ms)
+[ RUN      ] IpqpDispatch.KIpmValidatesAndSolves
+[       OK ] IpqpDispatch.KIpmValidatesAndSolves (1 ms)
+[ RUN      ] IpqpDispatch.AZeroWidthEffectivePairDeclinesToTheWalkAndChargesNothing
+[       OK ] IpqpDispatch.AZeroWidthEffectivePairDeclinesToTheWalkAndChargesNothing (0 ms)
+[ RUN      ] IpqpDispatch.TheRoutingTableIsExercisedAndItsIdentitiesHoldOnEverySolve
+[       OK ] IpqpDispatch.TheRoutingTableIsExercisedAndItsIdentitiesHoldOnEverySolve (45 ms)
+[ RUN      ] IpqpDispatch.AnInfeasibleSuspectExitsEvidenceReachesTheW2Hook
+[       OK ] IpqpDispatch.AnInfeasibleSuspectExitsEvidenceReachesTheW2Hook (9 ms)
+[ RUN      ] IpqpDispatch.AnEscapedSubproblemIsAnsweredByTheWalkAndItsCostIsStillCharged
+[       OK ] IpqpDispatch.AnEscapedSubproblemIsAnsweredByTheWalkAndItsCostIsStillCharged (9 ms)
+[ RUN      ] IpqpDispatch.RetirementStopsEveryLaterMajorFromConsultingTheTier
+[       OK ] IpqpDispatch.RetirementStopsEveryLaterMajorFromConsultingTheTier (9 ms)
+[ RUN      ] IpqpDispatch.ASuccessfulSubproblemResetsTheConsecutiveEscapeTally
+[       OK ] IpqpDispatch.ASuccessfulSubproblemResetsTheConsecutiveEscapeTally (3 ms)
+[ RUN      ] IpqpDispatch.OneAnalysisPerSolveAndOneVerifyPerLaterTierEntry
+[       OK ] IpqpDispatch.OneAnalysisPerSolveAndOneVerifyPerLaterTierEntry (4 ms)
+[ RUN      ] IpqpDispatch.EverySqpSolveAnalysesOnceOnItsOwnAccount
+[       OK ] IpqpDispatch.EverySqpSolveAnalysesOnceOnItsOwnAccount (3 ms)
+[ RUN      ] IpqpDispatch.NoNegativeFacePriceEscapesUnderKIpmEither
+[       OK ] IpqpDispatch.NoNegativeFacePriceEscapesUnderKIpmEither (45 ms)
+[ RUN      ] IpqpDispatch.TheSsnWarmGradeRouteIsReachableAndPricesOnlyRealBounds
+[       OK ] IpqpDispatch.TheSsnWarmGradeRouteIsReachableAndPricesOnlyRealBounds (0 ms)
+[ RUN      ] IpqpDispatch.ASaddleSuspectExitRoutesToTheSsnWarmGradeAndNotToTheWalk
+[       OK ] IpqpDispatch.ASaddleSuspectExitRoutesToTheSsnWarmGradeAndNotToTheWalk (0 ms)
+[ RUN      ] IpqpDispatch.TheTierCarriesItsStateAcrossTheMajorsOfOneSolve
+[       OK ] IpqpDispatch.TheTierCarriesItsStateAcrossTheMajorsOfOneSolve (3 ms)
+[ RUN      ] IpqpDispatch.AnIndefiniteEscapeDropsTheCarry
+[       OK ] IpqpDispatch.AnIndefiniteEscapeDropsTheCarry (2 ms)
+[ RUN      ] IpqpDispatch.TheCarryDoesNotLeakBetweenSolvesOnOneDriver
+[       OK ] IpqpDispatch.TheCarryDoesNotLeakBetweenSolvesOnOneDriver (3 ms)
+[ RUN      ] IpqpDispatch.ThreeConsecutiveConvergedBudgetExitsDoNotRetireTheTier
+[       OK ] IpqpDispatch.ThreeConsecutiveConvergedBudgetExitsDoNotRetireTheTier (2 ms)
+[ RUN      ] IpqpDispatch.AUsableSsnWarmGradeExitIsRefinedOnItsOwnFace
+[       OK ] IpqpDispatch.AUsableSsnWarmGradeExitIsRefinedOnItsOwnFace (0 ms)
+[ RUN      ] IpqpDispatch.ASolveTheTierNeverRunsIsTheWalkWithTheCallersOwnLevers
+[       OK ] IpqpDispatch.ASolveTheTierNeverRunsIsTheWalkWithTheCallersOwnLevers (0 ms)
+[ RUN      ] IpqpDispatch.TheSsnWarmGradeExportsTheProximalCarry
+[       OK ] IpqpDispatch.TheSsnWarmGradeExportsTheProximalCarry (1 ms)
+[ RUN      ] IpqpDispatch.TheRoutingPartitionHelperHoldsOnTheRowsFixturesDoNotReach
+[       OK ] IpqpDispatch.TheRoutingPartitionHelperHoldsOnTheRowsFixturesDoNotReach (0 ms)
+[ RUN      ] IpqpDispatch.TheFeasibilityHookTakesTheEvidenceAndRunsItsTwoRungLadder
+[       OK ] IpqpDispatch.TheFeasibilityHookTakesTheEvidenceAndRunsItsTwoRungLadder (0 ms)
+[ RUN      ] IpqpDispatch.TheQpSolutionMappingCarriesTheWholeFaceIncludingTrActive
+[       OK ] IpqpDispatch.TheQpSolutionMappingCarriesTheWholeFaceIncludingTrActive (0 ms)
+[ RUN      ] IpqpDispatch.TheUsabilityGateAcceptsADowngradedCertificateAndARefusedFinalRead
+[       OK ] IpqpDispatch.TheUsabilityGateAcceptsADowngradedCertificateAndARefusedFinalRead (0 ms)
+[ RUN      ] IpqpDispatch.KIpmAndKWalkAgreeOnTheAnswerAcrossTheHsBattery
+[       OK ] IpqpDispatch.KIpmAndKWalkAgreeOnTheAnswerAcrossTheHsBattery (94 ms)
+[----------] 25 tests from IpqpDispatch (251 ms total)
+
+[----------] 2 tests from QpModeSites
+[ RUN      ] QpModeSites.EveryKernelInvocationIsAccountedForBySite
+[       OK ] QpModeSites.EveryKernelInvocationIsAccountedForBySite (36 ms)
+[ RUN      ] QpModeSites.TheLadderRungCountIsTheClimbAndNotTheMajorCount
+[       OK ] QpModeSites.TheLadderRungCountIsTheClimbAndNotTheMajorCount (12 ms)
+[----------] 2 tests from QpModeSites (48 ms total)
+
+[----------] Global test environment tear-down
+[==========] 35 tests from 4 test suites ran. (333 ms total)
+[  PASSED  ] 35 tests.
+
+  YOU HAVE 2 DISABLED TESTS
+

@@ -1,0 +1,158 @@
+cell                                        OFF m/f pol    ARM m/f pol      fact      it    susp/fb/ext/eit/dem
+e1_f7_n4000_af01_m1e-2                      0/0      1     0/0      1   27>27    25>25               0/0/0/0/0 optimal
+e1_f7_n4000_af01_m1e-4                      0/2      1     0/2      1   27>27    25>25               0/0/0/0/0 optimal
+e1_f7_n4000_af01_m1e-6                      0/0      0     0/23     1   36>39    34>36            267/0/1/2/36 optimal  WORSE
+e1_f7_n4000_af10_m1e-2                      0/0      1     0/0      1   21>21    19>19               0/0/0/0/0 optimal
+e1_f7_n4000_af10_m1e-4                      0/0      1     0/0      1   24>24    22>22               0/0/0/0/0 optimal
+e1_f7_n4000_af10_m1e-6                     12/0      0     0/13     1   25>30    23>27           585/0/1/4/192 optimal  WORSE
+e1_f7_n4000_af30_m1e-2                      0/0      1     0/0      1   21>21    19>19               0/0/0/0/0 optimal
+e1_f7_n4000_af30_m1e-4                      0/56     1     0/0      1   17>20    15>17              50/0/1/2/0 optimal
+e1_f7_n4000_af30_m1e-6                      0/0      0     0/0      1   19>23    17>20           677/0/1/3/203 optimal
+e1_f7_n20000_af01_m1e-2                     0/0      1     0/0      1   36>36    34>34               0/0/0/0/0 optimal
+e1_f7_n20000_af01_m1e-4                     0/4      1     0/4      1   34>34    32>32               0/0/0/0/0 optimal
+e1_f7_n20000_af01_m1e-6                   129/0      0     0/0      1   31>35    29>32          821/0/1/3/1323 optimal
+e1_f7_n20000_af10_m1e-2                     0/0      1     0/0      1   26>26    24>24               0/0/0/0/0 optimal
+e1_f7_n20000_af10_m1e-4                     0/65     1     0/1      1   24>26    22>23              56/0/1/1/1 optimal
+e1_f7_n20000_af10_m1e-6                     0/0      0     0/1014   1   30>32    28>29         3791/0/1/1/2532 optimal  WORSE
+e1_f7_n20000_af30_m1e-2                     0/0      1     0/0      1   20>20    18>18               0/0/0/0/0 optimal
+e1_f7_n20000_af30_m1e-4                     0/17     1     0/0      1   18>20    16>17              18/0/1/1/0 optimal
+e1_f7_n20000_af30_m1e-6                   178/5124   0   178/5124   0   60>60    60>60               0/0/0/0/0 max_iter
+e1_anchor_f7_n20000_bound_neutral          -1/-1     1    -1/-1     1   13>13    11>11               0/0/0/0/0 optimal
+e1_anchor_f7_n20000_path_neutral           -1/-1     1    -1/-1     1   13>13    11>11               0/0/0/0/0 optimal
+e1blk_f7_n20000_af01_m1e-2                  1/0      1     1/0      1   28>28    26>26               0/0/0/0/0 optimal
+e1blk_f7_n20000_af01_m1e-4                  0/0      1     0/0      1   24>24    22>22               0/0/0/0/0 optimal
+e1blk_f7_n20000_af01_m1e-6                 29/0      0     0/0      1   22>27    20>24               5/0/1/4/2 optimal
+e1blk_f7_n20000_af10_m1e-2                  0/0      1     0/0      1   23>23    21>21               0/0/0/0/0 optimal
+e1blk_f7_n20000_af10_m1e-4                  5/0      1     5/0      1   30>30    28>28               0/0/0/0/0 optimal
+e1blk_f7_n20000_af10_m1e-6                848/0      0     3/0      1   26>29    24>26              11/0/1/2/4 optimal
+e1blk_f7_n20000_af30_m1e-2                  4/0      1     4/0      1   30>30    28>28               0/0/0/0/0 optimal
+e1blk_f7_n20000_af30_m1e-4                  7/0      1     7/0      1   21>21    19>19               0/0/0/0/0 optimal
+e1blk_f7_n20000_af30_m1e-6                  2/0      0    11/0      1   20>23    18>20               4/0/1/2/1 optimal  WORSE
+
+[ON-2] polish accepted on the 5 scattered non-RED m1e-6: 5 of 5 (OFF 0)
+[ON-2] cells worse than OFF END-TO-END (missed or false actives): 4 ['e1_f7_n4000_af01_m1e-6', 'e1_f7_n4000_af10_m1e-6', 'e1_f7_n20000_af10_m1e-6', 'e1blk_f7_n20000_af30_m1e-6']
+[ON-2] tier+polish factorizations: 782 / OFF 746 = 1.0483 (<= 1.10?)
+[ON-2] RED cell: status=max_iter iters=60 margin=0/0/0/0/0
+[ON-2] new RED cells (status != optimal or iters >= 40): []
+[ON-2] total ipqp_margin_extensions over the 29: 11
+[ON-2] C1(b) polish>=4/5: PASS; no-worse: FAIL; factorizations: PASS; C1(d) no new RED: PASS
+
+cell                                        OFF m/f pol    ARM m/f pol      fact      it    susp/fb/ext/eit/dem
+e1_f7_n4000_af01_m1e-2                      0/0      1     0/0      1   27>27    25>25               0/0/0/0/0 optimal
+e1_f7_n4000_af01_m1e-4                      0/2      1     0/2      1   27>27    25>25               0/0/0/0/0 optimal
+e1_f7_n4000_af01_m1e-6                      0/0      0     0/23     1   36>39    34>36            267/0/1/2/36 optimal  WORSE
+e1_f7_n4000_af10_m1e-2                      0/0      1     0/0      1   21>21    19>19               0/0/0/0/0 optimal
+e1_f7_n4000_af10_m1e-4                      0/0      1     0/0      1   24>24    22>22               0/0/0/0/0 optimal
+e1_f7_n4000_af10_m1e-6                     12/0      0     0/13     1   25>30    23>27           585/0/1/4/192 optimal  WORSE
+e1_f7_n4000_af30_m1e-2                      0/0      1     0/0      1   21>21    19>19               0/0/0/0/0 optimal
+e1_f7_n4000_af30_m1e-4                      0/56     1     0/0      1   17>20    15>17              50/0/1/2/0 optimal
+e1_f7_n4000_af30_m1e-6                      0/0      0     0/0      1   19>23    17>20           677/0/1/3/203 optimal
+e1_f7_n20000_af01_m1e-2                     0/0      1     0/0      1   36>36    34>34               0/0/0/0/0 optimal
+e1_f7_n20000_af01_m1e-4                     0/4      1     0/4      1   34>34    32>32               0/0/0/0/0 optimal
+e1_f7_n20000_af01_m1e-6                   129/0      0     0/0      1   31>35    29>32          821/0/1/3/1323 optimal
+e1_f7_n20000_af10_m1e-2                     0/0      1     0/0      1   26>26    24>24               0/0/0/0/0 optimal
+e1_f7_n20000_af10_m1e-4                     0/65     1     0/1      1   24>26    22>23              56/0/1/1/1 optimal
+e1_f7_n20000_af10_m1e-6                     0/0      0     0/1014   1   30>32    28>29         3791/0/1/1/2532 optimal  WORSE
+e1_f7_n20000_af30_m1e-2                     0/0      1     0/0      1   20>20    18>18               0/0/0/0/0 optimal
+e1_f7_n20000_af30_m1e-4                     0/17     1     0/0      1   18>20    16>17              18/0/1/1/0 optimal
+e1_f7_n20000_af30_m1e-6                   178/5124   0   178/5124   0   60>60    60>60               0/0/0/0/0 max_iter
+e1_anchor_f7_n20000_bound_neutral          -1/-1     1    -1/-1     1   13>13    11>11               0/0/0/0/0 optimal
+e1_anchor_f7_n20000_path_neutral           -1/-1     1    -1/-1     1   13>13    11>11               0/0/0/0/0 optimal
+e1blk_f7_n20000_af01_m1e-2                  1/0      1     1/0      1   28>28    26>26               0/0/0/0/0 optimal
+e1blk_f7_n20000_af01_m1e-4                  0/0      1     0/0      1   24>24    22>22               0/0/0/0/0 optimal
+e1blk_f7_n20000_af01_m1e-6                 29/0      0     0/0      1   22>27    20>24               5/0/1/4/2 optimal
+e1blk_f7_n20000_af10_m1e-2                  0/0      1     0/0      1   23>23    21>21               0/0/0/0/0 optimal
+e1blk_f7_n20000_af10_m1e-4                  5/0      1     5/0      1   30>30    28>28               0/0/0/0/0 optimal
+e1blk_f7_n20000_af10_m1e-6                848/0      0     3/0      1   26>29    24>26              11/0/1/2/4 optimal
+e1blk_f7_n20000_af30_m1e-2                  4/0      1     4/0      1   30>30    28>28               0/0/0/0/0 optimal
+e1blk_f7_n20000_af30_m1e-4                  7/0      1     7/0      1   21>21    19>19               0/0/0/0/0 optimal
+e1blk_f7_n20000_af30_m1e-6                  2/0      0    11/0      1   20>23    18>20               4/0/1/2/1 optimal  WORSE
+
+[ON-2-seam] polish accepted on the 5 scattered non-RED m1e-6: 5 of 5 (OFF 0)
+[ON-2-seam] cells worse than OFF END-TO-END (missed or false actives): 4 ['e1_f7_n4000_af01_m1e-6', 'e1_f7_n4000_af10_m1e-6', 'e1_f7_n20000_af10_m1e-6', 'e1blk_f7_n20000_af30_m1e-6']
+[ON-2-seam] tier+polish factorizations: 782 / OFF 746 = 1.0483 (<= 1.10?)
+[ON-2-seam] RED cell: status=max_iter iters=60 margin=0/0/0/0/0
+[ON-2-seam] new RED cells (status != optimal or iters >= 40): []
+[ON-2-seam] total ipqp_margin_extensions over the 29: 11
+[ON-2-seam] C1(b) polish>=4/5: PASS; no-worse: FAIL; factorizations: PASS; C1(d) no new RED: PASS
+
+cell                                        OFF m/f pol    ARM m/f pol      fact      it    susp/fb/ext/eit/dem
+e1_f7_n4000_af01_m1e-2                      0/0      1     0/0      1   27>27    25>25               0/0/0/0/0 optimal
+e1_f7_n4000_af01_m1e-4                      0/2      1     0/2      1   27>27    25>25               0/0/0/0/0 optimal
+e1_f7_n4000_af01_m1e-6                      0/0      0     0/23     1   36>39    34>36            267/0/1/2/36 optimal  WORSE
+e1_f7_n4000_af10_m1e-2                      0/0      1     0/0      1   21>21    19>19               0/0/0/0/0 optimal
+e1_f7_n4000_af10_m1e-4                      0/0      1     0/0      1   24>24    22>22               0/0/0/0/0 optimal
+e1_f7_n4000_af10_m1e-6                     12/0      0     0/13     1   25>30    23>27           585/0/1/4/192 optimal  WORSE
+e1_f7_n4000_af30_m1e-2                      0/0      1     0/0      1   21>21    19>19               0/0/0/0/0 optimal
+e1_f7_n4000_af30_m1e-4                      0/56     1     0/0      1   17>20    15>17              50/0/1/2/0 optimal
+e1_f7_n4000_af30_m1e-6                      0/0      0     0/0      1   19>23    17>20           677/0/1/3/203 optimal
+e1_f7_n20000_af01_m1e-2                     0/0      1     0/0      1   36>36    34>34               0/0/0/0/0 optimal
+e1_f7_n20000_af01_m1e-4                     0/4      1     0/4      1   34>34    32>32               0/0/0/0/0 optimal
+e1_f7_n20000_af01_m1e-6                   129/0      0     0/0      1   31>35    29>32          821/0/1/3/1323 optimal
+e1_f7_n20000_af10_m1e-2                     0/0      1     0/0      1   26>26    24>24               0/0/0/0/0 optimal
+e1_f7_n20000_af10_m1e-4                     0/65     1     0/1      1   24>26    22>23              56/0/1/1/1 optimal
+e1_f7_n20000_af10_m1e-6                     0/0      0     0/1014   1   30>32    28>29         3791/0/1/1/2532 optimal  WORSE
+e1_f7_n20000_af30_m1e-2                     0/0      1     0/0      1   20>20    18>18               0/0/0/0/0 optimal
+e1_f7_n20000_af30_m1e-4                     0/17     1     0/0      1   18>20    16>17              18/0/1/1/0 optimal
+e1_f7_n20000_af30_m1e-6                   178/5124   0   178/5124   0   60>60    60>60               0/0/0/0/0 max_iter
+e1_anchor_f7_n20000_bound_neutral          -1/-1     1    -1/-1     1   13>13    11>11               0/0/0/0/0 optimal
+e1_anchor_f7_n20000_path_neutral           -1/-1     1    -1/-1     1   13>13    11>11               0/0/0/0/0 optimal
+e1blk_f7_n20000_af01_m1e-2                  1/0      1     1/0      1   28>28    26>26               0/0/0/0/0 optimal
+e1blk_f7_n20000_af01_m1e-4                  0/0      1     0/0      1   24>24    22>22               0/0/0/0/0 optimal
+e1blk_f7_n20000_af01_m1e-6                 29/0      0     0/0      1   22>27    20>24               5/0/1/4/2 optimal
+e1blk_f7_n20000_af10_m1e-2                  0/0      1     0/0      1   23>23    21>21               0/0/0/0/0 optimal
+e1blk_f7_n20000_af10_m1e-4                  5/0      1     5/0      1   30>30    28>28               0/0/0/0/0 optimal
+e1blk_f7_n20000_af10_m1e-6                848/0      0     3/0      1   26>29    24>26              11/0/1/2/4 optimal
+e1blk_f7_n20000_af30_m1e-2                  4/0      1     4/0      1   30>30    28>28               0/0/0/0/0 optimal
+e1blk_f7_n20000_af30_m1e-4                  7/0      1     7/0      1   21>21    19>19               0/0/0/0/0 optimal
+e1blk_f7_n20000_af30_m1e-6                  2/0      0    11/0      1   20>23    18>20               4/0/1/2/1 optimal  WORSE
+
+[ON-2X] polish accepted on the 5 scattered non-RED m1e-6: 5 of 5 (OFF 0)
+[ON-2X] cells worse than OFF END-TO-END (missed or false actives): 4 ['e1_f7_n4000_af01_m1e-6', 'e1_f7_n4000_af10_m1e-6', 'e1_f7_n20000_af10_m1e-6', 'e1blk_f7_n20000_af30_m1e-6']
+[ON-2X] tier+polish factorizations: 782 / OFF 746 = 1.0483 (<= 1.10?)
+[ON-2X] RED cell: status=max_iter iters=60 margin=0/0/0/0/0
+[ON-2X] new RED cells (status != optimal or iters >= 40): []
+[ON-2X] total ipqp_margin_extensions over the 29: 11
+[ON-2X] C1(b) polish>=4/5: PASS; no-worse: FAIL; factorizations: PASS; C1(d) no new RED: PASS
+
+cell                                        OFF m/f pol    ARM m/f pol      fact      it    susp/fb/ext/eit/dem
+e1_f7_n4000_af01_m1e-2                      0/0      1     0/0      1   27>27    25>25               0/0/0/0/0 optimal
+e1_f7_n4000_af01_m1e-4                      0/2      1     0/2      1   27>27    25>25               0/0/0/0/0 optimal
+e1_f7_n4000_af01_m1e-6                      0/0      0     0/0      0   36>39    34>36             267/0/1/2/0 optimal
+e1_f7_n4000_af10_m1e-2                      0/0      1     0/0      1   21>21    19>19               0/0/0/0/0 optimal
+e1_f7_n4000_af10_m1e-4                      0/0      1     0/0      1   24>24    22>22               0/0/0/0/0 optimal
+e1_f7_n4000_af10_m1e-6                     12/0      0     0/0      0   25>30    23>27             585/0/1/4/0 optimal
+e1_f7_n4000_af30_m1e-2                      0/0      1     0/0      1   21>21    19>19               0/0/0/0/0 optimal
+e1_f7_n4000_af30_m1e-4                      0/56     1     0/0      1   17>20    15>17              50/0/1/2/0 optimal
+e1_f7_n4000_af30_m1e-6                      0/0      0     0/204    1   19>23    17>20             677/0/1/3/0 optimal  WORSE
+e1_f7_n20000_af01_m1e-2                     0/0      1     0/0      1   36>36    34>34               0/0/0/0/0 optimal
+e1_f7_n20000_af01_m1e-4                     0/4      1     0/4      1   34>34    32>32               0/0/0/0/0 optimal
+e1_f7_n20000_af01_m1e-6                   129/0      0     0/0      0   31>35    29>32             821/0/1/3/0 optimal
+e1_f7_n20000_af10_m1e-2                     0/0      1     0/0      1   26>26    24>24               0/0/0/0/0 optimal
+e1_f7_n20000_af10_m1e-4                     0/65     1     0/2      1   24>26    22>23              56/0/1/1/0 optimal
+e1_f7_n20000_af10_m1e-6                     0/0      0     0/0      0   30>32    28>29            3791/0/1/1/0 optimal
+e1_f7_n20000_af30_m1e-2                     0/0      1     0/0      1   20>20    18>18               0/0/0/0/0 optimal
+e1_f7_n20000_af30_m1e-4                     0/17     1     0/0      1   18>20    16>17              18/0/1/1/0 optimal
+e1_f7_n20000_af30_m1e-6                   178/5124   0   178/5124   0   60>60    60>60               0/0/0/0/0 max_iter
+e1_anchor_f7_n20000_bound_neutral          -1/-1     1    -1/-1     1   13>13    11>11               0/0/0/0/0 optimal
+e1_anchor_f7_n20000_path_neutral           -1/-1     1    -1/-1     1   13>13    11>11               0/0/0/0/0 optimal
+e1blk_f7_n20000_af01_m1e-2                  1/0      1     1/0      1   28>28    26>26               0/0/0/0/0 optimal
+e1blk_f7_n20000_af01_m1e-4                  0/0      1     0/0      1   24>24    22>22               0/0/0/0/0 optimal
+e1blk_f7_n20000_af01_m1e-6                 29/0      0     0/0      0   22>27    20>24               5/0/1/4/0 optimal
+e1blk_f7_n20000_af10_m1e-2                  0/0      1     0/0      1   23>23    21>21               0/0/0/0/0 optimal
+e1blk_f7_n20000_af10_m1e-4                  5/0      1     5/0      1   30>30    28>28               0/0/0/0/0 optimal
+e1blk_f7_n20000_af10_m1e-6                848/0      0     0/0      0   26>29    24>26              11/0/1/2/0 optimal
+e1blk_f7_n20000_af30_m1e-2                  4/0      1     4/0      1   30>30    28>28               0/0/0/0/0 optimal
+e1blk_f7_n20000_af30_m1e-4                  7/0      1     7/0      1   21>21    19>19               0/0/0/0/0 optimal
+e1blk_f7_n20000_af30_m1e-6                  2/0      0     0/0      0   20>23    18>20               4/0/1/2/0 optimal
+
+[ON-1] polish accepted on the 5 scattered non-RED m1e-6: 1 of 5 (OFF 0)
+[ON-1] cells worse than OFF END-TO-END (missed or false actives): 1 ['e1_f7_n4000_af30_m1e-6']
+[ON-1] tier+polish factorizations: 782 / OFF 746 = 1.0483 (<= 1.10?)
+[ON-1] RED cell: status=max_iter iters=60 margin=0/0/0/0/0
+[ON-1] new RED cells (status != optimal or iters >= 40): []
+[ON-1] total ipqp_margin_extensions over the 29: 11
+[ON-1] C1(b) polish>=4/5: FAIL; no-worse: FAIL; factorizations: PASS; C1(d) no new RED: PASS
+
+SAME cells=29 columns=19 differences=0 []
+SAME cells=29 columns=19 differences=0 []

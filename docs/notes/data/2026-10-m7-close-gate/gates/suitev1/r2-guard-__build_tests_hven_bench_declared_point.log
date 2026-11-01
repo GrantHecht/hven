@@ -1,0 +1,72 @@
+=== 1. the split, against the documented rule ===
+one equality row, row 0                        ok
+one dropped free row, row 4                    ok
+four inequality entries from three rows        ok
+row 1 is an upper entry                        ok
+row 2 is a lower entry                         ok
+row 3 gives an upper entry                     ok
+row 3 gives a lower entry too                  ok
+
+=== 2. the four diagnostics against a dense oracle ===
+(a) mixed stationarity                         got 4.5500000000000007       want 4.5500000000000007       ok
+(a) mixed feasibility_e                        got 0.69999999999999996      want 0.69999999999999996      ok
+(a) mixed feasibility_i                        got 0.30000000000000004      want 0.30000000000000004      ok
+(a) mixed complementarity                      got 1.1899999999999999       want 1.1899999999999999       ok
+(a) mixed dual_sign_violation                  got 0                        want 0                        ok
+(b) violating stationarity                     got 12                       want 12                       ok
+(b) violating feasibility_e                    got 0.80000000000000004      want 0.80000000000000004      ok
+(b) violating feasibility_i                    got 5.71                     want 5.71                     ok
+(b) violating complementarity                  got 6.4000000000000004       want 6.4000000000000004       ok
+(b) violating dual_sign_violation              got 1                        want 1                        ok
+(c) zero duals stationarity                    got 0                        want 0                        ok
+(c) zero duals feasibility_e                   got 1                        want 1                        ok
+(c) zero duals feasibility_i                   got 0                        want 0                        ok
+(c) zero duals complementarity                 got 0                        want 0                        ok
+(c) zero duals dual_sign_violation             got 0                        want 0                        ok
+
+=== 3. the two-sided identity: grad_lag is grad f + J' mu ===
+(3) range row mu + stationarity                got 4.4500000000000002       want 4.4500000000000002       ok
+(3) range row mu + feasibility_e               got 0.69999999999999996      want 0.69999999999999996      ok
+(3) range row mu + feasibility_i               got 0.30000000000000004      want 0.30000000000000004      ok
+(3) range row mu + complementarity             got 6.5875000000000004       want 6.5875000000000004       ok
+(3) range row mu + dual_sign_violation         got 0                        want 0                        ok
+(3) range row mu - stationarity                got 6.3499999999999996       want 6.3499999999999996       ok
+(3) range row mu - feasibility_e               got 0.69999999999999996      want 0.69999999999999996      ok
+(3) range row mu - feasibility_i               got 0.30000000000000004      want 0.30000000000000004      ok
+(3) range row mu - complementarity             got 1.2750000000000001       want 1.2750000000000001       ok
+(3) range row mu - dual_sign_violation         got 0                        want 0                        ok
+
+=== 3b. the dual-sign residual SEES a wrong-signed price ===
+(3b) upper-only row, mu < 0                    got 0.75                     want 0.75                     ok
+(3b) lower-only row, mu > 0                    got 0.5                      want 0.5                      ok
+(3b) range row pins no sign, mu +              ok
+(3b) range row pins no sign, mu -              ok
+(3b) upper-only bound, z > 0                   got 1.25                     want 1.25                     ok
+(3b) lower-only bound, z < 0                   got 2                        want 2                        ok
+(3b) free coordinate, z != 0                   got 4.5                      want 4.5                      ok
+(3b) boxed coordinate pins no sign             ok
+
+=== 3c. a one-sided row's wrong-signed multiplier reaches COMPLEMENTARITY ===
+(3c) one-sided row, wrong-signed mu, in complementarity got 1.9575                   want 1.9575                   ok
+
+=== 3d. the SNOPT bound-price rule (fix round 2, C2) ===
+(3d) nonbasic ON its lower bound -> xmul is the bound price ok
+(3d) nonbasic ON its upper bound -> xmul is the bound price ok
+(3d) YORKNET var 50: nonbasic BETWEEN bounds -> z = 0, not 7.9e6 ok
+(3d) nonbasic between two finite bounds -> z = 0 ok
+(3d) nonbasic with no bounds at all -> z = 0   ok
+(3d) basic, even at a bound -> z = 0           ok
+(3d) superbasic -> z = 0                       ok
+(3d) fixed variable (l == u) -> xmul is the bound price ok
+(3d) within 1e-6 RELATIVE of a large bound counts as on it ok
+(3d) 1e-3 off a zero bound does NOT count as on it ok
+(3d) an out-of-range xstate -> z = 0, counted  ok
+
+=== 4. the model is evaluated exactly four times per call ===
+eval_f once                                    ok
+eval_grad_f once                               ok
+eval_g once                                    ok
+eval_jac once                                  ok
+eval_hess NOT called                           ok
+
+DECLARED POINT CHECK: all checks passed

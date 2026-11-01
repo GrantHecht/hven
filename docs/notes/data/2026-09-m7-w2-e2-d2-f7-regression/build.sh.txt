@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# usage: build.sh <tag> <builddir> <targets...>
+set -o pipefail
+tag=$1; bd=$2; shift 2
+L=/home/ghecht/Projects/hven/.scratch/m7w2e2d2/build-$tag.log
+flock /tmp/box-build.lock bash -c '
+  set -o pipefail
+  echo "FOREGROUND_START build-'"$tag"' $(date -Is)"
+  f=$(pgrep -x hven_bench_cell | tr "\n" " "); [ -z "$f" ] && echo PGREP_EMPTY || echo "NOTE foreign: $f"
+  cmake --build '"$bd"' -j16 --target '"$*"' 2>&1 | tail -40
+  rc=$?
+  echo "BUILD_RC=$rc"
+  echo "FOREGROUND_END build-'"$tag"' $(date -Is)"
+' > "$L" 2>&1
+tail -6 "$L"

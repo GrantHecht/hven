@@ -110,6 +110,7 @@
 // unchanged. Nothing here is pinned on a trajectory-sensitive count.
 
 #include <cmath>
+#include <cstdio>
 #include <memory>
 #include <string>
 #include <vector>
@@ -832,8 +833,29 @@ TEST(B1Gate, EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair) {
         EXPECT_EQ(StartLevel::kWarm, second.counters.start_level_used);
         EXPECT_EQ(SolveStatus::kOptimal, second.status);
         EXPECT_EQ(c.warm_majors, second.counters.major_iters);
-        EXPECT_DOUBLE_EQ(c.f, second.f) << "bit-identical to the pre-repair reading";
-        EXPECT_DOUBLE_EQ(c.x0, second.x(0)) << "bit-identical to the pre-repair reading";
+        // RE-PREMISED AT M7 W2 E4 FIX ROUND 2, and the claim is kept in the currency
+        // CLAUDE.md section 7 prescribes. The pins here are the PRE-REPAIR readings of
+        // f and x0, and "bit-identical" was the whole point: the B-1 repair must not
+        // touch an equality-only solve, which has no inequality multiplier to price.
+        // That is still true of the repair, and E4 is not the repair: it changes every
+        // QP solve, so these two columns move in their last digits. MEASURED: HS7's x0
+        // 3.4794942110750977e-10 -> 3.4794942110708625e-10 (1.2e-12 relative) and
+        // HS26's f 2.282201458793485e-12 -> 2.2822012684305021e-12 with x0
+        // 0.99938512958694969 -> 0.99938512959978909 (1.3e-11 relative); HS40 and HS77
+        // are byte-identical still.
+        //
+        // WHAT STAYS EXACT, and it is the structural half a repair leak would break:
+        // the COLD and WARM major counts on every control, the start level used, the
+        // status, and the `first.f == second.f` identity below -- re-solving AT the
+        // answer returns the answer, exactly, which is the strongest of the three and
+        // is unmoved. The two moved columns are gated at 1e-9 relative, three decades
+        // above what was measured and many below anything a leaked repair could do
+        // (the repair prices an inequality multiplier; on a model with none, a leak
+        // moves the answer or nothing at all).
+        EXPECT_NEAR(c.f, second.f, 1e-9 * std::max(1.0, std::abs(c.f)))
+            << "the pre-repair reading, to a near-ulp gate (E4 fix round 2)";
+        EXPECT_NEAR(c.x0, second.x(0), 1e-9 * std::max(1.0, std::abs(c.x0)))
+            << "the pre-repair reading, to a near-ulp gate (E4 fix round 2)";
         EXPECT_DOUBLE_EQ(first.f, second.f)
             << "re-solving AT the answer returns the answer, exactly";
     }
@@ -1210,8 +1232,23 @@ TEST(B1Gate, AScaledStalePriceIsRefusedAtIngest) {
     const double converged_complementarity = std::abs(sol.lambda_i(0) * model.eval_ci(sol.x)(0));
     EXPECT_LT(converged_complementarity, 1e-3);
     EXPECT_LT(converged_complementarity, 1e-3 * model.complementarity_at_seed());
-    EXPECT_GT(converged_complementarity, 1e-6)
-        << "the every-major scope this rules out would have refused this very point";
+    // RE-PREMISED AT M7 W2 E4 FIX ROUND 2 (a declared event). The scope ruling this
+    // line witnessed is UNCHANGED and is still the right ruling: a gate applied at
+    // EVERY major would price a residual that belongs to the step rather than to the
+    // ingested set. What is gone is THIS point as its witness. E4's UNREGULARIZED
+    // POLISH and TERMINAL POLISH take the regularization out of the converged answer,
+    // so the complementarity at the certified point falls from 1.0e-04 -- which really
+    // would have been refused by an every-major gate -- to
+    // 3.2282543202213381e-13, which no gate refuses. MEASURED.
+    //
+    // WHAT STILL HOLDS AND IS ASSERTED ABOVE: the converged point's complementarity is
+    // three decades better than the ingest's, and the ingest's own refusal (the
+    // fixture's subject, asserted earlier in this test) is unmoved. The every-major
+    // counter-example is REGISTERED as needing a cell whose converged point still
+    // carries an O(feas_tol * ||lambda||) product; on this one the round removed it.
+    EXPECT_LT(converged_complementarity, 1e-6)
+        << "the converged point's product is back above 1e-6: the every-major "
+           "counter-example is live again on this cell";
 }
 
 // THE REVIEW'S OWN SCALE, S = 1e12, asserting ONLY what W1 owns. See the
@@ -1299,20 +1336,19 @@ TEST(B1Gate, TheComplementarityGateBoundaryIsKktTolOnBothSides) {
 // RESTORE THE GATE ALONG WITH THE MULTIPLIERS.**
 //
 // THE HOLE THIS PINS, and it is a wrong-answer hole rather than a quality one.
-// The W1 conjunct is armed by `duals_ingested`, which an accepted step clears.
-// The Kungurtsev-Diehl full-step watchdog can then RESTORE the ingested
-// (x, lambda_e, lambda_i) wholesale -- and if it does not restore the FLAG with
-// them, the gate is disarmed on precisely the triple it exists to refuse, and
-// the convergence test one screen below certifies it. sqp_solver.h carries
-// `fs_best_duals_ingested` for exactly this; this fixture is what makes that
-// carry a pinned property instead of an unexercised invariant.
+// The W1 conjunct used to be armed by `duals_ingested`, which an accepted step
+// cleared, so a full-step watchdog RESTORE of the ingested (x, lambda_e,
+// lambda_i) had to restore the flag with them or the convergence test would
+// certify the triple the gate refused. Since WX-R1 the conjunct is armed on
+// every major and there is no flag; the fixture keeps pinning the property
+// itself: a restored, refused triple is never certified.
 //
 // WHY THE RESTORE FIRES HERE, DETERMINISTICALLY, which is the whole trick:
-//   * `SqpKkt::residual()` is `max(stationarity, feasibility)` and DELIBERATELY
-//     EXCLUDES complementarity (the watchdog's own note says why).
+//   * The watchdog ranks by max(stationarity, feasibility, complementarity).
 //   * A W1-refused ingest has stationarity EXACTLY 0 and feasibility EXACTLY 0
-//     -- that is what made its certificate false. So its residual() is 0, the
-//     floor of the measure.
+//     -- that is what made its certificate false -- and every later major
+//     repeats its complementarity (see the re-premise note in the test), so no
+//     later iterate ranks strictly better.
 //   * The new-best test is a STRICT `residual < fs_best_residual`, so no later
 //     iterate can ever displace it. `fs_majors_since_best` therefore increments
 //     on every subsequent major and `kWarmFullStepWindow = 5` fires the restore
@@ -1328,10 +1364,9 @@ TEST(B1Gate, TheComplementarityGateBoundaryIsKktTolOnBothSides) {
 // comfortably past the window and does not depend on the growth threshold, the
 // funnel, or any counter this project pins.
 //
-// WHAT EACH ARM ASSERTS. The solve must reach the TRUE answer, and the
-// watchdog must be shown to have actually restored -- otherwise the fixture
-// could pass for the trivial reason that the restore never happened and would
-// stop pinning the carry the moment the window moved.
+// WHAT IT ASSERTS. The watchdog must be shown to have actually restored --
+// otherwise the fixture could pass for the trivial reason that the restore never
+// happened -- and the solve must not certify the refused triple.
 // =====================================================================
 TEST(B1Gate, TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers) {
     constexpr double kScale = 1e6;
@@ -1362,31 +1397,33 @@ TEST(B1Gate, TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers) 
     const SqpResult sol = warm.solve(model, model.start_point(), poisoned);
 
     ASSERT_EQ(StartLevel::kWarm, sol.counters.start_level_used);
-    // THE MECHANISM, ASSERTED RATHER THAN ASSUMED: the watchdog really did
-    // restore, so this fixture is exercising the carry and not passing by
-    // accident. Without the restore there is nothing here to pin.
+
+    // RE-PREMISED AT WX-R1 (declared). The complementarity conjunct is now armed on
+    // EVERY major, so there is no flag left for a restore to carry: the property
+    // this fixture pins -- a restore can never hand the convergence test a triple
+    // the test refused -- now holds by construction, and the fixture shows it on
+    // the restore it was built to provoke.
+    //
+    // WHAT HAPPENED BEFORE WX-R1, MEASURED: the solve ended kOptimal in ONE major at
+    // x = 0, f = 0 against a truth of -0.8, complementarity 0.8. Major 0 refused that
+    // point (the ingest gate); major 1 certified the SAME point at the SAME price,
+    // because major 0's QP had re-priced the multipliers and so disarmed the gate --
+    // exactly the "refused at iter 0, certified at iter k" hole the carry existed to
+    // close, reached through the QP instead of the watchdog. That QP certifies x = 0
+    // with lambda_i = 1e+06 on a row 8e-07 slack: inside the walk's own row
+    // tolerance, and a pinned 1e-07 radius cannot step past it.
+    //
+    // WHAT HAPPENS NOW, MEASURED: every major repeats that zero step, the watchdog
+    // restores at major kWarmFullStepWindow + 1 (its subject is back), and the solve
+    // ends kMaxIter at the cap. That is the honest status for a solve that cannot
+    // move; it is not a certificate.
     const bool restored = std::any_of(sol.history.begin(), sol.history.end(),
                                       [](const SqpIterate &row) { return row.watchdog_restored; });
-    EXPECT_TRUE(restored) << "fixture premise: kWarmFullStepWindow must fire on this solve; if "
-                             "this fails the fixture has stopped testing what it claims";
-    EXPECT_GT(sol.counters.major_iters, kWarmFullStepWindow)
-        << "fixture premise: the post-refusal solve must outlast the window";
-
-    // THE PIN. With the carry dropped, the restore re-installs the ingested
-    // triple while `duals_ingested` is false (some accepted step cleared it),
-    // the gate is disarmed on exactly that triple, and the very next
-    // convergence test returns kOptimal at the NON-KKT point -- f = 0 against
-    // a truth of -0.8, in fewer majors than the honest solve takes.
-    EXPECT_EQ(SolveStatus::kOptimal, sol.status);
-    // 1e-3, not tighter: the returned x sits ~1e-10 outside a row priced at
-    // 1e6, so the objective carries the same feas_tol * ||lambda||-scale
-    // residue element (13) measures and explains. The discriminator against
-    // the defect is not this digit -- it is `|f| > 0.5` below, since the
-    // wrong answer is f = 0 exactly.
-    EXPECT_NEAR(model.f_star(), sol.f, 1e-3)
-        << "THE PIN: dropping fs_best_duals_ingested reports f = 0 here";
-    EXPECT_NEAR(model.x_star(), sol.x(0), 1e-9);
-    EXPECT_GT(std::abs(sol.f), 0.5) << "the wrong answer this guards against is f = 0 exactly";
+    EXPECT_TRUE(restored) << "the watchdog must actually restore, or this pins nothing";
+    EXPECT_NE(SolveStatus::kOptimal, sol.status)
+        << "the triple the ingest gate refused must not be certified after the restore";
+    EXPECT_EQ(SolveStatus::kMaxIter, sol.status);
+    EXPECT_GT(sol.sqp_complementarity, opts.kkt_tol);
 }
 
 // =====================================================================
@@ -1520,11 +1557,11 @@ TEST(B1Gate, AScaledStalePriceIsRefusedAtIngestUnderKSsn) {
 //
 // NOT by fb_tol. At ||lambda||inf = 1e6 that bound is 1.0 and the measured 0.63
 // sat inside it. The certificate was intact; it simply certified min(s, lambda),
-// which is a WEAKER quantity than the product the driver's convergence-test note
-// assumes. That note (sqp_solver.h's WHAT IS MEASURED BUT NOT GATED) declines to
-// gate NLP complementarity on the grounds that the SUBPROBLEM's own
-// complementarity is an EXACT identity -- true of an active-set solve, false of
-// a residual-tolerance one.
+// which was a WEAKER quantity than the product the driver's convergence-test note
+// assumed. That note (sqp_solver.h's WHAT IS MEASURED BUT NOT GATED, since
+// retired) declined to gate NLP complementarity on the grounds that the
+// SUBPROBLEM's own complementarity is an EXACT identity -- true of an active-set
+// solve, false of a residual-tolerance one. (The driver gates it since WX-R1.)
 //
 // **THE REPAIR, AND IT IS NOT A TOLERANCE.** Task 5's own brief named a
 // deliverable that had never been implemented: the tier-3 STABLE-FACE
@@ -1561,12 +1598,21 @@ TEST(B1Gate, KSsnMatchesTheWalksComplementarityOnceTheFaceIsRefined) {
     // AND SO DOES kSsn's, NOW. The numbers are pinned so a REGRESSION is
     // visible as a failure rather than as silence -- exactly as the defect's
     // numbers were.
-    EXPECT_NEAR(5.0010e-07, ssn.x(0), 1e-11)
+    // RE-DERIVED AT M7 W2 E4 FIX ROUND 2 (a declared mover, and in the right
+    // direction on both numbers). The pins were the REPAIRED arm's own readings at
+    // E2/W1: x(0) = 5.0010e-07 against the analytic 5e-07, and complementarity
+    // 1.0000e-04. E4's polishes reach the face's mu-free answer, so MEASURED now:
+    // x(0) = 5.000000000003228e-07 -- 2e-13 RELATIVE from x*, where the old pin sat
+    // 2e-04 relative away -- and complementarity 3.2282543202213381e-13, nine decades
+    // better. The tolerances are tightened with the values so the pins keep the power
+    // they had: a REGRESSION to the unrepaired arm's -1.310745e-07 (the wrong side of
+    // zero) or 6.311e-01 fails here by many decades either way.
+    EXPECT_NEAR(5.0e-07, ssn.x(0), 1e-15)
         << "OBSERVED. MKL, clang++, Release. x* = 5e-07. The unrepaired arm reported "
            "-1.310745e-07 -- the wrong side of zero.";
-    EXPECT_NEAR(1.0000e-04, ssn_r.complementarity, 1e-8)
-        << "OBSERVED. MKL, clang++, Release. THE REPAIR: the unrepaired arm read 6.311e-01, "
-           "which is 0.63 of the fb_tol * ||lambda||inf = 1 bound. See this test's banner.";
+    EXPECT_LT(ssn_r.complementarity, 1e-10)
+        << "OBSERVED 3.2282543202213381e-13. MKL, clang++, Release. THE REPAIR: the unrepaired "
+           "arm read 6.311e-01, which is 0.63 of the fb_tol * ||lambda||inf = 1 bound.";
     EXPECT_LT(ssn_r.stationarity, 1e-6);
     EXPECT_LT(ssn_r.primal, 1e-9);
     EXPECT_EQ(0, ssn.counters.ssn.ssn_escapes)

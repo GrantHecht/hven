@@ -97,7 +97,8 @@ inline void warmup_sparse_solver() {
 // allocators). VECLIB_MAXIMUM_THREADS must be set before the first BLAS call;
 // it is cached at that point and setenv() is a no-op afterwards.
 inline void ensure_accelerate_initialized(int num_threads) {
-    setenv("VECLIB_MAXIMUM_THREADS", std::to_string(num_threads).c_str(), 1);
+    // A pre-set value wins; num_threads is the default only when the variable is unset.
+    setenv("VECLIB_MAXIMUM_THREADS", std::to_string(num_threads).c_str(), 0);
     // Trigger BLAS/vDSP runtime initialization.
     double x = 1.0, result = 0.0;
     vDSP_dotprD(&x, 1, &x, 1, &result, 1);

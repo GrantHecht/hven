@@ -1,0 +1,10 @@
+PGREP_EMPTY a3-sqp-ipm-hs-B-hs025
+PGREP_NO_UNCOVERED_CELL a3-sqp-ipm-hs-B-hs025 2026-10-28T18:10:29-04:00
+IN_LOCK_PGREP_EMPTY a3-sqp-ipm-hs-B-hs025 2026-10-28T18:10:29-04:00
+FOREGROUND_START a3-sqp-ipm-hs-B-hs025 2026-10-28T18:10:29-04:00
+w2_a4_sweep: sqp-ipm / hven-sqp / hs / run B-hs025 -> /home/ghecht/Projects/hven/.claude/worktrees/agent-afecbe0a5611f9eff/.scratch/a3/train/cells/hven-sqp/sqp-ipm/hs-run-B-hs025 (ceiling 600s) [problems: hs025]
+run_serial: hs/hs025/hven-sqp/sqp-ipm
+hven_bench_cell: hven-sqp/hs025 converged to 32.834999999663594, reference 0 (|err| = 3.283e+01 > 1.000e-06)
+run_serial: REFERENCE FAILURE hs/hs025/hven-sqp/sqp-ipm
+run_serial: 1 cells -> /home/ghecht/Projects/hven/.claude/worktrees/agent-afecbe0a5611f9eff/.scratch/a3/train/cells/hven-sqp/sqp-ipm/hs-run-B-hs025/results.csv
+FOREGROUND_END a3-sqp-ipm-hs-B-hs025 2026-10-28T18:10:29-04:00 rc=1

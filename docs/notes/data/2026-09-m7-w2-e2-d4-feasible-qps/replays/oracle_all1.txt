@@ -1,0 +1,334 @@
+PGREP_EMPTY oracle-all1 2026-09-24T09:02:43-04:00
+FOREGROUND_START oracle-all1 2026-09-24T09:02:43-04:00
+ORACLE dumps/ACOPP57_def/qp0.txt n=128 me=114 mi=160 tr=1 in-cell: status=3 minors=2 facts=1 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=0 deferred=0 undec=0 maxiter=1795
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=-3.1510e+01 max=7.3077e+05 n_neg=1 n_zero=8
+  Z'HZ on null(Ae): dim=14 rank(Ae)=114 eig min=3.8555e-12
+  WALK final: f=0.242644830788 viol eq/in/box=(4.03199675120295e-07, 0.0, 0.0) |W| rows=0 pins=3 me+|W|=117 rank=117 n=128
+    working-set normalized singular values: min=6.180e-03 (smallest 3: [0.00618033 0.0075444  0.01368209])
+    Z'HZ on the final working set's null space: dim=11 eig min=3.0175e-12 (next 5.0439e+01) max=4.4238e+03
+  OPTIMUM (Clarabel) status=Solved f*=0.243742606211 viol=(5.572685240644087e-15, 0.0, 8.4300619039199175e-16) active rows=0 pins=3
+    walk final vs x*: |dx|inf=9.0304e-05  f_walk - f* = -1.0978e-03
+    rows in W not active at x*: [] ; active at x* not in W: []
+    pins in W not at that bound at x*: 0 []
+    bounds active at x* not pinned in W: 0 []
+ORACLE dumps/ACOPP57_def/qp1.txt n=128 me=114 mi=160 tr=0.5 in-cell: status=3 minors=2 facts=1 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=0 deferred=0 undec=0 maxiter=1795
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=-3.1510e+01 max=7.3077e+05 n_neg=1 n_zero=8
+  Z'HZ on null(Ae): dim=14 rank(Ae)=114 eig min=3.8555e-12
+  WALK final: f=0.242644830788 viol eq/in/box=(4.03199675120295e-07, 0.0, 0.0) |W| rows=0 pins=3 me+|W|=117 rank=117 n=128
+    working-set normalized singular values: min=6.180e-03 (smallest 3: [0.00618033 0.0075444  0.01368209])
+    Z'HZ on the final working set's null space: dim=11 eig min=3.0175e-12 (next 5.0439e+01) max=4.4238e+03
+  OPTIMUM (Clarabel) status=Solved f*=0.243742606211 viol=(2.0764623066783436e-15, 0.0, 0.0) active rows=0 pins=3
+    walk final vs x*: |dx|inf=1.0885e-04  f_walk - f* = -1.0978e-03
+    rows in W not active at x*: [] ; active at x* not in W: []
+    pins in W not at that bound at x*: 0 []
+    bounds active at x* not pinned in W: 0 []
+ORACLE dumps/ACOPP57_def/qp2.txt n=128 me=114 mi=160 tr=0.25 in-cell: status=3 minors=2 facts=1 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=0 deferred=0 undec=0 maxiter=1795
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=-3.1510e+01 max=7.3077e+05 n_neg=1 n_zero=8
+  Z'HZ on null(Ae): dim=14 rank(Ae)=114 eig min=3.8555e-12
+  WALK final: f=0.242644830788 viol eq/in/box=(4.03199675120295e-07, 0.0, 0.0) |W| rows=0 pins=3 me+|W|=117 rank=117 n=128
+    working-set normalized singular values: min=6.180e-03 (smallest 3: [0.00618033 0.0075444  0.01368209])
+    Z'HZ on the final working set's null space: dim=11 eig min=3.0175e-12 (next 5.0439e+01) max=4.4238e+03
+  OPTIMUM (Clarabel) status=Solved f*=0.243742606212 viol=(1.1199105970220579e-14, 0.0, 3.3315392580320352e-15) active rows=0 pins=3
+    walk final vs x*: |dx|inf=5.6712e-05  f_walk - f* = -1.0978e-03
+    rows in W not active at x*: [] ; active at x* not in W: []
+    pins in W not at that bound at x*: 0 []
+    bounds active at x* not pinned in W: 0 []
+ORACLE dumps/ACOPP57_def/qp3.txt n=128 me=114 mi=160 tr=0.125 in-cell: status=3 minors=2 facts=1 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=0 deferred=0 undec=0 maxiter=1795
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=-3.1510e+01 max=7.3077e+05 n_neg=1 n_zero=8
+  Z'HZ on null(Ae): dim=14 rank(Ae)=114 eig min=3.8555e-12
+  WALK final: f=0.242644830788 viol eq/in/box=(4.03199675120295e-07, 0.0, 0.0) |W| rows=0 pins=3 me+|W|=117 rank=117 n=128
+    working-set normalized singular values: min=6.180e-03 (smallest 3: [0.00618033 0.0075444  0.01368209])
+    Z'HZ on the final working set's null space: dim=11 eig min=3.0175e-12 (next 5.0439e+01) max=4.4238e+03
+  OPTIMUM (Clarabel) status=Solved f*=0.243742606211 viol=(1.2141140296497962e-14, 0.0, 3.0190419857688237e-15) active rows=0 pins=3
+    walk final vs x*: |dx|inf=6.3616e-05  f_walk - f* = -1.0978e-03
+    rows in W not active at x*: [] ; active at x* not in W: []
+    pins in W not at that bound at x*: 0 []
+    bounds active at x* not pinned in W: 0 []
+ORACLE dumps/ACOPR57_def/qp0.txt n=128 me=114 mi=274 tr=1 in-cell: status=3 minors=51 facts=31 blk_term=1 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=1 exch=0 deferred=0 undec=0 maxiter=2080
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=-2.9360e+02 max=6.9848e+05 n_neg=2 n_zero=9
+  Z'HZ on null(Ae): dim=14 rank(Ae)=114 eig min=4.1090e+00
+  WALK final: f=0 viol eq/in/box=(4.065849729121938, 0.850810143362773, 0.0) |W| rows=14 pins=0 me+|W|=128 rank=126 n=128
+    working-set normalized singular values: min=1.384e-16 (smallest 3: [1.38403357e-16 2.99920523e-12 3.73295021e-05])
+    Z'HZ on the final working set's null space: dim=2 eig min=1.7442e+01 (next 7.8355e+02) max=7.8355e+02
+  OPTIMUM (Clarabel) status=Solved f*=432.674974172 viol=(6.483702463810914e-14, 0.0, 0.0) active rows=4 pins=4
+    walk final vs x*: |dx|inf=8.1251e-01  f_walk - f* = -4.3267e+02
+    rows in W not active at x*: [np.int64(160), np.int64(162), np.int64(164), np.int64(166), np.int64(168), np.int64(170), np.int64(172), np.int64(174), np.int64(176), np.int64(178), np.int64(180), np.int64(182), np.int64(184), np.int64(186)] ; active at x* not in W: [np.int64(161), np.int64(216), np.int64(221), np.int64(268)]
+    pins in W not at that bound at x*: 0 []
+    bounds active at x* not pinned in W: 4 [(117, 'U'), (119, 'U'), (121, 'U'), (124, 'U')]
+ORACLE dumps/ACOPR57_def/qp1.txt n=128 me=114 mi=274 tr=0.5 in-cell: status=3 minors=90 facts=16 blk_term=1 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=1 exch=19 deferred=0 undec=0 maxiter=2080
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=-2.9360e+02 max=6.9848e+05 n_neg=2 n_zero=9
+  Z'HZ on null(Ae): dim=14 rank(Ae)=114 eig min=4.1090e+00
+  WALK final: f=634.431679307 viol eq/in/box=(2.333524693476363e-06, 0.1418133913555576, 0.0) |W| rows=14 pins=0 me+|W|=128 rank=125 n=128
+    working-set normalized singular values: min=1.384e-16 (smallest 3: [1.38403357e-16 1.38403357e-16 1.41986022e-11])
+    Z'HZ on the final working set's null space: dim=3 eig min=1.6971e+01 (next 1.9107e+01) max=8.5712e+02
+  OPTIMUM (Clarabel) status=AlmostSolved f*=501.805584074 viol=(9.425171754173789e-11, 5.452527318539069e-12, 2.3257460765667656e-11) active rows=2 pins=6
+    walk final vs x*: |dx|inf=8.0139e-01  f_walk - f* = 1.3263e+02
+    rows in W not active at x*: [np.int64(160), np.int64(164), np.int64(174), np.int64(182), np.int64(194), np.int64(200), np.int64(202), np.int64(204), np.int64(206), np.int64(208), np.int64(214), np.int64(234), np.int64(240)] ; active at x* not in W: [np.int64(268)]
+    pins in W not at that bound at x*: 0 []
+    bounds active at x* not pinned in W: 6 [(1, 'U'), (117, 'U'), (119, 'U'), (121, 'U'), (124, 'U'), (125, 'U')]
+ORACLE dumps/ACOPR57_def/qp2.txt n=128 me=114 mi=274 tr=0.25 in-cell: status=3 minors=47 facts=4 blk_term=1 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=1 exch=2 deferred=0 undec=0 maxiter=2080
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=-2.9360e+02 max=6.9848e+05 n_neg=2 n_zero=9
+  Z'HZ on null(Ae): dim=14 rank(Ae)=114 eig min=4.1090e+00
+  WALK final: f=0 viol eq/in/box=(4.065849729121938, 0.850810143362773, 0.0) |W| rows=12 pins=2 me+|W|=128 rank=127 n=128
+    working-set normalized singular values: min=1.134e-11 (smallest 3: [1.13401554e-11 1.57362334e-05 4.52025396e-05])
+    Z'HZ on the final working set's null space: dim=1 eig min=1.7444e+01 (next nan) max=1.7444e+01
+  OPTIMUM (Clarabel) status=Solved f*=649.121262712 viol=(1.2816414596272807e-12, 1.7985612998927536e-14, 0.0) active rows=2 pins=9
+    walk final vs x*: |dx|inf=2.5000e-01  f_walk - f* = -6.4912e+02
+    rows in W not active at x*: [np.int64(160), np.int64(162), np.int64(166), np.int64(168), np.int64(170), np.int64(172), np.int64(174), np.int64(176), np.int64(178), np.int64(180), np.int64(184), np.int64(186)] ; active at x* not in W: [np.int64(250), np.int64(268)]
+    pins in W not at that bound at x*: 1 [(120, 'U')]
+    bounds active at x* not pinned in W: 8 [(1, 'U'), (115, 'U'), (116, 'U'), (117, 'U'), (121, 'U'), (122, 'L'), (124, 'U'), (125, 'U')]
+ORACLE dumps/ACOPR57_def/qp3.txt n=299 me=114 mi=274 tr=inf in-cell: status=1 minors=4360 facts=4360 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=1869 deferred=0 undec=0 maxiter=4360
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=-2.9360e+02 max=6.9848e+05 n_neg=2 n_zero=180
+  Z'HZ on null(Ae): dim=185 rank(Ae)=114 eig min=-9.4782e-01
+  WALK final: f=1352734499.6 viol eq/in/box=(5.8366200241799504e-05, 3.029030450246717e-05, 0.0) |W| rows=54 pins=132 me+|W|=300 rank=299 n=299
+    working-set normalized singular values: min=2.077e-03 (smallest 3: [0.00207688 0.00232054 0.00318694])
+  H is not PSD on null(Ae): no global oracle; only local checks
+ORACLE dumps/ACOPR57_def/qp4.txt n=630 me=114 mi=274 tr=0.25 in-cell: status=3 minors=27 facts=126 blk_term=1 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=6 deferred=0 undec=0 maxiter=7100
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=-2.3620e+02 max=1.8767e+02 n_neg=100 n_zero=516
+  Z'HZ on null(Ae): dim=516 rank(Ae)=114 eig min=-8.7736e+01
+  WALK final: f=-158.198311811 viol eq/in/box=(59.76185267949625, 0.4800773415321955, 0.0) |W| rows=57 pins=459 me+|W|=630 rank=626 n=630
+    working-set normalized singular values: min=1.273e-17 (smallest 3: [1.27312973e-17 4.50228078e-17 6.65748767e-17])
+    Z'HZ on the final working set's null space: dim=4 eig min=-5.6595e-17 (next -1.0907e-32) max=9.0096e+00
+  H is not PSD on null(Ae): no global oracle; only local checks
+ORACLE dumps/ACOPR57_def/qp5.txt n=630 me=114 mi=274 tr=0.5 in-cell: status=1 minors=7100 facts=7101 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=0 deferred=0 undec=0 maxiter=7100
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=-3.5380e-04 max=1.3047e-03 n_neg=46 n_zero=516
+  Z'HZ on null(Ae): dim=516 rank(Ae)=114 eig min=-1.8366e-04
+  WALK final: f=4.4805033313e-09 viol eq/in/box=(3.353602118227883e-12, 8.496675585334401e-15, 0.0) |W| rows=3 pins=511 me+|W|=628 rank=628 n=630
+    working-set normalized singular values: min=6.077e-04 (smallest 3: [0.00060774 0.00184739 0.00202719])
+    Z'HZ on the final working set's null space: dim=2 eig min=7.2385e-08 (next 5.4017e-07) max=5.4017e-07
+  H is not PSD on null(Ae): no global oracle; only local checks
+ORACLE dumps/ACOPR57_def/qp6.txt n=630 me=114 mi=274 tr=0.25 in-cell: status=1 minors=7100 facts=7103 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=29 deferred=0 undec=0 maxiter=7100
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=-3.5380e-04 max=1.3047e-03 n_neg=46 n_zero=516
+  Z'HZ on null(Ae): dim=516 rank(Ae)=114 eig min=-1.8366e-04
+  WALK final: f=2.40026120591e-09 viol eq/in/box=(2.0539125955565396e-13, 3.122502256758253e-16, 0.0) |W| rows=1 pins=512 me+|W|=627 rank=627 n=630
+    working-set normalized singular values: min=1.645e-03 (smallest 3: [0.00164541 0.00209335 0.0061059 ])
+    Z'HZ on the final working set's null space: dim=3 eig min=-1.6873e-07 (next 9.2719e-08) max=7.6894e-07
+  H is not PSD on null(Ae): no global oracle; only local checks
+ORACLE dumps/ACOPR57_def/qp7.txt n=630 me=114 mi=274 tr=0.125 in-cell: status=1 minors=7100 facts=7103 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=34 deferred=0 undec=0 maxiter=7100
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=-3.5380e-04 max=1.3047e-03 n_neg=46 n_zero=516
+  Z'HZ on null(Ae): dim=516 rank(Ae)=114 eig min=-1.8366e-04
+  WALK final: f=2.43323010445e-09 viol eq/in/box=(4.206704429243757e-16, 7.979727989493313e-17, 0.0) |W| rows=1 pins=513 me+|W|=628 rank=628 n=630
+    working-set normalized singular values: min=1.338e-03 (smallest 3: [0.00133821 0.00185025 0.00609184])
+    Z'HZ on the final working set's null space: dim=2 eig min=-1.1002e-07 (next 7.6939e-07) max=7.6939e-07
+  H is not PSD on null(Ae): no global oracle; only local checks
+ORACLE dumps/ACOPR57_def/qp8.txt n=630 me=114 mi=274 tr=0.0625 in-cell: status=3 minors=35 facts=40 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=14 deferred=0 undec=0 maxiter=7100
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=-3.5380e-04 max=1.3047e-03 n_neg=46 n_zero=516
+  Z'HZ on null(Ae): dim=516 rank(Ae)=114 eig min=-1.8366e-04
+  WALK final: f=0.0192203501279 viol eq/in/box=(5.221517662690189e-16, 3.469446951953614e-18, 0.0) |W| rows=3 pins=512 me+|W|=629 rank=629 n=630
+    working-set normalized singular values: min=1.286e-03 (smallest 3: [0.00128577 0.00140922 0.00542599])
+    Z'HZ on the final working set's null space: dim=1 eig min=4.8745e-07 (next nan) max=4.8745e-07
+  H is not PSD on null(Ae): no global oracle; only local checks
+ORACLE dumps/DALLASM_def/qp0.txt n=196 me=150 mi=0 tr=1 in-cell: status=3 minors=64 facts=2 blk_term=1 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=1 exch=16 deferred=0 undec=0 maxiter=1960
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.44799999999999973
+  H eig min=0.0000e+00 max=5.4307e+03 n_neg=0 n_zero=24
+  Z'HZ on null(Ae): dim=46 rank(Ae)=150 eig min=1.2652e-01
+  WALK final: f=-905709.825069 viol eq/in/box=(1.5256212366495736, 0.0, 3.0309088572266774e-13) |W| rows=0 pins=46 me+|W|=196 rank=190 n=196
+    working-set normalized singular values: min=2.665e-17 (smallest 3: [2.66457688e-17 3.66282720e-17 1.11323457e-16])
+    Z'HZ on the final working set's null space: dim=6 eig min=6.3691e+01 (next 1.6058e+02) max=5.6266e+02
+  OPTIMUM (Clarabel) status=PrimalInfeasible f*=-0.000213707069123 viol=(1.5599999984425001, 0.0, 0.0) active rows=0 pins=50
+    walk final vs x*: |dx|inf=1.0000e+00  f_walk - f* = -9.0571e+05
+    rows in W not active at x*: [] ; active at x* not in W: []
+    pins in W not at that bound at x*: 46 [(17, 'L'), (19, 'L'), (21, 'U'), (37, 'U'), (46, 'U'), (50, 'U'), (55, 'U'), (67, 'L'), (72, 'U'), (74, 'L'), (75, 'U'), (79, 'U'), (81, 'U'), (83, 'U'), (87, 'U'), (93, 'U'), (94, 'U'), (95, 'L'), (96, 'U'), (98, 'U'), (108, 'U'), (113, 'L'), (114, 'U'), (115, 'U'), (118, 'U'), (119, 'L'), (120, 'U'), (125, 'L'), (127, 'L'), (128, 'U')]
+    bounds active at x* not pinned in W: 28 [(0, 'U'), (1, 'U'), (2, 'U'), (3, 'U'), (12, 'L'), (14, 'U'), (16, 'U'), (25, 'U'), (40, 'U'), (44, 'L'), (59, 'L'), (69, 'L'), (71, 'U'), (88, 'U'), (106, 'L'), (110, 'L'), (123, 'U'), (131, 'L'), (133, 'L'), (137, 'L'), (138, 'U'), (140, 'L'), (147, 'L'), (148, 'U'), (154, 'L'), (156, 'L'), (178, 'U'), (180, 'L')]
+ORACLE dumps/DALLASM_def/qp1.txt n=196 me=150 mi=0 tr=0.5 in-cell: status=3 minors=64 facts=2 blk_term=1 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=1 exch=16 deferred=0 undec=0 maxiter=1960
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=2.370000000000001
+  H eig min=0.0000e+00 max=5.4307e+03 n_neg=0 n_zero=24
+  Z'HZ on null(Ae): dim=46 rank(Ae)=150 eig min=1.2652e-01
+  WALK final: f=-453972.746673 viol eq/in/box=(1.5428155636264473, 0.0, 1.509903313490213e-13) |W| rows=0 pins=46 me+|W|=196 rank=190 n=196
+    working-set normalized singular values: min=2.665e-17 (smallest 3: [2.66457688e-17 3.66282720e-17 1.11323457e-16])
+    Z'HZ on the final working set's null space: dim=6 eig min=6.3691e+01 (next 1.6058e+02) max=5.6266e+02
+  OPTIMUM (Clarabel) status=PrimalInfeasible f*=5.83718336323e-06 viol=(1.5599999996405114, 0.0, 3.166113836358474e-11) active rows=0 pins=50
+    walk final vs x*: |dx|inf=5.0000e-01  f_walk - f* = -4.5397e+05
+    rows in W not active at x*: [] ; active at x* not in W: []
+    pins in W not at that bound at x*: 46 [(17, 'L'), (19, 'L'), (21, 'U'), (37, 'U'), (46, 'U'), (50, 'U'), (55, 'U'), (67, 'L'), (72, 'U'), (74, 'L'), (75, 'U'), (79, 'U'), (81, 'U'), (83, 'U'), (87, 'U'), (93, 'U'), (94, 'U'), (95, 'L'), (96, 'U'), (98, 'U'), (108, 'U'), (113, 'L'), (114, 'U'), (115, 'U'), (118, 'U'), (119, 'L'), (120, 'U'), (125, 'L'), (127, 'L'), (128, 'U')]
+    bounds active at x* not pinned in W: 28 [(0, 'U'), (1, 'U'), (2, 'U'), (3, 'U'), (12, 'L'), (14, 'U'), (16, 'U'), (25, 'U'), (40, 'U'), (44, 'L'), (59, 'L'), (69, 'L'), (71, 'U'), (88, 'U'), (106, 'L'), (110, 'L'), (123, 'U'), (131, 'L'), (133, 'L'), (137, 'L'), (138, 'U'), (140, 'L'), (147, 'L'), (148, 'U'), (154, 'L'), (156, 'L'), (178, 'U'), (180, 'L')]
+ORACLE dumps/DALLASM_def/qp2.txt n=196 me=150 mi=0 tr=0.25 in-cell: status=3 minors=64 facts=2 blk_term=1 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=1 exch=16 deferred=0 undec=0 maxiter=1960
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=6.024000000000003
+  H eig min=0.0000e+00 max=5.4307e+03 n_neg=0 n_zero=24
+  Z'HZ on null(Ae): dim=46 rank(Ae)=150 eig min=1.2652e-01
+  WALK final: f=-227271.767176 viol eq/in/box=(1.5514041169644772, 0.0, 7.605027718682322e-14) |W| rows=0 pins=46 me+|W|=196 rank=190 n=196
+    working-set normalized singular values: min=2.665e-17 (smallest 3: [2.66457688e-17 3.66282720e-17 1.11323457e-16])
+    Z'HZ on the final working set's null space: dim=6 eig min=6.3691e+01 (next 1.6058e+02) max=5.6266e+02
+  OPTIMUM (Clarabel) status=PrimalInfeasible f*=-7.46830973938e-06 viol=(1.5599999996889062, 0.0, 2.9019842700601793e-11) active rows=0 pins=50
+    walk final vs x*: |dx|inf=2.5000e-01  f_walk - f* = -2.2727e+05
+    rows in W not active at x*: [] ; active at x* not in W: []
+    pins in W not at that bound at x*: 46 [(17, 'L'), (19, 'L'), (21, 'U'), (37, 'U'), (46, 'U'), (50, 'U'), (55, 'U'), (67, 'L'), (72, 'U'), (74, 'L'), (75, 'U'), (79, 'U'), (81, 'U'), (83, 'U'), (87, 'U'), (93, 'U'), (94, 'U'), (95, 'L'), (96, 'U'), (98, 'U'), (108, 'U'), (113, 'L'), (114, 'U'), (115, 'U'), (118, 'U'), (119, 'L'), (120, 'U'), (125, 'L'), (127, 'L'), (128, 'U')]
+    bounds active at x* not pinned in W: 28 [(0, 'U'), (1, 'U'), (2, 'U'), (3, 'U'), (12, 'L'), (14, 'U'), (16, 'U'), (25, 'U'), (40, 'U'), (44, 'L'), (59, 'L'), (69, 'L'), (71, 'U'), (88, 'U'), (106, 'L'), (110, 'L'), (123, 'U'), (131, 'L'), (133, 'L'), (137, 'L'), (138, 'U'), (140, 'L'), (147, 'L'), (148, 'U'), (154, 'L'), (156, 'L'), (178, 'U'), (180, 'L')]
+ORACLE dumps/DALLASM_def/qp3.txt n=196 me=150 mi=0 tr=0.125 in-cell: status=3 minors=64 facts=2 blk_term=1 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=1 exch=16 deferred=0 undec=0 maxiter=1960
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=9.073999999999945
+  H eig min=0.0000e+00 max=5.4307e+03 n_neg=0 n_zero=24
+  Z'HZ on null(Ae): dim=46 rank(Ae)=150 eig min=1.2652e-01
+  WALK final: f=-113705.496866 viol eq/in/box=(1.5557025776504612, 0.0, 3.7664316110408436e-14) |W| rows=0 pins=46 me+|W|=196 rank=190 n=196
+    working-set normalized singular values: min=2.665e-17 (smallest 3: [2.66457688e-17 3.66282720e-17 1.11323457e-16])
+    Z'HZ on the final working set's null space: dim=6 eig min=6.3691e+01 (next 1.6058e+02) max=5.6266e+02
+  OPTIMUM (Clarabel) status=PrimalInfeasible f*=3.40838918345e-06 viol=(1.5599999999841005, 0.0, 5.7025061059300266e-12) active rows=0 pins=50
+    walk final vs x*: |dx|inf=1.2500e-01  f_walk - f* = -1.1371e+05
+    rows in W not active at x*: [] ; active at x* not in W: []
+    pins in W not at that bound at x*: 46 [(17, 'L'), (19, 'L'), (21, 'U'), (37, 'U'), (46, 'U'), (50, 'U'), (55, 'U'), (67, 'L'), (72, 'U'), (74, 'L'), (75, 'U'), (79, 'U'), (81, 'U'), (83, 'U'), (87, 'U'), (93, 'U'), (94, 'U'), (95, 'L'), (96, 'U'), (98, 'U'), (108, 'U'), (113, 'L'), (114, 'U'), (115, 'U'), (118, 'U'), (119, 'L'), (120, 'U'), (125, 'L'), (127, 'L'), (128, 'U')]
+    bounds active at x* not pinned in W: 28 [(0, 'U'), (1, 'U'), (2, 'U'), (3, 'U'), (12, 'L'), (14, 'U'), (16, 'U'), (25, 'U'), (40, 'U'), (44, 'L'), (59, 'L'), (69, 'L'), (71, 'U'), (88, 'U'), (106, 'L'), (110, 'L'), (123, 'U'), (131, 'L'), (133, 'L'), (137, 'L'), (138, 'U'), (140, 'L'), (147, 'L'), (148, 'U'), (154, 'L'), (156, 'L'), (178, 'U'), (180, 'L')]
+ORACLE dumps/DALLASM_f4/qp0.txt n=196 me=150 mi=0 tr=1 in-cell: status=3 minors=64 facts=2 blk_term=1 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=1 exch=16 deferred=0 undec=0 maxiter=1960
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.44799999999999973
+  H eig min=0.0000e+00 max=5.4307e+03 n_neg=0 n_zero=24
+  Z'HZ on null(Ae): dim=46 rank(Ae)=150 eig min=1.2652e-01
+  WALK final: f=-905709.825069 viol eq/in/box=(1.5256212366495736, 0.0, 3.0309088572266774e-13) |W| rows=0 pins=46 me+|W|=196 rank=190 n=196
+    working-set normalized singular values: min=2.665e-17 (smallest 3: [2.66457688e-17 3.66282720e-17 1.11323457e-16])
+    Z'HZ on the final working set's null space: dim=6 eig min=6.3691e+01 (next 1.6058e+02) max=5.6266e+02
+  OPTIMUM (Clarabel) status=PrimalInfeasible f*=-0.000213707069123 viol=(1.5599999984425001, 0.0, 0.0) active rows=0 pins=50
+    walk final vs x*: |dx|inf=1.0000e+00  f_walk - f* = -9.0571e+05
+    rows in W not active at x*: [] ; active at x* not in W: []
+    pins in W not at that bound at x*: 46 [(17, 'L'), (19, 'L'), (21, 'U'), (37, 'U'), (46, 'U'), (50, 'U'), (55, 'U'), (67, 'L'), (72, 'U'), (74, 'L'), (75, 'U'), (79, 'U'), (81, 'U'), (83, 'U'), (87, 'U'), (93, 'U'), (94, 'U'), (95, 'L'), (96, 'U'), (98, 'U'), (108, 'U'), (113, 'L'), (114, 'U'), (115, 'U'), (118, 'U'), (119, 'L'), (120, 'U'), (125, 'L'), (127, 'L'), (128, 'U')]
+    bounds active at x* not pinned in W: 28 [(0, 'U'), (1, 'U'), (2, 'U'), (3, 'U'), (12, 'L'), (14, 'U'), (16, 'U'), (25, 'U'), (40, 'U'), (44, 'L'), (59, 'L'), (69, 'L'), (71, 'U'), (88, 'U'), (106, 'L'), (110, 'L'), (123, 'U'), (131, 'L'), (133, 'L'), (137, 'L'), (138, 'U'), (140, 'L'), (147, 'L'), (148, 'U'), (154, 'L'), (156, 'L'), (178, 'U'), (180, 'L')]
+ORACLE dumps/DALLASM_f4/qp1.txt n=215 me=150 mi=0 tr=inf in-cell: status=3 minors=194 facts=370 blk_term=1 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=128 deferred=0 undec=0 maxiter=2150
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=0.0000e+00 max=5.4307e+03 n_neg=0 n_zero=43
+  Z'HZ on null(Ae): dim=65 rank(Ae)=150 eig min=1.5377e-06
+  WALK final: f=-918557.804974 viol eq/in/box=(1.5091659009703673, 0.0, 6.661338147750939e-15) |W| rows=0 pins=65 me+|W|=215 rank=210 n=215
+    working-set normalized singular values: min=1.360e-17 (smallest 3: [1.36015797e-17 6.68134944e-17 9.99200722e-17])
+    Z'HZ on the final working set's null space: dim=5 eig min=2.0395e+01 (next 2.2974e+01) max=2.8973e+02
+  OPTIMUM (Clarabel) status=Solved f*=-923778.932268 viol=(1.1355771042943932e-14, 0.0, 8.525785270057051e-17) active rows=0 pins=136
+    walk final vs x*: |dx|inf=1.1994e+00  f_walk - f* = 5.2211e+03
+    rows in W not active at x*: [] ; active at x* not in W: []
+    pins in W not at that bound at x*: 3 [(202, 'L'), (204, 'L'), (211, 'L')]
+    bounds active at x* not pinned in W: 74 [(0, 'U'), (3, 'L'), (8, 'L'), (10, 'U'), (12, 'U'), (17, 'L'), (21, 'U'), (25, 'L'), (36, 'L'), (37, 'U'), (40, 'L'), (43, 'U'), (44, 'U'), (48, 'L'), (50, 'U'), (53, 'L'), (55, 'U'), (59, 'L'), (61, 'U'), (65, 'U'), (68, 'U'), (70, 'U'), (71, 'L'), (75, 'U'), (78, 'U'), (83, 'U'), (85, 'L'), (86, 'U'), (87, 'U'), (89, 'U')]
+ORACLE dumps/DALLASM_f4/qp2.txt n=196 me=150 mi=0 tr=0.1 in-cell: status=3 minors=64 facts=2 blk_term=1 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=1 exch=16 deferred=0 undec=0 maxiter=1960
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=0.0000e+00 max=5.4307e+03 n_neg=0 n_zero=24
+  Z'HZ on null(Ae): dim=46 rank(Ae)=150 eig min=1.2652e-01
+  WALK final: f=-90976.0850103 viol eq/in/box=(9.345606575619513e-11, 0.0, 3.0309088572266774e-14) |W| rows=0 pins=46 me+|W|=196 rank=190 n=196
+    working-set normalized singular values: min=2.665e-17 (smallest 3: [2.66457688e-17 3.66282720e-17 1.11323457e-16])
+    Z'HZ on the final working set's null space: dim=6 eig min=6.3691e+01 (next 1.6058e+02) max=5.6266e+02
+  OPTIMUM (Clarabel) status=Solved f*=-92643.8350595 viol=(1.2764794301850244e-14, 0.0, 1.1273620925678074e-12) active rows=0 pins=112
+    walk final vs x*: |dx|inf=1.0000e-01  f_walk - f* = 1.6678e+03
+    rows in W not active at x*: [] ; active at x* not in W: []
+    pins in W not at that bound at x*: 1 [(179, 'U')]
+    bounds active at x* not pinned in W: 66 [(0, 'U'), (1, 'U'), (2, 'L'), (3, 'U'), (8, 'L'), (9, 'U'), (10, 'U'), (12, 'U'), (14, 'U'), (16, 'U'), (25, 'L'), (26, 'U'), (40, 'L'), (43, 'U'), (44, 'U'), (45, 'U'), (48, 'L'), (59, 'L'), (61, 'U'), (62, 'L'), (63, 'L'), (68, 'U'), (69, 'U'), (71, 'L'), (73, 'U'), (77, 'U'), (78, 'U'), (84, 'U'), (88, 'L'), (90, 'U')]
+ORACLE dumps/DALLASM_f4/qp3.txt n=196 me=150 mi=0 tr=inf in-cell: status=3 minors=64 facts=2 blk_term=1 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=1 exch=16 deferred=0 undec=0 maxiter=1960
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=0.0000e+00 max=5.4307e+03 n_neg=0 n_zero=24
+  Z'HZ on null(Ae): dim=46 rank(Ae)=150 eig min=1.2652e-01
+  WALK final: f=-90976.0850103 viol eq/in/box=(9.345606575619513e-11, 0.0, 3.0309088572266774e-14) |W| rows=0 pins=46 me+|W|=196 rank=190 n=196
+    working-set normalized singular values: min=2.665e-17 (smallest 3: [2.66457688e-17 3.66282720e-17 1.11323457e-16])
+    Z'HZ on the final working set's null space: dim=6 eig min=6.3691e+01 (next 1.6058e+02) max=5.6266e+02
+  OPTIMUM (Clarabel) status=Solved f*=-92643.8350595 viol=(1.2764794301850244e-14, 0.0, 1.1273620925678074e-12) active rows=0 pins=112
+    walk final vs x*: |dx|inf=1.0000e-01  f_walk - f* = 1.6678e+03
+    rows in W not active at x*: [] ; active at x* not in W: []
+    pins in W not at that bound at x*: 1 [(179, 'U')]
+    bounds active at x* not pinned in W: 66 [(0, 'U'), (1, 'U'), (2, 'L'), (3, 'U'), (8, 'L'), (9, 'U'), (10, 'U'), (12, 'U'), (14, 'U'), (16, 'U'), (25, 'L'), (26, 'U'), (40, 'L'), (43, 'U'), (44, 'U'), (45, 'U'), (48, 'L'), (59, 'L'), (61, 'U'), (62, 'L'), (63, 'L'), (68, 'U'), (69, 'U'), (71, 'L'), (73, 'U'), (77, 'U'), (78, 'U'), (84, 'U'), (88, 'L'), (90, 'U')]
+ORACLE dumps/SAWPATH_def/qp0.txt n=585 me=578 mi=196 tr=inf in-cell: status=3 minors=6 facts=10 blk_term=0 cert=0 cert_rej=1 zmcap=0 zmexh=0 retreats=0 exch=0 deferred=1 undec=1 maxiter=6830
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=0.0000e+00 max=2.0000e+00 n_neg=0 n_zero=389
+  Z'HZ on null(Ae): dim=155 rank(Ae)=430 eig min=-1.1151e-15
+  WALK final: f=-592.348096927 viol eq/in/box=(2.558849108841805, 0.0, 0.0) |W| rows=0 pins=7 me+|W|=585 rank=437 n=585
+    working-set normalized singular values: min=1.083e-13 (smallest 3: [1.08346980e-13 5.02366839e-12 1.67203348e-11])
+    Z'HZ on the final working set's null space: dim=148 eig min=-5.1891e-16 (next -9.2728e-17) max=2.0000e+00
+  OPTIMUM (Clarabel) status=AlmostSolved f*=-388.869265564 viol=(0.0007979126510434531, 0.0, 7.653433442555979e-12) active rows=0 pins=10
+    walk final vs x*: |dx|inf=8.0364e-01  f_walk - f* = -2.0348e+02
+    rows in W not active at x*: [] ; active at x* not in W: []
+    pins in W not at that bound at x*: 4 [(11, 'U'), (529, 'U'), (583, 'L'), (584, 'L')]
+    bounds active at x* not pinned in W: 7 [(29, 'U'), (32, 'U'), (511, 'U'), (514, 'U'), (517, 'U'), (520, 'U'), (523, 'U')]
+ORACLE dumps/SAWPATH_def/qp1.txt n=1937 me=578 mi=196 tr=inf in-cell: status=1 minors=20350 facts=20359 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=513 deferred=9236 undec=193154 maxiter=20350
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=0.0000e+00 max=0.0000e+00 n_neg=0 n_zero=1937
+  Z'HZ on null(Ae): dim=1359 rank(Ae)=578 eig min=0.0000e+00
+  WALK final: f=157.020712292 viol eq/in/box=(0.013089015923699484, 0.0, 3.059298225127169e-14) |W| rows=0 pins=1359 me+|W|=1937 rank=1860 n=1937
+    working-set normalized singular values: min=2.407e-13 (smallest 3: [2.40673805e-13 1.92704375e-12 7.38692807e-12])
+    Z'HZ on the final working set's null space: dim=77 eig min=0.0000e+00 (next 0.0000e+00) max=0.0000e+00
+  OPTIMUM (Clarabel) status=AlmostSolved f*=156.603044384 viol=(9.975874586224166e-07, 0.0, 9.37576878114188e-10) active rows=0 pins=1373
+    walk final vs x*: |dx|inf=2.0000e+00  f_walk - f* = 4.1767e-01
+    rows in W not active at x*: [] ; active at x* not in W: []
+    pins in W not at that bound at x*: 93 [(271, 'L'), (274, 'L'), (277, 'L'), (280, 'L'), (283, 'L'), (286, 'L'), (289, 'L'), (292, 'L'), (295, 'L'), (298, 'L'), (301, 'L'), (304, 'L'), (307, 'L'), (310, 'L'), (313, 'L'), (316, 'L'), (319, 'L'), (322, 'L'), (325, 'L'), (328, 'L'), (331, 'L'), (334, 'L'), (337, 'L'), (340, 'L'), (343, 'L'), (346, 'L'), (349, 'L'), (352, 'L'), (355, 'L'), (358, 'L')]
+    bounds active at x* not pinned in W: 94 [(8, 'U'), (235, 'L'), (238, 'L'), (577, 'L'), (580, 'L'), (885, 'L'), (888, 'L'), (891, 'L'), (894, 'L'), (897, 'L'), (900, 'L'), (903, 'L'), (906, 'L'), (909, 'L'), (912, 'L'), (915, 'L'), (918, 'L'), (921, 'L'), (924, 'L'), (930, 'L'), (933, 'L'), (936, 'L'), (939, 'L'), (954, 'L'), (960, 'L'), (978, 'L'), (1008, 'L'), (1047, 'L'), (1050, 'L'), (1053, 'L')]
+ORACLE dumps/SAWPATH_def/qp2.txt n=585 me=578 mi=196 tr=inf in-cell: status=3 minors=6 facts=10 blk_term=0 cert=0 cert_rej=1 zmcap=0 zmexh=0 retreats=0 exch=0 deferred=1 undec=1 maxiter=6830
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=0.0000e+00 max=2.0000e+00 n_neg=0 n_zero=389
+  Z'HZ on null(Ae): dim=155 rank(Ae)=430 eig min=-1.1151e-15
+  WALK final: f=-77.5858516283 viol eq/in/box=(3.4562849108514824, 0.0, 0.0) |W| rows=0 pins=7 me+|W|=585 rank=437 n=585
+    working-set normalized singular values: min=1.083e-13 (smallest 3: [1.08346980e-13 5.02366839e-12 1.67203348e-11])
+    Z'HZ on the final working set's null space: dim=148 eig min=-5.1891e-16 (next -9.2728e-17) max=2.0000e+00
+  OPTIMUM (Clarabel) status=AlmostSolved f*=252.786740016 viol=(3.0788745164489484e-10, 0.0, 4.440892098500626e-16) active rows=0 pins=198
+    walk final vs x*: |dx|inf=9.7188e-01  f_walk - f* = -3.3037e+02
+    rows in W not active at x*: [] ; active at x* not in W: []
+    pins in W not at that bound at x*: 2 [(583, 'L'), (584, 'L')]
+    bounds active at x* not pinned in W: 193 [(0, 'U'), (8, 'U'), (14, 'U'), (17, 'U'), (20, 'U'), (23, 'U'), (26, 'U'), (29, 'U'), (32, 'U'), (35, 'U'), (38, 'U'), (41, 'U'), (44, 'U'), (47, 'U'), (50, 'U'), (53, 'U'), (56, 'U'), (59, 'U'), (62, 'U'), (65, 'U'), (67, 'U'), (69, 'U'), (71, 'U'), (73, 'U'), (75, 'U'), (77, 'U'), (79, 'U'), (81, 'U'), (83, 'U'), (85, 'U')]
+ORACLE dumps/STEENBRB_def/qp0.txt n=492 me=96 mi=0 tr=inf in-cell: status=3 minors=908 facts=990 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=1 retreats=0 exch=119 deferred=1 undec=1 maxiter=4920
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=-6.0817e-01 max=1.1231e+05 n_neg=36 n_zero=420
+  Z'HZ on null(Ae): dim=396 rank(Ae)=96 eig min=-6.0817e-01
+  WALK final: f=1974601.34679 viol eq/in/box=(4.547473508864641e-13, 0.0, 6.2727600891321345e-15) |W| rows=0 pins=360 me+|W|=456 rank=456 n=492
+    working-set normalized singular values: min=1.093e-01 (smallest 3: [0.10934221 0.13035387 0.15792489])
+    Z'HZ on the final working set's null space: dim=36 eig min=1.5551e+04 (next 1.5551e+04) max=1.0367e+05
+  H is not PSD on null(Ae): no global oracle; only local checks
+ORACLE dumps/STEENBRB_def/qp1.txt n=468 me=96 mi=0 tr=0.1 in-cell: status=1 minors=4680 facts=4570 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=378 deferred=1 undec=3 maxiter=4680
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=-3.1623e+00 max=5.1707e+14 n_neg=0 n_zero=438
+  Z'HZ on null(Ae): dim=372 rank(Ae)=96 eig min=-3.1623e+00
+  WALK final: f=-990641581607 viol eq/in/box=(8.009226114832018e-07, 0.0, 9.819332846827677e-10) |W| rows=0 pins=346 me+|W|=442 rank=437 n=468
+    working-set normalized singular values: min=9.912e-17 (smallest 3: [9.91191705e-17 1.15431427e-16 2.59989684e-16])
+    Z'HZ on the final working set's null space: dim=31 eig min=4.8362e+02 (next 1.2412e+08) max=5.1707e+14
+  OPTIMUM (Clarabel) status=Solved f*=-991055299849 viol=(3.3642153613278056e-12, 0.0, 5.513519037136791e-13) active rows=0 pins=379
+    walk final vs x*: |dx|inf=2.0000e-01  f_walk - f* = 4.1372e+08
+    rows in W not active at x*: [] ; active at x* not in W: []
+    pins in W not at that bound at x*: 81 [(3, 'L'), (13, 'U'), (35, 'L'), (42, 'L'), (48, 'L'), (58, 'L'), (62, 'L'), (65, 'L'), (75, 'L'), (91, 'U'), (95, 'U'), (97, 'U'), (119, 'L'), (149, 'L'), (155, 'U'), (159, 'U'), (177, 'U'), (190, 'L'), (214, 'L'), (216, 'U'), (234, 'U'), (235, 'U'), (236, 'L'), (243, 'L'), (249, 'L'), (250, 'L'), (253, 'L'), (256, 'L'), (265, 'L'), (267, 'L')]
+    bounds active at x* not pinned in W: 70 [(7, 'U'), (21, 'L'), (23, 'L'), (28, 'U'), (30, 'U'), (37, 'U'), (38, 'U'), (46, 'U'), (60, 'U'), (66, 'L'), (69, 'U'), (73, 'U'), (82, 'L'), (99, 'L'), (102, 'L'), (106, 'U'), (108, 'U'), (114, 'L'), (123, 'U'), (126, 'L'), (132, 'L'), (139, 'L'), (142, 'L'), (145, 'L'), (147, 'U'), (153, 'L'), (162, 'L'), (164, 'L'), (166, 'L'), (173, 'L')]
+ORACLE dumps/STEENBRB_def/qp2.txt n=468 me=96 mi=0 tr=0.05 in-cell: status=1 minors=4680 facts=4695 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=881 deferred=2 undec=5 maxiter=4680
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=-3.1623e+00 max=5.1707e+14 n_neg=0 n_zero=438
+  Z'HZ on null(Ae): dim=372 rank(Ae)=96 eig min=-3.1623e+00
+  WALK final: f=-990507753116 viol eq/in/box=(9.685309548195736e-09, 0.0, 3.4976188612034775e-13) |W| rows=0 pins=348 me+|W|=444 rank=436 n=468
+    working-set normalized singular values: min=7.234e-17 (smallest 3: [7.23392798e-17 8.90264496e-17 1.10206263e-16])
+    Z'HZ on the final working set's null space: dim=32 eig min=-3.5216e-03 (next 4.8363e+02) max=5.1707e+14
+  OPTIMUM (Clarabel) status=Solved f*=-990729858499 viol=(1.0354880721329813e-11, 0.0, 6.992202532579666e-13) active rows=0 pins=379
+    walk final vs x*: |dx|inf=1.0000e-01  f_walk - f* = 2.2211e+08
+    rows in W not active at x*: [] ; active at x* not in W: []
+    pins in W not at that bound at x*: 90 [(7, 'L'), (16, 'U'), (21, 'U'), (30, 'L'), (32, 'L'), (35, 'L'), (38, 'L'), (42, 'L'), (45, 'U'), (48, 'L'), (58, 'L'), (60, 'L'), (69, 'L'), (73, 'L'), (75, 'L'), (91, 'U'), (95, 'U'), (99, 'U'), (108, 'L'), (110, 'U'), (119, 'L'), (123, 'L'), (145, 'U'), (147, 'L'), (173, 'U'), (190, 'L'), (214, 'L'), (216, 'U'), (218, 'L'), (234, 'U')]
+    bounds active at x* not pinned in W: 73 [(3, 'U'), (5, 'U'), (8, 'L'), (11, 'L'), (14, 'U'), (22, 'L'), (28, 'U'), (33, 'L'), (41, 'U'), (43, 'L'), (46, 'U'), (50, 'L'), (54, 'L'), (65, 'U'), (82, 'L'), (93, 'L'), (102, 'L'), (115, 'L'), (134, 'L'), (139, 'L'), (142, 'L'), (150, 'L'), (155, 'L'), (159, 'L'), (164, 'L'), (166, 'L'), (175, 'L'), (179, 'U'), (188, 'L'), (192, 'L')]
+ORACLE dumps/STEENBRB_def/qp3.txt n=468 me=96 mi=0 tr=0.025 in-cell: status=3 minors=1222 facts=1230 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=1107 deferred=0 undec=1 maxiter=4680
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=-3.1623e+00 max=5.1707e+14 n_neg=0 n_zero=438
+  Z'HZ on null(Ae): dim=372 rank(Ae)=96 eig min=-3.1623e+00
+  WALK final: f=nan viol eq/in/box=(nan, 0.0, 0.0) |W| rows=0 pins=372 me+|W|=468 rank=464 n=468
+    working-set normalized singular values: min=8.261e-18 (smallest 3: [8.26087575e-18 5.21079638e-17 5.77846423e-17])
+    Z'HZ on the final working set's null space: dim=4 eig min=4.5346e-18 (next 7.7130e-16) max=1.6200e+02
+  OPTIMUM (Clarabel) status=Solved f*=-928748180929 viol=(1.390471124827636e-11, 0.0, 1.7420509479393331e-12) active rows=0 pins=409
+    walk final vs x*: |dx|inf=nan  f_walk - f* = nan
+    rows in W not active at x*: [] ; active at x* not in W: []
+    pins in W not at that bound at x*: 26 [(136, 'L'), (212, 'L'), (214, 'L'), (216, 'L'), (218, 'L'), (234, 'U'), (235, 'U'), (237, 'L'), (252, 'L'), (256, 'L'), (265, 'L'), (267, 'L'), (269, 'L'), (271, 'L'), (312, 'U'), (313, 'U'), (317, 'L'), (327, 'L'), (329, 'L'), (390, 'U'), (391, 'U'), (392, 'L'), (396, 'L'), (407, 'L'), (411, 'L'), (415, 'L')]
+    bounds active at x* not pinned in W: 58 [(7, 'U'), (8, 'L'), (10, 'L'), (21, 'L'), (23, 'L'), (24, 'L'), (30, 'U'), (38, 'U'), (42, 'U'), (51, 'L'), (54, 'L'), (56, 'L'), (60, 'U'), (62, 'U'), (65, 'U'), (66, 'L'), (69, 'U'), (71, 'L'), (73, 'U'), (75, 'U'), (99, 'L'), (106, 'U'), (108, 'U'), (117, 'L'), (119, 'U'), (147, 'U'), (179, 'U'), (185, 'U'), (192, 'L'), (196, 'L')]
+ORACLE dumps/YORKNET_def/qp0.txt n=508 me=256 mi=0 tr=inf in-cell: status=3 minors=242 facts=247 blk_term=1 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=0 deferred=0 undec=0 maxiter=5080
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=0.0000e+00 max=1.4940e+02 n_neg=0 n_zero=493
+  Z'HZ on null(Ae): dim=252 rank(Ae)=256 eig min=-6.9119e-14
+  WALK final: f=-188.6 viol eq/in/box=(1612.2498, 0.0, 0.0) |W| rows=0 pins=245 me+|W|=501 rank=501 n=508
+    working-set normalized singular values: min=1.132e-05 (smallest 3: [1.13154119e-05 1.13212905e-05 1.13285695e-05])
+    Z'HZ on the final working set's null space: dim=7 eig min=-4.8904e-15 (next 3.7689e-15) max=1.4939e+02
+  OPTIMUM (Clarabel) status=Solved f*=1964037.12937 viol=(8.162359677044151e-13, 0.0, 0.0) active rows=0 pins=249
+    walk final vs x*: |dx|inf=2.0000e+00  f_walk - f* = -1.9642e+06
+    rows in W not active at x*: [] ; active at x* not in W: []
+    pins in W not at that bound at x*: 212 [(0, 'L'), (13, 'L'), (14, 'L'), (17, 'L'), (18, 'L'), (20, 'L'), (22, 'L'), (55, 'L'), (56, 'L'), (57, 'L'), (59, 'L'), (72, 'U'), (94, 'L'), (95, 'L'), (96, 'L'), (98, 'L'), (111, 'U'), (133, 'L'), (134, 'L'), (135, 'L'), (137, 'L'), (150, 'U'), (172, 'L'), (173, 'L'), (176, 'L'), (180, 'L'), (211, 'L'), (212, 'L'), (215, 'L'), (219, 'L')]
+    bounds active at x* not pinned in W: 202 [(7, 'U'), (8, 'U'), (9, 'U'), (10, 'U'), (11, 'U'), (12, 'U'), (19, 'U'), (23, 'U'), (25, 'U'), (28, 'L'), (29, 'U'), (30, 'U'), (31, 'U'), (32, 'L'), (34, 'L'), (35, 'L'), (36, 'L'), (37, 'L'), (38, 'L'), (39, 'L'), (40, 'L'), (41, 'L'), (42, 'L'), (43, 'L'), (44, 'L'), (45, 'L'), (46, 'U'), (47, 'L'), (48, 'U'), (49, 'U')]
+ORACLE dumps/YORKNET_def/qp1.txt n=900 me=256 mi=0 tr=inf in-cell: status=3 minors=594 facts=595 blk_term=1 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=359 deferred=0 undec=0 maxiter=9000
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=0.0000e+00 max=0.0000e+00 n_neg=0 n_zero=900
+  Z'HZ on null(Ae): dim=644 rank(Ae)=256 eig min=0.0000e+00
+  WALK final: f=21565.8126714 viol eq/in/box=(3592.2524682066705, 0.0, 0.0) |W| rows=0 pins=644 me+|W|=900 rank=899 n=900
+    working-set normalized singular values: min=5.470e-15 (smallest 3: [5.46968045e-15 9.26821572e-04 1.64045848e-03])
+    Z'HZ on the final working set's null space: dim=1 eig min=0.0000e+00 (next nan) max=0.0000e+00
+  OPTIMUM (Clarabel) status=Solved f*=664247.80146 viol=(2.016601254609145e-12, 0.0, 6.27520257978631e-12) active rows=0 pins=669
+    walk final vs x*: |dx|inf=2.0000e+00  f_walk - f* = -6.4268e+05
+    rows in W not active at x*: [] ; active at x* not in W: []
+    pins in W not at that bound at x*: 146 [(1, 'L'), (2, 'L'), (7, 'L'), (9, 'L'), (11, 'L'), (20, 'L'), (22, 'L'), (29, 'L'), (32, 'L'), (33, 'L'), (39, 'L'), (40, 'L'), (47, 'L'), (49, 'L'), (50, 'L'), (51, 'L'), (59, 'L'), (61, 'L'), (67, 'L'), (68, 'L'), (71, 'L'), (72, 'L'), (78, 'L'), (79, 'L'), (86, 'L'), (88, 'L'), (89, 'L'), (90, 'L'), (98, 'L'), (100, 'L')]
+    bounds active at x* not pinned in W: 130 [(0, 'U'), (5, 'L'), (8, 'U'), (12, 'U'), (14, 'L'), (19, 'U'), (28, 'L'), (35, 'L'), (37, 'L'), (38, 'L'), (53, 'L'), (54, 'L'), (58, 'U'), (69, 'U'), (74, 'L'), (76, 'L'), (83, 'U'), (92, 'L'), (93, 'L'), (94, 'L'), (97, 'U'), (107, 'U'), (113, 'L'), (115, 'L'), (122, 'U'), (131, 'L'), (132, 'L'), (136, 'U'), (152, 'L'), (154, 'L')]
+FOREGROUND_END oracle-all1 2026-09-24T09:02:59-04:00 rc=0

@@ -1,0 +1,347 @@
+{
+  "cutest": {
+    "hven-sqp": {
+      "_best": "sqp-ipm-skip1",
+      "default": {
+        "b_cells": [
+          "ACOPP118",
+          "ACOPP57",
+          "ACOPR118",
+          "ACOPR57",
+          "BIGBANK",
+          "DALLASM",
+          "NET3",
+          "READING6",
+          "SAWPATH",
+          "SMBANK",
+          "STEENBRB",
+          "STEENBRC",
+          "STEENBRD",
+          "STEENBRE",
+          "STEENBRG",
+          "ZAMB2-8"
+        ],
+        "b_size": 16,
+        "counts": {
+          "dnf_budget": 0,
+          "dnf_wall": 5,
+          "error": 2,
+          "infeasible": 0,
+          "optimal": 16
+        },
+        "default_median_cost": 207.69594794439516,
+        "median_cost": 207.69594794439516,
+        "verdict": "default"
+      },
+      "sqp-ipm-skip1": {
+        "b_cells": [
+          "ACOPP118",
+          "ACOPP57",
+          "ACOPR118",
+          "ACOPR57",
+          "BIGBANK",
+          "DALLASM",
+          "NET3",
+          "READING6",
+          "SAWPATH",
+          "SMBANK",
+          "STEENBRB",
+          "STEENBRC",
+          "STEENBRD",
+          "STEENBRE",
+          "STEENBRG",
+          "ZAMB2-8"
+        ],
+        "b_size": 16,
+        "counts": {
+          "dnf_budget": 0,
+          "dnf_wall": 5,
+          "error": 2,
+          "infeasible": 0,
+          "optimal": 16
+        },
+        "default_median_cost": 207.69594794439516,
+        "median_cost": 207.67553978112986,
+        "verdict": "WIN"
+      },
+      "sqp-ipm-skipnever": {
+        "b_cells": [
+          "ACOPP118",
+          "ACOPP57",
+          "ACOPR118",
+          "ACOPR57",
+          "BIGBANK",
+          "DALLASM",
+          "NET3",
+          "READING6",
+          "SAWPATH",
+          "SMBANK",
+          "STEENBRB",
+          "STEENBRC",
+          "STEENBRD",
+          "STEENBRE",
+          "STEENBRG",
+          "ZAMB2-8"
+        ],
+        "b_size": 16,
+        "counts": {
+          "dnf_budget": 0,
+          "dnf_wall": 5,
+          "error": 2,
+          "infeasible": 0,
+          "optimal": 16
+        },
+        "default_median_cost": 207.69594794439516,
+        "median_cost": 207.81159420289856,
+        "verdict": "lose: median cost 207.812 > 207.696"
+      },
+      "sqp-ipm-slack1": {
+        "b_cells": [
+          "ACOPP118",
+          "ACOPP57",
+          "ACOPR118",
+          "ACOPR57",
+          "BIGBANK",
+          "DALLASM",
+          "NET3",
+          "READING6",
+          "SAWPATH",
+          "SMBANK",
+          "STEENBRB",
+          "STEENBRC",
+          "STEENBRD",
+          "STEENBRE",
+          "STEENBRG",
+          "ZAMB2-8"
+        ],
+        "b_size": 16,
+        "counts": {
+          "dnf_budget": 0,
+          "dnf_wall": 6,
+          "error": 1,
+          "infeasible": 0,
+          "optimal": 16
+        },
+        "default_median_cost": 207.69594794439516,
+        "median_cost": 207.69594794439516,
+        "verdict": "tie (default stands)"
+      },
+      "sqp-ipm-slack1e3": {
+        "b_cells": [
+          "ACOPP118",
+          "ACOPP57",
+          "ACOPR118",
+          "ACOPR57",
+          "BIGBANK",
+          "DALLASM",
+          "NET3",
+          "READING6",
+          "SAWPATH",
+          "SMBANK",
+          "STEENBRB",
+          "STEENBRC",
+          "STEENBRD",
+          "STEENBRE",
+          "STEENBRG",
+          "ZAMB2-8"
+        ],
+        "b_size": 16,
+        "counts": {
+          "dnf_budget": 0,
+          "dnf_wall": 6,
+          "error": 1,
+          "infeasible": 0,
+          "optimal": 16
+        },
+        "default_median_cost": 207.69594794439516,
+        "median_cost": 207.69594794439516,
+        "verdict": "tie (default stands)"
+      }
+    }
+  },
+  "hs": {
+    "hven-sqp": {
+      "_best": "sqp-ipm-slack1e3",
+      "default": {
+        "b_cells": [
+          "hs003",
+          "hs005",
+          "hs006",
+          "hs007",
+          "hs010",
+          "hs011",
+          "hs012",
+          "hs014",
+          "hs022",
+          "hs025",
+          "hs026",
+          "hs027",
+          "hs028",
+          "hs030",
+          "hs033",
+          "hs035",
+          "hs039",
+          "hs043",
+          "hs045",
+          "hs077",
+          "hs079"
+        ],
+        "b_size": 21,
+        "counts": {
+          "dnf_budget": 0,
+          "dnf_wall": 0,
+          "error": 0,
+          "infeasible": 0,
+          "optimal": 21
+        },
+        "default_median_cost": 10.666666666666666,
+        "median_cost": 10.666666666666666,
+        "verdict": "default"
+      },
+      "sqp-ipm-skip1": {
+        "b_cells": [
+          "hs003",
+          "hs005",
+          "hs006",
+          "hs007",
+          "hs010",
+          "hs011",
+          "hs012",
+          "hs014",
+          "hs022",
+          "hs025",
+          "hs026",
+          "hs027",
+          "hs028",
+          "hs030",
+          "hs033",
+          "hs035",
+          "hs039",
+          "hs043",
+          "hs045",
+          "hs077",
+          "hs079"
+        ],
+        "b_size": 21,
+        "counts": {
+          "dnf_budget": 0,
+          "dnf_wall": 0,
+          "error": 0,
+          "infeasible": 0,
+          "optimal": 21
+        },
+        "default_median_cost": 10.666666666666666,
+        "median_cost": 10.666666666666666,
+        "verdict": "tie (default stands)"
+      },
+      "sqp-ipm-skipnever": {
+        "b_cells": [
+          "hs003",
+          "hs005",
+          "hs006",
+          "hs007",
+          "hs010",
+          "hs011",
+          "hs012",
+          "hs014",
+          "hs022",
+          "hs025",
+          "hs026",
+          "hs027",
+          "hs028",
+          "hs030",
+          "hs033",
+          "hs035",
+          "hs039",
+          "hs043",
+          "hs045",
+          "hs077",
+          "hs079"
+        ],
+        "b_size": 21,
+        "counts": {
+          "dnf_budget": 0,
+          "dnf_wall": 0,
+          "error": 0,
+          "infeasible": 0,
+          "optimal": 21
+        },
+        "default_median_cost": 10.666666666666666,
+        "median_cost": 10.666666666666666,
+        "verdict": "tie (default stands)"
+      },
+      "sqp-ipm-slack1": {
+        "b_cells": [
+          "hs003",
+          "hs005",
+          "hs006",
+          "hs007",
+          "hs010",
+          "hs011",
+          "hs012",
+          "hs014",
+          "hs022",
+          "hs025",
+          "hs026",
+          "hs027",
+          "hs028",
+          "hs030",
+          "hs033",
+          "hs035",
+          "hs039",
+          "hs043",
+          "hs045",
+          "hs077",
+          "hs079"
+        ],
+        "b_size": 21,
+        "counts": {
+          "dnf_budget": 0,
+          "dnf_wall": 0,
+          "error": 0,
+          "infeasible": 0,
+          "optimal": 21
+        },
+        "default_median_cost": 10.666666666666666,
+        "median_cost": 11.625,
+        "verdict": "lose: median cost 11.625 > 10.6667"
+      },
+      "sqp-ipm-slack1e3": {
+        "b_cells": [
+          "hs003",
+          "hs005",
+          "hs006",
+          "hs007",
+          "hs010",
+          "hs011",
+          "hs012",
+          "hs014",
+          "hs022",
+          "hs025",
+          "hs026",
+          "hs027",
+          "hs028",
+          "hs030",
+          "hs033",
+          "hs035",
+          "hs039",
+          "hs043",
+          "hs045",
+          "hs077",
+          "hs079"
+        ],
+        "b_size": 21,
+        "counts": {
+          "dnf_budget": 0,
+          "dnf_wall": 0,
+          "error": 0,
+          "infeasible": 0,
+          "optimal": 21
+        },
+        "default_median_cost": 10.666666666666666,
+        "median_cost": 9.88888888888889,
+        "verdict": "WIN"
+      }
+    }
+  }
+}

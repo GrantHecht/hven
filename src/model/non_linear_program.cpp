@@ -2355,7 +2355,6 @@ void hven::solvers::NonLinearProgram::first_order_kkt_pass(
 // is why eliminated variables' contributions to constraint values and to the
 // surviving variables' derivatives need no handling of their own.
 
-
 void hven::solvers::NonLinearProgram::eval_rhs(double ObjScale, ConstEigenRef<VectorXd> X,
                                                ConstEigenRef<VectorXd> LE,
                                                ConstEigenRef<VectorXd> LI, double &val,

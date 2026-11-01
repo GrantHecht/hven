@@ -1,0 +1,62 @@
+THE STEENBRC BUDGET-LADDER CONTROL, against the A-SQP read's own table.
+
+Instrument: the harness's OWN `hven_bench_cell`, built from the harness source at
+348932f (the sha run-A's counters header names) against the harness's OWN pinned
+install for hven 3904a477 -- the pair that produced the read's rows. The binary
+stamps hven_pin_sha=3904a477771524b85b34678fb7d2ff55dd4768f1, which every leg's
+own output carries.
+
+Compared at the digits the read PRINTED; the control's full value is beside it.
+
+--- --budget-iters 2
+    majors  read=2            control=2                        MATCH
+    resto   read=0            control=0                        MATCH
+    f       read=4528.31      control=4528.3061353626763       MATCH
+    ce      read=10000        control=10000                    MATCH
+--- --budget-iters 3
+    majors  read=2            control=2                        MATCH
+    resto   read=1            control=1                        MATCH
+    f       read=4610.23      control=4610.2320318680231       MATCH
+    ce      read=9999.5       control=9999.5                   MATCH
+--- --budget-iters 6
+    majors  read=2            control=2                        MATCH
+    resto   read=4            control=4                        MATCH
+    f       read=2.0102e+06   control=2010246.1938134376       MATCH
+    ce      read=9992.5       control=9992.5                   MATCH
+--- --budget-iters 12
+    majors  read=2            control=2                        MATCH
+    resto   read=10           control=10                       MATCH
+    f       read=2.1982e+11   control=219821589051.01547       MATCH
+    ce      read=9488.5       control=9488.5000000000036       MATCH
+--- --budget-iters 17
+    majors  read=2            control=2                        MATCH
+    resto   read=15           control=15                       MATCH
+    f       read=7.0385e+13   control=70384577428087.656       MATCH
+    ce      read=1808.5       control=1808.5000000000041       MATCH
+--- --budget-iters 0
+    majors  read=4            control=4                        MATCH
+    resto   read=16           control=16                       MATCH
+    f       read=1.8345e+14   control=183453796271334.12       MATCH
+    ce      read=9.09e-13     control=9.0949470177292824e-13   MATCH
+
+READ-TABLE CELLS COMPARED: 24   DIFFERING: 0
+
+--- THE UNCAPPED LEG AGAINST H3 run-A, AT FULL PRECISION (a byte comparison)
+    status                     control=numerical_error          run-A=numerical_error          IDENTICAL
+    outcome                    control=error                    run-A=error                    IDENTICAL
+    objective                  control=183453796271334.12       run-A=183453796271334.12       IDENTICAL
+    factorizations             control=32137                    run-A=32137                    IDENTICAL
+    iterations                 control=4                        run-A=4                        IDENTICAL
+    side.major_iters           control=4                        run-A=4                        IDENTICAL
+    side.qp_minor_iters        control=24524                    run-A=24524                    IDENTICAL
+    side.restoration_iters     control=16                       run-A=16                       IDENTICAL
+    side.steps_accepted        control=0                        run-A=0                        IDENTICAL
+    side.rejected_steps        control=2                        run-A=2                        IDENTICAL
+    side.elastic_activations   control=1                        run-A=1                        IDENTICAL
+    side.symbolic_analyses     control=4                        run-A=4                        IDENTICAL
+    side.border_refine_steps   control=761                      run-A=761                      IDENTICAL
+    side.sqp_stationarity      control=1567584111728531.2       run-A=1567584111728531.2       IDENTICAL
+    side.sqp_feasibility       control=9.0949470177292824e-13   run-A=9.0949470177292824e-13   IDENTICAL
+    kkt_primal_eq              control=9.0949470177292824e-13   run-A=9.0949470177292824e-13   IDENTICAL
+
+FULL-PRECISION COLUMNS COMPARED: 16   IDENTICAL: 16   DIFFERING: 0

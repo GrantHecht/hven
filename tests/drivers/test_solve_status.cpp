@@ -16,6 +16,7 @@
 #include <stdexcept>
 #include <string>
 
+#include <hven/core/solver_counters.h>
 #include <hven/drivers/solve_status.h>
 
 using hven::solvers::IpmStopReason;
@@ -130,4 +131,53 @@ TEST(SolveStatus, TheNineDisplayNamesArePinnedLiterals) {
     // that switch never reaches the reason at all.
     EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kOptimal, static_cast<IpmStopReason>(99)),
               SolveStatus::kOptimal);
+}
+
+// M7 W2 M3a fix1. THE COUNTER'S OWN STATUS VOCABULARY: `RestorationSubStatus`,
+// which is `SolveStatus` plus the `kNotRun` that a restoration record needs and
+// `SolveStatus` has no value to spare for. Two properties are the whole point
+// of it and neither is visible from a solve, so they are pinned here:
+//
+//   * the map into it is TOTAL -- every one of the nine statuses a sub-solve
+//     could return has an image, so the writer needs no default arm and cannot
+//     mistranslate one;
+//   * the spellings AGREE, name for name, with `to_string(SolveStatus)`. A
+//     consumer compares `counters.restoration_sub_status` against the
+//     `sqp.solve.end` line's own `status` key without a translation table, and
+//     a drift between the two tables would break that silently.
+TEST(RestorationSubStatus, TheMapIsTotalAndTheSpellingsAreSolveStatusSPlusNotRun) {
+    using hven::solvers::RestorationSubStatus;
+    using hven::solvers::to_restoration_sub_status;
+
+    // TOTAL, and spelling-preserving on every one of the nine. The severity
+    // list above IS the nine, so this loop is exhaustive by construction.
+    std::set<std::string> names;
+    std::set<int> codes;
+    for (const SolveStatus s : kSeverityOrder) {
+        SCOPED_TRACE(to_string(s));
+        const RestorationSubStatus sub = to_restoration_sub_status(s);
+        EXPECT_STREQ(to_string(sub), to_string(s));
+        // And no status maps onto the not-run value: a caller of this map is
+        // holding a status, so a sub-solve ran.
+        EXPECT_NE(sub, RestorationSubStatus::kNotRun);
+        names.insert(to_string(sub));
+        codes.insert(static_cast<int>(sub));
+    }
+    EXPECT_EQ(names.size(), 9u) << "the map must be INJECTIVE: nine statuses, nine images";
+    EXPECT_EQ(codes.size(), 9u);
+
+    // THE TENTH VALUE, which is the reason the enum exists.
+    EXPECT_STREQ(to_string(RestorationSubStatus::kNotRun), "not_run");
+    EXPECT_EQ(static_cast<int>(RestorationSubStatus::kNotRun), 0)
+        << "kNotRun must be the ZERO: it is what a default-constructed SqpCounters holds";
+    EXPECT_EQ(names.count("not_run"), 0u) << "no status may spell itself not_run";
+
+    // The two switches' boundaries, on this TU's own rule above.
+    EXPECT_THROW((void)to_string(static_cast<RestorationSubStatus>(99)), std::invalid_argument);
+    EXPECT_THROW((void)to_restoration_sub_status(static_cast<SolveStatus>(99)),
+                 std::invalid_argument);
+
+    // AND THE DEFAULT IS THE NOT-RUN VALUE where it matters: on the counters
+    // aggregate itself. A fresh SqpCounters has run no restoration.
+    EXPECT_EQ(hven::solvers::SqpCounters{}.restoration_sub_status, RestorationSubStatus::kNotRun);
 }

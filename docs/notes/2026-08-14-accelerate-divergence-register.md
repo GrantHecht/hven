@@ -101,6 +101,13 @@ Provenance: stable across every m3 CI run carrying the suite, from
 Disposition: per-backend arm on the two minor counts, taken at gate B. The
 pin's own comment had asked for exactly this if the counts moved.
 
+**LATER DISPOSITION (2026-10-29, M7 WX B1) — append-only; nothing above is
+altered.** The Accelerate arm is deleted (a collapse, WX design section 2.4). After M7 W2 E2 the
+MKL pins moved to 800 / 797 minors and 275 / 276 factorizations; macOS run
+[40905599627](https://github.com/GrantHecht/hven/actions/runs/40905599627) (head 864f5814,
+Accelerate pinned to one thread by B0) reads exactly 800 / 797 and 275 / 276, so the test asserts
+the MKL values on both backends. The pre-E2 861 / 858 and 320 / 323 are history.
+
 ### M3-2 — origin `D19` re-adjudicated: the failed proposal costs 304
 
 `tests/sqp/test_continuation.cpp`,
@@ -122,6 +129,13 @@ Origin `D19` also claimed Debug byte-identity; this lane has no Debug leg, so
 that half stays on the origin's authority and is not re-observed here.
 
 Disposition: the per-backend arm the comment was structured to receive.
+
+**LATER DISPOSITION (2026-10-29, M7 WX B1) — append-only; nothing above is
+altered.** The Accelerate arm is deleted (a collapse, WX design section 2.4). After M7 W2 E2 the
+MKL pin is 18; macOS run
+[40905599627](https://github.com/GrantHecht/hven/actions/runs/40905599627) (head 864f5814,
+Accelerate pinned to one thread by B0) reads 18, so the test asserts 18 on both backends. The
+pre-E2 304 / 303 are history.
 
 ### M3-3 — the task-6b float columns cannot be pinned on this lane
 
@@ -381,3 +395,52 @@ control flow and the Apple lane reported
 `DenseSymmetricFactor reported kExactlySingular` at `dim=2` instead. Observed,
 never computed; a control-flow outcome and a status, no float, so nothing here
 is an Apple VALUE.
+
+### M3-8 — the macOS lane is not run-to-run deterministic on route counters (M7 WX)
+
+Source: `docs/notes/2026-10-m7-wx-ci-design.md` section 1.1; CI runs
+[40861914857](https://github.com/GrantHecht/hven/actions/runs/40861914857) (m7
+`1ff37db2`) and [40868557422](https://github.com/GrantHecht/hven/actions/runs/40868557422)
+(m7 `aa19f364`), macOS jobs `123407040491` / `123429421516`.
+
+The lane failed 67 then 68 cells. The one that differs, `QpW1AscentGuard.BritgasElasticQp1Refactorize`
+(`ordinary_rose` 3 vs 0), passed in the first run; the only source difference between the runs is
+`src/qp/qp_engine.cpp`'s `kInf` becoming `static constexpr`, and the object's disassembly,
+recompiled on Linux at both commits, is identical (AppleClang not observed). Diffing the printed
+output of every failing test between the two runs: **19 of the 68 differ run-to-run on the same
+code** -- `CrossoverAdapter.TwoLaidPartitionsSolveTheSameProblemAsOne`,
+`QpBpsBorderCertificate.Acopr118Qp26Border`, five `QpE2Fix9StandstillRetreat` cells,
+`QpLatchReason.BritgasMainSubproblemHoldsItsConditioningLatch`, both `QpNc4ConvexCertificate`
+cells, both `QpRdvRankRepair.Sawpath` cells, two `QpStagnationStop` cells, both
+`QpW1AscentGuard` cells, both `SqpElasticWitnessStart.Sawpath...` cells, and
+`WarmStartBattery.Corpus` (timing column only). Examples: `Acopr118Qp4Border` minors 172 then
+142; `SawpathQp1Border` minors 46 then 33 and `f` -375.4632 then -375.0042.
+
+Cause, consistent with but not proven by the record: the lane never pins Accelerate's threading
+(`ci.yml`; `ensure_accelerate_initialized(HVEN_DEFAULT_QP_THREADS)` is `VECLIB_MAXIMUM_THREADS=8`),
+and nothing pins the reduction order (this register, intro). This **falsifies the register's
+premise for knife-edge fixtures**: a route counter inherits the float nondeterminism that chose the
+route. The M3-4 LATER DISPOSITION met the same thing within MKL. Consequences, binding on later
+arms: no Accelerate counter arm on any fixture in the WX route class; a lane-observed counter arm
+elsewhere needs **three** agreeing lane runs, not two (WX-R6). WX batch B0 pins the lane's
+Accelerate threads (`VECLIB_MAXIMUM_THREADS=1`) so the close's two-run check measures the lane
+that will be kept; that pin is a re-observation event for the Accelerate rows recorded unpinned.
+
+### M3-9 — exact route pins move to the reference build; off it a cell asserts its portable contract (M7 WX)
+
+Source: `docs/notes/2026-10-m7-wx-ci-design.md` sections 1.2 to 2.1 and 3; ruling R-1 (C149).
+
+The exact route pins (minors, factorizations, `dep_*` / certificate / saddle / latch counters, the
+status of a capped or knife-edge fixture) were measured on one build: Linux, x86-64, clang, MKL
+Pardiso at its AUTO dispatch. They are now gated by `HVEN_TEST_ROUTE_REFERENCE`
+(`tests/common_support/route_reference.h`); on any other build -- macOS/Accelerate and Windows/MKL
+alike -- the cell asserts the fixture's portable contract and records the route with
+`RecordProperty` (`<key>_route`, tagged `UNOBSERVED-ROUTE`). This is the opposite of a per-backend
+counter arm, which this register's convention would otherwise prescribe: for knife-edge routes
+the lane's own nondeterminism (M3-8) and Accelerate's absent perturbed-pivot count (WX design
+section 1.3, WX-R2) make an Apple counter neither stable nor a statement about the algorithm.
+Nothing observed on Apple is committed as a pin by this entry. The reference arm is the old
+assertion text byte for byte (reviewed by diff against `aa19f364`); nothing on the reference
+build is relaxed. The pilot is `QpNc4ConvexCertificate.BritgasRestorationLpQp4` and
+`...SteenbrbRestorationLpQp3` (batch B0); later batches convert the remaining cells of the
+design's section 3 table.

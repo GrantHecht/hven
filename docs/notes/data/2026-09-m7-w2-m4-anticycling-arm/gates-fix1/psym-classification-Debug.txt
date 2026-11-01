@@ -1,0 +1,88 @@
+HEADER DERIVATION
+  repo : /home/ghecht/Projects/hven
+  base : f5205770 -> f520577079dbe09e3ad08fe844d0f89eee8ed37b
+  head : 3935eb9d91d2ed839a5314c1e1ad2bbbe742a6d4 -> 3935eb9d91d2ed839a5314c1e1ad2bbbe742a6d4
+  cmd  : git -C /home/ghecht/Projects/hven diff --name-only f5205770..3935eb9d91d2ed839a5314c1e1ad2bbbe742a6d4 -- include/
+  list : ['include/hven/detail/qp/qp_anti_cycling_arm.h', 'include/hven/detail/qp/qp_walk_trace.h']
+HEADER LIST ACCEPTED: ['include/hven/detail/qp/qp_anti_cycling_arm.h', 'include/hven/detail/qp/qp_walk_trace.h']
+P-SYM: PASS — read the DELTAS summaries above before accepting (see this script's header)
+DIFFERING OBJECTS: 0
+  class A -- SOURCE CHANGED by this task: 0
+  class B -- INCLUDERS of a changed header, source untouched: 0
+  UNEXPLAINED: 0
+
+  NOISE-ONLY -- objects whose BYTES DIFFER and whose every disassembly difference P-SYM classified as __LINE__-class noise: 4 (1 of them in the PRODUCTION LIBRARY, 4 explained by this round's changed source or header)
+      LIB   CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+      test  bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+      test  bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+      test  bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+
+  NEGATIVE CONTROL -- objects that ALSO include one of those headers and are BYTE-IDENTICAL (neither a mover nor NOISE-ONLY): 68
+      CMakeFiles/hven.dir/src/drivers/assembly_eval_seam.cpp.o
+      CMakeFiles/hven.dir/src/drivers/console_trace_sink.cpp.o
+      CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o
+      CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+      CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o
+      CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o
+      CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+      bench/CMakeFiles/hven_sqp_bench.dir/bench_scale.cpp.o
+      bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o
+      bench/CMakeFiles/hven_sqp_f7_cold.dir/bench_f7_cold.cpp.o
+      bench/CMakeFiles/hven_sqp_ssn_safeguard_probe.dir/ssn_safeguard_probe.cpp.o
+      bench/CMakeFiles/hven_sqp_tau_bar_sweep_probe.dir/tau_bar_sweep_probe.cpp.o
+      tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/qp/ipqp_engine.cpp.o
+      tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/qp/qp_engine.cpp.o
+      tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_walk_seam.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_concurrency.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_console_sink.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_print_tables.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_result.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o
+      tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_warm_protocol.cpp.o
+      tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/__/bench/ipm_corpus_leg.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_activity_telemetry.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_assembly_eval_seam.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_b1_gate.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_continuation.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_corpus_cells.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_disproved_entry.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_elastic_rung_vehicle.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_eqp_refine_ab.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_funnel.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_battery.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_sweeps.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_acceptance.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_certification.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_counters.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_dispatch.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_engine.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_math.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_options.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_trace.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_warm_restart.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ledger.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_mesh_transfer.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_parametric_families.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_predictor.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_problem_scaling.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_cap_levers.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine_border.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine_indefinite.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine_tr.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_mode_sites.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_warm_start.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_scale_problems.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_scale_smoke.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_warm_currency.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ssn_engine.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_start_point_projection.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_trace_writer.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_warm_start.cpp.o
+      tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_warm_start_battery.cpp.o

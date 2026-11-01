@@ -1,0 +1,14 @@
+LEG: bash -o pipefail /home/ghecht/Projects/hven/.claude/worktrees/m7-close-gate/docs/notes/data/2026-10-m7-close-gate/wrappers-close/legs.sh rig-build
+PGREP_SEPARATE 2026-10-30T12:07:31Z
+PGREP_EMPTY_BEFORE_LOCK
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-10-30T12:07:31Z
+CONFIGURE_RC_3seam=0
+-- golden rig: interior-point old-seam arm pinned to consumed tree bfb7d30c5cc821069b7af3f9efa077f29474de5e (psiopt/include/tycho/detail/solvers/linear), matched at HEAD 48038a2f59243c2bbdc4017c6f70e5f3b56c3fea, consumed linear/ tree clean
+-- golden rig: interior-point old-seam arm enabled (/home/ghecht/Projects/tycho)
+-- golden rig: SQP old-seam arm pinned to phase-7-close (4faa1df116da53c9dc68f36635c118f52d39d2b9), tree state verified
+BUILD_RC_3seam=0
+error:/FAILED lines: 0
+LEG_RC=0
+FOREGROUND_END 2026-10-30T12:34:40Z
+WRAPPER_EXIT=0

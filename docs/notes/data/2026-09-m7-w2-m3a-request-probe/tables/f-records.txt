@@ -1,0 +1,44 @@
+M7 W2 M3a ADDENDUM F -- tables/f-records.txt
+
+EVERY QP-ledger record of every measured leg, not record 0 alone, so a
+reader can see whether a later major repeats the same stall from the same
+start. The ledger's SCOPE (RULE-F.md section 1.2): attach_ledger attaches
+to the driver's MAIN WALK ENGINE only -- the restoration sub-driver and
+the four lazy engines write nothing -- so a record count is a LOWER BOUND
+on the solve's QP solves, and that matters on the tr_init = 1 legs where a
+restoration phase runs.
+
+=== STEENBRB@F-trinf   (4 records; ledger_qp_records=?, print-truncated=?)
+index,label,warm,status,factorizations,schur_updates,minor_iters,eqp_refine_steps,border_refine_steps,verdict_refine_steps,suspect_escalations,k0_reused,symbolic_analyses,ws_adds,ws_drops,shift_adds,degenerate_steps,degenerate_run_max,ws_adds_bound,ws_drops_bound,distinct_ineq_added,distinct_bound_added,drop_ties,ratio_ties,ws_adds_minus_drops,ws_net_change,degenerate_fraction
+0,f_qp_0,0,max_iter,5,4849,4680,0,18904,0,0,0,1,2344,2323,0,2319,2310,2344,2323,0,23,0,0,21,21,0.49551282051282053
+1,f_qp_1,1,max_iter,5,4810,4680,0,23551,0,0,0,0,2339,2322,0,2314,2304,2339,2322,0,29,0,0,17,17,0.49444444444444446
+2,f_qp_2,1,max_iter,3,4816,4680,0,23524,0,0,0,0,2332,2318,0,2310,2289,2332,2318,0,31,0,0,14,14,0.49358974358974361
+3,f_qp_3,1,max_iter,3,4849,4680,0,18877,0,0,0,0,2334,2335,0,2332,2324,2334,2335,0,8,0,0,-1,-1,0.4982905982905983
+
+=== STEENBRB@F-tr1   (6 records; ledger_qp_records=?, print-truncated=?)
+index,label,warm,status,factorizations,schur_updates,minor_iters,eqp_refine_steps,border_refine_steps,verdict_refine_steps,suspect_escalations,k0_reused,symbolic_analyses,ws_adds,ws_drops,shift_adds,degenerate_steps,degenerate_run_max,ws_adds_bound,ws_drops_bound,distinct_ineq_added,distinct_bound_added,drop_ties,ratio_ties,ws_adds_minus_drops,ws_net_change,degenerate_fraction
+0,f_qp_0,0,infeasible,705,333,827,0,514,0,0,0,1,587,225,0,18,3,587,225,0,428,19,10,362,362,0.021765417170495769
+1,f_qp_1,1,numerical_error,509,248,414,0,0,0,0,0,1,244,146,0,32,18,244,146,0,185,14,30,98,98,0.077294685990338161
+2,f_qp_2,0,max_iter,4588,1182,4680,0,329,0,0,0,1,2528,2151,0,1399,317,2528,2151,0,382,0,2471,377,377,0.29893162393162392
+3,f_qp_3,1,max_iter,4682,331,4680,0,0,0,0,0,0,2370,2309,0,1168,5,2370,2309,0,80,7,1166,61,61,0.24957264957264957
+4,f_qp_4,1,max_iter,4704,326,4680,0,0,0,0,0,0,2391,2272,0,2270,2255,2391,2272,0,125,0,4,119,119,0.48504273504273504
+5,f_qp_5,1,max_iter,4687,333,4680,0,0,0,0,0,0,2392,2277,0,2274,2265,2392,2277,0,120,0,5,115,115,0.48589743589743589
+
+=== YORKNET@F-trinf   (4 records; ledger_qp_records=?, print-truncated=?)
+index,label,warm,status,factorizations,schur_updates,minor_iters,eqp_refine_steps,border_refine_steps,verdict_refine_steps,suspect_escalations,k0_reused,symbolic_analyses,ws_adds,ws_drops,shift_adds,degenerate_steps,degenerate_run_max,ws_adds_bound,ws_drops_bound,distinct_ineq_added,distinct_bound_added,drop_ties,ratio_ties,ws_adds_minus_drops,ws_net_change,degenerate_fraction
+0,f_qp_0,0,max_iter,5106,144684,2560,0,9,0,0,0,1,1287,1232,0,1257,1191,1287,1232,0,95,12,52,55,55,0.49101562500000001
+1,f_qp_1,1,max_iter,5120,144644,2560,0,0,0,0,0,0,1279,1279,0,1279,1277,1279,1279,0,2,0,1,0,0,0.49960937500000002
+2,f_qp_2,1,max_iter,5120,144644,2560,0,0,0,0,0,0,1279,1279,0,1279,1277,1279,1279,0,2,0,1,0,0,0.49960937500000002
+3,f_qp_3,1,max_iter,5120,144644,2560,0,0,0,0,0,0,1279,1279,0,1279,1277,1279,1279,0,2,0,1,0,0,0.49960937500000002
+
+=== YORKNET@F-tr1   (8 records; ledger_qp_records=?, print-truncated=?)
+index,label,warm,status,factorizations,schur_updates,minor_iters,eqp_refine_steps,border_refine_steps,verdict_refine_steps,suspect_escalations,k0_reused,symbolic_analyses,ws_adds,ws_drops,shift_adds,degenerate_steps,degenerate_run_max,ws_adds_bound,ws_drops_bound,distinct_ineq_added,distinct_bound_added,drop_ties,ratio_ties,ws_adds_minus_drops,ws_net_change,degenerate_fraction
+0,f_qp_0,0,infeasible,512,8239,397,0,11,0,0,0,1,346,45,0,161,48,346,45,0,304,27,101,301,301,0.40554156171284633
+1,f_qp_1,1,optimal,1112,6878,1004,0,0,0,0,0,1,499,288,0,356,204,499,288,0,461,191,304,211,211,0.35458167330677293
+2,f_qp_2,1,optimal,68,0,36,0,0,0,0,1,0,17,17,0,3,3,17,17,0,17,4,5,0,0,0.083333333333333329
+3,f_qp_3,1,optimal,36,0,4,0,0,0,0,1,0,2,1,0,0,0,2,1,0,2,0,1,1,1,0
+4,f_qp_4,1,optimal,34,0,2,0,0,0,0,1,0,1,0,0,0,0,1,0,0,1,0,1,1,1,0
+5,f_qp_5,1,optimal,34,0,2,0,0,0,0,1,0,1,0,0,0,0,1,0,0,1,0,0,1,1,0
+6,f_qp_6,1,optimal,50,0,18,0,0,0,0,1,0,9,8,0,0,0,9,8,0,9,7,0,1,1,0
+7,f_qp_7,1,max_iter,5080,0,5080,0,0,0,0,1,0,2540,2540,0,2539,2539,2540,2540,0,2,2539,1,0,0,0.49980314960629924
+

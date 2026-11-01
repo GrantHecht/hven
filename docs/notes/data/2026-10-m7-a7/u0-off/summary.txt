@@ -1,0 +1,12 @@
+U0 off START 2026-10-23T20:26:22-04:00 HEAD 3ef44544ea7a6b7abdc23fb301b402dfbd9980ab DIRTY=0
+PGREP_EMPTY walk
+ran head-walk rc=0
+PGREP_EMPTY ssn
+ran head-ssn rc=0
+PGREP_EMPTY ipm
+ran head-ipm rc=0
+EXACT_RC_walk=0
+EXACT_RC_ssn=0
+EXACT_RC_ipm=0
+fired lines: /home/ghecht/Projects/hven/.claude/worktrees/agent-a05b3c395d8efca12/.scratch/a7/u0-off/run-ipm.log:0 /home/ghecht/Projects/hven/.claude/worktrees/agent-a05b3c395d8efca12/.scratch/a7/u0-off/run-ssn.log:0 /home/ghecht/Projects/hven/.claude/worktrees/agent-a05b3c395d8efca12/.scratch/a7/u0-off/run-walk.log:0 
+U0 off END worst=0 2026-10-23T20:38:35-04:00

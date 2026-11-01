@@ -1,0 +1,138 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-release/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = B1Gate.*
+[==========] Running 23 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 23 tests from B1Gate
+[ RUN      ] B1Gate.TheMinimalModelMovesNoGatedQuantityWithP
+[       OK ] B1Gate.TheMinimalModelMovesNoGatedQuantityWithP (0 ms)
+[ RUN      ] B1Gate.MinimalReleaseNoLongerCertifiesTheOldPoint
+[       OK ] B1Gate.MinimalReleaseNoLongerCertifiesTheOldPoint (2 ms)
+[ RUN      ] B1Gate.AFullyReleasedRowExitsWithAnExactlyZeroPrice
+[       OK ] B1Gate.AFullyReleasedRowExitsWithAnExactlyZeroPrice (0 ms)
+[ RUN      ] B1Gate.ReviewSphereAgreesWithItsAnalyticPathAtEveryStepSize
+[       OK ] B1Gate.ReviewSphereAgreesWithItsAnalyticPathAtEveryStepSize (2 ms)
+[ RUN      ] B1Gate.ReviewSphereContinuationSweepTracksTheTruePath
+[       OK ] B1Gate.ReviewSphereContinuationSweepTracksTheTruePath (5 ms)
+[ RUN      ] B1Gate.F6RelaxingStepsNoLongerFreezeTheObjective
+[       OK ] B1Gate.F6RelaxingStepsNoLongerFreezeTheObjective (4 ms)
+[ RUN      ] B1Gate.F6TighteningStepWasNeverExposedAndIsUnchanged
+[       OK ] B1Gate.F6TighteningStepWasNeverExposedAndIsUnchanged (0 ms)
+[ RUN      ] B1Gate.TransferProducedWarmStartIsSeededAndTheB1ClearCarriesToIt
+[       OK ] B1Gate.TransferProducedWarmStartIsSeededAndTheB1ClearCarriesToIt (2 ms)
+[ RUN      ] B1Gate.EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_b1_gate.cpp:836: Failure
+Expected equality of these values:
+  c.x0
+    Which is: 3.4794942110708625e-10
+  second.x(0)
+    Which is: 3.4794942110750977e-10
+bit-identical to the pre-repair reading
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_b1_gate.cpp:820: HS7
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_b1_gate.cpp:835: Failure
+Expected equality of these values:
+  c.f
+    Which is: 2.2822014587976076e-12
+  second.f
+    Which is: 2.2822012684305021e-12
+bit-identical to the pre-repair reading
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_b1_gate.cpp:820: HS26
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_b1_gate.cpp:836: Failure
+Expected equality of these values:
+  c.x0
+    Which is: 0.99938512958694969
+  second.x(0)
+    Which is: 0.99938512959978909
+bit-identical to the pre-repair reading
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_b1_gate.cpp:820: HS26
+
+[  FAILED  ] B1Gate.EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair (6 ms)
+[ RUN      ] B1Gate.AZeroMajorWarmSolveWithALiveInequalityPriceStillCertifies
+[       OK ] B1Gate.AZeroMajorWarmSolveWithALiveInequalityPriceStillCertifies (0 ms)
+[ RUN      ] B1Gate.TheActivityBoundaryIsFeasTolOnBothSides
+[       OK ] B1Gate.TheActivityBoundaryIsFeasTolOnBothSides (0 ms)
+[ RUN      ] B1Gate.SeededIngestCarriesTheB1Repair
+[       OK ] B1Gate.SeededIngestCarriesTheB1Repair (7 ms)
+[ RUN      ] B1Gate.ASeededZeroMajorSolveWithALiveInequalityPriceStillCertifies
+[       OK ] B1Gate.ASeededZeroMajorSolveWithALiveInequalityPriceStillCertifies (0 ms)
+[ RUN      ] B1Gate.AScaledStalePriceIsRefusedAtIngest
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_b1_gate.cpp:1213: Failure
+Expected: (converged_complementarity) > (1e-6), actual: 3.2282543202213381e-13 vs 1e-06
+the every-major scope this rules out would have refused this very point
+
+[  FAILED  ] B1Gate.AScaledStalePriceIsRefusedAtIngest (0 ms)
+[ RUN      ] B1Gate.TheReportedScaleIsRefusedEvenThoughTheSolveThenRunsOut
+[       OK ] B1Gate.TheReportedScaleIsRefusedEvenThoughTheSolveThenRunsOut (0 ms)
+[ RUN      ] B1Gate.TheScaledStalePriceIsRefusedAtWarmToo
+[       OK ] B1Gate.TheScaledStalePriceIsRefusedAtWarmToo (0 ms)
+[ RUN      ] B1Gate.TheComplementarityGateBoundaryIsKktTolOnBothSides
+[       OK ] B1Gate.TheComplementarityGateBoundaryIsKktTolOnBothSides (0 ms)
+[ RUN      ] B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_b1_gate.cpp:1370: Failure
+Value of: restored
+  Actual: false
+Expected: true
+fixture premise: kWarmFullStepWindow must fire on this solve; if this fails the fixture has stopped testing what it claims
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_b1_gate.cpp:1372: Failure
+Expected: (sol.counters.major_iters) > (kWarmFullStepWindow), actual: 1 vs 5
+fixture premise: the post-refusal solve must outlast the window
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_b1_gate.cpp:1386: Failure
+The difference between model.f_star() and sol.f is 0.79999999999967997, which exceeds 1e-3, where
+model.f_star() evaluates to -0.79999999999967997,
+sol.f evaluates to 0, and
+1e-3 evaluates to 0.001.
+THE PIN: dropping fs_best_duals_ingested reports f = 0 here
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_b1_gate.cpp:1388: Failure
+The difference between model.x_star() and sol.x(0) is 7.9999999999999996e-07, which exceeds 1e-9, where
+model.x_star() evaluates to 7.9999999999999996e-07,
+sol.x(0) evaluates to 0, and
+1e-9 evaluates to 1.0000000000000001e-09.
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_b1_gate.cpp:1389: Failure
+Expected: (std::abs(sol.f)) > (0.5), actual: 0 vs 0.5
+the wrong answer this guards against is f = 0 exactly
+
+[  FAILED  ] B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers (0 ms)
+[ RUN      ] B1Gate.MinimalReleaseNoLongerCertifiesTheOldPointUnderKSsn
+[       OK ] B1Gate.MinimalReleaseNoLongerCertifiesTheOldPointUnderKSsn (0 ms)
+[ RUN      ] B1Gate.AFullyReleasedRowExitsWithAnExactlyZeroPriceUnderKSsn
+[       OK ] B1Gate.AFullyReleasedRowExitsWithAnExactlyZeroPriceUnderKSsn (0 ms)
+[ RUN      ] B1Gate.AScaledStalePriceIsRefusedAtIngestUnderKSsn
+[       OK ] B1Gate.AScaledStalePriceIsRefusedAtIngestUnderKSsn (0 ms)
+[ RUN      ] B1Gate.KSsnMatchesTheWalksComplementarityOnceTheFaceIsRefined
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_b1_gate.cpp:1564: Failure
+The difference between 5.0010e-07 and ssn.x(0) is 9.9999999677182081e-11, which exceeds 1e-11, where
+5.0010e-07 evaluates to 5.0009999999999998e-07,
+ssn.x(0) evaluates to 5.000000000003228e-07, and
+1e-11 evaluates to 9.9999999999999994e-12.
+OBSERVED. MKL, clang++, Release. x* = 5e-07. The unrepaired arm reported -1.310745e-07 -- the wrong side of zero.
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/tests/sqp/test_b1_gate.cpp:1567: Failure
+The difference between 1.0000e-04 and ssn_r.complementarity is 9.999999967717458e-05, which exceeds 1e-8, where
+1.0000e-04 evaluates to 0.0001,
+ssn_r.complementarity evaluates to 3.2282543202213381e-13, and
+1e-8 evaluates to 1e-08.
+OBSERVED. MKL, clang++, Release. THE REPAIR: the unrepaired arm read 6.311e-01, which is 0.63 of the fb_tol * ||lambda||inf = 1 bound. See this test's banner.
+
+[  FAILED  ] B1Gate.KSsnMatchesTheWalksComplementarityOnceTheFaceIsRefined (0 ms)
+[ RUN      ] B1Gate.ReviewSphereIsRepairedUnderKSsnToo
+[       OK ] B1Gate.ReviewSphereIsRepairedUnderKSsnToo (0 ms)
+[----------] 23 tests from B1Gate (38 ms total)
+
+[----------] Global test environment tear-down
+[==========] 23 tests from 1 test suite ran. (38 ms total)
+[  PASSED  ] 19 tests.
+[  FAILED  ] 4 tests, listed below:
+[  FAILED  ] B1Gate.EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair
+[  FAILED  ] B1Gate.AScaledStalePriceIsRefusedAtIngest
+[  FAILED  ] B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers
+[  FAILED  ] B1Gate.KSsnMatchesTheWalksComplementarityOnceTheFaceIsRefined
+
+ 4 FAILED TESTS

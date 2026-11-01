@@ -1,0 +1,11 @@
+LEG: bash -o pipefail /home/ghecht/Projects/hven/.claude/worktrees/m7-close-gate/docs/notes/data/2026-10-m7-close-gate/wrappers-close/legs.sh replay
+PGREP_SEPARATE 2026-10-30T12:36:55Z
+PGREP_EMPTY_BEFORE_LOCK
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-10-30T12:36:55Z
+ran head-walk rc=0
+ran head-ssn rc=0
+ran head-ipm rc=0
+LEG_RC=0
+FOREGROUND_END 2026-10-30T12:42:31Z
+WRAPPER_EXIT=0

@@ -1,0 +1,9 @@
+ORACLE /home/ghecht/Projects/hven/.scratch/m7w2r2/dumps/Hj_STEENBRD/qp9.txt n=468 me=96 mi=0 tr=409.6 in-cell: status=3 minors=306 facts=309 blk_term=0 cert=0 cert_rej=0 zmcap=0 zmexh=0 retreats=0 exch=152 deferred=0 undec=0 maxiter=4680
+  FEASIBILITY phase-1 LP status=0 min_l1_violation=0.0
+  H eig min=-2.5000e+02 max=4.7790e-02 n_neg=36 n_zero=404
+  Z'HZ on null(Ae): dim=372 rank(Ae)=96 eig min=-2.5000e+02
+  WALK final: f=-7639.72242841 viol eq/in/box=(4.0827887756275045e-13, 0.0, 1.9777471359989367e-12) |W| rows=0 pins=359 me+|W|=455 rank=455 n=468
+    working-set normalized singular values: min=6.695e-02 (smallest 3: [0.06695219 0.08158119 0.08733614])
+    Z'HZ on the final working set's null space: dim=13 eig min=-3.3429e-03 (next 1.7147e-05) max=5.9631e-03
+  H is not PSD on null(Ae): no global oracle; only local checks
+  POINT replays/hj_steenbrd/Hj_STEENBRD_qp9.on.sol: status=3 f=-7639.72242841 viol=(4.0827887756275045e-13, 0.0, 1.9777471359989367e-12)

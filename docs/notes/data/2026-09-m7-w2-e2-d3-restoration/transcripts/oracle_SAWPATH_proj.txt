@@ -1,0 +1,9 @@
+POINT /home/ghecht/Projects/hven/.scratch/m7w2e2d3/dumps/SAWPATH_proj/resto0_entry.txt
+  n=583 me=578 mi=196 h_l1=3.559538996 box_viol: count=0 max=0 sum=0
+  phi(0) [h + box viol, linearized] = 3.559538996
+  eps=1e-06: phi_box=3.559537996 (drop 1e-06, rate 1)   phi_nobox=3.559535996 (drop 3e-06, rate 3)
+  eps=0.0001: phi_box=3.559438947 (drop 0.0001, rate 1)   phi_nobox=3.559238947 (drop 0.0003, rate 3)
+  eps=0.01: phi_box=3.549534113 (drop 0.01, rate 1)   phi_nobox=3.536 (drop 0.02354, rate 2.354)
+  eps=1: phi_box=2.559050726 (drop 1, rate 1)   phi_nobox=1.556 (drop 2.004, rate 2.004)
+  smallest l_inf radius with a feasible linearization (box hard): 3.56047
+  independent feasible point (hven-ipm final x): |x_ipm - x|_inf=4.87063  |x_ipm - clamp(x)|_inf=4.87063  x_ipm box viol max=0

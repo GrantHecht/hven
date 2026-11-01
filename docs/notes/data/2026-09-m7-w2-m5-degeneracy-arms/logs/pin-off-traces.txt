@@ -1,0 +1,18 @@
+M7 W2 M5 -- the THIRTEEN OFF parent traces, checked at read-out time
+against M4's and M4b's committed pins.  No solver ran to produce this.
+
+OK       0f369b21f0fa8e2514f724179b900c3e6a97dd54c64d062957a29ce64835ab56  off-ACOPP118.csv
+OK       19822007082eb396cc5cc3c553843466559a40cba3edbc7b89bdedc114ef44d1  off-ACOPP57.csv
+OK       e8bc0af196516a772cd8dfdac14416564b62029aec2b793f8c70c11b69b35559  off-ACOPR57.csv
+OK       7f0130215743b8b4c1da03ac2dcf0e799a6180af4ca0fcec2fdd37a752bec1cd  off-BRITGAS.csv
+OK       600f1cf053dc26412bc3535137964d5542496e9efdb0e599328402874c00bcc0  off-DALLASM.csv
+OK       fb500427cea7903422423eb15e948acc2b57d39bd8ca656e51b709da2fb432d3  off-READING6.csv
+OK       5254d80b8a477eec3a60bdad981b6b8dffba3aa8cb8e95edea9b8672e03333b1  off-SAWPATH.csv
+OK       9c025add7eacd583dd57ba3d23edfe8f04c9c69cf494fd801c2dca34f9df2ff2  off-SMBANK.csv
+OK       9ba7d30c2192681ecfdbe64e1425e0324a470025b9e70c4985a5146dcb1d3a4a  off-STEENBRB.csv
+OK       b06a4db13e9a166a157d88e77ff331e4fc61558b80f9dc600f5034d7e866079d  off-STEENBRC.csv
+OK       6862289cf135025b21ea421ab89d434a38b252faa50990684af3111b89f4ccee  off-STEENBRG.csv
+OK       a69816b944ff79bfdd4c081bc5dce5a5c68b148228ccfadeb7152722dada5b95  off-YORKNET.csv
+OK       01796788bf6cd64d31d095f67842f3396dd953014c1214bd52cdc9a7024e6607  off-ZAMB2-8.csv
+
+mismatches: 0

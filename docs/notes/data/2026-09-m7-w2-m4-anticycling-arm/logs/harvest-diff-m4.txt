@@ -1,0 +1,90 @@
+==========================================================================
+ARM B   HVEN_TESTING on hven's sources: YES
+install build tree : /home/ghecht/Projects/hven/.scratch/m7w2m3c/rel
+installed libhven.a: /home/ghecht/Projects/hven/.scratch/m7w2m3c/install/lib64/libhven.a
+                sha: 18a71b727533e9231fbdeb4e6bf0c9bb2d77aad6ab886a0f2e5729f1169eee10
+pass-1 probe build : /home/ghecht/Projects/hven/.scratch/m7w2m3c/probebuild
+arm directory      : /home/ghecht/Projects/hven/.scratch/m7w2m4/arm/build
+==========================================================================
+hven compile edges in the install build : 43
+objects in the install archive edge     : 42
+compile edges that are NOT archive members: 1  ['CMakeFiles/hven.dir/cmake_pch.hxx.pch']
+the set of compiled TUs IS the set of archive members (both directions)
+
+--- THE PRECOMPILED HEADER, found by that refusal and handled explicitly
+    src/CMakeLists.txt:332 target_precompile_headers(hven PRIVATE hven_pch.h),
+    with a per-source opt-in list. In this build tree 1 PCH edge(s) exist and
+    4 TUs consume the PCH by ABSOLUTE path into the install tree:
+      CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+      CMakeFiles/hven.dir/src/drivers/ipm_options.cpp.o
+      CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o
+      CMakeFiles/hven.dir/src/model/nlp_adapter.cpp.o
+    ARM B: clang REFUSES a TU whose macro state differs from the PCH it includes,
+    so arm B's PCH is rebuilt from the SAME command plus the SAME single define,
+    and its four consumers are pointed at arm B's own PCH. That path token is the
+    SECOND declared difference on arm B and it is declared here, before any leg;
+    it is a path, not a flag, and the PCH behind it differs from the install's by
+    exactly the one define. RULE-P2A section 3.3's 'and nothing else' is amended by
+    AMENDMENT 1 in RULE-P2A.md, committed before any leg ran.
+
+--- THE 43 COMPILE COMMANDS, install vs replay
+    excluded from the comparison: ['-DHVEN_TESTING=1', '/home/ghecht/Projects/hven/.scratch/m7w2m3c/rel/CMakeFiles/hven.dir/cmake_pch.hxx.pch', '/home/ghecht/Projects/hven/.scratch/m7w2m4/arm/build/CMakeFiles/hven.dir/cmake_pch.hxx.pch']
+    output paths are NOT excluded: the arm directory mirrors the install
+    tree's relative layout, so the strings are identical, not equivalent.
+    TUs with a residual difference: 0  (must be 0)
+    one example, in full:
+      SRC     /home/ghecht/Projects/hven/src/warmstart/warm_start_data.cpp
+      INSTALL /usr/bin/ccache /usr/bin/clang++ -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO -DEIGEN_MAX_ALIGN_BYTES=32 -DFMT_HEADER_ONLY -DFMT_USE_LOCALE=0 -DHVEN_DEFAULT_ARENA_SIZE=256 -DHVEN_DEFAULT_QP_THREADS=8 -DHVEN_VERSION_STRING=\"0.1.0\" -I/home/ghecht/Projects/hven/include -I/opt/intel/oneapi/mkl/latest/include -I/home/ghecht/Projects/hven/src/interior/utils -isystem /home/ghecht/Projects/hven/dep/eigen -isystem /home/ghecht/Projects/hven/dep/fmt/include -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 -fPIC -Wabsolute-value -pthread -mllvm -inline-threshold=225 -O3 -fomit-frame-pointer -fno-stack-protector -fno-asynchronous-unwind-tables -falign-loops=32 -march=native -mtune=native -ffast-math -fno-finite-math-only -fopenmp=libiomp5 -Xclang -fno-pch-timestamp -MD -MT CMakeFiles/hven.dir/src/warmstart/warm_start_data.cpp.o -MF CMakeFiles/hven.dir/src/warmstart/warm_start_data.cpp.o.d -o CMakeFiles/hven.dir/src/warmstart/warm_start_data.cpp.o -c /home/ghecht/Projects/hven/src/warmstart/warm_start_data.cpp
+      REPLAY  /usr/bin/ccache /usr/bin/clang++ -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO -DEIGEN_MAX_ALIGN_BYTES=32 -DFMT_HEADER_ONLY -DFMT_USE_LOCALE=0 -DHVEN_DEFAULT_ARENA_SIZE=256 -DHVEN_DEFAULT_QP_THREADS=8 -DHVEN_TESTING=1 -DHVEN_VERSION_STRING=\"0.1.0\" -I/home/ghecht/Projects/hven/include -I/opt/intel/oneapi/mkl/latest/include -I/home/ghecht/Projects/hven/src/interior/utils -isystem /home/ghecht/Projects/hven/dep/eigen -isystem /home/ghecht/Projects/hven/dep/fmt/include -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 -fPIC -Wabsolute-value -pthread -mllvm -inline-threshold=225 -O3 -fomit-frame-pointer -fno-stack-protector -fno-asynchronous-unwind-tables -falign-loops=32 -march=native -mtune=native -ffast-math -fno-finite-math-only -fopenmp=libiomp5 -Xclang -fno-pch-timestamp -MD -MT CMakeFiles/hven.dir/src/warmstart/warm_start_data.cpp.o -MF CMakeFiles/hven.dir/src/warmstart/warm_start_data.cpp.o.d -o CMakeFiles/hven.dir/src/warmstart/warm_start_data.cpp.o -c /home/ghecht/Projects/hven/src/warmstart/warm_start_data.cpp
+
+--- COMPILING: 1 PCH edge(s) first, then 42 TUs (cwd = the arm directory)
+    CMakeFiles/hven.dir/cmake_pch.hxx.pch  sha256 48d7d8ed97c105fca6a1a6294a38e77c36df15632ae02319982916ed4ca436b9
+    install's own        sha256 22d70c6fdb1af0be2f23c4e5e07f2dc3618fce5dbf4bde632999b5989f1b2015   identical: False
+    all 42 objects produced
+
+--- OBJECT IDENTITY vs the install build's own objects (RULE-P2A section 3.4 #1)
+    byte-identical: 32 / 42   differing: 10   install object absent: 0
+    (arm A expects 42 identical; arm B expects 0 -- the define changes the code)
+
+--- THE ARCHIVE, replayed from the install's own archive edge
+    : && /usr/bin/cmake -E rm -f libhven_p2a_armB.a && /usr/bin/llvm-ar qc libhven_p2a_armB.a  CMakeFiles/hven.dir/src/core/version.cpp.o CMakeFiles/hven.dir/src/core/pattern_hash.cpp.o CMakeFiles/hven.dir/src/core/ledger.cpp.o CMakeFiles/hven.dir/src/core/enum_names.cpp.o CMakeFiles/hven.dir/src/linear/dense_symmetric_factor.cpp.o CMakeFiles/hven.dir/src/kkt/kkt_calls.cpp.o CMakeFiles/hven.dir/src/linear/pardiso_session.cpp.o CMakeFiles/hven.dir/src/linear/symmetric_factor_mkl.cpp.o CMakeFiles/hven.dir/src/model/assembly_declaration.cpp.o CMakeFiles/hven.dir/src/model/nlp_model_assembly.cpp.o CMakeFiles/hven.dir/src/model/nlp_problem_model.cpp.o CMakeFiles/hven.dir/src/drivers/solve_status.cpp.o CMakeFiles/hven.dir/src/drivers/solve_result.cpp.o CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o CMakeFiles/hven.dir/src/drivers/ipm_solver_globalization.cpp.o CMakeFiles/hven.dir/src/drivers/ipm_options.cpp.o CMakeFiles/hven.dir/src/drivers/solver_init.cpp.o CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o CMakeFiles/hven.dir/src/model/nlp_adapter.cpp.o CMakeFiles/hven.dir/src/interior/kkt_factorization.cpp.o CMakeFiles/hven.dir/src/interior/utils/color_text.cpp.o CMakeFiles/hven.dir/src/interior/utils/get_core_count.cpp.o CMakeFiles/hven.dir/src/interior/utils/memory_management.cpp.o CMakeFiles/hven.dir/src/interior/utils/thread_pool.cpp.o CMakeFiles/hven.dir/src/drivers/assembly_eval_seam.cpp.o CMakeFiles/hven.dir/src/drivers/console_trace_sink.cpp.o CMakeFiles/hven.dir/src/drivers/problem_scaling.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o CMakeFiles/hven.dir/src/drivers/trace.cpp.o CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/funnel.cpp.o CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ipqp_kkt_layout.cpp.o CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o CMakeFiles/hven.dir/src/qp/ssn_engine.cpp.o CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o CMakeFiles/hven.dir/src/warmstart/warm_start.cpp.o CMakeFiles/hven.dir/src/warmstart/ipm_polish_extension.cpp.o CMakeFiles/hven.dir/src/warmstart/warm_start_data.cpp.o && /usr/bin/llvm-ranlib libhven_p2a_armB.a && :
+    sha256 ce03fb6d6b0f6bf54fd505617c9367cd3114628056e35ceb47784b7450874492  libhven_p2a_armB.a
+    sha256 18a71b727533e9231fbdeb4e6bf0c9bb2d77aad6ab886a0f2e5729f1169eee10  the installed libhven.a
+    archives byte-identical: False
+
+--- THE SEAM (RULE-P2A section 3.4 #2): QpWalkObserver symbols in this arm's archive
+    count: 23
+    as required: 0 on arm A, >= 1 on arm B. Both directions are asserted.
+
+--- THE THIRD DECLARED DIFFERENCE: the probe-side header view
+    source  : /home/ghecht/Projects/hven/include
+    install : /home/ghecht/Projects/hven/.scratch/m7w2m3c/install/include
+    declared to differ in: ['hven/detail/qp/qp_anti_cycling_arm.h', 'hven/detail/qp/qp_walk_trace.h']
+    measured difference   : ['hven/detail/qp/qp_anti_cycling_arm.h', 'hven/detail/qp/qp_walk_trace.h']
+    the two trees agree on all 129 other header(s); the difference is exactly this round's own
+
+
+--- THE PROBE'S OWN TUs, replayed from pass 1's probe build tree
+  PROBE TU m3c_probe.cpp
+      declared differences: source file, object path, dep file, -DHVEN_TESTING=1, -I/home/ghecht/Projects/hven/include
+      no residual difference
+  BRIDGE   cutest_model.cpp
+      declared difference: -I/home/ghecht/Projects/hven/include
+      no residual difference
+  BRIDGE   cutest_source.cpp
+      declared difference: -I/home/ghecht/Projects/hven/include
+      no residual difference
+  BRIDGE   nlp_model_triplet_view.cpp
+      declared difference: -I/home/ghecht/Projects/hven/include
+      no residual difference
+    4 probe-side objects produced
+
+--- THE LINK (RULE-P2A section 3.4 #3)
+    : && /usr/bin/clang++ -DMKL_LP64 -m64 -O3 -DNDEBUG -Wl,-rpath,/home/ghecht/Software/cutest/lib -Xlinker --dependency-file=CMakeFiles/m3c_probe.dir/link.d CMakeFiles/m3c_probe.dir/m3c_p2_probe.cpp.o CMakeFiles/m3c_probe.dir/home/ghecht/Projects/hven-bench/lanes/cutest/cutest_model.cpp.o CMakeFiles/m3c_probe.dir/home/ghecht/Projects/hven-bench/lanes/cutest/cutest_source.cpp.o CMakeFiles/m3c_probe.dir/home/ghecht/Projects/hven-bench/lanes/hven/nlp_model_triplet_view.cpp.o -o m4_arm_probe  -Wl,-rpath,/opt/intel/oneapi/mkl/latest/lib:/opt/intel/oneapi/compiler/latest/lib:/home/ghecht/Software/cutest/lib  /home/ghecht/Projects/hven/.scratch/m7w2m4/arm/build/libhven_p2a_armB.a  /home/ghecht/Software/cutest/lib/libcutest_double.so  -Wl,--start-group  /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a  /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a  /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a  /opt/intel/oneapi/compiler/latest/lib/libiomp5.so  -Wl,--end-group  -ldl  -lm && :
+    the link names this arm's own replayed archive and NOT the installed libhven.a
+    non-vacuity: the same test DOES match a constructed line naming the installed path
+    binary /home/ghecht/Projects/hven/.scratch/m7w2m4/arm/build/m4_arm_probe
+    sha256 c1be17d2d47e7930440450d72d233da56a8fc374bceb68062baea924fe50a720
+    QpWalkObserver symbols in the binary: 23 (the probe's own TU defines them in every arm; see RULE-P2A section 1)
+ARM B BUILD OK
+

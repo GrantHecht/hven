@@ -1,0 +1,9 @@
+FOREGROUND_START G6b-export 2026-09-18T19:29:00-04:00
+== checking export contract: /home/ghecht/Projects/hven/.scratch/m7w2m2/install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+== export contract OK for platform=linux, align=32
+EXPORT_CONTRACT_RC=0
+FOREGROUND_END G6b-export 2026-09-18T19:29:01-04:00 rc=0

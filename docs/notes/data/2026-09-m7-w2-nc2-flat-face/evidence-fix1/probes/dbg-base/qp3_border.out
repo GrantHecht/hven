@@ -1,0 +1,17 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/.scratch/nc2-build-debug/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Nc2Fix1.MeasureZeroLengthRides
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Nc2Fix1
+[ RUN      ] Nc2Fix1.MeasureZeroLengthRides
+[NC2FIX1] dump=/home/ghecht/Projects/hven/.claude/worktrees/agent-a69f46e11796560b9/docs/notes/data/2026-09-m7-w2-r2-composite-landing/dumps/Cs_STEENBRB/qp3.txt alg=border status=1 minors=6600 f=-384.000293757 records=6600
+[NC2FIX1] rides=2182 zero_rides=26 moving_rides=2156 uphill=1061 df_sum=-1.409997e-04 df_up=4.512643e-04 worst_moving_dx=5.291463e+01
+[NC2FIX1] adds=62 zero_adds=2 undone=0 flatveto=0 disagree=0 nsveto=0 measured_unresolved_rides=0
+[NC2FIX1] counters predsign=2182 vetoes=0 undos=0 zmexh=0 zmcap=0 reentry=0 ws_adds=2244 ws_drops=2183 exch=1 eqviol=0
+[NC2FIX1] truncated=0 allocation_failed=0
+[       OK ] Nc2Fix1.MeasureZeroLengthRides (357424 ms)
+[----------] 1 test from Nc2Fix1 (357424 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (357424 ms total)
+[  PASSED  ] 1 test.
