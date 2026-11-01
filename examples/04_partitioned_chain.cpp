@@ -431,7 +431,7 @@ int main() {
                     s->feasibility_e);
     }
     const bool ok = one.status == SolveStatus::kOptimal && many.status == SolveStatus::kOptimal &&
-                    std::abs(one.f - many.f) < 1e-8 &&
+                    many.adopted_partitions > 1 && std::abs(one.f - many.f) < 1e-8 &&
                     (one.x - many.x).lpNorm<Eigen::Infinity>() < 1e-6 && one.feasibility_e < 1e-6 &&
                     many.feasibility_e < 1e-6;
     std::printf("%s\n", ok ? "OK" : "FAILED");

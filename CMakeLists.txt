@@ -594,6 +594,7 @@ endif()
 # install tree, the way a stranger would. Default OFF for now.
 ################################################################################
 if(HVEN_BUILD_EXAMPLES)
+    enable_testing()
     add_subdirectory(examples)
 endif()
 

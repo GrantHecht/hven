@@ -64,7 +64,7 @@ struct BoundedRosenbrock : NlpTripletModel {
 
 bool check(const char *engine, const SolveResult &r) {
     const bool ok = r.status == SolveStatus::kOptimal && std::abs(r.x[0] - 0.5) < 1e-5 &&
-                    std::abs(r.x[1] - 0.25) < 1e-5 && std::abs(r.f - 0.25) < 1e-6;
+                    std::abs(r.x[1] - 0.25) < 1e-5 && std::abs(r.f - 0.25) < 1e-6 && r.z[0] < 0.0;
     std::printf("%-10s status=%-8s iterations=%3lld  x=(%.6f, %.6f)  f=%.8f  z_x=%+.4f  %s\n",
                 engine, to_string(r.status), static_cast<long long>(r.iterations), r.x[0], r.x[1],
                 r.f, r.z[0], ok ? "OK" : "FAILED");

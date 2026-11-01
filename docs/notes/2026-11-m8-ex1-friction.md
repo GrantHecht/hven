@@ -29,8 +29,8 @@ Wanted: state HS071 once and solve it on both engines. Had to: write an
 takes `NonLinearProgram &`) and for the SQP engine wrap it in
 `NlpProblemModel` (a `NlpModel`, `drivers/sqp_solver.h:1036` takes
 `const NlpModel &`). The triplet model is the only declaration both engines can
-reach. A problem written directly as an `NlpModel` (ex 7) cannot reach the
-interior-point engine through any public header. Pre-seeded item, hit.
+reach. A problem written directly as an `NlpModel` (ex 7) reaches the
+interior-point engine only through the core-taking `make_nlp_program` overload (`model/make_nlp_program.h:48`), whose `NLPAdapterCore` argument is constructible from an `NlpModel` solely in `detail/model/nlp_adapter.h:135`; no public header completes the path. Pre-seeded item, hit.
 Severity: confusing for the triplet route, blocker for an `NlpModel` author.
 
 **2. The two contracts disagree on conventions (ex 7).** The triplet model
@@ -59,7 +59,7 @@ relevant to the M9 first-order mode.
 
 **5. Zero-row blocks need explicit empty overrides (ex 2, ex 7).** A
 bound-constrained triplet model must still define `eval_g`, `jac_structure`,
-`eval_jac` with empty bodies (`model/nlp_triplet_model.h:76-94`); an `NlpModel`
+`eval_jac` with empty bodies (`model/nlp_triplet_model.h:87-101`); an `NlpModel`
 with `me() == 0` must still return `Vec(0)` and `SpMatRM(0, n)`. Severity:
 cosmetic.
 
@@ -128,6 +128,7 @@ finite bound (the solve returned optimal in 5 iterations on both engines); only
 prose in `model/nlp_triplet_model.h:43-60` says the library reads it as a bound
 and that the spelling must be `+/-infinity`. Nothing warns or refuses at
 `1e20`/`1e30`. The example uses `std::numeric_limits<double>::infinity()`.
+The same comment (`:56-59`) records that the SQP engine's SSN QP mode applies a 1e20 cutoff of its own, so a bound of 1e30 is finite on the interior-point route and on the default kWalk route, and absent under kSsn.
 Pre-seeded item (`+/-1e20`), hit in the 1e30 variant. Severity: confusing.
 
 **14. Multiplier signs must be read, then verified (ex 2, 3).** `z` is `<= 0` at
@@ -164,6 +165,7 @@ This is stated only in `detail/interior/utils/type_storage.h:23, 61, 75`
 and nothing is checked at compile time (the comment explains why a
 `static_assert` is not available). Fixed by holding a `const char *`. Severity:
 blocker (silent corruption, discoverable only from a `detail/` comment).
+Review verdict: library DEFECT -- unenforced, publicly undocumented trivially-relocatable precondition; violation is memory corruption (TypeStorage move = memcpy, type_storage.h:104). Registered as M8 defect DF-1.
 
 **18. The piece contract is a hand-written protocol with no public
 specification (ex 4).** To write four pieces the example had to learn, from
@@ -214,8 +216,7 @@ Severity: cosmetic.
 **23. TRIED changing a parameter inside a live model (ex 5): wrong answers,
 status optimal.** The natural parameter sweep keeps one model and one program
 and mutates `p` between solves. Result on both engines: every solve reports
-`optimal` and the objective is wrong (the bound `1 + p/2` is read once at
-transcription; values are cached per iterate), and the "warm" sweep took
+`optimal` and the objective is wrong (the bound `1 + p/2` is read once, at `NlpProblemModel` construction / transcription -- src/model/nlp_problem_model.cpp:145 -- and nothing in `model/nlp_triplet_model.h` says `bounds()` is read only then), and the "warm" sweep took
 1 iteration per step after the first. The contract says so in prose
 (`model/nlp_triplet_model.h:19-30`: structures queried once, callbacks pure,
 "results are cached per iterate"), but a pure function of `x` is exactly what a
@@ -226,6 +227,7 @@ The warm-start payload stays valid across re-transcriptions (the stamp keys on
 structure), which is what makes the rebuild workable. The shipped example
 rebuilds per `p`. Severity: blocker (silent wrong result with an optimal
 status).
+Review verdict: documented misuse with a documentation gap (callbacks must be pure, nlp_triplet_model.h:26-29); no parametric route into the interior-point engine.
 
 **24. Three places to get a warm start from the SQP engine (ex 5, 6).**
 `SqpResult::warm_start` (native `SqpWarmStart`,

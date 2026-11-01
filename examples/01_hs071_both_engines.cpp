@@ -16,6 +16,7 @@
 //     make_nlp_program() transcribes;
 //   * the SQP engine consumes the NlpModel that NlpProblemModel converts.
 
+#include <cmath>
 #include <cstdio>
 #include <limits>
 #include <memory>
