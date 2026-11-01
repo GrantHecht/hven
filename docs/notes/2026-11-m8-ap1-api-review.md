@@ -29,7 +29,7 @@ No code changes ride this page. AP-2 starts after G-API.
   problem type reaches both engines through public headers, so M9 changes internals only.
 - **Friction dispositions.** 26 FIX IN THE BREAK, 3 DOCUMENT ONLY, 1 KEEP, 1 RESOLVED (§11).
 - **The break.** Eight groups. Seven are functional, in dependency order. The rename sweep comes
-  last. Estimated total: 18-19.5 tasks (§13). B5, B6 and B7 are separable and can be cut without
+  last. Estimated total: 18.5-20 tasks (§13). B5, B6 and B7 are separable and can be cut without
   touching the others.
 - **Not built.** The serialized SQP warm envelope (§10.1), with a stated reopen trigger. The
   break makes `SqpWarmStart` opaque so the envelope can be added later without a second break.
@@ -94,8 +94,9 @@ class Nlp {
                               VecRef values) const;
     virtual std::string name() const { return "nlp"; }
 };
-// Evaluation failure: throw hven::EvaluationError at a trial point and both
-// engines treat the trial as rejected. Any other exception propagates (§4.6).
+// Evaluation failure: throw hven::EvaluationError, or return a non-finite value, at a
+// trial point and both engines treat the trial as rejected. Any other exception
+// propagates unchanged and leaves a partial result in last_result() (§4.6).
 
 // --- What both engines solve. Owns the engine-side transcriptions. ---
 class Problem {
@@ -125,6 +126,8 @@ class IpmSolver {
     void attach_trace(TraceSink *sink);                       // borrowed
     void attach_ledger(Ledger *ledger, std::string label_prefix);
     void set_kkt_hook(KktHook hook);                          // labelled IPM-only extension
+    const IpmResult &last_result() const noexcept;            // partial result of a solve a foreign
+                                                              // exception interrupted (§4.6)
 };
 // SqpSolver adds one labelled SQP-only entry:
 //   SqpResult solve(Problem &, ConstVecRef x0, const SqpWarmStart &, const SolveBudget & = {});
@@ -290,14 +293,27 @@ entry (`ipm_solver.cpp:1793-1802`). The two SOC sites abandon the correction. Th
 has no such catch: every exception from an SQP evaluation propagates out of `solve`. Neither rule
 is in a public header.
 
-**Target (B5).** `hven::EvaluationError` is the one signal. Thrown at a trial point, both
-engines reject the trial at the same sites as today (the IPM as above; the SQP rejects the step
-and shrinks its radius). Thrown at the start point it propagates.
+**Non-finite values today.** The SQP screens them: `NlpEval::all_finite` covers `f`, gradient, `cE`
+and `cI` (`sqp_solver.cpp:505-607`, `assembly_eval_seam.cpp:719-763`), a non-finite trial is
+rejected and the radius shrinks, and a non-finite start point ends the solve `kNumericalError`
+(`sqp_solver.cpp:6654-6665`). The IPM has no evaluation-time screen: none of `ipm_solver*.cpp`
+checks the objective, constraints or derivatives, so a NaN trial merit is rejected only because
+the acceptance comparisons are false (`ipm_solver_globalization.cpp:356-361`), a -Inf merit passes
+them, and a non-finite start reaches the post-hoc residual test, which ends the solve `kDiverging`
+(`ipm_solver.cpp:1841-1849`).
+
+**Target (B5).** `hven::EvaluationError` is the one thrown signal, and a non-finite value the
+other. Either at a trial point: both engines reject the trial at the same sites as today (the IPM
+as above; the SQP rejects the step and shrinks its radius). Thrown at the start point it
+propagates; a non-finite start ends the solve `kNumericalError`.
 
 **Declared behaviour change: the IPM narrows.** Its seven sites catch `hven::EvaluationError`
 only. Any other exception at a trial point, which the IPM swallows today, propagates after B5.
 No corpus cell takes a throw path. hven-bench's CUTEst adapter is audited for the types it
-throws, and its evaluation failures are made `EvaluationError` before B5 lands.
+throws, and its evaluation failures are made `EvaluationError` before B5 lands. The same audit runs on
+tycho as a registered note on its catch-up list: a tycho model that throws a standard exception
+(for example `std::domain_error`) to mean "cannot evaluate here" must throw `EvaluationError`, or
+return non-finite values, after the break. A catch-up item, not a gate; nothing waits on tycho.
 
 **The exception contract** (stated in `<hven/hven.h>`'s overview and on each entry):
 
@@ -308,12 +324,23 @@ throws, and its evaluation failures are made `EvaluationError` before B5 lands.
   backend memory exhaustion): `hven::BackendError`.
 - **Evaluation failures:** `hven::EvaluationError`, thrown by the user, rejected at a trial point
   and propagated from the start point.
+- **Non-finite values are failed trials.** At a trial point a non-finite objective value,
+  constraint value or derivative entry (NaN or ±Inf) is rejected exactly like a thrown
+  `EvaluationError`, on both engines, as Ipopt does. At the start point it ends the solve with
+  `kNumericalError` and a `message` naming the offending quantity; it is never continued. The
+  screen is O(n + m) per evaluation, negligible against the factorization.
 - **One base.** `hven::Error : std::runtime_error` is the base of `EvaluationError` and
   `BackendError`, so every runtime failure hven raises is caught in one clause. Internal
   invariant breaks stay `std::logic_error`.
 - **After a throw (basic guarantee).** The solver and the `Problem` stay valid and reusable. The
   next `solve` starts from the `Problem`'s re-read state (§8.2) and returns the same status and
   point as the same solve on a fresh solver. B5 pins this on both engines.
+- **Progress survives a foreign exception.** An exception other than `EvaluationError` that
+  escapes a solve propagates unchanged, with its original type. The solver keeps the interrupted
+  solve's partial result (iterations taken, last accepted iterate, its multipliers), readable
+  afterwards through `last_result()` (`IpmResult` or `SqpResult`) with `status ==
+  SolveStatus::kInterrupted`. It is cleared at the next `solve`. Wrapping is rejected:
+  `std::throw_with_nested` into `hven::Error` would break callers' catch clauses.
 - **`noexcept`:** the move operations, `options()`, and `Problem`'s accessors (§3).
 
 ## 5. Results and diagnostics
@@ -562,7 +589,7 @@ round, the size of an M7 W-task):
 sub-tasks plus fix rounds.
 
 M8's size, by the same unit: the brief names 31 tasks outside AP-2 (EX 3, AP 3, DN 4 of which 3
-conditional, PF 3, HB 5, TR 3, TU 4, CP 3, DC 1, WX about 2). The break (§13) is 18-19.5.
+conditional, PF 3, HB 5, TR 3, TU 4, CP 3, DC 1, WX about 2). The break (§13) is 18.5-20.
 
 **The size test is indeterminate at this precision.**
 
@@ -986,11 +1013,11 @@ group-specific obligations follow.
 | **B2** one problem | `Nlp`, `Problem`; `NlpModel`, `ParametricNlpModel`, `NonLinearProgram`, `NlpProblemModel`, `NlpModelAssembly`, `make_nlp_program`, master-list `make_nlp` to `detail/`; bounds re-read and caches cleared per solve; structure-change and row-kind-flip refusal; results in the problem's row space; `starting_multipliers` retired; `docs/concurrency.md` updated | 4-5 | Replay through the `detail::problem_from_*` entries, unchanged. New pins: the public `Problem(Nlp)` route is counter-identical to today's triplet route (`make_nlp_program` for the IPM, `NlpProblemModel` for the SQP) on the 27 replay cells that dual-bind as a triplet model (`interior_cell_refusal` empty; the subset is named in the declaration); one `Problem` on both engines; the EX-1 in-place sweep (entry 23) correct on both engines; an unchanged-bounds re-solve counter-identical to today's re-solve; a changed fixed set re-laid and counted, and a prior `WarmStart` refused as an identity mismatch; a structure change and a row-kind flip refused by name; the per-row `lambda`/`g` map round-trip on every row kind; IPM alternation counted. hven-bench re-baselines its harness rows at this group if decision 2 is approved (its adapter changes route). |
 | **B3** options and limits | `CommonOptions` (tolerances, `max_iterations`, `max_factorizations`, `time_limit_seconds`, `Verbosity`, `infinite_bound` declared but inert until B7); `std::optional` for every "no limit", `SolveBudget` included; `kWorkLimit` and `kTimeLimit`; the minor-budget label (decision 5); validation of the new fields; `IpmOptions::linear`, `termination`, `advanced`; `SqpOptions` prefix drops, `advanced`; `IpmPhase` and option enums public, singular; `k...Count` sentinels removed; `SqpSolver(SqpOptions = {})`; banner; dump format | 2 | **IPARM-SURFACE label**, with the `iparm` array byte-identical for the default and each non-default linear field. Options-dump drift pin re-derived (declared). P-SYM census of the layout change. The verbosity default (decision 4) is output-only, proven by the replay and by console byte-pins at each rung. `max_factorizations` and `time_limit_seconds` are empty by default; the new exits are pinned by forced-limit tests. If the minor-budget relabel is approved, the corpus rows with `probe_budget_stops == 1` are counted in the declaration and re-derived as a status-column change, point unchanged. Validation pins for each refused value. |
 | **B4** results, warm start, callbacks, trace interface | `convergence` sub-structs; `message`; `work` counters; `infeasibility_certified` on `SolveResult`; optionals for `-1` sentinels; `Index` result counts; public counter types; `kBudgetExhausted` → `kMaxIter` + `returned_best_iterate`; `WarmStart` class, `result.warm_start`, solver export removed, `native_warm_start`; `SqpWarmStart` opaque; `to_sqp_warm_start(warm, problem)`; `CallbackScope`; `TraceSink` no pure virtuals; internal free functions to `detail/` | 2.5-3 | T8 §2.7's full warm matrix re-run under the new names. `kBudgetExhausted` retirement: identical point and a pinned label on the `budget_mode` cells. Callback scope: the default stream equals today's stream filtered to depth 0, element for element. `work` counts pinned against hand-counted calls on HS071 on both engines. Trace goldens unchanged (sink interface only). The export contract's `detail/` rule armed without exceptions at close. |
-| **B5** evaluation failure and exceptions | `hven::Error`, `EvaluationError`, `BackendError`; the SQP rejects a trial on `EvaluationError`; **the IPM narrows** its seven catch sites to `EvaluationError` (declared behaviour change, §4.6); the exception contract stated | 1.5 | Declared behaviour change on throw paths only. **Obligation before landing: the hven-bench CUTEst adapter throw-type audit**, with its evaluation failures thrown as `EvaluationError`. New pins on both engines: a trial-point `EvaluationError` is a rejected trial; a start-point throw propagates; another exception type at a trial point propagates (on the IPM this is the narrowing); after each throw, a re-solve on the same solver and `Problem` returns the fresh-solver status and point. The replay confirms no corpus cell takes the path. |
+| **B5** evaluation failure and exceptions | `hven::Error`, `EvaluationError`, `BackendError`; the SQP rejects a trial on `EvaluationError`; **the IPM narrows** its seven catch sites to `EvaluationError` (declared behaviour change, §4.6); non-finite trial values rejected on both engines (the IPM gains the screen), a non-finite start ends `kNumericalError`; `last_result()` keeps the partial result of a solve a foreign exception interrupts; the exception contract stated | 2 | Declared behaviour change on throw paths only. **Obligation before landing: the hven-bench CUTEst adapter throw-type audit**, with its evaluation failures thrown as `EvaluationError`; the same audit is registered on tycho's catch-up list (not a gate). The IPM screen adds O(n + m) per evaluation, negligible; the replay's counters confirm no corpus cell changes. New pins on both engines: a trial-point `EvaluationError` is a rejected trial; a start-point throw propagates; a NaN and an ±Inf in the objective, a constraint and a derivative entry at a trial point are each a rejected trial; a non-finite start point ends `kNumericalError` with a message naming it; another exception type at a trial point propagates with its original type (on the IPM this is the narrowing), and `last_result()` then holds `kInterrupted` with the iterations taken, last accepted iterate and multipliers, and is cleared by the next `solve`; after each throw, a re-solve on the same solver and `Problem` returns the fresh-solver status and point. The replay confirms no corpus cell takes the path. |
 | **B6** pieces | local-block layer; raw protocol public and specified; objective-only surface; adapter default by detection; one partition count; declaration builder | 2 | Existing pieces unchanged (replay). Example 4 in both forms agrees: same status, objective to 1e-10 relative, `x` to 1e-8, and the same claim and slot multiset (iteration counts declared if they differ). A plain-type piece compiles with no specialization, and a hook type still single-dispatches (instruction pin). |
 | **B7** absent-bound normalization | `infinite_bound` live; the four QP-tier constants (`kEngineInfBound`, `kIpqpInfBound`, `kSsnInfBound`, `QpDegeneracyParams::inf_bound`) retired into it | 1.5 | **A declared default event, not a rename rider.** TRAIN evidence: the cells with a declared bound at or beyond 1e20 are counted in the declaration before the first leg, per QP mode (walk, IPQP, SSN, degeneracy arm); their rows are re-derived and declared; every other cell is byte-exact. Census over every QP mode. |
 | **B8** rename sweep (last) | `hven::solvers` → `hven`; acronyms as words; enumerators `kPascalCase`; aggregate members bare `snake_case`; umbrella `<hven/hven.h>`; `solver_interface_adapter.h` into `model/`; version 0.2.0; CHANGELOG | 1.5 | P-SYM with the object and symbol maps (mangled names move; the map is the proof); the explicit manifests (identifier, path, allowed residual; frozen artifacts excluded by hash); the inverse-manifest revert test. |
-| | **total** | **18-19.5** | |
+| | **total** | **18.5-20** | |
 
 **Closing the break.** Each group writes a ledger line. B8 adds `CHANGELOG.md` with the 0.2.0
 entry: a short release note naming each group and its one-line "before → after". There is no
@@ -1043,5 +1070,10 @@ one-window rule. B1-B4 and B8 are the break.
 8. **Disclosure, no choice asked: the IPM stops absorbing arbitrary errors.** Today the IPM
    treats any exception thrown during a trial-point evaluation as a rejected step and carries on.
    After the break it does so only for the new `EvaluationError`; any other exception reaches the
-   caller, as it already does on the SQP. No benchmark problem takes this path. The benchmark
-   harness's CUTEst adapter is checked and adjusted before the change lands.
+   caller, as it already does on the SQP, and the solver keeps the partial result of the
+   interrupted solve (iterations, last accepted point, multipliers) in `last_result()`. Also, a
+   NaN or infinite value from the model at a trial point now counts as a failed trial on both
+   engines (the IPM does not check today); at the start point it ends the solve with a
+   numerical-error status and a message. No benchmark problem takes these paths. The benchmark
+   harness's CUTEst adapter, and tycho's models, are checked and adjusted; tycho's is a catch-up
+   item, not a gate.
