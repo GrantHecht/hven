@@ -4,7 +4,7 @@ Date: 2026-11-01. Status: for owner approval at G-API. Base: `m8` at `12ca92e7`.
 Inputs: the EX-1 friction log (`docs/notes/2026-11-m8-ex1-friction.md`, 31 entries); the eight
 `examples/` programs; the public headers under `include/hven/`; the M6 break's group pattern
 (`docs/migration/2026-09-m6-api-break.md`); the T8 design's §5/§6 registrations
-(`docs/notes/2026-09-m6-w5-t8-design.md:288-333`); `docs/trace-schema-v0.md` §3.
+(`docs/notes/2026-09-m6-w5-t8-design.md:457-501`); `docs/trace-schema-v0.md` §3.
 Binding rulings: C201 (one declared break, no shims, 0.1.0 → 0.2.0; model-contract unification in
 scope iff it fits about a third of the milestone; no migration guide; at most one break window
 per milestone; the dense-arm names are set now).
@@ -20,16 +20,16 @@ No code changes ride this page. AP-2 starts after G-API.
   settings spelled once (two tolerances, one iteration cap, one verbosity). Results reported in
   the problem's own row space, with each engine's own convergence measures kept apart from the
   shared diagnostics. One warm-start value from a result.
-- **The model-contract size call.** The engine-side unification (T8 §6: the KKT workspace leaves
+- **The model-contract call.** The engine-side unification (T8 §6: the KKT workspace leaves
   `NonLinearProgram`; both engines consume the claim stream; SQP restoration on the common
-  contract) **moves to M9.** Estimated cost: 10-11 tasks as specified, 15-16 at this project's
-  observed overrun, against about 16 for a third of M8. It also sits on M8's critical path, and
-  its specification is not yet written. Its user-visible half is delivered in this break
-  (group B2): one problem type reaches both engines through public headers. M9 therefore changes
-  internals only, behind a surface that does not move again. §8 gives the reasoning.
-- **Friction dispositions.** 26 FIX IN THE BREAK, 3 DOCUMENT ONLY, 2 KEEP (§11).
+  contract) is recommended for M9. The size test ("about a third of the milestone") is
+  indeterminate at this precision (§8.3), so the recommendation rests on the critical path. The
+  eight-coupling specification the brief asked for is not written on this page; it is
+  recommended as an M9-W0 task. The user-visible half is delivered in this break (group B2): one
+  problem type reaches both engines through public headers, so M9 changes internals only.
+- **Friction dispositions.** 26 FIX IN THE BREAK, 3 DOCUMENT ONLY, 1 KEEP, 1 RESOLVED (§11).
 - **The break.** Eight groups. Seven are functional, in dependency order. The rename sweep comes
-  last. Estimated total: 16.5-18.5 tasks (§13). B5, B6 and B7 are separable and can be cut without
+  last. Estimated total: 18-19.5 tasks (§13). B5, B6 and B7 are separable and can be cut without
   touching the others.
 - **Not built.** The serialized SQP warm envelope (§10.1), with a stated reopen trigger. The
   break makes `SqpWarmStart` opaque so the envelope can be added later without a second break.
@@ -54,13 +54,13 @@ section of this page.
 
 | point | Ipopt / Knitro / SNOPT | hven today |
 |---|---|---|
-| problem contracts | one | two public callback contracts with opposite conventions, plus a public 108-member program struct |
+| problem contracts | one | two public callback contracts with opposite conventions, plus a public program struct with 69 public data members and 131 public member functions |
 | where the problem goes | one solve entry | the IPM takes a program, the SQP takes a model; the routes between them are not all public |
-| absent bound | a threshold (1e19 / 1e20 / 1e20) | every finite value is real on the IPM route, but the SSN QP mode cuts at 1e20 |
-| evaluation failure | a defined rule | the IPM rejects a trial on an evaluation exception; the SQP propagates it (§4.6) |
+| absent bound | a threshold (1e19 / 1e20 / 1e20) | the IPM and the SQP's NLP-level tests treat every finite value as real; every SQP QP mode treats a bound at or beyond 1e20 as absent |
+| evaluation failure | a defined rule | the IPM rejects a trial on any exception; the SQP propagates every exception (§4.6) |
 | tolerances | 2 (optimality, feasibility) | IPM 12 (four measures, three tiers); SQP 2, under different names |
 | work limits | iterations, evaluations, time | iterations only; no factorization or time ceiling (F3) |
-| public headers | self-contained | 40 `detail/` includes across 10 public headers; gtest names in one |
+| public headers | self-contained | 40 `detail/` includes across 10 public headers; `fmt` in 10; gtest names in one |
 
 ## 3. The target surface at a glance
 
@@ -77,7 +77,7 @@ struct NlpDimensions { Index n = 0, m = 0, jacobian_nonzeros = 0, hessian_nonzer
 class Nlp {
   public:
     virtual ~Nlp() = default;
-    virtual NlpDimensions dimensions() const = 0;                 // read once per structure
+    virtual NlpDimensions dimensions() const = 0;                 // re-queried at EVERY solve
     virtual void bounds(VecRef x_lower, VecRef x_upper,
                         VecRef g_lower, VecRef g_upper) const = 0; // read at EVERY solve
     virtual double eval_f(ConstVecRef x) const = 0;
@@ -95,28 +95,29 @@ class Nlp {
     virtual std::string name() const { return "nlp"; }
 };
 // Evaluation failure: throw hven::EvaluationError at a trial point and both
-// engines treat the trial as rejected. Any other exception propagates.
+// engines treat the trial as rejected. Any other exception propagates (§4.6).
 
 // --- What both engines solve. Owns the engine-side transcriptions. ---
 class Problem {
   public:
     explicit Problem(std::shared_ptr<Nlp> nlp);
     explicit Problem(AssemblyDeclaration pieces);   // §9; the SQP refuses it by name until M9
-    Index num_variables() const;
-    Index num_constraints() const;
-    const ProblemStatistics &statistics() const;    // row-kind and bound-kind census (§10.4)
-    int partitions() const;                         // the adopted count (pieces)
+    Index num_variables() const noexcept;
+    Index num_constraints() const noexcept;
+    const ProblemStatistics &statistics() const noexcept; // row-kind and bound-kind census (§10.4)
+    Index partitions() const noexcept;                    // the adopted count (pieces)
 };
 
 // --- Engines: one shape. IpmSolver shown; SqpSolver is identical. ---
 class IpmSolver {
   public:
-    explicit IpmSolver(IpmOptions options = {});
+    explicit IpmSolver(IpmOptions options = {});              // validate() runs here
     IpmSolver(IpmSolver &&) noexcept;                         // movable (private impl)
+    IpmSolver &operator=(IpmSolver &&) noexcept;              // moved-from: destroy or assign only
     IpmResult solve(Problem &problem, ConstVecRef x0,
                     const WarmStart &warm = {}, const SolveBudget &budget = {});
-    void set_options(IpmOptions options);
-    const IpmOptions &options() const;
+    void set_options(IpmOptions options);                     // validate() runs here
+    const IpmOptions &options() const noexcept;
     void set_iteration_callback(IterationCallback cb,
                                 IterationPayload payload = IterationPayload::kAll,
                                 CallbackScope scope = CallbackScope::kTopLevel);
@@ -127,14 +128,22 @@ class IpmSolver {
 };
 // SqpSolver adds one labelled SQP-only entry:
 //   SqpResult solve(Problem &, ConstVecRef x0, const SqpWarmStart &, const SolveBudget & = {});
+// SqpWarmStart declares no default constructor (undeclared, not = delete), so a
+// braced {} third argument selects the WarmStart overload.
+
+// --- "No limit" is an empty optional, everywhere. ---
+struct SolveBudget {
+    std::optional<Index> max_iterations;    // effective cap = min(this, options' cap)
+    std::optional<Index> minor_budget;      // SQP probe budget; ignored by the IPM
+};
 
 // --- Shared settings, embedded once per engine. ---
 struct CommonOptions {
     double optimality_tol = 1e-6;           // stationarity (+ IPM complementarity)
     double feasibility_tol = 1e-6;          // equality and inequality residuals
     Index max_iterations;                   // engine default: IPM 1000 per phase, SQP 100
-    Index max_factorizations = 0;           // 0 = none (F3)
-    double time_limit_seconds = inf;        // wall clock; never set in measured runs
+    std::optional<Index> max_factorizations;   // F3; empty = no ceiling
+    std::optional<double> time_limit_seconds;  // wall clock; never set in measured runs
     Verbosity verbosity;                    // kSilent / kWarnings / kSummary / kIterations
     int threads;                            // as today
     StartLevel start_level = StartLevel::kWarm;
@@ -142,13 +151,20 @@ struct CommonOptions {
 };
 
 // --- One result core. ---
+struct WorkCounters {                       // counted at the Problem boundary, both engines
+    Index objective_evals = 0, gradient_evals = 0, constraint_evals = 0,
+          jacobian_evals = 0, hessian_evals = 0, factorizations = 0;
+};
 struct SolveResult {
     SolveStatus status;
+    std::string message;                    // why the solve stopped, one line
     bool returned_best_iterate = false;     // replaces kBudgetExhausted (§5)
+    bool infeasibility_certified = false;   // kInfeasible only; per-engine rule in §5
     Vec x, lambda, z, g;                    // lambda and g: one entry per problem row
     double f;
     double stationarity, feasibility, complementarity;   // shared, declared space
     Index iterations;
+    WorkCounters work;
     double wall_seconds;                    // informational
     WarmStart warm_start;                   // empty() when no usable point
 };
@@ -171,12 +187,29 @@ struct SolveResult {
   evidence, not an API change. The doc states which measure each tolerance reads.
 - **Iteration cap.** One name, `max_iterations`, on `CommonOptions` and on `SolveBudget`. It
   replaces `IpmOptions::max_iters` and `SqpOptions::max_iter`. The defaults stay per engine, and
-  the IPM's cap stays per phase, documented as such.
-- **Work and time limits (F3).** `CommonOptions::max_factorizations` (0 = none) is a deterministic
-  ceiling, read at iteration boundaries on both engines. Its exit is a new `kWorkLimit`.
+  the IPM's cap stays per phase, documented as such. Precedence, as today: an engaged
+  `SolveBudget::max_iterations` gives an effective cap of the smaller of the two, so a budget
+  only tightens the options' cap.
+- **"No limit" is an empty `std::optional`** on every limit: `max_factorizations`,
+  `time_limit_seconds`, and both `SolveBudget` members (today `0 = none`). No numeric sentinel
+  means "unlimited" anywhere on the public surface.
+- **Work and time limits (F3).** `CommonOptions::max_factorizations` is a deterministic ceiling,
+  read at iteration boundaries on both engines. Its exit is a new `kWorkLimit`.
   `time_limit_seconds` is wall-clock and reports a new `kTimeLimit`. It is never set in a
   replay, census or harness row (CLAUDE.md §7: a deadline outcome is not
-  scheduling-invariant). Both default to off, so no trajectory moves. Owner decision 5.
+  scheduling-invariant). Both default to empty, so no trajectory moves. The two statuses land in
+  the same group as the two limits (B3). Owner decision 5.
+- **The SQP minor budget's exit label.** `SolveBudget::minor_budget` exhaustion reports
+  `kMaxIter` today (`drivers/solve_result.h:63-67`). Recommended: relabel it `kWorkLimit`, since
+  a minor budget is a work ceiling, not a major-iteration cap. The returned point is unchanged.
+  Every corpus cell runs under a minor budget (`bench/corpus_cells.h:1656`), so the affected
+  cells are the corpus rows with `probe_budget_stops == 1`, counted in B3's declaration before
+  its first leg and re-derived as a status-column change. The alternative is to keep `kMaxIter`
+  and document it. Owner decision 5.
+- **Validation of the new fields.** `validate()` refuses `infinite_bound <= 0` or NaN, an engaged
+  `time_limit_seconds <= 0` or NaN, an engaged `max_factorizations < 0`, and an engaged
+  `SolveBudget` member `< 1`. `validate()` runs at construction and at `set_options`; a budget is
+  validated at `solve` entry.
 - **Verbosity.** `Verbosity` is an enum with four rungs, not an inverted integer (0 = everything,
   3+ = silent, the opposite of Ipopt and Knitro). The default should be the same on both engines.
   It is silent today on the SQP and full on the IPM. Owner decision 4 (recommend silent on both).
@@ -202,7 +235,7 @@ struct SolveResult {
   inertia-correction increase, decrease and initial values; `alpha_red`, `max_refac`, `soe_mode`,
   `opt_bar_mode`, `pd_step_strategy` are renamed on the same rule. The full field map is AP-2's
   manifest. Moving a field into a sub-struct is a layout change, so it sits in B3, not in the
-  rename group (the T8.10 lesson, `t8-design.md:256-269`).
+  rename group (the T8.10 lesson, `t8-design.md:425-438`).
 - **Enums used by options:** singular type names (`BarrierMode`, not `BarrierModes`) and
   `kPascalCase` enumerators everywhere. Today some are `filter`, `wmno`, `off`, `classic` and
   `MakeParameter`. The `k...Count` sentinels leave the public enums.
@@ -227,31 +260,61 @@ Named now. Nothing is declared until DN-1 builds, and nothing lands if DN-0 does
 
 | layer | name | type, default |
 |---|---|---|
-| factor | `hven::linear::SymmetricFactor::Options::dense_factorization` | `hven::linear::DensePolicy`, `kNever` |
-| factor, kAuto only (DN-3) | `SymmetricFactor::Options::dense_max_dimension` | `Index`, set by DN-3's rule |
-| public option | `CommonOptions::dense_factorization` | `DensePolicy`, `kNever` |
+| public option | `IpmOptions::linear.dense_factorization`, `SqpOptions::linear.dense_factorization` | `DensePolicy`, `kNever` |
 | enum | `hven::linear::DensePolicy` | `kNever`, `kAlways`, `kAuto` (kAuto declared with DN-3) |
-| counter | `SymmetricFactor::Counters::dense_factorizations` | `Index` |
+| factor-layer selection | `dense_factorization` | `DensePolicy`, `kNever` |
+| factor-layer threshold, kAuto only (DN-3) | `dense_max_dimension` | `Index`, set by DN-3's rule |
+| counter | `dense_factorize_count` | `Index`, beside `analyze_count` and `factorize_count` |
 
-One concept, one field name, at both layers. If DN-1 fires for one engine only, the public field
-goes on that engine's options under the same name, and moves to `CommonOptions` when the second
-engine follows. That move is additive in a later window.
+- **The public name is the invariant.** Where the factor-layer field and counter live follows
+  the seam DN-1's design page picks (`2026-11-m8-brief.md:268-269`): on
+  `SymmetricFactor::Options` and `SymmetricFactor::Counters` if the arm sits inside the factor,
+  or on the consumers' own options and counters if the choice is made at the four consumers.
+  The names do not change with the seam.
+- **Placement: `linear`, on both engines.** The policy configures the KKT factorization, as the
+  IPM's other factor knobs do (§4.2), so it sits beside them. The SQP gains a `linear`
+  sub-struct holding this one field. If DN-1 fires for one engine only, the field is added on
+  that engine's `linear` alone, and the other engine's is added when it follows, additively.
 
 ### 4.5 Bounds: absent-bound normalization (F10, #13)
 
 See §10.2. The setting is `CommonOptions::infinite_bound`.
 
-### 4.6 Evaluation failure
+### 4.6 Evaluation failure and the exception contract
 
-The IPM converts an evaluation exception at a trial point into a rejected trial
-(`detail/interior/eval_error_log.h`). The SQP solve loop has no equivalent catch: an exception
-from an SQP evaluation propagates out of `solve`. Neither rule is in a public header.
+**Today.** The IPM catches every exception (`std::exception` and `...`) at seven trial-point
+sites and records it in `EvalErrorLog`. In its four line searches an un-evaluable trial is a
+merit rejection and the step backs off (`ipm_solver_globalization.cpp:247-266`). In the
+soft-feasibility step it reports no reduction, so the caller escalates to the full restoration
+entry (`ipm_solver.cpp:1793-1802`). The two SOC sites abandon the correction. The SQP solve loop
+has no such catch: every exception from an SQP evaluation propagates out of `solve`. Neither rule
+is in a public header.
 
-Target: `hven::EvaluationError` is the one signal. Thrown at a trial point, both engines reject
-the trial (the IPM backs off its line search; the SQP rejects the step and shrinks its radius).
-Thrown at the start point, or any other exception type, it propagates. This changes behaviour
-only on throw paths, which no corpus cell takes. It is a group of its own (B5), declared as a
-behaviour change.
+**Target (B5).** `hven::EvaluationError` is the one signal. Thrown at a trial point, both
+engines reject the trial at the same sites as today (the IPM as above; the SQP rejects the step
+and shrinks its radius). Thrown at the start point it propagates.
+
+**Declared behaviour change: the IPM narrows.** Its seven sites catch `hven::EvaluationError`
+only. Any other exception at a trial point, which the IPM swallows today, propagates after B5.
+No corpus cell takes a throw path. hven-bench's CUTEst adapter is audited for the types it
+throws, and its evaluation failures are made `EvaluationError` before B5 lands.
+
+**The exception contract** (stated in `<hven/hven.h>`'s overview and on each entry):
+
+- **Contract violations** (bad sizes or bounds, invalid options, a structure change between
+  solves, a Hessian-less problem on the IPM, a pieces problem on the SQP): `std::invalid_argument`,
+  as today.
+- **Backend failures** the engine cannot report as a status (a factorization library error,
+  backend memory exhaustion): `hven::BackendError`.
+- **Evaluation failures:** `hven::EvaluationError`, thrown by the user, rejected at a trial point
+  and propagated from the start point.
+- **One base.** `hven::Error : std::runtime_error` is the base of `EvaluationError` and
+  `BackendError`, so every runtime failure hven raises is caught in one clause. Internal
+  invariant breaks stay `std::logic_error`.
+- **After a throw (basic guarantee).** The solver and the `Problem` stay valid and reusable. The
+  next `solve` starts from the `Problem`'s re-read state (§8.2) and returns the same status and
+  point as the same solve on a fresh solver. B5 pins this on both engines.
+- **`noexcept`:** the move operations, `options()`, and `Problem`'s accessors (§3).
 
 ## 5. Results and diagnostics
 
@@ -265,6 +328,14 @@ behaviour change.
 - **Shared diagnostics.** `stationarity`, `feasibility`, `complementarity`. `feasibility` is the
   maximum of today's `feasibility_e` and `feasibility_i`, a derived value with no new
   evaluation. Definitions are unchanged, and NaN still means unmeasured.
+- **The stop reason as text.** `SolveResult::message` is one line naming why the solve stopped
+  (for example the IPM's `IpmStopReason`, the SQP's exit), so a caller can log a result without a
+  per-engine switch.
+- **Shared work counters.** `SolveResult::work` (`WorkCounters`, all `Index`): objective,
+  gradient, constraint, Jacobian and Hessian evaluations, and factorizations. Evaluations are
+  counted at the `Problem`'s evaluation boundary, so both engines count them the same way and no
+  engine-internal path moves. The engine counter trees (`IpmResult::counters`,
+  `SqpResult::counters`) stay as they are.
 - **Engine measures under one name (#26).** `IpmResult::convergence {kkt, barrier, equality,
   inequality}` (today `kkt_inf`, `barr_inf`, `econ_inf`, `icon_inf`) and `SqpResult::convergence
   {stationarity, feasibility, complementarity, kkt_residual}` (today `sqp_*`, `kkt_residual`).
@@ -281,10 +352,17 @@ behaviour change.
     `returned_best_iterate = true`, the same flag the IPM's `return_best` sets. The returned
     point is unchanged; only the label moves. `budget_mode` is off by default and in every
     corpus cell.
-  - Add `kWorkLimit` (factorization ceiling; the SQP minor budget when exhausted) and, if owner
-    decision 5 approves, `kTimeLimit`.
-  - `kInfeasible` keeps its name. Its doc says "locally", and `infeasibility_certified` stays the
-    certificate flag.
+  - Add `kWorkLimit` (factorization ceiling; the SQP minor budget if owner decision 5 relabels
+    it) and, if owner decision 5 approves, `kTimeLimit`. Both land in B3 with the limits.
+  - `kInfeasible` keeps its name, and its doc says "locally". `infeasibility_certified` moves to
+    `SolveResult`, with its rule stated per engine:
+    - **SQP:** `kInfeasible` is certified when restoration reached a stationary point of the
+      infeasibility measure above `feasibility_tol`; uncertified otherwise (the proximity gate,
+      the inconsistent-equalities exit). Unchanged from today (`core/solver_status.h:45-70`).
+    - **IPM:** never reports `kInfeasible`. Its restoration's locally-infeasible exit reports
+      `kStalled`, with `message` naming it (`solve_status.cpp:35-37`), and
+      `infeasibility_certified` is always false. Relabelling that exit would be a status change
+      and is not part of the break.
 - **Callbacks (#27, #28).** `CallbackScope::kTopLevel`, the default, delivers depth-0 rows only.
   `kIncludeRestoration` delivers today's stream. The count difference in #27 is documented: the
   SQP's row 0 is the start point, and the IPM's rows equal its iterations.
@@ -309,9 +387,10 @@ behaviour change.
   is the multipliers-only form. `serialize` and `deserialize` are kept. The identity rule (an
   identity mismatch refuses; pattern and value defects degrade) is unchanged.
 - **`SqpWarmStart` is opaque.** Today it holds a `WorkingSet` by value through
-  `detail/qp/working_set.h`. It becomes a handle. It is not default-constructible, so a braced
-  `{}` third argument selects `WarmStart` without ambiguity, and the native state can grow a
-  serialized form later without a break (§10.1). It is built by `to_sqp_warm_start`, by mesh
+  `detail/qp/working_set.h`. It becomes a handle. It declares no default constructor (left
+  undeclared, not `= delete`: a deleted one still takes part in overload resolution and would
+  make `{}` ambiguous), so a braced `{}` third argument selects `WarmStart`. The native state can
+  grow a serialized form later without a break (§10.1). It is built by `to_sqp_warm_start`, by mesh
   transfer and continuation, or taken from a result.
 - **The polish composition (#25).** `to_sqp_warm_start(const WarmStart &, const Problem &)` takes
   the problem: the bounds and the declaration key come from it, so the caller no longer keeps
@@ -336,11 +415,44 @@ behaviour change.
 - **Umbrella (#8).** `<hven/hven.h>` includes the whole stable surface. Every example includes
   that one header.
 - **Public headers do not include `detail/` (#10, #12).** Today 10 public headers carry 40 such
-  includes (`sqp_solver.h` 14, `ipm_solver.h` 7, `non_linear_program.h` 7, and others), and
-  `ipm_solver.h` forward-declares 17 gtest names and befriends them. The engines move to a
-  private implementation (B1). The fixtures befriend the implementation class in a `detail/`
-  header. `fmt` leaves the public headers. `check_export_contract.sh` gains the rule "no public
-  header includes `detail/`". Any survivor is named and argued on B1's ledger line.
+  includes (`sqp_solver.h` 14, `ipm_solver.h` 7, `non_linear_program.h` 7, and others).
+  `ipm_solver.h` forward-declares 17 test names (11 gtest fixtures, 6 harness classes) and
+  befriends 5 of them; the other 12 declarations are dead. The engines move to a private
+  implementation (B1), and the fixtures befriend the implementation class in a `detail/` header.
+  B1 removes the 21 engine-header includes. The other 19 leave with the group that moves what
+  they carry:
+
+  | public header | `detail/` includes | removed by |
+  |---|---|---|
+  | `model/non_linear_program.h` | 7 | B2 (the header moves to `detail/`) |
+  | `model/nlp_problem_model.h`, `model/nlp_triplet_model.h` | 1 each (`eigen_types.h`) | B2 (both leave the public surface) |
+  | `drivers/ipm_solver_types.h` | `ipm_solver_fwd.h` | B3 (`IpmPhase` and the option enums move to the options header) |
+  | `drivers/ipm_solver_types.h` | `eval_error_log.h`, `kkt_factorization.h` | B4 (public counter and evaluation-error types) |
+  | `drivers/sqp_solver_types.h` | `globalization/sqp/globalization.h` | B3 (the `make_strategy` hook moves with the `advanced` tier) |
+  | `drivers/sqp_solver_types.h` | `warmstart/warm_start.h` | B4 (`WarmStart`) |
+  | `drivers/trace.h` | `ipm_solver_fwd.h` | B3 |
+  | `drivers/trace.h` | `iterate_info.h`, `ipqp_evidence.h` | B4 (trace interface) |
+  | `warmstart/ipm_polish_extension.h` | `warmstart/warm_start.h` | B4 |
+  | `warmstart/sqp_warm_start.h` | `qp/working_set.h` | B4 (`SqpWarmStart` opaque) |
+
+  `core/solver_counters.h` includes `core/detail/aggregate_arity.h` for three static_asserts that
+  pin the counter tables to their structs. It is moved, not exempted: the asserts go to
+  `src/drivers/trace_writer.cpp`, which already includes the header, so a struct-table mismatch
+  still fails the library build. B1 does this.
+
+  `check_export_contract.sh` gains the rule "no public header includes `detail/`". From B1 to B3
+  it checks the residual table above as an allow-list that may only shrink. The rule is armed
+  without exceptions at B4's close.
+- **`fmt` leaves the public headers.** Ten include it today. `ipm_solver.h` and `sqp_solver.h`
+  lose it with the private implementation (B1); `non_linear_program.h` with B2;
+  `sqp_warm_start.h` with B4. In `core/ledger.h` the include is unused and kept only to hold
+  preprocessed input steady; B1 removes it under its P-SYM run. `drivers/console_trace_sink.h`
+  declares `ipm_residual_color`, which returns `fmt::text_style`; B1 moves it to `detail/`.
+  In `model/claim_space.h`, `structure_identity.h`, `candidate_point.h` and `nlp_assembly.h`,
+  `fmt` builds throw messages. B1 moves each message into an out-of-line cold function in `src/`
+  and keeps the check inline. None of these sits in a
+  per-element loop: the most frequent, `validate_bound_destination` (`nlp_assembly.h:282`), runs
+  once per assembly call. B1's runtime protocol covers them.
 - **Header comments are contract text.** Public header prose today carries settlement history
   (task ids, percentages, review outcomes; for example `drivers/common_options.h`, and
   `drivers/solve_result.h`'s `IterationPayload` note). B1 rewrites the public headers to state the
@@ -355,8 +467,9 @@ behaviour change.
   - Aggregate members are bare `snake_case` (CLAUDE.md §4). Today `AssemblyDeclaration`,
     `VariableBound`, `WarmExtension`, `IpmPolishData` and `NLPRowClassification` use trailing
     underscores.
-  - Sizes and counts are `hven::Index` on every public signature. The triplet contract's `int`
-    counts and `VectorXi` structures go.
+  - Sizes and counts are `hven::Index` on every public signature and result field. The triplet
+    contract's `int` counts and `VectorXi` structures go, and so do result counts such as
+    `IpmResult`'s `int soc_steps_taken` and `int watchdog_activations`.
   - Callback signatures use `hven::ConstVecRef`, `VecRef` and `IndexVecRef` from `core/types.h`,
     not `ConstEigenRef` from `detail/`.
 - **Version.** `0.2.0`, with a CHANGELOG entry at the break's close.
@@ -369,8 +482,10 @@ behaviour change.
   - `NlpTripletModel`: TNLP shape, lower-triangle triplets, `int` counts.
   - `NlpModel`: split form, `c_E = 0`, `c_I <= 0`, upper-triangle sparse matrices returned by
     value, six of its pure virtuals `[[deprecated]]`. `ParametricNlpModel` sits on top of it.
-  - `NonLinearProgram`: a struct with 108 public members. It holds the IPM's KKT workspace, built
-    by `make_nlp_program` or `adopt_declaration`.
+  - `NonLinearProgram`: a struct with 69 public data members and 131 public member functions
+    (non-implicit declarations under `public:`, from clang's AST,
+    `-ast-dump-filter=NonLinearProgram`). It holds the IPM's KKT workspace, built by
+    `make_nlp_program` or `adopt_declaration`.
 - Three bridges: `NlpProblemModel` (triplet → `NlpModel`), `NlpModelAssembly` (`NlpModel` →
   claim stream), and `NLPAdapterCore` (`NlpModel` → program; constructible only in `detail/`).
 - The IPM takes `NonLinearProgram &`; the SQP takes `const NlpModel &` or `NlpModelAssembly &`.
@@ -391,7 +506,18 @@ behaviour change.
   - a changed set re-lays bounds, and a change in which variables are fixed re-lays the
     elimination (counted);
   - `dimensions()` and both structures are re-queried, and a change is refused by name. The cost
-    is O(nnz) per solve, against at least one factorization.
+    is O(nnz) per solve, against at least one factorization;
+  - **a bound change that flips a row's kind is a structure change, refused by name.** Row kinds
+    (equality, one-sided, range, free) are classified from the row bounds
+    (`NLPRowClassification::classify`, `nlp_problem_model.cpp:148`), and they fix the `ce`/`ci`
+    sizes and the range-row doubling. A flip, including one caused by `infinite_bound`, would
+    re-lay the row space and the multiplier map. Refusing is recommended over re-laying: no
+    consumer needs it, and re-laying would add a second layout path to prove.
+
+  A `WarmStart` taken before a re-laid elimination does **not** match afterwards. Its
+  `DeclarationKey` digests each variable's bound structure (finite lower, finite upper, fixed;
+  `structure_identity.h:177-191`), so a changed fixed set, or any finite-to-absent flip, is an
+  identity mismatch and is refused by the existing rule. A value-only bound change keeps the key.
 
   This gives the IPM the parametric route it lacks today (#23). It retires `ParametricNlpModel`:
   a parameter is the user's own member, and the continuation driver (`detail/warmstart/`) reads
@@ -399,11 +525,18 @@ behaviour change.
 - **Convention fixes:** one triangle (lower) and one multiplier vector (#2); no deprecated
   overrides (#3); an optional Hessian (#4); zero-row blocks need no overrides (#5); public type
   aliases (#10).
-- **Concurrency rule, stated:** one solve at a time per `Problem`. Two engines may alternate on
-  one `Problem`. An IPM alternation re-analyses, as `analyzed_owner_id` does today, and is
-  counted.
-- **Pieces** (`Problem(AssemblyDeclaration)`): §9. The SQP refuses a pieces problem by name until
-  M9 (owner decision 8).
+- **Concurrency rule, stated** (carrying `docs/concurrency.md`'s contract to the new types):
+  - one `Problem` serves one thread, one solve at a time;
+  - N concurrent solves need N `Problem`s (and N solvers);
+  - an `Nlp` shared by several `Problem`s must be safe to call through its `const` members
+    concurrently;
+  - two engines may alternate on one `Problem`; an IPM alternation re-analyses, as
+    `analyzed_owner_id` does today, and is counted.
+
+  B2 updates `docs/concurrency.md` to these types.
+- **Pieces** (`Problem(AssemblyDeclaration)`): §9. **Decided: the SQP refuses a pieces problem
+  by name until M9.** A temporary copying bridge would cost 1-2 tasks that M9 deletes, and its
+  one consumer (tycho) is not yet in sync.
 - Tests and bench keep building `NonLinearProgram` and `NlpModel` directly through `detail/`
   entries (`detail::problem_from_program`, `detail::problem_from_model`). The 27-cell replay and
   census binaries take the same internal route they take today.
@@ -429,21 +562,28 @@ round, the size of an M7 W-task):
 sub-tasks plus fix rounds.
 
 M8's size, by the same unit: the brief names 31 tasks outside AP-2 (EX 3, AP 3, DN 4 of which 3
-conditional, PF 3, HB 5, TR 3, TU 4, CP 3, DC 1, WX about 2). The break (§13) is 16.5-18.5. M8 is
-therefore about 48-50 tasks, and a third is about 16.
+conditional, PF 3, HB 5, TR 3, TU 4, CP 3, DC 1, WX about 2). The break (§13) is 18-19.5.
 
-**Call: the engine-side unification does not fit, and moves to M9.** The reasons:
+**The size test is indeterminate at this precision.**
 
-1. At the realistic estimate it reaches or passes the bound on its own, and it would land in the
-   same window as a 16.5-18.5-task break.
-2. It is on the critical path. TR, AP-4, TU and CP all wait for AP-2 to close, and the brief
-   does not allow it to trail as a late group.
-3. Its first deliverable, the coupling specification, does not exist yet. The astra review
-   described the work as "an M4-contract completion" (T8 §0 item 3).
-4. Its user-visible half lands now. B2 puts one problem type on both engines through public
+- As specified (10-11), it fits a third of an M8 without it (49-51 tasks, a third about 16-17).
+- At observed overrun (15-16), it sits at that bound.
+- Counted in the denominator (59-67 tasks), a third is about 20-22, and even the overrun
+  figure fits.
+
+**Recommendation: move it to M9, on critical-path grounds.**
+
+1. TR, AP-4, TU and CP all wait for AP-2 to close, and the brief does not allow the unification
+   to trail as a late group. At 10-16 tasks inside the break, it delays every one of them.
+2. Its user-visible half lands now. B2 puts one problem type on both engines through public
    headers. The bridges stay, internal. What M9 adds is the SQP on pieces problems and a solver
    that owns its workspace. That work is behind `Problem`'s face, so M9 needs no second break.
    Its first consumer is tycho, which is out of sync and catches up later.
+
+**The eight-coupling specification is not on this page.** The brief asked AP-1 for it; it was not
+written here. Recommended: M9's first task (W0), so the M9 brief is sized from it. Alternative:
+an M8 side task (1-1.5) off the critical path, if the owner wants the size settled on evidence
+before deciding.
 
 The brief's interim route ("the harness bridge documented in AP-3's example 1") is superseded:
 B2 makes the route public library code, and hven-bench's bridge retires.
@@ -479,7 +619,7 @@ Target (group B6):
   `NonLinearProgram(int)` is internal. `Problem::partitions()` reports the adopted count, and
   the clamp rule is documented beside it.
 - **One population route (#22).** The master-list `make_nlp(PV, EQ, IQ)` route goes internal
-  with `NonLinearProgram`.
+  with `NonLinearProgram`, in B2.
 - **`AssemblyDeclaration` gains a builder** (`add_objective`, `add_equality`, `add_inequality`,
   `set_bounds`). Row counts are derived and checked, not hand-set.
 - Owner decision 7: the local-block layer costs about 2 tasks. The alternative is to document
@@ -505,22 +645,29 @@ Target (group B6):
 
 ### 10.2 Absent-bound normalization (F10, #13)
 
-- **Today.** Every finite bound is real on the IPM and kWalk routes. The SSN QP mode treats
-  `|b| >= 1e20` as absent. Two of two external model sources (hven-bench F9/F10) write absent as
-  `±1e20`. EX-1 found `1e30` accepted silently as a real bound.
+- **Today: the IPM and the SQP disagree.** The IPM treats every finite bound as real. Inside the
+  SQP, every QP subproblem mode treats `|b| >= 1e20` as absent, through four private constants:
+  the walk's `detail::kEngineInfBound` (`detail/qp/qp_engine.h:866`, used throughout
+  `src/qp/qp_engine.cpp`), IPQP's `kIpqpInfBound` (`detail/qp/ipqp_math.h:29`), SSN's
+  `kSsnInfBound` (`detail/qp/ssn_engine.h:54`), and the degeneracy arm's
+  `QpDegeneracyParams::inf_bound` (`detail/qp/qp_degeneracy_arm.h:470`). The SQP's NLP-level
+  tests treat the same bounds as real (`std::isfinite`, for example
+  `src/drivers/sqp_solver.cpp:1165`). Two of two external model sources (hven-bench F9/F10)
+  write absent as `±1e20`. EX-1 found `1e30` accepted silently as a real bound.
 - **Target, recommended (owner decision 3).** `CommonOptions::infinite_bound = 1e20`.
   - A bound with `|b| >= infinite_bound` is absent. The rule is applied once, at the `Problem`
-    boundary, for both engines and every route. The SSN's private cutoff retires into it.
-  - Setting `infinite_bound = inf` restores "every finite value is real".
+    boundary, for both engines and every route. The four QP-tier constants retire into it.
+  - Setting `infinite_bound = kInfinity` restores "every finite value is real".
   - Normalized bounds are counted and reported in the solve-begin trace event.
   - An equality row declared at `±infinite_bound` is refused by name, as an equality at infinity
     is today.
 - **This is a default change.** It is its own declared default event (B7), with TRAIN evidence:
   the cells whose declared bounds include `|b| >= 1e20`, counted in the declaration before the
-  first leg. Census, because the SSN cutoff moves. It does not ride a rename.
+  first leg. The declaration and the census cover every QP mode (walk, IPQP, SSN, degeneracy
+  arm), since each one's cutoff moves to the boundary. It does not ride a rename.
 - **Alternatives:** refuse `|b| >= 1e20` finite bounds with an error naming the variable or row;
-  or keep "verbatim" and remove the SSN cutoff, so the one inconsistency inside hven goes away
-  either way.
+  or keep "verbatim" and remove the four QP-tier cutoffs. Either way the IPM-versus-SQP
+  inconsistency goes.
 
 ### 10.3 The trace-sink balance
 
@@ -550,6 +697,8 @@ Target (group B6):
   change and goes to TR-1.
 - **Linearity** (which rows are linear) is declared by no contract. It is registered. An optional
   `Nlp::linear_rows()` hook would be additive later and needs no break.
+- **User scaling** is registered on the same terms: an optional `Nlp` hook beside
+  `linear_rows()` that supplies objective, variable and row scale factors, additive later.
 
 ### 10.5 F3 (the whole-solve factorization ceiling)
 
@@ -575,12 +724,12 @@ Target (group B6):
 | 14 | multiplier signs must be read, then verified | DOCUMENT ONLY: the conventions are correct; DC-1's getting-started page states them, and B2's per-row `lambda` puts the `Nlp` route on Ipopt's sign | DC-1 |
 | 15 | tolerances spelled differently | FIX IN THE BREAK: `optimality_tol`, `feasibility_tol` | B3 |
 | 16 | three spellings of one iteration cap | FIX IN THE BREAK: `max_iterations` everywhere | B3 |
-| 17 | `std::string` piece corrupts the heap | KEEP: already fixed by DF-1 (`12ca92e7`, `TypeStorage` relocates by move construction). Nothing is left for the break, and B6's piece docs state that any movable type is legal | — |
+| 17 | `std::string` piece corrupts the heap | RESOLVED (DF-1, `12ca92e7`: `TypeStorage` relocates by move construction). B6's piece docs state that any movable type is legal | — |
 | 18 | the piece protocol has no public specification | FIX IN THE BREAK: local-block layer as the default; the raw protocol specified | B6 |
 | 19 | an objective piece carries the constraint surface | FIX IN THE BREAK: the objective handle forwards objective members only | B6 |
 | 20 | every piece type needs an adapter specialization | FIX IN THE BREAK: direct storage by default; hook detected | B6 |
 | 21 | partition count clamped silently, stated twice | FIX IN THE BREAK: one place; `Problem::partitions()`; clamp documented | B6 |
-| 22 | two ways to populate a program | FIX IN THE BREAK: the master-list route goes internal | B2/B6 |
+| 22 | two ways to populate a program | FIX IN THE BREAK: the master-list route goes internal with `NonLinearProgram` | B2 |
 | 23 | parameter changed in a live model: wrong answer, optimal status | FIX IN THE BREAK: bounds re-read and caches cleared at every solve; structure changes refused | B2 |
 | 24 | three places to get an SQP warm start | FIX IN THE BREAK: `result.warm_start` (one value); native labelled; solver export removed | B4 |
 | 25 | polish: two routes, five headers, conflicting doc | FIX IN THE BREAK: `to_sqp_warm_start(warm, problem)`; doc conflict removed; both routes kept and documented | B4 |
@@ -591,8 +740,8 @@ Target (group B6):
 | 30 | `dump_options` at 17 digits, two formats | FIX IN THE BREAK: shortest round-trip on both; AP-4 regenerates on top | B3 |
 | 31 | IPM bound multipliers carry noise | DOCUMENT ONLY: interior-method behaviour; zeroing would report a value not computed | B4 docs |
 
-Counts: **FIX IN THE BREAK 26, DOCUMENT ONLY 3, KEEP 2.** If owner decision 3 chooses "verbatim",
-#13 becomes DOCUMENT ONLY (with the SSN cutoff removed in B7).
+Counts: **FIX IN THE BREAK 26, DOCUMENT ONLY 3, KEEP 1, RESOLVED 1.** If owner decision 3 chooses
+"verbatim", #13 becomes DOCUMENT ONLY (with the four QP-tier cutoffs removed in B7).
 
 ## 12. The examples, rewritten to the target
 
@@ -671,7 +820,7 @@ const bool ok = r.status == hven::SolveStatus::kOptimal &&
 // y_{i+1} - y_i - h*(u_i - y_i^2), inputs (y_i, y_{i+1}, u_i), one row.
 struct Defect {
     double h;
-    static constexpr int kInputs = 3, kOutputs = 1;
+    static constexpr hven::Index kInputs = 3, kOutputs = 1;
     void value(hven::ConstVecRef v, hven::VecRef out) const {
         out[0] = v[1] - v[0] - h * (v[2] - v[0] * v[0]);
     }
@@ -684,14 +833,14 @@ struct Defect {
 // weight * (v - ref)^2 on one variable.
 struct Quadratic {
     double weight, ref;
-    static constexpr int kInputs = 1;
+    static constexpr hven::Index kInputs = 1;
     double value(hven::ConstVecRef v) const { return weight * (v[0] - ref) * (v[0] - ref); }
     void gradient(hven::ConstVecRef v, hven::VecRef g) const { g[0] = 2.0 * weight * (v[0] - ref); }
     void hessian(hven::ConstVecRef, hven::MatRef H) const { H(0, 0) = 2.0 * weight; }
 };
 struct Boundary { /* two rows: y_0 - a, y_N - b */ };
 
-hven::Problem make_chain(int steps, int partitions) {
+hven::Problem make_chain(hven::Index steps, hven::Index partitions) {
     hven::AssemblyDeclaration d(/*variables=*/2 * steps + 1);
     d.add_objective(Quadratic{h, 0.0}, u_idx);               // index maps as today
     d.add_objective(Quadratic{h, 0.3}, y_idx);
@@ -704,7 +853,7 @@ hven::Problem make_chain(int steps, int partitions) {
 
 hven::Problem chain = make_chain(500, 4);
 const hven::IpmResult r = hven::IpmSolver{}.solve(chain, x0);
-std::printf("adopted %d partitions\n", chain.partitions());
+std::cout << "adopted " << chain.partitions() << " partitions\n";
 ```
 
 Removed: three `detail/` includes, `NoConstraintSurface`, `kkt_add` and the lock protocol, three
@@ -801,15 +950,15 @@ ipm.set_iteration_callback([&](const hven::IterationEvent &) { ++seen; return hv
                            hven::IterationPayload::kScalars);
 
 const hven::IpmResult a = ipm.solve(problem, x0);
-print_result("IpmSolver", a);                               // status, x, lambda, z, f, g, three diagnostics
+print_result("IpmSolver", a);                               // status, message, x, ..., work
 std::printf("convergence.kkt %.2e\n", a.convergence.kkt);   // the engine's own measure
 
 hven::SqpSolver sqp;
 sqp.set_iteration_callback([&](const hven::IterationEvent &) { ++seen_sqp; return hven::CallbackAction::kContinue; });
 // depth-0 rows only by default; no depth filter in the callback
 const hven::SqpResult b = sqp.solve(problem, x0);
-std::printf("convergence.stationarity %.2e  factorizations %lld\n",
-            b.convergence.stationarity, static_cast<long long>(b.counters.factorizations));
+std::cout << b.message << "  convergence.stationarity " << b.convergence.stationarity
+          << "  factorizations " << b.work.factorizations << '\n';
 ```
 
 ## 13. The break: groups and proof obligations
@@ -833,15 +982,15 @@ group-specific obligations follow.
 
 | group | content | estimate | proof beyond the common six |
 |---|---|---|---|
-| **B1** header hygiene and private implementation | `IpmSolver`/`SqpSolver` behind a private impl; movable; gtest friends into `detail/`; no `detail/` or `fmt` in public headers; header comments rewritten to contract text | 3 | Compile-flags diff, P-SYM over the engine TUs with the impl boundary as the named exception, and the runtime protocol (pass A + B, ±0.5 % instructions) on the SQP arms and the top-level IPM leg (CLAUDE.md §5: a boundary drawn through engine code is proven neutral). The export contract gains "no `detail/` include" and goes red on a violation. A move-construction test runs a solve, moves the solver, and solves again bitwise-equal. |
-| **B2** one problem | `Nlp`, `Problem`; `NlpModel`, `ParametricNlpModel`, `NonLinearProgram`, `NlpProblemModel`, `NlpModelAssembly`, `make_nlp_program` to `detail/`; bounds re-read and caches cleared per solve; structure-change refusal; results in the problem's row space; `starting_multipliers` retired | 4-5 | Replay through the `detail::problem_from_*` entries, unchanged. New pins: one `Problem` on both engines; the EX-1 in-place sweep (entry 23) correct on both engines; an unchanged-bounds re-solve counter-identical to today's re-solve; a changed fixed set re-laid and counted; a structure change refused by name; the per-row `lambda`/`g` map round-trip on every row kind; IPM alternation counted. hven-bench re-baselines its harness rows at this group if decision 2 is approved (its adapter changes route). |
-| **B3** options | `CommonOptions` (tolerances, `max_iterations`, `max_factorizations`, `time_limit_seconds`, `Verbosity`, `infinite_bound` declared but inert until B7); `IpmOptions::linear`, `termination`, `advanced`; `SqpOptions` prefix drops, `advanced`; option enums singular; `k...Count` sentinels removed; `SqpSolver(SqpOptions = {})`; banner; dump format | 2 | **IPARM-SURFACE label**, with the `iparm` array byte-identical for the default and each non-default linear field. Options-dump drift pin re-derived (declared). P-SYM census of the layout change. The verbosity default (decision 4) is output-only, proven by the replay and by console byte-pins at each rung. `max_factorizations` and `time_limit` are off by default; the new exits are pinned by forced-limit tests. |
-| **B4** results, warm start, callbacks, trace interface | `convergence` sub-structs; optionals for `-1` sentinels; public counter types; `kBudgetExhausted` → `kMaxIter` + `returned_best_iterate`; `kWorkLimit` (+ `kTimeLimit`); `WarmStart` class, `result.warm_start`, solver export removed, `native_warm_start`; `SqpWarmStart` opaque; `to_sqp_warm_start(warm, problem)`; `CallbackScope`; `TraceSink` no pure virtuals; internal free functions to `detail/` | 2-3 | T8 §2.7's full warm matrix re-run under the new names. `kBudgetExhausted` retirement: identical point and a pinned label on the `budget_mode` cells. Callback scope: the default stream equals today's stream filtered to depth 0, element for element. Trace goldens unchanged (sink interface only). |
-| **B5** evaluation failure | `hven::EvaluationError`; the SQP rejects a trial on it; both engines' rules stated | 1 | Declared behaviour change on throw paths only. New pins on both engines: a trial-point throw is a rejected trial; a start-point throw propagates; another exception type propagates. The replay confirms no corpus cell takes the path. |
+| **B1** header hygiene and private implementation | `IpmSolver`/`SqpSolver` behind a private impl; movable; gtest friends into `detail/`; the 21 engine-header `detail/` includes removed and the residual listed by group (§7); `aggregate_arity.h` asserts moved to `src/`; `fmt` out of the engine headers and `ledger.h`, throw messages out of line (§7); header comments rewritten to contract text | 3 | Compile-flags diff, P-SYM over the engine TUs with the impl boundary as the named exception, and the runtime protocol (pass A + B, ±0.5 % instructions) on the SQP arms and the top-level IPM leg (CLAUDE.md §5: a boundary drawn through engine code is proven neutral). The export contract gains "no `detail/` include" with §7's residual as a shrink-only allow-list; the rule is armed without exceptions at B4's close. A move-construction test runs a solve, moves the solver, and solves again bitwise-equal; the moved-from solver is destroyed and assigned to. |
+| **B2** one problem | `Nlp`, `Problem`; `NlpModel`, `ParametricNlpModel`, `NonLinearProgram`, `NlpProblemModel`, `NlpModelAssembly`, `make_nlp_program`, master-list `make_nlp` to `detail/`; bounds re-read and caches cleared per solve; structure-change and row-kind-flip refusal; results in the problem's row space; `starting_multipliers` retired; `docs/concurrency.md` updated | 4-5 | Replay through the `detail::problem_from_*` entries, unchanged. New pins: the public `Problem(Nlp)` route is counter-identical to today's triplet route (`make_nlp_program` for the IPM, `NlpProblemModel` for the SQP) on the 27 replay cells that dual-bind as a triplet model (`interior_cell_refusal` empty; the subset is named in the declaration); one `Problem` on both engines; the EX-1 in-place sweep (entry 23) correct on both engines; an unchanged-bounds re-solve counter-identical to today's re-solve; a changed fixed set re-laid and counted, and a prior `WarmStart` refused as an identity mismatch; a structure change and a row-kind flip refused by name; the per-row `lambda`/`g` map round-trip on every row kind; IPM alternation counted. hven-bench re-baselines its harness rows at this group if decision 2 is approved (its adapter changes route). |
+| **B3** options and limits | `CommonOptions` (tolerances, `max_iterations`, `max_factorizations`, `time_limit_seconds`, `Verbosity`, `infinite_bound` declared but inert until B7); `std::optional` for every "no limit", `SolveBudget` included; `kWorkLimit` and `kTimeLimit`; the minor-budget label (decision 5); validation of the new fields; `IpmOptions::linear`, `termination`, `advanced`; `SqpOptions` prefix drops, `advanced`; `IpmPhase` and option enums public, singular; `k...Count` sentinels removed; `SqpSolver(SqpOptions = {})`; banner; dump format | 2 | **IPARM-SURFACE label**, with the `iparm` array byte-identical for the default and each non-default linear field. Options-dump drift pin re-derived (declared). P-SYM census of the layout change. The verbosity default (decision 4) is output-only, proven by the replay and by console byte-pins at each rung. `max_factorizations` and `time_limit_seconds` are empty by default; the new exits are pinned by forced-limit tests. If the minor-budget relabel is approved, the corpus rows with `probe_budget_stops == 1` are counted in the declaration and re-derived as a status-column change, point unchanged. Validation pins for each refused value. |
+| **B4** results, warm start, callbacks, trace interface | `convergence` sub-structs; `message`; `work` counters; `infeasibility_certified` on `SolveResult`; optionals for `-1` sentinels; `Index` result counts; public counter types; `kBudgetExhausted` → `kMaxIter` + `returned_best_iterate`; `WarmStart` class, `result.warm_start`, solver export removed, `native_warm_start`; `SqpWarmStart` opaque; `to_sqp_warm_start(warm, problem)`; `CallbackScope`; `TraceSink` no pure virtuals; internal free functions to `detail/` | 2.5-3 | T8 §2.7's full warm matrix re-run under the new names. `kBudgetExhausted` retirement: identical point and a pinned label on the `budget_mode` cells. Callback scope: the default stream equals today's stream filtered to depth 0, element for element. `work` counts pinned against hand-counted calls on HS071 on both engines. Trace goldens unchanged (sink interface only). The export contract's `detail/` rule armed without exceptions at close. |
+| **B5** evaluation failure and exceptions | `hven::Error`, `EvaluationError`, `BackendError`; the SQP rejects a trial on `EvaluationError`; **the IPM narrows** its seven catch sites to `EvaluationError` (declared behaviour change, §4.6); the exception contract stated | 1.5 | Declared behaviour change on throw paths only. **Obligation before landing: the hven-bench CUTEst adapter throw-type audit**, with its evaluation failures thrown as `EvaluationError`. New pins on both engines: a trial-point `EvaluationError` is a rejected trial; a start-point throw propagates; another exception type at a trial point propagates (on the IPM this is the narrowing); after each throw, a re-solve on the same solver and `Problem` returns the fresh-solver status and point. The replay confirms no corpus cell takes the path. |
 | **B6** pieces | local-block layer; raw protocol public and specified; objective-only surface; adapter default by detection; one partition count; declaration builder | 2 | Existing pieces unchanged (replay). Example 4 in both forms agrees: same status, objective to 1e-10 relative, `x` to 1e-8, and the same claim and slot multiset (iteration counts declared if they differ). A plain-type piece compiles with no specialization, and a hook type still single-dispatches (instruction pin). |
-| **B7** absent-bound normalization | `infinite_bound` live; SSN cutoff retired into it | 1 | **A declared default event, not a rename rider.** TRAIN evidence: the cells with `|b| >= 1e20` are counted in the declaration before the first leg; their rows are re-derived and declared; every other cell is byte-exact. Census (the SSN cutoff moves the walk on any affected cell). |
+| **B7** absent-bound normalization | `infinite_bound` live; the four QP-tier constants (`kEngineInfBound`, `kIpqpInfBound`, `kSsnInfBound`, `QpDegeneracyParams::inf_bound`) retired into it | 1.5 | **A declared default event, not a rename rider.** TRAIN evidence: the cells with a declared bound at or beyond 1e20 are counted in the declaration before the first leg, per QP mode (walk, IPQP, SSN, degeneracy arm); their rows are re-derived and declared; every other cell is byte-exact. Census over every QP mode. |
 | **B8** rename sweep (last) | `hven::solvers` → `hven`; acronyms as words; enumerators `kPascalCase`; aggregate members bare `snake_case`; umbrella `<hven/hven.h>`; `solver_interface_adapter.h` into `model/`; version 0.2.0; CHANGELOG | 1.5 | P-SYM with the object and symbol maps (mangled names move; the map is the proof); the explicit manifests (identifier, path, allowed residual; frozen artifacts excluded by hash); the inverse-manifest revert test. |
-| | **total** | **16.5-18.5** | |
+| | **total** | **18-19.5** | |
 
 **Closing the break.** Each group writes a ledger line. B8 adds `CHANGELOG.md` with the 0.2.0
 entry: a short release note naming each group and its one-line "before → after". There is no
@@ -855,24 +1004,34 @@ one-window rule. B1-B4 and B8 are the break.
 
 1. **Move the deeper engine rework to M9.** Recommendation: approve. This is the rework that
    moves the IPM's internal workspace out of the problem object and lets the SQP solve piece-built
-   problems. It costs about 15-16 tasks realistically, roughly a third of M8 on its own, and it
-   would sit on M8's critical path. The user-facing part (one problem type both engines accept)
-   is in this break, so the M9 work changes no public names.
+   problems. Whether it fits "about a third of the milestone" cannot be settled at this
+   precision: it fits as specified, sits at the bound at this project's usual overrun, and fits
+   again if its own size is counted in the milestone. The recommendation rests instead on the
+   schedule: it would sit on M8's critical path, ahead of tracing, tuning and the comparison.
+   The user-facing part (one problem type both engines accept) is in this break, so the M9 work
+   changes no public names. Its detailed specification is not yet written. Recommended: write it
+   as M9's first task. Alternative: write it now, as an M8 side task of about one to one and a
+   half tasks off the critical path, if you want the size settled on evidence before deciding.
 2. **One public way to write a problem.** Recommendation: yes. The SQP's own model form
    (`NlpModel`: split blocks, upper-triangle matrices, deprecated overrides) leaves the public
    surface, and `Nlp` (the Ipopt-style form) is the only callback contract. Cost: the benchmark
    harness rewrites its problem adapter and re-takes its rows once, at the break.
 3. **What a huge bound means.** Recommendation: treat any bound at or beyond ±1e20 as "no bound",
    on both engines, the convention Ipopt, Knitro and SNOPT use, with an option to turn it off.
-   It lands as its own declared default change with training-set evidence. The alternatives are
-   rejecting such bounds with an error, or keeping "every finite number is a real bound". The
-   one internal inconsistency (the SSN QP mode already cuts at 1e20) goes away under all three.
+   It lands as its own declared default change with training-set evidence across every QP mode.
+   The alternatives are rejecting such bounds with an error, or keeping "every finite number is a
+   real bound". Today the two engines disagree: the SQP's QP subproblems already treat such
+   bounds as absent, while the IPM treats them as real. That disagreement goes under all three.
 4. **Console output by default.** Recommendation: silent on both engines, one line to turn it on.
    Today the SQP is silent and the IPM prints a full table. Printing by default is the other
    coherent choice, and is what Ipopt and Knitro do.
 5. **Work and time limits.** Recommendation: add both. A factorization ceiling is deterministic and
    fits the counters-first measurement rule. A wall-clock time limit is what every comparable
-   solver offers. It is documented as non-reproducible and never used in measured runs.
+   solver offers. It is documented as non-reproducible and never used in measured runs. With
+   them, one label question: when the SQP's per-call budget of inner QP iterations runs out, the
+   solve reports "iteration limit" today. Recommendation: report it as "work limit", since it is
+   a work ceiling; the returned point does not change, and the benchmark rows that stop this way
+   are counted and re-derived. The alternative is to keep "iteration limit" and document it.
 6. **A research-knob tier outside the break rule.** Recommendation: yes. Each engine's `advanced`
    options (the QP-tier ladders, restoration internals and similar) may change in any milestone,
    and the header says so. Only the user tier is held to one break window per milestone.
@@ -881,6 +1040,8 @@ one-window rule. B1-B4 and B8 are the break.
    from about 250 lines to about 60. The current low-level protocol stays, fully documented,
    for tycho's existing code. The alternative is documenting the low-level protocol only (about
    half a task).
-8. **The SQP on piece-built problems in M8.** Recommendation: refuse them with a clear message
-   until M9's rework. A temporary copying bridge would cost 1-2 tasks that M9 deletes, and the
-   one consumer that needs it (tycho) is not yet in sync.
+8. **Disclosure, no choice asked: the IPM stops absorbing arbitrary errors.** Today the IPM
+   treats any exception thrown during a trial-point evaluation as a rejected step and carries on.
+   After the break it does so only for the new `EvaluationError`; any other exception reaches the
+   caller, as it already does on the SQP. No benchmark problem takes this path. The benchmark
+   harness's CUTEst adapter is checked and adjusted before the change lands.
