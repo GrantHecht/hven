@@ -126,7 +126,6 @@ struct CorpusConstraintPiece {
 /// Objectives are asked for Hessian space alone, so every slot this claims is a
 /// Hessian slot -- which is the case the restatement classifies without reading
 /// a row at all.
-/// Trivially relocatable, for the reason stated on CorpusConstraintPiece.
 struct CorpusObjectivePiece {
     bool owns_hessian_ = true;
     const char *kind_ = "corpus_objective";

@@ -165,7 +165,7 @@ This is stated only in `detail/interior/utils/type_storage.h:23, 61, 75`
 and nothing is checked at compile time (the comment explains why a
 `static_assert` is not available). Fixed by holding a `const char *`. Severity:
 blocker (silent corruption, discoverable only from a `detail/` comment).
-Review verdict: library DEFECT -- unenforced, publicly undocumented trivially-relocatable precondition; violation is memory corruption (TypeStorage move = memcpy, type_storage.h:104). Registered as M8 defect DF-1.
+Review verdict: library DEFECT -- unenforced, publicly undocumented trivially-relocatable precondition; violation is memory corruption (TypeStorage move = memcpy, type_storage.h:104). Registered as M8 defect DF-1. Resolved by DF-1 (m8, TypeStorage relocates inline Models by move construction).
 
 **18. The piece contract is a hand-written protocol with no public
 specification (ex 4).** To write four pieces the example had to learn, from

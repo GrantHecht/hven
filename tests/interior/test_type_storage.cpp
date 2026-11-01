@@ -8,11 +8,16 @@
 
 #include <gtest/gtest.h>
 
+#include <cstddef>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
+#include "hven/detail/interior/fixed_variable_row.h"
 #include "hven/detail/interior/utils/type_storage.h"
+#include "hven/detail/model/nlp_adapter.h"
+#include "hven/detail/solvers/solver_interface_specs.h"
 
 namespace type_storage_test {
 
@@ -68,9 +73,35 @@ struct BigModel final : Base {
     std::size_t count() const override { return 0; }
 };
 
+// A Model that records its own address in every constructor. memcpy relocation
+// leaves the recorded address stale; move-construction never does. Fails
+// deterministically, with no sanitizer and no UB-dependent crash.
+struct SelfPointerModel final : Base {
+    const SelfPointerModel *self_;
+    int v_;
+    explicit SelfPointerModel(int v) : self_(this), v_(v) { ++g_live; }
+    SelfPointerModel(SelfPointerModel &&o) noexcept : self_(this), v_(o.v_) { ++g_live; }
+    SelfPointerModel(const SelfPointerModel &o) : self_(this), v_(o.v_) { ++g_live; }
+    ~SelfPointerModel() override { --g_live; }
+    void clone_into(Storage &s) const override { s.emplace<SelfPointerModel>(v_); }
+    std::string text() const override { return self_ == this ? "ok" : "stale"; }
+    std::size_t count() const override { return static_cast<std::size_t>(v_); }
+};
+
 static_assert(sizeof(StringModel) <= 128, "the string Model must land in the inline buffer");
 static_assert(std::is_nothrow_move_constructible_v<Storage>);
 static_assert(std::is_nothrow_move_assignable_v<Storage>);
+
+// The production Models must stay in the inline buffer, so their moves are
+// relocations through the Model move constructor, never heap allocations.
+#define HVEN_PIN_INLINE(M)                                                                         \
+    static_assert(std::is_nothrow_move_constructible_v<M>, "must stay in the inline buffer");      \
+    static_assert(sizeof(M) <= 128, "must stay in the inline buffer");                             \
+    static_assert(alignof(M) <= alignof(std::max_align_t), "must stay in the inline buffer")
+HVEN_PIN_INLINE(hven::solvers::ObjectiveModel<hven::solvers::NLPObjectivePiece>);
+HVEN_PIN_INLINE(hven::solvers::ConstraintModel<hven::solvers::NLPConstraintPiece>);
+HVEN_PIN_INLINE(hven::solvers::ConstraintModel<hven::solvers::FixedVariableRow>);
+#undef HVEN_PIN_INLINE
 
 const std::string kShort = "short";
 const std::string kLong = "a string comfortably longer than any small-string buffer";
@@ -93,6 +124,11 @@ TEST(TypeStorage, InlineNonTriviallyRelocatableModelSurvivesMoves) {
             EXPECT_TRUE(b.empty());
             b = std::move(c);
             EXPECT_TRUE(c.empty());
+            // after every move, not only after an even count of rotations
+            ASSERT_FALSE(a.empty());
+            ASSERT_FALSE(b.empty());
+            EXPECT_EQ(a.get().text(), i % 2 == 0 ? kLong : kShort);
+            EXPECT_EQ(b.get().text(), i % 2 == 0 ? kShort : kLong);
         }
         // six rotations of (a,b): back where it started after an even count
         EXPECT_EQ(a.get().text(), kShort);
@@ -100,6 +136,41 @@ TEST(TypeStorage, InlineNonTriviallyRelocatableModelSurvivesMoves) {
         EXPECT_EQ(b.get().text(), kLong);
         EXPECT_EQ(b.get().count(), 2u);
         EXPECT_EQ(g_live, 2);
+    }
+    EXPECT_EQ(g_live, 0);
+}
+
+TEST(TypeStorage, RelocationRunsTheModelMoveConstructor) {
+    g_live = 0;
+    {
+        Storage a;
+        a.emplace<SelfPointerModel>(7);
+        Storage b(std::move(a));
+        EXPECT_EQ(b.get().text(), "ok"); // move ctor
+        Storage c;
+        c = std::move(b);
+        EXPECT_EQ(c.get().text(), "ok"); // move-assign into empty
+        Storage d;
+        d.emplace<SelfPointerModel>(1);
+        d = std::move(c);
+        EXPECT_EQ(d.get().text(), "ok"); // move-assign over live
+        EXPECT_EQ(d.get().count(), 7u);
+        Storage e(d);
+        EXPECT_EQ(e.get().text(), "ok"); // copy via clone_into
+        EXPECT_EQ(g_live, 2);
+    }
+    EXPECT_EQ(g_live, 0);
+}
+
+TEST(TypeStorage, MoveAssignFromEmptyOverLiveDestroysTargetAndEmptiesIt) {
+    g_live = 0;
+    {
+        Storage a = make(kLong, {1, 2});
+        Storage empty;
+        EXPECT_EQ(g_live, 1);
+        a = std::move(empty);
+        EXPECT_TRUE(a.empty());
+        EXPECT_EQ(g_live, 0);
     }
     EXPECT_EQ(g_live, 0);
 }

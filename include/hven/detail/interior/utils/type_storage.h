@@ -24,7 +24,7 @@ namespace hven::utils {
 /// heap. Moving inline storage move-constructs the Model into the destination through
 /// a function captured at `emplace` time, so a Model need not be trivially relocatable
 /// (`std::string`, `std::vector` and the like are fine). Moves of the container are
-/// `noexcept`; `get()` is unaffected.
+/// `noexcept`; `get()` dispatches on `kind_` alone; the relocation function is read only on a move.
 ///
 /// `C` must provide `virtual void clone_into(TypeStorage<C, SBO_CAP>&) const` for
 /// copy construction and copy assignment. Each concrete Model implements this as
@@ -55,15 +55,18 @@ template <typename C, std::size_t SBO_CAP = 128> class TypeStorage {
             delete ptr_;
         }
         kind_ = Kind::Empty;
+        relocate_ = nullptr;
     }
 
     // Take over `o`'s contents; *this must be empty.
     void take(TypeStorage &o) noexcept {
+        assert(kind_ == Kind::Empty);
         if (o.kind_ == Kind::Inline) {
             o.relocate_(buf_, o.buf_);
             relocate_ = o.relocate_;
         } else if (o.kind_ == Kind::Heap) {
             ptr_ = o.ptr_;
+            o.ptr_ = nullptr;
         }
         kind_ = o.kind_;
         o.kind_ = Kind::Empty;
