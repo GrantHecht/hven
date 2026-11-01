@@ -87,6 +87,7 @@ target_sources(hven PRIVATE
 
 target_sources(hven PRIVATE
     drivers/ipm_solver.cpp
+    drivers/ipm_solver_handle.cpp
     drivers/ipm_solver_globalization.cpp
     drivers/ipm_options.cpp
     drivers/solver_init.cpp
@@ -208,6 +209,7 @@ target_sources(hven PRIVATE
     drivers/equality_basis.cpp
     drivers/problem_scaling.cpp
     drivers/sqp_solver.cpp
+    drivers/sqp_solver_handle.cpp
     drivers/sqp_options.cpp
     drivers/sqp_print.cpp
     drivers/trace.cpp
@@ -569,7 +571,10 @@ endif()
 # 49 as of model/validation_errors.cpp (M8 AP-2 B1): the cold throw-message paths of the model
 # contract's inline checks. NOT a PCH source, on the same unmeasured-default footing: it
 # includes fmt and the four model headers, a different set from src/hven_pch.h's prefix.
-set(_hven_expected_source_count 49)
+# 50, 51 as of drivers/ipm_solver_handle.cpp and drivers/sqp_solver_handle.cpp (M8 AP-2 B1):
+# the public IpmSolver / SqpSolver handles' forwarding bodies. NOT PCH sources, on the same
+# footing: each includes only its implementation header.
+set(_hven_expected_source_count 51)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.
