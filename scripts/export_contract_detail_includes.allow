@@ -1,0 +1,28 @@
+# Residual `detail/` includes in public headers (docs/notes/2026-11-m8-ap1-api-review.md
+# section 7). The export contract forbids a public header including a `detail/` header;
+# this list is the SHRINK-ONLY allow-list of what remains until the group named on each
+# line moves the type that needs it. It may only shrink: a pair absent from this file is
+# refused, and a pair present here that no longer occurs in the installed headers is
+# refused too (delete the line). The rule is armed without exceptions, and this file
+# deleted, when B4 closes.
+#
+# format: <public header, relative to include/hven>|<included path>|<group that removes it>
+model/non_linear_program.h|hven/detail/interior/bound_set.h|B2
+model/non_linear_program.h|hven/detail/interior/constraint_function.h|B2
+model/non_linear_program.h|hven/detail/interior/fixed_variable_row.h|B2
+model/non_linear_program.h|hven/detail/interior/objective_function.h|B2
+model/non_linear_program.h|hven/detail/interior/typedefs/eigen_types.h|B2
+model/non_linear_program.h|hven/detail/interior/utils/thread_pool.h|B2
+model/non_linear_program.h|hven/detail/model/claim_restatement.h|B2
+model/nlp_problem_model.h|hven/detail/interior/typedefs/eigen_types.h|B2
+model/nlp_triplet_model.h|hven/detail/interior/typedefs/eigen_types.h|B2
+drivers/ipm_solver_types.h|hven/detail/drivers/ipm_solver_fwd.h|B3
+drivers/ipm_solver_types.h|hven/detail/interior/eval_error_log.h|B4
+drivers/ipm_solver_types.h|hven/detail/interior/kkt_factorization.h|B4
+drivers/sqp_solver_types.h|hven/detail/globalization/sqp/globalization.h|B3
+drivers/sqp_solver_types.h|hven/detail/warmstart/warm_start.h|B4
+drivers/trace.h|hven/detail/drivers/ipm_solver_fwd.h|B3
+drivers/trace.h|hven/detail/interior/iterate_info.h|B4
+drivers/trace.h|hven/detail/qp/ipqp_evidence.h|B4
+warmstart/ipm_polish_extension.h|hven/detail/warmstart/warm_start.h|B4
+warmstart/sqp_warm_start.h|hven/detail/qp/working_set.h|B4
