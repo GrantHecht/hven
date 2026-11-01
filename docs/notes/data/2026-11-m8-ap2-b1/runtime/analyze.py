@@ -53,10 +53,36 @@ for cell in cells:
             e: (max(run[e] for run in runs) - min(run[e] for run in runs)) / max(1.0, statistics.median([run[e] for run in runs]))
             for e in events}
 
-# counter stop condition
+# counter stop condition. A child's --internal-out file is ONE data row without a header, and
+# the interior leg's file is a full corpus CSV; both are compared field for field, every column
+# but `wall_s` (the 14th), exactly as compare_replay.py does (EXACT STRING EQUALITY).
 mismatch = 0
 checked = 0
-for cell in cells:
+
+
+def data_rows(path):
+    rows = []
+    for line in open(path):
+        if line.startswith('#') or line.startswith('cell_id,') or not line.strip():
+            continue
+        rows.append(line.rstrip('\n').split(','))
+    return rows
+
+
+header_wall = 13
+if mode == 'interior':
+    # a full corpus CSV with its own header: the repo's comparator, EXACT, per round
+    for r in range(1, rounds + 1):
+        a = os.path.join(leg, 'raw', 'interior-r%d-A-all.csv' % r)
+        b = os.path.join(leg, 'raw', 'interior-r%d-B-all.csv' % r)
+        res = subprocess.run([sys.executable, compare, a, b, 'interior r%d' % r],
+                             capture_output=True, text=True)
+        checked += 1
+        head = res.stdout.splitlines()[0] if res.stdout else res.stderr
+        print(head)
+        if 'differences: 0' not in head:
+            mismatch += 1
+for cell in ([] if mode == 'interior' else cells):
     for r in range(1, rounds + 1):
         a = os.path.join(leg, 'raw', '%s-r%d-A-%s.csv' % (mode, r, cell))
         b = os.path.join(leg, 'raw', '%s-r%d-B-%s.csv' % (mode, r, cell))
@@ -64,13 +90,22 @@ for cell in cells:
             print('MISSING CSV', a, b)
             mismatch += 1
             continue
-        res = subprocess.run([sys.executable, compare, a, b, '%s r%d %s' % (mode, r, cell)],
-                             capture_output=True, text=True)
+        ra, rb = data_rows(a), data_rows(b)
         checked += 1
-        head = res.stdout.splitlines()[0] if res.stdout else res.stderr
-        if 'differences: 0' not in head:
+        if len(ra) != len(rb) or not ra:
+            print('ROW COUNT DIFF', a, len(ra), len(rb))
             mismatch += 1
-            print('COUNTER DIFF', head)
+            continue
+        for x, y in zip(ra, rb):
+            if len(x) != len(y):
+                print('WIDTH DIFF', a)
+                mismatch += 1
+                break
+            diffs = [i for i in range(len(x)) if i != header_wall and x[i] != y[i]]
+            if diffs:
+                print('COUNTER DIFF %s r%d %s cols %s' % (mode, r, cell, diffs[:8]))
+                mismatch += 1
+                break
 print('counter check: %d (round,cell) pairs compared, %d with a difference or missing' % (checked, mismatch))
 
 print()

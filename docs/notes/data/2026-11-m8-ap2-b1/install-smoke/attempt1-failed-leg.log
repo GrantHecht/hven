@@ -1,0 +1,30 @@
+FOREGROUND_START 2026-11-01T13:57:27-05:00
+PGREP_EMPTY
+SMOKE_START default 2026-11-01T13:57:28-05:00
+      |                                                                                        ^~~~~~~~~~
+[19/21] Building CXX object CMakeFiles/hven_install_smoke.dir/include_ipm_solver.cpp.o
+[20/21] Building CXX object CMakeFiles/hven_install_smoke.dir/include_ipm_solver_types.cpp.o
+ninja: build stopped: subcommand failed.
+smoke default rc=1
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes detail/ beyond the shrink-only allow-list (19 residual pairs)
+== export contract OK for platform=linux, align=32
+export-contract default rc=0
+SMOKE_START clang 2026-11-01T13:58:34-05:00
+      |                                                                                        ^~~~~~~~~~
+2 errors generated.
+[20/21] Building CXX object CMakeFiles/hven_install_smoke.dir/include_ipm_solver_types.cpp.o
+ninja: build stopped: subcommand failed.
+smoke clang rc=1
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes detail/ beyond the shrink-only allow-list (19 residual pairs)
+== export contract OK for platform=linux, align=32
+export-contract clang rc=0
+smoke worst rc=1
+FOREGROUND_END 2026-11-01T13:59:15-05:00
