@@ -4615,4 +4615,62 @@ TEST(SqpDriverRestorationCurvature, CertifiesTheSameInfeasibleNlpWithNoConstrain
     }
 }
 
+// A WORK LIMIT THAT BINDS INSIDE THE RESTORATION SUB-SOLVE (M8 AP-2 B3). The sub-solve is
+// handed what is left of the solve's own factorization ceiling, so a ceiling that the
+// parent has not yet reached at the request can still be spent inside the phase. The
+// verdict then propagates: the sub-status and the parent's status are both kWorkLimit, the
+// phase's point is reported without a certificate, and the solve never reaches its free
+// answer. The ceiling is found by scanning down from the free run's total; the premise (some
+// ceiling lands inside the phase) is asserted on the reference build and recorded off it.
+TEST(SqpDriverRestorationExcursion, AWorkLimitBindingInsideTheSubSolvePropagates) {
+    InfeasibleCircleLineModel model;
+    SqpOptions opts;
+    opts.advanced.equality_basis = false;
+    opts.common.max_iterations = 200;
+    opts.advanced.qp_failure_step = false;
+    const auto solve = [&](const SqpOptions &o) {
+        return SqpSolver(o).solve(hven::solvers::detail::problem_ref(model), model.start_point());
+    };
+    const SqpResult free_run = solve(opts);
+#if HVEN_TEST_ROUTE_REFERENCE
+    ASSERT_EQ(free_run.status, SolveStatus::kInfeasible);
+    ASSERT_EQ(free_run.counters.restoration_entries, 1);
+#else
+    if (free_run.status != SolveStatus::kInfeasible || free_run.counters.restoration_entries != 1) {
+        hven::test_support::record_off_reference_route(
+            "work_limit_in_sub_solve_free",
+            fmt::format("status={} restoration_entries={}", static_cast<int>(free_run.status),
+                        free_run.counters.restoration_entries));
+        return;
+    }
+#endif
+    const Index total = free_run.counters.factorizations;
+    ASSERT_GT(total, 1);
+
+    bool found = false;
+    for (Index limit = total - 1; limit >= 0 && !found; --limit) {
+        SqpOptions limited = opts;
+        limited.common.max_factorizations = limit;
+        const SqpResult r = solve(limited);
+        if (r.counters.restoration_entries < 1 ||
+            r.counters.restoration_sub_status != RestorationSubStatus::kWorkLimit) {
+            continue;
+        }
+        found = true;
+        EXPECT_EQ(r.status, SolveStatus::kWorkLimit) << "limit " << limit;
+        EXPECT_FALSE(r.infeasibility_certified) << "a cut-off phase cannot certify";
+        EXPECT_TRUE(r.x.allFinite());
+        EXPECT_GE(r.counters.factorizations, limit);
+        EXPECT_LT(r.counters.factorizations, total);
+    }
+#if HVEN_TEST_ROUTE_REFERENCE
+    EXPECT_TRUE(found) << "no ceiling below " << total << " bound inside the sub-solve";
+#else
+    if (!found) {
+        hven::test_support::record_off_reference_route("work_limit_in_sub_solve_scan",
+                                                       fmt::format("total={}", total));
+    }
+#endif
+}
+
 HVEN_SUPPRESS_DEPRECATED_END

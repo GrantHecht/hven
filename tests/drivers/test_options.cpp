@@ -234,13 +234,6 @@ TEST(Options, IpmValidateRefusesWhatSettingsValidateRefused) {
         expect_refused(o, "linear.refinement_steps");
     }
     {
-        // matching and scaling are bools now (they were 0/1 ints); a
-        // backend-output request is refused at validate, by name.
-        IpmOptions o;
-        o.linear.backend_output = true;
-        expect_refused(o, "linear.backend_output");
-    }
-    {
         // objective scale
         IpmOptions o;
         o.objective_scale = -1.0;
@@ -341,8 +334,7 @@ TEST(Options, IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve) {
     //
     // The restore is not tidiness: a value the backend refuses at transcription
     // would make every later step of this test throw out of set_qp_params()
-    // instead of testing what it is for. (linear.backend_output = true is refused
-    // at validate() since M8 AP-2 B3, so it is no longer in this list.)
+    // instead of testing what it is for.
     const auto accepts = [&](const char *field, auto edit) {
         ASSERT_TRUE(solver.kkt_pattern_is_analyzed(hven::solvers::detail::problem_ref(*program)))
             << "precondition for " << field;
@@ -364,10 +356,8 @@ TEST(Options, IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve) {
     accepts("cnr_mode",
             [](IpmOptions &o) { o.linear.conditional_reproducibility = true; }); // the CNR flag
 #ifdef USE_ACCELERATE_SPARSE
-    // UNOBSERVED on this box: these two are declared and read only on an
+    // UNOBSERVED on this box: this is declared and read only on an
     // Accelerate build, and nothing here has run on Mac hardware.
-    accepts("accel_pivot_tolerance",
-            [](IpmOptions &o) { o.linear.accelerate_pivot_tolerance = 0.02; });
     accepts("accel_zero_tolerance",
             [](IpmOptions &o) { o.linear.accelerate_zero_tolerance = 1e-12; });
 #endif
@@ -778,7 +768,7 @@ TEST(Options, TheOptionsFingerprintCoversEveryQpOptionsField) {
     EXPECT_TRUE(moved([](QpOptions &o) { o.dual_mu *= 2.0; })) << "dual_mu";
     EXPECT_TRUE(moved([](QpOptions &o) { o.feas_tol *= 2.0; })) << "feas_tol";
     EXPECT_TRUE(moved([](QpOptions &o) { o.opt_tol *= 2.0; })) << "opt_tol";
-    EXPECT_TRUE(moved([](QpOptions &o) { o.max_iter += 1; })) << "max_iter";
+    EXPECT_TRUE(moved([](QpOptions &o) { o.max_iter = o.max_iter.value_or(0) + 1; })) << "max_iter";
     EXPECT_TRUE(moved([](QpOptions &o) { o.schur_cap += 1; })) << "schur_cap";
     EXPECT_TRUE(moved([](QpOptions &o) { o.schur_cond_max *= 2.0; })) << "schur_cond_max";
     EXPECT_TRUE(moved([](QpOptions &o) { o.ws_algebra = WorkingSetLinearAlgebra::kRefactorize; }))

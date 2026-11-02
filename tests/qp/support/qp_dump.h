@@ -81,7 +81,10 @@ inline QpDump load_qp_dump(const std::string &path) {
             d.opts.dual_mu = num(t[1]);
             d.opts.feas_tol = num(t[2]);
             d.opts.opt_tol = num(t[3]);
-            d.opts.max_iter = std::stol(t[4]);
+            // The dump records the derived cap as 0 (or less): that is "empty" now.
+            if (const long cap = std::stol(t[4]); cap > 0) {
+                d.opts.max_iter = cap;
+            }
             d.opts.schur_cap = std::stol(t[5]);
             d.opts.schur_cond_max = num(t[6]);
             d.opts.ws_algebra = std::stoi(t[7]) == 0

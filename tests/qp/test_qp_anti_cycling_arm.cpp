@@ -464,9 +464,12 @@ struct ArmGuard {
     }
 };
 
+// A cap of 0 leaves max_iter empty: the size-derived default.
 QpOptions capped(Index cap) {
     QpOptions opts;
-    opts.max_iter = cap;
+    if (cap > 0) {
+        opts.max_iter = cap;
+    }
     // The premise "the old walk cycles" belongs to the pre-E2 walk: with the
     // independent working set (M7 W2 E2) these QPs END (the E2 fixtures at the
     // end of test_qp_anti_cycling_arm.cpp).

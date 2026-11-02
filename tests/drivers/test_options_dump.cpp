@@ -73,18 +73,18 @@ using hven::solvers::SqpOptions;
 // M8 AP-2 B3 (the options break) re-laid both structs into tiers, so the counts
 // below are per struct. Each nested struct is flattened under its member name.
 //
-// IPMOPTIONS' LINEAR TIER IS PLATFORM-DEPENDENT: `accelerate_pivot_tolerance` and
-// `accelerate_zero_tolerance` are declared inside `#ifdef USE_ACCELERATE_SPARSE`,
-// so IpmLinearOptions has two more fields on an Accelerate build and the dump
-// prints two more lines there. Both counts are stated.
+// IPMOPTIONS' LINEAR TIER IS PLATFORM-DEPENDENT: `accelerate_zero_tolerance` is
+// declared inside `#ifdef USE_ACCELERATE_SPARSE`, so IpmLinearOptions has one more
+// field on an Accelerate build and the dump prints one more line there. Both
+// counts are stated.
 #ifdef USE_ACCELERATE_SPARSE
-constexpr std::size_t kIpmLinearOptionsFields = 16;
+constexpr std::size_t kIpmLinearOptionsFields = 13;
 #else
-constexpr std::size_t kIpmLinearOptionsFields = 14;
+constexpr std::size_t kIpmLinearOptionsFields = 12;
 #endif
 constexpr std::size_t kIpmOptionsFields = 17;
 constexpr std::size_t kIpmTerminationOptionsFields = 10;
-constexpr std::size_t kIpmAdvancedOptionsFields = 23;
+constexpr std::size_t kIpmAdvancedOptionsFields = 24;
 constexpr std::size_t kSqpOptionsFields = 17;
 constexpr std::size_t kSqpLinearOptionsFields = 2;
 constexpr std::size_t kSqpAdvancedOptionsFields = 27;
@@ -139,7 +139,7 @@ static_assert(::hven::detail::kAggregateArity<CommonOptions> == kCommonOptionsFi
 // docs/notes and in git).
 // ---------------------------------------------------------------------------
 #if defined(__linux__) && defined(__x86_64__)
-static_assert(sizeof(IpmOptions) == 472, "IpmOptions' layout moved on Linux x86-64. If a field "
+static_assert(sizeof(IpmOptions) == 480, "IpmOptions' layout moved on Linux x86-64. If a field "
                                          "was added, axis 1 above has already told you so; if "
                                          "only a TYPE changed, this is the only axis that "
                                          "noticed. Check the dump, then re-observe this value.");
@@ -147,30 +147,30 @@ static_assert(sizeof(hven::solvers::IpmLinearOptions) == 56,
               "IpmLinearOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(hven::solvers::IpmTerminationOptions) == 88,
               "IpmTerminationOptions' layout moved on Linux x86-64.");
-static_assert(sizeof(hven::solvers::IpmAdvancedOptions) == 136,
+static_assert(sizeof(hven::solvers::IpmAdvancedOptions) == 144,
               "IpmAdvancedOptions' layout moved on Linux x86-64.");
-static_assert(sizeof(SqpOptions) == 592, "SqpOptions' layout moved on Linux x86-64.");
+static_assert(sizeof(SqpOptions) == 600, "SqpOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(hven::solvers::SqpLinearOptions) == 24,
               "SqpLinearOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(hven::solvers::SqpAdvancedOptions) == 328,
               "SqpAdvancedOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(IpqpOptions) == 184, "IpqpOptions' layout moved on Linux x86-64.");
-static_assert(sizeof(QpOptions) == 80, "QpOptions' layout moved on Linux x86-64.");
+static_assert(sizeof(QpOptions) == 88, "QpOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(CommonOptions) == 80, "CommonOptions' layout moved on Linux x86-64.");
 #endif
 
 // ---------------------------------------------------------------------------
 // Axis 3: the dumped line count, read off the printer.
 //
-// IpmOptions: common 9 + phases 1 + termination 10 + 12 own scalars + linear 14
-// + advanced 23 = 69 (71 on an Accelerate build).
+// IpmOptions: common 9 + phases 1 + termination 10 + 12 own scalars + linear 12
+// + advanced 24 = 68 (69 on an Accelerate build).
 // SqpOptions: common 9 + 13 own scalars + qp 11 + linear 2 + advanced 26 own +
 // advanced.ipqp 25 = 86.
 // ---------------------------------------------------------------------------
 #ifdef USE_ACCELERATE_SPARSE
-constexpr int kIpmDumpLines = 71;
-#else
 constexpr int kIpmDumpLines = 69;
+#else
+constexpr int kIpmDumpLines = 68;
 #endif
 constexpr int kSqpDumpLines = 86;
 

@@ -1187,13 +1187,15 @@ TEST(QpEngineExportInvariant, HoldsOnEveryBatteryFixtureAndEveryStatus) {
         {"infeasible_bounds", infeasible_bounds_qp()},
         {"infeasible_equality", infeasible_with_equality_qp()},
     };
-    // Caps of 1 and 2 force a kMaxIter exit mid-solve; 0 is the shipped
-    // SENTINEL, which derives a cap large enough that these fixtures all
+    // Caps of 1 and 2 force a kMaxIter exit mid-solve; 0 stands for the
+    // default (empty), which derives a cap large enough that these fixtures all
     // solve out -- so the loop covers both the capped and the converged sides.
     for (const Index cap : {Index{1}, Index{2}, Index{0}}) {
         for (const Case &c : cases) {
             QpOptions opts;
-            opts.max_iter = cap;
+            if (cap > 0) {
+                opts.max_iter = cap;
+            }
             const auto sol = QpEngine{opts}.solve(c.qp);
             for (Index i = 0; i < c.qp.n(); ++i) {
                 if (sol.bound_state[static_cast<std::size_t>(i)] == BoundState::kFree) {
@@ -1248,9 +1250,8 @@ TEST(QpEngineSizeDerivedCap, AnExplicitCapWinsOutrightAndTheSentinelDerives) {
     EXPECT_EQ(detail::effective_qp_max_iter(qp, 1), 1);
     EXPECT_EQ(detail::effective_qp_max_iter(qp, 7), 7);
     EXPECT_EQ(detail::effective_qp_max_iter(qp, 999999), 999999);
-    // The sentinel (0, the shipped default) and any non-positive value derive.
-    EXPECT_EQ(detail::effective_qp_max_iter(qp, 0), detail::derived_qp_max_iter(base));
-    EXPECT_EQ(detail::effective_qp_max_iter(qp, -1), detail::derived_qp_max_iter(base));
+    // Empty (the default) derives.
+    EXPECT_EQ(detail::effective_qp_max_iter(qp, std::nullopt), detail::derived_qp_max_iter(base));
 
     // And the engine honours it end to end: a cap of 1 still reports kMaxIter
     // after exactly one minor, on a problem whose derived cap is 500.
@@ -1262,7 +1263,7 @@ TEST(QpEngineSizeDerivedCap, AnExplicitCapWinsOutrightAndTheSentinelDerives) {
 
     // The default sentinel solves the same problem to optimality.
     QpOptions defaults;
-    ASSERT_LE(defaults.max_iter, 0) << "the shipped default must BE the sentinel";
+    ASSERT_FALSE(defaults.max_iter.has_value()) << "the shipped default must be empty";
     const auto solved = QpEngine{defaults}.solve(qp);
     EXPECT_EQ(solved.status, QpStatus::kOptimal);
 }

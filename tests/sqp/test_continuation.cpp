@@ -1308,7 +1308,7 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
     // target for the cap formula: revert the coefficient or the sentinel and
     // this arm goes back to a kNumericalError at step 1.
     SqpOptions derived_cap = make_options();
-    derived_cap.qp.max_iter = 0; // the sentinel -- the shipped default
+    derived_cap.qp.max_iter.reset(); // empty: derive from the size -- the shipped default
     F7CollocationChain model_m6(100, 3, 2, 0.3, 1.0);
     SqpSolver driver_m6(derived_cap);
     const ContinuationResult m6 =

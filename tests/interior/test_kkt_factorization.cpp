@@ -399,37 +399,7 @@ TEST(KktFactorizationTest, AccelerateRejectsANonzeroRefinementCap) {
         std::invalid_argument);
 }
 
-// The pivot tolerance is fixed at the value the engine has always requested.
-TEST(KktFactorizationTest, AccelerateRejectsANonDefaultPivotTolerance) {
-    const auto program =
-        hven::solvers::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
-    hven::solvers::IpmSolver solver;
-    {
-        auto o = solver.options();
-        o.linear.accelerate_pivot_tolerance = 0.05;
-        solver.set_options(std::move(o));
-    }
-    // M6 W5 T8.4: set_qp_params() runs from the SOLVE that transcribes, not
-    // from an attach step, so the refusal surfaces there. The problem has one
-    // free variable, so the guess is a 1-vector.
-    EXPECT_THROW(
-        solver.solve(hven::solvers::detail::problem_ref(*program), Eigen::VectorXd::Zero(1)),
-        std::invalid_argument);
-}
-
 #else
-
-// The surface calls the backend silently and exposes no message-level control.
-TEST(KktFactorizationTest, MklRejectsBackendMessageOutput) {
-    const auto program =
-        hven::solvers::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
-    hven::solvers::IpmSolver solver;
-    // M8 AP-2 B3: refused at validate(), by name, before any solve.
-    auto o = solver.options();
-    o.linear.backend_output = true;
-    EXPECT_THROW(solver.set_options(std::move(o)), std::invalid_argument);
-    (void)program;
-}
 
 // Only the backend's own documented pivoting-strategy codes are expressible;
 // the undocumented ones this enum also carries are not passed through as raw

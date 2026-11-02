@@ -1003,10 +1003,9 @@ TEST(IpmIntrospection, AnalysisIdentityOutlivesTheAnalysingSolver) {
 }
 
 TEST(SolveBudget, IpmClampsBeforeNarrowing) {
-    // 2^32 is a perfectly valid Index budget and a WEAK constraint: it is far
-    // above this engine's own limit, so the effective cap is that limit. T8.4
-    // narrowed to `int` BEFORE taking the minimum, so 2^32 became 0, the loop
-    // was skipped entirely and the exit reached an empty iterate history.
+    // INT_MAX is the largest accepted budget and a WEAK constraint: it is far
+    // above this engine's own limit, so the effective cap is that limit. (A
+    // budget above INT_MAX is refused at entry: tests/drivers/test_limits.cpp.)
     hven::solvers::IpmOptions o;
     o.common.verbosity = hven::solvers::Verbosity::kSilent;
     hven::solvers::IpmSolver solver(o);
@@ -1015,7 +1014,7 @@ TEST(SolveBudget, IpmClampsBeforeNarrowing) {
 
     const hven::solvers::IpmResult huge =
         solver.solve(hven::solvers::detail::problem_ref(*model), hven_drivers_tests::hs071_start(),
-                     hven::solvers::SolveBudget{.max_iterations = Index{1} << 32});
+                     hven::solvers::SolveBudget{.max_iterations = std::numeric_limits<int>::max()});
     EXPECT_EQ(huge.status, hven::solvers::SolveStatus::kOptimal);
     EXPECT_GT(huge.iterations, 0);
 

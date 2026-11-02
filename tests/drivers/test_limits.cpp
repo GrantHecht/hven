@@ -30,6 +30,7 @@
 
 namespace {
 
+using hven::Index;
 using hven::solvers::CommonOptions;
 using hven::solvers::IpmOptions;
 using hven::solvers::IpmResult;
@@ -77,6 +78,16 @@ template <typename Options> void expect_refused(const Options &o, const std::str
     }
 }
 
+// The text validate() throws for @p o, or "" when it accepts.
+template <typename Options> std::string refusal_text(const Options &o) {
+    try {
+        hven::solvers::validate(o);
+    } catch (const std::invalid_argument &e) {
+        return e.what();
+    }
+    return "";
+}
+
 template <typename Options> void refuses_the_common_values() {
     {
         Options o;
@@ -105,9 +116,20 @@ template <typename Options> void refuses_the_common_values() {
         Options o;
         o.common.optimality_tol = bad;
         expect_refused(o, "common.optimality_tol");
+        // One field per message: the other tolerance, which is fine, is not named.
+        EXPECT_EQ(refusal_text(o).find("common.feasibility_tol"), std::string::npos);
         Options f;
         f.common.feasibility_tol = bad;
         expect_refused(f, "common.feasibility_tol");
+        EXPECT_EQ(refusal_text(f).find("common.optimality_tol"), std::string::npos);
+    }
+    {
+        // Above INT_MAX the iteration cap would narrow to int; refused by name.
+        Options o;
+        o.common.max_iterations = Index{std::numeric_limits<int>::max()} + 1;
+        expect_refused(o, "common.max_iterations");
+        o.common.max_iterations = std::numeric_limits<int>::max();
+        EXPECT_NO_THROW(hven::solvers::validate(o));
     }
     {
         Options o;
@@ -132,6 +154,63 @@ TEST(Limits, IpmValidateRefusesTheNewCommonValues) { refuses_the_common_values<I
 
 TEST(Limits, SqpValidateRefusesTheNewCommonValues) { refuses_the_common_values<SqpOptions>(); }
 
+// One validator serves both engines, so the same bad value reads the same message on both
+// (the engines differ only in the floors: iterations and threads >= 1 on the IPM, >= 0 on
+// the SQP).
+TEST(Limits, BothEnginesRefuseACommonValueWithTheSameText) {
+    const auto same = [](auto edit) {
+        IpmOptions i;
+        SqpOptions q;
+        edit(i.common);
+        edit(q.common);
+        const std::string ti = refusal_text(i);
+        EXPECT_FALSE(ti.empty());
+        EXPECT_EQ(ti, refusal_text(q));
+    };
+    same([](CommonOptions &c) { c.optimality_tol = kNaN; });
+    same([](CommonOptions &c) { c.feasibility_tol = -1.0; });
+    same([](CommonOptions &c) { c.max_factorizations = -1; });
+    same([](CommonOptions &c) { c.time_limit_seconds = kNaN; });
+    same([](CommonOptions &c) { c.infinite_bound = kNaN; });
+
+    // The floors differ (and the text names the floor).
+    IpmOptions i;
+    SqpOptions q;
+    i.common.max_iterations = q.common.max_iterations = 0;
+    EXPECT_NE(refusal_text(i).find("common.max_iterations"), std::string::npos);
+    EXPECT_EQ(refusal_text(q), "");
+    i.common.max_iterations = q.common.max_iterations = 1;
+    i.common.threads = q.common.threads = 0;
+    EXPECT_NE(refusal_text(i).find("common.threads"), std::string::npos);
+    EXPECT_EQ(refusal_text(q), "");
+}
+
+TEST(Limits, AnEngagedQpMaxIterBelowOneIsRefused) {
+    SqpOptions o;
+    EXPECT_FALSE(o.qp.max_iter.has_value());
+    EXPECT_NO_THROW(hven::solvers::validate(o));
+    o.qp.max_iter = 0;
+    expect_refused(o, "qp.max_iter");
+    o.qp.max_iter = -5;
+    expect_refused(o, "qp.max_iter");
+    o.qp.max_iter = 1;
+    EXPECT_NO_THROW(hven::solvers::validate(o));
+}
+
+TEST(Limits, RelaxBoundsNeedsAPositiveRelaxFactor) {
+    IpmOptions o;
+    o.fixed_variable_treatment = hven::solvers::FixedVariableTreatment::kRelaxBounds;
+    o.bound_relax_factor = 0.0;
+    expect_refused(o, "bound_relax_factor");
+    o.bound_relax_factor = kNaN;
+    expect_refused(o, "bound_relax_factor");
+    o.bound_relax_factor = 1e-8;
+    EXPECT_NO_THROW(hven::solvers::validate(o));
+    o.fixed_variable_treatment = hven::solvers::FixedVariableTreatment::kMakeParameter;
+    o.bound_relax_factor = 0.0; // legal for the other treatments
+    EXPECT_NO_THROW(hven::solvers::validate(o));
+}
+
 TEST(Limits, IpmValidateRefusesTheTerminationAndLinearValues) {
     for (const double bad : {0.0, -1.0, kNaN, kInf}) {
         IpmOptions o;
@@ -147,11 +226,6 @@ TEST(Limits, IpmValidateRefusesTheTerminationAndLinearValues) {
         IpmOptions o;
         o.common.max_iterations = 0;
         expect_refused(o, "common.max_iterations");
-    }
-    {
-        IpmOptions o;
-        o.linear.backend_output = true;
-        expect_refused(o, "linear.backend_output");
     }
     {
         IpmOptions o;
@@ -173,6 +247,13 @@ TEST(Limits, ABudgetMemberBelowOneIsRefusedAtSolveEntryOnBothEngines) {
         EXPECT_THROW(sqp_solve(SqpOptions{}, b), std::invalid_argument);
     }
     EXPECT_THROW(hven::solvers::validate(SolveBudget{.max_iterations = -3}), std::invalid_argument);
+    // Above INT_MAX the budget would narrow to int: refused, by name, on both engines.
+    const SolveBudget too_many{.max_iterations = Index{std::numeric_limits<int>::max()} + 1};
+    EXPECT_THROW(hven::solvers::validate(too_many), std::invalid_argument);
+    EXPECT_THROW(ipm_solve(IpmOptions{}, too_many), std::invalid_argument);
+    EXPECT_THROW(sqp_solve(SqpOptions{}, too_many), std::invalid_argument);
+    EXPECT_NO_THROW(
+        hven::solvers::validate(SolveBudget{.max_iterations = std::numeric_limits<int>::max()}));
     EXPECT_NO_THROW(hven::solvers::validate(SolveBudget{}));
     EXPECT_NO_THROW(hven::solvers::validate(SolveBudget{.max_iterations = 1, .minor_budget = 1}));
 }
@@ -282,11 +363,11 @@ TEST(Limits, TheSqpMinorBudgetReportsWorkLimit) {
 
 TEST(Limits, AnUnmeetableTimeLimitReportsTimeLimitOnBothEngines) {
     IpmOptions io;
-    io.common.time_limit_seconds = std::numeric_limits<double>::denorm_min();
+    io.common.time_limit_seconds = std::numeric_limits<double>::min();
     EXPECT_EQ(ipm_solve(io).status, SolveStatus::kTimeLimit);
 
     SqpOptions so;
-    so.common.time_limit_seconds = std::numeric_limits<double>::denorm_min();
+    so.common.time_limit_seconds = std::numeric_limits<double>::min();
     const SqpResult r = sqp_solve(so);
     EXPECT_EQ(r.status, SolveStatus::kTimeLimit);
     EXPECT_EQ(r.counters.major_iters, 0);
@@ -325,4 +406,173 @@ TEST(Verbosity, OneLineTurnsTheConsoleOn) {
     const std::string out = testing::internal::GetCapturedStdout();
     EXPECT_NE(out.find("IpmSolver"), std::string::npos);
     EXPECT_EQ(out.find("InteriorPointSolver"), std::string::npos);
+}
+
+// ---------------------------------------------------------------------------
+// Where a limit binds, and what it does to the rest of the solve
+// ---------------------------------------------------------------------------
+
+// A limit that binds in the SECOND phase: the first phase completes, the second
+// is stopped, the sequence ends there and the third phase never runs. The limit
+// counts the whole solve, so it is found by scanning for the smallest ceiling
+// that leaves the first phase intact.
+TEST(Limits, AnIpmLimitBindingInASecondPhaseEndsTheSequenceThere) {
+    IpmOptions o;
+    o.phases = {hven::solvers::IpmPhase::kSolve, hven::solvers::IpmPhase::kOptimize,
+                hven::solvers::IpmPhase::kOptimize};
+    const IpmResult free_run = ipm_solve(o);
+    ASSERT_EQ(free_run.phases.size(), 3u);
+    ASSERT_TRUE(free_run.phases[0].ran);
+    ASSERT_TRUE(free_run.phases[1].ran);
+    const hven::Index free_facts = free_run.kkt_factor_counters.factorize_count;
+
+    bool found = false;
+    for (hven::Index limit = 1; limit < free_facts && !found; ++limit) {
+        o.common.max_factorizations = limit;
+        const IpmResult r = ipm_solve(o);
+        if (r.status != SolveStatus::kWorkLimit || r.phases.size() != 3u ||
+            r.phases[0].stop_reason == hven::solvers::IpmStopReason::kWorkLimit) {
+            continue; // the limit bound in the first phase (or not at all)
+        }
+        found = true;
+        EXPECT_TRUE(r.phases[0].ran);
+        EXPECT_NE(r.phases[0].status, SolveStatus::kWorkLimit); // phase 0 completed on its own
+        EXPECT_TRUE(r.phases[1].ran);
+        EXPECT_EQ(r.phases[1].status, SolveStatus::kWorkLimit);
+        EXPECT_EQ(r.phases[1].stop_reason, hven::solvers::IpmStopReason::kWorkLimit);
+        EXPECT_FALSE(r.phases[2].ran) << "a limit bounds the whole solve: the sequence ends";
+        EXPECT_GE(r.kkt_factor_counters.factorize_count, limit);
+        EXPECT_TRUE(r.x.allFinite());
+    }
+    EXPECT_TRUE(found) << "no ceiling below " << free_facts << " bound in the second phase";
+}
+
+// A limit exit returns the iterate the solve stopped on, never return_best's
+// substitute. Premise, asserted: scored by objective, a cap exit with return_best
+// does substitute at some iteration count on this problem, so the comparison below
+// can tell.
+TEST(Limits, ALimitExitIgnoresReturnBest) {
+    constexpr auto kCriterion = hven::solvers::BestIterateCriterion::kObjective;
+    bool substitution_seen = false;
+    for (hven::Index cap = 1; cap <= 8; ++cap) {
+        IpmOptions plain;
+        plain.common.max_iterations = cap;
+        plain.best_criterion = kCriterion;
+        IpmOptions best = plain;
+        best.return_best = true;
+        const IpmResult a = ipm_solve(plain);
+        const IpmResult b = ipm_solve(best);
+        if (a.status == SolveStatus::kMaxIter && (a.x - b.x).lpNorm<Eigen::Infinity>() > 0.0) {
+            substitution_seen = true;
+        }
+    }
+    EXPECT_TRUE(substitution_seen) << "return_best never moved a cap exit: the test is vacuous";
+
+    for (const hven::Index limit : {0, 1, 2, 3, 4, 5}) {
+        IpmOptions plain;
+        plain.common.max_factorizations = limit;
+        plain.best_criterion = kCriterion;
+        IpmOptions best = plain;
+        best.return_best = true;
+        const IpmResult a = ipm_solve(plain);
+        const IpmResult b = ipm_solve(best);
+        if (a.status != SolveStatus::kWorkLimit) {
+            continue; // converged before the ceiling
+        }
+        ASSERT_EQ(b.status, SolveStatus::kWorkLimit) << limit;
+        ASSERT_EQ(a.x.size(), b.x.size());
+        for (Eigen::Index i = 0; i < a.x.size(); ++i) {
+            EXPECT_EQ(a.x[i], b.x[i]) << "limit " << limit << " coordinate " << i;
+        }
+        EXPECT_EQ(a.f, b.f) << limit;
+    }
+}
+
+// set_options() between two solves re-arms a limit: each solve measures its own
+// factorizations and clock, so a replaced ceiling binds again, and replacing it
+// with a roomy one (or none) lets the next solve finish.
+TEST(Limits, SetOptionsBetweenSolvesRearmsTheIpmLimit) {
+    Problem p(hs071());
+    IpmOptions tight;
+    tight.common.max_factorizations = 3;
+    IpmSolver s(tight);
+    const IpmResult first = s.solve(p, hs071_start());
+    ASSERT_EQ(first.status, SolveStatus::kWorkLimit);
+
+    IpmOptions roomy;
+    roomy.common.max_factorizations = 1'000'000;
+    s.set_options(roomy);
+    EXPECT_EQ(s.solve(p, hs071_start()).status, SolveStatus::kOptimal);
+
+    s.set_options(tight);
+    const IpmResult again = s.solve(p, hs071_start());
+    EXPECT_EQ(again.status, SolveStatus::kWorkLimit);
+    EXPECT_EQ(again.iterations, first.iterations); // the same ceiling stops it at the same place
+
+    IpmOptions looser = tight;
+    looser.common.max_factorizations = 5;
+    s.set_options(looser);
+    const IpmResult five = s.solve(p, hs071_start());
+    EXPECT_EQ(five.status, SolveStatus::kWorkLimit);
+    EXPECT_GT(five.iterations, first.iterations);
+
+    s.set_options(IpmOptions{}); // no limit
+    EXPECT_EQ(s.solve(p, hs071_start()).status, SolveStatus::kOptimal);
+}
+
+TEST(Limits, SetOptionsBetweenSolvesRearmsTheSqpLimit) {
+    Problem p(hs071());
+    SqpOptions tight;
+    tight.common.max_factorizations = 1;
+    SqpSolver s(tight);
+    const SqpResult first = s.solve(p, hs071_start());
+    ASSERT_EQ(first.status, SolveStatus::kWorkLimit);
+
+    SqpOptions roomy;
+    roomy.common.max_factorizations = 1'000'000;
+    s.set_options(roomy);
+    EXPECT_EQ(s.solve(p, hs071_start()).status, SolveStatus::kOptimal);
+
+    s.set_options(tight);
+    const SqpResult again = s.solve(p, hs071_start());
+    EXPECT_EQ(again.status, SolveStatus::kWorkLimit);
+    EXPECT_EQ(again.counters.factorizations, first.counters.factorizations);
+}
+
+// A cap and a limit reached at the same boundary report the limit, as on the
+// SQP engine. The ceiling is the factorizations the capped solve spent, so the
+// two meet exactly at the cap's last iteration; one factorization more and the
+// cap is the only reason to stop.
+TEST(Limits, AnIpmCapAndLimitTieReportsTheLimit) {
+    IpmOptions capped;
+    capped.common.max_iterations = 3;
+    const IpmResult cap_only = ipm_solve(capped);
+    ASSERT_EQ(cap_only.status, SolveStatus::kMaxIter);
+    ASSERT_EQ(cap_only.phases[0].stop_reason, hven::solvers::IpmStopReason::kIterationCap);
+    const hven::Index spent = cap_only.kkt_factor_counters.factorize_count;
+
+    IpmOptions tie = capped;
+    tie.common.max_factorizations = spent;
+    const IpmResult tied = ipm_solve(tie);
+    EXPECT_EQ(tied.status, SolveStatus::kWorkLimit);
+    EXPECT_EQ(tied.phases[0].stop_reason, hven::solvers::IpmStopReason::kWorkLimit);
+    EXPECT_EQ(tied.kkt_factor_counters.factorize_count, spent);
+    EXPECT_EQ(tied.iterations, cap_only.iterations);
+    for (Eigen::Index i = 0; i < cap_only.x.size(); ++i) {
+        EXPECT_EQ(tied.x[i], cap_only.x[i]) << i; // the same point, a different label
+    }
+
+    IpmOptions loose = capped;
+    loose.common.max_factorizations = spent + 1;
+    const IpmResult not_tied = ipm_solve(loose);
+    EXPECT_EQ(not_tied.status, SolveStatus::kMaxIter);
+    EXPECT_EQ(not_tied.phases[0].stop_reason, hven::solvers::IpmStopReason::kIterationCap);
+
+    // A tie in the first phase of a sequence also ends the sequence.
+    IpmOptions two_phase = tie;
+    two_phase.phases = {hven::solvers::IpmPhase::kOptimize, hven::solvers::IpmPhase::kSolve};
+    const IpmResult seq = ipm_solve(two_phase);
+    EXPECT_EQ(seq.status, SolveStatus::kWorkLimit);
+    ASSERT_EQ(seq.phases.size(), 2u);
+    EXPECT_FALSE(seq.phases[1].ran);
 }
