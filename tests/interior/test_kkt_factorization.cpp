@@ -394,7 +394,9 @@ TEST(KktFactorizationTest, AccelerateRejectsANonzeroRefinementCap) {
     // M6 W5 T8.4: set_qp_params() runs from the SOLVE that transcribes, not
     // from an attach step, so the refusal surfaces there. The problem has one
     // free variable, so the guess is a 1-vector.
-    EXPECT_THROW(solver.solve(*program, Eigen::VectorXd::Zero(1)), std::invalid_argument);
+    EXPECT_THROW(
+        solver.solve(hven::solvers::detail::problem_ref(*program), Eigen::VectorXd::Zero(1)),
+        std::invalid_argument);
 }
 
 // The pivot tolerance is fixed at the value the engine has always requested.
@@ -410,7 +412,9 @@ TEST(KktFactorizationTest, AccelerateRejectsANonDefaultPivotTolerance) {
     // M6 W5 T8.4: set_qp_params() runs from the SOLVE that transcribes, not
     // from an attach step, so the refusal surfaces there. The problem has one
     // free variable, so the guess is a 1-vector.
-    EXPECT_THROW(solver.solve(*program, Eigen::VectorXd::Zero(1)), std::invalid_argument);
+    EXPECT_THROW(
+        solver.solve(hven::solvers::detail::problem_ref(*program), Eigen::VectorXd::Zero(1)),
+        std::invalid_argument);
 }
 
 #else

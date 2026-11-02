@@ -1388,9 +1388,11 @@ TEST(SqpDriverRestoration, AlgebraModeDivergenceIsANonUniqueSubproblemOptimum) {
         hven::test_support::record_off_reference_route(
             std::string("algebra_divergence_lambda_e0_") +
                 (algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize"),
-            fmt::format("lambda_e0={:.17g} restoration_entries={}", sol.lambda_e(0),
+            fmt::format("lambda_e0={:.17g} restoration_entries={}",
+                        hven::solvers::detail::engine_rows(sol).lambda_e(0),
                         sol.counters.restoration_entries));
-        EXPECT_TRUE(sol.lambda_e(0) == 0.0 || sol.counters.restoration_entries >= 1)
+        EXPECT_TRUE(hven::solvers::detail::engine_rows(sol).lambda_e(0) == 0.0 ||
+                    sol.counters.restoration_entries >= 1)
             << "lambda_e(0) is neither the open relaxation's 0 nor a restoration multiplier";
 #endif
         (algebra == WorkingSetLinearAlgebra::kSchurBorder ? x_border : x_refac) = sol.x;
