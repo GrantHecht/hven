@@ -45,7 +45,7 @@ SqpSolver::~SqpSolver() = default;
 SqpSolver::SqpSolver(SqpSolver &&) noexcept = default;
 SqpSolver &SqpSolver::operator=(SqpSolver &&) noexcept = default;
 
-const SqpOptions &SqpSolver::options() const noexcept { return impl_->options(); }
+const SqpOptions &SqpSolver::options() const { return impl().options(); }
 
 void SqpSolver::set_options(SqpOptions o) { impl().set_options(std::move(o)); }
 
@@ -99,9 +99,7 @@ void SqpSolver::set_iteration_callback(IterationCallback cb, IterationPayload pa
     impl().set_iteration_callback(std::move(cb), payload);
 }
 
-IterationPayload SqpSolver::iteration_payload() const noexcept {
-    return impl_->iteration_payload();
-}
+IterationPayload SqpSolver::iteration_payload() const { return impl().iteration_payload(); }
 
 void SqpSolver::clear_iteration_callback() { impl().clear_iteration_callback(); }
 

@@ -44,6 +44,8 @@ struct SqpSolverAccess;
 ///
 /// Thread safety: one solver is not safe for concurrent use. Distinct solvers
 /// may run concurrently. See docs/concurrency.md.
+///
+/// Any other member call on a moved-from solver throws std::logic_error.
 class SqpSolver {
   public:
     /// Constructs a solver over `opts`.
@@ -63,7 +65,7 @@ class SqpSolver {
 
     /// The options this solver runs under. Read-only: copy, edit the copy, and
     /// hand it back through `set_options()`.
-    const SqpOptions &options() const noexcept;
+    const SqpOptions &options() const;
 
     /// Replaces the whole options value and rebuilds the QP engines.
     /// Transactional: validation and the engine construction both happen
@@ -241,7 +243,7 @@ class SqpSolver {
     /// The payload mask in force, or `IterationPayload::kAll` when no callback
     /// is installed. A value parked from inside a callback is not visible until
     /// the safe point applies it.
-    IterationPayload iteration_payload() const noexcept;
+    IterationPayload iteration_payload() const;
 
     /// Removes the callback and resets the payload mask to `kAll`. Deferred
     /// like `set_iteration_callback()` when called from inside a callback.
@@ -289,12 +291,9 @@ const char *to_string(StepVerdict v);
 /// @return The table, ready to print.
 std::string format_iteration_table(const SqpResult &sol);
 
-// THE FIVE PIECES `format_iteration_table` IS BUILT FROM (M6 W5 T8.7), also
-// defined in src/drivers/sqp_print.cpp. `ConsoleTraceSink` renders the SAME
-// table LIVE from the event stream and reaches each piece as its event
-// arrives, so the two renderers share one copy of every field width instead of
-// each holding its own -- which is what lets the console be pinned byte for
-// byte against `format_iteration_table` on a live solve.
+// The five pieces `format_iteration_table` is assembled from. Concatenating
+// them over a finished solve reproduces `format_iteration_table` exactly, so
+// a caller that renders incrementally gets the same text.
 
 /// @brief The table's header line plus its rule, both newline-terminated.
 std::string sqp_iteration_table_head();

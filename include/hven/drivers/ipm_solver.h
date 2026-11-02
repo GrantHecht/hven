@@ -50,6 +50,8 @@ struct IpmSolverAccess;
 ///
 /// Thread safety: one solver is not safe for concurrent use. Distinct solvers
 /// may run concurrently. See docs/concurrency.md.
+///
+/// Any other member call on a moved-from solver throws std::logic_error.
 class IpmSolver {
   public:
     using BarrierModes = hven::solvers::BarrierModes;
@@ -104,7 +106,7 @@ class IpmSolver {
 
     /// The options this solver runs under. Read-only: copy, edit the copy, and
     /// hand it back through `set_options()`.
-    const IpmOptions &options() const noexcept;
+    const IpmOptions &options() const;
 
     /// Replaces the whole options value. Transactional: validation runs first,
     /// and on a throw the previous options stay in force. Every field takes
@@ -117,7 +119,7 @@ class IpmSolver {
     /// Which exit the last phase of the most recent call left its iteration
     /// loop by. Reset at each phase start. A phase that converges on exactly
     /// its cap iteration reads `kNone`: the convergence, not the cap, ended it.
-    IpmStopReason last_stop_reason() const noexcept;
+    IpmStopReason last_stop_reason() const;
 
     /// True when `model` is the program the solver's current symbolic analysis
     /// was laid against and no structural event has happened to it since.
@@ -216,7 +218,7 @@ class IpmSolver {
     void set_iteration_callback(IterationCallback cb, IterationPayload payload);
 
     /// The payload mask currently in force.
-    IterationPayload iteration_payload() const noexcept;
+    IterationPayload iteration_payload() const;
 
     /// Removes the callback and resets the payload mask to `kAll`. Deferred
     /// like `set_iteration_callback()` when called from inside a callback.

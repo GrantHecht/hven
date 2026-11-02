@@ -45,11 +45,11 @@ IpmSolver::~IpmSolver() = default;
 IpmSolver::IpmSolver(IpmSolver &&) noexcept = default;
 IpmSolver &IpmSolver::operator=(IpmSolver &&) noexcept = default;
 
-const IpmOptions &IpmSolver::options() const noexcept { return impl_->options(); }
+const IpmOptions &IpmSolver::options() const { return impl().options(); }
 
 void IpmSolver::set_options(IpmOptions o) { impl().set_options(std::move(o)); }
 
-IpmStopReason IpmSolver::last_stop_reason() const noexcept { return impl_->last_stop_reason(); }
+IpmStopReason IpmSolver::last_stop_reason() const { return impl().last_stop_reason(); }
 
 bool IpmSolver::kkt_pattern_is_analyzed(const NonLinearProgram &model) const {
     return impl().kkt_pattern_is_analyzed(model);
@@ -72,9 +72,7 @@ void IpmSolver::set_iteration_callback(IterationCallback cb, IterationPayload pa
     impl().set_iteration_callback(std::move(cb), payload);
 }
 
-IterationPayload IpmSolver::iteration_payload() const noexcept {
-    return impl_->iteration_payload();
-}
+IterationPayload IpmSolver::iteration_payload() const { return impl().iteration_payload(); }
 
 void IpmSolver::clear_iteration_callback() { impl().clear_iteration_callback(); }
 

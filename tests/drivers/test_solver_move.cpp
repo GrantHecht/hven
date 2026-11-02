@@ -15,6 +15,7 @@
 #include <gtest/gtest.h>
 
 #include <bit>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <memory>
@@ -23,6 +24,7 @@
 
 #include <Eigen/Core>
 
+#include <hven/core/ledger.h>
 #include <hven/drivers/ipm_solver.h>
 #include <hven/drivers/ipm_solver_types.h>
 #include <hven/drivers/sqp_solver.h>
@@ -53,6 +55,7 @@ void expect_same_solve(const hven::solvers::SolveResult &a, const hven::solvers:
     EXPECT_EQ(a.iterations, b.iterations);
     EXPECT_TRUE(bits_equal(a.f, b.f));
     EXPECT_TRUE(vectors_bitwise_equal(a.x, b.x));
+    EXPECT_TRUE(vectors_bitwise_equal(a.z, b.z));
     EXPECT_TRUE(vectors_bitwise_equal(a.lambda_e, b.lambda_e));
     EXPECT_TRUE(vectors_bitwise_equal(a.lambda_i, b.lambda_i));
 }
@@ -60,14 +63,14 @@ void expect_same_solve(const hven::solvers::SolveResult &a, const hven::solvers:
 hven::solvers::IpmOptions ipm_options() {
     hven::solvers::IpmOptions o;
     o.common.threads = 1;
-    o.common.print_level = 10;
+    o.common.print_level = 3;
     return o;
 }
 
 hven::solvers::SqpOptions sqp_options() {
     hven::solvers::SqpOptions o;
     o.common.threads = 1;
-    o.common.print_level = 10;
+    o.common.print_level = 3;
     return o;
 }
 
@@ -82,10 +85,25 @@ TEST(SolverMove, IpmSolverSolvesBitwiseEqualAfterAMove) {
     (void)reference.solve(*program, x0);
     const hven::solvers::IpmResult expected = reference.solve(*program, x0);
 
+    // A callback and a ledger attached BEFORE the move must still be live
+    // after it: the second solve (post-move) must add to both.
     hven::solvers::IpmSolver original(ipm_options());
+    int callback_count = 0;
+    original.set_iteration_callback([&callback_count](const hven::solvers::IterationEvent &) {
+        ++callback_count;
+        return hven::solvers::CallbackAction::kContinue;
+    });
+    hven::solvers::Ledger ledger;
+    original.attach_ledger(&ledger, "move");
     (void)original.solve(*program, x0);
+    const int count_before_move = callback_count;
+    const std::size_t records_before_move = ledger.ipm_records().size();
+    EXPECT_GT(count_before_move, 0);
+    EXPECT_EQ(records_before_move, 1u);
     hven::solvers::IpmSolver moved(std::move(original));
     const hven::solvers::IpmResult actual = moved.solve(*program, x0);
+    EXPECT_GT(callback_count, count_before_move);
+    EXPECT_EQ(ledger.ipm_records().size(), records_before_move + 1);
 
     expect_same_solve(expected, actual);
     EXPECT_EQ(expected.kkt_factor_counters.factorize_count,
@@ -126,6 +144,9 @@ TEST(SolverMove, AMovedFromIpmSolverRefusesUseByName) {
     EXPECT_THROW((void)source.solve(*program, hven_drivers_tests::hs071_start()), std::logic_error);
     EXPECT_THROW(source.set_options(ipm_options()), std::logic_error);
     EXPECT_THROW(source.clear_iteration_callback(), std::logic_error);
+    EXPECT_THROW((void)source.options(), std::logic_error);
+    EXPECT_THROW((void)source.last_stop_reason(), std::logic_error);
+    EXPECT_THROW((void)source.iteration_payload(), std::logic_error);
 }
 
 TEST(SolverMove, SqpSolverSolvesBitwiseEqualAfterAMove) {
@@ -136,10 +157,25 @@ TEST(SolverMove, SqpSolverSolvesBitwiseEqualAfterAMove) {
     (void)reference.solve(*p.model, x0);
     const hven::solvers::SqpResult expected = reference.solve(*p.model, x0);
 
+    // A callback and a ledger attached BEFORE the move must still be live
+    // after it: the second solve (post-move) must add to both.
     hven::solvers::SqpSolver original(sqp_options());
+    int callback_count = 0;
+    original.set_iteration_callback([&callback_count](const hven::solvers::IterationEvent &) {
+        ++callback_count;
+        return hven::solvers::CallbackAction::kContinue;
+    });
+    hven::solvers::Ledger ledger;
+    original.attach_ledger(&ledger, "move");
     (void)original.solve(*p.model, x0);
+    const int count_before_move = callback_count;
+    const std::size_t records_before_move = ledger.sqp_records().size();
+    EXPECT_GT(count_before_move, 0);
+    EXPECT_EQ(records_before_move, 1u);
     hven::solvers::SqpSolver moved(std::move(original));
     const hven::solvers::SqpResult actual = moved.solve(*p.model, x0);
+    EXPECT_GT(callback_count, count_before_move);
+    EXPECT_EQ(ledger.sqp_records().size(), records_before_move + 1);
 
     expect_same_solve(expected, actual);
     EXPECT_EQ(expected.counters.major_iters, actual.counters.major_iters);
@@ -175,4 +211,6 @@ TEST(SolverMove, AMovedFromSqpSolverRefusesUseByName) {
     EXPECT_THROW((void)source.solve(*p.model, p.model->start_point()), std::logic_error);
     EXPECT_THROW(source.set_options(sqp_options()), std::logic_error);
     EXPECT_THROW((void)source.export_warm_start(), std::logic_error);
+    EXPECT_THROW((void)source.options(), std::logic_error);
+    EXPECT_THROW((void)source.iteration_payload(), std::logic_error);
 }
