@@ -1638,9 +1638,9 @@ struct SqpEqualityBasisReport {
 };
 
 struct SqpResult : SolveResult {
-    // The base carries the ANSWER -- status, x, lambda_e, lambda_i, z, f, the
-    // four shared declared diagnostics, ce/ci, iterations, wall_seconds and the
-    // warm-start snapshot -- in declared space and caller units
+    // The base carries the ANSWER -- status, x, lambda, z, f, the four shared
+    // declared diagnostics, g, iterations, wall_seconds and the warm-start
+    // snapshot -- in the problem's row space and caller units
     // (drivers/solve_result.h). Everything below is this engine's own.
     //
     // WHAT MOVED INTO THE BASE, and under which name (M6 W5 T8.4):

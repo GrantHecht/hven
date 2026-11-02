@@ -37,8 +37,8 @@
 // quantity arrives as an argument, taken from the evaluation the engine already
 // performed at the point it is about to return. A fresh evaluation here would
 // move the evaluation counters on every solve, so the rule is absolute: where no finite evaluation
-// of the returned point exists, every diagnostic is NaN -- UNMEASURED -- and ce/ci are empty.
-// Absent is never zero-filled.
+// of the returned point exists, every diagnostic is NaN -- UNMEASURED -- and the row values are
+// empty. Absent is never zero-filled.
 
 #include <functional>
 #include <limits>

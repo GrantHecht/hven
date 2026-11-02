@@ -163,8 +163,9 @@ class SqpSolver {
                     SolveBudget budget = {});
 
     /// The warm-start value of the last completed solve, in declared space and
-    /// by copy. `primal_` is `SqpResult::x`, `eq_lmults_` its `lambda_e`,
-    /// `iq_lmults_` its `lambda_i` and `bound_lmults_` its `z`. The stamp is the
+    /// by copy. `primal_` is `SqpResult::x`, `eq_lmults_` and
+    /// `iq_lmults_` the engine's own equality and inequality multipliers at it,
+    /// and `bound_lmults_` its `z`. The stamp is the
     /// assembly's declaration key as of that solve's completion. This engine
     /// produces no extensions.
     /// @throws std::logic_error if no solve has completed on this solver.

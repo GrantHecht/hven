@@ -16,20 +16,37 @@ here, with the disagreement named.
 
 ## What a consumer may do
 
-**N solver instances, one per thread, each solving its own model, each with
+**N solver instances, one per thread, each solving its own `Problem`, each with
 `common.threads = 1`.** Both engines: `hven::solvers::IpmSolver` and
 `hven::solvers::SqpSolver`. The results are the results of the same solves run
 serially — counters and statuses identically, floating-point measures to within
 last-digit drift (see "How identical" below).
 
 ```cpp
-// One instance, one model, one thread. Nothing is shared.
+// One instance, one Problem, one thread. Nothing is shared but the Nlp.
 hven::solvers::IpmOptions opts;
 opts.common.threads = 1;
 hven::solvers::IpmSolver solver(opts);
-const auto program = hven::solvers::make_nlp_program(problem);
-const hven::solvers::IpmResult r = solver.solve(*program, x0);
+hven::solvers::Problem problem(nlp);           // std::shared_ptr<hven::solvers::Nlp>
+const hven::solvers::IpmResult r = solver.solve(problem, x0);
 ```
+
+**The `Problem` rules** (`include/hven/model/problem.h`, M8 AP-2 B2):
+
+- One `Problem` serves one solve at a time, on one thread. It holds each engine's
+  transcription of the problem and the per-iterate caches every solve clears and
+  refills, so two concurrent solves on one `Problem` race each other — whichever
+  engines they are.
+- N concurrent solves need N `Problem`s and N solvers.
+- Several `Problem`s may share one `Nlp` (`include/hven/model/nlp.h`), and then may
+  solve concurrently, only if the `Nlp`'s `const` members are safe to call
+  concurrently. hven calls only `const` members of an `Nlp`; it does not lock
+  around them.
+- Two engines may alternate on one `Problem`, sequentially. An `IpmSolver` that did
+  not lay the current interior-point analysis re-analyses on its next solve —
+  another `IpmSolver`, or a bound change on an `Nlp` problem, displaces it — and the
+  re-analysis is counted (`IpmResult::kkt_analyses_this_call`), as the program-level
+  owner id (`analyzed_owner_id`) has always made it.
 
 `common.threads = 1` is the whole of the thread setting a worker needs. It
 applies a **thread-local** MKL override at backend-call scope and undoes it on
@@ -42,7 +59,7 @@ else; it is the replacement for the retired `NLPSolver::jet_initialize()`.
 
 **The evidence** is `Concurrency.NInstancesOnNThreadsMatchSerial`
 (`tests/drivers/test_concurrency.cpp`): four instances on four `std::thread`s —
-two `SqpSolver` cells, two `IpmSolver` cells, each over its own model, every
+two `SqpSolver` cells, two `IpmSolver` cells, each over its own problem, every
 options value at `common.threads = 1` — against the same four solves run
 serially first in the same process.
 
@@ -50,13 +67,15 @@ serially first in the same process.
 
 - **Share one solver instance across threads.** A solver owns a live backend
   session and mutable workspace. One instance per thread.
+- **Solve one `Problem` concurrently**, on one engine or two. See "The `Problem`
+  rules" above.
 - **Call one instance's `solve()` concurrently with itself**, from any thread,
   including re-entering it from an iteration callback. The per-component notes
   say the same thing one layer down: `include/hven/linear/symmetric_factor.h:238-240`
   ("solves are not internally synchronized … concurrent solves across co-owners
   must be serialized by the caller"), `include/hven/detail/qp/qp_engine.h:122-128`
   (two different engines sharing one `BorderState` is undefined **concurrently**
-  and safe **sequentially**), `include/hven/model/nlp_model_assembly.h:76-78`.
+  and safe **sequentially**), `include/hven/detail/model/nlp_model_assembly.h:76-78`.
 - **Share one `Ledger` or one `TraceSink` between concurrently-solving
   instances.** Both are attached by raw pointer to caller-owned objects
   (`IpmSolver::attach_ledger`/`attach_trace`, `SqpSolver`'s same pair) and
@@ -109,7 +128,7 @@ pointer are its own.
 so at the setter a consumer actually sees:
 `NonLinearProgram::set_evaluation_threads` routes straight to it and its comment
 names the consequence — "Setting it through one aggregate sets it for every
-aggregate in the process" (`include/hven/model/non_linear_program.h:1002-1008`).
+aggregate in the process" (`include/hven/detail/model/non_linear_program.h:1002-1008`).
 `ThreadPool::requested_thread_count()` (`include/hven/detail/interior/utils/thread_pool.h:486-487`)
 is a second process-global atomic in the same mechanism: the size stash the
 pool's constructor reads.
@@ -128,7 +147,7 @@ concurrent dispatches from separate threads inherently safe; `thread_pool.h`, th
 `Concurrency.TwoPartitionedProgramsOnTwoThreadsMatchSerial`
 (`tests/drivers/test_concurrency.cpp`), beside the N×1 pin above and running the
 same two steps over the same helpers: it builds TWO different programs through
-the public `make_nlp_program(problem, num_partitions)` at counts the layout
+the internal `make_nlp_program(problem, num_partitions)` (a public `Problem(Nlp)` lays one partition; a partition request is M8 AP-2 B6) at counts the layout
 ACTUALLY ADOPTS — 2 partitions over 3000 user KKT elements and 3 over 4200,
 asserted rather than assumed, because the count is clamped rather than refused
 (`src/model/non_linear_program.cpp:415-426`) — solves them once serially on the
@@ -156,13 +175,13 @@ running the other partitions' bodies and writing into each program's own scratch
 — together with the `parallel_blocks` passes over the KKT triplet fill, which
 `num_partitions_` sizes as well. That is precisely the claim the design
 statement makes and precisely what was unmeasured. Genuine partitioned
-EVALUATION over an `NlpTripletModel` needs a thread-safe adapter and is
+EVALUATION over an `Nlp` needs a thread-safe adapter and is
 registered for M7.
 
 Not to fan out is the easy case and it is the common one:
-`make_nlp_program(problem)` defaults to **one partition**
-(`include/hven/model/make_nlp_program.h:57`, `:81` — the declarations moved to
-that public header at M7 W0 T5 and the cite here moved with them), the count is
+`make_nlp_program(problem)` defaults to **one partition**, and a `Problem(Nlp)`
+always lays one
+(`include/hven/detail/model/make_nlp_program.h`; internal since M8 AP-2 B2), the count is
 capped down further on small problems
 (`src/model/non_linear_program.cpp:423-425`, threshold
 `kMinKktElementsPerPartition` = 1000 KKT elements per partition), and
