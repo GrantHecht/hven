@@ -7,56 +7,45 @@
 //
 // Unconstrained, Rosenbrock's minimum is (1, 1). The upper bound x <= 0.5 cuts
 // it off, so the solution sits ON the bound: x* = 0.5, y* = 0.25, f* = 0.25,
-// with a bound multiplier on x (z <= 0 at an active upper bound). An NlpTripletModel with
-// num_cons() == 0 is legal; "no bound" on y is written as +/-infinity.
+// with a bound multiplier on x (z <= 0 at an active upper bound). An Nlp with m == 0
+// needs no constraint callbacks at all; "no bound" on y is written as
+// +/-kInfinity.
 
 #include <cmath>
 #include <cstdio>
-#include <limits>
 #include <memory>
 
 #include "hven/drivers/ipm_solver.h"
 #include "hven/drivers/sqp_solver.h"
-#include "hven/model/make_nlp_program.h"
-#include "hven/model/nlp_problem_model.h"
-#include "hven/model/nlp_triplet_model.h"
+#include "hven/model/nlp.h"
+#include "hven/model/problem.h"
 
 namespace {
 
 using namespace hven::solvers;
-constexpr double kInf = std::numeric_limits<double>::infinity();
+using hven::ConstVecRef;
+using hven::IndexVecRef;
+using hven::kInfinity;
+using hven::VecRef;
 
-struct BoundedRosenbrock : NlpTripletModel {
-    int num_vars() const override { return 2; }
-    int num_cons() const override { return 0; }
-    int num_jac_nonzeros() const override { return 0; }
-    int num_hess_nonzeros() const override { return 3; }
-
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>) const override {
-        xl << -2.0, -kInf;
-        xu << 0.5, kInf;
+struct BoundedRosenbrock : Nlp {
+    NlpDimensions dimensions() const override { return {.n = 2, .m = 0, .hessian_nonzeros = 3}; }
+    void bounds(VecRef xl, VecRef xu, VecRef, VecRef) const override {
+        xl << -2.0, -kInfinity;
+        xu << 0.5, kInfinity;
     }
-    void eval_f(hven::ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
-        f = 100.0 * std::pow(x[1] - x[0] * x[0], 2) + std::pow(1.0 - x[0], 2);
+    double eval_f(ConstVecRef x) const override {
+        return 100.0 * std::pow(x[1] - x[0] * x[0], 2) + std::pow(1.0 - x[0], 2);
     }
-    void eval_grad_f(hven::ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(ConstVecRef x, VecRef g) const override {
         g << -400.0 * x[0] * (x[1] - x[0] * x[0]) - 2.0 * (1.0 - x[0]),
             200.0 * (x[1] - x[0] * x[0]);
     }
-    void eval_g(hven::ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>) const override {}
-    void jac_structure(Eigen::Ref<Eigen::VectorXi>, Eigen::Ref<Eigen::VectorXi>) const override {}
-    void eval_jac(hven::ConstEigenRef<Eigen::VectorXd>,
-                  Eigen::Ref<Eigen::VectorXd>) const override {}
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(IndexVecRef r, IndexVecRef c) const override {
         r << 0, 1, 1; // lower triangle: (0,0), (1,0), (1,1)
         c << 0, 0, 1;
     }
-    void eval_hess(hven::ConstEigenRef<Eigen::VectorXd> x, double obj_factor,
-                   hven::ConstEigenRef<Eigen::VectorXd>,
-                   Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(ConstVecRef x, double obj_factor, ConstVecRef, VecRef v) const override {
         v << obj_factor * (1200.0 * x[0] * x[0] - 400.0 * x[1] + 2.0), obj_factor * -400.0 * x[0],
             obj_factor * 200.0;
     }
@@ -74,19 +63,17 @@ bool check(const char *engine, const SolveResult &r) {
 } // namespace
 
 int main() {
-    const auto problem = std::make_shared<BoundedRosenbrock>();
+    Problem problem(std::make_shared<BoundedRosenbrock>());
     Eigen::VectorXd x0(2);
     x0 << -1.2, 1.0; // the classic starting point
 
     IpmOptions ipm_options;
     ipm_options.common.print_level = 3;
     IpmSolver ipm(ipm_options);
-    const auto program = make_nlp_program(problem);
-    const bool ok_ipm = check("IpmSolver", ipm.solve(*program, x0));
+    const bool ok_ipm = check("IpmSolver", ipm.solve(problem, x0));
 
-    NlpProblemModel model(problem);
     SqpSolver sqp{SqpOptions{}};
-    const bool ok_sqp = check("SqpSolver", sqp.solve(model, x0));
+    const bool ok_sqp = check("SqpSolver", sqp.solve(problem, x0));
 
     return (ok_ipm && ok_sqp) ? 0 : 1;
 }

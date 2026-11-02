@@ -24,9 +24,10 @@
 // Each piece answers: its sizes; its evaluations (value, gradient, Jacobian,
 // adjoint-Hessian); and where its derivatives go (get_kkt_space claims KKT
 // slots, the scatter writes through them under the shared lock protocol).
-// The problem is then assembled as an AssemblyDeclaration, adopted by a
-// NonLinearProgram and solved by IpmSolver -- once on one partition and once
-// asking for four, and the answers must agree.
+// The problem is then assembled as an AssemblyDeclaration, wrapped in a
+// Problem and solved by IpmSolver -- once on one partition and once asking for
+// four, and the answers must agree. (The SQP engine does not solve a pieces
+// problem.)
 
 #include <algorithm>
 #include <cmath>
@@ -42,7 +43,7 @@
 #include "hven/detail/solvers/solver_interface_specs.h" // detail/: ConstraintInterface, ObjectiveInterface
 #include "hven/drivers/ipm_solver.h"
 #include "hven/model/assembly_declaration.h"
-#include "hven/model/non_linear_program.h"
+#include "hven/model/problem.h"
 #include "hven/solver_interface_adapter.h"
 
 namespace {
@@ -382,8 +383,7 @@ ChainSolution solve_chain(int steps, int requested_partitions) {
         declaration.variable_bounds_.push_back(VariableBound{u0 + i, -2.0, 2.0});
     }
 
-    NonLinearProgram program(requested_partitions);
-    program.adopt_declaration(std::move(declaration));
+    Problem problem(std::move(declaration));
 
     IpmOptions options;
     options.common.print_level = 3;
@@ -393,7 +393,7 @@ ChainSolution solve_chain(int steps, int requested_partitions) {
     for (int i = 0; i <= steps; i++) {
         x0[i] = 0.5 * i / steps; // straight line from y_0 = 0 to y_N = 0.5
     }
-    const IpmResult result = solver.solve(program, x0);
+    const IpmResult result = solver.solve(problem, x0);
 
     // Independent check of the pieces: recompute the objective and the
     // dynamics residual from the returned point.
@@ -409,7 +409,7 @@ ChainSolution solve_chain(int steps, int requested_partitions) {
     return {result.status,
             result.f,
             result.feasibility_e,
-            program.num_partitions_,
+            static_cast<int>(problem.partitions()),
             static_cast<long long>(result.iterations),
             result.x};
 }

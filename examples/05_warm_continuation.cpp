@@ -15,73 +15,60 @@
 // on either engine. Cold = each p solved from scratch; warm = each p solved
 // from the previous p's payload.
 //
-// NOTE the rebuild per p. A model's callbacks must be pure functions of x
-// ("results are cached per iterate"), so changing p inside a live model is not
-// allowed: the engines would serve values cached at the old p. Each p is a new
-// model object; the warm-start payload stays valid across them because the
-// problem's declared structure is unchanged.
+// The parameter is a member of the Nlp, changed IN PLACE between solves on ONE
+// Problem. Every solve re-reads the bounds (here the row bound 1 + p/2) and
+// clears the engines' per-iterate caches, so a value or bound change is legal;
+// only the dimensions, the structures and the row kinds are fixed. The warm-start
+// payload stays valid across p because the problem's declared structure is
+// unchanged.
 
-#include <algorithm>
 #include <cmath>
 #include <cstdio>
-#include <limits>
 #include <memory>
 #include <optional>
-#include <vector>
 
 #include "hven/drivers/ipm_solver.h"
 #include "hven/drivers/sqp_solver.h"
-#include "hven/model/make_nlp_program.h"
-#include "hven/model/nlp_problem_model.h"
-#include "hven/model/nlp_triplet_model.h"
+#include "hven/model/nlp.h"
+#include "hven/model/problem.h"
 
 namespace {
 
 using namespace hven::solvers;
-constexpr double kInf = std::numeric_limits<double>::infinity();
+using hven::ConstVecRef;
+using hven::IndexVecRef;
+using hven::kInfinity;
+using hven::VecRef;
 
-struct Disc : NlpTripletModel {
-    explicit Disc(double p) : p_(p) {}
-    double p_;
-    int num_vars() const override { return 2; }
-    int num_cons() const override { return 1; }
-    int num_jac_nonzeros() const override { return 2; }
-    int num_hess_nonzeros() const override { return 2; }
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
-        xl.setConstant(-kInf);
-        xu.setConstant(kInf);
-        gl << -kInf;
-        gu << 1.0 + 0.5 * p_;
+struct Disc : Nlp {
+    double p = 0.0; // the parameter, changed between solves
+
+    NlpDimensions dimensions() const override {
+        return {.n = 2, .m = 1, .jacobian_nonzeros = 2, .hessian_nonzeros = 2};
     }
-    void eval_f(hven::ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
-        f = std::pow(x[0] - 2 * p_, 2) + std::pow(x[1] - p_, 2);
+    void bounds(VecRef xl, VecRef xu, VecRef gl, VecRef gu) const override {
+        xl.setConstant(-kInfinity);
+        xu.setConstant(kInfinity);
+        gl << -kInfinity;
+        gu << 1.0 + 0.5 * p;
     }
-    void eval_grad_f(hven::ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
-        g << 2 * (x[0] - 2 * p_), 2 * (x[1] - p_);
+    double eval_f(ConstVecRef x) const override {
+        return std::pow(x[0] - 2 * p, 2) + std::pow(x[1] - p, 2);
     }
-    void eval_g(hven::ConstEigenRef<Eigen::VectorXd> x,
-                Eigen::Ref<Eigen::VectorXd> g) const override {
-        g << x.squaredNorm();
+    void eval_grad_f(ConstVecRef x, VecRef g) const override {
+        g << 2 * (x[0] - 2 * p), 2 * (x[1] - p);
     }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void eval_g(ConstVecRef x, VecRef g) const override { g << x.squaredNorm(); }
+    void jacobian_structure(IndexVecRef r, IndexVecRef c) const override {
         r << 0, 0;
         c << 0, 1;
     }
-    void eval_jac(hven::ConstEigenRef<Eigen::VectorXd> x,
-                  Eigen::Ref<Eigen::VectorXd> v) const override {
-        v = 2.0 * x;
-    }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void eval_jacobian(ConstVecRef x, VecRef v) const override { v = 2.0 * x; }
+    void hessian_structure(IndexVecRef r, IndexVecRef c) const override {
         r << 0, 1;
         c << 0, 1;
     }
-    void eval_hess(hven::ConstEigenRef<Eigen::VectorXd>, double obj_factor,
-                   hven::ConstEigenRef<Eigen::VectorXd> lambda,
-                   Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(ConstVecRef, double obj_factor, ConstVecRef lambda, VecRef v) const override {
         v.setConstant(2.0 * obj_factor + 2.0 * lambda[0]);
     }
 };
@@ -116,28 +103,28 @@ int main() {
     bool ok = true;
     long long cold = 0, warm = 0;
 
-    // Interior-point engine: re-transcribe at each p.
+    const auto disc = std::make_shared<Disc>();
+    Problem problem(disc);
+
     IpmOptions ipm_options;
     ipm_options.common.print_level = 3;
     IpmSolver ipm(ipm_options);
     auto ipm_at = [&](double p, const std::optional<WarmStartData> &w) -> SolveResult {
-        const auto program = make_nlp_program(std::make_shared<Disc>(p));
-        return w ? ipm.solve(*program, x0, *w) : ipm.solve(*program, x0);
+        disc->p = p;
+        return w ? ipm.solve(problem, x0, *w) : ipm.solve(problem, x0);
     };
     ok &= sweep("IPM", false, ipm_at, cold);
     ok &= sweep("IPM", true, ipm_at, warm);
 
-    // SQP engine: convert at each p.
     SqpSolver sqp{SqpOptions{}};
     auto sqp_at = [&](double p, const std::optional<WarmStartData> &w) -> SolveResult {
-        NlpProblemModel model(std::make_shared<Disc>(p));
-        return w ? sqp.solve(model, x0, *w) : sqp.solve(model, x0);
+        disc->p = p;
+        return w ? sqp.solve(problem, x0, *w) : sqp.solve(problem, x0);
     };
     long long sqp_cold = 0, sqp_warm = 0;
     ok &= sweep("SQP", false, sqp_at, sqp_cold);
     ok &= sweep("SQP", true, sqp_at, sqp_warm);
 
-    // The warm sweep must not cost more iterations than the cold one.
     ok &= (warm <= cold) && (sqp_warm <= sqp_cold);
     std::printf("%s\n", ok ? "OK" : "FAILED");
     return ok ? 0 : 1;

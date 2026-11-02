@@ -17,7 +17,6 @@
 #include <cmath>
 #include <cstdio>
 #include <iostream>
-#include <limits>
 #include <map>
 #include <memory>
 #include <sstream>
@@ -26,58 +25,51 @@
 #include "hven/drivers/ipm_solver.h"
 #include "hven/drivers/sqp_solver.h"
 #include "hven/drivers/trace_writer.h"
-#include "hven/model/make_nlp_program.h"
-#include "hven/model/nlp_problem_model.h"
-#include "hven/model/nlp_triplet_model.h"
+#include "hven/model/nlp.h"
+#include "hven/model/problem.h"
 
 namespace {
 
 using namespace hven::solvers;
-constexpr double kInf = std::numeric_limits<double>::infinity();
+using hven::ConstVecRef;
+using hven::IndexVecRef;
+using hven::kInfinity;
+using hven::VecRef;
 
-struct Hs071 : NlpTripletModel {
-    int num_vars() const override { return 4; }
-    int num_cons() const override { return 2; }
-    int num_jac_nonzeros() const override { return 8; }
-    int num_hess_nonzeros() const override { return 10; }
-
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+struct Hs071 : Nlp {
+    NlpDimensions dimensions() const override {
+        return {.n = 4, .m = 2, .jacobian_nonzeros = 8, .hessian_nonzeros = 10};
+    }
+    void bounds(VecRef xl, VecRef xu, VecRef gl, VecRef gu) const override {
         xl.setConstant(1.0);
         xu.setConstant(5.0);
         gl << 25.0, 40.0; // row 0: x0*x1*x2*x3 >= 25 ; row 1: sum x^2 == 40
-        gu << kInf, 40.0;
+        gu << kInfinity, 40.0;
     }
-    void eval_f(hven::ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
-        f = x[0] * x[3] * (x[0] + x[1] + x[2]) + x[2];
+    double eval_f(ConstVecRef x) const override {
+        return x[0] * x[3] * (x[0] + x[1] + x[2]) + x[2];
     }
-    void eval_grad_f(hven::ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(ConstVecRef x, VecRef g) const override {
         g << x[3] * (2 * x[0] + x[1] + x[2]), x[0] * x[3], x[0] * x[3] + 1,
             x[0] * (x[0] + x[1] + x[2]);
     }
-    void eval_g(hven::ConstEigenRef<Eigen::VectorXd> x,
-                Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_g(ConstVecRef x, VecRef g) const override {
         g << x[0] * x[1] * x[2] * x[3], x.squaredNorm();
     }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void jacobian_structure(IndexVecRef r, IndexVecRef c) const override {
         r << 0, 0, 0, 0, 1, 1, 1, 1;
         c << 0, 1, 2, 3, 0, 1, 2, 3;
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
-        r << 0, 1, 1, 2, 2, 2, 3, 3, 3, 3; // lower triangle
-        c << 0, 0, 1, 0, 1, 2, 0, 1, 2, 3;
-    }
-    void eval_jac(hven::ConstEigenRef<Eigen::VectorXd> x,
-                  Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(ConstVecRef x, VecRef v) const override {
         v << x[1] * x[2] * x[3], x[0] * x[2] * x[3], x[0] * x[1] * x[3], x[0] * x[1] * x[2],
             2 * x[0], 2 * x[1], 2 * x[2], 2 * x[3];
     }
-    void eval_hess(hven::ConstEigenRef<Eigen::VectorXd> x, double obj_factor,
-                   hven::ConstEigenRef<Eigen::VectorXd> lambda,
-                   Eigen::Ref<Eigen::VectorXd> v) const override {
+    void hessian_structure(IndexVecRef r, IndexVecRef c) const override {
+        r << 0, 1, 1, 2, 2, 2, 3, 3, 3, 3; // lower triangle
+        c << 0, 0, 1, 0, 1, 2, 0, 1, 2, 3;
+    }
+    void eval_hessian(ConstVecRef x, double obj_factor, ConstVecRef lambda,
+                      VecRef v) const override {
         v << obj_factor * 2 * x[3] + lambda[1] * 2,                          // (0,0)
             obj_factor * x[3] + lambda[0] * x[2] * x[3],                     // (1,0)
             lambda[1] * 2,                                                   // (1,1)
@@ -98,8 +90,8 @@ void print_result(const char *engine, const SolveResult &r) {
     std::printf("iterations      %lld\n", static_cast<long long>(r.iterations));
     std::printf("objective       %.9f\n", r.f);
     std::cout << "x               " << r.x.transpose() << "\n";
-    std::cout << "lambda_e        " << r.lambda_e.transpose() << "   (equality rows)\n";
-    std::cout << "lambda_i        " << r.lambda_i.transpose() << "   (inequality rows)\n";
+    std::cout << "lambda          " << r.lambda.transpose() << "   (one per row)\n";
+    std::cout << "g               " << r.g.transpose() << "   (row values)\n";
     std::cout << "z (bounds)      " << r.z.transpose() << "\n";
     std::printf("stationarity    %.2e\n", r.stationarity);
     std::printf("feasibility_e   %.2e\n", r.feasibility_e);
@@ -125,7 +117,7 @@ std::map<std::string, int> tally(const std::string &trace) {
 } // namespace
 
 int main() {
-    const auto problem = std::make_shared<Hs071>();
+    Problem problem(std::make_shared<Hs071>());
     Eigen::VectorXd x0(4);
     x0 << 1.0, 5.0, 5.0, 1.0;
 
@@ -156,8 +148,7 @@ int main() {
         },
         IterationPayload::kScalars);
 
-    const auto program = make_nlp_program(problem);
-    const IpmResult ipm_result = ipm.solve(*program, x0);
+    const IpmResult ipm_result = ipm.solve(problem, x0);
     print_result("IpmSolver", ipm_result);
     // Engine-specific extras live on IpmResult.
     std::printf("kkt_inf         %.2e   (the interior-point engine's own measure)\n",
@@ -188,8 +179,7 @@ int main() {
         }
         return CallbackAction::kContinue;
     });
-    NlpProblemModel model(problem);
-    const SqpResult sqp_result = sqp.solve(model, x0);
+    const SqpResult sqp_result = sqp.solve(problem, x0);
     print_result("SqpSolver", sqp_result);
     std::printf("sqp_stationarity %.2e   (the SQP engine's own measure)\n",
                 sqp_result.sqp_stationarity);
