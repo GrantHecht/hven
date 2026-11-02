@@ -22,7 +22,9 @@
 #include "hven/detail/solvers/solver_interface_specs.h"
 #include "hven/drivers/ipm_solver.h"
 #include "hven/drivers/solve_status.h"
+#include "hven/drivers/sqp_solver.h"
 #include "hven/model/assembly_declaration.h"
+#include "hven/model/problem.h"
 #include "hven/solver_interface_adapter.h"
 
 namespace string_piece_test {
@@ -172,6 +174,49 @@ TEST(StringPiece, DeclaredAndSolvedThroughTheAssemblyPath) {
     EXPECT_NEAR(result.x[0], 0.25, 1e-6);
     EXPECT_NEAR(result.x[1], -0.5, 1e-6);
     EXPECT_NEAR(result.f, 0.0, 1e-9);
+}
+
+// AP-2 B2: the same pieces through the public route. Problem(AssemblyDeclaration)
+// lays the declaration; the interior-point engine solves it, and the SQP engine
+// refuses it by name.
+TEST(StringPiece, APiecesProblemIsSolvedByTheIpmAndRefusedByNameByTheSqp) {
+    Eigen::MatrixXi x0_idx(1, 1), x1_idx(1, 1);
+    x0_idx(0, 0) = 0;
+    x1_idx(0, 0) = 1;
+    AssemblyDeclaration declaration;
+    declaration.primal_vars_ = 2;
+    declaration.partition_count_ = 1;
+    declaration.objectives_.emplace_back(
+        ObjectiveInterface(StringLabelledQuadratic{{}, "q0", 1.0, 0.25}), x0_idx);
+    declaration.objectives_.emplace_back(
+        ObjectiveInterface(StringLabelledQuadratic{{}, "q1", 2.0, -0.5}), x1_idx);
+    declaration.variable_bounds_.push_back(VariableBound{0, -1.0, 1.0});
+    declaration.variable_bounds_.push_back(VariableBound{1, -1.0, 1.0});
+
+    Problem problem(std::move(declaration));
+    EXPECT_EQ(problem.num_variables(), 2);
+    EXPECT_EQ(problem.num_constraints(), 0);
+    EXPECT_EQ(problem.partitions(), 1);
+    EXPECT_EQ(problem.statistics().boxed_variables, 2);
+
+    IpmOptions options;
+    options.common.print_level = 10;
+    IpmSolver ipm(options);
+    const IpmResult result = ipm.solve(problem, Vx::Zero(2));
+    EXPECT_EQ(result.status, SolveStatus::kOptimal);
+    EXPECT_NEAR(result.x[0], 0.25, 1e-6);
+    EXPECT_NEAR(result.x[1], -0.5, 1e-6);
+    EXPECT_EQ(result.lambda.size(), 0);
+
+    SqpSolver sqp{SqpOptions{}};
+    try {
+        (void)sqp.solve(problem, Vx::Zero(2));
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        const std::string message(e.what());
+        EXPECT_NE(message.find("built from pieces"), std::string::npos) << message;
+        EXPECT_NE(message.find("solve it with IpmSolver"), std::string::npos) << message;
+    }
 }
 
 } // namespace string_piece_test

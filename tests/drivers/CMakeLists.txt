@@ -34,6 +34,9 @@ set(HVEN_DRIVERS_TEST_SOURCES
     # CommonOptions block they each flatten.
     test_options_dump.cpp
     test_print_tables.cpp
+    # AP-2 B2: one problem type -- Problem on both engines, the per-solve re-read,
+    # the refusals by name, lambda and g in the problem's row space.
+    test_problem.cpp
     test_solve_status.cpp
     test_solve_result.cpp
     # AP-2 B1: the solvers are movable handles; a move preserves the engine.
