@@ -29,7 +29,7 @@ EXCLUDED = {'difftime', 'difftime@plt', 'mkl_serv_get_clocks_frequency', '__vdso
 # they are stripped here. Fail closed: a non-blank line that does not match is a parse error.
 LINE = re.compile(r'\s*([\d.]+)%\s+(\d+)\s+\[(.)\]\s+(.*?)(?:\s+-\s+-)?\s*$')
 here = os.path.dirname(os.path.abspath(__file__))
-repo = os.path.abspath(os.path.join(here, '../../../../..'))
+repo = os.path.abspath(os.path.join(here, '../../../../../..'))
 compare = os.path.join(repo, 'scripts/compare_replay.py')
 ROUNDS = (1, 2, 3)
 
