@@ -1,0 +1,20 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-02T00:32:47-05:00
+0ba5d82441c5ab044e0f67e46907e963e77b107b0a8552a1b253a5de9c225656  /home/ghecht/Projects/hven/.claude/worktrees/agent-aba3deeb97313f444/build-b2/armA/hven_sqp_corpus
+97222ee94cd3483a0961b52c8894d1f4bb543d69593e4f309228c99d76691a33  /home/ghecht/Projects/hven/.claude/worktrees/agent-aba3deeb97313f444/build-b2/armB-r2/hven_sqp_corpus
+spin rc=0 2026-11-02T00:33:05-05:00
+LEG mode=interior rc=0 2026-11-02T00:35:01-05:00
+ANALYSIS mode=interior rc=1
+STOP CONDITION: 3 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
+VALIDITY: 6 processes, 0 throttled -> VALID
+  filtered samples (CRITERION)     A=5.536150e+05 B=5.505780e+05 B/A=0.994514
+  all samples                      A=5.536150e+05 B=5.505780e+05 B/A=0.994514
+  excluded (wall-clock) samples    A=0.000000e+00 B=0.000000e+00 B/A=n/a
+  raw perf-stat instructions:u     A=1.107262e+11 B=1.101188e+11 B/A=0.994514
+per-round filtered B/A (informational):
+  round 1: B/A=0.994514
+  round 2: B/A=0.994744
+  round 3: B/A=0.994358
+MODE interior FILTERED B/A = 0.994514 -> OUTSIDE [0.995, 1.005]
+VERDICT FAIL(mode=interior leg_rc=0 analysis_rc=1)
+FOREGROUND_END 2026-11-02T00:35:02-05:00
