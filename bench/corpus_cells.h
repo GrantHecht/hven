@@ -1715,11 +1715,55 @@ CorpusRow timed_row(const CorpusCell &cell, const hven::solvers::NlpModel &model
 
 // THE ENGINE INTERFACE'S IMPLEMENTATION, both kernels. `cfg.qp_mode` is the
 // ONLY thing that differs between the walk arm and the SSN arm: the same
+// AP-2 B2 -- THE ROUTE LEVER (`--internal-route`, a hidden measurement lever of
+// bench_corpus.cpp). kNative is the corpus route every pinned artifact was taken
+// on: the cell's own NlpModel, solved through detail::problem_from_model. The two
+// Nlp routes state the cell as an Nlp (crossover::ModelAsNlpProblem, the dual
+// binding) and solve it through today's triplet route (a fresh NlpProblemModel per
+// solve) or through the public Problem(Nlp) route (one Problem per cell); they are
+// the B2 public-vs-internal counter-identity pin's two arms. Process-wide: set once
+// from the command line before the first cell, read by run_cell_engine below and by
+// the interior leg (ipm_corpus_leg.cpp). The Nlp routes' runner lives in
+// crossover_legs.h (it needs ModelAsNlpProblem) and is installed through the hook.
+enum class NlpRoute { kNative, kNlpInternal, kNlpPublic };
+
+inline NlpRoute &nlp_route() noexcept {
+    static NlpRoute route = NlpRoute::kNative;
+    return route;
+}
+
+inline const char *to_string(NlpRoute route) noexcept {
+    switch (route) {
+    case NlpRoute::kNative:
+        return "native";
+    case NlpRoute::kNlpInternal:
+        return "nlp-internal";
+    case NlpRoute::kNlpPublic:
+        return "nlp-public";
+    }
+    return "unknown";
+}
+
+struct EngineConfig;
+using NlpRouteRunner = CorpusRow (*)(const CorpusCell &, const EngineConfig &,
+                                     const SetupCompleteFn &);
+inline NlpRouteRunner &nlp_route_runner() noexcept {
+    static NlpRouteRunner runner = nullptr;
+    return runner;
+}
+
 // generators, the same starts, the same budgets, the same driver, the same
 // number of solves. That is what makes the two CSV columns a comparison rather
 // than two studies.
 inline CorpusRow run_cell_engine(const CorpusCell &cell, const EngineConfig &cfg,
                                  const SetupCompleteFn &on_setup_complete = {}) {
+    if (nlp_route() != NlpRoute::kNative) {
+        if (nlp_route_runner() == nullptr) {
+            throw std::logic_error("corpus::run_cell_engine: an Nlp route is selected but no "
+                                   "runner is installed (crossover::install_nlp_route_runner)");
+        }
+        return nlp_route_runner()(cell, cfg, on_setup_complete);
+    }
     F7CollocationChain model = make_model(cell);
     const SqpOptions opts = options_for_cell(cell, cfg);
 

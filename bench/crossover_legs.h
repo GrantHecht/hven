@@ -785,4 +785,111 @@ inline std::string margins_row(const CellLegs &legs) {
                        legs.a.ran ? (legs.legs_cd_identical ? "1" : "0") : kAbsent);
 }
 
+// =============================================================================
+// AP-2 B2 -- the Nlp routes of the corpus runner (corpus::detail::NlpRoute)
+// =============================================================================
+
+/// @brief One SQP corpus cell, stated as an Nlp, under the selected Nlp route.
+///
+/// The taxonomy protocol is run_cell_engine's, call for call: the same options,
+/// observers, parameter hops, warm-start values and budgets, and the same KKT
+/// check against the cell's own model. Only the problem the solver is handed
+/// differs: kNlpInternal hands it a FRESH NlpProblemModel over the Nlp for every
+/// solve (today's triplet route, rebuilt after each parameter hop as friction #23
+/// requires); kNlpPublic hands it ONE Problem(Nlp) for every solve of the cell.
+/// ModelAsNlpProblem keeps the model's row order and signs, so the native warm
+/// starts the protocol carries between solves fit both routes unchanged.
+/// @throws std::invalid_argument if the cell does not dual-bind.
+inline corpus::CorpusRow run_cell_engine_nlp(const CorpusCell &cell,
+                                             const corpus::detail::EngineConfig &cfg,
+                                             const corpus::detail::SetupCompleteFn &on_setup) {
+    using namespace corpus::detail;
+    using corpus::CorpusRow;
+    if (!cell_dual_binds(cell)) {
+        throw std::invalid_argument(
+            fmt::format("run_cell_engine_nlp: cell '{}' does not dual-bind: {}", cell.id,
+                        dual_bind_refusal(cell)));
+    }
+    const NlpRoute route = nlp_route();
+    const auto model = std::make_shared<test_support::F7CollocationChain>(make_model(cell));
+    const auto nlp = std::make_shared<ModelAsNlpProblem>(model, std::string(cell.id));
+    const SqpOptions opts = options_for_cell(cell, cfg);
+    std::optional<Problem> problem;
+    if (route == NlpRoute::kNlpPublic) {
+        problem.emplace(nlp);
+    }
+    const auto solve = [&](SqpSolver &driver, const Vec &x0,
+                           const SqpWarmStart &warm = SqpWarmStart{}) {
+        const SolveBudget budget{/*minor_budget=*/kMinorBudget};
+        if (route == NlpRoute::kNlpPublic) {
+            return driver.solve(*problem, x0, warm, budget);
+        }
+        NlpProblemModel fresh(nlp);
+        return driver.solve(hven::solvers::detail::problem_ref(fresh), x0, warm, budget);
+    };
+
+    switch (cell.start) {
+    case StartTaxonomy::kNeutralCold: {
+        SqpSolver driver(opts);
+        attach_observers(driver, cfg);
+        model->set_parameters(Vec::Constant(1, cell.p));
+        const Vec x0 = model->start_point();
+        return timed_row(
+            cell, *model, on_setup, [&] { return solve(driver, x0); }, cfg.score_model_surface);
+    }
+    case StartTaxonomy::kPhysicsInformed: {
+        SqpSolver driver(opts);
+        attach_observers(driver, cfg);
+        model->set_parameters(Vec::Constant(1, cell.p));
+        const Vec x0 = physics_informed_start(*model, cell.p);
+        return timed_row(
+            cell, *model, on_setup, [&] { return solve(driver, x0); }, cfg.score_model_surface);
+    }
+    case StartTaxonomy::kCorrupted: {
+        SqpSolver driver(opts);
+        attach_observers(driver, cfg);
+        model->set_parameters(Vec::Constant(1, cell.p0));
+        const SqpResult seed = solve(driver, model->start_point());
+        const SqpWarmStart corrupted = corrupt_warm_start(seed.warm_start);
+        model->set_parameters(Vec::Constant(1, cell.p));
+        return timed_row(
+            cell, *model, on_setup, [&] { return solve(driver, corrupted.x, corrupted); },
+            cfg.score_model_surface);
+    }
+    case StartTaxonomy::kActivityOnly: {
+        SqpSolver driver(opts);
+        attach_observers(driver, cfg);
+        model->set_parameters(Vec::Constant(1, cell.p));
+        const double mu = crossover_mu_for_n(cell.n_nodes);
+        const IpIterate it =
+            f7_ip_iterate(*model, cell.p, mu, physics_informed_start(*model, cell.p));
+        const SqpWarmStart crossover =
+            from_interior_point(it.x, it.lambda_e, it.lambda_i, it.slack_i, it.z_lower, it.z_upper,
+                                model->lower(), model->upper(), IpCrossoverOptions{});
+        return timed_row(
+            cell, *model, on_setup, [&] { return solve(driver, crossover.x, crossover); },
+            cfg.score_model_surface);
+    }
+    case StartTaxonomy::kFullWarm: {
+        SqpSolver driver(opts);
+        attach_observers(driver, cfg);
+        model->set_parameters(Vec::Constant(1, cell.p0));
+        const SqpResult seed = solve(driver, model->start_point());
+        model->set_parameters(Vec::Constant(1, cell.p));
+        return timed_row(
+            cell, *model, on_setup,
+            [&] { return solve(driver, seed.warm_start.x, seed.warm_start); },
+            cfg.score_model_surface);
+    }
+    }
+    throw std::invalid_argument(fmt::format(
+        "run_cell_engine_nlp: cell '{}' carries an unrecognised StartTaxonomy", cell.id));
+}
+
+/// @brief Selects @p route for this process and installs the Nlp routes' runner.
+inline void install_nlp_route(corpus::detail::NlpRoute route) {
+    corpus::detail::nlp_route() = route;
+    corpus::detail::nlp_route_runner() = &run_cell_engine_nlp;
+}
+
 } // namespace hven::solvers::crossover

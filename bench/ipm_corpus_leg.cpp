@@ -616,15 +616,31 @@ InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
     // The requested partition count reaches the LAYOUT now, where the wrapper's
     // field reached nothing -- and it is clamped, so the ADOPTED count is what
     // the header stamps.
+    //
+    // AP-2 B2: THE PROBLEM IS WHAT THE SOLVE TAKES. On the default route it wraps
+    // the program make_nlp_program lays (detail::problem_from_program, the engine's
+    // internal entry unchanged); on the `--internal-route nlp-public` arm it is the
+    // public Problem(Nlp), which lays the same program itself on its first solve and
+    // takes no partition request.
     struct ConfiguredSolve {
-        std::shared_ptr<NonLinearProgram> program;
+        std::unique_ptr<Problem> problem;
         std::unique_ptr<IpmSolver> engine;
     };
     const int requested_partitions =
         variant.num_partitions > 0 ? variant.num_partitions : levers.num_partitions;
+    const bool public_route = corpus::detail::nlp_route() == corpus::detail::NlpRoute::kNlpPublic;
+    if (public_route && requested_partitions != 1) {
+        throw std::invalid_argument(
+            fmt::format("run_interior_problem: cell '{}' requests {} partitions; the public "
+                        "Problem(Nlp) route lays one",
+                        identity.cell_id, requested_partitions));
+    }
     const auto make_configured = [&]() {
-        ConfiguredSolve configured{hven::solvers::make_nlp_program(problem, requested_partitions),
-                                   std::make_unique<IpmSolver>()};
+        ConfiguredSolve configured{
+            public_route ? std::make_unique<Problem>(problem)
+                         : std::make_unique<Problem>(hven::solvers::detail::problem_from_program(
+                               hven::solvers::make_nlp_program(problem, requested_partitions))),
+            std::make_unique<IpmSolver>()};
         configure_interior_solver(*configured.engine, treatment, levers, variant);
         return configured;
     };
@@ -647,7 +663,7 @@ InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
     if (variant.warm != InteriorVariant::Warm::kNone) {
         ConfiguredSolve producer = make_configured();
         const hven::solvers::IpmResult produced_result =
-            producer.engine->solve(hven::solvers::detail::problem_ref(*producer.program), x0);
+            producer.engine->solve(*producer.problem, x0);
         const hven::solvers::SolveStatus produced = produced_result.status;
         if (produced != hven::solvers::SolveStatus::kOptimal) {
             throw std::runtime_error(fmt::format(
@@ -690,7 +706,7 @@ InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
     // whatever ran above.
     ConfiguredSolve ipm_owner = make_configured();
     IpmSolver &ipm = *ipm_owner.engine;
-    NonLinearProgram &program = *ipm_owner.program;
+    Problem &program = *ipm_owner.problem;
 
     // THE COVERAGE RULE'S SECOND RUN (M6 W5 T8.6), and it is a MEASUREMENT
     // INSTRUMENT rather than a row: with HVEN_LEG_COUNT_CALLBACK set in the
@@ -747,8 +763,7 @@ InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
     // only -- the transcription ran above, before `t0`.
     const auto t0 = std::chrono::steady_clock::now();
     const hven::solvers::IpmResult measured =
-        payload.has_value() ? ipm.solve(hven::solvers::detail::problem_ref(program), x0, *payload)
-                            : ipm.solve(hven::solvers::detail::problem_ref(program), x0);
+        payload.has_value() ? ipm.solve(program, x0, *payload) : ipm.solve(program, x0);
     const double wall_s = seconds_since(t0);
     const hven::solvers::SolveStatus flag = measured.status;
     const hven::solvers::IpmResult &warm_result = measured;
@@ -864,6 +879,8 @@ InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
     }
     return row;
 }
+
+void select_nlp_route(corpus::detail::NlpRoute route) { crossover::install_nlp_route(route); }
 
 std::string interior_cell_refusal(const CorpusCell &cell) {
     return crossover::dual_bind_refusal(cell);

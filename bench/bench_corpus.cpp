@@ -274,6 +274,14 @@ constexpr const char *kUsage =
     "                    undocumented: it is the fork/exec child of this file's\n"
     "                    wall deadline, not a surface a caller drives. REFUSED\n"
     "                    with any other invocation.\n"
+    "  --internal-route native|nlp-internal|nlp-public   HIDDEN MEASUREMENT LEVER\n"
+    "                    (AP-2 B2). native (the default) is the corpus route every\n"
+    "                    pinned artifact was taken on. The two Nlp routes state each\n"
+    "                    cell as an Nlp (the crossover leg's dual binding): nlp-\n"
+    "                    internal solves it through a fresh NlpProblemModel per\n"
+    "                    solve (SQP arms) or make_nlp_program (interior), nlp-public\n"
+    "                    through one Problem(Nlp). Stamped into the provenance\n"
+    "                    header; refused with --hs.\n"
     "  --ssn-prox-carry  MEASUREMENT ARM. Set SqpOptions::ssn_prox_carry (a real,\n"
     "                    shipped option that ships OFF -- see sqp_solver_types.h for the\n"
     "                    sweep that ruled it off). Stamped into the CSV's own\n"
@@ -525,6 +533,8 @@ struct Args {
     // more on 13 of 23 rows), so a run that passes it is a measurement arm and
     // the CSV's provenance header says so.
     bool ssn_prox_carry = false;
+    // AP-2 B2 hidden measurement lever: the corpus route (corpus_cells.h, NlpRoute).
+    std::optional<std::string> internal_route;
     // TASK 6b PHASE B MEASUREMENT ARMS (R5/R1/R2/R4). Same discipline as
     // ssn_prox_carry above: real option surfaces, shipped defaults, and any
     // non-default stamped into the artifact's own provenance header.
@@ -677,6 +687,13 @@ Args parse_args(int argc, char **argv) {
         } else if (arg == "--internal-force-solve-budget-seconds") {
             a.internal_force_solve_budget_s =
                 hven::solvers::bench_cli::parse_double(kUsage, arg, next_value(arg));
+        } else if (arg == "--internal-route") {
+            const std::string v = next_value(arg);
+            if (v != "native" && v != "nlp-internal" && v != "nlp-public") {
+                throw_usage(fmt::format(
+                    "--internal-route: '{}' is not one of native|nlp-internal|nlp-public", v));
+            }
+            a.internal_route = v;
         } else if (arg == "--ssn-prox-carry") {
             a.ssn_prox_carry = true;
         } else if (arg == "--ssn-certify-from-face") {
@@ -859,6 +876,12 @@ const char *callback_arm_label(bool attached, bool scalars) {
 // lever. Shared by the corpus provenance and (M7 W3) the HS-suite provenance, so
 // an arm is stamped in the same words whichever instrument ran it.
 void write_ssn_lever_lines(std::ostream &os, const EngineLevers &levers) {
+    if (hven::solvers::corpus::detail::nlp_route() !=
+        hven::solvers::corpus::detail::NlpRoute::kNative) {
+        os << fmt::format("# lever: internal_route={} (AP-2 B2 MEASUREMENT ARM -- the corpus "
+                          "route is native)\n",
+                          to_string(hven::solvers::corpus::detail::nlp_route()));
+    }
     if (levers.ssn_prox_carry) {
         os << "# lever: ssn_prox_carry=true (MEASUREMENT ARM -- the shipped default is false)\n";
     }
@@ -1662,6 +1685,11 @@ CorpusOutcome run_cell_with_deadline(const char *self_path, const CorpusCell &ce
         // default-configuration row under a non-default provenance header.
         std::vector<std::string> argv_own{self_path, "--internal-run-one", cell.id, "--engine",
                                           engine,    "--internal-out",     out_path};
+        if (hven::solvers::corpus::detail::nlp_route() !=
+            hven::solvers::corpus::detail::NlpRoute::kNative) {
+            argv_own.emplace_back("--internal-route");
+            argv_own.emplace_back(to_string(hven::solvers::corpus::detail::nlp_route()));
+        }
         if (levers.ssn_prox_carry) {
             argv_own.emplace_back("--ssn-prox-carry");
         }
@@ -2605,6 +2633,18 @@ InteriorPlan plan_interior_cells(const std::string &spec) {
 int main(int argc, char **argv) {
     try {
         const Args args = parse_args(argc, argv);
+        if (args.internal_route) {
+            if (args.hs) {
+                throw_usage("--internal-route applies to the corpus arms (walk|ssn|ipm|interior) "
+                            "only: the HS suite states its problems as NlpModels and has no Nlp "
+                            "route");
+            }
+            using hven::solvers::corpus::detail::NlpRoute;
+            hven::solvers::corpus::select_nlp_route(
+                *args.internal_route == "nlp-internal" ? NlpRoute::kNlpInternal
+                : *args.internal_route == "nlp-public" ? NlpRoute::kNlpPublic
+                                                       : NlpRoute::kNative);
+        }
         if (args.help) {
             fmt::print("{}", kUsage);
             return 0;
@@ -3017,6 +3057,17 @@ int main(int argc, char **argv) {
                             "--engine interior: the parts2 variant's cell '{}' is not in the "
                             "corpus",
                             kCap1F7CellId));
+                    }
+                    // AP-2 B2: the public Problem(Nlp) route lays one partition
+                    // (a partition request is group B6's), so under
+                    // `--internal-route nlp-public` the two parts2 rows are not
+                    // run, and the console says so by name.
+                    if (hven::solvers::corpus::detail::nlp_route() ==
+                        hven::solvers::corpus::detail::NlpRoute::kNlpPublic) {
+                        fmt::print("skipped {} (variant {}): the public Problem(Nlp) route lays "
+                                   "one partition\n",
+                                   kCap1F7CellId, variant.name);
+                        continue;
                     }
                     rows.push_back(run_interior_cell(*f7, FixedVariableTreatments::MakeConstraint,
                                                      levers, variant));

@@ -302,6 +302,11 @@ InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
 /// header.
 std::string interior_cell_refusal(const CorpusCell &cell);
 
+/// @brief Selects the process-wide corpus route (AP-2 B2, `--internal-route`) and
+///        installs the Nlp routes' runner (crossover_legs.h). Read by the SQP arms'
+///        run_cell_engine and by run_interior_problem.
+void select_nlp_route(corpus::detail::NlpRoute route);
+
 /// @brief Runs one U0 corpus cell through the same driver, stating it as an
 ///        Nlp exactly as the crossover leg (a) does.
 /// @param cell      The cell; must dual-bind.
