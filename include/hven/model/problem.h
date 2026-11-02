@@ -70,7 +70,9 @@ struct ProblemStatistics {
 ///
 /// Results. lambda and g are reported in the problem's own row space: one entry
 /// per Nlp row in Ipopt's sign convention, or for a pieces problem the
-/// declaration's [equality rows | inequality rows].
+/// declaration's [equality rows | inequality rows]. g is the engine's own
+/// measurement, mapped; a free row's entry is NaN (unmeasured, never evaluated),
+/// and g is empty only when the engine's row blocks are.
 ///
 /// Thread safety. One Problem serves one solve at a time, on one thread. N
 /// concurrent solves need N Problems and N solvers. Problems that share one Nlp

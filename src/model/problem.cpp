@@ -3,8 +3,8 @@
 
 #include "hven/model/problem.h"
 
-#include <algorithm>
 #include <cmath>
+#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -319,17 +319,13 @@ class ProblemState {
     // part) + g_upper. One rounding of that shift apart from g(x) itself.
     //
     // THE RULE FOR AN UNMEASURED ROW. A free row is passed to no engine, so no
-    // engine measures it, and the engine's blocks are empty where the engine
-    // could not measure its returned point. g is reported only when EVERY row was
-    // measured: it is m long and the engine's own measurement, or it is empty
-    // (unmeasured). There is no partial form.
+    // engine measures it: its entry is NaN (unmeasured) and is never evaluated.
+    // The engine's blocks are empty where it could not measure its returned
+    // point, and then g is empty. Otherwise g is m long.
     static void map_row_values(const NlpProblemModel &model, const Vec &ce, const Vec &ci, Vec &g) {
         const NLPRowClassification &rows = model.rows();
         const int m = model.num_declared_rows();
-        const bool measured = ce.size() == model.me() && ci.size() == model.mi() &&
-                              std::none_of(rows.kinds_.begin(), rows.kinds_.end(),
-                                           [](NLPRowKind k) { return k == NLPRowKind::Free; });
-        if (!measured) {
+        if (ce.size() != model.me() || ci.size() != model.mi()) {
             g.resize(0);
             return;
         }
@@ -349,6 +345,7 @@ class ProblemState {
                 g[r] = gl[r] - ci[rows.iq_lower_row_[r]];
                 break;
             case NLPRowKind::Free:
+                g[r] = std::numeric_limits<double>::quiet_NaN();
                 break;
             }
         }

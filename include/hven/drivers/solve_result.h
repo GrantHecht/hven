@@ -152,9 +152,11 @@ struct SolveResult {
     double complementarity = std::numeric_limits<double>::quiet_NaN();
 
     /// @brief Row values at @ref x in the same row space as @ref lambda: g(x) for an
-    ///        Nlp problem, [c_E(x); c_I(x)] for a pieces problem. EMPTY when
-    ///        unmeasured -- never a zero vector, which would read as a feasible
-    ///        point.
+    ///        Nlp problem, [c_E(x); c_I(x)] for a pieces problem, mapped from the
+    ///        engine's own measurement (no callback is made to report it). A free
+    ///        Nlp row, which no engine measures, reads NaN (unmeasured); it is
+    ///        never evaluated. EMPTY when the engine's row blocks are unmeasured --
+    ///        never a zero vector, which would read as a feasible point.
     Vec g;
 
     /// @brief Iterations taken. SQP: the top-level solve's major count, with

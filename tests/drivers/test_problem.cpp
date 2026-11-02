@@ -639,8 +639,15 @@ template <class Result>
 void check_row_space(const Problem &problem, const Result &r, const EveryRowKind &nlp, double tol) {
     ASSERT_EQ(r.status, SolveStatus::kOptimal);
     ASSERT_EQ(r.lambda.size(), 5);
-    // Row 4 is free: no engine measures it, so g is unmeasured (empty) as a whole.
-    EXPECT_EQ(r.g.size(), 0);
+    // g is the engine's measurement mapped through each row's shift, to the rounding
+    // of that shift; row 4 is free, so no engine measures it: NaN, never evaluated.
+    ASSERT_EQ(r.g.size(), 5);
+    Vec g(5);
+    nlp.eval_g(r.x, g);
+    for (Index k = 0; k < 4; ++k) {
+        EXPECT_NEAR(r.g[k], g[k], 1e-12 * (std::abs(g[k]) + 10.0)) << "row " << k;
+    }
+    EXPECT_TRUE(std::isnan(r.g[4]));
     // A free row carries no multiplier.
     EXPECT_EQ(r.lambda[4], 0.0);
     // Ipopt's sign: grad f + J^T lambda - z = 0.
