@@ -297,6 +297,35 @@ struct NonLinearProgram : public NlpAssembly {
         this->bounds_revision_++;
     }
 
+    /// @brief Adopts new VALUES for the materialized variable bounds, keeping the
+    ///        layout, the analysis it was laid for and the structural key.
+    ///
+    /// For a bound change that keeps every variable's bound STRUCTURE -- which
+    /// sides are finite, and which variables are fixed -- the structures, the
+    /// partitioning, the structure epoch and the bound digest (which digests
+    /// only that structure) all stand. What moves:
+    ///   - x_lower_/x_upper_, and the staged and laid bound records, rewritten
+    ///     one record per bounded variable (the declaration's records are
+    ///     re-materialized from them on their next read);
+    ///   - when a classification is in force, the bound set's values, re-derived
+    ///     with the configured relax factor, and the fixed values (under
+    ///     MakeParameter, the values an eliminated variable is pinned at).
+    /// bounds_revision_ is NOT bumped, so the next configure_variable_treatment
+    /// with the same treatment and factor changes nothing.
+    ///
+    /// The one exception: under MakeConstraint, a fixed variable's VALUE is held
+    /// by its internal fixing row, so a changed fixing value bumps
+    /// bounds_revision_ and the next configuration re-installs those rows (a
+    /// re-lay, which the interior-point engine counts as an analysis).
+    ///
+    /// @param lower primal_vars_ entries. @param upper primal_vars_ entries.
+    /// @return false exactly when the MakeConstraint exception applied.
+    /// @throws std::invalid_argument before anything is written: before the
+    ///         first make_nlp, on a wrong length, on a NaN, inverted or
+    ///         fixed-at-infinity pair, or on a variable whose bound structure
+    ///         differs from the materialized one (naming it).
+    bool update_variable_bound_values(ConstEigenRef<VectorXd> lower, ConstEigenRef<VectorXd> upper);
+
     /// True iff any primal variable has a finite lower or upper bound after
     /// materialization. False before the first make_nlp call.
     bool has_variable_bounds() const {

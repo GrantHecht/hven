@@ -7,6 +7,7 @@
 // (see LICENSE).
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
@@ -26,6 +27,22 @@ namespace {
 /// laid, not about the call that asked to read it.
 [[noreturn]] void refuse_claim_stream(std::string message) {
     throw std::invalid_argument(std::move(message));
+}
+
+/// A finite bound moved out by the relax factor times max(1, |bound|) -- the one
+/// rule every recorded bound gets, at classification and at a value update.
+double relaxed_lower(double lower, double factor) {
+    return lower - factor * std::max(1.0, std::abs(lower));
+}
+double relaxed_upper(double upper, double factor) {
+    return upper + factor * std::max(1.0, std::abs(upper));
+}
+
+/// What a layout depends on in a variable's bound pair: which sides are finite,
+/// and whether the variable is fixed (the bits structure_identity.h digests).
+int variable_bound_structure(double lower, double upper) {
+    return (std::isfinite(lower) ? 1 : 0) | (std::isfinite(upper) ? 2 : 0) |
+           (lower == upper ? 4 : 0);
 }
 
 } // namespace
@@ -1265,6 +1282,89 @@ void hven::solvers::NonLinearProgram::install_function_output_maps() {
     }
 }
 
+bool hven::solvers::NonLinearProgram::update_variable_bound_values(ConstEigenRef<VectorXd> lower,
+                                                                   ConstEigenRef<VectorXd> upper) {
+    const int n = this->primal_vars_;
+    if (this->x_lower_.size() != n || this->x_upper_.size() != n) {
+        throw std::invalid_argument(
+            "update_variable_bound_values: the variable bounds are not materialized; lay the "
+            "problem out (make_nlp) first");
+    }
+    if (lower.size() != n || upper.size() != n) {
+        throw std::invalid_argument(fmt::format(
+            "update_variable_bound_values: bounds sized ({0}, {1}) for {2} primal variables",
+            lower.size(), upper.size(), n));
+    }
+    // Every refusal before anything is written.
+    for (int i = 0; i < n; i++) {
+        const double lo = lower[i], up = upper[i];
+        if (std::isnan(lo) || std::isnan(up) || lo > up || (lo == up && !std::isfinite(lo))) {
+            throw std::invalid_argument(fmt::format(
+                "update_variable_bound_values: variable {0} has no interval (lower={1}, "
+                "upper={2})",
+                i, lo, up));
+        }
+        if (variable_bound_structure(lo, up) !=
+            variable_bound_structure(this->x_lower_[i], this->x_upper_[i])) {
+            throw std::invalid_argument(fmt::format(
+                "update_variable_bound_values: variable {0}'s bound structure changed ([{1}, {2}] "
+                "-> [{3}, {4}]); a change in which sides are finite or which variables are "
+                "fixed re-lays the problem",
+                i, this->x_lower_[i], this->x_upper_[i], lo, up));
+        }
+    }
+
+    bool fixing_value_moved = false;
+    const bool classified =
+        this->fixed_treatment_valid_ && this->configured_bounds_revision_ == this->bounds_revision_;
+    if (classified && this->internal_fixed_cons_ > 0) {
+        for (Eigen::Index k = 0; k < this->fixed_idx_.size(); k++) {
+            fixing_value_moved =
+                fixing_value_moved || lower[this->fixed_idx_[k]] != this->fixed_vals_[k];
+        }
+    }
+
+    this->x_lower_ = lower;
+    this->x_upper_ = upper;
+    this->staged_variable_bounds_.clear();
+    for (int i = 0; i < n; i++) {
+        if (std::isfinite(lower[i]) || std::isfinite(upper[i])) {
+            this->staged_variable_bounds_.push_back({i, lower[i], upper[i]});
+        }
+    }
+    this->laid_variable_bounds_ = this->staged_variable_bounds_;
+    // The declaration's records re-materialize from the laid snapshot on their
+    // next read; the bound digest is recomputed with them and is unchanged, since
+    // it digests the structure checked above.
+    this->declaration_bounds_pending_ = true;
+    this->bound_digest_pending_ = true;
+
+    if (classified) {
+        for (Eigen::Index k = 0; k < this->fixed_idx_.size(); k++) {
+            this->fixed_vals_[k] = this->x_lower_[this->fixed_idx_[k]];
+        }
+        // The bound set is in the solver's (reduced) space; its indices and
+        // damping flags depend on the structure alone and stand.
+        BoundSet &b = this->variable_bound_set_;
+        const auto full_index = [&](int reduced) {
+            return this->fixed_reduction_active_ ? this->reduced_to_full_[reduced] : reduced;
+        };
+        for (Eigen::Index k = 0; k < b.lower_idx_.size(); k++) {
+            b.lower_val_[k] = relaxed_lower(this->x_lower_[full_index(b.lower_idx_[k])],
+                                            this->bound_relax_factor_);
+        }
+        for (Eigen::Index k = 0; k < b.upper_idx_.size(); k++) {
+            b.upper_val_[k] = relaxed_upper(this->x_upper_[full_index(b.upper_idx_[k])],
+                                            this->bound_relax_factor_);
+        }
+    }
+    if (fixing_value_moved) {
+        this->bounds_revision_++;
+        return false;
+    }
+    return true;
+}
+
 void hven::solvers::NonLinearProgram::materialize_variable_bounds() {
     constexpr double kInf = std::numeric_limits<double>::infinity();
 
@@ -1933,12 +2033,12 @@ bool hven::solvers::NonLinearProgram::configure_variable_treatment(
             const bool record_bounds = !is_fixed || relax_fixed;
             if (record_bounds && lower > -kInf) {
                 lower_idx.push_back(next_reduced);
-                lower_val.push_back(lower - bound_relax_factor * std::max(1.0, std::abs(lower)));
+                lower_val.push_back(relaxed_lower(lower, bound_relax_factor));
                 lower_damp.push_back(upper < kInf ? 0.0 : 1.0);
             }
             if (record_bounds && upper < kInf) {
                 upper_idx.push_back(next_reduced);
-                upper_val.push_back(upper + bound_relax_factor * std::max(1.0, std::abs(upper)));
+                upper_val.push_back(relaxed_upper(upper, bound_relax_factor));
                 upper_damp.push_back(lower > -kInf ? 0.0 : 1.0);
             }
             next_reduced++;

@@ -79,6 +79,58 @@ SpMatRM lay_pattern(int rows, int cols, const std::vector<Eigen::Triplet<double>
     return m;
 }
 
+/// One declared row's kind, from its bound pair; refuses a pair that describes
+/// no row.
+NLPRowKind classify_row(double lo, double up, int r) {
+    if (std::isnan(lo) || std::isnan(up)) {
+        throw std::invalid_argument(
+            fmt::format("constraint row {}: bound is NaN (lower={}, upper={})", r, lo, up));
+    }
+    if (lo > up) {
+        throw std::invalid_argument(
+            fmt::format("constraint row {}: lower bound {} exceeds upper bound {}", r, lo, up));
+    }
+    if (lo == up) {
+        if (!std::isfinite(lo)) {
+            throw std::invalid_argument(fmt::format(
+                "constraint row {}: both bounds are {} — an equality at infinity", r, lo));
+        }
+        return NLPRowKind::Equality;
+    }
+    if (lo == -kInf && up == kInf) {
+        return NLPRowKind::Free;
+    }
+    if (lo == -kInf) {
+        return NLPRowKind::UpperBounded;
+    }
+    if (up == kInf) {
+        return NLPRowKind::LowerBounded;
+    }
+    return NLPRowKind::Range;
+}
+
+const char *row_kind_name(NLPRowKind kind) {
+    switch (kind) {
+    case NLPRowKind::Equality:
+        return "equality";
+    case NLPRowKind::UpperBounded:
+        return "upper-bounded";
+    case NLPRowKind::LowerBounded:
+        return "lower-bounded";
+    case NLPRowKind::Range:
+        return "range";
+    case NLPRowKind::Free:
+        return "free";
+    }
+    return "unknown";
+}
+
+/// The bits of a variable's bound pair the layouts depend on: which sides are
+/// finite, and whether the two are equal (fixed).
+int box_structure(double lo, double up) {
+    return (std::isfinite(lo) ? 1 : 0) | (std::isfinite(up) ? 2 : 0) | (lo == up ? 4 : 0);
+}
+
 } // namespace
 
 NLPRowClassification NLPRowClassification::classify(ConstEigenRef<Eigen::VectorXd> gl,
@@ -95,34 +147,23 @@ NLPRowClassification NLPRowClassification::classify(ConstEigenRef<Eigen::VectorX
     rc.iq_upper_row_ = Eigen::VectorXi::Constant(m, -1);
     rc.iq_lower_row_ = Eigen::VectorXi::Constant(m, -1);
     for (int r = 0; r < m; r++) {
-        const double lo = gl[r], up = gu[r];
-        if (std::isnan(lo) || std::isnan(up)) {
-            throw std::invalid_argument(
-                fmt::format("constraint row {}: bound is NaN (lower={}, upper={})", r, lo, up));
-        }
-        if (lo > up) {
-            throw std::invalid_argument(
-                fmt::format("constraint row {}: lower bound {} exceeds upper bound {}", r, lo, up));
-        }
-        if (lo == up) {
-            if (!std::isfinite(lo)) {
-                throw std::invalid_argument(fmt::format(
-                    "constraint row {}: both bounds are {} — an equality at infinity", r, lo));
-            }
-            rc.kinds_[r] = NLPRowKind::Equality;
+        rc.kinds_[r] = classify_row(gl[r], gu[r], r);
+        switch (rc.kinds_[r]) {
+        case NLPRowKind::Equality:
             rc.eq_row_[r] = rc.num_eq_++;
-        } else if (lo == -kInf && up == kInf) {
-            rc.kinds_[r] = NLPRowKind::Free;
-        } else if (lo == -kInf) {
-            rc.kinds_[r] = NLPRowKind::UpperBounded;
+            break;
+        case NLPRowKind::UpperBounded:
             rc.iq_upper_row_[r] = rc.num_iq_++;
-        } else if (up == kInf) {
-            rc.kinds_[r] = NLPRowKind::LowerBounded;
+            break;
+        case NLPRowKind::LowerBounded:
             rc.iq_lower_row_[r] = rc.num_iq_++;
-        } else {
-            rc.kinds_[r] = NLPRowKind::Range;
+            break;
+        case NLPRowKind::Range:
             rc.iq_upper_row_[r] = rc.num_iq_++;
             rc.iq_lower_row_[r] = rc.num_iq_++;
+            break;
+        case NLPRowKind::Free:
+            break;
         }
     }
     return rc;
@@ -141,12 +182,13 @@ NlpProblemModel::NlpProblemModel(std::shared_ptr<Nlp> problem) : problem_(std::m
 
     x_lower_.resize(n_);
     x_upper_.resize(n_);
-    Eigen::VectorXd gl(m_), gu(m_);
-    problem_->bounds(x_lower_, x_upper_, gl, gu);
-    this->validate_variable_bounds();
+    g_lower_.resize(m_);
+    g_upper_.resize(m_);
+    problem_->bounds(x_lower_, x_upper_, g_lower_, g_upper_);
+    this->validate_variable_bounds(x_lower_, x_upper_);
 
-    rows_ = NLPRowClassification::classify(gl, gu);
-    this->build_row_tables(gl, gu);
+    rows_ = NLPRowClassification::classify(g_lower_, g_upper_);
+    this->build_row_tables();
     this->read_structures();
     this->build_jacobian_pattern();
     this->build_hessian_pattern();
@@ -188,13 +230,13 @@ void NlpProblemModel::validate_sizes(const NlpDimensions &dims) const {
     }
 }
 
-void NlpProblemModel::validate_variable_bounds() const {
+void NlpProblemModel::validate_variable_bounds(const Vec &x_lower, const Vec &x_upper) const {
     // The declared variable bounds, checked here because this is where they
     // enter the library: every consumer of this model reads them through
     // lower()/upper(), and start_point() projects the origin onto them, so a
     // pair that describes no interval has to be refused before either.
     for (int i = 0; i < n_; i++) {
-        const double lo = x_lower_[i], up = x_upper_[i];
+        const double lo = x_lower[i], up = x_upper[i];
         if (std::isnan(lo) || std::isnan(up)) {
             throw std::invalid_argument(fmt::format(
                 "{}: variable {} bound is NaN (lower={}, upper={})", problem_->name(), i, lo, up));
@@ -219,12 +261,16 @@ void NlpProblemModel::validate_variable_bounds() const {
     }
 }
 
-void NlpProblemModel::build_row_tables(ConstEigenRef<Eigen::VectorXd> gl,
-                                       ConstEigenRef<Eigen::VectorXd> gu) {
+void NlpProblemModel::build_row_tables() {
     // In native row order. classify() numbered the native rows in declaration
     // order (a Range row's upper part before its lower part), and this loop
     // follows the same order, so entry k of each table IS native row k of its
-    // block.
+    // block. Re-run on a bound-value update: clear() keeps the capacity, and the
+    // kinds are unchanged, so the tables refill to the same length.
+    const Vec &gl = g_lower_;
+    const Vec &gu = g_upper_;
+    eq_res_.clear();
+    iq_res_.clear();
     for (int r = 0; r < m_; r++) {
         switch (rows_.kinds_[r]) {
         case NLPRowKind::Equality:
@@ -244,6 +290,44 @@ void NlpProblemModel::build_row_tables(ConstEigenRef<Eigen::VectorXd> gl,
             break;
         }
     }
+}
+
+bool NlpProblemModel::update_bounds(const Vec &x_lower, const Vec &x_upper, const Vec &g_lower,
+                                    const Vec &g_upper) {
+    if (x_lower.size() != n_ || x_upper.size() != n_ || g_lower.size() != m_ ||
+        g_upper.size() != m_) {
+        throw std::invalid_argument(fmt::format(
+            "{}: a bound update is sized (x_lower {}, x_upper {}, g_lower {}, g_upper {}) for a "
+            "problem with {} variables and {} rows",
+            problem_->name(), x_lower.size(), x_upper.size(), g_lower.size(), g_upper.size(), n_,
+            m_));
+    }
+    this->validate_variable_bounds(x_lower, x_upper);
+    for (int r = 0; r < m_; r++) {
+        const NLPRowKind was = rows_.kinds_[r];
+        const NLPRowKind now = classify_row(g_lower[r], g_upper[r], r);
+        if (was != now) {
+            throw std::invalid_argument(fmt::format(
+                "Problem '{}': row {} changed kind between solves, from {} to {} (bounds "
+                "[{}, {}] -> [{}, {}]). A row's kind fixes the engines' row layout and the "
+                "multiplier map; build a new Problem",
+                problem_->name(), r, row_kind_name(was), row_kind_name(now), g_lower_[r],
+                g_upper_[r], g_lower[r], g_upper[r]));
+        }
+    }
+    bool box_changed = false;
+    for (int i = 0; i < n_ && !box_changed; i++) {
+        box_changed =
+            box_structure(x_lower_[i], x_upper_[i]) != box_structure(x_lower[i], x_upper[i]);
+    }
+    // Commit. Same-length assignments: nothing here allocates.
+    x_lower_ = x_lower;
+    x_upper_ = x_upper;
+    g_lower_ = g_lower;
+    g_upper_ = g_upper;
+    this->build_row_tables();
+    this->invalidate_cache();
+    return box_changed;
 }
 
 void NlpProblemModel::read_structures() {
@@ -369,11 +453,6 @@ void NlpProblemModel::invalidate_cache() const {
     jac_valid_ = false;
 }
 
-void NlpProblemModel::declared_g(const Vec &x, Vec &g) const {
-    this->refresh_g(x);
-    g = g_cache_;
-}
-
 void NlpProblemModel::refresh_g(const Vec &x) const {
     this->sync_x(x);
     if (!g_valid_) {
@@ -443,6 +522,12 @@ void NlpProblemModel::eval_jac_i_in_place(const Vec &x, SpMatRM &out) const {
 
 void NlpProblemModel::eval_hess_in_place(const Vec &x, double obj_scale, const Vec &lambda_e,
                                          const Vec &lambda_i, SpMatRM &out) const {
+    if (!problem_->has_hessian()) {
+        throw std::logic_error(fmt::format(
+            "{}: eval_hess was reached on a problem that declares has_hessian() == false; "
+            "only a quasi-Newton SQP solves it, and that path never reads the Hessian",
+            problem_->name()));
+    }
     this->sync_x(x);
     this->compose_into(lambda_user_, lambda_e, lambda_i, "eval_hess_in_place");
     if (hess_nnz_ > 0) {

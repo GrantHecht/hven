@@ -143,6 +143,9 @@ class NlpProblemModel final : public NlpModel {
     Index n() const override { return n_; }
     Index me() const override { return rows_.num_eq_; }
     Index mi() const override { return rows_.num_iq_; }
+    /// @brief The problem's own has_hessian(); eval_hess refuses a problem that
+    ///        answers false (std::logic_error: no engine path calls it then).
+    bool has_hessian() const override { return problem_->has_hessian(); }
 
     double eval_f(const Vec &x) const override;
     Vec eval_grad(const Vec &x) const override;
@@ -236,6 +239,37 @@ class NlpProblemModel final : public NlpModel {
     /// rather than a value the problem stated.
     Vec start_point() const override;
 
+    /// @brief The declared row lower bounds, verbatim, one per declared row.
+    const Vec &row_lower() const { return g_lower_; }
+    /// @brief The declared row upper bounds, verbatim, one per declared row.
+    const Vec &row_upper() const { return g_upper_; }
+    /// @brief The dimensions read at construction.
+    NlpDimensions dimensions() const { return {n_, m_, jac_nnz_, hess_nnz_}; }
+    /// @brief The declared Jacobian structure, rows then columns, as read.
+    const Eigen::VectorXi &jacobian_rows() const { return jac_rows_; }
+    const Eigen::VectorXi &jacobian_cols() const { return jac_cols_; }
+    /// @brief The declared Hessian structure (lower triangle), as read.
+    const Eigen::VectorXi &hessian_rows() const { return hess_rows_; }
+    const Eigen::VectorXi &hessian_cols() const { return hess_cols_; }
+
+    /// @brief Adopts new bound values in place, every row keeping its kind.
+    ///
+    /// The row tables' shifts are re-derived (O(m)); the native patterns, the
+    /// row numbering and the multiplier map do not depend on a bound's value,
+    /// only on each row's kind, so nothing else moves. The per-iterate cache is
+    /// cleared. Every refusal is made before anything is written.
+    ///
+    /// @param x_lower n entries.  @param x_upper n entries.
+    /// @param g_lower m entries.  @param g_upper m entries.
+    /// @return true iff the variable box's STRUCTURE changed: which sides of a
+    ///         variable are finite, or which variables are fixed.
+    /// @throws std::invalid_argument on a wrong length, on a variable or row
+    ///         bound pair construction would refuse, and on a row whose kind
+    ///         (equality, upper-bounded, lower-bounded, range, free) differs from
+    ///         the kind it was laid with, naming the row and both kinds.
+    bool update_bounds(const Vec &x_lower, const Vec &x_upper, const Vec &g_lower,
+                       const Vec &g_upper);
+
     /// @brief The problem this model converts.
     const Nlp &problem() const { return *problem_; }
     /// @brief Shared ownership of the problem this model converts.
@@ -246,11 +280,6 @@ class NlpProblemModel final : public NlpModel {
     ///        solve entry: between solves the problem's values may change.
     void invalidate_cache() const;
 
-    /// @brief The declared row values g(x), one per declared row, through the
-    ///        same per-iterate cache the residuals use.
-    /// @param x The point; n() entries.
-    /// @param g Filled with num_declared_rows() entries.
-    void declared_g(const Vec &x, Vec &g) const;
     /// @brief The row classification decided at construction.
     const NLPRowClassification &rows() const { return rows_; }
     /// @brief The number of constraint rows the problem declared.
@@ -294,8 +323,8 @@ class NlpProblemModel final : public NlpModel {
     };
 
     void validate_sizes(const NlpDimensions &dims) const;
-    void validate_variable_bounds() const;
-    void build_row_tables(ConstEigenRef<Eigen::VectorXd> gl, ConstEigenRef<Eigen::VectorXd> gu);
+    void validate_variable_bounds(const Vec &x_lower, const Vec &x_upper) const;
+    void build_row_tables();
     void read_structures();
     void build_jacobian_pattern();
     void build_hessian_pattern();
@@ -315,6 +344,7 @@ class NlpProblemModel final : public NlpModel {
     int n_ = 0, m_ = 0, jac_nnz_ = 0, hess_nnz_ = 0;
 
     Vec x_lower_, x_upper_;
+    Vec g_lower_, g_upper_; ///< declared row bounds, verbatim
     NLPRowClassification rows_;
     Eigen::VectorXi jac_rows_, jac_cols_;   ///< declared Jacobian structure
     Eigen::VectorXi hess_rows_, hess_cols_; ///< declared Hessian structure, lower triangle

@@ -347,9 +347,12 @@ struct IterationEvent {
 
     /// @brief The point, declared width. BORROWED -- see this struct's note.
     Eigen::Ref<const Vec> x;
-    /// @brief Equality multipliers at @ref x, declared rows. BORROWED.
+    /// @brief Equality multipliers at @ref x, in the engine's own split (c_E
+    ///        rows). BORROWED. The engine split stands until group B4;
+    ///        SolveResult::lambda is the problem's row-space form.
     Eigen::Ref<const Vec> lambda_e;
-    /// @brief Inequality multipliers at @ref x, declared rows. BORROWED.
+    /// @brief Inequality multipliers at @ref x, in the engine's own split (c_I
+    ///        rows, c_I(x) <= 0). BORROWED. Engine split until B4, as above.
     Eigen::Ref<const Vec> lambda_i;
     /// @brief Bound multipliers at @ref x, z = z_lower - z_upper, declared
     ///        width. BORROWED.

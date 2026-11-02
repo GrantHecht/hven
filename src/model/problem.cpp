@@ -3,6 +3,7 @@
 
 #include "hven/model/problem.h"
 
+#include <algorithm>
 #include <cmath>
 #include <memory>
 #include <stdexcept>
@@ -28,22 +29,6 @@ namespace hven::solvers {
 namespace detail {
 
 namespace {
-
-const char *row_kind_name(NLPRowKind kind) {
-    switch (kind) {
-    case NLPRowKind::Equality:
-        return "equality";
-    case NLPRowKind::UpperBounded:
-        return "upper-bounded";
-    case NLPRowKind::LowerBounded:
-        return "lower-bounded";
-    case NLPRowKind::Range:
-        return "range";
-    case NLPRowKind::Free:
-        return "free";
-    }
-    return "unknown";
-}
 
 // The variable census of a box. A box whose sides disagree in length with each
 // other or with @p n describes no census: it is left empty here, and the solve
@@ -126,9 +111,16 @@ Vec concatenate(const Vec &head, const Vec &tail) {
 }
 
 // Whether two index columns hold the same entries; on a difference, the first
-// differing slot.
-Index first_difference(const IndexVec &a_rows, const IndexVec &a_cols, const IndexVec &b_rows,
-                       const IndexVec &b_cols) {
+// differing slot. The four columns are one length: the caller has checked the
+// nonzero counts, and a mismatch here is a defect, refused rather than read past.
+Index first_difference(const Eigen::VectorXi &a_rows, const Eigen::VectorXi &a_cols,
+                       const IndexVec &b_rows, const IndexVec &b_cols) {
+    if (a_cols.size() != a_rows.size() || b_rows.size() != a_rows.size() ||
+        b_cols.size() != a_rows.size()) {
+        throw std::logic_error(
+            fmt::format("Problem: structure columns of unequal length ({}, {}, {}, {})",
+                        a_rows.size(), a_cols.size(), b_rows.size(), b_cols.size()));
+    }
     for (Index k = 0; k < a_rows.size(); ++k) {
         if (a_rows[k] != b_rows[k] || a_cols[k] != b_cols[k]) {
             return k;
@@ -148,21 +140,13 @@ class ProblemState {
         if (nlp_ == nullptr) {
             throw std::invalid_argument("Problem: the Nlp pointer is null");
         }
-        // The transcription the SQP solves, built now: its constructor validates
-        // the whole declaration (sizes, bounds, row bounds, both structures).
-        auto model = std::make_shared<NlpProblemModel>(nlp_);
-        dims_ = nlp_->dimensions();
-        read_structures(jacobian_rows_, jacobian_cols_, hessian_rows_, hessian_cols_);
-        x_lower_ = model->lower();
-        x_upper_ = model->upper();
-        g_lower_.resize(dims_.m);
-        g_upper_.resize(dims_.m);
-        Vec x_lower(dims_.n), x_upper(dims_.n);
-        nlp_->bounds(x_lower, x_upper, g_lower_, g_upper_);
-        row_kinds_ = model->rows().kinds_;
-        nlp_model_ = std::move(model);
-        count_variables(dims_.n, x_lower_, x_upper_, statistics_);
-        count_rows(row_kinds_, statistics_);
+        // The transcription the SQP solves, built now: its constructor reads and
+        // validates the whole declaration (sizes, bounds, row bounds, both
+        // structures) once, and this state reads it from there.
+        nlp_model_ = std::make_shared<NlpProblemModel>(nlp_);
+        dims_ = nlp_model_->dimensions();
+        count_variables(dims_.n, nlp_model_->lower(), nlp_model_->upper(), statistics_);
+        count_rows(nlp_model_->rows().kinds_, statistics_);
     }
 
     explicit ProblemState(AssemblyDeclaration pieces) : kind_(Kind::kPieces) {
@@ -298,6 +282,9 @@ class ProblemState {
         throw std::logic_error("Problem: unrecognised problem kind");
     }
 
+    // The result in the problem's own row space, mapped from the engine's own row
+    // blocks. NO CALLBACK IS MADE HERE: every callback count after a solve is the
+    // engine's.
     void report(SolveResult &result) const {
         const auto &rows = engine_rows(result);
         const Index m = num_constraints();
@@ -308,13 +295,7 @@ class ProblemState {
             } else {
                 result.lambda.resize(0);
             }
-            // The row values at the returned point, through the transcription's
-            // per-iterate cache: usually the point the engine evaluated last.
-            if (result.x.size() == dims_.n && result.x.allFinite()) {
-                model.declared_g(result.x, result.g);
-            } else {
-                result.g.resize(0);
-            }
+            map_row_values(model, rows.ce, rows.ci, result.g);
             return;
         }
         if (rows.lambda_e.size() + rows.lambda_i.size() == m) {
@@ -332,6 +313,47 @@ class ProblemState {
     const NlpProblemModel *nlp_model() const noexcept { return nlp_model_.get(); }
 
   private:
+    // g in the problem's row space from the engine's measured residuals, each
+    // row through its kind's shift: equality g = c_E + g_lower; upper-bounded
+    // g = c_I + g_upper; lower-bounded g = g_lower - c_I; range g = c_I(upper
+    // part) + g_upper. One rounding of that shift apart from g(x) itself.
+    //
+    // THE RULE FOR AN UNMEASURED ROW. A free row is passed to no engine, so no
+    // engine measures it, and the engine's blocks are empty where the engine
+    // could not measure its returned point. g is reported only when EVERY row was
+    // measured: it is m long and the engine's own measurement, or it is empty
+    // (unmeasured). There is no partial form.
+    static void map_row_values(const NlpProblemModel &model, const Vec &ce, const Vec &ci, Vec &g) {
+        const NLPRowClassification &rows = model.rows();
+        const int m = model.num_declared_rows();
+        const bool measured = ce.size() == model.me() && ci.size() == model.mi() &&
+                              std::none_of(rows.kinds_.begin(), rows.kinds_.end(),
+                                           [](NLPRowKind k) { return k == NLPRowKind::Free; });
+        if (!measured) {
+            g.resize(0);
+            return;
+        }
+        const Vec &gl = model.row_lower();
+        const Vec &gu = model.row_upper();
+        g.resize(m);
+        for (int r = 0; r < m; ++r) {
+            switch (rows.kinds_[static_cast<std::size_t>(r)]) {
+            case NLPRowKind::Equality:
+                g[r] = ce[rows.eq_row_[r]] + gl[r];
+                break;
+            case NLPRowKind::UpperBounded:
+            case NLPRowKind::Range:
+                g[r] = ci[rows.iq_upper_row_[r]] + gu[r];
+                break;
+            case NLPRowKind::LowerBounded:
+                g[r] = gl[r] - ci[rows.iq_lower_row_[r]];
+                break;
+            case NLPRowKind::Free:
+                break;
+            }
+        }
+    }
+
     void read_structures(IndexVec &jac_rows, IndexVec &jac_cols, IndexVec &hess_rows,
                          IndexVec &hess_cols) const {
         jac_rows.resize(dims_.jacobian_nonzeros);
@@ -363,20 +385,22 @@ class ProblemState {
         }
         read_structures(scratch_jac_rows_, scratch_jac_cols_, scratch_hess_rows_,
                         scratch_hess_cols_);
-        refuse_structure_change("Jacobian", jacobian_rows_, jacobian_cols_, scratch_jac_rows_,
-                                scratch_jac_cols_);
-        refuse_structure_change("Hessian", hessian_rows_, hessian_cols_, scratch_hess_rows_,
-                                scratch_hess_cols_);
+        refuse_structure_change("Jacobian", nlp_model_->jacobian_rows(),
+                                nlp_model_->jacobian_cols(), scratch_jac_rows_, scratch_jac_cols_);
+        refuse_structure_change("Hessian", nlp_model_->hessian_rows(), nlp_model_->hessian_cols(),
+                                scratch_hess_rows_, scratch_hess_cols_);
 
         scratch_x_lower_.resize(dims_.n);
         scratch_x_upper_.resize(dims_.n);
         scratch_g_lower_.resize(dims_.m);
         scratch_g_upper_.resize(dims_.m);
         nlp_->bounds(scratch_x_lower_, scratch_x_upper_, scratch_g_lower_, scratch_g_upper_);
-        const bool unchanged = scratch_x_lower_ == x_lower_ && scratch_x_upper_ == x_upper_ &&
-                               scratch_g_lower_ == g_lower_ && scratch_g_upper_ == g_upper_;
+        const bool unchanged = scratch_x_lower_ == nlp_model_->lower() &&
+                               scratch_x_upper_ == nlp_model_->upper() &&
+                               scratch_g_lower_ == nlp_model_->row_lower() &&
+                               scratch_g_upper_ == nlp_model_->row_upper();
         if (!unchanged) {
-            relay_bounds();
+            adopt_bounds();
         }
         nlp_model_->invalidate_cache();
         if (core_ != nullptr) {
@@ -384,8 +408,9 @@ class ProblemState {
         }
     }
 
-    void refuse_structure_change(const char *which, const IndexVec &rows, const IndexVec &cols,
-                                 const IndexVec &new_rows, const IndexVec &new_cols) const {
+    void refuse_structure_change(const char *which, const Eigen::VectorXi &rows,
+                                 const Eigen::VectorXi &cols, const IndexVec &new_rows,
+                                 const IndexVec &new_cols) const {
         const Index k = first_difference(rows, cols, new_rows, new_cols);
         if (k >= 0) {
             throw std::invalid_argument(fmt::format(
@@ -396,46 +421,38 @@ class ProblemState {
         }
     }
 
-    // A changed bound set: the row kinds must stand, then both transcriptions are
-    // re-laid from the new bounds. The SQP's model is rebuilt now (its constructor
-    // validates the new bounds); the interior-point program is dropped and rebuilt
-    // on that engine's next solve, which re-analyses.
-    void relay_bounds() {
-        const NLPRowClassification rows =
-            NLPRowClassification::classify(scratch_g_lower_, scratch_g_upper_);
-        for (Index r = 0; r < dims_.m; ++r) {
-            const NLPRowKind was = row_kinds_[static_cast<std::size_t>(r)];
-            const NLPRowKind now = rows.kinds_[static_cast<std::size_t>(r)];
-            if (was != now) {
-                throw std::invalid_argument(fmt::format(
-                    "Problem '{}': row {} changed kind between solves, from {} to {} (bounds "
-                    "[{}, {}] -> [{}, {}]). A row's kind fixes the engines' row layout and the "
-                    "multiplier map; build a new Problem",
-                    nlp_->name(), r, row_kind_name(was), row_kind_name(now), g_lower_[r],
-                    g_upper_[r], scratch_g_lower_[r], scratch_g_upper_[r]));
+    // A changed bound set. The SQP's model adopts the new values in place: its row
+    // layout and multiplier map depend on each row's kind and not on a value, and
+    // it refuses a kind flip (by name) before writing anything. The
+    // interior-point program then takes one of two paths:
+    //   - the variable box's STRUCTURE is unchanged (which sides are finite, which
+    //     variables are fixed): the program adopts the values in place, with no
+    //     re-lay and no re-analysis;
+    //   - it changed: the program is dropped and re-laid on that engine's next
+    //     solve, which re-analyses (counted).
+    void adopt_bounds() {
+        const bool box_changed = nlp_model_->update_bounds(scratch_x_lower_, scratch_x_upper_,
+                                                           scratch_g_lower_, scratch_g_upper_);
+        if (program_ != nullptr) {
+            if (box_changed) {
+                program_.reset();
+                core_.reset();
+            } else {
+                core_->x_lower_ = nlp_model_->lower();
+                core_->x_upper_ = nlp_model_->upper();
+                program_->update_variable_bound_values(core_->x_lower_, core_->x_upper_);
             }
         }
-        auto model = std::make_shared<NlpProblemModel>(nlp_);
-        // Commit.
-        nlp_model_ = std::move(model);
-        x_lower_ = nlp_model_->lower();
-        x_upper_ = nlp_model_->upper();
-        g_lower_ = scratch_g_lower_;
-        g_upper_ = scratch_g_upper_;
-        program_.reset();
-        core_.reset();
-        count_variables(dims_.n, x_lower_, x_upper_, statistics_);
+        count_variables(dims_.n, nlp_model_->lower(), nlp_model_->upper(), statistics_);
     }
 
     Kind kind_;
 
-    // Kind::kNlp: the problem as stated, its last-read declaration, and the
-    // engines' transcriptions (the SQP's model, the interior-point program over it).
+    // Kind::kNlp: the problem as stated and the engines' transcriptions (the SQP's
+    // model, which holds the last-read declaration, and the interior-point program
+    // over it).
     std::shared_ptr<Nlp> nlp_;
     NlpDimensions dims_;
-    IndexVec jacobian_rows_, jacobian_cols_, hessian_rows_, hessian_cols_;
-    Vec x_lower_, x_upper_, g_lower_, g_upper_;
-    std::vector<NLPRowKind> row_kinds_;
     std::shared_ptr<NlpProblemModel> nlp_model_;
     // Scratch for the per-solve re-read, kept so a re-read allocates nothing.
     IndexVec scratch_jac_rows_, scratch_jac_cols_, scratch_hess_rows_, scratch_hess_cols_;
