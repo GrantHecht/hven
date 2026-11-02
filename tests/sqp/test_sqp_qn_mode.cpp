@@ -247,9 +247,9 @@ TEST(SqpQnOptions, DumpNamesTheFiveFields) {
     const std::string text = os.str();
     EXPECT_NE(text.find("\nhessian_mode = kLbfgsDamped\n"), std::string::npos) << text;
     EXPECT_NE(text.find("\nqn_memory = 7\n"), std::string::npos) << text;
-    EXPECT_NE(text.find("\nqn_update_on_reject = true\n"), std::string::npos) << text;
-    EXPECT_NE(text.find("\nqn_nonlinear_only = true\n"), std::string::npos) << text;
-    EXPECT_NE(text.find("\nqn_full_memory_max = 250\n"), std::string::npos) << text;
+    EXPECT_NE(text.find("\nadvanced.qn_update_on_reject = true\n"), std::string::npos) << text;
+    EXPECT_NE(text.find("\nadvanced.qn_nonlinear_only = true\n"), std::string::npos) << text;
+    EXPECT_NE(text.find("\nadvanced.qn_full_memory_max = 250\n"), std::string::npos) << text;
 }
 
 // ===========================================================================

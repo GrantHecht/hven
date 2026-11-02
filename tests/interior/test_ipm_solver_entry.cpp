@@ -870,7 +870,7 @@ TEST(InteriorPointSolverSettingsTest, NaNRejectedBySiteNamedSetters) {
         }
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
-        EXPECT_NE(std::string(e.what()).find("alpha_red"), std::string::npos);
+        EXPECT_NE(std::string(e.what()).find("advanced.backtrack_divisor"), std::string::npos);
     }
     try {
         {
@@ -880,7 +880,8 @@ TEST(InteriorPointSolverSettingsTest, NaNRejectedBySiteNamedSetters) {
         }
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
-        EXPECT_NE(std::string(e.what()).find("delta_h"), std::string::npos);
+        EXPECT_NE(std::string(e.what()).find("advanced.inertia_correction_initial"),
+                  std::string::npos);
     }
     try {
         {
@@ -890,7 +891,8 @@ TEST(InteriorPointSolverSettingsTest, NaNRejectedBySiteNamedSetters) {
         }
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
-        EXPECT_NE(std::string(e.what()).find("incr_h"), std::string::npos);
+        EXPECT_NE(std::string(e.what()).find("advanced.inertia_correction_increase"),
+                  std::string::npos);
     }
     try {
         {
@@ -900,7 +902,7 @@ TEST(InteriorPointSolverSettingsTest, NaNRejectedBySiteNamedSetters) {
         }
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
-        EXPECT_NE(std::string(e.what()).find("bound_fraction"), std::string::npos);
+        EXPECT_NE(std::string(e.what()).find("fraction_to_boundary"), std::string::npos);
     }
     try {
         {
@@ -910,7 +912,8 @@ TEST(InteriorPointSolverSettingsTest, NaNRejectedBySiteNamedSetters) {
         }
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
-        EXPECT_NE(std::string(e.what()).find("decr_h"), std::string::npos);
+        EXPECT_NE(std::string(e.what()).find("advanced.inertia_correction_decrease"),
+                  std::string::npos);
     }
     try {
         {
@@ -946,7 +949,8 @@ TEST(InteriorPointSolverSettingsTest, NaNRejectedBySiteNamedSetters) {
         }
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
-        EXPECT_NE(std::string(e.what()).find("delta_h"), std::string::npos);
+        EXPECT_NE(std::string(e.what()).find("advanced.inertia_correction_initial"),
+                  std::string::npos);
     }
     try {
         {
@@ -958,7 +962,8 @@ TEST(InteriorPointSolverSettingsTest, NaNRejectedBySiteNamedSetters) {
         }
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
-        EXPECT_NE(std::string(e.what()).find("incr_h"), std::string::npos);
+        EXPECT_NE(std::string(e.what()).find("advanced.inertia_correction_increase"),
+                  std::string::npos);
     }
     try {
         {
@@ -970,7 +975,8 @@ TEST(InteriorPointSolverSettingsTest, NaNRejectedBySiteNamedSetters) {
         }
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
-        EXPECT_NE(std::string(e.what()).find("decr_h"), std::string::npos);
+        EXPECT_NE(std::string(e.what()).find("advanced.inertia_correction_decrease"),
+                  std::string::npos);
     }
 }
 
@@ -1001,7 +1007,7 @@ TEST(InteriorPointSolverSettingsTest, InfRejectedByGreaterThanSetters) {
         }
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
-        EXPECT_NE(std::string(e.what()).find("alpha_red"), std::string::npos);
+        EXPECT_NE(std::string(e.what()).find("advanced.backtrack_divisor"), std::string::npos);
     }
     try {
         {
@@ -1011,7 +1017,8 @@ TEST(InteriorPointSolverSettingsTest, InfRejectedByGreaterThanSetters) {
         }
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
-        EXPECT_NE(std::string(e.what()).find("delta_h"), std::string::npos);
+        EXPECT_NE(std::string(e.what()).find("advanced.inertia_correction_initial"),
+                  std::string::npos);
     }
     try {
         {
@@ -1021,7 +1028,8 @@ TEST(InteriorPointSolverSettingsTest, InfRejectedByGreaterThanSetters) {
         }
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
-        EXPECT_NE(std::string(e.what()).find("incr_h"), std::string::npos);
+        EXPECT_NE(std::string(e.what()).find("advanced.inertia_correction_increase"),
+                  std::string::npos);
     }
 }
 
@@ -1042,7 +1050,7 @@ TEST(InteriorPointSolverSettingsTest, NaNRejectedByValidateForEveryHelperFamily)
             hven::solvers::validate(o);
             FAIL() << "expected std::invalid_argument";
         } catch (const std::invalid_argument &e) {
-            EXPECT_NE(std::string(e.what()).find("kkt_tol"), std::string::npos);
+            EXPECT_NE(std::string(e.what()).find("common.optimality_tol"), std::string::npos);
         }
     }
     {
@@ -1052,7 +1060,7 @@ TEST(InteriorPointSolverSettingsTest, NaNRejectedByValidateForEveryHelperFamily)
             hven::solvers::validate(o);
             FAIL() << "expected std::invalid_argument";
         } catch (const std::invalid_argument &e) {
-            EXPECT_NE(std::string(e.what()).find("bound_fraction"), std::string::npos);
+            EXPECT_NE(std::string(e.what()).find("fraction_to_boundary"), std::string::npos);
         }
     }
     {

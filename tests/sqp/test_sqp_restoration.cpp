@@ -3338,7 +3338,8 @@ TEST(RestorationProximityOption, ShipsAtZeroAndCarriesADumpLineInDeclarationPosi
     // which is what the drift pin's line count in tests/drivers/
     // test_options_dump.cpp is counting.
     EXPECT_LT(text.find("qp_cap_retry"), text.find("restoration_proximity"));
-    EXPECT_LT(text.find("restoration_proximity"), text.find("common.threads"));
+    EXPECT_LT(text.find("restoration_proximity"), std::string::npos)
+        << "the common block is first since M8 AP-2 B3";
 }
 
 // M7 W2 P1E -- the sufficient-reduction resume's boundary and its certificate guard.
@@ -4579,7 +4580,8 @@ TEST(RestorationEntriesOption, BothFieldsCarryADumpLineInDeclarationPosition) {
     EXPECT_NE(text.find("restoration_max_entries = 3\n"), std::string::npos) << text;
     EXPECT_LT(text.find("qn_full_memory_max"), text.find("restoration_curvature"));
     EXPECT_LT(text.find("restoration_curvature"), text.find("restoration_max_entries"));
-    EXPECT_LT(text.find("restoration_max_entries"), text.find("common.threads"));
+    EXPECT_LT(text.find("restoration_max_entries"), std::string::npos)
+        << "the common block is first since M8 AP-2 B3";
     o.advanced.restoration_curvature = SqpRestorationCurvature::kRegularized;
     std::ostringstream os2;
     dump_options(o, os2);

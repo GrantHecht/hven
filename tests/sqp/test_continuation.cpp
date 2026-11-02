@@ -1248,7 +1248,7 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
     }
     EXPECT_EQ(on.proposals_abandoned, 1) << trajectory(on);
     EXPECT_EQ(on.proposals_full_cost, 0) << trajectory(on);
-    EXPECT_EQ(on.steps[1].status, SolveStatus::kMaxIter)
+    EXPECT_EQ(on.steps[1].status, SolveStatus::kWorkLimit)
         << "an abandoned proposal reports the ordinary stopped-at-an-iterate status\n"
         << trajectory(on);
     EXPECT_EQ(on.steps[1].counters.probe_budget_stops, 1) << trajectory(on);
@@ -1289,7 +1289,7 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
         run_continuation(model_bm, p_vec(0.3), p_vec(0.9), driver_bm, make_continuation_options(2));
     ASSERT_TRUE(bm.reached_p1) << trajectory(bm);
     EXPECT_EQ(bm.proposals_abandoned, 1) << trajectory(bm);
-    EXPECT_EQ(bm.steps[1].status, SolveStatus::kMaxIter)
+    EXPECT_EQ(bm.steps[1].status, SolveStatus::kWorkLimit)
         << "a probe-budget stop reported budgeted mode's own status, which would make the "
            "controller re-solve AT the proposal it meant to abandon:\n"
         << trajectory(bm);

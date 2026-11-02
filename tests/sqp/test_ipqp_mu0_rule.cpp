@@ -196,7 +196,7 @@ TEST(IpqpMu0RuleOptions, ValidateAcceptsTheTwoRulesAndRefusesTheSentinelByName) 
             validate(o);
             ADD_FAILURE() << "validate accepted ipqp_mu0_rule " << static_cast<int>(bad);
         } catch (const std::invalid_argument &e) {
-            EXPECT_NE(std::string(e.what()).find("ipqp.ipqp_mu0_rule"), std::string::npos)
+            EXPECT_NE(std::string(e.what()).find("advanced.ipqp.mu0_rule"), std::string::npos)
                 << e.what();
         }
     }
@@ -217,14 +217,14 @@ TEST(IpqpMu0RuleOptions, TheDumpCarriesBothLinesInEitherState) {
     SqpOptions o;
     std::ostringstream off;
     dump_options(o, off);
-    EXPECT_NE(off.str().find("ipqp.ipqp_mu0_rule = kFixed\n"), std::string::npos);
-    EXPECT_NE(off.str().find("ipqp.ipqp_mu_residual_floor = false\n"), std::string::npos);
+    EXPECT_NE(off.str().find("advanced.ipqp.mu0_rule = kFixed\n"), std::string::npos);
+    EXPECT_NE(off.str().find("advanced.ipqp.mu_residual_floor = false\n"), std::string::npos);
     o.advanced.ipqp.mu0_rule = IpqpMu0Rule::kComplementarity;
     o.advanced.ipqp.mu_residual_floor = true;
     std::ostringstream on;
     dump_options(o, on);
-    EXPECT_NE(on.str().find("ipqp.ipqp_mu0_rule = kComplementarity\n"), std::string::npos);
-    EXPECT_NE(on.str().find("ipqp.ipqp_mu_residual_floor = true\n"), std::string::npos);
+    EXPECT_NE(on.str().find("advanced.ipqp.mu0_rule = kComplementarity\n"), std::string::npos);
+    EXPECT_NE(on.str().find("advanced.ipqp.mu_residual_floor = true\n"), std::string::npos);
 }
 
 // ---------------------------------------------------------------------------

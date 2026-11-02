@@ -83,7 +83,8 @@ TEST(IpqpLadderSkipOptions, ValidateRefusesANegativeCountByName) {
             validate(o);
             ADD_FAILURE() << "validate accepted ipqp_ladder_skip_after " << bad;
         } catch (const std::invalid_argument &e) {
-            EXPECT_NE(std::string(e.what()).find("ipqp.ipqp_ladder_skip_after"), std::string::npos)
+            EXPECT_NE(std::string(e.what()).find("advanced.ipqp.ladder_skip_after"),
+                      std::string::npos)
                 << e.what();
         }
     }
@@ -95,11 +96,11 @@ TEST(IpqpLadderSkipOptions, TheDumpCarriesTheLine) {
     SqpOptions o;
     std::ostringstream def;
     dump_options(o, def);
-    EXPECT_NE(def.str().find("ipqp.ipqp_ladder_skip_after = 3\n"), std::string::npos);
+    EXPECT_NE(def.str().find("advanced.ipqp.ladder_skip_after = 3\n"), std::string::npos);
     o.advanced.ipqp.ladder_skip_after = 1;
     std::ostringstream one;
     dump_options(o, one);
-    EXPECT_NE(one.str().find("ipqp.ipqp_ladder_skip_after = 1\n"), std::string::npos);
+    EXPECT_NE(one.str().find("advanced.ipqp.ladder_skip_after = 1\n"), std::string::npos);
 }
 
 // ---------------------------------------------------------------------------

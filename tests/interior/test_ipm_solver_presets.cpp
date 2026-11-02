@@ -174,10 +174,15 @@ TEST(InteriorPointSolverPresetsTest,
 
     ASSERT_EQ(differing.size(), 3u)
         << "W2 D1 moved three fields and no others; diff was:" << joined;
-    EXPECT_EQ(differing[0], "max_iters = 500  ->  max_iters = 1000") << joined;
-    EXPECT_EQ(differing[1], "acceptance_strategy = classic_merit  ->  acceptance_strategy = filter")
+    EXPECT_EQ(differing[0], "common.max_iterations = 500  ->  common.max_iterations = 1000")
         << joined;
-    EXPECT_EQ(differing[2], "barrier_governor = classic_adaptive  ->  barrier_governor = monitored")
+    EXPECT_EQ(
+        differing[1],
+        "advanced.acceptance_strategy = kClassicMerit  ->  advanced.acceptance_strategy = kFilter")
+        << joined;
+    EXPECT_EQ(
+        differing[2],
+        "advanced.barrier_governor = kClassicAdaptive  ->  advanced.barrier_governor = kMonitored")
         << joined;
 }
 

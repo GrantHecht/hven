@@ -341,7 +341,7 @@ TEST(ObjectiveScaleReporting, ANegativeScaleIsRefusedByValidate) {
         FAIL() << "a negative scale must be refused";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
-        EXPECT_NE(message.find("obj_scale"), std::string::npos) << message;
+        EXPECT_NE(message.find("objective_scale"), std::string::npos) << message;
         EXPECT_NE(message.find("-3.5"), std::string::npos) << message;
     }
 

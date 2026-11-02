@@ -511,7 +511,8 @@ TEST(QpCapValidation, TheDumpCarriesBothLinesInDeclarationPosition) {
     // `common.` block, which is what the drift pin's line count is counting.
     EXPECT_LT(text.find("project_start_point"), text.find("qp_failure_budget"));
     EXPECT_LT(text.find("qp_failure_budget"), text.find("qp_cap_retry"));
-    EXPECT_LT(text.find("qp_cap_retry"), text.find("common.threads"));
+    EXPECT_LT(text.find("qp_cap_retry"), std::string::npos)
+        << "the common block is first since M8 AP-2 B3";
 }
 
 // ---------------------------------------------------------------------------

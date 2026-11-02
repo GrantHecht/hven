@@ -424,17 +424,11 @@ TEST(KktFactorizationTest, MklRejectsBackendMessageOutput) {
     const auto program =
         hven::solvers::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
     hven::solvers::IpmSolver solver;
-    {
-        auto o = solver.options();
-        o.linear.backend_output = true;
-        solver.set_options(std::move(o));
-    }
-    // M6 W5 T8.4: set_qp_params() runs from the SOLVE that transcribes, not
-    // from an attach step, so the refusal surfaces there. The problem has one
-    // free variable, so the guess is a 1-vector.
-    EXPECT_THROW(
-        solver.solve(hven::solvers::detail::problem_ref(*program), Eigen::VectorXd::Zero(1)),
-        std::invalid_argument);
+    // M8 AP-2 B3: refused at validate(), by name, before any solve.
+    auto o = solver.options();
+    o.linear.backend_output = true;
+    EXPECT_THROW(solver.set_options(std::move(o)), std::invalid_argument);
+    (void)program;
 }
 
 // Only the backend's own documented pivoting-strategy codes are expressible;
@@ -444,17 +438,11 @@ TEST(KktFactorizationTest, MklRejectsAnUndocumentedPivotingStrategyCode) {
     const auto program =
         hven::solvers::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
     hven::solvers::IpmSolver solver;
-    {
-        auto o = solver.options();
-        o.linear.pivoting = static_cast<hven::solvers::KktPivoting>(13);
-        solver.set_options(std::move(o));
-    }
-    // M6 W5 T8.4: set_qp_params() runs from the SOLVE that transcribes, not
-    // from an attach step, so the refusal surfaces there. The problem has one
-    // free variable, so the guess is a 1-vector.
-    EXPECT_THROW(
-        solver.solve(hven::solvers::detail::problem_ref(*program), Eigen::VectorXd::Zero(1)),
-        std::invalid_argument);
+    // M8 AP-2 B3: refused at validate(), by name, before any solve.
+    auto o = solver.options();
+    o.linear.pivoting = static_cast<hven::solvers::KktPivoting>(13);
+    EXPECT_THROW(solver.set_options(std::move(o)), std::invalid_argument);
+    (void)program;
 }
 
 #endif
