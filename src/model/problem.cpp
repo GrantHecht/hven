@@ -45,11 +45,17 @@ const char *row_kind_name(NLPRowKind kind) {
     return "unknown";
 }
 
-void count_variables(const Vec &lower, const Vec &upper, ProblemStatistics &stats) {
-    stats.variables = lower.size();
+// The variable census of a box. A box whose sides disagree in length with each
+// other or with @p n describes no census: it is left empty here, and the solve
+// refuses the box by name (the engines' own entry checks).
+void count_variables(Index n, const Vec &lower, const Vec &upper, ProblemStatistics &stats) {
+    stats.variables = n;
     stats.free_variables = stats.lower_bounded_variables = stats.upper_bounded_variables = 0;
     stats.boxed_variables = stats.fixed_variables = 0;
-    for (Index i = 0; i < lower.size(); ++i) {
+    if (lower.size() != n || upper.size() != n) {
+        return;
+    }
+    for (Index i = 0; i < n; ++i) {
         const bool has_lower = std::isfinite(lower[i]);
         const bool has_upper = std::isfinite(upper[i]);
         if (has_lower && has_upper) {
@@ -104,8 +110,7 @@ void count_program(const NonLinearProgram &program, ProblemStatistics &stats) {
         lower[static_cast<Index>(i)] = bounds[i].lower_;
         upper[static_cast<Index>(i)] = bounds[i].upper_;
     }
-    count_variables(lower, upper, stats);
-    stats.variables = program.primal_vars_;
+    count_variables(program.primal_vars_, lower, upper, stats);
     count_split_rows(program.user_equal_cons_, program.inequal_cons_, stats);
 }
 
@@ -156,7 +161,7 @@ class ProblemState {
         nlp_->bounds(x_lower, x_upper, g_lower_, g_upper_);
         row_kinds_ = model->rows().kinds_;
         nlp_model_ = std::move(model);
-        count_variables(x_lower_, x_upper_, statistics_);
+        count_variables(dims_.n, x_lower_, x_upper_, statistics_);
         count_rows(row_kinds_, statistics_);
     }
 
@@ -180,12 +185,13 @@ class ProblemState {
         if (model_ == nullptr) {
             throw std::invalid_argument("problem_from_model: the model pointer is null");
         }
-        count_variables(model_->lower(), model_->upper(), statistics_);
+        count_variables(model_->n(), model_->lower(), model_->upper(), statistics_);
         count_split_rows(model_->me(), model_->mi(), statistics_);
     }
 
     explicit ProblemState(NlpModelAssembly &bridge) : kind_(Kind::kAssembly), bridge_(&bridge) {
-        count_variables(bridge.model().lower(), bridge.model().upper(), statistics_);
+        count_variables(bridge.model().n(), bridge.model().lower(), bridge.model().upper(),
+                        statistics_);
         count_split_rows(bridge.model().me(), bridge.model().mi(), statistics_);
     }
 
@@ -418,7 +424,7 @@ class ProblemState {
         g_upper_ = scratch_g_upper_;
         program_.reset();
         core_.reset();
-        count_variables(x_lower_, x_upper_, statistics_);
+        count_variables(dims_.n, x_lower_, x_upper_, statistics_);
     }
 
     Kind kind_;
