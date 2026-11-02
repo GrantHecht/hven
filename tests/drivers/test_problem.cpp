@@ -417,8 +417,8 @@ TEST(Problem, AChangedFixedSetIsReLaidCountedAndRefusesAPriorWarmStart) {
     EXPECT_EQ(ipm.solve(problem, x0).kkt_analyses_this_call, 0);
 }
 
-// Under MakeConstraint the interior-point engine exports its equality blocks with the
-// internal fixing rows at the tail; the problem's row space is the user's rows alone.
+// Pins the IPM declared-space seam contract: under MakeConstraint the engine strips its
+// internal fixing rows, so g and lambda are me-long (the user rows alone) and g matches eval_g.
 TEST(Problem, ReportsTheUserRowSpaceUnderMakeConstraintWithAFixedVariable) {
     const auto box = std::make_shared<Box3>();
     box->x1_lower = box->x1_upper = 0.25;

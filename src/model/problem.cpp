@@ -290,20 +290,14 @@ class ProblemState {
         const Index m = num_constraints();
         if (kind_ == Kind::kNlp) {
             const NlpProblemModel &model = *nlp_model_;
-            // The interior-point engine strips its internal fixing rows (MakeConstraint)
-            // from the declared block before it returns, so the block is the user's
-            // rows alone; a block that still carries them at the tail is read through
-            // its head, the user's rows.
-            const Index extra = extra_fixed_rows();
-            if ((rows.lambda_e.size() == model.me() ||
-                 (extra > 0 && rows.lambda_e.size() == model.me() + extra)) &&
-                rows.lambda_i.size() == model.mi()) {
-                result.lambda =
-                    model.compose_user_multipliers(rows.lambda_e.head(model.me()), rows.lambda_i);
+            // The IPM's declared-space seam (ipm_solver.cpp) strips the internal
+            // fixing rows from the exported blocks, so they are the user's rows alone.
+            if (rows.lambda_e.size() == model.me() && rows.lambda_i.size() == model.mi()) {
+                result.lambda = model.compose_user_multipliers(rows.lambda_e, rows.lambda_i);
             } else {
                 result.lambda.resize(0);
             }
-            map_row_values(model, rows.ce, rows.ci, extra_fixed_rows(), result.g);
+            map_row_values(model, rows.ce, rows.ci, result.g);
             return;
         }
         if (rows.lambda_e.size() + rows.lambda_i.size() == m) {
@@ -316,10 +310,6 @@ class ProblemState {
         } else {
             result.g.resize(0);
         }
-    }
-
-    Index extra_fixed_rows() const {
-        return program_ ? static_cast<Index>(program_->internal_fixed_constraints()) : 0;
     }
 
     const NlpProblemModel *nlp_model() const noexcept { return nlp_model_.get(); }
@@ -335,12 +325,10 @@ class ProblemState {
     // engine measures it: its entry is NaN (unmeasured) and is never evaluated.
     // The engine's blocks are empty where it could not measure its returned
     // point, and then g is empty. Otherwise g is m long.
-    static void map_row_values(const NlpProblemModel &model, const Vec &ce, const Vec &ci,
-                               Index extra, Vec &g) {
+    static void map_row_values(const NlpProblemModel &model, const Vec &ce, const Vec &ci, Vec &g) {
         const NLPRowClassification &rows = model.rows();
         const int m = model.num_declared_rows();
-        if ((ce.size() != model.me() && !(extra > 0 && ce.size() == model.me() + extra)) ||
-            ci.size() != model.mi()) {
+        if (ce.size() != model.me() || ci.size() != model.mi()) {
             g.resize(0);
             return;
         }

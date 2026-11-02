@@ -20,3 +20,5 @@ GRAND TOTAL samples in changed functions: 0
 
 Neighbours with samples, all UNCHANGED by the riders: ProblemState::ProblemState(shared_ptr<NlpModel>) / ~ProblemState (construction only) and materialized_bound_digest (called by bound_digest(); the rider adds one extra bound_digest() call, but only inside update_variable_bound_values, which has 0 samples).
 CONCLUSION: no function the riders change has a sample on any measured path, in any mode or arm; the r5 gate verdict is not disturbed. Gate NOT re-run.
+
+AMENDMENT (R1 revert, coordinator ruling): the me+extra acceptance and extra_fixed_rows were removed; report/map_row_values are back to the me-length check (net change there: one comment). The table above, taken for the larger diff, covers a superset of the final changed functions. ctest was re-run at the final head; replay and route pin were not (report/map_row_values have no samples on any measured route).
