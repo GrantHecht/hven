@@ -183,6 +183,12 @@ class NlpModel {
         out = this->eval_hess(x, obj_scale, lambda_e, lambda_i);
     }
 
+    /// @brief Whether eval_hess may be called. False only for a model solved by a
+    ///        quasi-Newton SQP, which then never calls it: the bridge lays an empty
+    ///        Hessian pattern instead, and a restoration wrapper over the model
+    ///        answers the same. Every exact-Hessian path refuses such a model first.
+    virtual bool has_hessian() const { return true; }
+
     HVEN_SUPPRESS_DEPRECATED_END
 
     /// @brief Variable lower bounds, size n(). Unboundedness on a side is

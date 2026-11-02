@@ -86,7 +86,8 @@ class Nlp {
 
     /// @brief Whether eval_hessian is provided. A problem without one may be solved
     ///        by a quasi-Newton SQP; the interior-point engine and an exact-Hessian
-    ///        SQP refuse it by name.
+    ///        SQP refuse it by name. Quasi-Newton never reads the Hessian, restoration
+    ///        included: eval_hessian() is not called.
     virtual bool has_hessian() const { return true; }
 
     /// @brief The Lagrangian-Hessian structure, lower triangle, hessian_nonzeros

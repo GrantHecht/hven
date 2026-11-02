@@ -257,6 +257,7 @@ class EqualityRowSubsetModel final : public NlpModel {
     void eval_jac_i_in_place(const Vec &x, SpMatRM &out) const override;
     void eval_hess_in_place(const Vec &x, double obj_scale, const Vec &lambda_e,
                             const Vec &lambda_i, SpMatRM &out) const override;
+    bool has_hessian() const override { return model_.has_hessian(); }
     const Vec &lower() const override;
     const Vec &upper() const override;
     Vec start_point() const override;

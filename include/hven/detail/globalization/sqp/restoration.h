@@ -240,6 +240,10 @@ class RestorationModel final : public NlpModel {
     SpMatRM eval_hess(const Vec &y, double obj_scale, const Vec &lambda_e,
                       const Vec &lambda_i) const override;
 
+    /// The regularized curvature reads nothing of the wrapped model; the
+    /// unregularized one reads its constraint Hessian, so it answers for it.
+    bool has_hessian() const override { return regularized_ || model_.has_hessian(); }
+
     /// [ Je(x) | diag(sigmaE) | -diag(sigmaE) | 0 ]
     Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &y) const override;
 

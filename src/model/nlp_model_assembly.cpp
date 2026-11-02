@@ -277,7 +277,13 @@ NlpModelAssembly::LaidStructures NlpModelAssembly::lay(int partition_count) cons
     const Vec zero_inequality = Vec::Zero(inequality_rows_);
 
     SpMatRM hessian;
-    model_->eval_hess_in_place(x, 1.0, zero_equality, zero_inequality, hessian);
+    if (model_->has_hessian()) {
+        model_->eval_hess_in_place(x, 1.0, zero_equality, zero_inequality, hessian);
+    } else {
+        // A quasi-Newton-only model: no Hessian claim, and no call (nlp_model.h).
+        hessian.resize(primal_vars_, primal_vars_);
+        hessian.makeCompressed();
+    }
     // A block with no rows is not evaluated, and its destination carries the
     // empty shape explicitly -- as the by-value ternary's else arm did.
     SpMatRM equality_jacobian(0, primal_vars_);
