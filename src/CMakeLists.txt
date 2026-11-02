@@ -55,10 +55,12 @@ endif()
 # surface, and it sits in this block rather than the engine block below because
 # it is a second provider of the contract and names no engine type. The
 # triplet-to-native conversion sits here on the same footing: it is a provider
-# of the model contract and names no engine type either.
+# of the model contract and names no engine type either, and so do the Nlp
+# callback contract's default members.
 ################################################################################
 
 target_sources(hven PRIVATE
+    model/nlp.cpp
     model/assembly_declaration.cpp
     model/validation_errors.cpp
     model/nlp_model_assembly.cpp
@@ -79,7 +81,7 @@ target_sources(hven PRIVATE
 
 ################################################################################
 # Interior-point engine — the top-level IpmSolver algorithm
-# (drivers/), the NlpTripletModel contract with its adapter and the
+# (drivers/), the Nlp contract with its adapter and the
 # partitioned-evaluation NonLinearProgram engine (model/), and the barrier /
 # interior-point machinery under include/hven/detail/ (interior/ +
 # globalization/), split along those same seams.
@@ -93,6 +95,7 @@ target_sources(hven PRIVATE
     drivers/solver_init.cpp
     model/non_linear_program.cpp
     model/nlp_adapter.cpp
+    model/problem.cpp
     interior/kkt_factorization.cpp
     interior/utils/color_text.cpp
     interior/utils/get_core_count.cpp
@@ -574,7 +577,11 @@ endif()
 # 50, 51 as of drivers/ipm_solver_handle.cpp and drivers/sqp_solver_handle.cpp (M8 AP-2 B1):
 # the public IpmSolver / SqpSolver handles' forwarding bodies. NOT PCH sources, on the same
 # footing: each includes only its implementation header.
-set(_hven_expected_source_count 51)
+# 52, 53 as of model/nlp.cpp and model/problem.cpp (M8 AP-2 B2): the Nlp contract's default
+# members and the Problem every solve takes. NOT PCH sources, on the same unmeasured-default
+# footing: nlp.cpp includes its own header and fmt; problem.cpp the model transcription
+# headers in its own order, a different set from src/hven_pch.h's prefix.
+set(_hven_expected_source_count 53)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.

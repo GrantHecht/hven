@@ -67,8 +67,8 @@
 #include <vector>
 
 #include <hven/core/types.h>
+#include <hven/detail/model/nlp_model.h>
 #include <hven/detail/qp/qp_problem.h>
-#include <hven/model/nlp_model.h>
 
 namespace hven::solvers::detail {
 

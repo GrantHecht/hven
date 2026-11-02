@@ -18,7 +18,7 @@
 
 #include "hven/core/types.h"
 #include "hven/detail/interior/typedefs/eigen_types.h"
-#include "hven/model/non_linear_program.h"
+#include "hven/detail/model/non_linear_program.h"
 
 namespace hven::solvers::detail {
 

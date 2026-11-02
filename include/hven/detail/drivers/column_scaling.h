@@ -52,7 +52,7 @@
 //     <= feas_tol (drivers/sqp_solver.cpp, the convergence test).
 
 #include <hven/core/types.h>
-#include <hven/model/nlp_model.h>
+#include <hven/detail/model/nlp_model.h>
 
 namespace hven::solvers::detail {
 

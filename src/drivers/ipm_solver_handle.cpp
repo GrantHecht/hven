@@ -13,6 +13,7 @@
 #include <utility>
 
 #include "hven/detail/drivers/ipm_solver_impl.h"
+#include "hven/detail/model/problem_access.h"
 
 namespace hven::solvers {
 
@@ -51,17 +52,30 @@ void IpmSolver::set_options(IpmOptions o) { impl().set_options(std::move(o)); }
 
 IpmStopReason IpmSolver::last_stop_reason() const { return impl().last_stop_reason(); }
 
-bool IpmSolver::kkt_pattern_is_analyzed(const NonLinearProgram &model) const {
-    return impl().kkt_pattern_is_analyzed(model);
+bool IpmSolver::kkt_pattern_is_analyzed(const Problem &problem) const {
+    const IpmSolverImpl &engine = impl();
+    const NonLinearProgram *program = detail::ProblemAccess::built_ipm_program(problem);
+    return program != nullptr && engine.kkt_pattern_is_analyzed(*program);
 }
 
-IpmResult IpmSolver::solve(NonLinearProgram &model, const Eigen::VectorXd &x0, SolveBudget budget) {
-    return impl().solve(model, x0, budget);
+// The Problem is the solve's one argument: its interior-point transcription is
+// refreshed (or built) first, the engine's internal entry runs on it unchanged,
+// and the result's row blocks are mapped into the problem's row space last.
+IpmResult IpmSolver::solve(Problem &problem, const Eigen::VectorXd &x0, SolveBudget budget) {
+    IpmSolverImpl &engine = impl();
+    NonLinearProgram &program = detail::ProblemAccess::ipm_program(problem);
+    IpmResult result = engine.solve(program, x0, budget);
+    detail::ProblemAccess::report(problem, result);
+    return result;
 }
 
-IpmResult IpmSolver::solve(NonLinearProgram &model, const Eigen::VectorXd &x0,
-                           const WarmStartData &warm, SolveBudget budget) {
-    return impl().solve(model, x0, warm, budget);
+IpmResult IpmSolver::solve(Problem &problem, const Eigen::VectorXd &x0, const WarmStartData &warm,
+                           SolveBudget budget) {
+    IpmSolverImpl &engine = impl();
+    NonLinearProgram &program = detail::ProblemAccess::ipm_program(problem);
+    IpmResult result = engine.solve(program, x0, warm, budget);
+    detail::ProblemAccess::report(problem, result);
+    return result;
 }
 
 void IpmSolver::set_iteration_callback(IterationCallback cb) {

@@ -54,6 +54,10 @@ namespace hven::solvers {
 class IpmSolverImpl;
 class SqpSolverImpl;
 
+namespace detail {
+struct ResultAccess;
+} // namespace detail
+
 /// @brief The work ceiling for one solve call, on both engines.
 ///
 /// Both members default to 0, which means "no budget of the caller's own": the
@@ -110,11 +114,12 @@ struct SolveResult {
 
     /// @brief The returned primal point, in the caller's declared space.
     Vec x;
-    /// @brief Equality multipliers at @ref x, against L = f + lambda_e^T ce +
-    ///        lambda_i^T ci - z. DECLARED rows only.
-    Vec lambda_e;
-    /// @brief Inequality multipliers at @ref x, same convention, declared rows.
-    Vec lambda_i;
+    /// @brief Row multipliers at @ref x, one per row of the problem's own row
+    ///        space (model/problem.h): for an Nlp problem one per Nlp row, in
+    ///        Ipopt's sign convention (L = f + lambda^T g - z^T x); for a pieces
+    ///        problem [equality rows | inequality rows], with L = f +
+    ///        lambda^T [c_E; c_I] - z^T x. Empty when unmeasured.
+    Vec lambda;
     /// @brief Bound multipliers at @ref x: z = z_lower - z_upper, so an entry is
     ///        >= 0 at an active lower bound and <= 0 at an active upper bound.
     ///        DECLARED width -- an eliminated coordinate has an entry here (0
@@ -146,11 +151,11 @@ struct SolveResult {
     /// @brief inf-norm complementarity, canonical bound split.
     double complementarity = std::numeric_limits<double>::quiet_NaN();
 
-    /// @brief Declared equality residuals at @ref x. EMPTY when unmeasured --
-    ///        never a zero vector, which would read as a feasible point.
-    Vec ce;
-    /// @brief Declared inequality residuals at @ref x, empty when unmeasured.
-    Vec ci;
+    /// @brief Row values at @ref x in the same row space as @ref lambda: g(x) for an
+    ///        Nlp problem, [c_E(x); c_I(x)] for a pieces problem. EMPTY when
+    ///        unmeasured -- never a zero vector, which would read as a feasible
+    ///        point.
+    Vec g;
 
     /// @brief Iterations taken. SQP: the top-level solve's major count, with
     ///        nested restoration majors NOT added (they are in `counters`).
@@ -186,12 +191,25 @@ struct SolveResult {
     /// solve exit and by nothing else.
     std::optional<WarmStartData> export_snapshot_;
 
+    /// The engine's own row blocks at @ref x: equality and inequality multipliers
+    /// and residuals in the engine's internal split. The solve entry maps them into
+    /// @ref lambda and @ref g; library internals and tests read them through
+    /// detail::engine_rows (detail/drivers/result_access.h).
+    struct EngineRows {
+        Vec lambda_e;
+        Vec lambda_i;
+        Vec ce;
+        Vec ci;
+    };
+    EngineRows engine_rows_;
+
     // The two engines fill the snapshot on a result they are about to return.
     // Protected rather than public because a result is a REPORT: a consumer
     // reads the snapshot, and nothing outside the producing engine may install
     // one.
     friend class IpmSolverImpl;
     friend class SqpSolverImpl;
+    friend struct detail::ResultAccess;
 };
 
 /// @brief What a per-iteration callback asks the engine to do next.

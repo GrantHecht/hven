@@ -49,7 +49,7 @@
 #include "hven/detail/interior/kkt_factorization.h"
 #include "hven/drivers/common_options.h"
 #include "hven/drivers/solve_result.h"
-#include "hven/model/non_linear_program.h"
+#include "hven/model/fixed_variable_treatment.h"
 
 #ifdef USE_ACCELERATE_SPARSE
 #include <limits>

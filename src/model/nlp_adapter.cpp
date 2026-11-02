@@ -10,9 +10,9 @@
 
 #include <fmt/format.h>
 
-#include "hven/model/nlp_problem_model.h"
-#include "hven/model/nlp_triplet_model.h"
-#include "hven/model/non_linear_program.h"
+#include "hven/detail/model/nlp_problem_model.h"
+#include "hven/detail/model/non_linear_program.h"
+#include "hven/model/nlp.h"
 
 namespace hven::solvers {
 
@@ -362,7 +362,7 @@ std::shared_ptr<NonLinearProgram> make_nlp_program(const std::shared_ptr<NLPAdap
     return nlp;
 }
 
-std::shared_ptr<NonLinearProgram> make_nlp_program(std::shared_ptr<NlpTripletModel> problem,
+std::shared_ptr<NonLinearProgram> make_nlp_program(std::shared_ptr<Nlp> problem,
                                                    int num_partitions) {
     if (problem == nullptr) {
         throw std::invalid_argument("make_nlp_program: the problem pointer is null");

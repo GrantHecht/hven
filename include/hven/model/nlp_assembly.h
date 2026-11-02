@@ -10,7 +10,7 @@
 // It sits BESIDE NlpModel, never over it. NlpModel is one problem's callbacks;
 // NlpAssembly is a collection of pieces and the arenas they claim out of. A
 // bridge implementing this interface over an NlpModel is how a single-model
-// problem reaches this level, and neither NlpModel nor NlpTripletModel gains a
+// problem reaches this level, and neither NlpModel nor Nlp gains a
 // method, a base class or an obligation from anything in this header.
 //
 // CONCURRENCY POSTURE, part of the contract: an aggregate is inside at most

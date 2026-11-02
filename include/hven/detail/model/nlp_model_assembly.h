@@ -49,9 +49,9 @@
 #include <Eigen/SparseCore>
 
 #include "hven/core/types.h"
+#include "hven/detail/model/nlp_model.h"
 #include "hven/model/claim_stream_source.h"
 #include "hven/model/nlp_assembly.h"
-#include "hven/model/nlp_model.h"
 
 namespace hven::solvers {
 

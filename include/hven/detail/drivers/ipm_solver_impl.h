@@ -27,18 +27,19 @@
 #include <fmt/core.h>
 
 #include "hven/detail/drivers/ipm_solver_fwd.h"
+#include "hven/detail/drivers/result_access.h"
 #include "hven/detail/interior/bound_set.h"
 #include "hven/detail/interior/eval_error_log.h"
 #include "hven/detail/interior/iterate_info.h"
 #include "hven/detail/interior/kkt_factorization.h"
 #include "hven/detail/interior/kkt_vector.h"
 #include "hven/detail/interior/typedefs/eigen_types.h"
+#include "hven/detail/model/non_linear_program.h"
 #include "hven/drivers/common_options.h"
 #include "hven/drivers/ipm_solver.h"
 #include "hven/drivers/ipm_solver_types.h"
 #include "hven/drivers/solve_result.h"
 #include "hven/drivers/solve_status.h"
-#include "hven/model/non_linear_program.h"
 #include "hven/warmstart/seeding.h"
 #include "hven/warmstart/warm_start_data.h"
 

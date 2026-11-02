@@ -121,10 +121,10 @@
 #include <hven/detail/kkt/kkt_assembly.h>
 #include <hven/detail/kkt/kkt_calls.h>
 #include <hven/detail/kkt/schur_complement.h>
+#include <hven/detail/model/nlp_model.h>
 #include <hven/detail/qp/qp_problem.h>
 #include <hven/detail/qp/working_set.h>
 #include <hven/detail/warmstart/warm_start.h>
-#include <hven/model/nlp_model.h>
 #include <hven/qp/qp_types.h>
 
 namespace hven::solvers {

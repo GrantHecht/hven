@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-#include "hven/model/nlp_problem_model.h"
+#include "hven/detail/model/nlp_problem_model.h"
 
 #include <algorithm>
 #include <cmath>
@@ -128,16 +128,16 @@ NLPRowClassification NLPRowClassification::classify(ConstEigenRef<Eigen::VectorX
     return rc;
 }
 
-NlpProblemModel::NlpProblemModel(std::shared_ptr<NlpTripletModel> problem)
-    : problem_(std::move(problem)) {
+NlpProblemModel::NlpProblemModel(std::shared_ptr<Nlp> problem) : problem_(std::move(problem)) {
     if (!problem_) {
         throw std::invalid_argument("NlpProblemModel: the problem pointer is null");
     }
-    n_ = problem_->num_vars();
-    m_ = problem_->num_cons();
-    jac_nnz_ = problem_->num_jac_nonzeros();
-    hess_nnz_ = problem_->num_hess_nonzeros();
-    this->validate_sizes();
+    const NlpDimensions dims = problem_->dimensions();
+    this->validate_sizes(dims);
+    n_ = static_cast<int>(dims.n);
+    m_ = static_cast<int>(dims.m);
+    jac_nnz_ = static_cast<int>(dims.jacobian_nonzeros);
+    hess_nnz_ = static_cast<int>(dims.hessian_nonzeros);
 
     x_lower_.resize(n_);
     x_upper_.resize(n_);
@@ -160,21 +160,31 @@ NlpProblemModel::NlpProblemModel(std::shared_ptr<NlpTripletModel> problem)
     ci_.resize(rows_.num_iq_);
 }
 
-void NlpProblemModel::validate_sizes() const {
-    if (n_ <= 0) {
+void NlpProblemModel::validate_sizes(const NlpDimensions &dims) const {
+    if (dims.n <= 0) {
         throw std::invalid_argument(
-            fmt::format("{}: num_vars() must be positive, got {}", problem_->name(), n_));
+            fmt::format("{}: dimensions().n must be positive, got {}", problem_->name(), dims.n));
     }
-    if (m_ < 0 || jac_nnz_ < 0 || hess_nnz_ < 0) {
+    if (dims.m < 0 || dims.jacobian_nonzeros < 0 || dims.hessian_nonzeros < 0) {
         throw std::invalid_argument(fmt::format(
-            "{}: num_cons()={}, num_jac_nonzeros()={}, num_hess_nonzeros()={} — all must be "
+            "{}: dimensions() m={}, jacobian_nonzeros={}, hessian_nonzeros={} — all must be "
             "non-negative",
-            problem_->name(), m_, jac_nnz_, hess_nnz_));
+            problem_->name(), dims.m, dims.jacobian_nonzeros, dims.hessian_nonzeros));
     }
-    if (m_ == 0 && jac_nnz_ != 0) {
+    // The sparse backends index with 32-bit integers (core/types.h, SpMatRM), so
+    // every size the transcription lays must fit one.
+    constexpr Index kMax = std::numeric_limits<int>::max();
+    if (dims.n > kMax || dims.m > kMax || dims.jacobian_nonzeros > kMax ||
+        dims.hessian_nonzeros > kMax) {
+        throw std::invalid_argument(fmt::format(
+            "{}: dimensions() n={}, m={}, jacobian_nonzeros={}, hessian_nonzeros={} — each must "
+            "fit a 32-bit index ({} at most)",
+            problem_->name(), dims.n, dims.m, dims.jacobian_nonzeros, dims.hessian_nonzeros, kMax));
+    }
+    if (dims.m == 0 && dims.jacobian_nonzeros != 0) {
         throw std::invalid_argument(
             fmt::format("{}: {} Jacobian nonzeros declared for a problem with no constraints",
-                        problem_->name(), jac_nnz_));
+                        problem_->name(), dims.jacobian_nonzeros));
     }
 }
 
@@ -237,37 +247,42 @@ void NlpProblemModel::build_row_tables(ConstEigenRef<Eigen::VectorXd> gl,
 }
 
 void NlpProblemModel::read_structures() {
-    jac_rows_.resize(jac_nnz_);
-    jac_cols_.resize(jac_nnz_);
+    // Queried at the callback's own width, range-checked there, and only then
+    // narrowed to the backends' 32-bit index.
+    IndexVec rows(jac_nnz_), cols(jac_nnz_);
     if (jac_nnz_ > 0) {
-        problem_->jac_structure(jac_rows_, jac_cols_);
+        problem_->jacobian_structure(rows, cols);
     }
     for (int s = 0; s < jac_nnz_; s++) {
-        if (jac_rows_[s] < 0 || jac_rows_[s] >= m_ || jac_cols_[s] < 0 || jac_cols_[s] >= n_) {
+        if (rows[s] < 0 || rows[s] >= m_ || cols[s] < 0 || cols[s] >= n_) {
             throw std::invalid_argument(
                 fmt::format("{}: Jacobian slot {} is ({}, {}), outside the {}x{} constraint "
                             "Jacobian",
-                            problem_->name(), s, jac_rows_[s], jac_cols_[s], m_, n_));
+                            problem_->name(), s, rows[s], cols[s], m_, n_));
         }
     }
-    hess_rows_.resize(hess_nnz_);
-    hess_cols_.resize(hess_nnz_);
+    jac_rows_ = rows.cast<int>();
+    jac_cols_ = cols.cast<int>();
+    rows.resize(hess_nnz_);
+    cols.resize(hess_nnz_);
     if (hess_nnz_ > 0) {
-        problem_->hess_structure(hess_rows_, hess_cols_);
+        problem_->hessian_structure(rows, cols);
     }
     for (int s = 0; s < hess_nnz_; s++) {
-        if (hess_rows_[s] < 0 || hess_rows_[s] >= n_ || hess_cols_[s] < 0 || hess_cols_[s] >= n_) {
+        if (rows[s] < 0 || rows[s] >= n_ || cols[s] < 0 || cols[s] >= n_) {
             throw std::invalid_argument(
                 fmt::format("{}: Hessian slot {} is ({}, {}), outside the {}x{} Hessian",
-                            problem_->name(), s, hess_rows_[s], hess_cols_[s], n_, n_));
+                            problem_->name(), s, rows[s], cols[s], n_, n_));
         }
-        if (hess_rows_[s] < hess_cols_[s]) {
+        if (rows[s] < cols[s]) {
             throw std::invalid_argument(fmt::format(
                 "{}: Hessian slot {} is ({}, {}) — above the diagonal. Declare the LOWER "
                 "triangle of the Lagrangian Hessian (row >= col)",
-                problem_->name(), s, hess_rows_[s], hess_cols_[s]));
+                problem_->name(), s, rows[s], cols[s]));
         }
     }
+    hess_rows_ = rows.cast<int>();
+    hess_cols_ = cols.cast<int>();
 }
 
 void NlpProblemModel::build_jacobian_pattern() {
@@ -348,6 +363,17 @@ void NlpProblemModel::sync_x(const Vec &x) const {
     }
 }
 
+void NlpProblemModel::invalidate_cache() const {
+    x_cache_.resize(0);
+    g_valid_ = false;
+    jac_valid_ = false;
+}
+
+void NlpProblemModel::declared_g(const Vec &x, Vec &g) const {
+    this->refresh_g(x);
+    g = g_cache_;
+}
+
 void NlpProblemModel::refresh_g(const Vec &x) const {
     this->sync_x(x);
     if (!g_valid_) {
@@ -362,7 +388,7 @@ void NlpProblemModel::refresh_jac(const Vec &x) const {
     this->sync_x(x);
     if (!jac_valid_) {
         if (jac_nnz_ > 0) {
-            problem_->eval_jac(x, jac_cache_);
+            problem_->eval_jacobian(x, jac_cache_);
         }
         jac_valid_ = true;
     }
@@ -370,9 +396,7 @@ void NlpProblemModel::refresh_jac(const Vec &x) const {
 
 double NlpProblemModel::eval_f(const Vec &x) const {
     this->sync_x(x);
-    double f = 0.0;
-    problem_->eval_f(x, f);
-    return f;
+    return problem_->eval_f(x);
 }
 
 void NlpProblemModel::eval_grad_in_place(const Vec &x, Vec &out) const {
@@ -422,7 +446,7 @@ void NlpProblemModel::eval_hess_in_place(const Vec &x, double obj_scale, const V
     this->sync_x(x);
     this->compose_into(lambda_user_, lambda_e, lambda_i, "eval_hess_in_place");
     if (hess_nnz_ > 0) {
-        problem_->eval_hess(x_cache_, obj_scale, lambda_user_, hess_vals_);
+        problem_->eval_hessian(x_cache_, obj_scale, lambda_user_, hess_vals_);
     }
     adopt_pattern(out, hess_);
     zero_values(out);

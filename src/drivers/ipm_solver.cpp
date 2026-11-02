@@ -993,10 +993,10 @@ void hven::solvers::IpmSolverImpl::analyze_kkt_sparsity() {
 }
 
 void hven::solvers::IpmSolverImpl::clear_reported_constraint_blocks() {
-    this->result_.lambda_e.resize(0);
-    this->result_.lambda_i.resize(0);
-    this->result_.ce.resize(0);
-    this->result_.ci.resize(0);
+    hven::solvers::detail::engine_rows(this->result_).lambda_e.resize(0);
+    hven::solvers::detail::engine_rows(this->result_).lambda_i.resize(0);
+    hven::solvers::detail::engine_rows(this->result_).ce.resize(0);
+    hven::solvers::detail::engine_rows(this->result_).ci.resize(0);
 }
 
 // THE PUBLIC QUERY, which now names the program it is asking about (M6 W5
@@ -4317,12 +4317,12 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::alg_impl(AlgorithmModes algmode, B
     this->exit_eval_prov_ = this->cur_eval_prov_;
 
     if (this->equal_cons_ > 0) {
-        this->result_.ce = v_rhs.eq_cons();
-        this->result_.lambda_e = v_xsl.eq_lmults();
+        hven::solvers::detail::engine_rows(this->result_).ce = v_rhs.eq_cons();
+        hven::solvers::detail::engine_rows(this->result_).lambda_e = v_xsl.eq_lmults();
     }
     if (this->inequal_cons_ > 0) {
-        this->result_.ci = v_rhs.iq_cons() - v_xsl.slacks();
-        this->result_.lambda_i = v_xsl.iq_lmults();
+        hven::solvers::detail::engine_rows(this->result_).ci = v_rhs.iq_cons() - v_xsl.slacks();
+        hven::solvers::detail::engine_rows(this->result_).lambda_i = v_xsl.iq_lmults();
     }
     // Recorded unconditionally rather than under the bounds_ guard below: mu
     // describes the phase whether or not there are bound terms, and the
@@ -4518,7 +4518,7 @@ void hven::solvers::IpmSolverImpl::validate_staged_multipliers(const Eigen::Vect
                                                                const Eigen::VectorXd &iq_mults) {
     // eq_mults is accepted at either of two sizes: the problem's user-facing
     // equality row count (the common case -- what a caller building on
-    // NlpTripletModel/starting_multipliers() or hand-transcribing their own rows
+    // the retired starting_multipliers() or hand-transcribing their own rows
     // sees), or the post-treatment count that additionally counts one
     // internal fixing row per fixed variable under the MakeConstraint
     // treatment (NonLinearProgram::user_equal_cons_ vs. equal_cons_ -- see
@@ -4704,9 +4704,10 @@ void hven::solvers::IpmSolverImpl::capture_completed_warm_start() {
     };
     // No treatment ever adds an inequality row, so the reported inequality
     // block is the declared one.
-    if (!declared_block(this->result_.lambda_e, this->nlp_->user_equal_cons_,
-                        captured.eq_lmults_) ||
-        !declared_block(this->result_.lambda_i, this->nlp_->inequal_cons_, captured.iq_lmults_)) {
+    if (!declared_block(hven::solvers::detail::engine_rows(this->result_).lambda_e,
+                        this->nlp_->user_equal_cons_, captured.eq_lmults_) ||
+        !declared_block(hven::solvers::detail::engine_rows(this->result_).lambda_i,
+                        this->nlp_->inequal_cons_, captured.iq_lmults_)) {
         skip_capture();
         return;
     }
@@ -4767,7 +4768,8 @@ void hven::solvers::IpmSolverImpl::capture_completed_warm_start() {
     if (this->bounds_ && !this->solve_exit_restoration_active_) {
         Eigen::VectorXd declared_iq_values;
         WarmExtension polish;
-        if (!declared_block(this->result_.ci, this->nlp_->inequal_cons_, declared_iq_values) ||
+        if (!declared_block(hven::solvers::detail::engine_rows(this->result_).ci,
+                            this->nlp_->inequal_cons_, declared_iq_values) ||
             !this->build_polish_extension(declared_iq_values, polish)) {
             skip_capture();
             return;
@@ -5063,8 +5065,8 @@ void hven::solvers::IpmSolverImpl::unscale_reported_outputs() {
         return;
     }
     this->result_.f /= scale;
-    this->result_.lambda_e /= scale;
-    this->result_.lambda_i /= scale;
+    hven::solvers::detail::engine_rows(this->result_).lambda_e /= scale;
+    hven::solvers::detail::engine_rows(this->result_).lambda_i /= scale;
     this->result_.z /= scale;
 }
 
@@ -5957,7 +5959,8 @@ hven::solvers::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model, const 
     {
         const Index n = this->full_primal_vars_;
         const Index user_eq = this->nlp_->user_equal_cons_;
-        const Index fixing_rows = this->result_.lambda_e.size() - user_eq;
+        const Index fixing_rows =
+            hven::solvers::detail::engine_rows(this->result_).lambda_e.size() - user_eq;
 
         // (0) THE PROVENANCE GATE (M6 W5 T8.4 fix1), FIRST because every step
         //     below reads the two constraint blocks it decides about.
@@ -5977,8 +5980,8 @@ hven::solvers::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model, const 
         const bool restoration_contaminated =
             prov.restoration_active || this->solve_exit_restoration_active_;
         if (restoration_contaminated) {
-            this->result_.ce = Eigen::VectorXd();
-            this->result_.ci = Eigen::VectorXd();
+            hven::solvers::detail::engine_rows(this->result_).ce = Eigen::VectorXd();
+            hven::solvers::detail::engine_rows(this->result_).ci = Eigen::VectorXd();
         }
 
         // (1) The internal fixing rows come OFF the declared equality block.
@@ -5989,18 +5992,23 @@ hven::solvers::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model, const 
         //     variable fixed cost.
         Eigen::VectorXd fixed_lambda;
         if (fixing_rows > 0) {
-            fixed_lambda = this->result_.lambda_e.tail(fixing_rows);
+            fixed_lambda =
+                hven::solvers::detail::engine_rows(this->result_).lambda_e.tail(fixing_rows);
             this->result_.internal_fixed_lambda_e = fixed_lambda;
             // Guarded on the block still being there: (0) above may have
             // emptied it, and a tail() of a shorter vector is an out-of-range
             // read Eigen only catches in a Debug build (CLAUDE.md section 4).
             // An emptied block reports no fixing residual either -- the
             // restoration-space number is not one.
-            if (this->result_.ce.size() == this->result_.lambda_e.size()) {
-                this->result_.internal_fixed_ce = this->result_.ce.tail(fixing_rows);
-                this->result_.ce = Eigen::VectorXd(this->result_.ce.head(user_eq));
+            if (hven::solvers::detail::engine_rows(this->result_).ce.size() ==
+                hven::solvers::detail::engine_rows(this->result_).lambda_e.size()) {
+                this->result_.internal_fixed_ce =
+                    hven::solvers::detail::engine_rows(this->result_).ce.tail(fixing_rows);
+                hven::solvers::detail::engine_rows(this->result_).ce = Eigen::VectorXd(
+                    hven::solvers::detail::engine_rows(this->result_).ce.head(user_eq));
             }
-            this->result_.lambda_e = Eigen::VectorXd(this->result_.lambda_e.head(user_eq));
+            hven::solvers::detail::engine_rows(this->result_).lambda_e = Eigen::VectorXd(
+                hven::solvers::detail::engine_rows(this->result_).lambda_e.head(user_eq));
         }
 
         // (2) z, scattered to DECLARED width. The reduced block has no entry
@@ -6097,8 +6105,10 @@ hven::solvers::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model, const 
             // so the event a caller is handed mid-solve and the result it gets
             // at the end cannot drift apart. The numbers are unchanged.
             const DeclaredDiagnostics d = this->declared_diagnostics_from_reduced_grad_lag(
-                this->result_.x, this->result_.lambda_i, this->result_.z, this->exit_grad_lag_,
-                fixed_lambda, this->result_.ce, this->result_.ci, this->solve_obj_scale_,
+                this->result_.x, hven::solvers::detail::engine_rows(this->result_).lambda_i,
+                this->result_.z, this->exit_grad_lag_, fixed_lambda,
+                hven::solvers::detail::engine_rows(this->result_).ce,
+                hven::solvers::detail::engine_rows(this->result_).ci, this->solve_obj_scale_,
                 prov.objective_bearing);
             this->result_.stationarity = d.stationarity;
             this->result_.feasibility_e = d.feasibility_e;

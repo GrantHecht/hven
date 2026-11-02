@@ -4,7 +4,7 @@
 // The NlpModel bridge: its claim pass, its evaluation hooks, and the boundary
 // checks a bridge owes on a model implementation it did not write.
 
-#include "hven/model/nlp_model_assembly.h"
+#include "hven/detail/model/nlp_model_assembly.h"
 
 #include <limits>
 #include <stdexcept>

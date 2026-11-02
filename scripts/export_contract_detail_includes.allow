@@ -7,15 +7,6 @@
 # deleted, when B4 closes.
 #
 # format: <public header, relative to include/hven>|<included path>|<group that removes it>
-model/non_linear_program.h|hven/detail/interior/bound_set.h|B2
-model/non_linear_program.h|hven/detail/interior/constraint_function.h|B2
-model/non_linear_program.h|hven/detail/interior/fixed_variable_row.h|B2
-model/non_linear_program.h|hven/detail/interior/objective_function.h|B2
-model/non_linear_program.h|hven/detail/interior/typedefs/eigen_types.h|B2
-model/non_linear_program.h|hven/detail/interior/utils/thread_pool.h|B2
-model/non_linear_program.h|hven/detail/model/claim_restatement.h|B2
-model/nlp_problem_model.h|hven/detail/interior/typedefs/eigen_types.h|B2
-model/nlp_triplet_model.h|hven/detail/interior/typedefs/eigen_types.h|B2
 drivers/ipm_solver_types.h|hven/detail/drivers/ipm_solver_fwd.h|B3
 drivers/ipm_solver_types.h|hven/detail/interior/eval_error_log.h|B4
 drivers/ipm_solver_types.h|hven/detail/interior/kkt_factorization.h|B4

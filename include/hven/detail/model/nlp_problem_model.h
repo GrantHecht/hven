@@ -7,7 +7,7 @@
 // problem (model/nlp_triplet_model.h) to the native model contract
 // (model/nlp_model.h).
 //
-// NlpTripletModel states a problem the way Ipopt's TNLP does: one two-sided bound
+// Nlp states a problem the way Ipopt's TNLP does: one two-sided bound
 // pair per constraint row, a single flat Jacobian value array over a declared
 // (row, col) structure, and a lower-triangle Lagrangian Hessian over a second
 // such structure. NlpModel states the same problem the way this library's
@@ -16,7 +16,7 @@
 // whole by value.
 //
 // NlpProblemModel is the one object that performs that conversion, and it is
-// the only route by which an NlpTripletModel reaches an engine. Everything the
+// the only route by which an Nlp reaches an engine. Everything the
 // conversion decides -- which solver rows a declared row becomes, which sign
 // each carries, how the two multiplier shapes correspond -- is decided here,
 // once, at construction, and is readable from here rather than inferred from a
@@ -30,8 +30,8 @@
 
 #include "hven/core/types.h"
 #include "hven/detail/interior/typedefs/eigen_types.h"
-#include "hven/model/nlp_model.h"
-#include "hven/model/nlp_triplet_model.h"
+#include "hven/detail/model/nlp_model.h"
+#include "hven/model/nlp.h"
 
 namespace hven::solvers {
 
@@ -65,8 +65,8 @@ struct NLPRowClassification {
 /// Bounds are verbatim in both directions. Nothing here rescales, clips, or
 /// reinterprets a declared bound: -inf / +inf mean unbounded on that side, and
 /// every finite value is a real bound however large. lower() and upper() hand
-/// back exactly what NlpTripletModel::bounds declared, and the constraint-row
-/// bounds enter the residuals as the shifts they are. NlpTripletModel's own
+/// back exactly what Nlp::bounds declared, and the constraint-row
+/// bounds enter the residuals as the shifts they are. Nlp's own
 /// migration note states what this differs from.
 ///
 /// Row conversion. A declared row's kind decides its native rows and the sign
@@ -78,7 +78,7 @@ struct NLPRowClassification {
 ///   Range         (both finite)       -> two inequality rows, g(x) - gu then gl - g(x)
 ///   Free          (both infinite)     -> no row
 ///
-/// Multiplier shapes. NlpTripletModel carries one multiplier per declared row, in
+/// Multiplier shapes. Nlp carries one multiplier per declared row, in
 /// Ipopt's sign convention (L = obj_factor*f + lambda^T g). NlpModel carries a
 /// lambda_e per equality row and a lambda_i >= 0 per inequality row, in the
 /// convention nlp_model.h states. The two correspond row by row, by kind:
@@ -111,8 +111,8 @@ struct NLPRowClassification {
 /// matrices carry one entry per distinct coordinate.
 ///
 /// Evaluation callbacks are pure, so g(x) and the Jacobian values are cached
-/// per iterate: eval_ce and eval_ci share one NlpTripletModel::eval_g call, and
-/// eval_jac_e and eval_jac_i share one NlpTripletModel::eval_jac call.
+/// per iterate: eval_ce and eval_ci share one Nlp::eval_g call, and
+/// eval_jac_e and eval_jac_i share one Nlp::eval_jacobian call.
 ///
 /// Thread safety. None: the caches above and the storage below are mutable
 /// members this model rewrites on every evaluation, so two threads evaluating
@@ -138,7 +138,7 @@ class NlpProblemModel final : public NlpModel {
     ///         inverted, or an equality at infinity, or a structure entry
     ///         outside its matrix (a Hessian entry above the diagonal
     ///         included).
-    explicit NlpProblemModel(std::shared_ptr<NlpTripletModel> problem);
+    explicit NlpProblemModel(std::shared_ptr<Nlp> problem);
 
     Index n() const override { return n_; }
     Index me() const override { return rows_.num_eq_; }
@@ -231,15 +231,26 @@ class NlpProblemModel final : public NlpModel {
 
     /// @brief The origin projected onto the declared variable bounds.
     ///
-    /// NlpTripletModel declares no start point -- the primal guess is an argument
+    /// Nlp declares no start point -- the primal guess is an argument
     /// to the solve entry points -- so this is a bounds-respecting default
     /// rather than a value the problem stated.
     Vec start_point() const override;
 
     /// @brief The problem this model converts.
-    const NlpTripletModel &problem() const { return *problem_; }
+    const Nlp &problem() const { return *problem_; }
     /// @brief Shared ownership of the problem this model converts.
-    const std::shared_ptr<NlpTripletModel> &problem_ptr() const { return problem_; }
+    const std::shared_ptr<Nlp> &problem_ptr() const { return problem_; }
+
+    /// @brief Forgets the per-iterate cache, so the next evaluation calls the
+    ///        problem even at the cached point. A Problem calls this at every
+    ///        solve entry: between solves the problem's values may change.
+    void invalidate_cache() const;
+
+    /// @brief The declared row values g(x), one per declared row, through the
+    ///        same per-iterate cache the residuals use.
+    /// @param x The point; n() entries.
+    /// @param g Filled with num_declared_rows() entries.
+    void declared_g(const Vec &x, Vec &g) const;
     /// @brief The row classification decided at construction.
     const NLPRowClassification &rows() const { return rows_; }
     /// @brief The number of constraint rows the problem declared.
@@ -282,7 +293,7 @@ class NlpProblemModel final : public NlpModel {
         double shift_;
     };
 
-    void validate_sizes() const;
+    void validate_sizes(const NlpDimensions &dims) const;
     void validate_variable_bounds() const;
     void build_row_tables(ConstEigenRef<Eigen::VectorXd> gl, ConstEigenRef<Eigen::VectorXd> gu);
     void read_structures();
@@ -300,7 +311,7 @@ class NlpProblemModel final : public NlpModel {
     void refresh_g(const Vec &x) const;
     void refresh_jac(const Vec &x) const;
 
-    std::shared_ptr<NlpTripletModel> problem_;
+    std::shared_ptr<Nlp> problem_;
     int n_ = 0, m_ = 0, jac_nnz_ = 0, hess_nnz_ = 0;
 
     Vec x_lower_, x_upper_;

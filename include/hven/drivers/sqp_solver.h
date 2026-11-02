@@ -20,8 +20,7 @@
 #include <hven/drivers/solve_result.h>
 #include <hven/drivers/solve_status.h>
 #include <hven/drivers/sqp_solver_types.h>
-#include <hven/model/nlp_model.h>
-#include <hven/model/nlp_model_assembly.h>
+#include <hven/model/problem.h>
 #include <hven/warmstart/sqp_warm_start.h>
 #include <hven/warmstart/warm_start_data.h>
 
@@ -85,26 +84,23 @@ class SqpSolver {
     /// -1 when this solver has not built that tier yet.
     int ipqp_tier_num_threads() const;
 
-    /// Solves from the model's own `start_point()`.
-    /// @param model The problem.
-    /// @return The solution.
-    /// @throws std::invalid_argument on a model that cannot describe a
-    ///         problem; see the explicit-start overload.
-    SqpResult solve(const NlpModel &model);
+    /// Solves `problem` from `x0`.
+    ///
+    /// The problem is borrowed for the call. Its per-solve re-read runs first
+    /// (model/problem.h). `lambda` and `g` on the result are in the problem's row
+    /// space.
+    /// @param problem The problem; borrowed.
+    /// @param x0      The start point.
+    /// @throws std::invalid_argument if the problem refuses the solve: a pieces
+    ///         problem, which this engine does not solve; a dimension, structure
+    ///         or row-kind change; an Nlp with has_hessian() == false under
+    ///         SqpHessianMode::kExact. Also on a declaration this engine cannot
+    ///         lay: a crossed or NaN box, a Jacobian or Hessian whose dimensions
+    ///         contradict the row and variable counts, and, per evaluation, a
+    ///         stored element count or coordinate set that moves with `x`.
+    SqpResult solve(Problem &problem, const Vec &x0);
 
-    /// Solves from an explicit start point.
-    /// @param model The problem.
-    /// @param x0    The start point.
-    /// @throws std::invalid_argument on a model that cannot describe a problem.
-    ///         The model is wrapped in an assembly whose declaration is
-    ///         validated before the loop starts: a crossed or NaN box, a
-    ///         `start_point()` whose size is not `n()`, a Hessian entry below
-    ///         the diagonal, a Jacobian or Hessian whose dimensions
-    ///         contradict `me()`/`mi()`/`n()`, and, per evaluation, a stored
-    ///         element count or coordinate set that moves with `x`.
-    SqpResult solve(const NlpModel &model, const Vec &x0);
-
-    /// Solves from an explicit start point under a work ceiling.
+    /// Solves from `x0` under a work ceiling.
     /// @param budget `minor_budget` is the probe budget: 0 is no budget, and a
     ///               positive value stops the solve at the top of the first
     ///               major that finds `qp_minor_iters >= minor_budget` without
@@ -117,20 +113,9 @@ class SqpSolver {
     ///               the exit conjunction, the restoration refusal and the
     ///               restoration sub-driver alike: a caller may tighten the
     ///               engine's limit, never loosen it.
-    SqpResult solve(const NlpModel &model, const Vec &x0, SolveBudget budget);
+    SqpResult solve(Problem &problem, const Vec &x0, SolveBudget budget);
 
-    /// Solves against an already-built assembly (cold start). The assembly is
-    /// caller-owned and owes one operation at a time, structural mutation
-    /// included.
-    /// @throws std::invalid_argument only through `bridge` itself; this entry
-    ///         does not re-check the box, which the assembly validated when it
-    ///         laid its structures.
-    SqpResult solve(NlpModelAssembly &bridge, const Vec &x0);
-
-    /// As above, under a work ceiling (see the model-taking overload).
-    SqpResult solve(NlpModelAssembly &bridge, const Vec &x0, SolveBudget budget);
-
-    /// Warm-start ingest of this engine's native object, against a model.
+    /// Warm-start ingest of this engine's native object.
     ///
     /// The native route is the SQP-only entry and the only route to `kWarm` and
     /// `kHot`. It never throws on a stale or foreign value: an unusable hash
@@ -138,16 +123,12 @@ class SqpSolver {
     /// ingest gate degrades to `kCold`.
     /// @param x0 The start point; ignored whenever `warm` resolves above
     ///           `kCold`, where the solve starts from `warm.x`.
-    /// @throws std::invalid_argument on a model that cannot describe a
-    ///         problem, checked before `warm` is looked at.
-    SqpResult solve(const NlpModel &model, const Vec &x0, const SqpWarmStart &warm,
+    /// @throws std::invalid_argument as the cold overload, checked before `warm`
+    ///         is looked at.
+    SqpResult solve(Problem &problem, const Vec &x0, const SqpWarmStart &warm,
                     SolveBudget budget = {});
 
-    /// As above, against an already-built assembly.
-    SqpResult solve(NlpModelAssembly &bridge, const Vec &x0, const SqpWarmStart &warm,
-                    SolveBudget budget = {});
-
-    /// Warm-start ingest of the shared payload, against a model.
+    /// Warm-start ingest of the shared payload.
     ///
     /// The payload is the declared-space currency that both engines accept,
     /// that `SolveResult::export_warm_start()` hands back and that travels
@@ -167,23 +148,18 @@ class SqpSolver {
     /// `SqpCounters::polish_ignored`. `z` is never ingested from any seed on
     /// this engine.
     ///
-    /// A braced third argument (`solve(model, x0, {})`) is ambiguous between
+    /// A braced third argument (`solve(problem, x0, {})`) is ambiguous between
     /// `SolveBudget`, `WarmStartData` and `SqpWarmStart`; spell the type.
     ///
     /// @param x0 The start point, used whenever `warm` does not supply one.
-    /// @throws std::invalid_argument on a model that cannot describe a problem
-    ///         (checked first); if any core block of `warm` holds a non-finite
-    ///         value; if `primal_` and `bound_lmults_` are neither both empty
-    ///         nor one length; if the `"hven.ipm.polish.v1"` extension is
-    ///         duplicated, unreadable, mis-sized or holds a non-finite or
-    ///         negative bound dual; if any block is not at the problem's
-    ///         declared dimensions; or if the declaration stamp is not this
-    ///         problem's.
-    SqpResult solve(const NlpModel &model, const Vec &x0, const WarmStartData &warm,
-                    SolveBudget budget = {});
-
-    /// As above, against an already-built assembly.
-    SqpResult solve(NlpModelAssembly &bridge, const Vec &x0, const WarmStartData &warm,
+    /// @throws std::invalid_argument as the cold overload (checked first); if
+    ///         any core block of `warm` holds a non-finite value; if `primal_`
+    ///         and `bound_lmults_` are neither both empty nor one length; if the
+    ///         `"hven.ipm.polish.v1"` extension is duplicated, unreadable,
+    ///         mis-sized or holds a non-finite or negative bound dual; if any
+    ///         block is not at the problem's declared dimensions; or if the
+    ///         declaration stamp is not this problem's.
+    SqpResult solve(Problem &problem, const Vec &x0, const WarmStartData &warm,
                     SolveBudget budget = {});
 
     /// The warm-start value of the last completed solve, in declared space and

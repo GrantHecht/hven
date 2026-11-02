@@ -13,6 +13,7 @@
 #include <utility>
 
 #include "hven/detail/drivers/sqp_solver_impl.h"
+#include "hven/detail/model/problem_access.h"
 
 namespace hven::solvers {
 
@@ -53,40 +54,48 @@ int SqpSolver::ssn_tier_num_threads() const { return impl().ssn_tier_num_threads
 
 int SqpSolver::ipqp_tier_num_threads() const { return impl().ipqp_tier_num_threads(); }
 
-SqpResult SqpSolver::solve(const NlpModel &model) { return impl().solve(model); }
+// The Problem is the solve's one argument: the SQP's form of it is refreshed
+// first (or the solve refused), the engine's internal entry runs on that form
+// unchanged, and the result's row blocks are mapped into the problem's row
+// space last.
+namespace {
 
-SqpResult SqpSolver::solve(const NlpModel &model, const Vec &x0) { return impl().solve(model, x0); }
-
-SqpResult SqpSolver::solve(const NlpModel &model, const Vec &x0, SolveBudget budget) {
-    return impl().solve(model, x0, budget);
+bool reads_exact_hessian(const SqpOptions &options) {
+    return options.hessian_mode == SqpHessianMode::kExact;
 }
 
-SqpResult SqpSolver::solve(NlpModelAssembly &bridge, const Vec &x0) {
-    return impl().solve(bridge, x0);
+template <class Entry> SqpResult solve_on(SqpSolverImpl &engine, Problem &problem, Entry &&entry) {
+    const detail::SqpTarget target =
+        detail::ProblemAccess::sqp_target(problem, reads_exact_hessian(engine.options()));
+    SqpResult result = target.assembly != nullptr ? entry(*target.assembly) : entry(*target.model);
+    detail::ProblemAccess::report(problem, result);
+    return result;
 }
 
-SqpResult SqpSolver::solve(NlpModelAssembly &bridge, const Vec &x0, SolveBudget budget) {
-    return impl().solve(bridge, x0, budget);
+} // namespace
+
+SqpResult SqpSolver::solve(Problem &problem, const Vec &x0) {
+    SqpSolverImpl &engine = impl();
+    return solve_on(engine, problem, [&](auto &form) { return engine.solve(form, x0); });
 }
 
-SqpResult SqpSolver::solve(const NlpModel &model, const Vec &x0, const SqpWarmStart &warm,
+SqpResult SqpSolver::solve(Problem &problem, const Vec &x0, SolveBudget budget) {
+    SqpSolverImpl &engine = impl();
+    return solve_on(engine, problem, [&](auto &form) { return engine.solve(form, x0, budget); });
+}
+
+SqpResult SqpSolver::solve(Problem &problem, const Vec &x0, const SqpWarmStart &warm,
                            SolveBudget budget) {
-    return impl().solve(model, x0, warm, budget);
+    SqpSolverImpl &engine = impl();
+    return solve_on(engine, problem,
+                    [&](auto &form) { return engine.solve(form, x0, warm, budget); });
 }
 
-SqpResult SqpSolver::solve(NlpModelAssembly &bridge, const Vec &x0, const SqpWarmStart &warm,
+SqpResult SqpSolver::solve(Problem &problem, const Vec &x0, const WarmStartData &warm,
                            SolveBudget budget) {
-    return impl().solve(bridge, x0, warm, budget);
-}
-
-SqpResult SqpSolver::solve(const NlpModel &model, const Vec &x0, const WarmStartData &warm,
-                           SolveBudget budget) {
-    return impl().solve(model, x0, warm, budget);
-}
-
-SqpResult SqpSolver::solve(NlpModelAssembly &bridge, const Vec &x0, const WarmStartData &warm,
-                           SolveBudget budget) {
-    return impl().solve(bridge, x0, warm, budget);
+    SqpSolverImpl &engine = impl();
+    return solve_on(engine, problem,
+                    [&](auto &form) { return engine.solve(form, x0, warm, budget); });
 }
 
 WarmStartData SqpSolver::export_warm_start() const { return impl().export_warm_start(); }

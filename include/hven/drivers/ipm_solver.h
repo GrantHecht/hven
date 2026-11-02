@@ -24,7 +24,7 @@
 #include "hven/drivers/ipm_solver_types.h"
 #include "hven/drivers/solve_result.h"
 #include "hven/drivers/solve_status.h"
-#include "hven/model/non_linear_program.h"
+#include "hven/model/problem.h"
 #include "hven/warmstart/seeding.h"
 #include "hven/warmstart/warm_start_data.h"
 
@@ -41,12 +41,13 @@ struct IpmSolverAccess;
 /// Primal-dual interior-point solver for continuous NLPs.
 ///
 /// A solve runs the phase sequence named by `IpmOptions::phases` over a
-/// `NonLinearProgram`, with the barrier, line-search, step-acceptance, recovery
-/// and restoration behaviour selected by `IpmOptions`. The program is an
+/// `Problem` (model/problem.h), with the barrier, line-search, step-acceptance,
+/// recovery and restoration behaviour selected by `IpmOptions`. The problem is an
 /// argument of `solve()`; the solver keeps nothing that refers to it between
-/// calls except an identity token (structure key, structure epoch and the
-/// fixed-variable treatment), which lets a later solve of the same program
-/// reuse the symbolic KKT analysis.
+/// calls except an identity token for the interior-point transcription the
+/// Problem holds (structure key, structure epoch and the fixed-variable
+/// treatment), which lets a later solve of the same problem reuse the symbolic
+/// KKT analysis.
 ///
 /// Thread safety: one solver is not safe for concurrent use. Distinct solvers
 /// may run concurrently. See docs/concurrency.md.
@@ -74,8 +75,7 @@ class IpmSolver {
     /// `XSL`, the objective scale, the primal-dual step `PGX`, the right-hand
     /// side `RHS`, and the KKT matrix. The iterate, right-hand side and matrix
     /// are in the solver's REDUCED space: a bound-fixed variable is eliminated,
-    /// so the primal block is narrower than the caller's start point. Map
-    /// through `NonLinearProgram::reduced_to_full()` to recover declared space.
+    /// so the primal block is narrower than the caller's start point.
     /// `XSL`, `PGX` and `RHS` are read-only views of the solver's storage,
     /// valid only for the duration of the call.
     ///
@@ -121,27 +121,31 @@ class IpmSolver {
     /// its cap iteration reads `kNone`: the convergence, not the cap, ended it.
     IpmStopReason last_stop_reason() const;
 
-    /// True when `model` is the program the solver's current symbolic analysis
-    /// was laid against and no structural event has happened to it since.
-    /// Compared by identity token, never by address. False before the first
-    /// solve and for any other program.
-    bool kkt_pattern_is_analyzed(const NonLinearProgram &model) const;
+    /// True when `problem`'s interior-point transcription is the one the solver's
+    /// current symbolic analysis was laid against and no structural event has
+    /// happened to it since. Compared by identity token, never by address. False
+    /// before the first solve, for any other problem, and for a problem whose
+    /// transcription a bound change re-laid.
+    bool kkt_pattern_is_analyzed(const Problem &problem) const;
 
-    /// Runs the configured phase sequence over `model` from `x0`.
+    /// Runs the configured phase sequence over `problem` from `x0`.
     ///
-    /// The program is borrowed for the call and released on every exit, a throw
-    /// included.
+    /// The problem is borrowed for the call and released on every exit, a throw
+    /// included. Its per-solve re-read runs first (model/problem.h). `lambda` and
+    /// `g` on the result are in the problem's row space.
     ///
-    /// @param model  The program; borrowed.
-    /// @param x0     The start point, in `model`'s declared variable space.
+    /// @param problem The problem; borrowed.
+    /// @param x0     The start point, in the problem's variable space.
     /// @param budget Work ceiling. A non-zero `max_iterations` caps each phase
     ///               at `min(budget, IpmOptions::max_iters)`: a caller may
     ///               tighten the engine's limit, never loosen it. `minor_budget`
     ///               is ignored (this engine has no minor loop).
     /// @return The result, by value.
     /// @throws std::invalid_argument if `x0` is not sized to the declared
-    ///         primal width, or if the options fail validation.
-    IpmResult solve(NonLinearProgram &model, const Eigen::VectorXd &x0, SolveBudget budget = {});
+    ///         primal width, if the options fail validation, if the problem
+    ///         refuses the solve (a dimension, structure or row-kind change; an
+    ///         Nlp with has_hessian() == false; an SQP-only internal form).
+    IpmResult solve(Problem &problem, const Eigen::VectorXd &x0, SolveBudget budget = {});
 
     /// As above, starting from the warm-start payload `warm`.
     ///
@@ -173,8 +177,8 @@ class IpmSolver {
     ///         validation, any block of `warm` is non-finite or not at the
     ///         declared width, the core blocks disagree, the polish extension
     ///         is duplicated, unreadable or mis-sized, or the declaration
-    ///         stamp is not this program's.
-    IpmResult solve(NonLinearProgram &model, const Eigen::VectorXd &x0, const WarmStartData &warm,
+    ///         stamp is not this problem's, or as above.
+    IpmResult solve(Problem &problem, const Eigen::VectorXd &x0, const WarmStartData &warm,
                     SolveBudget budget = {});
 
     /// Installs the per-iteration callback that both engines accept, with the

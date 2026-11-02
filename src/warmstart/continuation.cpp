@@ -8,6 +8,8 @@
 
 #include <hven/detail/warmstart/continuation.h>
 
+#include <hven/detail/model/problem_access.h>
+
 namespace hven::solvers {
 
 namespace continuation_detail {
@@ -103,7 +105,7 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
 
     // Step 0: the one cold solve.
     model.set_parameters(p0);
-    SqpResult sol = driver.solve(model, model.start_point());
+    SqpResult sol = driver.solve(detail::problem_ref(model), model.start_point());
     record(p0, 0.0, sol, std::nullopt, /*used=*/false);
 
     // THE COLD STEP PARTICIPATES IN THE BUDGET RULE TOO: a p0 needing two
@@ -127,7 +129,7 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
          cold_continuations < continuation_detail::kBudgetContinuationsMax;
          ++cold_continuations) {
         const SqpWarmStart handoff = sol.warm_start;
-        sol = driver.solve(model, handoff.x, handoff);
+        sol = driver.solve(detail::problem_ref(model), handoff.x, handoff);
         minors_at_proposal += sol.counters.qp_minor_iters;
         record(p0, 0.0, sol, std::nullopt, /*used=*/false);
     }
@@ -280,7 +282,8 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
         // The probe budget is `SolveBudget::minor_budget` since M6 W5 T8.4;
         // the designated form so no reader takes the positional slot for the
         // major cap, which is the other member.
-        sol = driver.solve(model, seed.x, seed, SolveBudget{/*minor_budget=*/probe_minors});
+        sol = driver.solve(detail::problem_ref(model), seed.x, seed,
+                           SolveBudget{/*minor_budget=*/probe_minors});
         majors_at_proposal += sol.counters.major_iters;
         minors_at_proposal += sol.counters.qp_minor_iters;
         record(p_next, step_dp, sol, reported, predictor_used);

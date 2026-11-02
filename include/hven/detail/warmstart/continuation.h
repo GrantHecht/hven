@@ -189,10 +189,10 @@
 #include <fmt/format.h>
 
 #include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/nlp_model.h>
 #include <hven/detail/warmstart/predictor.h>
 #include <hven/detail/warmstart/warm_start.h>
 #include <hven/drivers/sqp_solver_types.h>
-#include <hven/model/nlp_model.h>
 #include <hven/qp/qp_types.h>
 
 namespace hven::solvers {

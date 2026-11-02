@@ -2612,8 +2612,10 @@ void SqpSolverImpl::capture_completed_warm_start(SqpResult &out, const AssemblyE
     WarmStartData captured;
     captured.primal_ = out.x;
     captured.bound_lmults_ = out.z;
-    if (!row_block(out.lambda_e, seam.me(), captured.eq_lmults_) ||
-        !row_block(out.lambda_i, seam.mi(), captured.iq_lmults_)) {
+    if (!row_block(detail::engine_rows(out).lambda_e, seam.me(),
+                   captured.eq_lmults_) ||
+        !row_block(detail::engine_rows(out).lambda_i, seam.mi(),
+                   captured.iq_lmults_)) {
         skip_capture();
         return;
     }
@@ -2847,14 +2849,18 @@ void SqpSolverImpl::map_column_scaled_answer(SqpResult &out) {
         out.x.array() *= d.array();
     }
     const bool measurable = out.x.size() == n && out.x.allFinite() &&
-                            out.lambda_e.size() == seam.me() && out.lambda_i.size() == seam.mi();
+                            detail::engine_rows(out).lambda_e.size() == seam.me() &&
+                            detail::engine_rows(out).lambda_i.size() == seam.mi();
     if (measurable) {
         // RE-MEASURED ON THE CALLER'S MODEL at the returned point and prices, so the
         // terminal residuals and the bound prices describe the problem the caller
         // posed rather than being mapped back through the factors.
-        const NlpEval ev = seam.eval_nlp(out.x, out.lambda_e, out.lambda_i);
+        const NlpEval ev = seam.eval_nlp(out.x, detail::engine_rows(out).lambda_e,
+                                         detail::engine_rows(out).lambda_i);
         ++out.counters.evals_full;
-        const SqpKkt k = evaluate_kkt(seam, ev, out.x, out.lambda_e, out.lambda_i, opts_.feas_tol);
+        const SqpKkt k =
+            evaluate_kkt(seam, ev, out.x, detail::engine_rows(out).lambda_e,
+                         detail::engine_rows(out).lambda_i, opts_.feas_tol);
         // THE BOUND PRICE FOLLOWS WHAT finish EXPORTED: the feasibility problem's own
         // price (finish's note on the adopting restoration exits, every status) is
         // not a measurement of this model, so it is mapped; grad L's is re-measured.
@@ -2866,9 +2872,10 @@ void SqpSolverImpl::map_column_scaled_answer(SqpResult &out) {
             out.z = k.z;
         }
         record_terminal_kkt(out, k);
-        const DeclaredDiagnostics dd =
-            compute_declared_diagnostics(out.x, out.lambda_e, out.lambda_i, out.z, ev.grad, ev.Je,
-                                         ev.Ji, ev.ce, ev.ci, seam.lower(), seam.upper(), {});
+        const DeclaredDiagnostics dd = compute_declared_diagnostics(
+            out.x, detail::engine_rows(out).lambda_e,
+            detail::engine_rows(out).lambda_i, out.z, ev.grad, ev.Je, ev.Ji, ev.ce,
+            ev.ci, seam.lower(), seam.upper(), {});
         // Each shared diagnostic is replaced only where the inner solve MEASURED it:
         // a NaN there means unmeasured (sqp_solver_types.h) and stays NaN.
         if (!std::isnan(out.stationarity)) {
@@ -5903,22 +5910,27 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     }
     // The phase's equality multipliers over every model row: zero on the rows it
     // did not carry, so J^T lambda (and the certificate below) is the phase's own.
-    Vec rs_lambda_e = rs.lambda_e;
-    if (resto_rows && rs.lambda_e.size() == resto_rows->me()) {
+    Vec rs_lambda_e = detail::engine_rows(rs).lambda_e;
+    if (resto_rows && detail::engine_rows(rs).lambda_e.size() == resto_rows->me()) {
         rs_lambda_e = Vec::Zero(seam.me());
         for (std::size_t k = 0; k < st.eqb.basis.retained().size(); ++k) {
-            rs_lambda_e(st.eqb.basis.retained()[k]) = rs.lambda_e(static_cast<Index>(k));
+            rs_lambda_e(st.eqb.basis.retained()[k]) =
+                detail::engine_rows(rs).lambda_e(static_cast<Index>(k));
         }
     }
 
     const Vec x_r = phase_wrapper->original_x(rs.x);
-    NlpEval ev_r = x_r.allFinite() ? seam.eval_nlp(x_r, rs_lambda_e, rs.lambda_i) : NlpEval{};
+    NlpEval ev_r = x_r.allFinite() ? seam.eval_nlp(x_r, rs_lambda_e,
+                                                   detail::engine_rows(rs).lambda_i)
+                                   : NlpEval{};
     if (x_r.allFinite()) {
         ++st.out.counters.evals_full;
     }
     const SqpKkt kkt_r =
-        x_r.allFinite() ? evaluate_kkt(seam, ev_r, x_r, rs_lambda_e, rs.lambda_i, opts_.feas_tol)
-                        : SqpKkt{};
+        x_r.allFinite()
+            ? evaluate_kkt(seam, ev_r, x_r, rs_lambda_e,
+                           detail::engine_rows(rs).lambda_i, opts_.feas_tol)
+            : SqpKkt{};
     if (!x_r.allFinite() || !kkt_r.finite) {
         // The restoration walked somewhere the main model cannot
         // be measured. The iterate is NOT moved there -- the
@@ -6039,7 +6051,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     // this flag's own declaration note.
     st.resto.moved_x = true;
     st.lambda_e = rs_lambda_e;
-    st.lambda_i = rs.lambda_i;
+    st.lambda_i = detail::engine_rows(rs).lambda_i;
     // AND THEY ARRIVE ALREADY IN THE CALLER'S UNITS (M6 W0.2). The
     // sub-solve above ran with `ropts.enable_scaling = false` over the
     // RAW model, so these selectors -- and `rs.z` below -- carry no
@@ -6083,8 +6095,9 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     // `st.resto.kkt`, whose `z` is the restoration problem's own bound price
     // (substituted just above, for the reason stated there), so the
     // stationarity read here is the one the certificate is stated in.
-    st.resto.diag = stash_declared_diagnostics(ev_r, st.resto.kkt, x_r, rs.lambda_i, seam.lower(),
-                                               seam.upper());
+    st.resto.diag = stash_declared_diagnostics(ev_r, st.resto.kkt, x_r,
+                                               detail::engine_rows(rs).lambda_i,
+                                               seam.lower(), seam.upper());
     switch (rs.status) {
     case SolveStatus::kOptimal:
         // THE CERTIFIED EXIT, AND THE ONLY ONE: the feasibility
@@ -6152,13 +6165,13 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
             break;
         }
         st.resto.status = SolveStatus::kInfeasible;
-        st.out.infeasibility_certified =
-            feasibility_subsolve_certifies(opts_.restoration_proximity, opts_.kkt_tol, rs_lambda_e,
-                                           rs.lambda_i, st.resto.kkt.z, [&ev_r, &seam] {
-                                               NlpEval certificate_ev = ev_r;
-                                               seam.to_caller_scale(certificate_ev);
-                                               return certificate_ev;
-                                           });
+        st.out.infeasibility_certified = feasibility_subsolve_certifies(
+            opts_.restoration_proximity, opts_.kkt_tol, rs_lambda_e,
+            detail::engine_rows(rs).lambda_i, st.resto.kkt.z, [&ev_r, &seam] {
+                NlpEval certificate_ev = ev_r;
+                seam.to_caller_scale(certificate_ev);
+                return certificate_ev;
+            });
         break;
     case SolveStatus::kInfeasible:
         // No sub-solve exit spells this since L1 (its refused nested
@@ -6661,8 +6674,8 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         push_history(mj.row);
         st.out.status = SolveStatus::kNumericalError;
         st.out.x = st.x;
-        st.out.lambda_e = Vec::Zero(seam.me());
-        st.out.lambda_i = Vec::Zero(seam.mi());
+        detail::engine_rows(st.out).lambda_e = Vec::Zero(seam.me());
+        detail::engine_rows(st.out).lambda_i = Vec::Zero(seam.mi());
         st.out.z = Vec::Zero(st.n);
         // THE ONE EXIT THAT DOES NOT ROUTE THROUGH `finish`, so the two
         // things that boundary does for a scaled solve are done here (M6
@@ -6698,8 +6711,8 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
                             /*probe_x=*/nullptr, st.delta, st.last_dual_mu, opts_.qp.primal_delta,
                             st.strategy.get(), engine_->hot_state());
         st.out.warm_start.x = st.out.x;
-        st.out.warm_start.lambda_e = st.out.lambda_e;
-        st.out.warm_start.lambda_i = st.out.lambda_i;
+        st.out.warm_start.lambda_e = detail::engine_rows(st.out).lambda_e;
+        st.out.warm_start.lambda_i = detail::engine_rows(st.out).lambda_i;
         st.out.warm_start.z = st.out.z;
         if (st.solve_scaling.active) {
             // THE SAME DROP `finish` APPLIES, so this exit's object is
@@ -8791,8 +8804,8 @@ SqpResult SqpSolverImpl::finish(AssemblyEvalSeam &seam, SqpResult out, SolveStat
     out.counters.eval_hess_calls += exit_probe_hess_calls_;
     exit_probe_hess_calls_ = 0;
     out.x = x;
-    out.lambda_e = lambda_e;
-    out.lambda_i = lambda_i;
+    detail::engine_rows(out).lambda_e = lambda_e;
+    detail::engine_rows(out).lambda_i = lambda_i;
     // ===================================================================
     // THE W0.2 UNSCALE, FIRST AT THIS BOUNDARY (M6 W0.2). Everything below
     // this block -- the R6 sign sweep, the terminal-KKT record, the warm-start
@@ -8817,11 +8830,17 @@ SqpResult SqpSolverImpl::finish(AssemblyEvalSeam &seam, SqpResult out, SolveStat
         // lambda_j = s_j * lambda~_j / sf, z = z~ / sf -- the ENGINE->CALLER
         // direction of problem_scaling.h's multiplier map. The bound duals
         // carry only sf because no bound was scaled.
-        if (out.lambda_e.size() == sc.eq_rows.size()) {
-            out.lambda_e = (out.lambda_e.array() * sc.eq_rows.array() / sc.obj).matrix();
+        if (detail::engine_rows(out).lambda_e.size() == sc.eq_rows.size()) {
+            detail::engine_rows(out).lambda_e =
+                (detail::engine_rows(out).lambda_e.array() * sc.eq_rows.array() /
+                 sc.obj)
+                    .matrix();
         }
-        if (out.lambda_i.size() == sc.ineq_rows.size()) {
-            out.lambda_i = (out.lambda_i.array() * sc.ineq_rows.array() / sc.obj).matrix();
+        if (detail::engine_rows(out).lambda_i.size() == sc.ineq_rows.size()) {
+            detail::engine_rows(out).lambda_i =
+                (detail::engine_rows(out).lambda_i.array() * sc.ineq_rows.array() /
+                 sc.obj)
+                    .matrix();
         }
     }
     // THE R6 SIGN SWEEP (M6 W0.3), AT THE ONE EXPORT BOUNDARY THIS DRIVER
@@ -8859,14 +8878,16 @@ SqpResult SqpSolverImpl::finish(AssemblyEvalSeam &seam, SqpResult out, SolveStat
     // PRE-sweep multipliers; measuring the scaled path at the POST-sweep ones
     // would quietly make that text false for exactly the solves this layer
     // touches. Empty, and free, when the solve is unscaled.
-    const Vec pre_sweep_lambda_e = sc.active ? out.lambda_e : Vec();
-    const Vec pre_sweep_lambda_i = sc.active ? out.lambda_i : Vec();
+    const Vec pre_sweep_lambda_e =
+        sc.active ? detail::engine_rows(out).lambda_e : Vec();
+    const Vec pre_sweep_lambda_i =
+        sc.active ? detail::engine_rows(out).lambda_i : Vec();
     // Filled only on the scaled re-measurement arm below; the unscaled path --
     // the shipped default, and every path the U0 replay covers -- reports the
     // caller's stash unchanged, because the space the solve ran in IS the
     // caller's.
     DeclaredDiagnosticsStash caller_scale_declared;
-    sweep_negative_face_prices(out.lambda_i, out.counters.ssn);
+    sweep_negative_face_prices(detail::engine_rows(out).lambda_i, out.counters.ssn);
     out.f = sc.active ? f / sc.obj : f;
     // THE REPORT, and the two residuals it reconciles. `kkt` was measured in
     // the space the solve ran in, so on a scaled solve it is the SCALED
@@ -8931,13 +8952,14 @@ SqpResult SqpSolverImpl::finish(AssemblyEvalSeam &seam, SqpResult out, SolveStat
         // which depends on a multiplier, so the re-fold is exact and costs no
         // model call.
         caller_scale_declared.d = compute_declared_diagnostics(
-            x, out.lambda_e, out.lambda_i, out.z, caller_ev.grad, caller_ev.Je, caller_ev.Ji,
-            caller_ev.ce, caller_ev.ci, seam.lower(), seam.upper(), {});
+            x, detail::engine_rows(out).lambda_e,
+            detail::engine_rows(out).lambda_i, out.z, caller_ev.grad, caller_ev.Je,
+            caller_ev.Ji, caller_ev.ce, caller_ev.ci, seam.lower(), seam.upper(), {});
         caller_scale_declared.ce = caller_ev.ce;
         caller_scale_declared.ci = caller_ev.ci;
         caller_scale_declared.measured = true;
         caller_scale_declared.duals_measured = true;
-        caller_scale_declared.lambda_i_at = out.lambda_i;
+        caller_scale_declared.lambda_i_at = detail::engine_rows(out).lambda_i;
         caller_scale_declared.z_at = out.z;
         seam.install_scaling(sc);
     } else {
@@ -8963,8 +8985,8 @@ SqpResult SqpSolverImpl::finish(AssemblyEvalSeam &seam, SqpResult out, SolveStat
     // inequality seed. Reading the `lambda_i` PARAMETER here would leave exactly
     // the leak R6 exists to close -- and, since W0.2, would additionally hand a
     // consumer engine-scale prices labelled as caller-scale ones.
-    warm.lambda_e = out.lambda_e;
-    warm.lambda_i = out.lambda_i;
+    warm.lambda_e = detail::engine_rows(out).lambda_e;
+    warm.lambda_i = detail::engine_rows(out).lambda_i;
     warm.z = out.z;
     if (sc.active) {
         // THE EXPORTED CURRENCY IS CALLER-SCALE, values and hints only; the
@@ -8994,8 +9016,8 @@ SqpResult SqpSolverImpl::finish(AssemblyEvalSeam &seam, SqpResult out, SolveStat
         // the stash was taken can make them describe a different point.
         out.feasibility_e = declared.d.feasibility_e;
         out.feasibility_i = declared.d.feasibility_i;
-        out.ce = declared.ce;
-        out.ci = declared.ci;
+        detail::engine_rows(out).ce = declared.ce;
+        detail::engine_rows(out).ci = declared.ci;
         // THE DUAL HALF ONLY WHEN IT DESCRIBES THE PRICES THIS CALL RETURNS
         // (M6 W5 T8.4 fix1). Two things move a price between a stash and this
         // line -- the W0.2 engine->caller map and the R6 sign sweep -- and a
@@ -9012,9 +9034,13 @@ SqpResult SqpSolverImpl::finish(AssemblyEvalSeam &seam, SqpResult out, SolveStat
         // pre-sweep disclosure, which is theirs to make; the shared contract
         // does not inherit it.
         const bool duals_are_the_returned_ones =
-            declared.duals_measured && declared.lambda_i_at.size() == out.lambda_i.size() &&
+            declared.duals_measured &&
+            declared.lambda_i_at.size() ==
+                detail::engine_rows(out).lambda_i.size() &&
             declared.z_at.size() == out.z.size() &&
-            (declared.lambda_i_at.array() == out.lambda_i.array()).all() &&
+            (declared.lambda_i_at.array() ==
+             detail::engine_rows(out).lambda_i.array())
+                .all() &&
             (declared.z_at.array() == out.z.array()).all();
         if (duals_are_the_returned_ones) {
             out.stationarity = declared.d.stationarity;

@@ -17,7 +17,7 @@
 
 #include "hven/detail/interior/indexing_data.h"
 #include "hven/detail/interior/utils/timer.h"
-#include "hven/model/non_linear_program.h"
+#include "hven/detail/model/non_linear_program.h"
 
 namespace {
 

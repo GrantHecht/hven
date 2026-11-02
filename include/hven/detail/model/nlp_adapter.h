@@ -41,14 +41,14 @@
 #include "hven/detail/interior/objective_function.h"
 #include "hven/detail/interior/threading_flags.h"
 #include "hven/detail/interior/typedefs/eigen_types.h"
-#include "hven/model/make_nlp_program.h"
-#include "hven/model/nlp_model.h"
+#include "hven/detail/model/make_nlp_program.h"
+#include "hven/detail/model/nlp_model.h"
 #include "hven/solver_interface_adapter.h"
 
 namespace hven::solvers {
 
 struct NonLinearProgram;
-class NlpTripletModel;
+class Nlp;
 
 /// One stored matrix entry's coordinates, in the order the model presents them.
 struct NLPCoordinate {
@@ -138,6 +138,15 @@ struct NLPAdapterCore {
     /// @param x The solver's iterate.
     /// @throws std::invalid_argument if @p x is not n() elements.
     void sync_x(ConstEigenRef<Eigen::VectorXd> x);
+
+    /// @brief Forgets every per-iterate value, so the next refresh calls the
+    ///        model even at the cached point. A Problem calls this at every solve
+    ///        entry: between solves the model's values may change.
+    void invalidate_cache() noexcept {
+        gradient_valid_ = false;
+        residuals_valid_ = false;
+        jacobians_valid_ = false;
+    }
 
     /// @brief Brings the objective gradient up to date at @p x.
     /// @param x The solver's iterate.
@@ -580,10 +589,8 @@ struct SolverInterfaceAdapter<NLPObjectivePiece> : DirectFunctionModel<NLPObject
 template <>
 struct SolverInterfaceAdapter<NLPConstraintPiece> : DirectFunctionModel<NLPConstraintPiece> {};
 
-// THE TWO make_nlp_program() OVERLOADS MOVED to the public header
-// hven/model/make_nlp_program.h (M7 W0 T5(a)), included above, so this header
-// still declares them for every existing include site. The declarations, their
-// defaults and their doc comments went over unchanged; the bodies stay in
+// The two make_nlp_program() overloads are declared in
+// hven/detail/model/make_nlp_program.h, included above; the bodies are in
 // src/model/nlp_adapter.cpp, beside the machinery above that they drive.
 
 } // namespace hven::solvers
