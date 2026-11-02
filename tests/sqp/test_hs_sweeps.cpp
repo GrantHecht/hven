@@ -112,11 +112,13 @@
 #include <gtest/gtest.h>
 
 #include <hven/core/ledger.h>
+#include <hven/detail/drivers/result_access.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/globalization/sqp/globalization.h>
+#include <hven/detail/model/nlp_model.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/detail/warmstart/continuation.h>
 #include <hven/drivers/sqp_solver_types.h>
-#include <hven/model/nlp_model.h>
 #include <hven/qp/qp_types.h>
 
 #include "../common_support/route_reference.h"
@@ -549,8 +551,10 @@ std::vector<ChainPoint> run_warm_chain(const HsSweepSpec &spec) {
         model->set_parameters(Vec::Constant(1, p));
         const StartLevel level = have_prev ? StartLevel::kWarm : StartLevel::kCold;
         SqpSolver driver(sweep_options(level, true, true, spec.max_iter));
-        const SqpResult sol = have_prev ? driver.solve(*model, prev.x, prev.warm_start)
-                                        : driver.solve(*model, model->start_point());
+        const SqpResult sol =
+            have_prev
+                ? driver.solve(hven::solvers::detail::problem_ref(*model), prev.x, prev.warm_start)
+                : driver.solve(hven::solvers::detail::problem_ref(*model), model->start_point());
         ChainPoint pt;
         pt.p = p;
         pt.status = sol.status;
@@ -594,7 +598,8 @@ SweepCell run_cold_grid(const HsSweepSpec &spec, const std::vector<double> &grid
         SqpSolver driver(sweep_options(StartLevel::kCold, full_step, enable_soc, spec.max_iter));
         driver.attach_ledger(&ledger, fmt::format("cold{}", i));
         model->set_parameters(Vec::Constant(1, grid[i]));
-        const SqpResult sol = driver.solve(*model, model->start_point());
+        const SqpResult sol =
+            driver.solve(hven::solvers::detail::problem_ref(*model), model->start_point());
         all_optimal = all_optimal && sol.status == SolveStatus::kOptimal;
         if (sol.status == SolveStatus::kOptimal) {
             const test_support::NlpKktResidual r = test_support::self_check_kkt(*model, sol, 1e-6);
@@ -1447,11 +1452,13 @@ void check_soc_trigger_ratios() {
                 return std::make_unique<RecordingFunnel>(&log);
             };
             SqpSolver decorated(opts);
-            const SqpResult sd = decorated.solve(*model, model->start_point());
+            const SqpResult sd =
+                decorated.solve(hven::solvers::detail::problem_ref(*model), model->start_point());
 
             // (b): the decorator is inert on a cold solve. Asserted, not argued.
             SqpSolver plain(sweep_options(StartLevel::kCold, true, true, spec.max_iter));
-            const SqpResult sp = plain.solve(*model, model->start_point());
+            const SqpResult sp =
+                plain.solve(hven::solvers::detail::problem_ref(*model), model->start_point());
             ASSERT_EQ(sp.counters.major_iters, sd.counters.major_iters) << spec.name << " p=" << p;
             ASSERT_EQ(sp.counters.qp_minor_iters, sd.counters.qp_minor_iters)
                 << spec.name << " p=" << p;
@@ -1593,23 +1600,24 @@ TEST(HsSweepRepair, WarmSolveOnAReleasedRowNoLongerCertifiesTheOldPoint) {
     // --- solve at p = 0: the published HS10, solved from its own start point.
     model->set_parameters(Vec::Constant(1, 0.0));
     SqpSolver d0(opts);
-    const SqpResult s0 = d0.solve(*model, model->start_point());
+    const SqpResult s0 = d0.solve(hven::solvers::detail::problem_ref(*model), model->start_point());
     ASSERT_EQ(SolveStatus::kOptimal, s0.status);
     EXPECT_NEAR(-1.0, s0.f, 1e-6);
     EXPECT_NEAR(1.0, s0.x(1), 1e-6);
-    ASSERT_EQ(1, s0.lambda_i.size());
-    EXPECT_NEAR(0.5, s0.lambda_i(0), 1e-6) << "the exact multiplier derived above";
+    ASSERT_EQ(1, hven::solvers::detail::engine_rows(s0).lambda_i.size());
+    EXPECT_NEAR(0.5, hven::solvers::detail::engine_rows(s0).lambda_i(0), 1e-6)
+        << "the exact multiplier derived above";
 
     // THE PRECONDITION OF THE WHOLE MECHANISM, checked from the model: at
     // p = 0.5 the row is strictly slack AT THE OLD POINT, by far more than
     // feas_tol, while the stale price is strictly positive.
     model->set_parameters(Vec::Constant(1, 0.5));
     EXPECT_NEAR(-0.5, model->eval_ci(s0.x)(0), 1e-6) << "released, by 5e5 x feas_tol";
-    EXPECT_GT(s0.lambda_i(0), 0.0);
+    EXPECT_GT(hven::solvers::detail::engine_rows(s0).lambda_i(0), 0.0);
 
     // --- the SAME model at p = 0.5, warm-started from that solve.
     SqpSolver d1(opts);
-    const SqpResult s1 = d1.solve(*model, s0.x, s0.warm_start);
+    const SqpResult s1 = d1.solve(hven::solvers::detail::problem_ref(*model), s0.x, s0.warm_start);
 
     // The warm start WAS ingested -- this is not a silently-cold solve, so the
     // repair is being exercised rather than bypassed.
@@ -1631,7 +1639,7 @@ TEST(HsSweepRepair, WarmSolveOnAReleasedRowNoLongerCertifiesTheOldPoint) {
 
     // THE TRUTH, from a cold solve of the same problem: x*(0.5) = (0, sqrt(1.5)).
     SqpSolver d2(sweep_options(StartLevel::kCold, true, true, 60));
-    const SqpResult s2 = d2.solve(*model, model->start_point());
+    const SqpResult s2 = d2.solve(hven::solvers::detail::problem_ref(*model), model->start_point());
     ASSERT_EQ(SolveStatus::kOptimal, s2.status);
     EXPECT_NEAR(-std::sqrt(1.5), s2.f, 1e-6);
     const test_support::NlpKktResidual rc = test_support::self_check_kkt(*model, s2, 1e-6);

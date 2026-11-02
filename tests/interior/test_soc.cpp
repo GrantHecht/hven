@@ -47,7 +47,7 @@
 #include "hven/detail/interior/iterate_info.h"
 #include "hven/detail/interior/kkt_factorization.h"
 #include "hven/detail/model/nlp_adapter.h"
-#include "hven/model/nlp_triplet_model.h"
+#include "hven/model/nlp.h"
 
 #include <gtest/gtest.h>
 
@@ -214,7 +214,11 @@ TEST(SocRunLoop, AStagnatingViolationStopsBelowTheCap) {
 // told to throw on its Nth call, which is how the four trial-evaluation catch
 // arms are reached: call 1 is the correction SEED, call 2 the accumulation
 // point after the first rejected correction.
-struct SocTrialProblem : hven::solvers::NlpTripletModel {
+struct SocTrialProblem : hven::solvers::Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
+
     /// 1-based call index of eval_g that must throw; 0 disables the fault.
     int throw_on_call_ = 0;
     /// When true the fault is a non-std::exception, taking the `catch (...)`
@@ -226,13 +230,12 @@ struct SocTrialProblem : hven::solvers::NlpTripletModel {
     bool equality_only_ = false;
     mutable int eval_g_calls_ = 0;
 
-    int num_vars() const override { return 2; }
-    int num_cons() const override { return equality_only_ ? 1 : 2; }
-    int num_jac_nonzeros() const override { return equality_only_ ? 2 : 4; }
-    int num_hess_nonzeros() const override { return 2; }
+    int num_vars() const { return 2; }
+    int num_cons() const { return equality_only_ ? 1 : 2; }
+    int num_jac_nonzeros() const { return equality_only_ ? 2 : 4; }
+    int num_hess_nonzeros() const { return 2; }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl << -kSocInf, -kSocInf;
         xu << kSocInf, kSocInf;
         if (equality_only_) {
@@ -243,16 +246,16 @@ struct SocTrialProblem : hven::solvers::NlpTripletModel {
         gl << 1.0, 0.0; // row 0 is an equality (gl == gu), row 1 a >= row
         gu << 1.0, kSocInf;
     }
-    void eval_f(hven::ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         f = 0.5 * (x[0] * x[0] + x[1] * x[1]);
+        return f;
     }
-    void eval_grad_f(hven::ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = x[0];
         g[1] = x[1];
     }
-    void eval_g(hven::ConstEigenRef<Eigen::VectorXd> x,
-                Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
         ++eval_g_calls_;
         if (throw_on_call_ != 0 && eval_g_calls_ == throw_on_call_) {
             if (throw_unknown_) {
@@ -265,8 +268,7 @@ struct SocTrialProblem : hven::solvers::NlpTripletModel {
             g[1] = x[0] - x[1];
         }
     }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         if (equality_only_) {
             r << 0, 0;
             c << 0, 1;
@@ -275,22 +277,19 @@ struct SocTrialProblem : hven::solvers::NlpTripletModel {
         r << 0, 0, 1, 1;
         c << 0, 1, 0, 1;
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 1;
         c << 0, 1;
     }
-    void eval_jac(hven::ConstEigenRef<Eigen::VectorXd>,
-                  Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override {
         if (equality_only_) {
             v << 1.0, 1.0;
             return;
         }
         v << 1.0, 1.0, 1.0, -1.0;
     }
-    void eval_hess(hven::ConstEigenRef<Eigen::VectorXd>, double obj_factor,
-                   hven::ConstEigenRef<Eigen::VectorXd>,
-                   Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
         v << obj_factor, obj_factor;
     }
     std::string name() const override { return "SocTrialProblem"; }

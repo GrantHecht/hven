@@ -31,10 +31,11 @@
 #include <gtest/gtest.h>
 
 #include <hven/detail/model/nlp_adapter.h>
+#include <hven/detail/model/nlp_model_assembly.h>
+#include <hven/detail/model/nlp_problem_model.h>
+#include <hven/detail/model/non_linear_program.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/drivers/ipm_solver.h>
-#include <hven/model/nlp_model_assembly.h>
-#include <hven/model/nlp_problem_model.h>
-#include <hven/model/non_linear_program.h>
 #include <hven/model/structure_identity.h>
 #include <hven/warmstart/ipm_polish_extension.h>
 #include <hven/warmstart/warm_start_data.h>
@@ -102,7 +103,7 @@ void expect_sparse_near(const SpMatRM &a, const SpMatRM &b, const std::string &w
 // --- The adapter states the same problem ---
 
 // The round trip, through the path the SQP leg actually takes: declared as an
-// NlpTripletModel, read straight back as a native model. A wrong sign in the
+// Nlp, read straight back as a native model. A wrong sign in the
 // row-kind mapping shows up here as a cI block off by more than a tolerance.
 TEST(CrossoverAdapter, StatesTheSameProblemAsTheModelItWraps) {
     const auto model = crossover_model();
@@ -125,9 +126,9 @@ TEST(CrossoverAdapter, StatesTheSameProblemAsTheModelItWraps) {
     expect_sparse_near(converted.eval_jac_i(x), model->eval_jac_i(x), "inequality Jacobian");
 
     // The Hessian is the one piece the adapter transposes on the way out (the
-    // model returns the upper triangle, NlpTripletModel the lower), so it is checked
+    // model returns the upper triangle, Nlp the lower), so it is checked
     // at multipliers that are neither zero nor all equal -- a wrong head/tail
-    // cut of NlpTripletModel's single lambda block would survive either.
+    // cut of Nlp's single lambda block would survive either.
     Vec lambda_e(model->me());
     for (Index i = 0; i < lambda_e.size(); ++i) {
         lambda_e(i) = 0.5 + 0.1 * static_cast<double>(i % 7);
@@ -148,7 +149,7 @@ TEST(CrossoverAdapter, StatesTheSameProblemAsTheModelItWraps) {
 namespace {
 
 // A model whose Jacobian pattern depends on the iterate: the second column of
-// row 0 exists only where x(0) is positive. NlpTripletModel's structures are queried
+// row 0 exists only where x(0) is positive. Nlp's structures are queried
 // once, so such a model cannot be stated as one and the adapter must say so by
 // name rather than write the entry into whatever slot comes next.
 class CrossoverMovingPatternModel final : public NlpModel {
@@ -204,7 +205,7 @@ TEST(CrossoverAdapter, RefusesAModelWhosePatternMoves) {
     x << 0.9, 0.0; // past the threshold, so the extra entry appears
 
     try {
-        declared.eval_jac(x, vals);
+        declared.eval_jacobian(x, vals);
         FAIL() << "a Jacobian entry outside the declared structure must be refused";
     } catch (const std::runtime_error &error) {
         const std::string message = error.what();
@@ -216,7 +217,7 @@ TEST(CrossoverAdapter, RefusesAModelWhosePatternMoves) {
     // guard, not a blanket refusal of the model.
     Eigen::VectorXd inside(2);
     inside << 0.1, 0.0;
-    EXPECT_NO_THROW(declared.eval_jac(inside, vals));
+    EXPECT_NO_THROW(declared.eval_jacobian(inside, vals));
 }
 
 // --- The premise of the dual-bind path ---
@@ -257,7 +258,8 @@ TEST(CrossoverLegs, TheExportStagesIntoBothWarmLegs) {
         o.common.print_level = 10;
         ipm.set_options(std::move(o));
     }
-    const hven::solvers::IpmResult ipm_result = ipm.solve(*ipm_program, x0);
+    const hven::solvers::IpmResult ipm_result =
+        ipm.solve(hven::solvers::detail::problem_ref(*ipm_program), x0);
     ASSERT_EQ(ipm_result.status, hven::solvers::SolveStatus::kOptimal);
     // THE EXPORT, OFF THE RESULT (M6 W5 T8.5).
     const auto snapshot = ipm_result.export_warm_start();
@@ -281,7 +283,9 @@ TEST(CrossoverLegs, TheExportStagesIntoBothWarmLegs) {
     const auto solve_with = [&](const WarmStartData *payload) {
         NlpModelAssembly bridge(converted);
         SqpSolver driver{opts};
-        return payload != nullptr ? driver.solve(bridge, x0, *payload) : driver.solve(bridge, x0);
+        return payload != nullptr
+                   ? driver.solve(hven::solvers::detail::problem_ref(bridge), x0, *payload)
+                   : driver.solve(hven::solvers::detail::problem_ref(bridge), x0);
     };
 
     const SqpResult cold = solve_with(nullptr);
@@ -517,9 +521,9 @@ HVEN_SUPPRESS_DEPRECATED_END
 // ThreadingFlags::MainThread (the shared stateful NLPAdapterCore), and
 // analyze_partitioning forces every MainThread function into the LAST
 // partition, run inline on the calling thread. So two partitions over an
-// NlpTripletModel is ONE empty partition plus the whole problem evaluated serially:
+// Nlp is ONE empty partition plus the whole problem evaluated serially:
 // LAYOUT, not parallel evaluation. Genuine partitioned evaluation over an
-// NlpTripletModel needs per-partition cores and is registered for the M7
+// Nlp needs per-partition cores and is registered for the M7
 // ClaimStreamSource widening.
 //
 // The pin is therefore: the ADOPTED count is what was asked for, and the solve
@@ -553,7 +557,7 @@ TEST(CrossoverAdapter, TwoLaidPartitionsSolveTheSameProblemAsOne) {
         o.common.print_level = 10;
         o.common.threads = 1;
         ipm.set_options(std::move(o));
-        return ipm.solve(program, x0);
+        return ipm.solve(hven::solvers::detail::problem_ref(program), x0);
     };
     const hven::solvers::IpmResult r1 = solve_it(*one);
     const hven::solvers::IpmResult r2 = solve_it(*two);

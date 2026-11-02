@@ -157,6 +157,7 @@
 
 #include <hven/core/ledger.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/drivers/sqp_solver_types.h>
 #include <hven/qp/qp_types.h>
 
@@ -283,7 +284,8 @@ int main(int argc, char **argv) {
         hven::solvers::Ledger ledger;
         driver.attach_ledger(&ledger, "f7_cold");
         const auto t0 = std::chrono::steady_clock::now();
-        const SqpResult sol = driver.solve(model, model.start_point());
+        const SqpResult sol =
+            driver.solve(hven::solvers::detail::problem_ref(model), model.start_point());
         const auto t1 = std::chrono::steady_clock::now();
 
         const double x_err = (sol.x - model.x_star(p)).lpNorm<Eigen::Infinity>();

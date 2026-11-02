@@ -43,6 +43,7 @@
 #include "hven/core/ledger.h"
 #include "hven/detail/drivers/ipm_solver_presets.h"
 #include "hven/detail/model/nlp_adapter.h"
+#include "hven/detail/model/problem_access.h"
 #include "hven/drivers/common_options.h"
 #include "hven/drivers/ipm_solver.h"
 #include "hven/drivers/ipm_solver_types.h"
@@ -317,7 +318,8 @@ TEST(Options, IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve) {
         o.common.print_level = 10;
         solver.set_options(std::move(o));
     }
-    hven::solvers::IpmResult result = solver.solve(*program, hs071_start());
+    hven::solvers::IpmResult result =
+        solver.solve(hven::solvers::detail::problem_ref(*program), hs071_start());
     ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
 
     // Each edit is applied to the value in force, attempted alone, ACCEPTED,
@@ -334,15 +336,16 @@ TEST(Options, IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve) {
     // solve. Leaving such a value in force would make every later step of this
     // test throw out of set_qp_params() instead of testing what it is for.
     const auto accepts = [&](const char *field, auto edit) {
-        ASSERT_TRUE(solver.kkt_pattern_is_analyzed(*program)) << "precondition for " << field;
+        ASSERT_TRUE(solver.kkt_pattern_is_analyzed(hven::solvers::detail::problem_ref(*program)))
+            << "precondition for " << field;
         const IpmOptions before = solver.options();
         IpmOptions changed = before;
         edit(changed);
         EXPECT_NO_THROW(solver.set_options(changed)) << field;
-        EXPECT_FALSE(solver.kkt_pattern_is_analyzed(*program))
+        EXPECT_FALSE(solver.kkt_pattern_is_analyzed(hven::solvers::detail::problem_ref(*program)))
             << "a transcription-time change must not leave the old analysis standing: " << field;
         solver.set_options(before);
-        result = solver.solve(*program, hs071_start());
+        result = solver.solve(hven::solvers::detail::problem_ref(*program), hs071_start());
         ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
     };
 
@@ -370,13 +373,13 @@ TEST(Options, IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve) {
         IpmOptions changed = solver.options();
         changed.qp_matching = changed.qp_matching != 0 ? 0 : 1;
         EXPECT_NO_THROW(solver.set_options(changed));
-        EXPECT_FALSE(solver.kkt_pattern_is_analyzed(*program));
-        result = solver.solve(*program, hs071_start());
+        EXPECT_FALSE(solver.kkt_pattern_is_analyzed(hven::solvers::detail::problem_ref(*program)));
+        result = solver.solve(hven::solvers::detail::problem_ref(*program), hs071_start());
         ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
         EXPECT_EQ(result.kkt_analyses_total, analyses_before + 1);
         EXPECT_EQ(result.kkt_analyses_this_call, 1);
         EXPECT_EQ(solver.options().qp_matching, changed.qp_matching);
-        EXPECT_TRUE(solver.kkt_pattern_is_analyzed(*program));
+        EXPECT_TRUE(solver.kkt_pattern_is_analyzed(hven::solvers::detail::problem_ref(*program)));
     }
 
     // THE COUNTER-EXAMPLE, unchanged: a PER-SOLVE field is accepted too and
@@ -386,13 +389,13 @@ TEST(Options, IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve) {
     ok.max_iters = 77;
     EXPECT_NO_THROW(solver.set_options(std::move(ok)));
     EXPECT_EQ(solver.options().max_iters, 77);
-    EXPECT_TRUE(solver.kkt_pattern_is_analyzed(*program))
+    EXPECT_TRUE(solver.kkt_pattern_is_analyzed(hven::solvers::detail::problem_ref(*program)))
         << "a per-solve field does not touch the analysis";
 
     IpmOptions treatment = solver.options();
     treatment.fixed_variable_treatment = FixedVariableTreatments::MakeConstraint;
     EXPECT_NO_THROW(solver.set_options(std::move(treatment)));
-    EXPECT_FALSE(solver.kkt_pattern_is_analyzed(*program))
+    EXPECT_FALSE(solver.kkt_pattern_is_analyzed(hven::solvers::detail::problem_ref(*program)))
         << "the treatment is part of the identity token: a change re-analyses";
 }
 
@@ -433,7 +436,8 @@ TEST(Options, IpmSetOptionsDuringASolveThrowsLogicError) {
         return hven::solvers::CallbackAction::kContinue;
     });
 
-    ASSERT_EQ(solver.solve(*program, hs071_start()).status, hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(solver.solve(hven::solvers::detail::problem_ref(*program), hs071_start()).status,
+              hven::solvers::SolveStatus::kOptimal);
     ASSERT_GT(attempts, 0);
     EXPECT_TRUE(saw_logic_error);
     EXPECT_EQ(solver.options().max_iters, before.max_iters);
@@ -445,7 +449,8 @@ TEST(Options, IpmSetOptionsDuringASolveThrowsLogicError) {
     EXPECT_NO_THROW(solver.set_options(std::move(after)));
     EXPECT_EQ(solver.options().max_iters, 400);
     engine->clear_iteration_callback();
-    EXPECT_EQ(solver.solve(*program, hs071_start()).status, hven::solvers::SolveStatus::kOptimal);
+    EXPECT_EQ(solver.solve(hven::solvers::detail::problem_ref(*program), hs071_start()).status,
+              hven::solvers::SolveStatus::kOptimal);
 }
 
 // THE SAME GUARD, CLEARED ON AN UNWIND RATHER THAN A RETURN (fix round 1). The
@@ -467,7 +472,8 @@ TEST(Options, IpmTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve) {
         [](const hven::solvers::IterationEvent &) -> hven::solvers::CallbackAction {
             throw std::logic_error("a hook that leaves the solve by throwing");
         });
-    EXPECT_THROW(solver.solve(*program, hs071_start()), std::logic_error);
+    EXPECT_THROW(solver.solve(hven::solvers::detail::problem_ref(*program), hs071_start()),
+                 std::logic_error);
     engine->clear_iteration_callback();
 
     // The guard did not survive the unwind: a replacement is accepted and the
@@ -476,7 +482,8 @@ TEST(Options, IpmTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve) {
     after.max_iters = 400;
     EXPECT_NO_THROW(engine->set_options(std::move(after)));
     EXPECT_EQ(engine->options().max_iters, 400);
-    EXPECT_EQ(solver.solve(*program, hs071_start()).status, hven::solvers::SolveStatus::kOptimal);
+    EXPECT_EQ(solver.solve(hven::solvers::detail::problem_ref(*program), hs071_start()).status,
+              hven::solvers::SolveStatus::kOptimal);
 }
 
 // ---------------------------------------------------------------------------
@@ -607,7 +614,8 @@ TEST(Options, SqpSetOptionsIsTransactional) {
 
     // The old engines are still in force too: the driver solves.
     const auto p = hven::solvers::test_support::make_hs(7);
-    EXPECT_NO_THROW(d.solve(*p.model));
+    EXPECT_NO_THROW(
+        d.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point()));
 }
 
 // The replacement is refused while a solve is in flight -- reached through
@@ -633,7 +641,8 @@ TEST(Options, SqpSetOptionsDuringASolveThrowsLogicError) {
         d.set_options(std::move(o));
     }
     const auto p = hven::solvers::test_support::make_hs(7);
-    const auto sol = d.solve(*p.model);
+    const auto sol =
+        d.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
     (void)sol;
     ASSERT_TRUE(attempted) << "the strategy factory never ran";
     EXPECT_TRUE(refused) << "a replacement under an in-flight solve must be a logic_error";
@@ -647,7 +656,8 @@ TEST(Options, SqpSetOptionsDuringASolveThrowsLogicError) {
     after.max_iter = 11;
     EXPECT_NO_THROW(d.set_options(std::move(after)));
     EXPECT_EQ(d.options().max_iter, 11);
-    EXPECT_NO_THROW(d.solve(*p.model));
+    EXPECT_NO_THROW(
+        d.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point()));
 }
 
 // THE SAME GUARD, CLEARED ON AN UNWIND RATHER THAN A RETURN (fix round 1), the
@@ -664,14 +674,16 @@ TEST(Options, SqpTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve) {
         d.set_options(std::move(o));
     }
     const auto p = hven::solvers::test_support::make_hs(7);
-    EXPECT_THROW(d.solve(*p.model), std::logic_error);
+    EXPECT_THROW(d.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point()),
+                 std::logic_error);
 
     SqpOptions after = d.options();
     after.make_strategy = {};
     after.max_iter = 11;
     EXPECT_NO_THROW(d.set_options(std::move(after)));
     EXPECT_EQ(d.options().max_iter, 11);
-    EXPECT_NO_THROW(d.solve(*p.model));
+    EXPECT_NO_THROW(
+        d.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point()));
 }
 
 // THE LEDGER LABEL SEQUENCE CONTINUES ACROSS A REBUILD (A3; fix round 1).
@@ -692,19 +704,19 @@ TEST(Options, SqpAnOptionReplacementDoesNotRestartTheLedgerLabelSequence) {
 
     const auto p = hven::solvers::test_support::make_hs(7);
 
-    d.solve(*p.model);
+    d.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
     const std::size_t after_first = ledger.records().size();
     ASSERT_GT(after_first, 0u) << "the fixture must produce QP records to pin";
 
     d.set_options(d.options()); // the identical-options rebuild
-    d.solve(*p.model);
+    d.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
     const std::size_t after_second = ledger.records().size();
     ASSERT_GT(after_second, after_first);
 
     SqpOptions changed = d.options(); // and a CHANGED-options rebuild
     changed.qp.schur_cap = d.options().qp.schur_cap + 1;
     d.set_options(std::move(changed));
-    d.solve(*p.model);
+    d.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
     const std::size_t after_third = ledger.records().size();
     ASSERT_GT(after_third, after_second);
 

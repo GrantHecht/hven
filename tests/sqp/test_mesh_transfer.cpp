@@ -63,6 +63,7 @@
 #include <gtest/gtest.h>
 
 #include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/detail/warmstart/mesh_transfer.h>
 #include <hven/detail/warmstart/warm_start.h>
 #include <hven/drivers/sqp_solver_types.h>
@@ -101,7 +102,7 @@ SqpWarmStart cold_solve(const Mesh &mesh, SqpResult *out_sol = nullptr) {
     F6PathBoundQuadrature model(mesh.nodes, mesh.weights, kBound);
     SqpOptions opts;
     SqpSolver driver(opts);
-    SqpResult sol = driver.solve(model);
+    SqpResult sol = driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     EXPECT_EQ(sol.status, SolveStatus::kOptimal);
     if (out_sol != nullptr) {
         *out_sol = sol;
@@ -422,8 +423,9 @@ TEST(MeshTransfer, WarmSolveOnFineMeshBeatsCold) {
     SqpOptions opts;
     SqpSolver driver(opts);
 
-    const SqpResult cold = driver.solve(model, model.start_point());
-    const SqpResult warm = driver.solve(model, moved.x);
+    const SqpResult cold =
+        driver.solve(hven::solvers::detail::problem_ref(model), model.start_point());
+    const SqpResult warm = driver.solve(hven::solvers::detail::problem_ref(model), moved.x);
 
     ASSERT_EQ(cold.status, SolveStatus::kOptimal);
     ASSERT_EQ(warm.status, SolveStatus::kOptimal);
@@ -497,9 +499,11 @@ TEST(MeshTransfer, SeededTransferRidesTheDualsAndCostsFewerMinors) {
     SqpOptions opts;
     SqpSolver driver(opts);
 
-    const SqpResult cold = driver.solve(model, model.start_point());
-    const SqpResult x_only = driver.solve(model, moved.x);
-    const SqpResult seeded = driver.solve(model, moved.x, moved);
+    const SqpResult cold =
+        driver.solve(hven::solvers::detail::problem_ref(model), model.start_point());
+    const SqpResult x_only = driver.solve(hven::solvers::detail::problem_ref(model), moved.x);
+    const SqpResult seeded =
+        driver.solve(hven::solvers::detail::problem_ref(model), moved.x, moved);
 
     ASSERT_EQ(cold.status, SolveStatus::kOptimal);
     ASSERT_EQ(x_only.status, SolveStatus::kOptimal);

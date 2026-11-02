@@ -52,14 +52,17 @@
 #include <Eigen/SparseCore>
 #include <gtest/gtest.h>
 
+#include <hven/detail/drivers/result_access.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/model/nlp_adapter.h>
+#include <hven/detail/model/nlp_model.h>
+#include <hven/detail/model/nlp_model_assembly.h>
+#include <hven/detail/model/nlp_problem_model.h>
+#include <hven/detail/model/non_linear_program.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/detail/warmstart/warm_start.h>
 #include <hven/drivers/ipm_solver.h>
 #include <hven/drivers/sqp_solver_types.h>
-#include <hven/model/nlp_model.h>
-#include <hven/model/nlp_model_assembly.h>
-#include <hven/model/nlp_problem_model.h>
 #include <hven/warmstart/ipm_polish_extension.h>
 #include <hven/warmstart/warm_start_data.h>
 
@@ -70,10 +73,10 @@ using hven::Vec;
 using hven::solvers::declaration_key;
 using hven::solvers::IpmPolishData;
 using hven::solvers::kIpmPolishTag;
+using hven::solvers::Nlp;
 using hven::solvers::NlpModel;
 using hven::solvers::NlpModelAssembly;
 using hven::solvers::NlpProblemModel;
-using hven::solvers::NlpTripletModel;
 using hven::solvers::QpMode;
 using hven::solvers::serialize_ipm_polish;
 using hven::solvers::SolveStatus;
@@ -305,47 +308,47 @@ class CurrencyExtraRowModel : public NlpModel {
 // row 1 is upper-bounded at -0.5, which NlpProblemModel converts to the single
 // inequality cI = x0 - (-0.5) = x0 + 0.5 -- the same row CurrencyModel states
 // directly, so the two declarations describe one problem.
-struct CurrencyIpmProblem : NlpTripletModel {
-    int num_vars() const override { return 3; }
-    int num_cons() const override { return 2; }
-    int num_jac_nonzeros() const override { return 4; }
-    int num_hess_nonzeros() const override { return 3; }
+struct CurrencyIpmProblem : Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    int num_vars() const { return 3; }
+    int num_cons() const { return 2; }
+    int num_jac_nonzeros() const { return 4; }
+    int num_hess_nonzeros() const { return 3; }
+
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl << -1.0, -1.0, 0.0;
         xu << 2.0, 2.0, 2.0;
         gl << 1.0, -kCurrencyInf;
         gu << 1.0, -0.5;
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         f = 0.5 * x.squaredNorm() - 2.0 * x[0] - 3.0 * x[1];
+        return f;
     }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = x[0] - 2.0;
         g[1] = x[1] - 3.0;
         g[2] = x[2];
     }
-    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = x[0] + x[1] + x[2];
         g[1] = x[0];
     }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 0, 0, 1;
         c << 0, 1, 2, 0;
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 1, 2;
         c << 0, 1, 2;
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
-        v.setOnes();
-    }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override { v.setOnes(); }
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
         v.setConstant(obj_factor);
     }
     std::string name() const override { return "CurrencyIpmProblem"; }
@@ -364,8 +367,8 @@ std::shared_ptr<NlpModelAssembly> make_bridge(std::shared_ptr<const NlpModel> mo
 WarmStartData core_payload(const SqpResult &sol, const NlpModelAssembly &bridge) {
     WarmStartData data;
     data.primal_ = sol.x;
-    data.eq_lmults_ = sol.lambda_e;
-    data.iq_lmults_ = sol.lambda_i;
+    data.eq_lmults_ = hven::solvers::detail::engine_rows(sol).lambda_e;
+    data.iq_lmults_ = hven::solvers::detail::engine_rows(sol).lambda_i;
     data.bound_lmults_ = sol.z;
     data.structure_key_ = declaration_key(bridge.declaration());
     return data;
@@ -416,7 +419,7 @@ void expect_same_first_iterate(const SqpResult &a, const SqpResult &b) {
 // A converged solve of the fixture, from cold, on its own driver.
 SqpResult solve_fixture_cold(const NlpModel &model) {
     SqpSolver driver{SqpOptions{}};
-    return driver.solve(model);
+    return driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
 }
 
 } // namespace
@@ -444,7 +447,9 @@ TEST(SqpWarmCurrency, ASolveThatThrewIsNotACompletedSolve) {
     } model;
 
     SqpSolver driver{SqpOptions{}};
-    EXPECT_THROW((void)driver.solve(model), std::invalid_argument);
+    EXPECT_THROW(
+        (void)driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point()),
+        std::invalid_argument);
     EXPECT_THROW((void)driver.export_warm_start(), std::logic_error);
 }
 
@@ -469,13 +474,15 @@ TEST(SqpWarmCurrency, ASolveThatThrewLeavesAnEarlierExportStanding) {
     const auto bridge = make_bridge(good);
 
     SqpSolver driver{SqpOptions{}};
-    const SqpResult first = driver.solve(*bridge, good->start_point());
+    const SqpResult first =
+        driver.solve(hven::solvers::detail::problem_ref(*bridge), good->start_point());
     ASSERT_EQ(first.status, SolveStatus::kOptimal);
     const WarmStartData after_first = driver.export_warm_start();
 
     // A second solve that throws -- here at the declared-box validation, before
     // the loop is ever entered.
-    EXPECT_THROW((void)driver.solve(bad), std::invalid_argument);
+    EXPECT_THROW((void)driver.solve(hven::solvers::detail::problem_ref(bad), (bad).start_point()),
+                 std::invalid_argument);
 
     // The first solve's payload is still there, and is still the SAME value:
     // not merely exportable, but unmodified.
@@ -494,7 +501,8 @@ TEST(SqpWarmCurrency, ExportCarriesTheSolutionAtDeclaredWidthsAndTheBridgesKey) 
     const auto bridge = make_bridge(model);
 
     SqpSolver driver{SqpOptions{}};
-    const SqpResult sol = driver.solve(*bridge, model->start_point());
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(*bridge), model->start_point());
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
 
     const WarmStartData warm = driver.export_warm_start();
@@ -506,8 +514,8 @@ TEST(SqpWarmCurrency, ExportCarriesTheSolutionAtDeclaredWidthsAndTheBridgesKey) 
     EXPECT_EQ(warm.bound_lmults_.size(), model->n());
 
     EXPECT_EQ(warm.primal_, sol.x);
-    EXPECT_EQ(warm.eq_lmults_, sol.lambda_e);
-    EXPECT_EQ(warm.iq_lmults_, sol.lambda_i);
+    EXPECT_EQ(warm.eq_lmults_, hven::solvers::detail::engine_rows(sol).lambda_e);
+    EXPECT_EQ(warm.iq_lmults_, hven::solvers::detail::engine_rows(sol).lambda_i);
     // z IS the currency's signed z = zL - zU already (warm_start.h's SIGN
     // CONVENTIONS): nothing is converted on the way out. The fixture's only
     // active bound is x2's LOWER one, so the signed block is non-negative there
@@ -528,10 +536,13 @@ TEST(SqpWarmCurrency, ExportTracksTheLastCompletedSolve) {
     const auto wide = std::make_shared<CurrencyWiderModel>();
 
     SqpSolver driver{SqpOptions{}};
-    ASSERT_EQ(driver.solve(*narrow).status, SolveStatus::kOptimal);
+    ASSERT_EQ(
+        driver.solve(hven::solvers::detail::problem_ref(*narrow), (*narrow).start_point()).status,
+        SolveStatus::kOptimal);
     ASSERT_EQ(driver.export_warm_start().primal_.size(), 3);
 
-    ASSERT_EQ(driver.solve(*wide).status, SolveStatus::kOptimal);
+    ASSERT_EQ(driver.solve(hven::solvers::detail::problem_ref(*wide), (*wide).start_point()).status,
+              SolveStatus::kOptimal);
     EXPECT_EQ(driver.export_warm_start().primal_.size(), 4);
 }
 
@@ -546,11 +557,14 @@ TEST(SqpWarmCurrency, TheHandOverRefusesANonFiniteBlock) {
     data.iq_lmults_(0) = std::numeric_limits<double>::quiet_NaN();
 
     SqpSolver driver{SqpOptions{}};
-    EXPECT_THROW((void)driver.solve(*bridge, model->start_point(), data), std::invalid_argument);
+    EXPECT_THROW(
+        (void)driver.solve(hven::solvers::detail::problem_ref(*bridge), model->start_point(), data),
+        std::invalid_argument);
 
     // Refused, and nothing left behind: the next solve is cold, which the level
     // reading says outright.
-    const SqpResult after = driver.solve(*bridge, model->start_point());
+    const SqpResult after =
+        driver.solve(hven::solvers::detail::problem_ref(*bridge), model->start_point());
     EXPECT_EQ(after.counters.start_level_used, StartLevel::kCold);
 }
 
@@ -567,7 +581,9 @@ TEST(SqpWarmCurrency, TheHandOverRefusesACoreThatDisagreesWithItself) {
     data.bound_lmults_ = Vec::Zero(2);
 
     SqpSolver driver{SqpOptions{}};
-    EXPECT_THROW((void)driver.solve(*bridge, model->start_point(), data), std::invalid_argument);
+    EXPECT_THROW(
+        (void)driver.solve(hven::solvers::detail::problem_ref(*bridge), model->start_point(), data),
+        std::invalid_argument);
 }
 
 // A CORRUPT payload under the KNOWN tag is refused at the hand-over, naming the
@@ -586,7 +602,7 @@ TEST(SqpWarmCurrency, TheHandOverRefusesAMalformedPolishPayloadNamingTheTag) {
 
     SqpSolver driver{SqpOptions{}};
     try {
-        (void)driver.solve(*bridge, model->start_point(), data);
+        (void)driver.solve(hven::solvers::detail::problem_ref(*bridge), model->start_point(), data);
         FAIL() << "a truncated payload under the known tag must be refused";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
@@ -617,7 +633,7 @@ TEST(SqpWarmCurrency, TheHandOverRefusesANegativeLowerBoundPriceNamingTheTagAndT
 
     SqpSolver driver{SqpOptions{}};
     try {
-        (void)driver.solve(*bridge, model->start_point(), data);
+        (void)driver.solve(hven::solvers::detail::problem_ref(*bridge), model->start_point(), data);
         FAIL() << "a negative price under the known tag must be refused";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
@@ -629,7 +645,8 @@ TEST(SqpWarmCurrency, TheHandOverRefusesANegativeLowerBoundPriceNamingTheTagAndT
 
     // Refused, and nothing left behind: the same driver's next solve, with no
     // payload argument, is cold.
-    const SqpResult after = driver.solve(*bridge, model->start_point());
+    const SqpResult after =
+        driver.solve(hven::solvers::detail::problem_ref(*bridge), model->start_point());
     EXPECT_EQ(after.counters.start_level_used, StartLevel::kCold);
 }
 
@@ -646,7 +663,7 @@ TEST(SqpWarmCurrency, TheHandOverRefusesANegativeUpperBoundPriceNamingTheTagAndT
 
     SqpSolver driver{SqpOptions{}};
     try {
-        (void)driver.solve(*bridge, model->start_point(), data);
+        (void)driver.solve(hven::solvers::detail::problem_ref(*bridge), model->start_point(), data);
         FAIL() << "a negative price under the known tag must be refused";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
@@ -658,7 +675,8 @@ TEST(SqpWarmCurrency, TheHandOverRefusesANegativeUpperBoundPriceNamingTheTagAndT
 
     // Refused, and nothing left behind: the same driver's next solve, with no
     // payload argument, is cold.
-    const SqpResult after = driver.solve(*bridge, model->start_point());
+    const SqpResult after =
+        driver.solve(hven::solvers::detail::problem_ref(*bridge), model->start_point());
     EXPECT_EQ(after.counters.start_level_used, StartLevel::kCold);
 }
 
@@ -678,7 +696,8 @@ TEST(SqpWarmCurrency, AZeroValuedPriceBlockIsStillAccepted) {
 
     SqpSolver driver{SqpOptions{}};
     SqpResult out;
-    ASSERT_NO_THROW(out = driver.solve(*bridge, model->start_point(), data));
+    ASSERT_NO_THROW(out = driver.solve(hven::solvers::detail::problem_ref(*bridge),
+                                       model->start_point(), data));
     EXPECT_EQ(out.counters.start_level_used, StartLevel::kSeeded);
 }
 
@@ -698,7 +717,8 @@ TEST(SqpWarmCurrency, AForeignExtensionTagIsSkippedSilently) {
 
     SqpSolver driver{SqpOptions{}};
     SqpResult out;
-    ASSERT_NO_THROW(out = driver.solve(*bridge, model->start_point(), data));
+    ASSERT_NO_THROW(out = driver.solve(hven::solvers::detail::problem_ref(*bridge),
+                                       model->start_point(), data));
     EXPECT_EQ(out.status, SolveStatus::kOptimal);
     EXPECT_EQ(out.counters.start_level_used, StartLevel::kSeeded);
 }
@@ -716,14 +736,18 @@ TEST(SqpWarmCurrency, ARefusedPayloadLeavesNothingBehindForTheNextSolve) {
     const SqpResult sol = solve_fixture_cold(*model);
 
     SqpSolver driver{SqpOptions{}};
-    const SqpResult warm = driver.solve(*bridge, model->start_point(), core_payload(sol, *bridge));
+    const SqpResult warm = driver.solve(hven::solvers::detail::problem_ref(*bridge),
+                                        model->start_point(), core_payload(sol, *bridge));
     ASSERT_EQ(warm.counters.start_level_used, StartLevel::kSeeded);
 
     WarmStartData bad = core_payload(sol, *bridge);
     bad.primal_(0) = std::numeric_limits<double>::infinity();
-    EXPECT_THROW((void)driver.solve(*bridge, model->start_point(), bad), std::invalid_argument);
+    EXPECT_THROW(
+        (void)driver.solve(hven::solvers::detail::problem_ref(*bridge), model->start_point(), bad),
+        std::invalid_argument);
 
-    const SqpResult out = driver.solve(*bridge, model->start_point());
+    const SqpResult out =
+        driver.solve(hven::solvers::detail::problem_ref(*bridge), model->start_point());
     EXPECT_EQ(out.counters.start_level_used, StartLevel::kCold)
         << "a solve with no payload argument carries nothing from an earlier one";
 }
@@ -741,7 +765,8 @@ TEST(SqpWarmCurrency, SolveEntryRefusesAPayloadAtTheWrongSizes) {
     // The HAND-OVER accepts it -- nothing about the payload is internally wrong
     // -- and the SOLVE is where the destination's width becomes knowable.
     try {
-        (void)driver.solve(*wide_bridge, wide->start_point(), core_payload(sol, *narrow_bridge));
+        (void)driver.solve(hven::solvers::detail::problem_ref(*wide_bridge), wide->start_point(),
+                           core_payload(sol, *narrow_bridge));
         FAIL() << "a 3-wide payload must be refused against a 4-variable problem";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
@@ -753,7 +778,8 @@ TEST(SqpWarmCurrency, SolveEntryRefusesAPayloadAtTheWrongSizes) {
     // CONSUMED BY THE REFUSAL -- loud, then gone. A caller that logs it and
     // solves anyway cold-starts rather than warm-starting off a value this
     // engine has just rejected.
-    const SqpResult after = driver.solve(*wide_bridge, wide->start_point());
+    const SqpResult after =
+        driver.solve(hven::solvers::detail::problem_ref(*wide_bridge), wide->start_point());
     EXPECT_EQ(after.counters.start_level_used, StartLevel::kCold);
 }
 
@@ -785,8 +811,8 @@ TEST(SqpWarmCurrency, SolveEntryRefusesAStagedValueUnderAnotherStampNamingBothDi
     const SqpResult sol = solve_fixture_cold(*original);
     SqpSolver driver{SqpOptions{}};
     try {
-        (void)driver.solve(*rekeyed_bridge, rekeyed->start_point(),
-                           core_payload(sol, *original_bridge));
+        (void)driver.solve(hven::solvers::detail::problem_ref(*rekeyed_bridge),
+                           rekeyed->start_point(), core_payload(sol, *original_bridge));
         FAIL() << "a payload under another declared structure must be refused";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
@@ -800,7 +826,8 @@ TEST(SqpWarmCurrency, SolveEntryRefusesAStagedValueUnderAnotherStampNamingBothDi
             << "the refusal must name the live key: " << message;
     }
 
-    const SqpResult after = driver.solve(*rekeyed_bridge, rekeyed->start_point());
+    const SqpResult after =
+        driver.solve(hven::solvers::detail::problem_ref(*rekeyed_bridge), rekeyed->start_point());
     EXPECT_EQ(after.counters.start_level_used, StartLevel::kCold);
 }
 
@@ -812,12 +839,14 @@ TEST(SqpWarmCurrency, APayloadAppliesToItsOwnCallAndTheOneAfterIsCold) {
     const SqpResult sol = solve_fixture_cold(*model);
 
     SqpSolver driver{SqpOptions{}};
-    const SqpResult first = driver.solve(*bridge, model->start_point(), core_payload(sol, *bridge));
+    const SqpResult first = driver.solve(hven::solvers::detail::problem_ref(*bridge),
+                                         model->start_point(), core_payload(sol, *bridge));
     EXPECT_EQ(first.status, SolveStatus::kOptimal);
     EXPECT_EQ(first.counters.start_level_used, StartLevel::kSeeded);
     EXPECT_EQ(first.counters.n_seeded, 1);
 
-    const SqpResult second = driver.solve(*bridge, model->start_point());
+    const SqpResult second =
+        driver.solve(hven::solvers::detail::problem_ref(*bridge), model->start_point());
     EXPECT_EQ(second.counters.start_level_used, StartLevel::kCold)
         << "a payload applies to the call it is an argument to and to no other: the "
            "second solve gets nothing";
@@ -847,7 +876,8 @@ TEST(SqpWarmCurrency, TheNativeAndPayloadOverloadsAreSelectedByArgumentType) {
     // THE NATIVE ROUTE: a SqpWarmStart from a prior solve of the same model
     // carries a real structure hash, so it can reach kWarm.
     SqpSolver native{SqpOptions{}};
-    const SqpResult by_native = native.solve(*bridge, model->start_point(), sol.warm_start);
+    const SqpResult by_native = native.solve(hven::solvers::detail::problem_ref(*bridge),
+                                             model->start_point(), sol.warm_start);
     EXPECT_EQ(by_native.status, SolveStatus::kOptimal);
     EXPECT_GE(static_cast<int>(by_native.counters.start_level_used),
               static_cast<int>(StartLevel::kSeeded));
@@ -857,8 +887,8 @@ TEST(SqpWarmCurrency, TheNativeAndPayloadOverloadsAreSelectedByArgumentType) {
     // same problem, same starting point -- only the argument's TYPE differs,
     // and that is what selects the route.
     SqpSolver payload{SqpOptions{}};
-    const SqpResult by_payload =
-        payload.solve(*bridge, model->start_point(), core_payload(sol, *bridge));
+    const SqpResult by_payload = payload.solve(hven::solvers::detail::problem_ref(*bridge),
+                                               model->start_point(), core_payload(sol, *bridge));
     EXPECT_EQ(by_payload.status, SolveStatus::kOptimal);
     EXPECT_EQ(by_payload.counters.start_level_used, StartLevel::kSeeded);
 }
@@ -877,7 +907,8 @@ TEST(SqpWarmCurrency, ACoreOnlyValueEntersAtTheSeededLevel) {
 
     // x0 is deliberately NOWHERE NEAR the solution: if the payload's primal did
     // not replace it, the first iterate could not be the solved point.
-    const SqpResult out = driver.solve(*bridge, Vec::Constant(3, 1.75), core_payload(sol, *bridge));
+    const SqpResult out = driver.solve(hven::solvers::detail::problem_ref(*bridge),
+                                       Vec::Constant(3, 1.75), core_payload(sol, *bridge));
 
     EXPECT_EQ(out.status, SolveStatus::kOptimal);
     EXPECT_EQ(out.counters.start_level_used, StartLevel::kSeeded);
@@ -907,21 +938,25 @@ TEST(SqpWarmCurrency, APolishTaggedValueRoutesThroughTheCrossoverBridge) {
 
     // (a) through the payload route.
     SqpSolver staged_driver{SqpOptions{}};
-    const SqpResult staged = staged_driver.solve(*bridge, model->start_point(), data);
+    const SqpResult staged = staged_driver.solve(hven::solvers::detail::problem_ref(*bridge),
+                                                 model->start_point(), data);
 
     // (b) through the bridge called by hand, on a fresh driver.
     const SqpWarmStart crossover = to_sqp_warm_start(data, model->lower(), model->upper(),
                                                      declaration_key(bridge->declaration()));
     SqpSolver explicit_driver{SqpOptions{}};
-    const SqpResult direct = explicit_driver.solve(*bridge, model->start_point(), crossover);
+    const SqpResult direct = explicit_driver.solve(hven::solvers::detail::problem_ref(*bridge),
+                                                   model->start_point(), crossover);
 
     // FIELD-FOR-FIELD on the solution, at the resolution the instrument
     // supports: same status, same point, same objective, same level, same
     // trajectory length, and a bit-identical first iterate.
     EXPECT_EQ(staged.status, direct.status);
     EXPECT_EQ(staged.x, direct.x);
-    EXPECT_EQ(staged.lambda_e, direct.lambda_e);
-    EXPECT_EQ(staged.lambda_i, direct.lambda_i);
+    EXPECT_EQ(hven::solvers::detail::engine_rows(staged).lambda_e,
+              hven::solvers::detail::engine_rows(direct).lambda_e);
+    EXPECT_EQ(hven::solvers::detail::engine_rows(staged).lambda_i,
+              hven::solvers::detail::engine_rows(direct).lambda_i);
     EXPECT_EQ(staged.z, direct.z);
     EXPECT_EQ(staged.f, direct.f);
     EXPECT_EQ(staged.counters.major_iters, direct.counters.major_iters);
@@ -945,10 +980,12 @@ TEST(SqpWarmCurrency, PassingTheSameValueTwiceFromColdIsBitIdentical) {
     const WarmStartData data = core_payload(sol, *bridge);
 
     SqpSolver first_driver{SqpOptions{}};
-    const SqpResult first = first_driver.solve(*bridge, model->start_point(), data);
+    const SqpResult first =
+        first_driver.solve(hven::solvers::detail::problem_ref(*bridge), model->start_point(), data);
 
     SqpSolver second_driver{SqpOptions{}};
-    const SqpResult second = second_driver.solve(*bridge, model->start_point(), data);
+    const SqpResult second = second_driver.solve(hven::solvers::detail::problem_ref(*bridge),
+                                                 model->start_point(), data);
 
     expect_same_first_iterate(first, second);
     EXPECT_EQ(first.x, second.x);
@@ -986,7 +1023,8 @@ TEST(SqpWarmCurrency, InteriorPointExportCrossesOverIntoTheSqpEngine) {
     }
     Eigen::VectorXd x0(3);
     x0 << 0.0, 0.0, 0.5;
-    const hven::solvers::IpmResult ipm_result = ipm.solve(*ipm_program, x0);
+    const hven::solvers::IpmResult ipm_result =
+        ipm.solve(hven::solvers::detail::problem_ref(*ipm_program), x0);
     ASSERT_EQ(ipm_result.status, hven::solvers::SolveStatus::kOptimal);
 
     // THE EXPORT, OFF THE RESULT (M6 W5 T8.5): the solver-side
@@ -1029,7 +1067,8 @@ TEST(SqpWarmCurrency, InteriorPointExportCrossesOverIntoTheSqpEngine) {
     // THE COMPOSITION, with the value exactly as the other engine handed it
     // over.
     SqpSolver sqp{SqpOptions{}};
-    const SqpResult out = sqp.solve(*bridge, model->start_point(), exported);
+    const SqpResult out =
+        sqp.solve(hven::solvers::detail::problem_ref(*bridge), model->start_point(), exported);
 
     EXPECT_EQ(out.status, SolveStatus::kOptimal);
     EXPECT_EQ(out.counters.start_level_used, StartLevel::kSeeded);
@@ -1084,7 +1123,7 @@ TEST(SqpWarmCurrency, ADeclarationWithAnExtraRowIsStaleAndIsRefused) {
     const SqpResult sol = solve_fixture_cold(*original);
     SqpSolver driver{SqpOptions{}};
     try {
-        (void)driver.solve(*extra_bridge, extra->start_point(),
+        (void)driver.solve(hven::solvers::detail::problem_ref(*extra_bridge), extra->start_point(),
                            core_payload(sol, *original_bridge));
         FAIL() << "a value taken on a one-row-smaller declaration must be refused";
     } catch (const std::invalid_argument &error) {
@@ -1093,7 +1132,8 @@ TEST(SqpWarmCurrency, ADeclarationWithAnExtraRowIsStaleAndIsRefused) {
     }
 
     // Consumed by the refusal, like every other solve-entry refusal.
-    const SqpResult after = driver.solve(*extra_bridge, extra->start_point());
+    const SqpResult after =
+        driver.solve(hven::solvers::detail::problem_ref(*extra_bridge), extra->start_point());
     EXPECT_EQ(after.counters.start_level_used, StartLevel::kCold);
 }
 
@@ -1128,14 +1168,18 @@ void expect_same_answer(const SqpResult &hot, const SqpResult &cold) {
         expect_same_bits(hot.x(i), cold.x(i), "primal " + std::to_string(i));
         expect_same_bits(hot.z(i), cold.z(i), "bound multiplier " + std::to_string(i));
     }
-    ASSERT_EQ(hot.lambda_e.size(), cold.lambda_e.size());
-    for (Index i = 0; i < hot.lambda_e.size(); ++i) {
-        expect_same_bits(hot.lambda_e(i), cold.lambda_e(i),
+    ASSERT_EQ(hven::solvers::detail::engine_rows(hot).lambda_e.size(),
+              hven::solvers::detail::engine_rows(cold).lambda_e.size());
+    for (Index i = 0; i < hven::solvers::detail::engine_rows(hot).lambda_e.size(); ++i) {
+        expect_same_bits(hven::solvers::detail::engine_rows(hot).lambda_e(i),
+                         hven::solvers::detail::engine_rows(cold).lambda_e(i),
                          "equality multiplier " + std::to_string(i));
     }
-    ASSERT_EQ(hot.lambda_i.size(), cold.lambda_i.size());
-    for (Index i = 0; i < hot.lambda_i.size(); ++i) {
-        expect_same_bits(hot.lambda_i(i), cold.lambda_i(i),
+    ASSERT_EQ(hven::solvers::detail::engine_rows(hot).lambda_i.size(),
+              hven::solvers::detail::engine_rows(cold).lambda_i.size());
+    for (Index i = 0; i < hven::solvers::detail::engine_rows(hot).lambda_i.size(); ++i) {
+        expect_same_bits(hven::solvers::detail::engine_rows(hot).lambda_i(i),
+                         hven::solvers::detail::engine_rows(cold).lambda_i(i),
                          "inequality multiplier " + std::to_string(i));
     }
 
@@ -1208,16 +1252,16 @@ TEST(SqpWarmCurrency, ASecondSolveOnOneDriverAnswersExactlyWhatAFreshDriverAnswe
     const Vec x0 = model->start_point();
 
     SqpSolver reused{SqpOptions{}};
-    const SqpResult first = reused.solve(*bridge, x0);
+    const SqpResult first = reused.solve(hven::solvers::detail::problem_ref(*bridge), x0);
     ASSERT_EQ(first.status, SolveStatus::kOptimal);
     // The hot solve. Nothing was staged between the two calls, so this call
     // differs from the first only in what the driver and its engine carried
     // out of it.
-    const SqpResult second = reused.solve(*bridge, x0);
+    const SqpResult second = reused.solve(hven::solvers::detail::problem_ref(*bridge), x0);
     ASSERT_EQ(second.status, SolveStatus::kOptimal);
 
     SqpSolver fresh{SqpOptions{}};
-    const SqpResult cold = fresh.solve(*bridge, x0);
+    const SqpResult cold = fresh.solve(hven::solvers::detail::problem_ref(*bridge), x0);
     ASSERT_EQ(cold.status, SolveStatus::kOptimal);
 
     expect_same_answer(second, cold);
@@ -1249,15 +1293,15 @@ TEST(SqpWarmCurrency, AWarmResolveOnAUsedDriverAnswersExactlyWhatAFreshDriverAns
     const Vec x0 = model->start_point();
 
     SqpSolver reused{SqpOptions{}};
-    const SqpResult first = reused.solve(*bridge, x0);
+    const SqpResult first = reused.solve(hven::solvers::detail::problem_ref(*bridge), x0);
     ASSERT_EQ(first.status, SolveStatus::kOptimal);
     const WarmStartData payload = reused.export_warm_start();
 
-    const SqpResult hot = reused.solve(*bridge, x0, payload);
+    const SqpResult hot = reused.solve(hven::solvers::detail::problem_ref(*bridge), x0, payload);
     ASSERT_EQ(hot.status, SolveStatus::kOptimal);
 
     SqpSolver fresh{SqpOptions{}};
-    const SqpResult cold = fresh.solve(*bridge, x0, payload);
+    const SqpResult cold = fresh.solve(hven::solvers::detail::problem_ref(*bridge), x0, payload);
     ASSERT_EQ(cold.status, SolveStatus::kOptimal);
 
     // Both staged the same value, so both resolve at the same level -- kSeeded,
@@ -1327,13 +1371,15 @@ TEST(SqpWarmCurrency, KIpmRefusesAWrongSizedPayloadLikeKWalk) {
     // kWalk: unchanged. The 3-wide payload is refused against the 4-variable
     // problem, loudly, naming the block.
     SqpSolver walker{SqpOptions{}};
-    EXPECT_THROW((void)walker.solve(*wide_bridge, wide->start_point(), payload),
+    EXPECT_THROW((void)walker.solve(hven::solvers::detail::problem_ref(*wide_bridge),
+                                    wide->start_point(), payload),
                  std::invalid_argument);
 
     // kIpm: THE FLIP. The same value on the same problem is refused the same
     // way. It used to be cold-graded and the solve ran.
     SqpSolver ipm{ipm_currency_options()};
-    EXPECT_THROW((void)ipm.solve(*wide_bridge, wide->start_point(), payload),
+    EXPECT_THROW((void)ipm.solve(hven::solvers::detail::problem_ref(*wide_bridge),
+                                 wide->start_point(), payload),
                  std::invalid_argument);
 
     // And the two refusals are the SAME refusal, not merely the same type:
@@ -1342,13 +1388,15 @@ TEST(SqpWarmCurrency, KIpmRefusesAWrongSizedPayloadLikeKWalk) {
     std::string ipm_message;
     try {
         SqpSolver w{SqpOptions{}};
-        (void)w.solve(*wide_bridge, wide->start_point(), payload);
+        (void)w.solve(hven::solvers::detail::problem_ref(*wide_bridge), wide->start_point(),
+                      payload);
     } catch (const std::invalid_argument &error) {
         walk_message = error.what();
     }
     try {
         SqpSolver i{ipm_currency_options()};
-        (void)i.solve(*wide_bridge, wide->start_point(), payload);
+        (void)i.solve(hven::solvers::detail::problem_ref(*wide_bridge), wide->start_point(),
+                      payload);
     } catch (const std::invalid_argument &error) {
         ipm_message = error.what();
     }
@@ -1367,13 +1415,15 @@ TEST(SqpWarmCurrency, KIpmRefusesAStampMismatchLikeKWalk) {
     const WarmStartData payload = core_payload(sol, *original_bridge);
 
     SqpSolver walker{SqpOptions{}};
-    EXPECT_THROW((void)walker.solve(*rekeyed_bridge, rekeyed->start_point(), payload),
+    EXPECT_THROW((void)walker.solve(hven::solvers::detail::problem_ref(*rekeyed_bridge),
+                                    rekeyed->start_point(), payload),
                  std::invalid_argument);
 
     // THE FLIP: kIpm refuses a stamp mismatch too, where it used to cold-grade.
     SqpSolver ipm{ipm_currency_options()};
     try {
-        (void)ipm.solve(*rekeyed_bridge, rekeyed->start_point(), payload);
+        (void)ipm.solve(hven::solvers::detail::problem_ref(*rekeyed_bridge), rekeyed->start_point(),
+                        payload);
         FAIL() << "a stamp mismatch must refuse under kIpm exactly as it does under kWalk";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
@@ -1411,7 +1461,7 @@ TEST(SqpWarmCurrency, ANonFiniteExtensionMuDegradesTheTierColdAndStagesInEveryMo
         // THE STAGING CONTRACT IS UNCHANGED IN EVERY MODE, malformed `mu_`
         // included -- that is what note (f) means by "the core staging throw is
         // unchanged".
-        return driver.solve(*bridge, data.primal_, data);
+        return driver.solve(hven::solvers::detail::problem_ref(*bridge), data.primal_, data);
     };
 
     const SqpResult full = run(&usable);
@@ -1465,10 +1515,12 @@ TEST(SqpWarmCurrency, TheSamePayloadStagedTwiceGivesBitIdenticalKIpmSolves) {
     data.extensions_.push_back(polish_extension(fixture_polish(sol)));
 
     SqpSolver a{ipm_currency_options()};
-    const SqpResult first = a.solve(*bridge, data.primal_, data);
+    const SqpResult first =
+        a.solve(hven::solvers::detail::problem_ref(*bridge), data.primal_, data);
 
     SqpSolver b{ipm_currency_options()};
-    const SqpResult second = b.solve(*bridge, data.primal_, data);
+    const SqpResult second =
+        b.solve(hven::solvers::detail::problem_ref(*bridge), data.primal_, data);
 
     ASSERT_EQ(first.status, SolveStatus::kOptimal);
     expect_same_first_iterate(first, second);
@@ -1495,7 +1547,8 @@ TEST(SqpWarmCurrency, AStagedTierSeedDoesNotSurviveIntoTheNextSolve) {
     data.extensions_.push_back(polish_extension(polish));
 
     SqpSolver driver{ipm_currency_options()};
-    const SqpResult stalled = driver.solve(*bridge, data.primal_, data);
+    const SqpResult stalled =
+        driver.solve(hven::solvers::detail::problem_ref(*bridge), data.primal_, data);
     ASSERT_EQ(stalled.status, SolveStatus::kOptimal);
     ASSERT_EQ(stalled.counters.ipqp.ipqp_symbolic_analyses, 0)
         << "the fixture's premise: this solve entered the tier not at all, so the seed it armed "
@@ -1506,8 +1559,8 @@ TEST(SqpWarmCurrency, AStagedTierSeedDoesNotSurviveIntoTheNextSolve) {
     // would reach the tier and its payload `mu` would bind the clamp.
     Vec moved = data.primal_;
     moved(0) += 0.5;
-    const SqpResult after =
-        driver.solve(*bridge, moved, SqpWarmStart{}, hven::solvers::SolveBudget{});
+    const SqpResult after = driver.solve(hven::solvers::detail::problem_ref(*bridge), moved,
+                                         SqpWarmStart{}, hven::solvers::SolveBudget{});
     ASSERT_GT(after.counters.ipqp.ipqp_symbolic_analyses, 0)
         << "and this one DID enter the tier, or the assertion below is vacuous";
     EXPECT_EQ(after.counters.ipqp.ipqp_mu_adopted, 0)
@@ -1547,7 +1600,7 @@ TEST(SqpWarmCurrency, ThePayloadPathDeliversThePolishSplitWithoutFlattening) {
         SqpOptions o = ipm_currency_options();
         o.ipqp.ipqp_init_mu = polish.mu_;
         SqpSolver driver{o};
-        return driver.solve(*bridge, data.primal_, data);
+        return driver.solve(hven::solvers::detail::problem_ref(*bridge), data.primal_, data);
     };
 
     const SqpResult full = run(true);
@@ -1590,7 +1643,7 @@ TEST(SqpWarmCurrency, APolishMuAboveTheShippedCeilingIsClampedOutOfAdoption) {
         SqpOptions o = ipm_currency_options();
         o.ipqp.ipqp_init_mu = ceiling;
         SqpSolver driver{o};
-        return driver.solve(*bridge, data.primal_, data);
+        return driver.solve(hven::solvers::detail::problem_ref(*bridge), data.primal_, data);
     };
 
     const SqpResult shipped = run(SqpOptions{}.ipqp.ipqp_init_mu);
@@ -1624,7 +1677,8 @@ TEST(SqpWarmCurrency, APolishMuUnderTheShippedCeilingIsStillAdopted) {
     data.extensions_.push_back(polish_extension(polish));
 
     SqpSolver driver{ipm_currency_options()};
-    const SqpResult r = driver.solve(*bridge, data.primal_, data);
+    const SqpResult r =
+        driver.solve(hven::solvers::detail::problem_ref(*bridge), data.primal_, data);
     ASSERT_EQ(r.status, SolveStatus::kOptimal);
     ASSERT_GT(r.counters.ipqp.ipqp_symbolic_analyses, 0) << "or the adoption pin is vacuous";
     EXPECT_GT(r.counters.ipqp.ipqp_mu_adopted, 0);

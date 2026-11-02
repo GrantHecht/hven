@@ -71,7 +71,9 @@
 #include <gtest/gtest.h>
 
 #include <hven/core/ledger.h>
+#include <hven/detail/drivers/result_access.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/detail/qp/qp_engine.h>
 #include <hven/drivers/sqp_solver_types.h>
 
@@ -564,7 +566,8 @@ TEST(F7ColdScaleSmoke, EmptyWindowColdSolveAtTenThousandVariables) {
     driver.attach_ledger(&ledger, "f7_1e4_empty");
 
     const auto t0 = std::chrono::steady_clock::now();
-    const SqpResult sol = driver.solve(model, model.start_point());
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(model), model.start_point());
     const auto t1 = std::chrono::steady_clock::now();
 
     ASSERT_NO_FATAL_FAILURE(
@@ -682,7 +685,8 @@ TEST(F7ColdScaleSmoke, SchurCapExhaustionBuysFactorizationsNotIterations) {
         opts.qp.max_iter = 5000; // the wide window needs it -- see the note
         opts.qp.schur_cap = schur_cap;
         SqpSolver driver(opts);
-        return std::pair{driver.solve(model, model.start_point()), opts};
+        return std::pair{
+            driver.solve(hven::solvers::detail::problem_ref(model), model.start_point()), opts};
     };
 
     const auto [starved, starved_opts] = solve_with_cap(8);
@@ -786,7 +790,8 @@ TEST(ScaleF7Slow, EmptyWindowColdSolveAtOneMillionVariables) {
     driver.attach_ledger(&ledger, "f7_1e6_empty");
 
     const auto t0 = std::chrono::steady_clock::now();
-    const SqpResult sol = driver.solve(model, model.start_point());
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(model), model.start_point());
     const auto t1 = std::chrono::steady_clock::now();
 
     ASSERT_NO_FATAL_FAILURE(
@@ -870,11 +875,13 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepRepairsTheWarmHopsExportedFacePrices) {
         SqpSolver driver(opts);
 
         model.set_parameters(Vec::Constant(1, kP0));
-        const SqpResult setup = driver.solve(model, model.start_point());
+        const SqpResult setup =
+            driver.solve(hven::solvers::detail::problem_ref(model), model.start_point());
         ASSERT_EQ(setup.status, SolveStatus::kOptimal) << "the hop's premise";
 
         model.set_parameters(Vec::Constant(1, kP));
-        const SqpResult hop = driver.solve(model, setup.warm_start.x, setup.warm_start);
+        const SqpResult hop = driver.solve(hven::solvers::detail::problem_ref(model),
+                                           setup.warm_start.x, setup.warm_start);
         EXPECT_EQ(hop.status, SolveStatus::kOptimal)
             << "the sweep runs at the export boundary and must not cost the hop its certificate";
 
@@ -883,10 +890,11 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepRepairsTheWarmHopsExportedFacePrices) {
             // what a caller reads; warm_start.lambda_i is what reaches
             // WarmStartData::iq_lmults_ and, through it, an interior-point
             // inequality seed -- the leak R6 exists to close.
-            ASSERT_GT(sol->lambda_i.size(), 0);
-            EXPECT_GE(sol->lambda_i.minCoeff(), 0.0)
+            ASSERT_GT(hven::solvers::detail::engine_rows(*sol).lambda_i.size(), 0);
+            EXPECT_GE(hven::solvers::detail::engine_rows(*sol).lambda_i.minCoeff(), 0.0)
                 << "no negative price may escape in SqpResult::lambda_i";
-            ASSERT_EQ(sol->warm_start.lambda_i.size(), sol->lambda_i.size());
+            ASSERT_EQ(sol->warm_start.lambda_i.size(),
+                      hven::solvers::detail::engine_rows(*sol).lambda_i.size());
             EXPECT_GE(sol->warm_start.lambda_i.minCoeff(), 0.0)
                 << "nor in SqpWarmStart::lambda_i, which is the half that reaches the currency";
 
@@ -924,7 +932,9 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepRepairsTheWarmHopsExportedFacePrices) {
                    "prices were swept -- see SqpResult's terminal-KKT note";
             EXPECT_LE(rescored.stationarity - hop.sqp_stationarity,
                       hop.counters.ssn.ssn_sign_sweep_max *
-                          std::max(1.0, hop.lambda_i.template lpNorm<Eigen::Infinity>()) * 1e3)
+                          std::max(1.0, hven::solvers::detail::engine_rows(hop)
+                                            .lambda_i.template lpNorm<Eigen::Infinity>()) *
+                          1e3)
                 << "and the gap must stay within the order the counter bounds it to";
             EXPECT_GE(rescored.dual_sign, 0.0);
             EXPECT_LE(rescored.dual_sign, 0.0)
@@ -996,16 +1006,18 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepAlsoRepairsTheInteriorPointChainsExportedFa
         SqpSolver driver(opts);
 
         model.set_parameters(Vec::Constant(1, kP0));
-        const SqpResult setup = driver.solve(model, model.start_point());
+        const SqpResult setup =
+            driver.solve(hven::solvers::detail::problem_ref(model), model.start_point());
         ASSERT_EQ(setup.status, SolveStatus::kOptimal);
         ASSERT_GT(setup.counters.ipqp.ipqp_to_refine, 0)
             << "the tier must have reached tier 3, or the producer under test never ran";
 
         for (const SqpResult *sol : {&setup}) {
-            ASSERT_GT(sol->lambda_i.size(), 0);
-            EXPECT_GE(sol->lambda_i.minCoeff(), 0.0)
+            ASSERT_GT(hven::solvers::detail::engine_rows(*sol).lambda_i.size(), 0);
+            EXPECT_GE(hven::solvers::detail::engine_rows(*sol).lambda_i.minCoeff(), 0.0)
                 << "no negative price may escape in SqpResult::lambda_i";
-            ASSERT_EQ(sol->warm_start.lambda_i.size(), sol->lambda_i.size());
+            ASSERT_EQ(sol->warm_start.lambda_i.size(),
+                      hven::solvers::detail::engine_rows(*sol).lambda_i.size());
             EXPECT_GE(sol->warm_start.lambda_i.minCoeff(), 0.0)
                 << "nor in SqpWarmStart::lambda_i, which is the half that reaches the currency";
 

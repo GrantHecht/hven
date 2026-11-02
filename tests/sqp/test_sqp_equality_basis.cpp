@@ -31,8 +31,10 @@
 #include <gtest/gtest.h>
 
 #include <hven/detail/drivers/equality_basis.h>
+#include <hven/detail/drivers/result_access.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/globalization/sqp/globalization.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/drivers/sqp_solver_types.h>
 
 #include "../common_support/route_reference.h"
@@ -139,7 +141,8 @@ TEST_P(EqualityBasisModes, F1TwoNetworksConvergeToTheOracleWithMinimumNormMultip
     net.oracle(x_star, lambda_star);
 
     SqpSolver solver(opts_for(GetParam()));
-    const SqpResult res = solver.solve(model);
+    const SqpResult res =
+        solver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(res.status, SolveStatus::kOptimal);
     EXPECT_TRUE(res.equality_basis.computed);
     EXPECT_FALSE(res.equality_basis.undecidable);
@@ -147,20 +150,24 @@ TEST_P(EqualityBasisModes, F1TwoNetworksConvergeToTheOracleWithMinimumNormMultip
     EXPECT_EQ(res.equality_basis.recomputes, 0);
     EXPECT_FALSE(res.equality_basis.switched_off);
     EXPECT_LE((res.x - x_star).lpNorm<Eigen::Infinity>(), 1e-6);
-    EXPECT_LE((res.lambda_e - lambda_star).lpNorm<Eigen::Infinity>(), 1e-5);
+    EXPECT_LE(
+        (hven::solvers::detail::engine_rows(res).lambda_e - lambda_star).lpNorm<Eigen::Infinity>(),
+        1e-5);
     EXPECT_LE(res.kkt_residual, 1e-6);
 
     // Warm round trip through the full-size currency: the fold takes it back.
     const WarmStartData data = solver.export_warm_start();
     ASSERT_EQ(data.eq_lmults_.size(), 9);
     SqpSolver again(opts_for(GetParam()));
-    const SqpResult warm = again.solve(model, model.start_point(), data, SolveBudget{});
+    const SqpResult warm = again.solve(hven::solvers::detail::problem_ref(model),
+                                       model.start_point(), data, SolveBudget{});
     ASSERT_EQ(warm.status, SolveStatus::kOptimal);
     EXPECT_LE((warm.x - x_star).lpNorm<Eigen::Infinity>(), 1e-6);
 
     // And through the in-process warm start.
     SqpSolver hot(opts_for(GetParam()));
-    const SqpResult rehot = hot.solve(model, model.start_point(), res.warm_start, SolveBudget{});
+    const SqpResult rehot = hot.solve(hven::solvers::detail::problem_ref(model),
+                                      model.start_point(), res.warm_start, SolveBudget{});
     ASSERT_EQ(rehot.status, SolveStatus::kOptimal);
     EXPECT_LE((rehot.x - x_star).lpNorm<Eigen::Infinity>(), 1e-6);
 }
@@ -169,7 +176,8 @@ TEST_P(EqualityBasisModes, F2InconsistentRedundantRowIsCertifiedInfeasible) {
     const TwoNetworks net;
     const QpAsNlpModel model = net.model(1e-3);
     SqpSolver solver(opts_for(GetParam()));
-    const SqpResult res = solver.solve(model);
+    const SqpResult res =
+        solver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(res.status, SolveStatus::kInfeasible);
     const SqpEqualityBasisReport &rep = res.equality_basis;
     EXPECT_GE(rep.inconsistent_row, 4); // the second network's dropped row
@@ -184,7 +192,8 @@ TEST_P(EqualityBasisModes, F2SubToleranceInconsistencyIsSpreadAndConverges) {
     const QpAsNlpModel model = net.model(5e-9);
     const SqpOptions o = opts_for(GetParam());
     SqpSolver solver(o);
-    const SqpResult res = solver.solve(model);
+    const SqpResult res =
+        solver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(res.status, SolveStatus::kOptimal);
     EXPECT_EQ(res.equality_basis.inconsistent_row, -1);
     EXPECT_GT(res.equality_basis.max_gap, 1e-9);
@@ -197,10 +206,14 @@ void expect_bit_identical(const SqpResult &a, const SqpResult &b) {
     EXPECT_EQ(
         std::memcmp(a.x.data(), b.x.data(), sizeof(double) * static_cast<std::size_t>(a.x.size())),
         0);
-    ASSERT_EQ(a.lambda_e.size(), b.lambda_e.size());
-    EXPECT_EQ(std::memcmp(a.lambda_e.data(), b.lambda_e.data(),
-                          sizeof(double) * static_cast<std::size_t>(a.lambda_e.size())),
-              0);
+    ASSERT_EQ(hven::solvers::detail::engine_rows(a).lambda_e.size(),
+              hven::solvers::detail::engine_rows(b).lambda_e.size());
+    EXPECT_EQ(
+        std::memcmp(hven::solvers::detail::engine_rows(a).lambda_e.data(),
+                    hven::solvers::detail::engine_rows(b).lambda_e.data(),
+                    sizeof(double) * static_cast<std::size_t>(
+                                         hven::solvers::detail::engine_rows(a).lambda_e.size())),
+        0);
     EXPECT_EQ(a.counters.major_iters, b.counters.major_iters);
     EXPECT_EQ(a.counters.qp_minor_iters, b.counters.qp_minor_iters);
     EXPECT_EQ(a.counters.factorizations, b.counters.factorizations);
@@ -230,8 +243,10 @@ TEST_P(EqualityBasisModes, F3FullRankModelIsBitIdenticalOnAndOff) {
         Vec::Zero(11));
     SqpSolver on(opts_for(GetParam(), true));
     SqpSolver off(opts_for(GetParam(), false));
-    const SqpResult r_on = on.solve(model);
-    const SqpResult r_off = off.solve(model);
+    const SqpResult r_on =
+        on.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult r_off =
+        off.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     EXPECT_TRUE(r_on.equality_basis.computed);
     EXPECT_TRUE(r_on.equality_basis.dropped_rows.empty());
     EXPECT_FALSE(r_on.equality_basis.undecidable);
@@ -272,8 +287,10 @@ TEST_P(EqualityBasisModes, F3NoGapSpectrumIsUndecidableAndBitIdentical) {
                              Vec::Zero(n));
     SqpSolver on(opts_for(GetParam(), true));
     SqpSolver off(opts_for(GetParam(), false));
-    const SqpResult r_on = on.solve(model);
-    const SqpResult r_off = off.solve(model);
+    const SqpResult r_on =
+        on.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult r_off =
+        off.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     EXPECT_TRUE(r_on.equality_basis.undecidable);
     EXPECT_TRUE(r_on.equality_basis.dropped_rows.empty());
     expect_bit_identical(r_on, r_off);
@@ -287,7 +304,8 @@ TEST_P(EqualityBasisModes, F3NoGapSpectrumIsUndecidableAndBitIdentical) {
 TEST_P(EqualityBasisModes, F10ReportTelemetryOnConstructedDependentSets) {
     const TwoNetworks net;
     SqpSolver solver(opts_for(GetParam()));
-    const SqpResult res = solver.solve(net.model());
+    const SqpResult res =
+        solver.solve(hven::solvers::detail::problem_ref(net.model()), (net.model()).start_point());
     ASSERT_EQ(res.status, SolveStatus::kOptimal);
     const SqpEqualityBasisReport &rep = res.equality_basis;
     EXPECT_EQ(rep.split_dropped_count, 2);
@@ -311,7 +329,8 @@ TEST_P(EqualityBasisModes, F10ReportTelemetryOnConstructedDependentSets) {
 
     // The warm solve adds the probe's computation to the certificate telemetry.
     SqpSolver again(opts_for(GetParam()));
-    const SqpResult warm = again.solve(net.model(), Vec::Zero(11), res.warm_start, SolveBudget{});
+    const SqpResult warm = again.solve(hven::solvers::detail::problem_ref(net.model()),
+                                       Vec::Zero(11), res.warm_start, SolveBudget{});
     ASSERT_EQ(warm.status, SolveStatus::kOptimal);
     EXPECT_EQ(warm.counters.start_level_used, StartLevel::kWarm);
     EXPECT_EQ(warm.equality_basis.gram_factorizations, 8);
@@ -326,7 +345,8 @@ TEST_P(EqualityBasisModes, F10ReportTelemetryOnConstructedDependentSets) {
                                       Vec::Constant(2, -10.0), Vec::Constant(2, 10.0)),
                               Vec::Zero(2));
     SqpSolver many(opts_for(GetParam()));
-    const SqpResult r70 = many.solve(copies);
+    const SqpResult r70 =
+        many.solve(hven::solvers::detail::problem_ref(copies), (copies).start_point());
     ASSERT_EQ(r70.status, SolveStatus::kOptimal);
     EXPECT_EQ(r70.equality_basis.split_dropped_count, 69);
     ASSERT_EQ(r70.equality_basis.split_dropped_rows.size(),
@@ -367,7 +387,8 @@ TEST_P(EqualityBasisModes, F10ReportTelemetryOnConstructedDependentSets) {
                                       Vec::Constant(nr, 1e20)),
                               Vec::Zero(nr));
     SqpSolver refused(opts_for(GetParam()));
-    const SqpResult rg = refused.solve(graded);
+    const SqpResult rg =
+        refused.solve(hven::solvers::detail::problem_ref(graded), (graded).start_point());
     EXPECT_TRUE(rg.equality_basis.undecidable);
     EXPECT_EQ(rg.equality_basis.undecidable_count, 1);
     EXPECT_NE(rg.equality_basis.last_refusal, SqpEqualityBasisRefusal::kNone);
@@ -480,7 +501,8 @@ class MovingDependence final : public NlpModel {
 TEST(SqpEqualityBasis, F4MovingNonlinearDependenceRecomputes) {
     const MovingDependence model(false);
     SqpSolver solver(opts_for(QpMode::kWalk));
-    const SqpResult res = solver.solve(model);
+    const SqpResult res =
+        solver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     EXPECT_EQ(res.status, SolveStatus::kOptimal);
     EXPECT_TRUE(res.equality_basis.computed);
     EXPECT_EQ(res.equality_basis.dropped_peak, 1);
@@ -490,7 +512,8 @@ TEST(SqpEqualityBasis, F4MovingNonlinearDependenceRecomputes) {
 TEST(SqpEqualityBasis, F4ConstantNonlinearDependenceNeverRecomputes) {
     const MovingDependence model(true);
     SqpSolver solver(opts_for(QpMode::kWalk));
-    const SqpResult res = solver.solve(model);
+    const SqpResult res =
+        solver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     EXPECT_EQ(res.status, SolveStatus::kOptimal);
     ASSERT_EQ(res.equality_basis.dropped_rows.size(), 1u);
     EXPECT_EQ(res.equality_basis.recomputes, 0);
@@ -511,7 +534,8 @@ TEST(SqpEqualityBasis, F5FixedArcsSplitTheNetworkIntoThreePieces) {
     const QpAsNlpModel model(
         make_qp(A, b, Vec::Ones(7), Vec::LinSpaced(7, -0.3, 0.3), lower, upper), Vec::Zero(7));
     SqpSolver solver(opts_for(QpMode::kWalk));
-    const SqpResult res = solver.solve(model);
+    const SqpResult res =
+        solver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(res.status, SolveStatus::kOptimal);
     EXPECT_EQ(res.equality_basis.dropped_rows.size(), 3u);
     EXPECT_LE(res.sqp_feasibility, 1e-6);
@@ -583,7 +607,8 @@ TEST(SqpEqualityBasis, F8SameCardinalityRowSwapDropsTheRowCarries) {
     for (const QpMode mode : {QpMode::kIpm, QpMode::kWalk, QpMode::kSsn}) {
         SCOPED_TRACE(static_cast<int>(mode));
         SqpSolver solver(opts_for(mode));
-        const SqpResult res = solver.solve(model);
+        const SqpResult res =
+            solver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
         ASSERT_EQ(res.status, SolveStatus::kOptimal);
         EXPECT_NEAR(res.x(0), 1.0, 1e-6);
         EXPECT_NEAR(res.x(1), 1.0, 1e-6);
@@ -615,7 +640,8 @@ TEST(SqpEqualityBasis, F9ZeroStepAtAnInconsistencyHandsOffToTheLadder) {
         SCOPED_TRACE(static_cast<int>(mode));
         const SqpOptions o = opts_for(mode);
         SqpSolver solver(o);
-        const SqpResult res = solver.solve(model);
+        const SqpResult res =
+            solver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
 #if HVEN_TEST_ROUTE_REFERENCE
         EXPECT_EQ(res.status, SolveStatus::kInfeasible);
         EXPECT_TRUE(res.equality_basis.handed_off);
@@ -667,7 +693,8 @@ TEST(SqpEqualityBasis, F6RestorationRunsOverTheRetainedRowsAndResumes) {
         return std::make_unique<RestoreOnce>();
     };
     SqpSolver solver(o);
-    const SqpResult res = solver.solve(model);
+    const SqpResult res =
+        solver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(res.status, SolveStatus::kOptimal);
     EXPECT_EQ(res.counters.restoration_entries, 1);
     EXPECT_EQ(res.equality_basis.dropped_rows.size(), 2u);
@@ -786,10 +813,11 @@ TEST(SqpEqualityBasis, F7OffComputesNothing) {
     const TwoNetworks net;
     const QpAsNlpModel model = net.model();
     SqpSolver solver(opts_for(QpMode::kWalk, false));
-    const SqpResult res = solver.solve(model);
+    const SqpResult res =
+        solver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     EXPECT_FALSE(res.equality_basis.computed);
     EXPECT_TRUE(res.equality_basis.dropped_rows.empty());
-    EXPECT_EQ(res.lambda_e.size(), 9);
+    EXPECT_EQ(hven::solvers::detail::engine_rows(res).lambda_e.size(), 9);
 }
 
 TEST(SqpEqualityBasis, RowSubsetModelRestrictsTheEqualityBlock) {

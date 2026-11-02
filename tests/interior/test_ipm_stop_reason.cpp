@@ -18,13 +18,14 @@
 #include <Eigen/Core>
 
 #include <hven/detail/globalization/recovery_chain.h>
+#include <hven/detail/model/non_linear_program.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/drivers/ipm_solver.h>
 #include <hven/drivers/solve_result.h>
 #include <hven/drivers/solve_status.h>
 #include <hven/drivers/trace.h>
 #include <hven/drivers/trace_writer.h>
-#include <hven/model/nlp_triplet_model.h>
-#include <hven/model/non_linear_program.h>
+#include <hven/model/nlp.h>
 
 #include "../common_support/console_capture.h" // NOLINT(build/include_subdir)
 #include "declared_route.h"                    // NOLINT(build/include_subdir)
@@ -45,48 +46,47 @@ constexpr double kStopReasonInf = std::numeric_limits<double>::infinity();
 // tenth per iteration. That long walk back is the SUSTAINED WORSENING the stall
 // detector certifies -- a violation a full window of iterations above the
 // phase's own best (detail/globalization/feasibility_stall.h).
-struct PowerSpikeProblem final : hven::solvers::NlpTripletModel {
+struct PowerSpikeProblem final : hven::solvers::Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
+
     static constexpr double kEps = 1.0e-4;
     static constexpr int kPower = 10;
 
-    int num_vars() const override { return 2; }
-    int num_cons() const override { return 1; }
-    int num_jac_nonzeros() const override { return 2; }
-    int num_hess_nonzeros() const override { return 2; }
+    int num_vars() const { return 2; }
+    int num_cons() const { return 1; }
+    int num_jac_nonzeros() const { return 2; }
+    int num_hess_nonzeros() const { return 2; }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl << -kStopReasonInf, -kStopReasonInf;
         xu << kStopReasonInf, kStopReasonInf;
         gl << 0.0;
         gu << 0.0;
     }
-    void eval_f(hven::ConstEigenRef<Eigen::VectorXd> x, double &f) const override { f = x[1]; }
-    void eval_grad_f(hven::ConstEigenRef<Eigen::VectorXd>,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
-        g << 0.0, 1.0;
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
+        f = x[1];
+        return f;
     }
-    void eval_g(hven::ConstEigenRef<Eigen::VectorXd> x,
-                Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(hven::ConstVecRef, hven::VecRef g) const override { g << 0.0, 1.0; }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = 1.0 + kEps * x[0] + std::pow(x[0], kPower);
     }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 0;
         c << 0, 1;
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 1;
         c << 0, 1;
     }
-    void eval_jac(hven::ConstEigenRef<Eigen::VectorXd> x,
-                  Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef x, hven::VecRef v) const override {
         v << kEps + kPower * std::pow(x[0], kPower - 1), 0.0;
     }
-    void eval_hess(hven::ConstEigenRef<Eigen::VectorXd> x, double,
-                   hven::ConstEigenRef<Eigen::VectorXd> lambda,
-                   Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(hven::ConstVecRef x, double, hven::ConstVecRef lambda,
+                      hven::VecRef v) const override {
         v << lambda[0] * kPower * (kPower - 1) * std::pow(x[0], kPower - 2), 0.0;
     }
     std::string name() const override { return "PowerSpikeProblem"; }
@@ -95,47 +95,44 @@ struct PowerSpikeProblem final : hven::solvers::NlpTripletModel {
 // c(x) = x0^2 + x1^2 + 1 = 0 has no real solution and its violation has a
 // STRICT stationary point at the origin: the shape a restoration phase converges
 // to and then declares locally infeasible.
-struct LocallyInfeasibleProblem final : hven::solvers::NlpTripletModel {
-    int num_vars() const override { return 2; }
-    int num_cons() const override { return 1; }
-    int num_jac_nonzeros() const override { return 2; }
-    int num_hess_nonzeros() const override { return 2; }
+struct LocallyInfeasibleProblem final : hven::solvers::Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    int num_vars() const { return 2; }
+    int num_cons() const { return 1; }
+    int num_jac_nonzeros() const { return 2; }
+    int num_hess_nonzeros() const { return 2; }
+
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl << -kStopReasonInf, -kStopReasonInf;
         xu << kStopReasonInf, kStopReasonInf;
         gl << 0.0;
         gu << 0.0;
     }
-    void eval_f(hven::ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         f = x[0] + x[1];
+        return f;
     }
-    void eval_grad_f(hven::ConstEigenRef<Eigen::VectorXd>,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
-        g << 1.0, 1.0;
-    }
-    void eval_g(hven::ConstEigenRef<Eigen::VectorXd> x,
-                Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(hven::ConstVecRef, hven::VecRef g) const override { g << 1.0, 1.0; }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = x[0] * x[0] + x[1] * x[1] + 1.0;
     }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 0;
         c << 0, 1;
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 1;
         c << 0, 1;
     }
-    void eval_jac(hven::ConstEigenRef<Eigen::VectorXd> x,
-                  Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef x, hven::VecRef v) const override {
         v << 2.0 * x[0], 2.0 * x[1];
     }
-    void eval_hess(hven::ConstEigenRef<Eigen::VectorXd>, double,
-                   hven::ConstEigenRef<Eigen::VectorXd> lambda,
-                   Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(hven::ConstVecRef, double, hven::ConstVecRef lambda,
+                      hven::VecRef v) const override {
         v << 2.0 * lambda[0], 2.0 * lambda[0];
     }
     std::string name() const override { return "LocallyInfeasibleProblem"; }
@@ -299,10 +296,14 @@ hven_interior_tests::IpmCase make_proximal_locally_infeasible_solver(int max_ite
 // here rather than shared, since the two files' fixtures differ in what happens
 // next. Nothing ever throws at a COMMITTED point: a rejected iteration commits
 // alpha = 0, so the iterate never leaves the anchor.
-struct AnchorOnlyProblem : NlpTripletModel {
+struct AnchorOnlyProblem : Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
+
     mutable Eigen::VectorXd anchor_;
 
-    void require_anchor(hven::ConstEigenRef<Eigen::VectorXd> x) const {
+    void require_anchor(hven::ConstVecRef x) const {
         if (this->anchor_.size() == 0) {
             this->anchor_ = x;
             return;
@@ -313,53 +314,48 @@ struct AnchorOnlyProblem : NlpTripletModel {
         }
     }
 
-    int num_vars() const override { return 2; }
-    int num_cons() const override { return 2; }
-    int num_jac_nonzeros() const override { return 4; }
-    int num_hess_nonzeros() const override { return 2; }
+    int num_vars() const { return 2; }
+    int num_cons() const { return 2; }
+    int num_jac_nonzeros() const { return 4; }
+    int num_hess_nonzeros() const { return 2; }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl << -1.0, -1.0;
         xu << 1.0, 1.0;
         gl << 5.0, -kStopReasonInf;
         gu << 5.0, 10.0;
     }
-    void eval_f(hven::ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         this->require_anchor(x);
         f = 0.5 * (x[0] * x[0] + x[1] * x[1]);
+        return f;
     }
-    void eval_grad_f(hven::ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = x[0];
         g[1] = x[1];
     }
-    void eval_g(hven::ConstEigenRef<Eigen::VectorXd> x,
-                Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
         this->require_anchor(x);
         g[0] = x[0] + x[1];
         g[1] = x[0] - x[1];
     }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 0, 1, 1;
         c << 0, 1, 0, 1;
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 1;
         c << 0, 1;
     }
-    void eval_jac(hven::ConstEigenRef<Eigen::VectorXd>,
-                  Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override {
         v[0] = 1.0;
         v[1] = 1.0;
         v[2] = 1.0;
         v[3] = -1.0;
     }
-    void eval_hess(hven::ConstEigenRef<Eigen::VectorXd>, double obj_factor,
-                   hven::ConstEigenRef<Eigen::VectorXd>,
-                   Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
         v.setConstant(obj_factor);
     }
     std::string name() const override { return "AnchorOnlyProblem"; }
@@ -471,7 +467,8 @@ TEST(IpmStopReason, AStalledFeasibilityStageIsRecordedAsSuch) {
     stop_reason_test::TerminalIter term;
     stop_reason_test::record_terminal_iter(solver, term);
     const hven::solvers::IpmResult result =
-        solver.engine->solve(*solver.program, stop_reason_test::two_var_start(0.0, 0.0));
+        solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program),
+                             stop_reason_test::two_var_start(0.0, 0.0));
     const hven::solvers::SolveStatus flag = result.status;
     // THE ENGINE RESOLVES THE SPLIT ITSELF NOW (M6 W5 T8.4): the phase's raw
     // "ran out of iterations with nothing better to say" verdict is reconciled
@@ -503,7 +500,8 @@ TEST(IpmStopReason, WithDefaultDivergenceThresholdsTheSameFixtureDiverges) {
     stop_reason_test::TerminalIter term;
     stop_reason_test::record_terminal_iter(solver, term);
     const hven::solvers::IpmResult result =
-        solver.engine->solve(*solver.program, stop_reason_test::two_var_start(0.0, 0.0));
+        solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program),
+                             stop_reason_test::two_var_start(0.0, 0.0));
     const hven::solvers::SolveStatus flag = result.status;
     EXPECT_EQ(flag, hven::solvers::SolveStatus::kDiverging);
     EXPECT_EQ(solver.engine->last_stop_reason(), hven::solvers::IpmStopReason::kNone);
@@ -517,7 +515,8 @@ TEST(IpmStopReason, WithDefaultDivergenceThresholdsTheSameFixtureDiverges) {
 TEST(IpmStopReason, ARestorationLocalInfeasibilityIsRecordedAsSuch) {
     auto solver = stop_reason_test::make_locally_infeasible_solver(200);
     const hven::solvers::IpmResult result =
-        solver.engine->solve(*solver.program, stop_reason_test::two_var_start(1.0, 1.0));
+        solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program),
+                             stop_reason_test::two_var_start(1.0, 1.0));
     const hven::solvers::SolveStatus flag = result.status;
     // Resolved by the engine at the phase's exit (M6 W5 T8.4), like the stall
     // above: the locally-infeasible restoration return is the OTHER exit the
@@ -558,7 +557,8 @@ TEST(IpmStopReason, TheLocallyInfeasibleDoorFiresItsRowOnBothStreams) {
     });
 
     const hven::solvers::IpmResult result =
-        solver.engine->solve(*solver.program, stop_reason_test::two_var_start(1.0, 1.0));
+        solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program),
+                             stop_reason_test::two_var_start(1.0, 1.0));
     const hven::solvers::SolveStatus flag = result.status;
     ASSERT_EQ(flag, hven::solvers::SolveStatus::kStalled);
     ASSERT_EQ(solver.engine->last_stop_reason(),
@@ -598,7 +598,8 @@ TEST(IpmStopReason, TheDoorsMarkerFollowsItsOwnIterLineOnALiveSolve) {
     solver.engine->attach_trace(&sink);
 
     const hven::solvers::IpmResult result =
-        solver.engine->solve(*solver.program, stop_reason_test::two_var_start(1.0, 1.0));
+        solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program),
+                             stop_reason_test::two_var_start(1.0, 1.0));
     const hven::solvers::SolveStatus flag = result.status;
     ASSERT_EQ(flag, hven::solvers::SolveStatus::kStalled);
     ASSERT_EQ(solver.engine->last_stop_reason(),
@@ -672,7 +673,8 @@ TEST(IpmStopReason, AStallOnTheCapIterationKeepsTheStallLabel) {
     // disjuncts to hold on ONE iteration.
     auto unbounded = stop_reason_test::make_stall_solver(600);
     const hven::solvers::IpmResult unbounded_result =
-        unbounded.engine->solve(*unbounded.program, stop_reason_test::two_var_start(0.0, 0.0));
+        unbounded.engine->solve(hven::solvers::detail::problem_ref(*unbounded.program),
+                                stop_reason_test::two_var_start(0.0, 0.0));
     ASSERT_EQ(unbounded.engine->last_stop_reason(), hven::solvers::IpmStopReason::kStageStalled);
     const int reported = unbounded_result.iterations;
 
@@ -682,7 +684,8 @@ TEST(IpmStopReason, AStallOnTheCapIterationKeepsTheStallLabel) {
         auto solver = stop_reason_test::make_stall_solver(cap);
         stop_reason_test::TerminalIter term;
         stop_reason_test::record_terminal_iter(solver, term);
-        (void)solver.engine->solve(*solver.program, stop_reason_test::two_var_start(0.0, 0.0));
+        (void)solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program),
+                                   stop_reason_test::two_var_start(0.0, 0.0));
         const hven::solvers::IpmStopReason reason = solver.engine->last_stop_reason();
         if (reason == hven::solvers::IpmStopReason::kStageStalled) {
             tie_cap = cap;
@@ -725,7 +728,8 @@ TEST(IpmStopReason, TheStalledDoorStillPrintsNoSolutionFoundAndCarriesItsMessage
         hven::testing::StdoutCapture capture;
         EXPECT_TRUE(capture.active());
         const hven::solvers::IpmResult result =
-            solver.engine->solve(*solver.program, stop_reason_test::two_var_start(0.0, 0.0));
+            solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program),
+                                 stop_reason_test::two_var_start(0.0, 0.0));
         const hven::solvers::SolveStatus flag = result.status;
         ASSERT_EQ(flag, hven::solvers::SolveStatus::kStalled)
             << "fixture premise: this cell must leave through the stall door";
@@ -782,7 +786,8 @@ TEST(IpmStopReason, TheLocallyInfeasibleDoorStillPrintsNoSolutionFoundAndCarries
         hven::testing::StdoutCapture capture;
         EXPECT_TRUE(capture.active());
         const hven::solvers::IpmResult result =
-            solver.engine->solve(*solver.program, stop_reason_test::two_var_start(1.0, 1.0));
+            solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program),
+                                 stop_reason_test::two_var_start(1.0, 1.0));
         const hven::solvers::SolveStatus flag = result.status;
         ASSERT_EQ(flag, hven::solvers::SolveStatus::kStalled);
         printed = capture.text();
@@ -840,7 +845,8 @@ TEST(IpmStopReason, TheInterruptDoorStillPrintsNoSolutionFoundAndCarriesItsMessa
         hven::testing::StdoutCapture capture;
         EXPECT_TRUE(capture.active());
         const hven::solvers::IpmResult result =
-            solver.engine->solve(*solver.program, stop_reason_test::two_var_start(1.0, 1.0));
+            solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program),
+                                 stop_reason_test::two_var_start(1.0, 1.0));
         const hven::solvers::SolveStatus flag = result.status;
         ASSERT_EQ(flag, hven::solvers::SolveStatus::kInterrupted);
         printed = capture.text();
@@ -879,11 +885,13 @@ TEST(IpmStopReason, OnlyResolutionEverProducesStalledOrInterrupted) {
         if (which == 0) {
             auto solver = stop_reason_test::make_stall_solver(200);
             solver.engine->attach_trace(&sink);
-            solver.engine->solve(*solver.program, stop_reason_test::two_var_start(0.0, 0.0));
+            solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program),
+                                 stop_reason_test::two_var_start(0.0, 0.0));
         } else {
             auto solver = stop_reason_test::make_locally_infeasible_solver(200);
             solver.engine->attach_trace(&sink);
-            solver.engine->solve(*solver.program, stop_reason_test::two_var_start(1.0, 1.0));
+            solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program),
+                                 stop_reason_test::two_var_start(1.0, 1.0));
         }
         return os.str();
     };
@@ -924,7 +932,8 @@ TEST(IpmStopReason, OnlyResolutionEverProducesStalledOrInterrupted) {
 TEST(IpmStopReason, TheProximalArmLeavesRestorationWhereTheL1ArmDeclaresInfeasibility) {
     auto proximal = stop_reason_test::make_proximal_locally_infeasible_solver(40);
     const hven::solvers::IpmResult prox_result =
-        proximal.engine->solve(*proximal.program, stop_reason_test::two_var_start(1.0, 1.0));
+        proximal.engine->solve(hven::solvers::detail::problem_ref(*proximal.program),
+                               stop_reason_test::two_var_start(1.0, 1.0));
 
     // NON-VACUOUS: the proximal strategy really was constructed and really did
     // enter restoration, so the classification ran on a proximal subproblem.
@@ -945,7 +954,8 @@ TEST(IpmStopReason, TheProximalArmLeavesRestorationWhereTheL1ArmDeclaresInfeasib
     // not take.
     auto nested = stop_reason_test::make_locally_infeasible_solver(40);
     const hven::solvers::IpmResult l1_result =
-        nested.engine->solve(*nested.program, stop_reason_test::two_var_start(1.0, 1.0));
+        nested.engine->solve(hven::solvers::detail::problem_ref(*nested.program),
+                             stop_reason_test::two_var_start(1.0, 1.0));
     EXPECT_EQ(l1_result.status, hven::solvers::SolveStatus::kStalled);
     EXPECT_EQ(nested.engine->last_stop_reason(),
               hven::solvers::IpmStopReason::kRestorationLocallyInfeasible);
@@ -968,7 +978,8 @@ TEST(IpmStopReason, TheProximalArmReEntersRestorationOnlyAfterLeavingIt) {
     }
 
     const hven::solvers::IpmResult result =
-        solver.engine->solve(*solver.program, stop_reason_test::two_var_start(0.0, 0.0));
+        solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program),
+                             stop_reason_test::two_var_start(0.0, 0.0));
 
     EXPECT_GE(result.last_feas_rest_entries, 2)
         << "the proximal classification never chose to leave: a re-entry is the only way the "
@@ -1002,7 +1013,8 @@ TEST(IpmStopReason, AnUnevaluableStepAtAnAcceptableIterateExitsAtTheAcceptableLe
         /*acceptable_tier_contains_the_iterate=*/true);
     Eigen::VectorXd x0(2);
     x0 << 0.0, 0.0;
-    const hven::solvers::IpmResult result = solver.engine->solve(*solver.program, x0);
+    const hven::solvers::IpmResult result =
+        solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program), x0);
 
     // THE EXIT: the acceptable level, not the iteration cap and not an abort.
     EXPECT_EQ(result.status, hven::solvers::SolveStatus::kAcceptable);
@@ -1026,7 +1038,7 @@ TEST(IpmStopReason, AnUnevaluableStepAtAnUnacceptableIterateAbortsWithTheLatched
     // branch is all that is left -- and it throws the latched evaluation error
     // wrapped in solver context rather than returning a verdict.
     try {
-        (void)solver.engine->solve(*solver.program, x0);
+        (void)solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program), x0);
         ADD_FAILURE() << "an un-evaluable line search at an unacceptable iterate must abort";
     } catch (const std::runtime_error &e) {
         const std::string what = e.what();
@@ -1084,7 +1096,8 @@ TEST(IpmStopReason, AnUnevaluableStepWithRestorationAvailableEntersItThroughTheR
 
     // It does not abort -- which is the whole difference from the arm above.
     hven::solvers::IpmResult result;
-    ASSERT_NO_THROW(result = solver.engine->solve(*solver.program, x0));
+    ASSERT_NO_THROW(
+        result = solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program), x0));
 
     EXPECT_FALSE(result.last_eval_exception.empty())
         << "no trial evaluation was refused, so this path never ran";
@@ -1109,7 +1122,8 @@ void expect_variant_absorbs_unevaluable_trials(hven::solvers::LineSearchModes ls
         /*acceptable_tier_contains_the_iterate=*/true, /*restoration_on=*/false, ls);
     Eigen::VectorXd x0(2);
     x0 << 0.0, 0.0;
-    const hven::solvers::IpmResult result = solver.engine->solve(*solver.program, x0);
+    const hven::solvers::IpmResult result =
+        solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program), x0);
 
     EXPECT_EQ(result.status, hven::solvers::SolveStatus::kAcceptable) << what;
     EXPECT_FALSE(result.last_eval_exception.empty())

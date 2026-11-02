@@ -96,7 +96,7 @@
 #include <Eigen/SparseCore>
 #include <fmt/format.h>
 
-#include <hven/model/nlp_model.h>
+#include <hven/detail/model/nlp_model.h>
 #include <hven/qp/qp_types.h>
 
 namespace hven::solvers::test_support {

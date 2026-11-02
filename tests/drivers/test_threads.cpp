@@ -100,13 +100,15 @@
 #include <mkl_service.h>
 #endif
 
+#include <hven/detail/drivers/result_access.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/kkt/kkt_calls.h>
+#include <hven/detail/model/nlp_model.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/detail/qp/ipqp_engine.h>
 #include <hven/detail/qp/qp_engine.h>
 #include <hven/detail/qp/ssn_engine.h>
 #include <hven/drivers/sqp_solver_types.h>
-#include <hven/model/nlp_model.h>
 #include <hven/qp/qp_types.h>
 
 #include "sqp/support/hs_problems.h"
@@ -584,11 +586,15 @@ void expect_results_identical(const SqpResult &a, const SqpResult &b) {
     HVEN_EXPECT_BITS(a, b, kkt_residual);
     HVEN_EXPECT_SAME(a, b, infeasibility_certified);
     expect_vectors_identical(a.x, b.x, "x");
-    expect_vectors_identical(a.lambda_e, b.lambda_e, "lambda_e");
-    expect_vectors_identical(a.lambda_i, b.lambda_i, "lambda_i");
+    expect_vectors_identical(hven::solvers::detail::engine_rows(a).lambda_e,
+                             hven::solvers::detail::engine_rows(b).lambda_e, "lambda_e");
+    expect_vectors_identical(hven::solvers::detail::engine_rows(a).lambda_i,
+                             hven::solvers::detail::engine_rows(b).lambda_i, "lambda_i");
     expect_vectors_identical(a.z, b.z, "z");
-    expect_vectors_identical(a.ce, b.ce, "ce");
-    expect_vectors_identical(a.ci, b.ci, "ci");
+    expect_vectors_identical(hven::solvers::detail::engine_rows(a).ce,
+                             hven::solvers::detail::engine_rows(b).ce, "ce");
+    expect_vectors_identical(hven::solvers::detail::engine_rows(a).ci,
+                             hven::solvers::detail::engine_rows(b).ci, "ci");
     ASSERT_EQ(a.history.size(), b.history.size());
     for (std::size_t i = 0; i < a.history.size(); ++i) {
         expect_rows_identical(a.history[i], b.history[i], static_cast<int>(i));
@@ -640,7 +646,8 @@ TEST(Threads, ZeroLeavesEveryFactorAtTheBackendDefault) {
         // after it is the engine THIS SOLVE built and not a default.
         ASSERT_EQ(driver.ssn_tier_num_threads(), -1);
         ASSERT_EQ(driver.ipqp_tier_num_threads(), -1);
-        const SqpResult sol = driver.solve(model);
+        const SqpResult sol =
+            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
         if (mode == QpMode::kWalk) {
             EXPECT_EQ(driver_k0_num_threads(sol), 0) << "the driver's own K0 factor";
@@ -669,7 +676,8 @@ TEST(Threads, ZeroLeavesEveryFactorAtTheBackendDefault) {
     // with no hot handle in Debug; the premise is the pre-E2 walk's.
     ropts.qp.independent_working_set = false;
     SqpSolver driver(ropts);
-    const SqpResult sol = driver.solve(restoring, restoring.start_point());
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(restoring), restoring.start_point());
     ASSERT_GE(sol.counters.restoration_iters, 1) << "fixture premise: the phase RAN";
 #ifdef HVEN_USE_ACCELERATE_LAPACK
     // M7 WX B1 (design section 2.3, class D): UNOBSERVED on Accelerate. The count is stored and
@@ -729,7 +737,8 @@ TEST(Threads, NonZeroReachesEveryFactorTier) {
     const int before = max_threads_now();
     hven::solvers::test_support::Hs76Model model;
     SqpSolver driver(base_options(QpMode::kWalk, kAskedFor));
-    const SqpResult sol = driver.solve(model);
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_GE(sol.counters.factorizations, 1)
         << "PREMISE: the walk's per-solve temporary factor path ran";
@@ -749,7 +758,8 @@ TEST(Threads, NonZeroReachesEveryFactorTier) {
         SqpSolver tier_driver(base_options(mode, kAskedFor));
         ASSERT_EQ(tier_driver.ssn_tier_num_threads(), -1) << "PREMISE: lazy, not yet built";
         ASSERT_EQ(tier_driver.ipqp_tier_num_threads(), -1) << "PREMISE: lazy, not yet built";
-        const SqpResult tier_sol = tier_driver.solve(tier_model);
+        const SqpResult tier_sol = tier_driver.solve(hven::solvers::detail::problem_ref(tier_model),
+                                                     (tier_model).start_point());
         ASSERT_EQ(tier_sol.status, SolveStatus::kOptimal);
         const int tier_threads = mode == QpMode::kSsn ? tier_driver.ssn_tier_num_threads()
                                                       : tier_driver.ipqp_tier_num_threads();
@@ -797,7 +807,8 @@ TEST(Threads, NonZeroReachesTheDenseBorderFactor) {
 
     hven::solvers::test_support::Hs76Model model;
     SqpSolver driver(base_options(QpMode::kWalk, kAskedFor));
-    const SqpResult sol = driver.solve(model);
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     ASSERT_NE(sol.warm_start.hot, nullptr);
     ASSERT_TRUE(sol.warm_start.hot->border->schur.has_value())
@@ -815,7 +826,8 @@ TEST(Threads, NonZeroReachesTheDenseBorderFactor) {
 TEST(Threads, ZeroLeavesTheDenseBorderFactorAtTheBackendDefault) {
     hven::solvers::test_support::Hs76Model model;
     SqpSolver driver(base_options(QpMode::kWalk, 0));
-    const SqpResult sol = driver.solve(model);
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     ASSERT_NE(sol.warm_start.hot, nullptr);
     ASSERT_TRUE(sol.warm_start.hot->border->schur.has_value());
@@ -849,7 +861,8 @@ TEST(Threads, TheCallersThreadSettingSurvivesEveryTierAndTheRestoration) {
         SCOPED_TRACE(::testing::Message() << "qp_mode " << static_cast<int>(mode));
         hven::solvers::test_support::Hs76Model model;
         SqpSolver driver(base_options(mode, kAskedFor));
-        const SqpResult sol = driver.solve(model);
+        const SqpResult sol =
+            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
         EXPECT_EQ(mkl_get_max_threads(), kCallerOverride);
     }
@@ -874,7 +887,8 @@ TEST(Threads, TheCallersThreadSettingSurvivesEveryTierAndTheRestoration) {
     // with no hot handle in Debug; the premise is the pre-E2 walk's.
     ropts.qp.independent_working_set = false;
     SqpSolver driver(ropts);
-    const SqpResult sol = driver.solve(restoring, restoring.start_point());
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(restoring), restoring.start_point());
     ASSERT_GE(sol.counters.restoration_iters, 1) << "fixture premise: the phase RAN";
     EXPECT_EQ(driver_k0_num_threads(sol), kAskedFor);
 
@@ -922,8 +936,10 @@ TEST(Threads, ZeroAndOneProduceIdenticalHistoriesAndCounters) {
                          << names[m] << ", qp_mode " << static_cast<int>(mode));
             SqpSolver zero(base_options(mode, 0));
             SqpSolver one(base_options(mode, 1));
-            const SqpResult a = zero.solve(*models[m]);
-            const SqpResult b = one.solve(*models[m]);
+            const SqpResult a = zero.solve(hven::solvers::detail::problem_ref(*models[m]),
+                                           (*models[m]).start_point());
+            const SqpResult b = one.solve(hven::solvers::detail::problem_ref(*models[m]),
+                                          (*models[m]).start_point());
             expect_results_identical(a, b);
         }
     }

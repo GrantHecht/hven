@@ -30,14 +30,28 @@
 #include <fmt/format.h>
 
 #include "hven/detail/model/nlp_adapter.h"
+#include "hven/detail/model/nlp_problem_model.h"
+#include "hven/detail/model/non_linear_program.h"
+#include "hven/detail/model/problem_access.h"
 #include "hven/drivers/ipm_solver.h"
-#include "hven/model/nlp_problem_model.h"
-#include "hven/model/nlp_triplet_model.h"
-#include "hven/model/non_linear_program.h"
+#include "hven/model/nlp.h"
 #include "hven/model/structure_identity.h"
 #include "hven/warmstart/warm_start_data.h"
 
 namespace hven_interior_tests {
+
+/// @brief The multiplier-seed hook the retired Nlp::starting_multipliers was.
+///
+/// A test problem that seeds its own row multipliers derives from this beside
+/// Nlp; starting_multiplier_seed() finds the hook by a dynamic cast. The library
+/// has one seed route -- the multipliers-only WarmStartData -- and this builds
+/// exactly that payload.
+struct MultiplierSeedHook {
+    virtual ~MultiplierSeedHook() = default;
+    /// @brief Return true and fill @p lambda (one entry per row, Ipopt's sign
+    ///        convention) to seed the row multipliers.
+    virtual bool starting_multipliers(hven::VecRef lambda) const = 0;
+};
 
 /// @brief A transcribed program and the engine that solves it, owned together
 ///        by a factory that builds both.
@@ -54,7 +68,7 @@ struct IpmCase {
 /// @brief A declared problem, the model it converts to, and the program the
 ///        interior-point engine consumes.
 struct DeclaredRoute {
-    std::shared_ptr<hven::solvers::NlpTripletModel> problem;
+    std::shared_ptr<hven::solvers::Nlp> problem;
     std::shared_ptr<hven::solvers::NlpProblemModel> model;
     std::shared_ptr<hven::solvers::NonLinearProgram> program;
 };
@@ -64,7 +78,7 @@ struct DeclaredRoute {
 /// @param num_partitions Requested partition count; LAYOUT ONLY and clamped
 ///        (see make_nlp_program). Read the adopted count off
 ///        `route.program->num_partitions_`.
-inline DeclaredRoute transcribe(std::shared_ptr<hven::solvers::NlpTripletModel> problem,
+inline DeclaredRoute transcribe(std::shared_ptr<hven::solvers::Nlp> problem,
                                 int num_partitions = 1) {
     DeclaredRoute route;
     route.problem = std::move(problem);
@@ -85,8 +99,9 @@ inline DeclaredRoute transcribe(std::shared_ptr<hven::solvers::NlpTripletModel> 
 /// @throws std::invalid_argument if the hook returns a non-finite value.
 inline std::optional<hven::solvers::WarmStartData>
 starting_multiplier_seed(const DeclaredRoute &route) {
+    const auto *hook = dynamic_cast<const MultiplierSeedHook *>(route.problem.get());
     Eigen::VectorXd lam = Eigen::VectorXd::Zero(route.model->num_declared_rows());
-    if (!route.problem->starting_multipliers(lam)) {
+    if (hook == nullptr || !hook->starting_multipliers(lam)) {
         return std::nullopt;
     }
     if (!lam.allFinite()) {
@@ -108,8 +123,9 @@ inline hven::solvers::IpmResult solve_declared(hven::solvers::IpmSolver &engine,
                                                const DeclaredRoute &route,
                                                const Eigen::VectorXd &x0) {
     const std::optional<hven::solvers::WarmStartData> seed = starting_multiplier_seed(route);
-    return seed.has_value() ? engine.solve(*route.program, x0, *seed)
-                            : engine.solve(*route.program, x0);
+    return seed.has_value()
+               ? engine.solve(hven::solvers::detail::problem_ref(*route.program), x0, *seed)
+               : engine.solve(hven::solvers::detail::problem_ref(*route.program), x0);
 }
 
 } // namespace hven_interior_tests

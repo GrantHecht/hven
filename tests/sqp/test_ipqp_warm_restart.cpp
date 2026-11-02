@@ -11,6 +11,7 @@
 #include <gtest/gtest.h>
 
 #include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/detail/qp/ipqp_engine.h>
 
 #include "support/parametric_families.h"
@@ -667,14 +668,15 @@ TEST(IpqpWarmRestart, APerturbedContinuationAcrossAnActivationThresholdIsAbandon
         SqpSolver driver(o);
 
         // The FREE-branch solve, and its currency.
-        const SqpResult seeded = driver.solve(model, model.start_point());
+        const SqpResult seeded =
+            driver.solve(hven::solvers::detail::problem_ref(model), model.start_point());
         EXPECT_EQ(seeded.status, SolveStatus::kOptimal);
         const WarmStartData payload = driver.export_warm_start();
 
         // The perturbation: past the activation threshold, so the exported
         // point's active set is the wrong one for the problem being solved.
         model.set_parameters(Vec::Constant(1, 0.8));
-        return driver.solve(model, payload.primal_, payload);
+        return driver.solve(hven::solvers::detail::problem_ref(model), payload.primal_, payload);
     };
 
     const SqpResult killed = solve_continuation(1);

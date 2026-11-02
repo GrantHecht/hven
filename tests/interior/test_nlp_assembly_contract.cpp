@@ -34,8 +34,8 @@
 
 #include "hven/detail/interior/aggregate_views.h"
 #include "hven/detail/model/nlp_adapter.h"
-#include "hven/model/nlp_problem_model.h"
-#include "hven/model/non_linear_program.h"
+#include "hven/detail/model/nlp_problem_model.h"
+#include "hven/detail/model/non_linear_program.h"
 
 using hven::ConstEigenRef;
 using hven::solvers::AssemblyCapability;
@@ -46,8 +46,8 @@ using hven::solvers::EvalRequest;
 using hven::solvers::FixedVariableTreatments;
 using hven::solvers::has_capability;
 using hven::solvers::KktScatterView;
+using hven::solvers::Nlp;
 using hven::solvers::NLPAdapterCore;
-using hven::solvers::NlpTripletModel;
 using hven::solvers::NonLinearProgram;
 using hven::solvers::RhsArenaView;
 using hven::solvers::RhsLocationTable;
@@ -63,18 +63,21 @@ constexpr double kAggPinInf = std::numeric_limits<double>::infinity();
 ///
 /// `fix_` pins a variable by giving it equal bounds, which is what drives the
 /// fixed-variable treatments.
-struct AggPinProblem : NlpTripletModel {
+struct AggPinProblem : Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
+
     int fix_ = -1;
     double fix_at_ = 0.0;
     bool fix_all_ = false;
 
-    int num_vars() const override { return 4; }
-    int num_cons() const override { return 3; }
-    int num_jac_nonzeros() const override { return 12; }
-    int num_hess_nonzeros() const override { return 4; }
+    int num_vars() const { return 4; }
+    int num_cons() const { return 3; }
+    int num_jac_nonzeros() const { return 12; }
+    int num_hess_nonzeros() const { return 4; }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl.setConstant(-kAggPinInf);
         xu.setConstant(kAggPinInf);
         if (fix_all_) {
@@ -93,23 +96,23 @@ struct AggPinProblem : NlpTripletModel {
         gu[2] = 1.0;
     }
 
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         f = 0.5 * x[0] * x[0] + 1.5 * x[1] * x[1] + x[2] * x[3] + 0.25 * x[3];
+        return f;
     }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = x[0];
         g[1] = 3.0 * x[1];
         g[2] = x[3];
         g[3] = x[2] + 0.25;
     }
-    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = x[0] + 2.0 * x[1] - x[2];
         g[1] = x[0] * x[0] + x[3];
         g[2] = x[1] * x[2] + x[3];
     }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         int k = 0;
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 4; col++) {
@@ -119,12 +122,11 @@ struct AggPinProblem : NlpTripletModel {
             }
         }
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 1, 3, 2;
         c << 0, 1, 2, 2;
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef x, hven::VecRef v) const override {
         v.setZero();
         v[0] = 1.0;
         v[1] = 2.0;
@@ -135,9 +137,8 @@ struct AggPinProblem : NlpTripletModel {
         v[10] = x[1];
         v[11] = 1.0;
     }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd> lambda,
-                   Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef lambda,
+                      hven::VecRef v) const override {
         v[0] = obj_factor + 2.0 * lambda[1];
         v[1] = 3.0 * obj_factor;
         v[2] = obj_factor;
@@ -159,39 +160,40 @@ struct AggPinProblem : NlpTripletModel {
 /// 1..20 -- the pair (r, r+k) is claimed while (r+k, r) is NOT, and a
 /// renumbering moves the set. (For k in 21..39 the wrap does claim both, which
 /// is why the quantifier is that range and not the whole band.)
-struct AggPinWideProblem : NlpTripletModel {
+struct AggPinWideProblem : Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
+
     static constexpr int kVars = 60;
     static constexpr int kCons = 60;
     static constexpr int kBand = 40;
 
     static int band_col(int row, int k) { return (row + k) % kVars; }
 
-    int num_vars() const override { return kVars; }
-    int num_cons() const override { return kCons; }
-    int num_jac_nonzeros() const override { return kCons * kBand; }
-    int num_hess_nonzeros() const override { return kVars; }
+    int num_vars() const { return kVars; }
+    int num_cons() const { return kCons; }
+    int num_jac_nonzeros() const { return kCons * kBand; }
+    int num_hess_nonzeros() const { return kVars; }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl.setConstant(-kAggPinInf);
         xu.setConstant(kAggPinInf);
         gl.setZero();
         gu.setZero();
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         f = 0.5 * x.squaredNorm();
+        return f;
     }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
-        g = x;
-    }
-    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override { g = x; }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
         for (int row = 0; row < kCons; row++) {
             g[row] = x[row] + 0.5 * x[(row + 1) % kVars];
         }
     }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         int slot = 0;
         for (int row = 0; row < kCons; row++) {
             for (int k = 0; k < kBand; k++) {
@@ -201,22 +203,21 @@ struct AggPinWideProblem : NlpTripletModel {
             }
         }
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         for (int i = 0; i < kVars; i++) {
             r[i] = i;
             c[i] = i;
         }
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override {
         v.setZero();
         for (int row = 0; row < kCons; row++) {
             v[row * kBand + 0] = 1.0; // d g_row / d x_row
             v[row * kBand + 1] = 0.5; // d g_row / d x_(row+1)
         }
     }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
         v.setConstant(obj_factor);
     }
 };
@@ -228,16 +229,19 @@ struct AggPinWideProblem : NlpTripletModel {
 /// mistake for a missing view -- the residual flag names both arenas at once,
 /// so getting this wrong locks such a model out of evaluating the block it does
 /// have.
-struct AggPinOneKindProblem : NlpTripletModel {
+struct AggPinOneKindProblem : Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
+
     bool inequality_ = false;
 
-    int num_vars() const override { return 3; }
-    int num_cons() const override { return 2; }
-    int num_jac_nonzeros() const override { return 4; }
-    int num_hess_nonzeros() const override { return 3; }
+    int num_vars() const { return 3; }
+    int num_cons() const { return 2; }
+    int num_jac_nonzeros() const { return 4; }
+    int num_hess_nonzeros() const { return 3; }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl.setConstant(-kAggPinInf);
         xu.setConstant(kAggPinInf);
         if (inequality_) {
@@ -250,39 +254,38 @@ struct AggPinOneKindProblem : NlpTripletModel {
             gu.setZero();
         }
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         f = 0.5 * x.squaredNorm() + x[2];
+        return f;
     }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
         g = x;
         g[2] += 1.0;
     }
-    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = x[0] + 2.0 * x[1];
         g[1] = x[1] - x[2];
     }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 0, 1, 1;
         c << 0, 1, 1, 2;
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 1, 2;
         c << 0, 1, 2;
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override {
         v << 1.0, 2.0, 1.0, -1.0;
     }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
         v.setConstant(obj_factor);
     }
     std::string name() const override { return "AggPinOneKindProblem"; }
 };
 
-std::shared_ptr<NonLinearProgram> agg_pin_build(const std::shared_ptr<NlpTripletModel> &problem) {
+std::shared_ptr<NonLinearProgram> agg_pin_build(const std::shared_ptr<Nlp> &problem) {
     auto model = std::make_shared<hven::solvers::NlpProblemModel>(problem);
     auto core = std::make_shared<NLPAdapterCore>(model, problem->name());
     return hven::solvers::make_nlp_program(core);
@@ -1610,7 +1613,7 @@ void agg_pin_check_one_kind(bool inequality) {
                                   storage.rhs_view(*nlp)));
 
     double reference = 0.0;
-    problem->eval_f(x, reference);
+    reference = problem->eval_f(x);
     EXPECT_DOUBLE_EQ(storage.objective, reference);
 
     // And through the off-path values entry, which sizes its blocks from the

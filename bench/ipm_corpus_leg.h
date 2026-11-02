@@ -25,10 +25,10 @@
 #include <vector>
 
 #include <hven/core/types.h>
+#include <hven/detail/model/non_linear_program.h>
 #include <hven/drivers/ipm_solver.h>
 #include <hven/drivers/solve_status.h>
-#include <hven/model/nlp_triplet_model.h>
-#include <hven/model/non_linear_program.h>
+#include <hven/model/nlp.h>
 
 #include "corpus_cells.h"
 
@@ -290,12 +290,12 @@ const std::vector<FixedVariableTreatments> &interior_treatments();
 /// @return The finished row, `wall_s` included.
 /// @throws std::invalid_argument if @p problem is null, or from the solver's own
 ///         boundary validation (a treatment the declaration refuses included).
-InteriorRow run_interior_problem(const std::shared_ptr<NlpTripletModel> &problem,
+InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
                                  const InteriorRowIdentity &identity, const Vec &x0,
                                  FixedVariableTreatments treatment, const InteriorLevers &levers,
                                  const InteriorVariant &variant);
 
-/// @brief Why @p cell cannot be stated as an NlpTripletModel, or an empty string when
+/// @brief Why @p cell cannot be stated as an Nlp, or an empty string when
 ///        it can.
 ///
 /// crossover_legs.h's dual_bind_refusal, forwarded so the CLI glue spells one
@@ -303,7 +303,7 @@ InteriorRow run_interior_problem(const std::shared_ptr<NlpTripletModel> &problem
 std::string interior_cell_refusal(const CorpusCell &cell);
 
 /// @brief Runs one U0 corpus cell through the same driver, stating it as an
-///        NlpTripletModel exactly as the crossover leg (a) does.
+///        Nlp exactly as the crossover leg (a) does.
 /// @param cell      The cell; must dual-bind.
 /// @param treatment The fixed-variable treatment this row runs under.
 /// @param levers    The knobs above.

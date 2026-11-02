@@ -82,7 +82,7 @@
 #include <fmt/format.h>
 
 #include <hven/core/types.h>
-#include <hven/model/nlp_model.h>
+#include <hven/detail/model/nlp_model.h>
 
 #include "scale_problems.h"
 

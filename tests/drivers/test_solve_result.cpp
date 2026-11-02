@@ -19,14 +19,16 @@
 #include <stdexcept>
 #include <vector>
 
+#include <hven/detail/drivers/result_access.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/model/nlp_adapter.h>
+#include <hven/detail/model/nlp_model.h>
+#include <hven/detail/model/nlp_model_assembly.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/drivers/ipm_solver.h>
 #include <hven/drivers/ipm_solver_types.h>
 #include <hven/drivers/solve_result.h>
 #include <hven/drivers/sqp_solver_types.h>
-#include <hven/model/nlp_model.h>
-#include <hven/model/nlp_model_assembly.h>
 
 #include "sqp/support/hs_problems.h"
 #include "support/hs071_problem.h"
@@ -230,7 +232,7 @@ TEST(IpmPhases, TrailingSolveIsConditionalOnThePrecedingOptimize) {
         hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
 
     const hven::solvers::IpmResult converged =
-        solver.solve(*model, hven_drivers_tests::hs071_start());
+        solver.solve(hven::solvers::detail::problem_ref(*model), hven_drivers_tests::hs071_start());
     ASSERT_EQ(converged.status, hven::solvers::SolveStatus::kOptimal);
     ASSERT_EQ(converged.phases.size(), 2u);
     EXPECT_EQ(converged.phases[0].phase, hven::solvers::IpmPhase::kOptimize);
@@ -249,7 +251,7 @@ TEST(IpmPhases, TrailingSolveIsConditionalOnThePrecedingOptimize) {
     capped.max_iters = 1;
     hven::solvers::IpmSolver tight(capped);
     const hven::solvers::IpmResult exhausted =
-        tight.solve(*model, hven_drivers_tests::hs071_start());
+        tight.solve(hven::solvers::detail::problem_ref(*model), hven_drivers_tests::hs071_start());
     ASSERT_EQ(exhausted.phases.size(), 2u);
     EXPECT_TRUE(exhausted.phases[0].ran);
     EXPECT_NE(exhausted.phases[0].status, hven::solvers::SolveStatus::kOptimal);
@@ -287,7 +289,7 @@ TEST(IpmPhases, EachPhaseCarriesItsOwnVerdict) {
         hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
     Eigen::VectorXd x0(4);
     x0 << 1.0, 5.0, 5.0, 1.0;
-    const hven::solvers::IpmResult r = solver.solve(*model, x0);
+    const hven::solvers::IpmResult r = solver.solve(hven::solvers::detail::problem_ref(*model), x0);
 
     ASSERT_EQ(r.phases.size(), 2u);
     ASSERT_TRUE(r.phases[0].ran);
@@ -324,7 +326,7 @@ TEST(SolveBudget, IpmMaxIterationsCapsEachPhase) {
         hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
 
     const hven::solvers::IpmResult capped =
-        solver.solve(*model, hven_drivers_tests::hs071_start(),
+        solver.solve(hven::solvers::detail::problem_ref(*model), hven_drivers_tests::hs071_start(),
                      hven::solvers::SolveBudget{/*minor_budget=*/0, /*max_iterations=*/2});
     EXPECT_EQ(capped.status, hven::solvers::SolveStatus::kMaxIter);
     EXPECT_LE(capped.iterations, 2);
@@ -335,15 +337,16 @@ TEST(SolveBudget, IpmMaxIterationsCapsEachPhase) {
     hven::solvers::IpmOptions tight = o;
     tight.max_iters = 2;
     hven::solvers::IpmSolver small(tight);
-    const hven::solvers::IpmResult still_capped = small.solve(
-        *model, hven_drivers_tests::hs071_start(), hven::solvers::SolveBudget{0, 10000});
+    const hven::solvers::IpmResult still_capped =
+        small.solve(hven::solvers::detail::problem_ref(*model), hven_drivers_tests::hs071_start(),
+                    hven::solvers::SolveBudget{0, 10000});
     EXPECT_EQ(still_capped.status, hven::solvers::SolveStatus::kMaxIter);
     EXPECT_LE(still_capped.iterations, 2);
 
     // AND THE DEFAULT BUDGET IS THE IDENTITY, which is what makes the whole
     // feature trajectory-neutral: the same solve with no budget named converges.
     const hven::solvers::IpmResult unbudgeted =
-        solver.solve(*model, hven_drivers_tests::hs071_start());
+        solver.solve(hven::solvers::detail::problem_ref(*model), hven_drivers_tests::hs071_start());
     EXPECT_EQ(unbudgeted.status, hven::solvers::SolveStatus::kOptimal);
     EXPECT_GT(unbudgeted.iterations, 2);
 }
@@ -359,31 +362,34 @@ TEST(IpmIntrospection, PatternQueryTakesTheModel) {
         hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
 
     // Nothing analysed yet: no program answers true.
-    EXPECT_FALSE(solver.kkt_pattern_is_analyzed(*first));
-    EXPECT_FALSE(solver.kkt_pattern_is_analyzed(*second));
+    EXPECT_FALSE(solver.kkt_pattern_is_analyzed(hven::solvers::detail::problem_ref(*first)));
+    EXPECT_FALSE(solver.kkt_pattern_is_analyzed(hven::solvers::detail::problem_ref(*second)));
 
-    const hven::solvers::IpmResult r = solver.solve(*first, hven_drivers_tests::hs071_start());
+    const hven::solvers::IpmResult r =
+        solver.solve(hven::solvers::detail::problem_ref(*first), hven_drivers_tests::hs071_start());
     ASSERT_EQ(r.status, hven::solvers::SolveStatus::kOptimal);
-    EXPECT_TRUE(solver.kkt_pattern_is_analyzed(*first));
+    EXPECT_TRUE(solver.kkt_pattern_is_analyzed(hven::solvers::detail::problem_ref(*first)));
 
     // A SECOND PROGRAM OF THE SAME DECLARED STRUCTURE answers FALSE. Its
     // structure key and its structure epoch both match the analysed one -- every
     // epoch counter starts at 0 -- so a token made of those two alone would say
     // true here, and a solve would then scatter through location tables that
     // are all -1. This is the case that makes the third conjunct load-bearing.
-    EXPECT_FALSE(solver.kkt_pattern_is_analyzed(*second))
+    EXPECT_FALSE(solver.kkt_pattern_is_analyzed(hven::solvers::detail::problem_ref(*second)))
         << "a different program of identical structure is not the analysed program";
 
     // Solving the second re-analyses, and the first stops being the answer.
-    const hven::solvers::IpmResult r2 = solver.solve(*second, hven_drivers_tests::hs071_start());
+    const hven::solvers::IpmResult r2 = solver.solve(hven::solvers::detail::problem_ref(*second),
+                                                     hven_drivers_tests::hs071_start());
     ASSERT_EQ(r2.status, hven::solvers::SolveStatus::kOptimal);
-    EXPECT_TRUE(solver.kkt_pattern_is_analyzed(*second));
-    EXPECT_FALSE(solver.kkt_pattern_is_analyzed(*first));
+    EXPECT_TRUE(solver.kkt_pattern_is_analyzed(hven::solvers::detail::problem_ref(*second)));
+    EXPECT_FALSE(solver.kkt_pattern_is_analyzed(hven::solvers::detail::problem_ref(*first)));
     EXPECT_EQ(r2.kkt_analyses_this_call, 1);
     EXPECT_GT(r2.kkt_analyses_total, r.kkt_analyses_total);
 
     // A REPEAT solve of the program already analysed re-analyses nothing.
-    const hven::solvers::IpmResult r3 = solver.solve(*second, hven_drivers_tests::hs071_start());
+    const hven::solvers::IpmResult r3 = solver.solve(hven::solvers::detail::problem_ref(*second),
+                                                     hven_drivers_tests::hs071_start());
     EXPECT_EQ(r3.kkt_analyses_this_call, 0);
     EXPECT_EQ(r3.kkt_analyses_total, r2.kkt_analyses_total);
 }
@@ -395,7 +401,8 @@ TEST(SolveResult, ExportIsASnapshotIndependentOfLaterEdits) {
     const auto model =
         hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
 
-    hven::solvers::IpmResult r = solver.solve(*model, hven_drivers_tests::hs071_start());
+    hven::solvers::IpmResult r =
+        solver.solve(hven::solvers::detail::problem_ref(*model), hven_drivers_tests::hs071_start());
     ASSERT_EQ(r.status, hven::solvers::SolveStatus::kOptimal);
 
     const auto before = r.export_warm_start();
@@ -406,8 +413,8 @@ TEST(SolveResult, ExportIsASnapshotIndependentOfLaterEdits) {
     // Scribble on every public field. The snapshot was taken at solve exit and
     // is not a view of these.
     r.x.setZero();
-    r.lambda_e.setZero();
-    r.lambda_i.setZero();
+    hven::solvers::detail::engine_rows(r).lambda_e.setZero();
+    hven::solvers::detail::engine_rows(r).lambda_i.setZero();
     r.z.setZero();
     r.f = 0.0;
     r.status = hven::solvers::SolveStatus::kNumericalError;
@@ -432,16 +439,17 @@ TEST(SolveResult, TheIpmFillsTheSharedDiagnosticsAtItsReturnedPoint) {
     const auto model =
         hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
 
-    const hven::solvers::IpmResult r = solver.solve(*model, hven_drivers_tests::hs071_start());
+    const hven::solvers::IpmResult r =
+        solver.solve(hven::solvers::detail::problem_ref(*model), hven_drivers_tests::hs071_start());
     ASSERT_EQ(r.status, hven::solvers::SolveStatus::kOptimal);
 
     // Declared shapes, in the caller's space.
     ASSERT_EQ(r.x.size(), 4);
     ASSERT_EQ(r.z.size(), 4);
-    ASSERT_EQ(r.lambda_e.size(), 1);
-    ASSERT_EQ(r.lambda_i.size(), 1);
-    ASSERT_EQ(r.ce.size(), 1);
-    ASSERT_EQ(r.ci.size(), 1);
+    ASSERT_EQ(hven::solvers::detail::engine_rows(r).lambda_e.size(), 1);
+    ASSERT_EQ(hven::solvers::detail::engine_rows(r).lambda_i.size(), 1);
+    ASSERT_EQ(hven::solvers::detail::engine_rows(r).ce.size(), 1);
+    ASSERT_EQ(hven::solvers::detail::engine_rows(r).ci.size(), 1);
 
     // Every diagnostic MEASURED (not NaN), and every one small at a converged
     // KKT point of HS071.
@@ -464,8 +472,10 @@ TEST(SolveResult, TheIpmFillsTheSharedDiagnosticsAtItsReturnedPoint) {
     const SpMatRM Ji =
         row_block({-(x2 * x3 * x4), -(x1 * x3 * x4), -(x1 * x2 * x4), -(x1 * x2 * x3)});
     const DeclaredDiagnostics d = compute_declared_diagnostics(
-        r.x, r.lambda_e, r.lambda_i, r.z, grad, Je, Ji, r.ce, r.ci, vec_of({1.0, 1.0, 1.0, 1.0}),
-        vec_of({5.0, 5.0, 5.0, 5.0}), {});
+        r.x, hven::solvers::detail::engine_rows(r).lambda_e,
+        hven::solvers::detail::engine_rows(r).lambda_i, r.z, grad, Je, Ji,
+        hven::solvers::detail::engine_rows(r).ce, hven::solvers::detail::engine_rows(r).ci,
+        vec_of({1.0, 1.0, 1.0, 1.0}), vec_of({5.0, 5.0, 5.0, 5.0}), {});
     EXPECT_NEAR(d.stationarity, r.stationarity, 1e-9);
     EXPECT_NEAR(d.feasibility_e, r.feasibility_e, 1e-12);
     EXPECT_NEAR(d.feasibility_i, r.feasibility_i, 1e-12);
@@ -523,7 +533,8 @@ hven::solvers::SqpOptions quiet_sqp() {
 TEST(SolveResult, UnmeasuredExitsReportNaNAndEmptyVectors) {
     NonFiniteModel model;
     hven::solvers::SqpSolver driver(quiet_sqp());
-    const hven::solvers::SqpResult r = driver.solve(model, model.start_point());
+    const hven::solvers::SqpResult r =
+        driver.solve(hven::solvers::detail::problem_ref(model), model.start_point());
 
     EXPECT_EQ(r.status, hven::solvers::SolveStatus::kNumericalError);
     // NaN means UNMEASURED. A 0.0 in any of these would read as a converged
@@ -534,8 +545,8 @@ TEST(SolveResult, UnmeasuredExitsReportNaNAndEmptyVectors) {
     EXPECT_TRUE(std::isnan(r.complementarity));
     // EMPTY, not zero-filled: the problem declares no rows here, and on a
     // problem that did they would still be empty, because nothing was measured.
-    EXPECT_EQ(r.ce.size(), 0);
-    EXPECT_EQ(r.ci.size(), 0);
+    EXPECT_EQ(hven::solvers::detail::engine_rows(r).ce.size(), 0);
+    EXPECT_EQ(hven::solvers::detail::engine_rows(r).ci.size(), 0);
     // The engine's own four say the same thing under their own names.
     EXPECT_TRUE(std::isnan(r.sqp_stationarity));
     EXPECT_TRUE(std::isnan(r.sqp_feasibility));
@@ -555,7 +566,8 @@ TEST(SolveResult, UnmeasuredExitsReportNaNAndEmptyVectors) {
 TEST(SolveResult, TheSqpFillsTheSharedDiagnosticsAtItsReturnedPoint) {
     const auto p = hven::solvers::test_support::make_hs(7);
     hven::solvers::SqpSolver driver(quiet_sqp());
-    const hven::solvers::SqpResult r = driver.solve(*p.model, p.model->start_point());
+    const hven::solvers::SqpResult r =
+        driver.solve(hven::solvers::detail::problem_ref(*p.model), p.model->start_point());
     ASSERT_EQ(r.status, hven::solvers::SolveStatus::kOptimal);
 
     // Measured, small, and reported in the declared shapes.
@@ -564,8 +576,8 @@ TEST(SolveResult, TheSqpFillsTheSharedDiagnosticsAtItsReturnedPoint) {
     EXPECT_LT(r.feasibility_e, 1e-6);
     EXPECT_LT(r.feasibility_i, 1e-6);
     EXPECT_FALSE(std::isnan(r.complementarity));
-    EXPECT_EQ(r.ce.size(), p.model->me());
-    EXPECT_EQ(r.ci.size(), p.model->mi());
+    EXPECT_EQ(hven::solvers::detail::engine_rows(r).ce.size(), p.model->me());
+    EXPECT_EQ(hven::solvers::detail::engine_rows(r).ci.size(), p.model->mi());
     EXPECT_EQ(r.x.size(), p.model->n());
     EXPECT_EQ(r.z.size(), p.model->n());
 
@@ -573,9 +585,10 @@ TEST(SolveResult, TheSqpFillsTheSharedDiagnosticsAtItsReturnedPoint) {
     // at the returned point. This is what ties the engine's fill to §(1)'s
     // definition; it evaluates the model itself, which a SOLVE may not do.
     const hven::solvers::NlpEval ev = hven::solvers::eval_nlp(*p.model, r.x);
-    const DeclaredDiagnostics d =
-        compute_declared_diagnostics(r.x, r.lambda_e, r.lambda_i, r.z, ev.grad, ev.Je, ev.Ji, ev.ce,
-                                     ev.ci, p.model->lower(), p.model->upper(), {});
+    const DeclaredDiagnostics d = compute_declared_diagnostics(
+        r.x, hven::solvers::detail::engine_rows(r).lambda_e,
+        hven::solvers::detail::engine_rows(r).lambda_i, r.z, ev.grad, ev.Je, ev.Ji, ev.ce, ev.ci,
+        p.model->lower(), p.model->upper(), {});
     EXPECT_NEAR(d.stationarity, r.stationarity, 1e-9);
     EXPECT_NEAR(d.feasibility_e, r.feasibility_e, 1e-12);
     EXPECT_NEAR(d.feasibility_i, r.feasibility_i, 1e-12);
@@ -663,7 +676,8 @@ TEST(SolveBudget, SqpRestorationIsBudgetedFromTheEffectiveCap) {
     o.max_iter = 200;
     hven::solvers::SqpSolver driver(o);
 
-    const hven::solvers::SqpResult free_run = driver.solve(model, model.start_point());
+    const hven::solvers::SqpResult free_run =
+        driver.solve(hven::solvers::detail::problem_ref(model), model.start_point());
     ASSERT_EQ(free_run.status, hven::solvers::SolveStatus::kInfeasible);
     ASSERT_GT(free_run.counters.restoration_iters, 0)
         << "the restoration phase must RUN, or this test measures nothing";
@@ -675,7 +689,7 @@ TEST(SolveBudget, SqpRestorationIsBudgetedFromTheEffectiveCap) {
     // both phases. The sub-driver is allocated from the EFFECTIVE cap minus
     // what the outer loop has already spent, so the two together stay inside it.
     const hven::solvers::SqpResult capped =
-        driver.solve(model, model.start_point(),
+        driver.solve(hven::solvers::detail::problem_ref(model), model.start_point(),
                      hven::solvers::SolveBudget{/*minor_budget=*/0, /*max_iterations=*/2});
     EXPECT_LE(capped.counters.major_iters + capped.counters.restoration_iters, 2)
         << "the cap bounds the majors AND the restoration majors together";
@@ -684,7 +698,8 @@ TEST(SolveBudget, SqpRestorationIsBudgetedFromTheEffectiveCap) {
     // already spent the whole budget, so the request is REFUSED rather than
     // sub-budgeted -- no restoration major is spent at all.
     const hven::solvers::SqpResult refused =
-        driver.solve(model, model.start_point(), hven::solvers::SolveBudget{0, 1});
+        driver.solve(hven::solvers::detail::problem_ref(model), model.start_point(),
+                     hven::solvers::SolveBudget{0, 1});
     EXPECT_LE(refused.counters.major_iters, 1);
     EXPECT_EQ(refused.counters.restoration_iters, 0)
         << "a spent budget refuses the phase rather than entering it";
@@ -695,7 +710,8 @@ TEST(SolveBudget, SqpRestorationIsBudgetedFromTheEffectiveCap) {
     tight.max_iter = 2;
     hven::solvers::SqpSolver small(tight);
     const hven::solvers::SqpResult still =
-        small.solve(model, model.start_point(), hven::solvers::SolveBudget{0, 100000});
+        small.solve(hven::solvers::detail::problem_ref(model), model.start_point(),
+                    hven::solvers::SolveBudget{0, 100000});
     EXPECT_LE(still.counters.major_iters + still.counters.restoration_iters, 2);
 
     // THE DEFAULT BUDGET IS THE IDENTITY, which is what makes this
@@ -724,47 +740,44 @@ namespace {
 /// converges to and then declares locally infeasible. A copy, for the reason
 /// the bench leg's own copy states: a test in this directory links no interior
 /// fixtures.
-struct LocallyInfeasibleProblem final : hven::solvers::NlpTripletModel {
-    int num_vars() const override { return 2; }
-    int num_cons() const override { return 1; }
-    int num_jac_nonzeros() const override { return 2; }
-    int num_hess_nonzeros() const override { return 2; }
+struct LocallyInfeasibleProblem final : hven::solvers::Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    int num_vars() const { return 2; }
+    int num_cons() const { return 1; }
+    int num_jac_nonzeros() const { return 2; }
+    int num_hess_nonzeros() const { return 2; }
+
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl << -kInf, -kInf;
         xu << kInf, kInf;
         gl << 0.0;
         gu << 0.0;
     }
-    void eval_f(hven::ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         f = x[0] + x[1];
+        return f;
     }
-    void eval_grad_f(hven::ConstEigenRef<Eigen::VectorXd>,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
-        g << 1.0, 1.0;
-    }
-    void eval_g(hven::ConstEigenRef<Eigen::VectorXd> x,
-                Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(hven::ConstVecRef, hven::VecRef g) const override { g << 1.0, 1.0; }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = x[0] * x[0] + x[1] * x[1] + 1.0;
     }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 0;
         c << 0, 1;
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 1;
         c << 0, 1;
     }
-    void eval_jac(hven::ConstEigenRef<Eigen::VectorXd> x,
-                  Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef x, hven::VecRef v) const override {
         v << 2.0 * x[0], 2.0 * x[1];
     }
-    void eval_hess(hven::ConstEigenRef<Eigen::VectorXd>, double,
-                   hven::ConstEigenRef<Eigen::VectorXd> lambda,
-                   Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(hven::ConstVecRef, double, hven::ConstVecRef lambda,
+                      hven::VecRef v) const override {
         v << 2.0 * lambda[0], 2.0 * lambda[0];
     }
     std::string name() const override { return "LocallyInfeasibleProblem"; }
@@ -800,7 +813,8 @@ TEST(SolveResult, AFeasibilityOnlyLastPhaseReportsStationarityUnmeasured) {
     const auto model =
         hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
 
-    const hven::solvers::IpmResult r = solver.solve(*model, hven_drivers_tests::hs071_start());
+    const hven::solvers::IpmResult r =
+        solver.solve(hven::solvers::detail::problem_ref(*model), hven_drivers_tests::hs071_start());
     ASSERT_EQ(r.status, hven::solvers::SolveStatus::kOptimal)
         << "the feasibility phase does find a feasible point of HS071";
     ASSERT_EQ(r.phases.size(), 1u);
@@ -819,8 +833,8 @@ TEST(SolveResult, AFeasibilityOnlyLastPhaseReportsStationarityUnmeasured) {
     // And `f` is measured: the exit assembles the true objective at the
     // returned primals on every non-OPT exit.
     EXPECT_FALSE(std::isnan(r.f));
-    EXPECT_EQ(r.ce.size(), 1);
-    EXPECT_EQ(r.ci.size(), 1);
+    EXPECT_EQ(hven::solvers::detail::engine_rows(r).ce.size(), 1);
+    EXPECT_EQ(hven::solvers::detail::engine_rows(r).ci.size(), 1);
 }
 
 TEST(SolveResult, AnObjectiveBearingLastPhaseReportsAllFour) {
@@ -835,7 +849,8 @@ TEST(SolveResult, AnObjectiveBearingLastPhaseReportsAllFour) {
     const auto model =
         hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
 
-    const hven::solvers::IpmResult r = solver.solve(*model, hven_drivers_tests::hs071_start());
+    const hven::solvers::IpmResult r =
+        solver.solve(hven::solvers::detail::problem_ref(*model), hven_drivers_tests::hs071_start());
     ASSERT_EQ(r.status, hven::solvers::SolveStatus::kOptimal);
     ASSERT_EQ(r.phases.size(), 2u);
     EXPECT_TRUE(r.phases[0].ran);
@@ -868,7 +883,8 @@ TEST(SolveResult, AnActiveRestorationExitEmptiesTheResidualBlocks) {
     const auto model =
         hven::solvers::make_nlp_program(std::make_shared<LocallyInfeasibleProblem>());
 
-    const hven::solvers::IpmResult r = solver.solve(*model, two_var_start(1.0, 1.0));
+    const hven::solvers::IpmResult r =
+        solver.solve(hven::solvers::detail::problem_ref(*model), two_var_start(1.0, 1.0));
     ASSERT_EQ(r.status, hven::solvers::SolveStatus::kStalled);
     ASSERT_EQ(r.phases.back().stop_reason,
               hven::solvers::IpmStopReason::kRestorationLocallyInfeasible);
@@ -877,8 +893,9 @@ TEST(SolveResult, AnActiveRestorationExitEmptiesTheResidualBlocks) {
     EXPECT_TRUE(std::isnan(r.feasibility_e));
     EXPECT_TRUE(std::isnan(r.feasibility_i));
     EXPECT_TRUE(std::isnan(r.complementarity));
-    EXPECT_EQ(r.ce.size(), 0) << "a condensed restoration residual is not the declared one";
-    EXPECT_EQ(r.ci.size(), 0);
+    EXPECT_EQ(hven::solvers::detail::engine_rows(r).ce.size(), 0)
+        << "a condensed restoration residual is not the declared one";
+    EXPECT_EQ(hven::solvers::detail::engine_rows(r).ci.size(), 0);
 }
 
 TEST(SolveResult, ReturnBestReportsTheBestIterateSObjective) {
@@ -916,8 +933,10 @@ TEST(SolveResult, ReturnBestReportsTheBestIterateSObjective) {
 
         hven::solvers::IpmSolver best_solver(with_best);
         hven::solvers::IpmSolver last_solver(probe);
-        const hven::solvers::IpmResult b = best_solver.solve(*model, two_var_start(1.0, 1.0));
-        const hven::solvers::IpmResult l = last_solver.solve(*model, two_var_start(1.0, 1.0));
+        const hven::solvers::IpmResult b =
+            best_solver.solve(hven::solvers::detail::problem_ref(*model), two_var_start(1.0, 1.0));
+        const hven::solvers::IpmResult l =
+            last_solver.solve(hven::solvers::detail::problem_ref(*model), two_var_start(1.0, 1.0));
         if (b.status != hven::solvers::SolveStatus::kOptimal && b.x.allFinite() &&
             (b.x - l.x).lpNorm<Eigen::Infinity>() > 1e-12) {
             best = b;
@@ -933,12 +952,12 @@ TEST(SolveResult, ReturnBestReportsTheBestIterateSObjective) {
     // The objective REPORTED is the objective OF THE POINT RETURNED, evaluated
     // here from the model itself.
     double f_at_returned = 0.0;
-    problem.eval_f(best.x, f_at_returned);
+    f_at_returned = problem.eval_f(best.x);
     EXPECT_NEAR(best.f, f_at_returned, 1e-9 * std::max(1.0, std::abs(f_at_returned)));
 
     // And the unsubstituted solve is unchanged -- the fix touches one branch.
     double f_at_last = 0.0;
-    problem.eval_f(last.x, f_at_last);
+    f_at_last = problem.eval_f(last.x);
     EXPECT_NEAR(last.f, f_at_last, 1e-9 * std::max(1.0, std::abs(f_at_last)));
 }
 
@@ -957,26 +976,29 @@ TEST(IpmIntrospection, AnalysisIdentityOutlivesTheAnalysingSolver) {
 
     {
         hven::solvers::IpmSolver a(o);
-        const hven::solvers::IpmResult r = a.solve(*model, hven_drivers_tests::hs071_start());
+        const hven::solvers::IpmResult r =
+            a.solve(hven::solvers::detail::problem_ref(*model), hven_drivers_tests::hs071_start());
         ASSERT_EQ(r.status, hven::solvers::SolveStatus::kOptimal);
-        ASSERT_TRUE(a.kkt_pattern_is_analyzed(*model));
+        ASSERT_TRUE(a.kkt_pattern_is_analyzed(hven::solvers::detail::problem_ref(*model)));
     }
     // A is gone. Its matrix is gone with it; the program's retained pointer to
     // it is a dangling one, which is exactly why nothing may take that program
     // as "already analysed" on the strength of an address.
 
     hven::solvers::IpmSolver b(o);
-    EXPECT_FALSE(b.kkt_pattern_is_analyzed(*model))
+    EXPECT_FALSE(b.kkt_pattern_is_analyzed(hven::solvers::detail::problem_ref(*model)))
         << "B did not lay this program's tables, whatever address it was given";
 
-    const hven::solvers::IpmResult r2 = b.solve(*model, hven_drivers_tests::hs071_start());
+    const hven::solvers::IpmResult r2 =
+        b.solve(hven::solvers::detail::problem_ref(*model), hven_drivers_tests::hs071_start());
     EXPECT_EQ(r2.status, hven::solvers::SolveStatus::kOptimal);
     EXPECT_EQ(r2.kkt_analyses_this_call, 1) << "B's first solve re-analyses";
-    EXPECT_TRUE(b.kkt_pattern_is_analyzed(*model));
+    EXPECT_TRUE(b.kkt_pattern_is_analyzed(hven::solvers::detail::problem_ref(*model)));
 
     // And B's SECOND solve reuses, so the id is an identity token and not a
     // blanket refusal.
-    const hven::solvers::IpmResult r3 = b.solve(*model, hven_drivers_tests::hs071_start());
+    const hven::solvers::IpmResult r3 =
+        b.solve(hven::solvers::detail::problem_ref(*model), hven_drivers_tests::hs071_start());
     EXPECT_EQ(r3.kkt_analyses_this_call, 0);
 }
 
@@ -992,7 +1014,7 @@ TEST(SolveBudget, IpmClampsBeforeNarrowing) {
         hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
 
     const hven::solvers::IpmResult huge =
-        solver.solve(*model, hven_drivers_tests::hs071_start(),
+        solver.solve(hven::solvers::detail::problem_ref(*model), hven_drivers_tests::hs071_start(),
                      hven::solvers::SolveBudget{/*minor_budget=*/0,
                                                 /*max_iterations=*/Index{1} << 32});
     EXPECT_EQ(huge.status, hven::solvers::SolveStatus::kOptimal);
@@ -1000,7 +1022,8 @@ TEST(SolveBudget, IpmClampsBeforeNarrowing) {
 
     // The same solve with no budget named runs identically -- which is what
     // "a budget above the engine's limit is the identity" means.
-    const hven::solvers::IpmResult none = solver.solve(*model, hven_drivers_tests::hs071_start());
+    const hven::solvers::IpmResult none =
+        solver.solve(hven::solvers::detail::problem_ref(*model), hven_drivers_tests::hs071_start());
     EXPECT_EQ(none.iterations, huge.iterations);
 }
 
@@ -1016,7 +1039,8 @@ TEST(SolveResult, TheIpmClockRunsFromThePublicEntry) {
     const auto model =
         hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
 
-    const hven::solvers::IpmResult r = solver.solve(*model, hven_drivers_tests::hs071_start());
+    const hven::solvers::IpmResult r =
+        solver.solve(hven::solvers::detail::problem_ref(*model), hven_drivers_tests::hs071_start());
     ASSERT_EQ(r.status, hven::solvers::SolveStatus::kOptimal);
     EXPECT_GT(r.wall_seconds, 0.0);
     EXPECT_GE(r.wall_seconds, r.total_time);
@@ -1025,7 +1049,8 @@ TEST(SolveResult, TheIpmClockRunsFromThePublicEntry) {
     // refused by name.
     Eigen::VectorXd wrong(3);
     wrong.setOnes();
-    EXPECT_THROW(solver.solve(*model, wrong), std::invalid_argument);
+    EXPECT_THROW(solver.solve(hven::solvers::detail::problem_ref(*model), wrong),
+                 std::invalid_argument);
 }
 
 TEST(SolveBudget, TheSqpTakesABudgetOnEveryPublicOverload) {
@@ -1039,7 +1064,7 @@ TEST(SolveBudget, TheSqpTakesABudgetOnEveryPublicOverload) {
 
     hven::solvers::SqpSolver model_driver(o);
     const hven::solvers::SqpResult capped =
-        model_driver.solve(*p.model, p.model->start_point(),
+        model_driver.solve(hven::solvers::detail::problem_ref(*p.model), p.model->start_point(),
                            hven::solvers::SolveBudget{/*minor_budget=*/0, /*max_iterations=*/2});
     EXPECT_LE(capped.counters.major_iters, 2);
     EXPECT_EQ(capped.status, hven::solvers::SolveStatus::kMaxIter);
@@ -1053,18 +1078,21 @@ TEST(SolveBudget, TheSqpTakesABudgetOnEveryPublicOverload) {
     const std::shared_ptr<const hven::solvers::NlpModel> borrowed(std::shared_ptr<const void>(),
                                                                   p.model.get());
     hven::solvers::NlpModelAssembly bridge(borrowed);
-    const hven::solvers::SqpResult warmup = bridge_driver.solve(bridge, p.model->start_point());
+    const hven::solvers::SqpResult warmup =
+        bridge_driver.solve(hven::solvers::detail::problem_ref(bridge), p.model->start_point());
     ASSERT_EQ(warmup.status, hven::solvers::SolveStatus::kOptimal);
     const auto currency = warmup.export_warm_start();
     ASSERT_TRUE(currency.has_value());
-    const hven::solvers::SqpResult payload_and_capped = bridge_driver.solve(
-        bridge, p.model->start_point(), *currency, hven::solvers::SolveBudget{0, 1});
+    const hven::solvers::SqpResult payload_and_capped =
+        bridge_driver.solve(hven::solvers::detail::problem_ref(bridge), p.model->start_point(),
+                            *currency, hven::solvers::SolveBudget{0, 1});
     EXPECT_LE(payload_and_capped.counters.major_iters, 1);
 
     // AND THE DEFAULT IS THE IDENTITY on both new doors.
     hven::solvers::SqpSolver free_driver(o);
     const hven::solvers::SqpResult free_run =
-        free_driver.solve(*p.model, p.model->start_point(), hven::solvers::SolveBudget{});
+        free_driver.solve(hven::solvers::detail::problem_ref(*p.model), p.model->start_point(),
+                          hven::solvers::SolveBudget{});
     EXPECT_EQ(free_run.status, hven::solvers::SolveStatus::kOptimal);
     EXPECT_GT(free_run.counters.major_iters, 2);
     // The shared clock is present on the new overloads too, and is never the

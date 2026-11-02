@@ -32,7 +32,7 @@
 #include "hven/detail/interior/constraint_function.h"
 #include "hven/detail/interior/indexing_data.h"
 #include "hven/detail/interior/objective_function.h"
-#include "hven/model/non_linear_program.h"
+#include "hven/detail/model/non_linear_program.h"
 #include "hven/solver_interface_adapter.h"
 
 namespace hven::model_tests {

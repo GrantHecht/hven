@@ -11,7 +11,7 @@
 // that still delegate to the deprecated form.
 
 #include <hven/core/types.h>
-#include <hven/model/nlp_model.h>
+#include <hven/detail/model/nlp_model.h>
 
 hven::Vec probe_deprecated_eval_ce(const hven::solvers::NlpModel &model, const hven::Vec &x) {
     hven::Vec out;

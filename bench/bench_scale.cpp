@@ -233,6 +233,7 @@
 
 #include <hven/core/ledger.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/detail/warmstart/continuation.h>
 #include <hven/detail/warmstart/warm_start.h>
 #include <hven/drivers/sqp_solver_types.h>
@@ -518,7 +519,8 @@ void run_cold(ParametricNlpModel &model, const std::string &family, Index n, dou
         SqpSolver driver(bench_options(StartLevel::kCold, tuning));
         driver.attach_ledger(&ledger, fmt::format("cold{}", i));
         model.set_parameters(Vec::Constant(1, grid[i]));
-        const SqpResult sol = driver.solve(model, model.start_point());
+        const SqpResult sol =
+            driver.solve(hven::solvers::detail::problem_ref(model), model.start_point());
         rows.push_back(
             Row{family, n, "cold", i, grid[i], ledger.sqp_records().back(), peak_rss_mib()});
         dump = SolutionDump{true, grid[i], sol.status, sol.f, sol.x}; // last solve wins
@@ -536,7 +538,8 @@ void run_hot(ParametricNlpModel &model, const std::string &family, Index n, doub
     for (std::size_t i = 0; i < grid.size(); ++i) {
         model.set_parameters(Vec::Constant(1, grid[i]));
         const SqpResult sol =
-            (i == 0) ? driver.solve(model, model.start_point()) : driver.solve(model, warm.x, warm);
+            (i == 0) ? driver.solve(hven::solvers::detail::problem_ref(model), model.start_point())
+                     : driver.solve(hven::solvers::detail::problem_ref(model), warm.x, warm);
         warm = sol.warm_start;
         rows.push_back(
             Row{family, n, "hot", i, grid[i], ledger.sqp_records().back(), peak_rss_mib()});

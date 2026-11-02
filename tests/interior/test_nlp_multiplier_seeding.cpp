@@ -2,7 +2,7 @@
 // (see LICENSE).
 
 // The opt-in constraint-multiplier seed and apply_staged_multipliers -- the
-// path NlpTripletModel::starting_multipliers() feeds through, which since M6 W5
+// path Nlp::starting_multipliers() feeds through, which since M6 W5
 // T8.9 is the caller's own: declared_route.h's starting_multiplier_seed over
 // NlpProblemModel::split_user_multipliers, handed to the payload overload.
 //
@@ -27,6 +27,8 @@
 #include <limits>
 #include <memory>
 
+#include "hven/detail/drivers/result_access.h"
+#include "hven/detail/model/problem_access.h"
 #include "hven/drivers/ipm_solver.h"
 #include "hven/warmstart/warm_start_data.h"
 
@@ -37,50 +39,52 @@ constexpr double kSeedSolverInf = std::numeric_limits<double>::infinity();
 } // namespace
 
 using hven::ConstEigenRef;
-using hven::solvers::NlpTripletModel;
+using hven::solvers::Nlp;
 
 // The canonical Ipopt HS071 example: n=4, one lower-bounded product row, one
 // equality sphere row, dense Jacobian and Hessian. Same problem as
 // test_ipm_solver_entry.cpp's Hs071Problem, duplicated under a distinct name to
 // avoid a unity-build symbol collision.
-struct SeedHs071Problem : NlpTripletModel {
-    int num_vars() const override { return 4; }
-    int num_cons() const override { return 2; }
-    int num_jac_nonzeros() const override { return 8; }
-    int num_hess_nonzeros() const override { return 10; }
+struct SeedHs071Problem : Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    int num_vars() const { return 4; }
+    int num_cons() const { return 2; }
+    int num_jac_nonzeros() const { return 8; }
+    int num_hess_nonzeros() const { return 10; }
+
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl << 1.0, 1.0, 1.0, 1.0;
         xu << 5.0, 5.0, 5.0, 5.0;
         gl << 25.0, 40.0;
         gu << kSeedSolverInf, 40.0;
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         f = x[0] * x[3] * (x[0] + x[1] + x[2]) + x[2];
+        return f;
     }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = x[3] * (2.0 * x[0] + x[1] + x[2]);
         g[1] = x[0] * x[3];
         g[2] = x[0] * x[3] + 1.0;
         g[3] = x[0] * (x[0] + x[1] + x[2]);
     }
-    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = x[0] * x[1] * x[2] * x[3];
         g[1] = x[0] * x[0] + x[1] * x[1] + x[2] * x[2] + x[3] * x[3];
     }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 0, 0, 0, 1, 1, 1, 1;
         c << 0, 1, 2, 3, 0, 1, 2, 3;
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 1, 1, 2, 2, 2, 3, 3, 3, 3;
         c << 0, 0, 1, 0, 1, 2, 0, 1, 2, 3;
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef x, hven::VecRef v) const override {
         v[0] = x[1] * x[2] * x[3];
         v[1] = x[0] * x[2] * x[3];
         v[2] = x[0] * x[1] * x[3];
@@ -90,9 +94,8 @@ struct SeedHs071Problem : NlpTripletModel {
         v[6] = 2.0 * x[2];
         v[7] = 2.0 * x[3];
     }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd> x, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd> lambda,
-                   Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(hven::ConstVecRef x, double obj_factor, hven::ConstVecRef lambda,
+                      hven::VecRef v) const override {
         const double x0 = x[0], x1 = x[1], x2 = x[2], x3 = x[3];
         v[0] = obj_factor * 2 * x3 + lambda[1] * 2;
         v[1] = obj_factor * x3 + lambda[0] * x2 * x3;
@@ -113,8 +116,8 @@ struct SeedHs071Problem : NlpTripletModel {
 // EqualityMultiplierHasIpoptSign-style tests, this is only checking that a
 // seed which is in the right ballpark does not perturb the converged
 // optimum).
-struct SeededSeedHs071Problem : SeedHs071Problem {
-    bool starting_multipliers(Eigen::Ref<Eigen::VectorXd> lambda) const override {
+struct SeededSeedHs071Problem : SeedHs071Problem, hven_interior_tests::MultiplierSeedHook {
+    bool starting_multipliers(hven::VecRef lambda) const override {
         lambda[0] = -1.0; // row 0: active lower bound -> negative Ipopt sign
         lambda[1] = 0.5;  // row 1: equality, sign unconstrained
         return true;
@@ -157,46 +160,46 @@ TEST(NLPMultiplierSeedingTest, SeededSolveMatchesUnseededSolution) {
 // row and no inequality rows. Used below to probe the seed payload directly
 // (rather than through starting_multipliers()) with deliberately wrong-sized
 // vectors.
-struct SeedEqOnlyProblem : NlpTripletModel {
-    int num_vars() const override { return 2; }
-    int num_cons() const override { return 1; }
-    int num_jac_nonzeros() const override { return 2; }
-    int num_hess_nonzeros() const override { return 2; }
+struct SeedEqOnlyProblem : Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    int num_vars() const { return 2; }
+    int num_cons() const { return 1; }
+    int num_jac_nonzeros() const { return 2; }
+    int num_hess_nonzeros() const { return 2; }
+
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl << -kSeedSolverInf, -kSeedSolverInf;
         xu << kSeedSolverInf, kSeedSolverInf;
         gl << 2.0;
         gu << 2.0;
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         f = x[0] * x[0] + x[1] * x[1];
+        return f;
     }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = 2.0 * x[0];
         g[1] = 2.0 * x[1];
     }
-    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
-        g[0] = x[0] + x[1];
-    }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override { g[0] = x[0] + x[1]; }
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 0;
         c << 0, 1;
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 1;
         c << 0, 1;
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override {
         v[0] = 1.0;
         v[1] = 1.0;
     }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
         v[0] = 2.0 * obj_factor;
         v[1] = 2.0 * obj_factor;
     }
@@ -247,7 +250,7 @@ TEST(NLPMultiplierSeedingTest, SeedSizeMismatchThrowsAndTheNextSolveIsUnaffected
     // means this size-mismatch probe has to bypass it. The throw fires from
     // validate_staged_multipliers, right after variable-treatment
     // reconfiguration and before the entry init_impl/factorization.
-    EXPECT_THROW((void)solver.solve(*solver_route.program, x0,
+    EXPECT_THROW((void)solver.solve(hven::solvers::detail::problem_ref(*solver_route.program), x0,
                                     seed_payload(*solver_route.program, bad_eq, bad_iq)),
                  std::invalid_argument);
 
@@ -255,7 +258,8 @@ TEST(NLPMultiplierSeedingTest, SeedSizeMismatchThrowsAndTheNextSolveIsUnaffected
     // own argument, so a second, seedless solve converges normally by
     // construction rather than by a disarm-on-throw discipline. The check is
     // kept because the PROPERTY is what mattered, not the mechanism.
-    const hven::solvers::IpmResult r2 = solver.solve(*solver_route.program, x0);
+    const hven::solvers::IpmResult r2 =
+        solver.solve(hven::solvers::detail::problem_ref(*solver_route.program), x0);
     const Eigen::VectorXd &x = r2.x;
     ASSERT_EQ(r2.status, hven::solvers::SolveStatus::kOptimal);
     Eigen::VectorXd expect(2);
@@ -265,42 +269,40 @@ TEST(NLPMultiplierSeedingTest, SeedSizeMismatchThrowsAndTheNextSolveIsUnaffected
 
 // f = x0^2 subject to x0 >= 1 -- optimum x0 = 1, a single active lower-bound
 // inequality row and no equality rows.
-struct SeedLowerBoundProblem : NlpTripletModel {
-    int num_vars() const override { return 1; }
-    int num_cons() const override { return 1; }
-    int num_jac_nonzeros() const override { return 1; }
-    int num_hess_nonzeros() const override { return 1; }
+struct SeedLowerBoundProblem : Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    int num_vars() const { return 1; }
+    int num_cons() const { return 1; }
+    int num_jac_nonzeros() const { return 1; }
+    int num_hess_nonzeros() const { return 1; }
+
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl << -kSeedSolverInf;
         xu << kSeedSolverInf;
         gl << 1.0;
         gu << kSeedSolverInf;
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override { f = x[0] * x[0]; }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
-        g[0] = 2.0 * x[0];
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
+        f = x[0] * x[0];
+        return f;
     }
-    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
-        g[0] = x[0];
-    }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override { g[0] = 2.0 * x[0]; }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override { g[0] = x[0]; }
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0;
         c << 0;
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0;
         c << 0;
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
-        v[0] = 1.0;
-    }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override { v[0] = 1.0; }
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
         v[0] = 2.0 * obj_factor;
     }
     std::string name() const override { return "SeedLowerBoundProblem"; }
@@ -314,8 +316,9 @@ struct SeedLowerBoundProblem : NlpTripletModel {
 // produces a negative seed on the IpmSolver-internal inequality multiplier,
 // which apply_staged_multipliers must clamp to kSeededIqMultFloor rather than
 // installing it verbatim.
-struct SeededSeedLowerBoundProblem : SeedLowerBoundProblem {
-    bool starting_multipliers(Eigen::Ref<Eigen::VectorXd> lambda) const override {
+struct SeededSeedLowerBoundProblem : SeedLowerBoundProblem,
+                                     hven_interior_tests::MultiplierSeedHook {
+    bool starting_multipliers(hven::VecRef lambda) const override {
         lambda[0] = 100.0;
         return true;
     }
@@ -375,8 +378,8 @@ TEST(NLPMultiplierSeedingTest, TheUnseededPathBuildsNoPayload) {
 // SeedEqOnlyProblem specifically -- 2 unbounded primal vars (so reduced ==
 // full, no fixed-variable elimination), 0 inequality rows (no slacks), 1
 // equality row -- that puts the single equality multiplier at XSL[2].
-struct SeededPhaseEntryEqOnlyProblem : SeedEqOnlyProblem {
-    bool starting_multipliers(Eigen::Ref<Eigen::VectorXd> lambda) const override {
+struct SeededPhaseEntryEqOnlyProblem : SeedEqOnlyProblem, hven_interior_tests::MultiplierSeedHook {
+    bool starting_multipliers(hven::VecRef lambda) const override {
         // Deliberately NOT the true KKT multiplier (-2.0, see the EqOnly-style
         // tests elsewhere in this series): SeedEqOnlyProblem is exactly
         // quadratic/linear, so its SOE phase alone already lands exactly on
@@ -475,54 +478,55 @@ TEST(NLPMultiplierSeedingTest, SeededSolveOptimizeReachesOptPhase) {
 // the declared route sees) stays at 1. That mismatch is exactly what finding 1's fix
 // targets: a seed sized to the 1 user row must still be accepted, and the
 // internal row zero-padded, not rejected as a size mismatch against 2.
-struct SeedFixedVarEqProblem : NlpTripletModel {
-    int num_vars() const override { return 2; }
-    int num_cons() const override { return 1; }
-    int num_jac_nonzeros() const override { return 2; }
-    int num_hess_nonzeros() const override { return 2; }
+struct SeedFixedVarEqProblem : Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    int num_vars() const { return 2; }
+    int num_cons() const { return 1; }
+    int num_jac_nonzeros() const { return 2; }
+    int num_hess_nonzeros() const { return 2; }
+
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl << -kSeedSolverInf, 1.0;
         xu << kSeedSolverInf, 1.0;
         gl << 2.0;
         gu << 2.0;
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         f = x[0] * x[0] + x[1] * x[1];
+        return f;
     }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = 2.0 * x[0];
         g[1] = 2.0 * x[1];
     }
-    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
-        g[0] = x[0] + x[1];
-    }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override { g[0] = x[0] + x[1]; }
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 0;
         c << 0, 1;
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 1;
         c << 0, 1;
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override {
         v[0] = 1.0;
         v[1] = 1.0;
     }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
         v[0] = 2.0 * obj_factor;
         v[1] = 2.0 * obj_factor;
     }
     std::string name() const override { return "SeedFixedVarEqProblem"; }
 };
 
-struct SeededSeedFixedVarEqProblem : SeedFixedVarEqProblem {
-    bool starting_multipliers(Eigen::Ref<Eigen::VectorXd> lambda) const override {
+struct SeededSeedFixedVarEqProblem : SeedFixedVarEqProblem,
+                                     hven_interior_tests::MultiplierSeedHook {
+    bool starting_multipliers(hven::VecRef lambda) const override {
         lambda[0] = -2.0;
         return true;
     }
@@ -605,9 +609,9 @@ TEST(NLPMultiplierSeedingTest, NaNSeedThrows) {
     // block is now refused at the HAND-OVER, in this frame, rather than at
     // validate_staged_multipliers inside the solve. Same exception type, same
     // call, one frame earlier.
-    EXPECT_THROW(
-        (void)solver.solve(*solver_route.program, x0, seed_payload(*solver_route.program, eq, iq)),
-        std::invalid_argument);
+    EXPECT_THROW((void)solver.solve(hven::solvers::detail::problem_ref(*solver_route.program), x0,
+                                    seed_payload(*solver_route.program, eq, iq)),
+                 std::invalid_argument);
 }
 
 // A seed of 1e12 into the single equality row -- SeedEqOnlyProblem is
@@ -616,8 +620,8 @@ TEST(NLPMultiplierSeedingTest, NaNSeedThrows) {
 // solution regardless of the seeded multiplier, clamp deleted or not. Making
 // this assertive means observing the CAPPED value directly, the same way
 // SeededSolveOptimizeReachesOptPhase does.
-struct SeededOversizedEqOnlyProblem : SeedEqOnlyProblem {
-    bool starting_multipliers(Eigen::Ref<Eigen::VectorXd> lambda) const override {
+struct SeededOversizedEqOnlyProblem : SeedEqOnlyProblem, hven_interior_tests::MultiplierSeedHook {
+    bool starting_multipliers(hven::VecRef lambda) const override {
         lambda[0] = 1.0e12;
         return true;
     }
@@ -658,8 +662,9 @@ TEST(NLPMultiplierSeedingTest, OversizedSeedIsCapped) {
 // LowerBounded-row mapping negates lam (iqm = -lam), so seeding lam=-1e12
 // arrives at IpmSolver as a +1e12 iq seed, which the upper clamp (not the floor
 // -- that only bites negative seeds) must cap.
-struct SeededOversizedLowerBoundProblem : SeedLowerBoundProblem {
-    bool starting_multipliers(Eigen::Ref<Eigen::VectorXd> lambda) const override {
+struct SeededOversizedLowerBoundProblem : SeedLowerBoundProblem,
+                                          hven_interior_tests::MultiplierSeedHook {
+    bool starting_multipliers(hven::VecRef lambda) const override {
         lambda[0] = -1.0e12;
         return true;
     }
@@ -728,7 +733,7 @@ TEST(NLPMultiplierSeedingTest, FixedVariableConstraintRowStaysOutOfTheReportedMu
     // the problem's, and this test asserted that length; the split is what
     // makes the report below correct by construction rather than by a trim.
     ASSERT_EQ(solver_route.model->me(), 1);
-    EXPECT_EQ(result.lambda_e.size(), solver_route.model->me());
+    EXPECT_EQ(hven::solvers::detail::engine_rows(result).lambda_e.size(), solver_route.model->me());
     ASSERT_EQ(result.internal_fixed_lambda_e.size(), 1)
         << "MakeConstraint must report the fixing row it added";
     ASSERT_EQ(result.internal_fixed_ce.size(), 1);
@@ -737,11 +742,12 @@ TEST(NLPMultiplierSeedingTest, FixedVariableConstraintRowStaysOutOfTheReportedMu
 
     // ...and the report is in the problem's own row space, one entry, carrying
     // the multiplier of the problem's own row and not the engine's.
-    Eigen::VectorXd lambda =
-        solver_route.model->compose_user_multipliers(result.lambda_e, result.lambda_i);
+    Eigen::VectorXd lambda = solver_route.model->compose_user_multipliers(
+        hven::solvers::detail::engine_rows(result).lambda_e,
+        hven::solvers::detail::engine_rows(result).lambda_i);
     ASSERT_EQ(lambda.size(), 1);
     // min x0^2 + x1^2 s.t. x0 + x1 = 2 with x1 fixed at 1: stationarity in the
     // free variable gives 2*x0 + lambda = 0 at x0 = 1.
     EXPECT_NEAR(lambda[0], -2.0, 1e-6);
-    EXPECT_NEAR(lambda[0], result.lambda_e[0], 1e-12);
+    EXPECT_NEAR(lambda[0], hven::solvers::detail::engine_rows(result).lambda_e[0], 1e-12);
 }

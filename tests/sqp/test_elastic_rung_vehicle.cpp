@@ -35,6 +35,7 @@
 #include <hven/core/ledger.h>
 #include <hven/core/solver_status.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/problem_access.h>
 
 #include "support/elastic_rung_vehicle.h"
 
@@ -305,7 +306,8 @@ TEST(M7T3ElasticRungVehicle, TheTierRungIsImmuneToTheDriversTrustRegionRadius) {
         Ledger ledger;
         driver.attach_trace(&sink);
         driver.attach_ledger(&ledger, "m7t3hz2");
-        const SqpResult sol = driver.solve(model);
+        const SqpResult sol =
+            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
         return std::make_pair(read_rungs(sink, ledger, sol.counters), sol.counters);
     };
     const SqpOptions probe;
@@ -373,7 +375,8 @@ TEST(M7T3ElasticRungVehicle, TheConstructedCellFiresTheElasticRungAndPricesBothE
             driver.attach_ledger(&ledger, "m7t3");
 
             const auto t0 = std::chrono::steady_clock::now();
-            const SqpResult sol = driver.solve(model);
+            const SqpResult sol =
+                driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
             const double wall =
                 std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
 

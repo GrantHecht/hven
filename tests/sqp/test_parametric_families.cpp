@@ -44,9 +44,11 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
+#include <hven/detail/drivers/result_access.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/nlp_model.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/drivers/sqp_solver_types.h>
-#include <hven/model/nlp_model.h>
 
 #include "support/derivative_check.h"
 #include "support/nlp_kkt_check.h"
@@ -174,7 +176,8 @@ void check_path_at(const NlpModel &model, double p, const Vec &x_star, double f_
     SCOPED_TRACE(::testing::Message() << "p = " << p);
     const SqpOptions opts = tight_options();
     SqpSolver driver(opts);
-    const SqpResult sol = driver.solve(model);
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
 
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_LE(std::abs(sol.f - f_star), kFRelTol * std::max(1.0, std::abs(f_star)))
@@ -184,14 +187,18 @@ void check_path_at(const NlpModel &model, double p, const Vec &x_star, double f_
         << "x = " << sol.x.transpose() << " vs x_star = " << x_star.transpose();
 
     if (model.me() > 0) {
-        EXPECT_LE((sol.lambda_e - lambda_e_star).lpNorm<Eigen::Infinity>(), kMultTol)
-            << "lambda_e = " << sol.lambda_e.transpose() << " vs analytic "
-            << lambda_e_star.transpose();
+        EXPECT_LE((hven::solvers::detail::engine_rows(sol).lambda_e - lambda_e_star)
+                      .lpNorm<Eigen::Infinity>(),
+                  kMultTol)
+            << "lambda_e = " << hven::solvers::detail::engine_rows(sol).lambda_e.transpose()
+            << " vs analytic " << lambda_e_star.transpose();
     }
     if (model.mi() > 0) {
-        EXPECT_LE((sol.lambda_i - lambda_i_star).lpNorm<Eigen::Infinity>(), kMultTol)
-            << "lambda_i = " << sol.lambda_i.transpose() << " vs analytic "
-            << lambda_i_star.transpose();
+        EXPECT_LE((hven::solvers::detail::engine_rows(sol).lambda_i - lambda_i_star)
+                      .lpNorm<Eigen::Infinity>(),
+                  kMultTol)
+            << "lambda_i = " << hven::solvers::detail::engine_rows(sol).lambda_i.transpose()
+            << " vs analytic " << lambda_i_star.transpose();
     }
     EXPECT_LE((sol.z - z_star).lpNorm<Eigen::Infinity>(), kMultTol)
         << "z = " << sol.z.transpose() << " vs analytic " << z_star.transpose();

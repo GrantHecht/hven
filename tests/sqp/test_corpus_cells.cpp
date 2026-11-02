@@ -26,6 +26,8 @@
 #include <cstdlib>
 #include <deque>
 #include <fstream>
+#include <hven/detail/drivers/result_access.h>
+#include <hven/detail/model/problem_access.h>
 #include <map>
 #include <set>
 #include <sstream>
@@ -403,18 +405,18 @@ TEST(CorpusCellsRunner, TheKktCheckRecordsTheRowsOwnScaleDenominators) {
     model.set_parameters(hven::Vec::Constant(1, 0.85));
     hven::solvers::SqpResult sol;
     sol.x = hven::Vec::Constant(model.n(), 3.0);
-    sol.lambda_e = hven::Vec::Zero(model.me());
-    sol.lambda_i = hven::Vec::Zero(model.mi());
+    hven::solvers::detail::engine_rows(sol).lambda_e = hven::Vec::Zero(model.me());
+    hven::solvers::detail::engine_rows(sol).lambda_i = hven::Vec::Zero(model.mi());
     sol.z = hven::Vec::Zero(model.n());
     ASSERT_GT(model.mi(), 0);
-    sol.lambda_i(0) = 1.0e6;
+    hven::solvers::detail::engine_rows(sol).lambda_i(0) = 1.0e6;
     CorpusRow row{};
     detail::record_kkt_check(model, sol, detail::kFeasTol, row);
     EXPECT_DOUBLE_EQ(row.dual_scale, 1.0e6) << "the DUAL denominator is max(1, ||lambda||inf, "
                                                "||z||inf) off the returned solution";
     EXPECT_DOUBLE_EQ(row.x_scale, 3.0) << "the PRIMAL denominator is max(1, ||x||inf)";
     EXPECT_EQ(row.neg_ineq_duals, 0);
-    sol.lambda_i(1) = -2.0;
+    hven::solvers::detail::engine_rows(sol).lambda_i(1) = -2.0;
     detail::record_kkt_check(model, sol, detail::kFeasTol, row);
     EXPECT_EQ(row.neg_ineq_duals, 1);
     EXPECT_DOUBLE_EQ(row.kkt_dual_sign, 2.0);
@@ -821,7 +823,8 @@ TEST(CorpusCellsRunner, BudgetedSolveMatchesAnExplicitDriverCallAtTheSameBudget)
 
     hven::solvers::SqpSolver driver_a(opts);
     const auto direct =
-        driver_a.solve(model, model.start_point(), hven::solvers::SqpWarmStart{},
+        driver_a.solve(hven::solvers::detail::problem_ref(model), model.start_point(),
+                       hven::solvers::SqpWarmStart{},
                        hven::solvers::SolveBudget{hven::solvers::corpus::detail::kMinorBudget});
     hven::solvers::SqpSolver driver_b(opts);
     const auto via_helper =
@@ -2649,7 +2652,7 @@ std::string variant_of(const std::map<std::string, std::string> &row) {
     return second == std::string::npos ? std::string() : key.substr(second + 1);
 }
 
-// The eleven cells the leg runs: the ten U0 cells an NlpTripletModel can state, plus
+// The eleven cells the leg runs: the ten U0 cells an Nlp can state, plus
 // the fixed-variable cell no F7 cell provides.
 const std::vector<std::string> &expected_interior_cells() {
     static const std::vector<std::string> kCells{
@@ -3299,7 +3302,7 @@ TEST(CorpusCells, TheSingleRowInteriorModeProducesTheLegsOwnRow) {
 
     // THE TWO WAYS THE ROUTING CAN BE ASKED FOR A ROW THAT DOES NOT EXIST, both
     // refused before any solve: an id the corpus does not carry, and a cell the
-    // leg cannot state as an NlpTripletModel. Neither costs a solve, which is why
+    // leg cannot state as an Nlp. Neither costs a solve, which is why
     // they ride along here rather than in a test of their own.
     EXPECT_THROW((void)corpus::run_interior_single_row(
                      "not_a_cell_id", FixedVariableTreatments::MakeParameter, levers),

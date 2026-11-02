@@ -17,11 +17,12 @@
 
 #include "hven/detail/interior/constraint_function.h"
 #include "hven/detail/interior/objective_function.h"
+#include "hven/detail/model/non_linear_program.h"
+#include "hven/detail/model/problem_access.h"
 #include "hven/detail/solvers/solver_interface_specs.h"
 #include "hven/drivers/ipm_solver.h"
 #include "hven/drivers/solve_status.h"
 #include "hven/model/assembly_declaration.h"
-#include "hven/model/non_linear_program.h"
 #include "hven/solver_interface_adapter.h"
 
 namespace string_piece_test {
@@ -165,7 +166,7 @@ TEST(StringPiece, DeclaredAndSolvedThroughTheAssemblyPath) {
     IpmOptions options;
     options.common.print_level = 0;
     IpmSolver solver(options);
-    const IpmResult result = solver.solve(program, Vx::Zero(n));
+    const IpmResult result = solver.solve(hven::solvers::detail::problem_ref(program), Vx::Zero(n));
 
     EXPECT_EQ(result.status, SolveStatus::kOptimal);
     EXPECT_NEAR(result.x[0], 0.25, 1e-6);

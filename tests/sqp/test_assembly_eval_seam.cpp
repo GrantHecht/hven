@@ -50,11 +50,13 @@
 
 #include <gtest/gtest.h>
 
+#include <hven/detail/drivers/result_access.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/problem_access.h>
 
 #include <hven/detail/drivers/assembly_eval_seam.h>
-#include <hven/model/nlp_model.h>
-#include <hven/model/nlp_model_assembly.h>
+#include <hven/detail/model/nlp_model.h>
+#include <hven/detail/model/nlp_model_assembly.h>
 
 #include "support/claim_stream_double.h"
 #include "support/hs_problems.h"
@@ -1004,7 +1006,7 @@ TEST(AggregateEvalSeamBoundary, ABundleTakenBeforeARowCountChangeIsRefused) {
 // same number of bridge lays -- two against one -- and the driver's counters
 // must still agree to the integer, because a lay is a structural walk of the
 // model's three derivative patterns and is invisible to every counter the
-// driver keeps (include/hven/model/nlp_model_assembly.h's constructor doc;
+// driver keeps (include/hven/detail/model/nlp_model_assembly.h's constructor doc;
 // SqpDriverContract.CallCountPerMajorIsBounded is where that cost IS pinned,
 // against a counting model). PLAIN MODELS ARE USED HERE FOR EXACTLY THAT
 // REASON: a CountingModel would make the two arms differ by one lay's worth of
@@ -1155,8 +1157,10 @@ void expect_same_solution(const SqpResult &bridge, const SqpResult &model, const
     EXPECT_EQ(bridge.infeasibility_certified, model.infeasibility_certified);
     EXPECT_EQ(std::bit_cast<std::uint64_t>(bridge.f), std::bit_cast<std::uint64_t>(model.f));
     expect_bit_equal(bridge.x, model.x, "x");
-    expect_bit_equal(bridge.lambda_e, model.lambda_e, "lambda_e");
-    expect_bit_equal(bridge.lambda_i, model.lambda_i, "lambda_i");
+    expect_bit_equal(hven::solvers::detail::engine_rows(bridge).lambda_e,
+                     hven::solvers::detail::engine_rows(model).lambda_e, "lambda_e");
+    expect_bit_equal(hven::solvers::detail::engine_rows(bridge).lambda_i,
+                     hven::solvers::detail::engine_rows(model).lambda_i, "lambda_i");
     expect_bit_equal(bridge.z, model.z, "z");
     expect_same_history(bridge.history, model.history, tag + " history");
     expect_same_counters(bridge.counters, model.counters, tag + " counters");
@@ -1173,13 +1177,15 @@ template <typename Make> void check_cold_arm(Make make, const std::string &tag) 
 
     SqpOptions opts;
     SqpSolver model_driver{opts};
-    const SqpResult via_model = model_driver.solve(*model_side, x0);
+    const SqpResult via_model =
+        model_driver.solve(hven::solvers::detail::problem_ref(*model_side), x0);
 
     // ONE bridge, built outside the solve -- the hot-loop shape the driver
     // header's model-taking overloads point callers at.
     NlpModelAssembly bridge{bridge_side};
     SqpSolver bridge_driver{opts};
-    const SqpResult via_bridge = bridge_driver.solve(bridge, x0);
+    const SqpResult via_bridge =
+        bridge_driver.solve(hven::solvers::detail::problem_ref(bridge), x0);
 
     ASSERT_EQ(via_model.status, SolveStatus::kOptimal) << tag;
     expect_same_solution(via_bridge, via_model, tag + " cold");
@@ -1196,15 +1202,19 @@ template <typename Make> void check_warm_arm(Make make, const std::string &tag) 
 
     SqpOptions opts;
     SqpSolver model_driver{opts};
-    const SqpResult model_seed = model_driver.solve(*model_side, x0);
+    const SqpResult model_seed =
+        model_driver.solve(hven::solvers::detail::problem_ref(*model_side), x0);
     ASSERT_TRUE(model_seed.warm_start.valid) << tag;
-    const SqpResult via_model = model_driver.solve(*model_side, x0, model_seed.warm_start);
+    const SqpResult via_model = model_driver.solve(hven::solvers::detail::problem_ref(*model_side),
+                                                   x0, model_seed.warm_start);
 
     NlpModelAssembly bridge{bridge_side};
     SqpSolver bridge_driver{opts};
-    const SqpResult bridge_seed = bridge_driver.solve(bridge, x0);
+    const SqpResult bridge_seed =
+        bridge_driver.solve(hven::solvers::detail::problem_ref(bridge), x0);
     ASSERT_TRUE(bridge_seed.warm_start.valid) << tag;
-    const SqpResult via_bridge = bridge_driver.solve(bridge, x0, bridge_seed.warm_start);
+    const SqpResult via_bridge =
+        bridge_driver.solve(hven::solvers::detail::problem_ref(bridge), x0, bridge_seed.warm_start);
 
     // THE SEEDING SOLVES ARE COMPARED IN FULL, not just their hand-offs, and
     // that is not redundant with the cold battery: those two solves are what

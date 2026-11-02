@@ -22,7 +22,7 @@
 // per cell. Wall is recorded and is INFORMATIONAL ONLY -- never a margin,
 // never a claim.
 //
-// Both engines reach the cell through the ONE declared NlpTripletModel -- the
+// Both engines reach the cell through the ONE declared Nlp -- the
 // interior-point engine via make_nlp_program's transcription, the SQP engine via
 // NlpProblemModel -- so both key the same DeclarationKey and an export stages
 // across with no conversion and no re-stamp. The corpus's cells are NlpModels
@@ -63,12 +63,13 @@
 #include <hven/core/start_level.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/model/nlp_adapter.h>
+#include <hven/detail/model/nlp_model.h>
+#include <hven/detail/model/nlp_model_assembly.h>
+#include <hven/detail/model/nlp_problem_model.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/drivers/ipm_solver.h>
 #include <hven/drivers/sqp_solver_types.h>
-#include <hven/model/nlp_model.h>
-#include <hven/model/nlp_model_assembly.h>
-#include <hven/model/nlp_problem_model.h>
-#include <hven/model/nlp_triplet_model.h>
+#include <hven/model/nlp.h>
 #include <hven/model/structure_identity.h>
 #include <hven/warmstart/ipm_polish_extension.h>
 #include <hven/warmstart/warm_start_data.h>
@@ -83,10 +84,10 @@ using hven::solvers::corpus::CorpusCell;
 using hven::solvers::corpus::StartTaxonomy;
 
 // =============================================================================
-// ModelAsNlpProblem — an NlpModel, stated the way NlpTripletModel states a problem
+// ModelAsNlpProblem — an NlpModel, stated the way Nlp states a problem
 // =============================================================================
 
-/// @brief One NlpModel declared as an NlpTripletModel, so that both engines can be
+/// @brief One NlpModel declared as an Nlp, so that both engines can be
 ///        bound to it.
 ///
 /// ROW LAYOUT. The declared rows are the equalities first, in the model's own
@@ -96,26 +97,30 @@ using hven::solvers::corpus::StartTaxonomy;
 ///   row me + j     in [0, mi)        gl = -inf, gu = 0  -> cI_j(x) <= 0
 ///
 /// Reading the declaration back through NlpProblemModel reproduces the ORIGINAL
-/// model's cE and cI, in the original order, with no sign flip, so NlpTripletModel's
+/// model's cE and cI, in the original order, with no sign flip, so Nlp's
 /// lambda over [cE; cI] splits into the model's (lambda_e, lambda_i) by a
 /// head/tail cut and nothing else.
 ///
-/// STRUCTURE. NlpTripletModel queries the two sparsity patterns once and they must
+/// STRUCTURE. Nlp queries the two sparsity patterns once and they must
 /// not move afterwards, but an NlpModel decides its pattern per point. The
 /// declared structure is therefore the UNION of the patterns at two points: the
 /// model's own start point, and the point make_nlp_program's transcription evaluates
 /// at (the origin projected onto the declared box). Every later evaluation is
 /// merged into the declared slots, and a nonzero arriving at a slot the union
 /// did not declare is REFUSED by name: a model whose pattern depends on the
-/// iterate cannot be stated as an NlpTripletModel.
+/// iterate cannot be stated as an Nlp.
 ///
 /// HESSIAN TRIANGLE. NlpModel returns the UPPER triangle (row <= col);
-/// NlpTripletModel declares the LOWER one (row >= col). Same symmetric matrix, so
+/// Nlp declares the LOWER one (row >= col). Same symmetric matrix, so
 /// the conversion is an index transpose on the declared structure and nothing
 /// at all on the values.
-class ModelAsNlpProblem final : public NlpTripletModel {
+class ModelAsNlpProblem final : public Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
+
   public:
-    /// @brief Declares @p model as an NlpTripletModel.
+    /// @brief Declares @p model as an Nlp.
     /// @param model The model to state; retained.
     /// @param name  Diagnostic name, reported by name().
     /// @throws std::invalid_argument if @p model is null.
@@ -130,14 +135,13 @@ class ModelAsNlpProblem final : public NlpTripletModel {
         build_structures();
     }
 
-    int num_vars() const override { return static_cast<int>(n_); }
-    int num_cons() const override { return static_cast<int>(me_ + mi_); }
-    int num_jac_nonzeros() const override { return static_cast<int>(jac_pattern_.nonZeros()); }
-    int num_hess_nonzeros() const override { return static_cast<int>(hess_pattern_.nonZeros()); }
+    int num_vars() const { return static_cast<int>(n_); }
+    int num_cons() const { return static_cast<int>(me_ + mi_); }
+    int num_jac_nonzeros() const { return static_cast<int>(jac_pattern_.nonZeros()); }
+    int num_hess_nonzeros() const { return static_cast<int>(hess_pattern_.nonZeros()); }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> x_lower, Eigen::Ref<Eigen::VectorXd> x_upper,
-                Eigen::Ref<Eigen::VectorXd> g_lower,
-                Eigen::Ref<Eigen::VectorXd> g_upper) const override {
+    void bounds(hven::VecRef x_lower, hven::VecRef x_upper, hven::VecRef g_lower,
+                hven::VecRef g_upper) const override {
         x_lower = model_->lower();
         x_upper = model_->upper();
         // Equalities at zero; inequalities upper-bounded at zero, free below.
@@ -147,12 +151,13 @@ class ModelAsNlpProblem final : public NlpTripletModel {
         g_upper.tail(mi_).setZero();
     }
 
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         f = model_->eval_f(x);
+        return f;
     }
 
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> grad) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef grad) const override {
         // The destination is an Eigen::Ref, which the in-place form cannot take;
         // the local is the same one temporary the by-value call already made.
         Vec g;
@@ -160,7 +165,7 @@ class ModelAsNlpProblem final : public NlpTripletModel {
         grad = g;
     }
 
-    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
         if (me_ > 0) {
             Vec ce;
             model_->eval_ce_in_place(x, ce);
@@ -173,27 +178,23 @@ class ModelAsNlpProblem final : public NlpTripletModel {
         }
     }
 
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> rows,
-                       Eigen::Ref<Eigen::VectorXi> cols) const override {
-        rows = jac_rows_;
-        cols = jac_cols_;
+    void jacobian_structure(hven::IndexVecRef rows, hven::IndexVecRef cols) const override {
+        rows = jac_rows_.cast<hven::Index>();
+        cols = jac_cols_.cast<hven::Index>();
     }
 
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> rows,
-                        Eigen::Ref<Eigen::VectorXi> cols) const override {
-        rows = hess_rows_;
-        cols = hess_cols_;
+    void hessian_structure(hven::IndexVecRef rows, hven::IndexVecRef cols) const override {
+        rows = hess_rows_.cast<hven::Index>();
+        cols = hess_cols_.cast<hven::Index>();
     }
 
-    void eval_jac(ConstEigenRef<Eigen::VectorXd> x,
-                  Eigen::Ref<Eigen::VectorXd> vals) const override {
+    void eval_jacobian(hven::ConstVecRef x, hven::VecRef vals) const override {
         const SpRM stacked = stacked_jacobian(x);
         merge_into_slots(jac_pattern_, stacked, "Jacobian", vals);
     }
 
-    void eval_hess(ConstEigenRef<Eigen::VectorXd> x, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd> lambda,
-                   Eigen::Ref<Eigen::VectorXd> vals) const override {
+    void eval_hessian(hven::ConstVecRef x, double obj_factor, hven::ConstVecRef lambda,
+                      hven::VecRef vals) const override {
         // g = [cE; cI], so lambda splits into the model's pair by a head/tail cut.
         const Vec lambda_e = me_ > 0 ? Vec(lambda.head(me_)) : Vec(0);
         const Vec lambda_i = mi_ > 0 ? Vec(lambda.tail(mi_)) : Vec(0);
@@ -269,7 +270,7 @@ class ModelAsNlpProblem final : public NlpTripletModel {
     // slot's value in declared order. A stored entry of `values` that the
     // pattern never declared is a MOVING PATTERN and is refused by name.
     static void merge_into_slots(const SpRM &pattern, const SpRM &values, const char *what,
-                                 Eigen::Ref<Eigen::VectorXd> out) {
+                                 hven::VecRef out) {
         // The tandem walk below reads outerIndexPtr/innerIndexPtr/valuePtr
         // directly, so compressed storage is a precondition. The engine's own
         // route enforces NlpModel's contract at nlp_require_claimed_pattern;
@@ -305,7 +306,7 @@ class ModelAsNlpProblem final : public NlpTripletModel {
                         "(row {}, col {}) is not in the structure declared at setup. The "
                         "declared structure is the union of the patterns at the model's start "
                         "point and at the projected origin; a model whose pattern depends on "
-                        "the iterate cannot be stated as an NlpTripletModel, whose structures are "
+                        "the iterate cannot be stated as an Nlp, whose structures are "
                         "queried once and must not change.",
                         what, r, v_inner[vk]));
                 }
@@ -351,7 +352,7 @@ class ModelAsNlpProblem final : public NlpTripletModel {
             for (Index r = 0; r < hess_pattern_.outerSize(); ++r) {
                 for (SpRM::InnerIterator it(hess_pattern_, r); it; ++it, ++slot) {
                     // Upper (row, col) declared as lower (col, row): same
-                    // symmetric entry, the triangle NlpTripletModel asks for.
+                    // symmetric entry, the triangle Nlp asks for.
                     hess_rows_(slot) = static_cast<int>(it.col());
                     hess_cols_(slot) = static_cast<int>(it.row());
                 }
@@ -543,7 +544,8 @@ inline SqpLegRow run_sqp_leg(const std::shared_ptr<NlpProblemModel> &model, cons
     SqpSolver driver{opts};
     const auto t0 = std::chrono::steady_clock::now();
     const SqpResult sol =
-        payload != nullptr ? driver.solve(bridge, x0, *payload) : driver.solve(bridge, x0);
+        payload != nullptr ? driver.solve(hven::solvers::detail::problem_ref(bridge), x0, *payload)
+                           : driver.solve(hven::solvers::detail::problem_ref(bridge), x0);
     return record_sqp(sol, seconds_since(t0));
 }
 
@@ -614,7 +616,8 @@ inline CellLegs run_cell_legs(const CorpusCell &cell, const LegOptions &opts = {
         ipm_opts.bar_tol = corpus::detail::kKktTol;
         ipm.set_options(std::move(ipm_opts));
         const auto t0 = std::chrono::steady_clock::now();
-        const hven::solvers::IpmResult result = ipm.solve(*ipm_program, x0);
+        const hven::solvers::IpmResult result =
+            ipm.solve(hven::solvers::detail::problem_ref(*ipm_program), x0);
         legs.a.wall_s = detail::seconds_since(t0);
 
         legs.a.flag = result.status;

@@ -95,11 +95,13 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
+#include <hven/detail/drivers/result_access.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/nlp_model.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/detail/warmstart/predictor.h>
 #include <hven/detail/warmstart/warm_start.h>
 #include <hven/drivers/sqp_solver_types.h>
-#include <hven/model/nlp_model.h>
 
 #include "support/derivative_check.h"
 #include "support/parametric_families.h"
@@ -146,7 +148,8 @@ SqpWarmStart converged_warm(ParametricNlpModel &model, double p,
                             const SqpOptions &opts = tight_options()) {
     model.set_parameters(p_vec(p));
     SqpSolver driver(opts);
-    const SqpResult sol = driver.solve(model);
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     EXPECT_EQ(sol.status, SolveStatus::kOptimal)
         << "cold solve at p = " << p << " did not converge";
     return sol.warm_start;
@@ -245,18 +248,21 @@ TEST(Predictor, MovingConstraintFamiliesMatchTheirAnalyticPaths) {
                                                      Vec::Constant(1, 0.3), 1e-6));
 
             SqpSolver driver(opts);
-            const SqpResult sol = driver.solve(model);
+            const SqpResult sol =
+                driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
             ASSERT_EQ(sol.status, SolveStatus::kOptimal) << "p = " << p.transpose();
             EXPECT_LE((sol.x - F4MovingConstraints::x_star(p)).lpNorm<Eigen::Infinity>(), 1e-8)
                 << "x = " << sol.x.transpose() << " vs "
                 << F4MovingConstraints::x_star(p).transpose();
             EXPECT_NEAR(sol.f, F4MovingConstraints::f_star(p), 1e-9);
-            EXPECT_LE(
-                (sol.lambda_e - F4MovingConstraints::lambda_e_star(p)).lpNorm<Eigen::Infinity>(),
-                1e-7);
-            EXPECT_LE(
-                (sol.lambda_i - F4MovingConstraints::lambda_i_star(p)).lpNorm<Eigen::Infinity>(),
-                1e-7);
+            EXPECT_LE((hven::solvers::detail::engine_rows(sol).lambda_e -
+                       F4MovingConstraints::lambda_e_star(p))
+                          .lpNorm<Eigen::Infinity>(),
+                      1e-7);
+            EXPECT_LE((hven::solvers::detail::engine_rows(sol).lambda_i -
+                       F4MovingConstraints::lambda_i_star(p))
+                          .lpNorm<Eigen::Infinity>(),
+                      1e-7);
             EXPECT_LE((sol.z - F4MovingConstraints::z_star(p)).lpNorm<Eigen::Infinity>(), 1e-7);
             EXPECT_EQ(geometric_bound_active(model, sol.x, 1e-8),
                       F4MovingConstraints::active_set(p).bound_active);
@@ -274,14 +280,16 @@ TEST(Predictor, MovingConstraintFamiliesMatchTheirAnalyticPaths) {
                 test_support::assert_hessian(model, x_probe, Vec(0), Vec::Constant(1, 0.2), 1e-6));
 
             SqpSolver driver(opts);
-            const SqpResult sol = driver.solve(model);
+            const SqpResult sol =
+                driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
             ASSERT_EQ(sol.status, SolveStatus::kOptimal) << "p = " << p;
             EXPECT_LE((sol.x - F5MovingThreshold::x_star(p)).lpNorm<Eigen::Infinity>(), 1e-8)
                 << "x = " << sol.x.transpose();
             EXPECT_NEAR(sol.f, F5MovingThreshold::f_star(p), 1e-9);
-            EXPECT_LE(
-                (sol.lambda_i - F5MovingThreshold::lambda_i_star(p)).lpNorm<Eigen::Infinity>(),
-                1e-7);
+            EXPECT_LE((hven::solvers::detail::engine_rows(sol).lambda_i -
+                       F5MovingThreshold::lambda_i_star(p))
+                          .lpNorm<Eigen::Infinity>(),
+                      1e-7);
             EXPECT_LE((sol.z - F5MovingThreshold::z_star(p)).lpNorm<Eigen::Infinity>(), 1e-7);
         }
     }
@@ -313,7 +321,8 @@ TEST(Predictor, PredictorTracksConstraintsThatMoveWithP) {
     F4MovingConstraints model;
     model.set_parameters(p0);
     SqpSolver driver(tight_options());
-    const SqpResult sol = driver.solve(model);
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     const SqpWarmStart warm = sol.warm_start;
 
@@ -392,7 +401,8 @@ TEST(Predictor, PredictorActivatesConstraintsThatMoveWithP) {
     // And it is consumable: seeded at p_far, the solve confirms the far side.
     model.set_parameters(p_vec(p_far));
     SqpSolver driver(tight_options());
-    const SqpResult sol = driver.solve(model, model.start_point(), pred);
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(model), model.start_point(), pred);
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_LE((sol.x - F5MovingThreshold::x_star(p_far)).lpNorm<Eigen::Infinity>(), 1e-8);
 }
@@ -695,7 +705,8 @@ TEST(Predictor, PredictorKeepsWeaklyActiveRow) {
     //       to the far-side path (the (c)-style consumption the brief asks be
     //       shown not to break at a zero multiplier).
     SqpSolver driver(tight_options());
-    const SqpResult sol = driver.solve(model, model.start_point(), pred);
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(model), model.start_point(), pred);
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_LE((sol.x - F1BoxQp::x_star(p_far)).lpNorm<Eigen::Infinity>(), 1e-8);
 }
@@ -719,9 +730,11 @@ TEST(Predictor, PredictedWarmAcceleratesSolve) {
     model.set_parameters(p_vec(kP + kDp));
 
     SqpSolver plain_driver(opts);
-    const SqpResult plain = plain_driver.solve(model, model.start_point(), warm);
+    const SqpResult plain =
+        plain_driver.solve(hven::solvers::detail::problem_ref(model), model.start_point(), warm);
     SqpSolver pred_driver(opts);
-    const SqpResult boosted = pred_driver.solve(model, model.start_point(), pred);
+    const SqpResult boosted =
+        pred_driver.solve(hven::solvers::detail::problem_ref(model), model.start_point(), pred);
 
     ASSERT_EQ(plain.status, SolveStatus::kOptimal);
     ASSERT_EQ(boosted.status, SolveStatus::kOptimal);
@@ -911,7 +924,8 @@ TEST(Predictor, PredictionAcrossAnInequalityThresholdIsStillSafeToConsume) {
 
     model.set_parameters(p_vec(kP + kDp));
     SqpSolver driver(tight_options());
-    const SqpResult sol = driver.solve(model, model.start_point(), pred);
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(model), model.start_point(), pred);
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_LE((sol.x - F2CircleNlp::x_star(kP + kDp)).norm(), 1e-8);
 }
@@ -1051,7 +1065,7 @@ TEST(PredictorRatioTest, InheritsTheTrueActivitySetAcrossAnActivationThreshold) 
     // THE COST, which is what O-2 was reported in. Pinned exactly.
     model.set_parameters(p_vec(kP + kDp));
     SqpSolver seeded(opts);
-    const SqpResult boosted = seeded.solve(model, pred.x, pred);
+    const SqpResult boosted = seeded.solve(hven::solvers::detail::problem_ref(model), pred.x, pred);
     ASSERT_EQ(boosted.status, SolveStatus::kOptimal);
     EXPECT_EQ(boosted.counters.major_iters, 1);
     // M7 W2 E4 fix round 1 (declared mover): 2 -> 3 minors, majors and
@@ -1063,7 +1077,8 @@ TEST(PredictorRatioTest, InheritsTheTrueActivitySetAcrossAnActivationThreshold) 
 
     model.set_parameters(p_vec(kP + kDp));
     SqpSolver plain(opts);
-    const SqpResult unpredicted = plain.solve(model, warm.x, warm);
+    const SqpResult unpredicted =
+        plain.solve(hven::solvers::detail::problem_ref(model), warm.x, warm);
     ASSERT_EQ(unpredicted.status, SolveStatus::kOptimal);
     EXPECT_EQ(unpredicted.counters.qp_minor_iters, 24);
     // The comparison the battery could not make before: the predicted seed is
@@ -1152,7 +1167,7 @@ TEST(PredictorRatioTest, AZeroRoundBudgetStopsAtTheFirstCrossing) {
 
     model.set_parameters(p_vec(kP + kDp));
     SqpSolver driver(tight_options());
-    const SqpResult sol = driver.solve(model, pred.x, pred);
+    const SqpResult sol = driver.solve(hven::solvers::detail::problem_ref(model), pred.x, pred);
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_LE((sol.x - F5MovingThreshold::x_star(kP + kDp)).lpNorm<Eigen::Infinity>(), 1e-8);
 }
@@ -1280,7 +1295,7 @@ TEST(PredictorRatioTest, SurvivesACurvedManyJunctionThresholdCrossing) {
 
     model.set_parameters(p_vec(kP + kDp));
     SqpSolver seeded(opts);
-    const SqpResult boosted = seeded.solve(model, pred.x, pred);
+    const SqpResult boosted = seeded.solve(hven::solvers::detail::problem_ref(model), pred.x, pred);
     // THE CLAIM: it converges at all. Pre-Task-6 this was kNumericalError.
     ASSERT_EQ(boosted.status, SolveStatus::kOptimal) << "status = " << to_string(boosted.status);
     EXPECT_EQ(boosted.counters.major_iters, 3);
@@ -1442,7 +1457,7 @@ TEST(Predictor, TheEmittedInequalityPriceIsNeverNegative) {
     // so the truth is the unconstrained minimizer x = A (1 - p) ~ 0.5.
     model.set_parameters(p_vec(kDp));
     SqpSolver driver(scaled_price_options());
-    const SqpResult sol = driver.solve(model, pred.x, pred);
+    const SqpResult sol = driver.solve(hven::solvers::detail::problem_ref(model), pred.x, pred);
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_NEAR(sol.x(0), model.slope(), 1e-6);
     EXPECT_LT(model.slope(), 1.0) << "fixture premise: the row is no longer binding at p + dp";

@@ -118,10 +118,12 @@
 
 #include <fmt/format.h>
 
+#include <hven/detail/drivers/result_access.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/nlp_model_assembly.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/detail/warmstart/warm_start.h>
 #include <hven/drivers/sqp_solver_types.h>
-#include <hven/model/nlp_model_assembly.h>
 #include <hven/qp/qp_types.h>
 
 #include "model_surface_kkt.h"
@@ -1564,11 +1566,15 @@ inline void record_kkt_check(const hven::solvers::NlpModel &model, const SqpResu
     row.kkt_complementarity = r.complementarity;
 
     double dual_scale = 1.0;
-    if (sol.lambda_e.size() > 0) {
-        dual_scale = std::max(dual_scale, sol.lambda_e.template lpNorm<Eigen::Infinity>());
+    if (hven::solvers::detail::engine_rows(sol).lambda_e.size() > 0) {
+        dual_scale = std::max(
+            dual_scale,
+            hven::solvers::detail::engine_rows(sol).lambda_e.template lpNorm<Eigen::Infinity>());
     }
-    if (sol.lambda_i.size() > 0) {
-        dual_scale = std::max(dual_scale, sol.lambda_i.template lpNorm<Eigen::Infinity>());
+    if (hven::solvers::detail::engine_rows(sol).lambda_i.size() > 0) {
+        dual_scale = std::max(
+            dual_scale,
+            hven::solvers::detail::engine_rows(sol).lambda_i.template lpNorm<Eigen::Infinity>());
     }
     if (sol.z.size() > 0) {
         dual_scale = std::max(dual_scale, sol.z.template lpNorm<Eigen::Infinity>());
@@ -1577,8 +1583,8 @@ inline void record_kkt_check(const hven::solvers::NlpModel &model, const SqpResu
     row.x_scale = sol.x.size() > 0 ? std::max(1.0, sol.x.template lpNorm<Eigen::Infinity>()) : 1.0;
 
     int negatives = 0;
-    for (Index j = 0; j < sol.lambda_i.size(); ++j) {
-        if (sol.lambda_i(j) < 0.0) {
+    for (Index j = 0; j < hven::solvers::detail::engine_rows(sol).lambda_i.size(); ++j) {
+        if (hven::solvers::detail::engine_rows(sol).lambda_i(j) < 0.0) {
             ++negatives;
         }
     }
@@ -1601,8 +1607,9 @@ inline void record_model_surface_check(const hven::solvers::NlpModel &model, con
     const std::shared_ptr<const hven::solvers::NlpModel> borrowed(std::shared_ptr<const void>(),
                                                                   &model);
     NlpModelAssembly aggregate(borrowed);
-    const ModelSurfaceKktResiduals r =
-        model_surface_kkt_residuals(aggregate, sol.x, sol.lambda_e, sol.lambda_i, sol.z);
+    const ModelSurfaceKktResiduals r = model_surface_kkt_residuals(
+        aggregate, sol.x, hven::solvers::detail::engine_rows(sol).lambda_e,
+        hven::solvers::detail::engine_rows(sol).lambda_i, sol.z);
     row.ms_stationarity = r.stationarity_;
     row.ms_complementarity = r.complementarity_;
     row.ms_primal = r.primal_;
@@ -1653,7 +1660,8 @@ inline SqpResult budgeted_solve(SqpSolver &driver, const hven::solvers::NlpModel
     // SolveBudget aggregate now, whose other member is the major cap. Every
     // corpus cell budgets minors and none caps majors, so this stays a one-field
     // value and every corpus row is byte-unchanged.
-    return driver.solve(model, x0, warm, SolveBudget{/*minor_budget=*/budget});
+    return driver.solve(hven::solvers::detail::problem_ref(model), x0, warm,
+                        SolveBudget{/*minor_budget=*/budget});
 }
 
 // kPhysicsInformed's own rollout: the family's analytic optimum displaced by

@@ -7,26 +7,26 @@
 #include <memory>
 
 #include "hven/detail/model/nlp_adapter.h"
-#include "hven/model/nlp_problem_model.h"
-#include "hven/model/non_linear_program.h"
+#include "hven/detail/model/nlp_problem_model.h"
+#include "hven/detail/model/non_linear_program.h"
 
 namespace {
 constexpr double kInf = std::numeric_limits<double>::infinity();
 } // namespace
 
 using hven::ConstEigenRef;
+using hven::solvers::Nlp;
 using hven::solvers::NLPAdapterCore;
 using hven::solvers::NlpProblemModel;
 using hven::solvers::NLPRowClassification;
 using hven::solvers::NLPRowKind;
-using hven::solvers::NlpTripletModel;
 
 namespace {
 
 /// The whole route a declared problem takes to the engine: the triplet-to-
 /// native conversion, then the piece host over the model it produced. Every
 /// test below builds through this, because nothing else builds at all.
-std::shared_ptr<NLPAdapterCore> adapter_host(const std::shared_ptr<NlpTripletModel> &problem) {
+std::shared_ptr<NLPAdapterCore> adapter_host(const std::shared_ptr<Nlp> &problem) {
     auto model = std::make_shared<NlpProblemModel>(problem);
     return std::make_shared<NLPAdapterCore>(model, problem->name());
 }
@@ -35,46 +35,40 @@ std::shared_ptr<NLPAdapterCore> adapter_host(const std::shared_ptr<NlpTripletMod
 
 // Minimal configurable problem for validation tests. Field defaults describe a
 // valid 2-var, 2-con problem; individual tests break one field at a time.
-struct AdapterValProblem : NlpTripletModel {
+struct AdapterValProblem : Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
+
     int n_ = 2, m_ = 2, jnnz_ = 4, hnnz_ = 2;
     Eigen::VectorXd xl_{{-kInf, -kInf}}, xu_{{kInf, kInf}};
     Eigen::VectorXd gl_{{0.0, -kInf}}, gu_{{0.0, 1.0}};
     Eigen::VectorXi jr_{{0, 0, 1, 1}}, jc_{{0, 1, 0, 1}};
     Eigen::VectorXi hr_{{0, 1}}, hc_{{0, 1}};
 
-    int num_vars() const override { return n_; }
-    int num_cons() const override { return m_; }
-    int num_jac_nonzeros() const override { return jnnz_; }
-    int num_hess_nonzeros() const override { return hnnz_; }
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    int num_vars() const { return n_; }
+    int num_cons() const { return m_; }
+    int num_jac_nonzeros() const { return jnnz_; }
+    int num_hess_nonzeros() const { return hnnz_; }
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl = xl_;
         xu = xu_;
         gl = gl_;
         gu = gu_;
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd>, double &f) const override { f = 0.0; }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> g) const override {
-        g.setZero();
+    double eval_f(hven::ConstVecRef) const override { return 0.0; }
+    void eval_grad_f(hven::ConstVecRef, hven::VecRef g) const override { g.setZero(); }
+    void eval_g(hven::ConstVecRef, hven::VecRef g) const override { g.setZero(); }
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r = jr_.cast<hven::Index>();
+        c = jc_.cast<hven::Index>();
     }
-    void eval_g(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> g) const override {
-        g.setZero();
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r = hr_.cast<hven::Index>();
+        c = hc_.cast<hven::Index>();
     }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
-        r = jr_;
-        c = jc_;
-    }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
-        r = hr_;
-        c = hc_;
-    }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
-        v.setZero();
-    }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double, ConstEigenRef<Eigen::VectorXd>,
-                   Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override { v.setZero(); }
+    void eval_hessian(hven::ConstVecRef, double, hven::ConstVecRef, hven::VecRef v) const override {
         v.setZero();
     }
 };
@@ -196,46 +190,48 @@ TEST(NLPAdapterCoreTest, HessianOwnerFallsBackToEqThenObjective) {
 // x0^2 + x1 <= 9 (upper-bounded), x0*x1 >= 1 (lower-bounded, negated by the
 // adapter). The Hessian structure carries a duplicate (0, 0) slot to prove
 // duplicate slots are summed rather than overwritten.
-struct AsmTestProblem : NlpTripletModel {
+struct AsmTestProblem : Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
+
     mutable int n_eval_g_ = 0, n_eval_jac_ = 0, n_eval_hess_ = 0;
 
-    int num_vars() const override { return 2; }
-    int num_cons() const override { return 3; }
-    int num_jac_nonzeros() const override { return 6; }
-    int num_hess_nonzeros() const override { return 4; }
+    int num_vars() const { return 2; }
+    int num_cons() const { return 3; }
+    int num_jac_nonzeros() const { return 6; }
+    int num_hess_nonzeros() const { return 4; }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl << -kInf, -kInf;
         xu << kInf, kInf;
         gl << 4.0, -kInf, 1.0;
         gu << 4.0, 9.0, kInf;
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         f = x[0] * x[0] + x[1] * x[1];
+        return f;
     }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = 2.0 * x[0];
         g[1] = 2.0 * x[1];
     }
-    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
         n_eval_g_++;
         g[0] = x[0] + 2.0 * x[1];
         g[1] = x[0] * x[0] + x[1];
         g[2] = x[0] * x[1];
     }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 0, 1, 1, 2, 2;
         c << 0, 1, 0, 1, 0, 1;
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 1, 1, 0;
         c << 0, 1, 0, 0;
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef x, hven::VecRef v) const override {
         n_eval_jac_++;
         v[0] = 1.0;
         v[1] = 2.0;
@@ -244,9 +240,8 @@ struct AsmTestProblem : NlpTripletModel {
         v[4] = x[1];
         v[5] = x[0];
     }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd> lambda,
-                   Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef lambda,
+                      hven::VecRef v) const override {
         n_eval_hess_++;
         v[0] = 1.5 * obj_factor + 2.0 * lambda[1];
         v[1] = 2.0 * obj_factor;
@@ -375,7 +370,7 @@ TEST(NLPAdapterAssemblyTest, ShortEqualityMultiplierBlockIsRefusedBeforeItIsRead
         // number in it would satisfy.
         EXPECT_NE(message.find("0 equality multipliers"), std::string::npos) << message;
         EXPECT_NE(message.find("hosts 1 equality rows"), std::string::npos) << message;
-        EXPECT_NE(message.find("NlpTripletModel"), std::string::npos) << message; // default name()
+        EXPECT_NE(message.find("nlp: "), std::string::npos) << message; // default name()
         // The site is what makes this pin discriminate: the refusal has to come
         // from the piece's first read of the block. Reaching the later record
         // means the fill already indexed a block too short for it, which under
@@ -391,8 +386,7 @@ namespace {
 /// equality piece hosts two rows and a block too short for it can still be
 /// non-empty. Everything else -- variables, structure, values -- is the same.
 struct AsmTwoEqualityProblem : AsmTestProblem {
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl << -kInf, -kInf;
         xu << kInf, kInf;
         gl << 4.0, 2.0, 1.0;
@@ -482,11 +476,11 @@ TEST(NLPAdapterAssemblyTest, NoObjectiveChainUsesZeroObjFactorConsumeOnce) {
 struct ThrowingJacAsmTestProblem : AsmTestProblem {
     bool armed_ = false;
 
-    void eval_jac(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef x, hven::VecRef v) const override {
         if (armed_) {
             throw std::runtime_error("ThrowingJacAsmTestProblem: eval_jac armed to throw");
         }
-        AsmTestProblem::eval_jac(x, v);
+        AsmTestProblem::eval_jacobian(x, v);
     }
 };
 
@@ -537,42 +531,40 @@ TEST(NLPAdapterAssemblyTest, AbortedAssemblyDoesNotLeakStalePendingRecords) {
 // the Range row's own composed multiplier); the single user row 1 <= x0 <= 3
 // is Range-kind and splits into two solver inequality rows sharing the one
 // declared Jacobian slot (upper: x0 - 3, lower: 1 - x0).
-struct RangeAsmTestProblem : NlpTripletModel {
-    int num_vars() const override { return 1; }
-    int num_cons() const override { return 1; }
-    int num_jac_nonzeros() const override { return 1; }
-    int num_hess_nonzeros() const override { return 1; }
+struct RangeAsmTestProblem : Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    int num_vars() const { return 1; }
+    int num_cons() const { return 1; }
+    int num_jac_nonzeros() const { return 1; }
+    int num_hess_nonzeros() const { return 1; }
+
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl << -kInf;
         xu << kInf;
         gl << 1.0;
         gu << 3.0;
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override { f = x[0] * x[0]; }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
-        g[0] = 2.0 * x[0];
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
+        f = x[0] * x[0];
+        return f;
     }
-    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
-        g[0] = x[0];
-    }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override { g[0] = 2.0 * x[0]; }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override { g[0] = x[0]; }
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0;
         c << 0;
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0;
         c << 0;
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
-        v[0] = 1.0;
-    }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double, ConstEigenRef<Eigen::VectorXd> lambda,
-                   Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override { v[0] = 1.0; }
+    void eval_hessian(hven::ConstVecRef, double, hven::ConstVecRef lambda,
+                      hven::VecRef v) const override {
         v[0] = lambda[0]; // isolates lambda_user_ = li_upper - li_lower
     }
 };

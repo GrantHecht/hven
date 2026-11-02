@@ -15,8 +15,8 @@
 // two solvers -- construction, `options()`/`set_options`, the solve family with
 // and without a warm-start payload, `set_iteration_callback`, `attach_trace`,
 // `attach_ledger`, and `export_warm_start()` off the returned result -- and is
-// instantiated for `IpmSolver` over a `NonLinearProgram` and for
-// `SqpSolver` over the same problem's `NlpProblemModel`. A shape that has
+// instantiated for `IpmSolver` and for `SqpSolver`, both over ONE `Problem`
+// (M8 AP-2 B2: the one problem type both engines solve). A shape that has
 // drifted apart on one engine fails to COMPILE here, against an installed
 // prefix, which is the whole point of the exercise.
 
@@ -36,55 +36,46 @@
 #include "hven/drivers/solve_status.h"
 #include "hven/drivers/sqp_solver.h"
 #include "hven/drivers/trace_writer.h"
-#include "hven/model/make_nlp_program.h"
-#include "hven/model/nlp_problem_model.h"
-#include "hven/model/nlp_triplet_model.h"
-#include "hven/model/non_linear_program.h"
+#include "hven/model/nlp.h"
+#include "hven/model/problem.h"
 #include "hven/warmstart/warm_start_data.h"
 
 namespace {
 constexpr double kInf = std::numeric_limits<double>::infinity();
 
-struct Hs071Problem : hven::solvers::NlpTripletModel {
-    int num_vars() const override { return 4; }
-    int num_cons() const override { return 2; }
-    int num_jac_nonzeros() const override { return 8; }
-    int num_hess_nonzeros() const override { return 10; }
+struct Hs071Problem : hven::solvers::Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {.n = 4, .m = 2, .jacobian_nonzeros = 8, .hessian_nonzeros = 10};
+    }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl << 1.0, 1.0, 1.0, 1.0;
         xu << 5.0, 5.0, 5.0, 5.0;
         gl << 25.0, 40.0;
         gu << kInf, 40.0;
     }
-    void eval_f(hven::ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
-        f = x[0] * x[3] * (x[0] + x[1] + x[2]) + x[2];
+    double eval_f(hven::ConstVecRef x) const override {
+        return x[0] * x[3] * (x[0] + x[1] + x[2]) + x[2];
     }
-    void eval_grad_f(hven::ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = x[3] * (2.0 * x[0] + x[1] + x[2]);
         g[1] = x[0] * x[3];
         g[2] = x[0] * x[3] + 1.0;
         g[3] = x[0] * (x[0] + x[1] + x[2]);
     }
-    void eval_g(hven::ConstEigenRef<Eigen::VectorXd> x,
-                Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = x[0] * x[1] * x[2] * x[3];
         g[1] = x[0] * x[0] + x[1] * x[1] + x[2] * x[2] + x[3] * x[3];
     }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 0, 0, 0, 1, 1, 1, 1;
         c << 0, 1, 2, 3, 0, 1, 2, 3;
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 1, 1, 2, 2, 2, 3, 3, 3, 3;
         c << 0, 0, 1, 0, 1, 2, 0, 1, 2, 3;
     }
-    void eval_jac(hven::ConstEigenRef<Eigen::VectorXd> x,
-                  Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef x, hven::VecRef v) const override {
         v[0] = x[1] * x[2] * x[3];
         v[1] = x[0] * x[2] * x[3];
         v[2] = x[0] * x[1] * x[3];
@@ -94,9 +85,8 @@ struct Hs071Problem : hven::solvers::NlpTripletModel {
         v[6] = 2.0 * x[2];
         v[7] = 2.0 * x[3];
     }
-    void eval_hess(hven::ConstEigenRef<Eigen::VectorXd> x, double obj_factor,
-                   hven::ConstEigenRef<Eigen::VectorXd> lambda,
-                   Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(hven::ConstVecRef x, double obj_factor, hven::ConstVecRef lambda,
+                      hven::VecRef v) const override {
         const double x0 = x[0], x1 = x[1], x2 = x[2], x3 = x[3];
         v[0] = obj_factor * 2 * x3 + lambda[1] * 2;
         v[1] = obj_factor * x3 + lambda[0] * x2 * x3;
@@ -123,12 +113,13 @@ constexpr double kHs071Optimum = 17.0140172;
 /// outside the project.
 ///
 /// @param solver The engine, already constructed with its own options type.
-/// @param model  The model that engine consumes.
+/// @param problem The problem both engines solve.
 /// @param x0     The start point.
 /// @param label  Names the arm in the diagnostics this prints.
 /// @return true when the arm converged to the known optimum.
-template <class Solver, class Model>
-bool run_once(Solver &solver, Model &model, const Eigen::VectorXd &x0, const char *label) {
+template <class Solver>
+bool run_once(Solver &solver, hven::solvers::Problem &problem, const Eigen::VectorXd &x0,
+              const char *label) {
     // (1) options() / set_options: read the value in force, edit it, hand it
     //     back. Print level 10 is silent under the convention both engines now
     //     share.
@@ -152,7 +143,7 @@ bool run_once(Solver &solver, Model &model, const Eigen::VectorXd &x0, const cha
     solver.attach_ledger(&ledger, std::string(label));
 
     // (4) the COLD solve, and its result by value.
-    const auto cold = solver.solve(model, x0);
+    const auto cold = solver.solve(problem, x0);
     if (cold.status != hven::solvers::SolveStatus::kOptimal) {
         std::fprintf(stderr, "install smoke: %s did not converge (status %s)\n", label,
                      hven::solvers::to_string(cold.status));
@@ -176,15 +167,14 @@ bool run_once(Solver &solver, Model &model, const Eigen::VectorXd &x0, const cha
     }
     solver.clear_iteration_callback();
     solver.attach_trace(nullptr);
-    const auto warm = solver.solve(model, x0, *payload);
+    const auto warm = solver.solve(problem, x0, *payload);
     if (warm.status != hven::solvers::SolveStatus::kOptimal) {
         std::fprintf(stderr, "install smoke: %s did not converge from its own warm start\n", label);
         return false;
     }
 
     // (6) the ANSWER, checked against the known optimum on both arms.
-    double f_actual = 0.0;
-    Hs071Problem{}.eval_f(warm.x, f_actual);
+    const double f_actual = Hs071Problem{}.eval_f(warm.x);
     if (std::abs(f_actual - kHs071Optimum) > 1e-5) {
         std::fprintf(stderr,
                      "install smoke: %s objective %.7f does not match the known optimum %.7f\n",
@@ -200,7 +190,8 @@ bool run_once(Solver &solver, Model &model, const Eigen::VectorXd &x0, const cha
 // ipqp_evidence at T4, compiler at T3, solve_status at T8.2, common_options and
 // ipm_solver_types at T8.3, console_trace_sink at T8.7; at T8.9 nlp_solver went
 // with the retired wrapper and the TWO ENGINE HEADERS took its place, 17 -> 18;
-// make_nlp_program at M7 W0 T5(a), 18 -> 19).
+// make_nlp_program at M7 W0 T5(a), 18 -> 19; at M8 AP-2 B2 the three model-layer
+// TUs became nlp, problem and fixed_variable_treatment, 19 -> 19).
 // Each proves COMPILE-TIME self-containment only: none odr-uses anything its
 // header declares, so the link proves the objects link, nothing about exports.
 namespace hven_install_smoke {
@@ -208,10 +199,10 @@ int standalone_include_trace_writer();
 int standalone_include_trace();
 int standalone_include_ipqp_evidence();
 int standalone_include_nlp_problem();
-int standalone_include_make_nlp_program();
+int standalone_include_problem();
 int standalone_include_nlp_aggregate();
 int standalone_include_aggregate_declaration();
-int standalone_include_nlp_model_aggregate();
+int standalone_include_fixed_variable_treatment();
 int standalone_include_interior_point_solver();
 int standalone_include_sqp_driver();
 int standalone_include_solve_status();
@@ -230,10 +221,10 @@ int main() {
                                hven_install_smoke::standalone_include_trace() +
                                hven_install_smoke::standalone_include_ipqp_evidence() +
                                hven_install_smoke::standalone_include_nlp_problem() +
-                               hven_install_smoke::standalone_include_make_nlp_program() +
+                               hven_install_smoke::standalone_include_problem() +
                                hven_install_smoke::standalone_include_nlp_aggregate() +
                                hven_install_smoke::standalone_include_aggregate_declaration() +
-                               hven_install_smoke::standalone_include_nlp_model_aggregate() +
+                               hven_install_smoke::standalone_include_fixed_variable_treatment() +
                                hven_install_smoke::standalone_include_interior_point_solver() +
                                hven_install_smoke::standalone_include_sqp_driver() +
                                hven_install_smoke::standalone_include_solve_status() +
@@ -254,20 +245,16 @@ int main() {
     Eigen::VectorXd x0(4);
     x0 << 1.0, 5.0, 5.0, 1.0;
 
-    // ONE DECLARED PROBLEM, TWO ENGINES. The interior-point engine consumes the
-    // program `make_nlp_program` transcribes; the SQP engine consumes the same
-    // problem's model conversion. Everything after that is `run_once`, written
-    // once.
-    const auto problem = std::make_shared<Hs071Problem>();
-    const auto program = hven::solvers::make_nlp_program(problem);
+    // ONE PROBLEM, TWO ENGINES. Both solvers take the same Problem; everything
+    // after that is `run_once`, written once.
+    hven::solvers::Problem problem(std::make_shared<Hs071Problem>());
     hven::solvers::IpmSolver ipm;
-    if (!run_once(ipm, *program, x0, "IpmSolver")) {
+    if (!run_once(ipm, problem, x0, "IpmSolver")) {
         return 1;
     }
 
-    const auto model = std::make_shared<hven::solvers::NlpProblemModel>(problem);
     hven::solvers::SqpSolver sqp{hven::solvers::SqpOptions{}};
-    if (!run_once(sqp, *model, x0, "SqpSolver")) {
+    if (!run_once(sqp, problem, x0, "SqpSolver")) {
         return 1;
     }
 

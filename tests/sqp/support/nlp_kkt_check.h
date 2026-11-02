@@ -46,8 +46,9 @@
 
 #include <Eigen/Dense>
 
+#include <hven/detail/drivers/result_access.h>
+#include <hven/detail/model/nlp_model.h>
 #include <hven/drivers/sqp_solver_types.h>
-#include <hven/model/nlp_model.h>
 
 #include <hven/core/compiler.h>
 
@@ -115,16 +116,19 @@ inline NlpKktResidual self_check_kkt(const NlpModel &model, const SqpResult &sol
         bounds_are_nan_free = !std::isnan(lo(i)) && !std::isnan(up(i));
     }
     if (!bounds_are_nan_free || !std::isfinite(bound_tol) || !sol.x.allFinite() ||
-        !sol.z.allFinite() || !sol.lambda_e.allFinite() || !sol.lambda_i.allFinite()) {
+        !sol.z.allFinite() || !hven::solvers::detail::engine_rows(sol).lambda_e.allFinite() ||
+        !hven::solvers::detail::engine_rows(sol).lambda_i.allFinite()) {
         return nlp_kkt_unscorable();
     }
 
     Vec grad = model.eval_grad(sol.x);
     if (model.me() > 0) {
-        grad += model.eval_jac_e(sol.x).transpose() * sol.lambda_e;
+        grad +=
+            model.eval_jac_e(sol.x).transpose() * hven::solvers::detail::engine_rows(sol).lambda_e;
     }
     if (model.mi() > 0) {
-        grad += model.eval_jac_i(sol.x).transpose() * sol.lambda_i;
+        grad +=
+            model.eval_jac_i(sol.x).transpose() * hven::solvers::detail::engine_rows(sol).lambda_i;
     }
     // Hoisted, not moved in cost: exactly the same two calls the two blocks
     // below used to make, under exactly the same me()/mi() guards -- the
@@ -178,8 +182,11 @@ inline NlpKktResidual self_check_kkt(const NlpModel &model, const SqpResult &sol
     if (model.mi() > 0) {
         for (Index j = 0; j < model.mi(); ++j) {
             r.primal = std::max(r.primal, std::max(0.0, ci(j)));
-            r.dual_sign = std::max(r.dual_sign, std::max(0.0, -sol.lambda_i(j)));
-            r.complementarity = std::max(r.complementarity, std::abs(sol.lambda_i(j) * ci(j)));
+            r.dual_sign = std::max(
+                r.dual_sign, std::max(0.0, -hven::solvers::detail::engine_rows(sol).lambda_i(j)));
+            r.complementarity =
+                std::max(r.complementarity,
+                         std::abs(hven::solvers::detail::engine_rows(sol).lambda_i(j) * ci(j)));
         }
     }
     return r;

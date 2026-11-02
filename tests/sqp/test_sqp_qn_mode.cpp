@@ -31,6 +31,7 @@
 #include <hven/detail/globalization/sqp/lbfgs_damped.h>
 #include <hven/detail/globalization/sqp/mixed_lift.h>
 #include <hven/detail/globalization/sqp/qn_lift_bridge.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/drivers/sqp_solver_types.h>
 
 #include "support/hs_problems.h"
@@ -274,7 +275,8 @@ TEST_P(SqpQnHs, ConvergesWithoutAHessianCall) {
     test_support::HsProblem p = make_hs(hc.number);
     HessCountingModel model(p.model.get());
     SqpSolver driver(qn_options());
-    const SqpResult sol = driver.solve(model);
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     SCOPED_TRACE(fmt::format("HS{} ({}): status {} majors {} f {:.12g} f* {:.12g}", hc.number,
                              hc.why, to_string(sol.status), sol.counters.major_iters, sol.f,
                              p.f_star));
@@ -322,7 +324,8 @@ TEST_P(SqpQnVariantHs, ConvergesWithoutAHessianCall) {
     o.qn_nonlinear_only = v.nonlinear_only;
     o.qn_full_memory_max = v.full_memory_max;
     SqpSolver driver(o);
-    const SqpResult sol = driver.solve(model);
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     SCOPED_TRACE(fmt::format("HS{} {}: status {} majors {} f {:.12g} f* {:.12g}", hc.number, v.name,
                              to_string(sol.status), sol.counters.major_iters, sol.f, p.f_star));
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
@@ -371,7 +374,8 @@ TEST(SqpQnVariants, TheNonlinearOnlyRestrictionBuildsTheMaskedCarrierAtTheExpect
         o.qn_nonlinear_only = nonlinear_only;
         o.qn_full_memory_max = full_memory_max;
         SqpSolver driver(o);
-        const SqpResult sol = driver.solve(model);
+        const SqpResult sol =
+            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
         EXPECT_EQ(sol.status, SolveStatus::kOptimal);
         EXPECT_NEAR(sol.f, p.f_star, 1e-5);
         return sol.counters.qn_dimension;
@@ -382,7 +386,10 @@ TEST(SqpQnVariants, TheNonlinearOnlyRestrictionBuildsTheMaskedCarrierAtTheExpect
     test_support::HsProblem p = make_hs(6);
     Hs6LinearX2Model model(p.model.get());
     SqpSolver exact{SqpOptions{}};
-    EXPECT_EQ(exact.solve(model).counters.qn_dimension, 0) << "kExact";
+    EXPECT_EQ(exact.solve(hven::solvers::detail::problem_ref(model), (model).start_point())
+                  .counters.qn_dimension,
+              0)
+        << "kExact";
 }
 
 // Under kExact the counter is exactly the driver's share of the model's calls.
@@ -392,7 +399,8 @@ TEST(SqpQnExact, TheCounterIsTheDriversShareOfTheModelsCalls) {
         test_support::HsProblem p = make_hs(number);
         HessCountingModel model(p.model.get());
         SqpSolver driver(SqpOptions{});
-        const SqpResult sol = driver.solve(model);
+        const SqpResult sol =
+            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
         EXPECT_GT(sol.counters.eval_hess_calls, 0);
         EXPECT_EQ(model.n_hess, 1 + sol.counters.eval_hess_calls) << "1 = the lay-time walk";
@@ -415,7 +423,8 @@ TEST(SqpQnModes, EveryQpModeConvergesWithoutAHessianCall) {
             SqpOptions o = qn_options();
             o.qp_mode = mode;
             SqpSolver driver(o);
-            const SqpResult sol = driver.solve(model);
+            const SqpResult sol =
+                driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
             ASSERT_EQ(sol.status, SolveStatus::kOptimal);
             EXPECT_NEAR(sol.f, p.f_star, 1e-5 * std::max(1.0, std::abs(p.f_star)));
             EXPECT_EQ(sol.counters.eval_hess_calls, 0);
@@ -483,7 +492,8 @@ TEST(SqpQnModes, AnElasticActivatingSolveConvergesWithoutAHessianCall) {
     CircleFromInsideModel inner;
     HessCountingModel model(&inner);
     SqpSolver driver(qn_options());
-    const SqpResult sol = driver.solve(model);
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_GE(sol.counters.elastic_activations, 1);
     ASSERT_FALSE(sol.history.empty());
@@ -504,7 +514,8 @@ TEST(SqpQnModes, BothWorkingSetAlgebrasAndTheScaledSolveConverge) {
             o.qp.ws_algebra = algebra;
             o.enable_scaling = scaled;
             SqpSolver driver(o);
-            const SqpResult sol = driver.solve(*p.model);
+            const SqpResult sol = driver.solve(hven::solvers::detail::problem_ref(*p.model),
+                                               (*p.model).start_point());
             ASSERT_EQ(sol.status, SolveStatus::kOptimal);
             EXPECT_NEAR(sol.f, p.f_star, 1e-5 * std::max(1.0, std::abs(p.f_star)));
             EXPECT_EQ(sol.counters.eval_hess_calls, 0);
@@ -524,7 +535,8 @@ TEST(SqpQnPairs, TheSocPromotedStepIsTheOfferedPair) {
     o.kkt_tol = 1e-8;
     o.feas_tol = 1e-8;
     SqpSolver driver(o);
-    const SqpResult sol = driver.solve(model);
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_NEAR(sol.f, -1.0, 1e-7);
     EXPECT_GE(sol.counters.soc_applied, 1) << "the fixture must promote a correction under QN";
@@ -539,9 +551,11 @@ TEST(SqpQnPairs, UpdateOnRejectOffersTheRejectedTrials) {
     o.kkt_tol = 1e-8;
     o.feas_tol = 1e-8;
     o.enable_soc = false; // rejections stay rejections
-    const SqpResult base = SqpSolver(o).solve(model);
+    const SqpResult base =
+        SqpSolver(o).solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     o.qn_update_on_reject = true;
-    const SqpResult abl = SqpSolver(o).solve(model);
+    const SqpResult abl =
+        SqpSolver(o).solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(base.status, SolveStatus::kOptimal);
     ASSERT_EQ(abl.status, SolveStatus::kOptimal);
     EXPECT_EQ(qn_offers(base.counters), base.counters.steps_accepted);
@@ -599,7 +613,8 @@ TEST(SqpQnRestoration, TheSubSolveRunsItsOwnInstanceWithoutAHessianCall) {
         // regularized curvature is the next test's.
         o.restoration_curvature = SqpRestorationCurvature::kModel;
         SqpSolver driver(o);
-        const SqpResult sol = driver.solve(model);
+        const SqpResult sol =
+            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
         ASSERT_GE(sol.counters.restoration_entries, 1);
         EXPECT_GE(sol.counters.restoration_iters, 1);
         EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
@@ -621,7 +636,8 @@ TEST(SqpQnRestoration, TheExactModeFoldsTheSubSolvesHessianCalls) {
     o.max_iter = 200;
     o.restoration_curvature = SqpRestorationCurvature::kModel;
     SqpSolver driver(o);
-    const SqpResult sol = driver.solve(model);
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_GE(sol.counters.restoration_entries, 1);
     EXPECT_EQ(model.n_hess, 1 + sol.counters.restoration_entries + sol.counters.eval_hess_calls);
 }
@@ -640,7 +656,8 @@ TEST(SqpQnRestoration, TheRegularizedCurvatureNeverCallsTheCallersHessianInThePh
         o.restoration_curvature = SqpRestorationCurvature::kRegularized;
         o.restoration_max_entries = 1;
         SqpSolver driver(o);
-        const SqpResult sol = driver.solve(model);
+        const SqpResult sol =
+            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
         ASSERT_GE(sol.counters.restoration_entries, 1);
         EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
         EXPECT_TRUE(sol.infeasibility_certified);
@@ -666,12 +683,14 @@ TEST(SqpQnWarmStart, TheProbeMakesNoHessianCallAndMatchesTheQnStructure) {
     test_support::HsProblem p = make_hs(76);
     HessCountingModel model(p.model.get());
     SqpSolver driver(qn_options());
-    const SqpResult first = driver.solve(model);
+    const SqpResult first =
+        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(first.status, SolveStatus::kOptimal);
     ASSERT_TRUE(first.warm_start.valid);
     ASSERT_NE(first.warm_start.structure_hash, 0u);
     const Index calls_before = model.n_hess;
-    const SqpResult second = driver.solve(model, model.start_point(), first.warm_start);
+    const SqpResult second = driver.solve(hven::solvers::detail::problem_ref(model),
+                                          model.start_point(), first.warm_start);
     ASSERT_EQ(second.status, SolveStatus::kOptimal);
     EXPECT_EQ(model.n_hess - calls_before, 1) << "only the lay walk: the probe made no call";
     EXPECT_EQ(second.counters.eval_hess_calls, 0);
@@ -680,9 +699,11 @@ TEST(SqpQnWarmStart, TheProbeMakesNoHessianCallAndMatchesTheQnStructure) {
         << "the probe's hash is the QN solve's own structure";
     // An exact-mode warm start describes a different structure: degraded, never thrown.
     SqpSolver exact(SqpOptions{});
-    const SqpResult ex = exact.solve(*p.model);
+    const SqpResult ex =
+        exact.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
     ASSERT_EQ(ex.status, SolveStatus::kOptimal);
-    const SqpResult cross = driver.solve(*p.model, p.model->start_point(), ex.warm_start);
+    const SqpResult cross = driver.solve(hven::solvers::detail::problem_ref(*p.model),
+                                         p.model->start_point(), ex.warm_start);
     EXPECT_EQ(cross.status, SolveStatus::kOptimal);
     EXPECT_EQ(cross.counters.start_level_used, StartLevel::kSeeded);
 }

@@ -75,6 +75,7 @@
 #include <gtest/gtest.h>
 
 #include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/detail/qp/qp_engine.h>
 #include <hven/drivers/sqp_solver_types.h>
 
@@ -282,7 +283,8 @@ void check_one(const Expect &e, WorkingSetLinearAlgebra alg, const char *tag) {
     const HsProblem p = make_hs(e.number);
     const SqpOptions opts = options_for(e, alg);
     SqpSolver driver(opts);
-    const SqpResult sol = driver.solve(*p.model);
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
     const NlpKktResidual chk = self_check_kkt(*p.model, sol, opts.feas_tol);
     record_row(e, tag, sol, chk);
 
@@ -341,7 +343,9 @@ std::vector<SolveStatus> statuses_in(WorkingSetLinearAlgebra alg,
     for (const Expect &e : table) {
         const HsProblem p = make_hs(e.number);
         SqpSolver driver(options_for(e, alg));
-        out.push_back(driver.solve(*p.model).status);
+        out.push_back(
+            driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point())
+                .status);
     }
     return out;
 }
@@ -631,7 +635,8 @@ TEST(HsBattery, SocIsRareAndUnprofitableAcrossTheBattery) {
     for (const Expect &e : border_table()) {
         const HsProblem p = make_hs(e.number);
         SqpSolver driver(options_for(e, WorkingSetLinearAlgebra::kSchurBorder));
-        const SqpResult sol = driver.solve(*p.model);
+        const SqpResult sol =
+            driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
         const Index applied = std::count_if(sol.history.begin(), sol.history.end(),
                                             [](const SqpIterate &h) { return h.soc_applied; });
         if (sol.counters.soc_steps > 0) {
@@ -685,7 +690,8 @@ TEST(HsBattery, EveryElasticActivationRunsTheRhoLadderToItsCeiling) {
     for (const Expect &e : border_table()) {
         const HsProblem p = make_hs(e.number);
         SqpSolver driver(options_for(e, WorkingSetLinearAlgebra::kSchurBorder));
-        const SqpResult sol = driver.solve(*p.model);
+        const SqpResult sol =
+            driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
         if (sol.counters.elastic_activations == 0) {
             EXPECT_EQ(sol.counters.elastic_escalations, 0) << "HS" << e.number;
             continue;
@@ -747,7 +753,8 @@ TEST(HsBattery, AdaptiveMuNeverSharesAMajorWithSocOrElastic) {
         const SqpOptions opts = options_for(e, WorkingSetLinearAlgebra::kSchurBorder);
         ASSERT_TRUE(opts.adaptive_mu) << "the lever under measurement must be ON";
         SqpSolver driver(opts);
-        const SqpResult sol = driver.solve(*p.model);
+        const SqpResult sol =
+            driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
         // The index of the last row that actually built a subproblem. On an
         // iterate exit the final row has qp_solved == false (sqp_solver_types.h's
         // two history shapes), so this is not simply history.size() - 1.
@@ -823,7 +830,8 @@ TEST(HsBattery, FeasibleStartsEndFeasibleDespiteTheLooseFunnelWidth) {
     for (const Expect &e : refactorize_table()) {
         const HsProblem p = make_hs(e.number);
         SqpSolver driver(options_for(e, WorkingSetLinearAlgebra::kRefactorize));
-        const SqpResult sol = driver.solve(*p.model);
+        const SqpResult sol =
+            driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
         if (sol.history.empty() || sol.history.front().violation_l1 > kExcursion) {
             continue;
         }
@@ -874,7 +882,8 @@ TEST(HsBattery, NoBatteryProblemEverCertifiesInfeasibility) {
             SCOPED_TRACE(::testing::Message() << "HS" << e.number);
             const HsProblem p = make_hs(e.number);
             SqpSolver driver(options_for(e, alg));
-            const SqpResult sol = driver.solve(*p.model);
+            const SqpResult sol = driver.solve(hven::solvers::detail::problem_ref(*p.model),
+                                               (*p.model).start_point());
             EXPECT_FALSE(sol.infeasibility_certified)
                 << "HS" << e.number << " is a FEASIBLE problem; a certificate here is wrong";
             if (sol.status == SolveStatus::kInfeasible) {
@@ -896,7 +905,8 @@ TEST(HsBattery, AggregateCostIsRecordedAndBounded) {
     for (const Expect &e : border_table()) {
         const HsProblem p = make_hs(e.number);
         SqpSolver driver(options_for(e, WorkingSetLinearAlgebra::kSchurBorder));
-        const SqpResult sol = driver.solve(*p.model);
+        const SqpResult sol =
+            driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
         majors += sol.counters.major_iters;
         minors += sol.counters.qp_minor_iters;
         facts += sol.counters.factorizations;
@@ -964,9 +974,11 @@ TEST(HsBattery, CrashBasisIsANullResultOnTheBatteryWithTwoBoundSeededExceptions)
         on_opts.crash_basis = true;
 
         SqpSolver a(off_opts);
-        const SqpResult off = a.solve(*p.model);
+        const SqpResult off =
+            a.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
         SqpSolver b(on_opts);
-        const SqpResult on = b.solve(*p.model);
+        const SqpResult on =
+            b.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
 
         // The lever may never move an ANSWER, only a cost.
         ASSERT_EQ(on.status, off.status) << "HS" << e.number;

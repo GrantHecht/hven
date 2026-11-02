@@ -18,7 +18,9 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
+#include <hven/detail/drivers/result_access.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/problem_access.h>
 
 #include "support/hs_problems.h"
 #include "support/ipqp_test_support.h"
@@ -169,7 +171,8 @@ TEST(IpqpDispatch, EveryIpqpCounterIsStructurallyZeroAtKWalkAndKSsn) {
 
         auto walk_p = make_hs(number);
         SqpSolver walk_driver(walk_options());
-        const SqpResult walk = walk_driver.solve(*walk_p.model);
+        const SqpResult walk = walk_driver.solve(hven::solvers::detail::problem_ref(*walk_p.model),
+                                                 (*walk_p.model).start_point());
         EXPECT_TRUE(every_ipqp_counter_is_at_its_default(walk.counters.ipqp))
             << "at kWalk the dispatch's kWalk arm is the only one entered: no IpqpEngine is "
                "constructed, so nothing can write these";
@@ -178,7 +181,8 @@ TEST(IpqpDispatch, EveryIpqpCounterIsStructurallyZeroAtKWalkAndKSsn) {
         SqpOptions ssn_opts = walk_options();
         ssn_opts.qp_mode = QpMode::kSsn;
         SqpSolver ssn_driver(ssn_opts);
-        const SqpResult ssn = ssn_driver.solve(*ssn_p.model);
+        const SqpResult ssn = ssn_driver.solve(hven::solvers::detail::problem_ref(*ssn_p.model),
+                                               (*ssn_p.model).start_point());
         EXPECT_TRUE(every_ipqp_counter_is_at_its_default(ssn.counters.ipqp))
             << "and kSsn is just as inert: the tier is not the SSN arm's fallback, the walk is";
     }
@@ -187,7 +191,8 @@ TEST(IpqpDispatch, EveryIpqpCounterIsStructurallyZeroAtKWalkAndKSsn) {
     // kIpm arm does nothing either.
     auto ipm_p = make_hs(6);
     SqpSolver ipm_driver(ipm_options());
-    const SqpResult ipm = ipm_driver.solve(*ipm_p.model);
+    const SqpResult ipm = ipm_driver.solve(hven::solvers::detail::problem_ref(*ipm_p.model),
+                                           (*ipm_p.model).start_point());
     EXPECT_FALSE(every_ipqp_counter_is_at_its_default(ipm.counters.ipqp))
         << "the same model at kIpm must move the counters, or the assertions above are about a "
            "tier that never runs in any mode";
@@ -206,7 +211,8 @@ TEST(IpqpDispatch, KIpmValidatesAndSolves) {
 
     const HsProblem p = make_hs(6);
     SqpSolver driver(ipm_options());
-    const SqpResult s = driver.solve(*p.model);
+    const SqpResult s =
+        driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
     EXPECT_EQ(s.status, SolveStatus::kOptimal);
     EXPECT_NEAR(s.f, p.f_star, 1e-6);
     EXPECT_GT(s.counters.ipqp.ipqp_iters, 0) << "and the tier really solved the subproblems";
@@ -226,7 +232,8 @@ TEST(IpqpDispatch, KIpmValidatesAndSolves) {
 TEST(IpqpDispatch, AZeroWidthEffectivePairDeclinesToTheWalkAndChargesNothing) {
     PinnedVariableModel pinned(true);
     SqpSolver driver(ipm_options());
-    const SqpResult s = driver.solve(pinned);
+    const SqpResult s =
+        driver.solve(hven::solvers::detail::problem_ref(pinned), (pinned).start_point());
     const IpqpCounters &c = s.counters.ipqp;
 
     ASSERT_EQ(s.status, SolveStatus::kOptimal) << "the walk answers a pinned variable exactly";
@@ -248,7 +255,8 @@ TEST(IpqpDispatch, AZeroWidthEffectivePairDeclinesToTheWalkAndChargesNothing) {
     // nothing and runs the tier.
     PinnedVariableModel unpinned(false);
     SqpSolver free_driver(ipm_options());
-    const SqpResult t = free_driver.solve(unpinned);
+    const SqpResult t =
+        free_driver.solve(hven::solvers::detail::problem_ref(unpinned), (unpinned).start_point());
     EXPECT_EQ(t.counters.ipqp.ipqp_declined_pinned, 0)
         << "the decline is the zero-width pair's doing, not this model's";
     EXPECT_GT(t.counters.ipqp.ipqp_iters, 0);
@@ -269,7 +277,8 @@ TEST(IpqpDispatch, TheRoutingTableIsExercisedAndItsIdentitiesHoldOnEverySolve) {
         SCOPED_TRACE(fmt::format("HS{}", number));
         auto p = make_hs(number);
         SqpSolver driver(ipm_options());
-        const SqpResult s = driver.solve(*p.model);
+        const SqpResult s =
+            driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
         const IpqpCounters &c = s.counters.ipqp;
 
         EXPECT_EQ(s.status, SolveStatus::kOptimal)
@@ -304,7 +313,8 @@ TEST(IpqpDispatch, TheRoutingTableIsExercisedAndItsIdentitiesHoldOnEverySolve) {
 TEST(IpqpDispatch, AnInfeasibleSuspectExitsEvidenceReachesTheW2Hook) {
     auto p = make_hs(10);
     SqpSolver driver(ipm_options());
-    const SqpResult s = driver.solve(*p.model);
+    const SqpResult s =
+        driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
     const IpqpCounters &c = s.counters.ipqp;
 
     ASSERT_GT(c.ipqp_escape_infeasible_suspect, 0)
@@ -336,7 +346,8 @@ TEST(IpqpDispatch, AnEscapedSubproblemIsAnsweredByTheWalkAndItsCostIsStillCharge
     // row moved here from HS24 at T4b: `.superpowers/w1-t4b-report.md`.
     auto p = make_hs(10);
     SqpSolver driver(ipm_options());
-    const SqpResult s = driver.solve(*p.model);
+    const SqpResult s =
+        driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
     const IpqpCounters &c = s.counters.ipqp;
 
     ASSERT_GT(c.ipqp_escapes, 0) << "the fixture must escape, or nothing is tested";
@@ -362,7 +373,8 @@ TEST(IpqpDispatch, RetirementStopsEveryLaterMajorFromConsultingTheTier) {
     auto p = make_hs(10); // measured: three consecutive escapes, retires at major 3
     SqpOptions o = ipm_options();
     SqpSolver driver(o);
-    const SqpResult s = driver.solve(*p.model);
+    const SqpResult s =
+        driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
     const IpqpCounters &c = s.counters.ipqp;
 
     ASSERT_GT(c.ipqp_tier_retired_after, 0) << "the fixture must retire, or nothing is tested";
@@ -384,7 +396,8 @@ TEST(IpqpDispatch, ASuccessfulSubproblemResetsTheConsecutiveEscapeTally) {
     SqpOptions o = ipm_options();
     o.ipqp.ipqp_retire_after = 2;
     SqpSolver driver(o);
-    const SqpResult s = driver.solve(*p.model);
+    const SqpResult s =
+        driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
     const IpqpCounters &c = s.counters.ipqp;
 
     // RE-PREMISED AT M7 W2 E4 FIX ROUND 2 (ruling E4-19's class): HS15 escapes ONCE
@@ -413,7 +426,8 @@ TEST(IpqpDispatch, OneAnalysisPerSolveAndOneVerifyPerLaterTierEntry) {
     // and none retired -- the clean case the claim is written for.
     auto p = make_hs(26);
     SqpSolver driver(ipm_options());
-    const SqpResult s = driver.solve(*p.model);
+    const SqpResult s =
+        driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
     const IpqpCounters &c = s.counters.ipqp;
 
     ASSERT_GT(s.counters.major_iters, 1) << "one major cannot show a hoist";
@@ -433,7 +447,8 @@ TEST(IpqpDispatch, OneAnalysisPerSolveAndOneVerifyPerLaterTierEntry) {
     SqpOptions off = ipm_options();
     off.ipqp.ipqp_hoist_symbolic = false;
     SqpSolver off_driver(off);
-    const SqpResult t = off_driver.solve(*q.model);
+    const SqpResult t =
+        off_driver.solve(hven::solvers::detail::problem_ref(*q.model), (*q.model).start_point());
     EXPECT_EQ(t.counters.ipqp.ipqp_symbolic_analyses, t.counters.major_iters)
         << "ipqp_hoist_symbolic = false forces a fresh symbolic pass every entry";
     EXPECT_EQ(t.counters.ipqp.ipqp_pattern_verifies, 0)
@@ -448,10 +463,12 @@ TEST(IpqpDispatch, OneAnalysisPerSolveAndOneVerifyPerLaterTierEntry) {
 TEST(IpqpDispatch, EverySqpSolveAnalysesOnceOnItsOwnAccount) {
     auto p = make_hs(26);
     SqpSolver driver(ipm_options());
-    const SqpResult first = driver.solve(*p.model);
+    const SqpResult first =
+        driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
     ASSERT_EQ(first.counters.ipqp.ipqp_symbolic_analyses, 1);
 
-    const SqpResult second = driver.solve(*p.model);
+    const SqpResult second =
+        driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
     const IpqpCounters &c = second.counters.ipqp;
     ASSERT_GT(second.counters.major_iters, 0);
     EXPECT_EQ(c.ipqp_symbolic_analyses, 1)
@@ -475,10 +492,11 @@ TEST(IpqpDispatch, NoNegativeFacePriceEscapesUnderKIpmEither) {
         SCOPED_TRACE(fmt::format("HS{}", number));
         auto p = make_hs(number);
         SqpSolver driver(ipm_options());
-        const SqpResult s = driver.solve(*p.model);
+        const SqpResult s =
+            driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
 
-        if (s.lambda_i.size() > 0) {
-            EXPECT_GE(s.lambda_i.minCoeff(), 0.0)
+        if (hven::solvers::detail::engine_rows(s).lambda_i.size() > 0) {
+            EXPECT_GE(hven::solvers::detail::engine_rows(s).lambda_i.minCoeff(), 0.0)
                 << "no negative price may escape in SqpResult::lambda_i";
         }
         if (s.warm_start.lambda_i.size() > 0) {
@@ -500,7 +518,8 @@ TEST(IpqpDispatch, TheSsnWarmGradeRouteIsReachableAndPricesOnlyRealBounds) {
     // HS3 takes the refusal route on three of its four majors (measured).
     auto p = make_hs(3);
     SqpSolver driver(ipm_options());
-    const SqpResult s = driver.solve(*p.model);
+    const SqpResult s =
+        driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
     ASSERT_GT(s.counters.ipqp.ipqp_to_ssn, 0)
         << "the fixture must reach the SSN warm grade, or nothing is tested";
     EXPECT_EQ(s.status, SolveStatus::kOptimal);
@@ -564,7 +583,8 @@ TEST(IpqpDispatch, ASaddleSuspectExitRoutesToTheSsnWarmGradeAndNotToTheWalk) {
     o.ipqp.ipqp_rho_init = 1.0e-4;
     o.ipqp.ipqp_delta_init = 1.0e-4;
     SqpSolver driver(o);
-    const SqpResult s = driver.solve(model);
+    const SqpResult s =
+        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     const IpqpCounters &c = s.counters.ipqp;
 
     ASSERT_GT(c.ipqp_escape_indefinite, 0)
@@ -592,14 +612,16 @@ TEST(IpqpDispatch, ASaddleSuspectExitRoutesToTheSsnWarmGradeAndNotToTheWalk) {
 TEST(IpqpDispatch, TheTierCarriesItsStateAcrossTheMajorsOfOneSolve) {
     auto warm_p = make_hs(77);
     SqpSolver warm_driver(ipm_options());
-    const SqpResult warm = warm_driver.solve(*warm_p.model);
+    const SqpResult warm = warm_driver.solve(hven::solvers::detail::problem_ref(*warm_p.model),
+                                             (*warm_p.model).start_point());
     const IpqpCounters &wc = warm.counters.ipqp;
 
     auto cold_p = make_hs(77);
     SqpOptions cold_opts = ipm_options();
     cold_opts.ipqp.ipqp_warm_iter_budget = 0;
     SqpSolver cold_driver(cold_opts);
-    const SqpResult cold = cold_driver.solve(*cold_p.model);
+    const SqpResult cold = cold_driver.solve(hven::solvers::detail::problem_ref(*cold_p.model),
+                                             (*cold_p.model).start_point());
     const IpqpCounters &cc = cold.counters.ipqp;
 
     ASSERT_EQ(warm.status, SolveStatus::kOptimal);
@@ -631,7 +653,8 @@ TEST(IpqpDispatch, AnIndefiniteEscapeDropsTheCarry) {
     o.ipqp.ipqp_delta_init = 1.0e-4;
     o.ipqp.ipqp_warm_iter_budget = 0;
     SqpSolver driver(o);
-    const SqpResult s = driver.solve(model);
+    const SqpResult s =
+        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     const IpqpCounters &c = s.counters.ipqp;
 
     ASSERT_GT(c.ipqp_escape_indefinite, 0) << "the fixture must produce saddle-suspect exits";
@@ -647,7 +670,8 @@ TEST(IpqpDispatch, AnIndefiniteEscapeDropsTheCarry) {
     SqpOptions k = ipm_options();
     k.ipqp.ipqp_warm_iter_budget = 0;
     SqpSolver hs(k);
-    const SqpResult t = hs.solve(*p.model);
+    const SqpResult t =
+        hs.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
     ASSERT_EQ(t.counters.ipqp.ipqp_escapes, 0);
     EXPECT_GT(t.counters.ipqp.ipqp_warm_restart_abandoned, 0);
 }
@@ -659,8 +683,10 @@ TEST(IpqpDispatch, TheCarryDoesNotLeakBetweenSolvesOnOneDriver) {
     auto p = make_hs(77);
     SqpOptions o = ipm_options();
     SqpSolver driver(o);
-    const SqpResult first = driver.solve(*p.model);
-    const SqpResult second = driver.solve(*p.model);
+    const SqpResult first =
+        driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+    const SqpResult second =
+        driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
     ASSERT_EQ(first.status, SolveStatus::kOptimal);
     ASSERT_EQ(second.status, SolveStatus::kOptimal);
     EXPECT_EQ(second.counters.ipqp.ipqp_iters, first.counters.ipqp.ipqp_iters);
@@ -683,7 +709,8 @@ TEST(IpqpDispatch, ThreeConsecutiveConvergedBudgetExitsDoNotRetireTheTier) {
     // Left warm, the carry converges the later majors and the premise disappears.
     o.ipqp.ipqp_warm_iter_budget = 0;
     SqpSolver driver(o);
-    const SqpResult s = driver.solve(*p.model);
+    const SqpResult s =
+        driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
     const IpqpCounters &c = s.counters.ipqp;
 
     ASSERT_EQ(s.counters.major_iters, 3) << "three majors, so 'all' and 'consecutive' coincide";
@@ -710,7 +737,8 @@ TEST(IpqpDispatch, ThreeConsecutiveConvergedBudgetExitsDoNotRetireTheTier) {
     SqpOptions k1 = o;
     k1.ipqp.ipqp_retire_after = 1;
     SqpSolver k1_driver(k1);
-    const SqpResult t = k1_driver.solve(*q.model);
+    const SqpResult t =
+        k1_driver.solve(hven::solvers::detail::problem_ref(*q.model), (*q.model).start_point());
     ASSERT_EQ(t.counters.ipqp.ipqp_escape_budget, 3) << "the same three exits";
     ASSERT_EQ(t.counters.ipqp.ipqp_to_refine, 3);
     EXPECT_EQ(t.counters.ipqp.ipqp_tier_retired_after, 0)
@@ -726,7 +754,8 @@ TEST(IpqpDispatch, ThreeConsecutiveConvergedBudgetExitsDoNotRetireTheTier) {
     genuine.max_iter = 6;
     genuine.ipqp.ipqp_hard_iter_cap = 2; // stops mid-descent, every major
     SqpSolver genuine_driver(genuine);
-    const SqpResult g = genuine_driver.solve(*r.model);
+    const SqpResult g = genuine_driver.solve(hven::solvers::detail::problem_ref(*r.model),
+                                             (*r.model).start_point());
     const IpqpCounters &gc = g.counters.ipqp;
     ASSERT_EQ(gc.ipqp_escape_budget, 3) << "three budget escapes here too";
     EXPECT_EQ(gc.ipqp_to_refine, 0) << "but NOT converged, so none reaches the refinement";
@@ -745,7 +774,8 @@ TEST(IpqpDispatch, AUsableSsnWarmGradeExitIsRefinedOnItsOwnFace) {
     // and every one of those exits is usable.
     auto p = make_hs(3);
     SqpSolver driver(ipm_options());
-    const SqpResult s = driver.solve(*p.model);
+    const SqpResult s =
+        driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
     const SsnCounters &ssn = s.counters.ssn;
 
     ASSERT_GT(s.counters.ipqp.ipqp_to_ssn, 0)
@@ -775,11 +805,13 @@ TEST(IpqpDispatch, ASolveTheTierNeverRunsIsTheWalkWithTheCallersOwnLevers) {
 
     PinnedVariableModel walk_model(true);
     SqpSolver walk_driver(walk_opts);
-    const SqpResult walk = walk_driver.solve(walk_model);
+    const SqpResult walk = walk_driver.solve(hven::solvers::detail::problem_ref(walk_model),
+                                             (walk_model).start_point());
 
     PinnedVariableModel ipm_model(true);
     SqpSolver ipm_driver(ipm_options());
-    const SqpResult ipm = ipm_driver.solve(ipm_model);
+    const SqpResult ipm =
+        ipm_driver.solve(hven::solvers::detail::problem_ref(ipm_model), (ipm_model).start_point());
 
     ASSERT_GT(ipm.counters.ipqp.ipqp_declined_pinned, 0) << "every major declines, by construction";
     EXPECT_EQ(ipm.counters.ipqp.ipqp_declined_pinned, ipm.counters.major_iters);
@@ -812,7 +844,8 @@ TEST(IpqpDispatch, TheSsnWarmGradeExportsTheProximalCarry) {
     // exists to transmit.
     auto p = make_hs(43);
     SqpSolver driver(ipm_options());
-    const SqpResult s = driver.solve(*p.model);
+    const SqpResult s =
+        driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
 
     ASSERT_GT(s.counters.ipqp.ipqp_to_ssn, 0)
         << "the fixture must reach the SSN warm grade, or nothing is tested";
@@ -1088,12 +1121,14 @@ TEST(IpqpDispatch, KIpmAndKWalkAgreeOnTheAnswerAcrossTheHsBattery) {
 
         auto walk_p = make_hs(number);
         SqpSolver walk_driver(walk_options());
-        const SqpResult walk = walk_driver.solve(*walk_p.model);
+        const SqpResult walk = walk_driver.solve(hven::solvers::detail::problem_ref(*walk_p.model),
+                                                 (*walk_p.model).start_point());
         ASSERT_EQ(walk.status, SolveStatus::kOptimal);
 
         auto ipm_p = make_hs(number);
         SqpSolver ipm_driver(ipm_options());
-        const SqpResult ipm = ipm_driver.solve(*ipm_p.model);
+        const SqpResult ipm = ipm_driver.solve(hven::solvers::detail::problem_ref(*ipm_p.model),
+                                               (*ipm_p.model).start_point());
         ASSERT_EQ(ipm.status, SolveStatus::kOptimal);
 
         // HS33 IS A DECLARED EXCEPTION, AND IT IS THE TIER WINNING (T4b): the tier

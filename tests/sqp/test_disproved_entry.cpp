@@ -37,6 +37,7 @@
 
 #include <hven/core/solver_status.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/drivers/sqp_solver_types.h>
 #include <hven/drivers/trace.h>
 
@@ -147,7 +148,7 @@ CellRun run_cell(Index max_iter, Index retire_after, bool reseed) {
     CellRun out;
     SqpSolver driver(opts);
     driver.attach_trace(&out.trace);
-    out.sol = driver.solve(model);
+    out.sol = driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     return out;
 }
 
@@ -360,7 +361,9 @@ TEST(SqpDriverDisprovedEntry, TheReseedIsInertWhereNothingIsDisproved) {
             opts.common.threads = 1;
             SqpSolver driver(opts);
             const test_support::QpAsNlpModel model = disproved_entry_model(quiet);
-            counters[arm] = driver.solve(model).counters;
+            counters[arm] =
+                driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point())
+                    .counters;
         }
         EXPECT_EQ(counters[0].ipqp_suspicion_disproved, 0)
             << "premise: this cell disproves nothing";

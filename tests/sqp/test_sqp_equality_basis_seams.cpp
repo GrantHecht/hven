@@ -25,6 +25,7 @@
 
 #include <hven/detail/drivers/equality_basis_testing.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/drivers/sqp_solver_types.h>
 
 #include "../common_support/route_reference.h"
@@ -93,7 +94,8 @@ TEST(SqpEqualityBasisSeam, T6DisabledHandOffRunsF9ToMaxIter) {
         // The control arm: the seam off reproduces F9.
         Seam::disable_hand_off = false;
         SqpSolver with(o);
-        const SqpResult on = with.solve(model);
+        const SqpResult on =
+            with.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
 #if HVEN_TEST_ROUTE_REFERENCE
         EXPECT_EQ(on.status, SolveStatus::kInfeasible);
         EXPECT_TRUE(on.equality_basis.handed_off);
@@ -112,7 +114,8 @@ TEST(SqpEqualityBasisSeam, T6DisabledHandOffRunsF9ToMaxIter) {
         // The negative control.
         Seam::disable_hand_off = true;
         SqpSolver without(o);
-        const SqpResult off = without.solve(model);
+        const SqpResult off =
+            without.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
         EXPECT_FALSE(off.equality_basis.handed_off);
         EXPECT_EQ(off.counters.major_iters, o.max_iter);
         EXPECT_EQ(off.status, SolveStatus::kMaxIter);
@@ -186,7 +189,8 @@ TEST(SqpEqualityBasisSeam, T7FailedProxCentreLiftIsCountedAndRefusesTheBasis) {
 
     // The control arm: no seam tolerance; the basis holds and the centre is lifted.
     SqpSolver control(o);
-    const SqpResult ok = control.solve(model);
+    const SqpResult ok =
+        control.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(ok.status, SolveStatus::kOptimal);
     ASSERT_EQ(ok.warm_start.prox_center_lambda.size(), 2)
         << "fixture premise: a certifying SSN subproblem recorded a prox centre";
@@ -197,7 +201,8 @@ TEST(SqpEqualityBasisSeam, T7FailedProxCentreLiftIsCountedAndRefusesTheBasis) {
     // and the basis is refused at the next build (every row back in the QPs).
     Seam::prox_lift_forward_tol = 1e-300;
     SqpSolver solver(o);
-    const SqpResult res = solver.solve(model);
+    const SqpResult res =
+        solver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     EXPECT_GE(res.equality_basis.lift_refusals, 1);
     EXPECT_TRUE(res.equality_basis.dropped_rows.empty());
     EXPECT_EQ(res.equality_basis.dropped_peak, 1);
@@ -229,14 +234,15 @@ TEST(SqpEqualityBasisSeam, T8RefusedWarmProbeIsCountedAndDegradesTheWarmLevel) {
         const SqpOptions o = opts_for(mode);
         Seam::warm_probe_forward_tol = 0.0;
         SqpSolver first(o);
-        const SqpResult cold = first.solve(model);
+        const SqpResult cold =
+            first.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
         ASSERT_EQ(cold.status, SolveStatus::kOptimal);
         ASSERT_EQ(cold.equality_basis.dropped_rows.size(), 2u);
 
         // The control arm: the probe reduces and the warm start resolves kWarm.
         SqpSolver control(o);
-        const SqpResult warm =
-            control.solve(model, model.start_point(), cold.warm_start, SolveBudget{});
+        const SqpResult warm = control.solve(hven::solvers::detail::problem_ref(model),
+                                             model.start_point(), cold.warm_start, SolveBudget{});
         ASSERT_EQ(warm.status, SolveStatus::kOptimal);
         EXPECT_EQ(warm.counters.start_level_used, StartLevel::kWarm);
         EXPECT_EQ(warm.equality_basis.warm_probe_refusals, 0);
@@ -246,8 +252,8 @@ TEST(SqpEqualityBasisSeam, T8RefusedWarmProbeIsCountedAndDegradesTheWarmLevel) {
         // degrades to kSeeded. The solve's own split is untouched.
         Seam::warm_probe_forward_tol = 1e-300;
         SqpSolver refused(o);
-        const SqpResult seeded =
-            refused.solve(model, model.start_point(), cold.warm_start, SolveBudget{});
+        const SqpResult seeded = refused.solve(hven::solvers::detail::problem_ref(model),
+                                               model.start_point(), cold.warm_start, SolveBudget{});
         ASSERT_EQ(seeded.status, SolveStatus::kOptimal);
         EXPECT_EQ(seeded.counters.start_level_used, StartLevel::kSeeded);
         EXPECT_EQ(seeded.equality_basis.warm_probe_refusals, 1);

@@ -33,10 +33,10 @@
 
 #include <gtest/gtest.h>
 
+#include "hven/detail/model/nlp_model.h"
+#include "hven/detail/model/nlp_model_assembly.h"
 #include "hven/model/claim_space.h"
 #include "hven/model/nlp_assembly.h"
-#include "hven/model/nlp_model.h"
-#include "hven/model/nlp_model_assembly.h"
 #include "hven/model/structure_identity.h"
 
 #include "sqp/support/hs_problems.h"

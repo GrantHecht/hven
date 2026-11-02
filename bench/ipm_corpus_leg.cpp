@@ -18,8 +18,10 @@
 #include <fmt/format.h>
 
 #include <hven/core/solver_status.h>
+#include <hven/detail/drivers/result_access.h>
 #include <hven/detail/interior/utils/thread_pool.h>
 #include <hven/detail/model/nlp_adapter.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/drivers/solve_result.h>
 #include <hven/drivers/solve_status.h>
 #include <hven/warmstart/ipm_polish_extension.h>
@@ -46,44 +48,46 @@ double seconds_since(const std::chrono::steady_clock::time_point &t0) {
 // tests/interior/test_ipm_solver_entry.cpp:33 because a bench binary does not
 // include a test file. The known optimum has x1 = 1.0 exactly, so the pin does not move
 // the answer and the three treatments stay comparable on obj_val.
-struct Hs071FixedProblem final : NlpTripletModel {
-    int num_vars() const override { return 4; }
-    int num_cons() const override { return 2; }
-    int num_jac_nonzeros() const override { return 8; }
-    int num_hess_nonzeros() const override { return 10; }
+struct Hs071FixedProblem final : Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    int num_vars() const { return 4; }
+    int num_cons() const { return 2; }
+    int num_jac_nonzeros() const { return 8; }
+    int num_hess_nonzeros() const { return 10; }
+
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl << 1.0, 1.0, 1.0, 1.0;
         xu << 1.0, 5.0, 5.0, 5.0;
         gl << 25.0, 40.0;
         gu << kSolverInf, 40.0;
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         f = x[0] * x[3] * (x[0] + x[1] + x[2]) + x[2];
+        return f;
     }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = x[3] * (2.0 * x[0] + x[1] + x[2]);
         g[1] = x[0] * x[3];
         g[2] = x[0] * x[3] + 1.0;
         g[3] = x[0] * (x[0] + x[1] + x[2]);
     }
-    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = x[0] * x[1] * x[2] * x[3];
         g[1] = x[0] * x[0] + x[1] * x[1] + x[2] * x[2] + x[3] * x[3];
     }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 0, 0, 0, 1, 1, 1, 1;
         c << 0, 1, 2, 3, 0, 1, 2, 3;
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 1, 1, 2, 2, 2, 3, 3, 3, 3;
         c << 0, 0, 1, 0, 1, 2, 0, 1, 2, 3;
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef x, hven::VecRef v) const override {
         v[0] = x[1] * x[2] * x[3];
         v[1] = x[0] * x[2] * x[3];
         v[2] = x[0] * x[1] * x[3];
@@ -93,9 +97,8 @@ struct Hs071FixedProblem final : NlpTripletModel {
         v[6] = 2.0 * x[2];
         v[7] = 2.0 * x[3];
     }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd> x, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd> lambda,
-                   Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(hven::ConstVecRef x, double obj_factor, hven::ConstVecRef lambda,
+                      hven::VecRef v) const override {
         const double x0 = x[0], x1 = x[1], x2 = x[2], x3 = x[3];
         v[0] = obj_factor * 2 * x3 + lambda[1] * 2;
         v[1] = obj_factor * x3 + lambda[0] * x2 * x3;
@@ -135,44 +138,47 @@ Vec hs071_fixed_start() {
 // the stall detector certifies. Shares its shape with the live pin in
 // tests/interior/test_ipm_stop_reason.cpp; a bench binary does not include a
 // test file, so it is a copy.
-struct PowerSpikeProblem final : NlpTripletModel {
+struct PowerSpikeProblem final : Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
+
     static constexpr double kEps = 1.0e-4;
     static constexpr int kPower = 10;
 
-    int num_vars() const override { return 2; }
-    int num_cons() const override { return 1; }
-    int num_jac_nonzeros() const override { return 2; }
-    int num_hess_nonzeros() const override { return 2; }
+    int num_vars() const { return 2; }
+    int num_cons() const { return 1; }
+    int num_jac_nonzeros() const { return 2; }
+    int num_hess_nonzeros() const { return 2; }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl << -kSolverInf, -kSolverInf;
         xu << kSolverInf, kSolverInf;
         gl << 0.0;
         gu << 0.0;
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override { f = x[1]; }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> g) const override {
-        g << 0.0, 1.0;
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
+        f = x[1];
+        return f;
     }
-    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(hven::ConstVecRef, hven::VecRef g) const override { g << 0.0, 1.0; }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = 1.0 + kEps * x[0] + std::pow(x[0], kPower);
     }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 0;
         c << 0, 1;
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 1;
         c << 0, 1;
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef x, hven::VecRef v) const override {
         v << kEps + kPower * std::pow(x[0], kPower - 1), 0.0;
     }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd> x, double, ConstEigenRef<Eigen::VectorXd> lambda,
-                   Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(hven::ConstVecRef x, double, hven::ConstVecRef lambda,
+                      hven::VecRef v) const override {
         v << lambda[0] * kPower * (kPower - 1) * std::pow(x[0], kPower - 2), 0.0;
     }
     std::string name() const override { return "PowerSpikeProblem"; }
@@ -181,41 +187,44 @@ struct PowerSpikeProblem final : NlpTripletModel {
 // c(x) = x0^2 + x1^2 + 1 = 0 has no real solution and its violation has a STRICT
 // stationary point at the origin -- the shape a restoration phase converges to
 // and then declares locally infeasible. Copied for the same reason as above.
-struct LocallyInfeasibleProblem final : NlpTripletModel {
-    int num_vars() const override { return 2; }
-    int num_cons() const override { return 1; }
-    int num_jac_nonzeros() const override { return 2; }
-    int num_hess_nonzeros() const override { return 2; }
+struct LocallyInfeasibleProblem final : Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    int num_vars() const { return 2; }
+    int num_cons() const { return 1; }
+    int num_jac_nonzeros() const { return 2; }
+    int num_hess_nonzeros() const { return 2; }
+
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl << -kSolverInf, -kSolverInf;
         xu << kSolverInf, kSolverInf;
         gl << 0.0;
         gu << 0.0;
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override { f = x[0] + x[1]; }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> g) const override {
-        g << 1.0, 1.0;
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
+        f = x[0] + x[1];
+        return f;
     }
-    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(hven::ConstVecRef, hven::VecRef g) const override { g << 1.0, 1.0; }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = x[0] * x[0] + x[1] * x[1] + 1.0;
     }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 0;
         c << 0, 1;
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 1;
         c << 0, 1;
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef x, hven::VecRef v) const override {
         v << 2.0 * x[0], 2.0 * x[1];
     }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double, ConstEigenRef<Eigen::VectorXd> lambda,
-                   Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(hven::ConstVecRef, double, hven::ConstVecRef lambda,
+                      hven::VecRef v) const override {
         v << 2.0 * lambda[0], 2.0 * lambda[0];
     }
     std::string name() const override { return "LocallyInfeasibleProblem"; }
@@ -430,7 +439,7 @@ const std::vector<InteriorVariant> &interior_exit_variants() {
 
         // THE PARTITIONED ROWS (M6 W5 T8.9), the fourth instalment of the T8
         // coverage rule and the first partitioned cell set this leg has had:
-        // before T8.9 no path from an NlpTripletModel reached a layout with more
+        // before T8.9 no path from an Nlp reached a layout with more
         // than one partition at all.
         //
         // WHAT THEY ARE, EXACTLY. `make_nlp_program(problem, 2)` lays TWO
@@ -450,7 +459,7 @@ const std::vector<InteriorVariant> &interior_exit_variants() {
         // and the row would be a one-partition row under a two-partition name.
         // A cell that is both big enough to adopt two partitions and carries a
         // bound-fixed variable does not exist in this corpus; a genuinely
-        // two-thread evaluation over an NlpTripletModel is registered for the M7
+        // two-thread evaluation over an Nlp is registered for the M7
         // ClaimStreamSource widening, not claimed here.
         InteriorVariant parts2;
         parts2.name = kParts2VariantName;
@@ -581,7 +590,7 @@ void configure_interior_solver(IpmSolver &ipm, FixedVariableTreatments treatment
 // key, which is defined with the CSV writers further down (M6 W5 T8.6 fix1).
 std::string interior_row_key(const InteriorRow &row);
 
-InteriorRow run_interior_problem(const std::shared_ptr<NlpTripletModel> &problem,
+InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
                                  const InteriorRowIdentity &identity, const Vec &x0,
                                  FixedVariableTreatments treatment, const InteriorLevers &levers,
                                  const InteriorVariant &variant) {
@@ -638,7 +647,7 @@ InteriorRow run_interior_problem(const std::shared_ptr<NlpTripletModel> &problem
     if (variant.warm != InteriorVariant::Warm::kNone) {
         ConfiguredSolve producer = make_configured();
         const hven::solvers::IpmResult produced_result =
-            producer.engine->solve(*producer.program, x0);
+            producer.engine->solve(hven::solvers::detail::problem_ref(*producer.program), x0);
         const hven::solvers::SolveStatus produced = produced_result.status;
         if (produced != hven::solvers::SolveStatus::kOptimal) {
             throw std::runtime_error(fmt::format(
@@ -738,7 +747,8 @@ InteriorRow run_interior_problem(const std::shared_ptr<NlpTripletModel> &problem
     // only -- the transcription ran above, before `t0`.
     const auto t0 = std::chrono::steady_clock::now();
     const hven::solvers::IpmResult measured =
-        payload.has_value() ? ipm.solve(program, x0, *payload) : ipm.solve(program, x0);
+        payload.has_value() ? ipm.solve(hven::solvers::detail::problem_ref(program), x0, *payload)
+                            : ipm.solve(hven::solvers::detail::problem_ref(program), x0);
     const double wall_s = seconds_since(t0);
     const hven::solvers::SolveStatus flag = measured.status;
     const hven::solvers::IpmResult &warm_result = measured;
@@ -816,8 +826,8 @@ InteriorRow run_interior_problem(const std::shared_ptr<NlpTripletModel> &problem
     // The DECLARED widths of the four returned blocks, and the four shared
     // declared diagnostics beside them.
     row.x_size = result.x.size();
-    row.lambda_e_size = result.lambda_e.size();
-    row.lambda_i_size = result.lambda_i.size();
+    row.lambda_e_size = hven::solvers::detail::engine_rows(result).lambda_e.size();
+    row.lambda_i_size = hven::solvers::detail::engine_rows(result).lambda_i.size();
     row.z_size = result.z.size();
     row.stationarity = result.stationarity;
     row.feasibility_e = result.feasibility_e;
@@ -903,7 +913,7 @@ InteriorRow run_interior_hs071(FixedVariableTreatments treatment, const Interior
 
 InteriorRow run_interior_infeasible(std::string_view cell_id, FixedVariableTreatments treatment,
                                     const InteriorLevers &levers, const InteriorVariant &variant) {
-    std::shared_ptr<NlpTripletModel> problem;
+    std::shared_ptr<Nlp> problem;
     if (cell_id == kSpikeCellId) {
         problem = std::make_shared<PowerSpikeProblem>();
     } else if (cell_id == kStationaryCellId) {

@@ -23,14 +23,16 @@
 
 #include <Eigen/Core>
 
+#include "hven/detail/drivers/result_access.h"
+#include "hven/detail/model/problem_access.h"
 #include "hven/drivers/ipm_solver.h"
-#include "hven/model/nlp_triplet_model.h"
+#include "hven/model/nlp.h"
 
 #include "declared_route.h" // NOLINT(build/include_subdir)
 
 using hven::ConstEigenRef;
 using hven::solvers::IpmSolver;
-using hven::solvers::NlpTripletModel;
+using hven::solvers::Nlp;
 using hven_interior_tests::solve_declared;
 using hven_interior_tests::transcribe;
 
@@ -39,50 +41,46 @@ using hven_interior_tests::transcribe;
 // multiplier is -0.75 under the caller's convention -- all three known by hand,
 // so a scale leaking into a report is a difference from a NUMBER rather than a
 // difference between two runs.
-struct ObjScaleBoxedProblem : NlpTripletModel {
+struct ObjScaleBoxedProblem : Nlp, hven_interior_tests::MultiplierSeedHook {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
+
     static constexpr int kN = 4;
 
-    int num_vars() const override { return kN; }
-    int num_cons() const override { return 1; }
-    int num_jac_nonzeros() const override { return kN; }
-    int num_hess_nonzeros() const override { return kN; }
+    int num_vars() const { return kN; }
+    int num_cons() const { return 1; }
+    int num_jac_nonzeros() const { return kN; }
+    int num_hess_nonzeros() const { return kN; }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl.setConstant(-2.0);
         xu.setConstant(2.0);
         gl.setConstant(3.0);
         gu.setConstant(3.0);
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         f = 0.5 * x.squaredNorm();
+        return f;
     }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
-        g = x;
-    }
-    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
-        g[0] = x.sum();
-    }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override { g = x; }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override { g[0] = x.sum(); }
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         for (int i = 0; i < kN; i++) {
             r[i] = 0;
             c[i] = i;
         }
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         for (int i = 0; i < kN; i++) {
             r[i] = i;
             c[i] = i;
         }
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
-        v.setConstant(1.0);
-    }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override { v.setConstant(1.0); }
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
         v.setConstant(obj_factor);
     }
     /// The seed the installation test relies on: a multiplier on the CALLER's
@@ -91,7 +89,7 @@ struct ObjScaleBoxedProblem : NlpTripletModel {
     /// starting_multiplier_seed, over NlpProblemModel::split_user_multipliers)
     /// and hands the result to the payload overload of solve(); a hook that
     /// returns false yields no payload at all.
-    bool starting_multipliers(Eigen::Ref<Eigen::VectorXd> lambda) const override {
+    bool starting_multipliers(hven::VecRef lambda) const override {
         lambda.setConstant(kSeed);
         return true;
     }
@@ -104,51 +102,47 @@ struct ObjScaleBoxedProblem : NlpTripletModel {
 // A variable pinned below by its own bound, so the bound multiplier at the
 // solution is a real active one (1.0 on the caller's scale) rather than a
 // vanishing residual.
-struct ObjScaleActiveBoundProblem : NlpTripletModel {
+struct ObjScaleActiveBoundProblem : Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
+
     static constexpr int kN = 2;
     static constexpr double kInf = std::numeric_limits<double>::infinity();
 
-    int num_vars() const override { return kN; }
-    int num_cons() const override { return 1; }
-    int num_jac_nonzeros() const override { return kN; }
-    int num_hess_nonzeros() const override { return kN; }
+    int num_vars() const { return kN; }
+    int num_cons() const { return 1; }
+    int num_jac_nonzeros() const { return kN; }
+    int num_hess_nonzeros() const { return kN; }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl << 1.0, -kInf;
         xu << kInf, kInf;
         gl << 0.5;
         gu << kInf;
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         f = 0.5 * x.squaredNorm();
+        return f;
     }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
-        g = x;
-    }
-    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
-        g[0] = x[0] + x[1];
-    }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override { g = x; }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override { g[0] = x[0] + x[1]; }
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         for (int i = 0; i < kN; i++) {
             r[i] = 0;
             c[i] = i;
         }
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         for (int i = 0; i < kN; i++) {
             r[i] = i;
             c[i] = i;
         }
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
-        v.setConstant(1.0);
-    }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override { v.setConstant(1.0); }
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
         v.setConstant(obj_factor);
     }
     std::string name() const override { return "ObjScaleActiveBound"; }
@@ -176,8 +170,9 @@ TEST(ObjectiveScaleReporting, TheReportedObjectiveAndMultipliersDoNotMoveWithThe
         ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal) << "scale " << scale;
 
         EXPECT_NEAR(result.f, 1.125, kObjScaleTol) << "scale " << scale;
-        ASSERT_EQ(result.lambda_e.size(), 1);
-        EXPECT_NEAR(result.lambda_e[0], -0.75, kObjScaleTol) << "scale " << scale;
+        ASSERT_EQ(hven::solvers::detail::engine_rows(result).lambda_e.size(), 1);
+        EXPECT_NEAR(hven::solvers::detail::engine_rows(result).lambda_e[0], -0.75, kObjScaleTol)
+            << "scale " << scale;
 
         // The control: the minimizer never depended on the scale, and still
         // does not.
@@ -266,38 +261,39 @@ TEST(ObjectiveScaleReporting, ASeededMultiplierIsInstalledOnTheSolversScale) {
 
 // A problem with no constraint rows at all, used to show that a solver reused
 // across shapes reports the shape it just solved.
-struct ObjScaleUnconstrainedProblem : NlpTripletModel {
+struct ObjScaleUnconstrainedProblem : Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
+
     static constexpr int kN = 3;
 
-    int num_vars() const override { return kN; }
-    int num_cons() const override { return 0; }
-    int num_jac_nonzeros() const override { return 0; }
-    int num_hess_nonzeros() const override { return kN; }
+    int num_vars() const { return kN; }
+    int num_cons() const { return 0; }
+    int num_jac_nonzeros() const { return 0; }
+    int num_hess_nonzeros() const { return kN; }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>) const override {
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef, hven::VecRef) const override {
         xl.setConstant(-2.0);
         xu.setConstant(2.0);
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         f = 0.5 * x.squaredNorm();
+        return f;
     }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
-        g = x;
-    }
-    void eval_g(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>) const override {}
-    void jac_structure(Eigen::Ref<Eigen::VectorXi>, Eigen::Ref<Eigen::VectorXi>) const override {}
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override { g = x; }
+    void eval_g(hven::ConstVecRef, hven::VecRef) const override {}
+    void jacobian_structure(hven::IndexVecRef, hven::IndexVecRef) const override {}
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         for (int i = 0; i < kN; i++) {
             r[i] = i;
             c[i] = i;
         }
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>) const override {}
-    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef) const override {}
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
         v.setConstant(obj_factor);
     }
     std::string name() const override { return "ObjScaleUnconstrained"; }
@@ -373,8 +369,8 @@ TEST(ObjectiveScaleReporting, AnUnconstrainedCallReportsNoConstraintBlocks) {
     const hven::solvers::IpmResult boxed =
         solve_declared(solver, route, Eigen::VectorXd::Constant(ObjScaleBoxedProblem::kN, 0.6));
     ASSERT_EQ(boxed.status, hven::solvers::SolveStatus::kOptimal);
-    ASSERT_EQ(boxed.lambda_e.size(), 1);
-    const double constrained_eq = boxed.lambda_e[0];
+    ASSERT_EQ(hven::solvers::detail::engine_rows(boxed).lambda_e.size(), 1);
+    const double constrained_eq = hven::solvers::detail::engine_rows(boxed).lambda_e[0];
     EXPECT_NEAR(constrained_eq, -0.75, kObjScaleTol);
 
     // The SAME engine, at the same scale, pointed at a program with no
@@ -385,20 +381,22 @@ TEST(ObjectiveScaleReporting, AnUnconstrainedCallReportsNoConstraintBlocks) {
     // THE SAME ENGINE, THE OTHER PROGRAM -- expressed by handing the other
     // program to solve() rather than by re-attaching (M6 W5 T8.4).
     const Eigen::VectorXd x0 = Eigen::VectorXd::Constant(ObjScaleUnconstrainedProblem::kN, 0.6);
-    const hven::solvers::IpmResult first = solver.solve(*unconstrained, x0);
+    const hven::solvers::IpmResult first =
+        solver.solve(hven::solvers::detail::problem_ref(*unconstrained), x0);
     ASSERT_EQ(first.status, hven::solvers::SolveStatus::kOptimal);
 
-    EXPECT_EQ(first.lambda_e.size(), 0)
+    EXPECT_EQ(hven::solvers::detail::engine_rows(first).lambda_e.size(), 0)
         << "there are no equality rows, so there is no equality multiplier block";
-    EXPECT_EQ(first.lambda_i.size(), 0);
-    EXPECT_EQ(first.ce.size(), 0);
-    EXPECT_EQ(first.ci.size(), 0);
+    EXPECT_EQ(hven::solvers::detail::engine_rows(first).lambda_i.size(), 0);
+    EXPECT_EQ(hven::solvers::detail::engine_rows(first).ce.size(), 0);
+    EXPECT_EQ(hven::solvers::detail::engine_rows(first).ci.size(), 0);
 
     // And a second call still reports nothing, rather than a block that has
     // been divided by the scale one more time.
-    const hven::solvers::IpmResult second = solver.solve(*unconstrained, x0);
+    const hven::solvers::IpmResult second =
+        solver.solve(hven::solvers::detail::problem_ref(*unconstrained), x0);
     ASSERT_EQ(second.status, hven::solvers::SolveStatus::kOptimal);
-    EXPECT_EQ(second.lambda_e.size(), 0);
+    EXPECT_EQ(hven::solvers::detail::engine_rows(second).lambda_e.size(), 0);
     EXPECT_NEAR(constrained_eq, -0.75, kObjScaleTol) << "the first call's value is not in doubt";
 }
 
@@ -445,8 +443,8 @@ TEST(ObjectiveScaleReporting, TheScaleACallRanAtIsTheScaleItsOutputsAreReportedO
     // Reported on the entry scale of 2, which is what every phase evaluated
     // at -- and the refusal left that scale in force.
     EXPECT_NEAR(result.f, 1.125, kObjScaleTol);
-    ASSERT_EQ(result.lambda_e.size(), 1);
-    EXPECT_NEAR(result.lambda_e[0], -0.75, kObjScaleTol);
+    ASSERT_EQ(hven::solvers::detail::engine_rows(result).lambda_e.size(), 1);
+    EXPECT_NEAR(hven::solvers::detail::engine_rows(result).lambda_e[0], -0.75, kObjScaleTol);
     EXPECT_EQ(solver.options().obj_scale, 2.0);
 
     // Between calls the replacement goes through, and the next call runs at 4

@@ -57,9 +57,11 @@
 #include <gtest/gtest.h>
 
 #include <hven/core/ledger.h>
+#include <hven/detail/drivers/result_access.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/nlp_model.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/drivers/sqp_solver_types.h>
-#include <hven/model/nlp_model.h>
 
 #include "support/derivative_check.h"
 #include "support/nlp_kkt_check.h"
@@ -405,7 +407,8 @@ void check_path_at(F7CollocationChain &model, double p) {
     model.set_parameters(Vec::Constant(1, p));
     const SqpOptions opts = tight_options();
     SqpSolver driver(opts);
-    const SqpResult sol = driver.solve(model);
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
 
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     const double f_star = model.f_star(p);
@@ -413,7 +416,9 @@ void check_path_at(F7CollocationChain &model, double p) {
         << fmt::format("f = {:.17g} vs f_star = {:.17g}", sol.f, f_star);
     const Vec x_star = model.x_star(p);
     EXPECT_LE((sol.x - x_star).lpNorm<Eigen::Infinity>(), kXTol);
-    EXPECT_LE((sol.lambda_i - model.lambda_i_star(p)).lpNorm<Eigen::Infinity>(), kMultTol);
+    EXPECT_LE((hven::solvers::detail::engine_rows(sol).lambda_i - model.lambda_i_star(p))
+                  .lpNorm<Eigen::Infinity>(),
+              kMultTol);
     EXPECT_LE((sol.z - model.z_star(p)).lpNorm<Eigen::Infinity>(), kMultTol);
 
     // The ACTIVE SET, exactly, per node -- both the path rows and the (empty)
@@ -620,7 +625,8 @@ void check_wide_window_walk(Index nodes, double p, const WalkCounts &want) {
     SqpSolver driver(tight_options());
     Ledger ledger;
     driver.attach_ledger(&ledger, "walk");
-    const SqpResult sol = driver.solve(model);
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
 
     const WalkCounts got = walk_counts(ledger);
@@ -1279,13 +1285,15 @@ TEST(ScaleF7Slow, CrashBasisIsInertOnAWideWindowColdSolve) {
 
     F7CollocationChain model_off(100, 3, 2, p, 1.0);
     SqpSolver driver_off(make_options());
-    const SqpResult off = driver_off.solve(model_off, model_off.start_point());
+    const SqpResult off =
+        driver_off.solve(hven::solvers::detail::problem_ref(model_off), model_off.start_point());
 
     SqpOptions on_opts = make_options();
     on_opts.crash_basis = true;
     F7CollocationChain model_on(100, 3, 2, p, 1.0);
     SqpSolver driver_on(on_opts);
-    const SqpResult on = driver_on.solve(model_on, model_on.start_point());
+    const SqpResult on =
+        driver_on.solve(hven::solvers::detail::problem_ref(model_on), model_on.start_point());
 
     ASSERT_EQ(off.status, SolveStatus::kOptimal);
     ASSERT_EQ(on.status, SolveStatus::kOptimal);
@@ -1345,7 +1353,8 @@ TEST(ScaleF7Slow, TheSizeDerivedCapRecoversASolveTheOldFixedDefaultLost) {
     ASSERT_LE(opts.qp.max_iter, 0) << "the shipped default must BE the sentinel";
 
     SqpSolver derived(opts);
-    const SqpResult good = derived.solve(model, model.start_point());
+    const SqpResult good =
+        derived.solve(hven::solvers::detail::problem_ref(model), model.start_point());
     EXPECT_EQ(good.status, SolveStatus::kOptimal);
     EXPECT_LT((good.x - model.x_star(p)).lpNorm<Eigen::Infinity>(), 1e-8);
     // OBSERVED: 4 majors / 635 minors, against a derived cap of
@@ -1359,7 +1368,8 @@ TEST(ScaleF7Slow, TheSizeDerivedCapRecoversASolveTheOldFixedDefaultLost) {
     SqpOptions old_default = opts;
     old_default.qp.max_iter = 500;
     SqpSolver fixed(old_default);
-    const SqpResult bad = fixed.solve(model, model.start_point());
+    const SqpResult bad =
+        fixed.solve(hven::solvers::detail::problem_ref(model), model.start_point());
     EXPECT_NE(bad.status, SolveStatus::kOptimal);
     EXPECT_GT((bad.x - model.x_star(p)).lpNorm<Eigen::Infinity>(), 1e-3);
 }

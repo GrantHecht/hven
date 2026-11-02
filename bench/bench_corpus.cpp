@@ -101,6 +101,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <fstream>
+#include <hven/detail/model/problem_access.h>
 #include <optional>
 #include <set>
 #include <sstream>
@@ -2132,7 +2133,8 @@ HsRow run_hs_cell(int number, QpMode mode, const EngineLevers &levers, int repea
             sink->reset();
             driver.attach_trace(sink);
         }
-        const SqpResult discarded = driver.solve(*hs.model);
+        const SqpResult discarded =
+            driver.solve(hven::solvers::detail::problem_ref(*hs.model), (*hs.model).start_point());
         (void)discarded;
     }
     std::vector<double> walls;
@@ -2146,7 +2148,8 @@ HsRow run_hs_cell(int number, QpMode mode, const EngineLevers &levers, int repea
             driver.attach_trace(sink);
         }
         const auto t0 = std::chrono::steady_clock::now();
-        const SqpResult sol = driver.solve(*hs.model);
+        const SqpResult sol =
+            driver.solve(hven::solvers::detail::problem_ref(*hs.model), (*hs.model).start_point());
         const auto t1 = std::chrono::steady_clock::now();
         walls.push_back(std::chrono::duration<double>(t1 - t0).count());
 
@@ -2546,7 +2549,7 @@ void run_internal_interior_one(const std::string &cell_id, const std::string &tr
 }
 
 // The cells this arm runs, and the refusal line for every requested cell it
-// cannot: a cell an NlpTripletModel cannot state is named, never silently dropped.
+// cannot: a cell an Nlp cannot state is named, never silently dropped.
 struct InteriorPlan {
     std::vector<const CorpusCell *> cells;
     std::vector<std::string> refusals;

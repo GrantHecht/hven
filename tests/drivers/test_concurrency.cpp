@@ -68,7 +68,7 @@
 // the `parallel_blocks` passes over the KKT triplet fill, which are sized by
 // num_partitions_ too. That is exactly the claim the design statement makes and
 // exactly what was unmeasured. GENUINE partitioned EVALUATION over an
-// NlpTripletModel needs a thread-safe adapter and is registered for M7; when it
+// Nlp needs a thread-safe adapter and is registered for M7; when it
 // lands, this test's model is already the right size for it.
 //
 // THE ASSERTION IS IN TWO STEPS, and the order matters (plan §1 W6.T4, A3).
@@ -107,15 +107,17 @@
 
 #include <Eigen/Core>
 
+#include <hven/detail/drivers/result_access.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/interior/utils/thread_pool.h>
+#include <hven/detail/model/make_nlp_program.h>
+#include <hven/detail/model/nlp_model.h>
+#include <hven/detail/model/non_linear_program.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/drivers/ipm_solver.h>
 #include <hven/drivers/ipm_solver_types.h>
 #include <hven/drivers/sqp_solver_types.h>
-#include <hven/model/make_nlp_program.h>
-#include <hven/model/nlp_model.h>
-#include <hven/model/nlp_triplet_model.h>
-#include <hven/model/non_linear_program.h>
+#include <hven/model/nlp.h>
 
 #include "sqp/support/hs_problems.h"
 #include "support/hs071_problem.h"
@@ -181,8 +183,10 @@ void push_shared_result_columns(const hven::solvers::SolveResult &r, CellReading
     out.exact.push_back({"status", static_cast<long long>(r.status)});
     out.exact.push_back({"iterations", static_cast<long long>(r.iterations)});
     out.exact.push_back({"x_size", static_cast<long long>(r.x.size())});
-    out.exact.push_back({"ce_size", static_cast<long long>(r.ce.size())});
-    out.exact.push_back({"ci_size", static_cast<long long>(r.ci.size())});
+    out.exact.push_back(
+        {"ce_size", static_cast<long long>(hven::solvers::detail::engine_rows(r).ce.size())});
+    out.exact.push_back(
+        {"ci_size", static_cast<long long>(hven::solvers::detail::engine_rows(r).ci.size())});
 
     out.measures.push_back({"f", r.f});
     out.measures.push_back({"stationarity", r.stationarity});
@@ -202,7 +206,8 @@ CellReading run_sqp_cell(int hs_number) {
     o.common.print_level = 10; // Silent: a console table is process-wide output.
     hven::solvers::SqpSolver driver(o);
 
-    const hven::solvers::SqpResult r = driver.solve(*p.model, p.model->start_point());
+    const hven::solvers::SqpResult r =
+        driver.solve(hven::solvers::detail::problem_ref(*p.model), p.model->start_point());
 
     CellReading out;
     out.cell = "sqp/hs" + std::to_string(hs_number);
@@ -260,7 +265,8 @@ CellReading run_ipm_cell(const std::string &label, const Eigen::VectorXd &x0) {
     // or not is a test-order fact; see the header).
     const auto program =
         hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
-    const hven::solvers::IpmResult r = solver.solve(*program, x0);
+    const hven::solvers::IpmResult r =
+        solver.solve(hven::solvers::detail::problem_ref(*program), x0);
 
     CellReading out;
     out.cell = "ipm/" + label;
@@ -512,18 +518,21 @@ inline constexpr double kChainInf = std::numeric_limits<double>::infinity();
 inline constexpr double kChainPairSum = 2.5;
 inline constexpr double kChainBallCap = 4.0;
 
-class PartitionedChainProblem final : public hven::solvers::NlpTripletModel {
+class PartitionedChainProblem final : public hven::solvers::Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
+
   public:
     PartitionedChainProblem(int pairs, double target_shift)
         : pairs_(pairs), target_shift_(target_shift) {}
 
-    int num_vars() const override { return 2 * pairs_; }
-    int num_cons() const override { return 2 * pairs_; } // K equality + K ball rows
-    int num_jac_nonzeros() const override { return 4 * pairs_; }
-    int num_hess_nonzeros() const override { return 2 * pairs_; }
+    int num_vars() const { return 2 * pairs_; }
+    int num_cons() const { return 2 * pairs_; } // K equality + K ball rows
+    int num_jac_nonzeros() const { return 4 * pairs_; }
+    int num_hess_nonzeros() const { return 2 * pairs_; }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl.setConstant(0.1);
         xu.setConstant(10.0);
         for (int k = 0; k < pairs_; ++k) {
@@ -534,24 +543,24 @@ class PartitionedChainProblem final : public hven::solvers::NlpTripletModel {
         }
     }
 
-    void eval_f(hven::ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         double v = 0.0;
         for (int i = 0; i < 2 * pairs_; ++i) {
             const double d = x[i] - target(i);
             v += 0.5 * weight(i) * d * d;
         }
         f = v;
+        return f;
     }
 
-    void eval_grad_f(hven::ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
         for (int i = 0; i < 2 * pairs_; ++i) {
             g[i] = weight(i) * (x[i] - target(i));
         }
     }
 
-    void eval_g(hven::ConstEigenRef<Eigen::VectorXd> x,
-                Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
         for (int k = 0; k < pairs_; ++k) {
             g[k] = x[2 * k] + x[2 * k + 1];
             g[pairs_ + k] = x[2 * k] * x[2 * k] + x[2 * k + 1] * x[2 * k + 1];
@@ -559,8 +568,7 @@ class PartitionedChainProblem final : public hven::solvers::NlpTripletModel {
     }
 
     // Slot order: the 2K equality entries first, then the 2K ball entries.
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         for (int k = 0; k < pairs_; ++k) {
             r[2 * k] = k;
             c[2 * k] = 2 * k;
@@ -574,16 +582,14 @@ class PartitionedChainProblem final : public hven::solvers::NlpTripletModel {
     }
 
     // The Lagrangian Hessian is diagonal, so the lower triangle is the diagonal.
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         for (int i = 0; i < 2 * pairs_; ++i) {
             r[i] = i;
             c[i] = i;
         }
     }
 
-    void eval_jac(hven::ConstEigenRef<Eigen::VectorXd> x,
-                  Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef x, hven::VecRef v) const override {
         for (int k = 0; k < pairs_; ++k) {
             v[2 * k] = 1.0;
             v[2 * k + 1] = 1.0;
@@ -592,9 +598,8 @@ class PartitionedChainProblem final : public hven::solvers::NlpTripletModel {
         }
     }
 
-    void eval_hess(hven::ConstEigenRef<Eigen::VectorXd> x, double obj_factor,
-                   hven::ConstEigenRef<Eigen::VectorXd> lambda,
-                   Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(hven::ConstVecRef x, double obj_factor, hven::ConstVecRef lambda,
+                      hven::VecRef v) const override {
         (void)x; // every second derivative here is constant in x
         for (int i = 0; i < 2 * pairs_; ++i) {
             // Variable i belongs to pair i/2, whose ball row is pairs_ + i/2.
@@ -654,7 +659,8 @@ CellReading run_fanout_cell(const FanOutCell &cell) {
         cell.requested_partitions);
 
     const Eigen::VectorXd x0 = Eigen::VectorXd::Constant(2 * cell.pairs, 1.25);
-    const hven::solvers::IpmResult r = solver.solve(*program, x0);
+    const hven::solvers::IpmResult r =
+        solver.solve(hven::solvers::detail::problem_ref(*program), x0);
 
     CellReading out;
     out.cell = "ipm-fanout/" + cell.label;

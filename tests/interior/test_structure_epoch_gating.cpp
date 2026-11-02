@@ -32,63 +32,61 @@
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 
+#include "hven/detail/drivers/result_access.h"
 #include "hven/detail/interior/kkt_vector.h"
 #include "hven/detail/model/nlp_adapter.h"
+#include "hven/detail/model/problem_access.h"
 #include "hven/drivers/ipm_solver.h"
-#include "hven/model/nlp_triplet_model.h"
+#include "hven/model/nlp.h"
 
 using hven::ConstEigenRef;
-using hven::solvers::NlpTripletModel;
+using hven::solvers::Nlp;
 
 // A small bound-bearing problem: minimize 0.5*|x|^2 subject to sum(x) == 3,
 // with a two-sided box on every variable. Bounds are what put the solver on the
 // path the defect corrupts -- the bound-fixed classification runs, the location
 // table is consulted for the solver's own coefficient block, and the scatter
 // reads it unchecked.
-struct EpochGateBoxedProblem : NlpTripletModel {
+struct EpochGateBoxedProblem : Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
+
     static constexpr int kN = 4;
 
-    int num_vars() const override { return kN; }
-    int num_cons() const override { return 1; }
-    int num_jac_nonzeros() const override { return kN; }
-    int num_hess_nonzeros() const override { return kN; }
+    int num_vars() const { return kN; }
+    int num_cons() const { return 1; }
+    int num_jac_nonzeros() const { return kN; }
+    int num_hess_nonzeros() const { return kN; }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl.setConstant(-2.0);
         xu.setConstant(2.0);
         gl.setConstant(3.0);
         gu.setConstant(3.0);
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         f = 0.5 * x.squaredNorm();
+        return f;
     }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
-        g = x;
-    }
-    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
-        g[0] = x.sum();
-    }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override { g = x; }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override { g[0] = x.sum(); }
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         for (int i = 0; i < kN; i++) {
             r[i] = 0;
             c[i] = i;
         }
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         for (int i = 0; i < kN; i++) {
             r[i] = i;
             c[i] = i;
         }
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
-        v.setConstant(1.0);
-    }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override { v.setConstant(1.0); }
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
         v.setConstant(obj_factor);
     }
     std::string name() const override { return "EpochGateBoxed"; }
@@ -135,7 +133,7 @@ TEST(StructureEpochGating, APartitionRenegotiationBetweenSolvesForcesAFreshAnaly
     }
     const Eigen::VectorXd x0 = epoch_gate_start_point();
 
-    result = solver.solve(*program, x0);
+    result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
     ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
     const Eigen::VectorXd first_x = result.x;
     const hven::Index analyses_after_first = result.kkt_analyses_total;
@@ -162,7 +160,7 @@ TEST(StructureEpochGating, APartitionRenegotiationBetweenSolvesForcesAFreshAnaly
                                                        solver.options().bound_relax_factor))
         << "the treatment call cannot see a re-lay it did not perform";
 
-    result = solver.solve(*program, x0);
+    result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
     ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
 
     EXPECT_GT(result.kkt_analyses_total, analyses_after_first)
@@ -192,15 +190,15 @@ TEST(StructureEpochGating, ASecondSolveAgainstUnmovedStructuresRunsNoFreshAnalys
     }
     const Eigen::VectorXd x0 = epoch_gate_start_point();
 
-    result = solver.solve(*program, x0);
+    result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
     ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
     const Eigen::VectorXd first_x = result.x;
     const double first_obj = result.f;
-    const Eigen::VectorXd first_eq = result.lambda_e;
+    const Eigen::VectorXd first_eq = hven::solvers::detail::engine_rows(result).lambda_e;
     const hven::Index analyses_after_first = result.kkt_analyses_total;
     const hven::solvers::StructureEpoch epoch_after_first = program->structure_epoch();
 
-    result = solver.solve(*program, x0);
+    result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
     ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
 
     EXPECT_TRUE(program->structure_epoch() == epoch_after_first)
@@ -214,9 +212,9 @@ TEST(StructureEpochGating, ASecondSolveAgainstUnmovedStructuresRunsNoFreshAnalys
         EXPECT_DOUBLE_EQ(second_x[i], first_x[i]);
     }
     EXPECT_DOUBLE_EQ(result.f, first_obj);
-    ASSERT_EQ(result.lambda_e.size(), first_eq.size());
+    ASSERT_EQ(hven::solvers::detail::engine_rows(result).lambda_e.size(), first_eq.size());
     for (int i = 0; i < first_eq.size(); i++) {
-        EXPECT_DOUBLE_EQ(result.lambda_e[i], first_eq[i]);
+        EXPECT_DOUBLE_EQ(hven::solvers::detail::engine_rows(result).lambda_e[i], first_eq[i]);
     }
 }
 
@@ -234,7 +232,7 @@ TEST(StructureEpochGating, AWholeSolveRunsNoFullKktPatternHash) {
         solver.set_options(std::move(o));
     }
 
-    result = solver.solve(*program, epoch_gate_start_point());
+    result = solver.solve(hven::solvers::detail::problem_ref(*program), epoch_gate_start_point());
     ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
 
     const auto &counters = result.kkt_factor_counters;
@@ -260,19 +258,19 @@ TEST(StructureEpochGating, TheEpochStopsVouchingForThePatternAcrossARelay) {
     }
     const Eigen::VectorXd x0 = epoch_gate_start_point();
 
-    result = solver.solve(*program, x0);
+    result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
     ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
     ASSERT_EQ(result.kkt_factor_counters.pattern_verify_count, 0);
 
     // Nothing re-analyzes here, so the solver is left holding an analysis whose
     // epoch has moved out from under it -- the state the gate has to notice.
     program->negotiate_partition_count(1);
-    EXPECT_FALSE(solver.kkt_pattern_is_analyzed(*program))
+    EXPECT_FALSE(solver.kkt_pattern_is_analyzed(hven::solvers::detail::problem_ref(*program)))
         << "a moved epoch must leave the buffer's pattern unvouched-for";
 
-    result = solver.solve(*program, x0);
+    result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
     ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
-    EXPECT_TRUE(solver.kkt_pattern_is_analyzed(*program))
+    EXPECT_TRUE(solver.kkt_pattern_is_analyzed(hven::solvers::detail::problem_ref(*program)))
         << "the solve-entry re-analysis re-establishes the epoch";
 }
 
@@ -301,14 +299,16 @@ TEST(StructureEpochGating, ASolveThatHandsOutTheKktMatrixVerifiesThePatternThrou
         return 0;
     });
 
-    with_callback_result = with_callback.solve(*with_callback_program, epoch_gate_start_point());
+    with_callback_result = with_callback.solve(
+        hven::solvers::detail::problem_ref(*with_callback_program), epoch_gate_start_point());
     ASSERT_EQ(with_callback_result.status, hven::solvers::SolveStatus::kOptimal);
     ASSERT_GT(callback_calls, 0) << "the callback never ran, so nothing was handed out";
 
     const auto &guarded = with_callback_result.kkt_factor_counters;
     EXPECT_GT(guarded.pattern_verify_count, 0)
         << "a call that hands the matrix out must re-derive the pattern it factorizes";
-    EXPECT_TRUE(with_callback.kkt_pattern_is_analyzed(*with_callback_program))
+    EXPECT_TRUE(with_callback.kkt_pattern_is_analyzed(
+        hven::solvers::detail::problem_ref(*with_callback_program)))
         << "the epoch itself never moved -- what changed is whether it is taken as the answer";
 
     // The same problem with no callback installed keeps the skip, which is
@@ -322,8 +322,8 @@ TEST(StructureEpochGating, ASolveThatHandsOutTheKktMatrixVerifiesThePatternThrou
         o.common.print_level = 3;
         without_callback.set_options(std::move(o));
     }
-    without_callback_result =
-        without_callback.solve(*without_callback_program, epoch_gate_start_point());
+    without_callback_result = without_callback.solve(
+        hven::solvers::detail::problem_ref(*without_callback_program), epoch_gate_start_point());
     ASSERT_EQ(without_callback_result.status, hven::solvers::SolveStatus::kOptimal);
     EXPECT_EQ(without_callback_result.kkt_factor_counters.pattern_verify_count, 0);
 
@@ -360,13 +360,13 @@ TEST(StructureEpochGating, TheVerdictOnTheGuardIsTakenOnceAtEntryAndHeldForTheCa
         return 0;
     });
 
-    result = solver.solve(*program, epoch_gate_start_point());
+    result = solver.solve(hven::solvers::detail::problem_ref(*program), epoch_gate_start_point());
     ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
     const auto counters_after_disarming = result.kkt_factor_counters;
     EXPECT_GT(counters_after_disarming.pattern_verify_count, 0)
         << "the call that handed the matrix out verifies to its end";
 
-    result = solver.solve(*program, epoch_gate_start_point());
+    result = solver.solve(hven::solvers::detail::problem_ref(*program), epoch_gate_start_point());
     ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
     EXPECT_EQ(result.kkt_factor_counters.pattern_verify_count,
               counters_after_disarming.pattern_verify_count)
@@ -408,7 +408,7 @@ TEST(StructureEpochGating, AnEarlyCallbackArmedFromInsideTheLateCallbackVerifies
         return hven::solvers::CallbackAction::kContinue;
     });
 
-    result = solver.solve(*program, epoch_gate_start_point());
+    result = solver.solve(hven::solvers::detail::problem_ref(*program), epoch_gate_start_point());
     ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
     ASSERT_TRUE(armed) << "the late callback never ran, so the early one was never armed";
     ASSERT_GT(early_callback_calls, 0)
@@ -435,7 +435,8 @@ TEST(StructureEpochGating, AnEarlyCallbackArmedFromInsideTheLateCallbackVerifies
     late_only.set_iteration_callback([](const hven::solvers::IterationEvent &) {
         return hven::solvers::CallbackAction::kContinue;
     });
-    late_only_result = late_only.solve(*late_only_program, epoch_gate_start_point());
+    late_only_result = late_only.solve(hven::solvers::detail::problem_ref(*late_only_program),
+                                       epoch_gate_start_point());
     ASSERT_EQ(late_only_result.status, hven::solvers::SolveStatus::kOptimal);
     EXPECT_EQ(late_only_result.kkt_factor_counters.pattern_verify_count, 0)
         << "a late callback that never arms an early one never hands the matrix out, and must "
@@ -502,7 +503,8 @@ TEST(StructureEpochGating, AnEarlyCallbackThatScalesAStoredCoefficientMovesTheSt
         }
         return hven::solvers::CallbackAction::kContinue;
     });
-    mutating_result = mutating.solve(*mutating_program, epoch_gate_start_point());
+    mutating_result = mutating.solve(hven::solvers::detail::problem_ref(*mutating_program),
+                                     epoch_gate_start_point());
     ASSERT_EQ(mutating_result.status, hven::solvers::SolveStatus::kOptimal);
     ASSERT_TRUE(mutating_captured)
         << "the mutating run's late callback never reached a second iteration, so no "
@@ -528,7 +530,8 @@ TEST(StructureEpochGating, AnEarlyCallbackThatScalesAStoredCoefficientMovesTheSt
         }
         return hven::solvers::CallbackAction::kContinue;
     });
-    control_result = control.solve(*control_program, epoch_gate_start_point());
+    control_result = control.solve(hven::solvers::detail::problem_ref(*control_program),
+                                   epoch_gate_start_point());
     ASSERT_EQ(control_result.status, hven::solvers::SolveStatus::kOptimal);
     ASSERT_TRUE(control_captured)
         << "the control run's late callback never reached a second iteration, so no "
@@ -605,7 +608,11 @@ static_assert(
 // row bound.)
 namespace {
 
-struct CallbackOracleProblem : NlpTripletModel {
+struct CallbackOracleProblem : Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
+
     static constexpr int kN = 2;
     static constexpr double kInf = std::numeric_limits<double>::infinity();
     static constexpr double kRhs = 2.0;
@@ -614,49 +621,47 @@ struct CallbackOracleProblem : NlpTripletModel {
     // interface is const -- this is a recording instrument, not solver state.
     mutable Eigen::VectorXd last_grad_x_, last_grad_f_, last_g_x_, last_g_;
 
-    int num_vars() const override { return kN; }
-    int num_cons() const override { return 1; }
-    int num_jac_nonzeros() const override { return kN; }
-    int num_hess_nonzeros() const override { return kN; }
+    int num_vars() const { return kN; }
+    int num_cons() const { return 1; }
+    int num_jac_nonzeros() const { return kN; }
+    int num_hess_nonzeros() const { return kN; }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl.setConstant(-kInf);
         xu.setConstant(kInf);
         gl.setConstant(kRhs);
         gu.setConstant(kRhs);
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         f = x[0] * x[0] + x[1] * x[1];
+        return f;
     }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = 2.0 * x[0];
         g[1] = 2.0 * x[1];
         this->last_grad_x_ = x;
         this->last_grad_f_ = g;
     }
-    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = x[0] + x[1];
         this->last_g_x_ = x;
         this->last_g_ = g;
     }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 0;
         c << 0, 1;
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 1;
         c << 0, 1;
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override {
         v[0] = 1.0;
         v[1] = 1.0;
     }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
         v[0] = 2.0 * obj_factor;
         v[1] = 2.0 * obj_factor;
     }
@@ -722,7 +727,8 @@ TEST(EarlyCallbackViews, TheThreeVectorsAreTheModelsOwnNumbersAtThisIterationsEv
         return 0;
     });
 
-    result = solver.solve(*program, Eigen::VectorXd::Constant(CallbackOracleProblem::kN, 0.0));
+    result = solver.solve(hven::solvers::detail::problem_ref(*program),
+                          Eigen::VectorXd::Constant(CallbackOracleProblem::kN, 0.0));
     ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
     EXPECT_GT(early_calls, 0) << "the early callback never ran, so nothing was observed";
 }
@@ -767,7 +773,8 @@ TEST(EarlyCallbackViews, TheEarlyAndLateViewsOfOneIterationAreTheSameIterate) {
         return hven::solvers::CallbackAction::kContinue;
     });
 
-    result = solver.solve(*program, Eigen::VectorXd::Constant(CallbackOracleProblem::kN, 0.0));
+    result = solver.solve(hven::solvers::detail::problem_ref(*program),
+                          Eigen::VectorXd::Constant(CallbackOracleProblem::kN, 0.0));
     ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
     ASSERT_GE(early_xsl.size(), 2u) << "fewer than two iterations, so there is no clock to check";
     ASSERT_GE(late_xsl.size(), early_xsl.size());

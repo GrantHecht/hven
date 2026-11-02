@@ -22,6 +22,7 @@
 
 #include "progress_measures_test_utils.h"
 
+#include "hven/detail/drivers/result_access.h"
 #include "hven/detail/globalization/acceptance_strategy.h"
 #include "hven/detail/globalization/filter_acceptance.h"
 #include "hven/detail/globalization/funnel_acceptance.h"
@@ -212,8 +213,8 @@ TEST(AcceptanceDiagnostics, ADefaultResultCarriesTheSentinels) {
     EXPECT_TRUE(std::isnan(fresh.feasibility_e));
     EXPECT_TRUE(std::isnan(fresh.feasibility_i));
     EXPECT_TRUE(std::isnan(fresh.complementarity));
-    EXPECT_EQ(fresh.ce.size(), 0);
-    EXPECT_EQ(fresh.ci.size(), 0);
+    EXPECT_EQ(hven::solvers::detail::engine_rows(fresh).ce.size(), 0);
+    EXPECT_EQ(hven::solvers::detail::engine_rows(fresh).ci.size(), 0);
 }
 
 } // namespace

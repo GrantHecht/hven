@@ -17,6 +17,7 @@
 #include <fmt/format.h>
 
 #include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/problem_access.h>
 
 #include "bench_cli.h"
 #include "corpus_cells.h"
@@ -378,7 +379,8 @@ void emit_families(std::ostream &os, double mu, const IpqpOptions &iopts) {
         o.ipqp = iopts;
         SqpSolver driver(o);
         const auto t0 = std::chrono::steady_clock::now();
-        const SqpResult sol = driver.solve(*p.model);
+        const SqpResult sol =
+            driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
         const double wall =
             std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
         os << fmt::format("{},hs,hs{},{},{},{}\n", fnum(mu), number, sqp_status_name(sol.status),
@@ -535,7 +537,8 @@ int run_envelope(std::ostream &os, Index nodes, double p) {
         o.qp_mode = std::string(engine) == "ipm" ? QpMode::kIpm : QpMode::kWalk;
         SqpSolver driver(o);
         const auto t0 = std::chrono::steady_clock::now();
-        const SqpResult sol = driver.solve(model);
+        const SqpResult sol =
+            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
         const double wall =
             std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
         os << fmt::format("{},{},{},{},{},{},{},{},{},{}\n", engine, nodes, model.n(), fnum(p),

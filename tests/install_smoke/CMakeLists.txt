@@ -35,15 +35,20 @@ find_package(hven REQUIRED)
 # transcription entry moved out of detail/model/nlp_adapter.h into the public
 # header hven/model/make_nlp_program.h, and a public header that does not carry
 # its own includes is exactly what this list exists to catch.
+#
+# M8 AP-2 B2: the transcription entry, the triplet model and the NlpModel bridge
+# left the public surface (to detail/); their three TUs became the Nlp contract,
+# the Problem both engines solve, and the fixed-variable vocabulary split out of
+# the interior-point program's header, 19 -> 19.
 set(HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES
     include_trace_writer.cpp
     include_trace.cpp
     include_ipqp_evidence.cpp
-    include_nlp_triplet_model.cpp
-    include_make_nlp_program.cpp
+    include_nlp.cpp
+    include_problem.cpp
     include_nlp_assembly.cpp
     include_assembly_declaration.cpp
-    include_nlp_model_assembly.cpp
+    include_fixed_variable_treatment.cpp
     include_ipm_solver.cpp
     include_sqp_solver.cpp
     include_solve_status.cpp

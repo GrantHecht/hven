@@ -13,12 +13,14 @@
 #include <type_traits>
 #include <vector>
 
+#include "hven/detail/drivers/result_access.h"
 #include "hven/detail/model/nlp_adapter.h"
+#include "hven/detail/model/non_linear_program.h"
+#include "hven/detail/model/problem_access.h"
 #include "hven/drivers/ipm_solver.h"
 #include "hven/drivers/solve_status.h"
 #include "hven/drivers/trace.h"
-#include "hven/model/nlp_triplet_model.h"
-#include "hven/model/non_linear_program.h"
+#include "hven/model/nlp.h"
 
 #include "declared_route.h" // NOLINT(build/include_subdir)
 
@@ -27,48 +29,50 @@ constexpr double kSolverInf = std::numeric_limits<double>::infinity();
 } // namespace
 
 using hven::ConstEigenRef;
-using hven::solvers::NlpTripletModel;
+using hven::solvers::Nlp;
 
 // The canonical Ipopt HS071 example: n=4, one lower-bounded product row, one
 // equality sphere row, dense Jacobian and Hessian.
-struct Hs071Problem : NlpTripletModel {
-    int num_vars() const override { return 4; }
-    int num_cons() const override { return 2; }
-    int num_jac_nonzeros() const override { return 8; }
-    int num_hess_nonzeros() const override { return 10; }
+struct Hs071Problem : Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    int num_vars() const { return 4; }
+    int num_cons() const { return 2; }
+    int num_jac_nonzeros() const { return 8; }
+    int num_hess_nonzeros() const { return 10; }
+
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl << 1.0, 1.0, 1.0, 1.0;
         xu << 5.0, 5.0, 5.0, 5.0;
         gl << 25.0, 40.0;
         gu << kSolverInf, 40.0;
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         f = x[0] * x[3] * (x[0] + x[1] + x[2]) + x[2];
+        return f;
     }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = x[3] * (2.0 * x[0] + x[1] + x[2]);
         g[1] = x[0] * x[3];
         g[2] = x[0] * x[3] + 1.0;
         g[3] = x[0] * (x[0] + x[1] + x[2]);
     }
-    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = x[0] * x[1] * x[2] * x[3];
         g[1] = x[0] * x[0] + x[1] * x[1] + x[2] * x[2] + x[3] * x[3];
     }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 0, 0, 0, 1, 1, 1, 1;
         c << 0, 1, 2, 3, 0, 1, 2, 3;
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 1, 1, 2, 2, 2, 3, 3, 3, 3;
         c << 0, 0, 1, 0, 1, 2, 0, 1, 2, 3;
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef x, hven::VecRef v) const override {
         v[0] = x[1] * x[2] * x[3];
         v[1] = x[0] * x[2] * x[3];
         v[2] = x[0] * x[1] * x[3];
@@ -78,9 +82,8 @@ struct Hs071Problem : NlpTripletModel {
         v[6] = 2.0 * x[2];
         v[7] = 2.0 * x[3];
     }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd> x, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd> lambda,
-                   Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(hven::ConstVecRef x, double obj_factor, hven::ConstVecRef lambda,
+                      hven::VecRef v) const override {
         const double x0 = x[0], x1 = x[1], x2 = x[2], x3 = x[3];
         v[0] = obj_factor * 2 * x3 + lambda[1] * 2;
         v[1] = obj_factor * x3 + lambda[0] * x2 * x3;
@@ -107,7 +110,7 @@ TEST(IpmSolverEntry, Hs071ConvergesToKnownOptimum) {
     }
     Eigen::VectorXd x0(4);
     x0 << 1.0, 5.0, 5.0, 1.0;
-    result = solver.solve(*program, x0);
+    result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
     auto flag = result.status;
     EXPECT_EQ(flag, hven::solvers::SolveStatus::kOptimal);
     Eigen::VectorXd x = result.x;
@@ -133,7 +136,7 @@ TEST(IpmSolverEntry, Hs071BoundDualsMatchActiveLowerBound) {
     }
     Eigen::VectorXd x0(4);
     x0 << 1.0, 5.0, 5.0, 1.0;
-    result = solver.solve(*program, x0);
+    result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
     ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
 
     const Eigen::VectorXd &z = result.z;
@@ -146,38 +149,41 @@ TEST(IpmSolverEntry, Hs071BoundDualsMatchActiveLowerBound) {
 
 // Unconstrained Rosenbrock: exercises the objective-owned Hessian path (no
 // constraint rows at all).
-struct RosenbrockProblem : NlpTripletModel {
-    int num_vars() const override { return 2; }
-    int num_cons() const override { return 0; }
-    int num_jac_nonzeros() const override { return 0; }
-    int num_hess_nonzeros() const override { return 3; }
+struct RosenbrockProblem : Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>) const override {
+    int num_vars() const { return 2; }
+    int num_cons() const { return 0; }
+    int num_jac_nonzeros() const { return 0; }
+    int num_hess_nonzeros() const { return 3; }
+
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef, hven::VecRef) const override {
         xl << -kSolverInf, -kSolverInf;
         xu << kSolverInf, kSolverInf;
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         const double a = 1.0 - x[0];
         const double b = x[1] - x[0] * x[0];
         f = a * a + 100.0 * b * b;
+        return f;
     }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
         const double b = x[1] - x[0] * x[0];
         g[0] = -2.0 * (1.0 - x[0]) - 400.0 * x[0] * b;
         g[1] = 200.0 * b;
     }
-    void eval_g(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>) const override {}
-    void jac_structure(Eigen::Ref<Eigen::VectorXi>, Eigen::Ref<Eigen::VectorXi>) const override {}
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void eval_g(hven::ConstVecRef, hven::VecRef) const override {}
+    void jacobian_structure(hven::IndexVecRef, hven::IndexVecRef) const override {}
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 1, 1;
         c << 0, 0, 1;
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>) const override {}
-    void eval_hess(ConstEigenRef<Eigen::VectorXd> x, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef) const override {}
+    void eval_hessian(hven::ConstVecRef x, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
         const double b = x[1] - x[0] * x[0];
         v[0] = obj_factor * (2.0 - 400.0 * b + 800.0 * x[0] * x[0]);
         v[1] = obj_factor * (-400.0 * x[0]);
@@ -197,7 +203,7 @@ TEST(IpmSolverEntry, RosenbrockConvergesToKnownOptimum) {
     }
     Eigen::VectorXd x0(2);
     x0 << -1.2, 1.0;
-    result = solver.solve(*program, x0);
+    result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
     auto flag = result.status;
     EXPECT_EQ(flag, hven::solvers::SolveStatus::kOptimal);
     Eigen::VectorXd x = result.x;
@@ -208,46 +214,46 @@ TEST(IpmSolverEntry, RosenbrockConvergesToKnownOptimum) {
 
 // f = x0^2 + x1^2 subject to x0 + x1 = 2 -- optimum (1, 1); the Ipopt-sign
 // multiplier satisfies 2*x_i + lambda = 0, so lambda = -2.
-struct EqOnlyProblem : NlpTripletModel {
-    int num_vars() const override { return 2; }
-    int num_cons() const override { return 1; }
-    int num_jac_nonzeros() const override { return 2; }
-    int num_hess_nonzeros() const override { return 2; }
+struct EqOnlyProblem : Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    int num_vars() const { return 2; }
+    int num_cons() const { return 1; }
+    int num_jac_nonzeros() const { return 2; }
+    int num_hess_nonzeros() const { return 2; }
+
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl << -kSolverInf, -kSolverInf;
         xu << kSolverInf, kSolverInf;
         gl << 2.0;
         gu << 2.0;
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         f = x[0] * x[0] + x[1] * x[1];
+        return f;
     }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = 2.0 * x[0];
         g[1] = 2.0 * x[1];
     }
-    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
-        g[0] = x[0] + x[1];
-    }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override { g[0] = x[0] + x[1]; }
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 0;
         c << 0, 1;
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 1;
         c << 0, 1;
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override {
         v[0] = 1.0;
         v[1] = 1.0;
     }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
         v[0] = 2.0 * obj_factor;
         v[1] = 2.0 * obj_factor;
     }
@@ -264,50 +270,50 @@ TEST(IpmSolverEntry, EqualityMultiplierHasIpoptSign) {
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
-    result = solver.solve(*route.program, x0);
+    result = solver.solve(hven::solvers::detail::problem_ref(*route.program), x0);
     ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
-    EXPECT_NEAR(route.model->compose_user_multipliers(result.lambda_e, result.lambda_i)[0], -2.0,
-                1e-5);
+    EXPECT_NEAR(route.model->compose_user_multipliers(
+                    hven::solvers::detail::engine_rows(result).lambda_e,
+                    hven::solvers::detail::engine_rows(result).lambda_i)[0],
+                -2.0, 1e-5);
 }
 
 // f = x0^2 subject to x0 >= 1 -- optimum x0 = 1, active lower bound, Ipopt
 // multiplier is negative there (lambda = -2).
-struct LowerBoundRowProblem : NlpTripletModel {
-    int num_vars() const override { return 1; }
-    int num_cons() const override { return 1; }
-    int num_jac_nonzeros() const override { return 1; }
-    int num_hess_nonzeros() const override { return 1; }
+struct LowerBoundRowProblem : Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    int num_vars() const { return 1; }
+    int num_cons() const { return 1; }
+    int num_jac_nonzeros() const { return 1; }
+    int num_hess_nonzeros() const { return 1; }
+
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl << -kSolverInf;
         xu << kSolverInf;
         gl << 1.0;
         gu << kSolverInf;
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override { f = x[0] * x[0]; }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
-        g[0] = 2.0 * x[0];
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
+        f = x[0] * x[0];
+        return f;
     }
-    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
-        g[0] = x[0];
-    }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override { g[0] = 2.0 * x[0]; }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override { g[0] = x[0]; }
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0;
         c << 0;
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0;
         c << 0;
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
-        v[0] = 1.0;
-    }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override { v[0] = 1.0; }
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
         v[0] = 2.0 * obj_factor;
     }
     std::string name() const override { return "LowerBoundRowProblem"; }
@@ -324,54 +330,54 @@ TEST(IpmSolverEntry, LowerBoundedRowActiveWithNegativeIpoptMultiplier) {
     }
     Eigen::VectorXd x0(1);
     x0 << 3.0;
-    result = solver.solve(*route.program, x0);
+    result = solver.solve(hven::solvers::detail::problem_ref(*route.program), x0);
     ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
     EXPECT_NEAR(result.x[0], 1.0, 1e-5);
-    EXPECT_NEAR(route.model->compose_user_multipliers(result.lambda_e, result.lambda_i)[0], -2.0,
-                1e-5);
+    EXPECT_NEAR(route.model->compose_user_multipliers(
+                    hven::solvers::detail::engine_rows(result).lambda_e,
+                    hven::solvers::detail::engine_rows(result).lambda_i)[0],
+                -2.0, 1e-5);
 }
 
 // f = (x0-3)^2 subject to 1 <= x0 <= 2 (a Range row) -- optimum x0 = 2, active
 // upper end, positive Ipopt multiplier (lambda = +2).
-struct RangeRowProblem : NlpTripletModel {
-    int num_vars() const override { return 1; }
-    int num_cons() const override { return 1; }
-    int num_jac_nonzeros() const override { return 1; }
-    int num_hess_nonzeros() const override { return 1; }
+struct RangeRowProblem : Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    int num_vars() const { return 1; }
+    int num_cons() const { return 1; }
+    int num_jac_nonzeros() const { return 1; }
+    int num_hess_nonzeros() const { return 1; }
+
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl << -kSolverInf;
         xu << kSolverInf;
         gl << 1.0;
         gu << 2.0;
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         const double d = x[0] - 3.0;
         f = d * d;
+        return f;
     }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = 2.0 * (x[0] - 3.0);
     }
-    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
-        g[0] = x[0];
-    }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override { g[0] = x[0]; }
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0;
         c << 0;
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0;
         c << 0;
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
-        v[0] = 1.0;
-    }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override { v[0] = 1.0; }
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
         v[0] = 2.0 * obj_factor;
     }
     std::string name() const override { return "RangeRowProblem"; }
@@ -388,55 +394,55 @@ TEST(IpmSolverEntry, RangeRowActiveAtUpperWithPositiveIpoptMultiplier) {
     }
     Eigen::VectorXd x0(1);
     x0 << 1.5;
-    result = solver.solve(*route.program, x0);
+    result = solver.solve(hven::solvers::detail::problem_ref(*route.program), x0);
     ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
     EXPECT_NEAR(result.x[0], 2.0, 1e-5);
-    EXPECT_NEAR(route.model->compose_user_multipliers(result.lambda_e, result.lambda_i)[0], 2.0,
-                1e-5);
+    EXPECT_NEAR(route.model->compose_user_multipliers(
+                    hven::solvers::detail::engine_rows(result).lambda_e,
+                    hven::solvers::detail::engine_rows(result).lambda_i)[0],
+                2.0, 1e-5);
 }
 
 // f = (x0-5)^2, n=1, m=1 with the single row unbounded on both sides (a Free
 // row the classification drops from the transcription entirely). Solves
 // unconstrained to x0 = 5; the dropped row's multiplier reads back as 0.
-struct FreeRowProblem : NlpTripletModel {
-    int num_vars() const override { return 1; }
-    int num_cons() const override { return 1; }
-    int num_jac_nonzeros() const override { return 1; }
-    int num_hess_nonzeros() const override { return 1; }
+struct FreeRowProblem : Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    int num_vars() const { return 1; }
+    int num_cons() const { return 1; }
+    int num_jac_nonzeros() const { return 1; }
+    int num_hess_nonzeros() const { return 1; }
+
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl << -kSolverInf;
         xu << kSolverInf;
         gl << -kSolverInf;
         gu << kSolverInf;
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         const double d = x[0] - 5.0;
         f = d * d;
+        return f;
     }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = 2.0 * (x[0] - 5.0);
     }
-    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
-        g[0] = x[0];
-    }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override { g[0] = x[0]; }
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0;
         c << 0;
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0;
         c << 0;
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
-        v[0] = 1.0;
-    }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override { v[0] = 1.0; }
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
         v[0] = 2.0 * obj_factor;
     }
     std::string name() const override { return "FreeRowProblem"; }
@@ -453,45 +459,50 @@ TEST(IpmSolverEntry, FreeRowDroppedFromTranscriptionReadsZeroMultiplier) {
     }
     Eigen::VectorXd x0(1);
     x0 << 0.0;
-    result = solver.solve(*route.program, x0);
+    result = solver.solve(hven::solvers::detail::problem_ref(*route.program), x0);
     ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
     EXPECT_NEAR(result.x[0], 5.0, 1e-5);
-    EXPECT_NEAR(route.model->compose_user_multipliers(result.lambda_e, result.lambda_i)[0], 0.0,
-                1e-14);
+    EXPECT_NEAR(route.model->compose_user_multipliers(
+                    hven::solvers::detail::engine_rows(result).lambda_e,
+                    hven::solvers::detail::engine_rows(result).lambda_i)[0],
+                0.0, 1e-14);
 }
 
 // f = (x0-1)^2 + (x1-1)^2, no constraint rows, x1 fixed via x_lower == x_upper.
 // Exercises the adapter's native fixed-variable treatment.
-struct FixedVarProblem : NlpTripletModel {
-    int num_vars() const override { return 2; }
-    int num_cons() const override { return 0; }
-    int num_jac_nonzeros() const override { return 0; }
-    int num_hess_nonzeros() const override { return 2; }
+struct FixedVarProblem : Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>) const override {
+    int num_vars() const { return 2; }
+    int num_cons() const { return 0; }
+    int num_jac_nonzeros() const { return 0; }
+    int num_hess_nonzeros() const { return 2; }
+
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef, hven::VecRef) const override {
         xl << -kSolverInf, 3.0;
         xu << kSolverInf, 3.0;
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         const double a = x[0] - 1.0, b = x[1] - 1.0;
         f = a * a + b * b;
+        return f;
     }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = 2.0 * (x[0] - 1.0);
         g[1] = 2.0 * (x[1] - 1.0);
     }
-    void eval_g(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>) const override {}
-    void jac_structure(Eigen::Ref<Eigen::VectorXi>, Eigen::Ref<Eigen::VectorXi>) const override {}
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void eval_g(hven::ConstVecRef, hven::VecRef) const override {}
+    void jacobian_structure(hven::IndexVecRef, hven::IndexVecRef) const override {}
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 1;
         c << 0, 1;
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>) const override {}
-    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef) const override {}
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
         v[0] = 2.0 * obj_factor;
         v[1] = 2.0 * obj_factor;
     }
@@ -509,7 +520,7 @@ TEST(IpmSolverEntry, FixedVariableSolvesExactlyAtItsFixedValue) {
     }
     Eigen::VectorXd x0(2);
     x0 << 0.0, 3.0;
-    result = solver.solve(*program, x0);
+    result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
     ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
     Eigen::VectorXd x = result.x;
     EXPECT_NEAR(x[0], 1.0, 1e-6);
@@ -534,11 +545,11 @@ TEST(IpmSolverEntry, FixedVariableTreatmentIsRecordedOnSolveResult) {
         }
         Eigen::VectorXd x0(2);
         x0 << 0.0, 3.0;
-        result = solver.solve(*program, x0);
+        result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
         ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
         EXPECT_EQ(result.fixed_variable_treatment,
                   hven::solvers::FixedVariableTreatments::MakeParameter);
-        EXPECT_EQ(result.lambda_e.size(), 0);
+        EXPECT_EQ(hven::solvers::detail::engine_rows(result).lambda_e.size(), 0);
     }
     {
         const auto program = hven::solvers::make_nlp_program(std::make_shared<FixedVarProblem>());
@@ -552,14 +563,14 @@ TEST(IpmSolverEntry, FixedVariableTreatmentIsRecordedOnSolveResult) {
         }
         Eigen::VectorXd x0(2);
         x0 << 0.0, 3.0;
-        result = solver.solve(*program, x0);
+        result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
         ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
         EXPECT_EQ(result.fixed_variable_treatment,
                   hven::solvers::FixedVariableTreatments::MakeConstraint);
         // THE DECLARED BLOCK IS STILL EMPTY (M6 W5 T8.4): the problem declares
         // no equality row, and the one row MakeConstraint adds is the
         // TREATMENT's -- reported beside the base, not inside it.
-        EXPECT_EQ(result.lambda_e.size(), 0);
+        EXPECT_EQ(hven::solvers::detail::engine_rows(result).lambda_e.size(), 0);
         EXPECT_EQ(result.internal_fixed_lambda_e.size(), 1);
         EXPECT_EQ(result.internal_fixed_ce.size(), 1);
     }
@@ -592,7 +603,7 @@ TEST(IpmSolverEntry, ZIsDeclaredWidthAndZeroAtAnEliminatedCoordinate) {
     Eigen::VectorXd x0(2);
     x0 << 0.0, 3.0;
 
-    result = solver.solve(*program, x0);
+    result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
     ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
     ASSERT_EQ(result.z.size(), 2) << "declared width, both treatments";
     const double relaxed_price = result.z[1];
@@ -602,7 +613,7 @@ TEST(IpmSolverEntry, ZIsDeclaredWidthAndZeroAtAnEliminatedCoordinate) {
         o.fixed_variable_treatment = hven::solvers::FixedVariableTreatments::MakeParameter;
         solver.set_options(std::move(o));
     }
-    result = solver.solve(*program, x0);
+    result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
     ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
     ASSERT_EQ(result.z.size(), 2);
     EXPECT_EQ(result.z[1], 0.0)
@@ -615,8 +626,8 @@ TEST(IpmSolverEntry, ZIsDeclaredWidthAndZeroAtAnEliminatedCoordinate) {
 // seeds the exact solution multiplier (lambda = -2, see
 // EqualityMultiplierHasIpoptSign above) -- proves the seed reaches IpmSolver and
 // still converges to the same optimum as the unseeded solve.
-struct SeededEqOnlyProblem : EqOnlyProblem {
-    bool starting_multipliers(Eigen::Ref<Eigen::VectorXd> lambda) const override {
+struct SeededEqOnlyProblem : EqOnlyProblem, hven_interior_tests::MultiplierSeedHook {
+    bool starting_multipliers(hven::VecRef lambda) const override {
         lambda[0] = -2.0;
         return true;
     }
@@ -638,8 +649,10 @@ TEST(IpmSolverEntry, SeededSolveConverges) {
     expect << 1.0, 1.0;
     EXPECT_LT((result.x - expect).lpNorm<Eigen::Infinity>(), 1e-6);
     // return_multipliers()'s replacement, named in the migration guide.
-    EXPECT_NEAR(route.model->compose_user_multipliers(result.lambda_e, result.lambda_i)[0], -2.0,
-                1e-5);
+    EXPECT_NEAR(route.model->compose_user_multipliers(
+                    hven::solvers::detail::engine_rows(result).lambda_e,
+                    hven::solvers::detail::engine_rows(result).lambda_i)[0],
+                -2.0, 1e-5);
 }
 
 // THE NO-ARG ENTRY POINTS ARE GONE WITH THE WRAPPER (M6 W5 T8.9). They reused
@@ -658,7 +671,8 @@ TEST(IpmSolverEntry, TwoSolvesFromTheSameStartPointAgree) {
         o.common.print_level = 10;
         first.set_options(std::move(o));
     }
-    const hven::solvers::IpmResult a = first.solve(*first_program, x0);
+    const hven::solvers::IpmResult a =
+        first.solve(hven::solvers::detail::problem_ref(*first_program), x0);
     ASSERT_EQ(a.status, hven::solvers::SolveStatus::kOptimal);
 
     const auto second_program = hven::solvers::make_nlp_program(std::make_shared<EqOnlyProblem>());
@@ -669,7 +683,8 @@ TEST(IpmSolverEntry, TwoSolvesFromTheSameStartPointAgree) {
         o.common.print_level = 10;
         second.set_options(std::move(o));
     }
-    const hven::solvers::IpmResult b = second.solve(*second_program, x0);
+    const hven::solvers::IpmResult b =
+        second.solve(hven::solvers::detail::problem_ref(*second_program), x0);
     ASSERT_EQ(b.status, hven::solvers::SolveStatus::kOptimal);
 
     EXPECT_LT((b.x - a.x).lpNorm<Eigen::Infinity>(), 1e-8);
@@ -684,8 +699,12 @@ TEST(IpmSolverEntry, AStartPointOfTheWrongSizeIsRefused) {
         o.common.print_level = 10;
         solver.set_options(std::move(o));
     }
-    EXPECT_THROW((void)solver.solve(*program, Eigen::VectorXd()), std::invalid_argument);
-    EXPECT_THROW((void)solver.solve(*program, Eigen::VectorXd::Zero(3)), std::invalid_argument);
+    EXPECT_THROW(
+        (void)solver.solve(hven::solvers::detail::problem_ref(*program), Eigen::VectorXd()),
+        std::invalid_argument);
+    EXPECT_THROW(
+        (void)solver.solve(hven::solvers::detail::problem_ref(*program), Eigen::VectorXd::Zero(3)),
+        std::invalid_argument);
 }
 
 // THE WORKER PREPARATION, in place of the jet lifecycle (M6 W5 T8.9). The
@@ -723,7 +742,8 @@ TEST(WorkerOptions, JetPreparationEquivalent) {
     EXPECT_EQ(program->num_partitions_, 1);
 
     // ... and a worker-configured solve of the worker's own program still runs.
-    const hven::solvers::IpmResult result = solver.solve(*program, Eigen::VectorXd::Zero(2));
+    const hven::solvers::IpmResult result =
+        solver.solve(hven::solvers::detail::problem_ref(*program), Eigen::VectorXd::Zero(2));
     EXPECT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
 }
 
@@ -731,8 +751,8 @@ TEST(WorkerOptions, JetPreparationEquivalent) {
 // allFinite() guard the seed route applies -- before the payload ever reaches
 // the engine, and with a distinct message. Since M6 W5 T8.9 that route is the
 // caller's (declared_route.h's starting_multiplier_seed).
-struct NonFiniteSeedProblem : EqOnlyProblem {
-    bool starting_multipliers(Eigen::Ref<Eigen::VectorXd> lambda) const override {
+struct NonFiniteSeedProblem : EqOnlyProblem, hven_interior_tests::MultiplierSeedHook {
+    bool starting_multipliers(hven::VecRef lambda) const override {
         lambda[0] = std::numeric_limits<double>::quiet_NaN();
         return true;
     }
@@ -1073,13 +1093,12 @@ TEST(InteriorPointSolverSettingsTest, NaNRejectedByValidateForEveryHelperFamily)
 struct FaultingSetupProblem : EqOnlyProblem {
     bool armed_ = true;
 
-    void eval_hess(ConstEigenRef<Eigen::VectorXd> x, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd> lambda,
-                   Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(hven::ConstVecRef x, double obj_factor, hven::ConstVecRef lambda,
+                      hven::VecRef v) const override {
         if (armed_) {
             throw std::runtime_error("FaultingSetupProblem: eval_hess armed to throw");
         }
-        EqOnlyProblem::eval_hess(x, obj_factor, lambda, v);
+        EqOnlyProblem::eval_hessian(x, obj_factor, lambda, v);
     }
     std::string name() const override { return "FaultingSetupProblem"; }
 };
@@ -1106,7 +1125,8 @@ TEST(IpmSolverEntry, AFaultedTranscriptionCommitsNothingAndRetriesCleanly) {
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
-    ASSERT_EQ(solver.solve(*program, x0).status, hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(solver.solve(hven::solvers::detail::problem_ref(*program), x0).status,
+              hven::solvers::SolveStatus::kOptimal);
 
     // A fault on a LATER transcription leaves the standing program whole -- the
     // caller still holds the same object, and the failed call produced no
@@ -1118,12 +1138,14 @@ TEST(IpmSolverEntry, AFaultedTranscriptionCommitsNothingAndRetriesCleanly) {
     // ... and a solve against the standing program still runs, because nothing
     // about the failed attempt reached it.
     problem->armed_ = false;
-    EXPECT_EQ(solver.solve(*program, x0).status, hven::solvers::SolveStatus::kOptimal);
+    EXPECT_EQ(solver.solve(hven::solvers::detail::problem_ref(*program), x0).status,
+              hven::solvers::SolveStatus::kOptimal);
 
     // A fresh transcription is a fresh object; the old one is untouched.
     const auto replacement = hven::solvers::make_nlp_program(problem);
     EXPECT_NE(replacement, program);
-    EXPECT_EQ(solver.solve(*replacement, x0).status, hven::solvers::SolveStatus::kOptimal);
+    EXPECT_EQ(solver.solve(hven::solvers::detail::problem_ref(*replacement), x0).status,
+              hven::solvers::SolveStatus::kOptimal);
 }
 
 // Counts the setup-only queries a transcription makes of the problem. bounds,
@@ -1141,33 +1163,29 @@ struct TranscriptionCountingProblem : EqOnlyProblem {
     const hven::solvers::NonLinearProgram *watch_ = nullptr;
     mutable std::vector<int> partitions_during_eval_;
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         n_bounds_++;
         EqOnlyProblem::bounds(xl, xu, gl, gu);
     }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         n_jac_structure_++;
-        EqOnlyProblem::jac_structure(r, c);
+        EqOnlyProblem::jacobian_structure(r, c);
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         n_hess_structure_++;
-        EqOnlyProblem::hess_structure(r, c);
+        EqOnlyProblem::hessian_structure(r, c);
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef x, hven::VecRef v) const override {
         n_eval_jac_++;
         if (watch_ != nullptr) {
             partitions_during_eval_.push_back(watch_->num_partitions_);
         }
-        EqOnlyProblem::eval_jac(x, v);
+        EqOnlyProblem::eval_jacobian(x, v);
     }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd> x, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd> lambda,
-                   Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(hven::ConstVecRef x, double obj_factor, hven::ConstVecRef lambda,
+                      hven::VecRef v) const override {
         n_eval_hess_++;
-        EqOnlyProblem::eval_hess(x, obj_factor, lambda, v);
+        EqOnlyProblem::eval_hessian(x, obj_factor, lambda, v);
     }
     std::string name() const override { return "TranscriptionCountingProblem"; }
 };
@@ -1190,12 +1208,14 @@ TEST(IpmSolverEntry, ASecondSolveTranscribesNothingAndSpendsNoFurtherSetupEvalua
     EXPECT_EQ(problem->n_jac_structure_, 1);
     EXPECT_EQ(problem->n_hess_structure_, 1);
 
-    ASSERT_EQ(solver.solve(*program, x0).status, hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(solver.solve(hven::solvers::detail::problem_ref(*program), x0).status,
+              hven::solvers::SolveStatus::kOptimal);
     EXPECT_EQ(problem->n_bounds_, 1);
     const int jac_after_first = problem->n_eval_jac_;
     const int hess_after_first = problem->n_eval_hess_;
 
-    ASSERT_EQ(solver.solve(*program, x0).status, hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(solver.solve(hven::solvers::detail::problem_ref(*program), x0).status,
+              hven::solvers::SolveStatus::kOptimal);
     // Nothing was transcribed a second time, so no setup evaluation happened a
     // second time either: the counts that a transcription and only a
     // transcription moves are unchanged.
@@ -1233,7 +1253,7 @@ TEST(IpmSolverEntry, TheReportedKktResidualsAreTheOnesTheConvergenceTestGated) {
     Eigen::VectorXd x0(4);
     x0 << 1.0, 5.0, 5.0, 1.0;
 
-    result = solver.solve(*program, x0);
+    result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
     ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
 
     const auto &settings = solver.options();
@@ -1256,14 +1276,14 @@ TEST(IpmSolverEntry, TheReportedKktResidualsAreTheOnesTheConvergenceTestGated) {
 
     // HS071 has both row kinds, so neither constraint residual is the vacuous
     // "no rows, therefore zero" reading.
-    ASSERT_EQ(result.ce.size(), 1);
-    ASSERT_EQ(result.ci.size(), 1);
+    ASSERT_EQ(hven::solvers::detail::engine_rows(result).ce.size(), 1);
+    ASSERT_EQ(hven::solvers::detail::engine_rows(result).ci.size(), 1);
 
     // A SECOND CALL RE-REPORTS. reset_accumulators() clears the four at solve
     // entry, so a stale reading cannot survive into a call that never wrote
     // them; here the second call writes them again and lands inside the same
     // gates.
-    result = solver.solve(*program, x0);
+    result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
     ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
     EXPECT_LT(result.kkt_inf, settings.kkt_tol);
     EXPECT_LT(result.barr_inf, settings.bar_tol);
@@ -1277,50 +1297,46 @@ TEST(IpmSolverEntry, TheReportedKktResidualsAreTheOnesTheConvergenceTestGated) {
 // EARLY one while the solve still exits CONVERGED. That pairing -- BestIter !=
 // last on a converged exit -- is what the pin below needs, and it is not
 // reachable with the default ECONS criterion.
-struct BestIterateRisingObjectiveProblem : NlpTripletModel {
+struct BestIterateRisingObjectiveProblem : Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
+
     static constexpr int kN = 4;
 
-    int num_vars() const override { return kN; }
-    int num_cons() const override { return 1; }
-    int num_jac_nonzeros() const override { return kN; }
-    int num_hess_nonzeros() const override { return kN; }
+    int num_vars() const { return kN; }
+    int num_cons() const { return 1; }
+    int num_jac_nonzeros() const { return kN; }
+    int num_hess_nonzeros() const { return kN; }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl.setConstant(-2.0);
         xu.setConstant(2.0);
         gl.setConstant(3.0);
         gu.setConstant(3.0);
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         f = 0.5 * x.squaredNorm();
+        return f;
     }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
-        g = x;
-    }
-    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
-        g[0] = x.sum();
-    }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override { g = x; }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override { g[0] = x.sum(); }
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         for (int i = 0; i < kN; i++) {
             r[i] = 0;
             c[i] = i;
         }
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         for (int i = 0; i < kN; i++) {
             r[i] = i;
             c[i] = i;
         }
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
-        v.setConstant(1.0);
-    }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override { v.setConstant(1.0); }
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
         v.setConstant(obj_factor);
     }
     std::string name() const override { return "BestIterateRisingObjective"; }
@@ -1393,7 +1409,7 @@ TEST(IpmSolverEntry, TheReportedKktResidualsDescribeTheIterateTheResultDescribes
     const std::vector<hven::solvers::IterateInfo> &rows = rows_sink.rows;
 
     const Eigen::VectorXd x0 = Eigen::VectorXd::Zero(BestIterateRisingObjectiveProblem::kN);
-    result = solver.solve(*program, x0);
+    result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
     ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
     ASSERT_GE(rows.size(), 2u);
 
@@ -1506,7 +1522,8 @@ TEST(IpmSolverEntry, TheProgramsPartitionCountIsWhatEvaluationsSee) {
         solver.set_options(std::move(o));
     }
 
-    const hven::solvers::IpmResult result = solver.solve(*program, Eigen::VectorXd::Zero(2));
+    const hven::solvers::IpmResult result =
+        solver.solve(hven::solvers::detail::problem_ref(*program), Eigen::VectorXd::Zero(2));
     ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
 
     // ONE TRANSCRIPTION, and it happened before the solve: the caller made it.
@@ -1589,7 +1606,7 @@ IpmPhaseRecordingSink run_with_phase_sink(const std::vector<hven::solvers::IpmPh
     IpmPhaseRecordingSink sink;
     solver.attach_trace(&sink);
     const Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
-    *flag_out = solver.solve(*program, x0).status;
+    *flag_out = solver.solve(hven::solvers::detail::problem_ref(*program), x0).status;
     // The sink outlives every solve made while it is attached, which is the
     // documented contract -- but it does not outlive this function, so detach it
     // rather than leave the solver holding a pointer to a dead object.
@@ -1678,7 +1695,7 @@ TEST(IpmSolverEntry, TheIterationCapIsTheRecordedStopReason) {
     }
     Eigen::VectorXd x0(4);
     x0 << 1.0, 5.0, 5.0, 1.0;
-    result = solver.solve(*program, x0);
+    result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
     const hven::solvers::SolveStatus flag = result.status;
     ASSERT_EQ(flag, hven::solvers::SolveStatus::kMaxIter);
     EXPECT_EQ(solver.last_stop_reason(), hven::solvers::IpmStopReason::kIterationCap);
@@ -1704,7 +1721,7 @@ TEST(IpmSolverEntry, AConvergedSolveRecordsNoStopReason) {
         o.max_iters = 1;
         solver.set_options(std::move(o));
     }
-    result = solver.solve(*program, x0);
+    result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
     ASSERT_EQ(result.status, hven::solvers::SolveStatus::kMaxIter);
     ASSERT_EQ(solver.last_stop_reason(), hven::solvers::IpmStopReason::kIterationCap);
 
@@ -1713,7 +1730,7 @@ TEST(IpmSolverEntry, AConvergedSolveRecordsNoStopReason) {
         o.max_iters = 200;
         solver.set_options(std::move(o));
     }
-    result = solver.solve(*program, x0);
+    result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
     const hven::solvers::SolveStatus flag = result.status;
     ASSERT_EQ(flag, hven::solvers::SolveStatus::kOptimal);
     EXPECT_EQ(solver.last_stop_reason(), hven::solvers::IpmStopReason::kNone);
@@ -1783,7 +1800,7 @@ TEST(IpmSolverEntry, AMultiPhaseCapIsLabelledByThePhaseThatHitIt) {
     });
     Eigen::VectorXd x0(4);
     x0 << 1.0, 5.0, 5.0, 1.0;
-    result = solver.solve(*program, x0);
+    result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
     const hven::solvers::SolveStatus flag = result.status;
 
     ASSERT_EQ(phase_terminal.size(), 2u);
@@ -1858,7 +1875,7 @@ int converging_loop_index() {
     });
     Eigen::VectorXd x0(4);
     x0 << 1.0, 5.0, 5.0, 1.0;
-    pilot_result = pilot.solve(*pilot_program, x0);
+    pilot_result = pilot.solve(hven::solvers::detail::problem_ref(*pilot_program), x0);
     EXPECT_EQ(pilot_result.status, hven::solvers::SolveStatus::kOptimal);
     EXPECT_EQ(pilot.last_stop_reason(), hven::solvers::IpmStopReason::kNone);
     return last;
@@ -1888,7 +1905,7 @@ CappedRun run_capped(int cap) {
     });
     Eigen::VectorXd x0(4);
     x0 << 1.0, 5.0, 5.0, 1.0;
-    result = solver.solve(*program, x0);
+    result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
     out.flag = result.status;
     out.reason = solver.last_stop_reason();
     return out;
@@ -1978,7 +1995,8 @@ template <class Configure> VariantRun run_hs071(Configure &&configure) {
 
     Eigen::VectorXd x0(4);
     x0 << 1.0, 5.0, 5.0, 1.0;
-    const hven::solvers::IpmResult result = solver.solve(*program, x0);
+    const hven::solvers::IpmResult result =
+        solver.solve(hven::solvers::detail::problem_ref(*program), x0);
     run.status = result.status;
     run.x = result.x;
     return run;
@@ -2107,46 +2125,46 @@ namespace {
 
 // min -sqrt(x0) - sqrt(x1) s.t. x0 + x1 = 6, 1 <= x <= 5. Convex on the box;
 // minimizer (3, 3), f* = -2*sqrt(3). NaN at any negative coordinate.
-struct BoxedSqrtProblem : NlpTripletModel {
-    int num_vars() const override { return 2; }
-    int num_cons() const override { return 1; }
-    int num_jac_nonzeros() const override { return 2; }
-    int num_hess_nonzeros() const override { return 2; }
+struct BoxedSqrtProblem : Nlp {
+    hven::solvers::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    int num_vars() const { return 2; }
+    int num_cons() const { return 1; }
+    int num_jac_nonzeros() const { return 2; }
+    int num_hess_nonzeros() const { return 2; }
+
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl << 1.0, 1.0;
         xu << 5.0, 5.0;
         gl << 6.0;
         gu << 6.0;
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         f = -std::sqrt(x[0]) - std::sqrt(x[1]);
+        return f;
     }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = -0.5 / std::sqrt(x[0]);
         g[1] = -0.5 / std::sqrt(x[1]);
     }
-    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
-        g[0] = x[0] + x[1];
-    }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override { g[0] = x[0] + x[1]; }
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 0;
         c << 0, 1;
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 1;
         c << 0, 1;
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override {
         v[0] = 1.0;
         v[1] = 1.0;
     }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd> x, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(hven::ConstVecRef x, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
         v[0] = obj_factor * 0.25 * std::pow(x[0], -1.5);
         v[1] = obj_factor * 0.25 * std::pow(x[1], -1.5);
     }
@@ -2163,7 +2181,7 @@ TEST(IpmSolverEntry, AnOutOfBoxStartPointIsPushedInteriorBeforeTheFirstEvaluatio
     Eigen::VectorXd x0(2);
     x0 << -1.0, -1.0;
     double f_at_x0 = 0.0;
-    problem->eval_f(x0, f_at_x0);
+    f_at_x0 = problem->eval_f(x0);
     ASSERT_TRUE(std::isnan(f_at_x0))
         << "the fixture must be un-evaluable at x0, or this test cannot tell a push that "
            "happened from one that did not";
@@ -2175,7 +2193,8 @@ TEST(IpmSolverEntry, AnOutOfBoxStartPointIsPushedInteriorBeforeTheFirstEvaluatio
         o.common.print_level = 10;
         solver.set_options(std::move(o));
     }
-    const hven::solvers::IpmResult result = solver.solve(*program, x0);
+    const hven::solvers::IpmResult result =
+        solver.solve(hven::solvers::detail::problem_ref(*program), x0);
 
     EXPECT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
     EXPECT_TRUE(std::isfinite(result.f));
@@ -2201,7 +2220,8 @@ TEST(IpmSolverEntry, AnInBoxStartPointIsUnchangedByTheSameSolve) {
     }
     Eigen::VectorXd x0(2);
     x0 << 2.0, 4.0;
-    const hven::solvers::IpmResult result = solver.solve(*program, x0);
+    const hven::solvers::IpmResult result =
+        solver.solve(hven::solvers::detail::problem_ref(*program), x0);
 
     EXPECT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
     EXPECT_NEAR(result.f, -2.0 * std::sqrt(3.0), 1e-6);

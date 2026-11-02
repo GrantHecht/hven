@@ -43,9 +43,9 @@
 
 #include <gtest/gtest.h>
 
+#include "hven/detail/model/nlp_model.h"
+#include "hven/detail/model/nlp_model_assembly.h"
 #include "hven/model/nlp_assembly.h"
-#include "hven/model/nlp_model.h"
-#include "hven/model/nlp_model_assembly.h"
 
 #include "../../bench/model_surface_kkt.h"
 

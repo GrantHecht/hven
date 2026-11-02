@@ -21,11 +21,11 @@
 #include "hven/detail/interior/fixed_variable_row.h"
 #include "hven/detail/interior/indexing_data.h"
 #include "hven/detail/model/nlp_adapter.h"
+#include "hven/detail/model/non_linear_program.h"
 #include "hven/model/assembly_declaration.h"
 #include "hven/model/candidate_point.h"
 #include "hven/model/claim_space.h"
 #include "hven/model/nlp_assembly.h"
-#include "hven/model/non_linear_program.h"
 #include "hven/model/structure_identity.h"
 #include "support/fake_aggregate.h"
 

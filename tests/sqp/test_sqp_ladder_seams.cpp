@@ -28,7 +28,9 @@
 #include <gtest/gtest.h>
 
 #include <hven/detail/drivers/ladder_testing.h>
+#include <hven/detail/drivers/result_access.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/drivers/sqp_solver_types.h>
 
 #include "support/qp_as_nlp_model.h"
@@ -158,7 +160,8 @@ TEST(SqpLadderSeam, L1ARefusedRequestAtAFeasiblePointIsNeverInfeasible) {
     o.max_iter = 200;
     o.qp_failure_budget = 1000; // the shrink ladder runs to the floor
     SqpSolver driver(o);
-    const SqpResult sol = driver.solve(model);
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
 
     // The premise: one restoration, serviced, resumed inside feas_tol; then failures.
     ASSERT_EQ(sol.counters.restoration_entries, 1);
@@ -182,7 +185,8 @@ TEST(SqpLadderSeam, L3AnE2TerminationAtAnInfeasibleIterateOpensTheElasticTier) {
     Seam::fail_walk_qps = 1;
     QpAsNlpModel model = line_model(vec2(0.0, 0.0));
     SqpSolver driver(quiet());
-    const SqpResult sol = driver.solve(model);
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
 
     EXPECT_EQ(Seam::forced, 1);
     EXPECT_GE(sol.counters.elastic_activations, 1);
@@ -202,7 +206,8 @@ TEST(SqpLadderSeam, L3APlainNumericalErrorKeepsTheShrinkLadder) {
     SqpOptions o = quiet();
     o.tr_init = 10.0;
     SqpSolver driver(o);
-    const SqpResult sol = driver.solve(model);
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
 
     EXPECT_EQ(Seam::forced, 1);
     ASSERT_FALSE(sol.history.empty());
@@ -219,7 +224,8 @@ TEST(SqpLadderSeam, L3AtAFeasibleIterateTheShrinkLadderStays) {
     Seam::fail_walk_qps = 1;
     QpAsNlpModel model = line_model(vec2(0.0, 2.0));
     SqpSolver driver(quiet());
-    const SqpResult sol = driver.solve(model);
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
 
     EXPECT_EQ(Seam::forced, 1);
     EXPECT_EQ(sol.counters.elastic_activations, 0);
@@ -238,7 +244,8 @@ TEST(SqpLadderSeam, L3TheGuardReadsTheBox) {
     o.project_start_point = false;
     o.tr_init = 10.0; // the QP can reach the box: it is kOptimal before the seam
     SqpSolver driver(o);
-    const SqpResult sol = driver.solve(model);
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
 
     EXPECT_EQ(Seam::forced, 1);
     EXPECT_GE(sol.counters.elastic_activations, 1);
@@ -260,7 +267,8 @@ TEST(SqpLadderSeam, Sdl4ABoundRefusalOffItsBoxTakesTheElasticTierAtEveryH) {
         Seam::forced_point = {12.0, -10.0}; // rows met, x0 past its upper bound 10
         QpAsNlpModel model = line_model(x0);
         SqpSolver driver(quiet());
-        const SqpResult sol = driver.solve(model);
+        const SqpResult sol =
+            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
 
         EXPECT_EQ(Seam::forced, 1);
         EXPECT_GE(sol.counters.elastic_activations, 1);
@@ -280,7 +288,8 @@ TEST(SqpLadderSeam, Sdl4ARetryableBoundRefusalAtAFeasibleIterateKeepsTheShrinkLa
     Seam::as_bound_refusal = true;
     QpAsNlpModel model = line_model(vec2(0.0, 2.0));
     SqpSolver driver(quiet());
-    const SqpResult sol = driver.solve(model);
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
 
     EXPECT_EQ(Seam::forced, 1);
     EXPECT_EQ(sol.counters.elastic_activations, 0);
@@ -298,7 +307,8 @@ TEST(SqpLadderSeam, Sdl4ARetryableBoundRefusalAtAnInfeasibleIterateTakesTheElast
     Seam::as_bound_refusal = true;
     QpAsNlpModel model = line_model(vec2(0.0, 0.0));
     SqpSolver driver(quiet());
-    const SqpResult sol = driver.solve(model);
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
 
     EXPECT_EQ(Seam::forced, 1);
     EXPECT_GE(sol.counters.elastic_activations, 1);
@@ -318,7 +328,8 @@ TEST(SqpLadderSeam, Sdl6ARowRefusalAtAnInfeasibleIterateOpensTheElasticTier) {
     Seam::as_row_refusal = true;
     QpAsNlpModel model = line_model(vec2(0.0, 0.0));
     SqpSolver driver(quiet());
-    const SqpResult sol = driver.solve(model);
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
 
     EXPECT_EQ(Seam::forced, 1);
     EXPECT_GE(sol.counters.elastic_activations, 1);
@@ -340,7 +351,8 @@ TEST(SqpLadderSeam, Sdl4ABoundRefusalIsNotOfferedAsAFailureStep) {
     SqpOptions o = quiet();
     o.qp_failure_step = true;
     SqpSolver driver(o);
-    const SqpResult sol = driver.solve(model);
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
 
     EXPECT_EQ(Seam::forced, 1);
     EXPECT_EQ(sol.counters.qp_failure_steps_judged, 0);
@@ -358,7 +370,8 @@ TEST(SqpLadderSeam, Sdl6ARowRefusalAtAFeasibleIterateKeepsTheShrinkLadder) {
     Seam::as_row_refusal = true;
     QpAsNlpModel model = line_model(vec2(0.0, 2.0));
     SqpSolver driver(quiet());
-    const SqpResult sol = driver.solve(model);
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
 
     EXPECT_EQ(Seam::forced, 1);
     EXPECT_EQ(sol.counters.elastic_activations, 0);
@@ -378,7 +391,8 @@ TEST(SqpLadderSeam, Sdl6ARowRefusalIsNotOfferedAsAFailureStep) {
     SqpOptions o = quiet();
     o.qp_failure_step = true;
     SqpSolver driver(o);
-    const SqpResult sol = driver.solve(model);
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
 
     EXPECT_EQ(Seam::forced, 1);
     EXPECT_EQ(sol.counters.qp_failure_steps_judged, 0);
@@ -485,7 +499,8 @@ TEST(SqpLadderSeam, R2ACarriedPriceIsNotACertificate) {
     CarriedPriceModel model;
     const SqpOptions o = failure_step_options();
     SqpSolver driver(o);
-    const SqpResult sol = driver.solve(model);
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
 
     // The premise: one forced failure, at major 1, whose own step was judged and taken.
     ASSERT_EQ(Seam::forced, 1);
@@ -502,8 +517,10 @@ TEST(SqpLadderSeam, R2ACarriedPriceIsNotACertificate) {
     EXPECT_NEAR(sol.f, 0.0, 1e-9);
     EXPECT_NEAR(sol.x(0), 0.0, 1e-9);
     EXPECT_NEAR(sol.x(1), 0.0, 1e-9);
-    ASSERT_EQ(sol.lambda_i.size(), 1);
-    EXPECT_LE(std::abs(sol.lambda_i(0) * model.eval_ci(sol.x)(0)), o.kkt_tol);
+    ASSERT_EQ(hven::solvers::detail::engine_rows(sol).lambda_i.size(), 1);
+    EXPECT_LE(
+        std::abs(hven::solvers::detail::engine_rows(sol).lambda_i(0) * model.eval_ci(sol.x)(0)),
+        o.kkt_tol);
 }
 
 // A JUDGED, REJECTED FAILURE STEP IS NOT CHARGED TO THE BUDGET (R2 review, RIDER-5).
@@ -520,7 +537,8 @@ TEST(SqpLadderSeam, R2AJudgedRejectedStepIsNotChargedToTheBudget) {
         SqpOptions o = failure_step_options();
         o.qp_failure_step = on;
         SqpSolver driver(o);
-        const SqpResult sol = driver.solve(model);
+        const SqpResult sol =
+            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
 
         ASSERT_EQ(Seam::forced, 3);
         EXPECT_EQ(sol.status, SolveStatus::kOptimal);
@@ -615,7 +633,8 @@ TEST(SqpLadderSeam, CertOneAPointTheConvergenceTestCallsFeasibleIsNoCertificate)
         depths.push_back(e.depth.value_or(0));
         return CallbackAction::kContinue;
     });
-    const SqpResult sol = driver.solve(model);
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
 
     // THE PREMISE: one restoration, its sub-solve converged at a point whose rows are
     // each inside feas_tol (inf) while their l1 sum is not.
@@ -682,7 +701,7 @@ SqpResult reduction_resume_solve(double k) {
     o.tr_min = 0.75;
     o.restoration_resume_reduction = k;
     SqpSolver driver(o);
-    return driver.solve(model);
+    return driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
 }
 } // namespace
 
@@ -764,7 +783,8 @@ TEST(SqpLadderSeam, QcOneASlackInsideFeasTolIsNotABoundAtAViolatedRow) {
         o.tr_min = 0.01;
         o.qp_failure_budget = 1000; // the shrink ladder runs to the floor
         SqpSolver driver(o);
-        const SqpResult sol = driver.solve(model);
+        const SqpResult sol =
+            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
 
         // THE PREMISE: one restoration, entered at the start point, whose row misses by more
         // than feas_tol while its sigma-scaled slack sits inside feas_tol of zero.
@@ -806,7 +826,8 @@ TEST(SqpLadderSeam, ARequestWithNoAcceptedStepSinceTheResumeIsRefusedAtAnyCap) {
         o.qp_failure_budget = 1000;
         o.restoration_max_entries = cap;
         SqpSolver driver(o);
-        const SqpResult sol = driver.solve(model);
+        const SqpResult sol =
+            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
         ASSERT_GE(Seam::forced, 1);
         EXPECT_EQ(sol.counters.restoration_entries, 1);
         EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
@@ -834,7 +855,8 @@ TEST(SqpLadderSeam, ARequestAfterAnAcceptedStepIsServicedOnlyBelowTheCap) {
         o.qp_failure_budget = 1000;
         o.restoration_max_entries = cap;
         SqpSolver driver(o);
-        const SqpResult sol = driver.solve(model);
+        const SqpResult sol =
+            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
         ASSERT_GE(Seam::forced, 1);
         EXPECT_EQ(sol.counters.restoration_entries, cap == 1 ? 1 : 2);
         EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
@@ -914,7 +936,8 @@ TEST(SqpLadderSeam, AFailedPhaseSubproblemRestartsThePhaseOnTheRegularizedModel)
             SqpOptions o = quiet();
             o.max_iter = 200;
             o.restoration_curvature = arm.curvature;
-            const SqpResult sol = SqpSolver(o).solve(model);
+            const SqpResult sol = SqpSolver(o).solve(hven::solvers::detail::problem_ref(model),
+                                                     (model).start_point());
             ASSERT_EQ(sol.status, SolveStatus::kInfeasible);
             ASSERT_EQ(sol.counters.restoration_curvature_switches, 0) << "fixture premise";
             hess_unforced = model.n_hess;
@@ -925,7 +948,8 @@ TEST(SqpLadderSeam, AFailedPhaseSubproblemRestartsThePhaseOnTheRegularizedModel)
         SqpOptions o = quiet();
         o.max_iter = 200;
         o.restoration_curvature = arm.curvature;
-        const SqpResult sol = SqpSolver(o).solve(model);
+        const SqpResult sol =
+            SqpSolver(o).solve(hven::solvers::detail::problem_ref(model), (model).start_point());
         ASSERT_EQ(Seam::forced_restoration, 1);
         ASSERT_EQ(Seam::forced, 0) << "the top-level knobs are off";
         EXPECT_EQ(sol.counters.restoration_curvature_switches, arm.switches);
@@ -967,7 +991,8 @@ TEST(SqpLadderSeam, AStopOnTheSwitchRowEndsTheSolveWithoutTheRegularizedRestart)
         }
         return CallbackAction::kContinue;
     });
-    const SqpResult sol = solver.solve(model);
+    const SqpResult sol =
+        solver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(Seam::forced_restoration, 1);
     EXPECT_EQ(sol.counters.restoration_curvature_switches, 1) << "the stop came on the switch row";
     EXPECT_EQ(depth1_rows, 1) << "no regularized phase ran after the stop";
@@ -987,7 +1012,8 @@ TEST(SqpLadderSeam, UnderTheQuasiNewtonModeAFailedPhaseSubproblemDoesNotSwitch) 
     o.hessian_mode = SqpHessianMode::kLbfgsDamped;
     o.max_iter = 300;
     ASSERT_EQ(o.restoration_curvature, SqpRestorationCurvature::kModelThenRegularized);
-    const SqpResult sol = SqpSolver(o).solve(model);
+    const SqpResult sol =
+        SqpSolver(o).solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(Seam::forced_restoration, 1);
     EXPECT_EQ(sol.counters.restoration_curvature_switches, 0);
     EXPECT_EQ(sol.counters.eval_hess_calls, 0);
@@ -1012,7 +1038,8 @@ TEST(SqpLadderSeam, AnExhaustedElasticTierInsideThePhaseTakesTheRegularizedResta
         SqpOptions o = quiet();
         o.max_iter = 200;
         o.restoration_curvature = curvature;
-        const SqpResult sol = SqpSolver(o).solve(model);
+        const SqpResult sol =
+            SqpSolver(o).solve(hven::solvers::detail::problem_ref(model), (model).start_point());
         ASSERT_EQ(Seam::forced_restoration, 1);
         ASSERT_EQ(Seam::exhaust_restoration_elastic, 0) << "the forced exit reached the knob";
         EXPECT_GE(sol.counters.elastic_activations, 1) << "the elastic tier ran first";
@@ -1100,7 +1127,8 @@ TEST(SqpLadderSeam, EveryRowBlockIsReadOncePerCountedQueryWithBothRowKinds) {
         CountingCircleHalfPlaneModel model;
         SqpOptions o = quiet();
         o.max_iter = 200;
-        const SqpResult sol = SqpSolver(o).solve(model);
+        const SqpResult sol =
+            SqpSolver(o).solve(hven::solvers::detail::problem_ref(model), (model).start_point());
         ASSERT_EQ(Seam::forced_restoration, forced);
         ASSERT_GE(sol.counters.restoration_entries, 1) << "fixture premise: the phase runs";
         EXPECT_EQ(sol.counters.restoration_curvature_switches, forced);

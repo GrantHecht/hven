@@ -39,6 +39,7 @@
 #include <gtest/gtest.h>
 
 #include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/drivers/trace_writer.h>
 
 #include "support/hs_problems.h"
@@ -110,7 +111,8 @@ SiteRun run_cell(int hs, QpMode mode) {
     std::ostringstream os;
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
-    const SqpResult sol = driver.solve(*p.model);
+    const SqpResult sol =
+        driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
 
     SiteRun r;
     r.sites = site_census(os.str());

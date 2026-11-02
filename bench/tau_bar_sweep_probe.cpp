@@ -90,6 +90,7 @@
 #include <cstdio>
 
 #include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/problem_access.h>
 
 #include "support/hs_sweeps.h"
 
@@ -134,7 +135,8 @@ int main() {
         for (double p : grid) {
             SqpSolver driver(cold_options(spec.max_iter));
             model->set_parameters(Vec::Constant(1, p));
-            const SqpResult sol = driver.solve(*model, model->start_point());
+            const SqpResult sol =
+                driver.solve(hven::solvers::detail::problem_ref(*model), model->start_point());
             all_optimal = all_optimal && sol.status == SolveStatus::kOptimal;
             majors += sol.counters.major_iters;
             minors += sol.counters.qp_minor_iters;

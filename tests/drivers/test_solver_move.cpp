@@ -25,13 +25,15 @@
 #include <Eigen/Core>
 
 #include <hven/core/ledger.h>
+#include <hven/detail/drivers/result_access.h>
+#include <hven/detail/model/make_nlp_program.h>
+#include <hven/detail/model/nlp_model.h>
+#include <hven/detail/model/non_linear_program.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/drivers/ipm_solver.h>
 #include <hven/drivers/ipm_solver_types.h>
 #include <hven/drivers/sqp_solver.h>
 #include <hven/drivers/sqp_solver_types.h>
-#include <hven/model/make_nlp_program.h>
-#include <hven/model/nlp_model.h>
-#include <hven/model/non_linear_program.h>
 
 #include "sqp/support/hs_problems.h"
 #include "support/hs071_problem.h"
@@ -56,8 +58,10 @@ void expect_same_solve(const hven::solvers::SolveResult &a, const hven::solvers:
     EXPECT_TRUE(bits_equal(a.f, b.f));
     EXPECT_TRUE(vectors_bitwise_equal(a.x, b.x));
     EXPECT_TRUE(vectors_bitwise_equal(a.z, b.z));
-    EXPECT_TRUE(vectors_bitwise_equal(a.lambda_e, b.lambda_e));
-    EXPECT_TRUE(vectors_bitwise_equal(a.lambda_i, b.lambda_i));
+    EXPECT_TRUE(vectors_bitwise_equal(hven::solvers::detail::engine_rows(a).lambda_e,
+                                      hven::solvers::detail::engine_rows(b).lambda_e));
+    EXPECT_TRUE(vectors_bitwise_equal(hven::solvers::detail::engine_rows(a).lambda_i,
+                                      hven::solvers::detail::engine_rows(b).lambda_i));
 }
 
 hven::solvers::IpmOptions ipm_options() {
@@ -82,8 +86,9 @@ TEST(SolverMove, IpmSolverSolvesBitwiseEqualAfterAMove) {
     const Eigen::VectorXd x0 = hven_drivers_tests::hs071_start();
 
     hven::solvers::IpmSolver reference(ipm_options());
-    (void)reference.solve(*program, x0);
-    const hven::solvers::IpmResult expected = reference.solve(*program, x0);
+    (void)reference.solve(hven::solvers::detail::problem_ref(*program), x0);
+    const hven::solvers::IpmResult expected =
+        reference.solve(hven::solvers::detail::problem_ref(*program), x0);
 
     // A callback and a ledger attached BEFORE the move must still be live
     // after it: the second solve (post-move) must add to both.
@@ -95,13 +100,14 @@ TEST(SolverMove, IpmSolverSolvesBitwiseEqualAfterAMove) {
     });
     hven::solvers::Ledger ledger;
     original.attach_ledger(&ledger, "move");
-    (void)original.solve(*program, x0);
+    (void)original.solve(hven::solvers::detail::problem_ref(*program), x0);
     const int count_before_move = callback_count;
     const std::size_t records_before_move = ledger.ipm_records().size();
     EXPECT_GT(count_before_move, 0);
     EXPECT_EQ(records_before_move, 1u);
     hven::solvers::IpmSolver moved(std::move(original));
-    const hven::solvers::IpmResult actual = moved.solve(*program, x0);
+    const hven::solvers::IpmResult actual =
+        moved.solve(hven::solvers::detail::problem_ref(*program), x0);
     EXPECT_GT(callback_count, count_before_move);
     EXPECT_EQ(ledger.ipm_records().size(), records_before_move + 1);
 
@@ -114,9 +120,10 @@ TEST(SolverMove, IpmSolverSolvesBitwiseEqualAfterAMove) {
     // assignment it is a working solver again, and a cold solve of a fresh
     // solver's first-solve history reproduces the first-solve answer.
     original = hven::solvers::IpmSolver(ipm_options());
-    const hven::solvers::IpmResult again = original.solve(*program, x0);
+    const hven::solvers::IpmResult again =
+        original.solve(hven::solvers::detail::problem_ref(*program), x0);
     hven::solvers::IpmSolver fresh(ipm_options());
-    expect_same_solve(fresh.solve(*program, x0), again);
+    expect_same_solve(fresh.solve(hven::solvers::detail::problem_ref(*program), x0), again);
 }
 
 TEST(SolverMove, IpmMoveAssignmentTransfersTheEngine) {
@@ -125,15 +132,16 @@ TEST(SolverMove, IpmMoveAssignmentTransfersTheEngine) {
     const Eigen::VectorXd x0 = hven_drivers_tests::hs071_start();
 
     hven::solvers::IpmSolver reference(ipm_options());
-    (void)reference.solve(*program, x0);
-    const hven::solvers::IpmResult expected = reference.solve(*program, x0);
+    (void)reference.solve(hven::solvers::detail::problem_ref(*program), x0);
+    const hven::solvers::IpmResult expected =
+        reference.solve(hven::solvers::detail::problem_ref(*program), x0);
 
     hven::solvers::IpmSolver source(ipm_options());
-    (void)source.solve(*program, x0);
+    (void)source.solve(hven::solvers::detail::problem_ref(*program), x0);
     hven::solvers::IpmSolver target(ipm_options());
     target = std::move(source);
-    EXPECT_TRUE(target.kkt_pattern_is_analyzed(*program));
-    expect_same_solve(expected, target.solve(*program, x0));
+    EXPECT_TRUE(target.kkt_pattern_is_analyzed(hven::solvers::detail::problem_ref(*program)));
+    expect_same_solve(expected, target.solve(hven::solvers::detail::problem_ref(*program), x0));
 }
 
 TEST(SolverMove, AMovedFromIpmSolverRefusesUseByName) {
@@ -141,7 +149,9 @@ TEST(SolverMove, AMovedFromIpmSolverRefusesUseByName) {
     hven::solvers::IpmSolver sink(std::move(source));
     const auto program =
         hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
-    EXPECT_THROW((void)source.solve(*program, hven_drivers_tests::hs071_start()), std::logic_error);
+    EXPECT_THROW((void)source.solve(hven::solvers::detail::problem_ref(*program),
+                                    hven_drivers_tests::hs071_start()),
+                 std::logic_error);
     EXPECT_THROW(source.set_options(ipm_options()), std::logic_error);
     EXPECT_THROW(source.clear_iteration_callback(), std::logic_error);
     EXPECT_THROW((void)source.options(), std::logic_error);
@@ -154,8 +164,9 @@ TEST(SolverMove, SqpSolverSolvesBitwiseEqualAfterAMove) {
     const Eigen::VectorXd x0 = p.model->start_point();
 
     hven::solvers::SqpSolver reference(sqp_options());
-    (void)reference.solve(*p.model, x0);
-    const hven::solvers::SqpResult expected = reference.solve(*p.model, x0);
+    (void)reference.solve(hven::solvers::detail::problem_ref(*p.model), x0);
+    const hven::solvers::SqpResult expected =
+        reference.solve(hven::solvers::detail::problem_ref(*p.model), x0);
 
     // A callback and a ledger attached BEFORE the move must still be live
     // after it: the second solve (post-move) must add to both.
@@ -167,13 +178,14 @@ TEST(SolverMove, SqpSolverSolvesBitwiseEqualAfterAMove) {
     });
     hven::solvers::Ledger ledger;
     original.attach_ledger(&ledger, "move");
-    (void)original.solve(*p.model, x0);
+    (void)original.solve(hven::solvers::detail::problem_ref(*p.model), x0);
     const int count_before_move = callback_count;
     const std::size_t records_before_move = ledger.sqp_records().size();
     EXPECT_GT(count_before_move, 0);
     EXPECT_EQ(records_before_move, 1u);
     hven::solvers::SqpSolver moved(std::move(original));
-    const hven::solvers::SqpResult actual = moved.solve(*p.model, x0);
+    const hven::solvers::SqpResult actual =
+        moved.solve(hven::solvers::detail::problem_ref(*p.model), x0);
     EXPECT_GT(callback_count, count_before_move);
     EXPECT_EQ(ledger.sqp_records().size(), records_before_move + 1);
 
@@ -183,9 +195,10 @@ TEST(SolverMove, SqpSolverSolvesBitwiseEqualAfterAMove) {
     EXPECT_EQ(expected.counters.factorizations, actual.counters.factorizations);
 
     original = hven::solvers::SqpSolver(sqp_options());
-    const hven::solvers::SqpResult again = original.solve(*p.model, x0);
+    const hven::solvers::SqpResult again =
+        original.solve(hven::solvers::detail::problem_ref(*p.model), x0);
     hven::solvers::SqpSolver fresh(sqp_options());
-    expect_same_solve(fresh.solve(*p.model, x0), again);
+    expect_same_solve(fresh.solve(hven::solvers::detail::problem_ref(*p.model), x0), again);
 }
 
 TEST(SolverMove, SqpMoveAssignmentTransfersTheEngine) {
@@ -193,14 +206,15 @@ TEST(SolverMove, SqpMoveAssignmentTransfersTheEngine) {
     const Eigen::VectorXd x0 = p.model->start_point();
 
     hven::solvers::SqpSolver reference(sqp_options());
-    (void)reference.solve(*p.model, x0);
-    const hven::solvers::SqpResult expected = reference.solve(*p.model, x0);
+    (void)reference.solve(hven::solvers::detail::problem_ref(*p.model), x0);
+    const hven::solvers::SqpResult expected =
+        reference.solve(hven::solvers::detail::problem_ref(*p.model), x0);
 
     hven::solvers::SqpSolver source(sqp_options());
-    (void)source.solve(*p.model, x0);
+    (void)source.solve(hven::solvers::detail::problem_ref(*p.model), x0);
     hven::solvers::SqpSolver target(sqp_options());
     target = std::move(source);
-    expect_same_solve(expected, target.solve(*p.model, x0));
+    expect_same_solve(expected, target.solve(hven::solvers::detail::problem_ref(*p.model), x0));
     EXPECT_NO_THROW((void)target.export_warm_start());
 }
 
@@ -208,7 +222,9 @@ TEST(SolverMove, AMovedFromSqpSolverRefusesUseByName) {
     hven::solvers::SqpSolver source(sqp_options());
     hven::solvers::SqpSolver sink(std::move(source));
     const auto p = hven::solvers::test_support::make_hs(7);
-    EXPECT_THROW((void)source.solve(*p.model, p.model->start_point()), std::logic_error);
+    EXPECT_THROW(
+        (void)source.solve(hven::solvers::detail::problem_ref(*p.model), p.model->start_point()),
+        std::logic_error);
     EXPECT_THROW(source.set_options(sqp_options()), std::logic_error);
     EXPECT_THROW((void)source.export_warm_start(), std::logic_error);
     EXPECT_THROW((void)source.options(), std::logic_error);

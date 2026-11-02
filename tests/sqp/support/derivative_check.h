@@ -72,7 +72,7 @@
 #include <Eigen/Dense>
 #include <gtest/gtest.h>
 
-#include <hven/model/nlp_model.h>
+#include <hven/detail/model/nlp_model.h>
 
 #include <hven/core/compiler.h>
 

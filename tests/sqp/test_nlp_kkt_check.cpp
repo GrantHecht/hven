@@ -38,8 +38,9 @@
 #include <Eigen/SparseCore>
 
 #include <hven/core/types.h>
+#include <hven/detail/drivers/result_access.h>
+#include <hven/detail/model/nlp_model.h>
 #include <hven/drivers/sqp_solver_types.h>
-#include <hven/model/nlp_model.h>
 
 #include "support/nlp_kkt_check.h"
 
@@ -141,8 +142,8 @@ SqpResult optimal_solution() {
     sol.status = hven::solvers::SolveStatus::kOptimal;
     sol.x = Vec(2);
     sol.x << 1.0, 1.0;
-    sol.lambda_e = Vec::Constant(1, -1.0);
-    sol.lambda_i = Vec::Zero(1);
+    hven::solvers::detail::engine_rows(sol).lambda_e = Vec::Constant(1, -1.0);
+    hven::solvers::detail::engine_rows(sol).lambda_i = Vec::Zero(1);
     sol.z = Vec::Zero(2);
     return sol;
 }
@@ -283,8 +284,10 @@ TEST(NlpKktSelfCheck, NoPoisonedInputEverScoresAsACleanOptimum) {
         {"x infinite", [](PoisonableNlp &, SqpResult &s, double &) { s.x(1) = kInf; }},
         {"z", [](PoisonableNlp &, SqpResult &s, double &) { s.z(1) = kNan; }},
         {"z infinite", [](PoisonableNlp &, SqpResult &s, double &) { s.z(0) = kInf; }},
-        {"lambda_e", [](PoisonableNlp &, SqpResult &s, double &) { s.lambda_e(0) = kNan; }},
-        {"lambda_i", [](PoisonableNlp &, SqpResult &s, double &) { s.lambda_i(0) = kNan; }},
+        {"lambda_e", [](PoisonableNlp &, SqpResult &s,
+                        double &) { hven::solvers::detail::engine_rows(s).lambda_e(0) = kNan; }},
+        {"lambda_i", [](PoisonableNlp &, SqpResult &s,
+                        double &) { hven::solvers::detail::engine_rows(s).lambda_i(0) = kNan; }},
         {"gradient", [](PoisonableNlp &m, SqpResult &, double &) { m.grad_poison_ = kNan; }},
         {"gradient infinite",
          [](PoisonableNlp &m, SqpResult &, double &) { m.grad_poison_ = kInf; }},
