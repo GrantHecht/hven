@@ -45,8 +45,9 @@
 // here is a per-element hot path and nothing depends on inlining through a
 // template parameter.
 
-#include <hven/detail/drivers/console_color.h>
 #include <hven/drivers/console_trace_sink.h>
+
+#include <hven/detail/drivers/console_color.h>
 
 #include <algorithm>
 #include <cmath>
