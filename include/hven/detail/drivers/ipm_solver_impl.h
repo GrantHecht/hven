@@ -244,8 +244,8 @@ class IpmSolverImpl {
     /// @brief Releases the factorization and the globalization components.
     ~IpmSolverImpl();
 
-    // Neither copyable nor movable: the kkt_sol_ factorization and the
-    // unique_ptr globalization components have no defined transfer semantics.
+    // The implementation is pinned in place: neither copyable nor movable. The
+    // public `IpmSolver` handle moves; this object never does.
 
     /// @brief Deleted: a solver is not copy-constructible.
     IpmSolverImpl(const IpmSolverImpl &) = delete;

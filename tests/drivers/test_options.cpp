@@ -90,7 +90,7 @@ void expect_refused(const IpmOptions &o, const char *field) {
 } // namespace
 
 // ---------------------------------------------------------------------------
-// NEITHER ENGINE'S SOLVER OBJECT MOVES (design §2.1; fix round 1)
+// THE SOLVERS ARE MOVABLE HANDLES, NOT COPYABLE
 // ---------------------------------------------------------------------------
 //
 // Both solvers are handles over a heap-allocated private implementation: they

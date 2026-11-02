@@ -632,8 +632,9 @@ inline constexpr double kAdaptiveMuMax = 1e-8;
 // IPM's own two seeding constants -- three policies, three derivations, one
 // header, values DELIBERATELY NOT UNIFIED (design 2.4). It keeps this exact
 // namespace-scope spelling, so nothing that names it had to change; this
-// header pulls it in so every existing `#include <hven/detail/drivers/sqp_solver_impl.h>`
-// still sees it.
+// public header `hven/drivers/sqp_solver.h` does not pull it in; a consumer
+// that names it includes `hven/warmstart/seeding.h`. This implementation
+// header includes that file for its own use.
 
 /// @brief The SQP driver: a trust-region SQP major loop over one QpEngine.
 /// Every member below -- and every free function declared above -- is defined
@@ -701,16 +702,12 @@ class SqpSolverImpl {
     SqpSolverImpl(const SqpOptions &opts, RestorationSubDriverTag);
 
   public:
-    // NEITHER COPYABLE NOR MOVABLE, BY DECLARATION (M6 W5 T8.3 fix1). Design
-    // §2.1 says a driver does not move; before this task the by-value QpEngine
-    // member enforced half of that by accident (QpEngine declares no
-    // assignment, so move ASSIGNMENT was implicitly deleted). Holding the
-    // engine through a unique_ptr removed that accident and made
-    // `a = std::move(b)` compile again -- and a moved-from driver would hold a
-    // NULL engine_, which every use below dereferences without a check. The
-    // four operations are deleted explicitly so the invariant is a property of
-    // the class rather than of whichever member happens to be non-movable
-    // today; the traits are pinned in tests/drivers/test_options.cpp.
+    // The implementation is pinned in place: neither copyable nor movable. The
+    // public `SqpSolver` handle moves; this object never does, because a moved
+    // implementation would leave a null `engine_` that every use below
+    // dereferences unchecked. The four operations are deleted explicitly so the
+    // invariant is a property of the class; the traits are pinned in
+    // tests/drivers/test_options.cpp.
     /// @brief Deleted: a driver is not copy-constructible.
     SqpSolverImpl(const SqpSolverImpl &) = delete;
     /// @brief Deleted: a driver is not copy-assignable.
