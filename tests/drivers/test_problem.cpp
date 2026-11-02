@@ -85,6 +85,23 @@ bool bitwise_equal(const Vec &a, const Vec &b) {
     return true;
 }
 
+// g with an unmeasured (NaN) row: equal iff the sizes match and every entry is NaN in
+// both or bit-identical.
+bool bitwise_equal_nan_aware(const Vec &a, const Vec &b) {
+    if (a.size() != b.size()) {
+        return false;
+    }
+    for (Index i = 0; i < a.size(); ++i) {
+        if (std::isnan(a[i]) && std::isnan(b[i])) {
+            continue;
+        }
+        if (std::memcmp(&a[i], &b[i], sizeof(double)) != 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
 // The KKT factor's counters run from the solver's last transcription of a program,
 // so a solve on a program already transcribed reports them cumulatively. This turns
 // each result into its own call's share, per solver; @p new_program says the solve
@@ -116,6 +133,9 @@ void expect_same_ipm_solution(const IpmResult &a, std::pair<Index, Index> a_call
     EXPECT_EQ(a_calls, b_calls);
     EXPECT_TRUE(bitwise_equal(a.x, b.x));
     EXPECT_EQ(std::memcmp(&a.f, &b.f, sizeof(double)), 0);
+    EXPECT_TRUE(bitwise_equal(a.lambda, b.lambda));
+    EXPECT_TRUE(bitwise_equal(a.z, b.z));
+    EXPECT_TRUE(bitwise_equal_nan_aware(a.g, b.g));
 }
 
 void expect_same_ipm(const IpmResult &a, const IpmResult &b) {
@@ -128,7 +148,9 @@ void expect_same_ipm(const IpmResult &a, const IpmResult &b) {
     EXPECT_EQ(std::memcmp(&a.f, &b.f, sizeof(double)), 0);
 }
 
-void expect_same_sqp(const SqpResult &a, const SqpResult &b) {
+// Status, counters, x and f: all that two ROUTES (the internal model and the public
+// Problem, whose result is in the problem's own row space) share.
+void expect_same_sqp_core(const SqpResult &a, const SqpResult &b) {
     EXPECT_EQ(a.status, b.status);
     EXPECT_EQ(a.iterations, b.iterations);
     EXPECT_EQ(a.counters.major_iters, b.counters.major_iters);
@@ -137,6 +159,15 @@ void expect_same_sqp(const SqpResult &a, const SqpResult &b) {
     EXPECT_EQ(a.counters.eval_hess_calls, b.counters.eval_hess_calls);
     EXPECT_TRUE(bitwise_equal(a.x, b.x));
     EXPECT_EQ(std::memcmp(&a.f, &b.f, sizeof(double)), 0);
+}
+
+// Two solves through the SAME route: the multipliers, bound multipliers and row values
+// are bitwise equal too (g NaN-aware for an unmeasured row).
+void expect_same_sqp(const SqpResult &a, const SqpResult &b) {
+    expect_same_sqp_core(a, b);
+    EXPECT_TRUE(bitwise_equal(a.lambda, b.lambda));
+    EXPECT_TRUE(bitwise_equal(a.z, b.z));
+    EXPECT_TRUE(bitwise_equal_nan_aware(a.g, b.g));
 }
 
 // ---------------------------------------------------------------------------
@@ -216,8 +247,8 @@ TEST(Problem, UnchangedBoundsResolveIsCounterIdenticalToTheInternalRoute) {
         SqpSolver pub = quiet_sqp();
         const SqpResult p1 = pub.solve(problem, hs071_start());
         const SqpResult p2 = pub.solve(problem, hs071_start());
-        expect_same_sqp(i1, p1);
-        expect_same_sqp(i2, p2);
+        expect_same_sqp_core(i1, p1);
+        expect_same_sqp_core(i2, p2);
     }
 }
 
@@ -384,6 +415,22 @@ TEST(Problem, AChangedFixedSetIsReLaidCountedAndRefusesAPriorWarmStart) {
 
     // Unchanged again: no re-lay.
     EXPECT_EQ(ipm.solve(problem, x0).kkt_analyses_this_call, 0);
+}
+
+// Under MakeConstraint the interior-point engine exports its equality blocks with the
+// internal fixing rows at the tail; the problem's row space is the user's rows alone.
+TEST(Problem, ReportsTheUserRowSpaceUnderMakeConstraintWithAFixedVariable) {
+    const auto box = std::make_shared<Box3>();
+    box->x1_lower = box->x1_upper = 0.25;
+    Problem problem(box);
+    IpmSolver ipm = quiet_ipm(FixedVariableTreatments::MakeConstraint);
+    const IpmResult r = ipm.solve(problem, Vec::Constant(3, 0.5));
+    ASSERT_EQ(r.status, SolveStatus::kOptimal);
+    ASSERT_EQ(r.g.size(), 1);
+    ASSERT_EQ(r.lambda.size(), 1);
+    Vec g(1);
+    box->eval_g(r.x, g);
+    EXPECT_NEAR(r.g[0], g[0], 1e-12 * std::max(1.0, std::abs(g[0])));
 }
 
 // A value-only change -- every variable keeps which sides are finite and whether
@@ -639,8 +686,9 @@ template <class Result>
 void check_row_space(const Problem &problem, const Result &r, const EveryRowKind &nlp, double tol) {
     ASSERT_EQ(r.status, SolveStatus::kOptimal);
     ASSERT_EQ(r.lambda.size(), 5);
-    // g is the engine's measurement mapped through each row's shift, to the rounding
-    // of that shift; row 4 is free, so no engine measures it: NaN, never evaluated.
+    // g is the engine's measurement mapped through each row's shift, to two
+    // roundings (the engine's shift out and this map's shift back); row 4 is free, so no engine
+    // measures it: NaN, never evaluated.
     ASSERT_EQ(r.g.size(), 5);
     Vec g(5);
     nlp.eval_g(r.x, g);
@@ -754,8 +802,8 @@ template <class Result> void check_active_ranges(const Result &r, const ActiveRa
     nlp.eval_grad_f(r.x, grad);
     const Vec stationarity = grad + J.transpose() * r.lambda;
     EXPECT_LT(stationarity.lpNorm<Eigen::Infinity>(), 1e-6);
-    // g is the engine's measurement mapped through each row's shift: g(x) to the
-    // rounding of that one shift.
+    // g is the engine's measurement mapped through each row's shift: g(x) to two
+    // roundings (the engine's shift out and this map's shift back).
     Vec g(5);
     nlp.eval_g(r.x, g);
     for (Index k = 0; k < 5; ++k) {

@@ -1314,6 +1314,8 @@ bool hven::solvers::NonLinearProgram::update_variable_bound_values(ConstEigenRef
         }
     }
 
+    const std::uint64_t digest_before = this->bound_digest();
+
     bool fixing_value_moved = false;
     const bool classified =
         this->fixed_treatment_valid_ && this->configured_bounds_revision_ == this->bounds_revision_;
@@ -1357,6 +1359,12 @@ bool hven::solvers::NonLinearProgram::update_variable_bound_values(ConstEigenRef
             b.upper_val_[k] = relaxed_upper(this->x_upper_[full_index(b.upper_idx_[k])],
                                             this->bound_relax_factor_);
         }
+    }
+    if (this->bound_digest() != digest_before) {
+        throw std::logic_error(
+            "update_variable_bound_values: the bound digest moved across a value-only update; "
+            "the precondition (one bound record per bounded variable) was violated, so the "
+            "structure the digest covers is not the one checked");
     }
     if (fixing_value_moved) {
         this->bounds_revision_++;

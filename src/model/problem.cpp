@@ -290,12 +290,20 @@ class ProblemState {
         const Index m = num_constraints();
         if (kind_ == Kind::kNlp) {
             const NlpProblemModel &model = *nlp_model_;
-            if (rows.lambda_e.size() == model.me() && rows.lambda_i.size() == model.mi()) {
-                result.lambda = model.compose_user_multipliers(rows.lambda_e, rows.lambda_i);
+            // The interior-point engine strips its internal fixing rows (MakeConstraint)
+            // from the declared block before it returns, so the block is the user's
+            // rows alone; a block that still carries them at the tail is read through
+            // its head, the user's rows.
+            const Index extra = extra_fixed_rows();
+            if ((rows.lambda_e.size() == model.me() ||
+                 (extra > 0 && rows.lambda_e.size() == model.me() + extra)) &&
+                rows.lambda_i.size() == model.mi()) {
+                result.lambda =
+                    model.compose_user_multipliers(rows.lambda_e.head(model.me()), rows.lambda_i);
             } else {
                 result.lambda.resize(0);
             }
-            map_row_values(model, rows.ce, rows.ci, result.g);
+            map_row_values(model, rows.ce, rows.ci, extra_fixed_rows(), result.g);
             return;
         }
         if (rows.lambda_e.size() + rows.lambda_i.size() == m) {
@@ -310,22 +318,29 @@ class ProblemState {
         }
     }
 
+    Index extra_fixed_rows() const {
+        return program_ ? static_cast<Index>(program_->internal_fixed_constraints()) : 0;
+    }
+
     const NlpProblemModel *nlp_model() const noexcept { return nlp_model_.get(); }
 
   private:
     // g in the problem's row space from the engine's measured residuals, each
     // row through its kind's shift: equality g = c_E + g_lower; upper-bounded
     // g = c_I + g_upper; lower-bounded g = g_lower - c_I; range g = c_I(upper
-    // part) + g_upper. One rounding of that shift apart from g(x) itself.
+    // part) + g_upper. Two roundings apart from g(x) itself (the engine's shift out and this map's
+    // shift back).
     //
     // THE RULE FOR AN UNMEASURED ROW. A free row is passed to no engine, so no
     // engine measures it: its entry is NaN (unmeasured) and is never evaluated.
     // The engine's blocks are empty where it could not measure its returned
     // point, and then g is empty. Otherwise g is m long.
-    static void map_row_values(const NlpProblemModel &model, const Vec &ce, const Vec &ci, Vec &g) {
+    static void map_row_values(const NlpProblemModel &model, const Vec &ce, const Vec &ci,
+                               Index extra, Vec &g) {
         const NLPRowClassification &rows = model.rows();
         const int m = model.num_declared_rows();
-        if (ce.size() != model.me() || ci.size() != model.mi()) {
+        if ((ce.size() != model.me() && !(extra > 0 && ce.size() == model.me() + extra)) ||
+            ci.size() != model.mi()) {
             g.resize(0);
             return;
         }
@@ -437,7 +452,15 @@ class ProblemState {
             } else {
                 core_->x_lower_ = nlp_model_->lower();
                 core_->x_upper_ = nlp_model_->upper();
-                program_->update_variable_bound_values(core_->x_lower_, core_->x_upper_);
+                try {
+                    program_->update_variable_bound_values(core_->x_lower_, core_->x_upper_);
+                } catch (...) {
+                    // The program may hold the old bounds: drop it so the next
+                    // interior-point solve re-lays instead of running on stale ones.
+                    program_.reset();
+                    core_.reset();
+                    throw;
+                }
             }
         }
         count_variables(dims_.n, nlp_model_->lower(), nlp_model_->upper(), statistics_);

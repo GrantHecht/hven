@@ -318,8 +318,13 @@ struct NonLinearProgram : public NlpAssembly {
     /// bounds_revision_ and the next configuration re-installs those rows (a
     /// re-lay, which the interior-point engine counts as an analysis).
     ///
+    /// PRECONDITION: the materialized bounds hold one record per bounded variable
+    /// (as make_nlp produces them). The bound digest is taken before and after the
+    /// update and a change in it throws std::logic_error.
+    ///
     /// @param lower primal_vars_ entries. @param upper primal_vars_ entries.
     /// @return false exactly when the MakeConstraint exception applied.
+    /// @throws std::logic_error if the bound digest moved across the update.
     /// @throws std::invalid_argument before anything is written: before the
     ///         first make_nlp, on a wrong length, on a NaN, inverted or
     ///         fixed-at-infinity pair, or on a variable whose bound structure
